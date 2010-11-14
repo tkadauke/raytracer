@@ -209,6 +209,36 @@ namespace MatrixTest {
   }
 }
 
+namespace SpecializedMatrixTest {
+  template<class T>
+  class SpecializedMatrixTest : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<Matrix2<float>, Matrix3<float>, Matrix4<float> > SpecializedMatrixTypes;
+  TYPED_TEST_CASE(SpecializedMatrixTest, SpecializedMatrixTypes);
+  
+  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
+    TypeParam matrix;
+    ASSERT_TYPES_EQ(matrix, matrix * matrix);
+  }
+  
+  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithVector) {
+    TypeParam matrix;
+    typename TypeParam::Vector vector;
+    ASSERT_TYPES_EQ(vector, matrix * vector);
+  }
+  
+  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
+    TypeParam matrix;
+    ASSERT_TYPES_EQ(matrix, matrix * 2);
+  }
+  
+  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForDivisionByScalar) {
+    TypeParam matrix;
+    ASSERT_TYPES_EQ(matrix, matrix / 2);
+  }
+}
+
 namespace Matrix2Test {
   TEST(Matrix2, ShouldInitializeIdentity) {
     Matrix2<float> matrix;
@@ -222,26 +252,12 @@ namespace Matrix2Test {
     ASSERT_EQ(0, matrix[1][0]);
     ASSERT_EQ(1, matrix[1][1]);
   }
-
-  TEST(Matrix2, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
-    Matrix2<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix * matrix);
-  }
   
-  TEST(Matrix2, ShouldReturnCorrectTypeForMultiplicationWithVector) {
-    Matrix2<float> matrix;
-    Vector2<float> vector;
-    ASSERT_TYPES_EQ(vector, matrix * vector);
-  }
-  
-  TEST(Matrix2, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
-    Matrix2<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix * 2);
-  }
-  
-  TEST(Matrix2, ShouldReturnCorrectTypeForDivisionByScalar) {
-    Matrix2<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix / 2);
+  TEST(Matrix2, ShouldCopyFromMatrix3) {
+    Matrix3<float> matrix(2, 1, 2, 3, 3, 2, 4, 1, 2);
+    Matrix2<float> copy(matrix), expected(2, 1, 3, 3);
+    
+    ASSERT_EQ(expected, copy);
   }
   
   TEST(Matrix2, ShouldHaveNonZeroDeterminantForIdentityMatrix) {
@@ -429,26 +445,19 @@ namespace Matrix3Test {
     ASSERT_EQ(1, matrix[2][1]);
     ASSERT_EQ(1, matrix[2][2]);
   }
-
-  TEST(Matrix3, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
-    Matrix3<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix * matrix);
+  
+  TEST(Matrix3, ShouldCopyFromMatrix2) {
+    Matrix2<float> matrix(2, 1, 1, 2);
+    Matrix3<float> copy(matrix), expected(2, 1, 0, 1, 2, 0, 0, 0, 1);
+    
+    ASSERT_EQ(expected, copy);
   }
   
-  TEST(Matrix3, ShouldReturnCorrectTypeForMultiplicationWithVector) {
-    Matrix3<float> matrix;
-    Vector3<float> vector;
-    ASSERT_TYPES_EQ(vector, matrix * vector);
-  }
-  
-  TEST(Matrix3, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
-    Matrix3<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix * 2);
-  }
-  
-  TEST(Matrix3, ShouldReturnCorrectTypeForDivisionByScalar) {
-    Matrix3<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix / 2);
+  TEST(Matrix3, ShouldCopyFromMatrix4) {
+    Matrix4<float> matrix(2, 1, 3, 0, 1, 2, 1, 0, 4, 3, 3, 0, 0, 0, 0, 1);
+    Matrix3<float> copy(matrix), expected(2, 1, 3, 1, 2, 1, 4, 3, 3);
+    
+    ASSERT_EQ(expected, copy);
   }
 }
 
@@ -477,32 +486,18 @@ namespace Matrix4Test {
     ASSERT_EQ(0, matrix[3][2]);
     ASSERT_EQ(1, matrix[3][3]);
   }
+  
+  TEST(Matrix4, ShouldCopyFromMatrix3) {
+    Matrix3<float> matrix(2, 1, 3, 1, 2, 1, 4, 3, 3);
+    Matrix4<float> copy(matrix), expected(2, 1, 3, 0, 1, 2, 1, 0, 4, 3, 3, 0, 0, 0, 0, 1);
+    
+    ASSERT_EQ(expected, copy);
+  }
 
   TEST(Matrix4, ShouldReturnVector4WhenMultipliedWithVector) {
     Matrix4<float> matrix;
     Vector4<float> vector(1, 2, 3);
     Vector4<float> result = matrix * vector;
     ASSERT_EQ(vector, result);
-  }
-
-  TEST(Matrix4, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
-    Matrix4<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix * matrix);
-  }
-  
-  TEST(Matrix4, ShouldReturnCorrectTypeForMultiplicationWithVector) {
-    Matrix4<float> matrix;
-    Vector4<float> vector;
-    ASSERT_TYPES_EQ(vector, matrix * vector);
-  }
-  
-  TEST(Matrix4, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
-    Matrix4<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix * 2);
-  }
-  
-  TEST(Matrix4, ShouldReturnCorrectTypeForDivisionByScalar) {
-    Matrix4<float> matrix;
-    ASSERT_TYPES_EQ(matrix, matrix / 2);
   }
 }

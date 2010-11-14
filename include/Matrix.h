@@ -165,6 +165,8 @@ template<int Dimensions, class T, class MatrixType, class VectorType>
 class SpecializedMatrix : public Matrix<Dimensions, T> {
   typedef Matrix<Dimensions, T> Base;
 public:
+  typedef VectorType Vector;
+  
   inline SpecializedMatrix()
     : Base()
   {

@@ -89,7 +89,7 @@ public:
     }
     return result;
   }
-
+  
   inline bool operator==(const Vector<Dimensions, T>& other) const {
     for (int i = 0; i != Dimensions; ++i) {
       if (coordinate(i) != other.coordinate(i))
@@ -228,6 +228,12 @@ public:
   inline T x() const { return Base::coordinate(0); }
   inline T y() const { return Base::coordinate(1); }
   inline T z() const { return Base::coordinate(2); }
+  
+  inline Vector3<T> operator^(const Vector3<T>& other) {
+    return Vector3<T>(y() * other.z() - z() * other.y(),
+                      z() * other.x() - x() * other.z(),
+                      x() * other.y() - y() * other.x());
+  }
 };
 
 template<class T>

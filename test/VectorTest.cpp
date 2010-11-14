@@ -181,6 +181,46 @@ namespace VectorTest {
   }
 }
 
+namespace SpecializedVectorTest {
+  template<class T>
+  class SpecializedVectorTest : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float> > SpecializedVectorTypes;
+  TYPED_TEST_CASE(SpecializedVectorTest, SpecializedVectorTypes);
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector * 2);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForDivisionByScalar) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector / 2);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForAddition) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector + vector);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForSubtraction) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector - vector);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForNegation) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, - vector);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForNormalization) {
+    TypeParam vector;
+    vector[0] = 1;
+    ASSERT_TYPES_EQ(vector, vector.normalized());
+  }
+}
+
 namespace Vector2Test {
   TEST(Vector2, ShouldInitializeNullVector) {
     Vector2<float> vector;
@@ -201,36 +241,6 @@ namespace Vector2Test {
     ASSERT_EQ(2, dest.y());
   }
   
-  TEST(Vector2, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
-    Vector2<float> vector;
-    ASSERT_TYPES_EQ(vector, vector * 2);
-  }
-  
-  TEST(Vector2, ShouldReturnCorrectTypeForDivisionByScalar) {
-    Vector2<float> vector;
-    ASSERT_TYPES_EQ(vector, vector / 2);
-  }
-  
-  TEST(Vector2, ShouldReturnCorrectTypeForAddition) {
-    Vector2<float> vector;
-    ASSERT_TYPES_EQ(vector, vector + vector);
-  }
-
-  TEST(Vector2, ShouldReturnCorrectTypeForSubtraction) {
-    Vector2<float> vector;
-    ASSERT_TYPES_EQ(vector, vector - vector);
-  }
-
-  TEST(Vector2, ShouldReturnCorrectTypeForNegation) {
-    Vector2<float> vector;
-    ASSERT_TYPES_EQ(vector, - vector);
-  }
-
-  TEST(Vector2, ShouldReturnCorrectTypeForNormalization) {
-    Vector2<float> vector(1, 0);
-    ASSERT_TYPES_EQ(vector, vector.normalized());
-  }
-
   TEST(Vector2, ShouldDefineNullVector) {
     Vector2<float> expected(0, 0);
     ASSERT_EQ(expected, Vector2<float>::null);
@@ -273,39 +283,15 @@ namespace Vector3Test {
     ASSERT_EQ(3, dest.z());
   }
 
-  TEST(Vector3, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
-    Vector3<float> vector;
-    ASSERT_TYPES_EQ(vector, vector * 2);
-  }
-  
-  TEST(Vector3, ShouldReturnCorrectTypeForDivisionByScalar) {
-    Vector3<float> vector;
-    ASSERT_TYPES_EQ(vector, vector / 2);
-  }
-  
-  TEST(Vector3, ShouldReturnCorrectTypeForAddition) {
-    Vector3<float> vector;
-    ASSERT_TYPES_EQ(vector, vector + vector);
-  }
-
-  TEST(Vector3, ShouldReturnCorrectTypeForSubtraction) {
-    Vector3<float> vector;
-    ASSERT_TYPES_EQ(vector, vector - vector);
-  }
-
-  TEST(Vector3, ShouldReturnCorrectTypeForNegation) {
-    Vector3<float> vector;
-    ASSERT_TYPES_EQ(vector, - vector);
-  }
-
-  TEST(Vector3, ShouldReturnCorrectTypeForNormalization) {
-    Vector3<float> vector(1, 0);
-    ASSERT_TYPES_EQ(vector, vector.normalized());
-  }
-
   TEST(Vector3, ShouldDefineNullVector) {
     Vector3<float> expected(0, 0, 0);
     ASSERT_EQ(expected, Vector3<float>::null);
+  }
+  
+  TEST(Vector3, ShouldCalculateCrossProductOfUnitVectors) {
+    Vector3<float> x(1, 0, 0), y(0, 1, 0);
+    Vector3<float> expected(0, 0, 1);
+    ASSERT_EQ(expected, x ^ y);
   }
 }
 
@@ -343,36 +329,6 @@ namespace Vector4Test {
     ASSERT_EQ(2, dest.y());
     ASSERT_EQ(3, dest.z());
     ASSERT_EQ(1, dest.w());
-  }
-
-  TEST(Vector4, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
-    Vector4<float> vector;
-    ASSERT_TYPES_EQ(vector, vector * 2);
-  }
-  
-  TEST(Vector4, ShouldReturnCorrectTypeForDivisionByScalar) {
-    Vector4<float> vector;
-    ASSERT_TYPES_EQ(vector, vector / 2);
-  }
-  
-  TEST(Vector4, ShouldReturnCorrectTypeForAddition) {
-    Vector4<float> vector;
-    ASSERT_TYPES_EQ(vector, vector + vector);
-  }
-
-  TEST(Vector4, ShouldReturnCorrectTypeForSubtraction) {
-    Vector4<float> vector;
-    ASSERT_TYPES_EQ(vector, vector - vector);
-  }
-
-  TEST(Vector4, ShouldReturnCorrectTypeForNegation) {
-    Vector4<float> vector;
-    ASSERT_TYPES_EQ(vector, - vector);
-  }
-
-  TEST(Vector4, ShouldReturnCorrectTypeForNormalization) {
-    Vector4<float> vector(1, 0, 0);
-    ASSERT_TYPES_EQ(vector, vector.normalized());
   }
 
   TEST(Vector4, ShouldPreserveWCoordinateWhenCopyingFromVector4) {
