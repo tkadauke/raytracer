@@ -84,4 +84,8 @@ namespace QuaternionTest {
     
     ASSERT_EQ(quaternion, quaternion * identity);
   }
+  
+  TEST(Quaternion, ShouldMultiplyTwoQuaternions) {
+    
+  }
 }

@@ -1,3 +1,6 @@
+#ifndef DIVISION_BY_ZERO_EXCEPTION_H
+#define DIVISION_BY_ZERO_EXCEPTION_H
+
 #include "Exception.h"
 
 class DivisionByZeroException : public Exception {
@@ -7,3 +10,5 @@ public:
   {
   }
 };
+
+#endif

@@ -2,7 +2,9 @@
 #define MATRIX_H
 
 #include <iostream>
+#include <cmath>
 #include "Vector.h"
+#include "DivisionByZeroException.h"
 
 template<int Dimensions, class T>
 class Matrix {
@@ -25,6 +27,22 @@ public:
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         m_cells[row][col] = cells[row][col];
+      }
+    }
+  }
+  
+  template<int D>
+  inline Matrix(const Matrix<D, T>& source) {
+    for (int row = 0; row != Dimensions; ++row) {
+      for (int col = 0; col != Dimensions; ++col) {
+        if (row >= D || col >= D) {
+          if (row == col)
+            m_cells[row][col] = T(1);
+          else
+            m_cells[row][col] = T();
+        } else {
+          m_cells[row][col] = source[row][col];
+        }
       }
     }
   }
@@ -86,6 +104,31 @@ public:
     }
     return result;
   }
+  
+  inline Matrix<Dimensions, T> operator*(const T& scalar) {
+    Matrix<Dimensions, T> result;
+
+    for (int row = 0; row != Dimensions; ++row) {
+      for (int col = 0; col != Dimensions; ++col) {
+        result[row][col] = m_cells[row][col] * scalar;
+      }
+    }
+    return result;
+  }
+
+  inline Matrix<Dimensions, T> operator/(const T& scalar) {
+    if (scalar == T())
+      throw DivisionByZeroException(__FILE__, __LINE__);
+
+    Matrix<Dimensions, T> result;
+
+    for (int row = 0; row != Dimensions; ++row) {
+      for (int col = 0; col != Dimensions; ++col) {
+        result[row][col] = m_cells[row][col] / scalar;
+      }
+    }
+    return result;
+  }
 
   inline T rowSum(int row) {
     T result = T();
@@ -118,12 +161,52 @@ std::ostream& operator<<(std::ostream& os, const Matrix<Dimensions, T>& matrix) 
   return os;
 }
 
-template<class T>
-class Matrix2 : public Matrix<2, T> {
-  typedef Matrix<2, T> Base;
+template<int Dimensions, class T, class MatrixType, class VectorType>
+class SpecializedMatrix : public Matrix<Dimensions, T> {
+  typedef Matrix<Dimensions, T> Base;
 public:
+  inline SpecializedMatrix()
+    : Base()
+  {
+  }
+  
+  template<int D>
+  inline SpecializedMatrix(const Matrix<D, T>& source)
+    : Base(source)
+  {
+  }
+  
+  inline MatrixType operator*(const MatrixType& other) const {
+    return static_cast<MatrixType>(this->Base::operator*(static_cast<MatrixType>(other)));
+  }
+
+  inline VectorType operator*(const VectorType& vector) {
+    return static_cast<VectorType>(this->Base::operator*(vector));
+  }
+  
+  inline MatrixType operator*(const T& scalar) {
+    return static_cast<MatrixType>(this->Base::operator*(scalar));
+  }
+
+  inline MatrixType operator/(const T& scalar) {
+    return static_cast<MatrixType>(this->Base::operator/(scalar));
+  }
+};
+
+template<class T>
+class Matrix2 : public SpecializedMatrix<2, T, Matrix2<T>, Vector2<T> > {
+  typedef SpecializedMatrix<2, T, Matrix2<T>, Vector2<T> > Base;
+public:
+  using Base::cell;
+  
   inline Matrix2()
     : Base()
+  {
+  }
+
+  template<int D>
+  inline Matrix2(const Matrix<D, T>& source)
+    : Base(source)
   {
   }
 
@@ -132,14 +215,119 @@ public:
     setCell(0, 0, c00); setCell(0, 1, c01);
     setCell(1, 0, c10); setCell(1, 1, c11);
   }
+  
+  inline T determinant() const {
+    return cell(0, 0) * cell(1, 1) - cell(0, 1) * cell(1, 0);
+  }
+  
+  inline Matrix2<T> inverted() const {
+    return Matrix2<T>(cell(1, 1), -cell(0, 1), -cell(1, 0), cell(0, 0)) / determinant();
+  }
+  
+  inline static Matrix2<T> rotate(const T& angle) {
+    T sin = std::sin(angle), cos = std::cos(angle);
+    return Matrix2<T>(cos, -sin,
+                      sin, cos);
+  }
+  
+  inline static Matrix2<T> clockwise(const T& angle) {
+    return rotate(-angle);
+  }
+  
+  inline static Matrix2<T> counterclockwise(const T& angle) {
+    return rotate(angle);
+  }
+  
+  inline static Matrix2<T> scale(const T& factor) {
+    return Matrix2<T>(factor, 0,
+                      0,      factor);
+  }
+
+  inline static Matrix2<T> scale(const T& xFactor, const T& yFactor) {
+    return Matrix2<T>(xFactor, 0,
+                      0,       yFactor);
+  }
+
+  inline static Matrix2<T> shear(const T& xShear, const T& yShear) {
+    return Matrix2<T>(1,      xShear,
+                      yShear, 1);
+  }
+
+  inline static Matrix2<T> reflect(const Vector2<T>& vector) {
+    return reflect(vector.x(), vector.y());
+  }
+
+  inline static Matrix2<T> reflect(const T& x, const T& y) {
+    T len = std::sqrt(x * x + y * y);
+    T divider = len*len;
+    
+    T coordProduct = (2 * x * y) / divider;
+    
+    return Matrix2<T>((x*x - y*y) / divider, coordProduct,
+                      coordProduct,          (y*y - x*x) / divider);
+  }
+
+  inline static Matrix2<T> project(const Vector2<T>& vector) {
+    return project(vector.x(), vector.y());
+  }
+
+  inline static Matrix2<T> project(const T& x, const T& y) {
+    T len = std::sqrt(x * x + y * y);
+    T divider = len*len;
+    
+    T coordProduct = (x * y) / divider;
+    
+    return Matrix2<T>((x * x) / divider, coordProduct,
+                      coordProduct,      (y * y) / divider);
+  }
+  
+  static const Matrix2<T> identity;
+  static const Matrix2<T> rotate90, rotate180, rotate270;
+  
+  static const Matrix2<T> reflectX, reflectY;
+  
+  static const Vector2<T> xUnit, yUnit;
 };
 
 template<class T>
-class Matrix3 : public Matrix<3, T> {
-  typedef Matrix<3, T> Base;
+const Matrix2<T> Matrix2<T>::identity = Matrix2<T>();
+
+template<class T>
+const Matrix2<T> Matrix2<T>::rotate90 = Matrix2<T>(0, -1, 1, 0);
+
+template<class T>
+const Matrix2<T> Matrix2<T>::rotate180 = Matrix2<T>(-1, 0, 0, -1);
+
+template<class T>
+const Matrix2<T> Matrix2<T>::rotate270 = Matrix2<T>(0, 1, -1, 0);
+
+template<class T>
+const Matrix2<T> Matrix2<T>::reflectX = Matrix2<T>(-1, 0, 0, 1);
+
+template<class T>
+const Matrix2<T> Matrix2<T>::reflectY = Matrix2<T>(1, 0, 0, -1);
+
+template<class T>
+const Vector2<T> Matrix2<T>::xUnit = Vector2<T>(1, 0);
+
+template<class T>
+const Vector2<T> Matrix2<T>::yUnit = Vector2<T>(0, 1);
+
+typedef Matrix2<float> Matrix2f;
+typedef Matrix2<double> Matrix2d;
+
+template<class T>
+class Matrix3 : public SpecializedMatrix<3, T, Matrix3<T>, Vector3<T> > {
+  typedef SpecializedMatrix<3, T, Matrix3<T>, Vector3<T> > Base;
 public:
   inline Matrix3()
     : Base()
+  {
+  }
+
+  template<int D>
+  inline Matrix3(const Matrix<D, T>& source)
+    : Base(source)
   {
   }
 
@@ -152,12 +340,21 @@ public:
   }
 };
 
+typedef Matrix3<float> Matrix3f;
+typedef Matrix3<double> Matrix3d;
+
 template<class T>
-class Matrix4 : public Matrix<4, T> {
-  typedef Matrix<4, T> Base;
+class Matrix4 : public SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > {
+  typedef SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > Base;
 public:
   inline Matrix4()
     : Base()
+  {
+  }
+  
+  template<int D>
+  inline Matrix4(const Matrix<D, T>& source)
+    : Base(source)
   {
   }
 
@@ -171,5 +368,8 @@ public:
     setCell(3, 0, c30); setCell(3, 1, c31); setCell(3, 2, c32); setCell(3, 3, c33);
   }
 };
+
+typedef Matrix4<float> Matrix4f;
+typedef Matrix4<double> Matrix4d;
 
 #endif

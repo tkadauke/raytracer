@@ -73,6 +73,14 @@ public:
     }
     return result;
   }
+  
+  inline T operator*(const Vector<Dimensions, T>& other) {
+    T result = T();
+    for (int i = 0; i != Dimensions; ++i) {
+      result += coordinate(i) * other.coordinate(i);
+    }
+    return result;
+  }
 
   inline Vector<Dimensions, T> operator*(const T& factor) const {
     Vector<Dimensions, T> result;
@@ -122,9 +130,49 @@ std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T>& vector) 
   return os;
 }
 
+template<int Dimensions, class T, class VectorType>
+class SpecializedVector : public Vector<Dimensions, T> {
+  typedef Vector<Dimensions, T> Base;
+public:
+  inline SpecializedVector()
+    : Base()
+  {
+  }
+
+  template<int D>
+  inline SpecializedVector(const Vector<D, T>& source)
+    : Base(source)
+  {
+  }
+  
+  inline VectorType operator+(const VectorType& other) const {
+    return static_cast<VectorType>(this->Base::operator+(other));
+  }
+
+  inline VectorType operator-(const VectorType& other) const {
+    return static_cast<VectorType>(this->Base::operator-(other));
+  }
+
+  inline VectorType operator-() const {
+    return static_cast<VectorType>(this->Base::operator-());
+  }
+
+  inline VectorType operator/(const T& factor) const {
+    return static_cast<VectorType>(this->Base::operator/(factor));
+  }
+
+  inline VectorType operator*(const T& factor) const {
+    return static_cast<VectorType>(this->Base::operator*(factor));
+  }
+
+  inline VectorType normalized() const {
+    return static_cast<VectorType>(this->Base::normalized());
+  }
+};
+
 template<class T>
-class Vector2 : public Vector<2, T> {
-  typedef Vector<2, T> Base;
+class Vector2 : public SpecializedVector<2, T, Vector2<T> > {
+  typedef SpecializedVector<2, T, Vector2<T> > Base;
 public:
   static const Vector2<T> null;
 
@@ -138,8 +186,8 @@ public:
     setCoordinate(1, y);
   }
 
-  template<class Source>
-  inline Vector2(const Source& source)
+  template<int D>
+  inline Vector2(const Vector<D, T>& source)
     : Base(source)
   {
   }
@@ -151,9 +199,12 @@ public:
 template<class T>
 const Vector2<T> Vector2<T>::null = Vector2<T>();
 
+typedef Vector2<float> Vector2f;
+typedef Vector2<double> Vector2d;
+
 template<class T>
-class Vector3 : public Vector<3, T> {
-  typedef Vector<3, T> Base;
+class Vector3 : public SpecializedVector<3, T, Vector3<T> > {
+  typedef SpecializedVector<3, T, Vector3<T> > Base;
 public:
   static const Vector3<T> null;
 
@@ -168,8 +219,8 @@ public:
     setCoordinate(2, z);
   }
 
-  template<class Source>
-  inline Vector3(const Source& source)
+  template<int D>
+  inline Vector3(const Vector<D, T>& source)
     : Base(source)
   {
   }
@@ -182,9 +233,12 @@ public:
 template<class T>
 const Vector3<T> Vector3<T>::null = Vector3<T>();
 
+typedef Vector3<float> Vector3f;
+typedef Vector3<double> Vector3d;
+
 template<class T>
-class Vector4 : public Vector<4, T> {
-  typedef Vector<4, T> Base;
+class Vector4 : public SpecializedVector<4, T, Vector4<T> > {
+  typedef SpecializedVector<4, T, Vector4<T> > Base;
 public:
   static const Vector4<T> null;
 
@@ -201,8 +255,8 @@ public:
     setCoordinate(3, w);
   }
 
-  template<class Source>
-  inline Vector4(const Source& source)
+  template<int D>
+  inline Vector4(const Vector<D, T>& source)
     : Base(source)
   {
     setCoordinate(3, T(1));
@@ -212,9 +266,16 @@ public:
   inline T y() const { return Base::coordinate(1); }
   inline T z() const { return Base::coordinate(2); }
   inline T w() const { return Base::coordinate(3); }
+  
+  inline Vector3<T> homogenized() const {
+    return Vector3<T>(*this) / w();
+  }
 };
 
 template<class T>
 const Vector4<T> Vector4<T>::null = Vector4<T>();
+
+typedef Vector4<float> Vector4f;
+typedef Vector4<double> Vector4d;
 
 #endif
