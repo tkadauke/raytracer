@@ -1,0 +1,101 @@
+#ifndef COLOR_H
+#define COLOR_H
+
+#include "DivisionByZeroException.h"
+
+template<class T>
+class Color {
+  typedef T ComponentsType[3];
+
+public:
+  inline Color() {
+    for (int i = 0; i != 3; ++i) {
+      m_components[i] = T();
+    }
+  }
+
+  inline Color(const ComponentsType& cells) {
+    for (int i = 0; i != 3; ++i) {
+      m_components[i] = cells[i];
+    }
+  }
+  
+  inline Color(const T& r, const T& g, const T& b) {
+    m_components[0] = r;
+    m_components[1] = g;
+    m_components[2] = b;
+  }
+
+  inline T component(int index) const { return m_components[index]; }
+  inline void setComponent(int index, const T& value) { m_components[index] = value; }
+
+  inline T& operator[](int index) { return m_components[index]; }
+  inline const T& operator[](int index) const { return m_components[index]; }
+  
+  inline const T& r() const { return component(0); }
+  inline const T& g() const { return component(1); }
+  inline const T& b() const { return component(2); }
+
+  inline Color<T> operator+(const Color<T>& other) const {
+    Color<T> result;
+    for (int i = 0; i != 3; ++i) {
+      result.setComponent(i, component(i) + other.component(i));
+    }
+    return result;
+  }
+
+  inline Color<T> operator-(const Color<T>& other) const {
+    Color<T> result;
+    for (int i = 0; i != 3; ++i) {
+      result.setComponent(i, component(i) - other.component(i));
+    }
+    return result;
+  }
+
+  inline Color<T> operator/(const T& factor) const {
+    if (factor == T())
+      throw DivisionByZeroException(__FILE__, __LINE__);
+
+    Color<T> result;
+    for (int i = 0; i != 3; ++i) {
+      result.setComponent(i, component(i) / factor);
+    }
+    return result;
+  }
+
+  inline Color<T> operator*(const T& factor) const {
+    Color<T> result;
+    for (int i = 0; i != 3; ++i) {
+      result.setComponent(i, component(i) * factor);
+    }
+    return result;
+  }
+  
+  inline bool operator==(const Color<T>& other) const {
+    for (int i = 0; i != 3; ++i) {
+      if (component(i) != other.component(i))
+        return false;
+    }
+    return true;
+  }
+
+  inline bool operator!=(const Color<T>& other) const {
+    return !(*this == other);
+  }
+
+private:
+  T m_components[3];
+};
+
+typedef Color<float> Colorf;
+typedef Color<double> Colord;
+
+template<class T>
+std::ostream& operator<<(std::ostream& os, const Color<T>& color) {
+  for (int i = 0; i != 3; ++i) {
+    os << color[i] << ' ';
+  }
+  return os;
+}
+
+#endif
