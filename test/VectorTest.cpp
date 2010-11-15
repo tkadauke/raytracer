@@ -186,7 +186,8 @@ namespace SpecializedVectorTest {
   class SpecializedVectorTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float> > SpecializedVectorTypes;
+  typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>,
+                           Vector2<double>, Vector3<double>, Vector4<double> > SpecializedVectorTypes;
   TYPED_TEST_CASE(SpecializedVectorTest, SpecializedVectorTypes);
 
   TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {

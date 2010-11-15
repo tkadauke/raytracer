@@ -214,7 +214,8 @@ namespace SpecializedMatrixTest {
   class SpecializedMatrixTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Matrix2<float>, Matrix3<float>, Matrix4<float> > SpecializedMatrixTypes;
+  typedef ::testing::Types<Matrix2<float>, Matrix3<float>, Matrix4<float>,
+                           Matrix2<double>, Matrix3<double>, Matrix4<double> > SpecializedMatrixTypes;
   TYPED_TEST_CASE(SpecializedMatrixTest, SpecializedMatrixTypes);
   
   TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
