@@ -3,74 +3,70 @@
 
 #include "HitPoint.h"
 #include <utility>
-#include <list>
+#include <set>
 #include <limits>
+#include <iostream>
 
 class HitPointInterval {
 public:
-  class Pair : public std::pair<HitPoint, HitPoint> {
-    typedef std::pair<HitPoint, HitPoint> Base;
+  class HitPointWrapper {
   public:
-    Pair(const HitPoint& first, const HitPoint& second)
-      : Base(first.distance() < second.distance() ? first : second, first.distance() < second.distance() ? second : first)
-    {
-    }
+    inline HitPointWrapper(const HitPoint& p, bool i)
+      : point(p), in(i) {}
+    
+    inline bool operator<(const HitPointWrapper& other) const { return point.distance() < other.point.distance(); }
+    
+    HitPoint point;
+    bool in;
   };
   
-  typedef std::list<Pair> HitPointList;
+  typedef std::multiset<HitPointWrapper> HitPoints;
   
   inline HitPointInterval() {}
   
-  inline HitPointInterval(const Pair& section) {
-    add(section);
-  }
-  
   inline HitPointInterval(const HitPoint& begin, const HitPoint& end) {
-    add(Pair(begin, end));
+    add(begin, end);
   }
   
-  inline void add(const Pair& section) {
-    m_intervals.push_back(section);
+  inline void addIn(const HitPoint& hitPoint) {
+    add(hitPoint, true);
+  }
+  
+  inline void addOut(const HitPoint& hitPoint) {
+    add(hitPoint, false);
+  }
+  
+  inline void add(const HitPoint& hitPoint, bool in) {
+    m_hitPoints.insert(HitPointWrapper(hitPoint, in));
   }
   
   inline void add(const HitPoint& hitPoint) {
     add(hitPoint, hitPoint);
   }
-  
+
   inline void add(const HitPoint& first, const HitPoint& second) {
-    add(Pair(first, second));
+    addIn(first);
+    addOut(second);
   }
   
-  inline const HitPointList& intervals() const {
-    return m_intervals;
+  inline const HitPoints& points() const {
+    return m_hitPoints;
   }
   
-  inline HitPointInterval operator+(const HitPointInterval& other) const {
-    HitPointInterval result;
-    for (HitPointList::const_iterator i = intervals().begin(); i != intervals().end(); ++i) {
-      result.add(*i);
-    }
-    
-    for (HitPointList::const_iterator i = other.intervals().begin(); i != other.intervals().end(); ++i) {
-      result.add(*i);
-    }
-    return result;
+  inline bool empty() const {
+    return m_hitPoints.empty();
   }
   
-  inline HitPointInterval operator|(const HitPointInterval& other) const {
-    HitPointInterval result;
-    HitPointInterval temp = *this + other;
-    result.add(temp.min(), temp.max());
-    return result;
-  }
+  HitPointInterval operator|(const HitPointInterval& other) const;
+  HitPointInterval operator&(const HitPointInterval& other) const;
   
   const HitPoint& min() const {
     double distance = std::numeric_limits<double>::infinity();
     HitPoint const* result = &HitPoint::undefined;
-    for (HitPointList::const_iterator i = m_intervals.begin(); i != m_intervals.end(); ++i) {
-      if (i->first.distance() < distance) {
-        distance = i->first.distance();
-        result = &i->first;
+    for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
+      if (i->point.distance() < distance) {
+        distance = i->point.distance();
+        result = &i->point;
       }
     }
     return *result;
@@ -79,14 +75,10 @@ public:
   const HitPoint& minWithPositiveDistance() const {
     double distance = std::numeric_limits<double>::infinity();
     HitPoint const* result = &HitPoint::undefined;
-    for (HitPointList::const_iterator i = m_intervals.begin(); i != m_intervals.end(); ++i) {
-      if (i->second.distance() > 0 && i->second.distance() < distance) {
-        distance = i->second.distance();
-        result = &i->second;
-      }
-      if (i->first.distance() > 0 && i->first.distance() < distance) {
-        distance = i->first.distance();
-        result = &i->first;
+    for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
+      if (i->point.distance() > 0 && i->point.distance() < distance) {
+        distance = i->point.distance();
+        result = &i->point;
       }
     }
     return *result;
@@ -95,17 +87,19 @@ public:
   const HitPoint& max() const {
     double distance = - std::numeric_limits<double>::infinity();
     HitPoint const* result = &HitPoint::undefined;
-    for (HitPointList::const_iterator i = m_intervals.begin(); i != m_intervals.end(); ++i) {
-      if (i->second.distance() > distance) {
-        distance = i->second.distance();
-        result = &i->second;
+    for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
+      if (i->point.distance() > distance) {
+        distance = i->point.distance();
+        result = &i->point;
       }
     }
     return *result;
   }
   
 private:
-  HitPointList m_intervals;
+  HitPoints m_hitPoints;
 };
+
+std::ostream& operator<<(std::ostream& os, const HitPointInterval& interval);
 
 #endif

@@ -40,7 +40,7 @@ namespace UnionTest {
     ASSERT_EQ(0, result);
   }
   
-  TEST(Union, ShouldReturnBuildUnionOfHitPoints) {
+  TEST(Union, ShouldBuildUnionOfHitPoints) {
     Union u;
     MockSurface* surface1 = new MockSurface;
     MockSurface* surface2 = new MockSurface;

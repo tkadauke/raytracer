@@ -78,11 +78,17 @@ end
 task :examples => EXAMPLES_BIN
 
 namespace :test do
+  task :build => TEST_BIN
+  
   desc "Run all unit tests"
-  task :run => TEST_BIN do
-    sh(TEST_BIN)
+  task :run => :build do
+    if ENV['ONLY']
+      sh("#{TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
+    else
+      sh(TEST_BIN)
+    end
   end
 end
 
 desc "Run all tests"
-task :test => ['test:run']
+task :test => ['test:build', 'test:run']

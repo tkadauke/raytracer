@@ -14,3 +14,7 @@ public:
 ACTION_P(AddHitPoint, hitPoint) {
   arg1.add(hitPoint);
 }
+
+ACTION_P2(AddHitPoints, hitPoint1, hitPoint2) {
+  arg1.add(hitPoint1, hitPoint2);
+}
