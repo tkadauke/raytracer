@@ -1,2 +1,4 @@
 *.o
 tests.run
+.DS_Store
+examples/*/*RayTracer

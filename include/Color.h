@@ -8,6 +8,9 @@ class Color {
   typedef T ComponentsType[3];
 
 public:
+  static const Color<T> black;
+  static const Color<T> white;
+  
   inline Color() {
     for (int i = 0; i != 3; ++i) {
       m_components[i] = T();
@@ -26,7 +29,7 @@ public:
     m_components[2] = b;
   }
 
-  inline T component(int index) const { return m_components[index]; }
+  inline const T& component(int index) const { return m_components[index]; }
   inline void setComponent(int index, const T& value) { m_components[index] = value; }
 
   inline T& operator[](int index) { return m_components[index]; }
@@ -71,6 +74,14 @@ public:
     return result;
   }
   
+  inline Color<T> operator*(const Color<T>& intensity) const {
+    Color<T> result;
+    for (int i = 0; i != 3; ++i) {
+      result.setComponent(i, component(i) * intensity.component(i));
+    }
+    return result;
+  }
+  
   inline bool operator==(const Color<T>& other) const {
     for (int i = 0; i != 3; ++i) {
       if (component(i) != other.component(i))
@@ -82,10 +93,24 @@ public:
   inline bool operator!=(const Color<T>& other) const {
     return !(*this == other);
   }
-
+  
+  inline unsigned int rgb() const {
+    typedef unsigned char uchar;
+    
+    return std::min(unsigned(component(0) * 255), 255u) << 16 |
+           std::min(unsigned(component(1) * 255), 255u) << 8 |
+           std::min(unsigned(component(2) * 255), 255u);
+  }
+  
 private:
   T m_components[3];
 };
+
+template<class T>
+const Color<T> Color<T>::black = Color<T>();
+
+template<class T>
+const Color<T> Color<T>::white = Color<T>(1, 1, 1);
 
 typedef Color<float> Colorf;
 typedef Color<double> Colord;

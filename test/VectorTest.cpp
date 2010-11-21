@@ -2,6 +2,10 @@
 #include "Vector.h"
 #include "test/helpers/TypeTestHelper.h"
 
+#include <limits>
+
+using namespace std;
+
 namespace VectorTest {
   TEST(Vector, ShouldInitializeCoordinatesWithZeros) {
     Vector<3, float> vector;
@@ -130,6 +134,18 @@ namespace VectorTest {
     
     ASSERT_EQ(15, first * second);
   }
+  
+  TEST(Vector, ShouldFollowDotProductRules) {
+    float first_elements[3] = { 1, 2, 2 };
+    Vector<3, float> first(first_elements);
+
+    float second_elements[3] = { 3, 4, 2 };
+    Vector<3, float> second(second_elements);
+    
+    ASSERT_EQ(-(first * second), (-first * second));
+    ASSERT_EQ(-(first * second), (first * -second));
+    ASSERT_EQ(first * second, second * first);
+  }
 
   TEST(Vector, ShouldMultiplyVectorByScalar) {
     Vector<3, float> vector;
@@ -164,6 +180,11 @@ namespace VectorTest {
     ASSERT_TRUE(first == second);
   }
 
+  TEST(Vector, ShouldCompareSameVectorForEquality) {
+    Vector<3, float> vector;
+    ASSERT_TRUE(vector == vector);
+  }
+
   TEST(Vector, ShouldCompareVectorsForEquality) {
     float elements[3] = { 1, 2, 3 };
     Vector<3, float> first(elements), second(elements);
@@ -179,6 +200,18 @@ namespace VectorTest {
 
     ASSERT_TRUE(first != second);
   }
+  
+  TEST(Vector, ShouldReturnTrueIfVectorIsUndefined) {
+    float elements[3] = { numeric_limits<float>::quiet_NaN(), 0, 0 };
+    Vector<3, float> vector(elements);
+    ASSERT_TRUE(vector.isUndefined());
+  }
+  
+  TEST(Vector, ShouldReturnFalseIfVectorIsDefined) {
+    float elements[3] = { 0, 0, 0 };
+    Vector<3, float> vector(elements);
+    ASSERT_FALSE(vector.isUndefined());
+  }
 }
 
 namespace SpecializedVectorTest {
@@ -189,6 +222,11 @@ namespace SpecializedVectorTest {
   typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>,
                            Vector2<double>, Vector3<double>, Vector4<double> > SpecializedVectorTypes;
   TYPED_TEST_CASE(SpecializedVectorTest, SpecializedVectorTypes);
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForDotProduct) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(typename TypeParam::Coordinate(0), vector * vector);
+  }
 
   TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
     TypeParam vector;
@@ -219,6 +257,11 @@ namespace SpecializedVectorTest {
     TypeParam vector;
     vector[0] = 1;
     ASSERT_TYPES_EQ(vector, vector.normalized());
+  }
+  
+  TYPED_TEST(SpecializedVectorTest, ShouldProvideUndefinedVector) {
+    TypeParam vector = TypeParam::undefined;
+    ASSERT_TRUE(vector.isUndefined());
   }
 }
 

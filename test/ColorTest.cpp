@@ -82,6 +82,13 @@ namespace ColorTest {
   
     ASSERT_COLOR_NEAR(expected, multiplied, 0.0001);
   }
+  
+  TEST(Color, ShouldMultiplyColorByIntensityColor) {
+    Color<float> color(1, 0.5, 1);
+    Color<float> intensity(0.5, 0.5, 1);
+    Color<float> expected(0.5, 0.25, 1);
+    ASSERT_COLOR_NEAR(expected, color * intensity, 0.0001);
+  }
 
   TEST(Color, ShouldReturnTrueWhenComparingTwoDefaultColors) {
     Color<float> first, second;
@@ -96,5 +103,20 @@ namespace ColorTest {
   TEST(Color, ShouldCompareColorsForInequality) {
     Color<float> first(0, 0, 1), second(0, 1, 1);
     ASSERT_TRUE(first != second);
+  }
+  
+  TEST(Color, ShouldConvertToRgbValue) {
+    Color<float> c1(0, 0, 0);
+    ASSERT_EQ(0x00000000, c1.rgb());
+    Color<float> c2(1, 1, 1);
+    ASSERT_EQ(0x00FFFFFF, c2.rgb());
+  }
+  
+  TEST(Color, ShouldDefineConstants) {
+    Color<float> black(0, 0, 0);
+    ASSERT_EQ(black, Color<float>::black);
+
+    Color<float> white(1, 1, 1);
+    ASSERT_EQ(white, Color<float>::white);
   }
 }

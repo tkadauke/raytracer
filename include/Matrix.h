@@ -340,6 +340,27 @@ public:
     setCell(1, 0, c10); setCell(1, 1, c11); setCell(1, 2, c12);
     setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22);
   }
+  
+  inline static Matrix3<T> rotateX(const T& angle) {
+    T sin = std::sin(angle), cos = std::cos(angle);
+    return Matrix3<T>(1, 0,   0,
+                      0, cos, -sin,
+                      0, sin, cos);
+  }
+  
+  inline static Matrix3<T> rotateY(const T& angle) {
+    T sin = std::sin(angle), cos = std::cos(angle);
+    return Matrix3<T>(cos,  T(),  sin,
+                      T(),  T(1), T(),
+                      -sin, T(),  cos);
+  }
+  
+  inline static Matrix3<T> rotateZ(const T& angle) {
+    T sin = std::sin(angle), cos = std::cos(angle);
+    return Matrix3<T>(cos, -sin, 0,
+                      sin, cos,  0,
+                      0,   0,    1);
+  }
 };
 
 typedef Matrix3<float> Matrix3f;
@@ -349,6 +370,8 @@ template<class T>
 class Matrix4 : public SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > {
   typedef SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > Base;
 public:
+  using Base::cell;
+  
   inline Matrix4()
     : Base()
   {
@@ -369,7 +392,58 @@ public:
     setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22); setCell(2, 3, c23);
     setCell(3, 0, c30); setCell(3, 1, c31); setCell(3, 2, c32); setCell(3, 3, c33);
   }
+
+  inline Matrix4(const Vector3<T>& xAxis, const Vector3<T>& yAxis, const Vector3<T>& zAxis) {
+    setCell(0, 0, xAxis[0]); setCell(0, 1, xAxis[1]); setCell(0, 2, xAxis[2]); setCell(0, 3, T());
+    setCell(1, 0, yAxis[0]); setCell(1, 1, yAxis[1]); setCell(1, 2, yAxis[2]); setCell(1, 3, T());
+    setCell(2, 0, zAxis[0]); setCell(2, 1, zAxis[1]); setCell(2, 2, zAxis[2]); setCell(2, 3, T());
+    setCell(3, 0, T());      setCell(3, 1, T());      setCell(3, 2, T());      setCell(3, 3, T(1));
+  }
+  
+  Matrix4<T> inverted() const;
+  T determinant() const;
+  
+  inline static Matrix4<T> translate(const Vector3<T>& position) {
+    return Matrix4<T>(
+      1, 0, 0, position[0],
+      0, 1, 0, position[1],
+      0, 0, 1, position[2],
+      0, 0, 0, 1
+    );
+  }
 };
+
+template<class T>
+Matrix4<T> Matrix4<T>::inverted() const {
+  return Matrix4<T>(
+    cell(1, 2)*cell(2, 3)*cell(3, 1) - cell(1, 3)*cell(2, 2)*cell(3, 1) + cell(1, 3)*cell(2, 1)*cell(3, 2) - cell(1, 1)*cell(2, 3)*cell(3, 2) - cell(1, 2)*cell(2, 1)*cell(3, 3) + cell(1, 1)*cell(2, 2)*cell(3, 3),
+    cell(0, 3)*cell(2, 2)*cell(3, 1) - cell(0, 2)*cell(2, 3)*cell(3, 1) - cell(0, 3)*cell(2, 1)*cell(3, 2) + cell(0, 1)*cell(2, 3)*cell(3, 2) + cell(0, 2)*cell(2, 1)*cell(3, 3) - cell(0, 1)*cell(2, 2)*cell(3, 3),
+    cell(0, 2)*cell(1, 3)*cell(3, 1) - cell(0, 3)*cell(1, 2)*cell(3, 1) + cell(0, 3)*cell(1, 1)*cell(3, 2) - cell(0, 1)*cell(1, 3)*cell(3, 2) - cell(0, 2)*cell(1, 1)*cell(3, 3) + cell(0, 1)*cell(1, 2)*cell(3, 3),
+    cell(0, 3)*cell(1, 2)*cell(2, 1) - cell(0, 2)*cell(1, 3)*cell(2, 1) - cell(0, 3)*cell(1, 1)*cell(2, 2) + cell(0, 1)*cell(1, 3)*cell(2, 2) + cell(0, 2)*cell(1, 1)*cell(2, 3) - cell(0, 1)*cell(1, 2)*cell(2, 3),
+    cell(1, 3)*cell(2, 2)*cell(3, 0) - cell(1, 2)*cell(2, 3)*cell(3, 0) - cell(1, 3)*cell(2, 0)*cell(3, 2) + cell(1, 0)*cell(2, 3)*cell(3, 2) + cell(1, 2)*cell(2, 0)*cell(3, 3) - cell(1, 0)*cell(2, 2)*cell(3, 3),
+    cell(0, 2)*cell(2, 3)*cell(3, 0) - cell(0, 3)*cell(2, 2)*cell(3, 0) + cell(0, 3)*cell(2, 0)*cell(3, 2) - cell(0, 0)*cell(2, 3)*cell(3, 2) - cell(0, 2)*cell(2, 0)*cell(3, 3) + cell(0, 0)*cell(2, 2)*cell(3, 3),
+    cell(0, 3)*cell(1, 2)*cell(3, 0) - cell(0, 2)*cell(1, 3)*cell(3, 0) - cell(0, 3)*cell(1, 0)*cell(3, 2) + cell(0, 0)*cell(1, 3)*cell(3, 2) + cell(0, 2)*cell(1, 0)*cell(3, 3) - cell(0, 0)*cell(1, 2)*cell(3, 3),
+    cell(0, 2)*cell(1, 3)*cell(2, 0) - cell(0, 3)*cell(1, 2)*cell(2, 0) + cell(0, 3)*cell(1, 0)*cell(2, 2) - cell(0, 0)*cell(1, 3)*cell(2, 2) - cell(0, 2)*cell(1, 0)*cell(2, 3) + cell(0, 0)*cell(1, 2)*cell(2, 3),
+    cell(1, 1)*cell(2, 3)*cell(3, 0) - cell(1, 3)*cell(2, 1)*cell(3, 0) + cell(1, 3)*cell(2, 0)*cell(3, 1) - cell(1, 0)*cell(2, 3)*cell(3, 1) - cell(1, 1)*cell(2, 0)*cell(3, 3) + cell(1, 0)*cell(2, 1)*cell(3, 3),
+    cell(0, 3)*cell(2, 1)*cell(3, 0) - cell(0, 1)*cell(2, 3)*cell(3, 0) - cell(0, 3)*cell(2, 0)*cell(3, 1) + cell(0, 0)*cell(2, 3)*cell(3, 1) + cell(0, 1)*cell(2, 0)*cell(3, 3) - cell(0, 0)*cell(2, 1)*cell(3, 3),
+    cell(0, 1)*cell(1, 3)*cell(3, 0) - cell(0, 3)*cell(1, 1)*cell(3, 0) + cell(0, 3)*cell(1, 0)*cell(3, 1) - cell(0, 0)*cell(1, 3)*cell(3, 1) - cell(0, 1)*cell(1, 0)*cell(3, 3) + cell(0, 0)*cell(1, 1)*cell(3, 3),
+    cell(0, 3)*cell(1, 1)*cell(2, 0) - cell(0, 1)*cell(1, 3)*cell(2, 0) - cell(0, 3)*cell(1, 0)*cell(2, 1) + cell(0, 0)*cell(1, 3)*cell(2, 1) + cell(0, 1)*cell(1, 0)*cell(2, 3) - cell(0, 0)*cell(1, 1)*cell(2, 3),
+    cell(1, 2)*cell(2, 1)*cell(3, 0) - cell(1, 1)*cell(2, 2)*cell(3, 0) - cell(1, 2)*cell(2, 0)*cell(3, 1) + cell(1, 0)*cell(2, 2)*cell(3, 1) + cell(1, 1)*cell(2, 0)*cell(3, 2) - cell(1, 0)*cell(2, 1)*cell(3, 2),
+    cell(0, 1)*cell(2, 2)*cell(3, 0) - cell(0, 2)*cell(2, 1)*cell(3, 0) + cell(0, 2)*cell(2, 0)*cell(3, 1) - cell(0, 0)*cell(2, 2)*cell(3, 1) - cell(0, 1)*cell(2, 0)*cell(3, 2) + cell(0, 0)*cell(2, 1)*cell(3, 2),
+    cell(0, 2)*cell(1, 1)*cell(3, 0) - cell(0, 1)*cell(1, 2)*cell(3, 0) - cell(0, 2)*cell(1, 0)*cell(3, 1) + cell(0, 0)*cell(1, 2)*cell(3, 1) + cell(0, 1)*cell(1, 0)*cell(3, 2) - cell(0, 0)*cell(1, 1)*cell(3, 2),
+    cell(0, 1)*cell(1, 2)*cell(2, 0) - cell(0, 2)*cell(1, 1)*cell(2, 0) + cell(0, 2)*cell(1, 0)*cell(2, 1) - cell(0, 0)*cell(1, 2)*cell(2, 1) - cell(0, 1)*cell(1, 0)*cell(2, 2) + cell(0, 0)*cell(1, 1)*cell(2, 2)
+  ) * 1 / determinant();
+}
+
+template<class T>
+T Matrix4<T>::determinant() const {
+  return cell(0, 3) * cell(1, 2) * cell(2, 1) * cell(3, 0)-cell(0, 2) * cell(1, 3) * cell(2, 1) * cell(3, 0)-cell(0, 3) * cell(1, 1) * cell(2, 2) * cell(3, 0)+cell(0, 1) * cell(1, 3) * cell(2, 2) * cell(3, 0) +
+         cell(0, 2) * cell(1, 1) * cell(2, 3) * cell(3, 0)-cell(0, 1) * cell(1, 2) * cell(2, 3) * cell(3, 0)-cell(0, 3) * cell(1, 2) * cell(2, 0) * cell(3, 1)+cell(0, 2) * cell(1, 3) * cell(2, 0) * cell(3, 1) +
+         cell(0, 3) * cell(1, 0) * cell(2, 2) * cell(3, 1)-cell(0, 0) * cell(1, 3) * cell(2, 2) * cell(3, 1)-cell(0, 2) * cell(1, 0) * cell(2, 3) * cell(3, 1)+cell(0, 0) * cell(1, 2) * cell(2, 3) * cell(3, 1) +
+         cell(0, 3) * cell(1, 1) * cell(2, 0) * cell(3, 2)-cell(0, 1) * cell(1, 3) * cell(2, 0) * cell(3, 2)-cell(0, 3) * cell(1, 0) * cell(2, 1) * cell(3, 2)+cell(0, 0) * cell(1, 3) * cell(2, 1) * cell(3, 2) +
+         cell(0, 1) * cell(1, 0) * cell(2, 3) * cell(3, 2)-cell(0, 0) * cell(1, 1) * cell(2, 3) * cell(3, 2)-cell(0, 2) * cell(1, 1) * cell(2, 0) * cell(3, 3)+cell(0, 1) * cell(1, 2) * cell(2, 0) * cell(3, 3) +
+         cell(0, 2) * cell(1, 0) * cell(2, 1) * cell(3, 3)-cell(0, 0) * cell(1, 2) * cell(2, 1) * cell(3, 3)-cell(0, 1) * cell(1, 0) * cell(2, 2) * cell(3, 3)+cell(0, 0) * cell(1, 1) * cell(2, 2) * cell(3, 3);
+}
 
 typedef Matrix4<float> Matrix4f;
 typedef Matrix4<double> Matrix4d;

@@ -3,14 +3,16 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include "DivisionByZeroException.h"
 
 template<int Dimensions, class T>
 class Vector {
   typedef T CellsType[Dimensions];
 public:
+  typedef T Coordinate;
   static const int Dim = Dimensions;
-
+  
   inline Vector() {
     for (int i = 0; i != Dimensions; ++i) {
       m_coordinates[i] = T();
@@ -74,7 +76,7 @@ public:
     return result;
   }
   
-  inline T operator*(const Vector<Dimensions, T>& other) {
+  inline T operator*(const Vector<Dimensions, T>& other) const {
     T result = T();
     for (int i = 0; i != Dimensions; ++i) {
       result += coordinate(i) * other.coordinate(i);
@@ -91,6 +93,8 @@ public:
   }
   
   inline bool operator==(const Vector<Dimensions, T>& other) const {
+    if (&other == this)
+      return true;
     for (int i = 0; i != Dimensions; ++i) {
       if (coordinate(i) != other.coordinate(i))
         return false;
@@ -116,6 +120,14 @@ public:
 
   inline bool isNormalized() const {
     return length() == static_cast<T>(1);
+  }
+  
+  inline bool isUndefined() const {
+    for (int i = 0; i != Dimensions; ++i) {
+      if (std::isnan(coordinate(i)))
+        return true;
+    }
+    return false;
   }
 
 private:
@@ -161,6 +173,10 @@ public:
     return static_cast<VectorType>(this->Base::operator/(factor));
   }
 
+  inline T operator*(const Vector<Dimensions, T>& other) const {
+    return this->Base::operator*(other);
+  }
+
   inline VectorType operator*(const T& factor) const {
     return static_cast<VectorType>(this->Base::operator*(factor));
   }
@@ -175,6 +191,7 @@ class Vector2 : public SpecializedVector<2, T, Vector2<T> > {
   typedef SpecializedVector<2, T, Vector2<T> > Base;
 public:
   static const Vector2<T> null;
+  static const Vector2<T> undefined;
 
   inline Vector2()
     : Base()
@@ -199,6 +216,10 @@ public:
 template<class T>
 const Vector2<T> Vector2<T>::null = Vector2<T>();
 
+template<class T>
+const Vector2<T> Vector2<T>::undefined = Vector2<T>(std::numeric_limits<T>::quiet_NaN(),
+                                                    std::numeric_limits<T>::quiet_NaN());
+
 typedef Vector2<float> Vector2f;
 typedef Vector2<double> Vector2d;
 
@@ -207,6 +228,7 @@ class Vector3 : public SpecializedVector<3, T, Vector3<T> > {
   typedef SpecializedVector<3, T, Vector3<T> > Base;
 public:
   static const Vector3<T> null;
+  static const Vector3<T> undefined;
 
   inline Vector3()
     : Base()
@@ -239,6 +261,11 @@ public:
 template<class T>
 const Vector3<T> Vector3<T>::null = Vector3<T>();
 
+template<class T>
+const Vector3<T> Vector3<T>::undefined = Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
+                                                    std::numeric_limits<T>::quiet_NaN(),
+                                                    std::numeric_limits<T>::quiet_NaN());
+
 typedef Vector3<float> Vector3f;
 typedef Vector3<double> Vector3d;
 
@@ -247,6 +274,7 @@ class Vector4 : public SpecializedVector<4, T, Vector4<T> > {
   typedef SpecializedVector<4, T, Vector4<T> > Base;
 public:
   static const Vector4<T> null;
+  static const Vector4<T> undefined;
 
   inline Vector4()
     : Base()
@@ -280,6 +308,12 @@ public:
 
 template<class T>
 const Vector4<T> Vector4<T>::null = Vector4<T>();
+
+template<class T>
+const Vector4<T> Vector4<T>::undefined = Vector4<T>(std::numeric_limits<T>::quiet_NaN(),
+                                                    std::numeric_limits<T>::quiet_NaN(),
+                                                    std::numeric_limits<T>::quiet_NaN(),
+                                                    std::numeric_limits<T>::quiet_NaN());
 
 typedef Vector4<float> Vector4f;
 typedef Vector4<double> Vector4d;

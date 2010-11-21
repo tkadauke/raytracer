@@ -12,6 +12,10 @@ public:
       m_step = (end - begin) / steps;
     }
     
+    inline int current() const {
+      return m_current;
+    }
+    
     inline Iterator& operator++() {
       m_current++;
       return *this;

@@ -1,0 +1,29 @@
+#ifndef MEMOIZED_VALUE_H
+#define MEMOIZED_VALUE_H
+
+template<class T>
+class MemoizedValue {
+public:
+  inline MemoizedValue()
+    : m_initialized(false) {}
+  inline MemoizedValue(const T& value)
+    : m_initialized(true), m_value(value) {}
+  
+  inline bool operator!() const { return !m_initialized; }
+  inline operator const T&() const { return m_value; }
+  
+  inline bool isInitialized() const { return m_initialized; }
+  inline const T& value() const { return m_value; }
+  
+  inline const T& operator=(const T& value) {
+    m_value = value;
+    m_initialized = true;
+    return value;
+  }
+  
+private:
+  bool m_initialized;
+  T m_value;
+};
+
+#endif

@@ -8508,3 +8508,1512 @@ const char* TypedTestCasePState::VerifyRegisteredTestNames(
 
 }  // namespace internal
 }  // namespace testing
+// Copyright 2008, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+//
+// Google C++ Mocking Framework (Google Mock)
+//
+// This file #includes all Google Mock implementation .cc files.  The
+// purpose is to allow a user to build Google Mock by compiling this
+// file alone.
+
+// This line ensures that gmock.h can be compiled on its own, even
+// when it's fused.
+#include <gmock/gmock.h>
+
+// The following lines pull in the real gmock *.cc files.
+// Copyright 2007, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+
+// Google Mock - a framework for writing C++ mock classes.
+//
+// This file implements cardinalities.
+
+
+#include <limits.h>
+#include <ostream>  // NOLINT
+#include <sstream>
+#include <string>
+
+namespace testing {
+
+namespace {
+
+// Implements the Between(m, n) cardinality.
+class BetweenCardinalityImpl : public CardinalityInterface {
+ public:
+  BetweenCardinalityImpl(int min, int max)
+      : min_(min >= 0 ? min : 0),
+        max_(max >= min_ ? max : min_) {
+    std::stringstream ss;
+    if (min < 0) {
+      ss << "The invocation lower bound must be >= 0, "
+         << "but is actually " << min << ".";
+      internal::Expect(false, __FILE__, __LINE__, ss.str());
+    } else if (max < 0) {
+      ss << "The invocation upper bound must be >= 0, "
+         << "but is actually " << max << ".";
+      internal::Expect(false, __FILE__, __LINE__, ss.str());
+    } else if (min > max) {
+      ss << "The invocation upper bound (" << max
+         << ") must be >= the invocation lower bound (" << min
+         << ").";
+      internal::Expect(false, __FILE__, __LINE__, ss.str());
+    }
+  }
+
+  // Conservative estimate on the lower/upper bound of the number of
+  // calls allowed.
+  virtual int ConservativeLowerBound() const { return min_; }
+  virtual int ConservativeUpperBound() const { return max_; }
+
+  virtual bool IsSatisfiedByCallCount(int call_count) const {
+    return min_ <= call_count && call_count <= max_ ;
+  }
+
+  virtual bool IsSaturatedByCallCount(int call_count) const {
+    return call_count >= max_;
+  }
+
+  virtual void DescribeTo(::std::ostream* os) const;
+ private:
+  const int min_;
+  const int max_;
+
+  GTEST_DISALLOW_COPY_AND_ASSIGN_(BetweenCardinalityImpl);
+};
+
+// Formats "n times" in a human-friendly way.
+inline internal::string FormatTimes(int n) {
+  if (n == 1) {
+    return "once";
+  } else if (n == 2) {
+    return "twice";
+  } else {
+    std::stringstream ss;
+    ss << n << " times";
+    return ss.str();
+  }
+}
+
+// Describes the Between(m, n) cardinality in human-friendly text.
+void BetweenCardinalityImpl::DescribeTo(::std::ostream* os) const {
+  if (min_ == 0) {
+    if (max_ == 0) {
+      *os << "never called";
+    } else if (max_ == INT_MAX) {
+      *os << "called any number of times";
+    } else {
+      *os << "called at most " << FormatTimes(max_);
+    }
+  } else if (min_ == max_) {
+    *os << "called " << FormatTimes(min_);
+  } else if (max_ == INT_MAX) {
+    *os << "called at least " << FormatTimes(min_);
+  } else {
+    // 0 < min_ < max_ < INT_MAX
+    *os << "called between " << min_ << " and " << max_ << " times";
+  }
+}
+
+}  // Unnamed namespace
+
+// Describes the given call count to an ostream.
+void Cardinality::DescribeActualCallCountTo(int actual_call_count,
+                                            ::std::ostream* os) {
+  if (actual_call_count > 0) {
+    *os << "called " << FormatTimes(actual_call_count);
+  } else {
+    *os << "never called";
+  }
+}
+
+// Creates a cardinality that allows at least n calls.
+Cardinality AtLeast(int n) { return Between(n, INT_MAX); }
+
+// Creates a cardinality that allows at most n calls.
+Cardinality AtMost(int n) { return Between(0, n); }
+
+// Creates a cardinality that allows any number of calls.
+Cardinality AnyNumber() { return AtLeast(0); }
+
+// Creates a cardinality that allows between min and max calls.
+Cardinality Between(int min, int max) {
+  return Cardinality(new BetweenCardinalityImpl(min, max));
+}
+
+// Creates a cardinality that allows exactly n calls.
+Cardinality Exactly(int n) { return Between(n, n); }
+
+}  // namespace testing
+// Copyright 2007, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+
+// Google Mock - a framework for writing C++ mock classes.
+//
+// This file defines some utilities useful for implementing Google
+// Mock.  They are subject to change without notice, so please DO NOT
+// USE THEM IN USER CODE.
+
+
+#include <ctype.h>
+#include <ostream>  // NOLINT
+#include <string>
+
+namespace testing {
+namespace internal {
+
+// Converts an identifier name to a space-separated list of lower-case
+// words.  Each maximum substring of the form [A-Za-z][a-z]*|\d+ is
+// treated as one word.  For example, both "FooBar123" and
+// "foo_bar_123" are converted to "foo bar 123".
+string ConvertIdentifierNameToWords(const char* id_name) {
+  string result;
+  char prev_char = '\0';
+  for (const char* p = id_name; *p != '\0'; prev_char = *(p++)) {
+    // We don't care about the current locale as the input is
+    // guaranteed to be a valid C++ identifier name.
+    const bool starts_new_word = isupper(*p) ||
+        (!isalpha(prev_char) && islower(*p)) ||
+        (!isdigit(prev_char) && isdigit(*p));
+
+    if (isalnum(*p)) {
+      if (starts_new_word && result != "")
+        result += ' ';
+      result += static_cast<char>(tolower(*p));
+    }
+  }
+  return result;
+}
+
+// This class reports Google Mock failures as Google Test failures.  A
+// user can define another class in a similar fashion if he intends to
+// use Google Mock with a testing framework other than Google Test.
+class GoogleTestFailureReporter : public FailureReporterInterface {
+ public:
+  virtual void ReportFailure(FailureType type, const char* file, int line,
+                             const string& message) {
+    AssertHelper(type == FATAL ?
+                 TestPartResult::kFatalFailure :
+                 TestPartResult::kNonFatalFailure,
+                 file,
+                 line,
+                 message.c_str()) = Message();
+    if (type == FATAL) {
+      posix::Abort();
+    }
+  }
+};
+
+// Returns the global failure reporter.  Will create a
+// GoogleTestFailureReporter and return it the first time called.
+FailureReporterInterface* GetFailureReporter() {
+  // Points to the global failure reporter used by Google Mock.  gcc
+  // guarantees that the following use of failure_reporter is
+  // thread-safe.  We may need to add additional synchronization to
+  // protect failure_reporter if we port Google Mock to other
+  // compilers.
+  static FailureReporterInterface* const failure_reporter =
+      new GoogleTestFailureReporter();
+  return failure_reporter;
+}
+
+// Protects global resources (stdout in particular) used by Log().
+static GTEST_DEFINE_STATIC_MUTEX_(g_log_mutex);
+
+// Returns true iff a log with the given severity is visible according
+// to the --gmock_verbose flag.
+bool LogIsVisible(LogSeverity severity) {
+  if (GMOCK_FLAG(verbose) == kInfoVerbosity) {
+    // Always show the log if --gmock_verbose=info.
+    return true;
+  } else if (GMOCK_FLAG(verbose) == kErrorVerbosity) {
+    // Always hide it if --gmock_verbose=error.
+    return false;
+  } else {
+    // If --gmock_verbose is neither "info" nor "error", we treat it
+    // as "warning" (its default value).
+    return severity == WARNING;
+  }
+}
+
+// Prints the given message to stdout iff 'severity' >= the level
+// specified by the --gmock_verbose flag.  If stack_frames_to_skip >=
+// 0, also prints the stack trace excluding the top
+// stack_frames_to_skip frames.  In opt mode, any positive
+// stack_frames_to_skip is treated as 0, since we don't know which
+// function calls will be inlined by the compiler and need to be
+// conservative.
+void Log(LogSeverity severity, const string& message,
+         int stack_frames_to_skip) {
+  if (!LogIsVisible(severity))
+    return;
+
+  // Ensures that logs from different threads don't interleave.
+  MutexLock l(&g_log_mutex);
+
+  // "using ::std::cout;" doesn't work with Symbian's STLport, where cout is a
+  // macro.
+
+  if (severity == WARNING) {
+    // Prints a GMOCK WARNING marker to make the warnings easily searchable.
+    std::cout << "\nGMOCK WARNING:";
+  }
+  // Pre-pends a new-line to message if it doesn't start with one.
+  if (message.empty() || message[0] != '\n') {
+    std::cout << "\n";
+  }
+  std::cout << message;
+  if (stack_frames_to_skip >= 0) {
+#ifdef NDEBUG
+    // In opt mode, we have to be conservative and skip no stack frame.
+    const int actual_to_skip = 0;
+#else
+    // In dbg mode, we can do what the caller tell us to do (plus one
+    // for skipping this function's stack frame).
+    const int actual_to_skip = stack_frames_to_skip + 1;
+#endif  // NDEBUG
+
+    // Appends a new-line to message if it doesn't end with one.
+    if (!message.empty() && *message.rbegin() != '\n') {
+      std::cout << "\n";
+    }
+    std::cout << "Stack trace:\n"
+         << ::testing::internal::GetCurrentOsStackTraceExceptTop(
+             ::testing::UnitTest::GetInstance(), actual_to_skip);
+  }
+  std::cout << ::std::flush;
+}
+
+}  // namespace internal
+}  // namespace testing
+// Copyright 2007, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+
+// Google Mock - a framework for writing C++ mock classes.
+//
+// This file implements Matcher<const string&>, Matcher<string>, and
+// utilities for defining matchers.
+
+
+#include <string.h>
+#include <sstream>
+#include <string>
+
+namespace testing {
+
+// Constructs a matcher that matches a const string& whose value is
+// equal to s.
+Matcher<const internal::string&>::Matcher(const internal::string& s) {
+  *this = Eq(s);
+}
+
+// Constructs a matcher that matches a const string& whose value is
+// equal to s.
+Matcher<const internal::string&>::Matcher(const char* s) {
+  *this = Eq(internal::string(s));
+}
+
+// Constructs a matcher that matches a string whose value is equal to s.
+Matcher<internal::string>::Matcher(const internal::string& s) { *this = Eq(s); }
+
+// Constructs a matcher that matches a string whose value is equal to s.
+Matcher<internal::string>::Matcher(const char* s) {
+  *this = Eq(internal::string(s));
+}
+
+namespace internal {
+
+// Utilities for validating and formatting description strings in the
+// MATCHER*() macros.
+
+// Returns the 0-based index of the given parameter in the
+// NULL-terminated parameter array; if the parameter is "*", returns
+// kTupleInterpolation; if it's not found in the list, returns
+// kInvalidInterpolation.
+int GetParamIndex(const char* param_names[], const string& param_name) {
+  if (param_name == "*")
+    return kTupleInterpolation;
+
+  for (int i = 0; param_names[i] != NULL; i++) {
+    if (param_name == param_names[i])
+      return i;
+  }
+  return kInvalidInterpolation;
+}
+
+// Helper function used by ValidateMatcherDescription() to format
+// error messages.
+string FormatMatcherDescriptionSyntaxError(const char* description,
+                                           const char* error_pos) {
+  ::std::stringstream ss;
+  ss << "Syntax error at index " << (error_pos - description)
+     << " in matcher description \"" << description << "\": ";
+  return ss.str();
+}
+
+// Parses a matcher description string and returns a vector of
+// interpolations that appear in the string; generates non-fatal
+// failures iff 'description' is an invalid matcher description.
+// 'param_names' is a NULL-terminated array of parameter names in the
+// order they appear in the MATCHER_P*() parameter list.
+Interpolations ValidateMatcherDescription(
+    const char* param_names[], const char* description) {
+  Interpolations interps;
+  for (const char* p = description; *p != '\0';) {
+    if (SkipPrefix("%%", &p)) {
+      interps.push_back(Interpolation(p - 2, p, kPercentInterpolation));
+    } else if (SkipPrefix("%(", &p)) {
+      const char* const q = strstr(p, ")s");
+      if (q == NULL) {
+        // TODO(wan@google.com): change the source file location in
+        // the failure to point to where the MATCHER*() macro is used.
+        ADD_FAILURE() << FormatMatcherDescriptionSyntaxError(description, p - 2)
+                      << "an interpolation must end with \")s\", "
+                      << "but \"" << (p - 2) << "\" does not.";
+      } else {
+        const string param_name(p, q);
+        const int param_index = GetParamIndex(param_names, param_name);
+        if (param_index == kInvalidInterpolation) {
+          ADD_FAILURE() << FormatMatcherDescriptionSyntaxError(description, p)
+                        << "\"" << param_name
+                        << "\" is an invalid parameter name.";
+        } else {
+          interps.push_back(Interpolation(p - 2, q + 2, param_index));
+          p = q + 2;
+        }
+      }
+    } else {
+      EXPECT_NE(*p, '%') << FormatMatcherDescriptionSyntaxError(description, p)
+                         << "use \"%%\" instead of \"%\" to print \"%\".";
+      ++p;
+    }
+  }
+  return interps;
+}
+
+// Joins a vector of strings as if they are fields of a tuple; returns
+// the joined string.
+string JoinAsTuple(const Strings& fields) {
+  switch (fields.size()) {
+    case 0:
+      return "";
+    case 1:
+      return fields[0];
+    default:
+      string result = "(" + fields[0];
+      for (size_t i = 1; i < fields.size(); i++) {
+        result += ", ";
+        result += fields[i];
+      }
+      result += ")";
+      return result;
+  }
+}
+
+// Returns the actual matcher description, given the matcher name,
+// user-supplied description template string, interpolations in the
+// string, and the printed values of the matcher parameters.
+string FormatMatcherDescription(
+    const char* matcher_name, const char* description,
+    const Interpolations& interp, const Strings& param_values) {
+  string result;
+  if (*description == '\0') {
+    // When the user supplies an empty description, we calculate one
+    // from the matcher name.
+    result = ConvertIdentifierNameToWords(matcher_name);
+    if (param_values.size() >= 1)
+      result += " " + JoinAsTuple(param_values);
+  } else {
+    // The end position of the last interpolation.
+    const char* last_interp_end = description;
+    for (size_t i = 0; i < interp.size(); i++) {
+      result.append(last_interp_end, interp[i].start_pos);
+      const int param_index = interp[i].param_index;
+      if (param_index == kTupleInterpolation) {
+        result += JoinAsTuple(param_values);
+      } else if (param_index == kPercentInterpolation) {
+        result += '%';
+      } else if (param_index != kInvalidInterpolation) {
+        result += param_values[param_index];
+      }
+      last_interp_end = interp[i].end_pos;
+    }
+    result += last_interp_end;
+  }
+
+  return result;
+}
+
+}  // namespace internal
+}  // namespace testing
+// Copyright 2007, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+
+// Google Mock - a framework for writing C++ mock classes.
+//
+// This file implements a universal value printer that can print a
+// value of any type T:
+//
+//   void ::testing::internal::UniversalPrinter<T>::Print(value, ostream_ptr);
+//
+// It uses the << operator when possible, and prints the bytes in the
+// object otherwise.  A user can override its behavior for a class
+// type Foo by defining either operator<<(::std::ostream&, const Foo&)
+// or void PrintTo(const Foo&, ::std::ostream*) in the namespace that
+// defines Foo.
+
+#include <ctype.h>
+#include <stdio.h>
+#include <ostream>  // NOLINT
+#include <string>
+
+namespace testing {
+
+namespace {
+
+using ::std::ostream;
+
+#if GTEST_OS_WINDOWS_MOBILE  // Windows CE does not define _snprintf_s.
+#define snprintf _snprintf
+#elif _MSC_VER >= 1400  // VC 8.0 and later deprecate snprintf and _snprintf.
+#define snprintf _snprintf_s
+#elif _MSC_VER
+#define snprintf _snprintf
+#endif  // GTEST_OS_WINDOWS_MOBILE
+
+// Prints a segment of bytes in the given object.
+void PrintByteSegmentInObjectTo(const unsigned char* obj_bytes, size_t start,
+                                size_t count, ostream* os) {
+  char text[5] = "";
+  for (size_t i = 0; i != count; i++) {
+    const size_t j = start + i;
+    if (i != 0) {
+      // Organizes the bytes into groups of 2 for easy parsing by
+      // human.
+      if ((j % 2) == 0) {
+        *os << " ";
+      }
+    }
+    snprintf(text, sizeof(text), "%02X", obj_bytes[j]);
+    *os << text;
+  }
+}
+
+// Prints the bytes in the given value to the given ostream.
+void PrintBytesInObjectToImpl(const unsigned char* obj_bytes, size_t count,
+                              ostream* os) {
+  // Tells the user how big the object is.
+  *os << count << "-byte object <";
+
+  const size_t kThreshold = 132;
+  const size_t kChunkSize = 64;
+  // If the object size is bigger than kThreshold, we'll have to omit
+  // some details by printing only the first and the last kChunkSize
+  // bytes.
+  // TODO(wan): let the user control the threshold using a flag.
+  if (count < kThreshold) {
+    PrintByteSegmentInObjectTo(obj_bytes, 0, count, os);
+  } else {
+    PrintByteSegmentInObjectTo(obj_bytes, 0, kChunkSize, os);
+    *os << " ... ";
+    // Rounds up to 2-byte boundary.
+    const size_t resume_pos = (count - kChunkSize + 1)/2*2;
+    PrintByteSegmentInObjectTo(obj_bytes, resume_pos, count - resume_pos, os);
+  }
+  *os << ">";
+}
+
+}  // namespace
+
+namespace internal2 {
+
+// Delegates to PrintBytesInObjectToImpl() to print the bytes in the
+// given object.  The delegation simplifies the implementation, which
+// uses the << operator and thus is easier done outside of the
+// ::testing::internal namespace, which contains a << operator that
+// sometimes conflicts with the one in STL.
+void PrintBytesInObjectTo(const unsigned char* obj_bytes, size_t count,
+                          ostream* os) {
+  PrintBytesInObjectToImpl(obj_bytes, count, os);
+}
+
+}  // namespace internal2
+
+namespace internal {
+
+// Prints a wide char as a char literal without the quotes, escaping it
+// when necessary.
+static void PrintAsWideCharLiteralTo(wchar_t c, ostream* os) {
+  switch (c) {
+    case L'\0':
+      *os << "\\0";
+      break;
+    case L'\'':
+      *os << "\\'";
+      break;
+    case L'\?':
+      *os << "\\?";
+      break;
+    case L'\\':
+      *os << "\\\\";
+      break;
+    case L'\a':
+      *os << "\\a";
+      break;
+    case L'\b':
+      *os << "\\b";
+      break;
+    case L'\f':
+      *os << "\\f";
+      break;
+    case L'\n':
+      *os << "\\n";
+      break;
+    case L'\r':
+      *os << "\\r";
+      break;
+    case L'\t':
+      *os << "\\t";
+      break;
+    case L'\v':
+      *os << "\\v";
+      break;
+    default:
+      // Checks whether c is printable or not. Printable characters are in
+      // the range [0x20,0x7E].
+      // We test the value of c directly instead of calling isprint(), as
+      // isprint() is buggy on Windows mobile.
+      if (0x20 <= c && c <= 0x7E) {
+        *os << static_cast<char>(c);
+      } else {
+        // Buffer size enough for the maximum number of digits and \0.
+        char text[2 * sizeof(unsigned long) + 1] = "";
+        snprintf(text, sizeof(text), "%lX", static_cast<unsigned long>(c));
+        *os << "\\x" << text;
+      }
+  }
+}
+
+// Prints a char as if it's part of a string literal, escaping it when
+// necessary.
+static void PrintAsWideStringLiteralTo(wchar_t c, ostream* os) {
+  switch (c) {
+    case L'\'':
+      *os << "'";
+      break;
+    case L'"':
+      *os << "\\\"";
+      break;
+    default:
+      PrintAsWideCharLiteralTo(c, os);
+  }
+}
+
+// Prints a char as a char literal without the quotes, escaping it
+// when necessary.
+static void PrintAsCharLiteralTo(char c, ostream* os) {
+  PrintAsWideCharLiteralTo(static_cast<unsigned char>(c), os);
+}
+
+// Prints a char as if it's part of a string literal, escaping it when
+// necessary.
+static void PrintAsStringLiteralTo(char c, ostream* os) {
+  PrintAsWideStringLiteralTo(static_cast<unsigned char>(c), os);
+}
+
+// Prints a char and its code.  The '\0' char is printed as "'\\0'",
+// other unprintable characters are also properly escaped using the
+// standard C++ escape sequence.
+void PrintCharTo(char c, int char_code, ostream* os) {
+  *os << "'";
+  PrintAsCharLiteralTo(c, os);
+  *os << "'";
+  if (c != '\0')
+    *os << " (" << char_code << ")";
+}
+
+// Prints a wchar_t as a symbol if it is printable or as its internal
+// code otherwise and also as its decimal code (except for L'\0').
+// The L'\0' char is printed as "L'\\0'". The decimal code is printed
+// as signed integer when wchar_t is implemented by the compiler
+// as a signed type and is printed as an unsigned integer when wchar_t
+// is implemented as an unsigned type.
+void PrintTo(wchar_t wc, ostream* os) {
+  *os << "L'";
+  PrintAsWideCharLiteralTo(wc, os);
+  *os << "'";
+  if (wc != L'\0') {
+    // Type Int64 is used because it provides more storage than wchar_t thus
+    // when the compiler converts signed or unsigned implementation of wchar_t
+    // to Int64 it fills higher bits with either zeros or the sign bit
+    // passing it to operator <<() as either signed or unsigned integer.
+    *os << " (" << static_cast<Int64>(wc) << ")";
+  }
+}
+
+// Prints the given array of characters to the ostream.
+// The array starts at *begin, the length is len, it may include '\0' characters
+// and may not be null-terminated.
+static void PrintCharsAsStringTo(const char* begin, size_t len, ostream* os) {
+  *os << "\"";
+  for (size_t index = 0; index < len; ++index) {
+    PrintAsStringLiteralTo(begin[index], os);
+  }
+  *os << "\"";
+}
+
+// Prints a (const) char array of 'len' elements, starting at address 'begin'.
+void UniversalPrintArray(const char* begin, size_t len, ostream* os) {
+  PrintCharsAsStringTo(begin, len, os);
+}
+
+// Prints the given array of wide characters to the ostream.
+// The array starts at *begin, the length is len, it may include L'\0'
+// characters and may not be null-terminated.
+static void PrintWideCharsAsStringTo(const wchar_t* begin, size_t len,
+                                     ostream* os) {
+  *os << "L\"";
+  for (size_t index = 0; index < len; ++index) {
+    PrintAsWideStringLiteralTo(begin[index], os);
+  }
+  *os << "\"";
+}
+
+// Prints the given C string to the ostream.
+void PrintTo(const char* s, ostream* os) {
+  if (s == NULL) {
+    *os << "NULL";
+  } else {
+    *os << implicit_cast<const void*>(s) << " pointing to ";
+    PrintCharsAsStringTo(s, strlen(s), os);
+  }
+}
+
+// MSVC compiler can be configured to define whar_t as a typedef
+// of unsigned short. Defining an overload for const wchar_t* in that case
+// would cause pointers to unsigned shorts be printed as wide strings,
+// possibly accessing more memory than intended and causing invalid
+// memory accesses. MSVC defines _NATIVE_WCHAR_T_DEFINED symbol when
+// wchar_t is implemented as a native type.
+#if !defined(_MSC_VER) || defined(_NATIVE_WCHAR_T_DEFINED)
+// Prints the given wide C string to the ostream.
+void PrintTo(const wchar_t* s, ostream* os) {
+  if (s == NULL) {
+    *os << "NULL";
+  } else {
+    *os << implicit_cast<const void*>(s) << " pointing to ";
+    PrintWideCharsAsStringTo(s, wcslen(s), os);
+  }
+}
+#endif  // wchar_t is native
+
+// Prints a ::string object.
+#if GTEST_HAS_GLOBAL_STRING
+void PrintStringTo(const ::string& s, ostream* os) {
+  PrintCharsAsStringTo(s.data(), s.size(), os);
+}
+#endif  // GTEST_HAS_GLOBAL_STRING
+
+void PrintStringTo(const ::std::string& s, ostream* os) {
+  PrintCharsAsStringTo(s.data(), s.size(), os);
+}
+
+// Prints a ::wstring object.
+#if GTEST_HAS_GLOBAL_WSTRING
+void PrintWideStringTo(const ::wstring& s, ostream* os) {
+  PrintWideCharsAsStringTo(s.data(), s.size(), os);
+}
+#endif  // GTEST_HAS_GLOBAL_WSTRING
+
+#if GTEST_HAS_STD_WSTRING
+void PrintWideStringTo(const ::std::wstring& s, ostream* os) {
+  PrintWideCharsAsStringTo(s.data(), s.size(), os);
+}
+#endif  // GTEST_HAS_STD_WSTRING
+
+}  // namespace internal
+
+}  // namespace testing
+// Copyright 2007, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+
+// Google Mock - a framework for writing C++ mock classes.
+//
+// This file implements the spec builder syntax (ON_CALL and
+// EXPECT_CALL).
+
+
+#include <stdlib.h>
+#include <iostream>  // NOLINT
+#include <map>
+#include <set>
+#include <string>
+
+#if GTEST_OS_CYGWIN || GTEST_OS_LINUX || GTEST_OS_MAC
+#include <unistd.h>  // NOLINT
+#endif
+
+namespace testing {
+namespace internal {
+
+// Protects the mock object registry (in class Mock), all function
+// mockers, and all expectations.
+GTEST_DEFINE_STATIC_MUTEX_(g_gmock_mutex);
+
+// Constructs an ExpectationBase object.
+ExpectationBase::ExpectationBase(const char* a_file,
+                                 int a_line,
+                                 const string& a_source_text)
+    : file_(a_file),
+      line_(a_line),
+      source_text_(a_source_text),
+      cardinality_specified_(false),
+      cardinality_(Exactly(1)),
+      call_count_(0),
+      retired_(false) {
+}
+
+// Destructs an ExpectationBase object.
+ExpectationBase::~ExpectationBase() {}
+
+// Explicitly specifies the cardinality of this expectation.  Used by
+// the subclasses to implement the .Times() clause.
+void ExpectationBase::SpecifyCardinality(const Cardinality& a_cardinality) {
+  cardinality_specified_ = true;
+  cardinality_ = a_cardinality;
+}
+
+// Retires all pre-requisites of this expectation.
+void ExpectationBase::RetireAllPreRequisites() {
+  if (is_retired()) {
+    // We can take this short-cut as we never retire an expectation
+    // until we have retired all its pre-requisites.
+    return;
+  }
+
+  for (ExpectationSet::const_iterator it = immediate_prerequisites_.begin();
+       it != immediate_prerequisites_.end(); ++it) {
+    ExpectationBase* const prerequisite = it->expectation_base().get();
+    if (!prerequisite->is_retired()) {
+      prerequisite->RetireAllPreRequisites();
+      prerequisite->Retire();
+    }
+  }
+}
+
+// Returns true iff all pre-requisites of this expectation have been
+// satisfied.
+// L >= g_gmock_mutex
+bool ExpectationBase::AllPrerequisitesAreSatisfied() const {
+  g_gmock_mutex.AssertHeld();
+  for (ExpectationSet::const_iterator it = immediate_prerequisites_.begin();
+       it != immediate_prerequisites_.end(); ++it) {
+    if (!(it->expectation_base()->IsSatisfied()) ||
+        !(it->expectation_base()->AllPrerequisitesAreSatisfied()))
+      return false;
+  }
+  return true;
+}
+
+// Adds unsatisfied pre-requisites of this expectation to 'result'.
+// L >= g_gmock_mutex
+void ExpectationBase::FindUnsatisfiedPrerequisites(
+    ExpectationSet* result) const {
+  g_gmock_mutex.AssertHeld();
+  for (ExpectationSet::const_iterator it = immediate_prerequisites_.begin();
+       it != immediate_prerequisites_.end(); ++it) {
+    if (it->expectation_base()->IsSatisfied()) {
+      // If *it is satisfied and has a call count of 0, some of its
+      // pre-requisites may not be satisfied yet.
+      if (it->expectation_base()->call_count_ == 0) {
+        it->expectation_base()->FindUnsatisfiedPrerequisites(result);
+      }
+    } else {
+      // Now that we know *it is unsatisfied, we are not so interested
+      // in whether its pre-requisites are satisfied.  Therefore we
+      // don't recursively call FindUnsatisfiedPrerequisites() here.
+      *result += *it;
+    }
+  }
+}
+
+// Points to the implicit sequence introduced by a living InSequence
+// object (if any) in the current thread or NULL.
+ThreadLocal<Sequence*> g_gmock_implicit_sequence;
+
+// Reports an uninteresting call (whose description is in msg) in the
+// manner specified by 'reaction'.
+void ReportUninterestingCall(CallReaction reaction, const string& msg) {
+  switch (reaction) {
+    case ALLOW:
+      Log(INFO, msg, 3);
+      break;
+    case WARN:
+      Log(WARNING, msg, 3);
+      break;
+    default:  // FAIL
+      Expect(false, NULL, -1, msg);
+  }
+}
+
+}  // namespace internal
+
+// Class Mock.
+
+namespace {
+
+typedef std::set<internal::UntypedFunctionMockerBase*> FunctionMockers;
+
+// The current state of a mock object.  Such information is needed for
+// detecting leaked mock objects and explicitly verifying a mock's
+// expectations.
+struct MockObjectState {
+  MockObjectState()
+      : first_used_file(NULL), first_used_line(-1), leakable(false) {}
+
+  // Where in the source file an ON_CALL or EXPECT_CALL is first
+  // invoked on this mock object.
+  const char* first_used_file;
+  int first_used_line;
+  ::std::string first_used_test_case;
+  ::std::string first_used_test;
+  bool leakable;  // true iff it's OK to leak the object.
+  FunctionMockers function_mockers;  // All registered methods of the object.
+};
+
+// A global registry holding the state of all mock objects that are
+// alive.  A mock object is added to this registry the first time
+// Mock::AllowLeak(), ON_CALL(), or EXPECT_CALL() is called on it.  It
+// is removed from the registry in the mock object's destructor.
+class MockObjectRegistry {
+ public:
+  // Maps a mock object (identified by its address) to its state.
+  typedef std::map<const void*, MockObjectState> StateMap;
+
+  // This destructor will be called when a program exits, after all
+  // tests in it have been run.  By then, there should be no mock
+  // object alive.  Therefore we report any living object as test
+  // failure, unless the user explicitly asked us to ignore it.
+  ~MockObjectRegistry() {
+
+    // "using ::std::cout;" doesn't work with Symbian's STLport, where cout is
+    // a macro.
+
+    if (!GMOCK_FLAG(catch_leaked_mocks))
+      return;
+
+    int leaked_count = 0;
+    for (StateMap::const_iterator it = states_.begin(); it != states_.end();
+         ++it) {
+      if (it->second.leakable)  // The user said it's fine to leak this object.
+        continue;
+
+      // TODO(wan@google.com): Print the type of the leaked object.
+      // This can help the user identify the leaked object.
+      std::cout << "\n";
+      const MockObjectState& state = it->second;
+      std::cout << internal::FormatFileLocation(state.first_used_file,
+                                                state.first_used_line);
+      std::cout << " ERROR: this mock object";
+      if (state.first_used_test != "") {
+        std::cout << " (used in test " << state.first_used_test_case << "."
+             << state.first_used_test << ")";
+      }
+      std::cout << " should be deleted but never is. Its address is @"
+           << it->first << ".";
+      leaked_count++;
+    }
+    if (leaked_count > 0) {
+      std::cout << "\nERROR: " << leaked_count
+           << " leaked mock " << (leaked_count == 1 ? "object" : "objects")
+           << " found at program exit.\n";
+      std::cout.flush();
+      ::std::cerr.flush();
+      // RUN_ALL_TESTS() has already returned when this destructor is
+      // called.  Therefore we cannot use the normal Google Test
+      // failure reporting mechanism.
+      _exit(1);  // We cannot call exit() as it is not reentrant and
+                 // may already have been called.
+    }
+  }
+
+  StateMap& states() { return states_; }
+ private:
+  StateMap states_;
+};
+
+// Protected by g_gmock_mutex.
+MockObjectRegistry g_mock_object_registry;
+
+// Maps a mock object to the reaction Google Mock should have when an
+// uninteresting method is called.  Protected by g_gmock_mutex.
+std::map<const void*, internal::CallReaction> g_uninteresting_call_reaction;
+
+// Sets the reaction Google Mock should have when an uninteresting
+// method of the given mock object is called.
+// L < g_gmock_mutex
+void SetReactionOnUninterestingCalls(const void* mock_obj,
+                                     internal::CallReaction reaction) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  g_uninteresting_call_reaction[mock_obj] = reaction;
+}
+
+}  // namespace
+
+// Tells Google Mock to allow uninteresting calls on the given mock
+// object.
+// L < g_gmock_mutex
+void Mock::AllowUninterestingCalls(const void* mock_obj) {
+  SetReactionOnUninterestingCalls(mock_obj, internal::ALLOW);
+}
+
+// Tells Google Mock to warn the user about uninteresting calls on the
+// given mock object.
+// L < g_gmock_mutex
+void Mock::WarnUninterestingCalls(const void* mock_obj) {
+  SetReactionOnUninterestingCalls(mock_obj, internal::WARN);
+}
+
+// Tells Google Mock to fail uninteresting calls on the given mock
+// object.
+// L < g_gmock_mutex
+void Mock::FailUninterestingCalls(const void* mock_obj) {
+  SetReactionOnUninterestingCalls(mock_obj, internal::FAIL);
+}
+
+// Tells Google Mock the given mock object is being destroyed and its
+// entry in the call-reaction table should be removed.
+// L < g_gmock_mutex
+void Mock::UnregisterCallReaction(const void* mock_obj) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  g_uninteresting_call_reaction.erase(mock_obj);
+}
+
+// Returns the reaction Google Mock will have on uninteresting calls
+// made on the given mock object.
+// L < g_gmock_mutex
+internal::CallReaction Mock::GetReactionOnUninterestingCalls(
+    const void* mock_obj) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  return (g_uninteresting_call_reaction.count(mock_obj) == 0) ?
+      internal::WARN : g_uninteresting_call_reaction[mock_obj];
+}
+
+// Tells Google Mock to ignore mock_obj when checking for leaked mock
+// objects.
+// L < g_gmock_mutex
+void Mock::AllowLeak(const void* mock_obj) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  g_mock_object_registry.states()[mock_obj].leakable = true;
+}
+
+// Verifies and clears all expectations on the given mock object.  If
+// the expectations aren't satisfied, generates one or more Google
+// Test non-fatal failures and returns false.
+// L < g_gmock_mutex
+bool Mock::VerifyAndClearExpectations(void* mock_obj) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  return VerifyAndClearExpectationsLocked(mock_obj);
+}
+
+// Verifies all expectations on the given mock object and clears its
+// default actions and expectations.  Returns true iff the
+// verification was successful.
+// L < g_gmock_mutex
+bool Mock::VerifyAndClear(void* mock_obj) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  ClearDefaultActionsLocked(mock_obj);
+  return VerifyAndClearExpectationsLocked(mock_obj);
+}
+
+// Verifies and clears all expectations on the given mock object.  If
+// the expectations aren't satisfied, generates one or more Google
+// Test non-fatal failures and returns false.
+// L >= g_gmock_mutex
+bool Mock::VerifyAndClearExpectationsLocked(void* mock_obj) {
+  internal::g_gmock_mutex.AssertHeld();
+  if (g_mock_object_registry.states().count(mock_obj) == 0) {
+    // No EXPECT_CALL() was set on the given mock object.
+    return true;
+  }
+
+  // Verifies and clears the expectations on each mock method in the
+  // given mock object.
+  bool expectations_met = true;
+  FunctionMockers& mockers =
+      g_mock_object_registry.states()[mock_obj].function_mockers;
+  for (FunctionMockers::const_iterator it = mockers.begin();
+       it != mockers.end(); ++it) {
+    if (!(*it)->VerifyAndClearExpectationsLocked()) {
+      expectations_met = false;
+    }
+  }
+
+  // We don't clear the content of mockers, as they may still be
+  // needed by ClearDefaultActionsLocked().
+  return expectations_met;
+}
+
+// Registers a mock object and a mock method it owns.
+// L < g_gmock_mutex
+void Mock::Register(const void* mock_obj,
+                    internal::UntypedFunctionMockerBase* mocker) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  g_mock_object_registry.states()[mock_obj].function_mockers.insert(mocker);
+}
+
+// Tells Google Mock where in the source code mock_obj is used in an
+// ON_CALL or EXPECT_CALL.  In case mock_obj is leaked, this
+// information helps the user identify which object it is.
+// L < g_gmock_mutex
+void Mock::RegisterUseByOnCallOrExpectCall(
+    const void* mock_obj, const char* file, int line) {
+  internal::MutexLock l(&internal::g_gmock_mutex);
+  MockObjectState& state = g_mock_object_registry.states()[mock_obj];
+  if (state.first_used_file == NULL) {
+    state.first_used_file = file;
+    state.first_used_line = line;
+    const TestInfo* const test_info =
+        UnitTest::GetInstance()->current_test_info();
+    if (test_info != NULL) {
+      // TODO(wan@google.com): record the test case name when the
+      // ON_CALL or EXPECT_CALL is invoked from SetUpTestCase() or
+      // TearDownTestCase().
+      state.first_used_test_case = test_info->test_case_name();
+      state.first_used_test = test_info->name();
+    }
+  }
+}
+
+// Unregisters a mock method; removes the owning mock object from the
+// registry when the last mock method associated with it has been
+// unregistered.  This is called only in the destructor of
+// FunctionMockerBase.
+// L >= g_gmock_mutex
+void Mock::UnregisterLocked(internal::UntypedFunctionMockerBase* mocker) {
+  internal::g_gmock_mutex.AssertHeld();
+  for (MockObjectRegistry::StateMap::iterator it =
+           g_mock_object_registry.states().begin();
+       it != g_mock_object_registry.states().end(); ++it) {
+    FunctionMockers& mockers = it->second.function_mockers;
+    if (mockers.erase(mocker) > 0) {
+      // mocker was in mockers and has been just removed.
+      if (mockers.empty()) {
+        g_mock_object_registry.states().erase(it);
+      }
+      return;
+    }
+  }
+}
+
+// Clears all ON_CALL()s set on the given mock object.
+// L >= g_gmock_mutex
+void Mock::ClearDefaultActionsLocked(void* mock_obj) {
+  internal::g_gmock_mutex.AssertHeld();
+
+  if (g_mock_object_registry.states().count(mock_obj) == 0) {
+    // No ON_CALL() was set on the given mock object.
+    return;
+  }
+
+  // Clears the default actions for each mock method in the given mock
+  // object.
+  FunctionMockers& mockers =
+      g_mock_object_registry.states()[mock_obj].function_mockers;
+  for (FunctionMockers::const_iterator it = mockers.begin();
+       it != mockers.end(); ++it) {
+    (*it)->ClearDefaultActionsLocked();
+  }
+
+  // We don't clear the content of mockers, as they may still be
+  // needed by VerifyAndClearExpectationsLocked().
+}
+
+Expectation::Expectation() {}
+
+Expectation::Expectation(
+    const internal::linked_ptr<internal::ExpectationBase>& an_expectation_base)
+    : expectation_base_(an_expectation_base) {}
+
+Expectation::~Expectation() {}
+
+// Adds an expectation to a sequence.
+void Sequence::AddExpectation(const Expectation& expectation) const {
+  if (*last_expectation_ != expectation) {
+    if (last_expectation_->expectation_base() != NULL) {
+      expectation.expectation_base()->immediate_prerequisites_
+          += *last_expectation_;
+    }
+    *last_expectation_ = expectation;
+  }
+}
+
+// Creates the implicit sequence if there isn't one.
+InSequence::InSequence() {
+  if (internal::g_gmock_implicit_sequence.get() == NULL) {
+    internal::g_gmock_implicit_sequence.set(new Sequence);
+    sequence_created_ = true;
+  } else {
+    sequence_created_ = false;
+  }
+}
+
+// Deletes the implicit sequence if it was created by the constructor
+// of this object.
+InSequence::~InSequence() {
+  if (sequence_created_) {
+    delete internal::g_gmock_implicit_sequence.get();
+    internal::g_gmock_implicit_sequence.set(NULL);
+  }
+}
+
+}  // namespace testing
+// Copyright 2008, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: wan@google.com (Zhanyong Wan)
+
+
+namespace testing {
+
+// TODO(wan@google.com): support using environment variables to
+// control the flag values, like what Google Test does.
+
+GMOCK_DEFINE_bool_(catch_leaked_mocks, true,
+                   "true iff Google Mock should report leaked mock objects "
+                   "as failures.");
+
+GMOCK_DEFINE_string_(verbose, internal::kWarningVerbosity,
+                     "Controls how verbose Google Mock's output is."
+                     "  Valid values:\n"
+                     "  info    - prints all messages.\n"
+                     "  warning - prints warnings and errors.\n"
+                     "  error   - prints errors only.");
+
+namespace internal {
+
+// Parses a string as a command line flag.  The string should have the
+// format "--gmock_flag=value".  When def_optional is true, the
+// "=value" part can be omitted.
+//
+// Returns the value of the flag, or NULL if the parsing failed.
+static const char* ParseGoogleMockFlagValue(const char* str,
+                                            const char* flag,
+                                            bool def_optional) {
+  // str and flag must not be NULL.
+  if (str == NULL || flag == NULL) return NULL;
+
+  // The flag must start with "--gmock_".
+  const String flag_str = String::Format("--gmock_%s", flag);
+  const size_t flag_len = flag_str.length();
+  if (strncmp(str, flag_str.c_str(), flag_len) != 0) return NULL;
+
+  // Skips the flag name.
+  const char* flag_end = str + flag_len;
+
+  // When def_optional is true, it's OK to not have a "=value" part.
+  if (def_optional && (flag_end[0] == '\0')) {
+    return flag_end;
+  }
+
+  // If def_optional is true and there are more characters after the
+  // flag name, or if def_optional is false, there must be a '=' after
+  // the flag name.
+  if (flag_end[0] != '=') return NULL;
+
+  // Returns the string after "=".
+  return flag_end + 1;
+}
+
+// Parses a string for a Google Mock bool flag, in the form of
+// "--gmock_flag=value".
+//
+// On success, stores the value of the flag in *value, and returns
+// true.  On failure, returns false without changing *value.
+static bool ParseGoogleMockBoolFlag(const char* str, const char* flag,
+                                    bool* value) {
+  // Gets the value of the flag as a string.
+  const char* const value_str = ParseGoogleMockFlagValue(str, flag, true);
+
+  // Aborts if the parsing failed.
+  if (value_str == NULL) return false;
+
+  // Converts the string value to a bool.
+  *value = !(*value_str == '0' || *value_str == 'f' || *value_str == 'F');
+  return true;
+}
+
+// Parses a string for a Google Mock string flag, in the form of
+// "--gmock_flag=value".
+//
+// On success, stores the value of the flag in *value, and returns
+// true.  On failure, returns false without changing *value.
+static bool ParseGoogleMockStringFlag(const char* str, const char* flag,
+                                      String* value) {
+  // Gets the value of the flag as a string.
+  const char* const value_str = ParseGoogleMockFlagValue(str, flag, false);
+
+  // Aborts if the parsing failed.
+  if (value_str == NULL) return false;
+
+  // Sets *value to the value of the flag.
+  *value = value_str;
+  return true;
+}
+
+// The internal implementation of InitGoogleMock().
+//
+// The type parameter CharType can be instantiated to either char or
+// wchar_t.
+template <typename CharType>
+void InitGoogleMockImpl(int* argc, CharType** argv) {
+  // Makes sure Google Test is initialized.  InitGoogleTest() is
+  // idempotent, so it's fine if the user has already called it.
+  InitGoogleTest(argc, argv);
+  if (*argc <= 0) return;
+
+  for (int i = 1; i != *argc; i++) {
+    const String arg_string = StreamableToString(argv[i]);
+    const char* const arg = arg_string.c_str();
+
+    // Do we see a Google Mock flag?
+    if (ParseGoogleMockBoolFlag(arg, "catch_leaked_mocks",
+                                &GMOCK_FLAG(catch_leaked_mocks)) ||
+        ParseGoogleMockStringFlag(arg, "verbose", &GMOCK_FLAG(verbose))) {
+      // Yes.  Shift the remainder of the argv list left by one.  Note
+      // that argv has (*argc + 1) elements, the last one always being
+      // NULL.  The following loop moves the trailing NULL element as
+      // well.
+      for (int j = i; j != *argc; j++) {
+        argv[j] = argv[j + 1];
+      }
+
+      // Decrements the argument count.
+      (*argc)--;
+
+      // We also need to decrement the iterator as we just removed
+      // an element.
+      i--;
+    }
+  }
+}
+
+}  // namespace internal
+
+// Initializes Google Mock.  This must be called before running the
+// tests.  In particular, it parses a command line for the flags that
+// Google Mock recognizes.  Whenever a Google Mock flag is seen, it is
+// removed from argv, and *argc is decremented.
+//
+// No value is returned.  Instead, the Google Mock flag variables are
+// updated.
+//
+// Since Google Test is needed for Google Mock to work, this function
+// also initializes Google Test and parses its flags, if that hasn't
+// been done.
+void InitGoogleMock(int* argc, char** argv) {
+  internal::InitGoogleMockImpl(argc, argv);
+}
+
+// This overloaded version can be used in Windows programs compiled in
+// UNICODE mode.
+void InitGoogleMock(int* argc, wchar_t** argv) {
+  internal::InitGoogleMockImpl(argc, argv);
+}
+
+}  // namespace testing

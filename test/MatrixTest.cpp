@@ -460,6 +460,24 @@ namespace Matrix3Test {
     
     ASSERT_EQ(expected, copy);
   }
+  
+  TEST(Matrix3, ShouldRotateAroundXAxis) {
+    Matrix3<float> matrix = Matrix3<float>::rotateX(3.1415926535897 / 2.0);
+    Matrix3<float> expected(1, 0, 0, 0, 0, -1, 0, 1, 0);
+    ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
+  }
+  
+  TEST(Matrix3, ShouldRotateAroundYAxis) {
+    Matrix3<float> matrix = Matrix3<float>::rotateY(3.1415926535897 / 2.0);
+    Matrix3<float> expected(0, 0, 1, 0, 1, 0, -1, 0, 0);
+    ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
+  }
+  
+  TEST(Matrix3, ShouldRotateAroundZAxis) {
+    Matrix3<float> matrix = Matrix3<float>::rotateZ(3.1415926535897 / 2.0);
+    Matrix3<float> expected(0, -1, 0, 1, 0, 0, 0, 0, 1);
+    ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
+  }
 }
 
 namespace Matrix4Test {
@@ -488,6 +506,19 @@ namespace Matrix4Test {
     ASSERT_EQ(1, matrix[3][3]);
   }
   
+  TEST(Matrix4, ShouldInitializeFromThree3DVectors) {
+    Matrix4<float> matrix(Vector3f(1, 1, 2), Vector3f(0, 1, 0), Vector3f(2, 1, 1));
+    ASSERT_EQ(1, matrix[0][0]);
+    ASSERT_EQ(1, matrix[0][1]);
+    ASSERT_EQ(2, matrix[0][2]);
+    ASSERT_EQ(0, matrix[1][0]);
+    ASSERT_EQ(1, matrix[1][1]);
+    ASSERT_EQ(0, matrix[1][2]);
+    ASSERT_EQ(2, matrix[2][0]);
+    ASSERT_EQ(1, matrix[2][1]);
+    ASSERT_EQ(1, matrix[2][2]);
+  }
+  
   TEST(Matrix4, ShouldCopyFromMatrix3) {
     Matrix3<float> matrix(2, 1, 3, 1, 2, 1, 4, 3, 3);
     Matrix4<float> copy(matrix), expected(2, 1, 3, 0, 1, 2, 1, 0, 4, 3, 3, 0, 0, 0, 0, 1);
@@ -500,5 +531,52 @@ namespace Matrix4Test {
     Vector4<float> vector(1, 2, 3);
     Vector4<float> result = matrix * vector;
     ASSERT_EQ(vector, result);
+  }
+  
+  TEST(Matrix4, ShouldHaveNonZeroDeterminantForIdentityMatrix) {
+    Matrix4<float> matrix;
+    ASSERT_TRUE(matrix.determinant() != 0);
+  }
+  
+  TEST(Matrix4, ShouldHaveZeroDeterminantForNonInvertibleMatrix) {
+    Matrix4<float> matrix(0, 0, 0, 0,
+                          0, 1, 0, 0,
+                          0, 0, 1, 0,
+                          0, 0, 0, 1);
+    ASSERT_EQ(0, matrix.determinant());
+  }
+  
+  TEST(Matrix4, ShouldReturnIdentityWhenIdentityIsInverted) {
+    Matrix4<float> matrix;
+    ASSERT_EQ(matrix, matrix.inverted());
+  }
+  
+  TEST(Matrix4, ShouldReturnOriginalMatrixWhenInvertedTwice) {
+    Matrix4<float> matrix(1, 0, 0, 0,
+                          0, 1, 0, 0,
+                          0, 1, 1, 0,
+                          0, 0, 0, 1);
+    ASSERT_EQ(matrix, matrix.inverted().inverted());
+  }
+  
+  TEST(Matrix4, ShouldReturnInvertedMatrix) {
+    Matrix4<float> matrix(1, 0, 0, 0,
+                          0, 1, 0, 0,
+                          0, 1, 1, 0,
+                          0, 0, 0, 1);
+    Matrix4<float> expected(1, 0, 0, 0,
+                            0, 1, 0, 0,
+                            0, -1, 1, 0,
+                            0, 0, 0, 1);
+    
+    ASSERT_EQ(expected, matrix.inverted());
+  }
+  
+  TEST(Matrix4, ShouldReturnTranslationMatrix) {
+    Matrix4<float> expected(1, 0, 0, 1,
+                            0, 1, 0, 2,
+                            0, 0, 1, 3,
+                            0, 0, 0, 1);
+    ASSERT_EQ(expected, Matrix4<float>::translate(Vector3f(1, 2, 3)));
   }
 }
