@@ -17,8 +17,8 @@ namespace testing {
     // Helper function for implementing ASSERT_MATRIX_NEAR.
     AssertionResult TypesEqualPredFormat(const char* expr1,
                                          const char* expr2,
-                                         const S& val1,
-                                         const T& val2) {
+                                         const S&,
+                                         const T&) {
       if (TypesEqual<S, T>::Value) return AssertionSuccess();
 
       Message msg;
