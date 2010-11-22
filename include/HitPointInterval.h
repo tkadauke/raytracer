@@ -59,6 +59,7 @@ public:
   
   HitPointInterval operator|(const HitPointInterval& other) const;
   HitPointInterval operator&(const HitPointInterval& other) const;
+  HitPointInterval operator-(const HitPointInterval& other) const;
   
   const HitPoint& min() const {
     double distance = std::numeric_limits<double>::infinity();
@@ -73,15 +74,12 @@ public:
   }
   
   const HitPoint& minWithPositiveDistance() const {
-    double distance = std::numeric_limits<double>::infinity();
-    HitPoint const* result = &HitPoint::undefined;
     for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
-      if (i->point.distance() > 0 && i->point.distance() < distance) {
-        distance = i->point.distance();
-        result = &i->point;
+      if (i->point.distance() > 0) {
+        return i->point;
       }
     }
-    return *result;
+    return HitPoint::undefined;
   }
   
   const HitPoint& max() const {

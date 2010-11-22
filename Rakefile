@@ -26,7 +26,7 @@ EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 INCLUDE_DIRS = [INCLUDE_DIR, GTEST_DIR, QT_INCLUDE_DIRS, '.'].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
 
-C_FLAGS = "-O3 -funroll-loops"
+C_FLAGS = "-O3 -funroll-loops -Wall"
 LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 
 CLEAN.include(SRC_OBJ, TEST_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TEST_BIN, EXAMPLES_BIN)

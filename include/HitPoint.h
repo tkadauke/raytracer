@@ -24,6 +24,8 @@ public:
   inline const Vector3d& normal() const { return m_normal; }
   inline void setNormal(const Vector3d& normal) { m_normal = normal; }
   
+  inline HitPoint swappedNormal() const { return HitPoint(m_distance, m_point, -m_normal); }
+  
   inline bool operator==(const HitPoint& other) const {
     if (&other == this)
       return true;

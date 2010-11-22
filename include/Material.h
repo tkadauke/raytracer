@@ -11,7 +11,7 @@ public:
   }
   
   inline Material(const Colord& color)
-    : m_highlightColor(1, 1, 1), m_refractionIndex(1), m_diffuseColor(color)
+    : m_diffuseColor(color), m_highlightColor(1, 1, 1), m_refractionIndex(1)
   {
   }
   
