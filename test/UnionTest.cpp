@@ -52,7 +52,7 @@ namespace UnionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Surface* result = u.intersect(ray, hitPoints);
+    u.intersect(ray, hitPoints);
     
     ASSERT_EQ(1, hitPoints.min().distance());
     ASSERT_EQ(5, hitPoints.max().distance());

@@ -69,7 +69,7 @@ namespace MatrixTest {
 
   TEST(Matrix, ShouldReturnSameMatrixWhenMultipliedWithIdentity) {
     float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
-    Matrix<3, float> first;
+    Matrix<3, float> first(elements);
     Matrix<3, float> second;
 
     ASSERT_EQ(first, first * second);

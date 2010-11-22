@@ -107,9 +107,9 @@ namespace ColorTest {
   
   TEST(Color, ShouldConvertToRgbValue) {
     Color<float> c1(0, 0, 0);
-    ASSERT_EQ(0x00000000, c1.rgb());
+    ASSERT_EQ(0x00000000u, c1.rgb());
     Color<float> c2(1, 1, 1);
-    ASSERT_EQ(0x00FFFFFF, c2.rgb());
+    ASSERT_EQ(0x00FFFFFFu, c2.rgb());
   }
   
   TEST(Color, ShouldDefineConstants) {

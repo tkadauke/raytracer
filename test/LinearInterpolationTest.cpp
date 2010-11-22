@@ -92,7 +92,7 @@ namespace LinearInterpolationTest {
       results.push_back(*i);
     }
 
-    ASSERT_EQ(10, results.size());
+    ASSERT_EQ(10u, results.size());
   }
   
   TEST(LinearInterpolation, ShouldPreIncrementIterator) {

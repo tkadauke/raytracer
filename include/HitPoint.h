@@ -8,7 +8,7 @@ class HitPoint {
 public:
   static const HitPoint undefined;
   
-  inline HitPoint() {}
+  inline HitPoint() : m_distance(0) {}
   
   inline HitPoint(double distance, const Vector3d& point, const Vector3d& normal)
     : m_distance(distance), m_point(point), m_normal(normal)
