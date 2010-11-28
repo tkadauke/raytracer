@@ -20,14 +20,6 @@ Surface* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     if (t1 <= 0 && t2 <= 0)
       return 0;
     
-    // double t;
-    // if (t1 <= 0)
-    //   t = t2;
-    // else if (t2 <= 0)
-    //   t = t1;
-    // else
-    //   t = min(t1, t2);
-    
     Vector3d hitPoint1 = ray.at(t1),
              hitPoint2 = ray.at(t2);
     hitPoints.add(HitPoint(t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),

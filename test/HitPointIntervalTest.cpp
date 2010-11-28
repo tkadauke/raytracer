@@ -129,4 +129,17 @@ namespace HitPointIntervalTest {
     ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined);
     ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined);
   }
+  
+  TEST(HitPointInterval, ShouldTransformInterval) {
+    HitPointInterval interval;
+    HitPoint hitPoint1(2, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
+    HitPoint hitPoint2(3, Vector3d(2, 0, 0), Vector3d(0, 1, 0));
+    interval.add(hitPoint1, hitPoint2);
+    
+    Matrix4d pointMatrix = Matrix3d::rotateZ(1);
+    Matrix3d normalMatrix = Matrix3d::rotateX(1);
+    
+    HitPointInterval transformed = interval.transform(pointMatrix, normalMatrix);
+    ASSERT_EQ(Vector3d(pointMatrix * Vector3d(1, 0, 0)), transformed.min().point());
+  }
 }

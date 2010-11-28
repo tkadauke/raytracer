@@ -2,6 +2,7 @@
 #define HIT_POINT_H
 
 #include "Vector.h"
+#include "Matrix.h"
 #include <cmath>
 
 class HitPoint {
@@ -18,6 +19,8 @@ public:
   inline double distance() const { return m_distance; }
   inline void setDistance(double distance) { m_distance = distance; }
   
+  inline bool operator<(const HitPoint& other) const { return distance() < other.distance(); }
+  
   inline const Vector3d& point() const { return m_point; }
   inline void setPoint(const Vector3d& point) { m_point = point; }
   
@@ -25,6 +28,10 @@ public:
   inline void setNormal(const Vector3d& normal) { m_normal = normal; }
   
   inline HitPoint swappedNormal() const { return HitPoint(m_distance, m_point, -m_normal); }
+  
+  inline HitPoint transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
+    return HitPoint(m_distance, pointMatrix * m_point, normalMatrix * m_normal);
+  }
   
   inline bool operator==(const HitPoint& other) const {
     if (&other == this)

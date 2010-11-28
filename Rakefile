@@ -26,7 +26,17 @@ EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 INCLUDE_DIRS = [INCLUDE_DIR, GTEST_DIR, QT_INCLUDE_DIRS, '.'].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
 
-C_FLAGS = "-O3 -funroll-loops -W -Wall"
+if ENV['DEBUG']
+  DEBUG_FLAGS = "-g"
+else
+  DEBUG_FLAGS = ""
+end
+
+OPTIMIZE_FLAGS = "-O3 -funroll-loops"
+WARNING_FLAGS = "-W -Wall"
+C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS}"
+T_FLAGS = "#{WARNING_FLAGS}"
+#  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 
 CLEAN.include(SRC_OBJ, TEST_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TEST_BIN, EXAMPLES_BIN)
@@ -58,7 +68,11 @@ def dependencies(objfile)
 end
 
 rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
-  sh %{g++ #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{C_FLAGS} -o #{t.name} -c #{t.source}}
+  if t.source =~ /Test\.cpp/
+    sh %{g++ #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{T_FLAGS} -o #{t.name} -c #{t.source}}
+  else
+    sh %{g++ #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{C_FLAGS} -o #{t.name} -c #{t.source}}
+  end
 end
 
 file TEST_BIN => [SRC_OBJ, TEST_OBJ, GTEST_OBJ].flatten do

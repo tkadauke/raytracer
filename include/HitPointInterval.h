@@ -2,8 +2,9 @@
 #define HIT_POINT_INTERVAL_H
 
 #include "HitPoint.h"
+#include "Matrix.h"
 #include <utility>
-#include <set>
+#include <vector>
 #include <limits>
 #include <iostream>
 
@@ -20,7 +21,7 @@ public:
     bool in;
   };
   
-  typedef std::multiset<HitPointWrapper> HitPoints;
+  typedef std::vector<HitPointWrapper> HitPoints;
   
   inline HitPointInterval() {}
   
@@ -37,7 +38,7 @@ public:
   }
   
   inline void add(const HitPoint& hitPoint, bool in) {
-    m_hitPoints.insert(HitPointWrapper(hitPoint, in));
+    m_hitPoints.push_back(HitPointWrapper(hitPoint, in));
   }
   
   inline void add(const HitPoint& hitPoint) {
@@ -61,16 +62,18 @@ public:
   HitPointInterval operator&(const HitPointInterval& other) const;
   HitPointInterval operator-(const HitPointInterval& other) const;
   
-  const HitPoint& min() const {
-    double distance = std::numeric_limits<double>::infinity();
-    HitPoint const* result = &HitPoint::undefined;
+  inline HitPointInterval transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) {
+    HitPointInterval result;
     for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
-      if (i->point.distance() < distance) {
-        distance = i->point.distance();
-        result = &i->point;
-      }
+      result.add(i->point.transform(pointMatrix, normalMatrix), i->in);
     }
-    return *result;
+    return result;
+  }
+  
+  const HitPoint& min() const {
+    if (m_hitPoints.empty())
+      return HitPoint::undefined;
+    return m_hitPoints.begin()->point;
   }
   
   const HitPoint& minWithPositiveDistance() const {
@@ -83,15 +86,9 @@ public:
   }
   
   const HitPoint& max() const {
-    double distance = - std::numeric_limits<double>::infinity();
-    HitPoint const* result = &HitPoint::undefined;
-    for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
-      if (i->point.distance() > distance) {
-        distance = i->point.distance();
-        result = &i->point;
-      }
-    }
-    return *result;
+    if (m_hitPoints.empty())
+      return HitPoint::undefined;
+    return m_hitPoints.rbegin()->point;
   }
   
 private:

@@ -9,7 +9,7 @@
 using namespace std;
 
 QtDisplay::QtDisplay(Raytracer* raytracer)
-  : QWidget(), m_raytracer(raytracer), m_xAngle(0), m_yAngle(0)
+  : QWidget(), m_raytracer(raytracer), m_xAngle(0), m_yAngle(0), m_distance(1)
 {
   resize(400, 300);
 }
@@ -18,7 +18,7 @@ void QtDisplay::paintEvent(QPaintEvent*)
 {
   QPainter painter(this);
   Buffer buffer(width(), height());
-  Camera camera(Matrix3d::rotateY(m_yAngle) * Matrix3d::rotateX(m_xAngle) * Vector3d(0, 0, -1), Vector3d::null);
+  Camera camera(Matrix3d::rotateX(m_xAngle) * Matrix3d::rotateY(m_yAngle) * Vector3d(0, 0, -m_distance), Vector3d::null);
   m_raytracer->render(camera, buffer);
   
   QImage image(width(), height(), QImage::Format_RGB32);
@@ -49,4 +49,12 @@ void QtDisplay::mouseMoveEvent(QMouseEvent* event) {
   update();
   
   m_dragPosition = event->pos();
+}
+
+void QtDisplay::wheelEvent(QWheelEvent* event) {
+  if (event->delta() < 0)
+    m_distance /= 1.2;
+  else
+    m_distance *= 1.2;
+  update();
 }

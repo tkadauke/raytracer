@@ -14,6 +14,7 @@ public:
   
   inline bool isInitialized() const { return m_initialized; }
   inline const T& value() const { return m_value; }
+  inline T& value() { return m_value; }
   
   inline const T& operator=(const T& value) {
     m_value = value;

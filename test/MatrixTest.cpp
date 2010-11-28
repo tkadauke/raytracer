@@ -207,6 +207,32 @@ namespace MatrixTest {
     Matrix<3, float> matrix;
     ASSERT_THROW(matrix / 0, DivisionByZeroException);
   }
+  
+  TEST(Matrix, ShouldReturnTransposedMatrix) {
+    float elements[3][3] = { {1, 2, 1},
+                             {3, 0, 2},
+                             {4, 1, 1} };
+    Matrix<3, float> matrix(elements);
+    
+    float expected_elements[3][3] = { {1, 3, 4},
+                                      {2, 0, 1},
+                                      {1, 2, 1} };
+    Matrix<3, float> expected(expected_elements);
+    ASSERT_EQ(expected, matrix.transposed());
+  }
+  
+  TEST(Matrix, ShouldReturnIdentityWhenIdentityIsTransposed) {
+    Matrix<3, float> matrix;
+    ASSERT_EQ(matrix, matrix.transposed());
+  }
+  
+  TEST(Matrix, ShouldReturnOriginalMatrixIfTransposedTwice) {
+    float elements[3][3] = { {1, 2, 1},
+                             {3, 0, 2},
+                             {4, 1, 1} };
+    Matrix<3, float> matrix(elements);
+    ASSERT_EQ(matrix, matrix.transposed().transposed());
+  }
 }
 
 namespace SpecializedMatrixTest {
@@ -237,6 +263,11 @@ namespace SpecializedMatrixTest {
   TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForDivisionByScalar) {
     TypeParam matrix;
     ASSERT_TYPES_EQ(matrix, matrix / 2);
+  }
+  
+  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForTransposedMatrix) {
+    TypeParam matrix;
+    ASSERT_TYPES_EQ(matrix, matrix.transposed());
   }
 }
 

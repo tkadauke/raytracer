@@ -5,6 +5,7 @@
 
 class Ray;
 class HitPointInterval;
+class Composite;
 
 class Surface {
 public:
@@ -14,6 +15,12 @@ public:
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints) = 0;
   
   inline Material& material() { return m_material; }
+  
+  inline void setParent(Composite* parent) { m_parent = parent; }
+  inline Composite* parent() const { return m_parent; }
+
+protected:
+  Composite* m_parent;
 
 private:
   Material m_material;

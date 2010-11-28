@@ -30,4 +30,12 @@ namespace CompositeTest {
     
     delete composite;
   }
+  
+  TEST(Composite, ShouldSetParent) {
+    ConcreteComposite composite;
+    MockSurface* mockSurface = new MockSurface;
+    composite.add(mockSurface);
+    
+    ASSERT_EQ(&composite, mockSurface->parent());
+  }
 }

@@ -92,7 +92,7 @@ public:
     return result;
   }
 
-  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T>& vector) {
+  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T>& vector) const {
     Vector<Dimensions, T> result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -105,7 +105,7 @@ public:
     return result;
   }
   
-  inline Matrix<Dimensions, T> operator*(const T& scalar) {
+  inline Matrix<Dimensions, T> operator*(const T& scalar) const {
     Matrix<Dimensions, T> result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -116,7 +116,7 @@ public:
     return result;
   }
 
-  inline Matrix<Dimensions, T> operator/(const T& scalar) {
+  inline Matrix<Dimensions, T> operator/(const T& scalar) const {
     if (scalar == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
@@ -130,7 +130,7 @@ public:
     return result;
   }
 
-  inline T rowSum(int row) {
+  inline T rowSum(int row) const {
     T result = T();
     for (int col = 0; col != Dimensions; ++col) {
       result += m_cells[row][col];
@@ -138,10 +138,21 @@ public:
     return result;
   }
 
-  inline T colSum(int col) {
+  inline T colSum(int col) const {
     T result = T();
     for (int row = 0; row != Dimensions; ++row) {
       result += m_cells[row][col];
+    }
+    return result;
+  }
+  
+  inline Matrix<Dimensions, T> transposed() const {
+    Matrix<Dimensions, T> result(*this);
+    
+    for (int row = 0; row != Dimensions; ++row) {
+      for (int col = row + 1; col != Dimensions; ++col) {
+        std::swap(result[row][col], result[col][row]);
+      }
     }
     return result;
   }
@@ -182,16 +193,20 @@ public:
     return static_cast<MatrixType>(this->Base::operator*(static_cast<MatrixType>(other)));
   }
 
-  inline VectorType operator*(const VectorType& vector) {
+  inline VectorType operator*(const VectorType& vector) const {
     return static_cast<VectorType>(this->Base::operator*(vector));
   }
   
-  inline MatrixType operator*(const T& scalar) {
+  inline MatrixType operator*(const T& scalar) const {
     return static_cast<MatrixType>(this->Base::operator*(scalar));
   }
 
-  inline MatrixType operator/(const T& scalar) {
+  inline MatrixType operator/(const T& scalar) const {
     return static_cast<MatrixType>(this->Base::operator/(scalar));
+  }
+  
+  inline MatrixType transposed() const {
+    return static_cast<MatrixType>(this->Base::transposed());
   }
 };
 

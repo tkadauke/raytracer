@@ -13,7 +13,7 @@ public:
   inline Composite() {}
   ~Composite();
   
-  inline void add(Surface* surface) { m_surfaces.push_back(surface); }
+  inline void add(Surface* surface) { surface->setParent(this); m_surfaces.push_back(surface); }
   
   inline const Surfaces& surfaces() const { return m_surfaces; }
   
