@@ -7,19 +7,27 @@ INCLUDE_DIR = File.expand_path(File.dirname(__FILE__) + '/include')
 SRC_DIR = File.expand_path(File.dirname(__FILE__) + '/src')
 GTEST_DIR = File.expand_path(File.dirname(__FILE__) + '/gtest')
 TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test')
+UNIT_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/unit')
+FUNCTIONAL_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/functional')
+TEST_HELPER_DIR = File.expand_path(File.dirname(__FILE__) + '/test/helpers')
 EXAMPLES_DIR = File.expand_path(File.dirname(__FILE__) + '/examples')
 
 SRC = FileList["#{SRC_DIR}/**/*.cpp"]
-TEST = FileList["#{TEST_DIR}/**/*.cpp"]
+UNIT_TEST = FileList["#{UNIT_TEST_DIR}/**/*.cpp"]
+FUNCTIONAL_TEST = FileList["#{FUNCTIONAL_TEST_DIR}/**/*.cpp"]
+TEST_HELPER = FileList["#{TEST_HELPER_DIR}/**/*.cpp"]
 GTEST = FileList["#{GTEST_DIR}/**/*.cpp"]
 EXAMPLES_SRC = FileList["#{EXAMPLES_DIR}/**/*.cpp"]
 
 SRC_OBJ = SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
-TEST_OBJ = TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
+UNIT_TEST_OBJ = UNIT_TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
+FUNCTIONAL_TEST_OBJ = FUNCTIONAL_TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
+TEST_HELPER_OBJ = TEST_HELPER.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 GTEST_OBJ = GTEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 EXAMPLES_OBJ = EXAMPLES_SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 
-TEST_BIN = "#{TEST_DIR}/tests.run"
+UNIT_TEST_BIN = "#{UNIT_TEST_DIR}/tests.run"
+FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
 EXAMPLES = FileList["#{EXAMPLES_DIR}/*"]
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
@@ -39,7 +47,7 @@ T_FLAGS = "#{WARNING_FLAGS}"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 
-CLEAN.include(SRC_OBJ, TEST_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TEST_BIN, EXAMPLES_BIN)
+CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN)
 
 task :default => [:examples, :test]
 
@@ -75,8 +83,12 @@ rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
   end
 end
 
-file TEST_BIN => [SRC_OBJ, TEST_OBJ, GTEST_OBJ].flatten do
-  sh %{g++ -Os -o #{TEST_BIN} #{[SRC_OBJ, TEST_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
+file UNIT_TEST_BIN => [SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten do
+  sh %{g++ -Os -o #{UNIT_TEST_BIN} #{[SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
+end
+
+file FUNCTIONAL_TEST_BIN => [SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten do
+  sh %{g++ -Os -o #{FUNCTIONAL_TEST_BIN} #{[SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
 end
 
 EXAMPLES.each do |example|
@@ -92,14 +104,24 @@ end
 task :examples => EXAMPLES_BIN
 
 namespace :test do
-  task :build => TEST_BIN
+  task :build => [UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN]
+  task :run => [:units, :functionals]
   
   desc "Run all unit tests"
-  task :run => :build do
+  task :units => :build do
     if ENV['ONLY']
-      sh("#{TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
+      sh("#{UNIT_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
     else
-      sh(TEST_BIN)
+      sh(UNIT_TEST_BIN)
+    end
+  end
+
+  desc "Run all functional tests"
+  task :functionals => :build do
+    if ENV['ONLY']
+      sh("#{FUNCTIONAL_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
+    else
+      sh(FUNCTIONAL_TEST_BIN)
     end
   end
 end
