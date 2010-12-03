@@ -3,6 +3,7 @@
 
 #include "Surface.h"
 #include "Matrix.h"
+#include "Ray.h"
 
 class Instance : public Surface {
 public:
@@ -10,10 +11,15 @@ public:
   virtual ~Instance() { }
   
   Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
+  bool intersects(const Ray& ray);
   
   void setMatrix(const Matrix4d& matrix);
 
 private:
+  inline Ray instancedRay(const Ray& ray) const {
+    return Ray(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
+  }
+  
   Surface* m_surface;
   Matrix4d m_pointMatrix;
   Matrix4d m_originMatrix;

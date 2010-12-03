@@ -28,3 +28,22 @@ Surface* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   }
   return 0;
 }
+
+bool Sphere::intersects(const Ray& ray) {
+  const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
+  
+  double od = o * d, dd = d * d;
+  double discriminant = od * od - dd * (o * o - m_radius * m_radius);
+  
+  if (discriminant < 0) {
+    return false;
+  } else if (discriminant > 0) {
+    double discriminantRoot = sqrt(discriminant);
+    double t1 = (-od - discriminantRoot) / dd;
+    double t2 = (-od + discriminantRoot) / dd;
+    if (t1 <= 0 && t2 <= 0)
+      return false;
+    return true;
+  }
+  return false;
+}

@@ -35,4 +35,28 @@ namespace InstanceTest {
     
     delete surface;
   }
+  
+  TEST(Instance, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
+    MockSurface* surface = new MockSurface;
+    Instance instance(surface);
+    EXPECT_CALL(*surface, intersects(_)).WillOnce(Return(true));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    ASSERT_TRUE(instance.intersects(ray));
+    
+    delete surface;
+  }
+
+  TEST(Instance, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
+    MockSurface* surface = new MockSurface;
+    Instance instance(surface);
+    EXPECT_CALL(*surface, intersects(_)).WillOnce(Return(false));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    ASSERT_FALSE(instance.intersects(ray));
+    
+    delete surface;
+  }
 }

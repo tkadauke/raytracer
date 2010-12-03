@@ -57,4 +57,18 @@ namespace SphereTest {
     ASSERT_EQ(Vector3d(0, 0, 1), hitPoints.max().normal());
     ASSERT_EQ(1, hitPoints.max().distance());
   }
+  
+  TEST(Sphere, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
+    Sphere sphere(Vector3d(), 1);
+    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    
+    ASSERT_TRUE(sphere.intersects(ray));
+  }
+  
+  TEST(Sphere, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
+    Sphere sphere(Vector3d(), 1);
+    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
+    
+    ASSERT_FALSE(sphere.intersects(ray));
+  }
 }

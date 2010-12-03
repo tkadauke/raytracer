@@ -13,6 +13,7 @@ public:
   virtual ~Surface() {}
   
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints) = 0;
+  virtual bool intersects(const Ray& ray);
   
   inline Material& material() { return m_material; }
   

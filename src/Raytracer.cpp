@@ -54,10 +54,9 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
     for (Scene::Lights::const_iterator l = m_scene->lights().begin(); l != m_scene->lights().end(); ++l) {
       Light* light = *l;
       
-      HitPointInterval lightHitPoint;
       Vector3d lightDirection = (light->position() - hitPoint.point()).normalized();
       
-      if (!m_scene->intersect(Ray(hitPoint.point(), lightDirection).epsilonShifted(), lightHitPoint)) {
+      if (!m_scene->intersects(Ray(hitPoint.point(), lightDirection).epsilonShifted())) {
         Vector3d h = (lightDirection - ray.direction()).normalized();
         color = color + diffuseColor * light->color() * max(0.0, hitPoint.normal() * lightDirection) +
                  light->color() * highlightColor * pow(h * hitPoint.normal(), 128);

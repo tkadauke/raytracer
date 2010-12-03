@@ -10,8 +10,11 @@ public:
     : m_normal(normal), m_distance(distance) {}
   
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
+  virtual bool intersects(const Ray& ray);
 
 private:
+  double calculateIntersectionDistance(const Ray& ray);
+  
   Vector3d m_normal;
   double m_distance;
 };

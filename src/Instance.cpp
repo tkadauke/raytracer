@@ -3,13 +3,16 @@
 #include "HitPointInterval.h"
 
 Surface* Instance::intersect(const Ray& ray, HitPointInterval& hitPoints) {
-  Ray instancedRay = Ray(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
-  Surface* result = m_surface->intersect(instancedRay, hitPoints);
+  Surface* result = m_surface->intersect(instancedRay(ray), hitPoints);
   if (result) {
     hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
     return this;
   }
   return 0;
+}
+
+bool Instance::intersects(const Ray& ray) {
+  return m_surface->intersects(instancedRay(ray));
 }
 
 void Instance::setMatrix(const Matrix4d& matrix) {

@@ -15,3 +15,12 @@ Surface* Union::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   
   return hit ? this : 0;
 }
+
+bool Union::intersects(const Ray& ray) {
+  for (Surfaces::const_iterator i = surfaces().begin(); i != surfaces().end(); ++i) {
+    if ((*i)->intersects(ray)) {
+      return true;
+    }
+  }
+  return false;
+}

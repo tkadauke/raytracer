@@ -41,4 +41,18 @@ namespace PlaneTest {
     ASSERT_EQ(0, surface);
     ASSERT_TRUE(hitPoints.min().isUndefined());
   }
+  
+  TEST(Plane, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
+    Plane plane(Vector3d(0, 1, 0), 0);
+    Ray ray(Vector3d(0, 1, 0), Vector3d(0, -1, 0));
+    
+    ASSERT_TRUE(plane.intersects(ray));
+  }
+  
+  TEST(Plane, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
+    Plane plane(Vector3d(0, 1, 0), 0);
+    Ray ray(Vector3d(0, -1, 0), Vector3d(0, -1, 0));
+    
+    ASSERT_FALSE(plane.intersects(ray));
+  }
 }

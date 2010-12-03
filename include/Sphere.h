@@ -12,6 +12,7 @@ public:
   }
   
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
+  virtual bool intersects(const Ray& ray);
 
 private:
   Vector3d m_origin;
