@@ -5,10 +5,25 @@
 #include "Matrix.h"
 #include "MemoizedValue.h"
 
+class Raytracer;
+class Buffer;
+
 class Camera {
 public:
+  Camera() {}
   Camera(const Vector3d& position, const Vector3d& target)
     : m_position(position), m_target(target) {}
+  virtual ~Camera() {}
+  
+  void setPosition(const Vector3d& position) {
+    m_matrix.reset();
+    m_position = position;
+  }
+  
+  void setTarget(const Vector3d& target) {
+    m_matrix.reset();
+    m_target = target;
+  }
   
   const Matrix4d& matrix() {
     if (!m_matrix) {
@@ -24,6 +39,8 @@ public:
     }
     return m_matrix;
   }
+  
+  virtual void render(Raytracer* raytracer, Buffer& buffer) = 0;
 
 private:
   Vector3d m_position, m_target;

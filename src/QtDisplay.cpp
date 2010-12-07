@@ -18,8 +18,8 @@ void QtDisplay::paintEvent(QPaintEvent*)
 {
   QPainter painter(this);
   Buffer buffer(width(), height());
-  Camera camera(Matrix3d::rotateX(m_xAngle) * Matrix3d::rotateY(m_yAngle) * Vector3d(0, 0, -m_distance), Vector3d::null);
-  m_raytracer->render(camera, buffer);
+  m_raytracer->camera()->setPosition(Matrix3d::rotateX(m_xAngle) * Matrix3d::rotateY(m_yAngle) * Vector3d(0, 0, -m_distance));
+  m_raytracer->render(buffer);
   
   QImage image(width(), height(), QImage::Format_RGB32);
   

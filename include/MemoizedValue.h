@@ -22,6 +22,10 @@ public:
     return value;
   }
   
+  inline void reset() {
+    m_initialized = false;
+  }
+  
 private:
   bool m_initialized;
   T m_value;

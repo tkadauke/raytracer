@@ -3,7 +3,7 @@
 
 #include "Scene.h"
 #include "Raytracer.h"
-#include "Camera.h"
+#include "PinholeCamera.h"
 
 namespace testing {
   RaytracerFunctionalTest::RaytracerFunctionalTest()
@@ -31,9 +31,9 @@ namespace testing {
   }
 
   void RaytracerFunctionalTest::render() {
-    m_raytracer = new Raytracer(m_scene);
-    Camera camera(m_position, m_lookAt);
-    m_raytracer->render(camera, m_buffer);
+    PinholeCamera camera(m_position, m_lookAt);
+    m_raytracer = new Raytracer(&camera, m_scene);
+    m_raytracer->render(m_buffer);
   }
   
   bool RaytracerFunctionalTest::colorPresent(const Colord& color) {

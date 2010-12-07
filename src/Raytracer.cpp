@@ -1,5 +1,4 @@
 #include "Raytracer.h"
-#include "LinearInterpolation.h"
 #include "Vector.h"
 #include "Ray.h"
 #include "Scene.h"
@@ -11,28 +10,20 @@
 #include "Camera.h"
 #include "Exception.h"
 
+#include "PinholeCamera.h"
+
 #include <algorithm>
 
 using namespace std;
 
-void Raytracer::render(Camera camera, Buffer& buffer) {
-  Matrix4d matrix = camera.matrix();
-  
-  Vector3d position = matrix * Vector3d(0, 0, -5);
-  Vector3d topLeft = matrix * Vector3d(-4, -3, 0),
-           topRight = matrix * Vector3d(4, -3, 0),
-           bottomLeft = matrix * Vector3d(-4, 3, 0),
-           bottomRight = matrix * Vector3d(4, 3, 0);
+Raytracer::Raytracer(Scene* scene)
+  : m_scene(scene)
+{
+  m_camera = new PinholeCamera;
+}
 
-  LinearInterpolation<Vector3d> leftEnd(topLeft, bottomLeft, buffer.height()), rightEnd(topRight, bottomRight, buffer.height());
-  
-  for (LinearInterpolation<Vector3d>::Iterator left = leftEnd.begin(), right = rightEnd.begin(); left != leftEnd.end(); ++left, ++right) {
-    LinearInterpolation<Vector3d> row(*left, *right, buffer.width());
-    for (LinearInterpolation<Vector3d>::Iterator pixel = row.begin(); pixel != row.end(); ++pixel) {
-      Ray ray(position, (*pixel - position).normalized());
-      buffer[left.current()][pixel.current()] = rayColor(ray);
-    }
-  }
+void Raytracer::render(Buffer& buffer) {
+  m_camera->render(this, buffer);
 }
 
 Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
