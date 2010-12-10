@@ -10,10 +10,10 @@ ImageViewerWidget::ImageViewerWidget(const Buffer& buffer)
 
 void ImageViewerWidget::paintEvent(QPaintEvent*) {
   QPainter painter(this);
-  QImage image(width(), height(), QImage::Format_RGB32);
+  QImage image(m_buffer.width(), m_buffer.height(), QImage::Format_RGB32);
   
-  for (int i = 0; i != width(); ++i) {
-    for (int j = 0; j != height(); ++j) {
+  for (int i = 0; i != m_buffer.width(); ++i) {
+    for (int j = 0; j != m_buffer.height(); ++j) {
       image.setPixel(i, j, m_buffer[j][i].rgb());
     }
   }

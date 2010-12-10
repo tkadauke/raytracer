@@ -20,6 +20,8 @@ public:
   Colord rayColor(const Ray& ray, int recursionDepth = 0);
   Camera* camera() const { return m_camera; }
   
+  void cancel();
+  
 private:
   Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
   

@@ -4,7 +4,10 @@
 #include <QWidget>
 #include <QPainter>
 
+#include "Buffer.h"
+
 class Raytracer;
+class RenderThread;
 
 class QtDisplay : public QWidget {
 public:
@@ -14,12 +17,20 @@ public:
   virtual void mouseMoveEvent(QMouseEvent* event);
   virtual void mousePressEvent(QMouseEvent* event);
   virtual void wheelEvent(QWheelEvent* event);
+  virtual void resizeEvent(QResizeEvent* event);
+  virtual void timerEvent(QTimerEvent *event);
+  
+  void stop();
+  void render();
   
 private:
   QWidget* m_window;
   Raytracer* m_raytracer;
   double m_xAngle, m_yAngle, m_distance;
   QPoint m_dragPosition;
+  Buffer* m_buffer;
+  RenderThread* m_renderThread;
+  int m_timer;
 };
 
 #endif

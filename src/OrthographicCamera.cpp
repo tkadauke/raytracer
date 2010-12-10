@@ -21,5 +21,9 @@ void OrthographicCamera::render(Raytracer* raytracer, Buffer& buffer) {
       Ray ray(*pixel, direction);
       buffer[left.current()][pixel.current()] = raytracer->rayColor(ray);
     }
+    
+    if (m_canceled)
+      break;
   }
+  m_canceled = false;
 }

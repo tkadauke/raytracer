@@ -21,5 +21,9 @@ void PinholeCamera::render(Raytracer* raytracer, Buffer& buffer) {
       Ray ray(position, (*pixel - position).normalized());
       buffer[left.current()][pixel.current()] = raytracer->rayColor(ray);
     }
+    
+    if (m_canceled)
+      break;
   }
+  m_canceled = false;
 }

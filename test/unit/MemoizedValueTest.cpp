@@ -44,4 +44,11 @@ namespace MemoizedValueTest {
     memo = 10;
     ASSERT_TRUE(memo.isInitialized());
   }
+  
+  TEST(MemoizedValue, ShouldResetValue) {
+    MemoizedValue<int> memo(10);
+    ASSERT_TRUE(memo.isInitialized());
+    memo.reset();
+    ASSERT_FALSE(memo.isInitialized());
+  }
 }

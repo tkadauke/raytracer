@@ -108,3 +108,7 @@ Vector3d Raytracer::refract(const Vector3d& direction, const Vector3d& normal, d
     return (direction * refractionIndex) + normal * (refractionIndex * -cosTheta - sqrt(cosPhiSquared));
   }
 }
+
+void Raytracer::cancel() {
+  m_camera->cancel();
+}
