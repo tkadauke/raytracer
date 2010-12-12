@@ -1,12 +1,19 @@
+#ifndef MOCK_LIGHT_H
+#define MOCK_LIGHT_H
+
 #include "gmock/gmock.h"
 #include "Light.h"
 
-class MockLight : public Light {
-public:
-  MockLight(const Vector3d& position, const Colord& color)
-    : Light(position, color) {}
+namespace testing {
+  class MockLight : public Light {
+  public:
+    MockLight(const Vector3d& position, const Colord& color)
+      : Light(position, color) {}
   
-  virtual ~MockLight() { destructorCall(); }
+    virtual ~MockLight() { destructorCall(); }
 
-  MOCK_METHOD0(destructorCall, void());
-};
+    MOCK_METHOD0(destructorCall, void());
+  };
+}
+
+#endif

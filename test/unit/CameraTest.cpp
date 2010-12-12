@@ -1,5 +1,6 @@
 #include "gtest.h"
 #include "Camera.h"
+#include "ViewPlane.h"
 
 namespace CameraTest {
   class ConcreteCamera : public Camera {
@@ -58,5 +59,35 @@ namespace CameraTest {
       0, 0, 0, 1
     );
     ASSERT_EQ(expected, camera.matrix());
+  }
+  
+  TEST(Camera, ShouldSetViewPlane) {
+    ConcreteCamera camera;
+    ViewPlane* plane = new ViewPlane;
+    camera.setViewPlane(plane);
+    ASSERT_EQ(plane, camera.viewPlane());
+  }
+  
+  TEST(Camera, ShouldReturnDefaultViewPlane) {
+    ConcreteCamera camera;
+    ASSERT_NE(static_cast<ViewPlane*>(0), camera.viewPlane());
+  }
+  
+  TEST(Camera, ShouldNotBeCancelledAfterConstruction) {
+    ASSERT_FALSE(ConcreteCamera().isCancelled());
+    ASSERT_FALSE(ConcreteCamera(Vector3d(), Vector3d()).isCancelled());
+  }
+  
+  TEST(Camera, ShouldBeCancelledAfterCancellation) {
+    ConcreteCamera camera;
+    camera.cancel();
+    ASSERT_TRUE(camera.isCancelled());
+  }
+  
+  TEST(Camera, ShouldUncancel) {
+    ConcreteCamera camera;
+    camera.cancel();
+    camera.uncancel();
+    ASSERT_FALSE(camera.isCancelled());
   }
 }

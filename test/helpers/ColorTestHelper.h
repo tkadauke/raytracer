@@ -1,17 +1,17 @@
 #ifndef COLOR_TEST_HELPER_H
 #define COLOR_TEST_HELPER_H
 
-template<class T>
-bool colorNear(const Color<T>& expected, const Color<T>& actual, const T& threshold = 0.0001) {
-  for (int i = 0; i != 3; ++i) {
-    if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
-      return false;
-  }
-  return true;
-}
-
 namespace testing {
   namespace internal {
+    template<class T>
+    bool colorNear(const Color<T>& expected, const Color<T>& actual, const T& threshold = 0.0001) {
+      for (int i = 0; i != 3; ++i) {
+        if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
+          return false;
+      }
+      return true;
+    }
+
     template<class T>
     // Helper function for implementing ASSERT_VECTOR_NEAR.
     AssertionResult ColorNearPredFormat(const char* expr1,

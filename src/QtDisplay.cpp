@@ -31,7 +31,6 @@ QtDisplay::QtDisplay(Raytracer* raytracer)
 {
   m_buffer = new Buffer(width(), height());
   resize(400, 300);
-  render();
 }
 
 void QtDisplay::stop() {
@@ -105,8 +104,8 @@ void QtDisplay::mouseMoveEvent(QMouseEvent* event) {
 
 void QtDisplay::wheelEvent(QWheelEvent* event) {
   if (event->delta() < 0)
-    m_distance /= 1.2;
+    m_distance /= 1.05;
   else
-    m_distance *= 1.2;
+    m_distance *= 1.05;
   render();
 }

@@ -5,6 +5,7 @@ QT_FRAMEWORKS = ['QtCore', 'QtGui']
 
 INCLUDE_DIR = File.expand_path(File.dirname(__FILE__) + '/include')
 SRC_DIR = File.expand_path(File.dirname(__FILE__) + '/src')
+WIDGETS_DIR = File.expand_path(File.dirname(__FILE__) + '/src/widgets')
 GTEST_DIR = File.expand_path(File.dirname(__FILE__) + '/gtest')
 TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test')
 UNIT_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/unit')
@@ -31,7 +32,7 @@ FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
 EXAMPLES = FileList["#{EXAMPLES_DIR}/*"]
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
-INCLUDE_DIRS = [INCLUDE_DIR, GTEST_DIR, QT_INCLUDE_DIRS, '.'].flatten
+INCLUDE_DIRS = [INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, QT_INCLUDE_DIRS, '.'].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
 
 if ENV['DEBUG']
@@ -51,7 +52,7 @@ CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTES
 
 task :default => [:examples, :test]
 
-def header_dependencies(file)
+def header_dependencies(file, pwd = '')
   file_path = nil
   if File.exist?(file)
     file_path = file
@@ -64,15 +65,23 @@ def header_dependencies(file)
   
   if file_path
     headers = File.read(file_path).split("\n").grep(/#include \"/).collect { |inc| inc =~ /^#include \"(.*?)\"$/; $1 }
-    [file_path, headers.collect { |header| header_dependencies(header) }].flatten
+    [file_path, headers.collect { |header| header_dependencies(header, File.dirname(file_path)) }].flatten
   else
-    [file]
+    [File.join(pwd, file)]
   end
 end
 
 def dependencies(objfile)
   source_file = objfile.gsub(/\.o/, '.cpp')
   header_dependencies(source_file).uniq
+end
+
+rule '.uic' => '.ui' do |t|
+  sh %{uic -o #{t.name} #{t.source}}
+end
+
+rule '.moc' => lambda { |mocfile| mocfile.sub(/src\//, 'include/').sub('.moc', '.h') } do |t|
+  sh %{moc -o #{t.name} #{t.source}}
 end
 
 rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
@@ -122,6 +131,23 @@ namespace :test do
       sh("#{FUNCTIONAL_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
     else
       sh(FUNCTIONAL_TEST_BIN)
+    end
+  end
+end
+
+class String
+  def underscore
+    gsub(/([a-z])([A-Z])/) { |l| "#{$1}_#{$2}" }.downcase
+  end
+end
+
+namespace :check do
+  task :guards do
+    FileList["*/**/*.h"].each do |header|
+      file_name = File.basename(header).sub(".h", '')
+      guard = "#{file_name.underscore.upcase}_H"
+      content = File.read(header)
+      puts "WARNING: #{header} does not contain correct guard" unless content =~ Regexp.new(guard)
     end
   end
 end

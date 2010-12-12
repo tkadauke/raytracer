@@ -3,6 +3,8 @@
 #include "test/mocks/MockSurface.h"
 
 namespace CompositeTest {
+  using namespace ::testing;
+  
   class ConcreteComposite : public Composite {
   public:
     Surface* intersect(const Ray&, HitPointInterval&) { return 0; }

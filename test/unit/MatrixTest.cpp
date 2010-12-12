@@ -6,6 +6,8 @@
 #include "test/helpers/TypeTestHelper.h"
 
 namespace MatrixTest {
+  using namespace ::testing;
+  
   TEST(Matrix, ShouldInitializeMatrixAsIdentity) {
     Matrix<3, float> matrix;
     ASSERT_EQ(1, matrix[0][0]);
@@ -236,6 +238,8 @@ namespace MatrixTest {
 }
 
 namespace SpecializedMatrixTest {
+  using namespace ::testing;
+
   template<class T>
   class SpecializedMatrixTest : public ::testing::Test {
   };
@@ -272,6 +276,8 @@ namespace SpecializedMatrixTest {
 }
 
 namespace Matrix2Test {
+  using namespace ::testing;
+
   TEST(Matrix2, ShouldInitializeIdentity) {
     Matrix2<float> matrix;
     ASSERT_EQ(1, matrix[0][0]);
@@ -335,7 +341,7 @@ namespace Matrix2Test {
   TEST(Matrix2, ShouldRotateClockwise) {
     Matrix2<float> matrix = Matrix2<float>::clockwise(3.1415926535897 / 2.0),
                    expected = Matrix2<float>(0, 1, -1, 0);
-    ASSERT_TRUE(matrixNear(expected, matrix));
+    ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
   TEST(Matrix2, ShouldRotateCounterClockwise) {
@@ -460,6 +466,8 @@ namespace Matrix2Test {
 }
 
 namespace Matrix3Test {
+  using namespace ::testing;
+
   TEST(Matrix3, ShouldInitializeIdentity) {
     Matrix3<float> matrix;
     ASSERT_EQ(1, matrix[0][0]);
@@ -512,6 +520,8 @@ namespace Matrix3Test {
 }
 
 namespace Matrix4Test {
+  using namespace ::testing;
+
   TEST(Matrix4, ShouldInitializeIdentity) {
     Matrix4<float> matrix;
     ASSERT_EQ(1, matrix[0][0]);

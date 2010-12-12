@@ -14,11 +14,13 @@ public:
   Raytracer(Scene* scene);
   Raytracer(Camera* camera, Scene* scene)
     : m_camera(camera), m_scene(scene) {}
+  virtual ~Raytracer() {}
   
   void render(Buffer& buffer);
   
   Colord rayColor(const Ray& ray, int recursionDepth = 0);
   Camera* camera() const { return m_camera; }
+  void setCamera(Camera* camera);
   
   void cancel();
   

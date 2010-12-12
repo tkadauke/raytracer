@@ -1,34 +1,45 @@
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "Box.h"
 #include "test/helpers/RayTracerTestHelper.h"
 
 namespace BoxTest {
   using namespace ::testing;
   
-  class BoxTest : public RaytracerFunctionalTest {};
+  struct BoxTest : public RaytracerFunctionalTest {
+    Box* centeredBox() {
+      Box* box = new Box(Vector3d::null, Vector3d(1, 1, 1));
+      box->material().setDiffuseColor(Colord(1, 0, 0));
+      return box;
+    }
+
+    Box* displacedBox() {
+      Box* box = new Box(Vector3d(0, 20, 0), Vector3d(1, 1, 1));
+      box->material().setDiffuseColor(Colord(1, 0, 0));
+      return box;
+    }
+  };
   
   TEST_F(BoxTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(new Box(Vector3d::null, Vector3d(1, 1, 1)));
-    setCamera(Vector3d(0, 0, -5), Vector3d::null);
+    add(centeredBox());
+    lookAtOrigin();
 
     render();
-    ASSERT_TRUE(colorPresent(Colord::black));
+    ASSERT_TRUE(objectVisible());
   }
   
   TEST_F(BoxTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
-    add(new Box(Vector3d(0, 20, 0), Vector3d(1, 1, 1)));
-    setCamera(Vector3d(0, 0, -5), Vector3d::null);
+    add(displacedBox());
+    lookAtOrigin();
     
     render();
-    ASSERT_FALSE(colorPresent(Colord::black));
+    ASSERT_FALSE(objectVisible());
   }
 
   TEST_F(BoxTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(new Box(Vector3d::null, Vector3d(1, 1, 1)));
-    setCamera(Vector3d(0, 0, -20), Vector3d(0, 0, -25));
+    add(centeredBox());
+    lookAway();
 
     render();
-    ASSERT_FALSE(colorPresent(Colord::black));
+    ASSERT_FALSE(objectVisible());
   }
 }

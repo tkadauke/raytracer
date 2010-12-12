@@ -129,6 +129,10 @@ public:
     }
     return false;
   }
+  
+  inline bool isDefined() const {
+    return !isUndefined();
+  }
 
 private:
   T m_coordinates[Dimensions];

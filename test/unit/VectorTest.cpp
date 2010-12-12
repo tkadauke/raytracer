@@ -201,16 +201,28 @@ namespace VectorTest {
     ASSERT_TRUE(first != second);
   }
   
-  TEST(Vector, ShouldReturnTrueIfVectorIsUndefined) {
+  TEST(Vector, ShouldReturnTrueForUndefinedIfVectorIsUndefined) {
     float elements[3] = { numeric_limits<float>::quiet_NaN(), 0, 0 };
     Vector<3, float> vector(elements);
     ASSERT_TRUE(vector.isUndefined());
   }
   
-  TEST(Vector, ShouldReturnFalseIfVectorIsDefined) {
+  TEST(Vector, ShouldReturnFalseForUndefinedIfVectorIsDefined) {
     float elements[3] = { 0, 0, 0 };
     Vector<3, float> vector(elements);
     ASSERT_FALSE(vector.isUndefined());
+  }
+
+  TEST(Vector, ShouldReturnTrueForDefinedIfVectorIsDefined) {
+    float elements[3] = { 0, 0, 0 };
+    Vector<3, float> vector(elements);
+    ASSERT_TRUE(vector.isDefined());
+  }
+  
+  TEST(Vector, ShouldReturnFalseForDefinedIfVectorIsUndefined) {
+    float elements[3] = { numeric_limits<float>::quiet_NaN(), 0, 0 };
+    Vector<3, float> vector(elements);
+    ASSERT_FALSE(vector.isDefined());
   }
 }
 

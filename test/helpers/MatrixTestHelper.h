@@ -1,19 +1,19 @@
 #ifndef MATRIX_TEST_HELPER_H
 #define MATRIX_TEST_HELPER_H
 
-template<int Dimensions, class T>
-bool matrixNear(const Matrix<Dimensions, T>& expected, const Matrix<Dimensions, T>& actual, const T& threshold = 0.0001) {
-  for (int row = 0; row != Dimensions; ++row) {
-    for (int col = 0; col != Dimensions; ++col) {
-      if (actual[row][col] < expected[row][col] - threshold || actual[row][col] > expected[row][col] + threshold)
-        return false;
-    }
-  }
-  return true;
-}
-
 namespace testing {
   namespace internal {
+    template<int Dimensions, class T>
+    bool matrixNear(const Matrix<Dimensions, T>& expected, const Matrix<Dimensions, T>& actual, const T& threshold = 0.0001) {
+      for (int row = 0; row != Dimensions; ++row) {
+        for (int col = 0; col != Dimensions; ++col) {
+          if (actual[row][col] < expected[row][col] - threshold || actual[row][col] > expected[row][col] + threshold)
+            return false;
+        }
+      }
+      return true;
+    }
+
     template<int Dimensions, class T>
     // Helper function for implementing ASSERT_MATRIX_NEAR.
     AssertionResult MatrixNearPredFormat(const char* expr1,

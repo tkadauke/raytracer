@@ -1,17 +1,17 @@
 #ifndef VECTOR_TEST_HELPER_H
 #define VECTOR_TEST_HELPER_H
 
-template<int Dimensions, class T>
-bool vectorNear(const Vector<Dimensions, T>& expected, const Vector<Dimensions, T>& actual, const T& threshold = 0.0001) {
-  for (int i = 0; i != Dimensions; ++i) {
-    if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
-      return false;
-  }
-  return true;
-}
-
 namespace testing {
   namespace internal {
+    template<int Dimensions, class T>
+    bool vectorNear(const Vector<Dimensions, T>& expected, const Vector<Dimensions, T>& actual, const T& threshold = 0.0001) {
+      for (int i = 0; i != Dimensions; ++i) {
+        if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
+          return false;
+      }
+      return true;
+    }
+
     template<int Dimensions, class T>
     // Helper function for implementing ASSERT_VECTOR_NEAR.
     AssertionResult VectorNearPredFormat(const char* expr1,

@@ -1,4 +1,6 @@
 *.o
+*.moc
+*.uic
 tests.run
 .DS_Store
 examples/*/*RayTracer

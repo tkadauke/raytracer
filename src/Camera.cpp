@@ -1,4 +1,24 @@
 #include "Camera.h"
+#include "ViewPlane.h"
+#include "PointShuffledViewPlane.h"
+
+Camera::~Camera() {
+  if (m_viewPlane)
+    delete m_viewPlane;
+}
+
+ViewPlane* Camera::viewPlane() {
+  // Use this type of view plane as default, because I like it the most :-)
+  if (!m_viewPlane)
+    m_viewPlane = new PointShuffledViewPlane;
+  return m_viewPlane;
+}
+
+void Camera::setViewPlane(ViewPlane* plane) {
+  if (m_viewPlane)
+    delete m_viewPlane;
+  m_viewPlane = plane;
+}
 
 const Matrix4d& Camera::matrix() {
   if (!m_matrix) {

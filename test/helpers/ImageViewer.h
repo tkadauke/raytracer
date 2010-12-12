@@ -1,5 +1,5 @@
-#ifndef IMAGE_VIEWER
-#define IMAGE_VIEWER
+#ifndef IMAGE_VIEWER_H
+#define IMAGE_VIEWER_H
 
 #include <QWidget>
 

@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "Sphere.h"
 #include "test/helpers/RayTracerTestHelper.h"
 
@@ -9,26 +8,26 @@ namespace SphereTest {
   class SphereTest : public RaytracerFunctionalTest {};
   
   TEST_F(SphereTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(new Sphere(Vector3d::null, 1));
-    setCamera(Vector3d(0, 0, -5), Vector3d::null);
+    add(centeredSphere());
+    lookAtOrigin();
 
     render();
-    ASSERT_TRUE(colorPresent(Colord::black));
+    ASSERT_TRUE(objectVisible());
   }
   
   TEST_F(SphereTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
-    add(new Sphere(Vector3d(0, 20, 0), 1));
-    setCamera(Vector3d(0, 0, -5), Vector3d::null);
+    add(displacedSphere());
+    lookAtOrigin();
     
     render();
-    ASSERT_FALSE(colorPresent(Colord::black));
+    ASSERT_FALSE(objectVisible());
   }
 
   TEST_F(SphereTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(new Sphere(Vector3d::null, 1));
-    setCamera(Vector3d(0, 0, -20), Vector3d(0, 0, -25));
+    add(centeredSphere());
+    lookAway();
 
     render();
-    ASSERT_FALSE(colorPresent(Colord::black));
+    ASSERT_FALSE(objectVisible());
   }
 }

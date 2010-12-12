@@ -23,9 +23,10 @@ public:
   void stop();
   void render();
   
-private:
-  QWidget* m_window;
+protected:
   Raytracer* m_raytracer;
+
+private:
   double m_xAngle, m_yAngle, m_distance;
   QPoint m_dragPosition;
   Buffer* m_buffer;

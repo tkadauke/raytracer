@@ -109,6 +109,12 @@ Vector3d Raytracer::refract(const Vector3d& direction, const Vector3d& normal, d
   }
 }
 
+void Raytracer::setCamera(Camera* camera) {
+  if (m_camera)
+    delete m_camera;
+  m_camera = camera;
+}
+
 void Raytracer::cancel() {
   m_camera->cancel();
 }
