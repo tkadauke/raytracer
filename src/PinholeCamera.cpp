@@ -13,7 +13,7 @@ void PinholeCamera::render(Raytracer* raytracer, Buffer& buffer) {
 
   for (ViewPlane::Iterator pixel = plane->begin(), end = plane->end(); pixel != end; ++pixel) {
     Ray ray(position, (*pixel - position).normalized());
-    buffer[pixel.row()][pixel.column()] = raytracer->rayColor(ray);
+    plot(buffer, pixel, raytracer->rayColor(ray));
     
     if (isCancelled())
       break;

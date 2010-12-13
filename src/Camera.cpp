@@ -1,6 +1,7 @@
 #include "Camera.h"
 #include "ViewPlane.h"
 #include "PointShuffledViewPlane.h"
+#include "Buffer.h"
 
 Camera::~Camera() {
   if (m_viewPlane)
@@ -33,4 +34,15 @@ const Matrix4d& Camera::matrix() {
     m_matrix.value().setCell(2, 3, m_position[2]);
   }
   return m_matrix;
+}
+
+void Camera::plot(Buffer& buffer, const ViewPlane::Iterator& pixel, const Colord& color) {
+  int size = pixel.pixelSize();
+  if (size == 1) {
+    buffer[pixel.row()][pixel.column()] = color;
+  } else {
+    for (int x = pixel.column(); x != pixel.column() + size && x < buffer.width(); ++x)
+      for (int y = pixel.row(); y != pixel.row() + size && y < buffer.height(); ++y)
+        buffer[y][x] = color;
+  }
 }

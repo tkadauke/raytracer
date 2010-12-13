@@ -24,10 +24,11 @@ public:
     
     inline int column() const { return m_column; }
     inline int row() const { return m_row; }
+    inline int pixelSize() const { return m_pixelSize; }
     
   protected:
     const ViewPlane* m_plane;
-    int m_column, m_row;
+    int m_column, m_row, m_pixelSize;
   };
 
   class RegularIterator : public IteratorBase {
@@ -67,6 +68,8 @@ public:
     
     inline int column() const { return m_iteratorImpl->column(); }
     inline int row() const { return m_iteratorImpl->row(); }
+    
+    inline int pixelSize() const { return m_iteratorImpl->pixelSize(); }
     
   protected:
     IteratorBase* m_iteratorImpl;

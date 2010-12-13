@@ -16,7 +16,7 @@ ViewPlane::Iterator ViewPlane::begin() const {
 
 
 ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane)
-  : m_plane(plane), m_column(0), m_row(0)
+  : m_plane(plane), m_column(0), m_row(0), m_pixelSize(1)
 {
 }
 

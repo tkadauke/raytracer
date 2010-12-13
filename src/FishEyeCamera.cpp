@@ -18,7 +18,7 @@ void FishEyeCamera::render(Raytracer* raytracer, Buffer& buffer) {
   for (ViewPlane::Iterator pixel = plane->begin(), end = plane->end(); pixel != end; ++pixel) {
     Ray ray(position, direction(*plane, pixel.column(), pixel.row()));
     if (ray.direction().isDefined())
-      buffer[pixel.row()][pixel.column()] = raytracer->rayColor(ray);
+      plot(buffer, pixel, raytracer->rayColor(ray));
     
     if (isCancelled())
       break;

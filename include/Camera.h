@@ -3,11 +3,12 @@
 
 #include "Vector.h"
 #include "Matrix.h"
+#include "Color.h"
 #include "MemoizedValue.h"
+#include "ViewPlane.h"
 
 class Raytracer;
 class Buffer;
-class ViewPlane;
 
 class Camera {
 public:
@@ -36,6 +37,9 @@ public:
   inline void cancel() { m_cancelled = true; }
   inline bool isCancelled() const { return m_cancelled; }
   inline void uncancel() { m_cancelled = false; }
+
+protected:
+  void plot(Buffer& buffer, const ViewPlane::Iterator& pixel, const Colord& color);
 
 private:
   bool m_cancelled;

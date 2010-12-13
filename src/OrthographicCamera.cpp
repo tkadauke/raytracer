@@ -13,7 +13,7 @@ void OrthographicCamera::render(Raytracer* raytracer, Buffer& buffer) {
 
   for (ViewPlane::Iterator pixel = plane->begin(), end = plane->end(); pixel != end; ++pixel) {
     Ray ray(*pixel, direction);
-    buffer[pixel.row()][pixel.column()] = raytracer->rayColor(ray);
+    plot(buffer, pixel, raytracer->rayColor(ray));
     
     if (isCancelled())
       break;
