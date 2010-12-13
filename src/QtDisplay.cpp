@@ -48,7 +48,7 @@ void QtDisplay::stop() {
 
 void QtDisplay::render() {
   stop();
-  m_raytracer->camera()->setPosition(Matrix3d::rotateX(m_xAngle) * Matrix3d::rotateY(m_yAngle) * Vector3d(0, 0, -m_distance));
+  m_raytracer->camera()->setPosition(Matrix3d::rotateY(m_yAngle) * Matrix3d::rotateX(m_xAngle) * Vector3d(0, 0, -m_distance));
   m_renderThread = new RenderThread(m_raytracer, *m_buffer);
   m_renderThread->start();
   connect(m_renderThread, SIGNAL(finished()), this, SLOT(update()));
