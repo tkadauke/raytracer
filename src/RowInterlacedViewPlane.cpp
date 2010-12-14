@@ -1,4 +1,5 @@
 #include "RowInterlacedViewPlane.h"
+#include "ViewPlaneFactory.h"
 
 #include <algorithm>
 
@@ -46,3 +47,5 @@ void RowInterlaceIterator::advance() {
 ViewPlane::Iterator RowInterlacedViewPlane::begin() const {
   return Iterator(new RowInterlaceIterator(this));
 }
+
+static bool dummy = ViewPlaneFactory::self().registerClass<RowInterlacedViewPlane>("RowInterlacedViewPlane");

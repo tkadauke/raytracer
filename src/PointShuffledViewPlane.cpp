@@ -1,4 +1,5 @@
 #include "PointShuffledViewPlane.h"
+#include "ViewPlaneFactory.h"
 
 #include <vector>
 #include <algorithm>
@@ -45,3 +46,5 @@ void PointShuffleIterator::advance() {
 ViewPlane::Iterator PointShuffledViewPlane::begin() const {
   return Iterator(new PointShuffleIterator(this));
 }
+
+static bool dummy = ViewPlaneFactory::self().registerClass<PointShuffledViewPlane>("PointShuffledViewPlane");

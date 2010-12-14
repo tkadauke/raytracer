@@ -1,8 +1,5 @@
 #include "ViewPlane.h"
-#include <iostream>
-#include <algorithm>
-
-using namespace std;
+#include "ViewPlaneFactory.h"
 
 void ViewPlane::setupVectors() {
   m_topLeft = m_matrix * Vector3d(-4, -3, 0);
@@ -47,3 +44,5 @@ void ViewPlane::RegularIterator::advance() {
     m_row++;
   }
 }
+
+static bool dummy = ViewPlaneFactory::self().registerClass<ViewPlane>("ViewPlane");

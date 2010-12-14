@@ -1,4 +1,5 @@
 #include "TiledViewPlane.h"
+#include "ViewPlaneFactory.h"
 
 class TileIterator : public ViewPlane::IteratorBase {
 public:
@@ -40,3 +41,5 @@ void TileIterator::advance() {
 ViewPlane::Iterator TiledViewPlane::begin() const {
   return Iterator(new TileIterator(this));
 }
+
+static bool dummy = ViewPlaneFactory::self().registerClass<TiledViewPlane>("TiledViewPlane");

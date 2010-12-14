@@ -1,4 +1,5 @@
 #include "PointInterlacedViewPlane.h"
+#include "ViewPlaneFactory.h"
 
 #include <algorithm>
 
@@ -52,3 +53,5 @@ void PointInterlaceIterator::advance() {
 ViewPlane::Iterator PointInterlacedViewPlane::begin() const {
   return Iterator(new PointInterlaceIterator(this));
 }
+
+static bool dummy = ViewPlaneFactory::self().registerClass<PointInterlacedViewPlane>("PointInterlacedViewPlane");

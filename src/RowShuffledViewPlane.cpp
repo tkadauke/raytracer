@@ -1,4 +1,5 @@
 #include "RowShuffledViewPlane.h"
+#include "ViewPlaneFactory.h"
 
 #include <algorithm>
 
@@ -39,3 +40,5 @@ void RowShuffleIterator::advance() {
 ViewPlane::Iterator RowShuffledViewPlane::begin() const {
   return Iterator(new RowShuffleIterator(this));
 }
+
+static bool dummy = ViewPlaneFactory::self().registerClass<RowShuffledViewPlane>("RowShuffledViewPlane");
