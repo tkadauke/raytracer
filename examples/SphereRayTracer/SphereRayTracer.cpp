@@ -3,6 +3,7 @@
 #include "Sphere.h"
 #include "Plane.h"
 #include "Light.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -13,16 +14,22 @@ int main(int argc, char** argv) {
   Scene* scene = new Scene(Colord(0.1, 0.1, 0.1));
 
   Sphere* sphere = new Sphere(Vector3d(0, 0, 0), 1);
-  sphere->material().setDiffuseColor(Colord(1, 0, 0));
+  Material m1;
+  m1.setDiffuseColor(Colord(1, 0, 0));
+  sphere->setMaterial(&m1);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 1);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  Material m2;
+  m2.setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&m2);
   
   Sphere* sphere2 = new Sphere(Vector3d(-2, -2, 2), 1);
-  sphere2->material().setDiffuseColor(Colord(0, 1, 0));
+  Material m3;
+  m3.setDiffuseColor(Colord(0, 1, 0));
+  sphere2->setMaterial(&m3);
   
   Sphere* sphere3 = new Sphere(Vector3d(2, -2, 2), 1);
-  sphere3->material().setDiffuseColor(Colord(0, 0, 1));
+  sphere3->setMaterial(&m2);
   
   scene->add(sphere);
   scene->add(sphere2);

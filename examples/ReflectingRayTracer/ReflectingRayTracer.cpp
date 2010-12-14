@@ -3,6 +3,7 @@
 #include "Sphere.h"
 #include "Plane.h"
 #include "Light.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -13,20 +14,28 @@ int main(int argc, char** argv) {
   Scene* scene = new Scene(Colord(0.4, 0.4, 0.4));
 
   Sphere* sphere = new Sphere(Vector3d(0, 1, 0), 1);
-  sphere->material().setDiffuseColor(Colord(1, 0, 0));
-  sphere->material().setHighlightColor(Colord(0.2, 0.2, 0.2));
-  sphere->material().setSpecularColor(Colord(0.2, 0.2, 0.2));
+  Material m1;
+  m1.setDiffuseColor(Colord(1, 0, 0));
+  m1.setHighlightColor(Colord(0.2, 0.2, 0.2));
+  m1.setSpecularColor(Colord(0.2, 0.2, 0.2));
+  sphere->setMaterial(&m1);
   
   Sphere* sphere2 = new Sphere(Vector3d(-2.5, 1, 0), 1);
-  sphere2->material().setDiffuseColor(Colord(0, 1, 0));
-  sphere2->material().setSpecularColor(Colord(0.2, 0.2, 0.2));
+  Material m2;
+  m2.setDiffuseColor(Colord(0, 1, 0));
+  m2.setSpecularColor(Colord(0.2, 0.2, 0.2));
+  sphere2->setMaterial(&m2);
   
   Sphere* sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  sphere3->material().setDiffuseColor(Colord(0, 0, 1));
-  sphere3->material().setSpecularColor(Colord(0.2, 0.2, 0.2));
+  Material m3;
+  m3.setDiffuseColor(Colord(0, 0, 1));
+  m3.setSpecularColor(Colord(0.2, 0.2, 0.2));
+  sphere3->setMaterial(&m3);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  Material m4;
+  m4.setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&m4);
   
   scene->add(sphere);
   scene->add(sphere2);

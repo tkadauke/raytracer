@@ -1,5 +1,6 @@
 #include "gtest.h"
 #include "Surface.h"
+#include "Material.h"
 
 namespace SurfaceTest {
   class ConcreteSurface : public Surface {
@@ -9,6 +10,8 @@ namespace SurfaceTest {
   
   TEST(Composite, ShouldReturnMaterial) {
     ConcreteSurface surface;
-    ASSERT_EQ(Colord::white, surface.material().highlightColor());
+    Material material;
+    surface.setMaterial(&material);
+    ASSERT_EQ(&material, surface.material());
   }
 }

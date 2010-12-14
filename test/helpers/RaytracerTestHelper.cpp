@@ -5,6 +5,7 @@
 #include "Raytracer.h"
 #include "PinholeCamera.h"
 #include "Sphere.h"
+#include "Material.h"
 
 namespace testing {
   RaytracerFunctionalTest::RaytracerFunctionalTest()
@@ -75,15 +76,21 @@ namespace testing {
     viewer.show();
   }
   
+  Material* RaytracerFunctionalTest::redDiffuse() {
+    Material* material = new Material;
+    material->setDiffuseColor(Colord(1, 0, 0));
+    return material;
+  }
+  
   Sphere* RaytracerFunctionalTest::centeredSphere() {
     Sphere* sphere = new Sphere(Vector3d::null, 1);
-    sphere->material().setDiffuseColor(Colord(1, 0, 0));
+    sphere->setMaterial(redDiffuse());
     return sphere;
   }
   
   Sphere* RaytracerFunctionalTest::displacedSphere() {
     Sphere* sphere = new Sphere(Vector3d(0, 20, 0), 1);
-    sphere->material().setDiffuseColor(Colord(1, 0, 0));
+    sphere->setMaterial(redDiffuse());
     return sphere;
   }
   

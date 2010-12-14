@@ -5,6 +5,7 @@
 #include "Light.h"
 #include "Intersection.h"
 #include "Union.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -19,17 +20,24 @@ int main(int argc, char** argv) {
   Composite* i = new Intersection();
   i->add(sphere1);
   i->add(sphere2);
-  i->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  i->material().setSpecularColor(Colord(0.1, 0.1, 0.1));
-  i->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  i->material().setRefractionIndex(1.52);
+  
+  Material glass;
+  glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
+  glass.setRefractionIndex(1.52);
+  
+  i->setMaterial(&glass);
   
   Sphere* sphere3 = new Sphere(Vector3d(3, 1, 0), 1);
-  sphere3->material().setDiffuseColor(Colord(1, 0, 0));
-  sphere3->material().setSpecularColor(Colord(0.2, 0.2, 0.2));
+  Material red;
+  red.setDiffuseColor(Colord(1, 0, 0));
+  red.setSpecularColor(Colord(0.2, 0.2, 0.2));
+  sphere3->setMaterial(&red);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  Material blue;
+  blue.setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&blue);
   
   scene->add(i);
   scene->add(sphere3);

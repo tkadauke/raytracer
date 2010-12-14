@@ -8,13 +8,13 @@ namespace BoxTest {
   struct BoxTest : public RaytracerFunctionalTest {
     Box* centeredBox() {
       Box* box = new Box(Vector3d::null, Vector3d(1, 1, 1));
-      box->material().setDiffuseColor(Colord(1, 0, 0));
+      box->setMaterial(redDiffuse());
       return box;
     }
 
     Box* displacedBox() {
       Box* box = new Box(Vector3d(0, 20, 0), Vector3d(1, 1, 1));
-      box->material().setDiffuseColor(Colord(1, 0, 0));
+      box->setMaterial(redDiffuse());
       return box;
     }
   };

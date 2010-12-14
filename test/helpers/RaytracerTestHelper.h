@@ -11,6 +11,7 @@ class Scene;
 class Raytracer;
 class Camera;
 class Sphere;
+class Material;
 
 namespace testing {
   class RaytracerFunctionalTest : public ::testing::Test {
@@ -32,6 +33,7 @@ namespace testing {
     int colorCount(const Colord& color);
     void show();
     
+    Material* redDiffuse();
     Sphere* centeredSphere();
     Sphere* displacedSphere();
     void lookAtOrigin();

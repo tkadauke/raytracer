@@ -4,6 +4,7 @@
 #include "Plane.h"
 #include "Light.h"
 #include "Union.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -18,17 +19,24 @@ int main(int argc, char** argv) {
   Union* u = new Union();
   u->add(sphere1);
   u->add(sphere2);
-  u->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  u->material().setSpecularColor(Colord(0.1, 0.1, 0.1));
-  u->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  u->material().setRefractionIndex(1.52);
+  
+  Material glass;
+  glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
+  glass.setRefractionIndex(1.52);
+  
+  u->setMaterial(&glass);
   
   Sphere* sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  sphere3->material().setDiffuseColor(Colord(1, 0, 0));
-  sphere3->material().setSpecularColor(Colord(0.2, 0.2, 0.2));
+  Material red;
+  red.setDiffuseColor(Colord(1, 0, 0));
+  red.setSpecularColor(Colord(0.2, 0.2, 0.2));
+  sphere3->setMaterial(&red);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  Material blue;
+  blue.setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&blue);
   
   scene->add(u);
   scene->add(sphere3);

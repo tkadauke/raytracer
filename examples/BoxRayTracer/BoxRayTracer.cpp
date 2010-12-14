@@ -3,6 +3,7 @@
 #include "Box.h"
 #include "Plane.h"
 #include "Light.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -11,27 +12,28 @@ int main(int argc, char** argv) {
   QApplication app(argc, argv);
   
   Scene* scene = new Scene(Colord(0.1, 0.1, 0.1));
+  
+  Material glass;
+  glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
+  glass.setRefractionIndex(1.52);
 
   Box* box = new Box(Vector3d(0, 0, 0), Vector3d(0.1, 1, 1));
-  box->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  box->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  box->material().setRefractionIndex(1.52);
+  box->setMaterial(&glass);
   scene->add(box);
 
   box = new Box(Vector3d(0.5, 0, 0), Vector3d(0.1, 1, 1));
-  box->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  box->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  box->material().setRefractionIndex(1.52);
+  box->setMaterial(&glass);
   scene->add(box);
   
   box = new Box(Vector3d(1, 0, 0), Vector3d(0.1, 1, 1));
-  box->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  box->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  box->material().setRefractionIndex(1.52);
+  box->setMaterial(&glass);
   scene->add(box);
   
+  Material blue;
+  blue.setDiffuseColor(Colord(0, 0, 1));
   Plane* plane = new Plane(Vector3d(0, -1, 0), 1);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&blue);
   
   scene->add(plane);
   

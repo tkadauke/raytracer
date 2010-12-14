@@ -6,6 +6,7 @@
 #include "HitPoint.h"
 #include "HitPointInterval.h"
 #include "Light.h"
+#include "Material.h"
 #include "Matrix.h"
 #include "Camera.h"
 #include "Exception.h"
@@ -36,9 +37,9 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   Surface* surface = m_scene->intersect(ray, hitPoints);
   if (surface) {
     HitPoint hitPoint = hitPoints.minWithPositiveDistance();
-    const Colord& diffuseColor = surface->material().diffuseColor();
-    const Colord& highlightColor = surface->material().highlightColor();
-    const Colord& specularColor = surface->material().specularColor();
+    const Colord& diffuseColor = surface->material()->diffuseColor();
+    const Colord& highlightColor = surface->material()->highlightColor();
+    const Colord& specularColor = surface->material()->specularColor();
     
     Colord color = m_scene->ambient() * diffuseColor;
     
@@ -54,11 +55,11 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
       }
     }
     
-    if (surface->material().isSpecular()) {
+    if (surface->material()->isSpecular()) {
       Vector3d reflectionDirection = ray.direction() - hitPoint.normal() * (2.0 * (ray.direction() * hitPoint.normal()));
 
-      if (surface->material().isRefractive()) {
-        double refractionIndex = surface->material().refractionIndex();
+      if (surface->material()->isRefractive()) {
+        double refractionIndex = surface->material()->refractionIndex();
         Vector3d refractionDirection;
         double angle;
         Colord transparency;
@@ -69,7 +70,7 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
           transparency = Colord::white;
         } else {
           double distance = hitPoint.distance();
-          Colord absorbance = surface->material().absorbanceColor() * -distance * 0.15;
+          Colord absorbance = surface->material()->absorbanceColor() * -distance * 0.15;
           transparency = Colord(expf(absorbance.r()), expf(absorbance.g()), expf(absorbance.b()));
           
           refractionDirection = refract(ray.direction(), -hitPoint.normal(), refractionIndex, 1.0);
@@ -86,7 +87,7 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
         
         color = color + transparency * (rayColor(Ray(hitPoint.point(), reflectionDirection).epsilonShifted(), recursionDepth + 1) * R +
                                         rayColor(Ray(hitPoint.point(), refractionDirection).epsilonShifted(), recursionDepth + 1) * (1.0 - R));
-      } else if (surface->material().isReflective()) {
+      } else if (surface->material()->isReflective()) {
         color = color + specularColor * rayColor(Ray(hitPoint.point(), reflectionDirection).epsilonShifted(), recursionDepth + 1);
       }
     }

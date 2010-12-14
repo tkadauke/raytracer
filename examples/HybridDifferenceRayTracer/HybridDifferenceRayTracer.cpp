@@ -7,6 +7,7 @@
 #include "Difference.h"
 #include "Intersection.h"
 #include "Union.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -27,10 +28,13 @@ int main(int argc, char** argv) {
   d->add(sphere3);
   d->add(sphere4);
   d->add(sphere5);
-  d->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  d->material().setSpecularColor(Colord(0.1, 0.1, 0.1));
-  d->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  d->material().setRefractionIndex(1.52);
+  
+  Material glass;
+  glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
+  glass.setRefractionIndex(1.52);
+  
+  d->setMaterial(&glass);
   
   scene->add(d);
 
@@ -42,18 +46,20 @@ int main(int argc, char** argv) {
   d->add(sphere2);
   d->add(box);
   scene->add(d);
-  d->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  d->material().setSpecularColor(Colord(0.1, 0.1, 0.1));
-  d->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  d->material().setRefractionIndex(1.52);
+  
+  d->setMaterial(&glass);
   
   Sphere* sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  sphere6->material().setDiffuseColor(Colord(1, 0, 0));
-  sphere6->material().setSpecularColor(Colord(0.2, 0.2, 0.2));
+  Material red;
+  red.setDiffuseColor(Colord(1, 0, 0));
+  red.setSpecularColor(Colord(0.2, 0.2, 0.2));
+  sphere6->setMaterial(&red);
   scene->add(sphere6);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  Material blue;
+  blue.setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&blue);
   scene->add(plane);
   
   Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));

@@ -8,6 +8,7 @@
 #include "Intersection.h"
 #include "Union.h"
 #include "Instance.h"
+#include "Material.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -25,25 +26,26 @@ int main(int argc, char** argv) {
   d->add(sphere2);
   d->add(box);
   
+  Material glass;
+  glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
+  glass.setRefractionIndex(1.52);
+  
   Instance* instance = new Instance(d);
   instance->setMatrix(Matrix4d::translate(Vector3d(1.5, 0, 0)));
-  instance->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  instance->material().setSpecularColor(Colord(0.1, 0.1, 0.1));
-  instance->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  instance->material().setRefractionIndex(1.52);
+  instance->setMaterial(&glass);
   
   scene->add(instance);
 
   instance = new Instance(d);
   instance->setMatrix(Matrix4d::translate(Vector3d(-1.5, 0, 0)));
-  instance->material().setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  instance->material().setSpecularColor(Colord(0.1, 0.1, 0.1));
-  instance->material().setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
-  instance->material().setRefractionIndex(1.52);
+  instance->setMaterial(&glass);
   scene->add(instance);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  plane->material().setDiffuseColor(Colord(0, 0, 1));
+  Material blue;
+  blue.setDiffuseColor(Colord(0, 0, 1));
+  plane->setMaterial(&blue);
   scene->add(plane);
   
   Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
