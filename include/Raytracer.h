@@ -24,9 +24,9 @@ public:
   
   void cancel();
   
-private:
-  Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
+  inline Scene* scene() const { return m_scene; }
   
+private:
   Camera* m_camera;
   Scene* m_scene;
 };

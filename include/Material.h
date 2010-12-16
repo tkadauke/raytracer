@@ -2,6 +2,11 @@
 #define MATERIAL_H
 
 #include "Color.h"
+#include "Vector.h"
+
+class Raytracer;
+class HitPoint;
+class Ray;
 
 class Material {
 public:
@@ -35,8 +40,12 @@ public:
   inline bool isRefractive() const { return m_absorbanceColor != Colord::black; }
   
   inline bool isSpecular() const { return isReflective() || isRefractive(); }
+  
+  virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
 private:
+  Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
+
   Colord m_diffuseColor, m_highlightColor, m_specularColor, m_absorbanceColor;
   double m_refractionIndex;
 };
