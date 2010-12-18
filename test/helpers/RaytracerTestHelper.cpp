@@ -5,7 +5,7 @@
 #include "Raytracer.h"
 #include "PinholeCamera.h"
 #include "Sphere.h"
-#include "Material.h"
+#include "MatteMaterial.h"
 
 namespace testing {
   RaytracerFunctionalTest::RaytracerFunctionalTest()
@@ -77,8 +77,7 @@ namespace testing {
   }
   
   Material* RaytracerFunctionalTest::redDiffuse() {
-    Material* material = new Material;
-    material->setDiffuseColor(Colord(1, 0, 0));
+    Material* material = new MatteMaterial(Colord(1, 0, 0));
     return material;
   }
   

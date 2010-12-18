@@ -10,44 +10,9 @@ class Ray;
 
 class Material {
 public:
-  inline Material()
-    : m_highlightColor(1, 1, 1), m_refractionIndex(1)
-  {
-  }
+  virtual ~Material() {}
   
-  inline Material(const Colord& color)
-    : m_diffuseColor(color), m_highlightColor(1, 1, 1), m_refractionIndex(1)
-  {
-  }
-  
-  inline void setDiffuseColor(const Colord& color) { m_diffuseColor = color; }
-  inline const Colord& diffuseColor() const { return m_diffuseColor; }
-
-  inline void setHighlightColor(const Colord& color) { m_highlightColor = color; }
-  inline const Colord& highlightColor() const { return m_highlightColor; }
-
-  inline void setSpecularColor(const Colord& color) { m_specularColor = color; }
-  inline const Colord& specularColor() const { return m_specularColor; }
-  
-  inline bool isReflective() const { return m_specularColor != Colord::black; }
-
-  inline void setAbsorbanceColor(const Colord& color) { m_absorbanceColor = color; }
-  inline const Colord& absorbanceColor() const { return m_absorbanceColor; }
-
-  inline void setRefractionIndex(double index) { m_refractionIndex = index; }
-  inline double refractionIndex() const { return m_refractionIndex; }
-
-  inline bool isRefractive() const { return m_absorbanceColor != Colord::black; }
-  
-  inline bool isSpecular() const { return isReflective() || isRefractive(); }
-  
-  virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
-
-private:
-  Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
-
-  Colord m_diffuseColor, m_highlightColor, m_specularColor, m_absorbanceColor;
-  double m_refractionIndex;
+  virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) = 0;
 };
 
 #endif

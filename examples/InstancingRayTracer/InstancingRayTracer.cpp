@@ -9,6 +9,8 @@
 #include "Union.h"
 #include "Instance.h"
 #include "Material.h"
+#include "PhongMaterial.h"
+#include "TransparentMaterial.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -26,7 +28,7 @@ int main(int argc, char** argv) {
   d->add(sphere2);
   d->add(box);
   
-  Material glass;
+  TransparentMaterial glass;
   glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
   glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
   glass.setRefractionIndex(1.52);
@@ -43,8 +45,7 @@ int main(int argc, char** argv) {
   scene->add(instance);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  Material blue;
-  blue.setDiffuseColor(Colord(0, 0, 1));
+  PhongMaterial blue(Colord(0, 0, 1));
   plane->setMaterial(&blue);
   scene->add(plane);
   

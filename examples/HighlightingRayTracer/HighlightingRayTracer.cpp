@@ -3,6 +3,7 @@
 #include "Sphere.h"
 #include "Light.h"
 #include "Material.h"
+#include "PhongMaterial.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -13,9 +14,7 @@ int main(int argc, char** argv) {
   Scene* scene = new Scene(Colord(0.1, 0.1, 0.1));
 
   Sphere* sphere = new Sphere(Vector3d(0, 0, 0), 1);
-  Material material;
-  material.setDiffuseColor(Colord(1, 0, 0));
-  material.setHighlightColor(Colord(0, 1, 0));
+  PhongMaterial material(Colord(1, 0, 0), Colord(0, 1, 0));
   sphere->setMaterial(&material);
   
   scene->add(sphere);

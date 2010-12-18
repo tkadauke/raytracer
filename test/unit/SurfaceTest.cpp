@@ -1,6 +1,6 @@
 #include "gtest.h"
 #include "Surface.h"
-#include "Material.h"
+#include "MatteMaterial.h"
 
 namespace SurfaceTest {
   class ConcreteSurface : public Surface {
@@ -10,7 +10,7 @@ namespace SurfaceTest {
   
   TEST(Composite, ShouldReturnMaterial) {
     ConcreteSurface surface;
-    Material material;
+    MatteMaterial material;
     surface.setMaterial(&material);
     ASSERT_EQ(&material, surface.material());
   }

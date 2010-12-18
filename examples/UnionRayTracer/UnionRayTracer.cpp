@@ -5,6 +5,9 @@
 #include "Light.h"
 #include "Union.h"
 #include "Material.h"
+#include "PhongMaterial.h"
+#include "ReflectiveMaterial.h"
+#include "TransparentMaterial.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -20,7 +23,7 @@ int main(int argc, char** argv) {
   u->add(sphere1);
   u->add(sphere2);
   
-  Material glass;
+  TransparentMaterial glass;
   glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
   glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
   glass.setRefractionIndex(1.52);
@@ -28,14 +31,13 @@ int main(int argc, char** argv) {
   u->setMaterial(&glass);
   
   Sphere* sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  Material red;
+  ReflectiveMaterial red;
   red.setDiffuseColor(Colord(1, 0, 0));
   red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&red);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
-  Material blue;
-  blue.setDiffuseColor(Colord(0, 0, 1));
+  PhongMaterial blue(Colord(0, 0, 1));
   plane->setMaterial(&blue);
   
   scene->add(u);

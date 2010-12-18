@@ -5,6 +5,7 @@
 #include "Light.h"
 #include "OrthographicCamera.h"
 #include "Material.h"
+#include "MatteMaterial.h"
 #include "QtDisplay.h"
 
 #include <QApplication>
@@ -15,18 +16,15 @@ int main(int argc, char** argv) {
   Scene* scene = new Scene(Colord(0.1, 0.1, 0.1));
 
   Sphere* sphere = new Sphere(Vector3d(0, 0, 0), 1);
-  Material m1;
-  m1.setDiffuseColor(Colord(1, 0, 0));
+  MatteMaterial m1(Colord(1, 0, 0));
   sphere->setMaterial(&m1);
   
   Plane* plane = new Plane(Vector3d(0, -1, 0), 1);
-  Material m2;
-  m2.setDiffuseColor(Colord(0, 0, 1));
+  MatteMaterial m2(Colord(0, 0, 1));
   plane->setMaterial(&m2);
   
   Sphere* sphere2 = new Sphere(Vector3d(-2, -2, 2), 1);
-  Material m3;
-  m3.setDiffuseColor(Colord(0, 1, 0));
+  MatteMaterial m3(Colord(0, 1, 0));
   sphere2->setMaterial(&m3);
   
   Sphere* sphere3 = new Sphere(Vector3d(2, -2, 2), 1);
