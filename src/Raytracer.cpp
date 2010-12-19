@@ -1,16 +1,16 @@
 #include "Raytracer.h"
-#include "Vector.h"
-#include "Ray.h"
-#include "Scene.h"
+#include "math/Vector.h"
+#include "math/Ray.h"
+#include "surfaces/Scene.h"
 #include "Buffer.h"
-#include "HitPoint.h"
-#include "HitPointInterval.h"
-#include "Material.h"
-#include "Matrix.h"
-#include "Camera.h"
-#include "Exception.h"
+#include "math/HitPoint.h"
+#include "math/HitPointInterval.h"
+#include "materials/Material.h"
+#include "math/Matrix.h"
+#include "cameras/Camera.h"
+#include "core/Exception.h"
 
-#include "PinholeCamera.h"
+#include "cameras/PinholeCamera.h"
 
 Raytracer::Raytracer(Scene* scene)
   : m_scene(scene)

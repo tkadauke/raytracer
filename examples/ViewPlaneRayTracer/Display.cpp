@@ -1,8 +1,8 @@
 #include "examples/ViewPlaneRayTracer/Display.h"
 #include "Raytracer.h"
-#include "PinholeCamera.h"
+#include "cameras/PinholeCamera.h"
 #include "widgets/ViewPlaneTypeWidget.h"
-#include "ViewPlaneFactory.h"
+#include "viewplanes/ViewPlaneFactory.h"
 
 Display::Display(Scene* scene)
   : QtDisplay(new Raytracer(scene)), m_camera(new PinholeCamera)

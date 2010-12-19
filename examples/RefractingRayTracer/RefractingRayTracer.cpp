@@ -1,13 +1,13 @@
 #include "Raytracer.h"
-#include "Scene.h"
-#include "Sphere.h"
-#include "Plane.h"
+#include "surfaces/Scene.h"
+#include "surfaces/Sphere.h"
+#include "surfaces/Plane.h"
 #include "Light.h"
-#include "Material.h"
-#include "PhongMaterial.h"
-#include "ReflectiveMaterial.h"
-#include "TransparentMaterial.h"
-#include "QtDisplay.h"
+#include "materials/Material.h"
+#include "materials/PhongMaterial.h"
+#include "materials/ReflectiveMaterial.h"
+#include "materials/TransparentMaterial.h"
+#include "widgets/QtDisplay.h"
 
 #include <QApplication>
 

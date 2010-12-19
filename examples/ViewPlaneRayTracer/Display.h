@@ -1,7 +1,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "QtDisplay.h"
+#include "widgets/QtDisplay.h"
 
 class Scene;
 class ViewPlaneTypeWidget;

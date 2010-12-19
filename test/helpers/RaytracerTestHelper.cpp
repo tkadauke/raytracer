@@ -1,11 +1,11 @@
 #include "test/helpers/RaytracerTestHelper.h"
 #include "test/helpers/ImageViewer.h"
 
-#include "Scene.h"
+#include "surfaces/Scene.h"
 #include "Raytracer.h"
-#include "PinholeCamera.h"
-#include "Sphere.h"
-#include "MatteMaterial.h"
+#include "cameras/PinholeCamera.h"
+#include "surfaces/Sphere.h"
+#include "materials/MatteMaterial.h"
 
 namespace testing {
   RaytracerFunctionalTest::RaytracerFunctionalTest()

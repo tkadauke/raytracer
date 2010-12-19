@@ -2,7 +2,7 @@
 #define RAYTRACER_TEST_HELPER_H
 
 #include "gtest/gtest.h"
-#include "Vector.h"
+#include "math/Vector.h"
 #include "Buffer.h"
 #include "Color.h"
 

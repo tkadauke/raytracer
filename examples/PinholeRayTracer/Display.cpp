@@ -1,6 +1,6 @@
 #include "examples/PinholeRayTracer/Display.h"
 #include "Raytracer.h"
-#include "PinholeCamera.h"
+#include "cameras/PinholeCamera.h"
 #include "widgets/PinholeCameraParameterWidget.h"
 
 Display::Display(Scene* scene)

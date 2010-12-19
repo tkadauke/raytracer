@@ -2,9 +2,9 @@
 #define MOCK_SURFACE_H
 
 #include "gmock/gmock.h"
-#include "Surface.h"
-#include "Ray.h"
-#include "HitPointInterval.h"
+#include "surfaces/Surface.h"
+#include "math/Ray.h"
+#include "math/HitPointInterval.h"
 
 namespace testing {
   class MockSurface : public Surface {

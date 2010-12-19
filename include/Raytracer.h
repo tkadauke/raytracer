@@ -2,7 +2,7 @@
 #define RAYTRACER_H
 
 #include "Color.h"
-#include "Vector.h"
+#include "math/Vector.h"
 
 class Scene;
 class Buffer;

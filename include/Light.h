@@ -1,7 +1,7 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
-#include "Vector.h"
+#include "math/Vector.h"
 #include "Color.h"
 
 class Light {

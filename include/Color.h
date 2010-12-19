@@ -1,7 +1,7 @@
 #ifndef COLOR_H
 #define COLOR_H
 
-#include "DivisionByZeroException.h"
+#include "core/DivisionByZeroException.h"
 
 template<class T>
 class Color {

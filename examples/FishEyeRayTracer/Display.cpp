@@ -1,6 +1,6 @@
 #include "examples/FishEyeRayTracer/Display.h"
 #include "Raytracer.h"
-#include "FishEyeCamera.h"
+#include "cameras/FishEyeCamera.h"
 #include "widgets/FishEyeCameraParameterWidget.h"
 
 Display::Display(Scene* scene)

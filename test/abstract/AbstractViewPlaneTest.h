@@ -2,10 +2,10 @@
 #define ABSTRACT_VIEW_PLANE_TEST_H
 
 #include "gtest.h"
-#include "Sphere.h"
+#include "surfaces/Sphere.h"
 #include "test/helpers/RayTracerTestHelper.h"
-#include "Camera.h"
-#include "ViewPlane.h"
+#include "cameras/Camera.h"
+#include "viewplanes/ViewPlane.h"
 
 namespace testing {
   template<class VP>

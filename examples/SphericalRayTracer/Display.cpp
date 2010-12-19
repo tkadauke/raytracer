@@ -1,6 +1,6 @@
 #include "examples/SphericalRayTracer/Display.h"
 #include "Raytracer.h"
-#include "SphericalCamera.h"
+#include "cameras/SphericalCamera.h"
 #include "widgets/SphericalCameraParameterWidget.h"
 
 Display::Display(Scene* scene)
