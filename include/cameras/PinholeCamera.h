@@ -9,7 +9,8 @@ public:
   PinholeCamera(const Vector3d& position, const Vector3d& target)
     : Camera(position, target), m_distance(5) {}
 
-  virtual void render(Raytracer* raytracer, Buffer& buffer);
+  using Camera::render;
+  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
   
   inline void setDistance(double distance) { m_distance = distance; }
   inline double distance() const { return m_distance; }

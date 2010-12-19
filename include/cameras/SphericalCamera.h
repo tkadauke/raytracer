@@ -14,7 +14,8 @@ public:
   SphericalCamera(const Vector3d& position, const Vector3d& target)
     : Camera(position, target), m_horizontalFieldOfView(180), m_verticalFieldOfView(120) {}
 
-  virtual void render(Raytracer* raytracer, Buffer& buffer);
+  using Camera::render;
+  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
   
   inline void setHorizontalFieldOfView(float fov) { m_horizontalFieldOfView = fov; }
   inline float horizontalFieldOfView() const { return m_horizontalFieldOfView; }

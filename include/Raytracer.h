@@ -12,9 +12,8 @@ class Camera;
 class Raytracer {
 public:
   Raytracer(Scene* scene);
-  Raytracer(Camera* camera, Scene* scene)
-    : m_camera(camera), m_scene(scene) {}
-  virtual ~Raytracer() {}
+  Raytracer(Camera* camera, Scene* scene);
+  virtual ~Raytracer();
   
   void render(Buffer& buffer);
   
@@ -29,6 +28,9 @@ public:
 private:
   Camera* m_camera;
   Scene* m_scene;
+  
+  class Private;
+  Private* p;
 };
 
 #endif

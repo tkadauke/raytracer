@@ -2,35 +2,36 @@
 #include "viewplanes/ViewPlaneFactory.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
 class RowInterlaceIterator : public ViewPlane::IteratorBase {
 public:
-  static const int initialJump = 8;
-  
-  RowInterlaceIterator(const ViewPlane* plane);
+  RowInterlaceIterator(const ViewPlane* plane, const Rect& rect);
   
   virtual void advance();
   
 private:
+  int initialJump() const;
+  
   int m_rowJump, m_offset;
 };
 
-RowInterlaceIterator::RowInterlaceIterator(const ViewPlane* plane)
-  : IteratorBase(plane), m_rowJump(RowInterlaceIterator::initialJump), m_offset(0)
+RowInterlaceIterator::RowInterlaceIterator(const ViewPlane* plane, const Rect& rect)
+  : IteratorBase(plane, rect), m_rowJump(initialJump()), m_offset(0)
 {
   
 }
 
 void RowInterlaceIterator::advance() {
   m_column++;
-  if (m_column == m_plane->width()) {
+  if (m_column == m_rect.width()) {
     m_column = 0;
     m_row += m_rowJump;
-    if (m_row >= m_plane->height()) {
+    if (m_row >= m_rect.height()) {
       if (m_offset == 1) {
-        m_row = m_plane->height();
+        m_row = m_rect.height();
       } else {
         if (m_offset == 0) {
           m_offset = m_rowJump / 2;
@@ -44,8 +45,12 @@ void RowInterlaceIterator::advance() {
   }
 }
 
-ViewPlane::Iterator RowInterlacedViewPlane::begin() const {
-  return Iterator(new RowInterlaceIterator(this));
+int RowInterlaceIterator::initialJump() const {
+  return 1 << int(log(m_rect.height()));
+}
+
+ViewPlane::Iterator RowInterlacedViewPlane::begin(const Rect& rect) const {
+  return Iterator(new RowInterlaceIterator(this, rect));
 }
 
 static bool dummy = ViewPlaneFactory::self().registerClass<RowInterlacedViewPlane>("RowInterlacedViewPlane");

@@ -8,7 +8,7 @@ namespace CameraTest {
     ConcreteCamera() : Camera() {}
     ConcreteCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target) {}
-    virtual void render(Raytracer*, Buffer&) {}
+    virtual void render(Raytracer*, Buffer&, const Rect&) {}
   };
   
   TEST(Camera, ShouldConstructWithoutParameters) {

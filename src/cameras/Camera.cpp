@@ -1,4 +1,5 @@
 #include "cameras/Camera.h"
+#include "math/Rect.h"
 #include "viewplanes/ViewPlane.h"
 #include "viewplanes/PointShuffledViewPlane.h"
 #include "Buffer.h"
@@ -36,13 +37,17 @@ const Matrix4d& Camera::matrix() {
   return m_matrix;
 }
 
-void Camera::plot(Buffer& buffer, const ViewPlane::Iterator& pixel, const Colord& color) {
+void Camera::render(Raytracer* raytracer, Buffer& buffer) {
+  render(raytracer, buffer, Rect(0, 0, buffer.width(), buffer.height()));
+}
+
+void Camera::plot(Buffer& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
   int size = pixel.pixelSize();
   if (size == 1) {
     buffer[pixel.row()][pixel.column()] = color;
   } else {
-    for (int x = pixel.column(); x != pixel.column() + size && x < buffer.width(); ++x)
-      for (int y = pixel.row(); y != pixel.row() + size && y < buffer.height(); ++y)
+    for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
+      for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
         buffer[y][x] = color;
   }
 }

@@ -3,6 +3,7 @@
 
 #include "math/Matrix.h"
 #include "math/Vector.h"
+#include "math/Rect.h"
 
 #include <vector>
 #include <algorithm>
@@ -11,8 +12,8 @@ class ViewPlane {
 public:
   class IteratorBase {
   public:
-    IteratorBase(const ViewPlane* plane);
-    IteratorBase(const ViewPlane* plane, bool end);
+    IteratorBase(const ViewPlane* plane, const Rect& rect);
+    IteratorBase(const ViewPlane* plane, const Rect& rect, bool end);
     virtual ~IteratorBase() {}
     
     Vector3d current() const;
@@ -22,19 +23,20 @@ public:
       return m_row == other.m_row && m_column == other.m_column;
     }
     
-    inline int column() const { return m_column; }
-    inline int row() const { return m_row; }
+    inline int column() const { return m_rect.left() + m_column; }
+    inline int row() const { return m_rect.top() + m_row; }
     inline int pixelSize() const { return m_pixelSize; }
     
   protected:
     const ViewPlane* m_plane;
+    Rect m_rect;
     int m_column, m_row, m_pixelSize;
   };
 
   class RegularIterator : public IteratorBase {
   public:
-    RegularIterator(const ViewPlane* plane);
-    RegularIterator(const ViewPlane* plane, bool);
+    RegularIterator(const ViewPlane* plane, const Rect& rect);
+    RegularIterator(const ViewPlane* plane, const Rect& rect, bool);
     
     virtual void advance();
   };
@@ -75,28 +77,26 @@ public:
     IteratorBase* m_iteratorImpl;
   };
   
-  inline ViewPlane()
-    : m_width(0), m_height(0) {}
-  inline ViewPlane(const Matrix4d& matrix, int width, int height)
-    : m_matrix(matrix), m_width(width), m_height(height)
+  inline ViewPlane() {}
+  inline ViewPlane(const Matrix4d& matrix, const Rect& window)
+    : m_matrix(matrix), m_window(window)
   {
     setupVectors();
   }
   
-  inline void setup(const Matrix4d& matrix, int width, int height) {
+  inline void setup(const Matrix4d& matrix, const Rect& window) {
     m_matrix = matrix;
-    m_width = width;
-    m_height = height;
+    m_window = window;
     setupVectors();
   }
   
-  inline int width() const { return m_width; }
-  inline int height() const { return m_height; }
+  inline int width() const { return m_window.width(); }
+  inline int height() const { return m_window.height(); }
   
-  virtual Iterator begin() const;
+  virtual Iterator begin(const Rect& rect) const;
   
-  inline Iterator end() const {
-    return Iterator(new RegularIterator(this, true));
+  inline Iterator end(const Rect& rect) const {
+    return Iterator(new RegularIterator(this, rect, true));
   }
   
   const Vector3d& topLeft() const { return m_topLeft; }
@@ -109,7 +109,7 @@ protected:
   friend class Iterator;
   
   Matrix4d m_matrix;
-  int m_width, m_height;
+  Rect m_window;
   Vector3d m_topLeft, m_right, m_down;
 };
 

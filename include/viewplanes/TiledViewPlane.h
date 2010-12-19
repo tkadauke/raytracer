@@ -5,7 +5,7 @@
 
 class TiledViewPlane : public ViewPlane {
 public:
-  virtual Iterator begin() const;
+  virtual Iterator begin(const Rect& rect) const;
 };
 
 #endif

@@ -7,11 +7,11 @@
 #include "Buffer.h"
 
 class Raytracer;
-class RenderThread;
 
 class QtDisplay : public QWidget {
 public:
   QtDisplay(Raytracer* raytracer);
+  ~QtDisplay();
   
   virtual void paintEvent(QPaintEvent*);
   virtual void mouseMoveEvent(QMouseEvent* event);
@@ -27,11 +27,8 @@ protected:
   Raytracer* m_raytracer;
 
 private:
-  double m_xAngle, m_yAngle, m_distance;
-  QPoint m_dragPosition;
-  Buffer* m_buffer;
-  RenderThread* m_renderThread;
-  int m_timer;
+  class Private;
+  Private* p;
 };
 
 #endif

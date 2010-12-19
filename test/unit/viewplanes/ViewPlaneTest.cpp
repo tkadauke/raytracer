@@ -12,13 +12,13 @@ namespace ViewPlaneTest {
   }
   
   TEST(ViewPlane, ShouldInitializeWithValues) {
-    ViewPlane plane(Matrix4d(), 10, 10);
+    ViewPlane plane(Matrix4d(), Rect(10, 10));
     ASSERT_EQ(10, plane.width());
     ASSERT_EQ(10, plane.height());
   }
   
   TEST(ViewPlane, ShouldSetupVectorsWhenInitializedWithValues) {
-    ViewPlane plane(Matrix4d::translate(Vector3d(10, 0, 0)), 8, 6);
+    ViewPlane plane(Matrix4d::translate(Vector3d(10, 0, 0)), Rect(8, 6));
     ASSERT_EQ(Vector3d(6, -3, 0), plane.topLeft());
     ASSERT_EQ(Vector3d(1, 0, 0), plane.right());
     ASSERT_EQ(Vector3d(0, 1, 0), plane.down());
@@ -26,52 +26,60 @@ namespace ViewPlaneTest {
   
   TEST(ViewPlane, ShouldSetupVectors) {
     ViewPlane plane;
-    plane.setup(Matrix4d::translate(Vector3d(10, 0, 0)), 8, 6);
+    plane.setup(Matrix4d::translate(Vector3d(10, 0, 0)), Rect(8, 6));
     ASSERT_EQ(Vector3d(6, -3, 0), plane.topLeft());
     ASSERT_EQ(Vector3d(1, 0, 0), plane.right());
     ASSERT_EQ(Vector3d(0, 1, 0), plane.down());
   }
   
   namespace Iterator {
-    TEST(ViewPlane_Iterator, ShouldReturnCurrent) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ViewPlane::Iterator iterator = plane.begin();
+    struct ViewPlane_Iterator : public ::testing::Test {
+      virtual void SetUp() {
+        fullRect = Rect(8, 6);
+      }
+      
+      Rect fullRect;
+    };
+    
+    TEST_F(ViewPlane_Iterator, ShouldReturnCurrent) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ViewPlane::Iterator iterator = plane.begin(this->fullRect);
       ASSERT_EQ(Vector3d(-4, -3, 0), *iterator);
     }
     
-    TEST(ViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_TRUE(plane.begin() == plane.begin());
+    TEST_F(ViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_TRUE(plane.begin(this->fullRect) == plane.begin(this->fullRect));
     }
     
-    TEST(ViewPlane_Iterator, ShouldReturnTrueWhenTwoEndIteratorsAreCompared) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_TRUE(plane.end() == plane.end());
+    TEST_F(ViewPlane_Iterator, ShouldReturnTrueWhenTwoEndIteratorsAreCompared) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_TRUE(plane.end(this->fullRect) == plane.end(this->fullRect));
     }
     
-    TEST(ViewPlane_Iterator, ShouldCompareForInEquality) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_TRUE(plane.begin() != plane.end());
+    TEST_F(ViewPlane_Iterator, ShouldCompareForInEquality) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_TRUE(plane.begin(this->fullRect) != plane.end(this->fullRect));
     }
     
-    TEST(ViewPlane_Iterator, ShouldReturnCurrentRow) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_EQ(0, plane.begin().row());
+    TEST_F(ViewPlane_Iterator, ShouldReturnCurrentRow) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_EQ(0, plane.begin(this->fullRect).row());
     }
     
-    TEST(ViewPlane_Iterator, ShouldReturnCurrentColumn) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_EQ(0, plane.begin().column());
+    TEST_F(ViewPlane_Iterator, ShouldReturnCurrentColumn) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_EQ(0, plane.begin(this->fullRect).column());
     }
     
-    TEST(ViewPlane_Iterator, ShouldReturnHeightAsCurrentRowForEndIterator) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_EQ(6, plane.end().row());
+    TEST_F(ViewPlane_Iterator, ShouldReturnHeightAsCurrentRowForEndIterator) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_EQ(6, plane.end(this->fullRect).row());
     }
     
-    TEST(ViewPlane_Iterator, ShouldReturnZeroAsCurrentColumnForEndIterator) {
-      ViewPlane plane(Matrix4d(), 8, 6);
-      ASSERT_EQ(0, plane.end().column());
+    TEST_F(ViewPlane_Iterator, ShouldReturnZeroAsCurrentColumnForEndIterator) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      ASSERT_EQ(0, plane.end(this->fullRect).column());
     }
   }
   

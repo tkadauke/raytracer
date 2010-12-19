@@ -16,8 +16,9 @@ namespace TiledViewPlaneTest {
   namespace Iterator {
     TEST(TiledViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {
       TiledViewPlane plane;
-      plane.setup(Matrix4d(), 8, 6);
-      ASSERT_TRUE(plane.begin() == plane.begin());
+      Rect fullRect(8, 6);
+      plane.setup(Matrix4d(), fullRect);
+      ASSERT_TRUE(plane.begin(fullRect) == plane.begin(fullRect));
     }
   }
 }

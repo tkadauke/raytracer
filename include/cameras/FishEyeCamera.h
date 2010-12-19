@@ -14,7 +14,8 @@ public:
   FishEyeCamera(const Vector3d& position, const Vector3d& target)
     : Camera(position, target), m_fieldOfView(120) {}
 
-  virtual void render(Raytracer* raytracer, Buffer& buffer);
+  using Camera::render;
+  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
   
   inline void setFieldOfView(float fieldOfView) { m_fieldOfView = fieldOfView; }
   inline float fieldOfView() const { return m_fieldOfView; }

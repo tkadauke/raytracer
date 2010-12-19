@@ -4,7 +4,7 @@
 #include "surfaces/Plane.h"
 #include "Light.h"
 #include "materials/Material.h"
-#include "materials/PhongMaterial.h"
+#include "materials/ReflectiveMaterial.h"
 #include "materials/TransparentMaterial.h"
 #include "widgets/QtDisplay.h"
 
@@ -32,7 +32,8 @@ int main(int argc, char** argv) {
   box->setMaterial(&glass);
   scene->add(box);
   
-  PhongMaterial blue(Colord(0, 0, 1));
+  ReflectiveMaterial blue(Colord(0, 0, 1));
+  blue.setSpecularColor(Colord(1, 1, 1));
   Plane* plane = new Plane(Vector3d(0, -1, 0), 1);
   plane->setMaterial(&blue);
   

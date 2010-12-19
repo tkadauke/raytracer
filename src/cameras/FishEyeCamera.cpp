@@ -8,23 +8,20 @@
 
 using namespace std;
 
-void FishEyeCamera::render(Raytracer* raytracer, Buffer& buffer) {
+void FishEyeCamera::render(Raytracer* raytracer, Buffer& buffer, const Rect& rect) {
   Matrix4d m = matrix();
   ViewPlane* plane = viewPlane();
-  plane->setup(m, buffer.width(), buffer.height());
 
   Vector3d position = m * Vector3d(0, 0, 0);
 
-  for (ViewPlane::Iterator pixel = plane->begin(), end = plane->end(); pixel != end; ++pixel) {
+  for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     Ray ray(position, direction(*plane, pixel.column(), pixel.row()));
     if (ray.direction().isDefined())
-      plot(buffer, pixel, raytracer->rayColor(ray));
+      plot(buffer, rect, pixel, raytracer->rayColor(ray));
     
     if (isCancelled())
       break;
   }
-
-  uncancel();
 }
 
 Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {

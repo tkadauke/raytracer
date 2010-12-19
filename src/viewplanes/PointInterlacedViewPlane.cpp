@@ -2,36 +2,38 @@
 #include "viewplanes/ViewPlaneFactory.h"
 
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
 class PointInterlaceIterator : public ViewPlane::IteratorBase {
 public:
-  static const int initialSize = 8;
-  
-  PointInterlaceIterator(const ViewPlane* plane);
+  PointInterlaceIterator(const ViewPlane* plane, const Rect& rect);
   
   virtual void advance();
   
 private:
+  int initialSize() const;
+  
   bool m_evenRow;
+  int m_initialSize;
 };
 
-PointInterlaceIterator::PointInterlaceIterator(const ViewPlane* plane)
-  : IteratorBase(plane), m_evenRow(false)
+PointInterlaceIterator::PointInterlaceIterator(const ViewPlane* plane, const Rect& rect)
+  : IteratorBase(plane, rect), m_evenRow(false), m_initialSize(initialSize())
 {
-  m_pixelSize = PointInterlaceIterator::initialSize;
+  m_pixelSize = m_initialSize;
 }
 
 void PointInterlaceIterator::advance() {
   m_column += m_evenRow ? m_pixelSize * 2 : m_pixelSize;
-  if (m_column >= m_plane->width()) {
+  if (m_column >= m_rect.width()) {
     // next row
     m_row += m_pixelSize;
-    if (m_row >= m_plane->height()) {
+    if (m_row >= m_rect.height()) {
       if (m_pixelSize == 1) {
         // end
-        m_row = m_plane->height();
+        m_row = m_rect.height();
         m_column = 0;
       } else {
         // next iteration
@@ -43,15 +45,19 @@ void PointInterlaceIterator::advance() {
     } else {
       // in the first iteration, there is nothing rendered yet, so we never skip any pixels,
       // i.e. all rows are "odd". In subsequent iterations, flip the switch
-      if (m_pixelSize != PointInterlaceIterator::initialSize)
+      if (m_pixelSize != m_initialSize)
         m_evenRow = !m_evenRow;
       m_column = m_evenRow ? m_pixelSize : 0;
     }
   }
 }
 
-ViewPlane::Iterator PointInterlacedViewPlane::begin() const {
-  return Iterator(new PointInterlaceIterator(this));
+int PointInterlaceIterator::initialSize() const {
+  return min(1 << int(log(m_rect.width())), 1 << int(log(m_rect.height())));
+}
+
+ViewPlane::Iterator PointInterlacedViewPlane::begin(const Rect& rect) const {
+  return Iterator(new PointInterlaceIterator(this, rect));
 }
 
 static bool dummy = ViewPlaneFactory::self().registerClass<PointInterlacedViewPlane>("PointInterlacedViewPlane");

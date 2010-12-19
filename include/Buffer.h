@@ -2,6 +2,7 @@
 #define BUFFER_H
 
 #include "Color.h"
+#include "math/Rect.h"
 
 class Buffer {
 public:
@@ -29,6 +30,8 @@ public:
   
   inline int width() const { return m_width; }
   inline int height() const { return m_height; }
+  
+  inline Rect rect() const { return Rect(m_width, m_height); }
 
 private:
   BufferType m_buffer;

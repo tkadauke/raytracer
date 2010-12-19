@@ -9,7 +9,8 @@ public:
   OrthographicCamera(const Vector3d& position, const Vector3d& target)
     : Camera(position, target) {}
 
-  virtual void render(Raytracer* raytracer, Buffer& buffer);
+  using Camera::render;
+  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
 };
 
 #endif

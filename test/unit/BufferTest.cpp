@@ -22,4 +22,13 @@ namespace BufferTest {
     Buffer buffer(50, 50);
     ASSERT_EQ(50, buffer.height());
   }
+  
+  TEST(Buffer, ShouldReturnRect) {
+    Buffer buffer(50, 50);
+    Rect rect = buffer.rect();
+    ASSERT_EQ(0, rect.x());
+    ASSERT_EQ(0, rect.y());
+    ASSERT_EQ(50, rect.width());
+    ASSERT_EQ(50, rect.height());
+  }
 }

@@ -6,60 +6,75 @@
 #include <QMouseEvent>
 #include <QThread>
 
-#include <iostream>
-using namespace std;
+namespace {
+  class RenderThread : public QThread {
+  public:
+    RenderThread(Raytracer* rt, Buffer& b)
+      : raytracer(rt), buffer(b) {}
 
-class RenderThread : public QThread {
-public:
-  RenderThread(Raytracer* rt, Buffer& b)
-    : raytracer(rt), buffer(b) {}
-
-  virtual void run() {
-    raytracer->render(buffer);
-  }
+    virtual void run() {
+      raytracer->render(buffer);
+    }
   
-  void cancel() {
-    raytracer->cancel();
-  }
+    void cancel() {
+      raytracer->cancel();
+    }
 
-  Raytracer* raytracer;
-  Buffer& buffer;
+    Raytracer* raytracer;
+    Buffer& buffer;
+  };
+}
+
+struct QtDisplay::Private {
+  Private()
+    : renderThread(0), xAngle(0), yAngle(0), distance(1), buffer(0) {}
+  
+  RenderThread* renderThread;
+  
+  double xAngle, yAngle, distance;
+  QPoint dragPosition;
+  Buffer* buffer;
+  int timer;
 };
 
 QtDisplay::QtDisplay(Raytracer* raytracer)
-  : QWidget(), m_raytracer(raytracer), m_xAngle(0), m_yAngle(0), m_distance(1), m_buffer(0), m_renderThread(0)
+  : QWidget(), m_raytracer(raytracer), p(new Private)
 {
-  m_buffer = new Buffer(width(), height());
+  p->buffer = new Buffer(width(), height());
   resize(400, 300);
 }
 
+QtDisplay::~QtDisplay() {
+  delete p;
+}
+
 void QtDisplay::stop() {
-  if (m_renderThread && m_renderThread->isRunning()) {
-    m_renderThread->cancel();
-    m_renderThread->wait();
+  if (p->renderThread && p->renderThread->isRunning()) {
+    p->renderThread->cancel();
+    p->renderThread->wait();
   }
   
-  if (m_renderThread) {
-    delete m_renderThread;
-    m_renderThread = 0;
+  if (p->renderThread) {
+    delete p->renderThread;
+    p->renderThread = 0;
   }
-  killTimer(m_timer);
+  killTimer(p->timer);
 }
 
 void QtDisplay::render() {
   stop();
-  m_raytracer->camera()->setPosition(Matrix3d::rotateY(m_yAngle) * Matrix3d::rotateX(m_xAngle) * Vector3d(0, 0, -m_distance));
-  m_renderThread = new RenderThread(m_raytracer, *m_buffer);
-  m_renderThread->start();
-  connect(m_renderThread, SIGNAL(finished()), this, SLOT(update()));
-  m_timer = startTimer(50);
+  m_raytracer->camera()->setPosition(Matrix3d::rotateY(p->yAngle) * Matrix3d::rotateX(p->xAngle) * Vector3d(0, 0, -p->distance));
+  p->renderThread = new RenderThread(m_raytracer, *p->buffer);
+  p->renderThread->start();
+  connect(p->renderThread, SIGNAL(finished()), this, SLOT(update()));
+  p->timer = startTimer(50);
 }
 
 void QtDisplay::resizeEvent(QResizeEvent*) {
   stop();
-  if (m_buffer)
-    delete m_buffer;
-  m_buffer = new Buffer(width(), height());
+  if (p->buffer)
+    delete p->buffer;
+  p->buffer = new Buffer(width(), height());
   render();
 }
 
@@ -68,7 +83,7 @@ void QtDisplay::timerEvent(QTimerEvent*) {
 }
 
 void QtDisplay::paintEvent(QPaintEvent*) {
-  if (m_renderThread && !m_renderThread->isRunning())
+  if (p->renderThread && !p->renderThread->isRunning())
     stop();
   
   QPainter painter(this);
@@ -76,7 +91,7 @@ void QtDisplay::paintEvent(QPaintEvent*) {
   
   for (int i = 0; i != width(); ++i) {
     for (int j = 0; j != height(); ++j) {
-      image.setPixel(i, j, (*m_buffer)[j][i].rgb());
+      image.setPixel(i, j, (*p->buffer)[j][i].rgb());
     }
   }
   
@@ -84,28 +99,28 @@ void QtDisplay::paintEvent(QPaintEvent*) {
 }
 
 void QtDisplay::mousePressEvent(QMouseEvent* event) {
-  m_dragPosition = event->pos();
+  p->dragPosition = event->pos();
 }
 
 void QtDisplay::mouseMoveEvent(QMouseEvent* event) {
-  QPoint delta = event->pos() - m_dragPosition;
+  QPoint delta = event->pos() - p->dragPosition;
   
-  m_xAngle -= delta.y() * 0.01;
-  if (m_xAngle < -1)
-    m_xAngle = -1;
-  if (m_xAngle > 1)
-    m_xAngle = 1;
-  m_yAngle += delta.x() * 0.01;
+  p->xAngle -= delta.y() * 0.01;
+  if (p->xAngle < -1)
+    p->xAngle = -1;
+  if (p->xAngle > 1)
+    p->xAngle = 1;
+  p->yAngle += delta.x() * 0.01;
   
   render();
   
-  m_dragPosition = event->pos();
+  p->dragPosition = event->pos();
 }
 
 void QtDisplay::wheelEvent(QWheelEvent* event) {
   if (event->delta() < 0)
-    m_distance /= 1.05;
+    p->distance /= 1.05;
   else
-    m_distance *= 1.05;
+    p->distance *= 1.05;
   render();
 }
