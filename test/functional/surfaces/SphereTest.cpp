@@ -1,33 +1,25 @@
-#include "gtest/gtest.h"
-#include "surfaces/Sphere.h"
-#include "test/helpers/RayTracerTestHelper.h"
+#include "test/functional/support/RaytracerFeatureTest.h"
 
 namespace SphereTest {
   using namespace ::testing;
   
-  class SphereTest : public RaytracerFunctionalTest {};
+  class SphereTest : public RaytracerFeatureTest {};
   
   TEST_F(SphereTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere");
   }
   
   TEST_F(SphereTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
-    add(displacedSphere());
-    lookAtOrigin();
-    
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a displaced sphere");
+    when("i look at the origin");
+    then("i should not see the sphere");
   }
 
   TEST_F(SphereTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(centeredSphere());
-    lookAway();
-
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a centered sphere");
+    when("i look away from the origin");
+    then("i should not see the sphere");
   }
 }

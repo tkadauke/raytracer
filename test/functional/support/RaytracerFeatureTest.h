@@ -1,47 +1,46 @@
-#ifndef RAYTRACER_TEST_HELPER_H
-#define RAYTRACER_TEST_HELPER_H
+#ifndef RAYTRACER_FEATURE_TEST_H
+#define RAYTRACER_FEATURE_TEST_H
 
-#include "gtest/gtest.h"
+#include "test/functional/support/FeatureTest.h"
+
 #include "math/Vector.h"
-#include "Buffer.h"
 #include "Color.h"
+#include "Buffer.h"
 
 class Surface;
-class Scene;
-class Raytracer;
 class Camera;
-class Sphere;
+class Raytracer;
 class Material;
+class Scene;
 
 namespace testing {
-  class RaytracerFunctionalTest : public ::testing::Test {
-  public:
-    RaytracerFunctionalTest();
-    
+  class RaytracerFeatureTest : public FeatureTest<RaytracerFeatureTest> {
   protected:
     virtual void SetUp();
     virtual void TearDown();
-    
+
+  public:
+    RaytracerFeatureTest();
     void add(Surface* surface);
     Camera* camera();
     void setCamera(Camera* camera);
     void setCamera(const Vector3d& position, const Vector3d& lookAt);
     void setView(const Vector3d& position, const Vector3d& lookAt);
     void render();
-    
+  
     bool colorPresent(const Colord& color);
     int colorCount(const Colord& color);
     void show();
-    
+  
     Material* redDiffuse();
-    Sphere* centeredSphere();
-    Sphere* displacedSphere();
     void lookAtOrigin();
     void lookAway();
     void goFarAway();
     bool objectVisible();
     int objectSize();
-  
+    
+    int previousObjectSize;
+
   private:
     Scene* m_scene;
     Camera* m_camera;

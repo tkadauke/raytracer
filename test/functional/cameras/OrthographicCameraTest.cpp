@@ -1,52 +1,37 @@
-#include "gtest/gtest.h"
-#include "surfaces/Sphere.h"
-#include "cameras/OrthographicCamera.h"
-#include "test/helpers/RayTracerTestHelper.h"
+#include "test/functional/support/RaytracerFeatureTest.h"
 
 namespace OrthographicCameraTest {
   using namespace ::testing;
   
-  struct OrthographicCameraTest : public RaytracerFunctionalTest {
-    OrthographicCameraTest() : RaytracerFunctionalTest() {
-      setCamera(new OrthographicCamera);
-    }
-  };
+  struct OrthographicCameraTest : public RaytracerFeatureTest {};
   
   TEST_F(OrthographicCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("an orthographic camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere");
   }
   
   TEST_F(OrthographicCameraTest, ShouldNotBeVisibileOutsideOfView) {
-    add(displacedSphere());
-    lookAtOrigin();
-    
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("an orthographic camera");
+    given("a displaced sphere");
+    when("i look at the origin");
+    then("i should not see the sphere");
   }
 
   TEST_F(OrthographicCameraTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(centeredSphere());
-    lookAway();
-
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("an orthographic camera");
+    given("a centered sphere");
+    when("i look away from the origin");
+    then("i should not see the sphere");
   }
   
   TEST_F(OrthographicCameraTest, ShouldNotShrinkSizeOfObjectWithLargerDistance) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    int size = objectSize();
-    ASSERT_TRUE(size > 0);
-    
-    goFarAway();
-
-    render();
-    ASSERT_EQ(size, objectSize());
+    given("an orthographic camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere with size S");
+    when("i go far away from the origin");
+    then("i should see the sphere with size S");
   }
 }

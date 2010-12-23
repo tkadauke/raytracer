@@ -1,45 +1,25 @@
-#include "gtest/gtest.h"
-#include "surfaces/Box.h"
-#include "test/helpers/RayTracerTestHelper.h"
+#include "test/functional/support/RaytracerFeatureTest.h"
 
 namespace BoxTest {
   using namespace ::testing;
   
-  struct BoxTest : public RaytracerFunctionalTest {
-    Box* centeredBox() {
-      Box* box = new Box(Vector3d::null, Vector3d(1, 1, 1));
-      box->setMaterial(redDiffuse());
-      return box;
-    }
-
-    Box* displacedBox() {
-      Box* box = new Box(Vector3d(0, 20, 0), Vector3d(1, 1, 1));
-      box->setMaterial(redDiffuse());
-      return box;
-    }
-  };
+  class BoxTest : public RaytracerFeatureTest {};
   
   TEST_F(BoxTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(centeredBox());
-    lookAtOrigin();
-
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a centered box");
+    when("i look at the origin");
+    then("i should see the box");
   }
   
   TEST_F(BoxTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
-    add(displacedBox());
-    lookAtOrigin();
-    
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a displaced box");
+    when("i look at the origin");
+    then("i should not see the box");
   }
 
   TEST_F(BoxTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(centeredBox());
-    lookAway();
-
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a centered box");
+    when("i look away from the origin");
+    then("i should not see the box");
   }
 }

@@ -1,60 +1,44 @@
-#include "gtest/gtest.h"
-#include "surfaces/Sphere.h"
-#include "cameras/SphericalCamera.h"
-#include "test/helpers/RayTracerTestHelper.h"
+#include "test/functional/support/RaytracerFeatureTest.h"
 
 namespace SphericalCameraTest {
   using namespace ::testing;
   
-  struct SphericalCameraTest : public RaytracerFunctionalTest {
-    SphericalCameraTest() : RaytracerFunctionalTest() {
-      setCamera(new SphericalCamera);
-    }
-    
-    void maximumFieldOfView() {
-      static_cast<SphericalCamera*>(RaytracerFunctionalTest::camera())->setFieldOfView(360, 180);
-    }
-  };
+  struct SphericalCameraTest : public RaytracerFeatureTest {};
   
   TEST_F(SphericalCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a spherical camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere");
   }
   
   TEST_F(SphericalCameraTest, ShouldNotBeVisibileOutsideOfView) {
-    add(displacedSphere());
-    lookAtOrigin();
-    
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a spherical camera");
+    given("a displaced sphere");
+    when("i look at the origin");
+    then("i should not see the sphere");
   }
 
   TEST_F(SphericalCameraTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(centeredSphere());
-    lookAway();
-
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a spherical camera");
+    given("a centered sphere");
+    when("i look away from the origin");
+    then("i should not see the sphere");
   }
   
   TEST_F(SphericalCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfPlace) {
-    add(displacedSphere());
-    lookAtOrigin();
-    maximumFieldOfView();
-    
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a spherical camera");
+    given("a displaced sphere");
+    when("i look at the origin");
+    when("i set the spherical camera's field of view to maximum");
+    then("i should see the sphere");
   }
   
   TEST_F(SphericalCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfDirection) {
-    add(centeredSphere());
-    lookAway();
-    maximumFieldOfView();
-    
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a spherical camera");
+    given("a centered sphere");
+    when("i look away from the origin");
+    when("i set the spherical camera's field of view to maximum");
+    then("i should see the sphere");
   }
 }

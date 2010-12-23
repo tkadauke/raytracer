@@ -1,67 +1,47 @@
-#include "gtest/gtest.h"
-#include "surfaces/Sphere.h"
-#include "cameras/PinholeCamera.h"
-#include "test/helpers/RayTracerTestHelper.h"
+#include "test/functional/support/RaytracerFeatureTest.h"
 
 namespace PinholeCameraTest {
   using namespace ::testing;
   
-  struct PinholeCameraTest : public RaytracerFunctionalTest {
-    void setDistance(double distance) {
-      static_cast<PinholeCamera*>(RaytracerFunctionalTest::camera())->setDistance(distance);
-    }
-  };
+  struct PinholeCameraTest : public RaytracerFeatureTest {};
   
   TEST_F(PinholeCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a pinhole camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere");
   }
   
   TEST_F(PinholeCameraTest, ShouldNotBeVisibileOutsideOfView) {
-    add(displacedSphere());
-    lookAtOrigin();
-    
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a pinhole camera");
+    given("a displaced sphere");
+    when("i look at the origin");
+    then("i should not see the sphere");
   }
 
   TEST_F(PinholeCameraTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(centeredSphere());
-    lookAway();
-
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a pinhole camera");
+    given("a centered sphere");
+    when("i look away from the origin");
+    then("i should not see the sphere");
   }
   
   TEST_F(PinholeCameraTest, ShouldShrinkSizeOfObjectWithLargerDistance) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    int size = objectSize();
-    ASSERT_TRUE(size > 0);
-    
-    goFarAway();
-
-    render();
-    ASSERT_TRUE(size > objectSize());
+    given("a pinhole camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere with size S");
+    when("i go far away from the origin");
+    then("i should see the sphere with size smaller than S");
   }
   
-  TEST_F(PinholeCameraTest, ShouldShrinkObjectWithSmallerDistance) {
-    add(centeredSphere());
-    lookAtOrigin();
-    setDistance(5);
-
-    render();
-    int size = objectSize();
-    ASSERT_TRUE(size > 0);
-    
-    setDistance(1);
-
-    render();
-    ASSERT_TRUE(size > objectSize());
+  TEST_F(PinholeCameraTest, ShouldShrinkObjectWithSmallerViewPlaneDistance) {
+    given("a pinhole camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    when("i set the pinhole camera's view plane distance to a normal value");
+    then("i should see the sphere with size S");
+    when("i set the pinhole camera's view plane distance to a very small value");
+    then("i should see the sphere with size smaller than S");
   }
 }

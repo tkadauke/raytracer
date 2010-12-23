@@ -13,6 +13,8 @@ public:
   }
   
   inline Ray epsilonShifted() const { return Ray(at(Ray::epsilon), m_direction); }
+  inline Ray from(const Vector3d& origin) const { return Ray(origin, m_direction); }
+  inline Ray to(const Vector3d& direction) const { return Ray(m_origin, direction); }
   
   inline const Vector3d& origin() const { return m_origin; }
   inline const Vector3d& direction() const { return m_direction; }

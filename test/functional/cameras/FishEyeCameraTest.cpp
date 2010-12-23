@@ -1,67 +1,50 @@
-#include "gtest/gtest.h"
-#include "surfaces/Sphere.h"
-#include "cameras/FishEyeCamera.h"
-#include "test/helpers/RayTracerTestHelper.h"
+#include "test/functional/support/RaytracerFeatureTest.h"
 
 namespace FishEyeCameraTest {
   using namespace ::testing;
   
-  struct FishEyeCameraTest : public RaytracerFunctionalTest {
-    FishEyeCameraTest() : RaytracerFunctionalTest() {
-      setCamera(new FishEyeCamera);
-    }
-    
-    void maximumFieldOfView() {
-      static_cast<FishEyeCamera*>(RaytracerFunctionalTest::camera())->setFieldOfView(360);
-    }
-  };
+  struct FishEyeCameraTest : public RaytracerFeatureTest {};
   
   TEST_F(FishEyeCameraTest, ShouldHaveBlackRingAroundImage) {
-    lookAtOrigin();
-    render();
-    ASSERT_TRUE(colorPresent(Colord::black));
-    ASSERT_TRUE(colorPresent(Colord::white));
+    given("a fish-eye camera");
+    when("i look at the origin");
+    then("i should see a black ring around the image");
   }
   
   TEST_F(FishEyeCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
-    add(centeredSphere());
-    lookAtOrigin();
-
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a fish-eye camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere");
   }
   
   TEST_F(FishEyeCameraTest, ShouldNotBeVisibileOutsideOfView) {
-    add(displacedSphere());
-    lookAtOrigin();
-    
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a fish-eye camera");
+    given("a displaced sphere");
+    when("i look at the origin");
+    then("i should not see the sphere");
   }
 
   TEST_F(FishEyeCameraTest, ShouldNotBeVisibileBehindTheCamera) {
-    add(centeredSphere());
-    lookAway();
-
-    render();
-    ASSERT_FALSE(objectVisible());
+    given("a fish-eye camera");
+    given("a centered sphere");
+    when("i look away from the origin");
+    then("i should not see the sphere");
   }
   
   TEST_F(FishEyeCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfPlace) {
-    add(displacedSphere());
-    lookAtOrigin();
-    maximumFieldOfView();
-    
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a fish-eye camera");
+    given("a displaced sphere");
+    when("i look at the origin");
+    when("i set the fish-eye camera's field of view to maximum");
+    then("i should see the sphere");
   }
   
   TEST_F(FishEyeCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfDirection) {
-    add(centeredSphere());
-    lookAway();
-    maximumFieldOfView();
-    
-    render();
-    ASSERT_TRUE(objectVisible());
+    given("a fish-eye camera");
+    given("a centered sphere");
+    when("i look away from the origin");
+    when("i set the fish-eye camera's field of view to maximum");
+    then("i should see the sphere");
   }
 }
