@@ -142,6 +142,7 @@ class String
 end
 
 namespace :check do
+  desc "Checks if all include guards are correctly used"
   task :guards do
     FileList["*/**/*.h"].each do |header|
       file_name = File.basename(header).sub(".h", '')
@@ -154,3 +155,12 @@ end
 
 desc "Run all tests"
 task :test => ['test:build', 'test:run']
+
+desc "Outputs test and code lines"
+task :stats do
+  test_lines = `find test | grep -v o$ | grep -v moc$ | grep -v uic$ | grep -v run$ | xargs cat 2>/dev/null | wc -l`
+  code_lines = `find src include | grep -v o$ | grep -v moc$ | grep -v uic$ | xargs cat 2>/dev/null | wc -l`
+  
+  puts "Test lines: #{test_lines}"
+  puts "Code lines: #{code_lines}"
+end
