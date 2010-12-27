@@ -8,6 +8,5 @@ GIVEN(RaytracerFeatureTest, "an empty scene") {
 }
 
 THEN(RaytracerFeatureTest, "i should see nothing") {
-  test->render();
   ASSERT_FALSE(test->objectVisible());
 }

@@ -35,6 +35,5 @@ GIVEN(RaytracerFeatureTest, "a sphere behind the box portal") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the color filtered view through the portal") {
-  test->render();
   ASSERT_TRUE(test->colorPresent(Colord(1, 0, 0)));
 }

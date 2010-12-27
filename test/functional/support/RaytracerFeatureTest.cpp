@@ -13,6 +13,10 @@ namespace testing {
   {
     previousObjectSize = 0;
   }
+  
+  void RaytracerFeatureTest::beforeThen() {
+    render();
+  }
 
   void RaytracerFeatureTest::SetUp() {
     m_scene = new Scene(Colord(1, 1, 1));

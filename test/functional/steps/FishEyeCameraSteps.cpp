@@ -14,7 +14,6 @@ WHEN(RaytracerFeatureTest, "i set the fish-eye camera's field of view to maximum
 }
 
 THEN(RaytracerFeatureTest, "i should see a black ring around the image") {
-  test->render();
   ASSERT_TRUE(test->colorPresent(Colord::black));
   ASSERT_TRUE(test->colorPresent(Colord::white));
 }

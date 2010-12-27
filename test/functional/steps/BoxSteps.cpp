@@ -18,11 +18,9 @@ GIVEN(RaytracerFeatureTest, "a displaced box") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the box") {
-  test->render();
   ASSERT_TRUE(test->objectVisible());
 }
 
 THEN(RaytracerFeatureTest, "i should not see the box") {
-  test->render();
   ASSERT_FALSE(test->objectVisible());
 }

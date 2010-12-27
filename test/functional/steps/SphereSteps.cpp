@@ -18,12 +18,10 @@ GIVEN(RaytracerFeatureTest, "a displaced sphere") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the sphere") {
-  test->render();
   ASSERT_TRUE(test->objectVisible());
 }
 
 THEN(RaytracerFeatureTest, "i should see the sphere with size S") {
-  test->render();
   ASSERT_TRUE(test->objectVisible());
   if (test->previousObjectSize) {
     ASSERT_EQ(test->previousObjectSize, test->objectSize());
@@ -33,12 +31,10 @@ THEN(RaytracerFeatureTest, "i should see the sphere with size S") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the sphere with size smaller than S") {
-  test->render();
   ASSERT_TRUE(test->objectVisible());
   ASSERT_TRUE(test->previousObjectSize > test->objectSize());
 }
 
 THEN(RaytracerFeatureTest, "i should not see the sphere") {
-  test->render();
   ASSERT_FALSE(test->objectVisible());
 }

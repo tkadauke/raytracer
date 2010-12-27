@@ -19,8 +19,11 @@ namespace testing {
     virtual void SetUp();
     virtual void TearDown();
 
+    virtual void beforeThen();
+
   public:
     RaytracerFeatureTest();
+    
     void add(Surface* surface);
     Camera* camera();
     void setCamera(Camera* camera);
