@@ -150,6 +150,10 @@ public:
   inline Vector<Dimensions, T> normalized() const {
     return *this / length();
   }
+  
+  inline void normalize() {
+    *this /= length();
+  }
 
   inline bool isNormalized() const {
     return length() == static_cast<T>(1);

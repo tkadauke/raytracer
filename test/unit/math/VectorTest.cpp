@@ -214,6 +214,16 @@ namespace VectorTest {
     ASSERT_EQ(0, normalized[1]);
     ASSERT_EQ(0, normalized[2]);
   }
+  
+  TEST(Vector, ShouldNormalizeInPlace) {
+    Vector<3, float> vector;
+    vector[0] = 10;
+
+    vector.normalize();
+    ASSERT_EQ(1, vector[0]);
+    ASSERT_EQ(0, vector[1]);
+    ASSERT_EQ(0, vector[2]);
+  }
 
   TEST(Vector, ShouldFindOutIfItIsNormalized) {
     Vector<3, float> normal, vector;
