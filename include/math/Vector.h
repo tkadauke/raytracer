@@ -69,9 +69,10 @@ public:
     if (factor == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
+    T recip = 1.0 / factor;
     Vector<Dimensions, T> result;
     for (int i = 0; i != Dimensions; ++i) {
-      result.setCoordinate(i, coordinate(i) / factor);
+      result.setCoordinate(i, coordinate(i) * recip);
     }
     return result;
   }
