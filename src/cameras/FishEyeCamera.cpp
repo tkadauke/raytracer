@@ -18,6 +18,8 @@ void FishEyeCamera::render(Raytracer* raytracer, Buffer& buffer, const Rect& rec
     Ray ray(position, direction(*plane, pixel.column(), pixel.row()));
     if (ray.direction().isDefined())
       plot(buffer, rect, pixel, raytracer->rayColor(ray));
+    else
+      plot(buffer, rect, pixel, Colord::black);
     
     if (isCancelled())
       break;
