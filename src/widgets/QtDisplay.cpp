@@ -124,3 +124,7 @@ void QtDisplay::wheelEvent(QWheelEvent* event) {
     p->distance *= 1.05;
   render();
 }
+
+void QtDisplay::setDistance(double distance) {
+  p->distance = distance;
+}

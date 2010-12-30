@@ -23,6 +23,8 @@ public:
   void stop();
   void render();
   
+  void setDistance(double distance);
+  
 protected:
   Raytracer* m_raytracer;
 
