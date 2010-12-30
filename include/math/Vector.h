@@ -106,6 +106,38 @@ public:
   inline bool operator!=(const Vector<Dimensions, T>& other) const {
     return !(*this == other);
   }
+  
+  inline Vector<Dimensions, T>& operator+=(const Vector<Dimensions, T>& other) {
+    for (int i = 0; i != Dimensions; ++i) {
+      setCoordinate(i, coordinate(i) + other.coordinate(i));
+    }
+    return *this;
+  }
+
+  inline Vector<Dimensions, T>& operator-=(const Vector<Dimensions, T>& other) {
+    for (int i = 0; i != Dimensions; ++i) {
+      setCoordinate(i, coordinate(i) - other.coordinate(i));
+    }
+    return *this;
+  }
+
+  inline Vector<Dimensions, T>& operator*=(const T& factor) {
+    for (int i = 0; i != Dimensions; ++i) {
+      setCoordinate(i, coordinate(i) * factor);
+    }
+    return *this;
+  }
+
+  inline Vector<Dimensions, T>& operator/=(const T& factor) {
+    if (factor == T())
+      throw DivisionByZeroException(__FILE__, __LINE__);
+
+    T recip = 1.0 / factor;
+    for (int i = 0; i != Dimensions; ++i) {
+      setCoordinate(i, coordinate(i) * recip);
+    }
+    return *this;
+  }
 
   inline T length() const {
     T result = 0;
@@ -184,6 +216,22 @@ public:
 
   inline VectorType operator*(const T& factor) const {
     return static_cast<VectorType>(this->Base::operator*(factor));
+  }
+  
+  inline VectorType& operator+=(const VectorType& other) {
+    return static_cast<VectorType&>(this->Base::operator+=(other));
+  }
+  
+  inline VectorType& operator-=(const VectorType& other) {
+    return static_cast<VectorType&>(this->Base::operator-=(other));
+  }
+
+  inline VectorType& operator*=(const T& factor) {
+    return static_cast<VectorType&>(this->Base::operator*=(factor));
+  }
+
+  inline VectorType& operator/=(const T& factor) {
+    return static_cast<VectorType&>(this->Base::operator/=(factor));
   }
 
   inline VectorType normalized() const {

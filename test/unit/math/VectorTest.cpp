@@ -70,6 +70,19 @@ namespace VectorTest {
     ASSERT_EQ(30.0, vector3[1]);
     ASSERT_EQ(20.0, vector3[2]);
   }
+  
+  TEST(Vector, ShouldAddInPlace) {
+    Vector<3, float> vector1, vector2;
+    vector1[0] = 10.0;
+    vector1[1] = 20.0;
+    vector2[1] = 10.0;
+    vector2[2] = 20.0;
+
+    vector1 += vector2;
+    ASSERT_EQ(10.0, vector1[0]);
+    ASSERT_EQ(30.0, vector1[1]);
+    ASSERT_EQ(20.0, vector1[2]);
+  }
 
   TEST(Vector, ShouldSubtract) {
     Vector<3, float> vector1, vector2;
@@ -82,6 +95,19 @@ namespace VectorTest {
     ASSERT_EQ( 10.0, vector3[0]);
     ASSERT_EQ( 10.0, vector3[1]);
     ASSERT_EQ(-20.0, vector3[2]);
+  }
+
+  TEST(Vector, ShouldSubtractInPlace) {
+    Vector<3, float> vector1, vector2;
+    vector1[0] = 10.0;
+    vector1[1] = 20.0;
+    vector2[1] = 10.0;
+    vector2[2] = 20.0;
+
+    vector1 -= vector2;
+    ASSERT_EQ( 10.0, vector1[0]);
+    ASSERT_EQ( 10.0, vector1[1]);
+    ASSERT_EQ(-20.0, vector1[2]);
   }
 
   TEST(Vector, ShouldNegate) {
@@ -108,9 +134,23 @@ namespace VectorTest {
     ASSERT_EQ(5.0, shrunk[0]);
   }
 
+  TEST(Vector, ShouldDivideVectorByScalarInPlace) {
+    Vector<3, float> vector;
+    vector[0] = 10.0;
+
+    vector /= 2;
+
+    ASSERT_EQ(5.0, vector[0]);
+  }
+
   TEST(Vector, ShouldNotAllowDivisionByZero) {
     Vector<3, float> vector;
     ASSERT_THROW(vector / 0, DivisionByZeroException);
+  }
+  
+  TEST(Vector, ShouldNotAllowInPlaceDivisionByZero) {
+    Vector<3, float> vector;
+    ASSERT_THROW(vector /= 0, DivisionByZeroException);
   }
   
   TEST(Vector, ShouldCalculateDotProductOfNullVectors) {
@@ -154,6 +194,15 @@ namespace VectorTest {
     Vector<3, float> enlarged = vector * 2;
 
     ASSERT_EQ(20.0, enlarged[0]);
+  }
+
+  TEST(Vector, ShouldMultiplyVectorByScalarInPlace) {
+    Vector<3, float> vector;
+    vector[0] = 10.0;
+
+    vector *= 2;
+
+    ASSERT_EQ(20.0, vector[0]);
   }
 
   TEST(Vector, ShouldGetNormalizedVector) {
@@ -248,6 +297,26 @@ namespace SpecializedVectorTest {
   TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForDivisionByScalar) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector / 2);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceAddition) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector += vector);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceSubtraction) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector -= vector);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceMultiplicationWithScalar) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector *= 2);
+  }
+
+  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceDivisionByScalar) {
+    TypeParam vector;
+    ASSERT_TYPES_EQ(vector, vector /= 2);
   }
 
   TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForAddition) {
