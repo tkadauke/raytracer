@@ -376,6 +376,18 @@ public:
                       sin, cos,  0,
                       0,   0,    1);
   }
+  
+  inline static Matrix3<T> scale(const T& factor) {
+    return Matrix3<T>(factor, 0,      0,
+                      0,      factor, 0,
+                      0,      0,      factor);
+  }
+
+  inline static Matrix3<T> scale(const T& xFactor, const T& yFactor, const T& zFactor) {
+    return Matrix3<T>(xFactor, 0,       0,
+                      0,       yFactor, 0,
+                      0,       0,       zFactor);
+  }
 };
 
 typedef Matrix3<float> Matrix3f;

@@ -517,6 +517,18 @@ namespace Matrix3Test {
     Matrix3<float> expected(0, -1, 0, 1, 0, 0, 0, 0, 1);
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
+  
+  TEST(Matrix3, ShouldScaleUniformly) {
+    Matrix3<float> matrix = Matrix3<float>::scale(2.0);
+    Matrix3<float> expected(2, 0, 0, 0, 2, 0, 0, 0, 2);
+    ASSERT_EQ(expected, matrix);
+  }
+  
+  TEST(Matrix3, ShouldScaleDifferentlyForEachAxis) {
+    Matrix3<float> matrix = Matrix3<float>::scale(2, 3, 4);
+    Matrix3<float> expected(2, 0, 0, 0, 3, 0, 0, 0, 4);
+    ASSERT_EQ(expected, matrix);
+  }
 }
 
 namespace Matrix4Test {
