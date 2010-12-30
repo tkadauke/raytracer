@@ -286,6 +286,8 @@ class Vector3 : public SpecializedVector<3, T, Vector3<T> > {
 public:
   static const Vector3<T> null;
   static const Vector3<T> undefined;
+  static const Vector3<T> minusInfinity;
+  static const Vector3<T> plusInfinity;
 
   inline Vector3()
     : Base()
@@ -322,6 +324,16 @@ template<class T>
 const Vector3<T> Vector3<T>::undefined = Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
                                                     std::numeric_limits<T>::quiet_NaN(),
                                                     std::numeric_limits<T>::quiet_NaN());
+
+template<class T>
+const Vector3<T> Vector3<T>::minusInfinity = Vector3<T>(-std::numeric_limits<T>::infinity(),
+                                                        -std::numeric_limits<T>::infinity(),
+                                                        -std::numeric_limits<T>::infinity());
+
+template<class T>
+const Vector3<T> Vector3<T>::plusInfinity = Vector3<T>(std::numeric_limits<T>::infinity(),
+                                                       std::numeric_limits<T>::infinity(),
+                                                       std::numeric_limits<T>::infinity());
 
 typedef Vector3<float> Vector3f;
 typedef Vector3<double> Vector3d;

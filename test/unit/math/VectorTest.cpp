@@ -423,6 +423,18 @@ namespace Vector3Test {
     ASSERT_EQ(expected, Vector3<float>::null);
   }
   
+  TEST(Vector3, ShouldDefineUndefinedVector) {
+    ASSERT_TRUE(Vector3<float>::undefined.isUndefined());
+  }
+  
+  TEST(Vector3, ShouldDefineMinusInfinityVector) {
+    ASSERT_EQ(- numeric_limits<float>::infinity(), Vector3<float>::minusInfinity.x());
+  }
+  
+  TEST(Vector3, ShouldDefinePlusInfinityVector) {
+    ASSERT_EQ(numeric_limits<float>::infinity(), Vector3<float>::plusInfinity.x());
+  }
+  
   TEST(Vector3, ShouldCalculateCrossProductOfUnitVectors) {
     Vector3<float> x(1, 0, 0), y(0, 1, 0);
     Vector3<float> expected(0, 0, 1);
