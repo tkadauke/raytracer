@@ -22,8 +22,6 @@ public:
   
   ~Scene();
   
-  virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
-  
   inline void addLight(Light* light) { m_lights.push_back(light); }
   const Lights& lights() const { return m_lights; }
   

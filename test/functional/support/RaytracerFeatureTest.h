@@ -25,6 +25,7 @@ namespace testing {
     RaytracerFeatureTest();
     
     void add(Surface* surface);
+    Scene* scene();
     Camera* camera();
     void setCamera(Camera* camera);
     void setCamera(const Vector3d& position, const Vector3d& lookAt);

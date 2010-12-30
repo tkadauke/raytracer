@@ -5,18 +5,13 @@
 namespace CompositeTest {
   using namespace ::testing;
   
-  class ConcreteComposite : public Composite {
-  public:
-    Surface* intersect(const Ray&, HitPointInterval&) { return 0; }
-  };
-  
   TEST(Composite, ShouldInitializeWithEmptyList) {
-    ConcreteComposite composite;
+    Composite composite;
     ASSERT_TRUE(composite.surfaces().empty());
   }
   
   TEST(Composite, ShouldAddSurface) {
-    ConcreteComposite composite;
+    Composite composite;
     MockSurface* mockSurface = new MockSurface;
     composite.add(mockSurface);
     ASSERT_FALSE(composite.surfaces().empty());
@@ -24,7 +19,7 @@ namespace CompositeTest {
   }
   
   TEST(Composite, ShouldDestructAllAddedSurfaces) {
-    ConcreteComposite* composite = new ConcreteComposite;
+    Composite* composite = new Composite;
     MockSurface* mockSurface = new MockSurface;
     composite->add(mockSurface);
     
@@ -34,15 +29,60 @@ namespace CompositeTest {
   }
   
   TEST(Composite, ShouldSetParent) {
-    ConcreteComposite composite;
+    Composite composite;
     MockSurface* mockSurface = new MockSurface;
     composite.add(mockSurface);
     
     ASSERT_EQ(&composite, mockSurface->parent());
   }
   
+  TEST(Composite, ShouldReturnIntersectedSurface) {
+    Composite composite;
+    MockSurface* surface = new MockSurface;
+    composite.add(surface);
+    EXPECT_CALL(*surface, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(surface)));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    HitPointInterval hitPoints;
+    Surface* result = composite.intersect(ray, hitPoints);
+    
+    ASSERT_EQ(surface, result);
+  }
+  
+  TEST(Composite, ShouldNotReturnAnySurfaceIfThereIsNoIntersection) {
+    Composite composite;
+    MockSurface* surface = new MockSurface;
+    composite.add(surface);
+    EXPECT_CALL(*surface, intersect(_, _)).WillOnce(Return(static_cast<Surface*>(0)));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    HitPointInterval hitPoints;
+    Surface* result = composite.intersect(ray, hitPoints);
+    
+    ASSERT_EQ(0, result);
+  }
+  
+  TEST(Composite, ShouldReturnClosestIntersectedSurfaceIfThereIsMoreThanOneCandidate) {
+    Composite composite;
+    MockSurface* surface1 = new MockSurface;
+    MockSurface* surface2 = new MockSurface;
+    composite.add(surface1);
+    composite.add(surface2);
+    EXPECT_CALL(*surface1, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())), Return(surface1)));
+    EXPECT_CALL(*surface2, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(surface2)));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    HitPointInterval hitPoints;
+    Surface* result = composite.intersect(ray, hitPoints);
+    
+    ASSERT_EQ(surface2, result);
+  }
+
   TEST(Composite, ShouldReturnBoundingBoxWithOneChild) {
-    ConcreteComposite composite;
+    Composite composite;
     MockSurface* mockSurface = new MockSurface;
     composite.add(mockSurface);
     
@@ -53,7 +93,7 @@ namespace CompositeTest {
   }
   
   TEST(Composite, ShouldReturnBoundingBoxWithMultipleChildren) {
-    ConcreteComposite composite;
+    Composite composite;
     MockSurface* mockSurface1 = new MockSurface;
     MockSurface* mockSurface2 = new MockSurface;
     composite.add(mockSurface1);

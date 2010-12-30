@@ -33,6 +33,10 @@ namespace testing {
   void RaytracerFeatureTest::add(Surface* surface) {
     m_scene->add(surface);
   }
+  
+  Scene* RaytracerFeatureTest::scene() {
+    return m_scene;
+  }
 
   Camera* RaytracerFeatureTest::camera() {
     if (!m_camera)
