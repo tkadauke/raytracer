@@ -18,3 +18,15 @@ Surface* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   
   return numHits != surfaces().size() || hitPoints.empty() ? 0 : this;
 }
+
+BoundingBox Intersection::boundingBox() {
+  BoundingBox result;
+  int num = 0;
+  for (Surfaces::const_iterator i = surfaces().begin(); i != surfaces().end(); ++i, ++num) {
+    if (num == 0)
+      result = (*i)->boundingBox();
+    else
+      result &= (*i)->boundingBox();
+  }
+  return result;
+}

@@ -59,3 +59,7 @@ Surface* Box::intersect(const Ray& ray, HitPointInterval& hitPoints) {
                 HitPoint(t2, ray.at(t2), normal2));
   return this;
 }
+
+BoundingBox Box::boundingBox() {
+  return BoundingBox(m_center - m_edge, m_center + m_edge);
+}

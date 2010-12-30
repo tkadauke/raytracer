@@ -4,7 +4,6 @@
 #include <list>
 
 #include "surfaces/Surface.h"
-#include "Color.h"
 
 class Composite : public Surface {
 public:
@@ -13,6 +12,8 @@ public:
   inline Composite() {}
   ~Composite();
   
+  virtual BoundingBox boundingBox();
+
   inline void add(Surface* surface) { surface->setParent(this); m_surfaces.push_back(surface); }
   
   inline const Surfaces& surfaces() const { return m_surfaces; }

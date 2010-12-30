@@ -12,6 +12,7 @@ public:
   }
   
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
+  virtual BoundingBox boundingBox();
 
 private:
   Vector3d m_center, m_edge;

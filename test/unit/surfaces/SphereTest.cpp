@@ -71,4 +71,9 @@ namespace SphereTest {
     
     ASSERT_FALSE(sphere.intersects(ray));
   }
+  
+  TEST(Sphere, ShouldReturnBoundingBox) {
+    Sphere sphere(Vector3d(), 1);
+    ASSERT_EQ(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)), sphere.boundingBox());
+  }
 }

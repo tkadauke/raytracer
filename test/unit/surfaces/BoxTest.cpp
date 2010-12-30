@@ -57,4 +57,11 @@ namespace BoxTest {
     ASSERT_EQ(Vector3d(0, 0, 1), hitPoints.max().normal());
     ASSERT_EQ(1, hitPoints.max().distance());
   }
+  
+  TEST(Box, ShouldReturnBoundingBox) {
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
+    BoundingBox bbox = box.boundingBox();
+    ASSERT_EQ(Vector3d(-1, -1, -1), bbox.min());
+    ASSERT_EQ(Vector3d(1, 1, 1), bbox.max());
+  }
 }

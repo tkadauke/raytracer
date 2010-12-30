@@ -25,3 +25,7 @@ double Plane::calculateIntersectionDistance(const Ray& ray) {
   
   return -(m_normal * o + m_distance) / angle;
 }
+
+BoundingBox Plane::boundingBox() {
+  // TODO: figure out what to do here. Throw exception? Return null bounding box? Return infinitely large bounding box?
+}

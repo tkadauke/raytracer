@@ -55,4 +55,8 @@ namespace PlaneTest {
     
     ASSERT_FALSE(plane.intersects(ray));
   }
+  
+  TEST(Plane, ShouldReturnBoundingBox) {
+    // TODO
+  }
 }

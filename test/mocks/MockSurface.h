@@ -13,6 +13,7 @@ namespace testing {
 
     MOCK_METHOD2(intersect, Surface*(const Ray&, HitPointInterval&));
     MOCK_METHOD1(intersects, bool(const Ray&));
+    MOCK_METHOD0(boundingBox, BoundingBox());
     MOCK_METHOD0(destructorCall, void());
   };
 

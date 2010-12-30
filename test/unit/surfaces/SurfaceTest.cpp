@@ -6,6 +6,7 @@ namespace SurfaceTest {
   class ConcreteSurface : public Surface {
   public:
     Surface* intersect(const Ray&, HitPointInterval&) { return 0; }
+    BoundingBox boundingBox() { return BoundingBox(); }
   };
   
   TEST(Surface, ShouldReturnMaterial) {

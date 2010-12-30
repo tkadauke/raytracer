@@ -13,6 +13,8 @@ public:
   Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
   bool intersects(const Ray& ray);
   
+  virtual BoundingBox boundingBox();
+
   void setMatrix(const Matrix4d& matrix);
 
 private:

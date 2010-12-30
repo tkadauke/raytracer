@@ -11,6 +11,7 @@ public:
   
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
   virtual bool intersects(const Ray& ray);
+  virtual BoundingBox boundingBox();
 
 private:
   double calculateIntersectionDistance(const Ray& ray);

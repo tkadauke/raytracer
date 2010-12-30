@@ -40,4 +40,29 @@ namespace CompositeTest {
     
     ASSERT_EQ(&composite, mockSurface->parent());
   }
+  
+  TEST(Composite, ShouldReturnBoundingBoxWithOneChild) {
+    ConcreteComposite composite;
+    MockSurface* mockSurface = new MockSurface;
+    composite.add(mockSurface);
+    
+    BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    EXPECT_CALL(*mockSurface, boundingBox()).WillOnce(Return(bbox));
+    
+    ASSERT_EQ(bbox, composite.boundingBox());
+  }
+  
+  TEST(Composite, ShouldReturnBoundingBoxWithMultipleChildren) {
+    ConcreteComposite composite;
+    MockSurface* mockSurface1 = new MockSurface;
+    MockSurface* mockSurface2 = new MockSurface;
+    composite.add(mockSurface1);
+    composite.add(mockSurface2);
+    
+    EXPECT_CALL(*mockSurface1, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*mockSurface2, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(0, 0, 0), Vector3d(2, 2, 2))));
+    
+    BoundingBox expected(Vector3d(-1, -1, -1), Vector3d(2, 2, 2));
+    ASSERT_EQ(expected, composite.boundingBox());
+  }
 }
