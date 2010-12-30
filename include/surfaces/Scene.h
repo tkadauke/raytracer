@@ -10,6 +10,11 @@ class Scene : public Composite {
 public:
   typedef std::list<Light*> Lights;
   
+  Scene()
+    : m_ambient(Colord::white)
+  {
+  }
+
   Scene(const Colord& ambient)
     : m_ambient(ambient)
   {

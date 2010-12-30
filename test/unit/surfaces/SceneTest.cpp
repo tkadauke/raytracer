@@ -8,6 +8,11 @@
 namespace SceneTest {
   using namespace ::testing;
   
+  TEST(Scene, ShouldInitialize) {
+    Scene scene;
+    ASSERT_EQ(Colord::white, scene.ambient());
+  }
+  
   TEST(Scene, ShouldInitializeAmbientColor) {
     Scene scene(Colord::white);
     ASSERT_EQ(Colord::white, scene.ambient());
