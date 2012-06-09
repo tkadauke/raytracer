@@ -11,7 +11,7 @@ public:
   typedef std::list<Light*> Lights;
   
   Scene()
-    : m_ambient(Colord::white)
+    : m_ambient(Colord::white())
   {
   }
 

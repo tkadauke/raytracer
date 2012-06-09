@@ -92,7 +92,8 @@ public:
     return result;
   }
 
-  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T>& vector) const {
+  template<class VectorCellType>
+  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T, VectorCellType>& vector) const {
     Vector<Dimensions, T> result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -104,13 +105,24 @@ public:
     }
     return result;
   }
-  
+
   inline Matrix<Dimensions, T> operator*(const T& scalar) const {
     Matrix<Dimensions, T> result;
 
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         result[row][col] = m_cells[row][col] * scalar;
+      }
+    }
+    return result;
+  }
+
+  inline Matrix<Dimensions, T> operator+(const Matrix<Dimensions, T>& other) const {
+    Matrix<Dimensions, T> result;
+
+    for (int row = 0; row != Dimensions; ++row) {
+      for (int col = 0; col != Dimensions; ++col) {
+        result[row][col] = m_cells[row][col] + other.cell(row, col);
       }
     }
     return result;
@@ -193,7 +205,8 @@ public:
     return static_cast<MatrixType>(this->Base::operator*(static_cast<MatrixType>(other)));
   }
 
-  inline VectorType operator*(const VectorType& vector) const {
+  template<class VectorCellType>
+  inline VectorType operator*(const ::Vector<Dimensions, T, VectorCellType>& vector) const {
     return static_cast<VectorType>(this->Base::operator*(vector));
   }
   
@@ -298,37 +311,65 @@ public:
                       coordProduct,      (y * y) / divider);
   }
   
-  static const Matrix2<T> identity;
-  static const Matrix2<T> rotate90, rotate180, rotate270;
-  
-  static const Matrix2<T> reflectX, reflectY;
-  
-  static const Vector2<T> xUnit, yUnit;
+  static const Matrix2<T>& identity();
+  static const Matrix2<T>& rotate90();
+  static const Matrix2<T>& rotate180();
+  static const Matrix2<T>& rotate270();
+
+  static const Matrix2<T>& reflectX();
+  static const Matrix2<T>& reflectY();
+
+  static const Vector2<T>& xUnit();
+  static const Vector2<T>& yUnit();
 };
 
 template<class T>
-const Matrix2<T> Matrix2<T>::identity = Matrix2<T>();
+const Matrix2<T>& Matrix2<T>::identity() {
+  Matrix2<T>* m = new Matrix2<T>();
+  return *m;
+}
 
 template<class T>
-const Matrix2<T> Matrix2<T>::rotate90 = Matrix2<T>(0, -1, 1, 0);
+const Matrix2<T>& Matrix2<T>::rotate90() {
+  Matrix2<T>* m = new Matrix2<T>(0, -1, 1, 0);
+  return *m;
+}
 
 template<class T>
-const Matrix2<T> Matrix2<T>::rotate180 = Matrix2<T>(-1, 0, 0, -1);
+const Matrix2<T>& Matrix2<T>::rotate180() {
+  Matrix2<T>* m = new Matrix2<T>(-1, 0, 0, -1);
+  return *m;
+}
 
 template<class T>
-const Matrix2<T> Matrix2<T>::rotate270 = Matrix2<T>(0, 1, -1, 0);
+const Matrix2<T>& Matrix2<T>::rotate270() {
+  Matrix2<T>* m = new Matrix2<T>(0, 1, -1, 0);
+  return *m;
+}
 
 template<class T>
-const Matrix2<T> Matrix2<T>::reflectX = Matrix2<T>(-1, 0, 0, 1);
+const Matrix2<T>& Matrix2<T>::reflectX() {
+  Matrix2<T>* m = new Matrix2<T>(-1, 0, 0, 1);
+  return *m;
+}
 
 template<class T>
-const Matrix2<T> Matrix2<T>::reflectY = Matrix2<T>(1, 0, 0, -1);
+const Matrix2<T>& Matrix2<T>::reflectY() {
+  Matrix2<T>* m = new Matrix2<T>(1, 0, 0, -1);
+  return *m;
+}
 
 template<class T>
-const Vector2<T> Matrix2<T>::xUnit = Vector2<T>(1, 0);
+const Vector2<T>& Matrix2<T>::xUnit() {
+  Vector2<T>* v = new Vector2<T>(1, 0);
+  return *v;
+}
 
 template<class T>
-const Vector2<T> Matrix2<T>::yUnit = Vector2<T>(0, 1);
+const Vector2<T>& Matrix2<T>::yUnit() {
+  Vector2<T>* v = new Vector2<T>(0, 1);
+  return *v;
+}
 
 typedef Matrix2<float> Matrix2f;
 typedef Matrix2<double> Matrix2d;

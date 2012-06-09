@@ -8,7 +8,7 @@ namespace CameraTest {
     ConcreteCamera() : Camera() {}
     ConcreteCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target) {}
-    virtual void render(Raytracer*, Buffer&, const Rect&) {}
+    virtual void render(Raytracer*, Buffer<unsigned int>&, const Rect&) {}
   };
   
   TEST(Camera, ShouldConstructWithoutParameters) {
@@ -16,11 +16,11 @@ namespace CameraTest {
   }
   
   TEST(Camera, ShouldConstructWithParameters) {
-    ConcreteCamera camera(Vector3d(0, 0, 1), Vector3d::null);
+    ConcreteCamera camera(Vector3d(0, 0, 1), Vector3d::null());
   }
   
   TEST(Camera, ShouldReturnMatrix) {
-    ConcreteCamera camera(Vector3d(0, 0, -1), Vector3d::null);
+    ConcreteCamera camera(Vector3d(0, 0, -1), Vector3d::null());
     Matrix4d expected(
       1, 0, 0, 0,
       0, 1, 0, 0,
@@ -31,7 +31,7 @@ namespace CameraTest {
   }
   
   TEST(Camera, ShouldReturnMatrixWithCorrectTranslation) {
-    ConcreteCamera camera(Vector3d(4, 3, 2), Vector3d::null);
+    ConcreteCamera camera(Vector3d(4, 3, 2), Vector3d::null());
     ASSERT_EQ(4, camera.matrix()[0][3]);
     ASSERT_EQ(3, camera.matrix()[1][3]);
     ASSERT_EQ(2, camera.matrix()[2][3]);

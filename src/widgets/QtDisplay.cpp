@@ -6,10 +6,12 @@
 #include <QMouseEvent>
 #include <QThread>
 
+using namespace std;
+
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(Raytracer* rt, Buffer& b)
+    RenderThread(Raytracer* rt, Buffer<unsigned int>& b)
       : raytracer(rt), buffer(b) {}
 
     virtual void run() {
@@ -21,7 +23,7 @@ namespace {
     }
 
     Raytracer* raytracer;
-    Buffer& buffer;
+    Buffer<unsigned int>& buffer;
   };
 }
 
@@ -33,14 +35,14 @@ struct QtDisplay::Private {
   
   double xAngle, yAngle, distance;
   QPoint dragPosition;
-  Buffer* buffer;
+  Buffer<unsigned int>* buffer;
   int timer;
 };
 
 QtDisplay::QtDisplay(Raytracer* raytracer)
   : QWidget(), m_raytracer(raytracer), p(new Private)
 {
-  p->buffer = new Buffer(width(), height());
+  p->buffer = new Buffer<unsigned int>(width(), height());
   resize(400, 300);
 }
 
@@ -53,12 +55,13 @@ void QtDisplay::stop() {
     p->renderThread->cancel();
     p->renderThread->wait();
   }
-  
+
   if (p->renderThread) {
     delete p->renderThread;
     p->renderThread = 0;
   }
   killTimer(p->timer);
+  update();
 }
 
 void QtDisplay::render() {
@@ -74,7 +77,7 @@ void QtDisplay::resizeEvent(QResizeEvent*) {
   stop();
   if (p->buffer)
     delete p->buffer;
-  p->buffer = new Buffer(width(), height());
+  p->buffer = new Buffer<unsigned int>(width(), height());
   render();
 }
 
@@ -91,7 +94,7 @@ void QtDisplay::paintEvent(QPaintEvent*) {
   
   for (int i = 0; i != width(); ++i) {
     for (int j = 0; j != height(); ++j) {
-      image.setPixel(i, j, (*p->buffer)[j][i].rgb());
+      image.setPixel(i, j, (*p->buffer)[j][i]);
     }
   }
   
@@ -128,3 +131,5 @@ void QtDisplay::wheelEvent(QWheelEvent* event) {
 void QtDisplay::setDistance(double distance) {
   p->distance = distance;
 }
+
+#include "QtDisplay.moc"

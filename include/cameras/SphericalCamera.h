@@ -15,7 +15,7 @@ public:
     : Camera(position, target), m_horizontalFieldOfView(180), m_verticalFieldOfView(120) {}
 
   using Camera::render;
-  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
+  virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
   
   inline void setHorizontalFieldOfView(float fov) { m_horizontalFieldOfView = fov; }
   inline float horizontalFieldOfView() const { return m_horizontalFieldOfView; }

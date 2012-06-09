@@ -8,18 +8,18 @@
 
 using namespace std;
 
-void FishEyeCamera::render(Raytracer* raytracer, Buffer& buffer, const Rect& rect) {
+void FishEyeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   Matrix4d m = matrix();
   ViewPlane* plane = viewPlane();
 
-  Vector3d position = m * Vector3d(0, 0, 0);
+  Vector3d position = m * Vector4d(0, 0, 0);
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     Ray ray(position, direction(*plane, pixel.column(), pixel.row()));
     if (ray.direction().isDefined())
       plot(buffer, rect, pixel, raytracer->rayColor(ray));
     else
-      plot(buffer, rect, pixel, Colord::black);
+      plot(buffer, rect, pixel, Colord::black());
     
     if (isCancelled())
       break;
@@ -38,5 +38,5 @@ Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
     double cosAlpha = point.x() / r;
     return Matrix3d(matrix()) * Vector3d(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
   } else
-    return Vector3d::undefined;
+    return Vector3d::undefined();
 }

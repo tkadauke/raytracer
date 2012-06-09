@@ -72,7 +72,7 @@ namespace testing {
     int result = 0;
     for (int i = 0; i != m_buffer.width(); ++i) {
       for (int j = 0; j != m_buffer.height(); ++j) {
-        if (m_buffer[j][i] == color) {
+        if (m_buffer[j][i] == color.rgb()) {
           result++;
         }
       }
@@ -91,7 +91,7 @@ namespace testing {
   }
 
   void RaytracerFeatureTest::lookAtOrigin() {
-    setView(Vector3d(0, 0, -5), Vector3d::null);
+    setView(Vector3d(0, 0, -5), Vector3d::null());
   }
 
   void RaytracerFeatureTest::lookAway() {
@@ -99,7 +99,7 @@ namespace testing {
   }
 
   void RaytracerFeatureTest::goFarAway() {
-    setView(Vector3d(0, 0, -30), Vector3d::null);
+    setView(Vector3d(0, 0, -30), Vector3d::null());
   }
 
   bool RaytracerFeatureTest::objectVisible() {

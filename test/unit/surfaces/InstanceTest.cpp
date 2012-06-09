@@ -9,7 +9,7 @@ namespace InstanceTest {
   TEST(Instance, ShouldReturnChildSurfaceIfTransformedRayIntersects) {
     MockSurface* surface = new MockSurface;
     Instance instance(surface);
-    EXPECT_CALL(*surface, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(surface)));
+    EXPECT_CALL(*surface, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d(1, 0, 0))), Return(surface)));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     

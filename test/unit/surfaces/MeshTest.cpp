@@ -10,9 +10,9 @@ namespace MeshTest {
   
   struct MeshTest : public ::testing::Test {
     void SetUp() {
-      mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 0, 0), Vector3d::null));
-      mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 1, 0), Vector3d::null));
-      mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, 0, 0), Vector3d::null));
+      mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 0, 0), Vector3d::null()));
+      mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 1, 0), Vector3d::null()));
+      mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, 0, 0), Vector3d::null()));
 
       mesh.faces.push_back(makeStdVector(0, 1, 2));
     }

@@ -15,7 +15,7 @@ public:
     : Camera(position, target), m_fieldOfView(120) {}
 
   using Camera::render;
-  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
+  virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
   
   inline void setFieldOfView(float fieldOfView) { m_fieldOfView = fieldOfView; }
   inline float fieldOfView() const { return m_fieldOfView; }

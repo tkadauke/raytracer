@@ -33,7 +33,7 @@ BoundingBox Instance::boundingBox() {
   
   BoundingBox result;
   for (vector<Vector3d>::const_iterator i = vertices.begin(); i != vertices.end(); ++i) {
-    result.include(m_pointMatrix * *i);
+    result.include(m_pointMatrix * Vector4d(*i));
   }
   return result;
 }

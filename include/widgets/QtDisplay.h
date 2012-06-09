@@ -9,6 +9,7 @@
 class Raytracer;
 
 class QtDisplay : public QWidget {
+  Q_OBJECT
 public:
   QtDisplay(Raytracer* raytracer);
   ~QtDisplay();
@@ -20,10 +21,12 @@ public:
   virtual void resizeEvent(QResizeEvent* event);
   virtual void timerEvent(QTimerEvent *event);
   
-  void stop();
   void render();
   
   void setDistance(double distance);
+
+public slots:
+  void stop();
   
 protected:
   Raytracer* m_raytracer;

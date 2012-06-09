@@ -37,17 +37,18 @@ const Matrix4d& Camera::matrix() {
   return m_matrix;
 }
 
-void Camera::render(Raytracer* raytracer, Buffer& buffer) {
+void Camera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer) {
   render(raytracer, buffer, Rect(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::plot(Buffer& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
+void Camera::plot(Buffer<unsigned int>& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
   int size = pixel.pixelSize();
   if (size == 1) {
-    buffer[pixel.row()][pixel.column()] = color;
+    buffer[pixel.row()][pixel.column()] = color.rgb();
   } else {
+    unsigned int rgb = color.rgb();
     for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
       for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
-        buffer[y][x] = color;
+        buffer[y][x] = rgb;
   }
 }

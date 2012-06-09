@@ -15,9 +15,9 @@ namespace MeshTriangleTest {
   TEST(MeshTriangle, ShouldComputeBoundingBox) {
     Mesh mesh;
     
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 0, 0), Vector3d::null));
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 1, 0), Vector3d::null));
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, 0, 0), Vector3d::null));
+    mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 0, 0), Vector3d::null()));
+    mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 1, 0), Vector3d::null()));
+    mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, 0, 0), Vector3d::null()));
     ConcreteMeshTriangle triangle(&mesh, 0, 1, 2);
     
     BoundingBox expected(Vector3d(0, 0, 0), Vector3d(1, 1, 0));

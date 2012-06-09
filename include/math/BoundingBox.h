@@ -8,12 +8,14 @@
 #include <iostream>
 #include <algorithm>
 
+class Ray;
+
 class BoundingBox : public InPlaceSetOperators<BoundingBox>, public InequalityOperator<BoundingBox> {
 public:
-  static const BoundingBox undefined;
+  static const BoundingBox& undefined();
   
   BoundingBox()
-    : m_min(Vector3d::plusInfinity), m_max(Vector3d::minusInfinity) {}
+    : m_min(Vector3d::plusInfinity()), m_max(Vector3d::minusInfinity()) {}
   BoundingBox(const Vector3d& min, const Vector3d& max)
     : m_min(min), m_max(max) {}
   
@@ -47,7 +49,7 @@ public:
       )
     );
     if (!result.isValid())
-      return BoundingBox::undefined;
+      return BoundingBox::undefined();
     return result;
   }
   
@@ -63,6 +65,14 @@ public:
   inline void include(const BoundingBox& box) {
     include(box.min());
     include(box.max());
+  }
+  
+  inline bool contains(const Vector3d& point) {
+    for (int i = 0; i != 3; ++i) {
+      if (point[i] < m_min[i] || point[i] > m_max[i])
+        return false;
+    }
+    return true;
   }
   
   template<class Container>
@@ -84,7 +94,7 @@ public:
   }
   
   inline bool isUndefined() const {
-    return min().isUndefined() || max().isUndefined();
+    return m_min.isUndefined() || m_max.isUndefined();
   }
   
 private:

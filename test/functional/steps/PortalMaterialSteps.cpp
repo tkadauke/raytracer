@@ -8,21 +8,21 @@
 using namespace testing;
 
 GIVEN(RaytracerFeatureTest, "a box portal") {
-  Box* box = new Box(Vector3d::null, Vector3d(1, 1, 0.1));
-  PortalMaterial* material = new PortalMaterial(Matrix3d(), Colord::white);
+  Box* box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
+  PortalMaterial* material = new PortalMaterial(Matrix3d(), Colord::white());
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a box portal which turns the rays towards the displaced sphere") {
-  Box* box = new Box(Vector3d::null, Vector3d(1, 1, 0.1));
-  PortalMaterial* material = new PortalMaterial(Matrix3d::rotateX(0.79), Colord::white);
+  Box* box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
+  PortalMaterial* material = new PortalMaterial(Matrix3d::rotateX(0.79), Colord::white());
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a box portal which filters the colors") {
-  Box* box = new Box(Vector3d::null, Vector3d(1, 1, 0.1));
+  Box* box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
   PortalMaterial* material = new PortalMaterial(Matrix3d(), Colord(1, 0, 0));
   box->setMaterial(material);
   test->add(box);

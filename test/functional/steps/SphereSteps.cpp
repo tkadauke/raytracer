@@ -6,7 +6,7 @@
 using namespace testing;
 
 GIVEN(RaytracerFeatureTest, "a centered sphere") {
-  Sphere* sphere = new Sphere(Vector3d::null, 1);
+  Sphere* sphere = new Sphere(Vector3d::null(), 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
 }

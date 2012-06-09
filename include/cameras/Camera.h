@@ -8,6 +8,7 @@
 #include "viewplanes/ViewPlane.h"
 
 class Raytracer;
+template<class T>
 class Buffer;
 class Rect;
 
@@ -33,15 +34,15 @@ public:
   
   const Matrix4d& matrix();
   
-  void render(Raytracer* raytracer, Buffer& buffer);
-  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect) = 0;
+  void render(Raytracer* raytracer, Buffer<unsigned int>& buffer);
+  virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) = 0;
   
   inline void cancel() { m_cancelled = true; }
   inline bool isCancelled() const { return m_cancelled; }
   inline void uncancel() { m_cancelled = false; }
 
 protected:
-  void plot(Buffer& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color);
+  void plot(Buffer<unsigned int>& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color);
 
 private:
   bool m_cancelled;

@@ -27,7 +27,7 @@ namespace HitPointIntervalTest {
   TEST(HitPointInterval, ShouldReturnUndefinedClosestHitPointOnEmptyInterval) {
     HitPointInterval interval;
     const HitPoint& i = interval.min();
-    ASSERT_TRUE(i == HitPoint::undefined);
+    ASSERT_TRUE(i == HitPoint::undefined());
   }
   
   TEST(HitPointInterval, ShouldReturnClosestHitPoint) {
@@ -40,7 +40,7 @@ namespace HitPointIntervalTest {
   TEST(HitPointInterval, ShouldReturnUndefinedFarthestHitPointOnEmptyInterval) {
     HitPointInterval interval;
     const HitPoint& i = interval.max();
-    ASSERT_TRUE(i == HitPoint::undefined);
+    ASSERT_TRUE(i == HitPoint::undefined());
   }
   
   TEST(HitPointInterval, ShouldReturnFarthestHitPoint) {
@@ -60,8 +60,8 @@ namespace HitPointIntervalTest {
   TEST(HitPointInterval, ShouldComputeUnionOfTwoEmptyIntervals) {
     HitPointInterval interval1, interval2;
     HitPointInterval unionInterval = interval1 | interval2;
-    ASSERT_TRUE(unionInterval.min() == HitPoint::undefined);
-    ASSERT_TRUE(unionInterval.max() == HitPoint::undefined);
+    ASSERT_TRUE(unionInterval.min() == HitPoint::undefined());
+    ASSERT_TRUE(unionInterval.max() == HitPoint::undefined());
   }
   
   TEST(HitPointInterval, ShouldComputeUnionOfEmptyAndNonEmptyIntervals) {
@@ -89,8 +89,8 @@ namespace HitPointIntervalTest {
   TEST(HitPointInterval, ShouldComputeIntersectionOfTwoEmptyIntervals) {
     HitPointInterval interval1, interval2;
     HitPointInterval intersectionInterval = interval1 & interval2;
-    ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined);
-    ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined);
+    ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined());
+    ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined());
   }
   
   TEST(HitPointInterval, ShouldComputeIntersectionOfEmptyAndNonEmptyIntervals) {
@@ -98,8 +98,8 @@ namespace HitPointIntervalTest {
     HitPoint hitPoint(5, Vector3d(), Vector3d());
     interval2.add(hitPoint);
     HitPointInterval intersectionInterval = interval1 & interval2;
-    ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined);
-    ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined);
+    ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined());
+    ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined());
   }
   
   TEST(HitPointInterval, ShouldComputeIntersectionOfTwoNonEmptyIntervals) {
@@ -126,8 +126,8 @@ namespace HitPointIntervalTest {
     interval2.add(hitPoint3, hitPoint4);
     HitPointInterval intersectionInterval = interval1 & interval2;
     
-    ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined);
-    ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined);
+    ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined());
+    ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined());
   }
   
   TEST(HitPointInterval, ShouldTransformInterval) {
@@ -140,6 +140,6 @@ namespace HitPointIntervalTest {
     Matrix3d normalMatrix = Matrix3d::rotateX(1);
     
     HitPointInterval transformed = interval.transform(pointMatrix, normalMatrix);
-    ASSERT_EQ(Vector3d(pointMatrix * Vector3d(1, 0, 0)), transformed.min().point());
+    ASSERT_EQ(Vector3d(pointMatrix * Vector4d(1, 0, 0)), transformed.min().point());
   }
 }

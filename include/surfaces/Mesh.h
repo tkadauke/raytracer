@@ -24,7 +24,7 @@ public:
   Mesh();
   ~Mesh();
   
-  void computeNormals();
+  void computeNormals(bool flip = false);
   void addSmoothTrianglesTo(Composite* composite, Material* material);
   void addFlatTrianglesTo(Composite* composite, Material* material);
 

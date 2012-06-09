@@ -4,7 +4,7 @@
 namespace MatteMaterialTest {
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;
-    ASSERT_EQ(Colord::black, material.diffuseColor());
+    ASSERT_EQ(Colord::black(), material.diffuseColor());
   }
 
   TEST(MatteMaterial, ShouldInitializeWithDiffuseColor) {

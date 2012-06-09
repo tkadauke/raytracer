@@ -36,7 +36,7 @@ Mesh::~Mesh() {
   delete p;
 }
 
-void Mesh::computeNormals() {
+void Mesh::computeNormals(bool flip) {
   // find normal of each face and add it to each vertex adjacent to the face
   for (vector<Face>::iterator i = faces.begin(); i != faces.end(); ++i) {
     Face& face = *i;
@@ -58,7 +58,10 @@ void Mesh::computeNormals() {
 
   // normalize all the normals at the vertices
   for (vector<Vertex>::iterator i = vertices.begin(); i != vertices.end(); ++i) {
-    i->normal.normalize();
+    if (flip)
+      i->normal = -i->normal.normalized();
+    else
+      i->normal.normalize();
   }
 }
 

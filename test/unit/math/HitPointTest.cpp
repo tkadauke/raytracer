@@ -68,14 +68,14 @@ namespace HitPointTest {
   }
   
   TEST(HitPoint, ShouldProvideUndefinedHitPoint) {
-    HitPoint point = HitPoint::undefined;
+    HitPoint point = HitPoint::undefined();
     ASSERT_TRUE(isnan(point.distance()));
     ASSERT_TRUE(point.point().isUndefined());
     ASSERT_TRUE(point.normal().isUndefined());
   }
   
   TEST(HitPoint, ShouldReturnTrueIfHitPointIsUndefined) {
-    HitPoint point = HitPoint::undefined;
+    HitPoint point = HitPoint::undefined();
     ASSERT_TRUE(point.isUndefined());
   }
   
@@ -85,7 +85,8 @@ namespace HitPointTest {
   }
   
   TEST(HitPoint, ShouldTransformHitpointWithPointMatrix) {
-    Vector3d point(1, 0, 0), normal(0, 1, 0);
+    Vector4d point(1, 0, 0);
+    Vector3d normal(0, 1, 0);
     HitPoint hp(3, point, normal);
     Matrix4d pointMatrix = Matrix3d::rotateX(1);
     Vector3d expectedPoint = pointMatrix * point;

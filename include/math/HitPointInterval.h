@@ -72,7 +72,7 @@ public:
   
   const HitPoint& min() const {
     if (m_hitPoints.empty())
-      return HitPoint::undefined;
+      return HitPoint::undefined();
     return m_hitPoints.begin()->point;
   }
   
@@ -82,12 +82,12 @@ public:
         return i->point;
       }
     }
-    return HitPoint::undefined;
+    return HitPoint::undefined();
   }
   
   const HitPoint& max() const {
     if (m_hitPoints.empty())
-      return HitPoint::undefined;
+      return HitPoint::undefined();
     return m_hitPoints.rbegin()->point;
   }
   

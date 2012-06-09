@@ -3,4 +3,7 @@
 
 using namespace std;
 
-const HitPoint HitPoint::undefined = HitPoint(numeric_limits<double>::quiet_NaN(), Vector3d::undefined, Vector3d::undefined);
+const HitPoint& HitPoint::undefined() {
+  static HitPoint* h = new HitPoint(numeric_limits<double>::quiet_NaN(), Vector4d::undefined(), Vector3d::undefined());
+  return *h;
+}

@@ -49,7 +49,7 @@ namespace testing {
     Scene* m_scene;
     Camera* m_camera;
     Raytracer* m_raytracer;
-    Buffer m_buffer;
+    Buffer<unsigned int> m_buffer;
   };
 }
 

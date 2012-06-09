@@ -2,7 +2,7 @@
 #include "viewplanes/ViewPlaneFactory.h"
 
 void ViewPlane::setupVectors() {
-  m_topLeft = m_matrix * Vector3d(-4, -3, 0);
+  m_topLeft = m_matrix * Vector4d(-4, -3, 0);
   m_right = Matrix3d(m_matrix) * (Vector3d(1, 0, 0) / width() * 8.0);
   m_down = Matrix3d(m_matrix) * (Vector3d(0, 1, 0) / height() * 6.0);
 }

@@ -8,8 +8,8 @@ namespace BoundingBoxTest {
   
   TEST(BoundingBox, ShouldInitializeBoundingBoxAsInfinitesimallySmall) {
     BoundingBox bbox;
-    ASSERT_EQ(Vector3d::plusInfinity, bbox.min());
-    ASSERT_EQ(Vector3d::minusInfinity, bbox.max());
+    ASSERT_EQ(Vector3d::plusInfinity(), bbox.min());
+    ASSERT_EQ(Vector3d::minusInfinity(), bbox.max());
   }
   
   TEST(BoundingBox, ShouldInitializeWithValues) {
@@ -20,7 +20,7 @@ namespace BoundingBoxTest {
   
   TEST(BoundingBox, ShouldCalculateCenter) {
     BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
-    ASSERT_EQ(Vector3d::null, bbox.center());
+    ASSERT_EQ(Vector3d::null(), bbox.center());
   }
   
   TEST(BoundingBox, ShouldCompareSameInstanceForEquality) {
@@ -53,9 +53,9 @@ namespace BoundingBoxTest {
   
   TEST(BoundingBox, ShouldIncludePoint) {
     BoundingBox bbox;
-    bbox.include(Vector3d::null);
+    bbox.include(Vector3d::null());
     ASSERT_EQ(bbox.min(), bbox.max());
-    ASSERT_EQ(Vector3d::null, bbox.min());
+    ASSERT_EQ(Vector3d::null(), bbox.min());
   }
   
   TEST(BoundingBox, ShouldIncludeMultiplePoints) {
@@ -169,7 +169,7 @@ namespace BoundingBoxTest {
   }
   
   TEST(BoundingBox, ShouldDefineUndefinedBoundingBox) {
-    ASSERT_TRUE(BoundingBox::undefined.isUndefined());
+    ASSERT_TRUE(BoundingBox::undefined().isUndefined());
   }
   
   TEST(BoundingBox, ShouldReturnEightVertices) {

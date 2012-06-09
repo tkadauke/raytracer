@@ -10,7 +10,7 @@ public:
     : Camera(position, target) {}
 
   using Camera::render;
-  virtual void render(Raytracer* raytracer, Buffer& buffer, const Rect& rect);
+  virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
 };
 
 #endif

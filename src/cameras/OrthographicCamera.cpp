@@ -4,7 +4,7 @@
 #include "math/Ray.h"
 #include "viewplanes/ViewPlane.h"
 
-void OrthographicCamera::render(Raytracer* raytracer, Buffer& buffer, const Rect& rect) {
+void OrthographicCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   Matrix4d m = matrix();
   ViewPlane* plane = viewPlane();
 

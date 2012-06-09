@@ -5,6 +5,7 @@
 #include "math/Vector.h"
 
 class Scene;
+template<class T>
 class Buffer;
 class Ray;
 class Camera;
@@ -15,7 +16,7 @@ public:
   Raytracer(Camera* camera, Scene* scene);
   virtual ~Raytracer();
   
-  void render(Buffer& buffer);
+  void render(Buffer<unsigned int>& buffer);
   
   Colord rayColor(const Ray& ray, int recursionDepth = 0);
   Camera* camera() const { return m_camera; }

@@ -24,7 +24,7 @@ using namespace std;
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(Raytracer* rt, Camera* c, Buffer& b, const Rect& r)
+    RenderThread(Raytracer* rt, Camera* c, Buffer<unsigned int>& b, const Rect& r)
       : QThread(), raytracer(rt), camera(c), buffer(b), rect(r) {}
 
     virtual void run() {
@@ -33,7 +33,7 @@ namespace {
 
     Raytracer* raytracer;
     Camera* camera;
-    Buffer& buffer;
+    Buffer<unsigned int>& buffer;
     Rect rect;
   };
 }
@@ -61,7 +61,7 @@ Raytracer::~Raytracer() {
   delete p;
 }
 
-void Raytracer::render(Buffer& buffer) {
+void Raytracer::render(Buffer<unsigned int>& buffer) {
   m_camera->uncancel();
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   

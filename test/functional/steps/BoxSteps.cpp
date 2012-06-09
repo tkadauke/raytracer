@@ -6,7 +6,7 @@
 using namespace testing;
 
 GIVEN(RaytracerFeatureTest, "a centered box") {
-  Box* box = new Box(Vector3d::null, Vector3d(1, 1, 1));
+  Box* box = new Box(Vector3d::null(), Vector3d(1, 1, 1));
   box->setMaterial(test->redDiffuse());
   test->add(box);
 }

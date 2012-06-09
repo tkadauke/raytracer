@@ -8,11 +8,11 @@
 
 using namespace std;
 
-void SphericalCamera::render(Raytracer* raytracer, Buffer& buffer, const Rect& rect) {
+void SphericalCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   Matrix4d m = matrix();
   ViewPlane* plane = viewPlane();
 
-  Vector3d position = m * Vector3d(0, 0, -5);
+  Vector3d position = m * Vector4d(0, 0, -5);
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     Ray ray(position, direction(*plane, pixel.column(), pixel.row()));

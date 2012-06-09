@@ -426,42 +426,42 @@ namespace Matrix2Test {
   
   TEST(Matrix2, ShouldHaveIdentityConstant) {
     Matrix2<float> expected(1, 0, 0, 1);
-    ASSERT_EQ(expected, Matrix2<float>::identity);
+    ASSERT_EQ(expected, Matrix2<float>::identity());
   }
   
   TEST(Matrix2, ShouldHave90DegreeRotationConstant) {
     Matrix2<float> expected(0, -1, 1, 0);
-    ASSERT_EQ(expected, Matrix2<float>::rotate90);
+    ASSERT_EQ(expected, Matrix2<float>::rotate90());
   }
   
   TEST(Matrix2, ShouldHave180DegreeRotationConstant) {
     Matrix2<float> expected(-1, 0, 0, -1);
-    ASSERT_EQ(expected, Matrix2<float>::rotate180);
+    ASSERT_EQ(expected, Matrix2<float>::rotate180());
   }
   
   TEST(Matrix2, ShouldHave270DegreeRotationConstant) {
     Matrix2<float> expected(0, 1, -1, 0);
-    ASSERT_EQ(expected, Matrix2<float>::rotate270);
+    ASSERT_EQ(expected, Matrix2<float>::rotate270());
   }
   
   TEST(Matrix2, ShouldHaveXReflectionConstant) {
     Matrix2<float> expected(-1, 0, 0, 1);
-    ASSERT_EQ(expected, Matrix2<float>::reflectX);
+    ASSERT_EQ(expected, Matrix2<float>::reflectX());
   }
   
   TEST(Matrix2, ShouldHaveYReflectionConstant) {
     Matrix2<float> expected(1, 0, 0, -1);
-    ASSERT_EQ(expected, Matrix2<float>::reflectY);
+    ASSERT_EQ(expected, Matrix2<float>::reflectY());
   }
   
   TEST(Matrix2, ShouldHaveXUnitVectorConstant) {
     Vector2<float> expected(1, 0);
-    ASSERT_EQ(expected, Matrix2<float>::xUnit);
+    ASSERT_EQ(expected, Matrix2<float>::xUnit());
   }
   
   TEST(Matrix2, ShouldHaveYUnitVectorConstant) {
     Vector2<float> expected(0, 1);
-    ASSERT_EQ(expected, Matrix2<float>::yUnit);
+    ASSERT_EQ(expected, Matrix2<float>::yUnit());
   }
 }
 

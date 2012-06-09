@@ -20,5 +20,5 @@ THEN(RaytracerFeatureTest, "i should not see the plane") {
 }
 
 THEN(RaytracerFeatureTest, "the plane should cover the whole image") {
-  ASSERT_FALSE(test->colorPresent(Colord::white));
+  ASSERT_FALSE(test->colorPresent(Colord::white()));
 }

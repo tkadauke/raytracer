@@ -8,8 +8,10 @@ class Color {
   typedef T ComponentsType[3];
 
 public:
-  static const Color<T> black;
-  static const Color<T> white;
+  typedef T Component;
+  
+  static const Color<T>& black();
+  static const Color<T>& white();
   
   inline Color() {
     for (int i = 0; i != 3; ++i) {
@@ -59,11 +61,8 @@ public:
     if (factor == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
-    Color<T> result;
-    for (int i = 0; i != 3; ++i) {
-      result.setComponent(i, component(i) / factor);
-    }
-    return result;
+    T recip = 1.0 / factor;
+    return *this * recip;
   }
 
   inline Color<T> operator*(const T& factor) const {
@@ -95,8 +94,6 @@ public:
   }
   
   inline unsigned int rgb() const {
-    typedef unsigned char uchar;
-    
     return std::min(unsigned(component(0) * 255), 255u) << 16 |
            std::min(unsigned(component(1) * 255), 255u) << 8 |
            std::min(unsigned(component(2) * 255), 255u);
@@ -107,10 +104,16 @@ private:
 };
 
 template<class T>
-const Color<T> Color<T>::black = Color<T>();
+const Color<T>& Color<T>::black() {
+  Color<T>* c = new Color<T>();
+  return *c;
+}
 
 template<class T>
-const Color<T> Color<T>::white = Color<T>(1, 1, 1);
+const Color<T>& Color<T>::white() {
+  Color<T>* c = new Color<T>(1, 1, 1);
+  return *c;
+}
 
 typedef Color<float> Colorf;
 typedef Color<double> Colord;
@@ -122,5 +125,8 @@ std::ostream& operator<<(std::ostream& os, const Color<T>& color) {
   }
   return os;
 }
+
+#include "color/sse3/Colorf.h"
+#include "color/sse3/Colord.h"
 
 #endif

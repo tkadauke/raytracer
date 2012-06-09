@@ -2,7 +2,7 @@
 #include <QApplication>
 #include <QPainter>
 
-ImageViewerWidget::ImageViewerWidget(const Buffer& buffer)
+ImageViewerWidget::ImageViewerWidget(const Buffer<unsigned int>& buffer)
   : m_buffer(buffer)
 {
   resize(m_buffer.width(), m_buffer.height());
@@ -14,14 +14,14 @@ void ImageViewerWidget::paintEvent(QPaintEvent*) {
   
   for (int i = 0; i != m_buffer.width(); ++i) {
     for (int j = 0; j != m_buffer.height(); ++j) {
-      image.setPixel(i, j, m_buffer[j][i].rgb());
+      image.setPixel(i, j, m_buffer[j][i]);
     }
   }
   
   painter.drawImage(QPoint(0, 0), image);
 }
 
-ImageViewer::ImageViewer(const Buffer& buffer) {
+ImageViewer::ImageViewer(const Buffer<unsigned int>& buffer) {
   int argc = 0;
   char** argv = 0;
   m_application = new QApplication(argc, argv);

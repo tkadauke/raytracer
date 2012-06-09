@@ -8,7 +8,7 @@ namespace ReflectiveMaterialTest {
 
   TEST(ReflectiveMaterial, ShouldInitializeWithDiffuseColor) {
     ReflectiveMaterial material(Colord(0, 1, 0));
-    ASSERT_EQ(Colord::white, material.highlightColor());
+    ASSERT_EQ(Colord::white(), material.highlightColor());
     ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
   }
   

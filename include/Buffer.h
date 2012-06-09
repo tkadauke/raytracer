@@ -1,21 +1,22 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include "Color.h"
 #include "math/Rect.h"
 
+template<class T>
 class Buffer {
 public:
-  typedef Colord* RowType;
+  typedef T ElementType;
+  typedef T* RowType;
   typedef RowType* BufferType;
 
   inline Buffer(int width, int height)
     : m_width(width), m_height(height)
   {
-    m_buffer = new Colord*[height];
+    m_buffer = new T*[height];
     
     for (int i = 0; i != height; ++i)
-      m_buffer[i] = new Colord[width];
+      m_buffer[i] = new T[width];
   }
   
   inline ~Buffer() {

@@ -13,6 +13,7 @@ public:
   ~Composite();
   
   virtual Surface* intersect(const Ray& ray, HitPointInterval& hitPoints);
+  virtual bool intersects(const Ray& ray);
   virtual BoundingBox boundingBox();
 
   inline void add(Surface* surface) { surface->setParent(this); m_surfaces.push_back(surface); }

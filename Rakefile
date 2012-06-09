@@ -41,10 +41,10 @@ else
   DEBUG_FLAGS = ""
 end
 
-OPTIMIZE_FLAGS = "-O3 -funroll-loops"
+OPTIMIZE_FLAGS = "-O3 -funroll-loops -mtune=native"
 WARNING_FLAGS = "-W -Wall"
 C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS}"
-T_FLAGS = "#{WARNING_FLAGS}"
+T_FLAGS = "#{OPTIMIZE_FLAGS} #{WARNING_FLAGS}"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 

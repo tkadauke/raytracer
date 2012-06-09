@@ -37,3 +37,12 @@ Surface* Composite::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   
   return hit;
 }
+
+bool Composite::intersects(const Ray& ray) {
+  for (Surfaces::const_iterator i = surfaces().begin(); i != surfaces().end(); ++i) {
+    if ((*i)->intersects(ray))
+      return true;
+  }
+  
+  return false;
+}

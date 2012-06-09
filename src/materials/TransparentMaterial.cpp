@@ -19,7 +19,7 @@ Colord TransparentMaterial::shade(Raytracer* raytracer, const Ray& ray, const Hi
   if (ray.direction() * hitPoint.normal() < 0) {
     refractionDirection = refract(ray.direction(), hitPoint.normal(), 1.0, m_refractionIndex);
     angle = -ray.direction() * hitPoint.normal();
-    transparency = Colord::white;
+    transparency = Colord::white();
   } else {
     double distance = hitPoint.distance();
     Colord absorbance = m_absorbanceColor * -distance * 0.15;
@@ -49,7 +49,7 @@ Vector3d TransparentMaterial::refract(const Vector3d& direction, const Vector3d&
   double cosPhiSquared = 1.0 - (refractionIndex * refractionIndex * (1.0 - cosTheta * cosTheta));
   
   if (cosPhiSquared < 0.0) {
-    return Vector3d::undefined;
+    return Vector3d::undefined();
   } else {
     return (direction * refractionIndex) + normal * (refractionIndex * -cosTheta - sqrt(cosPhiSquared));
   }
