@@ -1,9 +1,9 @@
 #ifndef SPHERICAL_CAMERA_PARAMETER_WIDGET_H
 #define SPHERICAL_CAMERA_PARAMETER_WIDGET_H
 
-#include <QWidget>
+#include "widgets/CameraParameterWidget.h"
 
-class SphericalCameraParameterWidget : public QWidget {
+class SphericalCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
   
 public:
@@ -12,6 +12,8 @@ public:
   
   int horizontalFieldOfView() const;
   int verticalFieldOfView() const;
+
+  virtual void applyTo(Camera* camera);
 
 signals:
   void changed();

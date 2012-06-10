@@ -11,7 +11,7 @@ struct ViewPlaneTypeWidget::Private {
 };
 
 ViewPlaneTypeWidget::ViewPlaneTypeWidget(QWidget* parent)
-  : QWidget(parent, Qt::Drawer), p(new Private)
+  : QWidget(parent), p(new Private)
 {
   p->ui.setupUi(this);
   list<string> types = ViewPlaneFactory::self().identifiers();

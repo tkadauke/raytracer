@@ -1,3 +1,4 @@
+#include "cameras/CameraFactory.h"
 #include "cameras/OrthographicCamera.h"
 #include "Buffer.h"
 #include "Raytracer.h"
@@ -18,3 +19,5 @@ void OrthographicCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buff
       break;
   }
 }
+
+static bool dummy = CameraFactory::self().registerClass<OrthographicCamera>("OrthographicCamera");

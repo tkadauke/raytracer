@@ -25,6 +25,7 @@ public:
   void cancel();
   
   inline Scene* scene() const { return m_scene; }
+  inline void setScene(Scene* scene) { m_scene = scene; }
   
 private:
   Camera* m_camera;

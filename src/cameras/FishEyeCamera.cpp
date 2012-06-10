@@ -1,3 +1,4 @@
+#include "cameras/CameraFactory.h"
 #include "cameras/FishEyeCamera.h"
 #include "Buffer.h"
 #include "Raytracer.h"
@@ -40,3 +41,5 @@ Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
   } else
     return Vector3d::undefined();
 }
+
+static bool dummy = CameraFactory::self().registerClass<FishEyeCamera>("FishEyeCamera");

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ViewPlaneTypeWidget</class>
- <widget class="QWidget" name="ViewPlaneTypeWidget">
+ <class>SceneWidget</class>
+ <widget class="QWidget" name="SceneWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -19,12 +19,12 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>View plane type</string>
+        <string>Scene</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="m_viewPlaneTypeComboBox"/>
+      <widget class="QComboBox" name="m_sceneComboBox"/>
      </item>
     </layout>
    </item>

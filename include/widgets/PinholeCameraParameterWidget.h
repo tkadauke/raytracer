@@ -1,9 +1,9 @@
 #ifndef PINHOLE_CAMERA_PARAMETER_WIDGET_H
 #define PINHOLE_CAMERA_PARAMETER_WIDGET_H
 
-#include <QWidget>
+#include "widgets/CameraParameterWidget.h"
 
-class PinholeCameraParameterWidget : public QWidget {
+class PinholeCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
   
 public:
@@ -11,6 +11,8 @@ public:
   ~PinholeCameraParameterWidget();
   
   double distance() const;
+
+  virtual void applyTo(Camera* camera);
 
 signals:
   void changed();

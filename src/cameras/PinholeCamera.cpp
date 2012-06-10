@@ -1,3 +1,4 @@
+#include "cameras/CameraFactory.h"
 #include "cameras/PinholeCamera.h"
 #include "Buffer.h"
 #include "Raytracer.h"
@@ -18,3 +19,5 @@ void PinholeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, c
       break;
   }
 }
+
+static bool dummy = CameraFactory::self().registerClass<PinholeCamera>("PinholeCamera");

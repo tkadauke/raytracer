@@ -1,12 +1,14 @@
+#include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/PinholeCameraParameterWidget.h"
 #include "PinholeCameraParameterWidget.uic"
+#include "cameras/PinholeCamera.h"
 
 struct PinholeCameraParameterWidget::Private {
   Ui::PinholeCameraParameterWidget ui;
 };
 
 PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
-  : QWidget(parent, Qt::Drawer), p(new Private)
+  : CameraParameterWidget(parent), p(new Private)
 {
   p->ui.setupUi(this);
   connect(p->ui.m_distanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
@@ -23,5 +25,14 @@ void PinholeCameraParameterWidget::parameterChanged() {
 double PinholeCameraParameterWidget::distance() const {
   return p->ui.m_distanceInput->value();
 }
+
+void PinholeCameraParameterWidget::applyTo(Camera* camera) {
+  PinholeCamera* pinholeCamera = dynamic_cast<PinholeCamera*>(camera);
+  if (pinholeCamera) {
+    pinholeCamera->setDistance(distance());
+  }
+}
+
+static bool dummy = CameraParameterWidgetFactory::self().registerClass<PinholeCameraParameterWidget>("PinholeCamera");
 
 #include "PinholeCameraParameterWidget.moc"

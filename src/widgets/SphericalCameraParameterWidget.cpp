@@ -1,12 +1,14 @@
+#include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/SphericalCameraParameterWidget.h"
 #include "SphericalCameraParameterWidget.uic"
+#include "cameras/SphericalCamera.h"
 
 struct SphericalCameraParameterWidget::Private {
   Ui::SphericalCameraParameterWidget ui;
 };
 
 SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
-  : QWidget(parent, Qt::Drawer), p(new Private)
+  : CameraParameterWidget(parent), p(new Private)
 {
   p->ui.setupUi(this);
   connect(p->ui.m_horizontalFieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
@@ -28,5 +30,15 @@ int SphericalCameraParameterWidget::horizontalFieldOfView() const {
 int SphericalCameraParameterWidget::verticalFieldOfView() const {
   return p->ui.m_verticalFieldOfViewSlider->value();
 }
+
+void SphericalCameraParameterWidget::applyTo(Camera* camera) {
+  SphericalCamera* sphericalCamera = dynamic_cast<SphericalCamera*>(camera);
+  if (sphericalCamera) {
+    sphericalCamera->setHorizontalFieldOfView(horizontalFieldOfView());
+    sphericalCamera->setVerticalFieldOfView(verticalFieldOfView());
+  }
+}
+
+static bool dummy = CameraParameterWidgetFactory::self().registerClass<SphericalCameraParameterWidget>("SphericalCamera");
 
 #include "SphericalCameraParameterWidget.moc"

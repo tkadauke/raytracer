@@ -1,3 +1,4 @@
+#include "cameras/CameraFactory.h"
 #include "cameras/SphericalCamera.h"
 #include "Buffer.h"
 #include "Raytracer.h"
@@ -36,3 +37,5 @@ Vector3d SphericalCamera::direction(const ViewPlane& plane, int x, int y) {
   double cosTheta = cos(theta);
   return Matrix3d(matrix()) * Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
 }
+
+static bool dummy = CameraFactory::self().registerClass<SphericalCamera>("SphericalCamera");

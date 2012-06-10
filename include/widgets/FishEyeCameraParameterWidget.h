@@ -1,9 +1,9 @@
 #ifndef FISH_EYE_CAMERA_PARAMETER_WIDGET_H
 #define FISH_EYE_CAMERA_PARAMETER_WIDGET_H
 
-#include <QWidget>
+#include "widgets/CameraParameterWidget.h"
 
-class FishEyeCameraParameterWidget : public QWidget {
+class FishEyeCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
   
 public:
@@ -11,6 +11,8 @@ public:
   ~FishEyeCameraParameterWidget();
   
   int fieldOfView() const;
+  
+  virtual void applyTo(Camera* camera);
 
 signals:
   void changed();

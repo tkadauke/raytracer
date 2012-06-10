@@ -26,6 +26,7 @@ public:
   const Lights& lights() const { return m_lights; }
   
   const Colord& ambient() const { return m_ambient; }
+  inline void setAmbient(const Colord& ambient) { m_ambient = ambient; }
 
 private:
   Lights m_lights;
