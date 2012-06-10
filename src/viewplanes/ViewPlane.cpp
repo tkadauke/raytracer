@@ -23,7 +23,7 @@ ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Rect& rect, 
 }
 
 Vector3d ViewPlane::IteratorBase::current() const {
-  return m_plane->m_topLeft + m_plane->m_right * column() + m_plane->m_down * row();
+  return (m_plane->m_topLeft + m_plane->m_right * column() + m_plane->m_down * row()) * m_plane->pixelSize();
 }
 
 

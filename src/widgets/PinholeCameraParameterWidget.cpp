@@ -12,6 +12,7 @@ PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
 {
   p->ui.setupUi(this);
   connect(p->ui.m_distanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
+  connect(p->ui.m_zoomInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
 }
 
 PinholeCameraParameterWidget::~PinholeCameraParameterWidget() {
@@ -26,10 +27,15 @@ double PinholeCameraParameterWidget::distance() const {
   return p->ui.m_distanceInput->value();
 }
 
+double PinholeCameraParameterWidget::zoom() const {
+  return p->ui.m_zoomInput->value();
+}
+
 void PinholeCameraParameterWidget::applyTo(Camera* camera) {
   PinholeCamera* pinholeCamera = dynamic_cast<PinholeCamera*>(camera);
   if (pinholeCamera) {
     pinholeCamera->setDistance(distance());
+    pinholeCamera->setZoom(zoom());
   }
 }
 

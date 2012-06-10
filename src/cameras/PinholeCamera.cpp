@@ -8,6 +8,7 @@
 void PinholeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   Matrix4d m = matrix();
   ViewPlane* plane = viewPlane();
+  plane->setPixelSize(1.0 / m_zoom);
 
   Vector3d position = m * Vector4d(0, 0, -m_distance);
 

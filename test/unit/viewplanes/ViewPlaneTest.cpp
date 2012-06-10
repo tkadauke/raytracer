@@ -9,12 +9,14 @@ namespace ViewPlaneTest {
     ViewPlane plane;
     ASSERT_EQ(0, plane.width());
     ASSERT_EQ(0, plane.height());
+    ASSERT_EQ(1, plane.pixelSize());
   }
   
   TEST(ViewPlane, ShouldInitializeWithValues) {
     ViewPlane plane(Matrix4d(), Rect(10, 10));
     ASSERT_EQ(10, plane.width());
     ASSERT_EQ(10, plane.height());
+    ASSERT_EQ(1, plane.pixelSize());
   }
   
   TEST(ViewPlane, ShouldSetupVectorsWhenInitializedWithValues) {
@@ -45,6 +47,13 @@ namespace ViewPlaneTest {
       ViewPlane plane(Matrix4d(), this->fullRect);
       ViewPlane::Iterator iterator = plane.begin(this->fullRect);
       ASSERT_EQ(Vector3d(-4, -3, 0), *iterator);
+    }
+    
+    TEST_F(ViewPlane_Iterator, ShouldMultiplyCurrentByPixelSize) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      plane.setPixelSize(2);
+      ViewPlane::Iterator iterator = plane.begin(this->fullRect);
+      ASSERT_EQ(Vector3d(-8, -6, 0), *iterator);
     }
     
     TEST_F(ViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {

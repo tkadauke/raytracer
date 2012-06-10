@@ -77,9 +77,9 @@ public:
     IteratorBase* m_iteratorImpl;
   };
   
-  inline ViewPlane() {}
+  inline ViewPlane() : m_pixelSize(1) {}
   inline ViewPlane(const Matrix4d& matrix, const Rect& window)
-    : m_matrix(matrix), m_window(window)
+    : m_matrix(matrix), m_window(window), m_pixelSize(1)
   {
     setupVectors();
   }
@@ -99,9 +99,11 @@ public:
     return Iterator(new RegularIterator(this, rect, true));
   }
   
-  const Vector3d& topLeft() const { return m_topLeft; }
-  const Vector3d& right() const { return m_right; }
-  const Vector3d& down() const { return m_down; }
+  inline const Vector3d& topLeft() const { return m_topLeft; }
+  inline const Vector3d& right() const { return m_right; }
+  inline const Vector3d& down() const { return m_down; }
+  inline double pixelSize() const { return m_pixelSize; }
+  inline void setPixelSize(double pixelSize) { m_pixelSize = pixelSize; }
   
 protected:
   void setupVectors();
@@ -111,6 +113,7 @@ protected:
   Matrix4d m_matrix;
   Rect m_window;
   Vector3d m_topLeft, m_right, m_down;
+  float m_pixelSize;
 };
 
 #endif

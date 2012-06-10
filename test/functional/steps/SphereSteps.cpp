@@ -35,6 +35,11 @@ THEN(RaytracerFeatureTest, "i should see the sphere with size smaller than S") {
   ASSERT_TRUE(test->previousObjectSize > test->objectSize());
 }
 
+THEN(RaytracerFeatureTest, "i should see the sphere with size larger than S") {
+  ASSERT_TRUE(test->objectVisible());
+  ASSERT_TRUE(test->previousObjectSize < test->objectSize());
+}
+
 THEN(RaytracerFeatureTest, "i should not see the sphere") {
   ASSERT_FALSE(test->objectVisible());
 }

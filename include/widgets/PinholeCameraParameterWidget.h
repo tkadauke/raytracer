@@ -11,6 +11,7 @@ public:
   ~PinholeCameraParameterWidget();
   
   double distance() const;
+  double zoom() const;
 
   virtual void applyTo(Camera* camera);
 
