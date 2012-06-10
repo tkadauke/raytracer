@@ -124,6 +124,45 @@ namespace VectorTest {
 
     ASSERT_EQ(10.0, vector.length());
   }
+  
+  TEST(Vector, ShouldCalculateSquaredLength) {
+    Vector<3, float> vector;
+    vector[0] = 2.0;
+
+    ASSERT_EQ(4.0, vector.squaredLength());
+  }
+  
+  TEST(Vector, ShouldCalculateDistanceToOtherVector) {
+    Vector<3, float> vector1, vector2;
+    vector1[0] = 10.0;
+    vector2[0] = 5.0;
+    
+    ASSERT_EQ(5.0, vector1.distanceTo(vector2));
+  }
+  
+  TEST(Vector, ShouldReturnSameValueForReversedDistance) {
+    Vector<3, float> vector1, vector2, foo;
+    vector1[0] = 10.0;
+    vector2[0] = 5.0;
+    
+    ASSERT_EQ(vector1.distanceTo(vector2), vector2.distanceTo(vector1));
+  }
+
+  TEST(Vector, ShouldCalculateSquaredDistanceToOtherVector) {
+    Vector<3, float> vector1, vector2;
+    vector1[0] = 10.0;
+    vector2[0] = 5.0;
+    
+    ASSERT_EQ(25.0, vector1.squaredDistanceTo(vector2));
+  }
+  
+  TEST(Vector, ShouldReturnSameValueForReversedSquaredDistance) {
+    Vector<3, float> vector1, vector2, foo;
+    vector1[0] = 10.0;
+    vector2[0] = 5.0;
+    
+    ASSERT_EQ(vector1.squaredDistanceTo(vector2), vector2.squaredDistanceTo(vector1));
+  }
 
   TEST(Vector, ShouldDivideVectorByScalar) {
     Vector<3, float> vector;

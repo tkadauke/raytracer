@@ -134,7 +134,19 @@ public:
   }
 
   inline T length() const {
-    return std::sqrt(*this * *this);
+    return std::sqrt(squaredLength());
+  }
+
+  inline T squaredLength() const {
+    return *this * *this;
+  }
+  
+  inline T distanceTo(const Vector<Dimensions, T, VectorCellType>& other) {
+    return (*this - other).length();
+  }
+  
+  inline T squaredDistanceTo(const Vector<Dimensions, T, VectorCellType>& other) {
+    return (*this - other).squaredLength();
   }
 
   inline Vector<Dimensions, T, VectorCellType> normalized() const {
