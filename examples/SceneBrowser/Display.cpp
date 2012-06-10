@@ -17,6 +17,8 @@ Display::Display()
 {
   m_sidebar = new QWidget(this, Qt::Drawer);
   m_verticalLayout = new QVBoxLayout(m_sidebar);
+  m_verticalLayout->setContentsMargins(6, 6, 6, 6);
+  
   m_scene = new SceneWidget(m_sidebar);
   m_verticalLayout->addWidget(m_scene);
 

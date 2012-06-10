@@ -7,13 +7,16 @@
     <x>0</x>
     <y>0</y>
     <width>214</width>
-    <height>82</height>
+    <height>58</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
+   <property name="margin">
+    <number>0</number>
+   </property>
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
