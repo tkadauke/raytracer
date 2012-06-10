@@ -24,5 +24,5 @@ WHEN(RaytracerFeatureTest, "i zoom in") {
 
 WHEN(RaytracerFeatureTest, "i zoom out") {
   PinholeCamera* camera = static_cast<PinholeCamera*>(test->camera());
-  camera->setZoom(camera->zoom() / 2);
+  camera->setZoom(camera->zoom() * 0.8);
 }
