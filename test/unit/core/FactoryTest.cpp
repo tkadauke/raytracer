@@ -1,7 +1,12 @@
 #include "gtest.h"
 #include "core/Factory.h"
+#include "test/helpers/ContainerTestHelper.h"
+
+using namespace std;
 
 namespace FactoryTest {
+  using namespace ::testing;
+
   struct Shape {
     virtual ~Shape() {}
   };
@@ -28,5 +33,14 @@ namespace FactoryTest {
     
     Shape* shape = f.create("Foobar");
     ASSERT_EQ(0, shape);
+  }
+  
+  TEST(Factory, ShouldReturnIdentifiersSorted) {
+    Factory<Shape> f;
+    f.registerClass<Rectangle>("Rectangle");
+    f.registerClass<Circle>("Circle");
+    
+    list<string> identifiers = f.identifiers();
+    ASSERT_CONTAINERS_EQ(makeStdList<string>("Circle", "Rectangle"), identifiers);
   }
 }

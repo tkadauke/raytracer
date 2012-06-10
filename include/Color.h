@@ -1,6 +1,8 @@
 #ifndef COLOR_H
 #define COLOR_H
 
+#include <iostream>
+
 #include "core/DivisionByZeroException.h"
 
 template<class T>
@@ -120,9 +122,13 @@ typedef Color<double> Colord;
 
 template<class T>
 std::ostream& operator<<(std::ostream& os, const Color<T>& color) {
+  os << "(";
   for (int i = 0; i != 3; ++i) {
-    os << color[i] << ' ';
+    os << color[i];
+    if (i < 2)
+      os << ", ";
   }
+  os << ")";
   return os;
 }
 

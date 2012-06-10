@@ -2,6 +2,10 @@
 #include "Color.h"
 #include "test/helpers/ColorTestHelper.h"
 
+#include <sstream>
+
+using namespace std;
+
 namespace ColorTest {
   template<class T>
   class ColorTest : public ::testing::Test {
@@ -15,18 +19,6 @@ namespace ColorTest {
     ASSERT_EQ(0, color[0]);
     ASSERT_EQ(0, color[1]);
     ASSERT_EQ(0, color[2]);
-  }
-  
-  TYPED_TEST(ColorTest, ShouldGetAndSetComponent) {
-    TypeParam color;
-    color.setComponent(0, 1.0);
-    ASSERT_EQ(1.0, color.component(0));
-  }
-  
-  TYPED_TEST(ColorTest, ShouldGetAndSetComponentWithIndexOperator) {
-    TypeParam color;
-    color[1] = 1.0;
-    ASSERT_EQ(1.0, color[1]);
   }
   
   TYPED_TEST(ColorTest, ShouldInitializeColorWithValues) {
@@ -51,6 +43,26 @@ namespace ColorTest {
     ASSERT_EQ(0.5, color[0]);
     ASSERT_EQ(1,   color[1]);
     ASSERT_EQ(1,   color[2]);
+  }
+  
+  TYPED_TEST(ColorTest, ShouldGetAndSetComponent) {
+    TypeParam color;
+    color.setComponent(0, 1.0);
+    ASSERT_EQ(1.0, color.component(0));
+  }
+
+  TYPED_TEST(ColorTest, ShouldGetAndSetComponentWithIndexOperator) {
+    TypeParam color;
+    color[1] = 1.0;
+    ASSERT_EQ(1.0, color[1]);
+  }
+  
+  TYPED_TEST(ColorTest, ShouldGetIndividualComponents) {
+    TypeParam color(0.5, 1, 1);
+  
+    ASSERT_EQ(0.5, color.r());
+    ASSERT_EQ(1, color.g());
+    ASSERT_EQ(1, color.b());
   }
   
   TYPED_TEST(ColorTest, ShouldAdd) {
@@ -125,5 +137,14 @@ namespace ColorTest {
   
     TypeParam white(1, 1, 1);
     ASSERT_EQ(white, TypeParam::white());
+  }
+  
+  TYPED_TEST(ColorTest, ShouldStreamColorToString) {
+    TypeParam color(1, 0.5, 1);
+    
+    ostringstream str;
+    str << color;
+    
+    ASSERT_EQ("(1, 0.5, 1)", str.str());
   }
 }

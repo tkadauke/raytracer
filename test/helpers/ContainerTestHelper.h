@@ -20,7 +20,7 @@ namespace testing {
       os << '[';
       for (typename Container::const_iterator i = container.begin(); i != container.end(); ++i, ++count) {
         os << *i;
-        if (count != container.size() - 2)
+        if (count != container.size() - 1)
           os << ", ";
       }
       os << ']';
@@ -97,6 +97,26 @@ namespace testing {
   template<class T>
   std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2, const T& v3) {
     return internal::makeContainer<std::vector<T>, T>(v0, v1, v2, v3);
+  }
+  
+  template<class T>
+  std::list<T> makeStdList(const T& v0) {
+    return internal::makeContainer<std::list<T>, T>(v0);
+  }
+  
+  template<class T>
+  std::list<T> makeStdList(const T& v0, const T& v1) {
+    return internal::makeContainer<std::list<T>, T>(v0, v1);
+  }
+  
+  template<class T>
+  std::list<T> makeStdList(const T& v0, const T& v1, const T& v2) {
+    return internal::makeContainer<std::list<T>, T>(v0, v1, v2);
+  }
+  
+  template<class T>
+  std::list<T> makeStdList(const T& v0, const T& v1, const T& v2, const T& v3) {
+    return internal::makeContainer<std::list<T>, T>(v0, v1, v2, v3);
   }
 }
 
