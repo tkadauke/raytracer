@@ -1,7 +1,11 @@
 *.o
 *.moc
 *.uic
+*.gcno
+*.gcda
+*.gcov
 tests.run
 .DS_Store
 examples/*/*RayTracer
 examples/*/SceneBrowser
+test/coverage

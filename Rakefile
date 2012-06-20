@@ -43,10 +43,16 @@ end
 
 OPTIMIZE_FLAGS = "-O3 -funroll-loops -mtune=native"
 WARNING_FLAGS = "-W -Wall"
-C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS}"
-T_FLAGS = "#{OPTIMIZE_FLAGS} #{WARNING_FLAGS}"
+if ENV['COVERAGE']
+  COVERAGE_FLAGS = "-fprofile-arcs -ftest-coverage"
+else
+  COVERAGE_FLAGS = ""
+end
+C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+T_FLAGS = "#{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+CC = "g++-4.2"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
-LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
+LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')} -lgcov"
 
 CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN)
 
@@ -86,18 +92,18 @@ end
 
 rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
   if t.source =~ /Test\.cpp/
-    sh %{g++ #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{T_FLAGS} -o #{t.name} -c #{t.source}}
+    sh %{#{CC} #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{T_FLAGS} -o #{t.name} -c #{t.source}}
   else
-    sh %{g++ #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{C_FLAGS} -o #{t.name} -c #{t.source}}
+    sh %{#{CC} #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{C_FLAGS} -o #{t.name} -c #{t.source}}
   end
 end
 
 file UNIT_TEST_BIN => [SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten do
-  sh %{g++ -Os -o #{UNIT_TEST_BIN} #{[SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
+  sh %{#{CC} -Os -o #{UNIT_TEST_BIN} #{[SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
 end
 
 file FUNCTIONAL_TEST_BIN => [SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten do
-  sh %{g++ -Os -o #{FUNCTIONAL_TEST_BIN} #{[SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
+  sh %{#{CC} -Os -o #{FUNCTIONAL_TEST_BIN} #{[SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
 end
 
 EXAMPLES.each do |example|
@@ -106,7 +112,7 @@ EXAMPLES.each do |example|
   output = "#{example}/#{File.basename(example)}"
   
   file output => [obj, SRC_OBJ].flatten do
-    sh %{g++ -Os -o #{output} #{[SRC_OBJ, obj].flatten.join(' ')} #{LD_FLAGS}}
+    sh %{#{CC} -Os -o #{output} #{[SRC_OBJ, obj].flatten.join(' ')} #{LD_FLAGS}}
   end
 end
 
@@ -132,6 +138,21 @@ namespace :test do
     else
       sh(FUNCTIONAL_TEST_BIN)
     end
+  end
+  
+  desc "Gather test coverage"
+  task :coverage do
+    ENV['COVERAGE'] = 'true'
+    sh "rake test"
+    sh "lcov --directory . -b . --capture --output-file test/coverage/info"
+    sh "lcov -r test/coverage/info /usr/include/\\* -o test/coverage/info"
+    sh "lcov -r test/coverage/info test/\\* -o test/coverage/info"
+    sh "lcov -r test/coverage/info gtest/\\* -o test/coverage/info"
+    sh "lcov -r test/coverage/info gmock/\\* -o test/coverage/info"
+    sh "lcov -r test/coverage/info /Library/Frameworks/\\* -o test/coverage/info"
+    sh "lcov -r test/coverage/info \\*.moc -o test/coverage/info"
+    sh "lcov -r test/coverage/info \\*.uic -o test/coverage/info"
+    sh "genhtml test/coverage/info -o test/coverage"
   end
 end
 
