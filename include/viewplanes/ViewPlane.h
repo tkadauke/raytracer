@@ -84,6 +84,8 @@ public:
     setupVectors();
   }
   
+  virtual ~ViewPlane();
+  
   inline void setup(const Matrix4d& matrix, const Rect& window) {
     m_matrix = matrix;
     m_window = window;

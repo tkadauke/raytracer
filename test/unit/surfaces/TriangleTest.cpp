@@ -82,4 +82,9 @@ namespace TriangleTest {
     
     ASSERT_EQ(normal1, normal2);
   }
+
+  TEST_F(TriangleTest, ShouldReturnBoundingBox) {
+    Triangle triangle(this->point0, this->point1, this->point2);
+    ASSERT_EQ(BoundingBox(Vector3d(-1, -1, 0), Vector3d(1, 1, 0)), triangle.boundingBox());
+  }
 }

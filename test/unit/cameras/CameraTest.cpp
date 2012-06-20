@@ -1,8 +1,11 @@
 #include "gtest.h"
 #include "cameras/Camera.h"
 #include "viewplanes/ViewPlane.h"
+#include "test/mocks/MockViewPlane.h"
 
 namespace CameraTest {
+  using namespace ::testing;
+  
   class ConcreteCamera : public Camera {
   public:
     ConcreteCamera() : Camera() {}
@@ -17,6 +20,14 @@ namespace CameraTest {
   
   TEST(Camera, ShouldConstructWithParameters) {
     ConcreteCamera camera(Vector3d(0, 0, 1), Vector3d::null());
+  }
+  
+  TEST(Camera, ShouldDeleteViewPlaneOnDestruct) {
+    MockViewPlane* plane = new MockViewPlane;
+    ConcreteCamera* camera = new ConcreteCamera;
+    EXPECT_CALL(*plane, destructorCall());
+    camera->setViewPlane(plane);
+    delete camera;
   }
   
   TEST(Camera, ShouldReturnMatrix) {
@@ -66,6 +77,14 @@ namespace CameraTest {
     ViewPlane* plane = new ViewPlane;
     camera.setViewPlane(plane);
     ASSERT_EQ(plane, camera.viewPlane());
+  }
+  
+  TEST(Camera, ShouldDeleteOldViewPlaneWhenNewIsSet) {
+    ConcreteCamera camera;
+    testing::MockViewPlane* plane = new testing::MockViewPlane;
+    EXPECT_CALL(*plane, destructorCall());
+    camera.setViewPlane(plane);
+    camera.setViewPlane(new ViewPlane);
   }
   
   TEST(Camera, ShouldReturnDefaultViewPlane) {

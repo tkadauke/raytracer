@@ -1,6 +1,9 @@
 #include "viewplanes/ViewPlane.h"
 #include "viewplanes/ViewPlaneFactory.h"
 
+ViewPlane::~ViewPlane() {
+}
+
 void ViewPlane::setupVectors() {
   m_topLeft = m_matrix * Vector4d(-4, -3, 0);
   m_right = Matrix3d(m_matrix) * (Vector3d(1, 0, 0) / width() * 8.0);
