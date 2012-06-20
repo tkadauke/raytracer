@@ -5,6 +5,10 @@
 #include "test/helpers/MatrixTestHelper.h"
 #include "test/helpers/TypeTestHelper.h"
 
+#include <sstream>
+
+using namespace std;
+
 namespace MatrixTest {
   using namespace ::testing;
   
@@ -103,7 +107,7 @@ namespace MatrixTest {
   TEST(Matrix, ShouldCalculateColSum) {
     float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
     Matrix<3, float> matrix(elements);
-    ASSERT_EQ(3, matrix.rowSum(1));
+    ASSERT_EQ(3, matrix.colSum(1));
   }
 
   TEST(Matrix, ShouldReturnOriginalVectorWhenVectorIsMultipliedWithIdentityMatrix) {
@@ -185,6 +189,19 @@ namespace MatrixTest {
   
     ASSERT_EQ(expected, matrix * 3);
   }
+  
+  TEST(Matrix, ShouldAddTwoMatrices) {
+    float first_elements[3][3] = { {1, 0, 0}, {0, 0, 1}, {0, 1, 0} };
+    Matrix<3, float> first(first_elements);
+
+    float second_elements[3][3] = { {0, 1, 0}, {0, 1, 0}, {1, 0, 0} };
+    Matrix<3, float> second(second_elements);
+
+    float expected_elements[3][3] = { {1, 1, 0}, {0, 1, 1}, {1, 1, 0} };
+    Matrix<3, float> expected(expected_elements);
+    
+    ASSERT_EQ(expected, first + second);
+  }
 
   TEST(Matrix, ShouldDivideIdentityByScalar) {
     Matrix<3, float> matrix;
@@ -234,6 +251,16 @@ namespace MatrixTest {
                              {4, 1, 1} };
     Matrix<3, float> matrix(elements);
     ASSERT_EQ(matrix, matrix.transposed().transposed());
+  }
+  
+  TEST(Matrix, ShouldStreamMatrixToString) {
+    float elements[3][3] = { {1, 2, 1},
+                             {3, 0, 2},
+                             {4, 1, 1} };
+    Matrix<3, float> matrix(elements);
+    ostringstream str;
+    str << matrix;
+    ASSERT_EQ("1 2 1 \n3 0 2 \n4 1 1 \n", str.str());
   }
 }
 

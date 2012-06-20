@@ -102,7 +102,7 @@ private:
 };
 
 inline std::ostream& operator<<(std::ostream& os, const BoundingBox& bbox) {
-  return os << '(' << bbox.min() << ")-(" << bbox.max() << ')';
+  return os << bbox.min() << "-" << bbox.max();
 }
 
 #endif

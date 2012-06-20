@@ -182,9 +182,13 @@ protected:
 
 template<int Dimensions, class T, class VectorCellType>
 std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, VectorCellType>& vector) {
+  os << "(";
   for (int i = 0; i != Dimensions; ++i) {
-    os << vector[i] << ' ';
+    os << vector[i];
+    if (i < Dimensions - 1)
+      os << ", ";
   }
+  os << ")";
   return os;
 }
 

@@ -1,6 +1,8 @@
 #include "gtest.h"
 #include "math/BoundingBox.h"
 
+#include <sstream>
+
 using namespace std;
 
 namespace BoundingBoxTest {
@@ -172,6 +174,16 @@ namespace BoundingBoxTest {
     ASSERT_TRUE(BoundingBox::undefined().isUndefined());
   }
   
+  TEST(BoundingBox, ShouldReturnTrueIfPointIsInsideBox) {
+    BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    ASSERT_TRUE(bbox.contains(Vector3d(0, 0, 0)));
+  }
+  
+  TEST(BoundingBox, ShouldReturnFalseIfPointIsOutsideOfBox) {
+    BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    ASSERT_FALSE(bbox.contains(Vector3d(2, 0, 0)));
+  }
+  
   TEST(BoundingBox, ShouldReturnEightVertices) {
     vector<Vector3d> vertices;
     BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
@@ -185,5 +197,14 @@ namespace BoundingBoxTest {
     bbox.getVertices(vertices);
     ASSERT_EQ(bbox.min(), vertices.front());
     ASSERT_EQ(bbox.max(), vertices.back());
+  }
+
+  TEST(BoundingBox, ShouldStreamBoundingBoxToString) {
+    BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    
+    ostringstream str;
+    str << bbox;
+    
+    ASSERT_EQ("(-1, -1, -1)-(1, 1, 1)", str.str());
   }
 }

@@ -21,6 +21,13 @@ namespace BufferTest {
     ASSERT_EQ(TypeParam::ElementType::white(), buffer[10][5]);
   }
   
+  TYPED_TEST(BufferTest, ShouldGetConstValueAtPixel) {
+    TypeParam buffer(50, 50);
+    buffer[10][5] = TypeParam::ElementType::white();
+    const TypeParam& constBuffer = buffer;
+    ASSERT_EQ(TypeParam::ElementType::white(), constBuffer[10][5]);
+  }
+  
   TYPED_TEST(BufferTest, ShouldReturnWidth) {
     TypeParam buffer(50, 50);
     ASSERT_EQ(50, buffer.width());

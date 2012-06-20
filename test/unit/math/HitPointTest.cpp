@@ -84,6 +84,12 @@ namespace HitPointTest {
     ASSERT_FALSE(point.isUndefined());
   }
   
+  TEST(HitPoint, ShouldReturnHitPointWithSwappedNormal) {
+    HitPoint point(3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
+             expected(3, Vector3d(1, 0, 0), Vector3d(0, -1, 0));
+    ASSERT_TRUE(expected == point.swappedNormal());
+  }
+  
   TEST(HitPoint, ShouldTransformHitpointWithPointMatrix) {
     Vector4d point(1, 0, 0);
     Vector3d normal(0, 1, 0);

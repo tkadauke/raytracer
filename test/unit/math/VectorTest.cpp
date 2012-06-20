@@ -647,6 +647,25 @@ namespace Vector4Test {
     TypeParam expected(0, 0, 0, 1);
     ASSERT_EQ(expected, TypeParam::null());
   }
+
+  TYPED_TEST(Vector4Test, ShouldDefineEpsilonVector) {
+    ASSERT_TRUE(TypeParam::epsilon().x() > 0.0);
+    ASSERT_TRUE(TypeParam::epsilon().y() > 0.0);
+    ASSERT_TRUE(TypeParam::epsilon().z() > 0.0);
+    ASSERT_TRUE(TypeParam::epsilon().w() > 0.0);
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldDefineUndefinedVector) {
+    ASSERT_TRUE(TypeParam::undefined().isUndefined());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldDefineMinusInfinityVector) {
+    ASSERT_EQ(- numeric_limits<float>::infinity(), TypeParam::minusInfinity().x());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldDefinePlusInfinityVector) {
+    ASSERT_EQ(numeric_limits<float>::infinity(), TypeParam::plusInfinity().x());
+  }
   
   TYPED_TEST(Vector4Test, ShouldReturnHomogenizedVector) {
     TypeParam vector(2, 4, 6, 2);

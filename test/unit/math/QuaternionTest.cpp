@@ -2,7 +2,11 @@
 #include "math/Quaternion.h"
 #include "math/Vector.h"
 
+#include <sstream>
+
 namespace QuaternionTest {
+  using namespace std;
+  
   TEST(Quaternion, ShouldInitializeAsMultiplicationIdentityQuaternion) {
     Quaternion<float> quaternion;
     ASSERT_EQ(1, quaternion.w());
@@ -86,6 +90,17 @@ namespace QuaternionTest {
   }
   
   TEST(Quaternion, ShouldMultiplyTwoQuaternions) {
+    Quaternion<float> first(1, 2, 2, 3), second(1, 2, 2, 3);
+    Quaternion<float> expected(-16, 4, 4, 6);
+    ASSERT_EQ(expected, first * second);
+  }
+
+  TEST(Quaternion, ShouldStreamQuaternionToString) {
+    Quaternion<float> quaternion(4, 1, 2, 3);
     
+    ostringstream str;
+    str << quaternion;
+    
+    ASSERT_EQ("[4, 1 2 3]", str.str());
   }
 }
