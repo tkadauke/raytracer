@@ -41,11 +41,12 @@ else
   DEBUG_FLAGS = ""
 end
 
-OPTIMIZE_FLAGS = "-O3 -funroll-loops -mtune=native"
 WARNING_FLAGS = "-W -Wall"
 if ENV['COVERAGE']
+  OPTIMIZE_FLAGS = "-O1"
   COVERAGE_FLAGS = "-fprofile-arcs -ftest-coverage"
 else
+  OPTIMIZE_FLAGS = "-O3 -funroll-loops -mtune=native"
   COVERAGE_FLAGS = ""
 end
 C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
@@ -143,7 +144,8 @@ namespace :test do
   desc "Gather test coverage"
   task :coverage do
     ENV['COVERAGE'] = 'true'
-    sh "rake test"
+    sh "drake -j 24 test:build"
+    sh "rake test:run"
     sh "lcov --directory . -b . --capture --output-file test/coverage/info"
     sh "lcov -r test/coverage/info /usr/include/\\* -o test/coverage/info"
     sh "lcov -r test/coverage/info test/\\* -o test/coverage/info"
