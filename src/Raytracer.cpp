@@ -88,7 +88,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
 }
 
 Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
-  if (recursionDepth == 5) {
+  if (recursionDepth == 7) {
     return m_scene->ambient();
   }
   
