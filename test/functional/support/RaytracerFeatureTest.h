@@ -31,6 +31,9 @@ namespace testing {
     void setCamera(const Vector3d& position, const Vector3d& lookAt);
     void setView(const Vector3d& position, const Vector3d& lookAt);
     void render();
+    void cancel();
+    
+    void clear();
   
     bool colorPresent(const Colord& color);
     int colorCount(const Colord& color);

@@ -47,4 +47,12 @@ namespace FishEyeCameraTest {
     when("i set the fish-eye camera's field of view to maximum");
     then("i should see the sphere");
   }
+
+  TEST_F(FishEyeCameraTest, ShouldNotRenderWhenCanceled) {
+    given("a blank canvas");
+    given("a fish-eye camera");
+    when("the render process is canceled");
+    when("i look at the origin");
+    then("i should see nothing");
+  }
 }

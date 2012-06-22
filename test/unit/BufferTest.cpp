@@ -46,4 +46,10 @@ namespace BufferTest {
     ASSERT_EQ(50, rect.width());
     ASSERT_EQ(50, rect.height());
   }
+  
+  TYPED_TEST(BufferTest, ShouldClear) {
+    TypeParam buffer(50, 50);
+    buffer.clear();
+    ASSERT_TRUE(typename TypeParam::ElementType() == buffer[10][10]);
+  }
 }

@@ -33,6 +33,14 @@ public:
   inline int height() const { return m_height; }
   
   inline Rect rect() const { return Rect(m_width, m_height); }
+  
+  void clear() {
+    for (int i = 0; i != width(); ++i) {
+      for (int j = 0; j != height(); ++j) {
+        m_buffer[j][i] = T();
+      }
+    }
+  }
 
 private:
   BufferType m_buffer;

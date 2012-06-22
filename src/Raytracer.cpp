@@ -62,7 +62,6 @@ Raytracer::~Raytracer() {
 }
 
 void Raytracer::render(Buffer<unsigned int>& buffer) {
-  m_camera->uncancel();
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   
   p->threads.clear();
@@ -114,4 +113,8 @@ void Raytracer::setCamera(Camera* camera) {
 
 void Raytracer::cancel() {
   m_camera->cancel();
+}
+
+void Raytracer::uncancel() {
+  m_camera->uncancel();
 }

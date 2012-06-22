@@ -63,4 +63,12 @@ namespace PinholeCameraTest {
     when("i zoom out");
     then("i should see the sphere with size smaller than S");
   }
+
+  TEST_F(PinholeCameraTest, ShouldNotRenderWhenCanceled) {
+    given("a blank canvas");
+    given("a pinhole camera");
+    when("the render process is canceled");
+    when("i look at the origin");
+    then("i should see nothing");
+  }
 }

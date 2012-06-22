@@ -63,7 +63,15 @@ namespace testing {
     m_raytracer = new Raytracer(m_camera, m_scene);
     m_raytracer->render(m_buffer);
   }
+  
+  void RaytracerFeatureTest::cancel() {
+    camera()->cancel();
+  }
 
+  void RaytracerFeatureTest::clear() {
+    m_buffer.clear();
+  }
+  
   bool RaytracerFeatureTest::colorPresent(const Colord& color) {
     return colorCount(color) > 0;
   }

@@ -3,8 +3,16 @@
 
 using namespace testing;
 
+GIVEN(RaytracerFeatureTest, "a blank canvas") {
+  test->clear();
+}
+
 GIVEN(RaytracerFeatureTest, "an empty scene") {
   // do nothing
+}
+
+WHEN(RaytracerFeatureTest, "the render process is canceled") {
+  test->cancel();
 }
 
 THEN(RaytracerFeatureTest, "i should see nothing") {

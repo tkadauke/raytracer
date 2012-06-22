@@ -34,4 +34,12 @@ namespace OrthographicCameraTest {
     when("i go far away from the origin");
     then("i should see the sphere with size S");
   }
+
+  TEST_F(OrthographicCameraTest, ShouldNotRenderWhenCanceled) {
+    given("a blank canvas");
+    given("an orthographic camera");
+    when("the render process is canceled");
+    when("i look at the origin");
+    then("i should see nothing");
+  }
 }

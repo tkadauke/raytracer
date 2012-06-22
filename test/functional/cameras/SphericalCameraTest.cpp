@@ -41,4 +41,12 @@ namespace SphericalCameraTest {
     when("i set the spherical camera's field of view to maximum");
     then("i should see the sphere");
   }
+
+  TEST_F(SphericalCameraTest, ShouldNotRenderWhenCanceled) {
+    given("a blank canvas");
+    given("a spherical camera");
+    when("the render process is canceled");
+    when("i look at the origin");
+    then("i should see nothing");
+  }
 }

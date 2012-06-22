@@ -66,6 +66,7 @@ void QtDisplay::stop() {
 
 void QtDisplay::render() {
   stop();
+  m_raytracer->uncancel();
   m_raytracer->camera()->setPosition(Matrix3d::rotateY(p->yAngle) * Matrix3d::rotateX(p->xAngle) * Vector3d(0, 0, -p->distance));
   p->renderThread = new RenderThread(m_raytracer, *p->buffer);
   p->renderThread->start();
