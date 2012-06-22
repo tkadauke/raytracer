@@ -8,7 +8,31 @@ namespace BoxTest {
     Box box(Vector3d(), Vector3d(1, 1, 1));
   }
   
-  TEST(Box, ShouldIntersectWithRay) {
+  TEST(Box, ShouldIntersectWithRayInXDirection) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(-2, 0, 0), Vector3d(1, 0, 0));
+    
+    HitPointInterval hitPoints;
+    Surface* surface = box.intersect(ray, hitPoints);
+    ASSERT_EQ(surface, &box);
+    ASSERT_EQ(Vector3d(-1, 0, 0), hitPoints.min().point());
+    ASSERT_EQ(Vector3d(-1, 0, 0), hitPoints.min().normal());
+    ASSERT_EQ(1, hitPoints.min().distance());
+  }
+  
+  TEST(Box, ShouldIntersectWithRayInYDirection) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(0, -2, 0), Vector3d(0, 1, 0));
+    
+    HitPointInterval hitPoints;
+    Surface* surface = box.intersect(ray, hitPoints);
+    ASSERT_EQ(surface, &box);
+    ASSERT_EQ(Vector3d(0, -1, 0), hitPoints.min().point());
+    ASSERT_EQ(Vector3d(0, -1, 0), hitPoints.min().normal());
+    ASSERT_EQ(1, hitPoints.min().distance());
+  }
+  
+  TEST(Box, ShouldIntersectWithRayInZDirection) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
     Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
@@ -16,6 +40,18 @@ namespace BoxTest {
     Surface* surface = box.intersect(ray, hitPoints);
     ASSERT_EQ(surface, &box);
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().point());
+    ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
+    ASSERT_EQ(1, hitPoints.min().distance());
+  }
+  
+  TEST(Box, ShouldIntersectIfRayIsTangentToSurface) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(0, 1, -2), Vector3d(0, 0, 1));
+    
+    HitPointInterval hitPoints;
+    Surface* surface = box.intersect(ray, hitPoints);
+    ASSERT_EQ(surface, &box);
+    ASSERT_EQ(Vector3d(0, 1, -1), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
     ASSERT_EQ(1, hitPoints.min().distance());
   }
