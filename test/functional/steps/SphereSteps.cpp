@@ -1,5 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
+#include "test/helpers/ShapeRecognition.h"
 
 #include "surfaces/Sphere.h"
 
@@ -18,7 +19,8 @@ GIVEN(RaytracerFeatureTest, "a displaced sphere") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the sphere") {
-  ASSERT_TRUE(test->objectVisible());
+  ShapeRecognition rec;
+  ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
 THEN(RaytracerFeatureTest, "i should see the sphere with size S") {
@@ -41,5 +43,6 @@ THEN(RaytracerFeatureTest, "i should see the sphere with size larger than S") {
 }
 
 THEN(RaytracerFeatureTest, "i should not see the sphere") {
-  ASSERT_FALSE(test->objectVisible());
+  ShapeRecognition rec;
+  ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }

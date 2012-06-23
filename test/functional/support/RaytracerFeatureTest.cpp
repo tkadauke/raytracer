@@ -71,6 +71,10 @@ namespace testing {
   void RaytracerFeatureTest::clear() {
     m_buffer.clear();
   }
+
+  const Buffer<unsigned int>& RaytracerFeatureTest::buffer() const {
+    return m_buffer;
+  }
   
   bool RaytracerFeatureTest::colorPresent(const Colord& color) {
     return colorCount(color) > 0;

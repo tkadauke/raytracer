@@ -33,6 +33,7 @@ namespace testing {
     void render();
     void cancel();
     
+    const Buffer<unsigned int>& buffer() const;
     void clear();
   
     bool colorPresent(const Colord& color);

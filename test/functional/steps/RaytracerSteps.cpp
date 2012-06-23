@@ -15,6 +15,10 @@ WHEN(RaytracerFeatureTest, "the render process is canceled") {
   test->cancel();
 }
 
+THEN(RaytracerFeatureTest, "i should see something") {
+  ASSERT_TRUE(test->objectVisible());
+}
+
 THEN(RaytracerFeatureTest, "i should see nothing") {
   ASSERT_FALSE(test->objectVisible());
 }

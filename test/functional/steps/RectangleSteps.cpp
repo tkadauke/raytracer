@@ -1,5 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
+#include "test/helpers/ShapeRecognition.h"
 
 #include "surfaces/Rectangle.h"
 
@@ -18,9 +19,11 @@ GIVEN(RaytracerFeatureTest, "a displaced rectangle") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the rectangle") {
-  ASSERT_TRUE(test->objectVisible());
+  ShapeRecognition rec;
+  ASSERT_TRUE(rec.recognizeRect(test->buffer()));
 }
 
 THEN(RaytracerFeatureTest, "i should not see the rectangle") {
-  ASSERT_FALSE(test->objectVisible());
+  ShapeRecognition rec;
+  ASSERT_FALSE(rec.recognizeRect(test->buffer()));
 }

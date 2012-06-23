@@ -1,5 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
+#include "test/helpers/ShapeRecognition.h"
 
 #include "surfaces/Disk.h"
 
@@ -18,9 +19,11 @@ GIVEN(RaytracerFeatureTest, "a displaced disk") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the disk") {
-  ASSERT_TRUE(test->objectVisible());
+  ShapeRecognition rec;
+  ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
 THEN(RaytracerFeatureTest, "i should not see the disk") {
-  ASSERT_FALSE(test->objectVisible());
+  ShapeRecognition rec;
+  ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }
