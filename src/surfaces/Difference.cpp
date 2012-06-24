@@ -21,8 +21,3 @@ Surface* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   
   return hitPoints.empty() || hitPoints.minWithPositiveDistance().isUndefined() ? 0 : this;
 }
-
-bool Difference::intersects(const Ray& ray) {
-  HitPointInterval hitPoints;
-  return intersect(ray, hitPoints) != 0;
-}
