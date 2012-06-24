@@ -13,7 +13,7 @@ namespace PortalMaterialTest {
   
   TEST_F(PortalMaterialTest, ShouldBeTransparentByDefault) {
     given("a box portal");
-    given("a sphere behind the box portal");
+    given("a sphere behind the box");
     when("i look at the origin");
     then("i should see the sphere");
   }
@@ -27,7 +27,7 @@ namespace PortalMaterialTest {
   
   TEST_F(PortalMaterialTest, ShouldNotBeTransparentWhenItRedirectsRays) {
     given("a box portal which turns the rays towards the displaced sphere");
-    given("a sphere behind the box portal");
+    given("a sphere behind the box");
     when("i look at the origin");
     then("i should see nothing");
   }

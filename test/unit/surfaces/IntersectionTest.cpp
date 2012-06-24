@@ -99,6 +99,53 @@ namespace IntersectionTest {
     ASSERT_EQ(0, result);
   }
   
+  TEST(Intersection, ShouldReturnTrueForIntersectsIfAllOfTheChildSurfacesIntersect) {
+    Intersection i;
+    MockSurface* surface1 = new MockSurface;
+    MockSurface* surface2 = new MockSurface;
+    i.add(surface1);
+    i.add(surface2);
+    EXPECT_CALL(*surface1, intersects(_)).WillOnce(Return(true));
+    EXPECT_CALL(*surface2, intersects(_)).WillOnce(Return(true));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    bool result = i.intersects(ray);
+    
+    ASSERT_TRUE(result);
+  }
+  
+  TEST(Intersection, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
+    Intersection i;
+    MockSurface* surface1 = new MockSurface;
+    MockSurface* surface2 = new MockSurface;
+    i.add(surface1);
+    i.add(surface2);
+    EXPECT_CALL(*surface1, intersects(_)).WillOnce(Return(false));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    bool result = i.intersects(ray);
+    
+    ASSERT_FALSE(result);
+  }
+  
+  TEST(Intersection, ShouldReturnFalseForIntersectsIfNotAllChildrenIntersect) {
+    Intersection i;
+    MockSurface* surface1 = new MockSurface;
+    MockSurface* surface2 = new MockSurface;
+    i.add(surface1);
+    i.add(surface2);
+    EXPECT_CALL(*surface1, intersects(_)).WillOnce(Return(true));
+    EXPECT_CALL(*surface2, intersects(_)).WillOnce(Return(false));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    bool result = i.intersects(ray);
+    
+    ASSERT_FALSE(result);
+  }
+  
   TEST(Intersection, ShouldReturnBoundingBoxWithOneChild) {
     Intersection i;
     MockSurface* mockSurface = new MockSurface;

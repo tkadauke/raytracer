@@ -80,6 +80,38 @@ namespace CompositeTest {
     
     ASSERT_EQ(surface2, result);
   }
+  
+  TEST(Composite, ShouldReturnTrueForIntersectsIfThereIsAnIntersection) {
+    Composite composite;
+    MockSurface* surface1 = new MockSurface;
+    MockSurface* surface2 = new MockSurface;
+    composite.add(surface1);
+    composite.add(surface2);
+    EXPECT_CALL(*surface1, intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*surface2, intersects(_)).WillOnce(Return(true));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    bool result = composite.intersects(ray);
+    
+    ASSERT_TRUE(result);
+  }
+  
+  TEST(Composite, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
+    Composite composite;
+    MockSurface* surface1 = new MockSurface;
+    MockSurface* surface2 = new MockSurface;
+    composite.add(surface1);
+    composite.add(surface2);
+    EXPECT_CALL(*surface1, intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*surface2, intersects(_)).WillOnce(Return(false));
+    
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    bool result = composite.intersects(ray);
+    
+    ASSERT_FALSE(result);
+  }
 
   TEST(Composite, ShouldReturnBoundingBoxWithOneChild) {
     Composite composite;

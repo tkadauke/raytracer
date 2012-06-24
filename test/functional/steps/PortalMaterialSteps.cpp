@@ -28,7 +28,7 @@ GIVEN(RaytracerFeatureTest, "a box portal which filters the colors") {
   test->add(box);
 }
 
-GIVEN(RaytracerFeatureTest, "a sphere behind the box portal") {
+GIVEN(RaytracerFeatureTest, "a sphere behind the box") {
   Sphere* sphere = new Sphere(Vector3d(0, 0, 4), 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
