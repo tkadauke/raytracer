@@ -228,6 +228,7 @@ class Matrix2 : public SpecializedMatrix<2, T, Matrix2<T>, Vector2<T> > {
   typedef SpecializedMatrix<2, T, Matrix2<T>, Vector2<T> > Base;
 public:
   using Base::cell;
+  using Base::setCell;
   
   inline Matrix2()
     : Base()
@@ -378,6 +379,8 @@ template<class T>
 class Matrix3 : public SpecializedMatrix<3, T, Matrix3<T>, Vector3<T> > {
   typedef SpecializedMatrix<3, T, Matrix3<T>, Vector3<T> > Base;
 public:
+  using Base::setCell;
+  
   inline Matrix3()
     : Base()
   {
@@ -439,6 +442,7 @@ class Matrix4 : public SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > {
   typedef SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > Base;
 public:
   using Base::cell;
+  using Base::setCell;
   
   inline Matrix4()
     : Base()

@@ -1,6 +1,8 @@
 #include "math/IntegerDecomposition.h"
 #include "math/IntegerFactorization.h"
 
+#include <cstdlib>
+
 using namespace std;
 
 void IntegerDecomposition::decompose() {

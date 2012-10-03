@@ -256,6 +256,8 @@ template<class T>
 class Vector2 : public SpecializedVector<2, T, Vector2<T> > {
   typedef SpecializedVector<2, T, Vector2<T> > Base;
 public:
+  using Base::setCoordinate;
+  
   static const Vector2<T>& null() {
     static Vector2<T>* v = new Vector2<T>();
     return *v;
