@@ -51,7 +51,7 @@ else
 end
 C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 T_FLAGS = "#{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
-CC = "g++-4.2"
+CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')} -lgcov"
 
