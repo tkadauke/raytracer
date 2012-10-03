@@ -32,7 +32,7 @@ MeshScene::MeshScene()
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   
-  ifstream stream("/Users/tkadauke/Documents/Raytracer/test/fixtures/shark.ply");
+  ifstream stream("test/fixtures/shark.ply");
   PlyFile file(stream, m_mesh);
   m_mesh.computeNormals(false);
   
