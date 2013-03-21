@@ -1,5 +1,6 @@
 #include "gtest.h"
 #include "math/BoundingBox.h"
+#include "math/Ray.h"
 
 #include <sstream>
 
@@ -206,5 +207,40 @@ namespace BoundingBoxTest {
     str << bbox;
     
     ASSERT_EQ("(-1, -1, -1)-(1, 1, 1)", str.str());
+  }
+  
+  TEST(BoundingBox, ShouldIntersectWithRayInXDirection) {
+    BoundingBox box(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(-2, 0, 0), Vector3d(1, 0, 0));
+    
+    ASSERT_TRUE(box.intersects(ray));
+  }
+  
+  TEST(BoundingBox, ShouldIntersectWithRayInYDirection) {
+    BoundingBox box(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(0, -2, 0), Vector3d(0, 1, 0));
+    
+    ASSERT_TRUE(box.intersects(ray));
+  }
+  
+  TEST(BoundingBox, ShouldIntersectWithRayInZDirection) {
+    BoundingBox box(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    
+    ASSERT_TRUE(box.intersects(ray));
+  }
+  
+  TEST(BoundingBox, ShouldNotIntersectWithMissingRay) {
+    BoundingBox box(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
+    
+    ASSERT_FALSE(box.intersects(ray));
+  }
+  
+  TEST(BoundingBox, ShouldNotIntersectIfBoxIsBehindRayOrigin) {
+    BoundingBox box(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    
+    ASSERT_FALSE(box.intersects(ray));
   }
 }

@@ -97,6 +97,8 @@ public:
     return m_min.isUndefined() || m_max.isUndefined();
   }
   
+  bool intersects(const Ray& ray) const;
+  
 private:
   Vector3d m_min, m_max;
 };
