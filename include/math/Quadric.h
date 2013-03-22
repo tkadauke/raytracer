@@ -28,15 +28,15 @@ private:
 
 template<class T>
 int Quadric<T>::solve() {
-  static const T epsilon = std::numeric_limits<double>::epsilon();
+  static const T epsilon = std::numeric_limits<T>::epsilon();
   
-  double determinant = m_b * m_b - 4 * m_a * m_c;
+  T determinant = m_b * m_b - 4 * m_a * m_c;
 
   if (-epsilon < determinant && determinant < epsilon) {
     m_result[0] = - m_b / (2 * m_a);
     return 1;
   } else if (determinant > 0) {
-    double determinantRoot = std::sqrt(determinant);
+    T determinantRoot = std::sqrt(determinant);
 
     m_result[0] = (determinantRoot - m_b) / (2 * m_a);
     m_result[1] = (-determinantRoot - m_b) / (2 * m_a);
