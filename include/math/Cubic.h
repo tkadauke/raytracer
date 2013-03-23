@@ -3,6 +3,7 @@
 
 #include <limits>
 #include <cmath>
+#include "math/Number.h"
 
 template<class T>
 class Cubic {
@@ -28,8 +29,6 @@ private:
 
 template<class T>
 int Cubic<T>::solve() {
-  static const T epsilon = std::numeric_limits<T>::epsilon();
-
   T normA = m_b / m_a;
   T normB = m_c / m_a;
   T normC = m_d / m_a;
@@ -42,8 +41,8 @@ int Cubic<T>::solve() {
   T determinant = q * q + pCube;
 
   int numberOfResults;
-  if (-epsilon < determinant && determinant < epsilon) {
-    if (-epsilon < q && q < epsilon) {
+  if (isAlmostZero(determinant)) {
+    if (isAlmostZero(q)) {
       m_result[0] = 0;
       numberOfResults = 1;
     } else {

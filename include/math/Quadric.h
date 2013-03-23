@@ -3,6 +3,7 @@
 
 #include <limits>
 #include <cmath>
+#include "math/Number.h"
 
 template<class T>
 class Quadric {
@@ -27,11 +28,9 @@ private:
 
 template<class T>
 int Quadric<T>::solve() {
-  static const T epsilon = std::numeric_limits<T>::epsilon();
-  
   T determinant = m_b * m_b - 4 * m_a * m_c;
 
-  if (-epsilon < determinant && determinant < epsilon) {
+  if (isAlmostZero(determinant)) {
     m_result[0] = - m_b / (2 * m_a);
     return 1;
   } else if (determinant > 0) {
