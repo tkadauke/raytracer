@@ -8,7 +8,7 @@ template<class T>
 class Cubic {
 public:
   typedef T Coefficient;
-  typedef T Result[4];
+  typedef T Result[3];
   
   Cubic(T a, T b, T c, T d)
     : m_a(a), m_b(b), m_c(c), m_d(d)
@@ -16,7 +16,6 @@ public:
     m_result[0] = std::numeric_limits<T>::quiet_NaN();
     m_result[1] = std::numeric_limits<T>::quiet_NaN();
     m_result[2] = std::numeric_limits<T>::quiet_NaN();
-    m_result[3] = std::numeric_limits<T>::quiet_NaN();
   }
   
   int solve();

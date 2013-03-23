@@ -15,7 +15,6 @@ namespace CubicTest {
     ASSERT_TRUE(std::isnan(Cubic.result()[0]));
     ASSERT_TRUE(std::isnan(Cubic.result()[1]));
     ASSERT_TRUE(std::isnan(Cubic.result()[2]));
-    ASSERT_TRUE(std::isnan(Cubic.result()[3]));
   }
 
   TYPED_TEST(CubicTest, ShouldSolveCubicWithOneResult) {

@@ -14,7 +14,6 @@ namespace QuadricTest {
     TypeParam quadric(0, 0, 0);
     ASSERT_TRUE(std::isnan(quadric.result()[0]));
     ASSERT_TRUE(std::isnan(quadric.result()[1]));
-    ASSERT_TRUE(std::isnan(quadric.result()[2]));
   }
 
   TYPED_TEST(QuadricTest, ShouldSolveQuadricWithNoResult) {
