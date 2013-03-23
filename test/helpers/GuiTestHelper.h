@@ -1,5 +1,5 @@
-#ifndef GUI_TEST_HELPER
-#define GUI_TEST_HELPER
+#ifndef GUI_TEST_HELPER_H
+#define GUI_TEST_HELPER_H
 
 #include <QApplication>
 
