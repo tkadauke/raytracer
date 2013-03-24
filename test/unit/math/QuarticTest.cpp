@@ -54,4 +54,9 @@ namespace QuarticTest {
     TypeParam quartic(4, 0, -5, 0, 1);
     ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(-1, -0.5, 0.5, 1), quartic.sortedResult(), 0.01);
   }
+
+  TYPED_TEST(QuarticTest, ShouldSolveAnotherQuarticWithFourResults) {
+    TypeParam quartic(1, -16, 86, -176, 105);
+    ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(1, 3, 5, 7), quartic.sortedResult(), 0.01);
+  }
 }
