@@ -1,6 +1,8 @@
 #include "gtest.h"
 #include "math/Quadric.h"
 
+#include "test/helpers/PolynomialTestHelper.h"
+
 namespace QuadricTest {
   template<class T>
   class QuadricTest : public ::testing::Test {
@@ -23,14 +25,12 @@ namespace QuadricTest {
 
   TYPED_TEST(QuadricTest, ShouldSolveQuadricWithOneResult) {
     TypeParam quadric(1, 0, 0);
-    ASSERT_EQ(1, quadric.solve());
-    ASSERT_EQ(0, quadric.result()[0]);
+    ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(0), quadric.sortedResult(), 0.01);
   }
 
   TYPED_TEST(QuadricTest, ShouldSolveQuadricWithTwoResults) {
     TypeParam quadric(1, 0, -1);
     ASSERT_EQ(2, quadric.solve());
-    ASSERT_EQ(1, quadric.result()[0]);
-    ASSERT_EQ(-1, quadric.result()[1]);
+    ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(-1, 1), quadric.sortedResult(), 0.01);
   }
 }

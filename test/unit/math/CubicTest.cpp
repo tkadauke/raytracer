@@ -1,6 +1,8 @@
 #include "gtest.h"
 #include "math/Cubic.h"
 
+#include "test/helpers/PolynomialTestHelper.h"
+
 namespace CubicTest {
   template<class T>
   class CubicTest : public ::testing::Test {
@@ -11,30 +13,26 @@ namespace CubicTest {
   TYPED_TEST_CASE(CubicTest, CubicTypes);
 
   TYPED_TEST(CubicTest, ShouldInitializeResult) {
-    TypeParam Cubic(0, 0, 0, 0);
-    ASSERT_TRUE(std::isnan(Cubic.result()[0]));
-    ASSERT_TRUE(std::isnan(Cubic.result()[1]));
-    ASSERT_TRUE(std::isnan(Cubic.result()[2]));
+    TypeParam cubic(0, 0, 0, 0);
+    ASSERT_TRUE(std::isnan(cubic.result()[0]));
+    ASSERT_TRUE(std::isnan(cubic.result()[1]));
+    ASSERT_TRUE(std::isnan(cubic.result()[2]));
   }
 
   TYPED_TEST(CubicTest, ShouldSolveCubicWithOneResult) {
-    TypeParam Cubic(1, 0, 0, 0);
-    ASSERT_EQ(1, Cubic.solve());
-    ASSERT_NEAR(0, Cubic.result()[0], 0.0001);
+    TypeParam cubic(1, 0, 0, 0);
+    ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(0), cubic.sortedResult(), 0.01);
   }
 
   TYPED_TEST(CubicTest, ShouldSolveCubicWithTwoResults) {
-    TypeParam Cubic(1, 1, 0, 0);
-    ASSERT_EQ(2, Cubic.solve());
-    ASSERT_NEAR(-1, Cubic.result()[0], 0.0001);
-    ASSERT_NEAR(0, Cubic.result()[1], 0.0001);
+    TypeParam cubic(1, 1, 0, 0);
+    ASSERT_EQ(2, cubic.solve());
+    ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(-1, 0), cubic.sortedResult(), 0.01);
   }
 
   TYPED_TEST(CubicTest, ShouldSolveCubicWithThreeResults) {
-    TypeParam Cubic(1, 0, -1, 0);
-    ASSERT_EQ(3, Cubic.solve());
-    ASSERT_NEAR(1, Cubic.result()[0], 0.0001);
-    ASSERT_NEAR(0, Cubic.result()[1], 0.0001);
-    ASSERT_NEAR(-1, Cubic.result()[2], 0.0001);
+    TypeParam cubic(1, 0, -1, 0);
+    ASSERT_EQ(3, cubic.solve());
+    ASSERT_CONTAINERS_NEAR(testing::makeStdVector<typename TypeParam::Coefficient>(-1, 0, 1), cubic.sortedResult(), 0.01);
   }
 }

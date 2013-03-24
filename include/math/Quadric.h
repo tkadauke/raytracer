@@ -1,29 +1,25 @@
 #ifndef QUADRIC_H
 #define QUADRIC_H
 
-#include <limits>
 #include <cmath>
+#include "math/Polynomial.h"
 #include "math/Number.h"
 
 template<class T>
-class Quadric {
+class Quadric : public Polynomial<T, 2> {
 public:
-  typedef T Coefficient;
-  typedef T Result[2];
+  typedef Polynomial<T, 2> Base;
   
   Quadric(T a, T b, T c)
     : m_a(a), m_b(b), m_c(c)
   {
-    m_result[0] = std::numeric_limits<T>::quiet_NaN();
-    m_result[1] = std::numeric_limits<T>::quiet_NaN();
   }
   
   int solve();
-  inline const Result& result() const { return m_result; }
 
 private:
+  using Base::m_result;
   T m_a, m_b, m_c;
-  Result m_result;
 };
 
 template<class T>
