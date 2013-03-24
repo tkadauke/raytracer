@@ -23,7 +23,7 @@ Surface* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     Vector3d hitPoint1 = ray.at(t1),
              hitPoint2 = ray.at(t2);
     hitPoints.add(HitPoint(t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
-                      HitPoint(t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
+                  HitPoint(t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
     return this;
   }
   return 0;
