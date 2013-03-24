@@ -91,6 +91,10 @@ namespace testing {
     }
     return result;
   }
+  
+  int RaytracerFeatureTest::colorAt(int x, int y) {
+    return m_buffer[y][x];
+  }
 
   void RaytracerFeatureTest::show() {
     ImageViewer viewer(m_buffer);
