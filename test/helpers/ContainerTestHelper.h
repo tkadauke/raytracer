@@ -1,6 +1,9 @@
 #ifndef CONTAINER_TEST_HELPER_H
 #define CONTAINER_TEST_HELPER_H
 
+#include <vector>
+#include <list>
+
 namespace testing {
   namespace internal {
     template<class Container>
@@ -75,6 +78,7 @@ namespace testing {
       result.push_back(v0);
       result.push_back(v1);
       result.push_back(v2);
+      result.push_back(v3);
       return result;
     }
   }
