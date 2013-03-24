@@ -1,15 +1,16 @@
 #ifndef NUMBER_H
 #define NUMBER_H
 
+#include <limits>
+
 template<class T>
-inline bool isAlmost(const T& what, const T& value) {
-  static const T epsilon = std::numeric_limits<T>::epsilon();
+inline bool isAlmost(const T& what, const T& value, const T& epsilon = std::numeric_limits<T>::epsilon()) {
   return what - epsilon < value && value < what + epsilon;
 }
 
 template<class T>
-inline bool isAlmostZero(const T& value) {
-  return isAlmost(T(0), value);
+inline bool isAlmostZero(const T& value, const T& epsilon = std::numeric_limits<T>::epsilon()) {
+  return isAlmost(T(0), value, epsilon);
 }
 
 #endif
