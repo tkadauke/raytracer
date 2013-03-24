@@ -1,6 +1,8 @@
 #include <QVBoxLayout>
 #include <QSpacerItem>
 
+#include <QMouseEvent>
+
 #include "Display.h"
 #include "Raytracer.h"
 #include "cameras/CameraFactory.h"
@@ -11,6 +13,9 @@
 #include "widgets/CameraTypeWidget.h"
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "viewplanes/ViewPlaneFactory.h"
+#include "math/HitPointInterval.h"
+
+using namespace std;
 
 Display::Display()
   : QtDisplay(new Raytracer(0)), m_camera(new PinholeCamera), m_cameraParameter(0)
@@ -76,6 +81,28 @@ void Display::cameraParameterChanged() {
   stop();
   m_cameraParameter->applyTo(m_camera);
   render();
+}
+
+void Display::mousePressEvent(QMouseEvent* event) {
+  QtDisplay::mousePressEvent(event);
+  
+  Ray ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());
+  if (ray.direction().isDefined()) {
+    Surface* surface = m_raytracer->surfaceForRay(ray);
+  
+    cout << surface;
+  
+    if (surface) {
+      HitPointInterval hitPoints;
+      surface->intersect(ray, hitPoints);
+      cout << " - " << endl;
+      for (int i = 0; i != hitPoints.points().size(); ++i) {
+        cout << (hitPoints.points()[i].in ? "IN" : "OUT") << ": " << hitPoints.points()[i].point << endl;
+      }
+    }
+  
+    cout << endl;
+  }
 }
 
 #include "Display.moc"

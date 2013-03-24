@@ -12,6 +12,7 @@ namespace CameraTest {
     ConcreteCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target) {}
     virtual void render(Raytracer*, Buffer<unsigned int>&, const Rect&) {}
+    virtual Ray rayForPixel(int x, int y) {}
   };
   
   TEST(Camera, ShouldConstructWithoutParameters) {

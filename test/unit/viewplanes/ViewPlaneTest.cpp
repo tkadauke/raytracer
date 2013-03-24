@@ -1,6 +1,7 @@
 #include "gtest.h"
 #include "viewplanes/ViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
+#include "test/helpers/VectorTestHelper.h"
 
 namespace ViewPlaneTest {
   using namespace ::testing;
@@ -32,6 +33,12 @@ namespace ViewPlaneTest {
     ASSERT_EQ(Vector3d(6, -3, 0), plane.topLeft());
     ASSERT_EQ(Vector3d(1, 0, 0), plane.right());
     ASSERT_EQ(Vector3d(0, 1, 0), plane.down());
+  }
+  
+  TEST(ViewPlane, ShouldCalculatePixelPosition) {
+    ViewPlane plane(Matrix4d(), Rect(10, 10));
+    ASSERT_VECTOR_NEAR(Vector3d(-4, -3, 0), plane.pixelAt(0, 0), 0.001);
+    ASSERT_VECTOR_NEAR(Vector3d( 4,  3, 0), plane.pixelAt(10, 10), 0.001);
   }
   
   namespace Iterator {

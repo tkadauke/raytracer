@@ -86,6 +86,11 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   }
 }
 
+Surface* Raytracer::surfaceForRay(const Ray& ray) {
+  HitPointInterval hitPoints;
+  return m_scene->intersect(ray, hitPoints);
+}
+
 Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   if (recursionDepth == 7) {
     return m_scene->ambient();

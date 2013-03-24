@@ -17,6 +17,8 @@ class Display : public QtDisplay {
 public:
   Display();
   ~Display();
+  
+  virtual void mousePressEvent(QMouseEvent* event);
 
 private slots:
   void sceneChanged();

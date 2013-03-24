@@ -106,6 +106,7 @@ public:
   inline const Vector3d& down() const { return m_down; }
   inline double pixelSize() const { return m_pixelSize; }
   inline void setPixelSize(double pixelSize) { m_pixelSize = pixelSize; }
+  inline Vector3d pixelAt(int x, int y) { return (m_topLeft + m_right * x + m_down * y) * m_pixelSize; }
   
 protected:
   void setupVectors();

@@ -38,4 +38,9 @@ Vector3d SphericalCamera::direction(const ViewPlane& plane, int x, int y) {
   return Matrix3d(matrix()) * Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
 }
 
+Ray SphericalCamera::rayForPixel(int x, int y) {
+  Vector3d position = matrix() * Vector4d(0, 0, -5);
+  return Ray(position, direction(*viewPlane(), x, y));
+}
+
 static bool dummy = CameraFactory::self().registerClass<SphericalCamera>("SphericalCamera");

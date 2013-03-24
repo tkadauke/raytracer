@@ -42,4 +42,9 @@ Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
     return Vector3d::undefined();
 }
 
+Ray FishEyeCamera::rayForPixel(int x, int y) {
+  Vector3d position = matrix() * Vector4d(0, 0, 0);
+  return Ray(position, direction(*viewPlane(), x, y));
+}
+
 static bool dummy = CameraFactory::self().registerClass<FishEyeCamera>("FishEyeCamera");

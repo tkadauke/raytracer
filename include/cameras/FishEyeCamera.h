@@ -16,6 +16,7 @@ public:
 
   using Camera::render;
   virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
+  virtual Ray rayForPixel(int x, int y);
   
   inline void setFieldOfView(float fieldOfView) { m_fieldOfView = fieldOfView; }
   inline float fieldOfView() const { return m_fieldOfView; }

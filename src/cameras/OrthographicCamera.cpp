@@ -20,4 +20,10 @@ void OrthographicCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buff
   }
 }
 
+Ray OrthographicCamera::rayForPixel(int x, int y) {
+  Vector3d direction = Matrix3d(matrix()) * Vector3d(0, 0, 1);
+  Vector3d pixel = viewPlane()->pixelAt(x, y);
+  return Ray(pixel, direction);
+}
+
 static bool dummy = CameraFactory::self().registerClass<OrthographicCamera>("OrthographicCamera");

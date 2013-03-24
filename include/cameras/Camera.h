@@ -3,6 +3,7 @@
 
 #include "math/Vector.h"
 #include "math/Matrix.h"
+#include "math/Ray.h"
 #include "Color.h"
 #include "core/MemoizedValue.h"
 #include "viewplanes/ViewPlane.h"
@@ -36,6 +37,7 @@ public:
   
   void render(Raytracer* raytracer, Buffer<unsigned int>& buffer);
   virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) = 0;
+  virtual Ray rayForPixel(int x, int y) = 0;
   
   inline void cancel() { m_cancelled = true; }
   inline bool isCancelled() const { return m_cancelled; }

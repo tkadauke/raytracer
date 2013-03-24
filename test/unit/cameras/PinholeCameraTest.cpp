@@ -50,4 +50,22 @@ namespace PinholeCameraTest {
     camera.render(&raytracer, buffer);
     ASSERT_EQ(0.5, camera.viewPlane()->pixelSize());
   }
+  
+  TEST(PinholeCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    Ray ray = camera.rayForPixel(0, 0);
+    ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
+    ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
+  }
+  
+  TEST(PinholeCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    Raytracer raytracer(new Scene(Colord::white()));
+    Buffer<unsigned int> buffer(1, 1);
+    camera.render(&raytracer, buffer);
+
+    Ray ray = camera.rayForPixel(0, 0);
+    ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
+    ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
+  }
 }

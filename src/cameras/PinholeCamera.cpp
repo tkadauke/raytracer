@@ -21,4 +21,10 @@ void PinholeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, c
   }
 }
 
+Ray PinholeCamera::rayForPixel(int x, int y) {
+  Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
+  Vector3d pixel = viewPlane()->pixelAt(x, y);
+  return Ray(position, (pixel - position).normalized());
+}
+
 static bool dummy = CameraFactory::self().registerClass<PinholeCamera>("PinholeCamera");

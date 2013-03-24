@@ -3,6 +3,8 @@
 
 #include <cmath>
 
+#include <sstream>
+
 using namespace std;
 
 namespace HitPointTest {
@@ -115,5 +117,15 @@ namespace HitPointTest {
     Matrix4d pointMatrix = Matrix3d::rotateX(1);
     HitPoint transformed = hp.transform(pointMatrix, Matrix3d());
     ASSERT_EQ(hp.distance(), transformed.distance());
+  }
+  
+  TEST(HitPoint, ShouldStreamHitPointToString) {
+    Vector3d point(1, 0, 0), normal(0, 1, 0);
+    HitPoint hp(3, point, normal);
+    
+    ostringstream str;
+    str << hp;
+    
+    ASSERT_EQ("((1, 0, 0, 1) (0, 1, 0), 3)", str.str());
   }
 }

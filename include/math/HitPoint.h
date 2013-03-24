@@ -4,6 +4,7 @@
 #include "math/Vector.h"
 #include "math/Matrix.h"
 #include <cmath>
+#include <iostream>
 
 class HitPoint {
 public:
@@ -48,5 +49,7 @@ private:
   Vector4d m_point;
   Vector3d m_normal;
 };
+
+std::ostream& operator<<(std::ostream& os, const HitPoint& point);
 
 #endif

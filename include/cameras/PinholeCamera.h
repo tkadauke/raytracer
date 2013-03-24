@@ -11,6 +11,7 @@ public:
 
   using Camera::render;
   virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
+  virtual Ray rayForPixel(int x, int y);
   
   inline void setDistance(double distance) { m_distance = distance; }
   inline double distance() const { return m_distance; }
