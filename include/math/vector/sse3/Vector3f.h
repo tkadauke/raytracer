@@ -38,7 +38,6 @@ public:
     m_coordinates[0] = source.coordinate(0);
     m_coordinates[1] = source.coordinate(1);
     m_coordinates[2] = source.coordinate(2);
-    m_coordinates[3] = 0.0;
   }
 
   template<int D, class C, class V>

@@ -30,7 +30,6 @@ THEN(RaytracerFeatureTest, "i should see the torus") {
 }
 
 THEN(RaytracerFeatureTest, "i should see the torus with a hole in the middle") {
-  ShapeRecognition rec;
   ASSERT_TRUE(test->objectVisible());
   ASSERT_EQ(Colord::white().rgb(), test->colorAt(100, 75));
 }
