@@ -17,7 +17,7 @@ namespace TorusTest {
     ASSERT_EQ(surface, &torus);
     ASSERT_EQ(Vector3d(0, 0, -3), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
-    ASSERT_EQ(2u, hitPoints.points().size());
+    ASSERT_EQ(4u, hitPoints.points().size());
     ASSERT_EQ(1, hitPoints.min().distance());
   }
   

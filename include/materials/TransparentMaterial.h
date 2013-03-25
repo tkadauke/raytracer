@@ -15,6 +15,9 @@ public:
   {
   }
   
+  inline void setSpecularColor(const Colord& color) { m_specularColor = color; }
+  inline const Colord& specularColor() const { return m_specularColor; }
+  
   inline void setAbsorbanceColor(const Colord& color) { m_absorbanceColor = color; }
   inline const Colord& absorbanceColor() const { return m_absorbanceColor; }
 
@@ -25,7 +28,9 @@ public:
 
 private:
   Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
+  bool totalInternalReflection(const Ray& ray, const HitPoint& hitPoint);
 
+  Colord m_specularColor;
   Colord m_absorbanceColor;
   double m_refractionIndex;
 };
