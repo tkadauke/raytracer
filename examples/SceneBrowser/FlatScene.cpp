@@ -1,9 +1,9 @@
 #include "SceneFactory.h"
 
-#include "surfaces/Triangle.h"
-#include "surfaces/Disk.h"
-#include "surfaces/Rectangle.h"
-#include "surfaces/Plane.h"
+#include "primitives/Triangle.h"
+#include "primitives/Disk.h"
+#include "primitives/Rectangle.h"
+#include "primitives/Plane.h"
 #include "Light.h"
 #include "materials/Material.h"
 #include "materials/MatteMaterial.h"

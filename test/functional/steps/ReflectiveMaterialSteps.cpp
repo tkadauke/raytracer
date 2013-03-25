@@ -1,8 +1,8 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "surfaces/Box.h"
-#include "surfaces/Sphere.h"
+#include "primitives/Box.h"
+#include "primitives/Sphere.h"
 #include "materials/ReflectiveMaterial.h"
 
 using namespace testing;

@@ -2,7 +2,7 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "surfaces/Rectangle.h"
+#include "primitives/Rectangle.h"
 
 using namespace testing;
 

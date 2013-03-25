@@ -9,7 +9,7 @@ template<class T>
 class Buffer;
 class Ray;
 class Camera;
-class Surface;
+class Primitive;
 
 class Raytracer {
 public:
@@ -19,7 +19,7 @@ public:
   
   void render(Buffer<unsigned int>& buffer);
   
-  Surface* surfaceForRay(const Ray& ray);
+  Primitive* primitiveForRay(const Ray& ray);
   Colord rayColor(const Ray& ray, int recursionDepth = 0);
   Camera* camera() const { return m_camera; }
   void setCamera(Camera* camera);

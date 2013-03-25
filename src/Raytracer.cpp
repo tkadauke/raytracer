@@ -1,7 +1,7 @@
 #include "Raytracer.h"
 #include "math/Vector.h"
 #include "math/Ray.h"
-#include "surfaces/Scene.h"
+#include "primitives/Scene.h"
 #include "Buffer.h"
 #include "math/HitPoint.h"
 #include "math/HitPointInterval.h"
@@ -86,7 +86,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   }
 }
 
-Surface* Raytracer::surfaceForRay(const Ray& ray) {
+Primitive* Raytracer::primitiveForRay(const Ray& ray) {
   HitPointInterval hitPoints;
   return m_scene->intersect(ray, hitPoints);
 }
@@ -98,11 +98,11 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   
   HitPointInterval hitPoints;
   
-  Surface* surface = m_scene->intersect(ray, hitPoints);
-  if (surface) {
+  Primitive* primitive = m_scene->intersect(ray, hitPoints);
+  if (primitive) {
     HitPoint hitPoint = hitPoints.minWithPositiveDistance();
     
-    Colord color = surface->material()->shade(this, ray, hitPoint, recursionDepth);
+    Colord color = primitive->material()->shade(this, ray, hitPoint, recursionDepth);
     
     return color;
   } else {

@@ -2,7 +2,7 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "surfaces/Sphere.h"
+#include "primitives/Sphere.h"
 
 using namespace testing;
 

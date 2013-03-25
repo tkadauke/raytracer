@@ -1,8 +1,8 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "surfaces/FlatMeshTriangle.h"
-#include "surfaces/Mesh.h"
+#include "primitives/FlatMeshTriangle.h"
+#include "primitives/Mesh.h"
 
 using namespace testing;
 

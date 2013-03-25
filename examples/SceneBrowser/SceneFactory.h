@@ -3,7 +3,7 @@
 
 #include "core/Factory.h"
 #include "core/Singleton.h"
-#include "surfaces/Scene.h"
+#include "primitives/Scene.h"
 
 typedef Singleton<Factory<Scene> > SceneFactory;
 

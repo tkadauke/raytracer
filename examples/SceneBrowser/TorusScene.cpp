@@ -1,8 +1,8 @@
 #include "SceneFactory.h"
 
-#include "surfaces/Plane.h"
-#include "surfaces/Torus.h"
-#include "surfaces/Instance.h"
+#include "primitives/Plane.h"
+#include "primitives/Torus.h"
+#include "primitives/Instance.h"
 #include "Light.h"
 #include "materials/Material.h"
 #include "materials/MatteMaterial.h"

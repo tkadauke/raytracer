@@ -1,6 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 
-#include "surfaces/Scene.h"
+#include "primitives/Scene.h"
 #include "Raytracer.h"
 #include "cameras/PinholeCamera.h"
 #include "materials/MatteMaterial.h"
@@ -30,8 +30,8 @@ namespace testing {
       delete m_camera;
   }
 
-  void RaytracerFeatureTest::add(Surface* surface) {
-    m_scene->add(surface);
+  void RaytracerFeatureTest::add(Primitive* primitive) {
+    m_scene->add(primitive);
   }
   
   Scene* RaytracerFeatureTest::scene() {

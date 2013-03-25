@@ -1,7 +1,7 @@
 #include "materials/PhongMaterial.h"
 #include "Raytracer.h"
 #include "math/HitPoint.h"
-#include "surfaces/Scene.h"
+#include "primitives/Scene.h"
 #include "Light.h"
 #include "math/Ray.h"
 

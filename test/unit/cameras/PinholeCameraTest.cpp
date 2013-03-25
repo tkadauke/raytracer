@@ -1,7 +1,7 @@
 #include "gtest.h"
 #include "cameras/PinholeCamera.h"
 #include "Raytracer.h"
-#include "surfaces/Scene.h"
+#include "primitives/Scene.h"
 #include "Buffer.h"
 
 namespace PinholeCameraTest {

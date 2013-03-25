@@ -2,9 +2,9 @@
 #include "test/functional/support/GivenWhenThen.h"
 
 #include "formats/ply/PlyFile.h"
-#include "surfaces/Mesh.h"
-#include "surfaces/Scene.h"
-#include "surfaces/Instance.h"
+#include "primitives/Mesh.h"
+#include "primitives/Scene.h"
+#include "primitives/Instance.h"
 
 #include <fstream>
 

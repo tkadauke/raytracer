@@ -1,7 +1,7 @@
 #ifndef ABSTRACT_MESH_TRIANGLE_TEST_H
 #define ABSTRACT_MESH_TRIANGLE_TEST_H
 
-#include "surfaces/Mesh.h"
+#include "primitives/Mesh.h"
 #include "math/Ray.h"
 #include "math/HitPointInterval.h"
 
@@ -28,8 +28,8 @@ namespace testing {
     Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Surface* surface = triangle.intersect(ray, hitPoints);
-    ASSERT_EQ(surface, &triangle);
+    Primitive* primitive = triangle.intersect(ray, hitPoints);
+    ASSERT_EQ(primitive, &triangle);
     ASSERT_EQ(Vector3d(0, 0, 0), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, 1), hitPoints.min().normal());
     ASSERT_EQ(1, hitPoints.min().distance());
@@ -40,9 +40,9 @@ namespace testing {
     Ray ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Surface* surface = triangle.intersect(ray, hitPoints);
+    Primitive* primitive = triangle.intersect(ray, hitPoints);
     
-    ASSERT_EQ(0, surface);
+    ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
   }
   
@@ -51,9 +51,9 @@ namespace testing {
     Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
     HitPointInterval hitPoints;
-    Surface* surface = triangle.intersect(ray, hitPoints);
+    Primitive* primitive = triangle.intersect(ray, hitPoints);
     
-    ASSERT_EQ(0, surface);
+    ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
   }
   

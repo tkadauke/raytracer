@@ -7,7 +7,7 @@
 #include "Color.h"
 #include "Buffer.h"
 
-class Surface;
+class Primitive;
 class Camera;
 class Raytracer;
 class Material;
@@ -24,7 +24,7 @@ namespace testing {
   public:
     RaytracerFeatureTest();
     
-    void add(Surface* surface);
+    void add(Primitive* primitive);
     Scene* scene();
     Camera* camera();
     void setCamera(Camera* camera);

@@ -1,7 +1,7 @@
 #include "SceneFactory.h"
 
-#include "surfaces/Box.h"
-#include "surfaces/Plane.h"
+#include "primitives/Box.h"
+#include "primitives/Plane.h"
 #include "Light.h"
 #include "materials/Material.h"
 #include "materials/ReflectiveMaterial.h"

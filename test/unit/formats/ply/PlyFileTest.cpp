@@ -1,7 +1,7 @@
 #include "gtest.h"
 #include "formats/ply/PlyFile.h"
 #include "formats/ply/PlyParseError.h"
-#include "surfaces/Mesh.h"
+#include "primitives/Mesh.h"
 #include "test/helpers/ContainerTestHelper.h"
 
 #include <string>
