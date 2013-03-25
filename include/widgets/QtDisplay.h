@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QPainter>
 
-#include "Buffer.h"
+#include "core/Buffer.h"
 
 class Raytracer;
 

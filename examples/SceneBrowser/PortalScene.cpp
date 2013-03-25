@@ -1,12 +1,12 @@
 #include "SceneFactory.h"
 
-#include "primitives/Box.h"
-#include "primitives/Plane.h"
-#include "Light.h"
-#include "materials/Material.h"
-#include "materials/PortalMaterial.h"
-#include "materials/ReflectiveMaterial.h"
-#include "materials/TransparentMaterial.h"
+#include "raytracer/primitives/Box.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/Light.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/PortalMaterial.h"
+#include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/materials/TransparentMaterial.h"
 
 class PortalScene : public Scene {
 public:

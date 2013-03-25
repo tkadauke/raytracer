@@ -1,15 +1,15 @@
 #include "SceneFactory.h"
 
-#include "primitives/Mesh.h"
-#include "primitives/Sphere.h"
-#include "primitives/FlatMeshTriangle.h"
-#include "primitives/SmoothMeshTriangle.h"
-#include "primitives/Grid.h"
-#include "primitives/Instance.h"
-#include "formats/ply/PlyFile.h"
-#include "Light.h"
-#include "materials/ReflectiveMaterial.h"
-#include "materials/MatteMaterial.h"
+#include "raytracer/primitives/Mesh.h"
+#include "raytracer/primitives/Sphere.h"
+#include "raytracer/primitives/FlatMeshTriangle.h"
+#include "raytracer/primitives/SmoothMeshTriangle.h"
+#include "raytracer/primitives/Grid.h"
+#include "raytracer/primitives/Instance.h"
+#include "core/formats/ply/PlyFile.h"
+#include "raytracer/Light.h"
+#include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/materials/MatteMaterial.h"
 
 #include <fstream>
 

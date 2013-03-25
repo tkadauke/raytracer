@@ -1,7 +1,7 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "cameras/SphericalCamera.h"
+#include "raytracer/cameras/SphericalCamera.h"
 
 using namespace testing;
 

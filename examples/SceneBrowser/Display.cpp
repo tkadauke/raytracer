@@ -4,16 +4,16 @@
 #include <QMouseEvent>
 
 #include "Display.h"
-#include "Raytracer.h"
-#include "cameras/CameraFactory.h"
-#include "cameras/PinholeCamera.h"
+#include "raytracer/Raytracer.h"
+#include "raytracer/cameras/CameraFactory.h"
+#include "raytracer/cameras/PinholeCamera.h"
 #include "SceneFactory.h"
 #include "SceneWidget.h"
 #include "widgets/ViewPlaneTypeWidget.h"
 #include "widgets/CameraTypeWidget.h"
 #include "widgets/CameraParameterWidgetFactory.h"
-#include "viewplanes/ViewPlaneFactory.h"
-#include "math/HitPointInterval.h"
+#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "core/math/HitPointInterval.h"
 
 using namespace std;
 

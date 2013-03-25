@@ -1,9 +1,9 @@
 #ifndef ABSTRACT_MESH_TRIANGLE_TEST_H
 #define ABSTRACT_MESH_TRIANGLE_TEST_H
 
-#include "primitives/Mesh.h"
-#include "math/Ray.h"
-#include "math/HitPointInterval.h"
+#include "raytracer/primitives/Mesh.h"
+#include "core/math/Ray.h"
+#include "core/math/HitPointInterval.h"
 
 namespace testing {
   template<class MT>

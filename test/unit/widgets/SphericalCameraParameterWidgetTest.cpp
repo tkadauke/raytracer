@@ -1,6 +1,6 @@
 #include "gtest.h"
 #include "widgets/SphericalCameraParameterWidget.h"
-#include "cameras/SphericalCamera.h"
+#include "raytracer/cameras/SphericalCamera.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Signal.h"
 #include "test/helpers/Slot.h"

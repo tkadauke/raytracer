@@ -1,7 +1,7 @@
 #include "widgets/QtDisplay.h"
-#include "Raytracer.h"
-#include "Buffer.h"
-#include "cameras/Camera.h"
+#include "raytracer/Raytracer.h"
+#include "core/Buffer.h"
+#include "raytracer/cameras/Camera.h"
 
 #include <QMouseEvent>
 #include <QThread>

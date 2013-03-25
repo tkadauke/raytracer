@@ -1,10 +1,10 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "formats/ply/PlyFile.h"
-#include "primitives/Mesh.h"
-#include "primitives/Scene.h"
-#include "primitives/Instance.h"
+#include "core/formats/ply/PlyFile.h"
+#include "raytracer/primitives/Mesh.h"
+#include "raytracer/primitives/Scene.h"
+#include "raytracer/primitives/Instance.h"
 
 #include <fstream>
 

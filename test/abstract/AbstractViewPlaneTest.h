@@ -2,8 +2,8 @@
 #define ABSTRACT_VIEW_PLANE_TEST_H
 
 #include "test/functional/support/RaytracerFeatureTest.h"
-#include "cameras/Camera.h"
-#include "viewplanes/ViewPlane.h"
+#include "raytracer/cameras/Camera.h"
+#include "raytracer/viewplanes/ViewPlane.h"
 
 namespace testing {
   template<class VP>

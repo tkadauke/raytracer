@@ -1,7 +1,7 @@
 #ifndef POLYNOMIAL_TEST_HELPER_H
 #define POLYNOMIAL_TEST_HELPER_H
 
-#include "math/Number.h"
+#include "core/math/Number.h"
 #include "test/helpers/ContainerTestHelper.h"
 
 namespace testing {

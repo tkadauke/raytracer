@@ -1,12 +1,12 @@
 #include "SceneFactory.h"
 
-#include "primitives/Triangle.h"
-#include "primitives/Disk.h"
-#include "primitives/Rectangle.h"
-#include "primitives/Plane.h"
-#include "Light.h"
-#include "materials/Material.h"
-#include "materials/MatteMaterial.h"
+#include "raytracer/primitives/Triangle.h"
+#include "raytracer/primitives/Disk.h"
+#include "raytracer/primitives/Rectangle.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/Light.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/MatteMaterial.h"
 
 class FlatScene : public Scene {
 public:

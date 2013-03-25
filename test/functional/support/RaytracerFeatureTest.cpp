@@ -1,9 +1,9 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 
-#include "primitives/Scene.h"
-#include "Raytracer.h"
-#include "cameras/PinholeCamera.h"
-#include "materials/MatteMaterial.h"
+#include "raytracer/primitives/Scene.h"
+#include "raytracer/Raytracer.h"
+#include "raytracer/cameras/PinholeCamera.h"
+#include "raytracer/materials/MatteMaterial.h"
 
 #include "test/helpers/ImageViewer.h"
 

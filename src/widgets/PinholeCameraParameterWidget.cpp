@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/PinholeCameraParameterWidget.h"
 #include "PinholeCameraParameterWidget.uic"
-#include "cameras/PinholeCamera.h"
+#include "raytracer/cameras/PinholeCamera.h"
 
 struct PinholeCameraParameterWidget::Private {
   Ui::PinholeCameraParameterWidget ui;

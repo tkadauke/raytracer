@@ -1,16 +1,16 @@
 #include "SceneFactory.h"
 
-#include "primitives/Scene.h"
-#include "primitives/Grid.h"
-#include "primitives/Sphere.h"
-#include "primitives/Box.h"
-#include "primitives/Plane.h"
-#include "Light.h"
-#include "primitives/Difference.h"
-#include "materials/Material.h"
-#include "materials/PhongMaterial.h"
-#include "materials/ReflectiveMaterial.h"
-#include "materials/TransparentMaterial.h"
+#include "raytracer/primitives/Scene.h"
+#include "raytracer/primitives/Grid.h"
+#include "raytracer/primitives/Sphere.h"
+#include "raytracer/primitives/Box.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/Light.h"
+#include "raytracer/primitives/Difference.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/PhongMaterial.h"
+#include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/materials/TransparentMaterial.h"
 
 class DiceScene : public Scene {
 public:

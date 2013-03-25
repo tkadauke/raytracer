@@ -1,12 +1,12 @@
 #include "SceneFactory.h"
 
-#include "primitives/Plane.h"
-#include "primitives/Torus.h"
-#include "primitives/Instance.h"
-#include "Light.h"
-#include "materials/Material.h"
-#include "materials/MatteMaterial.h"
-#include "materials/TransparentMaterial.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/primitives/Torus.h"
+#include "raytracer/primitives/Instance.h"
+#include "raytracer/Light.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/MatteMaterial.h"
+#include "raytracer/materials/TransparentMaterial.h"
 
 class TorusScene : public Scene {
 public:

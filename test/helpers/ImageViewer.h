@@ -3,7 +3,7 @@
 
 #include <QWidget>
 
-#include "Buffer.h"
+#include "core/Buffer.h"
 
 class QApplication;
 

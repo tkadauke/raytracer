@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/SphericalCameraParameterWidget.h"
 #include "SphericalCameraParameterWidget.uic"
-#include "cameras/SphericalCamera.h"
+#include "raytracer/cameras/SphericalCamera.h"
 
 struct SphericalCameraParameterWidget::Private {
   Ui::SphericalCameraParameterWidget ui;

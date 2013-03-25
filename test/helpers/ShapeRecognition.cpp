@@ -1,5 +1,5 @@
 #include "test/helpers/ShapeRecognition.h"
-#include "Color.h"
+#include "core/Color.h"
 
 using namespace testing;
 using namespace std;

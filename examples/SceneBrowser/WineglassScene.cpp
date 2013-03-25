@@ -1,16 +1,16 @@
 #include "SceneFactory.h"
 
-#include "primitives/Sphere.h"
-#include "primitives/Box.h"
-#include "primitives/Plane.h"
-#include "Light.h"
-#include "primitives/Difference.h"
-#include "primitives/Intersection.h"
-#include "primitives/Union.h"
-#include "primitives/Instance.h"
-#include "materials/Material.h"
-#include "materials/PhongMaterial.h"
-#include "materials/TransparentMaterial.h"
+#include "raytracer/primitives/Sphere.h"
+#include "raytracer/primitives/Box.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/Light.h"
+#include "raytracer/primitives/Difference.h"
+#include "raytracer/primitives/Intersection.h"
+#include "raytracer/primitives/Union.h"
+#include "raytracer/primitives/Instance.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/PhongMaterial.h"
+#include "raytracer/materials/TransparentMaterial.h"
 
 class WineglassScene : public Scene {
 public:

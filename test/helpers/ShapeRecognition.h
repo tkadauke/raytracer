@@ -2,7 +2,7 @@
 #define SHAPE_RECOGNITION_H
 
 #include <vector>
-#include "Buffer.h"
+#include "core/Buffer.h"
 
 namespace testing {
   class ShapeRecognition {

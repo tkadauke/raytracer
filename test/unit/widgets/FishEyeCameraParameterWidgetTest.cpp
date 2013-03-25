@@ -1,6 +1,6 @@
 #include "gtest.h"
 #include "widgets/FishEyeCameraParameterWidget.h"
-#include "cameras/FishEyeCamera.h"
+#include "raytracer/cameras/FishEyeCamera.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Signal.h"
 #include "test/helpers/Slot.h"

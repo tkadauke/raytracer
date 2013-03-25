@@ -1,14 +1,14 @@
 #include "SceneFactory.h"
 
-#include "primitives/Sphere.h"
-#include "primitives/Plane.h"
-#include "Light.h"
-#include "primitives/Intersection.h"
-#include "primitives/Union.h"
-#include "materials/Material.h"
-#include "materials/PhongMaterial.h"
-#include "materials/ReflectiveMaterial.h"
-#include "materials/TransparentMaterial.h"
+#include "raytracer/primitives/Sphere.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/Light.h"
+#include "raytracer/primitives/Intersection.h"
+#include "raytracer/primitives/Union.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/PhongMaterial.h"
+#include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/materials/TransparentMaterial.h"
 
 class StackedSpheresScene : public Scene {
 public:

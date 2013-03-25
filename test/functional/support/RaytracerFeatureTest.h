@@ -3,9 +3,9 @@
 
 #include "test/functional/support/FeatureTest.h"
 
-#include "math/Vector.h"
-#include "Color.h"
-#include "Buffer.h"
+#include "core/math/Vector.h"
+#include "core/Color.h"
+#include "core/Buffer.h"
 
 class Primitive;
 class Camera;

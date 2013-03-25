@@ -1,10 +1,10 @@
 #include "SceneFactory.h"
 
-#include "primitives/Sphere.h"
-#include "primitives/Plane.h"
-#include "Light.h"
-#include "materials/Material.h"
-#include "materials/MatteMaterial.h"
+#include "raytracer/primitives/Sphere.h"
+#include "raytracer/primitives/Plane.h"
+#include "raytracer/Light.h"
+#include "raytracer/materials/Material.h"
+#include "raytracer/materials/MatteMaterial.h"
 
 class FloatingSpheresScene : public Scene {
 public:

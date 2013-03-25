@@ -2,10 +2,10 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "primitives/Torus.h"
-#include "primitives/Instance.h"
+#include "raytracer/primitives/Torus.h"
+#include "raytracer/primitives/Instance.h"
 
-#include "math/Matrix.h"
+#include "core/math/Matrix.h"
 
 using namespace testing;
 

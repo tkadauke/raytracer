@@ -2,7 +2,7 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "primitives/Disk.h"
+#include "raytracer/primitives/Disk.h"
 
 using namespace testing;
 

@@ -1,6 +1,6 @@
 #include "widgets/ViewPlaneTypeWidget.h"
 #include "ViewPlaneTypeWidget.uic"
-#include "viewplanes/ViewPlaneFactory.h"
+#include "raytracer/viewplanes/ViewPlaneFactory.h"
 
 #include <list>
 

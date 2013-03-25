@@ -1,7 +1,7 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "primitives/Triangle.h"
+#include "raytracer/primitives/Triangle.h"
 
 using namespace testing;
 

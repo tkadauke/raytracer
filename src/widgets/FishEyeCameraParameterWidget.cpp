@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/FishEyeCameraParameterWidget.h"
 #include "FishEyeCameraParameterWidget.uic"
-#include "cameras/FishEyeCamera.h"
+#include "raytracer/cameras/FishEyeCamera.h"
 
 struct FishEyeCameraParameterWidget::Private {
   Ui::FishEyeCameraParameterWidget ui;
