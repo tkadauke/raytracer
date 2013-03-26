@@ -70,4 +70,7 @@ std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quaternion) {
   return os;
 }
 
+typedef Quaternion<float> Quaternionf;
+typedef Quaternion<double> Quaterniond;
+
 #endif
