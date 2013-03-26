@@ -1,5 +1,5 @@
-#ifndef PLANE_H
-#define PLANE_H
+#ifndef RAYTRACER_PLANE_H
+#define RAYTRACER_PLANE_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"

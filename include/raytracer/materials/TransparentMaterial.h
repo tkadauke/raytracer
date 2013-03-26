@@ -1,5 +1,5 @@
-#ifndef TRANSPARENT_MATERIAL_H
-#define TRANSPARENT_MATERIAL_H
+#ifndef RAYTRACER_TRANSPARENT_MATERIAL_H
+#define RAYTRACER_TRANSPARENT_MATERIAL_H
 
 #include "raytracer/materials/PhongMaterial.h"
 

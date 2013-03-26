@@ -1,5 +1,5 @@
-#ifndef PORTAL_MATERIAL_H
-#define PORTAL_MATERIAL_H
+#ifndef RAYTRACER_PORTAL_MATERIAL_H
+#define RAYTRACER_PORTAL_MATERIAL_H
 
 #include "raytracer/materials/Material.h"
 #include "core/math/Matrix.h"

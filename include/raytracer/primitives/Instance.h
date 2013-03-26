@@ -1,5 +1,5 @@
-#ifndef INSTANCE_H
-#define INSTANCE_H
+#ifndef RAYTRACER_INSTANCE_H
+#define RAYTRACER_INSTANCE_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Matrix.h"

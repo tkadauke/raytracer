@@ -1,5 +1,5 @@
-#ifndef PINHOLE_CAMERA_H
-#define PINHOLE_CAMERA_H
+#ifndef RAYTRACER_PINHOLE_CAMERA_H
+#define RAYTRACER_PINHOLE_CAMERA_H
 
 #include "raytracer/cameras/Camera.h"
 

@@ -1,5 +1,5 @@
-#ifndef PRIMITIVE_H
-#define PRIMITIVE_H
+#ifndef RAYTRACER_PRIMITIVE_H
+#define RAYTRACER_PRIMITIVE_H
 
 #include "core/math/BoundingBox.h"
 

@@ -1,5 +1,5 @@
-#ifndef VIEW_PLANE_FACTORY_H
-#define VIEW_PLANE_FACTORY_H
+#ifndef RAYTRACER_VIEW_PLANE_FACTORY_H
+#define RAYTRACER_VIEW_PLANE_FACTORY_H
 
 #include "core/Factory.h"
 #include "core/Singleton.h"

@@ -1,5 +1,5 @@
-#ifndef TILED_VIEW_PLANE_H
-#define TILED_VIEW_PLANE_H
+#ifndef RAYTRACER_TILED_VIEW_PLANE_H
+#define RAYTRACER_TILED_VIEW_PLANE_H
 
 #include "raytracer/viewplanes/ViewPlane.h"
 

@@ -1,5 +1,5 @@
-#ifndef TORUS_H
-#define TORUS_H
+#ifndef RAYTRACER_TORUS_H
+#define RAYTRACER_TORUS_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"

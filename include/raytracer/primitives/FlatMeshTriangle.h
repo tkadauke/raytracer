@@ -1,5 +1,5 @@
-#ifndef FLAT_MESH_TRIANGLE_H
-#define FLAT_MESH_TRIANGLE_H
+#ifndef RAYTRACER_FLAT_MESH_TRIANGLE_H
+#define RAYTRACER_FLAT_MESH_TRIANGLE_H
 
 #include "raytracer/primitives/MeshTriangle.h"
 #include "core/math/Vector.h"

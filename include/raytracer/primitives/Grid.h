@@ -1,5 +1,5 @@
-#ifndef GRID_H
-#define GRID_H
+#ifndef RAYTRACER_GRID_H
+#define RAYTRACER_GRID_H
 
 #include <vector>
 

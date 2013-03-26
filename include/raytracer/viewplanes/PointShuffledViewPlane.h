@@ -1,5 +1,5 @@
-#ifndef POINT_SHUFFLED_VIEW_PLANE_H
-#define POINT_SHUFFLED_VIEW_PLANE_H
+#ifndef RAYTRACER_POINT_SHUFFLED_VIEW_PLANE_H
+#define RAYTRACER_POINT_SHUFFLED_VIEW_PLANE_H
 
 #include "raytracer/viewplanes/ViewPlane.h"
 

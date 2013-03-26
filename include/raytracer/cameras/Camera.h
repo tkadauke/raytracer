@@ -1,5 +1,5 @@
-#ifndef CAMERA_H
-#define CAMERA_H
+#ifndef RAYTRACER_CAMERA_H
+#define RAYTRACER_CAMERA_H
 
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"

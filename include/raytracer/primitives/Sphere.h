@@ -1,5 +1,5 @@
-#ifndef SPHERE_H
-#define SPHERE_H
+#ifndef RAYTRACER_SPHERE_H
+#define RAYTRACER_SPHERE_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"

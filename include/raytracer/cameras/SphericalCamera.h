@@ -1,5 +1,5 @@
-#ifndef SPHERICAL_CAMERA_H
-#define SPHERICAL_CAMERA_H
+#ifndef RAYTRACER_SPHERICAL_CAMERA_H
+#define RAYTRACER_SPHERICAL_CAMERA_H
 
 #include "raytracer/cameras/Camera.h"
 

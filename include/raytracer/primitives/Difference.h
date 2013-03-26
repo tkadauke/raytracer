@@ -1,5 +1,5 @@
-#ifndef DIFFERENCE_H
-#define DIFFERENCE_H
+#ifndef RAYTRACER_DIFFERENCE_H
+#define RAYTRACER_DIFFERENCE_H
 
 #include "raytracer/primitives/Composite.h"
 

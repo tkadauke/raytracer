@@ -1,5 +1,5 @@
-#ifndef RAYTRACER_H
-#define RAYTRACER_H
+#ifndef RAYTRACER_RAYTRACER_H
+#define RAYTRACER_RAYTRACER_H
 
 #include "core/Color.h"
 #include "core/math/Vector.h"

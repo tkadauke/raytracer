@@ -1,5 +1,5 @@
-#ifndef COMPOSITE_H
-#define COMPOSITE_H
+#ifndef RAYTRACER_COMPOSITE_H
+#define RAYTRACER_COMPOSITE_H
 
 #include <list>
 

@@ -1,5 +1,5 @@
-#ifndef MATTE_MATERIAL_H
-#define MATTE_MATERIAL_H
+#ifndef RAYTRACER_MATTE_MATERIAL_H
+#define RAYTRACER_MATTE_MATERIAL_H
 
 #include "raytracer/materials/Material.h"
 

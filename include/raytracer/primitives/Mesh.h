@@ -1,5 +1,5 @@
-#ifndef MESH_H
-#define MESH_H
+#ifndef RAYTRACER_MESH_H
+#define RAYTRACER_MESH_H
 
 #include "core/math/Vector.h"
 #include <vector>

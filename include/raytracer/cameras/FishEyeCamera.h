@@ -1,5 +1,5 @@
-#ifndef FISH_EYE_CAMERA_H
-#define FISH_EYE_CAMERA_H
+#ifndef RAYTRACER_FISH_EYE_CAMERA_H
+#define RAYTRACER_FISH_EYE_CAMERA_H
 
 #include "raytracer/cameras/Camera.h"
 

@@ -1,5 +1,5 @@
-#ifndef BOX_H
-#define BOX_H
+#ifndef RAYTRACER_BOX_H
+#define RAYTRACER_BOX_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"

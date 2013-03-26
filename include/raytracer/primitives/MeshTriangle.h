@@ -1,5 +1,5 @@
-#ifndef MESH_TRIANGLE_H
-#define MESH_TRIANGLE_H
+#ifndef RAYTRACER_MESH_TRIANGLE_H
+#define RAYTRACER_MESH_TRIANGLE_H
 
 #include "raytracer/primitives/Primitive.h"
 

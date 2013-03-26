@@ -1,5 +1,5 @@
-#ifndef PHONG_MATERIAL_H
-#define PHONG_MATERIAL_H
+#ifndef RAYTRACER_PHONG_MATERIAL_H
+#define RAYTRACER_PHONG_MATERIAL_H
 
 #include "raytracer/materials/Material.h"
 

@@ -1,5 +1,5 @@
-#ifndef VIEW_PLANE_H
-#define VIEW_PLANE_H
+#ifndef RAYTRACER_VIEW_PLANE_H
+#define RAYTRACER_VIEW_PLANE_H
 
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"

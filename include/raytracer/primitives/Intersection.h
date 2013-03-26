@@ -1,5 +1,5 @@
-#ifndef INTERSECTION_H
-#define INTERSECTION_H
+#ifndef RAYTRACER_INTERSECTION_H
+#define RAYTRACER_INTERSECTION_H
 
 #include "raytracer/primitives/Composite.h"
 

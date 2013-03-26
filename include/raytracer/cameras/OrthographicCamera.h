@@ -1,5 +1,5 @@
-#ifndef ORTHOGRAPHIC_CAMERA_H
-#define ORTHOGRAPHIC_CAMERA_H
+#ifndef RAYTRACER_ORTHOGRAPHIC_CAMERA_H
+#define RAYTRACER_ORTHOGRAPHIC_CAMERA_H
 
 #include "raytracer/cameras/Camera.h"
 

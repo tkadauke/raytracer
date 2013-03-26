@@ -1,5 +1,5 @@
-#ifndef TRIANGLE_H
-#define TRIANGLE_H
+#ifndef RAYTRACER_TRIANGLE_H
+#define RAYTRACER_TRIANGLE_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"

@@ -1,5 +1,5 @@
-#ifndef ROW_INTERLACED_VIEW_PLANE_H
-#define ROW_INTERLACED_VIEW_PLANE_H
+#ifndef RAYTRACER_ROW_INTERLACED_VIEW_PLANE_H
+#define RAYTRACER_ROW_INTERLACED_VIEW_PLANE_H
 
 #include "raytracer/viewplanes/ViewPlane.h"
 

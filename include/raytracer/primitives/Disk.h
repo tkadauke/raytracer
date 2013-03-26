@@ -1,5 +1,5 @@
-#ifndef DISK_H
-#define DISK_H
+#ifndef RAYTRACER_DISK_H
+#define RAYTRACER_DISK_H
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"

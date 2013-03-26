@@ -1,5 +1,5 @@
-#ifndef REFLECTIVE_MATERIAL_H
-#define REFLECTIVE_MATERIAL_H
+#ifndef RAYTRACER_REFLECTIVE_MATERIAL_H
+#define RAYTRACER_REFLECTIVE_MATERIAL_H
 
 #include "raytracer/materials/PhongMaterial.h"
 
