@@ -4,36 +4,39 @@
 #include <algorithm>
 
 using namespace std;
+using namespace raytracer;
 
-class RowShuffleIterator : public ViewPlane::IteratorBase {
-public:
-  RowShuffleIterator(const ViewPlane* plane, const Rect& rect);
-  
-  virtual void advance();
-  
-private:
-  std::vector<int> m_rowIndices;
-  int m_rowIndex;
-};
+namespace {
+  class RowShuffleIterator : public ViewPlane::IteratorBase {
+  public:
+    RowShuffleIterator(const ViewPlane* plane, const Rect& rect);
 
-RowShuffleIterator::RowShuffleIterator(const ViewPlane* plane, const Rect& rect)
-  : IteratorBase(plane, rect), m_rowIndex(0)
-{
-  for (int i = 0; i != rect.height(); ++i)
-    m_rowIndices.push_back(i);
-  random_shuffle(m_rowIndices.begin(), m_rowIndices.end());
-  m_row = m_rowIndices[0];
-}
+    virtual void advance();
 
-void RowShuffleIterator::advance() {
-  m_column++;
-  if (m_column == m_rect.width()) {
-    m_column = 0;
-    m_rowIndex++;
-    if (m_rowIndex == m_rect.height())
-      m_row = m_rect.height();
-    else
-      m_row = m_rowIndices[m_rowIndex];
+  private:
+    std::vector<int> m_rowIndices;
+    int m_rowIndex;
+  };
+
+  RowShuffleIterator::RowShuffleIterator(const ViewPlane* plane, const Rect& rect)
+    : IteratorBase(plane, rect), m_rowIndex(0)
+  {
+    for (int i = 0; i != rect.height(); ++i)
+      m_rowIndices.push_back(i);
+    random_shuffle(m_rowIndices.begin(), m_rowIndices.end());
+    m_row = m_rowIndices[0];
+  }
+
+  void RowShuffleIterator::advance() {
+    m_column++;
+    if (m_column == m_rect.width()) {
+      m_column = 0;
+      m_rowIndex++;
+      if (m_rowIndex == m_rect.height())
+        m_row = m_rect.height();
+      else
+        m_row = m_rowIndices[m_rowIndex];
+    }
   }
 }
 

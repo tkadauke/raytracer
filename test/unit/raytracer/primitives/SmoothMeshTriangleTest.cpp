@@ -4,6 +4,7 @@
 
 namespace SmoothMeshTriangleTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(FlatMeshTriangle, ShouldHaveDifferentNormalsAtDifferentHitPoints) {
     Mesh mesh;

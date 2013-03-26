@@ -2,11 +2,12 @@
 #include "raytracer/primitives/Mesh.h"
 #include "test/helpers/ContainerTestHelper.h"
 
-#include "materials/MatteMaterial.h"
+#include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/primitives/Scene.h"
 
 namespace MeshTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   struct MeshTest : public ::testing::Test {
     void SetUp() {

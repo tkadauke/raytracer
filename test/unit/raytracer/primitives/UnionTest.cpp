@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Union.h"
-#include "test/mocks/MockPrimitive.h"
+#include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace UnionTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(Union, ShouldReturnSelfIfAnyOfTheChildPrimitivesIntersect) {
     Union u;

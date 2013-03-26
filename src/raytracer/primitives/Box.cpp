@@ -5,6 +5,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace raytracer;
 
 Primitive* Box::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   int parallel = 0;

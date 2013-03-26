@@ -4,21 +4,23 @@
 #include "core/math/Vector.h"
 #include "core/Color.h"
 
-class Light {
-public:
-  Light(const Vector3d& position, const Colord& color)
-    : m_position(position), m_color(color)
-  {
-  }
-  
-  virtual ~Light() {}
-  
-  const Vector3d& position() const { return m_position; }
-  const Colord& color() const { return m_color; }
+namespace raytracer {
+  class Light {
+  public:
+    Light(const Vector3d& position, const Colord& color)
+      : m_position(position), m_color(color)
+    {
+    }
 
-private:
-  Vector3d m_position;
-  Colord m_color;
-};
+    virtual ~Light() {}
+
+    const Vector3d& position() const { return m_position; }
+    const Colord& color() const { return m_color; }
+
+  private:
+    Vector3d m_position;
+    Colord m_color;
+  };
+}
 
 #endif

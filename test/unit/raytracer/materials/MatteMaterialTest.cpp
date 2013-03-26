@@ -2,6 +2,8 @@
 #include "raytracer/materials/MatteMaterial.h"
 
 namespace MatteMaterialTest {
+  using namespace raytracer;
+
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;
     ASSERT_EQ(Colord::black(), material.diffuseColor());

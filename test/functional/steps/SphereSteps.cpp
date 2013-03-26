@@ -5,6 +5,7 @@
 #include "raytracer/primitives/Sphere.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered sphere") {
   Sphere* sphere = new Sphere(Vector3d::null(), 1);

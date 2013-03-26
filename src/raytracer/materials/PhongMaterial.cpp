@@ -1,13 +1,14 @@
-#include "materials/PhongMaterial.h"
-#include "Raytracer.h"
+#include "raytracer/materials/PhongMaterial.h"
+#include "raytracer/Raytracer.h"
 #include "core/math/HitPoint.h"
 #include "raytracer/primitives/Scene.h"
-#include "Light.h"
+#include "raytracer/Light.h"
 #include "core/math/Ray.h"
 
 #include <algorithm>
 
 using namespace std;
+using namespace raytracer;
 
 Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
   Colord color = raytracer->scene()->ambient() * m_diffuseColor;

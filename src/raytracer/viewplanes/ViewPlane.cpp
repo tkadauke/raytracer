@@ -1,6 +1,8 @@
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
 
+using namespace raytracer;
+
 ViewPlane::~ViewPlane() {
 }
 

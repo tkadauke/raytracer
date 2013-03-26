@@ -4,6 +4,7 @@
 
 namespace MeshTriangleTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   class ConcreteMeshTriangle : public MeshTriangle {
   public:

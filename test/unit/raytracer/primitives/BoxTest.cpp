@@ -4,6 +4,8 @@
 #include "core/math/HitPointInterval.h"
 
 namespace BoxTest {
+  using namespace raytracer;
+
   TEST(Box, ShouldInitializeWithValues) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
   }

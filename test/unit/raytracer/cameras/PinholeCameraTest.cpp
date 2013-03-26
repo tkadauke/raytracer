@@ -1,11 +1,12 @@
 #include "gtest.h"
-#include "cameras/PinholeCamera.h"
-#include "Raytracer.h"
+#include "raytracer/cameras/PinholeCamera.h"
+#include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
-#include "Buffer.h"
+#include "core/Buffer.h"
 
 namespace PinholeCameraTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(PinholeCamera, ShouldConstructWithoutParameters) {
     PinholeCamera camera;

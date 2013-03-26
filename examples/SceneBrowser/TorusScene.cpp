@@ -8,6 +8,8 @@
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
 
+using namespace raytracer;
+
 class TorusScene : public Scene {
 public:
   TorusScene();

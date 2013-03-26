@@ -2,6 +2,8 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+using namespace raytracer;
+
 Primitive* Triangle::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double a = m_point0.x() - m_point1.x(), b = m_point0.x() - m_point2.x(), c = ray.direction().x(), d = m_point0.x() - ray.origin().x();
   double e = m_point0.y() - m_point1.y(), f = m_point0.y() - m_point2.y(), g = ray.direction().y(), h = m_point0.y() - ray.origin().y();

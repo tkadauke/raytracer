@@ -5,7 +5,7 @@
 #include "raytracer/viewplanes/ViewPlane.h"
 
 namespace testing {
-  class MockViewPlane : public ViewPlane {
+  class MockViewPlane : public raytracer::ViewPlane {
   public:
     virtual ~MockViewPlane() { destructorCall(); }
 

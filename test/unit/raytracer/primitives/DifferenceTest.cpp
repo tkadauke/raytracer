@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Difference.h"
-#include "test/mocks/MockPrimitive.h"
+#include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace DifferenceTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(Difference, ShouldReturnSelfIfFirstOfTheChildPrimitivesIntersects) {
     Difference i;

@@ -5,6 +5,7 @@
 
 namespace ViewPlaneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(ViewPlane, ShouldInitialize) {
     ViewPlane plane;

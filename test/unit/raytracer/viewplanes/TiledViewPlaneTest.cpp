@@ -4,6 +4,7 @@
 
 namespace TiledViewPlaneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(TiledViewPlane, ShouldInitialize) {
     TiledViewPlane plane;

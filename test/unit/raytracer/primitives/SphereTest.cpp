@@ -4,6 +4,8 @@
 #include "core/math/HitPointInterval.h"
 
 namespace SphereTest {
+  using namespace raytracer;
+  
   TEST(Sphere, ShouldInitializeWithValues) {
     Sphere sphere(Vector3d(), 1);
   }

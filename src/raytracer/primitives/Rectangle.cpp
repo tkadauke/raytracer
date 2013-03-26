@@ -2,6 +2,8 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+using namespace raytracer;
+
 Primitive* Rectangle::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
   if (t < 0.0001 || std::isinf(t))

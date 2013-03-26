@@ -7,7 +7,7 @@
 #include "core/math/HitPointInterval.h"
 
 namespace testing {
-  class MockPrimitive : public Primitive {
+  class MockPrimitive : public raytracer::Primitive {
   public:
     virtual ~MockPrimitive() { destructorCall(); }
 

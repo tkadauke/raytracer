@@ -5,6 +5,6 @@
 #include "core/Singleton.h"
 #include "raytracer/primitives/Scene.h"
 
-typedef Singleton<Factory<Scene> > SceneFactory;
+typedef Singleton<Factory<raytracer::Scene> > SceneFactory;
 
 #endif

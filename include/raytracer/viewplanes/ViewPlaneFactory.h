@@ -5,6 +5,8 @@
 #include "core/Singleton.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 
-typedef Singleton<Factory<ViewPlane> > ViewPlaneFactory;
+namespace raytracer {
+  typedef Singleton<Factory<ViewPlane> > ViewPlaneFactory;
+}
 
 #endif

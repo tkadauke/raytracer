@@ -4,6 +4,7 @@
 
 namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(RowInterlacedViewPlane, ShouldInitialize) {
     RowInterlacedViewPlane plane;

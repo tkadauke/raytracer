@@ -4,6 +4,7 @@
 #include "raytracer/primitives/Triangle.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered triangle") {
   Triangle* triangle = new Triangle(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0));

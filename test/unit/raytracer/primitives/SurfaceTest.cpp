@@ -1,8 +1,10 @@
 #include "gtest.h"
 #include "raytracer/primitives/Primitive.h"
-#include "materials/MatteMaterial.h"
+#include "raytracer/materials/MatteMaterial.h"
 
 namespace PrimitiveTest {
+  using namespace raytracer;
+
   class ConcretePrimitive : public Primitive {
   public:
     Primitive* intersect(const Ray&, HitPointInterval&) { return 0; }

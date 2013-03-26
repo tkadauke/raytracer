@@ -5,6 +5,7 @@
 #include <vector>
 
 using namespace std;
+using namespace raytracer;
 
 Primitive* Instance::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints);

@@ -4,6 +4,8 @@
 #include "core/math/HitPointInterval.h"
 
 namespace PlaneTest {
+  using namespace raytracer;
+
   TEST(Plane, ShouldInitializeWithValues) {
     Plane plane(Vector3d(0, 1, 0), 0);
   }

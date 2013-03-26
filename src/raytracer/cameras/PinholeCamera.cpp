@@ -5,6 +5,8 @@
 #include "core/math/Ray.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 
+using namespace raytracer;
+
 void PinholeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   Matrix4d m = matrix();
   ViewPlane* plane = viewPlane();

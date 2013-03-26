@@ -5,10 +5,10 @@
 #include "raytracer/Light.h"
 
 namespace testing {
-  class MockLight : public Light {
+  class MockLight : public raytracer::Light {
   public:
     MockLight(const Vector3d& position, const Colord& color)
-      : Light(position, color) {}
+      : raytracer::Light(position, color) {}
   
     virtual ~MockLight() { destructorCall(); }
 

@@ -8,6 +8,7 @@
 #include "core/math/Matrix.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered torus") {
   Torus* torus = new Torus(1, 0.5);

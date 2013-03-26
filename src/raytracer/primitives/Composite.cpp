@@ -5,6 +5,7 @@
 #include <limits>
 
 using namespace std;
+using namespace raytracer;
 
 Composite::~Composite() {
   for (Primitives::const_iterator i = m_primitives.begin(); i != m_primitives.end(); ++i)

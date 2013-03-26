@@ -7,6 +7,7 @@
 
 namespace PinholeCameraParameterWidgetTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   class PinholeCameraParameterWidgetTest : public GuiTest {};
   

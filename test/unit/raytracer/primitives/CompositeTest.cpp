@@ -1,9 +1,10 @@
 #include "gtest.h"
 #include "raytracer/primitives/Composite.h"
-#include "test/mocks/MockPrimitive.h"
+#include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace CompositeTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(Composite, ShouldInitializeWithEmptyList) {
     Composite composite;

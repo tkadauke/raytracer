@@ -4,6 +4,7 @@
 
 namespace RowShuffledViewPlaneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(RowShuffledViewPlane, ShouldInitialize) {
     RowShuffledViewPlane plane;

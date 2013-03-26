@@ -4,6 +4,8 @@
 #include "core/math/HitPointInterval.h"
 
 namespace DiskTest {
+  using namespace raytracer;
+
   TEST(Disk, ShouldInitializeWithValues) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
   }

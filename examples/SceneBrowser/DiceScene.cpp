@@ -12,6 +12,8 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
 
+using namespace raytracer;
+
 class DiceScene : public Scene {
 public:
   DiceScene();

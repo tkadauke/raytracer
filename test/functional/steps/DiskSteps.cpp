@@ -5,6 +5,7 @@
 #include "raytracer/primitives/Disk.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered disk") {
   Disk* disk = new Disk(Vector3d::null(), Vector3d(0, 0, -1), 1);

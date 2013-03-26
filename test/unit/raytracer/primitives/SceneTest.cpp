@@ -1,11 +1,12 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Scene.h"
-#include "Light.h"
-#include "test/mocks/MockLight.h"
+#include "raytracer/Light.h"
+#include "test/mocks/raytracer/MockLight.h"
 
 namespace SceneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(Scene, ShouldInitialize) {
     Scene scene;

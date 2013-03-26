@@ -6,6 +6,7 @@
 #include <iostream>
 
 using namespace std;
+using namespace raytracer;
 
 Primitive* Torus::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   if (!boundingBox().intersects(ray))

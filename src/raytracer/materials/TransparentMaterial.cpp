@@ -6,6 +6,7 @@
 #include <algorithm>
 
 using namespace std;
+using namespace raytracer;
 
 Colord TransparentMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
   Colord color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);

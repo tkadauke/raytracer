@@ -4,6 +4,7 @@
 
 namespace PointInterlacedViewPlaneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(PointInterlacedViewPlane, ShouldInitialize) {
     PointInterlacedViewPlane plane;

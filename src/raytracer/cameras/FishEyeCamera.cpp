@@ -8,6 +8,7 @@
 #include <cmath>
 
 using namespace std;
+using namespace raytracer;
 
 void FishEyeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   Matrix4d m = matrix();

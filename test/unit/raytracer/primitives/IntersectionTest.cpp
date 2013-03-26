@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Intersection.h"
-#include "test/mocks/MockPrimitive.h"
+#include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace IntersectionTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(Intersection, ShouldReturnSelfIfAllOfTheChildPrimitivesIntersect) {
     Intersection i;

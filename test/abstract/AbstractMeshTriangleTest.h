@@ -6,6 +6,8 @@
 #include "core/math/HitPointInterval.h"
 
 namespace testing {
+  using namespace raytracer;
+  
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
     void SetUp() {

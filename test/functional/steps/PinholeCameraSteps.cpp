@@ -4,6 +4,7 @@
 #include "raytracer/cameras/PinholeCamera.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a pinhole camera") {
   // do nothing, the pinhole camera is the default

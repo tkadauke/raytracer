@@ -4,6 +4,7 @@
 #include <cmath>
 
 using namespace std;
+using namespace raytracer;
 
 Primitive* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();

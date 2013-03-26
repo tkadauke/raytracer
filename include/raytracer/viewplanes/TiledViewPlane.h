@@ -3,9 +3,11 @@
 
 #include "raytracer/viewplanes/ViewPlane.h"
 
-class TiledViewPlane : public ViewPlane {
-public:
-  virtual Iterator begin(const Rect& rect) const;
-};
+namespace raytracer {
+  class TiledViewPlane : public ViewPlane {
+  public:
+    virtual Iterator begin(const Rect& rect) const;
+  };
+}
 
 #endif

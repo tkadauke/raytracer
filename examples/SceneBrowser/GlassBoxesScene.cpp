@@ -7,6 +7,8 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
 
+using namespace raytracer;
+
 class GlassBoxesScene : public Scene {
 public:
   GlassBoxesScene();

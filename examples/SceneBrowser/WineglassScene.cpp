@@ -12,6 +12,8 @@
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
 
+using namespace raytracer;
+
 class WineglassScene : public Scene {
 public:
   WineglassScene();

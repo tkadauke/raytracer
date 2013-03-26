@@ -5,6 +5,7 @@
 #include "raytracer/primitives/Rectangle.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered rectangle") {
   Rectangle* rectangle = new Rectangle(Vector3d(-1, -1, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));

@@ -3,6 +3,8 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+using namespace raytracer;
+
 static int mod3[] = { 0, 1, 2, 0, 1, 2 };
 
 SmoothMeshTriangle::SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int index2)

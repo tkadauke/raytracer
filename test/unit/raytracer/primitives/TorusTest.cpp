@@ -4,6 +4,8 @@
 #include "core/math/HitPointInterval.h"
 
 namespace TorusTest {
+  using namespace raytracer;
+
   TEST(Torus, ShouldInitializeWithValues) {
     Torus torus(2, 1);
   }

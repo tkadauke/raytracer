@@ -10,6 +10,8 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
 
+using namespace raytracer;
+
 class StackedSpheresScene : public Scene {
 public:
   StackedSpheresScene();

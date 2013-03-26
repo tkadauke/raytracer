@@ -4,6 +4,7 @@
 
 namespace FlatMeshTriangleTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(FlatMeshTriangle, ShouldHaveSameNormalEverywhere) {
     Mesh mesh;

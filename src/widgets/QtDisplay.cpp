@@ -7,6 +7,7 @@
 #include <QThread>
 
 using namespace std;
+using namespace raytracer;
 
 namespace {
   class RenderThread : public QThread {

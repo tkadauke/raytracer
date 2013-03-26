@@ -1,10 +1,11 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Instance.h"
-#include "test/mocks/MockPrimitive.h"
+#include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace InstanceTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     MockPrimitive* primitive = new MockPrimitive;

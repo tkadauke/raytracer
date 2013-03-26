@@ -2,6 +2,8 @@
 #include "raytracer/materials/PhongMaterial.h"
 
 namespace PhongMaterialTest {
+  using namespace raytracer;
+
   TEST(PhongMaterial, ShouldInitialize) {
     PhongMaterial material;
     ASSERT_EQ(Colord::white(), material.highlightColor());

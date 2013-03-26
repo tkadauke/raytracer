@@ -3,6 +3,7 @@
 #include "core/math/HitPoint.h"
 
 using namespace std;
+using namespace raytracer;
 
 void PortalMaterial::setMatrix(const Matrix4d& matrix) {
   m_originMatrix = matrix.inverted();

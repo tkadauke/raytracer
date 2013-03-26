@@ -20,6 +20,7 @@
 #include <cmath>
 
 using namespace std;
+using namespace raytracer;
 
 namespace {
   class RenderThread : public QThread {

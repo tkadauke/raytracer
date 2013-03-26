@@ -2,6 +2,8 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+using namespace raytracer;
+
 Primitive* Disk::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
   

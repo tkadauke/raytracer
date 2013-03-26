@@ -10,6 +10,7 @@
 
 using namespace testing;
 using namespace std;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered cube mesh") {
   ifstream stream("test/fixtures/cube.ply");

@@ -5,6 +5,8 @@
 #include "core/Singleton.h"
 #include "raytracer/cameras/Camera.h"
 
-typedef Singleton<Factory<Camera> > CameraFactory;
+namespace raytracer {
+  typedef Singleton<Factory<Camera> > CameraFactory;
+}
 
 #endif

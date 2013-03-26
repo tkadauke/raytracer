@@ -7,6 +7,7 @@
 
 namespace FishEyeCameraParameterWidgetTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   class FishEyeCameraParameterWidgetTest : public GuiTest {};
   

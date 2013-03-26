@@ -8,6 +8,8 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
 
+using namespace raytracer;
+
 class PortalScene : public Scene {
 public:
   PortalScene();

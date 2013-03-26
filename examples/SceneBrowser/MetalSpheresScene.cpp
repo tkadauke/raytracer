@@ -7,6 +7,8 @@
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 
+using namespace raytracer;
+
 class MetalSpheresScene : public Scene {
 public:
   MetalSpheresScene();

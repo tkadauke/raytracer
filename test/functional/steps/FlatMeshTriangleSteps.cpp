@@ -5,6 +5,7 @@
 #include "raytracer/primitives/Mesh.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered flat mesh triangle") {
   Mesh* mesh = new Mesh;

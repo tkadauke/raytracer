@@ -4,6 +4,7 @@
 
 namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   INSTANTIATE_TYPED_TEST_CASE_P(RowInterlaced, AbstractViewPlaneTest, RowInterlacedViewPlane);
 }

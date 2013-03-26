@@ -1,11 +1,12 @@
 #include "gtest.h"
-#include "cameras/SphericalCamera.h"
-#include "Raytracer.h"
+#include "raytracer/cameras/SphericalCamera.h"
+#include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
-#include "Buffer.h"
+#include "core/Buffer.h"
 
 namespace SphericalCameraTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;

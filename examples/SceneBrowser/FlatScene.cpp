@@ -8,6 +8,8 @@
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
 
+using namespace raytracer;
+
 class FlatScene : public Scene {
 public:
   FlatScene();

@@ -16,6 +16,7 @@
 #include "core/math/HitPointInterval.h"
 
 using namespace std;
+using namespace raytracer;
 
 Display::Display()
   : QtDisplay(new Raytracer(0)), m_camera(new PinholeCamera), m_cameraParameter(0)

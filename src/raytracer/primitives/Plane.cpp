@@ -2,6 +2,8 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+using namespace raytracer;
+
 Primitive* Plane::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double t = calculateIntersectionDistance(ray);
   

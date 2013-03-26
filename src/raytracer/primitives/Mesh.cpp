@@ -4,6 +4,7 @@
 #include "raytracer/primitives/SmoothMeshTriangle.h"
 
 using namespace std;
+using namespace raytracer;
 
 struct Mesh::Private {
   Private(Mesh& m) : mesh(m) {}

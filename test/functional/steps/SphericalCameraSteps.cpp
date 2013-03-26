@@ -4,6 +4,7 @@
 #include "raytracer/cameras/SphericalCamera.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a spherical camera") {
   test->setCamera(new SphericalCamera);

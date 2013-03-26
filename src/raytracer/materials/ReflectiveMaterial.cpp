@@ -3,6 +3,8 @@
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
 
+using namespace raytracer;
+
 Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
   Colord color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
 

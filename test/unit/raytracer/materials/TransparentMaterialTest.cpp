@@ -2,6 +2,8 @@
 #include "raytracer/materials/TransparentMaterial.h"
 
 namespace TransparentMaterialTest {
+  using namespace raytracer;
+
   TEST(TransparentMaterial, ShouldInitialize) {
     TransparentMaterial material;
     ASSERT_EQ(Colord::white(), material.highlightColor());

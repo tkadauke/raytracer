@@ -3,6 +3,8 @@
 #include "PinholeCameraParameterWidget.uic"
 #include "raytracer/cameras/PinholeCamera.h"
 
+using namespace raytracer;
+
 struct PinholeCameraParameterWidget::Private {
   Ui::PinholeCameraParameterWidget ui;
 };

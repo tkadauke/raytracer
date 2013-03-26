@@ -1,11 +1,12 @@
-#include "formats/ply/PlyFile.h"
-#include "formats/ply/PlyParseError.h"
+#include "core/formats/ply/PlyFile.h"
+#include "core/formats/ply/PlyParseError.h"
 #include "raytracer/primitives/Mesh.h"
 
 #include <string>
 #include <sstream>
 
 using namespace std;
+using namespace raytracer;
 
 PlyFile::PlyFile(istream& is) {
   readHeader(is);

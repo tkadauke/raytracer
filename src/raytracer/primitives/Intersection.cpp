@@ -2,6 +2,8 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
+using namespace raytracer;
+
 Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   unsigned int numHits = 0;
   for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i) {

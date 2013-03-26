@@ -14,6 +14,7 @@
 #include <fstream>
 
 using namespace std;
+using namespace raytracer;
 
 class MeshScene : public Scene {
 public:

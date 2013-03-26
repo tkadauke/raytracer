@@ -12,7 +12,7 @@ public:
   
   int fieldOfView() const;
   
-  virtual void applyTo(Camera* camera);
+  virtual void applyTo(raytracer::Camera* camera);
 
 signals:
   void changed();

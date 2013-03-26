@@ -4,12 +4,14 @@
 #include "widgets/QtDisplay.h"
 
 class QVBoxLayout;
-class Scene;
 class SceneWidget;
 class ViewPlaneTypeWidget;
 class CameraTypeWidget;
 class CameraParameterWidget;
-class Camera;
+
+namespace raytracer {
+  class Camera;
+}
 
 class Display : public QtDisplay {
   Q_OBJECT
@@ -28,7 +30,7 @@ private slots:
 
 private:
   QVBoxLayout* m_verticalLayout;
-  Camera* m_camera;
+  raytracer::Camera* m_camera;
   QWidget* m_sidebar;
   SceneWidget* m_scene;
   ViewPlaneTypeWidget* m_viewPlaneType;

@@ -5,6 +5,7 @@
 #include "raytracer/primitives/Box.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered box") {
   Box* box = new Box(Vector3d::null(), Vector3d(1, 1, 1));

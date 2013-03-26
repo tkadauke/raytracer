@@ -2,6 +2,8 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 
 namespace ReflectiveMaterialTest {
+  using namespace raytracer;
+
   TEST(ReflectiveMaterial, ShouldInitialize) {
     ReflectiveMaterial material;
   }

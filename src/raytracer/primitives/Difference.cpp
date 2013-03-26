@@ -2,6 +2,8 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
+using namespace raytracer;
+
 Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   bool firstElement = true;
   

@@ -1,11 +1,12 @@
 #include "gtest.h"
-#include "cameras/OrthographicCamera.h"
-#include "Raytracer.h"
+#include "raytracer/cameras/OrthographicCamera.h"
+#include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
-#include "Buffer.h"
+#include "core/Buffer.h"
 
 namespace OrthographicCameraTest {
   using namespace ::testing;
+  using namespace raytracer;
   
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {
     OrthographicCamera camera;

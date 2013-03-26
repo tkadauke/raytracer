@@ -2,6 +2,8 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
+using namespace raytracer;
+
 Primitive* Union::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   bool hit = false;
   

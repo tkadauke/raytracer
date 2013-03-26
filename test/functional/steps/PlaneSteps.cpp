@@ -4,6 +4,7 @@
 #include "raytracer/primitives/Plane.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered plane") {
   Plane* plane = new Plane(Vector3d(0, 0, 1), 0);

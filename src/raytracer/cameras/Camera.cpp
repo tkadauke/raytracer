@@ -4,6 +4,8 @@
 #include "raytracer/viewplanes/PointShuffledViewPlane.h"
 #include "core/Buffer.h"
 
+using namespace raytracer;
+
 Camera::~Camera() {
   if (m_viewPlane)
     delete m_viewPlane;

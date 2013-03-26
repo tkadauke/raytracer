@@ -2,6 +2,8 @@
 #include "raytracer/Light.h"
 
 namespace LightTest {
+  using namespace raytracer;
+
   TEST(Light, ShouldInitializeWithValues) {
     Light light(Vector3d(1, 0, 0), Colord::white());
   }

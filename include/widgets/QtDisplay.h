@@ -6,12 +6,14 @@
 
 #include "core/Buffer.h"
 
-class Raytracer;
+namespace raytracer {
+  class Raytracer;
+}
 
 class QtDisplay : public QWidget {
   Q_OBJECT
 public:
-  QtDisplay(Raytracer* raytracer);
+  QtDisplay(raytracer::Raytracer* raytracer);
   ~QtDisplay();
   
   virtual void paintEvent(QPaintEvent*);
@@ -29,7 +31,7 @@ public slots:
   void stop();
   
 protected:
-  Raytracer* m_raytracer;
+  raytracer::Raytracer* m_raytracer;
 
 private:
   class Private;

@@ -6,6 +6,7 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a perfectly reflective box") {
   Box* box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));

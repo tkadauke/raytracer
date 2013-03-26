@@ -3,13 +3,15 @@
 
 #include <QWidget>
 
-class Camera;
+namespace raytracer {
+  class Camera;
+}
 
 class CameraParameterWidget : public QWidget {
 public:
   CameraParameterWidget(QWidget* parent = 0);
 
-  virtual void applyTo(Camera* camera) = 0;
+  virtual void applyTo(raytracer::Camera* camera) = 0;
 };
 
 #endif

@@ -4,6 +4,7 @@
 #include "raytracer/cameras/FishEyeCamera.h"
 
 using namespace testing;
+using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a fish-eye camera") {
   test->setCamera(new FishEyeCamera);

@@ -7,11 +7,13 @@
 #include "core/Color.h"
 #include "core/Buffer.h"
 
-class Primitive;
-class Camera;
-class Raytracer;
-class Material;
-class Scene;
+namespace raytracer {
+  class Primitive;
+  class Camera;
+  class Raytracer;
+  class Material;
+  class Scene;
+}
 
 namespace testing {
   class RaytracerFeatureTest : public FeatureTest<RaytracerFeatureTest> {
@@ -24,10 +26,10 @@ namespace testing {
   public:
     RaytracerFeatureTest();
     
-    void add(Primitive* primitive);
-    Scene* scene();
-    Camera* camera();
-    void setCamera(Camera* camera);
+    void add(raytracer::Primitive* primitive);
+    raytracer::Scene* scene();
+    raytracer::Camera* camera();
+    void setCamera(raytracer::Camera* camera);
     void setCamera(const Vector3d& position, const Vector3d& lookAt);
     void setView(const Vector3d& position, const Vector3d& lookAt);
     void render();
@@ -41,7 +43,7 @@ namespace testing {
     int colorAt(int x, int y);
     void show();
   
-    Material* redDiffuse();
+    raytracer::Material* redDiffuse();
     void lookAtOrigin();
     void lookAway();
     void goFarAway();
@@ -51,9 +53,9 @@ namespace testing {
     int previousObjectSize;
 
   private:
-    Scene* m_scene;
-    Camera* m_camera;
-    Raytracer* m_raytracer;
+    raytracer::Scene* m_scene;
+    raytracer::Camera* m_camera;
+    raytracer::Raytracer* m_raytracer;
     Buffer<unsigned int> m_buffer;
   };
 }
