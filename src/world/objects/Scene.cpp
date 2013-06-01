@@ -9,9 +9,9 @@ raytracer::Scene* Scene::toRaytracerScene() const {
   raytracer::Scene* result = new raytracer::Scene;
   
   for (Children::const_iterator i = children().begin(); i != children().end(); ++i) {
-    Surface* surface = *i;
-    if (surface->visible()) {
-      raytracer::Primitive* primitive = (*i)->toRaytracerPrimitive();
+    Surface* surface = dynamic_cast<Surface*>(*i);
+    if (surface && surface->visible()) {
+      raytracer::Primitive* primitive = surface->toRaytracerPrimitive();
       result->add(primitive);
     }
   }

@@ -1,9 +1,9 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "world/objects/Object.h"
+#include "world/objects/Element.h"
 
-class Material : public Object {
+class Material : public Element {
 public:
   Material();
   

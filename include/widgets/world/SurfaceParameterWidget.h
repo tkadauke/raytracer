@@ -1,14 +1,12 @@
 #ifndef SURFACE_PARAMETER_WIDGET_H
 #define SURFACE_PARAMETER_WIDGET_H
 
-#include <string>
-
 #include <QWidget>
 
 #include "core/math/Vector.h"
 #include "core/math/Quaternion.h"
 
-class Object;
+class Element;
 class Surface;
 
 class SurfaceParameterWidget : public QWidget {
@@ -30,8 +28,8 @@ public:
   Quaterniond orientation() const;
   void setOrientation(const Vector3d& orientation);
 
-  virtual void applyTo(Object* object);
-  virtual void getFrom(Object* object);
+  virtual void applyTo(Element* element);
+  virtual void getFrom(Element* element);
 
 signals:
   void changed();

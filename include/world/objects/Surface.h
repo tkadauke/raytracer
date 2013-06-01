@@ -1,7 +1,7 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
-#include "world/objects/Object.h"
+#include "world/objects/Element.h"
 #include "core/math/Vector.h"
 #include "core/math/Quaternion.h"
 
@@ -10,7 +10,7 @@ namespace raytracer {
   class Primitive;
 }
 
-class Surface : public Object {
+class Surface : public Element {
 public:
   Surface();
   

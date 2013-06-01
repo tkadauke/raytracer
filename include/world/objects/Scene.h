@@ -1,27 +1,17 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "world/objects/Object.h"
+#include "world/objects/Element.h"
 
 namespace raytracer {
   class Scene;
 }
 
-class Surface;
-
-class Scene : public Object {
+class Scene : public Element {
 public:
-  typedef std::list<Surface*> Children;
-  
   Scene();
   
   raytracer::Scene* toRaytracerScene() const;
-  
-  inline void add(Surface* child) { m_children.push_back(child); }
-  inline const Children& children() const { return m_children; }
-  
-private:
-  Children m_children;
 };
 
 #endif

@@ -80,8 +80,8 @@ void SurfaceParameterWidget::setOrientation(const Vector3d& orientation) {
   
 }
 
-void SurfaceParameterWidget::applyTo(Object* object) {
-  Surface* surface = dynamic_cast<Surface*>(object);
+void SurfaceParameterWidget::applyTo(Element* element) {
+  Surface* surface = dynamic_cast<Surface*>(element);
   if (surface) {
     surface->setVisible(visible());
     surface->setPosition(position());
@@ -90,7 +90,7 @@ void SurfaceParameterWidget::applyTo(Object* object) {
   }
 }
 
-void SurfaceParameterWidget::getFrom(Object* object) {
+void SurfaceParameterWidget::getFrom(Element* element) {
 }
 
 #include "SurfaceParameterWidget.moc"
