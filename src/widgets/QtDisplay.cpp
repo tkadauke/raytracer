@@ -61,7 +61,6 @@ void QtDisplay::stop() {
     delete p->renderThread;
     p->renderThread = 0;
   }
-  killTimer(p->timer);
   update();
 }
 

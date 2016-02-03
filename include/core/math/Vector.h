@@ -6,10 +6,16 @@
 #include <limits>
 #include "core/DivisionByZeroException.h"
 
-template<int Dimensions, class T, class VectorCellType = T[Dimensions]>
+template<int Dimensions, class T, class VectorCellType = T>
 class Vector {
   typedef T CellsType[Dimensions];
-  typedef VectorCellType VectorType[sizeof(CellsType) / sizeof(VectorCellType)];
+
+  static const int CellsTypeSize = sizeof(CellsType);
+  static const int VectorCellTypeSize = sizeof(VectorCellType);
+  static const int VectorCellCount = (CellsTypeSize + VectorCellTypeSize + 1) / VectorCellTypeSize;
+
+  typedef VectorCellType VectorType[VectorCellCount];
+  
 public:
   typedef T Coordinate;
   static const int Dim = Dimensions;

@@ -5,7 +5,7 @@
 
 class Ray {
 public:
-  static const double epsilon = 0.001;
+  static const double epsilon;
 
   inline Ray(const Vector3d& origin, const Vector3d& direction)
     : m_origin(origin), m_direction(direction)

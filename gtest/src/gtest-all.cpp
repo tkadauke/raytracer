@@ -27,28 +27,22 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: wan@google.com (Zhanyong Wan)
+// Author: mheule@google.com (Markus Heule)
+//
+// Google C++ Testing Framework (Google Test)
+//
+// Sometimes it's desirable to build Google Test by compiling a single file.
+// This file serves this purpose.
 
-#include <iostream>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+// This line ensures that gtest.h can be compiled on its own, even
+// when it's fused.
+#include "gtest/gtest.h"
 
-// MS C++ compiler/linker has a bug on Windows (not on Windows CE), which
-// causes a link error when _tmain is defined in a static library and UNICODE
-// is enabled. For this reason instead of _tmain, main function is used on
-// Windows. See the following link to track the current status of this bug:
-// http://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=394464  // NOLINT
-#if GTEST_OS_WINDOWS_MOBILE
-#include <tchar.h>  // NOLINT
-
-int _tmain(int argc, TCHAR** argv) {
-#else
-int main(int argc, char** argv) {
-#endif  // GTEST_OS_WINDOWS_MOBILE
-  std::cout << "Running main() from gmock_main.cc\n";
-  // Since Google Mock depends on Google Test, InitGoogleMock() is
-  // also responsible for initializing Google Test.  Therefore there's
-  // no need for calling testing::InitGoogleTest() separately.
-  testing::InitGoogleMock(&argc, argv);
-  return RUN_ALL_TESTS();
-}
+// The following lines pull in the real gtest *.cc files.
+#include "src/gtest.cc"
+#include "src/gtest-death-test.cc"
+#include "src/gtest-filepath.cc"
+#include "src/gtest-port.cc"
+#include "src/gtest-printers.cc"
+#include "src/gtest-test-part.cc"
+#include "src/gtest-typed-test.cc"

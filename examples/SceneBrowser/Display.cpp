@@ -21,7 +21,8 @@ using namespace raytracer;
 Display::Display()
   : QtDisplay(new Raytracer(0)), m_camera(new PinholeCamera), m_cameraParameter(0)
 {
-  m_sidebar = new QWidget(this, Qt::Drawer);
+  m_sidebar = new QWidget(0, Qt::Drawer);
+  m_sidebar->show();
   m_verticalLayout = new QVBoxLayout(m_sidebar);
   m_verticalLayout->setContentsMargins(6, 6, 6, 6);
   

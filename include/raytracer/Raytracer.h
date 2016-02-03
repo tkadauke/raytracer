@@ -36,7 +36,7 @@ namespace raytracer {
     Camera* m_camera;
     Scene* m_scene;
   
-    class Private;
+    struct Private;
     Private* p;
   };
 }

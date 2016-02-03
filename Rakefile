@@ -1,12 +1,21 @@
 require 'rake/clean'
 
-QT_INCLUDE_DIRS = ['/Library/Frameworks/QtCore.framework/Headers/', '/Library/Frameworks/QtGui.framework/Headers/']
-QT_FRAMEWORKS = ['QtCore', 'QtGui']
+QT_BASE = '/Users/tkadauke/Qt/5.5'
+QT_BIN = "#{QT_BASE}/clang_64/bin"
+QT_LIB = "#{QT_BASE}/clang_64/lib"
+QT_INCLUDE = "#{QT_BASE}/Src/qtbase/include"
+
+QT_FRAMEWORKS = ['QtCore', 'QtGui', 'QtWidgets']
+QT_INCLUDE_DIRS = [QT_INCLUDE] + QT_FRAMEWORKS.map { |f| "#{QT_INCLUDE}/#{f}" }
+
+QT_MOC = "#{QT_BIN}/moc"
+QT_UIC = "#{QT_BIN}/uic"
 
 INCLUDE_DIR = File.expand_path(File.dirname(__FILE__) + '/include')
 SRC_DIR = File.expand_path(File.dirname(__FILE__) + '/src')
 WIDGETS_DIR = File.expand_path(File.dirname(__FILE__) + '/src/widgets')
 GTEST_DIR = File.expand_path(File.dirname(__FILE__) + '/gtest')
+GMOCK_DIR = File.expand_path(File.dirname(__FILE__) + '/gmock')
 TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test')
 UNIT_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/unit')
 FUNCTIONAL_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/functional')
@@ -17,7 +26,7 @@ SRC = FileList["#{SRC_DIR}/**/*.cpp"]
 UNIT_TEST = FileList["#{UNIT_TEST_DIR}/**/*.cpp"]
 FUNCTIONAL_TEST = FileList["#{FUNCTIONAL_TEST_DIR}/**/*.cpp"]
 TEST_HELPER = FileList["#{TEST_HELPER_DIR}/**/*.cpp"]
-GTEST = FileList["#{GTEST_DIR}/**/*.cpp"]
+GTEST = FileList["#{GTEST_DIR}/**/*.cpp", "#{GMOCK_DIR}/**/*.cpp"]
 EXAMPLES_SRC = FileList["#{EXAMPLES_DIR}/**/*.cpp"]
 
 SRC_OBJ = SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
@@ -32,7 +41,7 @@ FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
 EXAMPLES = FileList["#{EXAMPLES_DIR}/*"]
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
-INCLUDE_DIRS = [INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, QT_INCLUDE_DIRS, '.'].flatten
+INCLUDE_DIRS = [INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS, '.'].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
 
 if ENV['DEBUG']
@@ -53,13 +62,19 @@ C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 T_FLAGS = "#{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
-LD_FLAGS = "#{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')} -lgcov"
+LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 
 CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN)
 
 task :default => [:examples, :test]
 
+@header_dependency_cache = {}
+
 def header_dependencies(file, pwd = '')
+  if @header_dependency_cache[file]
+    return @header_dependency_cache[file]
+  end
+  
   file_path = nil
   if File.exist?(file)
     file_path = file
@@ -70,12 +85,14 @@ def header_dependencies(file, pwd = '')
     end
   end
   
-  if file_path
-    headers = File.read(file_path).split("\n").grep(/#include \"/).collect { |inc| inc =~ /^#include \"(.*?)\"$/; $1 }
+  @header_dependency_cache[file] = if file_path
+    headers = File.read(file_path).split("\n").grep(/#include \"/).collect { |inc| inc =~ /^#include \"(.*?)\"/; $1 }
     [file_path, headers.collect { |header| header_dependencies(header, File.dirname(file_path)) }].flatten
   else
     [File.join(pwd, file)]
   end
+  
+  @header_dependency_cache[file]
 end
 
 def dependencies(objfile)
@@ -83,12 +100,14 @@ def dependencies(objfile)
   header_dependencies(source_file).uniq
 end
 
+CLEAN += Rake::FileList["**/*.moc", "**/*.uic"]
+
 rule '.uic' => '.ui' do |t|
-  sh %{uic -o #{t.name} #{t.source}}
+  sh %{#{QT_UIC} -o #{t.name} #{t.source}}
 end
 
 rule '.moc' => lambda { |mocfile| mocfile.sub(/src\//, 'include/').sub('.moc', '.h') } do |t|
-  sh %{moc -o #{t.name} #{t.source}}
+  sh %{#{QT_MOC} -o #{t.name} #{t.source}}
 end
 
 rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
@@ -119,6 +138,8 @@ end
 
 task :examples => EXAMPLES_BIN
 
+QT_LD = "DYLD_FRAMEWORK_PATH=#{QT_LIB}"
+
 namespace :test do
   task :build => [UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN]
   task :run => [:units, :functionals]
@@ -126,18 +147,18 @@ namespace :test do
   desc "Run all unit tests"
   task :units => :build do
     if ENV['ONLY']
-      sh("#{UNIT_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
+      sh("#{QT_LD} #{UNIT_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
     else
-      sh(UNIT_TEST_BIN)
+      sh("#{QT_LD} #{UNIT_TEST_BIN}")
     end
   end
 
   desc "Run all functional tests"
   task :functionals => :build do
     if ENV['ONLY']
-      sh("#{FUNCTIONAL_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
+      sh("#{QT_LD} #{FUNCTIONAL_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
     else
-      sh(FUNCTIONAL_TEST_BIN)
+      sh("#{QT_LD} #{FUNCTIONAL_TEST_BIN}")
     end
   end
   

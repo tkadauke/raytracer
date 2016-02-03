@@ -30,7 +30,7 @@ namespace raytracer {
     void addFlatTrianglesTo(Composite* composite, Material* material);
 
   private:
-    class Private;
+    struct Private;
     Private* p;
   };
 }
