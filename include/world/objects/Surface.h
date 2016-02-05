@@ -11,34 +11,40 @@ namespace raytracer {
 }
 
 class Surface : public Element {
+  Q_OBJECT
+  Q_PROPERTY(Vector3d position READ position WRITE setPosition);
+  Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation);
+  Q_PROPERTY(Vector3d scale READ scale WRITE setScale);
+  Q_PROPERTY(bool visible READ visible WRITE setVisible);
+  
 public:
-  Surface();
+  Surface(Element* parent);
   
   inline const Vector3d& position() const { return m_position; }
   inline void setPosition(const Vector3d& position) { m_position = position; }
+
+  inline const Vector3d& rotation() const { return m_rotation; }
+  inline void setRotation(const Vector3d& rotation) { m_rotation = rotation; }
   
-  inline const Quaterniond& orientation() const { return m_orientation; }
-  inline void setOrientation(const Quaterniond& orientation) { m_orientation = orientation; }
+  inline const Vector3d& scale() const { return m_scale; }
+  inline void setScale(const Vector3d& scale) { m_scale = scale; }
   
   inline bool visible() const { return m_visible; }
   inline void setVisible(bool visible) { m_visible = visible; }
   inline void show() { setVisible(true); }
   inline void hide() { setVisible(false); }
   
-  inline const Vector3d& scale() const { return m_scale; }
-  inline void setScale(const Vector3d& scale) { m_scale = scale; }
-  
   virtual raytracer::Primitive* toRaytracerPrimitive() const = 0;
+
+protected:
+  raytracer::Primitive* applyScale(raytracer::Primitive* primitive) const;
   
 private:
   Vector3d m_position;
-  Quaterniond m_orientation;
-  
-  bool m_visible;
-  
+  Vector3d m_rotation;
   Vector3d m_scale;
   
-//  Material* m_material;
+  bool m_visible;
 };
 
 #endif

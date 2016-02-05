@@ -2,13 +2,15 @@
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/materials/MatteMaterial.h"
 
-Sphere::Sphere()
-  : m_radius(0)
+Sphere::Sphere(Element* parent)
+  : Surface(parent), m_radius(0)
 {
 }
 
 raytracer::Primitive* Sphere::toRaytracerPrimitive() const {
   raytracer::Sphere* result = new raytracer::Sphere(position(), radius());
   result->setMaterial(new raytracer::MatteMaterial(Colord(1, 0, 0)));
-  return result;
+  return applyScale(result);
 }
+
+#include "Sphere.moc"

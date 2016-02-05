@@ -8,8 +8,10 @@ namespace raytracer {
 }
 
 class Scene : public Element {
+  Q_OBJECT
+  
 public:
-  Scene();
+  Scene(Element* parent);
   
   raytracer::Scene* toRaytracerScene() const;
 };

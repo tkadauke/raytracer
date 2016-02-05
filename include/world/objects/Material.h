@@ -5,7 +5,7 @@
 
 class Material : public Element {
 public:
-  Material();
+  Material(Element* parent);
   
 private:
 };

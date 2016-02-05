@@ -432,6 +432,12 @@ public:
                       0,       yFactor, 0,
                       0,       0,       zFactor);
   }
+
+  inline static Matrix3<T> scale(const Vector3<T>& factor) {
+    return Matrix3<T>(factor[0], 0,         0,
+                      0,         factor[1], 0,
+                      0,         0,         factor[2]);
+  }
 };
 
 typedef Matrix3<float> Matrix3f;
