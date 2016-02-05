@@ -27,6 +27,14 @@ void Instance::setMatrix(const Matrix4d& matrix) {
   m_normalMatrix = m_directionMatrix.transposed();
 }
 
+Material* Instance::material() const {
+  Material* parent = Primitive::material();
+  if (parent)
+    return parent;
+  else
+    return m_primitive->material();
+}
+
 BoundingBox Instance::boundingBox() {
   BoundingBox original = m_primitive->boundingBox();
   vector<Vector3d> vertices;

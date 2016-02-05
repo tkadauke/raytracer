@@ -14,6 +14,8 @@ namespace raytracer {
     Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
     bool intersects(const Ray& ray);
 
+    virtual Material* material() const;
+
     virtual BoundingBox boundingBox();
 
     void setMatrix(const Matrix4d& matrix);
