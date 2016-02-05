@@ -2,7 +2,6 @@
 #define QT_DISPLAY_H
 
 #include <QWidget>
-#include <QPainter>
 
 #include "core/Buffer.h"
 
@@ -13,7 +12,7 @@ namespace raytracer {
 class QtDisplay : public QWidget {
   Q_OBJECT
 public:
-  QtDisplay(raytracer::Raytracer* raytracer);
+  QtDisplay(QWidget* parent, raytracer::Raytracer* raytracer);
   ~QtDisplay();
   
   virtual void paintEvent(QPaintEvent*);

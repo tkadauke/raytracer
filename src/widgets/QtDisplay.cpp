@@ -5,6 +5,7 @@
 
 #include <QMouseEvent>
 #include <QThread>
+#include <QPainter>
 
 using namespace std;
 using namespace raytracer;
@@ -40,8 +41,8 @@ struct QtDisplay::Private {
   int timer;
 };
 
-QtDisplay::QtDisplay(Raytracer* raytracer)
-  : QWidget(), m_raytracer(raytracer), p(new Private)
+QtDisplay::QtDisplay(QWidget* parent, Raytracer* raytracer)
+  : QWidget(parent), m_raytracer(raytracer), p(new Private)
 {
   p->buffer = new Buffer<unsigned int>(width(), height());
   resize(400, 300);

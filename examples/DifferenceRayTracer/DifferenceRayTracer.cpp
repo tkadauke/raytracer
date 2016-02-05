@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   scene->addLight(light1);
   
   Raytracer* raytracer = new Raytracer(scene);
-  QtDisplay* display = new QtDisplay(raytracer);
+  QtDisplay* display = new QtDisplay(0, raytracer);
   
   display->show();
   

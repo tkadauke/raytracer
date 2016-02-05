@@ -19,7 +19,7 @@ using namespace std;
 using namespace raytracer;
 
 Display::Display()
-  : QtDisplay(new Raytracer(0)), m_camera(new PinholeCamera), m_cameraParameter(0)
+  : QtDisplay(0, new Raytracer(0)), m_camera(new PinholeCamera), m_cameraParameter(0)
 {
   m_sidebar = new QWidget(0, Qt::Drawer);
   m_sidebar->show();
