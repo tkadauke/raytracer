@@ -202,9 +202,10 @@ task :test => ['test:build', 'test:run']
 
 desc "Outputs test and code lines"
 task :stats do
-  test_lines = `find test | grep  '\\.cpp$\\|\\.h$' | xargs cat 2>/dev/null | wc -l`
-  code_lines = `find src include | grep  '\\.cpp$\\|\\.h$' | xargs cat 2>/dev/null | wc -l`
+  test_lines = `find test | grep '\\.cpp\\|\\.h$' | xargs cat 2>/dev/null | wc -l`
+  code_lines = `find src include | grep '\\.cpp\\|\\.h$' | xargs cat 2>/dev/null | wc -l`
   
   puts "Test lines: #{test_lines}"
   puts "Code lines: #{code_lines}"
+  puts "Ratio: #{"%2.2f" % (test_lines.to_f / code_lines.to_f)}"
 end
