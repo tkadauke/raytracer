@@ -13,7 +13,7 @@ Q_DECLARE_METATYPE(Vector3d)
 
 struct PropertyEditorWidget::Private {
   Private()
-    : element(0) {}
+    : element(0), verticalLayout(0) {}
   
   Element* element;
   QVBoxLayout* verticalLayout;
@@ -23,14 +23,20 @@ struct PropertyEditorWidget::Private {
 PropertyEditorWidget::PropertyEditorWidget(QWidget* parent)
   : QWidget(parent), p(new Private)
 {
-  p->verticalLayout = new QVBoxLayout(this);
-  p->verticalLayout->setContentsMargins(0, 0, 0, 0);
-  p->verticalLayout->setSpacing(0);
 }
 
 PropertyEditorWidget::~PropertyEditorWidget() {
   clearParameterWidgets();
   delete p;
+}
+
+void PropertyEditorWidget::initLayout() {
+  if (p->verticalLayout) {
+    delete p->verticalLayout;
+  }
+  p->verticalLayout = new QVBoxLayout(this);
+  p->verticalLayout->setContentsMargins(0, 0, 0, 0);
+  p->verticalLayout->setSpacing(0);
 }
 
 QSize PropertyEditorWidget::sizeHint() const {
@@ -45,6 +51,7 @@ void PropertyEditorWidget::setElement(Element* element) {
 }
 
 void PropertyEditorWidget::addParameterWidgets() {
+  initLayout();
   addParametersForClass(p->element->metaObject());
   p->verticalLayout->addStretch();
 }

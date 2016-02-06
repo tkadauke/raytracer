@@ -23,6 +23,7 @@ public slots:
   void setElement(Element* element);
 
 private:
+  void initLayout();
   void addParameterWidget(AbstractParameterWidget* widget);
   void addParameterWidgets();
   void addParametersForClass(const QMetaObject* klass);

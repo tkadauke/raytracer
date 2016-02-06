@@ -7,6 +7,7 @@ class QDockWidget;
 
 class PropertyEditorWidget;
 class Display;
+class ElementModel;
 
 class Element;
 class Scene;
@@ -16,18 +17,21 @@ class MainWindow : public QMainWindow {
 
 public:
   MainWindow();
-  ~MainWindow();
   
 protected:
   void initScene();
   
 private slots:
+  void elementSelected(const QModelIndex& current, const QModelIndex& previous);
   void elementChanged(Element*);
 
 private:
+  QDockWidget* createPropertyEditor();
+  QDockWidget* createElementSelector();
+  
   Display* m_display;
   PropertyEditorWidget* m_propertyEditorWidget;
-  QDockWidget* m_sidebar;
+  ElementModel* m_elementModel;
   
   Scene* m_scene;
 };

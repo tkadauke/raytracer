@@ -10,6 +10,7 @@ public:
   Element(Element* parent);
   virtual ~Element();
   
+  int row() const;
   
 private:
   QString m_name;
