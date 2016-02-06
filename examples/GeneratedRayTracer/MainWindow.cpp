@@ -20,6 +20,7 @@
 
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
+#include "world/objects/Box.h"
 
 MainWindow::MainWindow()
   : QMainWindow()
@@ -70,6 +71,11 @@ void MainWindow::initScene() {
   sphere->setRadius(1);
   sphere->setObjectName("Sphere 2");
   sphere->setPosition(Vector3d(1, 0, 0));
+  
+  Box* box = new Box(m_scene);
+  box->setPosition(Vector3d(0, 2, 0));
+  box->setSize(Vector3d(1, 1, 1));
+  box->setObjectName("Box 1");
 }
 
 void MainWindow::elementChanged(Element* element) {

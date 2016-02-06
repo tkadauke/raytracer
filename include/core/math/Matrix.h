@@ -421,6 +421,10 @@ public:
                       0,   0,    1);
   }
   
+  inline static Matrix3<T> rotate(const Vector3<T>& angles) {
+    return rotateX(angles.x()) * rotateY(angles.y()) * rotateZ(angles.z());
+  }
+  
   inline static Matrix3<T> scale(const T& factor) {
     return Matrix3<T>(factor, 0,      0,
                       0,      factor, 0,

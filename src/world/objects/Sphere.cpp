@@ -8,9 +8,9 @@ Sphere::Sphere(Element* parent)
 }
 
 raytracer::Primitive* Sphere::toRaytracerPrimitive() const {
-  raytracer::Sphere* result = new raytracer::Sphere(position(), radius());
+  raytracer::Sphere* result = new raytracer::Sphere(Vector3d::null(), radius());
   result->setMaterial(new raytracer::MatteMaterial(Colord(1, 0, 0)));
-  return applyScale(result);
+  return applyTransform(result);
 }
 
 #include "Sphere.moc"

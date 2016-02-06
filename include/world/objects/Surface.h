@@ -37,7 +37,7 @@ public:
   virtual raytracer::Primitive* toRaytracerPrimitive() const = 0;
 
 protected:
-  raytracer::Primitive* applyScale(raytracer::Primitive* primitive) const;
+  raytracer::Primitive* applyTransform(raytracer::Primitive* primitive) const;
   
 private:
   Vector3d m_position;
