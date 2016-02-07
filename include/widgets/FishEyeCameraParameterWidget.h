@@ -7,7 +7,7 @@ class FishEyeCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
   
 public:
-  FishEyeCameraParameterWidget(QWidget* parent = 0);
+  FishEyeCameraParameterWidget(QWidget* parent = nullptr);
   ~FishEyeCameraParameterWidget();
   
   int fieldOfView() const;

@@ -29,7 +29,7 @@ int FishEyeCameraParameterWidget::fieldOfView() const {
 }
 
 void FishEyeCameraParameterWidget::applyTo(Camera* camera) {
-  FishEyeCamera* fishEyeCamera = dynamic_cast<FishEyeCamera*>(camera);
+  auto fishEyeCamera = dynamic_cast<FishEyeCamera*>(camera);
   if (fishEyeCamera) {
     fishEyeCamera->setFieldOfView(fieldOfView());
   }

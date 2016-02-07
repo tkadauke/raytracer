@@ -41,7 +41,7 @@ namespace {
 
 struct Raytracer::Private {
   Private()
-    : numberOfThreads(24) {}
+    : numberOfThreads(8) {}
   
   vector<RenderThread*> threads;
   int numberOfThreads;
@@ -78,12 +78,12 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
     }
   }
   
-  for (vector<RenderThread*>::iterator i = p->threads.begin(); i != p->threads.end(); ++i)
-    (*i)->start();
+  for (auto& thread : p->threads)
+    thread->start();
   
-  for (vector<RenderThread*>::iterator i = p->threads.begin(); i != p->threads.end(); ++i) {
-    (*i)->wait();
-    delete *i;
+  for (auto& thread : p->threads) {
+    thread->wait();
+    delete thread;
   }
 }
 
@@ -93,19 +93,17 @@ Primitive* Raytracer::primitiveForRay(const Ray& ray) {
 }
 
 Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
-  if (recursionDepth == 7) {
+  if (recursionDepth == 15) {
     return m_scene->ambient();
   }
   
   HitPointInterval hitPoints;
   
-  Primitive* primitive = m_scene->intersect(ray, hitPoints);
+  auto primitive = m_scene->intersect(ray, hitPoints);
   if (primitive) {
-    HitPoint hitPoint = hitPoints.minWithPositiveDistance();
+    auto hitPoint = hitPoints.minWithPositiveDistance();
     
-    Colord color = primitive->material()->shade(this, ray, hitPoint, recursionDepth);
-    
-    return color;
+    return primitive->material()->shade(this, ray, hitPoint, recursionDepth);
   } else {
     return m_scene->ambient();
   }

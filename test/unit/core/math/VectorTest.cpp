@@ -330,7 +330,7 @@ namespace SpecializedVectorTest {
   };
 
   typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>,
-                           Vector2<double>, Vector3<double>, Vector4<double> > SpecializedVectorTypes;
+                           Vector2<double>, Vector3<double>, Vector4<double>> SpecializedVectorTypes;
   TYPED_TEST_CASE(SpecializedVectorTest, SpecializedVectorTypes);
 
   TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForDotProduct) {
@@ -426,7 +426,7 @@ namespace Vector3Test {
   class Vector3Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Vector3<float>, Vector3<double> > Vector3Types;
+  typedef ::testing::Types<Vector3<float>, Vector3<double>> Vector3Types;
   TYPED_TEST_CASE(Vector3Test, Vector3Types);
   
   TYPED_TEST(Vector3Test, ShouldInitializeNullVector) {
@@ -485,6 +485,18 @@ namespace Vector3Test {
   
   TYPED_TEST(Vector3Test, ShouldDefinePlusInfinityVector) {
     ASSERT_EQ(numeric_limits<float>::infinity(), TypeParam::plusInfinity().x());
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldDefineRightVector) {
+    ASSERT_EQ(1, TypeParam::right().x());
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldDefineUpVector) {
+    ASSERT_EQ(1, TypeParam::up().y());
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldDefineForwardVector) {
+    ASSERT_EQ(1, TypeParam::forward().z());
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateCrossProductOfUnitVectors) {
@@ -596,7 +608,7 @@ namespace Vector4Test {
   class Vector4Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Vector4<float>, Vector4<double> > Vector4Types;
+  typedef ::testing::Types<Vector4<float>, Vector4<double>> Vector4Types;
   TYPED_TEST_CASE(Vector4Test, Vector4Types);
   
   TYPED_TEST(Vector4Test, ShouldInitializeNullVector) {

@@ -10,7 +10,7 @@ using namespace raytracer;
 
 Primitive* Torus::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   if (!boundingBox().intersects(ray))
-    return 0;
+    return nullptr;
   
   Vector3d origin = ray.origin();
   Vector3d direction = ray.direction();
@@ -52,7 +52,7 @@ Primitive* Torus::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   }
   if (found)
     return this;
-  return 0;
+  return nullptr;
 }
 
 BoundingBox Torus::boundingBox() {

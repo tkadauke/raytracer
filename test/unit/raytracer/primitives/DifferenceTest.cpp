@@ -9,8 +9,8 @@ namespace DifferenceTest {
   
   TEST(Difference, ShouldReturnSelfIfFirstOfTheChildPrimitivesIntersects) {
     Difference i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
@@ -24,15 +24,15 @@ namespace DifferenceTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints);
     
     ASSERT_EQ(&i, result);
   }
   
   TEST(Difference, ShouldNotReturnAnyPrimitiveIfFirstChildDoesNotIntersect) {
     Difference i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
@@ -40,7 +40,7 @@ namespace DifferenceTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, result);
   }

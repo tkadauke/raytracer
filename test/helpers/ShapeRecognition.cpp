@@ -29,8 +29,8 @@ bool ShapeRecognition::recognizeRect(const Buffer<unsigned int>& buffer) {
     return false;
   
   int length = l.front();
-  for (vector<int>::iterator i = l.begin(); i != l.end(); ++i) {
-    if (*i != length)
+  for (auto& i : l) {
+    if (i != length)
       return false;
   }
   return true;
@@ -46,13 +46,14 @@ bool ShapeRecognition::recognizeCircle(const Buffer<unsigned int>& buffer) {
   
   int index = 0;
   int previous = -1;
-  for (vector<int>::iterator i = l.begin(); i != l.end(); ++i, ++index) {
-    if (index < radius && *i < previous) {
+  for (auto& i : l) {
+    if (index < radius && i < previous) {
       return false;
-    } else if (index > diameter - radius && *i > previous) {
+    } else if (index > diameter - radius && i > previous) {
       return false;
     }
-    previous = *i;
+    previous = i;
+    index++;
   }
   
   // Make sure that rectangles are not recognized as circles

@@ -64,8 +64,8 @@ public:
   
   inline HitPointInterval transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) {
     HitPointInterval result;
-    for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
-      result.add(i->point.transform(pointMatrix, normalMatrix), i->in);
+    for (const auto& i : m_hitPoints) {
+      result.add(i.point.transform(pointMatrix, normalMatrix), i.in);
     }
     return result;
   }
@@ -77,9 +77,9 @@ public:
   }
   
   const HitPoint& minWithPositiveDistance() const {
-    for (HitPoints::const_iterator i = m_hitPoints.begin(); i != m_hitPoints.end(); ++i) {
-      if (i->point.distance() > 0) {
-        return i->point;
+    for (const auto& i : m_hitPoints) {
+      if (i.point.distance() > 0) {
+        return i.point;
       }
     }
     return HitPoint::undefined();

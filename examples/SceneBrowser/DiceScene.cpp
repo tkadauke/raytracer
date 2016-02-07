@@ -30,14 +30,14 @@ DiceScene::DiceScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  Grid* grid = new Grid;
+  auto grid = new Grid;
   
-  Box* box = new Box(Vector3d(0, 1, 0), Vector3d(1, 1, 1));
-  Sphere* sphere2 = new Sphere(Vector3d(1.8, 1, 0), 1);
-  Sphere* sphere3 = new Sphere(Vector3d(-1.8, 1, 0), 1);
-  Sphere* sphere4 = new Sphere(Vector3d(0, 1, 1.8), 1);
-  Sphere* sphere5 = new Sphere(Vector3d(0, 1, -1.8), 1);
-  Composite* d = new Difference();
+  auto box = new Box(Vector3d(0, 1, 0), Vector3d(1, 1, 1));
+  auto sphere2 = new Sphere(Vector3d(1.8, 1, 0), 1);
+  auto sphere3 = new Sphere(Vector3d(-1.8, 1, 0), 1);
+  auto sphere4 = new Sphere(Vector3d(0, 1, 1.8), 1);
+  auto sphere5 = new Sphere(Vector3d(0, 1, -1.8), 1);
+  auto d = new Difference();
   d->add(box);
   d->add(sphere2);
   d->add(sphere3);
@@ -52,19 +52,19 @@ DiceScene::DiceScene()
   
   grid->add(d);
   
-  Sphere* sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
   m_red.setDiffuseColor(Colord(1, 0, 0));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&m_red);
   grid->add(sphere6);
   
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = new Plane(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_blue);
   add(plane);
   grid->setup();
   add(grid);
   
-  Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

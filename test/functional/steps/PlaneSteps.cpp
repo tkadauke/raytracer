@@ -7,7 +7,7 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered plane") {
-  Plane* plane = new Plane(Vector3d(0, 0, 1), 0);
+  auto plane = new Plane(Vector3d(0, 0, 1), 0);
   plane->setMaterial(test->redDiffuse());
   test->add(plane);
 }

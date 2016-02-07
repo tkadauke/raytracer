@@ -16,8 +16,8 @@ ViewPlaneTypeWidget::ViewPlaneTypeWidget(QWidget* parent)
 {
   p->ui.setupUi(this);
   list<string> types = ViewPlaneFactory::self().identifiers();
-  for (list<string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-    p->ui.m_viewPlaneTypeComboBox->addItem(QString::fromStdString(*i));
+  for (const auto& type : types) {
+    p->ui.m_viewPlaneTypeComboBox->addItem(QString::fromStdString(type));
   }
   connect(p->ui.m_viewPlaneTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
 }

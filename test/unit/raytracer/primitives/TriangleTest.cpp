@@ -26,7 +26,7 @@ namespace TriangleTest {
     Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = triangle.intersect(ray, hitPoints);
+    auto primitive = triangle.intersect(ray, hitPoints);
     ASSERT_EQ(primitive, &triangle);
     ASSERT_EQ(Vector3d(0, 0, 0), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
@@ -38,7 +38,7 @@ namespace TriangleTest {
     Ray ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = triangle.intersect(ray, hitPoints);
+    auto primitive = triangle.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
@@ -49,7 +49,7 @@ namespace TriangleTest {
     Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = triangle.intersect(ray, hitPoints);
+    auto primitive = triangle.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());

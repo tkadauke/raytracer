@@ -8,24 +8,24 @@ using namespace std;
 using namespace raytracer;
 
 Composite::~Composite() {
-  for (Primitives::const_iterator i = m_primitives.begin(); i != m_primitives.end(); ++i)
-    delete *i;
+  for (const auto& i : m_primitives)
+    delete i;
 }
 
 BoundingBox Composite::boundingBox() {
   BoundingBox b;
-  for (Primitives::const_iterator i = m_primitives.begin(); i != m_primitives.end(); ++i)
-    b.include((*i)->boundingBox());
+  for (const auto& i : m_primitives)
+    b.include(i->boundingBox());
   return b;
 }
 
 Primitive* Composite::intersect(const Ray& ray, HitPointInterval& hitPoints) {
-  Primitive* hit = 0;
+  Primitive* hit = nullptr;
   double minDistance = numeric_limits<double>::infinity();
   
-  for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i) {
+  for (const auto& i : m_primitives) {
     HitPointInterval candidate;
-    Primitive* primitive = (*i)->intersect(ray, candidate);
+     auto primitive = i->intersect(ray, candidate);
     if (primitive) {
       double distance = candidate.min().distance();
       if (distance < minDistance) {
@@ -40,8 +40,8 @@ Primitive* Composite::intersect(const Ray& ray, HitPointInterval& hitPoints) {
 }
 
 bool Composite::intersects(const Ray& ray) {
-  for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i) {
-    if ((*i)->intersects(ray))
+  for (const auto& i : m_primitives) {
+    if (i->intersects(ray))
       return true;
   }
   

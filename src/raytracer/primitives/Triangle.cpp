@@ -18,22 +18,22 @@ Primitive* Triangle::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double beta = e1 * invDenom;
   
   if (beta < 0.0 || beta > 1.0)
-    return 0;
+    return nullptr;
   
   double e2 = a * n + d * q + c * r;
   double gamma = e2 * invDenom;
   
   if (gamma < 0.0 || gamma > 1.0)
-    return 0;
+    return nullptr;
   
   if (beta + gamma > 1.0)
-    return 0;
+    return nullptr;
   
   double e3 = a * p - b * r + d * s;
   double t = e3 * invDenom;
   
   if (t < 0.0001)
-    return 0;
+    return nullptr;
   
   Vector3d hitPoint = ray.at(t);
   hitPoints.add(HitPoint(t, hitPoint, m_normal));

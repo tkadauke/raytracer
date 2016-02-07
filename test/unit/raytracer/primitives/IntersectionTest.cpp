@@ -9,8 +9,8 @@ namespace IntersectionTest {
   
   TEST(Intersection, ShouldReturnSelfIfAllOfTheChildPrimitivesIntersect) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
@@ -29,15 +29,15 @@ namespace IntersectionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints);
     
     ASSERT_EQ(&i, result);
   }
   
   TEST(Intersection, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
@@ -46,15 +46,15 @@ namespace IntersectionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, result);
   }
   
   TEST(Intersection, ShouldNotReturnAnyPrimitiveIfNotAllChildrenIntersect) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
@@ -68,15 +68,15 @@ namespace IntersectionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, result);
   }
   
   TEST(Intersection, ShouldNotReturnAnyPrimitiveIfNotAllChildrenIntersectInOverlappingIntervals) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
@@ -95,15 +95,15 @@ namespace IntersectionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, result);
   }
   
   TEST(Intersection, ShouldReturnTrueForIntersectsIfAllOfTheChildPrimitivesIntersect) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(true));
@@ -118,8 +118,8 @@ namespace IntersectionTest {
   
   TEST(Intersection, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));
@@ -133,8 +133,8 @@ namespace IntersectionTest {
   
   TEST(Intersection, ShouldReturnFalseForIntersectsIfNotAllChildrenIntersect) {
     Intersection i;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(true));
@@ -149,7 +149,7 @@ namespace IntersectionTest {
   
   TEST(Intersection, ShouldReturnBoundingBoxWithOneChild) {
     Intersection i;
-    MockPrimitive* mockPrimitive = new MockPrimitive;
+    auto mockPrimitive = new MockPrimitive;
     i.add(mockPrimitive);
     
     BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
@@ -160,8 +160,8 @@ namespace IntersectionTest {
   
   TEST(Intersection, ShouldReturnBoundingBoxWithMultipleChildren) {
     Intersection i;
-    MockPrimitive* mockPrimitive1 = new MockPrimitive;
-    MockPrimitive* mockPrimitive2 = new MockPrimitive;
+    auto mockPrimitive1 = new MockPrimitive;
+    auto mockPrimitive2 = new MockPrimitive;
     i.add(mockPrimitive1);
     i.add(mockPrimitive2);
     

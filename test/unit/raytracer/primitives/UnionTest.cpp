@@ -9,8 +9,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnSelfIfAnyOfTheChildPrimitivesIntersect) {
     Union u;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive1)));
@@ -19,15 +19,15 @@ namespace UnionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = u.intersect(ray, hitPoints);
+    auto result = u.intersect(ray, hitPoints);
     
     ASSERT_EQ(&u, result);
   }
   
   TEST(Union, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     Union u;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
@@ -36,15 +36,15 @@ namespace UnionTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = u.intersect(ray, hitPoints);
+    auto result = u.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, result);
   }
   
   TEST(Union, ShouldBuildUnionOfHitPoints) {
     Union u;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive1)));
@@ -61,8 +61,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     Union u;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(true));
@@ -74,8 +74,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Union u;
-    MockPrimitive* primitive1 = new MockPrimitive;
-    MockPrimitive* primitive2 = new MockPrimitive;
+    auto primitive1 = new MockPrimitive;
+    auto primitive2 = new MockPrimitive;
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));

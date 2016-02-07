@@ -224,8 +224,8 @@ public:
 };
 
 template<class T>
-class Matrix2 : public SpecializedMatrix<2, T, Matrix2<T>, Vector2<T> > {
-  typedef SpecializedMatrix<2, T, Matrix2<T>, Vector2<T> > Base;
+class Matrix2 : public SpecializedMatrix<2, T, Matrix2<T>, Vector2<T>> {
+  typedef SpecializedMatrix<2, T, Matrix2<T>, Vector2<T>> Base;
 public:
   using Base::cell;
   using Base::setCell;
@@ -326,58 +326,58 @@ public:
 
 template<class T>
 const Matrix2<T>& Matrix2<T>::identity() {
-  Matrix2<T>* m = new Matrix2<T>();
-  return *m;
+  static Matrix2<T> m(1, 0, 0, 1);
+  return m;
 }
 
 template<class T>
 const Matrix2<T>& Matrix2<T>::rotate90() {
-  Matrix2<T>* m = new Matrix2<T>(0, -1, 1, 0);
-  return *m;
+  static Matrix2<T> m(0, -1, 1, 0);
+  return m;
 }
 
 template<class T>
 const Matrix2<T>& Matrix2<T>::rotate180() {
-  Matrix2<T>* m = new Matrix2<T>(-1, 0, 0, -1);
-  return *m;
+  static Matrix2<T> m(-1, 0, 0, -1);
+  return m;
 }
 
 template<class T>
 const Matrix2<T>& Matrix2<T>::rotate270() {
-  Matrix2<T>* m = new Matrix2<T>(0, 1, -1, 0);
-  return *m;
+  static Matrix2<T> m(0, 1, -1, 0);
+  return m;
 }
 
 template<class T>
 const Matrix2<T>& Matrix2<T>::reflectX() {
-  Matrix2<T>* m = new Matrix2<T>(-1, 0, 0, 1);
-  return *m;
+  static Matrix2<T> m(-1, 0, 0, 1);
+  return m;
 }
 
 template<class T>
 const Matrix2<T>& Matrix2<T>::reflectY() {
-  Matrix2<T>* m = new Matrix2<T>(1, 0, 0, -1);
-  return *m;
+  static Matrix2<T> m(1, 0, 0, -1);
+  return m;
 }
 
 template<class T>
 const Vector2<T>& Matrix2<T>::xUnit() {
-  Vector2<T>* v = new Vector2<T>(1, 0);
-  return *v;
+  static Vector2<T> v(1, 0);
+  return v;
 }
 
 template<class T>
 const Vector2<T>& Matrix2<T>::yUnit() {
-  Vector2<T>* v = new Vector2<T>(0, 1);
-  return *v;
+  static Vector2<T> v(0, 1);
+  return v;
 }
 
 typedef Matrix2<float> Matrix2f;
 typedef Matrix2<double> Matrix2d;
 
 template<class T>
-class Matrix3 : public SpecializedMatrix<3, T, Matrix3<T>, Vector3<T> > {
-  typedef SpecializedMatrix<3, T, Matrix3<T>, Vector3<T> > Base;
+class Matrix3 : public SpecializedMatrix<3, T, Matrix3<T>, Vector3<T>> {
+  typedef SpecializedMatrix<3, T, Matrix3<T>, Vector3<T>> Base;
 public:
   using Base::setCell;
   
@@ -448,8 +448,8 @@ typedef Matrix3<float> Matrix3f;
 typedef Matrix3<double> Matrix3d;
 
 template<class T>
-class Matrix4 : public SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > {
-  typedef SpecializedMatrix<4, T, Matrix4<T>, Vector4<T> > Base;
+class Matrix4 : public SpecializedMatrix<4, T, Matrix4<T>, Vector4<T>> {
+  typedef SpecializedMatrix<4, T, Matrix4<T>, Vector4<T>> Base;
 public:
   using Base::cell;
   using Base::setCell;
@@ -492,6 +492,10 @@ public:
       0, 0, 1, position[2],
       0, 0, 0, 1
     );
+  }
+  
+  inline Vector3<T> translation() const {
+    return Vector3<T>(cell(0, 3), cell(1, 3), cell(2, 3));
   }
 };
 

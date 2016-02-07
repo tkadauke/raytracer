@@ -57,18 +57,18 @@ Primitive* SmoothMeshTriangle::intersect(const Ray& ray, HitPointInterval& hitPo
   
   const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
   if (t < 0)
-    return 0;
+    return nullptr;
   
   const double hu = O[ku] + t * D[ku] - A[ku];
   const double hv = O[kv] + t * D[kv] - A[kv];
   
   const double beta = hv * bnu + hu * bnv;
   if (beta < 0 || beta > 1)
-    return 0;
+    return nullptr;
   
   const double gamma = hu * cnu + hv * cnv;
   if (gamma < 0 || (beta + gamma) > 1)
-    return 0;
+    return nullptr;
   
   hitPoints.add(HitPoint(t, ray.at(t), interpolateNormal(beta, gamma)));
   

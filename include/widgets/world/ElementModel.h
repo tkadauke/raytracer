@@ -9,7 +9,7 @@ class ElementModel : public QAbstractItemModel {
   Q_OBJECT
 
 public:
-  ElementModel(Element* root, QObject* parent = 0);
+  ElementModel(Element* root, QObject* parent = nullptr);
   ~ElementModel();
 
   QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;

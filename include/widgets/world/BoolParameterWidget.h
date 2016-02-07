@@ -7,7 +7,7 @@ class BoolParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
   
 public:
-  BoolParameterWidget(QWidget* parent = 0);
+  BoolParameterWidget(QWidget* parent = nullptr);
   ~BoolParameterWidget();
   
   virtual void setParameterName(const QString& name);

@@ -10,7 +10,7 @@ Surface::Surface(Element* parent)
 }
 
 raytracer::Primitive* Surface::applyTransform(raytracer::Primitive* primitive) const {
-  raytracer::Instance* result = new raytracer::Instance(primitive);
+  auto result = new raytracer::Instance(primitive);
   const Matrix4d matrix =
     Matrix4d::translate(position()) *
     Matrix3d::rotate(rotation()) *

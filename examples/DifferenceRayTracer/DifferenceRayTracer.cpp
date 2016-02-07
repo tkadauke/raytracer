@@ -19,14 +19,14 @@ using namespace raytracer;
 int main(int argc, char** argv) {
   QApplication app(argc, argv);
   
-  Scene* scene = new Scene(Colord(0.4, 0.4, 0.4));
+  auto scene = new Scene(Colord(0.4, 0.4, 0.4));
 
-  Sphere* sphere1 = new Sphere(Vector3d(0, 1, 0), 1);
-  Sphere* sphere2 = new Sphere(Vector3d(1.8, 1, 0), 1);
-  Sphere* sphere3 = new Sphere(Vector3d(-1.8, 1, 0), 1);
-  Sphere* sphere4 = new Sphere(Vector3d(0, 1, 1.8), 1);
-  Sphere* sphere5 = new Sphere(Vector3d(0, 1, -1.8), 1);
-  Composite* d = new Difference();
+  auto sphere1 = new Sphere(Vector3d(0, 1, 0), 1);
+  auto sphere2 = new Sphere(Vector3d(1.8, 1, 0), 1);
+  auto sphere3 = new Sphere(Vector3d(-1.8, 1, 0), 1);
+  auto sphere4 = new Sphere(Vector3d(0, 1, 1.8), 1);
+  auto sphere5 = new Sphere(Vector3d(0, 1, -1.8), 1);
+  auto d = new Difference();
   d->add(sphere1);
   d->add(sphere2);
   d->add(sphere3);
@@ -40,14 +40,14 @@ int main(int argc, char** argv) {
   
   d->setMaterial(&glass);
   
-  Sphere* sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
   
   ReflectiveMaterial red;
   red.setDiffuseColor(Colord(1, 0, 0));
   red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&red);
   
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = new Plane(Vector3d(0, -1, 0), 2);
   
   PhongMaterial blue(Colord(0, 0, 1));
   plane->setMaterial(&blue);
@@ -56,11 +56,11 @@ int main(int argc, char** argv) {
   scene->add(sphere6);
   scene->add(plane);
   
-  Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   scene->addLight(light1);
   
-  Raytracer* raytracer = new Raytracer(scene);
-  QtDisplay* display = new QtDisplay(0, raytracer);
+  auto raytracer = new Raytracer(scene);
+  auto display = new QtDisplay(0, raytracer);
   
   display->show();
   

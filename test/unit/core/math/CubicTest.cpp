@@ -8,7 +8,7 @@ namespace CubicTest {
   class CubicTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Cubic<float>, Cubic<double> > CubicTypes;
+  typedef ::testing::Types<Cubic<float>, Cubic<double>> CubicTypes;
 
   TYPED_TEST_CASE(CubicTest, CubicTypes);
 

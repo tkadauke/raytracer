@@ -22,7 +22,7 @@ void Exception::getBacktrace() {
 }
 
 void Exception::printBacktrace() {
-  for (Backtrace::const_iterator i = m_backtrace.begin(); i != m_backtrace.end(); ++i) {
-    cout << *i << endl;
+  for (const auto& i : m_backtrace) {
+    cout << i << endl;
   }
 }

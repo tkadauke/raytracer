@@ -25,8 +25,8 @@ namespace CameraTest {
   }
   
   TEST(Camera, ShouldDeleteViewPlaneOnDestruct) {
-    MockViewPlane* plane = new MockViewPlane;
-    ConcreteCamera* camera = new ConcreteCamera;
+    auto plane = new MockViewPlane;
+    auto camera = new ConcreteCamera;
     EXPECT_CALL(*plane, destructorCall());
     camera->setViewPlane(plane);
     delete camera;
@@ -76,14 +76,14 @@ namespace CameraTest {
   
   TEST(Camera, ShouldSetViewPlane) {
     ConcreteCamera camera;
-    ViewPlane* plane = new ViewPlane;
+    auto plane = new ViewPlane;
     camera.setViewPlane(plane);
     ASSERT_EQ(plane, camera.viewPlane());
   }
   
   TEST(Camera, ShouldDeleteOldViewPlaneWhenNewIsSet) {
     ConcreteCamera camera;
-    testing::MockViewPlane* plane = new testing::MockViewPlane;
+    auto plane = new testing::MockViewPlane;
     EXPECT_CALL(*plane, destructorCall());
     camera.setViewPlane(plane);
     camera.setViewPlane(new ViewPlane);

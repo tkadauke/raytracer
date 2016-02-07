@@ -15,14 +15,14 @@ QModelIndex ElementModel::index(int row, int column, const QModelIndex& parent) 
   if (!hasIndex(row, column, parent))
     return QModelIndex();
 
-  Element *parentItem;
+  Element* parentItem;
 
   if (!parent.isValid())
     parentItem = m_rootItem;
   else
     parentItem = static_cast<Element*>(parent.internalPointer());
 
-  Element *childItem = static_cast<Element*>(parentItem->children()[row]);
+  auto childItem = static_cast<Element*>(parentItem->children()[row]);
   if (childItem)
     return createIndex(row, column, childItem);
   else
@@ -33,8 +33,8 @@ QModelIndex ElementModel::parent(const QModelIndex& index) const {
   if (!index.isValid())
     return QModelIndex();
 
-  Element *childItem = static_cast<Element*>(index.internalPointer());
-  Element *parentItem = static_cast<Element*>(childItem->parent());
+  auto childItem = static_cast<Element*>(index.internalPointer());
+  auto parentItem = static_cast<Element*>(childItem->parent());
 
   if (parentItem == m_rootItem)
     return QModelIndex();
@@ -43,7 +43,7 @@ QModelIndex ElementModel::parent(const QModelIndex& index) const {
 }
 
 int ElementModel::rowCount(const QModelIndex& parent) const {
-  Element *parentItem;
+  Element* parentItem;
   if (parent.column() > 0)
     return 0;
 
@@ -66,7 +66,7 @@ QVariant ElementModel::data(const QModelIndex& index, int role) const {
   if (role != Qt::DisplayRole)
     return QVariant();
 
-  Element *item = static_cast<Element*>(index.internalPointer());
+  auto item = static_cast<Element*>(index.internalPointer());
 
   if (index.column() == 0) {
     return item->metaObject()->className();

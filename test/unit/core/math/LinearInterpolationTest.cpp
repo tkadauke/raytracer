@@ -14,21 +14,21 @@ namespace LinearInterpolationTest {
   };
 
   template<class T>
-  struct LinearInterpolationTest<Vector2<T> > : public ::testing::Test {
+  struct LinearInterpolationTest<Vector2<T>> : public ::testing::Test {
     LinearInterpolationTest()
       : begin(1, 0), end(2, 1) {}
     Vector2<T> begin, end;
   };
 
   template<class T>
-  struct LinearInterpolationTest<Vector3<T> > : public ::testing::Test {
+  struct LinearInterpolationTest<Vector3<T>> : public ::testing::Test {
     LinearInterpolationTest()
       : begin(1, 0, 0), end(2, 1, 0) {}
     Vector3<T> begin, end;
   };
 
   template<class T>
-  struct LinearInterpolationTest<Vector4<T> > : public ::testing::Test {
+  struct LinearInterpolationTest<Vector4<T>> : public ::testing::Test {
     LinearInterpolationTest()
       : begin(1, 0, 0), end(2, 1, 0) {}
     Vector4<T> begin, end;
@@ -41,22 +41,22 @@ namespace LinearInterpolationTest {
   TYPED_TEST(LinearInterpolationTest, ShouldReturnFirstVectorAsBeginIterator) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
 
-    typename LinearInterpolation<TypeParam>::Iterator iter = interpolation.begin();
+    auto iter = interpolation.begin();
     ASSERT_EQ(this->begin, *iter);
   }
 
   TYPED_TEST(LinearInterpolationTest, ShouldReturnLastVectorAsEndIterator) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
 
-    typename LinearInterpolation<TypeParam>::Iterator iter = interpolation.end();
+    auto iter = interpolation.end();
     ASSERT_EQ(this->end, *iter);
   }
 
   TYPED_TEST(LinearInterpolationTest, ShouldReturnSameIteratorWhenPreIncrementing) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
 
-    typename LinearInterpolation<TypeParam>::Iterator iter = interpolation.begin();
-    const typename LinearInterpolation<TypeParam>::Iterator& incremented = ++iter;
+    auto iter = interpolation.begin();
+    const auto& incremented = ++iter;
 
     ASSERT_EQ(&iter, &incremented);
   }
@@ -64,8 +64,8 @@ namespace LinearInterpolationTest {
   TYPED_TEST(LinearInterpolationTest, ShouldReturnNewIteratorWhenPostIncrementing) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
 
-    typename LinearInterpolation<TypeParam>::Iterator iter = interpolation.begin();
-    const typename LinearInterpolation<TypeParam>::Iterator& incremented = iter++;
+    auto iter = interpolation.begin();
+    const auto& incremented = iter++;
 
     ASSERT_NE(&iter, &incremented);
   }
@@ -88,8 +88,8 @@ namespace LinearInterpolationTest {
 
     std::list<TypeParam> results;
 
-    for (typename LinearInterpolation<TypeParam>::Iterator i = interpolation.begin(); i != interpolation.end(); ++i) {
-      results.push_back(*i);
+    for (auto i : interpolation) {
+      results.push_back(i);
     }
 
     ASSERT_EQ(10u, results.size());
@@ -99,7 +99,7 @@ namespace LinearInterpolationTest {
     Vector3f begin(1, 0, 0), end(2, 1, 0), expected(1.1, 0.1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
   
-    LinearInterpolation<Vector3f>::Iterator iter = interpolation.begin();
+    auto iter = interpolation.begin();
     ++iter;
   
     ASSERT_VECTOR_NEAR(expected, *iter, 0.0001);
@@ -109,7 +109,7 @@ namespace LinearInterpolationTest {
     Vector3f begin(1, 0, 0), end(2, 1, 0), expected(1.1, 0.1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
   
-    LinearInterpolation<Vector3f>::Iterator iter = interpolation.begin();
+    auto iter = interpolation.begin();
     iter++;
   
     ASSERT_VECTOR_NEAR(expected, *iter, 0.0001);
@@ -119,7 +119,7 @@ namespace LinearInterpolationTest {
     Vector3f begin(1, 0, 0), end(2, 1, 0), expected(1.1, 0.1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
   
-    LinearInterpolation<Vector3f>::Iterator iter = interpolation.begin();
+    auto iter = interpolation.begin();
     ASSERT_EQ(0, iter.current());
     ++iter;
     ASSERT_EQ(1, iter.current());

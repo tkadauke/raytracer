@@ -8,13 +8,13 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered sphere") {
-  Sphere* sphere = new Sphere(Vector3d::null(), 1);
+  auto sphere = new Sphere(Vector3d::null(), 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
 }
 
 GIVEN(RaytracerFeatureTest, "a displaced sphere") {
-  Sphere* sphere = new Sphere(Vector3d(0, 20, 0), 1);
+  auto sphere = new Sphere(Vector3d(0, 20, 0), 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
 }

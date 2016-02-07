@@ -8,8 +8,8 @@ public:
   static const double epsilon;
 
   static const Ray& undefined() {
-    static Ray* r = new Ray(Vector4d::undefined(), Vector3d::undefined());
-    return *r;
+    static Ray r(Vector4d::undefined(), Vector3d::undefined());
+    return r;
   }
 
   inline Ray(const Vector3d& origin, const Vector3d& direction)

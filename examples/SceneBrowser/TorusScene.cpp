@@ -30,18 +30,18 @@ TorusScene::TorusScene()
   m_glass.setAbsorbanceColor(Colord(0.4, 0.2, 0.2));
   m_glass.setRefractionIndex(1.52);
   
-  Torus* torus = new Torus(2, 1);
-  Instance* instance = new Instance(torus);
+  auto torus = new Torus(2, 1);
+  auto instance = new Instance(torus);
   instance->setMatrix(Matrix3d::rotateX(90));
   instance->setMaterial(&m_glass);
   add(instance);
   
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 4);
+  auto plane = new Plane(Vector3d(0, -1, 0), 4);
   plane->setMaterial(&m_blue);
   
   add(plane);
   
-  Light* light1 = new Light(Vector3d(-18, -18, -6), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-18, -18, -6), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

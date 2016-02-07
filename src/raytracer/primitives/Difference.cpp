@@ -7,16 +7,16 @@ using namespace raytracer;
 Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   bool firstElement = true;
   
-  for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i) {
+  for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    if ((*i)->intersect(ray, candidate)) {
+    if (i->intersect(ray, candidate)) {
       if (firstElement) {
         hitPoints = candidate;
       } else {
         hitPoints = hitPoints - candidate;
       }
     } else if (firstElement) {
-      return 0;
+      return nullptr;
     }
     firstElement = false;
   }

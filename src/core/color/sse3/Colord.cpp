@@ -3,13 +3,13 @@
 #ifdef __SSE3__
 
 const Color<double>& Color<double>::black() {
-  Color<double>* c = new Color<double>();
-  return *c;
+  static Color<double> c(0, 0, 0);
+  return c;
 }
 
 const Color<double>& Color<double>::white() {
-  Color<double>* c = new Color<double>(1, 1, 1);
-  return *c;
+  static Color<double> c(1, 1, 1);
+  return c;
 }
 
 #endif

@@ -40,7 +40,7 @@ QDockWidget* MainWindow::createPropertyEditor() {
 
   connect(m_propertyEditorWidget, SIGNAL(changed(Element*)), this, SLOT(elementChanged(Element*)));
 
-  QDockWidget* dockWidget = new QDockWidget("Properties", this);
+  auto dockWidget = new QDockWidget("Properties", this);
   dockWidget->setWidget(m_propertyEditorWidget);
   
   return dockWidget;
@@ -48,14 +48,14 @@ QDockWidget* MainWindow::createPropertyEditor() {
 
 QDockWidget* MainWindow::createElementSelector() {
   m_elementModel = new ElementModel(m_scene);
-  QTreeView* elementTree = new QTreeView(this);
+  auto elementTree = new QTreeView(this);
   elementTree->setModel(m_elementModel);
-  QItemSelectionModel* itemSelectionModel = new QItemSelectionModel(m_elementModel);
+  auto itemSelectionModel = new QItemSelectionModel(m_elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
   
   connect(itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&)));
   
-  QDockWidget* dockWidget = new QDockWidget("Elements", this);
+  auto dockWidget = new QDockWidget("Elements", this);
   dockWidget->setWidget(elementTree);
   
   return dockWidget;
@@ -63,7 +63,7 @@ QDockWidget* MainWindow::createElementSelector() {
 
 void MainWindow::initScene() {
   m_scene = new ::Scene(0);
-  Sphere* sphere = new Sphere(m_scene);
+  auto sphere = new Sphere(m_scene);
   sphere->setObjectName("Sphere 1");
   sphere->setRadius(1);
 
@@ -72,7 +72,7 @@ void MainWindow::initScene() {
   sphere->setObjectName("Sphere 2");
   sphere->setPosition(Vector3d(1, 0, 0));
   
-  Box* box = new Box(m_scene);
+  auto box = new Box(m_scene);
   box->setPosition(Vector3d(0, 2, 0));
   box->setSize(Vector3d(1, 1, 1));
   box->setObjectName("Box 1");
@@ -83,7 +83,7 @@ void MainWindow::elementChanged(Element*) {
 }
 
 void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&) {
-  Element* element = static_cast<Element*>(current.internalPointer());
+  auto element = static_cast<Element*>(current.internalPointer());
   if (element) {
     m_propertyEditorWidget->setElement(element);
   }

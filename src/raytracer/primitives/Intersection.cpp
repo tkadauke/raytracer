@@ -6,9 +6,9 @@ using namespace raytracer;
 
 Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   unsigned int numHits = 0;
-  for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i) {
+  for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    if ((*i)->intersect(ray, candidate)) {
+    if (i->intersect(ray, candidate)) {
       if (numHits) {
         hitPoints = hitPoints & candidate;
       } else {
@@ -22,8 +22,8 @@ Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) 
 }
 
 bool Intersection::intersects(const Ray& ray) {
-  for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i) {
-    if (!(*i)->intersects(ray))
+  for (const auto& i : primitives()) {
+    if (!i->intersects(ray))
       return false;
   }
   
@@ -33,11 +33,11 @@ bool Intersection::intersects(const Ray& ray) {
 BoundingBox Intersection::boundingBox() {
   BoundingBox result;
   int num = 0;
-  for (Primitives::const_iterator i = primitives().begin(); i != primitives().end(); ++i, ++num) {
-    if (num == 0)
-      result = (*i)->boundingBox();
+  for (const auto& i : primitives()) {
+    if (num++ == 0)
+      result = i->boundingBox();
     else
-      result &= (*i)->boundingBox();
+      result &= i->boundingBox();
   }
   return result;
 }

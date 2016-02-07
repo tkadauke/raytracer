@@ -20,7 +20,7 @@ namespace {
       m_column = m_pointIndices[m_pointIndex].second;
     }
 
-    vector<pair<int, int> > m_pointIndices;
+    vector<pair<int, int>> m_pointIndices;
     unsigned int m_pointIndex;
   };
 

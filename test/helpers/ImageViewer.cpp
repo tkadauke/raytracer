@@ -23,7 +23,7 @@ void ImageViewerWidget::paintEvent(QPaintEvent*) {
 
 ImageViewer::ImageViewer(const Buffer<unsigned int>& buffer) {
   int argc = 0;
-  char** argv = 0;
+  char** argv = nullptr;
   m_application = new QApplication(argc, argv);
   
   m_widget = new ImageViewerWidget(buffer);

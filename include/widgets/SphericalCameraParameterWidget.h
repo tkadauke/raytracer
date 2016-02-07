@@ -7,7 +7,7 @@ class SphericalCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
   
 public:
-  SphericalCameraParameterWidget(QWidget* parent = 0);
+  SphericalCameraParameterWidget(QWidget* parent = nullptr);
   ~SphericalCameraParameterWidget();
   
   int horizontalFieldOfView() const;

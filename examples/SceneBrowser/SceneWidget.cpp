@@ -15,8 +15,8 @@ SceneWidget::SceneWidget(QWidget* parent)
 {
   p->ui.setupUi(this);
   list<string> types = SceneFactory::self().identifiers();
-  for (list<string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-    p->ui.m_sceneComboBox->addItem(QString::fromStdString(*i));
+  for (const auto& i : types) {
+    p->ui.m_sceneComboBox->addItem(QString::fromStdString(i));
   }
   connect(p->ui.m_sceneComboBox, SIGNAL(activated(int)), this, SLOT(sceneChanged()));
 }

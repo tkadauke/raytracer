@@ -41,7 +41,7 @@ int Cubic<T>::solve() {
       m_result[0] = 0;
       numberOfResults = 1;
     } else {
-      T cubeRoot = cbrt(-q);
+      T cubeRoot = std::cbrt(-q);
       m_result[0] = 2 * cubeRoot;
       m_result[1] = - cubeRoot;
       numberOfResults = 2;
@@ -56,8 +56,8 @@ int Cubic<T>::solve() {
     numberOfResults = 3;
   } else {
     T determinantRoot = std::sqrt(determinant);
-    T u = cbrt(determinantRoot - q);
-    T v = - cbrt(determinantRoot + q);
+    T u = std::cbrt(determinantRoot - q);
+    T v = - std::cbrt(determinantRoot + q);
 
     m_result[0] = u + v;
     numberOfResults = 1;

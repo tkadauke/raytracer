@@ -13,13 +13,13 @@ Primitive* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double discriminant = od * od - dd * (o * o - m_radius * m_radius);
   
   if (discriminant < 0) {
-    return 0;
+    return nullptr;
   } else if (discriminant > 0) {
     double discriminantRoot = sqrt(discriminant);
     double t1 = (-od - discriminantRoot) / dd;
     double t2 = (-od + discriminantRoot) / dd;
     if (t1 <= 0 && t2 <= 0)
-      return 0;
+      return nullptr;
     
     Vector3d hitPoint1 = ray.at(t1),
              hitPoint2 = ray.at(t2);
@@ -27,7 +27,7 @@ Primitive* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
                   HitPoint(t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
     return this;
   }
-  return 0;
+  return nullptr;
 }
 
 bool Sphere::intersects(const Ray& ray) {

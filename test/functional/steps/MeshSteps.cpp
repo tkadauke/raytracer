@@ -14,7 +14,7 @@ using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered cube mesh") {
   ifstream stream("test/fixtures/cube.ply");
-  Mesh* mesh = new Mesh;
+  auto mesh = new Mesh;
   PlyFile file(stream, *mesh);
   mesh->computeNormals();
   
@@ -23,10 +23,10 @@ GIVEN(RaytracerFeatureTest, "a centered cube mesh") {
 
 GIVEN(RaytracerFeatureTest, "a displaced cube mesh") {
   ifstream stream("test/fixtures/cube.ply");
-  Mesh* mesh = new Mesh;
+  auto mesh = new Mesh;
   PlyFile file(stream, *mesh);
   mesh->computeNormals();
-  Composite* composite = new Composite;
+  auto composite = new Composite;
   mesh->addFlatTrianglesTo(composite, test->redDiffuse());
   
   Instance* instance = new Instance(composite);

@@ -26,10 +26,9 @@ void Camera::setViewPlane(ViewPlane* plane) {
 
 const Matrix4d& Camera::matrix() {
   if (!m_matrix) {
-    Vector3d zAxis = (m_target - m_position).normalized();
-    Vector3d up(0, 1, 0);
-    Vector3d xAxis = up ^ zAxis;
-    Vector3d yAxis = xAxis ^ -zAxis;
+    auto zAxis = (m_target - m_position).normalized();
+    auto xAxis = Vector3d::up() ^ zAxis;
+    auto yAxis = xAxis ^ -zAxis;
     
     m_matrix = Matrix4d(xAxis, yAxis, zAxis).inverted();
     m_matrix.value().setCell(0, 3, m_position[0]);

@@ -42,19 +42,19 @@ Primitive* Box::intersect(const Ray& ray, HitPointInterval& hitPoints) {
           t2 = s;
         }
         if (t1 > t2)
-          return 0;
+          return nullptr;
       }
     }
   }
   
   if (t1 < 0 && t2 < 0)
-    return 0;
+    return nullptr;
 
   if (parallel)
     for (int i = 0; i < 3; ++i)
       if (parallel & (1 << i))
         if (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] || fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i])
-          return 0;
+          return nullptr;
 
   hitPoints.add(HitPoint(t1, ray.at(t1), normal1),
                 HitPoint(t2, ray.at(t2), normal2));

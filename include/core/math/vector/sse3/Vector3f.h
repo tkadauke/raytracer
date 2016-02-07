@@ -17,6 +17,10 @@ public:
   static const Vector3<float>& minusInfinity();
   static const Vector3<float>& plusInfinity();
 
+  static const Vector3<float>& right();
+  static const Vector3<float>& up();
+  static const Vector3<float>& forward();
+
   inline Vector3() {
     m_vector[0] = _mm_setzero_ps();
   }

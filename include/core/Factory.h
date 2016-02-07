@@ -27,8 +27,9 @@ class Factory {
 public:
   Factory() {}
   ~Factory() {
-    for (typename Creators::iterator i = m_creators.begin(); i != m_creators.end(); ++i)
-      delete i->second;
+    for (auto& i : m_creators) {
+      delete i.second;
+    }
   }
   
   template<class Concrete>
@@ -41,13 +42,14 @@ public:
     if (BaseCreator* creator = m_creators[id])
       return creator->create();
     else
-      return 0;
+      return nullptr;
   }
   
   std::list<std::string> identifiers() const {
     std::list<std::string> result;
-    for (typename Creators::const_iterator i = m_creators.begin(); i != m_creators.end(); ++i)
-      result.push_back(i->first);
+    for (const auto& i : m_creators) {
+      result.push_back(i.first);
+    }
     return result;
   }
 

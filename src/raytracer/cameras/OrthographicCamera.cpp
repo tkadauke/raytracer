@@ -8,10 +8,9 @@
 using namespace raytracer;
 
 void OrthographicCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
-  Matrix4d m = matrix();
-  ViewPlane* plane = viewPlane();
+  auto plane = viewPlane();
 
-  Vector3d direction = Matrix3d(m) * Vector3d(0, 0, 1);
+  Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     Ray ray(*pixel, direction);
@@ -23,7 +22,7 @@ void OrthographicCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buff
 }
 
 Ray OrthographicCamera::rayForPixel(int x, int y) {
-  Vector3d direction = Matrix3d(matrix()) * Vector3d(0, 0, 1);
+  Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Ray(pixel, direction);
 }

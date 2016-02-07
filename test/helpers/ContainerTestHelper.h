@@ -21,9 +21,9 @@ namespace testing {
     void outputContainer(Ostream& os, const Container& container) {
       unsigned int count = 0;
       os << '[';
-      for (typename Container::const_iterator i = container.begin(); i != container.end(); ++i, ++count) {
-        os << *i;
-        if (count != container.size() - 1)
+      for (const auto& element : container) {
+        os << element;
+        if (++count != container.size())
           os << ", ";
       }
       os << ']';

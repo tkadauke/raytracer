@@ -11,10 +11,9 @@ using namespace std;
 using namespace raytracer;
 
 void FishEyeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
-  Matrix4d m = matrix();
-  ViewPlane* plane = viewPlane();
+  auto plane = viewPlane();
 
-  Vector3d position = m * Vector4d(0, 0, 0);
+  Vector3d position = matrix().translation();
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     Ray ray(position, direction(*plane, pixel.column(), pixel.row()));
@@ -44,7 +43,7 @@ Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
 }
 
 Ray FishEyeCamera::rayForPixel(int x, int y) {
-  Vector3d position = matrix() * Vector4d(0, 0, 0);
+  Vector3d position = matrix().translation();
   return Ray(position, direction(*viewPlane(), x, y));
 }
 

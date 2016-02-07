@@ -2,8 +2,8 @@
 #include "core/math/Ray.h"
 
 const BoundingBox& BoundingBox::undefined() {
-  static BoundingBox* b = new BoundingBox(Vector3d::undefined(), Vector3d::undefined());
-  return *b;
+  static BoundingBox b(Vector3d::undefined(), Vector3d::undefined());
+  return b;
 }
 
 bool BoundingBox::intersects(const Ray& ray) const {

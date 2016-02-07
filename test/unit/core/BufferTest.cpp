@@ -7,7 +7,7 @@ namespace BufferTest {
   class BufferTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Buffer<Color<float> >, Buffer<Color<double> > > BufferTypes;
+  typedef ::testing::Types<Buffer<Color<float>>, Buffer<Color<double>>> BufferTypes;
   TYPED_TEST_CASE(BufferTest, BufferTypes);
   
   TYPED_TEST(BufferTest, ShouldInitializeBuffer) {

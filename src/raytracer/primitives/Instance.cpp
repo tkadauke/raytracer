@@ -13,7 +13,7 @@ Primitive* Instance::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
     return this;
   }
-  return 0;
+  return nullptr;
 }
 
 bool Instance::intersects(const Ray& ray) {

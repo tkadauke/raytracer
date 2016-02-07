@@ -15,7 +15,7 @@ namespace RectangleTest {
     Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = rectangle.intersect(ray, hitPoints);
+    auto primitive = rectangle.intersect(ray, hitPoints);
     ASSERT_EQ(primitive, &rectangle);
     ASSERT_EQ(Vector3d(0, 0, 0), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, 1), hitPoints.min().normal());
@@ -27,7 +27,7 @@ namespace RectangleTest {
     Ray ray(Vector3d(0, 0, -2), Vector3d(1, 1, 0));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = rectangle.intersect(ray, hitPoints);
+    auto primitive = rectangle.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
@@ -38,7 +38,7 @@ namespace RectangleTest {
     Ray ray(Vector3d(-2, -2, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = rectangle.intersect(ray, hitPoints);
+    auto primitive = rectangle.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
@@ -49,7 +49,7 @@ namespace RectangleTest {
     Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = rectangle.intersect(ray, hitPoints);
+    auto primitive = rectangle.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());

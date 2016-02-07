@@ -118,12 +118,12 @@ HitPointInterval HitPointInterval::operator-(const HitPointInterval& other) cons
 
 std::ostream& operator<<(std::ostream& os, const HitPointInterval& interval) {
   os << '[';
-  for (HitPointInterval::HitPoints::const_iterator i = interval.points().begin(); i != interval.points().end(); ++i) {
-    if (i->in)
+  for (const auto& i : interval.points()) {
+    if (i.in)
       os << '+';
     else
       os << '-';
-    os << i->point.distance();
+    os << i.point.distance();
   }
   os << ']';
   return os;

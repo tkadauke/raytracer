@@ -5,6 +5,6 @@
 #include "core/Singleton.h"
 #include "widgets/CameraParameterWidget.h"
 
-typedef Singleton<Factory<CameraParameterWidget> > CameraParameterWidgetFactory;
+typedef Singleton<Factory<CameraParameterWidget>> CameraParameterWidgetFactory;
 
 #endif

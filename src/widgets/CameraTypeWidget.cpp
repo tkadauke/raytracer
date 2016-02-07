@@ -16,8 +16,8 @@ CameraTypeWidget::CameraTypeWidget(QWidget* parent)
 {
   p->ui.setupUi(this);
   list<string> types = CameraFactory::self().identifiers();
-  for (list<string>::const_iterator i = types.begin(); i != types.end(); ++i) {
-    p->ui.m_cameraTypeComboBox->addItem(QString::fromStdString(*i));
+  for (const auto& type : types) {
+    p->ui.m_cameraTypeComboBox->addItem(QString::fromStdString(type));
   }
   connect(p->ui.m_cameraTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
 }

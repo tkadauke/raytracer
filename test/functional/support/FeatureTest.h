@@ -37,7 +37,7 @@ namespace testing {
         m_state = STATE_GIVEN;
       }
 
-      Step* step = Steps::self().givens[g];
+      auto step = Steps::self().givens[g];
       if (step) {
         step->call(static_cast<Derived*>(this));
       } else {
@@ -51,7 +51,7 @@ namespace testing {
         m_state = STATE_WHEN;
       }
 
-      Step* step = Steps::self().whens[w];
+      auto step = Steps::self().whens[w];
       if (step) {
         step->call(static_cast<Derived*>(this));
       } else {
@@ -65,7 +65,7 @@ namespace testing {
         m_state = STATE_THEN;
       }
 
-      Step* step = Steps::self().thens[t];
+      auto step = Steps::self().thens[t];
       if (step) {
         step->call(static_cast<Derived*>(this));
       } else {

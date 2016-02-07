@@ -39,20 +39,20 @@ MeshScene::MeshScene()
   
   m_silver.setSpecularColor(Colord(0.5, 0.5, 0.5));
   
-  Grid* grid = new Grid;
+  auto grid = new Grid;
   m_mesh.addSmoothTrianglesTo(grid, &m_silver);
   grid->setup();
-  Instance* instance = new Instance(grid);
+  auto instance = new Instance(grid);
   instance->setMatrix(Matrix4d::translate(Vector3d(0, 0, 0)) * Matrix3d::scale(0.07));
   instance->setMaterial(&m_silver);
   add(instance);
   
-  Sphere* sphere = new Sphere(Vector3d(0, 0, 200), 100);
+  auto sphere = new Sphere(Vector3d(0, 0, 200), 100);
   sphere->setMaterial(&m_red);
   add(sphere);
   
-  Light* light1 = new Light(Vector3d(-100, -100, -100), Colord(0.6, 0.6, 0.6));
-  Light* light2 = new Light(Vector3d(100, -100, 100), Colord(0.6, 0.6, 0.6));
+  auto light1 = new Light(Vector3d(-100, -100, -100), Colord(0.6, 0.6, 0.6));
+  auto light2 = new Light(Vector3d(100, -100, 100), Colord(0.6, 0.6, 0.6));
   addLight(light1);
   addLight(light2);
 }

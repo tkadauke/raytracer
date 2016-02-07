@@ -259,20 +259,20 @@ public:
 };
 
 template<class T>
-class Vector2 : public SpecializedVector<2, T, Vector2<T> > {
-  typedef SpecializedVector<2, T, Vector2<T> > Base;
+class Vector2 : public SpecializedVector<2, T, Vector2<T>> {
+  typedef SpecializedVector<2, T, Vector2<T>> Base;
 public:
   using Base::setCoordinate;
   
   static const Vector2<T>& null() {
-    static Vector2<T>* v = new Vector2<T>();
-    return *v;
+    static Vector2<T> v(0, 0);
+    return v;
   }
   
   static const Vector2<T>& undefined() {
-    static Vector2<T>* v = new Vector2<T>(std::numeric_limits<T>::quiet_NaN(),
-                                          std::numeric_limits<T>::quiet_NaN());
-    return *v;
+    static Vector2<T> v(std::numeric_limits<T>::quiet_NaN(),
+                        std::numeric_limits<T>::quiet_NaN());
+    return v;
   }
 
   inline Vector2()
@@ -296,40 +296,55 @@ public:
 };
 
 template<class T>
-class Vector3 : public SpecializedVector<3, T, Vector3<T> > {
-  typedef SpecializedVector<3, T, Vector3<T> > Base;
+class Vector3 : public SpecializedVector<3, T, Vector3<T>> {
+  typedef SpecializedVector<3, T, Vector3<T>> Base;
 public:
   static const Vector3<T>& null() {
-    static Vector3<T>* v = new Vector3<T>();
-    return *v;
+    static Vector3<T> v(0, 0, 0);
+    return v;
   }
   
   static const Vector3<T>& epsilon() {
-    static Vector3<T>* v = new Vector3<T>(std::numeric_limits<T>::epsilon(),
-                                          std::numeric_limits<T>::epsilon(),
-                                          std::numeric_limits<T>::epsilon());
-    return *v;
+    static Vector3<T> v(std::numeric_limits<T>::epsilon(),
+                        std::numeric_limits<T>::epsilon(),
+                        std::numeric_limits<T>::epsilon());
+    return v;
   }
   
   static const Vector3<T>& undefined() {
-    static Vector3<T>* v = new Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
-                                          std::numeric_limits<T>::quiet_NaN(),
-                                          std::numeric_limits<T>::quiet_NaN());
-    return *v;
+    static Vector3<T> v(std::numeric_limits<T>::quiet_NaN(),
+                        std::numeric_limits<T>::quiet_NaN(),
+                        std::numeric_limits<T>::quiet_NaN());
+    return v;
   }
   
   static const Vector3<T>& minusInfinity() {
-    static Vector3<T>* v = new Vector3<T>(-std::numeric_limits<T>::infinity(),
-                                          -std::numeric_limits<T>::infinity(),
-                                          -std::numeric_limits<T>::infinity());
-    return *v;
+    static Vector3<T> v(-std::numeric_limits<T>::infinity(),
+                        -std::numeric_limits<T>::infinity(),
+                        -std::numeric_limits<T>::infinity());
+    return v;
   }
   
   static const Vector3<T>& plusInfinity() {
-    static Vector3<T>* v = new Vector3<T>(std::numeric_limits<T>::infinity(),
-                                          std::numeric_limits<T>::infinity(),
-                                          std::numeric_limits<T>::infinity());
-    return *v;
+    static Vector3<T> v(std::numeric_limits<T>::infinity(),
+                        std::numeric_limits<T>::infinity(),
+                        std::numeric_limits<T>::infinity());
+    return v;
+  }
+
+  static const Vector3<T>& right() {
+    static Vector3<T> v(1, 0, 0);
+    return v;
+  }
+
+  static const Vector3<T>& up() {
+    static Vector3<T> v(0, 1, 0);
+    return v;
+  }
+
+  static const Vector3<T>& forward() {
+    static Vector3<T> v(0, 0, 1);
+    return v;
   }
 
   inline Vector3()
@@ -361,20 +376,20 @@ public:
 };
 
 template<class T>
-class Vector4 : public SpecializedVector<4, T, Vector4<T> > {
-  typedef SpecializedVector<4, T, Vector4<T> > Base;
+class Vector4 : public SpecializedVector<4, T, Vector4<T>> {
+  typedef SpecializedVector<4, T, Vector4<T>> Base;
 public:
   static const Vector4<T>& null() {
-    static Vector4<T>* v = new Vector4<T>();
-    return *v;
+    static Vector4<T> v(0, 0, 0, 1);
+    return v;
   }
   
   static const Vector4<T>& undefined() {
-    static Vector4<T>* v = new Vector4<T>(std::numeric_limits<T>::quiet_NaN(),
-                                          std::numeric_limits<T>::quiet_NaN(),
-                                          std::numeric_limits<T>::quiet_NaN(),
-                                          std::numeric_limits<T>::quiet_NaN());
-    return *v;
+    static Vector4<T> v(std::numeric_limits<T>::quiet_NaN(),
+                        std::numeric_limits<T>::quiet_NaN(),
+                        std::numeric_limits<T>::quiet_NaN(),
+                        std::numeric_limits<T>::quiet_NaN());
+    return v;
   }
 
   inline Vector4()

@@ -9,7 +9,7 @@ class SceneWidget : public QWidget {
   Q_OBJECT
   
 public:
-  SceneWidget(QWidget* parent = 0);
+  SceneWidget(QWidget* parent = nullptr);
   ~SceneWidget();
   
   std::string sceneName() const;

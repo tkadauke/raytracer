@@ -104,7 +104,7 @@ namespace testing {
   }
 
   Material* RaytracerFeatureTest::redDiffuse() {
-    Material* material = new MatteMaterial(Colord(1, 0, 0));
+    auto material = new MatteMaterial(Colord(1, 0, 0));
     return material;
   }
 

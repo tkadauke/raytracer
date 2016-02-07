@@ -59,13 +59,17 @@ else
   OPTIMIZE_FLAGS = "-O3 -funroll-loops -mtune=native"
   COVERAGE_FLAGS = ""
 end
-C_FLAGS = "#{INCLUDES} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
-T_FLAGS = "#{INCLUDES} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+
+COMPILER_FLAGS = "-std=c++14"
+
+C_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+T_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 
 CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN)
+CLEAN.include(Rake::FileList["**/*.moc", "**/*.uic"])
 
 task :default => [:examples, :test]
 
@@ -103,8 +107,6 @@ def dependencies(objfile)
   header_dependencies(source_file).uniq
 end
 
-CLEAN += Rake::FileList["**/*.moc", "**/*.uic"]
-
 rule '.uic' => '.ui' do |t|
   sh %{#{QT_UIC} -o #{t.name} #{t.source}}
 end
@@ -140,6 +142,7 @@ EXAMPLES.each do |example|
   end
 end
 
+desc "Build examples"
 task :examples => EXAMPLES_BIN
 
 QT_LD = "DYLD_FRAMEWORK_PATH=#{QT_LIB}"

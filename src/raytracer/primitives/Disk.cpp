@@ -8,7 +8,7 @@ Primitive* Disk::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
   
   if (t < 0.0001)
-    return 0;
+    return nullptr;
   
   Vector3d hitPoint = ray.at(t);
   
@@ -16,7 +16,7 @@ Primitive* Disk::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     hitPoints.add(HitPoint(t, hitPoint, m_normal));
     return this;
   }
-  return 0;
+  return nullptr;
 }
 
 BoundingBox Disk::boundingBox() {

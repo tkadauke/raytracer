@@ -24,16 +24,16 @@ FloatingSpheresScene::FloatingSpheresScene()
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   
-  Sphere* sphere = new Sphere(Vector3d(0, 0, 0), 1);
+  auto sphere = new Sphere(Vector3d(0, 0, 0), 1);
   sphere->setMaterial(&m_red);
   
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 1);
+  auto plane = new Plane(Vector3d(0, -1, 0), 1);
   plane->setMaterial(&m_blue);
   
-  Sphere* sphere2 = new Sphere(Vector3d(-2, -2, 2), 1);
+  auto sphere2 = new Sphere(Vector3d(-2, -2, 2), 1);
   sphere2->setMaterial(&m_green);
   
-  Sphere* sphere3 = new Sphere(Vector3d(2, -2, 2), 1);
+  auto sphere3 = new Sphere(Vector3d(2, -2, 2), 1);
   sphere3->setMaterial(&m_blue);
   
   add(sphere);
@@ -41,10 +41,10 @@ FloatingSpheresScene::FloatingSpheresScene()
   add(sphere3);
   add(plane);
   
-  Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
-  Light* light2 = new Light(Vector3d( 3, -3, -1), Colord(0.4, 0.4, 0.4));
-  Light* light3 = new Light(Vector3d(-3, -3,  1), Colord(0.4, 0.4, 0.4));
-  Light* light4 = new Light(Vector3d( 3, -3,  1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light2 = new Light(Vector3d( 3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light3 = new Light(Vector3d(-3, -3,  1), Colord(0.4, 0.4, 0.4));
+  auto light4 = new Light(Vector3d( 3, -3,  1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
   addLight(light2);
   addLight(light3);

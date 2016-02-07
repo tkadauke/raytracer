@@ -6,7 +6,7 @@
 using namespace raytracer;
 
 Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
-  Colord color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
+  auto color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
 
   Vector3d reflectionDirection = ray.direction() - hitPoint.normal() * (2.0 * (ray.direction() * hitPoint.normal()));
 

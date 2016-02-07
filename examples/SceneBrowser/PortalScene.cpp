@@ -31,7 +31,7 @@ PortalScene::PortalScene()
   m_glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
   m_glass.setRefractionIndex(1.52);
 
-  Box* box = new Box(Vector3d(0, 0, 0), Vector3d(1, 1, 0.1));
+  auto box = new Box(Vector3d(0, 0, 0), Vector3d(1, 1, 0.1));
   box->setMaterial(&m_portal);
   add(box);
 
@@ -40,15 +40,15 @@ PortalScene::PortalScene()
   add(box);
 
   m_blue.setSpecularColor(Colord(1, 1, 1));
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 1);
+  auto plane = new Plane(Vector3d(0, -1, 0), 1);
   plane->setMaterial(&m_blue);
   
   add(plane);
   
-  Light* light1 = new Light(Vector3d(-3, -3, -3), Colord(0.4, 0.4, 0.4));
-  Light* light2 = new Light(Vector3d( 3, -3, -3), Colord(0.4, 0.4, 0.4));
-  Light* light3 = new Light(Vector3d(-3, -3,  3), Colord(0.4, 0.4, 0.4));
-  Light* light4 = new Light(Vector3d( 3, -3,  3), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-3, -3, -3), Colord(0.4, 0.4, 0.4));
+  auto light2 = new Light(Vector3d( 3, -3, -3), Colord(0.4, 0.4, 0.4));
+  auto light3 = new Light(Vector3d(-3, -3,  3), Colord(0.4, 0.4, 0.4));
+  auto light4 = new Light(Vector3d( 3, -3,  3), Colord(0.4, 0.4, 0.4));
   addLight(light1);
   addLight(light2);
   addLight(light3);

@@ -8,7 +8,7 @@ namespace QuadricTest {
   class QuadricTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Quadric<float>, Quadric<double> > QuadricTypes;
+  typedef ::testing::Types<Quadric<float>, Quadric<double>> QuadricTypes;
 
   TYPED_TEST_CASE(QuadricTest, QuadricTypes);
 

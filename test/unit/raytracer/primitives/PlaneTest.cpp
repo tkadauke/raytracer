@@ -15,7 +15,7 @@ namespace PlaneTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(0, -1, 0));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = plane.intersect(ray, hitPoints);
+    auto primitive = plane.intersect(ray, hitPoints);
     ASSERT_EQ(primitive, &plane);
     ASSERT_EQ(Vector3d(0, 0, 0), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 1, 0), hitPoints.min().normal());
@@ -27,7 +27,7 @@ namespace PlaneTest {
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = plane.intersect(ray, hitPoints);
+    auto primitive = plane.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
@@ -38,7 +38,7 @@ namespace PlaneTest {
     Ray ray(Vector3d(0, -1, 0), Vector3d(0, -1, 0));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = plane.intersect(ray, hitPoints);
+    auto primitive = plane.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());

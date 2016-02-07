@@ -10,10 +10,10 @@ Scene::Scene(Element* parent)
 raytracer::Scene* Scene::toRaytracerScene() const {
   raytracer::Scene* result = new raytracer::Scene;
   
-  for (QObjectList::const_iterator i = children().begin(); i != children().end(); ++i) {
-    Surface* surface = dynamic_cast<Surface*>(*i);
+  for (const auto& child : children()) {
+    auto surface = dynamic_cast<Surface*>(child);
     if (surface && surface->visible()) {
-      raytracer::Primitive* primitive = surface->toRaytracerPrimitive();
+       auto primitive = surface->toRaytracerPrimitive();
       result->add(primitive);
     }
   }

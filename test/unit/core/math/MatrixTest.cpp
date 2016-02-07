@@ -272,7 +272,7 @@ namespace SpecializedMatrixTest {
   };
 
   typedef ::testing::Types<Matrix2<float>, Matrix3<float>, Matrix4<float>,
-                           Matrix2<double>, Matrix3<double>, Matrix4<double> > SpecializedMatrixTypes;
+                           Matrix2<double>, Matrix3<double>, Matrix4<double>> SpecializedMatrixTypes;
   TYPED_TEST_CASE(SpecializedMatrixTest, SpecializedMatrixTypes);
   
   TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
@@ -658,5 +658,10 @@ namespace Matrix4Test {
                             0, 0, 1, 3,
                             0, 0, 0, 1);
     ASSERT_EQ(expected, Matrix4<float>::translate(Vector3f(1, 2, 3)));
+  }
+  
+  TEST(Matrix4, ShouldExtractTranslationFromMatrix) {
+    Vector3f expected(1, 2, 3);
+    ASSERT_EQ(expected, Matrix4<float>::translate(expected).translation());
   }
 }

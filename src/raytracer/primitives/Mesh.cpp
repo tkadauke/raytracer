@@ -18,10 +18,10 @@ private:
 
 template<class ConcreteMeshTriangle>
 void Mesh::Private::addTrianglesTo(Composite* composite, Material* material) {
-  for (vector<Mesh::Face>::const_iterator i = mesh.faces.begin(); i != mesh.faces.end(); ++i) {
+  for (const auto& face : mesh.faces) {
     MeshTriangle* triangle;
-    for (unsigned int j = 2; j != i->size(); ++j) {
-      triangle = new ConcreteMeshTriangle(&mesh, (*i)[0], (*i)[j-1], (*i)[j]);
+    for (unsigned int j = 2; j != face.size(); ++j) {
+      triangle = new ConcreteMeshTriangle(&mesh, face[0], face[j-1], face[j]);
       triangle->setMaterial(material);
       composite->add(triangle);
     }
@@ -39,9 +39,7 @@ Mesh::~Mesh() {
 
 void Mesh::computeNormals(bool flip) {
   // find normal of each face and add it to each vertex adjacent to the face
-  for (vector<Face>::iterator i = faces.begin(); i != faces.end(); ++i) {
-    Face& face = *i;
-
+  for (const auto& face : faces) {
     // determine vectors parallel to two edges of face
     Vector3d v0 = vertices[face[face.size() - 1]].point - vertices[face[0]].point;
     Vector3d v1 = vertices[face[1]].point - vertices[face[0]].point;
@@ -58,11 +56,11 @@ void Mesh::computeNormals(bool flip) {
   }
 
   // normalize all the normals at the vertices
-  for (vector<Vertex>::iterator i = vertices.begin(); i != vertices.end(); ++i) {
+  for (auto& vertex : vertices) {
     if (flip)
-      i->normal = -i->normal.normalized();
+      vertex.normal = -vertex.normal.normalized();
     else
-      i->normal.normalize();
+      vertex.normal.normalize();
   }
 }
 

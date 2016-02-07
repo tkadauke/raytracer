@@ -11,7 +11,7 @@ namespace ColorTest {
   class ColorTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Color<float>, Color<double> > ColorTypes;
+  typedef ::testing::Types<Color<float>, Color<double>> ColorTypes;
   TYPED_TEST_CASE(ColorTest, ColorTypes);
   
   TYPED_TEST(ColorTest, ShouldInitializeComponentsWithZeros) {

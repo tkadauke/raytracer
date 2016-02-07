@@ -8,14 +8,14 @@ namespace InstanceTest {
   using namespace raytracer;
   
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
-    MockPrimitive* primitive = new MockPrimitive;
+    auto primitive = new MockPrimitive;
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d(1, 0, 0))), Return(primitive)));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = instance.intersect(ray, hitPoints);
+    auto result = instance.intersect(ray, hitPoints);
     
     ASSERT_EQ(&instance, result);
     
@@ -23,14 +23,14 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
-    MockPrimitive* primitive = new MockPrimitive;
+    auto primitive = new MockPrimitive;
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
-    Primitive* result = instance.intersect(ray, hitPoints);
+    auto result = instance.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, result);
     
@@ -38,7 +38,7 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
-    MockPrimitive* primitive = new MockPrimitive;
+    auto primitive = new MockPrimitive;
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_)).WillOnce(Return(true));
     
@@ -50,7 +50,7 @@ namespace InstanceTest {
   }
 
   TEST(Instance, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
-    MockPrimitive* primitive = new MockPrimitive;
+    auto primitive = new MockPrimitive;
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_)).WillOnce(Return(false));
     
@@ -62,7 +62,7 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldReturnBoundingBox) {
-    MockPrimitive* primitive = new MockPrimitive;
+    auto primitive = new MockPrimitive;
     Instance instance(primitive);
     instance.setMatrix(Matrix3d::scale(2));
     EXPECT_CALL(*primitive, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));

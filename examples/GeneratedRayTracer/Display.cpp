@@ -32,9 +32,9 @@ void Display::setScene(Scene* scene) {
     delete m_raytracer->scene();
   }
   
-  raytracer::Scene* raytracerScene = scene->toRaytracerScene();
+  auto raytracerScene = scene->toRaytracerScene();
   
-  raytracer::Light* light1 = new raytracer::Light(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
+  auto light1 = new raytracer::Light(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
   raytracerScene->addLight(light1);
   
   m_raytracer->setScene(raytracerScene);

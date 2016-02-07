@@ -10,7 +10,7 @@ class PropertyEditorWidget : public QWidget {
   Q_OBJECT
   
 public:
-  PropertyEditorWidget(QWidget* parent = 0);
+  PropertyEditorWidget(QWidget* parent = nullptr);
   ~PropertyEditorWidget();
   
   virtual QSize sizeHint() const;

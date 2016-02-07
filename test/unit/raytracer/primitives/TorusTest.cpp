@@ -15,7 +15,7 @@ namespace TorusTest {
     Ray ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints);
     ASSERT_EQ(primitive, &torus);
     ASSERT_EQ(Vector3d(0, 0, -3), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
@@ -28,7 +28,7 @@ namespace TorusTest {
     Ray ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
@@ -39,7 +39,7 @@ namespace TorusTest {
     Ray ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
@@ -50,7 +50,7 @@ namespace TorusTest {
     Ray ray(Vector3d(0, 4, 0), Vector3d(0, -1, 0));
     
     HitPointInterval hitPoints;
-    Primitive* primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());

@@ -34,7 +34,7 @@ int SphericalCameraParameterWidget::verticalFieldOfView() const {
 }
 
 void SphericalCameraParameterWidget::applyTo(Camera* camera) {
-  SphericalCamera* sphericalCamera = dynamic_cast<SphericalCamera*>(camera);
+  auto sphericalCamera = dynamic_cast<SphericalCamera*>(camera);
   if (sphericalCamera) {
     sphericalCamera->setHorizontalFieldOfView(horizontalFieldOfView());
     sphericalCamera->setVerticalFieldOfView(verticalFieldOfView());

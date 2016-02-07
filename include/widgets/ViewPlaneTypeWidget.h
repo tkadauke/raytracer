@@ -9,7 +9,7 @@ class ViewPlaneTypeWidget : public QWidget {
   Q_OBJECT
   
 public:
-  ViewPlaneTypeWidget(QWidget* parent = 0);
+  ViewPlaneTypeWidget(QWidget* parent = nullptr);
   ~ViewPlaneTypeWidget();
   
   std::string type() const;

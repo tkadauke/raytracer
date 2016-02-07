@@ -6,7 +6,7 @@
 #include "raytracer/cameras/Camera.h"
 
 namespace raytracer {
-  typedef Singleton<Factory<Camera> > CameraFactory;
+  typedef Singleton<Factory<Camera>> CameraFactory;
 }
 
 #endif

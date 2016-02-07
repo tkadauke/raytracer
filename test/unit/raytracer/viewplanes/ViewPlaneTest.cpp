@@ -53,14 +53,14 @@ namespace ViewPlaneTest {
     
     TEST_F(ViewPlane_Iterator, ShouldReturnCurrent) {
       ViewPlane plane(Matrix4d(), this->fullRect);
-      ViewPlane::Iterator iterator = plane.begin(this->fullRect);
+      auto iterator = plane.begin(this->fullRect);
       ASSERT_EQ(Vector3d(-4, -3, 0), *iterator);
     }
     
     TEST_F(ViewPlane_Iterator, ShouldMultiplyCurrentByPixelSize) {
       ViewPlane plane(Matrix4d(), this->fullRect);
       plane.setPixelSize(2);
-      ViewPlane::Iterator iterator = plane.begin(this->fullRect);
+      auto iterator = plane.begin(this->fullRect);
       ASSERT_EQ(Vector3d(-8, -6, 0), *iterator);
     }
     

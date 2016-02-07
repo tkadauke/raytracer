@@ -107,14 +107,14 @@ private:
 
 template<class T>
 const Color<T>& Color<T>::black() {
-  Color<T>* c = new Color<T>();
-  return *c;
+  static Color<T> c(0, 0, 0);
+  return c;
 }
 
 template<class T>
 const Color<T>& Color<T>::white() {
-  Color<T>* c = new Color<T>(1, 1, 1);
-  return *c;
+  static Color<T> c(1, 1, 1);
+  return c;
 }
 
 typedef Color<float> Colorf;

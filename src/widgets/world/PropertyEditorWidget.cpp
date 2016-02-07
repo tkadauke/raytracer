@@ -64,10 +64,10 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
   // TODO: add header
 
   for (int i = klass->propertyOffset(); i != klass->propertyCount(); ++i) {
-    QMetaProperty metaProp = klass->property(i);
-    QVariant prop = p->element->property(metaProp.name());
+    auto metaProp = klass->property(i);
+    auto prop = p->element->property(metaProp.name());
 
-    AbstractParameterWidget* widget = 0;
+    AbstractParameterWidget* widget = nullptr;
 
     QString name = QString(metaProp.typeName());
 
@@ -98,8 +98,8 @@ void PropertyEditorWidget::addParameterWidget(AbstractParameterWidget* widget) {
 }
 
 void PropertyEditorWidget::clearParameterWidgets() {
-  for (QList<AbstractParameterWidget*>::const_iterator i = p->parameterWidgets.begin(); i != p->parameterWidgets.end(); ++i) {
-    delete *i;
+  for (const auto& widget : p->parameterWidgets) {
+    delete widget;
   }
   
   p->parameterWidgets.clear();

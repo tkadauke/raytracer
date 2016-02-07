@@ -24,23 +24,23 @@ MetalSpheresScene::MetalSpheresScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  Sphere* sphere = new Sphere(Vector3d(0, 1, 0), 1);
+  auto sphere = new Sphere(Vector3d(0, 1, 0), 1);
   m_red.setDiffuseColor(Colord(1, 0, 0));
   m_red.setHighlightColor(Colord(0.2, 0.2, 0.2));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere->setMaterial(&m_red);
   
-  Sphere* sphere2 = new Sphere(Vector3d(-2.5, 1, 0), 1);
+  auto sphere2 = new Sphere(Vector3d(-2.5, 1, 0), 1);
   m_green.setDiffuseColor(Colord(0, 1, 0));
   m_green.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere2->setMaterial(&m_green);
   
-  Sphere* sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
   m_blue.setDiffuseColor(Colord(0, 0, 1));
   m_blue.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&m_blue);
   
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = new Plane(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_background);
   
   add(sphere);
@@ -48,7 +48,7 @@ MetalSpheresScene::MetalSpheresScene()
   add(sphere3);
   add(plane);
   
-  Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

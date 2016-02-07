@@ -79,7 +79,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     t1 = tz_max;
 
   if (t0 > t1)
-    return 0;
+    return nullptr;
 
   Vector3d gridSize = m_boundingBox.max() - m_boundingBox.min();
 
@@ -155,7 +155,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   // traverse the grid
 
   while (true) {
-    Primitive* primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
+     auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
 
     if (tx_next < ty_next && tx_next < tz_next) {
       if (primitive) {
@@ -171,7 +171,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
       x += ix_step;
 
       if (x == ix_stop)
-        return 0;
+        return nullptr;
     } else if (ty_next < tz_next) {
       if (primitive) {
         HitPointInterval candidate;
@@ -186,7 +186,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
       y += iy_step;
 
       if (y == iy_stop)
-        return 0;
+        return nullptr;
     } else {
       if (primitive) {
         HitPointInterval candidate;
@@ -201,7 +201,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
       z += iz_step;
 
       if (z == iz_stop)
-        return 0;
+        return nullptr;
     }
   }
 }
@@ -273,7 +273,7 @@ bool Grid::intersects(const Ray& ray) {
     t1 = tz_max;
 
   if (t0 > t1)
-    return 0;
+    return false;
 
   Vector3d gridSize = m_boundingBox.max() - m_boundingBox.min();
 
@@ -349,7 +349,7 @@ bool Grid::intersects(const Ray& ray) {
   // traverse the grid
 
   while (true) {
-    Primitive* primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
+    auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
 
     if (tx_next < ty_next && tx_next < tz_next) {
       if (primitive && primitive->intersects(ray))
@@ -359,7 +359,7 @@ bool Grid::intersects(const Ray& ray) {
       x += ix_step;
 
       if (x == ix_stop)
-        return 0;
+        return false;
     } else if (ty_next < tz_next) {
       if (primitive && primitive->intersects(ray))
         return true;
@@ -368,7 +368,7 @@ bool Grid::intersects(const Ray& ray) {
       y += iy_step;
 
       if (y == iy_stop)
-        return 0;
+        return false;
     } else {
       if (primitive && primitive->intersects(ray))
         return true;
@@ -377,7 +377,7 @@ bool Grid::intersects(const Ray& ray) {
       z += iz_step;
 
       if (z == iz_stop)
-        return 0;
+        return false;
     }
   }
 }
@@ -399,8 +399,8 @@ void Grid::setup() {
   
   vector<int> counts(numCells);
   
-  for (Primitives::const_iterator primitive = primitives().begin(); primitive != primitives().end(); ++primitive) {
-    BoundingBox bbox = (*primitive)->boundingBox();
+  for (const auto& primitive : primitives()) {
+    BoundingBox bbox = primitive->boundingBox();
     
     Vector3d relativeMin = bbox.min() - m_boundingBox.min();
     Vector3d relativeMax = bbox.max() - m_boundingBox.min();
@@ -418,14 +418,14 @@ void Grid::setup() {
           int index = x + m_numX * y + m_numX * m_numY * z;
           
           if (counts[index] == 0) {
-            m_cells[index] = *primitive;
+            m_cells[index] = primitive;
           } else if (counts[index] == 1) {
-            Composite* composite = new Composite;
+            auto composite = new Composite;
             composite->add(m_cells[index]);
-            composite->add(*primitive);
+            composite->add(primitive);
             m_cells[index] = composite;
           } else {
-            dynamic_cast<Composite*>(m_cells[index])->add(*primitive);
+            dynamic_cast<Composite*>(m_cells[index])->add(primitive);
           }
           counts[index]++;
         }

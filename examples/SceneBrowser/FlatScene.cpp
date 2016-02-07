@@ -26,24 +26,24 @@ FlatScene::FlatScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  Triangle* triangle = new Triangle(Vector3d(0, 2, 0), Vector3d(2, 2, 0), Vector3d(0, 0, 0));
+  auto triangle = new Triangle(Vector3d(0, 2, 0), Vector3d(2, 2, 0), Vector3d(0, 0, 0));
   triangle->setMaterial(&m_red);
   add(triangle);
   
-  Disk* disk = new Disk(Vector3d(3, 1, 0), Vector3d(0, 0, -1), 1);
+  auto disk = new Disk(Vector3d(3, 1, 0), Vector3d(0, 0, -1), 1);
   disk->setMaterial(&m_green);
   add(disk);
   
-  Rectangle* rectangle = new Rectangle(Vector3d(-3, 2, 0), Vector3d(2, 0, 0), Vector3d(0, -2, 0));
+  auto rectangle = new Rectangle(Vector3d(-3, 2, 0), Vector3d(2, 0, 0), Vector3d(0, -2, 0));
   rectangle->setMaterial(&m_blue);
   add(rectangle);
   
-  Plane* plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = new Plane(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_blue);
   
   add(plane);
   
-  Light* light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

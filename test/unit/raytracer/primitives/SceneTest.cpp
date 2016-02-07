@@ -25,15 +25,15 @@ namespace SceneTest {
   
   TEST(Scene, ShouldAddLight) {
     Scene scene(Colord::white());
-    Light* light = new Light(Vector3d(), Colord::white());
+    auto light = new Light(Vector3d(), Colord::white());
     scene.addLight(light);
     ASSERT_FALSE(scene.lights().empty());
     ASSERT_EQ(light, scene.lights().front());
   }
   
   TEST(Scene, ShouldDeleteLights) {
-    Scene* scene = new Scene(Colord::white());
-    MockLight* light = new MockLight(Vector3d(), Colord::white());
+    auto scene = new Scene(Colord::white());
+    auto light = new MockLight(Vector3d(), Colord::white());
     scene->addLight(light);
     EXPECT_CALL(*light, destructorCall());
     delete scene;

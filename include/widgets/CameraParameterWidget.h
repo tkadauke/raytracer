@@ -9,7 +9,7 @@ namespace raytracer {
 
 class CameraParameterWidget : public QWidget {
 public:
-  CameraParameterWidget(QWidget* parent = 0);
+  CameraParameterWidget(QWidget* parent = nullptr);
 
   virtual void applyTo(raytracer::Camera* camera) = 0;
 };

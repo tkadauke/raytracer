@@ -9,7 +9,7 @@ using namespace std;
 using namespace raytracer;
 
 Colord TransparentMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
-  Colord color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
+  auto color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
 
   Vector3d reflectionDirection = Vector3d::undefined();
 
@@ -33,7 +33,7 @@ Colord TransparentMaterial::shade(Raytracer* raytracer, const Ray& ray, const Hi
     }
 
     double distance = hitPoint.distance();
-    Colord absorbance = m_absorbanceColor * -distance * 0.15;
+    auto absorbance = m_absorbanceColor * -distance * 0.15;
     transparency = Colord(expf(absorbance.r()), expf(absorbance.g()), expf(absorbance.b()));
   }
   

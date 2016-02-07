@@ -35,7 +35,7 @@ Display::Display()
   m_cameraType = new CameraTypeWidget(m_sidebar);
   m_verticalLayout->addWidget(m_cameraType);
   
-  QSpacerItem* verticalSpacer = new QSpacerItem(20, 186, QSizePolicy::Minimum, QSizePolicy::Expanding);
+  auto verticalSpacer = new QSpacerItem(20, 186, QSizePolicy::Minimum, QSizePolicy::Expanding);
   m_verticalLayout->addItem(verticalSpacer);
   
   m_raytracer->setCamera(m_camera);
@@ -90,7 +90,7 @@ void Display::mousePressEvent(QMouseEvent* event) {
   
   Ray ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());
   if (ray.direction().isDefined()) {
-    Primitive* primitive = m_raytracer->primitiveForRay(ray);
+     auto primitive = m_raytracer->primitiveForRay(ray);
   
     cout << primitive;
   
@@ -98,8 +98,8 @@ void Display::mousePressEvent(QMouseEvent* event) {
       HitPointInterval hitPoints;
       primitive->intersect(ray, hitPoints);
       cout << " - " << endl;
-      for (HitPointInterval::HitPoints::size_type i = 0; i != hitPoints.points().size(); ++i) {
-        cout << (hitPoints.points()[i].in ? "IN" : "OUT") << ": " << hitPoints.points()[i].point << endl;
+      for (const auto& hitPoint : hitPoints.points()) {
+        cout << (hitPoint.in ? "IN" : "OUT") << ": " << hitPoint.point << endl;
       }
     }
   
