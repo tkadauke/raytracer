@@ -10,7 +10,7 @@
 using namespace std;
 using namespace raytracer;
 
-Colord MatteMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
+Colord MatteMaterial::shade(Raytracer* raytracer, const Ray&, const HitPoint& hitPoint, int) {
   Colord color = raytracer->scene()->ambient() * m_diffuseColor;
 
   for (Scene::Lights::const_iterator l = raytracer->scene()->lights().begin(); l != raytracer->scene()->lights().end(); ++l) {

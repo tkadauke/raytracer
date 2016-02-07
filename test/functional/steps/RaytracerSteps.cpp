@@ -9,6 +9,7 @@ GIVEN(RaytracerFeatureTest, "a blank canvas") {
 
 GIVEN(RaytracerFeatureTest, "an empty scene") {
   // do nothing
+  (void)test;
 }
 
 WHEN(RaytracerFeatureTest, "the render process is canceled") {

@@ -13,8 +13,8 @@ raytracer::Primitive* Surface::applyTransform(raytracer::Primitive* primitive) c
   raytracer::Instance* result = new raytracer::Instance(primitive);
   const Matrix4d matrix =
     Matrix4d::translate(position()) *
-    Matrix3d::scale(scale()) * 
-    Matrix3d::rotate(rotation());
+    Matrix3d::rotate(rotation()) *
+    Matrix3d::scale(scale());
 
   result->setMatrix(matrix);
   return result;

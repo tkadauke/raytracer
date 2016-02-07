@@ -1,12 +1,11 @@
 require 'rake/clean'
 
-QT_BASE = '/Users/tkadauke/Qt/5.5'
-QT_BIN = "#{QT_BASE}/clang_64/bin"
-QT_LIB = "#{QT_BASE}/clang_64/lib"
-QT_INCLUDE = "#{QT_BASE}/Src/qtbase/include"
+QT_BASE = '/usr/local/Qt-5.5.1'
+QT_BIN = "#{QT_BASE}/bin"
+QT_LIB = "#{QT_BASE}/lib"
 
 QT_FRAMEWORKS = ['QtCore', 'QtGui', 'QtWidgets']
-QT_INCLUDE_DIRS = [QT_INCLUDE] + QT_FRAMEWORKS.map { |f| "#{QT_INCLUDE}/#{f}" }
+QT_INCLUDE_DIRS = QT_FRAMEWORKS.map { |f| "#{QT_LIB}/#{f}.framework/Headers" }
 
 QT_MOC = "#{QT_BIN}/moc"
 QT_UIC = "#{QT_BIN}/uic"
@@ -41,8 +40,10 @@ FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
 EXAMPLES = FileList["#{EXAMPLES_DIR}/*"]
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
-INCLUDE_DIRS = [INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS, '.'].flatten
+INCLUDE_DIRS = ['.', INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
+
+INCLUDES = INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ') + ' ' + "-F #{QT_LIB}"
 
 if ENV['DEBUG']
   DEBUG_FLAGS = "-g"
@@ -58,8 +59,8 @@ else
   OPTIMIZE_FLAGS = "-O3 -funroll-loops -mtune=native"
   COVERAGE_FLAGS = ""
 end
-C_FLAGS = "#{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
-T_FLAGS = "#{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+C_FLAGS = "#{INCLUDES} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+T_FLAGS = "#{INCLUDES} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
@@ -71,28 +72,30 @@ task :default => [:examples, :test]
 @header_dependency_cache = {}
 
 def header_dependencies(file, pwd = '')
-  if @header_dependency_cache[file]
-    return @header_dependency_cache[file]
-  end
-  
   file_path = nil
   if File.exist?(file)
     file_path = file
+  elsif file =~ /\.(moc|uic)$/
+    return ["#{pwd}/#{file}"]
   else
     INCLUDE_DIRS.each do |dir|
       path = File.join(dir, file)
       file_path = path and break if File.exist?(path)
     end
   end
+
+  if @header_dependency_cache[file_path]
+    return @header_dependency_cache[file_path]
+  end
   
-  @header_dependency_cache[file] = if file_path
+  @header_dependency_cache[file_path] = if file_path
     headers = File.read(file_path).split("\n").grep(/#include \"/).collect { |inc| inc =~ /^#include \"(.*?)\"/; $1 }
     [file_path, headers.collect { |header| header_dependencies(header, File.dirname(file_path)) }].flatten
   else
     [File.join(pwd, file)]
   end
   
-  @header_dependency_cache[file]
+  @header_dependency_cache[file_path]
 end
 
 def dependencies(objfile)
@@ -107,14 +110,15 @@ rule '.uic' => '.ui' do |t|
 end
 
 rule '.moc' => lambda { |mocfile| mocfile.sub(/src\//, 'include/').sub('.moc', '.h') } do |t|
+# rule '.moc' => lambda { |mocfile| header = mocfile.sub('.moc', '.h'); header.sub(/src\//, 'include/') } do |t|
   sh %{#{QT_MOC} -o #{t.name} #{t.source}}
 end
 
 rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
   if t.source =~ /Test\.cpp/
-    sh %{#{CC} #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{T_FLAGS} -o #{t.name} -c #{t.source}}
+    sh %{#{CC} #{T_FLAGS} -o #{t.name} -c #{t.source}}
   else
-    sh %{#{CC} #{INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')} #{C_FLAGS} -o #{t.name} -c #{t.source}}
+    sh %{#{CC} #{C_FLAGS} -o #{t.name} -c #{t.source}}
   end
 end
 
@@ -172,7 +176,6 @@ namespace :test do
     sh "lcov -r test/coverage/info test/\\* -o test/coverage/info"
     sh "lcov -r test/coverage/info gtest/\\* -o test/coverage/info"
     sh "lcov -r test/coverage/info gmock/\\* -o test/coverage/info"
-    sh "lcov -r test/coverage/info /Library/Frameworks/\\* -o test/coverage/info"
     sh "lcov -r test/coverage/info \\*.moc -o test/coverage/info"
     sh "lcov -r test/coverage/info \\*.uic -o test/coverage/info"
     sh "genhtml test/coverage/info -o test/coverage"

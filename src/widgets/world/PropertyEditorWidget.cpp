@@ -64,12 +64,12 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
   // TODO: add header
 
   for (int i = klass->propertyOffset(); i != klass->propertyCount(); ++i) {
-    auto metaProp = klass->property(i);
-    auto prop = p->element->property(metaProp.name());
+    QMetaProperty metaProp = klass->property(i);
+    QVariant prop = p->element->property(metaProp.name());
 
     AbstractParameterWidget* widget = 0;
 
-    auto name = QString(metaProp.typeName());
+    QString name = QString(metaProp.typeName());
 
     if (name == "Vector3d") {
       widget = new VectorParameterWidget(this);

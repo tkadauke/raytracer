@@ -8,6 +8,7 @@ using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a pinhole camera") {
   // do nothing, the pinhole camera is the default
+  (void)test;
 }
 
 WHEN(RaytracerFeatureTest, "i set the pinhole camera's view plane distance to a very small value") {

@@ -11,12 +11,12 @@ void IntegerDecomposition::decompose() {
   m_first = 1;
   m_second = 1;
   
-  for (int i = 0; i != factors.size(); ++i) {
+  for (vector<int>::size_type i = 0; i != factors.size(); ++i) {
     int first = 1, second = 1;
     
-    for (int j = 0; j != i; ++j)
+    for (vector<int>::size_type j = 0; j != i; ++j)
       first *= factors[j];
-    for (int j = i; j != factors.size(); ++j)
+    for (vector<int>::size_type j = i; j != factors.size(); ++j)
       second *= factors[j];
     
     if (i == 0 || abs(first - second) < abs(m_first - m_second)) {

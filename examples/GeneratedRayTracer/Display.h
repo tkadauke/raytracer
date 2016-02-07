@@ -18,9 +18,6 @@ public:
   ~Display();
   
   void setScene(Scene* scene);
-
-private:
-  Scene* m_scene;
 };
 
 #endif

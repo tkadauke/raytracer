@@ -40,7 +40,7 @@ namespace testing {
   
     bool colorPresent(const Colord& color);
     int colorCount(const Colord& color);
-    int colorAt(int x, int y);
+    unsigned int colorAt(int x, int y);
     void show();
   
     raytracer::Material* redDiffuse();

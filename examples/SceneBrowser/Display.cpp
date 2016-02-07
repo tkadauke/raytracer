@@ -98,7 +98,7 @@ void Display::mousePressEvent(QMouseEvent* event) {
       HitPointInterval hitPoints;
       primitive->intersect(ray, hitPoints);
       cout << " - " << endl;
-      for (int i = 0; i != hitPoints.points().size(); ++i) {
+      for (HitPointInterval::HitPoints::size_type i = 0; i != hitPoints.points().size(); ++i) {
         cout << (hitPoints.points()[i].in ? "IN" : "OUT") << ": " << hitPoints.points()[i].point << endl;
       }
     }

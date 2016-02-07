@@ -30,4 +30,5 @@ double Plane::calculateIntersectionDistance(const Ray& ray) {
 
 BoundingBox Plane::boundingBox() {
   // TODO: figure out what to do here. Throw exception? Return null bounding box? Return infinitely large bounding box?
+  return BoundingBox::undefined();
 }

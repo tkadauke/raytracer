@@ -78,11 +78,11 @@ void MainWindow::initScene() {
   box->setObjectName("Box 1");
 }
 
-void MainWindow::elementChanged(Element* element) {
+void MainWindow::elementChanged(Element*) {
   m_display->setScene(m_scene);
 }
 
-void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex& previous) {
+void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&) {
   Element* element = static_cast<Element*>(current.internalPointer());
   if (element) {
     m_propertyEditorWidget->setElement(element);

@@ -33,7 +33,7 @@ protected:
   raytracer::Raytracer* m_raytracer;
 
 private:
-  class Private;
+  struct Private;
   Private* p;
 };
 

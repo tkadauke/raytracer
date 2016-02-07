@@ -44,7 +44,7 @@ void PlyFile::readHeader(istream& is) {
   } while (true);
 }
 
-void PlyFile::parseFormat(istream& is) {
+void PlyFile::parseFormat(istream&) {
   
 }
 

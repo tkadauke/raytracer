@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
   
   qRegisterMetaType<Vector3d>();
   
-  auto window = new MainWindow;
+  MainWindow* window = new MainWindow;
   window->resize(1280, 768);
   window->show();
   
