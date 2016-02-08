@@ -402,9 +402,9 @@ public:
   
   inline static Matrix3<T> rotateX(const T& angle) {
     T sin = std::sin(angle), cos = std::cos(angle);
-    return Matrix3<T>(1, 0,   0,
-                      0, cos, -sin,
-                      0, sin, cos);
+    return Matrix3<T>(T(1), T(), T(),
+                      T(),  cos, -sin,
+                      T(),  sin, cos);
   }
   
   inline static Matrix3<T> rotateY(const T& angle) {
@@ -416,9 +416,9 @@ public:
   
   inline static Matrix3<T> rotateZ(const T& angle) {
     T sin = std::sin(angle), cos = std::cos(angle);
-    return Matrix3<T>(cos, -sin, 0,
-                      sin, cos,  0,
-                      0,   0,    1);
+    return Matrix3<T>(cos, -sin, T(),
+                      sin, cos,  T(),
+                      T(), T(),  T(1));
   }
   
   inline static Matrix3<T> rotate(const Vector3<T>& angles) {
@@ -426,21 +426,21 @@ public:
   }
   
   inline static Matrix3<T> scale(const T& factor) {
-    return Matrix3<T>(factor, 0,      0,
-                      0,      factor, 0,
-                      0,      0,      factor);
+    return Matrix3<T>(factor, T(),    T(),
+                      T(),    factor, T(),
+                      T(),    T(),    factor);
   }
 
   inline static Matrix3<T> scale(const T& xFactor, const T& yFactor, const T& zFactor) {
-    return Matrix3<T>(xFactor, 0,       0,
-                      0,       yFactor, 0,
-                      0,       0,       zFactor);
+    return Matrix3<T>(xFactor, T(),     T(),
+                      T(),     yFactor, T(),
+                      T(),     T(),     zFactor);
   }
 
   inline static Matrix3<T> scale(const Vector3<T>& factor) {
-    return Matrix3<T>(factor[0], 0,         0,
-                      0,         factor[1], 0,
-                      0,         0,         factor[2]);
+    return Matrix3<T>(factor[0], T(),       T(),
+                      T(),       factor[1], T(),
+                      T(),       T(),       factor[2]);
   }
 };
 
