@@ -104,6 +104,12 @@ public:
     return result;
   }
   
+  inline Vector3<double> crossProduct(const Vector3<double>& other) const {
+    return Vector3<double>(y() * other.z() - z() * other.y(),
+                           z() * other.x() - x() * other.z(),
+                           x() * other.y() - y() * other.x());
+  }
+  
   inline Vector3<double> operator^(const Vector3<double>& other) const {
     return Vector3<double>(y() * other.z() - z() * other.y(),
                            z() * other.x() - x() * other.z(),

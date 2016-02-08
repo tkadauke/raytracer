@@ -93,6 +93,12 @@ public:
     return Vector3<float>(_mm_mul_ps(m_vector[0], _mm_set1_ps(factor)));
   }
   
+  inline Vector3<float> crossProduct(const Vector3<float>& other) const {
+    return Vector3<float>(y() * other.z() - z() * other.y(),
+                          z() * other.x() - x() * other.z(),
+                          x() * other.y() - y() * other.x());
+  }
+  
   inline Vector3<float> operator^(const Vector3<float>& other) const {
     return Vector3<float>(y() * other.z() - z() * other.y(),
                           z() * other.x() - x() * other.z(),

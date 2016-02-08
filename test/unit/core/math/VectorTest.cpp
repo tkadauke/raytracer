@@ -192,6 +192,13 @@ namespace VectorTest {
     ASSERT_THROW(vector /= 0, DivisionByZeroException);
   }
   
+  TEST(Vector, ShouldCalculateDotProduct) {
+    float elements[3] = { 1, 0, 0 };
+    Vector<3, float> vector(elements);
+    
+    ASSERT_EQ(1, vector.dotProduct(vector));
+  }
+  
   TEST(Vector, ShouldCalculateDotProductOfNullVectors) {
     Vector<3, float> first, second;
     ASSERT_EQ(0, first * second);
@@ -204,7 +211,7 @@ namespace VectorTest {
     ASSERT_EQ(1, vector * vector);
   }
   
-  TEST(Vector, ShouldCalculateDotProduct) {
+  TEST(Vector, ShouldCalculateDotProductWithOperator) {
     float first_elements[3] = { 1, 2, 2 };
     Vector<3, float> first(first_elements);
 
@@ -419,6 +426,16 @@ namespace Vector2Test {
     Vector2<float> expected(0, 0);
     ASSERT_EQ(expected, Vector2<float>::null());
   }
+  
+  TEST(Vector2, ShouldDefineRightVector) {
+    Vector2<float> expected(1, 0);
+    ASSERT_EQ(expected, Vector2<float>::right());
+  }
+  
+  TEST(Vector2, ShouldDefineUpVector) {
+    Vector2<float> expected(0, 1);
+    ASSERT_EQ(expected, Vector2<float>::up());
+  }
 }
 
 namespace Vector3Test {
@@ -500,6 +517,12 @@ namespace Vector3Test {
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateCrossProductOfUnitVectors) {
+    TypeParam x(1, 0, 0), y(0, 1, 0);
+    TypeParam expected(0, 0, 1);
+    ASSERT_EQ(expected, x.crossProduct(y));
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldCalculateCrossProductOfUnitVectorsWithOperator) {
     TypeParam x(1, 0, 0), y(0, 1, 0);
     TypeParam expected(0, 0, 1);
     ASSERT_EQ(expected, x ^ y);

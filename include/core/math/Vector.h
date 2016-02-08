@@ -80,12 +80,16 @@ public:
     return *this * recip;
   }
   
-  inline T operator*(const Vector<Dimensions, T, VectorCellType>& other) const {
+  inline T dotProduct(const Vector<Dimensions, T, VectorCellType>& other) const {
     T result = T();
     for (int i = 0; i != Dimensions; ++i) {
       result += coordinate(i) * other.coordinate(i);
     }
     return result;
+  }
+
+  inline T operator*(const Vector<Dimensions, T, VectorCellType>& other) const {
+    return dotProduct(other);
   }
 
   inline Vector<Dimensions, T, VectorCellType> operator*(const T& factor) const {
@@ -202,6 +206,9 @@ template<int Dimensions, class T, class VectorType>
 class SpecializedVector : public Vector<Dimensions, T> {
   typedef Vector<Dimensions, T> Base;
 public:
+  using Base::dotProduct;
+  using Base::operator*;
+
   inline SpecializedVector()
     : Base()
   {
@@ -227,10 +234,6 @@ public:
 
   inline VectorType operator/(const T& factor) const {
     return static_cast<VectorType>(this->Base::operator/(factor));
-  }
-
-  inline T operator*(const Vector<Dimensions, T>& other) const {
-    return this->Base::operator*(other);
   }
 
   inline VectorType operator*(const T& factor) const {
@@ -368,10 +371,14 @@ public:
   inline T y() const { return Base::coordinate(1); }
   inline T z() const { return Base::coordinate(2); }
   
-  inline Vector3<T> operator^(const Vector3<T>& other) const {
+  inline Vector3<T> crossProduct(const Vector3<T>& other) const {
     return Vector3<T>(y() * other.z() - z() * other.y(),
                       z() * other.x() - x() * other.z(),
                       x() * other.y() - y() * other.x());
+  }
+
+  inline Vector3<T> operator^(const Vector3<T>& other) const {
+    return crossProduct(other);
   }
 };
 
