@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_MATERIAL_H
-#define RAYTRACER_MATERIAL_H
+#pragma once
 
 #include "core/Color.h"
 #include "core/math/Vector.h"
@@ -17,5 +16,3 @@ namespace raytracer {
     virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) = 0;
   };
 }
-
-#endif

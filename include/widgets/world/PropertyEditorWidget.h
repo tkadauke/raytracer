@@ -1,5 +1,4 @@
-#ifndef PROPERTY_EDITOR_WIDGET_H
-#define PROPERTY_EDITOR_WIDGET_H
+#pragma once
 
 #include <QWidget>
 
@@ -32,5 +31,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

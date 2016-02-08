@@ -1,5 +1,4 @@
-#ifndef VECTOR4F_H
-#define VECTOR4F_H
+#pragma once
 
 #ifdef __SSE__
 
@@ -144,7 +143,5 @@ public:
     return Vector3<float>(*this) / w();
   }
 };
-
-#endif
 
 #endif

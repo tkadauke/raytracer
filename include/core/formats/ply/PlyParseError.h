@@ -1,5 +1,4 @@
-#ifndef PLY_PARSE_ERROR_H
-#define PLY_PARSE_ERROR_H
+#pragma once
 
 #include "core/Exception.h"
 
@@ -10,5 +9,3 @@ public:
   {
   }
 };
-
-#endif

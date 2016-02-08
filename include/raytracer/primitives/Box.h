@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_BOX_H
-#define RAYTRACER_BOX_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"
@@ -19,5 +18,3 @@ namespace raytracer {
     Vector3d m_center, m_edge;
   };
 }
-
-#endif

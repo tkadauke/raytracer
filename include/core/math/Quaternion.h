@@ -1,5 +1,4 @@
-#ifndef QUATERNION_H
-#define QUATERNION_H
+#pragma once
 
 #include <cmath>
 
@@ -72,5 +71,3 @@ std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quaternion) {
 
 typedef Quaternion<float> Quaternionf;
 typedef Quaternion<double> Quaterniond;
-
-#endif

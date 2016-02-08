@@ -1,5 +1,4 @@
-#ifndef PLY_ELEMENT_H
-#define PLY_ELEMENT_H
+#pragma once
 
 #include "core/formats/ply/PlyProperty.h"
 #include <iostream>
@@ -25,5 +24,3 @@ private:
   int m_count;
   std::vector<PlyProperty> m_properties;
 };
-
-#endif

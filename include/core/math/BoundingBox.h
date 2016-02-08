@@ -1,5 +1,4 @@
-#ifndef BOUNDING_BOX_H
-#define BOUNDING_BOX_H
+#pragma once
 
 #include "core/InPlaceSetOperators.h"
 #include "core/InequalityOperator.h"
@@ -106,5 +105,3 @@ private:
 inline std::ostream& operator<<(std::ostream& os, const BoundingBox& bbox) {
   return os << bbox.min() << "-" << bbox.max();
 }
-
-#endif

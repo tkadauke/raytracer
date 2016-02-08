@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_TRIANGLE_H
-#define RAYTRACER_TRIANGLE_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"
@@ -23,5 +22,3 @@ namespace raytracer {
     Vector3d m_normal;
   };
 }
-
-#endif

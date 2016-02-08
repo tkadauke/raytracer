@@ -1,5 +1,4 @@
-#ifndef BOX_H
-#define BOX_H
+#pragma once
 
 #include "world/objects/Surface.h"
 
@@ -18,5 +17,3 @@ public:
 private:
   Vector3d m_size;
 };
-
-#endif

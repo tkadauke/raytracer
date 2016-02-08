@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_GRID_H
-#define RAYTRACER_GRID_H
+#pragma once
 
 #include <vector>
 
@@ -22,5 +21,3 @@ namespace raytracer {
     BoundingBox m_boundingBox;
   };
 }
-
-#endif

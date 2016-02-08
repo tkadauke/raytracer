@@ -1,5 +1,4 @@
-#ifndef PLY_FILE_H
-#define PLY_FILE_H
+#pragma once
 
 #include "core/formats/ply/PlyElement.h"
 #include <iostream>
@@ -31,5 +30,3 @@ private:
 
   std::vector<PlyElement> m_elements;
 };
-
-#endif

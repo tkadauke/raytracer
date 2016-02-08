@@ -1,5 +1,4 @@
-#ifndef QUADRIC_H
-#define QUADRIC_H
+#pragma once
 
 #include <cmath>
 #include "core/math/Polynomial.h"
@@ -38,5 +37,3 @@ int Quadric<T>::solve() {
   } else
     return 0;
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef VECTOR3D_H
-#define VECTOR3D_H
+#pragma once
 
 #ifdef __SSE3__
 
@@ -169,7 +168,5 @@ public:
     return *this / length();
   }
 };
-
-#endif
 
 #endif

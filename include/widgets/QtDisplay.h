@@ -1,5 +1,4 @@
-#ifndef QT_DISPLAY_H
-#define QT_DISPLAY_H
+#pragma once
 
 #include <QWidget>
 
@@ -36,5 +35,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

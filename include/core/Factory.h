@@ -1,5 +1,4 @@
-#ifndef FACTORY_H
-#define FACTORY_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -56,5 +55,3 @@ public:
 private:
   Creators m_creators;
 };
-
-#endif

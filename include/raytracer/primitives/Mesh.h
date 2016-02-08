@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_MESH_H
-#define RAYTRACER_MESH_H
+#pragma once
 
 #include "core/math/Vector.h"
 #include <vector>
@@ -34,5 +33,3 @@ namespace raytracer {
     Private* p;
   };
 }
-
-#endif

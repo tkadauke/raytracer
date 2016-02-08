@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_SMOOTH_MESH_TRIANGLE_H
-#define RAYTRACER_SMOOTH_MESH_TRIANGLE_H
+#pragma once
 
 #include "raytracer/primitives/MeshTriangle.h"
 #include "core/math/Vector.h"
@@ -25,5 +24,3 @@ namespace raytracer {
     double cnv;
   };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_RAYTRACER_H
-#define RAYTRACER_RAYTRACER_H
+#pragma once
 
 #include "core/Color.h"
 #include "core/math/Vector.h"
@@ -40,5 +39,3 @@ namespace raytracer {
     Private* p;
   };
 }
-
-#endif

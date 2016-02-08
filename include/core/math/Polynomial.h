@@ -1,5 +1,4 @@
-#ifndef POLYNOMIAL_H
-#define POLYNOMIAL_H
+#pragma once
 
 #include <limits>
 #include <algorithm>
@@ -40,5 +39,3 @@ public:
 protected:
   Result m_result;
 };
-
-#endif

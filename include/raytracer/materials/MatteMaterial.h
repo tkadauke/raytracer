@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_MATTE_MATERIAL_H
-#define RAYTRACER_MATTE_MATERIAL_H
+#pragma once
 
 #include "raytracer/materials/Material.h"
 
@@ -22,5 +21,3 @@ namespace raytracer {
     Colord m_diffuseColor;
   };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef VECTOR_PARAMETER_WIDGET_H
-#define VECTOR_PARAMETER_WIDGET_H
+#pragma once
 
 #include "core/math/Vector.h"
 #include "widgets/world/AbstractParameterWidget.h"
@@ -24,5 +23,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef VECTOR3F_H
-#define VECTOR3F_H
+#pragma once
 
 #ifdef __SSE__
 
@@ -154,7 +153,5 @@ public:
     return *this / length();
   }
 };
-
-#endif
 
 #endif

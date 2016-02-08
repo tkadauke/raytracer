@@ -1,5 +1,4 @@
-#ifndef CUBIC_H
-#define CUBIC_H
+#pragma once
 
 #include <cmath>
 #include "core/math/Polynomial.h"
@@ -70,5 +69,3 @@ int Cubic<T>::solve() {
 
   return numberOfResults;
 }
-
-#endif

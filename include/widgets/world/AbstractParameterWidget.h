@@ -1,5 +1,4 @@
-#ifndef ABSTRACT_PARAMETER_WIDGET_H
-#define ABSTRACT_PARAMETER_WIDGET_H
+#pragma once
 
 #include <QWidget>
 
@@ -28,5 +27,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

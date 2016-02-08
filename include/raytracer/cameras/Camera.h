@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_CAMERA_H
-#define RAYTRACER_CAMERA_H
+#pragma once
 
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
@@ -55,5 +54,3 @@ namespace raytracer {
     ViewPlane* m_viewPlane;
   };
 }
-
-#endif

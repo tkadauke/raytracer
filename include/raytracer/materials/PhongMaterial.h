@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_PHONG_MATERIAL_H
-#define RAYTRACER_PHONG_MATERIAL_H
+#pragma once
 
 #include "raytracer/materials/Material.h"
 
@@ -33,5 +32,3 @@ namespace raytracer {
     Colord m_diffuseColor, m_highlightColor;
   };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef IN_PLACE_SET_OPERATORS_H
-#define IN_PLACE_SET_OPERATORS_H
+#pragma once
 
 template<class Derived>
 class InPlaceSetOperators {
@@ -19,5 +18,3 @@ private:
     return static_cast<Derived&>(*this);
   }
 };
-
-#endif

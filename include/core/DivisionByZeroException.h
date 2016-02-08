@@ -1,5 +1,4 @@
-#ifndef DIVISION_BY_ZERO_EXCEPTION_H
-#define DIVISION_BY_ZERO_EXCEPTION_H
+#pragma once
 
 #include "core/Exception.h"
 
@@ -10,5 +9,3 @@ public:
   {
   }
 };
-
-#endif

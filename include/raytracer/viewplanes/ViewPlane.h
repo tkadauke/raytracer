@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_VIEW_PLANE_H
-#define RAYTRACER_VIEW_PLANE_H
+#pragma once
 
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
@@ -120,5 +119,3 @@ namespace raytracer {
     float m_pixelSize;
   };
 }
-
-#endif

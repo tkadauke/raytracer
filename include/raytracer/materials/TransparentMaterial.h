@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_TRANSPARENT_MATERIAL_H
-#define RAYTRACER_TRANSPARENT_MATERIAL_H
+#pragma once
 
 #include "raytracer/materials/PhongMaterial.h"
 
@@ -36,5 +35,3 @@ namespace raytracer {
     double m_refractionIndex;
   };
 }
-
-#endif

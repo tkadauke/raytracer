@@ -1,5 +1,4 @@
-#ifndef SPHERICAL_CAMERA_PARAMETER_WIDGET_H
-#define SPHERICAL_CAMERA_PARAMETER_WIDGET_H
+#pragma once
 
 #include "widgets/CameraParameterWidget.h"
 
@@ -25,5 +24,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

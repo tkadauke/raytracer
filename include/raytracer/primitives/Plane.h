@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_PLANE_H
-#define RAYTRACER_PLANE_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"
@@ -21,5 +20,3 @@ namespace raytracer {
     double m_distance;
   };
 }
-
-#endif

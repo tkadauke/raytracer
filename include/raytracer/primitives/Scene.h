@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_SCENE_H
-#define RAYTRACER_SCENE_H
+#pragma once
 
 #include "raytracer/primitives/Composite.h"
 #include "core/Color.h"
@@ -34,5 +33,3 @@ namespace raytracer {
     Colord m_ambient;
   };
 }
-
-#endif

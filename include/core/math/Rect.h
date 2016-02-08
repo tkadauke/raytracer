@@ -1,5 +1,4 @@
-#ifndef RECT_H
-#define RECT_H
+#pragma once
 
 class Rect {
 public:
@@ -23,5 +22,3 @@ public:
 private:
   int m_x, m_y, m_width, m_height;
 };
-
-#endif

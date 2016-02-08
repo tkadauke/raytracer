@@ -1,5 +1,4 @@
-#ifndef MATRIX_H
-#define MATRIX_H
+#pragma once
 
 #include <iostream>
 #include <cmath>
@@ -549,5 +548,3 @@ T Matrix4<T>::determinant() const {
 
 typedef Matrix4<float> Matrix4f;
 typedef Matrix4<double> Matrix4d;
-
-#endif

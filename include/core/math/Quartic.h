@@ -1,5 +1,4 @@
-#ifndef QUARTIC_H
-#define QUARTIC_H
+#pragma once
 
 #include <cmath>
 #include "core/math/Polynomial.h"
@@ -77,5 +76,3 @@ int Quartic<T>::solve() {
   
   return numberOfResults;
 }
-
-#endif

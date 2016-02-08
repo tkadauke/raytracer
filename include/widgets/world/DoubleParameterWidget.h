@@ -1,5 +1,4 @@
-#ifndef DOUBLE_PARAMETER_WIDGET_H
-#define DOUBLE_PARAMETER_WIDGET_H
+#pragma once
 
 #include "widgets/world/AbstractParameterWidget.h"
 
@@ -19,5 +18,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

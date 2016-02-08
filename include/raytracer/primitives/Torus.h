@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_TORUS_H
-#define RAYTRACER_TORUS_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"
@@ -23,5 +22,3 @@ namespace raytracer {
     double m_tubeRadius;
   };
 }
-
-#endif

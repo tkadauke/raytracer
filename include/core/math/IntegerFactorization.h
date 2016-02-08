@@ -1,5 +1,4 @@
-#ifndef INTEGER_FACTORIZATION_H
-#define INTEGER_FACTORIZATION_H
+#pragma once
 
 #include <vector>
 
@@ -13,5 +12,3 @@ public:
 private:
   int m_number;
 };
-
-#endif

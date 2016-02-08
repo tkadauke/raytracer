@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_UNION_H
-#define RAYTRACER_UNION_H
+#pragma once
 
 #include "raytracer/primitives/Composite.h"
 
@@ -10,5 +9,3 @@ namespace raytracer {
     virtual bool intersects(const Ray& ray);
   };
 }
-
-#endif

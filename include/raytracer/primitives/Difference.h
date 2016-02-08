@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_DIFFERENCE_H
-#define RAYTRACER_DIFFERENCE_H
+#pragma once
 
 #include "raytracer/primitives/Composite.h"
 
@@ -9,5 +8,3 @@ namespace raytracer {
     virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
   };
 }
-
-#endif

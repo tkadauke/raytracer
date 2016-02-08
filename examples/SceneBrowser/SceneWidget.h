@@ -1,5 +1,4 @@
-#ifndef SCENE_WIDGET_H
-#define SCENE_WIDGET_H
+#pragma once
 
 #include <QWidget>
 
@@ -24,5 +23,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

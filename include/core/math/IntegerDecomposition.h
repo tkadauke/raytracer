@@ -1,5 +1,4 @@
-#ifndef INTEGER_DECOMPOSITION_H
-#define INTEGER_DECOMPOSITION_H
+#pragma once
 
 class IntegerDecomposition {
 public:
@@ -18,5 +17,3 @@ private:
   int m_number;
   int m_first, m_second;
 };
-
-#endif

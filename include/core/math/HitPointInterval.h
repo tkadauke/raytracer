@@ -1,5 +1,4 @@
-#ifndef HIT_POINT_INTERVAL_H
-#define HIT_POINT_INTERVAL_H
+#pragma once
 
 #include "core/math/HitPoint.h"
 #include "core/math/Matrix.h"
@@ -96,5 +95,3 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const HitPointInterval& interval);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_MESH_TRIANGLE_H
-#define RAYTRACER_MESH_TRIANGLE_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 
@@ -18,5 +17,3 @@ namespace raytracer {
     int m_index0, m_index1, m_index2;
   };
 }
-
-#endif

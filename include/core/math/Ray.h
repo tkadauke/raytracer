@@ -1,5 +1,4 @@
-#ifndef RAY_H
-#define RAY_H
+#pragma once
 
 #include "core/math/Vector.h"
 
@@ -30,5 +29,3 @@ protected:
   Vector4d m_origin;
   Vector3d m_direction;
 };
-
-#endif

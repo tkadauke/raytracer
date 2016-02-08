@@ -1,5 +1,4 @@
-#ifndef MEMOIZED_VALUE_H
-#define MEMOIZED_VALUE_H
+#pragma once
 
 template<class T>
 class MemoizedValue {
@@ -30,5 +29,3 @@ private:
   bool m_initialized;
   T m_value;
 };
-
-#endif

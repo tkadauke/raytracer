@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_DISK_H
-#define RAYTRACER_DISK_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"
@@ -21,5 +20,3 @@ namespace raytracer {
     double m_radius, m_squaredRadius;
   };
 }
-
-#endif

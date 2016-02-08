@@ -1,5 +1,4 @@
-#ifndef COLORD_H
-#define COLORD_H
+#pragma once
 
 #ifdef __SSE3__
 
@@ -112,7 +111,5 @@ private:
     __m128d m_vector[2];
   };
 };
-
-#endif
 
 #endif

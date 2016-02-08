@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_ROW_INTERLACED_VIEW_PLANE_H
-#define RAYTRACER_ROW_INTERLACED_VIEW_PLANE_H
+#pragma once
 
 #include "raytracer/viewplanes/ViewPlane.h"
 
@@ -9,5 +8,3 @@ namespace raytracer {
     virtual Iterator begin(const Rect& rect) const;
   };
 }
-
-#endif

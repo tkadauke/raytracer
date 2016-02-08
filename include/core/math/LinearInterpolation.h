@@ -1,5 +1,4 @@
-#ifndef LINEAR_INTERPOLATION_H
-#define LINEAR_INTERPOLATION_H
+#pragma once
 
 template<class T>
 class LinearInterpolation {
@@ -62,5 +61,3 @@ private:
   T m_begin, m_end;
   int m_steps;
 };
-
-#endif

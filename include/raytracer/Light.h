@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_LIGHT_H
-#define RAYTRACER_LIGHT_H
+#pragma once
 
 #include "core/math/Vector.h"
 #include "core/Color.h"
@@ -22,5 +21,3 @@ namespace raytracer {
     Colord m_color;
   };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef PLY_PROPERTY_H
-#define PLY_PROPERTY_H
+#pragma once
 
 #include <string>
 #include <iostream>
@@ -37,5 +36,3 @@ private:
   bool m_list;
   std::string m_name;
 };
-
-#endif

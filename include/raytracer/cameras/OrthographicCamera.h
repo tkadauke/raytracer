@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_ORTHOGRAPHIC_CAMERA_H
-#define RAYTRACER_ORTHOGRAPHIC_CAMERA_H
+#pragma once
 
 #include "raytracer/cameras/Camera.h"
 
@@ -15,5 +14,3 @@ namespace raytracer {
     virtual Ray rayForPixel(int x, int y);
   };
 }
-
-#endif

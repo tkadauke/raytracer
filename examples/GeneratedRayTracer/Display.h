@@ -1,5 +1,4 @@
-#ifndef DISPLAY_H
-#define DISPLAY_H
+#pragma once
 
 #include "widgets/QtDisplay.h"
 
@@ -19,5 +18,3 @@ public:
   
   void setScene(Scene* scene);
 };
-
-#endif

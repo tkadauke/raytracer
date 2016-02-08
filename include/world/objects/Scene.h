@@ -1,5 +1,4 @@
-#ifndef SCENE_H
-#define SCENE_H
+#pragma once
 
 #include "world/objects/Element.h"
 
@@ -15,5 +14,3 @@ public:
   
   raytracer::Scene* toRaytracerScene() const;
 };
-
-#endif

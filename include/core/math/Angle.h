@@ -1,5 +1,4 @@
-#ifndef ANGLE_H
-#define ANGLE_H
+#pragma once
 
 #include <cmath>
 
@@ -110,5 +109,3 @@ std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
 
 typedef Angle<float> Anglef;
 typedef Angle<double> Angled;
-
-#endif

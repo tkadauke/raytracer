@@ -1,5 +1,4 @@
-#ifndef INEQUALITY_OPERATOR_H
-#define INEQUALITY_OPERATOR_H
+#pragma once
 
 template<class Derived>
 class InequalityOperator {
@@ -15,5 +14,3 @@ private:
     return static_cast<Derived&>(*this);
   }
 };
-
-#endif

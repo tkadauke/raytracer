@@ -1,5 +1,4 @@
-#ifndef HIT_POINT_H
-#define HIT_POINT_H
+#pragma once
 
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
@@ -51,5 +50,3 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const HitPoint& point);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_INTERSECTION_H
-#define RAYTRACER_INTERSECTION_H
+#pragma once
 
 #include "raytracer/primitives/Composite.h"
 
@@ -11,5 +10,3 @@ namespace raytracer {
     virtual BoundingBox boundingBox();
   };
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef COLORF_H
-#define COLORF_H
+#pragma once
 
 #ifdef __SSE__
 
@@ -99,7 +98,5 @@ private:
     __m128 m_vector;
   };
 };
-
-#endif
 
 #endif

@@ -1,5 +1,4 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#pragma once
 
 #include "core/math/Rect.h"
 
@@ -46,5 +45,3 @@ private:
   BufferType m_buffer;
   int m_width, m_height;
 };
-
-#endif

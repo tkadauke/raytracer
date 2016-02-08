@@ -1,5 +1,4 @@
-#ifndef SPHERE_H
-#define SPHERE_H
+#pragma once
 
 #include "world/objects/Surface.h"
 
@@ -18,5 +17,3 @@ public:
 private:
   double m_radius;
 };
-
-#endif

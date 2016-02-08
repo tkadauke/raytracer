@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_PINHOLE_CAMERA_H
-#define RAYTRACER_PINHOLE_CAMERA_H
+#pragma once
 
 #include "raytracer/cameras/Camera.h"
 
@@ -25,5 +24,3 @@ namespace raytracer {
     double m_zoom;
   };
 }
-
-#endif

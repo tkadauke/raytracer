@@ -1,5 +1,4 @@
-#ifndef ELEMENT_MODEL_H
-#define ELEMENT_MODEL_H
+#pragma once
 
 #include <QAbstractItemModel>
 
@@ -23,5 +22,3 @@ public:
 private:
   Element* m_rootItem;
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef CAMERA_PARAMETER_WIDGET_H
-#define CAMERA_PARAMETER_WIDGET_H
+#pragma once
 
 #include <QWidget>
 
@@ -13,5 +12,3 @@ public:
 
   virtual void applyTo(raytracer::Camera* camera) = 0;
 };
-
-#endif

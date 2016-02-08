@@ -1,5 +1,4 @@
-#ifndef SINGLETON_H
-#define SINGLETON_H
+#pragma once
 
 template<class T>
 class Singleton {
@@ -17,5 +16,3 @@ private:
 
 template<class T>
 T* Singleton<T>::s_instance = nullptr;
-
-#endif

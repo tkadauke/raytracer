@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_RECTANGLE_H
-#define RAYTRACER_RECTANGLE_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Vector.h"
@@ -24,5 +23,3 @@ namespace raytracer {
     double m_squaredLength1, m_squaredLength2;
   };
 }
-
-#endif

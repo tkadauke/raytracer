@@ -1,5 +1,4 @@
-#ifndef MATERIAL_H
-#define MATERIAL_H
+#pragma once
 
 #include "world/objects/Element.h"
 
@@ -9,5 +8,3 @@ public:
   
 private:
 };
-
-#endif

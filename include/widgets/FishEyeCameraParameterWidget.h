@@ -1,5 +1,4 @@
-#ifndef FISH_EYE_CAMERA_PARAMETER_WIDGET_H
-#define FISH_EYE_CAMERA_PARAMETER_WIDGET_H
+#pragma once
 
 #include "widgets/CameraParameterWidget.h"
 
@@ -24,5 +23,3 @@ private:
   struct Private;
   Private* p;
 };
-
-#endif

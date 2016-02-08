@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_PRIMITIVE_H
-#define RAYTRACER_PRIMITIVE_H
+#pragma once
 
 #include "core/math/BoundingBox.h"
 
@@ -33,5 +32,3 @@ namespace raytracer {
     Material* m_material;
   };
 }
-
-#endif

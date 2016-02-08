@@ -1,5 +1,4 @@
-#ifndef VECTOR4D_H
-#define VECTOR4D_H
+#pragma once
 
 #ifdef __SSE3__
 
@@ -159,7 +158,5 @@ public:
     return Vector3<double>(*this) / w();
   }
 };
-
-#endif
 
 #endif

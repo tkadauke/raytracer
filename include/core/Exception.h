@@ -1,5 +1,4 @@
-#ifndef EXCEPTION_H
-#define EXCEPTION_H
+#pragma once
 
 #include <string>
 #include <list>
@@ -28,5 +27,3 @@ private:
   int m_line;
   Backtrace m_backtrace;
 };
-
-#endif

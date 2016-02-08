@@ -1,5 +1,4 @@
-#ifndef VECTOR_H
-#define VECTOR_H
+#pragma once
 
 #include <cmath>
 #include <iostream>
@@ -851,5 +850,3 @@ typedef Vector4<float> Vector4f;
   * Four-dimensional vector with double components.
   */
 typedef Vector4<double> Vector4d;
-
-#endif

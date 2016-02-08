@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_PORTAL_MATERIAL_H
-#define RAYTRACER_PORTAL_MATERIAL_H
+#pragma once
 
 #include "raytracer/materials/Material.h"
 #include "core/math/Matrix.h"
@@ -28,5 +27,3 @@ namespace raytracer {
     Colord m_filterColor;
   };
 }
-
-#endif

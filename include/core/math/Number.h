@@ -1,5 +1,4 @@
-#ifndef NUMBER_H
-#define NUMBER_H
+#pragma once
 
 #include <limits>
 
@@ -12,5 +11,3 @@ template<class T>
 inline bool isAlmostZero(const T& value, const T& epsilon = std::numeric_limits<T>::epsilon()) {
   return isAlmost(T(0), value, epsilon);
 }
-
-#endif

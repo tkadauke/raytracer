@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_INSTANCE_H
-#define RAYTRACER_INSTANCE_H
+#pragma once
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Matrix.h"
@@ -32,5 +31,3 @@ namespace raytracer {
     Matrix3d m_normalMatrix;
   };
 }
-
-#endif

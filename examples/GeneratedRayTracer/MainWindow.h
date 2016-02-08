@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 
@@ -35,5 +34,3 @@ private:
   
   Scene* m_scene;
 };
-
-#endif

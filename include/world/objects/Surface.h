@@ -1,5 +1,4 @@
-#ifndef SURFACE_H
-#define SURFACE_H
+#pragma once
 
 #include "world/objects/Element.h"
 #include "core/math/Vector.h"
@@ -46,5 +45,3 @@ private:
   
   bool m_visible;
 };
-
-#endif

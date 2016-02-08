@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_COMPOSITE_H
-#define RAYTRACER_COMPOSITE_H
+#pragma once
 
 #include <list>
 
@@ -25,5 +24,3 @@ namespace raytracer {
     Primitives m_primitives;
   };
 }
-
-#endif

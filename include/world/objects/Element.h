@@ -1,5 +1,4 @@
-#ifndef ELEMENT_H
-#define ELEMENT_H
+#pragma once
 
 #include <QObject>
 
@@ -15,5 +14,3 @@ public:
 private:
   QString m_name;
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef COLOR_H
-#define COLOR_H
+#pragma once
 
 #include <iostream>
 
@@ -134,5 +133,3 @@ std::ostream& operator<<(std::ostream& os, const Color<T>& color) {
 
 #include "color/sse3/Colorf.h"
 #include "color/sse3/Colord.h"
-
-#endif

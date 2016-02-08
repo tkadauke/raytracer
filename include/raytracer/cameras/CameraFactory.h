@@ -1,5 +1,4 @@
-#ifndef RAYTRACER_CAMERA_FACTORY_H
-#define RAYTRACER_CAMERA_FACTORY_H
+#pragma once
 
 #include "core/Factory.h"
 #include "core/Singleton.h"
@@ -8,5 +7,3 @@
 namespace raytracer {
   typedef Singleton<Factory<Camera>> CameraFactory;
 }
-
-#endif
