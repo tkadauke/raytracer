@@ -348,32 +348,38 @@ namespace Matrix2Test {
   }
   
   TEST(Matrix2, ShouldGenerate90DegreeRotationMatrix) {
-    Matrix2<float> matrix = Matrix2<float>::rotate(3.1415926535897 / 2.0),
-                   expected = Matrix2<float>(0, -1, 1, 0);
+    auto angle = Angle<float>::fromDegrees(90);
+    auto matrix = Matrix2<float>::rotate(angle),
+         expected = Matrix2<float>(0, -1, 1, 0);
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
   TEST(Matrix2, ShouldRotateCounterclockwiseByDefault) {
-    Matrix2<float> expected = Matrix2<float>::rotate(0.354),
-                   actual = Matrix2<float>::counterclockwise(0.354);
+    auto angle = Angle<float>::fromRadians(0.354);
+    auto expected = Matrix2<float>::rotate(angle),
+         actual = Matrix2<float>::counterclockwise(angle);
     ASSERT_EQ(expected, actual);
   }
   
   TEST(Matrix2, ShouldRotateClockwiseByUsingNegativeAngle) {
-    Matrix2<float> expected = Matrix2<float>::rotate(-0.354),
-                   actual = Matrix2<float>::clockwise(0.354);
+    auto angle = Angle<float>::fromRadians(0.354);
+
+    auto expected = Matrix2<float>::rotate(-angle),
+         actual = Matrix2<float>::clockwise(angle);
     ASSERT_EQ(expected, actual);
   }
   
   TEST(Matrix2, ShouldRotateClockwise) {
-    Matrix2<float> matrix = Matrix2<float>::clockwise(3.1415926535897 / 2.0),
-                   expected = Matrix2<float>(0, 1, -1, 0);
+    auto angle = Angle<float>::fromDegrees(90);
+    auto matrix = Matrix2<float>::clockwise(angle),
+          expected = Matrix2<float>(0, 1, -1, 0);
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
   TEST(Matrix2, ShouldRotateCounterClockwise) {
-    Matrix2<float> matrix = Matrix2<float>::counterclockwise(3.1415926535897 / 2.0),
-                   expected(0, -1, 1, 0);
+    auto angle = Angle<float>::fromDegrees(90);
+    auto matrix = Matrix2<float>::counterclockwise(angle),
+         expected = Matrix2<float>(0, -1, 1, 0);
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
 
@@ -528,20 +534,42 @@ namespace Matrix3Test {
   }
   
   TEST(Matrix3, ShouldRotateAroundXAxis) {
-    Matrix3<float> matrix = Matrix3<float>::rotateX(3.1415926535897 / 2.0);
+    Matrix3<float> matrix = Matrix3<float>::rotateX(Angle<float>::fromDegrees(90));
     Matrix3<float> expected(1, 0, 0, 0, 0, -1, 0, 1, 0);
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
   TEST(Matrix3, ShouldRotateAroundYAxis) {
-    Matrix3<float> matrix = Matrix3<float>::rotateY(3.1415926535897 / 2.0);
+    Matrix3<float> matrix = Matrix3<float>::rotateY(Angle<float>::fromDegrees(90));
     Matrix3<float> expected(0, 0, 1, 0, 1, 0, -1, 0, 0);
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
   TEST(Matrix3, ShouldRotateAroundZAxis) {
-    Matrix3<float> matrix = Matrix3<float>::rotateZ(3.1415926535897 / 2.0);
+    Matrix3<float> matrix = Matrix3<float>::rotateZ(Angle<float>::fromDegrees(90));
     Matrix3<float> expected(0, -1, 0, 1, 0, 0, 0, 0, 1);
+    ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
+  }
+
+  TEST(Matrix3, ShouldRotateAroundAllAxes) {
+    auto angle = Angle<float>::fromDegrees(45);
+    auto matrix = Matrix3<float>::rotate(angle, angle, angle);
+    
+    auto expected = Matrix3<float>::rotateX(angle) *
+                    Matrix3<float>::rotateY(angle) *
+                    Matrix3<float>::rotateZ(angle);
+    
+    ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
+  }
+
+  TEST(Matrix3, ShouldRotateAroundAllAxesFromVector) {
+    auto matrix = Matrix3<float>::rotate(Vector3d(1.1, 1.1, 1.1));
+    
+    auto angle = Angle<float>::fromRadians(1.1);
+    auto expected = Matrix3<float>::rotateX(angle) *
+                    Matrix3<float>::rotateY(angle) *
+                    Matrix3<float>::rotateZ(angle);
+    
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   

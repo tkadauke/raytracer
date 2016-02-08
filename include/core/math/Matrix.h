@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include "core/math/Vector.h"
+#include "core/math/Angle.h"
 #include "core/DivisionByZeroException.h"
 
 template<int Dimensions, class T>
@@ -255,17 +256,20 @@ public:
     return Matrix2<T>(cell(1, 1), -cell(0, 1), -cell(1, 0), cell(0, 0)) / determinant();
   }
   
-  inline static Matrix2<T> rotate(const T& angle) {
-    T sin = std::sin(angle), cos = std::cos(angle);
+  template<class A>
+  inline static Matrix2<T> rotate(const A& angle) {
+    T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix2<T>(cos, -sin,
                       sin, cos);
   }
   
-  inline static Matrix2<T> clockwise(const T& angle) {
+  template<class A>
+  inline static Matrix2<T> clockwise(const A& angle) {
     return rotate(-angle);
   }
   
-  inline static Matrix2<T> counterclockwise(const T& angle) {
+  template<class A>
+  inline static Matrix2<T> counterclockwise(const A& angle) {
     return rotate(angle);
   }
   
@@ -400,29 +404,41 @@ public:
     setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22);
   }
   
-  inline static Matrix3<T> rotateX(const T& angle) {
-    T sin = std::sin(angle), cos = std::cos(angle);
+  template<class A>
+  inline static Matrix3<T> rotateX(const A& angle) {
+    T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix3<T>(T(1), T(), T(),
                       T(),  cos, -sin,
                       T(),  sin, cos);
   }
   
-  inline static Matrix3<T> rotateY(const T& angle) {
-    T sin = std::sin(angle), cos = std::cos(angle);
+  template<class A>
+  inline static Matrix3<T> rotateY(const A& angle) {
+    T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix3<T>(cos,  T(),  sin,
                       T(),  T(1), T(),
                       -sin, T(),  cos);
   }
   
-  inline static Matrix3<T> rotateZ(const T& angle) {
-    T sin = std::sin(angle), cos = std::cos(angle);
+  template<class A>
+  inline static Matrix3<T> rotateZ(const A& angle) {
+    T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix3<T>(cos, -sin, T(),
                       sin, cos,  T(),
                       T(), T(),  T(1));
   }
   
   inline static Matrix3<T> rotate(const Vector3<T>& angles) {
-    return rotateX(angles.x()) * rotateY(angles.y()) * rotateZ(angles.z());
+    return rotate(
+      Angle<T>::fromRadians(angles.x()),
+      Angle<T>::fromRadians(angles.y()),
+      Angle<T>::fromRadians(angles.z())
+    );
+  }
+  
+  template<class A>
+  inline static Matrix3<T> rotate(const A& x, const A& y, const A& z) {
+    return rotateX(x) * rotateY(y) * rotateZ(z);
   }
   
   inline static Matrix3<T> scale(const T& factor) {

@@ -17,7 +17,7 @@ GIVEN(RaytracerFeatureTest, "a box portal") {
 
 GIVEN(RaytracerFeatureTest, "a box portal which turns the rays towards the displaced sphere") {
   auto box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
-  auto material = new PortalMaterial(Matrix3d::rotateX(0.79), Colord::white());
+  auto material = new PortalMaterial(Matrix3d::rotateX(Angled::fromRadians(0.79)), Colord::white());
   box->setMaterial(material);
   test->add(box);
 }

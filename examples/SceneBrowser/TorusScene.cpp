@@ -32,7 +32,7 @@ TorusScene::TorusScene()
   
   auto torus = new Torus(2, 1);
   auto instance = new Instance(torus);
-  instance->setMatrix(Matrix3d::rotateX(90));
+  instance->setMatrix(Matrix3d::rotateX(Angled::fromDegrees(90)));
   instance->setMaterial(&m_glass);
   add(instance);
   
