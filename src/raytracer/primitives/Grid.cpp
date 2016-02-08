@@ -155,7 +155,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   // traverse the grid
 
   while (true) {
-     auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
+    auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
 
     if (tx_next < ty_next && tx_next < tz_next) {
       if (primitive) {
