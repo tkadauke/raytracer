@@ -3,8 +3,10 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 #include "widgets/world/VectorParameterWidget.h"
+#include "widgets/world/ColorParameterWidget.h"
 #include "widgets/world/DoubleParameterWidget.h"
 #include "widgets/world/BoolParameterWidget.h"
+#include "widgets/world/ReferenceParameterWidget.h"
 
 #include <QVBoxLayout>
 #include <QMetaProperty>
@@ -15,14 +17,16 @@ struct PropertyEditorWidget::Private {
   Private()
     : element(0), verticalLayout(0) {}
   
+  Element* root;
   Element* element;
   QVBoxLayout* verticalLayout;
   QList<AbstractParameterWidget*> parameterWidgets;
 };
 
-PropertyEditorWidget::PropertyEditorWidget(QWidget* parent)
+PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
   : QWidget(parent), p(new Private)
 {
+  p->root = root;
 }
 
 PropertyEditorWidget::~PropertyEditorWidget() {
@@ -73,10 +77,14 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
 
     if (name == "Vector3d") {
       widget = new VectorParameterWidget(this);
+    } else if (name == "Colord") {
+      widget = new ColorParameterWidget(this);
     } else if (name == "double") {
       widget = new DoubleParameterWidget(this);
     } else if (name == "bool") {
       widget = new BoolParameterWidget(this);
+    } else if (name == "Material*") {
+      widget = new ReferenceParameterWidget("Material", p->root, this);
     }
 
     if (widget) {

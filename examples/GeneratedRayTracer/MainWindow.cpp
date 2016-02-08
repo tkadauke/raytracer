@@ -22,6 +22,8 @@
 #include "world/objects/Sphere.h"
 #include "world/objects/Box.h"
 
+#include "world/objects/MatteMaterial.h"
+
 MainWindow::MainWindow()
   : QMainWindow()
 {
@@ -36,7 +38,7 @@ MainWindow::MainWindow()
 }
 
 QDockWidget* MainWindow::createPropertyEditor() {
-  m_propertyEditorWidget = new PropertyEditorWidget(this);
+  m_propertyEditorWidget = new PropertyEditorWidget(m_scene, this);
 
   connect(m_propertyEditorWidget, SIGNAL(changed(Element*)), this, SLOT(elementChanged(Element*)));
 
@@ -63,19 +65,26 @@ QDockWidget* MainWindow::createElementSelector() {
 
 void MainWindow::initScene() {
   m_scene = new ::Scene(0);
+  auto material = new MatteMaterial(m_scene);
+  material->setObjectName("MatteMaterial 1");
+  material->setDiffuseColor(Colord(1, 0, 0));
+
   auto sphere = new Sphere(m_scene);
   sphere->setObjectName("Sphere 1");
   sphere->setRadius(1);
+  sphere->setMaterial(material);
 
   sphere = new Sphere(m_scene);
   sphere->setRadius(1);
   sphere->setObjectName("Sphere 2");
   sphere->setPosition(Vector3d(1, 0, 0));
+  sphere->setMaterial(material);
   
   auto box = new Box(m_scene);
   box->setPosition(Vector3d(0, 2, 0));
   box->setSize(Vector3d(1, 1, 1));
   box->setObjectName("Box 1");
+  box->setMaterial(material);
 }
 
 void MainWindow::elementChanged(Element*) {

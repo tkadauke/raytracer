@@ -32,6 +32,10 @@ public:
     m_components[2] = b;
   }
 
+  static Color<T> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
+    return Color(T(r) / 255.0, T(g) / 255.0, T(b) / 255.0);
+  }
+
   inline const T& component(int index) const { return m_components[index]; }
   inline void setComponent(int index, const T& value) { m_components[index] = value; }
 
@@ -94,10 +98,14 @@ public:
     return !(*this == other);
   }
   
+  inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
+  inline unsigned char gInt() const { return std::min(unsigned(g() * 255), 255u); }
+  inline unsigned char bInt() const { return std::min(unsigned(b() * 255), 255u); }
+  
   inline unsigned int rgb() const {
-    return std::min(unsigned(component(0) * 255), 255u) << 16 |
-           std::min(unsigned(component(1) * 255), 255u) << 8 |
-           std::min(unsigned(component(2) * 255), 255u);
+    return rInt() << 16 |
+           gInt() << 8 |
+           bInt();
   }
   
 private:

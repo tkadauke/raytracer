@@ -13,7 +13,7 @@ raytracer::Scene* Scene::toRaytracerScene() const {
   for (const auto& child : children()) {
     auto surface = dynamic_cast<Surface*>(child);
     if (surface && surface->visible()) {
-       auto primitive = surface->toRaytracerPrimitive();
+      auto primitive = surface->toRaytracer();
       result->add(primitive);
     }
   }

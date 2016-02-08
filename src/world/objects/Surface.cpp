@@ -1,4 +1,5 @@
 #include "world/objects/Surface.h"
+#include "world/objects/Material.h"
 #include "raytracer/primitives/Instance.h"
 
 #include <iostream>
@@ -18,6 +19,14 @@ raytracer::Primitive* Surface::applyTransform(raytracer::Primitive* primitive) c
 
   result->setMatrix(matrix);
   return result;
+}
+
+raytracer::Primitive* Surface::toRaytracer() const {
+  auto primitive = toRaytracerPrimitive();
+  if (material()) {
+    primitive->setMaterial(material()->toRaytracerMaterial());
+  }
+  return applyTransform(primitive);
 }
 
 #include "Surface.moc"

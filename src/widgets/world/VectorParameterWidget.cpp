@@ -1,7 +1,7 @@
 #include "widgets/world/VectorParameterWidget.h"
 #include "VectorParameterWidget.uic"
 
-Q_DECLARE_METATYPE(Vector3d)
+Q_DECLARE_METATYPE(Vector3d);
 
 struct VectorParameterWidget::Private {
   Ui::VectorParameterWidget ui;

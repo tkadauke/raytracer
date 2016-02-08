@@ -30,6 +30,10 @@ public:
     m_vector[1] = _mm_set_sd(b);
   }
 
+  static Color<double> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
+    return Color(double(r) / 255.0, double(g) / 255.0, double(b) / 255.0);
+  }
+
   inline const double& component(int index) const { return m_components[index]; }
   inline void setComponent(int index, const double& value) { m_components[index] = value; }
 
@@ -88,6 +92,10 @@ public:
   inline bool operator!=(const Color<double>& other) const {
     return !(*this == other);
   }
+
+  inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
+  inline unsigned char gInt() const { return std::min(unsigned(g() * 255), 255u); }
+  inline unsigned char bInt() const { return std::min(unsigned(b() * 255), 255u); }
   
   inline unsigned int rgb() const {
     typedef union {

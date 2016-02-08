@@ -9,12 +9,15 @@ namespace raytracer {
   class Primitive;
 }
 
+class Material;
+
 class Surface : public Element {
   Q_OBJECT
   Q_PROPERTY(Vector3d position READ position WRITE setPosition);
   Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation);
   Q_PROPERTY(Vector3d scale READ scale WRITE setScale);
   Q_PROPERTY(bool visible READ visible WRITE setVisible);
+  Q_PROPERTY(Material* material READ material WRITE setMaterial);
   
 public:
   Surface(Element* parent);
@@ -33,15 +36,21 @@ public:
   inline void show() { setVisible(true); }
   inline void hide() { setVisible(false); }
   
-  virtual raytracer::Primitive* toRaytracerPrimitive() const = 0;
+  inline Material* material() const { return m_material; }
+  inline void setMaterial(Material* material) { m_material = material; }
 
+  raytracer::Primitive* toRaytracer() const;
+  
 protected:
+  virtual raytracer::Primitive* toRaytracerPrimitive() const = 0;
   raytracer::Primitive* applyTransform(raytracer::Primitive* primitive) const;
   
 private:
   Vector3d m_position;
   Vector3d m_rotation;
   Vector3d m_scale;
+  
+  Material* m_material;
   
   bool m_visible;
 };

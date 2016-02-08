@@ -32,6 +32,10 @@ public:
   {
   }
 
+  static Color<float> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
+    return Color(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
+  }
+
   inline const float& component(int index) const { return m_components[index]; }
   inline void setComponent(int index, const float& value) { m_components[index] = value; }
 
@@ -77,6 +81,10 @@ public:
   inline bool operator!=(const Color<float>& other) const {
     return !(*this == other);
   }
+
+  inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
+  inline unsigned char gInt() const { return std::min(unsigned(g() * 255), 255u); }
+  inline unsigned char bInt() const { return std::min(unsigned(b() * 255), 255u); }
   
   inline unsigned int rgb() const {
     typedef union {
