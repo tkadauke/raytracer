@@ -34,6 +34,6 @@ namespace FishEyeCameraParameterWidgetTest {
     FishEyeCameraParameterWidget widget;
     FishEyeCamera camera;
     widget.applyTo(&camera);
-    ASSERT_EQ(widget.fieldOfView(), camera.fieldOfView());
+    ASSERT_NEAR(widget.fieldOfView(), camera.fieldOfView().degrees(), 0.001);
   }
 }

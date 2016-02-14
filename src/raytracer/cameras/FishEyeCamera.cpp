@@ -32,7 +32,7 @@ Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
   double r2 = point * point;
   if (r2 <= 1.0) {
     double r = sqrt(r2);
-    double psi = r / 2.0 * m_fieldOfView * (3.14159265 / 180.0);
+    double psi = r * m_fieldOfView.radians() / 2;
     double sinPsi = sin(psi);
     double cosPsi = cos(psi);
     double sinAlpha = point.y() / r;

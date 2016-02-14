@@ -31,7 +31,7 @@ int FishEyeCameraParameterWidget::fieldOfView() const {
 void FishEyeCameraParameterWidget::applyTo(Camera* camera) {
   auto fishEyeCamera = dynamic_cast<FishEyeCamera*>(camera);
   if (fishEyeCamera) {
-    fishEyeCamera->setFieldOfView(fieldOfView());
+    fishEyeCamera->setFieldOfView(Angled::fromDegrees(fieldOfView()));
   }
 }
 
