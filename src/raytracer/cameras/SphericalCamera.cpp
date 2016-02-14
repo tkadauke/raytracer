@@ -27,8 +27,8 @@ void SphericalCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer,
 Vector3d SphericalCamera::direction(const ViewPlane& plane, int x, int y) {
   Vector2d point(2.0 / plane.width() * x + 1.0, 2.0 / plane.height() * y - 1.0);
 
-  double lambda = point.x() * 0.5 * m_horizontalFieldOfView * (3.14159265 / 180.0);
-  double psi = point.y() * 0.5 * m_verticalFieldOfView * (3.14159265 / 180.0);
+  double lambda = point.x() * 0.5 * m_horizontalFieldOfView.radians();
+  double psi = point.y() * 0.5 * m_verticalFieldOfView.radians();
   double phi = 3.14159265 - lambda;
   double theta = 0.5 * 3.14159265 - psi;
   double sinPhi = sin(phi);

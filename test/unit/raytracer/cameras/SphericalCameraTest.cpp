@@ -10,32 +10,32 @@ namespace SphericalCameraTest {
   
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;
-    ASSERT_EQ(180, camera.horizontalFieldOfView());
-    ASSERT_EQ(120, camera.verticalFieldOfView());
+    ASSERT_NEAR(180, camera.horizontalFieldOfView().degrees(), 0.001);
+    ASSERT_NEAR(120, camera.verticalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldConstructWithParameters) {
     SphericalCamera camera(Vector3d(0, 0, 1), Vector3d::null());
-    ASSERT_EQ(180, camera.horizontalFieldOfView());
-    ASSERT_EQ(120, camera.verticalFieldOfView());
+    ASSERT_NEAR(180, camera.horizontalFieldOfView().degrees(), 0.001);
+    ASSERT_NEAR(120, camera.verticalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldConstructWithFieldOfViews) {
-    SphericalCamera camera(200, 90);
-    ASSERT_EQ(200, camera.horizontalFieldOfView());
-    ASSERT_EQ(90, camera.verticalFieldOfView());
+    SphericalCamera camera(Angled::fromDegrees(200), Angled::fromDegrees(90));
+    ASSERT_NEAR(200, camera.horizontalFieldOfView().degrees(), 0.001);
+    ASSERT_NEAR(90, camera.verticalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldSetHorizontalFieldOfView) {
     SphericalCamera camera;
-    camera.setHorizontalFieldOfView(200);
-    ASSERT_EQ(200, camera.horizontalFieldOfView());
+    camera.setHorizontalFieldOfView(Angled::fromDegrees(200));
+    ASSERT_NEAR(200, camera.horizontalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldSetVerticalFieldOfView) {
     SphericalCamera camera;
-    camera.setVerticalFieldOfView(140);
-    ASSERT_EQ(140, camera.verticalFieldOfView());
+    camera.setVerticalFieldOfView(Angled::fromDegrees(140));
+    ASSERT_NEAR(140, camera.verticalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldRender) {
