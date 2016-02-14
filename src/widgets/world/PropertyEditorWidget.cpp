@@ -4,6 +4,7 @@
 
 #include "widgets/world/VectorParameterWidget.h"
 #include "widgets/world/ColorParameterWidget.h"
+#include "widgets/world/StringParameterWidget.h"
 #include "widgets/world/DoubleParameterWidget.h"
 #include "widgets/world/BoolParameterWidget.h"
 #include "widgets/world/ReferenceParameterWidget.h"
@@ -79,6 +80,8 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
       widget = new VectorParameterWidget(this);
     } else if (name == "Colord") {
       widget = new ColorParameterWidget(this);
+    } else if (name == "QString") {
+      widget = new StringParameterWidget(this);
     } else if (name == "double") {
       widget = new DoubleParameterWidget(this);
     } else if (name == "bool") {

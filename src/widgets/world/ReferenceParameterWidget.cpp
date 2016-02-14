@@ -43,7 +43,7 @@ void ReferenceParameterWidget::setValue(const QVariant& value) {
 
 void ReferenceParameterWidget::fillComboBox(Element* root) {
   if (root->inherits(p->baseClassName.toStdString().c_str())) {
-    p->ui.m_comboBox->addItem(root->objectName(), QVariant::fromValue<QObject*>(root));
+    p->ui.m_comboBox->addItem(root->name(), QVariant::fromValue<QObject*>(root));
   }
 
   for (const auto& child : root->children()) {

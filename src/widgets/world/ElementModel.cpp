@@ -71,7 +71,7 @@ QVariant ElementModel::data(const QModelIndex& index, int role) const {
   if (index.column() == 0) {
     return item->metaObject()->className();
   } else if (index.column() == 1) {
-    return item->objectName();
+    return item->name();
   } else {
     return QVariant();
   }

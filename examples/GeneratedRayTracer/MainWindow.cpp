@@ -66,21 +66,21 @@ QDockWidget* MainWindow::createElementSelector() {
 void MainWindow::initScene() {
   m_scene = new ::Scene(0);
   auto material = new MatteMaterial(m_scene);
-  material->setObjectName("MatteMaterial 1");
+  material->setName("MatteMaterial 1");
   material->setDiffuseColor(Colord(1, 0, 0));
 
   auto sphere = new Sphere(m_scene);
-  sphere->setObjectName("Sphere 1");
+  sphere->setName("Sphere 1");
   sphere->setMaterial(material);
 
   sphere = new Sphere(m_scene);
-  sphere->setObjectName("Sphere 2");
+  sphere->setName("Sphere 2");
   sphere->setPosition(Vector3d(1, 0, 0));
   sphere->setMaterial(material);
   
   auto box = new Box(m_scene);
   box->setPosition(Vector3d(0, 2, 0));
-  box->setObjectName("Box 1");
+  box->setName("Box 1");
   box->setMaterial(material);
 }
 
