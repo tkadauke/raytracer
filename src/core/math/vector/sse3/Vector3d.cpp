@@ -9,6 +9,11 @@ const Vector3<double>& Vector3<double>::null() {
   return v;
 }
 
+const Vector3<double>& Vector3<double>::one() {
+  static Vector3<double> v(1, 1, 1);
+  return v;
+}
+
 const Vector3<double>& Vector3<double>::epsilon() {
   static Vector3<double> v(numeric_limits<double>::epsilon(),
                            numeric_limits<double>::epsilon(),

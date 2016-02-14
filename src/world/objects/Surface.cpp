@@ -6,7 +6,7 @@
 using namespace std;
 
 Surface::Surface(Element* parent)
-  : Element(parent), m_scale(Vector3d(1, 1, 1)), m_visible(true)
+  : Element(parent), m_scale(Vector3d::one()), m_visible(true)
 {
 }
 

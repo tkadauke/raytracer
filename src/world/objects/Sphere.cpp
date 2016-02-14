@@ -3,12 +3,12 @@
 #include "raytracer/materials/MatteMaterial.h"
 
 Sphere::Sphere(Element* parent)
-  : Surface(parent), m_radius(0)
+  : Surface(parent)
 {
 }
 
 raytracer::Primitive* Sphere::toRaytracerPrimitive() const {
-  return new raytracer::Sphere(Vector3d::null(), radius());
+  return new raytracer::Sphere(Vector3d::null(), 1);
 }
 
 #include "Sphere.moc"

@@ -13,10 +13,10 @@ class Material;
 
 class Surface : public Element {
   Q_OBJECT
+  Q_PROPERTY(bool visible READ visible WRITE setVisible);
   Q_PROPERTY(Vector3d position READ position WRITE setPosition);
   Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation);
   Q_PROPERTY(Vector3d scale READ scale WRITE setScale);
-  Q_PROPERTY(bool visible READ visible WRITE setVisible);
   Q_PROPERTY(Material* material READ material WRITE setMaterial);
   
 public:

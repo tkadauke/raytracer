@@ -11,6 +11,7 @@ public:
   static const int Dim = 3;
   
   static const Vector3<float>& null();
+  static const Vector3<float>& one();
   static const Vector3<float>& epsilon();
   static const Vector3<float>& undefined();
   static const Vector3<float>& minusInfinity();

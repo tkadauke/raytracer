@@ -8,7 +8,7 @@ Box::Box(Element* parent)
 }
 
 raytracer::Primitive* Box::toRaytracerPrimitive() const {
-  return new raytracer::Box(Vector3d::null(), size());
+  return new raytracer::Box(Vector3d::null(), Vector3d::one());
 }
 
 #include "Box.moc"

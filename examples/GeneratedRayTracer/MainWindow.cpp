@@ -71,18 +71,15 @@ void MainWindow::initScene() {
 
   auto sphere = new Sphere(m_scene);
   sphere->setObjectName("Sphere 1");
-  sphere->setRadius(1);
   sphere->setMaterial(material);
 
   sphere = new Sphere(m_scene);
-  sphere->setRadius(1);
   sphere->setObjectName("Sphere 2");
   sphere->setPosition(Vector3d(1, 0, 0));
   sphere->setMaterial(material);
   
   auto box = new Box(m_scene);
   box->setPosition(Vector3d(0, 2, 0));
-  box->setSize(Vector3d(1, 1, 1));
   box->setObjectName("Box 1");
   box->setMaterial(material);
 }

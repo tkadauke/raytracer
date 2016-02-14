@@ -9,6 +9,11 @@ const Vector3<float>& Vector3<float>::null() {
   return v;
 }
 
+const Vector3<float>& Vector3<float>::one() {
+  static Vector3<float> v(1, 1, 1);
+  return v;
+}
+
 const Vector3<float>& Vector3<float>::epsilon() {
   static Vector3<float> v(numeric_limits<float>::epsilon(),
                           numeric_limits<float>::epsilon(),

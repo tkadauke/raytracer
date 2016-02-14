@@ -548,6 +548,14 @@ public:
     static Vector3<T> v(0, 0, 0);
     return v;
   }
+
+  /**
+    * Returns the null vector \f$(1,1,1)\f$.
+    */
+  static const Vector3<T>& one() {
+    static Vector3<T> v(1, 1, 1);
+    return v;
+  }
   
   /**
     * Returns \f$(\epsilon,\epsilon,\epsilon)\f$.
