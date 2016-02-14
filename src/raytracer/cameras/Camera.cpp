@@ -1,7 +1,7 @@
 #include "raytracer/cameras/Camera.h"
 #include "core/math/Rect.h"
 #include "raytracer/viewplanes/ViewPlane.h"
-#include "raytracer/viewplanes/PointShuffledViewPlane.h"
+#include "raytracer/viewplanes/PointInterlacedViewPlane.h"
 #include "core/Buffer.h"
 
 using namespace raytracer;
@@ -14,7 +14,7 @@ Camera::~Camera() {
 ViewPlane* Camera::viewPlane() {
   // Use this type of view plane as default, because I like it the most :-)
   if (!m_viewPlane)
-    m_viewPlane = new PointShuffledViewPlane;
+    m_viewPlane = new PointInterlacedViewPlane;
   return m_viewPlane;
 }
 
