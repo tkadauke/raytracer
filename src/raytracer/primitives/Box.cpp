@@ -2,7 +2,6 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include <cmath>
-#include <iostream>
 
 using namespace std;
 using namespace raytracer;

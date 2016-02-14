@@ -2,9 +2,6 @@
 #include "world/objects/Material.h"
 #include "raytracer/primitives/Instance.h"
 
-#include <iostream>
-using namespace std;
-
 Surface::Surface(Element* parent)
   : Element(parent), m_scale(Vector3d::one()), m_visible(true)
 {

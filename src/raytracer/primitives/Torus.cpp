@@ -3,7 +3,6 @@
 #include "core/math/HitPointInterval.h"
 #include "core/math/Quartic.h"
 #include <cmath>
-#include <iostream>
 
 using namespace std;
 using namespace raytracer;
