@@ -10,6 +10,8 @@ class Material : public Element {
   Q_OBJECT
 
 public:
+  static Material* defaultMaterial();
+  
   Material(Element* parent);
   
   virtual raytracer::Material* toRaytracerMaterial() const = 0;

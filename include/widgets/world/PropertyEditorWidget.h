@@ -12,6 +12,8 @@ public:
   PropertyEditorWidget(Element* root, QWidget* parent = nullptr);
   ~PropertyEditorWidget();
   
+  void setRoot(Element* root);
+  
   virtual QSize sizeHint() const;
 
 signals:

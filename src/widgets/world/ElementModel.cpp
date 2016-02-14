@@ -11,6 +11,12 @@ ElementModel::~ElementModel() {
   delete m_rootItem;
 }
 
+void ElementModel::setElement(Element* root) {
+  beginResetModel();
+  m_rootItem = root;
+  endResetModel();
+}
+
 QModelIndex ElementModel::index(int row, int column, const QModelIndex& parent) const {
   if (!hasIndex(row, column, parent))
     return QModelIndex();

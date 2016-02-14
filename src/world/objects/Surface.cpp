@@ -3,7 +3,7 @@
 #include "raytracer/primitives/Instance.h"
 
 Surface::Surface(Element* parent)
-  : Element(parent), m_scale(Vector3d::one()), m_visible(true)
+  : Element(parent), m_scale(Vector3d::one()), m_material(nullptr), m_visible(true)
 {
 }
 
@@ -22,6 +22,8 @@ raytracer::Primitive* Surface::toRaytracer() const {
   auto primitive = toRaytracerPrimitive();
   if (material()) {
     primitive->setMaterial(material()->toRaytracerMaterial());
+  } else {
+    primitive->setMaterial(Material::defaultMaterial()->toRaytracerMaterial());
   }
   return applyTransform(primitive);
 }

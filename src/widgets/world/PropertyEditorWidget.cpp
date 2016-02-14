@@ -48,11 +48,18 @@ QSize PropertyEditorWidget::sizeHint() const {
   return QSize(192, 100);
 }
 
+void PropertyEditorWidget::setRoot(Element* root) {
+  p->root = root;
+  setElement(nullptr);
+}
+
 void PropertyEditorWidget::setElement(Element* element) {
   p->element = element;
   
   clearParameterWidgets();
-  addParameterWidgets();
+  if (p->element) {
+    addParameterWidgets();
+  }
 }
 
 void PropertyEditorWidget::addParameterWidgets() {

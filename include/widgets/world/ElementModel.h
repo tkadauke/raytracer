@@ -10,6 +10,8 @@ class ElementModel : public QAbstractItemModel {
 public:
   ElementModel(Element* root, QObject* parent = nullptr);
   ~ElementModel();
+  
+  void setElement(Element* root);
 
   QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
   Qt::ItemFlags flags(const QModelIndex& index) const;

@@ -19,6 +19,7 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
   p->ui.setupUi(this);
   connect(p->ui.m_comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
 
+  p->ui.m_comboBox->addItem(tr("<No Selection>"), QVariant::fromValue<QObject*>(nullptr));
   fillComboBox(p->root);
 }
 

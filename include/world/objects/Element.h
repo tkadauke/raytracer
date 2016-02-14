@@ -16,5 +16,7 @@ public:
   inline void setName(const QString& name) { m_name = name; }
   
 private:
+  void unlink(QObject* root);
+  
   QString m_name;
 };
