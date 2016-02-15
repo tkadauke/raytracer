@@ -51,6 +51,12 @@ public:
     return result;
   }
 
+  inline Color<double>& operator+=(const Color<double>& other) {
+    m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);
+    m_vector[1] = _mm_add_sd(m_vector[1], other.m_vector[1]);
+    return *this;
+  }
+
   inline Color<double> operator-(const Color<double>& other) const {
     Color<double> result;
     result.m_vector[0] = _mm_sub_pd(m_vector[0], other.m_vector[0]);

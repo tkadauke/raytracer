@@ -50,6 +50,11 @@ public:
     return Color<float>(_mm_add_ps(m_vector, other.m_vector));
   }
 
+  inline Color<float>& operator+=(const Color<float>& other) {
+    m_vector = _mm_add_ps(m_vector, other.m_vector);
+    return *this;
+  }
+
   inline Color<float> operator-(const Color<float>& other) const {
     return Color<float>(_mm_sub_ps(m_vector, other.m_vector));
   }

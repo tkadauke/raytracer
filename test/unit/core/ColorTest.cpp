@@ -72,6 +72,14 @@ namespace ColorTest {
     
     ASSERT_COLOR_NEAR(expected, color3, 0.0001);
   }
+
+  TYPED_TEST(ColorTest, ShouldInplaceAdd) {
+    TypeParam color1(0.3, 0.1, 0.4), color2(0.1, 0.1, 0.2);
+    color1 += color2;
+    TypeParam expected(0.4, 0.2, 0.6);
+    
+    ASSERT_COLOR_NEAR(expected, color1, 0.0001);
+  }
   
   TYPED_TEST(ColorTest, ShouldSubtract) {
     TypeParam color1(0.3, 0.1, 0.4), color2(0.1, 0.1, 0.2);

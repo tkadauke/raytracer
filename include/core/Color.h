@@ -54,6 +54,13 @@ public:
     return result;
   }
 
+  inline Color<T>& operator+=(const Color<T>& other) {
+    for (int i = 0; i != 3; ++i) {
+      setComponent(i, component(i) + other.component(i));
+    }
+    return *this;
+  }
+
   inline Color<T> operator-(const Color<T>& other) const {
     Color<T> result;
     for (int i = 0; i != 3; ++i) {

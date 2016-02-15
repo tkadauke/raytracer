@@ -19,4 +19,16 @@ namespace MatteMaterialTest {
     material.setDiffuseColor(Colord(0, 1, 0));
     ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
   }
+  
+  TEST(MatteMaterial, ShouldSetAmbientCoefficient) {
+    MatteMaterial material;
+    material.setAmbientCoefficient(0.6);
+    ASSERT_EQ(0.6, material.ambientCoefficient());
+  }
+  
+  TEST(MatteMaterial, ShouldSetDiffuseCoefficient) {
+    MatteMaterial material;
+    material.setDiffuseCoefficient(0.6);
+    ASSERT_EQ(0.6, material.diffuseCoefficient());
+  }
 }
