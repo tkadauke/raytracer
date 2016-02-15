@@ -34,6 +34,7 @@ private slots:
   void addSphere();
   void addMatteMaterial();
   void addPhongMaterial();
+  void addTransparentMaterial();
   
   void deleteElement();
   
@@ -77,6 +78,7 @@ private:
   QAction* m_addSphereAct;
   QAction* m_addMatteMaterialAct;
   QAction* m_addPhongMaterialAct;
+  QAction* m_addTransparentMaterialAct;
   
   QAction* m_deleteElementAct;
   

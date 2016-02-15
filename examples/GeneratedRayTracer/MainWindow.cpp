@@ -30,6 +30,7 @@
 
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/PhongMaterial.h"
+#include "world/objects/TransparentMaterial.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -84,6 +85,10 @@ void MainWindow::createActions() {
   m_addPhongMaterialAct->setStatusTip(tr("Add a Phong material to the scene"));
   connect(m_addPhongMaterialAct, SIGNAL(triggered()), this, SLOT(addPhongMaterial()));
 
+  m_addTransparentMaterialAct = new QAction(tr("Transparent Material"), this);
+  m_addTransparentMaterialAct->setStatusTip(tr("Add a transparent material to the scene"));
+  connect(m_addTransparentMaterialAct, SIGNAL(triggered()), this, SLOT(addTransparentMaterial()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -123,6 +128,7 @@ void MainWindow::createMenus() {
   auto addMaterial = m_editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(m_addMatteMaterialAct);
   addMaterial->addAction(m_addPhongMaterialAct);
+  addMaterial->addAction(m_addTransparentMaterialAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -239,6 +245,10 @@ void MainWindow::addMatteMaterial() {
 
 void MainWindow::addPhongMaterial() {
   addMaterial<PhongMaterial>("PhongMaterial");
+}
+
+void MainWindow::addTransparentMaterial() {
+  addMaterial<TransparentMaterial>("TransparentMaterial");
 }
 
 void MainWindow::deleteElement() {
