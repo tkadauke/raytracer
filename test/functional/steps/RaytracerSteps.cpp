@@ -23,3 +23,7 @@ THEN(RaytracerFeatureTest, "i should see something") {
 THEN(RaytracerFeatureTest, "i should see nothing") {
   ASSERT_FALSE(test->objectVisible());
 }
+
+THEN(RaytracerFeatureTest, "show me") {
+  test->show();
+}
