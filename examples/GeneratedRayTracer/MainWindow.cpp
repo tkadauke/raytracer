@@ -128,17 +128,17 @@ void MainWindow::createMenus() {
 
 bool MainWindow::maybeSave() {
   if (m_scene->changed()) {
-    auto response = QMessageBox::question(this, tr("Save changes?"), tr("There are unsaved changes to this document. Would you like to save them?"), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::Yes);
+    auto response = QMessageBox::question(this, tr("Save changes?"), tr("There are unsaved changes to this document. Would you like to save them?"), QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
     switch (response) {
-      case QMessageBox::Yes: {
+      case QMessageBox::Save: {
         saveFile();
         return true;
       }
-      case QMessageBox::No: {
+      case QMessageBox::Discard: {
         m_scene->setChanged(false);
         return true;
       }
-      case QMessageBox::Cancel: {
+      default: {
         return false;
       }
     }
