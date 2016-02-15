@@ -19,7 +19,7 @@ Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint
     if (!raytracer->scene()->intersects(Ray(hitPoint.point(), lightDirection).epsilonShifted())) {
       Vector3d h = (lightDirection - ray.direction()).normalized();
       color = color + m_diffuseColor * light->color() * max(0.0, hitPoint.normal() * lightDirection) +
-              light->color() * m_highlightColor * pow(h * hitPoint.normal(), 128);
+              light->color() * m_highlightColor * pow(h * hitPoint.normal(), m_exponent);
     }
   }
   

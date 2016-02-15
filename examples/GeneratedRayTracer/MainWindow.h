@@ -33,6 +33,7 @@ private slots:
   void addBox();
   void addSphere();
   void addMatteMaterial();
+  void addPhongMaterial();
   
   void deleteElement();
   
@@ -49,6 +50,9 @@ private:
   void redraw();
   
   bool maybeSave();
+  
+  template<class Mat>
+  void addMaterial(const QString& name);
 
   QString m_fileName;
 
@@ -72,6 +76,7 @@ private:
   QAction* m_addBoxAct;
   QAction* m_addSphereAct;
   QAction* m_addMatteMaterialAct;
+  QAction* m_addPhongMaterialAct;
   
   QAction* m_deleteElementAct;
   

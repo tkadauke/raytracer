@@ -29,6 +29,7 @@
 #include "world/objects/Box.h"
 
 #include "world/objects/MatteMaterial.h"
+#include "world/objects/PhongMaterial.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -79,6 +80,10 @@ void MainWindow::createActions() {
   m_addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
   connect(m_addMatteMaterialAct, SIGNAL(triggered()), this, SLOT(addMatteMaterial()));
 
+  m_addPhongMaterialAct = new QAction(tr("Phong Material"), this);
+  m_addPhongMaterialAct->setStatusTip(tr("Add a Phong material to the scene"));
+  connect(m_addPhongMaterialAct, SIGNAL(triggered()), this, SLOT(addPhongMaterial()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -117,6 +122,7 @@ void MainWindow::createMenus() {
   
   auto addMaterial = m_editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(m_addMatteMaterialAct);
+  addMaterial->addAction(m_addPhongMaterialAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -218,12 +224,21 @@ void MainWindow::addSphere() {
   elementChanged(sphere);
 }
 
-void MainWindow::addMatteMaterial() {
-  auto material = new MatteMaterial(m_scene);
-  material->setName(QString("MatteMaterial %1").arg(m_scene->children().size()));
+template<class Mat>
+void MainWindow::addMaterial(const QString& name) {
+  auto material = new Mat(m_scene);
+  material->setName(QString("%1 %2").arg(name).arg(m_scene->children().size()));
 
   m_elementModel->setElement(m_scene);
   m_scene->setChanged(true);
+}
+
+void MainWindow::addMatteMaterial() {
+  addMaterial<MatteMaterial>("MatteMaterial");
+}
+
+void MainWindow::addPhongMaterial() {
+  addMaterial<PhongMaterial>("PhongMaterial");
 }
 
 void MainWindow::deleteElement() {
