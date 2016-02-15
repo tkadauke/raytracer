@@ -18,7 +18,7 @@ public:
   bool load(const QString& filename);
   
   inline bool changed() const { return m_changed; }
-  inline void setChanged() { m_changed = true; }
+  inline void setChanged(bool changed) { m_changed = changed; }
   
 private:
   void findReferences(Element* root, QMap<QString, Element*>& references);

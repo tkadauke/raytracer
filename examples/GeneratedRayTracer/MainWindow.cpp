@@ -126,18 +126,49 @@ void MainWindow::createMenus() {
   m_helpMenu->addAction(m_helpAct);
 }
 
-void MainWindow::newFile() {
-  if (m_scene)
-    delete m_scene;
+bool MainWindow::maybeSave() {
+  if (m_scene->changed()) {
+    auto response = QMessageBox::question(this, tr("Save changes?"), tr("There are unsaved changes to this document. Would you like to save them?"), QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::Yes);
+    switch (response) {
+      case QMessageBox::Yes: {
+        saveFile();
+        return true;
+      }
+      case QMessageBox::No: {
+        m_scene->setChanged(false);
+        return true;
+      }
+      case QMessageBox::Cancel: {
+        return false;
+      }
+    }
+  }
   
-  m_fileName = QString();
-  m_currentElement = nullptr;
-  
-  m_scene = new ::Scene(nullptr);
-  m_propertyEditorWidget->setRoot(m_scene);
-  m_display->setScene(m_scene);
+  return true;
+}
 
-  m_elementModel->setElement(m_scene);
+void MainWindow::closeEvent(QCloseEvent* event) {
+  if (maybeSave()) {
+    event->accept();
+  } else {
+    event->ignore();
+  }
+}
+
+void MainWindow::newFile() {
+  if (maybeSave()) {
+    if (m_scene)
+      delete m_scene;
+  
+    m_fileName = QString();
+    m_currentElement = nullptr;
+  
+    m_scene = new ::Scene(nullptr);
+    m_propertyEditorWidget->setRoot(m_scene);
+    m_display->setScene(m_scene);
+
+    m_elementModel->setElement(m_scene);
+  }
 }
 
 void MainWindow::openFile() {
@@ -192,7 +223,7 @@ void MainWindow::addMatteMaterial() {
   material->setName(QString("MatteMaterial %1").arg(m_scene->children().size()));
 
   m_elementModel->setElement(m_scene);
-  m_scene->setChanged();
+  m_scene->setChanged(true);
 }
 
 void MainWindow::deleteElement() {
@@ -243,7 +274,7 @@ QDockWidget* MainWindow::createElementSelector() {
 }
 
 void MainWindow::elementChanged(Element*) {
-  m_scene->setChanged();
+  m_scene->setChanged(true);
   updateWindowModified();
   redraw();
 }

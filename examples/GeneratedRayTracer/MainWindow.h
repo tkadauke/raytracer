@@ -17,6 +17,9 @@ class MainWindow : public QMainWindow {
 public:
   MainWindow();
   
+protected:
+  virtual void closeEvent(QCloseEvent* event);
+  
 private slots:
   void elementSelected(const QModelIndex& current, const QModelIndex& previous);
   void elementChanged(Element*);
@@ -44,6 +47,8 @@ private:
   void createMenus();
   
   void redraw();
+  
+  bool maybeSave();
 
   QString m_fileName;
 
