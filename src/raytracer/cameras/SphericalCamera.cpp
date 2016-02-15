@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "raytracer/Raytracer.h"
 #include "core/math/Ray.h"
+#include "core/math/Constants.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 
 #include <cmath>
@@ -29,8 +30,8 @@ Vector3d SphericalCamera::direction(const ViewPlane& plane, int x, int y) {
 
   double lambda = point.x() * 0.5 * m_horizontalFieldOfView.radians();
   double psi = point.y() * 0.5 * m_verticalFieldOfView.radians();
-  double phi = 3.14159265 - lambda;
-  double theta = 0.5 * 3.14159265 - psi;
+  double phi = PI - lambda;
+  double theta = 0.5 * PI - psi;
   double sinPhi = sin(phi);
   double cosPhi = cos(phi);
   double sinTheta = sin(theta);

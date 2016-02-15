@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/math/Constants.h"
+
 #include <cmath>
 
 /**
@@ -45,7 +47,7 @@ public:
     * radians, with \f$r = t \times 2\pi\f$.
     */
   static Angle<T> fromTurns(const T& turns) {
-    return Angle<T>(turns * 6.28318530717959);
+    return Angle<T>(turns * TAO);
   }
   
   /**
@@ -66,7 +68,7 @@ public:
     * Returns the angle in turns, \f$t = \frac{r}{2\pi}.
     */
   inline T turns() const {
-    return m_radians * 0.1591549430919;
+    return m_radians * invTAO;
   }
   
   /**
