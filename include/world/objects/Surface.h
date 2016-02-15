@@ -20,7 +20,7 @@ class Surface : public Element {
   Q_PROPERTY(Material* material READ material WRITE setMaterial);
   
 public:
-  Surface(Element* parent);
+  Surface(Element* parent = nullptr);
   
   inline const Vector3d& position() const { return m_position; }
   inline void setPosition(const Vector3d& position) { m_position = position; }

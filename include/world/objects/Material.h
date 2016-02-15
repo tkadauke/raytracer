@@ -12,7 +12,7 @@ class Material : public Element {
 public:
   static Material* defaultMaterial();
   
-  Material(Element* parent);
+  Material(Element* parent = nullptr);
   
   virtual raytracer::Material* toRaytracerMaterial() const = 0;
 };

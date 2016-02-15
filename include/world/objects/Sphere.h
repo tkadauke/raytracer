@@ -6,7 +6,7 @@ class Sphere : public Surface {
   Q_OBJECT
   
 public:
-  Sphere(Element* parent);
+  Sphere(Element* parent = nullptr);
 
   virtual raytracer::Primitive* toRaytracerPrimitive() const;
 };

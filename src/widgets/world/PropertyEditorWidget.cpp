@@ -77,6 +77,9 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
 
   for (int i = klass->propertyOffset(); i != klass->propertyCount(); ++i) {
     auto metaProp = klass->property(i);
+    if (metaProp.name() == QString("id"))
+      continue;
+
     auto prop = p->element->property(metaProp.name());
 
     AbstractParameterWidget* widget = nullptr;

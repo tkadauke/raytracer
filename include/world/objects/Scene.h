@@ -10,7 +10,18 @@ class Scene : public Element {
   Q_OBJECT
   
 public:
-  Scene(Element* parent);
+  Scene(Element* parent = nullptr);
   
   raytracer::Scene* toRaytracerScene() const;
+  
+  bool save(const QString& filename);
+  bool load(const QString& filename);
+  
+  inline bool changed() const { return m_changed; }
+  inline void setChanged() { m_changed = true; }
+  
+private:
+  void findReferences(Element* root, QMap<QString, Element*>& references);
+  
+  bool m_changed;
 };

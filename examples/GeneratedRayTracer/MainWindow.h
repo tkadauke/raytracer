@@ -17,14 +17,15 @@ class MainWindow : public QMainWindow {
 public:
   MainWindow();
   
-protected:
-  void initScene();
-  
 private slots:
   void elementSelected(const QModelIndex& current, const QModelIndex& previous);
   void elementChanged(Element*);
+  void updateWindowModified();
   
   void newFile();
+  void openFile();
+  void saveFile();
+  void saveFileAs();
   
   void addBox();
   void addSphere();
@@ -41,6 +42,10 @@ private:
 
   void createActions();
   void createMenus();
+  
+  void redraw();
+
+  QString m_fileName;
 
   Display* m_display;
   PropertyEditorWidget* m_propertyEditorWidget;
@@ -55,6 +60,9 @@ private:
   QMenu* m_helpMenu;
 
   QAction* m_newAct;
+  QAction* m_openAct;
+  QAction* m_saveAct;
+  QAction* m_saveAsAct;
 
   QAction* m_addBoxAct;
   QAction* m_addSphereAct;

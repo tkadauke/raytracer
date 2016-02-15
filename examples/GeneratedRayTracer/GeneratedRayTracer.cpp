@@ -8,7 +8,6 @@
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Colord);
-Q_DECLARE_METATYPE(Material*);
 
 int main(int argc, char** argv) {
   QApplication app(argc, argv);

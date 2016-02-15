@@ -10,6 +10,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QDesktopServices>
+#include <QFileDialog>
 
 #include "MainWindow.h"
 #include "Display.h"
@@ -32,8 +33,8 @@
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
 {
-  initScene();
-  
+  m_scene = new ::Scene(nullptr);
+
   m_display = new Display(this);
   m_display->setScene(m_scene);
   setCentralWidget(m_display);
@@ -50,6 +51,21 @@ void MainWindow::createActions() {
   m_newAct->setShortcuts(QKeySequence::New);
   m_newAct->setStatusTip(tr("Create a new file"));
   connect(m_newAct, SIGNAL(triggered()), this, SLOT(newFile()));
+  
+  m_openAct = new QAction(tr("&Open"), this);
+  m_openAct->setShortcuts(QKeySequence::Open);
+  m_openAct->setStatusTip(tr("Open a file from disk"));
+  connect(m_openAct, SIGNAL(triggered()), this, SLOT(openFile()));
+  
+  m_saveAct = new QAction(tr("&Save"), this);
+  m_saveAct->setShortcuts(QKeySequence::Save);
+  m_saveAct->setStatusTip(tr("Save the current project to a file"));
+  connect(m_saveAct, SIGNAL(triggered()), this, SLOT(saveFile()));
+  
+  m_saveAsAct = new QAction(tr("Save &As"), this);
+  m_saveAsAct->setShortcuts(QKeySequence::SaveAs);
+  m_saveAsAct->setStatusTip(tr("Save the current project to a new file"));
+  connect(m_saveAsAct, SIGNAL(triggered()), this, SLOT(saveFileAs()));
   
   m_addBoxAct = new QAction(tr("Box"), this);
   m_addBoxAct->setStatusTip(tr("Add a Box to the scene"));
@@ -76,11 +92,23 @@ void MainWindow::createActions() {
   m_helpAct = new QAction(tr("Raytracer &Help"), this);
   m_helpAct->setStatusTip(tr("Go to the Github page"));
   connect(m_helpAct, SIGNAL(triggered()), this, SLOT(help()));
+  
+  auto modifyingActions = {
+    m_newAct, m_openAct, m_saveAct, m_saveAsAct, m_addBoxAct, m_addSphereAct,
+    m_addMatteMaterialAct, m_deleteElementAct
+  };
+  
+  for (auto& act : modifyingActions) {
+    connect(act, SIGNAL(triggered()), this, SLOT(updateWindowModified()));
+  }
 }
 
 void MainWindow::createMenus() {
   m_fileMenu = menuBar()->addMenu(tr("&File"));
   m_fileMenu->addAction(m_newAct);
+  m_fileMenu->addAction(m_openAct);
+  m_fileMenu->addAction(m_saveAct);
+  m_fileMenu->addAction(m_saveAsAct);
 
   m_editMenu = menuBar()->addMenu(tr("&Edit"));
   auto addPrimitive = m_editMenu->addMenu(tr("Add Primitive"));
@@ -102,6 +130,7 @@ void MainWindow::newFile() {
   if (m_scene)
     delete m_scene;
   
+  m_fileName = QString();
   m_currentElement = nullptr;
   
   m_scene = new ::Scene(nullptr);
@@ -109,6 +138,37 @@ void MainWindow::newFile() {
   m_display->setScene(m_scene);
 
   m_elementModel->setElement(m_scene);
+}
+
+void MainWindow::openFile() {
+  QString fileName = QFileDialog::getOpenFileName(
+    this, tr("Open File"), QString(), tr("Scenes (*.json)"));
+
+  if (!fileName.isNull()) {
+    newFile();
+    m_scene->load(fileName);
+    m_fileName = fileName;
+    
+    redraw();
+  }
+}
+
+void MainWindow::saveFile() {
+  if (m_fileName.isNull()) {
+    saveFileAs();
+  } else {
+    m_scene->save(m_fileName);
+  }
+}
+
+void MainWindow::saveFileAs() {
+  QString fileName = QFileDialog::getSaveFileName(
+    this, tr("Save File"), m_fileName, tr("Scenes (*.json)"));
+  
+  if (!fileName.isNull()) {
+    m_fileName = fileName;
+    m_scene->save(m_fileName);
+  }
 }
 
 void MainWindow::addBox() {
@@ -132,6 +192,7 @@ void MainWindow::addMatteMaterial() {
   material->setName(QString("MatteMaterial %1").arg(m_scene->children().size()));
 
   m_elementModel->setElement(m_scene);
+  m_scene->setChanged();
 }
 
 void MainWindow::deleteElement() {
@@ -181,29 +242,10 @@ QDockWidget* MainWindow::createElementSelector() {
   return dockWidget;
 }
 
-void MainWindow::initScene() {
-  m_scene = new ::Scene(0);
-  auto material = new MatteMaterial(m_scene);
-  material->setName("MatteMaterial 1");
-  material->setDiffuseColor(Colord(1, 0, 0));
-
-  auto sphere = new Sphere(m_scene);
-  sphere->setName("Sphere 1");
-  sphere->setMaterial(material);
-
-  sphere = new Sphere(m_scene);
-  sphere->setName("Sphere 2");
-  sphere->setPosition(Vector3d(1, 0, 0));
-  sphere->setMaterial(material);
-  
-  auto box = new Box(m_scene);
-  box->setPosition(Vector3d(0, 2, 0));
-  box->setName("Box 1");
-  box->setMaterial(material);
-}
-
 void MainWindow::elementChanged(Element*) {
-  m_display->setScene(m_scene);
+  m_scene->setChanged();
+  updateWindowModified();
+  redraw();
 }
 
 void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&) {
@@ -214,6 +256,14 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   if (element) {
     m_propertyEditorWidget->setElement(element);
   }
+}
+
+void MainWindow::updateWindowModified() {
+  setWindowModified(m_scene->changed());
+}
+
+void MainWindow::redraw() {
+  m_display->setScene(m_scene);
 }
 
 #include "MainWindow.moc"
