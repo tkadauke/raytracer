@@ -45,7 +45,7 @@ void PropertyEditorWidget::initLayout() {
 }
 
 QSize PropertyEditorWidget::sizeHint() const {
-  return QSize(192, 100);
+  return QSize(256, 100);
 }
 
 void PropertyEditorWidget::setRoot(Element* root) {
