@@ -39,8 +39,8 @@ MainWindow::MainWindow()
   m_display->setScene(m_scene);
   setCentralWidget(m_display);
   
-  addDockWidget(Qt::LeftDockWidgetArea, createPropertyEditor());
-  addDockWidget(Qt::RightDockWidgetArea, createElementSelector());
+  addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
+  addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
   
   createActions();
   createMenus();
