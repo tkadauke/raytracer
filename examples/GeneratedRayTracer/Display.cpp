@@ -28,7 +28,7 @@ Display::~Display() {
 
 void Display::setScene(Scene* scene) {
   if (m_raytracer->scene()) {
-    m_raytracer->cancel();
+    stop();
     delete m_raytracer->scene();
   }
   
