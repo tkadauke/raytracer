@@ -11,8 +11,7 @@ namespace raytracer {
     {
     }
     
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& in, const Vector3d& out);
-    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out);
+    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in);
     
     inline void setSpecularColor(const Colord& color) { m_specularColor = color; }
     inline const Colord& specularColor() const { return m_specularColor; }

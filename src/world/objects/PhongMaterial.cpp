@@ -4,12 +4,17 @@
 #include "raytracer/materials/PhongMaterial.h"
 
 PhongMaterial::PhongMaterial(Element* parent)
-  : MatteMaterial(parent), m_specularColor(Colord::white()), m_exponent(16)
+  : MatteMaterial(parent), m_specularColor(Colord::white()), m_exponent(16), m_specularCoefficient(1)
 {
 }
 
 raytracer::Material* PhongMaterial::toRaytracerMaterial() const {
-  return new raytracer::PhongMaterial(diffuseColor(), specularColor(), exponent());
+  auto material = new raytracer::PhongMaterial(diffuseColor(), specularColor(), exponent());
+  material->setAmbientCoefficient(ambientCoefficient());
+  material->setDiffuseCoefficient(diffuseCoefficient());
+  material->setSpecularCoefficient(specularCoefficient());
+  
+  return material;
 }
 
 static bool dummy = ElementFactory::self().registerClass<PhongMaterial>("PhongMaterial");

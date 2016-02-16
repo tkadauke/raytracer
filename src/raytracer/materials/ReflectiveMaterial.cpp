@@ -8,10 +8,14 @@ using namespace raytracer;
 Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
   auto color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
 
-  Vector3d reflectionDirection = ray.direction() - hitPoint.normal() * (2.0 * (ray.direction() * hitPoint.normal()));
-
-  // TODO: fix reflection in a later commit
-  // color += specularColor() * raytracer->rayColor(Ray(hitPoint.point(), reflectionDirection).epsilonShifted(), recursionDepth + 1);
+  Vector3d out = - ray.direction();
+  Vector3d in;
+  Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
+  Ray reflected(hitPoint.point(), in);
   
+  double normalDotIn = hitPoint.normal() * in;
+  
+  color += refl * raytracer->rayColor(reflected.epsilonShifted(), recursionDepth + 1) * normalDotIn;
+
   return color;
 }

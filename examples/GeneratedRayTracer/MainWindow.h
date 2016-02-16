@@ -35,6 +35,7 @@ private slots:
   void addMatteMaterial();
   void addPhongMaterial();
   void addTransparentMaterial();
+  void addReflectiveMaterial();
   
   void deleteElement();
   
@@ -79,6 +80,7 @@ private:
   QAction* m_addMatteMaterialAct;
   QAction* m_addPhongMaterialAct;
   QAction* m_addTransparentMaterialAct;
+  QAction* m_addReflectiveMaterialAct;
   
   QAction* m_deleteElementAct;
   

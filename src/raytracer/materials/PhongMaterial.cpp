@@ -15,14 +15,14 @@ Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint
   auto color = m_ambientBRDF.reflectance(hitPoint, out) * raytracer->scene()->ambient();
 
   for (const auto& light : raytracer->scene()->lights()) {
-    Vector3d lightDirection = (light->position() - hitPoint.point()).normalized();
+    Vector3d in = (light->position() - hitPoint.point()).normalized();
     
-    if (!raytracer->scene()->intersects(Ray(hitPoint.point(), lightDirection).epsilonShifted())) {
-      double normalDotIn = hitPoint.normal() * lightDirection;
+    if (!raytracer->scene()->intersects(Ray(hitPoint.point(), in).epsilonShifted())) {
+      double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0) {
         color += (
-          m_diffuseBRDF(hitPoint, lightDirection, out)
-        + m_specularBRDF(hitPoint, lightDirection, out)
+          m_diffuseBRDF(hitPoint, out, in)
+        + m_specularBRDF(hitPoint, out, in)
         ) * light->color() * normalDotIn;
       }
     }

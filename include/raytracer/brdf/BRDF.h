@@ -8,11 +8,12 @@ class HitPoint;
 namespace raytracer {
   class BRDF {
   public:
-    inline Colord operator()(const HitPoint& hitPoint, const Vector3d& in, const Vector3d& out) {
+    inline Colord operator()(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) {
       return calculate(hitPoint, in, out);
     }
     
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& in, const Vector3d& out) = 0;
-    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) = 0;
+    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in);
+    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out);
+    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in);
   };
 }

@@ -31,6 +31,7 @@
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/PhongMaterial.h"
 #include "world/objects/TransparentMaterial.h"
+#include "world/objects/ReflectiveMaterial.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -89,6 +90,10 @@ void MainWindow::createActions() {
   m_addTransparentMaterialAct->setStatusTip(tr("Add a transparent material to the scene"));
   connect(m_addTransparentMaterialAct, SIGNAL(triggered()), this, SLOT(addTransparentMaterial()));
 
+  m_addReflectiveMaterialAct = new QAction(tr("Reflective Material"), this);
+  m_addReflectiveMaterialAct->setStatusTip(tr("Add a reflective material to the scene"));
+  connect(m_addReflectiveMaterialAct, SIGNAL(triggered()), this, SLOT(addReflectiveMaterial()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -105,7 +110,8 @@ void MainWindow::createActions() {
   
   auto modifyingActions = {
     m_newAct, m_openAct, m_saveAct, m_saveAsAct, m_addBoxAct, m_addSphereAct,
-    m_addMatteMaterialAct, m_deleteElementAct
+    m_addMatteMaterialAct, m_addPhongMaterialAct, m_addReflectiveMaterialAct,
+    m_deleteElementAct
   };
   
   for (auto& act : modifyingActions) {
@@ -129,6 +135,7 @@ void MainWindow::createMenus() {
   addMaterial->addAction(m_addMatteMaterialAct);
   addMaterial->addAction(m_addPhongMaterialAct);
   addMaterial->addAction(m_addTransparentMaterialAct);
+  addMaterial->addAction(m_addReflectiveMaterialAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -249,6 +256,10 @@ void MainWindow::addPhongMaterial() {
 
 void MainWindow::addTransparentMaterial() {
   addMaterial<TransparentMaterial>("TransparentMaterial");
+}
+
+void MainWindow::addReflectiveMaterial() {
+  addMaterial<ReflectiveMaterial>("ReflectiveMaterial");
 }
 
 void MainWindow::deleteElement() {

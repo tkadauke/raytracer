@@ -18,6 +18,8 @@ GIVEN(RaytracerFeatureTest, "a perfectly reflective box") {
 GIVEN(RaytracerFeatureTest, "a reflective box which filters the colors") {
   auto box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
   ReflectiveMaterial* material = new ReflectiveMaterial(Colord(1, 0, 0));
+  material->setReflectionCoefficient(0);
+  material->setAmbientCoefficient(1);
   box->setMaterial(material);
   test->add(box);
 }
