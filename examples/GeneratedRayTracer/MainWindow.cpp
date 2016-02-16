@@ -22,6 +22,7 @@
 #include "core/math/HitPointInterval.h"
 
 #include "widgets/world/PropertyEditorWidget.h"
+#include "widgets/world/MaterialDisplayWidget.h"
 #include "widgets/world/ElementModel.h"
 
 #include "world/objects/Scene.h"
@@ -44,6 +45,10 @@ MainWindow::MainWindow()
   
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
+  addDockWidget(Qt::RightDockWidgetArea, createMaterialDisplay());
+  
+  connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updateMaterialWidget()));
+  connect(this, SIGNAL(currentElementChanged()), this, SLOT(updateMaterialWidget()));
   
   createActions();
   createMenus();
@@ -181,6 +186,7 @@ void MainWindow::newFile() {
   
     m_fileName = QString();
     m_currentElement = nullptr;
+    emit selectionChanged(nullptr);
   
     m_scene = new ::Scene(nullptr);
     m_propertyEditorWidget->setRoot(m_scene);
@@ -265,6 +271,7 @@ void MainWindow::addReflectiveMaterial() {
 void MainWindow::deleteElement() {
   delete m_currentElement;
   m_currentElement = nullptr;
+  emit selectionChanged(nullptr);
 
   m_elementModel->setElement(m_scene);
   m_propertyEditorWidget->setElement(nullptr);
@@ -309,10 +316,20 @@ QDockWidget* MainWindow::createElementSelector() {
   return dockWidget;
 }
 
+QDockWidget* MainWindow::createMaterialDisplay() {
+  m_materialDisplay = new MaterialDisplayWidget(this);
+  
+  auto dockWidget = new QDockWidget("Material Preview", this);
+  dockWidget->setWidget(m_materialDisplay);
+  
+  return dockWidget;
+}
+
 void MainWindow::elementChanged(Element*) {
   m_scene->setChanged(true);
   updateWindowModified();
   redraw();
+  emit currentElementChanged();
 }
 
 void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&) {
@@ -323,10 +340,20 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   if (element) {
     m_propertyEditorWidget->setElement(element);
   }
+  emit selectionChanged(element);
 }
 
 void MainWindow::updateWindowModified() {
   setWindowModified(m_scene->changed());
+}
+
+void MainWindow::updateMaterialWidget() {
+  Material* mat = qobject_cast<Material*>(m_currentElement);
+  if (mat) {
+    m_materialDisplay->setMaterial(mat);
+  } else {
+    m_materialDisplay->setMaterial(nullptr);
+  }
 }
 
 void MainWindow::redraw() {

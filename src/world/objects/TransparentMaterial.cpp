@@ -10,6 +10,9 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 
 raytracer::Material* TransparentMaterial::toRaytracerMaterial() const {
   auto material = new raytracer::TransparentMaterial;
+  material->setAmbientCoefficient(ambientCoefficient());
+  material->setDiffuseCoefficient(diffuseCoefficient());
+  material->setSpecularCoefficient(specularCoefficient());
   material->setDiffuseColor(diffuseColor());
   material->setSpecularColor(specularColor());
   material->setExponent(exponent());

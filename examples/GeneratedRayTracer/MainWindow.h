@@ -5,6 +5,7 @@
 class QDockWidget;
 
 class PropertyEditorWidget;
+class MaterialDisplayWidget;
 class Display;
 class ElementModel;
 
@@ -20,10 +21,15 @@ public:
 protected:
   virtual void closeEvent(QCloseEvent* event);
   
+signals:
+  void selectionChanged(Element* element);
+  void currentElementChanged();
+  
 private slots:
   void elementSelected(const QModelIndex& current, const QModelIndex& previous);
   void elementChanged(Element*);
   void updateWindowModified();
+  void updateMaterialWidget();
   
   void newFile();
   void openFile();
@@ -45,6 +51,7 @@ private slots:
 private:
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();
+  QDockWidget* createMaterialDisplay();
 
   void createActions();
   void createMenus();
@@ -59,6 +66,7 @@ private:
   QString m_fileName;
 
   Display* m_display;
+  MaterialDisplayWidget* m_materialDisplay;
   PropertyEditorWidget* m_propertyEditorWidget;
   ElementModel* m_elementModel;
   
