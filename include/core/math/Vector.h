@@ -541,6 +541,8 @@ template<class T>
 class Vector3 : public SpecializedVector<3, T, Vector3<T>> {
   typedef SpecializedVector<3, T, Vector3<T>> Base;
 public:
+  using Base::setCoordinate;
+  
   /**
     * Returns the null vector \f$(0,0,0)\f$.
     */
@@ -730,12 +732,26 @@ template<class T>
 class Vector4 : public SpecializedVector<4, T, Vector4<T>> {
   typedef SpecializedVector<4, T, Vector4<T>> Base;
 public:
+  using Base::setCoordinate;
+  
   /**
     * Returns the null vector \f$(0,0,0,1)\f$, which notably contains a \f$1\f$
     * for the \f$w\f$ component.
     */
   static const Vector4<T>& null() {
     static Vector4<T> v(0, 0, 0, 1);
+    return v;
+  }
+  
+  /**
+    * Returns the epsilon vector \f$(\epsilon,\epsilon,\epsilon,\epsilon)\f$,
+    * which is minimally shifted from the origin in all directions.
+    */
+  static const Vector4<T>& epsilon() {
+    static Vector4<T> v(std::numeric_limits<T>::epsilon(),
+                        std::numeric_limits<T>::epsilon(),
+                        std::numeric_limits<T>::epsilon(),
+                        std::numeric_limits<T>::epsilon());
     return v;
   }
   
@@ -747,6 +763,28 @@ public:
                         std::numeric_limits<T>::quiet_NaN(),
                         std::numeric_limits<T>::quiet_NaN(),
                         std::numeric_limits<T>::quiet_NaN());
+    return v;
+  }
+
+  /**
+    * Returns the vector \f$(-\infty,-\infty,-\infty,-\infty)\f$.
+    */
+  static const Vector4<T>& minusInfinity() {
+    static Vector4<T> v(-std::numeric_limits<T>::infinity(),
+                        -std::numeric_limits<T>::infinity(),
+                        -std::numeric_limits<T>::infinity(),
+                        -std::numeric_limits<T>::infinity());
+    return v;
+  }
+
+  /**
+    * Returns the vector \f$(\infty,\infty,\infty,\infty)\f$.
+    */
+  static const Vector4<T>& plusInfinity() {
+    static Vector4<T> v(std::numeric_limits<T>::infinity(),
+                        std::numeric_limits<T>::infinity(),
+                        std::numeric_limits<T>::infinity(),
+                        std::numeric_limits<T>::infinity());
     return v;
   }
 
