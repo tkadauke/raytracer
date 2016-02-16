@@ -63,6 +63,11 @@ Raytracer::~Raytracer() {
 }
 
 void Raytracer::render(Buffer<unsigned int>& buffer) {
+  if (!m_scene) {
+    buffer.clear();
+    return;
+  }
+  
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   
   p->threads.clear();
