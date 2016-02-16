@@ -22,10 +22,12 @@ public:
   /**
     * Default constructor. Constructs a zero angle.
     */
-  inline Angle()
-    : m_radians()
-  {
-  }
+  inline Angle() = default;
+  
+  /**
+    * Copy constructor. Accepts other Angle object.
+    */
+  inline Angle(const Angle&) = default;
   
   /**
     * Constructs an angle from degrees. Internally, the angle is stored in
@@ -94,6 +96,22 @@ public:
     return Angle<T>(-m_radians);
   }
   
+  /**
+    * Returns an angle that is the multiplication between this angle and the
+    * other value.
+    */
+  template<class F>
+  inline Angle<T> operator*(const F& other) const {
+    return Angle<T>(m_radians * other);
+  }
+  
+  /**
+    * Returns true if the angles are equal by comparing their value in radians.
+    */
+  inline bool operator==(const Angle<T>& other) const {
+    return m_radians == other.radians();
+  }
+
 private:
   Angle(const T& radians)
     : m_radians(radians)
@@ -103,11 +121,29 @@ private:
   T m_radians;
 };
 
+/**
+  * Outputs the angle in radians to the given output stream.
+  */
 template<class T>
 std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
   os << angle.radians();
   return os;
 }
 
+/**
+  * Multiply the angle by the value on the left.
+  */
+template<class T, class F>
+inline Angle<T> operator*(const F& left, const Angle<T> other) {
+  return Angle<T>::fromRadians(left * other.radians());
+}
+
+/**
+  * Shortcut for a float-precision Angle.
+  */
 typedef Angle<float> Anglef;
+
+/**
+  * Shortcut for a double-precision Angle.
+  */
 typedef Angle<double> Angled;

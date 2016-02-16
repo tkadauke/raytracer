@@ -1,6 +1,10 @@
 #include "gtest.h"
 #include "core/math/Angle.h"
 
+#include <sstream>
+
+using namespace std;
+
 namespace AngleTest {
   template<class T>
   class AngleTest : public ::testing::Test {
@@ -10,6 +14,17 @@ namespace AngleTest {
 
   TYPED_TEST_CASE(AngleTest, AngleTypes);
 
+  TYPED_TEST(AngleTest, ShouldCreateDefaultAngle) {
+    auto angle = TypeParam();
+    ASSERT_EQ(0, angle.radians());
+  }
+  
+  TYPED_TEST(AngleTest, ShouldCopyAngle) {
+    auto angle = TypeParam::fromDegrees(90);
+    TypeParam copy(angle);
+    ASSERT_NEAR(90, copy.degrees(), 0.0001);
+  }
+  
   TYPED_TEST(AngleTest, ShouldCreateAngleFromRadians) {
     auto angle = TypeParam::fromRadians(5);
     ASSERT_NEAR(5, angle.radians(), 0.0001);
@@ -46,5 +61,28 @@ namespace AngleTest {
   TYPED_TEST(AngleTest, ShouldNegateAngle) {
     auto angle = TypeParam::fromDegrees(90);
     ASSERT_NEAR(-90, -angle.degrees(), 0.0001);
+  }
+  
+  TYPED_TEST(AngleTest, ShouldMultiplyAngleByScalar) {
+    auto angle = TypeParam::fromDegrees(90);
+    ASSERT_NEAR(180, (angle * 2).degrees(), 0.0001);
+  }
+  
+  TYPED_TEST(AngleTest, ShouldMultiplyScalarByAngle) {
+    auto angle = TypeParam::fromDegrees(90);
+    ASSERT_NEAR(180, (2 * angle).degrees(), 0.0001);
+  }
+  
+  TYPED_TEST(AngleTest, ShouldCompareAngles) {
+    auto angle1 = TypeParam::fromDegrees(90),
+         angle2 = TypeParam::fromDegrees(90);
+    ASSERT_TRUE(angle1 == angle2);
+  }
+  
+  TYPED_TEST(AngleTest, ShouldStreamToString) {
+    TypeParam angle = TypeParam::fromRadians(1.5);
+    ostringstream str;
+    str << angle;
+    ASSERT_EQ("1.5", str.str());
   }
 }
