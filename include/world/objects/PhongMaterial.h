@@ -4,14 +4,14 @@
 
 class PhongMaterial : public MatteMaterial {
   Q_OBJECT
-  Q_PROPERTY(Colord highlightColor READ highlightColor WRITE setHighlightColor);
+  Q_PROPERTY(Colord specularColor READ specularColor WRITE setSpecularColor);
   Q_PROPERTY(double exponent READ exponent WRITE setExponent);
 
 public:
   PhongMaterial(Element* parent = nullptr);
 
-  inline void setHighlightColor(const Colord& color) { m_highlightColor = color; }
-  inline const Colord& highlightColor() const { return m_highlightColor; }
+  inline void setSpecularColor(const Colord& color) { m_specularColor = color; }
+  inline const Colord& specularColor() const { return m_specularColor; }
 
   inline void setExponent(double exponent) { m_exponent = exponent; }
   inline double exponent() const { return m_exponent; }
@@ -20,6 +20,6 @@ protected:
   virtual raytracer::Material* toRaytracerMaterial() const;
   
 private:
-  Colord m_highlightColor;
+  Colord m_specularColor;
   double m_exponent;
 };

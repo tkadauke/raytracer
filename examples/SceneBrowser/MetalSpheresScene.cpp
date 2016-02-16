@@ -26,7 +26,7 @@ MetalSpheresScene::MetalSpheresScene()
   
   auto sphere = new Sphere(Vector3d(0, 1, 0), 1);
   m_red.setDiffuseColor(Colord(1, 0, 0));
-  m_red.setHighlightColor(Colord(0.2, 0.2, 0.2));
+  m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere->setMaterial(&m_red);
   

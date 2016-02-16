@@ -6,13 +6,13 @@ namespace TransparentMaterialTest {
 
   TEST(TransparentMaterial, ShouldInitialize) {
     TransparentMaterial material;
-    ASSERT_EQ(Colord::white(), material.highlightColor());
+    ASSERT_EQ(Colord::white(), material.specularColor());
     ASSERT_EQ(1, material.refractionIndex());
   }
 
   TEST(TransparentMaterial, ShouldInitializeWithDiffuseColor) {
     TransparentMaterial material(Colord(0, 1, 0));
-    ASSERT_EQ(Colord::white(), material.highlightColor());
+    ASSERT_EQ(Colord::white(), material.specularColor());
     ASSERT_EQ(1, material.refractionIndex());
     ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
   }
@@ -25,8 +25,8 @@ namespace TransparentMaterialTest {
   
   TEST(TransparentMaterial, ShouldSetHighlightColor) {
     TransparentMaterial material;
-    material.setHighlightColor(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.highlightColor());
+    material.setSpecularColor(Colord(0, 1, 0));
+    ASSERT_EQ(Colord(0, 1, 0), material.specularColor());
   }
   
   TEST(TransparentMaterial, ShouldSetAbsorbanceColor) {

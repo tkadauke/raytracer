@@ -11,15 +11,20 @@ using namespace std;
 using namespace raytracer;
 
 Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
-  auto color = raytracer->scene()->ambient() * m_diffuseColor;
+  Vector3d out = -ray.direction();
+  auto color = m_ambientBRDF.reflectance(hitPoint, out) * raytracer->scene()->ambient();
 
   for (const auto& light : raytracer->scene()->lights()) {
     Vector3d lightDirection = (light->position() - hitPoint.point()).normalized();
     
     if (!raytracer->scene()->intersects(Ray(hitPoint.point(), lightDirection).epsilonShifted())) {
-      Vector3d h = (lightDirection - ray.direction()).normalized();
-      color = color + m_diffuseColor * light->color() * max(0.0, hitPoint.normal() * lightDirection) +
-              light->color() * m_highlightColor * pow(h * hitPoint.normal(), m_exponent);
+      double normalDotIn = hitPoint.normal() * lightDirection;
+      if (normalDotIn > 0.0) {
+        color += (
+          m_diffuseBRDF(hitPoint, lightDirection, out)
+        + m_specularBRDF(hitPoint, lightDirection, out)
+        ) * light->color() * normalDotIn;
+      }
     }
   }
   

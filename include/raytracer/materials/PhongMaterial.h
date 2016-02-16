@@ -1,43 +1,48 @@
 #pragma once
 
-#include "raytracer/materials/Material.h"
+#include "raytracer/materials/MatteMaterial.h"
+#include "raytracer/brdf/GlossySpecular.h"
 
 namespace raytracer {
-  class PhongMaterial : public Material {
+  class PhongMaterial : public MatteMaterial {
   public:
     inline PhongMaterial()
-      : m_highlightColor(1, 1, 1)
+      : MatteMaterial()
     {
+      setSpecularColor(Colord::white());
     }
 
-    inline PhongMaterial(const Colord& color)
-      : m_diffuseColor(color), m_highlightColor(1, 1, 1)
+    inline PhongMaterial(const Colord& diffuse)
+      : MatteMaterial(diffuse)
     {
+      setSpecularColor(Colord::white());
     }
 
-    inline PhongMaterial(const Colord& diffuse, const Colord& highlight)
-      : m_diffuseColor(diffuse), m_highlightColor(highlight)
+    inline PhongMaterial(const Colord& diffuse, const Colord& specular)
+      : MatteMaterial(diffuse)
     {
+      setSpecularColor(specular);
     }
 
-    inline PhongMaterial(const Colord& diffuse, const Colord& highlight, double exponent)
-      : m_diffuseColor(diffuse), m_highlightColor(highlight), m_exponent(exponent)
+    inline PhongMaterial(const Colord& diffuse, const Colord& specular, double exponent)
+      : MatteMaterial(diffuse)
     {
+      setSpecularColor(specular);
+      setExponent(exponent);
     }
 
-    inline void setDiffuseColor(const Colord& color) { m_diffuseColor = color; }
-    inline const Colord& diffuseColor() const { return m_diffuseColor; }
+    inline void setSpecularColor(const Colord& color) { m_specularBRDF.setSpecularColor(color); }
+    inline const Colord& specularColor() const { return m_specularBRDF.specularColor(); }
 
-    inline void setHighlightColor(const Colord& color) { m_highlightColor = color; }
-    inline const Colord& highlightColor() const { return m_highlightColor; }
+    inline void setSpecularCoefficient(double coeff) { m_specularBRDF.setSpecularCoefficient(coeff); }
+    inline double specularCoefficient() const { return m_specularBRDF.specularCoefficient(); }
 
-    inline void setExponent(double exponent) { m_exponent = exponent; }
-    inline double exponent() const { return m_exponent; }
+    inline void setExponent(double exponent) { m_specularBRDF.setExponent(exponent); }
+    inline double exponent() const { return m_specularBRDF.exponent(); }
 
     virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:
-    Colord m_diffuseColor, m_highlightColor;
-    double m_exponent;
+    GlossySpecular m_specularBRDF;
   };
 }

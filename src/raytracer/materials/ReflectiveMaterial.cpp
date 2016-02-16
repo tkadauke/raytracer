@@ -10,7 +10,8 @@ Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Ray& ray, const Hit
 
   Vector3d reflectionDirection = ray.direction() - hitPoint.normal() * (2.0 * (ray.direction() * hitPoint.normal()));
 
-  color = color + m_specularColor * raytracer->rayColor(Ray(hitPoint.point(), reflectionDirection).epsilonShifted(), recursionDepth + 1);
+  // TODO: fix reflection in a later commit
+  // color += specularColor() * raytracer->rayColor(Ray(hitPoint.point(), reflectionDirection).epsilonShifted(), recursionDepth + 1);
   
   return color;
 }

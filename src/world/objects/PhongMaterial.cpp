@@ -4,12 +4,12 @@
 #include "raytracer/materials/PhongMaterial.h"
 
 PhongMaterial::PhongMaterial(Element* parent)
-  : MatteMaterial(parent), m_highlightColor(Colord::white()), m_exponent(16)
+  : MatteMaterial(parent), m_specularColor(Colord::white()), m_exponent(16)
 {
 }
 
 raytracer::Material* PhongMaterial::toRaytracerMaterial() const {
-  return new raytracer::PhongMaterial(diffuseColor(), highlightColor(), exponent());
+  return new raytracer::PhongMaterial(diffuseColor(), specularColor(), exponent());
 }
 
 static bool dummy = ElementFactory::self().registerClass<PhongMaterial>("PhongMaterial");

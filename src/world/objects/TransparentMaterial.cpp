@@ -11,7 +11,7 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 raytracer::Material* TransparentMaterial::toRaytracerMaterial() const {
   auto material = new raytracer::TransparentMaterial;
   material->setDiffuseColor(diffuseColor());
-  material->setHighlightColor(highlightColor());
+  material->setSpecularColor(specularColor());
   material->setExponent(exponent());
   material->setAbsorbanceColor(absorbanceColor());
   material->setRefractionIndex(refractionIndex());

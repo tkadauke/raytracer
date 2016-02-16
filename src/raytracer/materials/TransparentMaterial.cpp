@@ -40,7 +40,7 @@ Colord TransparentMaterial::shade(Raytracer* raytracer, const Ray& ray, const Hi
   double R0 = (m_refractionIndex - 1.0) * (m_refractionIndex - 1.0) / (m_refractionIndex + 1.0) * (m_refractionIndex + 1.0);
   double R = R0 + (1.0 - R0) * pow(1.0 - angle, 5.0);
   
-  color = color + highlightColor() * (raytracer->rayColor(Ray(hitPoint.point(), reflectionDirection.normalized()).epsilonShifted(), recursionDepth + 1) * R);
+  color = color + specularColor() * (raytracer->rayColor(Ray(hitPoint.point(), reflectionDirection.normalized()).epsilonShifted(), recursionDepth + 1) * R);
   color = color + transparency * (raytracer->rayColor(Ray(hitPoint.point(), refractionDirection.normalized()).epsilonShifted(), recursionDepth + 1) * (1.0 - R));
   
   return color;

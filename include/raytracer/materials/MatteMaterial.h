@@ -30,7 +30,7 @@ namespace raytracer {
 
     virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
-  private:
+  protected:
     Lambertian m_ambientBRDF;
     Lambertian m_diffuseBRDF;
   };
