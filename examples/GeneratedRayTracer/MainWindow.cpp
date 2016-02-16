@@ -238,28 +238,28 @@ void MainWindow::addSphere() {
 }
 
 template<class Mat>
-void MainWindow::addMaterial(const QString& name) {
+void MainWindow::addMaterial() {
   auto material = new Mat(m_scene);
-  material->setName(QString("%1 %2").arg(name).arg(m_scene->children().size()));
+  material->setName(QString("%1 %2").arg(material->metaObject()->className()).arg(m_scene->children().size()));
 
   m_elementModel->setElement(m_scene);
   m_scene->setChanged(true);
 }
 
 void MainWindow::addMatteMaterial() {
-  addMaterial<MatteMaterial>("MatteMaterial");
+  addMaterial<MatteMaterial>();
 }
 
 void MainWindow::addPhongMaterial() {
-  addMaterial<PhongMaterial>("PhongMaterial");
+  addMaterial<PhongMaterial>();
 }
 
 void MainWindow::addTransparentMaterial() {
-  addMaterial<TransparentMaterial>("TransparentMaterial");
+  addMaterial<TransparentMaterial>();
 }
 
 void MainWindow::addReflectiveMaterial() {
-  addMaterial<ReflectiveMaterial>("ReflectiveMaterial");
+  addMaterial<ReflectiveMaterial>();
 }
 
 void MainWindow::deleteElement() {

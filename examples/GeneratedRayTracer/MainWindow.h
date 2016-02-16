@@ -54,7 +54,7 @@ private:
   bool maybeSave();
   
   template<class Mat>
-  void addMaterial(const QString& name);
+  void addMaterial();
 
   QString m_fileName;
 
