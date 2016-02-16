@@ -21,5 +21,12 @@ Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     firstElement = false;
   }
   
-  return hitPoints.empty() || hitPoints.minWithPositiveDistance().isUndefined() ? 0 : this;
+  return (hitPoints.empty() || hitPoints.minWithPositiveDistance().isUndefined()) ? 0 : this;
+}
+
+// Shadow implementation of Composite, which generates spourious shadows of
+// differential objects
+bool Difference::intersects(const Ray& ray) {
+  HitPointInterval hitPoints;
+  return intersect(ray, hitPoints);
 }
