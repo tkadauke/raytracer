@@ -3,6 +3,7 @@
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
 #include "core/math/Rect.h"
+#include "core/InequalityOperator.h"
 
 #include <vector>
 #include <algorithm>
@@ -10,7 +11,7 @@
 namespace raytracer {
   class ViewPlane {
   public:
-    class IteratorBase {
+    class IteratorBase : public InequalityOperator<IteratorBase> {
     public:
       IteratorBase(const ViewPlane* plane, const Rect& rect);
       IteratorBase(const ViewPlane* plane, const Rect& rect, bool end);
@@ -41,7 +42,7 @@ namespace raytracer {
       virtual void advance();
     };
 
-    class Iterator {
+    class Iterator : public InequalityOperator<Iterator> {
     public:
       Iterator(IteratorBase* iteratorImpl) {
         m_iteratorImpl = iteratorImpl;
@@ -62,10 +63,6 @@ namespace raytracer {
 
       inline bool operator==(const Iterator& other) const {
         return *m_iteratorImpl == *(other.m_iteratorImpl);
-      }
-
-      inline bool operator!=(const Iterator& other) const {
-        return !(*this == other);
       }
 
       inline int column() const { return m_iteratorImpl->column(); }

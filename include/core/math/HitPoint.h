@@ -2,10 +2,11 @@
 
 #include "core/math/Vector.h"
 #include "core/math/Matrix.h"
+#include "core/InequalityOperator.h"
 #include <cmath>
 #include <iostream>
 
-class HitPoint {
+class HitPoint : public InequalityOperator<HitPoint> {
 public:
   static const HitPoint& undefined();
   

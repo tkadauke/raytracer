@@ -1,9 +1,11 @@
 #pragma once
 
+#include "core/InequalityOperator.h"
+
 template<class T>
 class LinearInterpolation {
 public:
-  class Iterator {
+  class Iterator : public InequalityOperator<Iterator> {
   public:
     inline Iterator(const T& begin, const T& end, int steps, int current = 0)
       : m_begin(begin), m_current(current)
@@ -29,10 +31,6 @@ public:
     inline bool operator==(const Iterator& other) {
       // TODO: raise exception if iterators are incompatible?
       return m_current == other.m_current;
-    }
-    
-    inline bool operator!=(const Iterator& other) {
-      return !(*this == other);
     }
     
     inline T operator*() const {

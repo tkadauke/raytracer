@@ -3,9 +3,10 @@
 #include <iostream>
 
 #include "core/DivisionByZeroException.h"
+#include "core/InequalityOperator.h"
 
 template<class T>
-class Color {
+class Color : public InequalityOperator<Color<T>> {
   typedef T ComponentsType[3];
 
 public:
@@ -101,10 +102,6 @@ public:
     return true;
   }
 
-  inline bool operator!=(const Color<T>& other) const {
-    return !(*this == other);
-  }
-  
   inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
   inline unsigned char gInt() const { return std::min(unsigned(g() * 255), 255u); }
   inline unsigned char bInt() const { return std::min(unsigned(b() * 255), 255u); }

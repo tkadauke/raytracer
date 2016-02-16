@@ -79,6 +79,12 @@ namespace AngleTest {
     ASSERT_TRUE(angle1 == angle2);
   }
   
+  TYPED_TEST(AngleTest, ShouldCompareAnglesForInequality) {
+    auto angle1 = TypeParam::fromDegrees(90),
+         angle2 = TypeParam::fromDegrees(180);
+    ASSERT_TRUE(angle1 != angle2);
+  }
+  
   TYPED_TEST(AngleTest, ShouldStreamToString) {
     TypeParam angle = TypeParam::fromRadians(1.5);
     ostringstream str;

@@ -1,9 +1,10 @@
 #pragma once
 
+#include "core/InequalityOperator.h"
 #include <cmath>
 
 template<class T>
-class Quaternion {
+class Quaternion : public InequalityOperator<Quaternion<T>> {
 public:
   inline Quaternion()
     : m_w(T(1)), m_x(T()), m_y(T()), m_z(T())
@@ -28,10 +29,6 @@ public:
   
   inline bool operator==(const Quaternion<T>& other) const {
     return m_w == other.w() && m_x == other.x() && m_y == other.y() && m_z == other.z();
-  }
-  
-  inline bool operator!=(const Quaternion<T>& other) const {
-    return !(*this == other);
   }
   
   inline Quaternion<T> operator*(const T& scalar) const {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/math/Constants.h"
+#include "core/InequalityOperator.h"
 
 #include <cmath>
 
@@ -17,7 +18,7 @@
   * for all the functions that use radians.
   */
 template<class T>
-class Angle {
+class Angle : public InequalityOperator<Angle<T>> {
 public:
   /**
     * Default constructor. Constructs a zero angle.

@@ -3,10 +3,11 @@
 #ifdef __SSE__
 
 #include "core/DivisionByZeroException.h"
+#include "core/InequalityOperator.h"
 #include <xmmintrin.h>
 
 template<>
-class Color<float> {
+class Color<float> : public InequalityOperator<Color<float>> {
   typedef float ComponentsType[3];
 
 public:
@@ -81,10 +82,6 @@ public:
         return false;
     }
     return true;
-  }
-
-  inline bool operator!=(const Color<float>& other) const {
-    return !(*this == other);
   }
 
   inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
