@@ -99,7 +99,7 @@ Primitive* Raytracer::primitiveForRay(const Ray& ray) {
 
 Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   if (recursionDepth == 15) {
-    return m_scene->ambient();
+    return Colord::black();
   }
   
   HitPointInterval hitPoints;
