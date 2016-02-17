@@ -23,10 +23,12 @@ TorusScene::TorusScene()
   : Scene(),
     m_blue(Colord(0, 0, 1))
 {
-  setAmbient(Colord(0.8, 0.8, 0.8));
+  setAmbient(Colord(0.4, 0.4, 0.4));
   
   m_glass.setSpecularColor(Colord(0.5, 0.5, 0.5));
-  m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  m_glass.setDiffuseColor(Colord(0.0, 0.1, 0.1));
+  m_glass.setAmbientCoefficient(0.2);
+  m_glass.setDiffuseCoefficient(0);
   m_glass.setAbsorbanceColor(Colord(0.4, 0.2, 0.2));
   m_glass.setRefractionIndex(1.52);
   
