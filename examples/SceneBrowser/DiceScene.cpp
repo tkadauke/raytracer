@@ -45,7 +45,6 @@ DiceScene::DiceScene()
   d->add(sphere5);
   
   m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  m_glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
   m_glass.setRefractionIndex(1.52);
   
   d->setMaterial(&m_glass);

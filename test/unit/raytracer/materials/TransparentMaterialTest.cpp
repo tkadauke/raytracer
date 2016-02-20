@@ -29,12 +29,6 @@ namespace TransparentMaterialTest {
     ASSERT_EQ(Colord(0, 1, 0), material.specularColor());
   }
   
-  TEST(TransparentMaterial, ShouldSetAbsorbanceColor) {
-    TransparentMaterial material;
-    material.setAbsorbanceColor(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.absorbanceColor());
-  }
-  
   TEST(TransparentMaterial, ShouldSetRefractionIndex) {
     TransparentMaterial material;
     material.setRefractionIndex(1.4);

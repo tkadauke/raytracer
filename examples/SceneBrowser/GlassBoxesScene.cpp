@@ -24,7 +24,6 @@ GlassBoxesScene::GlassBoxesScene()
   setAmbient(Colord(0.1, 0.1, 0.1));
   
   m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  m_glass.setAbsorbanceColor(Colord(0.4, 0.2, 0.2));
   m_glass.setRefractionIndex(1.52);
 
   auto box = new Box(Vector3d(0, 0, 0), Vector3d(0.1, 1, 1));

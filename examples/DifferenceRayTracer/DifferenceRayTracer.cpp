@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
   
   TransparentMaterial glass;
   glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
   glass.setRefractionIndex(1.52);
   
   d->setMaterial(&glass);

@@ -21,7 +21,6 @@ int main(int argc, char** argv) {
   auto sphere = new Sphere(Vector3d(0, 1, 0), 1);
   TransparentMaterial glass;
   glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
-  glass.setAbsorbanceColor(Colord(0.3, 0.2, 0.2));
   glass.setRefractionIndex(1.52);
   sphere->setMaterial(&glass);
   
