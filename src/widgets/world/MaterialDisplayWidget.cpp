@@ -11,7 +11,7 @@
 #include "raytracer/textures/mappings/PlanarMapping2D.h"
 
 MaterialDisplayWidget::MaterialDisplayWidget(QWidget* parent)
-  : QtDisplay(parent, new raytracer::Raytracer(0)), m_material(nullptr)
+  : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr)), m_material(nullptr)
 {
 }
 

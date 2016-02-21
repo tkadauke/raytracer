@@ -11,7 +11,7 @@ namespace raytracer {
 class QtDisplay : public QWidget {
   Q_OBJECT
 public:
-  QtDisplay(QWidget* parent, raytracer::Raytracer* raytracer);
+  QtDisplay(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
   ~QtDisplay();
   
   virtual void paintEvent(QPaintEvent*);
@@ -29,7 +29,7 @@ public slots:
   void stop();
   
 protected:
-  raytracer::Raytracer* m_raytracer;
+  std::shared_ptr<raytracer::Raytracer> m_raytracer;
 
 private:
   struct Private;

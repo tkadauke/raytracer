@@ -13,7 +13,7 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(Raytracer* rt, Buffer<unsigned int>& b)
+    RenderThread(std::shared_ptr<Raytracer> rt, Buffer<unsigned int>& b)
       : raytracer(rt), buffer(b) {}
 
     virtual void run() {
@@ -24,7 +24,7 @@ namespace {
       raytracer->cancel();
     }
 
-    Raytracer* raytracer;
+    std::shared_ptr<Raytracer> raytracer;
     Buffer<unsigned int>& buffer;
   };
 }
@@ -41,7 +41,7 @@ struct QtDisplay::Private {
   int timer;
 };
 
-QtDisplay::QtDisplay(QWidget* parent, Raytracer* raytracer)
+QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<Raytracer> raytracer)
   : QWidget(parent), m_raytracer(raytracer), p(new Private)
 {
   p->buffer = new Buffer<unsigned int>(width(), height());

@@ -12,7 +12,7 @@ namespace raytracer {
   class Camera;
   class Primitive;
 
-  class Raytracer {
+  class Raytracer : public std::enable_shared_from_this<Raytracer> {
   public:
     Raytracer(Scene* scene);
     Raytracer(Camera* camera, Scene* scene);

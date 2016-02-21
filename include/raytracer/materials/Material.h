@@ -13,6 +13,6 @@ namespace raytracer {
   public:
     virtual ~Material() {}
 
-    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) = 0;
+    virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) = 0;
   };
 }

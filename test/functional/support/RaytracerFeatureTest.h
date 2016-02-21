@@ -55,7 +55,7 @@ namespace testing {
   private:
     raytracer::Scene* m_scene;
     raytracer::Camera* m_camera;
-    raytracer::Raytracer* m_raytracer;
+    std::shared_ptr<raytracer::Raytracer> m_raytracer;
     Buffer<unsigned int> m_buffer;
   };
 }

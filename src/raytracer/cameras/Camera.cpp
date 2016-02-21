@@ -38,7 +38,7 @@ const Matrix4d& Camera::matrix() {
   return m_matrix;
 }
 
-void Camera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer) {
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) {
   render(raytracer, buffer, Rect(0, 0, buffer.width(), buffer.height()));
 }
 

@@ -22,7 +22,7 @@ namespace raytracer {
     inline void setRefractionIndex(double index) { m_specularBTDF.setRefractionIndex(index); }
     inline double refractionIndex() const { return m_specularBTDF.refractionIndex(); }
 
-    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:
     Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);

@@ -32,7 +32,7 @@ namespace raytracer {
     inline void setDiffuseCoefficient(double coeff) { m_diffuseCoefficient = coeff; }
     inline double diffuseCoefficient() const { return m_diffuseCoefficient; }
 
-    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   protected:
     Texture<Colord>* m_texture;

@@ -36,8 +36,8 @@ namespace raytracer {
 
     const Matrix4d& matrix();
 
-    void render(Raytracer* raytracer, Buffer<unsigned int>& buffer);
-    virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) = 0;
+    void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer);
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) = 0;
     virtual Ray rayForPixel(int x, int y) = 0;
 
     inline void cancel() { m_cancelled = true; }

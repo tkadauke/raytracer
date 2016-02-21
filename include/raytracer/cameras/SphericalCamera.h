@@ -15,7 +15,7 @@ namespace raytracer {
       : Camera(position, target), m_horizontalFieldOfView(Angled::fromDegrees(180)), m_verticalFieldOfView(Angled::fromDegrees(120)) {}
 
     using Camera::render;
-    virtual void render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
     virtual Ray rayForPixel(int x, int y);
 
     inline void setHorizontalFieldOfView(Angled fov) { m_horizontalFieldOfView = fov; }

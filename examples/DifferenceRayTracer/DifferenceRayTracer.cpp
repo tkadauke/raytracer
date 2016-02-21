@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
   auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   scene->addLight(light1);
   
-  auto raytracer = new Raytracer(scene);
+  auto raytracer = std::make_shared<Raytracer>(scene);
   auto display = new QtDisplay(0, raytracer);
   
   display->show();

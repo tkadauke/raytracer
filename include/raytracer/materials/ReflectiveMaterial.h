@@ -27,7 +27,7 @@ namespace raytracer {
       setReflectionColor(Colord::white());
     }
 
-    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
     
     inline void setReflectionColor(const Colord& color) { m_reflectiveBRDF.setReflectionColor(color); }
     inline const Colord& reflectionColor() const { return m_reflectiveBRDF.reflectionColor(); }

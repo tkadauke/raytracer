@@ -27,8 +27,6 @@ namespace testing {
 
   void RaytracerFeatureTest::TearDown() {
     delete m_scene;
-    if (m_raytracer)
-      delete m_raytracer;
     if (m_camera)
       delete m_camera;
   }
@@ -63,7 +61,7 @@ namespace testing {
   }
 
   void RaytracerFeatureTest::render() {
-    m_raytracer = new Raytracer(m_camera, m_scene);
+    m_raytracer = std::make_shared<Raytracer>(m_camera, m_scene);
     m_raytracer->render(m_buffer);
   }
   

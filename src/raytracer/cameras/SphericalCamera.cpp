@@ -11,7 +11,7 @@
 using namespace std;
 using namespace raytracer;
 
-void SphericalCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
+void SphericalCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   auto plane = viewPlane();
 
   Vector3d position = matrix() * Vector4d(0, 0, -5);

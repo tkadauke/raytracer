@@ -25,14 +25,14 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(Raytracer* rt, Camera* c, Buffer<unsigned int>& b, const Rect& r)
+    RenderThread(std::shared_ptr<Raytracer> rt, Camera* c, Buffer<unsigned int>& b, const Rect& r)
       : QThread(), raytracer(rt), camera(c), buffer(b), rect(r) {}
 
     virtual void run() {
       camera->render(raytracer, buffer, rect);
     }
 
-    Raytracer* raytracer;
+    std::shared_ptr<Raytracer> raytracer;
     Camera* camera;
     Buffer<unsigned int>& buffer;
     Rect rect;
@@ -74,7 +74,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   IntegerDecomposition d(p->numberOfThreads);
   for (int horz = 0; horz != d.second(); ++horz) {
     for (int vert = 0; vert != d.first(); ++vert) {
-      p->threads.push_back(new RenderThread(this, m_camera, buffer, Rect(
+      p->threads.push_back(new RenderThread(shared_from_this(), m_camera, buffer, Rect(
         floor(double(buffer.width()) / d.second() * horz),
         floor(double(buffer.height()) / d.first() * vert),
         ceil(double(buffer.width()) / d.second()),
@@ -108,7 +108,7 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
     
-    return primitive->material()->shade(this, ray, hitPoint, recursionDepth);
+    return primitive->material()->shade(shared_from_this(), ray, hitPoint, recursionDepth);
   } else {
     return m_scene->ambient();
   }

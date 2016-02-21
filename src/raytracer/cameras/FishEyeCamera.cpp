@@ -10,7 +10,7 @@
 using namespace std;
 using namespace raytracer;
 
-void FishEyeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
+void FishEyeCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   auto plane = viewPlane();
 
   Vector3d position = matrix().translation();

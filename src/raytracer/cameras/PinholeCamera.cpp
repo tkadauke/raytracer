@@ -7,7 +7,7 @@
 
 using namespace raytracer;
 
-void PinholeCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
+void PinholeCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   auto plane = viewPlane();
   plane->setPixelSize(1.0 / m_zoom);
 

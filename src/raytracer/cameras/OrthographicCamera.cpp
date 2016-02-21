@@ -7,7 +7,7 @@
 
 using namespace raytracer;
 
-void OrthographicCamera::render(Raytracer* raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
+void OrthographicCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
   auto plane = viewPlane();
 
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();

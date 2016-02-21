@@ -19,7 +19,7 @@
 using namespace std;
 
 Display::Display(QWidget* parent)
-  : QtDisplay(parent, new raytracer::Raytracer(0))
+  : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr))
 {
 }
 
