@@ -8,7 +8,7 @@
 using namespace std;
 using namespace raytracer;
 
-Colord TransparentMaterial::shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
+Colord TransparentMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
   Vector3d out = -ray.direction();
   Vector3d in;
   Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, out, in);

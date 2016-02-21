@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Colord ReflectiveMaterial::shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
+Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
   auto color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
 
   Vector3d out = - ray.direction();

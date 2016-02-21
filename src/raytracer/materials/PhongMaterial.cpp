@@ -11,7 +11,7 @@
 using namespace std;
 using namespace raytracer;
 
-Colord PhongMaterial::shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
+Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
   auto texColor = m_texture ? m_texture->evaluate(ray, hitPoint) : Colord::black();
 
   Lambertian ambientBRDF(texColor, m_ambientCoefficient);

@@ -40,7 +40,7 @@ namespace raytracer {
     inline void setExponent(double exponent) { m_specularBRDF.setExponent(exponent); }
     inline double exponent() const { return m_specularBRDF.exponent(); }
 
-    virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:
     GlossySpecular m_specularBRDF;
