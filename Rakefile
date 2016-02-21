@@ -46,7 +46,7 @@ FRAMEWORKS = [QT_FRAMEWORKS].flatten
 INCLUDES = INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ') + ' ' + "-F #{QT_LIB}"
 
 if ENV['DEBUG']
-  DEBUG_FLAGS = "-g"
+  DEBUG_FLAGS = "-g -fno-inline"
 else
   DEBUG_FLAGS = ""
 end

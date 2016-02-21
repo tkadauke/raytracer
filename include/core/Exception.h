@@ -27,3 +27,6 @@ private:
   int m_line;
   Backtrace m_backtrace;
 };
+
+void printBacktrace();
+void printInterceptedBacktrace();
