@@ -98,6 +98,8 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
       widget = new BoolParameterWidget(this);
     } else if (name == "Material*") {
       widget = new ReferenceParameterWidget("Material", p->root, this);
+    } else if (name == "Texture*") {
+      widget = new ReferenceParameterWidget("Texture", p->root, this);
     }
 
     if (widget) {

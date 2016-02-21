@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 /**
   * Represents a closed range, between begin() and end(), including.
   */

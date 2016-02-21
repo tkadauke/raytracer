@@ -11,6 +11,7 @@
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
 
@@ -25,7 +26,7 @@ private:
 
 WineglassScene::WineglassScene()
   : Scene(),
-    m_blue(Colord(0, 0, 1))
+    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
@@ -37,7 +38,7 @@ WineglassScene::WineglassScene()
   d->add(sphere2);
   d->add(box);
   
-  m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
   
   auto instance = new Instance(d);

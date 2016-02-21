@@ -1,5 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/TransparentMaterial.h"
+#include "world/objects/Texture.h"
 
 #include "raytracer/materials/TransparentMaterial.h"
 
@@ -9,11 +10,13 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 }
 
 raytracer::Material* TransparentMaterial::toRaytracerMaterial() const {
+  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
+  
   auto material = new raytracer::TransparentMaterial;
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());
-  material->setDiffuseColor(diffuseColor());
+  material->setDiffuseTexture(texture->toRaytracerTexture());
   material->setSpecularColor(specularColor());
   material->setExponent(exponent());
   material->setRefractionIndex(refractionIndex());

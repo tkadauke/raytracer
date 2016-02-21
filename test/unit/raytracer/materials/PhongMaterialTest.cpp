@@ -1,5 +1,6 @@
 #include "gtest.h"
 #include "raytracer/materials/PhongMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 namespace PhongMaterialTest {
   using namespace raytracer;
@@ -9,16 +10,11 @@ namespace PhongMaterialTest {
     ASSERT_EQ(Colord::white(), material.specularColor());
   }
 
-  TEST(PhongMaterial, ShouldInitializeWithDiffuseColor) {
-    PhongMaterial material(Colord(0, 1, 0));
+  TEST(PhongMaterial, ShouldInitializeWithDiffuseTexture) {
+    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    PhongMaterial material(texture);
+    ASSERT_EQ(texture, material.diffuseTexture());
     ASSERT_EQ(Colord::white(), material.specularColor());
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
-  }
-  
-  TEST(PhongMaterial, ShouldSetDiffuseColor) {
-    PhongMaterial material;
-    material.setDiffuseColor(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
   }
   
   TEST(PhongMaterial, ShouldSetHighlightColor) {

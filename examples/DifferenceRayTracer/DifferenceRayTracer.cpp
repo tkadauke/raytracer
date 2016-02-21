@@ -10,6 +10,7 @@
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 #include "widgets/QtDisplay.h"
 
 #include <QApplication>
@@ -34,7 +35,7 @@ int main(int argc, char** argv) {
   d->add(sphere5);
   
   TransparentMaterial glass;
-  glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
   glass.setRefractionIndex(1.52);
   
   d->setMaterial(&glass);
@@ -42,13 +43,13 @@ int main(int argc, char** argv) {
   auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
   
   ReflectiveMaterial red;
-  red.setDiffuseColor(Colord(1, 0, 0));
+  red.setDiffuseTexture(new ConstantColorTexture(Colord(1, 0, 0)));
   red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&red);
   
   auto plane = new Plane(Vector3d(0, -1, 0), 2);
   
-  PhongMaterial blue(Colord(0, 0, 1));
+  PhongMaterial blue(new ConstantColorTexture(Colord(0, 0, 1)));
   plane->setMaterial(&blue);
   
   scene->add(d);

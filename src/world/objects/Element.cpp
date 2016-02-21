@@ -74,7 +74,7 @@ void Element::read(const QJsonObject& json) {
       } else if (type == "Colord") {
         auto array = value.toArray();
         setProperty(metaProp.name(), QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
-      } else if (type == "Material*") {
+      } else if (type == "Material*" || type == "Texture*") {
         addPendingReference(metaProp.name(), value.toString());
       } else {
         setProperty(metaProp.name(), value.toVariant());
@@ -134,7 +134,7 @@ void Element::writeForClass(const QMetaObject* klass, QJsonObject& json) {
       json[metaProp.name()] = prop.toDouble();
     } else if (type == "bool") {
       json[metaProp.name()] = prop.toBool();
-    } else if (type == "Material*") {
+    } else if (type == "Material*" || type == "Texture*") {
       auto element = prop.value<Element*>();
       if (element) {
         json[metaProp.name()] = element->id();

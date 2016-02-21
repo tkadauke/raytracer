@@ -3,6 +3,7 @@
 #include "core/Color.h"
 
 #include "world/objects/Material.h"
+#include "world/objects/Texture.h"
 
 #include <QApplication>
 
@@ -15,6 +16,7 @@ int main(int argc, char** argv) {
   qRegisterMetaType<Vector3d>();
   qRegisterMetaType<Colord>();
   qRegisterMetaType<Material*>();
+  qRegisterMetaType<Texture*>();
   
   auto window = new MainWindow;
   window->resize(1280, 768);

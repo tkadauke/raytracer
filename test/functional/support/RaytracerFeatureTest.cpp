@@ -4,6 +4,7 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "raytracer/materials/MatteMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 #include "test/helpers/ImageViewer.h"
 
@@ -104,7 +105,7 @@ namespace testing {
   }
 
   Material* RaytracerFeatureTest::redDiffuse() {
-    auto material = new MatteMaterial(Colord(1, 0, 0));
+    auto material = new MatteMaterial(new ConstantColorTexture(Colord(1, 0, 0)));
     return material;
   }
 

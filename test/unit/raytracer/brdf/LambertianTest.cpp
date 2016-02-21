@@ -10,6 +10,12 @@ namespace LambertianTest {
     Lambertian lambertian;
     ASSERT_EQ(1, lambertian.reflectionCoefficient());
   }
+
+  TEST(Lambertian, ShouldInitializeWithValues) {
+    Lambertian lambertian(Colord(0, 1, 0), 0.2);
+    ASSERT_EQ(Colord(0, 1, 0), lambertian.diffuseColor());
+    ASSERT_EQ(0.2, lambertian.reflectionCoefficient());
+  }
   
   TEST(Lambertian, ShouldSetDiffuseColor) {
     Lambertian lambertian;

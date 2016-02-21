@@ -5,6 +5,7 @@
 #include "raytracer/Light.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
 
@@ -18,9 +19,9 @@ private:
 
 FloatingSpheresScene::FloatingSpheresScene()
   : Scene(),
-    m_red(Colord(1, 0, 0)),
-    m_green(Colord(0, 1, 0)),
-    m_blue(Colord(0, 0, 1))
+    m_red(new ConstantColorTexture(Colord(1, 0, 0))),
+    m_green(new ConstantColorTexture(Colord(0, 1, 0))),
+    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   

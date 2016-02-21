@@ -4,6 +4,7 @@
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace testing;
 using namespace raytracer;
@@ -17,7 +18,9 @@ GIVEN(RaytracerFeatureTest, "a perfectly reflective box") {
 
 GIVEN(RaytracerFeatureTest, "a reflective box which filters the colors") {
   auto box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
-  ReflectiveMaterial* material = new ReflectiveMaterial(Colord(1, 0, 0));
+  ReflectiveMaterial* material = new ReflectiveMaterial(
+    new ConstantColorTexture(Colord(1, 0, 0))
+  );
   material->setReflectionCoefficient(0);
   material->setAmbientCoefficient(1);
   box->setMaterial(material);

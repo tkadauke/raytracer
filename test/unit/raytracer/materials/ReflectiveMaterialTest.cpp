@@ -1,5 +1,6 @@
 #include "gtest.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 namespace ReflectiveMaterialTest {
   using namespace raytracer;
@@ -8,16 +9,11 @@ namespace ReflectiveMaterialTest {
     ReflectiveMaterial material;
   }
 
-  TEST(ReflectiveMaterial, ShouldInitializeWithDiffuseColor) {
-    ReflectiveMaterial material(Colord(0, 1, 0));
+  TEST(ReflectiveMaterial, ShouldInitializeWithDiffuseTexture) {
+    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    ReflectiveMaterial material(texture);
+    ASSERT_EQ(texture, material.diffuseTexture());
     ASSERT_EQ(Colord::white(), material.specularColor());
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
-  }
-  
-  TEST(ReflectiveMaterial, ShouldSetDiffuseColor) {
-    ReflectiveMaterial material;
-    material.setDiffuseColor(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
   }
   
   TEST(ReflectiveMaterial, ShouldSetHighlightColor) {

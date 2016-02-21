@@ -7,6 +7,7 @@
 #include "raytracer/materials/PortalMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
 
@@ -26,11 +27,11 @@ PortalScene::PortalScene()
       Matrix4d::translate(Vector3d(0, 0, 3)) * Matrix3d::rotateZ(Angled::fromRadians(0.1)),
       Colord(0.8, 0.8, 0.8)
     ),
-    m_blue(Colord(0, 0, 1))
+    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   
-  m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
 
   auto box = new Box(Vector3d(0, 0, 0), Vector3d(1, 1, 0.1));

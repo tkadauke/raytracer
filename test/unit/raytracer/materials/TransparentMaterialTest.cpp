@@ -1,5 +1,6 @@
 #include "gtest.h"
 #include "raytracer/materials/TransparentMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 namespace TransparentMaterialTest {
   using namespace raytracer;
@@ -10,17 +11,12 @@ namespace TransparentMaterialTest {
     ASSERT_EQ(1, material.refractionIndex());
   }
 
-  TEST(TransparentMaterial, ShouldInitializeWithDiffuseColor) {
-    TransparentMaterial material(Colord(0, 1, 0));
+  TEST(TransparentMaterial, ShouldInitializeWithDiffuseTexture) {
+    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    TransparentMaterial material(texture);
+    ASSERT_EQ(texture, material.diffuseTexture());
     ASSERT_EQ(Colord::white(), material.specularColor());
     ASSERT_EQ(1, material.refractionIndex());
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
-  }
-  
-  TEST(TransparentMaterial, ShouldSetDiffuseColor) {
-    TransparentMaterial material;
-    material.setDiffuseColor(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
   }
   
   TEST(TransparentMaterial, ShouldSetHighlightColor) {

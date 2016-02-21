@@ -6,6 +6,7 @@
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
 
@@ -19,11 +20,11 @@ private:
 };
 
 GlassBoxesScene::GlassBoxesScene()
-  : Scene(), m_blue(Colord(0, 0, 1))
+  : Scene(), m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   
-  m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
 
   auto box = new Box(Vector3d(0, 0, 0), Vector3d(0.1, 1, 1));

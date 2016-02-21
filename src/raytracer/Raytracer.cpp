@@ -41,7 +41,7 @@ namespace {
 
 struct Raytracer::Private {
   Private()
-    : numberOfThreads(8) {}
+    : numberOfThreads(24) {}
   
   vector<RenderThread*> threads;
   int numberOfThreads;

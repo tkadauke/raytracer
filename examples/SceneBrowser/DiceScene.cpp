@@ -11,6 +11,7 @@
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
 
@@ -26,7 +27,7 @@ private:
 
 DiceScene::DiceScene()
   : Scene(),
-    m_blue(Colord(0, 0, 1))
+    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
@@ -44,7 +45,7 @@ DiceScene::DiceScene()
   d->add(sphere4);
   d->add(sphere5);
   
-  m_glass.setDiffuseColor(Colord(0.1, 0.1, 0.1));
+  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
   
   d->setMaterial(&m_glass);
@@ -52,7 +53,7 @@ DiceScene::DiceScene()
   grid->add(d);
   
   auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  m_red.setDiffuseColor(Colord(1, 0, 0));
+  m_red.setDiffuseTexture(new ConstantColorTexture(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&m_red);
   grid->add(sphere6);

@@ -34,6 +34,8 @@
 #include "world/objects/TransparentMaterial.h"
 #include "world/objects/ReflectiveMaterial.h"
 
+#include "world/objects/ConstantColorTexture.h"
+
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
 {
@@ -99,6 +101,10 @@ void MainWindow::createActions() {
   m_addReflectiveMaterialAct->setStatusTip(tr("Add a reflective material to the scene"));
   connect(m_addReflectiveMaterialAct, SIGNAL(triggered()), this, SLOT(addReflectiveMaterial()));
 
+  m_addConstantColorTextureAct = new QAction(tr("Constant Color"), this);
+  m_addConstantColorTextureAct->setStatusTip(tr("Add a constant color texture to the scene"));
+  connect(m_addConstantColorTextureAct, SIGNAL(triggered()), this, SLOT(addConstantColorTexture()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -116,7 +122,7 @@ void MainWindow::createActions() {
   auto modifyingActions = {
     m_newAct, m_openAct, m_saveAct, m_saveAsAct, m_addBoxAct, m_addSphereAct,
     m_addMatteMaterialAct, m_addPhongMaterialAct, m_addReflectiveMaterialAct,
-    m_deleteElementAct
+    m_addConstantColorTextureAct, m_deleteElementAct
   };
   
   for (auto& act : modifyingActions) {
@@ -141,6 +147,9 @@ void MainWindow::createMenus() {
   addMaterial->addAction(m_addPhongMaterialAct);
   addMaterial->addAction(m_addTransparentMaterialAct);
   addMaterial->addAction(m_addReflectiveMaterialAct);
+  
+  auto addTexture = m_editMenu->addMenu(tr("Add Texture"));
+  addTexture->addAction(m_addConstantColorTextureAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -227,45 +236,41 @@ void MainWindow::saveFileAs() {
   }
 }
 
-void MainWindow::addBox() {
-  auto box = new Box(m_scene);
-  box->setName(QString("Box %1").arg(m_scene->children().size()));
+template<class T>
+void MainWindow::add() {
+  auto element = new T(m_scene);
+  element->setName(QString("%1 %2").arg(element->metaObject()->className()).arg(m_scene->children().size()));
 
   m_elementModel->setElement(m_scene);
-  elementChanged(box);
+  elementChanged(element);
+}
+
+void MainWindow::addBox() {
+  add<Box>();
 }
 
 void MainWindow::addSphere() {
-  auto sphere = new Sphere(m_scene);
-  sphere->setName(QString("Sphere %1").arg(m_scene->children().size()));
-
-  m_elementModel->setElement(m_scene);
-  elementChanged(sphere);
-}
-
-template<class Mat>
-void MainWindow::addMaterial() {
-  auto material = new Mat(m_scene);
-  material->setName(QString("%1 %2").arg(material->metaObject()->className()).arg(m_scene->children().size()));
-
-  m_elementModel->setElement(m_scene);
-  m_scene->setChanged(true);
+  add<Sphere>();
 }
 
 void MainWindow::addMatteMaterial() {
-  addMaterial<MatteMaterial>();
+  add<MatteMaterial>();
 }
 
 void MainWindow::addPhongMaterial() {
-  addMaterial<PhongMaterial>();
+  add<PhongMaterial>();
 }
 
 void MainWindow::addTransparentMaterial() {
-  addMaterial<TransparentMaterial>();
+  add<TransparentMaterial>();
 }
 
 void MainWindow::addReflectiveMaterial() {
-  addMaterial<ReflectiveMaterial>();
+  add<ReflectiveMaterial>();
+}
+
+void MainWindow::addConstantColorTexture() {
+  add<ConstantColorTexture>();
 }
 
 void MainWindow::deleteElement() {

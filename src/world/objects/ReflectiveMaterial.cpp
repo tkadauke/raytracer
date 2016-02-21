@@ -1,5 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/ReflectiveMaterial.h"
+#include "world/objects/Texture.h"
 
 #include "raytracer/materials/ReflectiveMaterial.h"
 
@@ -9,7 +10,9 @@ ReflectiveMaterial::ReflectiveMaterial(Element* parent)
 }
 
 raytracer::Material* ReflectiveMaterial::toRaytracerMaterial() const {
-  auto material = new raytracer::ReflectiveMaterial(diffuseColor(), specularColor());
+  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
+  
+  auto material = new raytracer::ReflectiveMaterial(texture->toRaytracerTexture(), specularColor());
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setExponent(exponent());

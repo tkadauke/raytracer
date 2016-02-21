@@ -1,23 +1,27 @@
 #include "gtest.h"
 #include "raytracer/materials/MatteMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 namespace MatteMaterialTest {
   using namespace raytracer;
 
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;
-    ASSERT_EQ(Colord::black(), material.diffuseColor());
+    ASSERT_EQ(nullptr, material.diffuseTexture());
   }
 
-  TEST(MatteMaterial, ShouldInitializeWithDiffuseColor) {
-    MatteMaterial material(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
+  TEST(MatteMaterial, ShouldInitializeWithDiffuseTexture) {
+    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    MatteMaterial material(texture);
+    ASSERT_EQ(texture, material.diffuseTexture());
   }
   
-  TEST(MatteMaterial, ShouldSetDiffuseColor) {
+  TEST(MatteMaterial, ShouldSetDiffuseTexture) {
     MatteMaterial material;
-    material.setDiffuseColor(Colord(0, 1, 0));
-    ASSERT_EQ(Colord(0, 1, 0), material.diffuseColor());
+
+    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    material.setDiffuseTexture(texture);
+    ASSERT_EQ(texture, material.diffuseTexture());
   }
   
   TEST(MatteMaterial, ShouldSetAmbientCoefficient) {

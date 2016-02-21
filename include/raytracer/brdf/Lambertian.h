@@ -11,6 +11,11 @@ namespace raytracer {
     {
     }
     
+    Lambertian(const Colord& color, double coeff)
+      : m_diffuseColor(color), m_reflectionCoefficient(coeff)
+    {
+    }
+    
     virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in);
     virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out);
     

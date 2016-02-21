@@ -6,6 +6,7 @@
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
+#include "raytracer/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
 
@@ -20,23 +21,23 @@ private:
 
 MetalSpheresScene::MetalSpheresScene()
   : Scene(),
-    m_background(Colord(0, 0, 1))
+    m_background(new ConstantColorTexture(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
   auto sphere = new Sphere(Vector3d(0, 1, 0), 1);
-  m_red.setDiffuseColor(Colord(1, 0, 0));
+  m_red.setDiffuseTexture(new ConstantColorTexture(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere->setMaterial(&m_red);
   
   auto sphere2 = new Sphere(Vector3d(-2.5, 1, 0), 1);
-  m_green.setDiffuseColor(Colord(0, 1, 0));
+  m_green.setDiffuseTexture(new ConstantColorTexture(Colord(0, 1, 0)));
   m_green.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere2->setMaterial(&m_green);
   
   auto sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  m_blue.setDiffuseColor(Colord(0, 0, 1));
+  m_blue.setDiffuseTexture(new ConstantColorTexture(Colord(0, 0, 1)));
   m_blue.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&m_blue);
   

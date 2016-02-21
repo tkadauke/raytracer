@@ -1,5 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/PhongMaterial.h"
+#include "world/objects/Texture.h"
 
 #include "raytracer/materials/PhongMaterial.h"
 
@@ -9,7 +10,9 @@ PhongMaterial::PhongMaterial(Element* parent)
 }
 
 raytracer::Material* PhongMaterial::toRaytracerMaterial() const {
-  auto material = new raytracer::PhongMaterial(diffuseColor(), specularColor(), exponent());
+  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
+  
+  auto material = new raytracer::PhongMaterial(texture->toRaytracerTexture(), specularColor(), exponent());
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());

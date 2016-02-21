@@ -13,15 +13,15 @@ namespace raytracer {
       setReflectionColor(Colord::white());
     }
 
-    inline ReflectiveMaterial(const Colord& color)
-      : PhongMaterial(color)
+    inline ReflectiveMaterial(Texture<Colord>* diffuseTexture)
+      : PhongMaterial(diffuseTexture)
     {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
 
-    inline ReflectiveMaterial(const Colord& diffuse, const Colord& specular)
-      : PhongMaterial(diffuse, specular)
+    inline ReflectiveMaterial(Texture<Colord>* diffuseTexture, const Colord& specular)
+      : PhongMaterial(diffuseTexture, specular)
     {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());

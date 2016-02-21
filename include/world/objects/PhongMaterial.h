@@ -2,6 +2,7 @@
 
 #include "world/objects/MatteMaterial.h"
 #include "core/math/Range.h"
+#include "core/Color.h"
 
 class PhongMaterial : public MatteMaterial {
   Q_OBJECT
