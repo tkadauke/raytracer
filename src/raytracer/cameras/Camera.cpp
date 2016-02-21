@@ -7,20 +7,16 @@
 using namespace raytracer;
 
 Camera::~Camera() {
-  if (m_viewPlane)
-    delete m_viewPlane;
 }
 
-ViewPlane* Camera::viewPlane() {
+std::shared_ptr<ViewPlane> Camera::viewPlane() {
   // Use this type of view plane as default, because I like it the most :-)
   if (!m_viewPlane)
-    m_viewPlane = new PointInterlacedViewPlane;
+    m_viewPlane = std::make_shared<PointInterlacedViewPlane>();
   return m_viewPlane;
 }
 
-void Camera::setViewPlane(ViewPlane* plane) {
-  if (m_viewPlane)
-    delete m_viewPlane;
+void Camera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
   m_viewPlane = plane;
 }
 

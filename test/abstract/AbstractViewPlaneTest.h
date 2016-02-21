@@ -9,7 +9,7 @@ namespace testing {
   template<class VP>
   struct AbstractViewPlaneTest : public RaytracerFeatureTest {
     AbstractViewPlaneTest() : RaytracerFeatureTest() {
-      camera()->setViewPlane(new VP);
+      camera()->setViewPlane(std::make_shared<VP>());
     }
   };
 

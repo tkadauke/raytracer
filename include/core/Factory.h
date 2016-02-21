@@ -43,6 +43,13 @@ public:
     else
       return nullptr;
   }
+
+  std::shared_ptr<Base> createShared(const Identifier& id) {
+    if (BaseCreator* creator = m_creators[id])
+      return std::shared_ptr<Base>(creator->create());
+    else
+      return nullptr;
+  }
   
   std::list<std::string> identifiers() const {
     std::list<std::string> result;

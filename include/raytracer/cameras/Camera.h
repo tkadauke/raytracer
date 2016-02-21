@@ -16,9 +16,9 @@ namespace raytracer {
 
   class Camera {
   public:
-    Camera() : m_cancelled(false), m_viewPlane(0) {}
+    Camera() : m_cancelled(false), m_viewPlane(nullptr) {}
     Camera(const Vector3d& position, const Vector3d& target)
-      : m_cancelled(false), m_position(position), m_target(target), m_viewPlane(0) {}
+      : m_cancelled(false), m_position(position), m_target(target), m_viewPlane(nullptr) {}
     virtual ~Camera();
 
     void setPosition(const Vector3d& position) {
@@ -31,8 +31,8 @@ namespace raytracer {
       m_target = target;
     }
 
-    void setViewPlane(ViewPlane* plane);
-    ViewPlane* viewPlane();
+    void setViewPlane(std::shared_ptr<ViewPlane> plane);
+    std::shared_ptr<ViewPlane> viewPlane();
 
     const Matrix4d& matrix();
 
@@ -51,6 +51,6 @@ namespace raytracer {
     bool m_cancelled;
     Vector3d m_position, m_target;
     MemoizedValue<Matrix4d> m_matrix;
-    ViewPlane* m_viewPlane;
+    std::shared_ptr<ViewPlane> m_viewPlane;
   };
 }

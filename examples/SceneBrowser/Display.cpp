@@ -40,7 +40,7 @@ Display::Display()
   
   m_raytracer->setCamera(m_camera);
   m_raytracer->setScene(SceneFactory::self().create("Glass Boxes"));
-  m_camera->setViewPlane(ViewPlaneFactory::self().create(m_viewPlaneType->type()));
+  m_camera->setViewPlane(ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   connect(m_scene, SIGNAL(changed()), this, SLOT(sceneChanged()));
   connect(m_viewPlaneType, SIGNAL(changed()), this, SLOT(viewPlaneTypeChanged()));
   connect(m_cameraType, SIGNAL(changed()), this, SLOT(cameraTypeChanged()));
@@ -57,7 +57,7 @@ void Display::sceneChanged() {
 }
 
 void Display::viewPlaneTypeChanged() {
-  m_camera->setViewPlane(ViewPlaneFactory::self().create(m_viewPlaneType->type()));
+  m_camera->setViewPlane(ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   render();
 }
 
