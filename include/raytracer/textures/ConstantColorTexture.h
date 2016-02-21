@@ -2,7 +2,7 @@
 #include "core/Color.h"
 
 namespace raytracer {
-  class ConstantColorTexture : public Texture<Colord> {
+  class ConstantColorTexture : public Texturec {
   public:
     inline ConstantColorTexture() {}
     

@@ -2,11 +2,9 @@
 
 #include "raytracer/materials/Material.h"
 #include "raytracer/brdf/Lambertian.h"
+#include "raytracer/textures/Texture.h"
 
 namespace raytracer {
-  template<class T>
-  class Texture;
-  
   class MatteMaterial : public Material {
   public:
     inline MatteMaterial()
@@ -14,16 +12,16 @@ namespace raytracer {
     {
     }
 
-    inline MatteMaterial(Texture<Colord>* texture)
+    inline MatteMaterial(Texturec* texture)
       : Material(), m_texture(texture), m_ambientCoefficient(1), m_diffuseCoefficient(1)
     {
     }
 
-    inline void setDiffuseTexture(Texture<Colord>* texture) {
+    inline void setDiffuseTexture(Texturec* texture) {
       m_texture = texture;
     }
 
-    inline Texture<Colord>* diffuseTexture() const {
+    inline Texturec* diffuseTexture() const {
       return m_texture;
     }
     
@@ -35,7 +33,7 @@ namespace raytracer {
     virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   protected:
-    Texture<Colord>* m_texture;
+    Texturec* m_texture;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
   };

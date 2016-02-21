@@ -7,7 +7,7 @@ ConstantColorTexture::ConstantColorTexture(Element* parent)
 {
 }
 
-raytracer::Texture<Colord>* ConstantColorTexture::toRaytracerTexture() const {
+raytracer::Texturec* ConstantColorTexture::toRaytracerTexture() const {
   return new raytracer::ConstantColorTexture(m_color);
 }
 

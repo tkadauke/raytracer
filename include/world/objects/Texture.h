@@ -1,12 +1,8 @@
 #pragma once
 
 #include "world/objects/Element.h"
+#include "raytracer/textures/Texture.h"
 #include "core/Color.h"
-
-namespace raytracer {
-  template<class T>
-  class Texture;
-}
 
 class Texture : public Element {
   Q_OBJECT
@@ -16,7 +12,7 @@ public:
   
   Texture(Element* parent = nullptr);
 
-  virtual raytracer::Texture<Colord>* toRaytracerTexture() const = 0;
+  virtual raytracer::Texturec* toRaytracerTexture() const = 0;
 };
 
 inline Texture* textureOrDefault(Texture* texture) {

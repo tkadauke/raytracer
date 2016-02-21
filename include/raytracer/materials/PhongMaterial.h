@@ -12,19 +12,19 @@ namespace raytracer {
       setSpecularColor(Colord::white());
     }
 
-    inline PhongMaterial(Texture<Colord>* diffuseTexture)
+    inline PhongMaterial(Texturec* diffuseTexture)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(Colord::white());
     }
 
-    inline PhongMaterial(Texture<Colord>* diffuseTexture, const Colord& specular)
+    inline PhongMaterial(Texturec* diffuseTexture, const Colord& specular)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(specular);
     }
 
-    inline PhongMaterial(Texture<Colord>* diffuseTexture, const Colord& specular, double exponent)
+    inline PhongMaterial(Texturec* diffuseTexture, const Colord& specular, double exponent)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(specular);

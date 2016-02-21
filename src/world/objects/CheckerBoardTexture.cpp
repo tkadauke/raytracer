@@ -8,7 +8,7 @@ CheckerBoardTexture::CheckerBoardTexture(Element* parent)
 {
 }
 
-raytracer::Texture<Colord>* CheckerBoardTexture::toRaytracerTexture() const {
+raytracer::Texturec* CheckerBoardTexture::toRaytracerTexture() const {
   return new raytracer::CheckerBoardTexture(
     new raytracer::PlanarMapping2D,
     textureOrDefault(brightTexture())->toRaytracerTexture(),
