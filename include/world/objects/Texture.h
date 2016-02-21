@@ -12,7 +12,7 @@ public:
   
   Texture(Element* parent = nullptr);
 
-  virtual raytracer::Texturec* toRaytracerTexture() const = 0;
+  virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const = 0;
 };
 
 inline Texture* textureOrDefault(Texture* texture) {

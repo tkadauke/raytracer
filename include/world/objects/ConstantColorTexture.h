@@ -13,7 +13,7 @@ public:
   inline void setColor(const Colord& color) { m_color = color; }
   inline const Colord& color() const { return m_color; }
 
-  virtual raytracer::Texturec* toRaytracerTexture() const;
+  virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const;
 
 private:
   Colord m_color;

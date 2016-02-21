@@ -29,7 +29,7 @@ public:
   }
   inline Texture* darkTexture() const { return m_darkTexture; }
 
-  virtual raytracer::Texturec* toRaytracerTexture() const;
+  virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const;
 
 private:
   Colord m_color;

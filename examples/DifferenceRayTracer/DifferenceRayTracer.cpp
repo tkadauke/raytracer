@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
   d->add(sphere5);
   
   TransparentMaterial glass;
-  glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
+  glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
   glass.setRefractionIndex(1.52);
   
   d->setMaterial(&glass);
@@ -43,13 +43,13 @@ int main(int argc, char** argv) {
   auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
   
   ReflectiveMaterial red;
-  red.setDiffuseTexture(new ConstantColorTexture(Colord(1, 0, 0)));
+  red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&red);
   
   auto plane = new Plane(Vector3d(0, -1, 0), 2);
   
-  PhongMaterial blue(new ConstantColorTexture(Colord(0, 0, 1)));
+  PhongMaterial blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)));
   plane->setMaterial(&blue);
   
   scene->add(d);

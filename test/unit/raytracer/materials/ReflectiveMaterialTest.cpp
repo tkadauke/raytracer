@@ -10,7 +10,7 @@ namespace ReflectiveMaterialTest {
   }
 
   TEST(ReflectiveMaterial, ShouldInitializeWithDiffuseTexture) {
-    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0, 1, 0));
     ReflectiveMaterial material(texture);
     ASSERT_EQ(texture, material.diffuseTexture());
     ASSERT_EQ(Colord::white(), material.specularColor());

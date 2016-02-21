@@ -10,8 +10,8 @@ namespace CheckerBoardTextureTest {
   using namespace raytracer;
 
   TEST(CheckerBoardTexture, ShouldInitializeWithValues) {
-    auto bright = new ConstantColorTexture(Colord::white());
-    auto dark = new ConstantColorTexture(Colord::black());
+    auto bright = std::make_shared<ConstantColorTexture>(Colord::white());
+    auto dark = std::make_shared<ConstantColorTexture>(Colord::black());
     CheckerBoardTexture texture(new PlanarMapping2D, bright, dark);
     ASSERT_EQ(bright, texture.brightTexture());
     ASSERT_EQ(dark, texture.darkTexture());
@@ -20,8 +20,8 @@ namespace CheckerBoardTextureTest {
   TEST(CheckerBoardTexture, ShouldChooseSubtextureBasedOnPosition) {
     CheckerBoardTexture texture(
       new PlanarMapping2D,
-      new ConstantColorTexture(Colord::white()),
-      new ConstantColorTexture(Colord::black())
+      std::make_shared<ConstantColorTexture>(Colord::white()),
+      std::make_shared<ConstantColorTexture>(Colord::black())
     );
     
     ASSERT_EQ(Colord::white(), texture.evaluate(

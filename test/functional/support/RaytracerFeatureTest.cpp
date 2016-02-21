@@ -103,7 +103,7 @@ namespace testing {
   }
 
   Material* RaytracerFeatureTest::redDiffuse() {
-    auto material = new MatteMaterial(new ConstantColorTexture(Colord(1, 0, 0)));
+    auto material = new MatteMaterial(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
     return material;
   }
 

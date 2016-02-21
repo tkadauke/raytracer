@@ -22,12 +22,12 @@ private:
 
 TorusScene::TorusScene()
   : Scene(),
-    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
+    m_blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
   m_glass.setSpecularColor(Colord(0.5, 0.5, 0.5));
-  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.0, 0.1, 0.1)));
+  m_glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.0, 0.1, 0.1)));
   m_glass.setAmbientCoefficient(0.2);
   m_glass.setDiffuseCoefficient(0);
   m_glass.setRefractionIndex(1.52);

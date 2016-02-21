@@ -48,10 +48,10 @@ raytracer::Scene* MaterialDisplayWidget::sphereOnPlane() {
   sphere->setMaterial(mat);
 
   auto planeMaterial = new raytracer::MatteMaterial(
-    new raytracer::CheckerBoardTexture(
+    std::make_shared<raytracer::CheckerBoardTexture>(
       new raytracer::PlanarMapping2D,
-      new raytracer::ConstantColorTexture(Colord::black()),
-      new raytracer::ConstantColorTexture(Colord::white())
+      std::make_shared<raytracer::ConstantColorTexture>(Colord::black()),
+      std::make_shared<raytracer::ConstantColorTexture>(Colord::white())
     )
   );
   

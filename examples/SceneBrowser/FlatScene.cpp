@@ -21,9 +21,9 @@ private:
 
 FlatScene::FlatScene()
   : Scene(),
-    m_red(new ConstantColorTexture(Colord(1, 0, 0))),
-    m_green(new ConstantColorTexture(Colord(0, 1, 0))),
-    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
+    m_red(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))),
+    m_green(std::make_shared<ConstantColorTexture>(Colord(0, 1, 0))),
+    m_blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   

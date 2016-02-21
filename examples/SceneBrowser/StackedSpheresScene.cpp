@@ -25,7 +25,7 @@ private:
 
 StackedSpheresScene::StackedSpheresScene()
   : Scene(),
-    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
+    m_blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
@@ -35,13 +35,13 @@ StackedSpheresScene::StackedSpheresScene()
   u->add(sphere1);
   u->add(sphere2);
   
-  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
+  m_glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
   
   u->setMaterial(&m_glass);
   
   auto sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
-  m_red.setDiffuseTexture(new ConstantColorTexture(Colord(1, 0, 0)));
+  m_red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&m_red);
   

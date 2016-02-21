@@ -2,7 +2,7 @@
 #include "world/objects/ConstantColorTexture.h"
 
 Texture* Texture::defaultTexture() {
-  static ConstantColorTexture* result = 0;
+  static ConstantColorTexture* result = nullptr;
   if (!result) {
     result = new ConstantColorTexture;
     result->setColor(Colord::black());

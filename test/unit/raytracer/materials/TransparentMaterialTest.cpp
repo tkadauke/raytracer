@@ -12,7 +12,7 @@ namespace TransparentMaterialTest {
   }
 
   TEST(TransparentMaterial, ShouldInitializeWithDiffuseTexture) {
-    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0, 1, 0));
     TransparentMaterial material(texture);
     ASSERT_EQ(texture, material.diffuseTexture());
     ASSERT_EQ(Colord::white(), material.specularColor());

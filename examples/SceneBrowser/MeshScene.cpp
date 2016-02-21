@@ -29,8 +29,8 @@ private:
 
 MeshScene::MeshScene()
   : Scene(),
-    m_red(new ConstantColorTexture(Colord(1, 0, 0))),
-    m_silver(new ConstantColorTexture(Colord(0.6, 0.6, 0.6)))
+    m_red(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))),
+    m_silver(std::make_shared<ConstantColorTexture>(Colord(0.6, 0.6, 0.6)))
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   

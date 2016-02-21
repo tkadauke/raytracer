@@ -12,16 +12,16 @@ namespace raytracer {
     {
     }
 
-    inline MatteMaterial(Texturec* texture)
+    inline MatteMaterial(std::shared_ptr<Texturec> texture)
       : Material(), m_texture(texture), m_ambientCoefficient(1), m_diffuseCoefficient(1)
     {
     }
 
-    inline void setDiffuseTexture(Texturec* texture) {
+    inline void setDiffuseTexture(std::shared_ptr<Texturec> texture) {
       m_texture = texture;
     }
 
-    inline Texturec* diffuseTexture() const {
+    inline std::shared_ptr<Texturec> diffuseTexture() const {
       return m_texture;
     }
     
@@ -33,7 +33,7 @@ namespace raytracer {
     virtual Colord shade(std::shared_ptr<Raytracer> raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   protected:
-    Texturec* m_texture;
+    std::shared_ptr<Texturec> m_texture;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
   };

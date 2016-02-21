@@ -11,7 +11,7 @@ namespace MatteMaterialTest {
   }
 
   TEST(MatteMaterial, ShouldInitializeWithDiffuseTexture) {
-    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0, 1, 0));
     MatteMaterial material(texture);
     ASSERT_EQ(texture, material.diffuseTexture());
   }
@@ -19,7 +19,7 @@ namespace MatteMaterialTest {
   TEST(MatteMaterial, ShouldSetDiffuseTexture) {
     MatteMaterial material;
 
-    auto texture = new ConstantColorTexture(Colord(0, 1, 0));
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0, 1, 0));
     material.setDiffuseTexture(texture);
     ASSERT_EQ(texture, material.diffuseTexture());
   }

@@ -27,11 +27,11 @@ PortalScene::PortalScene()
       Matrix4d::translate(Vector3d(0, 0, 3)) * Matrix3d::rotateZ(Angled::fromRadians(0.1)),
       Colord(0.8, 0.8, 0.8)
     ),
-    m_blue(new ConstantColorTexture(Colord(0, 0, 1)))
+    m_blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)))
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   
-  m_glass.setDiffuseTexture(new ConstantColorTexture(Colord(0.1, 0.1, 0.1)));
+  m_glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
 
   auto box = new Box(Vector3d(0, 0, 0), Vector3d(1, 1, 0.1));

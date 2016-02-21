@@ -7,8 +7,8 @@ ConstantColorTexture::ConstantColorTexture(Element* parent)
 {
 }
 
-raytracer::Texturec* ConstantColorTexture::toRaytracerTexture() const {
-  return new raytracer::ConstantColorTexture(m_color);
+std::shared_ptr<raytracer::Texturec> ConstantColorTexture::toRaytracerTexture() const {
+  return std::make_shared<raytracer::ConstantColorTexture>(m_color);
 }
 
 static bool dummy = ElementFactory::self().registerClass<ConstantColorTexture>("ConstantColorTexture");
