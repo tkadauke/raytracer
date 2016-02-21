@@ -10,13 +10,11 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 }
 
 raytracer::Material* TransparentMaterial::toRaytracerMaterial() const {
-  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
-  
   auto material = new raytracer::TransparentMaterial;
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());
-  material->setDiffuseTexture(texture->toRaytracerTexture());
+  material->setDiffuseTexture(textureOrDefault(diffuseTexture())->toRaytracerTexture());
   material->setSpecularColor(specularColor());
   material->setExponent(exponent());
   material->setRefractionIndex(refractionIndex());

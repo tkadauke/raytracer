@@ -7,11 +7,10 @@
 namespace ConstantColorTextureTest {
   using namespace raytracer;
 
-  TEST(Lambertian, ShouldInitialize) {
+  TEST(ConstantColorTexture, ShouldInitialize) {
     ConstantColorTexture texture;
     ASSERT_EQ(Colord::black(), texture.color());
   }
-
 
   TEST(ConstantColorTexture, ShouldInitializeWithValues) {
     ConstantColorTexture texture(Colord(1, 0, 0));

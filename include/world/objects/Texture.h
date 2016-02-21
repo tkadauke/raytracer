@@ -18,3 +18,7 @@ public:
 
   virtual raytracer::Texture<Colord>* toRaytracerTexture() const = 0;
 };
+
+inline Texture* textureOrDefault(Texture* texture) {
+  return texture ? texture : Texture::defaultTexture();
+}

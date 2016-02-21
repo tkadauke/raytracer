@@ -45,6 +45,7 @@ private slots:
   void addReflectiveMaterial();
   
   void addConstantColorTexture();
+  void addCheckerBoardTexture();
   
   void deleteElement();
   
@@ -95,6 +96,7 @@ private:
   QAction* m_addReflectiveMaterialAct;
   
   QAction* m_addConstantColorTextureAct;
+  QAction* m_addCheckerBoardTextureAct;
   
   QAction* m_deleteElementAct;
   

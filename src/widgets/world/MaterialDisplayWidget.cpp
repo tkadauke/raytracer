@@ -6,7 +6,9 @@
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/Light.h"
+#include "raytracer/textures/CheckerBoardTexture.h"
 #include "raytracer/textures/ConstantColorTexture.h"
+#include "raytracer/textures/mappings/PlanarMapping2D.h"
 
 MaterialDisplayWidget::MaterialDisplayWidget(QWidget* parent)
   : QtDisplay(parent, new raytracer::Raytracer(0)), m_material(nullptr)
@@ -46,10 +48,14 @@ raytracer::Scene* MaterialDisplayWidget::sphereOnPlane() {
   sphere->setMaterial(mat);
 
   auto planeMaterial = new raytracer::MatteMaterial(
-    new raytracer::ConstantColorTexture(Colord(0, 0, 1))
+    new raytracer::CheckerBoardTexture(
+      new raytracer::PlanarMapping2D,
+      new raytracer::ConstantColorTexture(Colord::black()),
+      new raytracer::ConstantColorTexture(Colord::white())
+    )
   );
   
-  auto plane = new raytracer::Plane(Vector3d(0, -1, 0), 2);
+  auto plane = new raytracer::Plane(Vector3d(0, 1, 0), -2);
   plane->setMaterial(planeMaterial);
 
   scene->add(sphere);

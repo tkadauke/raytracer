@@ -35,6 +35,7 @@
 #include "world/objects/ReflectiveMaterial.h"
 
 #include "world/objects/ConstantColorTexture.h"
+#include "world/objects/CheckerBoardTexture.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -105,6 +106,10 @@ void MainWindow::createActions() {
   m_addConstantColorTextureAct->setStatusTip(tr("Add a constant color texture to the scene"));
   connect(m_addConstantColorTextureAct, SIGNAL(triggered()), this, SLOT(addConstantColorTexture()));
 
+  m_addCheckerBoardTextureAct = new QAction(tr("Checker Board"), this);
+  m_addCheckerBoardTextureAct->setStatusTip(tr("Add a checker board texture to the scene"));
+  connect(m_addCheckerBoardTextureAct, SIGNAL(triggered()), this, SLOT(addCheckerBoardTexture()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -150,6 +155,7 @@ void MainWindow::createMenus() {
   
   auto addTexture = m_editMenu->addMenu(tr("Add Texture"));
   addTexture->addAction(m_addConstantColorTextureAct);
+  addTexture->addAction(m_addCheckerBoardTextureAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -271,6 +277,10 @@ void MainWindow::addReflectiveMaterial() {
 
 void MainWindow::addConstantColorTexture() {
   add<ConstantColorTexture>();
+}
+
+void MainWindow::addCheckerBoardTexture() {
+  add<CheckerBoardTexture>();
 }
 
 void MainWindow::deleteElement() {

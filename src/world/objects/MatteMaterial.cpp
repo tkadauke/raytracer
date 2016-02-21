@@ -10,8 +10,9 @@ MatteMaterial::MatteMaterial(Element* parent)
 }
 
 raytracer::Material* MatteMaterial::toRaytracerMaterial() const {
-  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
-  auto material = new raytracer::MatteMaterial(texture->toRaytracerTexture());
+  auto material = new raytracer::MatteMaterial(
+    textureOrDefault(diffuseTexture())->toRaytracerTexture()
+  );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   

@@ -10,9 +10,9 @@ ReflectiveMaterial::ReflectiveMaterial(Element* parent)
 }
 
 raytracer::Material* ReflectiveMaterial::toRaytracerMaterial() const {
-  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
-  
-  auto material = new raytracer::ReflectiveMaterial(texture->toRaytracerTexture(), specularColor());
+  auto material = new raytracer::ReflectiveMaterial(
+    textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor()
+  );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setExponent(exponent());

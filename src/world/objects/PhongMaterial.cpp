@@ -10,9 +10,9 @@ PhongMaterial::PhongMaterial(Element* parent)
 }
 
 raytracer::Material* PhongMaterial::toRaytracerMaterial() const {
-  auto texture = diffuseTexture() ? diffuseTexture() : Texture::defaultTexture();
-  
-  auto material = new raytracer::PhongMaterial(texture->toRaytracerTexture(), specularColor(), exponent());
+  auto material = new raytracer::PhongMaterial(
+    textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor(), exponent()
+  );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());
