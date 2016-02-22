@@ -7,13 +7,13 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered triangle") {
-  auto triangle = new Triangle(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0));
+  auto triangle = std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0));
   triangle->setMaterial(test->redDiffuse());
   test->add(triangle);
 }
 
 GIVEN(RaytracerFeatureTest, "a displaced triangle") {
-  auto triangle = new Triangle(Vector3d(-1, 20, 0), Vector3d(-1, 21, 0), Vector3d(1, 20, 0));
+  auto triangle = std::make_shared<Triangle>(Vector3d(-1, 20, 0), Vector3d(-1, 21, 0), Vector3d(1, 20, 0));
   triangle->setMaterial(test->redDiffuse());
   test->add(triangle);
 }

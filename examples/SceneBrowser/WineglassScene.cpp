@@ -30,10 +30,10 @@ WineglassScene::WineglassScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  auto sphere = new Sphere(Vector3d(0, -1, 0), 1);
-  auto sphere2 = new Sphere(Vector3d(0, -1, 0), 0.95);
-  auto box = new Box(Vector3d(0, -2, 0), Vector3d(1, 0.5, 1));
-  auto d = new Difference();
+  auto sphere = std::make_shared<Sphere>(Vector3d(0, -1, 0), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(0, -1, 0), 0.95);
+  auto box = std::make_shared<Box>(Vector3d(0, -2, 0), Vector3d(1, 0.5, 1));
+  auto d = std::make_shared<Difference>();
   d->add(sphere);
   d->add(sphere2);
   d->add(box);
@@ -41,18 +41,18 @@ WineglassScene::WineglassScene()
   m_glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
   
-  auto instance = new Instance(d);
+  auto instance = std::make_shared<Instance>(d);
   instance->setMatrix(Matrix4d::translate(Vector3d(1.5, 0, 0)));
   instance->setMaterial(&m_glass);
   
   add(instance);
 
-  instance = new Instance(d);
+  instance = std::make_shared<Instance>(d);
   instance->setMatrix(Matrix4d::translate(Vector3d(-1.5, 0, 0)));
   instance->setMaterial(&m_glass);
   add(instance);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_blue);
   add(plane);
   

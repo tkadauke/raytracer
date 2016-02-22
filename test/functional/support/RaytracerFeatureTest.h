@@ -26,7 +26,7 @@ namespace testing {
   public:
     RaytracerFeatureTest();
     
-    void add(raytracer::Primitive* primitive);
+    void add(std::shared_ptr<raytracer::Primitive> primitive);
     raytracer::Scene* scene();
     raytracer::Camera* camera();
     void setCamera(raytracer::Camera* camera);

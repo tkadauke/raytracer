@@ -45,11 +45,11 @@ public:
   inline Material* material() const { return m_material; }
   inline void setMaterial(Material* material) { m_material = material; }
 
-  raytracer::Primitive* toRaytracer() const;
+  std::shared_ptr<raytracer::Primitive> toRaytracer() const;
   
 protected:
-  virtual raytracer::Primitive* toRaytracerPrimitive() const = 0;
-  raytracer::Primitive* applyTransform(raytracer::Primitive* primitive) const;
+  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const = 0;
+  std::shared_ptr<raytracer::Primitive> applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const;
   
 private:
   Vector3d m_position;

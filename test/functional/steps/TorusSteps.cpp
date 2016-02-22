@@ -11,14 +11,14 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered torus") {
-  auto torus = new Torus(1, 0.5);
+  auto torus = std::make_shared<Torus>(1, 0.5);
   torus->setMaterial(test->redDiffuse());
   test->add(torus);
 }
 
 GIVEN(RaytracerFeatureTest, "a 90 degree rotated torus") {
-  auto torus = new Torus(1, 0.5);
-  auto instance = new Instance(torus);
+  auto torus = std::make_shared<Torus>(1, 0.5);
+  auto instance = std::make_shared<Instance>(torus);
   instance->setMatrix(Matrix3d::rotateX(Angled::fromDegrees(90)));
   
   instance->setMaterial(test->redDiffuse());

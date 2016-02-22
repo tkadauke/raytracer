@@ -29,9 +29,9 @@ LensScene::LensScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  auto sphere1 = new Sphere(Vector3d(0, 1, 0), 1);
-  auto sphere2 = new Sphere(Vector3d(1, 1, 0), 1);
-  auto i = new Intersection();
+  auto sphere1 = std::make_shared<Sphere>(Vector3d(0, 1, 0), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(1, 1, 0), 1);
+  auto i = std::make_shared<Intersection>();
   i->add(sphere1);
   i->add(sphere2);
   
@@ -40,12 +40,12 @@ LensScene::LensScene()
   
   i->setMaterial(&m_glass);
   
-  auto sphere3 = new Sphere(Vector3d(3, 1, 0), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(3, 1, 0), 1);
   m_red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&m_red);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_blue);
   
   add(i);

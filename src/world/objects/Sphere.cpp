@@ -8,8 +8,8 @@ Sphere::Sphere(Element* parent)
 {
 }
 
-raytracer::Primitive* Sphere::toRaytracerPrimitive() const {
-  return new raytracer::Sphere(Vector3d::null(), 1);
+std::shared_ptr<raytracer::Primitive> Sphere::toRaytracerPrimitive() const {
+  return std::make_shared<raytracer::Sphere>(Vector3d::null(), 1);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Sphere>("Sphere");

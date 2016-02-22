@@ -6,12 +6,11 @@ class Ray;
 class HitPointInterval;
 
 namespace raytracer {
-  class Composite;
   class Material;
 
   class Primitive {
   public:
-    Primitive() : m_parent(0), m_material(0) {}
+    Primitive() : m_material(nullptr) {}
     virtual ~Primitive() {}
 
     virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints) = 0;
@@ -21,12 +20,6 @@ namespace raytracer {
 
     inline void setMaterial(Material* material) { m_material = material; }
     inline virtual Material* material() const { return m_material; }
-
-    inline void setParent(Composite* parent) { m_parent = parent; }
-    inline Composite* parent() const { return m_parent; }
-
-  protected:
-    Composite* m_parent;
 
   private:
     Material* m_material;

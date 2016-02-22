@@ -25,16 +25,16 @@ FloatingSpheresScene::FloatingSpheresScene()
 {
   setAmbient(Colord(0.1, 0.1, 0.1));
   
-  auto sphere = new Sphere(Vector3d(0, 0, 0), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 0), 1);
   sphere->setMaterial(&m_red);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 1);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 1);
   plane->setMaterial(&m_blue);
   
-  auto sphere2 = new Sphere(Vector3d(-2, -2, 2), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(-2, -2, 2), 1);
   sphere2->setMaterial(&m_green);
   
-  auto sphere3 = new Sphere(Vector3d(2, -2, 2), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(2, -2, 2), 1);
   sphere3->setMaterial(&m_blue);
   
   add(sphere);

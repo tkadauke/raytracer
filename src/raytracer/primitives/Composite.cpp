@@ -8,8 +8,6 @@ using namespace std;
 using namespace raytracer;
 
 Composite::~Composite() {
-  for (const auto& i : m_primitives)
-    delete i;
 }
 
 BoundingBox Composite::boundingBox() {

@@ -9,12 +9,12 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnSelfIfAnyOfTheChildPrimitivesIntersect) {
     Union u;
-    auto primitive1 = new MockPrimitive;
-    auto primitive2 = new MockPrimitive;
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive1)));
-    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
+    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive1.get())));
+    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
@@ -26,12 +26,12 @@ namespace UnionTest {
   
   TEST(Union, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     Union u;
-    auto primitive1 = new MockPrimitive;
-    auto primitive2 = new MockPrimitive;
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
-    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
+    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
@@ -43,12 +43,12 @@ namespace UnionTest {
   
   TEST(Union, ShouldBuildUnionOfHitPoints) {
     Union u;
-    auto primitive1 = new MockPrimitive;
-    auto primitive2 = new MockPrimitive;
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive1)));
-    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())), Return(primitive2)));
+    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive1.get())));
+    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())), Return(primitive2.get())));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
@@ -61,8 +61,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     Union u;
-    auto primitive1 = new MockPrimitive;
-    auto primitive2 = new MockPrimitive;
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(true));
@@ -74,12 +74,12 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Union u;
-    auto primitive1 = new MockPrimitive;
-    auto primitive2 = new MockPrimitive;
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));
-    EXPECT_CALL(*primitive2, intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive1.get(), intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive2.get(), intersects(_)).WillOnce(Return(false));
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     

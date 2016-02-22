@@ -19,25 +19,25 @@ int main(int argc, char** argv) {
   
   auto scene = new Scene(Colord(0.4, 0.4, 0.4));
 
-  auto sphere = new Sphere(Vector3d(0, 1, 0), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d(0, 1, 0), 1);
   TransparentMaterial glass;
   glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
   glass.setRefractionIndex(1.52);
   sphere->setMaterial(&glass);
   
-  auto sphere2 = new Sphere(Vector3d(-2.5, 1, 0), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(-2.5, 1, 0), 1);
   ReflectiveMaterial green;
   green.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0, 1, 0)));
   green.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere2->setMaterial(&green);
   
-  auto sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(2.5, 1, 0), 1);
   ReflectiveMaterial red;
   red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&red);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   PhongMaterial blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)));
   plane->setMaterial(&blue);
   

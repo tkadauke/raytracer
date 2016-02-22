@@ -19,9 +19,8 @@ private:
 template<class ConcreteMeshTriangle>
 void Mesh::Private::addTrianglesTo(Composite* composite, Material* material) {
   for (const auto& face : mesh.faces) {
-    MeshTriangle* triangle;
     for (unsigned int j = 2; j != face.size(); ++j) {
-      triangle = new ConcreteMeshTriangle(&mesh, face[0], face[j-1], face[j]);
+      auto triangle = std::make_shared<ConcreteMeshTriangle>(&mesh, face[0], face[j-1], face[j]);
       triangle->setMaterial(material);
       composite->add(triangle);
     }
@@ -29,12 +28,11 @@ void Mesh::Private::addTrianglesTo(Composite* composite, Material* material) {
 }
 
 Mesh::Mesh()
-  : p(new Private(*this))
+  : p(std::make_unique<Private>(*this))
 {
 }
 
 Mesh::~Mesh() {
-  delete p;
 }
 
 void Mesh::computeNormals(bool flip) {

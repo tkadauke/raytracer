@@ -154,7 +154,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   // traverse the grid
 
   while (true) {
-    auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
+    auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z].get();
 
     if (tx_next < ty_next && tx_next < tz_next) {
       if (primitive) {
@@ -419,12 +419,12 @@ void Grid::setup() {
           if (counts[index] == 0) {
             m_cells[index] = primitive;
           } else if (counts[index] == 1) {
-            auto composite = new Composite;
+            auto composite = std::make_shared<Composite>();
             composite->add(m_cells[index]);
             composite->add(primitive);
             m_cells[index] = composite;
           } else {
-            dynamic_cast<Composite*>(m_cells[index])->add(primitive);
+            dynamic_cast<Composite*>(m_cells[index].get())->add(primitive);
           }
           counts[index]++;
         }

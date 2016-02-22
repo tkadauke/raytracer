@@ -40,15 +40,15 @@ MeshScene::MeshScene()
   
   m_silver.setSpecularColor(Colord(0.5, 0.5, 0.5));
   
-  auto grid = new Grid;
-  m_mesh.addSmoothTrianglesTo(grid, &m_silver);
+  auto grid = std::make_shared<Grid>();
+  m_mesh.addSmoothTrianglesTo(grid.get(), &m_silver);
   grid->setup();
-  auto instance = new Instance(grid);
+  auto instance = std::make_shared<Instance>(grid);
   instance->setMatrix(Matrix4d::translate(Vector3d(0, 0, 0)) * Matrix3d::scale(0.07));
   instance->setMaterial(&m_silver);
   add(instance);
   
-  auto sphere = new Sphere(Vector3d(0, 0, 200), 100);
+  auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 200), 100);
   sphere->setMaterial(&m_red);
   add(sphere);
   

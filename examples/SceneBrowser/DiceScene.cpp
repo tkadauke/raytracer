@@ -31,14 +31,14 @@ DiceScene::DiceScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  auto grid = new Grid;
+  auto grid = std::make_shared<Grid>();
   
-  auto box = new Box(Vector3d(0, 1, 0), Vector3d(1, 1, 1));
-  auto sphere2 = new Sphere(Vector3d(1.8, 1, 0), 1);
-  auto sphere3 = new Sphere(Vector3d(-1.8, 1, 0), 1);
-  auto sphere4 = new Sphere(Vector3d(0, 1, 1.8), 1);
-  auto sphere5 = new Sphere(Vector3d(0, 1, -1.8), 1);
-  auto d = new Difference();
+  auto box = std::make_shared<Box>(Vector3d(0, 1, 0), Vector3d(1, 1, 1));
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(1.8, 1, 0), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(-1.8, 1, 0), 1);
+  auto sphere4 = std::make_shared<Sphere>(Vector3d(0, 1, 1.8), 1);
+  auto sphere5 = std::make_shared<Sphere>(Vector3d(0, 1, -1.8), 1);
+  auto d = std::make_shared<Difference>();
   d->add(box);
   d->add(sphere2);
   d->add(sphere3);
@@ -52,13 +52,13 @@ DiceScene::DiceScene()
   
   grid->add(d);
   
-  auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere6 = std::make_shared<Sphere>(Vector3d(2.5, 1, 0), 1);
   m_red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&m_red);
   grid->add(sphere6);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_blue);
   add(plane);
   grid->setup();

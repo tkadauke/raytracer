@@ -7,8 +7,8 @@ Surface::Surface(Element* parent)
 {
 }
 
-raytracer::Primitive* Surface::applyTransform(raytracer::Primitive* primitive) const {
-  auto result = new raytracer::Instance(primitive);
+std::shared_ptr<raytracer::Primitive> Surface::applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const {
+  auto result = std::make_shared<raytracer::Instance>(primitive);
   const Matrix4d matrix =
     Matrix4d::translate(position()) *
     Matrix3d::rotate(rotation()) *
@@ -18,7 +18,7 @@ raytracer::Primitive* Surface::applyTransform(raytracer::Primitive* primitive) c
   return result;
 }
 
-raytracer::Primitive* Surface::toRaytracer() const {
+std::shared_ptr<raytracer::Primitive> Surface::toRaytracer() const {
   auto primitive = toRaytracerPrimitive();
   if (material()) {
     primitive->setMaterial(material()->toRaytracerMaterial());

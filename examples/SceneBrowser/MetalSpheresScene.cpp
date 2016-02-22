@@ -25,23 +25,23 @@ MetalSpheresScene::MetalSpheresScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  auto sphere = new Sphere(Vector3d(0, 1, 0), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d(0, 1, 0), 1);
   m_red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere->setMaterial(&m_red);
   
-  auto sphere2 = new Sphere(Vector3d(-2.5, 1, 0), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(-2.5, 1, 0), 1);
   m_green.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0, 1, 0)));
   m_green.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere2->setMaterial(&m_green);
   
-  auto sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(2.5, 1, 0), 1);
   m_blue.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)));
   m_blue.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&m_blue);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_background);
   
   add(sphere);

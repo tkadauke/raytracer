@@ -9,28 +9,28 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a box portal") {
-  auto box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
+  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
   auto material = new PortalMaterial(Matrix3d(), Colord::white());
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a box portal which turns the rays towards the displaced sphere") {
-  auto box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
+  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
   auto material = new PortalMaterial(Matrix3d::rotateX(Angled::fromRadians(0.79)), Colord::white());
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a box portal which filters the colors") {
-  auto box = new Box(Vector3d::null(), Vector3d(1, 1, 0.1));
+  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
   auto material = new PortalMaterial(Matrix3d(), Colord(1, 0, 0));
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a sphere behind the box") {
-  auto sphere = new Sphere(Vector3d(0, 0, 4), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 4), 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
 }

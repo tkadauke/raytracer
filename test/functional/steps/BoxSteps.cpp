@@ -8,13 +8,13 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a centered box") {
-  auto box = new Box(Vector3d::null(), Vector3d(1, 1, 1));
+  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1));
   box->setMaterial(test->redDiffuse());
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a displaced box") {
-  auto box = new Box(Vector3d(0, 20, 0), Vector3d(1, 1, 1));
+  auto box = std::make_shared<Box>(Vector3d(0, 20, 0), Vector3d(1, 1, 1));
   box->setMaterial(test->redDiffuse());
   test->add(box);
 }

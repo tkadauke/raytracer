@@ -32,13 +32,13 @@ TorusScene::TorusScene()
   m_glass.setDiffuseCoefficient(0);
   m_glass.setRefractionIndex(1.52);
   
-  auto torus = new Torus(2, 1);
-  auto instance = new Instance(torus);
+  auto torus = std::make_shared<Torus>(2, 1);
+  auto instance = std::make_shared<Instance>(torus);
   instance->setMatrix(Matrix3d::rotateX(Angled::fromDegrees(90)));
   instance->setMaterial(&m_glass);
   add(instance);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 4);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 4);
   plane->setMaterial(&m_blue);
   
   add(plane);

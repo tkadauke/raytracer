@@ -15,7 +15,7 @@ namespace raytracer {
     void setup();
 
   private:
-    std::vector<Primitive*> m_cells;
+    std::vector<std::shared_ptr<Primitive>> m_cells;
     int m_numX, m_numY, m_numZ;
 
     BoundingBox m_boundingBox;

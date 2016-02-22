@@ -29,9 +29,9 @@ StackedSpheresScene::StackedSpheresScene()
 {
   setAmbient(Colord(0.4, 0.4, 0.4));
   
-  auto sphere1 = new Sphere(Vector3d(0, 1, 0), 1);
-  auto sphere2 = new Sphere(Vector3d(0, -0.3, 0), 1);
-  auto u = new Union();
+  auto sphere1 = std::make_shared<Sphere>(Vector3d(0, 1, 0), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(0, -0.3, 0), 1);
+  auto u = std::make_shared<Union>();
   u->add(sphere1);
   u->add(sphere2);
   
@@ -40,12 +40,12 @@ StackedSpheresScene::StackedSpheresScene()
   
   u->setMaterial(&m_glass);
   
-  auto sphere3 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(2.5, 1, 0), 1);
   m_red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   m_red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere3->setMaterial(&m_red);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(&m_blue);
   
   add(u);

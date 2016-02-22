@@ -7,7 +7,7 @@
 namespace raytracer {
   class Composite : public Primitive {
   public:
-    typedef std::list<Primitive*> Primitives;
+    typedef std::list<std::shared_ptr<Primitive>> Primitives;
 
     inline Composite() {}
     ~Composite();
@@ -16,7 +16,7 @@ namespace raytracer {
     virtual bool intersects(const Ray& ray);
     virtual BoundingBox boundingBox();
 
-    inline void add(Primitive* primitive) { primitive->setParent(this); m_primitives.push_back(primitive); }
+    inline void add(std::shared_ptr<Primitive> primitive) { m_primitives.push_back(primitive); }
 
     inline const Primitives& primitives() const { return m_primitives; }
 

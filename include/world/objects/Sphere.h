@@ -8,5 +8,5 @@ class Sphere : public Surface {
 public:
   Sphere(Element* parent = nullptr);
 
-  virtual raytracer::Primitive* toRaytracerPrimitive() const;
+  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
 };

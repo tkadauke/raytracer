@@ -22,12 +22,12 @@ int main(int argc, char** argv) {
   
   auto scene = new Scene(Colord(0.4, 0.4, 0.4));
 
-  auto sphere1 = new Sphere(Vector3d(0, 1, 0), 1);
-  auto sphere2 = new Sphere(Vector3d(1.8, 1, 0), 1);
-  auto sphere3 = new Sphere(Vector3d(-1.8, 1, 0), 1);
-  auto sphere4 = new Sphere(Vector3d(0, 1, 1.8), 1);
-  auto sphere5 = new Sphere(Vector3d(0, 1, -1.8), 1);
-  auto d = new Difference();
+  auto sphere1 = std::make_shared<Sphere>(Vector3d(0, 1, 0), 1);
+  auto sphere2 = std::make_shared<Sphere>(Vector3d(1.8, 1, 0), 1);
+  auto sphere3 = std::make_shared<Sphere>(Vector3d(-1.8, 1, 0), 1);
+  auto sphere4 = std::make_shared<Sphere>(Vector3d(0, 1, 1.8), 1);
+  auto sphere5 = std::make_shared<Sphere>(Vector3d(0, 1, -1.8), 1);
+  auto d = std::make_shared<Difference>();
   d->add(sphere1);
   d->add(sphere2);
   d->add(sphere3);
@@ -40,14 +40,14 @@ int main(int argc, char** argv) {
   
   d->setMaterial(&glass);
   
-  auto sphere6 = new Sphere(Vector3d(2.5, 1, 0), 1);
+  auto sphere6 = std::make_shared<Sphere>(Vector3d(2.5, 1, 0), 1);
   
   ReflectiveMaterial red;
   red.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   red.setSpecularColor(Colord(0.2, 0.2, 0.2));
   sphere6->setMaterial(&red);
   
-  auto plane = new Plane(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
   
   PhongMaterial blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)));
   plane->setMaterial(&blue);

@@ -27,20 +27,20 @@ GlassBoxesScene::GlassBoxesScene()
   m_glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
   m_glass.setRefractionIndex(1.52);
 
-  auto box = new Box(Vector3d(0, 0, 0), Vector3d(0.1, 1, 1));
+  auto box = std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.1, 1, 1));
   box->setMaterial(&m_glass);
   add(box);
 
-  box = new Box(Vector3d(0.5, 0, 0), Vector3d(0.1, 1, 1));
+  box = std::make_shared<Box>(Vector3d(0.5, 0, 0), Vector3d(0.1, 1, 1));
   box->setMaterial(&m_glass);
   add(box);
   
-  box = new Box(Vector3d(1, 0, 0), Vector3d(0.1, 1, 1));
+  box = std::make_shared<Box>(Vector3d(1, 0, 0), Vector3d(0.1, 1, 1));
   box->setMaterial(&m_glass);
   add(box);
   
   m_blue.setSpecularColor(Colord(1, 1, 1));
-  auto plane = new Plane(Vector3d(0, -1, 0), 1);
+  auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 1);
   plane->setMaterial(&m_blue);
   
   add(plane);

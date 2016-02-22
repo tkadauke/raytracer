@@ -7,7 +7,7 @@
 namespace raytracer {
   class Instance : public Primitive {
   public:
-    Instance(Primitive* primitive) : m_primitive(primitive) {}
+    Instance(std::shared_ptr<Primitive> primitive) : m_primitive(primitive) {}
     virtual ~Instance() { }
 
     Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
@@ -24,7 +24,7 @@ namespace raytracer {
       return Ray(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
     }
 
-    Primitive* m_primitive;
+    std::shared_ptr<Primitive> m_primitive;
     Matrix4d m_pointMatrix;
     Matrix4d m_originMatrix;
     Matrix3d m_directionMatrix;

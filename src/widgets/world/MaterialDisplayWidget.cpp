@@ -44,7 +44,7 @@ raytracer::Scene* MaterialDisplayWidget::sphereOnPlane() {
   
   scene->setAmbient(Colord(0.4, 0.4, 0.4));
 
-  auto sphere = new raytracer::Sphere(Vector3d(0, 0, 0), 2);
+  auto sphere = std::make_shared<raytracer::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);
 
   auto planeMaterial = new raytracer::MatteMaterial(
@@ -55,7 +55,7 @@ raytracer::Scene* MaterialDisplayWidget::sphereOnPlane() {
     )
   );
   
-  auto plane = new raytracer::Plane(Vector3d(0, 1, 0), -2);
+  auto plane = std::make_shared<raytracer::Plane>(Vector3d(0, 1, 0), -2);
   plane->setMaterial(planeMaterial);
 
   scene->add(sphere);

@@ -31,7 +31,7 @@ namespace testing {
       delete m_camera;
   }
 
-  void RaytracerFeatureTest::add(Primitive* primitive) {
+  void RaytracerFeatureTest::add(std::shared_ptr<Primitive> primitive) {
     m_scene->add(primitive);
   }
   

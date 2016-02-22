@@ -26,10 +26,10 @@ GIVEN(RaytracerFeatureTest, "a displaced cube mesh") {
   auto mesh = new Mesh;
   PlyFile file(stream, *mesh);
   mesh->computeNormals();
-  auto composite = new Composite;
-  mesh->addFlatTrianglesTo(composite, test->redDiffuse());
+  auto composite = std::make_shared<Composite>();
+  mesh->addFlatTrianglesTo(composite.get(), test->redDiffuse());
   
-  Instance* instance = new Instance(composite);
+  auto instance = std::make_shared<Instance>(composite);
   instance->setMatrix(Matrix4d::translate(Vector3d(0, 20, 0)));
   
   test->add(instance);
