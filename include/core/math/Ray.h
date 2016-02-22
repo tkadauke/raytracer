@@ -23,7 +23,7 @@ public:
   inline const Vector4d& origin() const { return m_origin; }
   inline const Vector3d& direction() const { return m_direction; }
   
-  inline Vector4d at(double t) const { return m_origin + m_direction * t; }
+  inline Vector4d at(double t) const { return Vector3d(m_origin) + m_direction * t; }
   
 protected:
   Vector4d m_origin;
