@@ -29,7 +29,13 @@ public:
   inline void setRotation(const Vector3d& rotation) { m_rotation = rotation; }
   
   inline const Vector3d& scale() const { return m_scale; }
-  inline void setScale(const Vector3d& scale) { m_scale = scale; }
+  inline void setScale(const Vector3d& scale) {
+    m_scale = Vector3d(
+      std::max(std::abs(scale.x()), std::numeric_limits<double>::epsilon()),
+      std::max(std::abs(scale.y()), std::numeric_limits<double>::epsilon()),
+      std::max(std::abs(scale.z()), std::numeric_limits<double>::epsilon())
+    );
+  }
   
   inline bool visible() const { return m_visible; }
   inline void setVisible(bool visible) { m_visible = visible; }
