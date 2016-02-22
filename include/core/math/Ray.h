@@ -2,6 +2,8 @@
 
 #include "core/math/Vector.h"
 
+#include <iostream>
+
 class Ray {
 public:
   static const double epsilon;
@@ -29,3 +31,8 @@ protected:
   Vector4d m_origin;
   Vector3d m_direction;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Ray& ray) {
+  os << ray.origin() << "->" << ray.direction();
+  return os;
+}

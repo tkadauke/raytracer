@@ -120,9 +120,9 @@ std::ostream& operator<<(std::ostream& os, const HitPointInterval& interval) {
   os << '[';
   for (const auto& i : interval.points()) {
     if (i.in)
-      os << '+';
+      os << "(I)";
     else
-      os << '-';
+      os << "(O)";
     os << i.point.distance();
   }
   os << ']';
