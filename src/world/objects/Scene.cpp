@@ -1,6 +1,7 @@
 #include "world/objects/Scene.h"
 #include "world/objects/Surface.h"
 #include "raytracer/primitives/Scene.h"
+#include "raytracer/primitives/Grid.h"
 
 #include <QMap>
 #include <QFile>
@@ -14,13 +15,19 @@ Scene::Scene(Element* parent)
 
 raytracer::Scene* Scene::toRaytracerScene() const {
   raytracer::Scene* result = new raytracer::Scene;
+  auto grid = std::make_shared<raytracer::Grid>();
   
   for (const auto& child : children()) {
     auto surface = dynamic_cast<Surface*>(child);
     if (surface && surface->visible()) {
       auto primitive = surface->toRaytracer();
-      result->add(primitive);
+      grid->add(primitive);
     }
+  }
+  
+  if (grid->primitives().size()) {
+    grid->setup();
+    result->add(grid);
   }
   
   result->setAmbient(Colord(0.4, 0.4, 0.4));
