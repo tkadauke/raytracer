@@ -6,14 +6,13 @@ struct DoubleParameterWidget::Private {
 };
 
 DoubleParameterWidget::DoubleParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(new Private)
+  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_doubleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
 }
 
 DoubleParameterWidget::~DoubleParameterWidget() {
-  delete p;
 }
 
 void DoubleParameterWidget::setParameterName(const QString& name) {

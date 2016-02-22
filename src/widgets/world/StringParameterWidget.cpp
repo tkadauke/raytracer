@@ -6,14 +6,13 @@ struct StringParameterWidget::Private {
 };
 
 StringParameterWidget::StringParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(new Private)
+  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_stringEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
 }
 
 StringParameterWidget::~StringParameterWidget() {
-  delete p;
 }
 
 void StringParameterWidget::setParameterName(const QString& name) {

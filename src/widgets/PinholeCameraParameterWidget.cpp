@@ -10,7 +10,7 @@ struct PinholeCameraParameterWidget::Private {
 };
 
 PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent), p(new Private)
+  : CameraParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_distanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
@@ -18,7 +18,6 @@ PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
 }
 
 PinholeCameraParameterWidget::~PinholeCameraParameterWidget() {
-  delete p;
 }
 
 void PinholeCameraParameterWidget::parameterChanged() {

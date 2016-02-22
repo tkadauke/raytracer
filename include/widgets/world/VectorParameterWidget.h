@@ -21,5 +21,5 @@ protected:
 
 private:
   struct Private;
-  Private* p;
+  std::unique_ptr<Private> p;
 };

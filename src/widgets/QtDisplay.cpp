@@ -42,14 +42,13 @@ struct QtDisplay::Private {
 };
 
 QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<Raytracer> raytracer)
-  : QWidget(parent), m_raytracer(raytracer), p(new Private)
+  : QWidget(parent), m_raytracer(raytracer), p(std::make_unique<Private>())
 {
   p->buffer = new Buffer<unsigned int>(width(), height());
   resize(400, 300);
 }
 
 QtDisplay::~QtDisplay() {
-  delete p;
 }
 
 void QtDisplay::stop() {

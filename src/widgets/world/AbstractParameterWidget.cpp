@@ -11,12 +11,11 @@ struct AbstractParameterWidget::Private {
 };
 
 AbstractParameterWidget::AbstractParameterWidget(QWidget* parent)
-  : QWidget(parent), p(new Private)
+  : QWidget(parent), p(std::make_unique<Private>())
 {
 }
 
 AbstractParameterWidget::~AbstractParameterWidget() {
-  delete p;
 }
 
 void AbstractParameterWidget::parameterChanged() {

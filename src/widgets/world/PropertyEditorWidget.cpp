@@ -25,14 +25,13 @@ struct PropertyEditorWidget::Private {
 };
 
 PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
-  : QWidget(parent), p(new Private)
+  : QWidget(parent), p(std::make_unique<Private>())
 {
   p->root = root;
 }
 
 PropertyEditorWidget::~PropertyEditorWidget() {
   clearParameterWidgets();
-  delete p;
 }
 
 void PropertyEditorWidget::initLayout() {

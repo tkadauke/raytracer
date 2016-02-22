@@ -10,7 +10,7 @@ struct ColorParameterWidget::Private {
 };
 
 ColorParameterWidget::ColorParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(new Private)
+  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_rEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
@@ -21,7 +21,6 @@ ColorParameterWidget::ColorParameterWidget(QWidget* parent)
 }
 
 ColorParameterWidget::~ColorParameterWidget() {
-  delete p;
 }
 
 Colord ColorParameterWidget::color() const {

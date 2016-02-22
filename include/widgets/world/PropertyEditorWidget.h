@@ -31,5 +31,5 @@ private:
   void clearParameterWidgets();
 
   struct Private;
-  Private* p;
+  std::unique_ptr<Private> p;
 };

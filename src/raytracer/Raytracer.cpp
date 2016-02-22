@@ -48,18 +48,17 @@ struct Raytracer::Private {
 };
 
 Raytracer::Raytracer(Scene* scene)
-  : m_scene(scene), p(new Private)
+  : m_scene(scene), p(std::make_unique<Private>())
 {
   m_camera = new PinholeCamera;
 }
 
 Raytracer::Raytracer(Camera* camera, Scene* scene)
-  : m_camera(camera), m_scene(scene), p(new Private)
+  : m_camera(camera), m_scene(scene), p(std::make_unique<Private>())
 {
 }
 
 Raytracer::~Raytracer() {
-  delete p;
 }
 
 void Raytracer::render(Buffer<unsigned int>& buffer) {

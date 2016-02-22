@@ -8,7 +8,7 @@ struct VectorParameterWidget::Private {
 };
 
 VectorParameterWidget::VectorParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(new Private)
+  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_xEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
@@ -17,7 +17,6 @@ VectorParameterWidget::VectorParameterWidget(QWidget* parent)
 }
 
 VectorParameterWidget::~VectorParameterWidget() {
-  delete p;
 }
 
 Vector3d VectorParameterWidget::vector() const {

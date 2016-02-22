@@ -6,14 +6,13 @@ struct BoolParameterWidget::Private {
 };
 
 BoolParameterWidget::BoolParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(new Private)
+  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_checkBox, SIGNAL(clicked()), this, SLOT(parameterChanged()));
 }
 
 BoolParameterWidget::~BoolParameterWidget() {
-  delete p;
 }
 
 void BoolParameterWidget::setParameterName(const QString& name) {

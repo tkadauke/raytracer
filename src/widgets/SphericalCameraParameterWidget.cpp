@@ -10,7 +10,7 @@ struct SphericalCameraParameterWidget::Private {
 };
 
 SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent), p(new Private)
+  : CameraParameterWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_horizontalFieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
@@ -18,7 +18,6 @@ SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
 }
 
 SphericalCameraParameterWidget::~SphericalCameraParameterWidget() {
-  delete p;
 }
 
 void SphericalCameraParameterWidget::parameterChanged() {

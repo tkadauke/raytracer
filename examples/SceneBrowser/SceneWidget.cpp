@@ -11,7 +11,7 @@ struct SceneWidget::Private {
 };
 
 SceneWidget::SceneWidget(QWidget* parent)
-  : QWidget(parent), p(new Private)
+  : QWidget(parent), p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   list<string> types = SceneFactory::self().identifiers();
@@ -22,7 +22,6 @@ SceneWidget::SceneWidget(QWidget* parent)
 }
 
 SceneWidget::~SceneWidget() {
-  delete p;
 }
 
 string SceneWidget::sceneName() const {

@@ -36,6 +36,6 @@ namespace raytracer {
     Scene* m_scene;
   
     struct Private;
-    Private* p;
+    std::unique_ptr<Private> p;
   };
 }
