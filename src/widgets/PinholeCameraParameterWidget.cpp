@@ -32,8 +32,8 @@ double PinholeCameraParameterWidget::zoom() const {
   return p->ui.m_zoomInput->value();
 }
 
-void PinholeCameraParameterWidget::applyTo(Camera* camera) {
-  auto pinholeCamera = dynamic_cast<PinholeCamera*>(camera);
+void PinholeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
+  auto pinholeCamera = dynamic_cast<PinholeCamera*>(camera.get());
   if (pinholeCamera) {
     pinholeCamera->setDistance(distance());
     pinholeCamera->setZoom(zoom());

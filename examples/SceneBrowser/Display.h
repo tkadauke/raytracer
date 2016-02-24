@@ -29,7 +29,7 @@ private slots:
 
 private:
   QVBoxLayout* m_verticalLayout;
-  raytracer::Camera* m_camera;
+  std::shared_ptr<raytracer::Camera> m_camera;
   QWidget* m_sidebar;
   SceneWidget* m_scene;
   ViewPlaneTypeWidget* m_viewPlaneType;

@@ -7,9 +7,9 @@ using namespace testing;
 using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a spherical camera") {
-  test->setCamera(new SphericalCamera);
+  test->setCamera(std::make_shared<SphericalCamera>());
 }
 
 WHEN(RaytracerFeatureTest, "i set the spherical camera's field of view to maximum") {
-  static_cast<SphericalCamera*>(test->camera())->setFieldOfView(Angled::fromDegrees(360), Angled::fromDegrees(180));
+  static_cast<SphericalCamera*>(test->camera().get())->setFieldOfView(Angled::fromDegrees(360), Angled::fromDegrees(180));
 }

@@ -19,9 +19,11 @@ using namespace std;
 using namespace raytracer;
 
 Display::Display()
-  : QtDisplay(0, std::make_shared<Raytracer>(nullptr)), m_camera(new PinholeCamera), m_cameraParameter(0)
+  : QtDisplay(nullptr, std::make_shared<Raytracer>(nullptr)),
+    m_camera(std::make_shared<PinholeCamera>()),
+    m_cameraParameter(nullptr)
 {
-  m_sidebar = new QWidget(0, Qt::Drawer);
+  m_sidebar = new QWidget(nullptr, Qt::Drawer);
   m_sidebar->show();
   m_verticalLayout = new QVBoxLayout(m_sidebar);
   m_verticalLayout->setContentsMargins(6, 6, 6, 6);
@@ -63,7 +65,7 @@ void Display::viewPlaneTypeChanged() {
 
 void Display::cameraTypeChanged() {
   stop();
-  m_camera = CameraFactory::self().create(m_cameraType->type());
+  m_camera = std::shared_ptr<Camera>(CameraFactory::self().create(m_cameraType->type()));
   m_raytracer->setCamera(m_camera);
   
   if (m_cameraParameter) {

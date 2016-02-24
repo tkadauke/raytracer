@@ -41,7 +41,7 @@ namespace SphericalCameraTest {
   }
   
   TEST(SphericalCamera, ShouldRender) {
-    auto camera = new SphericalCamera(Vector3d(0, 0, -1), Vector3d::null());
+    auto camera = std::make_shared<SphericalCamera>(Vector3d(0, 0, -1), Vector3d::null());
     Scene scene(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(camera, &scene);
     Buffer<unsigned int> buffer(1, 1);

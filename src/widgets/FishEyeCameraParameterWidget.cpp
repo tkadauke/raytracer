@@ -27,8 +27,8 @@ int FishEyeCameraParameterWidget::fieldOfView() const {
   return p->ui.m_fieldOfViewSlider->value();
 }
 
-void FishEyeCameraParameterWidget::applyTo(Camera* camera) {
-  auto fishEyeCamera = dynamic_cast<FishEyeCamera*>(camera);
+void FishEyeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
+  auto fishEyeCamera = dynamic_cast<FishEyeCamera*>(camera.get());
   if (fishEyeCamera) {
     fishEyeCamera->setFieldOfView(Angled::fromDegrees(fieldOfView()));
   }

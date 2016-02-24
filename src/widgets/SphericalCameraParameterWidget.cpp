@@ -32,8 +32,8 @@ int SphericalCameraParameterWidget::verticalFieldOfView() const {
   return p->ui.m_verticalFieldOfViewSlider->value();
 }
 
-void SphericalCameraParameterWidget::applyTo(Camera* camera) {
-  auto sphericalCamera = dynamic_cast<SphericalCamera*>(camera);
+void SphericalCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
+  auto sphericalCamera = dynamic_cast<SphericalCamera*>(camera.get());
   if (sphericalCamera) {
     sphericalCamera->setHorizontalFieldOfView(Angled::fromDegrees(horizontalFieldOfView()));
     sphericalCamera->setVerticalFieldOfView(Angled::fromDegrees(verticalFieldOfView()));

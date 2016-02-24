@@ -37,17 +37,17 @@ namespace testing {
     return m_scene;
   }
 
-  Camera* RaytracerFeatureTest::camera() {
+  std::shared_ptr<Camera> RaytracerFeatureTest::camera() {
     if (!m_camera)
-      m_camera = new PinholeCamera;
+      m_camera = std::make_shared<PinholeCamera>();
     return m_camera;
   }
 
   void RaytracerFeatureTest::setCamera(const Vector3d& position, const Vector3d& lookAt) {
-    setCamera(new PinholeCamera(position, lookAt));
+    setCamera(std::make_shared<PinholeCamera>(position, lookAt));
   }
 
-  void RaytracerFeatureTest::setCamera(Camera* camera) {
+  void RaytracerFeatureTest::setCamera(std::shared_ptr<Camera> camera) {
     m_camera = camera;
   }
 

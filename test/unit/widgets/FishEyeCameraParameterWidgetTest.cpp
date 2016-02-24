@@ -32,8 +32,8 @@ namespace FishEyeCameraParameterWidgetTest {
   
   TEST_F(FishEyeCameraParameterWidgetTest, ShouldApplyToFisheyeCamera) {
     FishEyeCameraParameterWidget widget;
-    FishEyeCamera camera;
-    widget.applyTo(&camera);
-    ASSERT_NEAR(widget.fieldOfView(), camera.fieldOfView().degrees(), 0.001);
+    auto camera = std::make_shared<FishEyeCamera>();
+    widget.applyTo(camera);
+    ASSERT_NEAR(widget.fieldOfView(), camera->fieldOfView().degrees(), 0.001);
   }
 }

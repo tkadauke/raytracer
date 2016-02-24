@@ -37,9 +37,9 @@ namespace PinholeCameraParameterWidgetTest {
   
   TEST_F(PinholeCameraParameterWidgetTest, ShouldApplyToPinholeCamera) {
     PinholeCameraParameterWidget widget;
-    PinholeCamera camera;
-    widget.applyTo(&camera);
-    ASSERT_EQ(widget.distance(), camera.distance());
-    ASSERT_EQ(widget.zoom(), camera.zoom());
+    auto camera = std::make_shared<PinholeCamera>();
+    widget.applyTo(camera);
+    ASSERT_EQ(widget.distance(), camera->distance());
+    ASSERT_EQ(widget.zoom(), camera->zoom());
   }
 }

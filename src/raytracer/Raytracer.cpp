@@ -25,7 +25,7 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(std::shared_ptr<Raytracer> rt, Camera* c, Buffer<unsigned int>& b, const Rect& r)
+    RenderThread(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Rect& r)
       : QThread(), raytracer(rt), camera(c), buffer(b), rect(r) {}
 
     virtual void run() {
@@ -33,7 +33,7 @@ namespace {
     }
 
     std::shared_ptr<Raytracer> raytracer;
-    Camera* camera;
+    std::shared_ptr<Camera> camera;
     Buffer<unsigned int>& buffer;
     Rect rect;
   };
@@ -50,10 +50,10 @@ struct Raytracer::Private {
 Raytracer::Raytracer(Scene* scene)
   : m_scene(scene), p(std::make_unique<Private>())
 {
-  m_camera = new PinholeCamera;
+  m_camera = std::make_shared<PinholeCamera>();
 }
 
-Raytracer::Raytracer(Camera* camera, Scene* scene)
+Raytracer::Raytracer(std::shared_ptr<Camera> camera, Scene* scene)
   : m_camera(camera), m_scene(scene), p(std::make_unique<Private>())
 {
 }
@@ -111,12 +111,6 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   } else {
     return m_scene->ambient();
   }
-}
-
-void Raytracer::setCamera(Camera* camera) {
-  if (m_camera)
-    delete m_camera;
-  m_camera = camera;
 }
 
 void Raytracer::cancel() {

@@ -37,9 +37,9 @@ namespace SphericalCameraParameterWidgetTest {
   
   TEST_F(SphericalCameraParameterWidgetTest, ShouldApplyToSphericalCamera) {
     SphericalCameraParameterWidget widget;
-    SphericalCamera camera;
-    widget.applyTo(&camera);
-    ASSERT_NEAR(widget.horizontalFieldOfView(), camera.horizontalFieldOfView().degrees(), 0.001);
-    ASSERT_NEAR(widget.verticalFieldOfView(), camera.verticalFieldOfView().degrees(), 0.001);
+    auto camera = std::make_shared<SphericalCamera>();
+    widget.applyTo(camera);
+    ASSERT_NEAR(widget.horizontalFieldOfView(), camera->horizontalFieldOfView().degrees(), 0.001);
+    ASSERT_NEAR(widget.verticalFieldOfView(), camera->verticalFieldOfView().degrees(), 0.001);
   }
 }

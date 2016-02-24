@@ -10,5 +10,5 @@ class CameraParameterWidget : public QWidget {
 public:
   CameraParameterWidget(QWidget* parent = nullptr);
 
-  virtual void applyTo(raytracer::Camera* camera) = 0;
+  virtual void applyTo(std::shared_ptr<raytracer::Camera> camera) = 0;
 };

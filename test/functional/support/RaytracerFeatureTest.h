@@ -28,8 +28,8 @@ namespace testing {
     
     void add(std::shared_ptr<raytracer::Primitive> primitive);
     raytracer::Scene* scene();
-    raytracer::Camera* camera();
-    void setCamera(raytracer::Camera* camera);
+    std::shared_ptr<raytracer::Camera> camera();
+    void setCamera(std::shared_ptr<raytracer::Camera> camera);
     void setCamera(const Vector3d& position, const Vector3d& lookAt);
     void setView(const Vector3d& position, const Vector3d& lookAt);
     void render();
@@ -54,7 +54,7 @@ namespace testing {
 
   private:
     raytracer::Scene* m_scene;
-    raytracer::Camera* m_camera;
+    std::shared_ptr<raytracer::Camera> m_camera;
     std::shared_ptr<raytracer::Raytracer> m_raytracer;
     Buffer<unsigned int> m_buffer;
   };

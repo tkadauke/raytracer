@@ -12,7 +12,7 @@ public:
   double distance() const;
   double zoom() const;
 
-  virtual void applyTo(raytracer::Camera* camera);
+  virtual void applyTo(std::shared_ptr<raytracer::Camera> camera);
 
 signals:
   void changed();

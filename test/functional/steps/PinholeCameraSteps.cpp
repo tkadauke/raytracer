@@ -12,19 +12,19 @@ GIVEN(RaytracerFeatureTest, "a pinhole camera") {
 }
 
 WHEN(RaytracerFeatureTest, "i set the pinhole camera's view plane distance to a very small value") {
-  static_cast<PinholeCamera*>(test->camera())->setDistance(1);
+  static_cast<PinholeCamera*>(test->camera().get())->setDistance(1);
 }
 
 WHEN(RaytracerFeatureTest, "i set the pinhole camera's view plane distance to a normal value") {
-  static_cast<PinholeCamera*>(test->camera())->setDistance(5);
+  static_cast<PinholeCamera*>(test->camera().get())->setDistance(5);
 }
 
 WHEN(RaytracerFeatureTest, "i zoom in") {
-  auto camera = static_cast<PinholeCamera*>(test->camera());
+  auto camera = static_cast<PinholeCamera*>(test->camera().get());
   camera->setZoom(camera->zoom() * 2);
 }
 
 WHEN(RaytracerFeatureTest, "i zoom out") {
-  auto camera = static_cast<PinholeCamera*>(test->camera());
+  auto camera = static_cast<PinholeCamera*>(test->camera().get());
   camera->setZoom(camera->zoom() * 0.8);
 }
