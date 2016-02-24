@@ -1,7 +1,20 @@
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
 
+#include "raytracer/samplers/RegularSampler.h"
+
 using namespace raytracer;
+
+ViewPlane::ViewPlane()
+  : m_pixelSize(1), m_sampler(std::make_shared<RegularSampler>(1))
+{
+}
+
+ViewPlane::ViewPlane(const Matrix4d& matrix, const Rect& window)
+  : ViewPlane()
+{
+  setup(matrix, window);
+}
 
 ViewPlane::~ViewPlane() {
 }

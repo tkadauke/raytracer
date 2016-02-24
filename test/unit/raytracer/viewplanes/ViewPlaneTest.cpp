@@ -57,6 +57,12 @@ namespace ViewPlaneTest {
       ASSERT_EQ(Vector3d(-4, -3, 0), *iterator);
     }
     
+    TEST_F(ViewPlane_Iterator, ShouldReturnPixel) {
+      ViewPlane plane(Matrix4d(), this->fullRect);
+      auto iterator = plane.begin(this->fullRect);
+      ASSERT_EQ(Vector2d(0, 0), iterator.pixel());
+    }
+    
     TEST_F(ViewPlane_Iterator, ShouldMultiplyCurrentByPixelSize) {
       ViewPlane plane(Matrix4d(), this->fullRect);
       plane.setPixelSize(2);

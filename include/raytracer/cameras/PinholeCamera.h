@@ -11,7 +11,7 @@ namespace raytracer {
 
     using Camera::render;
     virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
-    virtual Ray rayForPixel(int x, int y);
+    virtual Ray rayForPixel(double x, double y);
 
     inline void setDistance(double distance) { m_distance = distance; }
     inline double distance() const { return m_distance; }

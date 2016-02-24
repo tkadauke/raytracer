@@ -9,6 +9,8 @@
 #include <algorithm>
 
 namespace raytracer {
+  class Sampler;
+  
   class ViewPlane {
   public:
     class IteratorBase : public InequalityOperator<IteratorBase> {
@@ -56,6 +58,10 @@ namespace raytracer {
         return m_iteratorImpl->current();
       }
 
+      Vector2d pixel() const {
+        return Vector2d(column(), row());
+      }
+
       virtual Iterator& operator++() {
         m_iteratorImpl->advance();
         return *this;
@@ -74,13 +80,9 @@ namespace raytracer {
       IteratorBase* m_iteratorImpl;
     };
 
-    inline ViewPlane() : m_pixelSize(1) {}
-    inline ViewPlane(const Matrix4d& matrix, const Rect& window)
-      : m_matrix(matrix), m_window(window), m_pixelSize(1)
-    {
-      setupVectors();
-    }
-
+    ViewPlane();
+    ViewPlane(const Matrix4d& matrix, const Rect& window);
+    
     virtual ~ViewPlane();
 
     inline void setup(const Matrix4d& matrix, const Rect& window) {
@@ -103,7 +105,10 @@ namespace raytracer {
     inline const Vector3d& down() const { return m_down; }
     inline double pixelSize() const { return m_pixelSize; }
     inline void setPixelSize(double pixelSize) { m_pixelSize = pixelSize; }
-    inline Vector3d pixelAt(int x, int y) { return (m_topLeft + m_right * x + m_down * y) * m_pixelSize; }
+    inline Vector3d pixelAt(double x, double y) { return (m_topLeft + m_right * x + m_down * y) * m_pixelSize; }
+    
+    inline void setSampler(std::shared_ptr<Sampler> sampler) { m_sampler = sampler; }
+    inline std::shared_ptr<Sampler> sampler() const { return m_sampler; }
 
   protected:
     void setupVectors();
@@ -114,5 +119,7 @@ namespace raytracer {
     Rect m_window;
     Vector3d m_topLeft, m_right, m_down;
     float m_pixelSize;
+    
+    std::shared_ptr<Sampler> m_sampler;
   };
 }

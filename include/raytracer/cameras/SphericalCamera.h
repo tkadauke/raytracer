@@ -14,9 +14,7 @@ namespace raytracer {
     SphericalCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target), m_horizontalFieldOfView(Angled::fromDegrees(180)), m_verticalFieldOfView(Angled::fromDegrees(120)) {}
 
-    using Camera::render;
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
-    virtual Ray rayForPixel(int x, int y);
+    virtual Ray rayForPixel(double x, double y);
 
     inline void setHorizontalFieldOfView(Angled fov) { m_horizontalFieldOfView = fov; }
     inline const Angled& horizontalFieldOfView() const { return m_horizontalFieldOfView; }
@@ -30,7 +28,7 @@ namespace raytracer {
     }
 
   private:
-    Vector3d direction(const ViewPlane& plane, int x, int y);
+    Vector3d direction(double x, double y);
 
     Angled m_horizontalFieldOfView;
     Angled m_verticalFieldOfView;

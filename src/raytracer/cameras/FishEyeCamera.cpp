@@ -1,7 +1,5 @@
 #include "raytracer/cameras/CameraFactory.h"
 #include "raytracer/cameras/FishEyeCamera.h"
-#include "core/Buffer.h"
-#include "raytracer/Raytracer.h"
 #include "core/math/Ray.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 
@@ -10,25 +8,8 @@
 using namespace std;
 using namespace raytracer;
 
-void FishEyeCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
-  auto plane = viewPlane();
-
-  Vector3d position = matrix().translation();
-
-  for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
-    Ray ray(position, direction(*plane, pixel.column(), pixel.row()));
-    if (ray.direction().isDefined())
-      plot(buffer, rect, pixel, raytracer->rayColor(ray));
-    else
-      plot(buffer, rect, pixel, Colord::black());
-    
-    if (isCancelled())
-      break;
-  }
-}
-
-Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
-  Vector2d point(2.0 / plane.width() * x - 1.0, 2.0 / plane.height() * y - 1.0);
+Vector3d FishEyeCamera::direction(double x, double y) {
+  Vector2d point(2.0 / viewPlane()->width() * x - 1.0, 2.0 / viewPlane()->height() * y - 1.0);
   double r2 = point * point;
   if (r2 <= 1.0) {
     double r = sqrt(r2);
@@ -42,9 +23,9 @@ Vector3d FishEyeCamera::direction(const ViewPlane& plane, int x, int y) {
     return Vector3d::undefined();
 }
 
-Ray FishEyeCamera::rayForPixel(int x, int y) {
+Ray FishEyeCamera::rayForPixel(double x, double y) {
   Vector3d position = matrix().translation();
-  return Ray(position, direction(*viewPlane(), x, y));
+  return Ray(position, direction(x, y));
 }
 
 static bool dummy = CameraFactory::self().registerClass<FishEyeCamera>("FishEyeCamera");

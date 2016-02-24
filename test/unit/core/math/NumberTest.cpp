@@ -29,4 +29,10 @@ namespace NumberTest {
     TypeParam number = 4;
     ASSERT_FALSE(isAlmostZero(number));
   }
+
+  TEST(NumberTest, ShouldReturnRandomIntegerWithinRange) {
+    int number = randomInt(1337);
+    ASSERT_TRUE(number >= 0);
+    ASSERT_TRUE(number < 1337);
+  }
 }

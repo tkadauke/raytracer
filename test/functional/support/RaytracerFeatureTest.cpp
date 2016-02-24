@@ -27,8 +27,6 @@ namespace testing {
 
   void RaytracerFeatureTest::TearDown() {
     delete m_scene;
-    if (m_camera)
-      delete m_camera;
   }
 
   void RaytracerFeatureTest::add(std::shared_ptr<Primitive> primitive) {
@@ -50,8 +48,6 @@ namespace testing {
   }
 
   void RaytracerFeatureTest::setCamera(Camera* camera) {
-    if (m_camera)
-      delete m_camera;
     m_camera = camera;
   }
 

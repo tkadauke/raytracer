@@ -13,7 +13,7 @@ namespace CameraTest {
     ConcreteCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target) {}
     virtual void render(std::shared_ptr<Raytracer>, Buffer<unsigned int>&, const Rect&) {}
-    virtual Ray rayForPixel(int, int) { return Ray::undefined(); }
+    virtual Ray rayForPixel(double, double) { return Ray::undefined(); }
   };
   
   TEST(Camera, ShouldConstructWithoutParameters) {

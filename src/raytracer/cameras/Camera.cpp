@@ -2,7 +2,9 @@
 #include "core/math/Rect.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/viewplanes/PointInterlacedViewPlane.h"
+#include "raytracer/samplers/Sampler.h"
 #include "core/Buffer.h"
+#include "raytracer/Raytracer.h"
 
 using namespace raytracer;
 
@@ -38,12 +40,32 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
   render(raytracer, buffer, Rect(0, 0, buffer.width(), buffer.height()));
 }
 
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
+  auto plane = viewPlane();
+
+  for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+    Colord pixelColor;
+    for (auto sample : plane->sampler()->sampleSet()) {
+      Ray ray = rayForPixel(pixel.pixel() + sample);
+      if (ray.direction().isDefined())
+        pixelColor += raytracer->rayColor(ray);
+    }
+    
+    plot(buffer, rect, pixel, pixelColor);
+    
+    if (isCancelled())
+      break;
+  }
+}
+
 void Camera::plot(Buffer<unsigned int>& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
+  auto avergageColor = color / viewPlane()->sampler()->numSamples();
+  unsigned int rgb = avergageColor.rgb();
+  
   int size = pixel.pixelSize();
   if (size == 1) {
-    buffer[pixel.row()][pixel.column()] = color.rgb();
+    buffer[pixel.row()][pixel.column()] = rgb;
   } else {
-    unsigned int rgb = color.rgb();
     for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
       for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
         buffer[y][x] = rgb;

@@ -15,16 +15,13 @@ namespace raytracer {
     FishEyeCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target), m_fieldOfView(Angled::fromDegrees(120)) {}
 
-    using Camera::render;
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
-    virtual Ray rayForPixel(int x, int y);
+    virtual Ray rayForPixel(double x, double y);
 
     inline void setFieldOfView(const Angled& fieldOfView) { m_fieldOfView = fieldOfView; }
     inline Angled fieldOfView() const { return m_fieldOfView; }
 
   private:
-    Vector3d direction(const ViewPlane& plane, int x, int y);
-
+    Vector3d direction(double x, double y);
     Angled m_fieldOfView;
   };
 }

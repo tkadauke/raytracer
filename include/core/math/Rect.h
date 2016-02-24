@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 class Rect {
 public:
   Rect()
@@ -22,3 +24,11 @@ public:
 private:
   int m_x, m_y, m_width, m_height;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Rect& rect) {
+  os << "Rect("
+     << rect.left() << ", " << rect.top() << " to "
+     << rect.right() << ", " << rect.bottom()
+     << ")";
+  return os;
+}

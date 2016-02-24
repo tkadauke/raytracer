@@ -4,6 +4,8 @@
 #include "raytracer/primitives/Scene.h"
 #include "core/Buffer.h"
 
+#include "test/helpers/ImageViewer.h"
+
 namespace SphericalCameraTest {
   using namespace ::testing;
   using namespace raytracer;
@@ -39,11 +41,11 @@ namespace SphericalCameraTest {
   }
   
   TEST(SphericalCamera, ShouldRender) {
-    SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    auto camera = new SphericalCamera(Vector3d(0, 0, -1), Vector3d::null());
     Scene scene(Colord::white());
-    auto raytracer = std::make_shared<Raytracer>(&scene);
+    auto raytracer = std::make_shared<Raytracer>(camera, &scene);
     Buffer<unsigned int> buffer(1, 1);
-    camera.render(raytracer, buffer);
+    raytracer->render(buffer);
     ASSERT_EQ(Colord::white().rgb(), buffer[0][0]);
   }
   
@@ -57,8 +59,6 @@ namespace SphericalCameraTest {
   TEST(SphericalCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
     SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null());
     auto raytracer = std::make_shared<Raytracer>(new Scene(Colord::white()));
-    Buffer<unsigned int> buffer(1, 1);
-    camera.render(raytracer, buffer);
 
     Ray ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
