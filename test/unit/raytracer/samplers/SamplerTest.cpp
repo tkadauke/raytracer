@@ -8,14 +8,14 @@ namespace SamplerTest {
   class ConcreteSampler : public Sampler {
   public:
     ConcreteSampler(int numSamples, int numSets)
-      : Sampler(numSamples, numSets) {}
-
-  protected:
-    virtual std::vector<Vector2d> generateSet() const {
-      std::vector<Vector2d> result;
-      for (int i = 0; i != numSamples(); ++i)
-        result.push_back(Vector2d::null());
-      return result;
+      : Sampler(numSamples, numSets)
+    {
+      for (int s = 0; s != numSets; s++) {
+        std::vector<Vector2d> result;
+        for (int i = 0; i != numSamples; ++i)
+          result.push_back(Vector2d::null());
+        addSet(result);
+      }
     }
   };
   
