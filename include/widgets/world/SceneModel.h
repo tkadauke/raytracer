@@ -4,12 +4,12 @@
 
 class Element;
 
-class ElementModel : public QAbstractItemModel {
+class SceneModel : public QAbstractItemModel {
   Q_OBJECT
 
 public:
-  ElementModel(Element* root, QObject* parent = nullptr);
-  ~ElementModel();
+  SceneModel(Element* root, QObject* parent = nullptr);
+  ~SceneModel();
   
   void setElement(Element* root);
 

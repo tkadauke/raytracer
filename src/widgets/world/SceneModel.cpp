@@ -1,23 +1,23 @@
-#include "widgets/world/ElementModel.h"
+#include "widgets/world/SceneModel.h"
 #include "world/objects/Element.h"
 
-ElementModel::ElementModel(Element* root, QObject* parent)
+SceneModel::SceneModel(Element* root, QObject* parent)
   : QAbstractItemModel(parent)
 {
   m_rootItem = root;
 }
 
-ElementModel::~ElementModel() {
+SceneModel::~SceneModel() {
   delete m_rootItem;
 }
 
-void ElementModel::setElement(Element* root) {
+void SceneModel::setElement(Element* root) {
   beginResetModel();
   m_rootItem = root;
   endResetModel();
 }
 
-QModelIndex ElementModel::index(int row, int column, const QModelIndex& parent) const {
+QModelIndex SceneModel::index(int row, int column, const QModelIndex& parent) const {
   if (!hasIndex(row, column, parent))
     return QModelIndex();
 
@@ -35,7 +35,7 @@ QModelIndex ElementModel::index(int row, int column, const QModelIndex& parent) 
     return QModelIndex();
 }
 
-QModelIndex ElementModel::parent(const QModelIndex& index) const {
+QModelIndex SceneModel::parent(const QModelIndex& index) const {
   if (!index.isValid())
     return QModelIndex();
 
@@ -48,7 +48,7 @@ QModelIndex ElementModel::parent(const QModelIndex& index) const {
   return createIndex(parentItem->row(), 0, parentItem);
 }
 
-int ElementModel::rowCount(const QModelIndex& parent) const {
+int SceneModel::rowCount(const QModelIndex& parent) const {
   Element* parentItem;
   if (parent.column() > 0)
     return 0;
@@ -61,11 +61,11 @@ int ElementModel::rowCount(const QModelIndex& parent) const {
   return parentItem->children().size();
 }
 
-int ElementModel::columnCount(const QModelIndex&) const {
-  return 2;
+int SceneModel::columnCount(const QModelIndex&) const {
+  return 1;
 }
 
-QVariant ElementModel::data(const QModelIndex& index, int role) const {
+QVariant SceneModel::data(const QModelIndex& index, int role) const {
   if (!index.isValid())
     return QVariant();
 
@@ -75,25 +75,23 @@ QVariant ElementModel::data(const QModelIndex& index, int role) const {
   auto item = static_cast<Element*>(index.internalPointer());
 
   if (index.column() == 0) {
-    return item->metaObject()->className();
-  } else if (index.column() == 1) {
     return item->name();
   } else {
     return QVariant();
   }
 }
 
-Qt::ItemFlags ElementModel::flags(const QModelIndex& index) const {
+Qt::ItemFlags SceneModel::flags(const QModelIndex& index) const {
   if (!index.isValid())
     return 0;
 
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-QVariant ElementModel::headerData(int section, Qt::Orientation orientation, int role) const {
+QVariant SceneModel::headerData(int section, Qt::Orientation orientation, int role) const {
   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
     QList<QVariant> rootData;
-    rootData << "Type" << "Name";
+    rootData << "Name";
     
     return rootData[section];
   }
@@ -101,4 +99,4 @@ QVariant ElementModel::headerData(int section, Qt::Orientation orientation, int 
   return QVariant();
 }
 
-#include "ElementModel.moc"
+#include "SceneModel.moc"

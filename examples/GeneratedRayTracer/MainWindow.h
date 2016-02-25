@@ -7,7 +7,7 @@ class QDockWidget;
 class PropertyEditorWidget;
 class MaterialDisplayWidget;
 class Display;
-class ElementModel;
+class SceneModel;
 
 class Element;
 class Scene;
@@ -72,7 +72,7 @@ private:
   Display* m_display;
   MaterialDisplayWidget* m_materialDisplay;
   PropertyEditorWidget* m_propertyEditorWidget;
-  ElementModel* m_elementModel;
+  SceneModel* m_elementModel;
   
   Scene* m_scene;
   

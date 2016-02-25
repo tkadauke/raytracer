@@ -23,7 +23,7 @@
 
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/MaterialDisplayWidget.h"
-#include "widgets/world/ElementModel.h"
+#include "widgets/world/SceneModel.h"
 
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
@@ -317,7 +317,7 @@ QDockWidget* MainWindow::createPropertyEditor() {
 }
 
 QDockWidget* MainWindow::createElementSelector() {
-  m_elementModel = new ElementModel(m_scene);
+  m_elementModel = new SceneModel(m_scene);
   auto elementTree = new QTreeView(this);
   elementTree->setModel(m_elementModel);
   auto itemSelectionModel = new QItemSelectionModel(m_elementModel);
