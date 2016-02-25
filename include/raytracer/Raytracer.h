@@ -30,7 +30,9 @@ namespace raytracer {
   
     inline Scene* scene() const { return m_scene; }
     inline void setScene(Scene* scene) { m_scene = scene; }
-  
+    
+    void setMaximumRecursionDepth(int depth);
+
   private:
     std::shared_ptr<Camera> m_camera;
     Scene* m_scene;

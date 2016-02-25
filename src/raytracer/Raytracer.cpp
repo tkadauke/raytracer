@@ -41,10 +41,11 @@ namespace {
 
 struct Raytracer::Private {
   Private()
-    : numberOfThreads(24) {}
+    : numberOfThreads(24), maximumRecursionDepth(5) {}
   
   vector<RenderThread*> threads;
   int numberOfThreads;
+  int maximumRecursionDepth;
 };
 
 Raytracer::Raytracer(Scene* scene)
@@ -97,7 +98,7 @@ Primitive* Raytracer::primitiveForRay(const Ray& ray) {
 }
 
 Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
-  if (recursionDepth == 15) {
+  if (recursionDepth == p->maximumRecursionDepth) {
     return Colord::black();
   }
   
@@ -119,4 +120,8 @@ void Raytracer::cancel() {
 
 void Raytracer::uncancel() {
   m_camera->uncancel();
+}
+
+void Raytracer::setMaximumRecursionDepth(int depth) {
+  p->maximumRecursionDepth = depth;
 }
