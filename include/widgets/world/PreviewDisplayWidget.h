@@ -8,12 +8,12 @@ namespace raytracer {
   class Scene;
 }
 
-class MaterialDisplayWidget : public QtDisplay {
+class PreviewDisplayWidget : public QtDisplay {
   Q_OBJECT
 
 public:
-  MaterialDisplayWidget(QWidget* parent);
-  ~MaterialDisplayWidget();
+  PreviewDisplayWidget(QWidget* parent);
+  ~PreviewDisplayWidget();
   
   void setMaterial(Material* material);
   

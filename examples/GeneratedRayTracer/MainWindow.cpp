@@ -22,7 +22,7 @@
 #include "core/math/HitPointInterval.h"
 
 #include "widgets/world/PropertyEditorWidget.h"
-#include "widgets/world/MaterialDisplayWidget.h"
+#include "widgets/world/PreviewDisplayWidget.h"
 #include "widgets/world/SceneModel.h"
 #include "widgets/world/RenderWindow.h"
 
@@ -49,10 +49,10 @@ MainWindow::MainWindow()
   
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
-  addDockWidget(Qt::RightDockWidgetArea, createMaterialDisplay());
+  addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
   
-  connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updateMaterialWidget()));
-  connect(this, SIGNAL(currentElementChanged()), this, SLOT(updateMaterialWidget()));
+  connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
+  connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
   
   createActions();
   createMenus();
@@ -352,10 +352,10 @@ QDockWidget* MainWindow::createElementSelector() {
   return dockWidget;
 }
 
-QDockWidget* MainWindow::createMaterialDisplay() {
-  m_materialDisplay = new MaterialDisplayWidget(this);
+QDockWidget* MainWindow::createPreviewDisplay() {
+  m_materialDisplay = new PreviewDisplayWidget(this);
   
-  auto dockWidget = new QDockWidget("Material Preview", this);
+  auto dockWidget = new QDockWidget("Preview", this);
   dockWidget->setWidget(m_materialDisplay);
   
   return dockWidget;
@@ -383,7 +383,7 @@ void MainWindow::updateWindowModified() {
   setWindowModified(m_scene->changed());
 }
 
-void MainWindow::updateMaterialWidget() {
+void MainWindow::updatePreviewWidget() {
   Material* mat = qobject_cast<Material*>(m_currentElement);
   if (mat) {
     m_materialDisplay->setMaterial(mat);

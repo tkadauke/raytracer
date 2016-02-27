@@ -5,7 +5,7 @@
 class QDockWidget;
 
 class PropertyEditorWidget;
-class MaterialDisplayWidget;
+class PreviewDisplayWidget;
 class Display;
 class SceneModel;
 
@@ -31,7 +31,7 @@ private slots:
   void elementSelected(const QModelIndex& current, const QModelIndex& previous);
   void elementChanged(Element*);
   void updateWindowModified();
-  void updateMaterialWidget();
+  void updatePreviewWidget();
   
   void newFile();
   void openFile();
@@ -59,7 +59,7 @@ private slots:
 private:
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();
-  QDockWidget* createMaterialDisplay();
+  QDockWidget* createPreviewDisplay();
 
   void createActions();
   void createMenus();
@@ -74,7 +74,7 @@ private:
   QString m_fileName;
 
   Display* m_display;
-  MaterialDisplayWidget* m_materialDisplay;
+  PreviewDisplayWidget* m_materialDisplay;
   PropertyEditorWidget* m_propertyEditorWidget;
   SceneModel* m_elementModel;
   

@@ -1,4 +1,4 @@
-#include "widgets/world/MaterialDisplayWidget.h"
+#include "widgets/world/PreviewDisplayWidget.h"
 #include "world/objects/Material.h"
 #include "raytracer/Primitives/Scene.h"
 #include "raytracer/Primitives/Sphere.h"
@@ -10,19 +10,19 @@
 #include "raytracer/textures/ConstantColorTexture.h"
 #include "raytracer/textures/mappings/PlanarMapping2D.h"
 
-MaterialDisplayWidget::MaterialDisplayWidget(QWidget* parent)
+PreviewDisplayWidget::PreviewDisplayWidget(QWidget* parent)
   : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr)), m_material(nullptr)
 {
 }
 
-MaterialDisplayWidget::~MaterialDisplayWidget() {
+PreviewDisplayWidget::~PreviewDisplayWidget() {
 }
 
-QSize MaterialDisplayWidget::sizeHint() const {
+QSize PreviewDisplayWidget::sizeHint() const {
   return QSize(256, 25);
 }
 
-void MaterialDisplayWidget::setMaterial(Material* material) {
+void PreviewDisplayWidget::setMaterial(Material* material) {
   if (m_raytracer->scene()) {
     stop();
     delete m_raytracer->scene();
@@ -38,7 +38,7 @@ void MaterialDisplayWidget::setMaterial(Material* material) {
   render();
 }
 
-raytracer::Scene* MaterialDisplayWidget::sphereOnPlane() {
+raytracer::Scene* PreviewDisplayWidget::sphereOnPlane() {
   auto mat = m_material->toRaytracerMaterial();
   auto scene = new raytracer::Scene;
   
@@ -67,4 +67,4 @@ raytracer::Scene* MaterialDisplayWidget::sphereOnPlane() {
   return scene;
 }
 
-#include "MaterialDisplayWidget.moc"
+#include "PreviewDisplayWidget.moc"
