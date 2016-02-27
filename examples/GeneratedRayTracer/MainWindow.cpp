@@ -24,6 +24,7 @@
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/MaterialDisplayWidget.h"
 #include "widgets/world/SceneModel.h"
+#include "widgets/world/RenderWindow.h"
 
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
@@ -120,6 +121,11 @@ void MainWindow::createActions() {
   m_deleteElementAct->setEnabled(false);
   connect(m_deleteElementAct, SIGNAL(triggered()), this, SLOT(deleteElement()));
 
+  m_renderAct = new QAction(tr("&Render"), this);
+  m_renderAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_R));
+  m_renderAct->setStatusTip(tr("Render current scene"));
+  connect(m_renderAct, SIGNAL(triggered()), this, SLOT(render()));
+
   m_helpAct = new QAction(tr("Raytracer &Help"), this);
   m_helpAct->setStatusTip(tr("Go to the Github page"));
   connect(m_helpAct, SIGNAL(triggered()), this, SLOT(help()));
@@ -159,6 +165,9 @@ void MainWindow::createMenus() {
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
+
+  m_renderMenu = menuBar()->addMenu(tr("&Render"));
+  m_renderMenu->addAction(m_renderAct);
 
   m_helpMenu = menuBar()->addMenu(tr("&Help"));
   m_helpMenu->addAction(m_aboutAct);
@@ -294,6 +303,18 @@ void MainWindow::deleteElement() {
   m_deleteElementAct->setEnabled(false);
 
   elementChanged(nullptr);
+}
+
+void MainWindow::render() {
+  if (!m_renderWindow) {
+    m_renderWindow = new RenderWindow(nullptr);
+  }
+  
+  if (!m_renderWindow->isBusy()) {
+    m_renderWindow->setScene(m_scene);
+  }
+  
+  m_renderWindow->show();
 }
 
 void MainWindow::about() {

@@ -12,6 +12,8 @@ class SceneModel;
 class Element;
 class Scene;
 
+class RenderWindow;
+
 class MainWindow : public QMainWindow {
   Q_OBJECT
 
@@ -49,6 +51,8 @@ private slots:
   
   void deleteElement();
   
+  void render();
+  
   void about();
   void help();
 
@@ -74,12 +78,15 @@ private:
   PropertyEditorWidget* m_propertyEditorWidget;
   SceneModel* m_elementModel;
   
+  RenderWindow* m_renderWindow;
+  
   Scene* m_scene;
   
   Element* m_currentElement;
   
   QMenu* m_fileMenu;
   QMenu* m_editMenu;
+  QMenu* m_renderMenu;
   QMenu* m_helpMenu;
 
   QAction* m_newAct;
@@ -99,6 +106,8 @@ private:
   QAction* m_addCheckerBoardTextureAct;
   
   QAction* m_deleteElementAct;
+
+  QAction* m_renderAct;
   
   QAction* m_aboutAct;
   QAction* m_helpAct;
