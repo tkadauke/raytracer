@@ -14,7 +14,13 @@ public:
   inline void setDistance(double distance) { m_distance = distance; }
 
   inline double zoom() const { return m_zoom; }
-  inline void setZoom(double zoom) { m_zoom = zoom; }
+  inline void setZoom(double zoom) {
+    if (zoom <= 0) {
+      m_zoom = 1;
+    } else {
+      m_zoom = zoom;
+    }
+  }
 
   virtual std::shared_ptr<raytracer::Camera> toRaytracer() const;
   

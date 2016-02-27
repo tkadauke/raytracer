@@ -35,6 +35,24 @@ namespace OrthographicCameraTest {
     then("i should see the sphere with size S");
   }
 
+  TEST_F(OrthographicCameraTest, ShouldGrowSizeOfObjectWithLargerZoom) {
+    given("an orthographic camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere with size S");
+    when("i zoom in");
+    then("i should see the sphere with size larger than S");
+  }
+
+  TEST_F(OrthographicCameraTest, ShouldShrinkSizeOfObjectWithSmallerZoom) {
+    given("an orthographic camera");
+    given("a centered sphere");
+    when("i look at the origin");
+    then("i should see the sphere with size S");
+    when("i zoom out");
+    then("i should see the sphere with size smaller than S");
+  }
+
   TEST_F(OrthographicCameraTest, ShouldNotRenderWhenCanceled) {
     given("a blank canvas");
     given("an orthographic camera");
