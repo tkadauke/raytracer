@@ -249,6 +249,23 @@
                 0
             ],
             "type": "OrthographicCamera"
+        },
+        {
+            "horizontalFieldOfView": 3.1415926535928,
+            "id": "{ea82e8b8-8393-478f-9e81-f77d863f3ca7}",
+            "name": "SphericalCamera",
+            "position": [
+                0.59999999999999998,
+                -0.10000000000000001,
+                -1
+            ],
+            "target": [
+                0,
+                0,
+                0
+            ],
+            "type": "SphericalCamera",
+            "verticalFieldOfView": 2.0943951023952003
         }
     ],
     "id": "{edea240f-91a0-456d-ad3b-68eb1bc52a56}",

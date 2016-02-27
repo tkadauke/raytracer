@@ -41,6 +41,7 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/FishEyeCamera.h"
 #include "world/objects/OrthographicCamera.h"
+#include "world/objects/SphericalCamera.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -129,6 +130,10 @@ void MainWindow::createActions() {
   m_addOrthographicCameraAct->setStatusTip(tr("Add an orthographic camera to the scene"));
   connect(m_addOrthographicCameraAct, SIGNAL(triggered()), this, SLOT(addOrthographicCamera()));
 
+  m_addSphericalCameraAct = new QAction(tr("Spherical Camera"), this);
+  m_addSphericalCameraAct->setStatusTip(tr("Add a spherical camera to the scene"));
+  connect(m_addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -186,6 +191,7 @@ void MainWindow::createMenus() {
   addCamera->addAction(m_addPinholeCameraAct);
   addCamera->addAction(m_addFishEyeCameraAct);
   addCamera->addAction(m_addOrthographicCameraAct);
+  addCamera->addAction(m_addSphericalCameraAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -326,6 +332,10 @@ void MainWindow::addFishEyeCamera() {
 
 void MainWindow::addOrthographicCamera() {
   add<OrthographicCamera>();
+}
+
+void MainWindow::addSphericalCamera() {
+  add<SphericalCamera>();
 }
 
 void MainWindow::deleteElement() {
