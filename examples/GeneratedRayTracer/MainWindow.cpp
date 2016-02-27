@@ -39,6 +39,7 @@
 #include "world/objects/CheckerBoardTexture.h"
 
 #include "world/objects/PinholeCamera.h"
+#include "world/objects/FishEyeCamera.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -58,6 +59,8 @@ MainWindow::MainWindow()
   
   createActions();
   createMenus();
+  
+  m_renderWindow = new RenderWindow(nullptr);
 }
 
 void MainWindow::createActions() {
@@ -114,8 +117,12 @@ void MainWindow::createActions() {
   connect(m_addCheckerBoardTextureAct, SIGNAL(triggered()), this, SLOT(addCheckerBoardTexture()));
 
   m_addPinholeCameraAct = new QAction(tr("Pinhole Camera"), this);
-  m_addPinholeCameraAct->setStatusTip(tr("Add a pinhole camera texture to the scene"));
+  m_addPinholeCameraAct->setStatusTip(tr("Add a pinhole camera to the scene"));
   connect(m_addPinholeCameraAct, SIGNAL(triggered()), this, SLOT(addPinholeCamera()));
+
+  m_addFishEyeCameraAct = new QAction(tr("Fish Eye Camera"), this);
+  m_addFishEyeCameraAct->setStatusTip(tr("Add a fish eye camera to the scene"));
+  connect(m_addFishEyeCameraAct, SIGNAL(triggered()), this, SLOT(addFishEyeCamera()));
 
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
@@ -172,6 +179,7 @@ void MainWindow::createMenus() {
 
   auto addCamera = m_editMenu->addMenu(tr("Add Camera"));
   addCamera->addAction(m_addPinholeCameraAct);
+  addCamera->addAction(m_addFishEyeCameraAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -306,6 +314,10 @@ void MainWindow::addPinholeCamera() {
   add<PinholeCamera>();
 }
 
+void MainWindow::addFishEyeCamera() {
+  add<FishEyeCamera>();
+}
+
 void MainWindow::deleteElement() {
   delete m_currentElement;
   m_currentElement = nullptr;
@@ -320,10 +332,6 @@ void MainWindow::deleteElement() {
 }
 
 void MainWindow::render() {
-  if (!m_renderWindow) {
-    m_renderWindow = new RenderWindow(nullptr);
-  }
-  
   if (!m_renderWindow->isBusy()) {
     m_renderWindow->setScene(m_scene);
   }

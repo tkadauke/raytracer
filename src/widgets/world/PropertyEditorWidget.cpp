@@ -3,6 +3,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 #include "widgets/world/VectorParameterWidget.h"
+#include "widgets/world/AngleParameterWidget.h"
 #include "widgets/world/ColorParameterWidget.h"
 #include "widgets/world/StringParameterWidget.h"
 #include "widgets/world/DoubleParameterWidget.h"
@@ -87,6 +88,8 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
 
     if (name == "Vector3d") {
       widget = new VectorParameterWidget(this);
+    } else if (name == "Angled") {
+      widget = new AngleParameterWidget(this);
     } else if (name == "Colord") {
       widget = new ColorParameterWidget(this);
     } else if (name == "QString") {

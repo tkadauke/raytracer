@@ -50,6 +50,7 @@ private slots:
   void addCheckerBoardTexture();
 
   void addPinholeCamera();
+  void addFishEyeCamera();
   
   void deleteElement();
   
@@ -108,6 +109,7 @@ private:
   QAction* m_addCheckerBoardTextureAct;
 
   QAction* m_addPinholeCameraAct;
+  QAction* m_addFishEyeCameraAct;
   
   QAction* m_deleteElementAct;
 

@@ -22,6 +22,7 @@ signals:
 
 protected slots:
   void parameterChanged();
+  QVariant lastValue() const;
 
 private:
   struct Private;

@@ -218,6 +218,22 @@
             ],
             "type": "PinholeCamera",
             "zoom": 2
+        },
+        {
+            "fieldOfView": 6.2831853071856001,
+            "id": "{d17eebfa-7e3a-4a45-a0e9-41b50467cb99}",
+            "name": "FishEyeCamera",
+            "position": [
+                0,
+                0,
+                -1
+            ],
+            "target": [
+                0,
+                0,
+                0
+            ],
+            "type": "FishEyeCamera"
         }
     ],
     "id": "{edea240f-91a0-456d-ad3b-68eb1bc52a56}",

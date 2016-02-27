@@ -1,4 +1,5 @@
 #include "core/math/Vector.h"
+#include "core/math/Angle.h"
 #include "core/Color.h"
 #include "world/objects/Element.h"
 
@@ -12,6 +13,7 @@
 #include <QUuid>
 
 Q_DECLARE_METATYPE(Vector3d);
+Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
 
 Element::Element(Element* parent)
@@ -71,6 +73,9 @@ void Element::read(const QJsonObject& json) {
       if (type == "Vector3d") {
         auto array = value.toArray();
         setProperty(metaProp.name(), QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+      } else if (type == "Angled") {
+        auto angle = value.toDouble();
+        setProperty(metaProp.name(), QVariant::fromValue(Angled::fromRadians(angle)));
       } else if (type == "Colord") {
         auto array = value.toArray();
         setProperty(metaProp.name(), QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
@@ -125,6 +130,8 @@ void Element::writeForClass(const QMetaObject* klass, QJsonObject& json) {
     if (type == "Vector3d") {
       auto vector = prop.value<Vector3d>();
       json[metaProp.name()] = QJsonArray({ vector.x(), vector.y(), vector.z() });
+    } else if (type == "Angled") {
+      json[metaProp.name()] = prop.value<Angled>().radians();
     } else if (type == "Colord") {
       auto color = prop.value<Colord>();
       json[metaProp.name()] = QJsonArray({ color.r(), color.g(), color.b() });

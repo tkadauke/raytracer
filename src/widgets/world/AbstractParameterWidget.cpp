@@ -8,6 +8,7 @@ struct AbstractParameterWidget::Private {
   
   Element* element;
   QString parameterName;
+  QVariant lastValue;
 };
 
 AbstractParameterWidget::AbstractParameterWidget(QWidget* parent)
@@ -19,7 +20,12 @@ AbstractParameterWidget::~AbstractParameterWidget() {
 }
 
 void AbstractParameterWidget::parameterChanged() {
-  emit changed(p->parameterName, value());
+  p->lastValue = value();
+  emit changed(p->parameterName, p->lastValue);
+}
+
+QVariant AbstractParameterWidget::lastValue() const {
+  return p->lastValue;
 }
 
 void AbstractParameterWidget::setElement(Element* element) {
