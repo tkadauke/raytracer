@@ -40,6 +40,7 @@
 
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/FishEyeCamera.h"
+#include "world/objects/OrthographicCamera.h"
 
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
@@ -124,6 +125,10 @@ void MainWindow::createActions() {
   m_addFishEyeCameraAct->setStatusTip(tr("Add a fish eye camera to the scene"));
   connect(m_addFishEyeCameraAct, SIGNAL(triggered()), this, SLOT(addFishEyeCamera()));
 
+  m_addOrthographicCameraAct = new QAction(tr("Orthographic Camera"), this);
+  m_addOrthographicCameraAct->setStatusTip(tr("Add an orthographic camera to the scene"));
+  connect(m_addOrthographicCameraAct, SIGNAL(triggered()), this, SLOT(addOrthographicCamera()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -180,6 +185,7 @@ void MainWindow::createMenus() {
   auto addCamera = m_editMenu->addMenu(tr("Add Camera"));
   addCamera->addAction(m_addPinholeCameraAct);
   addCamera->addAction(m_addFishEyeCameraAct);
+  addCamera->addAction(m_addOrthographicCameraAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -316,6 +322,10 @@ void MainWindow::addPinholeCamera() {
 
 void MainWindow::addFishEyeCamera() {
   add<FishEyeCamera>();
+}
+
+void MainWindow::addOrthographicCamera() {
+  add<OrthographicCamera>();
 }
 
 void MainWindow::deleteElement() {

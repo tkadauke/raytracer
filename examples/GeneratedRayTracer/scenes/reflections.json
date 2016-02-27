@@ -234,6 +234,21 @@
                 0
             ],
             "type": "FishEyeCamera"
+        },
+        {
+            "id": "{121ba3ae-6d2f-493e-876e-bab0b49a3739}",
+            "name": "OrthographicCamera",
+            "position": [
+                1,
+                -1,
+                -5
+            ],
+            "target": [
+                0,
+                0,
+                0
+            ],
+            "type": "OrthographicCamera"
         }
     ],
     "id": "{edea240f-91a0-456d-ad3b-68eb1bc52a56}",

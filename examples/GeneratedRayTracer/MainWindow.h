@@ -51,6 +51,7 @@ private slots:
 
   void addPinholeCamera();
   void addFishEyeCamera();
+  void addOrthographicCamera();
   
   void deleteElement();
   
@@ -110,6 +111,7 @@ private:
 
   QAction* m_addPinholeCameraAct;
   QAction* m_addFishEyeCameraAct;
+  QAction* m_addOrthographicCameraAct;
   
   QAction* m_deleteElementAct;
 
