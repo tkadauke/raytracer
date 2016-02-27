@@ -38,6 +38,8 @@
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/CheckerBoardTexture.h"
 
+#include "world/objects/PinholeCamera.h"
+
 MainWindow::MainWindow()
   : QMainWindow(), m_currentElement(nullptr)
 {
@@ -111,6 +113,10 @@ void MainWindow::createActions() {
   m_addCheckerBoardTextureAct->setStatusTip(tr("Add a checker board texture to the scene"));
   connect(m_addCheckerBoardTextureAct, SIGNAL(triggered()), this, SLOT(addCheckerBoardTexture()));
 
+  m_addPinholeCameraAct = new QAction(tr("Pinhole Camera"), this);
+  m_addPinholeCameraAct->setStatusTip(tr("Add a pinhole camera texture to the scene"));
+  connect(m_addPinholeCameraAct, SIGNAL(triggered()), this, SLOT(addPinholeCamera()));
+
   m_aboutAct = new QAction(tr("&About"), this);
   m_aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -133,7 +139,8 @@ void MainWindow::createActions() {
   auto modifyingActions = {
     m_newAct, m_openAct, m_saveAct, m_saveAsAct, m_addBoxAct, m_addSphereAct,
     m_addMatteMaterialAct, m_addPhongMaterialAct, m_addReflectiveMaterialAct,
-    m_addConstantColorTextureAct, m_deleteElementAct
+    m_addConstantColorTextureAct, m_addCheckerBoardTextureAct,
+    m_addPinholeCameraAct, m_deleteElementAct
   };
   
   for (auto& act : modifyingActions) {
@@ -162,6 +169,9 @@ void MainWindow::createMenus() {
   auto addTexture = m_editMenu->addMenu(tr("Add Texture"));
   addTexture->addAction(m_addConstantColorTextureAct);
   addTexture->addAction(m_addCheckerBoardTextureAct);
+
+  auto addCamera = m_editMenu->addMenu(tr("Add Camera"));
+  addCamera->addAction(m_addPinholeCameraAct);
   
   m_editMenu->addSeparator();
   m_editMenu->addAction(m_deleteElementAct);
@@ -292,6 +302,10 @@ void MainWindow::addCheckerBoardTexture() {
   add<CheckerBoardTexture>();
 }
 
+void MainWindow::addPinholeCamera() {
+  add<PinholeCamera>();
+}
+
 void MainWindow::deleteElement() {
   delete m_currentElement;
   m_currentElement = nullptr;
@@ -385,10 +399,13 @@ void MainWindow::updateWindowModified() {
 
 void MainWindow::updatePreviewWidget() {
   Material* mat = qobject_cast<Material*>(m_currentElement);
+  Camera* cam = qobject_cast<Camera*>(m_currentElement);
   if (mat) {
     m_materialDisplay->setMaterial(mat);
+  } else if (cam) {
+    m_materialDisplay->setCamera(cam, m_scene);
   } else {
-    m_materialDisplay->setMaterial(nullptr);
+    m_materialDisplay->clear();
   }
 }
 

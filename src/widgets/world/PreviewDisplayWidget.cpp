@@ -1,5 +1,7 @@
 #include "widgets/world/PreviewDisplayWidget.h"
 #include "world/objects/Material.h"
+#include "world/objects/Camera.h"
+#include "world/objects/Scene.h"
 #include "raytracer/Primitives/Scene.h"
 #include "raytracer/Primitives/Sphere.h"
 #include "raytracer/Primitives/Plane.h"
@@ -9,9 +11,10 @@
 #include "raytracer/textures/CheckerBoardTexture.h"
 #include "raytracer/textures/ConstantColorTexture.h"
 #include "raytracer/textures/mappings/PlanarMapping2D.h"
+#include "raytracer/cameras/PinholeCamera.h"
 
 PreviewDisplayWidget::PreviewDisplayWidget(QWidget* parent)
-  : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr)), m_material(nullptr)
+  : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr))
 {
 }
 
@@ -22,24 +25,41 @@ QSize PreviewDisplayWidget::sizeHint() const {
   return QSize(256, 25);
 }
 
+void PreviewDisplayWidget::clear() {
+  updateScene([&]() {
+    m_raytracer->setScene(nullptr);
+  });
+}
+
 void PreviewDisplayWidget::setMaterial(Material* material) {
+  setInteractive(true);
+  updateScene([&]() {
+    m_raytracer->setScene(sphereOnPlane(material));
+    m_raytracer->setCamera(std::make_shared<raytracer::PinholeCamera>());
+  });
+}
+
+void PreviewDisplayWidget::setCamera(Camera* camera, Scene* scene) {
+  setInteractive(false);
+  updateScene([&]() {
+    m_raytracer->setScene(scene->toRaytracerScene());
+    m_raytracer->setCamera(camera->toRaytracer());
+  });
+}
+
+void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   if (m_raytracer->scene()) {
     stop();
     delete m_raytracer->scene();
   }
   
-  m_material = material;
+  setup();
   
-  if (m_material) {
-    m_raytracer->setScene(sphereOnPlane());
-  } else {
-    m_raytracer->setScene(nullptr);
-  }
   render();
 }
 
-raytracer::Scene* PreviewDisplayWidget::sphereOnPlane() {
-  auto mat = m_material->toRaytracerMaterial();
+raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material) {
+  auto mat = material->toRaytracerMaterial();
   auto scene = new raytracer::Scene;
   
   scene->setAmbient(Colord(0.4, 0.4, 0.4));

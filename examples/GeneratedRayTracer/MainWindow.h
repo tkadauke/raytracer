@@ -48,6 +48,8 @@ private slots:
   
   void addConstantColorTexture();
   void addCheckerBoardTexture();
+
+  void addPinholeCamera();
   
   void deleteElement();
   
@@ -104,6 +106,8 @@ private:
   
   QAction* m_addConstantColorTextureAct;
   QAction* m_addCheckerBoardTextureAct;
+
+  QAction* m_addPinholeCameraAct;
   
   QAction* m_deleteElementAct;
 

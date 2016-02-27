@@ -3,6 +3,8 @@
 #include "widgets/QtDisplay.h"
 
 class Material;
+class Scene;
+class Camera;
 
 namespace raytracer {
   class Scene;
@@ -15,12 +17,13 @@ public:
   PreviewDisplayWidget(QWidget* parent);
   ~PreviewDisplayWidget();
   
+  void clear();
   void setMaterial(Material* material);
+  void setCamera(Camera* camera, Scene* scene);
   
   virtual QSize sizeHint() const;
   
 private:
-  raytracer::Scene* sphereOnPlane();
-
-  Material* m_material;
+  void updateScene(const std::function<void()>& setup);
+  raytracer::Scene* sphereOnPlane(Material* material);
 };

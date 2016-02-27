@@ -11,6 +11,7 @@
 #include "raytracer/samplers/SamplerFactory.h"
 
 #include "world/objects/Scene.h"
+#include "world/objects/Camera.h"
 
 #include <QGridLayout>
 #include <QScrollArea>
@@ -108,11 +109,16 @@ void RenderWindow::setScene(::Scene* scene) {
   
   p->raytracer->setScene(raytracerScene);
   
-  p->raytracer->camera()->setPosition(
-    Matrix3d::rotateY(Angled::fromDegrees(-25)) *
-    Matrix3d::rotateX(Angled::fromDegrees(-25)) *
-    Vector3d(0, 0, -5)
-  );
+  auto camera = scene->activeCamera();
+  if (camera) {
+    p->raytracer->setCamera(camera->toRaytracer());
+  } else {
+    p->raytracer->camera()->setPosition(
+      Matrix3d::rotateY(Angled::fromDegrees(-25)) *
+      Matrix3d::rotateX(Angled::fromDegrees(-25)) *
+      Vector3d(0, 0, -5)
+    );
+  }
 }
 
 #include "RenderWindow.moc"

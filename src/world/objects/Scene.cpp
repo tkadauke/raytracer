@@ -1,5 +1,6 @@
 #include "world/objects/Scene.h"
 #include "world/objects/Surface.h"
+#include "world/objects/Camera.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Grid.h"
 
@@ -73,6 +74,16 @@ bool Scene::load(const QString& filename) {
   resolveReferences(references);
 
   return true;
+}
+
+Camera* Scene::activeCamera() const {
+  Camera* camera = nullptr;
+  for (const auto& child : children()) {
+    if (qobject_cast<Camera*>(child)) {
+      camera = static_cast<Camera*>(child);
+    }
+  }
+  return camera;
 }
 
 void Scene::findReferences(Element* root, QMap<QString, Element*>& references) {

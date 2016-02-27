@@ -2,6 +2,8 @@
 
 #include "world/objects/Element.h"
 
+class Camera;
+
 namespace raytracer {
   class Scene;
 }
@@ -19,6 +21,8 @@ public:
   
   inline bool changed() const { return m_changed; }
   inline void setChanged(bool changed) { m_changed = changed; }
+  
+  Camera* activeCamera() const;
   
 private:
   void findReferences(Element* root, QMap<QString, Element*>& references);

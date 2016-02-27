@@ -201,6 +201,23 @@
             "id": "{ff31bfc7-6b94-4be4-a8f7-152258c04973}",
             "name": "White",
             "type": "ConstantColorTexture"
+        },
+        {
+            "distance": 5,
+            "id": "{91260186-7458-42e3-bf63-561a146990b1}",
+            "name": "PinholeCamera",
+            "position": [
+                -1,
+                -1,
+                -1
+            ],
+            "target": [
+                0,
+                0,
+                0
+            ],
+            "type": "PinholeCamera",
+            "zoom": 2
         }
     ],
     "id": "{edea240f-91a0-456d-ad3b-68eb1bc52a56}",
