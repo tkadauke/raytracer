@@ -36,6 +36,13 @@ namespace RangeTest {
     ASSERT_EQ(5, range.clamp(7));
   }
   
+  TYPED_TEST(RangeTest, ShouldReturnRandomValue) {
+    TypeParam range(3, 5);
+    auto v = range.random();
+    ASSERT_TRUE(v >= 3);
+    ASSERT_TRUE(v <= 5);
+  }
+  
   TYPED_TEST(RangeTest, ShouldStreamToString) {
     TypeParam range(3, 5);
     ostringstream str;

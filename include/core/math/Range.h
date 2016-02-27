@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "core/math/Number.h"
+
 /**
   * Represents a closed range, between begin() and end(), including.
   */
@@ -44,6 +46,13 @@ public:
     } else {
       return value;
     }
+  }
+  
+  /**
+    * Returns a random number from within the Range.
+    */
+  inline T random() const {
+    return ::random<T>(begin(), end());
   }
 
 private:

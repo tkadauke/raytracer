@@ -10,6 +10,7 @@ public:
   ~RenderSettingsWidget();
   
   QSize resolution();
+  QString sampler();
   int samplesPerPixel();
   int maxRecursionDepth();
   

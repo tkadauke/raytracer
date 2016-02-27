@@ -8,7 +8,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 
-#include "raytracer/samplers/RegularSampler.h"
+#include "raytracer/samplers/SamplerFactory.h"
 
 #include "world/objects/Scene.h"
 
@@ -75,7 +75,14 @@ void RenderWindow::render() {
   
   p->renderWidget->resize(p->settingsWidget->resolution());
   p->renderWidget->setBufferSize(p->settingsWidget->resolution());
-  p->raytracer->camera()->viewPlane()->setSampler(std::make_shared<raytracer::RegularSampler>(p->settingsWidget->samplesPerPixel()));
+  
+  auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
+  auto sampler = std::shared_ptr<Sampler>(SamplerFactory::self().create(samplerClass));
+  // 83 is an arbitrary number, but it's a relatively large prime number, so
+  // it's unlikely to introduce aliasing patterns
+  sampler->setup(p->settingsWidget->samplesPerPixel(), 83);
+  
+  p->raytracer->camera()->viewPlane()->setSampler(sampler);
   p->raytracer->setMaximumRecursionDepth(p->settingsWidget->maxRecursionDepth());
   
   p->renderWidget->render();

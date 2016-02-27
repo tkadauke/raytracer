@@ -1,14 +1,13 @@
 #include "raytracer/samplers/RegularSampler.h"
+#include "raytracer/samplers/SamplerFactory.h"
 
 using namespace raytracer;
 using namespace std;
 
-RegularSampler::RegularSampler(int numSamples)
-  : Sampler(numSamples, 1)
-{
+std::vector<Vector2d> RegularSampler::generateSet() {
   vector<Vector2d> result;
   
-  int n = sqrt(numSamples);
+  int n = sqrt(numSamples());
   
   for (int x = 0; x != n; ++x) {
     for (int y = 0; y != n; ++y) {
@@ -20,5 +19,7 @@ RegularSampler::RegularSampler(int numSamples)
     }
   }
   
-  addSet(result);
+  return result;
 }
+
+static bool dummy = SamplerFactory::self().registerClass<RegularSampler>("RegularSampler");

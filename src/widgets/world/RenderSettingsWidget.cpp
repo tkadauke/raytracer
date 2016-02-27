@@ -23,6 +23,10 @@ QSize RenderSettingsWidget::resolution() {
   return QSize(components[0].toInt(), components[1].toInt());
 }
 
+QString RenderSettingsWidget::sampler() {
+  return p->ui.m_samplerType->currentText();
+}
+
 int RenderSettingsWidget::samplesPerPixel() {
   return p->ui.m_samplesPerPixel->value();
 }
