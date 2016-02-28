@@ -19,24 +19,24 @@ public:
   }
 
   /**
-    * Returns the begin of the Range.
+    * @returns the begin of the Range.
     */
   inline T begin() const { return m_begin; }
   
   /**
-    * Returns the end of the Range.
+    * @returns the end of the Range.
     */
   inline T end() const { return m_end; }
 
   /**
-    * Tests whether value is inside the Range.
+    * @returns true if value is inside the Range, false otherwise.
     */
   inline bool contains(const T& value) const {
     return begin() <= value && value <= end();
   }
   
   /**
-    * Clamps the given value to the boundaries of this Range.
+    * @returns value, clamped to the boundaries of this Range.
     */
   inline T clamp(const T& value) const {
     if (value < begin()) {
@@ -49,7 +49,7 @@ public:
   }
   
   /**
-    * Returns a random number from within the Range.
+    * @returns a random number from within the Range.
     */
   inline T random() const {
     return ::random<T>(begin(), end());
@@ -62,6 +62,8 @@ private:
 
 /**
   * Outputs the range to the given std::ostream.
+  * 
+  * @returns os.
   */
 template<class T>
 std::ostream& operator<<(std::ostream& os, const Range<T>& range) {
