@@ -337,7 +337,7 @@ public:
     * @returns true if the vector has length 1, false otherwise.
     */
   inline bool isNormalized() const {
-    return length() == static_cast<T>(1);
+    return length() == T(1);
   }
   
   /**

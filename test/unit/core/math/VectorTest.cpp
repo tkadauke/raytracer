@@ -396,6 +396,35 @@ namespace DerivedVectorTest {
     ASSERT_TYPES_EQ(vector, vector.normalized());
   }
   
+  TYPED_TEST(DerivedVectorTest, ShouldEvaluateEquality) {
+    TypeParam vector1, vector2;
+    ASSERT_TRUE(vector1 == vector2);
+  }
+  
+  TYPED_TEST(DerivedVectorTest, ShouldEvaluateInequality) {
+    TypeParam vector1, vector2;
+    vector2[0] = 1;
+    ASSERT_TRUE(vector1 != vector2);
+  }
+  
+  TYPED_TEST(DerivedVectorTest, ShouldCalculateLength) {
+    TypeParam vector;
+    vector[TypeParam::Dim - 1] = 1;
+    ASSERT_EQ(1, vector.length());
+  }
+  
+  TYPED_TEST(DerivedVectorTest, ShouldCalculateSquaredLength) {
+    TypeParam vector;
+    vector[TypeParam::Dim - 1] = 1;
+    ASSERT_EQ(1, vector.squaredLength());
+  }
+
+  TYPED_TEST(DerivedVectorTest, ShouldCalculateDistance) {
+    TypeParam vector1, vector2;
+    vector1[0] = 1;
+    ASSERT_EQ(1, vector2.distanceTo(vector1));
+  }
+  
   TYPED_TEST(DerivedVectorTest, ShouldProvideUndefinedVector) {
     TypeParam vector = TypeParam::undefined();
     ASSERT_TRUE(vector.isUndefined());
