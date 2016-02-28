@@ -27,7 +27,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="m_viewPlaneTypeComboBox"/>
+      <widget class="QComboBox" name="viewPlaneTypeComboBox"/>
      </item>
     </layout>
    </item>

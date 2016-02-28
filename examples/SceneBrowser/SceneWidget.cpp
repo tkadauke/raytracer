@@ -16,16 +16,16 @@ SceneWidget::SceneWidget(QWidget* parent)
   p->ui.setupUi(this);
   list<string> types = SceneFactory::self().identifiers();
   for (const auto& i : types) {
-    p->ui.m_sceneComboBox->addItem(QString::fromStdString(i));
+    p->ui.sceneComboBox->addItem(QString::fromStdString(i));
   }
-  connect(p->ui.m_sceneComboBox, SIGNAL(activated(int)), this, SLOT(sceneChanged()));
+  connect(p->ui.sceneComboBox, SIGNAL(activated(int)), this, SLOT(sceneChanged()));
 }
 
 SceneWidget::~SceneWidget() {
 }
 
 string SceneWidget::sceneName() const {
-  return p->ui.m_sceneComboBox->currentText().toStdString();
+  return p->ui.sceneComboBox->currentText().toStdString();
 }
 
 void SceneWidget::sceneChanged() {

@@ -32,7 +32,7 @@
    <item row="0" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QLabel" name="m_label">
+      <widget class="QLabel" name="label">
        <property name="text">
         <string>TextLabel</string>
        </property>
@@ -63,7 +63,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="m_xEdit"/>
+      <widget class="QLineEdit" name="xEdit"/>
      </item>
      <item>
       <widget class="QLabel" name="label_3">
@@ -73,7 +73,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="m_yEdit"/>
+      <widget class="QLineEdit" name="yEdit"/>
      </item>
      <item>
       <widget class="QLabel" name="label_4">
@@ -83,7 +83,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="m_zEdit"/>
+      <widget class="QLineEdit" name="zEdit"/>
      </item>
     </layout>
    </item>

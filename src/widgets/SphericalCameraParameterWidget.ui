@@ -42,7 +42,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QLabel" name="m_horizontalFieldOfViewLabel">
+        <widget class="QLabel" name="horizontalFieldOfViewLabel">
          <property name="text">
           <string>180</string>
          </property>
@@ -51,7 +51,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QSlider" name="m_horizontalFieldOfViewSlider">
+      <widget class="QSlider" name="horizontalFieldOfViewSlider">
        <property name="minimum">
         <number>0</number>
        </property>
@@ -93,7 +93,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QLabel" name="m_verticalFieldOfViewLabel">
+        <widget class="QLabel" name="verticalFieldOfViewLabel">
          <property name="text">
           <string>90</string>
          </property>
@@ -102,7 +102,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QSlider" name="m_verticalFieldOfViewSlider">
+      <widget class="QSlider" name="verticalFieldOfViewSlider">
        <property name="minimum">
         <number>0</number>
        </property>
@@ -124,9 +124,9 @@
  <resources/>
  <connections>
   <connection>
-   <sender>m_horizontalFieldOfViewSlider</sender>
+   <sender>horizontalFieldOfViewSlider</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>m_horizontalFieldOfViewLabel</receiver>
+   <receiver>horizontalFieldOfViewLabel</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -140,9 +140,9 @@
    </hints>
   </connection>
   <connection>
-   <sender>m_verticalFieldOfViewSlider</sender>
+   <sender>verticalFieldOfViewSlider</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>m_verticalFieldOfViewLabel</receiver>
+   <receiver>verticalFieldOfViewLabel</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">

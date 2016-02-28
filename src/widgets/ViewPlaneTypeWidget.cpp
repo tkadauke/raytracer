@@ -18,16 +18,16 @@ ViewPlaneTypeWidget::ViewPlaneTypeWidget(QWidget* parent)
   p->ui.setupUi(this);
   list<string> types = ViewPlaneFactory::self().identifiers();
   for (const auto& type : types) {
-    p->ui.m_viewPlaneTypeComboBox->addItem(QString::fromStdString(type));
+    p->ui.viewPlaneTypeComboBox->addItem(QString::fromStdString(type));
   }
-  connect(p->ui.m_viewPlaneTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
+  connect(p->ui.viewPlaneTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
 }
 
 ViewPlaneTypeWidget::~ViewPlaneTypeWidget() {
 }
 
 string ViewPlaneTypeWidget::type() const {
-  return p->ui.m_viewPlaneTypeComboBox->currentText().toStdString();
+  return p->ui.viewPlaneTypeComboBox->currentText().toStdString();
 }
 
 void ViewPlaneTypeWidget::typeChanged() {

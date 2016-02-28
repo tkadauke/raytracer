@@ -42,7 +42,7 @@
         </spacer>
        </item>
        <item>
-        <widget class="QLabel" name="m_fieldOfViewLabel">
+        <widget class="QLabel" name="fieldOfViewLabel">
          <property name="text">
           <string>90</string>
          </property>
@@ -51,7 +51,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QSlider" name="m_fieldOfViewSlider">
+      <widget class="QSlider" name="fieldOfViewSlider">
        <property name="minimum">
         <number>45</number>
        </property>
@@ -70,9 +70,9 @@
  <resources/>
  <connections>
   <connection>
-   <sender>m_fieldOfViewSlider</sender>
+   <sender>fieldOfViewSlider</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>m_fieldOfViewLabel</receiver>
+   <receiver>fieldOfViewLabel</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">

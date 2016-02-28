@@ -14,7 +14,7 @@ FishEyeCameraParameterWidget::FishEyeCameraParameterWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  connect(p->ui.m_fieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
+  connect(p->ui.fieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
 }
 
 FishEyeCameraParameterWidget::~FishEyeCameraParameterWidget() {
@@ -25,7 +25,7 @@ void FishEyeCameraParameterWidget::parameterChanged() {
 }
 
 int FishEyeCameraParameterWidget::fieldOfView() const {
-  return p->ui.m_fieldOfViewSlider->value();
+  return p->ui.fieldOfViewSlider->value();
 }
 
 void FishEyeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {

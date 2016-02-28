@@ -10,7 +10,7 @@ DoubleParameterWidget::DoubleParameterWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  connect(p->ui.m_doubleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
+  connect(p->ui.doubleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
 }
 
 DoubleParameterWidget::~DoubleParameterWidget() {
@@ -18,15 +18,15 @@ DoubleParameterWidget::~DoubleParameterWidget() {
 
 void DoubleParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->ui.m_label->setText(name);
+  p->ui.label->setText(name);
 }
 
 const QVariant DoubleParameterWidget::value() {
-  return QVariant::fromValue(p->ui.m_doubleEdit->text().toDouble());
+  return QVariant::fromValue(p->ui.doubleEdit->text().toDouble());
 }
 
 void DoubleParameterWidget::setValue(const QVariant& value) {
-  p->ui.m_doubleEdit->setText(QString::number(value.toDouble()));
+  p->ui.doubleEdit->setText(QString::number(value.toDouble()));
 }
 
 #include "DoubleParameterWidget.moc"

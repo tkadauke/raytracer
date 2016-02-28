@@ -27,7 +27,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="m_cameraTypeComboBox"/>
+      <widget class="QComboBox" name="cameraTypeComboBox"/>
      </item>
     </layout>
    </item>

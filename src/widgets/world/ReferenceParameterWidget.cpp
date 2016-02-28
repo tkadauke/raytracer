@@ -18,9 +18,9 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
   p->root = root;
   
   p->ui.setupUi(this);
-  connect(p->ui.m_comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
+  connect(p->ui.comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
 
-  p->ui.m_comboBox->addItem(tr("<No Selection>"), QVariant::fromValue<QObject*>(nullptr));
+  p->ui.comboBox->addItem(tr("<No Selection>"), QVariant::fromValue<QObject*>(nullptr));
   fillComboBox(p->root);
 }
 
@@ -29,22 +29,22 @@ ReferenceParameterWidget::~ReferenceParameterWidget() {
 
 void ReferenceParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->ui.m_label->setText(name);
+  p->ui.label->setText(name);
 }
 
 const QVariant ReferenceParameterWidget::value() {
-  auto index = p->ui.m_comboBox->currentIndex();
-  return p->ui.m_comboBox->itemData(index);
+  auto index = p->ui.comboBox->currentIndex();
+  return p->ui.comboBox->itemData(index);
 }
 
 void ReferenceParameterWidget::setValue(const QVariant& value) {
-  auto index = p->ui.m_comboBox->findData(value);
-  p->ui.m_comboBox->setCurrentIndex(index);
+  auto index = p->ui.comboBox->findData(value);
+  p->ui.comboBox->setCurrentIndex(index);
 }
 
 void ReferenceParameterWidget::fillComboBox(Element* root) {
   if (root->inherits(p->baseClassName.toStdString().c_str())) {
-    p->ui.m_comboBox->addItem(root->name(), QVariant::fromValue<QObject*>(root));
+    p->ui.comboBox->addItem(root->name(), QVariant::fromValue<QObject*>(root));
   }
 
   for (const auto& child : root->children()) {

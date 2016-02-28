@@ -12,9 +12,9 @@ VectorParameterWidget::VectorParameterWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  connect(p->ui.m_xEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
-  connect(p->ui.m_yEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
-  connect(p->ui.m_zEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
+  connect(p->ui.xEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
+  connect(p->ui.yEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
+  connect(p->ui.zEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
 }
 
 VectorParameterWidget::~VectorParameterWidget() {
@@ -22,21 +22,21 @@ VectorParameterWidget::~VectorParameterWidget() {
 
 Vector3d VectorParameterWidget::vector() const {
   return Vector3d(
-    p->ui.m_xEdit->text().toDouble(),
-    p->ui.m_yEdit->text().toDouble(),
-    p->ui.m_zEdit->text().toDouble()
+    p->ui.xEdit->text().toDouble(),
+    p->ui.yEdit->text().toDouble(),
+    p->ui.zEdit->text().toDouble()
   );
 }
 
 void VectorParameterWidget::setVector(const Vector3d& vector) {
-  p->ui.m_xEdit->setText(QString::number(vector.x()));
-  p->ui.m_yEdit->setText(QString::number(vector.y()));
-  p->ui.m_zEdit->setText(QString::number(vector.z()));
+  p->ui.xEdit->setText(QString::number(vector.x()));
+  p->ui.yEdit->setText(QString::number(vector.y()));
+  p->ui.zEdit->setText(QString::number(vector.z()));
 }
 
 void VectorParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->ui.m_label->setText(name);
+  p->ui.label->setText(name);
 }
 
 const QVariant VectorParameterWidget::value() {

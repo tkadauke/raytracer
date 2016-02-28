@@ -10,45 +10,45 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  connect(p->ui.m_renderButton, SIGNAL(clicked()), this, SLOT(render()));
-  connect(p->ui.m_stopButton, SIGNAL(clicked()), this, SLOT(stop()));
+  connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
+  connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
 }
 
 RenderSettingsWidget::~RenderSettingsWidget() {
 }  
 
 QSize RenderSettingsWidget::resolution() {
-  QString resolution = p->ui.m_resolution->currentText();
+  QString resolution = p->ui.resolution->currentText();
   auto components = resolution.split("x");
   
   return QSize(components[0].toInt(), components[1].toInt());
 }
 
 QString RenderSettingsWidget::sampler() {
-  return p->ui.m_samplerType->currentText();
+  return p->ui.samplerType->currentText();
 }
 
 int RenderSettingsWidget::samplesPerPixel() {
-  return p->ui.m_samplesPerPixel->value();
+  return p->ui.samplesPerPixel->value();
 }
 
 int RenderSettingsWidget::maxRecursionDepth() {
-  return p->ui.m_maxRecursionDepth->value();
+  return p->ui.maxRecursionDepth->value();
 }
 
 void RenderSettingsWidget::setBusy(bool busy) {
-  p->ui.m_resolution->setEnabled(!busy);
-  p->ui.m_samplerType->setEnabled(!busy);
-  p->ui.m_samplesPerPixel->setEnabled(!busy);
-  p->ui.m_maxRecursionDepth->setEnabled(!busy);
+  p->ui.resolution->setEnabled(!busy);
+  p->ui.samplerType->setEnabled(!busy);
+  p->ui.samplesPerPixel->setEnabled(!busy);
+  p->ui.maxRecursionDepth->setEnabled(!busy);
   
-  p->ui.m_renderButton->setEnabled(!busy);
-  p->ui.m_stopButton->setEnabled(busy);
+  p->ui.renderButton->setEnabled(!busy);
+  p->ui.stopButton->setEnabled(busy);
 }
 
 void RenderSettingsWidget::setElapsedTime(int milliseconds) {
   int seconds = milliseconds / 1000;
-  p->ui.m_timeLabel->setText(
+  p->ui.timeLabel->setText(
     QString("Elapsed time: %1:%2:%3")
       .arg(seconds / 3600)
       .arg((seconds % 3600) / 60, 2, 10, QLatin1Char('0'))

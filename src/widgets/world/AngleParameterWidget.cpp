@@ -14,8 +14,8 @@ AngleParameterWidget::AngleParameterWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  connect(p->ui.m_angleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
-  connect(p->ui.m_angleType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(recalculate()));
+  connect(p->ui.angleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
+  connect(p->ui.angleType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(recalculate()));
 }
 
 AngleParameterWidget::~AngleParameterWidget() {
@@ -23,11 +23,11 @@ AngleParameterWidget::~AngleParameterWidget() {
 
 void AngleParameterWidget::setParameterName(const QString& name) {
   AbstractParameterWidget::setParameterName(name);
-  p->ui.m_label->setText(name);
+  p->ui.label->setText(name);
 }
 
 const QVariant AngleParameterWidget::value() {
-  double editValue = p->ui.m_angleEdit->text().toDouble();
+  double editValue = p->ui.angleEdit->text().toDouble();
   
   Angled angle;
   if (type() == "Degrees") {
@@ -52,7 +52,7 @@ void AngleParameterWidget::setValue(const QVariant& value) {
     number = angle.radians();
   }
   
-  p->ui.m_angleEdit->setText(QString::number(number));
+  p->ui.angleEdit->setText(QString::number(number));
 }
 
 void AngleParameterWidget::recalculate() {
@@ -60,7 +60,7 @@ void AngleParameterWidget::recalculate() {
 }
 
 QString AngleParameterWidget::type() {
-  return p->ui.m_angleType->currentText();
+  return p->ui.angleType->currentText();
 }
 
 #include "AngleParameterWidget.moc"

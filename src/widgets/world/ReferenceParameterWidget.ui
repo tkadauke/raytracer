@@ -27,7 +27,7 @@
     <number>0</number>
    </property>
    <item row="0" column="0">
-    <widget class="QLabel" name="m_label">
+    <widget class="QLabel" name="label">
      <property name="text">
       <string>TextLabel</string>
      </property>
@@ -47,7 +47,7 @@
     </spacer>
    </item>
    <item row="0" column="2">
-    <widget class="QComboBox" name="m_comboBox"/>
+    <widget class="QComboBox" name="comboBox"/>
    </item>
   </layout>
  </widget>

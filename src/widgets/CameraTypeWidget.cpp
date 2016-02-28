@@ -18,16 +18,16 @@ CameraTypeWidget::CameraTypeWidget(QWidget* parent)
   p->ui.setupUi(this);
   list<string> types = CameraFactory::self().identifiers();
   for (const auto& type : types) {
-    p->ui.m_cameraTypeComboBox->addItem(QString::fromStdString(type));
+    p->ui.cameraTypeComboBox->addItem(QString::fromStdString(type));
   }
-  connect(p->ui.m_cameraTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
+  connect(p->ui.cameraTypeComboBox, SIGNAL(activated(int)), this, SLOT(typeChanged()));
 }
 
 CameraTypeWidget::~CameraTypeWidget() {
 }
 
 string CameraTypeWidget::type() const {
-  return p->ui.m_cameraTypeComboBox->currentText().toStdString();
+  return p->ui.cameraTypeComboBox->currentText().toStdString();
 }
 
 void CameraTypeWidget::typeChanged() {

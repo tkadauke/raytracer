@@ -40,7 +40,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QDoubleSpinBox" name="m_distanceInput">
+      <widget class="QDoubleSpinBox" name="distanceInput">
        <property name="minimum">
         <double>0.100000000000000</double>
        </property>
@@ -77,7 +77,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QDoubleSpinBox" name="m_zoomInput">
+      <widget class="QDoubleSpinBox" name="zoomInput">
        <property name="minimum">
         <double>0.100000000000000</double>
        </property>

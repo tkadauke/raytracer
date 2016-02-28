@@ -27,7 +27,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="m_sceneComboBox"/>
+      <widget class="QComboBox" name="sceneComboBox"/>
      </item>
     </layout>
    </item>
