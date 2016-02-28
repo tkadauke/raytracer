@@ -92,8 +92,8 @@ public:
     return result;
   }
 
-  template<class VectorCellType>
-  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T, VectorCellType>& vector) const {
+  template<class VectorCellType, class Derived>
+  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T, VectorCellType, Derived>& vector) const {
     Vector<Dimensions, T> result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -205,8 +205,8 @@ public:
     return static_cast<MatrixType>(this->Base::operator*(static_cast<MatrixType>(other)));
   }
 
-  template<class VectorCellType>
-  inline VectorType operator*(const ::Vector<Dimensions, T, VectorCellType>& vector) const {
+  template<class VectorCellType, class Derived>
+  inline VectorType operator*(const ::Vector<Dimensions, T, VectorCellType, Derived>& vector) const {
     return static_cast<VectorType>(this->Base::operator*(vector));
   }
   

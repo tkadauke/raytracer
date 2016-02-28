@@ -13,7 +13,7 @@ public:
     return r;
   }
 
-  inline Ray(const Vector3d& origin, const Vector3d& direction)
+  inline Ray(const Vector4d& origin, const Vector3d& direction)
     : m_origin(origin), m_direction(direction)
   {
   }

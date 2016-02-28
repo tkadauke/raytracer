@@ -3,8 +3,12 @@
 
 namespace testing {
   namespace internal {
-    template<int Dimensions, class T, class VectorCellType>
-    bool vectorNear(const Vector<Dimensions, T, VectorCellType>& expected, const Vector<Dimensions, T, VectorCellType>& actual, const T& threshold = 0.0001) {
+    template<int Dimensions, class T, class VectorCellType, class Derived>
+    bool vectorNear(
+      const Vector<Dimensions, T, VectorCellType, Derived>& expected,
+      const Vector<Dimensions, T, VectorCellType, Derived>& actual,
+      const T& threshold = 0.0001
+    ) {
       for (int i = 0; i != Dimensions; ++i) {
         if (actual[i] < expected[i] - threshold || actual[i] > expected[i] + threshold)
           return false;
@@ -12,14 +16,16 @@ namespace testing {
       return true;
     }
 
-    template<int Dimensions, class T, class VectorCellType>
+    template<int Dimensions, class T, class VectorCellType, class Derived>
     // Helper function for implementing ASSERT_VECTOR_NEAR.
-    AssertionResult VectorNearPredFormat(const char* expr1,
-                                         const char* expr2,
-                                         const char* abs_error_expr,
-                                         const Vector<Dimensions, T, VectorCellType>& val1,
-                                         const Vector<Dimensions, T, VectorCellType>& val2,
-                                         double abs_error) {
+    AssertionResult VectorNearPredFormat(
+      const char* expr1,
+      const char* expr2,
+      const char* abs_error_expr,
+      const Vector<Dimensions, T, VectorCellType, Derived>& val1,
+      const Vector<Dimensions, T, VectorCellType, Derived>& val2,
+      double abs_error
+    ) {
       if (vectorNear(val1, val2, T(abs_error))) return AssertionSuccess();
 
       Message msg;

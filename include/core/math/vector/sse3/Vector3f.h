@@ -5,7 +5,7 @@
 #include <xmmintrin.h>
 
 template<>
-class Vector3<float> : public Vector<3, float, __m128> {
+class Vector3<float> : public Vector<3, float, __m128, Vector3<float>> {
   typedef float CellsType[3];
 public:
   static const int Dim = 3;
@@ -44,8 +44,8 @@ public:
     m_coordinates[2] = source.coordinate(2);
   }
 
-  template<int D, class C, class V>
-  inline Vector3(const Vector<D, C, V>& source) {
+  template<int D, class C, class V, class S>
+  inline Vector3(const Vector<D, C, V, S>& source) {
     m_vector[0] = _mm_setzero_ps();
     for (int i = 0; i != Dim && i != D; ++i)
       m_coordinates[i] = source.coordinate(i);

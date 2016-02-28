@@ -4,7 +4,8 @@
 #include <iostream>
 #include <limits>
 #include "core/DivisionByZeroException.h"
-#include "core/InequalityOperator.h"
+
+#include "core/StaticIf.h"
 
 /**
   * This is a generic vector class with a fixed number of dimensions Dimensions
@@ -30,8 +31,8 @@
   * Vector4d. There are SSE-optimized template specializations for some of
   * these predefined Vector types to improve performance.
   */
-template<int Dimensions, class T, class VectorCellType = T>
-class Vector : public InequalityOperator<Vector<Dimensions, T, VectorCellType>> {
+template<int Dimensions, class T, class VectorCellType = T, class Derived = NullType>
+class Vector {
 public:
   typedef T CellsType[Dimensions];
 
@@ -40,7 +41,15 @@ private:
   static const int VectorCellTypeSize = sizeof(VectorCellType);
   static const int VectorCellCount = (CellsTypeSize + VectorCellTypeSize + 1) / VectorCellTypeSize;
 
-  typedef VectorCellType VectorType[VectorCellCount];
+  typedef VectorCellType ArrayType[VectorCellCount];
+  
+  typedef Vector<Dimensions, T, VectorCellType, Derived> ThisType;
+  
+  typedef typename StaticIf<
+    IsNullType<Derived>::Result,
+    ThisType,
+    Derived
+  >::Result VectorType;
   
 public:
   /**
@@ -77,8 +86,8 @@ public:
     * typed source Vector. Any fields not contained in the source vector will
     * be initialized with zeroes.
     */
-  template<int D, class C, class V>
-  inline Vector(const Vector<D, C, V>& source) {
+  template<int D, class C, class V, class S>
+  inline Vector(const Vector<D, C, V, S>& source) {
     for (int i = 0; i != Dimensions; ++i) {
       if (i >= D)
         m_coordinates[i] = T();
@@ -124,8 +133,8 @@ public:
     * @returns the sum of the vectors \f$v+u = (v_1+u_1,\ldots,v_n+u_n)\f$, for
     *   where this vector is \f$v\f$ and other is \f$u\f$.
     */
-  inline Vector<Dimensions, T, VectorCellType> operator+(const Vector<Dimensions, T, VectorCellType>& other) const {
-    Vector<Dimensions, T, VectorCellType> result;
+  inline VectorType operator+(const VectorType& other) const {
+    VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, coordinate(i) + other.coordinate(i));
     }
@@ -136,8 +145,8 @@ public:
     * @returns the difference of the vectors \f$v-u = (v_1-u_1,\ldots,v_n-u_n)\f$,
     *   where this vector is \f$v\f$ and other is \f$u\f$.
     */
-  inline Vector<Dimensions, T, VectorCellType> operator-(const Vector<Dimensions, T, VectorCellType>& other) const {
-    Vector<Dimensions, T, VectorCellType> result;
+  inline VectorType operator-(const VectorType& other) const {
+    VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, coordinate(i) - other.coordinate(i));
     }
@@ -148,8 +157,8 @@ public:
     * @returns the negative of the vector \f$-v = (-v_1,\ldots,-v_n)\f$, where
     *   this vector is \f$v\f$.
     */
-  inline Vector<Dimensions, T, VectorCellType> operator-() const {
-    Vector<Dimensions, T, VectorCellType> result;
+  inline VectorType operator-() const {
+    VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, - coordinate(i));
     }
@@ -162,7 +171,7 @@ public:
     *   \f$c\f$.
     * @throws a DivisionByZeroException if factor is zero.
     */
-  inline Vector<Dimensions, T, VectorCellType> operator/(const T& factor) const {
+  inline VectorType operator/(const T& factor) const {
     if (factor == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
@@ -174,7 +183,7 @@ public:
     * @returns the dot product of the vectors \f$v \cdot u = (v_1u_1,\ldots,
     *   v_nu_n)\f$, where this vector is \f$v\f$ and other is \f$u\f$.
     */
-  inline T dotProduct(const Vector<Dimensions, T, VectorCellType>& other) const {
+  inline T dotProduct(const VectorType& other) const {
     T result = T();
     for (int i = 0; i != Dimensions; ++i) {
       result += coordinate(i) * other.coordinate(i);
@@ -185,7 +194,7 @@ public:
   /**
     * Synonym for dotProduct().
     */
-  inline T operator*(const Vector<Dimensions, T, VectorCellType>& other) const {
+  inline T operator*(const VectorType& other) const {
     return dotProduct(other);
   }
 
@@ -193,8 +202,8 @@ public:
     * @returns the product of the vector and the constant \f$vc = (v_{1}c,\ldots,
     *   v_{n}c)\f$, where this vector is \f$v\f$ and factor is \f$c\f$
     */
-  inline Vector<Dimensions, T, VectorCellType> operator*(const T& factor) const {
-    Vector<Dimensions, T, VectorCellType> result;
+  inline VectorType operator*(const T& factor) const {
+    VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, coordinate(i) * factor);
     }
@@ -202,10 +211,18 @@ public:
   }
 
   /**
+    * Returns true if any of the components in this vector is different from the
+    * corresponding component in the other vector.
+    */
+  inline bool operator!=(const VectorType& other) const {
+    return !(*this == other);
+  }
+
+  /**
     * @returns true if all components of this vector are equal to components of
     *   the other vector, false otherwise.
     */
-  inline bool operator==(const Vector<Dimensions, T, VectorCellType>& other) const {
+  inline bool operator==(const VectorType& other) const {
     if (&other == this)
       return true;
     for (int i = 0; i != Dimensions; ++i) {
@@ -220,11 +237,11 @@ public:
     * 
     * @returns itself.
     */
-  inline Vector<Dimensions, T, VectorCellType>& operator+=(const Vector<Dimensions, T, VectorCellType>& other) {
+  inline VectorType& operator+=(const VectorType& other) {
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) + other.coordinate(i));
     }
-    return *this;
+    return static_cast<VectorType&>(*this);
   }
 
   /**
@@ -232,11 +249,11 @@ public:
     * 
     * @returns itself.
     */
-  inline Vector<Dimensions, T, VectorCellType>& operator-=(const Vector<Dimensions, T, VectorCellType>& other) {
+  inline VectorType& operator-=(const VectorType& other) {
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) - other.coordinate(i));
     }
-    return *this;
+    return static_cast<VectorType&>(*this);
   }
 
   /**
@@ -244,11 +261,11 @@ public:
     * 
     * @returns itself.
     */
-  inline Vector<Dimensions, T, VectorCellType>& operator*=(const T& factor) {
+  inline VectorType& operator*=(const T& factor) {
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) * factor);
     }
-    return *this;
+    return static_cast<VectorType&>(*this);
   }
 
   /**
@@ -257,7 +274,7 @@ public:
     * 
     * @returns itself.
     */
-  inline Vector<Dimensions, T, VectorCellType>& operator/=(const T& factor) {
+  inline VectorType& operator/=(const T& factor) {
     if (factor == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
@@ -277,7 +294,7 @@ public:
     *   v\f$.
     */
   inline T squaredLength() const {
-    return *this * *this;
+    return static_cast<const VectorType&>(*this) * static_cast<const VectorType&>(*this);
   }
   
   /**
@@ -285,7 +302,7 @@ public:
     *
     * @returns the distance between those points, i.e. \f$|u-v|\f$.
     */
-  inline T distanceTo(const Vector<Dimensions, T, VectorCellType>& other) const {
+  inline T distanceTo(const VectorType& other) const {
     return (*this - other).length();
   }
   
@@ -294,7 +311,7 @@ public:
     *
     * @returns the squared distance between those points, i.e. \f$|u-v|^2\f$.
     */
-  inline T squaredDistanceTo(const Vector<Dimensions, T, VectorCellType>& other) const {
+  inline T squaredDistanceTo(const VectorType& other) const {
     return (*this - other).squaredLength();
   }
 
@@ -303,7 +320,7 @@ public:
     * this vector devided by its length, which is a unit vector with the same
     * direction as the original, but length 1.
     */
-  inline Vector<Dimensions, T, VectorCellType> normalized() const {
+  inline VectorType normalized() const {
     return *this / length();
   }
   
@@ -345,7 +362,7 @@ public:
 protected:
   union {
     CellsType m_coordinates;
-    VectorType m_vector;
+    ArrayType m_vector;
   };
 };
 
@@ -355,8 +372,8 @@ protected:
   * 
   * @returns os.
   */
-template<int Dimensions, class T, class VectorCellType>
-std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, VectorCellType>& vector) {
+template<int Dimensions, class T, class VectorCellType, class Derived>
+std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, VectorCellType, Derived>& vector) {
   os << "(";
   for (int i = 0; i != Dimensions; ++i) {
     os << vector[i];
@@ -366,65 +383,6 @@ std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, VectorCel
   os << ")";
   return os;
 }
-
-template<int Dimensions, class T, class VectorType>
-class SpecializedVector : public Vector<Dimensions, T> {
-  typedef Vector<Dimensions, T> Base;
-public:
-  using Base::dotProduct;
-  using Base::operator*;
-
-  inline SpecializedVector()
-    : Base()
-  {
-  }
-
-  template<int D, class C, class V>
-  inline SpecializedVector(const Vector<D, C, V>& source)
-    : Base(source)
-  {
-  }
-  
-  inline VectorType operator+(const VectorType& other) const {
-    return static_cast<VectorType>(this->Base::operator+(other));
-  }
-
-  inline VectorType operator-(const VectorType& other) const {
-    return static_cast<VectorType>(this->Base::operator-(other));
-  }
-
-  inline VectorType operator-() const {
-    return static_cast<VectorType>(this->Base::operator-());
-  }
-
-  inline VectorType operator/(const T& factor) const {
-    return static_cast<VectorType>(this->Base::operator/(factor));
-  }
-
-  inline VectorType operator*(const T& factor) const {
-    return static_cast<VectorType>(this->Base::operator*(factor));
-  }
-  
-  inline VectorType& operator+=(const VectorType& other) {
-    return static_cast<VectorType&>(this->Base::operator+=(other));
-  }
-  
-  inline VectorType& operator-=(const VectorType& other) {
-    return static_cast<VectorType&>(this->Base::operator-=(other));
-  }
-
-  inline VectorType& operator*=(const T& factor) {
-    return static_cast<VectorType&>(this->Base::operator*=(factor));
-  }
-
-  inline VectorType& operator/=(const T& factor) {
-    return static_cast<VectorType&>(this->Base::operator/=(factor));
-  }
-
-  inline VectorType normalized() const {
-    return static_cast<VectorType>(this->Base::normalized());
-  }
-};
 
 /**
   * Represents a two-dimensional vector with component type T. This class
@@ -446,8 +404,8 @@ public:
   * class implements the x(), and y() accessors.
   */
 template<class T>
-class Vector2 : public SpecializedVector<2, T, Vector2<T>> {
-  typedef SpecializedVector<2, T, Vector2<T>> Base;
+class Vector2 : public Vector<2, T, T, Vector2<T>> {
+  typedef Vector<2, T, T, Vector2<T>> Base;
 public:
   using Base::setCoordinate;
   
@@ -504,8 +462,8 @@ public:
     * Constructs a Vector2<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector.
     */
-  template<int D, class C, class V>
-  inline Vector2(const Vector<D, C, V>& source)
+  template<int D, class C, class V, class S>
+  inline Vector2(const Vector<D, C, V, S>& source)
     : Base(source)
   {
   }
@@ -554,8 +512,8 @@ public:
   * on the machine.
   */
 template<class T>
-class Vector3 : public SpecializedVector<3, T, Vector3<T>> {
-  typedef SpecializedVector<3, T, Vector3<T>> Base;
+class Vector3 : public Vector<3, T, T, Vector3<T>> {
+  typedef Vector<3, T, T, Vector3<T>> Base;
 public:
   using Base::setCoordinate;
   
@@ -662,8 +620,8 @@ public:
     * Constructs a Vector3<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector.
     */
-  template<int D, class C, class V>
-  inline Vector3(const Vector<D, C, V>& source)
+  template<int D, class C, class V, class S>
+  inline Vector3(const Vector<D, C, V, S>& source)
     : Base(source)
   {
   }
@@ -745,8 +703,8 @@ public:
   * at compile time.
   */
 template<class T>
-class Vector4 : public SpecializedVector<4, T, Vector4<T>> {
-  typedef SpecializedVector<4, T, Vector4<T>> Base;
+class Vector4 : public Vector<4, T, T, Vector4<T>> {
+  typedef Vector<4, T, T, Vector4<T>> Base;
 public:
   using Base::setCoordinate;
   
@@ -829,8 +787,8 @@ public:
     * typed source Vector. If the source vector is not four dimensional, the
     * constructor sets the \f$w\f$ component to \f$1\f$.
     */
-  template<int D, class C, class V>
-  inline Vector4(const Vector<D, C, V>& source)
+  template<int D, class C, class V, class S>
+  inline Vector4(const Vector<D, C, V, S>& source)
     : Base(source)
   {
     if (D != 4)

@@ -331,72 +331,72 @@ namespace VectorTest {
   }
 }
 
-namespace SpecializedVectorTest {
+namespace DerivedVectorTest {
   template<class T>
-  class SpecializedVectorTest : public ::testing::Test {
+  class DerivedVectorTest : public ::testing::Test {
   };
 
   typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>,
                            Vector2<double>, Vector3<double>, Vector4<double>> SpecializedVectorTypes;
-  TYPED_TEST_CASE(SpecializedVectorTest, SpecializedVectorTypes);
+  TYPED_TEST_CASE(DerivedVectorTest, SpecializedVectorTypes);
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForDotProduct) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForDotProduct) {
     TypeParam vector;
     ASSERT_TYPES_EQ(typename TypeParam::Coordinate(0), vector * vector);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector * 2);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForDivisionByScalar) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForDivisionByScalar) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector / 2);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceAddition) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForInPlaceAddition) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector += vector);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceSubtraction) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForInPlaceSubtraction) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector -= vector);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceMultiplicationWithScalar) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForInPlaceMultiplicationWithScalar) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector *= 2);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForInPlaceDivisionByScalar) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForInPlaceDivisionByScalar) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector /= 2);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForAddition) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForAddition) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector + vector);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForSubtraction) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForSubtraction) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, vector - vector);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForNegation) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForNegation) {
     TypeParam vector;
     ASSERT_TYPES_EQ(vector, - vector);
   }
 
-  TYPED_TEST(SpecializedVectorTest, ShouldReturnCorrectTypeForNormalization) {
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForNormalization) {
     TypeParam vector;
     vector[0] = 1;
     ASSERT_TYPES_EQ(vector, vector.normalized());
   }
   
-  TYPED_TEST(SpecializedVectorTest, ShouldProvideUndefinedVector) {
+  TYPED_TEST(DerivedVectorTest, ShouldProvideUndefinedVector) {
     TypeParam vector = TypeParam::undefined();
     ASSERT_TRUE(vector.isUndefined());
   }
