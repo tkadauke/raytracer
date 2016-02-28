@@ -43,14 +43,67 @@
 #include "world/objects/OrthographicCamera.h"
 #include "world/objects/SphericalCamera.h"
 
-MainWindow::MainWindow()
-  : QMainWindow(), m_currentElement(nullptr)
-{
-  m_scene = new ::Scene(nullptr);
+struct MainWindow::Private {
+  inline Private()
+    : currentElement(nullptr)
+  {
+  }
+  
+  QString fileName;
 
-  m_display = new Display(this);
-  m_display->setScene(m_scene);
-  setCentralWidget(m_display);
+  Display* display;
+  PreviewDisplayWidget* materialDisplay;
+  PropertyEditorWidget* propertyEditorWidget;
+  SceneModel* elementModel;
+  
+  RenderWindow* renderWindow;
+  
+  Scene* scene;
+  
+  Element* currentElement;
+  
+  QMenu* fileMenu;
+  QMenu* editMenu;
+  QMenu* renderMenu;
+  QMenu* helpMenu;
+
+  QAction* newAct;
+  QAction* openAct;
+  QAction* saveAct;
+  QAction* saveAsAct;
+
+  QAction* addBoxAct;
+  QAction* addSphereAct;
+  
+  QAction* addMatteMaterialAct;
+  QAction* addPhongMaterialAct;
+  QAction* addTransparentMaterialAct;
+  QAction* addReflectiveMaterialAct;
+  
+  QAction* addConstantColorTextureAct;
+  QAction* addCheckerBoardTextureAct;
+
+  QAction* addPinholeCameraAct;
+  QAction* addFishEyeCameraAct;
+  QAction* addOrthographicCameraAct;
+  QAction* addSphericalCameraAct;
+  
+  QAction* deleteElementAct;
+
+  QAction* renderAct;
+  
+  QAction* aboutAct;
+  QAction* helpAct;
+};
+
+MainWindow::MainWindow()
+  : QMainWindow(), p(std::make_unique<Private>())
+{
+  p->scene = new ::Scene(nullptr);
+
+  p->display = new Display(this);
+  p->display->setScene(p->scene);
+  setCentralWidget(p->display);
   
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
@@ -62,102 +115,102 @@ MainWindow::MainWindow()
   createActions();
   createMenus();
   
-  m_renderWindow = new RenderWindow(nullptr);
+  p->renderWindow = new RenderWindow(nullptr);
 }
 
 void MainWindow::createActions() {
-  m_newAct = new QAction(tr("&New"), this);
-  m_newAct->setShortcuts(QKeySequence::New);
-  m_newAct->setStatusTip(tr("Create a new file"));
-  connect(m_newAct, SIGNAL(triggered()), this, SLOT(newFile()));
+  p->newAct = new QAction(tr("&New"), this);
+  p->newAct->setShortcuts(QKeySequence::New);
+  p->newAct->setStatusTip(tr("Create a new file"));
+  connect(p->newAct, SIGNAL(triggered()), this, SLOT(newFile()));
   
-  m_openAct = new QAction(tr("&Open"), this);
-  m_openAct->setShortcuts(QKeySequence::Open);
-  m_openAct->setStatusTip(tr("Open a file from disk"));
-  connect(m_openAct, SIGNAL(triggered()), this, SLOT(openFile()));
+  p->openAct = new QAction(tr("&Open"), this);
+  p->openAct->setShortcuts(QKeySequence::Open);
+  p->openAct->setStatusTip(tr("Open a file from disk"));
+  connect(p->openAct, SIGNAL(triggered()), this, SLOT(openFile()));
   
-  m_saveAct = new QAction(tr("&Save"), this);
-  m_saveAct->setShortcuts(QKeySequence::Save);
-  m_saveAct->setStatusTip(tr("Save the current project to a file"));
-  connect(m_saveAct, SIGNAL(triggered()), this, SLOT(saveFile()));
+  p->saveAct = new QAction(tr("&Save"), this);
+  p->saveAct->setShortcuts(QKeySequence::Save);
+  p->saveAct->setStatusTip(tr("Save the current project to a file"));
+  connect(p->saveAct, SIGNAL(triggered()), this, SLOT(saveFile()));
   
-  m_saveAsAct = new QAction(tr("Save &As"), this);
-  m_saveAsAct->setShortcuts(QKeySequence::SaveAs);
-  m_saveAsAct->setStatusTip(tr("Save the current project to a new file"));
-  connect(m_saveAsAct, SIGNAL(triggered()), this, SLOT(saveFileAs()));
+  p->saveAsAct = new QAction(tr("Save &As"), this);
+  p->saveAsAct->setShortcuts(QKeySequence::SaveAs);
+  p->saveAsAct->setStatusTip(tr("Save the current project to a new file"));
+  connect(p->saveAsAct, SIGNAL(triggered()), this, SLOT(saveFileAs()));
   
-  m_addBoxAct = new QAction(tr("Box"), this);
-  m_addBoxAct->setStatusTip(tr("Add a Box to the scene"));
-  connect(m_addBoxAct, SIGNAL(triggered()), this, SLOT(addBox()));
+  p->addBoxAct = new QAction(tr("Box"), this);
+  p->addBoxAct->setStatusTip(tr("Add a Box to the scene"));
+  connect(p->addBoxAct, SIGNAL(triggered()), this, SLOT(addBox()));
   
-  m_addSphereAct = new QAction(tr("Sphere"), this);
-  m_addSphereAct->setStatusTip(tr("Add a Sphere to the scene"));
-  connect(m_addSphereAct, SIGNAL(triggered()), this, SLOT(addSphere()));
+  p->addSphereAct = new QAction(tr("Sphere"), this);
+  p->addSphereAct->setStatusTip(tr("Add a Sphere to the scene"));
+  connect(p->addSphereAct, SIGNAL(triggered()), this, SLOT(addSphere()));
   
-  m_addMatteMaterialAct = new QAction(tr("Matte Material"), this);
-  m_addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
-  connect(m_addMatteMaterialAct, SIGNAL(triggered()), this, SLOT(addMatteMaterial()));
+  p->addMatteMaterialAct = new QAction(tr("Matte Material"), this);
+  p->addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
+  connect(p->addMatteMaterialAct, SIGNAL(triggered()), this, SLOT(addMatteMaterial()));
 
-  m_addPhongMaterialAct = new QAction(tr("Phong Material"), this);
-  m_addPhongMaterialAct->setStatusTip(tr("Add a Phong material to the scene"));
-  connect(m_addPhongMaterialAct, SIGNAL(triggered()), this, SLOT(addPhongMaterial()));
+  p->addPhongMaterialAct = new QAction(tr("Phong Material"), this);
+  p->addPhongMaterialAct->setStatusTip(tr("Add a Phong material to the scene"));
+  connect(p->addPhongMaterialAct, SIGNAL(triggered()), this, SLOT(addPhongMaterial()));
 
-  m_addTransparentMaterialAct = new QAction(tr("Transparent Material"), this);
-  m_addTransparentMaterialAct->setStatusTip(tr("Add a transparent material to the scene"));
-  connect(m_addTransparentMaterialAct, SIGNAL(triggered()), this, SLOT(addTransparentMaterial()));
+  p->addTransparentMaterialAct = new QAction(tr("Transparent Material"), this);
+  p->addTransparentMaterialAct->setStatusTip(tr("Add a transparent material to the scene"));
+  connect(p->addTransparentMaterialAct, SIGNAL(triggered()), this, SLOT(addTransparentMaterial()));
 
-  m_addReflectiveMaterialAct = new QAction(tr("Reflective Material"), this);
-  m_addReflectiveMaterialAct->setStatusTip(tr("Add a reflective material to the scene"));
-  connect(m_addReflectiveMaterialAct, SIGNAL(triggered()), this, SLOT(addReflectiveMaterial()));
+  p->addReflectiveMaterialAct = new QAction(tr("Reflective Material"), this);
+  p->addReflectiveMaterialAct->setStatusTip(tr("Add a reflective material to the scene"));
+  connect(p->addReflectiveMaterialAct, SIGNAL(triggered()), this, SLOT(addReflectiveMaterial()));
 
-  m_addConstantColorTextureAct = new QAction(tr("Constant Color"), this);
-  m_addConstantColorTextureAct->setStatusTip(tr("Add a constant color texture to the scene"));
-  connect(m_addConstantColorTextureAct, SIGNAL(triggered()), this, SLOT(addConstantColorTexture()));
+  p->addConstantColorTextureAct = new QAction(tr("Constant Color"), this);
+  p->addConstantColorTextureAct->setStatusTip(tr("Add a constant color texture to the scene"));
+  connect(p->addConstantColorTextureAct, SIGNAL(triggered()), this, SLOT(addConstantColorTexture()));
 
-  m_addCheckerBoardTextureAct = new QAction(tr("Checker Board"), this);
-  m_addCheckerBoardTextureAct->setStatusTip(tr("Add a checker board texture to the scene"));
-  connect(m_addCheckerBoardTextureAct, SIGNAL(triggered()), this, SLOT(addCheckerBoardTexture()));
+  p->addCheckerBoardTextureAct = new QAction(tr("Checker Board"), this);
+  p->addCheckerBoardTextureAct->setStatusTip(tr("Add a checker board texture to the scene"));
+  connect(p->addCheckerBoardTextureAct, SIGNAL(triggered()), this, SLOT(addCheckerBoardTexture()));
 
-  m_addPinholeCameraAct = new QAction(tr("Pinhole Camera"), this);
-  m_addPinholeCameraAct->setStatusTip(tr("Add a pinhole camera to the scene"));
-  connect(m_addPinholeCameraAct, SIGNAL(triggered()), this, SLOT(addPinholeCamera()));
+  p->addPinholeCameraAct = new QAction(tr("Pinhole Camera"), this);
+  p->addPinholeCameraAct->setStatusTip(tr("Add a pinhole camera to the scene"));
+  connect(p->addPinholeCameraAct, SIGNAL(triggered()), this, SLOT(addPinholeCamera()));
 
-  m_addFishEyeCameraAct = new QAction(tr("Fish Eye Camera"), this);
-  m_addFishEyeCameraAct->setStatusTip(tr("Add a fish eye camera to the scene"));
-  connect(m_addFishEyeCameraAct, SIGNAL(triggered()), this, SLOT(addFishEyeCamera()));
+  p->addFishEyeCameraAct = new QAction(tr("Fish Eye Camera"), this);
+  p->addFishEyeCameraAct->setStatusTip(tr("Add a fish eye camera to the scene"));
+  connect(p->addFishEyeCameraAct, SIGNAL(triggered()), this, SLOT(addFishEyeCamera()));
 
-  m_addOrthographicCameraAct = new QAction(tr("Orthographic Camera"), this);
-  m_addOrthographicCameraAct->setStatusTip(tr("Add an orthographic camera to the scene"));
-  connect(m_addOrthographicCameraAct, SIGNAL(triggered()), this, SLOT(addOrthographicCamera()));
+  p->addOrthographicCameraAct = new QAction(tr("Orthographic Camera"), this);
+  p->addOrthographicCameraAct->setStatusTip(tr("Add an orthographic camera to the scene"));
+  connect(p->addOrthographicCameraAct, SIGNAL(triggered()), this, SLOT(addOrthographicCamera()));
 
-  m_addSphericalCameraAct = new QAction(tr("Spherical Camera"), this);
-  m_addSphericalCameraAct->setStatusTip(tr("Add a spherical camera to the scene"));
-  connect(m_addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
+  p->addSphericalCameraAct = new QAction(tr("Spherical Camera"), this);
+  p->addSphericalCameraAct->setStatusTip(tr("Add a spherical camera to the scene"));
+  connect(p->addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
 
-  m_aboutAct = new QAction(tr("&About"), this);
-  m_aboutAct->setStatusTip(tr("Show the application's About box"));
-  connect(m_aboutAct, SIGNAL(triggered()), this, SLOT(about()));
+  p->aboutAct = new QAction(tr("&About"), this);
+  p->aboutAct->setStatusTip(tr("Show the application's About box"));
+  connect(p->aboutAct, SIGNAL(triggered()), this, SLOT(about()));
 
-  m_deleteElementAct = new QAction(tr("&Delete"), this);
-  m_deleteElementAct->setShortcuts(QKeySequence::Delete);
-  m_deleteElementAct->setStatusTip(tr("Delete selected element"));
-  m_deleteElementAct->setEnabled(false);
-  connect(m_deleteElementAct, SIGNAL(triggered()), this, SLOT(deleteElement()));
+  p->deleteElementAct = new QAction(tr("&Delete"), this);
+  p->deleteElementAct->setShortcuts(QKeySequence::Delete);
+  p->deleteElementAct->setStatusTip(tr("Delete selected element"));
+  p->deleteElementAct->setEnabled(false);
+  connect(p->deleteElementAct, SIGNAL(triggered()), this, SLOT(deleteElement()));
 
-  m_renderAct = new QAction(tr("&Render"), this);
-  m_renderAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_R));
-  m_renderAct->setStatusTip(tr("Render current scene"));
-  connect(m_renderAct, SIGNAL(triggered()), this, SLOT(render()));
+  p->renderAct = new QAction(tr("&Render"), this);
+  p->renderAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_R));
+  p->renderAct->setStatusTip(tr("Render current scene"));
+  connect(p->renderAct, SIGNAL(triggered()), this, SLOT(render()));
 
-  m_helpAct = new QAction(tr("Raytracer &Help"), this);
-  m_helpAct->setStatusTip(tr("Go to the Github page"));
-  connect(m_helpAct, SIGNAL(triggered()), this, SLOT(help()));
+  p->helpAct = new QAction(tr("Raytracer &Help"), this);
+  p->helpAct->setStatusTip(tr("Go to the Github page"));
+  connect(p->helpAct, SIGNAL(triggered()), this, SLOT(help()));
   
   auto modifyingActions = {
-    m_newAct, m_openAct, m_saveAct, m_saveAsAct, m_addBoxAct, m_addSphereAct,
-    m_addMatteMaterialAct, m_addPhongMaterialAct, m_addReflectiveMaterialAct,
-    m_addConstantColorTextureAct, m_addCheckerBoardTextureAct,
-    m_addPinholeCameraAct, m_deleteElementAct
+    p->newAct, p->openAct, p->saveAct, p->saveAsAct, p->addBoxAct, p->addSphereAct,
+    p->addMatteMaterialAct, p->addPhongMaterialAct, p->addReflectiveMaterialAct,
+    p->addConstantColorTextureAct, p->addCheckerBoardTextureAct,
+    p->addPinholeCameraAct, p->deleteElementAct
   };
   
   for (auto& act : modifyingActions) {
@@ -166,46 +219,46 @@ void MainWindow::createActions() {
 }
 
 void MainWindow::createMenus() {
-  m_fileMenu = menuBar()->addMenu(tr("&File"));
-  m_fileMenu->addAction(m_newAct);
-  m_fileMenu->addAction(m_openAct);
-  m_fileMenu->addAction(m_saveAct);
-  m_fileMenu->addAction(m_saveAsAct);
+  p->fileMenu = menuBar()->addMenu(tr("&File"));
+  p->fileMenu->addAction(p->newAct);
+  p->fileMenu->addAction(p->openAct);
+  p->fileMenu->addAction(p->saveAct);
+  p->fileMenu->addAction(p->saveAsAct);
 
-  m_editMenu = menuBar()->addMenu(tr("&Edit"));
-  auto addPrimitive = m_editMenu->addMenu(tr("Add Primitive"));
-  addPrimitive->addAction(m_addBoxAct);
-  addPrimitive->addAction(m_addSphereAct);
+  p->editMenu = menuBar()->addMenu(tr("&Edit"));
+  auto addPrimitive = p->editMenu->addMenu(tr("Add Primitive"));
+  addPrimitive->addAction(p->addBoxAct);
+  addPrimitive->addAction(p->addSphereAct);
   
-  auto addMaterial = m_editMenu->addMenu(tr("Add Material"));
-  addMaterial->addAction(m_addMatteMaterialAct);
-  addMaterial->addAction(m_addPhongMaterialAct);
-  addMaterial->addAction(m_addTransparentMaterialAct);
-  addMaterial->addAction(m_addReflectiveMaterialAct);
+  auto addMaterial = p->editMenu->addMenu(tr("Add Material"));
+  addMaterial->addAction(p->addMatteMaterialAct);
+  addMaterial->addAction(p->addPhongMaterialAct);
+  addMaterial->addAction(p->addTransparentMaterialAct);
+  addMaterial->addAction(p->addReflectiveMaterialAct);
   
-  auto addTexture = m_editMenu->addMenu(tr("Add Texture"));
-  addTexture->addAction(m_addConstantColorTextureAct);
-  addTexture->addAction(m_addCheckerBoardTextureAct);
+  auto addTexture = p->editMenu->addMenu(tr("Add Texture"));
+  addTexture->addAction(p->addConstantColorTextureAct);
+  addTexture->addAction(p->addCheckerBoardTextureAct);
 
-  auto addCamera = m_editMenu->addMenu(tr("Add Camera"));
-  addCamera->addAction(m_addPinholeCameraAct);
-  addCamera->addAction(m_addFishEyeCameraAct);
-  addCamera->addAction(m_addOrthographicCameraAct);
-  addCamera->addAction(m_addSphericalCameraAct);
+  auto addCamera = p->editMenu->addMenu(tr("Add Camera"));
+  addCamera->addAction(p->addPinholeCameraAct);
+  addCamera->addAction(p->addFishEyeCameraAct);
+  addCamera->addAction(p->addOrthographicCameraAct);
+  addCamera->addAction(p->addSphericalCameraAct);
   
-  m_editMenu->addSeparator();
-  m_editMenu->addAction(m_deleteElementAct);
+  p->editMenu->addSeparator();
+  p->editMenu->addAction(p->deleteElementAct);
 
-  m_renderMenu = menuBar()->addMenu(tr("&Render"));
-  m_renderMenu->addAction(m_renderAct);
+  p->renderMenu = menuBar()->addMenu(tr("&Render"));
+  p->renderMenu->addAction(p->renderAct);
 
-  m_helpMenu = menuBar()->addMenu(tr("&Help"));
-  m_helpMenu->addAction(m_aboutAct);
-  m_helpMenu->addAction(m_helpAct);
+  p->helpMenu = menuBar()->addMenu(tr("&Help"));
+  p->helpMenu->addAction(p->aboutAct);
+  p->helpMenu->addAction(p->helpAct);
 }
 
 bool MainWindow::maybeSave() {
-  if (m_scene->changed()) {
+  if (p->scene->changed()) {
     auto response = QMessageBox::question(this, tr("Save changes?"), tr("There are unsaved changes to this document. Would you like to save them?"), QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
     switch (response) {
       case QMessageBox::Save: {
@@ -213,7 +266,7 @@ bool MainWindow::maybeSave() {
         return true;
       }
       case QMessageBox::Discard: {
-        m_scene->setChanged(false);
+        p->scene->setChanged(false);
         return true;
       }
       default: {
@@ -235,18 +288,18 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
 void MainWindow::newFile() {
   if (maybeSave()) {
-    if (m_scene)
-      delete m_scene;
+    if (p->scene)
+      delete p->scene;
   
-    m_fileName = QString();
-    m_currentElement = nullptr;
+    p->fileName = QString();
+    p->currentElement = nullptr;
     emit selectionChanged(nullptr);
   
-    m_scene = new ::Scene(nullptr);
-    m_propertyEditorWidget->setRoot(m_scene);
-    m_display->setScene(m_scene);
+    p->scene = new ::Scene(nullptr);
+    p->propertyEditorWidget->setRoot(p->scene);
+    p->display->setScene(p->scene);
 
-    m_elementModel->setElement(m_scene);
+    p->elementModel->setElement(p->scene);
   }
 }
 
@@ -256,37 +309,37 @@ void MainWindow::openFile() {
 
   if (!fileName.isNull()) {
     newFile();
-    m_scene->load(fileName);
-    m_fileName = fileName;
+    p->scene->load(fileName);
+    p->fileName = fileName;
     
     redraw();
   }
 }
 
 void MainWindow::saveFile() {
-  if (m_fileName.isNull()) {
+  if (p->fileName.isNull()) {
     saveFileAs();
   } else {
-    m_scene->save(m_fileName);
+    p->scene->save(p->fileName);
   }
 }
 
 void MainWindow::saveFileAs() {
   QString fileName = QFileDialog::getSaveFileName(
-    this, tr("Save File"), m_fileName, tr("Scenes (*.json)"));
+    this, tr("Save File"), p->fileName, tr("Scenes (*.json)"));
   
   if (!fileName.isNull()) {
-    m_fileName = fileName;
-    m_scene->save(m_fileName);
+    p->fileName = fileName;
+    p->scene->save(p->fileName);
   }
 }
 
 template<class T>
 void MainWindow::add() {
-  auto element = new T(m_scene);
-  element->setName(QString("%1 %2").arg(element->metaObject()->className()).arg(m_scene->children().size()));
+  auto element = new T(p->scene);
+  element->setName(QString("%1 %2").arg(element->metaObject()->className()).arg(p->scene->children().size()));
 
-  m_elementModel->setElement(m_scene);
+  p->elementModel->setElement(p->scene);
   elementChanged(element);
 }
 
@@ -339,24 +392,24 @@ void MainWindow::addSphericalCamera() {
 }
 
 void MainWindow::deleteElement() {
-  delete m_currentElement;
-  m_currentElement = nullptr;
+  delete p->currentElement;
+  p->currentElement = nullptr;
   emit selectionChanged(nullptr);
 
-  m_elementModel->setElement(m_scene);
-  m_propertyEditorWidget->setElement(nullptr);
+  p->elementModel->setElement(p->scene);
+  p->propertyEditorWidget->setElement(nullptr);
 
-  m_deleteElementAct->setEnabled(false);
+  p->deleteElementAct->setEnabled(false);
 
   elementChanged(nullptr);
 }
 
 void MainWindow::render() {
-  if (!m_renderWindow->isBusy()) {
-    m_renderWindow->setScene(m_scene);
+  if (!p->renderWindow->isBusy()) {
+    p->renderWindow->setScene(p->scene);
   }
   
-  m_renderWindow->show();
+  p->renderWindow->show();
 }
 
 void MainWindow::about() {
@@ -369,21 +422,21 @@ void MainWindow::help() {
 }
 
 QDockWidget* MainWindow::createPropertyEditor() {
-  m_propertyEditorWidget = new PropertyEditorWidget(m_scene, this);
+  p->propertyEditorWidget = new PropertyEditorWidget(p->scene, this);
 
-  connect(m_propertyEditorWidget, SIGNAL(changed(Element*)), this, SLOT(elementChanged(Element*)));
+  connect(p->propertyEditorWidget, SIGNAL(changed(Element*)), this, SLOT(elementChanged(Element*)));
 
   auto dockWidget = new QDockWidget("Properties", this);
-  dockWidget->setWidget(m_propertyEditorWidget);
+  dockWidget->setWidget(p->propertyEditorWidget);
   
   return dockWidget;
 }
 
 QDockWidget* MainWindow::createElementSelector() {
-  m_elementModel = new SceneModel(m_scene);
+  p->elementModel = new SceneModel(p->scene);
   auto elementTree = new QTreeView(this);
-  elementTree->setModel(m_elementModel);
-  auto itemSelectionModel = new QItemSelectionModel(m_elementModel);
+  elementTree->setModel(p->elementModel);
+  auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
   
   connect(itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&)));
@@ -395,16 +448,16 @@ QDockWidget* MainWindow::createElementSelector() {
 }
 
 QDockWidget* MainWindow::createPreviewDisplay() {
-  m_materialDisplay = new PreviewDisplayWidget(this);
+  p->materialDisplay = new PreviewDisplayWidget(this);
   
   auto dockWidget = new QDockWidget("Preview", this);
-  dockWidget->setWidget(m_materialDisplay);
+  dockWidget->setWidget(p->materialDisplay);
   
   return dockWidget;
 }
 
 void MainWindow::elementChanged(Element*) {
-  m_scene->setChanged(true);
+  p->scene->setChanged(true);
   updateWindowModified();
   redraw();
   emit currentElementChanged();
@@ -412,33 +465,33 @@ void MainWindow::elementChanged(Element*) {
 
 void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&) {
   auto element = static_cast<Element*>(current.internalPointer());
-  m_currentElement = element;
-  m_deleteElementAct->setEnabled(element != nullptr);
+  p->currentElement = element;
+  p->deleteElementAct->setEnabled(element != nullptr);
   
   if (element) {
-    m_propertyEditorWidget->setElement(element);
+    p->propertyEditorWidget->setElement(element);
   }
   emit selectionChanged(element);
 }
 
 void MainWindow::updateWindowModified() {
-  setWindowModified(m_scene->changed());
+  setWindowModified(p->scene->changed());
 }
 
 void MainWindow::updatePreviewWidget() {
-  Material* mat = qobject_cast<Material*>(m_currentElement);
-  Camera* cam = qobject_cast<Camera*>(m_currentElement);
+  Material* mat = qobject_cast<Material*>(p->currentElement);
+  Camera* cam = qobject_cast<Camera*>(p->currentElement);
   if (mat) {
-    m_materialDisplay->setMaterial(mat);
+    p->materialDisplay->setMaterial(mat);
   } else if (cam) {
-    m_materialDisplay->setCamera(cam, m_scene);
+    p->materialDisplay->setCamera(cam, p->scene);
   } else {
-    m_materialDisplay->clear();
+    p->materialDisplay->clear();
   }
 }
 
 void MainWindow::redraw() {
-  m_display->setScene(m_scene);
+  p->display->setScene(p->scene);
 }
 
 #include "MainWindow.moc"

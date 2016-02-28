@@ -76,49 +76,6 @@ private:
   template<class T>
   void add();
 
-  QString m_fileName;
-
-  Display* m_display;
-  PreviewDisplayWidget* m_materialDisplay;
-  PropertyEditorWidget* m_propertyEditorWidget;
-  SceneModel* m_elementModel;
-  
-  RenderWindow* m_renderWindow;
-  
-  Scene* m_scene;
-  
-  Element* m_currentElement;
-  
-  QMenu* m_fileMenu;
-  QMenu* m_editMenu;
-  QMenu* m_renderMenu;
-  QMenu* m_helpMenu;
-
-  QAction* m_newAct;
-  QAction* m_openAct;
-  QAction* m_saveAct;
-  QAction* m_saveAsAct;
-
-  QAction* m_addBoxAct;
-  QAction* m_addSphereAct;
-  
-  QAction* m_addMatteMaterialAct;
-  QAction* m_addPhongMaterialAct;
-  QAction* m_addTransparentMaterialAct;
-  QAction* m_addReflectiveMaterialAct;
-  
-  QAction* m_addConstantColorTextureAct;
-  QAction* m_addCheckerBoardTextureAct;
-
-  QAction* m_addPinholeCameraAct;
-  QAction* m_addFishEyeCameraAct;
-  QAction* m_addOrthographicCameraAct;
-  QAction* m_addSphericalCameraAct;
-  
-  QAction* m_deleteElementAct;
-
-  QAction* m_renderAct;
-  
-  QAction* m_aboutAct;
-  QAction* m_helpAct;
+  struct Private;
+  std::unique_ptr<Private> p;
 };
