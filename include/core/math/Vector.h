@@ -9,9 +9,9 @@
 
 /**
   * This is a generic vector class with a fixed number of dimensions Dimensions
-  * and component type T. The last parameter VectorCellType is only relevant
+  * and component type T. The third parameter StorageCellType is only relevant
   * for the actual storage of the data in memory. It defaults to the component
-  * type.
+  * type. The last parameter Derived should be set to the deriving class type.
   * 
   * This vector type implements many of the operations that are defined for
   * vectors of arbitrary dimension, like operator+(), operator*(), or length().
@@ -30,27 +30,33 @@
   * six different types: Vector2f, Vector2d, Vector3f, Vector3d, Vector4f, and
   * Vector4d. There are SSE-optimized template specializations for some of
   * these predefined Vector types to improve performance.
+  * 
+  * @tparam Dimensions the number of dimensions for this vector type
+  * @tparam T the coordinate type, usually a floating point type
+  * @tparam StorageCellType the type used internally to store the vector
+  *   components. This defaults to T, but for the SSE-optimized vectors, wider
+  *   types are used for storage.
+  * @tparam Derived the derived class, if any. Defaults to NullType. If this is
+  *   NullType, then all the calculation operations, like +, -, etc., accept
+  *   as argument and return an object of type Vector. If Derived is set
+  *   explicitely, then the operators accept and return objects of type Derived.
+  *   This way, operators don't have to be redefined in the subclasses. See
+  *   Vector::VectorType for details.
   */
-template<int Dimensions, class T, class VectorCellType = T, class Derived = NullType>
+template<int Dimensions, class T, class StorageCellType = T, class Derived = NullType>
 class Vector {
 public:
   typedef T CellsType[Dimensions];
 
 private:
   static const int CellsTypeSize = sizeof(CellsType);
-  static const int VectorCellTypeSize = sizeof(VectorCellType);
-  static const int VectorCellCount = (CellsTypeSize + VectorCellTypeSize + 1) / VectorCellTypeSize;
+  static const int StorageCellTypeSize = sizeof(StorageCellType);
+  static const int StorageCellCount = (CellsTypeSize + StorageCellTypeSize + 1) / StorageCellTypeSize;
 
-  typedef VectorCellType ArrayType[VectorCellCount];
+  typedef StorageCellType StorageType[StorageCellCount];
   
-  typedef Vector<Dimensions, T, VectorCellType, Derived> ThisType;
-  
-  typedef typename StaticIf<
-    IsNullType<Derived>::Result,
-    ThisType,
-    Derived
-  >::Result VectorType;
-  
+  typedef Vector<Dimensions, T, StorageCellType, Derived> ThisType;
+    
 public:
   /**
     * Corrdinate type. Usually a floating point type like float or double.
@@ -62,6 +68,17 @@ public:
     */
   static const int Dim = Dimensions;
   
+  /**
+    * Type for arguments and return types of many operators defined in this
+    * class. If the Derived template parameter is omitted, then this is
+    * equivalent to Vector. Otherwise, it is equivalent to Derived.
+    */
+  typedef typename StaticIf<
+    IsNullType<Derived>::Result,
+    ThisType,
+    Derived
+  >::Result VectorType;
+
   /**
     * Constructs a null vector \f$(0,\ldots,0)\f$.
     */
@@ -86,8 +103,8 @@ public:
     * typed source Vector. Any fields not contained in the source vector will
     * be initialized with zeroes.
     */
-  template<int D, class C, class V, class S>
-  inline Vector(const Vector<D, C, V, S>& source) {
+  template<int D, class C, class S, class V>
+  inline Vector(const Vector<D, C, S, V>& source) {
     for (int i = 0; i != Dimensions; ++i) {
       if (i >= D)
         m_coordinates[i] = T();
@@ -362,7 +379,7 @@ public:
 protected:
   union {
     CellsType m_coordinates;
-    ArrayType m_vector;
+    StorageType m_vector;
   };
 };
 
@@ -372,8 +389,8 @@ protected:
   * 
   * @returns os.
   */
-template<int Dimensions, class T, class VectorCellType, class Derived>
-std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, VectorCellType, Derived>& vector) {
+template<int Dimensions, class T, class StorageCellType, class Derived>
+std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, StorageCellType, Derived>& vector) {
   os << "(";
   for (int i = 0; i != Dimensions; ++i) {
     os << vector[i];
@@ -462,8 +479,8 @@ public:
     * Constructs a Vector2<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector.
     */
-  template<int D, class C, class V, class S>
-  inline Vector2(const Vector<D, C, V, S>& source)
+  template<int D, class C, class S, class V>
+  inline Vector2(const Vector<D, C, S, V>& source)
     : Base(source)
   {
   }
@@ -620,8 +637,8 @@ public:
     * Constructs a Vector3<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector.
     */
-  template<int D, class C, class V, class S>
-  inline Vector3(const Vector<D, C, V, S>& source)
+  template<int D, class C, class S, class V>
+  inline Vector3(const Vector<D, C, S, V>& source)
     : Base(source)
   {
   }
@@ -787,8 +804,8 @@ public:
     * typed source Vector. If the source vector is not four dimensional, the
     * constructor sets the \f$w\f$ component to \f$1\f$.
     */
-  template<int D, class C, class V, class S>
-  inline Vector4(const Vector<D, C, V, S>& source)
+  template<int D, class C, class S, class V>
+  inline Vector4(const Vector<D, C, S, V>& source)
     : Base(source)
   {
     if (D != 4)

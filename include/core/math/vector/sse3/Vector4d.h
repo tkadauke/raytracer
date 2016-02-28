@@ -39,8 +39,8 @@ public:
     m_coordinates[3] = 1.0;
   }
 
-  template<int D, class C, class V, class S>
-  inline Vector4(const Vector<D, C, V, S>& source) {
+  template<int D, class C, class S, class V>
+  inline Vector4(const Vector<D, C, S, V>& source) {
     m_vector[0] = _mm_setzero_pd();
     m_vector[1] = _mm_set_pd(1.0, 0.0);
     for (int i = 0; i != Dim && i != D; ++i)

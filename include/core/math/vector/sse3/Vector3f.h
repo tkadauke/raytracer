@@ -44,8 +44,8 @@ public:
     m_coordinates[2] = source.coordinate(2);
   }
 
-  template<int D, class C, class V, class S>
-  inline Vector3(const Vector<D, C, V, S>& source) {
+  template<int D, class C, class S, class V>
+  inline Vector3(const Vector<D, C, S, V>& source) {
     m_vector[0] = _mm_setzero_ps();
     for (int i = 0; i != Dim && i != D; ++i)
       m_coordinates[i] = source.coordinate(i);
