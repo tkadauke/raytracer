@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include "core/DivisionByZeroException.h"
+#include "core/InequalityOperator.h"
 
 /**
   * This is a generic vector class with a fixed number of dimensions Dimensions
@@ -30,7 +31,7 @@
   * these predefined Vector types to improve performance.
   */
 template<int Dimensions, class T, class VectorCellType = T>
-class Vector {
+class Vector : public InequalityOperator<Vector<Dimensions, T, VectorCellType>> {
 public:
   typedef T CellsType[Dimensions];
 
@@ -42,7 +43,14 @@ private:
   typedef VectorCellType VectorType[VectorCellCount];
   
 public:
+  /**
+    * Corrdinate type. Usually a floating point type like float or double.
+    */
   typedef T Coordinate;
+  
+  /**
+    * Number of dimensions of this vector type.
+    */
   static const int Dim = Dimensions;
   
   /**
@@ -65,7 +73,7 @@ public:
   }
 
   /**
-    * Constructs a Vector2<T> from an arbitrary-dimensioned and arbitrary-
+    * Constructs a Vector<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector. Any fields not contained in the source vector will
     * be initialized with zeroes.
     */
@@ -80,7 +88,7 @@ public:
   }
 
   /**
-    * Returns the coordinate with index dim.
+    * @returns the coordinate with index dim.
     */
   inline T coordinate(int dim) const {
     return m_coordinates[dim];
@@ -94,24 +102,27 @@ public:
   }
   
   /**
-    * Array index operator for the vector. Returns a reference to the coordinate
-    * with index dim, suitable for writing.
+    * Array index operator for the vector.
+    *
+    * @returns a reference to the coordinate with index dim, suitable for
+    *   writing.
     */
   inline T& operator[](int dim) {
     return m_coordinates[dim];
   }
   
   /**
-    * Constant array index operator for the vector. Returns a read-only
-    * reference to the coordinate with index dim.
+    * Constant array index operator for the vector.
+    *
+    * @returns a read-only reference to the coordinate with index dim.
     */
   inline const T& operator[](int dim) const {
     return m_coordinates[dim];
   }
   
   /**
-    * For this vector \f$v\f$ and other vector \f$u\f$, returns the sum of the
-    * vectors \f$v+u = (v_1+u_1,\ldots,v_n+u_n)\f$.
+    * @returns the sum of the vectors \f$v+u = (v_1+u_1,\ldots,v_n+u_n)\f$, for
+    *   where this vector is \f$v\f$ and other is \f$u\f$.
     */
   inline Vector<Dimensions, T, VectorCellType> operator+(const Vector<Dimensions, T, VectorCellType>& other) const {
     Vector<Dimensions, T, VectorCellType> result;
@@ -122,8 +133,8 @@ public:
   }
 
   /**
-    * For this vector \f$v\f$ and other vector \f$u\f$, returns the difference
-    * of the vectors \f$v-u = (v_1-u_1,\ldots,v_n-u_n)\f$.
+    * @returns the difference of the vectors \f$v-u = (v_1-u_1,\ldots,v_n-u_n)\f$,
+    *   where this vector is \f$v\f$ and other is \f$u\f$.
     */
   inline Vector<Dimensions, T, VectorCellType> operator-(const Vector<Dimensions, T, VectorCellType>& other) const {
     Vector<Dimensions, T, VectorCellType> result;
@@ -134,8 +145,8 @@ public:
   }
 
   /**
-    * For this vector \f$v\f$, returns the negative of the vector
-    * \f$-v = (-v_1,\ldots,-v_n)\f$.
+    * @returns the negative of the vector \f$-v = (-v_1,\ldots,-v_n)\f$, where
+    *   this vector is \f$v\f$.
     */
   inline Vector<Dimensions, T, VectorCellType> operator-() const {
     Vector<Dimensions, T, VectorCellType> result;
@@ -146,10 +157,10 @@ public:
   }
 
   /**
-    * For this vector \f$v\f$ and a constant factor \f$c\f$, returns the
-    * quotient of the vector and the constant
-    * \f$\frac{v}{c} = (v_1/c,\ldots,v_n/c)\f$. Throws a DivisionByZeroException
-    * if factor is zero.
+    * @returns the quotient of the vector and the constant \f$\frac{v}{c} =
+    *   (v_1/c,\ldots,v_n/c)\f$, where this vector is \f$v\f$ and factor is
+    *   \f$c\f$.
+    * @throws a DivisionByZeroException if factor is zero.
     */
   inline Vector<Dimensions, T, VectorCellType> operator/(const T& factor) const {
     if (factor == T())
@@ -160,8 +171,8 @@ public:
   }
   
   /**
-    * For this vector \f$v\f$ and other vector \f$u\f$, returns the dot product
-    * of the vectors \f$v \cdot u = (v_1u_1,\ldots,v_nu_n)\f$.
+    * @returns the dot product of the vectors \f$v \cdot u = (v_1u_1,\ldots,
+    *   v_nu_n)\f$, where this vector is \f$v\f$ and other is \f$u\f$.
     */
   inline T dotProduct(const Vector<Dimensions, T, VectorCellType>& other) const {
     T result = T();
@@ -179,9 +190,8 @@ public:
   }
 
   /**
-    * For this vector \f$v\f$ and a constant factor \f$c\f$, returns the
-    * product of the vector and the constant
-    * \f$vc = (v_{1}c,\ldots,v_{n}c)\f$.
+    * @returns the product of the vector and the constant \f$vc = (v_{1}c,\ldots,
+    *   v_{n}c)\f$, where this vector is \f$v\f$ and factor is \f$c\f$
     */
   inline Vector<Dimensions, T, VectorCellType> operator*(const T& factor) const {
     Vector<Dimensions, T, VectorCellType> result;
@@ -192,8 +202,8 @@ public:
   }
 
   /**
-    * Returns true if all components of this vector are equal to components of
-    * the other vector.
+    * @returns true if all components of this vector are equal to components of
+    *   the other vector, false otherwise.
     */
   inline bool operator==(const Vector<Dimensions, T, VectorCellType>& other) const {
     if (&other == this)
@@ -206,15 +216,9 @@ public:
   }
 
   /**
-    * Returns true if any of the components in this vector is different from the
-    * corresponding component in the other vector.
-    */
-  inline bool operator!=(const Vector<Dimensions, T, VectorCellType>& other) const {
-    return !(*this == other);
-  }
-  
-  /**
     * Adds vector other to this vector, mutating this vector. See operator+().
+    * 
+    * @returns itself.
     */
   inline Vector<Dimensions, T, VectorCellType>& operator+=(const Vector<Dimensions, T, VectorCellType>& other) {
     for (int i = 0; i != Dimensions; ++i) {
@@ -225,6 +229,8 @@ public:
 
   /**
     * Subtracts other from this vector, mutating this vector. See operator-().
+    * 
+    * @returns itself.
     */
   inline Vector<Dimensions, T, VectorCellType>& operator-=(const Vector<Dimensions, T, VectorCellType>& other) {
     for (int i = 0; i != Dimensions; ++i) {
@@ -235,6 +241,8 @@ public:
 
   /**
     * Scales this vector by factor, mutating this vector. See operator*().
+    * 
+    * @returns itself.
     */
   inline Vector<Dimensions, T, VectorCellType>& operator*=(const T& factor) {
     for (int i = 0; i != Dimensions; ++i) {
@@ -246,6 +254,8 @@ public:
   /**
     * Divides this vector by factor, mutating this vector. Throws a
     * DivisionByZeroException if factor is zero. See operator/().
+    * 
+    * @returns itself.
     */
   inline Vector<Dimensions, T, VectorCellType>& operator/=(const T& factor) {
     if (factor == T())
@@ -256,40 +266,43 @@ public:
   }
 
   /**
-    * Returns the length of vector \f$v\f$, i.e. \f$|v|\f$.
+    * @returns the length of this vector \f$v\f$, i.e. \f$|v|\f$.
     */
   inline T length() const {
     return std::sqrt(squaredLength());
   }
 
   /**
-    * Returns the square of the length of vector \f$v\f$, i.e. \f$v \cdot v\f$.
+    * @returns the square of the length of this vector \f$v\f$, i.e. \f$v \cdot
+    *   v\f$.
     */
   inline T squaredLength() const {
     return *this * *this;
   }
   
   /**
-    * Interprets this vector \f$v\f$ as well as other \f$u\f$ as points and
-    * returns the distance between those points, i.e. \f$|u-v|\f$.
+    * Interprets this vector \f$v\f$ as well as other \f$u\f$ as points.
+    *
+    * @returns the distance between those points, i.e. \f$|u-v|\f$.
     */
-  inline T distanceTo(const Vector<Dimensions, T, VectorCellType>& other) {
+  inline T distanceTo(const Vector<Dimensions, T, VectorCellType>& other) const {
     return (*this - other).length();
   }
   
   /**
-    * Interprets this vector \f$v\f$ as well as other \f$u\f$ as points and
-    * returns the squared distance between those points, i.e. \f$|u-v|^2\f$.
+    * Interprets this vector \f$v\f$ as well as other \f$u\f$ as points.
+    *
+    * @returns the squared distance between those points, i.e. \f$|u-v|^2\f$.
     */
-  inline T squaredDistanceTo(const Vector<Dimensions, T, VectorCellType>& other) {
+  inline T squaredDistanceTo(const Vector<Dimensions, T, VectorCellType>& other) const {
     return (*this - other).squaredLength();
   }
 
-/**
-  * For vector \f$v\f$, returns vector \f$\frac{v}{|v|}\f$, i.e. the vector
-  * devided by its length, which is a unit vector with the same direction as the
-  * original, but length 1.
-  */
+  /**
+    * @returns vector \f$\frac{v}{|v|}\f$, where this vector is \f$v\f$, i.e.
+    * this vector devided by its length, which is a unit vector with the same
+    * direction as the original, but length 1.
+    */
   inline Vector<Dimensions, T, VectorCellType> normalized() const {
     return *this / length();
   }
@@ -304,14 +317,14 @@ public:
   }
 
   /**
-    * Returns true if the vector has length 1.
+    * @returns true if the vector has length 1, false otherwise.
     */
   inline bool isNormalized() const {
     return length() == static_cast<T>(1);
   }
   
   /**
-    * Returns true if any of the vector's components is NaN.
+    * @returns true if any of the vector's components is NaN, false otherwise.
     */
   inline bool isUndefined() const {
     for (int i = 0; i != Dimensions; ++i) {
@@ -322,7 +335,8 @@ public:
   }
   
   /**
-    * Returns true if and only if the vector is defined. See isUndefined().
+    * @returns true if the vector is defined, false otherwise. Opposite of
+    * isUndefined().
     */
   inline bool isDefined() const {
     return !isUndefined();
@@ -336,8 +350,10 @@ protected:
 };
 
 /**
-  * Generic print function for Vectors. Turns a vector \f$(1,2,3)\f$ to the
-  * string \c "(1, 2, 3)".
+  * Generic string serialization function for Vectors. Turns a vector
+  * \f$(1,2,3)\f$ into string \c "(1, 2, 3)" and streams it to os.
+  * 
+  * @returns os.
   */
 template<int Dimensions, class T, class VectorCellType>
 std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, VectorCellType>& vector) {
@@ -436,7 +452,7 @@ public:
   using Base::setCoordinate;
   
   /**
-    * Returns the null vector \f$(0,0)\f$.
+    * @returns the null vector \f$(0,0)\f$.
     */
   static const Vector2<T>& null() {
     static Vector2<T> v(0, 0);
@@ -444,7 +460,7 @@ public:
   }
   
   /**
-    * Returns an undefined vector \f$(NaN,NaN)\f$.
+    * @returns an undefined vector \f$(NaN,NaN)\f$.
     */
   static const Vector2<T>& undefined() {
     static Vector2<T> v(std::numeric_limits<T>::quiet_NaN(),
@@ -453,7 +469,7 @@ public:
   }
 
   /**
-    * Returns the right unit vector \f$(1,0)\f$.
+    * @returns the right unit vector \f$(1,0)\f$.
     */
   static const Vector2<T>& right() {
     static Vector2<T> v(1, 0);
@@ -461,7 +477,7 @@ public:
   }
 
   /**
-    * Returns the up unit vector \f$(0,1)\f$.
+    * @returns the up unit vector \f$(0,1)\f$.
     */
   static const Vector2<T>& up() {
     static Vector2<T> v(0, 1);
@@ -495,16 +511,16 @@ public:
   }
 
   /**
-    * Returns the vector's first component, i.e. returns \f$x\f$ from
-    * \f$(x,y)\f$.
+    * @returns the vector's first component, i.e. returns \f$x\f$ from
+    *   \f$(x,y)\f$.
     */
   inline T x() const {
     return Base::coordinate(0);
   }
   
   /**
-    * Returns the vector's first component, i.e. returns \f$y\f$ from
-    * \f$(x,y)\f$.
+    * @returns the vector's first component, i.e. returns \f$y\f$ from
+    *   \f$(x,y)\f$.
     */
   inline T y() const {
     return Base::coordinate(1);
@@ -544,7 +560,7 @@ public:
   using Base::setCoordinate;
   
   /**
-    * Returns the null vector \f$(0,0,0)\f$.
+    * @returns the null vector \f$(0,0,0)\f$.
     */
   static const Vector3<T>& null() {
     static Vector3<T> v(0, 0, 0);
@@ -552,7 +568,7 @@ public:
   }
 
   /**
-    * Returns the null vector \f$(1,1,1)\f$.
+    * @returns the null vector \f$(1,1,1)\f$.
     */
   static const Vector3<T>& one() {
     static Vector3<T> v(1, 1, 1);
@@ -560,7 +576,7 @@ public:
   }
   
   /**
-    * Returns \f$(\epsilon,\epsilon,\epsilon)\f$.
+    * @returns \f$(\epsilon,\epsilon,\epsilon)\f$.
     */
   static const Vector3<T>& epsilon() {
     static Vector3<T> v(std::numeric_limits<T>::epsilon(),
@@ -570,7 +586,7 @@ public:
   }
   
   /**
-    * Returns an undefined vector: \f$(NaN,NaN,NaN)\f$.
+    * @returns an undefined vector: \f$(NaN,NaN,NaN)\f$.
     */
   static const Vector3<T>& undefined() {
     static Vector3<T> v(std::numeric_limits<T>::quiet_NaN(),
@@ -580,7 +596,7 @@ public:
   }
   
   /**
-    * Returns \f$(-\infty,-\infty,-\infty)\f$.
+    * @returns \f$(-\infty,-\infty,-\infty)\f$.
     */
   static const Vector3<T>& minusInfinity() {
     static Vector3<T> v(-std::numeric_limits<T>::infinity(),
@@ -590,7 +606,7 @@ public:
   }
   
   /**
-    * Returns \f$(\infty,\infty,\infty)\f$.
+    * @returns \f$(\infty,\infty,\infty)\f$.
     */
   static const Vector3<T>& plusInfinity() {
     static Vector3<T> v(std::numeric_limits<T>::infinity(),
@@ -600,7 +616,7 @@ public:
   }
 
   /**
-    * Returns the right unit vector \f$(1,0,0)\f$.
+    * @returns the right unit vector \f$(1,0,0)\f$.
     */
   static const Vector3<T>& right() {
     static Vector3<T> v(1, 0, 0);
@@ -608,7 +624,7 @@ public:
   }
 
   /**
-    * Returns the up unit vector \f$(0,1,0)\f$.
+    * @returns the up unit vector \f$(0,1,0)\f$.
     */
   static const Vector3<T>& up() {
     static Vector3<T> v(0, 1, 0);
@@ -616,7 +632,7 @@ public:
   }
 
   /**
-    * Returns the forward unit vector \f$(0,0,1)\f$.
+    * @returns the forward unit vector \f$(0,0,1)\f$.
     */
   static const Vector3<T>& forward() {
     static Vector3<T> v(0, 0, 1);
@@ -624,7 +640,7 @@ public:
   }
 
   /**
-    * Default constructor. Returns the null vector \f$(0,0,0)\f$.
+    * Default constructor. Constructs the null vector \f$(0,0,0)\f$.
     */
   inline Vector3()
     : Base()
@@ -653,32 +669,32 @@ public:
   }
 
   /**
-    * Returns the vector's first component, i.e. returns \f$x\f$ from
-    * \f$(x,y,z)\f$.
+    * @returns this vector's first component, i.e. returns \f$x\f$ from
+    *   \f$(x,y,z)\f$.
     */
   inline T x() const {
     return Base::coordinate(0);
   }
 
   /**
-    * Returns the vector's second component, i.e. returns \f$y\f$ from
-    * \f$(x,y,z)\f$.
+    * @returns this vector's second component, i.e. returns \f$y\f$ from
+    *   \f$(x,y,z)\f$.
     */
   inline T y() const {
     return Base::coordinate(1);
   }
 
   /**
-    * Returns the vector's third component, i.e. returns \f$z\f$ from
-    * \f$(x,y,z)\f$.
+    * @returns this vector's third component, i.e. returns \f$z\f$ from
+    *   \f$(x,y,z)\f$.
     */
   inline T z() const {
     return Base::coordinate(2);
   }
   
   /**
-    * For this vector \f$u\f$ and the other vector \f$v\f$, returns the cross
-    * product \f$u \times v\f$.
+    * @returns the cross product \f$u \times v\f$, where this vector is \f$u\f$
+    *   and other is \f$v\f$.
     */
   inline Vector3<T> crossProduct(const Vector3<T>& other) const {
     return Vector3<T>(y() * other.z() - z() * other.y(),
@@ -698,11 +714,11 @@ public:
   * Represents a four-dimensional vector with component type T. This class
   * implements all the important operations for vectors. Many of those are
   * defined in the parent classes. The operations defined in this class are
-  * mostly specific to three-dimensional vectors.
+  * mostly specific to four-dimensional vectors.
   * 
-  * Use this class to represent for absolute-point transformations. By default,
-  * all four-dimensional vectors have \f$1\f$ as the fourth \f$w\f$ component.
-  * This is in order to be able to translate points in three-dimensional space.
+  * Use this class to calculate absolute-point transformations. By default, all
+  * four-dimensional vectors have \f$1\f$ as the fourth \f$w\f$ component. This
+  * is in order to be able to translate points in three-dimensional space.
   * 
   * This class defines only a few constants, namely the null() vector, as well
   * as the undefined() vector. The null() vector still has \f$1\f$ as the
@@ -726,7 +742,7 @@ public:
   * There are two predefined types for four-dimensional vectors: Vector4f with
   * float-typed components and Vector4d with double-typed components. Both of
   * those have SSE-optimized template specializations, in case SSE is available
-  * on the machine.
+  * at compile time.
   */
 template<class T>
 class Vector4 : public SpecializedVector<4, T, Vector4<T>> {
@@ -735,8 +751,8 @@ public:
   using Base::setCoordinate;
   
   /**
-    * Returns the null vector \f$(0,0,0,1)\f$, which notably contains a \f$1\f$
-    * for the \f$w\f$ component.
+    * @returns the null vector \f$(0,0,0,1)\f$, which notably contains a \f$1\f$
+    *   for the \f$w\f$ component.
     */
   static const Vector4<T>& null() {
     static Vector4<T> v(0, 0, 0, 1);
@@ -744,8 +760,8 @@ public:
   }
   
   /**
-    * Returns the epsilon vector \f$(\epsilon,\epsilon,\epsilon,\epsilon)\f$,
-    * which is minimally shifted from the origin in all directions.
+    * @returns the epsilon vector \f$(\epsilon,\epsilon,\epsilon,\epsilon)\f$,
+    *   which is minimally shifted from the origin in all directions.
     */
   static const Vector4<T>& epsilon() {
     static Vector4<T> v(std::numeric_limits<T>::epsilon(),
@@ -756,7 +772,7 @@ public:
   }
   
   /**
-    * Returns an undefined vector \f$(NaN,NaN,NaN,NaN)\f$.
+    * @returns an undefined vector \f$(NaN,NaN,NaN,NaN)\f$.
     */
   static const Vector4<T>& undefined() {
     static Vector4<T> v(std::numeric_limits<T>::quiet_NaN(),
@@ -767,7 +783,7 @@ public:
   }
 
   /**
-    * Returns the vector \f$(-\infty,-\infty,-\infty,-\infty)\f$.
+    * @returns the vector \f$(-\infty,-\infty,-\infty,-\infty)\f$.
     */
   static const Vector4<T>& minusInfinity() {
     static Vector4<T> v(-std::numeric_limits<T>::infinity(),
@@ -778,7 +794,7 @@ public:
   }
 
   /**
-    * Returns the vector \f$(\infty,\infty,\infty,\infty)\f$.
+    * @returns the vector \f$(\infty,\infty,\infty,\infty)\f$.
     */
   static const Vector4<T>& plusInfinity() {
     static Vector4<T> v(std::numeric_limits<T>::infinity(),
@@ -799,7 +815,7 @@ public:
 
   /**
     * Component-wise constructor that sets the vector to \f$(x,y,z,w)\f$, where
-    * \f$w\f$ defaults to \f$1\f$ for convenience.
+    *   \f$w\f$ defaults to \f$1\f$ for convenience.
     */
   inline Vector4(const T& x, const T& y, const T& z, const T& w = 1) {
     setCoordinate(0, x);
@@ -822,40 +838,40 @@ public:
   }
 
   /**
-    * Returns the vector's first component, i.e. returns \f$x\f$ from
-    * \f$(x,y,z,w)\f$.
+    * @returns this vector's first component, i.e. returns \f$x\f$ from
+    *   \f$(x,y,z,w)\f$.
     */
   inline T x() const {
     return Base::coordinate(0);
   }
   
   /**
-    * Returns the vector's second component, i.e. returns \f$y\f$ from
-    * \f$(x,y,z,w)\f$.
+    * @returns this vector's second component, i.e. returns \f$y\f$ from
+    *   \f$(x,y,z,w)\f$.
     */
   inline T y() const {
     return Base::coordinate(1);
   }
   
   /**
-    * Returns the vector's third component, i.e. returns \f$z\f$ from
-    * \f$(x,y,z,w)\f$.
+    * @returns this vector's third component, i.e. returns \f$z\f$ from
+    *   \f$(x,y,z,w)\f$.
     */
   inline T z() const {
     return Base::coordinate(2);
   }
   
   /**
-    * Returns the vector's fourth component, i.e. returns \f$w\f$ from
-    * \f$(x,y,z,w)\f$.
+    * @returns this vector's fourth component, i.e. returns \f$w\f$ from
+    *   \f$(x,y,z,w)\f$.
     */
   inline T w() const {
     return Base::coordinate(3);
   }
   
   /**
-    * Returns the vector's homogenized three-dimensional vector, i.e. returns
-    * \f$\frac{(x,y,z)}{w}\f$.
+    * @returns ths vector's homogenized three-dimensional vector, i.e. returns
+    *   \f$\frac{(x,y,z)}{w}\f$.
     */
   inline Vector3<T> homogenized() const {
     return Vector3<T>(*this) / w();

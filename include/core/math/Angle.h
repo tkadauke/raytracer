@@ -16,6 +16,8 @@
   * 
   * Internally, the angle is stored in radians, which makes calculations easy
   * for all the functions that use radians.
+  * 
+  * This class inherits from InequalityOperator, providing operator !=.
   */
 template<class T>
 class Angle : public InequalityOperator<Angle<T>> {
@@ -32,74 +34,78 @@ public:
   
   /**
     * Constructs an angle from degrees. Internally, the angle is stored in
-    * radians, with \f$r = d \times \frac{2\pi}{360}\f$.
+    * radians, with \f$r = d \times \frac{2\pi}{360}\f$, where \f$d\f$ is the
+    * angle in degrees and \f$r\f$ is the angle in radians.
     */
-  static Angle<T> fromDegrees(const T& degrees) {
+  inline static Angle<T> fromDegrees(const T& degrees) {
     return Angle<T>(degrees * 0.01745329251996);
   }
   
   /**
     * Constructs an angle from radians.
     */
-  static Angle<T> fromRadians(const T& radians) {
+  inline static Angle<T> fromRadians(const T& radians) {
     return Angle<T>(radians);
   }
   
   /**
     * Constructs an angle from degrees. Internally, the angle is stored in
-    * radians, with \f$r = t \times 2\pi\f$.
+    * radians, with \f$r = t \times 2\pi\f$, where \f$t\f$ is the angle in turns
+    * and \f$r\f$ is the angle in radians.
     */
-  static Angle<T> fromTurns(const T& turns) {
-    return Angle<T>(turns * TAO);
+  inline static Angle<T> fromTurns(const T& turns) {
+    return Angle<T>(turns * TAU);
   }
   
   /**
-    * Returns the angle in degrees, \f$d = r \times \frac{360}{2\pi}\f$.
+    * @returns the angle in degrees, \f$d = r \times \frac{360}{2\pi}\f$, where
+    *   \f$d\f$ is the angle in degrees and \f$r\f$ is the angle in radians.
     */
   inline T degrees() const {
     return m_radians * 57.29577951308233;
   }
   
   /**
-    * Returns the angle in radians.
+    * @ereturns the angle in radians.
     */
   inline T radians() const {
     return m_radians;
   }
   
   /**
-    * Returns the angle in turns, \f$t = \frac{r}{2\pi}.
+    * @returns the angle in turns, \f$t = \frac{r}{2\pi}, where \f$t\f$ is the
+    *   angle in turns and \f$r\f$ is the angle in radians.
     */
   inline T turns() const {
-    return m_radians * invTAO;
+    return m_radians * invTAU;
   }
   
   /**
-    * Returns an angle that is the addition between this angle and the other
-    * angle.
+    * @returns an angle that is the addition between this angle and the other
+    *   angle.
     */
   inline Angle<T> operator+(const Angle<T>& other) const {
     return Angle<T>(m_radians + other.radians());
   }
   
   /**
-    * Returns an angle that is the subtraction between this angle and the other
-    * angle.
+    * @returns an angle that is the subtraction between this angle and the other
+    *   angle.
     */
   inline Angle<T> operator-(const Angle<T>& other) const {
     return Angle<T>(m_radians - other.radians());
   }
   
   /**
-    * Returns the negative of this angle.
+    * @returns the negative of this angle.
     */
   inline Angle<T> operator-() const {
     return Angle<T>(-m_radians);
   }
   
   /**
-    * Returns an angle that is the multiplication between this angle and the
-    * other value.
+    * @returns an angle that is the multiplication between this angle and the
+    *   other value.
     */
   template<class F>
   inline Angle<T> operator*(const F& other) const {
@@ -107,14 +113,15 @@ public:
   }
   
   /**
-    * Returns true if the angles are equal by comparing their value in radians.
+    * @returns true if the angles are equal by comparing their value in radians,
+    *   false otherwise.
     */
   inline bool operator==(const Angle<T>& other) const {
     return m_radians == other.radians();
   }
 
 private:
-  Angle(const T& radians)
+  inline Angle(const T& radians)
     : m_radians(radians)
   {
   }
@@ -124,6 +131,8 @@ private:
 
 /**
   * Outputs the angle in radians to the given output stream.
+  * 
+  * @returns os.
   */
 template<class T>
 std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
@@ -132,7 +141,7 @@ std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
 }
 
 /**
-  * Multiply the angle by the value on the left.
+  * @returns the multiple of the angle by the value on the left.
   */
 template<class T, class F>
 inline Angle<T> operator*(const F& left, const Angle<T> other) {

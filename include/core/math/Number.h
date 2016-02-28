@@ -14,7 +14,7 @@ inline bool isAlmostZero(const T& value, const T& epsilon = std::numeric_limits<
 }
 
 /**
-  * Returns a random number in the interval defined by lower and upper.
+  * @returns a random number in the interval defined by lower and upper.
   */
 template<class T>
 inline T random(T lower, T upper) {
@@ -23,13 +23,16 @@ inline T random(T lower, T upper) {
 }
 
 /**
-  * Returns a random number smaller or equal to upper.
+  * @returns a random number smaller or equal to upper.
   */
 template<class T>
 inline T random(T upper) {
   return random(T(), upper);
 }
 
+/**
+  * @returns a random integer smaller than upper.
+  */
 inline int random(int upper) {
   return std::rand() % upper;
 }
