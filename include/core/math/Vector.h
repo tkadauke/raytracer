@@ -31,8 +31,8 @@
   * Vector4d. There are SSE-optimized template specializations for some of
   * these predefined Vector types to improve performance.
   * 
-  * @tparam Dimensions the number of dimensions for this vector type
-  * @tparam T the coordinate type, usually a floating point type
+  * @tparam Dimensions the number of dimensions for this vector type.
+  * @tparam T the coordinate type, usually a floating point type.
   * @tparam StorageCellType the type used internally to store the vector
   *   components. This defaults to T, but for the SSE-optimized vectors, wider
   *   types are used for storage.
@@ -404,7 +404,7 @@ std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, StorageCe
 /**
   * Represents a two-dimensional vector with component type T. This class
   * implements all the important operations for vectors. Many of those are
-  * defined in the parent classes. The operations defined in this class are
+  * defined in the parent class. The operations defined in this class are
   * mostly specific to two-dimensional vectors.
   * 
   * Use this class to represent an absolute point on the plane, a directional
@@ -415,10 +415,12 @@ std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, StorageCe
   * 
   * Construction of vectors is as expected. The default constructor creates the
   * null vector, there is a component-wise constructor, and a generic copy
-  * constructor that converts any vector type to a three-dimensional vector.
+  * constructor that converts any vector type to a two-dimensional vector.
   * 
   * As special operations only available to two-dimensional vectors, this
   * class implements the x(), and y() accessors.
+  *
+  * @tparam T the coordinate type, usually a floating point type.
   */
 template<class T>
 class Vector2 : public Vector<2, T, T, Vector2<T>> {
@@ -505,7 +507,7 @@ public:
 /**
   * Represents a three-dimensional vector with component type T. This class
   * implements all the important operations for vectors. Many of those are
-  * defined in the parent classes. The operations defined in this class are
+  * defined in the parent class. The operations defined in this class are
   * mostly specific to three-dimensional vectors.
   * 
   * Use this class to represent an absolute point in space, a directional
@@ -527,6 +529,8 @@ public:
   * float-typed components and Vector3d with double-typed components. Both of
   * those have SSE-optimized template specializations, in case SSE is available
   * on the machine.
+  *
+  * @tparam T the coordinate type, usually a floating point type.
   */
 template<class T>
 class Vector3 : public Vector<3, T, T, Vector3<T>> {
@@ -688,7 +692,7 @@ public:
 /**
   * Represents a four-dimensional vector with component type T. This class
   * implements all the important operations for vectors. Many of those are
-  * defined in the parent classes. The operations defined in this class are
+  * defined in the parent class. The operations defined in this class are
   * mostly specific to four-dimensional vectors.
   * 
   * Use this class to calculate absolute-point transformations. By default, all
@@ -718,6 +722,8 @@ public:
   * float-typed components and Vector4d with double-typed components. Both of
   * those have SSE-optimized template specializations, in case SSE is available
   * at compile time.
+  *
+  * @tparam T the coordinate type, usually a floating point type.
   */
 template<class T>
 class Vector4 : public Vector<4, T, T, Vector4<T>> {

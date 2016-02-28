@@ -18,6 +18,8 @@
   * for all the functions that use radians.
   * 
   * This class inherits from InequalityOperator, providing operator !=.
+  * 
+  * @tparam T the floating point type used to store the angle in radians.
   */
 template<class T>
 class Angle : public InequalityOperator<Angle<T>> {

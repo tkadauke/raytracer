@@ -3,10 +3,10 @@
 
 namespace testing {
   namespace internal {
-    template<int Dimensions, class T, class Derived, class VectorType>
+    template<int Dimensions, class T, class VectorType, class Derived>
     bool matrixNear(
-      const Matrix<Dimensions, T, Derived, VectorType>& expected,
-      const Matrix<Dimensions, T, Derived, VectorType>& actual,
+      const Matrix<Dimensions, T, VectorType, Derived>& expected,
+      const Matrix<Dimensions, T, VectorType, Derived>& actual,
       const T& threshold = 0.0001
     ) {
       for (int row = 0; row != Dimensions; ++row) {
@@ -18,14 +18,14 @@ namespace testing {
       return true;
     }
 
-    template<int Dimensions, class T, class Derived, class VectorType>
+    template<int Dimensions, class T, class VectorType, class Derived>
     // Helper function for implementing ASSERT_MATRIX_NEAR.
     AssertionResult MatrixNearPredFormat(
       const char* expr1,
       const char* expr2,
       const char* abs_error_expr,
-      const Matrix<Dimensions, T, Derived, VectorType>& val1,
-      const Matrix<Dimensions, T, Derived, VectorType>& val2,
+      const Matrix<Dimensions, T, VectorType, Derived>& val1,
+      const Matrix<Dimensions, T, VectorType, Derived>& val2,
       double abs_error
     ) {
       if (matrixNear(val1, val2, T(abs_error))) return AssertionSuccess();

@@ -6,6 +6,8 @@
 
 /**
   * Represents a closed range, between begin() and end(), including.
+  * 
+  * @tparam T the number type used to store the end points of the range.
   */
 template<class T>
 class Range {
