@@ -259,7 +259,13 @@ void MainWindow::createMenus() {
 
 bool MainWindow::maybeSave() {
   if (p->scene->changed()) {
-    auto response = QMessageBox::question(this, tr("Save changes?"), tr("There are unsaved changes to this document. Would you like to save them?"), QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+    auto response = QMessageBox::question(
+      this,
+      tr("Save changes?"),
+      tr("There are unsaved changes to this document. Would you like to save them?"),
+      QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save
+    );
+    
     switch (response) {
       case QMessageBox::Save: {
         saveFile();
@@ -337,7 +343,9 @@ void MainWindow::saveFileAs() {
 template<class T>
 void MainWindow::add() {
   auto element = new T(p->scene);
-  element->setName(QString("%1 %2").arg(element->metaObject()->className()).arg(p->scene->children().size()));
+  element->setName(QString("%1 %2")
+    .arg(element->metaObject()->className())
+    .arg(p->scene->children().size()));
 
   p->elementModel->setElement(p->scene);
   elementChanged(element);
@@ -424,7 +432,10 @@ void MainWindow::help() {
 QDockWidget* MainWindow::createPropertyEditor() {
   p->propertyEditorWidget = new PropertyEditorWidget(p->scene, this);
 
-  connect(p->propertyEditorWidget, SIGNAL(changed(Element*)), this, SLOT(elementChanged(Element*)));
+  connect(
+    p->propertyEditorWidget, SIGNAL(changed(Element*)),
+    this, SLOT(elementChanged(Element*))
+  );
 
   auto dockWidget = new QDockWidget("Properties", this);
   dockWidget->setWidget(p->propertyEditorWidget);
@@ -439,7 +450,10 @@ QDockWidget* MainWindow::createElementSelector() {
   auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
   
-  connect(itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&)));
+  connect(
+    itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)),
+    this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&))
+  );
   
   auto dockWidget = new QDockWidget("Elements", this);
   dockWidget->setWidget(elementTree);
