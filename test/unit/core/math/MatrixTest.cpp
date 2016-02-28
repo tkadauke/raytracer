@@ -264,41 +264,51 @@ namespace MatrixTest {
   }
 }
 
-namespace SpecializedMatrixTest {
+namespace DerivedMatrixTest {
   using namespace ::testing;
 
   template<class T>
-  class SpecializedMatrixTest : public ::testing::Test {
+  class DerivedMatrixTest : public ::testing::Test {
   };
 
   typedef ::testing::Types<Matrix2<float>, Matrix3<float>, Matrix4<float>,
                            Matrix2<double>, Matrix3<double>, Matrix4<double>> SpecializedMatrixTypes;
-  TYPED_TEST_CASE(SpecializedMatrixTest, SpecializedMatrixTypes);
+  TYPED_TEST_CASE(DerivedMatrixTest, SpecializedMatrixTypes);
   
-  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
+  TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
     TypeParam matrix;
     ASSERT_TYPES_EQ(matrix, matrix * matrix);
   }
   
-  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithVector) {
+  TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithVector) {
     TypeParam matrix;
     typename TypeParam::Vector vector;
     ASSERT_TYPES_EQ(vector, matrix * vector);
   }
   
-  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
+  TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithScalar) {
     TypeParam matrix;
     ASSERT_TYPES_EQ(matrix, matrix * 2);
   }
   
-  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForDivisionByScalar) {
+  TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForDivisionByScalar) {
     TypeParam matrix;
     ASSERT_TYPES_EQ(matrix, matrix / 2);
   }
+
+  TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForMatrixAddition) {
+    TypeParam matrix;
+    ASSERT_TYPES_EQ(matrix, matrix + matrix);
+  }
   
-  TYPED_TEST(SpecializedMatrixTest, ShouldReturnCorrectTypeForTransposedMatrix) {
+  TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForTransposedMatrix) {
     TypeParam matrix;
     ASSERT_TYPES_EQ(matrix, matrix.transposed());
+  }
+  
+  TYPED_TEST(DerivedMatrixTest, ShouldEvaluateEquality) {
+    TypeParam matrix1, matrix2;
+    ASSERT_TRUE(matrix1 == matrix2);
   }
 }
 

@@ -6,11 +6,24 @@
 #include "core/math/Angle.h"
 #include "core/DivisionByZeroException.h"
 
-template<int Dimensions, class T>
+#include "core/StaticIf.h"
+
+template<int Dimensions, class T, class Derived = NullType, class VectorType = Vector<Dimensions, T>>
 class Matrix {
   typedef T RowType[Dimensions];
   typedef RowType CellsType[Dimensions];
+  
+  typedef Matrix<Dimensions, T, Derived> ThisType;
+
 public:
+  typedef typename StaticIf<
+    IsNullType<Derived>::Result,
+    ThisType,
+    Derived
+  >::Result MatrixType;
+  
+  typedef VectorType Vector;
+  
   inline Matrix() {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
@@ -31,8 +44,8 @@ public:
     }
   }
   
-  template<int D>
-  inline Matrix(const Matrix<D, T>& source) {
+  template<int D, class M, class V>
+  inline Matrix(const Matrix<D, T, M, V>& source) {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         if (row >= D || col >= D) {
@@ -63,7 +76,7 @@ public:
     return m_cells[index];
   }
 
-  inline bool operator==(const Matrix<Dimensions, T>& other) const {
+  inline bool operator==(const MatrixType& other) const {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         if (m_cells[row][col] != other[row][col])
@@ -73,12 +86,12 @@ public:
     return true;
   }
 
-  inline bool operator!=(const Matrix<Dimensions, T>& other) const {
+  inline bool operator!=(const MatrixType& other) const {
     return !(*this == other);
   }
 
-  inline Matrix<Dimensions, T> operator*(const Matrix<Dimensions, T>& other) const {
-    Matrix<Dimensions, T> result;
+  inline MatrixType operator*(const MatrixType& other) const {
+    MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
@@ -92,9 +105,8 @@ public:
     return result;
   }
 
-  template<class StorageCellType, class Derived>
-  inline Vector<Dimensions, T> operator*(const Vector<Dimensions, T, StorageCellType, Derived>& vector) const {
-    Vector<Dimensions, T> result;
+  inline Vector operator*(const Vector& vector) const {
+    Vector result;
 
     for (int row = 0; row != Dimensions; ++row) {
       T cell = T();
@@ -106,8 +118,8 @@ public:
     return result;
   }
 
-  inline Matrix<Dimensions, T> operator*(const T& scalar) const {
-    Matrix<Dimensions, T> result;
+  inline MatrixType operator*(const T& scalar) const {
+    MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
@@ -117,8 +129,8 @@ public:
     return result;
   }
 
-  inline Matrix<Dimensions, T> operator+(const Matrix<Dimensions, T>& other) const {
-    Matrix<Dimensions, T> result;
+  inline MatrixType operator+(const MatrixType& other) const {
+    MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
@@ -128,11 +140,11 @@ public:
     return result;
   }
 
-  inline Matrix<Dimensions, T> operator/(const T& scalar) const {
+  inline MatrixType operator/(const T& scalar) const {
     if (scalar == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
-    Matrix<Dimensions, T> result;
+    MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
@@ -158,8 +170,8 @@ public:
     return result;
   }
   
-  inline Matrix<Dimensions, T> transposed() const {
-    Matrix<Dimensions, T> result(*this);
+  inline MatrixType transposed() const {
+    MatrixType result(*this);
     
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = row + 1; col != Dimensions; ++col) {
@@ -173,8 +185,8 @@ private:
   CellsType m_cells;
 };
 
-template<int Dimensions, class T>
-std::ostream& operator<<(std::ostream& os, const Matrix<Dimensions, T>& matrix) {
+template<int Dimensions, class T, class Derived, class VectorType>
+std::ostream& operator<<(std::ostream& os, const Matrix<Dimensions, T, Derived, VectorType>& matrix) {
   for (int row = 0; row != Dimensions; ++row) {
     for (int col = 0; col != Dimensions; ++col) {
       os << matrix[row][col] << ' ';
@@ -184,48 +196,9 @@ std::ostream& operator<<(std::ostream& os, const Matrix<Dimensions, T>& matrix) 
   return os;
 }
 
-template<int Dimensions, class T, class MatrixType, class VectorType>
-class SpecializedMatrix : public Matrix<Dimensions, T> {
-  typedef Matrix<Dimensions, T> Base;
-public:
-  typedef VectorType Vector;
-  
-  inline SpecializedMatrix()
-    : Base()
-  {
-  }
-  
-  template<int D>
-  inline SpecializedMatrix(const Matrix<D, T>& source)
-    : Base(source)
-  {
-  }
-  
-  inline MatrixType operator*(const MatrixType& other) const {
-    return static_cast<MatrixType>(this->Base::operator*(static_cast<MatrixType>(other)));
-  }
-
-  template<class StorageCellType, class Derived>
-  inline VectorType operator*(const ::Vector<Dimensions, T, StorageCellType, Derived>& vector) const {
-    return static_cast<VectorType>(this->Base::operator*(vector));
-  }
-  
-  inline MatrixType operator*(const T& scalar) const {
-    return static_cast<MatrixType>(this->Base::operator*(scalar));
-  }
-
-  inline MatrixType operator/(const T& scalar) const {
-    return static_cast<MatrixType>(this->Base::operator/(scalar));
-  }
-  
-  inline MatrixType transposed() const {
-    return static_cast<MatrixType>(this->Base::transposed());
-  }
-};
-
 template<class T>
-class Matrix2 : public SpecializedMatrix<2, T, Matrix2<T>, Vector2<T>> {
-  typedef SpecializedMatrix<2, T, Matrix2<T>, Vector2<T>> Base;
+class Matrix2 : public Matrix<2, T, Matrix2<T>, Vector2<T>> {
+  typedef Matrix<2, T, Matrix2<T>, Vector2<T>> Base;
 public:
   using Base::cell;
   using Base::setCell;
@@ -235,8 +208,8 @@ public:
   {
   }
 
-  template<int D>
-  inline Matrix2(const Matrix<D, T>& source)
+  template<int D, class M, class V>
+  inline Matrix2(const Matrix<D, T, M, V>& source)
     : Base(source)
   {
   }
@@ -379,8 +352,8 @@ typedef Matrix2<float> Matrix2f;
 typedef Matrix2<double> Matrix2d;
 
 template<class T>
-class Matrix3 : public SpecializedMatrix<3, T, Matrix3<T>, Vector3<T>> {
-  typedef SpecializedMatrix<3, T, Matrix3<T>, Vector3<T>> Base;
+class Matrix3 : public Matrix<3, T, Matrix3<T>, Vector3<T>> {
+  typedef Matrix<3, T, Matrix3<T>, Vector3<T>> Base;
 public:
   using Base::setCell;
   
@@ -389,8 +362,8 @@ public:
   {
   }
 
-  template<int D>
-  inline Matrix3(const Matrix<D, T>& source)
+  template<int D, class M, class V>
+  inline Matrix3(const Matrix<D, T, M, V>& source)
     : Base(source)
   {
   }
@@ -463,8 +436,8 @@ typedef Matrix3<float> Matrix3f;
 typedef Matrix3<double> Matrix3d;
 
 template<class T>
-class Matrix4 : public SpecializedMatrix<4, T, Matrix4<T>, Vector4<T>> {
-  typedef SpecializedMatrix<4, T, Matrix4<T>, Vector4<T>> Base;
+class Matrix4 : public Matrix<4, T, Matrix4<T>, Vector4<T>> {
+  typedef Matrix<4, T, Matrix4<T>, Vector4<T>> Base;
 public:
   using Base::cell;
   using Base::setCell;
@@ -474,8 +447,8 @@ public:
   {
   }
   
-  template<int D>
-  inline Matrix4(const Matrix<D, T>& source)
+  template<int D, class M, class V>
+  inline Matrix4(const Matrix<D, T, M, V>& source)
     : Base(source)
   {
   }
