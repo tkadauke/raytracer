@@ -3,7 +3,7 @@
 #include "world/objects/Surface.h"
 
 class Sphere : public Surface {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   Sphere(Element* parent = nullptr);

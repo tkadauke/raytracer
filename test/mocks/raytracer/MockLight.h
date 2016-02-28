@@ -7,10 +7,14 @@
 namespace testing {
   class MockLight : public raytracer::Light {
   public:
-    MockLight(const Vector3d& position, const Colord& color)
-      : raytracer::Light(position, color) {}
+    inline MockLight(const Vector3d& position, const Colord& color)
+      : raytracer::Light(position, color)
+    {
+    }
   
-    virtual ~MockLight() { destructorCall(); }
+    inline virtual ~MockLight() {
+      destructorCall();
+    }
 
     MOCK_METHOD0(destructorCall, void());
   };

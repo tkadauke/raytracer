@@ -3,7 +3,7 @@
 #include <QWidget>
 
 class RenderSettingsWidget : public QWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   RenderSettingsWidget(QWidget* parent = nullptr);

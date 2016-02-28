@@ -3,7 +3,7 @@
 #include "widgets/CameraParameterWidget.h"
 
 class SphericalCameraParameterWidget : public CameraParameterWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   SphericalCameraParameterWidget(QWidget* parent = nullptr);

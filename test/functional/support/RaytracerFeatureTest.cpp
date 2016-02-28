@@ -12,7 +12,10 @@ namespace testing {
   using namespace raytracer;
 
   RaytracerFeatureTest::RaytracerFeatureTest()
-    : FeatureTest<RaytracerFeatureTest>(), m_camera(0), m_raytracer(0), m_buffer(200, 150)
+    : FeatureTest<RaytracerFeatureTest>(),
+      m_camera(0),
+      m_raytracer(0),
+      m_buffer(200, 150)
   {
     previousObjectSize = 0;
   }

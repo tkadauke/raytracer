@@ -3,7 +3,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 class BoolParameterWidget : public AbstractParameterWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   BoolParameterWidget(QWidget* parent = nullptr);

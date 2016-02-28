@@ -10,7 +10,8 @@
 #include <QJsonDocument>
 
 Scene::Scene(Element* parent)
-  : Element(parent), m_changed(false)
+  : Element(parent),
+    m_changed(false)
 {
 }
 

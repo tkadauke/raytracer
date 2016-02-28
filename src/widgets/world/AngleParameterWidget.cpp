@@ -10,7 +10,8 @@ struct AngleParameterWidget::Private {
 };
 
 AngleParameterWidget::AngleParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
+  : AbstractParameterWidget(parent),
+    p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_angleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));

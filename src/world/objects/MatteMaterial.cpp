@@ -5,7 +5,10 @@
 #include "raytracer/materials/MatteMaterial.h"
 
 MatteMaterial::MatteMaterial(Element* parent)
-  : Material(parent), m_diffuseTexture(nullptr), m_ambientCoefficient(1), m_diffuseCoefficient(1)
+  : Material(parent),
+    m_diffuseTexture(nullptr),
+    m_ambientCoefficient(1),
+    m_diffuseCoefficient(1)
 {
 }
 

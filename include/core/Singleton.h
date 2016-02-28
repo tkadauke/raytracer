@@ -3,7 +3,7 @@
 template<class T>
 class Singleton {
 public:
-  static T& self() {
+  inline static T& self() {
     if (!s_instance) {
       s_instance = new T;
     }

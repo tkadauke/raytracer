@@ -4,7 +4,7 @@
 #include <QObject>
 
 class Signal : public QObject {
-  Q_OBJECT
+  Q_OBJECT;
 public:
   void call();
   

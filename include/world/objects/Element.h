@@ -3,7 +3,7 @@
 #include <QObject>
 
 class Element : public QObject {
-  Q_OBJECT
+  Q_OBJECT;
   Q_PROPERTY(QString id READ id WRITE setId);
   Q_PROPERTY(QString name READ name WRITE setName);
   
@@ -11,17 +11,27 @@ public:
   Element(Element* parent = nullptr);
   virtual ~Element();
   
-  int row() const;
+  inline const QString& id() {
+    return m_id;
+  }
   
-  inline const QString& name() const { return m_name; }
-  inline void setName(const QString& name) { m_name = name; }
+  inline void setId(const QString& id) {
+    m_id = id;
+  }
+  
+  inline const QString& name() const {
+    return m_name;
+  }
+  
+  inline void setName(const QString& name) {
+    m_name = name;
+  }
+  
+  int row() const;
   
   void read(const QJsonObject& json);
   void write(QJsonObject& json);
   
-  inline const QString& id() { return m_id; }
-  inline void setId(const QString& id) { m_id = id; }
-
 protected:
   void addPendingReference(const QString& property, const QString& id);
   void resolveReferences(const QMap<QString, Element*>& elements);

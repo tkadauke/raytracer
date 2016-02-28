@@ -5,7 +5,7 @@
 #include <string>
 
 class ViewPlaneTypeWidget : public QWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   ViewPlaneTypeWidget(QWidget* parent = nullptr);

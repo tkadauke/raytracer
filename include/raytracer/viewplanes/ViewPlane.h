@@ -26,10 +26,18 @@ namespace raytracer {
         return m_row == other.m_row && m_column == other.m_column;
       }
 
-      inline int column() const { return m_rect.left() + m_column; }
-      inline int row() const { return m_rect.top() + m_row; }
-      inline int pixelSize() const { return m_pixelSize; }
-
+      inline int column() const {
+        return m_rect.left() + m_column;
+      }
+      
+      inline int row() const {
+        return m_rect.top() + m_row;
+      }
+      
+      inline int pixelSize() const {
+        return m_pixelSize;
+      }
+      
     protected:
       const ViewPlane* m_plane;
       Rect m_rect;
@@ -46,23 +54,23 @@ namespace raytracer {
 
     class Iterator : public InequalityOperator<Iterator> {
     public:
-      Iterator(IteratorBase* iteratorImpl) {
+      inline Iterator(IteratorBase* iteratorImpl) {
         m_iteratorImpl = iteratorImpl;
       }
 
-      ~Iterator() {
+      inline ~Iterator() {
         delete m_iteratorImpl;
       }
 
-      Vector3d operator*() const {
+      inline Vector3d operator*() const {
         return m_iteratorImpl->current();
       }
 
-      Vector2d pixel() const {
+      inline Vector2d pixel() const {
         return Vector2d(column(), row());
       }
 
-      virtual Iterator& operator++() {
+      inline virtual Iterator& operator++() {
         m_iteratorImpl->advance();
         return *this;
       }
@@ -71,11 +79,18 @@ namespace raytracer {
         return *m_iteratorImpl == *(other.m_iteratorImpl);
       }
 
-      inline int column() const { return m_iteratorImpl->column(); }
-      inline int row() const { return m_iteratorImpl->row(); }
-
-      inline int pixelSize() const { return m_iteratorImpl->pixelSize(); }
-
+      inline int column() const {
+        return m_iteratorImpl->column();
+      }
+      
+      inline int row() const {
+        return m_iteratorImpl->row();
+      }
+      
+      inline int pixelSize() const {
+        return m_iteratorImpl->pixelSize();
+      }
+      
     protected:
       IteratorBase* m_iteratorImpl;
     };
@@ -91,8 +106,13 @@ namespace raytracer {
       setupVectors();
     }
 
-    inline int width() const { return m_window.width(); }
-    inline int height() const { return m_window.height(); }
+    inline int width() const {
+      return m_window.width();
+    }
+    
+    inline int height() const {
+      return m_window.height();
+    }
 
     virtual Iterator begin(const Rect& rect) const;
 
@@ -100,16 +120,38 @@ namespace raytracer {
       return Iterator(new RegularIterator(this, rect, true));
     }
 
-    inline const Vector3d& topLeft() const { return m_topLeft; }
-    inline const Vector3d& right() const { return m_right; }
-    inline const Vector3d& down() const { return m_down; }
-    inline double pixelSize() const { return m_pixelSize; }
-    inline void setPixelSize(double pixelSize) { m_pixelSize = pixelSize; }
-    inline Vector3d pixelAt(double x, double y) { return (m_topLeft + m_right * x + m_down * y) * m_pixelSize; }
+    inline const Vector3d& topLeft() const {
+      return m_topLeft;
+    }
     
-    inline void setSampler(std::shared_ptr<Sampler> sampler) { m_sampler = sampler; }
-    inline std::shared_ptr<Sampler> sampler() const { return m_sampler; }
-
+    inline const Vector3d& right() const {
+      return m_right;
+    }
+    
+    inline const Vector3d& down() const {
+      return m_down;
+    }
+    
+    inline double pixelSize() const {
+      return m_pixelSize;
+    }
+    
+    inline void setPixelSize(double pixelSize) {
+      m_pixelSize = pixelSize;
+    }
+    
+    inline Vector3d pixelAt(double x, double y) {
+      return (m_topLeft + m_right * x + m_down * y) * m_pixelSize;
+    }
+    
+    inline void setSampler(std::shared_ptr<Sampler> sampler) {
+      m_sampler = sampler;
+    }
+    
+    inline std::shared_ptr<Sampler> sampler() const {
+      return m_sampler;
+    }
+    
   protected:
     void setupVectors();
 

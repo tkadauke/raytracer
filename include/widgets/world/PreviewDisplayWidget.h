@@ -11,7 +11,7 @@ namespace raytracer {
 }
 
 class PreviewDisplayWidget : public QtDisplay {
-  Q_OBJECT
+  Q_OBJECT;
 
 public:
   PreviewDisplayWidget(QWidget* parent);

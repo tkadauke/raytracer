@@ -18,16 +18,38 @@ public:
   };
   
   PlyProperty(std::istream& is);
-  PlyProperty(Type type, const std::string& name)
-    : m_elementType(type), m_list(false), m_name(name) {}
-  PlyProperty(Type countType, Type elementType, const std::string& name)
-    : m_countType(countType), m_elementType(elementType), m_list(true), m_name(name) {}
+  
+  inline PlyProperty(Type type, const std::string& name)
+    : m_elementType(type),
+      m_list(false),
+      m_name(name)
+  {
+  }
+  
+  inline PlyProperty(Type countType, Type elementType, const std::string& name)
+    : m_countType(countType),
+      m_elementType(elementType),
+      m_list(true),
+      m_name(name)
+  {
+  }
 
-  const std::string& name() const { return m_name; }
-  Type elementType() const { return m_elementType; }
-  Type countType() const { return m_countType; }
-  bool isList() const { return m_list; }
-
+  inline const std::string& name() const {
+    return m_name;
+  }
+  
+  inline Type elementType() const {
+    return m_elementType;
+  }
+  
+  inline Type countType() const {
+    return m_countType;
+  }
+  
+  inline bool isList() const {
+    return m_list;
+  }
+  
 private:
   void parse(std::istream& is);
   Type mapType(const std::string& string);

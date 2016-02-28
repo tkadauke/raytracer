@@ -4,7 +4,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 class ColorParameterWidget : public AbstractParameterWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   ColorParameterWidget(QWidget* parent = nullptr);

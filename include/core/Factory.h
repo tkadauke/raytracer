@@ -11,47 +11,47 @@ class Factory {
   
   class BaseCreator {
   public:
-    virtual ~BaseCreator() {}
+    inline virtual ~BaseCreator() {}
     virtual Base* create() = 0;
   };
   
   template<class Concrete>
   class Creator : public BaseCreator {
   public:
-    virtual Base* create() {
+    inline virtual Base* create() {
       return new Concrete;
     }
   };
   
 public:
-  Factory() {}
-  ~Factory() {
+  inline Factory() {}
+  inline ~Factory() {
     for (auto& i : m_creators) {
       delete i.second;
     }
   }
   
   template<class Concrete>
-  bool registerClass(const Identifier& id) {
+  inline bool registerClass(const Identifier& id) {
     m_creators[id] = new Creator<Concrete>;
     return true;
   }
   
-  Base* create(const Identifier& id) {
+  inline Base* create(const Identifier& id) {
     if (BaseCreator* creator = m_creators[id])
       return creator->create();
     else
       return nullptr;
   }
 
-  std::shared_ptr<Base> createShared(const Identifier& id) {
+  inline std::shared_ptr<Base> createShared(const Identifier& id) {
     if (BaseCreator* creator = m_creators[id])
       return std::shared_ptr<Base>(creator->create());
     else
       return nullptr;
   }
   
-  std::list<std::string> identifiers() const {
+  inline std::list<std::string> identifiers() const {
     std::list<std::string> result;
     for (const auto& i : m_creators) {
       result.push_back(i.first);

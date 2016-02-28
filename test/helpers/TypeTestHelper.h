@@ -15,10 +15,12 @@ namespace testing {
     
     template<class S, class T>
     // Helper function for implementing ASSERT_MATRIX_NEAR.
-    AssertionResult TypesEqualPredFormat(const char* expr1,
-                                         const char* expr2,
-                                         const S&,
-                                         const T&) {
+    AssertionResult TypesEqualPredFormat(
+      const char* expr1,
+      const char* expr2,
+      const S&,
+      const T&
+    ) {
       if (TypesEqual<S, T>::Value) return AssertionSuccess();
 
       Message msg;
@@ -29,6 +31,7 @@ namespace testing {
   }
 }
 
-#define ASSERT_TYPES_EQ(expected, actual) ASSERT_PRED_FORMAT2(::testing::internal::TypesEqualPredFormat, expected, actual)
+#define ASSERT_TYPES_EQ(expected, actual) \
+  ASSERT_PRED_FORMAT2(::testing::internal::TypesEqualPredFormat, expected, actual)
 
 #endif

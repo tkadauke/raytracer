@@ -3,7 +3,7 @@
 #include "widgets/CameraParameterWidget.h"
 
 class PinholeCameraParameterWidget : public CameraParameterWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   PinholeCameraParameterWidget(QWidget* parent = nullptr);

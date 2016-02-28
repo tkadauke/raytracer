@@ -3,7 +3,10 @@
 #include "raytracer/primitives/Instance.h"
 
 Surface::Surface(Element* parent)
-  : Element(parent), m_scale(Vector3d::one()), m_material(nullptr), m_visible(true)
+  : Element(parent),
+    m_scale(Vector3d::one()),
+    m_material(nullptr),
+    m_visible(true)
 {
 }
 

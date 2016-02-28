@@ -41,8 +41,8 @@ BoundingBox Instance::boundingBox() {
   original.getVertices(vertices);
   
   BoundingBox result;
-  for (vector<Vector3d>::const_iterator i = vertices.begin(); i != vertices.end(); ++i) {
-    result.include(m_pointMatrix * Vector4d(*i));
+  for (const auto& vertex : vertices) {
+    result.include(m_pointMatrix * Vector4d(vertex));
   }
   return result;
 }

@@ -11,25 +11,31 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(std::shared_ptr<Raytracer> rt, Buffer<unsigned int>& b)
-      : raytracer(rt), buffer(b) {}
-
-    virtual void run() {
+    inline RenderThread(std::shared_ptr<Raytracer> rt, Buffer<unsigned int>& b)
+      : raytracer(rt),
+        buffer(b)
+    {
+    }
+    
+    inline virtual void run() {
       raytracer->render(buffer);
     }
-  
-    void cancel() {
+    
+    inline void cancel() {
       raytracer->cancel();
     }
-
+    
     std::shared_ptr<Raytracer> raytracer;
     Buffer<unsigned int>& buffer;
   };
 }
 
 struct RenderWidget::Private {
-  Private()
-    : renderThread(nullptr), buffer(nullptr) {}
+  inline Private()
+    : renderThread(nullptr),
+      buffer(nullptr)
+  {
+  }
   
   RenderThread* renderThread;
   
@@ -38,7 +44,9 @@ struct RenderWidget::Private {
 };
 
 RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<Raytracer> raytracer)
-  : QWidget(parent), m_raytracer(raytracer), p(std::make_unique<Private>())
+  : QWidget(parent),
+    m_raytracer(raytracer),
+    p(std::make_unique<Private>())
 {
   setBufferSize(QSize(0, 0));
 }

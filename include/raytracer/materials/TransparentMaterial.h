@@ -19,9 +19,14 @@ namespace raytracer {
       setRefractionIndex(1);
     }
 
-    inline void setRefractionIndex(double index) { m_specularBTDF.setRefractionIndex(index); }
-    inline double refractionIndex() const { return m_specularBTDF.refractionIndex(); }
-
+    inline void setRefractionIndex(double index) {
+      m_specularBTDF.setRefractionIndex(index);
+    }
+    
+    inline double refractionIndex() const {
+      return m_specularBTDF.refractionIndex();
+    }
+    
     virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:

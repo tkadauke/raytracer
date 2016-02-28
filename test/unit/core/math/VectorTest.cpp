@@ -336,8 +336,11 @@ namespace DerivedVectorTest {
   class DerivedVectorTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>,
-                           Vector2<double>, Vector3<double>, Vector4<double>> SpecializedVectorTypes;
+  typedef ::testing::Types<
+    Vector2<float>, Vector3<float>, Vector4<float>,
+    Vector2<double>, Vector3<double>, Vector4<double>
+  > SpecializedVectorTypes;
+  
   TYPED_TEST_CASE(DerivedVectorTest, SpecializedVectorTypes);
 
   TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForDotProduct) {

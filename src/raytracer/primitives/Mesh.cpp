@@ -7,7 +7,10 @@ using namespace std;
 using namespace raytracer;
 
 struct Mesh::Private {
-  Private(Mesh& m) : mesh(m) {}
+  inline Private(Mesh& m)
+    : mesh(m)
+  {
+  }
   
   template<class ConcreteMeshTriangle>
   void addTrianglesTo(Composite* composite, Material* material);

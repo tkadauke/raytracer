@@ -6,7 +6,8 @@
 using namespace raytracer;
 
 ViewPlane::ViewPlane()
-  : m_pixelSize(1), m_sampler(std::make_shared<RegularSampler>())
+  : m_pixelSize(1),
+    m_sampler(std::make_shared<RegularSampler>())
 {
   m_sampler->setup(1, 1);
 }

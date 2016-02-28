@@ -11,7 +11,7 @@ class Quartic : public Polynomial<T, 4> {
 public:
   typedef Polynomial<T, 4> normBase;
   
-  Quartic(T a, T b, T c, T d, T e)
+  inline Quartic(T a, T b, T c, T d, T e)
     : m_a(a), m_b(b), m_c(c), m_d(d), m_e(e)
   {
   }

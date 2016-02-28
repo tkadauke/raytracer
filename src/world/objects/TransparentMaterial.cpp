@@ -5,7 +5,8 @@
 #include "raytracer/materials/TransparentMaterial.h"
 
 TransparentMaterial::TransparentMaterial(Element* parent)
-  : PhongMaterial(parent), m_refractionIndex(1)
+  : PhongMaterial(parent),
+    m_refractionIndex(1)
 {
 }
 

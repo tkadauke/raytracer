@@ -6,5 +6,9 @@ namespace PointInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace raytracer;
   
-  INSTANTIATE_TYPED_TEST_CASE_P(PointInterlaced, AbstractViewPlaneTest, PointInterlacedViewPlane);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    PointInterlaced,
+    AbstractViewPlaneTest,
+    PointInterlacedViewPlane
+  );
 }

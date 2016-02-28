@@ -10,7 +10,8 @@ public:
   typedef RowType* BufferType;
 
   inline Buffer(int width, int height)
-    : m_width(width), m_height(height)
+    : m_width(width),
+      m_height(height)
   {
     m_buffer = new T*[height];
     
@@ -25,13 +26,25 @@ public:
     delete [] m_buffer;
   }
   
-  inline const RowType& operator[](int index) const { return m_buffer[index]; }
-  inline RowType& operator[](int index) { return m_buffer[index]; }
+  inline const RowType& operator[](int index) const {
+    return m_buffer[index];
+  }
   
-  inline int width() const { return m_width; }
-  inline int height() const { return m_height; }
+  inline RowType& operator[](int index) {
+    return m_buffer[index];
+  }
   
-  inline Rect rect() const { return Rect(m_width, m_height); }
+  inline int width() const {
+    return m_width;
+  }
+  
+  inline int height() const {
+    return m_height;
+  }
+  
+  inline Rect rect() const {
+    return Rect(m_width, m_height);
+  }
   
   void clear() {
     for (int i = 0; i != width(); ++i) {

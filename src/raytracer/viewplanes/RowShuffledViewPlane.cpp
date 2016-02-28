@@ -19,7 +19,8 @@ namespace {
   };
 
   RowShuffleIterator::RowShuffleIterator(const ViewPlane* plane, const Rect& rect)
-    : IteratorBase(plane, rect), m_rowIndex(0)
+    : IteratorBase(plane, rect),
+      m_rowIndex(0)
   {
     for (int i = 0; i != rect.height(); ++i)
       m_rowIndices.push_back(i);

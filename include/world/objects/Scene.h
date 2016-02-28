@@ -9,7 +9,7 @@ namespace raytracer {
 }
 
 class Scene : public Element {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   Scene(Element* parent = nullptr);
@@ -19,8 +19,13 @@ public:
   bool save(const QString& filename);
   bool load(const QString& filename);
   
-  inline bool changed() const { return m_changed; }
-  inline void setChanged(bool changed) { m_changed = changed; }
+  inline bool changed() const {
+    return m_changed;
+  }
+  
+  inline void setChanged(bool changed) {
+    m_changed = changed;
+  }
   
   Camera* activeCamera() const;
   

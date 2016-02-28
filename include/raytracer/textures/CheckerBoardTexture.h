@@ -7,20 +7,34 @@ namespace raytracer {
   class CheckerBoardTexture : public Texturec {
   public:
     inline CheckerBoardTexture(TextureMapping2D* mapping)
-      : m_mapping(mapping), m_brightTexture(nullptr), m_darkTexture(nullptr)
+      : m_mapping(mapping),
+        m_brightTexture(nullptr),
+        m_darkTexture(nullptr)
     {
     }
     
     inline CheckerBoardTexture(TextureMapping2D* mapping, std::shared_ptr<Texturec> brightTexture, std::shared_ptr<Texturec> darkTexture)
-      : m_mapping(mapping), m_brightTexture(brightTexture), m_darkTexture(darkTexture)
+      : m_mapping(mapping),
+        m_brightTexture(brightTexture),
+        m_darkTexture(darkTexture)
     {
     }
     
-    inline void setBrightTexture(std::shared_ptr<Texturec> color) { m_brightTexture = color; }
-    inline std::shared_ptr<Texturec> brightTexture() const { return m_brightTexture; }
+    inline void setBrightTexture(std::shared_ptr<Texturec> color) {
+      m_brightTexture = color;
+    }
     
-    inline void setDarkTexture(std::shared_ptr<Texturec> color) { m_darkTexture = color; }
-    inline std::shared_ptr<Texturec> darkTexture() const { return m_darkTexture; }
+    inline std::shared_ptr<Texturec> brightTexture() const {
+      return m_brightTexture;
+    }
+    
+    inline void setDarkTexture(std::shared_ptr<Texturec> color) {
+      m_darkTexture = color;
+    }
+    
+    inline std::shared_ptr<Texturec> darkTexture() const {
+      return m_darkTexture;
+    }
     
     virtual Colord evaluate(const Ray& ray, const HitPoint& hitPoint) const;
   

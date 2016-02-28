@@ -4,7 +4,9 @@
 #include "raytracer/textures/mappings/PlanarMapping2D.h"
 
 CheckerBoardTexture::CheckerBoardTexture(Element* parent)
-  : Texture(parent), m_brightTexture(nullptr), m_darkTexture(nullptr)
+  : Texture(parent),
+    m_brightTexture(nullptr),
+    m_darkTexture(nullptr)
 {
 }
 

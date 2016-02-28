@@ -4,7 +4,10 @@
 #include <QVariant>
 
 struct AbstractParameterWidget::Private {
-  Private() : element(0) {}
+  Private()
+    : element(0)
+  {
+  }
   
   Element* element;
   QString parameterName;
@@ -12,7 +15,8 @@ struct AbstractParameterWidget::Private {
 };
 
 AbstractParameterWidget::AbstractParameterWidget(QWidget* parent)
-  : QWidget(parent), p(std::make_unique<Private>())
+  : QWidget(parent),
+    p(std::make_unique<Private>())
 {
 }
 

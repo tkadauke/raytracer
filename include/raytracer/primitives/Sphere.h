@@ -6,8 +6,9 @@
 namespace raytracer {
   class Sphere : public Primitive {
   public:
-    Sphere(const Vector3d& origin, double radius)
-      : m_origin(origin), m_radius(radius)
+    inline Sphere(const Vector3d& origin, double radius)
+      : m_origin(origin),
+        m_radius(radius)
     {
     }
 

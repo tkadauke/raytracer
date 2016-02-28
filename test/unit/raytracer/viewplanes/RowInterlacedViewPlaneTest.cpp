@@ -12,5 +12,9 @@ namespace RowInterlacedViewPlaneTest {
     ASSERT_EQ(0, plane.height());
   }
   
-  INSTANTIATE_TYPED_TEST_CASE_P(RowInterlaced, AbstractViewPlaneIteratorTest, RowInterlacedViewPlane);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    RowInterlaced,
+    AbstractViewPlaneIteratorTest,
+    RowInterlacedViewPlane
+  );
 }

@@ -12,7 +12,11 @@ namespace TiledViewPlaneTest {
     ASSERT_EQ(0, plane.height());
   }
   
-  INSTANTIATE_TYPED_TEST_CASE_P(Tiled, AbstractViewPlaneIteratorTest, TiledViewPlane);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    Tiled,
+    AbstractViewPlaneIteratorTest,
+    TiledViewPlane
+  );
   
   namespace Iterator {
     TEST(TiledViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {

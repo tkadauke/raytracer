@@ -6,8 +6,9 @@
 namespace raytracer {
   class PerfectTransmitter : public BTDF {
   public:
-    PerfectTransmitter()
-      : m_transmissionCoefficient(1), m_refractionIndex(16)
+    inline PerfectTransmitter()
+      : m_transmissionCoefficient(1),
+        m_refractionIndex(16)
     {
     }
     
@@ -18,10 +19,17 @@ namespace raytracer {
       m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);
     }
     
-    inline double transmissionCoefficient() const { return m_transmissionCoefficient; }
+    inline double transmissionCoefficient() const {
+      return m_transmissionCoefficient;
+    }
     
-    inline void setRefractionIndex(double refractionIndex) { m_refractionIndex = refractionIndex; }
-    inline double refractionIndex() const { return m_refractionIndex; }
+    inline void setRefractionIndex(double refractionIndex) {
+      m_refractionIndex = refractionIndex;
+    }
+    
+    inline double refractionIndex() const {
+      return m_refractionIndex;
+    }
     
   private:
     double m_transmissionCoefficient;

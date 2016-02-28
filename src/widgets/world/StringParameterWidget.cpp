@@ -6,7 +6,8 @@ struct StringParameterWidget::Private {
 };
 
 StringParameterWidget::StringParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
+  : AbstractParameterWidget(parent),
+    p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_stringEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));

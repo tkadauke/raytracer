@@ -5,7 +5,7 @@
 #include "core/Color.h"
 
 class Texture : public Element {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   static Texture* defaultTexture();

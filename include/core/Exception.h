@@ -13,9 +13,17 @@ public:
     getBacktrace();
   }
   
-  inline const std::string& message() const { return m_message; }
-  inline const std::string& file() const { return m_file; }
-  inline int line() const { return m_line; }
+  inline const std::string& message() const {
+    return m_message;
+  }
+  
+  inline const std::string& file() const {
+    return m_file;
+  }
+  
+  inline int line() const {
+    return m_line;
+  }
   
   void printBacktrace();
 

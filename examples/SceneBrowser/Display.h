@@ -13,7 +13,7 @@ namespace raytracer {
 }
 
 class Display : public QtDisplay {
-  Q_OBJECT
+  Q_OBJECT;
 
 public:
   Display();

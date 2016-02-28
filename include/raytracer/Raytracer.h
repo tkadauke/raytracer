@@ -22,14 +22,25 @@ namespace raytracer {
   
     Primitive* primitiveForRay(const Ray& ray);
     Colord rayColor(const Ray& ray, int recursionDepth = 0);
-    std::shared_ptr<Camera> camera() const { return m_camera; }
-    inline void setCamera(std::shared_ptr<Camera> camera) { m_camera = camera; }
-  
+    
+    inline std::shared_ptr<Camera> camera() const {
+      return m_camera;
+    }
+    
+    inline void setCamera(std::shared_ptr<Camera> camera) {
+      m_camera = camera;
+    }
+    
     void cancel();
     void uncancel();
   
-    inline Scene* scene() const { return m_scene; }
-    inline void setScene(Scene* scene) { m_scene = scene; }
+    inline Scene* scene() const {
+      return m_scene;
+    }
+    
+    inline void setScene(Scene* scene) {
+      m_scene = scene;
+    }
     
     void setMaximumRecursionDepth(int depth);
 

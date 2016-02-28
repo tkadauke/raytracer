@@ -6,7 +6,7 @@
 namespace testing {
   template<class VP>
   struct AbstractViewPlaneIteratorTest : public Test {
-    virtual void SetUp() {
+    inline virtual void SetUp() {
       fullRect = Rect(0, 0, 8, 6);
       quarterRect = Rect(0, 0, 4, 3);
       plane.setup(Matrix4d(), fullRect);
@@ -60,13 +60,15 @@ namespace testing {
     ASSERT_EQ(this->plane.end(this->fullRect).column(), iterator.column());
   }
 
-  REGISTER_TYPED_TEST_CASE_P(AbstractViewPlaneIteratorTest,
-                             ShouldAdvance,
-                             ShouldEndUpInLastRowAfterIterating,
-                             ShouldEndUpInColumnZeroAfterIterating,
-                             ShouldIterateThroughPixels,
-                             ShouldIterateThroughRect,
-                             ShouldPointAtEndIteratorAfterIterating);
+  REGISTER_TYPED_TEST_CASE_P(
+    AbstractViewPlaneIteratorTest,
+    ShouldAdvance,
+    ShouldEndUpInLastRowAfterIterating,
+    ShouldEndUpInColumnZeroAfterIterating,
+    ShouldIterateThroughPixels,
+    ShouldIterateThroughRect,
+    ShouldPointAtEndIteratorAfterIterating
+  );
 }
 
 #endif

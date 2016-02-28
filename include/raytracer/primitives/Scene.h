@@ -10,24 +10,34 @@ namespace raytracer {
   public:
     typedef std::list<Light*> Lights;
 
-    Scene()
+    inline Scene()
       : m_ambient(Colord::white())
     {
     }
 
-    Scene(const Colord& ambient)
+    inline Scene(const Colord& ambient)
       : m_ambient(ambient)
     {
     }
 
     ~Scene();
 
-    inline void addLight(Light* light) { m_lights.push_back(light); }
-    const Lights& lights() const { return m_lights; }
-
-    const Colord& ambient() const { return m_ambient; }
-    inline void setAmbient(const Colord& ambient) { m_ambient = ambient; }
-
+    inline void addLight(Light* light) {
+      m_lights.push_back(light);
+    }
+    
+    inline const Lights& lights() const {
+      return m_lights;
+    }
+    
+    inline const Colord& ambient() const {
+      return m_ambient;
+    }
+    
+    inline void setAmbient(const Colord& ambient) {
+      m_ambient = ambient;
+    }
+    
   private:
     Lights m_lights;
     Colord m_ambient;

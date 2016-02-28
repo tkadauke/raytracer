@@ -25,7 +25,8 @@ namespace {
   };
 
   PointShuffleIterator::PointShuffleIterator(const ViewPlane* plane, const Rect& rect)
-    : IteratorBase(plane, rect), m_pointIndex(0)
+    : IteratorBase(plane, rect),
+      m_pointIndex(0)
   {
     for (int i = 0; i != rect.height(); ++i) {
       for (int j = 0; j != rect.width(); ++j)

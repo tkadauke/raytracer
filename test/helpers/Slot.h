@@ -4,7 +4,7 @@
 #include <QObject>
 
 class Slot : public QObject {
-  Q_OBJECT
+  Q_OBJECT;
 public:
   Slot();
   bool called();

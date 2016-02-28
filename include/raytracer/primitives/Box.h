@@ -6,8 +6,9 @@
 namespace raytracer {
   class Box : public Primitive {
   public:
-    Box(const Vector3d& center, const Vector3d& edge)
-      : m_center(center), m_edge(edge)
+    inline Box(const Vector3d& center, const Vector3d& edge)
+      : m_center(center),
+        m_edge(edge)
     {
     }
 

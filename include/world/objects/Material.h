@@ -7,7 +7,7 @@ namespace raytracer {
 }
 
 class Material : public Element {
-  Q_OBJECT
+  Q_OBJECT;
 
 public:
   static Material* defaultMaterial();

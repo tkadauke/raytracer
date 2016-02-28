@@ -7,7 +7,7 @@ namespace raytracer {
 }
 
 class RenderWidget : public QWidget {
-  Q_OBJECT
+  Q_OBJECT;
 public:
   RenderWidget(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
   ~RenderWidget();

@@ -47,11 +47,22 @@ public:
       m_coordinates[i] = source.coordinate(i);
   }
 
-  inline float x() const { return m_coordinates[0]; }
-  inline float y() const { return m_coordinates[1]; }
-  inline float z() const { return m_coordinates[2]; }
-  inline float w() const { return m_coordinates[3]; }
-
+  inline float x() const {
+    return m_coordinates[0];
+  }
+  
+  inline float y() const {
+    return m_coordinates[1];
+  }
+  
+  inline float z() const {
+    return m_coordinates[2];
+  }
+  
+  inline float w() const {
+    return m_coordinates[3];
+  }
+  
   inline Vector4<float> operator+(const Vector4<float>& other) const {
     return Vector4<float>(_mm_add_ps(m_vector[0], other.m_vector[0]));
   }

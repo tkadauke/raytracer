@@ -5,5 +5,9 @@ namespace ViewPlaneTest {
   using namespace ::testing;
   using namespace raytracer;
   
-  INSTANTIATE_TYPED_TEST_CASE_P(ViewPlane, AbstractViewPlaneTest, ViewPlane);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    ViewPlane,
+    AbstractViewPlaneTest,
+    ViewPlane
+  );
 }

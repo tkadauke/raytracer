@@ -4,7 +4,9 @@
 #include "raytracer/cameras/SphericalCamera.h"
 
 SphericalCamera::SphericalCamera(Element* parent)
-  : Camera(parent), m_horizontalFieldOfView(Angled::fromDegrees(180)), m_verticalFieldOfView(Angled::fromDegrees(120))
+  : Camera(parent),
+    m_horizontalFieldOfView(Angled::fromDegrees(180)),
+    m_verticalFieldOfView(Angled::fromDegrees(120))
 {
 }
 

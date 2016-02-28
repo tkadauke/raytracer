@@ -5,7 +5,7 @@
 #include <string>
 
 class SceneWidget : public QWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   SceneWidget(QWidget* parent = nullptr);

@@ -34,8 +34,11 @@ namespace LinearInterpolationTest {
     Vector4<T> begin, end;
   };
 
-  typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>, float,
-                           Vector2<double>, Vector3<double>, Vector4<double>, double> LinearInterpolationTypes;
+  typedef ::testing::Types<
+    Vector2<float>, Vector3<float>, Vector4<float>, float,
+    Vector2<double>, Vector3<double>, Vector4<double>, double
+  > LinearInterpolationTypes;
+  
   TYPED_TEST_CASE(LinearInterpolationTest, LinearInterpolationTypes);
 
   TYPED_TEST(LinearInterpolationTest, ShouldReturnFirstVectorAsBeginIterator) {

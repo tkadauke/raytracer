@@ -20,7 +20,11 @@
 using namespace raytracer;
 
 struct RenderWindow::Private {
-  Private() : busy(false), timer(0) {}
+  Private()
+    : busy(false),
+      timer(0)
+  {
+  }
   
   RenderWidget* renderWidget;
   RenderSettingsWidget* settingsWidget;
@@ -33,7 +37,8 @@ struct RenderWindow::Private {
 };
 
 RenderWindow::RenderWindow(QWidget* parent)
-  : QWidget(parent), p(std::make_unique<Private>())
+  : QWidget(parent),
+    p(std::make_unique<Private>())
 {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
   

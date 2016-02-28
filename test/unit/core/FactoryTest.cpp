@@ -8,7 +8,7 @@ namespace FactoryTest {
   using namespace ::testing;
 
   struct Shape {
-    virtual ~Shape() {}
+    inline virtual ~Shape() {}
   };
   struct Rectangle : public Shape {};
   struct Circle : public Shape {};

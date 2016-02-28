@@ -7,7 +7,10 @@ namespace raytracer {
   class Triangle : public Primitive {
   public:
     Triangle(const Vector3d& a, const Vector3d& b, const Vector3d& c)
-      : Primitive(), m_point0(a), m_point1(b), m_point2(c)
+      : Primitive(),
+        m_point0(a),
+        m_point1(b),
+        m_point2(c)
     {
       m_normal = computeNormal();
     }

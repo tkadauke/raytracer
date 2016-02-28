@@ -7,25 +7,45 @@ template<class T>
 class Quaternion : public InequalityOperator<Quaternion<T>> {
 public:
   inline Quaternion()
-    : m_w(T(1)), m_x(T()), m_y(T()), m_z(T())
+    : m_w(T(1)),
+      m_x(T()),
+      m_y(T()),
+      m_z(T())
   {
   }
   
   inline Quaternion(const T& w, const T& x, const T& y, const T& z)
-    : m_w(w), m_x(x), m_y(y), m_z(z)
+    : m_w(w),
+      m_x(x),
+      m_y(y),
+      m_z(z)
   {
   }
   
   template<class Vector>
   inline Quaternion(const T& scalar, const Vector& vector)
-    : m_w(scalar), m_x(vector[0]), m_y(vector[1]), m_z(vector[2])
+    : m_w(scalar),
+      m_x(vector[0]),
+      m_y(vector[1]),
+      m_z(vector[2])
   {
   }
   
-  inline const T& w() const { return m_w; }
-  inline const T& x() const { return m_x; }
-  inline const T& y() const { return m_y; }
-  inline const T& z() const { return m_z; }
+  inline const T& w() const {
+    return m_w;
+  }
+  
+  inline const T& x() const {
+    return m_x;
+  }
+  
+  inline const T& y() const {
+    return m_y;
+  }
+  
+  inline const T& z() const {
+    return m_z;
+  }
   
   inline bool operator==(const Quaternion<T>& other) const {
     return m_w == other.w() && m_x == other.x() && m_y == other.y() && m_z == other.z();

@@ -33,19 +33,37 @@ public:
   {
   }
 
-  static Color<float> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
+  inline static Color<float> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
     return Color(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
   }
 
-  inline const float& component(int index) const { return m_components[index]; }
-  inline void setComponent(int index, const float& value) { m_components[index] = value; }
-
-  inline float& operator[](int index) { return m_components[index]; }
-  inline const float& operator[](int index) const { return m_components[index]; }
+  inline const float& component(int index) const {
+    return m_components[index];
+  }
   
-  inline const float& r() const { return component(0); }
-  inline const float& g() const { return component(1); }
-  inline const float& b() const { return component(2); }
+  inline void setComponent(int index, const float& value) {
+    m_components[index] = value;
+  }
+  
+  inline float& operator[](int index) {
+    return m_components[index];
+  }
+  
+  inline const float& operator[](int index) const {
+    return m_components[index];
+  }
+  
+  inline const float& r() const {
+    return component(0);
+  }
+  
+  inline const float& g() const {
+    return component(1);
+  }
+  
+  inline const float& b() const {
+    return component(2);
+  }  
 
   inline Color<float> operator+(const Color<float>& other) const {
     return Color<float>(_mm_add_ps(m_vector, other.m_vector));
@@ -84,9 +102,17 @@ public:
     return true;
   }
 
-  inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
-  inline unsigned char gInt() const { return std::min(unsigned(g() * 255), 255u); }
-  inline unsigned char bInt() const { return std::min(unsigned(b() * 255), 255u); }
+  inline unsigned char rInt() const {
+    return std::min(unsigned(r() * 255), 255u);
+  }
+  
+  inline unsigned char gInt() const {
+    return std::min(unsigned(g() * 255), 255u);
+  }
+  
+  inline unsigned char bInt() const {
+    return std::min(unsigned(b() * 255), 255u);
+  }
   
   inline unsigned int rgb() const {
     typedef union {

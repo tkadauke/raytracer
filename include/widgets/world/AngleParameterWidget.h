@@ -3,7 +3,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 class AngleParameterWidget : public AbstractParameterWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   AngleParameterWidget(QWidget* parent = nullptr);

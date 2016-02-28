@@ -7,7 +7,11 @@ namespace raytracer {
   class Disk : public Primitive {
   public:
     Disk(const Vector3d& center, const Vector3d& normal, double radius)
-      : Primitive(), m_center(center), m_normal(normal), m_radius(radius), m_squaredRadius(radius * radius)
+      : Primitive(),
+        m_center(center),
+        m_normal(normal),
+        m_radius(radius),
+        m_squaredRadius(radius * radius)
     {
     }
 

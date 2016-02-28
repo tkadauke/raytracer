@@ -5,7 +5,9 @@
 #include "raytracer/materials/ReflectiveMaterial.h"
 
 ReflectiveMaterial::ReflectiveMaterial(Element* parent)
-  : PhongMaterial(parent), m_reflectionColor(Colord::white()), m_reflectionCoefficient(0.5)
+  : PhongMaterial(parent),
+    m_reflectionColor(Colord::white()),
+    m_reflectionCoefficient(0.5)
 {
 }
 

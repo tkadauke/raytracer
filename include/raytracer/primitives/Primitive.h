@@ -18,9 +18,14 @@ namespace raytracer {
 
     virtual BoundingBox boundingBox() = 0;
 
-    inline void setMaterial(Material* material) { m_material = material; }
-    inline virtual Material* material() const { return m_material; }
-
+    inline void setMaterial(Material* material) {
+      m_material = material;
+    }
+    
+    inline virtual Material* material() const {
+      return m_material;
+    }
+    
   private:
     Material* m_material;
   };

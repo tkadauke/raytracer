@@ -16,7 +16,10 @@ namespace {
   };
 
   TileIterator::TileIterator(const ViewPlane* plane, const Rect& rect)
-    : IteratorBase(plane, rect), m_tileSize(32), m_xTile(0), m_yTile(0)
+    : IteratorBase(plane, rect),
+      m_tileSize(32),
+      m_xTile(0),
+      m_yTile(0)
   {
   }
 

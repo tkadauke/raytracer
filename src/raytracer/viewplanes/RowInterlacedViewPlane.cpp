@@ -21,7 +21,9 @@ namespace {
   };
 
   RowInterlaceIterator::RowInterlaceIterator(const ViewPlane* plane, const Rect& rect)
-    : IteratorBase(plane, rect), m_rowJump(initialJump()), m_offset(0)
+    : IteratorBase(plane, rect),
+      m_rowJump(initialJump()),
+      m_offset(0)
   {
   }
 

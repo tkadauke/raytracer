@@ -51,10 +51,18 @@ public:
       m_coordinates[i] = source.coordinate(i);
   }
 
-  inline float x() const { return m_coordinates[0]; }
-  inline float y() const { return m_coordinates[1]; }
-  inline float z() const { return m_coordinates[2]; }
-
+  inline float x() const {
+    return m_coordinates[0];
+  }
+  
+  inline float y() const {
+    return m_coordinates[1];
+  }
+  
+  inline float z() const {
+    return m_coordinates[2];
+  }
+  
   inline Vector3<float> operator+(const Vector3<float>& other) const {
     return Vector3<float>(_mm_add_ps(m_vector[0], other.m_vector[0]));
   }

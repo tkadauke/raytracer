@@ -9,7 +9,12 @@ using namespace raytracer;
 
 struct QtDisplay::Private {
   Private()
-    : interactive(true), xAngle(0), yAngle(0), distance(1) {}
+    : interactive(true),
+      xAngle(0),
+      yAngle(0),
+      distance(1)
+  {
+  }
   
   bool interactive;
   double xAngle, yAngle, distance;
@@ -17,7 +22,8 @@ struct QtDisplay::Private {
 };
 
 QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<Raytracer> raytracer)
-  : RenderWidget(parent, raytracer), p(std::make_unique<Private>())
+  : RenderWidget(parent, raytracer),
+    p(std::make_unique<Private>())
 {
   setBufferSize(size());
   resize(400, 300);

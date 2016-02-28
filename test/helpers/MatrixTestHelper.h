@@ -41,6 +41,7 @@ namespace testing {
   }
 }
 
-#define ASSERT_MATRIX_NEAR(val1, val2, abs_error) ASSERT_PRED_FORMAT3(::testing::internal::MatrixNearPredFormat, val1, val2, abs_error)
+#define ASSERT_MATRIX_NEAR(val1, val2, abs_error) \
+  ASSERT_PRED_FORMAT3(::testing::internal::MatrixNearPredFormat, val1, val2, abs_error)
 
 #endif

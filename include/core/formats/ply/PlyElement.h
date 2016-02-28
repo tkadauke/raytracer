@@ -8,15 +8,28 @@
 class PlyElement {
 public:
   PlyElement(std::istream& istream);
-  PlyElement(const std::string& name, int count)
-    : m_name(name), m_count(count) {}
+  inline PlyElement(const std::string& name, int count)
+    : m_name(name),
+      m_count(count)
+  {
+  }
   
-  const std::string& name() const { return m_name; }
-  int count() const { return m_count; }
+  inline const std::string& name() const {
+    return m_name;
+  }
   
-  const std::vector<PlyProperty>& properties() const { return m_properties; }
-  void addProperty(const PlyProperty& property) { m_properties.push_back(property); }
-
+  inline int count() const {
+    return m_count;
+  }
+  
+  inline const std::vector<PlyProperty>& properties() const {
+    return m_properties;
+  }
+  
+  inline void addProperty(const PlyProperty& property) {
+    m_properties.push_back(property);
+  }
+  
 private:
   void parse(std::istream& istream);
   

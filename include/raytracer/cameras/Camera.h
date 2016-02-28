@@ -16,9 +16,20 @@ namespace raytracer {
 
   class Camera {
   public:
-    Camera() : m_cancelled(false), m_viewPlane(nullptr) {}
-    Camera(const Vector3d& position, const Vector3d& target)
-      : m_cancelled(false), m_position(position), m_target(target), m_viewPlane(nullptr) {}
+    inline Camera()
+      : m_cancelled(false),
+        m_viewPlane(nullptr)
+    {
+    }
+    
+    inline Camera(const Vector3d& position, const Vector3d& target)
+      : m_cancelled(false),
+        m_position(position),
+        m_target(target),
+        m_viewPlane(nullptr)
+    {
+    }
+    
     virtual ~Camera();
 
     void setPosition(const Vector3d& position) {
@@ -38,13 +49,25 @@ namespace raytracer {
 
     void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer);
     virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
-    inline Ray rayForPixel(const Vector2d& pixel) { return rayForPixel(pixel.x(), pixel.y()); }
+    
     virtual Ray rayForPixel(double x, double y) = 0;
-
-    inline void cancel() { m_cancelled = true; }
-    inline bool isCancelled() const { return m_cancelled; }
-    inline void uncancel() { m_cancelled = false; }
-
+    
+    inline Ray rayForPixel(const Vector2d& pixel) {
+      return rayForPixel(pixel.x(), pixel.y());
+    }
+    
+    inline void cancel() {
+      m_cancelled = true;
+    }
+    
+    inline bool isCancelled() const {
+      return m_cancelled;
+    }
+    
+    inline void uncancel() {
+      m_cancelled = false;
+    }
+    
   protected:
     void plot(Buffer<unsigned int>& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color);
 

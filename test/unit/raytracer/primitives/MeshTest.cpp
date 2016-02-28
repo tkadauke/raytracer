@@ -10,7 +10,7 @@ namespace MeshTest {
   using namespace raytracer;
   
   struct MeshTest : public ::testing::Test {
-    void SetUp() {
+    inline void SetUp() {
       mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 0, 0), Vector3d::null()));
       mesh.vertices.push_back(Mesh::Vertex(Vector3d(0, 1, 0), Vector3d::null()));
       mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, 0, 0), Vector3d::null()));

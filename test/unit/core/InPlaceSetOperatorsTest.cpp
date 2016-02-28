@@ -7,14 +7,21 @@ namespace InPlaceSetOperatorsTest {
   using namespace ::testing;
   
   struct ConcreteSet : public InPlaceSetOperators<ConcreteSet> {
-    ConcreteSet()
-      : value(0) {}
-    ConcreteSet(int v)
-      : value(v) {}
-    ConcreteSet operator|(const ConcreteSet&) {
+    inline ConcreteSet()
+      : value(0)
+    {
+    }
+
+    inline ConcreteSet(int v)
+      : value(v)
+    {
+    }
+
+    inline ConcreteSet operator|(const ConcreteSet&) {
       return ConcreteSet(17);
     }
-    ConcreteSet operator&(const ConcreteSet&) {
+
+    inline ConcreteSet operator&(const ConcreteSet&) {
       return ConcreteSet(42);
     }
     

@@ -8,7 +8,9 @@
 namespace testing {
   template<class VP>
   struct AbstractViewPlaneTest : public RaytracerFeatureTest {
-    AbstractViewPlaneTest() : RaytracerFeatureTest() {
+    inline AbstractViewPlaneTest()
+      : RaytracerFeatureTest()
+    {
       camera()->setViewPlane(std::make_shared<VP>());
     }
   };
@@ -27,8 +29,11 @@ namespace testing {
     this->then("i should see the sphere");
   }
 
-  REGISTER_TYPED_TEST_CASE_P(AbstractViewPlaneTest,
-                             ShouldRenderEmptyScene, ShouldRenderSphere);
+  REGISTER_TYPED_TEST_CASE_P(
+    AbstractViewPlaneTest,
+    ShouldRenderEmptyScene,
+    ShouldRenderSphere
+  );
 }
 
 #endif

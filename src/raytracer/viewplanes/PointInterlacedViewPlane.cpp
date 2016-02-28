@@ -22,7 +22,9 @@ namespace {
   };
 
   PointInterlaceIterator::PointInterlaceIterator(const ViewPlane* plane, const Rect& rect)
-    : IteratorBase(plane, rect), m_evenRow(false), m_initialSize(initialSize())
+    : IteratorBase(plane, rect),
+      m_evenRow(false),
+      m_initialSize(initialSize())
   {
     m_pixelSize = m_initialSize;
   }

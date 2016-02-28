@@ -7,7 +7,9 @@ namespace SingletonTest {
   typedef Singleton<Log> Logger;
   
   struct AnotherLog : public Singleton<AnotherLog> {
-    int function() { return 42; }
+    inline int function() {
+      return 42;
+    }
   };
   
   TEST(Singleton, ShouldInitialize) {

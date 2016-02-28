@@ -25,10 +25,16 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    RenderThread(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Rect& r)
-      : QThread(), raytracer(rt), camera(c), buffer(b), rect(r) {}
+    inline RenderThread(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Rect& r)
+      : QThread(),
+        raytracer(rt),
+        camera(c),
+        buffer(b),
+        rect(r)
+    {
+    }
 
-    virtual void run() {
+    inline virtual void run() {
       camera->render(raytracer, buffer, rect);
     }
 
@@ -40,8 +46,11 @@ namespace {
 }
 
 struct Raytracer::Private {
-  Private()
-    : numberOfThreads(24), maximumRecursionDepth(5) {}
+  inline Private()
+    : numberOfThreads(24),
+      maximumRecursionDepth(5)
+  {
+  }
   
   vector<RenderThread*> threads;
   int numberOfThreads;
@@ -49,13 +58,16 @@ struct Raytracer::Private {
 };
 
 Raytracer::Raytracer(Scene* scene)
-  : m_scene(scene), p(std::make_unique<Private>())
+  : m_scene(scene),
+    p(std::make_unique<Private>())
 {
   m_camera = std::make_shared<PinholeCamera>();
 }
 
 Raytracer::Raytracer(std::shared_ptr<Camera> camera, Scene* scene)
-  : m_camera(camera), m_scene(scene), p(std::make_unique<Private>())
+  : m_camera(camera),
+    m_scene(scene),
+    p(std::make_unique<Private>())
 {
 }
 

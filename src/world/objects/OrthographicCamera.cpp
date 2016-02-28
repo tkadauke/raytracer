@@ -4,7 +4,8 @@
 #include "raytracer/cameras/OrthographicCamera.h"
 
 OrthographicCamera::OrthographicCamera(Element* parent)
-  : Camera(parent), m_zoom(1)
+  : Camera(parent),
+    m_zoom(1)
 {
 }
 

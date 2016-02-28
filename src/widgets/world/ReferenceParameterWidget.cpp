@@ -11,7 +11,8 @@ struct ReferenceParameterWidget::Private {
 };
 
 ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName, Element* root, QWidget* parent)
-  : AbstractParameterWidget(parent), p(std::make_unique<Private>())
+  : AbstractParameterWidget(parent),
+    p(std::make_unique<Private>())
 {
   p->baseClassName = baseClassName;
   p->root = root;

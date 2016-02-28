@@ -7,7 +7,8 @@ namespace raytracer {
   class Torus : public Primitive {
   public:
     Torus(double sweptRadius, double tubeRadius)
-      : m_sweptRadius(sweptRadius), m_tubeRadius(tubeRadius)
+      : m_sweptRadius(sweptRadius),
+        m_tubeRadius(tubeRadius)
     {
     }
 

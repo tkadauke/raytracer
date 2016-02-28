@@ -6,13 +6,13 @@
 namespace testing {
   class GuiTest : public ::testing::Test {
   public:
-    virtual void SetUp() {
+    inline virtual void SetUp() {
       int argc = 0;
       char** argv = nullptr;
       m_application = new QApplication(argc, argv);
     }
     
-    virtual void TearDown() {
+    inline virtual void TearDown() {
       delete m_application;
     }
     

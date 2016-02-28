@@ -4,7 +4,9 @@
 #include "raytracer/cameras/PinholeCamera.h"
 
 PinholeCamera::PinholeCamera(Element* parent)
-  : Camera(parent), m_distance(5), m_zoom(1)
+  : Camera(parent),
+    m_distance(5),
+    m_zoom(1)
 {
 }
 

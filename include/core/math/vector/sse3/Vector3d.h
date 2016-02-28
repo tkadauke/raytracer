@@ -51,10 +51,18 @@ public:
       m_coordinates[i] = source.coordinate(i);
   }
 
-  inline double x() const { return m_coordinates[0]; }
-  inline double y() const { return m_coordinates[1]; }
-  inline double z() const { return m_coordinates[2]; }
-
+  inline double x() const {
+    return m_coordinates[0];
+  }
+  
+  inline double y() const {
+    return m_coordinates[1];
+  }
+  
+  inline double z() const {
+    return m_coordinates[2];
+  }
+  
   inline Vector3<double> operator+(const Vector3<double>& other) const {
     Vector3<double> result;
     result.m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);

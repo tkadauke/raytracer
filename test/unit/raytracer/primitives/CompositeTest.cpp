@@ -31,7 +31,12 @@ namespace CompositeTest {
     Composite composite;
     auto primitive = std::make_shared<MockPrimitive>();
     composite.add(primitive);
-    EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive.get())));
+    EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(
+      DoAll(
+        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        Return(primitive.get())
+      )
+    );
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
@@ -61,8 +66,18 @@ namespace CompositeTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     composite.add(primitive1);
     composite.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())), Return(primitive1.get())));
-    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())), Return(primitive2.get())));
+    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
+      DoAll(
+        AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())),
+        Return(primitive1.get())
+      )
+    );
+    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(
+      DoAll(
+        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        Return(primitive2.get())
+      )
+    );
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
@@ -122,8 +137,12 @@ namespace CompositeTest {
     composite.add(mockPrimitive1);
     composite.add(mockPrimitive2);
     
-    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
-    EXPECT_CALL(*mockPrimitive2, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(0, 0, 0), Vector3d(2, 2, 2))));
+    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(
+      Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)))
+    );
+    EXPECT_CALL(*mockPrimitive2, boundingBox()).WillOnce(
+      Return(BoundingBox(Vector3d(0, 0, 0), Vector3d(2, 2, 2)))
+    );
     
     BoundingBox expected(Vector3d(-1, -1, -1), Vector3d(2, 2, 2));
     ASSERT_EQ(expected, composite.boundingBox());

@@ -9,7 +9,9 @@
 namespace testing {
   class MockPrimitive : public raytracer::Primitive {
   public:
-    virtual ~MockPrimitive() { destructorCall(); }
+    inline virtual ~MockPrimitive() {
+      destructorCall();
+    }
 
     MOCK_METHOD2(intersect, Primitive*(const Ray&, HitPointInterval&));
     MOCK_METHOD1(intersects, bool(const Ray&));

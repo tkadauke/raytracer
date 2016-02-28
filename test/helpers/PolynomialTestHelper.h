@@ -19,12 +19,14 @@ namespace testing {
 
     template<class Container>
     // Helper function for implementing ASSERT_CONTAINERS_NEAR.
-    AssertionResult ContainersNearPredFormat(const char* expr1,
-                                             const char* expr2,
-                                             const char* expr3,
-                                             const Container& val1,
-                                             const Container& val2,
-                                             double epsilon) {
+    AssertionResult ContainersNearPredFormat(
+      const char* expr1,
+      const char* expr2,
+      const char* expr3,
+      const Container& val1,
+      const Container& val2,
+      double epsilon
+    ) {
       if (containersNear(val1, val2, epsilon)) return AssertionSuccess();
 
       Message msg;
@@ -40,6 +42,7 @@ namespace testing {
   }
 }
 
-#define ASSERT_CONTAINERS_NEAR(val1, val2, epsilon) ASSERT_PRED_FORMAT3(::testing::internal::ContainersNearPredFormat, val1, val2, epsilon)
+#define ASSERT_CONTAINERS_NEAR(val1, val2, epsilon) \
+  ASSERT_PRED_FORMAT3(::testing::internal::ContainersNearPredFormat, val1, val2, epsilon)
 
 #endif

@@ -5,7 +5,7 @@
 class Element;
 
 class AbstractParameterWidget : public QWidget {
-  Q_OBJECT
+  Q_OBJECT;
   
 public:
   AbstractParameterWidget(QWidget* parent = nullptr);

@@ -4,7 +4,7 @@
 #include "core/Color.h"
 
 class CheckerBoardTexture : public Texture {
-  Q_OBJECT
+  Q_OBJECT;
   Q_PROPERTY(Texture* brightTexture READ brightTexture WRITE setBrightTexture);
   Q_PROPERTY(Texture* darkTexture READ darkTexture WRITE setDarkTexture);
   
@@ -18,7 +18,10 @@ public:
       m_brightTexture = texture;
     }
   }
-  inline Texture* brightTexture() const { return m_brightTexture; }
+  
+  inline Texture* brightTexture() const {
+    return m_brightTexture;
+  }
   
   inline void setDarkTexture(Texture* texture) {
     if (texture == this) {
@@ -27,7 +30,10 @@ public:
       m_darkTexture = texture;
     }
   }
-  inline Texture* darkTexture() const { return m_darkTexture; }
+  
+  inline Texture* darkTexture() const {
+    return m_darkTexture;
+  }
 
   virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const;
 

@@ -10,7 +10,12 @@ namespace InstanceTest {
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(DoAll(AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d(1, 0, 0))), Return(primitive.get())));
+    EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(
+      DoAll(
+        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d(1, 0, 0))),
+        Return(primitive.get())
+      )
+    );
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     

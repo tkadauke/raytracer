@@ -37,16 +37,34 @@ public:
     return Color(T(r) / 255.0, T(g) / 255.0, T(b) / 255.0);
   }
 
-  inline const T& component(int index) const { return m_components[index]; }
-  inline void setComponent(int index, const T& value) { m_components[index] = value; }
-
-  inline T& operator[](int index) { return m_components[index]; }
-  inline const T& operator[](int index) const { return m_components[index]; }
+  inline const T& component(int index) const {
+    return m_components[index];
+  }
   
-  inline const T& r() const { return component(0); }
-  inline const T& g() const { return component(1); }
-  inline const T& b() const { return component(2); }
-
+  inline void setComponent(int index, const T& value) {
+    m_components[index] = value;
+  }
+  
+  inline T& operator[](int index) {
+    return m_components[index];
+  }
+  
+  inline const T& operator[](int index) const {
+    return m_components[index];
+  }
+  
+  inline const T& r() const {
+    return component(0);
+  }
+  
+  inline const T& g() const {
+    return component(1);
+  }
+  
+  inline const T& b() const {
+    return component(2);
+  }
+  
   inline Color<T> operator+(const Color<T>& other) const {
     Color<T> result;
     for (int i = 0; i != 3; ++i) {
@@ -102,9 +120,17 @@ public:
     return true;
   }
 
-  inline unsigned char rInt() const { return std::min(unsigned(r() * 255), 255u); }
-  inline unsigned char gInt() const { return std::min(unsigned(g() * 255), 255u); }
-  inline unsigned char bInt() const { return std::min(unsigned(b() * 255), 255u); }
+  inline unsigned char rInt() const {
+    return std::min(unsigned(r() * 255), 255u);
+  }
+  
+  inline unsigned char gInt() const {
+    return std::min(unsigned(g() * 255), 255u);
+  }
+  
+  inline unsigned char bInt() const {
+    return std::min(unsigned(b() * 255), 255u);
+  }
   
   inline unsigned int rgb() const {
     return rInt() << 16 |

@@ -3,7 +3,8 @@
 #include "raytracer/textures/ConstantColorTexture.h"
 
 ConstantColorTexture::ConstantColorTexture(Element* parent)
-  : Texture(parent), m_color(Colord::black())
+  : Texture(parent),
+    m_color(Colord::black())
 {
 }
 

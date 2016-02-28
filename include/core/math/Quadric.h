@@ -9,7 +9,7 @@ class Quadric : public Polynomial<T, 2> {
 public:
   typedef Polynomial<T, 2> Base;
   
-  Quadric(T a, T b, T c)
+  inline Quadric(T a, T b, T c)
     : m_a(a), m_b(b), m_c(c)
   {
   }

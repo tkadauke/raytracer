@@ -15,7 +15,7 @@ class Scene;
 class RenderWindow;
 
 class MainWindow : public QMainWindow {
-  Q_OBJECT
+  Q_OBJECT;
 
 public:
   MainWindow();

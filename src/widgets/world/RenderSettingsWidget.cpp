@@ -6,7 +6,8 @@ struct RenderSettingsWidget::Private {
 };
 
 RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
-  : QWidget(parent), p(std::make_unique<Private>())
+  : QWidget(parent),
+    p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_renderButton, SIGNAL(clicked()), this, SLOT(render()));

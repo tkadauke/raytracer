@@ -18,20 +18,24 @@ namespace testing {
     };
   
   protected:
-    virtual void beforeGiven() {}
-    virtual void beforeWhen() {}
-    virtual void beforeThen() {}
+    inline virtual void beforeGiven() {}
+    inline virtual void beforeWhen() {}
+    inline virtual void beforeThen() {}
     
   public:
-    FeatureTest() : m_state(STATE_INITIAL) {}
-    virtual ~FeatureTest() {}
+    inline FeatureTest()
+      : m_state(STATE_INITIAL)
+    {
+    }
+    
+    inline virtual ~FeatureTest() {}
     
     class Step {
     public:
       virtual void call(Derived* test) = 0;
     };
     
-    void given(const std::string& g) {
+    inline void given(const std::string& g) {
       if (m_state != STATE_GIVEN) {
         beforeGiven();
         m_state = STATE_GIVEN;
@@ -45,7 +49,7 @@ namespace testing {
       }
     }
   
-    void when(const std::string& w) {
+    inline void when(const std::string& w) {
       if (m_state != STATE_WHEN) {
         beforeWhen();
         m_state = STATE_WHEN;
@@ -59,7 +63,7 @@ namespace testing {
       }
     }
   
-    void then(const std::string& t) {
+    inline void then(const std::string& t) {
       if (m_state != STATE_THEN) {
         beforeThen();
         m_state = STATE_THEN;
@@ -73,17 +77,17 @@ namespace testing {
       }
     }
   
-    static bool registerGiven(const std::string& description, Step* step) {
+    inline static bool registerGiven(const std::string& description, Step* step) {
       Steps::self().givens[description] = step;
       return true;
     }
 
-    static bool registerWhen(const std::string& description, Step* step) {
+    inline static bool registerWhen(const std::string& description, Step* step) {
       Steps::self().whens[description] = step;
       return true;
     }
 
-    static bool registerThen(const std::string& description, Step* step) {
+    inline static bool registerThen(const std::string& description, Step* step) {
       Steps::self().thens[description] = step;
       return true;
     }

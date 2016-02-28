@@ -9,11 +9,23 @@ namespace CameraTest {
   
   class ConcreteCamera : public Camera {
   public:
-    ConcreteCamera() : Camera() {}
-    ConcreteCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target) {}
-    virtual void render(std::shared_ptr<Raytracer>, Buffer<unsigned int>&, const Rect&) {}
-    virtual Ray rayForPixel(double, double) { return Ray::undefined(); }
+    inline ConcreteCamera()
+      : Camera()
+    {
+    }
+    
+    inline ConcreteCamera(const Vector3d& position, const Vector3d& target)
+      : Camera(position, target)
+    {
+    }
+    
+    inline virtual void render(std::shared_ptr<Raytracer>, Buffer<unsigned int>&, const Rect&) {
+      // noop
+    }
+    
+    inline virtual Ray rayForPixel(double, double) {
+      return Ray::undefined();
+    }
   };
   
   TEST(Camera, ShouldConstructWithoutParameters) {

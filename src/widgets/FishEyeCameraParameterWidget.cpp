@@ -10,7 +10,8 @@ struct FishEyeCameraParameterWidget::Private {
 };
 
 FishEyeCameraParameterWidget::FishEyeCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent), p(std::make_unique<Private>())
+  : CameraParameterWidget(parent),
+    p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
   connect(p->ui.m_fieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));

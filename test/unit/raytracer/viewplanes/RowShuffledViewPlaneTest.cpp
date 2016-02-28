@@ -12,5 +12,9 @@ namespace RowShuffledViewPlaneTest {
     ASSERT_EQ(0, plane.height());
   }
   
-  INSTANTIATE_TYPED_TEST_CASE_P(RowShuffled, AbstractViewPlaneIteratorTest, RowShuffledViewPlane);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    RowShuffled,
+    AbstractViewPlaneIteratorTest,
+    RowShuffledViewPlane
+  );
 }

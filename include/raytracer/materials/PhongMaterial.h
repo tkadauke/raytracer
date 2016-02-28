@@ -31,15 +31,30 @@ namespace raytracer {
       setExponent(exponent);
     }
 
-    inline void setSpecularColor(const Colord& color) { m_specularBRDF.setSpecularColor(color); }
-    inline const Colord& specularColor() const { return m_specularBRDF.specularColor(); }
-
-    inline void setSpecularCoefficient(double coeff) { m_specularBRDF.setSpecularCoefficient(coeff); }
-    inline double specularCoefficient() const { return m_specularBRDF.specularCoefficient(); }
-
-    inline void setExponent(double exponent) { m_specularBRDF.setExponent(exponent); }
-    inline double exponent() const { return m_specularBRDF.exponent(); }
-
+    inline void setSpecularColor(const Colord& color) {
+      m_specularBRDF.setSpecularColor(color);
+    }
+    
+    inline const Colord& specularColor() const {
+      return m_specularBRDF.specularColor();
+    }
+    
+    inline void setSpecularCoefficient(double coeff) {
+      m_specularBRDF.setSpecularCoefficient(coeff);
+    }
+    
+    inline double specularCoefficient() const {
+      return m_specularBRDF.specularCoefficient();
+    }
+    
+    inline void setExponent(double exponent) {
+      m_specularBRDF.setExponent(exponent);
+    }
+    
+    inline double exponent() const {
+      return m_specularBRDF.exponent();
+    }
+    
     virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:

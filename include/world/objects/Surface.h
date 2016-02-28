@@ -12,7 +12,7 @@ namespace raytracer {
 class Material;
 
 class Surface : public Element {
-  Q_OBJECT
+  Q_OBJECT;
   Q_PROPERTY(bool visible READ visible WRITE setVisible);
   Q_PROPERTY(Vector3d position READ position WRITE setPosition);
   Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation);
@@ -22,13 +22,26 @@ class Surface : public Element {
 public:
   Surface(Element* parent = nullptr);
   
-  inline const Vector3d& position() const { return m_position; }
-  inline void setPosition(const Vector3d& position) { m_position = position; }
-
-  inline const Vector3d& rotation() const { return m_rotation; }
-  inline void setRotation(const Vector3d& rotation) { m_rotation = rotation; }
+  inline const Vector3d& position() const {
+    return m_position;
+  }
   
-  inline const Vector3d& scale() const { return m_scale; }
+  inline void setPosition(const Vector3d& position) {
+    m_position = position;
+  }
+  
+  inline const Vector3d& rotation() const {
+    return m_rotation;
+  }
+  
+  inline void setRotation(const Vector3d& rotation) {
+    m_rotation = rotation;
+  }
+  
+  inline const Vector3d& scale() const {
+    return m_scale;
+  }
+  
   inline void setScale(const Vector3d& scale) {
     m_scale = Vector3d(
       std::max(std::abs(scale.x()), std::numeric_limits<double>::epsilon()),
@@ -37,14 +50,30 @@ public:
     );
   }
   
-  inline bool visible() const { return m_visible; }
-  inline void setVisible(bool visible) { m_visible = visible; }
-  inline void show() { setVisible(true); }
-  inline void hide() { setVisible(false); }
+  inline bool visible() const {
+    return m_visible;
+  }
   
-  inline Material* material() const { return m_material; }
-  inline void setMaterial(Material* material) { m_material = material; }
-
+  inline void setVisible(bool visible) {
+    m_visible = visible;
+  }
+  
+  inline void show() {
+    setVisible(true);
+  }
+  
+  inline void hide() {
+    setVisible(false);
+  }
+  
+  inline Material* material() const {
+    return m_material;
+  }
+  
+  inline void setMaterial(Material* material) {
+    m_material = material;
+  }
+  
   std::shared_ptr<raytracer::Primitive> toRaytracer() const;
   
 protected:

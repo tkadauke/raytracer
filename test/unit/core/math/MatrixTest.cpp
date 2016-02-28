@@ -271,8 +271,11 @@ namespace DerivedMatrixTest {
   class DerivedMatrixTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Matrix2<float>, Matrix3<float>, Matrix4<float>,
-                           Matrix2<double>, Matrix3<double>, Matrix4<double>> SpecializedMatrixTypes;
+  typedef ::testing::Types<
+    Matrix2<float>, Matrix3<float>, Matrix4<float>,
+    Matrix2<double>, Matrix3<double>, Matrix4<double>
+  > SpecializedMatrixTypes;
+  
   TYPED_TEST_CASE(DerivedMatrixTest, SpecializedMatrixTypes);
   
   TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {

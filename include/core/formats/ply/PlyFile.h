@@ -17,8 +17,13 @@ public:
   
   void read(std::istream& is, raytracer::Mesh& mesh);
   
-  int elementCount() const { return m_elements.size(); }
-  const std::vector<PlyElement>& elements() const { return m_elements; }
+  inline int elementCount() const {
+    return m_elements.size();
+  }
+  
+  inline const std::vector<PlyElement>& elements() const {
+    return m_elements;
+  }
   
 private:
   void readHeader(std::istream& is);

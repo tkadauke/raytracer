@@ -10,7 +10,7 @@ namespace testing {
   
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
-    void SetUp() {
+    inline void SetUp() {
       mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1)));
       mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1)));
       mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1)));
@@ -73,13 +73,15 @@ namespace testing {
     ASSERT_FALSE(triangle.intersects(ray));
   }
   
-  REGISTER_TYPED_TEST_CASE_P(AbstractMeshTriangleTest,
-                             ShouldInitializeWithValues,
-                             ShouldIntersectWithRay,
-                             ShouldNotIntersectWithMissingRay,
-                             ShouldNotIntersectIfPointIsBehindRayOrigin,
-                             ShouldReturnTrueForIntersectsIfThereIsAIntersection,
-                             ShouldReturnFalseForIntersectsIfThereIsNoIntersection);
+  REGISTER_TYPED_TEST_CASE_P(
+    AbstractMeshTriangleTest,
+    ShouldInitializeWithValues,
+    ShouldIntersectWithRay,
+    ShouldNotIntersectWithMissingRay,
+    ShouldNotIntersectIfPointIsBehindRayOrigin,
+    ShouldReturnTrueForIntersectsIfThereIsAIntersection,
+    ShouldReturnFalseForIntersectsIfThereIsNoIntersection
+  );
 }
 
 #endif

@@ -8,9 +8,14 @@ namespace MeshTriangleTest {
   
   class ConcreteMeshTriangle : public MeshTriangle {
   public:
-    ConcreteMeshTriangle(Mesh* mesh, int index0, int index1, int index2)
-      : MeshTriangle(mesh, index0, index1, index2) {}
-    Primitive* intersect(const Ray&, HitPointInterval&) { return 0; }
+    inline ConcreteMeshTriangle(Mesh* mesh, int index0, int index1, int index2)
+      : MeshTriangle(mesh, index0, index1, index2)
+    {
+    }
+    
+    inline Primitive* intersect(const Ray&, HitPointInterval&) {
+      return 0;
+    }
   };
   
   TEST(MeshTriangle, ShouldComputeBoundingBox) {

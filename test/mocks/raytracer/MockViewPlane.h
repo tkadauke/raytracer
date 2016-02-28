@@ -7,7 +7,9 @@
 namespace testing {
   class MockViewPlane : public raytracer::ViewPlane {
   public:
-    virtual ~MockViewPlane() { destructorCall(); }
+    inline virtual ~MockViewPlane() {
+      destructorCall();
+    }
 
     MOCK_METHOD0(destructorCall, void());
   };

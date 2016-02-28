@@ -31,10 +31,12 @@ namespace testing {
 
     template<class Container>
     // Helper function for implementing ASSERT_CONTAINERS_EQ.
-    AssertionResult ContainersEqPredFormat(const char* expr1,
-                                           const char* expr2,
-                                           const Container& val1,
-                                           const Container& val2) {
+    AssertionResult ContainersEqPredFormat(
+      const char* expr1,
+      const char* expr2,
+      const Container& val1,
+      const Container& val2
+    ) {
       if (containersEqual(val1, val2)) return AssertionSuccess();
 
       Message msg;
@@ -124,6 +126,7 @@ namespace testing {
   }
 }
 
-#define ASSERT_CONTAINERS_EQ(val1, val2) ASSERT_PRED_FORMAT2(::testing::internal::ContainersEqPredFormat, val1, val2)
+#define ASSERT_CONTAINERS_EQ(val1, val2) \
+  ASSERT_PRED_FORMAT2(::testing::internal::ContainersEqPredFormat, val1, val2)
 
 #endif

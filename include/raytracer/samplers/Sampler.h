@@ -11,13 +11,17 @@ namespace raytracer {
   class Sampler {
   public:
     Sampler()
-      : m_numSamples(0), m_numSets(0)
+      : m_numSamples(0),
+        m_numSets(0)
     {
     }
 
     void setup(int numSamples, int numSets);
 
-    inline int numSamples() const { return m_numSamples; }
+    inline int numSamples() const {
+      return m_numSamples;
+    }
+    
     inline const std::vector<Vector2d>& sampleSet() const {
       return m_sampleSets[random(m_numSets)];
     }

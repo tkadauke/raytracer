@@ -5,7 +5,10 @@
 #include "raytracer/materials/PhongMaterial.h"
 
 PhongMaterial::PhongMaterial(Element* parent)
-  : MatteMaterial(parent), m_specularColor(Colord::white()), m_exponent(16), m_specularCoefficient(1)
+  : MatteMaterial(parent),
+    m_specularColor(Colord::white()),
+    m_exponent(16),
+    m_specularCoefficient(1)
 {
 }
 

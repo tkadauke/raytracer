@@ -26,5 +26,9 @@ namespace SmoothMeshTriangleTest {
     ASSERT_NE(normal1, normal2);
   }
 
-  INSTANTIATE_TYPED_TEST_CASE_P(Smooth, AbstractMeshTriangleTest, SmoothMeshTriangle);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    Smooth,
+    AbstractMeshTriangleTest,
+    SmoothMeshTriangle
+  );
 }

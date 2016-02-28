@@ -4,7 +4,8 @@
 #include "raytracer/cameras/FishEyeCamera.h"
 
 FishEyeCamera::FishEyeCamera(Element* parent)
-  : Camera(parent), m_fieldOfView(Angled::fromDegrees(180))
+  : Camera(parent),
+    m_fieldOfView(Angled::fromDegrees(180))
 {
 }
 

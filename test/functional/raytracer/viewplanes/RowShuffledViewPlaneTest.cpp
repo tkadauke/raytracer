@@ -6,5 +6,9 @@ namespace RowShuffledViewPlaneTest {
   using namespace ::testing;
   using namespace raytracer;
   
-  INSTANTIATE_TYPED_TEST_CASE_P(RowShuffled, AbstractViewPlaneTest, RowShuffledViewPlane);
+  INSTANTIATE_TYPED_TEST_CASE_P(
+    RowShuffled,
+    AbstractViewPlaneTest,
+    RowShuffledViewPlane
+  );
 }
