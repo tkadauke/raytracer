@@ -9,5 +9,5 @@ tests.run
 examples/*/*RayTracer
 examples/*/SceneBrowser
 test/coverage
-html
-latex
+/docs
+tools/rendercli/rendercli

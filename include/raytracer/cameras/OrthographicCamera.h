@@ -3,13 +3,27 @@
 #include "raytracer/cameras/Camera.h"
 
 namespace raytracer {
+  /**
+    * An orthographic camera projects the scene orthographically onto the view
+    * plane.
+    * 
+    * @image html orthographic_camera_cube.png "Orthographic camera with zoom=1"
+    */
   class OrthographicCamera : public Camera {
   public:
+    /**
+      * Constructs a default orthographic camera with a zoom factor of 1,
+      * looking at the origin.
+      */
     OrthographicCamera()
       : m_zoom(1)
     {
     }
     
+    /**
+      * Constructs an orthographic camera at position, looking at target with
+      * a zoom value of 1.
+      */
     OrthographicCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
         m_zoom(1)
@@ -20,10 +34,24 @@ namespace raytracer {
     virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
     virtual Ray rayForPixel(double x, double y);
 
+    /**
+      * Sets zoom of the camera.
+      * 
+      * <table><tr>
+      * <td>@image html orthographic_camera_cube_zoom_1.0.png "zoom=1"</td>
+      * <td>@image html orthographic_camera_cube_zoom_1.25.png "zoom=1.25"</td>
+      * <td>@image html orthographic_camera_cube_zoom_1.5.png "zoom=1.5"</td>
+      * <td>@image html orthographic_camera_cube_zoom_1.75.png "zoom=1.75"</td>
+      * <td>@image html orthographic_camera_cube_zoom_2.0.png "zoom=2"</td>
+      * </tr></table>
+      */
     inline void setZoom(double zoom) {
       m_zoom = zoom;
     }
     
+    /**
+      * @returns the camera'z zoom.
+      */
     inline double zoom() const {
       return m_zoom;
     }

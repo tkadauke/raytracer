@@ -19,10 +19,26 @@ namespace raytracer {
       setRefractionIndex(1);
     }
 
+    /**
+      * Sets the material's index of refraction.
+      * 
+      * <table><tr>
+      * <td>@image html transparent_material_ior_1.01.png "refractionIndex=1.01"</td>
+      * <td>@image html transparent_material_ior_1.03.png "refractionIndex=1.03"</td>
+      * <td>@image html transparent_material_ior_1.05.png "refractionIndex=1.05"</td>
+      * <td>@image html transparent_material_ior_1.07.png "refractionIndex=1.07"</td>
+      * <td>@image html transparent_material_ior_1.09.png "refractionIndex=1.09"</td>
+      * <td>@image html transparent_material_ior_1.11.png "refractionIndex=1.11"</td>
+      * <td>@image html transparent_material_ior_1.13.png "refractionIndex=1.13"</td>
+      * </tr></table>
+      */
     inline void setRefractionIndex(double index) {
       m_specularBTDF.setRefractionIndex(index);
     }
     
+    /**
+      * @returns the material's index of refraction
+      */
     inline double refractionIndex() const {
       return m_specularBTDF.refractionIndex();
     }

@@ -20,6 +20,7 @@ UNIT_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/unit')
 FUNCTIONAL_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/functional')
 TEST_HELPER_DIR = File.expand_path(File.dirname(__FILE__) + '/test/helpers')
 EXAMPLES_DIR = File.expand_path(File.dirname(__FILE__) + '/examples')
+TOOLS_DIR = File.expand_path(File.dirname(__FILE__) + '/tools')
 
 SRC = FileList["#{SRC_DIR}/**/*.cpp"]
 UNIT_TEST = FileList["#{UNIT_TEST_DIR}/**/*.cpp"]
@@ -27,6 +28,7 @@ FUNCTIONAL_TEST = FileList["#{FUNCTIONAL_TEST_DIR}/**/*.cpp"]
 TEST_HELPER = FileList["#{TEST_HELPER_DIR}/**/*.cpp"]
 GTEST = FileList["#{GTEST_DIR}/**/*.cpp", "#{GMOCK_DIR}/**/*.cpp"]
 EXAMPLES_SRC = FileList["#{EXAMPLES_DIR}/**/*.cpp"]
+TOOLS_SRC = FileList["#{TOOLS_DIR}/**/*.cpp"]
 
 SRC_OBJ = SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 UNIT_TEST_OBJ = UNIT_TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
@@ -34,11 +36,14 @@ FUNCTIONAL_TEST_OBJ = FUNCTIONAL_TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 TEST_HELPER_OBJ = TEST_HELPER.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 GTEST_OBJ = GTEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 EXAMPLES_OBJ = EXAMPLES_SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
+TOOLS_OBJ = TOOLS_SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 
 UNIT_TEST_BIN = "#{UNIT_TEST_DIR}/tests.run"
 FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
 EXAMPLES = FileList["#{EXAMPLES_DIR}/*"]
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
+TOOLS = FileList["#{TOOLS_DIR}/*"]
+TOOLS_BIN = TOOLS.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
 INCLUDE_DIRS = ['.', INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
@@ -68,10 +73,10 @@ CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
 
-CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN)
+CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TOOLS_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN, TOOLS_BIN)
 CLEAN.include(Rake::FileList["**/*.moc", "**/*.uic"])
 
-task :default => [:examples, :test]
+task :default => [:examples, :tools, :test]
 
 @header_dependency_cache = {}
 
@@ -142,8 +147,35 @@ EXAMPLES.each do |example|
   end
 end
 
+TOOLS.each do |tool|
+  src = FileList["#{tool}/**/*.cpp"]
+  obj = src.collect { |fn| fn.gsub(/\.cpp/, '.o') }
+  output = "#{tool}/#{File.basename(tool)}"
+  
+  file output => [obj, SRC_OBJ].flatten do
+    sh %{#{CC} -Os -o #{output} #{[SRC_OBJ, obj].flatten.join(' ')} #{LD_FLAGS}}
+  end
+end
+
 desc "Build examples"
 task :examples => EXAMPLES_BIN
+
+desc "Build tools"
+task :tools => TOOLS_BIN
+
+namespace :docs do
+  desc "Render docs images"
+  task :render => :tools do
+    sh "ruby scripts/render_docs.rb"
+  end
+  
+  task :generate => :render do
+    sh "doxygen"
+  end
+end
+
+desc "Generate documentation"
+task :docs => "docs:generate"
 
 QT_LD = "DYLD_FRAMEWORK_PATH=#{QT_LIB}"
 
