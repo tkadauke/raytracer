@@ -189,7 +189,16 @@ public:
 
   /**
     * @returns the Matrix that is the result of the multiplication of this
-    *   Matrix with scalar.
+    *   Matrix \f$M\f$ with scalar \f$c\f$.
+    * 
+    *   \f[
+    *   Mc =
+    *   \left(\begin{array}{cccc}
+    *     m_{00}c & m_{01}c & \ldots & m_{0n}c \\
+    *     m_{10}c & m_{11}c & \ldots & m_{1n}c \\
+    *     \vdots  & \vdots  & \ddots & \vdots \\
+    *     m_{n0}c & m_{n1}c & \ldots & m_{nn}c
+    *   \end{array}\right)\f]
     */
   inline MatrixType operator*(const T& scalar) const {
     MatrixType result;
@@ -204,7 +213,16 @@ public:
 
   /**
     * @returns the Matrix that is the result of the addition of this matrix
-    *   and other.
+    *   \f$A\f$ and other \f$B\f$.
+    * 
+    *   \f[
+    *   A + B =
+    *   \left(\begin{array}{cccc}
+    *     a_{00} + b_{00} & a_{01} + b_{01} & \ldots & a_{0n} + b_{0n} \\
+    *     a_{10} + b_{10} & a_{11} + b_{11} & \ldots & a_{1n} + b_{1n} \\
+    *     \vdots          & \vdots          & \ddots & \vdots \\
+    *     a_{n0} + b_{n0} & a_{n1} + b_{n1} & \ldots & a_{nn} + b_{nn}
+    *   \end{array}\right)\f]
     */
   inline MatrixType operator+(const MatrixType& other) const {
     MatrixType result;
@@ -218,7 +236,17 @@ public:
   }
 
   /**
-    * @returns the Matrix that is the result of this Matrix divided by scalar.
+    * @returns the Matrix that is the result of this Matrix \f$M\f$ divided by
+    *   scalar \f$c\f$.
+    * 
+    *   \f[
+    *   \frac{M}{c} =
+    *   \left(\begin{array}{cccc}
+    *     m_{00} / c & m_{01} / c & \ldots & m_{0n} / c \\
+    *     m_{10} / c & m_{11} / c & \ldots & m_{1n} / c \\
+    *     \vdots     & \vdots     & \ddots & \vdots \\
+    *     m_{n0} / c & m_{n1} / c & \ldots & m_{nn} / c
+    *   \end{array}\right)\f]
     */
   inline MatrixType operator/(const T& scalar) const {
     if (scalar == T())
