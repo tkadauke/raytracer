@@ -68,7 +68,7 @@ public:
   }
   
   /**
-    * @ereturns the angle in radians.
+    * @returns the angle in radians.
     */
   inline T radians() const {
     return m_radians;
