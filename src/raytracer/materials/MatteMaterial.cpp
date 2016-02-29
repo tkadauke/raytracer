@@ -12,10 +12,10 @@ using namespace std;
 using namespace raytracer;
 
 Colord MatteMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
-  auto texColor = m_texture ? m_texture->evaluate(ray, hitPoint) : Colord::black();
+  auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
   
-  Lambertian ambientBRDF(texColor, m_ambientCoefficient);
-  Lambertian diffuseBRDF(texColor, m_diffuseCoefficient);
+  Lambertian ambientBRDF(texColor, ambientCoefficient());
+  Lambertian diffuseBRDF(texColor, diffuseCoefficient());
   
   // for diffuse BRDFs the in and out vectors are irrelevant, so let's not calculate them
   auto color = ambientBRDF.reflectance(hitPoint, Vector3d::null()) * raytracer->scene()->ambient();
