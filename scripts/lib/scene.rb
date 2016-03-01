@@ -128,7 +128,7 @@ class MatteMaterial < Material
 end
 
 class PhongMaterial < MatteMaterial
-  property :specularColor => [0, 0, 0],
+  property :specularColor => [1, 1, 1],
            :exponent => 16,
            :specularCoefficient => 1
 end

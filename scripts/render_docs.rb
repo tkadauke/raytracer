@@ -3,15 +3,25 @@ require_relative 'lib/scene'
 module Common
   def checker_board
     box :material => matte_material(
-      :diffuseTexture => checker_board_texture(
-        :brightTexture => constant_color_texture(
-          :color => [1, 1, 1]))),
-      :scale => [12, 0.1, 12],
-      :position => [0, 1.1, 0]
+          :diffuseTexture => checker_board_texture(
+            :brightTexture => white,
+            :darkTexture => black,
+          )
+        ),
+        :scale => [12, 0.1, 12],
+        :position => [0, 1.1, 0]
   end
   
   def default_camera
     pinhole_camera :position => [0.5, -1, -3], :zoom => 2
+  end
+  
+  def white
+    @white ||= constant_color_texture(:color => [1, 1, 1])
+  end
+  
+  def black
+    @black ||= constant_color_texture(:color => [0, 0, 0])
   end
   
   def red

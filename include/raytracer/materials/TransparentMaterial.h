@@ -5,14 +5,31 @@
 #include "raytracer/brdf/PerfectTransmitter.h"
 
 namespace raytracer {
+  /**
+    * Transparent materials are used to describe perfectly transparent materials
+    * like air, water, glass, or diamonds, that may be tinted on the outside,
+    * but don't filter the light while it travels through them. The [refraction
+    * index](https://en.wikipedia.org/wiki/Refractive_index) describes how light
+    * propagates through the medium.
+    * 
+    * @image html transparent_material.png "Transparent material"
+    */
   class TransparentMaterial : public PhongMaterial {
   public:
+    /**
+      * Constructs a transparent material with no diffuse texture and a
+      * refraction index of 1.
+      */
     inline TransparentMaterial()
       : PhongMaterial()
     {
       setRefractionIndex(1);
     }
 
+    /**
+      * Constructs a transparent material with diffuseTexture and a refraction
+      * index of 1.
+      */
     inline TransparentMaterial(std::shared_ptr<Texturec> diffuseTexture)
       : PhongMaterial(diffuseTexture)
     {
@@ -20,7 +37,7 @@ namespace raytracer {
     }
 
     /**
-      * Sets the material's index of refraction.
+      * Sets the material's [index of refraction](https://en.wikipedia.org/wiki/Refractive_index).
       * 
       * <table><tr>
       * <td>@image html transparent_material_ior_1.01.png "refractionIndex=1.01"</td>
