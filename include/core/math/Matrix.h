@@ -8,6 +8,9 @@
 
 #include "core/StaticIf.h"
 
+template<class T>
+class Quaternion;
+
 /**
   * Represents a square matrix with arbitrary, but fixed size. It implements
   * many matrix operations in a generic way.
@@ -169,6 +172,14 @@ public:
     }
     return result;
   }
+  
+  /**
+    * Multiplies this matrix with other in-place.
+    */
+  inline MatrixType& operator*=(const MatrixType& other) {
+    *this = *this * other;
+    return static_cast<MatrixType&>(*this);
+  }
 
   /**
     * @returns the Vector that is the result of the multiplication of this
@@ -209,6 +220,14 @@ public:
       }
     }
     return result;
+  }
+
+  /**
+    * Multiplies this matrix with scalar in-place.
+    */
+  inline MatrixType& operator*=(const T& scalar) {
+    *this = *this * scalar;
+    return static_cast<MatrixType&>(*this);
   }
 
   /**
@@ -258,6 +277,28 @@ public:
       for (int col = 0; col != Dimensions; ++col) {
         result[row][col] = m_cells[row][col] / scalar;
       }
+    }
+    return result;
+  }
+  
+  /**
+    * @returns the row vector for row.
+    */
+  inline Vector row(int row) const {
+    Vector result;
+    for (int col = 0; col != Dimensions; ++col) {
+      result[col] = m_cells[row][col];
+    }
+    return result;
+  }
+
+  /**
+    * @returns the column vector for col.
+    */
+  inline Vector col(int col) const {
+    Vector result;
+    for (int row = 0; row != Dimensions; ++row) {
+      result[row] = m_cells[row][col];
     }
     return result;
   }
@@ -609,7 +650,9 @@ template<class T>
 class Matrix3 : public Matrix<3, T, Vector3<T>, Matrix3<T>> {
   typedef Matrix<3, T, Vector3<T>, Matrix3<T>> Base;
 public:
+  using Base::cell;
   using Base::setCell;
+  using Base::col;
   
   /**
     * Default constructor. Constructs the identity matrix
@@ -699,7 +742,7 @@ public:
     */
   template<class A>
   inline static Matrix3<T> rotate(const A& x, const A& y, const A& z) {
-    return rotateX(x) * rotateY(y) * rotateZ(z);
+    return rotateZ(z) * rotateY(y) * rotateX(x);
   }
   
   /**
@@ -730,7 +773,66 @@ public:
                       T(),       factor[1], T(),
                       T(),       T(),       factor[2]);
   }
+
+  /**
+    * @returns a vector containing the scaling factors in the matrix. This
+    *   method assumes that the matrix was generated as a TRS matrix.
+    */
+  inline Vector3<T> scaleVector() const {
+    return Vector3<T>(
+      col(0).length(),
+      col(1).length(),
+      col(2).length()
+    );
+  }
+  
+  /**
+    * @returns a quaternion describing the same rotation as the matrix.
+    */
+  inline Quaternion<T> rotationQuaternion() const;
+
+  /**
+    * @returns a vector with the three Euler angles that describe the same
+    *   rotation as this matrix. This  method assumes that the matrix was
+    *   generated as a TRS matrix.
+    */
+  inline Vector3<T> rotationVector() const {
+    T t1 = std::atan2(cell(2, 1), cell(2, 2));
+    T c2 = std::sqrt(cell(0, 0) * cell(0, 0) + cell(1, 0) * cell(1, 0));
+    T t2 = std::atan2(-cell(2, 0), c2);
+    T s1 = std::sin(t1),
+      c1 = std::cos(t1);
+    T t3 = std::atan2(s1 * cell(0, 2) - c1 * cell(0, 1), c1 * cell(1, 1) - s1 * cell(1, 2));
+    
+    return Vector3<T>(t1, t2, t3);
+  }
 };
+
+template<class T>
+Quaternion<T> Matrix3<T>::rotationQuaternion() const {
+  Vector3<T> s = scaleVector();
+
+  double m00 = cell(0, 0) / s.x();
+  double m01 = cell(0, 1) / s.y();
+  double m02 = cell(0, 2) / s.z();
+  double m10 = cell(1, 0) / s.x();
+  double m11 = cell(1, 1) / s.y();
+  double m12 = cell(1, 2) / s.z();
+  double m20 = cell(2, 0) / s.x();
+  double m21 = cell(2, 1) / s.y();
+  double m22 = cell(2, 2) / s.z();
+
+  double w = std::sqrt(std::max(T(0), T(1 + m00 + m11 + m22))) / 2;
+  double x = std::sqrt(std::max(T(0), T(1 + m00 - m11 - m22))) / 2;
+  double y = std::sqrt(std::max(T(0), T(1 - m00 + m11 - m22))) / 2;
+  double z = std::sqrt(std::max(T(0), T(1 - m00 - m11 + m22))) / 2;
+  
+  x = std::copysign(x, T(x * (m21 - m12)));
+  y = std::copysign(y, T(y * (m02 - m20)));
+  z = std::copysign(z, T(z * (m10 - m01)));
+  
+  return Quaternion<T>(w, x, y, z).normalized();
+}
 
 /**
   * Represents a four-dimensional matrix with component type T. This class
@@ -757,6 +859,7 @@ class Matrix4 : public Matrix<4, T, Vector4<T>, Matrix4<T>> {
 public:
   using Base::cell;
   using Base::setCell;
+  using Base::col;
   
   /**
     * Default constructor. Constructs the identity matrix
@@ -851,8 +954,8 @@ public:
     *   c_{30} & c_{31} & c_{32} & c_{33} \\
     * \end{array}\right)\f]
     */
-  inline Vector3<T> translation() const {
-    return Vector3<T>(cell(0, 3), cell(1, 3), cell(2, 3));
+  inline Vector3<T> translationVector() const {
+    return Vector3<T>(col(3));
   }
 };
 

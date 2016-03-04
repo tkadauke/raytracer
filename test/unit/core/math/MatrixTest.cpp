@@ -1,6 +1,7 @@
 #include "gtest.h"
 #include "core/math/Matrix.h"
 #include "core/math/Vector.h"
+#include "core/math/Quaternion.h"
 #include "test/helpers/VectorTestHelper.h"
 #include "test/helpers/MatrixTestHelper.h"
 #include "test/helpers/TypeTestHelper.h"
@@ -73,6 +74,21 @@ namespace MatrixTest {
     ASSERT_EQ(expected, first * second);
   }
 
+  TEST(Matrix, ShouldMultiplyInPlaceWithOtherSameSizedMatrix) {
+    float first_elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
+    Matrix<3, float> first(first_elements);
+
+    float second_elements[3][3] = { {1, 1, 1}, {2, 3, 1}, {1, 2, 1} };
+    Matrix<3, float> second(second_elements);
+
+    float expected_elements[3][3] = { {6, 9, 4}, {3, 4, 3}, {4, 6, 3} };
+    Matrix<3, float> expected(expected_elements);
+    
+    first *= second;
+
+    ASSERT_EQ(expected, first);
+  }
+
   TEST(Matrix, ShouldReturnSameMatrixWhenMultipliedWithIdentity) {
     float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
     Matrix<3, float> first(elements);
@@ -96,6 +112,24 @@ namespace MatrixTest {
     float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
     Matrix<3, float> first(elements), second;
     ASSERT_TRUE(first != second);
+  }
+  
+  TEST(Matrix, ShouldReturnRow) {
+    float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
+    Matrix<3, float> matrix(elements);
+    
+    Vector<3, float> expected({ 2, 0, 1 });
+    
+    ASSERT_EQ(expected, matrix.row(1));
+  }
+
+  TEST(Matrix, ShouldReturnCol) {
+    float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
+    Matrix<3, float> matrix(elements);
+    
+    Vector<3, float> expected({ 1, 1, 1 });
+    
+    ASSERT_EQ(expected, matrix.col(2));
   }
 
   TEST(Matrix, ShouldCalculateRowSum) {
@@ -188,6 +222,18 @@ namespace MatrixTest {
     Matrix<3, float> expected(expected_elements);
   
     ASSERT_EQ(expected, matrix * 3);
+  }
+  
+  TEST(Matrix, ShouldMultiplyInPlaceWithScalar) {
+    float elements[3][3] = { {1, 2, 1}, {2, 0, 1}, {1, 1, 1} };
+    Matrix<3, float> matrix(elements);
+  
+    float expected_elements[3][3] = { {3, 6, 3}, {6, 0, 3}, {3, 3, 3} };
+    Matrix<3, float> expected(expected_elements);
+    
+    matrix *= 3;
+  
+    ASSERT_EQ(expected, matrix);
   }
   
   TEST(Matrix, ShouldAddTwoMatrices) {
@@ -568,9 +614,9 @@ namespace Matrix3Test {
     auto angle = Angle<float>::fromDegrees(45);
     auto matrix = Matrix3<float>::rotate(angle, angle, angle);
     
-    auto expected = Matrix3<float>::rotateX(angle) *
+    auto expected = Matrix3<float>::rotateZ(angle) *
                     Matrix3<float>::rotateY(angle) *
-                    Matrix3<float>::rotateZ(angle);
+                    Matrix3<float>::rotateX(angle);
     
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
@@ -579,9 +625,9 @@ namespace Matrix3Test {
     auto matrix = Matrix3<float>::rotate(Vector3d(1.1, 1.1, 1.1));
     
     auto angle = Angle<float>::fromRadians(1.1);
-    auto expected = Matrix3<float>::rotateX(angle) *
+    auto expected = Matrix3<float>::rotateZ(angle) *
                     Matrix3<float>::rotateY(angle) *
-                    Matrix3<float>::rotateZ(angle);
+                    Matrix3<float>::rotateX(angle);
     
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
@@ -596,6 +642,34 @@ namespace Matrix3Test {
     Matrix3<float> matrix = Matrix3<float>::scale(2, 3, 4);
     Matrix3<float> expected(2, 0, 0, 0, 3, 0, 0, 0, 4);
     ASSERT_EQ(expected, matrix);
+  }
+  
+  TEST(Matrix3, ShouldReturnScaleVector) {
+    Matrix3<float> matrix =
+      Matrix3<float>::rotate(Vector3<float>(2, 2, 1)) *
+      Matrix3<float>::scale(1, 4, 3);
+    
+    ASSERT_VECTOR_NEAR(Vector3<float>(1, 4, 3), matrix.scaleVector(), 0.001);
+  }
+  
+  TEST(Matrix3, ShouldReturnRotationQuaternion) {
+    Matrix3<float> matrix = Matrix3<float>::rotateX(Anglef::fromDegrees(90));
+    Quaternion<float> quat = matrix.rotationQuaternion();
+    ASSERT_EQ(1, quat.length());
+  }
+  
+  TEST(Matrix3, ShouldReturnRotationVector) {
+    Anglef x = Anglef::fromDegrees(5),
+           y = Anglef::fromDegrees(15),
+           z = Anglef::fromDegrees(8);
+    Matrix3<float> matrix = Matrix3<float>::rotateZ(z) *
+                            Matrix3<float>::rotateY(y) *
+                            Matrix3<float>::rotateX(x);
+    Vector3<float> rot = matrix.rotationVector();
+    
+    ASSERT_NEAR(x.radians(), rot.x(), 0.001);
+    ASSERT_NEAR(y.radians(), rot.y(), 0.001);
+    ASSERT_NEAR(z.radians(), rot.z(), 0.001);
   }
 }
 
@@ -703,6 +777,6 @@ namespace Matrix4Test {
   
   TEST(Matrix4, ShouldExtractTranslationFromMatrix) {
     Vector3f expected(1, 2, 3);
-    ASSERT_EQ(expected, Matrix4<float>::translate(expected).translation());
+    ASSERT_EQ(expected, Matrix4<float>::translate(expected).translationVector());
   }
 }

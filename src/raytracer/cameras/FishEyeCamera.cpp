@@ -24,7 +24,7 @@ Vector3d FishEyeCamera::direction(double x, double y) {
 }
 
 Ray FishEyeCamera::rayForPixel(double x, double y) {
-  Vector3d position = matrix().translation();
+  Vector3d position = matrix().translationVector();
   return Ray(position, direction(x, y));
 }
 
