@@ -68,7 +68,7 @@ void Element::read(const QJsonObject& json) {
 
     auto value = json[metaProp.name()];
 
-    if (!value.isNull()) {
+    if (!value.isUndefined()) {
       if (type == "Vector3d") {
         auto array = value.toArray();
         setProperty(metaProp.name(), QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
