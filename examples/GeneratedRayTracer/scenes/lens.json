@@ -1,0 +1,194 @@
+{
+    "children": [
+        {
+            "active": true,
+            "children": [
+                {
+                    "id": "{c6f390f8-a636-4899-b140-2cdcfd5ffa63}",
+                    "name": "Sphere 2",
+                    "position": [
+                        -0.5,
+                        0,
+                        0
+                    ],
+                    "rotation": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "type": "Sphere",
+                    "visible": true
+                },
+                {
+                    "id": "{dad9393b-90a7-4944-8b36-226b2c0515bf}",
+                    "name": "Sphere 3",
+                    "position": [
+                        0.5,
+                        0,
+                        0
+                    ],
+                    "rotation": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ],
+                    "type": "Sphere",
+                    "visible": true
+                }
+            ],
+            "id": "{33514e12-18b7-4953-bb10-741d06d7b758}",
+            "material": "{b38f3095-7bbe-4da4-a1ab-f6831ca3701a}",
+            "name": "Lens",
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "rotation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "type": "Intersection",
+            "visible": true
+        },
+        {
+            "id": "{1bdb07f4-a4e0-4581-99fd-d15a50627157}",
+            "material": "{2d7ec838-b96e-40e0-8670-6acb7acb3ccd}",
+            "name": "Floor",
+            "position": [
+                0,
+                1.1000000000000001,
+                0
+            ],
+            "rotation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                12,
+                0.10000000000000001,
+                12
+            ],
+            "type": "Box",
+            "visible": true
+        },
+        {
+            "brightTexture": "{74ce0686-16ef-4d76-8f32-c70db43c714b}",
+            "id": "{e3f48ccd-a2bf-4c98-a32c-b6fb8581a10a}",
+            "name": "CheckerBoardTexture",
+            "type": "CheckerBoardTexture"
+        },
+        {
+            "color": [
+                1,
+                1,
+                1
+            ],
+            "id": "{74ce0686-16ef-4d76-8f32-c70db43c714b}",
+            "name": "White",
+            "type": "ConstantColorTexture"
+        },
+        {
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
+            "diffuseTexture": "{e3f48ccd-a2bf-4c98-a32c-b6fb8581a10a}",
+            "id": "{2d7ec838-b96e-40e0-8670-6acb7acb3ccd}",
+            "name": "Checkerboard",
+            "type": "MatteMaterial"
+        },
+        {
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
+            "exponent": 16,
+            "id": "{b38f3095-7bbe-4da4-a1ab-f6831ca3701a}",
+            "name": "Glass",
+            "refractionIndex": 1.5700000000000001,
+            "specularCoefficient": 1,
+            "specularColor": [
+                1,
+                1,
+                1
+            ],
+            "type": "TransparentMaterial"
+        },
+        {
+            "id": "{224dd753-e94c-46aa-b76e-de0107d0a252}",
+            "material": "{14427ef2-1fa0-4a46-8ef1-f36cfa4847f5}",
+            "name": "Golden Sphere",
+            "position": [
+                3,
+                0,
+                0
+            ],
+            "rotation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "type": "Sphere",
+            "visible": true
+        },
+        {
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
+            "exponent": 16,
+            "id": "{14427ef2-1fa0-4a46-8ef1-f36cfa4847f5}",
+            "name": "ReflectiveMaterial",
+            "reflectionCoefficient": 0.80000000000000004,
+            "reflectionColor": [
+                1,
+                0.63921600000000001,
+                0.16078400000000001
+            ],
+            "specularCoefficient": 1,
+            "specularColor": [
+                1,
+                1,
+                1
+            ],
+            "type": "ReflectiveMaterial"
+        },
+        {
+            "distance": 5,
+            "id": "{adc5d6e9-16d0-4ac2-aab9-e9d334eebbaf}",
+            "name": "Camera",
+            "position": [
+                -3,
+                -0.5,
+                0.69999999999999996
+            ],
+            "target": [
+                0,
+                0,
+                0
+            ],
+            "type": "PinholeCamera",
+            "zoom": 2
+        }
+    ],
+    "id": "{df52cf8b-cb55-467d-b953-817a736b69f8}",
+    "name": "",
+    "type": "Scene"
+}

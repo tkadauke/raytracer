@@ -22,7 +22,7 @@ namespace InstanceTest {
     HitPointInterval hitPoints;
     auto result = instance.intersect(ray, hitPoints);
     
-    ASSERT_EQ(&instance, result);
+    ASSERT_EQ(primitive.get(), result);
   }
   
   TEST(Instance, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {

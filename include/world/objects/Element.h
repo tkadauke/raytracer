@@ -11,7 +11,7 @@ public:
   Element(Element* parent = nullptr);
   virtual ~Element();
   
-  inline const QString& id() {
+  inline const QString& id() const {
     return m_id;
   }
   
@@ -32,14 +32,43 @@ public:
   void read(const QJsonObject& json);
   void write(QJsonObject& json);
   
+  Element* findById(const QString& id);
+  
+  inline Element* parent() const {
+    return static_cast<Element*>(QObject::parent());
+  }
+  
+  inline const QList<Element*> childElements() const {
+    return m_childElements;
+  }
+  
+  virtual bool canHaveChild(Element* child) const;
+  
+  inline void addChild(Element* child) {
+    insertChild(m_childElements.size(), child);
+  }
+  
+  void insertChild(int index, Element* child);
+  void removeChild(int index, bool removeParent = true);
+  void removeChild(Element* child, bool removeParent = true) {
+    removeChild(m_childElements.indexOf(child), removeParent);
+  }
+  
+  void moveChild(int from, int to);
+
+  virtual void leaveParent();
+  virtual void joinParent();
+
 protected:
   void addPendingReference(const QString& property, const QString& id);
   void resolveReferences(const QMap<QString, Element*>& elements);
   
 private:
-  void unlink(QObject* root);
+  void unlink(Element* root);
   
   void writeForClass(const QMetaObject* klass, QJsonObject& json);
+  
+  QList<Element*> m_childElements;
   
   QString m_id;
   QString m_name;

@@ -40,6 +40,8 @@ private slots:
   
   void addBox();
   void addSphere();
+
+  void addIntersection();
   
   void addMatteMaterial();
   void addPhongMaterial();
@@ -61,6 +63,8 @@ private slots:
   void about();
   void help();
 
+  void reorder();
+
 private:
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();
@@ -69,9 +73,9 @@ private:
   void createActions();
   void createMenus();
   
-  void redraw();
-  
   bool maybeSave();
+  
+  void redraw();
   
   template<class T>
   void add();

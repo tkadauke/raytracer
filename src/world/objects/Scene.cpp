@@ -13,17 +13,20 @@ Scene::Scene(Element* parent)
   : Element(parent),
     m_changed(false)
 {
+  setName("New Scene");
 }
 
 raytracer::Scene* Scene::toRaytracerScene() const {
   raytracer::Scene* result = new raytracer::Scene;
   auto grid = std::make_shared<raytracer::Grid>();
   
-  for (const auto& child : children()) {
+  for (const auto& child : childElements()) {
     auto surface = dynamic_cast<Surface*>(child);
     if (surface && surface->visible()) {
       auto primitive = surface->toRaytracer();
-      grid->add(primitive);
+      if (primitive) {
+        grid->add(primitive);
+      }
     }
   }
   
@@ -79,7 +82,7 @@ bool Scene::load(const QString& filename) {
 
 Camera* Scene::activeCamera() const {
   Camera* camera = nullptr;
-  for (const auto& child : children()) {
+  for (const auto& child : childElements()) {
     if (qobject_cast<Camera*>(child)) {
       camera = static_cast<Camera*>(child);
     }
@@ -90,12 +93,13 @@ Camera* Scene::activeCamera() const {
 void Scene::findReferences(Element* root, QMap<QString, Element*>& references) {
   references[root->id()] = root;
   
-  for (const auto& child : root->children()) {
-    Element* e = qobject_cast<Element*>(child);
-    if (e) {
-      findReferences(e, references);
-    }
+  for (const auto& child : root->childElements()) {
+    findReferences(child, references);
   }
+}
+
+bool Scene::canHaveChild(Element*) const {
+  return true;
 }
 
 #include "Scene.moc"

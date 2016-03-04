@@ -30,6 +30,8 @@
 #include "world/objects/Sphere.h"
 #include "world/objects/Box.h"
 
+#include "world/objects/Intersection.h"
+
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/PhongMaterial.h"
 #include "world/objects/TransparentMaterial.h"
@@ -61,6 +63,7 @@ struct MainWindow::Private {
   Scene* scene;
   
   Element* currentElement;
+  QModelIndex currentIndex;
   
   QMenu* fileMenu;
   QMenu* editMenu;
@@ -74,6 +77,8 @@ struct MainWindow::Private {
 
   QAction* addBoxAct;
   QAction* addSphereAct;
+
+  QAction* addIntersectionAct;
   
   QAction* addMatteMaterialAct;
   QAction* addPhongMaterialAct;
@@ -147,6 +152,10 @@ void MainWindow::createActions() {
   p->addSphereAct->setStatusTip(tr("Add a Sphere to the scene"));
   connect(p->addSphereAct, SIGNAL(triggered()), this, SLOT(addSphere()));
   
+  p->addIntersectionAct = new QAction(tr("Intersection"), this);
+  p->addIntersectionAct->setStatusTip(tr("Add an intersection to the scene"));
+  connect(p->addIntersectionAct, SIGNAL(triggered()), this, SLOT(addIntersection()));
+  
   p->addMatteMaterialAct = new QAction(tr("Matte Material"), this);
   p->addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
   connect(p->addMatteMaterialAct, SIGNAL(triggered()), this, SLOT(addMatteMaterial()));
@@ -208,9 +217,9 @@ void MainWindow::createActions() {
   
   auto modifyingActions = {
     p->newAct, p->openAct, p->saveAct, p->saveAsAct, p->addBoxAct, p->addSphereAct,
-    p->addMatteMaterialAct, p->addPhongMaterialAct, p->addReflectiveMaterialAct,
-    p->addConstantColorTextureAct, p->addCheckerBoardTextureAct,
-    p->addPinholeCameraAct, p->deleteElementAct
+    p->addIntersectionAct, p->addMatteMaterialAct, p->addPhongMaterialAct,
+    p->addReflectiveMaterialAct, p->addConstantColorTextureAct,
+    p->addCheckerBoardTextureAct, p->addPinholeCameraAct, p->deleteElementAct
   };
   
   for (auto& act : modifyingActions) {
@@ -229,6 +238,9 @@ void MainWindow::createMenus() {
   auto addPrimitive = p->editMenu->addMenu(tr("Add Primitive"));
   addPrimitive->addAction(p->addBoxAct);
   addPrimitive->addAction(p->addSphereAct);
+
+  auto addComposite = p->editMenu->addMenu(tr("Add Composite"));
+  addComposite->addAction(p->addIntersectionAct);
   
   auto addMaterial = p->editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(p->addMatteMaterialAct);
@@ -342,12 +354,12 @@ void MainWindow::saveFileAs() {
 
 template<class T>
 void MainWindow::add() {
-  auto element = new T(p->scene);
+  auto element = new T(nullptr);
   element->setName(QString("%1 %2")
     .arg(element->metaObject()->className())
-    .arg(p->scene->children().size()));
+    .arg(p->scene->childElements().size()));
 
-  p->elementModel->setElement(p->scene);
+  p->elementModel->addElement(p->currentIndex, element);
   elementChanged(element);
 }
 
@@ -357,6 +369,10 @@ void MainWindow::addBox() {
 
 void MainWindow::addSphere() {
   add<Sphere>();
+}
+
+void MainWindow::addIntersection() {
+  add<Intersection>();
 }
 
 void MainWindow::addMatteMaterial() {
@@ -400,11 +416,11 @@ void MainWindow::addSphericalCamera() {
 }
 
 void MainWindow::deleteElement() {
-  delete p->currentElement;
+  p->elementModel->deleteElement(p->currentIndex);
   p->currentElement = nullptr;
+  p->currentIndex = QModelIndex();
   emit selectionChanged(nullptr);
 
-  p->elementModel->setElement(p->scene);
   p->propertyEditorWidget->setElement(nullptr);
 
   p->deleteElementAct->setEnabled(false);
@@ -446,6 +462,10 @@ QDockWidget* MainWindow::createPropertyEditor() {
 QDockWidget* MainWindow::createElementSelector() {
   p->elementModel = new SceneModel(p->scene);
   auto elementTree = new QTreeView(this);
+  // elementTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  elementTree->setDragEnabled(true);
+  elementTree->setAcceptDrops(true);
+  elementTree->setDropIndicatorShown(true);
   elementTree->setModel(p->elementModel);
   auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
@@ -453,6 +473,11 @@ QDockWidget* MainWindow::createElementSelector() {
   connect(
     itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)),
     this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&))
+  );
+    
+  connect(
+    p->elementModel, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+    this, SLOT(reorder())
   );
   
   auto dockWidget = new QDockWidget("Elements", this);
@@ -480,6 +505,7 @@ void MainWindow::elementChanged(Element*) {
 void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&) {
   auto element = static_cast<Element*>(current.internalPointer());
   p->currentElement = element;
+  p->currentIndex = current;
   p->deleteElementAct->setEnabled(element != nullptr);
   
   if (element) {
@@ -502,6 +528,12 @@ void MainWindow::updatePreviewWidget() {
   } else {
     p->materialDisplay->clear();
   }
+}
+
+void MainWindow::reorder() {
+  redraw();
+  p->scene->setChanged(true);
+  updateWindowModified();
 }
 
 void MainWindow::redraw() {

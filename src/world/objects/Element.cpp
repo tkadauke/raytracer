@@ -23,7 +23,7 @@ Element::Element(Element* parent)
 }
 
 Element::~Element() {
-  QObject* e = this;
+  Element* e = this;
   while (e) {
     if (e->parent() && e->parent()->inherits("Element")) {
       e = e->parent();
@@ -35,25 +35,24 @@ Element::~Element() {
   unlink(e);
 }
 
-int Element::row() const
-{
+int Element::row() const {
   if (parent())
-    return parent()->children().indexOf(const_cast<Element*>(this));
+    return parent()->childElements().indexOf(const_cast<Element*>(this));
 
-  return 0;
+  return -1;
 }
 
-void Element::unlink(QObject* root) {
+void Element::unlink(Element* root) {
   for (int i = 0; i != root->metaObject()->propertyCount(); ++i) {
     auto metaProp = root->metaObject()->property(i);
     auto prop = root->property(metaProp.name());
     
-    if (prop.value<QObject*>() == this) {
-      root->setProperty(metaProp.name(), QVariant::fromValue<QObject*>(nullptr));
+    if (prop.value<Element*>() == this) {
+      root->setProperty(metaProp.name(), QVariant::fromValue<Element*>(nullptr));
     }
   }
   
-  for (const auto& child : root->children()) {
+  for (const auto& child : root->childElements()) {
     unlink(child);
   }
 }
@@ -87,11 +86,11 @@ void Element::read(const QJsonObject& json) {
     }
   }
   
-  auto children = json["children"];
-  if (children.isArray()) {
-    for (const auto& child : children.toArray()) {
+  auto childElements = json["children"];
+  if (childElements.isArray()) {
+    for (const auto& child : childElements.toArray()) {
       Element* element = ElementFactory::self().create(child.toObject()["type"].toString().toStdString());
-      element->setParent(this);
+      addChild(element);
       element->read(child.toObject());
     }
   }
@@ -102,9 +101,9 @@ void Element::write(QJsonObject& json) {
   
   writeForClass(metaObject(), json);
   
-  if (children().size() > 0) {
+  if (childElements().size() > 0) {
     QJsonArray childArray;
-    for (const auto& child : children()) {
+    for (const auto& child : childElements()) {
       Element* element = qobject_cast<Element*>(child);
       if (element) {
         QJsonObject elementObject;
@@ -160,11 +159,65 @@ void Element::resolveReferences(const QMap<QString, Element*>& elements) {
   }
   m_pendingReferences.clear();
   
-  for (const auto& child : children()) {
-    Element* e = qobject_cast<Element*>(child);
-    if (e) {
-      e->resolveReferences(elements);
+  for (const auto& child : childElements()) {
+    child->resolveReferences(elements);
+  }
+}
+
+void Element::leaveParent() {
+}
+
+void Element::joinParent() {
+}
+
+Element* Element::findById(const QString& id) {
+  if (id == this->id()) {
+    return this;
+  } else {
+    for (const auto& child : childElements()) {
+      auto result = child->findById(id);
+      if (result)
+        return result;
     }
+  }
+  return nullptr;
+}
+
+bool Element::canHaveChild(Element*) const {
+  return false;
+}
+
+void Element::insertChild(int index, Element* child) {
+  Element* p = child->parent();
+  if (p) {
+    child->leaveParent();
+    p->removeChild(p->childElements().indexOf(child));
+  }
+  
+  m_childElements.insert(index, child);
+  child->setParent(this);
+  child->joinParent();
+}
+
+void Element::removeChild(int index, bool removeParent) {
+  auto child = m_childElements[index];
+  if (removeParent) {
+    child->setParent(nullptr);
+  }
+  m_childElements.removeAt(index);
+}
+
+void Element::moveChild(int from, int to) {
+  if (to == from || to - 1 == from) {
+    return;
+  }
+
+  if (to > from) {
+    if (to - 1 != from) {
+      m_childElements.move(from, to - 1);
+    }
+  } else {
+    m_childElements.move(from, to);
   }
 }
 

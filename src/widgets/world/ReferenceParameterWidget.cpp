@@ -47,8 +47,8 @@ void ReferenceParameterWidget::fillComboBox(Element* root) {
     p->ui.comboBox->addItem(root->name(), QVariant::fromValue<QObject*>(root));
   }
 
-  for (const auto& child : root->children()) {
-    fillComboBox(static_cast<Element*>(child));
+  for (const auto& child : root->childElements()) {
+    fillComboBox(child);
   }
 }
 

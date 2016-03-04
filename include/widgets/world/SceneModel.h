@@ -21,6 +21,17 @@ public:
   int rowCount(const QModelIndex& parent = QModelIndex()) const;
   int columnCount(const QModelIndex& parent = QModelIndex()) const;
 
+  Qt::DropActions supportedDropActions() const;
+  QStringList mimeTypes() const;
+  QMimeData* mimeData(const QModelIndexList& indexes) const;
+  bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent);
+
+  virtual bool moveRows(const QModelIndex& sourceParent, int sourceRow, int count, const QModelIndex& destinationParent, int destinationChild);
+  
+  void deleteElement(const QModelIndex& index);
+  void addElement(const QModelIndex& index, Element* element);
+
 private:
   Element* m_rootItem;
+  Element* m_scene;
 };

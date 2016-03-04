@@ -2,6 +2,7 @@
 
 #include "world/objects/Element.h"
 #include "core/math/Vector.h"
+#include "core/math/Matrix.h"
 #include "core/math/Quaternion.h"
 
 // TODO: move the scene creation to a separate factory class
@@ -50,6 +51,11 @@ public:
     );
   }
   
+  void setMatrix(const Matrix4d& matrix);
+
+  Matrix4d localTransform() const;
+  Matrix4d globalTransform() const;
+  
   inline bool visible() const {
     return m_visible;
   }
@@ -76,9 +82,14 @@ public:
   
   std::shared_ptr<raytracer::Primitive> toRaytracer() const;
   
+  virtual bool canHaveChild(Element* child) const;
+  
 protected:
   virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const = 0;
   std::shared_ptr<raytracer::Primitive> applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const;
+  
+  virtual void leaveParent();
+  virtual void joinParent();
   
 private:
   Vector3d m_position;

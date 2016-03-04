@@ -28,6 +28,7 @@ public:
   }
   
   Camera* activeCamera() const;
+  virtual bool canHaveChild(Element* child) const;
   
 private:
   void findReferences(Element* root, QMap<QString, Element*>& references);

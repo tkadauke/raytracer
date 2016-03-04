@@ -11,7 +11,11 @@ Primitive* Instance::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints);
   if (result) {
     hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
-    return this;
+    if (Primitive::material()) {
+      return this;
+    } else {
+      return result;
+    }
   }
   return nullptr;
 }

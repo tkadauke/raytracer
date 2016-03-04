@@ -18,7 +18,7 @@ Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) 
     }
   }
   
-  return numHits != primitives().size() || hitPoints.empty() ? 0 : this;
+  return numHits != primitives().size() || hitPoints.empty() ? nullptr : this;
 }
 
 bool Intersection::intersects(const Ray& ray) {

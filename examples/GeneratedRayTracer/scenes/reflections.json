@@ -11,14 +11,6 @@
             "type": "ConstantColorTexture"
         },
         {
-            "ambientCoefficient": 1,
-            "diffuseCoefficient": 1,
-            "diffuseTexture": "{4c743459-7f7f-4d58-b7e2-1590533da719}",
-            "id": "{c3ab6b22-8693-437d-b1db-361e951903f4}",
-            "name": "FloorMaterial",
-            "type": "MatteMaterial"
-        },
-        {
             "id": "{bf65a8a1-d08e-49b6-b3b0-df07d5630a3a}",
             "material": "{c3ab6b22-8693-437d-b1db-361e951903f4}",
             "name": "Floor",
@@ -33,12 +25,41 @@
                 0
             ],
             "scale": [
+                1,
+                1,
+                1
+            ],
+            "size": [
                 12,
                 0.10000000000000001,
                 12
             ],
             "type": "Box",
             "visible": true
+        },
+        {
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
+            "diffuseTexture": "{4c743459-7f7f-4d58-b7e2-1590533da719}",
+            "id": "{c3ab6b22-8693-437d-b1db-361e951903f4}",
+            "name": "FloorMaterial",
+            "type": "MatteMaterial"
+        },
+        {
+            "brightTexture": "{ff31bfc7-6b94-4be4-a8f7-152258c04973}",
+            "id": "{4c743459-7f7f-4d58-b7e2-1590533da719}",
+            "name": "CheckerBoard",
+            "type": "CheckerBoardTexture"
+        },
+        {
+            "color": [
+                1,
+                1,
+                1
+            ],
+            "id": "{ff31bfc7-6b94-4be4-a8f7-152258c04973}",
+            "name": "White",
+            "type": "ConstantColorTexture"
         },
         {
             "ambientCoefficient": 0.080000000000000002,
@@ -71,6 +92,11 @@
                 0
             ],
             "scale": [
+                1,
+                1,
+                1
+            ],
+            "size": [
                 2,
                 2,
                 0.10000000000000001
@@ -93,6 +119,11 @@
                 0
             ],
             "scale": [
+                1,
+                1,
+                1
+            ],
+            "size": [
                 2,
                 2,
                 0.10000000000000001
@@ -105,7 +136,7 @@
             "material": "{c290854a-56e2-4f80-9d5a-b4eac28d7cda}",
             "name": "Box 3",
             "position": [
-                0,
+                1.2490009027033011e-16,
                 0,
                 -0.5
             ],
@@ -115,6 +146,11 @@
                 0
             ],
             "scale": [
+                1,
+                1,
+                1
+            ],
+            "size": [
                 2,
                 2,
                 0.10000000000000001
@@ -151,6 +187,7 @@
                 0,
                 3
             ],
+            "radius": 1,
             "rotation": [
                 0,
                 0,
@@ -173,6 +210,7 @@
                 0,
                 -3
             ],
+            "radius": 1,
             "rotation": [
                 0,
                 0,
@@ -185,39 +223,6 @@
             ],
             "type": "Sphere",
             "visible": true
-        },
-        {
-            "brightTexture": "{ff31bfc7-6b94-4be4-a8f7-152258c04973}",
-            "id": "{4c743459-7f7f-4d58-b7e2-1590533da719}",
-            "name": "CheckerBoard",
-            "type": "CheckerBoardTexture"
-        },
-        {
-            "color": [
-                1,
-                1,
-                1
-            ],
-            "id": "{ff31bfc7-6b94-4be4-a8f7-152258c04973}",
-            "name": "White",
-            "type": "ConstantColorTexture"
-        },
-        {
-            "distance": 5,
-            "id": "{91260186-7458-42e3-bf63-561a146990b1}",
-            "name": "PinholeCamera",
-            "position": [
-                -1,
-                -1,
-                -1
-            ],
-            "target": [
-                0,
-                0,
-                0
-            ],
-            "type": "PinholeCamera",
-            "zoom": 2
         },
         {
             "fieldOfView": 6.2831853071856001,
@@ -248,7 +253,8 @@
                 0,
                 0
             ],
-            "type": "OrthographicCamera"
+            "type": "OrthographicCamera",
+            "zoom": 1
         },
         {
             "horizontalFieldOfView": 3.1415926535928,
@@ -266,9 +272,26 @@
             ],
             "type": "SphericalCamera",
             "verticalFieldOfView": 2.0943951023952003
+        },
+        {
+            "distance": 5,
+            "id": "{91260186-7458-42e3-bf63-561a146990b1}",
+            "name": "PinholeCamera",
+            "position": [
+                -1,
+                -1,
+                -1
+            ],
+            "target": [
+                0,
+                0,
+                0
+            ],
+            "type": "PinholeCamera",
+            "zoom": 2
         }
     ],
     "id": "{edea240f-91a0-456d-ad3b-68eb1bc52a56}",
-    "name": "",
+    "name": "Reflections",
     "type": "Scene"
 }

@@ -120,7 +120,11 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
     
-    return primitive->material()->shade(this, ray, hitPoint, recursionDepth);
+    if (primitive->material()) {
+      return primitive->material()->shade(this, ray, hitPoint, recursionDepth);
+    } else {
+      return Colord::black();
+    }
   } else {
     return m_scene->ambient();
   }
