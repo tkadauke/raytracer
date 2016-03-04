@@ -143,9 +143,11 @@ class TransparentMaterial < PhongMaterial
 end
 
 class Box < Surface
+  property :size => [1, 1, 1]
 end
 
 class Sphere < Surface
+  property :radius => 1
 end
 
 class Camera < Element

@@ -8,7 +8,7 @@ module Common
             :darkTexture => black,
           )
         ),
-        :scale => [12, 0.1, 12],
+        :size => [12, 0.1, 12],
         :position => [0, 1.1, 0]
   end
   
