@@ -4,12 +4,13 @@
 #include "raytracer/materials/MatteMaterial.h"
 
 Sphere::Sphere(Element* parent)
-  : Surface(parent)
+  : Surface(parent),
+    m_radius(1)
 {
 }
 
 std::shared_ptr<raytracer::Primitive> Sphere::toRaytracerPrimitive() const {
-  return std::make_shared<raytracer::Sphere>(Vector3d::null(), 1);
+  return std::make_shared<raytracer::Sphere>(Vector3d::null(), m_radius);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Sphere>("Sphere");

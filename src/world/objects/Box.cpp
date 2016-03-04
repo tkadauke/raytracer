@@ -4,12 +4,13 @@
 #include "raytracer/materials/MatteMaterial.h"
 
 Box::Box(Element* parent)
-  : Surface(parent)
+  : Surface(parent),
+    m_size(Vector3d::one())
 {
 }
 
 std::shared_ptr<raytracer::Primitive> Box::toRaytracerPrimitive() const {
-  return std::make_shared<raytracer::Box>(Vector3d::null(), Vector3d::one());
+  return std::make_shared<raytracer::Box>(Vector3d::null(), m_size);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Box>("Box");
