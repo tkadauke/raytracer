@@ -14,6 +14,6 @@ namespace BoxTest {
   TEST_F(BoxTest, ShouldHaveBackgroundColor) {
     given("an empty scene with blue background");
     when("i look at the origin");
-    then("i should only blue");
+    then("i should see only blue");
   }
 }
