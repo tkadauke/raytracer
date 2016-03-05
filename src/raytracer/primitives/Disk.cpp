@@ -19,7 +19,7 @@ Primitive* Disk::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   return nullptr;
 }
 
-BoundingBox Disk::boundingBox() {
+BoundingBoxd Disk::boundingBox() {
   Vector3d radius(m_radius, m_radius, m_radius);
-  return BoundingBox(m_center - radius, m_center + radius);
+  return BoundingBoxd(m_center - radius, m_center + radius);
 }

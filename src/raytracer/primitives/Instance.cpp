@@ -39,12 +39,12 @@ Material* Instance::material() const {
     return m_primitive->material();
 }
 
-BoundingBox Instance::boundingBox() {
-  BoundingBox original = m_primitive->boundingBox();
+BoundingBoxd Instance::boundingBox() {
+  BoundingBoxd original = m_primitive->boundingBox();
   vector<Vector3d> vertices;
   original.getVertices(vertices);
   
-  BoundingBox result;
+  BoundingBoxd result;
   for (const auto& vertex : vertices) {
     result.include(m_pointMatrix * Vector4d(vertex));
   }

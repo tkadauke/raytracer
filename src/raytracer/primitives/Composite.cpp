@@ -10,8 +10,8 @@ using namespace raytracer;
 Composite::~Composite() {
 }
 
-BoundingBox Composite::boundingBox() {
-  BoundingBox b;
+BoundingBoxd Composite::boundingBox() {
+  BoundingBoxd b;
   for (const auto& i : m_primitives)
     b.include(i->boundingBox());
   return b;

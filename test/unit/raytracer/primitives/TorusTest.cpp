@@ -93,6 +93,6 @@ namespace TorusTest {
   
   TEST(Torus, ShouldReturnBoundingBox) {
     Torus torus(2, 1);
-    ASSERT_EQ(BoundingBox(Vector3d(-3, -1, -3), Vector3d(3, 1, 3)), torus.boundingBox());
+    ASSERT_EQ(BoundingBoxd(Vector3d(-3, -1, -3), Vector3d(3, 1, 3)), torus.boundingBox());
   }
 }

@@ -16,7 +16,7 @@ namespace raytracer {
     }
 
     virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
-    virtual BoundingBox boundingBox();
+    virtual BoundingBoxd boundingBox();
 
   private:
     Vector4d m_center;

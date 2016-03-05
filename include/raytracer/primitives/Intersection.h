@@ -7,6 +7,6 @@ namespace raytracer {
   public:
     virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
     virtual bool intersects(const Ray& ray);
-    virtual BoundingBox boundingBox();
+    virtual BoundingBoxd boundingBox();
   };
 }

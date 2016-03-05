@@ -26,7 +26,7 @@ namespace MeshTriangleTest {
     mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, 0, 0), Vector3d::null()));
     ConcreteMeshTriangle triangle(&mesh, 0, 1, 2);
     
-    BoundingBox expected(Vector3d(0, 0, 0), Vector3d(1, 1, 0));
+    BoundingBoxd expected(Vector3d(0, 0, 0), Vector3d(1, 1, 0));
     ASSERT_EQ(expected, triangle.boundingBox());
   }
 }

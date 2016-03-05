@@ -15,7 +15,7 @@ namespace testing {
 
     MOCK_METHOD2(intersect, Primitive*(const Ray&, HitPointInterval&));
     MOCK_METHOD1(intersects, bool(const Ray&));
-    MOCK_METHOD0(boundingBox, BoundingBox());
+    MOCK_METHOD0(boundingBox, BoundingBoxd());
     MOCK_METHOD0(destructorCall, void());
   };
 

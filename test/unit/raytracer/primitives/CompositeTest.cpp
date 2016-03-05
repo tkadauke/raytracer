@@ -124,7 +124,7 @@ namespace CompositeTest {
     auto mockPrimitive = std::make_shared<MockPrimitive>();
     composite.add(mockPrimitive);
     
-    BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
     EXPECT_CALL(*mockPrimitive, boundingBox()).WillOnce(Return(bbox));
     
     ASSERT_EQ(bbox, composite.boundingBox());
@@ -138,13 +138,13 @@ namespace CompositeTest {
     composite.add(mockPrimitive2);
     
     EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(
-      Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)))
+      Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)))
     );
     EXPECT_CALL(*mockPrimitive2, boundingBox()).WillOnce(
-      Return(BoundingBox(Vector3d(0, 0, 0), Vector3d(2, 2, 2)))
+      Return(BoundingBoxd(Vector3d(0, 0, 0), Vector3d(2, 2, 2)))
     );
     
-    BoundingBox expected(Vector3d(-1, -1, -1), Vector3d(2, 2, 2));
+    BoundingBoxd expected(Vector3d(-1, -1, -1), Vector3d(2, 2, 2));
     ASSERT_EQ(expected, composite.boundingBox());
   }
 }

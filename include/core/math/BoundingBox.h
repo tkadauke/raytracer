@@ -3,6 +3,7 @@
 #include "core/InPlaceSetOperators.h"
 #include "core/InequalityOperator.h"
 #include "core/math/Vector.h"
+#include "core/math/Ray.h"
 
 #include <iostream>
 #include <algorithm>
@@ -19,23 +20,26 @@ class Ray;
   * 
   * The class inherits InPlaceSetOperators as well as InequalityOperator,
   * providing operators &=, |= and !=.
+  * 
+  * @tparam T The coordinate type.
   */
+template<class T>
 class BoundingBox
-  : public InPlaceSetOperators<BoundingBox>,
-    public InequalityOperator<BoundingBox>
+  : public InPlaceSetOperators<BoundingBox<T>>,
+    public InequalityOperator<BoundingBox<T>>
 {
 public:
   /**
     * Represents the "undefined" bounding box.
     */
-  static const BoundingBox& undefined();
+  static const BoundingBox<T>& undefined();
   
   /**
     * Creates an infinitely large bounding box.
     */
   inline BoundingBox()
-    : m_min(Vector3d::plusInfinity()),
-      m_max(Vector3d::minusInfinity())
+    : m_min(Vector3<T>::plusInfinity()),
+      m_max(Vector3<T>::minusInfinity())
   { 
   }
 
@@ -44,7 +48,7 @@ public:
     * bounding box is only valid if all components of min are smaller or equal
     * to their corresponding component of max.
     */
-  inline BoundingBox(const Vector3d& min, const Vector3d& max)
+  inline BoundingBox(const Vector3<T>& min, const Vector3<T>& max)
     : m_min(min),
       m_max(max)
   {
@@ -72,21 +76,21 @@ public:
   /**
     * @returns the smaller corner vector.
     */
-  inline const Vector3d& min() const {
+  inline const Vector3<T>& min() const {
     return m_min;
   }
   
   /**
     * @returns the larger corner vector.
     */
-  inline const Vector3d& max() const {
+  inline const Vector3<T>& max() const {
     return m_max;
   }
   
   /**
     * @returns the center point of the bounding box.
     */
-  inline Vector3d center() const {
+  inline Vector3<T> center() const {
     return (m_min + m_max) * 0.5;
   }
   
@@ -120,12 +124,12 @@ public:
     */
   inline BoundingBox operator&(const BoundingBox& other) const {
     BoundingBox result(
-      Vector3d(
+      Vector3<T>(
         std::max(min().x(), other.min().x()),
         std::max(min().y(), other.min().y()),
         std::max(min().z(), other.min().z())
       ),
-      Vector3d(
+      Vector3<T>(
         std::min(max().x(), other.max().x()),
         std::min(max().y(), other.max().y()),
         std::min(max().z(), other.max().z())
@@ -140,7 +144,7 @@ public:
     * This function expands this bounding box, so that point will be inside this
     * box.
     */
-  inline void include(const Vector3d& point) {
+  inline void include(const Vector3<T>& point) {
     for (int i = 0; i != 3; ++i) {
       if (point[i] < m_min[i])
         m_min[i] = point[i];
@@ -153,7 +157,7 @@ public:
     * This function expands the bounding box, so that every point of box will be
     * inside this bounding box.
     */
-  inline void include(const BoundingBox& box) {
+  inline void include(const BoundingBox<T>& box) {
     include(box.min());
     include(box.max());
   }
@@ -161,7 +165,7 @@ public:
   /**
     * @returns true if and only if point is inside the box, false otherwise.
     */
-  inline bool contains(const Vector3d& point) {
+  inline bool contains(const Vector3<T>& point) {
     for (int i = 0; i != 3; ++i) {
       if (point[i] < m_min[i] || point[i] > m_max[i])
         return false;
@@ -190,19 +194,86 @@ public:
   bool intersects(const Ray& ray) const;
   
 private:
-  Vector3d m_min, m_max;
+  Vector3<T> m_min, m_max;
 };
 
+template<class T>
+const BoundingBox<T>& BoundingBox<T>::undefined() {
+  static BoundingBox<T> b(Vector3d::undefined(), Vector3d::undefined());
+  return b;
+}
+
+template<class T>
 template<class Container>
-void BoundingBox::getVertices(Container& container) {
+void BoundingBox<T>::getVertices(Container& container) {
   container.push_back(m_min);
-  container.push_back(Vector3d(m_min.x(), m_min.y(), m_max.z()));
-  container.push_back(Vector3d(m_min.x(), m_max.y(), m_min.z()));
-  container.push_back(Vector3d(m_min.x(), m_max.y(), m_max.z()));
-  container.push_back(Vector3d(m_max.x(), m_min.y(), m_min.z()));
-  container.push_back(Vector3d(m_max.x(), m_min.y(), m_max.z()));
-  container.push_back(Vector3d(m_max.x(), m_max.y(), m_min.z()));
+  container.push_back(Vector3<T>(m_min.x(), m_min.y(), m_max.z()));
+  container.push_back(Vector3<T>(m_min.x(), m_max.y(), m_min.z()));
+  container.push_back(Vector3<T>(m_min.x(), m_max.y(), m_max.z()));
+  container.push_back(Vector3<T>(m_max.x(), m_min.y(), m_min.z()));
+  container.push_back(Vector3<T>(m_max.x(), m_min.y(), m_max.z()));
+  container.push_back(Vector3<T>(m_max.x(), m_max.y(), m_min.z()));
   container.push_back(m_max);
+}
+
+template<class T>
+bool BoundingBox<T>::intersects(const Ray& ray) const {
+  double ox = ray.origin().x();
+  double oy = ray.origin().y();
+  double oz = ray.origin().z();
+  double dx = ray.direction().x();
+  double dy = ray.direction().y();
+  double dz = ray.direction().z();
+  
+  double xMin, yMin, zMin;
+  double xMax, yMax, zMax;
+  
+  double a = 1.0 / dx;
+  if (a >= 0) {
+    xMin = (m_min.x() - ox) * a;
+    xMax = (m_max.x() - ox) * a;
+  } else {
+    xMin = (m_max.x() - ox) * a;
+    xMax = (m_min.x() - ox) * a;
+  }
+  
+  double b = 1.0 / dy;
+  if (b >= 0) {
+    yMin = (m_min.y() - oy) * b;
+    yMax = (m_max.y() - oy) * b;
+  } else {
+    yMin = (m_max.y() - oy) * b;
+    yMax = (m_min.y() - oy) * b;
+  }
+  
+  double c = 1.0 / dz;
+  if (c >= 0) {
+    zMin = (m_min.z() - oz) * c;
+    zMax = (m_max.z() - oz) * c;
+  } else {
+    zMin = (m_max.z() - oz) * c;
+    zMax = (m_min.z() - oz) * c;
+  }
+  
+  double t0, t1;
+  
+  if (xMin > yMin)
+    t0 = xMin;
+  else
+    t0 = yMin;
+  
+  if (zMin > t0)
+    t0 = zMin;
+  
+  if (xMax < yMax)
+    t1 = xMax;
+  else
+    t1 = yMax;
+  
+  if (zMax < t1)
+    t1 = zMax;
+  
+  return (t0 < t1 && t1 > Ray::epsilon);
 }
 
 
@@ -211,6 +282,10 @@ void BoundingBox::getVertices(Container& container) {
   * 
   * @returns os.
   */
-inline std::ostream& operator<<(std::ostream& os, const BoundingBox& bbox) {
+template<class T>
+inline std::ostream& operator<<(std::ostream& os, const BoundingBox<T>& bbox) {
   return os << bbox.min() << "-" << bbox.max();
 }
+
+typedef BoundingBox<float> BoundingBoxf;
+typedef BoundingBox<double> BoundingBoxd;

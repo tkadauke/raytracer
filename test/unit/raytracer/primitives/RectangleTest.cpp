@@ -57,7 +57,7 @@ namespace RectangleTest {
   
   TEST(Rectangle, ShouldReturnBoundingBox) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
-    BoundingBox bbox = rectangle.boundingBox();
+    BoundingBoxd bbox = rectangle.boundingBox();
     ASSERT_EQ(Vector3d(-1, -1, 0), bbox.min());
     ASSERT_EQ(Vector3d(0, 0, 0), bbox.max());
   }

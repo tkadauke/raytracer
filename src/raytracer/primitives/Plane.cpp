@@ -28,6 +28,6 @@ double Plane::calculateIntersectionDistance(const Ray& ray) {
   return -(m_normal * o + m_distance) / angle;
 }
 
-BoundingBox Plane::boundingBox() {
-  return BoundingBox::undefined();
+BoundingBoxd Plane::boundingBox() {
+  return BoundingBoxd::undefined();
 }

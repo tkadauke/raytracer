@@ -30,8 +30,8 @@ bool Intersection::intersects(const Ray& ray) {
   return true;
 }
 
-BoundingBox Intersection::boundingBox() {
-  BoundingBox result;
+BoundingBoxd Intersection::boundingBox() {
+  BoundingBoxd result;
   int num = 0;
   for (const auto& i : primitives()) {
     if (num++ == 0)

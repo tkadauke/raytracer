@@ -62,9 +62,9 @@ namespace InstanceTest {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);
     instance.setMatrix(Matrix3d::scale(2));
-    EXPECT_CALL(*primitive, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*primitive, boundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
     
-    BoundingBox expected(Vector3d(-2, -2, -2), Vector3d(2, 2, 2));
+    BoundingBoxd expected(Vector3d(-2, -2, -2), Vector3d(2, 2, 2));
     ASSERT_EQ(expected, instance.boundingBox());
   }
 }

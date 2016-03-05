@@ -399,7 +399,7 @@ void Grid::setup() {
   vector<int> counts(numCells);
   
   for (const auto& primitive : primitives()) {
-    BoundingBox bbox = primitive->boundingBox();
+    BoundingBoxd bbox = primitive->boundingBox();
     
     Vector3d relativeMin = bbox.min() - m_boundingBox.min();
     Vector3d relativeMax = bbox.max() - m_boundingBox.min();

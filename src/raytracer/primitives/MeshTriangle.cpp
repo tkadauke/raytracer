@@ -3,8 +3,8 @@
 
 using namespace raytracer;
 
-BoundingBox MeshTriangle::boundingBox() {
-  BoundingBox b;
+BoundingBoxd MeshTriangle::boundingBox() {
+  BoundingBoxd b;
   b.include(m_mesh->vertices[m_index0].point);
   b.include(m_mesh->vertices[m_index1].point);
   b.include(m_mesh->vertices[m_index2].point);

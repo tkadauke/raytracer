@@ -152,7 +152,7 @@ namespace IntersectionTest {
     auto mockPrimitive = std::make_shared<MockPrimitive>();
     i.add(mockPrimitive);
     
-    BoundingBox bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
     EXPECT_CALL(*mockPrimitive, boundingBox()).WillOnce(Return(bbox));
     
     ASSERT_EQ(bbox, i.boundingBox());
@@ -165,10 +165,10 @@ namespace IntersectionTest {
     i.add(mockPrimitive1);
     i.add(mockPrimitive2);
     
-    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
-    EXPECT_CALL(*mockPrimitive2, boundingBox()).WillOnce(Return(BoundingBox(Vector3d(0, 0, 0), Vector3d(2, 2, 2))));
+    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*mockPrimitive2, boundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(0, 0, 0), Vector3d(2, 2, 2))));
     
-    BoundingBox expected(Vector3d(0, 0, 0), Vector3d(1, 1, 1));
+    BoundingBoxd expected(Vector3d(0, 0, 0), Vector3d(1, 1, 1));
     ASSERT_EQ(expected, i.boundingBox());
   }
 }

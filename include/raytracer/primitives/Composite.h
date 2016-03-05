@@ -14,7 +14,7 @@ namespace raytracer {
 
     virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
     virtual bool intersects(const Ray& ray);
-    virtual BoundingBox boundingBox();
+    virtual BoundingBoxd boundingBox();
 
     inline void add(std::shared_ptr<Primitive> primitive) {
       m_primitives.push_back(primitive);

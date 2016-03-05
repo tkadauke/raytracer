@@ -98,7 +98,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldReturnBoundingBox) {
     Box box(Vector3d::null(), Vector3d(1, 1, 1));
-    BoundingBox bbox = box.boundingBox();
+    BoundingBoxd bbox = box.boundingBox();
     ASSERT_EQ(Vector3d(-1, -1, -1), bbox.min());
     ASSERT_EQ(Vector3d(1, 1, 1), bbox.max());
   }

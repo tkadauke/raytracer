@@ -46,7 +46,7 @@ namespace DiskTest {
   
   TEST(Disk, ShouldReturnBoundingBox) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
-    BoundingBox bbox = disk.boundingBox();
+    BoundingBoxd bbox = disk.boundingBox();
     ASSERT_EQ(Vector3d(-1, -1, -1), bbox.min());
     ASSERT_EQ(Vector3d(1, 1, 1), bbox.max());
   }

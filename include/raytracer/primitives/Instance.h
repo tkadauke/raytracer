@@ -15,7 +15,7 @@ namespace raytracer {
 
     virtual Material* material() const;
 
-    virtual BoundingBox boundingBox();
+    virtual BoundingBoxd boundingBox();
 
     void setMatrix(const Matrix4d& matrix);
 

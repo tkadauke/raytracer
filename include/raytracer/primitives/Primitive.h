@@ -16,7 +16,7 @@ namespace raytracer {
     virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints) = 0;
     virtual bool intersects(const Ray& ray);
 
-    virtual BoundingBox boundingBox() = 0;
+    virtual BoundingBoxd boundingBox() = 0;
 
     inline void setMaterial(Material* material) {
       m_material = material;

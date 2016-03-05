@@ -8,7 +8,7 @@ namespace PrimitiveTest {
   class ConcretePrimitive : public Primitive {
   public:
     Primitive* intersect(const Ray&, HitPointInterval&) { return 0; }
-    BoundingBox boundingBox() { return BoundingBox(); }
+    BoundingBoxd boundingBox() { return BoundingBoxd(); }
   };
   
   TEST(Primitive, ShouldReturnMaterial) {
