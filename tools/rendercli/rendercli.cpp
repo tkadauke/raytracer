@@ -7,7 +7,7 @@
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
 
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
@@ -64,7 +64,7 @@ void Renderer::render() {
   
   auto raytracerScene = scene->toRaytracerScene();
   
-  auto light1 = new raytracer::Light(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
+  auto light1 = new raytracer::PointLight(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
   raytracerScene->addLight(light1);
   
   auto raytracer = std::make_shared<raytracer::Raytracer>(raytracerScene);

@@ -5,7 +5,7 @@
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/primitives/Difference.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/PhongMaterial.h"
@@ -64,7 +64,7 @@ DiceScene::DiceScene()
   grid->setup();
   add(grid);
   
-  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new PointLight(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

@@ -7,7 +7,7 @@
 #include "raytracer/Primitives/Plane.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/textures/CheckerBoardTexture.h"
 #include "raytracer/textures/ConstantColorTexture.h"
 #include "raytracer/textures/mappings/PlanarMapping2D.h"
@@ -82,7 +82,7 @@ raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene*
   scene->add(sphere);
   scene->add(plane);
 
-  auto light = new raytracer::Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light = new raytracer::PointLight(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   scene->addLight(light);
   
   return scene;

@@ -21,7 +21,7 @@ Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint
   auto color = ambientBRDF.reflectance(hitPoint, out) * raytracer->scene()->ambient();
 
   for (const auto& light : raytracer->scene()->lights()) {
-    Vector3d in = (light->position() - hitPoint.point()).normalized();
+    Vector3d in = light->direction(hitPoint.point());
     
     if (!raytracer->scene()->intersects(Ray(hitPoint.point(), in).epsilonShifted())) {
       double normalDotIn = hitPoint.normal() * in;
@@ -29,7 +29,7 @@ Colord PhongMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint
         color += (
           diffuseBRDF(hitPoint, out, in)
         + m_specularBRDF(hitPoint, out, in)
-        ) * light->color() * normalDotIn;
+        ) * light->radiance() * normalDotIn;
       }
     }
   }

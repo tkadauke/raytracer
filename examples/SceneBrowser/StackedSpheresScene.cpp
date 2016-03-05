@@ -2,7 +2,7 @@
 
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/primitives/Intersection.h"
 #include "raytracer/primitives/Union.h"
 #include "raytracer/materials/Material.h"
@@ -52,7 +52,7 @@ StackedSpheresScene::StackedSpheresScene()
   add(sphere3);
   add(plane);
   
-  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new PointLight(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

@@ -6,24 +6,11 @@
 namespace raytracer {
   class Light {
   public:
-    inline Light(const Vector3d& position, const Colord& color)
-      : m_position(position),
-        m_color(color)
-    {
-    }
+    inline Light() {}
 
     inline virtual ~Light() {}
 
-    inline const Vector3d& position() const {
-      return m_position;
-    }
-    
-    inline const Colord& color() const {
-      return m_color;
-    }
-    
-  private:
-    Vector3d m_position;
-    Colord m_color;
+    virtual Vector3d direction(const Vector3d& point) const = 0;
+    virtual Colord radiance() const = 0;
   };
 }

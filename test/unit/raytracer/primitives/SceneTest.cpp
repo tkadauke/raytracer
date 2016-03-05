@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "test/mocks/raytracer/MockLight.h"
 
 namespace SceneTest {
@@ -30,7 +30,7 @@ namespace SceneTest {
   
   TEST(Scene, ShouldAddLight) {
     Scene scene(Colord::white());
-    auto light = new Light(Vector3d(), Colord::white());
+    auto light = new PointLight(Vector3d(), Colord::white());
     scene.addLight(light);
     ASSERT_FALSE(scene.lights().empty());
     ASSERT_EQ(light, scene.lights().front());
@@ -38,7 +38,7 @@ namespace SceneTest {
   
   TEST(Scene, ShouldDeleteLights) {
     auto scene = new Scene(Colord::white());
-    auto light = new MockLight(Vector3d(), Colord::white());
+    auto light = new MockLight();
     scene->addLight(light);
     EXPECT_CALL(*light, destructorCall());
     delete scene;

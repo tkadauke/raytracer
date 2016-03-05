@@ -2,7 +2,7 @@
 
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/PortalMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
@@ -48,10 +48,10 @@ PortalScene::PortalScene()
   
   add(plane);
   
-  auto light1 = new Light(Vector3d(-3, -3, -3), Colord(0.4, 0.4, 0.4));
-  auto light2 = new Light(Vector3d( 3, -3, -3), Colord(0.4, 0.4, 0.4));
-  auto light3 = new Light(Vector3d(-3, -3,  3), Colord(0.4, 0.4, 0.4));
-  auto light4 = new Light(Vector3d( 3, -3,  3), Colord(0.4, 0.4, 0.4));
+  auto light1 = new PointLight(Vector3d(-3, -3, -3), Colord(0.4, 0.4, 0.4));
+  auto light2 = new PointLight(Vector3d( 3, -3, -3), Colord(0.4, 0.4, 0.4));
+  auto light3 = new PointLight(Vector3d(-3, -3,  3), Colord(0.4, 0.4, 0.4));
+  auto light4 = new PointLight(Vector3d( 3, -3,  3), Colord(0.4, 0.4, 0.4));
   addLight(light1);
   addLight(light2);
   addLight(light3);

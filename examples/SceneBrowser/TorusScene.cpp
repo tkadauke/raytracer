@@ -3,7 +3,7 @@
 #include "raytracer/primitives/Plane.h"
 #include "raytracer/primitives/Torus.h"
 #include "raytracer/primitives/Instance.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
@@ -43,7 +43,7 @@ TorusScene::TorusScene()
   
   add(plane);
   
-  auto light1 = new Light(Vector3d(-18, -18, -6), Colord(0.4, 0.4, 0.4));
+  auto light1 = new PointLight(Vector3d(-18, -18, -6), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

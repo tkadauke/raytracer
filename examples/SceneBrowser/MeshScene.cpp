@@ -7,7 +7,7 @@
 #include "raytracer/primitives/Grid.h"
 #include "raytracer/primitives/Instance.h"
 #include "core/formats/ply/PlyFile.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/textures/ConstantColorTexture.h"
@@ -52,8 +52,8 @@ MeshScene::MeshScene()
   sphere->setMaterial(&m_red);
   add(sphere);
   
-  auto light1 = new Light(Vector3d(-100, -100, -100), Colord(0.6, 0.6, 0.6));
-  auto light2 = new Light(Vector3d(100, -100, 100), Colord(0.6, 0.6, 0.6));
+  auto light1 = new PointLight(Vector3d(-100, -100, -100), Colord(0.6, 0.6, 0.6));
+  auto light2 = new PointLight(Vector3d(100, -100, 100), Colord(0.6, 0.6, 0.6));
   addLight(light1);
   addLight(light2);
 }

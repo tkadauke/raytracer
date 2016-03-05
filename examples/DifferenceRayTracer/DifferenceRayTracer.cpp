@@ -2,7 +2,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/primitives/Difference.h"
 #include "raytracer/primitives/Intersection.h"
 #include "raytracer/primitives/Union.h"
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   scene->add(sphere6);
   scene->add(plane);
   
-  auto light1 = new Light(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+  auto light1 = new PointLight(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   scene->addLight(light1);
   
   auto raytracer = std::make_shared<Raytracer>(scene);

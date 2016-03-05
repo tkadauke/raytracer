@@ -4,7 +4,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "raytracer/Raytracer.h"
-#include "raytracer/lights/Light.h"
+#include "raytracer/lights/PointLight.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 
@@ -109,7 +109,7 @@ void RenderWindow::finished() {
 void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
   
-  auto light1 = new raytracer::Light(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
+  auto light1 = new raytracer::PointLight(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
   raytracerScene->addLight(light1);
   
   p->raytracer->setScene(raytracerScene);
