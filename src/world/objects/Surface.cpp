@@ -4,31 +4,10 @@
 #include "raytracer/primitives/Composite.h"
 
 Surface::Surface(Element* parent)
-  : Element(parent),
-    m_scale(Vector3d::one()),
+  : Transformable(parent),
     m_material(nullptr),
     m_visible(true)
 {
-}
-
-Matrix4d Surface::localTransform() const {
-  return Matrix4d::translate(position()) *
-         Matrix3d::rotate(rotation()) *
-         Matrix3d::scale(scale());
-}
-
-Matrix4d Surface::globalTransform() const {
-  Matrix4d parentTransform;
-  if (Surface* p = dynamic_cast<Surface*>(parent())) {
-    parentTransform = p->globalTransform();
-  }
-  return parentTransform * localTransform();
-}
-
-void Surface::setMatrix(const Matrix4d& matrix) {
-  setPosition(matrix.translationVector());
-  setRotation(Matrix3d(matrix).rotationVector());
-  setScale(Matrix3d(matrix).scaleVector());
 }
 
 std::shared_ptr<raytracer::Primitive> Surface::applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const {
@@ -71,19 +50,6 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer() const {
 
 bool Surface::canHaveChild(Element* child) const {
   return dynamic_cast<Surface*>(child) != nullptr;
-}
-
-void Surface::leaveParent() {
-  setMatrix(globalTransform());
-}
-
-void Surface::joinParent() {
-  Matrix4d matrix;
-  if (Surface* p = dynamic_cast<Surface*>(parent())) {
-    matrix = p->globalTransform().inverted();
-  }
-  
-  setMatrix(matrix * localTransform());
 }
 
 #include "Surface.moc"
