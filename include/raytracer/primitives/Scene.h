@@ -11,12 +11,14 @@ namespace raytracer {
     typedef std::list<Light*> Lights;
 
     inline Scene()
-      : m_ambient(Colord::white())
+      : m_ambient(Colord::white()),
+        m_background(Colord::white())
     {
     }
 
     inline Scene(const Colord& ambient)
-      : m_ambient(ambient)
+      : m_ambient(ambient),
+        m_background(Colord::white())
     {
     }
 
@@ -38,8 +40,17 @@ namespace raytracer {
       m_ambient = ambient;
     }
     
+    inline const Colord& background() const {
+      return m_background;
+    }
+    
+    inline void setBackground(const Colord& background) {
+      m_background = background;
+    }
+    
   private:
     Lights m_lights;
     Colord m_ambient;
+    Colord m_background;
   };
 }

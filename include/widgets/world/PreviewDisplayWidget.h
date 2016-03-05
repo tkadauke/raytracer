@@ -1,6 +1,7 @@
 #pragma once
 
 #include "widgets/QtDisplay.h"
+#include "core/Color.h"
 
 class Material;
 class Scene;
@@ -18,12 +19,12 @@ public:
   ~PreviewDisplayWidget();
   
   void clear();
-  void setMaterial(Material* material);
+  void setMaterial(Material* material, Scene* s);
   void setCamera(Camera* camera, Scene* scene);
   
   virtual QSize sizeHint() const;
   
 private:
   void updateScene(const std::function<void()>& setup);
-  raytracer::Scene* sphereOnPlane(Material* material);
+  raytracer::Scene* sphereOnPlane(Material* material, Scene* s);
 };

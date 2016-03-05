@@ -31,10 +31,10 @@ void PreviewDisplayWidget::clear() {
   });
 }
 
-void PreviewDisplayWidget::setMaterial(Material* material) {
+void PreviewDisplayWidget::setMaterial(Material* material, Scene* s) {
   setInteractive(true);
   updateScene([&]() {
-    m_raytracer->setScene(sphereOnPlane(material));
+    m_raytracer->setScene(sphereOnPlane(material, s));
     m_raytracer->setCamera(std::make_shared<raytracer::PinholeCamera>());
   });
 }
@@ -58,11 +58,12 @@ void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   render();
 }
 
-raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material) {
+raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) {
   auto mat = material->toRaytracerMaterial();
   auto scene = new raytracer::Scene;
   
-  scene->setAmbient(Colord(0.4, 0.4, 0.4));
+  scene->setAmbient(s->ambient());
+  scene->setBackground(s->background());
 
   auto sphere = std::make_shared<raytracer::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);

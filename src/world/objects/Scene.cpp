@@ -11,7 +11,9 @@
 
 Scene::Scene(Element* parent)
   : Element(parent),
-    m_changed(false)
+    m_changed(false),
+    m_ambient(Colord(0.8, 0.8, 0.8)),
+    m_background(Colord(0.4, 0.8, 1))
 {
   setName("New Scene");
 }
@@ -35,7 +37,8 @@ raytracer::Scene* Scene::toRaytracerScene() const {
     result->add(grid);
   }
   
-  result->setAmbient(Colord(0.4, 0.4, 0.4));
+  result->setAmbient(ambient());
+  result->setBackground(background());
   
   return result;
 }

@@ -522,7 +522,7 @@ void MainWindow::updatePreviewWidget() {
   Material* mat = qobject_cast<Material*>(p->currentElement);
   Camera* cam = qobject_cast<Camera*>(p->currentElement);
   if (mat) {
-    p->materialDisplay->setMaterial(mat);
+    p->materialDisplay->setMaterial(mat, p->scene);
   } else if (cam) {
     p->materialDisplay->setCamera(cam, p->scene);
   } else {

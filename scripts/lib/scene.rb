@@ -86,6 +86,9 @@ class Element
 end
 
 class Scene < Element
+  property :ambient => [0.8, 0.8, 0.8]
+  property :background => [0.4, 0.8, 1]
+  
   def save_to_file(name)
     File.open(name, 'w') do |file|
       file.puts to_json
