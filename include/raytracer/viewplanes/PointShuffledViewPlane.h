@@ -5,6 +5,6 @@
 namespace raytracer {
   class PointShuffledViewPlane : public ViewPlane {
   public:
-    virtual Iterator begin(const Rect& rect) const;
+    virtual Iterator begin(const Recti& rect) const;
   };
 }

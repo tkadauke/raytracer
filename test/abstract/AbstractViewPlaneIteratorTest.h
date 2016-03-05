@@ -7,14 +7,14 @@ namespace testing {
   template<class VP>
   struct AbstractViewPlaneIteratorTest : public Test {
     inline virtual void SetUp() {
-      fullRect = Rect(0, 0, 8, 6);
-      quarterRect = Rect(0, 0, 4, 3);
+      fullRect = Recti(0, 0, 8, 6);
+      quarterRect = Recti(0, 0, 4, 3);
       plane.setup(Matrix4d(), fullRect);
     }
   
     VP plane;
-    Rect fullRect;
-    Rect quarterRect;
+    Recti fullRect;
+    Recti quarterRect;
   };
 
   TYPED_TEST_CASE_P(AbstractViewPlaneIteratorTest);

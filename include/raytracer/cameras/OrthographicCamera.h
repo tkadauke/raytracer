@@ -31,7 +31,7 @@ namespace raytracer {
     }
 
     using Camera::render;
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect);
     virtual Ray rayForPixel(double x, double y);
 
     /**

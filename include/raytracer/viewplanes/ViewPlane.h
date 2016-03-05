@@ -15,8 +15,8 @@ namespace raytracer {
   public:
     class IteratorBase : public InequalityOperator<IteratorBase> {
     public:
-      IteratorBase(const ViewPlane* plane, const Rect& rect);
-      IteratorBase(const ViewPlane* plane, const Rect& rect, bool end);
+      IteratorBase(const ViewPlane* plane, const Recti& rect);
+      IteratorBase(const ViewPlane* plane, const Recti& rect, bool end);
       virtual ~IteratorBase() {}
 
       Vector3d current() const;
@@ -40,14 +40,14 @@ namespace raytracer {
       
     protected:
       const ViewPlane* m_plane;
-      Rect m_rect;
+      Recti m_rect;
       int m_column, m_row, m_pixelSize;
     };
 
     class RegularIterator : public IteratorBase {
     public:
-      RegularIterator(const ViewPlane* plane, const Rect& rect);
-      RegularIterator(const ViewPlane* plane, const Rect& rect, bool);
+      RegularIterator(const ViewPlane* plane, const Recti& rect);
+      RegularIterator(const ViewPlane* plane, const Recti& rect, bool);
 
       virtual void advance();
     };
@@ -96,11 +96,11 @@ namespace raytracer {
     };
 
     ViewPlane();
-    ViewPlane(const Matrix4d& matrix, const Rect& window);
+    ViewPlane(const Matrix4d& matrix, const Recti& window);
     
     virtual ~ViewPlane();
 
-    inline void setup(const Matrix4d& matrix, const Rect& window) {
+    inline void setup(const Matrix4d& matrix, const Recti& window) {
       m_matrix = matrix;
       m_window = window;
       setupVectors();
@@ -114,9 +114,9 @@ namespace raytracer {
       return m_window.height();
     }
 
-    virtual Iterator begin(const Rect& rect) const;
+    virtual Iterator begin(const Recti& rect) const;
 
-    inline Iterator end(const Rect& rect) const {
+    inline Iterator end(const Recti& rect) const {
       return Iterator(new RegularIterator(this, rect, true));
     }
 
@@ -158,7 +158,7 @@ namespace raytracer {
     friend class Iterator;
 
     Matrix4d m_matrix;
-    Rect m_window;
+    Recti m_window;
     Vector3d m_topLeft, m_right, m_down;
     float m_pixelSize;
     

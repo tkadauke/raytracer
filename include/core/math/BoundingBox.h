@@ -218,17 +218,17 @@ void BoundingBox<T>::getVertices(Container& container) {
 
 template<class T>
 bool BoundingBox<T>::intersects(const Ray& ray) const {
-  double ox = ray.origin().x();
-  double oy = ray.origin().y();
-  double oz = ray.origin().z();
-  double dx = ray.direction().x();
-  double dy = ray.direction().y();
-  double dz = ray.direction().z();
+  T ox = ray.origin().x();
+  T oy = ray.origin().y();
+  T oz = ray.origin().z();
+  T dx = ray.direction().x();
+  T dy = ray.direction().y();
+  T dz = ray.direction().z();
   
-  double xMin, yMin, zMin;
-  double xMax, yMax, zMax;
+  T xMin, yMin, zMin;
+  T xMax, yMax, zMax;
   
-  double a = 1.0 / dx;
+  T a = 1.0 / dx;
   if (a >= 0) {
     xMin = (m_min.x() - ox) * a;
     xMax = (m_max.x() - ox) * a;
@@ -237,7 +237,7 @@ bool BoundingBox<T>::intersects(const Ray& ray) const {
     xMax = (m_min.x() - ox) * a;
   }
   
-  double b = 1.0 / dy;
+  T b = 1.0 / dy;
   if (b >= 0) {
     yMin = (m_min.y() - oy) * b;
     yMax = (m_max.y() - oy) * b;
@@ -246,7 +246,7 @@ bool BoundingBox<T>::intersects(const Ray& ray) const {
     yMax = (m_min.y() - oy) * b;
   }
   
-  double c = 1.0 / dz;
+  T c = 1.0 / dz;
   if (c >= 0) {
     zMin = (m_min.z() - oz) * c;
     zMax = (m_max.z() - oz) * c;
@@ -255,7 +255,7 @@ bool BoundingBox<T>::intersects(const Ray& ray) const {
     zMax = (m_min.z() - oz) * c;
   }
   
-  double t0, t1;
+  T t0, t1;
   
   if (xMin > yMin)
     t0 = xMin;
@@ -287,5 +287,12 @@ inline std::ostream& operator<<(std::ostream& os, const BoundingBox<T>& bbox) {
   return os << bbox.min() << "-" << bbox.max();
 }
 
+/**
+  * Shortcut for bounding box with float precision.
+  */
 typedef BoundingBox<float> BoundingBoxf;
+
+/**
+  * Shortcut for bounding box with double precision.
+  */
 typedef BoundingBox<double> BoundingBoxd;

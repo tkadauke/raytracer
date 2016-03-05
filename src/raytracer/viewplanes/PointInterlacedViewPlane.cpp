@@ -10,7 +10,7 @@ using namespace raytracer;
 namespace {
   class PointInterlaceIterator : public ViewPlane::IteratorBase {
   public:
-    PointInterlaceIterator(const ViewPlane* plane, const Rect& rect);
+    PointInterlaceIterator(const ViewPlane* plane, const Recti& rect);
 
     virtual void advance();
 
@@ -21,7 +21,7 @@ namespace {
     int m_initialSize;
   };
 
-  PointInterlaceIterator::PointInterlaceIterator(const ViewPlane* plane, const Rect& rect)
+  PointInterlaceIterator::PointInterlaceIterator(const ViewPlane* plane, const Recti& rect)
     : IteratorBase(plane, rect),
       m_evenRow(false),
       m_initialSize(initialSize())
@@ -61,7 +61,7 @@ namespace {
   }
 }
 
-ViewPlane::Iterator PointInterlacedViewPlane::begin(const Rect& rect) const {
+ViewPlane::Iterator PointInterlacedViewPlane::begin(const Recti& rect) const {
   return Iterator(new PointInterlaceIterator(this, rect));
 }
 

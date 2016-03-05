@@ -12,7 +12,7 @@ ViewPlane::ViewPlane()
   m_sampler->setup(1, 1);
 }
 
-ViewPlane::ViewPlane(const Matrix4d& matrix, const Rect& window)
+ViewPlane::ViewPlane(const Matrix4d& matrix, const Recti& window)
   : ViewPlane()
 {
   setup(matrix, window);
@@ -27,17 +27,17 @@ void ViewPlane::setupVectors() {
   m_down = Matrix3d(m_matrix) * (Vector3d(0, 1, 0) / height() * 6.0);
 }
 
-ViewPlane::Iterator ViewPlane::begin(const Rect& rect) const {
+ViewPlane::Iterator ViewPlane::begin(const Recti& rect) const {
   return Iterator(new RegularIterator(this, rect));
 }
 
 
-ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Rect& rect)
+ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Recti& rect)
   : m_plane(plane), m_rect(rect), m_column(0), m_row(0), m_pixelSize(1)
 {
 }
 
-ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Rect& rect, bool)
+ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Recti& rect, bool)
   : m_plane(plane), m_rect(rect), m_column(0), m_row(rect.height())
 {
 }
@@ -47,12 +47,12 @@ Vector3d ViewPlane::IteratorBase::current() const {
 }
 
 
-ViewPlane::RegularIterator::RegularIterator(const ViewPlane* plane, const Rect& rect)
+ViewPlane::RegularIterator::RegularIterator(const ViewPlane* plane, const Recti& rect)
   : IteratorBase(plane, rect)
 {
 }
 
-ViewPlane::RegularIterator::RegularIterator(const ViewPlane* plane, const Rect& rect, bool end)
+ViewPlane::RegularIterator::RegularIterator(const ViewPlane* plane, const Recti& rect, bool end)
   : IteratorBase(plane, rect, end)
 {
 }

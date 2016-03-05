@@ -6,7 +6,7 @@ using namespace raytracer;
 namespace {
   class TileIterator : public ViewPlane::IteratorBase {
   public:
-    TileIterator(const ViewPlane* plane, const Rect& rect);
+    TileIterator(const ViewPlane* plane, const Recti& rect);
 
     virtual void advance();
 
@@ -15,7 +15,7 @@ namespace {
     int m_xTile, m_yTile;
   };
 
-  TileIterator::TileIterator(const ViewPlane* plane, const Rect& rect)
+  TileIterator::TileIterator(const ViewPlane* plane, const Recti& rect)
     : IteratorBase(plane, rect),
       m_tileSize(32),
       m_xTile(0),
@@ -45,7 +45,7 @@ namespace {
   }
 }
 
-ViewPlane::Iterator TiledViewPlane::begin(const Rect& rect) const {
+ViewPlane::Iterator TiledViewPlane::begin(const Recti& rect) const {
   return Iterator(new TileIterator(this, rect));
 }
 

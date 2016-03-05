@@ -37,10 +37,10 @@ const Matrix4d& Camera::matrix() {
 }
 
 void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) {
-  render(raytracer, buffer, Rect(0, 0, buffer.width(), buffer.height()));
+  render(raytracer, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect) {
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) {
   auto plane = viewPlane();
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
@@ -58,7 +58,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
   }
 }
 
-void Camera::plot(Buffer<unsigned int>& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
+void Camera::plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
   auto avergageColor = color / viewPlane()->sampler()->numSamples();
   unsigned int rgb = avergageColor.rgb();
   

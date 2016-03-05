@@ -9,6 +9,7 @@
 
 template<class T>
 class Buffer;
+template<class T>
 class Rect;
 
 namespace raytracer {
@@ -48,7 +49,7 @@ namespace raytracer {
     const Matrix4d& matrix();
 
     void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer);
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect& rect);
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect<int>& rect);
     
     virtual Ray rayForPixel(double x, double y) = 0;
     
@@ -69,7 +70,7 @@ namespace raytracer {
     }
     
   protected:
-    void plot(Buffer<unsigned int>& buffer, const Rect& rect, const ViewPlane::Iterator& pixel, const Colord& color);
+    void plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color);
 
   private:
     bool m_cancelled;

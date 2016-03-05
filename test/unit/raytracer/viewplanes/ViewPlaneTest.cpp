@@ -15,14 +15,14 @@ namespace ViewPlaneTest {
   }
   
   TEST(ViewPlane, ShouldInitializeWithValues) {
-    ViewPlane plane(Matrix4d(), Rect(10, 10));
+    ViewPlane plane(Matrix4d(), Recti(10, 10));
     ASSERT_EQ(10, plane.width());
     ASSERT_EQ(10, plane.height());
     ASSERT_EQ(1, plane.pixelSize());
   }
   
   TEST(ViewPlane, ShouldSetupVectorsWhenInitializedWithValues) {
-    ViewPlane plane(Matrix4d::translate(Vector3d(10, 0, 0)), Rect(8, 6));
+    ViewPlane plane(Matrix4d::translate(Vector3d(10, 0, 0)), Recti(8, 6));
     ASSERT_EQ(Vector3d(6, -3, 0), plane.topLeft());
     ASSERT_EQ(Vector3d(1, 0, 0), plane.right());
     ASSERT_EQ(Vector3d(0, 1, 0), plane.down());
@@ -30,14 +30,14 @@ namespace ViewPlaneTest {
   
   TEST(ViewPlane, ShouldSetupVectors) {
     ViewPlane plane;
-    plane.setup(Matrix4d::translate(Vector3d(10, 0, 0)), Rect(8, 6));
+    plane.setup(Matrix4d::translate(Vector3d(10, 0, 0)), Recti(8, 6));
     ASSERT_EQ(Vector3d(6, -3, 0), plane.topLeft());
     ASSERT_EQ(Vector3d(1, 0, 0), plane.right());
     ASSERT_EQ(Vector3d(0, 1, 0), plane.down());
   }
   
   TEST(ViewPlane, ShouldCalculatePixelPosition) {
-    ViewPlane plane(Matrix4d(), Rect(10, 10));
+    ViewPlane plane(Matrix4d(), Recti(10, 10));
     ASSERT_VECTOR_NEAR(Vector3d(-4, -3, 0), plane.pixelAt(0, 0), 0.001);
     ASSERT_VECTOR_NEAR(Vector3d( 4,  3, 0), plane.pixelAt(10, 10), 0.001);
   }
@@ -45,10 +45,10 @@ namespace ViewPlaneTest {
   namespace Iterator {
     struct ViewPlane_Iterator : public ::testing::Test {
       virtual void SetUp() {
-        fullRect = Rect(8, 6);
+        fullRect = Recti(8, 6);
       }
       
-      Rect fullRect;
+      Recti fullRect;
     };
     
     TEST_F(ViewPlane_Iterator, ShouldReturnCurrent) {

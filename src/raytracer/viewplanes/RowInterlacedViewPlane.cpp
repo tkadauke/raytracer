@@ -10,7 +10,7 @@ using namespace raytracer;
 namespace {
   class RowInterlaceIterator : public ViewPlane::IteratorBase {
   public:
-    RowInterlaceIterator(const ViewPlane* plane, const Rect& rect);
+    RowInterlaceIterator(const ViewPlane* plane, const Recti& rect);
 
     virtual void advance();
 
@@ -20,7 +20,7 @@ namespace {
     int m_rowJump, m_offset;
   };
 
-  RowInterlaceIterator::RowInterlaceIterator(const ViewPlane* plane, const Rect& rect)
+  RowInterlaceIterator::RowInterlaceIterator(const ViewPlane* plane, const Recti& rect)
     : IteratorBase(plane, rect),
       m_rowJump(initialJump()),
       m_offset(0)
@@ -53,7 +53,7 @@ namespace {
   }
 }
 
-ViewPlane::Iterator RowInterlacedViewPlane::begin(const Rect& rect) const {
+ViewPlane::Iterator RowInterlacedViewPlane::begin(const Recti& rect) const {
   return Iterator(new RowInterlaceIterator(this, rect));
 }
 

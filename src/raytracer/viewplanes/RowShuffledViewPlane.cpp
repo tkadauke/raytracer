@@ -9,7 +9,7 @@ using namespace raytracer;
 namespace {
   class RowShuffleIterator : public ViewPlane::IteratorBase {
   public:
-    RowShuffleIterator(const ViewPlane* plane, const Rect& rect);
+    RowShuffleIterator(const ViewPlane* plane, const Recti& rect);
 
     virtual void advance();
 
@@ -18,7 +18,7 @@ namespace {
     int m_rowIndex;
   };
 
-  RowShuffleIterator::RowShuffleIterator(const ViewPlane* plane, const Rect& rect)
+  RowShuffleIterator::RowShuffleIterator(const ViewPlane* plane, const Recti& rect)
     : IteratorBase(plane, rect),
       m_rowIndex(0)
   {
@@ -41,7 +41,7 @@ namespace {
   }
 }
 
-ViewPlane::Iterator RowShuffledViewPlane::begin(const Rect& rect) const {
+ViewPlane::Iterator RowShuffledViewPlane::begin(const Recti& rect) const {
   return Iterator(new RowShuffleIterator(this, rect));
 }
 

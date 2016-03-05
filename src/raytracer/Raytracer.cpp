@@ -25,7 +25,7 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    inline RenderThread(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Rect& r)
+    inline RenderThread(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Recti& r)
       : QThread(),
         raytracer(rt),
         camera(c),
@@ -41,7 +41,7 @@ namespace {
     std::shared_ptr<Raytracer> raytracer;
     std::shared_ptr<Camera> camera;
     Buffer<unsigned int>& buffer;
-    Rect rect;
+    Recti rect;
   };
 }
 
@@ -86,7 +86,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   IntegerDecomposition d(p->numberOfThreads);
   for (int horz = 0; horz != d.second(); ++horz) {
     for (int vert = 0; vert != d.first(); ++vert) {
-      p->threads.push_back(new RenderThread(shared_from_this(), m_camera, buffer, Rect(
+      p->threads.push_back(new RenderThread(shared_from_this(), m_camera, buffer, Recti(
         floor(double(buffer.width()) / d.second() * horz),
         floor(double(buffer.height()) / d.first() * vert),
         ceil(double(buffer.width()) / d.second()),

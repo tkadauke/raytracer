@@ -25,7 +25,7 @@ namespace BufferTest {
   
   TYPED_TEST(BufferTest, ShouldReturnRect) {
     Buffer<TypeParam> buffer(50, 50);
-    Rect rect = buffer.rect();
+    Recti rect = buffer.rect();
     ASSERT_EQ(0, rect.x());
     ASSERT_EQ(0, rect.y());
     ASSERT_EQ(50, rect.width());

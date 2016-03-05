@@ -10,7 +10,7 @@ using namespace raytracer;
 namespace {
   class PointShuffleIterator : public ViewPlane::IteratorBase {
   public:
-    PointShuffleIterator(const ViewPlane* plane, const Rect& rect);
+    PointShuffleIterator(const ViewPlane* plane, const Recti& rect);
 
     virtual void advance();
 
@@ -24,7 +24,7 @@ namespace {
     unsigned int m_pointIndex;
   };
 
-  PointShuffleIterator::PointShuffleIterator(const ViewPlane* plane, const Rect& rect)
+  PointShuffleIterator::PointShuffleIterator(const ViewPlane* plane, const Recti& rect)
     : IteratorBase(plane, rect),
       m_pointIndex(0)
   {
@@ -47,7 +47,7 @@ namespace {
   }
 }
 
-ViewPlane::Iterator PointShuffledViewPlane::begin(const Rect& rect) const {
+ViewPlane::Iterator PointShuffledViewPlane::begin(const Recti& rect) const {
   return Iterator(new PointShuffleIterator(this, rect));
 }
 

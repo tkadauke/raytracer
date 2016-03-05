@@ -42,8 +42,8 @@ public:
     return m_height;
   }
   
-  inline Rect rect() const {
-    return Rect(m_width, m_height);
+  inline Recti rect() const {
+    return Recti(m_width, m_height);
   }
   
   void clear() {
