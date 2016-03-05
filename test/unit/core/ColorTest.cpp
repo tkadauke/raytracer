@@ -38,8 +38,7 @@ namespace ColorTest {
   }
   
   TYPED_TEST(ColorTest, ShouldInitializeColorFromCArray) {
-    typename TypeParam::Component elements[3] = { 0.5, 1, 1 };
-    TypeParam color(elements);
+    TypeParam color({ 0.5, 1, 1 });
     ASSERT_EQ(0.5, color[0]);
     ASSERT_EQ(1,   color[1]);
     ASSERT_EQ(1,   color[2]);

@@ -51,8 +51,7 @@ namespace VectorTest {
   }
 
   TEST(Vector, ShouldInitializeVectorFromCArray) {
-    float elements[3] = { 1, 2, 3 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ 1, 2, 3 });
     ASSERT_EQ(1, vector[0]);
     ASSERT_EQ(2, vector[1]);
     ASSERT_EQ(3, vector[2]);
@@ -193,8 +192,7 @@ namespace VectorTest {
   }
   
   TEST(Vector, ShouldCalculateDotProduct) {
-    float elements[3] = { 1, 0, 0 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ 1, 0, 0 });
     
     ASSERT_EQ(1, vector.dotProduct(vector));
   }
@@ -205,28 +203,21 @@ namespace VectorTest {
   }
   
   TEST(Vector, ShouldCalculateDotProductOfUnitVectors) {
-    float elements[3] = { 1, 0, 0 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ 1, 0, 0 });
     
     ASSERT_EQ(1, vector * vector);
   }
   
   TEST(Vector, ShouldCalculateDotProductWithOperator) {
-    float first_elements[3] = { 1, 2, 2 };
-    Vector<3, float> first(first_elements);
-
-    float second_elements[3] = { 3, 4, 2 };
-    Vector<3, float> second(second_elements);
+    Vector<3, float> first({ 1, 2, 2 });
+    Vector<3, float> second({ 3, 4, 2 });
     
     ASSERT_EQ(15, first * second);
   }
   
   TEST(Vector, ShouldFollowDotProductRules) {
-    float first_elements[3] = { 1, 2, 2 };
-    Vector<3, float> first(first_elements);
-
-    float second_elements[3] = { 3, 4, 2 };
-    Vector<3, float> second(second_elements);
+    Vector<3, float> first({ 1, 2, 2 });
+    Vector<3, float> second({ 3, 4, 2 });
     
     ASSERT_EQ(-(first * second), (-first * second));
     ASSERT_EQ(-(first * second), (first * -second));
@@ -297,36 +288,29 @@ namespace VectorTest {
   }
 
   TEST(Vector, ShouldCompareVectorsForInequality) {
-    float first_elements[3] = { 1, 2, 3 };
-    Vector<3, float> first(first_elements);
-
-    float second_elements[3] = { 4, 5, 6 };
-    Vector<3, float> second(second_elements);
+    Vector<3, float> first({ 1, 2, 3 });
+    Vector<3, float> second({ 4, 5, 6 });
 
     ASSERT_TRUE(first != second);
   }
   
   TEST(Vector, ShouldReturnTrueForUndefinedIfVectorIsUndefined) {
-    float elements[3] = { numeric_limits<float>::quiet_NaN(), 0, 0 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ numeric_limits<float>::quiet_NaN(), 0, 0 });
     ASSERT_TRUE(vector.isUndefined());
   }
   
   TEST(Vector, ShouldReturnFalseForUndefinedIfVectorIsDefined) {
-    float elements[3] = { 0, 0, 0 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ 0, 0, 0 });
     ASSERT_FALSE(vector.isUndefined());
   }
 
   TEST(Vector, ShouldReturnTrueForDefinedIfVectorIsDefined) {
-    float elements[3] = { 0, 0, 0 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ 0, 0, 0 });
     ASSERT_TRUE(vector.isDefined());
   }
   
   TEST(Vector, ShouldReturnFalseForDefinedIfVectorIsUndefined) {
-    float elements[3] = { numeric_limits<float>::quiet_NaN(), 0, 0 };
-    Vector<3, float> vector(elements);
+    Vector<3, float> vector({ numeric_limits<float>::quiet_NaN(), 0, 0 });
     ASSERT_FALSE(vector.isDefined());
   }
 }
