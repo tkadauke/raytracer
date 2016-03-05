@@ -1,5 +1,5 @@
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 
 using namespace raytracer;
 

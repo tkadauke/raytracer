@@ -2,7 +2,7 @@
 #define MOCK_LIGHT_H
 
 #include "gmock/gmock.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 
 namespace testing {
   class MockLight : public raytracer::Light {

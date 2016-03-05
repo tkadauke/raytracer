@@ -4,7 +4,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "raytracer/Raytracer.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 

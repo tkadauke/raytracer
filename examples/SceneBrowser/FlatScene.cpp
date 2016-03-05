@@ -4,7 +4,7 @@
 #include "raytracer/primitives/Disk.h"
 #include "raytracer/primitives/Rectangle.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/textures/ConstantColorTexture.h"

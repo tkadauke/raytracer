@@ -2,7 +2,7 @@
 #include "raytracer/Raytracer.h"
 #include "core/math/HitPoint.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "core/math/Ray.h"
 #include "raytracer/textures/Texture.h"
 

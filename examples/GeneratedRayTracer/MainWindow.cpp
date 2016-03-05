@@ -17,7 +17,7 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Primitive.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "core/math/HitPointInterval.h"
 

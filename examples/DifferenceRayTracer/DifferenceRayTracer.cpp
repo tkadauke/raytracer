@@ -2,7 +2,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/primitives/Difference.h"
 #include "raytracer/primitives/Intersection.h"
 #include "raytracer/primitives/Union.h"

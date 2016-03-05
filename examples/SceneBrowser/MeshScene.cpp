@@ -7,7 +7,7 @@
 #include "raytracer/primitives/Grid.h"
 #include "raytracer/primitives/Instance.h"
 #include "core/formats/ply/PlyFile.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/textures/ConstantColorTexture.h"

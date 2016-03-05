@@ -7,7 +7,7 @@
 #include "raytracer/Primitives/Plane.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/textures/CheckerBoardTexture.h"
 #include "raytracer/textures/ConstantColorTexture.h"
 #include "raytracer/textures/mappings/PlanarMapping2D.h"

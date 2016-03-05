@@ -1,5 +1,5 @@
 #include "gtest.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 
 namespace LightTest {
   using namespace raytracer;

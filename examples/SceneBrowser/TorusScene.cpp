@@ -3,7 +3,7 @@
 #include "raytracer/primitives/Plane.h"
 #include "raytracer/primitives/Torus.h"
 #include "raytracer/primitives/Instance.h"
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"

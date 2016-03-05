@@ -7,7 +7,7 @@
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
 
-#include "raytracer/Light.h"
+#include "raytracer/lights/Light.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
