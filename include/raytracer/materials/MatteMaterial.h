@@ -66,10 +66,10 @@ namespace raytracer {
       * 
       * <table><tr>
       * <td>@image html matte_material_ambient_0.0.png "ambientCoefficient=0"</td>
+      * <td>@image html matte_material_ambient_0.25.png "ambientCoefficient=0.25"</td>
       * <td>@image html matte_material_ambient_0.5.png "ambientCoefficient=0.5"</td>
+      * <td>@image html matte_material_ambient_0.75.png "ambientCoefficient=0.75"</td>
       * <td>@image html matte_material_ambient_1.0.png "ambientCoefficient=1"</td>
-      * <td>@image html matte_material_ambient_1.5.png "ambientCoefficient=1.5"</td>
-      * <td>@image html matte_material_ambient_2.0.png "ambientCoefficient=2"</td>
       * </tr></table>
       */
     inline void setAmbientCoefficient(double coeff) {

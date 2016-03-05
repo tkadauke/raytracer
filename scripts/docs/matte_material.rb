@@ -9,7 +9,7 @@ rainbow_colors.each do |name, color|
 end
 
 1.upto(5) do |i|
-  coeff = (i - 1) * 0.5
+  coeff = (i - 1) * 0.25
   
   Scene.new do
     material_scene matte_material(:diffuseTexture => green, :ambientCoefficient => coeff)
