@@ -12,27 +12,35 @@ using namespace std;
 
 namespace MatrixTest {
   using namespace ::testing;
+
+  template<class T>
+  class MatrixTest : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
   
-  TEST(Matrix, ShouldInitializeMatrixAsIdentity) {
-    Matrix<3, float> matrix;
+  TYPED_TEST_CASE(MatrixTest, SpecializedMatrixTypes);
+  
+  TYPED_TEST(MatrixTest, ShouldInitializeMatrixAsIdentity) {
+    Matrix<3, TypeParam> matrix;
     ASSERT_EQ(1, matrix[0][0]);
     ASSERT_EQ(0, matrix[1][0]);
   }
 
-  TEST(Matrix, ShouldGetAndSetCell) {
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldGetAndSetCell) {
+    Matrix<3, TypeParam> matrix;
     matrix.setCell(0, 2, 10);
     ASSERT_EQ(10, matrix.cell(0, 2));
   }
 
-  TEST(Matrix, ShouldGetAndSetCellWithIndexOperator) {
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldGetAndSetCellWithIndexOperator) {
+    Matrix<3, TypeParam> matrix;
     matrix[0][2] = 10;
     ASSERT_EQ(10, matrix[0][2]);
   }
 
-  TEST(Matrix, ShouldConstructFromNestedCArray) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldConstructFromNestedCArray) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
@@ -42,54 +50,54 @@ namespace MatrixTest {
     ASSERT_EQ(1, matrix[2][0]);
   }
   
-  TEST(Matrix, ShouldCopyFromSmallerMatrix) {
-    Matrix<3, float> source({
+  TYPED_TEST(MatrixTest, ShouldCopyFromSmallerMatrix) {
+    Matrix<3, TypeParam> source({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Matrix<4, float> expected({
+    Matrix<4, TypeParam> expected({
       {1, 2, 1, 0},
       {2, 0, 1, 0},
       {1, 1, 1, 0},
       {0, 0, 0, 1}
     });
 
-    Matrix<4, float> dest = source;
+    Matrix<4, TypeParam> dest = source;
     ASSERT_EQ(expected, dest);
   }
 
-  TEST(Matrix, ShouldCopyFromLargerMatrix) {
-    Matrix<3, float> source({
+  TYPED_TEST(MatrixTest, ShouldCopyFromLargerMatrix) {
+    Matrix<3, TypeParam> source({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Matrix<2, float> expected({
+    Matrix<2, TypeParam> expected({
       {1, 2},
       {2, 0}
     });
 
-    Matrix<2, float> dest = source;
+    Matrix<2, TypeParam> dest = source;
     ASSERT_EQ(expected, dest);
   }
 
-  TEST(Matrix, ShouldMultiplyWithOtherSameSizedMatrix) {
-    Matrix<3, float> first({
+  TYPED_TEST(MatrixTest, ShouldMultiplyWithOtherSameSizedMatrix) {
+    Matrix<3, TypeParam> first({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
 
-    Matrix<3, float> second({
+    Matrix<3, TypeParam> second({
       {1, 1, 1},
       {2, 3, 1},
       {1, 2, 1}
     });
 
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {6, 9, 4},
       {3, 4, 3},
       {4, 6, 3}
@@ -98,20 +106,20 @@ namespace MatrixTest {
     ASSERT_EQ(expected, first * second);
   }
 
-  TEST(Matrix, ShouldMultiplyInPlaceWithOtherSameSizedMatrix) {
-    Matrix<3, float> first({
+  TYPED_TEST(MatrixTest, ShouldMultiplyInPlaceWithOtherSameSizedMatrix) {
+    Matrix<3, TypeParam> first({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
 
-    Matrix<3, float> second({
+    Matrix<3, TypeParam> second({
       {1, 1, 1},
       {2, 3, 1},
       {1, 2, 1}
     });
 
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {6, 9, 4},
       {3, 4, 3},
       {4, 6, 3}
@@ -122,68 +130,68 @@ namespace MatrixTest {
     ASSERT_EQ(expected, first);
   }
 
-  TEST(Matrix, ShouldReturnSameMatrixWhenMultipliedWithIdentity) {
-    Matrix<3, float> first({
+  TYPED_TEST(MatrixTest, ShouldReturnSameMatrixWhenMultipliedWithIdentity) {
+    Matrix<3, TypeParam> first({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
-    Matrix<3, float> second;
+    Matrix<3, TypeParam> second;
 
     ASSERT_EQ(first, first * second);
   }
 
-  TEST(Matrix, ShouldDetermineIfTwoIdentityMatricesAreEqual) {
-    Matrix<3, float> first, second;
+  TYPED_TEST(MatrixTest, ShouldDetermineIfTwoIdentityMatricesAreEqual) {
+    Matrix<3, TypeParam> first, second;
     ASSERT_TRUE(first == second);
   }
 
-  TEST(Matrix, ShouldDetermineIfTwoMatricesAreEqual) {
-    float elements[3][3] = {
+  TYPED_TEST(MatrixTest, ShouldDetermineIfTwoMatricesAreEqual) {
+    TypeParam elements[3][3] = {
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     };
-    Matrix<3, float> first(elements), second(elements);
+    Matrix<3, TypeParam> first(elements), second(elements);
     ASSERT_TRUE(first == second);
   }
 
-  TEST(Matrix, ShouldDetermineIfTwoMatricesAreNotEqual) {
-    float elements[3][3] = {
+  TYPED_TEST(MatrixTest, ShouldDetermineIfTwoMatricesAreNotEqual) {
+    TypeParam elements[3][3] = {
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     };
-    Matrix<3, float> first(elements), second;
+    Matrix<3, TypeParam> first(elements), second;
     ASSERT_TRUE(first != second);
   }
   
-  TEST(Matrix, ShouldReturnRow) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnRow) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Vector<3, float> expected({2, 0, 1});
+    Vector<3, TypeParam> expected({2, 0, 1});
     
     ASSERT_EQ(expected, matrix.row(1));
   }
 
-  TEST(Matrix, ShouldReturnCol) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnCol) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Vector<3, float> expected({1, 1, 1});
+    Vector<3, TypeParam> expected({1, 1, 1});
     
     ASSERT_EQ(expected, matrix.col(2));
   }
 
-  TEST(Matrix, ShouldCalculateRowSum) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldCalculateRowSum) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
@@ -191,8 +199,8 @@ namespace MatrixTest {
     ASSERT_EQ(4, matrix.rowSum(0));
   }
 
-  TEST(Matrix, ShouldCalculateColSum) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldCalculateColSum) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
@@ -200,69 +208,69 @@ namespace MatrixTest {
     ASSERT_EQ(3, matrix.colSum(1));
   }
 
-  TEST(Matrix, ShouldReturnOriginalVectorWhenVectorIsMultipliedWithIdentityMatrix) {
-    Vector<3, float> vector({1, 2, 3});
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldReturnOriginalVectorWhenVectorIsMultipliedWithIdentityMatrix) {
+    Vector<3, TypeParam> vector({1, 2, 3});
+    Matrix<3, TypeParam> matrix;
 
-    Vector<3, float> result = matrix * vector;
+    Vector<3, TypeParam> result = matrix * vector;
 
     ASSERT_EQ(1, result[0]);
     ASSERT_EQ(2, result[1]);
     ASSERT_EQ(3, result[2]);
   }
   
-  TEST(Matrix, ShouldReturnXDirectionVectorWhenMultipliedWithXUnitVector) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnXDirectionVectorWhenMultipliedWithXUnitVector) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Vector<3, float> vector({1, 0, 0});
-    Vector<3, float> expected({1, 2, 1});
+    Vector<3, TypeParam> vector({1, 0, 0});
+    Vector<3, TypeParam> expected({1, 2, 1});
     ASSERT_EQ(expected, matrix * vector);
   }
 
-  TEST(Matrix, ShouldReturnYDirectionVectorWhenMultipliedWithYUnitVector) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnYDirectionVectorWhenMultipliedWithYUnitVector) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Vector<3, float> vector({0, 1, 0});
-    Vector<3, float> expected({2, 0, 1});
+    Vector<3, TypeParam> vector({0, 1, 0});
+    Vector<3, TypeParam> expected({2, 0, 1});
     ASSERT_EQ(expected, matrix * vector);
   }
 
-  TEST(Matrix, ShouldReturnZDirectionVectorWhenMultipliedWithZUnitVector) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnZDirectionVectorWhenMultipliedWithZUnitVector) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
     
-    Vector<3, float> vector({0, 0, 1});
-    Vector<3, float> expected({1, 1, 1});
+    Vector<3, TypeParam> vector({0, 0, 1});
+    Vector<3, TypeParam> expected({1, 1, 1});
     ASSERT_EQ(expected, matrix * vector);
   }
 
-  TEST(Matrix, ShouldReturnTransformedVectorWhenMultipliedWithMatrix) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnTransformedVectorWhenMultipliedWithMatrix) {
+    Matrix<3, TypeParam> matrix({
       {1, 0, 0},
       {0, 0, 1},
       {0, 1, 0}
     });
 
-    Vector<3, float> vector({1, 2, 3});
-    Vector<3, float> expected({1, 3, 2});
+    Vector<3, TypeParam> vector({1, 2, 3});
+    Vector<3, TypeParam> expected({1, 3, 2});
     ASSERT_EQ(expected, matrix * vector);
   }
   
-  TEST(Matrix, ShouldMultiplyIdentityWithScalar) {
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldMultiplyIdentityWithScalar) {
+    Matrix<3, TypeParam> matrix;
 
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {3, 0, 0},
       {0, 3, 0},
       {0, 0, 3}
@@ -271,14 +279,14 @@ namespace MatrixTest {
     ASSERT_EQ(expected, matrix * 3);
   }
 
-  TEST(Matrix, ShouldMultiplyWithScalar) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldMultiplyWithScalar) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
   
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {3, 6, 3},
       {6, 0, 3},
       {3, 3, 3}
@@ -287,14 +295,14 @@ namespace MatrixTest {
     ASSERT_EQ(expected, matrix * 3);
   }
   
-  TEST(Matrix, ShouldMultiplyInPlaceWithScalar) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldMultiplyInPlaceWithScalar) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
   
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {3, 6, 3},
       {6, 0, 3},
       {3, 3, 3}
@@ -305,20 +313,20 @@ namespace MatrixTest {
     ASSERT_EQ(expected, matrix);
   }
   
-  TEST(Matrix, ShouldAddTwoMatrices) {
-    Matrix<3, float> first({
+  TYPED_TEST(MatrixTest, ShouldAddTwoMatrices) {
+    Matrix<3, TypeParam> first({
       {1, 0, 0},
       {0, 0, 1},
       {0, 1, 0}
     });
 
-    Matrix<3, float> second({
+    Matrix<3, TypeParam> second({
       {0, 1, 0},
       {0, 1, 0},
       {1, 0, 0}
     });
 
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {1, 1, 0},
       {0, 1, 1},
       {1, 1, 0}
@@ -327,10 +335,10 @@ namespace MatrixTest {
     ASSERT_EQ(expected, first + second);
   }
 
-  TEST(Matrix, ShouldDivideIdentityByScalar) {
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldDivideIdentityByScalar) {
+    Matrix<3, TypeParam> matrix;
 
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {0.5, 0,   0},
       {0,   0.5, 0},
       {0,   0,   0.5}
@@ -339,14 +347,14 @@ namespace MatrixTest {
     ASSERT_EQ(expected, matrix / 2);
   }
 
-  TEST(Matrix, ShouldDivideByScalar) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldDivideByScalar) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {2, 0, 1},
       {1, 1, 1}
     });
   
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {0.5, 1,   0.5},
       {1,   0,   0.5},
       {0.5, 0.5, 0.5}
@@ -355,19 +363,19 @@ namespace MatrixTest {
     ASSERT_EQ(expected, matrix / 2);
   }
 
-  TEST(Matrix, ShouldNotAllowDivisionByZero) {
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldNotAllowDivisionByZero) {
+    Matrix<3, TypeParam> matrix;
     ASSERT_THROW(matrix / 0, DivisionByZeroException);
   }
   
-  TEST(Matrix, ShouldReturnTransposedMatrix) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnTransposedMatrix) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {3, 0, 2},
       {4, 1, 1}
     });
     
-    Matrix<3, float> expected({
+    Matrix<3, TypeParam> expected({
       {1, 3, 4},
       {2, 0, 1},
       {1, 2, 1}
@@ -375,13 +383,13 @@ namespace MatrixTest {
     ASSERT_EQ(expected, matrix.transposed());
   }
   
-  TEST(Matrix, ShouldReturnIdentityWhenIdentityIsTransposed) {
-    Matrix<3, float> matrix;
+  TYPED_TEST(MatrixTest, ShouldReturnIdentityWhenIdentityIsTransposed) {
+    Matrix<3, TypeParam> matrix;
     ASSERT_EQ(matrix, matrix.transposed());
   }
   
-  TEST(Matrix, ShouldReturnOriginalMatrixIfTransposedTwice) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldReturnOriginalMatrixIfTransposedTwice) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {3, 0, 2},
       {4, 1, 1}
@@ -389,8 +397,8 @@ namespace MatrixTest {
     ASSERT_EQ(matrix, matrix.transposed().transposed());
   }
   
-  TEST(Matrix, ShouldStreamMatrixToString) {
-    Matrix<3, float> matrix({
+  TYPED_TEST(MatrixTest, ShouldStreamMatrixToString) {
+    Matrix<3, TypeParam> matrix({
       {1, 2, 1},
       {3, 0, 2},
       {4, 1, 1}
@@ -455,13 +463,21 @@ namespace DerivedMatrixTest {
 namespace Matrix2Test {
   using namespace ::testing;
 
-  TEST(Matrix2, ShouldInitializeIdentity) {
-    Matrix2<float> matrix;
+  template<class T>
+  class Matrix2Test : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+  
+  TYPED_TEST_CASE(Matrix2Test, SpecializedMatrixTypes);
+
+  TYPED_TEST(Matrix2Test, ShouldInitializeIdentity) {
+    Matrix2<TypeParam> matrix;
     ASSERT_EQ(1, matrix[0][0]);
   }
 
-  TEST(Matrix2, ShouldInitializeWithCells) {
-    Matrix2<float> matrix(
+  TYPED_TEST(Matrix2Test, ShouldInitializeWithCells) {
+    Matrix2<TypeParam> matrix(
       1, 1,
       0, 1
     );
@@ -471,14 +487,14 @@ namespace Matrix2Test {
     ASSERT_EQ(1, matrix[1][1]);
   }
   
-  TEST(Matrix2, ShouldCopyFromMatrix3) {
-    Matrix3<float> matrix(
+  TYPED_TEST(Matrix2Test, ShouldCopyFromMatrix3) {
+    Matrix3<TypeParam> matrix(
       2, 1, 2,
       3, 3, 2,
       4, 1, 2
     );
-    Matrix2<float> copy(matrix);
-    Matrix2<float> expected(
+    Matrix2<TypeParam> copy(matrix);
+    Matrix2<TypeParam> expected(
       2, 1,
       3, 3
     );
@@ -486,30 +502,30 @@ namespace Matrix2Test {
     ASSERT_EQ(expected, copy);
   }
   
-  TEST(Matrix2, ShouldHaveNonZeroDeterminantForIdentityMatrix) {
-    Matrix2<float> matrix;
+  TYPED_TEST(Matrix2Test, ShouldHaveNonZeroDeterminantForIdentityMatrix) {
+    Matrix2<TypeParam> matrix;
     ASSERT_TRUE(matrix.determinant() != 0);
   }
   
-  TEST(Matrix2, ShouldHaveZeroDeterminantForNonInvertibleMatrix) {
-    Matrix2<float> matrix(
+  TYPED_TEST(Matrix2Test, ShouldHaveZeroDeterminantForNonInvertibleMatrix) {
+    Matrix2<TypeParam> matrix(
       0, 0,
       1, 0
     );
     ASSERT_EQ(0, matrix.determinant());
   }
   
-  TEST(Matrix2, ShouldReturnIdentityWhenIdentityIsInverted) {
-    Matrix2<float> matrix;
+  TYPED_TEST(Matrix2Test, ShouldReturnIdentityWhenIdentityIsInverted) {
+    Matrix2<TypeParam> matrix;
     ASSERT_EQ(matrix, matrix.inverted());
   }
   
-  TEST(Matrix2, ShouldReturnInvertedMatrix) {
-    Matrix2<float> matrix(
+  TYPED_TEST(Matrix2Test, ShouldReturnInvertedMatrix) {
+    Matrix2<TypeParam> matrix(
       0, -1,
       1, 0
     );
-    Matrix2<float> expected(
+    Matrix2<TypeParam> expected(
       0, 1,
       -1, 0
     );
@@ -517,212 +533,220 @@ namespace Matrix2Test {
     ASSERT_EQ(expected, matrix.inverted());
   }
   
-  TEST(Matrix2, ShouldGenerate90DegreeRotationMatrix) {
-    auto angle = Angle<float>::fromDegrees(90);
-    auto matrix = Matrix2<float>::rotate(angle);
-    auto expected = Matrix2<float>(
+  TYPED_TEST(Matrix2Test, ShouldGenerate90DegreeRotationMatrix) {
+    auto angle = Angle<TypeParam>::fromDegrees(90);
+    auto matrix = Matrix2<TypeParam>::rotate(angle);
+    auto expected = Matrix2<TypeParam>(
       0, -1,
       1, 0
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix2, ShouldRotateCounterclockwiseByDefault) {
-    auto angle = Angle<float>::fromRadians(0.354);
-    auto expected = Matrix2<float>::rotate(angle),
-         actual = Matrix2<float>::counterclockwise(angle);
+  TYPED_TEST(Matrix2Test, ShouldRotateCounterclockwiseByDefault) {
+    auto angle = Angle<TypeParam>::fromRadians(0.354);
+    auto expected = Matrix2<TypeParam>::rotate(angle),
+         actual = Matrix2<TypeParam>::counterclockwise(angle);
     ASSERT_EQ(expected, actual);
   }
   
-  TEST(Matrix2, ShouldRotateClockwiseByUsingNegativeAngle) {
-    auto angle = Angle<float>::fromRadians(0.354);
+  TYPED_TEST(Matrix2Test, ShouldRotateClockwiseByUsingNegativeAngle) {
+    auto angle = Angle<TypeParam>::fromRadians(0.354);
 
-    auto expected = Matrix2<float>::rotate(-angle),
-         actual = Matrix2<float>::clockwise(angle);
+    auto expected = Matrix2<TypeParam>::rotate(-angle),
+         actual = Matrix2<TypeParam>::clockwise(angle);
     ASSERT_EQ(expected, actual);
   }
   
-  TEST(Matrix2, ShouldRotateClockwise) {
-    auto angle = Angle<float>::fromDegrees(90);
-    auto matrix = Matrix2<float>::clockwise(angle);
-    auto expected = Matrix2<float>(
+  TYPED_TEST(Matrix2Test, ShouldRotateClockwise) {
+    auto angle = Angle<TypeParam>::fromDegrees(90);
+    auto matrix = Matrix2<TypeParam>::clockwise(angle);
+    auto expected = Matrix2<TypeParam>(
       0, 1,
       -1, 0
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix2, ShouldRotateCounterClockwise) {
-    auto angle = Angle<float>::fromDegrees(90);
-    auto matrix = Matrix2<float>::counterclockwise(angle);
-    auto expected = Matrix2<float>(
+  TYPED_TEST(Matrix2Test, ShouldRotateCounterClockwise) {
+    auto angle = Angle<TypeParam>::fromDegrees(90);
+    auto matrix = Matrix2<TypeParam>::counterclockwise(angle);
+    auto expected = Matrix2<TypeParam>(
       0, -1,
       1, 0
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
 
-  TEST(Matrix2, ShouldGenerateScalingMatrix) {
-    Matrix2<float> matrix = Matrix2<float>::scale(2);
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldGenerateScalingMatrix) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::scale(2);
+    Matrix2<TypeParam> expected(
       2, 0,
       0, 2
     );
     ASSERT_EQ(expected, matrix);
   }
   
-  TEST(Matrix2, ShouldScaleVector) {
-    Matrix2<float> matrix = Matrix2<float>::scale(2);
-    Vector2<float> vector(1, 1), expected(2, 2);
+  TYPED_TEST(Matrix2Test, ShouldScaleVector) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::scale(2);
+    Vector2<TypeParam> vector(1, 1), expected(2, 2);
     ASSERT_EQ(expected, matrix * vector);
   }
   
-  TEST(Matrix2, ShouldGenerateScalingMatrixWithTwoIndependentFactors) {
-    Matrix2<float> matrix = Matrix2<float>::scale(2, 3);
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldGenerateScalingMatrixWithTwoIndependentFactors) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::scale(2, 3);
+    Matrix2<TypeParam> expected(
       2, 0,
       0, 3
     );
     ASSERT_EQ(expected, matrix);
   }
   
-  TEST(Matrix2, ShouldScaleVectorWithTwoIndependentFactors) {
-    Matrix2<float> matrix = Matrix2<float>::scale(2, 3);
-    Vector2<float> vector(1, 1), expected(2, 3);
+  TYPED_TEST(Matrix2Test, ShouldScaleVectorWithTwoIndependentFactors) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::scale(2, 3);
+    Vector2<TypeParam> vector(1, 1), expected(2, 3);
     ASSERT_EQ(expected, matrix * vector);
   }
   
-  TEST(Matrix2, ShouldGenerateShearingMatrix) {
-    Matrix2<float> matrix = Matrix2<float>::shear(1, 2),
+  TYPED_TEST(Matrix2Test, ShouldGenerateShearingMatrix) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::shear(1, 2),
                    expected(1, 1, 2, 1);
     ASSERT_EQ(expected, matrix);
   }
   
-  TEST(Matrix2, ShouldShearVector) {
-    Matrix2<float> matrix = Matrix2<float>::shear(1, 2);
-    Vector2<float> vector(1, 1), expected(2, 3);
+  TYPED_TEST(Matrix2Test, ShouldShearVector) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::shear(1, 2);
+    Vector2<TypeParam> vector(1, 1), expected(2, 3);
     ASSERT_EQ(expected, matrix * vector);
   }
   
-  TEST(Matrix2, ShouldGenerateReflectionMatrix) {
-    Matrix2<float> matrix = Matrix2<float>::reflect(1, 1);
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldGenerateReflectionMatrix) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::reflect(1, 1);
+    Matrix2<TypeParam> expected(
       0, 1,
       1, 0
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
 
-  TEST(Matrix2, ShouldGenerateReflectionMatrixFromVector) {
-    Matrix2<float> matrix = Matrix2<float>::reflect(Vector2<float>(1, 1));
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldGenerateReflectionMatrixFromVector) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::reflect(Vector2<TypeParam>(1, 1));
+    Matrix2<TypeParam> expected(
       0, 1,
       1, 0
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix2, ShouldReflectVector) {
-    Matrix2<float> matrix = Matrix2<float>::reflect(1, 1);
-    Vector2<float> vector(-1, 1), expected(1, -1);
+  TYPED_TEST(Matrix2Test, ShouldReflectVector) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::reflect(1, 1);
+    Vector2<TypeParam> vector(-1, 1), expected(1, -1);
     
     ASSERT_VECTOR_NEAR(expected, matrix * vector, 0.0001);
   }
 
-  TEST(Matrix2, ShouldGenerateProjectionMatrix) {
-    Matrix2<float> matrix = Matrix2<float>::project(1, 1);
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldGenerateProjectionMatrix) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::project(1, 1);
+    Matrix2<TypeParam> expected(
       0.5, 0.5,
       0.5, 0.5
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
 
-  TEST(Matrix2, ShouldGenerateProjectionMatrixFromVector) {
-    Matrix2<float> matrix = Matrix2<float>::project(Vector2<float>(1, 1));
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldGenerateProjectionMatrixFromVector) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::project(Vector2<TypeParam>(1, 1));
+    Matrix2<TypeParam> expected(
       0.5, 0.5,
       0.5, 0.5
     );
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix2, ShouldProjectVector) {
-    Matrix2<float> matrix = Matrix2<float>::project(1, 1);
-    Vector2<float> vector(-1, 1), expected(0, 0);
+  TYPED_TEST(Matrix2Test, ShouldProjectVector) {
+    Matrix2<TypeParam> matrix = Matrix2<TypeParam>::project(1, 1);
+    Vector2<TypeParam> vector(-1, 1), expected(0, 0);
     
     ASSERT_EQ(expected, matrix * vector);
   }
   
-  TEST(Matrix2, ShouldHaveIdentityConstant) {
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldHaveIdentityConstant) {
+    Matrix2<TypeParam> expected(
       1, 0,
       0, 1
     );
-    ASSERT_EQ(expected, Matrix2<float>::identity());
+    ASSERT_EQ(expected, Matrix2<TypeParam>::identity());
   }
   
-  TEST(Matrix2, ShouldHave90DegreeRotationConstant) {
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldHave90DegreeRotationConstant) {
+    Matrix2<TypeParam> expected(
       0, -1,
       1, 0
     );
-    ASSERT_EQ(expected, Matrix2<float>::rotate90());
+    ASSERT_EQ(expected, Matrix2<TypeParam>::rotate90());
   }
   
-  TEST(Matrix2, ShouldHave180DegreeRotationConstant) {
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldHave180DegreeRotationConstant) {
+    Matrix2<TypeParam> expected(
       -1, 0,
       0, -1
     );
-    ASSERT_EQ(expected, Matrix2<float>::rotate180());
+    ASSERT_EQ(expected, Matrix2<TypeParam>::rotate180());
   }
   
-  TEST(Matrix2, ShouldHave270DegreeRotationConstant) {
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldHave270DegreeRotationConstant) {
+    Matrix2<TypeParam> expected(
       0, 1,
       -1, 0
     );
-    ASSERT_EQ(expected, Matrix2<float>::rotate270());
+    ASSERT_EQ(expected, Matrix2<TypeParam>::rotate270());
   }
   
-  TEST(Matrix2, ShouldHaveXReflectionConstant) {
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldHaveXReflectionConstant) {
+    Matrix2<TypeParam> expected(
       -1, 0,
       0, 1
     );
-    ASSERT_EQ(expected, Matrix2<float>::reflectX());
+    ASSERT_EQ(expected, Matrix2<TypeParam>::reflectX());
   }
   
-  TEST(Matrix2, ShouldHaveYReflectionConstant) {
-    Matrix2<float> expected(
+  TYPED_TEST(Matrix2Test, ShouldHaveYReflectionConstant) {
+    Matrix2<TypeParam> expected(
       1, 0,
       0, -1
     );
-    ASSERT_EQ(expected, Matrix2<float>::reflectY());
+    ASSERT_EQ(expected, Matrix2<TypeParam>::reflectY());
   }
   
-  TEST(Matrix2, ShouldHaveXUnitVectorConstant) {
-    Vector2<float> expected(1, 0);
-    ASSERT_EQ(expected, Matrix2<float>::xUnit());
+  TYPED_TEST(Matrix2Test, ShouldHaveXUnitVectorConstant) {
+    Vector2<TypeParam> expected(1, 0);
+    ASSERT_EQ(expected, Matrix2<TypeParam>::xUnit());
   }
   
-  TEST(Matrix2, ShouldHaveYUnitVectorConstant) {
-    Vector2<float> expected(0, 1);
-    ASSERT_EQ(expected, Matrix2<float>::yUnit());
+  TYPED_TEST(Matrix2Test, ShouldHaveYUnitVectorConstant) {
+    Vector2<TypeParam> expected(0, 1);
+    ASSERT_EQ(expected, Matrix2<TypeParam>::yUnit());
   }
 }
 
 namespace Matrix3Test {
   using namespace ::testing;
 
-  TEST(Matrix3, ShouldInitializeIdentity) {
-    Matrix3<float> matrix;
+  template<class T>
+  class Matrix3Test : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+  
+  TYPED_TEST_CASE(Matrix3Test, SpecializedMatrixTypes);
+
+  TYPED_TEST(Matrix3Test, ShouldInitializeIdentity) {
+    Matrix3<TypeParam> matrix;
     ASSERT_EQ(1, matrix[0][0]);
   }
 
-  TEST(Matrix3, ShouldInitializeWithCells) {
-    Matrix3<float> matrix(
+  TYPED_TEST(Matrix3Test, ShouldInitializeWithCells) {
+    Matrix3<TypeParam> matrix(
       1, 1, 2,
       0, 1, 0,
       2, 1, 1
@@ -738,12 +762,12 @@ namespace Matrix3Test {
     ASSERT_EQ(1, matrix[2][2]);
   }
   
-  TEST(Matrix3, ShouldCopyFromMatrix2) {
-    Matrix2<float> matrix(
+  TYPED_TEST(Matrix3Test, ShouldCopyFromMatrix2) {
+    Matrix2<TypeParam> matrix(
       2, 1,
       1, 2
     );
-    Matrix3<float> copy(matrix), expected(
+    Matrix3<TypeParam> copy(matrix), expected(
       2, 1, 0,
       1, 2, 0,
       0, 0, 1
@@ -752,14 +776,14 @@ namespace Matrix3Test {
     ASSERT_EQ(expected, copy);
   }
   
-  TEST(Matrix3, ShouldCopyFromMatrix4) {
-    Matrix4<float> matrix(
+  TYPED_TEST(Matrix3Test, ShouldCopyFromMatrix4) {
+    Matrix4<TypeParam> matrix(
       2, 1, 3, 0,
       1, 2, 1, 0,
       4, 3, 3, 0,
       0, 0, 0, 1
     );
-    Matrix3<float> copy(matrix), expected(
+    Matrix3<TypeParam> copy(matrix), expected(
       2, 1, 3,
       1, 2, 1,
       4, 3, 3
@@ -768,9 +792,9 @@ namespace Matrix3Test {
     ASSERT_EQ(expected, copy);
   }
   
-  TEST(Matrix3, ShouldRotateAroundXAxis) {
-    Matrix3<float> matrix = Matrix3<float>::rotateX(Angle<float>::fromDegrees(90));
-    Matrix3<float> expected(
+  TYPED_TEST(Matrix3Test, ShouldRotateAroundXAxis) {
+    Matrix3<TypeParam> matrix = Matrix3<TypeParam>::rotateX(Angle<TypeParam>::fromDegrees(90));
+    Matrix3<TypeParam> expected(
       1, 0, 0,
       0, 0, -1,
       0, 1, 0
@@ -778,9 +802,9 @@ namespace Matrix3Test {
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix3, ShouldRotateAroundYAxis) {
-    Matrix3<float> matrix = Matrix3<float>::rotateY(Angle<float>::fromDegrees(90));
-    Matrix3<float> expected(
+  TYPED_TEST(Matrix3Test, ShouldRotateAroundYAxis) {
+    Matrix3<TypeParam> matrix = Matrix3<TypeParam>::rotateY(Angle<TypeParam>::fromDegrees(90));
+    Matrix3<TypeParam> expected(
       0, 0, 1,
       0, 1, 0,
       -1, 0, 0
@@ -788,9 +812,9 @@ namespace Matrix3Test {
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix3, ShouldRotateAroundZAxis) {
-    Matrix3<float> matrix = Matrix3<float>::rotateZ(Angle<float>::fromDegrees(90));
-    Matrix3<float> expected(
+  TYPED_TEST(Matrix3Test, ShouldRotateAroundZAxis) {
+    Matrix3<TypeParam> matrix = Matrix3<TypeParam>::rotateZ(Angle<TypeParam>::fromDegrees(90));
+    Matrix3<TypeParam> expected(
       0, -1, 0,
       1, 0, 0,
       0, 0, 1
@@ -798,31 +822,31 @@ namespace Matrix3Test {
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
 
-  TEST(Matrix3, ShouldRotateAroundAllAxes) {
-    auto angle = Angle<float>::fromDegrees(45);
-    auto matrix = Matrix3<float>::rotate(angle, angle, angle);
+  TYPED_TEST(Matrix3Test, ShouldRotateAroundAllAxes) {
+    auto angle = Angle<TypeParam>::fromDegrees(45);
+    auto matrix = Matrix3<TypeParam>::rotate(angle, angle, angle);
     
-    auto expected = Matrix3<float>::rotateZ(angle) *
-                    Matrix3<float>::rotateY(angle) *
-                    Matrix3<float>::rotateX(angle);
+    auto expected = Matrix3<TypeParam>::rotateZ(angle) *
+                    Matrix3<TypeParam>::rotateY(angle) *
+                    Matrix3<TypeParam>::rotateX(angle);
     
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
 
-  TEST(Matrix3, ShouldRotateAroundAllAxesFromVector) {
-    auto matrix = Matrix3<float>::rotate(Vector3d(1.1, 1.1, 1.1));
+  TYPED_TEST(Matrix3Test, ShouldRotateAroundAllAxesFromVector) {
+    auto matrix = Matrix3<TypeParam>::rotate(Vector3d(1.1, 1.1, 1.1));
     
-    auto angle = Angle<float>::fromRadians(1.1);
-    auto expected = Matrix3<float>::rotateZ(angle) *
-                    Matrix3<float>::rotateY(angle) *
-                    Matrix3<float>::rotateX(angle);
+    auto angle = Angle<TypeParam>::fromRadians(1.1);
+    auto expected = Matrix3<TypeParam>::rotateZ(angle) *
+                    Matrix3<TypeParam>::rotateY(angle) *
+                    Matrix3<TypeParam>::rotateX(angle);
     
     ASSERT_MATRIX_NEAR(expected, matrix, 0.0001);
   }
   
-  TEST(Matrix3, ShouldScaleUniformly) {
-    Matrix3<float> matrix = Matrix3<float>::scale(2.0);
-    Matrix3<float> expected(
+  TYPED_TEST(Matrix3Test, ShouldScaleUniformly) {
+    Matrix3<TypeParam> matrix = Matrix3<TypeParam>::scale(2.0);
+    Matrix3<TypeParam> expected(
       2, 0, 0,
       0, 2, 0,
       0, 0, 2
@@ -830,9 +854,9 @@ namespace Matrix3Test {
     ASSERT_EQ(expected, matrix);
   }
   
-  TEST(Matrix3, ShouldScaleDifferentlyForEachAxis) {
-    Matrix3<float> matrix = Matrix3<float>::scale(2, 3, 4);
-    Matrix3<float> expected(
+  TYPED_TEST(Matrix3Test, ShouldScaleDifferentlyForEachAxis) {
+    Matrix3<TypeParam> matrix = Matrix3<TypeParam>::scale(2, 3, 4);
+    Matrix3<TypeParam> expected(
       2, 0, 0,
       0, 3, 0,
       0, 0, 4
@@ -840,28 +864,31 @@ namespace Matrix3Test {
     ASSERT_EQ(expected, matrix);
   }
   
-  TEST(Matrix3, ShouldReturnScaleVector) {
-    Matrix3<float> matrix =
-      Matrix3<float>::rotate(Vector3<float>(2, 2, 1)) *
-      Matrix3<float>::scale(1, 4, 3);
+  TYPED_TEST(Matrix3Test, ShouldReturnScaleVector) {
+    Matrix3<TypeParam> matrix =
+      Matrix3<TypeParam>::rotate(Vector3<TypeParam>(2, 2, 1)) *
+      Matrix3<TypeParam>::scale(1, 4, 3);
     
-    ASSERT_VECTOR_NEAR(Vector3<float>(1, 4, 3), matrix.scaleVector(), 0.001);
+    ASSERT_VECTOR_NEAR(Vector3<TypeParam>(1, 4, 3), matrix.scaleVector(), 0.001);
   }
   
-  TEST(Matrix3, ShouldReturnRotationQuaternion) {
-    Matrix3<float> matrix = Matrix3<float>::rotateX(Anglef::fromDegrees(90));
-    Quaternion<float> quat = matrix.rotationQuaternion();
+  TYPED_TEST(Matrix3Test, ShouldReturnRotationQuaternion) {
+    Matrix3<TypeParam> matrix = Matrix3<TypeParam>::rotateX(
+      Angle<TypeParam>::fromDegrees(90)
+    );
+    Quaternion<TypeParam> quat = matrix.rotationQuaternion();
     ASSERT_EQ(1, quat.length());
   }
   
-  TEST(Matrix3, ShouldReturnRotationVector) {
-    Anglef x = Anglef::fromDegrees(5),
-           y = Anglef::fromDegrees(15),
-           z = Anglef::fromDegrees(8);
-    Matrix3<float> matrix = Matrix3<float>::rotateZ(z) *
-                            Matrix3<float>::rotateY(y) *
-                            Matrix3<float>::rotateX(x);
-    Vector3<float> rot = matrix.rotationVector();
+  TYPED_TEST(Matrix3Test, ShouldReturnRotationVector) {
+    Angle<TypeParam> x = Angle<TypeParam>::fromDegrees(5),
+                     y = Angle<TypeParam>::fromDegrees(15),
+                     z = Angle<TypeParam>::fromDegrees(8);
+    Matrix3<TypeParam> matrix =
+      Matrix3<TypeParam>::rotateZ(z) *
+      Matrix3<TypeParam>::rotateY(y) *
+      Matrix3<TypeParam>::rotateX(x);
+    Vector3<TypeParam> rot = matrix.rotationVector();
     
     ASSERT_NEAR(x.radians(), rot.x(), 0.001);
     ASSERT_NEAR(y.radians(), rot.y(), 0.001);
@@ -872,13 +899,21 @@ namespace Matrix3Test {
 namespace Matrix4Test {
   using namespace ::testing;
 
-  TEST(Matrix4, ShouldInitializeIdentity) {
-    Matrix4<float> matrix;
+  template<class T>
+  class Matrix4Test : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+
+  TYPED_TEST_CASE(Matrix4Test, SpecializedMatrixTypes);
+
+  TYPED_TEST(Matrix4Test, ShouldInitializeIdentity) {
+    Matrix4<TypeParam> matrix;
     ASSERT_EQ(1, matrix[0][0]);
   }
 
-  TEST(Matrix4, ShouldInitializeWithCells) {
-    Matrix4<float> matrix(
+  TYPED_TEST(Matrix4Test, ShouldInitializeWithCells) {
+    Matrix4<TypeParam> matrix(
       1, 1, 2, 0,
       0, 1, 0, 0,
       2, 1, 1, 0,
@@ -902,8 +937,8 @@ namespace Matrix4Test {
     ASSERT_EQ(1, matrix[3][3]);
   }
   
-  TEST(Matrix4, ShouldInitializeFromThree3DVectors) {
-    Matrix4<float> matrix(
+  TYPED_TEST(Matrix4Test, ShouldInitializeFromThree3DVectors) {
+    Matrix4<TypeParam> matrix(
       Vector3f(1, 1, 2),
       Vector3f(0, 1, 0),
       Vector3f(2, 1, 1)
@@ -919,13 +954,13 @@ namespace Matrix4Test {
     ASSERT_EQ(1, matrix[2][2]);
   }
   
-  TEST(Matrix4, ShouldCopyFromMatrix3) {
-    Matrix3<float> matrix(
+  TYPED_TEST(Matrix4Test, ShouldCopyFromMatrix3) {
+    Matrix3<TypeParam> matrix(
       2, 1, 3,
       1, 2, 1,
       4, 3, 3
     );
-    Matrix4<float> copy(matrix), expected(
+    Matrix4<TypeParam> copy(matrix), expected(
       2, 1, 3, 0,
       1, 2, 1, 0,
       4, 3, 3, 0,
@@ -935,20 +970,20 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, copy);
   }
 
-  TEST(Matrix4, ShouldReturnVector4WhenMultipliedWithVector) {
-    Matrix4<float> matrix;
-    Vector4<float> vector(1, 2, 3);
-    Vector4<float> result = matrix * vector;
+  TYPED_TEST(Matrix4Test, ShouldReturnVector4WhenMultipliedWithVector) {
+    Matrix4<TypeParam> matrix;
+    Vector4<TypeParam> vector(1, 2, 3);
+    Vector4<TypeParam> result = matrix * vector;
     ASSERT_EQ(vector, result);
   }
   
-  TEST(Matrix4, ShouldHaveNonZeroDeterminantForIdentityMatrix) {
-    Matrix4<float> matrix;
+  TYPED_TEST(Matrix4Test, ShouldHaveNonZeroDeterminantForIdentityMatrix) {
+    Matrix4<TypeParam> matrix;
     ASSERT_TRUE(matrix.determinant() != 0);
   }
   
-  TEST(Matrix4, ShouldHaveZeroDeterminantForNonInvertibleMatrix) {
-    Matrix4<float> matrix(
+  TYPED_TEST(Matrix4Test, ShouldHaveZeroDeterminantForNonInvertibleMatrix) {
+    Matrix4<TypeParam> matrix(
       0, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
@@ -957,13 +992,13 @@ namespace Matrix4Test {
     ASSERT_EQ(0, matrix.determinant());
   }
   
-  TEST(Matrix4, ShouldReturnIdentityWhenIdentityIsInverted) {
-    Matrix4<float> matrix;
+  TYPED_TEST(Matrix4Test, ShouldReturnIdentityWhenIdentityIsInverted) {
+    Matrix4<TypeParam> matrix;
     ASSERT_EQ(matrix, matrix.inverted());
   }
   
-  TEST(Matrix4, ShouldReturnOriginalMatrixWhenInvertedTwice) {
-    Matrix4<float> matrix(
+  TYPED_TEST(Matrix4Test, ShouldReturnOriginalMatrixWhenInvertedTwice) {
+    Matrix4<TypeParam> matrix(
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, 1, 1, 0,
@@ -972,14 +1007,14 @@ namespace Matrix4Test {
     ASSERT_EQ(matrix, matrix.inverted().inverted());
   }
   
-  TEST(Matrix4, ShouldReturnInvertedMatrix) {
-    Matrix4<float> matrix(
+  TYPED_TEST(Matrix4Test, ShouldReturnInvertedMatrix) {
+    Matrix4<TypeParam> matrix(
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, 1, 1, 0,
       0, 0, 0, 1
     );
-    Matrix4<float> expected(
+    Matrix4<TypeParam> expected(
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, -1, 1, 0,
@@ -989,18 +1024,18 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, matrix.inverted());
   }
   
-  TEST(Matrix4, ShouldReturnTranslationMatrix) {
-    Matrix4<float> expected(
+  TYPED_TEST(Matrix4Test, ShouldReturnTranslationMatrix) {
+    Matrix4<TypeParam> expected(
       1, 0, 0, 1,
       0, 1, 0, 2,
       0, 0, 1, 3,
       0, 0, 0, 1
     );
-    ASSERT_EQ(expected, Matrix4<float>::translate(Vector3f(1, 2, 3)));
+    ASSERT_EQ(expected, Matrix4<TypeParam>::translate(Vector3f(1, 2, 3)));
   }
   
-  TEST(Matrix4, ShouldExtractTranslationFromMatrix) {
+  TYPED_TEST(Matrix4Test, ShouldExtractTranslationFromMatrix) {
     Vector3f expected(1, 2, 3);
-    ASSERT_EQ(expected, Matrix4<float>::translate(expected).translationVector());
+    ASSERT_EQ(expected, Matrix4<TypeParam>::translate(expected).translationVector());
   }
 }

@@ -7,39 +7,24 @@ namespace BufferTest {
   class BufferTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Buffer<Color<float>>, Buffer<Color<double>>> BufferTypes;
+  typedef ::testing::Types<
+    double, unsigned int, Color<float>, Color<double>
+  > BufferTypes;
+  
   TYPED_TEST_CASE(BufferTest, BufferTypes);
   
-  TYPED_TEST(BufferTest, ShouldInitializeBuffer) {
-    TypeParam buffer(50, 50);
-    ASSERT_EQ(TypeParam::ElementType::black(), buffer[5][5]);
-  }
-  
-  TYPED_TEST(BufferTest, ShouldSetValueAtPixel) {
-    TypeParam buffer(50, 50);
-    buffer[10][5] = TypeParam::ElementType::white();
-    ASSERT_EQ(TypeParam::ElementType::white(), buffer[10][5]);
-  }
-  
-  TYPED_TEST(BufferTest, ShouldGetConstValueAtPixel) {
-    TypeParam buffer(50, 50);
-    buffer[10][5] = TypeParam::ElementType::white();
-    const TypeParam& constBuffer = buffer;
-    ASSERT_EQ(TypeParam::ElementType::white(), constBuffer[10][5]);
-  }
-  
   TYPED_TEST(BufferTest, ShouldReturnWidth) {
-    TypeParam buffer(50, 50);
+    Buffer<TypeParam> buffer(50, 50);
     ASSERT_EQ(50, buffer.width());
   }
   
   TYPED_TEST(BufferTest, ShouldReturnHeight) {
-    TypeParam buffer(50, 50);
+    Buffer<TypeParam> buffer(50, 50);
     ASSERT_EQ(50, buffer.height());
   }
   
   TYPED_TEST(BufferTest, ShouldReturnRect) {
-    TypeParam buffer(50, 50);
+    Buffer<TypeParam> buffer(50, 50);
     Rect rect = buffer.rect();
     ASSERT_EQ(0, rect.x());
     ASSERT_EQ(0, rect.y());
@@ -48,8 +33,36 @@ namespace BufferTest {
   }
   
   TYPED_TEST(BufferTest, ShouldClear) {
-    TypeParam buffer(50, 50);
+    Buffer<TypeParam> buffer(50, 50);
     buffer.clear();
-    ASSERT_TRUE(typename TypeParam::ElementType() == buffer[10][10]);
+    ASSERT_TRUE(TypeParam() == buffer[10][10]);
+  }
+
+  template<class T>
+  class ColorBufferTest : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<
+    Color<float>, Color<double>
+  > ColorBufferTypes;
+  
+  TYPED_TEST_CASE(ColorBufferTest, ColorBufferTypes);
+
+  TYPED_TEST(ColorBufferTest, ShouldInitializeBuffer) {
+    Buffer<TypeParam> buffer(50, 50);
+    ASSERT_EQ(Buffer<TypeParam>::ElementType::black(), buffer[5][5]);
+  }
+  
+  TYPED_TEST(ColorBufferTest, ShouldSetValueAtPixel) {
+    Buffer<TypeParam> buffer(50, 50);
+    buffer[10][5] = Buffer<TypeParam>::ElementType::white();
+    ASSERT_EQ(Buffer<TypeParam>::ElementType::white(), buffer[10][5]);
+  }
+  
+  TYPED_TEST(ColorBufferTest, ShouldGetConstValueAtPixel) {
+    Buffer<TypeParam> buffer(50, 50);
+    buffer[10][5] = Buffer<TypeParam>::ElementType::white();
+    const Buffer<TypeParam>& constBuffer = buffer;
+    ASSERT_EQ(Buffer<TypeParam>::ElementType::white(), constBuffer[10][5]);
   }
 }

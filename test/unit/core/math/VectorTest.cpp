@@ -7,71 +7,81 @@
 using namespace std;
 
 namespace VectorTest {
-  TEST(Vector, ShouldInitializeCoordinatesWithZeros) {
-    Vector<3, float> vector;
+  using namespace ::testing;
+
+  template<class T>
+  class VectorTest : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double> SpecializedVectorTypes;
+  
+  TYPED_TEST_CASE(VectorTest, SpecializedVectorTypes);
+
+  TYPED_TEST(VectorTest, ShouldInitializeCoordinatesWithZeros) {
+    Vector<3, TypeParam> vector;
     ASSERT_EQ(0, vector[0]);
     ASSERT_EQ(0, vector[1]);
     ASSERT_EQ(0, vector[2]);
   }
 
-  TEST(Vector, ShouldGetAndSetCoordinate) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldGetAndSetCoordinate) {
+    Vector<3, TypeParam> vector;
     vector.setCoordinate(0, 10.0);
     ASSERT_EQ(10.0, vector.coordinate(0));
   }
 
-  TEST(Vector, ShouldGetAndSetCoordinateWithIndexOperator) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldGetAndSetCoordinateWithIndexOperator) {
+    Vector<3, TypeParam> vector;
     vector[1] = 10.0;
     ASSERT_EQ(10.0, vector[1]);
   }
 
-  TEST(Vector, ShouldCopyVector) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldCopyVector) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
-    Vector<3, float> copy = vector;
+    Vector<3, TypeParam> copy = vector;
     ASSERT_EQ(10.0, copy[0]);
   }
 
-  TEST(Vector, ShouldCopyFromSmallerVector) {
-    Vector<3, float> source;
+  TYPED_TEST(VectorTest, ShouldCopyFromSmallerVector) {
+    Vector<3, TypeParam> source;
     source[0] = 10.0;
 
-    Vector<4, float> dest = source;
+    Vector<4, TypeParam> dest = source;
     ASSERT_EQ(10.0, dest[0]);
   }
 
-  TEST(Vector, ShouldCopyFromLargerVector) {
-    Vector<3, float> source;
+  TYPED_TEST(VectorTest, ShouldCopyFromLargerVector) {
+    Vector<3, TypeParam> source;
     source[0] = 10.0;
 
-    Vector<2, float> dest = source;
+    Vector<2, TypeParam> dest = source;
     ASSERT_EQ(10.0, dest[0]);
   }
 
-  TEST(Vector, ShouldInitializeVectorFromCArray) {
-    Vector<3, float> vector({ 1, 2, 3 });
+  TYPED_TEST(VectorTest, ShouldInitializeVectorFromCArray) {
+    Vector<3, TypeParam> vector({ 1, 2, 3 });
     ASSERT_EQ(1, vector[0]);
     ASSERT_EQ(2, vector[1]);
     ASSERT_EQ(3, vector[2]);
   }
 
-  TEST(Vector, ShouldAdd) {
-    Vector<3, float> vector1, vector2;
+  TYPED_TEST(VectorTest, ShouldAdd) {
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector1[1] = 20.0;
     vector2[1] = 10.0;
     vector2[2] = 20.0;
 
-    Vector<3, float> vector3 = vector1 + vector2;
+    Vector<3, TypeParam> vector3 = vector1 + vector2;
     ASSERT_EQ(10.0, vector3[0]);
     ASSERT_EQ(30.0, vector3[1]);
     ASSERT_EQ(20.0, vector3[2]);
   }
   
-  TEST(Vector, ShouldAddInPlace) {
-    Vector<3, float> vector1, vector2;
+  TYPED_TEST(VectorTest, ShouldAddInPlace) {
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector1[1] = 20.0;
     vector2[1] = 10.0;
@@ -83,21 +93,21 @@ namespace VectorTest {
     ASSERT_EQ(20.0, vector1[2]);
   }
 
-  TEST(Vector, ShouldSubtract) {
-    Vector<3, float> vector1, vector2;
+  TYPED_TEST(VectorTest, ShouldSubtract) {
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector1[1] = 20.0;
     vector2[1] = 10.0;
     vector2[2] = 20.0;
 
-    Vector<3, float> vector3 = vector1 - vector2;
+    Vector<3, TypeParam> vector3 = vector1 - vector2;
     ASSERT_EQ( 10.0, vector3[0]);
     ASSERT_EQ( 10.0, vector3[1]);
     ASSERT_EQ(-20.0, vector3[2]);
   }
 
-  TEST(Vector, ShouldSubtractInPlace) {
-    Vector<3, float> vector1, vector2;
+  TYPED_TEST(VectorTest, ShouldSubtractInPlace) {
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector1[1] = 20.0;
     vector2[1] = 10.0;
@@ -109,71 +119,71 @@ namespace VectorTest {
     ASSERT_EQ(-20.0, vector1[2]);
   }
 
-  TEST(Vector, ShouldNegate) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldNegate) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
-    Vector<3, float> negated = -vector;
+    Vector<3, TypeParam> negated = -vector;
     ASSERT_EQ(-10.0, negated[0]);
   }
 
-  TEST(Vector, ShouldCalculateLength) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldCalculateLength) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
     ASSERT_EQ(10.0, vector.length());
   }
   
-  TEST(Vector, ShouldCalculateSquaredLength) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldCalculateSquaredLength) {
+    Vector<3, TypeParam> vector;
     vector[0] = 2.0;
 
     ASSERT_EQ(4.0, vector.squaredLength());
   }
   
-  TEST(Vector, ShouldCalculateDistanceToOtherVector) {
-    Vector<3, float> vector1, vector2;
+  TYPED_TEST(VectorTest, ShouldCalculateDistanceToOtherVector) {
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector2[0] = 5.0;
     
     ASSERT_EQ(5.0, vector1.distanceTo(vector2));
   }
   
-  TEST(Vector, ShouldReturnSameValueForReversedDistance) {
-    Vector<3, float> vector1, vector2, foo;
+  TYPED_TEST(VectorTest, ShouldReturnSameValueForReversedDistance) {
+    Vector<3, TypeParam> vector1, vector2, foo;
     vector1[0] = 10.0;
     vector2[0] = 5.0;
     
     ASSERT_EQ(vector1.distanceTo(vector2), vector2.distanceTo(vector1));
   }
 
-  TEST(Vector, ShouldCalculateSquaredDistanceToOtherVector) {
-    Vector<3, float> vector1, vector2;
+  TYPED_TEST(VectorTest, ShouldCalculateSquaredDistanceToOtherVector) {
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector2[0] = 5.0;
     
     ASSERT_EQ(25.0, vector1.squaredDistanceTo(vector2));
   }
   
-  TEST(Vector, ShouldReturnSameValueForReversedSquaredDistance) {
-    Vector<3, float> vector1, vector2, foo;
+  TYPED_TEST(VectorTest, ShouldReturnSameValueForReversedSquaredDistance) {
+    Vector<3, TypeParam> vector1, vector2, foo;
     vector1[0] = 10.0;
     vector2[0] = 5.0;
     
     ASSERT_EQ(vector1.squaredDistanceTo(vector2), vector2.squaredDistanceTo(vector1));
   }
 
-  TEST(Vector, ShouldDivideVectorByScalar) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldDivideVectorByScalar) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
-    Vector<3, float> shrunk = vector / 2;
+    Vector<3, TypeParam> shrunk = vector / 2;
 
     ASSERT_EQ(5.0, shrunk[0]);
   }
 
-  TEST(Vector, ShouldDivideVectorByScalarInPlace) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldDivideVectorByScalarInPlace) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
     vector /= 2;
@@ -181,60 +191,60 @@ namespace VectorTest {
     ASSERT_EQ(5.0, vector[0]);
   }
 
-  TEST(Vector, ShouldNotAllowDivisionByZero) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldNotAllowDivisionByZero) {
+    Vector<3, TypeParam> vector;
     ASSERT_THROW(vector / 0, DivisionByZeroException);
   }
   
-  TEST(Vector, ShouldNotAllowInPlaceDivisionByZero) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldNotAllowInPlaceDivisionByZero) {
+    Vector<3, TypeParam> vector;
     ASSERT_THROW(vector /= 0, DivisionByZeroException);
   }
   
-  TEST(Vector, ShouldCalculateDotProduct) {
-    Vector<3, float> vector({ 1, 0, 0 });
+  TYPED_TEST(VectorTest, ShouldCalculateDotProduct) {
+    Vector<3, TypeParam> vector({ 1, 0, 0 });
     
     ASSERT_EQ(1, vector.dotProduct(vector));
   }
   
-  TEST(Vector, ShouldCalculateDotProductOfNullVectors) {
-    Vector<3, float> first, second;
+  TYPED_TEST(VectorTest, ShouldCalculateDotProductOfNullVectors) {
+    Vector<3, TypeParam> first, second;
     ASSERT_EQ(0, first * second);
   }
   
-  TEST(Vector, ShouldCalculateDotProductOfUnitVectors) {
-    Vector<3, float> vector({ 1, 0, 0 });
+  TYPED_TEST(VectorTest, ShouldCalculateDotProductOfUnitVectors) {
+    Vector<3, TypeParam> vector({ 1, 0, 0 });
     
     ASSERT_EQ(1, vector * vector);
   }
   
-  TEST(Vector, ShouldCalculateDotProductWithOperator) {
-    Vector<3, float> first({ 1, 2, 2 });
-    Vector<3, float> second({ 3, 4, 2 });
+  TYPED_TEST(VectorTest, ShouldCalculateDotProductWithOperator) {
+    Vector<3, TypeParam> first({ 1, 2, 2 });
+    Vector<3, TypeParam> second({ 3, 4, 2 });
     
     ASSERT_EQ(15, first * second);
   }
   
-  TEST(Vector, ShouldFollowDotProductRules) {
-    Vector<3, float> first({ 1, 2, 2 });
-    Vector<3, float> second({ 3, 4, 2 });
+  TYPED_TEST(VectorTest, ShouldFollowDotProductRules) {
+    Vector<3, TypeParam> first({ 1, 2, 2 });
+    Vector<3, TypeParam> second({ 3, 4, 2 });
     
     ASSERT_EQ(-(first * second), (-first * second));
     ASSERT_EQ(-(first * second), (first * -second));
     ASSERT_EQ(first * second, second * first);
   }
 
-  TEST(Vector, ShouldMultiplyVectorByScalar) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldMultiplyVectorByScalar) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
-    Vector<3, float> enlarged = vector * 2;
+    Vector<3, TypeParam> enlarged = vector * 2;
 
     ASSERT_EQ(20.0, enlarged[0]);
   }
 
-  TEST(Vector, ShouldMultiplyVectorByScalarInPlace) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldMultiplyVectorByScalarInPlace) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10.0;
 
     vector *= 2;
@@ -242,18 +252,18 @@ namespace VectorTest {
     ASSERT_EQ(20.0, vector[0]);
   }
 
-  TEST(Vector, ShouldGetNormalizedVector) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldGetNormalizedVector) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10;
 
-    Vector<3, float> normalized = vector.normalized();
+    Vector<3, TypeParam> normalized = vector.normalized();
     ASSERT_EQ(1, normalized[0]);
     ASSERT_EQ(0, normalized[1]);
     ASSERT_EQ(0, normalized[2]);
   }
   
-  TEST(Vector, ShouldNormalizeInPlace) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldNormalizeInPlace) {
+    Vector<3, TypeParam> vector;
     vector[0] = 10;
 
     vector.normalize();
@@ -262,8 +272,8 @@ namespace VectorTest {
     ASSERT_EQ(0, vector[2]);
   }
 
-  TEST(Vector, ShouldFindOutIfItIsNormalized) {
-    Vector<3, float> normal, vector;
+  TYPED_TEST(VectorTest, ShouldFindOutIfItIsNormalized) {
+    Vector<3, TypeParam> normal, vector;
     normal[0] = 1;
     vector[0] = 10;
 
@@ -271,46 +281,46 @@ namespace VectorTest {
     ASSERT_FALSE(vector.isNormalized());
   }
 
-  TEST(Vector, ShouldReturnTrueWhenComparingTwoDefaultVectors) {
-    Vector<3, float> first, second;
+  TYPED_TEST(VectorTest, ShouldReturnTrueWhenComparingTwoDefaultVectors) {
+    Vector<3, TypeParam> first, second;
     ASSERT_TRUE(first == second);
   }
 
-  TEST(Vector, ShouldCompareSameVectorForEquality) {
-    Vector<3, float> vector;
+  TYPED_TEST(VectorTest, ShouldCompareSameVectorForEquality) {
+    Vector<3, TypeParam> vector;
     ASSERT_TRUE(vector == vector);
   }
 
-  TEST(Vector, ShouldCompareVectorsForEquality) {
-    float elements[3] = { 1, 2, 3 };
-    Vector<3, float> first(elements), second(elements);
+  TYPED_TEST(VectorTest, ShouldCompareVectorsForEquality) {
+    TypeParam elements[3] = { 1, 2, 3 };
+    Vector<3, TypeParam> first(elements), second(elements);
     ASSERT_TRUE(first == second);
   }
 
-  TEST(Vector, ShouldCompareVectorsForInequality) {
-    Vector<3, float> first({ 1, 2, 3 });
-    Vector<3, float> second({ 4, 5, 6 });
+  TYPED_TEST(VectorTest, ShouldCompareVectorsForInequality) {
+    Vector<3, TypeParam> first({ 1, 2, 3 });
+    Vector<3, TypeParam> second({ 4, 5, 6 });
 
     ASSERT_TRUE(first != second);
   }
   
-  TEST(Vector, ShouldReturnTrueForUndefinedIfVectorIsUndefined) {
-    Vector<3, float> vector({ numeric_limits<float>::quiet_NaN(), 0, 0 });
+  TYPED_TEST(VectorTest, ShouldReturnTrueForUndefinedIfVectorIsUndefined) {
+    Vector<3, TypeParam> vector({ numeric_limits<TypeParam>::quiet_NaN(), 0, 0 });
     ASSERT_TRUE(vector.isUndefined());
   }
   
-  TEST(Vector, ShouldReturnFalseForUndefinedIfVectorIsDefined) {
-    Vector<3, float> vector({ 0, 0, 0 });
+  TYPED_TEST(VectorTest, ShouldReturnFalseForUndefinedIfVectorIsDefined) {
+    Vector<3, TypeParam> vector({ 0, 0, 0 });
     ASSERT_FALSE(vector.isUndefined());
   }
 
-  TEST(Vector, ShouldReturnTrueForDefinedIfVectorIsDefined) {
-    Vector<3, float> vector({ 0, 0, 0 });
+  TYPED_TEST(VectorTest, ShouldReturnTrueForDefinedIfVectorIsDefined) {
+    Vector<3, TypeParam> vector({ 0, 0, 0 });
     ASSERT_TRUE(vector.isDefined());
   }
   
-  TEST(Vector, ShouldReturnFalseForDefinedIfVectorIsUndefined) {
-    Vector<3, float> vector({ numeric_limits<float>::quiet_NaN(), 0, 0 });
+  TYPED_TEST(VectorTest, ShouldReturnFalseForDefinedIfVectorIsUndefined) {
+    Vector<3, TypeParam> vector({ numeric_limits<TypeParam>::quiet_NaN(), 0, 0 });
     ASSERT_FALSE(vector.isDefined());
   }
 }
@@ -419,38 +429,48 @@ namespace DerivedVectorTest {
 }
 
 namespace Vector2Test {
-  TEST(Vector2, ShouldInitializeNullVector) {
-    Vector2<float> vector;
+  using namespace ::testing;
+
+  template<class T>
+  class Vector2Test : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double> SpecializedVectorTypes;
+  
+  TYPED_TEST_CASE(Vector2Test, SpecializedVectorTypes);
+
+  TYPED_TEST(Vector2Test, ShouldInitializeNullVector) {
+    Vector2<TypeParam> vector;
     ASSERT_EQ(0, vector.x());
     ASSERT_EQ(0, vector.y());
   }
 
-  TEST(Vector2, ShouldInitializeCoordinates) {
-    Vector2<float> vector(1, 2);
+  TYPED_TEST(Vector2Test, ShouldInitializeCoordinates) {
+    Vector2<TypeParam> vector(1, 2);
     ASSERT_EQ(1, vector.x());
     ASSERT_EQ(2, vector.y());
   }
 
-  TEST(Vector2, ShouldCopyFromVector3) {
-    Vector3<float> source(1, 2, 3);
-    Vector2<float> dest = source;
+  TYPED_TEST(Vector2Test, ShouldCopyFromVector3) {
+    Vector3<TypeParam> source(1, 2, 3);
+    Vector2<TypeParam> dest = source;
     ASSERT_EQ(1, dest.x());
     ASSERT_EQ(2, dest.y());
   }
   
-  TEST(Vector2, ShouldDefineNullVector) {
-    Vector2<float> expected(0, 0);
-    ASSERT_EQ(expected, Vector2<float>::null());
+  TYPED_TEST(Vector2Test, ShouldDefineNullVector) {
+    Vector2<TypeParam> expected(0, 0);
+    ASSERT_EQ(expected, Vector2<TypeParam>::null());
   }
   
-  TEST(Vector2, ShouldDefineRightVector) {
-    Vector2<float> expected(1, 0);
-    ASSERT_EQ(expected, Vector2<float>::right());
+  TYPED_TEST(Vector2Test, ShouldDefineRightVector) {
+    Vector2<TypeParam> expected(1, 0);
+    ASSERT_EQ(expected, Vector2<TypeParam>::right());
   }
   
-  TEST(Vector2, ShouldDefineUpVector) {
-    Vector2<float> expected(0, 1);
-    ASSERT_EQ(expected, Vector2<float>::up());
+  TYPED_TEST(Vector2Test, ShouldDefineUpVector) {
+    Vector2<TypeParam> expected(0, 1);
+    ASSERT_EQ(expected, Vector2<TypeParam>::up());
   }
 }
 
@@ -459,185 +479,185 @@ namespace Vector3Test {
   class Vector3Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Vector3<float>, Vector3<double>> Vector3Types;
+  typedef ::testing::Types<float, double> Vector3Types;
   TYPED_TEST_CASE(Vector3Test, Vector3Types);
   
   TYPED_TEST(Vector3Test, ShouldInitializeNullVector) {
-    TypeParam vector;
+    Vector3<TypeParam> vector;
     ASSERT_EQ(0, vector.x());
     ASSERT_EQ(0, vector.y());
     ASSERT_EQ(0, vector.z());
   }
 
   TYPED_TEST(Vector3Test, ShouldInitializeCoordinates) {
-    TypeParam vector(1, 2, 3);
+    Vector3<TypeParam> vector(1, 2, 3);
     ASSERT_EQ(1, vector.x());
     ASSERT_EQ(2, vector.y());
     ASSERT_EQ(3, vector.z());
   }
 
   TYPED_TEST(Vector3Test, ShouldInitializeZCoordinateAsZeroByDefault) {
-    TypeParam vector(1, 2);
+    Vector3<TypeParam> vector(1, 2);
     ASSERT_EQ(0, vector.z());
   }
 
   TYPED_TEST(Vector3Test, ShouldCopyFromVector2) {
-    Vector2<typename TypeParam::Coordinate> source(1, 2);
-    TypeParam dest = source;
+    Vector2<TypeParam> source(1, 2);
+    Vector3<TypeParam> dest = source;
     ASSERT_EQ(1, dest.x());
     ASSERT_EQ(2, dest.y());
     ASSERT_EQ(0, dest.z());
   }
 
   TYPED_TEST(Vector3Test, ShouldCopyFromVector4) {
-    Vector4<typename TypeParam::Coordinate> source(1, 2, 3);
-    TypeParam dest = source;
+    Vector4<TypeParam> source(1, 2, 3);
+    Vector3<TypeParam> dest = source;
     ASSERT_EQ(1, dest.x());
     ASSERT_EQ(2, dest.y());
     ASSERT_EQ(3, dest.z());
   }
 
   TYPED_TEST(Vector3Test, ShouldDefineNullVector) {
-    TypeParam expected(0, 0, 0);
-    ASSERT_EQ(expected, TypeParam::null());
+    Vector3<TypeParam> expected(0, 0, 0);
+    ASSERT_EQ(expected, Vector3<TypeParam>::null());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineEpsilonVector) {
-    ASSERT_TRUE(TypeParam::epsilon().x() > 0.0);
-    ASSERT_TRUE(TypeParam::epsilon().y() > 0.0);
-    ASSERT_TRUE(TypeParam::epsilon().z() > 0.0);
+    ASSERT_TRUE(Vector3<TypeParam>::epsilon().x() > 0.0);
+    ASSERT_TRUE(Vector3<TypeParam>::epsilon().y() > 0.0);
+    ASSERT_TRUE(Vector3<TypeParam>::epsilon().z() > 0.0);
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineUndefinedVector) {
-    ASSERT_TRUE(TypeParam::undefined().isUndefined());
+    ASSERT_TRUE(Vector3<TypeParam>::undefined().isUndefined());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineMinusInfinityVector) {
-    ASSERT_EQ(- numeric_limits<float>::infinity(), TypeParam::minusInfinity().x());
+    ASSERT_EQ(- numeric_limits<TypeParam>::infinity(), Vector3<TypeParam>::minusInfinity().x());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefinePlusInfinityVector) {
-    ASSERT_EQ(numeric_limits<float>::infinity(), TypeParam::plusInfinity().x());
+    ASSERT_EQ(numeric_limits<TypeParam>::infinity(), Vector3<TypeParam>::plusInfinity().x());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineRightVector) {
-    ASSERT_EQ(1, TypeParam::right().x());
+    ASSERT_EQ(1, Vector3<TypeParam>::right().x());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineUpVector) {
-    ASSERT_EQ(1, TypeParam::up().y());
+    ASSERT_EQ(1, Vector3<TypeParam>::up().y());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineForwardVector) {
-    ASSERT_EQ(1, TypeParam::forward().z());
+    ASSERT_EQ(1, Vector3<TypeParam>::forward().z());
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateCrossProductOfUnitVectors) {
-    TypeParam x(1, 0, 0), y(0, 1, 0);
-    TypeParam expected(0, 0, 1);
+    Vector3<TypeParam> x(1, 0, 0), y(0, 1, 0);
+    Vector3<TypeParam> expected(0, 0, 1);
     ASSERT_EQ(expected, x.crossProduct(y));
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateCrossProductOfUnitVectorsWithOperator) {
-    TypeParam x(1, 0, 0), y(0, 1, 0);
-    TypeParam expected(0, 0, 1);
+    Vector3<TypeParam> x(1, 0, 0), y(0, 1, 0);
+    Vector3<TypeParam> expected(0, 0, 1);
     ASSERT_EQ(expected, x ^ y);
   }
   
   TYPED_TEST(Vector3Test, ShouldAdd) {
-    TypeParam v1(1, 2, 1), v2(0, 1, 0), expected(1, 3, 1);
+    Vector3<TypeParam> v1(1, 2, 1), v2(0, 1, 0), expected(1, 3, 1);
     ASSERT_EQ(expected, v1 + v2);
   }
   
   TYPED_TEST(Vector3Test, ShouldSubtract) {
-    TypeParam v1(1, 3, 1), v2(0, 1, 0), expected(1, 2, 1);
+    Vector3<TypeParam> v1(1, 3, 1), v2(0, 1, 0), expected(1, 2, 1);
     ASSERT_EQ(expected, v1 - v2);
   }
   
   TYPED_TEST(Vector3Test, ShouldNegate) {
-    TypeParam v(1, 2, 3), expected(-1, -2, -3);
+    Vector3<TypeParam> v(1, 2, 3), expected(-1, -2, -3);
     ASSERT_EQ(expected, -v);
   }
   
   TYPED_TEST(Vector3Test, ShouldDivide) {
-    TypeParam v(2, 4, 2), expected(1, 2, 1);
+    Vector3<TypeParam> v(2, 4, 2), expected(1, 2, 1);
     ASSERT_EQ(expected, v / 2);
   }
   
   TYPED_TEST(Vector3Test, ShouldNotAllowDivisionByZero) {
-    TypeParam vector;
+    Vector3<TypeParam> vector;
     ASSERT_THROW(vector / 0, DivisionByZeroException);
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateDotProduct) {
-    TypeParam v1(0, 2, 1), v2(1, 2, 1);
+    Vector3<TypeParam> v1(0, 2, 1), v2(1, 2, 1);
     ASSERT_EQ(5, v1 * v2);
   }
   
   TYPED_TEST(Vector3Test, ShouldMultiply) {
-    TypeParam v(2, 1, 1), expected(4, 2, 2);
+    Vector3<TypeParam> v(2, 1, 1), expected(4, 2, 2);
     ASSERT_EQ(expected, v * 2);
   }
   
   TYPED_TEST(Vector3Test, ShouldCompareSameVectorForEquality) {
-    TypeParam vector;
+    Vector3<TypeParam> vector;
     ASSERT_TRUE(vector == vector);
   }
 
   TYPED_TEST(Vector3Test, ShouldCompareVectorsForEquality) {
-    TypeParam first(1, 2, 3), second(1, 2, 3);
+    Vector3<TypeParam> first(1, 2, 3), second(1, 2, 3);
     ASSERT_TRUE(first == second);
   }
 
   TYPED_TEST(Vector3Test, ShouldCompareVectorsForInequality) {
-    TypeParam first(1, 2, 3);
-    TypeParam second(4, 5, 6);
+    Vector3<TypeParam> first(1, 2, 3);
+    Vector3<TypeParam> second(4, 5, 6);
 
     ASSERT_TRUE(first != second);
   }
   
   TYPED_TEST(Vector3Test, ShouldAddInPlace) {
-    TypeParam v1(1, 2, 1), v2(0, 1, 0), expected(1, 3, 1);
+    Vector3<TypeParam> v1(1, 2, 1), v2(0, 1, 0), expected(1, 3, 1);
     v1 += v2;
     ASSERT_EQ(expected, v1);
   }
   
   TYPED_TEST(Vector3Test, ShouldSubtractInPlace) {
-    TypeParam v1(1, 3, 1), v2(0, 1, 0), expected(1, 2, 1);
+    Vector3<TypeParam> v1(1, 3, 1), v2(0, 1, 0), expected(1, 2, 1);
     v1 -= v2;
     ASSERT_EQ(expected, v1);
   }
   
   TYPED_TEST(Vector3Test, ShouldDivideInPlace) {
-    TypeParam v(2, 4, 2), expected(1, 2, 1);
+    Vector3<TypeParam> v(2, 4, 2), expected(1, 2, 1);
     v /= 2;
     ASSERT_EQ(expected, v);
   }
   
   TYPED_TEST(Vector3Test, ShouldNotAllowDivisionByZeroInPlace) {
-    TypeParam vector;
+    Vector3<TypeParam> vector;
     ASSERT_THROW(vector /= 0, DivisionByZeroException);
   }
   
   TYPED_TEST(Vector3Test, ShouldMultiplyInPlace) {
-    TypeParam v(2, 1, 1), expected(4, 2, 2);
+    Vector3<TypeParam> v(2, 1, 1), expected(4, 2, 2);
     v *= 2;
     ASSERT_EQ(expected, v);
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateLength) {
-    ASSERT_EQ(2, TypeParam(2, 0, 0).length());
-    ASSERT_EQ(2, TypeParam(0, 2, 0).length());
+    ASSERT_EQ(2, Vector3<TypeParam>(2, 0, 0).length());
+    ASSERT_EQ(2, Vector3<TypeParam>(0, 2, 0).length());
   }
   
   TYPED_TEST(Vector3Test, ShouldNormalize) {
-    TypeParam v(2, 0, 0), expected(1, 0, 0);
+    Vector3<TypeParam> v(2, 0, 0), expected(1, 0, 0);
     v.normalize();
     ASSERT_EQ(expected, v);
   }
   
   TYPED_TEST(Vector3Test, ShouldReturnNormalizedVector) {
-    TypeParam v(2, 0, 0), expected(1, 0, 0);
+    Vector3<TypeParam> v(2, 0, 0), expected(1, 0, 0);
     ASSERT_EQ(expected, v.normalized());
   }
 }
@@ -647,11 +667,11 @@ namespace Vector4Test {
   class Vector4Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<Vector4<float>, Vector4<double>> Vector4Types;
+  typedef ::testing::Types<float, double> Vector4Types;
   TYPED_TEST_CASE(Vector4Test, Vector4Types);
   
   TYPED_TEST(Vector4Test, ShouldInitializeNullVector) {
-    TypeParam vector;
+    Vector4<TypeParam> vector;
     ASSERT_EQ(0, vector.x());
     ASSERT_EQ(0, vector.y());
     ASSERT_EQ(0, vector.z());
@@ -659,7 +679,7 @@ namespace Vector4Test {
   }
 
   TYPED_TEST(Vector4Test, ShouldInitializeCoordinates) {
-    TypeParam vector(1, 2, 3, 4);
+    Vector4<TypeParam> vector(1, 2, 3, 4);
     ASSERT_EQ(1, vector.x());
     ASSERT_EQ(2, vector.y());
     ASSERT_EQ(3, vector.z());
@@ -667,18 +687,18 @@ namespace Vector4Test {
   }
 
   TYPED_TEST(Vector4Test, ShouldInitializeWCoordinateAsOneByDefault) {
-    TypeParam vector(1, 2, 3);
+    Vector4<TypeParam> vector(1, 2, 3);
     ASSERT_EQ(1, vector.w());
   }
 
   TYPED_TEST(Vector4Test, ShouldInitializeWCoordinateAsOneByDefaultInDefaultConstructor) {
-    TypeParam vector;
+    Vector4<TypeParam> vector;
     ASSERT_EQ(1, vector.w());
   }
 
   TYPED_TEST(Vector4Test, ShouldCopyFromVector3) {
-    Vector3<typename TypeParam::Coordinate> source(1, 2, 3);
-    TypeParam dest = source;
+    Vector3<TypeParam> source(1, 2, 3);
+    Vector4<TypeParam> dest = source;
     ASSERT_EQ(1, dest.x());
     ASSERT_EQ(2, dest.y());
     ASSERT_EQ(3, dest.z());
@@ -686,8 +706,8 @@ namespace Vector4Test {
   }
 
   TYPED_TEST(Vector4Test, ShouldPreserveWCoordinateWhenCopyingFromVector4) {
-    TypeParam source(1, 2, 3, 5);
-    TypeParam dest = source;
+    Vector4<TypeParam> source(1, 2, 3, 5);
+    Vector4<TypeParam> dest = source;
     ASSERT_EQ(1, dest.x());
     ASSERT_EQ(2, dest.y());
     ASSERT_EQ(3, dest.z());
@@ -695,130 +715,130 @@ namespace Vector4Test {
   }
 
   TYPED_TEST(Vector4Test, ShouldDefineNullVector) {
-    TypeParam expected(0, 0, 0, 1);
-    ASSERT_EQ(expected, TypeParam::null());
+    Vector4<TypeParam> expected(0, 0, 0, 1);
+    ASSERT_EQ(expected, Vector4<TypeParam>::null());
   }
 
   TYPED_TEST(Vector4Test, ShouldDefineEpsilonVector) {
-    ASSERT_TRUE(TypeParam::epsilon().x() > 0.0);
-    ASSERT_TRUE(TypeParam::epsilon().y() > 0.0);
-    ASSERT_TRUE(TypeParam::epsilon().z() > 0.0);
-    ASSERT_TRUE(TypeParam::epsilon().w() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon().x() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon().y() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon().z() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon().w() > 0.0);
   }
   
   TYPED_TEST(Vector4Test, ShouldDefineUndefinedVector) {
-    ASSERT_TRUE(TypeParam::undefined().isUndefined());
+    ASSERT_TRUE(Vector4<TypeParam>::undefined().isUndefined());
   }
   
   TYPED_TEST(Vector4Test, ShouldDefineMinusInfinityVector) {
-    ASSERT_EQ(- numeric_limits<float>::infinity(), TypeParam::minusInfinity().x());
+    ASSERT_EQ(- numeric_limits<TypeParam>::infinity(), Vector4<TypeParam>::minusInfinity().x());
   }
   
   TYPED_TEST(Vector4Test, ShouldDefinePlusInfinityVector) {
-    ASSERT_EQ(numeric_limits<float>::infinity(), TypeParam::plusInfinity().x());
+    ASSERT_EQ(numeric_limits<TypeParam>::infinity(), Vector4<TypeParam>::plusInfinity().x());
   }
   
   TYPED_TEST(Vector4Test, ShouldReturnHomogenizedVector) {
-    TypeParam vector(2, 4, 6, 2);
-    Vector3<typename TypeParam::Coordinate> expected(1, 2, 3);
+    Vector4<TypeParam> vector(2, 4, 6, 2);
+    Vector3<TypeParam> expected(1, 2, 3);
     
     ASSERT_EQ(expected, vector.homogenized());
   }
   
   TYPED_TEST(Vector4Test, ShouldAdd) {
-    TypeParam v1(1, 2, 1, 1), v2(0, 1, 0, 0), expected(1, 3, 1, 1);
+    Vector4<TypeParam> v1(1, 2, 1, 1), v2(0, 1, 0, 0), expected(1, 3, 1, 1);
     ASSERT_EQ(expected, v1 + v2);
   }
 
   TYPED_TEST(Vector4Test, ShouldSubtract) {
-    TypeParam v1(1, 3, 1, 2), v2(0, 1, 0, 1), expected(1, 2, 1, 1);
+    Vector4<TypeParam> v1(1, 3, 1, 2), v2(0, 1, 0, 1), expected(1, 2, 1, 1);
     ASSERT_EQ(expected, v1 - v2);
   }
 
   TYPED_TEST(Vector4Test, ShouldNegate) {
-    TypeParam v(1, 2, 3, 1), expected(-1, -2, -3, -1);
+    Vector4<TypeParam> v(1, 2, 3, 1), expected(-1, -2, -3, -1);
     ASSERT_EQ(expected, -v);
   }
 
   TYPED_TEST(Vector4Test, ShouldDivide) {
-    TypeParam v(2, 4, 2, 4), expected(1, 2, 1, 2);
+    Vector4<TypeParam> v(2, 4, 2, 4), expected(1, 2, 1, 2);
     ASSERT_EQ(expected, v / 2);
   }
 
   TYPED_TEST(Vector4Test, ShouldNotAllowDivisionByZero) {
-    TypeParam vector;
+    Vector4<TypeParam> vector;
     ASSERT_THROW(vector / 0, DivisionByZeroException);
   }
 
   TYPED_TEST(Vector4Test, ShouldCalculateDotProduct) {
-    TypeParam v1(0, 2, 1, 1), v2(1, 2, 1, 1);
+    Vector4<TypeParam> v1(0, 2, 1, 1), v2(1, 2, 1, 1);
     ASSERT_EQ(6, v1 * v2);
   }
 
   TYPED_TEST(Vector4Test, ShouldMultiply) {
-    TypeParam v(2, 1, 1, 2), expected(4, 2, 2, 4);
+    Vector4<TypeParam> v(2, 1, 1, 2), expected(4, 2, 2, 4);
     ASSERT_EQ(expected, v * 2);
   }
 
   TYPED_TEST(Vector4Test, ShouldCompareSameVectorForEquality) {
-    TypeParam vector;
+    Vector4<TypeParam> vector;
     ASSERT_TRUE(vector == vector);
   }
 
   TYPED_TEST(Vector4Test, ShouldCompareVectorsForEquality) {
-    TypeParam first(1, 2, 3, 1), second(1, 2, 3, 1);
+    Vector4<TypeParam> first(1, 2, 3, 1), second(1, 2, 3, 1);
     ASSERT_TRUE(first == second);
   }
 
   TYPED_TEST(Vector4Test, ShouldCompareVectorsForInequality) {
-    TypeParam first(1, 2, 3, 4);
-    TypeParam second(4, 5, 6, 7);
+    Vector4<TypeParam> first(1, 2, 3, 4);
+    Vector4<TypeParam> second(4, 5, 6, 7);
 
     ASSERT_TRUE(first != second);
   }
 
   TYPED_TEST(Vector4Test, ShouldAddInPlace) {
-    TypeParam v1(1, 2, 1, 1), v2(0, 1, 0, 0), expected(1, 3, 1, 1);
+    Vector4<TypeParam> v1(1, 2, 1, 1), v2(0, 1, 0, 0), expected(1, 3, 1, 1);
     v1 += v2;
     ASSERT_EQ(expected, v1);
   }
 
   TYPED_TEST(Vector4Test, ShouldSubtractInPlace) {
-    TypeParam v1(1, 3, 1, 2), v2(0, 1, 0, 1), expected(1, 2, 1, 1);
+    Vector4<TypeParam> v1(1, 3, 1, 2), v2(0, 1, 0, 1), expected(1, 2, 1, 1);
     v1 -= v2;
     ASSERT_EQ(expected, v1);
   }
 
   TYPED_TEST(Vector4Test, ShouldDivideInPlace) {
-    TypeParam v(2, 4, 2, 4), expected(1, 2, 1, 2);
+    Vector4<TypeParam> v(2, 4, 2, 4), expected(1, 2, 1, 2);
     v /= 2;
     ASSERT_EQ(expected, v);
   }
 
   TYPED_TEST(Vector4Test, ShouldNotAllowDivisionByZeroInPlace) {
-    TypeParam vector;
+    Vector4<TypeParam> vector;
     ASSERT_THROW(vector /= 0, DivisionByZeroException);
   }
 
   TYPED_TEST(Vector4Test, ShouldMultiplyInPlace) {
-    TypeParam v(2, 1, 1, 2), expected(4, 2, 2, 4);
+    Vector4<TypeParam> v(2, 1, 1, 2), expected(4, 2, 2, 4);
     v *= 2;
     ASSERT_EQ(expected, v);
   }
   
   TYPED_TEST(Vector4Test, ShouldCalculateLength) {
-    ASSERT_EQ(2, TypeParam(2, 0, 0, 0).length());
-    ASSERT_EQ(2, TypeParam(0, 2, 0, 0).length());
+    ASSERT_EQ(2, Vector4<TypeParam>(2, 0, 0, 0).length());
+    ASSERT_EQ(2, Vector4<TypeParam>(0, 2, 0, 0).length());
   }
   
   TYPED_TEST(Vector4Test, ShouldNormalize) {
-    TypeParam v(2, 0, 0, 0), expected(1, 0, 0, 0);
+    Vector4<TypeParam> v(2, 0, 0, 0), expected(1, 0, 0, 0);
     v.normalize();
     ASSERT_EQ(expected, v);
   }
   
   TYPED_TEST(Vector4Test, ShouldReturnNormalizedVector) {
-    TypeParam v(2, 0, 0, 0), expected(1, 0, 0, 0);
+    Vector4<TypeParam> v(2, 0, 0, 0), expected(1, 0, 0, 0);
     ASSERT_EQ(expected, v.normalized());
   }
 }
