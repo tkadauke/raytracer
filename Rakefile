@@ -172,6 +172,10 @@ namespace :docs do
   task :generate => :render do
     sh "doxygen"
   end
+  
+  task :clean do
+    rm_rf "docs"
+  end
 end
 
 desc "Generate documentation"
