@@ -49,9 +49,13 @@ module Common
     box :material => red_matte
   end
   
-  def material_scene(mat)
+  def object_scene
     checker_board
     default_camera
+  end
+
+  def material_scene(mat)
+    object_scene
     sphere :material => mat
   end
 end
