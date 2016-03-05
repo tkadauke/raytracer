@@ -5,7 +5,7 @@
 #include <limits>
 #include "core/DivisionByZeroException.h"
 
-#include "core/StaticIf.h"
+#include "core/meta/StaticIf.h"
 
 /**
   * This is a generic vector class with a fixed number of dimensions Dimensions
@@ -36,14 +36,14 @@
   * @tparam StorageCellType the type used internally to store the vector
   *   components. This defaults to T, but for the SSE-optimized vectors, wider
   *   types are used for storage.
-  * @tparam Derived the derived class, if any. Defaults to NullType. If this is
-  *   NullType, then all the calculation operations, like +, -, etc., accept
-  *   as argument and return an object of type Vector. If Derived is set
-  *   explicitely, then the operators accept and return objects of type Derived.
-  *   This way, operators don't have to be redefined in the subclasses. See
-  *   Vector::VectorType for details.
+  * @tparam Derived the derived class, if any. Defaults to meta::NullType. If
+  *   this is meta::NullType, then all the calculation operations, like +, -,
+  *   etc., accept as argument and return an object of type Vector. If Derived
+  *   is set explicitely, then the operators accept and return objects of type
+  *   Derived. This way, operators don't have to be redefined in the subclasses.
+  *   See Vector::VectorType for details.
   */
-template<int Dimensions, class T, class StorageCellType = T, class Derived = NullType>
+template<int Dimensions, class T, class StorageCellType = T, class Derived = meta::NullType>
 class Vector {
 public:
   typedef T CellsType[Dimensions];
@@ -73,8 +73,8 @@ public:
     * class. If the Derived template parameter is omitted, then this is
     * equivalent to Vector. Otherwise, it is equivalent to Derived.
     */
-  typedef typename StaticIf<
-    IsNullType<Derived>::Result,
+  typedef typename meta::StaticIf<
+    meta::IsNullType<Derived>::Result,
     ThisType,
     Derived
   >::Result VectorType;

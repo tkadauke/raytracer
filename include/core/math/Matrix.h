@@ -6,7 +6,7 @@
 #include "core/math/Angle.h"
 #include "core/DivisionByZeroException.h"
 
-#include "core/StaticIf.h"
+#include "core/meta/StaticIf.h"
 
 template<class T>
 class Quaternion;
@@ -21,14 +21,14 @@ class Quaternion;
   * @tparam Dimensions the size of the Matrix type.
   * @tparam T the Matrix's number type.
   * @tparam VectorType the Vector type used for Matrix-Vector calculations.
-  * @tparam Derived the derived class, if any. Defaults to NullType. If this is
-  *   NullType, then all the calculation operations, like +, accept as argument
-  *   and return an object of type Matrix. If Derived is set explicitely, then
-  *   the operators accept and return objects of type Derived. This way,
-  *   operators don't have to be redefined in the subclasses. See
+  * @tparam Derived the derived class, if any. Defaults to meta::NullType. If
+  *   this is meta::NullType, then all the calculation operations, like +,
+  *   accept as argument and return an object of type Matrix. If Derived is set
+  *   explicitely, then the operators accept and return objects of type Derived.
+  *   This way, operators don't have to be redefined in the subclasses. See
   *   Matrix::MatrixType for details.
   */
-template<int Dimensions, class T, class VectorType = Vector<Dimensions, T>, class Derived = NullType>
+template<int Dimensions, class T, class VectorType = Vector<Dimensions, T>, class Derived = meta::NullType>
 class Matrix {
   typedef T RowType[Dimensions];
   typedef RowType CellsType[Dimensions];
@@ -41,8 +41,8 @@ public:
     * class. If the Derived template parameter is omitted, then this is
     * equivalent to Matrix. Otherwise, it is equivalent to Derived.
     */
-  typedef typename StaticIf<
-    IsNullType<Derived>::Result,
+  typedef typename meta::StaticIf<
+    meta::IsNullType<Derived>::Result,
     ThisType,
     Derived
   >::Result MatrixType;
