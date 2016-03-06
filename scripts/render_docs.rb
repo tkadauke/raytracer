@@ -44,12 +44,32 @@ module Common
     @red_matte ||= matte_material(:diffuseTexture => red)
   end
   
-  def camera_scene
+  def sunlight(options = {})
+    directional_light({ :direction => [-0.5, -1, -0.5] }.merge(options))
+  end
+
+  def box_on_checker_board
     checker_board
     box :material => red_matte
   end
+
+  def sphere_on_checker_board
+    checker_board
+    sphere :material => red_matte
+  end
+
+  def light_scene
+    sphere_on_checker_board
+    default_camera
+  end
+  
+  def camera_scene
+    sunlight
+    box_on_checker_board
+  end
   
   def object_scene
+    sunlight
     checker_board
     default_camera
   end

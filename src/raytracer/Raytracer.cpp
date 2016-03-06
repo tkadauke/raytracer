@@ -126,7 +126,7 @@ Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
       return Colord::black();
     }
   } else {
-    return m_scene->ambient() * m_scene->background();
+    return m_scene->background();
   }
 }
 

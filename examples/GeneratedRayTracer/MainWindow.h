@@ -50,6 +50,9 @@ private slots:
   
   void addConstantColorTexture();
   void addCheckerBoardTexture();
+  
+  void addDirectionalLight();
+  void addPointLight();
 
   void addPinholeCamera();
   void addFishEyeCamera();

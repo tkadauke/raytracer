@@ -86,7 +86,7 @@ class Element
 end
 
 class Scene < Element
-  property :ambient => [0.8, 0.8, 0.8]
+  property :ambient => [0.4, 0.4, 0.4]
   property :background => [0.4, 0.8, 1]
   
   def save_to_file(name)
@@ -113,11 +113,14 @@ class Scene < Element
   end
 end
 
-class Surface < Element
-  property :visible => true,
-           :position => [0, 0, 0],
+class Transformable < Element
+  property :position => [0, 0, 0],
            :rotation => [0, 0, 0],
-           :scale => [1, 1, 1],
+           :scale => [1, 1, 1]
+end
+
+class Surface < Transformable
+  property :visible => true,
            :material => nil
 end
 
@@ -133,7 +136,7 @@ end
 class PhongMaterial < MatteMaterial
   property :specularColor => [1, 1, 1],
            :exponent => 16,
-           :specularCoefficient => 1
+           :specularCoefficient => 0.5
 end
 
 class ReflectiveMaterial < PhongMaterial
@@ -151,6 +154,19 @@ end
 
 class Sphere < Surface
   property :radius => 1
+end
+
+class Light < Transformable
+  property :visible => true,
+           :color => [1, 1, 1],
+           :intensity => 1
+end
+
+class PointLight < Light
+end
+
+class DirectionalLight < Light
+  property :direction => [0, 0, 1]
 end
 
 class Camera < Element

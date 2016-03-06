@@ -89,9 +89,14 @@ void Element::read(const QJsonObject& json) {
   auto childElements = json["children"];
   if (childElements.isArray()) {
     for (const auto& child : childElements.toArray()) {
-      Element* element = ElementFactory::self().create(child.toObject()["type"].toString().toStdString());
-      addChild(element);
-      element->read(child.toObject());
+      auto type = child.toObject()["type"].toString().toStdString();
+      Element* element = ElementFactory::self().create(type);
+      if (element) {
+        addChild(element);
+        element->read(child.toObject());
+      } else {
+        qWarning("Unknown element type %s", type.c_str());
+      }
     }
   }
 }

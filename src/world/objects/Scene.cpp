@@ -1,6 +1,7 @@
 #include "world/objects/Scene.h"
 #include "world/objects/Surface.h"
 #include "world/objects/Camera.h"
+#include "world/objects/Light.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Grid.h"
 
@@ -12,7 +13,7 @@
 Scene::Scene(Element* parent)
   : Element(parent),
     m_changed(false),
-    m_ambient(Colord(0.8, 0.8, 0.8)),
+    m_ambient(Colord(0.4, 0.4, 0.4)),
     m_background(Colord(0.4, 0.8, 1))
 {
   setName("New Scene");
@@ -23,11 +24,16 @@ raytracer::Scene* Scene::toRaytracerScene() const {
   auto grid = std::make_shared<raytracer::Grid>();
   
   for (const auto& child : childElements()) {
-    auto surface = dynamic_cast<Surface*>(child);
-    if (surface && surface->visible()) {
-      auto primitive = surface->toRaytracer();
-      if (primitive) {
-        grid->add(primitive);
+    if (auto surface = dynamic_cast<Surface*>(child)) {
+      if (surface->visible()) {
+        auto primitive = surface->toRaytracer(result);
+        if (primitive) {
+          grid->add(primitive);
+        }
+      }
+    } else if (auto light = dynamic_cast<Light*>(child)) {
+      if (light->visible()) {
+        result->addLight(light->toRaytracer());
       }
     }
   }

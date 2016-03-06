@@ -40,6 +40,9 @@
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/CheckerBoardTexture.h"
 
+#include "world/objects/DirectionalLight.h"
+#include "world/objects/PointLight.h"
+
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/FishEyeCamera.h"
 #include "world/objects/OrthographicCamera.h"
@@ -87,6 +90,9 @@ struct MainWindow::Private {
   
   QAction* addConstantColorTextureAct;
   QAction* addCheckerBoardTextureAct;
+
+  QAction* addDirectionalLightAct;
+  QAction* addPointLightAct;
 
   QAction* addPinholeCameraAct;
   QAction* addFishEyeCameraAct;
@@ -180,6 +186,14 @@ void MainWindow::createActions() {
   p->addCheckerBoardTextureAct->setStatusTip(tr("Add a checker board texture to the scene"));
   connect(p->addCheckerBoardTextureAct, SIGNAL(triggered()), this, SLOT(addCheckerBoardTexture()));
 
+  p->addDirectionalLightAct = new QAction(tr("Directional Light"), this);
+  p->addDirectionalLightAct->setStatusTip(tr("Add a directional light to the scene"));
+  connect(p->addDirectionalLightAct, SIGNAL(triggered()), this, SLOT(addDirectionalLight()));
+
+  p->addPointLightAct = new QAction(tr("Point Light"), this);
+  p->addPointLightAct->setStatusTip(tr("Add a point light to the scene"));
+  connect(p->addPointLightAct, SIGNAL(triggered()), this, SLOT(addPointLight()));
+
   p->addPinholeCameraAct = new QAction(tr("Pinhole Camera"), this);
   p->addPinholeCameraAct->setStatusTip(tr("Add a pinhole camera to the scene"));
   connect(p->addPinholeCameraAct, SIGNAL(triggered()), this, SLOT(addPinholeCamera()));
@@ -251,6 +265,10 @@ void MainWindow::createMenus() {
   auto addTexture = p->editMenu->addMenu(tr("Add Texture"));
   addTexture->addAction(p->addConstantColorTextureAct);
   addTexture->addAction(p->addCheckerBoardTextureAct);
+
+  auto addLight = p->editMenu->addMenu(tr("Add Light"));
+  addLight->addAction(p->addDirectionalLightAct);
+  addLight->addAction(p->addPointLightAct);
 
   auto addCamera = p->editMenu->addMenu(tr("Add Camera"));
   addCamera->addAction(p->addPinholeCameraAct);
@@ -397,6 +415,14 @@ void MainWindow::addConstantColorTexture() {
 
 void MainWindow::addCheckerBoardTexture() {
   add<CheckerBoardTexture>();
+}
+
+void MainWindow::addDirectionalLight() {
+  add<DirectionalLight>();
+}
+
+void MainWindow::addPointLight() {
+  add<PointLight>();
 }
 
 void MainWindow::addPinholeCamera() {

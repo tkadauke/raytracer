@@ -109,9 +109,6 @@ void RenderWindow::finished() {
 void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
   
-  auto light1 = new raytracer::PointLight(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
-  raytracerScene->addLight(light1);
-  
   p->raytracer->setScene(raytracerScene);
   
   auto camera = scene->activeCamera();

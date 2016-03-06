@@ -1,8 +1,8 @@
 {
     "ambient": [
-        0.80000000000000004,
-        0.80000000000000004,
-        0.80000000000000004
+        0.40000000000000002,
+        0.40000000000000002,
+        0.40000000000000002
     ],
     "background": [
         0.40000000000000002,
@@ -180,7 +180,7 @@
                 1,
                 1
             ],
-            "specularCoefficient": 1,
+            "specularCoefficient": 0.5,
             "specularColor": [
                 1,
                 1,
@@ -298,7 +298,39 @@
                 0
             ],
             "type": "PinholeCamera",
-            "zoom": 2
+            "zoom": 1.5
+        },
+        {
+            "color": [
+                1,
+                1,
+                1
+            ],
+            "direction": [
+                -0.5,
+                -1,
+                -0.5
+            ],
+            "id": "{28002013-08ab-4596-9c54-f2d8cf6b03cc}",
+            "intensity": 1,
+            "name": "DirectionalLight 16",
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "rotation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "type": "DirectionalLight",
+            "visible": true
         }
     ],
     "id": "{edea240f-91a0-456d-ad3b-68eb1bc52a56}",

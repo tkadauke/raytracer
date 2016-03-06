@@ -34,9 +34,6 @@ void Display::setScene(Scene* scene) {
   
   auto raytracerScene = scene->toRaytracerScene();
   
-  auto light1 = new raytracer::PointLight(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
-  raytracerScene->addLight(light1);
-  
   m_raytracer->setScene(raytracerScene);
   render();
 }

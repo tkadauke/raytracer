@@ -40,9 +40,9 @@ public:
     */
   inline void setSize(const Vector3d& size) {
     m_size = Vector3d(
-      std::max(std::abs(size.x()), std::numeric_limits<double>::epsilon()),
-      std::max(std::abs(size.y()), std::numeric_limits<double>::epsilon()),
-      std::max(std::abs(size.z()), std::numeric_limits<double>::epsilon())
+      std::max(std::abs(size.x()), 0.000001),
+      std::max(std::abs(size.y()), 0.000001),
+      std::max(std::abs(size.z()), 0.000001)
     );
   }
 

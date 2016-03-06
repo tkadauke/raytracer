@@ -64,9 +64,6 @@ void Renderer::render() {
   
   auto raytracerScene = scene->toRaytracerScene();
   
-  auto light1 = new raytracer::PointLight(Vector3d(-30, -30, -10), Colord(0.4, 0.4, 0.4));
-  raytracerScene->addLight(light1);
-  
   auto raytracer = std::make_shared<raytracer::Raytracer>(raytracerScene);
   raytracer->setMaximumRecursionDepth(m_maximumRecursionDepth);
   

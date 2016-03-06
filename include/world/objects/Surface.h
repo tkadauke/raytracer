@@ -4,6 +4,7 @@
 
 namespace raytracer {
   class Primitive;
+  class Scene;
 }
 
 class Material;
@@ -40,7 +41,7 @@ public:
     m_material = material;
   }
   
-  std::shared_ptr<raytracer::Primitive> toRaytracer() const;
+  std::shared_ptr<raytracer::Primitive> toRaytracer(raytracer::Scene* scene) const;
   
   virtual bool canHaveChild(Element* child) const;
   

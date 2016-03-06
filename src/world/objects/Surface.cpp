@@ -1,7 +1,9 @@
 #include "world/objects/Surface.h"
 #include "world/objects/Material.h"
+#include "world/objects/Light.h"
 #include "raytracer/primitives/Instance.h"
 #include "raytracer/primitives/Composite.h"
+#include "raytracer/primitives/Scene.h"
 
 Surface::Surface(Element* parent)
   : Transformable(parent),
@@ -16,7 +18,7 @@ std::shared_ptr<raytracer::Primitive> Surface::applyTransform(std::shared_ptr<ra
   return result;
 }
 
-std::shared_ptr<raytracer::Primitive> Surface::toRaytracer() const {
+std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* scene) const {
   auto primitive = toRaytracerPrimitive();
   if (!primitive) {
     return primitive;
@@ -36,9 +38,10 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer() const {
     }
     
     for (const auto& child : childElements()) {
-      Surface* surface = qobject_cast<Surface*>(child);
-      if (surface) {
-        composite->add(surface->toRaytracer());
+      if (Surface* surface = qobject_cast<Surface*>(child)) {
+        composite->add(surface->toRaytracer(scene));
+      } else if (Light* light = qobject_cast<Light*>(child)) {
+        scene->addLight(light->toRaytracer());
       }
     }
 
@@ -49,7 +52,8 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer() const {
 }
 
 bool Surface::canHaveChild(Element* child) const {
-  return dynamic_cast<Surface*>(child) != nullptr;
+  return dynamic_cast<Surface*>(child) != nullptr ||
+         dynamic_cast<Light*>(child) != nullptr;
 }
 
 #include "Surface.moc"

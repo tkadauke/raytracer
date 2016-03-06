@@ -1,13 +1,13 @@
 {
     "ambient": [
-        0.80000000000000004,
-        0.80000000000000004,
-        0.80000000000000004
+        0.40000000000000002,
+        0.40000000000000002,
+        0.40000000000000002
     ],
     "background": [
-        0.90196100000000001,
-        0.90196100000000001,
-        0.90196100000000001
+        0.40000000000000002,
+        0.80000000000000004,
+        1
     ],
     "children": [
         {
@@ -171,22 +171,33 @@
         {
             "ambientCoefficient": 1,
             "diffuseCoefficient": 1,
+            "diffuseTexture": "{a3990e3d-cb51-4e7c-98ae-54cea84c7755}",
             "exponent": 16,
             "id": "{14427ef2-1fa0-4a46-8ef1-f36cfa4847f5}",
             "name": "ReflectiveMaterial",
-            "reflectionCoefficient": 0.80000000000000004,
+            "reflectionCoefficient": 0.10000000000000001,
             "reflectionColor": [
-                1,
-                0.63921600000000001,
-                0.16078400000000001
-            ],
-            "specularCoefficient": 1,
-            "specularColor": [
                 1,
                 1,
                 1
             ],
+            "specularCoefficient": 0.5,
+            "specularColor": [
+                0,
+                0,
+                0
+            ],
             "type": "ReflectiveMaterial"
+        },
+        {
+            "color": [
+                0.69019600000000003,
+                0.57254899999999997,
+                0.298039
+            ],
+            "id": "{a3990e3d-cb51-4e7c-98ae-54cea84c7755}",
+            "name": "Gold",
+            "type": "ConstantColorTexture"
         },
         {
             "distance": 5,
@@ -204,6 +215,38 @@
             ],
             "type": "PinholeCamera",
             "zoom": 2
+        },
+        {
+            "color": [
+                1,
+                1,
+                1
+            ],
+            "direction": [
+                -0.5,
+                -1,
+                -0.5
+            ],
+            "id": "{8b4ec8a7-5cac-446c-964b-cfd5333c7653}",
+            "intensity": 1,
+            "name": "Sun",
+            "position": [
+                0,
+                0,
+                0
+            ],
+            "rotation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                1,
+                1,
+                1
+            ],
+            "type": "DirectionalLight",
+            "visible": true
         }
     ],
     "id": "{df52cf8b-cb55-467d-b953-817a736b69f8}",
