@@ -230,10 +230,7 @@ void MainWindow::createActions() {
   connect(p->helpAct, SIGNAL(triggered()), this, SLOT(help()));
   
   auto modifyingActions = {
-    p->newAct, p->openAct, p->saveAct, p->saveAsAct, p->addBoxAct, p->addSphereAct,
-    p->addIntersectionAct, p->addMatteMaterialAct, p->addPhongMaterialAct,
-    p->addReflectiveMaterialAct, p->addConstantColorTextureAct,
-    p->addCheckerBoardTextureAct, p->addPinholeCameraAct, p->deleteElementAct
+    p->newAct, p->openAct, p->saveAct, p->saveAsAct, p->addBoxAct, p->deleteElementAct
   };
   
   for (auto& act : modifyingActions) {
