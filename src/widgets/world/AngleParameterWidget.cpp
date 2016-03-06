@@ -41,6 +41,9 @@ const QVariant AngleParameterWidget::value() {
 }
 
 void AngleParameterWidget::setValue(const QVariant& value) {
+  if (p->ui.angleEdit->hasFocus())
+    return;
+  
   auto angle = value.value<Angled>();
   
   double number;

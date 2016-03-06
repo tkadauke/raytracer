@@ -520,6 +520,7 @@ QDockWidget* MainWindow::createPreviewDisplay() {
 
 void MainWindow::elementChanged(Element*) {
   p->scene->setChanged(true);
+  p->propertyEditorWidget->update();
   updateWindowModified();
   redraw();
   emit currentElementChanged();
@@ -556,6 +557,10 @@ void MainWindow::updatePreviewWidget() {
 void MainWindow::reorder() {
   redraw();
   p->scene->setChanged(true);
+
+  setFocus();
+  p->propertyEditorWidget->update();
+
   updateWindowModified();
 }
 

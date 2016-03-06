@@ -36,6 +36,10 @@ void AbstractParameterWidget::setElement(Element* element) {
   p->element = element;
 }
 
+const QString& AbstractParameterWidget::parameterName() const {
+  return p->parameterName;
+}
+
 void AbstractParameterWidget::setParameterName(const QString& name) {
   p->parameterName = name;
 }

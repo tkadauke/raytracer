@@ -33,6 +33,9 @@ Colord ColorParameterWidget::color() const {
 }
 
 void ColorParameterWidget::setColor(const Colord& color) {
+  if (p->ui.rEdit->hasFocus() || p->ui.gEdit->hasFocus() || p->ui.bEdit->hasFocus())
+    return;
+  
   p->ui.rEdit->setText(QString::number(color.r()));
   p->ui.gEdit->setText(QString::number(color.g()));
   p->ui.bEdit->setText(QString::number(color.b()));

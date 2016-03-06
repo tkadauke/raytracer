@@ -26,6 +26,8 @@ const QVariant DoubleParameterWidget::value() {
 }
 
 void DoubleParameterWidget::setValue(const QVariant& value) {
+  if (p->ui.doubleEdit->hasFocus())
+    return;
   p->ui.doubleEdit->setText(QString::number(value.toDouble()));
 }
 

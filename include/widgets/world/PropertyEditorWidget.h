@@ -22,6 +22,7 @@ signals:
 public slots:
   void elementChanged(const QString& propertyName, const QVariant& value);
   void setElement(Element* element);
+  void update();
 
 private:
   void initLayout();

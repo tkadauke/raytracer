@@ -62,6 +62,15 @@ void PropertyEditorWidget::setElement(Element* element) {
   }
 }
 
+void PropertyEditorWidget::update() {
+  for (const auto& widget : p->parameterWidgets) {
+    const QString& parameterName = widget->parameterName();
+    auto prop = p->element->property(parameterName.toStdString().c_str());
+    
+    widget->setValue(prop);
+  }
+}
+
 void PropertyEditorWidget::addParameterWidgets() {
   initLayout();
   addParametersForClass(p->element->metaObject());

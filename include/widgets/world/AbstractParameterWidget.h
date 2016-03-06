@@ -12,11 +12,12 @@ public:
   ~AbstractParameterWidget();
   
   void setElement(Element* element);
+  const QString& parameterName() const;
   virtual void setParameterName(const QString& name);
   
   virtual const QVariant value() = 0;
   virtual void setValue(const QVariant& value) = 0;
-
+  
 signals:
   void changed(const QString&, const QVariant&);
 
