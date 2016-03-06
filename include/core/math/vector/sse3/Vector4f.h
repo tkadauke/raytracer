@@ -28,10 +28,6 @@ public:
     m_vector[0] = _mm_set_ps(cells[3], cells[2], cells[1], cells[0]);
   }
 
-  inline Vector4(const __m128& vec) {
-    m_vector[0] = vec;
-  }
-
   template<class T>
   inline Vector4(const Vector3<T>& source) {
     m_coordinates[0] = source.coordinate(0);
@@ -72,21 +68,9 @@ public:
   }
 
   inline Vector4<float> operator-() const {
-    Vector4<float> result;
-    for (int i = 0; i != Dim; ++i) {
-      result.setCoordinate(i, - coordinate(i));
-    }
-    return result;
+    return Vector4<float>(_mm_sub_ps(_mm_setzero_ps(), m_vector[0]));
   }
 
-  inline Vector4<float> operator/(const float& factor) const {
-    if (factor == float())
-      throw DivisionByZeroException(__FILE__, __LINE__);
-
-    float recip = 1.0 / factor;
-    return *this * recip;
-  }
-  
   inline float operator*(const Vector4<float>& other) const {
     typedef union {
       __m128 vec;
@@ -99,20 +83,6 @@ public:
 
   inline Vector4<float> operator*(const float& factor) const {
     return Vector4<float>(_mm_mul_ps(m_vector[0], _mm_set1_ps(factor)));
-  }
-  
-  inline bool operator==(const Vector4<float>& other) const {
-    if (&other == this)
-      return true;
-    for (int i = 0; i != Dim; ++i) {
-      if (coordinate(i) != other.coordinate(i))
-        return false;
-    }
-    return true;
-  }
-
-  inline bool operator!=(const Vector4<float>& other) const {
-    return !(*this == other);
   }
   
   inline Vector4<float>& operator+=(const Vector4<float>& other) {
@@ -130,28 +100,13 @@ public:
     return *this;
   }
 
-  inline Vector4<float>& operator/=(const float& factor) {
-    if (factor == float())
-      throw DivisionByZeroException(__FILE__, __LINE__);
-
-    float recip = 1.0 / factor;
-    return this->operator*=(recip);
-  }
-
-  inline float length() const {
-    return std::sqrt(*this * *this);
-  }
-
-  inline void normalize() {
-    *this /= length();
-  }
-
-  inline Vector4<float> normalized() {
-    return *this / length();
-  }
-
   inline Vector3<float> homogenized() const {
     return Vector3<float>(*this) / w();
+  }
+
+private:
+  inline Vector4(const __m128& vec) {
+    m_vector[0] = vec;
   }
 };
 

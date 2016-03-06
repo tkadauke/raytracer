@@ -51,7 +51,7 @@ public:
 private:
   static const int CellsTypeSize = sizeof(CellsType);
   static const int StorageCellTypeSize = sizeof(StorageCellType);
-  static const int StorageCellCount = (CellsTypeSize + StorageCellTypeSize + 1) / StorageCellTypeSize;
+  static const int StorageCellCount = (Dimensions * sizeof(T) - 1) / StorageCellTypeSize + 1;
 
   typedef StorageCellType StorageType[StorageCellCount];
   
@@ -193,7 +193,7 @@ public:
       throw DivisionByZeroException(__FILE__, __LINE__);
 
     T recip = 1.0 / factor;
-    return *this * recip;
+    return derived() * recip;
   }
   
   /**
@@ -232,7 +232,7 @@ public:
     * corresponding component in the other vector.
     */
   inline bool operator!=(const VectorType& other) const {
-    return !(*this == other);
+    return !(derived() == other);
   }
 
   /**
@@ -240,7 +240,7 @@ public:
     *   the other vector, false otherwise.
     */
   inline bool operator==(const VectorType& other) const {
-    if (&other == this)
+    if (&other == &derived())
       return true;
     for (int i = 0; i != Dimensions; ++i) {
       if (coordinate(i) != other.coordinate(i))
@@ -258,7 +258,7 @@ public:
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) + other.coordinate(i));
     }
-    return static_cast<VectorType&>(*this);
+    return derived();
   }
 
   /**
@@ -270,7 +270,7 @@ public:
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) - other.coordinate(i));
     }
-    return static_cast<VectorType&>(*this);
+    return derived();
   }
 
   /**
@@ -282,7 +282,7 @@ public:
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) * factor);
     }
-    return static_cast<VectorType&>(*this);
+    return derived();
   }
 
   /**
@@ -296,7 +296,7 @@ public:
       throw DivisionByZeroException(__FILE__, __LINE__);
 
     T recip = 1.0 / factor;
-    return this->operator*=(recip);
+    return derived().operator*=(recip);
   }
 
   /**
@@ -311,7 +311,7 @@ public:
     *   v\f$.
     */
   inline T squaredLength() const {
-    return static_cast<const VectorType&>(*this) * static_cast<const VectorType&>(*this);
+    return derived() * derived();
   }
   
   /**
@@ -320,7 +320,7 @@ public:
     * @returns the distance between those points, i.e. \f$|u-v|\f$.
     */
   inline T distanceTo(const VectorType& other) const {
-    return (*this - other).length();
+    return (derived() - other).length();
   }
   
   /**
@@ -329,7 +329,7 @@ public:
     * @returns the squared distance between those points, i.e. \f$|u-v|^2\f$.
     */
   inline T squaredDistanceTo(const VectorType& other) const {
-    return (*this - other).squaredLength();
+    return (derived() - other).squaredLength();
   }
 
   /**
@@ -338,7 +338,7 @@ public:
     * direction as the original, but length 1.
     */
   inline VectorType normalized() const {
-    return *this / length();
+    return derived() / length();
   }
   
   /**
@@ -347,7 +347,7 @@ public:
     * direction as the original, but length 1. This method mutates the object.
     */
   inline void normalize() {
-    *this /= length();
+    derived() /= length();
   }
 
   /**
@@ -377,6 +377,14 @@ public:
   }
 
 protected:
+  inline const VectorType& derived() const {
+    return static_cast<const VectorType&>(*this);
+  }
+  
+  inline VectorType& derived() {
+    return static_cast<VectorType&>(*this);
+  }
+
   union {
     CellsType m_coordinates;
     StorageType m_vector;

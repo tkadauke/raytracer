@@ -438,6 +438,11 @@ namespace Vector2Test {
   typedef ::testing::Types<float, double> SpecializedVectorTypes;
   
   TYPED_TEST_CASE(Vector2Test, SpecializedVectorTypes);
+  
+  TYPED_TEST(Vector2Test, ShouldHaveRightSize) {
+    ASSERT_EQ(sizeof(Vector<2, TypeParam>), sizeof(Vector2<TypeParam>));
+    ASSERT_EQ(2 * sizeof(TypeParam), sizeof(Vector2<TypeParam>));
+  }
 
   TYPED_TEST(Vector2Test, ShouldInitializeNullVector) {
     Vector2<TypeParam> vector;
@@ -481,6 +486,16 @@ namespace Vector3Test {
 
   typedef ::testing::Types<float, double> Vector3Types;
   TYPED_TEST_CASE(Vector3Test, Vector3Types);
+  
+  TYPED_TEST(Vector3Test, ShouldHaveRightSize) {
+#if defined(__SSE__) || defined(__SSE3__)
+    ASSERT_EQ(sizeof(Vector<3, TypeParam>) + sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+    ASSERT_EQ(4 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+#else
+    ASSERT_EQ(sizeof(Vector<3, TypeParam>), sizeof(Vector3<TypeParam>));
+    ASSERT_EQ(3 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+#endif
+  }
   
   TYPED_TEST(Vector3Test, ShouldInitializeNullVector) {
     Vector3<TypeParam> vector;
@@ -670,6 +685,11 @@ namespace Vector4Test {
   typedef ::testing::Types<float, double> Vector4Types;
   TYPED_TEST_CASE(Vector4Test, Vector4Types);
   
+  TYPED_TEST(Vector4Test, ShouldHaveRightSize) {
+    ASSERT_EQ(sizeof(Vector<4, TypeParam>), sizeof(Vector4<TypeParam>));
+    ASSERT_EQ(4 * sizeof(TypeParam), sizeof(Vector4<TypeParam>));
+  }
+
   TYPED_TEST(Vector4Test, ShouldInitializeNullVector) {
     Vector4<TypeParam> vector;
     ASSERT_EQ(0, vector.x());

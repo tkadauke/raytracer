@@ -64,35 +64,26 @@ public:
   }
   
   inline Vector4<double> operator+(const Vector4<double>& other) const {
-    Vector4<double> result;
-    result.m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);
-    result.m_vector[1] = _mm_add_pd(m_vector[1], other.m_vector[1]);
-    return result;
+    return Vector4<double>(
+      _mm_add_pd(m_vector[0], other.m_vector[0]),
+      _mm_add_pd(m_vector[1], other.m_vector[1])
+    );
   }
 
   inline Vector4<double> operator-(const Vector4<double>& other) const {
-    Vector4<double> result;
-    result.m_vector[0] = _mm_sub_pd(m_vector[0], other.m_vector[0]);
-    result.m_vector[1] = _mm_sub_pd(m_vector[1], other.m_vector[1]);
-    return result;
+    return Vector4<double>(
+      _mm_sub_pd(m_vector[0], other.m_vector[0]),
+      _mm_sub_pd(m_vector[1], other.m_vector[1])
+    );
   }
 
   inline Vector4<double> operator-() const {
-    Vector4<double> result;
-    for (int i = 0; i != Dim; ++i) {
-      result.setCoordinate(i, - coordinate(i));
-    }
-    return result;
+    return Vector4<double>(
+      _mm_sub_pd(_mm_setzero_pd(), m_vector[0]),
+      _mm_sub_pd(_mm_setzero_pd(), m_vector[1])
+    );
   }
 
-  inline Vector4<double> operator/(const double& factor) const {
-    if (factor == double())
-      throw DivisionByZeroException(__FILE__, __LINE__);
-
-    double recip = 1.0 / factor;
-    return *this * recip;
-  }
-  
   inline double operator*(const Vector4<double>& other) const {
     typedef union {
       __m128d vec;
@@ -106,24 +97,10 @@ public:
 
   inline Vector4<double> operator*(const double& factor) const {
     __m128d f = _mm_set1_pd(factor);
-    Vector4<double> result;
-    result.m_vector[0] = _mm_mul_pd(m_vector[0], f);
-    result.m_vector[1] = _mm_mul_pd(m_vector[1], f);
-    return result;
-  }
-  
-  inline bool operator==(const Vector4<double>& other) const {
-    if (&other == this)
-      return true;
-    for (int i = 0; i != Dim; ++i) {
-      if (coordinate(i) != other.coordinate(i))
-        return false;
-    }
-    return true;
-  }
-
-  inline bool operator!=(const Vector4<double>& other) const {
-    return !(*this == other);
+    return Vector4<double>(
+      _mm_mul_pd(m_vector[0], f),
+      _mm_mul_pd(m_vector[1], f)
+    );
   }
   
   inline Vector4<double>& operator+=(const Vector4<double>& other) {
@@ -145,28 +122,14 @@ public:
     return *this;
   }
 
-  inline Vector4<double>& operator/=(const double& factor) {
-    if (factor == double())
-      throw DivisionByZeroException(__FILE__, __LINE__);
-
-    double recip = 1.0 / factor;
-    return this->operator*=(recip);
-  }
-
-  inline double length() const {
-    return std::sqrt(*this * *this);
-  }
-
-  inline void normalize() {
-    *this /= length();
-  }
-
-  inline Vector4<double> normalized() {
-    return *this / length();
-  }
-
   inline Vector3<double> homogenized() const {
     return Vector3<double>(*this) / w();
+  }
+
+private:
+  inline Vector4(const __m128d& vec0, const __m128& vec1) {
+    m_vector[0] = vec0;
+    m_vector[1] = vec1;
   }
 };
 

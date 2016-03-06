@@ -64,33 +64,24 @@ public:
   }
   
   inline Vector3<double> operator+(const Vector3<double>& other) const {
-    Vector3<double> result;
-    result.m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);
-    result.m_vector[1] = _mm_add_sd(m_vector[1], other.m_vector[1]);
-    return result;
+    return Vector3<double>(
+      _mm_add_pd(m_vector[0], other.m_vector[0]),
+      _mm_add_sd(m_vector[1], other.m_vector[1])
+    );
   }
 
   inline Vector3<double> operator-(const Vector3<double>& other) const {
-    Vector3<double> result;
-    result.m_vector[0] = _mm_sub_pd(m_vector[0], other.m_vector[0]);
-    result.m_vector[1] = _mm_sub_sd(m_vector[1], other.m_vector[1]);
-    return result;
+    return Vector3<double>(
+      _mm_sub_pd(m_vector[0], other.m_vector[0]),
+      _mm_sub_sd(m_vector[1], other.m_vector[1])
+    );
   }
 
   inline Vector3<double> operator-() const {
-    Vector3<double> result;
-    for (int i = 0; i != Dim; ++i) {
-      result.setCoordinate(i, - coordinate(i));
-    }
-    return result;
-  }
-
-  inline Vector3<double> operator/(const double& factor) const {
-    if (factor == double())
-      throw DivisionByZeroException(__FILE__, __LINE__);
-
-    double recip = 1.0 / factor;
-    return *this * recip;
+    return Vector3<double>(
+      _mm_sub_pd(_mm_setzero_pd(), m_vector[0]),
+      _mm_sub_sd(_mm_setzero_pd(), m_vector[1])
+    );
   }
 
   inline double operator*(const Vector3<double>& other) const {
@@ -106,10 +97,10 @@ public:
 
   inline Vector3<double> operator*(const double& factor) const {
     __m128d f = _mm_set1_pd(factor);
-    Vector3<double> result;
-    result.m_vector[0] = _mm_mul_pd(m_vector[0], f);
-    result.m_vector[1] = _mm_mul_sd(m_vector[1], f);
-    return result;
+    return Vector3<double>(
+      _mm_mul_pd(m_vector[0], f),
+      _mm_mul_sd(m_vector[1], f)
+    );
   }
   
   inline Vector3<double> crossProduct(const Vector3<double>& other) const {
@@ -122,20 +113,6 @@ public:
     return Vector3<double>(y() * other.z() - z() * other.y(),
                            z() * other.x() - x() * other.z(),
                            x() * other.y() - y() * other.x());
-  }
-  
-  inline bool operator==(const Vector3<double>& other) const {
-    if (&other == this)
-      return true;
-    for (int i = 0; i != Dim; ++i) {
-      if (coordinate(i) != other.coordinate(i))
-        return false;
-    }
-    return true;
-  }
-
-  inline bool operator!=(const Vector3<double>& other) const {
-    return !(*this == other);
   }
   
   inline Vector3<double>& operator+=(const Vector3<double>& other) {
@@ -157,24 +134,10 @@ public:
     return *this;
   }
 
-  inline Vector3<double>& operator/=(const double& factor) {
-    if (factor == double())
-      throw DivisionByZeroException(__FILE__, __LINE__);
-
-    double recip = 1.0 / factor;
-    return this->operator*=(recip);
-  }
-
-  inline double length() const {
-    return std::sqrt(*this * *this);
-  }
-  
-  inline void normalize() {
-    *this /= length();
-  }
-
-  inline Vector3<double> normalized() {
-    return *this / length();
+private:
+  inline Vector3(const __m128d& vec0, const __m128& vec1) {
+    m_vector[0] = vec0;
+    m_vector[1] = vec1;
   }
 };
 
