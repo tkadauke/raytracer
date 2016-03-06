@@ -485,7 +485,6 @@ QDockWidget* MainWindow::createPropertyEditor() {
 QDockWidget* MainWindow::createElementSelector() {
   p->elementModel = new SceneModel(p->scene);
   auto elementTree = new QTreeView(this);
-  // elementTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
   elementTree->setDragEnabled(true);
   elementTree->setAcceptDrops(true);
   elementTree->setDropIndicatorShown(true);
@@ -530,7 +529,7 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   auto element = static_cast<Element*>(current.internalPointer());
   p->currentElement = element;
   p->currentIndex = current;
-  p->deleteElementAct->setEnabled(element != nullptr);
+  p->deleteElementAct->setEnabled(element != nullptr && dynamic_cast<Scene*>(element) == nullptr);
   
   if (element) {
     p->propertyEditorWidget->setElement(element);
