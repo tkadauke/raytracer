@@ -48,6 +48,8 @@ public:
   
   virtual bool canHaveChild(Element* child) const;
   
+  void moveBy(const Vector3d& vector, bool global = false);
+  
 protected:
   virtual void leaveParent();
   virtual void joinParent();

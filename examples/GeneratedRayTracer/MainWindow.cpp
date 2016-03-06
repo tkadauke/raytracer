@@ -1,3 +1,5 @@
+#include <QGuiApplication>
+
 #include <QVBoxLayout>
 #include <QSpacerItem>
 #include <QDockWidget>
@@ -100,6 +102,13 @@ struct MainWindow::Private {
   QAction* addSphericalCameraAct;
   
   QAction* deleteElementAct;
+
+  QAction* moveForwardsAlongXAct;
+  QAction* moveBackwardsAlongXAct;
+  QAction* moveForwardsAlongYAct;
+  QAction* moveBackwardsAlongYAct;
+  QAction* moveForwardsAlongZAct;
+  QAction* moveBackwardsAlongZAct;
 
   QAction* renderAct;
   
@@ -210,6 +219,54 @@ void MainWindow::createActions() {
   p->addSphericalCameraAct->setStatusTip(tr("Add a spherical camera to the scene"));
   connect(p->addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
 
+  p->moveForwardsAlongXAct = new QAction(tr("Move forwards along X axis"), this);
+  p->moveForwardsAlongXAct->setShortcuts(QList<QKeySequence>{
+    QKeySequence(Qt::META + Qt::Key_Up),
+    QKeySequence(Qt::SHIFT + Qt::META + Qt::Key_Up)
+  });
+  p->moveForwardsAlongXAct->setStatusTip(tr("Moves the current element forwards along the X axis"));
+  connect(p->moveForwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongX()));
+
+  p->moveBackwardsAlongXAct = new QAction(tr("Move backwards along X axis"), this);
+  p->moveBackwardsAlongXAct->setShortcuts(QList<QKeySequence>{
+    QKeySequence(Qt::META + Qt::Key_Down),
+    QKeySequence(Qt::SHIFT + Qt::META + Qt::Key_Down)
+  });
+  p->moveBackwardsAlongXAct->setStatusTip(tr("Moves the current element backwards along the X axis"));
+  connect(p->moveBackwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongX()));
+
+  p->moveForwardsAlongYAct = new QAction(tr("Move forwards along Y axis"), this);
+  p->moveForwardsAlongYAct->setShortcuts(QList<QKeySequence>{
+    QKeySequence(Qt::ALT + Qt::Key_Up),
+    QKeySequence(Qt::SHIFT + Qt::ALT + Qt::Key_Up)
+  });
+  p->moveForwardsAlongYAct->setStatusTip(tr("Moves the current element forwards along the Y axis"));
+  connect(p->moveForwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongY()));
+
+  p->moveBackwardsAlongYAct = new QAction(tr("Move backwards along Y axis"), this);
+  p->moveBackwardsAlongYAct->setShortcuts(QList<QKeySequence>{
+    QKeySequence(Qt::ALT + Qt::Key_Down),
+    QKeySequence(Qt::SHIFT + Qt::ALT + Qt::Key_Down)
+  });
+  p->moveBackwardsAlongYAct->setStatusTip(tr("Moves the current element backwards along the Y axis"));
+  connect(p->moveBackwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongY()));
+
+  p->moveForwardsAlongZAct = new QAction(tr("Move forwards along Z axis"), this);
+  p->moveForwardsAlongZAct->setShortcuts(QList<QKeySequence>{
+    QKeySequence(Qt::CTRL + Qt::Key_Up),
+    QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_Up)
+  });
+  p->moveForwardsAlongZAct->setStatusTip(tr("Moves the current element forwards along the Z axis"));
+  connect(p->moveForwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongZ()));
+
+  p->moveBackwardsAlongZAct = new QAction(tr("Move backwards along Z axis"), this);
+  p->moveBackwardsAlongZAct->setShortcuts(QList<QKeySequence>{
+    QKeySequence(Qt::CTRL + Qt::Key_Down),
+    QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_Down)
+  });
+  p->moveBackwardsAlongZAct->setStatusTip(tr("Moves the current element backwards along the Z axis"));
+  connect(p->moveBackwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongZ()));
+
   p->aboutAct = new QAction(tr("&About"), this);
   p->aboutAct->setStatusTip(tr("Show the application's About box"));
   connect(p->aboutAct, SIGNAL(triggered()), this, SLOT(about()));
@@ -275,6 +332,15 @@ void MainWindow::createMenus() {
   
   p->editMenu->addSeparator();
   p->editMenu->addAction(p->deleteElementAct);
+  
+  p->editMenu->addSeparator();
+  auto move = p->editMenu->addMenu(tr("Move"));
+  move->addAction(p->moveForwardsAlongXAct);
+  move->addAction(p->moveBackwardsAlongXAct);
+  move->addAction(p->moveForwardsAlongYAct);
+  move->addAction(p->moveBackwardsAlongYAct);
+  move->addAction(p->moveForwardsAlongZAct);
+  move->addAction(p->moveBackwardsAlongZAct);
 
   p->renderMenu = menuBar()->addMenu(tr("&Render"));
   p->renderMenu->addAction(p->renderAct);
@@ -451,6 +517,38 @@ void MainWindow::deleteElement() {
   elementChanged(nullptr);
 }
 
+void MainWindow::moveTransformable(const Vector3d& vec) {
+  if (auto t = dynamic_cast<Transformable*>(p->currentElement)) {
+    setFocus();
+    t->moveBy(vec * 0.1, QGuiApplication::keyboardModifiers() & Qt::ShiftModifier);
+    elementChanged(t);
+  }
+}
+
+void MainWindow::moveForwardsAlongX() {
+  moveTransformable(Vector3d::right());
+}
+
+void MainWindow::moveBackwardsAlongX() {
+  moveTransformable(-Vector3d::right());
+}
+
+void MainWindow::moveForwardsAlongY() {
+  moveTransformable(Vector3d::up());
+}
+
+void MainWindow::moveBackwardsAlongY() {
+  moveTransformable(-Vector3d::up());
+}
+
+void MainWindow::moveForwardsAlongZ() {
+  moveTransformable(Vector3d::forward());
+}
+
+void MainWindow::moveBackwardsAlongZ() {
+  moveTransformable(-Vector3d::forward());
+}
+
 void MainWindow::render() {
   if (!p->renderWindow->isBusy()) {
     p->renderWindow->setScene(p->scene);
@@ -530,6 +628,14 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   p->currentElement = element;
   p->currentIndex = current;
   p->deleteElementAct->setEnabled(element != nullptr && dynamic_cast<Scene*>(element) == nullptr);
+  
+  auto transformable = dynamic_cast<Transformable*>(element);
+  p->moveForwardsAlongXAct->setEnabled(transformable != nullptr);
+  p->moveBackwardsAlongXAct->setEnabled(transformable != nullptr);
+  p->moveForwardsAlongYAct->setEnabled(transformable != nullptr);
+  p->moveBackwardsAlongYAct->setEnabled(transformable != nullptr);
+  p->moveForwardsAlongZAct->setEnabled(transformable != nullptr);
+  p->moveBackwardsAlongZAct->setEnabled(transformable != nullptr);
   
   if (element) {
     p->propertyEditorWidget->setElement(element);

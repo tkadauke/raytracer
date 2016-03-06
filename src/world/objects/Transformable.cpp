@@ -46,4 +46,14 @@ void Transformable::joinParent() {
   setMatrix(matrix * localTransform());
 }
 
+void Transformable::moveBy(const Vector3d& vector, bool global) {
+  Vector3d offset;
+  if (global) {
+    offset = Matrix3d(globalTransform().inverted() * localTransform()) * vector;
+  } else {
+    offset = Matrix3d(localTransform()) * vector;
+  }
+  setPosition(position() + offset);
+}
+
 #include "Transformable.moc"

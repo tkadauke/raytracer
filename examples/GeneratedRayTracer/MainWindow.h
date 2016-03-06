@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/math/Vector.h"
 #include <QMainWindow>
 
 class QDockWidget;
@@ -61,6 +62,13 @@ private slots:
   
   void deleteElement();
   
+  void moveForwardsAlongX();
+  void moveBackwardsAlongX();
+  void moveForwardsAlongY();
+  void moveBackwardsAlongY();
+  void moveForwardsAlongZ();
+  void moveBackwardsAlongZ();
+  
   void render();
   
   void about();
@@ -82,6 +90,8 @@ private:
   
   template<class T>
   void add();
+  
+  void moveTransformable(const Vector3d& vec);
 
   struct Private;
   std::unique_ptr<Private> p;
