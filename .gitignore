@@ -11,3 +11,4 @@ examples/*/SceneBrowser
 test/coverage
 /docs
 tools/rendercli/rendercli
+/_scenes
