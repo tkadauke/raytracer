@@ -39,9 +39,11 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* sce
     
     for (const auto& child : childElements()) {
       if (Surface* surface = qobject_cast<Surface*>(child)) {
-        composite->add(surface->toRaytracer(scene));
+        if (surface->visible())
+          composite->add(surface->toRaytracer(scene));
       } else if (Light* light = qobject_cast<Light*>(child)) {
-        scene->addLight(light->toRaytracer());
+        if (light->visible())
+          scene->addLight(light->toRaytracer());
       }
     }
 
