@@ -44,6 +44,7 @@ private slots:
 
   void addIntersection();
   void addUnion();
+  void addDifference();
   
   void addMatteMaterial();
   void addPhongMaterial();

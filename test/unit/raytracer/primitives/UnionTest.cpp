@@ -1,13 +1,14 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Union.h"
+#include "raytracer/materials/MatteMaterial.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace UnionTest {
   using namespace ::testing;
   using namespace raytracer;
   
-  TEST(Union, ShouldReturnSelfIfAnyOfTheChildPrimitivesIntersect) {
+  TEST(Union, ShouldReturnClosestPrimitiveForUnion) {
     Union u;
     auto primitive1 = std::make_shared<MockPrimitive>();
     auto primitive2 = std::make_shared<MockPrimitive>();
@@ -21,7 +22,32 @@ namespace UnionTest {
     );
     EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
       Return(static_cast<Primitive*>(nullptr))
+    );
     
+    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    
+    HitPointInterval hitPoints;
+    auto result = u.intersect(ray, hitPoints);
+    
+    ASSERT_EQ(primitive1.get(), result);
+  }
+
+  TEST(Union, ShouldReturnSelfIfDifferenceHasMaterial) {
+    Union u;
+    u.setMaterial(new MatteMaterial);
+    
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
+    u.add(primitive1);
+    u.add(primitive2);
+    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
+      DoAll(
+        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        Return(primitive1.get())
+      )
+    );
+    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
+      Return(static_cast<Primitive*>(nullptr))
     );
     
     Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));

@@ -34,6 +34,7 @@
 
 #include "world/objects/Intersection.h"
 #include "world/objects/Union.h"
+#include "world/objects/Difference.h"
 
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/PhongMaterial.h"
@@ -86,6 +87,7 @@ struct MainWindow::Private {
 
   QAction* addIntersectionAct;
   QAction* addUnionAct;
+  QAction* addDifferenceAct;
   
   QAction* addMatteMaterialAct;
   QAction* addPhongMaterialAct;
@@ -176,6 +178,10 @@ void MainWindow::createActions() {
   p->addUnionAct = new QAction(tr("Union"), this);
   p->addUnionAct->setStatusTip(tr("Add a union to the scene"));
   connect(p->addUnionAct, SIGNAL(triggered()), this, SLOT(addUnion()));
+  
+  p->addDifferenceAct = new QAction(tr("Difference"), this);
+  p->addDifferenceAct->setStatusTip(tr("Add a difference to the scene"));
+  connect(p->addDifferenceAct, SIGNAL(triggered()), this, SLOT(addDifference()));
   
   p->addMatteMaterialAct = new QAction(tr("Matte Material"), this);
   p->addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
@@ -316,6 +322,7 @@ void MainWindow::createMenus() {
   auto addComposite = p->editMenu->addMenu(tr("Add Composite"));
   addComposite->addAction(p->addIntersectionAct);
   addComposite->addAction(p->addUnionAct);
+  addComposite->addAction(p->addDifferenceAct);
   
   auto addMaterial = p->editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(p->addMatteMaterialAct);
@@ -465,6 +472,10 @@ void MainWindow::addIntersection() {
 
 void MainWindow::addUnion() {
   add<Union>();
+}
+
+void MainWindow::addDifference() {
+  add<Difference>();
 }
 
 void MainWindow::addMatteMaterial() {

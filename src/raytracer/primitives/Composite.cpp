@@ -25,7 +25,7 @@ Primitive* Composite::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     HitPointInterval candidate;
     auto primitive = i->intersect(ray, candidate);
     if (primitive) {
-      double distance = candidate.min().distance();
+      double distance = candidate.minWithPositiveDistance().distance();
       if (distance < minDistance) {
         hit = primitive;
         minDistance = distance;

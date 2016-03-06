@@ -5,17 +5,27 @@
 using namespace raytracer;
 
 Primitive* Union::intersect(const Ray& ray, HitPointInterval& hitPoints) {
-  bool hit = false;
+  Primitive* hit = nullptr;
+  double minDistance = std::numeric_limits<double>::infinity();
   
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    if (i->intersect(ray, candidate)) {
-      hit = true;
+    auto primitive = i->intersect(ray, candidate);
+    if (primitive) {
       hitPoints = hitPoints | candidate;
+      double dist = candidate.min().distance();
+      if (dist < minDistance) {
+        hit = primitive;
+        minDistance = dist;
+      }
     }
   }
   
-  return hit ? this : 0;
+  if (hitPoints.empty() || hitPoints.minWithPositiveDistance().isUndefined()) {
+    return nullptr;
+  } else {
+    return material() ? this : hit;
+  }
 }
 
 bool Union::intersects(const Ray& ray) {

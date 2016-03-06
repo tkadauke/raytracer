@@ -26,8 +26,6 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* sce
   
   if (material()) {
     primitive->setMaterial(material()->toRaytracerMaterial());
-  } else {
-    primitive->setMaterial(Material::defaultMaterial()->toRaytracerMaterial());
   }
   
   if (childElements().size() > 0) {
