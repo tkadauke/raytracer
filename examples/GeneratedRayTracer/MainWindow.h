@@ -43,6 +43,7 @@ private slots:
   void addSphere();
 
   void addIntersection();
+  void addUnion();
   
   void addMatteMaterial();
   void addPhongMaterial();

@@ -33,6 +33,7 @@
 #include "world/objects/Box.h"
 
 #include "world/objects/Intersection.h"
+#include "world/objects/Union.h"
 
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/PhongMaterial.h"
@@ -84,6 +85,7 @@ struct MainWindow::Private {
   QAction* addSphereAct;
 
   QAction* addIntersectionAct;
+  QAction* addUnionAct;
   
   QAction* addMatteMaterialAct;
   QAction* addPhongMaterialAct;
@@ -170,6 +172,10 @@ void MainWindow::createActions() {
   p->addIntersectionAct = new QAction(tr("Intersection"), this);
   p->addIntersectionAct->setStatusTip(tr("Add an intersection to the scene"));
   connect(p->addIntersectionAct, SIGNAL(triggered()), this, SLOT(addIntersection()));
+  
+  p->addUnionAct = new QAction(tr("Union"), this);
+  p->addUnionAct->setStatusTip(tr("Add a union to the scene"));
+  connect(p->addUnionAct, SIGNAL(triggered()), this, SLOT(addUnion()));
   
   p->addMatteMaterialAct = new QAction(tr("Matte Material"), this);
   p->addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
@@ -309,6 +315,7 @@ void MainWindow::createMenus() {
 
   auto addComposite = p->editMenu->addMenu(tr("Add Composite"));
   addComposite->addAction(p->addIntersectionAct);
+  addComposite->addAction(p->addUnionAct);
   
   auto addMaterial = p->editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(p->addMatteMaterialAct);
@@ -454,6 +461,10 @@ void MainWindow::addSphere() {
 
 void MainWindow::addIntersection() {
   add<Intersection>();
+}
+
+void MainWindow::addUnion() {
+  add<Union>();
 }
 
 void MainWindow::addMatteMaterial() {

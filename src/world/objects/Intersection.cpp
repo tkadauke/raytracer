@@ -1,10 +1,9 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/Intersection.h"
 #include "raytracer/primitives/Intersection.h"
-#include "raytracer/materials/MatteMaterial.h"
 
 Intersection::Intersection(Element* parent)
-  : Surface(parent), m_active(true)
+  : CSGSurface(parent)
 {
 }
 
