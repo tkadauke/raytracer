@@ -35,9 +35,9 @@ public:
   
   inline void setScale(const Vector3d& scale) {
     m_scale = Vector3d(
-      std::max(std::abs(scale.x()), std::numeric_limits<double>::epsilon()),
-      std::max(std::abs(scale.y()), std::numeric_limits<double>::epsilon()),
-      std::max(std::abs(scale.z()), std::numeric_limits<double>::epsilon())
+      std::max(std::abs(scale.x()), 0.000001),
+      std::max(std::abs(scale.y()), 0.000001),
+      std::max(std::abs(scale.z()), 0.000001)
     );
   }
   
