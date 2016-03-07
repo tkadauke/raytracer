@@ -75,4 +75,29 @@ namespace DifferenceTest {
     
     ASSERT_EQ(0, result);
   }
+
+  TEST(Difference, ShouldReturnBoundingBoxWithOneChild) {
+    Difference i;
+    auto mockPrimitive = std::make_shared<MockPrimitive>();
+    i.add(mockPrimitive);
+    
+    BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    EXPECT_CALL(*mockPrimitive, boundingBox()).WillOnce(Return(bbox));
+    
+    ASSERT_EQ(bbox, i.boundingBox());
+  }
+  
+  TEST(Difference, ShouldReturnBoundingBoxOfFirstChildIfThereAreMultipleChildren) {
+    Difference i;
+    auto mockPrimitive1 = std::make_shared<MockPrimitive>();
+    auto mockPrimitive2 = std::make_shared<MockPrimitive>();
+    i.add(mockPrimitive1);
+    i.add(mockPrimitive2);
+    
+    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*mockPrimitive2, boundingBox()).Times(0);
+    
+    BoundingBoxd expected(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
+    ASSERT_EQ(expected, i.boundingBox());
+  }
 }
