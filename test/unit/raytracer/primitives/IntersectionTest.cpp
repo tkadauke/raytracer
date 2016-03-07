@@ -16,13 +16,19 @@ namespace IntersectionTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(1.0, Vector3d(), Vector3d()), HitPoint(4.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
+          HitPoint(primitive1.get(), 4.0, Vector3d(), Vector3d())
+        ),
         Return(primitive1.get())
       )
     );
     EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(2.0, Vector3d(), Vector3d()), HitPoint(5.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive2.get(), 2.0, Vector3d(), Vector3d()),
+          HitPoint(primitive2.get(), 5.0, Vector3d(), Vector3d())
+        ),
         Return(primitive2.get())
       )
     );
@@ -45,13 +51,19 @@ namespace IntersectionTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(1.0, Vector3d(), Vector3d()), HitPoint(4.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
+          HitPoint(primitive1.get(), 4.0, Vector3d(), Vector3d())
+        ),
         Return(primitive1.get())
       )
     );
     EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(2.0, Vector3d(), Vector3d()), HitPoint(5.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive2.get(), 2.0, Vector3d(), Vector3d()),
+          HitPoint(primitive2.get(), 5.0, Vector3d(), Vector3d())
+        ),
         Return(primitive2.get())
       )
     );
@@ -89,7 +101,10 @@ namespace IntersectionTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(1.0, Vector3d(), Vector3d()), HitPoint(4.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
+          HitPoint(primitive1.get(), 4.0, Vector3d(), Vector3d())
+        ),
         Return(primitive1.get())
       )
     );
@@ -111,13 +126,19 @@ namespace IntersectionTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(1.0, Vector3d(), Vector3d()), HitPoint(2.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
+          HitPoint(primitive1.get(), 2.0, Vector3d(), Vector3d())
+        ),
         Return(primitive1.get())
       )
     );
     EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(3.0, Vector3d(), Vector3d()), HitPoint(4.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive2.get(), 3.0, Vector3d(), Vector3d()),
+          HitPoint(primitive2.get(), 4.0, Vector3d(), Vector3d())
+        ),
         Return(primitive2.get())
       )
     );

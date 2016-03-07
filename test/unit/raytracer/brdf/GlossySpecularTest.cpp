@@ -1,11 +1,14 @@
 #include "gtest.h"
 #include "raytracer/brdf/GlossySpecular.h"
+#include "raytracer/primitives/Box.h"
 
 #include "core/math/HitPoint.h"
 
 namespace GlossySpecularTest {
   using namespace raytracer;
 
+  static Box* box = new Box(Vector3d::null(), Vector3d::one());
+  
   TEST(GlossySpecular, ShouldInitialize) {
     GlossySpecular glossy;
     ASSERT_EQ(1, glossy.specularCoefficient());
@@ -46,7 +49,7 @@ namespace GlossySpecularTest {
     glossy.setSpecularColor(Colord(1, 0, 0));
     glossy.setExponent(128);
     
-    HitPoint point(1, Vector4d::null(), Vector3d::up());
+    HitPoint point(box, 1, Vector4d::null(), Vector3d::up());
     
     ASSERT_EQ(Colord::black(), glossy(point, - Vector3d::up(), Vector3d::up()));
   }
@@ -56,7 +59,7 @@ namespace GlossySpecularTest {
     glossy.setSpecularColor(Colord(1, 0, 0));
     glossy.setExponent(128);
     
-    HitPoint point(1, Vector4d::null(), Vector3d::up());
+    HitPoint point(box, 1, Vector4d::null(), Vector3d::up());
     
     ASSERT_EQ(Colord(1, 0, 0), glossy(point, Vector3d::forward(), - Vector3d::forward()));
   }

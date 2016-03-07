@@ -6,6 +6,10 @@
 #include <cmath>
 #include <iostream>
 
+namespace raytracer {
+  class Primitive;
+}
+
 /**
   * This class keeps track of ray/object intersection information. It holds the
   * ray distance (the distance between the ray origin and the intersection
@@ -25,20 +29,37 @@ public:
     * Constructs the null HitPoint.
     */
   inline HitPoint()
-    : m_distance(0)
+    : m_primitive(nullptr),
+      m_distance(0)
   {
   }
   
   /**
-    * Constructs a HitPoint from the specified distance, point, and normal.
+    * Constructs a HitPoint on primitive from the specified distance, point, and
+    * normal.
     */
-  inline HitPoint(double distance, const Vector4d& point, const Vector3d& normal)
-    : m_distance(distance),
+  inline HitPoint(raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
+    : m_primitive(primitive),
+      m_distance(distance),
       m_point(point),
       m_normal(normal)
   {
   }
   
+  /**
+    * @returns the primitive that contains this HitPoint.
+    */
+  inline raytracer::Primitive* primitive() const {
+    return m_primitive;
+  }
+  
+  /**
+    * Sets the primitive for this HitPoint.
+    */
+  inline void setPrimitive(raytracer::Primitive* primitive) {
+    m_primitive = primitive;
+  }
+
   /**
     * @returns the ray distance of this HitPoint.
     */
@@ -93,7 +114,7 @@ public:
     * @returns a copy of this HitPoint with the normal swapped.
     */
   inline HitPoint swappedNormal() const {
-    return HitPoint(m_distance, m_point, -m_normal);
+    return HitPoint(m_primitive, m_distance, m_point, -m_normal);
   }
   
   /**
@@ -101,7 +122,7 @@ public:
     *   with pointMatrix, and the normal transformed with normalMatrix.
     */
   inline HitPoint transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
-    return HitPoint(m_distance, pointMatrix * m_point, (normalMatrix * m_normal).normalized());
+    return HitPoint(m_primitive, m_distance, pointMatrix * m_point, (normalMatrix * m_normal).normalized());
   }
   
   /**
@@ -111,7 +132,8 @@ public:
   inline bool operator==(const HitPoint& other) const {
     if (&other == this)
       return true;
-    return m_distance == other.distance() &&
+    return m_primitive == other.primitive() &&
+           m_distance == other.distance() &&
            m_point == other.point() &&
            m_normal == other.normal();
   }
@@ -125,6 +147,7 @@ public:
   }
   
 private:
+  raytracer::Primitive* m_primitive;
   double m_distance;
   Vector4d m_point;
   Vector3d m_normal;

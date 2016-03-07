@@ -5,6 +5,7 @@ using namespace std;
 
 const HitPoint& HitPoint::undefined() {
   static HitPoint h(
+    nullptr,
     numeric_limits<double>::quiet_NaN(),
     Vector4d::undefined(),
     Vector3d::undefined()

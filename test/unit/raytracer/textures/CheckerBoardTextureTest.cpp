@@ -25,10 +25,10 @@ namespace CheckerBoardTextureTest {
     );
     
     ASSERT_EQ(Colord::white(), texture.evaluate(
-      Ray::undefined(), HitPoint(0, Vector4d(0.5, 0, 0.5), Vector3d::null()))
+      Ray::undefined(), HitPoint(nullptr, 0, Vector4d(0.5, 0, 0.5), Vector3d::null()))
     );
     ASSERT_EQ(Colord::black(), texture.evaluate(
-      Ray::undefined(), HitPoint(0, Vector4d(1.5, 0, 0.5), Vector3d::null()))
+      Ray::undefined(), HitPoint(nullptr, 0, Vector4d(1.5, 0, 0.5), Vector3d::null()))
     );
   }
 }

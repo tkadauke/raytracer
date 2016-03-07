@@ -1,13 +1,16 @@
 #include "gtest.h"
 #include "core/math/HitPointInterval.h"
+#include "raytracer/primitives/Box.h"
 
 namespace HitPointIntervalTest {
+  static raytracer::Box* box = new raytracer::Box(Vector3d::null(), Vector3d::one());
+  
   TEST(HitPointInterval, ShouldInitialize) {
     HitPointInterval interval;
   }
   
   TEST(HitPointInterval, ShouldInitializeWithTwoHitPoints) {
-    HitPointInterval interval((HitPoint()), HitPoint());
+    HitPointInterval interval(HitPoint(), HitPoint());
   }
   
   TEST(HitPointInterval, ShouldAddSingleHitPoint) {
@@ -32,7 +35,7 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldReturnClosestHitPoint) {
     HitPointInterval interval;
-    HitPoint hitPoint(5, Vector3d(), Vector3d());
+    HitPoint hitPoint(box, 5, Vector3d(), Vector3d());
     interval.add(hitPoint);
     ASSERT_TRUE(hitPoint == interval.min());
   }
@@ -45,14 +48,14 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldReturnFarthestHitPoint) {
     HitPointInterval interval;
-    HitPoint hitPoint(5, Vector3d(), Vector3d());
+    HitPoint hitPoint(box, 5, Vector3d(), Vector3d());
     interval.add(hitPoint);
     ASSERT_TRUE(hitPoint == interval.max());
   }
   
   TEST(HitPointInterval, ShouldSetClosestAndFarthestHitPointWhenOnlyOneHitPointIsAdded) {
     HitPointInterval interval;
-    HitPoint hitPoint(5, Vector3d(), Vector3d());
+    HitPoint hitPoint(box, 5, Vector3d(), Vector3d());
     interval.add(hitPoint);
     ASSERT_TRUE(interval.min() == interval.max());
   }
@@ -66,7 +69,7 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldComputeUnionOfEmptyAndNonEmptyIntervals) {
     HitPointInterval interval1, interval2;
-    HitPoint hitPoint(5, Vector3d(), Vector3d());
+    HitPoint hitPoint(box, 5, Vector3d(), Vector3d());
     interval2.add(hitPoint);
     HitPointInterval unionInterval = interval1 | interval2;
     
@@ -76,8 +79,8 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldComputeUnionOfTwoNonEmptyIntervals) {
     HitPointInterval interval1, interval2;
-    HitPoint hitPoint1(5, Vector3d(), Vector3d());
-    HitPoint hitPoint2(3, Vector3d(), Vector3d());
+    HitPoint hitPoint1(box, 5, Vector3d(), Vector3d());
+    HitPoint hitPoint2(box, 3, Vector3d(), Vector3d());
     interval1.add(hitPoint1);
     interval2.add(hitPoint2);
     HitPointInterval unionInterval = interval1 | interval2;
@@ -95,7 +98,7 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldComputeIntersectionOfEmptyAndNonEmptyIntervals) {
     HitPointInterval interval1, interval2;
-    HitPoint hitPoint(5, Vector3d(), Vector3d());
+    HitPoint hitPoint(box, 5, Vector3d(), Vector3d());
     interval2.add(hitPoint);
     HitPointInterval intersectionInterval = interval1 & interval2;
     ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined());
@@ -104,10 +107,10 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldComputeIntersectionOfTwoNonEmptyIntervals) {
     HitPointInterval interval1, interval2;
-    HitPoint hitPoint1(2, Vector3d(), Vector3d());
-    HitPoint hitPoint2(5, Vector3d(), Vector3d());
-    HitPoint hitPoint3(4, Vector3d(), Vector3d());
-    HitPoint hitPoint4(7, Vector3d(), Vector3d());
+    HitPoint hitPoint1(box, 2, Vector3d(), Vector3d());
+    HitPoint hitPoint2(box, 5, Vector3d(), Vector3d());
+    HitPoint hitPoint3(box, 4, Vector3d(), Vector3d());
+    HitPoint hitPoint4(box, 7, Vector3d(), Vector3d());
     interval1.add(hitPoint1, hitPoint2);
     interval2.add(hitPoint3, hitPoint4);
     HitPointInterval intersectionInterval = interval1 & interval2;
@@ -118,10 +121,10 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldReturnEmptyIntersectionIfIntervalsDontOverlap) {
     HitPointInterval interval1, interval2;
-    HitPoint hitPoint1(2, Vector3d(), Vector3d());
-    HitPoint hitPoint2(3, Vector3d(), Vector3d());
-    HitPoint hitPoint3(4, Vector3d(), Vector3d());
-    HitPoint hitPoint4(5, Vector3d(), Vector3d());
+    HitPoint hitPoint1(box, 2, Vector3d(), Vector3d());
+    HitPoint hitPoint2(box, 3, Vector3d(), Vector3d());
+    HitPoint hitPoint3(box, 4, Vector3d(), Vector3d());
+    HitPoint hitPoint4(box, 5, Vector3d(), Vector3d());
     interval1.add(hitPoint1, hitPoint2);
     interval2.add(hitPoint3, hitPoint4);
     HitPointInterval intersectionInterval = interval1 & interval2;
@@ -132,8 +135,8 @@ namespace HitPointIntervalTest {
   
   TEST(HitPointInterval, ShouldTransformInterval) {
     HitPointInterval interval;
-    HitPoint hitPoint1(2, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
-    HitPoint hitPoint2(3, Vector3d(2, 0, 0), Vector3d(0, 1, 0));
+    HitPoint hitPoint1(box, 2, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
+    HitPoint hitPoint2(box, 3, Vector3d(2, 0, 0), Vector3d(0, 1, 0));
     interval.add(hitPoint1, hitPoint2);
     
     Matrix4d pointMatrix = Matrix3d::rotateZ(Angled::fromRadians(1));

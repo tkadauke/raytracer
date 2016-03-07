@@ -34,8 +34,10 @@ Primitive* Torus::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     if (results[0] > 0 || results[1] > 0) {
       Vector3d hitPoint1 = ray.at(results[0]),
                hitPoint2 = ray.at(results[1]);
-      hitPoints.add(HitPoint(results[0], hitPoint1, computeNormal(hitPoint1)),
-                    HitPoint(results[1], hitPoint2, computeNormal(hitPoint2)));
+      hitPoints.add(
+        HitPoint(this, results[0], hitPoint1, computeNormal(hitPoint1)),
+        HitPoint(this, results[1], hitPoint2, computeNormal(hitPoint2))
+      );
       found = true;
     }
   }
@@ -44,8 +46,10 @@ Primitive* Torus::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     if (results[2] > 0 || results[3] > 0) {
       Vector3d hitPoint1 = ray.at(results[2]),
                hitPoint2 = ray.at(results[3]);
-      hitPoints.add(HitPoint(results[2], hitPoint1, computeNormal(hitPoint1)),
-                    HitPoint(results[3], hitPoint2, computeNormal(hitPoint2)));
+      hitPoints.add(
+        HitPoint(this, results[2], hitPoint1, computeNormal(hitPoint1)),
+        HitPoint(this, results[3], hitPoint2, computeNormal(hitPoint2))
+      );
       found = true;
     }
   }

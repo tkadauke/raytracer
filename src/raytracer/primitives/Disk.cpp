@@ -13,7 +13,7 @@ Primitive* Disk::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   Vector3d hitPoint = ray.at(t);
   
   if (hitPoint.squaredDistanceTo(m_center) < m_squaredRadius) {
-    hitPoints.add(HitPoint(t, hitPoint, m_normal));
+    hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
     return this;
   }
   return nullptr;

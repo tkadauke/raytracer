@@ -16,7 +16,7 @@ namespace UnionTest {
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
@@ -42,7 +42,7 @@ namespace UnionTest {
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
@@ -83,13 +83,13 @@ namespace UnionTest {
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
     EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive2.get(), 5.0, Vector3d(), Vector3d())),
         Return(primitive2.get())
       )
     );

@@ -16,7 +16,10 @@ namespace DifferenceTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(1.0, Vector3d(), Vector3d()), HitPoint(4.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
+          HitPoint(primitive1.get(), 4.0, Vector3d(), Vector3d())
+        ),
         Return(primitive1.get())
       )
     );
@@ -40,7 +43,10 @@ namespace DifferenceTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoints(HitPoint(1.0, Vector3d(), Vector3d()), HitPoint(4.0, Vector3d(), Vector3d())),
+        AddHitPoints(
+          HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
+          HitPoint(primitive1.get(), 4.0, Vector3d(), Vector3d())
+        ),
         Return(primitive1.get())
       )
     );

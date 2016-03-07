@@ -33,7 +33,7 @@ namespace CompositeTest {
     composite.add(primitive);
     EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive.get())
       )
     );
@@ -68,13 +68,13 @@ namespace CompositeTest {
     composite.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(5.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive1.get(), 5.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
     EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(
       DoAll(
-        AddHitPoint(HitPoint(1.0, Vector3d(), Vector3d())),
+        AddHitPoint(HitPoint(primitive2.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive2.get())
       )
     );

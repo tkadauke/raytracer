@@ -22,7 +22,7 @@ Primitive* Rectangle::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   if (dot2 < 0 || dot2 > m_squaredLength2)
     return nullptr;
   
-  hitPoints.add(HitPoint(t, hitPoint, m_normal));
+  hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
   return this;
 }
 

@@ -8,7 +8,7 @@ Primitive* Plane::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   double t = calculateIntersectionDistance(ray);
   
   if (t > 0) {
-    hitPoints.add(HitPoint(t, ray.at(t), m_normal));
+    hitPoints.add(HitPoint(this, t, ray.at(t), m_normal));
     return this;
   } else
     return nullptr;

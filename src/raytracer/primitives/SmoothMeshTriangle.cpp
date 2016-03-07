@@ -70,7 +70,7 @@ Primitive* SmoothMeshTriangle::intersect(const Ray& ray, HitPointInterval& hitPo
   if (gamma < 0 || (beta + gamma) > 1)
     return nullptr;
   
-  hitPoints.add(HitPoint(t, ray.at(t), interpolateNormal(beta, gamma)));
+  hitPoints.add(HitPoint(this, t, ray.at(t), interpolateNormal(beta, gamma)));
   
   return this;
 }
