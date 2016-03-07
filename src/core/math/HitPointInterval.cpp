@@ -116,6 +116,30 @@ HitPointInterval HitPointInterval::operator-(const HitPointInterval& other) cons
   return result;
 }
 
+HitPointInterval HitPointInterval::operator+(const HitPointInterval& other) const {
+  HitPointInterval result;
+  
+  HitPoints::const_iterator first = m_hitPoints.begin(), second = other.points().begin();
+  while (first != m_hitPoints.end() || second != other.points().end()) {
+    bool useFirst;
+    if (first != m_hitPoints.end() && second != other.points().end()) {
+      useFirst = *first < *second;
+    } else {
+      useFirst = first != m_hitPoints.end();
+    }
+    
+    if (useFirst) {
+      result.add(*first);
+      ++first;
+    } else {
+      result.add(*second);
+      ++second;
+    }
+  }
+  
+  return result;
+}
+
 std::ostream& operator<<(std::ostream& os, const HitPointInterval& interval) {
   os << '[';
   for (const auto& i : interval.points()) {

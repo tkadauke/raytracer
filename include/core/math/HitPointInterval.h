@@ -102,6 +102,13 @@ public:
   }
   
   /**
+    * Adds an already wrapped hitpoint to this interval.
+    */
+  inline void add(const HitPointWrapper& hpw) {
+    m_hitPoints.push_back(hpw);
+  }
+  
+  /**
     * @returns all points describing all of the intervals.
     */
   inline const HitPoints& points() const {
@@ -127,11 +134,17 @@ public:
   HitPointInterval operator&(const HitPointInterval& other) const;
   
   /**
-    * @returns a new inline that is the difference between this interval and
+    * @returns a new interval that is the difference between this interval and
     *   other.
     */
   HitPointInterval operator-(const HitPointInterval& other) const;
-  
+
+  /**
+    * @returns a new interval that is the composite between this interval and
+    *   other.
+    */
+  HitPointInterval operator+(const HitPointInterval& other) const;
+
   /**
     * @returns a new HitPointInterval with all points transformed with
     * pointMatrix, and all normals transformed with normalMatrix.
