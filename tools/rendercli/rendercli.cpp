@@ -12,6 +12,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 #include "raytracer/samplers/SamplerFactory.h"
+#include "raytracer/viewplanes/TiledViewPlane.h"
 
 #include "core/Buffer.h"
 
@@ -74,7 +75,9 @@ void Renderer::render() {
     qWarning("No camera found. Defaulting to Pinhole camera looking at the origin");
     raytracer->camera()->setPosition(Vector3d(0, 0, -5));
   }
-
+  
+  // We don't need a fancy view plane, so we can optimize for fast rendering.
+  raytracer->camera()->setViewPlane(std::make_shared<raytracer::TiledViewPlane>());
   raytracer->camera()->viewPlane()->setSampler(sampler());
   
   Buffer<unsigned int> buffer(m_width, m_height);
