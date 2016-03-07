@@ -156,6 +156,19 @@ class Sphere < Surface
   property :radius => 1
 end
 
+class CSGSurface < Surface
+  property :active => true
+end
+
+class Intersection < CSGSurface
+end
+
+class Union < CSGSurface
+end
+
+class Difference < CSGSurface
+end
+
 class Light < Transformable
   property :visible => true,
            :color => [1, 1, 1],
