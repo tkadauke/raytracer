@@ -5,25 +5,15 @@
 using namespace raytracer;
 
 Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
-  Primitive* hit = nullptr;
   bool firstElement = true;
-  double minDistance = std::numeric_limits<double>::infinity();
   
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    auto primitive = i->intersect(ray, candidate);
-    if (primitive) {
+    if (i->intersect(ray, candidate)) {
       if (firstElement) {
         hitPoints = candidate;
-        hit = primitive;
-        minDistance = hitPoints.minWithPositiveDistance().distance();
       } else {
         hitPoints = hitPoints - candidate;
-        double dist = hitPoints.minWithPositiveDistance().distance();
-        if (dist != minDistance) {
-          hit = primitive;
-          minDistance = dist;
-        }
       }
     } else if (firstElement) {
       return nullptr;
@@ -31,10 +21,16 @@ Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     firstElement = false;
   }
   
-  if (hitPoints.empty() || hitPoints.minWithPositiveDistance().isUndefined()) {
+  auto hitPoint = hitPoints.minWithPositiveDistance();
+  if (hitPoint.isUndefined()) {
     return nullptr;
   } else {
-    return material() ? this : hit;
+    if (material()) {
+      hitPoints.setPrimitive(this);
+      return this;
+    } else {
+      return hitPoint.primitive();
+    }
   }
 }
 

@@ -5,25 +5,14 @@
 using namespace raytracer;
 
 Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) {
-  Primitive* hit = nullptr;
-  double minDistance = std::numeric_limits<double>::infinity();
-  
   unsigned int numHits = 0;
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    auto primitive = i->intersect(ray, candidate);
-    if (primitive) {
+    if (i->intersect(ray, candidate)) {
       if (numHits) {
         hitPoints = hitPoints & candidate;
-        double dist = hitPoints.minWithPositiveDistance().distance();
-        if (dist != minDistance) {
-          hit = primitive;
-          minDistance = dist;
-        }
       } else {
         hitPoints = candidate;
-        hit = primitive;
-        minDistance = hitPoints.minWithPositiveDistance().distance();
       }
       numHits++;
     }
@@ -32,7 +21,12 @@ Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) 
   if (numHits != primitives().size() || hitPoints.empty()) {
     return nullptr;
   } else {
-    return material() ? this : hit;
+    if (material()) {
+      hitPoints.setPrimitive(this);
+      return this;
+    } else {
+      return hitPoints.minWithPositiveDistance().primitive();
+    }
   }
 }
 

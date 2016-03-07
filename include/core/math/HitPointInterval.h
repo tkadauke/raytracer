@@ -158,6 +158,15 @@ public:
   }
   
   /**
+    * Sets the primitive in all hit points in this interval to prim.
+    */
+  inline void setPrimitive(raytracer::Primitive* prim) {
+    for (auto& i : m_hitPoints) {
+      i.point.setPrimitive(prim);
+    }
+  }
+  
+  /**
     * @returns the HitPoint in this interval with the smallest distance value.
     */
   inline const HitPoint& min() const {
