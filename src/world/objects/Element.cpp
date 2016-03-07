@@ -23,16 +23,6 @@ Element::Element(Element* parent)
 }
 
 Element::~Element() {
-  Element* e = this;
-  while (e) {
-    if (e->parent() && e->parent()->inherits("Element")) {
-      e = e->parent();
-    } else {
-      break;
-    }
-  }
-  
-  unlink(e);
 }
 
 int Element::row() const {

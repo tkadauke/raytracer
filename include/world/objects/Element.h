@@ -55,6 +55,8 @@ public:
   }
   
   void moveChild(int from, int to);
+  
+  void unlink(Element* root);
 
   virtual void leaveParent();
   virtual void joinParent();
@@ -64,8 +66,6 @@ protected:
   void resolveReferences(const QMap<QString, Element*>& elements);
   
 private:
-  void unlink(Element* root);
-  
   void writeForClass(const QMetaObject* klass, QJsonObject& json);
   
   QList<Element*> m_childElements;

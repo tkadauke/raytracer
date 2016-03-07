@@ -194,6 +194,7 @@ void SceneModel::deleteElement(const QModelIndex& index) {
   if (element->parent()) {
     element->parent()->removeChild(element, false);
   }
+  element->unlink(m_scene);
   delete element;
   endRemoveRows();
 }
