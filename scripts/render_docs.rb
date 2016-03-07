@@ -1,53 +1,11 @@
 require_relative 'lib/scene'
+require_relative 'lib/colors'
+require_relative 'lib/lights'
+require_relative 'lib/materials'
+require_relative 'lib/objects'
+require_relative 'lib/cameras'
 
 module Common
-  def checker_board
-    box :material => matte_material(
-          :diffuseTexture => checker_board_texture(
-            :brightTexture => white,
-            :darkTexture => black,
-          )
-        ),
-        :size => [12, 0.1, 12],
-        :position => [0, 1.1, 0]
-  end
-  
-  def default_camera
-    pinhole_camera :position => [0.5, -1, -3], :zoom => 2
-  end
-  
-  def white
-    @white ||= constant_color_texture(:color => [1, 1, 1])
-  end
-  
-  def black
-    @black ||= constant_color_texture(:color => [0, 0, 0])
-  end
-  
-  def red
-    @red ||= constant_color_texture(:color => [1, 0, 0])
-  end
-
-  def green
-    @green ||= constant_color_texture(:color => [0, 1, 0])
-  end
-  
-  def blue
-    @green ||= constant_color_texture(:color => [0, 0, 1])
-  end
-  
-  def medium_grey
-    @medium_grey ||= constant_color_texture(:color => [0.6, 0.6, 0.6])
-  end
-  
-  def red_matte
-    @red_matte ||= matte_material(:diffuseTexture => red)
-  end
-  
-  def sunlight(options = {})
-    directional_light({ :direction => [-0.5, -1, -0.5] }.merge(options))
-  end
-
   def box_on_checker_board
     checker_board
     box :material => red_matte
