@@ -10,7 +10,7 @@ namespace HitPointIntervalTest {
   }
   
   TEST(HitPointInterval, ShouldInitializeWithTwoHitPoints) {
-    HitPointInterval interval(HitPoint(), HitPoint());
+    HitPointInterval interval((HitPoint()), HitPoint());
   }
   
   TEST(HitPointInterval, ShouldAddSingleHitPoint) {
