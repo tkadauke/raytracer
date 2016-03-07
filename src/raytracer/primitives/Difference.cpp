@@ -44,3 +44,11 @@ bool Difference::intersects(const Ray& ray) {
   HitPointInterval hitPoints;
   return intersect(ray, hitPoints);
 }
+
+BoundingBoxd Difference::boundingBox() {
+  if (primitives().size() > 0) {
+    return primitives().front()->boundingBox();
+  } else {
+    return BoundingBoxd();
+  }
+}

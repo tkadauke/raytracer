@@ -400,6 +400,8 @@ void Grid::setup() {
   
   for (const auto& primitive : primitives()) {
     BoundingBoxd bbox = primitive->boundingBox();
+    if (bbox.isUndefined() || bbox.isEmpty())
+      continue;
     
     Vector3d relativeMin = bbox.min() - m_boundingBox.min();
     Vector3d relativeMax = bbox.max() - m_boundingBox.min();

@@ -95,6 +95,41 @@ public:
   }
   
   /**
+    * @returns the width of the bounding box, i.e. the size along the X axis.
+    */
+  inline T width() const {
+    return max().x() - min().x();
+  }
+  
+  /**
+    * @returns the height of the bounding box, i.e. the size along the Y axis.
+    */
+  inline T height() const {
+    return max().y() - min().y();
+  }
+  
+  /**
+    * @returns the depth of the bounding box, i.e. the size along the Z axis.
+    */
+  inline T depth() const {
+    return max().z() - min().z();
+  }
+  
+  /**
+    * @returns the volume of the bounding box.
+    */
+  inline T volume() const {
+    return width() * height() * depth();
+  }
+  
+  /**
+    * @returns true if the volume of the bounding box is 0, false otherwise.
+    */
+  inline bool isEmpty() const {
+    return volume() == 0;
+  }
+  
+  /**
     * @returns true if this bounding box is equal to other, false otherwise.
     */
   inline bool operator==(const BoundingBox& other) const {
