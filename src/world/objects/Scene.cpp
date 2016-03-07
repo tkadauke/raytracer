@@ -3,7 +3,6 @@
 #include "world/objects/Camera.h"
 #include "world/objects/Light.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Grid.h"
 
 #include <QMap>
 #include <QFile>
@@ -21,14 +20,13 @@ Scene::Scene(Element* parent)
 
 raytracer::Scene* Scene::toRaytracerScene() const {
   raytracer::Scene* result = new raytracer::Scene;
-  auto grid = std::make_shared<raytracer::Grid>();
   
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       if (surface->visible()) {
         auto primitive = surface->toRaytracer(result);
         if (primitive) {
-          grid->add(primitive);
+          result->add(primitive);
         }
       }
     } else if (auto light = dynamic_cast<Light*>(child)) {
@@ -36,11 +34,6 @@ raytracer::Scene* Scene::toRaytracerScene() const {
         result->addLight(light->toRaytracer());
       }
     }
-  }
-  
-  if (grid->primitives().size()) {
-    grid->setup();
-    result->add(grid);
   }
   
   result->setAmbient(ambient());
