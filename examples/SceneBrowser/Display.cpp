@@ -90,7 +90,7 @@ void Display::cameraParameterChanged() {
 void Display::mousePressEvent(QMouseEvent* event) {
   QtDisplay::mousePressEvent(event);
   
-  Ray ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());
+  Rayd ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());
   if (ray.direction().isDefined()) {
     auto primitive = m_raytracer->primitiveForRay(ray);
   

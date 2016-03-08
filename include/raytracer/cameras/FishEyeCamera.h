@@ -41,7 +41,7 @@ namespace raytracer {
     {
     }
 
-    virtual Ray rayForPixel(double x, double y);
+    virtual Rayd rayForPixel(double x, double y);
 
     /**
       * Sets the field of view of the camera.

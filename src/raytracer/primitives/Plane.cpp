@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Primitive* Plane::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   double t = calculateIntersectionDistance(ray);
   
   if (t > 0) {
@@ -14,11 +14,11 @@ Primitive* Plane::intersect(const Ray& ray, HitPointInterval& hitPoints) {
     return nullptr;
 }
 
-bool Plane::intersects(const Ray& ray) {
+bool Plane::intersects(const Rayd& ray) {
   return calculateIntersectionDistance(ray) > 0;
 }
 
-double Plane::calculateIntersectionDistance(const Ray& ray) {
+double Plane::calculateIntersectionDistance(const Rayd& ray) {
   const Vector3d& o = ray.origin(), d = ray.direction();
   
   double angle = m_normal * d;

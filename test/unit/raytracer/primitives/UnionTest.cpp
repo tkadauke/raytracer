@@ -24,7 +24,7 @@ namespace UnionTest {
       Return(static_cast<Primitive*>(nullptr))
     );
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = u.intersect(ray, hitPoints);
@@ -50,7 +50,7 @@ namespace UnionTest {
       Return(static_cast<Primitive*>(nullptr))
     );
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = u.intersect(ray, hitPoints);
@@ -67,7 +67,7 @@ namespace UnionTest {
     EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = u.intersect(ray, hitPoints);
@@ -94,7 +94,7 @@ namespace UnionTest {
       )
     );
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     u.intersect(ray, hitPoints);
@@ -111,7 +111,7 @@ namespace UnionTest {
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(true));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     ASSERT_TRUE(u.intersects(ray));
   }
@@ -125,7 +125,7 @@ namespace UnionTest {
     EXPECT_CALL(*primitive1.get(), intersects(_)).WillOnce(Return(false));
     EXPECT_CALL(*primitive2.get(), intersects(_)).WillOnce(Return(false));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     ASSERT_FALSE(u.intersects(ray));
   }

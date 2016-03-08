@@ -7,7 +7,7 @@ namespace PrimitiveTest {
 
   class ConcretePrimitive : public Primitive {
   public:
-    Primitive* intersect(const Ray&, HitPointInterval&) { return 0; }
+    Primitive* intersect(const Rayd&, HitPointInterval&) { return 0; }
     BoundingBoxd boundingBox() { return BoundingBoxd(); }
   };
   

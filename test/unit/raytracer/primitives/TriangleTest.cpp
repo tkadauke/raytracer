@@ -23,7 +23,7 @@ namespace TriangleTest {
   
   TEST_F(TriangleTest, ShouldIntersectWithRay) {
     Triangle triangle(this->point0, this->point1, this->point2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints);
@@ -35,7 +35,7 @@ namespace TriangleTest {
   
   TEST_F(TriangleTest, ShouldNotIntersectWithMissingRay) {
     Triangle triangle(this->point0, this->point1, this->point2);
-    Ray ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints);
@@ -46,7 +46,7 @@ namespace TriangleTest {
   
   TEST_F(TriangleTest, ShouldNotIntersectIfPointIsBehindRayOrigin) {
     Triangle triangle(this->point0, this->point1, this->point2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints);
@@ -57,14 +57,14 @@ namespace TriangleTest {
   
   TEST_F(TriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     Triangle triangle(this->point0, this->point1, this->point2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(triangle.intersects(ray));
   }
   
   TEST_F(TriangleTest, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Triangle triangle(this->point0, this->point1, this->point2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
     ASSERT_FALSE(triangle.intersects(ray));
   }
@@ -72,12 +72,12 @@ namespace TriangleTest {
   TEST_F(TriangleTest, ShouldHaveSameNormalEverywhere) {
     Triangle triangle(this->point0, this->point1, this->point2);
     HitPointInterval hitPoints1;
-    Ray ray1(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
+    Rayd ray1(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     triangle.intersect(ray1, hitPoints1);
     Vector3d normal1 = hitPoints1.min().normal();
 
     HitPointInterval hitPoints2;
-    Ray ray2(Vector3d(-1, -1, -1), Vector3d(0, 0, 1));
+    Rayd ray2(Vector3d(-1, -1, -1), Vector3d(0, 0, 1));
     triangle.intersect(ray2, hitPoints2);
     Vector3d normal2 = hitPoints2.min().normal();
     

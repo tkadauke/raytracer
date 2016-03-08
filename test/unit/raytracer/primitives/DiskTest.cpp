@@ -12,7 +12,7 @@ namespace DiskTest {
   
   TEST(Disk, ShouldIntersectWithRay) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = disk.intersect(ray, hitPoints);
@@ -24,7 +24,7 @@ namespace DiskTest {
   
   TEST(Disk, ShouldNotIntersectWithMissingRay) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = disk.intersect(ray, hitPoints);
@@ -35,7 +35,7 @@ namespace DiskTest {
   
   TEST(Disk, ShouldNotIntersectIfDiskIsBehindRayOrigin) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
-    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = disk.intersect(ray, hitPoints);

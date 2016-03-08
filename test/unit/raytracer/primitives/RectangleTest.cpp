@@ -12,7 +12,7 @@ namespace RectangleTest {
   
   TEST(Rectangle, ShouldIntersectWithRay) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = rectangle.intersect(ray, hitPoints);
@@ -24,7 +24,7 @@ namespace RectangleTest {
   
   TEST(Rectangle, ShouldNotIntersectWithParallelRay) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
-    Ray ray(Vector3d(0, 0, -2), Vector3d(1, 1, 0));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(1, 1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = rectangle.intersect(ray, hitPoints);
@@ -35,7 +35,7 @@ namespace RectangleTest {
   
   TEST(Rectangle, ShouldNotIntersectWithMissingRay) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
-    Ray ray(Vector3d(-2, -2, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(-2, -2, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = rectangle.intersect(ray, hitPoints);
@@ -46,7 +46,7 @@ namespace RectangleTest {
   
   TEST(Rectangle, ShouldNotIntersectIfRectangleIsBehindRayOrigin) {
     Rectangle rectangle(Vector3d(-1, -1, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
-    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = rectangle.intersect(ray, hitPoints);

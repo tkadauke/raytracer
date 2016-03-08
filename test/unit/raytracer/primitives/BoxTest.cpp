@@ -12,7 +12,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldIntersectWithRayInXDirection) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(-2, 0, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(-2, 0, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);
@@ -24,7 +24,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldIntersectWithRayInYDirection) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(0, -2, 0), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, -2, 0), Vector3d(0, 1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);
@@ -36,7 +36,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldIntersectWithRayInZDirection) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);
@@ -48,7 +48,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldIntersectIfRayIsTangentToPrimitive) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(0, 1, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 1, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);
@@ -60,7 +60,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldNotIntersectWithMissingRay) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);
@@ -71,7 +71,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldNotIntersectIfBoxIsBehindRayOrigin) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);
@@ -82,7 +82,7 @@ namespace BoxTest {
   
   TEST(Box, ShouldReportBothHitpointsWhenRayOriginIsInsideBox) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
-    Ray ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = box.intersect(ray, hitPoints);

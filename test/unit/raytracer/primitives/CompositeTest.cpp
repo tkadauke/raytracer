@@ -38,7 +38,7 @@ namespace CompositeTest {
       )
     );
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = composite.intersect(ray, hitPoints);
@@ -52,7 +52,7 @@ namespace CompositeTest {
     composite.add(primitive);
     EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(0)));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = composite.intersect(ray, hitPoints);
@@ -79,7 +79,7 @@ namespace CompositeTest {
       )
     );
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = composite.intersect(ray, hitPoints);
@@ -96,7 +96,7 @@ namespace CompositeTest {
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));
     EXPECT_CALL(*primitive2, intersects(_)).WillOnce(Return(true));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     bool result = composite.intersects(ray);
     
@@ -112,7 +112,7 @@ namespace CompositeTest {
     EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));
     EXPECT_CALL(*primitive2, intersects(_)).WillOnce(Return(false));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     bool result = composite.intersects(ray);
     

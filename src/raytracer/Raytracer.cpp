@@ -104,12 +104,12 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   }
 }
 
-Primitive* Raytracer::primitiveForRay(const Ray& ray) {
+Primitive* Raytracer::primitiveForRay(const Rayd& ray) {
   HitPointInterval hitPoints;
   return m_scene->intersect(ray, hitPoints);
 }
 
-Colord Raytracer::rayColor(const Ray& ray, int recursionDepth) {
+Colord Raytracer::rayColor(const Rayd& ray, int recursionDepth) {
   if (recursionDepth == p->maximumRecursionDepth) {
     return Colord::black();
   }

@@ -2,10 +2,10 @@
 
 #include "core/Color.h"
 #include "core/math/Vector.h"
+#include "core/math/Ray.h"
 
 template<class T>
 class Buffer;
-class Ray;
 
 namespace raytracer {
   class Scene;
@@ -20,8 +20,8 @@ namespace raytracer {
   
     void render(Buffer<unsigned int>& buffer);
   
-    Primitive* primitiveForRay(const Ray& ray);
-    Colord rayColor(const Ray& ray, int recursionDepth = 0);
+    Primitive* primitiveForRay(const Rayd& ray);
+    Colord rayColor(const Rayd& ray, int recursionDepth = 0);
     
     inline std::shared_ptr<Camera> camera() const {
       return m_camera;

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/Color.h"
+#include "core/math/Ray.h"
 
-class Ray;
 class HitPoint;
 
 namespace raytracer {
@@ -11,7 +11,7 @@ namespace raytracer {
   public:
     inline virtual ~Texture() {}
     
-    virtual T evaluate(const Ray& ray, const HitPoint& hitPoint) const = 0;
+    virtual T evaluate(const Rayd& ray, const HitPoint& hitPoint) const = 0;
   };
 
   typedef Texture<Colord> Texturec;

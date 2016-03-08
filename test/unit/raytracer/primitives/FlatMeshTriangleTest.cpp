@@ -14,12 +14,12 @@ namespace FlatMeshTriangleTest {
     
     FlatMeshTriangle triangle(&mesh, 0, 1, 2);
     HitPointInterval hitPoints1;
-    Ray ray1(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
+    Rayd ray1(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     triangle.intersect(ray1, hitPoints1);
     Vector3d normal1 = hitPoints1.min().normal();
 
     HitPointInterval hitPoints2;
-    Ray ray2(Vector3d(-1, -1, -1), Vector3d(0, 0, 1));
+    Rayd ray2(Vector3d(-1, -1, -1), Vector3d(0, 0, 1));
     triangle.intersect(ray2, hitPoints2);
     Vector3d normal2 = hitPoints2.min().normal();
     

@@ -1,12 +1,11 @@
 #pragma once
 
 #include "raytracer/brdf/BRDF.h"
-
-class Ray;
+#include "core/math/Ray.h"
 
 namespace raytracer {
   class BTDF : BRDF {
   public:
-    virtual bool totalInternalReflection(const Ray& ray, const HitPoint& hitPoint) = 0;
+    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) = 0;
   };
 }

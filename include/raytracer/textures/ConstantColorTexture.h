@@ -19,7 +19,7 @@ namespace raytracer {
       return m_color;
     }
     
-    virtual Colord evaluate(const Ray& ray, const HitPoint& hitPoint) const;
+    virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;
   
   private:
     Colord m_color;

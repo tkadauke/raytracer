@@ -41,7 +41,7 @@ namespace FishEyeCameraTest {
   
   TEST(FishEyeCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
     FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
-    Ray ray = camera.rayForPixel(0, 0);
+    Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -1), ray.origin());
     ASSERT_TRUE(ray.direction().isUndefined());
   }
@@ -52,7 +52,7 @@ namespace FishEyeCameraTest {
     Buffer<unsigned int> buffer(1, 1);
     camera.render(raytracer, buffer);
 
-    Ray ray = camera.rayForPixel(0, 0);
+    Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -1), ray.origin());
     ASSERT_TRUE(ray.direction().isUndefined());
   }

@@ -27,7 +27,7 @@ namespace testing {
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldIntersectWithRay) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints);
@@ -39,7 +39,7 @@ namespace testing {
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldNotIntersectWithMissingRay) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
-    Ray ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints);
@@ -50,7 +50,7 @@ namespace testing {
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldNotIntersectIfPointIsBehindRayOrigin) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints);
@@ -61,14 +61,14 @@ namespace testing {
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(triangle.intersects(ray));
   }
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
-    Ray ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
+    Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
     ASSERT_FALSE(triangle.intersects(ray));
   }

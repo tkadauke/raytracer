@@ -10,10 +10,10 @@ void OrthographicCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<uns
   Camera::render(raytracer, buffer, rect);
 }
 
-Ray OrthographicCamera::rayForPixel(double x, double y) {
+Rayd OrthographicCamera::rayForPixel(double x, double y) {
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
   Vector3d pixel = viewPlane()->pixelAt(x, y);
-  return Ray(pixel, direction);
+  return Rayd(pixel, direction);
 }
 
 static bool dummy = CameraFactory::self().registerClass<OrthographicCamera>("OrthographicCamera");

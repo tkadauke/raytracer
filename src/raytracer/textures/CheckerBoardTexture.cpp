@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Colord CheckerBoardTexture::evaluate(const Ray& ray, const HitPoint& hitPoint) const {
+Colord CheckerBoardTexture::evaluate(const Rayd& ray, const HitPoint& hitPoint) const {
   double s, t;
   m_mapping->map(hitPoint, s, t);
   if ((int(floor(s)) + int(floor(t))) % 2 == 0) {

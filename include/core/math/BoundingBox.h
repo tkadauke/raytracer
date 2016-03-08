@@ -8,8 +8,6 @@
 #include <iostream>
 #include <algorithm>
 
-class Ray;
-
 /**
   * Represents a three-dimensional axis-aligned bounding box (AABB), a type of
   * [bounding volume](https://en.wikipedia.org/wiki/Bounding_volume). This class
@@ -226,7 +224,7 @@ public:
     * 
     * @returns true if ray intersects with this BoundingBox, false otherwise.
     */
-  bool intersects(const Ray& ray) const;
+  bool intersects(const Rayd& ray) const;
   
 private:
   Vector3<T> m_min, m_max;
@@ -252,7 +250,7 @@ void BoundingBox<T>::getVertices(Container& container) {
 }
 
 template<class T>
-bool BoundingBox<T>::intersects(const Ray& ray) const {
+bool BoundingBox<T>::intersects(const Rayd& ray) const {
   T ox = ray.origin().x();
   T oy = ray.origin().y();
   T oz = ray.origin().z();
@@ -308,7 +306,7 @@ bool BoundingBox<T>::intersects(const Ray& ray) const {
   if (zMax < t1)
     t1 = zMax;
   
-  return (t0 < t1 && t1 > Ray::epsilon);
+  return (t0 < t1 && t1 > Rayd::epsilon);
 }
 
 

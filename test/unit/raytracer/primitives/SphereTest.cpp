@@ -12,7 +12,7 @@ namespace SphereTest {
   
   TEST(Sphere, ShouldIntersectWithRay) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = sphere.intersect(ray, hitPoints);
@@ -25,7 +25,7 @@ namespace SphereTest {
   
   TEST(Sphere, ShouldNotIntersectWithMissingRay) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = sphere.intersect(ray, hitPoints);
@@ -36,7 +36,7 @@ namespace SphereTest {
   
   TEST(Sphere, ShouldNotIntersectIfSphereIsBehindRayOrigin) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = sphere.intersect(ray, hitPoints);
@@ -47,7 +47,7 @@ namespace SphereTest {
   
   TEST(Sphere, ShouldReportBothHitpointsWhenRayOriginIsInsideSphere) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = sphere.intersect(ray, hitPoints);
@@ -63,28 +63,28 @@ namespace SphereTest {
   
   TEST(Sphere, ShouldReturnTrueForIntersectsIfThereIsAIntersectionWithRay) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(sphere.intersects(ray));
   }
   
   TEST(Sphere, ShouldReturnFalseForIntersectsWithMissingRay) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
     
     ASSERT_FALSE(sphere.intersects(ray));
   }
   
   TEST(Sphere, ShouldReturnFalseForIntersectsIfSphereIsBehindRayOrigin) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     ASSERT_FALSE(sphere.intersects(ray));
   }
 
   TEST(Sphere, ShouldReturnTrueForIntersectsIfRayIsInsideSphere) {
     Sphere sphere(Vector3d(), 1);
-    Ray ray(Vector3d(), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(sphere.intersects(ray));
   }

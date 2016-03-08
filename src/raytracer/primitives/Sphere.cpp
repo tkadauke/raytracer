@@ -6,7 +6,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
   
   double od = o * d, dd = d * d;
@@ -34,7 +34,7 @@ Primitive* Sphere::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   return nullptr;
 }
 
-bool Sphere::intersects(const Ray& ray) {
+bool Sphere::intersects(const Rayd& ray) {
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
   
   double od = o * d, dd = d * d;

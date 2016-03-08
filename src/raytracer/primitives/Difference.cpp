@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   bool firstElement = true;
   
   for (const auto& i : primitives()) {
@@ -36,7 +36,7 @@ Primitive* Difference::intersect(const Ray& ray, HitPointInterval& hitPoints) {
 
 // Shadow implementation of Composite, which generates spourious shadows of
 // differential objects
-bool Difference::intersects(const Ray& ray) {
+bool Difference::intersects(const Rayd& ray) {
   HitPointInterval hitPoints;
   return intersect(ray, hitPoints);
 }

@@ -5,13 +5,13 @@
 
 using namespace raytracer;
 
-Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth) {
+Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int recursionDepth) {
   auto color = PhongMaterial::shade(raytracer, ray, hitPoint, recursionDepth);
 
   Vector3d out = - ray.direction();
   Vector3d in;
   Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
-  Ray reflected(hitPoint.point(), in);
+  Rayd reflected(hitPoint.point(), in);
   
   double normalDotIn = hitPoint.normal() * in;
   

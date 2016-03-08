@@ -19,6 +19,6 @@ namespace ConstantColorTextureTest {
   
   TEST(ConstantColorTexture, ShouldBeIndependentOfPointOrRayDirection) {
     ConstantColorTexture texture(Colord(1, 0, 0));
-    ASSERT_EQ(Colord(1, 0, 0), texture.evaluate(Ray::undefined(), HitPoint::undefined()));
+    ASSERT_EQ(Colord(1, 0, 0), texture.evaluate(Rayd::undefined(), HitPoint::undefined()));
   }
 }

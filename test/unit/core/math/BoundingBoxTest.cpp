@@ -333,7 +333,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    Ray ray(Vector3<TypeParam>(-2, 0, 0), Vector3<TypeParam>(1, 0, 0));
+    Rayd ray(Vector3<TypeParam>(-2, 0, 0), Vector3<TypeParam>(1, 0, 0));
     
     ASSERT_TRUE(box.intersects(ray));
   }
@@ -343,7 +343,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    Ray ray(Vector3<TypeParam>(0, -2, 0), Vector3<TypeParam>(0, 1, 0));
+    Rayd ray(Vector3<TypeParam>(0, -2, 0), Vector3<TypeParam>(0, 1, 0));
     
     ASSERT_TRUE(box.intersects(ray));
   }
@@ -353,7 +353,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    Ray ray(Vector3<TypeParam>(0, 0, -2), Vector3<TypeParam>(0, 0, 1));
+    Rayd ray(Vector3<TypeParam>(0, 0, -2), Vector3<TypeParam>(0, 0, 1));
     
     ASSERT_TRUE(box.intersects(ray));
   }
@@ -363,7 +363,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    Ray ray(Vector3<TypeParam>(0, 0, -2), Vector3<TypeParam>(0, 1, 0));
+    Rayd ray(Vector3<TypeParam>(0, 0, -2), Vector3<TypeParam>(0, 1, 0));
     
     ASSERT_FALSE(box.intersects(ray));
   }
@@ -373,7 +373,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    Ray ray(Vector3<TypeParam>(0, 0, 2), Vector3<TypeParam>(0, 0, 1));
+    Rayd ray(Vector3<TypeParam>(0, 0, 2), Vector3<TypeParam>(0, 0, 1));
     
     ASSERT_FALSE(box.intersects(ray));
   }

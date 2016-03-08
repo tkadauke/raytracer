@@ -13,7 +13,7 @@ namespace raytracer {
     }
     
     virtual Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in);
-    virtual bool totalInternalReflection(const Ray& ray, const HitPoint& hitPoint);
+    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint);
     
     inline void setTransmissionCoefficient(double coeff) {
       m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);

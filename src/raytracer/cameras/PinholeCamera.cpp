@@ -10,10 +10,10 @@ void PinholeCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned
   Camera::render(raytracer, buffer, rect);
 }
 
-Ray PinholeCamera::rayForPixel(double x, double y) {
+Rayd PinholeCamera::rayForPixel(double x, double y) {
   Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
   Vector3d pixel = viewPlane()->pixelAt(x, y);
-  return Ray(position, (pixel - position).normalized());
+  return Rayd(position, (pixel - position).normalized());
 }
 
 static bool dummy = CameraFactory::self().registerClass<PinholeCamera>("PinholeCamera");

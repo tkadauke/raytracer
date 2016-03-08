@@ -7,7 +7,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Torus::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   if (!boundingBox().intersects(ray))
     return nullptr;
   

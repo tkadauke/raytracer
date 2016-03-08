@@ -8,8 +8,8 @@ namespace raytracer {
   public:
     SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int index2);
 
-    virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
-    virtual bool intersects(const Ray& ray);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints);
+    virtual bool intersects(const Rayd& ray);
 
   private:
     Vector3d interpolateNormal(float beta, float gamma) const;

@@ -15,11 +15,11 @@ namespace raytracer {
 
     void setMatrix(const Matrix4d& matrix);
 
-    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:
-    inline Ray transformedRay(const Ray& ray) const {
-      return Ray(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
+    inline Rayd transformedRay(const Rayd& ray) const {
+      return Rayd(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
     }
 
     Matrix4d m_originMatrix;

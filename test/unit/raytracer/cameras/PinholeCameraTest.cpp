@@ -54,7 +54,7 @@ namespace PinholeCameraTest {
   
   TEST(PinholeCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
-    Ray ray = camera.rayForPixel(0, 0);
+    Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }
@@ -65,7 +65,7 @@ namespace PinholeCameraTest {
     Buffer<unsigned int> buffer(1, 1);
     camera.render(raytracer, buffer);
 
-    Ray ray = camera.rayForPixel(0, 0);
+    Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }

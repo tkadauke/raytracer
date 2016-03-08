@@ -23,9 +23,9 @@ Vector3d SphericalCamera::direction(double x, double y) {
   return Matrix3d(matrix()) * Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
 }
 
-Ray SphericalCamera::rayForPixel(double x, double y) {
+Rayd SphericalCamera::rayForPixel(double x, double y) {
   Vector3d position = matrix() * Vector4d(0, 0, -5);
-  return Ray(position, direction(x, y));
+  return Rayd(position, direction(x, y));
 }
 
 static bool dummy = CameraFactory::self().registerClass<SphericalCamera>("SphericalCamera");

@@ -11,7 +11,7 @@ inline float clamp(float x, float min, float max) {
   return (x < min ? min : (x > max ? max : x));
 }
 
-Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -205,7 +205,7 @@ Primitive* Grid::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   }
 }
 
-bool Grid::intersects(const Ray& ray) {
+bool Grid::intersects(const Rayd& ray) {
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();

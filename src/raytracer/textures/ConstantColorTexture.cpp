@@ -4,6 +4,6 @@
 
 using namespace raytracer;
 
-Colord ConstantColorTexture::evaluate(const Ray&, const HitPoint&) const {
+Colord ConstantColorTexture::evaluate(const Rayd&, const HitPoint&) const {
   return m_color;
 }

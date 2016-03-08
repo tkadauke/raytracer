@@ -51,9 +51,9 @@ namespace raytracer {
     void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer);
     virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect<int>& rect);
     
-    virtual Ray rayForPixel(double x, double y) = 0;
+    virtual Rayd rayForPixel(double x, double y) = 0;
     
-    inline Ray rayForPixel(const Vector2d& pixel) {
+    inline Rayd rayForPixel(const Vector2d& pixel) {
       return rayForPixel(pixel.x(), pixel.y());
     }
     

@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   unsigned int numHits = 0;
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
@@ -30,7 +30,7 @@ Primitive* Intersection::intersect(const Ray& ray, HitPointInterval& hitPoints) 
   }
 }
 
-bool Intersection::intersects(const Ray& ray) {
+bool Intersection::intersects(const Rayd& ray) {
   for (const auto& i : primitives()) {
     if (!i->intersects(ray))
       return false;

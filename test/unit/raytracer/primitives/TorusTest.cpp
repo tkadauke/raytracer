@@ -12,7 +12,7 @@ namespace TorusTest {
   
   TEST(Torus, ShouldIntersectWithRay) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = torus.intersect(ray, hitPoints);
@@ -25,7 +25,7 @@ namespace TorusTest {
   
   TEST(Torus, ShouldNotIntersectWithMissingRay) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = torus.intersect(ray, hitPoints);
@@ -36,7 +36,7 @@ namespace TorusTest {
   
   TEST(Torus, ShouldNotIntersectIfTorusIsBehindRayOrigin) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
     
     HitPointInterval hitPoints;
     auto primitive = torus.intersect(ray, hitPoints);
@@ -47,7 +47,7 @@ namespace TorusTest {
   
   TEST(Torus, ShouldNotIntersectWithTorusHole) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 4, 0), Vector3d(0, -1, 0));
+    Rayd ray(Vector3d(0, 4, 0), Vector3d(0, -1, 0));
     
     HitPointInterval hitPoints;
     auto primitive = torus.intersect(ray, hitPoints);
@@ -58,35 +58,35 @@ namespace TorusTest {
   
   TEST(Torus, ShouldReturnTrueForIntersectsIfThereIsAIntersectionWithRay) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(torus.intersects(ray));
   }
   
   TEST(Torus, ShouldReturnFalseForIntersectsWithMissingRay) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
+    Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
     
     ASSERT_FALSE(torus.intersects(ray));
   }
   
   TEST(Torus, ShouldReturnFalseForIntersectsIfTorusIsBehindRayOrigin) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
     
     ASSERT_FALSE(torus.intersects(ray));
   }
 
   TEST(Torus, ShouldReturnTrueForIntersectsIfRayIsInsideTorus) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(torus.intersects(ray));
   }
   
   TEST(Torus, ShouldReturnTrueForIntersectsIfRayIsInsideTorusHole) {
     Torus torus(2, 1);
-    Ray ray(Vector3d(), Vector3d(0, 0, 1));
+    Rayd ray(Vector3d(), Vector3d(0, 0, 1));
     
     ASSERT_TRUE(torus.intersects(ray));
   }

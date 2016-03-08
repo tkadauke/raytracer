@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/math/BoundingBox.h"
+#include "core/math/Ray.h"
 
-class Ray;
 class HitPointInterval;
 
 namespace raytracer {
@@ -13,8 +13,8 @@ namespace raytracer {
     Primitive() : m_material(nullptr) {}
     virtual ~Primitive() {}
 
-    virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints) = 0;
-    virtual bool intersects(const Ray& ray);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints) = 0;
+    virtual bool intersects(const Rayd& ray);
 
     virtual BoundingBoxd boundingBox() = 0;
 

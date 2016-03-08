@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Primitive* Rectangle::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
   if (t < 0.0001 || std::isinf(t))
     return nullptr;

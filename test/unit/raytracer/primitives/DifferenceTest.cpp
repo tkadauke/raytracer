@@ -25,7 +25,7 @@ namespace DifferenceTest {
     );
     EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = i.intersect(ray, hitPoints);
@@ -52,7 +52,7 @@ namespace DifferenceTest {
     );
     EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = i.intersect(ray, hitPoints);
@@ -68,7 +68,7 @@ namespace DifferenceTest {
     i.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = i.intersect(ray, hitPoints);

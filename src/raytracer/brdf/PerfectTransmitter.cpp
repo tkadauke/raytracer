@@ -21,7 +21,7 @@ Colord PerfectTransmitter::sample(const HitPoint& hitPoint, const Vector3d& out,
   return Colord::white() * (transmissionCoefficient() / (eta * eta) / fabs(hitPoint.normal() * in));
 }
 
-bool PerfectTransmitter::totalInternalReflection(const Ray& ray, const HitPoint& hitPoint) {
+bool PerfectTransmitter::totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) {
   Vector3d wo = -ray.direction();
   double cosTheta = hitPoint.normal() * wo;
   double eta = refractionIndex();

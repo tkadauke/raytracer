@@ -7,7 +7,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Instance::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints);
   if (result) {
     hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
@@ -20,7 +20,7 @@ Primitive* Instance::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   return nullptr;
 }
 
-bool Instance::intersects(const Ray& ray) {
+bool Instance::intersects(const Rayd& ray) {
   return m_primitive->intersects(instancedRay(ray));
 }
 

@@ -60,11 +60,11 @@ namespace raytracer {
       return m_specularBTDF.refractionIndex();
     }
     
-    virtual Colord shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int recursionDepth);
 
   private:
     Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
-    bool totalInternalReflection(const Ray& ray, const HitPoint& hitPoint);
+    bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint);
 
     PerfectSpecular m_reflectiveBRDF;
     PerfectTransmitter m_specularBTDF;

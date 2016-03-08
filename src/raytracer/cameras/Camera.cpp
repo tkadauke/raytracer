@@ -46,7 +46,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     Colord pixelColor;
     for (const auto& sample : plane->sampler()->sampleSet()) {
-      Ray ray = rayForPixel(pixel.pixel() + sample);
+      Rayd ray = rayForPixel(pixel.pixel() + sample);
       if (ray.direction().isDefined())
         pixelColor += raytracer->rayColor(ray);
     }

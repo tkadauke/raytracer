@@ -12,12 +12,12 @@ namespace raytracer {
     {
     }
 
-    virtual Primitive* intersect(const Ray& ray, HitPointInterval& hitPoints);
-    virtual bool intersects(const Ray& ray);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints);
+    virtual bool intersects(const Rayd& ray);
     virtual BoundingBoxd boundingBox();
 
   private:
-    double calculateIntersectionDistance(const Ray& ray);
+    double calculateIntersectionDistance(const Rayd& ray);
 
     Vector3d m_normal;
     double m_distance;

@@ -17,7 +17,7 @@ BoundingBoxd Composite::boundingBox() {
   return b;
 }
 
-Primitive* Composite::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   Primitive* hit = nullptr;
   double minDistance = numeric_limits<double>::infinity();
   
@@ -38,7 +38,7 @@ Primitive* Composite::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   return hit;
 }
 
-bool Composite::intersects(const Ray& ray) {
+bool Composite::intersects(const Rayd& ray) {
   for (const auto& i : m_primitives) {
     if (i->intersects(ray))
       return true;

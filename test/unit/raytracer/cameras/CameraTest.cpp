@@ -23,8 +23,8 @@ namespace CameraTest {
       // noop
     }
     
-    inline virtual Ray rayForPixel(double, double) {
-      return Ray::undefined();
+    inline virtual Rayd rayForPixel(double, double) {
+      return Rayd::undefined();
     }
   };
   

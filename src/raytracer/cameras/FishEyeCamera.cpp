@@ -23,9 +23,9 @@ Vector3d FishEyeCamera::direction(double x, double y) {
     return Vector3d::undefined();
 }
 
-Ray FishEyeCamera::rayForPixel(double x, double y) {
+Rayd FishEyeCamera::rayForPixel(double x, double y) {
   Vector3d position = matrix().translationVector();
-  return Ray(position, direction(x, y));
+  return Rayd(position, direction(x, y));
 }
 
 static bool dummy = CameraFactory::self().registerClass<FishEyeCamera>("FishEyeCamera");

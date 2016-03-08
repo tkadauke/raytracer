@@ -6,7 +6,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Box::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   int parallel = 0;
   bool found = false;
   Vector3d d = m_center - ray.origin();

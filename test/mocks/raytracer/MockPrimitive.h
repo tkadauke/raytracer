@@ -13,8 +13,8 @@ namespace testing {
       destructorCall();
     }
 
-    MOCK_METHOD2(intersect, Primitive*(const Ray&, HitPointInterval&));
-    MOCK_METHOD1(intersects, bool(const Ray&));
+    MOCK_METHOD2(intersect, Primitive*(const Rayd&, HitPointInterval&));
+    MOCK_METHOD1(intersects, bool(const Rayd&));
     MOCK_METHOD0(boundingBox, BoundingBoxd());
     MOCK_METHOD0(destructorCall, void());
   };

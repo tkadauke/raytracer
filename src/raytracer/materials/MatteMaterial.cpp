@@ -11,7 +11,7 @@
 using namespace std;
 using namespace raytracer;
 
-Colord MatteMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint& hitPoint, int) {
+Colord MatteMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int) {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
   
   Lambertian ambientBRDF(texColor, ambientCoefficient());
@@ -23,7 +23,7 @@ Colord MatteMaterial::shade(Raytracer* raytracer, const Ray& ray, const HitPoint
   for (const auto& light : raytracer->scene()->lights()) {
     Vector3d in = light->direction(hitPoint.point());
     
-    if (!raytracer->scene()->intersects(Ray(hitPoint.point(), in).epsilonShifted())) {
+    if (!raytracer->scene()->intersects(Rayd(hitPoint.point(), in).epsilonShifted())) {
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0)
         color += diffuseBRDF(hitPoint, Vector3d::null(), Vector3d::null()) * light->radiance() * normalDotIn;

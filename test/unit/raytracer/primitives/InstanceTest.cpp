@@ -17,7 +17,7 @@ namespace InstanceTest {
       )
     );
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = instance.intersect(ray, hitPoints);
@@ -30,7 +30,7 @@ namespace InstanceTest {
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     HitPointInterval hitPoints;
     auto result = instance.intersect(ray, hitPoints);
@@ -43,7 +43,7 @@ namespace InstanceTest {
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_)).WillOnce(Return(true));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     ASSERT_TRUE(instance.intersects(ray));
   }
@@ -53,7 +53,7 @@ namespace InstanceTest {
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_)).WillOnce(Return(false));
     
-    Ray ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
     ASSERT_FALSE(instance.intersects(ray));
   }

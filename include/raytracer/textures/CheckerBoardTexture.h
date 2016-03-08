@@ -36,7 +36,7 @@ namespace raytracer {
       return m_darkTexture;
     }
     
-    virtual Colord evaluate(const Ray& ray, const HitPoint& hitPoint) const;
+    virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;
   
   private:
     TextureMapping2D* m_mapping;

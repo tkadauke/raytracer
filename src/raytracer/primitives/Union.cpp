@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Primitive* Union::intersect(const Ray& ray, HitPointInterval& hitPoints) {
+Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
     if (i->intersect(ray, candidate)) {
@@ -25,7 +25,7 @@ Primitive* Union::intersect(const Ray& ray, HitPointInterval& hitPoints) {
   }
 }
 
-bool Union::intersects(const Ray& ray) {
+bool Union::intersects(const Rayd& ray) {
   for (const auto& i : primitives()) {
     if (i->intersects(ray)) {
       return true;
