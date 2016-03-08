@@ -923,6 +923,10 @@ public:
     *   M' = I\f$, where \f$I\f$ is the identity matrix.
     */
   Matrix4<T> inverted() const;
+  
+  /**
+    * @returns the determinant \f$|M|\f$ of this matrix \f$M\f$.
+    */
   T determinant() const;
   
   /**
