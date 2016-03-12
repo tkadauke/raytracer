@@ -31,8 +31,8 @@ int Quadric<T>::solve() {
   } else if (determinant > 0) {
     T determinantRoot = std::sqrt(determinant);
 
-    m_result[0] = (determinantRoot - m_b) / (2 * m_a);
-    m_result[1] = (-determinantRoot - m_b) / (2 * m_a);
+    m_result[0] = (-determinantRoot - m_b) / (2 * m_a);
+    m_result[1] = (+determinantRoot - m_b) / (2 * m_a);
     return 2;
   } else
     return 0;
