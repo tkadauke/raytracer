@@ -156,6 +156,11 @@ class Sphere < Surface
   property :radius => 1
 end
 
+class Cylinder < Surface
+  property :radius => 1,
+           :height => 2
+end
+
 class CSGSurface < Surface
   property :active => true
 end

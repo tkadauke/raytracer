@@ -8,7 +8,7 @@ namespace raytracer {
   public:
     inline OpenCylinder(double radius, double height)
       : m_radius(radius),
-        m_height(height),
+        m_halfHeight(height / 2.0),
         m_invRadius(1.0 / radius)
     {
     }
@@ -19,7 +19,7 @@ namespace raytracer {
 
   private:
     double m_radius;
-    double m_height;
+    double m_halfHeight;
     
     double m_invRadius;
   };

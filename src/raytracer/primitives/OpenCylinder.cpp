@@ -24,29 +24,21 @@ Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints)
   if (results == 0) {
     return nullptr;
   } else {
-    Range<double> yRange(-m_height, m_height);
-    Vector3d point = ray.at(t[0]);
+    if (t[0] <= 0 && t[1] <= 0)
+      return nullptr;
 
-    if (yRange.contains(point.y())) {
-      Vector3d normal(point.x() * m_invRadius, 0.0, point.z() * m_invRadius);
+    Range<double> yRange(-m_halfHeight, m_halfHeight);
+    Vector3d point1 = ray.at(t[0]),
+             point2 = ray.at(t[1]);
 
-      if (-ray.direction() * normal < 0.0)
-        normal = -normal;
-
-      hitPoints.add(HitPoint(this, t[0], point, normal));
+    if (yRange.contains(point1.y())) {
+      Vector3d normal(point1.x() * m_invRadius, 0.0, point1.z() * m_invRadius);
+      hitPoints.addIn(HitPoint(this, t[0], point1, normal));
     }
 
-    if (results == 2) {
-      point = ray.at(t[1]);
-
-      if (yRange.contains(point.y())) {
-        Vector3d normal(point.x() * m_invRadius, 0.0, point.z() * m_invRadius);
-
-        if (-ray.direction() * normal < 0.0)
-          normal = -normal;
-
-        hitPoints.add(HitPoint(this, t[1], point, normal));
-      }
+    if (yRange.contains(point2.y())) {
+      Vector3d normal(point2.x() * m_invRadius, 0.0, point2.z() * m_invRadius);
+      hitPoints.addOut(HitPoint(this, t[1], point2, normal));
     }
     
     return hitPoints.empty() ? nullptr : this;
@@ -69,15 +61,18 @@ bool OpenCylinder::intersects(const Rayd& ray) {
   if (results == 0) {
     return false;
   } else {
-    Range<double> yRange(-m_height, m_height);
+    if (t[0] <= 0 && t[1] <= 0)
+      return false;
+
+    Range<double> yRange(-m_halfHeight, m_halfHeight);
     return yRange.contains(ray.at(t[0]).y()) ||
-      (results == 2 && yRange.contains(ray.at(t[1]).y()));
+           yRange.contains(ray.at(t[1]).y());
   }
 }
 
 BoundingBoxd OpenCylinder::boundingBox() {
   return BoundingBoxd(
-    Vector3d(-m_radius, -m_height, -m_radius),
-    Vector3d( m_radius,  m_height,  m_radius)
+    Vector3d(-m_radius, -m_halfHeight, -m_radius),
+    Vector3d( m_radius,  m_halfHeight,  m_radius)
   );
 }

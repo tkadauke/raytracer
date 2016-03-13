@@ -41,6 +41,7 @@ private slots:
   
   void addBox();
   void addSphere();
+  void addCylinder();
 
   void addIntersection();
   void addUnion();

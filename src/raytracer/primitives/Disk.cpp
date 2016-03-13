@@ -13,10 +13,14 @@ Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& 
     return nullptr;
   }
   
-  Vector3d hitPoint = ray.at(t);
+  Vector4d hitPoint = ray.at(t);
   
   if (hitPoint.squaredDistanceTo(m_center) < m_squaredRadius) {
-    hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
+    if (-ray.direction() * m_normal < 0.0) {
+      hitPoints.addIn(HitPoint(this, t, hitPoint, m_normal));
+    } else {
+      hitPoints.addOut(HitPoint(this, t, hitPoint, m_normal));
+    }
     state.hit("Disk");
     return this;
   }
