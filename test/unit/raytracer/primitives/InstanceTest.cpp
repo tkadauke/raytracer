@@ -44,21 +44,23 @@ namespace InstanceTest {
   TEST(Instance, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersects(_)).WillOnce(Return(true));
+    EXPECT_CALL(*primitive, intersects(_, _)).WillOnce(Return(true));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
-    ASSERT_TRUE(instance.intersects(ray));
+    State state;
+    ASSERT_TRUE(instance.intersects(ray, state));
   }
 
   TEST(Instance, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive, intersects(_, _)).WillOnce(Return(false));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
-    ASSERT_FALSE(instance.intersects(ray));
+    State state;
+    ASSERT_FALSE(instance.intersects(ray, state));
   }
   
   TEST(Instance, ShouldReturnBoundingBox) {

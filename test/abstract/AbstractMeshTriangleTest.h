@@ -73,14 +73,16 @@ namespace testing {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(triangle.intersects(ray));
+    State state;
+    ASSERT_TRUE(triangle.intersects(ray, state));
   }
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
-    ASSERT_FALSE(triangle.intersects(ray));
+    State state;
+    ASSERT_FALSE(triangle.intersects(ray, state));
   }
   
   REGISTER_TYPED_TEST_CASE_P(

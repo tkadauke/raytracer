@@ -113,11 +113,12 @@ namespace UnionTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(true));
+    EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(true));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
-    ASSERT_TRUE(u.intersects(ray));
+    State state;
+    ASSERT_TRUE(u.intersects(ray, state));
   }
   
   TEST(Union, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
@@ -126,11 +127,12 @@ namespace UnionTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1.get(), intersects(_)).WillOnce(Return(false));
-    EXPECT_CALL(*primitive2.get(), intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive1.get(), intersects(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive2.get(), intersects(_, _)).WillOnce(Return(false));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
-    ASSERT_FALSE(u.intersects(ray));
+    State state;
+    ASSERT_FALSE(u.intersects(ray, state));
   }
 }

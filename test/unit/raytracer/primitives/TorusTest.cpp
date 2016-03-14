@@ -73,35 +73,40 @@ namespace TorusTest {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(torus.intersects(ray));
+    State state;
+    ASSERT_TRUE(torus.intersects(ray, state));
   }
   
   TEST(Torus, ShouldReturnFalseForIntersectsWithMissingRay) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
     
-    ASSERT_FALSE(torus.intersects(ray));
+    State state;
+    ASSERT_FALSE(torus.intersects(ray, state));
   }
   
   TEST(Torus, ShouldReturnFalseForIntersectsIfTorusIsBehindRayOrigin) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
     
-    ASSERT_FALSE(torus.intersects(ray));
+    State state;
+    ASSERT_FALSE(torus.intersects(ray, state));
   }
 
   TEST(Torus, ShouldReturnTrueForIntersectsIfRayIsInsideTorus) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(torus.intersects(ray));
+    State state;
+    ASSERT_TRUE(torus.intersects(ray, state));
   }
   
   TEST(Torus, ShouldReturnTrueForIntersectsIfRayIsInsideTorusHole) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(torus.intersects(ray));
+    State state;
+    ASSERT_TRUE(torus.intersects(ray, state));
   }
   
   TEST(Torus, ShouldReturnBoundingBox) {

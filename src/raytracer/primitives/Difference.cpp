@@ -37,8 +37,7 @@ Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
 
 // Shadow implementation of Composite, which generates spourious shadows of
 // differential objects
-bool Difference::intersects(const Rayd& ray) {
-  State state; // removeme
+bool Difference::intersects(const Rayd& ray, State& state) {
   HitPointInterval hitPoints;
   return intersect(ray, hitPoints, state);
 }

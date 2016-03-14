@@ -82,7 +82,7 @@ Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitP
   return this;
 }
 
-bool SmoothMeshTriangle::intersects(const Rayd& ray) {
+bool SmoothMeshTriangle::intersects(const Rayd& ray, State& state) {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
   
@@ -93,20 +93,27 @@ bool SmoothMeshTriangle::intersects(const Rayd& ray) {
   const double lnd = 1.0f / (D[k] + nu * D[ku] + nv * D[kv]);
   
   const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
-  if (t < 0)
+  if (t < 0) {
+    state.shadowMiss("SmoothMeshTriangle, behind ray");
     return false;
+  }
   
   const double hu = O[ku] + t * D[ku] - A[ku];
   const double hv = O[kv] + t * D[kv] - A[kv];
   
   const double beta = hv * bnu + hu * bnv;
-  if (beta < 0 || beta > 1)
+  if (beta < 0 || beta > 1) {
+    state.shadowMiss("SmoothMeshTriangle, beta not in [0, 1]");
     return false;
+  }
   
   const double gamma = hu * cnu + hv * cnv;
-  if (gamma < 0 || (beta + gamma) > 1)
+  if (gamma < 0 || (beta + gamma) > 1) {
+    state.shadowMiss("SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
     return false;
+  }
   
+  state.shadowHit("SmoothMeshTriangle");
   return true;
 }
 

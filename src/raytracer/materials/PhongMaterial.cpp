@@ -24,10 +24,10 @@ Colord PhongMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoin
   for (const auto& light : raytracer->scene()->lights()) {
     Vector3d in = light->direction(hitPoint.point());
     
-    if (raytracer->scene()->intersects(Rayd(hitPoint.point(), in).epsilonShifted())) {
-      state.shadowMiss("PhongMaterial");
-    } else {
+    if (raytracer->scene()->intersects(Rayd(hitPoint.point(), in).epsilonShifted(), state)) {
       state.shadowHit("PhongMaterial");
+    } else {
+      state.shadowMiss("PhongMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0) {
         color += (

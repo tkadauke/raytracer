@@ -31,9 +31,9 @@ Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints,
   }
 }
 
-bool Intersection::intersects(const Rayd& ray) {
+bool Intersection::intersects(const Rayd& ray, State& state) {
   for (const auto& i : primitives()) {
-    if (!i->intersects(ray))
+    if (!i->intersects(ray, state))
       return false;
   }
   

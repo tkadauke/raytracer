@@ -5,8 +5,7 @@
 
 using namespace raytracer;
 
-bool Primitive::intersects(const Rayd& ray) {
-  State state; // removeme
+bool Primitive::intersects(const Rayd& ray, State& state) {
   HitPointInterval hitPoints;
   return intersect(ray, hitPoints, state);
 }

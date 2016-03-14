@@ -18,8 +18,14 @@ Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, State&
   }
 }
 
-bool Plane::intersects(const Rayd& ray) {
-  return calculateIntersectionDistance(ray) > 0;
+bool Plane::intersects(const Rayd& ray, State& state) {
+  if (calculateIntersectionDistance(ray) > 0) {
+    state.shadowHit("Plane");
+    return true;
+  }
+  
+  state.shadowMiss("Plane");
+  return false;
 }
 
 double Plane::calculateIntersectionDistance(const Rayd& ray) {

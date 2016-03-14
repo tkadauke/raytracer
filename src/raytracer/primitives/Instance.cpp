@@ -21,8 +21,8 @@ Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, Sta
   return nullptr;
 }
 
-bool Instance::intersects(const Rayd& ray) {
-  return m_primitive->intersects(instancedRay(ray));
+bool Instance::intersects(const Rayd& ray, State& state) {
+  return m_primitive->intersects(instancedRay(ray), state);
 }
 
 void Instance::setMatrix(const Matrix4d& matrix) {

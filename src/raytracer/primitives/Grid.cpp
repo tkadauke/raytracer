@@ -206,7 +206,7 @@ Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& 
   }
 }
 
-bool Grid::intersects(const Rayd& ray) {
+bool Grid::intersects(const Rayd& ray, State& state) {
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -352,7 +352,7 @@ bool Grid::intersects(const Rayd& ray) {
     auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z];
 
     if (tx_next < ty_next && tx_next < tz_next) {
-      if (primitive && primitive->intersects(ray))
+      if (primitive && primitive->intersects(ray, state))
         return true;
 
       tx_next += dtx;
@@ -361,7 +361,7 @@ bool Grid::intersects(const Rayd& ray) {
       if (x == ix_stop)
         return false;
     } else if (ty_next < tz_next) {
-      if (primitive && primitive->intersects(ray))
+      if (primitive && primitive->intersects(ray, state))
         return true;
 
       ty_next += dty;
@@ -370,7 +370,7 @@ bool Grid::intersects(const Rayd& ray) {
       if (y == iy_stop)
         return false;
     } else {
-      if (primitive && primitive->intersects(ray))
+      if (primitive && primitive->intersects(ray, state))
         return true;
 
       tz_next += dtz;

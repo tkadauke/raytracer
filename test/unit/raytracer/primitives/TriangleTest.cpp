@@ -69,14 +69,16 @@ namespace TriangleTest {
     Triangle triangle(this->point0, this->point1, this->point2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(triangle.intersects(ray));
+    State state;
+    ASSERT_TRUE(triangle.intersects(ray, state));
   }
   
   TEST_F(TriangleTest, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Triangle triangle(this->point0, this->point1, this->point2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
-    ASSERT_FALSE(triangle.intersects(ray));
+    State state;
+    ASSERT_FALSE(triangle.intersects(ray, state));
   }
   
   TEST_F(TriangleTest, ShouldHaveSameNormalEverywhere) {

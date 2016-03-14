@@ -39,9 +39,9 @@ Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
   return hit;
 }
 
-bool Composite::intersects(const Rayd& ray) {
+bool Composite::intersects(const Rayd& ray, State& state) {
   for (const auto& i : m_primitives) {
-    if (i->intersects(ray))
+    if (i->intersects(ray, state))
       return true;
   }
   

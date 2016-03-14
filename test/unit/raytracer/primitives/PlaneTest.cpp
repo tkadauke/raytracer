@@ -58,14 +58,16 @@ namespace PlaneTest {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, 1, 0), Vector3d(0, -1, 0));
     
-    ASSERT_TRUE(plane.intersects(ray));
+    State state;
+    ASSERT_TRUE(plane.intersects(ray, state));
   }
   
   TEST(Plane, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, -1, 0), Vector3d(0, -1, 0));
     
-    ASSERT_FALSE(plane.intersects(ray));
+    State state;
+    ASSERT_FALSE(plane.intersects(ray, state));
   }
   
   TEST(Plane, ShouldReturnBoundingBox) {

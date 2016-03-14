@@ -97,12 +97,13 @@ namespace CompositeTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     composite.add(primitive1);
     composite.add(primitive2);
-    EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));
-    EXPECT_CALL(*primitive2, intersects(_)).WillOnce(Return(true));
+    EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive2, intersects(_, _)).WillOnce(Return(true));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
-    bool result = composite.intersects(ray);
+    State state;
+    bool result = composite.intersects(ray, state);
     
     ASSERT_TRUE(result);
   }
@@ -113,12 +114,13 @@ namespace CompositeTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     composite.add(primitive1);
     composite.add(primitive2);
-    EXPECT_CALL(*primitive1, intersects(_)).WillOnce(Return(false));
-    EXPECT_CALL(*primitive2, intersects(_)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(false));
+    EXPECT_CALL(*primitive2, intersects(_, _)).WillOnce(Return(false));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
-    bool result = composite.intersects(ray);
+    State state;
+    bool result = composite.intersects(ray, state);
     
     ASSERT_FALSE(result);
   }

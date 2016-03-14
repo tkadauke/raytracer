@@ -78,28 +78,32 @@ namespace SphereTest {
     Sphere sphere(Vector3d(), 1);
     Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(sphere.intersects(ray));
+    State state;
+    ASSERT_TRUE(sphere.intersects(ray, state));
   }
   
   TEST(Sphere, ShouldReturnFalseForIntersectsWithMissingRay) {
     Sphere sphere(Vector3d(), 1);
     Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 1, 0));
     
-    ASSERT_FALSE(sphere.intersects(ray));
+    State state;
+    ASSERT_FALSE(sphere.intersects(ray, state));
   }
   
   TEST(Sphere, ShouldReturnFalseForIntersectsIfSphereIsBehindRayOrigin) {
     Sphere sphere(Vector3d(), 1);
     Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
     
-    ASSERT_FALSE(sphere.intersects(ray));
+    State state;
+    ASSERT_FALSE(sphere.intersects(ray, state));
   }
 
   TEST(Sphere, ShouldReturnTrueForIntersectsIfRayIsInsideSphere) {
     Sphere sphere(Vector3d(), 1);
     Rayd ray(Vector3d(), Vector3d(0, 0, 1));
     
-    ASSERT_TRUE(sphere.intersects(ray));
+    State state;
+    ASSERT_TRUE(sphere.intersects(ray, state));
   }
   
   TEST(Sphere, ShouldReturnBoundingBox) {
