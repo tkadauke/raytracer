@@ -8,11 +8,12 @@ class HitPoint;
 
 namespace raytracer {
   class Raytracer;
+  class State;
 
   class Material {
   public:
     virtual ~Material() {}
 
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int recursionDepth) = 0;
+    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) = 0;
   };
 }

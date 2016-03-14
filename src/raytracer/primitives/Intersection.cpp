@@ -1,14 +1,15 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Intersection.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
 using namespace raytracer;
 
-Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   unsigned int numHits = 0;
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    if (i->intersect(ray, candidate)) {
+    if (i->intersect(ray, candidate, state)) {
       if (numHits) {
         hitPoints = hitPoints & candidate;
       } else {

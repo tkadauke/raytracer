@@ -5,6 +5,7 @@
 
 #include "Display.h"
 #include "raytracer/Raytracer.h"
+#include "raytracer/State.h"
 #include "raytracer/cameras/CameraFactory.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "SceneFactory.h"
@@ -92,20 +93,9 @@ void Display::mousePressEvent(QMouseEvent* event) {
   
   Rayd ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());
   if (ray.direction().isDefined()) {
-    auto primitive = m_raytracer->primitiveForRay(ray);
+    auto state = m_raytracer->rayState(ray);
   
-    cout << primitive;
-  
-    if (primitive) {
-      HitPointInterval hitPoints;
-      primitive->intersect(ray, hitPoints);
-      cout << " - " << endl;
-      for (const auto& hitPoint : hitPoints.points()) {
-        cout << (hitPoint.in ? "IN" : "OUT") << ": " << hitPoint.point << endl;
-      }
-    }
-  
-    cout << endl;
+    cout << state.hitPoint.primitive() << " - " << state.hitPoint << endl;
   }
 }
 

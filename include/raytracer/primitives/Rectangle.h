@@ -17,7 +17,7 @@ namespace raytracer {
       m_squaredLength2 = m_leg2.squaredLength();
     }
 
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
     virtual BoundingBoxd boundingBox();
 
   private:

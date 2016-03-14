@@ -1,15 +1,16 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Difference.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
 using namespace raytracer;
 
-Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   bool firstElement = true;
   
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    if (i->intersect(ray, candidate)) {
+    if (i->intersect(ray, candidate, state)) {
       if (firstElement) {
         hitPoints = candidate;
       } else {
@@ -37,8 +38,9 @@ Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
 // Shadow implementation of Composite, which generates spourious shadows of
 // differential objects
 bool Difference::intersects(const Rayd& ray) {
+  State state; // removeme
   HitPointInterval hitPoints;
-  return intersect(ray, hitPoints);
+  return intersect(ray, hitPoints, state);
 }
 
 BoundingBoxd Difference::boundingBox() {

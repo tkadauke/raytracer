@@ -5,6 +5,7 @@
 #include "raytracer/samplers/Sampler.h"
 #include "core/Buffer.h"
 #include "raytracer/Raytracer.h"
+#include "raytracer/State.h"
 
 using namespace raytracer;
 
@@ -47,8 +48,10 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
     Colord pixelColor;
     for (const auto& sample : plane->sampler()->sampleSet()) {
       Rayd ray = rayForPixel(pixel.pixel() + sample);
-      if (ray.direction().isDefined())
-        pixelColor += raytracer->rayColor(ray);
+      if (ray.direction().isDefined()) {
+        State state;
+        pixelColor += raytracer->rayColor(ray, state);
+      }
     }
     
     plot(buffer, rect, pixel, pixelColor);

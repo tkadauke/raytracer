@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include "raytracer/State.h"
 #include "raytracer/primitives/Torus.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -14,46 +15,58 @@ namespace TorusTest {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 0, 1));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints, state);
     ASSERT_EQ(primitive, &torus);
     ASSERT_EQ(Vector3d(0, 0, -3), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, -1), hitPoints.min().normal());
     ASSERT_EQ(4u, hitPoints.points().size());
     ASSERT_EQ(1, hitPoints.min().distance());
+    ASSERT_EQ(1, state.intersectionHits);
+    ASSERT_EQ(0, state.intersectionMisses);
   }
   
   TEST(Torus, ShouldNotIntersectWithMissingRay) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, -4), Vector3d(0, 1, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_EQ(0, state.intersectionHits);
+    ASSERT_EQ(1, state.intersectionMisses);
   }
   
   TEST(Torus, ShouldNotIntersectIfTorusIsBehindRayOrigin) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 0, 4), Vector3d(0, 0, 1));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_EQ(0, state.intersectionHits);
+    ASSERT_EQ(1, state.intersectionMisses);
   }
   
   TEST(Torus, ShouldNotIntersectWithTorusHole) {
     Torus torus(2, 1);
     Rayd ray(Vector3d(0, 4, 0), Vector3d(0, -1, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = torus.intersect(ray, hitPoints);
+    auto primitive = torus.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_EQ(0, state.intersectionHits);
+    ASSERT_EQ(1, state.intersectionMisses);
   }
   
   TEST(Torus, ShouldReturnTrueForIntersectsIfThereIsAIntersectionWithRay) {

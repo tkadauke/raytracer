@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/FlatMeshTriangle.h"
 #include "raytracer/primitives/Mesh.h"
 #include "core/math/Ray.h"
@@ -5,7 +6,7 @@
 
 using namespace raytracer;
 
-Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   Vector3d v0(m_mesh->vertices[m_index0].point);
   Vector3d v1(m_mesh->vertices[m_index1].point);
   Vector3d v2(m_mesh->vertices[m_index2].point);
@@ -22,26 +23,35 @@ Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoi
   double e1 = d * m - b * n - c * p;
   double beta = e1 * invDenom;
   
-  if (beta < 0.0 || beta > 1.0)
+  if (beta < 0.0 || beta > 1.0) {
+    state.miss("FlatMeshTriangle, beta not in [0, 1]");
     return nullptr;
+  }
   
   double e2 = a * n + d * q + c * r;
   double gamma = e2 * invDenom;
   
-  if (gamma < 0.0 || gamma > 1.0)
+  if (gamma < 0.0 || gamma > 1.0) {
+    state.miss("FlatMeshTriangle, gamma not in [0, 1]");
     return nullptr;
+  }
   
-  if (beta + gamma > 1.0)
+  if (beta + gamma > 1.0) {
+    state.miss("FlatMeshTriangle, beta + gamma > 1");
     return nullptr;
+  }
   
   double e3 = a * p - b * r + d * s;
   double t = e3 * invDenom;
   
-  if (t < 0.0001)
+  if (t < 0.0001) {
+    state.miss("FlatMeshTriangle, behind ray");
     return nullptr;
+  }
   
   Vector3d hitPoint = ray.at(t);
   hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
+  state.hit("FlatMeshTriangle");
   return this;
 }
 

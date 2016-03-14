@@ -12,7 +12,7 @@ namespace raytracer {
       m_normal = computeNormal();
     }
 
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
 
   private:
     Vector3d computeNormal() const;

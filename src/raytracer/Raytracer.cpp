@@ -1,4 +1,5 @@
 #include "raytracer/Raytracer.h"
+#include "raytracer/State.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 #include "raytracer/primitives/Scene.h"
@@ -11,6 +12,7 @@
 #include "core/math/IntegerDecomposition.h"
 #include "raytracer/cameras/Camera.h"
 #include "core/Exception.h"
+#include "core/ScopeExit.h"
 
 #include "raytracer/cameras/PinholeCamera.h"
 
@@ -18,6 +20,8 @@
 
 #include <vector>
 #include <cmath>
+
+#include <iostream>
 
 using namespace std;
 using namespace raytracer;
@@ -105,27 +109,44 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
 }
 
 Primitive* Raytracer::primitiveForRay(const Rayd& ray) {
-  HitPointInterval hitPoints;
-  return m_scene->intersect(ray, hitPoints);
+  return rayState(ray).hitPoint.primitive();
 }
 
-Colord Raytracer::rayColor(const Rayd& ray, int recursionDepth) {
-  if (recursionDepth == p->maximumRecursionDepth) {
+State Raytracer::rayState(const Rayd& ray) {
+  State state;
+  state.startTrace();
+  rayColor(ray, state);
+  return state;
+}
+
+Colord Raytracer::rayColor(const Rayd& ray, State& state) {
+  state.recurseIn();
+  ScopeExit sx([&] { state.recurseOut(); });
+  
+  if (state.recursionDepth == p->maximumRecursionDepth) {
+    state.recordEvent("Raytracer: maximum recursion depth reached, returning black");
     return Colord::black();
   }
   
   HitPointInterval hitPoints;
   
-  auto primitive = m_scene->intersect(ray, hitPoints);
+  auto primitive = m_scene->intersect(ray, hitPoints, state);
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
     
+    if (state.recursionDepth == 1) {
+      state.hitPoint = hitPoint;
+    }
+    
     if (primitive->material()) {
-      return primitive->material()->shade(this, ray, hitPoint, recursionDepth);
+      state.recordEvent("Raytracer: shading material");
+      return primitive->material()->shade(this, ray, hitPoint, state);
     } else {
+      state.recordEvent("Raytracer: no material found, returning black");
       return Colord::black();
     }
   } else {
+    state.recordEvent("Raytracer: Nothing hit, returning background color");
     return m_scene->background();
   }
 }

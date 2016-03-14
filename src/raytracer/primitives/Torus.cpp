@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Torus.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -7,9 +8,11 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
-  if (!boundingBox().intersects(ray))
+Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+  if (!boundingBox().intersects(ray)) {
+    state.miss("Torus, bounding box miss");
     return nullptr;
+  }
   
   Vector3d origin = ray.origin();
   Vector3d direction = ray.direction();
@@ -53,9 +56,14 @@ Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
       found = true;
     }
   }
-  if (found)
+  
+  if (found) {
+    state.hit("Torus");
     return this;
-  return nullptr;
+  } else {
+    state.miss("Torus, ray miss");
+    return nullptr;
+  }
 }
 
 BoundingBoxd Torus::boundingBox() {

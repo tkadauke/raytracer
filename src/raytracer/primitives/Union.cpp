@@ -1,13 +1,14 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Union.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
 using namespace raytracer;
 
-Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
-    if (i->intersect(ray, candidate)) {
+    if (i->intersect(ray, candidate, state)) {
       hitPoints = hitPoints | candidate;
     }
   }

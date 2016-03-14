@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "raytracer/State.h"
 #include "raytracer/primitives/Difference.h"
 #include "raytracer/materials/MatteMaterial.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
@@ -14,7 +15,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
           HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
@@ -23,12 +24,13 @@ namespace DifferenceTest {
         Return(primitive1.get())
       )
     );
-    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive2, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(primitive1.get(), result);
   }
@@ -41,7 +43,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
           HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d()),
@@ -50,12 +52,13 @@ namespace DifferenceTest {
         Return(primitive1.get())
       )
     );
-    EXPECT_CALL(*primitive2, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive2, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(&i, result);
   }
@@ -66,12 +69,13 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = i.intersect(ray, hitPoints);
+    auto result = i.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, result);
   }

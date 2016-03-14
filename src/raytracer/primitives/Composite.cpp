@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Composite.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -17,13 +18,13 @@ BoundingBoxd Composite::boundingBox() {
   return b;
 }
 
-Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   Primitive* hit = nullptr;
   double minDistance = numeric_limits<double>::infinity();
   
   for (const auto& i : m_primitives) {
     HitPointInterval candidate;
-    auto primitive = i->intersect(ray, candidate);
+    auto primitive = i->intersect(ray, candidate, state);
     if (primitive) {
       hitPoints = hitPoints + candidate;
 

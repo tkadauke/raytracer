@@ -1,17 +1,21 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Plane.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
 using namespace raytracer;
 
-Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   double t = calculateIntersectionDistance(ray);
   
   if (t > 0) {
     hitPoints.add(HitPoint(this, t, ray.at(t), m_normal));
+    state.hit("Plane");
     return this;
-  } else
+  } else {
+    state.miss("Plane, ray miss");
     return nullptr;
+  }
 }
 
 bool Plane::intersects(const Rayd& ray) {

@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Instance.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -7,8 +8,8 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
-  Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints);
+Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+  Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
   if (result) {
     hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
     if (Primitive::material()) {

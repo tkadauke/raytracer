@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/SmoothMeshTriangle.h"
 #include "raytracer/primitives/Mesh.h"
 #include "core/math/Ray.h"
@@ -45,7 +46,7 @@ SmoothMeshTriangle::SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int i
   cnv = -c[u] * reci;
 }
 
-Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
   
@@ -56,22 +57,28 @@ Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitP
   const double lnd = 1.0f / (D[k] + nu * D[ku] + nv * D[kv]);
   
   const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
-  if (t < 0)
+  if (t < 0) {
+    state.miss("SmoothMeshTriangle, behind ray");
     return nullptr;
+  }
   
   const double hu = O[ku] + t * D[ku] - A[ku];
   const double hv = O[kv] + t * D[kv] - A[kv];
   
   const double beta = hv * bnu + hu * bnv;
-  if (beta < 0 || beta > 1)
+  if (beta < 0 || beta > 1) {
+    state.miss("SmoothMeshTriangle, beta not in [0, 1]");
     return nullptr;
+  }
   
   const double gamma = hu * cnu + hv * cnv;
-  if (gamma < 0 || (beta + gamma) > 1)
+  if (gamma < 0 || (beta + gamma) > 1) {
+    state.miss("SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
     return nullptr;
+  }
   
   hitPoints.add(HitPoint(this, t, ray.at(t), interpolateNormal(beta, gamma)));
-  
+  state.hit("SmoothMeshTriangle");
   return this;
 }
 

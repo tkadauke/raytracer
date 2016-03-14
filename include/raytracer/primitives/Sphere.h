@@ -12,7 +12,7 @@ namespace raytracer {
     {
     }
 
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
     virtual bool intersects(const Rayd& ray);
 
     virtual BoundingBoxd boundingBox();

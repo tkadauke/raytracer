@@ -4,6 +4,7 @@
 #include "raytracer/primitives/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include "raytracer/State.h"
 
 namespace testing {
   using namespace raytracer;
@@ -29,34 +30,43 @@ namespace testing {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = triangle.intersect(ray, hitPoints);
+    auto primitive = triangle.intersect(ray, hitPoints, state);
     ASSERT_EQ(primitive, &triangle);
     ASSERT_EQ(Vector3d(0, 0, 0), hitPoints.min().point());
     ASSERT_EQ(Vector3d(0, 0, 1), hitPoints.min().normal());
     ASSERT_EQ(1, hitPoints.min().distance());
+    ASSERT_EQ(1, state.intersectionHits);
+    ASSERT_EQ(0, state.intersectionMisses);
   }
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldNotIntersectWithMissingRay) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = triangle.intersect(ray, hitPoints);
+    auto primitive = triangle.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_EQ(0, state.intersectionHits);
+    ASSERT_EQ(1, state.intersectionMisses);
   }
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldNotIntersectIfPointIsBehindRayOrigin) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
     
+    State state;
     HitPointInterval hitPoints;
-    auto primitive = triangle.intersect(ray, hitPoints);
+    auto primitive = triangle.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_EQ(0, state.intersectionHits);
+    ASSERT_EQ(1, state.intersectionMisses);
   }
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {

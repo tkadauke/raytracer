@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "raytracer/State.h"
 #include "raytracer/primitives/Instance.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
@@ -10,7 +11,7 @@ namespace InstanceTest {
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d(1, 0, 0))),
         Return(primitive.get())
@@ -19,8 +20,9 @@ namespace InstanceTest {
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = instance.intersect(ray, hitPoints);
+    auto result = instance.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(primitive.get(), result);
   }
@@ -28,14 +30,15 @@ namespace InstanceTest {
   TEST(Instance, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = instance.intersect(ray, hitPoints);
+    auto result = instance.intersect(ray, hitPoints, state);
     
-    ASSERT_EQ(0, result);
+    ASSERT_EQ(nullptr, result);
   }
   
   TEST(Instance, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {

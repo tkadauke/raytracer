@@ -14,20 +14,21 @@ namespace UnionTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoint(HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
-    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive2.get(), intersect(_, _, _)).WillOnce(
       Return(static_cast<Primitive*>(nullptr))
     );
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = u.intersect(ray, hitPoints);
+    auto result = u.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(primitive1.get(), result);
   }
@@ -40,20 +41,21 @@ namespace UnionTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoint(HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
-    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive2.get(), intersect(_, _, _)).WillOnce(
       Return(static_cast<Primitive*>(nullptr))
     );
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = u.intersect(ray, hitPoints);
+    auto result = u.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(&u, result);
   }
@@ -64,13 +66,14 @@ namespace UnionTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
-    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
+    EXPECT_CALL(*primitive2.get(), intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    auto result = u.intersect(ray, hitPoints);
+    auto result = u.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, result);
   }
@@ -81,13 +84,13 @@ namespace UnionTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     u.add(primitive1);
     u.add(primitive2);
-    EXPECT_CALL(*primitive1.get(), intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoint(HitPoint(primitive1.get(), 1.0, Vector3d(), Vector3d())),
         Return(primitive1.get())
       )
     );
-    EXPECT_CALL(*primitive2.get(), intersect(_, _)).WillOnce(
+    EXPECT_CALL(*primitive2.get(), intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoint(HitPoint(primitive2.get(), 5.0, Vector3d(), Vector3d())),
         Return(primitive2.get())
@@ -96,8 +99,9 @@ namespace UnionTest {
     
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
     
+    State state;
     HitPointInterval hitPoints;
-    u.intersect(ray, hitPoints);
+    u.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(1, hitPoints.min().distance());
     ASSERT_EQ(5, hitPoints.max().distance());

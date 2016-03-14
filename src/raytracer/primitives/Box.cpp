@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Box.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -6,7 +7,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   int parallel = 0;
   bool found = false;
   Vector3d d = m_center - ray.origin();
@@ -40,26 +41,33 @@ Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
           normal2[i] = dir;
           t2 = s;
         }
-        if (t1 > t2)
+        if (t1 > t2) {
+          state.miss("Box, ray miss");
           return nullptr;
+        }
       }
     }
   }
   
-  if (t1 < 0 && t2 < 0)
+  if (t1 < 0 && t2 < 0) {
+    state.miss("Box, behind ray");
     return nullptr;
+  }
 
   if (parallel)
     for (int i = 0; i < 3; ++i)
       if (parallel & (1 << i))
-        if (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] || fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i])
+        if (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] || fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i]) {
+          state.miss("Box, ray parallel");
           return nullptr;
+        }
 
   hitPoints.add(
     HitPoint(this, t1, ray.at(t1), normal1),
     HitPoint(this, t2, ray.at(t2), normal2)
   );
   
+  state.hit("Box");
   return this;
 }
 

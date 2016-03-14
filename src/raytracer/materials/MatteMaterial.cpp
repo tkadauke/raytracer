@@ -1,4 +1,5 @@
 #include "raytracer/materials/MatteMaterial.h"
+#include "raytracer/State.h"
 #include "raytracer/Raytracer.h"
 #include "core/math/HitPoint.h"
 #include "raytracer/primitives/Scene.h"
@@ -11,7 +12,7 @@
 using namespace std;
 using namespace raytracer;
 
-Colord MatteMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int) {
+Colord MatteMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
   
   Lambertian ambientBRDF(texColor, ambientCoefficient());
@@ -23,7 +24,10 @@ Colord MatteMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoin
   for (const auto& light : raytracer->scene()->lights()) {
     Vector3d in = light->direction(hitPoint.point());
     
-    if (!raytracer->scene()->intersects(Rayd(hitPoint.point(), in).epsilonShifted())) {
+    if (raytracer->scene()->intersects(Rayd(hitPoint.point(), in).epsilonShifted())) {
+      state.shadowMiss("MatteMaterial");
+    } else {
+      state.shadowHit("MatteMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0)
         color += diffuseBRDF(hitPoint, Vector3d::null(), Vector3d::null()) * light->radiance() * normalDotIn;

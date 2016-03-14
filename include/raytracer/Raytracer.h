@@ -11,6 +11,7 @@ namespace raytracer {
   class Scene;
   class Camera;
   class Primitive;
+  class State;
 
   class Raytracer : public std::enable_shared_from_this<Raytracer> {
   public:
@@ -21,7 +22,8 @@ namespace raytracer {
     void render(Buffer<unsigned int>& buffer);
   
     Primitive* primitiveForRay(const Rayd& ray);
-    Colord rayColor(const Rayd& ray, int recursionDepth = 0);
+    State rayState(const Rayd& ray);
+    Colord rayColor(const Rayd& ray, State& state);
     
     inline std::shared_ptr<Camera> camera() const {
       return m_camera;

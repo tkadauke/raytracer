@@ -12,6 +12,8 @@ namespace raytracer {
 class Display : public QtDisplay {
   Q_OBJECT;
 
+  virtual void mousePressEvent(QMouseEvent* event);
+
 public:
   Display(QWidget* parent);
   ~Display();

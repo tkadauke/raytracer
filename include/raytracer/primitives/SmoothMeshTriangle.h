@@ -8,7 +8,7 @@ namespace raytracer {
   public:
     SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int index2);
 
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints);
+    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
     virtual bool intersects(const Rayd& ray);
 
   private:

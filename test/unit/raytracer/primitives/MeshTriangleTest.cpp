@@ -13,7 +13,7 @@ namespace MeshTriangleTest {
     {
     }
     
-    inline Primitive* intersect(const Rayd&, HitPointInterval&) {
+    inline Primitive* intersect(const Rayd&, HitPointInterval&, State&) {
       return 0;
     }
   };

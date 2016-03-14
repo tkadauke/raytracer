@@ -15,7 +15,7 @@ namespace raytracer {
 
     void setMatrix(const Matrix4d& matrix);
 
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, int recursionDepth);
+    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);
 
   private:
     inline Rayd transformedRay(const Rayd& ray) const {

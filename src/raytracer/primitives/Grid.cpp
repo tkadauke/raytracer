@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/Grid.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -11,7 +12,7 @@ inline float clamp(float x, float min, float max) {
   return (x < min ? min : (x > max ? max : x));
 }
 
-Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -159,7 +160,7 @@ Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
     if (tx_next < ty_next && tx_next < tz_next) {
       if (primitive) {
         HitPointInterval candidate;
-        primitive = primitive->intersect(ray, candidate);
+        primitive = primitive->intersect(ray, candidate, state);
         if (candidate.min().distance() < tx_next) {
           hitPoints = candidate;
           return primitive;
@@ -174,7 +175,7 @@ Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
     } else if (ty_next < tz_next) {
       if (primitive) {
         HitPointInterval candidate;
-        primitive = primitive->intersect(ray, candidate);
+        primitive = primitive->intersect(ray, candidate, state);
         if (candidate.min().distance() < ty_next) {
           hitPoints = candidate;
           return primitive;
@@ -189,7 +190,7 @@ Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
     } else {
       if (primitive) {
         HitPointInterval candidate;
-        primitive = primitive->intersect(ray, candidate);
+        primitive = primitive->intersect(ray, candidate, state);
         if (candidate.min().distance() < tz_next) {
           hitPoints = candidate;
           return primitive;
