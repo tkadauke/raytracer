@@ -93,7 +93,7 @@
             "name": "Box 1",
             "position": [
                 0,
-                0,
+                0.001,
                 0
             ],
             "rotation": [
@@ -120,7 +120,7 @@
             "name": "Box 2",
             "position": [
                 0,
-                0,
+                0.001,
                 0.5
             ],
             "rotation": [
@@ -147,7 +147,7 @@
             "name": "Box 3",
             "position": [
                 0,
-                0,
+                0.001,
                 -0.5
             ],
             "rotation": [
