@@ -1,3 +1,4 @@
+#include "raytracer/State.h"
 #include "raytracer/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
 #include "core/math/Range.h"
@@ -8,7 +9,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints) {
+Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -22,10 +23,13 @@ Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints)
   int results = Quadric<double>(a, b, c).solveInto(t);
   
   if (results == 0) {
+    state.miss("OpenCylinder, ray miss");
     return nullptr;
   } else {
-    if (t[0] <= 0 && t[1] <= 0)
+    if (t[0] <= 0 && t[1] <= 0) {
+      state.miss("OpenCylinder, behind ray");
       return nullptr;
+    }
 
     Range<double> yRange(-m_halfHeight, m_halfHeight);
     Vector3d point1 = ray.at(t[0]),
@@ -41,11 +45,17 @@ Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints)
       hitPoints.addOut(HitPoint(this, t[1], point2, normal));
     }
     
-    return hitPoints.empty() ? nullptr : this;
+    if (hitPoints.empty()) {
+      state.miss("OpenCylinder, outside of y boundary");
+      return nullptr;
+    } else {
+      state.hit("OpenCylinder");
+      return this;
+    }
   }
 }
 
-bool OpenCylinder::intersects(const Rayd& ray) {
+bool OpenCylinder::intersects(const Rayd& ray, State& state) {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -59,14 +69,23 @@ bool OpenCylinder::intersects(const Rayd& ray) {
   int results = Quadric<double>(a, b, c).solveInto(t);
   
   if (results == 0) {
+    state.shadowMiss("OpenCylinder, ray miss");
     return false;
   } else {
-    if (t[0] <= 0 && t[1] <= 0)
+    if (t[0] <= 0 && t[1] <= 0) {
+      state.shadowMiss("OpenCylinder, behind ray");
       return false;
+    }
 
     Range<double> yRange(-m_halfHeight, m_halfHeight);
-    return yRange.contains(ray.at(t[0]).y()) ||
-           yRange.contains(ray.at(t[1]).y());
+    if ((t[0] > 0 && yRange.contains(ray.at(t[0]).y())) ||
+        (t[1] > 0 && yRange.contains(ray.at(t[1]).y()))) {
+      state.shadowHit("OpenCylinder");
+      return true;
+    } else {
+      state.shadowMiss("OpenCylinder, outside of y boundary");
+      return false;
+    }
   }
 }
 
