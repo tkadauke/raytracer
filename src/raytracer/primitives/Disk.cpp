@@ -17,9 +17,9 @@ Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& 
   
   if (hitPoint.squaredDistanceTo(m_center) < m_squaredRadius) {
     if (-ray.direction() * m_normal < 0.0) {
-      hitPoints.addIn(HitPoint(this, t, hitPoint, m_normal));
-    } else {
       hitPoints.addOut(HitPoint(this, t, hitPoint, m_normal));
+    } else {
+      hitPoints.addIn(HitPoint(this, t, hitPoint, m_normal));
     }
     state.hit("Disk");
     return this;
