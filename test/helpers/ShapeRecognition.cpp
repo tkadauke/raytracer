@@ -13,10 +13,20 @@ vector<int> ShapeRecognition::lines(const Buffer<unsigned int>& buffer) {
     for (int i = 0; i != buffer.width(); ++i) {
       if (start == -1 && buffer[j][i] == red) {
         start = i;
-      } else if (start != -1 && buffer[j][i] != red) {
-        lineLengths.push_back(i - start);
         break;
       }
+    }
+
+    int end = -1;
+    for (int i = buffer.width() - 1; i != start; --i) {
+      if (end == -1 && buffer[j][i] == red) {
+        end = i;
+        break;
+      }
+    }
+    
+    if (start != -1 && end != -1) {
+      lineLengths.push_back(end - start);
     }
   }
   

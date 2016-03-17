@@ -1024,7 +1024,7 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, matrix.inverted());
   }
   
-  TYPED_TEST(Matrix4Test, ShouldReturnTranslationMatrix) {
+  TYPED_TEST(Matrix4Test, ShouldReturnTranslationMatrixFromVector) {
     Matrix4<TypeParam> expected(
       1, 0, 0, 1,
       0, 1, 0, 2,
@@ -1032,6 +1032,16 @@ namespace Matrix4Test {
       0, 0, 0, 1
     );
     ASSERT_EQ(expected, Matrix4<TypeParam>::translate(Vector3f(1, 2, 3)));
+  }
+  
+  TYPED_TEST(Matrix4Test, ShouldReturnTranslationMatrixFromCoordinates) {
+    Matrix4<TypeParam> expected(
+      1, 0, 0, 1,
+      0, 1, 0, 2,
+      0, 0, 1, 3,
+      0, 0, 0, 1
+    );
+    ASSERT_EQ(expected, Matrix4<TypeParam>::translate(1, 2, 3));
   }
   
   TYPED_TEST(Matrix4Test, ShouldExtractTranslationFromMatrix) {

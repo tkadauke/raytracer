@@ -940,10 +940,24 @@ public:
     * \end{array}\right)\f]
     */
   inline static Matrix4<T> translate(const Vector3<T>& position) {
+    return translate(position.x(), position.y(), position.z());
+  }
+  
+  /**
+    * @returns the translation matrix for position \f$(x, y, z)\f$:
+    * 
+    * \f[\left(\begin{array}{cccc}
+    *   1 & 0 & 0 & x \\
+    *   0 & 1 & 0 & y \\
+    *   0 & 0 & 1 & z \\
+    *   0 & 0 & 0 & 1 \\
+    * \end{array}\right)\f]
+    */
+  inline static Matrix4<T> translate(T x, T y, T z) {
     return Matrix4<T>(
-      1, 0, 0, position[0],
-      0, 1, 0, position[1],
-      0, 0, 1, position[2],
+      1, 0, 0, x,
+      0, 1, 0, y,
+      0, 0, 1, z,
       0, 0, 0, 1
     );
   }
