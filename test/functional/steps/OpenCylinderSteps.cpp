@@ -26,7 +26,7 @@ GIVEN(RaytracerFeatureTest, "an open cylinder rotated 90 degrees around the x ax
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);
   cylinder->setMaterial(test->redDiffuse());
   auto instance = std::make_shared<Instance>(cylinder);
-  instance->setMatrix(Matrix3d::rotateX(Angled::fromDegrees(90)));
+  instance->setMatrix(Matrix3d::rotateX(90 * Degreed));
   test->add(instance);
 }
 

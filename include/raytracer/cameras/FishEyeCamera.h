@@ -19,7 +19,7 @@ namespace raytracer {
       * looking at the origin.
       */
     FishEyeCamera()
-      : m_fieldOfView(Angled::fromDegrees(120))
+      : m_fieldOfView(120 * Degreed)
     {
     }
     
@@ -37,7 +37,7 @@ namespace raytracer {
       */
     FishEyeCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
-        m_fieldOfView(Angled::fromDegrees(120))
+        m_fieldOfView(120 * Degreed)
     {
     }
 

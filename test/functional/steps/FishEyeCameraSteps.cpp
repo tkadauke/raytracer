@@ -11,7 +11,7 @@ GIVEN(RaytracerFeatureTest, "a fish-eye camera") {
 }
 
 WHEN(RaytracerFeatureTest, "i set the fish-eye camera's field of view to maximum") {
-  static_cast<FishEyeCamera*>(test->camera().get())->setFieldOfView(Angled::fromDegrees(360));
+  static_cast<FishEyeCamera*>(test->camera().get())->setFieldOfView(360 * Degreed);
 }
 
 THEN(RaytracerFeatureTest, "i should see a black ring around the image") {

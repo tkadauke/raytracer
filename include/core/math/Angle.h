@@ -159,3 +159,64 @@ typedef Angle<float> Anglef;
   * Shortcut for a double-precision Angle.
   */
 typedef Angle<double> Angled;
+
+
+/**
+  * Constant float angle of one degree. Use it with the multiplication operator
+  * as a shortcut to Anglef::fromDegrees().
+  * 
+  * @code
+  * Anglef angle = 90 * Degreef;
+  * @endcode
+  */
+const Anglef Degreef = Anglef::fromDegrees(1);
+
+/**
+  * Constant float angle of one radian. Use it with the multiplication operator
+  * as a shortcut to Anglef::fromRadians().
+  * 
+  * @code
+  * Anglef angle = 2 * Radianf;
+  * @endcode
+  */
+const Anglef Radianf = Anglef::fromRadians(1);
+
+/**
+  * Constant float angle of one turn. Use it with the multiplication operator
+  * as a shortcut to Anglef::fromTurns().
+  * 
+  * @code
+  * Anglef angle = 2 * Turnf;
+  * @endcode
+  */
+const Anglef Turnf = Anglef::fromTurns(1);
+
+/**
+  * Constant double angle of one degree. Use it with the multiplication operator
+  * as a shortcut to Angled::fromDegrees().
+  * 
+  * @code
+  * Angled angle = 90 * Degreed;
+  * @endcode
+  */
+const Angled Degreed = Angled::fromDegrees(1);
+
+/**
+  * Constant double angle of one radian. Use it with the multiplication operator
+  * as a shortcut to Angled::fromRadians().
+  * 
+  * @code
+  * Angled angle = 2 * Radiand;
+  * @endcode
+  */
+const Angled Radiand = Angled::fromRadians(1);
+
+/**
+  * Constant double angle of one turn. Use it with the multiplication operator
+  * as a shortcut to Angled::fromTurns().
+  * 
+  * @code
+  * Angled angle = 2 * Turnd;
+  * @endcode
+  */
+const Angled Turnd = Angled::fromTurns(1);

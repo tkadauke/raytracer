@@ -19,8 +19,8 @@ namespace raytracer {
       * origin.
       */
     SphericalCamera()
-      : m_horizontalFieldOfView(Angled::fromDegrees(180)),
-        m_verticalFieldOfView(Angled::fromDegrees(120))
+      : m_horizontalFieldOfView(180 * Degreed),
+        m_verticalFieldOfView(120 * Degreed)
     {
     }
     
@@ -41,8 +41,8 @@ namespace raytracer {
       */
     SphericalCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
-        m_horizontalFieldOfView(Angled::fromDegrees(180)),
-        m_verticalFieldOfView(Angled::fromDegrees(120))
+        m_horizontalFieldOfView(180 * Degreed),
+        m_verticalFieldOfView(120 * Degreed)
     {
     }
     

@@ -23,20 +23,20 @@ namespace SphericalCameraTest {
   }
   
   TEST(SphericalCamera, ShouldConstructWithFieldOfViews) {
-    SphericalCamera camera(Angled::fromDegrees(200), Angled::fromDegrees(90));
+    SphericalCamera camera(200 * Degreed, 90 * Degreed);
     ASSERT_NEAR(200, camera.horizontalFieldOfView().degrees(), 0.001);
     ASSERT_NEAR(90, camera.verticalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldSetHorizontalFieldOfView) {
     SphericalCamera camera;
-    camera.setHorizontalFieldOfView(Angled::fromDegrees(200));
+    camera.setHorizontalFieldOfView(200 * Degreed);
     ASSERT_NEAR(200, camera.horizontalFieldOfView().degrees(), 0.001);
   }
   
   TEST(SphericalCamera, ShouldSetVerticalFieldOfView) {
     SphericalCamera camera;
-    camera.setVerticalFieldOfView(Angled::fromDegrees(140));
+    camera.setVerticalFieldOfView(140 * Degreed);
     ASSERT_NEAR(140, camera.verticalFieldOfView().degrees(), 0.001);
   }
   
