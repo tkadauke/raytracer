@@ -375,6 +375,36 @@ public:
   inline bool isDefined() const {
     return !isUndefined();
   }
+  
+  /**
+    * @returns the minimum component of this vector.
+    */
+  inline T min() const {
+    T result = coordinate(0);
+    for (int i = 1; i != Dimensions; ++i)
+      result = std::min(result, coordinate(i));
+    return result;
+  }
+  
+  /**
+    * @returns the maximum component of this vector.
+    */
+  inline T max() const {
+    T result = coordinate(0);
+    for (int i = 1; i != Dimensions; ++i)
+      result = std::max(result, coordinate(i));
+    return result;
+  }
+
+  /**
+    * @returns a vector with an absolute value for all components.
+    */
+  inline VectorType abs() const {
+    VectorType result;
+    for (int i = 0; i != Dimensions; ++i)
+      result.setCoordinate(i, std::abs(coordinate(i)));
+    return result;
+  }
 
 protected:
   inline const VectorType& derived() const {

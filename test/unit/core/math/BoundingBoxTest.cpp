@@ -16,6 +16,12 @@ namespace BoundingBoxTest {
   typedef ::testing::Types<float, double> BoundingBoxTypes;
 
   TYPED_TEST_CASE(BoundingBoxTest, BoundingBoxTypes);
+
+  TYPED_TEST(BoundingBoxTest, ShouldDefineInfiniteBoundingBox) {
+    BoundingBox<TypeParam> bbox = BoundingBox<TypeParam>::infinity();
+    ASSERT_EQ(Vector3<TypeParam>::minusInfinity(), bbox.min());
+    ASSERT_EQ(Vector3<TypeParam>::plusInfinity(), bbox.max());
+  }
   
   TYPED_TEST(BoundingBoxTest, ShouldInitializeBoundingBoxAsInfinitesimallySmall) {
     BoundingBox<TypeParam> bbox;
@@ -293,6 +299,19 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(1, 1, 1)
     );
     ASSERT_FALSE(bbox.contains(Vector3<TypeParam>(2, 0, 0)));
+  }
+  
+  TYPED_TEST(BoundingBoxTest, ShouldGrowBoundingBox) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    BoundingBox<TypeParam> expected(
+      Vector3<TypeParam>(-2, -2, -2),
+      Vector3<TypeParam>(2, 2, 2)
+    );
+
+    ASSERT_EQ(expected, bbox.grownBy(Vector3d::one()));
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldReturnEightVertices) {

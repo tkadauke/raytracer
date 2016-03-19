@@ -132,6 +132,35 @@ namespace HitPointIntervalTest {
     ASSERT_TRUE(intersectionInterval.min() == HitPoint::undefined());
     ASSERT_TRUE(intersectionInterval.max() == HitPoint::undefined());
   }
+
+  TEST(HitPointInterval, ShouldComputeCompositeOfIntervals) {
+    HitPointInterval interval1, interval2;
+    HitPoint hitPoint1(box, 2, Vector3d(), Vector3d());
+    HitPoint hitPoint2(box, 3, Vector3d(), Vector3d());
+    HitPoint hitPoint3(box, 4, Vector3d(), Vector3d());
+    HitPoint hitPoint4(box, 5, Vector3d(), Vector3d());
+    interval1.add(hitPoint1, hitPoint2);
+    interval2.add(hitPoint3, hitPoint4);
+    HitPointInterval compositeInterval = interval1 + interval2;
+    
+    ASSERT_TRUE(compositeInterval.min() == hitPoint1);
+    ASSERT_TRUE(compositeInterval.max() == hitPoint4);
+  }
+
+  TEST(HitPointInterval, ShouldComputeMergedInterval) {
+    HitPointInterval interval;
+    HitPoint hitPoint1(box, 2, Vector3d(), Vector3d());
+    HitPoint hitPoint2(box, 3, Vector3d(), Vector3d());
+    HitPoint hitPoint3(box, 4, Vector3d(), Vector3d());
+    HitPoint hitPoint4(box, 5, Vector3d(), Vector3d());
+    interval.add(hitPoint1, hitPoint2);
+    interval.add(hitPoint3, hitPoint4);
+    
+    interval = interval.merged();
+    ASSERT_EQ(2ul, interval.points().size());
+    ASSERT_TRUE(interval.min() == hitPoint1);
+    ASSERT_TRUE(interval.max() == hitPoint4);
+  }
   
   TEST(HitPointInterval, ShouldTransformInterval) {
     HitPointInterval interval;

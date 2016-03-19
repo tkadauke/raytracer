@@ -146,6 +146,16 @@ public:
   HitPointInterval operator+(const HitPointInterval& other) const;
 
   /**
+    * @returns a new interval that has only the first and last points. This
+    *   is used to build unions of solid and flat primitives.
+    */
+  inline HitPointInterval merged() const {
+    HitPointInterval result;
+    result.add(min(), max());
+    return result;
+  }
+
+  /**
     * @returns a new HitPointInterval with all points transformed with
     * pointMatrix, and all normals transformed with normalMatrix.
     */

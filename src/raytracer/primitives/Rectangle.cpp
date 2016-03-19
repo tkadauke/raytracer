@@ -29,7 +29,11 @@ Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
     return nullptr;
   }
   
-  hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
+  if (-ray.direction() * m_normal < 0.0) {
+    hitPoints.addOut(HitPoint(this, t, hitPoint, m_normal));
+  } else {
+    hitPoints.addIn(HitPoint(this, t, hitPoint, m_normal));
+  }
   state.hit("Rectangle");
   return this;
 }
@@ -40,5 +44,5 @@ BoundingBoxd Rectangle::boundingBox() {
   b.include(m_corner + m_leg1);
   b.include(m_corner + m_leg2);
   b.include(m_corner + m_leg1 + m_leg2);
-  return b;
+  return b.grownByEpsilon();
 }

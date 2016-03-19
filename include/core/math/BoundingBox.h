@@ -28,9 +28,14 @@ class BoundingBox
 {
 public:
   /**
-    * Represents the "undefined" bounding box.
+    * @returns the "undefined" bounding box.
     */
   static const BoundingBox<T>& undefined();
+  
+  /**
+    * @returns an infinitely large bounding box.
+    */
+  static const BoundingBox<T>& infinity();
   
   /**
     * Creates an infinitely large bounding box.
@@ -207,6 +212,20 @@ public:
   }
   
   /**
+    * @returns a bounding box that is grown by vec.
+    */
+  inline BoundingBox<T> grownBy(const Vector3<T>& vec) const {
+    return BoundingBox<T>(m_min - vec.abs(), m_max + vec.abs());
+  }
+  
+  /**
+    * @returns a bounding box that is grown by \f$\epsilon\f$.
+    */
+  inline BoundingBox<T> grownByEpsilon() const {
+    return grownBy(Vector3<T>::epsilon());
+  }
+  
+  /**
     * Adds the 8 corner vertices of the bounding box to the given generic
     * container.
     */
@@ -233,6 +252,12 @@ private:
 template<class T>
 const BoundingBox<T>& BoundingBox<T>::undefined() {
   static BoundingBox<T> b(Vector3d::undefined(), Vector3d::undefined());
+  return b;
+}
+
+template<class T>
+const BoundingBox<T>& BoundingBox<T>::infinity() {
+  static BoundingBox<T> b(Vector3d::minusInfinity(), Vector3d::plusInfinity());
   return b;
 }
 
@@ -306,7 +331,7 @@ bool BoundingBox<T>::intersects(const Rayd& ray) const {
   if (zMax < t1)
     t1 = zMax;
   
-  return (t0 < t1 && t1 > Rayd::epsilon);
+  return (t0 <= t1 && t1 >= 0.0);
 }
 
 

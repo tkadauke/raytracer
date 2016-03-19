@@ -323,6 +323,22 @@ namespace VectorTest {
     Vector<3, TypeParam> vector({ numeric_limits<TypeParam>::quiet_NaN(), 0, 0 });
     ASSERT_FALSE(vector.isDefined());
   }
+  
+  TYPED_TEST(VectorTest, ShouldReturnMinComponent) {
+    Vector<3, TypeParam> vec({ 1, 2, -2 });
+    ASSERT_EQ(-2, vec.min());
+  }
+  
+  TYPED_TEST(VectorTest, ShouldReturnMaxComponent) {
+    Vector<3, TypeParam> vec({ 1, 2, -2 });
+    ASSERT_EQ(2, vec.max());
+  }
+  
+  TYPED_TEST(VectorTest, ShouldReturnAbsVectir) {
+    Vector<3, TypeParam> vec({ 1, 2, -2 });
+    Vector<3, TypeParam> expected({ 1, 2, 2});
+    ASSERT_EQ(expected, vec.abs());
+  }
 }
 
 namespace DerivedVectorTest {

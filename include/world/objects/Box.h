@@ -10,6 +10,7 @@
 class Box : public Surface {
   Q_OBJECT;
   Q_PROPERTY(Vector3d size READ size WRITE setSize);
+  Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius);
   
 public:
   /**
@@ -44,10 +45,38 @@ public:
       std::max(std::abs(size.y()), 0.000001),
       std::max(std::abs(size.z()), 0.000001)
     );
+    // recalculate bevel radius, in case the size shrunk so far that the
+    // previous radius is too big
+    setBevelRadius(bevelRadius());
+  }
+  
+  /**
+    * @returns the bevel radius.
+    */
+  inline double bevelRadius() const {
+    return m_bevelRadius;
+  }
+  
+  /**
+    * Sets the bevel radius of the box. If the radius is 0, the box will be a
+    * simple box primitive with perfectly sharp edges. If the radius is greater
+    * than 0, the edges and corners will be rounded.
+    * 
+    * <table><tr>
+    * <td>@image html box_bevel_radius_1.png</td>
+    * <td>@image html box_bevel_radius_2.png</td>
+    * <td>@image html box_bevel_radius_3.png</td>
+    * <td>@image html box_bevel_radius_4.png</td>
+    * <td>@image html box_bevel_radius_5.png</td>
+    * </tr></table>
+    */
+  inline void setBevelRadius(double radius) {
+    m_bevelRadius = std::min(size().min(), radius);
   }
 
   virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
 
 private:
   Vector3d m_size;
+  double m_bevelRadius;
 };

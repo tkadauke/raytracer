@@ -6,6 +6,10 @@
 using namespace raytracer;
 
 Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+  if (!boundingBoxIntersects(ray)) {
+    return nullptr;
+  }
+  
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
     if (i->intersect(ray, candidate, state)) {
@@ -27,6 +31,10 @@ Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, State&
 }
 
 bool Union::intersects(const Rayd& ray, State& state) {
+  if (!boundingBoxIntersects(ray)) {
+    return false;
+  }
+
   for (const auto& i : primitives()) {
     if (i->intersects(ray, state)) {
       return true;

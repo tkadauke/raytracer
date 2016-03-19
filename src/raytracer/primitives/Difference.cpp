@@ -6,6 +6,10 @@
 using namespace raytracer;
 
 Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+  if (!boundingBoxIntersects(ray)) {
+    return nullptr;
+  }
+
   bool firstElement = true;
   
   for (const auto& i : primitives()) {

@@ -39,5 +39,5 @@ double Plane::calculateIntersectionDistance(const Rayd& ray) {
 }
 
 BoundingBoxd Plane::boundingBox() {
-  return BoundingBoxd::undefined();
+  return BoundingBoxd::infinity();
 }

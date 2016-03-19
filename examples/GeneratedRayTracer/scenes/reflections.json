@@ -21,6 +21,7 @@
             "type": "ConstantColorTexture"
         },
         {
+            "bevelRadius": 0,
             "id": "{bf65a8a1-d08e-49b6-b3b0-df07d5630a3a}",
             "material": "{c3ab6b22-8693-437d-b1db-361e951903f4}",
             "name": "Floor",
@@ -88,6 +89,7 @@
             "type": "TransparentMaterial"
         },
         {
+            "bevelRadius": 0.050000000000000003,
             "id": "{ff58e490-4daf-49e8-9c59-61c2e99493c0}",
             "material": "{c290854a-56e2-4f80-9d5a-b4eac28d7cda}",
             "name": "Box 1",
@@ -115,6 +117,7 @@
             "visible": true
         },
         {
+            "bevelRadius": 0.050000000000000003,
             "id": "{22836e11-2914-47b8-81fe-bcdf6f061dc8}",
             "material": "{c290854a-56e2-4f80-9d5a-b4eac28d7cda}",
             "name": "Box 2",
@@ -142,6 +145,7 @@
             "visible": true
         },
         {
+            "bevelRadius": 0.050000000000000003,
             "id": "{a118bc64-912f-4c3d-80ac-44d2b9811876}",
             "material": "{c290854a-56e2-4f80-9d5a-b4eac28d7cda}",
             "name": "Box 3",

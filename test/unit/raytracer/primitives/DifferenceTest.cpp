@@ -15,6 +15,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
+    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -26,7 +27,7 @@ namespace DifferenceTest {
     );
     EXPECT_CALL(*primitive2, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     
     State state;
     HitPointInterval hitPoints;
@@ -43,6 +44,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
+    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -54,7 +56,7 @@ namespace DifferenceTest {
     );
     EXPECT_CALL(*primitive2, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     
     State state;
     HitPointInterval hitPoints;
@@ -62,16 +64,36 @@ namespace DifferenceTest {
     
     ASSERT_EQ(&i, result);
   }
-  
+
+  TEST(Difference, ShouldNotReturnAnyPrimitiveRayOutsideBoundingBox) {
+    Difference i;
+    i.setMaterial(new MatteMaterial);
+    
+    auto primitive1 = std::make_shared<MockPrimitive>();
+    auto primitive2 = std::make_shared<MockPrimitive>();
+    i.add(primitive1);
+    i.add(primitive2);
+    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
+    
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
+    
+    State state;
+    HitPointInterval hitPoints;
+    auto result = i.intersect(ray, hitPoints, state);
+    
+    ASSERT_EQ(0, result);
+  }
+
   TEST(Difference, ShouldNotReturnAnyPrimitiveIfFirstChildDoesNotIntersect) {
     Difference i;
     auto primitive1 = std::make_shared<MockPrimitive>();
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
+    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
-    Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     
     State state;
     HitPointInterval hitPoints;

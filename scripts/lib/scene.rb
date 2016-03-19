@@ -149,7 +149,8 @@ class TransparentMaterial < PhongMaterial
 end
 
 class Box < Surface
-  property :size => [1, 1, 1]
+  property :size => [1, 1, 1],
+           :bevelRadius => 0
 end
 
 class Sphere < Surface

@@ -5,12 +5,17 @@
 using namespace raytracer;
 
 Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+  if (!boundingBoxIntersects(ray)) {
+    return nullptr;
+  }
+
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
     if (i->intersect(ray, candidate, state)) {
       hitPoints = hitPoints + candidate;
     }
   }
+  hitPoints = hitPoints.merged();
   
   auto hitPoint = hitPoints.minWithPositiveDistance();
   if (hitPoint.isUndefined()) {

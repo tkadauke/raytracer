@@ -17,6 +17,12 @@ namespace raytracer {
       m_squaredLength2 = m_leg2.squaredLength();
     }
 
+    Rectangle(const Vector3d& corner, const Vector3d& leg1, const Vector3d& leg2, const Vector3d& normal)
+      : Rectangle(corner, leg1, leg2)
+    {
+      m_normal = normal;
+    }
+
     virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
     virtual BoundingBoxd boundingBox();
 
