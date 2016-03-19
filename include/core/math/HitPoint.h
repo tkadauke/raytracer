@@ -38,7 +38,7 @@ public:
     * Constructs a HitPoint on primitive from the specified distance, point, and
     * normal.
     */
-  inline HitPoint(raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
+  inline HitPoint(const raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
     : m_primitive(primitive),
       m_distance(distance),
       m_point(point),
@@ -49,14 +49,14 @@ public:
   /**
     * @returns the primitive that contains this HitPoint.
     */
-  inline raytracer::Primitive* primitive() const {
+  inline const raytracer::Primitive* primitive() const {
     return m_primitive;
   }
   
   /**
     * Sets the primitive for this HitPoint.
     */
-  inline void setPrimitive(raytracer::Primitive* primitive) {
+  inline void setPrimitive(const raytracer::Primitive* primitive) {
     m_primitive = primitive;
   }
 
@@ -147,7 +147,7 @@ public:
   }
   
 private:
-  raytracer::Primitive* m_primitive;
+  const raytracer::Primitive* m_primitive;
   double m_distance;
   Vector4d m_point;
   Vector3d m_normal;

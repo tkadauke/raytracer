@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
   if (t < 0.0001 || std::isinf(t)) {
     state.miss("Rectangle, behind ray or parallel");
@@ -38,7 +38,7 @@ Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
   return this;
 }
 
-BoundingBoxd Rectangle::boundingBox() {
+BoundingBoxd Rectangle::boundingBox() const {
   BoundingBoxd b;
   b.include(m_corner);
   b.include(m_corner + m_leg1);

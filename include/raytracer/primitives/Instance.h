@@ -10,12 +10,12 @@ namespace raytracer {
     Instance(std::shared_ptr<Primitive> primitive) : m_primitive(primitive) {}
     virtual ~Instance() { }
 
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
-    virtual bool intersects(const Rayd& ray, State& state);
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
+    virtual bool intersects(const Rayd& ray, State& state) const;
 
     virtual Material* material() const;
 
-    virtual BoundingBoxd boundingBox();
+    virtual BoundingBoxd boundingBox() const;
 
     void setMatrix(const Matrix4d& matrix);
 

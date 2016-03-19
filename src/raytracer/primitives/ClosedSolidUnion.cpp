@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }

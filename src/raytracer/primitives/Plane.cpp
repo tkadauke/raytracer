@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double t = calculateIntersectionDistance(ray);
   
   if (t > 0) {
@@ -18,7 +18,7 @@ Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, State&
   }
 }
 
-bool Plane::intersects(const Rayd& ray, State& state) {
+bool Plane::intersects(const Rayd& ray, State& state) const {
   if (calculateIntersectionDistance(ray) > 0) {
     state.shadowHit("Plane");
     return true;
@@ -28,7 +28,7 @@ bool Plane::intersects(const Rayd& ray, State& state) {
   return false;
 }
 
-double Plane::calculateIntersectionDistance(const Rayd& ray) {
+double Plane::calculateIntersectionDistance(const Rayd& ray) const {
   const Vector3d& o = ray.origin(), d = ray.direction();
   
   double angle = m_normal * d;
@@ -38,6 +38,6 @@ double Plane::calculateIntersectionDistance(const Rayd& ray) {
   return -(m_normal * o + m_distance) / angle;
 }
 
-BoundingBoxd Plane::boundingBox() {
+BoundingBoxd Plane::boundingBox() const {
   return BoundingBoxd::infinity();
 }

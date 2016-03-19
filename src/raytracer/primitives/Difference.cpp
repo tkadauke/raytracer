@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -41,12 +41,12 @@ Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
 
 // Shadow implementation of Composite, which generates spourious shadows of
 // differential objects
-bool Difference::intersects(const Rayd& ray, State& state) {
+bool Difference::intersects(const Rayd& ray, State& state) const {
   HitPointInterval hitPoints;
   return intersect(ray, hitPoints, state);
 }
 
-BoundingBoxd Difference::boundingBox() {
+BoundingBoxd Difference::boundingBox() const {
   if (primitives().size() > 0) {
     return primitives().front()->boundingBox();
   } else {

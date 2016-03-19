@@ -21,7 +21,7 @@ namespace raytracer {
   
     void render(Buffer<unsigned int>& buffer);
   
-    Primitive* primitiveForRay(const Rayd& ray);
+    const Primitive* primitiveForRay(const Rayd& ray);
     State rayState(const Rayd& ray);
     Colord rayColor(const Rayd& ray, State& state);
     

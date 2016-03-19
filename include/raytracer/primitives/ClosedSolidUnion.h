@@ -5,6 +5,6 @@
 namespace raytracer {
   class ClosedSolidUnion : public Composite {
   public:
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
   };
 }

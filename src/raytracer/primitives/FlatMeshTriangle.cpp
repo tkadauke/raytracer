@@ -6,7 +6,7 @@
 
 using namespace raytracer;
 
-Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   Vector3d v0(m_mesh->vertices[m_index0].point);
   Vector3d v1(m_mesh->vertices[m_index1].point);
   Vector3d v2(m_mesh->vertices[m_index2].point);

@@ -8,8 +8,8 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
-  if (!boundingBox().intersects(ray)) {
+const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
+  if (!boundingBoxIntersects(ray)) {
     state.miss("Torus, bounding box miss");
     return nullptr;
   }
@@ -66,7 +66,7 @@ Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, State&
   }
 }
 
-BoundingBoxd Torus::boundingBox() {
+BoundingBoxd Torus::boundingBox() const {
   Vector3d corner(m_sweptRadius + m_tubeRadius, m_tubeRadius, m_sweptRadius + m_tubeRadius);
   return BoundingBoxd(-corner, corner);
 }

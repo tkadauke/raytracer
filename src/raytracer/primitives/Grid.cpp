@@ -12,7 +12,7 @@ inline float clamp(float x, float min, float max) {
   return (x < min ? min : (x > max ? max : x));
 }
 
-Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -155,7 +155,7 @@ Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& 
   // traverse the grid
 
   while (true) {
-    auto primitive = m_cells[x + m_numX * y + m_numX * m_numY * z].get();
+    const Primitive* primitive = m_cells[x + m_numX * y + m_numX * m_numY * z].get();
 
     if (tx_next < ty_next && tx_next < tz_next) {
       if (primitive) {
@@ -206,7 +206,7 @@ Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& 
   }
 }
 
-bool Grid::intersects(const Rayd& ray, State& state) {
+bool Grid::intersects(const Rayd& ray, State& state) const {
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -435,6 +435,5 @@ void Grid::setup() {
     }
   }
   
-  m_boundingBox.include(m_boundingBox.min() - Vector3d::epsilon());
-  m_boundingBox.include(m_boundingBox.max() + Vector3d::epsilon());
+  m_boundingBox = m_boundingBox.grownByEpsilon();
 }

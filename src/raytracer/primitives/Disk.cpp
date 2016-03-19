@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
   
   if (t < 0.0001) {
@@ -29,7 +29,7 @@ Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& 
   return nullptr;
 }
 
-BoundingBoxd Disk::boundingBox() {
+BoundingBoxd Disk::boundingBox() const {
   Vector3d radius(m_radius, m_radius, m_radius);
   return BoundingBoxd(m_center - radius, m_center + radius);
 }

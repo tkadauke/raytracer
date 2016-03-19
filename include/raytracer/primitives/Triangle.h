@@ -15,8 +15,8 @@ namespace raytracer {
       m_normal = computeNormal();
     }
 
-    virtual BoundingBoxd boundingBox();
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
+    virtual BoundingBoxd boundingBox() const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
 
   private:
     Vector3d computeNormal() const;

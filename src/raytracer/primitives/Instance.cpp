@@ -8,8 +8,8 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
-  Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
+const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
+  const Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
   if (result) {
     hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
     if (Primitive::material()) {
@@ -21,7 +21,7 @@ Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, Sta
   return nullptr;
 }
 
-bool Instance::intersects(const Rayd& ray, State& state) {
+bool Instance::intersects(const Rayd& ray, State& state) const {
   return m_primitive->intersects(instancedRay(ray), state);
 }
 
@@ -40,7 +40,7 @@ Material* Instance::material() const {
     return m_primitive->material();
 }
 
-BoundingBoxd Instance::boundingBox() {
+BoundingBoxd Instance::boundingBox() const {
   BoundingBoxd original = m_primitive->boundingBox();
   vector<Vector3d> vertices;
   original.getVertices(vertices);

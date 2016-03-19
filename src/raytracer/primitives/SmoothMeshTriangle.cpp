@@ -46,7 +46,7 @@ SmoothMeshTriangle::SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int i
   cnv = -c[u] * reci;
 }
 
-Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
   
@@ -82,7 +82,7 @@ Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitP
   return this;
 }
 
-bool SmoothMeshTriangle::intersects(const Rayd& ray, State& state) {
+bool SmoothMeshTriangle::intersects(const Rayd& ray, State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
   

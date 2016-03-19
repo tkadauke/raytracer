@@ -11,19 +11,12 @@ using namespace raytracer;
 Composite::~Composite() {
 }
 
-BoundingBoxd Composite::boundingBox() {
-  BoundingBoxd b;
-  for (const auto& i : m_primitives)
-    b.include(i->boundingBox());
-  return b;
-}
-
-Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
 
-  Primitive* hit = nullptr;
+  const Primitive* hit = nullptr;
   double minDistance = numeric_limits<double>::infinity();
   
   for (const auto& i : m_primitives) {
@@ -43,7 +36,7 @@ Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
   return hit;
 }
 
-bool Composite::intersects(const Rayd& ray, State& state) {
+bool Composite::intersects(const Rayd& ray, State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return false;
   }
@@ -54,4 +47,11 @@ bool Composite::intersects(const Rayd& ray, State& state) {
   }
   
   return false;
+}
+
+BoundingBoxd Composite::boundingBox() const {
+  BoundingBoxd b;
+  for (const auto& i : m_primitives)
+    b.include(i->boundingBox());
+  return b;
 }

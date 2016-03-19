@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -35,7 +35,7 @@ Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints,
   }
 }
 
-bool Intersection::intersects(const Rayd& ray, State& state) {
+bool Intersection::intersects(const Rayd& ray, State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return false;
   }
@@ -48,7 +48,7 @@ bool Intersection::intersects(const Rayd& ray, State& state) {
   return true;
 }
 
-BoundingBoxd Intersection::boundingBox() {
+BoundingBoxd Intersection::boundingBox() const {
   BoundingBoxd result;
   int num = 0;
   for (const auto& i : primitives()) {

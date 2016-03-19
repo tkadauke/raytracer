@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double a = m_point0.x() - m_point1.x(), b = m_point0.x() - m_point2.x(), c = ray.direction().x(), d = m_point0.x() - ray.origin().x();
   double e = m_point0.y() - m_point1.y(), f = m_point0.y() - m_point2.y(), g = ray.direction().y(), h = m_point0.y() - ray.origin().y();
   double i = m_point0.z() - m_point1.z(), j = m_point0.z() - m_point2.z(), k = ray.direction().z(), l = m_point0.z() - ray.origin().z();
@@ -55,7 +55,7 @@ Vector3d Triangle::computeNormal() const {
   return normal.normalized();
 }
 
-BoundingBoxd Triangle::boundingBox() {
+BoundingBoxd Triangle::boundingBox() const {
   BoundingBoxd b;
   b.include(m_point0);
   b.include(m_point1);

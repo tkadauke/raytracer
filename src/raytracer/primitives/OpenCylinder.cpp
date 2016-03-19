@@ -9,7 +9,7 @@
 using namespace std;
 using namespace raytracer;
 
-Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) {
+const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -55,7 +55,7 @@ Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints,
   }
 }
 
-bool OpenCylinder::intersects(const Rayd& ray, State& state) {
+bool OpenCylinder::intersects(const Rayd& ray, State& state) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -89,7 +89,7 @@ bool OpenCylinder::intersects(const Rayd& ray, State& state) {
   }
 }
 
-BoundingBoxd OpenCylinder::boundingBox() {
+BoundingBoxd OpenCylinder::boundingBox() const {
   return BoundingBoxd(
     Vector3d(-m_radius, -m_halfHeight, -m_radius),
     Vector3d( m_radius,  m_halfHeight,  m_radius)

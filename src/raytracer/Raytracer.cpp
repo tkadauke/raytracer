@@ -108,7 +108,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   }
 }
 
-Primitive* Raytracer::primitiveForRay(const Rayd& ray) {
+const Primitive* Raytracer::primitiveForRay(const Rayd& ray) {
   return rayState(ray).hitPoint.primitive();
 }
 

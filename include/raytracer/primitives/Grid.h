@@ -9,8 +9,8 @@ namespace raytracer {
   public:
     inline Grid() {}
 
-    virtual Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state);
-    virtual bool intersects(const Rayd& ray, State& state);
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
+    virtual bool intersects(const Rayd& ray, State& state) const;
 
     void setup();
 

@@ -203,7 +203,7 @@ public:
   /**
     * @returns true if and only if point is inside the box, false otherwise.
     */
-  inline bool contains(const Vector3<T>& point) {
+  inline bool contains(const Vector3<T>& point) const {
     for (int i = 0; i != 3; ++i) {
       if (point[i] < m_min[i] || point[i] > m_max[i])
         return false;
