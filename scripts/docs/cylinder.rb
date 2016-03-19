@@ -20,3 +20,12 @@ end
     cylinder :height => height, :material => red_matte
   end.render("docs/images/cylinder_height_#{i}.png", :width => 240, :height => 180)
 end
+
+1.upto(5) do |i|
+  radius = i / 10.0
+  
+  Scene.new do
+    object_scene
+    cylinder :bevelRadius => radius, :material => red_matte
+  end.render("docs/images/cylinder_bevel_radius_#{i}.png", :width => 240, :height => 180)
+end

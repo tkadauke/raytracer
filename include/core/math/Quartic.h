@@ -36,7 +36,7 @@ int Quartic<T>::solve() {
   T r = -3.0/256 * normASquared * normASquared + 1.0/16 * normASquared * normB - 0.25 * normA * normC + normD;
   
   int numberOfResults;
-  if (isAlmostZero(r, T(0.000001))) {
+  if (isAlmostZero(r)) {
     Cubic<T> cubic(1, 0, p, q);
     numberOfResults = cubic.solveInto(m_result);
   } else {
@@ -48,14 +48,14 @@ int Quartic<T>::solve() {
     T u = z * z - r;
     T v = 2 * z - p;
   
-    if (isAlmostZero(u, T(0.000001)))
+    if (isAlmostZero(u))
       u = 0;
     else if (u > 0)
       u = std::sqrt(u);
     else
       return 0;
   
-    if (isAlmostZero(v, T(0.000001)))
+    if (isAlmostZero(v))
       v = 0;
     else if (v > 0)
       v = std::sqrt(v);

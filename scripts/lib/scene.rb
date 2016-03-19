@@ -159,7 +159,8 @@ end
 
 class Cylinder < Surface
   property :radius => 1,
-           :height => 2
+           :height => 2,
+           :bevelRadius => 0
 end
 
 class CSGSurface < Surface

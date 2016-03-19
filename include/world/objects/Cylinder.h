@@ -11,6 +11,7 @@ class Cylinder : public Surface {
   Q_OBJECT;
   Q_PROPERTY(double radius READ radius WRITE setRadius);
   Q_PROPERTY(double height READ height WRITE setHeight);
+  Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius);
   
 public:
   /**
@@ -64,9 +65,34 @@ public:
     m_height = std::max(std::abs(height), std::numeric_limits<double>::epsilon());
   }
 
+  /**
+    * @returns the bevel radius.
+    */
+  inline double bevelRadius() const {
+    return m_bevelRadius;
+  }
+  
+  /**
+    * Sets the bevel radius of the cylinder. If the radius is 0, the cylinder
+    * will be a simple cylinder primitive with perfectly sharp edges. If the
+    * radius is greater than 0, the edges will be rounded.
+    * 
+    * <table><tr>
+    * <td>@image html cylinder_bevel_radius_1.png</td>
+    * <td>@image html cylinder_bevel_radius_2.png</td>
+    * <td>@image html cylinder_bevel_radius_3.png</td>
+    * <td>@image html cylinder_bevel_radius_4.png</td>
+    * <td>@image html cylinder_bevel_radius_5.png</td>
+    * </tr></table>
+    */
+  inline void setBevelRadius(double radius) {
+    m_bevelRadius = std::min(std::min(m_radius, m_height / 2.0), radius);
+  }
+
   virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
   
 private:
   double m_radius;
   double m_height;
+  double m_bevelRadius;
 };
