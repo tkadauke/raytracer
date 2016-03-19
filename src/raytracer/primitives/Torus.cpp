@@ -66,7 +66,7 @@ const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
   }
 }
 
-BoundingBoxd Torus::boundingBox() const {
+BoundingBoxd Torus::calculateBoundingBox() const {
   Vector3d corner(m_sweptRadius + m_tubeRadius, m_tubeRadius, m_sweptRadius + m_tubeRadius);
   return BoundingBoxd(-corner, corner);
 }

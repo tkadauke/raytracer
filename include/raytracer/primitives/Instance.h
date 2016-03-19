@@ -15,9 +15,10 @@ namespace raytracer {
 
     virtual Material* material() const;
 
-    virtual BoundingBoxd boundingBox() const;
-
     void setMatrix(const Matrix4d& matrix);
+
+  protected:
+    virtual BoundingBoxd calculateBoundingBox() const;
 
   private:
     inline Rayd instancedRay(const Rayd& ray) const {

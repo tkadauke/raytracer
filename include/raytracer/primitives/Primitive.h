@@ -18,7 +18,13 @@ namespace raytracer {
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const = 0;
     virtual bool intersects(const Rayd& ray, State& state) const;
 
-    virtual BoundingBoxd boundingBox() const = 0;
+    inline const BoundingBoxd& boundingBox() const {
+      if (!m_cachedBoundingBox) {
+        m_cachedBoundingBox = calculateBoundingBox();
+      }
+      
+      return m_cachedBoundingBox.value();
+    }
 
     inline void setMaterial(Material* material) {
       m_material = material;
@@ -29,12 +35,10 @@ namespace raytracer {
     }
     
   protected:
+    virtual BoundingBoxd calculateBoundingBox() const = 0;
+    
     inline bool boundingBoxIntersects(const Rayd& ray) const {
-      if (!m_cachedBoundingBox) {
-        m_cachedBoundingBox = boundingBox();
-      }
-      
-      return m_cachedBoundingBox.value().intersects(ray);
+      return boundingBox().intersects(ray);
     }
     
   private:

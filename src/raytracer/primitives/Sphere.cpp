@@ -66,7 +66,7 @@ bool Sphere::intersects(const Rayd& ray, State& state) const {
   return false;
 }
 
-BoundingBoxd Sphere::boundingBox() const {
+BoundingBoxd Sphere::calculateBoundingBox() const {
   Vector3d radius(m_radius, m_radius, m_radius);
   return BoundingBoxd(m_origin - radius, m_origin + radius);
 }

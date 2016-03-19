@@ -15,7 +15,6 @@ namespace raytracer {
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual bool intersects(const Rayd& ray, State& state) const;
-    virtual BoundingBoxd boundingBox() const;
 
     inline void add(std::shared_ptr<Primitive> primitive) {
       m_primitives.push_back(primitive);
@@ -25,6 +24,9 @@ namespace raytracer {
       return m_primitives;
     }
   
+  protected:
+    virtual BoundingBoxd calculateBoundingBox() const;
+
   private:
     Primitives m_primitives;
   };

@@ -40,7 +40,7 @@ Material* Instance::material() const {
     return m_primitive->material();
 }
 
-BoundingBoxd Instance::boundingBox() const {
+BoundingBoxd Instance::calculateBoundingBox() const {
   BoundingBoxd original = m_primitive->boundingBox();
   vector<Vector3d> vertices;
   original.getVertices(vertices);

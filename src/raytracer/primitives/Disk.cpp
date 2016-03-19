@@ -29,7 +29,7 @@ const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
   return nullptr;
 }
 
-BoundingBoxd Disk::boundingBox() const {
+BoundingBoxd Disk::calculateBoundingBox() const {
   Vector3d radius(m_radius, m_radius, m_radius);
   return BoundingBoxd(m_center - radius, m_center + radius);
 }

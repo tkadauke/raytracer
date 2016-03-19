@@ -71,6 +71,6 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
   return this;
 }
 
-BoundingBoxd Box::boundingBox() const {
+BoundingBoxd Box::calculateBoundingBox() const {
   return BoundingBoxd(m_center - m_edge, m_center + m_edge);
 }

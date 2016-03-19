@@ -89,7 +89,7 @@ bool OpenCylinder::intersects(const Rayd& ray, State& state) const {
   }
 }
 
-BoundingBoxd OpenCylinder::boundingBox() const {
+BoundingBoxd OpenCylinder::calculateBoundingBox() const {
   return BoundingBoxd(
     Vector3d(-m_radius, -m_halfHeight, -m_radius),
     Vector3d( m_radius,  m_halfHeight,  m_radius)

@@ -131,7 +131,7 @@ namespace CompositeTest {
     composite.add(mockPrimitive);
     
     BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
-    EXPECT_CALL(*mockPrimitive, boundingBox()).WillOnce(Return(bbox));
+    EXPECT_CALL(*mockPrimitive, calculateBoundingBox()).WillOnce(Return(bbox));
     
     ASSERT_EQ(bbox, composite.boundingBox());
   }
@@ -143,10 +143,10 @@ namespace CompositeTest {
     composite.add(mockPrimitive1);
     composite.add(mockPrimitive2);
     
-    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(
+    EXPECT_CALL(*mockPrimitive1, calculateBoundingBox()).WillOnce(
       Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)))
     );
-    EXPECT_CALL(*mockPrimitive2, boundingBox()).WillOnce(
+    EXPECT_CALL(*mockPrimitive2, calculateBoundingBox()).WillOnce(
       Return(BoundingBoxd(Vector3d(0, 0, 0), Vector3d(2, 2, 2)))
     );
     

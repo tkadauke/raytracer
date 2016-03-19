@@ -46,7 +46,7 @@ bool Difference::intersects(const Rayd& ray, State& state) const {
   return intersect(ray, hitPoints, state);
 }
 
-BoundingBoxd Difference::boundingBox() const {
+BoundingBoxd Difference::calculateBoundingBox() const {
   if (primitives().size() > 0) {
     return primitives().front()->boundingBox();
   } else {

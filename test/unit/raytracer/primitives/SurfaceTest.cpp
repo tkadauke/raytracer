@@ -11,7 +11,7 @@ namespace PrimitiveTest {
       return nullptr;
     }
     
-    inline virtual BoundingBoxd boundingBox() const {
+    inline virtual BoundingBoxd calculateBoundingBox() const {
       return BoundingBoxd();
     }
   };

@@ -38,6 +38,6 @@ double Plane::calculateIntersectionDistance(const Rayd& ray) const {
   return -(m_normal * o + m_distance) / angle;
 }
 
-BoundingBoxd Plane::boundingBox() const {
+BoundingBoxd Plane::calculateBoundingBox() const {
   return BoundingBoxd::infinity();
 }

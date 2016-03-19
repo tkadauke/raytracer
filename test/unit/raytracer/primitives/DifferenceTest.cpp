@@ -15,7 +15,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -44,7 +44,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -73,7 +73,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
     
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     
@@ -90,7 +90,7 @@ namespace DifferenceTest {
     auto primitive2 = std::make_shared<MockPrimitive>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, boundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
@@ -108,7 +108,7 @@ namespace DifferenceTest {
     i.add(mockPrimitive);
     
     BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
-    EXPECT_CALL(*mockPrimitive, boundingBox()).WillOnce(Return(bbox));
+    EXPECT_CALL(*mockPrimitive, calculateBoundingBox()).WillOnce(Return(bbox));
     
     ASSERT_EQ(bbox, i.boundingBox());
   }
@@ -120,8 +120,8 @@ namespace DifferenceTest {
     i.add(mockPrimitive1);
     i.add(mockPrimitive2);
     
-    EXPECT_CALL(*mockPrimitive1, boundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
-    EXPECT_CALL(*mockPrimitive2, boundingBox()).Times(0);
+    EXPECT_CALL(*mockPrimitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*mockPrimitive2, calculateBoundingBox()).Times(0);
     
     BoundingBoxd expected(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
     ASSERT_EQ(expected, i.boundingBox());

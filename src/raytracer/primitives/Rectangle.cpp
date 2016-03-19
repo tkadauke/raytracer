@@ -38,7 +38,7 @@ const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoin
   return this;
 }
 
-BoundingBoxd Rectangle::boundingBox() const {
+BoundingBoxd Rectangle::calculateBoundingBox() const {
   BoundingBoxd b;
   b.include(m_corner);
   b.include(m_corner + m_leg1);

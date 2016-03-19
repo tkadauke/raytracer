@@ -49,7 +49,7 @@ bool Composite::intersects(const Rayd& ray, State& state) const {
   return false;
 }
 
-BoundingBoxd Composite::boundingBox() const {
+BoundingBoxd Composite::calculateBoundingBox() const {
   BoundingBoxd b;
   for (const auto& i : m_primitives)
     b.include(i->boundingBox());

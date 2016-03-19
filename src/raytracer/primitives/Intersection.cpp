@@ -48,7 +48,7 @@ bool Intersection::intersects(const Rayd& ray, State& state) const {
   return true;
 }
 
-BoundingBoxd Intersection::boundingBox() const {
+BoundingBoxd Intersection::calculateBoundingBox() const {
   BoundingBoxd result;
   int num = 0;
   for (const auto& i : primitives()) {

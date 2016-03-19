@@ -55,7 +55,7 @@ Vector3d Triangle::computeNormal() const {
   return normal.normalized();
 }
 
-BoundingBoxd Triangle::boundingBox() const {
+BoundingBoxd Triangle::calculateBoundingBox() const {
   BoundingBoxd b;
   b.include(m_point0);
   b.include(m_point1);
