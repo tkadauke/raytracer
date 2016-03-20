@@ -60,7 +60,7 @@ namespace raytracer {
       m_specularBTDF.setRefractionIndex(index);
     }
     
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);
+    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
 
   private:
     Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);

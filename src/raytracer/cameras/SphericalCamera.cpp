@@ -9,7 +9,7 @@
 using namespace std;
 using namespace raytracer;
 
-Vector3d SphericalCamera::direction(double x, double y) {
+Vector3d SphericalCamera::direction(double x, double y) const {
   Vector2d point(2.0 / viewPlane()->width() * x + 1.0, 2.0 / viewPlane()->height() * y - 1.0);
 
   double lambda = point.x() * 0.5 * m_horizontalFieldOfView.radians();
@@ -23,7 +23,7 @@ Vector3d SphericalCamera::direction(double x, double y) {
   return Matrix3d(matrix()) * Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
 }
 
-Rayd SphericalCamera::rayForPixel(double x, double y) {
+Rayd SphericalCamera::rayForPixel(double x, double y) const {
   Vector3d position = matrix() * Vector4d(0, 0, -5);
   return Rayd(position, direction(x, y));
 }

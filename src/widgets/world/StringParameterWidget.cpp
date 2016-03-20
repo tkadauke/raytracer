@@ -21,7 +21,7 @@ void StringParameterWidget::setParameterName(const QString& name) {
   p->ui.label->setText(name);
 }
 
-const QVariant StringParameterWidget::value() {
+const QVariant StringParameterWidget::value() const {
   return QVariant::fromValue(p->ui.stringEdit->text());
 }
 

@@ -26,5 +26,5 @@ public:
   
 private:
   void updateScene(const std::function<void()>& setup);
-  raytracer::Scene* sphereOnPlane(Material* material, Scene* s);
+  raytracer::Scene* sphereOnPlane(Material* material, Scene* s) const;
 };

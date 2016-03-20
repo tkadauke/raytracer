@@ -9,21 +9,27 @@
 
 using namespace raytracer;
 
-Camera::~Camera() {
+Camera::Camera()
+  : m_cancelled(false)
+{
+  m_viewPlane = std::make_shared<PointInterlacedViewPlane>();
 }
 
-std::shared_ptr<ViewPlane> Camera::viewPlane() {
-  // Use this type of view plane as default, because I like it the most :-)
-  if (!m_viewPlane)
-    m_viewPlane = std::make_shared<PointInterlacedViewPlane>();
-  return m_viewPlane;
+Camera::Camera(const Vector3d& position, const Vector3d& target)
+  : Camera()
+{
+  m_position = position;
+  m_target = target;
+}
+
+Camera::~Camera() {
 }
 
 void Camera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
   m_viewPlane = plane;
 }
 
-const Matrix4d& Camera::matrix() {
+const Matrix4d& Camera::matrix() const {
   if (!m_matrix) {
     auto zAxis = (m_target - m_position).normalized();
     auto xAxis = Vector3d::up() ^ zAxis;
@@ -37,11 +43,11 @@ const Matrix4d& Camera::matrix() {
   return m_matrix;
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) {
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) const {
   render(raytracer, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) {
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) const {
   auto plane = viewPlane();
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
@@ -61,7 +67,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
   }
 }
 
-void Camera::plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) {
+void Camera::plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const {
   auto avergageColor = color / viewPlane()->sampler()->numSamples();
   unsigned int rgb = avergageColor.rgb();
   

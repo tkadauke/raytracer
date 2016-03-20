@@ -21,7 +21,7 @@ class ImageViewer {
 public:
   ImageViewer(const Buffer<unsigned int>& buffer);
   
-  void show();
+  void show() const;
   
 private:
   QApplication* m_application;

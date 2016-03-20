@@ -11,7 +11,7 @@ public:
   
   virtual void setParameterName(const QString& name);
 
-  virtual const QVariant value();
+  virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 
 protected:

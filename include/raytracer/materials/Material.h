@@ -14,6 +14,6 @@ namespace raytracer {
   public:
     virtual ~Material() {}
 
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) = 0;
+    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const = 0;
   };
 }

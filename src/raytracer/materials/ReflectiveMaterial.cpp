@@ -6,7 +6,7 @@
 
 using namespace raytracer;
 
-Colord ReflectiveMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) {
+Colord ReflectiveMaterial::shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const {
   auto color = PhongMaterial::shade(raytracer, ray, hitPoint, state);
 
   Vector3d out = - ray.direction();

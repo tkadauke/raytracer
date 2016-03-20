@@ -36,7 +36,7 @@ namespace testing {
     m_scene->add(primitive);
   }
   
-  Scene* RaytracerFeatureTest::scene() {
+  Scene* RaytracerFeatureTest::scene() const {
     return m_scene;
   }
 
@@ -76,11 +76,11 @@ namespace testing {
     return m_buffer;
   }
   
-  bool RaytracerFeatureTest::colorPresent(const Colord& color) {
+  bool RaytracerFeatureTest::colorPresent(const Colord& color) const {
     return colorCount(color) > 0;
   }
 
-  int RaytracerFeatureTest::colorCount(const Colord& color) {
+  int RaytracerFeatureTest::colorCount(const Colord& color) const {
     int result = 0;
     for (int i = 0; i != m_buffer.width(); ++i) {
       for (int j = 0; j != m_buffer.height(); ++j) {
@@ -92,16 +92,16 @@ namespace testing {
     return result;
   }
   
-  unsigned int RaytracerFeatureTest::colorAt(int x, int y) {
+  unsigned int RaytracerFeatureTest::colorAt(int x, int y) const {
     return m_buffer[y][x];
   }
 
-  void RaytracerFeatureTest::show() {
+  void RaytracerFeatureTest::show() const {
     ImageViewer viewer(m_buffer);
     viewer.show();
   }
 
-  Material* RaytracerFeatureTest::redDiffuse() {
+  Material* RaytracerFeatureTest::redDiffuse() const {
     auto material = new MatteMaterial(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
     return material;
   }
@@ -118,11 +118,11 @@ namespace testing {
     setView(Vector3d(0, 0, -30), Vector3d::null());
   }
 
-  bool RaytracerFeatureTest::objectVisible() {
+  bool RaytracerFeatureTest::objectVisible() const {
     return colorPresent(Colord(1, 0, 0));
   }
 
-  int RaytracerFeatureTest::objectSize() {
+  int RaytracerFeatureTest::objectSize() const {
     return colorCount(Colord(1, 0, 0));
   }
 }

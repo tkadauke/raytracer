@@ -31,8 +31,7 @@ namespace raytracer {
     }
 
     using Camera::render;
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect);
-    virtual Rayd rayForPixel(double x, double y);
+    virtual Rayd rayForPixel(double x, double y) const;
 
     /**
       * @returns the camera'z zoom.
@@ -54,6 +53,7 @@ namespace raytracer {
       */
     inline void setZoom(double zoom) {
       m_zoom = zoom;
+      viewPlane()->setPixelSize(1.0 / m_zoom);
     }
     
   private:

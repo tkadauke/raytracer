@@ -19,11 +19,11 @@ namespace CameraTest {
     {
     }
     
-    inline virtual void render(std::shared_ptr<Raytracer>, Buffer<unsigned int>&, const Recti&) {
+    inline virtual void render(std::shared_ptr<Raytracer>, Buffer<unsigned int>&, const Recti&) const {
       // noop
     }
     
-    inline virtual Rayd rayForPixel(double, double) {
+    inline virtual Rayd rayForPixel(double, double) const {
       return Rayd::undefined();
     }
   };

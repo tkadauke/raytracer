@@ -4,7 +4,7 @@
 using namespace testing;
 using namespace std;
 
-vector<int> ShapeRecognition::lines(const Buffer<unsigned int>& buffer) {
+vector<int> ShapeRecognition::lines(const Buffer<unsigned int>& buffer) const {
   vector<int> lineLengths;
   unsigned int red = Colord(1, 0, 0).rgb();
   
@@ -33,7 +33,7 @@ vector<int> ShapeRecognition::lines(const Buffer<unsigned int>& buffer) {
   return lineLengths;
 }
 
-bool ShapeRecognition::recognizeRect(const Buffer<unsigned int>& buffer) {
+bool ShapeRecognition::recognizeRect(const Buffer<unsigned int>& buffer) const {
   vector<int> l = lines(buffer);
   if (l.size() == 0)
     return false;
@@ -46,7 +46,7 @@ bool ShapeRecognition::recognizeRect(const Buffer<unsigned int>& buffer) {
   return true;
 }
 
-bool ShapeRecognition::recognizeCircle(const Buffer<unsigned int>& buffer) {
+bool ShapeRecognition::recognizeCircle(const Buffer<unsigned int>& buffer) const {
   vector<int> l = lines(buffer);
   if (l.size() == 0)
     return false;

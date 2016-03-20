@@ -21,9 +21,9 @@ namespace raytracer {
   
     void render(Buffer<unsigned int>& buffer);
   
-    const Primitive* primitiveForRay(const Rayd& ray);
-    State rayState(const Rayd& ray);
-    Colord rayColor(const Rayd& ray, State& state);
+    const Primitive* primitiveForRay(const Rayd& ray) const;
+    State rayState(const Rayd& ray) const;
+    Colord rayColor(const Rayd& ray, State& state) const;
     
     inline std::shared_ptr<Camera> camera() const {
       return m_camera;

@@ -41,7 +41,7 @@ namespace raytracer {
     {
     }
 
-    virtual Rayd rayForPixel(double x, double y);
+    virtual Rayd rayForPixel(double x, double y) const;
 
     /**
       * @returns the camera's field of view.
@@ -66,7 +66,7 @@ namespace raytracer {
     }
     
   private:
-    Vector3d direction(double x, double y);
+    Vector3d direction(double x, double y) const;
     Angled m_fieldOfView;
   };
 }

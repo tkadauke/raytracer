@@ -12,7 +12,7 @@
 using namespace std;
 using namespace raytracer;
 
-Colord MatteMaterial::shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) {
+Colord MatteMaterial::shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
   
   Lambertian ambientBRDF(texColor, ambientCoefficient());

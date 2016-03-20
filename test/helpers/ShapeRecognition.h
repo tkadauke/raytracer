@@ -7,11 +7,11 @@
 namespace testing {
   class ShapeRecognition {
   public:
-    bool recognizeRect(const Buffer<unsigned int>& buffer);
-    bool recognizeCircle(const Buffer<unsigned int>& buffer);
+    bool recognizeRect(const Buffer<unsigned int>& buffer) const;
+    bool recognizeCircle(const Buffer<unsigned int>& buffer) const;
   
   private:
-    std::vector<int> lines(const Buffer<unsigned int>& buffer);
+    std::vector<int> lines(const Buffer<unsigned int>& buffer) const;
   };
 }
 

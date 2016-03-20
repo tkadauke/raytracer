@@ -12,30 +12,30 @@ namespace raytracer {
     {
     }
     
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in);
-    
-    inline void setSpecularColor(const Colord& color) {
-      m_specularColor = color;
-    }
+    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const;
     
     inline const Colord& specularColor() const {
       return m_specularColor;
     }
     
-    inline void setSpecularCoefficient(double coeff) {
-      m_specularCoefficient = Ranged(0, 1).clamp(coeff);
+    inline void setSpecularColor(const Colord& color) {
+      m_specularColor = color;
     }
     
     inline double specularCoefficient() const {
       return m_specularCoefficient;
     }
     
-    inline void setExponent(double exponent) {
-      m_exponent = exponent;
+    inline void setSpecularCoefficient(double coeff) {
+      m_specularCoefficient = Ranged(0, 1).clamp(coeff);
     }
     
     inline double exponent() const {
       return m_exponent;
+    }
+    
+    inline void setExponent(double exponent) {
+      m_exponent = exponent;
     }
     
   private:

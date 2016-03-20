@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Colord PerfectSpecular::sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) {
+Colord PerfectSpecular::sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const {
   double normalDotOut = hitPoint.normal() * out;
   in = -out + hitPoint.normal() * 2.0 * normalDotOut;
 

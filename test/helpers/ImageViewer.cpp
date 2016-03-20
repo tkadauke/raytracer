@@ -29,7 +29,7 @@ ImageViewer::ImageViewer(const Buffer<unsigned int>& buffer) {
   m_widget = new ImageViewerWidget(buffer);
 }
 
-void ImageViewer::show() {
+void ImageViewer::show() const {
   m_widget->show();
   m_application->exec();
 }

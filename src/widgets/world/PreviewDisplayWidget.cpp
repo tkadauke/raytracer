@@ -58,7 +58,7 @@ void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   render();
 }
 
-raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) {
+raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
   auto mat = material->toRaytracerMaterial();
   auto scene = new raytracer::Scene;
   

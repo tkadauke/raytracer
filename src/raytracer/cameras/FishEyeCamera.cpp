@@ -8,7 +8,7 @@
 using namespace std;
 using namespace raytracer;
 
-Vector3d FishEyeCamera::direction(double x, double y) {
+Vector3d FishEyeCamera::direction(double x, double y) const {
   Vector2d point(2.0 / viewPlane()->width() * x - 1.0, 2.0 / viewPlane()->height() * y - 1.0);
   double r2 = point * point;
   if (r2 <= 1.0) {
@@ -23,7 +23,7 @@ Vector3d FishEyeCamera::direction(double x, double y) {
     return Vector3d::undefined();
 }
 
-Rayd FishEyeCamera::rayForPixel(double x, double y) {
+Rayd FishEyeCamera::rayForPixel(double x, double y) const {
   Vector3d position = matrix().translationVector();
   return Rayd(position, direction(x, y));
 }

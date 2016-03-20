@@ -17,22 +17,22 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
 RenderSettingsWidget::~RenderSettingsWidget() {
 }  
 
-QSize RenderSettingsWidget::resolution() {
+QSize RenderSettingsWidget::resolution() const {
   QString resolution = p->ui.resolution->currentText();
   auto components = resolution.split("x");
   
   return QSize(components[0].toInt(), components[1].toInt());
 }
 
-QString RenderSettingsWidget::sampler() {
+QString RenderSettingsWidget::sampler() const {
   return p->ui.samplerType->currentText();
 }
 
-int RenderSettingsWidget::samplesPerPixel() {
+int RenderSettingsWidget::samplesPerPixel() const {
   return p->ui.samplesPerPixel->value();
 }
 
-int RenderSettingsWidget::maxRecursionDepth() {
+int RenderSettingsWidget::maxRecursionDepth() const {
   return p->ui.maxRecursionDepth->value();
 }
 

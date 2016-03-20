@@ -21,7 +21,7 @@ void BoolParameterWidget::setParameterName(const QString& name) {
   p->ui.checkBox->setText(name);
 }
 
-const QVariant BoolParameterWidget::value() {
+const QVariant BoolParameterWidget::value() const {
   return QVariant::fromValue(p->ui.checkBox->checkState() == Qt::Checked);
 }
 

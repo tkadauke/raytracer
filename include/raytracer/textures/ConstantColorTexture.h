@@ -11,12 +11,12 @@ namespace raytracer {
     {
     }
     
-    inline void setColor(const Colord& color) {
-      m_color = color;
-    }
-    
     inline const Colord& color() const {
       return m_color;
+    }
+    
+    inline void setColor(const Colord& color) {
+      m_color = color;
     }
     
     virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;

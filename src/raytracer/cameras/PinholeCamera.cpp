@@ -5,12 +5,7 @@
 
 using namespace raytracer;
 
-void PinholeCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) {
-  viewPlane()->setPixelSize(1.0 / m_zoom);
-  Camera::render(raytracer, buffer, rect);
-}
-
-Rayd PinholeCamera::rayForPixel(double x, double y) {
+Rayd PinholeCamera::rayForPixel(double x, double y) const {
   Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(position, (pixel - position).normalized());

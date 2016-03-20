@@ -39,7 +39,7 @@ void VectorParameterWidget::setParameterName(const QString& name) {
   p->ui.label->setText(name);
 }
 
-const QVariant VectorParameterWidget::value() {
+const QVariant VectorParameterWidget::value() const {
   return QVariant::fromValue(vector());
 }
 

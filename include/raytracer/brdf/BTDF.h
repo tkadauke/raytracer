@@ -6,6 +6,6 @@
 namespace raytracer {
   class BTDF : BRDF {
   public:
-    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) = 0;
+    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const = 0;
   };
 }

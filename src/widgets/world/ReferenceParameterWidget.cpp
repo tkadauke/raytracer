@@ -32,7 +32,7 @@ void ReferenceParameterWidget::setParameterName(const QString& name) {
   p->ui.label->setText(name);
 }
 
-const QVariant ReferenceParameterWidget::value() {
+const QVariant ReferenceParameterWidget::value() const {
   auto index = p->ui.comboBox->currentIndex();
   return p->ui.comboBox->itemData(index);
 }

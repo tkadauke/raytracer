@@ -17,23 +17,23 @@ namespace raytracer {
     {
     }
     
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in);
-    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out);
-    
-    inline void setDiffuseColor(const Colord& color) {
-      m_diffuseColor = color;
-    }
+    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const;
+    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const;
     
     inline const Colord& diffuseColor() const {
       return m_diffuseColor;
     }
     
-    inline void setReflectionCoefficient(double coeff) {
-      m_reflectionCoefficient = Ranged(0, 1).clamp(coeff);
+    inline void setDiffuseColor(const Colord& color) {
+      m_diffuseColor = color;
     }
     
     inline double reflectionCoefficient() const {
       return m_reflectionCoefficient;
+    }
+    
+    inline void setReflectionCoefficient(double coeff) {
+      m_reflectionCoefficient = Ranged(0, 1).clamp(coeff);
     }
     
   private:

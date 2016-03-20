@@ -11,14 +11,14 @@ public:
   
   virtual void setParameterName(const QString& name);
 
-  virtual const QVariant value();
+  virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 
 private slots:
   void recalculate();
 
 private:
-  QString type();
+  QString type() const;
   
   struct Private;
   std::unique_ptr<Private> p;

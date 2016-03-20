@@ -20,20 +20,20 @@ namespace raytracer {
     {
     }
     
-    inline void setBrightTexture(std::shared_ptr<Texturec> color) {
-      m_brightTexture = color;
-    }
-    
     inline std::shared_ptr<Texturec> brightTexture() const {
       return m_brightTexture;
     }
     
-    inline void setDarkTexture(std::shared_ptr<Texturec> color) {
-      m_darkTexture = color;
+    inline void setBrightTexture(std::shared_ptr<Texturec> color) {
+      m_brightTexture = color;
     }
     
     inline std::shared_ptr<Texturec> darkTexture() const {
       return m_darkTexture;
+    }
+    
+    inline void setDarkTexture(std::shared_ptr<Texturec> color) {
+      m_darkTexture = color;
     }
     
     virtual Colord evaluate(const Rayd& ray, const HitPoint& hitPoint) const;

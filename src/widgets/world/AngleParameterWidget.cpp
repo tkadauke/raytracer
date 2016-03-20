@@ -26,7 +26,7 @@ void AngleParameterWidget::setParameterName(const QString& name) {
   p->ui.label->setText(name);
 }
 
-const QVariant AngleParameterWidget::value() {
+const QVariant AngleParameterWidget::value() const {
   double editValue = p->ui.angleEdit->text().toDouble();
   
   Angled angle;
@@ -62,7 +62,7 @@ void AngleParameterWidget::recalculate() {
   setValue(lastValue());
 }
 
-QString AngleParameterWidget::type() {
+QString AngleParameterWidget::type() const {
   return p->ui.angleType->currentText();
 }
 

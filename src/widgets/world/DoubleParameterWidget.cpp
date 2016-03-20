@@ -21,7 +21,7 @@ void DoubleParameterWidget::setParameterName(const QString& name) {
   p->ui.label->setText(name);
 }
 
-const QVariant DoubleParameterWidget::value() {
+const QVariant DoubleParameterWidget::value() const {
   return QVariant::fromValue(p->ui.doubleEdit->text().toDouble());
 }
 

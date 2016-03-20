@@ -105,7 +105,7 @@ namespace raytracer {
       m_diffuseCoefficient = coeff;
     }
     
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);
+    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
 
   private:
     std::shared_ptr<Texturec> m_diffuseTexture;

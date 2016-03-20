@@ -27,7 +27,7 @@ namespace testing {
     RaytracerFeatureTest();
     
     void add(std::shared_ptr<raytracer::Primitive> primitive);
-    raytracer::Scene* scene();
+    raytracer::Scene* scene() const;
     std::shared_ptr<raytracer::Camera> camera();
     void setCamera(std::shared_ptr<raytracer::Camera> camera);
     void setCamera(const Vector3d& position, const Vector3d& lookAt);
@@ -38,17 +38,17 @@ namespace testing {
     const Buffer<unsigned int>& buffer() const;
     void clear();
   
-    bool colorPresent(const Colord& color);
-    int colorCount(const Colord& color);
-    unsigned int colorAt(int x, int y);
-    void show();
+    bool colorPresent(const Colord& color) const;
+    int colorCount(const Colord& color) const;
+    unsigned int colorAt(int x, int y) const;
+    void show() const;
   
-    raytracer::Material* redDiffuse();
+    raytracer::Material* redDiffuse() const;
     void lookAtOrigin();
     void lookAway();
     void goFarAway();
-    bool objectVisible();
-    int objectSize();
+    bool objectVisible() const;
+    int objectSize() const;
     
     int previousObjectSize;
 

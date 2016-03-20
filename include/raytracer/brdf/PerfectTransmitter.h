@@ -12,23 +12,23 @@ namespace raytracer {
     {
     }
     
-    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in);
-    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint);
-    
-    inline void setTransmissionCoefficient(double coeff) {
-      m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);
-    }
+    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const;
+    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const;
     
     inline double transmissionCoefficient() const {
       return m_transmissionCoefficient;
     }
     
-    inline void setRefractionIndex(double refractionIndex) {
-      m_refractionIndex = refractionIndex;
+    inline void setTransmissionCoefficient(double coeff) {
+      m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);
     }
     
     inline double refractionIndex() const {
       return m_refractionIndex;
+    }
+    
+    inline void setRefractionIndex(double refractionIndex) {
+      m_refractionIndex = refractionIndex;
     }
     
   private:

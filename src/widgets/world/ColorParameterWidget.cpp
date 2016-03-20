@@ -60,7 +60,7 @@ QColor ColorParameterWidget::colordToQColor(const Colord& color) {
   return QColor(color.rInt(), color.gInt(), color.bInt());
 }
 
-const QVariant ColorParameterWidget::value() {
+const QVariant ColorParameterWidget::value() const {
   return QVariant::fromValue(color());
 }
 

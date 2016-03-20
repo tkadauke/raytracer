@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Colord GlossySpecular::calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) {
+Colord GlossySpecular::calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const {
   double normalDotIn = hitPoint.normal() * in;
   Vector3d lobeDirection = (-in + hitPoint.normal() * 2.0 * normalDotIn);
   double lobeDotOut = lobeDirection * out;

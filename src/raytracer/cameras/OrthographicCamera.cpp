@@ -5,12 +5,7 @@
 
 using namespace raytracer;
 
-void OrthographicCamera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) {
-  viewPlane()->setPixelSize(1.0 / m_zoom);
-  Camera::render(raytracer, buffer, rect);
-}
-
-Rayd OrthographicCamera::rayForPixel(double x, double y) {
+Rayd OrthographicCamera::rayForPixel(double x, double y) const {
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(pixel, direction);

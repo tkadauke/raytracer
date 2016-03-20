@@ -123,7 +123,7 @@ namespace raytracer {
       m_specularBRDF.setExponent(exponent);
     }
     
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);
+    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
 
   private:
     GlossySpecular m_specularBRDF;

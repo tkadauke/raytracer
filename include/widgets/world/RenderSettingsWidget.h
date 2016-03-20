@@ -9,10 +9,10 @@ public:
   RenderSettingsWidget(QWidget* parent = nullptr);
   ~RenderSettingsWidget();
   
-  QSize resolution();
-  QString sampler();
-  int samplesPerPixel();
-  int maxRecursionDepth();
+  QSize resolution() const;
+  QString sampler() const;
+  int samplesPerPixel() const;
+  int maxRecursionDepth() const;
   
   void setBusy(bool busy);
   void setElapsedTime(int milliseconds);

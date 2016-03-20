@@ -17,19 +17,8 @@ namespace raytracer {
 
   class Camera {
   public:
-    inline Camera()
-      : m_cancelled(false),
-        m_viewPlane(nullptr)
-    {
-    }
-    
-    inline Camera(const Vector3d& position, const Vector3d& target)
-      : m_cancelled(false),
-        m_position(position),
-        m_target(target),
-        m_viewPlane(nullptr)
-    {
-    }
+    Camera();
+    Camera(const Vector3d& position, const Vector3d& target);
     
     virtual ~Camera();
 
@@ -43,17 +32,20 @@ namespace raytracer {
       m_target = target;
     }
 
+    std::shared_ptr<ViewPlane> viewPlane() const {
+      return m_viewPlane;
+    }
+    
     void setViewPlane(std::shared_ptr<ViewPlane> plane);
-    std::shared_ptr<ViewPlane> viewPlane();
 
-    const Matrix4d& matrix();
+    const Matrix4d& matrix() const;
 
-    void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer);
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect<int>& rect);
+    void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) const;
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect<int>& rect) const;
     
-    virtual Rayd rayForPixel(double x, double y) = 0;
+    virtual Rayd rayForPixel(double x, double y) const = 0;
     
-    inline Rayd rayForPixel(const Vector2d& pixel) {
+    inline Rayd rayForPixel(const Vector2d& pixel) const {
       return rayForPixel(pixel.x(), pixel.y());
     }
     
@@ -70,12 +62,12 @@ namespace raytracer {
     }
     
   protected:
-    void plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color);
+    void plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const;
 
   private:
     bool m_cancelled;
     Vector3d m_position, m_target;
-    MemoizedValue<Matrix4d> m_matrix;
+    mutable MemoizedValue<Matrix4d> m_matrix;
     std::shared_ptr<ViewPlane> m_viewPlane;
   };
 }

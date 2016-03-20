@@ -108,18 +108,18 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   }
 }
 
-const Primitive* Raytracer::primitiveForRay(const Rayd& ray) {
+const Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
   return rayState(ray).hitPoint.primitive();
 }
 
-State Raytracer::rayState(const Rayd& ray) {
+State Raytracer::rayState(const Rayd& ray) const {
   State state;
   state.startTrace();
   rayColor(ray, state);
   return state;
 }
 
-Colord Raytracer::rayColor(const Rayd& ray, State& state) {
+Colord Raytracer::rayColor(const Rayd& ray, State& state) const {
   state.recurseIn();
   ScopeExit sx([&] { state.recurseOut(); });
   

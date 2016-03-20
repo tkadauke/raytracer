@@ -91,7 +91,7 @@ namespace raytracer {
       m_reflectiveBRDF.setReflectionCoefficient(coeff);
     }
     
-    virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);
+    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
     
   protected:
     PerfectSpecular m_reflectiveBRDF;

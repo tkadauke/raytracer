@@ -31,10 +31,10 @@ public:
   };
   
   Renderer();
-  void render();
+  void render() const;
   CommandLineParseResult parseCommandLine(QString* errorMessage);
-  std::shared_ptr<raytracer::Sampler> sampler();
-  QImage bufferToImage(const Buffer<unsigned int>& buffer);
+  std::shared_ptr<raytracer::Sampler> sampler() const;
+  QImage bufferToImage(const Buffer<unsigned int>& buffer) const;
 
   QCommandLineParser parser;
   
@@ -59,7 +59,7 @@ Renderer::Renderer()
   parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
 }
 
-void Renderer::render() {
+void Renderer::render() const {
   auto scene = new Scene(nullptr);
   scene->load(m_filename);
   
@@ -88,7 +88,7 @@ void Renderer::render() {
   image.save(m_output);
 }
 
-std::shared_ptr<raytracer::Sampler> Renderer::sampler() {
+std::shared_ptr<raytracer::Sampler> Renderer::sampler() const {
   auto samplerClass = m_sampler.toStdString() + "Sampler";
   auto sampler = std::shared_ptr<raytracer::Sampler>(
     raytracer::SamplerFactory::self().create(samplerClass)
@@ -98,7 +98,7 @@ std::shared_ptr<raytracer::Sampler> Renderer::sampler() {
   return sampler;
 }
 
-QImage Renderer::bufferToImage(const Buffer<unsigned int>& buffer) {
+QImage Renderer::bufferToImage(const Buffer<unsigned int>& buffer) const {
   QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
   
   for (int i = 0; i != buffer.width(); ++i) {
@@ -110,8 +110,7 @@ QImage Renderer::bufferToImage(const Buffer<unsigned int>& buffer) {
   return image;
 }
 
-Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessage)
-{
+Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessage) {
   parser.setApplicationDescription("Test helper");
   const QCommandLineOption helpOption = parser.addHelpOption();
   const QCommandLineOption versionOption = parser.addVersionOption();

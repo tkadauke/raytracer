@@ -4,7 +4,7 @@
 
 using namespace raytracer;
 
-Colord PerfectTransmitter::sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) {
+Colord PerfectTransmitter::sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const {
   Vector3d n = hitPoint.normal();
   double cosTheta = n * out;
   double eta = refractionIndex();
@@ -21,7 +21,7 @@ Colord PerfectTransmitter::sample(const HitPoint& hitPoint, const Vector3d& out,
   return Colord::white() * (transmissionCoefficient() / (eta * eta) / fabs(hitPoint.normal() * in));
 }
 
-bool PerfectTransmitter::totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) {
+bool PerfectTransmitter::totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const {
   Vector3d wo = -ray.direction();
   double cosTheta = hitPoint.normal() * wo;
   double eta = refractionIndex();

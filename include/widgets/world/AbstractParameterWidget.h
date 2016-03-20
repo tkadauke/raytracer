@@ -15,7 +15,7 @@ public:
   const QString& parameterName() const;
   virtual void setParameterName(const QString& name);
   
-  virtual const QVariant value() = 0;
+  virtual const QVariant value() const = 0;
   virtual void setValue(const QVariant& value) = 0;
   
 signals:
