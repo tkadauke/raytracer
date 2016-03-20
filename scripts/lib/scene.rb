@@ -118,7 +118,15 @@ class Scene < Element
   property :ambient => [0.4, 0.4, 0.4]
   property :background => [0.4, 0.8, 1]
   
-  accessor :outfile, :options
+  accessor :outfile
+  
+  def options(opts = nil)
+    if opts
+      @options.update(opts)
+    else
+      @options
+    end
+  end
   
   def initialize(attributes = {}, &block)
     @options = {}
@@ -263,8 +271,9 @@ class ConstantColorTexture < Texture
   property :color => [0, 0, 0]
 end
 
-def scene(options = {}, &block)
+def scene(opts = {}, &block)
   Scene.new do
+    options opts
     block.bind(self).call
-  end.render(nil, options)
+  end.render
 end

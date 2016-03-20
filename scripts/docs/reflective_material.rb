@@ -1,4 +1,4 @@
-module Common
+module ::Common
   def reflective_doc(attrs = {})
     default_attrs = {
       :diffuseTexture => nil,

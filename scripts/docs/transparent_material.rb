@@ -1,4 +1,4 @@
-module Common
+module ::Common
   def transparent_doc(attrs = {})
     default_attrs = {
       :diffuseTexture => medium_grey,

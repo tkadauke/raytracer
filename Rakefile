@@ -165,8 +165,12 @@ task :tools => TOOLS_BIN
 
 namespace :docs do
   desc "Render docs images"
-  task :render => :tools do
-    sh "ruby scripts/render_docs.rb"
+  task :render, [:only] => :tools do |t, args|
+    if args[:only]
+      sh "ruby scripts/render_docs.rb --only #{args[:only]}"
+    else
+      sh "ruby scripts/render_docs.rb"
+    end
   end
   
   task :generate => :render do
