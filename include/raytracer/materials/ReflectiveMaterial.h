@@ -46,6 +46,13 @@ namespace raytracer {
     }
     
     /**
+      * @returns the reflection color.
+      */
+    inline const Colord& reflectionColor() const {
+      return m_reflectiveBRDF.reflectionColor();
+    }
+    
+    /**
       * Sets the material's reflection color.
       * 
       * <table><tr>
@@ -63,10 +70,10 @@ namespace raytracer {
     }
     
     /**
-      * @returns the reflection color.
+      * @returns the reflection coefficient.
       */
-    inline const Colord& reflectionColor() const {
-      return m_reflectiveBRDF.reflectionColor();
+    inline double reflectionCoefficient() const {
+      return m_reflectiveBRDF.reflectionCoefficient();
     }
     
     /**
@@ -82,13 +89,6 @@ namespace raytracer {
       */
     inline void setReflectionCoefficient(double coeff) {
       m_reflectiveBRDF.setReflectionCoefficient(coeff);
-    }
-    
-    /**
-      * @returns the reflection coefficient.
-      */
-    inline double reflectionCoefficient() const {
-      return m_reflectiveBRDF.reflectionCoefficient();
     }
     
     virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);

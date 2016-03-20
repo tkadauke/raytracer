@@ -44,6 +44,13 @@ namespace raytracer {
     virtual Rayd rayForPixel(double x, double y);
 
     /**
+      * @returns the camera's field of view.
+      */
+    inline Angled fieldOfView() const {
+      return m_fieldOfView;
+    }
+    
+    /**
       * Sets the field of view of the camera.
       * 
       * <table><tr>
@@ -56,13 +63,6 @@ namespace raytracer {
       */
     inline void setFieldOfView(const Angled& fieldOfView) {
       m_fieldOfView = fieldOfView;
-    }
-    
-    /**
-      * @returns the camera's field of view.
-      */
-    inline Angled fieldOfView() const {
-      return m_fieldOfView;
     }
     
   private:

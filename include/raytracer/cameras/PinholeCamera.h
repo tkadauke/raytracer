@@ -37,6 +37,13 @@ namespace raytracer {
     virtual Rayd rayForPixel(double x, double y);
 
     /**
+      * @returns the distance between the eye and the viewplane. Defaults to 5.
+      */
+    inline double distance() const {
+      return m_distance;
+    }
+    
+    /**
       * Sets the distance between the eye and the viewplane. A lower distance
       * results in a higher field of view.
       * 
@@ -53,10 +60,10 @@ namespace raytracer {
     }
     
     /**
-      * @returns the distance between the eye and the viewplane. Defaults to 5.
+      * @returns the zoom of the camera. Defaults to 1.
       */
-    inline double distance() const {
-      return m_distance;
+    inline double zoom() const {
+      return m_zoom;
     }
     
     /**
@@ -72,13 +79,6 @@ namespace raytracer {
       */
     inline void setZoom(double zoom) {
       m_zoom = zoom;
-    }
-    
-    /**
-      * @returns the zoom of the camera. Defaults to 1.
-      */
-    inline double zoom() const {
-      return m_zoom;
     }
     
   private:

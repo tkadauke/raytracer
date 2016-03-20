@@ -56,6 +56,13 @@ namespace raytracer {
     }
     
     /**
+      * @returns the material's specular color.
+      */
+    inline const Colord& specularColor() const {
+      return m_specularBRDF.specularColor();
+    }
+    
+    /**
       * Sets the material's specular color.
       * 
       * <table><tr>
@@ -73,12 +80,12 @@ namespace raytracer {
     }
     
     /**
-      * @returns the material's specular color.
+      * @returns the material's specular reflection coefficient.
       */
-    inline const Colord& specularColor() const {
-      return m_specularBRDF.specularColor();
+    inline double specularCoefficient() const {
+      return m_specularBRDF.specularCoefficient();
     }
-    
+  
     /**
       * Sets the specular reflection coefficient.
       * 
@@ -95,10 +102,10 @@ namespace raytracer {
     }
     
     /**
-      * @returns the material's specular reflection coefficient.
+      * @returns the material's lobe exponent.
       */
-    inline double specularCoefficient() const {
-      return m_specularBRDF.specularCoefficient();
+    inline double exponent() const {
+      return m_specularBRDF.exponent();
     }
     
     /**
@@ -114,13 +121,6 @@ namespace raytracer {
       */
     inline void setExponent(double exponent) {
       m_specularBRDF.setExponent(exponent);
-    }
-    
-    /**
-      * @returns the material's lobe exponent.
-      */
-    inline double exponent() const {
-      return m_specularBRDF.exponent();
     }
     
     virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);

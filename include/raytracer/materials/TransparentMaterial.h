@@ -37,6 +37,13 @@ namespace raytracer {
     }
 
     /**
+      * @returns the material's index of refraction
+      */
+    inline double refractionIndex() const {
+      return m_specularBTDF.refractionIndex();
+    }
+  
+    /**
       * Sets the material's [index of refraction](https://en.wikipedia.org/wiki/Refractive_index).
       * 
       * <table><tr>
@@ -51,13 +58,6 @@ namespace raytracer {
       */
     inline void setRefractionIndex(double index) {
       m_specularBTDF.setRefractionIndex(index);
-    }
-    
-    /**
-      * @returns the material's index of refraction
-      */
-    inline double refractionIndex() const {
-      return m_specularBTDF.refractionIndex();
     }
     
     virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);

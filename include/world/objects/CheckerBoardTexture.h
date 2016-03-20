@@ -21,6 +21,13 @@ public:
   CheckerBoardTexture(Element* parent = nullptr);
 
   /**
+    * @returns the checker board's bright texture.
+    */
+  inline Texture* brightTexture() const {
+    return m_brightTexture;
+  }
+  
+  /**
     * Sets the checker board's texture for the bright fields.
     * 
     * <table><tr>
@@ -42,12 +49,12 @@ public:
   }
   
   /**
-    * @returns the checker board's bright texture.
+    * @returns the checker board's dark texture.
     */
-  inline Texture* brightTexture() const {
-    return m_brightTexture;
+  inline Texture* darkTexture() const {
+    return m_darkTexture;
   }
-  
+
   /**
     * Sets the checker board's texture for the bright fields.
     * 
@@ -69,13 +76,6 @@ public:
     }
   }
   
-  /**
-    * @returns the checker board's dark texture.
-    */
-  inline Texture* darkTexture() const {
-    return m_darkTexture;
-  }
-
   virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const;
 
 private:

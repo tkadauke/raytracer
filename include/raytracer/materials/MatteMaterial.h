@@ -38,6 +38,13 @@ namespace raytracer {
     }
 
     /**
+      * @returns the diffuse texture.
+      */
+    inline std::shared_ptr<Texturec> diffuseTexture() const {
+      return m_diffuseTexture;
+    }
+
+    /**
       * Sets the material's diffuse texture.
       * 
       * <table><tr>
@@ -55,12 +62,12 @@ namespace raytracer {
     }
     
     /**
-      * @returns the diffuse texture.
+      * @returns the ambient light coefficient.
       */
-    inline std::shared_ptr<Texturec> diffuseTexture() const {
-      return m_diffuseTexture;
+    inline double ambientCoefficient() const {
+      return m_ambientCoefficient;
     }
-    
+  
     /**
       * Sets the ambient light coefficient.
       * 
@@ -77,12 +84,12 @@ namespace raytracer {
     }
     
     /**
-      * @returns the ambient light coefficient.
+      * @returns the diffuse light coefficient.
       */
-    inline double ambientCoefficient() const {
-      return m_ambientCoefficient;
+    inline double diffuseCoefficient() const {
+      return m_diffuseCoefficient;
     }
-    
+  
     /**
       * Sets the diffuse light coefficient.
       * 
@@ -96,13 +103,6 @@ namespace raytracer {
       */
     inline void setDiffuseCoefficient(double coeff) {
       m_diffuseCoefficient = coeff;
-    }
-    
-    /**
-      * @returns the diffuse light coefficient.
-      */
-    inline double diffuseCoefficient() const {
-      return m_diffuseCoefficient;
     }
     
     virtual Colord shade(Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state);

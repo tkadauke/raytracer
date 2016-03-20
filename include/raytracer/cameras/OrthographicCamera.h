@@ -35,6 +35,13 @@ namespace raytracer {
     virtual Rayd rayForPixel(double x, double y);
 
     /**
+      * @returns the camera'z zoom.
+      */
+    inline double zoom() const {
+      return m_zoom;
+    }
+    
+    /**
       * Sets zoom of the camera.
       * 
       * <table><tr>
@@ -47,13 +54,6 @@ namespace raytracer {
       */
     inline void setZoom(double zoom) {
       m_zoom = zoom;
-    }
-    
-    /**
-      * @returns the camera'z zoom.
-      */
-    inline double zoom() const {
-      return m_zoom;
     }
     
   private:

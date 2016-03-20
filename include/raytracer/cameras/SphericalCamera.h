@@ -49,6 +49,13 @@ namespace raytracer {
     virtual Rayd rayForPixel(double x, double y);
 
     /**
+      * @returns the horizontal field of view of the camera.
+      */
+    inline const Angled& horizontalFieldOfView() const {
+      return m_horizontalFieldOfView;
+    }
+  
+    /**
       * Sets the horizontal field of view of the camera.
       * 
       * <table><tr>
@@ -64,10 +71,10 @@ namespace raytracer {
     }
     
     /**
-      * @returns the horizontal field of view of the camera.
+      * @returns the vertical field of view of the camera.
       */
-    inline const Angled& horizontalFieldOfView() const {
-      return m_horizontalFieldOfView;
+    inline const Angled& verticalFieldOfView() const {
+      return m_verticalFieldOfView;
     }
     
     /**
@@ -83,13 +90,6 @@ namespace raytracer {
       */
     inline void setVerticalFieldOfView(Angled fov) {
       m_verticalFieldOfView = fov;
-    }
-    
-    /**
-      * @returns the vertical field of view of the camera.
-      */
-    inline const Angled& verticalFieldOfView() const {
-      return m_verticalFieldOfView;
     }
     
     /**
