@@ -119,7 +119,6 @@ rule '.uic' => '.ui' do |t|
 end
 
 rule '.moc' => lambda { |mocfile| mocfile.sub(/src\//, 'include/').sub('.moc', '.h') } do |t|
-# rule '.moc' => lambda { |mocfile| header = mocfile.sub('.moc', '.h'); header.sub(/src\//, 'include/') } do |t|
   sh %{#{QT_MOC} -o #{t.name} #{t.source}}
 end
 
@@ -224,12 +223,6 @@ namespace :test do
     sh "lcov -r test/coverage/info \\*.moc -o test/coverage/info"
     sh "lcov -r test/coverage/info \\*.uic -o test/coverage/info"
     sh "genhtml test/coverage/info -o test/coverage"
-  end
-end
-
-class String
-  def underscore
-    gsub(/([a-z])([A-Z])/) { |l| "#{$1}_#{$2}" }.downcase
   end
 end
 
