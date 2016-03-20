@@ -1,20 +1,19 @@
-Scene.new do
+class_doc do
+  name "pinhole_camera_cube"
   camera_scene
   pinhole_camera :position => [0, -1, -3]
-end.render("docs/images/pinhole_camera_cube.png")
-
-1.upto(5) do |i|
-  Scene.new do
-    camera_scene
-    pinhole_camera :position => [0, -1, -3], :distance => i
-  end.render("docs/images/pinhole_camera_cube_distance_#{i}.png", :width => 240, :height => 180)
 end
 
-1.upto(5) do |i|
+property_doc do |i|
+  name "pinhole_camera_cube_distance_#{i}"
+  camera_scene
+  pinhole_camera :position => [0, -1, -3], :distance => i
+end
+
+property_doc do |i|
   zoom = 1 + (i - 1) * 0.25
+  name "pinhole_camera_cube_zoom_#{zoom}"
   
-  Scene.new do
-    camera_scene
-    pinhole_camera :position => [0, -1, -3], :zoom => zoom
-  end.render("docs/images/pinhole_camera_cube_zoom_#{zoom}.png", :width => 240, :height => 180)
+  camera_scene
+  pinhole_camera :position => [0, -1, -3], :zoom => zoom
 end

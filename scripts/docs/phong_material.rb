@@ -1,25 +1,23 @@
-Scene.new do
+class_doc do
+  name "phong_material_red"
   material_scene phong_material(:diffuseTexture => red)
-end.render("docs/images/phong_material_red.png")
-
-rainbow_colors.each do |name, color|
-  Scene.new do
-    material_scene phong_material(:diffuseTexture => white, :specularColor => color)
-  end.render("docs/images/phong_material_specular_color_#{name}.png", :width => 160, :height => 120)
 end
 
-1.upto(5) do |i|
+rainbow_doc do |name, color|
+  name "phong_material_specular_color_#{name}"
+  material_scene phong_material(:diffuseTexture => white, :specularColor => color)
+end
+
+property_doc do |i|
   coeff = (i - 1) * 0.25
+  name "phong_material_specular_coeff_#{coeff}"
 
-  Scene.new do
-    material_scene phong_material(:diffuseTexture => red, :specularCoefficient => coeff)
-  end.render("docs/images/phong_material_specular_coeff_#{coeff}.png", :width => 240, :height => 180)
+  material_scene phong_material(:diffuseTexture => red, :specularCoefficient => coeff)
 end
 
-1.upto(5) do |i|
+property_doc do |i|
   exp = i ** 3
+  name "phong_material_exponent_#{exp}"
 
-  Scene.new do
-    material_scene phong_material(:diffuseTexture => red, :exponent => exp)
-  end.render("docs/images/phong_material_exponent_#{exp}.png", :width => 240, :height => 180)
+  material_scene phong_material(:diffuseTexture => red, :exponent => exp)
 end

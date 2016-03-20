@@ -1,13 +1,13 @@
-Scene.new do
+class_doc do
+  name "orthographic_camera_cube"
   camera_scene
   orthographic_camera :position => [0, -1, -3]
-end.render("docs/images/orthographic_camera_cube.png")
+end
 
-1.upto(5) do |i|
+property_doc do |i|
   zoom = 1 + (i - 1) * 0.25
+  name "orthographic_camera_cube_zoom_#{zoom}"
   
-  Scene.new do
-    camera_scene
-    orthographic_camera :position => [0, -1, -3], :zoom => zoom
-  end.render("docs/images/orthographic_camera_cube_zoom_#{zoom}.png", :width => 240, :height => 180)
+  camera_scene
+  orthographic_camera :position => [0, -1, -3], :zoom => zoom
 end

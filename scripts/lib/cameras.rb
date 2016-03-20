@@ -1,6 +1,9 @@
 module Cameras
-  def default_camera
-    pinhole_camera :position => [0.5, -1, -3], :zoom => 2
+  def default_camera(attrs = {})
+    default_attrs = {
+      :position => [0.5, -1, -3], :zoom => 2
+    }
+    pinhole_camera default_attrs.merge(attrs)
   end
 end
 

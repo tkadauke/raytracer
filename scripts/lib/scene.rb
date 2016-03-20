@@ -8,8 +8,16 @@ class ElementCreator
   end
   
   def method_missing(method, *args, &block)
-    method.to_s.camelize.constantize.new(*args, &block).tap do |obj|
-      @element.children << obj
+    if @element.respond_to?(method)
+      @element.send(method, *args, &block)
+    else
+      begin
+        method.to_s.camelize.constantize.new(*args, &block).tap do |obj|
+          @element.children << obj
+        end
+      rescue NameError
+        super
+      end
     end
   end
 end
@@ -39,8 +47,12 @@ class Element
       self.properties += props.keys
       
       props.each do |name, default|
-        define_method name do
-          instance_variable_get("@#{name}") || default
+        define_method name do |value = nil|
+          if value
+            instance_variable_set("@#{name}", value)
+          else
+            instance_variable_get("@#{name}") || default
+          end
         end
         
         attr_writer name
@@ -52,6 +64,18 @@ class Element
         properties
       else
         superclass.all_properties + properties
+      end
+    end
+    
+    def accessor(*fields)
+      fields.each do |field|
+        define_method field do |value = nil|
+          if value
+            instance_variable_set("@#{field}", value)
+          else
+            instance_variable_get("@#{field}")
+          end
+        end
       end
     end
   end
@@ -89,25 +113,35 @@ class Scene < Element
   property :ambient => [0.4, 0.4, 0.4]
   property :background => [0.4, 0.8, 1]
   
+  accessor :outfile, :options
+  
+  def initialize(attributes = {}, &block)
+    @options = {}
+    super
+  end
+  
   def save_to_file(name)
     File.open(name, 'w') do |file|
       file.puts to_json
     end
   end
   
-  def render(outfile, options = {})
-    puts "Rendering #{outfile} ..."
+  def render(file = nil, opts = {})
+    file ||= outfile
+    file ||= "out.png"
+    
+    puts "Rendering #{file} ..."
     time = Time.now
     file_name = "/tmp/render_#{time.to_i}_#{time.usec}"
     
     save_to_file(file_name)
     
-    FileUtils.mkdir_p(File.dirname(outfile))
+    FileUtils.mkdir_p(File.dirname(file))
     
     ENV['DYLD_FRAMEWORK_PATH'] = "/Users/tkadauke/Qt/5.5/clang_64/lib"
     
-    args = options.map { |key, value| "--#{key}=#{value}" }.join(" ")
-    system "tools/rendercli/rendercli #{file_name} #{outfile} #{args}"
+    args = options.merge(opts).map { |key, value| "--#{key}=#{value}" }.join(" ")
+    system "tools/rendercli/rendercli #{file_name} #{file} #{args}"
     
     FileUtils.rm(file_name)
   end
@@ -222,4 +256,10 @@ end
 
 class ConstantColorTexture < Texture
   property :color => [0, 0, 0]
+end
+
+def scene(options = {}, &block)
+  Scene.new do
+    block.bind(self).call
+  end.render(nil, options)
 end

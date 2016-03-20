@@ -1,6 +1,7 @@
 module Lights
-  def sunlight(options = {})
-    directional_light({ :direction => [-0.5, -1, -0.5] }.merge(options))
+  def sunlight(attrs = {})
+    default_attrs = { :direction => [-0.5, -1, -0.5] }
+    directional_light(default_attrs.merge(attrs))
   end
 end
 

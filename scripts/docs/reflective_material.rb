@@ -1,17 +1,27 @@
-Scene.new do
-  material_scene reflective_material(:diffuseTexture => nil, :reflectionColor => [1, 1, 1], :reflectionCoefficient => 0.5)
-end.render("docs/images/reflective_material_red.png")
-
-rainbow_colors.each do |name, color|
-  Scene.new do
-    material_scene reflective_material(:diffuseTexture => nil, :reflectionColor => color, :reflectionCoefficient => 0.5)
-  end.render("docs/images/reflective_material_reflection_color_#{name}.png", :width => 160, :height => 120)
+module Common
+  def reflective_doc(attrs = {})
+    default_attrs = {
+      :diffuseTexture => nil,
+      :reflectionColor => [1, 1, 1],
+      :reflectionCoefficient => 0.5
+    }
+    reflective_material(default_attrs.merge(attrs))
+  end
 end
 
-1.upto(5) do |i|
-  coeff = (i - 1) * 0.25
+class_doc do
+  name "reflective_material_red"
+  material_scene reflective_doc
+end
 
-  Scene.new do
-    material_scene reflective_material(:diffuseTexture => nil, :reflectionColor => [1, 1, 1], :reflectionCoefficient => coeff)
-  end.render("docs/images/reflective_material_reflection_coeff_#{coeff}.png", :width => 240, :height => 180)
+rainbow_doc do |name, color|
+  name "reflective_material_reflection_color_#{name}"
+  material_scene reflective_doc(:reflectionColor => color)
+end
+
+property_doc do |i|
+  coeff = (i - 1) * 0.25
+  name "reflective_material_reflection_coeff_#{coeff}"
+
+  material_scene reflective_doc(:reflectionCoefficient => coeff)
 end

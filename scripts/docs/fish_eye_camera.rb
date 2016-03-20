@@ -1,13 +1,15 @@
-Scene.new do
+class_doc do
+  name "fish_eye_camera_cube"
+  
   camera_scene
   fish_eye_camera :position => [0, -1, -3]
-end.render("docs/images/fish_eye_camera_cube.png")
+end
 
-1.upto(5) do |i|
+property_doc do |i|
   fov = 90 + (i - 1) * 60
   
-  Scene.new do
-    camera_scene
-    fish_eye_camera :position => [0, -1, -3], :fieldOfView => fov.degrees
-  end.render("docs/images/fish_eye_camera_cube_fov_#{fov}.png", :width => 240, :height => 180)
+  name "fish_eye_camera_cube_fov_#{fov}"
+  
+  camera_scene
+  fish_eye_camera :position => [0, -1, -3], :fieldOfView => fov.degrees
 end

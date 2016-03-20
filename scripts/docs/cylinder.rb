@@ -1,31 +1,27 @@
-Scene.new do
+class_doc do
+  name "cylinder"
+  
   object_scene
   cylinder :material => red_matte
-end.render("docs/images/cylinder.png")
-
-1.upto(5) do |i|
-  radius = 0.5 + (i - 1) * 0.125
-  
-  Scene.new do
-    object_scene
-    cylinder :radius => radius, :material => red_matte
-  end.render("docs/images/cylinder_radius_#{i}.png", :width => 240, :height => 180)
 end
 
-1.upto(5) do |i|
-  height = 1 + (i - 1) * 0.25
+property_doc do |i|
+  name "cylinder_radius_#{i}"
   
-  Scene.new do
-    object_scene
-    cylinder :height => height, :material => red_matte
-  end.render("docs/images/cylinder_height_#{i}.png", :width => 240, :height => 180)
+  object_scene
+  cylinder :radius => 0.5 + (i - 1) * 0.125, :material => red_matte
 end
 
-1.upto(5) do |i|
-  radius = i / 10.0
+property_doc do |i|
+  name "cylinder_height_#{i}"
   
-  Scene.new do
-    object_scene
-    cylinder :bevelRadius => radius, :material => red_matte
-  end.render("docs/images/cylinder_bevel_radius_#{i}.png", :width => 240, :height => 180)
+  object_scene
+  cylinder :height => 1 + (i - 1) * 0.25, :material => red_matte
+end
+
+property_doc do |i|
+  name "cylinder_bevel_radius_#{i}"
+  
+  object_scene
+  cylinder :bevelRadius => i / 10.0, :material => red_matte
 end

@@ -1,23 +1,22 @@
-Scene.new do
+class_doc do
+  name "box"
+  
   object_scene
   box :material => red_matte
-end.render("docs/images/box.png")
-
-1.upto(5) do |i|
-  offset = (i - 1) * 0.125
-  size = [1.0 - offset, 0.5 + offset, 0.5 + offset]
-  
-  Scene.new do
-    object_scene
-    box :size => size, :material => red_matte
-  end.render("docs/images/box_size_#{i}.png", :width => 240, :height => 180)
 end
 
-1.upto(5) do |i|
-  radius = i / 10.0
+property_doc do |i|
+  name "box_size_#{i}"
+
+  offset = (i - 1) * 0.125
   
-  Scene.new do
-    object_scene
-    box :bevelRadius => radius, :material => red_matte
-  end.render("docs/images/box_bevel_radius_#{i}.png", :width => 240, :height => 180)
+  object_scene
+  box :size => [1.0 - offset, 0.5 + offset, 0.5 + offset], :material => red_matte
+end
+
+property_doc do |i|
+  name "box_bevel_radius_#{i}"
+  
+  object_scene
+  box :bevelRadius => i / 10.0, :material => red_matte
 end

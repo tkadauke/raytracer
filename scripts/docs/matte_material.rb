@@ -1,25 +1,23 @@
-Scene.new do
+class_doc do
+  name "matte_material_red"
   material_scene red_matte
-end.render("docs/images/matte_material_red.png")
-
-rainbow_colors.each do |name, color|
-  Scene.new do
-    material_scene matte_material(:diffuseTexture => constant_color_texture(:color => color))
-  end.render("docs/images/matte_material_rainbow_#{name}.png", :width => 160, :height => 120)
 end
 
-1.upto(5) do |i|
+rainbow_doc do |name, color|
+  name "matte_material_rainbow_#{name}"
+  material_scene matte_material(:diffuseTexture => constant_color_texture(:color => color))
+end
+
+property_doc do |i|
   coeff = (i - 1) * 0.25
+  name "matte_material_ambient_#{coeff}"
   
-  Scene.new do
-    material_scene matte_material(:diffuseTexture => green, :ambientCoefficient => coeff)
-  end.render("docs/images/matte_material_ambient_#{coeff}.png", :width => 240, :height => 180)
+  material_scene matte_material(:diffuseTexture => green, :ambientCoefficient => coeff)
 end
 
-1.upto(5) do |i|
+property_doc do |i|
   coeff = (i - 1) * 0.5
+  name "matte_material_diffuse_#{coeff}"
   
-  Scene.new do
-    material_scene matte_material(:diffuseTexture => green, :diffuseCoefficient => coeff)
-  end.render("docs/images/matte_material_diffuse_#{coeff}.png", :width => 240, :height => 180)
+  material_scene matte_material(:diffuseTexture => green, :diffuseCoefficient => coeff)
 end

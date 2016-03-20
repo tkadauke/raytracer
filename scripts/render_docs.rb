@@ -6,6 +6,10 @@ require_relative 'lib/objects'
 require_relative 'lib/cameras'
 
 module Common
+  def name(file)
+    outfile "docs/images/#{file}.png"
+  end
+  
   def box_on_checker_board
     checker_board
     box :material => red_matte
@@ -52,6 +56,42 @@ def rainbow_colors
   }
 end
 
+def render_size(num)
+  case num
+  when 1 then { :width => 640, :height => 480 }
+  when 5 then { :width => 240, :height => 180 }
+  when 7 then { :width => 160, :height => 120 }
+  else
+    raise "Unknown render size for #{num} images"
+  end
+end
+
+def class_doc(&block)
+  scene render_size(1) do
+    block.bind(self).call
+  end
+end
+
+def rainbow_doc(&block)
+  rainbow_colors.each do |name, color|
+    scene render_size(7) do
+      block.bind(self).call(name, color)
+    end
+  end
+end
+
+def property_doc(num = 5, &block)
+  1.upto(num) do |i|
+    scene render_size(num) do
+      block.bind(self).call(i)
+    end
+  end
+end
+
 Dir.glob(File.dirname(__FILE__) + "/docs/*.rb").each do |file|
-  load file
+  if ENV["ONLY"]
+    load file if file =~ /#{ENV["ONLY"]}/
+  else
+    load file
+  end
 end
