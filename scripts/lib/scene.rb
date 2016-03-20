@@ -26,6 +26,10 @@ class Element
   @@num_objects = 0
   
   def initialize(attributes = {}, &block)
+    self.class.all_properties.each do |name|
+      self.instance_variable_set("@#{name}", :__property_uninitialized_sentinel__)
+    end
+    
     @@num_objects += 1
     @id = @@num_objects.to_s
     @name = "#{self.class.name} #{@id}"
@@ -47,11 +51,12 @@ class Element
       self.properties += props.keys
       
       props.each do |name, default|
-        define_method name do |value = nil|
-          if value
-            instance_variable_set("@#{name}", value)
+        define_method name do |value = :__property_uninitialized_sentinel__|
+          if value == :__property_uninitialized_sentinel__
+            value = instance_variable_get("@#{name}")
+            value == :__property_uninitialized_sentinel__ ? default : value
           else
-            instance_variable_get("@#{name}") || default
+            instance_variable_set("@#{name}", value)
           end
         end
         

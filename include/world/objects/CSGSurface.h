@@ -4,6 +4,8 @@
 
 /**
   * Base class for all constructive solid geometry classes.
+  * 
+  * @image html csg_surface.png "Complex CSG object"
   */
 class CSGSurface : public Surface {
   Q_OBJECT;
@@ -25,6 +27,8 @@ public:
     * inactive, this class effectively behaves like a simple composite, which
     * means all children's geometries are unchanged. If the CSG operation is
     * active, the children's geometries are changed according to the operation.
+    * 
+    * @image html csg_surface_inactive.png "Inactive CSG object"
     */
   void setActive(bool active) { m_active = active; }
   
