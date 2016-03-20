@@ -7,13 +7,13 @@ namespace InequalityOperatorTest {
   using namespace ::testing;
   
   struct AlwaysEqual : public InequalityOperator<AlwaysEqual> {
-    inline bool operator==(const AlwaysEqual&) {
+    inline bool operator==(const AlwaysEqual&) const {
       return true;
     }
   };
   
   struct NeverEqual : public InequalityOperator<NeverEqual> {
-    inline bool operator==(const NeverEqual&) {
+    inline bool operator==(const NeverEqual&) const {
       return false;
     }
   };

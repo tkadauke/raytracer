@@ -24,12 +24,16 @@ public:
   /**
     * @returns the begin of the Range.
     */
-  inline T begin() const { return m_begin; }
+  inline T begin() const {
+    return m_begin;
+  }
   
   /**
     * @returns the end of the Range.
     */
-  inline T end() const { return m_end; }
+  inline T end() const {
+    return m_end;
+  }
 
   /**
     * @returns true if value is inside the Range, false otherwise.

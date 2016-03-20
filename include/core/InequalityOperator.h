@@ -3,14 +3,14 @@
 template<class Derived>
 class InequalityOperator {
 public:
-  inline bool operator!=(const Derived& other) {
+  inline bool operator!=(const Derived& other) const {
     if (this == &other)
       return false;
     return !(derived() == other);
   }
   
 private:
-  inline Derived& derived() {
-    return static_cast<Derived&>(*this);
+  inline const Derived& derived() const {
+    return static_cast<const Derived&>(*this);
   }
 };

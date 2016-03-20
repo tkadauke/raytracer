@@ -28,7 +28,7 @@ public:
       return tmp;
     }
     
-    inline bool operator==(const Iterator& other) {
+    inline bool operator==(const Iterator& other) const {
       // TODO: raise exception if iterators are incompatible?
       return m_current == other.m_current;
     }

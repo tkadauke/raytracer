@@ -12,13 +12,13 @@ class Factory {
   class BaseCreator {
   public:
     inline virtual ~BaseCreator() {}
-    virtual Base* create() = 0;
+    virtual Base* create() const = 0;
   };
   
   template<class Concrete>
   class Creator : public BaseCreator {
   public:
-    inline virtual Base* create() {
+    inline virtual Base* create() const {
       return new Concrete;
     }
   };
@@ -37,15 +37,15 @@ public:
     return true;
   }
   
-  inline Base* create(const Identifier& id) {
-    if (BaseCreator* creator = m_creators[id])
+  inline Base* create(const Identifier& id) const {
+    if (const BaseCreator* creator = findCreator(id))
       return creator->create();
     else
       return nullptr;
   }
 
-  inline std::shared_ptr<Base> createShared(const Identifier& id) {
-    if (BaseCreator* creator = m_creators[id])
+  inline std::shared_ptr<Base> createShared(const Identifier& id) const {
+    if (const BaseCreator* creator = findCreator(id))
       return std::shared_ptr<Base>(creator->create());
     else
       return nullptr;
@@ -60,5 +60,14 @@ public:
   }
 
 private:
+  const BaseCreator* findCreator(const Identifier& id) const {
+    typename Creators::const_iterator it = m_creators.find(id);
+    if (it != m_creators.end()) {
+      return it->second;
+    } else {
+      return nullptr;
+    }
+  }
+  
   Creators m_creators;
 };

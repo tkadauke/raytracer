@@ -230,7 +230,7 @@ public:
     * container.
     */
   template<class Container>
-  void getVertices(Container& container);
+  void getVertices(Container& container) const;
   
   /**
     * This is probably the most important method of this class. It returns
@@ -263,7 +263,7 @@ const BoundingBox<T>& BoundingBox<T>::infinity() {
 
 template<class T>
 template<class Container>
-void BoundingBox<T>::getVertices(Container& container) {
+void BoundingBox<T>::getVertices(Container& container) const {
   container.push_back(m_min);
   container.push_back(Vector3<T>(m_min.x(), m_min.y(), m_max.z()));
   container.push_back(Vector3<T>(m_min.x(), m_max.y(), m_min.z()));

@@ -25,7 +25,7 @@ void Exception::getBacktrace() {
   free(strings);
 }
 
-void Exception::printBacktrace() {
+void Exception::printBacktrace() const {
   for (const auto& i : m_backtrace) {
     cout << i << endl;
   }

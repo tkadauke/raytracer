@@ -25,7 +25,7 @@ public:
     return m_line;
   }
   
-  void printBacktrace();
+  void printBacktrace() const;
 
 private:
   void getBacktrace();
