@@ -174,7 +174,7 @@ class PhongMaterial < MatteMaterial
 end
 
 class ReflectiveMaterial < PhongMaterial
-  property :reflectionColor => [0, 0, 0],
+  property :reflectionColor => [1, 1, 1],
            :reflectionCoefficient => 1
 end
 
