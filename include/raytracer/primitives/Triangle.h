@@ -6,7 +6,7 @@
 namespace raytracer {
   class Triangle : public Primitive {
   public:
-    Triangle(const Vector3d& a, const Vector3d& b, const Vector3d& c)
+    inline explicit Triangle(const Vector3d& a, const Vector3d& b, const Vector3d& c)
       : Primitive(),
         m_point0(a),
         m_point1(b),

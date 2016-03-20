@@ -19,7 +19,7 @@ public:
   /**
     * Default constructor.
     */
-  Texture(Element* parent = nullptr);
+  explicit Texture(Element* parent = nullptr);
 
   virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const = 0;
 };

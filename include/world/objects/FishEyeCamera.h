@@ -18,7 +18,7 @@ public:
     * Creates a default fish eye camera with a 120 degree field of view,
     * looking at the origin.
     */
-  FishEyeCamera(Element* parent = nullptr);
+  explicit FishEyeCamera(Element* parent = nullptr);
   
   /**
     * @returns the camera's field of view.

@@ -15,7 +15,7 @@ public:
   /**
     * Default constructor. Creates an empty difference.
     */
-  Difference(Element* parent = nullptr);
+  explicit Difference(Element* parent = nullptr);
   
   virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
 };

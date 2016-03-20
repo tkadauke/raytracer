@@ -15,8 +15,8 @@ namespace raytracer {
 
   class Raytracer : public std::enable_shared_from_this<Raytracer> {
   public:
-    Raytracer(Scene* scene);
-    Raytracer(std::shared_ptr<Camera> camera, Scene* scene);
+    explicit Raytracer(Scene* scene);
+    explicit Raytracer(std::shared_ptr<Camera> camera, Scene* scene);
     virtual ~Raytracer();
   
     void render(Buffer<unsigned int>& buffer);

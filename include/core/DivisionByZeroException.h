@@ -4,7 +4,7 @@
 
 class DivisionByZeroException : public Exception {
 public:
-  inline DivisionByZeroException(const std::string& file, int line)
+  inline explicit DivisionByZeroException(const std::string& file, int line)
     : Exception("Division by zero", file, line)
   {
   }

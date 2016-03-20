@@ -48,7 +48,9 @@ TOOLS_BIN = TOOLS.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 INCLUDE_DIRS = ['.', INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
 
-INCLUDES = INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ') + ' ' + "-F #{QT_LIB}"
+INCLUDES = INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')
+FRAMEWORK_LINKS = "-F #{QT_LIB}"
+
 
 if ENV['DEBUG']
   DEBUG_FLAGS = "-g -fno-inline"
@@ -67,8 +69,8 @@ end
 
 COMPILER_FLAGS = "-std=c++14"
 
-C_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
-T_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+C_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+T_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
@@ -232,14 +234,20 @@ class String
 end
 
 namespace :check do
-  desc "Checks if all include guards are correctly used"
-  task :guards do
-    FileList["*/**/*.h"].each do |header|
-      file_name = File.basename(header).sub(".h", '')
-      guard = "#{file_name.underscore.upcase}_H"
-      content = File.read(header)
-      puts "WARNING: #{header} does not contain correct guard" unless content =~ Regexp.new(guard)
-    end
+  desc "Run cppcheck on the repository"
+  task :cpp do
+    sh "cppcheck --suppressions-list=.cppchecksuppress --quiet --enable=all -j 24 --force #{INCLUDES} src examples tools"
+  end
+  
+  desc "Check that all inline methods are marked as such"
+  task :inline do
+    sh %q<
+      find include -name '*.h' |
+      xargs grep -in -vE '^\s+[\{\*]' |
+      grep -E '\d+:\s+.*\(.*\).*\{$' |
+      grep -vE 'class|for|if|typedef|union|else|static|struct|inline' ||
+      /usr/bin/true
+    >
   end
 end
 

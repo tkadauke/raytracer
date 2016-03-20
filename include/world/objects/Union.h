@@ -15,7 +15,7 @@ public:
   /**
     * Default constructor. Creates an empty union.
     */
-  Union(Element* parent = nullptr);
+  explicit Union(Element* parent = nullptr);
   
   virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
 };

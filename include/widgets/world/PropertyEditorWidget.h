@@ -9,7 +9,7 @@ class PropertyEditorWidget : public QWidget {
   Q_OBJECT;
   
 public:
-  PropertyEditorWidget(Element* root, QWidget* parent = nullptr);
+  explicit PropertyEditorWidget(Element* root, QWidget* parent = nullptr);
   ~PropertyEditorWidget();
   
   void setRoot(Element* root);

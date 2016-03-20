@@ -1,0 +1,10 @@
+noExplicitConstructor:/Users/tkadauke/code/raytracer/include/core/Color.h
+noExplicitConstructor:/Users/tkadauke/code/raytracer/include/core/math/Vector.h
+noExplicitConstructor:/Users/tkadauke/code/raytracer/include/core/math/Matrix.h
+useInitializationList:/Users/tkadauke/code/raytracer/include/raytracer/primitives/Rectangle.h
+useInitializationList:src/raytracer/cameras/Camera.cpp
+unusedPrivateFunction:/Users/tkadauke/code/raytracer/include/core/math/vector/sse3/Vector3d.h
+unusedPrivateFunction:/Users/tkadauke/code/raytracer/include/core/math/vector/sse3/Vector4d.h
+unusedPrivateFunction:/Users/tkadauke/code/raytracer/include/core/math/vector/sse3/Vector3f.h
+unusedPrivateFunction:/Users/tkadauke/code/raytracer/include/core/math/vector/sse3/Vector4f.h
+*:/usr/local/Qt-5.5.1/lib/*

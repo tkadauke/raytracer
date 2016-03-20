@@ -6,7 +6,7 @@
 namespace raytracer {
   class FlatMeshTriangle : public MeshTriangle {
   public:
-    FlatMeshTriangle(Mesh* mesh, int index0, int index1, int index2)
+    inline explicit FlatMeshTriangle(Mesh* mesh, int index0, int index1, int index2)
       : MeshTriangle(mesh, index0, index1, index2)
     {
       m_normal = computeNormal();

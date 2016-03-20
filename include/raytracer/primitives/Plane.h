@@ -6,7 +6,7 @@
 namespace raytracer {
   class Plane : public Primitive {
   public:
-    Plane(const Vector3d& normal, double distance)
+    inline explicit Plane(const Vector3d& normal, double distance)
       : m_normal(normal),
         m_distance(distance)
     {

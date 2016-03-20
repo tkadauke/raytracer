@@ -8,7 +8,7 @@ class CameraTypeWidget : public QWidget {
   Q_OBJECT;
   
 public:
-  CameraTypeWidget(QWidget* parent = nullptr);
+  explicit CameraTypeWidget(QWidget* parent = nullptr);
   ~CameraTypeWidget();
   
   std::string type() const;

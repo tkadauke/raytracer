@@ -6,7 +6,7 @@
 namespace raytracer {
   class SmoothMeshTriangle : public MeshTriangle {
   public:
-    SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int index2);
+    explicit SmoothMeshTriangle(Mesh* mesh, int index0, int index1, int index2);
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual bool intersects(const Rayd& ray, State& state) const;

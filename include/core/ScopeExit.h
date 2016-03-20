@@ -2,12 +2,12 @@
 
 class ScopeExit {
 public:
-  ScopeExit(const std::function<void()>& func)
+  inline explicit ScopeExit(const std::function<void()>& func)
     : m_func(func)
   {
   }
   
-  ~ScopeExit() {
+  inline ~ScopeExit() {
     m_func();
   }
 

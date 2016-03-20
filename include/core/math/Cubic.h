@@ -9,7 +9,7 @@ class Cubic : public Polynomial<T, 3> {
 public:
   typedef Polynomial<T, 3> Base;
   
-  inline Cubic(T a, T b, T c, T d)
+  inline explicit Cubic(T a, T b, T c, T d)
     : m_a(a), m_b(b), m_c(c), m_d(d)
   {
   }

@@ -123,7 +123,7 @@ public:
   }
 
 private:
-  inline Angle(const T& radians)
+  inline explicit Angle(const T& radians)
     : m_radians(radians)
   {
   }
@@ -146,7 +146,7 @@ std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
   * @returns the multiple of the angle by the value on the left.
   */
 template<class T, class F>
-inline Angle<T> operator*(const F& left, const Angle<T> other) {
+inline Angle<T> operator*(const F& left, const Angle<T>& other) {
   return Angle<T>::fromRadians(left * other.radians());
 }
 

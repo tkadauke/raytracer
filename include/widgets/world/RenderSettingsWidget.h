@@ -6,7 +6,7 @@ class RenderSettingsWidget : public QWidget {
   Q_OBJECT;
   
 public:
-  RenderSettingsWidget(QWidget* parent = nullptr);
+  explicit RenderSettingsWidget(QWidget* parent = nullptr);
   ~RenderSettingsWidget();
   
   QSize resolution() const;

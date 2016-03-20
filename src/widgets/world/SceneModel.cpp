@@ -136,7 +136,7 @@ bool SceneModel::dropMimeData(const QMimeData *data, Qt::DropAction action, int 
     return false;
 
   QByteArray encodedData = data->data("application/modeler.element.list");
-  Element* element = (Element*)encodedData.toULongLong();
+  Element* element = reinterpret_cast<Element*>(encodedData.toULongLong());
   if(!element) return false;
 
   QModelIndex destinationParentIndex;

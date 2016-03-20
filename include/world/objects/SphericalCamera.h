@@ -20,7 +20,7 @@ public:
     * 180 degrees and a vertical field of view if 120 degrees, looking at the
     * origin.
     */
-  SphericalCamera(Element* parent = nullptr);
+  explicit SphericalCamera(Element* parent = nullptr);
   
   /**
     * @returns the horizontal field of view of the camera.

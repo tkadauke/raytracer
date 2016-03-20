@@ -15,7 +15,7 @@ class PreviewDisplayWidget : public QtDisplay {
   Q_OBJECT;
 
 public:
-  PreviewDisplayWidget(QWidget* parent);
+  explicit PreviewDisplayWidget(QWidget* parent);
   ~PreviewDisplayWidget();
   
   void clear();

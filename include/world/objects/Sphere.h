@@ -15,7 +15,7 @@ public:
   /**
     * Default constructor. Creates a sphere with radius 1 around the origin.
     */
-  Sphere(Element* parent = nullptr);
+  explicit Sphere(Element* parent = nullptr);
   
   /**
     * @returns the radius of the sphere.

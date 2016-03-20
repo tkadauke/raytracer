@@ -10,8 +10,8 @@ namespace raytracer {
   class Mesh {
   public:
     struct Vertex {
-      Vertex() {}
-      Vertex(const Vector3d& p, const Vector3d& n)
+      inline Vertex() {}
+      inline explicit Vertex(const Vector3d& p, const Vector3d& n)
         : point(p), normal(n) {}
       Vector3d point;
       Vector3d normal;

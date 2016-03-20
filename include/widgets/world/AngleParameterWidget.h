@@ -6,7 +6,7 @@ class AngleParameterWidget : public AbstractParameterWidget {
   Q_OBJECT;
   
 public:
-  AngleParameterWidget(QWidget* parent = nullptr);
+  explicit AngleParameterWidget(QWidget* parent = nullptr);
   ~AngleParameterWidget();
   
   virtual void setParameterName(const QString& name);

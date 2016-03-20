@@ -18,7 +18,7 @@ public:
     * Constructs a default reflective material with no diffuse texture, a
     * reflection coefficient of 0.75 and a white reflection color.
     */
-  ReflectiveMaterial(Element* parent = nullptr);
+  explicit ReflectiveMaterial(Element* parent = nullptr);
 
   /**
     * @returns the reflection color.

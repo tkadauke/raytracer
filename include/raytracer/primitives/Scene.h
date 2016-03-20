@@ -24,7 +24,7 @@ namespace raytracer {
       * Constructs an empty scene with the specified ambient color and a white
       * background color.
       */
-    inline Scene(const Colord& ambient)
+    inline explicit Scene(const Colord& ambient)
       : m_ambient(ambient),
         m_background(Colord::white())
     {

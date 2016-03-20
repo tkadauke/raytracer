@@ -12,8 +12,8 @@ class PlyProperty;
 
 class PlyFile {
 public:
-  PlyFile(std::istream& is);
-  PlyFile(std::istream& is, raytracer::Mesh& mesh);
+  explicit PlyFile(std::istream& is);
+  explicit PlyFile(std::istream& is, raytracer::Mesh& mesh);
   
   void read(std::istream& is, raytracer::Mesh& mesh);
   

@@ -15,7 +15,7 @@ public:
   /**
     * Default constructor. Creates an empty intersection.
     */
-  Intersection(Element* parent = nullptr);
+  explicit Intersection(Element* parent = nullptr);
   
   virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
 };

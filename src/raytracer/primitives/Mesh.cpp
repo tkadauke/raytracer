@@ -7,7 +7,7 @@ using namespace std;
 using namespace raytracer;
 
 struct Mesh::Private {
-  inline Private(Mesh& m)
+  inline explicit Private(Mesh& m)
     : mesh(m)
   {
   }

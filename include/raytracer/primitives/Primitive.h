@@ -12,7 +12,10 @@ namespace raytracer {
 
   class Primitive {
   public:
-    Primitive() : m_material(nullptr) {}
+    inline Primitive()
+      : m_material(nullptr)
+    {
+    }
     virtual ~Primitive() {}
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const = 0;

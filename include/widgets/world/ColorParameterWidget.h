@@ -7,7 +7,7 @@ class ColorParameterWidget : public AbstractParameterWidget {
   Q_OBJECT;
   
 public:
-  ColorParameterWidget(QWidget* parent = nullptr);
+  explicit ColorParameterWidget(QWidget* parent = nullptr);
   ~ColorParameterWidget();
 
   virtual void setParameterName(const QString& name);

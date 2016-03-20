@@ -12,7 +12,7 @@ public:
     * 
     * @param number the integer to decompose.
     */
-  inline IntegerDecomposition(int number)
+  inline explicit IntegerDecomposition(int number)
     : m_number(number)
   {
     decompose();

@@ -29,7 +29,7 @@ namespace raytracer {
       * Constructs a Phong material with diffuseTexture and a white specular
       * color.
       */
-    inline PhongMaterial(std::shared_ptr<Texturec> diffuseTexture)
+    inline explicit PhongMaterial(std::shared_ptr<Texturec> diffuseTexture)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(Colord::white());
@@ -38,7 +38,7 @@ namespace raytracer {
     /**
       * Constructs a Phong material with diffuseTexture and specularColor.
       */
-    inline PhongMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular)
+    inline explicit PhongMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(specular);
@@ -48,7 +48,7 @@ namespace raytracer {
       * Constructs a Phong material with diffuseTexture and specularColor and
       * the given Phong exponent.
       */
-    inline PhongMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular, double exponent)
+    inline explicit PhongMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular, double exponent)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(specular);

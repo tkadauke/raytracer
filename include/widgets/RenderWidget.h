@@ -9,7 +9,7 @@ namespace raytracer {
 class RenderWidget : public QWidget {
   Q_OBJECT;
 public:
-  RenderWidget(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
+  explicit RenderWidget(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
   ~RenderWidget();
   
   virtual void paintEvent(QPaintEvent*);

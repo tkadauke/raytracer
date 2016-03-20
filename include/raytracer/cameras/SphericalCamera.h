@@ -18,7 +18,7 @@ namespace raytracer {
       * 180 degrees and a vertical field of view if 120 degrees, looking at the
       * origin.
       */
-    SphericalCamera()
+    inline SphericalCamera()
       : m_horizontalFieldOfView(180 * Degreed),
         m_verticalFieldOfView(120 * Degreed)
     {
@@ -28,7 +28,7 @@ namespace raytracer {
       * Constructs a spherical camera with the specified horizontalFieldOfView
       * and verticalFieldOfView, looking at the origin.
       */
-    SphericalCamera(const Angled& horizontalFieldOfView, const Angled& verticalFieldOfView)
+    inline explicit SphericalCamera(const Angled& horizontalFieldOfView, const Angled& verticalFieldOfView)
       : m_horizontalFieldOfView(horizontalFieldOfView),
         m_verticalFieldOfView(verticalFieldOfView)
     {
@@ -39,7 +39,7 @@ namespace raytracer {
       * degrees and a vertical field of view if 120 degrees, at position and
       * looking at target.
       */
-    SphericalCamera(const Vector3d& position, const Vector3d& target)
+    inline explicit SphericalCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
         m_horizontalFieldOfView(180 * Degreed),
         m_verticalFieldOfView(120 * Degreed)

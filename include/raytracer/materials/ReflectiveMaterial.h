@@ -27,7 +27,7 @@ namespace raytracer {
       * Constructs a reflective material with diffuseTexture, a reflection
       * coefficient of 0.75 and a white reflection color.
       */
-    inline ReflectiveMaterial(std::shared_ptr<Texturec> diffuseTexture)
+    inline explicit ReflectiveMaterial(std::shared_ptr<Texturec> diffuseTexture)
       : PhongMaterial(diffuseTexture)
     {
       setReflectionCoefficient(0.75);
@@ -38,7 +38,7 @@ namespace raytracer {
       * Constructs a reflective material with diffuseTexture, the given specular
       * color, a reflection coefficient of 0.75 and a white reflection color.
       */
-    inline ReflectiveMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular)
+    inline explicit ReflectiveMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular)
       : PhongMaterial(diffuseTexture, specular)
     {
       setReflectionCoefficient(0.75);

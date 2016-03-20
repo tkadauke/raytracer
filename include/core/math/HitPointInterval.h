@@ -24,7 +24,7 @@ public:
       * 
       * @param i describes whether or not the point is entering an object.
       */
-    inline HitPointWrapper(const HitPoint& p, bool i)
+    inline explicit HitPointWrapper(const HitPoint& p, bool i)
       : point(p),
         in(i)
     {
@@ -59,7 +59,7 @@ public:
     * Constructs a HitPointInterval with a single interval described by begin
     * and end.
     */
-  inline HitPointInterval(const HitPoint& begin, const HitPoint& end) {
+  inline explicit HitPointInterval(const HitPoint& begin, const HitPoint& end) {
     add(begin, end);
   }
   

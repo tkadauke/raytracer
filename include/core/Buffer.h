@@ -9,7 +9,7 @@ public:
   typedef T* RowType;
   typedef RowType* BufferType;
 
-  inline Buffer(int width, int height)
+  inline explicit Buffer(int width, int height)
     : m_width(width),
       m_height(height)
   {
@@ -25,6 +25,8 @@ public:
     
     delete [] m_buffer;
   }
+  
+  Buffer(const Buffer&) = delete;
   
   inline const RowType& operator[](int index) const {
     return m_buffer[index];
@@ -46,7 +48,7 @@ public:
     return Recti(m_width, m_height);
   }
   
-  void clear() {
+  inline void clear() {
     for (int i = 0; i != width(); ++i) {
       for (int j = 0; j != height(); ++j) {
         m_buffer[j][i] = T();

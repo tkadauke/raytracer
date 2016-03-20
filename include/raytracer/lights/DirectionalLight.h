@@ -6,7 +6,7 @@
 namespace raytracer {
   class DirectionalLight : public Light {
   public:
-    inline DirectionalLight(const Vector3d& direction, const Colord& color)
+    inline explicit DirectionalLight(const Vector3d& direction, const Colord& color)
       : Light(),
         m_direction(direction.normalized()),
         m_color(color)

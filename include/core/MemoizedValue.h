@@ -8,7 +8,7 @@ public:
   {
   }
   
-  inline MemoizedValue(const T& value)
+  inline explicit MemoizedValue(const T& value)
     : m_initialized(true),
       m_value(value)
   {

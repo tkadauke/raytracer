@@ -14,7 +14,7 @@ public:
   /**
     * Default constructor. Creates a black texture.
     */
-  ConstantColorTexture(Element* parent = nullptr);
+  explicit ConstantColorTexture(Element* parent = nullptr);
 
   /**
     * @returns the texture's color.

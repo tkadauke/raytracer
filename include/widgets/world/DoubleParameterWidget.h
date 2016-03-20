@@ -6,7 +6,7 @@ class DoubleParameterWidget : public AbstractParameterWidget {
   Q_OBJECT;
   
 public:
-  DoubleParameterWidget(QWidget* parent = nullptr);
+  explicit DoubleParameterWidget(QWidget* parent = nullptr);
   ~DoubleParameterWidget();
   
   virtual void setParameterName(const QString& name);

@@ -15,12 +15,14 @@ public:
   /**
     * Default constructor.
     */
-  CSGSurface(Element* parent = nullptr);
+  explicit CSGSurface(Element* parent = nullptr);
   
   /**
     * @returns true if the CSG operation is active, false otherwise.
     */
-  bool active() const { return m_active; }
+  inline bool active() const {
+    return m_active;
+  }
   
   /**
     * Activates or deactivates the CSG operation. If the CSG operation is
@@ -30,7 +32,9 @@ public:
     * 
     * @image html csg_surface_inactive.png "Inactive CSG object"
     */
-  void setActive(bool active) { m_active = active; }
+  inline void setActive(bool active) {
+    m_active = active;
+  }
   
 private:
   bool m_active;

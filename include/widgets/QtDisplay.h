@@ -9,7 +9,7 @@ namespace raytracer {
 class QtDisplay : public RenderWidget {
   Q_OBJECT;
 public:
-  QtDisplay(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
+  explicit QtDisplay(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
   ~QtDisplay();
   
   void setInteractive(bool interactive);

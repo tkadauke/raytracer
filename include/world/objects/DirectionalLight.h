@@ -16,7 +16,7 @@ public:
     * Default constructor. Creates a directional light with direction
     * \f$((-0.5, -1, -0.5))\f$.
     */
-  DirectionalLight(Element* parent = nullptr);
+  explicit DirectionalLight(Element* parent = nullptr);
   
   /**
     * @returns the light's direction.

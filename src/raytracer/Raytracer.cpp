@@ -62,10 +62,10 @@ struct Raytracer::Private {
 };
 
 Raytracer::Raytracer(Scene* scene)
-  : m_scene(scene),
+  : m_camera(std::make_shared<PinholeCamera>()),
+    m_scene(scene),
     p(std::make_unique<Private>())
 {
-  m_camera = std::make_shared<PinholeCamera>();
 }
 
 Raytracer::Raytracer(std::shared_ptr<Camera> camera, Scene* scene)

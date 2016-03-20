@@ -6,14 +6,14 @@ namespace raytracer {
   
   class CheckerBoardTexture : public Texturec {
   public:
-    inline CheckerBoardTexture(TextureMapping2D* mapping)
+    inline explicit CheckerBoardTexture(TextureMapping2D* mapping)
       : m_mapping(mapping),
         m_brightTexture(nullptr),
         m_darkTexture(nullptr)
     {
     }
     
-    inline CheckerBoardTexture(TextureMapping2D* mapping, std::shared_ptr<Texturec> brightTexture, std::shared_ptr<Texturec> darkTexture)
+    inline explicit CheckerBoardTexture(TextureMapping2D* mapping, std::shared_ptr<Texturec> brightTexture, std::shared_ptr<Texturec> darkTexture)
       : m_mapping(mapping),
         m_brightTexture(brightTexture),
         m_darkTexture(darkTexture)

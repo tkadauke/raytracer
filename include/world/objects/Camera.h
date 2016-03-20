@@ -13,7 +13,7 @@ class Camera : public Element {
   Q_PROPERTY(Vector3d target READ target WRITE setTarget);
   
 public:
-  Camera(Element* parent = nullptr);
+  explicit Camera(Element* parent = nullptr);
   
   inline const Vector3d& position() const {
     return m_position;

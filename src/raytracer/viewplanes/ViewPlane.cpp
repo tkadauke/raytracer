@@ -33,12 +33,20 @@ ViewPlane::Iterator ViewPlane::begin(const Recti& rect) const {
 
 
 ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Recti& rect)
-  : m_plane(plane), m_rect(rect), m_column(0), m_row(0), m_pixelSize(1)
+  : m_plane(plane),
+    m_rect(rect),
+    m_column(0),
+    m_row(0),
+    m_pixelSize(1)
 {
 }
 
 ViewPlane::IteratorBase::IteratorBase(const ViewPlane* plane, const Recti& rect, bool)
-  : m_plane(plane), m_rect(rect), m_column(0), m_row(rect.height())
+  : m_plane(plane),
+    m_rect(rect),
+    m_column(0),
+    m_row(rect.height()),
+    m_pixelSize(1)
 {
 }
 

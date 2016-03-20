@@ -7,7 +7,7 @@
 namespace raytracer {
   class PortalMaterial : public Material {
   public:
-    inline PortalMaterial(const Matrix4d& transformation, const Colord& filter)
+    inline explicit PortalMaterial(const Matrix4d& transformation, const Colord& filter)
       : m_filterColor(filter)
     {
       setMatrix(transformation);

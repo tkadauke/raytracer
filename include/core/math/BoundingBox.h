@@ -51,7 +51,7 @@ public:
     * bounding box is only valid if all components of min are smaller or equal
     * to their corresponding component of max.
     */
-  inline BoundingBox(const Vector3<T>& min, const Vector3<T>& max)
+  inline explicit BoundingBox(const Vector3<T>& min, const Vector3<T>& max)
     : m_min(min),
       m_max(max)
   {

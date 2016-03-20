@@ -16,8 +16,12 @@
 Q_DECLARE_METATYPE(Vector3d)
 
 struct PropertyEditorWidget::Private {
-  Private()
-    : element(0), verticalLayout(0) {}
+  inline Private()
+    : root(nullptr),
+      element(nullptr),
+      verticalLayout(nullptr)
+  {
+  }
   
   Element* root;
   Element* element;

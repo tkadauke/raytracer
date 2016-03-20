@@ -21,7 +21,7 @@ public:
   /**
     * Default constructor.
     */
-  Material(Element* parent = nullptr);
+  explicit Material(Element* parent = nullptr);
   
   /**
     * Converts this material to the corresponding class in the raytracer

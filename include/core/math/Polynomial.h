@@ -10,7 +10,7 @@ public:
   typedef T Result[Dimension];
   typedef std::vector<T> Container;
   
-  inline Polynomial() {
+  inline explicit Polynomial() {
     for (int i = 0; i != Dimension; ++i) {
       m_result[i] = std::numeric_limits<T>::quiet_NaN();
     }

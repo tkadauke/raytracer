@@ -27,9 +27,9 @@ std::shared_ptr<raytracer::Primitive> Box::toRaytracerPrimitive() const {
     
     for (int i = 0; i != 8; i++) {
       Vector3d center(
-        (s.x() - r) * (i & 0x1 ? -1 : 1),
-        (s.y() - r) * (i & 0x2 ? -1 : 1),
-        (s.z() - r) * (i & 0x4 ? -1 : 1)
+        (s.x() - r) * ((i & 0x1) ? -1 : 1),
+        (s.y() - r) * ((i & 0x2) ? -1 : 1),
+        (s.z() - r) * ((i & 0x4) ? -1 : 1)
       );
       
       result->add(std::make_shared<raytracer::Sphere>(center, r));

@@ -20,8 +20,10 @@
 using namespace raytracer;
 
 struct RenderWindow::Private {
-  Private()
-    : busy(false),
+  inline Private()
+    : renderWidget(nullptr),
+      settingsWidget(nullptr),
+      busy(false),
       timer(0)
   {
   }

@@ -10,9 +10,9 @@
 using namespace raytracer;
 
 Camera::Camera()
-  : m_cancelled(false)
+  : m_cancelled(false),
+    m_viewPlane(std::make_shared<PointInterlacedViewPlane>())
 {
-  m_viewPlane = std::make_shared<PointInterlacedViewPlane>();
 }
 
 Camera::Camera(const Vector3d& position, const Vector3d& target)

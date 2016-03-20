@@ -15,7 +15,7 @@ class RenderWindow : public QWidget {
   Q_OBJECT;
 
 public:
-  RenderWindow(QWidget* parent = nullptr);
+  explicit RenderWindow(QWidget* parent = nullptr);
   void setScene(::Scene* scene);
 
   virtual QSize sizeHint() const;

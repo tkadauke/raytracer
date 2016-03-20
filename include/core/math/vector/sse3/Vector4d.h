@@ -127,7 +127,7 @@ public:
   }
 
 private:
-  inline Vector4(const __m128d& vec0, const __m128& vec1) {
+  inline explicit Vector4(const __m128d& vec0, const __m128& vec1) {
     m_vector[0] = vec0;
     m_vector[1] = vec1;
   }

@@ -7,7 +7,7 @@ class Exception {
 public:
   typedef std::list<std::string> Backtrace;
   
-  inline Exception(const std::string& message, const std::string& file, int line)
+  inline explicit Exception(const std::string& message, const std::string& file, int line)
     : m_message(message), m_file(file), m_line(line)
   {
     getBacktrace();

@@ -15,7 +15,7 @@ public:
   /**
     * Creates a new range between begin and end.
     */
-  Range(const T& begin, const T& end)
+  inline explicit Range(const T& begin, const T& end)
     : m_begin(begin),
       m_end(end)
   {

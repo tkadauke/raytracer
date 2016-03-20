@@ -15,7 +15,7 @@ namespace raytracer {
       * Constructs a default pinhole camera with a zoom factor of 1 and an
       * eye-viewplane distance of 5, looking at the origin
       */
-    PinholeCamera()
+    inline PinholeCamera()
       : Camera(),
         m_distance(5),
         m_zoom(1)
@@ -25,7 +25,7 @@ namespace raytracer {
     /**
       * Constructs a camera at position lookint at target.
       */
-    PinholeCamera(const Vector3d& position, const Vector3d& target)
+    inline explicit PinholeCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
         m_distance(5),
         m_zoom(1)

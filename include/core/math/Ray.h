@@ -32,7 +32,7 @@ public:
     * Constructs a Ray \f$r = o + td\f$, where origin is \f$o\f$ and direction
     * is \f$d\f$.
     */
-  inline Ray(const Vector4<T>& origin, const Vector3<T>& direction)
+  inline explicit Ray(const Vector4<T>& origin, const Vector3<T>& direction)
     : m_origin(origin),
       m_direction(direction)
   {

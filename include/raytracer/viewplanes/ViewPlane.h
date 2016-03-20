@@ -15,8 +15,8 @@ namespace raytracer {
   public:
     class IteratorBase : public InequalityOperator<IteratorBase> {
     public:
-      IteratorBase(const ViewPlane* plane, const Recti& rect);
-      IteratorBase(const ViewPlane* plane, const Recti& rect, bool end);
+      explicit IteratorBase(const ViewPlane* plane, const Recti& rect);
+      explicit IteratorBase(const ViewPlane* plane, const Recti& rect, bool end);
       virtual ~IteratorBase() {}
 
       Vector3d current() const;
@@ -46,15 +46,15 @@ namespace raytracer {
 
     class RegularIterator : public IteratorBase {
     public:
-      RegularIterator(const ViewPlane* plane, const Recti& rect);
-      RegularIterator(const ViewPlane* plane, const Recti& rect, bool);
+      explicit RegularIterator(const ViewPlane* plane, const Recti& rect);
+      explicit RegularIterator(const ViewPlane* plane, const Recti& rect, bool);
 
       virtual void advance();
     };
 
     class Iterator : public InequalityOperator<Iterator> {
     public:
-      inline Iterator(IteratorBase* iteratorImpl) {
+      inline explicit Iterator(IteratorBase* iteratorImpl) {
         m_iteratorImpl = iteratorImpl;
       }
 
@@ -96,7 +96,7 @@ namespace raytracer {
     };
 
     ViewPlane();
-    ViewPlane(const Matrix4d& matrix, const Recti& window);
+    explicit ViewPlane(const Matrix4d& matrix, const Recti& window);
     
     virtual ~ViewPlane();
 

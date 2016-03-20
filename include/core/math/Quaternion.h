@@ -23,7 +23,7 @@ public:
   }
   
   template<class Vector>
-  inline Quaternion(const T& scalar, const Vector& vector)
+  inline explicit Quaternion(const T& scalar, const Vector& vector)
     : m_w(scalar),
       m_x(vector[0]),
       m_y(vector[1]),

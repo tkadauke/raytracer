@@ -18,7 +18,7 @@ public:
     * Default constructor. Creates a checker board texture with no brigth and
     * dark textures.
     */
-  CheckerBoardTexture(Element* parent = nullptr);
+  explicit CheckerBoardTexture(Element* parent = nullptr);
 
   /**
     * @returns the checker board's bright texture.

@@ -7,7 +7,7 @@ class VectorParameterWidget : public AbstractParameterWidget {
   Q_OBJECT;
   
 public:
-  VectorParameterWidget(QWidget* parent = nullptr);
+  explicit VectorParameterWidget(QWidget* parent = nullptr);
   ~VectorParameterWidget();
 
   virtual void setParameterName(const QString& name);

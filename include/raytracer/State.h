@@ -7,7 +7,7 @@ namespace raytracer {
   
   class State {
   public:
-    State()
+    inline State()
       : traceEvents(false),
         recursionDepth(0),
         maxRecursionDepth(0),

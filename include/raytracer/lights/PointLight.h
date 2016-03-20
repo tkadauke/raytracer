@@ -6,7 +6,7 @@
 namespace raytracer {
   class PointLight : public Light {
   public:
-    inline PointLight(const Vector3d& position, const Colord& color)
+    inline explicit PointLight(const Vector3d& position, const Colord& color)
       : Light(),
         m_position(position),
         m_color(color)

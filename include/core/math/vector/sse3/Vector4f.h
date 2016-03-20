@@ -105,7 +105,7 @@ public:
   }
 
 private:
-  inline Vector4(const __m128& vec) {
+  inline explicit Vector4(const __m128& vec) {
     m_vector[0] = vec;
   }
 };

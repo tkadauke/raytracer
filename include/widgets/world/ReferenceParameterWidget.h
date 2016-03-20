@@ -6,7 +6,7 @@ class ReferenceParameterWidget : public AbstractParameterWidget {
   Q_OBJECT;
   
 public:
-  ReferenceParameterWidget(const QString& baseClassName, Element* root, QWidget* parent = nullptr);
+  explicit ReferenceParameterWidget(const QString& baseClassName, Element* root, QWidget* parent = nullptr);
   ~ReferenceParameterWidget();
   
   virtual void setParameterName(const QString& name);

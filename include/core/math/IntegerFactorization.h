@@ -11,7 +11,7 @@ public:
   /**
     * Constructs the IntegerFactorization object for number.
     */
-  inline IntegerFactorization(int number)
+  inline explicit IntegerFactorization(int number)
     : m_number(number)
   {
   }

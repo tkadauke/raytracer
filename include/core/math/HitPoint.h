@@ -38,7 +38,7 @@ public:
     * Constructs a HitPoint on primitive from the specified distance, point, and
     * normal.
     */
-  inline HitPoint(const raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
+  inline explicit HitPoint(const raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
     : m_primitive(primitive),
       m_distance(distance),
       m_point(point),

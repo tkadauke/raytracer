@@ -18,7 +18,7 @@ namespace raytracer {
       * Creates a default fish eye camera with a 120 degree field of view,
       * looking at the origin.
       */
-    FishEyeCamera()
+    inline explicit FishEyeCamera()
       : m_fieldOfView(120 * Degreed)
     {
     }
@@ -27,7 +27,7 @@ namespace raytracer {
       * Creates a fish eye camera with the given field of view, looking at the
       * origin.
       */
-    FishEyeCamera(const Angled& fieldOfView)
+    inline explicit FishEyeCamera(const Angled& fieldOfView)
       : m_fieldOfView(fieldOfView)
     {
     }
@@ -35,7 +35,7 @@ namespace raytracer {
     /**
       * Creates a fish eye camera at position looking at target.
       */
-    FishEyeCamera(const Vector3d& position, const Vector3d& target)
+    inline explicit FishEyeCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
         m_fieldOfView(120 * Degreed)
     {

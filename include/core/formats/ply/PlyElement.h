@@ -7,7 +7,7 @@
 
 class PlyElement {
 public:
-  PlyElement(std::istream& istream);
+  explicit PlyElement(std::istream& istream);
   inline PlyElement(const std::string& name, int count)
     : m_name(name),
       m_count(count)

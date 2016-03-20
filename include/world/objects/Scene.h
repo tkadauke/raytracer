@@ -19,7 +19,7 @@ public:
     * Default constructor. Constructs an empty scene with a white ambient
     * color and a white background color.
     */
-  Scene(Element* parent = nullptr);
+  explicit Scene(Element* parent = nullptr);
   
   /**
     * Converts the scene into a representation suitable for rendering with the

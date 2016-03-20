@@ -19,7 +19,7 @@ class PointLight : public Light {
   Q_OBJECT;
   
 public:
-  PointLight(Element* parent = nullptr);
+  explicit PointLight(Element* parent = nullptr);
   
   virtual raytracer::Light* toRaytracer() const;
 };

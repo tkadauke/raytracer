@@ -7,7 +7,7 @@ class LinearInterpolation {
 public:
   class Iterator : public InequalityOperator<Iterator> {
   public:
-    inline Iterator(const T& begin, const T& end, int steps, int current = 0)
+    inline explicit Iterator(const T& begin, const T& end, int steps, int current = 0)
       : m_begin(begin), m_current(current)
     {
       m_step = (end - begin) / steps;
@@ -42,7 +42,7 @@ public:
     int m_current;
   };
   
-  inline LinearInterpolation(const T& begin, const T& end, int steps)
+  inline explicit LinearInterpolation(const T& begin, const T& end, int steps)
     : m_begin(begin), m_end(end), m_steps(steps)
   {
   }

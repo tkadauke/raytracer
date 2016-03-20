@@ -24,7 +24,7 @@ public:
     * Constructs a default Phong material with no diffuse texture and a white
     * specular color.
     */
-  PhongMaterial(Element* parent = nullptr);
+  explicit PhongMaterial(Element* parent = nullptr);
 
   /**
     * @returns the material's specular color.

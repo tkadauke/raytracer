@@ -6,7 +6,7 @@ namespace raytracer {
   public:
     inline ConstantColorTexture() {}
     
-    inline ConstantColorTexture(const Colord& color)
+    inline explicit ConstantColorTexture(const Colord& color)
       : m_color(color)
     {
     }

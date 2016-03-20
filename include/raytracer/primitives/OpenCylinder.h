@@ -6,7 +6,7 @@
 namespace raytracer {
   class OpenCylinder : public Primitive {
   public:
-    inline OpenCylinder(double radius, double height)
+    inline explicit OpenCylinder(double radius, double height)
       : m_radius(radius),
         m_halfHeight(height / 2.0),
         m_invRadius(1.0 / radius)

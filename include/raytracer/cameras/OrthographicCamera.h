@@ -15,7 +15,7 @@ namespace raytracer {
       * Constructs a default orthographic camera with a zoom factor of 1,
       * looking at the origin.
       */
-    OrthographicCamera()
+    inline OrthographicCamera()
       : m_zoom(1)
     {
     }
@@ -24,7 +24,7 @@ namespace raytracer {
       * Constructs an orthographic camera at position, looking at target with
       * a zoom value of 1.
       */
-    OrthographicCamera(const Vector3d& position, const Vector3d& target)
+    inline explicit OrthographicCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
         m_zoom(1)
     {

@@ -33,7 +33,8 @@ namespace {
 struct RenderWidget::Private {
   inline Private()
     : renderThread(nullptr),
-      buffer(nullptr)
+      buffer(nullptr),
+      timer(0)
   {
   }
   

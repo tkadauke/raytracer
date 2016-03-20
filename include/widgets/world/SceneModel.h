@@ -8,7 +8,7 @@ class SceneModel : public QAbstractItemModel {
   Q_OBJECT;
 
 public:
-  SceneModel(Element* root, QObject* parent = nullptr);
+  explicit SceneModel(Element* root, QObject* parent = nullptr);
   ~SceneModel();
   
   void setElement(Element* root);

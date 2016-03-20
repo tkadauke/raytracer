@@ -5,7 +5,8 @@
 
 struct AbstractParameterWidget::Private {
   Private()
-    : element(0)
+    : element(nullptr),
+      lastValue()
   {
   }
   

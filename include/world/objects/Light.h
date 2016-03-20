@@ -24,7 +24,7 @@ public:
   /**
     * Creates a new visible light with white color and an intensity of 0.5.
     */
-  Light(Element* parent = nullptr);
+  explicit Light(Element* parent = nullptr);
   
   /**
     * @returns true if the light is visible, false otherwise.

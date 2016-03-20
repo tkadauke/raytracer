@@ -22,7 +22,7 @@ public:
   /**
     * Default constructor.
     */
-  Surface(Element* parent = nullptr);
+  explicit Surface(Element* parent = nullptr);
   
   /**
     * @returns true if the surface is visible, false otherwise.

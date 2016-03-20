@@ -21,7 +21,7 @@ public:
     * Constructs the default matte material with no texture and ambient and
     * diffuse coefficients of 1.
     */
-  MatteMaterial(Element* parent = nullptr);
+  explicit MatteMaterial(Element* parent = nullptr);
 
   /**
     * @returns the diffuse texture.

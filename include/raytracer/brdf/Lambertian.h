@@ -11,7 +11,7 @@ namespace raytracer {
     {
     }
     
-    inline Lambertian(const Colord& color, double coeff)
+    inline explicit Lambertian(const Colord& color, double coeff)
       : m_diffuseColor(color),
         m_reflectionCoefficient(coeff)
     {

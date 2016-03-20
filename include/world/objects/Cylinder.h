@@ -17,7 +17,7 @@ public:
   /**
     * Default constructor. Creates a cylinder with radius 1 around the origin.
     */
-  Cylinder(Element* parent = nullptr);
+  explicit Cylinder(Element* parent = nullptr);
   
   /**
     * @returns the radius of the cylinder.

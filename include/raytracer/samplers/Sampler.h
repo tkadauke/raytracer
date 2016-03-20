@@ -10,7 +10,7 @@
 namespace raytracer {
   class Sampler {
   public:
-    Sampler()
+    inline Sampler()
       : m_numSamples(0),
         m_numSets(0)
     {

@@ -18,21 +18,21 @@ namespace raytracer {
   class Camera {
   public:
     Camera();
-    Camera(const Vector3d& position, const Vector3d& target);
+    explicit Camera(const Vector3d& position, const Vector3d& target);
     
     virtual ~Camera();
 
-    void setPosition(const Vector3d& position) {
+    inline void setPosition(const Vector3d& position) {
       m_matrix.reset();
       m_position = position;
     }
 
-    void setTarget(const Vector3d& target) {
+    inline void setTarget(const Vector3d& target) {
       m_matrix.reset();
       m_target = target;
     }
 
-    std::shared_ptr<ViewPlane> viewPlane() const {
+    inline std::shared_ptr<ViewPlane> viewPlane() const {
       return m_viewPlane;
     }
     

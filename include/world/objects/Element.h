@@ -8,7 +8,7 @@ class Element : public QObject {
   Q_PROPERTY(QString name READ name WRITE setName);
   
 public:
-  Element(Element* parent = nullptr);
+  explicit Element(Element* parent = nullptr);
   virtual ~Element();
   
   inline const QString& id() const {
@@ -50,7 +50,7 @@ public:
   
   void insertChild(int index, Element* child);
   void removeChild(int index, bool removeParent = true);
-  void removeChild(Element* child, bool removeParent = true) {
+  inline void removeChild(Element* child, bool removeParent = true) {
     removeChild(m_childElements.indexOf(child), removeParent);
   }
   

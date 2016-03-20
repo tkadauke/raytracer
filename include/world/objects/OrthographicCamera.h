@@ -17,7 +17,7 @@ public:
     * Constructs a default orthographic camera with a zoom factor of 1,
     * looking at the origin.
     */
-  OrthographicCamera(Element* parent = nullptr);
+  explicit OrthographicCamera(Element* parent = nullptr);
 
   /**
     * @returns the camera'z zoom.

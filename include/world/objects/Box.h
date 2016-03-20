@@ -16,7 +16,7 @@ public:
   /**
     * Default constructor. Creates a box with size (1, 1, 1) around the origin.
     */
-  Box(Element* parent = nullptr);
+  explicit Box(Element* parent = nullptr);
 
   /**
     * @returns the half size of the box, which is the difference between the

@@ -16,7 +16,7 @@ class TransparentMaterial : public PhongMaterial {
   Q_PROPERTY(double refractionIndex READ refractionIndex WRITE setRefractionIndex);
 
 public:
-  TransparentMaterial(Element* parent = nullptr);
+  explicit TransparentMaterial(Element* parent = nullptr);
 
   /**
     * @returns the material's index of refraction

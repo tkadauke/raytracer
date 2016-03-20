@@ -30,7 +30,7 @@ namespace raytracer {
       * Constructs a transparent material with diffuseTexture and a refraction
       * index of 1.
       */
-    inline TransparentMaterial(std::shared_ptr<Texturec> diffuseTexture)
+    inline explicit TransparentMaterial(std::shared_ptr<Texturec> diffuseTexture)
       : PhongMaterial(diffuseTexture)
     {
       setRefractionIndex(1);

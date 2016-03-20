@@ -17,16 +17,17 @@ public:
     FLOAT64
   };
   
-  PlyProperty(std::istream& is);
+  explicit PlyProperty(std::istream& is);
   
-  inline PlyProperty(Type type, const std::string& name)
-    : m_elementType(type),
+  inline explicit PlyProperty(Type type, const std::string& name)
+    : m_countType(INVALID),
+      m_elementType(type),
       m_list(false),
       m_name(name)
   {
   }
   
-  inline PlyProperty(Type countType, Type elementType, const std::string& name)
+  inline explicit PlyProperty(Type countType, Type elementType, const std::string& name)
     : m_countType(countType),
       m_elementType(elementType),
       m_list(true),

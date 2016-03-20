@@ -29,7 +29,7 @@ namespace raytracer {
       * Constructs the default matte material with the given texture and ambient
       * and diffuse coefficients of 1.
       */
-    inline MatteMaterial(std::shared_ptr<Texturec> texture)
+    inline explicit MatteMaterial(std::shared_ptr<Texturec> texture)
       : Material(),
         m_diffuseTexture(texture),
         m_ambientCoefficient(1),

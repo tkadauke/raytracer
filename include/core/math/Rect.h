@@ -26,7 +26,7 @@ public:
     * Constructs a rectangle originating at \f$(0, 0)\f$ with the given width
     * and height.
     */
-  inline Rect(const T& width, const T& height)
+  inline explicit Rect(const T& width, const T& height)
     : m_x(T()),
       m_y(T()),
       m_width(width),
@@ -38,7 +38,7 @@ public:
     * Constructs a rectangle originating at \f$(x, y)\f$ with the given width
     * and height.
     */
-  inline Rect(const T& x, const T& y, const T& width, const T& height)
+  inline explicit Rect(const T& x, const T& y, const T& width, const T& height)
     : m_x(x),
       m_y(y),
       m_width(width),

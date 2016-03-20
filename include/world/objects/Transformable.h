@@ -18,7 +18,7 @@ public:
   /**
     * Default constructor.
     */
-  Transformable(Element* parent = nullptr);
+  explicit Transformable(Element* parent = nullptr);
   
   /**
     * @returns the object's position vector.
