@@ -66,6 +66,8 @@ void Renderer::render() const {
   auto raytracerScene = scene->toRaytracerScene();
   
   auto raytracer = std::make_shared<raytracer::Raytracer>(raytracerScene);
+  // We don't need a fancy view plane, so we can optimize for fast rendering.
+  raytracer->camera()->setViewPlane(std::make_shared<raytracer::TiledViewPlane>());
   raytracer->setMaximumRecursionDepth(m_maximumRecursionDepth);
   
   auto camera = scene->activeCamera();
@@ -76,8 +78,6 @@ void Renderer::render() const {
     raytracer->camera()->setPosition(Vector3d(0, 0, -5));
   }
   
-  // We don't need a fancy view plane, so we can optimize for fast rendering.
-  raytracer->camera()->setViewPlane(std::make_shared<raytracer::TiledViewPlane>());
   raytracer->camera()->viewPlane()->setSampler(sampler());
   
   Buffer<unsigned int> buffer(m_width, m_height);
