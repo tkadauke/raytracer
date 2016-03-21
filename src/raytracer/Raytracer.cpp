@@ -16,7 +16,8 @@
 
 #include "raytracer/cameras/PinholeCamera.h"
 
-#include <QThread>
+#include <QThreadPool>
+#include <QRunnable>
 
 #include <vector>
 #include <cmath>
@@ -27,10 +28,10 @@ using namespace std;
 using namespace raytracer;
 
 namespace {
-  class RenderThread : public QThread {
+  class RenderTask : public QRunnable {
   public:
-    inline RenderThread(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Recti& r)
-      : QThread(),
+    inline RenderTask(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Recti& r)
+      : QRunnable(),
         raytracer(rt),
         camera(c),
         buffer(b),
@@ -51,13 +52,14 @@ namespace {
 
 struct Raytracer::Private {
   inline Private()
-    : numberOfThreads(24),
+    : queueSize(QThread::idealThreadCount()),
       maximumRecursionDepth(5)
   {
+    threadPool = new QThreadPool;
   }
   
-  vector<RenderThread*> threads;
-  int numberOfThreads;
+  QThreadPool* threadPool;
+  int queueSize;
   int maximumRecursionDepth;
 };
 
@@ -86,11 +88,10 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   
-  p->threads.clear();
-  IntegerDecomposition d(p->numberOfThreads);
-  for (int horz = 0; horz != d.second(); ++horz) {
-    for (int vert = 0; vert != d.first(); ++vert) {
-      p->threads.push_back(new RenderThread(shared_from_this(), m_camera, buffer, Recti(
+  IntegerDecomposition d(p->queueSize);
+  for (int vert = 0; vert != d.first(); ++vert) {
+    for (int horz = 0; horz != d.second(); ++horz) {
+      p->threadPool->start(new RenderTask(shared_from_this(), m_camera, buffer, Recti(
         floor(double(buffer.width()) / d.second() * horz),
         floor(double(buffer.height()) / d.first() * vert),
         ceil(double(buffer.width()) / d.second()),
@@ -99,13 +100,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
     }
   }
   
-  for (auto& thread : p->threads)
-    thread->start();
-  
-  for (auto& thread : p->threads) {
-    thread->wait();
-    delete thread;
-  }
+  p->threadPool->waitForDone();
 }
 
 const Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
@@ -161,4 +156,12 @@ void Raytracer::uncancel() {
 
 void Raytracer::setMaximumRecursionDepth(int depth) {
   p->maximumRecursionDepth = depth;
+}
+
+void Raytracer::setMaximumThreads(int threads) {
+  p->threadPool->setMaxThreadCount(threads);
+}
+
+void Raytracer::setQueueSize(int queue) {
+  p->queueSize = queue;
 }

@@ -14,6 +14,8 @@ public:
   QString viewPlane() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
+  int renderThreads() const;
+  int queueSize() const;
   
   void setBusy(bool busy);
   void setElapsedTime(int milliseconds);

@@ -16,6 +16,8 @@
 
 #include "core/Buffer.h"
 
+#include <QThread>
+
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
@@ -47,6 +49,8 @@ private:
   int m_height;
   QString m_sampler;
   int m_samplesPerPixel;
+  int m_threads;
+  int m_queueSize;
 };
 
 Renderer::Renderer()
@@ -54,7 +58,9 @@ Renderer::Renderer()
     m_width(640),
     m_height(480),
     m_sampler("Regular"),
-    m_samplesPerPixel(1)
+    m_samplesPerPixel(1),
+    m_threads(QThread::idealThreadCount()),
+    m_queueSize(QThread::idealThreadCount() * 8)
 {
   parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -79,7 +85,10 @@ void Renderer::render() const {
   }
   
   raytracer->camera()->viewPlane()->setSampler(sampler());
-  
+
+  raytracer->setMaximumThreads(m_threads);
+  raytracer->setQueueSize(m_queueSize);
+
   Buffer<unsigned int> buffer(m_width, m_height);
   raytracer->render(buffer);
   
@@ -120,7 +129,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {"height", "Output image height", "height"},
     {"depth", "Maximum recursion depth", "depth"},
     {"sampler", "Sampler type", "sampler"},
-    {"samples_per_pixel", "Samples per pixel", "samples"}
+    {"samples_per_pixel", "Samples per pixel", "samples"},
+    {{"j", "threads"}, "Number of threads", "threads"},
+    {"queue_size", "Queue size for thread pool", "queue_size"}
   });
   
   parser.addPositionalArgument("input", QCoreApplication::translate("main", "Input file to render."));
@@ -173,6 +184,24 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     m_samplesPerPixel = samplesPerPixelValue.toInt();
     if (m_samplesPerPixel <= 0) {
       *errorMessage = "Samples per pixel must be > 0";
+      return CommandLineError;
+    }
+  }
+  
+  if (parser.isSet("threads")) {
+    const QString threadsValue = parser.value("threads");
+    m_threads = threadsValue.toInt();
+    if (m_threads <= 0) {
+      *errorMessage = "Threads must be > 0";
+      return CommandLineError;
+    }
+  }
+  
+  if (parser.isSet("queue_size")) {
+    const QString queueSizeValue = parser.value("queue_size");
+    m_queueSize = queueSizeValue.toInt();
+    if (m_queueSize < m_threads) {
+      *errorMessage = "Queue size must be > threads";
       return CommandLineError;
     }
   }

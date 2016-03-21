@@ -96,6 +96,8 @@ void RenderWindow::render() {
   p->raytracer->camera()->setViewPlane(viewPlane);
   p->raytracer->camera()->viewPlane()->setSampler(sampler);
   p->raytracer->setMaximumRecursionDepth(p->settingsWidget->maxRecursionDepth());
+  p->raytracer->setMaximumThreads(p->settingsWidget->renderThreads());
+  p->raytracer->setQueueSize(p->settingsWidget->queueSize());
   
   p->renderWidget->render();
   

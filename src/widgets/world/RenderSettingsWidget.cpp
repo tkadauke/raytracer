@@ -3,6 +3,8 @@
 #include "widgets/world/RenderSettingsWidget.h"
 #include "RenderSettingsWidget.uic"
 
+#include <QThread>
+
 struct RenderSettingsWidget::Private {
   Ui::RenderSettingsWidget ui;
 };
@@ -26,6 +28,9 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   }
   
   p->ui.viewPlaneType->setCurrentText("PointInterlacedViewPlane");
+  
+  p->ui.renderThreads->setValue(QThread::idealThreadCount());
+  p->ui.queueSize->setValue(QThread::idealThreadCount() * 8);
   
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
@@ -57,12 +62,22 @@ int RenderSettingsWidget::maxRecursionDepth() const {
   return p->ui.maxRecursionDepth->value();
 }
 
+int RenderSettingsWidget::renderThreads() const {
+  return p->ui.renderThreads->value();
+}
+
+int RenderSettingsWidget::queueSize() const {
+  return p->ui.queueSize->value();
+}
+
 void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.resolution->setEnabled(!busy);
   p->ui.viewPlaneType->setEnabled(!busy);
   p->ui.samplerType->setEnabled(!busy);
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);
+  p->ui.renderThreads->setEnabled(!busy);
+  p->ui.queueSize->setEnabled(!busy);
   
   p->ui.renderButton->setEnabled(!busy);
   p->ui.stopButton->setEnabled(busy);

@@ -45,6 +45,8 @@ namespace raytracer {
     }
     
     void setMaximumRecursionDepth(int depth);
+    void setMaximumThreads(int threads);
+    void setQueueSize(int queue);
 
   private:
     std::shared_ptr<Camera> m_camera;
