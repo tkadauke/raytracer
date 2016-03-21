@@ -1,4 +1,5 @@
 #include "raytracer/samplers/SamplerFactory.h"
+#include "raytracer/viewplanes/ViewPlaneFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
 #include "RenderSettingsWidget.uic"
 
@@ -18,6 +19,13 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   }
   
   p->ui.samplerType->setCurrentText("Regular");
+
+  ids = raytracer::ViewPlaneFactory::self().identifiers();
+  for (const auto& id : ids) {
+    p->ui.viewPlaneType->addItem(QString(id.c_str()));
+  }
+  
+  p->ui.viewPlaneType->setCurrentText("PointInterlacedViewPlane");
   
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
@@ -37,6 +45,10 @@ QString RenderSettingsWidget::sampler() const {
   return p->ui.samplerType->currentText();
 }
 
+QString RenderSettingsWidget::viewPlane() const {
+  return p->ui.viewPlaneType->currentText();
+}
+
 int RenderSettingsWidget::samplesPerPixel() const {
   return p->ui.samplesPerPixel->value();
 }
@@ -47,6 +59,7 @@ int RenderSettingsWidget::maxRecursionDepth() const {
 
 void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.resolution->setEnabled(!busy);
+  p->ui.viewPlaneType->setEnabled(!busy);
   p->ui.samplerType->setEnabled(!busy);
   p->ui.samplesPerPixel->setEnabled(!busy);
   p->ui.maxRecursionDepth->setEnabled(!busy);

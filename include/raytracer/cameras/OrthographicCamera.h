@@ -56,6 +56,8 @@ namespace raytracer {
       viewPlane()->setPixelSize(1.0 / m_zoom);
     }
     
+    virtual void setViewPlane(std::shared_ptr<ViewPlane> plane);
+    
   private:
     double m_zoom;
   };

@@ -11,6 +11,7 @@ public:
   
   QSize resolution() const;
   QString sampler() const;
+  QString viewPlane() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
   

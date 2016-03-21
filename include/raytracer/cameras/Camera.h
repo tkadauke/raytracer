@@ -36,7 +36,7 @@ namespace raytracer {
       return m_viewPlane;
     }
     
-    void setViewPlane(std::shared_ptr<ViewPlane> plane);
+    virtual void setViewPlane(std::shared_ptr<ViewPlane> plane);
 
     const Matrix4d& matrix() const;
 

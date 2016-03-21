@@ -11,4 +11,9 @@ Rayd PinholeCamera::rayForPixel(double x, double y) const {
   return Rayd(position, (pixel - position).normalized());
 }
 
+void PinholeCamera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
+  Camera::setViewPlane(plane);
+  viewPlane()->setPixelSize(1.0 / m_zoom);
+}
+
 static bool dummy = CameraFactory::self().registerClass<PinholeCamera>("PinholeCamera");
