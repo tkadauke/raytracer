@@ -1,3 +1,4 @@
+#include "raytracer/samplers/SamplerFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
 #include "RenderSettingsWidget.uic"
 
@@ -10,6 +11,14 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
+  
+  auto ids = raytracer::SamplerFactory::self().identifiers();
+  for (const auto& id : ids) {
+    p->ui.samplerType->addItem(QString(id.c_str()).replace("Sampler", ""));
+  }
+  
+  p->ui.samplerType->setCurrentText("Regular");
+  
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
 }

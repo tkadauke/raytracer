@@ -192,16 +192,21 @@
      </item>
      <item row="1" column="1">
       <widget class="QComboBox" name="samplerType">
-       <item>
+<!--       <item>
         <property name="text">
          <string>Regular</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Jittered</string>
+         <string>Random</string>
         </property>
        </item>
+       <item>
+        <property name="text">
+         <string>Jittered</string>
+        </property>
+       </item> -->
       </widget>
      </item>
      <item row="2" column="0">
