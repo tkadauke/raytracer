@@ -32,6 +32,7 @@
 #include "world/objects/Sphere.h"
 #include "world/objects/Box.h"
 #include "world/objects/Cylinder.h"
+#include "world/objects/Ring.h"
 
 #include "world/objects/Intersection.h"
 #include "world/objects/Union.h"
@@ -86,6 +87,7 @@ struct MainWindow::Private {
   QAction* addBoxAct;
   QAction* addSphereAct;
   QAction* addCylinderAct;
+  QAction* addRingAct;
 
   QAction* addIntersectionAct;
   QAction* addUnionAct;
@@ -176,6 +178,10 @@ void MainWindow::createActions() {
   p->addCylinderAct = new QAction(tr("Cylinder"), this);
   p->addCylinderAct->setStatusTip(tr("Add a Cylinder to the scene"));
   connect(p->addCylinderAct, SIGNAL(triggered()), this, SLOT(addCylinder()));
+  
+  p->addRingAct = new QAction(tr("Ring"), this);
+  p->addRingAct->setStatusTip(tr("Add a Ring to the scene"));
+  connect(p->addRingAct, SIGNAL(triggered()), this, SLOT(addRing()));
   
   p->addIntersectionAct = new QAction(tr("Intersection"), this);
   p->addIntersectionAct->setStatusTip(tr("Add an intersection to the scene"));
@@ -325,6 +331,7 @@ void MainWindow::createMenus() {
   addPrimitive->addAction(p->addBoxAct);
   addPrimitive->addAction(p->addSphereAct);
   addPrimitive->addAction(p->addCylinderAct);
+  addPrimitive->addAction(p->addRingAct);
 
   auto addComposite = p->editMenu->addMenu(tr("Add Composite"));
   addComposite->addAction(p->addIntersectionAct);
@@ -475,6 +482,10 @@ void MainWindow::addSphere() {
 
 void MainWindow::addCylinder() {
   add<Cylinder>();
+}
+
+void MainWindow::addRing() {
+  add<Ring>();
 }
 
 void MainWindow::addIntersection() {

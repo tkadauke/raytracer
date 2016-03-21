@@ -144,10 +144,10 @@ std::ostream& operator<<(std::ostream& os, const HitPointInterval& interval) {
   os << '[';
   for (const auto& i : interval.points()) {
     if (i.in)
-      os << "(I)";
+      os << "(I) ";
     else
-      os << "(O)";
-    os << i.point.distance();
+      os << "(O) ";
+    os << i.point.point() << " " << i.point.distance();
   }
   os << ']';
   return os;

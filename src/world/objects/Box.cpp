@@ -50,8 +50,8 @@ std::shared_ptr<raytracer::Primitive> Box::toRaytracerPrimitive() const {
       Vector3d(s.x() - r, s.y() - r, s.z())
     ));
       
-    for (int u = -1; u <= 1; u += 2) {
-      for (int v = -1; v <= 1; v += 2) {
+    for (int u : { -1, 1 }) {
+      for (int v : { -1, 1 }) {
         auto cylinder = std::make_shared<raytracer::OpenCylinder>(r, 2.0 * (s.x() - r));
         auto instance = std::make_shared<raytracer::Instance>(cylinder);
         instance->setMatrix(

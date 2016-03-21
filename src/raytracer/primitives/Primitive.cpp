@@ -7,5 +7,6 @@ using namespace raytracer;
 
 bool Primitive::intersects(const Rayd& ray, State& state) const {
   HitPointInterval hitPoints;
-  return intersect(ray, hitPoints, state);
+  intersect(ray, hitPoints, state);
+  return !hitPoints.minWithPositiveDistance().isUndefined();
 }

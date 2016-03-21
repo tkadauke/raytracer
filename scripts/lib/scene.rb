@@ -210,6 +210,13 @@ class Cylinder < Surface
            :bevelRadius => 0
 end
 
+class Ring < Surface
+  property :outerRadius => 1,
+           :innerRadius => 0.5,
+           :height => 2,
+           :bevelRadius => 0
+end
+
 class CSGSurface < Surface
   property :active => true
 end

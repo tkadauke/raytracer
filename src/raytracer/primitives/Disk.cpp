@@ -8,11 +8,6 @@ using namespace raytracer;
 const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
   
-  if (t < 0.0001) {
-    state.miss("Disk, behind ray");
-    return nullptr;
-  }
-  
   Vector4d hitPoint = ray.at(t);
   
   if (hitPoint.squaredDistanceTo(m_center) < m_squaredRadius) {
@@ -21,8 +16,14 @@ const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
     } else {
       hitPoints.addIn(HitPoint(this, t, hitPoint, m_normal));
     }
-    state.hit("Disk");
-    return this;
+
+    if (t < 0.0001) {
+      state.miss("Disk behind ray");
+      return nullptr;
+    } else {
+      state.hit("Disk");
+      return this;
+    }
   }
 
   state.miss("Disk, ray miss");

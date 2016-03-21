@@ -75,8 +75,8 @@ public:
   }
   
   /**
-    * @returns the angle in turns, \f$t = \frac{r}{2\pi}, where \f$t\f$ is the
-    *   angle in turns and \f$r\f$ is the angle in radians.
+    * @returns the angle in turns, \f$t = \frac{r}{2\pi}\f$, where \f$t\f$ is
+    *   the angle in turns and \f$r\f$ is the angle in radians.
     */
   inline T turns() const {
     return m_radians * invTAU;

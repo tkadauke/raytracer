@@ -27,7 +27,7 @@ std::shared_ptr<raytracer::Primitive> Cylinder::toRaytracerPrimitive() const {
   ));
   
   if (m_bevelRadius > 0.0) {
-    for (int sign = -1; sign != 3; sign += 2) {
+    for (int sign : { -1, 1 }) {
       auto instance = std::make_shared<raytracer::Instance>(
         std::make_shared<raytracer::Torus>(m_radius - m_bevelRadius, m_bevelRadius)
       );
