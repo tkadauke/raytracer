@@ -49,11 +49,6 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
     }
   }
   
-  if (t1 < 0 && t2 < 0) {
-    state.miss("Box, behind ray");
-    return nullptr;
-  }
-
   if (parallel)
     for (int i = 0; i < 3; ++i)
       if (parallel & (1 << i))
@@ -67,6 +62,11 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
     HitPoint(this, t2, ray.at(t2), normal2)
   );
   
+  if (t1 < 0 && t2 < 0) {
+    state.miss("Box, behind ray");
+    return nullptr;
+  }
+
   state.hit("Box");
   return this;
 }

@@ -20,10 +20,6 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
     double discriminantRoot = sqrt(discriminant);
     double t1 = (-od - discriminantRoot) / dd;
     double t2 = (-od + discriminantRoot) / dd;
-    if (t1 <= 0 && t2 <= 0) {
-      state.miss("Sphere, behind ray");
-      return nullptr;
-    }
     
     Vector3d hitPoint1 = ray.at(t1),
              hitPoint2 = ray.at(t2);
@@ -33,8 +29,13 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
       HitPoint(this, t2, hitPoint2, (hitPoint2 - m_origin) / m_radius)
     );
     
-    state.hit("Sphere");
-    return this;
+    if (t1 <= 0 && t2 <= 0) {
+      state.miss("Sphere, behind ray");
+      return nullptr;
+    } else {
+      state.hit("Sphere");
+      return this;
+    }
   }
   state.miss("Sphere, ray miss");
   return nullptr;

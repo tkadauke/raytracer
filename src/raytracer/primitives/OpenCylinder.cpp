@@ -26,11 +26,6 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
     state.miss("OpenCylinder, ray miss");
     return nullptr;
   } else {
-    if (t[0] <= 0 && t[1] <= 0) {
-      state.miss("OpenCylinder, behind ray");
-      return nullptr;
-    }
-
     Range<double> yRange(-m_halfHeight, m_halfHeight);
     Vector3d point1 = ray.at(t[0]),
              point2 = ray.at(t[1]);
@@ -43,6 +38,11 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
     if (yRange.contains(point2.y())) {
       Vector3d normal(point2.x() * m_invRadius, 0.0, point2.z() * m_invRadius);
       hitPoints.addOut(HitPoint(this, t[1], point2, normal));
+    }
+
+    if (t[0] <= 0 && t[1] <= 0) {
+      state.miss("OpenCylinder, behind ray");
+      return nullptr;
     }
     
     if (hitPoints.empty()) {

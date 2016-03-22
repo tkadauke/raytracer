@@ -39,15 +39,16 @@ const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoint
   double e3 = a * p - b * r + d * s;
   double t = e3 * invDenom;
   
-  if (t < 0.0001) {
-    state.miss("Triangle, behind ray");
-    return nullptr;
-  }
-  
   Vector3d hitPoint = ray.at(t);
   hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
-  state.hit("Triangle");
-  return this;
+
+  if (t < 0) {
+    state.miss("Triangle, behind ray");
+    return nullptr;
+  } else {
+    state.hit("Triangle");
+    return this;
+  }
 }
 
 Vector3d Triangle::computeNormal() const {

@@ -7,8 +7,8 @@ using namespace raytracer;
 
 const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
-  if (t < 0.0001 || std::isinf(t)) {
-    state.miss("Rectangle, behind ray or parallel");
+  if (std::isinf(t)) {
+    state.miss("Rectangle, parallel");
     return nullptr;
   }
   
@@ -34,6 +34,12 @@ const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoin
   } else {
     hitPoints.addIn(HitPoint(this, t, hitPoint, m_normal));
   }
+  
+  if (t < 0) {
+    state.miss("Rectangle, behind ray");
+    return nullptr;
+  }
+  
   state.hit("Rectangle");
   return this;
 }

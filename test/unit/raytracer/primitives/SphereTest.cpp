@@ -50,7 +50,7 @@ namespace SphereTest {
     auto primitive = sphere.intersect(ray, hitPoints, state);
     
     ASSERT_EQ(0, primitive);
-    ASSERT_TRUE(hitPoints.min().isUndefined());
+    ASSERT_TRUE(hitPoints.minWithPositiveDistance().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
