@@ -8,7 +8,7 @@ require_relative 'lib/matrix'
 360.times do |i|
   scene do
     outfile "tmp/sg_#{i.to_s.rjust(3, "0")}.png"
-    options :samples_per_pixel => 16, :width => 160, :height => 120
+    options :samples_per_pixel => 16
     
     matrix = Matrix.rotateY(i.degrees)
     
