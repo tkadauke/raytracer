@@ -24,10 +24,8 @@ Colord TransparentMaterial::shade(const Raytracer* raytracer, const Rayd& ray, c
     Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
     Rayd transmitted(hitPoint.point(), trans);
     
-    if (state.recursionDepth < 10) {
-      state.recordEvent("TransparentMaterial: Tracing reflection");
-      color += reflectedColor * raytracer->rayColor(reflected.epsilonShifted(), state) * fabs(hitPoint.normal() * in);
-    }
+    state.recordEvent("TransparentMaterial: Tracing reflection");
+    color += reflectedColor * raytracer->rayColor(reflected.epsilonShifted(), state) * fabs(hitPoint.normal() * in);
     
     state.recordEvent("TransparentMaterial: Tracing transmission");
     color += transmittedColor * raytracer->rayColor(transmitted.epsilonShifted(), state) * fabs(hitPoint.normal() * trans);
