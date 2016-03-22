@@ -12,3 +12,4 @@ test/coverage
 /docs
 tools/rendercli/rendercli
 /_scenes
+/tmp
