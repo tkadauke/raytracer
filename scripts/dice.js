@@ -30,33 +30,33 @@ function createDots(parent, num, rotation) {
   union.material = dotMaterial;
   union.rotation = rotation;
   
-  if (num == 4 || num == 5 || num == 6) {
-    createSphere(union, new Vector3(-0.5, -0.5, -1.22));
-  }
+  if ([4, 5, 6].indexOf(num) != -1) {                    // X   o
+    createSphere(union, new Vector3(-0.5, -0.5, -1.22)); // o o o
+  }                                                      // o   o
 
-  if (num == 6) {
-    createSphere(union, new Vector3(-0.5,  0.0, -1.22));
-  }
+  if ([6].indexOf(num) != -1) {                          // o   o
+    createSphere(union, new Vector3(-0.5,  0.0, -1.22)); // X o o
+  }                                                      // o   o
 
-  if (num == 2 || num == 3 || num == 4 || num == 5 || num == 6) {
-    createSphere(union, new Vector3(-0.5,  0.5, -1.22));
-  }
+  if ([2, 3, 4, 5, 6].indexOf(num) != -1) {              // o   o
+    createSphere(union, new Vector3(-0.5,  0.5, -1.22)); // o o o
+  }                                                      // X   o
 
-  if (num == 1 || num == 3 || num == 5) {
-    createSphere(union, new Vector3( 0.0,  0.0, -1.22));
-  }
+  if ([1, 3, 5].indexOf(num) != -1) {                    // o   o
+    createSphere(union, new Vector3( 0.0,  0.0, -1.22)); // o X o
+  }                                                      // o   o
 
-  if (num == 2 || num == 3 || num == 4 || num == 5 || num == 6) {
-    createSphere(union, new Vector3( 0.5, -0.5, -1.22));
-  }
+  if ([2, 3, 4, 5, 6].indexOf(num) != -1) {              // o   X
+    createSphere(union, new Vector3( 0.5, -0.5, -1.22)); // o o o
+  }                                                      // o   o
 
-  if (num == 6) {
-    createSphere(union, new Vector3( 0.5,  0.0, -1.22));
-  }
+  if ([6].indexOf(num) != -1) {                          // o   o
+    createSphere(union, new Vector3( 0.5,  0.0, -1.22)); // o o X
+  }                                                      // o   o
 
-  if (num == 4 || num == 5 || num == 6) {
-    createSphere(union, new Vector3( 0.5,  0.5, -1.22));
-  }
+  if ([4, 5, 6].indexOf(num) != -1) {                    // o   o
+    createSphere(union, new Vector3( 0.5,  0.5, -1.22)); // o o o
+  }                                                      // o   X
 }
 
 function createSphere(parent, vec) {
