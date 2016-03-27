@@ -60,7 +60,7 @@ Renderer::Renderer()
     m_sampler("Regular"),
     m_samplesPerPixel(1),
     m_threads(QThread::idealThreadCount()),
-    m_queueSize(QThread::idealThreadCount() * 8)
+    m_queueSize(m_width * m_height * m_samplesPerPixel / 1024)
 {
   parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
 }

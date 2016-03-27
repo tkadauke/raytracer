@@ -259,7 +259,7 @@
       <item row="2" column="1">
        <widget class="QSpinBox" name="queueSize">
         <property name="maximum">
-         <number>8192</number>
+         <number>16777216</number>
         </property>
        </widget>
       </item>
