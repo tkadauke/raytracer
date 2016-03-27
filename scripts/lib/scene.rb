@@ -159,6 +159,11 @@ class Scene < Element
     file ||= outfile
     file ||= "out.png"
     
+    if File.exist?(file) && !options.delete(:overwrite)
+      puts "Not rendering #{file} since it already exists"
+      return
+    end
+    
     puts "Rendering #{file} ..."
     time = Time.now
     file_name = "/tmp/render_#{time.to_i}_#{time.usec}"

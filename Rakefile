@@ -170,7 +170,7 @@ namespace :docs do
     if args[:only]
       sh "ruby scripts/render_docs.rb --only #{args[:only]}"
     else
-      sh "ruby scripts/render_docs.rb"
+      sh "ruby scripts/render_docs.rb --missing"
     end
   end
   

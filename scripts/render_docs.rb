@@ -53,7 +53,8 @@ class DocsRenderer
   def doc_scene(options = {}, &block)
     default_options = {
       :sampler => "Regular",
-      :samples_per_pixel => @options[:samples_per_pixel]
+      :samples_per_pixel => @options[:samples_per_pixel],
+      :overwrite => !@options[:missing]
     }
     
     scene default_options.merge(options) do
@@ -85,7 +86,7 @@ class DocsRenderer
 
   def run
     Dir.glob(File.dirname(__FILE__) + "/docs/*.rb").each do |file|
-      load file if file =~ @options[:filter]
+      load file if File.basename(file) =~ @options[:filter]
     end
   end
 
@@ -117,13 +118,16 @@ private
   end
 end
 
-options = { :samples_per_pixel => 1, :filter => // }
+options = { :samples_per_pixel => 16, :filter => // }
 OptionParser.new do |opts|
   opts.on("--samples N", Numeric, "Samples per pixel") do |n|
     options[:samples_per_pixel] = n
   end
   opts.on("--only REGEXP", String, "Regexp to filter files under docs to load") do |filter|
     options[:filter] = Regexp.new(filter)
+  end
+  opts.on("--missing", "Only render missing images") do |missing|
+    options[:missing] = true
   end
 end.parse!
 
