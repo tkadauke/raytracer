@@ -43,6 +43,7 @@ private slots:
   void addSphere();
   void addCylinder();
   void addRing();
+  void addScript();
 
   void addIntersection();
   void addUnion();

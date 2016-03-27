@@ -34,10 +34,16 @@ bool Transformable::canHaveChild(Element* child) const {
 }
 
 void Transformable::leaveParent() {
+  if (isGenerated())
+    return;
+  
   setMatrix(globalTransform());
 }
 
 void Transformable::joinParent() {
+  if (isGenerated())
+    return;
+  
   Matrix4d matrix;
   if (Transformable* p = dynamic_cast<Transformable*>(parent())) {
     matrix = p->globalTransform().inverted();

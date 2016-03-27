@@ -369,6 +369,18 @@ public:
   }
   
   /**
+    * @returns true if any of the vector's components is +inf or -inf, false
+    * otherwise.
+    */
+  inline bool isInfinite() const {
+    for (int i = 0; i != Dimensions; ++i) {
+      if (std::isinf(coordinate(i)))
+        return true;
+    }
+    return false;
+  }
+
+  /**
     * @returns true if the vector is defined, false otherwise. Opposite of
     * isUndefined().
     */

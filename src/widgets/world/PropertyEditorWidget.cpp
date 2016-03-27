@@ -78,6 +78,11 @@ void PropertyEditorWidget::update() {
 void PropertyEditorWidget::addParameterWidgets() {
   initLayout();
   addParametersForClass(p->element->metaObject());
+
+  for (const auto& name : p->element->dynamicPropertyNames()) {
+    addParameter(name);
+  }
+
   p->verticalLayout->addStretch();
 }
 
@@ -93,37 +98,40 @@ void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {
     if (metaProp.name() == QString("id"))
       continue;
 
-    auto prop = p->element->property(metaProp.name());
+    addParameter(metaProp.name());
+  }
+}
 
-    AbstractParameterWidget* widget = nullptr;
+void PropertyEditorWidget::addParameter(const QString& name) {
+  auto value = p->element->property(name.toStdString().c_str());
+  auto type = QString(value.typeName());
 
-    QString name = QString(metaProp.typeName());
+  AbstractParameterWidget* widget = nullptr;
 
-    if (name == "Vector3d") {
-      widget = new VectorParameterWidget(this);
-    } else if (name == "Angled") {
-      widget = new AngleParameterWidget(this);
-    } else if (name == "Colord") {
-      widget = new ColorParameterWidget(this);
-    } else if (name == "QString") {
-      widget = new StringParameterWidget(this);
-    } else if (name == "double") {
-      widget = new DoubleParameterWidget(this);
-    } else if (name == "bool") {
-      widget = new BoolParameterWidget(this);
-    } else if (name == "Material*") {
-      widget = new ReferenceParameterWidget("Material", p->root, this);
-    } else if (name == "Texture*") {
-      widget = new ReferenceParameterWidget("Texture", p->root, this);
-    }
+  if (type == "Vector3d") {
+    widget = new VectorParameterWidget(this);
+  } else if (type == "Angled") {
+    widget = new AngleParameterWidget(this);
+  } else if (type == "Colord") {
+    widget = new ColorParameterWidget(this);
+  } else if (type == "QString") {
+    widget = new StringParameterWidget(this);
+  } else if (type == "double") {
+    widget = new DoubleParameterWidget(this);
+  } else if (type == "bool") {
+    widget = new BoolParameterWidget(this);
+  } else if (type == "Material*") {
+    widget = new ReferenceParameterWidget("Material", p->root, this);
+  } else if (type == "Texture*") {
+    widget = new ReferenceParameterWidget("Texture", p->root, this);
+  }
 
-    if (widget) {
-      widget->setElement(p->element);
-      widget->setParameterName(metaProp.name());
-      widget->setValue(prop);
-      
-      addParameterWidget(widget);
-    }
+  if (widget) {
+    widget->setElement(p->element);
+    widget->setParameterName(name);
+    widget->setValue(value);
+    
+    addParameterWidget(widget);
   }
 }
 

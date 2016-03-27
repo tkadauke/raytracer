@@ -27,7 +27,7 @@ raytracer::Scene* Scene::toRaytracerScene() const {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       if (surface->visible()) {
         auto primitive = surface->toRaytracer(result);
-        if (primitive) {
+        if (primitive && !primitive->boundingBox().isInfinite()) {
           grid->add(primitive);
         }
       }

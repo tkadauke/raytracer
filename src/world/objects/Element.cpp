@@ -3,6 +3,9 @@
 #include "core/Color.h"
 #include "world/objects/Element.h"
 
+#include "world/objects/Material.h"
+#include "world/objects/Texture.h"
+
 #include "world/objects/ElementFactory.h"
 
 #include <QMetaProperty>
@@ -17,7 +20,8 @@ Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
 
 Element::Element(Element* parent)
-  : QObject(parent)
+  : QObject(parent),
+    m_generated(false)
 {
   m_id = QUuid::createUuid().toString();
 }
@@ -48,34 +52,35 @@ void Element::unlink(Element* root) {
 }
 
 void Element::read(const QJsonObject& json) {
-  auto klass = metaObject();
-  
-  for (int i = 0; i != klass->propertyCount(); ++i) {
-    auto metaProp = klass->property(i);
-    auto prop = property(metaProp.name());
+  for (auto i = json.begin(); i != json.end(); ++i) {
+    if (i.key() == "type")
+      continue;
+    
+    const char* name = i.key().toStdString().c_str();
+    auto prop = property(name);
 
-    QString type = QString(metaProp.typeName());
+    QString type = QString(prop.typeName());
 
-    auto value = json[metaProp.name()];
+    auto value = i.value();
 
     if (!value.isUndefined()) {
       if (type == "Vector3d") {
         auto array = value.toArray();
-        setProperty(metaProp.name(), QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+        setProperty(name, QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
       } else if (type == "Angled") {
         auto angle = value.toDouble();
-        setProperty(metaProp.name(), QVariant::fromValue(Angled::fromRadians(angle)));
+        setProperty(name, QVariant::fromValue(Angled::fromRadians(angle)));
       } else if (type == "Colord") {
         auto array = value.toArray();
-        setProperty(metaProp.name(), QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
-      } else if (type == "Material*" || type == "Texture*") {
-        addPendingReference(metaProp.name(), value.toString());
+        setProperty(name, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+      } else if (i.key() != "id" && !QUuid(value.toString()).isNull()) {
+        addPendingReference(name, value.toString());
       } else {
-        setProperty(metaProp.name(), value.toVariant());
+        setProperty(name, value.toVariant());
       }
     }
   }
-  
+
   auto childElements = json["children"];
   if (childElements.isArray()) {
     for (const auto& child : childElements.toArray()) {
@@ -96,11 +101,15 @@ void Element::write(QJsonObject& json) {
   
   writeForClass(metaObject(), json);
   
+  for (const auto& name : dynamicPropertyNames()) {
+    writeProperty(name, json);
+  }
+  
   if (childElements().size() > 0) {
     QJsonArray childArray;
     for (const auto& child : childElements()) {
       Element* element = qobject_cast<Element*>(child);
-      if (element) {
+      if (element && !element->isGenerated()) {
         QJsonObject elementObject;
         element->write(elementObject);
         childArray.append(elementObject);
@@ -117,29 +126,33 @@ void Element::writeForClass(const QMetaObject* klass, QJsonObject& json) {
 
   for (int i = klass->propertyOffset(); i != klass->propertyCount(); ++i) {
     auto metaProp = klass->property(i);
-    auto prop = property(metaProp.name());
+    writeProperty(metaProp.name(), json);
+  }
+}
 
-    QString type = QString(metaProp.typeName());
+void Element::writeProperty(const QString& name, QJsonObject& json) {
+  auto prop = property(name.toStdString().c_str());
 
-    if (type == "Vector3d") {
-      auto vector = prop.value<Vector3d>();
-      json[metaProp.name()] = QJsonArray({ vector.x(), vector.y(), vector.z() });
-    } else if (type == "Angled") {
-      json[metaProp.name()] = prop.value<Angled>().radians();
-    } else if (type == "Colord") {
-      auto color = prop.value<Colord>();
-      json[metaProp.name()] = QJsonArray({ color.r(), color.g(), color.b() });
-    } else if (type == "QString") {
-      json[metaProp.name()] = prop.toString();
-    } else if (type == "double") {
-      json[metaProp.name()] = prop.toDouble();
-    } else if (type == "bool") {
-      json[metaProp.name()] = prop.toBool();
-    } else if (type == "Material*" || type == "Texture*") {
-      auto element = prop.value<Element*>();
-      if (element) {
-        json[metaProp.name()] = element->id();
-      }
+  QString type = QString(prop.typeName());
+
+  if (type == "Vector3d") {
+    auto vector = prop.value<Vector3d>();
+    json[name] = QJsonArray({ vector.x(), vector.y(), vector.z() });
+  } else if (type == "Angled") {
+    json[name] = prop.value<Angled>().radians();
+  } else if (type == "Colord") {
+    auto color = prop.value<Colord>();
+    json[name] = QJsonArray({ color.r(), color.g(), color.b() });
+  } else if (type == "QString") {
+    json[name] = prop.toString();
+  } else if (type == "double") {
+    json[name] = prop.toDouble();
+  } else if (type == "bool") {
+    json[name] = prop.toBool();
+  } else if (type == "Material*" || type == "Texture*") {
+    auto element = prop.value<Element*>();
+    if (element) {
+      json[name] = element->id();
     }
   }
 }
@@ -150,7 +163,16 @@ void Element::addPendingReference(const QString& property, const QString& id) {
 
 void Element::resolveReferences(const QMap<QString, Element*>& elements) {
   for (const auto& ref : m_pendingReferences) {
-    setProperty(ref.first.toStdString().c_str(), QVariant::fromValue(elements[ref.second]));
+    QVariant variant;
+    Element* value = elements[ref.second];
+    if (qobject_cast<Material*>(value)) {
+      variant = QVariant::fromValue<Material*>(static_cast<Material*>(value));
+    } else if (qobject_cast<Texture*>(value)) {
+      variant = QVariant::fromValue<Texture*>(static_cast<Texture*>(value));
+    } else {
+      std::cout << "Unable to resolve reference " << ref.first.toStdString() << ": " << ref.second.toStdString() << std::endl;
+    }
+    setProperty(ref.first.toStdString().c_str(), variant);
   }
   m_pendingReferences.clear();
   

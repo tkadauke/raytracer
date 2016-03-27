@@ -35,7 +35,7 @@ QModelIndex SceneModel::index(int row, int column, const QModelIndex& parent) co
     parentItem = static_cast<Element*>(parent.internalPointer());
 
   auto childItem = parentItem->childElements()[row];
-  if (childItem)
+  if (childItem && !childItem->isGenerated())
     return createIndex(row, column, childItem);
   else
     return QModelIndex();
@@ -81,7 +81,7 @@ QVariant SceneModel::data(const QModelIndex& index, int role) const {
   auto item = static_cast<Element*>(index.internalPointer());
 
   if (index.column() == 0) {
-    return item->name();
+    return item->displayName();
   } else {
     return QVariant();
   }

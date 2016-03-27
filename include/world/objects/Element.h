@@ -27,6 +27,22 @@ public:
     m_name = name;
   }
   
+  inline bool isGenerated() const {
+    return m_generated;
+  }
+  
+  inline void setGenerated(bool generated) {
+    m_generated = generated;
+  }
+  
+  inline QString displayName() const {
+    if (m_name.isEmpty()) {
+      return QString("<%1>").arg(metaObject()->className());
+    } else {
+      return m_name;
+    }
+  }
+  
   int row() const;
   
   void read(const QJsonObject& json);
@@ -67,11 +83,13 @@ protected:
   
 private:
   void writeForClass(const QMetaObject* klass, QJsonObject& json);
+  void writeProperty(const QString& name, QJsonObject& json);
   
   QList<Element*> m_childElements;
   
   QString m_id;
   QString m_name;
+  bool m_generated;
   
   QList<QPair<QString, QString>> m_pendingReferences;
 };

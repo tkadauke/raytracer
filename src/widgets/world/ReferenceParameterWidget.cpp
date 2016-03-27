@@ -2,6 +2,13 @@
 #include "ReferenceParameterWidget.uic"
 
 #include "world/objects/Element.h"
+#include "core/Exception.h"
+
+#include "world/objects/Material.h"
+#include "world/objects/Texture.h"
+
+Q_DECLARE_METATYPE(Material*);
+Q_DECLARE_METATYPE(Texture*);
 
 struct ReferenceParameterWidget::Private {
   Ui::ReferenceParameterWidget ui;
@@ -20,7 +27,7 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
   p->ui.setupUi(this);
   connect(p->ui.comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
 
-  p->ui.comboBox->addItem(tr("<No Selection>"), QVariant::fromValue<QObject*>(nullptr));
+  p->ui.comboBox->addItem(tr("<No Selection>"), makeVariant(nullptr));
   fillComboBox(p->root);
 }
 
@@ -44,11 +51,21 @@ void ReferenceParameterWidget::setValue(const QVariant& value) {
 
 void ReferenceParameterWidget::fillComboBox(Element* root) {
   if (root->inherits(p->baseClassName.toStdString().c_str())) {
-    p->ui.comboBox->addItem(root->name(), QVariant::fromValue<QObject*>(root));
+    p->ui.comboBox->addItem(root->name(), makeVariant(root));
   }
 
   for (const auto& child : root->childElements()) {
     fillComboBox(child);
+  }
+}
+
+QVariant ReferenceParameterWidget::makeVariant(Element* e) {
+  if (p->baseClassName == "Material") {
+    return QVariant::fromValue<Material*>(static_cast<Material*>(e));
+  } else if (p->baseClassName == "Texture") {
+    return QVariant::fromValue<Texture*>(static_cast<Texture*>(e));
+  } else {
+    throw Exception(("Unknown reference type " + p->baseClassName).toStdString(), __FILE__, __LINE__);
   }
 }
 

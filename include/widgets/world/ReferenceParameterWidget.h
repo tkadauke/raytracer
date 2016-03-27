@@ -18,6 +18,8 @@ protected:
   void fillComboBox(Element* root);
 
 private:
+  QVariant makeVariant(Element* e);
+  
   struct Private;
   std::unique_ptr<Private> p;
 };

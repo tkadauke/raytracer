@@ -13,6 +13,10 @@ inline float clamp(float x, float min, float max) {
 }
 
 const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
+  if (m_boundingBox.isInfinite()) {
+    return nullptr;
+  }
+
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -207,6 +211,10 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
 }
 
 bool Grid::intersects(const Rayd& ray, State& state) const {
+  if (m_boundingBox.isInfinite()) {
+    return false;
+  }
+
   double ox = ray.origin().x();
   double oy = ray.origin().y();
   double oz = ray.origin().z();
@@ -384,6 +392,9 @@ bool Grid::intersects(const Rayd& ray, State& state) const {
 
 void Grid::setup() {
   m_boundingBox = boundingBox();
+  if (m_boundingBox.isInfinite()) {
+    return;
+  }
   
   Vector3d gridSize = m_boundingBox.max() - m_boundingBox.min();
   double multiplier = 2.0;
@@ -406,6 +417,8 @@ void Grid::setup() {
     
     Vector3d relativeMin = bbox.min() - m_boundingBox.min();
     Vector3d relativeMax = bbox.max() - m_boundingBox.min();
+    if (relativeMin.isUndefined() || relativeMax.isUndefined())
+      continue;
     
     int xmin = clamp(relativeMin.x() * m_numX / gridSize.x(), 0, m_numX - 1);
     int ymin = clamp(relativeMin.y() * m_numY / gridSize.y(), 0, m_numY - 1);
@@ -427,7 +440,7 @@ void Grid::setup() {
             composite->add(primitive);
             m_cells[index] = composite;
           } else {
-            dynamic_cast<Composite*>(m_cells[index].get())->add(primitive);
+            std::dynamic_pointer_cast<Composite>(m_cells[index])->add(primitive);
           }
           counts[index]++;
         }

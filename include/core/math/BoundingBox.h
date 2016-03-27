@@ -77,6 +77,15 @@ public:
   }
 
   /**
+    * @returns true if the bounding box is infintely large, false otherwise. A
+    *   bounding box is infinitely large if at least one coordinate from any of
+    *   the corner vectors is infinte.
+    */
+  inline bool isInfinite() const {
+    return m_min.isInfinite() || m_max.isInfinite();
+  }
+
+  /**
     * @returns the smaller corner vector.
     */
   inline const Vector3<T>& min() const {

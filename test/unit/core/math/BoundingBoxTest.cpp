@@ -23,7 +23,11 @@ namespace BoundingBoxTest {
     ASSERT_EQ(Vector3<TypeParam>::plusInfinity(), bbox.max());
   }
   
-  TYPED_TEST(BoundingBoxTest, ShouldInitializeBoundingBoxAsInfinitesimallySmall) {
+  TYPED_TEST(BoundingBoxTest, ShouldDefineUndefinedBoundingBox) {
+    ASSERT_TRUE(BoundingBox<TypeParam>::undefined().isUndefined());
+  }
+  
+  TYPED_TEST(BoundingBoxTest, ShouldInitializeBoundingBoxAsInfinitelyLarge) {
     BoundingBox<TypeParam> bbox;
     ASSERT_EQ(Vector3<TypeParam>::plusInfinity(), bbox.min());
     ASSERT_EQ(Vector3<TypeParam>::minusInfinity(), bbox.max());
@@ -281,10 +285,19 @@ namespace BoundingBoxTest {
     ASSERT_FALSE(bbox.isUndefined());
   }
   
-  TYPED_TEST(BoundingBoxTest, ShouldDefineUndefinedBoundingBox) {
-    ASSERT_TRUE(BoundingBox<TypeParam>::undefined().isUndefined());
+  TYPED_TEST(BoundingBoxTest, ShouldBeInfiniteByDefault) {
+    BoundingBox<TypeParam> bbox;
+    ASSERT_TRUE(bbox.isInfinite());
   }
-  
+
+  TYPED_TEST(BoundingBoxTest, ShouldNotBeInfiniteForNormalBoundingBox) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(0, 0, 0),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    ASSERT_FALSE(bbox.isInfinite());
+  }
+
   TYPED_TEST(BoundingBoxTest, ShouldReturnTrueIfPointIsInsideBox) {
     BoundingBox<TypeParam> bbox(
       Vector3<TypeParam>(-1, -1, -1),

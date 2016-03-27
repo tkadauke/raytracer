@@ -1,5 +1,6 @@
 require 'json'
 require 'fileutils'
+require 'securerandom'
 require_relative 'core_ext'
 
 class ElementCreator
@@ -30,11 +31,18 @@ class Element
       self.instance_variable_set("@#{name}", :__property_uninitialized_sentinel__)
     end
     
+    id = SecureRandom.hex
+    @id = "{#{id[0..7]}-#{id[8..11]}-#{id[12..15]}-#{id[16..19]}-#{id[20..31]}}"
+
     @@num_objects += 1
-    @id = @@num_objects.to_s
-    @name = "#{self.class.name} #{@id}"
+    @name = "#{self.class.name} #{@@num_objects}"
+    @dynamic_properties = {}
     attributes.each do |key, value|
-      self.send("#{key}=", value)
+      if respond_to?("#{key}=")
+        self.send("#{key}=", value)
+      else
+        @dynamic_properties[key] = value
+      end
     end
     
     block.bind(ElementCreator.new(self)).call if block_given?
@@ -85,8 +93,16 @@ class Element
     end
   end
   
+  def method_missing(method, *args)
+    if @dynamic_properties.has_key?(method)
+      @dynamic_properties[method]
+    else
+      super
+    end
+  end
+  
   def attributes
-    self.class.all_properties.inject({}) do |hash, prop|
+    (self.class.all_properties + @dynamic_properties.keys).inject({}) do |hash, prop|
       attr = send(prop)
       if attr.is_a?(Element)
         hash[prop] = attr.id
@@ -215,6 +231,10 @@ class Ring < Surface
            :innerRadius => 0.5,
            :height => 2,
            :bevelRadius => 0
+end
+
+class ScriptedSurface < Surface
+  property :scriptName => ""
 end
 
 class CSGSurface < Surface

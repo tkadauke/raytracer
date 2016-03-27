@@ -324,6 +324,16 @@ namespace VectorTest {
     ASSERT_FALSE(vector.isDefined());
   }
   
+  TYPED_TEST(VectorTest, ShouldReturnTrueForInfiniteIfVectorIsInfinite) {
+    Vector<3, TypeParam> vector({ numeric_limits<TypeParam>::infinity(), 0, 0 });
+    ASSERT_TRUE(vector.isInfinite());
+  }
+  
+  TYPED_TEST(VectorTest, ShouldReturnFalseForInfiniteIfVectorIsFinite) {
+    Vector<3, TypeParam> vector({ 0, 0, 0 });
+    ASSERT_FALSE(vector.isInfinite());
+  }
+  
   TYPED_TEST(VectorTest, ShouldReturnMinComponent) {
     Vector<3, TypeParam> vec({ 1, 2, -2 });
     ASSERT_EQ(-2, vec.min());

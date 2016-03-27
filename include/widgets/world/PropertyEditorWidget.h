@@ -30,6 +30,8 @@ private:
   void addParameterWidgets();
   void addParametersForClass(const QMetaObject* klass);
   void clearParameterWidgets();
+  
+  void addParameter(const QString& name);
 
   struct Private;
   std::unique_ptr<Private> p;

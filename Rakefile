@@ -4,7 +4,7 @@ QT_BASE = '/usr/local/Qt-5.5.1'
 QT_BIN = "#{QT_BASE}/bin"
 QT_LIB = "#{QT_BASE}/lib"
 
-QT_FRAMEWORKS = ['QtCore', 'QtGui', 'QtWidgets']
+QT_FRAMEWORKS = ['QtCore', 'QtGui', 'QtWidgets', 'QtScript']
 QT_INCLUDE_DIRS = QT_FRAMEWORKS.map { |f| "#{QT_LIB}/#{f}.framework/Headers" }
 
 QT_MOC = "#{QT_BIN}/moc"
