@@ -123,6 +123,12 @@ void ScriptedSurface::loadScript() {
         } else {
           setProperty(name, QVariant::fromValue(double(0.0)));
         }
+      } else if (type == "int") {
+        if (value.isNumber()) {
+          setProperty(name, QVariant::fromValue(int(value.toNumber())));
+        } else {
+          setProperty(name, QVariant::fromValue(int(0)));
+        }
       } else if (type == "Material") {
         setProperty(name, QVariant::fromValue(static_cast<Material*>(nullptr)));
       }

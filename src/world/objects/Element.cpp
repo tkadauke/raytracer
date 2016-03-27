@@ -145,6 +145,8 @@ void Element::writeProperty(const QString& name, QJsonObject& json) {
     json[name] = QJsonArray({ color.r(), color.g(), color.b() });
   } else if (type == "QString") {
     json[name] = prop.toString();
+  } else if (type == "int") {
+    json[name] = prop.toInt();
   } else if (type == "double") {
     json[name] = prop.toDouble();
   } else if (type == "bool") {

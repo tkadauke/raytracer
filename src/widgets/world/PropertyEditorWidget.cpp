@@ -6,6 +6,7 @@
 #include "widgets/world/AngleParameterWidget.h"
 #include "widgets/world/ColorParameterWidget.h"
 #include "widgets/world/StringParameterWidget.h"
+#include "widgets/world/IntParameterWidget.h"
 #include "widgets/world/DoubleParameterWidget.h"
 #include "widgets/world/BoolParameterWidget.h"
 #include "widgets/world/ReferenceParameterWidget.h"
@@ -116,6 +117,8 @@ void PropertyEditorWidget::addParameter(const QString& name) {
     widget = new ColorParameterWidget(this);
   } else if (type == "QString") {
     widget = new StringParameterWidget(this);
+  } else if (type == "int") {
+    widget = new IntParameterWidget(this);
   } else if (type == "double") {
     widget = new DoubleParameterWidget(this);
   } else if (type == "bool") {

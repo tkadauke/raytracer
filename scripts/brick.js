@@ -4,9 +4,9 @@ var length = 4
 var color = null
 
 var _propTypes = {
-  'width': 'double',
-  'height': 'double',
-  'length': 'double',
+  'width': 'int',
+  'height': 'int',
+  'length': 'int',
   'color': 'Material'
 }
 
