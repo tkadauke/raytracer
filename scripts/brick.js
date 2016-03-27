@@ -12,6 +12,22 @@ var _propTypes = {
 
 var ldu = 1.0/20.0
 
+function max(a, b) {
+  return a < b ? b : a
+}
+
+function setWidth(value) {
+  this.width = max(1, value)
+}
+
+function setHeight(value) {
+  this.height = max(1, value)
+}
+
+function setLength(value) {
+  this.length = max(1, value)
+}
+
 function create() {
   var box = new Box(this)
   box.size = new Vector3(10 * width * ldu, 4 * height * ldu, 10 * length * ldu)
@@ -31,3 +47,4 @@ function create() {
     }
   }
 }
+

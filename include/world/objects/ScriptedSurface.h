@@ -36,6 +36,26 @@ class QScriptEngine;
   * var _propTypes = { 'length': 'double', 'mat': 'Material' }
   * @endcode
   * 
+  * Each property can have an optional setter function defined. The setter
+  * function's name is the capitalized property name, prefixed with "set", e.g.
+  * "width" becomes "setWidth". If this function is defined, it is called when
+  * the property is changed, but before the surface is recreated. Use the setter
+  * function to validate property values. If the value is invalid, you will have
+  * to set it to a valid value, since at that time, the property value will
+  * already have been changed to the new value. But if you change the property
+  * value inside the setter, the information will be propagated from the script
+  * to the ScriptedSurface object.
+  * 
+  * @code
+  * function max(a, b) {
+  *   return a < b ? b : a
+  * }
+  * 
+  * function setWidth(value) {
+  *   this.width = max(1, value)
+  * }
+  * @endcode
+  * 
   * <table><tr>
   * <td>@image html dice.png "Dice rendered by using a ScriptedSurface"</td>
   * <td>@image html brick.png "Lego brick rendered by using a ScriptedSurface"</td>
@@ -82,7 +102,8 @@ private:
   
   void handleError();
   
-  QScriptValue jsCall(const QString& function);
+  bool functionDefined(const QString& function);
+  QScriptValue jsCall(const QString& function, const QScriptValueList& args = QScriptValueList());
   
   template<class T>
   void registerElement();
@@ -90,4 +111,5 @@ private:
   QString m_scriptName;
   QScriptEngine* m_engine;
   QScriptValue m_this;
+  bool m_blockDynamicPropertyEvent;
 };

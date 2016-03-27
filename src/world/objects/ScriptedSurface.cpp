@@ -43,7 +43,8 @@ namespace {
 
 ScriptedSurface::ScriptedSurface(Element* parent)
   : Surface(parent),
-    m_engine(nullptr)
+    m_engine(nullptr),
+    m_blockDynamicPropertyEvent(false)
 {
 }
 
@@ -68,7 +69,8 @@ void ScriptedSurface::setScriptName(const QString& name) {
   setupEngine();
   loadScript();
   
-  jsCall("create");
+  if (functionDefined("create"))
+    jsCall("create");
 }
 
 void ScriptedSurface::removeDynamicProperties() {
@@ -145,13 +147,18 @@ void ScriptedSurface::clear() {
   }
 }
 
-QScriptValue ScriptedSurface::jsCall(const QString& function) {
+QScriptValue ScriptedSurface::jsCall(const QString& function, const QScriptValueList& args) {
   QScriptValue func = m_engine->globalObject().property(function);
-  QScriptValue result = func.call(m_this);
+  QScriptValue result = func.call(m_this, args);
   if (m_engine->hasUncaughtException()) {
     handleError();
   }
   return result;
+}
+
+bool ScriptedSurface::functionDefined(const QString& function) {
+  QScriptValue func = m_engine->globalObject().property(function);
+  return func.isFunction();
 }
 
 void ScriptedSurface::handleError() {
@@ -165,10 +172,25 @@ void ScriptedSurface::handleError() {
 }
 
 bool ScriptedSurface::event(QEvent *e) {
-  if (e->type() == QEvent::DynamicPropertyChange) {
+  if (!m_blockDynamicPropertyEvent && e->type() == QEvent::DynamicPropertyChange) {
     if (engineReady()) {
+      auto pe = static_cast<QDynamicPropertyChangeEvent*>(e);
+      auto prop = QString(pe->propertyName());
+      auto funcName = prop;
+      funcName[0] = funcName[0].toUpper();
+      funcName = "set" + funcName;
+      if (functionDefined(funcName)) {
+        QScriptValueList args;
+        args << m_engine->newVariant(property(prop.toStdString().c_str()));
+        jsCall(funcName, args);
+        
+        m_blockDynamicPropertyEvent = true;
+        setProperty(prop.toStdString().c_str(), m_engine->globalObject().property(prop).toVariant());
+        m_blockDynamicPropertyEvent = false;
+      }
       clear();
-      jsCall("create");
+      if (functionDefined("create"))
+        jsCall("create");
     }
     return true;
   }
