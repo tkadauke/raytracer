@@ -64,7 +64,12 @@ int SceneModel::rowCount(const QModelIndex& parent) const {
   else
     parentItem = static_cast<Element*>(parent.internalPointer());
 
-  return parentItem->childElements().size();
+  int result = 0;
+  for (const auto element : parentItem->childElements()) {
+    if (!element->isGenerated())
+      result++;
+  }
+  return result;
 }
 
 int SceneModel::columnCount(const QModelIndex&) const {
