@@ -34,16 +34,17 @@ function create() {
   box.material = color
   
   var cornerStudX = (-10 * width + 10) * ldu
-  var studY = (-4 * height - 2) * ldu
+  var studY = (-4 * height - 1) * ldu
   var cornerStudZ = (-10 * length + 10) * ldu
   
   for (var x = 0; x != width; x++) {
     for (var z = 0; z != length; z++) {
       var stud = new Cylinder(box)
       stud.position = new Vector3(cornerStudX + x * 20 * ldu, studY, cornerStudZ + z * 20 * ldu)
-      stud.height = 4 * ldu
+      stud.height = 6 * ldu
       stud.radius = 6 * ldu
       stud.material = color
+      stud.bevelRadius = 0.5 * ldu
     }
   }
 }
