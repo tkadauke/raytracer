@@ -47,7 +47,7 @@ void printBacktrace() {
 
   size = backtrace(array, 200);
 
-  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  backtrace_symbols_fd(array, size, 2);
 }
 
 static void crashHandler(int sig) {
