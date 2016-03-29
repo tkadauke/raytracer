@@ -4,6 +4,7 @@
 #include "world/objects/Box.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Cylinder.h"
+#include "world/objects/Ring.h"
 #include "world/objects/Union.h"
 #include "world/objects/Intersection.h"
 #include "world/objects/Difference.h"
@@ -56,6 +57,7 @@ void ScriptedSurface::setupEngine() {
   registerElement<Box>();
   registerElement<Sphere>();
   registerElement<Cylinder>();
+  registerElement<Ring>();
   registerElement<Union>();
   registerElement<Intersection>();
   registerElement<Difference>();
