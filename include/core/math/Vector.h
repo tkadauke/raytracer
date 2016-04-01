@@ -11,7 +11,8 @@
   * This is a generic vector class with a fixed number of dimensions Dimensions
   * and component type T. The third parameter StorageCellType is only relevant
   * for the actual storage of the data in memory. It defaults to the component
-  * type. The last parameter Derived should be set to the deriving class type.
+  * type. The last parameter Derived should be set to the deriving class type,
+  * however it is possible to omit this parameter and use this class directly.
   * 
   * This vector type implements many of the operations that are defined for
   * vectors of arbitrary dimension, like operator+(), operator*(), or length().
