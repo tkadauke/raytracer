@@ -176,6 +176,7 @@ namespace :docs do
   
   task :generate => :render do
     sh "doxygen"
+    sh "cp scripts/docs/*.js docs/html"
   end
   
   task :clean do

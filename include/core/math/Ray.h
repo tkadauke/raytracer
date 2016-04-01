@@ -5,10 +5,15 @@
 #include <iostream>
 
 /**
-  * Represents a Ray in three-dimensional space. The Ray has an origin and a
-  * direction. This class is used to calculate intersections with various types
-  * of objects.
+  * Represents a Ray \f$r = o + td\f$ in three-dimensional space. The Ray has an
+  * origin \f$r\f$ and a direction \f$d\f$. This class is used to calculate
+  * intersections with various types of objects.
   * 
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="ray_class.js"></script>
+  * @endhtmlonly
+  *
   * @tparam T the vector coordinate type. Usually a floating point type like
   *   float or double.
   */
@@ -79,9 +84,51 @@ public:
   /**
     * @returns the solution to the Ray's equation \f$r = o + td\f$ for the given
     *   t, i.e. the point along the Ray with distance t from the origin.
+    * 
+    * The following interactive figure illustrates the geometry. Click and drag
+    * horizontally to move the resulting point along the ray, shown in red.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="ray_at.js"></script>
+    * @endhtmlonly
     */
   inline Vector4<T> at(T t) const {
     return Vector3<T>(m_origin) + m_direction * t;
+  }
+  
+  /**
+    * @returns the distance of the orthogonal projection point of point onto
+    *   this ray.
+    * 
+    * @see project().
+    */
+  inline T projectedDistance(const Vector3<T>& point) const {
+    return (direction() * (point - origin())) / (direction() * direction());
+  }
+
+  /**
+    * @returns the orthogonal projection of point onto this ray.
+    * 
+    * The following figure shows a few random points that are being projected
+    * onto a ray.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="ray_project.js"></script>
+    * @endhtmlonly
+    */
+  inline Vector3<T> project(const Vector3<T>& point) const {
+    return at(projectedDistance(point));
+  }
+  
+  /**
+    * @returns the shortest distance between point and this ray.
+    * 
+    * @see project().
+    */
+  inline T distanceTo(const Vector3<T>& point) const {
+    return (point - project(point)).length();
   }
   
 private:
