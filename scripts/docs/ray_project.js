@@ -2,14 +2,14 @@ var RayProject = new Class({
   initialize: function() {
     this.angle = 34 * degrees;
     this.numPoints = 8;
-    this.origin = new Vector(0, 0);
+    this.origin = Vector.null;
   },
   
   createCanvas: function() {
-    var direction = new Vector(0, -1).rotated(this.angle);
+    var direction = Vector.up.rotated(this.angle);
 
     var canvas = new Canvas(320, 240);
-    canvas.translate(new Vector(5, -3));
+    canvas.center();
     
     canvas.add(new Axes());
 
@@ -20,7 +20,7 @@ var RayProject = new Class({
     canvas.add(projection);
 
     for (var i = 0; i != this.numPoints; ++i) {
-      center = new Vector(Math.random() * 10 - 5, -Math.random() * 8 + 3);
+      center = new Vector(Math.random() * 10 - 5.5, -Math.random() * 8 + 4);
       canvas.add(new Circle(center, 0.05, "intersection"));
       
       var projected = projection.projected(center).minus(center);

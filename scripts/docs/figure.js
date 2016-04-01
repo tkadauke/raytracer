@@ -136,6 +136,10 @@ var Vector = new Class({
   }
 });
 
+Vector.null = new Vector(0, 0);
+Vector.up = new Vector(0, -1);
+Vector.right = new Vector(1, 0);
+
 var svgns = "http://www.w3.org/2000/svg";
 
 var Canvas = new Class({
@@ -156,6 +160,10 @@ var Canvas = new Class({
   
   translate: function(vector) {
     this.transform += " translate(" + vector.x + ", " + vector.y + ")";
+  },
+  
+  center: function() {
+    this.translate(new Vector(5.5, -4));
   },
   
   toSVG: function() {
@@ -294,7 +302,7 @@ var Text = new Class({
 
 var Axes = new Class({
   initialize: function(length) {
-    this.origin = new Vector(0, 0);
+    this.origin = Vector.null;
     this.length = length || 3;
   },
   

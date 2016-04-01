@@ -25,10 +25,10 @@ var RayClass = new Class({
 
     canvas.add(new Axes());
 
-    var direction = new Vector(0, -1).rotated(this.angle).multiply(this.length);
+    var direction = Vector.up.rotated(this.angle).multiply(this.length);
 
     // plot origin vector
-    canvas.add(new Line(new Vector(0, 0), this.origin, "arrow"));
+    canvas.add(new Line(Vector.null, this.origin, "arrow"));
 
     // plot origin point
     canvas.add(new Circle(this.origin, 0.05, "intersection"));
