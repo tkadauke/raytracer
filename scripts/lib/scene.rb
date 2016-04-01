@@ -159,7 +159,7 @@ class Scene < Element
     file ||= outfile
     file ||= "out.png"
     
-    if File.exist?(file) && !options.delete(:overwrite)
+    if !options.delete(:overwrite) && File.exist?(file)
       puts "Not rendering #{file} since it already exists"
       return
     end
