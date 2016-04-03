@@ -40,7 +40,11 @@ namespace {
     }
 
     inline virtual void run() {
-      camera->render(raytracer, buffer, rect);
+      try {
+        camera->render(raytracer, buffer, rect);
+      } catch(Exception& e) {
+        e.printBacktrace();
+      }
     }
 
     std::shared_ptr<Raytracer> raytracer;

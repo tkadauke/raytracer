@@ -95,3 +95,16 @@ BoundingBoxd OpenCylinder::calculateBoundingBox() const {
     Vector3d( m_radius,  m_halfHeight,  m_radius)
   );
 }
+
+Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
+  Vector3d planar = Vector3d(direction.x(), 0, direction.z());
+  if (planar != Vector3d::null()) {
+    planar.normalize();
+  }
+  
+  return Vector3d(
+    planar.x() * m_radius,
+    direction.y() < 0.0 ? -m_halfHeight : m_halfHeight,
+    planar.z() * m_radius
+  );
+}

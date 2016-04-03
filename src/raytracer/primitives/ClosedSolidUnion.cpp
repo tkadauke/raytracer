@@ -32,3 +32,12 @@ const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& 
     }
   }
 }
+
+Vector3d ClosedSolidUnion::farthestPoint(const Vector3d& direction) const {
+  for (const auto& primitive : primitives()) {
+    Vector3d point = primitive->farthestPoint(direction);
+    if (!point.isUndefined())
+      return point;
+  }
+  return Vector3d::undefined();
+}

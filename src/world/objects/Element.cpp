@@ -166,7 +166,7 @@ void Element::addPendingReference(const QString& property, const QString& id) {
 void Element::resolveReferences(const QMap<QString, Element*>& elements) {
   for (const auto& ref : m_pendingReferences) {
     QVariant variant;
-    Element* value = elements[ref.second];
+    Element* value = elements.value(ref.second, nullptr);
     if (qobject_cast<Material*>(value)) {
       variant = QVariant::fromValue<Material*>(static_cast<Material*>(value));
     } else if (qobject_cast<Texture*>(value)) {

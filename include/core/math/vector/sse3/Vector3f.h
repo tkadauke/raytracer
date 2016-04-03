@@ -51,12 +51,24 @@ public:
     return m_coordinates[0];
   }
   
+  inline void setX(const float& value) {
+    m_coordinates[0] = value;
+  }
+  
   inline float y() const {
     return m_coordinates[1];
   }
   
+  inline void setY(const float& value) {
+    m_coordinates[1] = value;
+  }
+  
   inline float z() const {
     return m_coordinates[2];
+  }
+  
+  inline void setZ(const float& value) {
+    m_coordinates[2] = value;
   }
   
   inline Vector3<float> operator+(const Vector3<float>& other) const {

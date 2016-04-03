@@ -7,15 +7,12 @@
 using namespace std;
 
 namespace VectorTest {
-  using namespace ::testing;
-
   template<class T>
   class VectorTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> SpecializedVectorTypes;
-  
-  TYPED_TEST_CASE(VectorTest, SpecializedVectorTypes);
+  typedef ::testing::Types<float, double> VectorTypes;
+  TYPED_TEST_CASE(VectorTest, VectorTypes);
 
   TYPED_TEST(VectorTest, ShouldInitializeCoordinatesWithZeros) {
     Vector<3, TypeParam> vector;
@@ -349,6 +346,12 @@ namespace VectorTest {
     Vector<3, TypeParam> expected({ 1, 2, 2});
     ASSERT_EQ(expected, vec.abs());
   }
+  
+  TYPED_TEST(VectorTest, ShouldMultiplyFromLeft) {
+    Vector<3, TypeParam> vec({ 1, 2, -2 });
+    Vector<3, TypeParam> expected({ 2, 4, -4});
+    ASSERT_EQ(expected, TypeParam(2) * vec);
+  }
 }
 
 namespace DerivedVectorTest {
@@ -359,9 +362,8 @@ namespace DerivedVectorTest {
   typedef ::testing::Types<
     Vector2<float>, Vector3<float>, Vector4<float>,
     Vector2<double>, Vector3<double>, Vector4<double>
-  > SpecializedVectorTypes;
-  
-  TYPED_TEST_CASE(DerivedVectorTest, SpecializedVectorTypes);
+  > DerivedVectorTypes;
+  TYPED_TEST_CASE(DerivedVectorTest, DerivedVectorTypes);
 
   TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForDotProduct) {
     TypeParam vector;
@@ -455,15 +457,12 @@ namespace DerivedVectorTest {
 }
 
 namespace Vector2Test {
-  using namespace ::testing;
-
   template<class T>
   class Vector2Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> SpecializedVectorTypes;
-  
-  TYPED_TEST_CASE(Vector2Test, SpecializedVectorTypes);
+  typedef ::testing::Types<float, double> Vector2Types;
+  TYPED_TEST_CASE(Vector2Test, Vector2Types);
   
   TYPED_TEST(Vector2Test, ShouldHaveRightSize) {
     ASSERT_EQ(sizeof(Vector<2, TypeParam>), sizeof(Vector2<TypeParam>));
@@ -502,6 +501,28 @@ namespace Vector2Test {
   TYPED_TEST(Vector2Test, ShouldDefineUpVector) {
     Vector2<TypeParam> expected(0, 1);
     ASSERT_EQ(expected, Vector2<TypeParam>::up());
+  }
+  
+  TYPED_TEST(Vector2Test, ShouldReturnX) {
+    auto vec = Vector2<TypeParam>(3, 4);
+    ASSERT_EQ(3, vec.x());
+  }
+  
+  TYPED_TEST(Vector2Test, ShouldSetX) {
+    auto vec = Vector2<TypeParam>(3, 4);
+    vec.setX(5);
+    ASSERT_EQ(Vector2<TypeParam>(5, 4), vec);
+  }
+  
+  TYPED_TEST(Vector2Test, ShouldReturnY) {
+    auto vec = Vector2<TypeParam>(3, 4);
+    ASSERT_EQ(4, vec.y());
+  }
+  
+  TYPED_TEST(Vector2Test, ShouldSetY) {
+    auto vec = Vector2<TypeParam>(3, 4);
+    vec.setY(5);
+    ASSERT_EQ(Vector2<TypeParam>(3, 5), vec);
   }
 }
 
@@ -701,6 +722,39 @@ namespace Vector3Test {
     Vector3<TypeParam> v(2, 0, 0), expected(1, 0, 0);
     ASSERT_EQ(expected, v.normalized());
   }
+  
+  TYPED_TEST(Vector3Test, ShouldReturnX) {
+    auto vec = Vector3<TypeParam>(3, 4, 2);
+    ASSERT_EQ(3, vec.x());
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldSetX) {
+    auto vec = Vector3<TypeParam>(3, 4, 2);
+    vec.setX(5);
+    ASSERT_EQ(Vector3<TypeParam>(5, 4, 2), vec);
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldReturnY) {
+    auto vec = Vector3<TypeParam>(3, 4, 2);
+    ASSERT_EQ(4, vec.y());
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldSetY) {
+    auto vec = Vector3<TypeParam>(3, 4, 2);
+    vec.setY(5);
+    ASSERT_EQ(Vector3<TypeParam>(3, 5, 2), vec);
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldReturnZ) {
+    auto vec = Vector3<TypeParam>(3, 4, 2);
+    ASSERT_EQ(2, vec.z());
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldSetZ) {
+    auto vec = Vector3<TypeParam>(3, 4, 2);
+    vec.setZ(5);
+    ASSERT_EQ(Vector3<TypeParam>(3, 4, 5), vec);
+  }
 }
 
 namespace Vector4Test {
@@ -886,5 +940,49 @@ namespace Vector4Test {
   TYPED_TEST(Vector4Test, ShouldReturnNormalizedVector) {
     Vector4<TypeParam> v(2, 0, 0, 0), expected(1, 0, 0, 0);
     ASSERT_EQ(expected, v.normalized());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldReturnX) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    ASSERT_EQ(3, vec.x());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldSetX) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    vec.setX(5);
+    ASSERT_EQ(Vector4<TypeParam>(5, 4, 2, 1), vec);
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldReturnY) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    ASSERT_EQ(4, vec.y());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldSetY) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    vec.setY(5);
+    ASSERT_EQ(Vector4<TypeParam>(3, 5, 2, 1), vec);
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldReturnZ) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    ASSERT_EQ(2, vec.z());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldSetZ) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    vec.setZ(5);
+    ASSERT_EQ(Vector4<TypeParam>(3, 4, 5, 1), vec);
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldReturnW) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    ASSERT_EQ(1, vec.w());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldSetW) {
+    auto vec = Vector4<TypeParam>(3, 4, 2, 1);
+    vec.setW(5);
+    ASSERT_EQ(Vector4<TypeParam>(3, 4, 2, 5), vec);
   }
 }

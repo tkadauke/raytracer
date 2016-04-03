@@ -2,6 +2,7 @@
 #include "raytracer/primitives/Disk.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include "core/math/Number.h"
 
 using namespace raytracer;
 
@@ -33,4 +34,13 @@ const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
 BoundingBoxd Disk::calculateBoundingBox() const {
   Vector3d radius(m_radius, m_radius, m_radius);
   return BoundingBoxd(m_center - radius, m_center + radius);
+}
+
+Vector3d Disk::farthestPoint(const Vector3d& direction) const {
+  Vector3d directionOnPlane = direction - m_normal * (direction * m_normal);
+  if (isAlmostZero(directionOnPlane.length())) {
+    return m_center;
+  } else {
+    return m_center + directionOnPlane.normalized() * m_radius;
+  }
 }

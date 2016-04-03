@@ -119,6 +119,14 @@ namespace BoxTest {
     ASSERT_EQ(0, state.intersectionMisses);
   }
   
+  TEST(Box, ShouldReturnFarthestPoint) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    auto direction = Vector3d(0.1, -0.1, 0.1).normalized();
+    auto expected = Vector3d(1, -1, 1);
+    
+    ASSERT_EQ(expected, box.farthestPoint(direction));
+  }
+  
   TEST(Box, ShouldReturnBoundingBox) {
     Box box(Vector3d::null(), Vector3d(1, 1, 1));
     BoundingBoxd bbox = box.boundingBox();

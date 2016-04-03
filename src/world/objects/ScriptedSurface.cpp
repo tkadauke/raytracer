@@ -8,6 +8,8 @@
 #include "world/objects/Union.h"
 #include "world/objects/Intersection.h"
 #include "world/objects/Difference.h"
+#include "world/objects/MinkowskiSum.h"
+#include "world/objects/ConvexHull.h"
 #include "world/objects/Material.h"
 
 #include <QScriptEngine>
@@ -61,6 +63,8 @@ void ScriptedSurface::setupEngine() {
   registerElement<Union>();
   registerElement<Intersection>();
   registerElement<Difference>();
+  registerElement<MinkowskiSum>();
+  registerElement<ConvexHull>();
   m_engine->globalObject().setProperty("Vector3", m_engine->newFunction(Vector3dConstructor));
 }
 

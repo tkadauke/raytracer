@@ -20,6 +20,8 @@ namespace raytracer {
 
     void setMatrix(const Matrix4d& matrix);
 
+    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const;
 

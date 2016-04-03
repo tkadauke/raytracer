@@ -37,12 +37,16 @@ namespace raytracer {
       return m_material;
     }
     
+    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    
   protected:
     virtual BoundingBoxd calculateBoundingBox() const = 0;
     
     inline bool boundingBoxIntersects(const Rayd& ray) const {
       return boundingBox().intersects(ray);
     }
+    
+    bool convexIntersect(const Rayd& ray, HitPointInterval& hitPoints) const;
     
   private:
     Material* m_material;

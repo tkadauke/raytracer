@@ -51,3 +51,7 @@ BoundingBoxd Instance::calculateBoundingBox() const {
   }
   return result;
 }
+
+Vector3d Instance::farthestPoint(const Vector3d& direction) const {
+  return m_pointMatrix * m_primitive->farthestPoint(m_directionMatrix * direction);
+}

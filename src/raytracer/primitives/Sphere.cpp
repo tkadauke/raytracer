@@ -71,3 +71,7 @@ BoundingBoxd Sphere::calculateBoundingBox() const {
   Vector3d radius(m_radius, m_radius, m_radius);
   return BoundingBoxd(m_origin - radius, m_origin + radius);
 }
+
+Vector3d Sphere::farthestPoint(const Vector3d& direction) const {
+  return m_origin + direction.normalized() * m_radius;
+}

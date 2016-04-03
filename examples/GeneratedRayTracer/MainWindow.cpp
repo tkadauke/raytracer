@@ -38,6 +38,8 @@
 #include "world/objects/Intersection.h"
 #include "world/objects/Union.h"
 #include "world/objects/Difference.h"
+#include "world/objects/MinkowskiSum.h"
+#include "world/objects/ConvexHull.h"
 
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/PhongMaterial.h"
@@ -94,6 +96,8 @@ struct MainWindow::Private {
   QAction* addIntersectionAct;
   QAction* addUnionAct;
   QAction* addDifferenceAct;
+  QAction* addMinkowskiSumAct;
+  QAction* addConvexHullAct;
   
   QAction* addMatteMaterialAct;
   QAction* addPhongMaterialAct;
@@ -200,6 +204,14 @@ void MainWindow::createActions() {
   p->addDifferenceAct = new QAction(tr("Difference"), this);
   p->addDifferenceAct->setStatusTip(tr("Add a difference to the scene"));
   connect(p->addDifferenceAct, SIGNAL(triggered()), this, SLOT(addDifference()));
+  
+  p->addMinkowskiSumAct = new QAction(tr("Minkowski Sum"), this);
+  p->addMinkowskiSumAct->setStatusTip(tr("Add a Minkowski sum to the scene"));
+  connect(p->addMinkowskiSumAct, SIGNAL(triggered()), this, SLOT(addMinkowskiSum()));
+  
+  p->addConvexHullAct = new QAction(tr("Convex Hull"), this);
+  p->addConvexHullAct->setStatusTip(tr("Add a Convex Hull to the scene"));
+  connect(p->addConvexHullAct, SIGNAL(triggered()), this, SLOT(addConvexHull()));
   
   p->addMatteMaterialAct = new QAction(tr("Matte Material"), this);
   p->addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
@@ -344,6 +356,8 @@ void MainWindow::createMenus() {
   addComposite->addAction(p->addIntersectionAct);
   addComposite->addAction(p->addUnionAct);
   addComposite->addAction(p->addDifferenceAct);
+  addComposite->addAction(p->addMinkowskiSumAct);
+  addComposite->addAction(p->addConvexHullAct);
   
   auto addMaterial = p->editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(p->addMatteMaterialAct);
@@ -509,6 +523,14 @@ void MainWindow::addUnion() {
 
 void MainWindow::addDifference() {
   add<Difference>();
+}
+
+void MainWindow::addMinkowskiSum() {
+  add<MinkowskiSum>();
+}
+
+void MainWindow::addConvexHull() {
+  add<ConvexHull>();
 }
 
 void MainWindow::addMatteMaterial() {

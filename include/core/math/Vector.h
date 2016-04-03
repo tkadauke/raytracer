@@ -453,6 +453,16 @@ std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, StorageCe
 }
 
 /**
+  * @returns the product of the vector and the constant \f$vc = (v_{1}c,\ldots,
+  *   v_{n}c)\f$, where this vector is \f$v\f$ and factor is \f$c\f$
+  */
+template<int Dimensions, class T, class StorageCellType, class Derived>
+inline typename Vector<Dimensions, T, StorageCellType, Derived>::VectorType
+operator*(const T& factor, const Vector<Dimensions, T, StorageCellType, Derived>& vector) {
+  return vector * factor;
+}
+
+/**
   * Represents a two-dimensional vector with component type T. This class
   * implements all the important operations for vectors. Many of those are
   * defined in the parent class. The operations defined in this class are
@@ -547,11 +557,25 @@ public:
   }
   
   /**
-    * @returns the vector's first component, i.e. returns \f$y\f$ from
+    * Sets the vector's first component to @p value.
+    */
+  inline void setX(const T& value) {
+    Base::setCoordinate(0, value);
+  }
+  
+  /**
+    * @returns the vector's second component, i.e. returns \f$y\f$ from
     *   \f$(x,y)\f$.
     */
   inline T y() const {
     return Base::coordinate(1);
+  }
+
+  /**
+    * Sets the vector's second component to @p value.
+    */
+  inline void setY(const T& value) {
+    Base::setCoordinate(1, value);
   }
 };
 
@@ -707,11 +731,25 @@ public:
   }
 
   /**
+    * Sets the vector's first component to @p value.
+    */
+  inline void setX(const T& value) {
+    Base::setCoordinate(0, value);
+  }
+
+  /**
     * @returns this vector's second component, i.e. returns \f$y\f$ from
     *   \f$(x,y,z)\f$.
     */
   inline T y() const {
     return Base::coordinate(1);
+  }
+
+  /**
+    * Sets the vector's second component to @p value.
+    */
+  inline void setY(const T& value) {
+    Base::setCoordinate(1, value);
   }
 
   /**
@@ -722,6 +760,13 @@ public:
     return Base::coordinate(2);
   }
   
+  /**
+    * Sets the vector's third component to @p value.
+    */
+  inline void setZ(const T& value) {
+    Base::setCoordinate(2, value);
+  }
+
   /**
     * @returns the cross product \f$u \times v\f$, where this vector is \f$u\f$
     *   and other is \f$v\f$.
@@ -878,11 +923,25 @@ public:
   }
   
   /**
+    * Sets the vector's first component to @p value.
+    */
+  inline void setX(const T& value) {
+    Base::setCoordinate(0, value);
+  }
+  
+  /**
     * @returns this vector's second component, i.e. returns \f$y\f$ from
     *   \f$(x,y,z,w)\f$.
     */
   inline T y() const {
     return Base::coordinate(1);
+  }
+  
+  /**
+    * Sets the vector's second component to @p value.
+    */
+  inline void setY(const T& value) {
+    Base::setCoordinate(1, value);
   }
   
   /**
@@ -894,11 +953,25 @@ public:
   }
   
   /**
+    * Sets the vector's third component to @p value.
+    */
+  inline void setZ(const T& value) {
+    Base::setCoordinate(2, value);
+  }
+  
+  /**
     * @returns this vector's fourth component, i.e. returns \f$w\f$ from
     *   \f$(x,y,z,w)\f$.
     */
   inline T w() const {
     return Base::coordinate(3);
+  }
+  
+  /**
+    * Sets the vector's fourth component to @p value.
+    */
+  inline void setW(const T& value) {
+    Base::setCoordinate(3, value);
   }
   
   /**

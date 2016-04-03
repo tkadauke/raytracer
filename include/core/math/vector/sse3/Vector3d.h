@@ -55,12 +55,24 @@ public:
     return m_coordinates[0];
   }
   
+  inline void setX(const double& value) {
+    m_coordinates[0] = value;
+  }
+  
   inline double y() const {
     return m_coordinates[1];
   }
   
+  inline void setY(const double& value) {
+    m_coordinates[1] = value;
+  }
+  
   inline double z() const {
     return m_coordinates[2];
+  }
+  
+  inline void setZ(const double& value) {
+    m_coordinates[2] = value;
   }
   
   inline Vector3<double> operator+(const Vector3<double>& other) const {

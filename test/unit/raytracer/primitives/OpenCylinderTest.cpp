@@ -3,6 +3,7 @@
 #include "raytracer/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include "test/helpers/VectorTestHelper.h"
 
 namespace OpenCylinderTest {
   using namespace raytracer;
@@ -116,6 +117,15 @@ namespace OpenCylinderTest {
 
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
+  }
+  
+  TEST(OpenCylinder, ShouldReturnFarthestPoint) {
+    OpenCylinder cylinder(1, 2);
+    auto direction = Vector3d(1, 0.1, 1).normalized();
+    auto expected = Vector3d(1, 0, 1).normalized();
+    expected.setY(1);
+    
+    ASSERT_VECTOR_NEAR(expected, cylinder.farthestPoint(direction), 0.001);
   }
   
   TEST(OpenCylinder, ShouldReturnBoundingBox) {

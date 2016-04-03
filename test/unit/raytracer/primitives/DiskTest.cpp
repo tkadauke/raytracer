@@ -3,6 +3,7 @@
 #include "raytracer/primitives/Disk.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include "test/helpers/VectorTestHelper.h"
 
 namespace DiskTest {
   using namespace raytracer;
@@ -53,6 +54,14 @@ namespace DiskTest {
     ASSERT_TRUE(hitPoints.minWithPositiveDistance().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
+  }
+  
+  TEST(Disk, ShouldReturnFarthestPoint) {
+    Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);
+    auto direction = Vector3d(1, 1, 1).normalized();
+    auto expected = Vector3d(1, 1, 0).normalized();
+    
+    ASSERT_VECTOR_NEAR(expected, disk.farthestPoint(direction), 0.001);
   }
   
   TEST(Disk, ShouldReturnBoundingBox) {

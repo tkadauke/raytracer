@@ -47,16 +47,32 @@ public:
     return m_coordinates[0];
   }
   
+  inline void setX(const float& value) {
+    m_coordinates[0] = value;
+  }
+  
   inline float y() const {
     return m_coordinates[1];
+  }
+  
+  inline void setY(const float& value) {
+    m_coordinates[1] = value;
   }
   
   inline float z() const {
     return m_coordinates[2];
   }
   
+  inline void setZ(const float& value) {
+    m_coordinates[2] = value;
+  }
+  
   inline float w() const {
     return m_coordinates[3];
+  }
+  
+  inline void setW(const float& value) {
+    m_coordinates[3] = value;
   }
   
   inline Vector4<float> operator+(const Vector4<float>& other) const {

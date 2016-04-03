@@ -74,3 +74,11 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
 BoundingBoxd Box::calculateBoundingBox() const {
   return BoundingBoxd(m_center - m_edge, m_center + m_edge);
 }
+
+Vector3d Box::farthestPoint(const Vector3d& direction) const {
+  return m_center + Vector3d(
+    direction.x() < 0.0 ? -m_edge.x() : m_edge.x(),
+    direction.y() < 0.0 ? -m_edge.y() : m_edge.y(),
+    direction.z() < 0.0 ? -m_edge.z() : m_edge.z()
+  );
+}

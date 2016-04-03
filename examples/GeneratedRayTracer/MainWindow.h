@@ -48,6 +48,8 @@ private slots:
   void addIntersection();
   void addUnion();
   void addDifference();
+  void addMinkowskiSum();
+  void addConvexHull();
   
   void addMatteMaterial();
   void addPhongMaterial();

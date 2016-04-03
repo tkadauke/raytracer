@@ -42,6 +42,15 @@ namespace BoundingBoxTest {
     ASSERT_EQ(Vector3<TypeParam>(1, 1, 1), bbox.max());
   }
   
+  TYPED_TEST(BoundingBoxTest, ShouldCalculateSize) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    Vector3<TypeParam> expected(2, 2, 2);
+    ASSERT_EQ(expected, bbox.size());
+  }
+  
   TYPED_TEST(BoundingBoxTest, ShouldCalculateCenter) {
     BoundingBox<TypeParam> bbox(
       Vector3<TypeParam>(-1, -1, -1),
@@ -338,6 +347,36 @@ namespace BoundingBoxTest {
     );
 
     ASSERT_EQ(expected, bbox.movedBy(Vector3d::one()));
+  }
+  
+  TYPED_TEST(BoundingBoxTest, ShouldMoveBoundingBoxWithPlusOperator) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    BoundingBox<TypeParam> expected(
+      Vector3<TypeParam>(0, 0, 0),
+      Vector3<TypeParam>(2, 2, 2)
+    );
+
+    ASSERT_EQ(expected, bbox + Vector3d::one());
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldComputeMinkowskiSum) {
+    BoundingBox<TypeParam> bbox1(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    BoundingBox<TypeParam> bbox2(
+      Vector3<TypeParam>(-2, -3, -1),
+      Vector3<TypeParam>(1, 3, 2)
+    );
+    BoundingBox<TypeParam> expected(
+      Vector3<TypeParam>(-3, -4, -2),
+      Vector3<TypeParam>(2, 4, 3)
+    );
+
+    ASSERT_EQ(expected, bbox1 + bbox2);
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldReturnEightVertices) {

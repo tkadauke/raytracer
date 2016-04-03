@@ -255,6 +255,12 @@ end
 class Difference < CSGSurface
 end
 
+class MinkowskiSum < CSGSurface
+end
+
+class ConvexHull < CSGSurface
+end
+
 class Light < Transformable
   property :visible => true,
            :color => [1, 1, 1],

@@ -3,6 +3,7 @@
 #include "raytracer/primitives/Sphere.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include "test/helpers/VectorTestHelper.h"
 
 namespace SphereTest {
   using namespace raytracer;
@@ -104,6 +105,12 @@ namespace SphereTest {
     
     State state;
     ASSERT_TRUE(sphere.intersects(ray, state));
+  }
+  
+  TEST(Sphere, ShouldReturnFarthestPoint) {
+    Sphere sphere(Vector3d(), 1);
+    auto direction = Vector3d(0.1, 1, 0.1).normalized();
+    ASSERT_VECTOR_NEAR(direction, sphere.farthestPoint(direction), 0.001);
   }
   
   TEST(Sphere, ShouldReturnBoundingBox) {

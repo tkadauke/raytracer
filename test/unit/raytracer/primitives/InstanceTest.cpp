@@ -63,6 +63,16 @@ namespace InstanceTest {
     ASSERT_FALSE(instance.intersects(ray, state));
   }
   
+  TEST(Instance, ShouldReturnFarthestPoint) {
+    auto primitive = std::make_shared<MockPrimitive>();
+    Instance instance(primitive);
+    instance.setMatrix(Matrix3d::scale(2));
+    EXPECT_CALL(*primitive, farthestPoint(_)).WillOnce(Return(Vector3d(1, 1, 1)));
+    
+    Vector3d expected(2, 2, 2);
+    ASSERT_EQ(expected, instance.farthestPoint(Vector3d::one()));
+  }
+  
   TEST(Instance, ShouldReturnBoundingBox) {
     auto primitive = std::make_shared<MockPrimitive>();
     Instance instance(primitive);

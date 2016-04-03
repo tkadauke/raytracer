@@ -87,7 +87,7 @@ public:
     *   bounding box is undefined if either of the corner vectors is undefined.
     */
   inline bool isUndefined() const {
-    return m_min.isUndefined() || m_max.isUndefined();
+    return min().isUndefined() || max().isUndefined();
   }
 
   /**
@@ -96,7 +96,7 @@ public:
     *   the corner vectors is infinte.
     */
   inline bool isInfinite() const {
-    return m_min.isInfinite() || m_max.isInfinite();
+    return min().isInfinite() || max().isInfinite();
   }
 
   /**
@@ -114,10 +114,18 @@ public:
   }
   
   /**
+    * @returns the size of the bounding box, which is the difference of the
+    *   max() and min() points.
+    */
+  inline Vector3<T> size() const {
+    return max() - min();
+  }
+  
+  /**
     * @returns the center point of the bounding box.
     */
   inline Vector3<T> center() const {
-    return (m_min + m_max) * 0.5;
+    return (min() + max()) * 0.5;
   }
   
   /**
@@ -254,6 +262,21 @@ public:
   }
   
   /**
+    * Alias for movedBy().
+    */
+  inline BoundingBox<T> operator+(const Vector3<T>& vec) const {
+    return movedBy(vec);
+  }
+  
+  /**
+    * @returns a bounding box that is the Minkowski sum of this bounding box and
+    *   @p bbox.
+    */
+  inline BoundingBox<T> operator+(const BoundingBox<T>& bbox) const {
+    return BoundingBox<T>(min() + bbox.min(), max() + bbox.max());
+  }
+  
+  /**
     * @returns a bounding box that is grown by @p vec in each direction. The
     *   resulting bounding box's size is the original size plus two times
     *   @p vec. The following interactive figure illustrates the geometry. Click
@@ -273,7 +296,7 @@ public:
     * @see valid().
     */
   inline BoundingBox<T> grownBy(const Vector3<T>& vec) const {
-    return BoundingBox<T>(m_min - vec.abs(), m_max + vec.abs());
+    return BoundingBox<T>(min() - vec, max() + vec);
   }
   
   /**
