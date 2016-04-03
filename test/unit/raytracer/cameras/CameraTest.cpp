@@ -37,9 +37,9 @@ namespace CameraTest {
   }
   
   TEST(Camera, ShouldDeleteViewPlaneOnDestruct) {
-    auto plane = std::make_shared<MockViewPlane>();
+    auto plane = std::make_shared<NiceMock<MockViewPlane>>();
     auto camera = new ConcreteCamera;
-    EXPECT_CALL(*plane, destructorCall());
+    plane->expectDestructorCall();
     camera->setViewPlane(plane);
     delete camera;
   }
@@ -95,8 +95,8 @@ namespace CameraTest {
   
   TEST(Camera, ShouldDeleteOldViewPlaneWhenNewIsSet) {
     ConcreteCamera camera;
-    auto plane = std::make_shared<testing::MockViewPlane>();
-    EXPECT_CALL(*plane, destructorCall());
+    auto plane = std::make_shared<testing::NiceMock<MockViewPlane>>();
+    plane->expectDestructorCall();
     camera.setViewPlane(plane);
     camera.setViewPlane(std::make_shared<ViewPlane>());
   }

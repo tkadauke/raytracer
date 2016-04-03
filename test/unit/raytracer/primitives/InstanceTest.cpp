@@ -9,7 +9,7 @@ namespace InstanceTest {
   using namespace raytracer;
   
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(
       DoAll(
@@ -28,7 +28,7 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
     
@@ -42,7 +42,7 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_, _)).WillOnce(Return(true));
     
@@ -53,7 +53,7 @@ namespace InstanceTest {
   }
 
   TEST(Instance, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_, _)).WillOnce(Return(false));
     
@@ -64,7 +64,7 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldReturnFarthestPoint) {
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     instance.setMatrix(Matrix3d::scale(2));
     EXPECT_CALL(*primitive, farthestPoint(_)).WillOnce(Return(Vector3d(1, 1, 1)));
@@ -74,7 +74,7 @@ namespace InstanceTest {
   }
   
   TEST(Instance, ShouldReturnBoundingBox) {
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     instance.setMatrix(Matrix3d::scale(2));
     EXPECT_CALL(*primitive, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));

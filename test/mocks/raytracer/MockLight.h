@@ -1,21 +1,12 @@
-#ifndef MOCK_LIGHT_H
-#define MOCK_LIGHT_H
+#pragma once
 
 #include "gmock/gmock.h"
 #include "raytracer/lights/PointLight.h"
+#include "test/mocks/MockDestructor.h"
 
 namespace testing {
-  class MockLight : public raytracer::Light {
+  class MockLight : public raytracer::Light, public MockDestructor {
   public:
-    inline MockLight()
-      : raytracer::Light()
-    {
-    }
-  
-    inline virtual ~MockLight() {
-      destructorCall();
-    }
-    
     inline virtual Vector3d direction(const Vector3d&) const {
       return Vector3d::null();
     }
@@ -23,9 +14,5 @@ namespace testing {
     inline virtual Colord radiance() const {
       return Colord::white();
     }
-
-    MOCK_METHOD0(destructorCall, void());
   };
 }
-
-#endif

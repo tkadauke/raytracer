@@ -11,8 +11,8 @@ namespace DifferenceTest {
   
   TEST(Difference, ShouldReturnClosestPrimitiveForDifference) {
     Difference i;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
@@ -40,8 +40,8 @@ namespace DifferenceTest {
     Difference i;
     i.setMaterial(new MatteMaterial);
     
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
@@ -69,8 +69,8 @@ namespace DifferenceTest {
     Difference i;
     i.setMaterial(new MatteMaterial);
     
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
@@ -86,8 +86,8 @@ namespace DifferenceTest {
 
   TEST(Difference, ShouldNotReturnAnyPrimitiveIfFirstChildDoesNotIntersect) {
     Difference i;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
@@ -104,7 +104,7 @@ namespace DifferenceTest {
 
   TEST(Difference, ShouldReturnBoundingBoxWithOneChild) {
     Difference i;
-    auto mockPrimitive = std::make_shared<MockPrimitive>();
+    auto mockPrimitive = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(mockPrimitive);
     
     BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
@@ -115,8 +115,8 @@ namespace DifferenceTest {
   
   TEST(Difference, ShouldReturnBoundingBoxOfFirstChildIfThereAreMultipleChildren) {
     Difference i;
-    auto mockPrimitive1 = std::make_shared<MockPrimitive>();
-    auto mockPrimitive2 = std::make_shared<MockPrimitive>();
+    auto mockPrimitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto mockPrimitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(mockPrimitive1);
     i.add(mockPrimitive2);
     

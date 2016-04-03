@@ -20,8 +20,8 @@ namespace ConvexOperationTest {
   
   TEST(ConvexOperation, ShouldReturnSelfForConvexOperation) {
     MockConvexOperation i;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
@@ -40,8 +40,8 @@ namespace ConvexOperationTest {
 
   TEST(ConvexOperation, ShouldNotReturnAnyPrimitiveRayOutsideBoundingBox) {
     MockConvexOperation i;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
@@ -57,8 +57,8 @@ namespace ConvexOperationTest {
 
   TEST(ConvexOperation, ShouldIntersectIfRayHits) {
     MockConvexOperation i;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
@@ -72,8 +72,8 @@ namespace ConvexOperationTest {
 
   TEST(ConvexOperation, ShouldNotIntersectIfRayOutsideBoundingBox) {
     MockConvexOperation i;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));

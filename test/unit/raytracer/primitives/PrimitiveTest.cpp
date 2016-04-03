@@ -10,8 +10,8 @@ namespace PrimitiveTest {
   using namespace testing;
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsObject) {
-    auto primitive = std::make_shared<MockPrimitive>();
-    ON_CALL(*primitive, intersects(_, _)).WillByDefault(Invoke(primitive.get(), &MockPrimitive::defaultIntersects));
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    ON_CALL(*primitive, intersects(_, _)).WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultIntersects));
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d(1, 0, 0))),
@@ -24,8 +24,8 @@ namespace PrimitiveTest {
   }
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsNoObject) {
-    auto primitive = std::make_shared<MockPrimitive>();
-    ON_CALL(*primitive, intersects(_, _)).WillByDefault(Invoke(primitive.get(), &MockPrimitive::defaultIntersects));
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    ON_CALL(*primitive, intersects(_, _)).WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultIntersects));
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(nullptr));
     
     State state;
@@ -33,8 +33,8 @@ namespace PrimitiveTest {
   }
   
   TEST(Primitive, ShouldReturnFarthestPoint) {
-    auto primitive = std::make_shared<MockPrimitive>();
-    ON_CALL(*primitive, farthestPoint(_)).WillByDefault(Invoke(primitive.get(), &MockPrimitive::defaultFarthestPoint));
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    ON_CALL(*primitive, farthestPoint(_)).WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultFarthestPoint));
     
     ASSERT_TRUE(primitive->farthestPoint(Vector3d::up()).isUndefined());
   }

@@ -1,18 +1,11 @@
-#ifndef MOCK_VIEW_PLANE_H
-#define MOCK_VIEW_PLANE_H
+#pragma once
 
 #include "gmock/gmock.h"
 #include "raytracer/viewplanes/ViewPlane.h"
+#include "test/mocks/MockDestructor.h"
 
 namespace testing {
-  class MockViewPlane : public raytracer::ViewPlane {
+  class MockViewPlane : public raytracer::ViewPlane, public MockDestructor {
   public:
-    inline virtual ~MockViewPlane() {
-      destructorCall();
-    }
-
-    MOCK_METHOD0(destructorCall, void());
   };
 }
-
-#endif

@@ -14,7 +14,7 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldAddPrimitive) {
     Composite composite;
-    auto mockPrimitive = std::make_shared<MockPrimitive>();
+    auto mockPrimitive = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(mockPrimitive);
     ASSERT_FALSE(composite.primitives().empty());
     ASSERT_EQ(mockPrimitive, composite.primitives().front());
@@ -22,15 +22,15 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldDestructAllAddedPrimitives) {
     auto composite = std::make_shared<Composite>();
-    auto mockPrimitive = std::make_shared<MockPrimitive>();
+    auto mockPrimitive = std::make_shared<NiceMock<MockPrimitive>>();
     composite->add(mockPrimitive);
     
-    EXPECT_CALL(*mockPrimitive, destructorCall());
+    mockPrimitive->expectDestructorCall();
   }
   
   TEST(Composite, ShouldReturnIntersectedPrimitive) {
     Composite composite;
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(primitive);
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(
       DoAll(
@@ -50,7 +50,7 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     Composite composite;
-    auto primitive = std::make_shared<MockPrimitive>();
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(primitive);
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(0)));
     
@@ -65,8 +65,8 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldReturnClosestIntersectedPrimitiveIfThereIsMoreThanOneCandidate) {
     Composite composite;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(primitive1);
     composite.add(primitive2);
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
@@ -93,8 +93,8 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldReturnTrueForIntersectsIfThereIsAnIntersection) {
     Composite composite;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(primitive1);
     composite.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(false));
@@ -110,8 +110,8 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Composite composite;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(primitive1);
     composite.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(false));
@@ -127,7 +127,7 @@ namespace CompositeTest {
 
   TEST(Composite, ShouldReturnBoundingBoxWithOneChild) {
     Composite composite;
-    auto mockPrimitive = std::make_shared<MockPrimitive>();
+    auto mockPrimitive = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(mockPrimitive);
     
     BoundingBoxd bbox(Vector3d(-1, -1, -1), Vector3d(1, 1, 1));
@@ -138,8 +138,8 @@ namespace CompositeTest {
   
   TEST(Composite, ShouldReturnBoundingBoxWithMultipleChildren) {
     Composite composite;
-    auto mockPrimitive1 = std::make_shared<MockPrimitive>();
-    auto mockPrimitive2 = std::make_shared<MockPrimitive>();
+    auto mockPrimitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto mockPrimitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     composite.add(mockPrimitive1);
     composite.add(mockPrimitive2);
     

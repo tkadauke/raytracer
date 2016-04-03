@@ -38,9 +38,9 @@ namespace SceneTest {
   
   TEST(Scene, ShouldDeleteLights) {
     auto scene = new Scene(Colord::white());
-    auto light = new MockLight();
+    auto light = new NiceMock<MockLight>();
     scene->addLight(light);
-    EXPECT_CALL(*light, destructorCall());
+    light->expectDestructorCall();
     delete scene;
   }
 }

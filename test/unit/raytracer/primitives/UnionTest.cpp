@@ -10,8 +10,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnClosestPrimitiveForUnion) {
     Union u;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
@@ -37,8 +37,8 @@ namespace UnionTest {
     Union u;
     u.setMaterial(new MatteMaterial);
     
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
@@ -62,8 +62,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     Union u;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(Return(static_cast<Primitive*>(nullptr)));
@@ -80,8 +80,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldBuildUnionOfHitPoints) {
     Union u;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
@@ -109,8 +109,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     Union u;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(true));
@@ -123,8 +123,8 @@ namespace UnionTest {
   
   TEST(Union, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Union u;
-    auto primitive1 = std::make_shared<MockPrimitive>();
-    auto primitive2 = std::make_shared<MockPrimitive>();
+    auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
+    auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     u.add(primitive1);
     u.add(primitive2);
     EXPECT_CALL(*primitive1.get(), intersects(_, _)).WillOnce(Return(false));
