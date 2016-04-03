@@ -58,7 +58,7 @@ else
   DEBUG_FLAGS = ""
 end
 
-WARNING_FLAGS = "-W -Wall"
+WARNING_FLAGS = "-W -Wall -pedantic -Wno-extra-semi -Werror"
 if ENV['COVERAGE']
   OPTIMIZE_FLAGS = "-O1"
   COVERAGE_FLAGS = "-fprofile-arcs -ftest-coverage"

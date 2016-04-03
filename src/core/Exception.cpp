@@ -57,7 +57,7 @@ static void crashHandler(int sig) {
 }
 
 // Uncomment the following line to get a backtrace on SIGSEGV in the CLI
-// static Trap sigsegv(SIGSEGV, crashHandler);
+static Trap sigsegv(SIGSEGV, crashHandler);
 
 // This is for intercepting exceptions thrown by the std library.
 namespace {
@@ -79,6 +79,9 @@ extern "C" {
 
     static void (*const rethrow)(void*,void*,void(*)(void*)) = (void (*const)(void*,void*,void(*)(void*)))dlsym(RTLD_NEXT, "__cxa_throw");
     rethrow(ex,info,dest);
+    
+    // This is here because this function is declared noreturn
+    throw 0;
   }
 }
 
