@@ -53,9 +53,19 @@ public:
   typedef std::vector<HitPointWrapper> HitPoints;
   
   /**
-    * Constructs an empty HitPointInterval.
+    * Default constructor. Constructs an empty HitPointInterval.
     */
-  inline HitPointInterval() {}
+  inline HitPointInterval() = default;
+  
+  /**
+    * Copy constructor. Creates this HitPointInterval as a copy of @p orig.
+    */
+  inline HitPointInterval(const HitPointInterval& orig) = default;
+  
+  /**
+    * Assignment operator. Assigns @p orig to this.
+    */
+  HitPointInterval& operator=(const HitPointInterval& orig) = default;
   
   /**
     * Constructs a HitPointInterval with a single interval described by begin
@@ -63,6 +73,14 @@ public:
     */
   inline explicit HitPointInterval(const HitPoint& begin, const HitPoint& end) {
     add(begin, end);
+  }
+  
+  /**
+    * Move constructor. Moves the internal data from @p orig.
+    */
+  inline HitPointInterval(HitPointInterval&& orig)
+    : m_hitPoints(std::move(orig.m_hitPoints))
+  {
   }
   
   /**
