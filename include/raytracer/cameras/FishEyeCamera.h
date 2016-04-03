@@ -19,7 +19,7 @@ namespace raytracer {
       * looking at the origin.
       */
     inline explicit FishEyeCamera()
-      : m_fieldOfView(120 * Degreed)
+      : m_fieldOfView(120_degrees)
     {
     }
     
@@ -37,7 +37,7 @@ namespace raytracer {
       */
     inline explicit FishEyeCamera(const Vector3d& position, const Vector3d& target)
       : Camera(position, target),
-        m_fieldOfView(120 * Degreed)
+        m_fieldOfView(120_degrees)
     {
     }
 

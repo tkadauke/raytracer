@@ -19,13 +19,13 @@ namespace FishEyeCameraTest {
   }
   
   TEST(FishEyeCamera, ShouldConstructWithFieldOfView) {
-    FishEyeCamera camera(360 * Degreed);
+    FishEyeCamera camera(360_degrees);
     ASSERT_NEAR(360, camera.fieldOfView().degrees(), 0.001);
   }
   
   TEST(FishEyeCamera, ShouldSetFieldOfView) {
     FishEyeCamera camera;
-    camera.setFieldOfView(200 * Degreed);
+    camera.setFieldOfView(200_degrees);
     ASSERT_NEAR(200, camera.fieldOfView().degrees(), 0.001);
   }
   

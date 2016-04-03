@@ -34,7 +34,7 @@ TorusScene::TorusScene()
   
   auto torus = std::make_shared<Torus>(2, 1);
   auto instance = std::make_shared<Instance>(torus);
-  instance->setMatrix(Matrix3d::rotateX(90 * Degreed));
+  instance->setMatrix(Matrix3d::rotateX(90_degrees));
   instance->setMaterial(&m_glass);
   add(instance);
   

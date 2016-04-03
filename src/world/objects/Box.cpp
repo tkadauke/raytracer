@@ -56,7 +56,7 @@ std::shared_ptr<raytracer::Primitive> Box::toRaytracerPrimitive() const {
         auto instance = std::make_shared<raytracer::Instance>(cylinder);
         instance->setMatrix(
           Matrix4d::translate(0, u * (s.y() - r), v * (s.z() - r))
-        * Matrix3d::rotateZ(90 * Degreed)
+        * Matrix3d::rotateZ(90_degrees)
         );
         result->add(instance);
         
@@ -71,7 +71,7 @@ std::shared_ptr<raytracer::Primitive> Box::toRaytracerPrimitive() const {
         instance = std::make_shared<raytracer::Instance>(cylinder);
         instance->setMatrix(
           Matrix4d::translate(u * (s.x() - r), v * (s.y() - r), 0)
-        * Matrix3d::rotateX(90 * Degreed)
+        * Matrix3d::rotateX(90_degrees)
         );
         result->add(instance);
       }

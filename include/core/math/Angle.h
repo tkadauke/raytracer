@@ -220,3 +220,57 @@ const Angled Radiand = Angled::fromRadians(1);
   * @endcode
   */
 const Angled Turnd = Angled::fromTurns(1);
+
+/**
+  * Suffix operator for floating point literals.
+  * 
+  * @returns an Angle<double> with the degrees from the literal.
+  */
+inline Angled operator "" _degrees(long double value) {
+  return Angled::fromDegrees(value);
+}
+
+/**
+  * Suffix operator for integer literals.
+  * 
+  * @returns an Angle<double> with the degrees from the literal.
+  */
+inline Angled operator "" _degrees(unsigned long long int value) {
+  return Angled::fromDegrees(value);
+}
+
+/**
+  * Suffix operator for floating point literals.
+  * 
+  * @returns an Angle<double> with the radians from the literal.
+  */
+inline Angled operator "" _radians(long double value) {
+  return Angled::fromRadians(value);
+}
+
+/**
+  * Suffix operator for integer literals.
+  * 
+  * @returns an Angle<double> with the radians from the literal.
+  */
+inline Angled operator "" _radians(unsigned long long int value) {
+  return Angled::fromRadians(value);
+}
+
+/**
+  * Suffix operator for floating point literals.
+  * 
+  * @returns an Angle<double> with the turns from the literal.
+  */
+inline Angled operator "" _turns(long double value) {
+  return Angled::fromTurns(value);
+}
+
+/**
+  * Suffix operator for integer literals.
+  * 
+  * @returns an Angle<double> with the turns from the literal.
+  */
+inline Angled operator "" _turns(unsigned long long int value) {
+  return Angled::fromTurns(value);
+}

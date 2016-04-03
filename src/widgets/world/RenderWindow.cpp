@@ -124,8 +124,8 @@ void RenderWindow::setScene(::Scene* scene) {
     p->raytracer->setCamera(camera->toRaytracer());
   } else {
     p->raytracer->camera()->setPosition(
-      Matrix3d::rotateY(-25 * Degreed) *
-      Matrix3d::rotateX(-25 * Degreed) *
+      Matrix3d::rotateY(-25_degrees) *
+      Matrix3d::rotateX(-25_degrees) *
       Vector3d(0, 0, -5)
     );
   }

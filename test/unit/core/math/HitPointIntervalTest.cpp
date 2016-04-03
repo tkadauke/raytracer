@@ -168,8 +168,8 @@ namespace HitPointIntervalTest {
     HitPoint hitPoint2(box, 3, Vector3d(2, 0, 0), Vector3d(0, 1, 0));
     interval.add(hitPoint1, hitPoint2);
     
-    Matrix4d pointMatrix = Matrix3d::rotateZ(1 * Radiand);
-    Matrix3d normalMatrix = Matrix3d::rotateX(1 * Radiand);
+    Matrix4d pointMatrix = Matrix3d::rotateZ(1_radians);
+    Matrix3d normalMatrix = Matrix3d::rotateX(1_radians);
     
     HitPointInterval transformed = interval.transform(pointMatrix, normalMatrix);
     ASSERT_EQ(Vector3d(pointMatrix * Vector4d(1, 0, 0)), transformed.min().point());

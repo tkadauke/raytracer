@@ -5,8 +5,8 @@
 
 SphericalCamera::SphericalCamera(Element* parent)
   : Camera(parent),
-    m_horizontalFieldOfView(180 * Degreed),
-    m_verticalFieldOfView(120 * Degreed)
+    m_horizontalFieldOfView(180_degrees),
+    m_verticalFieldOfView(120_degrees)
 {
 }
 

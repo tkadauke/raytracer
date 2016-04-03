@@ -5,7 +5,7 @@
 
 FishEyeCamera::FishEyeCamera(Element* parent)
   : Camera(parent),
-    m_fieldOfView(180 * Degreed)
+    m_fieldOfView(180_degrees)
 {
 }
 

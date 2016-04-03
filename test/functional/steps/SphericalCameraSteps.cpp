@@ -12,5 +12,5 @@ GIVEN(RaytracerFeatureTest, "a spherical camera") {
 
 WHEN(RaytracerFeatureTest, "i set the spherical camera's field of view to maximum") {
   static_cast<SphericalCamera*>(test->camera().get())
-    ->setFieldOfView(360 * Degreed, 180 * Degreed);
+    ->setFieldOfView(360_degrees, 180_degrees);
 }

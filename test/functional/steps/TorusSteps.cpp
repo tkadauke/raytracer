@@ -19,7 +19,7 @@ GIVEN(RaytracerFeatureTest, "a centered torus") {
 GIVEN(RaytracerFeatureTest, "a 90 degree rotated torus") {
   auto torus = std::make_shared<Torus>(1, 0.5);
   auto instance = std::make_shared<Instance>(torus);
-  instance->setMatrix(Matrix3d::rotateX(90 * Degreed));
+  instance->setMatrix(Matrix3d::rotateX(90_degrees));
   
   instance->setMaterial(test->redDiffuse());
   test->add(instance);
