@@ -1,5 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "raytracer/primitives/Composite.h"
+#include "raytracer/primitives/Grid.h"
 #include "world/objects/ScriptedSurface.h"
 #include "world/objects/Box.h"
 #include "world/objects/Sphere.h"
@@ -204,7 +205,7 @@ bool ScriptedSurface::event(QEvent *e) {
 }
 
 std::shared_ptr<raytracer::Primitive> ScriptedSurface::toRaytracerPrimitive() const {
-  return std::make_shared<raytracer::Composite>();
+  return std::make_shared<raytracer::Grid>();
 }
 
 static bool dummy = ElementFactory::self().registerClass<ScriptedSurface>("ScriptedSurface");

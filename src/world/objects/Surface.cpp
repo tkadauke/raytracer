@@ -4,6 +4,7 @@
 #include "raytracer/primitives/Instance.h"
 #include "raytracer/primitives/Composite.h"
 #include "raytracer/primitives/Scene.h"
+#include "raytracer/primitives/Grid.h"
 
 Surface::Surface(Element* parent)
   : Transformable(parent),
@@ -43,6 +44,10 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* sce
         if (light->visible())
           scene->addLight(light->toRaytracer());
       }
+    }
+    
+    if (auto grid = std::dynamic_pointer_cast<raytracer::Grid>(composite)) {
+      grid->setup();
     }
 
     return applyTransform(composite);
