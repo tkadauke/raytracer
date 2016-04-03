@@ -50,9 +50,9 @@ var RayClass = new Class({
 (function(scriptElement) {
   var figure = new RayClass();
 
-  var handler = new HorizontalDragHandler(figure);
+  var handler = new DragHandler(figure);
   handler.handlerFunc = function(delta, figure) {
-    figure.setT(figure.t + delta / 100.0);
+    figure.setT(figure.t + delta.x / 100.0);
     return true;
   }
   

@@ -5,6 +5,18 @@ svg * {
   stroke-width: 0.033;
 }
 
+svg .dashed {
+  stroke-dasharray: 0.1, 0.1;
+}
+
+svg .red {
+  stroke: #ff0000;
+}
+
+svg .red marker {
+  stroke: #ff0000;
+}
+
 text {
   font-size: 3.3%;
 }
@@ -15,10 +27,6 @@ line {
 
 line.arrow {
   marker-end: url(#arrow);
-}
-
-line.dashed {
-  stroke-dasharray: 0.1, 0.1;
 }
 
 line.axis {
@@ -39,6 +47,11 @@ circle.intersection {
 circle.result {
   stroke: #ff0000;
   fill: #ff0000;
+}
+
+rect {
+  stroke: #000000;
+  fill: transparent;
 }
 `;
 document.getElementsByTagName('head')[0].appendChild(style);
@@ -192,7 +205,7 @@ var Canvas = new Class({
 });
 
 var Group = new Class({
-  initialize: function(width, height) {
+  initialize: function() {
     this.elements = [];
   },
   
@@ -283,6 +296,24 @@ var Circle = new Class({
   }
 });
 
+var Rectangle = new Class({
+  initialize: function(topleft, size, klass) {
+    this.topleft = topleft;
+    this.size = size;
+    this.klass = klass;
+  },
+  
+  toSVG: function() {
+    var rectangle = document.createElementNS(svgns, "rect");
+    rectangle.setAttribute("x", this.topleft.x);
+    rectangle.setAttribute("y", this.topleft.y);
+    rectangle.setAttribute("width", this.size.x);
+    rectangle.setAttribute("height", this.size.y);
+    rectangle.setAttribute("class", this.klass);
+    return rectangle;
+  }
+});
+
 var Text = new Class({
   initialize: function(position, text, klass) {
     this.position = position;
@@ -316,7 +347,7 @@ var Axes = new Class({
   }
 });
 
-var HorizontalDragHandler = new Class({
+var DragHandler = new Class({
   initialize: function(figure) {
     this.handlerFunc = function() {}
     this.figure = figure;
@@ -330,31 +361,45 @@ var HorizontalDragHandler = new Class({
     this.element = document.createElement("div");
     
     var mousex = null;
+    var mousey = null;
   
     this.element.addEventListener("mousedown", function(e) {
-      mousex = e.offsetX;
-      e.stopPropagation();
-    }.bind(this));
-  
-    this.element.addEventListener("mousemove", function(e) {
-      if (mousex) {
-        if (this.handlerFunc(e.offsetX - mousex, this.figure)) {
+      mousex = e.pageX;
+      mousey = e.pageY;
+      
+      document.onmousemove = function(event) {
+        event = event || window.event;
+        
+        if (this.handlerFunc(new Vector(event.pageX - mousex, event.pageY - mousey), this.figure)) {
           var newCanvas = this.figure.createCanvas();
           this.element.replaceChild(newCanvas, this.canvas);
           this.canvas = newCanvas;
-          e.stopPropagation();
+          event.stopPropagation();
+          event.preventDefault();
         }
-        mousex = e.offsetX;
-      }
-    }.bind(this));
-  
-    this.element.addEventListener("mouseup", function(e) {
-      mousex = null;
+        
+        mousex = event.pageX;
+        mousey = event.pageY;
+      }.bind(this);
+      
+      document.onmouseup = function() {
+        document.onmousemove = null;
+        mousex = null;
+        mousey = null;
+      }.bind(this);
+      
       e.stopPropagation();
+      e.preventDefault();
     }.bind(this));
     
     this.canvas = this.figure.createCanvas();
+    this.canvas.onselectstart = function(){return false};
+    this.canvas.unselectable = "on";
+    
     this.element.appendChild(this.canvas);
+    this.element.unselectable = "on";
+    this.element.onselectstart = function(){return false};
+    this.element.style.userSelect = "none";
     
     return this.element;
   }

@@ -12,9 +12,20 @@
   * Represents a three-dimensional axis-aligned bounding box (AABB), a type of
   * [bounding volume](https://en.wikipedia.org/wiki/Bounding_volume). This class
   * supports ray intersection, bounding box intersection/union, as well as other
-  * geometric operation. The purpose of this class is to help with optimized
+  * geometric operations. One purpose of this class is to help with optimized
   * rendering algorithms that quickly identify if a ray intersects the bounding
-  * box.
+  * box of an object, therefore eliminating the need for computing a more
+  * expenpensive intersection, when the ray misses the object. For this to work,
+  * the bounding box should be as small as possible, while still containing the
+  * entire object. Another purpose is to organize objects spatially in a tree
+  * or grid data structure (see raytracer::Grid).
+  * 
+  * The bounding box is axis aligned, as illustrated in the following figure.
+  * 
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="bounding_box_class.js"></script>
+  * @endhtmlonly
   * 
   * The class inherits InPlaceSetOperators as well as InequalityOperator,
   * providing operators &=, |= and !=.
@@ -38,7 +49,7 @@ public:
   static const BoundingBox<T>& infinity();
   
   /**
-    * Creates an infinitely large bounding box.
+    * Default constructor. Creates an infinitely large bounding box.
     */
   inline BoundingBox()
     : m_min(Vector3<T>::plusInfinity()),
@@ -48,8 +59,11 @@ public:
 
   /**
     * Creates a bounding box specified by the min and max corner vectors. A
-    * bounding box is only valid if all components of min are smaller or equal
-    * to their corresponding component of max.
+    * bounding box is only valid if all components of @p min are smaller or
+    * equal to their corresponding component of @p max. However, this
+    * constructor does not check if the bounding box is valid.
+    * 
+    * @see isValid().
     */
   inline explicit BoundingBox(const Vector3<T>& min, const Vector3<T>& max)
     : m_min(min),
@@ -59,8 +73,8 @@ public:
   
   /**
     * @returns true if the bounding box is valid, false otherwise. A bounding
-    *   box is only valid if all components of min are smaller than or equal to
-    *   their corresponding component of max.
+    *   box is only valid if all components of min() are smaller than or equal
+    *   to their corresponding component of max().
     */
   inline bool isValid() const {
     return min().x() <= max().x() &&
@@ -142,7 +156,7 @@ public:
   }
   
   /**
-    * @returns true if this bounding box is equal to other, false otherwise.
+    * @returns true if this bounding box is equal to @p other, false otherwise.
     */
   inline bool operator==(const BoundingBox& other) const {
     if (this == &other)
@@ -151,10 +165,16 @@ public:
   }
   
   /**
-    * Calculates the union of this bounding box and other. The union is by
-    * definition at least as big as either one of the operands.
+    * Calculates the union of this bounding box and @p other. The union is by
+    * definition at least as big as either one of the operands. The following
+    * figure illustrates the geometry.
     * 
-    * @returns the smallest BoundingBox that contains both this and other.
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="bounding_box_or.js"></script>
+    * @endhtmlonly
+    * 
+    * @returns the smallest bouding box that contains both this and @p other.
     */
   inline BoundingBox operator|(const BoundingBox& other) const {
     BoundingBox result(*this);
@@ -163,11 +183,17 @@ public:
   }
   
   /**
-    * Calculates the intersection of this bounding box and other. The
-    * intersection is usually smaller than either one of the operands.
+    * Calculates the intersection of this bounding box and @p other. The
+    * intersection is usually smaller than either one of the operands. The
+    * following figure illustrates the geometry.
     * 
-    * @returns the smallest BoundingBox that contains all points that are both
-    *   contained in this and in other.
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="bounding_box_and.js"></script>
+    * @endhtmlonly
+    * 
+    * @returns the smallest bounding box that contains all points that are both
+    *   contained in this and in @p other.
     */
   inline BoundingBox operator&(const BoundingBox& other) const {
     BoundingBox result(
@@ -188,8 +214,15 @@ public:
   }
   
   /**
-    * This function expands this bounding box, so that point will be inside this
-    * box.
+    * This function expands this bounding box, so that @p point will be inside
+    * this box. The bounding box object is changed in place. The following
+    * interactive figure illustrates the geometry. Click and drag to move the
+    * included point around, shown in red.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="bounding_box_include.js"></script>
+    * @endhtmlonly
     */
   inline void include(const Vector3<T>& point) {
     for (int i = 0; i != 3; ++i) {
@@ -201,8 +234,8 @@ public:
   }
   
   /**
-    * This function expands the bounding box, so that every point of box will be
-    * inside this bounding box.
+    * This function expands the bounding box, so that every point of @p box will
+    * be inside this bounding box.
     */
   inline void include(const BoundingBox<T>& box) {
     include(box.min());
@@ -210,7 +243,7 @@ public:
   }
   
   /**
-    * @returns true if and only if point is inside the box, false otherwise.
+    * @returns true if and only if @p point is inside the box, false otherwise.
     */
   inline bool contains(const Vector3<T>& point) const {
     for (int i = 0; i != 3; ++i) {
@@ -221,7 +254,23 @@ public:
   }
   
   /**
-    * @returns a bounding box that is grown by vec.
+    * @returns a bounding box that is grown by @p vec in each direction. The
+    *   resulting bounding box's size is the original size plus two times
+    *   @p vec. The following interactive figure illustrates the geometry. Click
+    *   and drag to change the size of the resulting bounding box. The red
+    *   vector is @p vec.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="bounding_box_grown_by.js"></script>
+    * @endhtmlonly
+    * 
+    * Note that this method doesn't check whether the resulting bounding box is
+    * valid. It can become invalid when @p vec has at least one negative
+    * component that is larger than half of the corresponding component of the
+    * size() vector.
+    * 
+    * @see valid().
     */
   inline BoundingBox<T> grownBy(const Vector3<T>& vec) const {
     return BoundingBox<T>(m_min - vec.abs(), m_max + vec.abs());
@@ -235,22 +284,33 @@ public:
   }
   
   /**
+    * @returns a bounding box that is moved by @p vec. The following interactive
+    *   figure illustrates the geometry. Click and drag to move the resulting
+    *   bounding box around.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="bounding_box_moved_by.js"></script>
+    * @endhtmlonly
+    */
+  inline BoundingBox<T> movedBy(const Vector3<T>& vec) const {
+    return BoundingBox<T>(min() + vec, max() + vec);
+  }
+  
+  /**
     * Adds the 8 corner vertices of the bounding box to the given generic
-    * container.
+    * @p container.
     */
   template<class Container>
   void getVertices(Container& container) const;
   
   /**
-    * This is probably the most important method of this class. It returns
-    * true, if and only if ray intersects with the current object.
-    * Because the bounding box is likely to differ from the actual object, this
-    * intersection prediction is not 100% accurate. However, a Ray miss in the
-    * bounding box guarantees a Ray miss in the rendering object. Since a
-    * ray/box intersection is relatively cheap, querying the bounding box first
-    * often leads to faster rendering times.
-    * 
-    * @returns true if ray intersects with this BoundingBox, false otherwise.
+    * @returns true, if and only if @p ray intersects with the bounding box.
+    * Because the bounding box is likely to differ from the object contained
+    * inside it, using this as an intersection prediction is not 100% accurate.
+    * However, a Ray miss with the bounding box guarantees a Ray miss in the
+    * contained object. Since a ray/box intersection is relatively cheap,
+    * querying the bounding box first often leads to faster rendering times.
     */
   bool intersects(const Rayd& ray) const;
   
@@ -347,7 +407,7 @@ bool BoundingBox<T>::intersects(const Rayd& ray) const {
 /**
   * Outputs the given bounding box to the given std::ostream.
   * 
-  * @returns os.
+  * @returns @p os.
   */
 template<class T>
 inline std::ostream& operator<<(std::ostream& os, const BoundingBox<T>& bbox) {

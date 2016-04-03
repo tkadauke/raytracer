@@ -327,6 +327,19 @@ namespace BoundingBoxTest {
     ASSERT_EQ(expected, bbox.grownBy(Vector3d::one()));
   }
   
+  TYPED_TEST(BoundingBoxTest, ShouldMoveBoundingBox) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    BoundingBox<TypeParam> expected(
+      Vector3<TypeParam>(0, 0, 0),
+      Vector3<TypeParam>(2, 2, 2)
+    );
+
+    ASSERT_EQ(expected, bbox.movedBy(Vector3d::one()));
+  }
+  
   TYPED_TEST(BoundingBoxTest, ShouldReturnEightVertices) {
     vector<Vector3<TypeParam>> vertices;
     BoundingBox<TypeParam> bbox(
