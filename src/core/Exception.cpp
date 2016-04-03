@@ -80,7 +80,8 @@ extern "C" {
     static void (*const rethrow)(void*,void*,void(*)(void*)) = (void (*const)(void*,void*,void(*)(void*)))dlsym(RTLD_NEXT, "__cxa_throw");
     rethrow(ex,info,dest);
     
-    // This is here because this function is declared noreturn
+    // This is here because this function is declared noreturn. This part is
+    // never reached, because rethrow() above is also noreturn.
     throw 0;
   }
 }
