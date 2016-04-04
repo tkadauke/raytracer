@@ -174,7 +174,9 @@ namespace :docs do
     end
   end
   
-  task :generate => :render do
+  task :generate => [:render, :html]
+  
+  task :html do
     sh "doxygen"
     sh "cp scripts/docs/*.js docs/html"
   end

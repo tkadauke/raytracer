@@ -14,9 +14,24 @@ namespace raytracer {
   * This class keeps track of ray/object intersection information. It holds the
   * ray distance (the distance between the ray origin and the intersection
   * point), the intersection point and the normal vector at the point of
-  * intersection.
+  * intersection. The following figure shows how everything fits together. A ray
+  * originating at \f$r\f$ hit a sphere at the hit point \f$p\f$ with distance
+  * \f$d\f$ and normal \f$n\f$ at the hit point.
   * 
-  * Inherits from InequalityOperator, which provides operator !=.
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="hitpoint_class.js"></script>
+  * @endhtmlonly
+  * 
+  * Note that this class does not calculate \f$p\f$, \f$n\f$, or \f$d\f$; it
+  * merely stores the information, which has to be calculated elsewhere. It does
+  * however provide a few methods to perform calculations on this data:
+  * swappedNormal() turns the normal in the opposite direction, which is
+  * important for when a ray travels on the inside of objects; transformed()
+  * performs a linear transform on the hitpoint and normal, which is interesting
+  * during instancing (see raytracer::Instance).
+  * 
+  * This class inherits from InequalityOperator, which provides operator !=.
   */
 class HitPoint : public InequalityOperator<HitPoint> {
 public:
@@ -26,7 +41,7 @@ public:
   static const HitPoint& undefined();
   
   /**
-    * Constructs the null HitPoint.
+    * Default constructor. Constructs the null HitPoint.
     */
   inline HitPoint()
     : m_primitive(nullptr),
@@ -35,8 +50,8 @@ public:
   }
   
   /**
-    * Constructs a HitPoint on primitive from the specified distance, point, and
-    * normal.
+    * Constructs a HitPoint on @p primitive from the specified @p distance,
+    * @p point, and @p normal.
     */
   inline explicit HitPoint(const raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
     : m_primitive(primitive),
@@ -54,7 +69,7 @@ public:
   }
   
   /**
-    * Sets the primitive for this HitPoint.
+    * Sets the @p primitive for this HitPoint.
     */
   inline void setPrimitive(const raytracer::Primitive* primitive) {
     m_primitive = primitive;
@@ -68,14 +83,14 @@ public:
   }
   
   /**
-    * Sets the ray distance for this HitPoint.
+    * Sets the ray @p distance for this HitPoint.
     */
   inline void setDistance(double distance) {
     m_distance = distance;
   }
   
   /**
-    * @returns true if this HitPoint's distance is smaller than other's
+    * @returns true if this HitPoint's distance is smaller than @p other's
     *   distance, false otherwise.
     */
   inline bool operator<(const HitPoint& other) const {
@@ -90,7 +105,7 @@ public:
   }
   
   /**
-    * Sets the HitPoint's intersection point.
+    * Sets the HitPoint's intersection @p point.
     */
   inline void setPoint(const Vector4d& point) {
     m_point = point;
@@ -104,7 +119,7 @@ public:
   }
   
   /**
-    * Sets HitPoint's normal vector.
+    * Sets HitPoint's @p normal vector.
     */
   inline void setNormal(const Vector3d& normal) {
     m_normal = normal;
@@ -119,7 +134,8 @@ public:
   
   /**
     * @returns a copy of this HitPoint, with the intersection point transformed
-    *   with pointMatrix, and the normal transformed with normalMatrix.
+    *   with @p pointMatrix, and the normal transformed with @p normalMatrix.
+    *   The resulting normal is then normalized.
     */
   inline HitPoint transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
     return HitPoint(m_primitive, m_distance, pointMatrix * m_point, (normalMatrix * m_normal).normalized());
@@ -127,7 +143,7 @@ public:
   
   /**
     * @returns true if this HitPoint's distance, point and normal are equal to
-    *   other's, false otherwise.
+    *   @p other's, false otherwise.
     */
   inline bool operator==(const HitPoint& other) const {
     if (&other == this)
@@ -154,8 +170,8 @@ private:
 };
 
 /**
-  * Outputs the given HitPoint to the given std::ostream.
+  * Outputs the given HitPoint to the given std::ostream @p os.
   * 
-  * @returns os.
+  * @returns @p os.
   */
 std::ostream& operator<<(std::ostream& os, const HitPoint& point);
