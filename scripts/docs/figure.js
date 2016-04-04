@@ -56,13 +56,27 @@ rect {
 `;
 document.getElementsByTagName('head')[0].appendChild(style);
 
-var Class = function(methods) {
+var Class = function() {
+  var parent = null, properties = {};
+  if (typeof(arguments[0]) == "function") {
+    parent = arguments[0];
+    properties = arguments[1];
+  } else {
+    properties = arguments[0];
+  }
+  
   var klass = function() {
     this.initialize.apply(this, arguments);
   };
+  
+  if (parent) {
+    var subclass = new Function;
+    subclass.prototype = parent.prototype;
+    klass.prototype = new subclass;
+  }
 
-  for (var property in methods) { 
-    klass.prototype[property] = methods[property];
+  for (var property in properties) { 
+    klass.prototype[property] = properties[property];
   }
       
   if (!klass.prototype.initialize)

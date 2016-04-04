@@ -39,6 +39,11 @@ namespace AngleTest {
     auto angle = Angle<TypeParam>::fromTurns(8);
     ASSERT_NEAR(8, angle.turns(), 0.0001);
   }
+
+  TYPED_TEST(AngleTest, ShouldCreateAngleFromClock) {
+    auto angle = Angle<TypeParam>::fromClock(3);
+    ASSERT_NEAR(3, angle.oclock(), 0.0001);
+  }
   
   TYPED_TEST(AngleTest, ShouldConvertBetweenUnits) {
     auto angle = Angle<TypeParam>::fromDegrees(90);
@@ -90,5 +95,69 @@ namespace AngleTest {
     ostringstream str;
     str << angle;
     ASSERT_EQ("1.5", str.str());
+  }
+  
+  TEST(AngleTest, ShouldHaveDegreeShortCuts) {
+    auto anglef = 5 * Degreef;
+    ASSERT_NEAR(5, anglef.degrees(), 0.0001);
+
+    auto angled = 5 * Degreed;
+    ASSERT_NEAR(5, angled.degrees(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveRadianShortCuts) {
+    auto anglef = 5 * Radianf;
+    ASSERT_NEAR(5, anglef.radians(), 0.0001);
+
+    auto angled = 5 * Radiand;
+    ASSERT_NEAR(5, angled.radians(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveTurnShortCuts) {
+    auto anglef = 5 * Turnf;
+    ASSERT_NEAR(5, anglef.turns(), 0.0001);
+
+    auto angled = 5 * Turnd;
+    ASSERT_NEAR(5, angled.turns(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveClockShortCuts) {
+    auto anglef = 5 * oClockf;
+    ASSERT_NEAR(5, anglef.oclock(), 0.0001);
+
+    auto angled = 5 * oClockd;
+    ASSERT_NEAR(5, angled.oclock(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveDegreesSuffixOperator) {
+    auto anglei = 5_degrees;
+    ASSERT_NEAR(5, anglei.degrees(), 0.0001);
+
+    auto angled = 7.1_degrees;
+    ASSERT_NEAR(7.1, angled.degrees(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveRadiansSuffixOperator) {
+    auto anglei = 5_radians;
+    ASSERT_NEAR(5, anglei.radians(), 0.0001);
+
+    auto angled = 7.1_radians;
+    ASSERT_NEAR(7.1, angled.radians(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveTurnsSuffixOperator) {
+    auto anglei = 5_turns;
+    ASSERT_NEAR(5, anglei.turns(), 0.0001);
+
+    auto angled = 7.1_turns;
+    ASSERT_NEAR(7.1, angled.turns(), 0.0001);
+  }
+  
+  TEST(AngleTest, ShouldHaveOClockSuffixOperator) {
+    auto anglei = 5_oclock;
+    ASSERT_NEAR(5, anglei.oclock(), 0.0001);
+
+    auto angled = 7.1_oclock;
+    ASSERT_NEAR(7.1, angled.oclock(), 0.0001);
   }
 }

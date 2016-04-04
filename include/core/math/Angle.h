@@ -13,6 +13,7 @@
   * * Radians
   * * Degrees
   * * Turns
+  * * o'Clock
   * 
   * Internally, the angle is stored in radians, which makes calculations easy
   * for all the functions that use radians.
@@ -35,28 +36,69 @@ public:
   inline Angle(const Angle&) = default;
   
   /**
-    * Constructs an angle from degrees. Internally, the angle is stored in
-    * radians, with \f$r = d \times \frac{2\pi}{360}\f$, where \f$d\f$ is the
-    * angle in degrees and \f$r\f$ is the angle in radians.
+    * Constructs an angle from @p degrees. Internally, the angle is stored in
+    * radians, with \f$r = d \times \frac{2\pi}{360}\f$, where \f$d\f$ is
+    * @p degrees (the angle in degrees) and \f$r\f$ is the internal angle in
+    * radians. The following interactive figure shows the angle in degrees.
+    * Click and drag horizontally to change the angle.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="angle_from_x.js"></script>
+    * <script type="text/javascript" src="angle_from_degrees.js"></script>
+    * @endhtmlonly
     */
   inline static Angle<T> fromDegrees(const T& degrees) {
     return Angle<T>(degrees * 0.01745329251996);
   }
   
   /**
-    * Constructs an angle from radians.
+    * Constructs an angle from @p radians. The following interactive figure
+    * shows the angle in radians. Click and drag horizontally to change the
+    * angle.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="angle_from_x.js"></script>
+    * <script type="text/javascript" src="angle_from_radians.js"></script>
+    * @endhtmlonly
     */
   inline static Angle<T> fromRadians(const T& radians) {
     return Angle<T>(radians);
   }
   
   /**
-    * Constructs an angle from degrees. Internally, the angle is stored in
-    * radians, with \f$r = t \times 2\pi\f$, where \f$t\f$ is the angle in turns
-    * and \f$r\f$ is the angle in radians.
+    * Constructs an angle from @p turns. Internally, the angle is stored in
+    * radians, with \f$r = t \times 2\pi\f$, where \f$t\f$ is @p turns (the
+    * angle in turns) and \f$r\f$ is the internal angle in radians. The
+    * following interactive figure shows the angle in turns. Click and drag
+    * horizontally to change the angle.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="angle_from_x.js"></script>
+    * <script type="text/javascript" src="angle_from_turns.js"></script>
+    * @endhtmlonly
     */
   inline static Angle<T> fromTurns(const T& turns) {
     return Angle<T>(turns * TAU);
+  }
+  
+  /**
+    * Constructs an angle from @p oClock. Internally, the angle is stored in
+    * radians, with \f$r = \frac{o \times 2\pi}{12}\f$, where \f$o\f$ is
+    * @p oClock (the hour on a clock) and \f$r\f$ is the angle in radians. The
+    * following interactive figure shows the angle in hours. Click and drag
+    * horizontally to change the angle.
+    * 
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="angle_from_x.js"></script>
+    * <script type="text/javascript" src="angle_from_clock.js"></script>
+    * @endhtmlonly
+    */
+  inline static Angle<T> fromClock(const T& oClock) {
+    return Angle<T>(oClock * 0.5235987755982988730771);
   }
   
   /**
@@ -83,7 +125,16 @@ public:
   }
   
   /**
-    * @returns an angle that is the addition between this angle and the other
+    * @returns the angle in hours on the clock, \f$o = \frac{12r}{2\pi}\f$,
+    *   where \f$o\f$ is the angle in hours on the clock and \f$r\f$ is the
+    *   angle in radians.
+    */
+  inline T oclock() const {
+    return m_radians * 1.909859317102744029227;
+  }
+  
+  /**
+    * @returns an angle that is the addition between this angle and the @p other
     *   angle.
     */
   inline Angle<T> operator+(const Angle<T>& other) const {
@@ -91,8 +142,8 @@ public:
   }
   
   /**
-    * @returns an angle that is the subtraction between this angle and the other
-    *   angle.
+    * @returns an angle that is the subtraction between this angle and the
+    *   @p other angle.
     */
   inline Angle<T> operator-(const Angle<T>& other) const {
     return Angle<T>(m_radians - other.radians());
@@ -107,7 +158,7 @@ public:
   
   /**
     * @returns an angle that is the multiplication between this angle and the
-    *   other value.
+    *   @p other value.
     */
   template<class F>
   inline Angle<T> operator*(const F& other) const {
@@ -115,8 +166,8 @@ public:
   }
   
   /**
-    * @returns true if the angles are equal by comparing their value in radians,
-    *   false otherwise.
+    * @returns true if this angles is equal to @p other by comparing their value
+    *   in radians, false otherwise.
     */
   inline bool operator==(const Angle<T>& other) const {
     return m_radians == other.radians();
@@ -132,9 +183,9 @@ private:
 };
 
 /**
-  * Outputs the angle in radians to the given output stream.
+  * Outputs the @p angle in radians to the given output stream @p os.
   * 
-  * @returns os.
+  * @returns @p os.
   */
 template<class T>
 std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
@@ -143,11 +194,11 @@ std::ostream& operator<<(std::ostream& os, const Angle<T>& angle) {
 }
 
 /**
-  * @returns the multiple of the angle by the value on the left.
+  * @returns the multiple of the @p angle by the value on the @p left.
   */
 template<class T, class F>
-inline Angle<T> operator*(const F& left, const Angle<T>& other) {
-  return Angle<T>::fromRadians(left * other.radians());
+inline Angle<T> operator*(const F& left, const Angle<T>& angle) {
+  return Angle<T>::fromRadians(left * angle.radians());
 }
 
 /**
@@ -192,6 +243,16 @@ const Anglef Radianf = Anglef::fromRadians(1);
 const Anglef Turnf = Anglef::fromTurns(1);
 
 /**
+  * Constant float angle of one hour. Use it with the multiplication operator
+  * as a shortcut to Anglef::fromClock().
+  * 
+  * @code
+  * Anglef angle = 2 * oClockf;
+  * @endcode
+  */
+const Anglef oClockf = Anglef::fromClock(1);
+
+/**
   * Constant double angle of one degree. Use it with the multiplication operator
   * as a shortcut to Angled::fromDegrees().
   * 
@@ -222,9 +283,21 @@ const Angled Radiand = Angled::fromRadians(1);
 const Angled Turnd = Angled::fromTurns(1);
 
 /**
+  * Constant double angle of one hour. Use it with the multiplication operator
+  * as a shortcut to Angled::fromClock().
+  * 
+  * @code
+  * Angled angle = 2 * oClockd;
+  * @endcode
+  */
+const Angled oClockd = Angled::fromClock(1);
+
+/**
   * Suffix operator for floating point literals.
   * 
   * @returns an Angle<double> with the degrees from the literal.
+  * 
+  * @see Angle<double>::fromDegrees().
   */
 inline Angled operator "" _degrees(long double value) {
   return Angled::fromDegrees(value);
@@ -232,6 +305,8 @@ inline Angled operator "" _degrees(long double value) {
 
 /**
   * Suffix operator for integer literals.
+  * 
+  * @see Angle<double>::fromDegrees().
   * 
   * @returns an Angle<double> with the degrees from the literal.
   */
@@ -242,6 +317,8 @@ inline Angled operator "" _degrees(unsigned long long int value) {
 /**
   * Suffix operator for floating point literals.
   * 
+  * @see Angle<double>::fromRadians().
+  * 
   * @returns an Angle<double> with the radians from the literal.
   */
 inline Angled operator "" _radians(long double value) {
@@ -250,6 +327,8 @@ inline Angled operator "" _radians(long double value) {
 
 /**
   * Suffix operator for integer literals.
+  * 
+  * @see Angle<double>::fromRadians().
   * 
   * @returns an Angle<double> with the radians from the literal.
   */
@@ -260,6 +339,8 @@ inline Angled operator "" _radians(unsigned long long int value) {
 /**
   * Suffix operator for floating point literals.
   * 
+  * @see Angle<double>::fromTurns().
+  * 
   * @returns an Angle<double> with the turns from the literal.
   */
 inline Angled operator "" _turns(long double value) {
@@ -269,8 +350,32 @@ inline Angled operator "" _turns(long double value) {
 /**
   * Suffix operator for integer literals.
   * 
+  * @see Angle<double>::fromTurns().
+  * 
   * @returns an Angle<double> with the turns from the literal.
   */
 inline Angled operator "" _turns(unsigned long long int value) {
   return Angled::fromTurns(value);
+}
+
+/**
+  * Suffix operator for floating point literals.
+  * 
+  * @see Angle<double>::fromHours().
+  * 
+  * @returns an Angle<double> with the hours on the clock from the literal.
+  */
+inline Angled operator "" _oclock(long double value) {
+  return Angled::fromClock(value);
+}
+
+/**
+  * Suffix operator for integer literals.
+  * 
+  * @see Angle<double>::fromHours().
+  * 
+  * @returns an Angle<double> with the hours on the clock from the literal.
+  */
+inline Angled operator "" _oclock(unsigned long long int value) {
+  return Angled::fromClock(value);
 }
