@@ -1,15 +1,26 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/FlatMeshTriangle.h"
-#include "raytracer/primitives/Mesh.h"
+#include "raytracer/primitives/Composite.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
 using namespace raytracer;
 
+void FlatMeshTriangle::build(const Mesh* mesh, Composite* composite, Material* material) {
+  for (const auto& face : mesh->faces()) {
+    for (unsigned int j = 2; j != face.size(); ++j) {
+      auto triangle = std::make_shared<FlatMeshTriangle>(mesh, face[0], face[j-1], face[j]);
+      triangle->setMaterial(material);
+      composite->add(triangle);
+    }
+  }
+}
+
 const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
-  Vector3d v0(m_mesh->vertices[m_index0].point);
-  Vector3d v1(m_mesh->vertices[m_index1].point);
-  Vector3d v2(m_mesh->vertices[m_index2].point);
+  Vector3d v0(m_mesh->vertices()[m_index0].point);
+  Vector3d v1(m_mesh->vertices()[m_index1].point);
+  Vector3d v2(m_mesh->vertices()[m_index2].point);
   
   double a = v0.x() - v1.x(), b = v0.x() - v2.x(), c = ray.direction().x(), d = v0.x() - ray.origin().x();
   double e = v0.y() - v1.y(), f = v0.y() - v2.y(), g = ray.direction().y(), h = v0.y() - ray.origin().y();
@@ -56,9 +67,9 @@ const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& 
 }
 
 Vector3d FlatMeshTriangle::computeNormal() const {
-  Vector3d n0(m_mesh->vertices[m_index0].normal);
-  Vector3d n1(m_mesh->vertices[m_index1].normal);
-  Vector3d n2(m_mesh->vertices[m_index2].normal);
+  Vector3d n0(m_mesh->vertices()[m_index0].normal);
+  Vector3d n1(m_mesh->vertices()[m_index1].normal);
+  Vector3d n2(m_mesh->vertices()[m_index2].normal);
   
   return (n0 + n1 + n2).normalized();
 }

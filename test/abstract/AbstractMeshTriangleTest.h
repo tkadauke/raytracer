@@ -1,7 +1,7 @@
 #ifndef ABSTRACT_MESH_TRIANGLE_TEST_H
 #define ABSTRACT_MESH_TRIANGLE_TEST_H
 
-#include "raytracer/primitives/Mesh.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "raytracer/State.h"
@@ -12,9 +12,9 @@ namespace testing {
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
     inline void SetUp() {
-      mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1)));
-      mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1)));
-      mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1)));
+      mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1));
+      mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1));
+      mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1));
     }
     
     Mesh mesh;

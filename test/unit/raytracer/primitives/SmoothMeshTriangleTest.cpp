@@ -1,16 +1,31 @@
 #include "gtest.h"
-#include "raytracer/primitives/SmoothMeshTriangle.h"
+#include "test/helpers/ContainerTestHelper.h"
 #include "test/abstract/AbstractMeshTriangleTest.h"
+
+#include "raytracer/primitives/SmoothMeshTriangle.h"
+#include "raytracer/primitives/Composite.h"
 
 namespace SmoothMeshTriangleTest {
   using namespace ::testing;
   using namespace raytracer;
   
-  TEST(FlatMeshTriangle, ShouldHaveDifferentNormalsAtDifferentHitPoints) {
+  TEST(SmoothtMeshTriangle, ShouldBuildFromMesh) {
     Mesh mesh;
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized()));
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized()));
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized()));
+    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
+    mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
+    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
+    mesh.addFace(makeStdVector(0, 1, 2));
+    
+    auto composite = new Composite;
+    SmoothMeshTriangle::build(&mesh, composite, nullptr);
+    ASSERT_EQ(1u, composite->primitives().size());
+  }
+  
+  TEST(SmoothMeshTriangle, ShouldHaveDifferentNormalsAtDifferentHitPoints) {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
+    mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
+    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
     
     State state;
     SmoothMeshTriangle triangle(&mesh, 0, 1, 2);

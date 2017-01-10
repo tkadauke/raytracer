@@ -4,18 +4,16 @@
 #include <iostream>
 #include <vector>
 
-namespace raytracer {
-  class Mesh;
-}
+class Mesh;
 
 class PlyProperty;
 
 class PlyFile {
 public:
   explicit PlyFile(std::istream& is);
-  explicit PlyFile(std::istream& is, raytracer::Mesh& mesh);
+  explicit PlyFile(std::istream& is, Mesh& mesh);
   
-  void read(std::istream& is, raytracer::Mesh& mesh);
+  void read(std::istream& is, Mesh& mesh);
   
   inline int elementCount() const {
     return m_elements.size();

@@ -2,9 +2,10 @@
 #include "test/functional/support/GivenWhenThen.h"
 
 #include "core/formats/ply/PlyFile.h"
-#include "raytracer/primitives/Mesh.h"
+#include "core/geometry/Mesh.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Instance.h"
+#include "raytracer/primitives/FlatMeshTriangle.h"
 
 #include <fstream>
 
@@ -18,7 +19,7 @@ GIVEN(RaytracerFeatureTest, "a centered cube mesh") {
   PlyFile file(stream, *mesh);
   mesh->computeNormals();
   
-  mesh->addFlatTrianglesTo(test->scene(), test->redDiffuse());
+  FlatMeshTriangle::build(mesh, test->scene(), test->redDiffuse());
 }
 
 GIVEN(RaytracerFeatureTest, "a displaced cube mesh") {
@@ -27,7 +28,7 @@ GIVEN(RaytracerFeatureTest, "a displaced cube mesh") {
   PlyFile file(stream, *mesh);
   mesh->computeNormals();
   auto composite = std::make_shared<Composite>();
-  mesh->addFlatTrianglesTo(composite.get(), test->redDiffuse());
+  FlatMeshTriangle::build(mesh, composite.get(), test->redDiffuse());
   
   auto instance = std::make_shared<Instance>(composite);
   instance->setMatrix(Matrix4d::translate(Vector3d(0, 20, 0)));

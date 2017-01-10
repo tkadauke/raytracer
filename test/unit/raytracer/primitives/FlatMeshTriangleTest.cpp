@@ -1,16 +1,31 @@
 #include "gtest.h"
-#include "raytracer/primitives/FlatMeshTriangle.h"
+#include "test/helpers/ContainerTestHelper.h"
 #include "test/abstract/AbstractMeshTriangleTest.h"
+
+#include "raytracer/primitives/FlatMeshTriangle.h"
+#include "raytracer/primitives/Composite.h"
 
 namespace FlatMeshTriangleTest {
   using namespace ::testing;
   using namespace raytracer;
   
+  TEST(FlatMeshTriangle, ShouldBuildFromMesh) {
+    Mesh mesh;
+    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
+    mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
+    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
+    mesh.addFace(makeStdVector(0, 1, 2));
+    
+    auto composite = new Composite;
+    FlatMeshTriangle::build(&mesh, composite, nullptr);
+    ASSERT_EQ(1u, composite->primitives().size());
+  }
+  
   TEST(FlatMeshTriangle, ShouldHaveSameNormalEverywhere) {
     Mesh mesh;
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized()));
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized()));
-    mesh.vertices.push_back(Mesh::Vertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized()));
+    mesh.addVertex(Vector3d(-1, -1, 0), Vector3d(0, -2, 1).normalized());
+    mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(-2, 0, 1).normalized());
+    mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 2, 1).normalized());
     
     State state;
     FlatMeshTriangle triangle(&mesh, 0, 1, 2);

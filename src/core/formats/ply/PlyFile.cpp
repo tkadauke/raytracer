@@ -1,12 +1,11 @@
 #include "core/formats/ply/PlyFile.h"
 #include "core/formats/ply/PlyParseError.h"
-#include "raytracer/primitives/Mesh.h"
+#include "core/geometry/Mesh.h"
 
 #include <string>
 #include <sstream>
 
 using namespace std;
-using namespace raytracer;
 
 PlyFile::PlyFile(istream& is) {
   readHeader(is);
@@ -78,7 +77,7 @@ void PlyFile::read(istream& is, Mesh& mesh) {
             ignoreProperty(is, property);
           }
         }
-        mesh.vertices.push_back(vertex);
+        mesh.addVertex(vertex);
       } else if (element.name() == "face") {
         Mesh::Face face;
         for (const auto& property : element.properties()) {
@@ -94,7 +93,7 @@ void PlyFile::read(istream& is, Mesh& mesh) {
             ignoreProperty(is, property);
           }
         }
-        mesh.faces.push_back(face);
+        mesh.addFace(face);
       } else {
         for (const auto& property : element.properties()) {
           ignoreProperty(is, property);
