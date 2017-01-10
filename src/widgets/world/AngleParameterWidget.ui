@@ -71,6 +71,56 @@
        <string>Radians</string>
       </property>
      </item>
+     <item>
+      <property name="text">
+       <string>Grads</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Arc minutes</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Arc seconds</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Hexacontades</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Binary degrees</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Quadrants</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Sextants</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>o'Clock</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Hours</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Compass points</string>
+      </property>
+     </item>
     </widget>
    </item>
   </layout>

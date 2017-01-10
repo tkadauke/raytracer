@@ -3,6 +3,8 @@
 
 #include "core/math/Angle.h"
 
+using namespace std;
+
 Q_DECLARE_METATYPE(Angled);
 
 struct AngleParameterWidget::Private {
@@ -29,14 +31,24 @@ void AngleParameterWidget::setParameterName(const QString& name) {
 const QVariant AngleParameterWidget::value() const {
   double editValue = p->ui.angleEdit->text().toDouble();
   
-  Angled angle;
-  if (type() == "Degrees") {
-    angle = Angled::fromDegrees(editValue);
-  } else if (type() == "Turns") {
-    angle = Angled::fromTurns(editValue);
-  } else {
-    angle = Angled::fromRadians(editValue);
-  }
+  typedef Angled (*funcptr)(const double&);
+  static auto fromMap = map<string, funcptr>({
+    {"Radians", &Angled::fromRadians},
+    {"Grads", &Angled::fromGrads},
+    {"Degrees", &Angled::fromDegrees},
+    {"Arc minutes", &Angled::fromArcMinutes},
+    {"Arc seconds", &Angled::fromArcSeconds},
+    {"Hexacontades", &Angled::fromHexacontades},
+    {"Binary degrees", &Angled::fromBinaryDegrees},
+    {"Turns", &Angled::fromTurns},
+    {"Quadrants", &Angled::fromQuadrants},
+    {"Sextants", &Angled::fromSextants},
+    {"o'Clock", &Angled::fromClock},
+    {"Hours", &Angled::fromHours},
+    {"Compass points", &Angled::fromCompassPoints}
+  });
+
+  Angled angle = fromMap[type().toStdString()](editValue);
   return QVariant::fromValue(angle);
 }
 
@@ -45,16 +57,25 @@ void AngleParameterWidget::setValue(const QVariant& value) {
     return;
   
   auto angle = value.value<Angled>();
-  
-  double number;
-  if (type() == "Degrees") {
-    number = angle.degrees();
-  } else if (type() == "Turns") {
-    number = angle.turns();
-  } else {
-    number = angle.radians();
-  }
-  
+  typedef double (Angled::*funcptr)() const;
+  static auto toMap = map<string, funcptr>({
+    {"Radians", &Angled::radians},
+    {"Grads", &Angled::grads},
+    {"Degrees", &Angled::degrees},
+    {"Arc minutes", &Angled::arcMinutes},
+    {"Arc seconds", &Angled::arcSeconds},
+    {"Hexacontades", &Angled::hexacontades},
+    {"Binary degrees", &Angled::binaryDegrees},
+    {"Turns", &Angled::turns},
+    {"Quadrants", &Angled::quadrants},
+    {"Sextants", &Angled::sextants},
+    {"o'Clock", &Angled::oclock},
+    {"Hours", &Angled::hours},
+    {"Compass points", &Angled::compassPoints},
+  });
+
+  funcptr fp = toMap[type().toStdString()];
+  double number = (angle.*fp)();
   p->ui.angleEdit->setText(QString::number(number));
 }
 
