@@ -55,6 +55,9 @@ void Mesh::addVertex(const Vector3d& point, const Vector3d& normal) {
 }
 
 void Mesh::addFace(const Mesh::Face& face) {
+  if (face.size() < 3) {
+    throw InvalidMeshFaceException("Invalid mesh face. Trying to add a mesh face with < 3 vertices", __FILE__, __LINE__);
+  }
   p->faces.push_back(face);
 }
 

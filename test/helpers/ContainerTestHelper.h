@@ -49,80 +49,51 @@ namespace testing {
       msg << ".";
       return AssertionFailure(msg);
     }
-    
-    template<class Container, class T>
-    Container makeContainer(const T& v0) {
-      Container result;
-      result.push_back(v0);
-      return result;
-    }
-    
-    template<class Container, class T>
-    Container makeContainer(const T& v0, const T& v1) {
-      Container result;
-      result.push_back(v0);
-      result.push_back(v1);
-      return result;
-    }
-    
-    template<class Container, class T>
-    Container makeContainer(const T& v0, const T& v1, const T& v2) {
-      Container result;
-      result.push_back(v0);
-      result.push_back(v1);
-      result.push_back(v2);
-      return result;
-    }
-    
-    template<class Container, class T>
-    Container makeContainer(const T& v0, const T& v1, const T& v2, const T& v3) {
-      Container result;
-      result.push_back(v0);
-      result.push_back(v1);
-      result.push_back(v2);
-      result.push_back(v3);
-      return result;
-    }
   }
 
   template<class T>
   std::vector<T> makeStdVector(const T& v0) {
-    return internal::makeContainer<std::vector<T>, T>(v0);
+    return std::vector<T>({v0});
   }
   
   template<class T>
   std::vector<T> makeStdVector(const T& v0, const T& v1) {
-    return internal::makeContainer<std::vector<T>, T>(v0, v1);
+    return std::vector<T>({v0, v1});
   }
   
   template<class T>
   std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2) {
-    return internal::makeContainer<std::vector<T>, T>(v0, v1, v2);
+    return std::vector<T>({v0, v1, v2});
   }
   
   template<class T>
   std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2, const T& v3) {
-    return internal::makeContainer<std::vector<T>, T>(v0, v1, v2, v3);
+    return std::vector<T>({v0, v1, v2, v3});
+  }
+  
+  template<class T>
+  std::vector<T> makeStdVector(const T& v0, const T& v1, const T& v2, const T& v3, const T& v4) {
+    return std::vector<T>({v0, v1, v2, v3, v4});
   }
   
   template<class T>
   std::list<T> makeStdList(const T& v0) {
-    return internal::makeContainer<std::list<T>, T>(v0);
+    return std::list<T>({v0});
   }
   
   template<class T>
   std::list<T> makeStdList(const T& v0, const T& v1) {
-    return internal::makeContainer<std::list<T>, T>(v0, v1);
+    return std::list<T>({v0, v1});
   }
   
   template<class T>
   std::list<T> makeStdList(const T& v0, const T& v1, const T& v2) {
-    return internal::makeContainer<std::list<T>, T>(v0, v1, v2);
+    return std::list<T>({v0, v1, v2});
   }
   
   template<class T>
   std::list<T> makeStdList(const T& v0, const T& v1, const T& v2, const T& v3) {
-    return internal::makeContainer<std::list<T>, T>(v0, v1, v2, v3);
+    return std::list<T>({v0, v1, v2, v3});
   }
 }
 

@@ -43,4 +43,30 @@ namespace MeshTest {
     auto after = this->mesh.faces().size();
     ASSERT_EQ(1u, after - before);
   }
+  
+  TEST_F(MeshTest, ShouldThrowExceptionIfFaceHasLessThanThreeVertices) {
+    ASSERT_THROW(this->mesh.addFace(makeStdVector(1)), InvalidMeshFaceException);
+  }
+  
+  TEST_F(MeshTest, ShouldIterateOverEmptyMesh) {
+    Mesh mesh;
+    int count = 0;
+    for (const auto& it : mesh) { (void)it; count++; }
+    ASSERT_EQ(0, count);
+  }
+  
+  TEST_F(MeshTest, ShouldIterateOverOneFaceMesh) {
+    int count = 0;
+    for (const auto& it : this->mesh) { (void)it; count++; }
+    ASSERT_EQ(1, count);
+  }
+  
+  TEST_F(MeshTest, ShouldIteratorOverBigMesh) {
+    this->mesh.addVertex(Vector3d(1, 1, 1), Vector3d::null());
+    this->mesh.addFace(makeStdVector(1, 2, 3, 1, 2));
+
+    int count = 0;
+    for (const auto& it : this->mesh) { (void)it; count++; }
+    ASSERT_EQ(4, count);
+  }
 }

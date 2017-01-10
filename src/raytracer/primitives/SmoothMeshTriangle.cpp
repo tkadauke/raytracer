@@ -48,12 +48,10 @@ SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1,
 }
 
 void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, Material* material) {
-  for (const auto& face : mesh->faces()) {
-    for (unsigned int j = 2; j != face.size(); ++j) {
-      auto triangle = std::make_shared<SmoothMeshTriangle>(mesh, face[0], face[j-1], face[j]);
-      triangle->setMaterial(material);
-      composite->add(triangle);
-    }
+  for (const auto& triangle : *mesh) {
+    auto primitive = std::make_shared<SmoothMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
+    primitive->setMaterial(material);
+    composite->add(primitive);
   }
 }
 
