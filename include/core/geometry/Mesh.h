@@ -119,8 +119,8 @@ public:
   /**
     * Constructor. Creates an empty Mesh.
     */
-  Mesh();
-  ~Mesh();
+  inline Mesh() {}
+  inline ~Mesh() {}
 
   /**
     * Computes the normals from the vertexes in the given faces. For this
@@ -132,27 +132,40 @@ public:
   /**
     * Adds the given @p vertex to this Mesh.
     */
-  void addVertex(const Vertex& vertex);
+  inline void addVertex(const Vertex& vertex) {
+    m_vertices.push_back(vertex);
+  }
   
   /**
     * Adds a new vertex consisting of @p point and @p normal to this Mesh.
     */
-  void addVertex(const Vector3d& point, const Vector3d& normal);
+  inline void addVertex(const Vector3d& point, const Vector3d& normal) {
+    m_vertices.push_back(Vertex(point, normal));
+  }
   
   /**
     * Adds the given @p face to this mesh.
     */
-  void addFace(const Face& face);
+  inline void addFace(const Face& face) {
+    if (face.size() < 3) {
+      throw InvalidMeshFaceException("Invalid mesh face. Trying to add a mesh face with < 3 vertices", __FILE__, __LINE__);
+    }
+    m_faces.push_back(face);
+  }
   
   /**
     * Returns a const reference to the vector of vertices.
     */
-  const std::vector<Vertex>& vertices() const;
+  inline const std::vector<Vertex>& vertices() const {
+    return m_vertices;
+  }
   
   /**
     * Returns a const reference to the vector of faces.
     */
-  const std::vector<Face>& faces() const;
+  inline const std::vector<Face>& faces() const {
+    return m_faces;
+  }
   
   /**
     * Returns a TriangleIterator that points to the first triangle if the first
@@ -171,6 +184,6 @@ public:
   }
 
 private:
-  struct Private;
-  std::unique_ptr<Private> p;
+  std::vector<Vertex> m_vertices;
+  std::vector<Face> m_faces;
 };
