@@ -14,7 +14,7 @@ namespace testing {
     };
     
     template<class S, class T>
-    // Helper function for implementing ASSERT_MATRIX_NEAR.
+    // Helper function for implementing ASSERT_TYPES_EQ.
     AssertionResult TypesEqualPredFormat(
       const char* expr1,
       const char* expr2,
