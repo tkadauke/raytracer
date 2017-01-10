@@ -41,8 +41,8 @@ const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& h
     
     auto hitPoint = hitPoints.minWithPositiveDistance();
     if (hitPoint.isUndefined()) {
-      return nullptr;
       state.miss("ConvexOperation, ray miss");
+      return nullptr;
     } else {
       state.hit("ConvexOperation");
 
