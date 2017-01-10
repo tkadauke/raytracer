@@ -49,7 +49,9 @@ public:
     */
   class TriangleIterator {
   public:
-    /** The Triangle type is used when dereferencing an iterator. */
+    /**
+      * The Triangle type is used when dereferencing an iterator.
+      */
     typedef std::array<int, 3> Triangle;
     
     inline ~TriangleIterator() {}
@@ -74,8 +76,9 @@ public:
     }
     
     /**
-      * Inequality operator. Returns true if this iterator is different from
-      * other.
+      * Inequality operator.
+      *
+      * @returns true if this iterator is different from other, false otherwise.
       */
     inline bool operator!=(const TriangleIterator& other) const {
       return &m_mesh != &other.m_mesh ||
@@ -154,21 +157,21 @@ public:
   }
   
   /**
-    * Returns a const reference to the vector of vertices.
+    * @returns a const reference to the vector of vertices.
     */
   inline const std::vector<Vertex>& vertices() const {
     return m_vertices;
   }
   
   /**
-    * Returns a const reference to the vector of faces.
+    * @returns a const reference to the vector of faces.
     */
   inline const std::vector<Face>& faces() const {
     return m_faces;
   }
   
   /**
-    * Returns a TriangleIterator that points to the first triangle if the first
+    * @returns a TriangleIterator that points to the first triangle if the first
     * face in this mesh.
     */
   inline TriangleIterator begin() const {
@@ -176,7 +179,7 @@ public:
   }
   
   /**
-    * Returns a TriangleIterator that points past the last triangle if the last
+    * @returns a TriangleIterator that points past the last triangle if the last
     * face in this mesh.
     */
   inline TriangleIterator end() const {
