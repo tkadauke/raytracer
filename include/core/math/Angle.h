@@ -312,6 +312,15 @@ public:
   }
   
   /**
+    * @returns an angle that is the division between this angle and the @p other
+    *   value.
+    */
+  template<class F>
+  inline Angle<T> operator/(const F& other) const {
+    return Angle<T>(m_radians / other);
+  }
+
+  /**
     * @returns true if this angles is equal to @p other by comparing their value
     *   in radians, false otherwise.
     */

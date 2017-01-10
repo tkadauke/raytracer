@@ -123,6 +123,11 @@ namespace AngleTest {
     ASSERT_NEAR(180, (2 * angle).degrees(), 0.0001);
   }
   
+  TYPED_TEST(AngleTest, ShouldDivideAngleByScalar) {
+    auto angle = Angle<TypeParam>::fromDegrees(90);
+    ASSERT_NEAR(45, (angle / 2).degrees(), 0.0001);
+  }
+  
   TYPED_TEST(AngleTest, ShouldCompareAngles) {
     auto angle1 = Angle<TypeParam>::fromDegrees(90),
          angle2 = Angle<TypeParam>::fromDegrees(90);
