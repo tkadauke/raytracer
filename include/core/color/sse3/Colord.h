@@ -21,7 +21,7 @@ public:
     m_vector[1] = _mm_setzero_pd();
   }
 
-  inline Color(const ComponentsType& cells) {
+  inline explicit Color(const ComponentsType& cells) {
     m_vector[0] = _mm_set_pd(cells[1], cells[0]);
     m_vector[1] = _mm_set_sd(cells[2]);
   }

@@ -10,9 +10,9 @@ namespace raytracer {
       : Primitive(),
         m_corner(corner),
         m_leg1(leg1),
-        m_leg2(leg2)
+        m_leg2(leg2),
+        m_normal((leg1 ^ leg2).normalized())
     {
-      m_normal = (m_leg1 ^ m_leg2).normalized();
       m_squaredLength1 = m_leg1.squaredLength();
       m_squaredLength2 = m_leg2.squaredLength();
     }

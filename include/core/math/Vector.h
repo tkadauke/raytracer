@@ -93,7 +93,7 @@ public:
     * Constructs a vector component wise from the given array. The array's size
     * must be exactly the same as the dimensions of the vector.
     */
-  inline Vector(const CellsType& cells) {
+  inline explicit Vector(const CellsType& cells) {
     for (int i = 0; i != Dimensions; ++i) {
       m_coordinates[i] = cells[i];
     }

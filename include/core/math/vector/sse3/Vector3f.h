@@ -29,7 +29,7 @@ public:
     m_vector[0] = _mm_set_ps(0.0f, z, y, x);
   }
   
-  inline Vector3(const CellsType& cells) {
+  inline explicit Vector3(const CellsType& cells) {
     m_vector[0] = _mm_set_ps(0.0f, cells[2], cells[1], cells[0]);
   }
 

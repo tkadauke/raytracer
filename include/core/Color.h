@@ -21,7 +21,7 @@ public:
     }
   }
 
-  inline Color(const ComponentsType& cells) {
+  inline explicit Color(const ComponentsType& cells) {
     for (int i = 0; i != 3; ++i) {
       m_components[i] = cells[i];
     }

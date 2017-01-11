@@ -9,7 +9,7 @@ BoundingBoxd MinkowskiSum::calculateBoundingBox() const {
   if (primitives().size() > 0) {
     Primitives::const_iterator it = primitives().begin();
     BoundingBoxd bbox = (*it++)->boundingBox();
-    for (; it != primitives().end(); it++) {
+    for (; it != primitives().end(); ++it) {
       bbox = bbox + (*it)->boundingBox();
     }
     return bbox;

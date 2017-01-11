@@ -77,7 +77,7 @@ public:
   /**
     * Constructs a matrix from cells, a two-dimensional array of size Dim.
     */
-  inline Matrix(const CellsType& cells) {
+  inline explicit Matrix(const CellsType& cells) {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         m_cells[row][col] = cells[row][col];

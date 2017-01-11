@@ -24,7 +24,7 @@ public:
     m_vector[0] = _mm_set_ps(w, z, y, x);
   }
   
-  inline Vector4(const CellsType& cells) {
+  inline explicit Vector4(const CellsType& cells) {
     m_vector[0] = _mm_set_ps(cells[3], cells[2], cells[1], cells[0]);
   }
 

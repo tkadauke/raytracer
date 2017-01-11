@@ -3,7 +3,11 @@
 #include <assert.h>
 
 GJKSimplex::GJKSimplex()
-  : m_bitsCurrentGJKSimplex(0),
+  : m_pointsLengthSquare(),
+    m_maxLengthSquare(0),
+    m_det(),
+    m_normSquare(),
+    m_bitsCurrentGJKSimplex(0),
     m_lastFound(0),
     m_lastFoundBit(0),
     m_allBits(0)
