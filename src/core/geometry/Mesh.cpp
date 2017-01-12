@@ -23,8 +23,7 @@ void Mesh::computeNormals(bool flip) {
   // normalize all the normals at the vertices
   for (auto& vertex : m_vertices) {
     if (flip)
-      vertex.normal = -vertex.normal.normalized();
-    else
-      vertex.normal.normalize();
+      vertex.normal.reverse();
+    vertex.normal.normalize();
   }
 }

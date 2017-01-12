@@ -248,6 +248,22 @@ namespace VectorTest {
 
     ASSERT_EQ(20.0, vector[0]);
   }
+  
+  TYPED_TEST(VectorTest, ShouldGetReversedVector) {
+    Vector<3, TypeParam> vector({0, 5, 4});
+
+    Vector<3, TypeParam> reversed = vector.reversed();
+    Vector<3, TypeParam> expected({0, -5, -4});
+    ASSERT_EQ(expected, reversed);
+  }
+  
+  TYPED_TEST(VectorTest, ShouldReverseInPlace) {
+    Vector<3, TypeParam> vector({0, 5, 4});
+
+    vector.reverse();
+    Vector<3, TypeParam> expected({0, -5, -4});
+    ASSERT_EQ(expected, vector);
+  }
 
   TYPED_TEST(VectorTest, ShouldGetNormalizedVector) {
     Vector<3, TypeParam> vector;
@@ -329,6 +345,16 @@ namespace VectorTest {
   TYPED_TEST(VectorTest, ShouldReturnFalseForInfiniteIfVectorIsFinite) {
     Vector<3, TypeParam> vector({ 0, 0, 0 });
     ASSERT_FALSE(vector.isInfinite());
+  }
+
+  TYPED_TEST(VectorTest, ShouldReturnTrueForIsNullIfVectorIsNullVector) {
+    Vector<3, TypeParam> vector;
+    ASSERT_TRUE(vector.isNull());
+  }
+  
+  TYPED_TEST(VectorTest, ShouldReturnFalseForIsNullOtherwise) {
+    Vector<3, TypeParam> vector({2, 5, 5});
+    ASSERT_FALSE(vector.isNull());
   }
   
   TYPED_TEST(VectorTest, ShouldReturnMinComponent) {
@@ -416,6 +442,12 @@ namespace DerivedVectorTest {
     ASSERT_TYPES_EQ(vector, - vector);
   }
 
+  TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForReversal) {
+    TypeParam vector;
+    vector[0] = 1;
+    ASSERT_TYPES_EQ(vector, vector.reversed());
+  }
+  
   TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForNormalization) {
     TypeParam vector;
     vector[0] = 1;
@@ -492,6 +524,7 @@ namespace Vector2Test {
   TYPED_TEST(Vector2Test, ShouldDefineNullVector) {
     Vector2<TypeParam> expected(0, 0);
     ASSERT_EQ(expected, Vector2<TypeParam>::null());
+    ASSERT_TRUE(Vector2<TypeParam>::null().isNull());
   }
   
   TYPED_TEST(Vector2Test, ShouldDefineRightVector) {
@@ -557,6 +590,7 @@ namespace Vector3Test {
     ASSERT_EQ(0, vector.x());
     ASSERT_EQ(0, vector.y());
     ASSERT_EQ(0, vector.z());
+    ASSERT_TRUE(vector.isNull());
   }
 
   TYPED_TEST(Vector3Test, ShouldInitializeCoordinates) {
@@ -590,6 +624,7 @@ namespace Vector3Test {
   TYPED_TEST(Vector3Test, ShouldDefineNullVector) {
     Vector3<TypeParam> expected(0, 0, 0);
     ASSERT_EQ(expected, Vector3<TypeParam>::null());
+    ASSERT_TRUE(Vector3<TypeParam>::null().isNull());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineEpsilonVector) {
@@ -720,6 +755,17 @@ namespace Vector3Test {
     ASSERT_EQ(2, Vector3<TypeParam>(0, 2, 0).length());
   }
   
+  TYPED_TEST(Vector3Test, ShouldReverse) {
+    Vector3<TypeParam> v(2, 0, 0), expected(-2, 0, 0);
+    v.reverse();
+    ASSERT_EQ(expected, v);
+  }
+  
+  TYPED_TEST(Vector3Test, ShouldReturnReversedVector) {
+    Vector3<TypeParam> v(2, 0, 0), expected(-2, 0, 0);
+    ASSERT_EQ(expected, v.reversed());
+  }
+  
   TYPED_TEST(Vector3Test, ShouldNormalize) {
     Vector3<TypeParam> v(2, 0, 0), expected(1, 0, 0);
     v.normalize();
@@ -784,6 +830,8 @@ namespace Vector4Test {
     ASSERT_EQ(0, vector.y());
     ASSERT_EQ(0, vector.z());
     ASSERT_EQ(1, vector.w());
+    // vector.w() is 1, so technically it's not a true null vector
+    ASSERT_FALSE(vector.isNull());
   }
 
   TYPED_TEST(Vector4Test, ShouldInitializeCoordinates) {
@@ -825,6 +873,8 @@ namespace Vector4Test {
   TYPED_TEST(Vector4Test, ShouldDefineNullVector) {
     Vector4<TypeParam> expected(0, 0, 0, 1);
     ASSERT_EQ(expected, Vector4<TypeParam>::null());
+    // The w component is 1, so it's not a true null vector
+    ASSERT_FALSE(Vector4<TypeParam>::null().isNull());
   }
 
   TYPED_TEST(Vector4Test, ShouldDefineEpsilonVector) {
@@ -937,6 +987,17 @@ namespace Vector4Test {
   TYPED_TEST(Vector4Test, ShouldCalculateLength) {
     ASSERT_EQ(2, Vector4<TypeParam>(2, 0, 0, 0).length());
     ASSERT_EQ(2, Vector4<TypeParam>(0, 2, 0, 0).length());
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldReverse) {
+    Vector4<TypeParam> v(2, 0, 0, 0), expected(-2, 0, 0, 0);
+    v.reverse();
+    ASSERT_EQ(expected, v);
+  }
+  
+  TYPED_TEST(Vector4Test, ShouldReturnReversedVector) {
+    Vector4<TypeParam> v(2, 0, 0, 0), expected(-2, 0, 0, 0);
+    ASSERT_EQ(expected, v.reversed());
   }
   
   TYPED_TEST(Vector4Test, ShouldNormalize) {

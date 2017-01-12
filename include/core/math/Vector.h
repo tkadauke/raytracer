@@ -332,6 +332,21 @@ public:
   inline T squaredDistanceTo(const VectorType& other) const {
     return (derived() - other).squaredLength();
   }
+  
+  /**
+    * @returns the reversed vector to this vector. For vector \f$v\f$, this is
+    *   equivalent to writing \f$-v\f$.
+    */
+  inline VectorType reversed() const {
+    return -derived();
+  }
+  
+  /**
+    * Reverses this vector in place, i.e. negates all its components.
+    */
+  inline void reverse() {
+    derived() = -derived();
+  }
 
   /**
     * @returns vector \f$\frac{v}{|v|}\f$, where this vector is \f$v\f$, i.e.
@@ -387,6 +402,18 @@ public:
     */
   inline bool isDefined() const {
     return !isUndefined();
+  }
+  
+  /**
+    * @returns true if the vector is the null vector, i.e. all its components
+    *   are 0, false otherwise.
+    */
+  inline bool isNull() const {
+    for (int i = 0; i != Dimensions; ++i) {
+      if (coordinate(i) != T())
+        return false;
+    }
+    return true;
   }
   
   /**
