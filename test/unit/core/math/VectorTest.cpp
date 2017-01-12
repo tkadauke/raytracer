@@ -11,7 +11,7 @@ namespace VectorTest {
   class VectorTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> VectorTypes;
+  typedef ::testing::Types<float, double, long double> VectorTypes;
   TYPED_TEST_CASE(VectorTest, VectorTypes);
 
   TYPED_TEST(VectorTest, ShouldInitializeCoordinatesWithZeros) {
@@ -361,7 +361,8 @@ namespace DerivedVectorTest {
 
   typedef ::testing::Types<
     Vector2<float>, Vector3<float>, Vector4<float>,
-    Vector2<double>, Vector3<double>, Vector4<double>
+    Vector2<double>, Vector3<double>, Vector4<double>,
+    Vector2<long double>, Vector3<long double>, Vector4<long double>
   > DerivedVectorTypes;
   TYPED_TEST_CASE(DerivedVectorTest, DerivedVectorTypes);
 
@@ -461,7 +462,7 @@ namespace Vector2Test {
   class Vector2Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> Vector2Types;
+  typedef ::testing::Types<float, double, long double> Vector2Types;
   TYPED_TEST_CASE(Vector2Test, Vector2Types);
   
   TYPED_TEST(Vector2Test, ShouldHaveRightSize) {
@@ -531,13 +532,20 @@ namespace Vector3Test {
   class Vector3Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> Vector3Types;
+  typedef ::testing::Types<float, double, long double> Vector3Types;
   TYPED_TEST_CASE(Vector3Test, Vector3Types);
   
   TYPED_TEST(Vector3Test, ShouldHaveRightSize) {
 #if defined(__SSE__) || defined(__SSE3__)
-    ASSERT_EQ(sizeof(Vector<3, TypeParam>) + sizeof(TypeParam), sizeof(Vector3<TypeParam>));
-    ASSERT_EQ(4 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+    if (sizeof(TypeParam) == sizeof(float) || sizeof(TypeParam) == sizeof(double)) {
+      ASSERT_EQ(sizeof(Vector<3, TypeParam>) + sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+      ASSERT_EQ(4 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+    } else {
+      // long double has no SSE-enabled specializetion, so in this case, the
+      // size is as specified below
+      ASSERT_EQ(sizeof(Vector<3, TypeParam>), sizeof(Vector3<TypeParam>));
+      ASSERT_EQ(3 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
+    }
 #else
     ASSERT_EQ(sizeof(Vector<3, TypeParam>), sizeof(Vector3<TypeParam>));
     ASSERT_EQ(3 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
@@ -762,7 +770,7 @@ namespace Vector4Test {
   class Vector4Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> Vector4Types;
+  typedef ::testing::Types<float, double, long double> Vector4Types;
   TYPED_TEST_CASE(Vector4Test, Vector4Types);
   
   TYPED_TEST(Vector4Test, ShouldHaveRightSize) {

@@ -17,7 +17,7 @@ namespace MatrixTest {
   class MatrixTest : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+  typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
   
   TYPED_TEST_CASE(MatrixTest, SpecializedMatrixTypes);
   
@@ -418,7 +418,8 @@ namespace DerivedMatrixTest {
 
   typedef ::testing::Types<
     Matrix2<float>, Matrix3<float>, Matrix4<float>,
-    Matrix2<double>, Matrix3<double>, Matrix4<double>
+    Matrix2<double>, Matrix3<double>, Matrix4<double>,
+    Matrix2<long double>, Matrix3<long double>, Matrix4<long double>
   > SpecializedMatrixTypes;
   
   TYPED_TEST_CASE(DerivedMatrixTest, SpecializedMatrixTypes);
@@ -467,7 +468,7 @@ namespace Matrix2Test {
   class Matrix2Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+  typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
   
   TYPED_TEST_CASE(Matrix2Test, SpecializedMatrixTypes);
 
@@ -736,7 +737,7 @@ namespace Matrix3Test {
   class Matrix3Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+  typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
   
   TYPED_TEST_CASE(Matrix3Test, SpecializedMatrixTypes);
 
@@ -903,7 +904,7 @@ namespace Matrix4Test {
   class Matrix4Test : public ::testing::Test {
   };
 
-  typedef ::testing::Types<float, double> SpecializedMatrixTypes;
+  typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
 
   TYPED_TEST_CASE(Matrix4Test, SpecializedMatrixTypes);
 
