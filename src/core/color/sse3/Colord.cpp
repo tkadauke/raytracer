@@ -12,4 +12,19 @@ const Color<double>& Color<double>::white() {
   return c;
 }
 
+const Color<double>& Color<double>::red() {
+  static Color<double> c(1, 0, 0);
+  return c;
+}
+
+const Color<double>& Color<double>::green() {
+  static Color<double> c(0, 1, 0);
+  return c;
+}
+
+const Color<double>& Color<double>::blue() {
+  static Color<double> c(0, 0, 1);
+  return c;
+}
+
 #endif

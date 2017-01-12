@@ -15,6 +15,9 @@ public:
   
   static const Color<double>& black();
   static const Color<double>& white();
+  static const Color<double>& red();
+  static const Color<double>& green();
+  static const Color<double>& blue();
   
   inline Color() {
     m_vector[0] = _mm_setzero_pd();
@@ -33,6 +36,34 @@ public:
 
   inline static Color<double> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
     return Color(double(r) / 255.0, double(g) / 255.0, double(b) / 255.0);
+  }
+
+  inline static Color<double> fromCMYK(const double& c, const double& m, const double& y, const double& k) {
+    return Color(
+      (1.0 - c) * (1.0 - k),
+      (1.0 - m) * (1.0 - k),
+      (1.0 - y) * (1.0 - k)
+    );
+  }
+
+  inline static Color<double> fromHSV(unsigned int h, const double& s, const double& v) {
+    auto c = v * s;
+    auto x = c * (1.0 - std::abs((int(h) / 60) % 2 - 1));
+    auto m = v - c;
+    
+    if (h < 60) {
+      return Color(c + m, x + m,     m);
+    } else if (60 <= h && h < 120) {
+      return Color(x + m, c + m,     m);
+    } else if (120 <= h && h < 180) {
+      return Color(    m, c + m, x + m);
+    } else if (180 <= h && h < 240) {
+      return Color(    m, x + m, c + m);
+    } else if (240 <= h && h < 300) {
+      return Color(x + m,     m, c + m);
+    } else {
+      return Color(c + m,     m, x + m);
+    }
   }
 
   inline const double& component(int index) const {
@@ -63,6 +94,71 @@ public:
     return component(2);
   }
   
+  inline double k() const {
+    return 1.0 - max();
+  }
+  
+  inline double c() const {
+    auto w = (1.0 - k());
+    if (w == 0)
+      return 0;
+    return (w - r()) / w;
+  }
+  
+  inline double m() const {
+    auto w = (1.0 - k());
+    if (w == 0)
+      return 0;
+    return (w - g()) / w;
+  }
+  
+  inline double y() const {
+    auto w = (1.0 - k());
+    if (w == 0)
+      return 0;
+    return (w - b()) / w;
+  }
+  
+  inline unsigned int h() const {
+    auto cmax = max();
+    auto delta = cmax - min();
+    
+    int result;
+    if (delta == 0) {
+      return 0;
+    } else if (cmax == r()) {
+      result = 60 * ((g() - b()) / delta);
+    } else if (cmax == g()) {
+      result = 60 * ((b() - r()) / delta + 2);
+    } else {
+      result = 60 * ((r() - g()) / delta + 4);
+    }
+    return unsigned(result + 720) % 360;
+  }
+  
+  inline double s() const {
+    auto cmax = max();
+    auto delta = cmax - min();
+    
+    if (cmax == 0) {
+      return 0;
+    } else {
+      return delta / cmax;
+    }
+  }
+  
+  inline double v() const {
+    return max();
+  }
+  
+  inline double max() const {
+    return std::max(r(), std::max(g(), b()));
+  }
+  
+  inline double min() const {
+    return std::min(r(), std::min(g(), b()));
+  }
+
   inline Color<double> operator+(const Color<double>& other) const {
     Color<double> result;
     result.m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);

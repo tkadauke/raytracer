@@ -15,6 +15,9 @@ public:
   
   static const Color<float>& black();
   static const Color<float>& white();
+  static const Color<float>& red();
+  static const Color<float>& green();
+  static const Color<float>& blue();
   
   inline Color() {
     m_vector = _mm_setzero_ps();
@@ -34,7 +37,35 @@ public:
   }
 
   inline static Color<float> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
-    return Color(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0);
+    return Color(float(r) / 255.0f, float(g) / 255.0f, float(b) / 255.0f);
+  }
+
+  inline static Color<float> fromCMYK(const float& c, const float& m, const float& y, const float& k) {
+    return Color(
+      (1.0f - c) * (1.0f - k),
+      (1.0f - m) * (1.0f - k),
+      (1.0f - y) * (1.0f - k)
+    );
+  }
+
+  inline static Color<float> fromHSV(unsigned int h, const float& s, const float& v) {
+    auto c = v * s;
+    auto x = c * (1.0f - std::abs((int(h) / 60) % 2 - 1));
+    auto m = v - c;
+    
+    if (h < 60) {
+      return Color(c + m, x + m,     m);
+    } else if (60 <= h && h < 120) {
+      return Color(x + m, c + m,     m);
+    } else if (120 <= h && h < 180) {
+      return Color(    m, c + m, x + m);
+    } else if (180 <= h && h < 240) {
+      return Color(    m, x + m, c + m);
+    } else if (240 <= h && h < 300) {
+      return Color(x + m,     m, c + m);
+    } else {
+      return Color(c + m,     m, x + m);
+    }
   }
 
   inline const float& component(int index) const {
@@ -65,6 +96,71 @@ public:
     return component(2);
   }  
 
+  inline float k() const {
+    return 1.0f - max();
+  }
+  
+  inline float c() const {
+    auto w = (1.0f - k());
+    if (w == 0)
+      return 0.0f;
+    return (w - r()) / w;
+  }
+  
+  inline float m() const {
+    auto w = (1.0f - k());
+    if (w == 0)
+      return 0.0f;
+    return (w - g()) / w;
+  }
+  
+  inline float y() const {
+    auto w = (1.0f - k());
+    if (w == 0)
+      return 0.0f;
+    return (w - b()) / w;
+  }
+  
+  inline unsigned int h() const {
+    auto cmax = max();
+    auto delta = cmax - min();
+    
+    int result;
+    if (delta == 0) {
+      return 0;
+    } else if (cmax == r()) {
+      result = 60 * ((g() - b()) / delta);
+    } else if (cmax == g()) {
+      result = 60 * ((b() - r()) / delta + 2);
+    } else {
+      result = 60 * ((r() - g()) / delta + 4);
+    }
+    return unsigned(result + 720) % 360;
+  }
+  
+  inline float s() const {
+    auto cmax = max();
+    auto delta = cmax - min();
+    
+    if (cmax == 0) {
+      return 0;
+    } else {
+      return delta / cmax;
+    }
+  }
+  
+  inline float v() const {
+    return max();
+  }
+  
+  inline float max() const {
+    return std::max(r(), std::max(g(), b()));
+  }
+  
+  inline float min() const {
+    return std::min(r(), std::min(g(), b()));
+  }
+
   inline Color<float> operator+(const Color<float>& other) const {
     return Color<float>(_mm_add_ps(m_vector, other.m_vector));
   }
@@ -79,10 +175,10 @@ public:
   }
 
   inline Color<float> operator/(const float& factor) const {
-    if (factor == 0.0)
+    if (factor == 0.0f)
       throw DivisionByZeroException(__FILE__, __LINE__);
 
-    float recip = 1.0 / factor;
+    float recip = 1.0f / factor;
     return *this * recip;
   }
 

@@ -12,4 +12,19 @@ const Color<float>& Color<float>::white() {
   return c;
 }
 
+const Color<float>& Color<float>::red() {
+  static Color<float> c(1, 0, 0);
+  return c;
+}
+
+const Color<float>& Color<float>::green() {
+  static Color<float> c(0, 1, 0);
+  return c;
+}
+
+const Color<float>& Color<float>::blue() {
+  static Color<float> c(0, 0, 1);
+  return c;
+}
+
 #endif
