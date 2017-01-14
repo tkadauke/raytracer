@@ -3,11 +3,17 @@
 #include <limits>
 #include <random>
 
+/**
+  * @returns true if @p what is within @p epsilon of @p value, false otherwise.
+  */
 template<class T>
 inline bool isAlmost(const T& what, const T& value, const T& epsilon = std::numeric_limits<T>::epsilon() * 10.0) {
   return what - epsilon <= value && value <= what + epsilon;
 }
 
+/**
+  * @returns true if @p what is within @p epsilon of 0, false otherwise.
+  */
 template<class T>
 inline bool isAlmostZero(const T& value, const T& epsilon = std::numeric_limits<T>::epsilon() * 10.0) {
   return isAlmost(T(0), value, epsilon);

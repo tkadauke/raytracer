@@ -6,16 +6,31 @@
 #include "core/math/Cubic.h"
 #include "core/math/Quadric.h"
 
+/**
+  * Represents a quartic polynomial of the form
+  * \f$ax^4 + bx^3 + cx^2 + dx + e\f$.
+  */
 template<class T>
 class Quartic : public Polynomial<T, 4> {
 public:
   typedef Polynomial<T, 4> normBase;
   
+  /**
+    * Constructor. Takes the @p a, @p b, @p c, @p d, and @p e coefficients of
+    * the polynomial \f$ax^4 + bx^3 + cx^2 + dx + e\f$.
+    */
   inline explicit Quartic(T a, T b, T c, T d, T e)
     : m_a(a), m_b(b), m_c(c), m_d(d), m_e(e)
   {
   }
   
+  /**
+    * Solves the polynomial equation \f$ax^4 + bx^3 + cx^2 + dx + e = 0\f$
+    * 
+    * @returns the number of solutions.
+    * 
+    * @see the Polynomial class for information how to retrieve the results.
+    */
   int solve();
 
 private:

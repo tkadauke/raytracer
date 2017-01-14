@@ -85,6 +85,13 @@ namespace LinearInterpolationTest {
 
     ASSERT_TRUE(interpolation.begin() != interpolation.end());
   }
+  
+  TYPED_TEST(LinearInterpolationTest, ShouldReturnFalseWhenComparingIncompatibleIterators) {
+    LinearInterpolation<TypeParam> interpolation1(this->begin, this->end, 10);
+    LinearInterpolation<TypeParam> interpolation2(this->begin, this->end, 5);
+
+    ASSERT_TRUE(interpolation1.begin() != interpolation2.begin());
+  }
 
   TYPED_TEST(LinearInterpolationTest, ShouldYieldEveryInterpolatedVectorWhenIteratingFromBeginToEnd) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
