@@ -73,19 +73,26 @@
             "type": "ConstantColorTexture"
         },
         {
-            "ambientCoefficient": 0.080000000000000002,
-            "diffuseCoefficient": 0,
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
             "diffuseTexture": "{f584377f-1897-4a4f-a47e-1f6831057fae}",
             "exponent": 16,
             "id": "{c290854a-56e2-4f80-9d5a-b4eac28d7cda}",
             "name": "Glass",
+            "reflectionCoefficient": 0.5,
+            "reflectionColor": [
+                0,
+                0,
+                1
+            ],
             "refractionIndex": 1.5700000000000001,
-            "specularCoefficient": 0,
+            "specularCoefficient": 1,
             "specularColor": [
                 1,
                 1,
                 1
             ],
+            "transmissionCoefficient": 0.5,
             "type": "TransparentMaterial"
         },
         {

@@ -6,7 +6,8 @@
 
 TransparentMaterial::TransparentMaterial(Element* parent)
   : PhongMaterial(parent),
-    m_refractionIndex(1)
+    m_refractionIndex(1),
+    m_transmissionCoefficient(1)
 {
 }
 
@@ -18,8 +19,11 @@ raytracer::Material* TransparentMaterial::toRaytracerMaterial() const {
   material->setDiffuseTexture(textureOrDefault(diffuseTexture())->toRaytracerTexture());
   material->setSpecularColor(specularColor());
   material->setExponent(exponent());
+  material->setTransmissionCoefficient(transmissionCoefficient());
   material->setRefractionIndex(refractionIndex());
-  
+  material->setReflectionColor(reflectionColor());
+  material->setReflectionCoefficient(reflectionCoefficient());
+
   return material;
 }
 

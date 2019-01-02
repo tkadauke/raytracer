@@ -7,7 +7,7 @@ class ElementCreator
   def initialize(element)
     @element = element
   end
-  
+
   def method_missing(method, *args, &block)
     if @element.respond_to?(method)
       @element.send(method, *args, &block)
@@ -25,12 +25,12 @@ end
 
 class Element
   @@num_objects = 0
-  
+
   def initialize(attributes = {}, &block)
     self.class.all_properties.each do |name|
       self.instance_variable_set("@#{name}", :__property_uninitialized_sentinel__)
     end
-    
+
     id = SecureRandom.hex
     @id = "{#{id[0..7]}-#{id[8..11]}-#{id[12..15]}-#{id[16..19]}-#{id[20..31]}}"
 
@@ -44,20 +44,20 @@ class Element
         @dynamic_properties[key] = value
       end
     end
-    
+
     block.bind(ElementCreator.new(self)).call if block_given?
   end
-  
+
   class << self
     attr_writer :properties
-    
+
     def properties
       @properties ||= []
     end
-  
+
     def property(props)
       self.properties += props.keys
-      
+
       props.each do |name, default|
         define_method name do |value = :__property_uninitialized_sentinel__|
           if value == :__property_uninitialized_sentinel__
@@ -67,7 +67,7 @@ class Element
             instance_variable_set("@#{name}", value)
           end
         end
-        
+
         attr_writer name
       end
     end
@@ -79,7 +79,7 @@ class Element
         superclass.all_properties + properties
       end
     end
-    
+
     def accessor(*fields)
       fields.each do |field|
         define_method field do |value = nil|
@@ -92,7 +92,7 @@ class Element
       end
     end
   end
-  
+
   def method_missing(method, *args)
     if @dynamic_properties.has_key?(method)
       @dynamic_properties[method]
@@ -100,7 +100,7 @@ class Element
       super
     end
   end
-  
+
   def attributes
     (self.class.all_properties + @dynamic_properties.keys).inject({}) do |hash, prop|
       attr = send(prop)
@@ -112,16 +112,16 @@ class Element
       hash
     end
   end
-  
+
   attr_writer :children
-  
+
   def children
     @children ||= []
   end
-  
+
   property :id => nil,
            :name => nil
-  
+
   def to_json(*args)
     attributes.merge(
       :type => self.class.name,
@@ -133,9 +133,9 @@ end
 class Scene < Element
   property :ambient => [0.4, 0.4, 0.4]
   property :background => [0.4, 0.8, 1]
-  
+
   accessor :outfile
-  
+
   def options(opts = nil)
     if opts
       @options.update(opts)
@@ -143,40 +143,40 @@ class Scene < Element
       @options
     end
   end
-  
+
   def initialize(attributes = {}, &block)
     @options = {}
     super
   end
-  
+
   def save_to_file(name)
     File.open(name, 'w') do |file|
       file.puts to_json
     end
   end
-  
+
   def render(file = nil, opts = {})
     file ||= outfile
     file ||= "out.png"
-    
+
     if !options.delete(:overwrite) && File.exist?(file)
       puts "Not rendering #{file} since it already exists"
       return
     end
-    
+
     puts "Rendering #{file} ..."
     time = Time.now
     file_name = "/tmp/render_#{time.to_i}_#{time.usec}"
-    
+
     save_to_file(file_name)
-    
+
     FileUtils.mkdir_p(File.dirname(file))
-    
+
     ENV['DYLD_FRAMEWORK_PATH'] = "/Users/tkadauke/Qt/5.5/clang_64/lib"
-    
+
     args = options.merge(opts).map { |key, value| "--#{key}=#{value}" }.join(" ")
     system "tools/rendercli/rendercli #{file_name} #{file} #{args}"
-    
+
     FileUtils.rm(file_name)
   end
 end
@@ -213,7 +213,10 @@ class ReflectiveMaterial < PhongMaterial
 end
 
 class TransparentMaterial < PhongMaterial
-  property :refractionIndex => 1
+  property :refractionIndex => 1,
+           :transmissionCoefficient => 1,
+           :reflectionColor => [0, 0, 0],
+           :reflectionCoefficient => 0
 end
 
 class Box < Surface
