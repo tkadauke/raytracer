@@ -56,8 +56,9 @@ void Element::read(const QJsonObject& json) {
     if (i.key() == "type")
       continue;
 
-    auto propertyName = i.key().toStdString();
-    auto propertyNameCStr = propertyName.c_str();
+    auto propertyName = i.key();
+    auto propertyNameStdString = propertyName.toStdString();
+    auto propertyNameCStr = propertyNameStdString.c_str();
     auto prop = property(propertyNameCStr);
 
     QString type = QString(prop.typeName());
@@ -74,8 +75,8 @@ void Element::read(const QJsonObject& json) {
       } else if (type == "Colord") {
         auto array = value.toArray();
         setProperty(propertyNameCStr, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
-      } else if (i.key() != "id" && !QUuid(value.toString()).isNull()) {
-        addPendingReference(propertyNameCStr, value.toString());
+      } else if (propertyName != "id" && (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
+        addPendingReference(propertyName, value.toString());
       } else {
         setProperty(propertyNameCStr, value.toVariant());
       }

@@ -123,7 +123,8 @@ void ScriptedSurface::loadScript() {
     while (it.hasNext()) {
       it.next();
 
-      const char* name = it.name().toStdString().c_str();
+      auto propertyName = it.name().toStdString();
+      const char* name = propertyName.c_str();
       QString type = it.value().toString();
       QScriptValue value = m_engine->globalObject().property(it.name());
       if (type == "double") {
