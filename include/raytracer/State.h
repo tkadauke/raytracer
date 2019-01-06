@@ -10,6 +10,7 @@ namespace raytracer {
   public:
     inline State()
       : traceEvents(false),
+        numRays(0),
         recursionDepth(0),
         maxRecursionDepth(0),
         intersectionHits(0),
@@ -40,6 +41,7 @@ namespace raytracer {
 
     inline void recurseIn() {
       recursionDepth++;
+      numRays++;
       maxRecursionDepth = std::max(maxRecursionDepth, recursionDepth);
     }
 
@@ -68,6 +70,7 @@ namespace raytracer {
     }
 
     bool traceEvents;
+    int numRays;
     int recursionDepth;
     int maxRecursionDepth;
     int intersectionHits;

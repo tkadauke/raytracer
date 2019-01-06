@@ -32,28 +32,29 @@ void Display::setScene(Scene* scene) {
     stop();
     delete m_raytracer->scene();
   }
-  
+
   auto raytracerScene = scene->toRaytracerScene();
-  
+
   m_raytracer->setScene(raytracerScene);
   render();
 }
 
 void Display::mousePressEvent(QMouseEvent* event) {
   QtDisplay::mousePressEvent(event);
-  
+
   if (event->modifiers() & Qt::ControlModifier) {
     Rayd ray = m_raytracer->camera()->rayForPixel(event->pos().x(), event->pos().y());
     if (ray.direction().isDefined()) {
       auto state = m_raytracer->rayState(ray);
-  
+
       cout << state.hitPoint.primitive() << " - " << state.hitPoint << endl;
+      cout << "numRays: " << state.numRays << endl;
       cout << "maxRecursionDepth: " << state.maxRecursionDepth << endl;
       cout << "intersectionHits: " << state.intersectionHits << endl;
       cout << "intersectionMisses: " << state.intersectionMisses << endl;
       cout << "shadowIntersectionHits: " << state.shadowIntersectionHits << endl;
       cout << "shadowIntersectionMisses: " << state.shadowIntersectionMisses << endl;
-      
+
       for (const auto& event : *state.events) {
         cout << event << endl;
       }

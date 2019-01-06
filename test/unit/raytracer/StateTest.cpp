@@ -32,6 +32,14 @@ namespace StateTest {
     ASSERT_EQ(0, state.recursionDepth);
   }
 
+  TEST(State, ShouldCountRays) {
+    State state;
+    state.recurseIn();
+    ASSERT_EQ(1, state.numRays);
+    state.recurseIn();
+    ASSERT_EQ(2, state.numRays);
+  }
+
   TEST(State, ShouldRecordHit) {
     State state;
     state.hit(nullptr, "Box");
