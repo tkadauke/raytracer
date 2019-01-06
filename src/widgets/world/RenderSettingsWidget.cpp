@@ -14,35 +14,35 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  
+
   auto ids = raytracer::SamplerFactory::self().identifiers();
   for (const auto& id : ids) {
     p->ui.samplerType->addItem(QString(id.c_str()).replace("Sampler", ""));
   }
-  
+
   p->ui.samplerType->setCurrentText("Regular");
 
   ids = raytracer::ViewPlaneFactory::self().identifiers();
   for (const auto& id : ids) {
     p->ui.viewPlaneType->addItem(QString(id.c_str()));
   }
-  
+
   p->ui.viewPlaneType->setCurrentText("PointInterlacedViewPlane");
-  
+
   p->ui.renderThreads->setValue(QThread::idealThreadCount());
   p->ui.queueSize->setValue(QThread::idealThreadCount() * 8);
-  
+
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
 }
 
 RenderSettingsWidget::~RenderSettingsWidget() {
-}  
+}
 
 QSize RenderSettingsWidget::resolution() const {
   QString resolution = p->ui.resolution->currentText();
   auto components = resolution.split("x");
-  
+
   return QSize(components[0].toInt(), components[1].toInt());
 }
 
@@ -70,6 +70,10 @@ int RenderSettingsWidget::queueSize() const {
   return p->ui.queueSize->value();
 }
 
+bool RenderSettingsWidget::showProgressIndicators() const {
+  return p->ui.showProgressIndicators->isChecked();
+}
+
 void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.resolution->setEnabled(!busy);
   p->ui.viewPlaneType->setEnabled(!busy);
@@ -78,7 +82,8 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.maxRecursionDepth->setEnabled(!busy);
   p->ui.renderThreads->setEnabled(!busy);
   p->ui.queueSize->setEnabled(!busy);
-  
+  p->ui.showProgressIndicators->setEnabled(!busy);
+
   p->ui.renderButton->setEnabled(!busy);
   p->ui.stopButton->setEnabled(busy);
 }

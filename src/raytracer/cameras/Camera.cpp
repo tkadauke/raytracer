@@ -11,6 +11,7 @@ using namespace raytracer;
 
 Camera::Camera()
   : m_cancelled(false),
+    m_showProgressIndicators(false),
     m_viewPlane(std::make_shared<PointInterlacedViewPlane>())
 {
 }
@@ -34,7 +35,7 @@ const Matrix4d& Camera::matrix() const {
     auto zAxis = (m_target - m_position).normalized();
     auto xAxis = Vector3d::up() ^ zAxis;
     auto yAxis = xAxis ^ -zAxis;
-    
+
     m_matrix = Matrix4d(xAxis, yAxis, zAxis).inverted();
     m_matrix.value().setCell(0, 3, m_position[0]);
     m_matrix.value().setCell(1, 3, m_position[1]);
@@ -50,10 +51,14 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
 void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) const {
   if (isCancelled())
     return;
-  
+
   auto plane = viewPlane();
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+    if (m_showProgressIndicators) {
+      plotRGB(buffer, rect, pixel, 0xff0000);
+    }
+
     Colord pixelColor;
     for (const auto& sample : plane->sampler()->sampleSet()) {
       Rayd ray = rayForPixel(pixel.pixel() + sample);
@@ -62,9 +67,9 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
         pixelColor += raytracer->rayColor(ray, state);
       }
     }
-    
+
     plot(buffer, rect, pixel, pixelColor);
-    
+
     if (isCancelled())
       break;
   }
@@ -73,13 +78,16 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
 void Camera::plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const {
   auto avergageColor = color / viewPlane()->sampler()->numSamples();
   unsigned int rgb = avergageColor.rgb();
-  
+  plotRGB(buffer, rect, pixel, rgb);
+}
+
+void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgbColor) const {
   int size = pixel.pixelSize();
   if (size == 1) {
-    buffer[pixel.row()][pixel.column()] = rgb;
+    buffer[pixel.row()][pixel.column()] = rgbColor;
   } else {
     for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
       for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
-        buffer[y][x] = rgb;
+        buffer[y][x] = rgbColor;
   }
 }

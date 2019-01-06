@@ -32,21 +32,26 @@ namespace {
   public:
     inline RenderTask(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Recti& r)
       : QRunnable(),
+        active(false),
         raytracer(rt),
         camera(c),
         buffer(b),
         rect(r)
     {
+      setAutoDelete(false);
     }
 
     inline virtual void run() {
       try {
+        active = true;
         camera->render(raytracer, buffer, rect);
       } catch(Exception& e) {
         e.printBacktrace();
       }
+      active = false;
     }
 
+    bool active;
     std::shared_ptr<Raytracer> raytracer;
     std::shared_ptr<Camera> camera;
     Buffer<unsigned int>& buffer;
@@ -57,14 +62,17 @@ namespace {
 struct Raytracer::Private {
   inline Private()
     : queueSize(QThread::idealThreadCount()),
-      maximumRecursionDepth(5)
+      maximumRecursionDepth(5),
+      showProgressIndicators(false)
   {
     threadPool = new QThreadPool;
   }
-  
+
   QThreadPool* threadPool;
+  list<shared_ptr<RenderTask>> tasks;
   int queueSize;
   int maximumRecursionDepth;
+  bool showProgressIndicators;
 };
 
 Raytracer::Raytracer(Scene* scene)
@@ -90,17 +98,23 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
     return;
   }
 
+  p->tasks.clear();
+
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
+  m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
   IntegerDecomposition d(p->queueSize);
   for (int vert = 0; vert != d.first(); ++vert) {
     for (int horz = 0; horz != d.second(); ++horz) {
-      p->threadPool->start(new RenderTask(shared_from_this(), m_camera, buffer, Recti(
+      auto task = std::make_shared<RenderTask>(shared_from_this(), m_camera, buffer, Recti(
         floor(double(buffer.width()) / d.second() * horz),
         floor(double(buffer.height()) / d.first() * vert),
         ceil(double(buffer.width()) / d.second()),
         ceil(double(buffer.height()) / d.first())
-      )));
+      ));
+
+      p->tasks.push_back(task);
+      p->threadPool->start(task.get());
     }
   }
 
@@ -158,6 +172,16 @@ void Raytracer::uncancel() {
   m_camera->uncancel();
 }
 
+std::list<Recti> Raytracer::activeRects() const {
+  std::list<Recti> result;
+  for (const auto& task : p->tasks) {
+    if (task->active) {
+      result.push_back(task->rect);
+    }
+  }
+  return result;
+}
+
 void Raytracer::setMaximumRecursionDepth(int depth) {
   p->maximumRecursionDepth = depth;
 }
@@ -168,4 +192,8 @@ void Raytracer::setMaximumThreads(int threads) {
 
 void Raytracer::setQueueSize(int queue) {
   p->queueSize = queue;
+}
+
+void Raytracer::setShowProgressIndicators(bool show) {
+  p->showProgressIndicators = show;
 }

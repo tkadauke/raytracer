@@ -4,11 +4,11 @@
 
 class RenderSettingsWidget : public QWidget {
   Q_OBJECT;
-  
+
 public:
   explicit RenderSettingsWidget(QWidget* parent = nullptr);
   ~RenderSettingsWidget();
-  
+
   QSize resolution() const;
   QString sampler() const;
   QString viewPlane() const;
@@ -16,7 +16,9 @@ public:
   int maxRecursionDepth() const;
   int renderThreads() const;
   int queueSize() const;
-  
+
+  bool showProgressIndicators() const;
+
   void setBusy(bool busy);
   void setElapsedTime(int milliseconds);
 
