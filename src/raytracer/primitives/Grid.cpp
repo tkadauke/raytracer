@@ -165,7 +165,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
       if (primitive) {
         HitPointInterval candidate;
         primitive = primitive->intersect(ray, candidate, state);
-        if (candidate.minWithPositiveDistance().distance() < tx_next) {
+        if (candidate.minWithPositiveDistance().distance() - Rayd::epsilon < tx_next) {
           hitPoints = candidate;
           return primitive;
         }
@@ -180,7 +180,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
       if (primitive) {
         HitPointInterval candidate;
         primitive = primitive->intersect(ray, candidate, state);
-        if (candidate.minWithPositiveDistance().distance() < ty_next) {
+        if (candidate.minWithPositiveDistance().distance() - Rayd::epsilon < ty_next) {
           hitPoints = candidate;
           return primitive;
         }
@@ -195,7 +195,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
       if (primitive) {
         HitPointInterval candidate;
         primitive = primitive->intersect(ray, candidate, state);
-        if (candidate.minWithPositiveDistance().distance() < tz_next) {
+        if (candidate.minWithPositiveDistance().distance() - Rayd::epsilon < tz_next) {
           hitPoints = candidate;
           return primitive;
         }

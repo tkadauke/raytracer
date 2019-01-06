@@ -22,13 +22,13 @@ Scene::Scene(Element* parent)
 raytracer::Scene* Scene::toRaytracerScene() const {
   raytracer::Scene* result = new raytracer::Scene();
 
-  // auto grid = make_named<raytracer::Grid>();
+  auto grid = make_named<raytracer::Grid>();
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       if (surface->visible()) {
         auto primitive = surface->toRaytracer(result);
         if (primitive && !primitive->boundingBox().isInfinite()) {
-          result->add(primitive);
+          grid->add(primitive);
         }
       }
     } else if (auto light = dynamic_cast<Light*>(child)) {
@@ -38,10 +38,10 @@ raytracer::Scene* Scene::toRaytracerScene() const {
     }
   }
 
-  // if (grid->primitives().size() > 0) {
-  //   grid->setup();
-  //   result->add(grid);
-  // }
+  if (grid->primitives().size() > 0) {
+    grid->setup();
+    result->add(grid);
+  }
 
   result->setAmbient(ambient());
   result->setBackground(background());
