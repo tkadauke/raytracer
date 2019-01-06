@@ -32,8 +32,8 @@ void Instance::setMatrix(const Matrix4d& matrix) {
   m_normalMatrix = m_directionMatrix.transposed();
 }
 
-Material* Instance::material() const {
-  Material* parent = Primitive::material();
+std::shared_ptr<Material> Instance::material() const {
+  auto parent = Primitive::material();
   if (parent)
     return parent;
   else
@@ -44,7 +44,7 @@ BoundingBoxd Instance::calculateBoundingBox() const {
   BoundingBoxd original = m_primitive->boundingBox();
   vector<Vector3d> vertices;
   original.getVertices(vertices);
-  
+
   BoundingBoxd result;
   for (const auto& vertex : vertices) {
     result.include(m_pointMatrix * Vector4d(vertex));

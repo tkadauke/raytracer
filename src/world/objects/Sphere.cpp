@@ -10,7 +10,7 @@ Sphere::Sphere(Element* parent)
 }
 
 std::shared_ptr<raytracer::Primitive> Sphere::toRaytracerPrimitive() const {
-  return std::make_shared<raytracer::Sphere>(Vector3d::null(), m_radius);
+  return make_named<raytracer::Sphere>(Vector3d::null(), m_radius);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Sphere>("Sphere");

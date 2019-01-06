@@ -7,7 +7,7 @@ class Texture;
 /**
   * Matte materials have no reflection, or transmission. As the name suggests,
   * they appear matte.
-  * 
+  *
   * @image html matte_material_red.png "Matte material with red constant texture"
   */
 class MatteMaterial : public Material {
@@ -29,10 +29,10 @@ public:
   inline Texture* diffuseTexture() const {
     return m_diffuseTexture;
   }
-  
+
   /**
     * Sets the material's diffuse texture.
-    * 
+    *
     * <table><tr>
     * <td>@image html matte_material_rainbow_red.png</td>
     * <td>@image html matte_material_rainbow_orange.png</td>
@@ -46,7 +46,7 @@ public:
   inline void setDiffuseTexture(Texture* texture) {
     m_diffuseTexture = texture;
   }
-  
+
   /**
     * @returns the ambient light coefficient.
     */
@@ -56,7 +56,7 @@ public:
 
   /**
     * Sets the ambient light coefficient.
-    * 
+    *
     * <table><tr>
     * <td>@image html matte_material_ambient_0.0.png "ambientCoefficient=0"</td>
     * <td>@image html matte_material_ambient_0.25.png "ambientCoefficient=0.25"</td>
@@ -68,17 +68,17 @@ public:
   inline void setAmbientCoefficient(double coeff) {
     m_ambientCoefficient = coeff;
   }
-  
+
   /**
     * @returns the diffuse light coefficient.
     */
   inline double diffuseCoefficient() const {
     return m_diffuseCoefficient;
   }
-  
+
   /**
     * Sets the diffuse light coefficient.
-    * 
+    *
     * <table><tr>
     * <td>@image html matte_material_diffuse_0.0.png "diffuseCoefficient=0"</td>
     * <td>@image html matte_material_diffuse_0.5.png "diffuseCoefficient=0.5"</td>
@@ -90,10 +90,10 @@ public:
   inline void setDiffuseCoefficient(double coeff) {
     m_diffuseCoefficient = coeff;
   }
-  
+
 protected:
-  virtual raytracer::Material* toRaytracerMaterial() const;
-  
+  virtual std::shared_ptr<raytracer::Material> toRaytracerMaterial() const;
+
 private:
   Texture* m_diffuseTexture;
   double m_ambientCoefficient;

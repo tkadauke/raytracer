@@ -11,8 +11,8 @@ ReflectiveMaterial::ReflectiveMaterial(Element* parent)
 {
 }
 
-raytracer::Material* ReflectiveMaterial::toRaytracerMaterial() const {
-  auto material = new raytracer::ReflectiveMaterial(
+std::shared_ptr<raytracer::Material> ReflectiveMaterial::toRaytracerMaterial() const {
+  auto material = make_named<raytracer::ReflectiveMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor()
   );
   material->setAmbientCoefficient(ambientCoefficient());
@@ -21,7 +21,7 @@ raytracer::Material* ReflectiveMaterial::toRaytracerMaterial() const {
   material->setSpecularCoefficient(specularCoefficient());
   material->setReflectionColor(reflectionColor());
   material->setReflectionCoefficient(reflectionCoefficient());
-  
+
   return material;
 }
 

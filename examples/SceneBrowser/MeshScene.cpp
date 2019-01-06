@@ -21,38 +21,39 @@ public:
   MeshScene();
 
 private:
-  MatteMaterial m_red;
-  ReflectiveMaterial m_silver;
+  std::shared_ptr<MatteMaterial> m_red;
+  std::shared_ptr<ReflectiveMaterial> m_silver;
   Mesh m_mesh;
 };
 
 MeshScene::MeshScene()
-  : Scene(),
-    m_red(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))),
-    m_silver(std::make_shared<ConstantColorTexture>(Colord(0.6, 0.6, 0.6)))
+  : Scene()
 {
+  m_red = std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
+  m_silver = std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord(0.6, 0.6, 0.6)));
+
   setAmbient(Colord(0.1, 0.1, 0.1));
-  
+
   ifstream stream("test/fixtures/shark.ply");
   PlyFile file(stream, m_mesh);
   m_mesh.computeNormals(false);
-  
-  m_silver.setSpecularColor(Colord(0.5, 0.5, 0.5));
-  
+
+  m_silver->setSpecularColor(Colord(0.5, 0.5, 0.5));
+
   auto grid = std::make_shared<Grid>();
-  SmoothMeshTriangle::build(&m_mesh, grid.get(), &m_silver);
+  SmoothMeshTriangle::build(&m_mesh, grid.get(), m_silver);
   grid->setup();
   auto instance = std::make_shared<Instance>(grid);
   instance->setMatrix(Matrix4d::translate(Vector3d(0, 0, 0)) * Matrix3d::scale(0.07));
-  instance->setMaterial(&m_silver);
+  instance->setMaterial(m_silver);
   add(instance);
-  
+
   auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, 200), 100);
-  sphere->setMaterial(&m_red);
+  sphere->setMaterial(m_red);
   add(sphere);
-  
-  auto light1 = new PointLight(Vector3d(-100, -100, -100), Colord(0.6, 0.6, 0.6));
-  auto light2 = new PointLight(Vector3d(100, -100, 100), Colord(0.6, 0.6, 0.6));
+
+  auto light1 = std::make_shared<PointLight>(Vector3d(-100, -100, -100), Colord(0.6, 0.6, 0.6));
+  auto light2 = std::make_shared<PointLight>(Vector3d(100, -100, 100), Colord(0.6, 0.6, 0.6));
   addLight(light1);
   addLight(light2);
 }

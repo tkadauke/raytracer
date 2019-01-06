@@ -7,8 +7,8 @@ PointLight::PointLight(Element* parent)
 {
 }
 
-raytracer::Light* PointLight::toRaytracer() const {
-  return new raytracer::PointLight(globalTransform() * Vector3d::null(), color() * intensity());
+std::shared_ptr<raytracer::Light> PointLight::toRaytracer() const {
+  return make_named<raytracer::PointLight>(globalTransform() * Vector3d::null(), color() * intensity());
 }
 
 static bool dummy = ElementFactory::self().registerClass<PointLight>("PointLight");

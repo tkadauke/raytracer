@@ -10,7 +10,7 @@ using namespace raytracer;
 
 const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   if (!boundingBoxIntersects(ray)) {
-    state.miss("Torus, bounding box miss");
+    state.miss(this, "Torus, bounding box miss");
     return nullptr;
   }
   
@@ -51,16 +51,16 @@ const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
   }
   
   if (hitPoints.empty()) {
-    state.miss("Torus, ray miss");
+    state.miss(this, "Torus, ray miss");
     return nullptr;
   }
 
   auto hitPoint = hitPoints.minWithPositiveDistance();
   if (hitPoint.isUndefined()) {
-    state.miss("Torus, behind Ray");
+    state.miss(this, "Torus, behind Ray");
     return nullptr;
   } else {
-    state.hit("Torus");
+    state.hit(this, "Torus");
     return this;
   }
 }

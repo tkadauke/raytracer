@@ -17,15 +17,15 @@ public:
     * Returns the default material, which is a black matte material.
     */
   static Material* defaultMaterial();
-  
+
   /**
     * Default constructor.
     */
   explicit Material(Element* parent = nullptr);
-  
+
   /**
     * Converts this material to the corresponding class in the raytracer
     * namespace.
     */
-  virtual raytracer::Material* toRaytracerMaterial() const = 0;
+  virtual std::shared_ptr<raytracer::Material> toRaytracerMaterial() const = 0;
 };

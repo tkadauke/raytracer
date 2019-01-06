@@ -11,7 +11,7 @@ CheckerBoardTexture::CheckerBoardTexture(Element* parent)
 }
 
 std::shared_ptr<raytracer::Texturec> CheckerBoardTexture::toRaytracerTexture() const {
-  return std::make_shared<raytracer::CheckerBoardTexture>(
+  return make_named<raytracer::CheckerBoardTexture>(
     new raytracer::PlanarMapping2D,
     textureOrDefault(brightTexture())->toRaytracerTexture(),
     textureOrDefault(darkTexture())->toRaytracerTexture()

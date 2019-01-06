@@ -19,7 +19,7 @@ const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoint
   double beta = e1 * invDenom;
   
   if (beta < 0.0 || beta > 1.0) {
-    state.miss("Triangle, beta not in [0, 1]");
+    state.miss(this, "Triangle, beta not in [0, 1]");
     return nullptr;
   }
   
@@ -27,12 +27,12 @@ const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoint
   double gamma = e2 * invDenom;
   
   if (gamma < 0.0 || gamma > 1.0) {
-    state.miss("Triangle, gamma not in [0, 1]");
+    state.miss(this, "Triangle, gamma not in [0, 1]");
     return nullptr;
   }
   
   if (beta + gamma > 1.0) {
-    state.miss("Triangle, beta + gamma > 1");
+    state.miss(this, "Triangle, beta + gamma > 1");
     return nullptr;
   }
   
@@ -43,10 +43,10 @@ const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoint
   hitPoints.add(HitPoint(this, t, hitPoint, m_normal));
 
   if (t < 0) {
-    state.miss("Triangle, behind ray");
+    state.miss(this, "Triangle, behind ray");
     return nullptr;
   } else {
-    state.hit("Triangle");
+    state.hit(this, "Triangle");
     return this;
   }
 }

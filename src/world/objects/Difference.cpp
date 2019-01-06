@@ -10,12 +10,12 @@ Difference::Difference(Element* parent)
 std::shared_ptr<raytracer::Primitive> Difference::toRaytracerPrimitive() const {
   if (active()) {
     if (children().size() > 0) {
-      return std::make_shared<raytracer::Difference>();
+      return make_named<raytracer::Difference>();
     } else {
       return nullptr;
     }
   } else {
-    return std::make_shared<raytracer::Composite>();
+    return make_named<raytracer::Composite>();
   }
 }
 

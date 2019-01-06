@@ -5,7 +5,7 @@
 /**
   * Reflective materials describe shiny objects like polished metal or
   * mirrors.
-  * 
+  *
   * @image html reflective_material_red.png "Reflective material"
   */
 class ReflectiveMaterial : public PhongMaterial {
@@ -26,10 +26,10 @@ public:
   inline const Colord& reflectionColor() const {
     return m_reflectionColor;
   }
-  
+
   /**
     * Sets the material's reflection color.
-    * 
+    *
     * <table><tr>
     * <td>@image html reflective_material_reflection_color_red.png</td>
     * <td>@image html reflective_material_reflection_color_orange.png</td>
@@ -43,17 +43,17 @@ public:
   inline void setReflectionColor(const Colord& color) {
     m_reflectionColor = color;
   }
-  
+
   /**
     * @returns the reflection coefficient.
     */
   inline double reflectionCoefficient() const {
     return m_reflectionCoefficient;
   }
-  
+
   /**
     * Sets the reflection coefficient.
-    * 
+    *
     * <table><tr>
     * <td>@image html reflective_material_reflection_coeff_0.0.png "reflectionCoefficient=0"</td>
     * <td>@image html reflective_material_reflection_coeff_0.25.png "reflectionCoefficient=0.25"</td>
@@ -65,10 +65,10 @@ public:
   inline void setReflectionCoefficient(double coeff) {
     m_reflectionCoefficient = coeff;
   }
-  
+
 protected:
-  virtual raytracer::Material* toRaytracerMaterial() const;
-  
+  virtual std::shared_ptr<raytracer::Material> toRaytracerMaterial() const;
+
 private:
   Colord m_reflectionColor;
   double m_reflectionCoefficient;

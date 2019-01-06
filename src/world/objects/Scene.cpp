@@ -20,15 +20,15 @@ Scene::Scene(Element* parent)
 }
 
 raytracer::Scene* Scene::toRaytracerScene() const {
-  raytracer::Scene* result = new raytracer::Scene;
-  
-  auto grid = std::make_shared<raytracer::Grid>();
+  raytracer::Scene* result = new raytracer::Scene();
+
+  // auto grid = make_named<raytracer::Grid>();
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       if (surface->visible()) {
         auto primitive = surface->toRaytracer(result);
         if (primitive && !primitive->boundingBox().isInfinite()) {
-          grid->add(primitive);
+          result->add(primitive);
         }
       }
     } else if (auto light = dynamic_cast<Light*>(child)) {
@@ -37,15 +37,15 @@ raytracer::Scene* Scene::toRaytracerScene() const {
       }
     }
   }
-  
-  if (grid->primitives().size() > 0) {
-    grid->setup();
-    result->add(grid);
-  }
-  
+
+  // if (grid->primitives().size() > 0) {
+  //   grid->setup();
+  //   result->add(grid);
+  // }
+
   result->setAmbient(ambient());
   result->setBackground(background());
-  
+
   return result;
 }
 
@@ -59,7 +59,7 @@ bool Scene::save(const QString& filename) {
 
   QJsonObject object;
   write(object);
-  
+
   QJsonDocument saveDoc(object);
   file.write(saveDoc.toJson());
 
@@ -81,7 +81,7 @@ bool Scene::load(const QString& filename) {
   QJsonDocument loadDoc(QJsonDocument::fromJson(data));
 
   read(loadDoc.object());
-  
+
   QMap<QString, Element*> references;
   findReferences(this, references);
   resolveReferences(references);
@@ -101,7 +101,7 @@ Camera* Scene::activeCamera() const {
 
 void Scene::findReferences(Element* root, QMap<QString, Element*>& references) {
   references[root->id()] = root;
-  
+
   for (const auto& child : root->childElements()) {
     findReferences(child, references);
   }

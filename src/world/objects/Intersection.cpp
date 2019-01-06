@@ -10,12 +10,12 @@ Intersection::Intersection(Element* parent)
 std::shared_ptr<raytracer::Primitive> Intersection::toRaytracerPrimitive() const {
   if (active()) {
     if (children().size() > 0) {
-      return std::make_shared<raytracer::Intersection>();
+      return make_named<raytracer::Intersection>();
     } else {
       return nullptr;
     }
   } else {
-    return std::make_shared<raytracer::Composite>();
+    return make_named<raytracer::Composite>();
   }
 }
 

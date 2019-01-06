@@ -52,39 +52,39 @@ void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
     stop();
     delete m_raytracer->scene();
   }
-  
+
   setup();
-  
+
   render();
 }
 
 raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
   auto mat = material->toRaytracerMaterial();
   auto scene = new raytracer::Scene;
-  
+
   scene->setAmbient(s->ambient());
   scene->setBackground(s->background());
 
   auto sphere = std::make_shared<raytracer::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);
 
-  auto planeMaterial = new raytracer::MatteMaterial(
+  auto planeMaterial = std::make_shared<raytracer::MatteMaterial>(
     std::make_shared<raytracer::CheckerBoardTexture>(
       new raytracer::PlanarMapping2D,
       std::make_shared<raytracer::ConstantColorTexture>(Colord::black()),
       std::make_shared<raytracer::ConstantColorTexture>(Colord::white())
     )
   );
-  
+
   auto plane = std::make_shared<raytracer::Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(planeMaterial);
 
   scene->add(sphere);
   scene->add(plane);
 
-  auto light = new raytracer::DirectionalLight(Vector3d(-0.5, -1, -0.5), Colord(1, 1, 1));
+  auto light = std::make_shared<raytracer::DirectionalLight>(Vector3d(-0.5, -1, -0.5), Colord(1, 1, 1));
   scene->addLight(light);
-  
+
   return scene;
 }
 

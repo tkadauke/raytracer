@@ -18,7 +18,7 @@ SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1,
   const Vector3d c = B - A;
   const Vector3d b = C - A;
   const Vector3d N = b ^ c;
-  
+
   if (fabs(N.x()) > fabs(N.y())) {
     if (fabs(N.x()) > fabs(N.z()))
       k = 0;
@@ -47,7 +47,7 @@ SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1,
   cnv = -c[u] * reci;
 }
 
-void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, Material* material) {
+void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material) {
   for (const auto& triangle : *mesh) {
     auto primitive = std::make_shared<SmoothMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
     primitive->setMaterial(material);
@@ -58,71 +58,71 @@ void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, Material*
 const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
-  
+
   const Vector4d& O = ray.origin();
   const Vector3d& D = ray.direction();
   const Vector3d& A = m_mesh->vertices()[m_index0].point;
-  
+
   const double lnd = 1.0f / (D[k] + nu * D[ku] + nv * D[kv]);
-  
+
   const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
   if (t < 0) {
-    state.miss("SmoothMeshTriangle, behind ray");
+    state.miss(this, "SmoothMeshTriangle, behind ray");
     return nullptr;
   }
-  
+
   const double hu = O[ku] + t * D[ku] - A[ku];
   const double hv = O[kv] + t * D[kv] - A[kv];
-  
+
   const double beta = hv * bnu + hu * bnv;
   if (beta < 0 || beta > 1) {
-    state.miss("SmoothMeshTriangle, beta not in [0, 1]");
+    state.miss(this, "SmoothMeshTriangle, beta not in [0, 1]");
     return nullptr;
   }
-  
+
   const double gamma = hu * cnu + hv * cnv;
   if (gamma < 0 || (beta + gamma) > 1) {
-    state.miss("SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
+    state.miss(this, "SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
     return nullptr;
   }
-  
+
   hitPoints.add(HitPoint(this, t, ray.at(t), interpolateNormal(beta, gamma)));
-  state.hit("SmoothMeshTriangle");
+  state.hit(this, "SmoothMeshTriangle");
   return this;
 }
 
 bool SmoothMeshTriangle::intersects(const Rayd& ray, State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
-  
+
   const Vector4d& O = ray.origin();
   const Vector3d& D = ray.direction();
   const Vector3d& A = m_mesh->vertices()[m_index0].point;
-  
+
   const double lnd = 1.0f / (D[k] + nu * D[ku] + nv * D[kv]);
-  
+
   const double t = (nd - O[k] - nu * O[ku] - nv * O[kv]) * lnd;
   if (t < 0) {
-    state.shadowMiss("SmoothMeshTriangle, behind ray");
+    state.shadowMiss(this, "SmoothMeshTriangle, behind ray");
     return false;
   }
-  
+
   const double hu = O[ku] + t * D[ku] - A[ku];
   const double hv = O[kv] + t * D[kv] - A[kv];
-  
+
   const double beta = hv * bnu + hu * bnv;
   if (beta < 0 || beta > 1) {
-    state.shadowMiss("SmoothMeshTriangle, beta not in [0, 1]");
+    state.shadowMiss(this, "SmoothMeshTriangle, beta not in [0, 1]");
     return false;
   }
-  
+
   const double gamma = hu * cnu + hv * cnv;
   if (gamma < 0 || (beta + gamma) > 1) {
-    state.shadowMiss("SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
+    state.shadowMiss(this, "SmoothMeshTriangle, gamma < 0 or beta + gamma > 1");
     return false;
   }
-  
-  state.shadowHit("SmoothMeshTriangle");
+
+  state.shadowHit(this, "SmoothMeshTriangle");
   return true;
 }
 

@@ -35,7 +35,7 @@ namespace UnionTest {
 
   TEST(Union, ShouldReturnSelfIfDifferenceHasMaterial) {
     Union u;
-    u.setMaterial(new MatteMaterial);
+    u.setMaterial(std::make_shared<MatteMaterial>());
     
     auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();

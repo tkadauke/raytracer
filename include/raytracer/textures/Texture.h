@@ -3,11 +3,13 @@
 #include "core/Color.h"
 #include "core/math/Ray.h"
 
+#include "raytracer/Object.h"
+
 class HitPoint;
 
 namespace raytracer {
   template<class T>
-  class Texture {
+  class Texture : public Object {
   public:
     inline virtual ~Texture() {}
     

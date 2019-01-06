@@ -56,7 +56,7 @@ void ScriptedSurface::setupEngine() {
   m_engine = new QScriptEngine;
   m_this = m_engine->newQObject(this);
   m_engine->setGlobalObject(m_this);
-  
+
   registerElement<Box>();
   registerElement<Sphere>();
   registerElement<Cylinder>();
@@ -75,7 +75,7 @@ void ScriptedSurface::setScriptName(const QString& name) {
   removeDynamicProperties();
   setupEngine();
   loadScript();
-  
+
   if (functionDefined("create"))
     jsCall("create");
 }
@@ -95,13 +95,13 @@ void ScriptedSurface::registerElement() {
 
 void ScriptedSurface::loadScript() {
   QFile file(m_scriptName);
-  
+
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     return;
 
   QTextStream in(&file);
   QString script = in.readAll();
-  
+
   auto result = QScriptEngine::checkSyntax(script);
   if (result.state() != QScriptSyntaxCheckResult::Valid) {
     std::cout << "Syntax error in script " << m_scriptName.toStdString()
@@ -110,19 +110,19 @@ void ScriptedSurface::loadScript() {
               << ": " << result.errorMessage().toStdString() << std::endl;
     return;
   }
-  
+
   m_engine->evaluate(script);
   if (m_engine->hasUncaughtException()) {
     handleError();
     return;
   }
-  
+
   QScriptValue propTypes = m_engine->globalObject().property("_propTypes");
   if (propTypes.isObject()) {
     QScriptValueIterator it(propTypes);
     while (it.hasNext()) {
       it.next();
-      
+
       const char* name = it.name().toStdString().c_str();
       QString type = it.value().toString();
       QScriptValue value = m_engine->globalObject().property(it.name());
@@ -172,7 +172,7 @@ void ScriptedSurface::handleError() {
   auto error = m_engine->uncaughtException();
   std::cout << "Uncaught exception in script " << m_scriptName.toStdString()
             << ": " << error.toString().toStdString() << std::endl;
-  
+
   for (const auto& line : m_engine->uncaughtExceptionBacktrace()) {
     std::cout << line.toStdString() << std::endl;
   }
@@ -190,7 +190,7 @@ bool ScriptedSurface::event(QEvent *e) {
         QScriptValueList args;
         args << m_engine->newVariant(property(prop.toStdString().c_str()));
         jsCall(funcName, args);
-        
+
         m_blockDynamicPropertyEvent = true;
         setProperty(prop.toStdString().c_str(), m_engine->globalObject().property(prop).toVariant());
         m_blockDynamicPropertyEvent = false;
@@ -205,7 +205,7 @@ bool ScriptedSurface::event(QEvent *e) {
 }
 
 std::shared_ptr<raytracer::Primitive> ScriptedSurface::toRaytracerPrimitive() const {
-  return std::make_shared<raytracer::Grid>();
+  return make_named<raytracer::Grid>();
 }
 
 static bool dummy = ElementFactory::self().registerClass<ScriptedSurface>("ScriptedSurface");

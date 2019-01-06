@@ -12,14 +12,14 @@ PhongMaterial::PhongMaterial(Element* parent)
 {
 }
 
-raytracer::Material* PhongMaterial::toRaytracerMaterial() const {
-  auto material = new raytracer::PhongMaterial(
+std::shared_ptr<raytracer::Material> PhongMaterial::toRaytracerMaterial() const {
+  auto material = make_named<raytracer::PhongMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor(), exponent()
   );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());
-  
+
   return material;
 }
 

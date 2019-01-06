@@ -6,7 +6,7 @@
 namespace raytracer {
   class Composite;
   class Material;
-  
+
   class FlatMeshTriangle : public MeshTriangle {
   public:
     inline explicit FlatMeshTriangle(const Mesh* mesh, int index0, int index1, int index2)
@@ -14,9 +14,9 @@ namespace raytracer {
     {
       m_normal = computeNormal();
     }
-    
-    static void build(const Mesh* mesh, Composite* composite, Material* material);
-    
+
+    static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material);
+
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
 
   private:

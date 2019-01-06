@@ -10,12 +10,12 @@ Union::Union(Element* parent)
 std::shared_ptr<raytracer::Primitive> Union::toRaytracerPrimitive() const {
   if (active()) {
     if (children().size() > 0) {
-      return std::make_shared<raytracer::Union>();
+      return make_named<raytracer::Union>();
     } else {
       return nullptr;
     }
   } else {
-    return std::make_shared<raytracer::Composite>();
+    return make_named<raytracer::Composite>();
   }
 }
 

@@ -10,21 +10,21 @@ const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
   
   if (t > 0) {
     hitPoints.add(HitPoint(this, t, ray.at(t), m_normal));
-    state.hit("Plane");
+    state.hit(this, "Plane");
     return this;
   } else {
-    state.miss("Plane, ray miss");
+    state.miss(this, "Plane, ray miss");
     return nullptr;
   }
 }
 
 bool Plane::intersects(const Rayd& ray, State& state) const {
   if (calculateIntersectionDistance(ray) > 0) {
-    state.shadowHit("Plane");
+    state.shadowHit(this, "Plane");
     return true;
   }
   
-  state.shadowMiss("Plane");
+  state.shadowMiss(this, "Plane");
   return false;
 }
 

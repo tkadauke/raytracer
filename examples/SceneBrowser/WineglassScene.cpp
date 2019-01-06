@@ -20,16 +20,18 @@ public:
   WineglassScene();
 
 private:
-  TransparentMaterial m_glass;
-  PhongMaterial m_blue;
+  std::shared_ptr<TransparentMaterial> m_glass;
+  std::shared_ptr<PhongMaterial> m_blue;
 };
 
 WineglassScene::WineglassScene()
-  : Scene(),
-    m_blue(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)))
+  : Scene()
 {
+  m_glass = std::make_shared<TransparentMaterial>();
+  m_blue = std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord(0, 0, 1)));
+
   setAmbient(Colord(0.4, 0.4, 0.4));
-  
+
   auto sphere = std::make_shared<Sphere>(Vector3d(0, -1, 0), 1);
   auto sphere2 = std::make_shared<Sphere>(Vector3d(0, -1, 0), 0.95);
   auto box = std::make_shared<Box>(Vector3d(0, -2, 0), Vector3d(1, 0.5, 1));
@@ -37,26 +39,26 @@ WineglassScene::WineglassScene()
   d->add(sphere);
   d->add(sphere2);
   d->add(box);
-  
-  m_glass.setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
-  m_glass.setRefractionIndex(1.52);
-  
+
+  m_glass->setDiffuseTexture(std::make_shared<ConstantColorTexture>(Colord(0.1, 0.1, 0.1)));
+  m_glass->setRefractionIndex(1.52);
+
   auto instance = std::make_shared<Instance>(d);
   instance->setMatrix(Matrix4d::translate(Vector3d(1.5, 0, 0)));
-  instance->setMaterial(&m_glass);
-  
+  instance->setMaterial(m_glass);
+
   add(instance);
 
   instance = std::make_shared<Instance>(d);
   instance->setMatrix(Matrix4d::translate(Vector3d(-1.5, 0, 0)));
-  instance->setMaterial(&m_glass);
+  instance->setMaterial(m_glass);
   add(instance);
-  
+
   auto plane = std::make_shared<Plane>(Vector3d(0, -1, 0), 2);
-  plane->setMaterial(&m_blue);
+  plane->setMaterial(m_blue);
   add(plane);
-  
-  auto light1 = new PointLight(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
+
+  auto light1 = std::make_shared<PointLight>(Vector3d(-3, -3, -1), Colord(0.4, 0.4, 0.4));
   addLight(light1);
 }
 

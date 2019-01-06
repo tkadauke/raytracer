@@ -19,7 +19,7 @@ namespace testing {
   {
     previousObjectSize = 0;
   }
-  
+
   void RaytracerFeatureTest::beforeThen() {
     render();
   }
@@ -35,7 +35,7 @@ namespace testing {
   void RaytracerFeatureTest::add(std::shared_ptr<Primitive> primitive) {
     m_scene->add(primitive);
   }
-  
+
   Scene* RaytracerFeatureTest::scene() const {
     return m_scene;
   }
@@ -63,7 +63,7 @@ namespace testing {
     m_raytracer = std::make_shared<Raytracer>(m_camera, m_scene);
     m_raytracer->render(m_buffer);
   }
-  
+
   void RaytracerFeatureTest::cancel() {
     camera()->cancel();
   }
@@ -75,7 +75,7 @@ namespace testing {
   const Buffer<unsigned int>& RaytracerFeatureTest::buffer() const {
     return m_buffer;
   }
-  
+
   bool RaytracerFeatureTest::colorPresent(const Colord& color) const {
     return colorCount(color) > 0;
   }
@@ -91,7 +91,7 @@ namespace testing {
     }
     return result;
   }
-  
+
   unsigned int RaytracerFeatureTest::colorAt(int x, int y) const {
     return m_buffer[y][x];
   }
@@ -101,9 +101,8 @@ namespace testing {
     viewer.show();
   }
 
-  Material* RaytracerFeatureTest::redDiffuse() const {
-    auto material = new MatteMaterial(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
-    return material;
+  std::shared_ptr<Material> RaytracerFeatureTest::redDiffuse() const {
+    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   }
 
   void RaytracerFeatureTest::lookAtOrigin() {

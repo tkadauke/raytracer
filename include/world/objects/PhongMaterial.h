@@ -10,7 +10,7 @@
   * [Phong reflection model](https://en.wikipedia.org/wiki/Phong_reflection_model).
   * It is a combination of ambient and diffuse shading, with the addition of
   * small intense specular highlights.
-  * 
+  *
   * @image html phong_material_red.png "Phong material"
   */
 class PhongMaterial : public MatteMaterial {
@@ -32,10 +32,10 @@ public:
   inline const Colord& specularColor() const {
     return m_specularColor;
   }
-  
+
   /**
     * Sets the material's specular color.
-    * 
+    *
     * <table><tr>
     * <td>@image html phong_material_specular_color_red.png</td>
     * <td>@image html phong_material_specular_color_orange.png</td>
@@ -49,17 +49,17 @@ public:
   inline void setSpecularColor(const Colord& color) {
     m_specularColor = color;
   }
-  
+
   /**
     * @returns the material's specular reflection coefficient.
     */
   inline double specularCoefficient() const {
     return m_specularCoefficient;
   }
-  
+
   /**
     * Sets the specular reflection coefficient.
-    * 
+    *
     * <table><tr>
     * <td>@image html phong_material_specular_coeff_0.0.png "specularCoefficient=0"</td>
     * <td>@image html phong_material_specular_coeff_0.25.png "specularCoefficient=0.25"</td>
@@ -71,17 +71,17 @@ public:
   inline void setSpecularCoefficient(double coeff) {
     m_specularCoefficient = Ranged(0, 1).clamp(coeff);
   }
-  
+
   /**
     * @returns the material's lobe exponent.
     */
   inline double exponent() const {
     return m_exponent;
   }
-  
+
   /**
     * Sets the specular lobe exponent.
-    * 
+    *
     * <table><tr>
     * <td>@image html phong_material_exponent_1.png "exponent=1"</td>
     * <td>@image html phong_material_exponent_8.png "exponent=8"</td>
@@ -93,10 +93,10 @@ public:
   inline void setExponent(double exponent) {
     m_exponent = exponent;
   }
-  
+
 protected:
-  virtual raytracer::Material* toRaytracerMaterial() const;
-  
+  virtual std::shared_ptr<raytracer::Material> toRaytracerMaterial() const;
+
 private:
   Colord m_specularColor;
   double m_exponent;

@@ -40,12 +40,12 @@ void Element::unlink(Element* root) {
   for (int i = 0; i != root->metaObject()->propertyCount(); ++i) {
     auto metaProp = root->metaObject()->property(i);
     auto prop = root->property(metaProp.name());
-    
+
     if (prop.value<Element*>() == this) {
       root->setProperty(metaProp.name(), QVariant::fromValue<Element*>(nullptr));
     }
   }
-  
+
   for (const auto& child : root->childElements()) {
     unlink(child);
   }
@@ -55,9 +55,10 @@ void Element::read(const QJsonObject& json) {
   for (auto i = json.begin(); i != json.end(); ++i) {
     if (i.key() == "type")
       continue;
-    
-    const char* name = i.key().toStdString().c_str();
-    auto prop = property(name);
+
+    auto propertyName = i.key().toStdString();
+    auto propertyNameCStr = propertyName.c_str();
+    auto prop = property(propertyNameCStr);
 
     QString type = QString(prop.typeName());
 
@@ -66,17 +67,17 @@ void Element::read(const QJsonObject& json) {
     if (!value.isUndefined()) {
       if (type == "Vector3d") {
         auto array = value.toArray();
-        setProperty(name, QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+        setProperty(propertyNameCStr, QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
       } else if (type == "Angled") {
         auto angle = value.toDouble();
-        setProperty(name, QVariant::fromValue(Angled::fromRadians(angle)));
+        setProperty(propertyNameCStr, QVariant::fromValue(Angled::fromRadians(angle)));
       } else if (type == "Colord") {
         auto array = value.toArray();
-        setProperty(name, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+        setProperty(propertyNameCStr, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
       } else if (i.key() != "id" && !QUuid(value.toString()).isNull()) {
-        addPendingReference(name, value.toString());
+        addPendingReference(propertyNameCStr, value.toString());
       } else {
-        setProperty(name, value.toVariant());
+        setProperty(propertyNameCStr, value.toVariant());
       }
     }
   }
@@ -98,13 +99,13 @@ void Element::read(const QJsonObject& json) {
 
 void Element::write(QJsonObject& json) {
   json["type"] = metaObject()->className();
-  
+
   writeForClass(metaObject(), json);
-  
+
   for (const auto& name : dynamicPropertyNames()) {
     writeProperty(name, json);
   }
-  
+
   if (childElements().size() > 0) {
     QJsonArray childArray;
     for (const auto& child : childElements()) {
@@ -177,7 +178,7 @@ void Element::resolveReferences(const QMap<QString, Element*>& elements) {
     setProperty(ref.first.toStdString().c_str(), variant);
   }
   m_pendingReferences.clear();
-  
+
   for (const auto& child : childElements()) {
     child->resolveReferences(elements);
   }
@@ -212,7 +213,7 @@ void Element::insertChild(int index, Element* child) {
     child->leaveParent();
     p->removeChild(p->childElements().indexOf(child));
   }
-  
+
   m_childElements.insert(index, child);
   child->setParent(this);
   child->joinParent();

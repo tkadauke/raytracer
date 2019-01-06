@@ -89,9 +89,9 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
     buffer.clear();
     return;
   }
-  
+
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
-  
+
   IntegerDecomposition d(p->queueSize);
   for (int vert = 0; vert != d.first(); ++vert) {
     for (int horz = 0; horz != d.second(); ++horz) {
@@ -103,7 +103,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
       )));
     }
   }
-  
+
   p->threadPool->waitForDone();
 }
 
@@ -121,31 +121,31 @@ State Raytracer::rayState(const Rayd& ray) const {
 Colord Raytracer::rayColor(const Rayd& ray, State& state) const {
   state.recurseIn();
   ScopeExit sx([&] { state.recurseOut(); });
-  
+
   if (state.recursionDepth == p->maximumRecursionDepth) {
-    state.recordEvent("Raytracer: maximum recursion depth reached, returning black");
+    state.recordEvent(nullptr, "Raytracer: maximum recursion depth reached, returning black");
     return Colord::black();
   }
-  
+
   HitPointInterval hitPoints;
-  
+
   auto primitive = m_scene->intersect(ray, hitPoints, state);
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
-    
+
     if (state.recursionDepth == 1) {
       state.hitPoint = hitPoint;
     }
-    
+
     if (primitive->material()) {
-      state.recordEvent("Raytracer: shading material");
+      state.recordEvent(nullptr, "Raytracer: shading material");
       return primitive->material()->shade(this, ray, hitPoint, state);
     } else {
-      state.recordEvent("Raytracer: no material found, returning black");
+      state.recordEvent(nullptr, "Raytracer: no material found, returning black");
       return Colord::black();
     }
   } else {
-    state.recordEvent("Raytracer: Nothing hit, returning background color");
+    state.recordEvent(nullptr, "Raytracer: Nothing hit, returning background color");
     return m_scene->background();
   }
 }

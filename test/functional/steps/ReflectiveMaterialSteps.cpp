@@ -11,14 +11,14 @@ using namespace raytracer;
 
 GIVEN(RaytracerFeatureTest, "a perfectly reflective box") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
-  ReflectiveMaterial* material = new ReflectiveMaterial;
+  auto material = std::make_shared<ReflectiveMaterial>();
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(RaytracerFeatureTest, "a reflective box which filters the colors") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
-  ReflectiveMaterial* material = new ReflectiveMaterial(
+  auto material = std::make_shared<ReflectiveMaterial>(
     std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))
   );
   material->setReflectionCoefficient(0);

@@ -11,7 +11,7 @@ PinholeCamera::PinholeCamera(Element* parent)
 }
 
 std::shared_ptr<raytracer::Camera> PinholeCamera::toRaytracer() const {
-  auto camera = std::make_shared<raytracer::PinholeCamera>(position(), target());
+  auto camera = make_named<raytracer::PinholeCamera>(position(), target());
   camera->setDistance(distance());
   camera->setZoom(zoom());
   return camera;

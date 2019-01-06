@@ -13,10 +13,10 @@ Colord ReflectiveMaterial::shade(const Raytracer* raytracer, const Rayd& ray, co
   Vector3d in;
   Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
   Rayd reflected(hitPoint.point(), in);
-  
+
   double normalDotIn = hitPoint.normal() * in;
-  
-  state.recordEvent("ReflectiveMaterial: Tracing reflection");
+
+  state.recordEvent(this, "ReflectiveMaterial: Tracing reflection");
   color += refl * raytracer->rayColor(reflected.epsilonShifted(), state) * normalDotIn;
 
   return color;

@@ -14,7 +14,7 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
   double discriminant = od * od - dd * (o * o - m_radius * m_radius);
   
   if (discriminant < 0) {
-    state.miss("Sphere, ray miss");
+    state.miss(this, "Sphere, ray miss");
     return nullptr;
   } else if (discriminant > 0) {
     double discriminantRoot = sqrt(discriminant);
@@ -30,14 +30,14 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
     );
     
     if (t1 <= 0 && t2 <= 0) {
-      state.miss("Sphere, behind ray");
+      state.miss(this, "Sphere, behind ray");
       return nullptr;
     } else {
-      state.hit("Sphere");
+      state.hit(this, "Sphere");
       return this;
     }
   }
-  state.miss("Sphere, ray miss");
+  state.miss(this, "Sphere, ray miss");
   return nullptr;
 }
 
@@ -48,22 +48,22 @@ bool Sphere::intersects(const Rayd& ray, State& state) const {
   double discriminant = od * od - dd * (o * o - m_radius * m_radius);
   
   if (discriminant < 0) {
-    state.shadowMiss("Sphere, ray miss");
+    state.shadowMiss(this, "Sphere, ray miss");
     return false;
   } else if (discriminant > 0) {
     double discriminantRoot = sqrt(discriminant);
     double t1 = (-od - discriminantRoot) / dd;
     double t2 = (-od + discriminantRoot) / dd;
     if (t1 <= 0 && t2 <= 0) {
-      state.shadowMiss("Sphere, behind ray");
+      state.shadowMiss(this, "Sphere, behind ray");
       return false;
     }
     
-    state.shadowHit("Sphere");
+    state.shadowHit(this, "Sphere");
     return true;
   }
   
-  state.shadowMiss("Sphere, ray miss");
+  state.shadowMiss(this, "Sphere, ray miss");
   return false;
 }
 

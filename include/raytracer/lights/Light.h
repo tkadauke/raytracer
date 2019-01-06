@@ -3,8 +3,10 @@
 #include "core/math/Vector.h"
 #include "core/Color.h"
 
+#include "raytracer/Object.h"
+
 namespace raytracer {
-  class Light {
+  class Light : public Object {
   public:
     inline Light() {}
 

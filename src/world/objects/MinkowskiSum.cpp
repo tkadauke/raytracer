@@ -11,12 +11,12 @@ MinkowskiSum::MinkowskiSum(Element* parent)
 std::shared_ptr<raytracer::Primitive> MinkowskiSum::toRaytracerPrimitive() const {
   if (active()) {
     if (children().size() > 0) {
-      return std::make_shared<raytracer::MinkowskiSum>();
+      return make_named<raytracer::MinkowskiSum>();
     } else {
       return nullptr;
     }
   } else {
-    return std::make_shared<raytracer::Composite>();
+    return make_named<raytracer::Composite>();
   }
 }
 

@@ -6,7 +6,7 @@
   * Represents a point light. A point light only has a position in space, which
   * means that light rays at different points on a surface come in at different
   * angles.
-  * 
+  *
   * <table><tr>
   * <td>@image html point_light_position_1.png</td>
   * <td>@image html point_light_position_2.png</td>
@@ -17,9 +17,9 @@
   */
 class PointLight : public Light {
   Q_OBJECT;
-  
+
 public:
   explicit PointLight(Element* parent = nullptr);
-  
-  virtual raytracer::Light* toRaytracer() const;
+
+  virtual std::shared_ptr<raytracer::Light> toRaytracer() const;
 };

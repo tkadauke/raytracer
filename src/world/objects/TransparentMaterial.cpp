@@ -11,8 +11,8 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 {
 }
 
-raytracer::Material* TransparentMaterial::toRaytracerMaterial() const {
-  auto material = new raytracer::TransparentMaterial;
+std::shared_ptr<raytracer::Material> TransparentMaterial::toRaytracerMaterial() const {
+  auto material = make_named<raytracer::TransparentMaterial>();
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());

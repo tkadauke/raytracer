@@ -10,7 +10,7 @@ OrthographicCamera::OrthographicCamera(Element* parent)
 }
 
 std::shared_ptr<raytracer::Camera> OrthographicCamera::toRaytracer() const {
-  auto camera = std::make_shared<raytracer::OrthographicCamera>(position(), target());
+  auto camera = make_named<raytracer::OrthographicCamera>(position(), target());
   camera->setZoom(zoom());
   return camera;
 }

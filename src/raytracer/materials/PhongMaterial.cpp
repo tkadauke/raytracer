@@ -23,11 +23,11 @@ Colord PhongMaterial::shade(const Raytracer* raytracer, const Rayd& ray, const H
 
   for (const auto& light : raytracer->scene()->lights()) {
     Vector3d in = light->direction(hitPoint.point());
-    
+
     if (raytracer->scene()->intersects(Rayd(hitPoint.point(), in).epsilonShifted(), state)) {
-      state.shadowHit("PhongMaterial");
+      state.shadowHit(this, "PhongMaterial");
     } else {
-      state.shadowMiss("PhongMaterial");
+      state.shadowMiss(this, "PhongMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0) {
         color += (
@@ -37,6 +37,6 @@ Colord PhongMaterial::shade(const Raytracer* raytracer, const Rayd& ray, const H
       }
     }
   }
-  
+
   return color;
 }

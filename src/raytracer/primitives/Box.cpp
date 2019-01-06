@@ -13,7 +13,7 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
   Vector3d d = m_center - ray.origin();
   double t1 = 0, t2 = 0;
   Vector3d normal1, normal2;
-  
+
   for (int i = 0; i < 3; ++i) {
     if (fabs(ray.direction()[i]) < 0.0001) {
       parallel |= 1 << i;
@@ -42,18 +42,18 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
           t2 = s;
         }
         if (t1 > t2) {
-          state.miss("Box, ray miss");
+          state.miss(this, "Box, ray miss");
           return nullptr;
         }
       }
     }
   }
-  
+
   if (parallel)
     for (int i = 0; i < 3; ++i)
       if (parallel & (1 << i))
         if (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] || fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i]) {
-          state.miss("Box, ray parallel");
+          state.miss(this, "Box, ray parallel");
           return nullptr;
         }
 
@@ -61,13 +61,13 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, St
     HitPoint(this, t1, ray.at(t1), normal1),
     HitPoint(this, t2, ray.at(t2), normal2)
   );
-  
+
   if (t1 < 0 && t2 < 0) {
-    state.miss("Box, behind ray");
+    state.miss(this, "Box, behind ray");
     return nullptr;
   }
 
-  state.hit("Box");
+  state.hit(this, "Box");
   return this;
 }
 

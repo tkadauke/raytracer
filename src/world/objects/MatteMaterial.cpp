@@ -12,13 +12,13 @@ MatteMaterial::MatteMaterial(Element* parent)
 {
 }
 
-raytracer::Material* MatteMaterial::toRaytracerMaterial() const {
-  auto material = new raytracer::MatteMaterial(
+std::shared_ptr<raytracer::Material> MatteMaterial::toRaytracerMaterial() const {
+  auto material = make_named<raytracer::MatteMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture()
   );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
-  
+
   return material;
 }
 

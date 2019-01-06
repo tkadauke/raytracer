@@ -16,7 +16,7 @@ namespace raytracer {
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual bool intersects(const Rayd& ray, State& state) const;
 
-    virtual Material* material() const;
+    virtual std::shared_ptr<Material> material() const;
 
     void setMatrix(const Matrix4d& matrix);
 

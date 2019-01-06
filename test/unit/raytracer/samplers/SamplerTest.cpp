@@ -4,7 +4,7 @@
 namespace SamplerTest {
   using namespace ::testing;
   using namespace raytracer;
-  
+
   class ConcreteSampler : public Sampler {
   protected:
     virtual std::vector<Vector2d> generateSet() {
@@ -14,13 +14,13 @@ namespace SamplerTest {
       return result;
     }
   };
-  
+
   TEST(Sampler, ShouldSetupWithNumberOfSamples) {
     ConcreteSampler sampler;
     sampler.setup(4, 123);
     ASSERT_EQ(4, sampler.numSamples());
   }
-  
+
   TEST(Sampler, ShouldReturnSampleSet) {
     ConcreteSampler sampler;
     sampler.setup(4, 123);

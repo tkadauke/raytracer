@@ -18,12 +18,12 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
   double a = dx * dx + dz * dz;
   double b = 2.0 * (ox * dx + oz * dz);
   double c = ox * ox + oz * oz - m_radius * m_radius;
-  
+
   double t[2];
   int results = Quadric<double>(a, b, c).solveInto(t);
-  
+
   if (results == 0) {
-    state.miss("OpenCylinder, ray miss");
+    state.miss(this, "OpenCylinder, ray miss");
     return nullptr;
   } else {
     Range<double> yRange(-m_halfHeight, m_halfHeight);
@@ -41,15 +41,15 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
     }
 
     if (t[0] <= 0 && t[1] <= 0) {
-      state.miss("OpenCylinder, behind ray");
+      state.miss(this, "OpenCylinder, behind ray");
       return nullptr;
     }
-    
+
     if (hitPoints.empty()) {
-      state.miss("OpenCylinder, outside of y boundary");
+      state.miss(this, "OpenCylinder, outside of y boundary");
       return nullptr;
     } else {
-      state.hit("OpenCylinder");
+      state.hit(this, "OpenCylinder");
       return this;
     }
   }
@@ -64,26 +64,26 @@ bool OpenCylinder::intersects(const Rayd& ray, State& state) const {
   double a = dx * dx + dz * dz;
   double b = 2.0 * (ox * dx + oz * dz);
   double c = ox * ox + oz * oz - m_radius * m_radius;
-  
+
   double t[2];
   int results = Quadric<double>(a, b, c).solveInto(t);
-  
+
   if (results == 0) {
-    state.shadowMiss("OpenCylinder, ray miss");
+    state.shadowMiss(this, "OpenCylinder, ray miss");
     return false;
   } else {
     if (t[0] <= 0 && t[1] <= 0) {
-      state.shadowMiss("OpenCylinder, behind ray");
+      state.shadowMiss(this, "OpenCylinder, behind ray");
       return false;
     }
 
     Range<double> yRange(-m_halfHeight, m_halfHeight);
     if ((t[0] > 0 && yRange.contains(ray.at(t[0]).y())) ||
         (t[1] > 0 && yRange.contains(ray.at(t[1]).y()))) {
-      state.shadowHit("OpenCylinder");
+      state.shadowHit(this, "OpenCylinder");
       return true;
     } else {
-      state.shadowMiss("OpenCylinder, outside of y boundary");
+      state.shadowMiss(this, "OpenCylinder, outside of y boundary");
       return false;
     }
   }
@@ -101,7 +101,7 @@ Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
   if (planar != Vector3d::null()) {
     planar.normalize();
   }
-  
+
   return Vector3d(
     planar.x() * m_radius,
     direction.y() < 0.0 ? -m_halfHeight : m_halfHeight,

@@ -4,13 +4,15 @@
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 
+#include "raytracer/Object.h"
+
 class HitPoint;
 
 namespace raytracer {
   class Raytracer;
   class State;
 
-  class Material {
+  class Material : public Object {
   public:
     virtual ~Material() {}
 

@@ -11,7 +11,7 @@ SphericalCamera::SphericalCamera(Element* parent)
 }
 
 std::shared_ptr<raytracer::Camera> SphericalCamera::toRaytracer() const {
-  auto camera = std::make_shared<raytracer::SphericalCamera>(position(), target());
+  auto camera = make_named<raytracer::SphericalCamera>(position(), target());
   camera->setFieldOfView(
     horizontalFieldOfView(),
     verticalFieldOfView()

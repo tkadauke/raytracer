@@ -6,6 +6,7 @@
 #include "core/Color.h"
 #include "core/MemoizedValue.h"
 #include "raytracer/viewplanes/ViewPlane.h"
+#include "raytracer/Object.h"
 
 template<class T>
 class Buffer;
@@ -15,7 +16,7 @@ class Rect;
 namespace raytracer {
   class Raytracer;
 
-  class Camera {
+  class Camera : public Object {
   public:
     Camera();
     explicit Camera(const Vector3d& position, const Vector3d& target);

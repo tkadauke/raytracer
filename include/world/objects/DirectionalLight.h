@@ -10,24 +10,24 @@
 class DirectionalLight : public Light {
   Q_OBJECT;
   Q_PROPERTY(Vector3d direction READ direction WRITE setDirection);
-  
+
 public:
   /**
     * Default constructor. Creates a directional light with direction
     * \f$((-0.5, -1, -0.5))\f$.
     */
   explicit DirectionalLight(Element* parent = nullptr);
-  
+
   /**
     * @returns the light's direction.
     */
   inline const Vector3d& direction() const {
     return m_direction;
   }
-  
+
   /**
     * Sets the direction of the light.
-    * 
+    *
     * <table><tr>
     * <td>@image html directional_light_direction_1.png</td>
     * <td>@image html directional_light_direction_2.png</td>
@@ -40,7 +40,7 @@ public:
     m_direction = direction;
   }
 
-  virtual raytracer::Light* toRaytracer() const;
+  virtual std::shared_ptr<raytracer::Light> toRaytracer() const;
 
 private:
   Vector3d m_direction;

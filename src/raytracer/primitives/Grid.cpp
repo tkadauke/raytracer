@@ -32,7 +32,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
   double z1 = m_boundingBox.max().z();
 
   double tx_min, ty_min, tz_min;
-  double tx_max, ty_max, tz_max; 
+  double tx_max, ty_max, tz_max;
 
   double a = 1.0 / dx;
   if (a >= 0) {
@@ -97,7 +97,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
   x = clamp(relativeOrigin.x() * m_numX / gridSize.x(), 0, m_numX - 1);
   y = clamp(relativeOrigin.y() * m_numY / gridSize.y(), 0, m_numY - 1);
   z = clamp(relativeOrigin.z() * m_numZ / gridSize.z(), 0, m_numZ - 1);
-  
+
   double dtx = (tx_max - tx_min) / m_numX;
   double dty = (ty_max - ty_min) / m_numY;
   double dtz = (tz_max - tz_min) / m_numZ;
@@ -157,7 +157,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, S
 
 
   // traverse the grid
-
+  state.recordEvent(this, "Traversing grid");
   while (true) {
     const Primitive* primitive = m_cells[x + m_numX * y + m_numX * m_numY * z].get();
 
@@ -230,7 +230,7 @@ bool Grid::intersects(const Rayd& ray, State& state) const {
   double z1 = m_boundingBox.max().z();
 
   double tx_min, ty_min, tz_min;
-  double tx_max, ty_max, tz_max; 
+  double tx_max, ty_max, tz_max;
 
   double a = 1.0 / dx;
   if (a >= 0) {
@@ -295,7 +295,7 @@ bool Grid::intersects(const Rayd& ray, State& state) const {
   x = clamp(relativeOrigin.x() * m_numX / gridSize.x(), 0, m_numX - 1);
   y = clamp(relativeOrigin.y() * m_numY / gridSize.y(), 0, m_numY - 1);
   z = clamp(relativeOrigin.z() * m_numZ / gridSize.z(), 0, m_numZ - 1);
-  
+
   double dtx = (tx_max - tx_min) / m_numX;
   double dty = (ty_max - ty_min) / m_numY;
   double dtz = (tz_max - tz_min) / m_numZ;
@@ -395,43 +395,43 @@ void Grid::setup() {
   if (m_boundingBox.isInfinite()) {
     return;
   }
-  
+
   Vector3d gridSize = m_boundingBox.max() - m_boundingBox.min();
   double multiplier = 2.0;
   float s = pow(gridSize.x() * gridSize.y() * gridSize.z() / primitives().size(), 0.3333333);
   m_numX = multiplier * gridSize.x() / s + 1;
   m_numY = multiplier * gridSize.y() / s + 1;
   m_numZ = multiplier * gridSize.z() / s + 1;
-  
+
   int numCells = m_numX * m_numY * m_numZ;
   m_cells.reserve(numCells);
   for (int i = 0; i != numCells; ++i)
     m_cells.push_back(0);
-  
+
   vector<int> counts(numCells);
-  
+
   for (const auto& primitive : primitives()) {
     BoundingBoxd bbox = primitive->boundingBox();
     if (bbox.isUndefined() || bbox.isEmpty())
       continue;
-    
+
     Vector3d relativeMin = bbox.min() - m_boundingBox.min();
     Vector3d relativeMax = bbox.max() - m_boundingBox.min();
     if (relativeMin.isUndefined() || relativeMax.isUndefined())
       continue;
-    
+
     int xmin = clamp(relativeMin.x() * m_numX / gridSize.x(), 0, m_numX - 1);
     int ymin = clamp(relativeMin.y() * m_numY / gridSize.y(), 0, m_numY - 1);
     int zmin = clamp(relativeMin.z() * m_numZ / gridSize.z(), 0, m_numZ - 1);
     int xmax = clamp(relativeMax.x() * m_numX / gridSize.x(), 0, m_numX - 1);
     int ymax = clamp(relativeMax.y() * m_numY / gridSize.y(), 0, m_numY - 1);
     int zmax = clamp(relativeMax.z() * m_numZ / gridSize.z(), 0, m_numZ - 1);
-    
+
     for (int z = zmin; z <= zmax; ++z) {
       for (int y = ymin; y <= ymax; ++y) {
         for (int x = xmin; x <= xmax; ++x) {
           int index = x + m_numX * y + m_numX * m_numY * z;
-          
+
           if (counts[index] == 0) {
             m_cells[index] = primitive;
           } else if (counts[index] == 1) {
@@ -447,6 +447,6 @@ void Grid::setup() {
       }
     }
   }
-  
+
   m_boundingBox = m_boundingBox.grownByEpsilon();
 }
