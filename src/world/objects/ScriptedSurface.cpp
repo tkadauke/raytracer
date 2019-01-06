@@ -15,6 +15,7 @@
 
 #include <QScriptEngine>
 #include <QFile>
+#include <QFileInfo>
 #include <QEvent>
 #include <QTextStream>
 #include <QScriptValueIterator>
@@ -76,8 +77,11 @@ void ScriptedSurface::setScriptName(const QString& name) {
   setupEngine();
   loadScript();
 
-  if (functionDefined("create"))
-    jsCall("create");
+  QFileInfo fi(name);
+  auto functionName = fi.baseName();
+
+  if (functionDefined(m_engine->globalObject(), functionName))
+    jsCall(m_engine->globalObject(), functionName);
 }
 
 void ScriptedSurface::removeDynamicProperties() {
@@ -117,9 +121,9 @@ void ScriptedSurface::loadScript() {
     return;
   }
 
-  QScriptValue propTypes = m_engine->globalObject().property("_propTypes");
-  if (propTypes.isObject()) {
-    QScriptValueIterator it(propTypes);
+  QScriptValue properties = m_engine->globalObject().property("properties");
+  if (properties.isObject()) {
+    QScriptValueIterator it(properties);
     while (it.hasNext()) {
       it.next();
 
@@ -155,8 +159,8 @@ void ScriptedSurface::clear() {
   }
 }
 
-QScriptValue ScriptedSurface::jsCall(const QString& function, const QScriptValueList& args) {
-  QScriptValue func = m_engine->globalObject().property(function);
+QScriptValue ScriptedSurface::jsCall(QScriptValue obj, const QString& function, const QScriptValueList& args) {
+  QScriptValue func = obj.property(function);
   QScriptValue result = func.call(m_this, args);
   if (m_engine->hasUncaughtException()) {
     handleError();
@@ -164,8 +168,8 @@ QScriptValue ScriptedSurface::jsCall(const QString& function, const QScriptValue
   return result;
 }
 
-bool ScriptedSurface::functionDefined(const QString& function) {
-  QScriptValue func = m_engine->globalObject().property(function);
+bool ScriptedSurface::functionDefined(QScriptValue obj, const QString& function) const {
+  QScriptValue func = obj.property(function);
   return func.isFunction();
 }
 
@@ -187,18 +191,18 @@ bool ScriptedSurface::event(QEvent *e) {
       auto funcName = prop;
       funcName[0] = funcName[0].toUpper();
       funcName = "set" + funcName;
-      if (functionDefined(funcName)) {
+      if (functionDefined(m_this, funcName)) {
         QScriptValueList args;
         args << m_engine->newVariant(property(prop.toStdString().c_str()));
-        jsCall(funcName, args);
+        jsCall(m_this, funcName, args);
 
         m_blockDynamicPropertyEvent = true;
-        setProperty(prop.toStdString().c_str(), m_engine->globalObject().property(prop).toVariant());
+        setProperty(prop.toStdString().c_str(), m_this.property(prop).toVariant());
         m_blockDynamicPropertyEvent = false;
       }
       clear();
-      if (functionDefined("create"))
-        jsCall("create");
+      if (functionDefined(m_this, "create"))
+        jsCall(m_this, "create");
     }
     return true;
   }
