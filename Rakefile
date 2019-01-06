@@ -53,12 +53,12 @@ FRAMEWORK_LINKS = "-F #{QT_LIB}"
 
 
 if ENV['DEBUG']
-  DEBUG_FLAGS = "-g -fno-inline"
+  DEBUG_FLAGS = "-g -fno-inline -fsanitize=address"
 else
   DEBUG_FLAGS = ""
 end
 
-WARNING_FLAGS = "-W -Wall -pedantic -Wno-extra-semi -Werror"
+WARNING_FLAGS = "-W -Wall -pedantic -Wno-extra-semi"  # " -Werror"
 if ENV['COVERAGE']
   OPTIMIZE_FLAGS = "-O1"
   COVERAGE_FLAGS = "-fprofile-arcs -ftest-coverage"
@@ -70,10 +70,10 @@ end
 COMPILER_FLAGS = "-std=c++14"
 
 C_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
-T_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
+T_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
-LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')}"
+LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')} #{DEBUG_FLAGS}"
 
 CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TOOLS_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN, TOOLS_BIN)
 CLEAN.include(Rake::FileList["**/*.moc", "**/*.uic"])
@@ -98,14 +98,14 @@ def header_dependencies(file, pwd = '')
   if @header_dependency_cache[file_path]
     return @header_dependency_cache[file_path]
   end
-  
+
   @header_dependency_cache[file_path] = if file_path
     headers = File.read(file_path).split("\n").grep(/#include \"/).collect { |inc| inc =~ /^#include \"(.*?)\"/; $1 }
     [file_path, headers.collect { |header| header_dependencies(header, File.dirname(file_path)) }].flatten
   else
     [File.join(pwd, file)]
   end
-  
+
   @header_dependency_cache[file_path]
 end
 
@@ -142,7 +142,7 @@ EXAMPLES.each do |example|
   src = FileList["#{example}/**/*.cpp"]
   obj = src.collect { |fn| fn.gsub(/\.cpp/, '.o') }
   output = "#{example}/#{File.basename(example)}"
-  
+
   file output => [obj, SRC_OBJ].flatten do
     sh %{#{CC} -Os -o #{output} #{[SRC_OBJ, obj].flatten.join(' ')} #{LD_FLAGS}}
   end
@@ -152,7 +152,7 @@ TOOLS.each do |tool|
   src = FileList["#{tool}/**/*.cpp"]
   obj = src.collect { |fn| fn.gsub(/\.cpp/, '.o') }
   output = "#{tool}/#{File.basename(tool)}"
-  
+
   file output => [obj, SRC_OBJ].flatten do
     sh %{#{CC} -Os -o #{output} #{[SRC_OBJ, obj].flatten.join(' ')} #{LD_FLAGS}}
   end
@@ -173,14 +173,14 @@ namespace :docs do
       sh "ruby scripts/render_docs.rb --missing"
     end
   end
-  
+
   task :generate => [:render, :html]
-  
+
   task :html do
     sh "doxygen"
     sh "cp scripts/docs/*.js docs/html"
   end
-  
+
   task :clean do
     rm_rf "docs"
   end
@@ -194,7 +194,7 @@ QT_LD = "DYLD_FRAMEWORK_PATH=#{QT_LIB}"
 namespace :test do
   task :build => [UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN]
   task :run => [:units, :functionals]
-  
+
   desc "Run all unit tests"
   task :units => :build do
     if ENV['ONLY']
@@ -212,7 +212,7 @@ namespace :test do
       sh("#{QT_LD} #{FUNCTIONAL_TEST_BIN}")
     end
   end
-  
+
   desc "Gather test coverage"
   task :coverage do
     ENV['COVERAGE'] = 'true'
@@ -234,7 +234,7 @@ namespace :check do
   task :cpp do
     sh "cppcheck --suppressions-list=.cppchecksuppress --quiet --enable=all -j 24 --force #{INCLUDES} src examples tools"
   end
-  
+
   desc "Check that all inline methods are marked as such"
   task :inline do
     sh %q<
@@ -254,7 +254,7 @@ desc "Outputs test and code lines"
 task :stats do
   test_lines = `find test | grep '\\.cpp\\|\\.h$' | xargs cat 2>/dev/null | wc -l`
   code_lines = `find src include | grep '\\.cpp\\|\\.h$' | xargs cat 2>/dev/null | wc -l`
-  
+
   puts "Test lines: #{test_lines}"
   puts "Code lines: #{code_lines}"
   puts "Ratio: #{"%2.2f" % (test_lines.to_f / code_lines.to_f)}"
