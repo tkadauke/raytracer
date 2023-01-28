@@ -1,8 +1,8 @@
 #include "raytracer/viewplanes/PointShuffledViewPlane.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "core/util/Random.h"
 
 #include <vector>
-#include <algorithm>
 
 using namespace std;
 using namespace raytracer;

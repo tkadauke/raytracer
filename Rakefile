@@ -1,8 +1,9 @@
 require 'rake/clean'
 
-QT_BASE = '/usr/local/Qt-5.5.1'
+QT_BASE = '/opt/homebrew/Cellar/qt@5/5.15.8_1'
 QT_BIN = "#{QT_BASE}/bin"
 QT_LIB = "#{QT_BASE}/lib"
+QT_LIBEXEC = "#{QT_BASE}/share/qt/libexec"
 
 QT_FRAMEWORKS = ['QtCore', 'QtGui', 'QtWidgets', 'QtScript']
 QT_INCLUDE_DIRS = QT_FRAMEWORKS.map { |f| "#{QT_LIB}/#{f}.framework/Headers" }
@@ -67,7 +68,7 @@ else
   COVERAGE_FLAGS = ""
 end
 
-COMPILER_FLAGS = "-std=c++14"
+COMPILER_FLAGS = "-std=c++17"
 
 C_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
 T_FLAGS = "#{COMPILER_FLAGS} #{INCLUDES} #{FRAMEWORK_LINKS} #{DEBUG_FLAGS} #{OPTIMIZE_FLAGS} #{WARNING_FLAGS} #{COVERAGE_FLAGS}"
