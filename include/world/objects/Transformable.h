@@ -31,11 +31,11 @@ public:
     * Sets the object's position.
     * 
     * <table><tr>
-    * <td>@image html transformable_position_1.png</td>
-    * <td>@image html transformable_position_2.png</td>
-    * <td>@image html transformable_position_3.png</td>
-    * <td>@image html transformable_position_4.png</td>
-    * <td>@image html transformable_position_5.png</td>
+    * <td>@image html transformable_position_1.png "Position 1"</td>
+    * <td>@image html transformable_position_2.png "Position 2"</td>
+    * <td>@image html transformable_position_3.png "Position 3"</td>
+    * <td>@image html transformable_position_4.png "Position 4"</td>
+    * <td>@image html transformable_position_5.png "Position 5"</td>
     * </tr></table>
     */
   inline void setPosition(const Vector3d& position) {
@@ -55,11 +55,11 @@ public:
     * radians.
     * 
     * <table><tr>
-    * <td>@image html transformable_rotation_1.png</td>
-    * <td>@image html transformable_rotation_2.png</td>
-    * <td>@image html transformable_rotation_3.png</td>
-    * <td>@image html transformable_rotation_4.png</td>
-    * <td>@image html transformable_rotation_5.png</td>
+    * <td>@image html transformable_rotation_1.png "Rotation 1"</td>
+    * <td>@image html transformable_rotation_2.png "Rotation 2"</td>
+    * <td>@image html transformable_rotation_3.png "Rotation 3"</td>
+    * <td>@image html transformable_rotation_4.png "Rotation 4"</td>
+    * <td>@image html transformable_rotation_5.png "Rotation 5"</td>
     * </tr></table>
     */
   inline void setRotation(const Vector3d& rotation) {
@@ -78,11 +78,11 @@ public:
     * Sets the scale vector for the x, y, and z axes.
     * 
     * <table><tr>
-    * <td>@image html transformable_scale_1.png</td>
-    * <td>@image html transformable_scale_2.png</td>
-    * <td>@image html transformable_scale_3.png</td>
-    * <td>@image html transformable_scale_4.png</td>
-    * <td>@image html transformable_scale_5.png</td>
+    * <td>@image html transformable_scale_1.png "Scale 1"</td>
+    * <td>@image html transformable_scale_2.png "Scale 2"</td>
+    * <td>@image html transformable_scale_3.png "Scale 3"</td>
+    * <td>@image html transformable_scale_4.png "Scale 4"</td>
+    * <td>@image html transformable_scale_5.png "Scale 5"</td>
     * </tr></table>
     */
   inline void setScale(const Vector3d& scale) {

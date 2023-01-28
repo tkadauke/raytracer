@@ -8,11 +8,11 @@
   * angles.
   *
   * <table><tr>
-  * <td>@image html point_light_position_1.png</td>
-  * <td>@image html point_light_position_2.png</td>
-  * <td>@image html point_light_position_3.png</td>
-  * <td>@image html point_light_position_4.png</td>
-  * <td>@image html point_light_position_5.png</td>
+  * <td>@image html point_light_position_1.png "Position 1"</td>
+  * <td>@image html point_light_position_2.png "Position 2"</td>
+  * <td>@image html point_light_position_3.png "Position 3"</td>
+  * <td>@image html point_light_position_4.png "Position 4"</td>
+  * <td>@image html point_light_position_5.png "Position 5"</td>
   * </tr></table>
   */
 class PointLight : public Light {

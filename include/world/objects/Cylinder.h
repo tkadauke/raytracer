@@ -31,11 +31,11 @@ public:
     * absolute value. A radius of 0 will be replaced with \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html cylinder_radius_1.png</td>
-    * <td>@image html cylinder_radius_2.png</td>
-    * <td>@image html cylinder_radius_3.png</td>
-    * <td>@image html cylinder_radius_4.png</td>
-    * <td>@image html cylinder_radius_5.png</td>
+    * <td>@image html cylinder_radius_1.png "Radius 1"</td>
+    * <td>@image html cylinder_radius_2.png "Radius 2"</td>
+    * <td>@image html cylinder_radius_3.png "Radius 3"</td>
+    * <td>@image html cylinder_radius_4.png "Radius 4"</td>
+    * <td>@image html cylinder_radius_5.png "Radius 5"</td>
     * </tr></table>
     */
   inline void setRadius(double radius) {
@@ -54,11 +54,11 @@ public:
     * absolute value. A height of 0 will be replaced with \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html cylinder_height_1.png</td>
-    * <td>@image html cylinder_height_2.png</td>
-    * <td>@image html cylinder_height_3.png</td>
-    * <td>@image html cylinder_height_4.png</td>
-    * <td>@image html cylinder_height_5.png</td>
+    * <td>@image html cylinder_height_1.png "Height 1"</td>
+    * <td>@image html cylinder_height_2.png "Height 2"</td>
+    * <td>@image html cylinder_height_3.png "Height 3"</td>
+    * <td>@image html cylinder_height_4.png "Height 4"</td>
+    * <td>@image html cylinder_height_5.png "Height 5"</td>
     * </tr></table>
     */
   inline void setHeight(double height) {
@@ -78,11 +78,11 @@ public:
     * radius is greater than 0, the edges will be rounded.
     * 
     * <table><tr>
-    * <td>@image html cylinder_bevel_radius_1.png</td>
-    * <td>@image html cylinder_bevel_radius_2.png</td>
-    * <td>@image html cylinder_bevel_radius_3.png</td>
-    * <td>@image html cylinder_bevel_radius_4.png</td>
-    * <td>@image html cylinder_bevel_radius_5.png</td>
+    * <td>@image html cylinder_bevel_radius_1.png "Bevel Radius 1"</td>
+    * <td>@image html cylinder_bevel_radius_2.png "Bevel Radius 2"</td>
+    * <td>@image html cylinder_bevel_radius_3.png "Bevel Radius 3"</td>
+    * <td>@image html cylinder_bevel_radius_4.png "Bevel Radius 4"</td>
+    * <td>@image html cylinder_bevel_radius_5.png "Bevel Radius 5"</td>
     * </tr></table>
     */
   inline void setBevelRadius(double radius) {

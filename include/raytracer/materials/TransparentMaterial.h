@@ -48,13 +48,13 @@ namespace raytracer {
       * Sets the material's reflection color.
       *
       * <table><tr>
-      * <td>@image html transparent_material_refl_color_red.png</td>
-      * <td>@image html transparent_material_refl_color_orange.png</td>
-      * <td>@image html transparent_material_refl_color_yellow.png</td>
-      * <td>@image html transparent_material_refl_color_green.png</td>
-      * <td>@image html transparent_material_refl_color_blue.png</td>
-      * <td>@image html transparent_material_refl_color_indigo.png</td>
-      * <td>@image html transparent_material_refl_color_violet.png</td>
+      * <td>@image html transparent_material_refl_color_red.png "red"</td>
+      * <td>@image html transparent_material_refl_color_orange.png "orange"</td>
+      * <td>@image html transparent_material_refl_color_yellow.png "yellow"</td>
+      * <td>@image html transparent_material_refl_color_green.png "green"</td>
+      * <td>@image html transparent_material_refl_color_blue.png "blue"</td>
+      * <td>@image html transparent_material_refl_color_indigo.png "indigo"</td>
+      * <td>@image html transparent_material_refl_color_violet.png "violet"</td>
       * </tr></table>
       */
     inline void setReflectionColor(const Colord& color) {

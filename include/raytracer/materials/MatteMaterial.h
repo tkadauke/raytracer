@@ -48,13 +48,13 @@ namespace raytracer {
       * Sets the material's diffuse texture.
       * 
       * <table><tr>
-      * <td>@image html matte_material_rainbow_red.png</td>
-      * <td>@image html matte_material_rainbow_orange.png</td>
-      * <td>@image html matte_material_rainbow_yellow.png</td>
-      * <td>@image html matte_material_rainbow_green.png</td>
-      * <td>@image html matte_material_rainbow_blue.png</td>
-      * <td>@image html matte_material_rainbow_indigo.png</td>
-      * <td>@image html matte_material_rainbow_violet.png</td>
+      * <td>@image html matte_material_rainbow_red.png "red"</td>
+      * <td>@image html matte_material_rainbow_orange.png "orange"</td>
+      * <td>@image html matte_material_rainbow_yellow.png "yellow"</td>
+      * <td>@image html matte_material_rainbow_green.png "green"</td>
+      * <td>@image html matte_material_rainbow_blue.png "blue"</td>
+      * <td>@image html matte_material_rainbow_indigo.png "indigo"</td>
+      * <td>@image html matte_material_rainbow_violet.png "violet"</td>
       * </tr></table>
       */
     inline void setDiffuseTexture(std::shared_ptr<Texturec> texture) {

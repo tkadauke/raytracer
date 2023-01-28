@@ -29,11 +29,11 @@ public:
     * absolute value. A component of 0 will be replaced with \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html sphere_size_1.png</td>
-    * <td>@image html sphere_size_2.png</td>
-    * <td>@image html sphere_size_3.png</td>
-    * <td>@image html sphere_size_4.png</td>
-    * <td>@image html sphere_size_5.png</td>
+    * <td>@image html sphere_size_1.png "Size 1"</td>
+    * <td>@image html sphere_size_2.png "Size 2"</td>
+    * <td>@image html sphere_size_3.png "Size 3"</td>
+    * <td>@image html sphere_size_4.png "Size 4"</td>
+    * <td>@image html sphere_size_5.png "Size 5"</td>
     * </tr></table>
     */
   inline void setRadius(double radius) {

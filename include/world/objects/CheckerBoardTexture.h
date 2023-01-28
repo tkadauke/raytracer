@@ -31,13 +31,13 @@ public:
     * Sets the checker board's texture for the bright fields.
     * 
     * <table><tr>
-    * <td>@image html checker_board_bright_color_red.png</td>
-    * <td>@image html checker_board_bright_color_orange.png</td>
-    * <td>@image html checker_board_bright_color_yellow.png</td>
-    * <td>@image html checker_board_bright_color_green.png</td>
-    * <td>@image html checker_board_bright_color_blue.png</td>
-    * <td>@image html checker_board_bright_color_indigo.png</td>
-    * <td>@image html checker_board_bright_color_violet.png</td>
+    * <td>@image html checker_board_bright_color_red.png "red"</td>
+    * <td>@image html checker_board_bright_color_orange.png "orange"</td>
+    * <td>@image html checker_board_bright_color_yellow.png "yellow"</td>
+    * <td>@image html checker_board_bright_color_green.png "green"</td>
+    * <td>@image html checker_board_bright_color_blue.png "blue"</td>
+    * <td>@image html checker_board_bright_color_indigo.png "indigo"</td>
+    * <td>@image html checker_board_bright_color_violet.png "violet"</td>
     * </tr></table>
     */
   inline void setBrightTexture(Texture* texture) {
@@ -59,13 +59,13 @@ public:
     * Sets the checker board's texture for the bright fields.
     * 
     * <table><tr>
-    * <td>@image html checker_board_dark_color_red.png</td>
-    * <td>@image html checker_board_dark_color_orange.png</td>
-    * <td>@image html checker_board_dark_color_yellow.png</td>
-    * <td>@image html checker_board_dark_color_green.png</td>
-    * <td>@image html checker_board_dark_color_blue.png</td>
-    * <td>@image html checker_board_dark_color_indigo.png</td>
-    * <td>@image html checker_board_dark_color_violet.png</td>
+    * <td>@image html checker_board_dark_color_red.png "red"</td>
+    * <td>@image html checker_board_dark_color_orange.png "orange"</td>
+    * <td>@image html checker_board_dark_color_yellow.png "yellow"</td>
+    * <td>@image html checker_board_dark_color_green.png "green"</td>
+    * <td>@image html checker_board_dark_color_blue.png "blue"</td>
+    * <td>@image html checker_board_dark_color_indigo.png "indigo"</td>
+    * <td>@image html checker_board_dark_color_violet.png "violet"</td>
     * </tr></table>
     */
   inline void setDarkTexture(Texture* texture) {

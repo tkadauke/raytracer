@@ -29,11 +29,11 @@ public:
     * Sets the direction of the light.
     *
     * <table><tr>
-    * <td>@image html directional_light_direction_1.png</td>
-    * <td>@image html directional_light_direction_2.png</td>
-    * <td>@image html directional_light_direction_3.png</td>
-    * <td>@image html directional_light_direction_4.png</td>
-    * <td>@image html directional_light_direction_5.png</td>
+    * <td>@image html directional_light_direction_1.png "Direction 1"</td>
+    * <td>@image html directional_light_direction_2.png "Direction 2"</td>
+    * <td>@image html directional_light_direction_3.png "Direction 3"</td>
+    * <td>@image html directional_light_direction_4.png "Direction 4"</td>
+    * <td>@image html directional_light_direction_5.png "Direction 5"</td>
     * </tr></table>
     */
   inline void setDirection(const Vector3d& direction) {

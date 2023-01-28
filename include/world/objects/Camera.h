@@ -35,11 +35,11 @@ public:
     * Sets the position of the camera.
     * 
     * <table><tr>
-    * <td>@image html camera_position_1.png</td>
-    * <td>@image html camera_position_2.png</td>
-    * <td>@image html camera_position_3.png</td>
-    * <td>@image html camera_position_4.png</td>
-    * <td>@image html camera_position_5.png</td>
+    * <td>@image html camera_position_1.png "Position 1"</td>
+    * <td>@image html camera_position_2.png "Position 2"</td>
+    * <td>@image html camera_position_3.png "Position 3"</td>
+    * <td>@image html camera_position_4.png "Position 4"</td>
+    * <td>@image html camera_position_5.png "Position 5"</td>
     * </tr></table>
     */
   inline void setPosition(const Vector3d& position) {
@@ -57,11 +57,11 @@ public:
     * Sets the target point of the camera.
     * 
     * <table><tr>
-    * <td>@image html camera_target_1.png</td>
-    * <td>@image html camera_target_2.png</td>
-    * <td>@image html camera_target_3.png</td>
-    * <td>@image html camera_target_4.png</td>
-    * <td>@image html camera_target_5.png</td>
+    * <td>@image html camera_target_1.png "Target 1"</td>
+    * <td>@image html camera_target_2.png "Target 2"</td>
+    * <td>@image html camera_target_3.png "Target 3"</td>
+    * <td>@image html camera_target_4.png "Target 4"</td>
+    * <td>@image html camera_target_5.png "Target 5"</td>
     * </tr></table>
     */
   inline void setTarget(const Vector3d& target) {

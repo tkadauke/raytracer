@@ -66,13 +66,13 @@ namespace raytracer {
       * Sets the material's specular color.
       * 
       * <table><tr>
-      * <td>@image html phong_material_specular_color_red.png</td>
-      * <td>@image html phong_material_specular_color_orange.png</td>
-      * <td>@image html phong_material_specular_color_yellow.png</td>
-      * <td>@image html phong_material_specular_color_green.png</td>
-      * <td>@image html phong_material_specular_color_blue.png</td>
-      * <td>@image html phong_material_specular_color_indigo.png</td>
-      * <td>@image html phong_material_specular_color_violet.png</td>
+      * <td>@image html phong_material_specular_color_red.png "red"</td>
+      * <td>@image html phong_material_specular_color_orange.png "orange"</td>
+      * <td>@image html phong_material_specular_color_yellow.png "yellow"</td>
+      * <td>@image html phong_material_specular_color_green.png "green"</td>
+      * <td>@image html phong_material_specular_color_blue.png "blue"</td>
+      * <td>@image html phong_material_specular_color_indigo.png "indigo"</td>
+      * <td>@image html phong_material_specular_color_violet.png "violet"</td>
       * </tr></table>
       */
     inline void setSpecularColor(const Colord& color) {

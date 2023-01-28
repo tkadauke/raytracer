@@ -34,11 +34,11 @@ public:
     * radius plus \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html ring_outer_radius_1.png</td>
-    * <td>@image html ring_outer_radius_2.png</td>
-    * <td>@image html ring_outer_radius_3.png</td>
-    * <td>@image html ring_outer_radius_4.png</td>
-    * <td>@image html ring_outer_radius_5.png</td>
+    * <td>@image html ring_outer_radius_1.png "Radius 1"</td>
+    * <td>@image html ring_outer_radius_2.png "Radius 2"</td>
+    * <td>@image html ring_outer_radius_3.png "Radius 3"</td>
+    * <td>@image html ring_outer_radius_4.png "Radius 4"</td>
+    * <td>@image html ring_outer_radius_5.png "Radius 5"</td>
     * </tr></table>
     */
   inline void setOuterRadius(double radius) {
@@ -62,11 +62,11 @@ public:
     * radius minus \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html ring_inner_radius_1.png</td>
-    * <td>@image html ring_inner_radius_2.png</td>
-    * <td>@image html ring_inner_radius_3.png</td>
-    * <td>@image html ring_inner_radius_4.png</td>
-    * <td>@image html ring_inner_radius_5.png</td>
+    * <td>@image html ring_inner_radius_1.png "Radius 1"</td>
+    * <td>@image html ring_inner_radius_2.png "Radius 2"</td>
+    * <td>@image html ring_inner_radius_3.png "Radius 3"</td>
+    * <td>@image html ring_inner_radius_4.png "Radius 4"</td>
+    * <td>@image html ring_inner_radius_5.png "Radius 5"</td>
     * </tr></table>
     */
   inline void setInnerRadius(double radius) {
@@ -88,11 +88,11 @@ public:
     * absolute value. A height of 0 will be replaced with \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html ring_height_1.png</td>
-    * <td>@image html ring_height_2.png</td>
-    * <td>@image html ring_height_3.png</td>
-    * <td>@image html ring_height_4.png</td>
-    * <td>@image html ring_height_5.png</td>
+    * <td>@image html ring_height_1.png "Height 1"</td>
+    * <td>@image html ring_height_2.png "Height 2"</td>
+    * <td>@image html ring_height_3.png "Height 3"</td>
+    * <td>@image html ring_height_4.png "Height 4"</td>
+    * <td>@image html ring_height_5.png "Height 5"</td>
     * </tr></table>
     */
   inline void setHeight(double height) {
@@ -112,11 +112,11 @@ public:
     * than 0, the edges will be rounded.
     * 
     * <table><tr>
-    * <td>@image html ring_bevel_radius_1.png</td>
-    * <td>@image html ring_bevel_radius_2.png</td>
-    * <td>@image html ring_bevel_radius_3.png</td>
-    * <td>@image html ring_bevel_radius_4.png</td>
-    * <td>@image html ring_bevel_radius_5.png</td>
+    * <td>@image html ring_bevel_radius_1.png "Bevel Radius 1"</td>
+    * <td>@image html ring_bevel_radius_2.png "Bevel Radius 2"</td>
+    * <td>@image html ring_bevel_radius_3.png "Bevel Radius 3"</td>
+    * <td>@image html ring_bevel_radius_4.png "Bevel Radius 4"</td>
+    * <td>@image html ring_bevel_radius_5.png "Bevel Radius 5"</td>
     * </tr></table>
     */
   inline void setBevelRadius(double radius) {

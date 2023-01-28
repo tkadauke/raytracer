@@ -55,13 +55,13 @@ namespace raytracer {
       * Sets the scene's ambient light color.
       *
       * <table><tr>
-      * <td>@image html scene_ambient_red.png</td>
-      * <td>@image html scene_ambient_orange.png</td>
-      * <td>@image html scene_ambient_yellow.png</td>
-      * <td>@image html scene_ambient_green.png</td>
-      * <td>@image html scene_ambient_blue.png</td>
-      * <td>@image html scene_ambient_indigo.png</td>
-      * <td>@image html scene_ambient_violet.png</td>
+      * <td>@image html scene_ambient_red.png "red"</td>
+      * <td>@image html scene_ambient_orange.png "orange"</td>
+      * <td>@image html scene_ambient_yellow.png "yellow"</td>
+      * <td>@image html scene_ambient_green.png "green"</td>
+      * <td>@image html scene_ambient_blue.png "blue"</td>
+      * <td>@image html scene_ambient_indigo.png "indigo"</td>
+      * <td>@image html scene_ambient_violet.png "violet"</td>
       * </tr></table>
       */
     inline void setAmbient(const Colord& ambient) {
@@ -79,13 +79,13 @@ namespace raytracer {
       * Sets the scene's background light color.
       *
       * <table><tr>
-      * <td>@image html scene_background_red.png</td>
-      * <td>@image html scene_background_orange.png</td>
-      * <td>@image html scene_background_yellow.png</td>
-      * <td>@image html scene_background_green.png</td>
-      * <td>@image html scene_background_blue.png</td>
-      * <td>@image html scene_background_indigo.png</td>
-      * <td>@image html scene_background_violet.png</td>
+      * <td>@image html scene_background_red.png "red"</td>
+      * <td>@image html scene_background_orange.png "orange"</td>
+      * <td>@image html scene_background_yellow.png "yellow"</td>
+      * <td>@image html scene_background_green.png "green"</td>
+      * <td>@image html scene_background_blue.png "blue"</td>
+      * <td>@image html scene_background_indigo.png "indigo"</td>
+      * <td>@image html scene_background_violet.png "violet"</td>
       * </tr></table>
       */
     inline void setBackground(const Colord& background) {

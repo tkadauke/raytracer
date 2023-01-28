@@ -32,11 +32,11 @@ public:
     * absolute value. A component of 0 will be replaced with \f$\epsilon\f$.
     * 
     * <table><tr>
-    * <td>@image html box_size_1.png</td>
-    * <td>@image html box_size_2.png</td>
-    * <td>@image html box_size_3.png</td>
-    * <td>@image html box_size_4.png</td>
-    * <td>@image html box_size_5.png</td>
+    * <td>@image html box_size_1.png "1"</td>
+    * <td>@image html box_size_2.png "2"</td>
+    * <td>@image html box_size_3.png "3"</td>
+    * <td>@image html box_size_4.png "4"</td>
+    * <td>@image html box_size_5.png "5"</td>
     * </tr></table>
     */
   inline void setSize(const Vector3d& size) {
@@ -63,11 +63,11 @@ public:
     * than 0, the edges and corners will be rounded.
     * 
     * <table><tr>
-    * <td>@image html box_bevel_radius_1.png</td>
-    * <td>@image html box_bevel_radius_2.png</td>
-    * <td>@image html box_bevel_radius_3.png</td>
-    * <td>@image html box_bevel_radius_4.png</td>
-    * <td>@image html box_bevel_radius_5.png</td>
+    * <td>@image html box_bevel_radius_1.png "1"</td>
+    * <td>@image html box_bevel_radius_2.png "2"</td>
+    * <td>@image html box_bevel_radius_3.png "3"</td>
+    * <td>@image html box_bevel_radius_4.png "4"</td>
+    * <td>@image html box_bevel_radius_5.png "5"</td>
     * </tr></table>
     */
   inline void setBevelRadius(double radius) {
