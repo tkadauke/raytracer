@@ -13,3 +13,6 @@ test/coverage
 tools/rendercli/rendercli
 /_scenes
 /tmp
+docs/html
+docs/images
+docs/latex
