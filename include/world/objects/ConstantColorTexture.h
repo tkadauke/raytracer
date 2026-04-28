@@ -27,13 +27,13 @@ public:
     * Sets the texture's color.
     * 
     * <table><tr>
-    * <td>@image html constant_color_red.png</td>
-    * <td>@image html constant_color_orange.png</td>
-    * <td>@image html constant_color_yellow.png</td>
-    * <td>@image html constant_color_green.png</td>
-    * <td>@image html constant_color_blue.png</td>
-    * <td>@image html constant_color_indigo.png</td>
-    * <td>@image html constant_color_violet.png</td>
+    * <td>@image html constant_color_red.png "red"</td>
+    * <td>@image html constant_color_orange.png "orange"</td>
+    * <td>@image html constant_color_yellow.png "yellow"</td>
+    * <td>@image html constant_color_green.png "green"</td>
+    * <td>@image html constant_color_blue.png "blue"</td>
+    * <td>@image html constant_color_indigo.png "indigo"</td>
+    * <td>@image html constant_color_violet.png "violet"</td>
     * </tr></table>
     */
   inline void setColor(const Colord& color) {
