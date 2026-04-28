@@ -6,17 +6,33 @@ I started this project in my spare time in order to refresh my C++ skills and le
 
 ## prerequisites
 
-To compile, you need ruby and rake. You also need a development version of Qt4 installed on your system. I recommend MacPorts for that.
+To compile, you need:
+
+* A C++17 compiler (`g++` or `clang++`)
+* Ruby and `rake` (the build is driven by a `Rakefile`)
+* Qt 5 — on macOS this is `brew install qt@5`
+
+The `Rakefile` currently hardcodes a Homebrew Qt 5 prefix; you may need to adjust the `QT_BASE` constant at the top of the file to match your local install.
 
 ## compile
 
-To compile, simply type:
+To build everything (examples, tools, and tests):
 
     rake
 
-You might have to adjust some variables to make things work on your system.
+To build only the examples or only the CLI tools:
 
-A couple of examples will be compiled. The most important one is
+    rake examples
+    rake tools
+
+To run the test suites:
+
+    rake test               # build + run unit and functional tests
+    rake test:units         # only unit tests
+    rake test:functionals   # only functional tests
+    ONLY=PinholeCamera.* rake test:units   # filter via gtest
+
+The most useful example to launch interactively is
 
     examples/SceneBrowser/SceneBrowser
 
@@ -45,7 +61,9 @@ A couple of examples will be compiled. The most important one is
 ## hack
 
 * Fork
-* Use the coding style
+* Use the coding style (a `.clang-format` is checked in)
 * Write code
 * Write tests
-* Send me a pull request
+* Send a pull request
+
+See [`CLAUDE.md`](CLAUDE.md) for repository conventions and common commands, and [`docs/modernize.md`](docs/modernize.md) for the 2026 modernization roadmap (CMake migration, Qt 6, GitHub Actions CI, supply-chain hardening).
