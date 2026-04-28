@@ -1,0 +1,37 @@
+---
+# Style for the raytracer project. Roughly LLVM with 2-space indent and
+# indented namespaces matching what the existing code already uses.
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 100
+
+AccessModifierOffset: -2
+NamespaceIndentation: All
+FixNamespaceComments: false
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+
+BreakBeforeBraces: Attach
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 2
+PackConstructorInitializers: Never
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+SpaceAfterTemplateKeyword: false
+SpaceBeforeParens: ControlStatements
+
+IncludeBlocks: Preserve
+SortIncludes: false
+
+# Hands off the vendored test framework copies — they have their own style.
+---
