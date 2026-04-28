@@ -1,0 +1,48 @@
+---
+# clang-tidy configuration for the raytracer project.
+#
+# The check list is intentionally conservative for the initial pass. As the
+# codebase moves toward C++23 (see modernize.md §3.1) and CMake (§3.3) we can
+# turn on the full cppcoreguidelines-* and modernize-* groups; for now we
+# enable the modernize checks called out in §3.6 plus a small set of
+# diagnostic, performance, and readability checks that are likely to find
+# real issues without flooding the output on the first run.
+#
+# Vendored gtest/gmock and Qt-generated .moc/.uic files are excluded via
+# HeaderFilterRegex.
+
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  modernize-loop-convert,
+  modernize-use-bool-literals,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  modernize-deprecated-headers,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param,
+  performance-for-range-copy,
+  readability-const-return-type,
+  readability-redundant-smartptr-get,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions
+
+WarningsAsErrors: ''
+
+# Only lint our own headers, not Qt or vendored test framework headers.
+HeaderFilterRegex: '^.*/(include|src|test|examples|tools)/(?!.*\.(moc|uic)$).*\.(h|cpp)$'
+
+FormatStyle: file
+
+CheckOptions:
+  - key: modernize-use-override.IgnoreDestructors
+    value: 'true'
+  - key: modernize-loop-convert.MinConfidence
+    value: 'reasonable'
+  - key: readability-identifier-naming.ClassCase
+    value: 'CamelCase'
+...
