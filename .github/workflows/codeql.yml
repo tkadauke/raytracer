@@ -1,0 +1,47 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze C++
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [cpp]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # build-mode: none performs source-level analysis without invoking the
+          # build system. The current Rakefile is macOS-only (hardcoded Homebrew
+          # Qt path, -framework flags, DYLD_FRAMEWORK_PATH), so autobuild cannot
+          # succeed on Linux runners. Switch to build-mode: manual once the
+          # CMake migration in modernize.md §3.3 lands.
+          build-mode: none
+          paths-ignore: |
+            gtest
+            gmock
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
