@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "widgets/FishEyeCameraParameterWidget.h"
 #include "raytracer/cameras/FishEyeCamera.h"
 #include "test/helpers/GuiTestHelper.h"

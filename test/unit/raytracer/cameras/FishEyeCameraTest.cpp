@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/cameras/FishEyeCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"

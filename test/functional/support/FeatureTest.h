@@ -1,7 +1,7 @@
 #ifndef FEATURE_TEST_H
 #define FEATURE_TEST_H
 
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/Singleton.h"
 
 #include <map>

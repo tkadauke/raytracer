@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/formats/ply/PlyElement.h"
 
 #include <sstream>

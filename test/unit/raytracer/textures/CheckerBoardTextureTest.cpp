@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/textures/CheckerBoardTexture.h"
 #include "raytracer/textures/ConstantColorTexture.h"
 #include "raytracer/textures/mappings/PlanarMapping2D.h"

@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/math/HitPoint.h"
 #include "raytracer/primitives/Box.h"
 

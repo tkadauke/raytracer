@@ -10,10 +10,11 @@
 namespace testing {
   class MockPrimitive : public raytracer::Primitive, public MockDestructor {
   public:
-    MOCK_CONST_METHOD3(intersect, const Primitive*(const Rayd&, HitPointInterval&, raytracer::State&));
-    MOCK_CONST_METHOD2(intersects, bool(const Rayd&, raytracer::State&));
-    MOCK_CONST_METHOD1(farthestPoint, Vector3d(const Vector3d&));
-    MOCK_CONST_METHOD0(calculateBoundingBox, BoundingBoxd());
+    MOCK_METHOD(const Primitive*, intersect,
+                (const Rayd&, HitPointInterval&, raytracer::State&), (const, override));
+    MOCK_METHOD(bool, intersects, (const Rayd&, raytracer::State&), (const, override));
+    MOCK_METHOD(Vector3d, farthestPoint, (const Vector3d&), (const, override));
+    MOCK_METHOD(BoundingBoxd, calculateBoundingBox, (), (const, override));
     
     inline bool defaultIntersects(const Rayd& ray, raytracer::State& state) const {
       return Primitive::intersects(ray, state);

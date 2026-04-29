@@ -15,7 +15,7 @@ namespace testing {
         destructorCall();
     }
 
-    MOCK_METHOD0(destructorCall, void());
+    MOCK_METHOD(void, destructorCall, ());
     
     inline void expectDestructorCall() {
       m_expectDestructorCall = true;

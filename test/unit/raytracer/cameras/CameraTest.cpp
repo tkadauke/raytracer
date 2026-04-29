@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/cameras/Camera.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "test/mocks/raytracer/MockViewPlane.h"

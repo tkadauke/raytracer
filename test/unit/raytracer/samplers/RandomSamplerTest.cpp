@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/samplers/RandomSampler.h"
 
 namespace RandomSamplerTest {

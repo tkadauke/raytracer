@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/formats/ply/PlyFile.h"
 #include "core/formats/ply/PlyParseError.h"
 #include "core/geometry/Mesh.h"

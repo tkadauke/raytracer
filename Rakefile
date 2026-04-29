@@ -14,39 +14,23 @@ QT_UIC = "#{QT_BIN}/uic"
 INCLUDE_DIR = File.expand_path(File.dirname(__FILE__) + '/include')
 SRC_DIR = File.expand_path(File.dirname(__FILE__) + '/src')
 WIDGETS_DIR = File.expand_path(File.dirname(__FILE__) + '/src/widgets')
-GTEST_DIR = File.expand_path(File.dirname(__FILE__) + '/gtest')
-GMOCK_DIR = File.expand_path(File.dirname(__FILE__) + '/gmock')
-TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test')
-UNIT_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/unit')
-FUNCTIONAL_TEST_DIR = File.expand_path(File.dirname(__FILE__) + '/test/functional')
-TEST_HELPER_DIR = File.expand_path(File.dirname(__FILE__) + '/test/helpers')
 EXAMPLES_DIR = File.expand_path(File.dirname(__FILE__) + '/examples')
 TOOLS_DIR = File.expand_path(File.dirname(__FILE__) + '/tools')
 
 SRC = FileList["#{SRC_DIR}/**/*.cpp"]
-UNIT_TEST = FileList["#{UNIT_TEST_DIR}/**/*.cpp"]
-FUNCTIONAL_TEST = FileList["#{FUNCTIONAL_TEST_DIR}/**/*.cpp"]
-TEST_HELPER = FileList["#{TEST_HELPER_DIR}/**/*.cpp"]
-GTEST = FileList["#{GTEST_DIR}/**/*.cpp", "#{GMOCK_DIR}/**/*.cpp"]
 EXAMPLES_SRC = FileList["#{EXAMPLES_DIR}/**/*.cpp"]
 TOOLS_SRC = FileList["#{TOOLS_DIR}/**/*.cpp"]
 
 SRC_OBJ = SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
-UNIT_TEST_OBJ = UNIT_TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
-FUNCTIONAL_TEST_OBJ = FUNCTIONAL_TEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
-TEST_HELPER_OBJ = TEST_HELPER.collect { |fn| fn.gsub(/\.cpp/, '.o') }
-GTEST_OBJ = GTEST.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 EXAMPLES_OBJ = EXAMPLES_SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 TOOLS_OBJ = TOOLS_SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 
-UNIT_TEST_BIN = "#{UNIT_TEST_DIR}/tests.run"
-FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
 EXAMPLES = FileList["#{EXAMPLES_DIR}/*"].select { |f| File.directory?(f) }
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 TOOLS = FileList["#{TOOLS_DIR}/*"].select { |f| File.directory?(f) }
 TOOLS_BIN = TOOLS.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
-INCLUDE_DIRS = ['.', INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS].flatten
+INCLUDE_DIRS = ['.', INCLUDE_DIR, WIDGETS_DIR, QT_INCLUDE_DIRS].flatten
 FRAMEWORKS = [QT_FRAMEWORKS].flatten
 
 INCLUDES = INCLUDE_DIRS.collect { |dir| "-I#{dir}" }.join(' ')
@@ -76,10 +60,10 @@ CC = "g++"
 #  --param max-inline-insns-single  --param inline-unit-growth --param large-function-growth
 LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')} #{DEBUG_FLAGS}"
 
-CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TOOLS_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN, TOOLS_BIN)
+CLEAN.include(SRC_OBJ, EXAMPLES_OBJ, TOOLS_OBJ, EXAMPLES_BIN, TOOLS_BIN)
 CLEAN.include(Rake::FileList["**/*.moc", "**/ui_*.h"])
 
-task :default => [:examples, :tools, :test]
+task :default => [:examples, :tools]
 
 @header_dependency_cache = {}
 
@@ -136,14 +120,6 @@ rule '.o' => lambda { |objfile| dependencies(objfile) } do |t|
   end
 end
 
-file UNIT_TEST_BIN => [SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten do
-  sh %{#{CC} -Os -o #{UNIT_TEST_BIN} #{[SRC_OBJ, UNIT_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
-end
-
-file FUNCTIONAL_TEST_BIN => [SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten do
-  sh %{#{CC} -Os -o #{FUNCTIONAL_TEST_BIN} #{[SRC_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ].flatten.join(' ')} #{LD_FLAGS}}
-end
-
 EXAMPLES.each do |example|
   src = FileList["#{example}/**/*.cpp"]
   obj = src.collect { |fn| fn.gsub(/\.cpp/, '.o') }
@@ -197,43 +173,31 @@ task :docs => "docs:generate"
 
 QT_LD = "DYLD_FRAMEWORK_PATH=#{QT_LIB}"
 
+# The vendored gtest/gmock copies were removed when CMake switched to
+# FetchContent for GoogleTest 1.14 (modernize.md §3.2). The Rakefile-driven
+# test build relied on the in-tree copies and the deprecated MOCK_METHODn
+# macros that come with them, so it can no longer build the test suite.
+# Tests now live under CMake; the Rakefile is being retired (modernize.md §5).
 namespace :test do
-  task :build => [UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN]
-  task :run => [:units, :functionals]
+  task :build do
+    fail <<~MSG
+      The Rakefile no longer builds the test suite — the vendored gtest/gmock
+      copies were removed in favor of GoogleTest 1.14 via CMake FetchContent.
+      Use the CMake build instead:
 
-  desc "Run all unit tests"
-  task :units => :build do
-    if ENV['ONLY']
-      sh("#{QT_LD} #{UNIT_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
-    else
-      sh("#{QT_LD} #{UNIT_TEST_BIN}")
-    end
+          cmake --preset release
+          cmake --build --preset release
+          ctest --preset release
+    MSG
   end
 
-  desc "Run all functional tests"
-  task :functionals => :build do
-    if ENV['ONLY']
-      sh("#{QT_LD} #{FUNCTIONAL_TEST_BIN} --gtest_filter=#{ENV['ONLY']}")
-    else
-      sh("#{QT_LD} #{FUNCTIONAL_TEST_BIN}")
-    end
-  end
-
-  desc "Gather test coverage"
-  task :coverage do
-    ENV['COVERAGE'] = 'true'
-    sh "drake -j 24 test:build"
-    sh "rake test:run"
-    sh "lcov --directory . -b . --capture --output-file test/coverage/info"
-    sh "lcov -r test/coverage/info /usr/include/\\* -o test/coverage/info"
-    sh "lcov -r test/coverage/info test/\\* -o test/coverage/info"
-    sh "lcov -r test/coverage/info gtest/\\* -o test/coverage/info"
-    sh "lcov -r test/coverage/info gmock/\\* -o test/coverage/info"
-    sh "lcov -r test/coverage/info \\*.moc -o test/coverage/info"
-    sh "lcov -r test/coverage/info \\*.uic -o test/coverage/info"
-    sh "genhtml test/coverage/info -o test/coverage"
-  end
+  task :units => :build
+  task :functionals => :build
+  task :run => :build
+  task :coverage => :build
 end
+
+task :test => 'test:build'
 
 namespace :check do
   desc "Run cppcheck on the repository"
@@ -252,9 +216,6 @@ namespace :check do
     >
   end
 end
-
-desc "Run all tests"
-task :test => ['test:build', 'test:run']
 
 desc "Outputs test and code lines"
 task :stats do

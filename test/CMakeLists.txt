@@ -11,7 +11,7 @@ target_include_directories(test_helpers
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/test
 )
-target_link_libraries(test_helpers PUBLIC raytracer gtest_vendored gmock_vendored)
+target_link_libraries(test_helpers PUBLIC raytracer GTest::gtest GTest::gmock)
 
 # Two test executables matching the existing Rakefile split.
 file(GLOB_RECURSE UNIT_TEST_SOURCES CONFIGURE_DEPENDS
@@ -30,9 +30,9 @@ set_target_properties(unit_tests PROPERTIES
 target_link_libraries(unit_tests PRIVATE
   raytracer
   test_helpers
-  gtest_vendored
-  gmock_vendored
-  gmock_main_vendored
+  GTest::gtest
+  GTest::gmock
+  GTest::gmock_main
 )
 
 add_executable(functional_tests ${FUNCTIONAL_TEST_SOURCES})
@@ -43,9 +43,9 @@ set_target_properties(functional_tests PROPERTIES
 target_link_libraries(functional_tests PRIVATE
   raytracer
   test_helpers
-  gtest_vendored
-  gmock_vendored
-  gmock_main_vendored
+  GTest::gtest
+  GTest::gmock
+  GTest::gmock_main
 )
 
 add_test(NAME unit_tests       COMMAND unit_tests)

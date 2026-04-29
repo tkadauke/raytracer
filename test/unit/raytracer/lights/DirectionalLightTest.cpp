@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/lights/DirectionalLight.h"
 
 namespace DirectionalLightTest {

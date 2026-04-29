@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/geometry/Mesh.h"
 #include "test/helpers/ContainerTestHelper.h"
 

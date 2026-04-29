@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/math/Quartic.h"
 
 #include "test/helpers/PolynomialTestHelper.h"

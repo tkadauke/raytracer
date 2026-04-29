@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/DivisionByZeroException.h"
 
 namespace DivisionByZeroExceptionTest {

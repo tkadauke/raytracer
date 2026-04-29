@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/textures/ConstantColorTexture.h"
 

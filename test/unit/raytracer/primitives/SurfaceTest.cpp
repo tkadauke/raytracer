@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/primitives/Primitive.h"
 #include "raytracer/materials/MatteMaterial.h"
 

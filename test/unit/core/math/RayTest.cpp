@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/math/Ray.h"
 #include "test/helpers/VectorTestHelper.h"
 

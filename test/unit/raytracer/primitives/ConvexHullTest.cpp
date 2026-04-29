@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/State.h"
 #include "raytracer/primitives/ConvexHull.h"
 #include "test/mocks/raytracer/MockPrimitive.h"

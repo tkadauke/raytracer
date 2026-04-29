@@ -1,7 +1,7 @@
 #ifndef ABSTRACT_VIEW_PLANE_ITERATOR_TEST_H
 #define ABSTRACT_VIEW_PLANE_ITERATOR_TEST_H
 
-#include "gtest.h"
+#include <gtest/gtest.h>
 
 namespace testing {
   template<class VP>

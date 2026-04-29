@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "widgets/PinholeCameraParameterWidget.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "test/helpers/GuiTestHelper.h"

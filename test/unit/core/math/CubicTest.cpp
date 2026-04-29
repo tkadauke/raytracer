@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/math/Cubic.h"
 
 #include "test/helpers/PolynomialTestHelper.h"

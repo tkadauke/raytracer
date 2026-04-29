@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/viewplanes/PointInterlacedViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 

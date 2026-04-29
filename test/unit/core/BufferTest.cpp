@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "core/Buffer.h"
 #include "core/Color.h"
 

@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/brdf/Lambertian.h"
 
 #include "core/math/HitPoint.h"

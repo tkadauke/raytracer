@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include <gtest/gtest.h>
 #include "raytracer/primitives/MeshTriangle.h"
 #include "core/geometry/Mesh.h"
 
