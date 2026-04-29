@@ -59,23 +59,26 @@ int Quartic<T>::solve() {
     cubic.solveInto(m_result);
   
     T z = m_result[0];
-  
+
     T u = z * z - r;
     T v = 2 * z - p;
-  
-    if (isAlmostZero(u))
-      u = 0;
-    else if (u > 0)
-      u = std::sqrt(u);
-    else
-      return 0;
-  
-    if (isAlmostZero(v))
-      v = 0;
-    else if (v > 0)
-      v = std::sqrt(v);
-    else
-      return 0;
+
+    // A real root z of the resolvent cubic mathematically satisfies u >= 0 and
+    // v >= 0. Finite-precision arithmetic can place either just below zero by
+    // O(eps) relative to the input scale; the absolute epsilon of
+    // isAlmostZero (~2.22e-15 for double) is too tight to absorb that — for
+    // example, the quartic (1,-16,86,-176,105) gives z = 2.999...9 and
+    // u = -2.66e-15, which would otherwise return 0 solutions instead of 4.
+    // Use a tolerance scaled to the magnitude of the inputs.
+    const T eps = std::numeric_limits<T>::epsilon() * 16;
+    T uTol = eps * (T(1) + std::abs(z * z) + std::abs(r));
+    T vTol = eps * (T(1) + std::abs(2 * z) + std::abs(p));
+
+    if (u < -uTol) return 0;
+    u = u <= T(0) ? T(0) : std::sqrt(u);
+
+    if (v < -vTol) return 0;
+    v = v <= T(0) ? T(0) : std::sqrt(v);
   
     Quadric<T> first(1, q < 0 ? -v : v, z - u);
     numberOfResults = first.solveInto(m_result);
