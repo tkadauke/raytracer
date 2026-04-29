@@ -1,6 +1,6 @@
 require 'rake/clean'
 
-QT_BASE = '/opt/homebrew/Cellar/qt@5/5.15.8_1'
+QT_BASE = '/opt/homebrew/Cellar/qt@5/5.15.17'
 QT_BIN = "#{QT_BASE}/bin"
 QT_LIB = "#{QT_BASE}/lib"
 QT_LIBEXEC = "#{QT_BASE}/share/qt/libexec"
