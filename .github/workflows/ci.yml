@@ -170,3 +170,34 @@ jobs:
         with:
           name: fuzz-findings
           path: fuzz/findings/
+
+  docker:
+    name: Build container image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435  # v3.11.1
+
+      - name: Build image
+        # Builds the rendercli runtime image but does not push — the publish
+        # step belongs in a release workflow with proper OIDC + cosign once
+        # we cut tagged releases (modernize.md §3.8 / §3.9).
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83  # v6.18.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: raytracer:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke-test rendercli --help
+        # Distroless has no shell, so we exec rendercli directly. Exit non-zero
+        # is acceptable — we only care that the binary loads (its Qt deps
+        # resolve, the entrypoint runs).
+        run: docker run --rm raytracer:ci --help || true

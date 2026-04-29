@@ -1,0 +1,13 @@
+/build
+/build-*
+.git
+.github
+.devcontainer
+docs/html
+docs/images
+docs/latex
+test/coverage
+*.o
+*.moc
+ui_*.h
+.DS_Store
