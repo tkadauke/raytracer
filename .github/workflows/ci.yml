@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+          - os: ubuntu-24.04
+            compiler: clang-18
+            cc: clang-18
+            cxx: clang++-18
+          - os: macos-14
+            compiler: apple-clang
+            cc: clang
+            cxx: clang++
+
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ${{ matrix.cxx }} \
+            ninja-build \
+            cmake \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtscript5-dev \
+            libqt5gui5 \
+            libqt5widgets5 \
+            xvfb
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install ninja qt@5
+
+      - name: Configure
+        run: cmake --preset release
+
+      - name: Build
+        run: cmake --build --preset release --parallel
+
+      - name: Test
+        if: runner.os == 'macOS'
+        run: ctest --preset release
+
+      - name: Test (Linux, headless)
+        if: runner.os == 'Linux'
+        run: |
+          # Several widget tests construct QWidgets; run under Xvfb so
+          # QApplication can connect to a virtual display.
+          xvfb-run --auto-servernum ctest --preset release
