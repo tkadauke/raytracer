@@ -1,5 +1,5 @@
 #include "widgets/world/AngleParameterWidget.h"
-#include "AngleParameterWidget.uic"
+#include "ui_AngleParameterWidget.h"
 
 #include "core/math/Angle.h"
 

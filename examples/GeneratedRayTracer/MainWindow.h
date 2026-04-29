@@ -20,7 +20,8 @@ class MainWindow : public QMainWindow {
 
 public:
   MainWindow();
-  
+  ~MainWindow();
+
 protected:
   virtual void closeEvent(QCloseEvent* event);
   

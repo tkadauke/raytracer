@@ -1,5 +1,5 @@
 #include "widgets/world/BoolParameterWidget.h"
-#include "BoolParameterWidget.uic"
+#include "ui_BoolParameterWidget.h"
 
 struct BoolParameterWidget::Private {
   Ui::BoolParameterWidget ui;

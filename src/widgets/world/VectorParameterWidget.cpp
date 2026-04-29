@@ -1,5 +1,5 @@
 #include "widgets/world/VectorParameterWidget.h"
-#include "VectorParameterWidget.uic"
+#include "ui_VectorParameterWidget.h"
 
 Q_DECLARE_METATYPE(Vector3d);
 

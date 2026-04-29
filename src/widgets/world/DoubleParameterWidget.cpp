@@ -1,5 +1,5 @@
 #include "widgets/world/DoubleParameterWidget.h"
-#include "DoubleParameterWidget.uic"
+#include "ui_DoubleParameterWidget.h"
 
 struct DoubleParameterWidget::Private {
   Ui::DoubleParameterWidget ui;

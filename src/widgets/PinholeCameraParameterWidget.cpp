@@ -1,6 +1,6 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/PinholeCameraParameterWidget.h"
-#include "PinholeCameraParameterWidget.uic"
+#include "ui_PinholeCameraParameterWidget.h"
 #include "raytracer/cameras/PinholeCamera.h"
 
 using namespace raytracer;

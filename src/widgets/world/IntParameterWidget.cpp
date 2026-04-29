@@ -1,5 +1,5 @@
 #include "widgets/world/IntParameterWidget.h"
-#include "IntParameterWidget.uic"
+#include "ui_IntParameterWidget.h"
 
 struct IntParameterWidget::Private {
   Ui::IntParameterWidget ui;

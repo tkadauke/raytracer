@@ -1,6 +1,6 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/FishEyeCameraParameterWidget.h"
-#include "FishEyeCameraParameterWidget.uic"
+#include "ui_FishEyeCameraParameterWidget.h"
 #include "raytracer/cameras/FishEyeCamera.h"
 
 using namespace raytracer;

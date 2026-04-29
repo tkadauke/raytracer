@@ -1,5 +1,5 @@
 #include "widgets/CameraTypeWidget.h"
-#include "CameraTypeWidget.uic"
+#include "ui_CameraTypeWidget.h"
 #include "raytracer/cameras/CameraFactory.h"
 
 #include <list>

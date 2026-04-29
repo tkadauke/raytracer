@@ -130,6 +130,8 @@ struct MainWindow::Private {
   QAction* helpAct;
 };
 
+MainWindow::~MainWindow() = default;
+
 MainWindow::MainWindow()
   : QMainWindow(), p(std::make_unique<Private>())
 {

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <QVariant>
 #include <QWidget>
+
+#include <memory>
 
 class Element;
 

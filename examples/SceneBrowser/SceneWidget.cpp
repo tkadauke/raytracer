@@ -1,5 +1,5 @@
 #include "SceneWidget.h"
-#include "SceneWidget.uic"
+#include "ui_SceneWidget.h"
 #include "SceneFactory.h"
 
 #include <list>

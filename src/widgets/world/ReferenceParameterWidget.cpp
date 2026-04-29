@@ -1,5 +1,5 @@
 #include "widgets/world/ReferenceParameterWidget.h"
-#include "ReferenceParameterWidget.uic"
+#include "ui_ReferenceParameterWidget.h"
 
 #include "world/objects/Element.h"
 #include "core/Exception.h"

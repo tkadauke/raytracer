@@ -16,3 +16,9 @@ tools/rendercli/rendercli
 docs/html
 docs/images
 docs/latex
+
+# CMake build trees and editor caches
+/build
+/build-*
+CMakeUserPresets.json
+compile_commands.json

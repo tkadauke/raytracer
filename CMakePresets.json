@@ -1,0 +1,67 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 28, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "vendor": {
+        "comment": {
+          "qt5": "Pass -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5) on macOS, or apt install qtbase5-dev on Linux. Once Qt 6 lands (modernize.md §3.10) this hint becomes unnecessary."
+        }
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "asan",
+      "inherits": "debug",
+      "cacheVariables": { "RAYTRACER_ENABLE_ASAN": "ON" }
+    },
+    {
+      "name": "coverage",
+      "inherits": "debug",
+      "cacheVariables": { "RAYTRACER_ENABLE_COVERAGE": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug",    "configurePreset": "debug" },
+    { "name": "release",  "configurePreset": "release" },
+    { "name": "asan",     "configurePreset": "asan" },
+    { "name": "coverage", "configurePreset": "coverage" }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "output": { "outputOnFailure": true },
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
+      }
+    }
+  ]
+}

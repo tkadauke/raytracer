@@ -1,6 +1,6 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/SphericalCameraParameterWidget.h"
-#include "SphericalCameraParameterWidget.uic"
+#include "ui_SphericalCameraParameterWidget.h"
 #include "raytracer/cameras/SphericalCamera.h"
 
 using namespace raytracer;

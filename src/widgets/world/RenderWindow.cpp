@@ -62,6 +62,10 @@ RenderWindow::RenderWindow(QWidget* parent)
   connect(p->renderWidget, SIGNAL(finished()), this, SLOT(finished()));
 }
 
+// Defined here so the unique_ptr<Private> deleter sees the complete Private
+// type — Private is forward-declared in the header for pimpl.
+RenderWindow::~RenderWindow() = default;
+
 QSize RenderWindow::sizeHint() const {
   return QSize(1024, 768);
 }

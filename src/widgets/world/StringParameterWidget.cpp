@@ -1,5 +1,5 @@
 #include "widgets/world/StringParameterWidget.h"
-#include "StringParameterWidget.uic"
+#include "ui_StringParameterWidget.h"
 
 struct StringParameterWidget::Private {
   Ui::StringParameterWidget ui;

@@ -1,7 +1,7 @@
 #include "raytracer/samplers/SamplerFactory.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
-#include "RenderSettingsWidget.uic"
+#include "ui_RenderSettingsWidget.h"
 
 #include <QThread>
 

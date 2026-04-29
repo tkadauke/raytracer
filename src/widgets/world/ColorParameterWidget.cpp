@@ -1,5 +1,5 @@
 #include "widgets/world/ColorParameterWidget.h"
-#include "ColorParameterWidget.uic"
+#include "ui_ColorParameterWidget.h"
 
 #include <QColorDialog>
 

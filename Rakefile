@@ -41,9 +41,9 @@ TOOLS_OBJ = TOOLS_SRC.collect { |fn| fn.gsub(/\.cpp/, '.o') }
 
 UNIT_TEST_BIN = "#{UNIT_TEST_DIR}/tests.run"
 FUNCTIONAL_TEST_BIN = "#{FUNCTIONAL_TEST_DIR}/tests.run"
-EXAMPLES = FileList["#{EXAMPLES_DIR}/*"]
+EXAMPLES = FileList["#{EXAMPLES_DIR}/*"].select { |f| File.directory?(f) }
 EXAMPLES_BIN = EXAMPLES.collect { |ex| "#{ex}/#{File.basename(ex)}" }
-TOOLS = FileList["#{TOOLS_DIR}/*"]
+TOOLS = FileList["#{TOOLS_DIR}/*"].select { |f| File.directory?(f) }
 TOOLS_BIN = TOOLS.collect { |ex| "#{ex}/#{File.basename(ex)}" }
 
 INCLUDE_DIRS = ['.', INCLUDE_DIR, WIDGETS_DIR, GTEST_DIR, GMOCK_DIR, QT_INCLUDE_DIRS].flatten
@@ -77,7 +77,7 @@ CC = "g++"
 LD_FLAGS = "-F #{QT_LIB} #{FRAMEWORKS.collect { |l| "-framework #{l}" }.join(' ')} #{DEBUG_FLAGS}"
 
 CLEAN.include(SRC_OBJ, UNIT_TEST_OBJ, FUNCTIONAL_TEST_OBJ, TEST_HELPER_OBJ, GTEST_OBJ, EXAMPLES_OBJ, TOOLS_OBJ, UNIT_TEST_BIN, FUNCTIONAL_TEST_BIN, EXAMPLES_BIN, TOOLS_BIN)
-CLEAN.include(Rake::FileList["**/*.moc", "**/*.uic"])
+CLEAN.include(Rake::FileList["**/*.moc", "**/ui_*.h"])
 
 task :default => [:examples, :tools, :test]
 
@@ -87,7 +87,7 @@ def header_dependencies(file, pwd = '')
   file_path = nil
   if File.exist?(file)
     file_path = file
-  elsif file =~ /\.(moc|uic)$/
+  elsif file =~ /\.moc$/ || file =~ /^ui_[A-Za-z0-9_]+\.h$/
     return ["#{pwd}/#{file}"]
   else
     INCLUDE_DIRS.each do |dir|
@@ -115,7 +115,12 @@ def dependencies(objfile)
   header_dependencies(source_file).uniq
 end
 
-rule '.uic' => '.ui' do |t|
+# AUTOUIC convention: ui_<X>.h is generated from <X>.ui in the same directory.
+rule(%r{(?:^|/)ui_[A-Za-z0-9_]+\.h$} => proc { |out|
+  dir = File.dirname(out)
+  base = File.basename(out).sub(/^ui_/, '').sub(/\.h$/, '')
+  File.join(dir, "#{base}.ui")
+}) do |t|
   sh %{#{QT_UIC} -o #{t.name} #{t.source}}
 end
 
