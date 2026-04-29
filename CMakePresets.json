@@ -59,7 +59,6 @@
       "configurePreset": "asan",
       "output": { "outputOnFailure": true },
       "environment": {
-        "ASAN_OPTIONS": "detect_leaks=1",
         "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
       }
     }
