@@ -22,6 +22,7 @@ option(RAYTRACER_BUILD_EXAMPLES    "Build the example applications"  ON)
 option(RAYTRACER_BUILD_TOOLS       "Build the CLI tools"             ON)
 option(RAYTRACER_ENABLE_ASAN       "Build with AddressSanitizer + UBSan" OFF)
 option(RAYTRACER_ENABLE_COVERAGE   "Build with gcov instrumentation" OFF)
+option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF)
 
 # Match the warning flags from the Rakefile.
 add_compile_options(-W -Wall -pedantic -Wno-extra-semi)
@@ -72,6 +73,13 @@ endif()
 
 if(RAYTRACER_BUILD_TOOLS)
   add_subdirectory(tools)
+endif()
+
+if(RAYTRACER_ENABLE_FUZZING)
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "RAYTRACER_ENABLE_FUZZING requires Clang (have ${CMAKE_CXX_COMPILER_ID})")
+  endif()
+  add_subdirectory(fuzz)
 endif()
 
 if(RAYTRACER_BUILD_TESTS)

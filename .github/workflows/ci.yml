@@ -120,3 +120,53 @@ jobs:
 
       - name: Test
         run: xvfb-run --auto-servernum ctest --preset asan
+
+  fuzz:
+    name: Fuzz PLY parser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      CC: clang-18
+      CXX: clang++-18
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang-18 \
+            ninja-build \
+            cmake \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtscript5-dev
+
+      - name: Configure
+        run: cmake --preset fuzz
+
+      - name: Build
+        run: cmake --build --preset fuzz --target fuzz_ply --parallel
+
+      - name: Smoke-fuzz (60s)
+        # 60-second budget on every push — enough to catch obvious crashes
+        # without ballooning CI time. Longer-running runs belong in a
+        # scheduled workflow once OSS-Fuzz integration is set up.
+        run: |
+          mkdir -p fuzz/findings
+          ./build/fuzz/fuzz/fuzz_ply \
+            -max_total_time=60 \
+            -timeout=10 \
+            -print_final_stats=1 \
+            -artifact_prefix=fuzz/findings/ \
+            fuzz/corpus/ply
+
+      - name: Upload findings
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-findings
+          path: fuzz/findings/

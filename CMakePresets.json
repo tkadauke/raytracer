@@ -35,13 +35,23 @@
       "name": "coverage",
       "inherits": "debug",
       "cacheVariables": { "RAYTRACER_ENABLE_COVERAGE": "ON" }
+    },
+    {
+      "name": "fuzz",
+      "inherits": "debug",
+      "cacheVariables": {
+        "RAYTRACER_ENABLE_FUZZING": "ON",
+        "CMAKE_C_COMPILER":   "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
     }
   ],
   "buildPresets": [
     { "name": "debug",    "configurePreset": "debug" },
     { "name": "release",  "configurePreset": "release" },
     { "name": "asan",     "configurePreset": "asan" },
-    { "name": "coverage", "configurePreset": "coverage" }
+    { "name": "coverage", "configurePreset": "coverage" },
+    { "name": "fuzz",     "configurePreset": "fuzz" }
   ],
   "testPresets": [
     {
