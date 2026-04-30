@@ -172,10 +172,9 @@ class Scene < Element
 
     FileUtils.mkdir_p(File.dirname(file))
 
-    ENV['DYLD_FRAMEWORK_PATH'] = "/Users/tkadauke/Qt/5.5/clang_64/lib"
-
     args = options.merge(opts).map { |key, value| "--#{key}=#{value}" }.join(" ")
-    system "tools/rendercli/rendercli #{file_name} #{file} #{args}"
+    rendercli = ENV.fetch('RENDERCLI', 'build/release/tools/rendercli/rendercli')
+    system "#{rendercli} #{file_name} #{file} #{args}"
 
     FileUtils.rm(file_name)
   end

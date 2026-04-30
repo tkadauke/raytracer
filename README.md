@@ -9,32 +9,39 @@ I started this project in my spare time in order to refresh my C++ skills and le
 To compile, you need:
 
 * A C++17 compiler (`g++` or `clang++`)
-* Ruby and `rake` (the build is driven by a `Rakefile`)
-* Qt 5 — on macOS this is `brew install qt@5`
+* CMake 3.28+ and Ninja
+* Qt 5 — on macOS, `brew install qt@5`; on Debian/Ubuntu, `apt install qtbase5-dev qtscript5-dev`
 
-The `Rakefile` currently hardcodes a Homebrew Qt 5 prefix; you may need to adjust the `QT_BASE` constant at the top of the file to match your local install.
+Ruby and `rake` are optional — they're only needed if you want to use the convenience wrappers documented below. The Rake tasks shell out to CMake under the hood; using `cmake` directly works just as well.
 
 ## compile
 
-To build everything (examples, tools, and tests):
+The everyday entry point builds everything and runs the test suite:
 
     rake
 
-To build only the examples or only the CLI tools:
+Other Rake wrappers:
 
-    rake examples
-    rake tools
+    rake build       # cmake --preset debug && cmake --build --preset debug
+    rake release     # cmake --preset release && cmake --build --preset release
+    rake test        # rake build + ctest --preset debug --output-on-failure
 
-To run the test suites:
+To run the underlying CMake commands directly:
 
-    rake test               # build + run unit and functional tests
-    rake test:units         # only unit tests
-    rake test:functionals   # only functional tests
-    ONLY=PinholeCamera.* rake test:units   # filter via gtest
+    cmake --preset release
+    cmake --build --preset release
+    ctest --preset release
+
+To filter tests with gtest, run a test binary directly:
+
+    build/release/test/unit/unit_tests --gtest_filter=PinholeCamera.*
+    build/release/test/functional/functional_tests --gtest_filter=Sphere*
 
 The most useful example to launch interactively is
 
-    examples/SceneBrowser/SceneBrowser
+    build/release/examples/SceneBrowser/SceneBrowser
+
+Other useful Rake tasks: `rake docs:render` regenerates the Doxygen example images (auto-builds rendercli via CMake on first run); `rake check:cpp` runs cppcheck against the CMake `compile_commands.json`; `rake stats` counts test/code lines.
 
 ## features
 

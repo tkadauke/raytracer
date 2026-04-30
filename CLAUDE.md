@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (and similar coding agents) when work
 
 - C++17 (`g++` or `clang++`)
 - Qt 5 (`QtCore`, `QtGui`, `QtWidgets`, `QtScript`) for widgets and example apps — Qt 6 migration is on the modernization roadmap (`docs/modernize.md` §3.10).
-- CMake 3.28+ with Ninja as the primary build, driven by `CMakePresets.json`. The `Rakefile` is still in tree but only builds the examples and CLI tool; tests, fuzzers, benchmarks, and the Docker image all live under CMake.
+- CMake 3.28+ with Ninja as the primary build, driven by `CMakePresets.json`. The `Rakefile` is a thin layer of project utilities that wraps the CMake presets (`rake build` / `rake release` / `rake test`) and hosts the cppcheck, inline-method, line-stat, and Doxygen-image-render tasks.
 - GoogleTest + GoogleMock 1.14 via CMake `FetchContent` (no longer vendored).
 - Doxygen for API docs, published to GitHub Pages on push to master.
 - `cppcheck` for static analysis; `clang-format` and `clang-tidy` configs are checked in (`.clang-format`, `.clang-tidy`).
@@ -59,7 +59,7 @@ Build only certain targets:
     cmake --build --preset release --target SceneBrowser
     cmake --build --preset benchmark --target benchmarks
 
-The Rakefile still builds examples and the CLI tool (`rake examples tools`) but no longer runs the test suite — that path was retired when the vendored gtest/gmock copies were removed in favor of the FetchContent build.
+The Rakefile is now a thin layer of project utilities: `rake build` / `rake release` wrap the CMake presets, `rake test` builds and runs the test suite, `rake docs:render` self-bootstraps a release build of rendercli to regenerate the Doxygen example images, and `rake check:cpp` / `check:inline` / `stats` round it out. All actual compilation lives under CMake.
 
 Static analysis (cppcheck) is still wired through Rake:
 
@@ -110,5 +110,5 @@ The roadmap item under `docs/modernize.md` §3.4 is to grow the benchmark suite 
 - Qt 5 widget tests construct `QApplication`; on Linux CI runners they need `xvfb-run` to provide a virtual display server.
 - `RAYTRACER_ENABLE_FUZZING` requires Clang and the matching libFuzzer runtime. Apple Command Line Tools doesn't ship libFuzzer; install full Xcode or use `clang-18` from Homebrew.
 - The PLY parser is the only untrusted-input surface in the library. Treat PLY files as untrusted; parsing errors must throw `PlyParseError` (or another `Exception`), never crash the process. The `fuzz_ply` harness exists to keep that invariant honest.
-- The `Rakefile` is in retirement: it still builds examples and tools but does not build the test suite. Use the CMake build for everything else.
+- The `Rakefile` no longer compiles anything itself; every build path shells out to `cmake --preset` under the hood.
 - The most useful example to launch interactively is `examples/SceneBrowser/SceneBrowser` (built via either CMake or Rake).
