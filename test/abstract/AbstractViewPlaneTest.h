@@ -15,7 +15,7 @@ namespace testing {
     }
   };
 
-  TYPED_TEST_CASE_P(AbstractViewPlaneTest);
+  TYPED_TEST_SUITE_P(AbstractViewPlaneTest);
 
   TYPED_TEST_P(AbstractViewPlaneTest, ShouldRenderEmptyScene) {
     this->given("an empty scene");
@@ -29,7 +29,7 @@ namespace testing {
     this->then("i should see the sphere");
   }
 
-  REGISTER_TYPED_TEST_CASE_P(
+  REGISTER_TYPED_TEST_SUITE_P(
     AbstractViewPlaneTest,
     ShouldRenderEmptyScene,
     ShouldRenderSphere

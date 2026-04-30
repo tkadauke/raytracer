@@ -50,7 +50,7 @@ namespace ColorTest {
   // long double is not by itself an interesting case, but it bypasses the SSE
   // optimizations, so it's used to test the unspecialized Color class
   typedef ::testing::Types<float, double, long double> ColorTypes;
-  TYPED_TEST_CASE(ColorTest, ColorTypes);
+  TYPED_TEST_SUITE(ColorTest, ColorTypes);
   
   TYPED_TEST(ColorTest, ShouldInitializeComponentsWithZeros) {
     Color<TypeParam> color;

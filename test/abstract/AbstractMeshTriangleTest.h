@@ -20,7 +20,7 @@ namespace testing {
     Mesh mesh;
   };
   
-  TYPED_TEST_CASE_P(AbstractMeshTriangleTest);
+  TYPED_TEST_SUITE_P(AbstractMeshTriangleTest);
 
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldInitializeWithValues) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
@@ -85,7 +85,7 @@ namespace testing {
     ASSERT_FALSE(triangle.intersects(ray, state));
   }
   
-  REGISTER_TYPED_TEST_CASE_P(
+  REGISTER_TYPED_TEST_SUITE_P(
     AbstractMeshTriangleTest,
     ShouldInitializeWithValues,
     ShouldIntersectWithRay,

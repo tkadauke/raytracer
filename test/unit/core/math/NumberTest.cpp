@@ -8,7 +8,7 @@ namespace NumberTest {
 
   typedef ::testing::Types<float, double> NumberTypes;
 
-  TYPED_TEST_CASE(NumberTest, NumberTypes);
+  TYPED_TEST_SUITE(NumberTest, NumberTypes);
 
   TYPED_TEST(NumberTest, ShouldReturnTrueIfNumbersAreEqual) {
     TypeParam number = 1.5, value = 1.5;

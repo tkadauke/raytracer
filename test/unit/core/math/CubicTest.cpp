@@ -10,7 +10,7 @@ namespace CubicTest {
 
   typedef ::testing::Types<float, double> CubicTypes;
 
-  TYPED_TEST_CASE(CubicTest, CubicTypes);
+  TYPED_TEST_SUITE(CubicTest, CubicTypes);
 
   TYPED_TEST(CubicTest, ShouldInitializeResult) {
     Cubic<TypeParam> cubic(0, 0, 0, 0);

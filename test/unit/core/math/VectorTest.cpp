@@ -12,7 +12,7 @@ namespace VectorTest {
   };
 
   typedef ::testing::Types<float, double, long double> VectorTypes;
-  TYPED_TEST_CASE(VectorTest, VectorTypes);
+  TYPED_TEST_SUITE(VectorTest, VectorTypes);
 
   TYPED_TEST(VectorTest, ShouldInitializeCoordinatesWithZeros) {
     Vector<3, TypeParam> vector;
@@ -390,7 +390,7 @@ namespace DerivedVectorTest {
     Vector2<double>, Vector3<double>, Vector4<double>,
     Vector2<long double>, Vector3<long double>, Vector4<long double>
   > DerivedVectorTypes;
-  TYPED_TEST_CASE(DerivedVectorTest, DerivedVectorTypes);
+  TYPED_TEST_SUITE(DerivedVectorTest, DerivedVectorTypes);
 
   TYPED_TEST(DerivedVectorTest, ShouldReturnCorrectTypeForDotProduct) {
     TypeParam vector;
@@ -495,7 +495,7 @@ namespace Vector2Test {
   };
 
   typedef ::testing::Types<float, double, long double> Vector2Types;
-  TYPED_TEST_CASE(Vector2Test, Vector2Types);
+  TYPED_TEST_SUITE(Vector2Test, Vector2Types);
   
   TYPED_TEST(Vector2Test, ShouldHaveRightSize) {
     ASSERT_EQ(sizeof(Vector<2, TypeParam>), sizeof(Vector2<TypeParam>));
@@ -566,7 +566,7 @@ namespace Vector3Test {
   };
 
   typedef ::testing::Types<float, double, long double> Vector3Types;
-  TYPED_TEST_CASE(Vector3Test, Vector3Types);
+  TYPED_TEST_SUITE(Vector3Test, Vector3Types);
   
   TYPED_TEST(Vector3Test, ShouldHaveRightSize) {
 #if defined(__SSE__) || defined(__SSE3__)
@@ -817,7 +817,7 @@ namespace Vector4Test {
   };
 
   typedef ::testing::Types<float, double, long double> Vector4Types;
-  TYPED_TEST_CASE(Vector4Test, Vector4Types);
+  TYPED_TEST_SUITE(Vector4Test, Vector4Types);
   
   TYPED_TEST(Vector4Test, ShouldHaveRightSize) {
     ASSERT_EQ(sizeof(Vector<4, TypeParam>), sizeof(Vector4<TypeParam>));

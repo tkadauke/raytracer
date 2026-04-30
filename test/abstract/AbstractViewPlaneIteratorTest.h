@@ -17,7 +17,7 @@ namespace testing {
     Recti quarterRect;
   };
 
-  TYPED_TEST_CASE_P(AbstractViewPlaneIteratorTest);
+  TYPED_TEST_SUITE_P(AbstractViewPlaneIteratorTest);
 
   TYPED_TEST_P(AbstractViewPlaneIteratorTest, ShouldAdvance) {
     typename TypeParam::Iterator iterator = this->plane.begin(this->fullRect);
@@ -60,7 +60,7 @@ namespace testing {
     ASSERT_EQ(this->plane.end(this->fullRect).column(), iterator.column());
   }
 
-  REGISTER_TYPED_TEST_CASE_P(
+  REGISTER_TYPED_TEST_SUITE_P(
     AbstractViewPlaneIteratorTest,
     ShouldAdvance,
     ShouldEndUpInLastRowAfterIterating,

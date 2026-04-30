@@ -75,7 +75,7 @@ void QtDisplay::wheelEvent(QWheelEvent* event) {
   if (!interactive()) {
     return;
   }
-  if (event->delta() < 0)
+  if (event->angleDelta().y() < 0)
     p->distance /= 1.05;
   else
     p->distance *= 1.05;

@@ -6,8 +6,8 @@
 
 TransparentMaterial::TransparentMaterial(Element* parent)
   : PhongMaterial(parent),
-    m_refractionIndex(1),
-    m_transmissionCoefficient(1)
+    m_transmissionCoefficient(1),
+    m_refractionIndex(1)
 {
 }
 

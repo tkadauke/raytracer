@@ -11,7 +11,7 @@ namespace BufferTest {
     double, unsigned int, Color<float>, Color<double>
   > BufferTypes;
   
-  TYPED_TEST_CASE(BufferTest, BufferTypes);
+  TYPED_TEST_SUITE(BufferTest, BufferTypes);
   
   TYPED_TEST(BufferTest, ShouldReturnWidth) {
     Buffer<TypeParam> buffer(50, 50);
@@ -46,7 +46,7 @@ namespace BufferTest {
     Color<float>, Color<double>
   > ColorBufferTypes;
   
-  TYPED_TEST_CASE(ColorBufferTest, ColorBufferTypes);
+  TYPED_TEST_SUITE(ColorBufferTest, ColorBufferTypes);
 
   TYPED_TEST(ColorBufferTest, ShouldInitializeBuffer) {
     Buffer<TypeParam> buffer(50, 50);

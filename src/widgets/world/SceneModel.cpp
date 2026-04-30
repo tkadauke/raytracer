@@ -96,7 +96,7 @@ Qt::ItemFlags SceneModel::flags(const QModelIndex& index) const {
   Qt::ItemFlags defaultFlags = QAbstractItemModel::flags(index);
 
   if (!index.isValid())
-    return 0;
+    return Qt::ItemFlags();
 
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | defaultFlags;
 }

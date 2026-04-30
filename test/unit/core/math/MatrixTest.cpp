@@ -19,7 +19,7 @@ namespace MatrixTest {
 
   typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
   
-  TYPED_TEST_CASE(MatrixTest, SpecializedMatrixTypes);
+  TYPED_TEST_SUITE(MatrixTest, SpecializedMatrixTypes);
   
   TYPED_TEST(MatrixTest, ShouldInitializeMatrixAsIdentity) {
     Matrix<3, TypeParam> matrix;
@@ -422,7 +422,7 @@ namespace DerivedMatrixTest {
     Matrix2<long double>, Matrix3<long double>, Matrix4<long double>
   > SpecializedMatrixTypes;
   
-  TYPED_TEST_CASE(DerivedMatrixTest, SpecializedMatrixTypes);
+  TYPED_TEST_SUITE(DerivedMatrixTest, SpecializedMatrixTypes);
   
   TYPED_TEST(DerivedMatrixTest, ShouldReturnCorrectTypeForMultiplicationWithMatrix) {
     TypeParam matrix;
@@ -470,7 +470,7 @@ namespace Matrix2Test {
 
   typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
   
-  TYPED_TEST_CASE(Matrix2Test, SpecializedMatrixTypes);
+  TYPED_TEST_SUITE(Matrix2Test, SpecializedMatrixTypes);
 
   TYPED_TEST(Matrix2Test, ShouldInitializeIdentity) {
     Matrix2<TypeParam> matrix;
@@ -739,7 +739,7 @@ namespace Matrix3Test {
 
   typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
   
-  TYPED_TEST_CASE(Matrix3Test, SpecializedMatrixTypes);
+  TYPED_TEST_SUITE(Matrix3Test, SpecializedMatrixTypes);
 
   TYPED_TEST(Matrix3Test, ShouldInitializeIdentity) {
     Matrix3<TypeParam> matrix;
@@ -906,7 +906,7 @@ namespace Matrix4Test {
 
   typedef ::testing::Types<float, double, long double> SpecializedMatrixTypes;
 
-  TYPED_TEST_CASE(Matrix4Test, SpecializedMatrixTypes);
+  TYPED_TEST_SUITE(Matrix4Test, SpecializedMatrixTypes);
 
   TYPED_TEST(Matrix4Test, ShouldInitializeIdentity) {
     Matrix4<TypeParam> matrix;

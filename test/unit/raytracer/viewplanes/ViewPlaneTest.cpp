@@ -106,7 +106,7 @@ namespace ViewPlaneTest {
     }
   }
   
-  INSTANTIATE_TYPED_TEST_CASE_P(
+  INSTANTIATE_TYPED_TEST_SUITE_P(
     Regular,
     AbstractViewPlaneIteratorTest,
     ViewPlane

@@ -44,6 +44,13 @@ public:
     * Copy constructor. Accepts other Angle object.
     */
   inline Angle(const Angle&) = default;
+
+  /**
+    * Copy assignment. Defaulted explicitly so the implicit one isn't flagged
+    * as deprecated under -Wdeprecated-copy now that we have a user-declared
+    * copy constructor.
+    */
+  inline Angle& operator=(const Angle&) = default;
   
   /**
     * Constructs an angle from @p degrees. Internally, the angle is stored in

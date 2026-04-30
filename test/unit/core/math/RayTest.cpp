@@ -11,7 +11,7 @@ namespace RayTest {
 
   typedef ::testing::Types<float, double> RayTypes;
 
-  TYPED_TEST_CASE(RayTest, RayTypes);
+  TYPED_TEST_SUITE(RayTest, RayTypes);
 
   TYPED_TEST(RayTest, ShouldInitializeWithValues) {
     Ray<TypeParam> ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));

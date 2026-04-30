@@ -10,7 +10,7 @@ namespace QuarticTest {
 
   typedef ::testing::Types<float, double> QuarticTypes;
 
-  TYPED_TEST_CASE(QuarticTest, QuarticTypes);
+  TYPED_TEST_SUITE(QuarticTest, QuarticTypes);
 
   TYPED_TEST(QuarticTest, ShouldInitializeResult) {
     Quartic<TypeParam> quartic(0, 0, 0, 0, 0);

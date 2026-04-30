@@ -42,5 +42,5 @@ namespace FlatMeshTriangleTest {
     ASSERT_EQ(normal1, normal2);
   }
   
-  INSTANTIATE_TYPED_TEST_CASE_P(Flat, AbstractMeshTriangleTest, FlatMeshTriangle);
+  INSTANTIATE_TYPED_TEST_SUITE_P(Flat, AbstractMeshTriangleTest, FlatMeshTriangle);
 }

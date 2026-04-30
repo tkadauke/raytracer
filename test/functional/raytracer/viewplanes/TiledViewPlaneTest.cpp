@@ -6,7 +6,7 @@ namespace TiledViewPlaneTest {
   using namespace ::testing;
   using namespace raytracer;
   
-  INSTANTIATE_TYPED_TEST_CASE_P(
+  INSTANTIATE_TYPED_TEST_SUITE_P(
     Tiled,
     AbstractViewPlaneTest,
     TiledViewPlane

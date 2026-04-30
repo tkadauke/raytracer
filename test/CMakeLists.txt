@@ -11,7 +11,13 @@ target_include_directories(test_helpers
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/test
 )
-target_link_libraries(test_helpers PUBLIC raytracer GTest::gtest GTest::gmock)
+target_link_libraries(test_helpers PUBLIC raytracer GTest::gmock)
+
+# GoogleTest's TYPED_TEST_CASE / TEST_F / EXPECT_* macros are variadic with
+# zero args at the call sites, which Clang flags under -Wpedantic. The macros
+# are gtest's design, not ours; suppress only on the test targets.
+set(_RAYTRACER_TEST_COMPILE_OPTIONS -Wno-gnu-zero-variadic-macro-arguments)
+target_compile_options(test_helpers PRIVATE ${_RAYTRACER_TEST_COMPILE_OPTIONS})
 
 # Two test executables matching the existing Rakefile split.
 file(GLOB_RECURSE UNIT_TEST_SOURCES CONFIGURE_DEPENDS
@@ -27,11 +33,9 @@ set_target_properties(unit_tests PROPERTIES
   AUTOMOC ON
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/unit"
 )
+target_compile_options(unit_tests PRIVATE ${_RAYTRACER_TEST_COMPILE_OPTIONS})
 target_link_libraries(unit_tests PRIVATE
-  raytracer
   test_helpers
-  GTest::gtest
-  GTest::gmock
   GTest::gmock_main
 )
 
@@ -40,11 +44,9 @@ set_target_properties(functional_tests PROPERTIES
   AUTOMOC ON
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/functional"
 )
+target_compile_options(functional_tests PRIVATE ${_RAYTRACER_TEST_COMPILE_OPTIONS})
 target_link_libraries(functional_tests PRIVATE
-  raytracer
   test_helpers
-  GTest::gtest
-  GTest::gmock
   GTest::gmock_main
 )
 

@@ -13,7 +13,7 @@ namespace RangeTest {
   };
 
   typedef ::testing::Types<float, double> RangeTypes;
-  TYPED_TEST_CASE(RangeTest, RangeTypes);
+  TYPED_TEST_SUITE(RangeTest, RangeTypes);
   
   TYPED_TEST(RangeTest, ShouldInitialize) {
     Range<TypeParam> range(3, 5);

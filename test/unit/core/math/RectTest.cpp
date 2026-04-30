@@ -16,7 +16,7 @@ namespace RectTest {
     int, float, double
   > RectTypes;
 
-  TYPED_TEST_CASE(RectTest, RectTypes);
+  TYPED_TEST_SUITE(RectTest, RectTypes);
   
   TYPED_TEST(RectTest, ShouldInitialize) {
     Rect<TypeParam> rect;

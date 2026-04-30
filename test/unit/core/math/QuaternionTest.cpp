@@ -13,7 +13,7 @@ namespace QuaternionTest {
 
   typedef ::testing::Types<float, double> QuaternionTypes;
 
-  TYPED_TEST_CASE(QuaternionTest, QuaternionTypes);
+  TYPED_TEST_SUITE(QuaternionTest, QuaternionTypes);
   
   TYPED_TEST(QuaternionTest, ShouldInitializeAsMultiplicationIdentityQuaternion) {
     Quaternion<TypeParam> quaternion;

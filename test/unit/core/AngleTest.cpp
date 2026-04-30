@@ -12,7 +12,7 @@ namespace AngleTest {
 
   typedef ::testing::Types<float, double> AngleTypes;
 
-  TYPED_TEST_CASE(AngleTest, AngleTypes);
+  TYPED_TEST_SUITE(AngleTest, AngleTypes);
 
   TYPED_TEST(AngleTest, ShouldCreateDefaultAngle) {
     auto angle = Angle<TypeParam>();

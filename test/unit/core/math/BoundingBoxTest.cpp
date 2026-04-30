@@ -15,7 +15,7 @@ namespace BoundingBoxTest {
 
   typedef ::testing::Types<float, double> BoundingBoxTypes;
 
-  TYPED_TEST_CASE(BoundingBoxTest, BoundingBoxTypes);
+  TYPED_TEST_SUITE(BoundingBoxTest, BoundingBoxTypes);
 
   TYPED_TEST(BoundingBoxTest, ShouldDefineInfiniteBoundingBox) {
     BoundingBox<TypeParam> bbox = BoundingBox<TypeParam>::infinity();

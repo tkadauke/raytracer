@@ -22,6 +22,7 @@ class Ray {
 public:
   /**
     * Minimum distance a Ray has to travel to not be considered at the origin.
+    * Specializations for float and double live below the class definition.
     */
   static const T epsilon;
 
@@ -135,6 +136,9 @@ private:
   Vector4<T> m_origin;
   Vector3<T> m_direction;
 };
+
+template<> inline const float  Ray<float>::epsilon  = 0.0001f;
+template<> inline const double Ray<double>::epsilon = 0.0000001;
 
 /**
   * Serializes ray to the given std::ostream.

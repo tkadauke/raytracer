@@ -16,7 +16,7 @@
 
 #include <QGridLayout>
 #include <QScrollArea>
-#include <QTime>
+#include <QElapsedTimer>
 
 using namespace raytracer;
 
@@ -36,7 +36,7 @@ struct RenderWindow::Private {
 
   bool busy;
   int timer;
-  QTime time;
+  QElapsedTimer time;
 };
 
 RenderWindow::RenderWindow(QWidget* parent)

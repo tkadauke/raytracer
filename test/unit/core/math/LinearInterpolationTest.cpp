@@ -39,7 +39,7 @@ namespace LinearInterpolationTest {
     Vector2<double>, Vector3<double>, Vector4<double>, double
   > LinearInterpolationTypes;
   
-  TYPED_TEST_CASE(LinearInterpolationTest, LinearInterpolationTypes);
+  TYPED_TEST_SUITE(LinearInterpolationTest, LinearInterpolationTypes);
 
   TYPED_TEST(LinearInterpolationTest, ShouldReturnFirstVectorAsBeginIterator) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
