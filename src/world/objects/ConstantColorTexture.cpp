@@ -14,4 +14,3 @@ std::shared_ptr<raytracer::Texturec> ConstantColorTexture::toRaytracerTexture() 
 
 static bool dummy = ElementFactory::self().registerClass<ConstantColorTexture>("ConstantColorTexture");
 
-#include "ConstantColorTexture.moc"

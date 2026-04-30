@@ -24,4 +24,3 @@ std::shared_ptr<raytracer::Material> MatteMaterial::toRaytracerMaterial() const 
 
 static bool dummy = ElementFactory::self().registerClass<MatteMaterial>("MatteMaterial");
 
-#include "MatteMaterial.moc"

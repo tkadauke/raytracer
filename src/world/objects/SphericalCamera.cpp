@@ -21,5 +21,4 @@ std::shared_ptr<raytracer::Camera> SphericalCamera::toRaytracer() const {
 
 static bool dummy = ElementFactory::self().registerClass<SphericalCamera>("SphericalCamera");
 
-#include "SphericalCamera.moc"
 

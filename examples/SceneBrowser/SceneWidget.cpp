@@ -32,4 +32,3 @@ void SceneWidget::sceneChanged() {
   emit changed();
 }
 
-#include "SceneWidget.moc"

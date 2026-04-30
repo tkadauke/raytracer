@@ -15,4 +15,3 @@ std::shared_ptr<raytracer::Primitive> Sphere::toRaytracerPrimitive() const {
 
 static bool dummy = ElementFactory::self().registerClass<Sphere>("Sphere");
 
-#include "Sphere.moc"

@@ -139,4 +139,3 @@ void RenderWindow::setScene(::Scene* scene) {
   }
 }
 
-#include "RenderWindow.moc"

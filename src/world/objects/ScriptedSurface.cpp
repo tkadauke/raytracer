@@ -215,4 +215,3 @@ std::shared_ptr<raytracer::Primitive> ScriptedSurface::toRaytracerPrimitive() co
 
 static bool dummy = ElementFactory::self().registerClass<ScriptedSurface>("ScriptedSurface");
 
-#include "ScriptedSurface.moc"

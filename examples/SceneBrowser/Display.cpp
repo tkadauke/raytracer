@@ -99,4 +99,3 @@ void Display::mousePressEvent(QMouseEvent* event) {
   }
 }
 
-#include "Display.moc"

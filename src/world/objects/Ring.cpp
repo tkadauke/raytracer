@@ -81,4 +81,3 @@ std::shared_ptr<raytracer::Primitive> Ring::ring(double outerRadius, double inne
 
 static bool dummy = ElementFactory::self().registerClass<Ring>("Ring");
 
-#include "Ring.moc"

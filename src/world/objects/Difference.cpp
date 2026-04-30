@@ -21,4 +21,3 @@ std::shared_ptr<raytracer::Primitive> Difference::toRaytracerPrimitive() const {
 
 static bool dummy = ElementFactory::self().registerClass<Difference>("Difference");
 
-#include "Difference.moc"

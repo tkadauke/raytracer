@@ -17,4 +17,3 @@ std::shared_ptr<raytracer::Camera> FishEyeCamera::toRaytracer() const {
 
 static bool dummy = ElementFactory::self().registerClass<FishEyeCamera>("FishEyeCamera");
 
-#include "FishEyeCamera.moc"

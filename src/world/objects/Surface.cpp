@@ -61,4 +61,3 @@ bool Surface::canHaveChild(Element* child) const {
          dynamic_cast<Light*>(child) != nullptr;
 }
 
-#include "Surface.moc"

@@ -21,4 +21,3 @@ std::shared_ptr<raytracer::Primitive> Union::toRaytracerPrimitive() const {
 
 static bool dummy = ElementFactory::self().registerClass<Union>("Union");
 
-#include "Union.moc"

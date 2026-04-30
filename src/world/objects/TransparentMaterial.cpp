@@ -29,4 +29,3 @@ std::shared_ptr<raytracer::Material> TransparentMaterial::toRaytracerMaterial() 
 
 static bool dummy = ElementFactory::self().registerClass<TransparentMaterial>("TransparentMaterial");
 
-#include "TransparentMaterial.moc"

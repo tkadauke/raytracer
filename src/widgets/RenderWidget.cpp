@@ -140,4 +140,3 @@ void RenderWidget::renderThreadDone() {
   emit finished();
 }
 
-#include "RenderWidget.moc"

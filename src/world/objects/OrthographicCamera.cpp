@@ -17,4 +17,3 @@ std::shared_ptr<raytracer::Camera> OrthographicCamera::toRaytracer() const {
 
 static bool dummy = ElementFactory::self().registerClass<OrthographicCamera>("OrthographicCamera");
 
-#include "OrthographicCamera.moc"

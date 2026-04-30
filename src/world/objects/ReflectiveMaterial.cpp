@@ -27,4 +27,3 @@ std::shared_ptr<raytracer::Material> ReflectiveMaterial::toRaytracerMaterial() c
 
 static bool dummy = ElementFactory::self().registerClass<ReflectiveMaterial>("ReflectiveMaterial");
 
-#include "ReflectiveMaterial.moc"

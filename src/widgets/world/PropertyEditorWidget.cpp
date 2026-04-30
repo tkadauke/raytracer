@@ -159,4 +159,3 @@ void PropertyEditorWidget::elementChanged(const QString& propertyName, const QVa
   emit changed(p->element);
 }
 
-#include "PropertyEditorWidget.moc"

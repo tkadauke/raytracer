@@ -41,4 +41,3 @@ std::shared_ptr<raytracer::Primitive> Cylinder::toRaytracerPrimitive() const {
 
 static bool dummy = ElementFactory::self().registerClass<Cylinder>("Cylinder");
 
-#include "Cylinder.moc"

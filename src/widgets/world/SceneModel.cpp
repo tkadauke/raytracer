@@ -221,4 +221,3 @@ void SceneModel::addElement(const QModelIndex& index, Element* element) {
   endInsertRows();
 }
 
-#include "SceneModel.moc"

@@ -12,4 +12,3 @@ Material::Material(Element* parent)
 {
 }
 
-#include "Material.moc"

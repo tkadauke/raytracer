@@ -8,4 +8,3 @@ Light::Light(Element* parent)
 {
 }
 
-#include "Light.moc"

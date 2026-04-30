@@ -13,4 +13,3 @@ std::shared_ptr<raytracer::Light> PointLight::toRaytracer() const {
 
 static bool dummy = ElementFactory::self().registerClass<PointLight>("PointLight");
 
-#include "PointLight.moc"

@@ -752,4 +752,3 @@ void MainWindow::redraw() {
   p->display->setScene(p->scene);
 }
 
-#include "MainWindow.moc"

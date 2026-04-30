@@ -34,4 +34,3 @@ void ViewPlaneTypeWidget::typeChanged() {
   emit changed();
 }
 
-#include "ViewPlaneTypeWidget.moc"

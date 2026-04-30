@@ -31,4 +31,3 @@ void DoubleParameterWidget::setValue(const QVariant& value) {
   p->ui.doubleEdit->setText(QString::number(value.toDouble()));
 }
 
-#include "DoubleParameterWidget.moc"

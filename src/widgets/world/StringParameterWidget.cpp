@@ -29,4 +29,3 @@ void StringParameterWidget::setValue(const QVariant& value) {
   p->ui.stringEdit->setText(value.toString());
 }
 
-#include "StringParameterWidget.moc"

@@ -29,4 +29,3 @@ void BoolParameterWidget::setValue(const QVariant& value) {
   p->ui.checkBox->setCheckState(value.toBool() ? Qt::Checked : Qt::Unchecked);
 }
 
-#include "BoolParameterWidget.moc"

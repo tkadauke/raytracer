@@ -25,4 +25,3 @@ std::shared_ptr<raytracer::Material> PhongMaterial::toRaytracerMaterial() const 
 
 static bool dummy = ElementFactory::self().registerClass<PhongMaterial>("PhongMaterial");
 
-#include "PhongMaterial.moc"

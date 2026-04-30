@@ -19,4 +19,3 @@ std::shared_ptr<raytracer::Camera> PinholeCamera::toRaytracer() const {
 
 static bool dummy = ElementFactory::self().registerClass<PinholeCamera>("PinholeCamera");
 
-#include "PinholeCamera.moc"

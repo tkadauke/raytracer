@@ -45,4 +45,3 @@ void AbstractParameterWidget::setParameterName(const QString& name) {
   p->parameterName = name;
 }
 
-#include "AbstractParameterWidget.moc"

@@ -62,4 +62,3 @@ void Transformable::moveBy(const Vector3d& vector, bool global) {
   setPosition(position() + offset);
 }
 
-#include "Transformable.moc"

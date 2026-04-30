@@ -22,4 +22,3 @@ std::shared_ptr<raytracer::Primitive> MinkowskiSum::toRaytracerPrimitive() const
 
 static bool dummy = ElementFactory::self().registerClass<MinkowskiSum>("MinkowskiSum");
 
-#include "MinkowskiSum.moc"

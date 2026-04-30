@@ -21,4 +21,3 @@ std::shared_ptr<raytracer::Primitive> Intersection::toRaytracerPrimitive() const
 
 static bool dummy = ElementFactory::self().registerClass<Intersection>("Intersection");
 
-#include "Intersection.moc"

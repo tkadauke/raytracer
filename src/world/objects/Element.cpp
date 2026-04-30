@@ -242,4 +242,3 @@ void Element::moveChild(int from, int to) {
   }
 }
 
-#include "Element.moc"

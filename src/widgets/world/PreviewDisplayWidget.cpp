@@ -88,4 +88,3 @@ raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene*
   return scene;
 }
 
-#include "PreviewDisplayWidget.moc"

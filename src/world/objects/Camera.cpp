@@ -7,4 +7,3 @@ Camera::Camera(Element* parent)
 {
 }
 
-#include "Camera.moc"

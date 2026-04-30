@@ -50,4 +50,3 @@ void VectorParameterWidget::setValue(const QVariant& value) {
   setVector(value.value<Vector3d>());
 }
 
-#include "VectorParameterWidget.moc"

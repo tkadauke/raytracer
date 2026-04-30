@@ -69,4 +69,3 @@ QVariant ReferenceParameterWidget::makeVariant(Element* e) {
   }
 }
 
-#include "ReferenceParameterWidget.moc"

@@ -37,4 +37,3 @@ void FishEyeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
 
 static bool dummy = CameraParameterWidgetFactory::self().registerClass<FishEyeCameraParameterWidget>("FishEyeCamera");
 
-#include "FishEyeCameraParameterWidget.moc"

@@ -43,4 +43,3 @@ void PinholeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
 
 static bool dummy = CameraParameterWidgetFactory::self().registerClass<PinholeCameraParameterWidget>("PinholeCamera");
 
-#include "PinholeCameraParameterWidget.moc"

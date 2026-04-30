@@ -43,4 +43,3 @@ void SphericalCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
 
 static bool dummy = CameraParameterWidgetFactory::self().registerClass<SphericalCameraParameterWidget>("SphericalCamera");
 
-#include "SphericalCameraParameterWidget.moc"

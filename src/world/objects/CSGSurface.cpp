@@ -5,4 +5,3 @@ CSGSurface::CSGSurface(Element* parent)
 {
 }
 
-#include "CSGSurface.moc"

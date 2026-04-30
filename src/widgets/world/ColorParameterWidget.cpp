@@ -68,4 +68,3 @@ void ColorParameterWidget::setValue(const QVariant& value) {
   setColor(value.value<Colord>());
 }
 
-#include "ColorParameterWidget.moc"

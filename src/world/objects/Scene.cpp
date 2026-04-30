@@ -111,4 +111,3 @@ bool Scene::canHaveChild(Element*) const {
   return true;
 }
 
-#include "Scene.moc"

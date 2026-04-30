@@ -22,4 +22,3 @@ std::shared_ptr<raytracer::Primitive> ConvexHull::toRaytracerPrimitive() const {
 
 static bool dummy = ElementFactory::self().registerClass<ConvexHull>("ConvexHull");
 
-#include "ConvexHull.moc"

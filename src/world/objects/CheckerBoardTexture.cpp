@@ -20,4 +20,3 @@ std::shared_ptr<raytracer::Texturec> CheckerBoardTexture::toRaytracerTexture() c
 
 static bool dummy = ElementFactory::self().registerClass<CheckerBoardTexture>("CheckerBoardTexture");
 
-#include "CheckerBoardTexture.moc"

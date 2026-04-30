@@ -13,4 +13,3 @@ bool Slot::called() {
   return m_called;
 }
 
-#include "Slot.moc"

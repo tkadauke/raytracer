@@ -106,4 +106,3 @@ void RenderSettingsWidget::stop() {
   emit stopClicked();
 }
 
-#include "RenderSettingsWidget.moc"

@@ -14,4 +14,3 @@ std::shared_ptr<raytracer::Light> DirectionalLight::toRaytracer() const {
 
 static bool dummy = ElementFactory::self().registerClass<DirectionalLight>("DirectionalLight");
 
-#include "DirectionalLight.moc"

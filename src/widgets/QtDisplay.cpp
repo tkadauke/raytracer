@@ -98,4 +98,3 @@ void QtDisplay::setDistance(double distance) {
   p->distance = distance;
 }
 
-#include "QtDisplay.moc"

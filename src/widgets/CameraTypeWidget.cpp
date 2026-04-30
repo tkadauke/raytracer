@@ -34,4 +34,3 @@ void CameraTypeWidget::typeChanged() {
   emit changed();
 }
 
-#include "CameraTypeWidget.moc"

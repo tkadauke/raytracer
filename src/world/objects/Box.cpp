@@ -83,4 +83,3 @@ std::shared_ptr<raytracer::Primitive> Box::toRaytracerPrimitive() const {
 
 static bool dummy = ElementFactory::self().registerClass<Box>("Box");
 
-#include "Box.moc"

@@ -16,4 +16,3 @@ Texture::Texture(Element* parent)
 {
 }
 
-#include "Texture.moc"

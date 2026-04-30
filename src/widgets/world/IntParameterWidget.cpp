@@ -31,4 +31,3 @@ void IntParameterWidget::setValue(const QVariant& value) {
   p->ui.intEdit->setValue(value.toInt());
 }
 
-#include "IntParameterWidget.moc"

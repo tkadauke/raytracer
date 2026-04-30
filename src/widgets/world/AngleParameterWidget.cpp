@@ -87,4 +87,3 @@ QString AngleParameterWidget::type() const {
   return p->ui.angleType->currentText();
 }
 
-#include "AngleParameterWidget.moc"
