@@ -14,10 +14,17 @@ AccessModifierOffset: -2
 NamespaceIndentation: All
 FixNamespaceComments: false
 
-AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
+AllowShortLambdasOnASingleLine: All
+AlwaysBreakTemplateDeclarations: Yes
+
+# The existing Doxygen blocks use a `  *` prefix (extra leading space).
+# Leave comment formatting alone so a future "clang-format -i" pass doesn't
+# churn every header in the repo.
+ReflowComments: false
 
 BreakBeforeBraces: Attach
 BreakConstructorInitializers: BeforeColon

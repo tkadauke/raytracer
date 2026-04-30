@@ -171,6 +171,77 @@ jobs:
           name: fuzz-findings
           path: fuzz/findings/
 
+  lint:
+    name: Lint (advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # The existing code base predates these tools — there are ~5000 format
+    # diffs and a large clang-tidy backlog. Treat both as advisory until a
+    # bulk reformat lands; report results to the job summary so reviewers
+    # can see the trend without blocking PRs.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install lint tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang-format-18 \
+            clang-tidy-18 \
+            clang-18 \
+            cmake \
+            ninja-build \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtscript5-dev
+          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
+          sudo update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-18 100
+
+      - name: clang-format --dry-run
+        run: |
+          set +e
+          violations=$(find include src test examples tools benchmarks fuzz \
+              -name '*.h' -o -name '*.cpp' \
+              | xargs clang-format --dry-run 2>&1 \
+              | grep -c 'code should be clang-formatted' || true)
+          echo "clang-format violations: $violations" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$violations" -eq 0 ]
+
+      - name: Configure for clang-tidy
+        env:
+          CC: clang-18
+          CXX: clang++-18
+        run: cmake --preset release
+
+      - name: clang-tidy
+        run: |
+          set +e
+          # Lint our own translation units only — skip generated autogen
+          # sources (mocs_compilation.cpp, ui_*.h) and the FetchContent
+          # GoogleTest tree.
+          files=$(find include src test examples tools benchmarks fuzz \
+              -name '*.cpp' \
+              | head -200)
+          run-clang-tidy-18 -p build/release -quiet -j 4 $files \
+              > clang-tidy.log 2>&1
+          status=$?
+          echo "## clang-tidy summary" >> "$GITHUB_STEP_SUMMARY"
+          warnings=$(grep -c 'warning:' clang-tidy.log || true)
+          errors=$(grep -c 'error:' clang-tidy.log || true)
+          echo "* warnings: $warnings" >> "$GITHUB_STEP_SUMMARY"
+          echo "* errors:   $errors"   >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+
+      - name: Upload clang-tidy log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-log
+          path: clang-tidy.log
+
   docker:
     name: Build container image
     runs-on: ubuntu-24.04
