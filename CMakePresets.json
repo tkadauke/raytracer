@@ -44,6 +44,11 @@
         "CMAKE_C_COMPILER":   "clang",
         "CMAKE_CXX_COMPILER": "clang++"
       }
+    },
+    {
+      "name": "benchmark",
+      "inherits": "release",
+      "cacheVariables": { "RAYTRACER_BUILD_BENCHMARKS": "ON" }
     }
   ],
   "buildPresets": [
@@ -51,7 +56,8 @@
     { "name": "release",  "configurePreset": "release" },
     { "name": "asan",     "configurePreset": "asan" },
     { "name": "coverage", "configurePreset": "coverage" },
-    { "name": "fuzz",     "configurePreset": "fuzz" }
+    { "name": "fuzz",      "configurePreset": "fuzz" },
+    { "name": "benchmark", "configurePreset": "benchmark" }
   ],
   "testPresets": [
     {
