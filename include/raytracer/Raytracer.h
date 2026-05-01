@@ -6,6 +6,8 @@
 #include "core/math/Rect.h"
 
 #include <list>
+#include <list>
+#include <memory>
 
 template<class T>
 class Buffer;

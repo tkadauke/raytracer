@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "world/objects/Transformable.h"
 #include "core/Color.h"

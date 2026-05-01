@@ -2,6 +2,8 @@
 
 #include <limits>
 #include <algorithm>
+#include <algorithm>
+#include <vector>
 
 /**
   * Base class for solving polynomials.

@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 
 #ifdef __SSE3__
 

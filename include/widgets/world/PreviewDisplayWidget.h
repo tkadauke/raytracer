@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 
 #include "widgets/QtDisplay.h"
 #include "core/Color.h"

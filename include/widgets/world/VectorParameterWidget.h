@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "core/math/Vector.h"
 #include "widgets/world/AbstractParameterWidget.h"

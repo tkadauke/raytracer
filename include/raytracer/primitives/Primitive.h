@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "core/math/BoundingBox.h"
 #include "core/math/Ray.h"

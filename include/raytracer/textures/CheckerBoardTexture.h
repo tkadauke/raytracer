@@ -1,3 +1,4 @@
+#include <memory>
 #include "raytracer/textures/Texture.h"
 #include "core/Color.h"
 

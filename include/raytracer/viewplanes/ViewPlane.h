@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <memory>
 
 namespace raytracer {
   class Sampler;

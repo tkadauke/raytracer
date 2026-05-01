@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 
 #include "world/objects/Element.h"
 #include "core/math/Vector.h"

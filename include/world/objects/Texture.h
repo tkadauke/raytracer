@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "world/objects/Element.h"
 #include "raytracer/textures/Texture.h"

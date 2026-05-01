@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 
 /**
   * This class allows to execute a callback when the execution flow exits a

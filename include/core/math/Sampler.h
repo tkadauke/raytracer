@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 
 #include "core/math/Number.h"
 

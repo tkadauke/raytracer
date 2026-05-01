@@ -1,6 +1,7 @@
 #pragma once
 
 #include <random>
+#include <algorithm>
 
 template<class RandomIt>
 void random_shuffle(RandomIt first, RandomIt last)

@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 #include "raytracer/samplers/Sampler.h"
 

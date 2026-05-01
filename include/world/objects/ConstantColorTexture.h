@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "world/objects/Texture.h"
 #include "core/Color.h"

@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "core/Color.h"
 #include "widgets/world/AbstractParameterWidget.h"

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <list>
+#include <list>
+#include <memory>
 
 #include "raytracer/primitives/Primitive.h"
 

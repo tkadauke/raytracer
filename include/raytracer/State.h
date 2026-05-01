@@ -1,4 +1,8 @@
 #pragma once
+#include <algorithm>
+#include <list>
+#include <memory>
+#include <string>
 
 #include "core/math/HitPoint.h"
 #include "raytracer/Object.h"

@@ -3,6 +3,8 @@
 #include <QWidget>
 
 #include <string>
+#include <memory>
+#include <string>
 
 class ViewPlaneTypeWidget : public QWidget {
   Q_OBJECT;

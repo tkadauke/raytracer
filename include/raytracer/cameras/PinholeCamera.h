@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "raytracer/cameras/Camera.h"
 

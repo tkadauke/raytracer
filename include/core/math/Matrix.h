@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cmath>
 #include <type_traits>
+#include <algorithm>
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/DivisionByZeroException.h"

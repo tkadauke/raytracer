@@ -1,4 +1,6 @@
 #pragma once
+#include <list>
+#include <memory>
 
 #include "raytracer/primitives/Composite.h"
 #include "core/Color.h"

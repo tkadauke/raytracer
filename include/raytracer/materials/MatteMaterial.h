@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "raytracer/materials/Material.h"
 #include "raytracer/brdf/Lambertian.h"

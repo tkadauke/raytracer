@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/brdf/PerfectSpecular.h"

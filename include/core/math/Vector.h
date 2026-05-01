@@ -4,6 +4,7 @@
 #include <iostream>
 #include <limits>
 #include <type_traits>
+#include <algorithm>
 #include "core/DivisionByZeroException.h"
 
 /**

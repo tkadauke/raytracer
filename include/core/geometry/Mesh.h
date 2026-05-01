@@ -4,6 +4,8 @@
 #include "core/Exception.h"
 #include <vector>
 #include <array>
+#include <string>
+#include <vector>
 
 /**
   * This exception type is used to signal that a mesh received a face with an

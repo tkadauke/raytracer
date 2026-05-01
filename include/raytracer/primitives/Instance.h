@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "raytracer/primitives/Primitive.h"
 #include "core/math/Matrix.h"

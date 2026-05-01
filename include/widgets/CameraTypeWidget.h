@@ -3,6 +3,8 @@
 #include <QWidget>
 
 #include <string>
+#include <memory>
+#include <string>
 
 class CameraTypeWidget : public QWidget {
   Q_OBJECT;

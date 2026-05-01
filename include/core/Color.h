@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <algorithm>
 
 #include "core/DivisionByZeroException.h"
 #include "core/InequalityOperator.h"

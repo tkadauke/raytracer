@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/brdf/GlossySpecular.h"

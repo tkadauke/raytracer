@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "world/objects/MatteMaterial.h"
 #include "core/math/Range.h"

@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include "raytracer/primitives/MeshTriangle.h"
 #include "core/math/Vector.h"

@@ -3,6 +3,9 @@
 #include <map>
 #include <string>
 #include <list>
+#include <list>
+#include <memory>
+#include <string>
 
 /**
   * Generic factory class. Use this class to create instances of classes based
