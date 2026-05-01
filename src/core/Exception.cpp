@@ -76,13 +76,22 @@ namespace {
 }
 
 extern "C" {
-  void __cxa_throw(void *ex, std::type_info *info, void (*dest)(void *)) {
+  // libstdc++'s <ext/concurrence.h> forward-declares __cxa_throw with `void*`
+  // for the type_info parameter; libc++abi (macOS) follows the Itanium ABI
+  // spec verbatim and uses `std::type_info*`. Pick the right one so the
+  // override doesn't hit "conflicting C declaration" on either platform.
+#if defined(__GLIBCXX__)
+  using cxa_throw_info_t = void*;
+#else
+  using cxa_throw_info_t = std::type_info*;
+#endif
+  void __cxa_throw(void *ex, cxa_throw_info_t info, void (*dest)(void *)) {
     exception_name = demangle(reinterpret_cast<const std::type_info*>(info)->name());
     last_size = backtrace(last_frames, sizeof last_frames/sizeof(void*));
 
     static void (*const rethrow)(void*,void*,void(*)(void*)) = (void (*const)(void*,void*,void(*)(void*)))dlsym(RTLD_NEXT, "__cxa_throw");
     rethrow(ex,info,dest);
-    
+
     // This is here because this function is declared noreturn. This part is
     // never reached, because rethrow() above is also noreturn.
     throw 0;
