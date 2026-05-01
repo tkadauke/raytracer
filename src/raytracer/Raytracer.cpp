@@ -69,7 +69,7 @@ struct Raytracer::Private {
   inline Private()
     : threadPool(std::make_unique<QThreadPool>()),
       queueSize(QThread::idealThreadCount()),
-      maximumRecursionDepth(5),
+      maximumRecursionDepth(10),
       showProgressIndicators(false)
   {
   }
@@ -153,8 +153,8 @@ Colord Raytracer::rayColor(const Rayd& ray, State& state) const {
   ScopeExit sx([&] { state.recurseOut(); });
 
   if (state.recursionDepth == p->maximumRecursionDepth) {
-    state.recordEvent(nullptr, "Raytracer: maximum recursion depth reached, returning black");
-    return Colord::black();
+    state.recordEvent(nullptr, "Raytracer: maximum recursion depth reached, returning background");
+    return m_scene->background();
   }
 
   HitPointInterval hitPoints;
