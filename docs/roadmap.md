@@ -9,19 +9,24 @@
 
 ## 1. Vision — the North Star
 
+> **This project exists for my own education and entertainment, not for any production use.** The goal is to build, by hand, a content creation pipeline that touches every interesting algorithm in computer graphics — and to keep that pipeline navigable through clear, comprehensively documented code accompanied by **interactive educational diagrams** that make the math and the data flow visible. Where multiple algorithms exist for the same problem, the project should implement *all* the worthwhile variants (or at least leave space for them). Efficiency matters; pedagogy matters more.
+
 A renderer is the *core*, not the *whole product*. The goal is a working 3D content creation tool that:
 
-- ships several rendering backends (wireframe, software raster, OpenGL preview, CPU raytracer, CPU path tracer) over a single scene representation,
-- carries a rich material library with physically-based BSDFs, subsurface scattering, and volumetrics,
-- imports and exports the formats the rest of the world uses (OBJ, glTF, USD, EXR, PLY, STL),
-- offers a Qt-based modeling UI with multi-viewport editor, object outliner, gizmos, property panels, and a material browser,
+- ships several rendering backends (wireframe, software raster, OpenGL viewport, **WebGL/WebGPU preview**, CPU raytracer, CPU path tracer) over a single scene representation, with web-based previews for static scenes — and, as a stretch goal, animations,
+- carries a rich material library with physically-based BSDFs, NPR variants, subsurface scattering, volumetrics, and a complete shading-normal pipeline (smooth normals → bump → normal map → displacement),
+- grounds all mesh geometry in a **comprehensive computational geometry library** with first-class spatial acceleration (BVH, octrees, kd-trees, uniform grids — selected per workload),
+- imports and exports the formats the rest of the world uses (OBJ, glTF, USD, EXR, PLY, STL, FBX, OpenVDB), reading and writing where reasonable,
+- offers a Qt-based modeling UI with multi-viewport editor, outliner, gizmos, property panels, **modifier stack**, **node graph**, **sculpt/UV/retopology/grease-pencil** tools, and a material/asset browser,
 - exposes the scene to an **AI agent** that can construct, modify, and critique scenes through natural-language chat — including writing parametric scripted objects (OpenSCAD-style),
-- supports **animated rendering** with a timeline, keyframes, motion blur, and video output,
-- can **distribute rendering across a Kubernetes cluster** for animation throughput.
+- supports **animated rendering** with a timeline + keyframes + motion blur, plus a **video-editor-style sequencer** for stitching rendered scenes together with transitions, titles, and audio,
+- runs the resulting frames through a **postprocessing & compositing stack** (tonemap, bloom, DoF, motion blur, color grading, AOV-driven compositing),
+- can **distribute rendering across a Kubernetes cluster** for animation throughput,
+- leaves room for **industry-inspired extras** (NeRF, Gaussian splatting, custom physics, etc.) at the far end of the roadmap, once the foundations support them.
 
-The scope is "Blender-lite with an LLM in the side panel." The differentiator is the AI-native authoring loop on top of a clean, testable, physically-grounded renderer.
+The scope is "Blender-lite + DaVinci-Resolve-lite + an LLM in the side panel." The differentiator is the AI-native authoring loop on top of a clean, testable, physically-grounded renderer that *teaches* while it runs.
 
-This document is a roadmap, not a commitment. Order and scope are negotiable; the prerequisites are not.
+This document is a roadmap, not a commitment, and there are no deadlines. Order and scope are negotiable; the prerequisites and the pedagogical invariant (§4.0) are not.
 
 ---
 
@@ -43,6 +48,10 @@ This document is a roadmap, not a commitment. Order and scope are negotiable; th
 - **Phong-only direct lighting, no Fresnel.** Reflection and transmission coefficients are scalar constants set on the material — physically wrong everywhere except at normal incidence. PT-class materials need Fresnel at every interface.
 - **No nested-medium tracking.** `PerfectTransmitter` hardcodes "the other side is air, IOR = 1." Glass-inside-glass scenes will be wrong.
 - **No UV / tangent frame on `HitPoint`.** Blocks textures with non-trivial mapping, normal maps, anisotropic BRDFs.
+- **Texturing is rudimentary.** Procedural and image-backed textures exist as colour sources, but there is no UV-driven mapping, no bump/normal/displacement support, no triplanar or world-space projection, no MIP-mapping, and nothing that the modelling UI can attach via a material graph. This is "first interesting use case away from broken."
+- **Bump and normal mapping: not implemented.** Distinct from texturing — needs a tangent frame on `HitPoint` and a shading-normal pass before BSDF eval.
+- **Camera library is small.** Pinhole, fish-eye, orthographic, and spherical exist. The roster is missing thin-lens (DoF), Kolb realistic, Panini, omnidirectional/cubemap, light-field, and stereo (parallel-frustum and toed-in) cameras.
+- **Acceleration structure is weak.** The current hierarchical container is closer to a naive list-of-lists than a proper acceleration tree. Render times scale poorly with scene complexity. A real BVH plus alternate spatial indexes (octree, kd-tree, uniform grid) is a prerequisite for everything past a few dozen primitives.
 - **Default recursion depth and black-on-truncation** — being addressed by the in-flight TIR / truncation PRs (#35, #36).
 
 ### Existing seams that just need extension
@@ -85,7 +94,7 @@ Every node in the scene graph gets a typed `SceneObjectId` (integer or UUID). `S
 - Estimated effort: ~1 day.
 - Unblocks: UI selection, undo/redo, AI agent tool calls, save-to-disk references.
 
-### R3. Scene serialization (YAML or JSON, v1)
+### R3. Scene serialization (JSON, v1)
 
 Round-trip primitives + materials + camera + lights through a file format. Defer animation/time and CSG composition to v2 if it makes v1 simpler.
 
@@ -129,107 +138,307 @@ Introduce a `BSDF` interface with `eval(wi, wo) → spectrum`, `sample(wi) → (
 - Estimated effort: ~3-5 days.
 - Unblocks: path tracing, MIS, the modern material library, Fresnel everywhere.
 
+### R7. Spatial acceleration framework
+
+Replace the current hierarchical container with a proper acceleration tree, behind a `SpatialIndex` (or `Accelerator`) interface so multiple structures can coexist:
+
+- **BVH** (binary, with SAH build) — the workhorse for general scenes.
+- **Octree** — natural fit for unbounded/heterogeneous scenes and volumetrics.
+- **kd-tree** — best for static, geometry-heavy scenes; teaches a different traversal style.
+- **Uniform / hashed grid** — fast build, good for animated/dynamic scenes.
+- **Two-level (TLAS / BLAS) layout** — stable per-mesh BLASes referenced by transformed instances; matches GPU RT API patterns and supports instancing-heavy scenes.
+
+Per-engine backends pick the right structure (raytracer/path tracer want BVH; rasterizers want frustum-cull-friendly trees). Scenes can request a specific structure for benchmarking, since "compare them all" *is* the educational point.
+
+- Estimated effort: ~5 days for BVH+octree+grid behind the interface; kd-tree as a follow-up; TLAS/BLAS once instancing matters.
+- Unblocks: any non-trivial scene size, animation (rebuilds-per-frame), volumetrics, and meaningful benchmarks.
+
 ### Total foundation work
 
-Roughly **two calendar weeks** of focused refactor work. After that, every feature on the brainstorm becomes a clean, scoped PR.
+Roughly **two-and-a-bit calendar weeks** of focused refactor work. After that, every feature on the brainstorm becomes a clean, scoped PR.
 
 ---
 
 ## 4. Feature pillars
+
+### 4.0 Documentation & interactive education *(hard invariant)*
+
+This section gates every other section. The project's primary deliverable is *understanding*, and the codebase needs to be readable as a textbook as well as runnable as a tool.
+
+**Always-on requirements** — every feature PR must satisfy these to merge:
+
+- **Doxygen-grade source comments** on every public class, every algorithm, and every non-obvious snippet. "What this does" is fine; "why, with a citation to the relevant chapter / paper" is the actual bar.
+- **A topical doc page** under `docs/` for each subsystem (one per pillar in §§4.1-4.10), kept in lockstep with the code. New algorithm → new doc section, same PR.
+- **An interactive diagram** for any non-trivial algorithm, embedded in the doc page. Targets in priority order:
+  1. **WebGL/WebGPU live scenes** (preferred — same engine work that powers §4.1's web preview, reused for explainers).
+  2. **Animated SVG** for 2D math (sampling distributions, BVH traversal, Bezier curves, etc.).
+  3. **MathJax / KaTeX** for the equations.
+  4. **`<canvas>` with vanilla JS** for the simplest interactive cases.
+- **Reproducible "from-zero" runs.** Each doc page should include a minimal scene that exercises the algorithm and a one-liner to render it, so a reader can poke at the values and see what changes.
+- **Cross-linking.** Every PR that touches a subsystem updates the relevant doc page's algorithm catalog and "implementations of variant X" lists. The educational invariant *is* the multi-variant invariant — we're documenting *all* the ways to do a thing, not just the one we ship by default.
+
+**Hosting.** The existing GitHub Pages workflow (Doxygen output) is the deployment target. Long-form docs live in `docs/topics/`; interactive demos live in `docs/interactive/` and ship as static HTML+JS so they work on the public Pages site without a server.
+
+**Why this is in §4.0 and not §8.** Because if it's an afterthought it never happens, and the project loses its reason to exist. PRs without docs are draft PRs — full stop.
 
 ### 4.1 Rendering engines
 
 Beyond the existing `Raytracer`, factor in (in suggested order):
 
 - **Wireframe.** Edge projection from `Mesh`. Cheap, useful for editor preview and mesh debugging.
-- **Software rasterizer.** Scanline + Z-buffer; runs on CPU; no GL dependency. Great for headless preview when the GL stack is unavailable.
+- **Software rasterizer.** Scanline + Z-buffer; runs on CPU; no GL dependency. Great for headless preview when the GL stack is unavailable. The educational version implements the textbook pipeline end-to-end: clipping (Sutherland-Hodgman), perspective-correct attribute interpolation, depth and stencil, vertex/fragment shading hooks.
 - **OpenGL viewport.** Real-time editor view. Tessellated meshes feed VBOs; GLSL shaders mirror the material library for live preview parity. Also unlocks gizmo rendering.
+- **WebGL / WebGPU preview.** The same scene rendered in a browser, served alongside the GitHub Pages docs. WebGL first (broadest support, simpler), WebGPU as a follow-up. Static-scene preview is the v1 target; web preview of *animations* (timeline scrubbing in the browser) is a stretch goal that lands after §4.7. This engine doubles as the canvas for the §4.0 interactive diagrams — the rendering engine and the explainer engine are the same code path.
 - **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile.
 - **GPU backends, eventually.** Vulkan compute, OptiX, or Metal. Templated math primitives port reasonably to CUDA. Massive undertaking; not a near-term priority.
 
-### 4.2 Primitives & geometry
+The "all engines over one scene" property is itself the pedagogical payoff — being able to render a single test scene through wireframe, software raster, OpenGL, WebGL, raytracer, and path tracer side-by-side teaches more about the rendering equation than any single engine ever could.
+
+### 4.2 Primitives, meshes & computational geometry
+
+Mesh objects need to be grounded in a comprehensive computational geometry library — both because the modelling and rendering engines depend on the same primitives, and because the educational scope (§4.0) is unbounded here in the best way: most of computer graphics *is* computational geometry.
+
+#### 4.2.a New primitives
 
 Easy wins that fill obvious gaps:
 
-- Cylinder
-- Cone
-- Capsule (cylinder with hemispherical caps)
-- Heightfield / terrain
-- Signed Distance Field primitive base, with sphere-tracing intersector. Opens up procedural geometry: mandelbulbs, gyroids, fractal terrain. Trendy and rewarding.
-- Bezier patches / NURBS — niche, defer.
-- Subdivision surfaces (Catmull-Clark) — depends on `Mesh` infrastructure.
+- Cylinder, cone, capsule (cylinder with hemispherical caps).
+- Heightfield / terrain.
+- Signed Distance Field primitive base, with sphere-tracing intersector. Opens up procedural geometry: mandelbulbs, gyroids, fractal terrain.
+- Bezier patches / NURBS — for the "all variants" pedagogy, though niche in modern pipelines.
+- Subdivision surfaces (Catmull-Clark, Loop, Doo-Sabin) — depends on `Mesh` infrastructure.
 - Particles / billboards — for sprites or fast vegetation.
 
 Once tessellation lands (R4), the geometry engine can also do:
 
-- CSG mesh booleans (libigl, Carve, or BSP).
+- CSG mesh booleans (libigl, Carve, or BSP — implement at least two for comparison).
 - Marching cubes for implicit/SDF visualization.
 
-### 4.3 Materials
+#### 4.2.b Spatial acceleration structures
 
-Layered upgrade path:
+Behind the §3 R7 interface, with each variant documented and benchmarked side-by-side:
 
-- **Bump and normal maps.** Perturb `hitPoint.normal()` from a texture before shading. Needs UVs on `HitPoint` (R6 prerequisite).
-- **Procedural textures** (Perlin, Worley, checker, marble, wood). Templated `ProceduralTexture<F>` on a noise functor.
-- **GGX / Cook-Torrance microfacet BRDF.** Physically-based replacement for Phong. Roughness + IOR knobs. Foundational for modern materials.
-- **Fresnel everywhere** — Schlick approximation for dielectrics and metals.
-- **Anisotropic GGX.** Brushed metal.
-- **Layered materials** (clear coat over base). Car paint, varnished wood.
-- **Disney Principled BSDF.** Artist-friendly über-shader; layered metal/specular/clearcoat/sheen/SSS over a diffuse base.
-- **Subsurface scattering.** Random-walk in a volumetric medium with Henyey-Greenstein phase function — natural inside path tracing. Christensen-Burley approximation for fast preview. Skin, jade, milk, wax.
-- **Volumetric participating media.** Fog, smoke, clouds. Same machinery as SSS, just operating between surface hits.
-- **Iridescence / thin-film interference.** Soap bubbles, oil slicks, peacock feathers.
-- **Spectral rendering.** Replace RGB with wavelength sampling. Correct dispersion, fluorescence, polarization. Big architectural change; defer.
+- BVH (binary, SAH-built; also try equal-counts, mid-split, and binned SAH for the writeup).
+- Octree (loose and tight variants).
+- kd-tree (with and without SAH).
+- Uniform grid and hashed grid.
+- Two-level TLAS / BLAS for instancing.
+- Brute-force list (kept as the reference baseline — the "before" in every benchmark).
 
-#### Material library (separate from material types)
+Each structure ships with an interactive WebGL diagram in `docs/interactive/` showing build, traversal, and a query overlay.
+
+#### 4.2.c Computational geometry library
+
+A reusable `geometry/` module that the modelling UI, the engines, and any scripts can call into:
+
+- Predicate kernels: orientation, in-circle/in-sphere (Shewchuk-style adaptive precision).
+- Convex hull (Graham scan, gift wrapping, quickhull, Chan's algorithm — multiple variants for the textbook value).
+- Triangulation: ear clipping, monotone polygon, Delaunay (Bowyer-Watson, divide-and-conquer, incremental), constrained Delaunay.
+- Voronoi diagrams (dual of Delaunay).
+- Polygon Boolean operations (Vatti, Greiner-Hormann).
+- Minkowski sums.
+- Mesh repair: hole filling, manifold check, T-junction welding, normal recomputation.
+- Mesh simplification (quadric error metrics) and remeshing.
+- UV unwrapping (LSCM, ABF, ABF++).
+- Geodesics on meshes.
+- Skeletonization, medial axis transforms.
+- Curves and surfaces: Bezier, B-spline, NURBS evaluation; tessellation; intersection.
+
+This is intentionally over-scoped — the *library* exists to learn from. We add to it lazily as the modelling UI and engines need pieces, but the design intent is "every algorithm we cared enough about to read a chapter on goes here."
+
+### 4.3 Materials, textures & shading
+
+The "all variants" rule applies hardest here. The job isn't to ship one PBR shader; it's to ship a stable framework with *every interesting BSDF, every interesting texture pipeline, and every interesting shading-normal trick* hanging off it.
+
+#### 4.3.a BSDFs (all the variants)
+
+Layered upgrade path, but the destination is the full list:
+
+- **Lambertian** (already there).
+- **Phong / Blinn-Phong** (already there) — kept as the legacy baseline and as the NPR entry point.
+- **GGX / Trowbridge-Reitz microfacet** (isotropic and anisotropic) — the modern workhorse.
+- **Cook-Torrance, Beckmann, GGX-VNDF** — comparative implementations, all behind the same BSDF interface.
+- **Disney Principled BSDF** — artist-friendly über-shader over a diffuse base.
+- **Smooth and rough dielectric** with proper Fresnel and nested-medium tracking.
+- **Conductors** (with full Fresnel from complex IOR — copper, gold, silver, aluminium, iron).
+- **Layered materials** (clear coat over base; iridescence as a thin-film layer).
+- **Iridescence / thin-film interference** — proper interference, not a colour ramp.
+- **Sheen / fabric BRDFs** (Charlie / ASM cloth).
+- **Hair / fur** (Marschner, Chiang).
+- **Subsurface scattering** — random-walk SSS in PT, Christensen-Burley for fast preview, BSSRDF for the textbook completeness; skin/jade/milk/wax tests.
+- **Volumetric participating media** (homogeneous + heterogeneous) — fog, smoke, clouds; Henyey-Greenstein and Mie phase functions.
+- **NPR shaders.** Toon/cel, Gooch (warm/cool), hatching, contour/silhouette extraction, halftone, Kuwahara. NPR is its own family — not "make the PBR pipeline look stylised" but a parallel pipeline with its own shading-normal logic.
+- **Spectral rendering** — replace RGB with wavelength sampling for correct dispersion, fluorescence, and (eventually) polarization. Big architectural change; lives at the end of this pillar.
+
+#### 4.3.b Textures (a four-layer stack)
+
+Textures are not just colour sources — they are the input to every shading parameter, and the framework should make that explicit. The four layers, from most concrete to most abstract:
+
+1. **Image textures** with proper sampling: nearest / bilinear / trilinear / anisotropic; MIP-mapping; clamp/repeat/mirror; sRGB vs linear; HDR (EXR / Radiance HDR).
+2. **Procedural textures** (Perlin, simplex, Worley, checker, marble, wood, brick, gabor, value noise, fractal noise variants). Templated `ProceduralTexture<F>` on a noise functor.
+3. **Calculated / data-driven textures** — functions of position, normal, UV, view, hit attributes, and previous shading state. Used for AO bake-in, curvature shading, world-space gradients, etc.
+4. **Scripted textures.** Same DSL/scripting layer as §4.6's parametric objects. The user (or the AI agent) can write `(u, v, p, n) → colour` in a small language and drop it on a material slot. Hot-reload at edit time. This is where most of the "I want to try X" experiments happen; making it first-class is what keeps them from leaking into the C++ codebase.
+
+Texture inputs feed *any* material parameter — albedo, roughness, metallic, IOR, normal, displacement, emission, subsurface radius, sheen colour, etc. — through a common `Sampler2D<T>` interface.
+
+#### 4.3.c Shading-normal pipeline
+
+A first-class pass that runs between intersection and BSDF eval, with all four standard modes implemented and selectable per material:
+
+1. **Geometric normal** (the raw triangle normal — the baseline).
+2. **Smooth / interpolated normal** (vertex normals, tangent-frame interpolation).
+3. **Bump mapping** (height-derivative perturbation; needs `dPdu`/`dPdv` on the hit).
+4. **Normal mapping** (tangent-space normal sampled from a texture, properly handled across non-planar UV seams — Mikktspace tangents).
+5. **Parallax / steep parallax / parallax occlusion** (visual depth without geometry).
+6. **Displacement mapping** (real geometry — pre-tessellation displacement on `Mesh`, or adaptive subdivision in PT).
+
+Each mode gets its own doc page and interactive WebGL diagram showing the difference from the previous mode on the same scene.
+
+#### 4.3.d AOV (Arbitrary Output Variable) pipeline
+
+Every renderer writes more than a beauty pass. AOVs are first-class outputs of the integrator, available to the postprocessing/compositing stage (§4.9):
+
+- Beauty (RGB).
+- Depth (Z) and normal.
+- Albedo / diffuse / specular separation.
+- Direct vs indirect; per-light contribution; per-material-id mask.
+- Object-id and material-id (for compositing and selection).
+- Cryptomatte (for proper anti-aliased ID masks).
+- Motion vectors (for temporal denoise and motion blur compositing).
+- World-space position, UV.
+- Roughness, metallic, emission.
+- Sample variance (for adaptive sampling and denoise).
+
+#### 4.3.e Material library (separate from material types)
 
 A bundled catalog of preset materials calibrated against measured data (MERL BRDF database, Disney measured materials, Filament reference values). Gold, copper, jade, glass, rubber, brushed steel, marble, skin, pearl, silk, etc.
 
-- Stored as YAML/JSON, hot-reloadable.
+- Stored as JSON, hot-reloadable.
 - Auto-render thumbnails (preview sphere on a checkerboard) for the UI library browser.
 - Naming scheme that an LLM can pattern-match (e.g., `metal/copper/polished`, `glass/crown/optical`, `organic/jade/imperial`).
 
-### 4.4 Lights
+### 4.4 Cameras and lights
+
+#### 4.4.a Cameras (the completionist set)
+
+The current four (pinhole, fish-eye, orthographic, spherical) become the core; the roster expands to cover the cameras that actual cinematographers and researchers care about. Each gets a doc page comparing it to the others on the same test scene.
+
+- **Pinhole** (existing) — the textbook entry point.
+- **Orthographic** (existing) — for engineering views.
+- **Fish-eye** (existing) — equidistant projection, with stereographic and equisolid variants added.
+- **Spherical / equirectangular** (existing) — for 360° captures and HDRI authoring.
+- **Thin-lens** — depth of field, bokeh shape (circular, polygonal, custom texture for cat-eye/anamorphic).
+- **Kolb realistic camera** — full multi-element lens stack with chromatic aberration, vignetting, distortion. The pedagogical centrepiece for "how do real cameras work."
+- **Panini projection** — wide angle without the fish-eye distortion.
+- **Cylindrical / panoramic.**
+- **Omnidirectional / cubemap** — six pinholes glued together.
+- **Light-field camera** — multi-perspective rendering for refocusable output.
+- **Stereo cameras** — both **parallel-frustum** (off-axis, no keystone) and **toed-in / converged** (camera angle) variants, with explicit IPD and convergence distance controls. Anaglyph/side-by-side/top-bottom output formats for compatibility with viewers.
+- **Tilt-shift / Scheimpflug** — independent control of sensor and lens planes.
+
+All cameras share a `Camera::generateRay(sample) → Ray` API; lens-based cameras additionally implement aperture sampling for DoF.
+
+#### 4.4.b Lights
 
 - **Point** (already exists in some form).
 - **Directional** (sun).
-- **Spot.**
-- **Area** (rectangular and disk emitters with proper sampling).
-- **Mesh emitter** (any triangle mesh, sampled by area).
-- **HDRI environment** (image-based lighting from an EXR/HDR sky map; importance-sampled by luminance).
+- **Spot** (with inner/outer cone falloff).
+- **Area** — rectangular, disk, sphere, cylinder emitters with proper sampling (uniform, importance, projected solid angle).
+- **Mesh emitter** — any triangle mesh, sampled by area; importance-sampled by triangle area for big meshes.
+- **HDRI environment** — image-based lighting from an EXR/HDR sky map; importance-sampled by luminance (with hierarchical / Sobol-distributed sampling for comparison).
+- **Sun + sky model** (Hosek-Wilkie or Preetham analytical sky). Time-of-day and turbidity controls.
+- **Volumetric lights / god rays** — emerge naturally from §4.3's volumetrics; called out so they aren't forgotten.
+- **IES profiles** — real-world photometric data for architectural lighting.
+- **Portal lights** — sampling helper for indirect daylight through windows.
 
-All require a `Light::sample(shadingPoint) → (wi, pdf, Le)` API for proper integration in MC integrators.
+All require a `Light::sample(shadingPoint) → (wi, pdf, Le)` API for proper integration in MC integrators, plus a `Light::pdf(wi)` for MIS and `Light::power()` for light-tree construction.
 
 ### 4.5 File I/O
 
-Reads where useful, writes where useful, both directions where it makes sense:
+Read and write wherever it's reasonable. The guiding rule: if a format is used as a *delivery* format (PLY, STL, EXR), write-support is "nice to have." If a format is used as an *interchange* format (OBJ, glTF, USD, FBX), read+write is the target.
 
-- **OBJ** — ubiquitous, mesh-only, ~1 day. Read first, write second.
-- **STL** — 3D printing, mesh-only, ~half day.
-- **PLY** — already supported (read).
-- **glTF 2.0** — meshes + materials + textures + skeletal animation. Modern, well-specified. Use `cgltf` or `tinygltf`.
-- **USD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references).
-- **FBX** — Autodesk; via OpenFBX (avoid Autodesk SDK if possible).
-- **OpenVDB** — for volumetric data, once volumetrics land.
-- **EXR / HDR** — environment maps and HDR output. Pairs with the float framebuffer (R1) and tonemap stage.
-- **OpenSCAD `.scad`** — see modeling UI.
-- **Native scene JSON/YAML** (see R3) — round-trip with full fidelity.
+- **OBJ + MTL** — ubiquitous, mesh-only. Read first (~1 day); write second (~half day). The universal "just load this mesh" fallback.
+- **STL** — 3D printing. Read + write; ASCII and binary variants.
+- **PLY** — already read (with LibFuzzer harness). Add write.
+- **glTF 2.0** — meshes + materials + textures + skeletal animation. Modern, well-specified. Use `cgltf` or `tinygltf`. Read + write; the natural default for web interop (feeds the §4.1 WebGL viewer directly).
+- **USD / OpenUSD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references). Read-only first; write is aspirational.
+- **FBX** — Autodesk; via OpenFBX. Read + limited write.
+- **OpenVDB** — volumetric grids, once §4.3 volumetrics land. Read-only initially.
+- **EXR** — float HDR output from the framebuffer (R1) and environment map input. Read + write via OpenEXR or tinyexr.
+- **HDR (Radiance `.hdr`)** — environment maps. Read.
+- **OpenSCAD `.scad`** — see §4.6 scripted objects.
+- **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI
 
-Scope = "Blender-lite." Qt is already the toolkit, so this is reachable.
+Scope = "Blender-lite." Qt is already the toolkit. The UI's modality structure mirrors Blender's: Object mode → Edit mode → Sculpt mode → UV mode, with a unified timeline at the bottom and a chat side panel at the right.
 
-#### Traditional modeling
+#### 4.6.a Core editor
 
-- Multi-viewport (top / front / side / perspective). Each viewport picks its own engine — typically perspective uses GL, others use wireframe.
+- Multi-viewport (top / front / side / perspective). Each viewport picks its own engine — perspective uses GL, orthographic views use wireframe.
 - Object hierarchy / outliner with selection, naming, grouping, parenting.
 - Property editor for the selected object's transform, material, primitive parameters.
-- Move / rotate / scale gizmos with snapping.
+- Move / rotate / scale gizmos with snapping (unit, grid, surface, increment).
 - Primitive creation toolbar; CSG operation buttons.
 - Material editor with library browser, parameter sliders, live preview.
-- Undo/redo (depends on R2 — stable IDs — and R3 — diffable serialization).
+- Undo/redo (depends on R2 stable IDs + R3 diffable serialization).
 
-#### AI-native side panel
+#### 4.6.b Modifier stack
+
+A non-destructive modifier stack on each object (Blender-style: apply all, apply one, collapse to mesh):
+
+- Transform modifiers: mirror, array, curve deform, lattice.
+- Mesh modifiers: subdivision (Catmull-Clark), smooth, decimate, solidify, weld, triangulate.
+- Generation modifiers: screw, skin, wireframe.
+- Deform modifiers: displace (texture-driven), wave, simple deform (bend/taper/twist/stretch), cast.
+- Physics modifiers (placeholder slots for when §4.10 physics lands).
+
+The modifier stack is serialized as a list of operations in the scene JSON, and the AI agent can read and rewrite it.
+
+#### 4.6.c Node graph editor
+
+A node-based editor with two modes, sharing the same UI widget:
+
+- **Geometry nodes** — procedural mesh generation and modification via a composable DAG. Each node maps to a function in the §4.2.c geometry library.
+- **Material/shader nodes** — wire-up of the §4.3 texture/BSDF layers. This is the primary authoring surface for complex materials; not the same as a full OSL shading language, but structurally similar.
+
+Both modes compile down to the same scene JSON; the node graph is just a visual editing tool, not a runtime VM.
+
+#### 4.6.d Sculpt mode
+
+- Multi-resolution sculpting on `Mesh` objects (Catmull-Clark subdivide + sculpt at each level).
+- Brush toolkit: draw, smooth, flatten, crease, inflate, pinch, snake hook, grab, clay, clay strips.
+- Dynamic topology (Dyntopo): real-time remesh under the brush for unbounded detail.
+- Masking, face sets, and visibility for isolating sculpt regions.
+- Normal map bake-down from high-poly sculpt to low-poly via ray-cast.
+
+#### 4.6.e UV editor
+
+- UV unwrapping: LSCM, Angle-Based Flattening (ABF++), Project-from-view, Smart UV Project.
+- UV packing (bin-packing of UV islands into the [0,1]² square).
+- Seam paint and pinning.
+- Texture paint in UV space (direct 2D painting that updates the §4.3 image texture).
+- 3D texture paint (project-paint directly on the surface, updates the UV-mapped texture).
+
+#### 4.6.f Retopology tools
+
+- RetopoFlow-style surface projection: draw new quad topology snapped to a high-poly surface.
+- Shrinkwrap modifier (project any mesh to the surface of another).
+- Quadriflow / Instant Meshes-style automatic remesh (produces clean quad topology for rigging or export).
+
+#### 4.6.g Grease pencil
+
+A 2D draw-in-3D tool: strokes live at world positions, can be animated on the timeline, rendered as flat colour overlays or as actual volumetric ribbons by a dedicated stroke-renderer backend. Useful for annotation, storyboarding, and stylised animation in the same file as the 3D scene.
+
+#### 4.6.h Asset library
+
+- A project-local and user-global asset library (materials, meshes, node groups, modifier presets, HDRI environments).
+- Thumbnail auto-generation for all asset types.
+- Searchable, tag-filterable catalog; drag-and-drop into the scene.
+- Naming scheme compatible with the AI agent's tool calls (`metal/copper/polished` etc.).
+- Community/shared library import is out of scope for now, but the storage format (JSON + loose files, zip-packaged as `.rcxpkg`) should be open enough that it's possible later.
+
+#### 4.6.i AI-native side panel
 
 A chat interface in the editor with an LLM agent that has tool calls into the scene graph. Tool surface includes:
 
@@ -238,27 +447,23 @@ A chat interface in the editor with an LLM agent that has tool calls into the sc
 - `apply_material(id, name_or_inline_definition)`
 - `csg_union(a, b) → id`, `csg_intersect(a, b) → id`, `csg_difference(a, b) → id`
 - `import_file(path) → id`
-- `query_scene() → JSON` (the agent's read-side: list objects, materials, hierarchy, current selection)
+- `query_scene() → JSON`
 - `select(id)`, `delete(id)`
 - `set_camera(position, target, fov)`
 - `set_environment(hdri_path)`
+- `run_script(code) → id_list` — evaluate a parametric script and drop the result into the scene.
+- `get_modifier_stack(id) → JSON`, `set_modifier_stack(id, JSON)`
 
-The agent observes user edits via the same scene graph, so the loop is bidirectional: user moves an object, the agent sees it on the next `query_scene`. The agent can describe the scene, refactor it ("group these into an assembly"), critique it ("the lighting is too uniform — want a key/fill setup?"), or build it from scratch ("a brass lamp on a marble table").
+The agent observes user edits via the same scene graph, so the loop is bidirectional. The chat transcript is persisted in the scene file so AI-assisted sessions can be resumed.
 
 Implementation notes:
 
-- Anthropic's Claude with tool use is well-suited; the green-acres infrastructure already has Claude API auth.
-- Tool calls go through the scene serialization layer (R3) so they can be undone, replayed, and audited.
-- The chat transcript is part of the scene file (project-level), so users can resume an AI-assisted session days later.
+- Anthropic's Claude with tool use is the default; the green-acres infrastructure has Claude API auth already.
+- Tool calls go through R3 serialization, so they can be undone, replayed, and audited.
 
-#### Scripted parametric objects (OpenSCAD-style)
+#### 4.6.j Scripted parametric objects
 
-A scene-script DSL for parametric/procedural geometry. Two mutually compatible options:
-
-- **Python or JavaScript** for ergonomics — most users already know one or both. Existing `scripts/` directory shows the project already uses scripted scenes.
-- **OpenSCAD-style functional language** for parametric/precision use cases — geometric primitives composed via union/difference, parameterized over input variables.
-
-Scripts produce primitives that are then dropped into the scene graph as regular objects. The AI agent can write scripts when asked for parametric parts ("a 24-tooth involute gear", "a 30-step spiral staircase", "a hex-wrench at 5mm A/F"), then add the resulting object to the scene.
+A scene-script DSL for parametric/procedural geometry. See §7 open question on scripting language. Scripts produce primitives that drop into the scene graph as regular objects. The AI agent can write scripts for parametric parts ("a 24-tooth involute gear", "a 30-step spiral staircase").
 
 ### 4.7 Animation & timeline
 
@@ -269,6 +474,20 @@ Scripts produce primitives that are then dropped into the scene graph as regular
 - Eventually (defer): rigid body simulation, particle systems, simple IK skeletons.
 
 Prerequisite: time dimension on the scene graph — every transform and parameter needs to be evaluable at a time `t`.
+
+### 4.7.b Video-editor sequencer (NLE layer)
+
+Once individual animated scenes render, they need to be assembled. A non-linear editing layer sits above the renderer and composes rendered scenes (and imported video/image clips) into a final output:
+
+- **Clip timeline.** Each clip is a rendered image sequence, a live scene, or an imported video. Clips sit on tracks; tracks compose vertically with blend modes.
+- **Transitions.** Cut, dissolve, wipe (clock, linear, radial, box), cross-zoom, RGB split. The transition framework is a shader pipeline over two framebuffers (A and B at blend factor `t`) so custom transitions are just GLSL/WebGL fragments. Collect *all* the classic transitions from the broadcast and post-production repertoire; the "all variants" rule applies.
+- **Titles and slates.** Text overlay with font, size, colour, position, animation (slide-in, fade, typewriter, etc.). SVG import for logo stings.
+- **Audio tracks.** Import audio (WAV, MP3, AAC); sync to timeline; basic mix (gain, fade, trim). No DSP — that's a DAW's job. Just enough to assemble a watchable render reel.
+- **Speed ramp / time remapping.** Per-clip speed curves (linear retiming, ease-in/ease-out slow-motion).
+- **Colour grading per clip** — feeds the §4.9 postprocessing stack, but overridable per clip.
+- **Export.** Pipe to ffmpeg; configurable codec (H.264, H.265, ProRes, lossless), container (MP4, MOV, MKV), and resolution/bitrate. Still-frame export at any frame.
+
+The sequencer stores its state in the same project JSON as the 3D scenes — one file, the full production.
 
 ### 4.8 Distributed rendering
 
@@ -288,96 +507,118 @@ A "render to k8s" button in the UI is genuinely cool — the green-acres cluster
 
 ---
 
+### 4.9 Postprocessing & compositing
+
+Every frame — from any engine — passes through a configurable postprocessing stack before display or export. This is both a production-quality feature and an educational playground: postprocessing is where you learn what the beauty pass is *missing*.
+
+#### 4.9.a Tone-mapping & colour science
+
+- Reinhard, ACES (filmic and AP0/AP1 variants), AgX, Khronos PBR Neutral, Filmic (Blender) — implement them all and expose a selector; the visual differences are instructive.
+- Exposure, white balance (colour temperature + tint), contrast, lift/gamma/gain.
+- LUT (Look-Up Table) input in `.cube` format for arbitrary colour grade.
+
+#### 4.9.b Image-space effects
+
+All implemented as full-screen fragment shaders (or compute passes), over the float framebuffer from R1:
+
+- Bloom (Gaussian, physically-based high-pass threshold + bilateral; also: glare/star filter for light sources).
+- Depth-of-field (post-process CoC approximation from depth AOV; separable hexagonal/circular blur; bokeh shape texture).
+- Motion blur (per-pixel accumulation from motion-vector AOV; fast approximate and ground-truth compare).
+- Screen-space ambient occlusion (SSAO, HBAO, GTAO — implement all three for comparison).
+- Chromatic aberration (radial RGB channel offset).
+- Vignetting (gain falloff toward corners, optionally with lens-profile data).
+- Grain / film noise (analytic or sampled from a real film profile).
+- Lens flares and light shafts (screen-space, not ray-traced).
+- Halation (highlight fringing on bright edges — film characteristic).
+- Sharpen / unsharp mask, diffusion filter.
+- Pixel art / dither downscale (for stylised output).
+
+#### 4.9.c AOV-based compositing
+
+Using the §4.3.d AOV outputs:
+
+- Per-pass multiply/add compositing (diffuse+specular+emission+indirect = beauty, manually verifiable).
+- Object/material-id mask extraction for selective colour grading or motion-blur exclusion.
+- Cryptomatte-based selection (anti-aliased ID masks from the Cryptomatte AOV).
+- Z-composite for inserting CG into photo backgrounds.
+- Denoising: OIDN (Intel Open Image Denoise) as the drop-in; optionally OptiX denoiser for NVIDIA hardware.
+
+#### 4.9.d Compositing node graph
+
+A node-based compositor (Nuke/Blender Compositor-style) that wires AOV inputs, colour-science nodes, effect nodes, and mask nodes into a final output. The same node-graph widget from §4.6.c is reused with a different node palette. This is the natural endpoint for all of §4.9 — not a priority for v1, but the architecture should accommodate it from the start.
+
+### 4.10 Industry-inspired extras *(long tail)*
+
+Features that belong in a complete CG curriculum but sit at the end of the roadmap because they depend on most everything above:
+
+- **Custom physics engine.** A separate, self-contained simulation library (rigid body, soft body, cloth, fluid SPH, smoke/fire) that plugs into the animation timeline via the same keyframe interface. Not a dependency on Bullet or Havok — the point is to implement it from scratch for the learning value. Deferred until §4.7 animation infrastructure is solid.
+- **NeRF / Neural Radiance Fields.** Volume rendering from a trained MLP over (direction, position) → (colour, density). Academic, slow, and fascinating. Implemented as a `RenderEngine` subclass that takes a pre-trained `.nerf` or `.ingp` checkpoint. CUDA or libtorch dependency; treat as optional.
+- **3D Gaussian Splatting.** The faster, more practical sibling of NeRF. Splatted onto the rasterizer backend. Same dependency constraints as NeRF.
+- **Photon mapping** (progressive, stored-photon, volumetric). Historically important; teaches caustics and subsurface light transport in a way path tracing alone doesn't.
+- **Bidirectional path tracing (BDPT) and Metropolis Light Transport (MLT).** Deep in the weeds; tackle after vanilla PT is proven. The educational payoff is high (understanding why PT struggles with caustics, and how BDPT/MLT fix it), so they belong in the roadmap rather than the non-goals list.
+- **Polarization-aware spectral rendering.** The ultimate extension of §4.3.a's spectral mode.
+- **Deep image compositing.** EXR deep data (multiple samples per pixel with per-sample depth and coverage) for complex transparency compositing. Niche, but completes the EXR story.
+- **Light field rendering / plenoptic cameras.** Natural extension of §4.4.a's light-field camera.
+- **Procedural animation (rigs, IK, blend shapes).** Armatures, inverse kinematics solvers (CCD, FABRIK, Jacobian), blend shape / shape-key morphing. Separate from the physics simulation; this is character animation.
+
+Each of these is worth a deep-dive document (§4.0 invariant applies). None of them should block anything in §§4.1–4.9.
+
 ## 5. Non-goals (explicit)
 
-To keep scope honest, this roadmap is *not* trying to:
+This list is intentionally short, because the scope is intentionally large. The two things this project will not become:
 
-- Compete with Blender on modeling tooling. The UI is "Blender-lite"; sculpting, retopology, UV unwrapping are out of scope.
-- Compete with production renderers (Arnold, RenderMan, Cycles, Manuka) on absolute image quality. The renderer should be physically grounded and pretty enough for portfolio shots, not VFX-final-frame.
-- Be a real-time game engine. The OpenGL viewport is for editing, not for shipping playable experiences.
-- Implement BDPT, MLT, or photon mapping in the near term. Path tracing handles 95% of the cases that need them; the remaining 5% are not worth the architectural complexity at this stage.
-- Build a node-based shader graph. Not before there's clear demand.
-- Replace OpenSCAD or CadQuery for CAD workflows. The scripted DSL is for *artistic* parametric content, not engineering-grade CAD.
+- **A real-time game engine.** The OpenGL and WebGL viewports are for editing and previewing, not for shipping interactive, playable experiences. Frame rate matters but never at the expense of correctness.
+- **A CAD / engineering tool.** The scripted DSL and geometry library are for *artistic* parametric content. Dimensional tolerance, constraint solvers, export to STEP/IGES, and anything that needs to be machined are out of scope. Use FreeCAD.
 
-These can all be reconsidered later. The point of this list is to keep PRs focused while the foundations are still being laid.
+Everything else that appeared in previous versions of this list — sculpting, BDPT/MLT, node graphs, UV unwrapping, production render quality — has been moved *into* the roadmap proper (§§4.2–4.10), because the educational scope makes them worth implementing.
 
 ---
 
-## 6. Suggested phasing
+## 6. Themes (not milestones, not deadlines)
 
-These are milestones, not deadlines. Each milestone is independently shippable and visibly improves the project.
+There are no deadlines on this project. Work proceeds by *theme* — a theme is a cluster of related features that can be tackled in any order and can stall without blocking other themes. The prerequisite chain (§3) is the only hard ordering; everything else can interleave.
 
-### Milestone A — foundations (next 2-3 weeks)
+Pick the theme that's most interesting today; stop when it stops being interesting; pick the next one. The "all variants" principle means themes never fully close — there is always another algorithm to implement and document.
 
-The six refactors from §3:
+### T1. Foundations *(prerequisite — do first)*
 
-- R1: float HDR framebuffer + tonemap.
-- R2: stable scene-object IDs.
-- R3: scene serialization v1.
-- R4: `Primitive::tessellate()` for the basic primitives.
-- R5: `RenderEngine` abstraction.
-- R6: `BSDF` split from `Material::shade`.
+The seven refactors from §3 (R1–R7). Gatekeeping nothing else runs well without these. Plus in-flight fixes: PRs #35/#36, and the small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor).
 
-Plus the in-flight bug fixes: TIR/truncation (PRs #35, #36), and the small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` typo, missing `setTransmissionCoefficient` in textured ctor).
+### T2. More engines
 
-### Milestone B — quick visual wins (1-2 weeks after A)
+Wireframe → Software rasterizer → OpenGL viewport → Path tracer → WebGL preview. Each engine is self-contained once R4 (tessellate) and R5 (`RenderEngine` abstraction) land. Suggested order: wireframe (cheapest), OpenGL (most immediately useful for the UI), path tracer (the pedagogical centrepiece), software raster (the most educational about the pipeline), WebGL (most shareable). GPU backends (Vulkan/OptiX/Metal) are their own long-tail item.
 
-- Cylinder, cone, capsule primitives.
-- Bump/normal maps + procedural textures.
-- Area lights with proper sampling (now possible thanks to R6).
-- HDRI environment lighting.
-- OBJ import + export.
+### T3. Better shading
 
-### Milestone C — second engine (2-3 weeks after B)
+The full §4.3 progression: shading-normal pipeline → GGX/Cook-Torrance → all BSDF variants → procedural + scripted textures → four-layer texture stack → AOV outputs → NPR shaders → spectral rendering. Feeds every other theme with better visuals immediately.
 
-- Wireframe engine (cheapest).
-- OpenGL viewport (most useful).
-- Tessellation polish: higher-LOD options, smooth normals, proper UV layout.
+### T4. Geometry completionism
 
-### Milestone D — path tracer (3-4 weeks after C)
+§4.2 end-to-end: new primitives → BVH + alternate acceleration structures → computational geometry library algorithms (convex hull, triangulation, Voronoi, Booleans, …). Benchmarks comparing acceleration structures are a natural output of this theme.
 
-- `PathTracerEngine` — same scene API, MC integration.
-- Multiple Importance Sampling.
-- GGX / Cook-Torrance BSDF.
-- Adaptive sampling per tile.
-- OIDN denoiser integration (Intel Open Image Denoise — single library, drop-in, transforms 32-spp output to 1024-spp quality).
+### T5. Cameras & lights completionism
 
-### Milestone E — modeling UI shell (4-6 weeks after D)
+§4.4 end-to-end: stereo cameras → thin-lens DoF → Kolb realistic → Panini/panoramic → light-field; area lights → HDRI → sun-sky → IES. Each camera/light variant gets a side-by-side comparison render.
 
-- Multi-viewport editor.
-- Outliner, property editor, gizmos.
-- Material editor with library browser.
-- Save/load via R3.
-- Undo/redo.
+### T6. File I/O
 
-### Milestone F — AI chat side panel (1-2 weeks after E)
+OBJ read/write → STL → glTF 2.0 → EXR → FBX → USD. As each format lands, the scene JSON round-trip baseline expands.
 
-- Tool-using LLM agent over the scene graph.
-- Scripted parametric DSL (Python/JS first; OpenSCAD-style later).
-- Chat transcript persisted with the scene.
+### T7. Modeling UI
 
-This is the milestone that makes the project uniquely *yours* — get here as efficiently as possible, then iterate.
+§4.6 progression: core editor shell → modifier stack → UV editor → sculpt mode → node graph → retopology → grease pencil → asset library. Also the AI chat side panel and scripted parametric objects.
 
-### Milestone G — animation (3-4 weeks after F)
+### T8. Animation & sequencer
 
-- Time dimension on the scene graph.
-- Keyframe timeline UI.
-- Motion blur (multi-sample within shutter-open).
-- Image-sequence and video output.
+Timeline + keyframes on the scene graph → motion blur → image/video output → NLE sequencer → transitions → titles/audio → speed ramp. Unlocks the distributed rendering farm (T10) for animation throughput.
 
-### Milestone H — distributed rendering (2-3 weeks after G)
+### T9. Postprocessing & compositing
 
-- Tile-level distribution for stills.
-- Frame-level distribution for animation.
-- "Render to k8s" button in the UI.
+§4.9 end-to-end: tone mapping science → image-space effects → AOV compositing → compositor node graph. Satisfying to iterate on because every new effect is immediately visible on any scene.
 
-### Milestone I — advanced materials (open-ended, after H)
+### T10. Long tail & industry extras
 
-- Disney Principled BSDF.
-- Subsurface scattering (random-walk in PT).
-- Volumetric participating media.
-- Anisotropic GGX, layered materials, iridescence.
-- Spectral rendering (architectural change — its own milestone).
+§4.10: physics engine → photon mapping → BDPT/MLT → NeRF/3DGS → polarization-aware spectral → deep EXR → procedural rigs/IK. No ordering constraints among these; each is its own extended project.
 
 ---
 
@@ -385,8 +626,7 @@ This is the milestone that makes the project uniquely *yours* — get here as ef
 
 These need decisions before specific work starts. Calling them out so they don't ambush a PR mid-flight.
 
-- **Scene serialization format: YAML or JSON?** YAML is friendlier for hand-editing, JSON is friendlier for tooling. USD-on-disk is a separate question (it's binary-ish via Crate or text via `.usda`).
-- **Scripted DSL: which language first?** Python is more popular but adds a Python embedding dependency. JavaScript via QuickJS is small and self-contained. An OpenSCAD-style language is the most opinionated and the most work.
+- **Scripted DSL: which language first?** Python is more popular but adds a Python embedding dependency. JavaScript via QuickJS is small and self-contained. An OpenSCAD-style language is the most opinionated and the most work. The same DSL choice drives §4.3.b layer 4 (scripted textures) and §4.6.j (parametric objects), so picking once unlocks both.
 - **Material library distribution model.** Bundled in-tree, downloaded on first use, or referenced from a community repo (like Blender's asset library)?
 - **UI undo/redo granularity.** Per-property change, per-tool action, or per-scene-mutation? Affects the serialization design.
 - **AI agent: cloud LLM or local?** Cloud (Claude via API) is more capable today; local (llama.cpp, Ollama) is private and free at idle. Both are viable; the tool-call surface is the same. Probably default to cloud with a local-fallback knob.
@@ -402,7 +642,7 @@ These need decisions before specific work starts. Calling them out so they don't
 The two are largely independent. Recommended order:
 
 - Modernization items §3.1 (CMake migration, done), §3.2 (CI, in progress), §3.5 (test framework upgrade) should land before any of the foundational refactors here, since they make the refactors safer to ship.
-- Modernization §3.10 (Qt 6 migration) should ideally land before Milestone E (modeling UI) so the new UI code targets a supported toolkit from the start.
+- Modernization §3.10 (Qt 6 migration) should ideally land before T7 (modeling UI) so the new UI code targets a supported toolkit from the start.
 - Everything else can interleave freely.
 
 ---
@@ -413,7 +653,7 @@ This is a living roadmap. PRs that move items forward should reference the roadm
 
 Open questions in §7 should be resolved through discussion (issues, this doc, or just a chat session) before the affected work starts.
 
-The "north star" in §1 is the scope ambition. The non-goals in §5 keep that ambition honest. The phasing in §6 is one possible order — reorder freely as priorities shift.
+The "north star" in §1 is the scope ambition. The non-goals in §5 keep that ambition honest. The themes in §6 are clusters that can interleave freely; only the §3 prerequisite chain has a hard ordering. There are no deadlines — pick the theme that's most interesting today.
 
 ---
 
