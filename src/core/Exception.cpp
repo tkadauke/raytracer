@@ -1,14 +1,10 @@
 #include "core/Exception.h"
 
 #include <execinfo.h>
-#include <dlfcn.h>
-#include <cxxabi.h>
 
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <string>
 
 using namespace std;
 
@@ -59,46 +55,6 @@ static void crashHandler(int sig) {
   exit(1);
 }
 
-// Uncomment the following line to get a backtrace on SIGSEGV in the CLI
+// SIGSEGV trap that dumps a stack trace on the way down. Registered as a
+// global so the handler is installed during static init.
 static Trap sigsegv(SIGSEGV, crashHandler);
-
-// This is for intercepting exceptions thrown by the std library.
-namespace {
-  void * last_frames[20];
-  size_t last_size;
-  std::string exception_name;
-
-  std::string demangle(const char *name) {
-    int status;
-    std::unique_ptr<char,void(*)(void*)> realname(abi::__cxa_demangle(name, 0, 0, &status), &std::free);
-    return status ? "failed" : &*realname;
-  }
-}
-
-extern "C" {
-  // libstdc++'s <ext/concurrence.h> forward-declares __cxa_throw with `void*`
-  // for the type_info parameter; libc++abi (macOS) follows the Itanium ABI
-  // spec verbatim and uses `std::type_info*`. Pick the right one so the
-  // override doesn't hit "conflicting C declaration" on either platform.
-#if defined(__GLIBCXX__)
-  using cxa_throw_info_t = void*;
-#else
-  using cxa_throw_info_t = std::type_info*;
-#endif
-  void __cxa_throw(void *ex, cxa_throw_info_t info, void (*dest)(void *)) {
-    exception_name = demangle(reinterpret_cast<const std::type_info*>(info)->name());
-    last_size = backtrace(last_frames, sizeof last_frames/sizeof(void*));
-
-    static void (*const rethrow)(void*,void*,void(*)(void*)) = (void (*const)(void*,void*,void(*)(void*)))dlsym(RTLD_NEXT, "__cxa_throw");
-    rethrow(ex,info,dest);
-
-    // This is here because this function is declared noreturn. This part is
-    // never reached, because rethrow() above is also noreturn.
-    throw 0;
-  }
-}
-
-void printInterceptedBacktrace() {
-  std::cerr << "Caught a: " << exception_name << std::endl;
-  backtrace_symbols_fd(last_frames, last_size, 2);
-}

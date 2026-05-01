@@ -28,6 +28,17 @@ option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF
 # Match the warning flags from the Rakefile.
 add_compile_options(-W -Wall -pedantic -Wno-extra-semi)
 
+# Enable SSE3 intrinsics on x86 across every config so the Vector3<float/double>
+# and Color<float> SSE3 specializations under include/core/math/vector/sse3/
+# and include/core/color/sse3/ are actually selected. -mtune=native alone
+# only changes scheduling, not the available instruction set, so without
+# this the specializations fall back to the generic templates and tests like
+# Vector3Test.ShouldHaveRightSize fail on x86 runners that don't ship -msse3
+# in their default ABI baseline.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|i[3-6]86)")
+  add_compile_options(-msse3)
+endif()
+
 if(NOT (CMAKE_BUILD_TYPE STREQUAL "Debug" OR RAYTRACER_ENABLE_COVERAGE))
   add_compile_options(-O3 -funroll-loops -mtune=native)
 endif()
