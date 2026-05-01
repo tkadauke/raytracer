@@ -32,7 +32,7 @@ namespace {
       for (int j = 0; j != rect.width(); ++j)
         m_pointIndices.push_back(make_pair(i, j));
     }
-    random_shuffle(m_pointIndices.begin(), m_pointIndices.end());
+    ::random_shuffle(m_pointIndices.begin(), m_pointIndices.end());
     setRowAndColumnFromIndex();
   }
 

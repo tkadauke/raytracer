@@ -23,7 +23,7 @@ namespace {
   {
     for (int i = 0; i != rect.height(); ++i)
       m_rowIndices.push_back(i);
-    random_shuffle(m_rowIndices.begin(), m_rowIndices.end());
+    ::random_shuffle(m_rowIndices.begin(), m_rowIndices.end());
     m_row = m_rowIndices[0];
   }
 
