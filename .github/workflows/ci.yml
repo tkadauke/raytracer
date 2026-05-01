@@ -121,6 +121,79 @@ jobs:
       - name: Test
         run: xvfb-run --auto-servernum ctest --preset asan
 
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    env:
+      # Ratchet: line coverage may not drop below this. Modernize.md §3.4
+      # targets 80%; the current floor reflects the post-CMake-migration
+      # measurement on master and should only ever go up.
+      COVERAGE_LINE_FLOOR: '60'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++-13 \
+            ninja-build \
+            cmake \
+            gcovr \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtscript5-dev \
+            libqt5gui5 \
+            libqt5widgets5 \
+            xvfb
+
+      - name: Configure
+        run: cmake --preset coverage
+        env:
+          CC: gcc-13
+          CXX: g++-13
+
+      - name: Build
+        run: cmake --build --preset coverage --parallel
+
+      - name: Test
+        run: xvfb-run --auto-servernum ctest --test-dir build/coverage --output-on-failure
+
+      - name: Run gcovr
+        # Filter to our own code; skip tests, generated AUTOMOC sources, and
+        # the FetchContent GoogleTest tree.
+        run: |
+          gcovr --root . \
+            --filter '^include/' \
+            --filter '^src/' \
+            --exclude '.*Test\.cpp' \
+            --exclude '.*\.moc' \
+            --exclude 'build/.*' \
+            --xml-pretty -o coverage.xml \
+            --txt -o coverage.txt \
+            --html-details coverage.html \
+            --print-summary | tee coverage-summary.txt
+
+      - name: Enforce coverage floor
+        run: |
+          line_pct=$(grep -oE 'lines: *[0-9.]+%' coverage-summary.txt | grep -oE '[0-9.]+' | head -1)
+          floor=${COVERAGE_LINE_FLOOR}
+          echo "## Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "* line:     $line_pct%" >> "$GITHUB_STEP_SUMMARY"
+          echo "* floor:    $floor%" >> "$GITHUB_STEP_SUMMARY"
+          awk -v p="$line_pct" -v f="$floor" 'BEGIN { exit (p+0 < f+0) }'
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage*
+
   fuzz:
     name: Fuzz PLY parser
     runs-on: ubuntu-24.04
