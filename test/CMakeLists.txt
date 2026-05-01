@@ -11,7 +11,7 @@ target_include_directories(test_helpers
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/test
 )
-target_link_libraries(test_helpers PUBLIC raytracer GTest::gmock)
+target_link_libraries(test_helpers PUBLIC $<LINK_LIBRARY:WHOLE_ARCHIVE,raytracer> GTest::gmock)
 
 # GoogleTest's TYPED_TEST_CASE / TEST_F / EXPECT_* macros are variadic with
 # zero args at the call sites, which Clang flags under -Wpedantic. The macros

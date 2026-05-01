@@ -9,4 +9,4 @@ set_target_properties(SceneBrowser PROPERTIES
   AUTOMOC ON
   AUTOUIC ON
 )
-target_link_libraries(SceneBrowser PRIVATE raytracer)
+target_link_libraries(SceneBrowser PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,raytracer>)

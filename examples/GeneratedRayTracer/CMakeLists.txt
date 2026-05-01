@@ -6,4 +6,4 @@ add_executable(GeneratedRayTracer
   MainWindow.h
 )
 set_target_properties(GeneratedRayTracer PROPERTIES AUTOMOC ON)
-target_link_libraries(GeneratedRayTracer PRIVATE raytracer)
+target_link_libraries(GeneratedRayTracer PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,raytracer>)
