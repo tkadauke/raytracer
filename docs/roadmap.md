@@ -3,7 +3,9 @@
 > **Scope:** vision, architecture, and feature roadmap for evolving this project from a Whitted-style raytracing library into a complete 3D content creation tool.
 > **Date:** 2026-05-01
 > **Status:** Draft — opened for iteration.
-> **Companion doc:** [`modernize.md`](modernize.md) covers build/CI/Qt6/supply-chain modernization. This document covers feature, capability, and architectural direction. The two are independent and can advance in parallel.
+> **Companion docs:**
+> - [`modernize.md`](modernize.md) covers build/CI/Qt6/supply-chain modernization. Independent of this doc; advances in parallel.
+> - [`topics-backlog.md`](topics-backlog.md) catalogues the wider field — algorithms and disciplines not yet promoted to a roadmap pillar but worth implementing and documenting eventually. Items there graduate to this roadmap when they get picked up.
 
 ---
 
@@ -650,6 +652,8 @@ The two are largely independent. Recommended order:
 ## 9. How to use this document
 
 This is a living roadmap. PRs that move items forward should reference the roadmap section they advance (e.g., `[roadmap §4.2]` in the PR title or body). Items completed get crossed off here. New items get added here before they get implemented.
+
+The wider field — algorithms and topics that don't yet have a pillar but should eventually be implemented and documented — lives in [`topics-backlog.md`](topics-backlog.md). When a backlog item gets picked up, it either graduates into a roadmap section or gets checked off in the backlog.
 
 Open questions in §7 should be resolved through discussion (issues, this doc, or just a chat session) before the affected work starts.
 
