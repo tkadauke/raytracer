@@ -78,9 +78,29 @@ These don't exist and are blockers for entire feature classes:
 
 ---
 
-## 3. Foundational refactors — the six prerequisites
+## 3. Foundational refactors — the prerequisites
 
-These six refactors unlock roughly 80% of the north-star features. Done as small focused PRs, each independently shippable.
+These refactors unlock roughly 80% of the north-star features. Done as small focused PRs, each independently shippable. R0 is the prerequisite to the prerequisites: without behavioural test coverage on the integrator and materials, every refactor in R5 and R6 is risky.
+
+### R0. Behavioural test coverage of integrator + materials
+
+The current test suite is broad on construction and properties but thin on *behaviour*. A test-coverage audit (2026-05-01) found that no unit test calls `Material::shade()` on any subclass, `Raytracer::rayColor` recursion is exercised only via golden-image functional tests, `TransparentMaterial` Snell / TIR / nested-IOR logic is untested, `PerfectTransmitter` has no test file, and the texture-mapping classes (`Texture`, `TextureMapping2D`, `PlanarMapping2D`) have zero coverage. Refactor confidence requires closing these gaps first.
+
+Specific work:
+
+- **`Raytracer::rayColor`** — depth-limit boundary (== vs ≥), no-hit→background, `state.recursionDepth` tracking on reflection/refraction recursion, behaviour with no material assigned. Belongs alongside the in-flight #35 fix.
+- **`TransparentMaterial`** — Snell's law refraction angle, critical-angle TIR boundary, nested-medium IOR stacking, normal-incidence pass-through. Belongs alongside the in-flight #36 fix.
+- **`PerfectTransmitter`** — first-ever test file. BTDF subdir generally under-tested.
+- **All `Material::shade()` subclasses** — at least one behavioural test per material that calls `shade()` and verifies the output colour against an expected value, not just constructed properties.
+- **`Texture` and texture mappings** — coordinate projection correctness for `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-colour shading for `ConstantColorTexture`.
+- **Empty test body** — `PlaneTest.cpp::ShouldReturnBoundingBox` is a `// TODO` stub. Fill in.
+- **`world/` layer** — 32 headers, 31 impls, zero tests. Either bring under test (it's the Qt-side scene description and likely live), or formally sunset and remove.
+- **Sampler distribution properties** — verify jittered sampler actually jitters, regular sampler stratifies, random sampler is uniform. Currently only iterator mechanics are tested.
+- **Factory methods** — `CameraFactory`, `SamplerFactory`, `ViewPlaneFactory` have no test files.
+
+Estimated effort: ~3-4 days. Most of the gap is in materials + integrator + texture-mapping unit tests; the `world/` decision (test vs sunset) is its own conversation.
+
+Unblocks: every other refactor below. Specifically, R5 (`RenderEngine` abstraction) and R6 (`BSDF` split from `Material::shade`) cannot be confidently refactored without behavioural tests on the current integrator and materials.
 
 ### R1. Float HDR framebuffer + tonemap stage
 
@@ -157,7 +177,7 @@ Per-engine backends pick the right structure (raytracer/path tracer want BVH; ra
 
 ### Total foundation work
 
-Roughly **two-and-a-bit calendar weeks** of focused refactor work. After that, every feature on the brainstorm becomes a clean, scoped PR.
+Roughly **three calendar weeks** of focused work — R0 (test coverage) plus R1-R7 (the actual refactors). After that, every feature on the brainstorm becomes a clean, scoped PR.
 
 ---
 
@@ -584,7 +604,7 @@ Pick the theme that's most interesting today; stop when it stops being interesti
 
 ### T1. Foundations *(prerequisite — do first)*
 
-The seven refactors from §3 (R1–R7). Gatekeeping nothing else runs well without these. Plus in-flight fixes: PRs #35/#36, and the small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor).
+The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well without these. R0 (behavioural tests on the integrator and materials) precedes everything. Plus in-flight fixes: PRs #35/#36, and the small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor).
 
 ### T2. More engines
 
