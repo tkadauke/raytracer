@@ -4,8 +4,11 @@
 #include <dlfcn.h>
 #include <cxxabi.h>
 
-#include <iostream>
+#include <csignal>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <string>
 
 using namespace std;
 
