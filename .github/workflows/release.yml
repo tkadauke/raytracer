@@ -1,0 +1,116 @@
+# Tag-driven release workflow (modernize.md §3.8 / closes #27).
+#
+# Trigger: pushing a tag matching `v*` (e.g. `v0.1.0`) or manual dispatch.
+# Builds the headless rendercli, generates an SPDX SBOM with syft (via the
+# anchore/sbom-action wrapper), keyless-signs the SBOM with cosign through
+# Sigstore OIDC, runs a Trivy CVE scan against the SBOM, and attaches the
+# SBOM + signature + certificate to the GitHub release.
+#
+# Why a separate workflow rather than a step in ci.yml: this needs
+# `contents: write` and `id-token: write`, which the per-PR CI job has no
+# business holding. The release workflow runs only on tags pushed by a
+# repo maintainer, so the elevated permissions are scoped to that path.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write       # create the GitHub release + upload assets
+  id-token: write       # cosign keyless signing via Sigstore OIDC
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false   # never cancel a release mid-flight
+
+jobs:
+  release:
+    name: Tag → release + SBOM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    env:
+      CC: gcc-13
+      CXX: g++-13
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            g++-13 \
+            ninja-build \
+            cmake \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtscript5-dev \
+            libqt5gui5 \
+            libqt5widgets5
+
+      - name: Configure (release, rendercli only)
+        # The release artifact today is the headless rendercli — we don't
+        # ship the GUI examples or the test binaries. Skip them so the
+        # release build is fast and the SBOM scope matches what users
+        # actually run.
+        run: |
+          cmake --preset release \
+            -DRAYTRACER_BUILD_TESTS=OFF \
+            -DRAYTRACER_BUILD_EXAMPLES=OFF
+
+      - name: Build rendercli
+        run: cmake --build --preset release --target rendercli --parallel
+
+      - name: Generate SBOM (SPDX JSON)
+        # Scans the source tree + build dir → captures CMake FetchContent
+        # dependencies (currently GoogleTest 1.14) plus the system Qt 5
+        # packages reachable through the build artifacts.
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
+        with:
+          format: spdx-json
+          output-file: raytracer-sbom-${{ github.ref_name }}.spdx.json
+          artifact-name: raytracer-sbom-${{ github.ref_name }}.spdx.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003  # v4.1.1
+
+      - name: Sign SBOM (keyless via OIDC)
+        # No private key — Sigstore's Fulcio mints a short-lived cert keyed
+        # to this workflow's OIDC identity. The signature lands as `.sig`
+        # and the cert as `.cert`; both ride along on the release. Verify
+        # with: cosign verify-blob --certificate <.cert> --signature <.sig>
+        #   --certificate-identity-regexp 'github\.com/tkadauke/raytracer'
+        #   --certificate-oidc-issuer https://token.actions.githubusercontent.com
+        #   raytracer-sbom-<tag>.spdx.json
+        run: |
+          cosign sign-blob --yes \
+            --output-signature   raytracer-sbom-${{ github.ref_name }}.spdx.json.sig \
+            --output-certificate raytracer-sbom-${{ github.ref_name }}.spdx.json.cert \
+            raytracer-sbom-${{ github.ref_name }}.spdx.json
+
+      - name: Vulnerability scan (Trivy on SBOM)
+        # Reads the SPDX file and looks up CVEs against Trivy's vuln DB.
+        # Fails the workflow on HIGH/CRITICAL findings. Tighten or relax
+        # via `severity:` if a noisy advisory blocks a release.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          scan-type: sbom
+          input: raytracer-sbom-${{ github.ref_name }}.spdx.json
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          format: table
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            raytracer-sbom-${{ github.ref_name }}.spdx.json
+            raytracer-sbom-${{ github.ref_name }}.spdx.json.sig
+            raytracer-sbom-${{ github.ref_name }}.spdx.json.cert
