@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "raytracer/State.h"
 #include "raytracer/primitives/OpenCylinder.h"
+#include "core/DivisionByZeroException.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "test/helpers/VectorTestHelper.h"
@@ -10,6 +11,10 @@ namespace OpenCylinderTest {
 
   TEST(OpenCylinder, ShouldInitializeWithValues) {
     OpenCylinder cylinder(1, 2);
+  }
+
+  TEST(OpenCylinder, ShouldThrowDivisionByZeroExceptionWhenConstructedWithZeroRadius) {
+    ASSERT_THROW(OpenCylinder(0, 2), DivisionByZeroException);
   }
   
   TEST(OpenCylinder, ShouldIntersectWithRayInXDirection) {
