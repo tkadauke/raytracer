@@ -104,6 +104,12 @@ The project's hot paths are the `Vector`, `Matrix`, and `Color` math primitives 
 
 The roadmap item under `docs/modernize.md` §3.4 is to grow the benchmark suite to cover all SSE3 hot paths; until then, any regression that the existing benchmarks miss is on the author of the change.
 
+## CHANGELOG convention
+
+Behaviour-affecting changes — anything users (developers included) would notice — get a one-line entry in `CHANGELOG.md` under the `## Unreleased` heading. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with `Added` / `Changed` / `Fixed` / `Deprecated` / `Removed` / `Security` subsections. Each entry ends with the author's attribution — for AI agents, that's the model name (e.g., `— Claude Opus 4.7`). Pure refactors that preserve behaviour, internal-only test additions, and CI-only tooling tweaks don't need an entry.
+
+This is the audit trail per `docs/modernize.md` §3.11 — agent-introduced changes should be greppable from the changelog.
+
 ## Notes / Gotchas
 
 - macOS auto-detects Homebrew Qt 5 via `brew --prefix qt@5`; other platforms need `-DCMAKE_PREFIX_PATH=/path/to/qt5` (Linux: `apt install qtbase5-dev qtscript5-dev`).
