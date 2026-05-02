@@ -240,6 +240,40 @@ Foundation for many §4.9 effects, not currently called out as its own topic.
 - **Edge detection.** Sobel, Prewitt, Laplacian-of-Gaussian, Canny.
 - **Morphological operations.** Erosion, dilation, opening, closing, morphological gradient.
 
+## V. Observability and performance instrumentation
+
+The §3.7 perf counters (`RAYTRACER_ENABLE_STATS`) are the minimal-viable seed: four hand-wired atomic counters in `Sphere`/`BoundingBox`/`Grid`, dumped to stderr as one-line JSON at the end of `Raytracer::render`. The whole subsystem is gated on a single compile-time macro and the increments expand to `(void)0` when off. Production builds carry zero overhead, but the trade-off is that the counters aren't there when you need them most — when you're trying to debug a regression on a user's machine or characterise a scene that someone else built.
+
+The endgame is a counter infrastructure that's **always on, always available, always cheap** — and where individual counters can still be opted out at compile time when they sit on truly hot inner loops where a `relaxed` atomic would measurably perturb the result.
+
+Pillars of that future system:
+
+- **Always-on registry.** A self-registering counter type (`raytracer::stats::Counter counter("grid.traversal.steps")`) that lives in a global registry. Adding a new counter is a one-line declaration, not a fork of `Stats.h` plus a wire-up commit. Hierarchical names (`grid.traversal.steps`, `sphere.intersect.calls`, `sphere.intersect.hits`) so dump output is groupable and comparable across renders.
+- **Tiered cost model.** Three tiers of counters, picked per call site:
+  1. **Always-on** — the cheap stuff (`std::atomic<uint64_t>` increments at function-call granularity, e.g. one per primary ray, per BVH traversal, per material shade). These have measurable but acceptable cost on a benchmark and stay in production builds.
+  2. **Default-on, compile-time gated** — the per-iteration counters that sit inside the tightest inner loops (per-DDA-step, per-ray-vs-tri, per-quartic-iteration). Default ON in debug/release/profile builds, off in a `--profile=ship` preset.
+  3. **Manual opt-in** — diagnostic counters that only the developer of that algorithm cares about; off unless they pass `-DRAYTRACER_STATS_FOO=ON`.
+- **Per-thread accumulation, snapshot on demand.** Workers increment thread-local counters; `Counters::snapshot()` reduces across threads on read. Avoids the cache-line bouncing on a shared `std::atomic` when you have 24 worker threads hammering the same field. Already worth it for `gridTraversalSteps`.
+- **Histograms and timers, not just counters.** Sample distributions: ray-traversal-depth histogram, shading-recursion-depth histogram, per-pixel time histogram. Plus scoped timers (`stats::Timer t("Raytracer::render")`) backing into either a flat total or a flame-chart-friendly nested format. HDR-histogram-style log-bucket layout so a single histogram gives you `p50/p95/p99/p99.9` without keeping every sample.
+- **Per-region, per-material, per-light counters.** Tag the current shading context (which Material, which Light, which BVH branch) so counters can be sliced after the fact: "ray-vs-tri tests broken down by Mesh", "shadow rays per Light", "recursion depth distribution by Material type". This is what makes counters useful for *why is this scene slow* rather than just *how slow is this scene*.
+- **Structured output formats.**
+  - One-line JSON (current state) for grep / `jq`.
+  - Newline-delimited JSON to a file, one record per render frame, for offline analysis of an animation.
+  - Chrome trace JSON (`chrome://tracing` / Perfetto) for the scoped-timer flame chart.
+  - StatsD / OpenTelemetry / Prometheus-compatible export for long-running renderers (think: render farms).
+- **In-process API for tests.** A `Counters::scope()` RAII that snapshots-on-enter and snapshots-on-exit, so tests can write `EXPECT_LT(scope.delta("grid.traversal.steps"), 100'000)` without the global-state coordination headache. This is the bit that makes counters a *first-class invariant* rather than a debugging aid — regressions in traversal cost get caught by CI, not by the next person who happens to render a slow scene.
+- **GUI surface in `SceneBrowser`.** A live counters panel that updates as the render progresses; click-to-graph for histograms; per-frame deltas for animation. Shipping the analysis surface alongside the render makes it tractable to actually use this stuff, instead of having to wire up a separate tool every time.
+- **Hardware perf integration (stretch).** PMU counters via `perf_event_open` on Linux and `kperf` on macOS — cache misses, branch mispredicts, IPC. These need root or special entitlements and are platform-specific (the §3.7 doc explicitly punted on them); a clean separation between "library counters" and "OS-level counters" keeps this as a pluggable backend that doesn't bleed into the core API.
+
+**Fast-track triggers.** Reasons to graduate this from backlog to the roadmap before the natural cadence:
+- A bottleneck investigation that the current four-counter dump can't answer (the moment you find yourself adding a fifth ad-hoc counter just to debug one thing, the registry should already exist).
+- A render-farm or distributed-rendering effort (§4.8) — at that point you need exportable, time-series-friendly metrics, not stderr lines.
+- A perf-regression in CI that the existing benchmark suite missed but that better counters would have caught.
+
+**Adjacent items already in the roadmap.** Worth coordinating with these so this doesn't fork:
+- `roadmap.md` §3.4 — Google Benchmark suite for SSE3 hot paths. Counters and benchmarks are complements, not competitors.
+- `roadmap.md` §3.7 — current perf-counter section; this backlog entry is the long-tail vision, that section is the seed.
+
 ---
 
 *End of backlog. Items graduate to the roadmap when picked up.*
