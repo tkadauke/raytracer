@@ -2,24 +2,23 @@
 
 /**
   * Wrapper class to turn a default-constructible class into a singleton.
+  *
+  * Uses the Meyers' singleton pattern — a function-local static — which the
+  * C++11 standard guarantees is initialized exactly once even when multiple
+  * threads race the first call. The previous heap-allocated implementation
+  * had a TOCTOU race on the unsynchronised null-check (two threads could
+  * both pass `if (!s_instance)` and create two instances, leaking one) and
+  * a permanent memory leak at program termination.
   */
 template<class T>
 class Singleton {
 public:
   /**
-    * @returns a mutable reference to the wrapped single instance, if it already
-    *   exists. Otherwise, the instance is created and returned.
+    * @returns a mutable reference to the wrapped single instance, creating
+    *   it on the first call.
     */
   inline static T& self() {
-    if (!s_instance) {
-      s_instance = new T;
-    }
-    return *s_instance;
+    static T s_instance;
+    return s_instance;
   }
-
-private:
-  static T* s_instance;
 };
-
-template<class T>
-T* Singleton<T>::s_instance = nullptr;
