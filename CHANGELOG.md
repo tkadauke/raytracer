@@ -25,6 +25,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - Comprehensive shading-behaviour tests for `MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial` (#22). — Claude Opus 4.7
 - Unit tests for `Grid` (#19, +13 tests), `Raytracer` orchestration (#20, +11 tests), and SSE3-vs-generic SIMD regression tests for the math primitives. — Claude Opus 4.7
 - First unit-test coverage for the `world::Element` scene-graph base class — 31 tests covering construction/IDs, name/displayName, parent-child add/insert/remove/move semantics with both raw and `std::unique_ptr` overloads, reparenting, `findById` recursion, and the `QJsonObject` read/write roundtrip including the generated-children exclusion (#24, partial). — Claude Opus 4.7
+- Unit tests for `world::Transformable` (the position/rotation/scale layer above `Element`) — 23 tests covering defaults, the 1e-6 scale floor and absolute-value clamp, `canHaveChild` discrimination, local/global transform composition, `setMatrix` extraction roundtrip, `moveBy` in local vs global frames, and the `joinParent` invariant that a child's world-space position is preserved across `addChild` (#24, partial). — Claude Opus 4.7
 
 ### Changed
 
