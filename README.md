@@ -68,7 +68,7 @@ Other useful Rake tasks: `rake docs:render` regenerates the Doxygen example imag
 ## hack
 
 * Fork
-* Use the coding style (a `.clang-format` is checked in)
+* Use the coding style (a `.clang-format` is checked in; install [pre-commit](https://pre-commit.com) and run `pre-commit install` to have it checked automatically before each commit)
 * Write code
 * Write tests
 * Send a pull request

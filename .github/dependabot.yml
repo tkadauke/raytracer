@@ -9,3 +9,14 @@ updates:
     labels:
       - dependencies
       - github-actions
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    # Bumps the `rev:` pins in .pre-commit-config.yaml. Equivalent to
+    # `pre-commit autoupdate` running on a schedule.
+    commit-message:
+      prefix: ci
+    labels:
+      - dependencies
+      - pre-commit

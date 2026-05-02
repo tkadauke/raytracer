@@ -1,0 +1,46 @@
+# pre-commit hooks (modernize.md §3.10).
+#
+# Install once with:
+#
+#   pip install pre-commit                 # or `brew install pre-commit`
+#   pre-commit install
+#
+# After that, the hooks below run automatically before every commit.
+# Run them manually across the whole tree with:
+#
+#   pre-commit run --all-files
+#
+# clang-format runs in *check-only* mode (`--dry-run --Werror`) intentionally.
+# The codebase predates the .clang-format config and currently has ~5,300
+# style violations; auto-formatting on commit would silently bundle hundreds
+# of unrelated reformat lines into every PR. The check-only hook fails the
+# commit, prints the diff, and lets the author decide whether to run
+# `clang-format -i <files>` themselves. Once a bulk reformat lands and the
+# CI lint job is flipped from advisory to required, swap the args back to
+# the auto-fix default.
+
+minimum_pre_commit_version: '3.5.0'
+
+exclude: '^(build|build-.*|docs/(html|images|latex))/'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: check-yaml
+      - id: check-json
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.8
+    hooks:
+      - id: clang-format
+        types_or: [c++, c]
+        args: ['--dry-run', '--Werror']
+        # No --fix; see preamble for the rationale.

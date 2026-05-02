@@ -1,2 +1,5 @@
-gtest/**
-gmock/**
+# The vendored gtest/gmock trees were removed in favour of FetchContent;
+# the FetchContent-materialised copies under build/ are excluded by
+# .pre-commit-config.yaml's `exclude:` rule and by clang-format being run
+# only on tracked files in CI. Add new exclusions here as needed.
+
