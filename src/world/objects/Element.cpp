@@ -89,8 +89,8 @@ void Element::read(const QJsonObject& json) {
       auto type = child.toObject()["type"].toString().toStdString();
       auto element = ElementFactory::self().create(type);
       if (element) {
-        Element* raw = element.release();
-        addChild(raw);
+        Element* raw = element.get();
+        addChild(std::move(element));
         raw->read(child.toObject());
       } else {
         qWarning("Unknown element type %s", type.c_str());

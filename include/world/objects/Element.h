@@ -61,8 +61,29 @@ public:
 
   virtual bool canHaveChild(Element* child) const;
 
+  /**
+    * Adds @p child as the last child of this element. Two overloads:
+    *
+    * - **unique_ptr** — for callers that own a fresh element (e.g. from
+    *   ElementFactory::create()) and want to hand it off; the type signals
+    *   the ownership transfer.
+    * - **raw pointer** — for re-parenting an element that already lives in
+    *   the QObject tree somewhere (e.g. a drag-and-drop move in the model
+    *   view); ownership stays with Qt either way.
+    *
+    * Both forms ultimately reach insertChild, which calls QObject::setParent
+    * on the child so Qt's parent/child hierarchy owns the lifetime.
+    */
+  inline void addChild(std::unique_ptr<Element> child) {
+    insertChild(m_childElements.size(), std::move(child));
+  }
+
   inline void addChild(Element* child) {
     insertChild(m_childElements.size(), child);
+  }
+
+  inline void insertChild(int index, std::unique_ptr<Element> child) {
+    insertChild(index, child.release());
   }
 
   void insertChild(int index, Element* child);
