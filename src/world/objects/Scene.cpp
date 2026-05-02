@@ -19,14 +19,16 @@ Scene::Scene(Element* parent)
   setName("New Scene");
 }
 
-raytracer::Scene* Scene::toRaytracerScene() const {
-  raytracer::Scene* result = new raytracer::Scene();
+std::shared_ptr<raytracer::Scene> Scene::toRaytracerScene() const {
+  auto result = std::make_shared<raytracer::Scene>();
 
   auto grid = make_named<raytracer::Grid>();
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       if (surface->visible()) {
-        auto primitive = surface->toRaytracer(result);
+        // Surface::toRaytracer takes a non-owning raw pointer — it only
+        // reaches into the scene to register lights/elements.
+        auto primitive = surface->toRaytracer(result.get());
         if (primitive && !primitive->boundingBox().isInfinite()) {
           grid->add(primitive);
         }

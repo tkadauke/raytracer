@@ -30,12 +30,11 @@ Display::~Display() {
 void Display::setScene(Scene* scene) {
   if (m_raytracer->scene()) {
     stop();
-    delete m_raytracer->scene();
+    // Old scene is owned by the Raytracer's shared_ptr; setScene below
+    // swaps it out and the previous scene is destroyed.
   }
 
-  auto raytracerScene = scene->toRaytracerScene();
-
-  m_raytracer->setScene(raytracerScene);
+  m_raytracer->setScene(scene->toRaytracerScene());
   render();
 }
 

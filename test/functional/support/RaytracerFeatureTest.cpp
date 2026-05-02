@@ -25,11 +25,11 @@ namespace testing {
   }
 
   void RaytracerFeatureTest::SetUp() {
-    m_scene = new Scene(Colord(1, 1, 1));
+    m_scene = std::make_shared<Scene>(Colord(1, 1, 1));
   }
 
   void RaytracerFeatureTest::TearDown() {
-    delete m_scene;
+    m_scene.reset();
   }
 
   void RaytracerFeatureTest::add(std::shared_ptr<Primitive> primitive) {
@@ -37,7 +37,7 @@ namespace testing {
   }
 
   Scene* RaytracerFeatureTest::scene() const {
-    return m_scene;
+    return m_scene.get();
   }
 
   std::shared_ptr<Camera> RaytracerFeatureTest::camera() {

@@ -80,16 +80,16 @@ struct Raytracer::Private {
   bool showProgressIndicators;
 };
 
-Raytracer::Raytracer(Scene* scene)
+Raytracer::Raytracer(std::shared_ptr<Scene> scene)
   : m_camera(std::make_shared<PinholeCamera>()),
-    m_scene(scene),
+    m_scene(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
 
-Raytracer::Raytracer(std::shared_ptr<Camera> camera, Scene* scene)
-  : m_camera(camera),
-    m_scene(scene),
+Raytracer::Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene)
+  : m_camera(std::move(camera)),
+    m_scene(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }

@@ -48,9 +48,10 @@ void PreviewDisplayWidget::setCamera(Camera* camera, Scene* scene) {
 }
 
 void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
+  // Stop any in-flight render before tearing down the previous scene; the
+  // shared_ptr swap in setScene below frees the old one.
   if (m_raytracer->scene()) {
     stop();
-    delete m_raytracer->scene();
   }
 
   setup();
@@ -58,9 +59,9 @@ void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   render();
 }
 
-raytracer::Scene* PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
+std::shared_ptr<raytracer::Scene> PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
   auto mat = material->toRaytracerMaterial();
-  auto scene = new raytracer::Scene;
+  auto scene = std::make_shared<raytracer::Scene>();
 
   scene->setAmbient(s->ambient());
   scene->setBackground(s->background());

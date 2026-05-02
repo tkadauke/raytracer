@@ -42,8 +42,8 @@ namespace SphericalCameraTest {
   
   TEST(SphericalCamera, ShouldRender) {
     auto camera = std::make_shared<SphericalCamera>(Vector3d(0, 0, -1), Vector3d::null());
-    Scene scene(Colord::white());
-    auto raytracer = std::make_shared<Raytracer>(camera, &scene);
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto raytracer = std::make_shared<Raytracer>(camera, scene);
     Buffer<unsigned int> buffer(1, 1);
     raytracer->render(buffer);
     ASSERT_EQ(Colord::white().rgb(), buffer[0][0]);
@@ -58,7 +58,7 @@ namespace SphericalCameraTest {
   
   TEST(SphericalCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
     SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null());
-    auto raytracer = std::make_shared<Raytracer>(new Scene(Colord::white()));
+    auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
 
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());

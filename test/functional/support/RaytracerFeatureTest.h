@@ -53,7 +53,7 @@ namespace testing {
     int previousObjectSize;
 
   private:
-    raytracer::Scene* m_scene;
+    std::shared_ptr<raytracer::Scene> m_scene;
     std::shared_ptr<raytracer::Camera> m_camera;
     std::shared_ptr<raytracer::Raytracer> m_raytracer;
     Buffer<unsigned int> m_buffer;

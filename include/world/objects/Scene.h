@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "world/objects/Element.h"
 #include "core/Color.h"
 
@@ -25,7 +27,7 @@ public:
     * Converts the scene into a representation suitable for rendering with the
     * Raytracer class.
     */
-  raytracer::Scene* toRaytracerScene() const;
+  std::shared_ptr<raytracer::Scene> toRaytracerScene() const;
   
   /**
     * Saves the scene into a file specified by filename.

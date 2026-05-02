@@ -20,7 +20,7 @@ using namespace raytracer;
 int main(int argc, char** argv) {
   QApplication app(argc, argv);
 
-  auto scene = new Scene(Colord(0.4, 0.4, 0.4));
+  auto scene = std::make_shared<Scene>(Colord(0.4, 0.4, 0.4));
 
   auto sphere1 = std::make_shared<Sphere>(Vector3d(0, 1, 0), 1);
   auto sphere2 = std::make_shared<Sphere>(Vector3d(1.8, 1, 0), 1);

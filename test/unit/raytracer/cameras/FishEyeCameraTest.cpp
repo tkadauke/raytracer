@@ -31,8 +31,8 @@ namespace FishEyeCameraTest {
   
   TEST(FishEyeCamera, ShouldRender) {
     FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
-    Scene scene(Colord::white());
-    auto raytracer = std::make_shared<Raytracer>(&scene);
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<unsigned int> buffer(1, 1);
     camera.render(raytracer, buffer);
     // This is black because of the black rounded border around fish eye images
@@ -48,7 +48,7 @@ namespace FishEyeCameraTest {
   
   TEST(FishEyeCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
     FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
-    auto raytracer = std::make_shared<Raytracer>(new Scene(Colord::white()));
+    auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
     Buffer<unsigned int> buffer(1, 1);
     camera.render(raytracer, buffer);
 

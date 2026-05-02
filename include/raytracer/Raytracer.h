@@ -20,8 +20,8 @@ namespace raytracer {
 
   class Raytracer : public std::enable_shared_from_this<Raytracer> {
   public:
-    explicit Raytracer(Scene* scene);
-    explicit Raytracer(std::shared_ptr<Camera> camera, Scene* scene);
+    explicit Raytracer(std::shared_ptr<Scene> scene);
+    explicit Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene);
     virtual ~Raytracer();
 
     void render(Buffer<unsigned int>& buffer);
@@ -43,12 +43,12 @@ namespace raytracer {
 
     std::list<Recti> activeRects() const;
 
-    inline Scene* scene() const {
+    inline std::shared_ptr<Scene> scene() const {
       return m_scene;
     }
 
-    inline void setScene(Scene* scene) {
-      m_scene = scene;
+    inline void setScene(std::shared_ptr<Scene> scene) {
+      m_scene = std::move(scene);
     }
 
     void setMaximumRecursionDepth(int depth);
@@ -58,7 +58,7 @@ namespace raytracer {
 
   private:
     std::shared_ptr<Camera> m_camera;
-    Scene* m_scene;
+    std::shared_ptr<Scene> m_scene;
 
     struct Private;
     std::unique_ptr<Private> p;

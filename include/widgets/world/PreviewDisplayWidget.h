@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <memory>
 
 #include "widgets/QtDisplay.h"
 #include "core/Color.h"
@@ -18,14 +19,14 @@ class PreviewDisplayWidget : public QtDisplay {
 public:
   explicit PreviewDisplayWidget(QWidget* parent);
   ~PreviewDisplayWidget();
-  
+
   void clear();
   void setMaterial(Material* material, Scene* s);
   void setCamera(Camera* camera, Scene* scene);
-  
+
   virtual QSize sizeHint() const;
-  
+
 private:
   void updateScene(const std::function<void()>& setup);
-  raytracer::Scene* sphereOnPlane(Material* material, Scene* s) const;
+  std::shared_ptr<raytracer::Scene> sphereOnPlane(Material* material, Scene* s) const;
 };
