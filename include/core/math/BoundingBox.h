@@ -4,6 +4,7 @@
 #include "core/InequalityOperator.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
+#include "raytracer/Stats.h"
 
 #include <iostream>
 #include <algorithm>
@@ -368,6 +369,7 @@ void BoundingBox<T>::getVertices(Container& container) const {
 
 template<class T>
 bool BoundingBox<T>::intersects(const Rayd& ray) const {
+  RAYTRACER_STATS_INC(rayBoxIntersects);
   T ox = ray.origin().x();
   T oy = ray.origin().y();
   T oz = ray.origin().z();

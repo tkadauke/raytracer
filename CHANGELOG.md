@@ -20,6 +20,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - `.clang-format` and `.clang-tidy` configurations matching the existing style; lint enforcement remains advisory in CI until a bulk reformat lands. — Claude Opus 4.7
 - Dependabot configuration for GitHub Actions and pre-commit weekly updates. — Claude Opus 4.7
 - `.pre-commit-config.yaml` with generic hygiene hooks (trailing whitespace, EOF newline, merge-conflict marker, large-file, mixed-line-ending, yaml/json validity) plus `clang-format` in check-only mode (modernize.md §3.10). — Claude Opus 4.7
+- Per-render performance counters gated on `RAYTRACER_ENABLE_STATS` (modernize.md §3.7). Thread-safe atomic increments (`memory_order_relaxed`) instrumenting `Sphere::intersect`/`intersects`, `BoundingBox::intersects`, and the `Grid` DDA traversal step; `Raytracer::render` resets at start and dumps a one-line JSON snapshot of the totals to `stderr` at end. Compile-time off by default — `RAYTRACER_STATS_INC` expands to `(void)0` so production builds carry zero overhead. — Claude Opus 4.7
 - Comprehensive shading-behaviour tests for `MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial` (#22). — Claude Opus 4.7
 - Unit tests for `Grid` (#19, +13 tests), `Raytracer` orchestration (#20, +11 tests), and SSE3-vs-generic SIMD regression tests for the math primitives. — Claude Opus 4.7
 

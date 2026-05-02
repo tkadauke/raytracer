@@ -1,4 +1,5 @@
 #include "raytracer/State.h"
+#include "raytracer/Stats.h"
 #include "raytracer/primitives/Sphere.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -8,6 +9,7 @@ using namespace std;
 using namespace raytracer;
 
 const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const {
+  RAYTRACER_STATS_INC(raySphereIntersect);
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
   
   double od = o * d, dd = d * d;
@@ -42,6 +44,7 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
 }
 
 bool Sphere::intersects(const Rayd& ray, State& state) const {
+  RAYTRACER_STATS_INC(raySphereIntersects);
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
   
   double od = o * d, dd = d * d;

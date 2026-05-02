@@ -34,6 +34,14 @@ target_link_libraries(raytracer
     Qt5::Script
 )
 
+if(RAYTRACER_ENABLE_STATS)
+  # PUBLIC so headers like include/raytracer/Stats.h see the same definition
+  # in the library and in dependents (tests, examples, tools). Without that,
+  # a translation unit could include Stats.h with the macro undefined and
+  # silently emit no-op increments while the library counted them.
+  target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_STATS)
+endif()
+
 set_target_properties(raytracer PROPERTIES
   AUTOMOC ON
   AUTOUIC ON

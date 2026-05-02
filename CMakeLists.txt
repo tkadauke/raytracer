@@ -24,6 +24,7 @@ option(RAYTRACER_BUILD_BENCHMARKS  "Build the Google Benchmark microbenchmarks" 
 option(RAYTRACER_ENABLE_ASAN       "Build with AddressSanitizer + UBSan" OFF)
 option(RAYTRACER_ENABLE_COVERAGE   "Build with gcov instrumentation" OFF)
 option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF)
+option(RAYTRACER_ENABLE_STATS      "Per-render performance counters (modernize.md §3.7)" OFF)
 
 # Match the warning flags from the Rakefile.
 add_compile_options(-W -Wall -pedantic -Wno-extra-semi)

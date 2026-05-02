@@ -1,4 +1,5 @@
 #include "raytracer/State.h"
+#include "raytracer/Stats.h"
 #include "raytracer/primitives/Grid.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -101,6 +102,7 @@ namespace {
     if (dz == 0.0) { tz_next = numeric_limits<double>::max(); iz_step = -1; iz_stop = -1; }
 
     while (true) {
+      RAYTRACER_STATS_INC(gridTraversalSteps);
       const auto& cell = cells[x + numX * y + numX * numY * z];
 
       // Identify the next axis to step along, and the t at which we exit

@@ -1,5 +1,6 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
+#include "raytracer/Stats.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 #include "raytracer/primitives/Scene.h"
@@ -105,6 +106,10 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
 
   p->tasks.clear();
 
+#ifdef RAYTRACER_ENABLE_STATS
+  ::raytracer::stats::Counters::instance().reset();
+#endif
+
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
@@ -124,6 +129,12 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   }
 
   p->threadPool->waitForDone();
+
+#ifdef RAYTRACER_ENABLE_STATS
+  // Sampling counters after waitForDone() returns means all worker writes are
+  // already visible; relaxed loads in dumpJson() are sufficient.
+  ::raytracer::stats::Counters::instance().dumpJson(std::cerr);
+#endif
 }
 
 const Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
