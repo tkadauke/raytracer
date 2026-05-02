@@ -51,26 +51,29 @@ public:
   /**
     * Creates an object of the type associated with the identifier @p id.
     *
-    * @returns a pointer to the created object.
+    * @returns a unique_ptr owning the created object, or nullptr if @p id
+    *   is not registered. Callers that need shared ownership should use
+    *   createShared() instead; callers handing the object to a sink that
+    *   takes a raw pointer (e.g. a Qt widget that adopts via setParent)
+    *   can release() the unique_ptr at the boundary.
     */
-  inline Base* create(const Identifier& id) const {
+  inline std::unique_ptr<Base> create(const Identifier& id) const {
     if (const BaseCreator* creator = findCreator(id))
-      return creator->create();
-    else
-      return nullptr;
+      return std::unique_ptr<Base>(creator->create());
+    return nullptr;
   }
 
   /**
     * Creates an object of the type associated with the identifier @p id, and
     * puts it into a shared_ptr.
     *
-    * @returns the shared_ptr to the created object.
+    * @returns the shared_ptr to the created object, or nullptr if @p id is
+    *   not registered.
     */
   inline std::shared_ptr<Base> createShared(const Identifier& id) const {
     if (const BaseCreator* creator = findCreator(id))
       return std::shared_ptr<Base>(creator->create());
-    else
-      return nullptr;
+    return nullptr;
   }
 
   /**

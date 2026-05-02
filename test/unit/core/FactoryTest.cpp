@@ -21,18 +21,18 @@ namespace FactoryTest {
     Factory<Shape> f;
     f.registerClass<Rectangle>("Rectangle");
     f.registerClass<Circle>("Circle");
-    
-    Shape* shape = f.create("Circle");
-    ASSERT_TRUE(dynamic_cast<Circle*>(shape));
-    ASSERT_FALSE(dynamic_cast<Rectangle*>(shape));
+
+    auto shape = f.create("Circle");
+    ASSERT_TRUE(dynamic_cast<Circle*>(shape.get()));
+    ASSERT_FALSE(dynamic_cast<Rectangle*>(shape.get()));
   }
-  
-  TEST(Factory, ShouldReturnZeroIfIdentifierIsUnknown) {
+
+  TEST(Factory, ShouldReturnNullptrIfIdentifierIsUnknown) {
     Factory<Shape> f;
     f.registerClass<Rectangle>("Rectangle");
-    
-    Shape* shape = f.create("Foobar");
-    ASSERT_EQ(0, shape);
+
+    auto shape = f.create("Foobar");
+    ASSERT_EQ(nullptr, shape);
   }
   
   TEST(Factory, ShouldReturnIdentifiersSorted) {
@@ -52,9 +52,8 @@ namespace FactoryTest {
     f.registerClass<Rectangle>("Shape");
     f.registerClass<Circle>("Shape");
 
-    Shape* shape = f.create("Shape");
-    ASSERT_TRUE(dynamic_cast<Circle*>(shape));
-    ASSERT_FALSE(dynamic_cast<Rectangle*>(shape));
-    delete shape;
+    auto shape = f.create("Shape");
+    ASSERT_TRUE(dynamic_cast<Circle*>(shape.get()));
+    ASSERT_FALSE(dynamic_cast<Rectangle*>(shape.get()));
   }
 }

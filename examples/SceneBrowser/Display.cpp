@@ -42,7 +42,7 @@ Display::Display()
   m_verticalLayout->addItem(verticalSpacer);
   
   m_raytracer->setCamera(m_camera);
-  m_raytracer->setScene(SceneFactory::self().create("Glass Boxes"));
+  m_raytracer->setScene(SceneFactory::self().create("Glass Boxes").release());
   m_camera->setViewPlane(ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   connect(m_scene, SIGNAL(changed()), this, SLOT(sceneChanged()));
   connect(m_viewPlaneType, SIGNAL(changed()), this, SLOT(viewPlaneTypeChanged()));
@@ -55,7 +55,7 @@ Display::~Display() {
 
 void Display::sceneChanged() {
   stop();
-  m_raytracer->setScene(SceneFactory::self().create(m_scene->sceneName()));
+  m_raytracer->setScene(SceneFactory::self().create(m_scene->sceneName()).release());
   render();
 }
 
@@ -66,14 +66,17 @@ void Display::viewPlaneTypeChanged() {
 
 void Display::cameraTypeChanged() {
   stop();
-  m_camera = std::shared_ptr<Camera>(CameraFactory::self().create(m_cameraType->type()));
+  m_camera = CameraFactory::self().createShared(m_cameraType->type());
   m_raytracer->setCamera(m_camera);
-  
+
   if (m_cameraParameter) {
     delete m_cameraParameter;
   }
 
-  m_cameraParameter = CameraParameterWidgetFactory::self().create(m_cameraType->type());
+  // m_cameraParameter is a Qt widget — Qt's parent/child hierarchy will
+  // own it once it's added to the layout, so we release the unique_ptr at
+  // the boundary.
+  m_cameraParameter = CameraParameterWidgetFactory::self().create(m_cameraType->type()).release();
   if (m_cameraParameter) {
     m_verticalLayout->addWidget(m_cameraParameter);
     connect(m_cameraParameter, SIGNAL(changed()), this, SLOT(cameraParameterChanged()));

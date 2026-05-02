@@ -99,11 +99,9 @@ void Renderer::render() const {
 
 std::shared_ptr<raytracer::Sampler> Renderer::sampler() const {
   auto samplerClass = m_sampler.toStdString() + "Sampler";
-  auto sampler = std::shared_ptr<raytracer::Sampler>(
-    raytracer::SamplerFactory::self().create(samplerClass)
-  );
+  auto sampler = raytracer::SamplerFactory::self().createShared(samplerClass);
   sampler->setup(m_samplesPerPixel, 83);
-  
+
   return sampler;
 }
 
