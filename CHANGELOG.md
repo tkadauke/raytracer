@@ -24,6 +24,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - `.github/workflows/release.yml` cuts a GitHub release on `v*` tags: builds rendercli, generates an SPDX SBOM via syft (`anchore/sbom-action`), keyless-signs it with cosign through Sigstore OIDC, runs Trivy CVE scan on the SBOM (fails on HIGH/CRITICAL), and attaches the SBOM + `.sig` + `.cert` to the release. CI gains a per-commit SBOM artifact (`sbom` job) so reviewers can inspect the dependency surface without waiting for a tag (modernize.md §3.8 / closes #27). — Claude Opus 4.7
 - Comprehensive shading-behaviour tests for `MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial` (#22). — Claude Opus 4.7
 - Unit tests for `Grid` (#19, +13 tests), `Raytracer` orchestration (#20, +11 tests), and SSE3-vs-generic SIMD regression tests for the math primitives. — Claude Opus 4.7
+- First unit-test coverage for the `world::Element` scene-graph base class — 31 tests covering construction/IDs, name/displayName, parent-child add/insert/remove/move semantics with both raw and `std::unique_ptr` overloads, reparenting, `findById` recursion, and the `QJsonObject` read/write roundtrip including the generated-children exclusion (#24, partial). — Claude Opus 4.7
 
 ### Changed
 
