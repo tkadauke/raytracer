@@ -39,8 +39,22 @@ namespace FactoryTest {
     Factory<Shape> f;
     f.registerClass<Rectangle>("Rectangle");
     f.registerClass<Circle>("Circle");
-    
+
     list<string> identifiers = f.identifiers();
     ASSERT_CONTAINERS_EQ(makeStdList<string>("Circle", "Rectangle"), identifiers);
+  }
+
+  TEST(Factory, ShouldReplaceCreatorWhenSameIdRegisteredTwice) {
+    // Registering an id that already has an entry must replace the existing
+    // Creator (not leak it). Run under ASan / leak-check builds and the
+    // previous raw-pointer overwrite would have shown up as a leak.
+    Factory<Shape> f;
+    f.registerClass<Rectangle>("Shape");
+    f.registerClass<Circle>("Shape");
+
+    Shape* shape = f.create("Shape");
+    ASSERT_TRUE(dynamic_cast<Circle*>(shape));
+    ASSERT_FALSE(dynamic_cast<Rectangle*>(shape));
+    delete shape;
   }
 }
