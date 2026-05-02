@@ -66,14 +66,14 @@ namespace {
 
 struct Raytracer::Private {
   inline Private()
-    : queueSize(QThread::idealThreadCount()),
+    : threadPool(std::make_unique<QThreadPool>()),
+      queueSize(QThread::idealThreadCount()),
       maximumRecursionDepth(5),
       showProgressIndicators(false)
   {
-    threadPool = new QThreadPool;
   }
 
-  QThreadPool* threadPool;
+  std::unique_ptr<QThreadPool> threadPool;
   list<shared_ptr<RenderTask>> tasks;
   int queueSize;
   int maximumRecursionDepth;
