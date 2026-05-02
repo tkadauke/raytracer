@@ -227,7 +227,7 @@ namespace GridTest {
     ASSERT_EQ(p.get(), grid.intersect(ray, hits, state));
   }
 
-  TEST(Grid, SetupShouldIgnorePrimitivesWithEmptyBoundingBox) {
+  TEST(Grid, ShouldIgnorePrimitivesWithEmptyBoundingBoxOnSetup) {
     // A primitive that reports an empty bbox shouldn't break setup — Grid::
     // setup has an explicit early-continue on empty/undefined bboxes.
     Grid grid;
