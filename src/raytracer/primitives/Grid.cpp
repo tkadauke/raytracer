@@ -3,6 +3,7 @@
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
+#include <cassert>
 #include <cmath>
 
 using namespace std;
@@ -440,7 +441,13 @@ void Grid::setup() {
             composite->add(primitive);
             m_cells[index] = composite;
           } else {
-            std::dynamic_pointer_cast<Composite>(m_cells[index])->add(primitive);
+            // counts[index] >= 2 means the count==1 branch above already
+            // wrapped the existing primitive in a Composite. Capture the
+            // cast so a wrong-type cell trips the assertion instead of a
+            // silent null-pointer dereference.
+            auto composite = std::dynamic_pointer_cast<Composite>(m_cells[index]);
+            assert(composite && "Grid cell with count > 1 must hold a Composite");
+            composite->add(primitive);
           }
           counts[index]++;
         }
