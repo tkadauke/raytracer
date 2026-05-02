@@ -19,6 +19,7 @@
 #include <QThreadPool>
 #include <QRunnable>
 
+#include <atomic>
 #include <vector>
 #include <cmath>
 
@@ -51,7 +52,11 @@ namespace {
       active = false;
     }
 
-    bool active;
+    // Written by the worker thread that runs this task and read by the main
+    // thread in Raytracer::activeRects(). std::atomic<bool> gives a defined
+    // happens-before relationship with sequential consistency on load/store
+    // (the default), avoiding the data race that the previous plain bool had.
+    std::atomic<bool> active;
     std::shared_ptr<Raytracer> raytracer;
     std::shared_ptr<Camera> camera;
     Buffer<unsigned int>& buffer;
