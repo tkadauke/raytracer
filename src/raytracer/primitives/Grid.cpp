@@ -398,11 +398,22 @@ void Grid::setup() {
   }
 
   Vector3d gridSize = m_boundingBox.max() - m_boundingBox.min();
-  double multiplier = 2.0;
-  float s = pow(gridSize.x() * gridSize.y() * gridSize.z() / primitives().size(), 0.3333333);
-  m_numX = multiplier * gridSize.x() / s + 1;
-  m_numY = multiplier * gridSize.y() / s + 1;
-  m_numZ = multiplier * gridSize.z() / s + 1;
+
+  // Cells-per-axis density factor — the grid produces roughly
+  // kGridDensityMultiplier^3 × primitiveCount cells in total, which trades
+  // memory for shorter expected traversal length. 2.0 is the textbook value
+  // (see Suffern, "Ray Tracing from the Ground Up", §22.3) and matches the
+  // density used by every existing scene in the test suite; tweaks here
+  // need a benchmark run.
+  static constexpr double kGridDensityMultiplier = 2.0;
+
+  // Average primitive volume's cube root → characteristic cell size.
+  // Use std::cbrt for full double precision; the previous pow(x, 0.3333333)
+  // truncated to seven significant digits.
+  double s = std::cbrt(gridSize.x() * gridSize.y() * gridSize.z() / primitives().size());
+  m_numX = kGridDensityMultiplier * gridSize.x() / s + 1;
+  m_numY = kGridDensityMultiplier * gridSize.y() / s + 1;
+  m_numZ = kGridDensityMultiplier * gridSize.z() / s + 1;
 
   int numCells = m_numX * m_numY * m_numZ;
   m_cells.reserve(numCells);
