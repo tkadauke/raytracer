@@ -25,6 +25,7 @@ option(RAYTRACER_ENABLE_ASAN       "Build with AddressSanitizer + UBSan" OFF)
 option(RAYTRACER_ENABLE_COVERAGE   "Build with gcov instrumentation" OFF)
 option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF)
 option(RAYTRACER_ENABLE_STATS      "Per-render performance counters (modernize.md §3.7)" OFF)
+option(RAYTRACER_ENABLE_MUTATION   "Build with the mull mutation-testing pass plugin (closes #28)" OFF)
 
 # Match the warning flags from the Rakefile.
 add_compile_options(-W -Wall -pedantic -Wno-extra-semi)
@@ -52,6 +53,25 @@ endif()
 if(RAYTRACER_ENABLE_COVERAGE)
   add_compile_options(-O1 -fprofile-arcs -ftest-coverage)
   add_link_options(-fprofile-arcs -ftest-coverage)
+endif()
+
+if(RAYTRACER_ENABLE_MUTATION)
+  # mull is a Clang-frontend pass plugin that generates mutated copies of
+  # the program at compile time; mull-runner then exercises them against
+  # the existing test suite. Requires Clang plus the matching mull plugin
+  # (see .github/workflows/mutation.yml for the canonical install).
+  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "RAYTRACER_ENABLE_MUTATION requires Clang (have ${CMAKE_CXX_COMPILER_ID})")
+  endif()
+  if(NOT DEFINED MULL_PLUGIN)
+    message(FATAL_ERROR
+      "RAYTRACER_ENABLE_MUTATION requires -DMULL_PLUGIN=/path/to/mull-ir-frontend.so. "
+      "On Ubuntu the apt package installs it under /usr/lib/mull-ir-frontend-<clang>.so.")
+  endif()
+  # -fpass-plugin loads the mull instrumentation pass; -O0 keeps the IR
+  # readable so mull's mutation operators (arith / cmp / boundary) have
+  # something to chew on before the optimizer collapses them away.
+  add_compile_options(-fpass-plugin=${MULL_PLUGIN} -O0 -g)
 endif()
 
 # Find Qt 5; Qt 6 migration is modernize.md §3.10 / §5.

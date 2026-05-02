@@ -1,0 +1,109 @@
+# Mutation testing with mull (closes #28).
+#
+# Runs on the first of every month and on manual dispatch. Mull is slow
+# (every mutant compiles into the binary and gets exercised against the
+# test suite), so this is intentionally NOT wired into per-PR CI — it
+# would multiply CI time without proportionate value.
+#
+# Scope: include/core/math/ + src/core/math/, controlled by mull.yml. The
+# rest of the codebase is excluded — see mull.yml for the rationale.
+#
+# Output is a per-run job artifact (mutation-report/) listing surviving
+# mutants. Triage is manual: open the artifact, eyeball each surviving
+# mutant, decide whether the missing assertion is worth adding. Don't
+# block CI on the count.
+
+name: Mutation Testing
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'   # 06:00 UTC on the first of each month
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false   # one-per-month run; don't cancel a long mull pass
+
+jobs:
+  mutation:
+    name: mull-runner against unit_tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120      # mull is slow; 2-hour ceiling
+
+    env:
+      CC: clang-18
+      CXX: clang++-18
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang-18 \
+            llvm-18-dev \
+            ninja-build \
+            cmake \
+            qtbase5-dev \
+            qtbase5-dev-tools \
+            qtscript5-dev \
+            libqt5gui5 \
+            libqt5widgets5 \
+            xvfb \
+            curl gnupg ca-certificates
+
+      - name: Install mull
+        # Mull's apt repo is the cleanest cross-version install path. The
+        # stable channel ships the LLVM-18 plugin matching clang-18 above.
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/mull-project/mull/main/install.sh | sudo bash
+          mull-runner-18 --version
+
+      - name: Resolve mull plugin path
+        id: mull
+        run: |
+          PLUGIN=$(dpkg -L mull-18 | grep 'mull-ir-frontend-18' | grep '\.so$' | head -1)
+          if [ -z "$PLUGIN" ]; then
+            echo "Could not find mull-ir-frontend-18.so via dpkg -L mull-18" >&2
+            exit 1
+          fi
+          echo "plugin=$PLUGIN" >> "$GITHUB_OUTPUT"
+
+      - name: Configure (mutation preset)
+        run: |
+          cmake --preset mutation \
+            -DMULL_PLUGIN=${{ steps.mull.outputs.plugin }} \
+            -DRAYTRACER_BUILD_EXAMPLES=OFF \
+            -DRAYTRACER_BUILD_TOOLS=OFF
+
+      - name: Build
+        run: cmake --build --preset mutation --target unit_tests --parallel
+
+      - name: Run mull-runner
+        # mull-runner is what actually executes the mutated copies of the
+        # binary against the test suite. -C points at mull.yml for the
+        # include/exclude rules; --report-dir collects the JSON + IDE
+        # report files for the artifact upload.
+        #
+        # xvfb-run is here because some test fixtures construct a
+        # QApplication; without a virtual display they segfault on Linux.
+        run: |
+          mkdir -p mutation-report
+          xvfb-run --auto-servernum mull-runner-18 \
+            -C ./mull.yml \
+            --report-dir mutation-report \
+            --report-name math \
+            ./build/mutation/test/unit/unit_tests
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: mutation-report/
+          retention-days: 90

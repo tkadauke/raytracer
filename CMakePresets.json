@@ -49,6 +49,20 @@
       "name": "benchmark",
       "inherits": "release",
       "cacheVariables": { "RAYTRACER_BUILD_BENCHMARKS": "ON" }
+    },
+    {
+      "name": "mutation",
+      "inherits": "debug",
+      "cacheVariables": {
+        "RAYTRACER_ENABLE_MUTATION": "ON",
+        "CMAKE_C_COMPILER":   "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      },
+      "vendor": {
+        "comment": {
+          "mull": "Pass -DMULL_PLUGIN=/path/to/mull-ir-frontend.so explicitly. The .github/workflows/mutation.yml workflow does this against the apt-installed plugin path."
+        }
+      }
     }
   ],
   "buildPresets": [
@@ -57,7 +71,8 @@
     { "name": "asan",     "configurePreset": "asan" },
     { "name": "coverage", "configurePreset": "coverage" },
     { "name": "fuzz",      "configurePreset": "fuzz" },
-    { "name": "benchmark", "configurePreset": "benchmark" }
+    { "name": "benchmark", "configurePreset": "benchmark" },
+    { "name": "mutation",  "configurePreset": "mutation" }
   ],
   "testPresets": [
     {
