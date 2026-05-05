@@ -31,6 +31,28 @@ module Common
     box_on_checker_board
   end
 
+  # Scene for demonstrating panorama / 360° cameras (equirectangular,
+  # full-FOV spherical, etc.). Cardinal-direction spheres so the unwrap
+  # has identifiable content at every longitude — front (red), right
+  # (green), back (blue), left (yellow), plus a checkered floor for
+  # vertical reference.
+  #
+  # Camera lives at (0, -1, 0): the floor is at y=1.1 so the camera sits
+  # 2 m above it, putting the horizon line near the equator of the
+  # equirect output.
+  def panorama_scene
+    sunlight
+    checker_board
+    sphere :material => matte_material(:diffuseTexture => red),
+           :position => [0, -1, 4]
+    sphere :material => matte_material(:diffuseTexture => green),
+           :position => [4, -1, 0]
+    sphere :material => matte_material(:diffuseTexture => blue),
+           :position => [0, -1, -4]
+    sphere :material => matte_material(:diffuseTexture => yellow),
+           :position => [-4, -1, 0]
+  end
+
   # Scene for demonstrating depth-of-field cameras. Three coloured
   # spheres arranged front-to-back along the camera axis on a checker
   # board, so a DOF render shows clear sharp/blur transitions between

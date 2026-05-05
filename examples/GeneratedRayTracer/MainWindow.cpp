@@ -57,6 +57,7 @@
 #include "world/objects/OrthographicCamera.h"
 #include "world/objects/SphericalCamera.h"
 #include "world/objects/ThinLensCamera.h"
+#include "world/objects/EquirectangularCamera.h"
 
 struct MainWindow::Private {
   inline Private()
@@ -116,6 +117,7 @@ struct MainWindow::Private {
   QAction* addOrthographicCameraAct;
   QAction* addSphericalCameraAct;
   QAction* addThinLensCameraAct;
+  QAction* addEquirectangularCameraAct;
   
   QAction* deleteElementAct;
 
@@ -269,6 +271,10 @@ void MainWindow::createActions() {
   p->addThinLensCameraAct->setStatusTip(tr("Add a thin-lens camera with depth-of-field to the scene"));
   connect(p->addThinLensCameraAct, SIGNAL(triggered()), this, SLOT(addThinLensCamera()));
 
+  p->addEquirectangularCameraAct = new QAction(tr("Equirectangular Camera (360°)"), this);
+  p->addEquirectangularCameraAct->setStatusTip(tr("Add a full-sphere panorama camera to the scene (render at 2:1 aspect)"));
+  connect(p->addEquirectangularCameraAct, SIGNAL(triggered()), this, SLOT(addEquirectangularCamera()));
+
   p->moveForwardsAlongXAct = new QAction(tr("Move forwards along X axis"), this);
   p->moveForwardsAlongXAct->setShortcuts(QList<QKeySequence>{
     QKeySequence(Qt::META + Qt::Key_Up),
@@ -387,6 +393,7 @@ void MainWindow::createMenus() {
   addCamera->addAction(p->addOrthographicCameraAct);
   addCamera->addAction(p->addSphericalCameraAct);
   addCamera->addAction(p->addThinLensCameraAct);
+  addCamera->addAction(p->addEquirectangularCameraAct);
   
   p->editMenu->addSeparator();
   p->editMenu->addAction(p->deleteElementAct);
@@ -592,6 +599,10 @@ void MainWindow::addSphericalCamera() {
 
 void MainWindow::addThinLensCamera() {
   add<ThinLensCamera>();
+}
+
+void MainWindow::addEquirectangularCamera() {
+  add<EquirectangularCamera>();
 }
 
 void MainWindow::deleteElement() {

@@ -18,7 +18,11 @@ module Colors
   def blue
     @blue ||= constant_color_texture(:color => [0, 0, 1])
   end
-  
+
+  def yellow
+    @yellow ||= constant_color_texture(:color => [1, 1, 0])
+  end
+
   def medium_grey
     @medium_grey ||= constant_color_texture(:color => [0.6, 0.6, 0.6])
   end

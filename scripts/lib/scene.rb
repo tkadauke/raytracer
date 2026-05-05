@@ -301,6 +301,9 @@ class ThinLensCamera < Camera
            :focalDistance => 5
 end
 
+class EquirectangularCamera < Camera
+end
+
 class SphericalCamera < Camera
   property :horizontalFieldOfView => 180.degrees,
            :verticalFieldOfView => 120.degrees
