@@ -107,7 +107,7 @@ void ScriptedSurface::setScriptName(const QString& name) {
   // the ScriptedSurface QObject wrapper rather than the bare JS global.
   QJSValue ctor = m_engine->globalObject().property(functionName);
   if (ctor.isCallable()) {
-    QJSValue result = ctor.call(m_this);
+    QJSValue result = ctor.callWithInstance(m_this);
     if (result.isError())
       handleError(result);
   }
@@ -174,7 +174,7 @@ void ScriptedSurface::clear() {
 
 QJSValue ScriptedSurface::jsCall(QJSValue obj, const QString& function, const QJSValueList& args) {
   QJSValue func = obj.property(function);
-  QJSValue result = func.call(m_this, args);
+  QJSValue result = func.callWithInstance(m_this, args);
   if (result.isError())
     handleError(result);
   return result;
