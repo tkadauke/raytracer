@@ -6,7 +6,30 @@ require_relative 'lib/materials'
 require_relative 'lib/objects'
 require_relative 'lib/cameras'
 
+# Top-level CLI for the doc-render framework. See `scripts/README.md`
+# for the full architecture; this file is the entry point that wires
+# everything together. When invoked as a script (the
+# `if __FILE__ == $PROGRAM_NAME` block at the bottom), it parses
+# CLI flags and walks every `.rb` file under `scripts/docs/`.
+
+# `Common` mixes the `name` helper plus the canonical scene-setup
+# helpers (`camera_scene`, `dof_scene`, `panorama_scene`,
+# `material_scene`, ...) into `ElementCreator`. Adding a new helper
+# here makes it available inside every doc-render driver block —
+# useful when the same scene-setup pattern shows up across multiple
+# drivers (e.g. cameras all want `camera_scene`; DOF cameras want
+# `dof_scene`; panoramic cameras want `panorama_scene`).
+#
+# The helpers are designed to compose: `panorama_scene` calls
+# `sunlight` and `checker_board`; you can mix and match in your
+# driver. Each helper is a sequence of element constructions that
+# get attached to the implicit current Scene via
+# `ElementCreator#method_missing`.
 module Common
+  # Set the output path for this image. Every doc-render driver
+  # should call `name` first inside each `class_doc` /
+  # `property_doc` block — otherwise the renderer falls back to
+  # `out.png` (which would overwrite itself across drivers).
   def name(file)
     outfile "docs/images/#{file}.png"
   end
@@ -94,29 +117,61 @@ end
 
 ElementCreator.send :include, Common
 
+# Owns the lifecycle of a doc-render run:
+#
+#   1. Constructed with the parsed CLI `options` hash (`:samples_per_pixel`,
+#      `:filter`, `:missing`).
+#   2. `run` walks every `scripts/docs/*.rb` file matching `:filter`
+#      and `eval`s it in this renderer's binding — so the driver
+#      script's top-level `class_doc { ... }` call resolves to the
+#      method below.
+#   3. Each `class_doc` / `property_doc` / `rainbow_doc` wraps
+#      `doc_scene`, which builds a `Scene`, sets render options,
+#      runs the driver block to populate children, and dispatches to
+#      `Scene#render` for the JSON-write + rendercli-shell-out +
+#      sidecar-hash.
 class DocsRenderer
   def initialize(options)
     @options = options
   end
-  
+
+  # Build and render a documentation scene.
+  #
+  # `options` contains rendercli flags as a hash —
+  # `{:width => 640, :height => 480, :sampler => "Jittered",
+  # :samples_per_pixel => 64}`. The block defines the scene contents
+  # (children, camera, lights, materials) via the DSL.
+  #
+  # The default sampler is `Regular` because doc renders prioritise
+  # determinism and quick re-runs over Monte-Carlo polish; specific
+  # drivers can override (e.g. ThinLens needs a stochastic sampler
+  # for usable bokeh).
   def doc_scene(options = {}, &block)
     default_options = {
       :sampler => "Regular",
       :samples_per_pixel => @options[:samples_per_pixel],
       :overwrite => !@options[:missing]
     }
-    
+
     scene default_options.merge(options) do
       block.bind(self).call
     end
   end
 
+  # Produce one image at the canonical 640-px-wide size. Use for the
+  # "this is what the class looks like at default settings" hero
+  # image referenced by the class-level `@image html` in the C++
+  # docstring. Pass `aspect: :panoramic` (or `:square`) for cameras
+  # that need a non-4:3 framing.
   def class_doc(aspect: :default, &block)
     doc_scene render_size(1, aspect: aspect) do
       block.bind(self).call
     end
   end
 
+  # Produce one image per entry in `rainbow_colors`, named by colour.
+  # Used by the matte-/phong-/etc.-material drivers to show what the
+  # material looks like across the visible spectrum.
   def rainbow_doc(aspect: :default, &block)
     rainbow_colors.each do |name, color|
       doc_scene render_size(7, aspect: aspect) do
@@ -125,6 +180,12 @@ class DocsRenderer
     end
   end
 
+  # Produce N (default 5) images, calling the block once per `i` in
+  # 1..N. Used for parameter sweeps — the block typically computes
+  # the parameter value from `i` and constructs a scene with it.
+  # Keep `num` ≤ a small handful (5 is the de-facto standard) so the
+  # resulting per-setter `<table>` of images doesn't wrap awkwardly
+  # in the rendered Doxygen page.
   def property_doc(num = 5, aspect: :default, &block)
     1.upto(num) do |i|
       doc_scene render_size(num, aspect: aspect) do
@@ -133,6 +194,10 @@ class DocsRenderer
     end
   end
 
+  # Walk every `scripts/docs/*.rb` driver matching the `:filter`
+  # regexp and eval it in this renderer's binding. Each driver's
+  # top-level `class_doc { ... }` / `property_doc { ... }` calls
+  # then resolve to the methods above.
   def run
     Dir.glob(File.dirname(__FILE__) + "/docs/*.rb").each do |file|
       load file if File.basename(file) =~ @options[:filter]
