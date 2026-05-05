@@ -74,25 +74,23 @@ if(RAYTRACER_ENABLE_MUTATION)
   add_compile_options(-fpass-plugin=${MULL_PLUGIN} -O0 -g)
 endif()
 
-# Find Qt 5; Qt 6 migration is modernize.md §3.10 / §5.
-# QtScript is required by src/world/objects/ScriptedSurface.cpp and was
-# removed in Qt 6 — porting that to QJSEngine is part of the Qt 6 migration.
-# On macOS, auto-discover the Homebrew Qt 5 prefix so the presets work without
+# Find Qt 6. QJSEngine (used by ScriptedSurface) lives in Qt6::Qml.
+# On macOS, auto-discover the Homebrew Qt 6 prefix so the presets work without
 # per-developer -DCMAKE_PREFIX_PATH overrides.
-if(APPLE AND NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED Qt5_DIR)
+if(APPLE AND NOT DEFINED CMAKE_PREFIX_PATH AND NOT DEFINED Qt6_DIR)
   execute_process(
-    COMMAND brew --prefix qt@5
-    OUTPUT_VARIABLE _raytracer_qt5_brew_prefix
+    COMMAND brew --prefix qt
+    OUTPUT_VARIABLE _raytracer_qt6_brew_prefix
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
     RESULT_VARIABLE _raytracer_brew_result
   )
-  if(_raytracer_brew_result EQUAL 0 AND _raytracer_qt5_brew_prefix)
-    list(APPEND CMAKE_PREFIX_PATH "${_raytracer_qt5_brew_prefix}")
+  if(_raytracer_brew_result EQUAL 0 AND _raytracer_qt6_brew_prefix)
+    list(APPEND CMAKE_PREFIX_PATH "${_raytracer_qt6_brew_prefix}")
   endif()
 endif()
 
-find_package(Qt5 5.15 REQUIRED COMPONENTS Core Gui Widgets Script)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Qml)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)

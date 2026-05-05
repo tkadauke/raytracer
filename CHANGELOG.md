@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Changed
+
+- Migrated from Qt 5.15 to Qt 6: `find_package(Qt6 … Qml)` replaces the old `Qt5 … Script` find; all `Qt5::` CMake targets updated to `Qt6::`. `QtScript` (removed in Qt 6) ported to `QJSEngine`/`QJSValue` in `ScriptedSurface` — element constructors are now registered through a `ScriptElementRegistry` QObject with Q_INVOKABLE methods; scripts continue to use `new Box(parent)` and `new Vector3(x, y, z)` unchanged. CI, Dockerfile, and README updated to `qt6-base-dev` + `qt6-declarative-dev`. — Claude Sonnet 4.6
+
 ### Added
 
 - `CMake 3.28` build with per-target preset (`debug`, `release`, `asan`, `coverage`, `fuzz`, `benchmark`) running alongside the legacy Rakefile. The Rakefile is now a thin wrapper around `cmake --preset` and hosts a few project-utility tasks (`check:cpp`, `check:inline`, `stats`, `docs:render`). — Claude Opus 4.7

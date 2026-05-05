@@ -3,9 +3,9 @@
 
 #include "world/objects/Surface.h"
 
-#include <QScriptValue>
+#include <QJSValue>
 
-class QScriptEngine;
+class QJSEngine;
 
 /**
   * This class provides a scripting interface for creating complex surfaces.
@@ -117,16 +117,12 @@ private:
 
   void clear();
 
-  void handleError();
-
-  bool functionDefined(QScriptValue obj, const QString& function) const;
-  QScriptValue jsCall(QScriptValue obj, const QString& function, const QScriptValueList& args = QScriptValueList());
-
-  template<class T>
-  void registerElement();
+  bool functionDefined(QJSValue obj, const QString& function) const;
+  QJSValue jsCall(QJSValue obj, const QString& function, const QJSValueList& args = QJSValueList());
+  void handleError(const QJSValue& error);
 
   QString m_scriptName;
-  QScriptEngine* m_engine;
-  QScriptValue m_this;
+  QJSEngine* m_engine;
+  QJSValue m_this;
   bool m_blockDynamicPropertyEvent;
 };

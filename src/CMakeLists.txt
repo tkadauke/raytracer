@@ -28,10 +28,10 @@ target_include_directories(raytracer
 
 target_link_libraries(raytracer
   PUBLIC
-    Qt5::Core
-    Qt5::Gui
-    Qt5::Widgets
-    Qt5::Script
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Qml
 )
 
 if(RAYTRACER_ENABLE_STATS)
