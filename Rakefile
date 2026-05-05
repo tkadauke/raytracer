@@ -72,6 +72,22 @@ end
 desc "Generate documentation"
 task :docs => "docs:generate"
 
+namespace :test do
+  desc "Run the Ruby tests for the doc-render framework"
+  task :scripts do
+    # Use minitest's autorun via direct file invocation. Each test file
+    # `require's 'minitest/autorun'`, so just running them executes the
+    # cases and exits non-zero on failure. Globbing them all in one
+    # process keeps the report tight.
+    test_files = Dir.glob("scripts/test/test_*.rb")
+    if test_files.empty?
+      puts "No script tests found under scripts/test/"
+      next
+    end
+    sh "ruby -Iscripts -e \"#{test_files.map { |f| %{require '#{File.expand_path(f)}'} }.join('; ')}\""
+  end
+end
+
 namespace :check do
   desc "Run cppcheck on the repository"
   task :cpp => :release do
@@ -85,6 +101,15 @@ namespace :check do
        "--library=qt --library=googletest " \
        "-i build/ " \
        "--quiet --enable=all -j 24 --force"
+  end
+
+  desc "Lint Doxygen @image html refs against docs/images/ (broken refs fail; orphan PNGs warn)"
+  task :"doc-images" do
+    # Pass --strict to also fail on orphan PNGs (renders no header
+    # references). Default is "broken refs are errors, orphans are
+    # warnings" — keeps the lint useful pre-CI without flagging every
+    # legacy unused render as a blocker.
+    sh "ruby scripts/lint_doc_images.rb"
   end
 
   desc "Check that all inline methods are marked as such"

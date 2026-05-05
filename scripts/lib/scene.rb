@@ -1,6 +1,7 @@
 require 'json'
 require 'fileutils'
 require 'securerandom'
+require 'digest'
 require_relative 'core_ext'
 
 class ElementCreator
@@ -159,8 +160,25 @@ class Scene < Element
     file ||= outfile
     file ||= "out.png"
 
-    if !options.delete(:overwrite) && File.exist?(file)
-      puts "Not rendering #{file} since it already exists"
+    json_str = to_json
+    overwrite = options.delete(:overwrite)
+    hash_file = "#{file}.hash"
+    new_hash = Scene.scene_hash(json_str, options.merge(opts))
+
+    # Three states for an existing on-disk image:
+    #   - file present + sidecar hash matches  → up to date, skip
+    #   - file present + sidecar hash differs  → driver changed, re-render
+    #   - file present + no sidecar hash       → produced by an older
+    #                                            version of this script;
+    #                                            re-render so the sidecar
+    #                                            hash gets written
+    # If `overwrite` is true (the per-scene opt-out), force render
+    # regardless. The user-facing `--missing` flag flips overwrite OFF
+    # for the whole run; without `--missing`, every render is forced
+    # (matches the historical pre-staleness behaviour).
+    if !overwrite && File.exist?(file) && File.exist?(hash_file) &&
+       File.read(hash_file).strip == new_hash
+      puts "Skipping #{file} (up to date)"
       return
     end
 
@@ -174,9 +192,30 @@ class Scene < Element
 
     args = options.merge(opts).map { |key, value| "--#{key}=#{value}" }.join(" ")
     rendercli = ENV.fetch('RENDERCLI', 'build/release/tools/rendercli/rendercli')
-    system "#{rendercli} #{file_name} #{file} #{args}"
+    if system "#{rendercli} #{file_name} #{file} #{args}"
+      File.write(hash_file, new_hash)
+    end
 
     FileUtils.rm(file_name)
+  end
+
+  # Compute a content hash of (scene JSON + render options) suitable
+  # for staleness detection. The JSON's element IDs are random UUIDs
+  # generated per-run via SecureRandom (see Element#initialize), so a
+  # raw hash of `to_json` would change on every run. Strip / normalise
+  # them out so the hash captures the SCENE structure, not the per-run
+  # random labels.
+  #
+  # The render options (sampler, samples_per_pixel, width, height) are
+  # included too — changing the sample count should re-render even if
+  # the scene is otherwise identical.
+  def self.scene_hash(json_str, opts)
+    # Element id values: "id":"{8-4-4-4-12}" → "id":"<id>"
+    normalised = json_str.gsub(/"id"\s*:\s*"\{[a-f0-9-]+\}"/, '"id":"<id>"')
+    # Property references that point to those ids: "{8-4-4-4-12}" → "<id>"
+    normalised = normalised.gsub(/"\{[a-f0-9-]{30,}\}"/, '"<id>"')
+    payload = "#{normalised}\n#{opts.sort.to_h.inspect}"
+    Digest::SHA1.hexdigest(payload)
   end
 end
 

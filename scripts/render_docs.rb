@@ -111,23 +111,23 @@ class DocsRenderer
     end
   end
 
-  def class_doc(&block)
-    doc_scene render_size(1) do
+  def class_doc(aspect: :default, &block)
+    doc_scene render_size(1, aspect: aspect) do
       block.bind(self).call
     end
   end
 
-  def rainbow_doc(&block)
+  def rainbow_doc(aspect: :default, &block)
     rainbow_colors.each do |name, color|
-      doc_scene render_size(7) do
+      doc_scene render_size(7, aspect: aspect) do
         block.bind(self).call(name, color)
       end
     end
   end
 
-  def property_doc(num = 5, &block)
+  def property_doc(num = 5, aspect: :default, &block)
     1.upto(num) do |i|
-      doc_scene render_size(num) do
+      doc_scene render_size(num, aspect: aspect) do
         block.bind(self).call(i)
       end
     end
@@ -156,28 +156,63 @@ private
     }
   end
 
-  def render_size(num)
-    case num
-    when 1 then { :width => 640, :height => 480 }
-    when 5 then { :width => 240, :height => 180 }
-    when 7 then { :width => 160, :height => 120 }
+  # Render dimensions for documentation images. The first argument
+  # picks the width preset (1 image = 640 px wide for class_doc; 5
+  # images = 240 px wide for property_doc; 7 = 160 px wide for
+  # rainbow_doc). The keyword `aspect:` then determines the height
+  # relative to that width:
+  #
+  #   :default   — 4:3 (the historical default; suits perspective
+  #                cameras and most materials).
+  #   :panoramic — 2:1 (equirectangular and other full-sphere
+  #                projections; without this the spheres render as
+  #                ovals because of pixel-aspect mismatch).
+  #   :square    — 1:1 (cubemap faces, sphere primitives, anything
+  #                rotation-symmetric).
+  #
+  # Add new aspects here when a future camera/material needs one;
+  # don't reach into doc_scene with raw width/height in the per-doc
+  # script unless the aspect is genuinely one-off — uniform aspects
+  # are easier to skim across the rendered docs page.
+  def render_size(num, aspect: :default)
+    base_width = case num
+      when 1 then 640
+      when 5 then 240
+      when 7 then 160
+      else
+        raise "Unknown render size for #{num} images"
+      end
+
+    case aspect
+    when :default
+      { :width => base_width, :height => (base_width * 0.75).to_i }
+    when :panoramic
+      { :width => base_width, :height => base_width / 2 }
+    when :square
+      { :width => base_width, :height => base_width }
     else
-      raise "Unknown render size for #{num} images"
+      raise "Unknown aspect ratio: #{aspect.inspect} (try :default, :panoramic, or :square)"
     end
   end
 end
 
-options = { :samples_per_pixel => 16, :filter => // }
-OptionParser.new do |opts|
-  opts.on("--samples N", Numeric, "Samples per pixel") do |n|
-    options[:samples_per_pixel] = n
-  end
-  opts.on("--only REGEXP", String, "Regexp to filter files under docs to load") do |filter|
-    options[:filter] = Regexp.new(filter)
-  end
-  opts.on("--missing", "Only render missing images") do |missing|
-    options[:missing] = true
-  end
-end.parse!
+# Only run the CLI when invoked as a script. Tests `require` this file
+# to reach the `render_size` helper without triggering the top-level
+# CLI parsing + `.run` (which would try to render every doc image
+# during test setup).
+if __FILE__ == $PROGRAM_NAME
+  options = { :samples_per_pixel => 16, :filter => // }
+  OptionParser.new do |opts|
+    opts.on("--samples N", Numeric, "Samples per pixel") do |n|
+      options[:samples_per_pixel] = n
+    end
+    opts.on("--only REGEXP", String, "Regexp to filter files under docs to load") do |filter|
+      options[:filter] = Regexp.new(filter)
+    end
+    opts.on("--missing", "Only render missing images") do |missing|
+      options[:missing] = true
+    end
+  end.parse!
 
-DocsRenderer.new(options).run
+  DocsRenderer.new(options).run
+end
