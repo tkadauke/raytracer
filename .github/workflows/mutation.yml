@@ -49,11 +49,9 @@ jobs:
             llvm-18-dev \
             ninja-build \
             cmake \
-            qtbase5-dev \
-            qtbase5-dev-tools \
-            qtscript5-dev \
-            libqt5gui5 \
-            libqt5widgets5 \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            libgl1-mesa-dev \
             xvfb \
             curl gnupg ca-certificates
 
