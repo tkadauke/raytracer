@@ -30,6 +30,33 @@ module Common
     sunlight
     box_on_checker_board
   end
+
+  # Scene for demonstrating depth-of-field cameras. Three coloured
+  # spheres arranged front-to-back along the camera axis on a checker
+  # board, so a DOF render shows clear sharp/blur transitions between
+  # them.
+  #
+  # The spheres are sized and spaced to make the DOF effect read clearly
+  # at Doxygen thumbnail size (~150-200 px wide):
+  #   - Larger spheres (full unit radius) so the bokeh-disc edge is
+  #     visible within a small image, not just a few aliased pixels.
+  #   - Tighter Z-spacing (-2.5 / 0 / +2.5) so all three fit comfortably
+  #     in a moderate framing without a wide-angle camera.
+  #   - Distinct primary colours, used in the canonical DSL form
+  #     (`matte_material(:diffuseTexture => red)`); `red`/`green`/`blue`
+  #     in scripts/lib/colors.rb are already constant-colour textures,
+  #     not RGB tuples — nesting them inside another texture (which an
+  #     earlier version did) silently produces black spheres.
+  def dof_scene
+    sunlight
+    checker_board
+    sphere :material => matte_material(:diffuseTexture => red),
+           :position => [-2.0, -1, -2.5]
+    sphere :material => matte_material(:diffuseTexture => green),
+           :position => [0, -1, 0]
+    sphere :material => matte_material(:diffuseTexture => blue),
+           :position => [2.0, -1, 2.5]
+  end
   
   def object_scene
     sunlight

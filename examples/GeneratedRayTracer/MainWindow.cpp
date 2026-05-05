@@ -56,6 +56,7 @@
 #include "world/objects/FishEyeCamera.h"
 #include "world/objects/OrthographicCamera.h"
 #include "world/objects/SphericalCamera.h"
+#include "world/objects/ThinLensCamera.h"
 
 struct MainWindow::Private {
   inline Private()
@@ -114,6 +115,7 @@ struct MainWindow::Private {
   QAction* addFishEyeCameraAct;
   QAction* addOrthographicCameraAct;
   QAction* addSphericalCameraAct;
+  QAction* addThinLensCameraAct;
   
   QAction* deleteElementAct;
 
@@ -263,6 +265,10 @@ void MainWindow::createActions() {
   p->addSphericalCameraAct->setStatusTip(tr("Add a spherical camera to the scene"));
   connect(p->addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
 
+  p->addThinLensCameraAct = new QAction(tr("Thin Lens Camera (DOF)"), this);
+  p->addThinLensCameraAct->setStatusTip(tr("Add a thin-lens camera with depth-of-field to the scene"));
+  connect(p->addThinLensCameraAct, SIGNAL(triggered()), this, SLOT(addThinLensCamera()));
+
   p->moveForwardsAlongXAct = new QAction(tr("Move forwards along X axis"), this);
   p->moveForwardsAlongXAct->setShortcuts(QList<QKeySequence>{
     QKeySequence(Qt::META + Qt::Key_Up),
@@ -380,6 +386,7 @@ void MainWindow::createMenus() {
   addCamera->addAction(p->addFishEyeCameraAct);
   addCamera->addAction(p->addOrthographicCameraAct);
   addCamera->addAction(p->addSphericalCameraAct);
+  addCamera->addAction(p->addThinLensCameraAct);
   
   p->editMenu->addSeparator();
   p->editMenu->addAction(p->deleteElementAct);
@@ -581,6 +588,10 @@ void MainWindow::addOrthographicCamera() {
 
 void MainWindow::addSphericalCamera() {
   add<SphericalCamera>();
+}
+
+void MainWindow::addThinLensCamera() {
+  add<ThinLensCamera>();
 }
 
 void MainWindow::deleteElement() {

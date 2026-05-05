@@ -294,6 +294,13 @@ class PinholeCamera < Camera
            :zoom => 1
 end
 
+class ThinLensCamera < Camera
+  property :distance => 5,
+           :zoom => 1,
+           :apertureRadius => 0.1,
+           :focalDistance => 5
+end
+
 class SphericalCamera < Camera
   property :horizontalFieldOfView => 180.degrees,
            :verticalFieldOfView => 120.degrees
