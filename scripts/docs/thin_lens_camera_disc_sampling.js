@@ -99,22 +99,35 @@ var ThinLensDiscSampling = new Class({
       }
     }
 
-    // Live count readout
-    canvas.add(new Text(new Vector(3.0, 2.4),
-                        "n = " + this.n + " → " + (this.n * this.n) + " samples"));
-
     return canvas.toSVG();
   }
 });
 
-(function(scriptElement) {
+// Slider control for `n`. Integer step so the grid density only
+// takes whole-number values; precision: 0 in the label so it reads
+// "n = 6" not "n = 6.00".
+(function (scriptElement) {
   var figure = new ThinLensDiscSampling();
 
-  var handler = new DragHandler(figure);
-  handler.handlerFunc = function(delta, figure) {
-    figure.setN(figure.n + delta.x / 30.0);
-    return true;
-  };
+  var container = document.createElement("div");
+  var canvas = figure.createCanvas();
+  container.appendChild(canvas);
 
-  scriptElement.parentNode.appendChild(handler.divElement());
-})(document.scripts[document.scripts.length - 1]);
+  var slider = new Slider({
+    label: "grid density n",
+    min: 2,
+    max: 20,
+    value: figure.n,
+    step: 1,
+    precision: 0,
+    onChange: function (v) {
+      figure.setN(v);
+      var newCanvas = figure.createCanvas();
+      container.replaceChild(newCanvas, canvas);
+      canvas = newCanvas;
+    }
+  });
+  container.appendChild(slider.element());
+
+  scriptElement.parentNode.appendChild(container);
+})(document.currentScript);

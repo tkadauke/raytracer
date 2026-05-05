@@ -108,24 +108,40 @@ var ThinLensConvergence = new Class({
     canvas.add(new Circle(focalPoint, 0.1, "result"));
     canvas.add(new Text(focalPoint.plus(new Vector(0.2, -0.15)), "in-focus point"));
 
-    // Live focalDistance readout — top-left corner, fixed position so
-    // it doesn't drift with the focal plane and never collides with
-    // either of the plane labels.
-    canvas.add(new Text(new Vector(-2.0, -3.0),
-                        "focalDistance = " + this.focalDistance.toFixed(2)));
-
     return canvas.toSVG();
   }
 });
 
-(function(scriptElement) {
+// Anchor the widget next to its own <script> tag. Uses
+// document.currentScript (a stable browser API since ~2010) instead
+// of the older document.scripts[length-1] trick, which was fragile
+// against any future change in how Doxygen embeds the JS.
+(function (scriptElement) {
   var figure = new ThinLensConvergence();
 
-  var handler = new DragHandler(figure);
-  handler.handlerFunc = function(delta, figure) {
-    figure.setFocalDistance(figure.focalDistance + delta.x / 50.0);
-    return true;
-  };
+  // A `Slider` (HTML range input with a live label) replaces the
+  // earlier "drag horizontally and hope you guess" affordance. The
+  // user gets a clear range, a known control, and a numeric readout
+  // — much better discoverability for a docs page.
+  var container = document.createElement("div");
+  var canvas = figure.createCanvas();
+  container.appendChild(canvas);
 
-  scriptElement.parentNode.appendChild(handler.divElement());
-})(document.scripts[document.scripts.length - 1]);
+  var slider = new Slider({
+    label: "focalDistance",
+    min: 1.0,
+    max: 7.0,
+    value: figure.focalDistance,
+    step: 0.1,
+    precision: 1,
+    onChange: function (v) {
+      figure.setFocalDistance(v);
+      var newCanvas = figure.createCanvas();
+      container.replaceChild(newCanvas, canvas);
+      canvas = newCanvas;
+    }
+  });
+  container.appendChild(slider.element());
+
+  scriptElement.parentNode.appendChild(container);
+})(document.currentScript);

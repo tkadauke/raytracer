@@ -216,39 +216,80 @@ mechanism is local and reversible.
 
 `docs/*.js` files are SVG-based interactive widgets embedded in the
 Doxygen output via `@htmlonly <script src="...">`. They share a
-small DOM library in `figure.js` (Vector, Canvas, Line, Circle,
-Rectangle, Text, Axes, Group, Ray, DragHandler).
+small DOM library in `figure.js`:
 
-The standard pattern:
+| Primitive | Use for |
+|---|---|
+| `Vector(x, y)` | 2D math (`plus`, `minus`, `multiply`, `dot`, `length`, `normalized`, `rotated`). Static constants `Vector.null`, `Vector.up`, `Vector.right`. |
+| `Canvas(w, h)` | The SVG container. `add(element)`, `translate(vector)`, `toSVG()`. |
+| `Group()` | Sub-tree of elements with a shared transform. |
+| `Line(origin, direction, klass)` | Single line segment from origin to origin+direction. |
+| `Ray(origin, direction, both)` | A line + an arrow at one (or both) ends. |
+| `Circle(center, radius, klass)` | Circle outline. CSS classes: `intersection` (filled black), `result` (filled red). |
+| `Rectangle(topleft, size, klass)` | Box outline. CSS class `dashed` for dashed strokes. |
+| `Text(position, text, klass)` | Text label. |
+| `Axes(length)` | x/y reference axes with arrowheads + labels. |
+| `Path(d, klass)` | **Arbitrary SVG path.** Use for curves, polygons, function plots — anything not expressible as line/circle/rect. `Path.polyline(points, {closed: true})` builds a straight-segment d-string from a `Vector[]`. |
+| `Slider({label, min, max, value, step, precision, onChange})` | **HTML range input with a live label.** First-class slider for parameter widgets — much better discoverability than the drag-horizontally affordance. Returns a `<div>` from `.element()`. |
+| `DragHandler(figure)` | Mouse-drag affordance over the canvas. Useful when the parameter is naturally continuous and you want spatial input. `Slider` is usually clearer for documentation. |
+
+### Writing a widget — canonical pattern
 
 ```js
 var FooClass = new Class({
   initialize: function() {
-    this.value = 0;
+    this.value = 4;
   },
 
   createCanvas: function() {
     var canvas = new Canvas(320, 240);
-    canvas.translate(new Vector(...));
+    canvas.translate(new Vector(2, -2));
     canvas.add(new Axes());
-    canvas.add(new Circle(..., 0.05, "result"));
-    canvas.add(new Text(..., "value=" + this.value.toFixed(2)));
+    canvas.add(new Circle(new Vector(this.value, 0), 0.1, "result"));
     return canvas.toSVG();
   }
 });
 
 (function(scriptElement) {
   var figure = new FooClass();
-  var handler = new DragHandler(figure);
-  handler.handlerFunc = function(delta, figure) {
-    figure.value += delta.x / 100.0;
-    return true;   // tells DragHandler to redraw
-  };
-  scriptElement.parentNode.appendChild(handler.divElement());
-})(document.scripts[document.scripts.length - 1]);
+
+  // Container holds the SVG canvas + any HTML controls.
+  var container = document.createElement("div");
+  var canvas = figure.createCanvas();
+  container.appendChild(canvas);
+
+  // Slider gives the user a known affordance + numeric readout —
+  // much better discoverability than DragHandler for docs pages
+  // where the user isn't primed for "drag the SVG horizontally."
+  var slider = new Slider({
+    label: "value", min: 0, max: 10, value: figure.value,
+    step: 0.1, precision: 1,
+    onChange: function(v) {
+      figure.value = v;
+      var newCanvas = figure.createCanvas();
+      container.replaceChild(newCanvas, canvas);
+      canvas = newCanvas;
+    }
+  });
+  container.appendChild(slider.element());
+
+  scriptElement.parentNode.appendChild(container);
+})(document.currentScript);
 ```
 
-Embed in a header docstring with:
+Two important details in the anchor pattern:
+
+- **`document.currentScript`** — the standard browser API for
+  "the `<script>` tag currently executing" (stable since ~2010).
+  Replaces the older `document.scripts[document.scripts.length - 1]`
+  trick, which was fragile against any future change in how Doxygen
+  embeds the JS.
+- **The IIFE wraps the whole anchor block** so the widget's local
+  variables (`figure`, `container`, `canvas`) don't leak into the
+  global namespace. Multiple widgets on the same page would
+  collide otherwise.
+
+### Embedding from a C++ header
 
 ```cpp
 * @htmlonly
@@ -257,20 +298,32 @@ Embed in a header docstring with:
 * @endhtmlonly
 ```
 
-Both are copied to `docs/html/` by `rake docs:html`.
+Both files get copied to `docs/html/` by `rake docs:html`.
 
-**When to write a widget.** Widgets earn their keep when the
-underlying *math* is geometrically interesting in a way that the
-rendered PNG can't show — e.g. ThinLensCamera's focal-plane
-convergence (the rays converge geometrically; the rendered image
-just shows the consequence). Skip widgets where the rendered
-output already shows the effect — the `setApertureRadius` sweep
-PNGs already show DOF blur, so a widget for them would be
-redundant.
+### When to write a widget
 
-See `docs/plans/framework-critique.md` §2 for known weaknesses
-(2D-only primitives, single drag-horizontally interaction, no
-tests).
+Widgets earn their keep when the underlying *math* is geometrically
+interesting in a way that the rendered PNG can't show — e.g.
+ThinLensCamera's focal-plane convergence (the rays converge
+geometrically; the rendered PNG only shows the consequence).
+
+Skip widgets where the rendered output already shows the effect —
+the `setApertureRadius` sweep PNGs already show DOF blur, so a
+widget for them would be redundant.
+
+### Tests
+
+Run via `rake test:scripts:js` (or `rake test:scripts` for both Ruby
+and JS). Uses Node's built-in `node:test` runner with a minimal
+DOM shim, exercising the math primitives (Vector arithmetic, Class
+factory) and the structural correctness of SVG-emitting primitives
+(Path's `d` attribute, Slider's HTML structure). Adding a new
+primitive? Add a test alongside it; the shim's small enough to
+extend if you need new DOM features.
+
+See `docs/plans/framework-critique.md` §2 for the remaining
+roadmap items (ES6 modernisation, scoped CSS, optional WebGL
+3D-scene primitive — parked because no widget currently needs it).
 
 ---
 
@@ -279,7 +332,9 @@ tests).
 ```bash
 rake docs:render           # render all images (skips up-to-date)
 rake check:doc-images      # lint @image html refs vs PNGs
-rake test:scripts          # run Ruby tests
+rake test:scripts          # run all framework tests (Ruby + JS)
+rake test:scripts:rb       # Ruby-only (doc-render framework)
+rake test:scripts:js       # JS-only (interactive widgets framework)
 ```
 
 To force re-render of one driver:

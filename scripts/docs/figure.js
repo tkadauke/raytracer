@@ -361,6 +361,120 @@ var Axes = new Class({
   }
 });
 
+// Arbitrary SVG path. Pass any valid SVG `d` attribute string —
+// straight lines (M/L), curves (C/Q/A), polygons, anything path
+// syntax supports. For simple shapes (line, circle, rect) use the
+// dedicated primitives; reach for Path when you need a curve, a
+// piecewise polygon, or a function plot.
+//
+// Example:
+//   canvas.add(new Path("M 0 0 Q 1 1 2 0", "result"));   // quadratic
+//   canvas.add(new Path("M 0 0 L 1 0 L 1 1 L 0 1 Z"));    // closed quad
+//
+// MDN's "SVG path" reference is the canonical syntax doc.
+var Path = new Class({
+  initialize: function(d, klass) {
+    this.d = d;
+    this.klass = klass;
+  },
+
+  toSVG: function() {
+    var path = document.createElementNS(svgns, "path");
+    path.setAttribute("d", this.d);
+    if (this.klass) path.setAttribute("class", this.klass);
+    path.setAttribute("fill", "transparent");
+    return path;
+  }
+});
+
+// Helper: build a Path "d" string from an array of {x, y} points,
+// connecting them with straight line segments. The first point is
+// the move-to; the rest are line-to. Pass `closed: true` to close
+// the polygon (Z command at the end).
+//
+// Example:
+//   var d = Path.polyline([new Vector(0, 0), new Vector(1, 0),
+//                          new Vector(1, 1)], { closed: true });
+//   canvas.add(new Path(d));
+Path.polyline = function(points, opts) {
+  opts = opts || {};
+  if (points.length === 0) return "";
+  var d = "M " + points[0].x + " " + points[0].y;
+  for (var i = 1; i < points.length; i++) {
+    d += " L " + points[i].x + " " + points[i].y;
+  }
+  if (opts.closed) d += " Z";
+  return d;
+};
+
+// HTML range slider with a live label. Use this instead of (or
+// alongside) DragHandler for widgets where the user benefits from
+// seeing the parameter value, having a defined range, and being
+// able to grab a known affordance.
+//
+// Example:
+//   var slider = new Slider({
+//     label: "focalDistance", min: 1, max: 7, value: 4,
+//     onChange: function(v) {
+//       figure.focalDistance = v;
+//       redraw();
+//     }
+//   });
+//   container.appendChild(slider.element());
+//
+// Returns a div containing the label + slider so callers can
+// position it anywhere (above the SVG canvas is the conventional
+// placement).
+var Slider = new Class({
+  initialize: function(opts) {
+    this.label = opts.label || "";
+    this.min = opts.min;
+    this.max = opts.max;
+    this.step = opts.step || (this.max - this.min) / 100.0;
+    this.value = opts.value !== undefined ? opts.value : (this.min + this.max) / 2.0;
+    this.precision = opts.precision !== undefined ? opts.precision : 2;
+    this.onChange = opts.onChange || function () {};
+  },
+
+  element: function() {
+    var div = document.createElement("div");
+    div.style.fontFamily = "sans-serif";
+    div.style.fontSize = "13px";
+    div.style.padding = "4px 0";
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.gap = "8px";
+
+    var label = document.createElement("label");
+    var format = function(v, precision) {
+      return v.toFixed(precision);
+    };
+    label.textContent = this.label + " = " + format(this.value, this.precision);
+    label.style.minWidth = "12em";
+
+    var input = document.createElement("input");
+    input.type = "range";
+    input.min = this.min;
+    input.max = this.max;
+    input.step = this.step;
+    input.value = this.value;
+    input.style.flex = "1";
+
+    var precision = this.precision;
+    var labelText = this.label;
+    var onChange = this.onChange;
+    input.addEventListener("input", function (e) {
+      var v = parseFloat(e.target.value);
+      label.textContent = labelText + " = " + format(v, precision);
+      onChange(v);
+    });
+
+    div.appendChild(label);
+    div.appendChild(input);
+    return div;
+  }
+});
+
 var DragHandler = new Class({
   initialize: function(figure) {
     this.handlerFunc = function() {}

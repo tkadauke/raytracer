@@ -143,17 +143,32 @@
 
 ### Where I'd take it
 
-- **Quick win**: a `Path(d)` primitive plus a
-  `Slider(min, max, value, onChange)` UI primitive. Adds ~30 lines to
-  `figure.js`, opens up a lot of widget design space.
-- **Medium**: ES6 classes + a basic Jest/vitest setup for `figure.js`.
-  Test cases would exercise the DOM-output stability of each
-  primitive (snapshot tests).
-- **Strategic**: a `Scene3D` primitive backed by a tiny WebGL /
-  three.js renderer for genuinely 3D illustrations. The repo's whole
-  identity is 3D rendering; having 3D doc widgets that match the
-  topic is high-value. But three.js is a real dependency —
-  meaningful trade-off vs the current "no deps" property.
+- ✅ **Quick win**: a `Path(d)` primitive plus a `Slider({...})` UI
+  primitive. Done — see commit log. The two ThinLens widgets
+  migrated to use `Slider` as the worked example.
+- ✅ **Better widget anchoring**: `document.currentScript` instead
+  of `document.scripts[length-1]`. Done in the same commit.
+- ✅ **Tests**: `scripts/test/test_figure_js.js` using Node's
+  built-in `node:test` runner with a minimal DOM shim — no new
+  dependencies. 19 cases covering Vector math, Class factory, and
+  the structural correctness of Path / Slider output. Added to
+  `rake test:scripts:js`.
+- **Medium (deferred)**: ES6 modernisation. The `Class()` factory
+  could become `class Foo extends Bar { ... }`. Mechanical refactor;
+  defer until something else makes the existing factory hurt.
+- **Medium (deferred)**: scoped CSS. Currently `figure.js` injects a
+  global stylesheet into `<head>`; a per-widget styling option would
+  require either Shadow DOM or a CSS-class-namespacing convention.
+  No widget has needed widget-specific styling yet.
+- **Strategic (parked)**: a `Scene3D` primitive backed by a tiny
+  WebGL / three.js renderer for genuinely 3D illustrations. The
+  repo's whole identity is 3D rendering; having 3D doc widgets that
+  match the topic would be high-value. But three.js is a real
+  dependency, and **no concrete consumer demands 3D today**: the
+  ThinLens convergence widget is faithfully a 2D side-view; the
+  lens-disc sampling is genuinely 2D; Angle/Ray/BoundingBox are 2D
+  by nature. Revisit when there's a specific widget that bottlenecks
+  on 2D-only.
 
 ---
 

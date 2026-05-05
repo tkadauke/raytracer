@@ -74,18 +74,35 @@ task :docs => "docs:generate"
 
 namespace :test do
   desc "Run the Ruby tests for the doc-render framework"
-  task :scripts do
+  task :"scripts:rb" do
     # Use minitest's autorun via direct file invocation. Each test file
     # `require's 'minitest/autorun'`, so just running them executes the
     # cases and exits non-zero on failure. Globbing them all in one
     # process keeps the report tight.
     test_files = Dir.glob("scripts/test/test_*.rb")
     if test_files.empty?
-      puts "No script tests found under scripts/test/"
+      puts "No Ruby script tests found under scripts/test/"
       next
     end
     sh "ruby -Iscripts -e \"#{test_files.map { |f| %{require '#{File.expand_path(f)}'} }.join('; ')}\""
   end
+
+  desc "Run the JavaScript tests for the interactive widgets framework"
+  task :"scripts:js" do
+    # Each test file is a self-contained Node script using the
+    # built-in `node:test` runner — no external dependencies. Run
+    # in series so failures from one file don't get hidden by
+    # another's output.
+    test_files = Dir.glob("scripts/test/test_*.js")
+    if test_files.empty?
+      puts "No JS script tests found under scripts/test/"
+      next
+    end
+    test_files.each { |f| sh "node #{f}" }
+  end
+
+  desc "Run all script-framework tests (Ruby + JS)"
+  task :scripts => [:"scripts:rb", :"scripts:js"]
 end
 
 namespace :check do
