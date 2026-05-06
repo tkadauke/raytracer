@@ -1,6 +1,8 @@
 #include "raytracer/State.h"
 #include "raytracer/Stats.h"
 #include "raytracer/primitives/Sphere.h"
+#include "core/geometry/Mesh.h"
+#include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include <cmath>
@@ -68,6 +70,45 @@ bool Sphere::intersects(const Rayd& ray, State& state) const {
   
   state.shadowMiss(this, "Sphere, ray miss");
   return false;
+}
+
+shared_ptr<Mesh> Sphere::tessellate(int lod) const {
+  const int lonSegs = 16 << lod;   // 16, 32, 64, …
+  const int latBands = 8 << lod;   // 8, 16, 32, …
+
+  auto mesh = make_shared<Mesh>();
+
+  // Build a (latBands+1) × (lonSegs+1) vertex grid. Polar rows share the
+  // same 3D point but carry distinct u-values — avoids a UV pinch at the poles
+  // without needing special-case fan triangles.
+  for (int lat = 0; lat <= latBands; ++lat) {
+    double theta = -PI / 2.0 + lat * PI / latBands;  // [-π/2, π/2]
+    double cosTheta = std::cos(theta);
+    double sinTheta = std::sin(theta);
+    double v = static_cast<double>(lat) / latBands;  // [0, 1] south→north
+
+    for (int lon = 0; lon <= lonSegs; ++lon) {
+      double phi = lon * TAU / lonSegs;              // [0, 2π]
+      double cosPhi = std::cos(phi);
+      double sinPhi = std::sin(phi);
+      double u = static_cast<double>(lon) / lonSegs; // [0, 1] around
+
+      Vector3d normal(cosTheta * cosPhi, sinTheta, cosTheta * sinPhi);
+      Vector3d point = m_origin + normal * m_radius;
+      mesh->addVertex(point, normal, Vector2d(u, v));
+    }
+  }
+
+  // One quad per (lat-band, lon-segment) cell — uniform topology, no fans.
+  for (int lat = 0; lat < latBands; ++lat) {
+    for (int lon = 0; lon < lonSegs; ++lon) {
+      int row     = lat       * (lonSegs + 1);
+      int nextRow = (lat + 1) * (lonSegs + 1);
+      mesh->addFace({ row + lon, row + lon + 1, nextRow + lon + 1, nextRow + lon });
+    }
+  }
+
+  return mesh;
 }
 
 BoundingBoxd Sphere::calculateBoundingBox() const {
