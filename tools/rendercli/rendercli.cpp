@@ -12,6 +12,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 #include "raytracer/samplers/SamplerFactory.h"
+#include "raytracer/tonemap/TonemapFactory.h"
 #include "raytracer/viewplanes/TiledViewPlane.h"
 
 #include "core/Buffer.h"
@@ -51,6 +52,7 @@ private:
   int m_samplesPerPixel;
   int m_threads;
   int m_queueSize;
+  QString m_tonemap;
 };
 
 Renderer::Renderer()
@@ -60,7 +62,8 @@ Renderer::Renderer()
     m_sampler("Regular"),
     m_samplesPerPixel(1),
     m_threads(QThread::idealThreadCount()),
-    m_queueSize(m_width * m_height * m_samplesPerPixel / 1024)
+    m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
+    m_tonemap("Linear")
 {
   parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -85,6 +88,12 @@ void Renderer::render() const {
   }
   
   raytracer->camera()->viewPlane()->setSampler(sampler());
+
+  if (auto tonemap = raytracer::TonemapFactory::self().createShared(m_tonemap.toStdString())) {
+    raytracer->setTonemap(tonemap);
+  } else {
+    qWarning("Unknown tonemap %s; falling back to Linear.", qPrintable(m_tonemap));
+  }
 
   raytracer->setMaximumThreads(m_threads);
   raytracer->setQueueSize(m_queueSize);
@@ -129,7 +138,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {"sampler", "Sampler type", "sampler"},
     {"samples_per_pixel", "Samples per pixel", "samples"},
     {{"j", "threads"}, "Number of threads", "threads"},
-    {"queue_size", "Queue size for thread pool", "queue_size"}
+    {"queue_size", "Queue size for thread pool", "queue_size"},
+    {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"}
   });
   
   parser.addPositionalArgument("input", QCoreApplication::translate("main", "Input file to render."));
@@ -203,7 +213,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       return CommandLineError;
     }
   }
-  
+
+  if (parser.isSet("tonemap")) {
+    m_tonemap = parser.value("tonemap");
+  }
+
   const QStringList args = parser.positionalArguments();
   
   if (args.size() < 2) {

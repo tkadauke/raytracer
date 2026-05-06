@@ -36,16 +36,16 @@ namespace PinholeCameraTest {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
-    Buffer<unsigned int> buffer(1, 1);
+    Buffer<Colord> buffer(1, 1);
     camera.render(raytracer, buffer);
-    ASSERT_EQ(Colord::white().rgb(), buffer[0][0]);
+    ASSERT_EQ(Colord::white(), buffer[0][0]);
   }
   
   TEST(PinholeCamera, ShouldSetViewplanePixelSize) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
-    Buffer<unsigned int> buffer(1, 1);
+    Buffer<Colord> buffer(1, 1);
 
     camera.setZoom(2);
     camera.render(raytracer, buffer);
@@ -62,7 +62,7 @@ namespace PinholeCameraTest {
   TEST(PinholeCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
-    Buffer<unsigned int> buffer(1, 1);
+    Buffer<Colord> buffer(1, 1);
     camera.render(raytracer, buffer);
 
     Rayd ray = camera.rayForPixel(0, 0);

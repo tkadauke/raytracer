@@ -26,14 +26,26 @@ public:
 class Mesh {
 public:
   /**
-    * Represents a vertex in a Mesh. Consists of a point and a normal.
+    * Represents a vertex in a Mesh — a 3D position, a surface
+    * normal, and a 2D texture coordinate.
+    *
+    * `uv` defaults to `(0, 0)` when not supplied; that's fine for
+    * meshes loaded from formats that don't carry UVs (the existing
+    * PLY reader, for instance) and for procedural primitives whose
+    * tessellation doesn't have a meaningful natural parameterisation.
+    * Primitives that DO have natural UVs (Box per-face, Sphere
+    * lat/lon, Torus ring×ring) populate them in their
+    * `Primitive::tessellate` overrides.
     */
   struct Vertex {
     inline Vertex() {}
     inline explicit Vertex(const Vector3d& p, const Vector3d& n)
-      : point(p), normal(n) {}
+      : point(p), normal(n), uv(0, 0) {}
+    inline explicit Vertex(const Vector3d& p, const Vector3d& n, const Vector2d& tex)
+      : point(p), normal(n), uv(tex) {}
     Vector3d point;
     Vector3d normal;
+    Vector2d uv;
   };
   
   /**
@@ -143,9 +155,17 @@ public:
   
   /**
     * Adds a new vertex consisting of @p point and @p normal to this Mesh.
+    * The UV defaults to `(0, 0)`.
     */
   inline void addVertex(const Vector3d& point, const Vector3d& normal) {
     m_vertices.push_back(Vertex(point, normal));
+  }
+
+  /// Adds a vertex with explicit UV. Used by procedural primitives
+  /// (Box, Sphere, Torus, ...) whose `tessellate` produces meaningful
+  /// texture coordinates.
+  inline void addVertex(const Vector3d& point, const Vector3d& normal, const Vector2d& uv) {
+    m_vertices.push_back(Vertex(point, normal, uv));
   }
   
   /**

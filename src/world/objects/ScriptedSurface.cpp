@@ -199,14 +199,27 @@ bool ScriptedSurface::event(QEvent *e) {
     if (engineReady()) {
       auto pe = static_cast<QDynamicPropertyChangeEvent*>(e);
       auto prop = QString(pe->propertyName());
+
+      // Push the new QObject value onto the JS-side wrapper so the
+      // script's `this.X` reads see the update. Without this, scripts
+      // that initialise their properties via `this.X = null` in the
+      // constructor end up with a JS-shadow that masks the QObject
+      // dynamic property — `setProperty("diceMaterial", red_matte)`
+      // from C++ updates the QObject but the script's `this.diceMaterial`
+      // still reads the original `null` from the shadow, and the
+      // surface renders with a null material (i.e. black).
+      QJSValue jsValue = m_engine->toScriptValue(property(prop.toLatin1().constData()));
+      m_this.setProperty(prop, jsValue);
+
       auto funcName = prop;
       funcName[0] = funcName[0].toUpper();
       funcName = "set" + funcName;
       if (functionDefined(m_this, funcName)) {
-        QJSValueList args;
-        args << m_engine->toScriptValue(property(prop.toLatin1().constData()));
-        jsCall(m_this, funcName, args);
+        jsCall(m_this, funcName, QJSValueList() << jsValue);
 
+        // setX may have validated/clamped the value. Sync the
+        // resulting JS-side value back to the QObject; suppress the
+        // event so we don't re-enter this branch.
         m_blockDynamicPropertyEvent = true;
         setProperty(prop.toLatin1().constData(), m_this.property(prop).toVariant());
         m_blockDynamicPropertyEvent = false;

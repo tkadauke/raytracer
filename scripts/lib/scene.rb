@@ -292,7 +292,8 @@ end
 
 class Surface < Transformable
   property :visible => true,
-           :material => nil
+           :material => nil,
+           :velocity => [0, 0, 0]
 end
 
 class Material < Element
@@ -335,6 +336,11 @@ class Cylinder < Surface
   property :radius => 1,
            :height => 2,
            :bevelRadius => 0
+end
+
+class Torus < Surface
+  property :sweptRadius => 2,
+           :tubeRadius => 1
 end
 
 class Ring < Surface
@@ -403,6 +409,12 @@ class ThinLensCamera < Camera
            :zoom => 1,
            :apertureRadius => 0.1,
            :focalDistance => 5
+end
+
+class TiltShiftCamera < ThinLensCamera
+  property :tilt => 0.degrees,
+           :shiftX => 0,
+           :shiftY => 0
 end
 
 class EquirectangularCamera < Camera

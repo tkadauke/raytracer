@@ -126,6 +126,18 @@ bool SmoothMeshTriangle::intersects(const Rayd& ray, State& state) const {
   return true;
 }
 
+std::shared_ptr<Mesh> SmoothMeshTriangle::tessellate(int) const {
+  auto mesh = std::make_shared<Mesh>();
+  const auto& v0 = m_mesh->vertices()[m_index0];
+  const auto& v1 = m_mesh->vertices()[m_index1];
+  const auto& v2 = m_mesh->vertices()[m_index2];
+  mesh->addVertex(v0.point, v0.normal, v0.uv);
+  mesh->addVertex(v1.point, v1.normal, v1.uv);
+  mesh->addVertex(v2.point, v2.normal, v2.uv);
+  mesh->addFace({0, 1, 2});
+  return mesh;
+}
+
 Vector3d SmoothMeshTriangle::interpolateNormal(float beta, float gamma) const {
   Vector3d normal(
     m_mesh->vertices()[m_index0].normal * (1 - beta - gamma) +

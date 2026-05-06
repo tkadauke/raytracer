@@ -25,6 +25,14 @@ namespace raytracer {
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
 
+    /**
+      * Returns a Mesh with 4 vertices and 2 triangles covering the rectangle.
+      * The normal is the rectangle's plane normal. UVs span [0, 1]² with the
+      * corner at (0,0), corner+leg1 at (1,0), corner+leg1+leg2 at (1,1), and
+      * corner+leg2 at (0,1). The @p lod parameter is ignored.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const;
 

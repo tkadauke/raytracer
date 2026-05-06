@@ -64,9 +64,21 @@ namespace :docs do
     sh "cp scripts/docs/*.js docs/html"
   end
 
-  task :clean do
-    rm_rf "docs"
+  task :clean
+  namespace :clean do
+    task :html do
+      rm_rf "docs/html"
+    end
+    
+    task :images do
+      rm_rf "docs/images"
+    end
+    
+    task :latex do
+      rm_rf "docs/latex"
+    end
   end
+  task :clean => ["docs:clean:html", "docs:clean:images", "docs:clean:latex"]
 end
 
 desc "Generate documentation"

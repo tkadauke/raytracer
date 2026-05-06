@@ -93,12 +93,12 @@ namespace EquirectangularCameraTest {
     // should land white.
     EquirectangularCamera camera(Vector3d::null(), Vector3d(0, 0, 1));
     auto scene = std::make_shared<Scene>(Colord::white());
-    Buffer<unsigned int> buffer(4, 2);
+    Buffer<Colord> buffer(4, 2);
     // Set up the viewplane manually because the test isn't going
     // through Raytracer (which would do it automatically).
     setupViewPlane(camera, 4, 2);
     auto raytracer = std::make_shared<Raytracer>(scene);
     camera.render(raytracer, buffer);
-    EXPECT_EQ(Colord::white().rgb(), buffer[0][0]);
+    EXPECT_EQ(Colord::white(), buffer[0][0]);
   }
 }

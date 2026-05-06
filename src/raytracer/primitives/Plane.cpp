@@ -1,7 +1,9 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Plane.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include <QDebug>
 
 using namespace raytracer;
 
@@ -36,6 +38,11 @@ double Plane::calculateIntersectionDistance(const Rayd& ray) const {
     return false;
   
   return -(m_normal * o + m_distance) / angle;
+}
+
+std::shared_ptr<Mesh> Plane::tessellate(int) const {
+  qWarning() << "Plane is infinite; tessellate() returns empty mesh — clip to a finite region first.";
+  return std::make_shared<Mesh>();
 }
 
 BoundingBoxd Plane::calculateBoundingBox() const {

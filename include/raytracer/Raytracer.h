@@ -5,7 +5,8 @@
 #include "core/math/Ray.h"
 #include "core/math/Rect.h"
 
-#include <list>
+#include "raytracer/RenderEngine.h"
+
 #include <list>
 #include <memory>
 
@@ -13,53 +14,162 @@ template<class T>
 class Buffer;
 
 namespace raytracer {
-  class Scene;
   class Camera;
   class Primitive;
+  class Scene;
   class State;
 
-  class Raytracer : public std::enable_shared_from_this<Raytracer> {
+  /**
+    * @brief Whitted-style recursive raytracer — the historical (and
+    *        currently only) `RenderEngine` implementation.
+    *
+    * Concrete subclass of `RenderEngine`. Adds:
+    *
+    *  - **The threading + tile dispatch loop** (`render(Buffer<Colord>&)`
+    *    override). Tiles the image, dispatches each tile to a
+    *    `QThreadPool` worker, blocks for completion. The orchestration
+    *    lives in a pimpl so this header stays free of `<QtCore>`.
+    *  - **Single-ray probes** (`primitiveForRay`, `rayState`,
+    *    `rayColor`). Bypass the threading machinery — used by the
+    *    interactive picking path in `SceneBrowser` /
+    *    `GeneratedRayTracer` (mouse click → "what primitive is
+    *    under the cursor?"), by tests pinning shading behaviour, and
+    *    by the `RefractingRayTracer` example's debug visualisation.
+    *  - **Recursion-depth limit.** Specific to ray-recursive engines
+    *    (raytracer, future path tracer). Wireframe / raster engines
+    *    have no analogue, so it doesn't live on `RenderEngine`.
+    *
+    * Camera, scene, tonemap, and cancellation hooks all live on the
+    * base class — see `RenderEngine` for those.
+    *
+    * @code
+    * auto scene = std::make_shared<Scene>(Colord::black());
+    * scene->add(...);
+    * auto raytracer = std::make_shared<Raytracer>(scene);
+    * raytracer->camera()->setPosition({0, 0, -5});
+    *
+    * Buffer<unsigned int> buffer(width, height);
+    * raytracer->render(buffer);
+    * @endcode
+    *
+    * @see RenderEngine — the abstract base.
+    * @see Camera, Scene, Tonemap.
+    * @see State — per-ray state threaded through `rayColor`.
+    */
+  class Raytracer : public RenderEngine {
   public:
+    /**
+      * Construct with a scene and a default `PinholeCamera` looking
+      * at the origin from `(0, 0, -5)`. Useful for the common case
+      * of "give me a basic render at sensible defaults"; for full
+      * control over the camera type/position, use the two-argument
+      * constructor.
+      */
     explicit Raytracer(std::shared_ptr<Scene> scene);
+
+    /**
+      * Construct with a caller-supplied camera and scene. The
+      * camera's view plane is left as whatever the camera's
+      * constructor set it to; callers who care about pixel size /
+      * sampler / interlacing should configure it themselves.
+      */
     explicit Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene);
+
     virtual ~Raytracer();
 
-    void render(Buffer<unsigned int>& buffer);
+    using RenderEngine::render;
 
+    /**
+      * Tile-and-thread render into the HDR accumulator. Implements
+      * the abstract `RenderEngine::render(Buffer<Colord>&)` virtual.
+      */
+    virtual void render(Buffer<Colord>& buffer) override;
+
+    /**
+      * Single-ray geometry probe. Returns the `Primitive*` the ray
+      * hits first, or `nullptr` if the ray misses everything. Does
+      * not shade the hit, so it's cheap enough for interactive
+      * picking from a mouse click.
+      *
+      * Pointer ownership stays with the scene; callers must not
+      * delete or store across scene changes.
+      */
     const Primitive* primitiveForRay(const Rayd& ray) const;
+
+    /**
+      * Single-ray probe that returns a populated `State` with the
+      * `hitPoint` and recursion counters as if the ray were the
+      * primary in a fresh render.
+      */
     State rayState(const Rayd& ray) const;
+
+    /**
+      * Recursive shading entry point. Returns the colour produced by
+      * tracing `ray`, performing material evaluation and recursive
+      * reflection / transmission as needed. Mutates `state` —
+      * recursion depth, hit-point, and (when `traceEvents` is on) the
+      * event log are updated in place.
+      *
+      * Bottoms out at `setMaximumRecursionDepth(N)` returning the
+      * scene background; misses also return the scene background; a
+      * hit on a primitive with no material returns black.
+      */
     Colord rayColor(const Rayd& ray, State& state) const;
 
-    inline std::shared_ptr<Camera> camera() const {
-      return m_camera;
-    }
+    /**
+      * Request cancellation of an in-flight render. Tiles already
+      * running complete before the call returns, but no new tiles
+      * are scheduled. Idempotent.
+      */
+    virtual void cancel() override;
 
-    inline void setCamera(std::shared_ptr<Camera> camera) {
-      m_camera = camera;
-    }
+    /// Resets the cancellation flag. Call before a fresh render on
+    /// a previously cancelled engine.
+    virtual void uncancel() override;
 
-    void cancel();
-    void uncancel();
+    /**
+      * @returns the rectangles currently being rendered by the
+      * worker threads. Used by the GUI's progress overlay; consumers
+      * must not assume the list is stable across calls.
+      */
+    virtual std::list<Recti> activeRects() const override;
 
-    std::list<Recti> activeRects() const;
-
-    inline std::shared_ptr<Scene> scene() const {
-      return m_scene;
-    }
-
-    inline void setScene(std::shared_ptr<Scene> scene) {
-      m_scene = std::move(scene);
-    }
-
+    /**
+      * Sets the maximum number of recursive `rayColor` calls along
+      * any single primary-ray path. When the limit is hit the
+      * recursion bottoms out at the scene background — see
+      * `rayColor` for why background and not black.
+      *
+      * The default is 10, chosen to handle glass-torus scenes
+      * (4 surface crossings × reflection branches per hit) without
+      * truncating visible energy.
+      */
     void setMaximumRecursionDepth(int depth);
+
+    /**
+      * Sets the worker-thread count. Defaults to
+      * `QThread::idealThreadCount()`; lower for predictable
+      * benchmarking, higher won't help once you saturate cores.
+      */
     void setMaximumThreads(int threads);
+
+    /**
+      * Sets the queue size used by the internal `QThreadPool`. The
+      * default matches `idealThreadCount()`; raise it for many
+      * small tiles, lower it to bound memory use during large
+      * renders.
+      */
     void setQueueSize(int queue);
+
+    /**
+      * Toggles the in-progress red overlay drawn over tiles that
+      * are still rendering. Useful for interactive previews; turn
+      * off for headless renders where the intermediate state isn't
+      * visible anyway.
+      */
     void setShowProgressIndicators(bool show);
 
   private:
-    std::shared_ptr<Camera> m_camera;
-    std::shared_ptr<Scene> m_scene;
-
     struct Private;
     std::unique_ptr<Private> p;
   };

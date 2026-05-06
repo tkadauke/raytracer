@@ -17,6 +17,14 @@ namespace raytracer {
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
 
+    /**
+      * Returns a single-triangle Mesh identical to this Triangle. All three
+      * vertices carry the triangle's flat normal. UV assignments follow the
+      * standard barycentric convention: vertex 0 at (0,0), vertex 1 at (1,0),
+      * vertex 2 at (0,1). The @p lod parameter is ignored.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const;
 

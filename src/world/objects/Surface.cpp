@@ -9,13 +9,15 @@
 Surface::Surface(Element* parent)
   : Transformable(parent),
     m_material(nullptr),
-    m_visible(true)
+    m_visible(true),
+    m_velocity(Vector3d::null())
 {
 }
 
 std::shared_ptr<raytracer::Primitive> Surface::applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const {
   auto result = std::make_shared<raytracer::Instance>(primitive);
   result->setMatrix(localTransform());
+  result->setVelocity(m_velocity);
   return result;
 }
 

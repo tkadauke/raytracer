@@ -17,6 +17,14 @@ namespace raytracer {
 
     static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material);
 
+    /**
+      * Returns a single-triangle Mesh with vertex positions and UVs copied from
+      * the parent mesh. Each vertex carries its own per-vertex normal from the
+      * source mesh, preserving smooth shading data. The @p lod parameter is
+      * ignored.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+
   private:
     Vector3d interpolateNormal(float beta, float gamma) const;
 

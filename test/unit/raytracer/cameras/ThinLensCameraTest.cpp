@@ -133,9 +133,9 @@ namespace ThinLensCameraTest {
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
-    Buffer<unsigned int> buffer(2, 2);
+    Buffer<Colord> buffer(2, 2);
     camera.render(raytracer, buffer);
-    EXPECT_EQ(Colord::white().rgb(), buffer[0][0]);
+    EXPECT_EQ(Colord::white(), buffer[0][0]);
   }
 
   TEST(ThinLensCamera, ShouldAutoInstallMultiSampleSamplerOnDefault1SppViewPlane) {

@@ -110,6 +110,20 @@ Behaviour-affecting changes — anything users (developers included) would notic
 
 This is the audit trail per `docs/modernize.md` §3.11 — agent-introduced changes should be greppable from the changelog.
 
+## Roadmap convention
+
+Whenever a PR / commit lands work that advances a bullet in `docs/roadmap.md`, mark that bullet in the same change. The convention (per §9 of the roadmap itself, "items completed get crossed off here") is:
+
+- Strike through the part that's now done with `~~...~~`.
+- Append `✅ **Done.** <one-line note with PR/commit ref>` — keep the why/where, not just the fact.
+- For partial completions, mark the specific portion done and leave the remainder un-struck so it's still visible as TODO.
+
+The same rule applies to `docs/modernize.md` for engineering-hygiene work. Both files are *living* — they describe the current state of the project, not a frozen plan from when they were written.
+
+If a change ships something that isn't in the roadmap and probably should be, add the bullet first (in the right pillar/theme), then mark it done in the same PR. Don't let undocumented features accumulate.
+
+**Don't let roadmap labels bleed into user-facing documentation.** Phrases like "pre-R1 behaviour preserved" or "post-3.10 cleanup" are meaningless to a reader who hasn't read the roadmap. In docstrings, comments, and PR descriptions, describe the actual behaviour ("pass-through, hard clamp at 1.0," "Qt 6 migration, QtScript→QJSEngine"). The CHANGELOG is the one place where roadmap references are appropriate — that's the audit trail linking commits to roadmap items, and entries there explicitly reference the section ("closes roadmap §3.R1").
+
 ## Adding a new visible-output feature
 
 Cameras, materials, primitives, lights, textures, viewplanes — anything

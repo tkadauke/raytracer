@@ -1,7 +1,9 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Difference.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include <QDebug>
 
 using namespace raytracer;
 
@@ -43,6 +45,11 @@ const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoi
 // differential objects
 bool Difference::intersects(const Rayd& ray, State& state) const {
   return Primitive::intersects(ray, state);
+}
+
+std::shared_ptr<Mesh> Difference::tessellate(int) const {
+  qWarning() << "Difference::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  return std::make_shared<Mesh>();
 }
 
 BoundingBoxd Difference::calculateBoundingBox() const {

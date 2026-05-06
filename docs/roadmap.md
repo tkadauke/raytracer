@@ -54,7 +54,7 @@ This document is a roadmap, not a commitment, and there are no deadlines. Order 
 - **Bump and normal mapping: not implemented.** Distinct from texturing — needs a tangent frame on `HitPoint` and a shading-normal pass before BSDF eval.
 - **Camera library is small.** Pinhole, fish-eye, orthographic, and spherical exist. The roster is missing thin-lens (DoF), Kolb realistic, Panini, omnidirectional/cubemap, light-field, and stereo (parallel-frustum and toed-in) cameras.
 - **Acceleration structure is weak.** The current hierarchical container is closer to a naive list-of-lists than a proper acceleration tree. Render times scale poorly with scene complexity. A real BVH plus alternate spatial indexes (octree, kd-tree, uniform grid) is a prerequisite for everything past a few dozen primitives.
-- **Default recursion depth and black-on-truncation** — being addressed by the in-flight TIR / truncation PRs (#35, #36).
+- ~~**Default recursion depth and black-on-truncation** — being addressed by the in-flight TIR / truncation PRs (#35, #36).~~ ✅ **Done.** #35 bumped the default `maximumRecursionDepth` 5→10 and switched truncation to return the scene background; #36 made the TIR branch of `TransparentMaterial::shade` retain Phong direct lighting.
 
 ### Existing seams that just need extension
 
@@ -88,13 +88,13 @@ The current test suite is broad on construction and properties but thin on *beha
 
 Specific work:
 
-- **`Raytracer::rayColor`** — depth-limit boundary (== vs ≥), no-hit→background, `state.recursionDepth` tracking on reflection/refraction recursion, behaviour with no material assigned. Belongs alongside the in-flight #35 fix.
-- **`TransparentMaterial`** — Snell's law refraction angle, critical-angle TIR boundary, nested-medium IOR stacking, normal-incidence pass-through. Belongs alongside the in-flight #36 fix.
-- **`PerfectTransmitter`** — first-ever test file. BTDF subdir generally under-tested.
-- **All `Material::shade()` subclasses** — at least one behavioural test per material that calls `shade()` and verifies the output colour against an expected value, not just constructed properties.
-- **`Texture` and texture mappings** — coordinate projection correctness for `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-colour shading for `ConstantColorTexture`.
+- ✅ **`Raytracer::rayColor`** — depth-limit boundary (== vs ≥), no-hit→background, `state.recursionDepth` tracking on reflection/refraction recursion, behaviour with no material assigned. ~~Belongs alongside the in-flight #35 fix.~~ Landed via #35.
+- ✅ **`TransparentMaterial`** — Snell's law refraction angle, critical-angle TIR boundary, ~~nested-medium IOR stacking~~ (still TODO — see §2 "no nested-medium tracking"), normal-incidence pass-through. ~~Belongs alongside the in-flight #36 fix.~~ Most of this landed via #36's `ShadeFixture`-based behavioural tests in `TransparentMaterialTest.cpp`.
+- ✅ **`PerfectTransmitter`** — first-ever test file. BTDF subdir generally under-tested. **Done in #36** (`test/unit/raytracer/brdf/PerfectTransmitterTest.cpp`).
+- ✅ **All `Material::shade()` subclasses** — at least one behavioural test per material that calls `shade()` and verifies the output colour against an expected value, not just constructed properties. **Done in #22** (`MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial`).
+- **`Texture` and texture mappings** — coordinate projection correctness for `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-colour shading for `ConstantColorTexture`. *(World-side `Texture` family covered in #24; raytracer-side mappings still uncovered.)*
 - **Empty test body** — `PlaneTest.cpp::ShouldReturnBoundingBox` is a `// TODO` stub. Fill in.
-- **`world/` layer** — 32 headers, 31 impls, zero tests. Either bring under test (it's the Qt-side scene description and likely live), or formally sunset and remove.
+- **`world/` layer** — 32 headers, 31 impls, zero tests. Either bring under test (it's the Qt-side scene description and likely live), or formally sunset and remove. *(Substantial progress in #24: `Element`, `Transformable`, `Scene`, `Light`, `Surface`, `Material`, `Texture`, `Camera`, `CSGSurface` families all under test. `ScriptedSurface` still uncovered pending QtScript→QJSEngine settling.)*
 - **Sampler distribution properties** — verify jittered sampler actually jitters, regular sampler stratifies, random sampler is uniform. Currently only iterator mechanics are tested.
 - **Factory methods** — `CameraFactory`, `SamplerFactory`, `ViewPlaneFactory` have no test files.
 
@@ -104,9 +104,8 @@ Unblocks: every other refactor below. Specifically, R5 (`RenderEngine` abstracti
 
 ### R1. Float HDR framebuffer + tonemap stage
 
-`Buffer<Colord>` accumulator; existing `Buffer<unsigned int>` becomes a display target produced by a tonemap pass (Reinhard or ACES, configurable).
+~~`Buffer<Colord>` accumulator; existing `Buffer<unsigned int>` becomes a display target produced by a tonemap pass (Reinhard or ACES, configurable).~~ ✅ **Done.** `Camera::render` writes into `Buffer<Colord>`; `Raytracer::render(Buffer<unsigned int>&)` allocates the float buffer, runs the tile workers into it, and applies the configured `Tonemap` (default `LinearTonemap` — pass-through) to produce 8-bit display output. Three operators ship: `LinearTonemap`, `ReinhardTonemap`, and `AcesTonemap` (Narkowicz fit), all registered with `TonemapFactory` and selectable via `rendercli --tonemap`. The `Buffer<Colord>` overload is also exposed publicly so future EXR writers and path-tracing accumulators can skip tonemapping entirely. See §4.9.a for the larger tonemap-operator catalog this unblocks.
 
-- Estimated effort: ~2 days.
 - Unblocks: path tracing, motion blur, EXR output, distributed-tile aggregation.
 
 ### R2. Stable scene-object IDs
@@ -142,16 +141,42 @@ Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF expor
 
 ### R5. `RenderEngine` abstraction
 
-Introduce an abstract `RenderEngine` above `Raytracer`. Move `render(buffer)` and the threading loop into the base; subclass for each backend:
+~~Introduce an abstract `RenderEngine` above `Raytracer`. Move `render(buffer)` and the threading loop into the base; subclass for each backend.~~ ✅ **Done.** `RenderEngine` base class added; owns camera / scene / tonemap / cancellation hooks plus the `render(Buffer<unsigned int>&)` tonemap-wrapper. `Raytracer` is now a concrete subclass holding what's actually raytracer-specific: the QThreadPool tile dispatch, the single-ray probes (`rayColor` / `rayState` / `primitiveForRay`), and the recursion-depth limit. Threading lives on the concrete engine because each engine picks its own strategy (raytracer tiles pixels; future wireframe will parallelize edges; future GL submits to the driver). The split surfaces what's actually shared, which the namespace cleanup below uses to decide what moves out of `raytracer::`.
 
-- `WireframeEngine`
+- ~~`WireframeEngine`~~ — queued, blocked on the tessellate work in §3.R4.
 - `SoftwareRasterEngine`
 - `OpenGLEngine`
-- `RaytracerEngine` (refactored from the existing `Raytracer`)
+- ✅ `RaytracerEngine` — kept as `Raytracer` since it predates the abstraction; the type rename was deemed not worth the churn.
 - Future: `PathTracerEngine`, `VulkanRTEngine`
 
-- Estimated effort: ~2 days for the abstraction; backends are independent.
 - Unblocks: every other engine.
+
+### R5b. Namespace + directory cleanup — `raytracer::` → `render::`
+
+Now that R5 has surfaced what's shared vs engine-specific, lift the shared types out of `raytracer::` into a new top-level `render::` namespace + `include/render/` directory. Anything that future non-raytracing engines (wireframe, software raster, OpenGL, path tracer) will use shouldn't live in a namespace named after one engine.
+
+**Stays in `raytracer::` / `include/raytracer/`**:
+
+- `Raytracer` (the engine).
+- `State` — per-ray recursion state, raytracer-specific.
+
+**Moves to `render::` / `include/render/`**:
+
+- `RenderEngine`, `Object`, `Stats`.
+- `Camera` + all subclasses + factory.
+- `Primitive` + all subclasses (the largest subdirectory, hence the timing — see below).
+- `Light` + subclasses.
+- `Material` + subclasses (note: `Material::shade` will continue to take a `Raytracer*` until §3.R6 splits it onto a `BSDF` interface; cross-namespace forward-declaration is fine until then).
+- `BRDF` / `BTDF` + subclasses.
+- `Sampler`, `SampleStream`, factory.
+- `ViewPlane` + subclasses + factory.
+- `Texture` + subclasses + texture mappings.
+- `Tonemap` + subclasses + factory.
+
+**Timing**: queued behind R4's per-primitive tessellate batches (issues #42, #43, #44). The R4 batch agents work in `raytracer::primitives/`; doing the namespace move before they land would force every agent PR through a rebase against a renamed primitives/ tree. Doing it after avoids that conflict and lets the cleanup grab the agents' new tessellate code in one mechanical pass.
+
+- Estimated effort: ~1 day for the mechanical work (file moves + sed for namespace + sed for include paths) + a few hours for fixup (places that use `using namespace raytracer;` and reference the moved types unqualified).
+- Unblocks: `WireframeEngine` and every subsequent engine — they reference `render::Camera` / `render::Light` / etc. without the awkward implication that they're "raytracer-specific."
 
 ### R6. `BSDF` split from `Material::shade`
 
@@ -348,15 +373,15 @@ The current four (pinhole, fish-eye, orthographic, spherical) become the core; t
 - **Pinhole** (existing) — the textbook entry point.
 - **Orthographic** (existing) — for engineering views.
 - **Fish-eye** (existing) — equidistant projection, with stereographic and equisolid variants added.
-- **Spherical / equirectangular** (existing) — for 360° captures and HDRI authoring.
-- **Thin-lens** — depth of field, bokeh shape (circular, polygonal, custom texture for cat-eye/anamorphic).
+- **Spherical** (existing) — partial-sphere projection with tunable horizontal/vertical FOV. ✅ **Equirectangular** added as a separate dedicated full-360°×180° camera (`raytracer::EquirectangularCamera`, 35ac267) — for HDRI authoring, since `SphericalCamera` doesn't quite cover the canonical full-sphere case.
+- ✅ **Thin-lens** — depth of field, ~~bokeh shape (circular, polygonal, custom texture for cat-eye/anamorphic)~~. Basic DoF + circular bokeh done in 3e42f4d (`raytracer::ThinLensCamera`); polygonal/custom-texture bokeh shapes still to come.
 - **Kolb realistic camera** — full multi-element lens stack with chromatic aberration, vignetting, distortion. The pedagogical centrepiece for "how do real cameras work."
 - **Panini projection** — wide angle without the fish-eye distortion.
 - **Cylindrical / panoramic.**
 - **Omnidirectional / cubemap** — six pinholes glued together.
 - **Light-field camera** — multi-perspective rendering for refocusable output.
 - **Stereo cameras** — both **parallel-frustum** (off-axis, no keystone) and **toed-in / converged** (camera angle) variants, with explicit IPD and convergence distance controls. Anaglyph/side-by-side/top-bottom output formats for compatibility with viewers.
-- **Tilt-shift / Scheimpflug** — independent control of sensor and lens planes.
+- ✅ **Tilt-shift / Scheimpflug** — ~~independent control of sensor and lens planes.~~ Done as `raytracer::TiltShiftCamera` (subclass of `ThinLensCamera`). Rotates the focal plane around the camera's local right axis (`tilt`) and supports a lens-shift offset (`shiftX` / `shiftY`) for converging-vertical correction. Not full Scheimpflug — only the focal plane rotates; image and lens planes stay perpendicular. The full physical Scheimpflug condition is deferred to the future Kolb camera.
 
 All cameras share a `Camera::generateRay(sample) → Ray` API; lens-based cameras additionally implement aperture sampling for DoF.
 
@@ -491,7 +516,7 @@ A scene-script DSL for parametric/procedural geometry. See §7 open question on 
 
 - Scene timeline with keyframes on any animatable parameter — transforms, material parameters, camera pose, light intensity, scene-level globals (time of day, weather).
 - Interpolation curves: linear, Bezier, ease-in/out, hold.
-- Time-sampled rendering for motion blur (multiple time samples per frame within shutter-open).
+- ✅ **Time-sampled rendering for motion blur** (multiple time samples per frame within shutter-open). First pass landed in 7c81d11 — `State::timeSample` drawn from `SampleStream::next1D` (dim 1 in the renderer's stream allocation), `world::Surface::velocity` Q_PROPERTY, `Instance` interpolates linear translation. Rotation/scale animation, full timeline, and keyframe interpolation curves still TODO.
 - Output: image sequence or piped to ffmpeg for video (configurable codec).
 - Eventually (defer): rigid body simulation, particle systems, simple IK skeletons.
 
@@ -535,9 +560,31 @@ Every frame — from any engine — passes through a configurable postprocessing
 
 #### 4.9.a Tone-mapping & colour science
 
-- Reinhard, ACES (filmic and AP0/AP1 variants), AgX, Khronos PBR Neutral, Filmic (Blender) — implement them all and expose a selector; the visual differences are instructive.
+The tonemap operator catalog. The `Tonemap::apply(hdr) → ldr` interface from R1 carries the stateless single-pixel ones; operators that need a buffer pre-pass (Drago, auto-exposure) require lifting the API to a two-phase analyse-then-apply flow — flagged as the architectural change they need.
+
+Stateless single-pixel operators (current `Tonemap::apply` interface):
+
+- ✅ **Linear** — pass-through; LDR clamp via `Colord::rgb()`. Default and regression baseline.
+- ✅ **Reinhard** — `c / (1 + c)` per channel.
+- ✅ **ACES** (Narkowicz polynomial fit). Per-channel; carries the well-known chromatic skew (saturated reds shift to orange under heavy compression).
+- **AgX** (Troy Sobotka, 2021) — the modern replacement for ACES; default in Blender 4.0+. Operates in log space then through a sigmoid; fixes ACES's per-channel skew. Most-impactful next add — both pedagogically (clear ACES contrast) and aesthetically.
+- **Hable / Uncharted 2** (John Hable, 2010) — game-industry classic, polynomial-fit shoulder/toe with explicit white-point control. Simpler than AgX; nice "what game engines used pre-ACES" data point.
+- **Khronos PBR Neutral** (2024) — designed to preserve PBR material colours across viewers. Important for any future glTF / asset-library work.
+- **Extended Reinhard** — `c · (1 + c/Cwhite²) / (1 + c)` — Reinhard with a `whitePoint` parameter. Trivial change; demonstrates parameterised operators.
+- **Filmic (Blender)** — Sobotka's pre-AgX work, wider-gamut filmic curve. Historical interest.
+- **AP0/AP1 ACES variants** — full-pipeline ACES with proper colour-space matrices (the matrices that the Narkowicz fit skips). Educational completeness.
+
+Operators that need a per-render pre-pass (would lift the API to `Tonemap::analyze(buffer); Tonemap::apply(pixel)`):
+
+- **Drago / adaptive logarithmic** (2003) — log-base picked from scene maximum luminance.
+- **Auto-exposure / Reinhard with key-value adaptation** — average / median luminance pre-pass to set a reference exposure.
+- **Mantiuk** (2008) — perceptually motivated; needs the buffer.
+
+Adjacent colour-science features:
+
 - Exposure, white balance (colour temperature + tint), contrast, lift/gamma/gain.
 - LUT (Look-Up Table) input in `.cube` format for arbitrary colour grade.
+- **Tony McMapface** (Tomasz Stachowiak) and other LUT-based operators — falls out of the .cube LUT support above.
 
 #### 4.9.b Image-space effects
 
@@ -604,7 +651,7 @@ Pick the theme that's most interesting today; stop when it stops being interesti
 
 ### T1. Foundations *(prerequisite — do first)*
 
-The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well without these. R0 (behavioural tests on the integrator and materials) precedes everything. Plus in-flight fixes: PRs #35/#36, and the small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor).
+The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well without these. R0 (behavioural tests on the integrator and materials) precedes everything. ~~Plus in-flight fixes: PRs #35/#36~~ ✅ #35 (default depth + truncation) and #36 (TIR direct lighting) are merged. ~~and~~ The small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor) are still TODO.
 
 ### T2. More engines
 

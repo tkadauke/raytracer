@@ -15,8 +15,6 @@
 #include "core/Exception.h"
 #include "core/ScopeExit.h"
 
-#include "raytracer/cameras/PinholeCamera.h"
-
 #include <QThreadPool>
 #include <QRunnable>
 
@@ -32,7 +30,7 @@ using namespace raytracer;
 namespace {
   class RenderTask : public QRunnable {
   public:
-    inline RenderTask(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<unsigned int>& b, const Recti& r)
+    inline RenderTask(std::shared_ptr<Raytracer> rt, std::shared_ptr<Camera> c, Buffer<Colord>& b, const Recti& r)
       : QRunnable(),
         active(false),
         raytracer(rt),
@@ -60,7 +58,7 @@ namespace {
     std::atomic<bool> active;
     std::shared_ptr<Raytracer> raytracer;
     std::shared_ptr<Camera> camera;
-    Buffer<unsigned int>& buffer;
+    Buffer<Colord>& buffer;
     Recti rect;
   };
 }
@@ -82,15 +80,13 @@ struct Raytracer::Private {
 };
 
 Raytracer::Raytracer(std::shared_ptr<Scene> scene)
-  : m_camera(std::make_shared<PinholeCamera>()),
-    m_scene(std::move(scene)),
+  : RenderEngine(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
 
 Raytracer::Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene)
-  : m_camera(std::move(camera)),
-    m_scene(std::move(scene)),
+  : RenderEngine(std::move(camera), std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
@@ -98,7 +94,7 @@ Raytracer::Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scen
 Raytracer::~Raytracer() {
 }
 
-void Raytracer::render(Buffer<unsigned int>& buffer) {
+void Raytracer::render(Buffer<Colord>& buffer) {
   if (!m_scene) {
     buffer.clear();
     return;
@@ -113,10 +109,17 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
+  // shared_from_this() returns shared_ptr<RenderEngine>; the
+  // RenderTask + Camera::render API both want shared_ptr<Raytracer>
+  // because the workers call rayColor() (a Raytracer-specific
+  // method). Static-cast is safe — `this` is definitively a
+  // Raytracer in our own member function.
+  auto self = std::static_pointer_cast<Raytracer>(shared_from_this());
+
   IntegerDecomposition d(p->queueSize);
   for (int vert = 0; vert != d.first(); ++vert) {
     for (int horz = 0; horz != d.second(); ++horz) {
-      auto task = std::make_shared<RenderTask>(shared_from_this(), m_camera, buffer, Recti(
+      auto task = std::make_shared<RenderTask>(self, m_camera, buffer, Recti(
         floor(double(buffer.width()) / d.second() * horz),
         floor(double(buffer.height()) / d.first() * vert),
         ceil(double(buffer.width()) / d.second()),

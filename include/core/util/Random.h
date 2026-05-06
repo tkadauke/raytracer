@@ -3,6 +3,23 @@
 #include <random>
 #include <algorithm>
 
+/**
+ * In-place Fisher–Yates shuffle of `[first, last)`.
+ *
+ * Provided as a project-local alternative to `std::random_shuffle`,
+ * which was deprecated in C++14 and removed in C++17. The standard
+ * replacement (`std::shuffle`) requires a caller-supplied URBG —
+ * this template wraps a simpler interface for the existing call
+ * sites that just want "randomise this range" without picking a
+ * generator.
+ *
+ * The shuffle uses `std::rand() % (i+1)` to pick swap indices,
+ * which is biased for most ranges (the modulo isn't uniform when
+ * `RAND_MAX` doesn't divide evenly). The bias is small enough not
+ * to matter for the existing call sites (sample-set permutation,
+ * not cryptographic shuffling). If a caller needs unbiased
+ * shuffling, switch to `std::shuffle` with a URBG locally.
+ */
 template<class RandomIt>
 void random_shuffle(RandomIt first, RandomIt last)
 {

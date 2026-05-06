@@ -64,6 +64,18 @@ const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& 
   return this;
 }
 
+std::shared_ptr<Mesh> FlatMeshTriangle::tessellate(int) const {
+  auto mesh = std::make_shared<Mesh>();
+  const auto& v0 = m_mesh->vertices()[m_index0];
+  const auto& v1 = m_mesh->vertices()[m_index1];
+  const auto& v2 = m_mesh->vertices()[m_index2];
+  mesh->addVertex(v0.point, m_normal, v0.uv);
+  mesh->addVertex(v1.point, m_normal, v1.uv);
+  mesh->addVertex(v2.point, m_normal, v2.uv);
+  mesh->addFace({0, 1, 2});
+  return mesh;
+}
+
 Vector3d FlatMeshTriangle::computeNormal() const {
   Vector3d n0(m_mesh->vertices()[m_index0].normal);
   Vector3d n1(m_mesh->vertices()[m_index1].normal);

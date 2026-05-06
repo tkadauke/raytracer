@@ -30,6 +30,22 @@ svg .red marker {
   stroke: #ff0000;
 }
 
+svg .blue {
+  stroke: #2060d0;
+}
+
+svg .blue marker {
+  stroke: #2060d0;
+}
+
+svg .green {
+  stroke: #20a050;
+}
+
+svg .green marker {
+  stroke: #20a050;
+}
+
 text {
   font-size: 3.3%;
 }
