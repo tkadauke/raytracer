@@ -41,8 +41,8 @@ Display::Display()
   auto verticalSpacer = new QSpacerItem(20, 186, QSizePolicy::Minimum, QSizePolicy::Expanding);
   m_verticalLayout->addItem(verticalSpacer);
   
-  m_raytracer->setCamera(m_camera);
-  m_raytracer->setScene(SceneFactory::self().createShared("Glass Boxes"));
+  m_engine->setCamera(m_camera);
+  m_engine->setScene(SceneFactory::self().createShared("Glass Boxes"));
   m_camera->setViewPlane(ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   connect(m_scene, SIGNAL(changed()), this, SLOT(sceneChanged()));
   connect(m_viewPlaneType, SIGNAL(changed()), this, SLOT(viewPlaneTypeChanged()));
@@ -55,7 +55,7 @@ Display::~Display() {
 
 void Display::sceneChanged() {
   stop();
-  m_raytracer->setScene(SceneFactory::self().createShared(m_scene->sceneName()));
+  m_engine->setScene(SceneFactory::self().createShared(m_scene->sceneName()));
   render();
 }
 
@@ -67,7 +67,7 @@ void Display::viewPlaneTypeChanged() {
 void Display::cameraTypeChanged() {
   stop();
   m_camera = CameraFactory::self().createShared(m_cameraType->type());
-  m_raytracer->setCamera(m_camera);
+  m_engine->setCamera(m_camera);
 
   if (m_cameraParameter) {
     delete m_cameraParameter;
@@ -93,11 +93,17 @@ void Display::cameraParameterChanged() {
 
 void Display::mousePressEvent(QMouseEvent* event) {
   QtDisplay::mousePressEvent(event);
-  
+
+  // Ctrl-click ray-state probe is raytracer-specific; skip if the
+  // engine isn't a Raytracer. SceneBrowser today always uses the
+  // Raytracer engine, but the base widget is engine-agnostic.
+  auto rt = std::dynamic_pointer_cast<Raytracer>(m_engine);
+  if (!rt) return;
+
   Rayd ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());
   if (ray.direction().isDefined()) {
-    auto state = m_raytracer->rayState(ray);
-  
+    auto state = rt->rayState(ray);
+
     cout << state.hitPoint.primitive() << " - " << state.hitPoint << endl;
   }
 }

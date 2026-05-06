@@ -13,10 +13,12 @@ public:
   QSize resolution() const;
   QString sampler() const;
   QString viewPlane() const;
+  QString engine() const;
   int samplesPerPixel() const;
   int maxRecursionDepth() const;
   int renderThreads() const;
   int queueSize() const;
+  int lod() const;
 
   bool showProgressIndicators() const;
 
@@ -30,6 +32,7 @@ signals:
 private slots:
   void render();
   void stop();
+  void engineChanged();
 
 private:
   struct Private;

@@ -1,5 +1,5 @@
 #include "widgets/QtDisplay.h"
-#include "raytracer/Raytracer.h"
+#include "raytracer/RenderEngine.h"
 #include "raytracer/cameras/Camera.h"
 
 #include <QMouseEvent>
@@ -21,8 +21,8 @@ struct QtDisplay::Private {
   QPoint dragPosition;
 };
 
-QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<Raytracer> raytracer)
-  : RenderWidget(parent, raytracer),
+QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<RenderEngine> engine)
+  : RenderWidget(parent, std::move(engine)),
     p(std::make_unique<Private>())
 {
   setBufferSize(size());
@@ -84,13 +84,13 @@ void QtDisplay::wheelEvent(QWheelEvent* event) {
 
 void QtDisplay::render() {
   if (interactive()) {
-    m_raytracer->camera()->setPosition(
+    m_engine->camera()->setPosition(
       Matrix3d::rotateY(Angled::fromRadians(p->yAngle)) *
       Matrix3d::rotateX(Angled::fromRadians(p->xAngle)) *
       Vector3d(0, 0, -p->distance)
     );
   }
-  
+
   RenderWidget::render();
 }
 

@@ -27,30 +27,30 @@ QSize PreviewDisplayWidget::sizeHint() const {
 
 void PreviewDisplayWidget::clear() {
   updateScene([&]() {
-    m_raytracer->setScene(nullptr);
+    m_engine->setScene(nullptr);
   });
 }
 
 void PreviewDisplayWidget::setMaterial(Material* material, Scene* s) {
   setInteractive(true);
   updateScene([&]() {
-    m_raytracer->setScene(sphereOnPlane(material, s));
-    m_raytracer->setCamera(std::make_shared<raytracer::PinholeCamera>());
+    m_engine->setScene(sphereOnPlane(material, s));
+    m_engine->setCamera(std::make_shared<raytracer::PinholeCamera>());
   });
 }
 
 void PreviewDisplayWidget::setCamera(Camera* camera, Scene* scene) {
   setInteractive(false);
   updateScene([&]() {
-    m_raytracer->setScene(scene->toRaytracerScene());
-    m_raytracer->setCamera(camera->toRaytracer());
+    m_engine->setScene(scene->toRaytracerScene());
+    m_engine->setCamera(camera->toRaytracer());
   });
 }
 
 void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   // Stop any in-flight render before tearing down the previous scene; the
   // shared_ptr swap in setScene below frees the old one.
-  if (m_raytracer->scene()) {
+  if (m_engine->scene()) {
     stop();
   }
 

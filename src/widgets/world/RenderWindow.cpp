@@ -4,6 +4,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "raytracer/Raytracer.h"
+#include "raytracer/WireframeEngine.h"
 #include "raytracer/lights/PointLight.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
@@ -32,7 +33,11 @@ struct RenderWindow::Private {
   RenderWidget* renderWidget;
   RenderSettingsWidget* settingsWidget;
 
+  // Per-engine instances kept around so swapping is cheap. Only one
+  // is wired into renderWidget at a time; the other holds onto its
+  // scene + camera ready to take over on the next "Render" click.
   std::shared_ptr<raytracer::Raytracer> raytracer;
+  std::shared_ptr<raytracer::WireframeEngine> wireframe;
 
   bool busy;
   int timer;
@@ -44,6 +49,7 @@ RenderWindow::RenderWindow(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
+  p->wireframe = std::make_shared<WireframeEngine>(nullptr);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
@@ -89,22 +95,35 @@ void RenderWindow::render() {
   p->renderWidget->resize(p->settingsWidget->resolution());
   p->renderWidget->setBufferSize(p->settingsWidget->resolution());
 
-  auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
-  auto sampler = SamplerFactory::self().createShared(samplerClass);
-  // 83 is an arbitrary number, but it's a relatively large prime number, so
-  // it's unlikely to introduce aliasing patterns
-  sampler->setup(p->settingsWidget->samplesPerPixel(), 83);
+  // Pick the engine and wire it into the widget. Most settings only
+  // apply to the raytracer; wireframe ignores sampler / recursion
+  // depth / threading knobs.
+  std::shared_ptr<RenderEngine> engine;
+  if (p->settingsWidget->engine() == "Wireframe") {
+    p->wireframe->setCamera(p->raytracer->camera());
+    p->wireframe->setScene(p->raytracer->scene());
+    p->wireframe->setLod(p->settingsWidget->lod());
+    engine = p->wireframe;
+  } else {
+    auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
+    auto sampler = SamplerFactory::self().createShared(samplerClass);
+    // 83 is an arbitrary number, but it's a relatively large prime number, so
+    // it's unlikely to introduce aliasing patterns
+    sampler->setup(p->settingsWidget->samplesPerPixel(), 83);
 
-  auto viewPlaneClass = p->settingsWidget->viewPlane().toStdString();
-  auto viewPlane = ViewPlaneFactory::self().createShared(viewPlaneClass);
-  viewPlane->setSampler(sampler);
+    auto viewPlaneClass = p->settingsWidget->viewPlane().toStdString();
+    auto viewPlane = ViewPlaneFactory::self().createShared(viewPlaneClass);
+    viewPlane->setSampler(sampler);
 
-  p->raytracer->camera()->setViewPlane(viewPlane);
-  p->raytracer->setMaximumRecursionDepth(p->settingsWidget->maxRecursionDepth());
-  p->raytracer->setMaximumThreads(p->settingsWidget->renderThreads());
-  p->raytracer->setQueueSize(p->settingsWidget->queueSize());
+    p->raytracer->camera()->setViewPlane(viewPlane);
+    p->raytracer->setMaximumRecursionDepth(p->settingsWidget->maxRecursionDepth());
+    p->raytracer->setMaximumThreads(p->settingsWidget->renderThreads());
+    p->raytracer->setQueueSize(p->settingsWidget->queueSize());
 
-  p->raytracer->setShowProgressIndicators(p->settingsWidget->showProgressIndicators());
+    p->raytracer->setShowProgressIndicators(p->settingsWidget->showProgressIndicators());
+    engine = p->raytracer;
+  }
+  p->renderWidget->setEngine(engine);
   p->renderWidget->setShowProgressIndicators(p->settingsWidget->showProgressIndicators());
 
   p->renderWidget->render();
@@ -126,16 +145,21 @@ void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
 
   p->raytracer->setScene(raytracerScene);
+  p->wireframe->setScene(raytracerScene);
 
   auto camera = scene->activeCamera();
+  std::shared_ptr<raytracer::Camera> rtCamera;
   if (camera) {
-    p->raytracer->setCamera(camera->toRaytracer());
+    rtCamera = camera->toRaytracer();
   } else {
-    p->raytracer->camera()->setPosition(
+    rtCamera = p->raytracer->camera();
+    rtCamera->setPosition(
       Matrix3d::rotateY(-25_degrees) *
       Matrix3d::rotateX(-25_degrees) *
       Vector3d(0, 0, -5)
     );
   }
+  p->raytracer->setCamera(rtCamera);
+  p->wireframe->setCamera(rtCamera);
 }
 

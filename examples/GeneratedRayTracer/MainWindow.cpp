@@ -9,6 +9,7 @@
 #include <QMouseEvent>
 
 #include <QAction>
+#include <QActionGroup>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QDesktopServices>
@@ -133,7 +134,9 @@ struct MainWindow::Private {
   QAction* moveBackwardsAlongZAct;
 
   QAction* renderAct;
-  
+  QAction* previewRaytracerAct;
+  QAction* previewWireframeAct;
+
   QAction* aboutAct;
   QAction* helpAct;
 };
@@ -350,6 +353,24 @@ void MainWindow::createActions() {
   p->renderAct->setStatusTip(tr("Render current scene"));
   connect(p->renderAct, SIGNAL(triggered()), this, SLOT(render()));
 
+  // Preview-engine selection — radio-style via a QActionGroup so
+  // exactly one is active at a time. Defaults to Raytracer to match
+  // the historical behaviour.
+  p->previewRaytracerAct = new QAction(tr("&Raytracer"), this);
+  p->previewRaytracerAct->setStatusTip(tr("Show the modeling preview as a ray-traced render"));
+  p->previewRaytracerAct->setCheckable(true);
+  p->previewRaytracerAct->setChecked(true);
+  connect(p->previewRaytracerAct, SIGNAL(triggered()), this, SLOT(usePreviewRaytracer()));
+
+  p->previewWireframeAct = new QAction(tr("&Wireframe"), this);
+  p->previewWireframeAct->setStatusTip(tr("Show the modeling preview as a wireframe (faster, geometry-only)"));
+  p->previewWireframeAct->setCheckable(true);
+  connect(p->previewWireframeAct, SIGNAL(triggered()), this, SLOT(usePreviewWireframe()));
+
+  auto previewGroup = new QActionGroup(this);
+  previewGroup->addAction(p->previewRaytracerAct);
+  previewGroup->addAction(p->previewWireframeAct);
+
   p->helpAct = new QAction(tr("Raytracer &Help"), this);
   p->helpAct->setStatusTip(tr("Go to the Github page"));
   connect(p->helpAct, SIGNAL(triggered()), this, SLOT(help()));
@@ -423,6 +444,10 @@ void MainWindow::createMenus() {
 
   p->renderMenu = menuBar()->addMenu(tr("&Render"));
   p->renderMenu->addAction(p->renderAct);
+  p->renderMenu->addSeparator();
+  auto previewMenu = p->renderMenu->addMenu(tr("&Preview Engine"));
+  previewMenu->addAction(p->previewRaytracerAct);
+  previewMenu->addAction(p->previewWireframeAct);
 
   p->helpMenu = menuBar()->addMenu(tr("&Help"));
   p->helpMenu->addAction(p->aboutAct);
@@ -676,8 +701,16 @@ void MainWindow::render() {
   if (!p->renderWindow->isBusy()) {
     p->renderWindow->setScene(p->scene);
   }
-  
+
   p->renderWindow->show();
+}
+
+void MainWindow::usePreviewRaytracer() {
+  p->display->setEngineKind(Display::EngineKind::Raytracer);
+}
+
+void MainWindow::usePreviewWireframe() {
+  p->display->setEngineKind(Display::EngineKind::Wireframe);
 }
 
 void MainWindow::about() {

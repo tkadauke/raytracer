@@ -82,7 +82,9 @@ private slots:
   void moveBackwardsAlongZ();
   
   void render();
-  
+  void usePreviewRaytracer();
+  void usePreviewWireframe();
+
   void about();
   void help();
 

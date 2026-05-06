@@ -1,5 +1,5 @@
 #include "widgets/RenderWidget.h"
-#include "raytracer/Raytracer.h"
+#include "raytracer/RenderEngine.h"
 #include "core/Buffer.h"
 
 #include <QThread>
@@ -11,21 +11,21 @@ using namespace raytracer;
 namespace {
   class RenderThread : public QThread {
   public:
-    inline RenderThread(std::shared_ptr<Raytracer> rt, Buffer<unsigned int>& b)
-      : raytracer(rt),
+    inline RenderThread(std::shared_ptr<RenderEngine> e, Buffer<unsigned int>& b)
+      : engine(e),
         buffer(b)
     {
     }
 
     inline virtual void run() {
-      raytracer->render(buffer);
+      engine->render(buffer);
     }
 
     inline void cancel() {
-      raytracer->cancel();
+      engine->cancel();
     }
 
-    std::shared_ptr<Raytracer> raytracer;
+    std::shared_ptr<RenderEngine> engine;
     Buffer<unsigned int>& buffer;
   };
 }
@@ -46,12 +46,20 @@ struct RenderWidget::Private {
   bool showProgressIndicators;
 };
 
-RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<Raytracer> raytracer)
+RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<RenderEngine> engine)
   : QWidget(parent),
-    m_raytracer(raytracer),
+    m_engine(std::move(engine)),
     p(std::make_unique<Private>())
 {
   setBufferSize(QSize(0, 0));
+}
+
+void RenderWidget::setEngine(std::shared_ptr<RenderEngine> engine) {
+  m_engine = std::move(engine);
+}
+
+std::shared_ptr<RenderEngine> RenderWidget::engine() const {
+  return m_engine;
 }
 
 RenderWidget::~RenderWidget() {
@@ -72,8 +80,8 @@ void RenderWidget::stop() {
 
 void RenderWidget::render() {
   stop();
-  m_raytracer->uncancel();
-  p->renderThread = new RenderThread(m_raytracer, *p->buffer);
+  m_engine->uncancel();
+  p->renderThread = new RenderThread(m_engine, *p->buffer);
   p->renderThread->start();
   connect(p->renderThread, SIGNAL(finished()), this, SLOT(renderThreadDone()));
 
@@ -118,7 +126,7 @@ void RenderWidget::paintEvent(QPaintEvent*) {
 }
 
 void RenderWidget::markRectsInProgress(QImage& image) const {
-  for (const auto& rect : p->renderThread->raytracer->activeRects()) {
+  for (const auto& rect : p->renderThread->engine->activeRects()) {
     for (int x = rect.left(); x != rect.right(); ++x) {
       for (int y = rect.top(); y != rect.bottom(); ++y) {
         image.setPixel(x, y, darken(image.pixel(x, y), 0.8));

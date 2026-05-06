@@ -7,6 +7,8 @@ class Element;
 
 namespace raytracer {
   class Camera;
+  class Raytracer;
+  class WireframeEngine;
 }
 
 class Display : public QtDisplay {
@@ -17,6 +19,21 @@ class Display : public QtDisplay {
 public:
   Display(QWidget* parent);
   ~Display();
-  
+
   void setScene(Scene* scene);
+
+  /// Engine kinds supported by the modeling preview. The render
+  /// dialog has its own selector — this one only affects the
+  /// always-on preview pane.
+  enum class EngineKind { Raytracer, Wireframe };
+
+public slots:
+  /// Swap the live preview engine. The new engine inherits the
+  /// previous engine's scene and camera, so the user sees the same
+  /// view rendered through the new engine.
+  void setEngineKind(EngineKind kind);
+
+private:
+  std::shared_ptr<raytracer::Raytracer> m_raytracerEngine;
+  std::shared_ptr<raytracer::WireframeEngine> m_wireframeEngine;
 };

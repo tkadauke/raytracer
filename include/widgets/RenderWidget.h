@@ -4,11 +4,11 @@
 #include <QWidget>
 
 namespace raytracer {
-  class Raytracer;
+  class RenderEngine;
 }
 
 /**
-  * @brief Qt widget that hosts an in-progress raytraced render.
+  * @brief Qt widget that hosts an in-progress render.
   *
   * `RenderWidget` is what the GUI applications (`SceneBrowser`,
   * `GeneratedRayTracer`'s `RenderWindow`) display in their main
@@ -17,13 +17,20 @@ namespace raytracer {
   * triggers repaints while the render is in flight so the user
   * sees pixels appearing live.
   *
-  * The widget does not own the `Raytracer` — that's a shared_ptr
-  * passed in from the application. The application stays in
-  * control of when to swap scenes / cameras and is responsible
-  * for reissuing `render()` on the widget afterwards.
+  * The widget does not own the `RenderEngine` — that's a
+  * `shared_ptr` passed in from the application. The application
+  * stays in control of when to swap scenes / cameras / engines and
+  * is responsible for reissuing `render()` on the widget afterwards.
   *
-  * Subclasses (`QtDisplay` adds mouse-pick handling) override the
-  * paint and mouse events, but the render lifecycle stays here.
+  * Engine-agnostic: any `RenderEngine` subclass (Raytracer,
+  * WireframeEngine, future SoftwareRasterEngine, ...) drops in.
+  * Subclasses that want raytracer-specific operations (e.g. the
+  * mouse-pick `rayState` probe in `Display`) `dynamic_cast` to
+  * `Raytracer*` and skip the operation when the active engine
+  * isn't one.
+  *
+  * Subclasses (`QtDisplay` adds mouse-drag camera control) override
+  * the paint and mouse events, but the render lifecycle stays here.
   *
   * @see QtDisplay — interactive variant with click-to-pick.
   */
@@ -31,12 +38,12 @@ class RenderWidget : public QWidget {
   Q_OBJECT;
 public:
   /**
-    * Construct as a child of `parent`, rendering through
-    * `raytracer`. Caller retains ownership of the raytracer; it
-    * may be reconfigured (camera, scene) between renders without
-    * recreating this widget.
+    * Construct as a child of `parent`, rendering through `engine`.
+    * Caller retains ownership of the engine; it may be reconfigured
+    * (camera, scene) between renders without recreating this widget.
+    * Use `setEngine` to swap engines (e.g. raytracer → wireframe).
     */
-  explicit RenderWidget(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
+  explicit RenderWidget(QWidget* parent, std::shared_ptr<raytracer::RenderEngine> engine);
   ~RenderWidget();
 
   /// Paints the current state of the buffer, optionally with the
@@ -49,11 +56,23 @@ public:
 
   /**
     * Kick off a render. Resets the buffer, starts the worker
-    * threads via the Raytracer's `render()`, and starts the
-    * repaint timer. Emits `finished()` when the render
-    * completes (or is stopped).
+    * threads via the engine's `render()`, and starts the repaint
+    * timer. Emits `finished()` when the render completes (or is
+    * stopped).
     */
   virtual void render();
+
+  /**
+    * Swap the active render engine. The new engine should share
+    * scene + camera state with the previous one (callers
+    * typically use `RenderEngine::scene()` / `camera()` to copy
+    * over). Calling this during a render is undefined; use
+    * `stop()` first.
+    */
+  void setEngine(std::shared_ptr<raytracer::RenderEngine> engine);
+
+  /// @returns the active render engine.
+  std::shared_ptr<raytracer::RenderEngine> engine() const;
 
   /**
     * Resize the internal buffer. Call before `render()` to match
@@ -74,12 +93,12 @@ signals:
 
 public slots:
   /// Cancel the in-flight render. The widget calls
-  /// `Raytracer::cancel()` internally; the render exits when its
+  /// `RenderEngine::cancel()` internally; the render exits when its
   /// in-progress tiles finish, then `finished()` fires.
   void stop();
 
 protected:
-  std::shared_ptr<raytracer::Raytracer> m_raytracer;
+  std::shared_ptr<raytracer::RenderEngine> m_engine;
 
 private slots:
   void renderThreadDone();

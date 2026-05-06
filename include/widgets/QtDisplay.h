@@ -4,13 +4,13 @@
 #include "widgets/RenderWidget.h"
 
 namespace raytracer {
-  class Raytracer;
+  class RenderEngine;
 }
 
 class QtDisplay : public RenderWidget {
   Q_OBJECT;
 public:
-  explicit QtDisplay(QWidget* parent, std::shared_ptr<raytracer::Raytracer> raytracer);
+  explicit QtDisplay(QWidget* parent, std::shared_ptr<raytracer::RenderEngine> engine);
   ~QtDisplay();
   
   void setInteractive(bool interactive);
