@@ -33,7 +33,10 @@ class SphereTessellate {
   lonSegs()  { return 16 << this.lod; }
 
   createCanvas() {
-    const canvas = new Canvas(320, 320);
+    // Canvas(320, 240) is the geometry `Canvas#center()` is
+    // calibrated for — it translates by (5.5, -4) which puts user
+    // (0, 0) at the viewport centre (160, 120).
+    const canvas = new Canvas(320, 240);
     canvas.center();
 
     const radius = 1.6;
@@ -74,13 +77,14 @@ class SphereTessellate {
     canvas.add(new Circle(new Vector(0,  radius), 0.06, 'result'));
     canvas.add(new Circle(new Vector(0, -radius), 0.06, 'result'));
 
-    // Counts.
+    // Counts. Delta y = 1.0 user units (30 viewport px) is enough
+    // to clear the font.
     const vertexCount = (latBands + 1) * (lonSegs + 1);
     const quadCount = latBands * lonSegs;
-    canvas.add(new Text(new Vector(-2.2, 2.0),
-      `lat bands = 8 << ${this.lod} = ${latBands}, lon segs = 16 << ${this.lod} = ${lonSegs}`));
-    canvas.add(new Text(new Vector(-2.2, 2.3),
-      `vertices = ${latBands + 1} × ${lonSegs + 1} = ${vertexCount}, quads = ${quadCount}`));
+    canvas.add(new Text(new Vector(-3.0, 2.5),
+      `lat bands = ${latBands}, lon segs = ${lonSegs}`));
+    canvas.add(new Text(new Vector(-3.0, 3.5),
+      `vertices = ${vertexCount}, quads = ${quadCount}`));
 
     return canvas.toSVG();
   }

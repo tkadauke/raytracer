@@ -30,7 +30,10 @@ class DiskTessellate {
   }
 
   createCanvas() {
-    const canvas = new Canvas(320, 320);
+    // Canvas(320, 240) is the geometry `Canvas#center()` is
+    // calibrated for — it translates by (5.5, -4) which puts user
+    // (0, 0) at the viewport centre (160, 120).
+    const canvas = new Canvas(320, 240);
     canvas.center();
 
     const radius = 1.6;
@@ -63,10 +66,12 @@ class DiskTessellate {
     canvas.add(new Circle(Vector.null, 0.06, 'result'));
 
     // Vertex/triangle count — the load-bearing numbers per the LOD.
-    canvas.add(new Text(new Vector(-2.2, 2.0),
+    // Delta y = 1.0 user units (30 viewport px) is enough to clear
+    // the font.
+    canvas.add(new Text(new Vector(-3.0, 2.5),
       `segments = 16 << ${this.lod} = ${segments}`));
-    canvas.add(new Text(new Vector(-2.2, 2.3),
-      `vertices = 1 + ${segments} = ${1 + segments}, triangles = ${segments}`));
+    canvas.add(new Text(new Vector(-3.0, 3.5),
+      `vertices = ${1 + segments}, triangles = ${segments}`));
 
     return canvas.toSVG();
   }

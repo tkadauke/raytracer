@@ -41,8 +41,11 @@ class TorusTessellate {
   minorSegs() { return 16 << this.lod; }
 
   createCanvas() {
+    // Canvas(440, 240) at the default 30 px/unit scale ≈ 14.67 × 8
+    // user units. translate(0, -4) places user y = 0 at the
+    // vertical centre of the canvas.
     const canvas = new Canvas(440, 240);
-    canvas.translate(new Vector(-1.0, -3.0));
+    canvas.translate(new Vector(0, -4));
 
     const R = 1.4;        // swept radius (major)
     const r = 0.5;        // tube radius (minor)
@@ -50,9 +53,9 @@ class TorusTessellate {
     const minorSegs = this.minorSegs();
 
     // ---- Left plot: top-down major ring ----
-    const majorCenter = new Vector(2.0, 0);
+    const majorCenter = new Vector(3.5, 0);
 
-    canvas.add(new Text(new Vector(0.7, -2.5), 'major ring (top-down)'));
+    canvas.add(new Text(new Vector(2.0, -2.4), 'major ring (top-down)'));
 
     // True ring outline — outer + inner edges (radii R+r and R-r),
     // dashed for reference.
@@ -73,9 +76,9 @@ class TorusTessellate {
     }
 
     // ---- Right plot: minor ring (tube cross-section) ----
-    const minorCenter = new Vector(5.5, 0);
+    const minorCenter = new Vector(10.0, 0);
 
-    canvas.add(new Text(new Vector(4.4, -2.5), 'minor ring (tube cross-section)'));
+    canvas.add(new Text(new Vector(8.5, -2.4), 'minor ring (tube cross-section)'));
 
     canvas.add(new Circle(minorCenter, r, 'dashed'));
 
@@ -90,12 +93,13 @@ class TorusTessellate {
       canvas.add(new Line(minorPts[j], minorPts[j + 1].minus(minorPts[j])));
     }
 
-    // Counts.
+    // Counts — two stacked rows below the figures. Delta y = 1.0
+    // user units (30 viewport px) is enough to clear the font.
     const vertexCount = (majorSegs + 1) * (minorSegs + 1);
     const quadCount = majorSegs * minorSegs;
-    canvas.add(new Text(new Vector(0.7, 2.5),
+    canvas.add(new Text(new Vector(2.0, 2.5),
       `major segs = minor segs = 16 << ${this.lod} = ${majorSegs}`));
-    canvas.add(new Text(new Vector(0.7, 2.8),
+    canvas.add(new Text(new Vector(2.0, 3.5),
       `vertices = ${majorSegs + 1}² = ${vertexCount}, quads = ${majorSegs}² = ${quadCount}`));
 
     return canvas.toSVG();

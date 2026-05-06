@@ -32,7 +32,10 @@ class OpenCylinderTessellate {
   }
 
   createCanvas() {
-    const canvas = new Canvas(320, 320);
+    // Canvas(320, 240) is the geometry `Canvas#center()` is
+    // calibrated for — it translates by (5.5, -4) which puts user
+    // (0, 0) at the viewport centre (160, 120).
+    const canvas = new Canvas(320, 240);
     canvas.center();
 
     const radius = 1.6;
@@ -65,11 +68,12 @@ class OpenCylinderTessellate {
       canvas.add(new Line(mid, outward.multiply(0.4), 'red'));
     }
 
-    // Vertex/quad counts.
-    canvas.add(new Text(new Vector(-2.2, 2.0),
+    // Vertex/quad counts. Delta y = 1.0 user units (30 viewport px)
+    // is enough to clear the font.
+    canvas.add(new Text(new Vector(-3.0, 2.5),
       `segments = 16 << ${this.lod} = ${segments}`));
-    canvas.add(new Text(new Vector(-2.2, 2.3),
-      `vertices = 2 × (${segments} + 1) = ${2 * (segments + 1)}, quads = ${segments}`));
+    canvas.add(new Text(new Vector(-3.0, 3.5),
+      `vertices = ${2 * (segments + 1)}, quads = ${segments}`));
 
     return canvas.toSVG();
   }
