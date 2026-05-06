@@ -68,8 +68,8 @@ This document is a roadmap, not a commitment, and there are no deadlines. Order 
 
 These don't exist and are blockers for entire feature classes:
 
-- **No `RenderEngine` abstraction.** `Raytracer` *is* the engine. Adding wireframe/software/GL needs a level above.
-- **No `Mesh` interface that all primitives can produce.** `Primitive::tessellate(LOD) → Mesh` does not exist. Blocks the GL viewport, mesh export, and any rasterization-based engine.
+- ~~**No `RenderEngine` abstraction.**~~ ✅ Resolved by §3.R5 — `RenderEngine` base class lifted out of `Raytracer`; engines plug in via subclassing.
+- ~~**No `Mesh` interface that all primitives can produce.**~~ ✅ Resolved by §3.R4 — `Primitive::tessellate(int lod = 0) → shared_ptr<Mesh>` implemented across the standard primitive set.
 - **`Light` is not first-class enough.** Lights exist but aren't sampled for soft shadows or MIS — no `Light::sample(point) → (direction, pdf, intensity)`.
 - **No scene serialization.** Scenes are constructed in C++ or via scripts. Nothing round-trips through a file. Blocks UI save/load, file import/export workflows, distributed rendering, and AI-agent state persistence.
 - **No scene-object handle/ID system.** UI selection, undo, AI agent tool calls all need stable references. Today, objects are bare pointers.
@@ -124,18 +124,18 @@ Round-trip primitives + materials + camera + lights through a file format. Defer
 
 ### R4. `Primitive::tessellate(LOD) → Mesh`
 
-Add a `Mesh` type with positions, normals, UVs, and indices. Implement `tessellate()` on every primitive class:
+~~Add a `Mesh` type with positions, normals, UVs, and indices. Implement `tessellate()` on every primitive class.~~ ✅ **Done** for the standard primitives (PRs #47 batch A, #46 batch B, #45 batch C). `Mesh::Vertex` carries position + normal + UV; `Primitive::tessellate(int lod = 0)` is the contract. Per-primitive coverage:
 
-- Sphere → icosphere or UV sphere.
-- Box → 12 triangles.
-- Cylinder, cone, capsule (new primitives) → parameterized strips.
-- Torus → ring × ring grid.
-- Plane / disk / rectangle → trivial.
-- Triangle / Mesh → identity.
-- CSG operations → mesh booleans (separate epic; libigl or BSP-based for v1).
-- Implicit / SDF (future) → marching cubes.
+- ✅ Sphere → UV sphere on a `lonSegs × latBands` grid (`16 << lod` × `8 << lod`), pole vertices duplicated for pinch-free seam.
+- ✅ Box → 6 quad faces × 4 verts each (24 total), CCW from outside, per-face normals + UVs.
+- ✅ OpenCylinder → quad strip wrapping Y, `2 × (segments + 1)` verts with seam-duplication so wrapped textures don't smear.
+- ✅ Torus → `majorSegs × minorSegs` grid, both seams closed by duplicated final column/row.
+- ✅ Plane / Disk / Rectangle / Triangle / FlatMeshTriangle / SmoothMeshTriangle → trivial fans / single triangles / empty mesh as appropriate.
+- ✅ Composite / Instance / Grid / Scene → child-mesh concatenation with face-index remapping; Instance applies the point + normal matrices, normals re-normalised under non-uniform scale; Grid / Scene inherit unchanged.
+- 🟡 CSG operations (`Difference`, `Union`, `Intersection`, `MinkowskiSum`, `ConvexHull`) → return empty mesh + `qWarning`; mesh-boolean impls queued under §4.2.a.
+- Future: cylinder caps, cone, capsule (new primitives); implicit / SDF → marching cubes.
 
-Estimated effort: ~3 days for the basic shapes, plus separate work for CSG mesh booleans.
+Four interactive Doxygen widgets (`disk_tessellate.js`, `open_cylinder_tessellate.js`, `sphere_tessellate.js`, `torus_tessellate.js`) visualise the LOD-driven segment count growth with live sliders. 89 unit tests pin counts, normals, UVs, and LOD-scaling invariants across every concrete impl.
 
 Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF export, mesh-based BVH acceleration paths.
 
@@ -143,7 +143,7 @@ Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF expor
 
 ~~Introduce an abstract `RenderEngine` above `Raytracer`. Move `render(buffer)` and the threading loop into the base; subclass for each backend.~~ ✅ **Done.** `RenderEngine` base class added; owns camera / scene / tonemap / cancellation hooks plus the `render(Buffer<unsigned int>&)` tonemap-wrapper. `Raytracer` is now a concrete subclass holding what's actually raytracer-specific: the QThreadPool tile dispatch, the single-ray probes (`rayColor` / `rayState` / `primitiveForRay`), and the recursion-depth limit. Threading lives on the concrete engine because each engine picks its own strategy (raytracer tiles pixels; future wireframe will parallelize edges; future GL submits to the driver). The split surfaces what's actually shared, which the namespace cleanup below uses to decide what moves out of `raytracer::`.
 
-- ~~`WireframeEngine`~~ — queued, blocked on the tessellate work in §3.R4.
+- `WireframeEngine` — unblocked: §3.R4 tessellate landed across all three batches. Edge projection from `Mesh` is the next concrete engine to build.
 - `SoftwareRasterEngine`
 - `OpenGLEngine`
 - ✅ `RaytracerEngine` — kept as `Raytracer` since it predates the abstraction; the type rename was deemed not worth the churn.
