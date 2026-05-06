@@ -18,6 +18,7 @@
 #include <QFileInfo>
 #include <QEvent>
 #include <QTextStream>
+#include <iostream>
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Material*);

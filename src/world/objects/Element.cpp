@@ -14,6 +14,7 @@
 #include <QJsonValue>
 #include <QJsonArray>
 #include <QUuid>
+#include <iostream>
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
