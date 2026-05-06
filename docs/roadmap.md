@@ -141,15 +141,14 @@ Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF expor
 
 ### R5. `RenderEngine` abstraction
 
-Introduce an abstract `RenderEngine` above `Raytracer`. Move `render(buffer)` and the threading loop into the base; subclass for each backend:
+~~Introduce an abstract `RenderEngine` above `Raytracer`. Move `render(buffer)` and the threading loop into the base; subclass for each backend.~~ ✅ **Done.** `RenderEngine` base class added; owns camera / scene / tonemap / cancellation hooks plus the `render(Buffer<unsigned int>&)` tonemap-wrapper. `Raytracer` is now a concrete subclass holding what's actually raytracer-specific: the QThreadPool tile dispatch, the single-ray probes (`rayColor` / `rayState` / `primitiveForRay`), and the recursion-depth limit. Threading lives on the concrete engine because each engine picks its own strategy (raytracer tiles pixels; future wireframe will parallelize edges; future GL submits to the driver). The split surfaces what's actually shared, which the namespace cleanup below uses to decide what moves out of `raytracer::`.
 
-- `WireframeEngine`
+- ~~`WireframeEngine`~~ — queued, blocked on the tessellate work in §3.R4.
 - `SoftwareRasterEngine`
 - `OpenGLEngine`
-- `RaytracerEngine` (refactored from the existing `Raytracer`)
+- ✅ `RaytracerEngine` — kept as `Raytracer` since it predates the abstraction; the type rename was deemed not worth the churn.
 - Future: `PathTracerEngine`, `VulkanRTEngine`
 
-- Estimated effort: ~2 days for the abstraction; backends are independent.
 - Unblocks: every other engine.
 
 ### R6. `BSDF` split from `Material::shade`

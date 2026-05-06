@@ -15,9 +15,6 @@
 #include "core/Exception.h"
 #include "core/ScopeExit.h"
 
-#include "raytracer/cameras/PinholeCamera.h"
-#include "raytracer/tonemap/LinearTonemap.h"
-
 #include <QThreadPool>
 #include <QRunnable>
 
@@ -71,8 +68,7 @@ struct Raytracer::Private {
     : threadPool(std::make_unique<QThreadPool>()),
       queueSize(QThread::idealThreadCount()),
       maximumRecursionDepth(10),
-      showProgressIndicators(false),
-      tonemap(std::make_shared<LinearTonemap>())
+      showProgressIndicators(false)
   {
   }
 
@@ -81,19 +77,16 @@ struct Raytracer::Private {
   int queueSize;
   int maximumRecursionDepth;
   bool showProgressIndicators;
-  std::shared_ptr<Tonemap> tonemap;
 };
 
 Raytracer::Raytracer(std::shared_ptr<Scene> scene)
-  : m_camera(std::make_shared<PinholeCamera>()),
-    m_scene(std::move(scene)),
+  : RenderEngine(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
 
 Raytracer::Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene)
-  : m_camera(std::move(camera)),
-    m_scene(std::move(scene)),
+  : RenderEngine(std::move(camera), std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
@@ -116,10 +109,17 @@ void Raytracer::render(Buffer<Colord>& buffer) {
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
+  // shared_from_this() returns shared_ptr<RenderEngine>; the
+  // RenderTask + Camera::render API both want shared_ptr<Raytracer>
+  // because the workers call rayColor() (a Raytracer-specific
+  // method). Static-cast is safe — `this` is definitively a
+  // Raytracer in our own member function.
+  auto self = std::static_pointer_cast<Raytracer>(shared_from_this());
+
   IntegerDecomposition d(p->queueSize);
   for (int vert = 0; vert != d.first(); ++vert) {
     for (int horz = 0; horz != d.second(); ++horz) {
-      auto task = std::make_shared<RenderTask>(shared_from_this(), m_camera, buffer, Recti(
+      auto task = std::make_shared<RenderTask>(self, m_camera, buffer, Recti(
         floor(double(buffer.width()) / d.second() * horz),
         floor(double(buffer.height()) / d.first() * vert),
         ceil(double(buffer.width()) / d.second()),
@@ -138,34 +138,6 @@ void Raytracer::render(Buffer<Colord>& buffer) {
   // already visible; relaxed loads in dumpJson() are sufficient.
   ::raytracer::stats::Counters::instance().dumpJson(std::cerr);
 #endif
-}
-
-void Raytracer::render(Buffer<unsigned int>& displayBuffer) {
-  // Allocate the float HDR accumulator that the tile workers write
-  // into, run the render, then walk every pixel applying the
-  // configured tonemap and packing to RGB. The two-buffer form is
-  // the price of putting tonemapping anywhere other than inside
-  // each tile worker — every render allocates a Colord buffer
-  // (~24 bytes/pixel) on top of the display buffer. Acceptable for
-  // typical resolutions; revisit if memory pressure becomes an
-  // issue at 8K-and-up.
-  Buffer<Colord> hdr(displayBuffer.width(), displayBuffer.height());
-  render(hdr);
-
-  auto tonemap = p->tonemap;
-  for (int y = 0; y < hdr.height(); ++y) {
-    for (int x = 0; x < hdr.width(); ++x) {
-      displayBuffer[y][x] = tonemap->apply(hdr[y][x]).rgb();
-    }
-  }
-}
-
-std::shared_ptr<Tonemap> Raytracer::tonemap() const {
-  return p->tonemap;
-}
-
-void Raytracer::setTonemap(std::shared_ptr<Tonemap> tonemap) {
-  p->tonemap = std::move(tonemap);
 }
 
 const Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
