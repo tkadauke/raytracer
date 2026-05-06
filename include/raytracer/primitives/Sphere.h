@@ -43,6 +43,8 @@ namespace raytracer {
       * <script type="text/javascript" src="figure.js"></script>
       * <script type="text/javascript" src="sphere_tessellate.js"></script>
       * @endhtmlonly
+      *
+      * @image html sphere_wireframe.png "Sphere rendered through WireframeEngine"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

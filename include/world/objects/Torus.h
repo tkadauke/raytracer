@@ -9,6 +9,8 @@
   * `tubeRadius` swept around an axis at distance `sweptRadius` from
   * the centre. The hole points along the local +y axis; rotate via
   * the inherited `rotation` property to lay it flat.
+  *
+  * @image html torus_wireframe.png "Torus rendered through WireframeEngine"
   */
 class Torus : public Surface {
   Q_OBJECT;

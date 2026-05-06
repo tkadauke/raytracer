@@ -50,6 +50,8 @@ namespace raytracer {
       * <script type="text/javascript" src="figure.js"></script>
       * <script type="text/javascript" src="open_cylinder_tessellate.js"></script>
       * @endhtmlonly
+      *
+      * @image html open_cylinder_wireframe.png "OpenCylinder rendered through WireframeEngine"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

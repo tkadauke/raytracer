@@ -10,6 +10,8 @@ namespace raytracer {
   * @brief `RenderEngine` that draws every mesh face's edges as
   *        rasterized lines on the framebuffer.
   *
+  * @image html wireframe_engine.png "Sphere through WireframeEngine at default LOD"
+  *
   * For each primitive in the scene, calls `Primitive::tessellate(lod)`
   * to obtain a `Mesh`, projects every face vertex to screen space via
   * `Camera::projectPoint`, and rasterizes each face edge using
@@ -20,6 +22,22 @@ namespace raytracer {
   * (and as a sanity check on the tessellate impls themselves —
   * mistakes in vertex ordering or LOD scheduling are immediately
   * visible).
+  *
+  * The `lod` knob is forwarded to every primitive's `tessellate`. As
+  * lod climbs, the segment count doubles per dimension, so vertex
+  * counts grow roughly 4× per step on 2D-parameterised primitives
+  * (sphere, torus). Past a certain density every visible pixel falls
+  * on an edge and the wireframe saturates to a solid silhouette —
+  * that's the point at which switching to a shaded engine becomes
+  * the natural next step.
+  *
+  * <table><tr>
+  * <td>@image html wireframe_engine_lod_0.png "lod=0"</td>
+  * <td>@image html wireframe_engine_lod_1.png "lod=1"</td>
+  * <td>@image html wireframe_engine_lod_2.png "lod=2"</td>
+  * <td>@image html wireframe_engine_lod_3.png "lod=3"</td>
+  * <td>@image html wireframe_engine_lod_4.png "lod=4 (saturated)"</td>
+  * </tr></table>
   *
   * Cameras supported: any subclass that overrides
   * `Camera::projectPoint` (currently `PinholeCamera` and inheritors

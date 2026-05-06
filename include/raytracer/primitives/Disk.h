@@ -40,6 +40,8 @@ namespace raytracer {
       * <script type="text/javascript" src="figure.js"></script>
       * <script type="text/javascript" src="disk_tessellate.js"></script>
       * @endhtmlonly
+      *
+      * @image html disk_wireframe.png "Disk rendered through WireframeEngine"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

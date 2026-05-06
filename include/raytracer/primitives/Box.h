@@ -40,6 +40,8 @@ namespace raytracer {
       * Vertices are NOT shared across faces because the normals and
       * UVs differ per face; sharing would require splitting on
       * texture seams anyway.
+      *
+      * @image html box_wireframe.png "Box rendered through WireframeEngine"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 
