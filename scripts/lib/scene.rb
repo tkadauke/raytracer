@@ -1,8 +1,49 @@
 require 'json'
 require 'fileutils'
 require 'securerandom'
+require 'digest'
 require_relative 'core_ext'
 
+# The Ruby DSL backing the doc-render framework + scene scripts.
+#
+# This file mirrors the C++ Q_PROPERTY hierarchy in `include/world/objects/`
+# as plain Ruby classes, plus a Scene class that knows how to serialise
+# itself to JSON and shell out to `rendercli`. The DSL on top of those
+# classes is what makes doc-render drivers like
+# `scripts/docs/thin_lens_camera.rb` readable:
+#
+#     class_doc do
+#       camera_scene
+#       thin_lens_camera :position => [0, -1, -8], :focalDistance => 8
+#     end
+#
+# `class_doc` is in `render_docs.rb`; `camera_scene` is a helper in
+# `Common` (also `render_docs.rb`); `thin_lens_camera` is dispatched by
+# `ElementCreator#method_missing` to instantiate `ThinLensCamera`. See
+# `scripts/README.md` for the full architecture.
+#
+# The Ruby ↔ C++ class mirror is currently maintained by hand. Adding
+# a new C++ Q_PROPERTY class means adding a matching `class Foo < Bar`
+# block at the bottom of this file. See
+# `docs/plans/framework-critique.md` §1 for the (deferred) plan to
+# autogenerate this from the C++ metadata.
+
+# Wraps an `Element` so DSL code inside a `scene { ... }` block can
+# refer to child elements by camel-cased method name. Example:
+#
+#     scene do
+#       pinhole_camera :position => [0, 0, -5]    # → PinholeCamera.new(...)
+#       sphere :radius => 1                        # → Sphere.new(...)
+#     end
+#
+# `method_missing` first tries to delegate to the wrapped element (for
+# property setters like `position=`), then falls back to camelising the
+# method name and instantiating that class as a child. Helpers like
+# `red`, `sunlight`, `camera_scene` are mixed into ElementCreator via
+# `ElementCreator.send :include, ...` (see `Colors`, `Lights`,
+# `Materials`, `Objects`, `Cameras`, and `Common`); each is a module
+# of pre-cooked element constructors with sensible defaults, memoised
+# per-creator-instance so the JSON stays small.
 class ElementCreator
   def initialize(element)
     @element = element
@@ -23,6 +64,18 @@ class ElementCreator
   end
 end
 
+# Base class for every entity in the scene tree — cameras, lights,
+# materials, textures, primitives, and the scene itself. Subclasses
+# declare their JSON-serialised fields via `property :foo => default`
+# at the class level (see `Camera`, `Sphere`, etc. below); the values
+# round-trip through `to_json` / `read` (the C++ side) by name.
+#
+# Each instance gets a per-run random UUID as its `id` (used as a
+# reference target by other elements like a Surface's `material`
+# slot). Per-run randomness is why staleness detection in
+# `Scene#render` strips ids before hashing — a logically-identical
+# scene re-rendered tomorrow produces different ids and would
+# otherwise hash differently.
 class Element
   @@num_objects = 0
 
@@ -130,6 +183,19 @@ class Element
   end
 end
 
+# Top-level scene container — root of every JSON file emitted by the
+# Ruby DSL. Owns the canonical render pipeline:
+#
+#   1. The DSL block populates `@children` with cameras, lights,
+#      surfaces, materials, textures.
+#   2. `to_json` serialises the whole tree (inherited from `Element`).
+#   3. `render` writes the JSON to a temp file, shells out to
+#      `rendercli`, and writes a sidecar `.png.hash` for the
+#      staleness check on the next run.
+#
+# Render options (sampler, samples_per_pixel, width, height,
+# overwrite, ...) are passed via `options(opts)` from the DSL —
+# they map 1-to-1 to rendercli's `--key=value` flags.
 class Scene < Element
   property :ambient => [0.4, 0.4, 0.4]
   property :background => [0.4, 0.8, 1]
@@ -159,8 +225,25 @@ class Scene < Element
     file ||= outfile
     file ||= "out.png"
 
-    if !options.delete(:overwrite) && File.exist?(file)
-      puts "Not rendering #{file} since it already exists"
+    json_str = to_json
+    overwrite = options.delete(:overwrite)
+    hash_file = "#{file}.hash"
+    new_hash = Scene.scene_hash(json_str, options.merge(opts))
+
+    # Three states for an existing on-disk image:
+    #   - file present + sidecar hash matches  → up to date, skip
+    #   - file present + sidecar hash differs  → driver changed, re-render
+    #   - file present + no sidecar hash       → produced by an older
+    #                                            version of this script;
+    #                                            re-render so the sidecar
+    #                                            hash gets written
+    # If `overwrite` is true (the per-scene opt-out), force render
+    # regardless. The user-facing `--missing` flag flips overwrite OFF
+    # for the whole run; without `--missing`, every render is forced
+    # (matches the historical pre-staleness behaviour).
+    if !overwrite && File.exist?(file) && File.exist?(hash_file) &&
+       File.read(hash_file).strip == new_hash
+      puts "Skipping #{file} (up to date)"
       return
     end
 
@@ -174,9 +257,30 @@ class Scene < Element
 
     args = options.merge(opts).map { |key, value| "--#{key}=#{value}" }.join(" ")
     rendercli = ENV.fetch('RENDERCLI', 'build/release/tools/rendercli/rendercli')
-    system "#{rendercli} #{file_name} #{file} #{args}"
+    if system "#{rendercli} #{file_name} #{file} #{args}"
+      File.write(hash_file, new_hash)
+    end
 
     FileUtils.rm(file_name)
+  end
+
+  # Compute a content hash of (scene JSON + render options) suitable
+  # for staleness detection. The JSON's element IDs are random UUIDs
+  # generated per-run via SecureRandom (see Element#initialize), so a
+  # raw hash of `to_json` would change on every run. Strip / normalise
+  # them out so the hash captures the SCENE structure, not the per-run
+  # random labels.
+  #
+  # The render options (sampler, samples_per_pixel, width, height) are
+  # included too — changing the sample count should re-render even if
+  # the scene is otherwise identical.
+  def self.scene_hash(json_str, opts)
+    # Element id values: "id":"{8-4-4-4-12}" → "id":"<id>"
+    normalised = json_str.gsub(/"id"\s*:\s*"\{[a-f0-9-]+\}"/, '"id":"<id>"')
+    # Property references that point to those ids: "{8-4-4-4-12}" → "<id>"
+    normalised = normalised.gsub(/"\{[a-f0-9-]{30,}\}"/, '"<id>"')
+    payload = "#{normalised}\n#{opts.sort.to_h.inspect}"
+    Digest::SHA1.hexdigest(payload)
   end
 end
 
@@ -292,6 +396,16 @@ end
 class PinholeCamera < Camera
   property :distance => 5,
            :zoom => 1
+end
+
+class ThinLensCamera < Camera
+  property :distance => 5,
+           :zoom => 1,
+           :apertureRadius => 0.1,
+           :focalDistance => 5
+end
+
+class EquirectangularCamera < Camera
 end
 
 class SphericalCamera < Camera

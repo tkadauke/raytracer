@@ -13,38 +13,53 @@
 #include "world/objects/ConvexHull.h"
 #include "world/objects/Material.h"
 
-#include <QScriptEngine>
+#include <QJSEngine>
 #include <QFile>
 #include <QFileInfo>
 #include <QEvent>
 #include <QTextStream>
-#include <QScriptValueIterator>
-#include <QScriptSyntaxCheckResult>
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Material*);
 
-namespace {
+// Qt6 removed QScriptEngine::newFunction. Element creation is exposed to JS
+// through Q_INVOKABLE methods on this helper. Constructor wrappers injected
+// via evaluate() keep the existing script API ("new Box(parent)" etc.) intact:
+// when a JS constructor returns an object, the 'new' expression forwards that
+// object to the caller instead of the blank 'this' JS would otherwise allocate.
+class ScriptElementRegistry : public QObject {
+  Q_OBJECT
+  QJSEngine* m_engine;
+
   template<class T>
-  QScriptValue ElementConstructor(QScriptContext* ctx, QScriptEngine* eng) {
-    auto parent = ctx->argument(0).toQObject();
-    if (Element* e = qobject_cast<Element*>(parent)) {
-      T* b = new T(nullptr);
-      b->setGenerated(true);
-      e->addChild(b);
-      return eng->newQObject(b);
-    }
-    return QScriptValue();
+  QJSValue createElement(QJSValue parentVal) {
+    auto* parent = qobject_cast<Element*>(parentVal.toQObject());
+    if (!parent)
+      return QJSValue();
+    auto* obj = new T(nullptr);
+    obj->setGenerated(true);
+    parent->addChild(obj);
+    return m_engine->newQObject(obj);
   }
 
+public:
+  explicit ScriptElementRegistry(QJSEngine* engine, QObject* parent = nullptr)
+    : QObject(parent), m_engine(engine) {}
 
-  QScriptValue Vector3dConstructor(QScriptContext* ctx, QScriptEngine* eng) {
-    double x = ctx->argument(0).toNumber();
-    double y = ctx->argument(1).toNumber();
-    double z = ctx->argument(2).toNumber();
-    return eng->toScriptValue(Vector3d(x, y, z));
+  Q_INVOKABLE QJSValue createBox(QJSValue p)          { return createElement<Box>(p); }
+  Q_INVOKABLE QJSValue createSphere(QJSValue p)       { return createElement<Sphere>(p); }
+  Q_INVOKABLE QJSValue createCylinder(QJSValue p)     { return createElement<Cylinder>(p); }
+  Q_INVOKABLE QJSValue createRing(QJSValue p)         { return createElement<Ring>(p); }
+  Q_INVOKABLE QJSValue createUnion(QJSValue p)        { return createElement<Union>(p); }
+  Q_INVOKABLE QJSValue createIntersection(QJSValue p) { return createElement<Intersection>(p); }
+  Q_INVOKABLE QJSValue createDifference(QJSValue p)   { return createElement<Difference>(p); }
+  Q_INVOKABLE QJSValue createMinkowskiSum(QJSValue p) { return createElement<MinkowskiSum>(p); }
+  Q_INVOKABLE QJSValue createConvexHull(QJSValue p)   { return createElement<ConvexHull>(p); }
+
+  Q_INVOKABLE QJSValue createVector3(double x, double y, double z) {
+    return m_engine->toScriptValue(Vector3d(x, y, z));
   }
-}
+};
 
 ScriptedSurface::ScriptedSurface(Element* parent)
   : Surface(parent),
@@ -54,20 +69,27 @@ ScriptedSurface::ScriptedSurface(Element* parent)
 }
 
 void ScriptedSurface::setupEngine() {
-  m_engine = new QScriptEngine;
-  m_this = m_engine->newQObject(this);
-  m_engine->setGlobalObject(m_this);
+  delete m_engine;
+  m_engine = new QJSEngine;
 
-  registerElement<Box>();
-  registerElement<Sphere>();
-  registerElement<Cylinder>();
-  registerElement<Ring>();
-  registerElement<Union>();
-  registerElement<Intersection>();
-  registerElement<Difference>();
-  registerElement<MinkowskiSum>();
-  registerElement<ConvexHull>();
-  m_engine->globalObject().setProperty("Vector3", m_engine->newFunction(Vector3dConstructor));
+  auto* registry = new ScriptElementRegistry(m_engine, m_engine);
+  m_engine->globalObject().setProperty("__reg__", m_engine->newQObject(registry));
+  m_this = m_engine->newQObject(this);
+
+  // Inject JS constructor wrappers so scripts can keep using "new Box(parent)"
+  // and "new Vector3(x, y, z)" unchanged.
+  m_engine->evaluate(
+    "function Box(p)          { return __reg__.createBox(p); }\n"
+    "function Sphere(p)       { return __reg__.createSphere(p); }\n"
+    "function Cylinder(p)     { return __reg__.createCylinder(p); }\n"
+    "function Ring(p)         { return __reg__.createRing(p); }\n"
+    "function Union(p)        { return __reg__.createUnion(p); }\n"
+    "function Intersection(p) { return __reg__.createIntersection(p); }\n"
+    "function Difference(p)   { return __reg__.createDifference(p); }\n"
+    "function MinkowskiSum(p) { return __reg__.createMinkowskiSum(p); }\n"
+    "function ConvexHull(p)   { return __reg__.createConvexHull(p); }\n"
+    "function Vector3(x,y,z)  { return __reg__.createVector3(x,y,z); }\n"
+  );
 }
 
 void ScriptedSurface::setScriptName(const QString& name) {
@@ -80,21 +102,21 @@ void ScriptedSurface::setScriptName(const QString& name) {
   QFileInfo fi(name);
   auto functionName = fi.baseName();
 
-  if (functionDefined(m_engine->globalObject(), functionName))
-    jsCall(m_engine->globalObject(), functionName);
+  // The constructor function is defined on the global object by evaluate() but
+  // must be called with m_this as 'this' so that "this.create = ..." lands on
+  // the ScriptedSurface QObject wrapper rather than the bare JS global.
+  QJSValue ctor = m_engine->globalObject().property(functionName);
+  if (ctor.isCallable()) {
+    QJSValue result = ctor.callWithInstance(m_this);
+    if (result.isError())
+      handleError(result);
+  }
 }
 
 void ScriptedSurface::removeDynamicProperties() {
   for (const auto& name : dynamicPropertyNames()) {
     setProperty(name, QVariant());
   }
-}
-
-template<class T>
-void ScriptedSurface::registerElement() {
-  QScriptValue ctor = m_engine->newFunction(ElementConstructor<T>);
-  QScriptValue metaObject = m_engine->newQMetaObject(&T::staticMetaObject, ctor);
-  m_engine->globalObject().setProperty(T::staticMetaObject.className(), metaObject);
 }
 
 void ScriptedSurface::loadScript() {
@@ -106,45 +128,36 @@ void ScriptedSurface::loadScript() {
   QTextStream in(&file);
   QString script = in.readAll();
 
-  auto result = QScriptEngine::checkSyntax(script);
-  if (result.state() != QScriptSyntaxCheckResult::Valid) {
-    std::cout << "Syntax error in script " << m_scriptName.toStdString()
-              << " in line " << result.errorLineNumber()
-              << " column " << result.errorColumnNumber()
-              << ": " << result.errorMessage().toStdString() << std::endl;
+  // evaluate() covers both syntax errors and runtime exceptions; check the
+  // returned value rather than a separate checkSyntax step (removed in Qt6).
+  QJSValue result = m_engine->evaluate(script, m_scriptName);
+  if (result.isError()) {
+    handleError(result);
     return;
   }
 
-  m_engine->evaluate(script);
-  if (m_engine->hasUncaughtException()) {
-    handleError();
-    return;
-  }
-
-  QScriptValue properties = m_engine->globalObject().property("properties");
+  QJSValue properties = m_engine->globalObject().property("properties");
   if (properties.isObject()) {
-    QScriptValueIterator it(properties);
-    while (it.hasNext()) {
-      it.next();
-
-      auto propertyName = it.name().toStdString();
-      const char* name = propertyName.c_str();
+    // Iterate via QVariantMap since QJSValueIterator was removed in Qt6.
+    QVariantMap propMap = properties.toVariant().toMap();
+    for (auto it = propMap.begin(); it != propMap.end(); ++it) {
+      QByteArray name = it.key().toLatin1();
       QString type = it.value().toString();
-      QScriptValue value = m_engine->globalObject().property(it.name());
+      QJSValue value = m_this.property(it.key());
       if (type == "double") {
         if (value.isNumber()) {
-          setProperty(name, QVariant::fromValue(double(value.toNumber())));
+          setProperty(name.constData(), QVariant::fromValue(double(value.toNumber())));
         } else {
-          setProperty(name, QVariant::fromValue(double(0.0)));
+          setProperty(name.constData(), QVariant::fromValue(double(0.0)));
         }
       } else if (type == "int") {
         if (value.isNumber()) {
-          setProperty(name, QVariant::fromValue(int(value.toNumber())));
+          setProperty(name.constData(), QVariant::fromValue(int(value.toInt())));
         } else {
-          setProperty(name, QVariant::fromValue(int(0)));
+          setProperty(name.constData(), QVariant::fromValue(int(0)));
         }
       } else if (type == "Material") {
-        setProperty(name, QVariant::fromValue(static_cast<Material*>(nullptr)));
+        setProperty(name.constData(), QVariant::fromValue(static_cast<Material*>(nullptr)));
       }
     }
   }
@@ -159,27 +172,25 @@ void ScriptedSurface::clear() {
   }
 }
 
-QScriptValue ScriptedSurface::jsCall(QScriptValue obj, const QString& function, const QScriptValueList& args) {
-  QScriptValue func = obj.property(function);
-  QScriptValue result = func.call(m_this, args);
-  if (m_engine->hasUncaughtException()) {
-    handleError();
-  }
+QJSValue ScriptedSurface::jsCall(QJSValue obj, const QString& function, const QJSValueList& args) {
+  QJSValue func = obj.property(function);
+  QJSValue result = func.callWithInstance(m_this, args);
+  if (result.isError())
+    handleError(result);
   return result;
 }
 
-bool ScriptedSurface::functionDefined(QScriptValue obj, const QString& function) const {
-  QScriptValue func = obj.property(function);
-  return func.isFunction();
+bool ScriptedSurface::functionDefined(QJSValue obj, const QString& function) const {
+  return obj.property(function).isCallable();
 }
 
-void ScriptedSurface::handleError() {
-  auto error = m_engine->uncaughtException();
+void ScriptedSurface::handleError(const QJSValue& error) {
   std::cout << "Uncaught exception in script " << m_scriptName.toStdString()
             << ": " << error.toString().toStdString() << std::endl;
 
-  for (const auto& line : m_engine->uncaughtExceptionBacktrace()) {
-    std::cout << line.toStdString() << std::endl;
+  QJSValue stack = error.property("stack");
+  if (stack.isString()) {
+    std::cout << stack.toString().toStdString() << std::endl;
   }
 }
 
@@ -192,12 +203,12 @@ bool ScriptedSurface::event(QEvent *e) {
       funcName[0] = funcName[0].toUpper();
       funcName = "set" + funcName;
       if (functionDefined(m_this, funcName)) {
-        QScriptValueList args;
-        args << m_engine->newVariant(property(prop.toStdString().c_str()));
+        QJSValueList args;
+        args << m_engine->toScriptValue(property(prop.toLatin1().constData()));
         jsCall(m_this, funcName, args);
 
         m_blockDynamicPropertyEvent = true;
-        setProperty(prop.toStdString().c_str(), m_this.property(prop).toVariant());
+        setProperty(prop.toLatin1().constData(), m_this.property(prop).toVariant());
         m_blockDynamicPropertyEvent = false;
       }
       clear();
@@ -215,3 +226,5 @@ std::shared_ptr<raytracer::Primitive> ScriptedSurface::toRaytracerPrimitive() co
 
 static bool dummy = ElementFactory::self().registerClass<ScriptedSurface>("ScriptedSurface");
 
+// Required for AUTOMOC to process QObject subclasses defined in this .cpp.
+#include "ScriptedSurface.moc"

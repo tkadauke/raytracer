@@ -53,15 +53,38 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
     return;
 
   auto plane = viewPlane();
+  auto sampler = plane->sampler();
+  const int samplesPerPixel = sampler->numSamples();
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     if (m_showProgressIndicators) {
       plotRGB(buffer, rect, pixel, 0xff0000);
     }
 
+    // Per-pixel hash: any cheap function that varies per (column,
+    // row) is fine. Weyl-style multipliers spread adjacent pixels
+    // into different sample sets so neighbouring pixels don't end up
+    // with identical lens / time / ... dimensions for the same
+    // sampleIndex. The constants are coprime odd-ish — the exact
+    // values don't matter, only that they decorrelate the grid.
+    const std::uint64_t pixelHash =
+      static_cast<std::uint64_t>(pixel.column()) * 73856093ull
+      ^ static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+
     Colord pixelColor;
-    for (const auto& sample : plane->sampler()->sampleSet()) {
-      Rayd ray = rayForPixel(pixel.pixel() + sample);
+    for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+      auto stream = sampler->stream(sampleIndex, pixelHash);
+
+      // Dimension 0 of the stream is sub-pixel jitter — the renderer
+      // owns that dimension because it has to apply the offset to
+      // the integer pixel coords *before* passing them to
+      // `rayForPixel`. Cameras therefore see a stream that starts at
+      // dimension 1; whatever they pull (lens disc, shutter time, ...)
+      // is decorrelated from the sub-pixel jitter.
+      Vector2d subPixel = stream->next2D();
+      Vector2d xy = pixel.pixel() + subPixel;
+
+      Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
       if (ray.direction().isDefined()) {
         State state;
         pixelColor += raytracer->rayColor(ray, state);

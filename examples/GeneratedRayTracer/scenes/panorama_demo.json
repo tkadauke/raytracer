@@ -1,0 +1,93 @@
+{
+    "ambient": [0.4, 0.4, 0.4],
+    "background": [0.4, 0.8, 1.0],
+    "children": [
+        {
+            "id": "{00000000-0000-0000-0000-000000000001}",
+            "name": "Equirectangular (360°) Camera",
+            "type": "EquirectangularCamera",
+            "position": [0, -1, 0],
+            "target": [0, -1, 1],
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000002}",
+            "name": "Sun",
+            "type": "DirectionalLight",
+            "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "color": [1, 1, 1],
+            "intensity": 1,
+            "direction": [-0.5, -1, -0.5],
+            "children": []
+        },
+
+        { "id": "{00000000-0000-0000-0000-000000000010}", "name": "RedTex",    "type": "ConstantColorTexture", "color": [1.0, 0.2, 0.2], "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000011}", "name": "GreenTex",  "type": "ConstantColorTexture", "color": [0.2, 1.0, 0.2], "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000012}", "name": "BlueTex",   "type": "ConstantColorTexture", "color": [0.2, 0.2, 1.0], "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000013}", "name": "YellowTex", "type": "ConstantColorTexture", "color": [1.0, 1.0, 0.2], "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000014}", "name": "GreyTex",   "type": "ConstantColorTexture", "color": [0.7, 0.7, 0.7], "children": [] },
+
+        { "id": "{00000000-0000-0000-0000-000000000020}", "name": "RedMat",    "type": "MatteMaterial", "diffuseTexture": "{00000000-0000-0000-0000-000000000010}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000021}", "name": "GreenMat",  "type": "MatteMaterial", "diffuseTexture": "{00000000-0000-0000-0000-000000000011}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000022}", "name": "BlueMat",   "type": "MatteMaterial", "diffuseTexture": "{00000000-0000-0000-0000-000000000012}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000023}", "name": "YellowMat", "type": "MatteMaterial", "diffuseTexture": "{00000000-0000-0000-0000-000000000013}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000024}", "name": "GreyMat",   "type": "MatteMaterial", "diffuseTexture": "{00000000-0000-0000-0000-000000000014}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "children": [] },
+
+        {
+            "id": "{00000000-0000-0000-0000-000000000030}",
+            "name": "Floor",
+            "type": "Box",
+            "position": [0, 1.1, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000024}",
+            "size": [12, 0.1, 12],
+            "bevelRadius": 0,
+            "children": []
+        },
+
+        {
+            "id": "{00000000-0000-0000-0000-000000000040}",
+            "name": "FrontSphere (red, +z)",
+            "type": "Sphere",
+            "position": [0, -1, 4], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000020}",
+            "radius": 1,
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000041}",
+            "name": "RightSphere (green, +x)",
+            "type": "Sphere",
+            "position": [4, -1, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000021}",
+            "radius": 1,
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000042}",
+            "name": "BackSphere (blue, -z) — appears at the seam",
+            "type": "Sphere",
+            "position": [0, -1, -4], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000022}",
+            "radius": 1,
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000043}",
+            "name": "LeftSphere (yellow, -x)",
+            "type": "Sphere",
+            "position": [-4, -1, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000023}",
+            "radius": 1,
+            "children": []
+        }
+    ],
+    "id": "{00000000-0000-0000-0000-000000000000}",
+    "name": "360° Panorama Demo (EquirectangularCamera)",
+    "type": "Scene"
+}

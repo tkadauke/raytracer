@@ -56,6 +56,8 @@
 #include "world/objects/FishEyeCamera.h"
 #include "world/objects/OrthographicCamera.h"
 #include "world/objects/SphericalCamera.h"
+#include "world/objects/ThinLensCamera.h"
+#include "world/objects/EquirectangularCamera.h"
 
 struct MainWindow::Private {
   inline Private()
@@ -114,6 +116,8 @@ struct MainWindow::Private {
   QAction* addFishEyeCameraAct;
   QAction* addOrthographicCameraAct;
   QAction* addSphericalCameraAct;
+  QAction* addThinLensCameraAct;
+  QAction* addEquirectangularCameraAct;
   
   QAction* deleteElementAct;
 
@@ -263,50 +267,58 @@ void MainWindow::createActions() {
   p->addSphericalCameraAct->setStatusTip(tr("Add a spherical camera to the scene"));
   connect(p->addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
 
+  p->addThinLensCameraAct = new QAction(tr("Thin Lens Camera (DOF)"), this);
+  p->addThinLensCameraAct->setStatusTip(tr("Add a thin-lens camera with depth-of-field to the scene"));
+  connect(p->addThinLensCameraAct, SIGNAL(triggered()), this, SLOT(addThinLensCamera()));
+
+  p->addEquirectangularCameraAct = new QAction(tr("Equirectangular Camera (360°)"), this);
+  p->addEquirectangularCameraAct->setStatusTip(tr("Add a full-sphere panorama camera to the scene (render at 2:1 aspect)"));
+  connect(p->addEquirectangularCameraAct, SIGNAL(triggered()), this, SLOT(addEquirectangularCamera()));
+
   p->moveForwardsAlongXAct = new QAction(tr("Move forwards along X axis"), this);
   p->moveForwardsAlongXAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::META + Qt::Key_Up),
-    QKeySequence(Qt::SHIFT + Qt::META + Qt::Key_Up)
+    QKeySequence(Qt::META | Qt::Key_Up),
+    QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Up)
   });
   p->moveForwardsAlongXAct->setStatusTip(tr("Moves the current element forwards along the X axis"));
   connect(p->moveForwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongX()));
 
   p->moveBackwardsAlongXAct = new QAction(tr("Move backwards along X axis"), this);
   p->moveBackwardsAlongXAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::META + Qt::Key_Down),
-    QKeySequence(Qt::SHIFT + Qt::META + Qt::Key_Down)
+    QKeySequence(Qt::META | Qt::Key_Down),
+    QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Down)
   });
   p->moveBackwardsAlongXAct->setStatusTip(tr("Moves the current element backwards along the X axis"));
   connect(p->moveBackwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongX()));
 
   p->moveForwardsAlongYAct = new QAction(tr("Move forwards along Y axis"), this);
   p->moveForwardsAlongYAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::ALT + Qt::Key_Up),
-    QKeySequence(Qt::SHIFT + Qt::ALT + Qt::Key_Up)
+    QKeySequence(Qt::ALT | Qt::Key_Up),
+    QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Up)
   });
   p->moveForwardsAlongYAct->setStatusTip(tr("Moves the current element forwards along the Y axis"));
   connect(p->moveForwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongY()));
 
   p->moveBackwardsAlongYAct = new QAction(tr("Move backwards along Y axis"), this);
   p->moveBackwardsAlongYAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::ALT + Qt::Key_Down),
-    QKeySequence(Qt::SHIFT + Qt::ALT + Qt::Key_Down)
+    QKeySequence(Qt::ALT | Qt::Key_Down),
+    QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Down)
   });
   p->moveBackwardsAlongYAct->setStatusTip(tr("Moves the current element backwards along the Y axis"));
   connect(p->moveBackwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongY()));
 
   p->moveForwardsAlongZAct = new QAction(tr("Move forwards along Z axis"), this);
   p->moveForwardsAlongZAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::CTRL + Qt::Key_Up),
-    QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_Up)
+    QKeySequence(Qt::CTRL | Qt::Key_Up),
+    QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Up)
   });
   p->moveForwardsAlongZAct->setStatusTip(tr("Moves the current element forwards along the Z axis"));
   connect(p->moveForwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongZ()));
 
   p->moveBackwardsAlongZAct = new QAction(tr("Move backwards along Z axis"), this);
   p->moveBackwardsAlongZAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::CTRL + Qt::Key_Down),
-    QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_Down)
+    QKeySequence(Qt::CTRL | Qt::Key_Down),
+    QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Down)
   });
   p->moveBackwardsAlongZAct->setStatusTip(tr("Moves the current element backwards along the Z axis"));
   connect(p->moveBackwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongZ()));
@@ -322,7 +334,7 @@ void MainWindow::createActions() {
   connect(p->deleteElementAct, SIGNAL(triggered()), this, SLOT(deleteElement()));
 
   p->renderAct = new QAction(tr("&Render"), this);
-  p->renderAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_R));
+  p->renderAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
   p->renderAct->setStatusTip(tr("Render current scene"));
   connect(p->renderAct, SIGNAL(triggered()), this, SLOT(render()));
 
@@ -380,6 +392,8 @@ void MainWindow::createMenus() {
   addCamera->addAction(p->addFishEyeCameraAct);
   addCamera->addAction(p->addOrthographicCameraAct);
   addCamera->addAction(p->addSphericalCameraAct);
+  addCamera->addAction(p->addThinLensCameraAct);
+  addCamera->addAction(p->addEquirectangularCameraAct);
   
   p->editMenu->addSeparator();
   p->editMenu->addAction(p->deleteElementAct);
@@ -581,6 +595,14 @@ void MainWindow::addOrthographicCamera() {
 
 void MainWindow::addSphericalCamera() {
   add<SphericalCamera>();
+}
+
+void MainWindow::addThinLensCamera() {
+  add<ThinLensCamera>();
+}
+
+void MainWindow::addEquirectangularCamera() {
+  add<EquirectangularCamera>();
 }
 
 void MainWindow::deleteElement() {

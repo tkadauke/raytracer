@@ -12,6 +12,8 @@ namespace raytracer {
     */
   class OrthographicCamera : public Camera {
   public:
+    using Camera::rayForPixel;
+
     /**
       * Constructs a default orthographic camera with a zoom factor of 1,
       * looking at the origin.
@@ -31,8 +33,7 @@ namespace raytracer {
     {
     }
 
-    using Camera::render;
-    virtual Rayd rayForPixel(double x, double y) const;
+    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
     /**
       * @returns the camera'z zoom.

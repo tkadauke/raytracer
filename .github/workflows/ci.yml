@@ -52,18 +52,16 @@ jobs:
             ${{ matrix.cxx }} \
             ninja-build \
             cmake \
-            qtbase5-dev \
-            qtbase5-dev-tools \
-            qtscript5-dev \
-            libqt5gui5 \
-            libqt5widgets5 \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            libgl1-mesa-dev \
             xvfb
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install ninja qt@5
+          brew install ninja qt
 
       - name: Configure
         run: cmake --preset release
@@ -105,11 +103,9 @@ jobs:
             clang-18 \
             ninja-build \
             cmake \
-            qtbase5-dev \
-            qtbase5-dev-tools \
-            qtscript5-dev \
-            libqt5gui5 \
-            libqt5widgets5 \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            libgl1-mesa-dev \
             xvfb
 
       - name: Configure
@@ -144,11 +140,9 @@ jobs:
             ninja-build \
             cmake \
             gcovr \
-            qtbase5-dev \
-            qtbase5-dev-tools \
-            qtscript5-dev \
-            libqt5gui5 \
-            libqt5widgets5 \
+            qt6-base-dev \
+            qt6-declarative-dev \
+            libgl1-mesa-dev \
             xvfb
 
       - name: Configure
@@ -214,9 +208,8 @@ jobs:
             clang-18 \
             ninja-build \
             cmake \
-            qtbase5-dev \
-            qtbase5-dev-tools \
-            qtscript5-dev
+            qt6-base-dev \
+            qt6-declarative-dev
 
       - name: Configure
         run: cmake --preset fuzz
@@ -267,9 +260,8 @@ jobs:
             clang-18 \
             cmake \
             ninja-build \
-            qtbase5-dev \
-            qtbase5-dev-tools \
-            qtscript5-dev
+            qt6-base-dev \
+            qt6-declarative-dev
           sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-18 100
           sudo update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-18 100
 

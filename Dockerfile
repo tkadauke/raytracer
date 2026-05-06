@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 #
-# Two-stage build: a fat builder image with cmake / clang / Qt 5 dev headers
+# Two-stage build: a fat builder image with cmake / clang / Qt 6 dev headers
 # produces the rendercli binary, then we copy it into a distroless runtime.
 # SceneBrowser is intentionally excluded because it needs an X11 display
 # server and isn't suitable for headless cloud workloads (modernize.md §3.9).
@@ -18,11 +18,9 @@ RUN apt-get update && \
       ninja-build \
       git \
       g++-13 \
-      qtbase5-dev \
-      qtbase5-dev-tools \
-      qtscript5-dev \
-      libqt5gui5 \
-      libqt5widgets5 && \
+      qt6-base-dev \
+      qt6-declarative-dev \
+      libgl1-mesa-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -48,10 +46,10 @@ FROM gcr.io/distroless/cc-debian12:nonroot AS runtime
 # Qt runtime shared objects from the builder. The exact set comes from the
 # rendercli ldd output; if rendercli's link surface grows, expand this list.
 COPY --from=builder \
-  /usr/lib/x86_64-linux-gnu/libQt5Core.so.5 \
-  /usr/lib/x86_64-linux-gnu/libQt5Gui.so.5 \
-  /usr/lib/x86_64-linux-gnu/libQt5Script.so.5 \
-  /usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5 \
+  /usr/lib/x86_64-linux-gnu/libQt6Core.so.6 \
+  /usr/lib/x86_64-linux-gnu/libQt6Gui.so.6 \
+  /usr/lib/x86_64-linux-gnu/libQt6Qml.so.6 \
+  /usr/lib/x86_64-linux-gnu/libQt6Widgets.so.6 \
   /usr/lib/x86_64-linux-gnu/
 
 COPY --from=builder /src/build/tools/rendercli/rendercli /usr/local/bin/rendercli

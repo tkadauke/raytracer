@@ -10,7 +10,7 @@ To compile, you need:
 
 * A C++17 compiler (`g++` or `clang++`)
 * CMake 3.28+ and Ninja
-* Qt 5 — on macOS, `brew install qt@5`; on Debian/Ubuntu, `apt install qtbase5-dev qtscript5-dev`
+* Qt 6 — on macOS, `brew install qt`; on Debian/Ubuntu, `apt install qt6-base-dev qt6-declarative-dev libgl1-mesa-dev`
 
 Ruby and `rake` are optional — they're only needed if you want to use the convenience wrappers documented below. The Rake tasks shell out to CMake under the hood; using `cmake` directly works just as well.
 

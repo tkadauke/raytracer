@@ -14,6 +14,8 @@ namespace raytracer {
     */
   class FishEyeCamera : public Camera {
   public:
+    using Camera::rayForPixel;
+
     /**
       * Creates a default fish eye camera with a 120 degree field of view,
       * looking at the origin.
@@ -41,7 +43,7 @@ namespace raytracer {
     {
     }
 
-    virtual Rayd rayForPixel(double x, double y) const;
+    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
     /**
       * @returns the camera's field of view.

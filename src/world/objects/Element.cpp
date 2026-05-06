@@ -66,13 +66,13 @@ void Element::read(const QJsonObject& json) {
     auto value = i.value();
 
     if (!value.isUndefined()) {
-      if (type == "Vector3d") {
+      if (type == "Vector3<double>") {
         auto array = value.toArray();
         setProperty(propertyNameCStr, QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
-      } else if (type == "Angled") {
+      } else if (type == "Angle<double>") {
         auto angle = value.toDouble();
         setProperty(propertyNameCStr, QVariant::fromValue(Angled::fromRadians(angle)));
-      } else if (type == "Colord") {
+      } else if (type == "Color<double>") {
         auto array = value.toArray();
         setProperty(propertyNameCStr, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
       } else if (propertyName != "id" && (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
@@ -136,14 +136,19 @@ void Element::writeForClass(const QMetaObject* klass, QJsonObject& json) {
 void Element::writeProperty(const QString& name, QJsonObject& json) {
   auto prop = property(name.toStdString().c_str());
 
+  // Qt 6 `QVariant::typeName()` reports the underlying templated name
+  // (`Vector3<double>`, `Color<double>`, `Angle<double>`) instead of
+  // the `Vector3d` / `Colord` / `Angled` typedef Qt 5 used. The
+  // typedef alias never went through `qRegisterMetaType`, so the
+  // resolved name is the canonical template instantiation.
   QString type = QString(prop.typeName());
 
-  if (type == "Vector3d") {
+  if (type == "Vector3<double>") {
     auto vector = prop.value<Vector3d>();
     json[name] = QJsonArray({ vector.x(), vector.y(), vector.z() });
-  } else if (type == "Angled") {
+  } else if (type == "Angle<double>") {
     json[name] = prop.value<Angled>().radians();
-  } else if (type == "Colord") {
+  } else if (type == "Color<double>") {
     auto color = prop.value<Colord>();
     json[name] = QJsonArray({ color.r(), color.g(), color.b() });
   } else if (type == "QString") {
