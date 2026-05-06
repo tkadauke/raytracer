@@ -1,0 +1,17 @@
+#include "world/objects/ElementFactory.h"
+#include "world/objects/Triangle.h"
+#include "raytracer/primitives/Triangle.h"
+
+Triangle::Triangle(Element* parent)
+  : Surface(parent),
+    m_vertexA(1, 0, 0),
+    m_vertexB(-1, 0, 0),
+    m_vertexC(0, -1, 0)
+{
+}
+
+std::shared_ptr<raytracer::Primitive> Triangle::toRaytracerPrimitive() const {
+  return make_named<raytracer::Triangle>(m_vertexA, m_vertexB, m_vertexC);
+}
+
+static bool dummy = ElementFactory::self().registerClass<Triangle>("Triangle");

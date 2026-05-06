@@ -338,6 +338,26 @@ class Cylinder < Surface
            :bevelRadius => 0
 end
 
+class OpenCylinder < Surface
+  property :radius => 1,
+           :height => 2
+end
+
+class Disk < Surface
+  property :radius => 1
+end
+
+class Triangle < Surface
+  property :vertexA => [ 1, 0, 0],
+           :vertexB => [-1, 0, 0],
+           :vertexC => [ 0, -1, 0]
+end
+
+class Rectangle < Surface
+  property :leg1 => [1, 0, 0],
+           :leg2 => [0, 0, 1]
+end
+
 class Torus < Surface
   property :sweptRadius => 2,
            :tubeRadius => 1
