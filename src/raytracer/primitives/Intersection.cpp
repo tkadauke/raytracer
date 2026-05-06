@@ -1,7 +1,9 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Intersection.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include <QDebug>
 
 using namespace raytracer;
 
@@ -46,6 +48,11 @@ bool Intersection::intersects(const Rayd& ray, State& state) const {
   }
   
   return true;
+}
+
+std::shared_ptr<Mesh> Intersection::tessellate(int) const {
+  qWarning() << "Intersection::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  return std::make_shared<Mesh>();
 }
 
 BoundingBoxd Intersection::calculateBoundingBox() const {

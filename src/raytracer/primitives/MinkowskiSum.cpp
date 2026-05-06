@@ -1,9 +1,16 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/MinkowskiSum.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include <QDebug>
 
 using namespace raytracer;
+
+std::shared_ptr<Mesh> MinkowskiSum::tessellate(int) const {
+  qWarning() << "MinkowskiSum::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  return std::make_shared<Mesh>();
+}
 
 BoundingBoxd MinkowskiSum::calculateBoundingBox() const {
   if (primitives().size() > 0) {

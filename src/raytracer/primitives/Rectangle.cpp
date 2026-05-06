@@ -1,5 +1,6 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Rectangle.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
@@ -42,6 +43,24 @@ const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoin
   
   state.hit(this, "Rectangle");
   return this;
+}
+
+std::shared_ptr<Mesh> Rectangle::tessellate(int) const {
+  auto mesh = std::make_shared<Mesh>();
+
+  Vector3d p0(m_corner.x(), m_corner.y(), m_corner.z());
+  Vector3d p1 = p0 + m_leg1;
+  Vector3d p2 = p0 + m_leg1 + m_leg2;
+  Vector3d p3 = p0 + m_leg2;
+
+  mesh->addVertex(p0, m_normal, Vector2d(0, 0));
+  mesh->addVertex(p1, m_normal, Vector2d(1, 0));
+  mesh->addVertex(p2, m_normal, Vector2d(1, 1));
+  mesh->addVertex(p3, m_normal, Vector2d(0, 1));
+  mesh->addFace({0, 1, 2});
+  mesh->addFace({0, 2, 3});
+
+  return mesh;
 }
 
 BoundingBoxd Rectangle::calculateBoundingBox() const {

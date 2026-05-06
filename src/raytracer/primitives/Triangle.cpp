@@ -1,5 +1,6 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Triangle.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
@@ -49,6 +50,15 @@ const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoint
     state.hit(this, "Triangle");
     return this;
   }
+}
+
+std::shared_ptr<Mesh> Triangle::tessellate(int) const {
+  auto mesh = std::make_shared<Mesh>();
+  mesh->addVertex(m_point0, m_normal, Vector2d(0, 0));
+  mesh->addVertex(m_point1, m_normal, Vector2d(1, 0));
+  mesh->addVertex(m_point2, m_normal, Vector2d(0, 1));
+  mesh->addFace({0, 1, 2});
+  return mesh;
 }
 
 Vector3d Triangle::computeNormal() const {

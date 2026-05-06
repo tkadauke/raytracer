@@ -14,7 +14,7 @@ namespace raytracer {
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual bool intersects(const Rayd& ray, State& state) const;
-    
+
     /**
       * @returns the farthest point on the box in the given diretion. The
       *   following interactive figure illustrates the geometry. Click and drag

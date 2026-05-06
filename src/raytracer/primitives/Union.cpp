@@ -1,7 +1,9 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Union.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include <QDebug>
 
 using namespace raytracer;
 
@@ -28,6 +30,11 @@ const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
       return hitPoint.primitive();
     }
   }
+}
+
+std::shared_ptr<Mesh> Union::tessellate(int) const {
+  qWarning() << "Union::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  return std::make_shared<Mesh>();
 }
 
 bool Union::intersects(const Rayd& ray, State& state) const {

@@ -15,6 +15,13 @@ namespace raytracer {
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual bool intersects(const Rayd& ray, State& state) const;
 
+    /**
+      * Plane is infinite and cannot be tessellated without first clipping it to
+      * a finite region. Returns an empty Mesh and emits a warning. To obtain a
+      * mesh, replace this Plane with a Rectangle and tessellate that instead.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const;
 
