@@ -75,18 +75,24 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
       auto stream = sampler->stream(sampleIndex, pixelHash);
 
-      // Dimension 0 of the stream is sub-pixel jitter — the renderer
-      // owns that dimension because it has to apply the offset to
-      // the integer pixel coords *before* passing them to
-      // `rayForPixel`. Cameras therefore see a stream that starts at
-      // dimension 1; whatever they pull (lens disc, shutter time, ...)
-      // is decorrelated from the sub-pixel jitter.
+      // Dimensions 0 and 1 of the stream are owned by the renderer
+      // and consumed before the camera sees the stream:
+      //   dim 0 (2D) — sub-pixel jitter for anti-aliasing.
+      //   dim 1 (1D) — shutter-time sample, in [0, 1). Animatable
+      //                primitives (Instance with non-zero velocity)
+      //                read this from `state.timeSample` and
+      //                interpolate their transforms.
+      // Cameras therefore see a stream starting at dimension 2;
+      // whatever they pull (lens disc, future Kolb element index,
+      // ...) is decorrelated from sub-pixel and time.
       Vector2d subPixel = stream->next2D();
       Vector2d xy = pixel.pixel() + subPixel;
+      double timeSample = stream->next1D();
 
       Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
       if (ray.direction().isDefined()) {
         State state;
+        state.timeSample = timeSample;
         pixelColor += raytracer->rayColor(ray, state);
       }
     }

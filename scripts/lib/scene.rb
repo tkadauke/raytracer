@@ -292,7 +292,8 @@ end
 
 class Surface < Transformable
   property :visible => true,
-           :material => nil
+           :material => nil,
+           :velocity => [0, 0, 0]
 end
 
 class Material < Element
@@ -335,6 +336,11 @@ class Cylinder < Surface
   property :radius => 1,
            :height => 2,
            :bevelRadius => 0
+end
+
+class Torus < Surface
+  property :sweptRadius => 2,
+           :tubeRadius => 1
 end
 
 class Ring < Surface

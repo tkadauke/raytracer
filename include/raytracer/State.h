@@ -54,7 +54,8 @@ namespace raytracer {
         intersectionHits(0),
         intersectionMisses(0),
         shadowIntersectionHits(0),
-        shadowIntersectionMisses(0)
+        shadowIntersectionMisses(0),
+        timeSample(0.0)
     {
     }
 
@@ -156,6 +157,16 @@ namespace raytracer {
     /// The most recent (or final, after a top-level
     /// `Raytracer::rayState`) hit point along this trace.
     HitPoint hitPoint;
+
+    /// Time sample for this primary ray's tree, in `[0, 1)`. Set
+    /// once by `Camera::render` (drawn from the sample stream's
+    /// 1D dimension) and inherited by every recursive sub-ray —
+    /// the world is in a fixed configuration during a single
+    /// primary ray's tree, so reflections / refractions share the
+    /// time. Animatable primitives (`Instance` with non-zero
+    /// `velocity`) read this to interpolate between configurations
+    /// at intersect time.
+    double timeSample;
 
     /// Optional indent-formatted event log. Allocated lazily by
     /// `startTrace()`; null when tracing is off.

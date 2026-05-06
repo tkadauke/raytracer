@@ -1,0 +1,95 @@
+{
+    "ambient": [0.4, 0.4, 0.4],
+    "background": [0.4, 0.8, 1.0],
+    "children": [
+        {
+            "id": "{00000000-0000-0000-0000-000000000001}",
+            "name": "Camera",
+            "position": [0, -3, -10],
+            "target": [0, 0, 0],
+            "distance": 5,
+            "zoom": 1.5,
+            "type": "PinholeCamera",
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000002}",
+            "name": "KeyLight",
+            "position": [-8, -8, -6], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "color": [1, 1, 1],
+            "intensity": 0.5,
+            "type": "PointLight",
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000003}",
+            "name": "FillLight",
+            "position": [8, -8, -6], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "color": [1, 1, 1],
+            "intensity": 0.4,
+            "type": "PointLight",
+            "children": []
+        },
+
+        { "id": "{00000000-0000-0000-0000-000000000010}", "name": "WhiteTex", "color": [1.0, 1.0, 1.0], "type": "ConstantColorTexture", "children": [] },
+        { "id": "{00000000-0000-0000-0000-000000000011}", "name": "DarkTex",  "color": [0.05, 0.05, 0.05], "type": "ConstantColorTexture", "children": [] },
+        {
+            "id": "{00000000-0000-0000-0000-000000000012}",
+            "name": "CheckerTex",
+            "brightTexture": "{00000000-0000-0000-0000-000000000010}",
+            "darkTexture":   "{00000000-0000-0000-0000-000000000011}",
+            "type": "CheckerBoardTexture",
+            "children": []
+        },
+        {
+            "id": "{00000000-0000-0000-0000-000000000020}",
+            "name": "FloorMat",
+            "diffuseTexture": "{00000000-0000-0000-0000-000000000012}",
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
+            "type": "MatteMaterial",
+            "children": []
+        },
+
+        { "id": "{00000000-0000-0000-0000-000000000013}", "name": "RedTex",   "color": [1.0, 0.2, 0.2], "type": "ConstantColorTexture", "children": [] },
+        {
+            "id": "{00000000-0000-0000-0000-000000000021}",
+            "name": "RedMat",
+            "diffuseTexture": "{00000000-0000-0000-0000-000000000013}",
+            "ambientCoefficient": 1,
+            "diffuseCoefficient": 1,
+            "type": "MatteMaterial",
+            "children": []
+        },
+
+        {
+            "id": "{00000000-0000-0000-0000-000000000030}",
+            "name": "Floor",
+            "position": [0, 1.1, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000020}",
+            "size": [12, 0.1, 12],
+            "bevelRadius": 0,
+            "velocity": [0, 0, 0],
+            "type": "Box",
+            "children": []
+        },
+
+        {
+            "id": "{00000000-0000-0000-0000-000000000040}",
+            "name": "MovingSphere",
+            "position": [-2, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1],
+            "visible": true,
+            "material": "{00000000-0000-0000-0000-000000000021}",
+            "radius": 0.8,
+            "velocity": [4, 0, 0],
+            "type": "Sphere",
+            "children": []
+        }
+    ],
+    "id": "{00000000-0000-0000-0000-000000000000}",
+    "name": "Motion Blur Demo",
+    "type": "Scene"
+}

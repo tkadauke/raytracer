@@ -43,7 +43,8 @@ namespace raytracer {
       * the instance behaves exactly like the wrapped primitive.
       */
     inline explicit Instance(std::shared_ptr<Primitive> primitive)
-      : m_primitive(primitive)
+      : m_primitive(primitive),
+        m_velocity(Vector3d::null())
     {
     }
     virtual ~Instance() { }
@@ -76,13 +77,35 @@ namespace raytracer {
       */
     void setMatrix(const Matrix4d& matrix);
 
+    /**
+      * Set a per-shutter-tick linear velocity for motion blur. The
+      * instance is at its `setMatrix` position at `timeSample = 0`
+      * and at `position + velocity` at `timeSample = 1`. Each
+      * primary ray uses an independent stratified time sample drawn
+      * from the renderer's sample stream — see `Camera::render` for
+      * the dimension allocation.
+      *
+      * Defaults to the zero vector, in which case `intersect` takes
+      * the fast static path and the renderer behaves exactly as it
+      * did before motion blur was added. Rotation and scale
+      * animation are not supported in this first pass — only linear
+      * translation.
+      */
+    void setVelocity(const Vector3d& velocity);
+
+    /// @returns the configured velocity. Zero means no motion blur.
+    inline const Vector3d& velocity() const { return m_velocity; }
+
     /// Support function — transforms `direction` into local space,
     /// queries the wrapped primitive, transforms the result back.
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
 
   protected:
     /// @returns the wrapped primitive's bounding box, transformed
-    /// by the instance matrix and re-axis-aligned.
+    /// by the instance matrix and re-axis-aligned. For animated
+    /// instances (non-zero `velocity`), expanded by the motion
+    /// vector so the bbox covers every position the primitive
+    /// occupies during the shutter.
     virtual BoundingBoxd calculateBoundingBox() const;
 
   private:
@@ -95,5 +118,6 @@ namespace raytracer {
     Matrix4d m_originMatrix;
     Matrix3d m_directionMatrix;
     Matrix3d m_normalMatrix;
+    Vector3d m_velocity;
   };
 }
