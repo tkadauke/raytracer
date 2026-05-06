@@ -161,11 +161,11 @@
   destructured Slider options. **All 20 widgets** migrated to the
   modern syntax (the two ThinLens widgets first as worked examples,
   then all 18 pre-existing Angle / Ray / BoundingBox / ConvexHull /
-  Hitpoint / Sphere / Box widgets). The `Class()` factory is
-  preserved as a 30-line compatibility shim — covered by unit
-  tests, but no in-repo widget actually uses it any more. Smoke
-  test loads every widget in a shared sandbox to catch shim
-  regressions and broken cross-widget inheritance.
+  Hitpoint / Sphere / Box widgets). The `Class()` factory was kept
+  briefly as a compatibility shim during the migration, then
+  removed once no widget referenced it. Smoke test loads every
+  widget in a shared sandbox to catch broken cross-widget
+  inheritance.
 
   Side benefits surfaced during the migration:
   - Several typo'd class names (`BoudingBoxClass` → `BoundingBoxClass`,

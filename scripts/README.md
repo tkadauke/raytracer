@@ -280,11 +280,6 @@ class FooClass {
 ```
 
 All `scripts/docs/*.js` widgets use the native `class` syntax above.
-The legacy `Class()` factory is preserved as a compatibility shim
-for any future contributor who copy-pastes a pattern from outside
-the repo, but no in-repo widget uses it. Don't reach for it in new
-code; it has no functional advantage and bypasses the modern
-`extends` / `super` machinery.
 
 Two important details in the anchor pattern:
 

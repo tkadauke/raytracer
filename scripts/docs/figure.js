@@ -1,19 +1,9 @@
 // Interactive-widget primitives shared by every `scripts/docs/*.js`
 // widget embedded in the Doxygen output. See `scripts/README.md` for
 // the writing-a-widget recipe and `scripts/test/test_figure_js.js`
-// for the test cases.
-//
-// Two coexisting styles for declaring primitives:
-//
-//   - **Native ES6 classes** (`class Foo { ... }`) — the recommended
-//     style for new widgets. Modern, terser, plays well with editor
-//     tooling and the `node:test` runner.
-//
-//   - **Legacy `Class()` factory** — preserved as a thin shim around
-//     ES6 classes for backward compatibility with the older widgets
-//     under `scripts/docs/` (Angle, Ray, BoundingBox, ConvexHull,
-//     ...) that all use `new Class({...})` syntax. Migrate them
-//     opportunistically when next touched.
+// for the test cases. Every primitive uses native ES6 class syntax
+// (the historical `Class()` factory was removed in commit %h after
+// all 20 widgets migrated to native syntax).
 
 'use strict';
 
@@ -80,42 +70,14 @@ rect {
   (document.getElementsByTagName('head')[0] || document.head).appendChild(style);
 }
 
-// Legacy-compat factory. Original widgets use `new Class({...})` and
-// `new Class(parent, {...})`; preserve that surface by translating
-// to a real ES6 class under the hood. Mark new code as preferring
-// `class Foo extends Bar { ... }` directly; reach for this only when
-// touching pre-existing consumers that already used it.
-function Class(...args) {
-  let parent = null;
-  let properties = {};
-  if (typeof args[0] === 'function') {
-    parent = args[0];
-    properties = args[1] || {};
-  } else {
-    properties = args[0] || {};
-  }
-
-  const Base = parent || class {};
-  const klass = class extends Base {
-    constructor(...ctorArgs) {
-      super();
-      if (typeof this.initialize === 'function') {
-        this.initialize(...ctorArgs);
-      }
-    }
-  };
-
-  for (const property in properties) {
-    klass.prototype[property] = properties[property];
-  }
-  if (!klass.prototype.initialize) {
-    klass.prototype.initialize = function () {};
-  }
-  return klass;
-}
-
-// Ordered hash. Used by a couple of legacy widgets; kept for
-// compatibility. New widgets should reach for `Map` instead.
+// Ordered hash — keeps insertion order over an arbitrary key
+// type, with a `sortedKeys()` helper for picking the
+// largest-by-numeric-key entry. Used by `convex_hull_farthest_point`
+// to map projected distances → farthest points; the entry with the
+// largest key is the answer. Predates ES6 `Map` (which preserves
+// insertion order natively); a future cleanup could collapse this
+// onto `Map` + a sort, but the surface is stable so there's no
+// forcing function.
 class OrderedHash {
   constructor() {
     this._keys = [];
@@ -569,12 +531,12 @@ const degrees = 0.01745329251996;
 
 // Export every primitive to the global scope. ES6 `class`
 // declarations are block-scoped (per spec, even at script top
-// level), so without this the legacy widgets' `new Vector(...)` /
-// `new Class(...)` references can't resolve them. Browsers and the
-// `node:test` shim both treat the script as a top-level script;
-// `globalThis` is the document window in browsers and the vm
-// sandbox in tests.
+// level), so without this the widgets' `new Vector(...)` /
+// `new Canvas(...)` references can't resolve across script-tag
+// boundaries. Browsers and the `node:test` shim both treat the
+// script as a top-level script; `globalThis` is the document
+// window in browsers and the vm sandbox in tests.
 Object.assign(globalThis, {
-  Class, OrderedHash, Vector, Canvas, Group, Line, Ray, Circle,
+  OrderedHash, Vector, Canvas, Group, Line, Ray, Circle,
   Rectangle, Text, Axes, Path, Slider, DragHandler, svgns, degrees
 });

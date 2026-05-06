@@ -1,4 +1,5 @@
-// Tests for the math primitives in scripts/docs/figure.js.
+// Tests for the math + SVG primitives in scripts/docs/figure.js,
+// plus a smoke test that loads every widget under scripts/docs/.
 //
 // figure.js is loaded as a browser script, with side effects: it
 // injects CSS into document.head and uses document.createElementNS
@@ -6,15 +7,15 @@
 // we install a minimal DOM shim, define a global `document` object
 // against which figure.js's top-level mutations succeed, then load
 // the file via Node's vm module to evaluate it in our shim's
-// context. After that, `Vector`, `Class`, etc. are accessible on
+// context. After that, `Vector`, `Canvas`, etc. are accessible on
 // the shim's globals.
 //
-// Tests focus on the pure-math primitives (Vector arithmetic,
-// Class factory) and the structural correctness of SVG-emitting
-// primitives (Path's `d` attribute, Slider's HTML structure). The
-// rendered SVG output itself is integration-tested by the Doxygen
-// browser preview — there's no point reproducing a full SVG
-// renderer in Node.
+// Tests focus on the pure-math primitives (Vector arithmetic) and
+// the structural correctness of SVG/HTML-emitting primitives
+// (Path's `d` attribute, Slider's HTML structure). The rendered
+// SVG output itself is integration-tested by the Doxygen browser
+// preview — there's no point reproducing a full SVG renderer in
+// Node.
 //
 // Run: `node scripts/test/test_figure_js.js`
 //      (or `rake test:scripts:js`)
@@ -157,60 +158,13 @@ test('Vector: static constants', () => {
   assert.deepEqual({ x: Vector.right.x, y: Vector.right.y }, { x: 1, y: 0 });
 });
 
-// --- Class factory tests --------------------------------------------------
-//
-// `Class()` is a legacy shim around ES6 classes, kept for backward
-// compatibility with the 18 widgets under scripts/docs/ that pre-date
-// the figure.js modernisation. New widgets use `class Foo { ... }`
-// syntax directly. These tests exercise the shim semantics so a
-// regression in the compatibility layer is caught immediately.
-
-test('Class: instances run their initialize', () => {
-  const { Class } = loadFigure();
-  const Foo = new Class({
-    initialize(x) { this.x = x; }
-  });
-  assert.equal(new Foo(42).x, 42);
-});
-
-test('Class: subclass inherits methods from parent', () => {
-  const { Class } = loadFigure();
-  const Animal = new Class({
-    initialize(name) { this.name = name; },
-    describe() { return 'an animal called ' + this.name; }
-  });
-  const Dog = new Class(Animal, {
-    initialize(name) { this.name = name; this.species = 'dog'; },
-    bark() { return 'woof'; }
-  });
-  const d = new Dog('Rex');
-  assert.equal(d.name, 'Rex');
-  assert.equal(d.bark(), 'woof');
-  assert.equal(d.describe(), 'an animal called Rex',
-    'subclass should inherit `describe` from parent');
-});
-
-test('Class: empty class still constructs', () => {
-  const { Class } = loadFigure();
-  const Empty = new Class({});
-  assert.doesNotThrow(() => new Empty());
-});
-
-test('Class: omitted properties argument constructs an empty class', () => {
-  const { Class } = loadFigure();
-  // Defensive — exercised if any widget calls `new Class()` with no
-  // args. Should produce a class with just an empty `initialize`.
-  const Empty = new Class();
-  assert.doesNotThrow(() => new Empty());
-});
-
 // --- Widget smoke test ----------------------------------------------------
 //
 // Loads every widget under scripts/docs/ in a single shared
 // sandbox in dependency order and verifies none of them throws at
-// load time. Catches syntax errors, missing globals, broken
-// inheritance, and figure.js-shim regressions before they reach
-// the rendered Doxygen page.
+// load time. Catches syntax errors, missing globals, and broken
+// cross-widget inheritance before they reach the rendered Doxygen
+// page.
 //
 // All widgets now use ES6 class syntax. The `Class()` factory is
 // preserved as a compatibility shim (covered by the unit tests
