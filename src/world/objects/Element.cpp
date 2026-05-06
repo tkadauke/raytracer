@@ -76,7 +76,15 @@ void Element::read(const QJsonObject& json) {
         auto array = value.toArray();
         setProperty(propertyNameCStr, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
       } else if (propertyName != "id" && (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
-        addPendingReference(propertyName, value.toString());
+        // JSON `null` is a valid way to say "this reference is
+        // intentionally unset" — `world::Surface` writes its
+        // `material` as `null` when no material is attached. Skip
+        // the pending-reference machinery in that case so
+        // `resolveReferences` doesn't print a spurious "unable to
+        // resolve" line for an empty-string lookup.
+        if (!value.isNull()) {
+          addPendingReference(propertyName, value.toString());
+        }
       } else {
         setProperty(propertyNameCStr, value.toVariant());
       }
