@@ -51,8 +51,22 @@ namespace raytracer {
 
     const Matrix4d& matrix() const;
 
-    void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) const;
-    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Rect<int>& rect) const;
+    /**
+      * Render into an HDR `Buffer<Colord>`. Each pixel accumulates
+      * the ray-traced colour as a Colord (averaged across the
+      * per-pixel sample count) — the raw radiance the camera saw,
+      * with no LDR clamping.
+      *
+      * Tonemapping happens one level up, in
+      * `Raytracer::render(Buffer<unsigned int>&)`, which allocates
+      * a Colord buffer, calls this, and applies the configured
+      * `Tonemap` to produce 8-bit output. Direct callers (EXR
+      * writers, motion-blur compositors, future path-tracing
+      * accumulators) can skip tonemapping and consume the HDR
+      * buffer directly.
+      */
+    void render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer) const;
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer, const Rect<int>& rect) const;
 
     /**
       * Generate a primary ray for pixel `(x, y)`.
@@ -101,8 +115,11 @@ namespace raytracer {
     }
 
   protected:
-    void plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const;
-    void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgbColor) const;
+    /// Write `color` (already divided by sample count) into every
+    /// pixel of the iterator's footprint — single pixel for the
+    /// regular iterator, the size×size block for interlaced
+    /// iterators that haven't refined yet.
+    void plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const;
 
   private:
     bool m_cancelled;

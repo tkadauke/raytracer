@@ -104,9 +104,8 @@ Unblocks: every other refactor below. Specifically, R5 (`RenderEngine` abstracti
 
 ### R1. Float HDR framebuffer + tonemap stage
 
-`Buffer<Colord>` accumulator; existing `Buffer<unsigned int>` becomes a display target produced by a tonemap pass (Reinhard or ACES, configurable).
+~~`Buffer<Colord>` accumulator; existing `Buffer<unsigned int>` becomes a display target produced by a tonemap pass (Reinhard or ACES, configurable).~~ ✅ **Done.** `Camera::render` writes into `Buffer<Colord>`; `Raytracer::render(Buffer<unsigned int>&)` allocates the float buffer, runs the tile workers into it, and applies the configured `Tonemap` (default `LinearTonemap` — pass-through) to produce 8-bit display output. Three operators ship: `LinearTonemap`, `ReinhardTonemap`, and `AcesTonemap` (Narkowicz fit), all registered with `TonemapFactory` and selectable via `rendercli --tonemap`. The `Buffer<Colord>` overload is also exposed publicly so future EXR writers and path-tracing accumulators can skip tonemapping entirely. See §4.9.a for the larger tonemap-operator catalog this unblocks.
 
-- Estimated effort: ~2 days.
 - Unblocks: path tracing, motion blur, EXR output, distributed-tile aggregation.
 
 ### R2. Stable scene-object IDs
@@ -535,9 +534,31 @@ Every frame — from any engine — passes through a configurable postprocessing
 
 #### 4.9.a Tone-mapping & colour science
 
-- Reinhard, ACES (filmic and AP0/AP1 variants), AgX, Khronos PBR Neutral, Filmic (Blender) — implement them all and expose a selector; the visual differences are instructive.
+The tonemap operator catalog. The `Tonemap::apply(hdr) → ldr` interface from R1 carries the stateless single-pixel ones; operators that need a buffer pre-pass (Drago, auto-exposure) require lifting the API to a two-phase analyse-then-apply flow — flagged as the architectural change they need.
+
+Stateless single-pixel operators (current `Tonemap::apply` interface):
+
+- ✅ **Linear** — pass-through; LDR clamp via `Colord::rgb()`. Default and regression baseline.
+- ✅ **Reinhard** — `c / (1 + c)` per channel.
+- ✅ **ACES** (Narkowicz polynomial fit). Per-channel; carries the well-known chromatic skew (saturated reds shift to orange under heavy compression).
+- **AgX** (Troy Sobotka, 2021) — the modern replacement for ACES; default in Blender 4.0+. Operates in log space then through a sigmoid; fixes ACES's per-channel skew. Most-impactful next add — both pedagogically (clear ACES contrast) and aesthetically.
+- **Hable / Uncharted 2** (John Hable, 2010) — game-industry classic, polynomial-fit shoulder/toe with explicit white-point control. Simpler than AgX; nice "what game engines used pre-ACES" data point.
+- **Khronos PBR Neutral** (2024) — designed to preserve PBR material colours across viewers. Important for any future glTF / asset-library work.
+- **Extended Reinhard** — `c · (1 + c/Cwhite²) / (1 + c)` — Reinhard with a `whitePoint` parameter. Trivial change; demonstrates parameterised operators.
+- **Filmic (Blender)** — Sobotka's pre-AgX work, wider-gamut filmic curve. Historical interest.
+- **AP0/AP1 ACES variants** — full-pipeline ACES with proper colour-space matrices (the matrices that the Narkowicz fit skips). Educational completeness.
+
+Operators that need a per-render pre-pass (would lift the API to `Tonemap::analyze(buffer); Tonemap::apply(pixel)`):
+
+- **Drago / adaptive logarithmic** (2003) — log-base picked from scene maximum luminance.
+- **Auto-exposure / Reinhard with key-value adaptation** — average / median luminance pre-pass to set a reference exposure.
+- **Mantiuk** (2008) — perceptually motivated; needs the buffer.
+
+Adjacent colour-science features:
+
 - Exposure, white balance (colour temperature + tint), contrast, lift/gamma/gain.
 - LUT (Look-Up Table) input in `.cube` format for arbitrary colour grade.
+- **Tony McMapface** (Tomasz Stachowiak) and other LUT-based operators — falls out of the .cube LUT support above.
 
 #### 4.9.b Image-space effects
 

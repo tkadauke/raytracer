@@ -17,6 +17,7 @@ namespace raytracer {
   class Camera;
   class Primitive;
   class State;
+  class Tonemap;
 
   /**
     * @brief The rendering engine — owns a `Camera` and a `Scene`,
@@ -87,15 +88,45 @@ namespace raytracer {
     virtual ~Raytracer();
 
     /**
-      * Render the full image into `buffer`. Spins up worker threads,
-      * tiles the work, and writes one `unsigned int` (packed RGB)
-      * per pixel. Honours `cancel` — a render in progress will return
-      * early once the in-flight tiles finish.
+      * Render the full image into a packed-RGB display buffer.
+      * Internally allocates a `Buffer<Colord>` HDR accumulator,
+      * runs the threading-and-tile loop into it, then applies the
+      * configured `Tonemap` to produce 8-bit `unsigned int` output.
+      *
+      * Honours `cancel` — a render in progress will return early
+      * once the in-flight tiles finish.
       *
       * Buffer dimensions must be set by the caller; the renderer does
       * not resize. Out-of-bounds tile bookkeeping is silent.
       */
     void render(Buffer<unsigned int>& buffer);
+
+    /**
+      * Render directly into an HDR `Buffer<Colord>` accumulator,
+      * skipping the tonemap pass. The buffer holds raw averaged
+      * radiance per pixel in `Colord` (still floats, can exceed
+      * `[0, 1]`) — what an EXR writer or future path-tracing
+      * accumulator wants. Use this overload when you intend to
+      * post-process the float buffer yourself; use the
+      * `Buffer<unsigned int>&` overload above for the convenient
+      * "render and tonemap to display" path.
+      */
+    void render(Buffer<Colord>& buffer);
+
+    /// @returns the tone-mapping operator applied by the
+    /// `Buffer<unsigned int>&` render overload. Defaults to
+    /// `LinearTonemap`, which passes HDR values through unchanged
+    /// and lets `Colord::rgb()` do the clamp-and-quantize — i.e.
+    /// no perceptual compression.
+    std::shared_ptr<Tonemap> tonemap() const;
+
+    /**
+      * Replaces the tone-mapping operator. Pick from the registered
+      * `TonemapFactory` entries: `"Linear"`, `"Reinhard"`, `"ACES"`.
+      * Custom operators implementing `Tonemap::apply` are accepted
+      * directly.
+      */
+    void setTonemap(std::shared_ptr<Tonemap> tonemap);
 
     /**
       * Single-ray geometry probe. Returns the `Primitive*` the ray

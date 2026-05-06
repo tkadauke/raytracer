@@ -44,21 +44,26 @@ const Matrix4d& Camera::matrix() const {
   return m_matrix;
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer) const {
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer) const {
   render(raytracer, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer, const Recti& rect) const {
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer, const Recti& rect) const {
   if (isCancelled())
     return;
 
   auto plane = viewPlane();
   auto sampler = plane->sampler();
   const int samplesPerPixel = sampler->numSamples();
+  const double sampleScale = 1.0 / samplesPerPixel;
 
   for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     if (m_showProgressIndicators) {
-      plotRGB(buffer, rect, pixel, 0xff0000);
+      // In-progress indicator: pure red HDR pixel. The downstream
+      // tonemap maps `Colord(1, 0, 0)` to 0xff0000 for any operator
+      // that's identity-on-pure-channels (Linear, Reinhard, ACES
+      // all qualify on a single saturated channel).
+      plot(buffer, rect, pixel, Colord(1, 0, 0));
     }
 
     // Per-pixel hash: any cheap function that varies per (column,
@@ -97,26 +102,25 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
       }
     }
 
-    plot(buffer, rect, pixel, pixelColor);
+    // Average the accumulated radiance and write the HDR result.
+    // No clamping or 8-bit packing here — that's the tonemap pass's
+    // job in `Raytracer::render(Buffer<unsigned int>&)`. Direct
+    // float-buffer consumers (EXR writers, future path-tracing
+    // accumulators) get the unclipped value.
+    plot(buffer, rect, pixel, pixelColor * sampleScale);
 
     if (isCancelled())
       break;
   }
 }
 
-void Camera::plot(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const {
-  auto avergageColor = color / viewPlane()->sampler()->numSamples();
-  unsigned int rgb = avergageColor.rgb();
-  plotRGB(buffer, rect, pixel, rgb);
-}
-
-void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgbColor) const {
+void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const {
   int size = pixel.pixelSize();
   if (size == 1) {
-    buffer[pixel.row()][pixel.column()] = rgbColor;
+    buffer[pixel.row()][pixel.column()] = color;
   } else {
     for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
       for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
-        buffer[y][x] = rgbColor;
+        buffer[y][x] = color;
   }
 }

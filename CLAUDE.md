@@ -122,6 +122,8 @@ The same rule applies to `docs/modernize.md` for engineering-hygiene work. Both 
 
 If a change ships something that isn't in the roadmap and probably should be, add the bullet first (in the right pillar/theme), then mark it done in the same PR. Don't let undocumented features accumulate.
 
+**Don't let roadmap labels bleed into user-facing documentation.** Phrases like "pre-R1 behaviour preserved" or "post-3.10 cleanup" are meaningless to a reader who hasn't read the roadmap. In docstrings, comments, and PR descriptions, describe the actual behaviour ("pass-through, hard clamp at 1.0," "Qt 6 migration, QtScript→QJSEngine"). The CHANGELOG is the one place where roadmap references are appropriate — that's the audit trail linking commits to roadmap items, and entries there explicitly reference the section ("closes roadmap §3.R1").
+
 ## Adding a new visible-output feature
 
 Cameras, materials, primitives, lights, textures, viewplanes — anything
