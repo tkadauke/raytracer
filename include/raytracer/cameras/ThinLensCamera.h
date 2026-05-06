@@ -64,14 +64,17 @@ namespace raytracer {
     *
     * ### Sampling caveat
     *
-    * Each call to `rayForPixel(x, y)` generates a *single* sample on
-    * the lens disc, derived from the active `ViewPlane` sampler's
-    * stratified `[0,1]²` per-pixel sub-sample by routing it through
-    * the concentric square-to-disc mapping (Shirley 1997). That keeps
-    * the sub-pixel and lens-disc samples stratified together — at N
-    * samples per pixel you get N stratified lens points, not N random
-    * ones, which drops the dominant bokeh-noise term from `O(1/√N)` to
-    * `O(1/N)`.
+    * Each call to `rayForPixel(x, y, stream)` pulls a single 2D
+    * sample on the lens disc from `stream.next2D()`. The renderer
+    * has already consumed dimension 0 for sub-pixel jitter, so the
+    * lens sample lives on dimension 1 — *independently stratified*
+    * from the sub-pixel jitter. The sample is routed through the
+    * concentric square-to-disc mapping (Shirley 1997) below; the
+    * resulting disc points inherit whatever stratification the
+    * active sampler provides (jittered, multi-jittered, future
+    * Sobol). At N samples per pixel you get N stratified lens
+    * points, not N random ones, which drops the dominant bokeh-noise
+    * term from `O(1/√N)` to `O(1/N)`.
     *
     * The widget below visualises that mapping. Drag horizontally to
     * change the grid density (N×N samples). The disc plot on the right
@@ -98,6 +101,8 @@ namespace raytracer {
     */
   class ThinLensCamera : public Camera {
   public:
+    using Camera::rayForPixel;
+
     /**
       * Construct a thin-lens camera with reasonable defaults: distance 5,
       * zoom 1, apertureRadius 0.1, focalDistance 5. The defaults give
@@ -126,18 +131,25 @@ namespace raytracer {
     {
     }
 
-    using Camera::render;
-
     /**
-      * Generate a primary ray for pixel `(x, y)` with a random sample on
-      * the lens disc. Called by the per-pixel render loop; multiple
-      * invocations for the same pixel will return rays from different lens
-      * points (which is what produces the DOF blur in the final image).
+      * Generate a primary ray for pixel `(x, y)`, pulling the lens-disc
+      * sample from `stream.next2D()`. Called by the per-pixel render
+      * loop; multiple invocations for the same pixel see different
+      * `sampleIndex` values and therefore different lens points,
+      * which is what produces the DOF blur in the final image.
+      *
+      * The renderer guarantees the stream is positioned past
+      * dimension 0 (sub-pixel jitter is consumed by the renderer
+      * itself), so the `next2D` call here returns a fresh
+      * stratified dimension that's *independent* of the sub-pixel
+      * jitter — fixing the residual correlation that the previous
+      * "reuse the sub-pixel sample as the lens sample" hack lived
+      * with.
       *
       * @see rayForPixelWithLens for the deterministic-aperture overload
       *      used by tests.
       */
-    virtual Rayd rayForPixel(double x, double y) const;
+    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
     /**
       * Generate a primary ray for pixel `(x, y)` with an explicit

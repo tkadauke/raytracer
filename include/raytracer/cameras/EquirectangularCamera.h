@@ -79,6 +79,8 @@ namespace raytracer {
     */
   class EquirectangularCamera : public Camera {
   public:
+    using Camera::rayForPixel;
+
     /**
       * Construct an equirectangular camera at the world origin looking
       * toward `(0, 0, 1)` (forward is +z). Combine with `setPosition`
@@ -99,15 +101,13 @@ namespace raytracer {
     {
     }
 
-    using Camera::render;
-
     /**
       * Generate the primary ray for pixel `(x, y)`. Origin is the camera
       * position; direction is the unit-sphere point at the longitude
       * /latitude implied by the pixel's image coordinates (see the
       * class-level mapping table).
       */
-    virtual Rayd rayForPixel(double x, double y) const;
+    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
   private:
     Vector3d direction(double x, double y) const;

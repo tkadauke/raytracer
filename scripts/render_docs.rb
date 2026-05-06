@@ -162,9 +162,13 @@ class DocsRenderer
   # "this is what the class looks like at default settings" hero
   # image referenced by the class-level `@image html` in the C++
   # docstring. Pass `aspect: :panoramic` (or `:square`) for cameras
-  # that need a non-4:3 framing.
-  def class_doc(aspect: :default, &block)
-    doc_scene render_size(1, aspect: aspect) do
+  # that need a non-4:3 framing. Extra keyword arguments (e.g.
+  # `sampler: "Jittered"`, `samples_per_pixel: 64`) override the
+  # corresponding `doc_scene` defaults — useful for stochastic
+  # cameras like ThinLens that need a real Monte-Carlo sampler to
+  # produce smooth bokeh.
+  def class_doc(aspect: :default, **options, &block)
+    doc_scene render_size(1, aspect: aspect).merge(options) do
       block.bind(self).call
     end
   end
@@ -172,9 +176,9 @@ class DocsRenderer
   # Produce one image per entry in `rainbow_colors`, named by colour.
   # Used by the matte-/phong-/etc.-material drivers to show what the
   # material looks like across the visible spectrum.
-  def rainbow_doc(aspect: :default, &block)
+  def rainbow_doc(aspect: :default, **options, &block)
     rainbow_colors.each do |name, color|
-      doc_scene render_size(7, aspect: aspect) do
+      doc_scene render_size(7, aspect: aspect).merge(options) do
         block.bind(self).call(name, color)
       end
     end
@@ -186,9 +190,9 @@ class DocsRenderer
   # Keep `num` ≤ a small handful (5 is the de-facto standard) so the
   # resulting per-setter `<table>` of images doesn't wrap awkwardly
   # in the rendered Doxygen page.
-  def property_doc(num = 5, aspect: :default, &block)
+  def property_doc(num = 5, aspect: :default, **options, &block)
     1.upto(num) do |i|
-      doc_scene render_size(num, aspect: aspect) do
+      doc_scene render_size(num, aspect: aspect).merge(options) do
         block.bind(self).call(i)
       end
     end

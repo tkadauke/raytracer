@@ -13,6 +13,8 @@ namespace raytracer {
     */
   class SphericalCamera : public Camera {
   public:
+    using Camera::rayForPixel;
+
     /**
       * Constructs a default spherical camera with a horizontal field of view of
       * 180 degrees and a vertical field of view if 120 degrees, looking at the
@@ -46,7 +48,7 @@ namespace raytracer {
     {
     }
     
-    virtual Rayd rayForPixel(double x, double y) const;
+    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
     /**
       * @returns the horizontal field of view of the camera.

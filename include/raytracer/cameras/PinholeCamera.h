@@ -12,6 +12,8 @@ namespace raytracer {
     */
   class PinholeCamera : public Camera {
   public:
+    using Camera::rayForPixel;
+
     /**
       * Constructs a default pinhole camera with a zoom factor of 1 and an
       * eye-viewplane distance of 5, looking at the origin
@@ -33,8 +35,7 @@ namespace raytracer {
     {
     }
     
-    using Camera::render;
-    virtual Rayd rayForPixel(double x, double y) const;
+    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
     /**
       * @returns the distance between the eye and the viewplane. Defaults to 5.

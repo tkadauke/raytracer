@@ -5,7 +5,7 @@
 
 using namespace raytracer;
 
-Rayd OrthographicCamera::rayForPixel(double x, double y) const {
+Rayd OrthographicCamera::rayForPixel(double x, double y, SampleStream&) const {
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
   Vector3d pixel = viewPlane()->pixelAt(x, y);
   return Rayd(pixel, direction);

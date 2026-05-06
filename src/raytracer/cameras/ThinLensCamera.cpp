@@ -36,33 +36,25 @@ namespace {
   }
 }
 
-Rayd ThinLensCamera::rayForPixel(double x, double y) const {
-  // Reuse the sampler's stratified [0,1]² sub-pixel offset as the
-  // lens-disc coordinate. The fractional part of (x, y) IS the sampler
-  // sample (Camera::render computes pixel.pixel() + sample, and
-  // pixel.pixel() is integer). Map [0,1]² → [-1,1]² → disc via the
-  // concentric mapping above; the disc samples then inherit whatever
-  // stratification the active ViewPlane sampler provides (jittered,
-  // multi-jittered, …).
+Rayd ThinLensCamera::rayForPixel(double x, double y, SampleStream& stream) const {
+  // Pull the lens-disc sample from the stream's next 2D dimension.
+  // The renderer has already consumed dimension 0 for sub-pixel
+  // jitter, so this call returns dimension 1 — an *independent*
+  // stratified [0, 1]² sample that decorrelates lens position from
+  // sub-pixel position. Map [0, 1]² → [-1, 1]² and route through the
+  // concentric square-to-disc mapping (Shirley 1997) above; the disc
+  // samples inherit whatever stratification the active sampler
+  // provides (jittered, multi-jittered, future Sobol, …).
   //
-  // Why this matters: pure-random per-call lens sampling gives
-  // O(1/√N) Monte Carlo noise on bokeh — at 1024 spp that's ~3% std
-  // dev, clearly visible as graininess in out-of-focus regions. Reusing
-  // the stratified input drops the convergence to O(1/N) for the
-  // pixel-coverage component (the lens-disc component still has some
-  // residual MC noise, but the dominant correlated noise — see Pharr
-  // & Humphreys, "Physically Based Rendering" §6.2.3 — is gone).
-  //
-  // The price: pixel-jitter and lens-disc samples are now correlated
-  // within each pixel. For typical DOF this shows up as a slight
-  // smoothing of edge transitions and is not visible in practice.
-  // Owen-scrambled Sobol or pad-up multi-jitter would decorrelate them
-  // properly; that's a future improvement (see topics-backlog §A on
-  // sampling theory).
-  double subU = x - std::floor(x);
-  double subV = y - std::floor(y);
-  double a = 2.0 * subU - 1.0;
-  double b = 2.0 * subV - 1.0;
+  // Why stratification matters: pure-random per-call lens sampling
+  // gives O(1/√N) Monte Carlo noise on bokeh — at 1024 spp that's
+  // ~3% std dev, clearly visible as graininess in out-of-focus
+  // regions. With stratified lens samples the dominant
+  // pixel-coverage noise drops to O(1/N) (see Pharr & Humphreys,
+  // "Physically Based Rendering" §6.2.3).
+  Vector2d lens = stream.next2D();
+  double a = 2.0 * lens.x() - 1.0;
+  double b = 2.0 * lens.y() - 1.0;
 
   double u, v;
   concentricMapToDisc(a, b, u, v);
