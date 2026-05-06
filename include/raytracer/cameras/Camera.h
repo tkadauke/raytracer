@@ -17,6 +17,7 @@ class Rect;
 
 namespace raytracer {
   class Raytracer;
+  class Tonemap;
 
   class Camera : public Object {
   public:
@@ -67,6 +68,27 @@ namespace raytracer {
       */
     void render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer) const;
     virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer, const Rect<int>& rect) const;
+
+    /**
+      * Render into a packed-RGB display buffer with inline
+      * tonemapping. This is the path used by interactive display
+      * widgets (`RenderWidget` / `QtDisplay` / `GeneratedRayTracer`):
+      * each tile worker tonemaps its pixels and writes packed
+      * `unsigned int` values to the display buffer as it goes, so
+      * the GUI's progress timer sees partial output during the
+      * render rather than an empty buffer until completion.
+      *
+      * The `tonemap` argument is the operator the engine has
+      * configured (defaults to `LinearTonemap` if the engine never
+      * called `setTonemap`). It must outlive the call.
+      *
+      * The HDR `Buffer<Colord>` overload above is the path used by
+      * non-display consumers (EXR writers, motion-blur compositors,
+      * future path-tracing accumulators) — that one keeps the raw
+      * radiance values around, no clamping.
+      */
+    virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer,
+                        std::shared_ptr<Tonemap> tonemap, const Rect<int>& rect) const;
 
     /**
       * Generate a primary ray for pixel `(x, y)`.
@@ -146,6 +168,13 @@ namespace raytracer {
     /// regular iterator, the size×size block for interlaced
     /// iterators that haven't refined yet.
     void plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const;
+
+    /// LDR variant — writes a packed-RGB pixel value (the result of
+    /// `tonemap->apply(color).rgb()` from the LDR camera path). The
+    /// footprint logic matches `plot(Buffer<Colord>&, ...)` so
+    /// interlaced iterators show the same coarse-then-refine
+    /// progression in either output buffer.
+    void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgb) const;
 
   private:
     bool m_cancelled;

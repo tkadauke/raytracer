@@ -86,6 +86,18 @@ namespace raytracer {
     virtual void render(Buffer<Colord>& buffer) override;
 
     /**
+      * Tile-and-thread render with inline tonemapping into a
+      * packed-RGB display buffer. Each tile worker tonemaps its
+      * pixels and writes packed `unsigned int` values as it goes —
+      * so an interactive widget polling the buffer sees partial
+      * output progressively. The HDR overload above doesn't have
+      * this property (workers write `Colord` and the post-render
+      * tonemap pass only runs after every tile is done), which is
+      * why this override exists.
+      */
+    virtual void render(Buffer<unsigned int>& buffer) override;
+
+    /**
       * Single-ray geometry probe. Returns the `Primitive*` the ray
       * hits first, or `nullptr` if the ray misses everything. Does
       * not shade the hit, so it's cheap enough for interactive

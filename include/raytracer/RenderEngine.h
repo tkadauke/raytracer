@@ -72,14 +72,24 @@ namespace raytracer {
 
     /**
       * Render the full image into a packed-RGB display buffer.
-      * Allocates a `Buffer<Colord>` HDR accumulator, dispatches to
-      * the engine-specific `render(Buffer<Colord>&)` virtual, then
-      * applies the configured `Tonemap` to produce 8-bit output.
+      *
+      * Default implementation: allocates a `Buffer<Colord>` HDR
+      * accumulator, dispatches to the engine-specific
+      * `render(Buffer<Colord>&)` virtual, then applies the configured
+      * `Tonemap` once at the end. Simple but blocks the display
+      * buffer empty until the very end of the render.
+      *
+      * Engines whose interactive consumers want progressive display
+      * (the GUI's `RenderWidget` polls the buffer between frames)
+      * override this with a path that writes tonemapped values into
+      * the LDR buffer as the workers complete pixels — see
+      * `Raytracer::render(Buffer<unsigned int>&)` for the canonical
+      * implementation.
       *
       * Buffer dimensions must be set by the caller; engines do not
       * resize.
       */
-    void render(Buffer<unsigned int>& buffer);
+    virtual void render(Buffer<unsigned int>& buffer);
 
     /**
       * Engine-specific HDR render path. Concrete engines override

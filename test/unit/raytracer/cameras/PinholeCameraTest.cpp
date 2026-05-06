@@ -2,6 +2,7 @@
 #include "raytracer/cameras/PinholeCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
+#include "raytracer/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
 namespace PinholeCameraTest {
@@ -39,6 +40,31 @@ namespace PinholeCameraTest {
     Buffer<Colord> buffer(1, 1);
     camera.render(raytracer, buffer);
     ASSERT_EQ(Colord::white(), buffer[0][0]);
+  }
+
+  TEST(PinholeCamera, RendersIntoLdrBufferWithInlineTonemap) {
+    // The LDR camera-render path is what makes progressive display
+    // work in the GUI: each pixel is tonemapped + packed to RGB by
+    // the worker thread as it goes, so a polling display widget
+    // sees output before the render finishes. This test verifies
+    // the path produces correct pixel values; the
+    // mid-render-non-empty property is timing-dependent and
+    // covered by visual smoke-testing in GeneratedRayTracer.
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto raytracer = std::make_shared<Raytracer>(scene);
+    Buffer<unsigned int> buffer(1, 1);
+    auto tonemap = std::make_shared<LinearTonemap>();
+
+    // The view plane needs setup the same way Raytracer::render
+    // does; bypass the dispatch wrapper and call the tile render
+    // directly.
+    camera.viewPlane()->setup(camera.matrix(), buffer.rect());
+    camera.render(raytracer, buffer, tonemap, buffer.rect());
+
+    // Linear tonemap of `Colord::white()` is `0xffffffff` (full
+    // alpha + RGB). The `rgb()` packing produces this fixed value.
+    EXPECT_EQ(Colord::white().rgb(), buffer[0][0]);
   }
   
   TEST(PinholeCamera, ShouldSetViewplanePixelSize) {

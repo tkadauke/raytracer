@@ -3,6 +3,7 @@
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/viewplanes/PointInterlacedViewPlane.h"
 #include "raytracer/samplers/Sampler.h"
+#include "raytracer/tonemap/Tonemap.h"
 #include "core/Buffer.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
@@ -126,5 +127,69 @@ void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::It
     for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
       for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
         buffer[y][x] = color;
+  }
+}
+
+void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgb) const {
+  int size = pixel.pixelSize();
+  if (size == 1) {
+    buffer[pixel.row()][pixel.column()] = rgb;
+  } else {
+    for (int x = pixel.column(); x != pixel.column() + size && x < rect.right(); ++x)
+      for (int y = pixel.row(); y != pixel.row() + size && y < rect.bottom(); ++y)
+        buffer[y][x] = rgb;
+  }
+}
+
+void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer,
+                    std::shared_ptr<Tonemap> tonemap, const Recti& rect) const {
+  if (isCancelled())
+    return;
+
+  auto plane = viewPlane();
+  auto sampler = plane->sampler();
+  const int samplesPerPixel = sampler->numSamples();
+  const double sampleScale = 1.0 / samplesPerPixel;
+
+  // Mirrors the HDR-buffer render loop above; the only difference is
+  // the per-pixel tonemap + pack to packed RGB so the LDR display
+  // buffer carries values that the GUI can render immediately. The
+  // duplication here is the price of progressive display — see
+  // `Camera::render(Buffer<Colord>&, ...)` for the documented
+  // sample-stream contract that the two paths share.
+  for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+    if (m_showProgressIndicators) {
+      // Pure red (0xff0000) on a saturated channel — every standard
+      // tonemap operator (Linear, Reinhard, ACES) maps this to
+      // 0xff0000 unchanged.
+      plotRGB(buffer, rect, pixel, 0xffff0000);
+    }
+
+    const std::uint64_t pixelHash =
+      static_cast<std::uint64_t>(pixel.column()) * 73856093ull
+      ^ static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+
+    Colord pixelColor;
+    for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+      auto stream = sampler->stream(sampleIndex, pixelHash);
+
+      Vector2d subPixel = stream->next2D();
+      Vector2d xy = pixel.pixel() + subPixel;
+      double timeSample = stream->next1D();
+
+      Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
+      if (ray.direction().isDefined()) {
+        State state;
+        state.timeSample = timeSample;
+        pixelColor += raytracer->rayColor(ray, state);
+      }
+    }
+
+    Colord averaged = pixelColor * sampleScale;
+    unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
+    plotRGB(buffer, rect, pixel, rgb);
+
+    if (isCancelled())
+      break;
   }
 }
