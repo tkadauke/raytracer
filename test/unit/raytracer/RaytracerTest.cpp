@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
@@ -10,12 +11,16 @@
 #include "raytracer/textures/ConstantColorTexture.h"
 
 #include "core/Buffer.h"
+#include "core/math/BoundingBox.h"
+#include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
 #include "test/helpers/ColorTestHelper.h"
+#include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace RaytracerTest {
+  using namespace ::testing;
   using namespace raytracer;
 
   // Tests for the orchestration class itself (issue #20). render() is not
@@ -32,6 +37,22 @@ namespace RaytracerTest {
       sphere->setMaterial(std::make_shared<MatteMaterial>(
         std::make_shared<ConstantColorTexture>(Colord::white())));
       return sphere;
+    }
+
+    // Builds a NiceMock<MockPrimitive> that always reports a hit at the given
+    // distance along the ray, with an outward-facing normal. Used by tests
+    // that need rayColor() to enter the "primitive hit" branch without
+    // bringing a real geometric primitive (and its bounding-box accessors)
+    // into scope.
+    std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
+      auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+      BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
+      HitPoint hit(primitive.get(), distance,
+                   Vector4d(0, 0, distance, 1), Vector3d(0, 0, -1));
+      ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
+      ON_CALL(*primitive, intersect(_, _, _))
+        .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
+      return primitive;
     }
   }
 
@@ -102,21 +123,77 @@ namespace RaytracerTest {
     ASSERT_COLOR_NEAR(Colord::black(), colour, 1e-9);
   }
 
-  TEST(Raytracer, RayColorShouldReturnBlackAtMaximumRecursionDepth) {
+  TEST(Raytracer, RayColorShouldReturnBackgroundAtMaximumRecursionDepth) {
+    // Regression for #35: previously truncation returned Colord::black(),
+    // which made deep TIR chains in glass tori render as black voids.
+    // After the fix, truncation falls through to the scene background —
+    // a softer fallback that matches what a primary miss would see.
     auto scene = std::make_shared<Scene>();
-    scene->setBackground(Colord(1, 0, 0));  // Red so a leaked-through return is obvious.
+    scene->setBackground(Colord(0.7, 0.4, 0.1));
     Raytracer raytracer(scene);
     // rayColor's first action is state.recurseIn() (state starts at 0 → 1),
     // then it checks `if (recursionDepth == maximumRecursionDepth)`. Setting
-    // max to 1 makes the very first call short-circuit to black, never
-    // reaching the scene intersection or the background.
+    // max to 1 makes the very first call short-circuit, never reaching the
+    // scene intersection.
     raytracer.setMaximumRecursionDepth(1);
 
     State state;
     Rayd ray(Vector3d(0, 0, -5), Vector3d(0, 0, 1));
     auto colour = raytracer.rayColor(ray, state);
 
-    ASSERT_COLOR_NEAR(Colord::black(), colour, 1e-9);
+    ASSERT_COLOR_NEAR(scene->background(), colour, 1e-9);
+  }
+
+  TEST(Raytracer, RayColorShouldShortCircuitBeforeIntersectAtMaximumDepth) {
+    // Even with a hittable primitive in the scene, hitting the depth
+    // limit must short-circuit before the intersect call is ever made.
+    // Mock-based variant of the test above — pins the *order* of the
+    // depth check vs the intersect dispatch.
+    auto scene = std::make_shared<Scene>();
+    scene->setBackground(Colord(0.7, 0.4, 0.1));
+    scene->add(makeAlwaysHit());
+    Raytracer raytracer(scene);
+    raytracer.setMaximumRecursionDepth(1);
+
+    State state;
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
+  }
+
+  TEST(Raytracer, RayColorShouldRestoreRecursionDepthAfterReturning) {
+    // The recurseIn / recurseOut pair around rayColor must balance regardless
+    // of which return path is taken.
+    auto scene = std::make_shared<Scene>();
+    Raytracer raytracer(scene);
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    State state;
+    raytracer.rayColor(ray, state);
+    ASSERT_EQ(0, state.recursionDepth);
+  }
+
+  TEST(Raytracer, RayColorShouldTrackMaxRecursionDepthInState) {
+    // One non-recursive call records a max depth of 1.
+    auto scene = std::make_shared<Scene>();
+    Raytracer raytracer(scene);
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    State state;
+    raytracer.rayColor(ray, state);
+    ASSERT_EQ(1, state.maxRecursionDepth);
+  }
+
+  TEST(Raytracer, RayColorShouldRespectCustomMaximumRecursionDepth) {
+    // setMaximumRecursionDepth(N) must control where the depth check fires.
+    // Pre-loading state.recursionDepth simulates having already recursed
+    // N-1 times; the next rayColor call should hit the limit.
+    auto scene = std::make_shared<Scene>();
+    scene->setBackground(Colord(0.1, 0.2, 0.3));
+    Raytracer raytracer(scene);
+    raytracer.setMaximumRecursionDepth(5);
+
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    State state;
+    state.recursionDepth = 4;  // recurseIn() will make it 5, hitting the limit.
+    ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
   }
 
   TEST(Raytracer, PrimitiveForRayShouldReturnHitPrimitive) {
