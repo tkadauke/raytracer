@@ -411,6 +411,12 @@ class ThinLensCamera < Camera
            :focalDistance => 5
 end
 
+class TiltShiftCamera < ThinLensCamera
+  property :tilt => 0.degrees,
+           :shiftX => 0,
+           :shiftY => 0
+end
+
 class EquirectangularCamera < Camera
 end
 

@@ -356,7 +356,7 @@ The current four (pinhole, fish-eye, orthographic, spherical) become the core; t
 - **Omnidirectional / cubemap** — six pinholes glued together.
 - **Light-field camera** — multi-perspective rendering for refocusable output.
 - **Stereo cameras** — both **parallel-frustum** (off-axis, no keystone) and **toed-in / converged** (camera angle) variants, with explicit IPD and convergence distance controls. Anaglyph/side-by-side/top-bottom output formats for compatibility with viewers.
-- **Tilt-shift / Scheimpflug** — independent control of sensor and lens planes.
+- ✅ **Tilt-shift / Scheimpflug** — ~~independent control of sensor and lens planes.~~ Done as `raytracer::TiltShiftCamera` (subclass of `ThinLensCamera`). Rotates the focal plane around the camera's local right axis (`tilt`) and supports a lens-shift offset (`shiftX` / `shiftY`) for converging-vertical correction. Not full Scheimpflug — only the focal plane rotates; image and lens planes stay perpendicular. The full physical Scheimpflug condition is deferred to the future Kolb camera.
 
 All cameras share a `Camera::generateRay(sample) → Ray` API; lens-based cameras additionally implement aperture sampling for DoF.
 

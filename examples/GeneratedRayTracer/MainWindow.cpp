@@ -58,6 +58,7 @@
 #include "world/objects/OrthographicCamera.h"
 #include "world/objects/SphericalCamera.h"
 #include "world/objects/ThinLensCamera.h"
+#include "world/objects/TiltShiftCamera.h"
 #include "world/objects/EquirectangularCamera.h"
 
 struct MainWindow::Private {
@@ -119,6 +120,7 @@ struct MainWindow::Private {
   QAction* addOrthographicCameraAct;
   QAction* addSphericalCameraAct;
   QAction* addThinLensCameraAct;
+  QAction* addTiltShiftCameraAct;
   QAction* addEquirectangularCameraAct;
   
   QAction* deleteElementAct;
@@ -277,6 +279,10 @@ void MainWindow::createActions() {
   p->addThinLensCameraAct->setStatusTip(tr("Add a thin-lens camera with depth-of-field to the scene"));
   connect(p->addThinLensCameraAct, SIGNAL(triggered()), this, SLOT(addThinLensCamera()));
 
+  p->addTiltShiftCameraAct = new QAction(tr("Tilt-Shift Camera"), this);
+  p->addTiltShiftCameraAct->setStatusTip(tr("Add a tilt-shift / Scheimpflug camera (DOF + tilted focal plane) to the scene"));
+  connect(p->addTiltShiftCameraAct, SIGNAL(triggered()), this, SLOT(addTiltShiftCamera()));
+
   p->addEquirectangularCameraAct = new QAction(tr("Equirectangular Camera (360°)"), this);
   p->addEquirectangularCameraAct->setStatusTip(tr("Add a full-sphere panorama camera to the scene (render at 2:1 aspect)"));
   connect(p->addEquirectangularCameraAct, SIGNAL(triggered()), this, SLOT(addEquirectangularCamera()));
@@ -400,6 +406,7 @@ void MainWindow::createMenus() {
   addCamera->addAction(p->addOrthographicCameraAct);
   addCamera->addAction(p->addSphericalCameraAct);
   addCamera->addAction(p->addThinLensCameraAct);
+  addCamera->addAction(p->addTiltShiftCameraAct);
   addCamera->addAction(p->addEquirectangularCameraAct);
   
   p->editMenu->addSeparator();
@@ -610,6 +617,10 @@ void MainWindow::addSphericalCamera() {
 
 void MainWindow::addThinLensCamera() {
   add<ThinLensCamera>();
+}
+
+void MainWindow::addTiltShiftCamera() {
+  add<TiltShiftCamera>();
 }
 
 void MainWindow::addEquirectangularCamera() {

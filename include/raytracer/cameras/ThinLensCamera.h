@@ -160,8 +160,13 @@ namespace raytracer {
       * focal-plane convergence guarantee. Useful for deterministic tests
       * where you want repeatable lens samples; production code calls
       * `rayForPixel(x, y)` which generates a fresh random sample.
+      *
+      * Virtual so subclasses with different focal-plane geometry
+      * (`TiltShiftCamera`) can keep the parent's `rayForPixel`
+      * concentric-mapping wrapper and override only the
+      * pinhole-to-focal-point math.
       */
-    Rayd rayForPixelWithLens(double x, double y, double lensU, double lensV) const;
+    virtual Rayd rayForPixelWithLens(double x, double y, double lensU, double lensV) const;
 
     /**
       * @returns the eye-to-viewplane distance.

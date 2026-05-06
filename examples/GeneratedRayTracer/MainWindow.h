@@ -69,6 +69,7 @@ private slots:
   void addOrthographicCamera();
   void addSphericalCamera();
   void addThinLensCamera();
+  void addTiltShiftCamera();
   void addEquirectangularCamera();
   
   void deleteElement();
