@@ -8,8 +8,42 @@
 namespace raytracer {
   class Light;
 
+  /**
+    * @brief Top-level scene graph node — geometry, lights, ambient,
+    *        and background colour.
+    *
+    * `Scene` is a `Composite` that additionally owns a list of
+    * `Light`s and the two whole-scene colours that the renderer
+    * consults when no surface contributes:
+    *
+    *  - `background()` is returned for primary rays that miss every
+    *    primitive *and* for recursive rays that bottom out at the
+    *    `Raytracer::setMaximumRecursionDepth(N)` limit. The latter
+    *    is a deliberate softening — see `Raytracer::rayColor` for
+    *    why background, not black.
+    *  - `ambient()` is the constant illumination available to every
+    *    surface without ray-traced visibility (no shadow ray);
+    *    materials multiply it by their own ambient coefficient.
+    *
+    * The geometry side is inherited from `Composite` — `add()`,
+    * `intersect()`, etc. work the same way they do for a regular
+    * group node, so a scene is just "a `Composite` with a sky and
+    * an ambient term." Lights live on a separate list because the
+    * shading pipeline needs to iterate them independently of the
+    * geometry traversal.
+    *
+    * The editable counterpart is `world::Scene` (different file,
+    * different namespace), which adds Q_PROPERTYs, JSON
+    * persistence, and the parent-child element-tree machinery. The
+    * runtime `Scene` you're looking at here is the leaner object
+    * the renderer actually traces against — produced by
+    * `world::Scene::toRaytracerScene()`.
+    */
   class Scene : public Composite {
   public:
+    /// `Light` is a non-`Object` (it lives outside the geometry
+    /// composite tree), so lights are tracked here in a flat list
+    /// and shared with materials at shade-time via `lights()`.
     typedef std::list<std::shared_ptr<Light>> Lights;
 
     /**
