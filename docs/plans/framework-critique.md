@@ -158,12 +158,24 @@
   Line, Ray, Circle, Rectangle, Text, Axes, Path, Slider,
   DragHandler, OrderedHash). `var` → `const`/`let`, arrow functions
   in event handlers, template literals, default parameters,
-  destructured Slider options. The two ThinLens widgets migrated to
-  the modern syntax as worked examples; the 18 pre-existing widgets
-  continue to work unchanged via the preserved `Class()` shim — that
-  shim is now a thin wrapper that delegates to a real ES6 class
-  underneath, so adopting the modern syntax is a per-widget choice
-  rather than a flag day. Smoke tests pin both code paths.
+  destructured Slider options. **All 20 widgets** migrated to the
+  modern syntax (the two ThinLens widgets first as worked examples,
+  then all 18 pre-existing Angle / Ray / BoundingBox / ConvexHull /
+  Hitpoint / Sphere / Box widgets). The `Class()` factory is
+  preserved as a 30-line compatibility shim — covered by unit
+  tests, but no in-repo widget actually uses it any more. Smoke
+  test loads every widget in a shared sandbox to catch shim
+  regressions and broken cross-widget inheritance.
+
+  Side benefits surfaced during the migration:
+  - Several typo'd class names (`BoudingBoxClass` → `BoundingBoxClass`,
+    five other `BoudingBox*` variants, `RayClass` collision between
+    `ray_class.js` and `ray_at.js`) corrected. They were JS-internal
+    symbols only, never referenced from C++ headers.
+  - `clamp` global pollution in `ray_at.js` (originally a top-level
+    `function clamp() { ... }`) replaced with a per-file `const`
+    scoped lexical, so multi-widget pages can't pick up the wrong
+    helper.
 - **Medium (deferred)**: scoped CSS. Currently `figure.js` injects a
   global stylesheet into `<head>`; a per-widget styling option would
   require either Shadow DOM or a CSS-class-namespacing convention.

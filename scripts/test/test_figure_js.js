@@ -204,84 +204,58 @@ test('Class: omitted properties argument constructs an empty class', () => {
   assert.doesNotThrow(() => new Empty());
 });
 
-// --- Legacy widget smoke test ---------------------------------------------
+// --- Widget smoke test ----------------------------------------------------
 //
-// A direct sanity check for the Class() shim: load each
-// pre-modernisation widget under scripts/docs/ in our DOM-shim
-// sandbox and verify it doesn't throw at load time. Catches syntax
-// errors, missing globals, and Class() shim regressions before they
-// reach the rendered Doxygen page.
+// Loads every widget under scripts/docs/ in a single shared
+// sandbox in dependency order and verifies none of them throws at
+// load time. Catches syntax errors, missing globals, broken
+// inheritance, and figure.js-shim regressions before they reach
+// the rendered Doxygen page.
 //
-// The widgets each wrap themselves in an IIFE that calls
-// `scriptElement.parentNode.appendChild(...)`. The shim's
-// `currentScript` returns a fresh node with a parent, so the
-// appendChild is exercised end-to-end.
+// All widgets now use ES6 class syntax. The `Class()` factory is
+// preserved as a compatibility shim (covered by the unit tests
+// above) but no production widget uses it any more — kept for the
+// hypothetical contributor who copy-pastes the legacy pattern.
+//
+// Doxygen pages that use multiple widgets load them as separate
+// `<script>` tags into the same global scope, so we mirror that
+// here: one shared sandbox, base widgets loaded first.
 
-test('Legacy widgets all load without throwing', () => {
-  // Some legacy widgets inherit from siblings — e.g.
-  // angle_from_clock.js extends AngleFromX defined in
-  // angle_from_x.js. Doxygen pages that use multiple widgets load
-  // them as separate <script> tags into the same global scope, so
-  // we mirror that here: one shared sandbox, base widgets loaded
-  // first.
-  //
-  // Known dependencies (base must load before dependents). Add to
-  // this list when a new cross-widget reference appears.
+test('All widgets load without throwing', () => {
+  // Known cross-widget dependencies — base must load before
+  // dependents. Add entries here when a new cross-widget reference
+  // appears.
   const dependencyOrder = ['angle_from_x.js'];
 
   const docsDir = path.resolve(__dirname, '..', 'docs');
-  // Excludes figure.js (loaded as the harness) and the two ThinLens
-  // widgets (covered by the modernised-widget test below).
   const allWidgets = fs.readdirSync(docsDir)
     .filter(f => f.endsWith('.js'))
     .filter(f => f !== 'figure.js')
-    .filter(f => !f.startsWith('thin_lens_camera_'))
     .sort();
 
   // Move base-class widgets to the front. Order among the rest is
-  // alphabetical (deterministic for stable error messages).
+  // alphabetical for stable error messages.
   const widgets = [
     ...dependencyOrder,
     ...allWidgets.filter(w => !dependencyOrder.includes(w))
   ];
 
-  assert.ok(widgets.length >= 15,
-    `expected ≥15 legacy widgets, found ${widgets.length}`);
+  assert.ok(widgets.length >= 18,
+    `expected ≥18 widgets, found ${widgets.length}`);
 
   const sandbox = loadFigure();
   for (const widget of widgets) {
     const body = sandbox.document.createElement('body');
     const script = sandbox.document.createElement('script');
     body.appendChild(script);
-    // Both anchor patterns supported: modernised widgets use
-    // `document.currentScript`; legacy widgets use
-    // `document.scripts[document.scripts.length - 1]`. Set both so
-    // either works in the smoke-test sandbox.
+    // Both anchor patterns supported: the modernised widgets use
+    // `document.currentScript`; the `Class()` shim still routes
+    // through `document.scripts[length-1]`. Set both so either
+    // works in the smoke-test sandbox.
     sandbox.document.currentScript = script;
     sandbox.document.scripts = [script];
 
     const source = fs.readFileSync(path.join(docsDir, widget), 'utf8');
-    assert.doesNotThrow(
-      () => vm.runInContext(source, sandbox),
-      `widget ${widget} threw during load`
-    );
-  }
-});
-
-test('ThinLens widgets (modernised, ES6 class syntax) load cleanly', () => {
-  // The two widgets migrated to native ES6 classes — separate smoke
-  // test so a regression in the modern-style path doesn't get
-  // masked by the legacy-shim test.
-  for (const widget of ['thin_lens_camera_convergence.js',
-                        'thin_lens_camera_disc_sampling.js']) {
-    const sandbox = loadFigure();
-    const body = sandbox.document.createElement('body');
-    const script = sandbox.document.createElement('script');
-    body.appendChild(script);
-    sandbox.document.currentScript = script;
-
-    const source = fs.readFileSync(
-      path.resolve(__dirname, '..', 'docs', widget), 'utf8');
     assert.doesNotThrow(
       () => vm.runInContext(source, sandbox),
       `widget ${widget} threw during load`

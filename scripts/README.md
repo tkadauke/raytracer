@@ -279,12 +279,12 @@ class FooClass {
 })(document.currentScript);
 ```
 
-The legacy `Class()` factory is preserved for backward compatibility
-with the 18 pre-modernisation widgets (Angle, Ray, BoundingBox,
-ConvexHull, etc.) — see `scripts/docs/ray_at.js` for an example.
-**Don't reach for `Class()` in new widgets.** It exists only so the
-older widgets keep loading without per-widget edits; new code goes
-through native class syntax above.
+All `scripts/docs/*.js` widgets use the native `class` syntax above.
+The legacy `Class()` factory is preserved as a compatibility shim
+for any future contributor who copy-pastes a pattern from outside
+the repo, but no in-repo widget uses it. Don't reach for it in new
+code; it has no functional advantage and bypasses the modern
+`extends` / `super` machinery.
 
 Two important details in the anchor pattern:
 
