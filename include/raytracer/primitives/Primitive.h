@@ -8,6 +8,7 @@
 #include "raytracer/Object.h"
 
 class HitPointInterval;
+class Mesh;
 
 namespace raytracer {
   class Material;
@@ -123,6 +124,38 @@ namespace raytracer {
       * override for accuracy and speed.
       */
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
+
+    /**
+      * Produce a triangle-mesh approximation of this primitive at
+      * the requested level of detail. The output is a `core::Mesh`
+      * with positions, normals, and UVs — the data type that
+      * non-raytracing engines (wireframe, software raster, OpenGL
+      * viewport) and exporters (OBJ, STL, glTF) consume.
+      *
+      * `lod` is an implementation-defined subdivision level, in the
+      * spirit of OpenSubdiv:
+      *
+      *  - `lod = 0` → a minimum-reasonable tessellation. For Sphere
+      *    that's a low-poly UV sphere; for Torus an 8×8 grid; for
+      *    Box a fixed 12-triangle output (LOD ignored — Box is
+      *    polyhedral already).
+      *  - Higher values grow the subdivision count according to a
+      *    per-primitive schedule documented on each override.
+      *
+      * The default implementation returns an empty `Mesh` and emits
+      * a `state`-less `recordEvent`-style trace through stdout
+      * `qWarning` so a debugging engine can see "primitive X did
+      * not implement tessellate." Concrete leaf primitives override;
+      * compositors (`Composite`, `Instance`, `Grid`, `Scene`)
+      * concatenate or transform their children's meshes; CSG
+      * primitives stub out until the mesh-boolean epic lands (see
+      * roadmap §4.2.a).
+      *
+      * The returned `shared_ptr<Mesh>` is fresh per call — callers
+      * may modify it in place. Caching, if any, is the consumer's
+      * responsibility.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 
   protected:
     /**

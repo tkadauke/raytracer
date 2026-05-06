@@ -1,8 +1,11 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Primitive.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/GJKSimplex.h"
+
+#include <iostream>
 
 using namespace raytracer;
 
@@ -14,6 +17,19 @@ bool Primitive::intersects(const Rayd& ray, State& state) const {
 
 Vector3d Primitive::farthestPoint(const Vector3d&) const {
   return Vector3d::undefined();
+}
+
+std::shared_ptr<Mesh> Primitive::tessellate(int) const {
+  // Loud-but-non-fatal default. A subclass that genuinely can't be
+  // tessellated (the infinite Plane, CSG operations awaiting the
+  // mesh-boolean epic) overrides this to return an empty mesh
+  // silently; primitives that *should* tessellate but haven't been
+  // implemented yet hit this default and surface in the warning
+  // stream so the gap is visible to anyone running an engine that
+  // depends on it.
+  std::cerr << "Primitive::tessellate: " << name() << " (or its concrete type) "
+            << "did not override tessellate; returning empty mesh.\n";
+  return std::make_shared<Mesh>();
 }
 
 // G. v.d. Bergen. Ray Casting against General Convex Objects with Application
