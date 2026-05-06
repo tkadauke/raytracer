@@ -2,6 +2,7 @@
 #include "raytracer/primitives/Instance.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
+#include "core/geometry/Mesh.h"
 
 #include <vector>
 
@@ -116,4 +117,26 @@ BoundingBoxd Instance::calculateBoundingBox() const {
 
 Vector3d Instance::farthestPoint(const Vector3d& direction) const {
   return m_pointMatrix * m_primitive->farthestPoint(m_directionMatrix * direction);
+}
+
+std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
+  // Only the t=0 configuration is captured; a time-aware engine would need
+  // per-frame meshes to handle motion blur correctly.
+  auto childMesh = m_primitive->tessellate(lod);
+  auto result = std::make_shared<Mesh>();
+  if (!childMesh)
+    return result;
+
+  for (const auto& v : childMesh->vertices()) {
+    // Use homogenized() so projective transforms (w≠1) are handled correctly;
+    // for the typical affine case this is equivalent to discarding w.
+    Vector3d point = (m_pointMatrix * Vector4d(v.point)).homogenized();
+    Vector3d normal = (m_normalMatrix * v.normal).normalized();
+    result->addVertex(point, normal, v.uv);
+  }
+
+  for (const auto& face : childMesh->faces())
+    result->addFace(face);
+
+  return result;
 }

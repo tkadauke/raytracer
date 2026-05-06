@@ -4,6 +4,7 @@
 #include "core/math/Range.h"
 #include "core/math/Quadric.h"
 #include "core/math/HitPointInterval.h"
+#include "core/geometry/Mesh.h"
 #include <cmath>
 
 using namespace std;
@@ -107,4 +108,34 @@ Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
     direction.y() < 0.0 ? -m_halfHeight : m_halfHeight,
     planar.z() * m_radius
   );
+}
+
+std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {
+  auto mesh = std::make_shared<Mesh>();
+
+  int segments = 16 << lod;
+
+  // Generate segments+1 pairs of vertices so u goes cleanly 0→1 with seam
+  // duplication (first and last columns overlap in position but differ in UV).
+  for (int i = 0; i <= segments; ++i) {
+    double theta = 2.0 * M_PI * i / segments;
+    double c = std::cos(theta), s = std::sin(theta);
+    double u = static_cast<double>(i) / segments;
+
+    Vector3d normal(c, 0.0, s);
+    // bottom ring (v = 0), then top ring (v = 1) — interleaved: 2*i = bottom, 2*i+1 = top
+    mesh->addVertex(Vector3d(m_radius * c, -m_halfHeight, m_radius * s), normal, Vector2d(u, 0.0));
+    mesh->addVertex(Vector3d(m_radius * c,  m_halfHeight, m_radius * s), normal, Vector2d(u, 1.0));
+  }
+
+  // Quads: each column i connects bottom[i]/top[i] to bottom[i+1]/top[i+1]
+  for (int i = 0; i < segments; ++i) {
+    int bl = 2 * i;          // bottom left
+    int tl = 2 * i + 1;     // top left
+    int br = 2 * (i + 1);   // bottom right
+    int tr = 2 * (i + 1) + 1; // top right
+    mesh->addFace({bl, br, tr, tl});
+  }
+
+  return mesh;
 }

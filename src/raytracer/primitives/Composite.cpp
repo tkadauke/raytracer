@@ -2,6 +2,7 @@
 #include "raytracer/primitives/Composite.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
+#include "core/geometry/Mesh.h"
 
 #include <limits>
 
@@ -54,4 +55,30 @@ BoundingBoxd Composite::calculateBoundingBox() const {
   for (const auto& i : m_primitives)
     b.include(i->boundingBox());
   return b;
+}
+
+std::shared_ptr<Mesh> Composite::tessellate(int lod) const {
+  auto result = std::make_shared<Mesh>();
+  int vertexOffset = 0;
+
+  for (const auto& prim : m_primitives) {
+    auto childMesh = prim->tessellate(lod);
+    if (!childMesh)
+      continue;
+
+    for (const auto& v : childMesh->vertices())
+      result->addVertex(v.point, v.normal, v.uv);
+
+    for (const auto& face : childMesh->faces()) {
+      Mesh::Face remapped;
+      remapped.reserve(face.size());
+      for (int idx : face)
+        remapped.push_back(idx + vertexOffset);
+      result->addFace(remapped);
+    }
+
+    vertexOffset += static_cast<int>(childMesh->vertices().size());
+  }
+
+  return result;
 }
