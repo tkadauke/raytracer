@@ -54,7 +54,7 @@ This document is a roadmap, not a commitment, and there are no deadlines. Order 
 - **Bump and normal mapping: not implemented.** Distinct from texturing — needs a tangent frame on `HitPoint` and a shading-normal pass before BSDF eval.
 - **Camera library is small.** Pinhole, fish-eye, orthographic, and spherical exist. The roster is missing thin-lens (DoF), Kolb realistic, Panini, omnidirectional/cubemap, light-field, and stereo (parallel-frustum and toed-in) cameras.
 - **Acceleration structure is weak.** The current hierarchical container is closer to a naive list-of-lists than a proper acceleration tree. Render times scale poorly with scene complexity. A real BVH plus alternate spatial indexes (octree, kd-tree, uniform grid) is a prerequisite for everything past a few dozen primitives.
-- **Default recursion depth and black-on-truncation** — being addressed by the in-flight TIR / truncation PRs (#35, #36).
+- ~~**Default recursion depth and black-on-truncation** — being addressed by the in-flight TIR / truncation PRs (#35, #36).~~ ✅ **Done.** #35 bumped the default `maximumRecursionDepth` 5→10 and switched truncation to return the scene background; #36 made the TIR branch of `TransparentMaterial::shade` retain Phong direct lighting.
 
 ### Existing seams that just need extension
 
@@ -88,13 +88,13 @@ The current test suite is broad on construction and properties but thin on *beha
 
 Specific work:
 
-- **`Raytracer::rayColor`** — depth-limit boundary (== vs ≥), no-hit→background, `state.recursionDepth` tracking on reflection/refraction recursion, behaviour with no material assigned. Belongs alongside the in-flight #35 fix.
-- **`TransparentMaterial`** — Snell's law refraction angle, critical-angle TIR boundary, nested-medium IOR stacking, normal-incidence pass-through. Belongs alongside the in-flight #36 fix.
-- **`PerfectTransmitter`** — first-ever test file. BTDF subdir generally under-tested.
-- **All `Material::shade()` subclasses** — at least one behavioural test per material that calls `shade()` and verifies the output colour against an expected value, not just constructed properties.
-- **`Texture` and texture mappings** — coordinate projection correctness for `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-colour shading for `ConstantColorTexture`.
+- ✅ **`Raytracer::rayColor`** — depth-limit boundary (== vs ≥), no-hit→background, `state.recursionDepth` tracking on reflection/refraction recursion, behaviour with no material assigned. ~~Belongs alongside the in-flight #35 fix.~~ Landed via #35.
+- ✅ **`TransparentMaterial`** — Snell's law refraction angle, critical-angle TIR boundary, ~~nested-medium IOR stacking~~ (still TODO — see §2 "no nested-medium tracking"), normal-incidence pass-through. ~~Belongs alongside the in-flight #36 fix.~~ Most of this landed via #36's `ShadeFixture`-based behavioural tests in `TransparentMaterialTest.cpp`.
+- ✅ **`PerfectTransmitter`** — first-ever test file. BTDF subdir generally under-tested. **Done in #36** (`test/unit/raytracer/brdf/PerfectTransmitterTest.cpp`).
+- ✅ **All `Material::shade()` subclasses** — at least one behavioural test per material that calls `shade()` and verifies the output colour against an expected value, not just constructed properties. **Done in #22** (`MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, `TransparentMaterial`).
+- **`Texture` and texture mappings** — coordinate projection correctness for `PlanarMapping2D`; texture-pattern alternation for `CheckerBoardTexture`; constant-colour shading for `ConstantColorTexture`. *(World-side `Texture` family covered in #24; raytracer-side mappings still uncovered.)*
 - **Empty test body** — `PlaneTest.cpp::ShouldReturnBoundingBox` is a `// TODO` stub. Fill in.
-- **`world/` layer** — 32 headers, 31 impls, zero tests. Either bring under test (it's the Qt-side scene description and likely live), or formally sunset and remove.
+- **`world/` layer** — 32 headers, 31 impls, zero tests. Either bring under test (it's the Qt-side scene description and likely live), or formally sunset and remove. *(Substantial progress in #24: `Element`, `Transformable`, `Scene`, `Light`, `Surface`, `Material`, `Texture`, `Camera`, `CSGSurface` families all under test. `ScriptedSurface` still uncovered pending QtScript→QJSEngine settling.)*
 - **Sampler distribution properties** — verify jittered sampler actually jitters, regular sampler stratifies, random sampler is uniform. Currently only iterator mechanics are tested.
 - **Factory methods** — `CameraFactory`, `SamplerFactory`, `ViewPlaneFactory` have no test files.
 
@@ -348,8 +348,8 @@ The current four (pinhole, fish-eye, orthographic, spherical) become the core; t
 - **Pinhole** (existing) — the textbook entry point.
 - **Orthographic** (existing) — for engineering views.
 - **Fish-eye** (existing) — equidistant projection, with stereographic and equisolid variants added.
-- **Spherical / equirectangular** (existing) — for 360° captures and HDRI authoring.
-- **Thin-lens** — depth of field, bokeh shape (circular, polygonal, custom texture for cat-eye/anamorphic).
+- **Spherical** (existing) — partial-sphere projection with tunable horizontal/vertical FOV. ✅ **Equirectangular** added as a separate dedicated full-360°×180° camera (`raytracer::EquirectangularCamera`, 35ac267) — for HDRI authoring, since `SphericalCamera` doesn't quite cover the canonical full-sphere case.
+- ✅ **Thin-lens** — depth of field, ~~bokeh shape (circular, polygonal, custom texture for cat-eye/anamorphic)~~. Basic DoF + circular bokeh done in 3e42f4d (`raytracer::ThinLensCamera`); polygonal/custom-texture bokeh shapes still to come.
 - **Kolb realistic camera** — full multi-element lens stack with chromatic aberration, vignetting, distortion. The pedagogical centrepiece for "how do real cameras work."
 - **Panini projection** — wide angle without the fish-eye distortion.
 - **Cylindrical / panoramic.**
@@ -491,7 +491,7 @@ A scene-script DSL for parametric/procedural geometry. See §7 open question on 
 
 - Scene timeline with keyframes on any animatable parameter — transforms, material parameters, camera pose, light intensity, scene-level globals (time of day, weather).
 - Interpolation curves: linear, Bezier, ease-in/out, hold.
-- Time-sampled rendering for motion blur (multiple time samples per frame within shutter-open).
+- ✅ **Time-sampled rendering for motion blur** (multiple time samples per frame within shutter-open). First pass landed in 7c81d11 — `State::timeSample` drawn from `SampleStream::next1D` (dim 1 in the renderer's stream allocation), `world::Surface::velocity` Q_PROPERTY, `Instance` interpolates linear translation. Rotation/scale animation, full timeline, and keyframe interpolation curves still TODO.
 - Output: image sequence or piped to ffmpeg for video (configurable codec).
 - Eventually (defer): rigid body simulation, particle systems, simple IK skeletons.
 
@@ -604,7 +604,7 @@ Pick the theme that's most interesting today; stop when it stops being interesti
 
 ### T1. Foundations *(prerequisite — do first)*
 
-The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well without these. R0 (behavioural tests on the integrator and materials) precedes everything. Plus in-flight fixes: PRs #35/#36, and the small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor).
+The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well without these. R0 (behavioural tests on the integrator and materials) precedes everything. ~~Plus in-flight fixes: PRs #35/#36~~ ✅ #35 (default depth + truncation) and #36 (TIR direct lighting) are merged. ~~and~~ The small tidy-ups (`PerfectTransmitter` IOR default, `PerfectSpecular` normalDotIn typo, missing `setTransmissionCoefficient` in textured ctor) are still TODO.
 
 ### T2. More engines
 
