@@ -15,6 +15,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- `world::Torus` editable wrapper for the existing `raytracer::Torus` primitive — exposes `sweptRadius` / `tubeRadius` as `Q_PROPERTY` so they auto-bind in `PropertyEditorWidget`, registers with `ElementFactory` as `"Torus"`, and ships with an **Edit → Add Primitive → Torus** menu entry in `GeneratedRayTracer` plus a loadable `examples/GeneratedRayTracer/scenes/glass_torus.json` demo (glass torus IOR 1.52 on a checkerboard-floored stage). Plugs the long-standing gap where the runtime primitive was unreachable from JSON scenes, the GUI editor, and `rendercli`. — Claude Opus 4.7
 - `CMake 3.28` build with per-target preset (`debug`, `release`, `asan`, `coverage`, `fuzz`, `benchmark`) running alongside the legacy Rakefile. The Rakefile is now a thin wrapper around `cmake --preset` and hosts a few project-utility tasks (`check:cpp`, `check:inline`, `stats`, `docs:render`). — Claude Opus 4.7
 - GitHub Actions CI matrix: Ubuntu 24.04 (gcc-13, clang-18) and macOS 14 (Apple Clang); separate jobs for ASan + UBSan, coverage (with a 60 % line-coverage CI floor), CodeQL, container-image build, the PLY LibFuzzer harness, and Doxygen → GitHub Pages. — Claude Opus 4.7
 - LibFuzzer harness `fuzz/fuzz_ply.cpp` for the PLY parser (the only untrusted-input surface), gated on `RAYTRACER_ENABLE_FUZZING` and exercised in CI for 60 s on every push. — Claude Opus 4.7
