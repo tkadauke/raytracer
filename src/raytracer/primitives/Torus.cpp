@@ -1,5 +1,7 @@
 #include "raytracer/State.h"
 #include "raytracer/primitives/Torus.h"
+#include "core/geometry/Mesh.h"
+#include "core/math/Constants.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Quartic.h"
@@ -63,6 +65,51 @@ const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
     state.hit(this, "Torus");
     return this;
   }
+}
+
+shared_ptr<Mesh> Torus::tessellate(int lod) const {
+  const int majorSegs = 16 << lod;  // 16, 32, 64, …
+  const int minorSegs = 16 << lod;
+
+  auto mesh = make_shared<Mesh>();
+
+  // Build a (majorSegs+1) × (minorSegs+1) vertex grid. Both seams (u=0/2π
+  // and v=0/2π) are closed by duplicating the column/row at index 0 with
+  // u=1 or v=1, giving continuous UV mapping across both wraps.
+  for (int i = 0; i <= majorSegs; ++i) {
+    double u = static_cast<double>(i) / majorSegs;  // [0, 1]
+    double angle_u = u * TAU;
+    double cos_u = std::cos(angle_u);
+    double sin_u = std::sin(angle_u);
+
+    for (int j = 0; j <= minorSegs; ++j) {
+      double v = static_cast<double>(j) / minorSegs;  // [0, 1]
+      double angle_v = v * TAU;
+      double cos_v = std::cos(angle_v);
+      double sin_v = std::sin(angle_v);
+
+      // Parametric torus: (R + r·cosv)·(cosu, 0, sinu) + (0, r·sinv, 0)
+      double dist = m_sweptRadius + m_tubeRadius * cos_v;
+      Vector3d point(dist * cos_u, m_tubeRadius * sin_v, dist * sin_u);
+
+      // Normal = direction from nearest major-circle point to surface point,
+      // unit-length by construction: (cosv·cosu, sinv, cosv·sinu)
+      Vector3d normal(cos_v * cos_u, sin_v, cos_v * sin_u);
+
+      mesh->addVertex(point, normal, Vector2d(u, v));
+    }
+  }
+
+  // One quad per (major-segment, minor-segment) cell.
+  for (int i = 0; i < majorSegs; ++i) {
+    for (int j = 0; j < minorSegs; ++j) {
+      int row     = i       * (minorSegs + 1);
+      int nextRow = (i + 1) * (minorSegs + 1);
+      mesh->addFace({ row + j, nextRow + j, nextRow + j + 1, row + j + 1 });
+    }
+  }
+
+  return mesh;
 }
 
 BoundingBoxd Torus::calculateBoundingBox() const {
