@@ -9,10 +9,6 @@
 
 using namespace raytracer;
 
-std::shared_ptr<Mesh> Primitive::tessellate(int) const {
-  return nullptr;
-}
-
 bool Primitive::intersects(const Rayd& ray, State& state) const {
   HitPointInterval hitPoints;
   intersect(ray, hitPoints, state);
