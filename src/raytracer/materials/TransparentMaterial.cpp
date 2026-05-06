@@ -15,11 +15,12 @@ Colord TransparentMaterial::shade(const Raytracer* raytracer, const Rayd& ray, c
   Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, out, in);
   Rayd reflected(hitPoint.point(), in);
 
-  if (m_specularBTDF.totalInternalReflection(ray, hitPoint)) {
-    return raytracer->rayColor(reflected.epsilonShifted(), state);
-  } else {
-    auto color = PhongMaterial::shade(raytracer, ray, hitPoint, state);
+  auto color = PhongMaterial::shade(raytracer, ray, hitPoint, state);
 
+  if (m_specularBTDF.totalInternalReflection(ray, hitPoint)) {
+    state.recordEvent(this, "TransparentMaterial: TIR, tracing full mirror reflection");
+    color += raytracer->rayColor(reflected.epsilonShifted(), state);
+  } else {
     Vector3d trans;
     Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
     Rayd transmitted(hitPoint.point(), trans);
@@ -29,7 +30,7 @@ Colord TransparentMaterial::shade(const Raytracer* raytracer, const Rayd& ray, c
 
     state.recordEvent(this, "TransparentMaterial: Tracing transmission");
     color += transmittedColor * raytracer->rayColor(transmitted.epsilonShifted(), state) * fabs(hitPoint.normal() * trans);
-
-    return color;
   }
+
+  return color;
 }
