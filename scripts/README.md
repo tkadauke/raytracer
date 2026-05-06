@@ -235,38 +235,40 @@ small DOM library in `figure.js`:
 
 ### Writing a widget — canonical pattern
 
-```js
-var FooClass = new Class({
-  initialize: function() {
-    this.value = 4;
-  },
+Use native ES6 class syntax for new widgets:
 
-  createCanvas: function() {
-    var canvas = new Canvas(320, 240);
+```js
+class FooClass {
+  constructor() {
+    this.value = 4;
+  }
+
+  createCanvas() {
+    const canvas = new Canvas(320, 240);
     canvas.translate(new Vector(2, -2));
     canvas.add(new Axes());
     canvas.add(new Circle(new Vector(this.value, 0), 0.1, "result"));
     return canvas.toSVG();
   }
-});
+}
 
-(function(scriptElement) {
-  var figure = new FooClass();
+((scriptElement) => {
+  const figure = new FooClass();
 
   // Container holds the SVG canvas + any HTML controls.
-  var container = document.createElement("div");
-  var canvas = figure.createCanvas();
+  const container = document.createElement("div");
+  let canvas = figure.createCanvas();
   container.appendChild(canvas);
 
   // Slider gives the user a known affordance + numeric readout —
   // much better discoverability than DragHandler for docs pages
   // where the user isn't primed for "drag the SVG horizontally."
-  var slider = new Slider({
+  const slider = new Slider({
     label: "value", min: 0, max: 10, value: figure.value,
     step: 0.1, precision: 1,
-    onChange: function(v) {
+    onChange: (v) => {
       figure.value = v;
-      var newCanvas = figure.createCanvas();
+      const newCanvas = figure.createCanvas();
       container.replaceChild(newCanvas, canvas);
       canvas = newCanvas;
     }
@@ -276,6 +278,13 @@ var FooClass = new Class({
   scriptElement.parentNode.appendChild(container);
 })(document.currentScript);
 ```
+
+The legacy `Class()` factory is preserved for backward compatibility
+with the 18 pre-modernisation widgets (Angle, Ray, BoundingBox,
+ConvexHull, etc.) — see `scripts/docs/ray_at.js` for an example.
+**Don't reach for `Class()` in new widgets.** It exists only so the
+older widgets keep loading without per-widget edits; new code goes
+through native class syntax above.
 
 Two important details in the anchor pattern:
 

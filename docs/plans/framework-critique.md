@@ -153,9 +153,17 @@
   dependencies. 19 cases covering Vector math, Class factory, and
   the structural correctness of Path / Slider output. Added to
   `rake test:scripts:js`.
-- **Medium (deferred)**: ES6 modernisation. The `Class()` factory
-  could become `class Foo extends Bar { ... }`. Mechanical refactor;
-  defer until something else makes the existing factory hurt.
+- ✅ **Medium**: ES6 modernisation. `figure.js` rewritten using
+  native `class` syntax for every primitive (Vector, Canvas, Group,
+  Line, Ray, Circle, Rectangle, Text, Axes, Path, Slider,
+  DragHandler, OrderedHash). `var` → `const`/`let`, arrow functions
+  in event handlers, template literals, default parameters,
+  destructured Slider options. The two ThinLens widgets migrated to
+  the modern syntax as worked examples; the 18 pre-existing widgets
+  continue to work unchanged via the preserved `Class()` shim — that
+  shim is now a thin wrapper that delegates to a real ES6 class
+  underneath, so adopting the modern syntax is a per-widget choice
+  rather than a flag day. Smoke tests pin both code paths.
 - **Medium (deferred)**: scoped CSS. Currently `figure.js` injects a
   global stylesheet into `<head>`; a per-widget styling option would
   require either Shadow DOM or a CSS-class-namespacing convention.

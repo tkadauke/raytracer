@@ -1,6 +1,29 @@
-var style = document.createElement('style');
-style.type = 'text/css';
-style.innerHTML = `
+// Interactive-widget primitives shared by every `scripts/docs/*.js`
+// widget embedded in the Doxygen output. See `scripts/README.md` for
+// the writing-a-widget recipe and `scripts/test/test_figure_js.js`
+// for the test cases.
+//
+// Two coexisting styles for declaring primitives:
+//
+//   - **Native ES6 classes** (`class Foo { ... }`) — the recommended
+//     style for new widgets. Modern, terser, plays well with editor
+//     tooling and the `node:test` runner.
+//
+//   - **Legacy `Class()` factory** — preserved as a thin shim around
+//     ES6 classes for backward compatibility with the older widgets
+//     under `scripts/docs/` (Angle, Ray, BoundingBox, ConvexHull,
+//     ...) that all use `new Class({...})` syntax. Migrate them
+//     opportunistically when next touched.
+
+'use strict';
+
+// CSS injection — runs at script-load time. Wrapped so it no-ops in
+// non-browser environments (Node test runner): the test shim
+// provides a `document` but doesn't simulate `<style>` parsing.
+if (typeof document !== 'undefined' && document.head) {
+  const style = document.createElement('style');
+  style.type = 'text/css';
+  style.innerHTML = `
 svg * {
   stroke-width: 0.033;
 }
@@ -54,483 +77,504 @@ rect {
   fill: transparent;
 }
 `;
-document.getElementsByTagName('head')[0].appendChild(style);
+  (document.getElementsByTagName('head')[0] || document.head).appendChild(style);
+}
 
-var Class = function() {
-  var parent = null, properties = {};
-  if (typeof(arguments[0]) == "function") {
-    parent = arguments[0];
-    properties = arguments[1];
+// Legacy-compat factory. Original widgets use `new Class({...})` and
+// `new Class(parent, {...})`; preserve that surface by translating
+// to a real ES6 class under the hood. Mark new code as preferring
+// `class Foo extends Bar { ... }` directly; reach for this only when
+// touching pre-existing consumers that already used it.
+function Class(...args) {
+  let parent = null;
+  let properties = {};
+  if (typeof args[0] === 'function') {
+    parent = args[0];
+    properties = args[1] || {};
   } else {
-    properties = arguments[0];
-  }
-  
-  var klass = function() {
-    this.initialize.apply(this, arguments);
-  };
-  
-  if (parent) {
-    var subclass = new Function;
-    subclass.prototype = parent.prototype;
-    klass.prototype = new subclass;
+    properties = args[0] || {};
   }
 
-  for (var property in properties) { 
+  const Base = parent || class {};
+  const klass = class extends Base {
+    constructor(...ctorArgs) {
+      super();
+      if (typeof this.initialize === 'function') {
+        this.initialize(...ctorArgs);
+      }
+    }
+  };
+
+  for (const property in properties) {
     klass.prototype[property] = properties[property];
   }
-      
-  if (!klass.prototype.initialize)
-    klass.prototype.initialize = function(){};
-
+  if (!klass.prototype.initialize) {
+    klass.prototype.initialize = function () {};
+  }
   return klass;
-};
+}
 
-var OrderedHash = Class({
-  initialize: function() {
+// Ordered hash. Used by a couple of legacy widgets; kept for
+// compatibility. New widgets should reach for `Map` instead.
+class OrderedHash {
+  constructor() {
     this._keys = [];
     this.vals = {};
-  },
-  
-  push: function(k,v) {
-    if (!this.vals[k])
-      this._keys.push(k);
+  }
+
+  push(k, v) {
+    if (!this.vals[k]) this._keys.push(k);
     this.vals[k] = v;
-  },
-  
-  insert: function(pos,k,v) {
+  }
+
+  insert(pos, k, v) {
     if (!this.vals[k]) {
-      this._keys.splice(pos,0,k);
+      this._keys.splice(pos, 0, k);
       this.vals[k] = v;
     }
-  },
-  
-  get: function(k) {
+  }
+
+  get(k) {
     return this.vals[k];
-  },
-  
-  length: function() {
+  }
+
+  length() {
     return this._keys.length;
-  },
-  
-  keys: function() {
+  }
+
+  keys() {
     return this._keys;
-  },
-  
-  sortedKeys: function() {
-    return this.keys().sort(function(a,b) { return a - b;});
-  },
-  
-  values: function(){
+  }
+
+  sortedKeys() {
+    return this.keys().sort((a, b) => a - b);
+  }
+
+  values() {
     return this.vals;
   }
-});
+}
 
-var Vector = new Class({
-  initialize: function(x, y) {
+// 2D vector. Pure math — no DOM, no allocation hot paths to worry
+// about (widgets are single-instance and re-rendered on user input,
+// not in tight loops). Kept immutable: every operation returns a
+// new Vector rather than mutating `this`. Static constants
+// `Vector.null`, `Vector.up`, `Vector.right` are populated below
+// the class declaration (you can't reference the class name from
+// inside a static-field initializer).
+class Vector {
+  constructor(x, y) {
     this.x = x;
     this.y = y;
-  },
-  
-  length: function() {
+  }
+
+  length() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
-  },
-  
-  plus: function(vector) {
+  }
+
+  plus(vector) {
     return new Vector(this.x + vector.x, this.y + vector.y);
-  },
-  
-  minus: function(vector) {
+  }
+
+  minus(vector) {
     return new Vector(this.x - vector.x, this.y - vector.y);
-  },
-  
-  multiply: function(scalar) {
+  }
+
+  multiply(scalar) {
     return new Vector(this.x * scalar, this.y * scalar);
-  },
-  
-  dot: function(vector) {
+  }
+
+  dot(vector) {
     return this.x * vector.x + this.y * vector.y;
-  },
-  
-  normalized: function() {
+  }
+
+  normalized() {
     return this.multiply(1.0 / this.length());
-  },
-  
-  rotated: function(angle) {
+  }
+
+  rotated(angle) {
     return new Vector(
       this.x * Math.cos(angle) - this.y * Math.sin(angle),
       this.x * Math.sin(angle) + this.y * Math.cos(angle)
     );
   }
-});
+}
 
 Vector.null = new Vector(0, 0);
-Vector.up = new Vector(0, -1);
+Vector.up = new Vector(0, -1);     // y-axis points DOWN in SVG, so "up" is negative y.
 Vector.right = new Vector(1, 0);
 
-var svgns = "http://www.w3.org/2000/svg";
+const svgns = 'http://www.w3.org/2000/svg';
 
-var Canvas = new Class({
-  initialize: function(width, height) {
+// SVG canvas — the outer `<svg>` element a widget renders into.
+// Default transform translates origin to bottom-left and scales to
+// 30 SVG units per scene unit, so widget code can think in scene
+// coordinates throughout. Override via `setTransform` for atypical
+// layouts.
+class Canvas {
+  constructor(width, height) {
     this.width = width;
     this.height = height;
     this.elements = [];
-    this.transform = "translate(0, " + height + ") scale(30, 30)";
-  },
-  
-  add: function(element) {
+    this.transform = `translate(0, ${height}) scale(30, 30)`;
+  }
+
+  add(element) {
     this.elements.push(element);
-  },
-  
-  setTransform: function(transform) {
+  }
+
+  setTransform(transform) {
     this.transform = transform;
-  },
-  
-  translate: function(vector) {
-    this.transform += " translate(" + vector.x + ", " + vector.y + ")";
-  },
-  
-  center: function() {
+  }
+
+  translate(vector) {
+    this.transform += ` translate(${vector.x}, ${vector.y})`;
+  }
+
+  center() {
     this.translate(new Vector(5.5, -4));
-  },
-  
-  toSVG: function() {
-    var element = document.createElementNS(svgns, "svg");
-    element.setAttribute("width", this.width);
-    element.setAttribute("height", this.height);
-    
-    var defs = document.createElementNS(svgns, "defs");
+  }
+
+  toSVG() {
+    const element = document.createElementNS(svgns, 'svg');
+    element.setAttribute('width', this.width);
+    element.setAttribute('height', this.height);
+
+    const defs = document.createElementNS(svgns, 'defs');
     defs.innerHTML = `
     <marker id="arrow" markerWidth="10" markerHeight="10" refx="8" refy="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#000" />
     </marker>
     `;
     element.appendChild(defs);
-    
-    var group = document.createElementNS(svgns, "g");
-    group.setAttribute("transform", this.transform);
-    
-    this.elements.forEach(function(e) {
+
+    const group = document.createElementNS(svgns, 'g');
+    group.setAttribute('transform', this.transform);
+
+    for (const e of this.elements) {
       group.appendChild(e.toSVG());
-    });
-    
+    }
+
     element.appendChild(group);
     return element;
   }
-});
+}
 
-var Group = new Class({
-  initialize: function() {
+// SVG group — collects child elements under a shared transform.
+// Use to apply a rotation / translation to a set of figures
+// without mutating the canvas's transform stack.
+class Group {
+  constructor() {
     this.elements = [];
-  },
-  
-  add: function(element) {
+    this.transform = '';
+  }
+
+  add(element) {
     this.elements.push(element);
-  },
-  
-  setTransform: function(transform) {
+  }
+
+  setTransform(transform) {
     this.transform = transform;
-  },
-  
-  toSVG: function() {
-    var group = document.createElementNS(svgns, "g");
-    group.setAttribute("transform", this.transform);
-    
-    this.elements.forEach(function(e) {
+  }
+
+  toSVG() {
+    const group = document.createElementNS(svgns, 'g');
+    group.setAttribute('transform', this.transform);
+    for (const e of this.elements) {
       group.appendChild(e.toSVG());
-    });
-    
+    }
     return group;
   }
-});
+}
 
-var Line = new Class({
-  initialize: function(origin, direction, klass) {
-    this.origin = origin
-    this.direction = direction
+// Single-segment line from origin to origin+direction. CSS class
+// `arrow` adds an arrowhead at the end via the marker defined in
+// `Canvas#toSVG`'s `<defs>`.
+class Line {
+  constructor(origin, direction, klass) {
+    this.origin = origin;
+    this.direction = direction;
     this.klass = klass;
-  },
-  
-  toSVG: function() {
-    var line = document.createElementNS(svgns, "line");
-    var end = this.origin.plus(this.direction);
-    line.setAttribute("x1", this.origin.x);
-    line.setAttribute("y1", this.origin.y);
-    line.setAttribute("x2", end.x);
-    line.setAttribute("y2", end.y);
-    line.setAttribute("class", this.klass);
+  }
+
+  toSVG() {
+    const line = document.createElementNS(svgns, 'line');
+    const end = this.origin.plus(this.direction);
+    line.setAttribute('x1', this.origin.x);
+    line.setAttribute('y1', this.origin.y);
+    line.setAttribute('x2', end.x);
+    line.setAttribute('y2', end.y);
+    line.setAttribute('class', this.klass);
     return line;
   }
-});
+}
 
-var Ray = new Class({
-  initialize: function(origin, direction, both) {
-    this.origin = origin
-    this.direction = direction
+// A directional ray drawn as an arrow + the rest of the line
+// extended. Pass `both: true` for a bidirectional line.
+class Ray {
+  constructor(origin, direction, both) {
+    this.origin = origin;
+    this.direction = direction;
     this.both = both;
-  },
-  
-  toSVG: function() {
-    var group = new Group();
-    group.add(new Line(this.origin, this.direction, "arrow"));
+  }
+
+  toSVG() {
+    const group = new Group();
+    group.add(new Line(this.origin, this.direction, 'arrow'));
     if (this.both) {
       group.add(new Line(this.at(-50), this.direction.multiply(100)));
     } else {
       group.add(new Line(this.origin, this.direction.multiply(100)));
     }
     return group.toSVG();
-  },
-  
-  at: function(distance) {
+  }
+
+  at(distance) {
     return this.origin.plus(this.direction.multiply(distance));
-  },
-  
-  projectedDistance: function(vector) {
-    return this.direction.dot(vector.minus(this.origin)) / this.direction.dot(this.direction);
-  },
-  
-  projected: function(vector) {
+  }
+
+  projectedDistance(vector) {
+    return this.direction.dot(vector.minus(this.origin)) /
+           this.direction.dot(this.direction);
+  }
+
+  projected(vector) {
     return this.at(this.projectedDistance(vector));
   }
-});
+}
 
-var Circle = new Class({
-  initialize: function(center, radius, klass) {
+// Circle outline. CSS classes: `intersection` (filled black, used
+// to mark a single point), `result` (filled red, used to mark a
+// computed result the widget is illustrating).
+class Circle {
+  constructor(center, radius, klass) {
     this.center = center;
     this.radius = radius;
     this.klass = klass;
-  },
-  
-  toSVG: function() {
-    var circle = document.createElementNS(svgns, "circle");
-    circle.setAttribute("cx", this.center.x);
-    circle.setAttribute("cy", this.center.y);
-    circle.setAttribute("r", this.radius);
-    circle.setAttribute("class", this.klass);
+  }
+
+  toSVG() {
+    const circle = document.createElementNS(svgns, 'circle');
+    circle.setAttribute('cx', this.center.x);
+    circle.setAttribute('cy', this.center.y);
+    circle.setAttribute('r', this.radius);
+    circle.setAttribute('class', this.klass);
     return circle;
   }
-});
+}
 
-var Rectangle = new Class({
-  initialize: function(topleft, size, klass) {
+// Rectangle outline. CSS class `dashed` for dashed strokes.
+class Rectangle {
+  constructor(topleft, size, klass) {
     this.topleft = topleft;
     this.size = size;
     this.klass = klass;
-  },
-  
-  toSVG: function() {
-    var rectangle = document.createElementNS(svgns, "rect");
-    rectangle.setAttribute("x", this.topleft.x);
-    rectangle.setAttribute("y", this.topleft.y);
-    rectangle.setAttribute("width", this.size.x);
-    rectangle.setAttribute("height", this.size.y);
-    rectangle.setAttribute("class", this.klass);
+  }
+
+  toSVG() {
+    const rectangle = document.createElementNS(svgns, 'rect');
+    rectangle.setAttribute('x', this.topleft.x);
+    rectangle.setAttribute('y', this.topleft.y);
+    rectangle.setAttribute('width', this.size.x);
+    rectangle.setAttribute('height', this.size.y);
+    rectangle.setAttribute('class', this.klass);
     return rectangle;
   }
-});
+}
 
-var Text = new Class({
-  initialize: function(position, text, klass) {
+// Text label.
+class Text {
+  constructor(position, text, klass) {
     this.position = position;
     this.text = text;
-    this.class = klass;
-  },
-  
-  toSVG: function() {
-    var text = document.createElementNS(svgns, "text");
-    text.setAttribute("x", this.position.x);
-    text.setAttribute("y", this.position.y);
-    text.setAttribute("class", this.klass);
+    this.klass = klass;
+  }
+
+  toSVG() {
+    const text = document.createElementNS(svgns, 'text');
+    text.setAttribute('x', this.position.x);
+    text.setAttribute('y', this.position.y);
+    text.setAttribute('class', this.klass);
     text.innerHTML = this.text;
     return text;
   }
-});
+}
 
-var Axes = new Class({
-  initialize: function(length) {
+// x/y axes with arrowheads + "x"/"y" labels at the tips. Used by
+// most math-illustration widgets to give the viewer a frame of
+// reference.
+class Axes {
+  constructor(length) {
     this.origin = Vector.null;
     this.length = length || 3;
-  },
-  
-  toSVG: function() {
-    var group = new Group();
-    group.add(new Line(this.origin, new Vector(this.length, 0), "axis"));
-    group.add(new Line(this.origin, new Vector(0, -this.length), "axis"));
-    group.add(new Text(new Vector(this.length, 0.4), "x"));
-    group.add(new Text(new Vector(-0.4, -this.length), "y"));
+  }
+
+  toSVG() {
+    const group = new Group();
+    group.add(new Line(this.origin, new Vector(this.length, 0), 'axis'));
+    group.add(new Line(this.origin, new Vector(0, -this.length), 'axis'));
+    group.add(new Text(new Vector(this.length, 0.4), 'x'));
+    group.add(new Text(new Vector(-0.4, -this.length), 'y'));
     return group.toSVG();
   }
-});
+}
 
-// Arbitrary SVG path. Pass any valid SVG `d` attribute string —
-// straight lines (M/L), curves (C/Q/A), polygons, anything path
-// syntax supports. For simple shapes (line, circle, rect) use the
-// dedicated primitives; reach for Path when you need a curve, a
-// piecewise polygon, or a function plot.
-//
-// Example:
-//   canvas.add(new Path("M 0 0 Q 1 1 2 0", "result"));   // quadratic
-//   canvas.add(new Path("M 0 0 L 1 0 L 1 1 L 0 1 Z"));    // closed quad
-//
-// MDN's "SVG path" reference is the canonical syntax doc.
-var Path = new Class({
-  initialize: function(d, klass) {
+// Arbitrary SVG path. Use for curves, polygons, function plots —
+// anything not expressible as line/circle/rect. Use `Path.polyline`
+// to build a straight-segment d-string from a `Vector[]`. See the
+// MDN "SVG path" reference for the full d-string syntax.
+class Path {
+  constructor(d, klass) {
     this.d = d;
     this.klass = klass;
-  },
+  }
 
-  toSVG: function() {
-    var path = document.createElementNS(svgns, "path");
-    path.setAttribute("d", this.d);
-    if (this.klass) path.setAttribute("class", this.klass);
-    path.setAttribute("fill", "transparent");
+  toSVG() {
+    const path = document.createElementNS(svgns, 'path');
+    path.setAttribute('d', this.d);
+    if (this.klass) path.setAttribute('class', this.klass);
+    path.setAttribute('fill', 'transparent');
     return path;
   }
-});
 
-// Helper: build a Path "d" string from an array of {x, y} points,
-// connecting them with straight line segments. The first point is
-// the move-to; the rest are line-to. Pass `closed: true` to close
-// the polygon (Z command at the end).
-//
-// Example:
-//   var d = Path.polyline([new Vector(0, 0), new Vector(1, 0),
-//                          new Vector(1, 1)], { closed: true });
-//   canvas.add(new Path(d));
-Path.polyline = function(points, opts) {
-  opts = opts || {};
-  if (points.length === 0) return "";
-  var d = "M " + points[0].x + " " + points[0].y;
-  for (var i = 1; i < points.length; i++) {
-    d += " L " + points[i].x + " " + points[i].y;
+  // Build a d-string from a list of points connecting them with
+  // line-to commands. `{closed: true}` appends a Z to close the
+  // polygon.
+  static polyline(points, opts = {}) {
+    if (points.length === 0) return '';
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+      d += ` L ${points[i].x} ${points[i].y}`;
+    }
+    if (opts.closed) d += ' Z';
+    return d;
   }
-  if (opts.closed) d += " Z";
-  return d;
-};
+}
 
-// HTML range slider with a live label. Use this instead of (or
-// alongside) DragHandler for widgets where the user benefits from
-// seeing the parameter value, having a defined range, and being
-// able to grab a known affordance.
-//
-// Example:
-//   var slider = new Slider({
-//     label: "focalDistance", min: 1, max: 7, value: 4,
-//     onChange: function(v) {
-//       figure.focalDistance = v;
-//       redraw();
-//     }
-//   });
-//   container.appendChild(slider.element());
-//
-// Returns a div containing the label + slider so callers can
-// position it anywhere (above the SVG canvas is the conventional
-// placement).
-var Slider = new Class({
-  initialize: function(opts) {
-    this.label = opts.label || "";
-    this.min = opts.min;
-    this.max = opts.max;
-    this.step = opts.step || (this.max - this.min) / 100.0;
-    this.value = opts.value !== undefined ? opts.value : (this.min + this.max) / 2.0;
-    this.precision = opts.precision !== undefined ? opts.precision : 2;
-    this.onChange = opts.onChange || function () {};
-  },
+// HTML range slider with a live label. Use this for parameter
+// widgets where the user benefits from a known affordance, a
+// defined range, and a numeric readout. Returns a `<div>` from
+// `.element()`; place anywhere in the DOM (above the SVG canvas
+// is the conventional placement).
+class Slider {
+  constructor({ label = '', min, max, step, value, precision = 2, onChange = () => {} }) {
+    this.label = label;
+    this.min = min;
+    this.max = max;
+    this.step = step !== undefined ? step : (max - min) / 100.0;
+    this.value = value !== undefined ? value : (min + max) / 2.0;
+    this.precision = precision;
+    this.onChange = onChange;
+  }
 
-  element: function() {
-    var div = document.createElement("div");
-    div.style.fontFamily = "sans-serif";
-    div.style.fontSize = "13px";
-    div.style.padding = "4px 0";
-    div.style.display = "flex";
-    div.style.alignItems = "center";
-    div.style.gap = "8px";
+  element() {
+    const div = document.createElement('div');
+    Object.assign(div.style, {
+      fontFamily: 'sans-serif',
+      fontSize: '13px',
+      padding: '4px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    });
 
-    var label = document.createElement("label");
-    var format = function(v, precision) {
-      return v.toFixed(precision);
-    };
-    label.textContent = this.label + " = " + format(this.value, this.precision);
-    label.style.minWidth = "12em";
+    const label = document.createElement('label');
+    label.textContent = `${this.label} = ${this.value.toFixed(this.precision)}`;
+    label.style.minWidth = '12em';
 
-    var input = document.createElement("input");
-    input.type = "range";
+    const input = document.createElement('input');
+    input.type = 'range';
     input.min = this.min;
     input.max = this.max;
     input.step = this.step;
     input.value = this.value;
-    input.style.flex = "1";
+    input.style.flex = '1';
 
-    var precision = this.precision;
-    var labelText = this.label;
-    var onChange = this.onChange;
-    input.addEventListener("input", function (e) {
-      var v = parseFloat(e.target.value);
-      label.textContent = labelText + " = " + format(v, precision);
-      onChange(v);
+    input.addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      label.textContent = `${this.label} = ${v.toFixed(this.precision)}`;
+      this.onChange(v);
     });
 
     div.appendChild(label);
     div.appendChild(input);
     return div;
   }
-});
+}
 
-var DragHandler = new Class({
-  initialize: function(figure) {
-    this.handlerFunc = function() {}
+// Mouse-drag affordance. Wraps a figure object that has a
+// `createCanvas()` method and a per-drag handler. The handler
+// receives the (delta, figure) and returns true to redraw the
+// canvas. Lower-discoverability than `Slider` for documentation
+// pages — prefer Slider unless the parameter is genuinely 2D
+// (e.g. dragging a point in the plane).
+class DragHandler {
+  constructor(figure) {
     this.figure = figure;
-  },
-  
-  divElement: function() {
-    if (this.element) {
-      return this.element;
-    }
-    
-    this.element = document.createElement("div");
-    
-    var mousex = null;
-    var mousey = null;
-  
-    this.element.addEventListener("mousedown", function(e) {
+    this.handlerFunc = () => false;
+  }
+
+  divElement() {
+    if (this.element) return this.element;
+
+    this.element = document.createElement('div');
+
+    let mousex = null;
+    let mousey = null;
+
+    this.element.addEventListener('mousedown', (e) => {
       mousex = e.pageX;
       mousey = e.pageY;
-      
-      document.onmousemove = function(event) {
+
+      document.onmousemove = (event) => {
         event = event || window.event;
-        
-        if (this.handlerFunc(new Vector(event.pageX - mousex, event.pageY - mousey), this.figure)) {
-          var newCanvas = this.figure.createCanvas();
+        const delta = new Vector(event.pageX - mousex, event.pageY - mousey);
+        if (this.handlerFunc(delta, this.figure)) {
+          const newCanvas = this.figure.createCanvas();
           this.element.replaceChild(newCanvas, this.canvas);
           this.canvas = newCanvas;
           event.stopPropagation();
           event.preventDefault();
         }
-        
         mousex = event.pageX;
         mousey = event.pageY;
-      }.bind(this);
-      
-      document.onmouseup = function() {
+      };
+
+      document.onmouseup = () => {
         document.onmousemove = null;
         mousex = null;
         mousey = null;
-      }.bind(this);
-      
+      };
+
       e.stopPropagation();
       e.preventDefault();
-    }.bind(this));
-    
+    });
+
     this.canvas = this.figure.createCanvas();
-    this.canvas.onselectstart = function(){return false};
-    this.canvas.unselectable = "on";
-    
+    this.canvas.onselectstart = () => false;
+    this.canvas.unselectable = 'on';
+
     this.element.appendChild(this.canvas);
-    this.element.unselectable = "on";
-    this.element.onselectstart = function(){return false};
-    this.element.style.userSelect = "none";
-    
+    this.element.unselectable = 'on';
+    this.element.onselectstart = () => false;
+    this.element.style.userSelect = 'none';
+
     return this.element;
   }
-});
+}
 
-var degrees = 0.01745329251996;
+// Conversion factor: degrees → radians. Used by widgets that take
+// angle inputs in degrees for clarity (e.g. `12 * degrees`).
+const degrees = 0.01745329251996;
+
+// Export every primitive to the global scope. ES6 `class`
+// declarations are block-scoped (per spec, even at script top
+// level), so without this the legacy widgets' `new Vector(...)` /
+// `new Class(...)` references can't resolve them. Browsers and the
+// `node:test` shim both treat the script as a top-level script;
+// `globalThis` is the document window in browsers and the vm
+// sandbox in tests.
+Object.assign(globalThis, {
+  Class, OrderedHash, Vector, Canvas, Group, Line, Ray, Circle,
+  Rectangle, Text, Axes, Path, Slider, DragHandler, svgns, degrees
+});
