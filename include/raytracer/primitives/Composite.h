@@ -75,6 +75,18 @@ namespace raytracer {
       return m_primitives;
     }
 
+    /**
+      * Tessellate every child and concatenate the resulting meshes
+      * into one. Face indices are remapped per child so each face
+      * correctly references vertices in the merged vertex buffer.
+      * Empty meshes (returned by infinite primitives like `Plane` or
+      * unimplemented CSG ops) are silently absorbed — they contribute
+      * zero vertices and zero faces. `lod` is passed through to every
+      * child unchanged, since composites have no inherent geometry to
+      * subdivide.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+
   protected:
     /**
       * @returns the union of every child's bounding box, or a

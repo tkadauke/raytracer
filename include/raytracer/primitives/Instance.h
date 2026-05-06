@@ -100,6 +100,21 @@ namespace raytracer {
     /// queries the wrapped primitive, transforms the result back.
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
 
+    /**
+      * Tessellates the wrapped primitive and applies the instance
+      * transform to every vertex: points by the point matrix, normals
+      * by the inverse-transpose normal matrix (then re-normalised so
+      * non-uniform scale doesn't break unit-length). UVs pass through
+      * unchanged — they're an intrinsic surface parameterisation, not
+      * a world-space quantity.
+      *
+      * Only the `t = 0` configuration is captured. A time-aware
+      * engine that wants per-frame meshes for motion blur has to call
+      * `tessellate()` once per frame and translate the result by
+      * `velocity * t`. `lod` is forwarded to the wrapped primitive.
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+
   protected:
     /// @returns the wrapped primitive's bounding box, transformed
     /// by the instance matrix and re-axis-aligned. For animated

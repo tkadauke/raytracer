@@ -28,6 +28,31 @@ namespace raytracer {
     virtual bool intersects(const Rayd& ray, State& state) const;
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
 
+    /**
+      * Tessellates the side surface (no caps) as a quad strip
+      * wrapping around the Y axis.
+      *
+      * LOD schedule: `segments = 16 << lod` (16 / 32 / 64 / 128 …).
+      * Increasing LOD reduces silhouette faceting; smooth shading
+      * already hides interior faceting because every vertex normal
+      * points radially outward, not in the average-of-faces
+      * direction.
+      *
+      * Vertex layout: `2 * (segments + 1)` vertices arranged as
+      * bottom/top rings interleaved (`v[2*i] = bottom`,
+      * `v[2*i + 1] = top`). The seam at `u = 0` / `u = 1` is
+      * duplicated — the first and last column share a 3D position
+      * but get distinct UVs so a wrapped texture doesn't smear
+      * across the seam. UV `u` wraps `0 → 1` around the axis;
+      * `v` is `0` at the bottom rim, `1` at the top.
+      *
+      * @htmlonly
+      * <script type="text/javascript" src="figure.js"></script>
+      * <script type="text/javascript" src="open_cylinder_tessellate.js"></script>
+      * @endhtmlonly
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const;
 

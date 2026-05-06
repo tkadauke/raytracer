@@ -18,6 +18,31 @@ namespace raytracer {
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
 
+    /**
+      * Triangle-fan tessellation: one centre vertex plus N rim
+      * vertices, producing N triangles that all share the centre.
+      *
+      * LOD schedule: `segments = 16 << lod` (16 / 32 / 64 / 128 …).
+      * Bumping LOD by one halves the angular gap on the rim — the
+      * polygon converges on the inscribed circle quadratically while
+      * vertex/triangle count grows only linearly. Most renders need
+      * `lod = 0` or `lod = 1`.
+      *
+      * UVs lay the disk into the unit square: centre at `(0.5, 0.5)`,
+      * rim vertex `i` at `(0.5 + 0.5·cos θᵢ, 0.5 + 0.5·sin θᵢ)`.
+      * All vertex normals equal the disk's plane normal — flat
+      * shading, since a tessellated disk is mathematically flat.
+      *
+      * The interactive widget below shows the fan layout from above
+      * with a live LOD slider.
+      *
+      * @htmlonly
+      * <script type="text/javascript" src="figure.js"></script>
+      * <script type="text/javascript" src="disk_tessellate.js"></script>
+      * @endhtmlonly
+      */
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const;
 
