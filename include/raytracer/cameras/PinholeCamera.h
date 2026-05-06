@@ -38,6 +38,22 @@ namespace raytracer {
     virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
 
     /**
+      * Closed-form pinhole inverse of `rayForPixel`. Transforms
+      * `worldPoint` into camera space, projects it through the
+      * pinhole at `(0, 0, -distance)` onto the view plane at z=0,
+      * then converts the camera-space plane coordinates back into
+      * pixel coordinates using the same `topLeft` / `right` / `down`
+      * basis the renderer uses forward.
+      *
+      * Returns `Vector2d::undefined()` if the point is at or behind
+      * the eye (`z_cam ≤ -distance`), since perspective projection
+      * is undefined there. Off-screen points project to valid (but
+      * out-of-range) pixel coordinates — callers that need a
+      * visibility check do their own bounds test.
+      */
+    virtual Vector2d projectPoint(const Vector3d& worldPoint) const;
+
+    /**
       * @returns the distance between the eye and the viewplane. Defaults to 5.
       */
     inline double distance() const {

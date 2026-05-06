@@ -87,6 +87,32 @@ namespace raytracer {
     virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const = 0;
 
     /**
+      * Forward projection: world point → screen pixel `(x, y)`.
+      *
+      * The inverse of `rayForPixel`: given a 3D point in world
+      * space, return the pixel through which a primary ray would
+      * pass on its way to that point. Used by non-raytracing engines
+      * (`WireframeEngine`, future `OpenGLEngine`) that need to map
+      * mesh vertices onto the display.
+      *
+      * Returns `Vector2d::undefined()` if:
+      *
+      *  - the point is behind the eye (camera-space z ≤ -distance
+      *    on a pinhole / thin-lens camera), or
+      *  - the camera doesn't have a meaningful inverse — e.g. a
+      *    fish-eye projection collapses an entire ray bundle to one
+      *    pixel and isn't trivially invertible. The base
+      *    implementation returns undefined; only cameras with a
+      *    closed-form inverse override.
+      *
+      * Result coordinates are in the same window-relative pixel
+      * frame as `rayForPixel`'s `(x, y)` arguments — non-integer is
+      * fine (callers like the wireframe rasterizer want sub-pixel
+      * precision for line endpoints).
+      */
+    virtual Vector2d projectPoint(const Vector3d& worldPoint) const;
+
+    /**
       * Convenience overload that uses a `NullSampleStream` returning
       * the centre of every dimension. Useful for tests and ad-hoc
       * callers (e.g. `SceneBrowser`'s pixel-pick) that don't have a

@@ -30,6 +30,10 @@ void Camera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
   m_viewPlane = plane;
 }
 
+Vector2d Camera::projectPoint(const Vector3d&) const {
+  return Vector2d::undefined();
+}
+
 const Matrix4d& Camera::matrix() const {
   if (!m_matrix) {
     auto zAxis = (m_target - m_position).normalized();

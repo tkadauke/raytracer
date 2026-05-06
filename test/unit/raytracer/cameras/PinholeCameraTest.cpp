@@ -69,4 +69,81 @@ namespace PinholeCameraTest {
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }
+
+  // Helper: install a 100×100 view plane on the camera so projectPoint
+  // has a non-degenerate window to map into. Without this, viewPlane
+  // width/height are zero and the math degenerates.
+  static void initViewPlane(PinholeCamera& camera, int width = 100, int height = 100) {
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
+  }
+
+  TEST(PinholeCamera, ProjectsCameraTargetToImageCenter) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera);
+
+    // The camera looks at the origin. Origin should project to the
+    // pixel-grid centre of a 100×100 window.
+    Vector2d projected = camera.projectPoint(Vector3d::null());
+    EXPECT_NEAR(50.0, projected.x(), 1e-9);
+    EXPECT_NEAR(50.0, projected.y(), 1e-9);
+  }
+
+  TEST(PinholeCamera, ProjectsPointAtEyeToUndefined) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera);
+    // Eye is at world (0, 0, -6) — z=-1 camera position pulled back
+    // by distance=5.
+    Vector2d projected = camera.projectPoint(Vector3d(0, 0, -6));
+    EXPECT_TRUE(projected.isUndefined());
+  }
+
+  TEST(PinholeCamera, ProjectsPointBehindEyeToUndefined) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera);
+    // Anything further from origin than the eye on the same ray
+    // points the wrong way through the pinhole.
+    Vector2d projected = camera.projectPoint(Vector3d(0, 0, -10));
+    EXPECT_TRUE(projected.isUndefined());
+  }
+
+  TEST(PinholeCamera, RoundTripsThroughRayForPixel) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    // For each of a handful of pixels, generate the primary ray, walk
+    // along it to a point well in front of the eye, and project that
+    // point back to a pixel. Should match the original pixel modulo
+    // floating-point drift.
+    const std::pair<double, double> samples[] = {
+      {50.0, 50.0}, {100.0, 75.0}, {25.0, 120.0}, {175.0, 30.0}
+    };
+    for (const auto& [x, y] : samples) {
+      Rayd ray = camera.rayForPixel(x, y);
+      Vector3d worldPoint = ray.at(20.0);
+      Vector2d back = camera.projectPoint(worldPoint);
+      ASSERT_FALSE(back.isUndefined()) << "for (" << x << ", " << y << ")";
+      EXPECT_NEAR(x, back.x(), 1e-7) << "x for (" << x << ", " << y << ")";
+      EXPECT_NEAR(y, back.y(), 1e-7) << "y for (" << x << ", " << y << ")";
+    }
+  }
+
+  TEST(PinholeCamera, ProjectionRespectsZoom) {
+    // At zoom=2, the same world point should project to a pixel
+    // closer to the image centre because the view plane is "smaller"
+    // (each pixel covers less world space).
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    camera.setZoom(2.0);
+    initViewPlane(camera);
+
+    // A point off-axis at world (1, 0, 5) projects somewhere right
+    // of centre in zoom-1, further right in zoom-2 (because the
+    // angular field of view shrinks). Verify monotonicity.
+    Vector2d zoom2 = camera.projectPoint(Vector3d(1, 0, 5));
+
+    PinholeCamera unzoomed(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(unzoomed);
+    Vector2d zoom1 = unzoomed.projectPoint(Vector3d(1, 0, 5));
+
+    EXPECT_GT(zoom2.x(), zoom1.x());
+  }
 }
