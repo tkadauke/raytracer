@@ -238,4 +238,18 @@ namespace GridTest {
     grid.add(empty);
     ASSERT_NO_THROW(grid.setup());
   }
+
+  TEST(Grid, ShouldHandleDegenerateAxisOnSetup) {
+    // A primitive whose bbox is zero-thickness on one axis (a flat
+    // Rectangle in its plane, a Disk on its plane) used to overflow
+    // Grid::setup: the textbook s = cbrt(vol/N) collapses to ~0 along
+    // a degenerate axis, producing ~262k cells along the others, and
+    // m_numX * m_numY * m_numZ overflows int. The fix treats axes
+    // below `1e-6 × maxAxis` as degenerate and assigns one cell along
+    // them.
+    Grid grid;
+    // Bbox spanning [-1, 1] in X and Z, exact-zero thickness in Y.
+    grid.add(primitiveAt(BoundingBoxd(Vector3d(-1, 0, -1), Vector3d(1, 0, 1))));
+    ASSERT_NO_THROW(grid.setup());
+  }
 }

@@ -188,13 +188,34 @@ void Grid::setup() {
   // need a benchmark run.
   static constexpr double kGridDensityMultiplier = 2.0;
 
-  // Average primitive volume's cube root → characteristic cell size.
-  // Use std::cbrt for full double precision; the previous pow(x, 0.3333333)
-  // truncated to seven significant digits.
-  double s = std::cbrt(gridSize.x() * gridSize.y() * gridSize.z() / primitives().size());
-  m_numX = kGridDensityMultiplier * gridSize.x() / s + 1;
-  m_numY = kGridDensityMultiplier * gridSize.y() / s + 1;
-  m_numZ = kGridDensityMultiplier * gridSize.z() / s + 1;
+  // Degenerate-axis handling. A bbox can be near-zero-thickness in
+  // one or more axes (a flat Rectangle in its plane, a Disk on its
+  // plane). The textbook s = cbrt(vol/N) collapses to ~0 in that
+  // case, and 2 * size / s for the *other* (non-degenerate) axes
+  // diverges — for a Rectangle we'd compute ~262k cells along x and
+  // z, then m_numX * m_numY * m_numZ overflows int and m_cells.reserve
+  // crashes. Treat axes whose extent is well below the largest axis
+  // as degenerate (one cell along them), and compute s from the
+  // non-degenerate axes only.
+  const double maxAxis = std::max({gridSize.x(), gridSize.y(), gridSize.z()});
+  const double degenerateThreshold = maxAxis * 1e-6;
+
+  // Effective extent — replace degenerate axes with `maxAxis` so the
+  // characteristic-cell-size cube root doesn't collapse. The
+  // degenerate axes still get one cell below; this only affects `s`.
+  auto eff = [&](double v) {
+    return v < degenerateThreshold ? maxAxis : v;
+  };
+  double s = std::cbrt(eff(gridSize.x()) * eff(gridSize.y()) * eff(gridSize.z())
+                       / primitives().size());
+
+  auto cellCount = [&](double size) -> int {
+    if (size < degenerateThreshold) return 1;
+    return static_cast<int>(kGridDensityMultiplier * size / s) + 1;
+  };
+  m_numX = cellCount(gridSize.x());
+  m_numY = cellCount(gridSize.y());
+  m_numZ = cellCount(gridSize.z());
 
   int numCells = m_numX * m_numY * m_numZ;
   m_cells.reserve(numCells);
@@ -213,12 +234,20 @@ void Grid::setup() {
     if (relativeMin.isUndefined() || relativeMax.isUndefined())
       continue;
 
-    int xmin = clamp(relativeMin.x() * m_numX / gridSize.x(), 0, m_numX - 1);
-    int ymin = clamp(relativeMin.y() * m_numY / gridSize.y(), 0, m_numY - 1);
-    int zmin = clamp(relativeMin.z() * m_numZ / gridSize.z(), 0, m_numZ - 1);
-    int xmax = clamp(relativeMax.x() * m_numX / gridSize.x(), 0, m_numX - 1);
-    int ymax = clamp(relativeMax.y() * m_numY / gridSize.y(), 0, m_numY - 1);
-    int zmax = clamp(relativeMax.z() * m_numZ / gridSize.z(), 0, m_numZ - 1);
+    // Cell index for a primitive corner along a single axis. When
+    // the axis was deemed degenerate above (numCells == 1), every
+    // primitive lives in cell 0 — short-circuit before dividing by
+    // a near-zero gridSize, which would otherwise produce NaN.
+    auto cellIndex = [](double rel, int numCells, double size) -> int {
+      if (numCells <= 1) return 0;
+      return static_cast<int>(clamp(rel * numCells / size, 0.0f, float(numCells - 1)));
+    };
+    int xmin = cellIndex(relativeMin.x(), m_numX, gridSize.x());
+    int ymin = cellIndex(relativeMin.y(), m_numY, gridSize.y());
+    int zmin = cellIndex(relativeMin.z(), m_numZ, gridSize.z());
+    int xmax = cellIndex(relativeMax.x(), m_numX, gridSize.x());
+    int ymax = cellIndex(relativeMax.y(), m_numY, gridSize.y());
+    int zmax = cellIndex(relativeMax.z(), m_numZ, gridSize.z());
 
     for (int z = zmin; z <= zmax; ++z) {
       for (int y = ymin; y <= ymax; ++y) {

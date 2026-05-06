@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Fixed
+
+- **`Grid::setup` integer overflow on degenerate-bbox primitives.** A flat axis-aligned `Rectangle` or `Disk` has zero thickness on its normal axis, so the textbook `s = cbrt(vol/N)` heuristic produced `s ≈ 0` along the degenerate axis and ~262k cells along the others; `m_numX * m_numY * m_numZ` overflowed `int` and `m_cells.reserve(<garbage>)` crashed. Now: axes below `1e-6 × maxAxis` are treated as degenerate (one cell along them), and `s` is computed from the non-degenerate axes only. The per-primitive bin loop short-circuits to cell 0 along degenerate axes so the divide-by-near-zero NaN can't propagate either. New `GridTest.ShouldHandleDegenerateAxisOnSetup` pins the contract. — Claude Opus 4.7
+
 ### Changed
 
 - Migrated from Qt 5.15 to Qt 6: `find_package(Qt6 … Qml)` replaces the old `Qt5 … Script` find; all `Qt5::` CMake targets updated to `Qt6::`. `QtScript` (removed in Qt 6) ported to `QJSEngine`/`QJSValue` in `ScriptedSurface` — element constructors are now registered through a `ScriptElementRegistry` QObject with Q_INVOKABLE methods; scripts continue to use `new Box(parent)` and `new Vector3(x, y, z)` unchanged. CI, Dockerfile, and README updated to `qt6-base-dev` + `qt6-declarative-dev`. — Claude Sonnet 4.6
