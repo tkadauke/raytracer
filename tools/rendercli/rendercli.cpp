@@ -8,7 +8,9 @@
 #include "world/objects/Texture.h"
 
 #include "raytracer/lights/PointLight.h"
+#include "raytracer/RenderEngine.h"
 #include "raytracer/Raytracer.h"
+#include "raytracer/WireframeEngine.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 #include "raytracer/samplers/SamplerFactory.h"
@@ -53,6 +55,8 @@ private:
   int m_threads;
   int m_queueSize;
   QString m_tonemap;
+  QString m_engine;
+  int m_wireframeLod;
 };
 
 Renderer::Renderer()
@@ -63,7 +67,9 @@ Renderer::Renderer()
     m_samplesPerPixel(1),
     m_threads(QThread::idealThreadCount()),
     m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
-    m_tonemap("Linear")
+    m_tonemap("Linear"),
+    m_engine("raytracer"),
+    m_wireframeLod(0)
 {
   parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -71,38 +77,55 @@ Renderer::Renderer()
 void Renderer::render() const {
   auto scene = new Scene(nullptr);
   scene->load(m_filename);
-  
+
   auto raytracerScene = scene->toRaytracerScene();
-  
-  auto raytracer = std::make_shared<raytracer::Raytracer>(raytracerScene);
-  // We don't need a fancy view plane, so we can optimize for fast rendering.
-  raytracer->camera()->setViewPlane(std::make_shared<raytracer::TiledViewPlane>());
-  raytracer->setMaximumRecursionDepth(m_maximumRecursionDepth);
-  
+
+  // Engine-agnostic camera setup. Both engines need a camera with a
+  // view plane sized to the output buffer; the only engine-specific
+  // wiring (recursion depth, threads, sampler) lives on the engine
+  // construction below.
+  std::shared_ptr<raytracer::Camera> rtCamera;
   auto camera = scene->activeCamera();
   if (camera) {
-    raytracer->setCamera(camera->toRaytracer());
+    rtCamera = camera->toRaytracer();
   } else {
     qWarning("No camera found. Defaulting to Pinhole camera looking at the origin");
-    raytracer->camera()->setPosition(Vector3d(0, 0, -5));
   }
-  
-  raytracer->camera()->viewPlane()->setSampler(sampler());
+
+  std::shared_ptr<raytracer::RenderEngine> engine;
+
+  if (m_engine == "wireframe") {
+    auto wireframe = std::make_shared<raytracer::WireframeEngine>(raytracerScene);
+    if (rtCamera) wireframe->setCamera(rtCamera);
+    wireframe->setLod(m_wireframeLod);
+    engine = wireframe;
+  } else {
+    auto rt = std::make_shared<raytracer::Raytracer>(raytracerScene);
+    // We don't need a fancy view plane, so we can optimize for fast rendering.
+    rt->camera()->setViewPlane(std::make_shared<raytracer::TiledViewPlane>());
+    rt->setMaximumRecursionDepth(m_maximumRecursionDepth);
+    if (rtCamera) {
+      rt->setCamera(rtCamera);
+    } else {
+      rt->camera()->setPosition(Vector3d(0, 0, -5));
+    }
+    rt->camera()->viewPlane()->setSampler(sampler());
+    rt->setMaximumThreads(m_threads);
+    rt->setQueueSize(m_queueSize);
+    engine = rt;
+  }
 
   if (auto tonemap = raytracer::TonemapFactory::self().createShared(m_tonemap.toStdString())) {
-    raytracer->setTonemap(tonemap);
+    engine->setTonemap(tonemap);
   } else {
     qWarning("Unknown tonemap %s; falling back to Linear.", qPrintable(m_tonemap));
   }
 
-  raytracer->setMaximumThreads(m_threads);
-  raytracer->setQueueSize(m_queueSize);
-
   Buffer<unsigned int> buffer(m_width, m_height);
-  raytracer->render(buffer);
-  
+  engine->render(buffer);
+
   QImage image = bufferToImage(buffer);
-  
+
   image.save(m_output);
 }
 
@@ -139,7 +162,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {"samples_per_pixel", "Samples per pixel", "samples"},
     {{"j", "threads"}, "Number of threads", "threads"},
     {"queue_size", "Queue size for thread pool", "queue_size"},
-    {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"}
+    {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
+    {"engine", "Render engine (raytracer, wireframe)", "engine"},
+    {"lod", "Tessellation level of detail for wireframe engine", "lod"}
   });
   
   parser.addPositionalArgument("input", QCoreApplication::translate("main", "Input file to render."));
@@ -216,6 +241,24 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
 
   if (parser.isSet("tonemap")) {
     m_tonemap = parser.value("tonemap");
+  }
+
+  if (parser.isSet("engine")) {
+    const QString engine = parser.value("engine").toLower();
+    if (engine != "raytracer" && engine != "wireframe") {
+      *errorMessage = "Engine must be 'raytracer' or 'wireframe'";
+      return CommandLineError;
+    }
+    m_engine = engine;
+  }
+
+  if (parser.isSet("lod")) {
+    bool ok = false;
+    m_wireframeLod = parser.value("lod").toInt(&ok);
+    if (!ok || m_wireframeLod < 0) {
+      *errorMessage = "LOD must be a non-negative integer";
+      return CommandLineError;
+    }
   }
 
   const QStringList args = parser.positionalArguments();
