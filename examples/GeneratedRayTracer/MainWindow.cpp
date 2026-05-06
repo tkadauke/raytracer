@@ -277,48 +277,48 @@ void MainWindow::createActions() {
 
   p->moveForwardsAlongXAct = new QAction(tr("Move forwards along X axis"), this);
   p->moveForwardsAlongXAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::META + Qt::Key_Up),
-    QKeySequence(Qt::SHIFT + Qt::META + Qt::Key_Up)
+    QKeySequence(Qt::META | Qt::Key_Up),
+    QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Up)
   });
   p->moveForwardsAlongXAct->setStatusTip(tr("Moves the current element forwards along the X axis"));
   connect(p->moveForwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongX()));
 
   p->moveBackwardsAlongXAct = new QAction(tr("Move backwards along X axis"), this);
   p->moveBackwardsAlongXAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::META + Qt::Key_Down),
-    QKeySequence(Qt::SHIFT + Qt::META + Qt::Key_Down)
+    QKeySequence(Qt::META | Qt::Key_Down),
+    QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Down)
   });
   p->moveBackwardsAlongXAct->setStatusTip(tr("Moves the current element backwards along the X axis"));
   connect(p->moveBackwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongX()));
 
   p->moveForwardsAlongYAct = new QAction(tr("Move forwards along Y axis"), this);
   p->moveForwardsAlongYAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::ALT + Qt::Key_Up),
-    QKeySequence(Qt::SHIFT + Qt::ALT + Qt::Key_Up)
+    QKeySequence(Qt::ALT | Qt::Key_Up),
+    QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Up)
   });
   p->moveForwardsAlongYAct->setStatusTip(tr("Moves the current element forwards along the Y axis"));
   connect(p->moveForwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongY()));
 
   p->moveBackwardsAlongYAct = new QAction(tr("Move backwards along Y axis"), this);
   p->moveBackwardsAlongYAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::ALT + Qt::Key_Down),
-    QKeySequence(Qt::SHIFT + Qt::ALT + Qt::Key_Down)
+    QKeySequence(Qt::ALT | Qt::Key_Down),
+    QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Down)
   });
   p->moveBackwardsAlongYAct->setStatusTip(tr("Moves the current element backwards along the Y axis"));
   connect(p->moveBackwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongY()));
 
   p->moveForwardsAlongZAct = new QAction(tr("Move forwards along Z axis"), this);
   p->moveForwardsAlongZAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::CTRL + Qt::Key_Up),
-    QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_Up)
+    QKeySequence(Qt::CTRL | Qt::Key_Up),
+    QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Up)
   });
   p->moveForwardsAlongZAct->setStatusTip(tr("Moves the current element forwards along the Z axis"));
   connect(p->moveForwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongZ()));
 
   p->moveBackwardsAlongZAct = new QAction(tr("Move backwards along Z axis"), this);
   p->moveBackwardsAlongZAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::CTRL + Qt::Key_Down),
-    QKeySequence(Qt::SHIFT + Qt::CTRL + Qt::Key_Down)
+    QKeySequence(Qt::CTRL | Qt::Key_Down),
+    QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Down)
   });
   p->moveBackwardsAlongZAct->setStatusTip(tr("Moves the current element backwards along the Z axis"));
   connect(p->moveBackwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongZ()));
@@ -334,7 +334,7 @@ void MainWindow::createActions() {
   connect(p->deleteElementAct, SIGNAL(triggered()), this, SLOT(deleteElement()));
 
   p->renderAct = new QAction(tr("&Render"), this);
-  p->renderAct->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_R));
+  p->renderAct->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
   p->renderAct->setStatusTip(tr("Render current scene"));
   connect(p->renderAct, SIGNAL(triggered()), this, SLOT(render()));
 
