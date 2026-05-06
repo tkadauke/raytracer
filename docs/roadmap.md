@@ -151,6 +151,33 @@ Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF expor
 
 - Unblocks: every other engine.
 
+### R5b. Namespace + directory cleanup — `raytracer::` → `render::`
+
+Now that R5 has surfaced what's shared vs engine-specific, lift the shared types out of `raytracer::` into a new top-level `render::` namespace + `include/render/` directory. Anything that future non-raytracing engines (wireframe, software raster, OpenGL, path tracer) will use shouldn't live in a namespace named after one engine.
+
+**Stays in `raytracer::` / `include/raytracer/`**:
+
+- `Raytracer` (the engine).
+- `State` — per-ray recursion state, raytracer-specific.
+
+**Moves to `render::` / `include/render/`**:
+
+- `RenderEngine`, `Object`, `Stats`.
+- `Camera` + all subclasses + factory.
+- `Primitive` + all subclasses (the largest subdirectory, hence the timing — see below).
+- `Light` + subclasses.
+- `Material` + subclasses (note: `Material::shade` will continue to take a `Raytracer*` until §3.R6 splits it onto a `BSDF` interface; cross-namespace forward-declaration is fine until then).
+- `BRDF` / `BTDF` + subclasses.
+- `Sampler`, `SampleStream`, factory.
+- `ViewPlane` + subclasses + factory.
+- `Texture` + subclasses + texture mappings.
+- `Tonemap` + subclasses + factory.
+
+**Timing**: queued behind R4's per-primitive tessellate batches (issues #42, #43, #44). The R4 batch agents work in `raytracer::primitives/`; doing the namespace move before they land would force every agent PR through a rebase against a renamed primitives/ tree. Doing it after avoids that conflict and lets the cleanup grab the agents' new tessellate code in one mechanical pass.
+
+- Estimated effort: ~1 day for the mechanical work (file moves + sed for namespace + sed for include paths) + a few hours for fixup (places that use `using namespace raytracer;` and reference the moved types unqualified).
+- Unblocks: `WireframeEngine` and every subsequent engine — they reference `render::Camera` / `render::Light` / etc. without the awkward implication that they're "raytracer-specific."
+
 ### R6. `BSDF` split from `Material::shade`
 
 Introduce a `BSDF` interface with `eval(wi, wo) → spectrum`, `sample(wi) → (wo, pdf)`, `pdf(wi, wo) → density`. Existing materials wrap their current logic in a `BSDF` implementation while keeping `Material::shade` as a thin compatibility layer for the Whitted integrator.
