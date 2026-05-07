@@ -5,19 +5,19 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/Vector.h"
 #include "render/cameras/Camera.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 #include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
 
 using namespace raytracer;
 
-WireframeEngine::WireframeEngine(std::shared_ptr<Scene> scene)
+WireframeEngine::WireframeEngine(std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(scene))
 {
 }
 
-WireframeEngine::WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene)
+WireframeEngine::WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(camera), std::move(scene))
 {
 }

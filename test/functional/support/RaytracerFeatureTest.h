@@ -15,10 +15,13 @@ namespace render {
   class Camera;
 }
 
-namespace raytracer {
+namespace render {
   class Primitive;
-  class Raytracer;
   class Scene;
+}
+
+namespace raytracer {
+  class Raytracer;
 }
 
 namespace testing {
@@ -32,8 +35,8 @@ namespace testing {
   public:
     RaytracerFeatureTest();
 
-    void add(std::shared_ptr<raytracer::Primitive> primitive);
-    raytracer::Scene* scene() const;
+    void add(std::shared_ptr<render::Primitive> primitive);
+    render::Scene* scene() const;
     std::shared_ptr<render::Camera> camera();
     void setCamera(std::shared_ptr<render::Camera> camera);
     void setCamera(const Vector3d& position, const Vector3d& lookAt);
@@ -59,7 +62,7 @@ namespace testing {
     int previousObjectSize;
 
   private:
-    std::shared_ptr<raytracer::Scene> m_scene;
+    std::shared_ptr<render::Scene> m_scene;
     std::shared_ptr<render::Camera> m_camera;
     std::shared_ptr<raytracer::Raytracer> m_raytracer;
     Buffer<unsigned int> m_buffer;

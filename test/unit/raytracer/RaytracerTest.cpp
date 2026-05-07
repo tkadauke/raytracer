@@ -6,8 +6,8 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
-#include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Sphere.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/Buffer.h"
@@ -235,7 +235,7 @@ using namespace render;
   }
 
   TEST(Raytracer, RenderShouldClearBufferWhenSceneIsNullptr) {
-    Raytracer raytracer(std::shared_ptr<Scene>(nullptr));
+    Raytracer raytracer(std::shared_ptr<render::Scene>(nullptr));
     Buffer<unsigned int> buffer(4, 4);
     // Pre-fill the buffer with a recognisable pattern so we can prove
     // render() actually cleared it.

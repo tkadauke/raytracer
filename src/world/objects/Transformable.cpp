@@ -1,7 +1,7 @@
 #include "world/objects/Transformable.h"
 #include "world/objects/Material.h"
-#include "raytracer/primitives/Instance.h"
-#include "raytracer/primitives/Composite.h"
+#include "render/primitives/Instance.h"
+#include "render/primitives/Composite.h"
 
 Transformable::Transformable(Element* parent)
   : Element(parent),

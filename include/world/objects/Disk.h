@@ -27,7 +27,7 @@ public:
     m_radius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
   }
 
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 
 private:
   double m_radius;

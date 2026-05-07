@@ -6,7 +6,7 @@
 #include <cmath>
 #include <iostream>
 
-namespace raytracer {
+namespace render {
   class Primitive;
 }
 
@@ -29,7 +29,7 @@ namespace raytracer {
   * swappedNormal() turns the normal in the opposite direction, which is
   * important for when a ray travels on the inside of objects; transformed()
   * performs a linear transform on the hitpoint and normal, which is interesting
-  * during instancing (see raytracer::Instance).
+  * during instancing (see render::Instance).
   * 
   * This class inherits from InequalityOperator, which provides operator !=.
   */
@@ -53,7 +53,7 @@ public:
     * Constructs a HitPoint on @p primitive from the specified @p distance,
     * @p point, and @p normal.
     */
-  inline explicit HitPoint(const raytracer::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
+  inline explicit HitPoint(const render::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
     : m_primitive(primitive),
       m_distance(distance),
       m_point(point),
@@ -64,14 +64,14 @@ public:
   /**
     * @returns the primitive that contains this HitPoint.
     */
-  inline const raytracer::Primitive* primitive() const {
+  inline const render::Primitive* primitive() const {
     return m_primitive;
   }
   
   /**
     * Sets the @p primitive for this HitPoint.
     */
-  inline void setPrimitive(const raytracer::Primitive* primitive) {
+  inline void setPrimitive(const render::Primitive* primitive) {
     m_primitive = primitive;
   }
 
@@ -163,7 +163,7 @@ public:
   }
   
 private:
-  const raytracer::Primitive* m_primitive;
+  const render::Primitive* m_primitive;
   double m_distance;
   Vector4d m_point;
   Vector3d m_normal;

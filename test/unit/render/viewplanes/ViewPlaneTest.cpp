@@ -6,6 +6,7 @@
 namespace ViewPlaneTest {
   using namespace ::testing;
   using namespace render;
+  using namespace render;
   
   TEST(ViewPlane, ShouldInitialize) {
     ViewPlane plane;

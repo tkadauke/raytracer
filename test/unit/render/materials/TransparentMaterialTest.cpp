@@ -3,7 +3,7 @@
 #include "render/textures/ConstantColorTexture.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPoint.h"
 
@@ -12,13 +12,17 @@
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
 namespace TransparentMaterialTest {
+  using namespace render;
   using namespace raytracer;
 using namespace render;
+  using namespace raytracer;
+using namespace render;
+  using namespace raytracer;
 
   TEST(TransparentMaterial, ShouldInitialize) {
     TransparentMaterial material;
@@ -83,7 +87,7 @@ using namespace render;
     struct ShadeFixture {
       std::shared_ptr<ConstantColorTexture> texture =
         std::make_shared<ConstantColorTexture>(Colord::white());
-      std::shared_ptr<Scene> scene = std::make_shared<Scene>(Colord::black());
+      std::shared_ptr<render::Scene> scene = std::make_shared<Scene>(Colord::black());
       std::shared_ptr<Raytracer> raytracer = std::make_shared<Raytracer>(scene);
 
       HitPoint hitPoint{nullptr, 1.0, Vector4d(0, 0, 0, 1), Vector3d(0, 1, 0)};

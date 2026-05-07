@@ -7,7 +7,7 @@
 
 class Camera;
 
-namespace raytracer {
+namespace render {
   class Scene;
 }
 
@@ -27,7 +27,7 @@ public:
     * Converts the scene into a representation suitable for rendering with the
     * Raytracer class.
     */
-  std::shared_ptr<raytracer::Scene> toRaytracerScene() const;
+  std::shared_ptr<render::Scene> toRaytracerScene() const;
   
   /**
     * Saves the scene into a file specified by filename.

@@ -1,6 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/Triangle.h"
-#include "raytracer/primitives/Triangle.h"
+#include "render/primitives/Triangle.h"
 
 Triangle::Triangle(Element* parent)
   : Surface(parent),
@@ -10,8 +10,8 @@ Triangle::Triangle(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Primitive> Triangle::toRaytracerPrimitive() const {
-  return make_named<raytracer::Triangle>(m_vertexA, m_vertexB, m_vertexC);
+std::shared_ptr<render::Primitive> Triangle::toRaytracerPrimitive() const {
+  return make_named<render::Triangle>(m_vertexA, m_vertexB, m_vertexC);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Triangle>("Triangle");

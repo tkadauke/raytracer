@@ -1,7 +1,7 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "raytracer/primitives/FlatMeshTriangle.h"
+#include "render/primitives/FlatMeshTriangle.h"
 #include "core/geometry/Mesh.h"
 
 using namespace testing;

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include "render/brdf/GlossySpecular.h"
-#include "raytracer/primitives/Box.h"
+#include "render/primitives/Box.h"
 
 #include "core/math/HitPoint.h"
 
 namespace GlossySpecularTest {
-  using namespace raytracer;
+  using namespace render;
 using namespace render;
 using namespace render;
 

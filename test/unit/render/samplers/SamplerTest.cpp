@@ -5,6 +5,7 @@
 namespace SamplerTest {
   using namespace ::testing;
   using namespace render;
+  using namespace render;
 
   class ConcreteSampler : public Sampler {
   protected:

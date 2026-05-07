@@ -4,6 +4,7 @@
 namespace RandomSamplerTest {
   using namespace ::testing;
   using namespace render;
+  using namespace render;
   
   TEST(RandomSampler, ShouldConstructWithParameters) {
     render::RandomSampler sampler;

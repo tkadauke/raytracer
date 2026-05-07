@@ -190,7 +190,7 @@ public:
   /**
     * Sets the primitive in all hit points in this interval to prim.
     */
-  inline void setPrimitive(const raytracer::Primitive* prim) {
+  inline void setPrimitive(const render::Primitive* prim) {
     for (auto& i : m_hitPoints) {
       i.point.setPrimitive(prim);
     }

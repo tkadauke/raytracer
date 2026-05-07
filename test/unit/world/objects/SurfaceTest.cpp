@@ -9,8 +9,8 @@
 #include "world/objects/PointLight.h"
 #include "world/objects/Element.h"
 
-#include "raytracer/primitives/Primitive.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Primitive.h"
+#include "render/primitives/Scene.h"
 
 #include <limits>
 
@@ -62,7 +62,7 @@ namespace SurfaceTest {
 
   TEST(Surface, ShouldProduceRaytracerPrimitive) {
     Sphere s;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, s.toRaytracer(&scene));
   }
 
@@ -86,7 +86,7 @@ namespace SurfaceTest {
   }
 
   TEST(Sphere, ShouldClampZeroRadiusToEpsilon) {
-    // A truly-zero radius would make raytracer::Sphere::intersect divide
+    // A truly-zero radius would make render::Sphere::intersect divide
     // by zero (radius² is the discriminant denominator). The setter
     // floors at numeric_limits epsilon to keep the math defined while
     // still letting the user "shrink to invisibility".
@@ -145,7 +145,7 @@ namespace SurfaceTest {
 
   TEST(Box, ShouldProduceRaytracerPrimitiveForSharpBox) {
     Box b;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, b.toRaytracer(&scene));
   }
 
@@ -153,7 +153,7 @@ namespace SurfaceTest {
     Box b;
     b.setSize(Vector3d(2, 2, 2));
     b.setBevelRadius(0.5);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, b.toRaytracer(&scene));
   }
 
@@ -180,7 +180,7 @@ namespace SurfaceTest {
 
   TEST(Cylinder, ShouldProduceRaytracerPrimitive) {
     Cylinder c;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, c.toRaytracer(&scene));
   }
 
@@ -207,7 +207,7 @@ namespace SurfaceTest {
 
   TEST(Ring, ShouldProduceRaytracerPrimitive) {
     Ring r;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, r.toRaytracer(&scene));
   }
 }

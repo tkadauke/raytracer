@@ -2,7 +2,7 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "raytracer/primitives/Rectangle.h"
+#include "render/primitives/Rectangle.h"
 
 using namespace testing;
 using namespace raytracer;

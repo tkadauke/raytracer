@@ -6,13 +6,17 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
 #include "render/lights/DirectionalLight.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
 namespace MatteMaterialTest {
+  using namespace render;
   using namespace raytracer;
 using namespace render;
+  using namespace raytracer;
+using namespace render;
+  using namespace raytracer;
 
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;
@@ -65,7 +69,7 @@ using namespace render;
       // White texture so the texture-modulation factor is identity.
       std::shared_ptr<ConstantColorTexture> texture =
         std::make_shared<ConstantColorTexture>(Colord::white());
-      std::shared_ptr<Scene> scene = std::make_shared<Scene>();
+      std::shared_ptr<render::Scene> scene = std::make_shared<Scene>();
       std::shared_ptr<Raytracer> raytracer = std::make_shared<Raytracer>(scene);
 
       // A horizontal hit point with the surface normal pointing straight up,

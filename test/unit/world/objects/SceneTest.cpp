@@ -4,7 +4,7 @@
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"

@@ -3,9 +3,9 @@
 
 #include "core/formats/ply/PlyFile.h"
 #include "core/geometry/Mesh.h"
-#include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Instance.h"
-#include "raytracer/primitives/FlatMeshTriangle.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Instance.h"
+#include "render/primitives/FlatMeshTriangle.h"
 
 #include <fstream>
 

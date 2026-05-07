@@ -17,7 +17,9 @@ namespace raytracer {
   }
 namespace render { class Camera; }
 namespace raytracer {
-  class Scene;
+  }
+namespace render { class Scene; }
+namespace raytracer {
 
   /**
     * @brief Abstract base for all rendering backends — what every
@@ -70,8 +72,8 @@ namespace raytracer {
     */
   class RenderEngine : public std::enable_shared_from_this<RenderEngine> {
   public:
-    explicit RenderEngine(std::shared_ptr<Scene> scene);
-    explicit RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene);
+    explicit RenderEngine(std::shared_ptr<render::Scene> scene);
+    explicit RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
     virtual ~RenderEngine();
 
@@ -122,14 +124,14 @@ namespace raytracer {
     }
 
     /// @returns the active scene (shared ownership).
-    inline std::shared_ptr<Scene> scene() const {
+    inline std::shared_ptr<render::Scene> scene() const {
       return m_scene;
     }
 
     /// Replaces the scene. The new scene is rendered on the next
     /// `render` call; in-flight renders continue against the old
     /// scene until they finish.
-    inline void setScene(std::shared_ptr<Scene> scene) {
+    inline void setScene(std::shared_ptr<render::Scene> scene) {
       m_scene = std::move(scene);
     }
 
@@ -161,7 +163,7 @@ namespace raytracer {
 
   protected:
     std::shared_ptr<render::Camera> m_camera;
-    std::shared_ptr<Scene> m_scene;
+    std::shared_ptr<render::Scene> m_scene;
 
   private:
     struct Private;

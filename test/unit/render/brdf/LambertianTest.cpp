@@ -4,7 +4,7 @@
 #include "core/math/HitPoint.h"
 
 namespace LambertianTest {
-  using namespace raytracer;
+  using namespace render;
 using namespace render;
 using namespace render;
 

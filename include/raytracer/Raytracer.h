@@ -17,8 +17,12 @@ namespace raytracer {
   }
 namespace render { class Camera; }
 namespace raytracer {
-  class Primitive;
-  class Scene;
+  }
+namespace render { class Primitive; }
+namespace raytracer {
+  }
+namespace render { class Scene; }
+namespace raytracer {
   class State;
 
   /**
@@ -67,7 +71,7 @@ namespace raytracer {
       * control over the camera type/position, use the two-argument
       * constructor.
       */
-    explicit Raytracer(std::shared_ptr<Scene> scene);
+    explicit Raytracer(std::shared_ptr<render::Scene> scene);
 
     /**
       * Construct with a caller-supplied camera and scene. The
@@ -75,7 +79,7 @@ namespace raytracer {
       * constructor set it to; callers who care about pixel size /
       * sampler / interlacing should configure it themselves.
       */
-    explicit Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene);
+    explicit Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
     virtual ~Raytracer();
 
@@ -108,7 +112,7 @@ namespace raytracer {
       * Pointer ownership stays with the scene; callers must not
       * delete or store across scene changes.
       */
-    const Primitive* primitiveForRay(const Rayd& ray) const;
+    const render::Primitive* primitiveForRay(const Rayd& ray) const;
 
     /**
       * Single-ray probe that returns a populated `State` with the

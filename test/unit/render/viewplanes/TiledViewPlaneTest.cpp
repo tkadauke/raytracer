@@ -5,6 +5,7 @@
 namespace TiledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
+  using namespace render;
   
   TEST(TiledViewPlane, ShouldInitialize) {
     render::TiledViewPlane plane;

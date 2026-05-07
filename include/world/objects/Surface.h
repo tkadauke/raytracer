@@ -3,7 +3,7 @@
 
 #include "world/objects/Transformable.h"
 
-namespace raytracer {
+namespace render {
   class Primitive;
   class Scene;
 }
@@ -113,14 +113,14 @@ public:
   }
 
   /**
-    * Converts this surface into a raytracer::Primitive.
+    * Converts this surface into a render::Primitive.
     */
-  std::shared_ptr<raytracer::Primitive> toRaytracer(raytracer::Scene* scene) const;
+  std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   virtual bool canHaveChild(Element* child) const;
   
 protected:
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const = 0;
-  std::shared_ptr<raytracer::Primitive> applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const = 0;
+  std::shared_ptr<render::Primitive> applyTransform(std::shared_ptr<render::Primitive> primitive) const;
   
 private:
   Material* m_material;

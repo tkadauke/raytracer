@@ -1,8 +1,8 @@
 #include "SceneFactory.h"
 
-#include "raytracer/primitives/Plane.h"
-#include "raytracer/primitives/Torus.h"
-#include "raytracer/primitives/Instance.h"
+#include "render/primitives/Plane.h"
+#include "render/primitives/Torus.h"
+#include "render/primitives/Instance.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"

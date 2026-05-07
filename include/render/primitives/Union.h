@@ -1,0 +1,14 @@
+#pragma once
+
+#include "render/primitives/Composite.h"
+
+namespace render {
+  class Union : public Composite {
+  public:
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual bool intersects(const Rayd& ray, raytracer::State& state) const;
+
+    /** CSG mesh booleans are queued under roadmap §4.2.a. Returns empty Mesh. */
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+  };
+}

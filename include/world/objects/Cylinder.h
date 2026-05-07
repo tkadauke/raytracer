@@ -92,7 +92,7 @@ public:
     m_bevelRadius = std::min(std::min(m_radius, m_height / 2.0), radius);
   }
 
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
   
 private:
   double m_radius;

@@ -19,7 +19,7 @@
   * expenpensive intersection, when the ray misses the object. For this to work,
   * the bounding box should be as small as possible, while still containing the
   * entire object. Another purpose is to organize objects spatially in a tree
-  * or grid data structure (see raytracer::Grid).
+  * or grid data structure (see render::Grid).
   * 
   * The bounding box is axis aligned, as illustrated in the following figure.
   * 

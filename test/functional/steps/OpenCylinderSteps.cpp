@@ -2,8 +2,8 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "raytracer/primitives/OpenCylinder.h"
-#include "raytracer/primitives/Instance.h"
+#include "render/primitives/OpenCylinder.h"
+#include "render/primitives/Instance.h"
 
 using namespace testing;
 using namespace raytracer;

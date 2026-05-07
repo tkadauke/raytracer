@@ -103,7 +103,7 @@ public:
   void setScriptName(const QString& name);
 
 protected:
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
   virtual bool event(QEvent *e);
 
   inline bool engineReady() const {

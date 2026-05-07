@@ -2,13 +2,13 @@
 
 #include "gmock/gmock.h"
 #include "raytracer/State.h"
-#include "raytracer/primitives/Primitive.h"
+#include "render/primitives/Primitive.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "test/mocks/MockDestructor.h"
 
 namespace testing {
-  class MockPrimitive : public raytracer::Primitive, public MockDestructor {
+  class MockPrimitive : public render::Primitive, public MockDestructor {
   public:
     MOCK_METHOD(const Primitive*, intersect,
                 (const Rayd&, HitPointInterval&, raytracer::State&), (const, override));

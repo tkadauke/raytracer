@@ -125,11 +125,11 @@ public:
     m_bevelRadius = radius;
   }
 
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
   
 private:
-  std::shared_ptr<raytracer::Primitive> closedCylinder(double radius, double height) const;
-  std::shared_ptr<raytracer::Primitive> ring(double outerRadius, double innerRadius, double height) const;
+  std::shared_ptr<render::Primitive> closedCylinder(double radius, double height) const;
+  std::shared_ptr<render::Primitive> ring(double outerRadius, double innerRadius, double height) const;
   
   double m_innerRadius;
   double m_outerRadius;

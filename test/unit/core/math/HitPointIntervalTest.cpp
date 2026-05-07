@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include "core/math/HitPointInterval.h"
-#include "raytracer/primitives/Box.h"
+#include "render/primitives/Box.h"
 
 namespace HitPointIntervalTest {
-  static raytracer::Box* box = new raytracer::Box(Vector3d::null(), Vector3d::one());
+  static render::Box* box = new render::Box(Vector3d::null(), Vector3d::one());
   
   TEST(HitPointInterval, ShouldInitialize) {
     HitPointInterval interval;

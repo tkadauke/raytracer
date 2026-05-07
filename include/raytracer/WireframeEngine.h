@@ -60,8 +60,8 @@ namespace raytracer {
   */
 class WireframeEngine : public RenderEngine {
 public:
-  explicit WireframeEngine(std::shared_ptr<Scene> scene);
-  WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene);
+  explicit WireframeEngine(std::shared_ptr<render::Scene> scene);
+  WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
   ~WireframeEngine() override;
 

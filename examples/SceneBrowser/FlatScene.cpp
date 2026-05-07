@@ -1,9 +1,9 @@
 #include "SceneFactory.h"
 
-#include "raytracer/primitives/Triangle.h"
-#include "raytracer/primitives/Disk.h"
-#include "raytracer/primitives/Rectangle.h"
-#include "raytracer/primitives/Plane.h"
+#include "render/primitives/Triangle.h"
+#include "render/primitives/Disk.h"
+#include "render/primitives/Rectangle.h"
+#include "render/primitives/Plane.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"

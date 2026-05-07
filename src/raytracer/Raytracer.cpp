@@ -3,7 +3,7 @@
 #include "render/Stats.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
@@ -84,13 +84,13 @@ struct Raytracer::Private {
   bool showProgressIndicators;
 };
 
-Raytracer::Raytracer(std::shared_ptr<Scene> scene)
+Raytracer::Raytracer(std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
 
-Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene)
+Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(camera), std::move(scene)),
     p(std::make_unique<Private>())
 {
@@ -203,7 +203,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
 #endif
 }
 
-const Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
+const render::Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
   return rayState(ray).hitPoint.primitive();
 }
 

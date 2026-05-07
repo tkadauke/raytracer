@@ -3,9 +3,9 @@
 #include "core/Buffer.h"
 #include "raytracer/WireframeEngine.h"
 #include "render/cameras/PinholeCamera.h"
-#include "raytracer/primitives/Box.h"
-#include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Sphere.h"
+#include "render/primitives/Box.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
 
 #include <memory>
 
@@ -24,7 +24,7 @@ using namespace render;
   }
 
   // Helper: build a scene with one centered axis-aligned box.
-  static std::shared_ptr<Scene> sceneWithBox() {
+  static std::shared_ptr<render::Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::black());
     scene->add(std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1)));
     return scene;

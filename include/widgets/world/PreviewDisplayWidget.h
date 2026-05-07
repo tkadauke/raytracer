@@ -9,7 +9,7 @@ class Material;
 class Scene;
 class Camera;
 
-namespace raytracer {
+namespace render {
   class Scene;
 }
 
@@ -28,5 +28,5 @@ public:
 
 private:
   void updateScene(const std::function<void()>& setup);
-  std::shared_ptr<raytracer::Scene> sphereOnPlane(Material* material, Scene* s) const;
+  std::shared_ptr<render::Scene> sphereOnPlane(Material* material, Scene* s) const;
 };

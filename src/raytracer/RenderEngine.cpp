@@ -14,14 +14,14 @@ struct RenderEngine::Private {
   std::shared_ptr<render::Tonemap> tonemap;
 };
 
-RenderEngine::RenderEngine(std::shared_ptr<Scene> scene)
+RenderEngine::RenderEngine(std::shared_ptr<render::Scene> scene)
   : m_camera(std::make_shared<render::PinholeCamera>()),
     m_scene(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
 
-RenderEngine::RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene)
+RenderEngine::RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
   : m_camera(std::move(camera)),
     m_scene(std::move(scene)),
     p(std::make_unique<Private>())

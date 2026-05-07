@@ -2,7 +2,7 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "raytracer/primitives/Box.h"
+#include "render/primitives/Box.h"
 
 using namespace testing;
 using namespace raytracer;

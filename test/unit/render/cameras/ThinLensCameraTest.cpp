@@ -2,7 +2,7 @@
 
 #include "render/cameras/ThinLensCamera.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 #include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "render/samplers/JitteredSampler.h"
 #include "core/Buffer.h"
@@ -11,8 +11,12 @@
 #include "test/helpers/VectorTestHelper.h"
 
 namespace ThinLensCameraTest {
+  using namespace render;
   using namespace raytracer;
 using namespace render;
+  using namespace raytracer;
+using namespace render;
+  using namespace raytracer;
 
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
     ThinLensCamera camera;

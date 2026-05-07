@@ -1,10 +1,10 @@
 #include "world/objects/Surface.h"
 #include "world/objects/Material.h"
 #include "world/objects/Light.h"
-#include "raytracer/primitives/Instance.h"
-#include "raytracer/primitives/Composite.h"
-#include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Grid.h"
+#include "render/primitives/Instance.h"
+#include "render/primitives/Composite.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Grid.h"
 
 Surface::Surface(Element* parent)
   : Transformable(parent),
@@ -14,14 +14,14 @@ Surface::Surface(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Primitive> Surface::applyTransform(std::shared_ptr<raytracer::Primitive> primitive) const {
-  auto result = std::make_shared<raytracer::Instance>(primitive);
+std::shared_ptr<render::Primitive> Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
+  auto result = std::make_shared<render::Instance>(primitive);
   result->setMatrix(localTransform());
   result->setVelocity(m_velocity);
   return result;
 }
 
-std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* scene) const {
+std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) const {
   auto primitive = toRaytracerPrimitive();
   if (!primitive) {
     return primitive;
@@ -32,9 +32,9 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* sce
   }
   
   if (childElements().size() > 0) {
-    auto composite = std::dynamic_pointer_cast<raytracer::Composite>(primitive);
+    auto composite = std::dynamic_pointer_cast<render::Composite>(primitive);
     if (!composite) {
-      composite = std::make_shared<raytracer::Composite>();
+      composite = std::make_shared<render::Composite>();
       composite->add(primitive);
     }
     
@@ -48,7 +48,7 @@ std::shared_ptr<raytracer::Primitive> Surface::toRaytracer(raytracer::Scene* sce
       }
     }
     
-    if (auto grid = std::dynamic_pointer_cast<raytracer::Grid>(composite)) {
+    if (auto grid = std::dynamic_pointer_cast<render::Grid>(composite)) {
       grid->setup();
     }
 

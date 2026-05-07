@@ -2,8 +2,8 @@
 #include "test/functional/support/GivenWhenThen.h"
 #include "test/helpers/ShapeRecognition.h"
 
-#include "raytracer/primitives/Torus.h"
-#include "raytracer/primitives/Instance.h"
+#include "render/primitives/Torus.h"
+#include "render/primitives/Instance.h"
 
 #include "core/math/Matrix.h"
 

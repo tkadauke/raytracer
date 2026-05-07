@@ -2,9 +2,9 @@
 #include "world/objects/Material.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Scene.h"
-#include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Sphere.h"
-#include "raytracer/primitives/Plane.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
+#include "render/primitives/Plane.h"
 #include "render/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
 #include "render/lights/DirectionalLight.h"
@@ -59,14 +59,14 @@ void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   render();
 }
 
-std::shared_ptr<raytracer::Scene> PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
+std::shared_ptr<render::Scene> PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
   auto mat = material->toRaytracerMaterial();
-  auto scene = std::make_shared<raytracer::Scene>();
+  auto scene = std::make_shared<render::Scene>();
 
   scene->setAmbient(s->ambient());
   scene->setBackground(s->background());
 
-  auto sphere = std::make_shared<raytracer::Sphere>(Vector3d(0, 0, 0), 2);
+  auto sphere = std::make_shared<render::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);
 
   auto planeMaterial = std::make_shared<render::MatteMaterial>(
@@ -77,7 +77,7 @@ std::shared_ptr<raytracer::Scene> PreviewDisplayWidget::sphereOnPlane(Material* 
     )
   );
 
-  auto plane = std::make_shared<raytracer::Plane>(Vector3d(0, -1, 0), 2);
+  auto plane = std::make_shared<render::Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(planeMaterial);
 
   scene->add(sphere);

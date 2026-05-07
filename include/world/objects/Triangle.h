@@ -27,7 +27,7 @@ public:
   inline void setVertexB(const Vector3d& v) { m_vertexB = v; }
   inline void setVertexC(const Vector3d& v) { m_vertexC = v; }
 
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 
 private:
   Vector3d m_vertexA;

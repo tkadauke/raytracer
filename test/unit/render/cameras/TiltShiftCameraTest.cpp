@@ -2,13 +2,17 @@
 
 #include "render/cameras/TiltShiftCamera.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 
 #include "test/helpers/VectorTestHelper.h"
 
 namespace TiltShiftCameraTest {
+  using namespace render;
   using namespace raytracer;
 using namespace render;
+  using namespace raytracer;
+using namespace render;
+  using namespace raytracer;
 
   TEST(TiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {
     TiltShiftCamera camera;

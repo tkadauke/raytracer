@@ -1,15 +1,19 @@
 #include <gtest/gtest.h>
 #include "render/cameras/SphericalCamera.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 
 #include "test/helpers/ImageViewer.h"
 
 namespace SphericalCameraTest {
   using namespace ::testing;
+  using namespace render;
   using namespace raytracer;
 using namespace render;
+  using namespace raytracer;
+using namespace render;
+  using namespace raytracer;
   
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;

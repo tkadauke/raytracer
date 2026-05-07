@@ -4,6 +4,7 @@
 namespace RegularSamplerTest {
   using namespace ::testing;
   using namespace render;
+  using namespace render;
   
   TEST(RegularSampler, ShouldConstructWithParameters) {
     render::RegularSampler sampler;

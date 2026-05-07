@@ -1,7 +1,7 @@
 #include "SceneFactory.h"
 
-#include "raytracer/primitives/Box.h"
-#include "raytracer/primitives/Plane.h"
+#include "render/primitives/Box.h"
+#include "render/primitives/Plane.h"
 #include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
 #include "render/materials/PortalMaterial.h"

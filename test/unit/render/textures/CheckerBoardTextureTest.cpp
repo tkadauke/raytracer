@@ -7,7 +7,7 @@
 #include "core/math/Ray.h"
 
 namespace CheckerBoardTextureTest {
-  using namespace raytracer;
+  using namespace render;
 using namespace render;
 using namespace render;
 

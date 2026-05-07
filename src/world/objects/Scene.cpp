@@ -2,8 +2,8 @@
 #include "world/objects/Surface.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Light.h"
-#include "raytracer/primitives/Scene.h"
-#include "raytracer/primitives/Grid.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Grid.h"
 
 #include <QMap>
 #include <QFile>
@@ -19,10 +19,10 @@ Scene::Scene(Element* parent)
   setName("New Scene");
 }
 
-std::shared_ptr<raytracer::Scene> Scene::toRaytracerScene() const {
-  auto result = std::make_shared<raytracer::Scene>();
+std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
+  auto result = std::make_shared<render::Scene>();
 
-  auto grid = make_named<raytracer::Grid>();
+  auto grid = make_named<render::Grid>();
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       if (surface->visible()) {

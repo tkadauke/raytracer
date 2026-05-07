@@ -26,7 +26,7 @@ public:
   inline void setLeg1(const Vector3d& v) { m_leg1 = v; }
   inline void setLeg2(const Vector3d& v) { m_leg2 = v; }
 
-  virtual std::shared_ptr<raytracer::Primitive> toRaytracerPrimitive() const;
+  virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 
 private:
   Vector3d m_leg1;

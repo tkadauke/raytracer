@@ -8,13 +8,13 @@
 #include "world/objects/ConvexHull.h"
 #include "world/objects/Sphere.h"
 
-#include "raytracer/primitives/Difference.h"
-#include "raytracer/primitives/Union.h"
-#include "raytracer/primitives/Intersection.h"
-#include "raytracer/primitives/MinkowskiSum.h"
-#include "raytracer/primitives/ConvexHull.h"
-#include "raytracer/primitives/Composite.h"
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Difference.h"
+#include "render/primitives/Union.h"
+#include "render/primitives/Intersection.h"
+#include "render/primitives/MinkowskiSum.h"
+#include "render/primitives/ConvexHull.h"
+#include "render/primitives/Composite.h"
+#include "render/primitives/Scene.h"
 
 namespace CSGSurfaceTest {
   // ---------- CSGSurface (abstract base) ------------------------------------
@@ -35,7 +35,7 @@ namespace CSGSurfaceTest {
   //   - empty + active → toRaytracerPrimitive returns nullptr (no children
   //     means the operation is undefined; the renderer drops it)
   //   - non-empty + active → returns the CSG type itself
-  //   - inactive → returns a raytracer::Composite (children pass through
+  //   - inactive → returns a render::Composite (children pass through
   //     un-CSG'd) regardless of child count
   //
   // Pin all three for each operation so a renaming or behaviour swap is
@@ -45,14 +45,14 @@ namespace CSGSurfaceTest {
 
   TEST(Difference, ShouldReturnNullPrimitiveWhenEmptyAndActive) {
     Difference d;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_EQ(nullptr, d.toRaytracer(&scene));
   }
 
   TEST(Difference, ShouldReturnCompositeWhenInactive) {
     Difference d;
     d.setActive(false);
-    raytracer::Scene scene;
+    render::Scene scene;
     auto rt = d.toRaytracer(&scene);
     ASSERT_NE(nullptr, rt);
   }
@@ -60,7 +60,7 @@ namespace CSGSurfaceTest {
   TEST(Difference, ShouldReturnDifferencePrimitiveWhenNonEmptyAndActive) {
     Difference d;
     d.addChild(new Sphere);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, d.toRaytracer(&scene));
   }
 
@@ -68,21 +68,21 @@ namespace CSGSurfaceTest {
 
   TEST(Union, ShouldReturnNullPrimitiveWhenEmptyAndActive) {
     Union u;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_EQ(nullptr, u.toRaytracer(&scene));
   }
 
   TEST(Union, ShouldReturnCompositeWhenInactive) {
     Union u;
     u.setActive(false);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, u.toRaytracer(&scene));
   }
 
   TEST(Union, ShouldReturnUnionPrimitiveWhenNonEmptyAndActive) {
     Union u;
     u.addChild(new Sphere);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, u.toRaytracer(&scene));
   }
 
@@ -90,21 +90,21 @@ namespace CSGSurfaceTest {
 
   TEST(Intersection, ShouldReturnNullPrimitiveWhenEmptyAndActive) {
     Intersection i;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_EQ(nullptr, i.toRaytracer(&scene));
   }
 
   TEST(Intersection, ShouldReturnCompositeWhenInactive) {
     Intersection i;
     i.setActive(false);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, i.toRaytracer(&scene));
   }
 
   TEST(Intersection, ShouldReturnIntersectionPrimitiveWhenNonEmptyAndActive) {
     Intersection i;
     i.addChild(new Sphere);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, i.toRaytracer(&scene));
   }
 
@@ -112,21 +112,21 @@ namespace CSGSurfaceTest {
 
   TEST(MinkowskiSum, ShouldReturnNullPrimitiveWhenEmptyAndActive) {
     MinkowskiSum m;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_EQ(nullptr, m.toRaytracer(&scene));
   }
 
   TEST(MinkowskiSum, ShouldReturnCompositeWhenInactive) {
     MinkowskiSum m;
     m.setActive(false);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, m.toRaytracer(&scene));
   }
 
   TEST(MinkowskiSum, ShouldReturnMinkowskiSumPrimitiveWhenNonEmptyAndActive) {
     MinkowskiSum m;
     m.addChild(new Sphere);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, m.toRaytracer(&scene));
   }
 
@@ -134,21 +134,21 @@ namespace CSGSurfaceTest {
 
   TEST(ConvexHull, ShouldReturnNullPrimitiveWhenEmptyAndActive) {
     ConvexHull c;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_EQ(nullptr, c.toRaytracer(&scene));
   }
 
   TEST(ConvexHull, ShouldReturnCompositeWhenInactive) {
     ConvexHull c;
     c.setActive(false);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, c.toRaytracer(&scene));
   }
 
   TEST(ConvexHull, ShouldReturnConvexHullPrimitiveWhenNonEmptyAndActive) {
     ConvexHull c;
     c.addChild(new Sphere);
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, c.toRaytracer(&scene));
   }
 }

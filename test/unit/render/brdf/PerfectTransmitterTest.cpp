@@ -6,7 +6,7 @@
 #include <cmath>
 
 namespace PerfectTransmitterTest {
-  using namespace raytracer;
+  using namespace render;
 using namespace render;
 using namespace render;
 

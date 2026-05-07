@@ -1,0 +1,26 @@
+#include <gtest/gtest.h>
+#include "render/primitives/Primitive.h"
+#include "render/materials/MatteMaterial.h"
+
+namespace PrimitiveTest {
+  using namespace raytracer;
+using namespace render;
+
+  class ConcretePrimitive : public Primitive {
+  public:
+    inline virtual const Primitive* intersect(const Rayd&, HitPointInterval&, State&) const {
+      return nullptr;
+    }
+
+    inline virtual BoundingBoxd calculateBoundingBox() const {
+      return BoundingBoxd();
+    }
+  };
+
+  TEST(Primitive, ShouldReturnMaterial) {
+    ConcretePrimitive primitive;
+    auto material = std::make_shared<MatteMaterial>();
+    primitive.setMaterial(material);
+    ASSERT_EQ(material, primitive.material());
+  }
+}
