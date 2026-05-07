@@ -616,7 +616,144 @@ Using the §4.3.d AOV outputs:
 
 A node-based compositor (Nuke/Blender Compositor-style) that wires AOV inputs, colour-science nodes, effect nodes, and mask nodes into a final output. The same node-graph widget from §4.6.c is reused with a different node palette. This is the natural endpoint for all of §4.9 — not a priority for v1, but the architecture should accommodate it from the start.
 
-### 4.10 Industry-inspired extras *(long tail)*
+### 4.11 Image processing & computer vision
+
+The raytracer produces images; computer vision *consumes* them. This pillar collects the classical (non-ML, or barely-ML) image processing and computer vision algorithms — same "all variants for the textbook value" principle as §4.2.c (computational geometry).
+
+Concrete near-term consumers in this codebase: shape-classification helpers for the functional test suite (replacing the broken `ShapeRecognition` heuristic — see §4.11.d), reference-image regression in §3.4.a item D (PSNR / SSIM diff with tolerance — see §4.11.h), and path-tracer denoising once §4.1 path tracing lands (NLM / bilateral — see §4.11.i). Long-term: every camera + tonemap + postprocess change is a CV pipeline in disguise.
+
+The goal isn't to ship a CV library that competes with OpenCV. It's to ship a self-contained, beautifully-documented teaching collection — like the comp-geo library — where each algorithm is implemented from scratch, comes with an interactive Doxygen widget, and is benchmarkable side-by-side against its siblings.
+
+#### 4.11.a Pixel and colour foundations
+
+- **Colour space conversions** — sRGB ⇄ linear, RGB ⇄ HSL/HSV/HCL, RGB ⇄ XYZ ⇄ LAB ⇄ LCH, RGB ⇄ YUV/YCbCr (used in JPEG / video codecs), RGB ⇄ CMYK. Each conversion is ~10 lines and worth a Doxygen page on the colour theory.
+- **Histograms** — single-channel, multi-channel (RGB), 2D joint histograms (HS plane). Computation, visualisation as a JS widget, plot-style rendering for the docs.
+- **Histogram equalization** — global, AHE (Adaptive HE), CLAHE (Contrast-Limited AHE).
+- **Gamma correction, white balance, exposure compensation** — primitive operations on raster buffers.
+- **Tone mapping ↔ this pillar** — the existing `Tonemap` family (§3.R1) IS image processing; this is the natural home for new operators (Drago, Mantiuk, Reinhard global vs local, Filmic). Cross-listed in §4.9.a.
+
+#### 4.11.b Filtering, convolution, morphology
+
+- **Linear filters** — Box blur (separable), Gaussian (separable), Sobel / Scharr / Prewitt gradients, Laplacian, generic NxN convolution kernel.
+- **Non-linear filters** — Median (rank), bilateral (edge-preserving smoothing), joint bilateral, NLM (non-local means — denoising classic). Anisotropic diffusion (Perona-Malik) for the textbook value.
+- **Morphology** — Erosion, dilation, opening, closing, hit-or-miss, top-hat, black-hat. Greyscale and binary variants. Useful for blob cleanup before classification.
+- **Frequency-domain filtering** — FFT, ideal / Butterworth / Gaussian band-pass, deconvolution. Pulls in an FFT impl (Cooley-Tukey, Bluestein for non-power-of-two sizes).
+
+#### 4.11.c Edge detection
+
+- **Sobel / Scharr / Prewitt** — first-order gradient operators.
+- **Laplacian / Marr-Hildreth** — second-order; zero-crossing detection.
+- **Difference of Gaussians (DoG)** — fast Marr-Hildreth approximation; foundational for SIFT.
+- **Canny** — full pipeline (Gaussian blur → Sobel gradient → non-max suppression → double threshold → hysteresis edge linking). The pedagogical centrepiece.
+- **Structured edges, edge boxes** — modern variants, lighter-weight than Canny in some applications.
+
+#### 4.11.d Connected components & blob analysis *(immediate consumer: tests)*
+
+- **Connected components labelling** — BFS flood fill (simple), Hoshen-Kopelman / two-pass with union-find (fast), Spaghetti / BBDT (state of the art). Each variant gets a benchmark; `ShapeClassifier` (the `ShapeRecognition` successor) starts on BFS and can swap in faster variants without API changes.
+- **Geometric blob descriptors** — area, perimeter, centroid, bounding box, oriented bounding box, convex hull (links to §4.2.c), solidity (`area / hull_area`), extent (`area / bbox_area`), aspect ratio, equivalent diameter, eccentricity, **circularity** (Polsby-Popper: `4π·area/perimeter²`, the core metric the test classifier uses).
+- **Radial / angular distribution** — std-dev of boundary-point distance from centroid, normalised by mean. The metric that distinguishes circles from polygons regardless of fill. Histogram-of-radii for unimodal/multimodal classification.
+- **Hu moments** (1962) — seven translation/scale/rotation-invariant central moments. Each shape gets a 7-dimensional signature; classification by nearest neighbour in moment space. Classic shape-classification paper, ~50 LOC.
+- **Zernike moments** — orthogonal-polynomial moments; rotation-invariant by construction. Better numerical stability than Hu's at high orders.
+- **Fourier descriptors** — boundary parameterised in the complex plane; Fourier coefficients become rotation/translation invariants. Truncated descriptors give a low-pass shape signature.
+- **Chain codes** (Freeman 1961) — boundary as a sequence of 4- or 8-direction codes. Compression / matching-via-cyclic-shift.
+- **Polygonal approximation** — Douglas-Peucker, Visvalingam-Whyatt. Reduce a boundary to a few corners. Already on the §4.2.c list; cross-referenced here for shape-recognition use.
+
+#### 4.11.e Hough transforms & robust fitting
+
+- **Standard Hough Lines** — vote-based line detection in (ρ, θ) parameter space. The diagrammable accumulator is begging for a JS widget.
+- **Probabilistic Hough Lines** — random subset sampling; faster.
+- **Hough Circle Transform** — three-parameter (cx, cy, r) variant; the natural pairing with the shape classifier.
+- **Generalised Hough Transform** (Ballard 1981) — vote for arbitrary shapes via R-table lookup.
+- **RANSAC** — RANdom SAmple Consensus. Iterative outlier-rejecting line / circle / plane fit. Foundational for everything below.
+- **MSAC, MLESAC, PROSAC** — RANSAC variants. Educational comparison.
+- **Total Least Squares, Levenberg-Marquardt** — optimisation tools that fitting routines reach for.
+
+#### 4.11.f Feature detection & description
+
+This is the corner-and-keypoint zoo. Classical, all pre-deep-learning, all elegant.
+
+- **Corner detectors** — Harris (eigenvalues of structure tensor), Shi-Tomasi (Good Features to Track), FAST (Features from Accelerated Segment Test — the speed champion), SUSAN (Smallest Univalue Segment Assimilating Nucleus).
+- **Blob detectors** — DoG (Difference of Gaussians), LoG (Laplacian of Gaussian), MSER (Maximally Stable Extremal Regions).
+- **Descriptors** — SIFT (Scale-Invariant Feature Transform; the towering classic), SURF (faster SIFT cousin), ORB (Oriented FAST + Rotated BRIEF — the modern free-to-use default), BRIEF, BRISK, FREAK.
+- **Holistic descriptors** — HOG (Histogram of Oriented Gradients — the pedestrian-detection classic), LBP (Local Binary Patterns — texture).
+
+Each comes with the standard "find features in image A, match against image B, draw correspondences" demo as an interactive widget.
+
+#### 4.11.g Segmentation
+
+- **Thresholding** — global (Otsu's method, the maximum between-class variance classic), Niblack, Sauvola, adaptive thresholding.
+- **Clustering-based** — K-means in colour space, mean-shift segmentation.
+- **Region growing** — seed-and-expand, split-and-merge.
+- **Watershed** (Vincent-Soille 1991) — topographic-flooding segmentation.
+- **Graph cuts** — max-flow / min-cut on a pixel graph (Boykov-Kolmogorov). Implementation paired with the max-flow algorithm itself.
+- **GrabCut** — iterated graph cuts with Gaussian Mixture Models. The classic "draw a rectangle around the object" interactive segmenter.
+- **SLIC superpixels** — Simple Linear Iterative Clustering. Local k-means in 5D (LAB + xy).
+- **Active contours** (snakes — Kass-Witkin-Terzopoulos 1988), level-set methods (Chan-Vese).
+
+#### 4.11.h Image quality metrics *(immediate consumer: §3.4.a item D)*
+
+- **Pixel metrics** — MSE, MAE, RMSE, PSNR.
+- **Structural metrics** — SSIM (Structural SIMilarity index — the classic), MS-SSIM (multi-scale), CW-SSIM (complex-wavelet, robust to small geometric distortions).
+- **Perceptual metrics** — Δ E (CIEDE2000), VMAF (Video Multi-method Assessment Fusion). LPIPS is the deep-learning sibling — included for completeness, optional dep.
+- **No-reference quality** — BRISQUE, NIQE, PIQE — quality scores from a single image, no reference needed.
+
+The §3.4.a reference-image-diff regression suite uses SSIM with a tolerance band; failures emit the diff visualisation alongside the diagnostic.
+
+#### 4.11.i Restoration & denoising *(immediate consumer: future path tracer)*
+
+- **NLM (Non-Local Means)** — the modern path-tracer denoising default. Bilateral filter generalisation that finds similar patches anywhere in the image.
+- **Bilateral filter** — joint domain-and-range Gaussian. The lightweight denoiser.
+- **Total Variation denoising** (Rudin-Osher-Fatemi 1992) — convex optimisation; preserves edges.
+- **Wiener filter** — minimum-MSE optimal linear filter; the textbook deconvolution.
+- **BM3D** (Block-Matching 3D) — the SOTA classical denoiser; collaborative filtering of similar patches in transform domain.
+- **Inpainting** — Bertalmio diffusion-based, exemplar-based (Criminisi), patch-match (Barnes 2009 — the famous Photoshop Content-Aware Fill engine).
+- **Deblurring** — Wiener, Richardson-Lucy, blind deconvolution.
+
+The path tracer, once it lands, will need at least bilateral or NLM as the post-render cleanup pass; this list is pre-built infrastructure for that.
+
+#### 4.11.j Geometric transformations
+
+- **Affine, projective transforms** — closed-form forward and inverse mapping. The math underlies §4.2.c instancing too.
+- **Image warping** — forward warping (splatting), inverse warping (with bilinear / bicubic / Lanczos resampling).
+- **Image registration** — feature-based (RANSAC + descriptor matching from §4.11.f) and intensity-based (Lucas-Kanade).
+- **Homography estimation** — Direct Linear Transform (DLT), normalised DLT, robust estimation under RANSAC. The "rectify a planar object from an oblique view" demo.
+- **Rectification** — for stereo image pairs, line up scanlines.
+- **Lens distortion correction** — radial (Brown-Conrady), tangential. Inverse mapping with iterative Newton refinement.
+
+#### 4.11.k Compression primitives
+
+- **Lossless** — RLE (Run-Length Encoding), Huffman coding, arithmetic coding, LZW, LZ77 / LZ78, ANS (Asymmetric Numeral Systems — the modern entropy coder behind Zstd).
+- **DCT** (Discrete Cosine Transform) — JPEG core. Block-wise, with a JS widget showing block reconstruction at varying quantisation levels.
+- **DWT** (Discrete Wavelet Transform) — JPEG2000 core. Educational alternative to DCT.
+- **Quantisation matrices** — JPEG luma/chroma quant tables; impact on artefacts.
+- **Chroma subsampling** — 4:4:4, 4:2:2, 4:2:0 — and the visible-vs-invisible artefacts of each.
+
+The endgame is a from-scratch JPEG encoder/decoder — JPEG-as-textbook is a classic CG-curriculum project.
+
+#### 4.11.l Multi-view geometry & video *(long tail)*
+
+- **Stereo matching** — block matching, semi-global matching (Hirschmüller), graph cuts. Disparity → depth.
+- **Optical flow** — Lucas-Kanade (sparse), Horn-Schunck (dense, variational), Farnebäck polynomial expansion (dense, fast).
+- **Structure from Motion (SfM)** — incremental and global pipelines. Bundle adjustment via Levenberg-Marquardt.
+- **Visual odometry, SLAM primitives** — keyframe selection, loop closure detection, pose graph optimisation.
+- **Video stabilisation** — feature-tracked + motion-model fitting + smoothed-trajectory warping.
+- **Tracking** — Kalman filter, particle filter, KLT (Kanade-Lucas-Tomasi), CSRT, mean-shift tracking.
+
+These are far-future and depend on §4.7 animation infrastructure for any video aspect. Listed for completeness — every one is an interactive Doxygen widget waiting to be written.
+
+#### 4.11.m Pattern recognition (classical)
+
+The pre-deep-learning side of the field. Most are simple to implement and pair beautifully with the §4.11.f feature extractors.
+
+- **k-Nearest Neighbours**, **Naive Bayes**, **Decision trees** (ID3, C4.5).
+- **Linear classifiers** — perceptron, logistic regression, Fisher's Linear Discriminant Analysis.
+- **Support Vector Machines** — linear, kernel-trick (RBF, polynomial). The optimisation (SMO — Sequential Minimal Optimisation) is the educationally interesting bit.
+- **Eigenfaces / Eigenobjects** — PCA on aligned image patches; the classic face-recognition demo from the 90s.
+- **Bag-of-Visual-Words** — quantise SIFT descriptors via k-means, treat images as histograms over the codebook, classify with k-NN or SVM.
+
+LLMs and CNNs are explicitly *out* of this pillar. They go in §4.10 (long tail) if at all — the goal here is the classical canon, before deep learning ate the field.
+
+
 
 Features that belong in a complete CG curriculum but sit at the end of the roadmap because they depend on most everything above:
 
@@ -684,6 +821,10 @@ Timeline + keyframes on the scene graph → motion blur → image/video output �
 ### T9. Postprocessing & compositing
 
 §4.9 end-to-end: tone mapping science → image-space effects → AOV compositing → compositor node graph. Satisfying to iterate on because every new effect is immediately visible on any scene.
+
+### T11. Image processing & computer vision
+
+§4.11 end-to-end: pixel/colour foundations → filtering & morphology → edge detection → connected-components & shape descriptors → Hough & RANSAC → feature detection → segmentation → image-quality metrics → restoration & denoising → geometric transforms → compression primitives → multi-view geometry → classical pattern recognition. Naturally interleaves with T9 (postprocessing) since both work in image space; powers tests (shape classifier, golden-image regression) and the future path tracer's denoising pass. Pre-deep-learning canon — beautifully self-contained algorithms with interactive widget demos.
 
 ### T10. Long tail & industry extras
 

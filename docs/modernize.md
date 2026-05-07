@@ -281,9 +281,19 @@ Existing 91 functional tests didn't need any migration — none of their step st
 
 - Curated scene set: `sphere_matte`, `sphere_phong`, `sphere_reflective`, `sphere_transparent_TIR`, `csg_difference`, `mesh_ply_bunny` (or smaller stand-in).
 - Render through each engine that supports the scene (Wireframe skips transparent / TIR; Raytracer renders all).
-- Diff against committed PNG with per-channel-percent tolerance — sampler stochasticity needs a tolerance, not exact equality. Tolerance should be tight enough to catch the kind of regression a refactor introduces (R6's BSDF dispatch shift would otherwise slip through).
+- Diff against committed PNG using SSIM (or PSNR with an explicit threshold) — sampler stochasticity needs a tolerance, not exact equality. SSIM threshold should be tight enough to catch the kind of regression a refactor introduces (R6's BSDF dispatch shift would otherwise slip through). Implementations live in the `roadmap.md` §4.11.h (image quality metrics) library.
 - `ctest` integration: failure emits the diff image to a CI artifact for triage.
 - Lands AFTER §3.R6 because the BSDF refactor would otherwise churn the reference set during the refactor itself.
+
+#### G. Replace `ShapeRecognition` heuristic with a real classical-CV classifier *(~half-day, immediate)*
+
+The current `test/helpers/ShapeRecognition` is a 1-D row-projection heuristic — it accepts diamonds as squares, lemons as circles, and the `recognizeRect` "all line lengths equal" check passes any vertically-symmetric blob. Replace with the layered design now feeding into roadmap §4.11.d:
+
+1. **Connected components via BFS** — `findLargestBlob(buffer, color) → Blob`. Foundation for everything else (~30 LOC).
+2. **Geometric blob descriptors** — area, perimeter, centroid, bounding box, circularity (Polsby-Popper `4π·area/perimeter²`), radial-distance variance from centroid, aspect ratio, solidity (~50 LOC).
+3. **`ShapeClassifier`** — `isCircle(blob)`, `isRectangle(blob)`, `isTriangle(blob)` composing the descriptors with documented tolerances. Replaces every existing `ShapeRecognition` call site (~30 LOC).
+
+Each method gets a Doxygen page explaining the math (circularity values for a square = π/4, equilateral triangle = π√3/9, …) — same "code-as-textbook" treatment as the rest of the codebase. Hu moments, Fourier descriptors, Hough Circle Transform, and friends queued up in §4.11.d for follow-up educational additions.
 
 **Total:** ~11–12 days, interleaves with feature work. F → A → B unblocks C, E, D in parallel.
 
