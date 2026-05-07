@@ -1,6 +1,6 @@
-class_doc do
+class_doc(engines: [:raytracer, :raster]) do
   name "cylinder"
-  
+
   object_scene
   cylinder :material => red_matte
 end

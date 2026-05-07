@@ -1,6 +1,6 @@
 class_doc do
   name "ring"
-  
+
   object_scene
   ring :material => red_matte
 end
