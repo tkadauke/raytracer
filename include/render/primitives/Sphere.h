@@ -27,12 +27,11 @@ namespace render {
     * sphere, the floor faintly reflected in the sphere's lower
     * hemisphere. The rasterizer projects the same scene's tessellated
     * triangles directly to screen and Lambertian-shades each pixel
-    * — no recursion, so reflections, refractions, and proper shadows
-    * are absent; backgrounds fall through to the engine's default
-    * black; and per-face hash colours stand in for material albedos
-    * because the rasterizer doesn't yet recover per-primitive
-    * material from the merged tessellation mesh. The intent of the
-    * comparison is exactly to make those differences visible.
+    * with the primitive's own material albedo — no recursion, so
+    * reflections, refractions, and proper shadows are absent, and
+    * the engine's default black fills the background where the
+    * raytracer renders sky. The comparison makes those differences
+    * visible directly.
     */
   class Sphere : public Primitive {
   public:
