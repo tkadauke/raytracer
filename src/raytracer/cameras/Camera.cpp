@@ -1,7 +1,7 @@
 #include "raytracer/cameras/Camera.h"
 #include "core/math/Rect.h"
-#include "raytracer/viewplanes/ViewPlane.h"
-#include "raytracer/viewplanes/PointInterlacedViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
+#include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "render/samplers/Sampler.h"
 #include "render/tonemap/Tonemap.h"
 #include "core/Buffer.h"
@@ -13,7 +13,7 @@ using namespace raytracer;
 Camera::Camera()
   : m_cancelled(false),
     m_showProgressIndicators(false),
-    m_viewPlane(std::make_shared<PointInterlacedViewPlane>())
+    m_viewPlane(std::make_shared<render::PointInterlacedViewPlane>())
 {
 }
 
@@ -27,7 +27,7 @@ Camera::Camera(const Vector3d& position, const Vector3d& target)
 Camera::~Camera() {
 }
 
-void Camera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
+void Camera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   m_viewPlane = plane;
 }
 
@@ -62,7 +62,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer
   const int samplesPerPixel = sampler->numSamples();
   const double sampleScale = 1.0 / samplesPerPixel;
 
-  for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+  for (render::ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     if (m_showProgressIndicators) {
       // In-progress indicator: pure red HDR pixel. The downstream
       // tonemap maps `Colord(1, 0, 0)` to 0xff0000 for any operator
@@ -119,7 +119,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer
   }
 }
 
-void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const {
+void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, const Colord& color) const {
   int size = pixel.pixelSize();
   if (size == 1) {
     buffer[pixel.row()][pixel.column()] = color;
@@ -130,7 +130,7 @@ void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::It
   }
 }
 
-void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgb) const {
+void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, unsigned int rgb) const {
   int size = pixel.pixelSize();
   if (size == 1) {
     buffer[pixel.row()][pixel.column()] = rgb;
@@ -157,7 +157,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
   // duplication here is the price of progressive display — see
   // `Camera::render(Buffer<Colord>&, ...)` for the documented
   // sample-stream contract that the two paths share.
-  for (ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+  for (render::ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
     if (m_showProgressIndicators) {
       // Pure red (0xff0000) on a saturated channel — every standard
       // tonemap operator (Linear, Reinhard, ACES) maps this to

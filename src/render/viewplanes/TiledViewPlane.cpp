@@ -1,7 +1,7 @@
-#include "raytracer/viewplanes/TiledViewPlane.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/TiledViewPlane.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
-using namespace raytracer;
+using namespace render;
 
 namespace {
   class TileIterator : public ViewPlane::IteratorBase {

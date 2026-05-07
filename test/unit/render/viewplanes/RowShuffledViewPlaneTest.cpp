@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include "raytracer/viewplanes/RowShuffledViewPlane.h"
+#include "render/viewplanes/RowShuffledViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 
 namespace RowShuffledViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   TEST(RowShuffledViewPlane, ShouldInitialize) {
     RowShuffledViewPlane plane;

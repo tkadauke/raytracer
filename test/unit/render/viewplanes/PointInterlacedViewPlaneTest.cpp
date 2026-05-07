@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include "raytracer/viewplanes/PointInterlacedViewPlane.h"
+#include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 
 namespace PointInterlacedViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   TEST(PointInterlacedViewPlane, ShouldInitialize) {
-    PointInterlacedViewPlane plane;
+    render::PointInterlacedViewPlane plane;
     ASSERT_EQ(0, plane.width());
     ASSERT_EQ(0, plane.height());
   }

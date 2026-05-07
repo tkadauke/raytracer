@@ -252,7 +252,7 @@ namespace raytracer {
       * out of the box. Callers (e.g. `rendercli`) can override by setting
       * a different sampler on the viewplane after construction.
       */
-    virtual void setViewPlane(std::shared_ptr<ViewPlane> plane);
+    virtual void setViewPlane(std::shared_ptr<render::ViewPlane> plane);
 
   private:
     double m_distance;

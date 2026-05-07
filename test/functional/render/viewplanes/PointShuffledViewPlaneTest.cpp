@@ -1,10 +1,10 @@
 #include "gtest/gtest.h"
 #include "test/abstract/AbstractViewPlaneTest.h"
-#include "raytracer/viewplanes/PointShuffledViewPlane.h"
+#include "render/viewplanes/PointShuffledViewPlane.h"
 
 namespace PointShuffledViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   INSTANTIATE_TYPED_TEST_SUITE_P(
     PointShuffled,

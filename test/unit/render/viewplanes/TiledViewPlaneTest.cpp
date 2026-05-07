@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include "raytracer/viewplanes/TiledViewPlane.h"
+#include "render/viewplanes/TiledViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 
 namespace TiledViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   TEST(TiledViewPlane, ShouldInitialize) {
-    TiledViewPlane plane;
+    render::TiledViewPlane plane;
     ASSERT_EQ(0, plane.width());
     ASSERT_EQ(0, plane.height());
   }
@@ -20,7 +20,7 @@ namespace TiledViewPlaneTest {
   
   namespace Iterator {
     TEST(TiledViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {
-      TiledViewPlane plane;
+      render::TiledViewPlane plane;
       Recti fullRect(8, 6);
       plane.setup(Matrix4d(), fullRect);
       ASSERT_TRUE(plane.begin(fullRect) == plane.begin(fullRect));

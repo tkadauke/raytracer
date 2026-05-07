@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace ViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   TEST(ViewPlane, ShouldInitialize) {
     ViewPlane plane;

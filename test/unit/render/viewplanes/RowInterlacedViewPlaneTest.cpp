@@ -1,20 +1,20 @@
 #include <gtest/gtest.h>
-#include "raytracer/viewplanes/PointShuffledViewPlane.h"
+#include "render/viewplanes/RowInterlacedViewPlane.h"
 #include "test/abstract/AbstractViewPlaneIteratorTest.h"
 
-namespace PointShuffledViewPlaneTest {
+namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
-  TEST(PointShuffledViewPlane, ShouldInitialize) {
-    PointShuffledViewPlane plane;
+  TEST(RowInterlacedViewPlane, ShouldInitialize) {
+    RowInterlacedViewPlane plane;
     ASSERT_EQ(0, plane.width());
     ASSERT_EQ(0, plane.height());
   }
   
   INSTANTIATE_TYPED_TEST_SUITE_P(
-    PointShuffled,
+    RowInterlaced,
     AbstractViewPlaneIteratorTest,
-    PointShuffledViewPlane
+    RowInterlacedViewPlane
   );
 }

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "raytracer/cameras/Camera.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 #include "test/mocks/raytracer/MockViewPlane.h"
 
 namespace CameraTest {
@@ -95,7 +95,7 @@ namespace CameraTest {
 
   TEST(Camera, ShouldSetViewPlane) {
     ConcreteCamera camera;
-    auto plane = std::make_shared<ViewPlane>();
+    auto plane = std::make_shared<render::ViewPlane>();
     camera.setViewPlane(plane);
     ASSERT_EQ(plane, camera.viewPlane());
   }
@@ -105,12 +105,12 @@ namespace CameraTest {
     auto plane = std::make_shared<testing::NiceMock<MockViewPlane>>();
     plane->expectDestructorCall();
     camera.setViewPlane(plane);
-    camera.setViewPlane(std::make_shared<ViewPlane>());
+    camera.setViewPlane(std::make_shared<render::ViewPlane>());
   }
 
   TEST(Camera, ShouldReturnDefaultViewPlane) {
     ConcreteCamera camera;
-    ASSERT_NE(static_cast<std::shared_ptr<ViewPlane>>(0), camera.viewPlane());
+    ASSERT_NE(static_cast<std::shared_ptr<render::ViewPlane>>(0), camera.viewPlane());
   }
 
   TEST(Camera, ShouldNotBeCancelledAfterConstruction) {

@@ -1,14 +1,14 @@
 #include "gtest/gtest.h"
 #include "test/abstract/AbstractViewPlaneTest.h"
-#include "raytracer/viewplanes/RowShuffledViewPlane.h"
+#include "render/viewplanes/RowInterlacedViewPlane.h"
 
-namespace RowShuffledViewPlaneTest {
+namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   INSTANTIATE_TYPED_TEST_SUITE_P(
-    RowShuffled,
+    RowInterlaced,
     AbstractViewPlaneTest,
-    RowShuffledViewPlane
+    RowInterlacedViewPlane
   );
 }

@@ -6,7 +6,7 @@
 #include "core/math/Vector.h"
 #include "raytracer/cameras/Camera.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
 

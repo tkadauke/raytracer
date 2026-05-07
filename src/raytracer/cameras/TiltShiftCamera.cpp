@@ -1,7 +1,7 @@
 #include "raytracer/cameras/CameraFactory.h"
 #include "raytracer/cameras/TiltShiftCamera.h"
 #include "core/math/Ray.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
 

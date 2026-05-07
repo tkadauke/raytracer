@@ -1,7 +1,7 @@
 #include "raytracer/cameras/CameraFactory.h"
 #include "raytracer/cameras/OrthographicCamera.h"
 #include "core/math/Ray.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
 using namespace raytracer;
 
@@ -11,7 +11,7 @@ Rayd OrthographicCamera::rayForPixel(double x, double y, render::SampleStream&) 
   return Rayd(pixel, direction);
 }
 
-void OrthographicCamera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
+void OrthographicCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   Camera::setViewPlane(plane);
   viewPlane()->setPixelSize(1.0 / m_zoom);
 }

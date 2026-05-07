@@ -1,7 +1,7 @@
 #include "raytracer/cameras/CameraFactory.h"
 #include "raytracer/cameras/ThinLensCamera.h"
 #include "core/math/Ray.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 #include "render/samplers/JitteredSampler.h"
 
 #include <cmath>
@@ -98,7 +98,7 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
 }
 
-void ThinLensCamera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
+void ThinLensCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   Camera::setViewPlane(plane);
   viewPlane()->setPixelSize(1.0 / m_zoom);
 

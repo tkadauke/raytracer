@@ -2,8 +2,8 @@
 
 #include "core/Factory.h"
 #include "core/Singleton.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
-namespace raytracer {
+namespace render {
   typedef Singleton<Factory<ViewPlane>> ViewPlaneFactory;
 }

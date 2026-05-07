@@ -6,7 +6,7 @@
 #include "core/math/Ray.h"
 #include "core/Color.h"
 #include "core/MemoizedValue.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 #include "render/samplers/SampleStream.h"
 #include "render/Object.h"
 
@@ -39,11 +39,11 @@ namespace raytracer {
       m_target = target;
     }
 
-    inline std::shared_ptr<ViewPlane> viewPlane() const {
+    inline std::shared_ptr<render::ViewPlane> viewPlane() const {
       return m_viewPlane;
     }
 
-    virtual void setViewPlane(std::shared_ptr<ViewPlane> plane);
+    virtual void setViewPlane(std::shared_ptr<render::ViewPlane> plane);
 
     inline void setShowProgressIndicators(bool show) {
       m_showProgressIndicators = show;
@@ -170,20 +170,20 @@ namespace raytracer {
     /// pixel of the iterator's footprint — single pixel for the
     /// regular iterator, the size×size block for interlaced
     /// iterators that haven't refined yet.
-    void plot(Buffer<Colord>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, const Colord& color) const;
+    void plot(Buffer<Colord>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, const Colord& color) const;
 
     /// LDR variant — writes a packed-RGB pixel value (the result of
     /// `tonemap->apply(color).rgb()` from the LDR camera path). The
     /// footprint logic matches `plot(Buffer<Colord>&, ...)` so
     /// interlaced iterators show the same coarse-then-refine
     /// progression in either output buffer.
-    void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const ViewPlane::Iterator& pixel, unsigned int rgb) const;
+    void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, unsigned int rgb) const;
 
   private:
     bool m_cancelled;
     bool m_showProgressIndicators;
     Vector3d m_position, m_target;
     mutable MemoizedValue<Matrix4d> m_matrix;
-    std::shared_ptr<ViewPlane> m_viewPlane;
+    std::shared_ptr<render::ViewPlane> m_viewPlane;
   };
 }

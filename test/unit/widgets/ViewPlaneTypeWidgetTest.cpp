@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "widgets/ViewPlaneTypeWidget.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
@@ -15,7 +15,7 @@ namespace ViewPlaneTypeWidgetTest {
 
   TEST_F(ViewPlaneTypeWidgetTest, ShouldReturnRegisteredViewPlaneType) {
     ViewPlaneTypeWidget widget;
-    auto identifiers = raytracer::ViewPlaneFactory::self().identifiers();
+    auto identifiers = render::ViewPlaneFactory::self().identifiers();
     EXPECT_NE(
       std::find(identifiers.begin(), identifiers.end(), widget.type()),
       identifiers.end()

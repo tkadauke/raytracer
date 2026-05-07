@@ -7,6 +7,7 @@
 #include "raytracer/State.h"
 
 namespace testing {
+  using namespace render;
   using namespace raytracer;
   
   template<class MT>

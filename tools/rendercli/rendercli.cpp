@@ -15,7 +15,7 @@
 #include "raytracer/cameras/Camera.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/tonemap/TonemapFactory.h"
-#include "raytracer/viewplanes/TiledViewPlane.h"
+#include "render/viewplanes/TiledViewPlane.h"
 
 #include "core/Buffer.h"
 
@@ -102,7 +102,7 @@ void Renderer::render() const {
   } else {
     auto rt = std::make_shared<raytracer::Raytracer>(raytracerScene);
     // We don't need a fancy view plane, so we can optimize for fast rendering.
-    rt->camera()->setViewPlane(std::make_shared<raytracer::TiledViewPlane>());
+    rt->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
     rt->setMaximumRecursionDepth(m_maximumRecursionDepth);
     if (rtCamera) {
       rt->setCamera(rtCamera);

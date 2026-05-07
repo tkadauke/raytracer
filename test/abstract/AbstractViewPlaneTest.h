@@ -3,7 +3,7 @@
 
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "raytracer/cameras/Camera.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
 namespace testing {
   template<class VP>

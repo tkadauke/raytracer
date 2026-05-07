@@ -1,7 +1,7 @@
 #include "raytracer/cameras/CameraFactory.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "core/math/Ray.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
 using namespace raytracer;
 
@@ -44,7 +44,7 @@ Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {
   return Vector2d(x, y);
 }
 
-void PinholeCamera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
+void PinholeCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   Camera::setViewPlane(plane);
   viewPlane()->setPixelSize(1.0 / m_zoom);
 }

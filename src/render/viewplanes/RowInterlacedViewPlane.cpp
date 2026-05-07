@@ -1,11 +1,11 @@
-#include "raytracer/viewplanes/RowInterlacedViewPlane.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/RowInterlacedViewPlane.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include <algorithm>
 #include <cmath>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 namespace {
   class RowInterlaceIterator : public ViewPlane::IteratorBase {

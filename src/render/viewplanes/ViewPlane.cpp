@@ -1,9 +1,9 @@
-#include "raytracer/viewplanes/ViewPlane.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include "render/samplers/RegularSampler.h"
 
-using namespace raytracer;
+using namespace render;
 
 ViewPlane::ViewPlane()
   : m_pixelSize(1),

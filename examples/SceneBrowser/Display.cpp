@@ -13,10 +13,11 @@
 #include "widgets/ViewPlaneTypeWidget.h"
 #include "widgets/CameraTypeWidget.h"
 #include "widgets/CameraParameterWidgetFactory.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 #include "core/math/HitPointInterval.h"
 
 using namespace std;
+using namespace render;
 using namespace raytracer;
 
 Display::Display()
@@ -43,7 +44,7 @@ Display::Display()
   
   m_engine->setCamera(m_camera);
   m_engine->setScene(SceneFactory::self().createShared("Glass Boxes"));
-  m_camera->setViewPlane(ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
+  m_camera->setViewPlane(render::ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   connect(m_scene, SIGNAL(changed()), this, SLOT(sceneChanged()));
   connect(m_viewPlaneType, SIGNAL(changed()), this, SLOT(viewPlaneTypeChanged()));
   connect(m_cameraType, SIGNAL(changed()), this, SLOT(cameraTypeChanged()));
@@ -60,7 +61,7 @@ void Display::sceneChanged() {
 }
 
 void Display::viewPlaneTypeChanged() {
-  m_camera->setViewPlane(ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
+  m_camera->setViewPlane(render::ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   render();
 }
 

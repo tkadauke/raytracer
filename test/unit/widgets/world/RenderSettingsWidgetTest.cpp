@@ -2,7 +2,7 @@
 
 #include "widgets/world/RenderSettingsWidget.h"
 #include "render/samplers/SamplerFactory.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"

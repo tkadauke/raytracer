@@ -1,11 +1,11 @@
-#include "raytracer/viewplanes/PointShuffledViewPlane.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/PointShuffledViewPlane.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 #include "core/util/Random.h"
 
 #include <vector>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 namespace {
   class PointShuffleIterator : public ViewPlane::IteratorBase {

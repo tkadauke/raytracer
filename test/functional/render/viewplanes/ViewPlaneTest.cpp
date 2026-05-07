@@ -1,14 +1,13 @@
 #include "gtest/gtest.h"
 #include "test/abstract/AbstractViewPlaneTest.h"
-#include "raytracer/viewplanes/TiledViewPlane.h"
 
-namespace TiledViewPlaneTest {
+namespace ViewPlaneTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   INSTANTIATE_TYPED_TEST_SUITE_P(
-    Tiled,
+    ViewPlane,
     AbstractViewPlaneTest,
-    TiledViewPlane
+    ViewPlane
   );
 }

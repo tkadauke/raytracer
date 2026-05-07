@@ -1,5 +1,5 @@
 #include "render/samplers/SamplerFactory.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
 #include "ui_RenderSettingsWidget.h"
 
@@ -22,7 +22,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
 
   p->ui.samplerType->setCurrentText("Regular");
 
-  ids = raytracer::ViewPlaneFactory::self().identifiers();
+  ids = render::ViewPlaneFactory::self().identifiers();
   for (const auto& id : ids) {
     p->ui.viewPlaneType->addItem(QString(id.c_str()));
   }

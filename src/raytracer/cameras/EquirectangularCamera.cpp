@@ -2,7 +2,7 @@
 #include "raytracer/cameras/EquirectangularCamera.h"
 #include "core/math/Ray.h"
 #include "core/math/Constants.h"
-#include "raytracer/viewplanes/ViewPlane.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
 

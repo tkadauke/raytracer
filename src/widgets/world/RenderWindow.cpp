@@ -10,7 +10,7 @@
 #include "raytracer/cameras/Camera.h"
 
 #include "render/samplers/SamplerFactory.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
@@ -112,7 +112,7 @@ void RenderWindow::render() {
     sampler->setup(p->settingsWidget->samplesPerPixel(), 83);
 
     auto viewPlaneClass = p->settingsWidget->viewPlane().toStdString();
-    auto viewPlane = ViewPlaneFactory::self().createShared(viewPlaneClass);
+    auto viewPlane = render::ViewPlaneFactory::self().createShared(viewPlaneClass);
     viewPlane->setSampler(sampler);
 
     p->raytracer->camera()->setViewPlane(viewPlane);

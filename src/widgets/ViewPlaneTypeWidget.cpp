@@ -1,11 +1,11 @@
 #include "widgets/ViewPlaneTypeWidget.h"
 #include "ui_ViewPlaneTypeWidget.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include <list>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 struct ViewPlaneTypeWidget::Private {
   Ui::ViewPlaneTypeWidget ui;
@@ -16,7 +16,7 @@ ViewPlaneTypeWidget::ViewPlaneTypeWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  list<string> types = ViewPlaneFactory::self().identifiers();
+  list<string> types = render::ViewPlaneFactory::self().identifiers();
   for (const auto& type : types) {
     p->ui.viewPlaneTypeComboBox->addItem(QString::fromStdString(type));
   }

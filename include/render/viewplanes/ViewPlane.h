@@ -9,10 +9,10 @@
 #include <algorithm>
 #include <memory>
 
-namespace raytracer {
+namespace render {
   }
 namespace render { class Sampler; }
-namespace raytracer {
+namespace render {
 
   /**
     * @brief The 2D pixel grid the camera projects rays through —

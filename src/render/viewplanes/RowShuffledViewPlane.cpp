@@ -1,9 +1,9 @@
-#include "raytracer/viewplanes/RowShuffledViewPlane.h"
-#include "raytracer/viewplanes/ViewPlaneFactory.h"
+#include "render/viewplanes/RowShuffledViewPlane.h"
+#include "render/viewplanes/ViewPlaneFactory.h"
 #include "core/util/Random.h"
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 namespace {
   class RowShuffleIterator : public ViewPlane::IteratorBase {
