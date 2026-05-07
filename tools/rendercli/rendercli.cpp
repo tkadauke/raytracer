@@ -13,7 +13,7 @@
 #include "raytracer/WireframeEngine.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
-#include "raytracer/samplers/SamplerFactory.h"
+#include "render/samplers/SamplerFactory.h"
 #include "render/tonemap/TonemapFactory.h"
 #include "raytracer/viewplanes/TiledViewPlane.h"
 
@@ -38,7 +38,7 @@ public:
   Renderer();
   void render() const;
   CommandLineParseResult parseCommandLine(QString* errorMessage);
-  std::shared_ptr<raytracer::Sampler> sampler() const;
+  std::shared_ptr<render::Sampler> sampler() const;
   QImage bufferToImage(const Buffer<unsigned int>& buffer) const;
 
   QCommandLineParser parser;
@@ -129,9 +129,9 @@ void Renderer::render() const {
   image.save(m_output);
 }
 
-std::shared_ptr<raytracer::Sampler> Renderer::sampler() const {
+std::shared_ptr<render::Sampler> Renderer::sampler() const {
   auto samplerClass = m_sampler.toStdString() + "Sampler";
-  auto sampler = raytracer::SamplerFactory::self().createShared(samplerClass);
+  auto sampler = render::SamplerFactory::self().createShared(samplerClass);
   sampler->setup(m_samplesPerPixel, 83);
 
   return sampler;

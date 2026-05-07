@@ -5,7 +5,7 @@
 
 #include "core/math/Vector.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Stream of stratified Monte-Carlo samples for a single
     *        primary-ray sample.

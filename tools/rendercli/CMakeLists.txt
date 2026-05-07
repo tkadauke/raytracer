@@ -7,6 +7,6 @@ add_executable(rendercli ${RENDERCLI_SOURCES})
 # camera/material/texture factories register themselves at static-init time
 # (`static bool dummy = ...registerClass<Foo>("Foo")`) and the registration is
 # only reached by string-keyed lookup at runtime — without WHOLE_ARCHIVE the
-# linker dead-strips e.g. RandomSampler.cpp.o and SamplerFactory::create
+# linker dead-strips e.g. render::RandomSampler.cpp.o and SamplerFactory::create
 # returns nullptr, which then crashes.
 target_link_libraries(rendercli PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,raytracer>)

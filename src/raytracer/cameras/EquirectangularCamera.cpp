@@ -32,7 +32,7 @@ Vector3d EquirectangularCamera::direction(double x, double y) const {
   return Matrix3d(matrix()) * local;
 }
 
-Rayd EquirectangularCamera::rayForPixel(double x, double y, SampleStream&) const {
+Rayd EquirectangularCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d position = matrix().translationVector();
   return Rayd(position, direction(x, y));
 }

@@ -33,7 +33,7 @@ namespace raytracer {
     {
     }
 
-    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
+    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
 
     /**
       * @returns the camera'z zoom.

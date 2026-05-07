@@ -23,7 +23,7 @@ namespace CameraTest {
       // noop
     }
 
-    inline virtual Rayd rayForPixel(double, double, SampleStream&) const {
+    inline virtual Rayd rayForPixel(double, double, render::SampleStream&) const {
       return Rayd::undefined();
     }
   };

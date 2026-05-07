@@ -7,7 +7,7 @@
 #include "core/Color.h"
 #include "core/MemoizedValue.h"
 #include "raytracer/viewplanes/ViewPlane.h"
-#include "raytracer/samplers/SampleStream.h"
+#include "render/samplers/SampleStream.h"
 #include "render/Object.h"
 
 template<class T>
@@ -109,7 +109,7 @@ namespace raytracer {
       * both a lens-element sample and a wavelength sample can pull
       * both without correlation.
       */
-    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const = 0;
+    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const = 0;
 
     /**
       * Forward projection: world point → screen pixel `(x, y)`.
@@ -145,7 +145,7 @@ namespace raytracer {
       * camera loses access to stratification.
       */
     inline Rayd rayForPixel(double x, double y) const {
-      NullSampleStream stream;
+      render::NullSampleStream stream;
       return rayForPixel(x, y, stream);
     }
 

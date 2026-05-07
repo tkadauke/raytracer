@@ -23,7 +23,7 @@ Vector3d FishEyeCamera::direction(double x, double y) const {
     return Vector3d::undefined();
 }
 
-Rayd FishEyeCamera::rayForPixel(double x, double y, SampleStream&) const {
+Rayd FishEyeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d position = matrix().translationVector();
   return Rayd(position, direction(x, y));
 }

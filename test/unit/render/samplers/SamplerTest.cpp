@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include "raytracer/samplers/Sampler.h"
-#include "raytracer/samplers/SampleStream.h"
+#include "render/samplers/Sampler.h"
+#include "render/samplers/SampleStream.h"
 
 namespace SamplerTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
 
   class ConcreteSampler : public Sampler {
   protected:
@@ -54,24 +54,24 @@ namespace SamplerTest {
   }
 
   // numSamples() reflects the actual produced count, not the
-  // requested count. Concrete samplers like RegularSampler floor
+  // requested count. Concrete samplers like render::RegularSampler floor
   // sqrt(N) and may produce fewer points than requested; the average
   // in `Camera::plot` divides by numSamples(), so it has to match
   // the iteration count to come out right.
   TEST(NullSampleStream, ReturnsCenterFor2D) {
-    NullSampleStream stream;
+    render::NullSampleStream stream;
     auto sample = stream.next2D();
     ASSERT_DOUBLE_EQ(0.5, sample.x());
     ASSERT_DOUBLE_EQ(0.5, sample.y());
   }
 
   TEST(NullSampleStream, ReturnsCenterFor1D) {
-    NullSampleStream stream;
+    render::NullSampleStream stream;
     ASSERT_DOUBLE_EQ(0.5, stream.next1D());
   }
 
   TEST(NullSampleStream, AlwaysReturnsCenterRegardlessOfDimension) {
-    NullSampleStream stream;
+    render::NullSampleStream stream;
     for (int i = 0; i != 10; ++i) {
       auto two = stream.next2D();
       ASSERT_DOUBLE_EQ(0.5, two.x());

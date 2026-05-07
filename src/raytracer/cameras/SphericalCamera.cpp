@@ -23,7 +23,7 @@ Vector3d SphericalCamera::direction(double x, double y) const {
   return Matrix3d(matrix()) * Vector3d(sinTheta * sinPhi, cosTheta, sinTheta * cosPhi);
 }
 
-Rayd SphericalCamera::rayForPixel(double x, double y, SampleStream&) const {
+Rayd SphericalCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d position = matrix() * Vector4d(0, 0, -5);
   return Rayd(position, direction(x, y));
 }

@@ -9,7 +9,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 
-#include "raytracer/samplers/SamplerFactory.h"
+#include "render/samplers/SamplerFactory.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
 
 #include "world/objects/Scene.h"
@@ -106,7 +106,7 @@ void RenderWindow::render() {
     engine = p->wireframe;
   } else {
     auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
-    auto sampler = SamplerFactory::self().createShared(samplerClass);
+    auto sampler = render::SamplerFactory::self().createShared(samplerClass);
     // 83 is an arbitrary number, but it's a relatively large prime number, so
     // it's unlikely to introduce aliasing patterns
     sampler->setup(p->settingsWidget->samplesPerPixel(), 83);

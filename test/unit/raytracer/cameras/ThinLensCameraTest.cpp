@@ -4,7 +4,7 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/viewplanes/PointInterlacedViewPlane.h"
-#include "raytracer/samplers/JitteredSampler.h"
+#include "render/samplers/JitteredSampler.h"
 #include "core/Buffer.h"
 #include "core/math/Rect.h"
 
@@ -140,7 +140,7 @@ namespace ThinLensCameraTest {
 
   TEST(ThinLensCamera, ShouldAutoInstallMultiSampleSamplerOnDefault1SppViewPlane) {
     // SceneBrowser default flow: a fresh ViewPlane comes in with the
-    // factory-default 1-spp RegularSampler. ThinLens should bump that
+    // factory-default 1-spp render::RegularSampler. ThinLens should bump that
     // to a multi-sample sampler so the GUI render isn't confetti.
     ThinLensCamera camera;
     auto plane = std::make_shared<PointInterlacedViewPlane>();
@@ -160,7 +160,7 @@ namespace ThinLensCameraTest {
     // discards the user's "Samples per pixel" UI setting.
     ThinLensCamera camera;
     auto plane = std::make_shared<PointInterlacedViewPlane>();
-    auto userSampler = std::make_shared<JitteredSampler>();
+    auto userSampler = std::make_shared<render::JitteredSampler>();
     userSampler->setup(64, 7);
     plane->setSampler(userSampler);
 

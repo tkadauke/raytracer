@@ -6,9 +6,9 @@
 
 #include "core/math/Vector.h"
 #include "core/math/Number.h"
-#include "raytracer/samplers/SampleStream.h"
+#include "render/samplers/SampleStream.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Stratified Monte-Carlo sampler — produces pre-baked sets of
     *        2D samples in `[0, 1]²` and exposes them through two

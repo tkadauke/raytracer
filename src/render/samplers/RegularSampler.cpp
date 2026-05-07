@@ -1,7 +1,7 @@
-#include "raytracer/samplers/RegularSampler.h"
-#include "raytracer/samplers/SamplerFactory.h"
+#include "render/samplers/RegularSampler.h"
+#include "render/samplers/SamplerFactory.h"
 
-using namespace raytracer;
+using namespace render;
 using namespace std;
 
 std::vector<Vector2d> RegularSampler::generateSet() {

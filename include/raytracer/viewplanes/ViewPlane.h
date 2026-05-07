@@ -10,7 +10,9 @@
 #include <memory>
 
 namespace raytracer {
-  class Sampler;
+  }
+namespace render { class Sampler; }
+namespace raytracer {
 
   /**
     * @brief The 2D pixel grid the camera projects rays through —
@@ -284,14 +286,14 @@ namespace raytracer {
       * override; rendercli wires the user's `--sampler` choice
       * through here.
       */
-    inline void setSampler(std::shared_ptr<Sampler> sampler) {
+    inline void setSampler(std::shared_ptr<render::Sampler> sampler) {
       m_sampler = sampler;
     }
 
     /// @returns the active sampler. The shading loop pulls
     /// per-pixel sub-pixel jitter (and via `Sampler::stream` any
     /// extra stochastic dimensions cameras consume) from this.
-    inline std::shared_ptr<Sampler> sampler() const {
+    inline std::shared_ptr<render::Sampler> sampler() const {
       return m_sampler;
     }
 
@@ -307,6 +309,6 @@ namespace raytracer {
     Vector3d m_topLeft, m_right, m_down;
     float m_pixelSize;
 
-    std::shared_ptr<Sampler> m_sampler;
+    std::shared_ptr<render::Sampler> m_sampler;
   };
 }

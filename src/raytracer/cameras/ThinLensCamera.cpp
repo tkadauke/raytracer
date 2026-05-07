@@ -2,7 +2,7 @@
 #include "raytracer/cameras/ThinLensCamera.h"
 #include "core/math/Ray.h"
 #include "raytracer/viewplanes/ViewPlane.h"
-#include "raytracer/samplers/JitteredSampler.h"
+#include "render/samplers/JitteredSampler.h"
 
 #include <cmath>
 
@@ -36,7 +36,7 @@ namespace {
   }
 }
 
-Rayd ThinLensCamera::rayForPixel(double x, double y, SampleStream& stream) const {
+Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& stream) const {
   // Pull the lens-disc sample from the stream's next 2D dimension.
   // The renderer has already consumed dimension 0 for sub-pixel
   // jitter, so this call returns dimension 1 — an *independent*
@@ -117,7 +117,7 @@ void ThinLensCamera::setViewPlane(std::shared_ptr<ViewPlane> plane) {
   // and the GUI render would look noisier than the rendercli render of
   // the same scene with the same UI-displayed settings.
   if (viewPlane()->sampler()->numSamples() <= 1) {
-    auto jittered = std::make_shared<JitteredSampler>();
+    auto jittered = std::make_shared<render::JitteredSampler>();
     jittered->setup(16, 83);  // 16 spp; 83 sets — same set count rendercli uses
     viewPlane()->setSampler(jittered);
   }

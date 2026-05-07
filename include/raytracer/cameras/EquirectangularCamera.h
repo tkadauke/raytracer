@@ -107,7 +107,7 @@ namespace raytracer {
       * /latitude implied by the pixel's image coordinates (see the
       * class-level mapping table).
       */
-    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
+    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
 
   private:
     Vector3d direction(double x, double y) const;

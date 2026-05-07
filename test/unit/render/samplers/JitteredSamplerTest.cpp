@@ -1,18 +1,18 @@
 #include <gtest/gtest.h>
-#include "raytracer/samplers/JitteredSampler.h"
+#include "render/samplers/JitteredSampler.h"
 
 namespace JitteredSamplerTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
   
   TEST(JitteredSampler, ShouldConstructWithParameters) {
-    JitteredSampler sampler;
+    render::JitteredSampler sampler;
     sampler.setup(4, 1);
     ASSERT_EQ(4, sampler.numSamples());
   }
   
   TEST(JitteredSampler, ShouldBeRegularlySpacedHorizontally) {
-    JitteredSampler sampler;
+    render::JitteredSampler sampler;
     sampler.setup(4, 1);
     auto set = sampler.sampleSet();
     ASSERT_TRUE(set[0].x() <= 0.5);
@@ -20,7 +20,7 @@ namespace JitteredSamplerTest {
   }
   
   TEST(JitteredSampler, ShouldBeRegularlySpacedVertically) {
-    JitteredSampler sampler;
+    render::JitteredSampler sampler;
     sampler.setup(4, 1);
     auto set = sampler.sampleSet();
     ASSERT_TRUE(set[0].y() <= 0.5);

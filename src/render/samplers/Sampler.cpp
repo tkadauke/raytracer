@@ -1,6 +1,6 @@
-#include "raytracer/samplers/Sampler.h"
+#include "render/samplers/Sampler.h"
 
-using namespace raytracer;
+using namespace render;
 
 namespace {
   // Default `SampleStream` over a Sampler's pre-baked sample sets.

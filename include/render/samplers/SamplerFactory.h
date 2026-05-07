@@ -2,8 +2,8 @@
 
 #include "core/Factory.h"
 #include "core/Singleton.h"
-#include "raytracer/samplers/Sampler.h"
+#include "render/samplers/Sampler.h"
 
-namespace raytracer {
+namespace render {
   typedef Singleton<Factory<Sampler>> SamplerFactory;
 }

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "widgets/world/RenderSettingsWidget.h"
-#include "raytracer/samplers/SamplerFactory.h"
+#include "render/samplers/SamplerFactory.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
 
 #include "test/helpers/GuiTestHelper.h"

@@ -1,9 +1,9 @@
-#include "raytracer/samplers/JitteredSampler.h"
-#include "raytracer/samplers/SamplerFactory.h"
+#include "render/samplers/JitteredSampler.h"
+#include "render/samplers/SamplerFactory.h"
 
 #include "core/math/Range.h"
 
-using namespace raytracer;
+using namespace render;
 using namespace std;
 
 std::vector<Vector2d> JitteredSampler::generateSet() {

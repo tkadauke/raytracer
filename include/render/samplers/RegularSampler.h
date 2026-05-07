@@ -1,9 +1,9 @@
 #pragma once
 #include <vector>
 
-#include "raytracer/samplers/Sampler.h"
+#include "render/samplers/Sampler.h"
 
-namespace raytracer {
+namespace render {
   /**
     * Samples the pixels in a regular grid.
     * 

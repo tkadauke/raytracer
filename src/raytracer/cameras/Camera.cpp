@@ -2,7 +2,7 @@
 #include "core/math/Rect.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/viewplanes/PointInterlacedViewPlane.h"
-#include "raytracer/samplers/Sampler.h"
+#include "render/samplers/Sampler.h"
 #include "render/tonemap/Tonemap.h"
 #include "core/Buffer.h"
 #include "raytracer/Raytracer.h"

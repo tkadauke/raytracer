@@ -1,4 +1,4 @@
-#include "raytracer/samplers/SamplerFactory.h"
+#include "render/samplers/SamplerFactory.h"
 #include "raytracer/viewplanes/ViewPlaneFactory.h"
 #include "widgets/world/RenderSettingsWidget.h"
 #include "ui_RenderSettingsWidget.h"
@@ -15,7 +15,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
 {
   p->ui.setupUi(this);
 
-  auto ids = raytracer::SamplerFactory::self().identifiers();
+  auto ids = render::SamplerFactory::self().identifiers();
   for (const auto& id : ids) {
     p->ui.samplerType->addItem(QString(id.c_str()).replace("Sampler", ""));
   }

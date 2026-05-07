@@ -149,7 +149,7 @@ namespace raytracer {
       * @see rayForPixelWithLens for the deterministic-aperture overload
       *      used by tests.
       */
-    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
+    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
 
     /**
       * Generate a primary ray for pixel `(x, y)` with an explicit

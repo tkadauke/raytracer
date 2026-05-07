@@ -35,7 +35,7 @@ namespace raytracer {
     {
     }
     
-    virtual Rayd rayForPixel(double x, double y, SampleStream& stream) const;
+    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
 
     /**
       * Closed-form pinhole inverse of `rayForPixel`. Transforms
