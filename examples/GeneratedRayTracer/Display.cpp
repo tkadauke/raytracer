@@ -5,7 +5,7 @@
 
 #include "Display.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/WireframeEngine.h"
+#include "render/WireframeEngine.h"
 #include "raytracer/State.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
@@ -27,7 +27,7 @@ Display::Display(QWidget* parent)
   // the typed shared_ptr alongside so engine swaps don't have to
   // dynamic_cast the base pointer.
   m_raytracerEngine = std::dynamic_pointer_cast<raytracer::Raytracer>(m_engine);
-  m_wireframeEngine = std::make_shared<raytracer::WireframeEngine>(nullptr);
+  m_wireframeEngine = std::make_shared<render::WireframeEngine>(nullptr);
 }
 
 Display::~Display() {
@@ -39,7 +39,7 @@ void Display::setEngineKind(EngineKind kind) {
   // looking at the same thing.
   stop();
 
-  std::shared_ptr<raytracer::RenderEngine> next;
+  std::shared_ptr<render::RenderEngine> next;
   if (kind == EngineKind::Wireframe) {
     m_wireframeEngine->setScene(m_engine->scene());
     m_wireframeEngine->setCamera(m_engine->camera());

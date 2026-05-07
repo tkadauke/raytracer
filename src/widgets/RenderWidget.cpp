@@ -1,17 +1,17 @@
 #include "widgets/RenderWidget.h"
-#include "raytracer/RenderEngine.h"
+#include "render/RenderEngine.h"
 #include "core/Buffer.h"
 
 #include <QThread>
 #include <QPainter>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 namespace {
   class RenderThread : public QThread {
   public:
-    inline RenderThread(std::shared_ptr<RenderEngine> e, Buffer<unsigned int>& b)
+    inline RenderThread(std::shared_ptr<render::RenderEngine> e, Buffer<unsigned int>& b)
       : engine(e),
         buffer(b)
     {
@@ -25,7 +25,7 @@ namespace {
       engine->cancel();
     }
 
-    std::shared_ptr<RenderEngine> engine;
+    std::shared_ptr<render::RenderEngine> engine;
     Buffer<unsigned int>& buffer;
   };
 }
@@ -46,7 +46,7 @@ struct RenderWidget::Private {
   bool showProgressIndicators;
 };
 
-RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<RenderEngine> engine)
+RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
   : QWidget(parent),
     m_engine(std::move(engine)),
     p(std::make_unique<Private>())
@@ -54,11 +54,11 @@ RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<RenderEngine> engine
   setBufferSize(QSize(0, 0));
 }
 
-void RenderWidget::setEngine(std::shared_ptr<RenderEngine> engine) {
+void RenderWidget::setEngine(std::shared_ptr<render::RenderEngine> engine) {
   m_engine = std::move(engine);
 }
 
-std::shared_ptr<RenderEngine> RenderWidget::engine() const {
+std::shared_ptr<render::RenderEngine> RenderWidget::engine() const {
   return m_engine;
 }
 

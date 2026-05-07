@@ -13,13 +13,13 @@ namespace render {
   class Tonemap;
 }
 
-namespace raytracer {
+namespace render {
   }
 namespace render { class Camera; }
-namespace raytracer {
+namespace render {
   }
 namespace render { class Scene; }
-namespace raytracer {
+namespace render {
 
   /**
     * @brief Abstract base for all rendering backends — what every

@@ -3,7 +3,7 @@
 
 #include <QWidget>
 
-namespace raytracer {
+namespace render {
   class RenderEngine;
 }
 
@@ -43,7 +43,7 @@ public:
     * (camera, scene) between renders without recreating this widget.
     * Use `setEngine` to swap engines (e.g. raytracer → wireframe).
     */
-  explicit RenderWidget(QWidget* parent, std::shared_ptr<raytracer::RenderEngine> engine);
+  explicit RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine);
   ~RenderWidget();
 
   /// Paints the current state of the buffer, optionally with the
@@ -69,10 +69,10 @@ public:
     * over). Calling this during a render is undefined; use
     * `stop()` first.
     */
-  void setEngine(std::shared_ptr<raytracer::RenderEngine> engine);
+  void setEngine(std::shared_ptr<render::RenderEngine> engine);
 
   /// @returns the active render engine.
-  std::shared_ptr<raytracer::RenderEngine> engine() const;
+  std::shared_ptr<render::RenderEngine> engine() const;
 
   /**
     * Resize the internal buffer. Call before `render()` to match
@@ -98,7 +98,7 @@ public slots:
   void stop();
 
 protected:
-  std::shared_ptr<raytracer::RenderEngine> m_engine;
+  std::shared_ptr<render::RenderEngine> m_engine;
 
 private slots:
   void renderThreadDone();

@@ -5,10 +5,13 @@
 class Scene;
 class Element;
 
-namespace raytracer {
+namespace render {
   class Camera;
-  class Raytracer;
   class WireframeEngine;
+}
+
+namespace raytracer {
+  class Raytracer;
 }
 
 class Display : public QtDisplay {
@@ -35,5 +38,5 @@ public slots:
 
 private:
   std::shared_ptr<raytracer::Raytracer> m_raytracerEngine;
-  std::shared_ptr<raytracer::WireframeEngine> m_wireframeEngine;
+  std::shared_ptr<render::WireframeEngine> m_wireframeEngine;
 };

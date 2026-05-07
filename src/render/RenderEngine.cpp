@@ -1,9 +1,9 @@
-#include "raytracer/RenderEngine.h"
+#include "render/RenderEngine.h"
+using namespace render;
 #include "render/cameras/PinholeCamera.h"
 #include "render/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
-using namespace raytracer;
 
 struct RenderEngine::Private {
   inline Private()

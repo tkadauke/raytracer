@@ -128,7 +128,7 @@ void Raytracer::render(Buffer<Colord>& buffer) {
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
   m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
-  // shared_from_this() returns shared_ptr<RenderEngine>; the
+  // shared_from_this() returns shared_ptr<render::RenderEngine>; the
   // RenderTask + Camera::render API both want shared_ptr<Raytracer>
   // because the workers call rayColor() (a Raytracer-specific
   // method). Static-cast is safe — `this` is definitively a

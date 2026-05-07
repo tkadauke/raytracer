@@ -4,7 +4,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "raytracer/Raytracer.h"
-#include "raytracer/WireframeEngine.h"
+#include "render/WireframeEngine.h"
 #include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
@@ -37,7 +37,7 @@ struct RenderWindow::Private {
   // is wired into renderWidget at a time; the other holds onto its
   // scene + camera ready to take over on the next "Render" click.
   std::shared_ptr<raytracer::Raytracer> raytracer;
-  std::shared_ptr<raytracer::WireframeEngine> wireframe;
+  std::shared_ptr<render::WireframeEngine> wireframe;
 
   bool busy;
   int timer;
@@ -49,7 +49,7 @@ RenderWindow::RenderWindow(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
-  p->wireframe = std::make_shared<WireframeEngine>(nullptr);
+  p->wireframe = std::make_shared<render::WireframeEngine>(nullptr);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
@@ -98,7 +98,7 @@ void RenderWindow::render() {
   // Pick the engine and wire it into the widget. Most settings only
   // apply to the raytracer; wireframe ignores sampler / recursion
   // depth / threading knobs.
-  std::shared_ptr<RenderEngine> engine;
+  std::shared_ptr<render::RenderEngine> engine;
   if (p->settingsWidget->engine() == "Wireframe") {
     p->wireframe->setCamera(p->raytracer->camera());
     p->wireframe->setScene(p->raytracer->scene());

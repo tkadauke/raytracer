@@ -1,11 +1,11 @@
 #include "widgets/QtDisplay.h"
-#include "raytracer/RenderEngine.h"
+#include "render/RenderEngine.h"
 #include "render/cameras/Camera.h"
 
 #include <QMouseEvent>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 struct QtDisplay::Private {
   Private()
@@ -21,7 +21,7 @@ struct QtDisplay::Private {
   QPoint dragPosition;
 };
 
-QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<RenderEngine> engine)
+QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
   : RenderWidget(parent, std::move(engine)),
     p(std::make_unique<Private>())
 {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "raytracer/RenderEngine.h"
+#include "render/RenderEngine.h"
 
 #include <atomic>
 
-namespace raytracer {
+namespace render {
 
 /**
   * @brief `RenderEngine` that draws every mesh face's edges as

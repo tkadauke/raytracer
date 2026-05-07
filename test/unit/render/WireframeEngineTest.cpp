@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
-#include "raytracer/WireframeEngine.h"
+#include "render/WireframeEngine.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Scene.h"

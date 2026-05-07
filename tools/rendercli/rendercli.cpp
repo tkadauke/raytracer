@@ -8,9 +8,9 @@
 #include "world/objects/Texture.h"
 
 #include "render/lights/PointLight.h"
-#include "raytracer/RenderEngine.h"
+#include "render/RenderEngine.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/WireframeEngine.h"
+#include "render/WireframeEngine.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/SamplerFactory.h"
@@ -92,10 +92,10 @@ void Renderer::render() const {
     qWarning("No camera found. Defaulting to Pinhole camera looking at the origin");
   }
 
-  std::shared_ptr<raytracer::RenderEngine> engine;
+  std::shared_ptr<render::RenderEngine> engine;
 
   if (m_engine == "wireframe") {
-    auto wireframe = std::make_shared<raytracer::WireframeEngine>(raytracerScene);
+    auto wireframe = std::make_shared<render::WireframeEngine>(raytracerScene);
     if (rtCamera) wireframe->setCamera(rtCamera);
     wireframe->setLod(m_wireframeLod);
     engine = wireframe;

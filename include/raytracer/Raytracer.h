@@ -5,7 +5,7 @@
 #include "core/math/Ray.h"
 #include "core/math/Rect.h"
 
-#include "raytracer/RenderEngine.h"
+#include "render/RenderEngine.h"
 
 #include <list>
 #include <memory>
@@ -62,7 +62,7 @@ namespace raytracer {
     * @see Camera, Scene, Tonemap.
     * @see State — per-ray state threaded through `rayColor`.
     */
-  class Raytracer : public RenderEngine {
+  class Raytracer : public render::RenderEngine {
   public:
     /**
       * Construct with a scene and a default `PinholeCamera` looking

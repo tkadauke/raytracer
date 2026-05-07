@@ -1,4 +1,5 @@
-#include "raytracer/WireframeEngine.h"
+#include "render/WireframeEngine.h"
+using namespace render;
 
 #include "core/Buffer.h"
 #include "core/geometry/Bresenham.h"
@@ -10,7 +11,6 @@
 
 #include <cmath>
 
-using namespace raytracer;
 
 WireframeEngine::WireframeEngine(std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(scene))
