@@ -12,7 +12,7 @@
 #include "core/math/Rect.h"
 #include "core/math/IntegerDecomposition.h"
 #include "raytracer/cameras/Camera.h"
-#include "raytracer/tonemap/Tonemap.h"
+#include "render/tonemap/Tonemap.h"
 #include "core/Exception.h"
 #include "core/ScopeExit.h"
 

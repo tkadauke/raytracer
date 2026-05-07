@@ -2,8 +2,8 @@
 
 #include "core/Factory.h"
 #include "core/Singleton.h"
-#include "raytracer/tonemap/Tonemap.h"
+#include "render/tonemap/Tonemap.h"
 
-namespace raytracer {
+namespace render {
   typedef Singleton<Factory<Tonemap>> TonemapFactory;
 }

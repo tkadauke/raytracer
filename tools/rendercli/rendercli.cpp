@@ -14,7 +14,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 #include "raytracer/samplers/SamplerFactory.h"
-#include "raytracer/tonemap/TonemapFactory.h"
+#include "render/tonemap/TonemapFactory.h"
 #include "raytracer/viewplanes/TiledViewPlane.h"
 
 #include "core/Buffer.h"
@@ -115,7 +115,7 @@ void Renderer::render() const {
     engine = rt;
   }
 
-  if (auto tonemap = raytracer::TonemapFactory::self().createShared(m_tonemap.toStdString())) {
+  if (auto tonemap = render::TonemapFactory::self().createShared(m_tonemap.toStdString())) {
     engine->setTonemap(tonemap);
   } else {
     qWarning("Unknown tonemap %s; falling back to Linear.", qPrintable(m_tonemap));

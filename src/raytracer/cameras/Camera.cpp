@@ -3,7 +3,7 @@
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/viewplanes/PointInterlacedViewPlane.h"
 #include "raytracer/samplers/Sampler.h"
-#include "raytracer/tonemap/Tonemap.h"
+#include "render/tonemap/Tonemap.h"
 #include "core/Buffer.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
@@ -142,7 +142,7 @@ void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const View
 }
 
 void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer,
-                    std::shared_ptr<Tonemap> tonemap, const Recti& rect) const {
+                    std::shared_ptr<render::Tonemap> tonemap, const Recti& rect) const {
   if (isCancelled())
     return;
 

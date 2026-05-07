@@ -1,8 +1,8 @@
 #pragma once
 
-#include "raytracer/tonemap/Tonemap.h"
+#include "render/tonemap/Tonemap.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Pass-through "tonemap" — returns the HDR pixel unchanged.
     *

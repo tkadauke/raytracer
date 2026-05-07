@@ -1,8 +1,8 @@
 #pragma once
 
-#include "raytracer/tonemap/Tonemap.h"
+#include "render/tonemap/Tonemap.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Reinhard tonemap — `c / (1 + c)` per channel.
     *

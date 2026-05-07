@@ -3,7 +3,7 @@
 #include "core/Color.h"
 #include "raytracer/Object.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief HDR-to-LDR tone-mapping operator.
     *
@@ -63,7 +63,7 @@ namespace raytracer {
     *
     * @see Raytracer::setTonemap — how to install one.
     */
-  class Tonemap : public Object {
+  class Tonemap : public raytracer::Object {
   public:
     virtual ~Tonemap() = default;
 

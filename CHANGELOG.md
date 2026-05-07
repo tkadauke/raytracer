@@ -17,6 +17,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Namespace cleanup §3.R5b — Phase 1: `Tonemap` family lifts out of `raytracer::` into `render::`.** `Tonemap`, `LinearTonemap`, `ReinhardTonemap`, `AcesTonemap`, `TonemapFactory` move from `raytracer::tonemap` to `render::tonemap`; headers move from `include/raytracer/tonemap/` to `include/render/tonemap/`; the `.cpp` and unit-test files mirror the directory move. `Camera::render(LDR)` and `RenderEngine::tonemap()` / `setTonemap()` now take `std::shared_ptr<render::Tonemap>`. First step of the larger lift-out roadmapped under §3.R5b — the engine-shared types (Camera, ViewPlane, Sampler, Light, Material, Primitive, …) move next, in their own commits. — Claude Opus 4.7
 - Migrated from Qt 5.15 to Qt 6: `find_package(Qt6 … Qml)` replaces the old `Qt5 … Script` find; all `Qt5::` CMake targets updated to `Qt6::`. `QtScript` (removed in Qt 6) ported to `QJSEngine`/`QJSValue` in `ScriptedSurface` — element constructors are now registered through a `ScriptElementRegistry` QObject with Q_INVOKABLE methods; scripts continue to use `new Box(parent)` and `new Vector3(x, y, z)` unchanged. CI, Dockerfile, and README updated to `qt6-base-dev` + `qt6-declarative-dev`. — Claude Sonnet 4.6
 
 ### Added

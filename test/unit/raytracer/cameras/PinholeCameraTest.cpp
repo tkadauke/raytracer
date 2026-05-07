@@ -2,7 +2,7 @@
 #include "raytracer/cameras/PinholeCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/tonemap/LinearTonemap.h"
+#include "render/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
 namespace PinholeCameraTest {
@@ -54,7 +54,7 @@ namespace PinholeCameraTest {
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<unsigned int> buffer(1, 1);
-    auto tonemap = std::make_shared<LinearTonemap>();
+    auto tonemap = std::make_shared<render::LinearTonemap>();
 
     // The view plane needs setup the same way Raytracer::render
     // does; bypass the dispatch wrapper and call the tile render

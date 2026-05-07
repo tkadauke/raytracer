@@ -15,9 +15,12 @@ class Buffer;
 template<class T>
 class Rect;
 
+namespace render {
+  class Tonemap;
+}
+
 namespace raytracer {
   class Raytracer;
-  class Tonemap;
 
   class Camera : public Object {
   public:
@@ -88,7 +91,7 @@ namespace raytracer {
       * radiance values around, no clamping.
       */
     virtual void render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer,
-                        std::shared_ptr<Tonemap> tonemap, const Rect<int>& rect) const;
+                        std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect) const;
 
     /**
       * Generate a primary ray for pixel `(x, y)`.

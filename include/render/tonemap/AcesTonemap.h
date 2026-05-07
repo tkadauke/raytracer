@@ -2,9 +2,9 @@
 
 #include <algorithm>
 
-#include "raytracer/tonemap/Tonemap.h"
+#include "render/tonemap/Tonemap.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief ACES filmic tonemap — Narkowicz polynomial fit to the
     *        Academy Color Encoding System reference RRT+ODT pipeline.

@@ -9,10 +9,13 @@
 template<class T>
 class Buffer;
 
+namespace render {
+  class Tonemap;
+}
+
 namespace raytracer {
   class Camera;
   class Scene;
-  class Tonemap;
 
   /**
     * @brief Abstract base for all rendering backends — what every
@@ -130,12 +133,12 @@ namespace raytracer {
 
     /// @returns the tone-mapping operator the LDR render overload
     /// applies. Defaults to `LinearTonemap` (pass-through).
-    std::shared_ptr<Tonemap> tonemap() const;
+    std::shared_ptr<render::Tonemap> tonemap() const;
 
     /// Replaces the tone-mapping operator. Pick from the registered
     /// `TonemapFactory` entries (`"Linear"`, `"Reinhard"`, `"ACES"`)
     /// or supply a custom subclass.
-    void setTonemap(std::shared_ptr<Tonemap> tonemap);
+    void setTonemap(std::shared_ptr<render::Tonemap> tonemap);
 
     /**
       * Request cancellation of an in-flight render. Engines stop

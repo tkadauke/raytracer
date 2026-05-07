@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
 
-#include "raytracer/tonemap/LinearTonemap.h"
-#include "raytracer/tonemap/ReinhardTonemap.h"
-#include "raytracer/tonemap/AcesTonemap.h"
-#include "raytracer/tonemap/TonemapFactory.h"
+#include "render/tonemap/LinearTonemap.h"
+#include "render/tonemap/ReinhardTonemap.h"
+#include "render/tonemap/AcesTonemap.h"
+#include "render/tonemap/TonemapFactory.h"
 
 #include "test/helpers/ColorTestHelper.h"
 
 namespace TonemapTest {
-  using namespace raytracer;
+  using namespace render;
 
   // ---- LinearTonemap ----
 

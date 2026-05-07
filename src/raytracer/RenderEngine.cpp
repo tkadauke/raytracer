@@ -1,17 +1,17 @@
 #include "raytracer/RenderEngine.h"
 #include "raytracer/cameras/PinholeCamera.h"
-#include "raytracer/tonemap/LinearTonemap.h"
+#include "render/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
 using namespace raytracer;
 
 struct RenderEngine::Private {
   inline Private()
-    : tonemap(std::make_shared<LinearTonemap>())
+    : tonemap(std::make_shared<render::LinearTonemap>())
   {
   }
 
-  std::shared_ptr<Tonemap> tonemap;
+  std::shared_ptr<render::Tonemap> tonemap;
 };
 
 RenderEngine::RenderEngine(std::shared_ptr<Scene> scene)
@@ -50,11 +50,11 @@ void RenderEngine::render(Buffer<unsigned int>& displayBuffer) {
   }
 }
 
-std::shared_ptr<Tonemap> RenderEngine::tonemap() const {
+std::shared_ptr<render::Tonemap> RenderEngine::tonemap() const {
   return p->tonemap;
 }
 
-void RenderEngine::setTonemap(std::shared_ptr<Tonemap> tonemap) {
+void RenderEngine::setTonemap(std::shared_ptr<render::Tonemap> tonemap) {
   p->tonemap = std::move(tonemap);
 }
 
