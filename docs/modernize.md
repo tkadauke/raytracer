@@ -238,10 +238,10 @@ endif()
 
 **Proposed sub-items**, ordered by dependency:
 
-#### F. Layout cleanup *(half day)*
+#### F. Layout cleanup ✅ **Done.**
 
-- Remove empty `test/functional/raytracer/` directory.
-- Move `test/functional/steps/MinkowskiSumTest.cpp` into `test/functional/render/primitives/` to match its siblings.
+- ~~Remove empty `test/functional/raytracer/` directory.~~ ✅ Removed.
+- ~~Move `test/functional/steps/MinkowskiSumTest.cpp` into `test/functional/render/primitives/`.~~ ✅ The file was misnamed — it contained step definitions, not test cases (the real `MinkowskiSumTest.cpp` already lived at `render/primitives/`). Renamed to `MinkowskiSumSteps.cpp` to match its siblings (`BoxSteps.cpp`, `SphereSteps.cpp`, …).
 
 #### A. ~~Replace string-keyed Given/When/Then with typed fixture methods~~ Cucumber-style regex steps with hard-fail on miss ✅ **Done.**
 
