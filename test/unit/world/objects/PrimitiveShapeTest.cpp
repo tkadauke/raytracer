@@ -5,7 +5,6 @@
 #include "world/objects/Rectangle.h"
 #include "world/objects/Torus.h"
 #include "world/objects/Triangle.h"
-#include "world/objects/ScriptedSurface.h"
 
 #include "raytracer/primitives/Scene.h"
 
@@ -209,17 +208,4 @@ namespace PrimitiveShapeTest {
     EXPECT_NE(nullptr, t.toRaytracer(&scene));
   }
 
-  // ---------- ScriptedSurface -----------------------------------------------
-
-  TEST(ScriptedSurface, ShouldDefaultToEmptyScriptName) {
-    ScriptedSurface s;
-    EXPECT_TRUE(s.scriptName().isEmpty());
-  }
-
-  TEST(ScriptedSurface, ShouldDefaultToNotGeneratedAndVisible) {
-    // Inherits Surface defaults: visible=true, material=nullptr.
-    ScriptedSurface s;
-    EXPECT_TRUE(s.visible());
-    EXPECT_EQ(nullptr, s.material());
-  }
 }
