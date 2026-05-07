@@ -17,12 +17,9 @@ class Rect;
 
 namespace render {
   class Tonemap;
-}
+  class RayCaster;
 
-namespace render { class RayCaster; }
-namespace render {
-
-  class Camera : public render::Object {
+  class Camera : public Object {
   public:
     Camera();
     explicit Camera(const Vector3d& position, const Vector3d& target);

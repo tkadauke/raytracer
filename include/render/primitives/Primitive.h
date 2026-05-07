@@ -12,11 +12,7 @@ class Mesh;
 
 namespace render {
   class Material;
-}
-
-namespace render { class State; }
-
-namespace render {
+  class State;
 
   /**
     * @brief Abstract base class for all geometric scene objects

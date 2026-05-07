@@ -10,9 +10,7 @@
 #include <memory>
 
 namespace render {
-  }
-namespace render { class Sampler; }
-namespace render {
+  class Sampler;
 
   /**
     * @brief The 2D pixel grid the camera projects rays through —

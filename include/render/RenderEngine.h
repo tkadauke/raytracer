@@ -11,15 +11,8 @@ class Buffer;
 
 namespace render {
   class Tonemap;
-}
-
-namespace render {
-  }
-namespace render { class Camera; }
-namespace render {
-  }
-namespace render { class Scene; }
-namespace render {
+  class Camera;
+  class Scene;
 
   /**
     * @brief Abstract base for all rendering backends — what every
