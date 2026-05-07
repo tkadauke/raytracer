@@ -3,7 +3,7 @@
 #include "ui_ThinLensCameraParameterWidget.h"
 #include "render/cameras/ThinLensCamera.h"
 
-using namespace raytracer;
+using namespace render;
 
 struct ThinLensCameraParameterWidget::Private {
   Ui::ThinLensCameraParameterWidget ui;

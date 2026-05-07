@@ -5,7 +5,7 @@
 #include <list>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 struct CameraTypeWidget::Private {
   Ui::CameraTypeWidget ui;

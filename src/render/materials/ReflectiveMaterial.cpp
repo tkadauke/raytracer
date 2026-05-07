@@ -1,16 +1,15 @@
-#include "raytracer/Raytracer.h"
+#include "render/RayCaster.h"
 #include "render/State.h"
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/State.h"
-#include "raytracer/Raytracer.h"
+#include "render/RayCaster.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
 
 using namespace render;
-using namespace raytracer;
 
-Colord ReflectiveMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
-  auto color = PhongMaterial::shade(raytracer, ray, hitPoint, state);
+Colord ReflectiveMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
+  auto color = PhongMaterial::shade(raycaster, scene, ray, hitPoint, state);
 
   Vector3d out = - ray.direction();
   Vector3d in;
@@ -20,7 +19,7 @@ Colord ReflectiveMaterial::shade(const raytracer::Raytracer* raytracer, const Ra
   double normalDotIn = hitPoint.normal() * in;
 
   state.recordEvent(this, "ReflectiveMaterial: Tracing reflection");
-  color += refl * raytracer->rayColor(reflected.epsilonShifted(), state) * normalDotIn;
+  color += refl * raycaster->rayColor(reflected.epsilonShifted(), state) * normalDotIn;
 
   return color;
 }

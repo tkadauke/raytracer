@@ -6,6 +6,7 @@
 #include "core/math/Rect.h"
 
 #include "render/RenderEngine.h"
+#include "render/RayCaster.h"
 
 #include <list>
 #include <memory>
@@ -59,7 +60,7 @@ namespace raytracer {
     * @see Camera, Scene, Tonemap.
     * @see render::State — per-ray state threaded through `rayColor`.
     */
-  class Raytracer : public render::RenderEngine {
+  class Raytracer : public render::RenderEngine, public render::RayCaster {
   public:
     /**
       * Construct with a scene and a default `PinholeCamera` looking
@@ -129,7 +130,7 @@ namespace raytracer {
       * scene background; misses also return the scene background; a
       * hit on a primitive with no material returns black.
       */
-    Colord rayColor(const Rayd& ray, render::State& state) const;
+    Colord rayColor(const Rayd& ray, render::State& state) const override;
 
     /**
       * Request cancellation of an in-flight render. Tiles already

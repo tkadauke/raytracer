@@ -6,11 +6,7 @@
 namespace CameraTest {
   using namespace ::testing;
   using namespace render;
-  using namespace raytracer;
-using namespace render;
-  using namespace raytracer;
-using namespace render;
-  using namespace raytracer;
+  using namespace render;
 
   class ConcreteCamera : public Camera {
   public:
@@ -24,7 +20,7 @@ using namespace render;
     {
     }
 
-    inline virtual void render(std::shared_ptr<Raytracer>, Buffer<Colord>&, const Recti&) const {
+    inline virtual void render(std::shared_ptr<RayCaster>, Buffer<Colord>&, const Recti&) const {
       // noop
     }
 

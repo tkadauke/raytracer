@@ -92,7 +92,7 @@ using namespace render;
     f.material.setReflectionColor(Colord::white());
     f.material.setReflectionCoefficient(1.0);
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // Reflected ray hits no primitive → rayColor returns the background.
     // reflectionColor * coeff * background = white * 1 * red = red.
@@ -105,7 +105,7 @@ using namespace render;
     f.material.setReflectionColor(Colord::white());
     f.material.setReflectionCoefficient(0.25);
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // 1.0 * 0.25 * (1,1,1) = (0.25, 0.25, 0.25).
     ASSERT_COLOR_NEAR(Colord(0.25, 0.25, 0.25), colour, 0.001);
@@ -118,7 +118,7 @@ using namespace render;
     f.material.setReflectionColor(Colord(0, 1, 0));
     f.material.setReflectionCoefficient(1.0);
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // (0, 1, 0) * 1 * (1, 1, 1) = (0, 1, 0).
     ASSERT_COLOR_NEAR(Colord(0, 1, 0), colour, 0.001);

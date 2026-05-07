@@ -7,7 +7,6 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
-using namespace raytracer;
 using namespace render;
 using namespace render;
 

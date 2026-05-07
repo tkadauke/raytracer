@@ -18,12 +18,10 @@
 
 using namespace std;
 using namespace render;
-using namespace raytracer;
-using namespace render;
 using namespace render;
 
 Display::Display()
-  : QtDisplay(nullptr, std::make_shared<Raytracer>(nullptr)),
+  : QtDisplay(nullptr, std::make_shared<raytracer::Raytracer>(nullptr)),
     m_camera(std::make_shared<PinholeCamera>()),
     m_cameraParameter(nullptr)
 {
@@ -100,7 +98,7 @@ void Display::mousePressEvent(QMouseEvent* event) {
   // Ctrl-click ray-state probe is raytracer-specific; skip if the
   // engine isn't a Raytracer. SceneBrowser today always uses the
   // Raytracer engine, but the base widget is engine-agnostic.
-  auto rt = std::dynamic_pointer_cast<Raytracer>(m_engine);
+  auto rt = std::dynamic_pointer_cast<raytracer::Raytracer>(m_engine);
   if (!rt) return;
 
   Rayd ray = m_camera->rayForPixel(event->pos().x(), event->pos().y());

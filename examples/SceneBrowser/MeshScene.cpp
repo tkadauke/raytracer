@@ -14,7 +14,6 @@
 #include <fstream>
 
 using namespace std;
-using namespace raytracer;
 using namespace render;
 using namespace render;
 

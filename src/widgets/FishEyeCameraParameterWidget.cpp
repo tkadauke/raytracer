@@ -3,7 +3,7 @@
 #include "ui_FishEyeCameraParameterWidget.h"
 #include "render/cameras/FishEyeCamera.h"
 
-using namespace raytracer;
+using namespace render;
 
 struct FishEyeCameraParameterWidget::Private {
   Ui::FishEyeCameraParameterWidget ui;

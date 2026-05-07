@@ -5,7 +5,7 @@
 #include "render/samplers/Sampler.h"
 #include "render/tonemap/Tonemap.h"
 #include "core/Buffer.h"
-#include "raytracer/Raytracer.h"
+#include "render/RayCaster.h"
 #include "render/State.h"
 
 using namespace render;
@@ -49,11 +49,11 @@ const Matrix4d& Camera::matrix() const {
   return m_matrix;
 }
 
-void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colord>& buffer) const {
-  render(raytracer, buffer, Recti(0, 0, buffer.width(), buffer.height()));
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer) const {
+  render(raycaster, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colord>& buffer, const Recti& rect) const {
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer, const Recti& rect) const {
   if (isCancelled())
     return;
 
@@ -103,7 +103,7 @@ void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colo
       if (ray.direction().isDefined()) {
         render::State state;
         state.timeSample = timeSample;
-        pixelColor += raytracer->rayColor(ray, state);
+        pixelColor += raycaster->rayColor(ray, state);
       }
     }
 
@@ -141,7 +141,7 @@ void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const rend
   }
 }
 
-void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<unsigned int>& buffer,
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
                     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect) const {
   if (isCancelled())
     return;
@@ -181,7 +181,7 @@ void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<unsi
       if (ray.direction().isDefined()) {
         render::State state;
         state.timeSample = timeSample;
-        pixelColor += raytracer->rayColor(ray, state);
+        pixelColor += raycaster->rayColor(ray, state);
       }
     }
 

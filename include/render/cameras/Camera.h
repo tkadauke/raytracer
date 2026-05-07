@@ -19,7 +19,7 @@ namespace render {
   class Tonemap;
 }
 
-namespace raytracer { class Raytracer; }
+namespace render { class RayCaster; }
 namespace render {
 
   class Camera : public render::Object {
@@ -69,8 +69,8 @@ namespace render {
       * accumulators) can skip tonemapping and consume the HDR
       * buffer directly.
       */
-    void render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colord>& buffer) const;
-    virtual void render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colord>& buffer, const Rect<int>& rect) const;
+    void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer) const;
+    virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer, const Rect<int>& rect) const;
 
     /**
       * Render into a packed-RGB display buffer with inline
@@ -90,7 +90,7 @@ namespace render {
       * future path-tracing accumulators) — that one keeps the raw
       * radiance values around, no clamping.
       */
-    virtual void render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<unsigned int>& buffer,
+    virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigned int>& buffer,
                         std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect) const;
 
     /**

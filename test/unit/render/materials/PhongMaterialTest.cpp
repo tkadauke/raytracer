@@ -87,7 +87,7 @@ using namespace render;
     f.scene->addLight(std::make_shared<DirectionalLight>(
       Vector3d(0, 1, 0), Colord(1, 1, 1)));
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // Specular peak: specularColor * coeff * 1 * radiance * (N·L) =
     // 0.5 * 1 * 1 * 1 * 1 per channel.
@@ -110,7 +110,7 @@ using namespace render;
     f.scene->addLight(std::make_shared<DirectionalLight>(
       Vector3d(0, 1, 0), Colord(1, 1, 1)));
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     constexpr double expected = 0.7071067811865476;  // cos 45°
     double pow16 = 1.0;
@@ -128,7 +128,7 @@ using namespace render;
     f.scene->addLight(std::make_shared<DirectionalLight>(
       Vector3d(0, 1, 0), Colord(1, 1, 1)));
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // ambient = 1*1*0.1 = 0.1
     // diffuse = (1/π)*1*1 = 1/π ≈ 0.318

@@ -89,7 +89,7 @@ using namespace render;
 
     // No lights → diffuse term is zero, only the ambient term contributes.
     ASSERT_COLOR_NEAR(Colord(0.25, 0.25, 0.25),
-                       f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state),
+                       f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state),
                        0.001);
   }
 
@@ -105,7 +105,7 @@ using namespace render;
     f.scene->addLight(std::make_shared<DirectionalLight>(
       Vector3d(0, 1, 0), Colord(0.5, 0.5, 0.5)));
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // Lambertian BRDF returns diffuseColor * coeff * (1/π); white texture
     // and coeff 1.0 give 1/π, scaled by the light's radiance and N·L = 1.
@@ -126,7 +126,7 @@ using namespace render;
       Vector3d(0, -1, 0), Colord(1, 1, 1)));
 
     ASSERT_COLOR_NEAR(Colord::black(),
-                       f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state),
+                       f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state),
                        0.001);
   }
 
@@ -139,7 +139,7 @@ using namespace render;
 
     // No texture → texColor is black → both ambient and diffuse terms are 0.
     ASSERT_COLOR_NEAR(Colord::black(),
-                       f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state),
+                       f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state),
                        0.001);
   }
 }

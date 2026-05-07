@@ -235,7 +235,7 @@ Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
 
     if (primitive->material()) {
       state.recordEvent(nullptr, "Raytracer: shading material");
-      return primitive->material()->shade(this, ray, hitPoint, state);
+      return primitive->material()->shade(this, *m_scene, ray, hitPoint, state);
     } else {
       state.recordEvent(nullptr, "Raytracer: no material found, returning black");
       return Colord::black();

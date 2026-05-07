@@ -10,7 +10,7 @@
 #include <memory>
 
 namespace WireframeEngineTest {
-  using namespace raytracer;
+using namespace render;
 using namespace render;
 
   // Helper: count pixels that match a given colour. Background

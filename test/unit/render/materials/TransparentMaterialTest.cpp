@@ -120,7 +120,7 @@ using namespace render;
     // and the |N·trans| in shade cancels it back to white * background.
     f.scene->setBackground(Colord(1, 0, 0));
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     ASSERT_COLOR_NEAR(Colord(1, 0, 0), colour, 0.001);
   }
@@ -135,7 +135,7 @@ using namespace render;
     // with transmissionCoefficient 0 the transmittedColor is black.
     // Result is just the reflection branch: 0.5 * 1 * green = (0, 0.5, 0).
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     ASSERT_COLOR_NEAR(Colord(0, 0.5, 0), colour, 0.001);
   }
@@ -151,7 +151,7 @@ using namespace render;
     //   transmission  = 0.5  * 1 * (1,1,1) = (0.5,  0.5,  0.5)
     // sum = (0.75, 0.75, 0.75).
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     ASSERT_COLOR_NEAR(Colord(0.75, 0.75, 0.75), colour, 0.001);
   }
@@ -169,7 +169,7 @@ using namespace render;
     f.ray = Rayd(Vector3d(5, 5, 0), Vector3d(-s, -s, 0));
     f.scene->setBackground(Colord(1, 0, 0));
 
-    auto colour = f.material.shade(f.raytracer.get(), f.ray, f.hitPoint, f.state);
+    auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
     // Reflected ray goes back up into empty scene → background.
     ASSERT_COLOR_NEAR(Colord(1, 0, 0), colour, 0.001);
@@ -214,7 +214,7 @@ using namespace render;
 
     State state;
     state.startTrace();
-    Colord result = material->shade(rt.get(), ray, hitPoint, state);
+    Colord result = material->shade(rt.get(), *scene, ray, hitPoint, state);
 
     // Verify TIR actually fired (so we know we're testing the right branch).
     bool tirEventLogged = false;

@@ -3,7 +3,7 @@
 #include "ui_SphericalCameraParameterWidget.h"
 #include "render/cameras/SphericalCamera.h"
 
-using namespace raytracer;
+using namespace render;
 
 struct SphericalCameraParameterWidget::Private {
   Ui::SphericalCameraParameterWidget ui;

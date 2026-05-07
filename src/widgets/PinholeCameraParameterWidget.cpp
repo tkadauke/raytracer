@@ -3,7 +3,7 @@
 #include "ui_PinholeCameraParameterWidget.h"
 #include "render/cameras/PinholeCamera.h"
 
-using namespace raytracer;
+using namespace render;
 
 struct PinholeCameraParameterWidget::Private {
   Ui::PinholeCameraParameterWidget ui;
