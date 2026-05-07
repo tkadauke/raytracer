@@ -60,6 +60,22 @@ namespace engine::raster {
   * <td>@image html rasterizer_engine_lod_4.png "lod=4"</td>
   * </tr></table>
   *
+  * The interactive widget below visualises the edge-function
+  * rasterization step (Pineda 1988) — the per-pixel inside-test
+  * the rasterizer runs for every triangle. Drag the three vertex
+  * handles to reshape the triangle and watch the filled region
+  * update in real time; the dashed rectangle is the bounding box
+  * the rasterizer scans; pixel colours are interpolated from the
+  * three vertex colours via barycentric weights, exactly as the
+  * real rasterizer would interpolate per-vertex normals or texture
+  * coordinates. Hover anywhere to read the live `(w0, w1, w2)`
+  * weights at the cursor — outside the triangle, at least one
+  * weight goes negative.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="rasterizer_pipeline.js"></script>
+  * @endhtmlonly
+  *
   * Cameras supported: any subclass that overrides
   * `Camera::projectPoint` (currently `PinholeCamera` and
   * inheritors `ThinLensCamera` / `TiltShiftCamera`). Cameras
