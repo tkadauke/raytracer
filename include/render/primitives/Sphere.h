@@ -4,6 +4,36 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * @brief A sphere defined by its centre `origin` and `radius`.
+    *
+    * The same sphere rendered through every engine, side by side —
+    * shared scene + camera, only the integrator differs. Compare
+    * what each pipeline preserves and drops:
+    *
+    * <table>
+    *   <tr>
+    *     <th>Raytracer</th>
+    *     <th>Software rasterizer</th>
+    *   </tr>
+    *   <tr>
+    *     <td>@image html sphere__raytracer.png</td>
+    *     <td>@image html sphere__raster.png</td>
+    *   </tr>
+    * </table>
+    *
+    * The raytracer renders the full Whitted pipeline: textured
+    * checkerboard floor, sky background, soft shadow under the
+    * sphere, the floor faintly reflected in the sphere's lower
+    * hemisphere. The rasterizer projects the same scene's tessellated
+    * triangles directly to screen and Lambertian-shades each pixel
+    * — no recursion, so reflections, refractions, and proper shadows
+    * are absent; backgrounds fall through to the engine's default
+    * black; and per-face hash colours stand in for material albedos
+    * because the rasterizer doesn't yet recover per-primitive
+    * material from the merged tessellation mesh. The intent of the
+    * comparison is exactly to make those differences visible.
+    */
   class Sphere : public Primitive {
   public:
     inline explicit Sphere(const Vector3d& origin, double radius)

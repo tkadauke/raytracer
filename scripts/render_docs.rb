@@ -167,9 +167,37 @@ class DocsRenderer
   # corresponding `doc_scene` defaults — useful for stochastic
   # cameras like ThinLens that need a real Monte-Carlo sampler to
   # produce smooth bokeh.
-  def class_doc(aspect: :default, **options, &block)
-    doc_scene render_size(1, aspect: aspect).merge(options) do
-      block.bind(self).call
+  #
+  # `engines:` produces one image per engine listed (e.g.
+  # `[:raytracer, :rasterizer]`). The block runs once per engine; the
+  # output filename is suffixed with `__<engine>`, so `name "sphere"`
+  # produces `sphere__raytracer.png` and `sphere__rasterizer.png`.
+  # The C++ docstring then references both via a side-by-side
+  # Doxygen `<table>`. Omit `engines:` (the default) to render a
+  # single image with the requested engine option (or the default
+  # raytracer when none is specified) — matches the historical
+  # single-image behaviour for backward compat.
+  def class_doc(aspect: :default, engines: nil, **options, &block)
+    if engines.nil?
+      doc_scene render_size(1, aspect: aspect).merge(options) do
+        block.bind(self).call
+      end
+    else
+      engines.each do |engine|
+        doc_scene render_size(1, aspect: aspect).merge(options).merge(engine: engine.to_s) do
+          block.bind(self).call
+          # Replace the block-set outfile `…/foo.png` with
+          # `…/foo__<engine>.png` so the engine-comparison images
+          # don't collide. `outfile` is the Scene-level setter from
+          # the Element DSL — calling it without an arg returns the
+          # current value; with an arg, sets it.
+          current = outfile
+          if current
+            suffixed = current.sub(/\.png\z/, "__#{engine}.png")
+            outfile suffixed
+          end
+        end
+      end
     end
   end
 
