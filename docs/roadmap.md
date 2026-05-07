@@ -624,6 +624,8 @@ Concrete near-term consumers in this codebase: shape-classification helpers for 
 
 The goal isn't to ship a CV library that competes with OpenCV. It's to ship a self-contained, beautifully-documented teaching collection — like the comp-geo library — where each algorithm is implemented from scratch, comes with an interactive Doxygen widget, and is benchmarkable side-by-side against its siblings.
 
+**Where it lives.** The current `Blob` / `Silhouette` / `ShapeClassifier` primitives sit under `test/helpers/` because their first consumer is the functional test suite. The library should graduate to a first-class location (`include/cv/` + `src/cv/`) once a *non-test* consumer materialises — the renderer using silhouette extraction for NPR engines, edge-aware denoising in the path tracer, or feature detection / matching for any future image-based workflow. Educational documentation (per-algorithm Doxygen pages with the math, interactive JS widgets, side-by-side comparison renders) lands at the same time as the graduation, not before — keeping it in `test/helpers/` is the lazy correct default until the renderer needs it.
+
 #### 4.11.a Pixel and colour foundations
 
 - **Colour space conversions** — sRGB ⇄ linear, RGB ⇄ HSL/HSV/HCL, RGB ⇄ XYZ ⇄ LAB ⇄ LCH, RGB ⇄ YUV/YCbCr (used in JPEG / video codecs), RGB ⇄ CMYK. Each conversion is ~10 lines and worth a Doxygen page on the colour theory.
