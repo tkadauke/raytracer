@@ -7,7 +7,19 @@
 /**
   * Represents a cylinder.
   *
-  * @image html cylinder.png "Cylinder with origin (0, 0, 0), radius 1 and height 2"
+  * Same red cylinder through both engines:
+  *
+  * <table>
+  *   <tr>
+  *     <th>Raytracer</th>
+  *     <th>Software rasterizer</th>
+  *   </tr>
+  *   <tr>
+  *     <td>@image html cylinder__raytracer.png ""</td>
+  *     <td>@image html cylinder__raster.png ""</td>
+  *   </tr>
+  * </table>
+  *
   * @image html cylinder_wireframe.png "Cylinder rendered through Wireframe"
   */
 class Cylinder : public Surface {
