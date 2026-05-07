@@ -10,6 +10,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <limits>
 
 using namespace engine::raster;
 
@@ -77,6 +78,14 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   const int width = buffer.width();
   const int height = buffer.height();
 
+  // Z-buffer: per-pixel eye-relative depth, initialised to +infinity
+  // so the first triangle to write any pixel always wins. Smaller
+  // depth = closer to the eye; the test "new < old" replaces the cell.
+  Buffer<double> zBuffer(width, height);
+  for (int y = 0; y < height; ++y)
+    for (int x = 0; x < width; ++x)
+      zBuffer[y][x] = std::numeric_limits<double>::infinity();
+
   for (std::uint64_t faceIdx = 0; faceIdx < faces.size(); ++faceIdx) {
     if (m_cancelled.load()) return;
 
@@ -94,16 +103,18 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
       const Vector3d& w1 = vertices[face[i]].point;
       const Vector3d& w2 = vertices[face[i + 1]].point;
 
-      const Vector2d s0 = m_camera->projectPoint(w0);
-      const Vector2d s1 = m_camera->projectPoint(w1);
-      const Vector2d s2 = m_camera->projectPoint(w2);
+      const Vector3d s0 = m_camera->projectPointWithDepth(w0);
+      const Vector3d s1 = m_camera->projectPointWithDepth(w1);
+      const Vector3d s2 = m_camera->projectPointWithDepth(w2);
 
-      // Skip if any vertex projection is undefined (camera has no
-      // closed-form inverse, or vertex is behind the camera). V1
-      // doesn't clip mixed-case triangles against the near plane —
-      // they're dropped entirely. The clipping pass lands in a
-      // later phase.
+      // Skip if any vertex projection is undefined — vertex behind
+      // the eye, camera with no closed-form inverse, or otherwise
+      // unprojectable. The clipping pass that handles the
+      // partially-behind case lands in a later phase.
       if (s0.isUndefined() || s1.isUndefined() || s2.isUndefined()) continue;
+
+      const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
+      const double invZ0 = 1.0 / z0, invZ1 = 1.0 / z1, invZ2 = 1.0 / z2;
 
       const int x0 = static_cast<int>(std::lround(s0.x()));
       const int y0 = static_cast<int>(std::lround(s0.y()));
@@ -113,8 +124,18 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
       const int y2 = static_cast<int>(std::lround(s2.y()));
 
       core::rasterizeTriangle(x0, y0, x1, y1, x2, y2,
-        [&](int x, int y, double, double, double) {
-          if (x >= 0 && x < width && y >= 0 && y < height) {
+        [&](int x, int y, double w0b, double w1b, double w2b) {
+          if (x < 0 || x >= width || y < 0 || y >= height) return;
+          // Perspective-correct depth interpolation. The screen-space
+          // barycentric weights from `rasterizeTriangle` are linear
+          // in screen space — but vertex *depth* is not. The standard
+          // trick: 1/z IS linear in screen space, so interpolate 1/z
+          // and invert. (Heckbert & Moreton 1991, "Interpolation for
+          // polygon texture mapping and shading".)
+          const double oneOverZ = w0b * invZ0 + w1b * invZ1 + w2b * invZ2;
+          const double pixelDepth = 1.0 / oneOverZ;
+          if (pixelDepth < zBuffer[y][x]) {
+            zBuffer[y][x] = pixelDepth;
             buffer[y][x] = color;
           }
         });

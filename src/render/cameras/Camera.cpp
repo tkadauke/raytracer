@@ -35,6 +35,17 @@ Vector2d Camera::projectPoint(const Vector3d&) const {
   return Vector2d::undefined();
 }
 
+Vector3d Camera::projectPointWithDepth(const Vector3d& worldPoint) const {
+  // Default implementation: forward to projectPoint and report zero
+  // depth. Subclasses with perspective foreshortening (PinholeCamera
+  // and inheritors) override to populate the eye-relative distance.
+  // Cameras without a closed-form inverse return undefined, which
+  // propagates through here.
+  Vector2d screen = projectPoint(worldPoint);
+  if (screen.isUndefined()) return Vector3d::undefined();
+  return Vector3d(screen.x(), screen.y(), 0.0);
+}
+
 const Matrix4d& Camera::matrix() const {
   if (!m_matrix) {
     auto zAxis = (m_target - m_position).normalized();

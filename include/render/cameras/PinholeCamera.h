@@ -54,6 +54,14 @@ namespace render {
     virtual Vector2d projectPoint(const Vector3d& worldPoint) const;
 
     /**
+      * Same projection math as `projectPoint` but additionally
+      * returns the eye-relative distance along the camera's forward
+      * axis in `result.z()`. Used by the software rasterizer's
+      * Z-buffer for depth tests.
+      */
+    virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
+
+    /**
       * @returns the distance between the eye and the viewplane. Defaults to 5.
       */
     inline double distance() const {

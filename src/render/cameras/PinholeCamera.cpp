@@ -44,6 +44,35 @@ Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {
   return Vector2d(x, y);
 }
 
+Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const {
+  // Same projection math as projectPoint above, additionally
+  // returning the eye-relative distance along the camera's forward
+  // axis. Used by the software rasterizer's Z-buffer for depth
+  // tests and by perspective-correct attribute interpolation.
+  Matrix4d worldToCamera = matrix().inverted();
+  Vector3d pCam = worldToCamera * Vector4d(worldPoint);
+
+  // The eye sits at camera-space (0, 0, -distance); a world point at
+  // camera-space depth `pCam.z()` is `pCam.z() + distance` units
+  // from the eye along the forward axis. Behind the eye → undefined.
+  double depth = pCam.z() + m_distance;
+  if (depth <= 0.0) {
+    return Vector3d::undefined();
+  }
+
+  double t = m_distance / depth;
+  double qxCam = pCam.x() * t;
+  double qyCam = pCam.y() * t;
+
+  auto plane = viewPlane();
+  double pxSize = plane->pixelSize();
+  double lx = qxCam / pxSize;
+  double ly = qyCam / pxSize;
+  double x = (lx + 4.0) * plane->width()  / 8.0;
+  double y = (ly + 3.0) * plane->height() / 6.0;
+  return Vector3d(x, y, depth);
+}
+
 void PinholeCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   Camera::setViewPlane(plane);
   viewPlane()->setPixelSize(1.0 / m_zoom);

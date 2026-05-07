@@ -150,6 +150,49 @@ namespace RasterizerTest {
     EXPECT_EQ(64 * 64, countPixels(buffer, Colord::black()));
   }
 
+  TEST(Rasterizer, ZBufferCullsOccludedGeometryAddedAfterTheOccluder) {
+    // Scene 1: just a near sphere.
+    // Scene 2: the same near sphere added first (so its face indices
+    //          and hash colours match scene 1), plus a large box
+    //          rendered behind it. The box would overdraw the
+    //          sphere's centre pixels without depth-testing — V1
+    //          rasterizes faces in mesh order with no Z-buffer
+    //          rejection. With the Z-buffer, the box's centre pixels
+    //          fail the depth test and the sphere's colour stays.
+    //
+    // The sphere is added first in BOTH scenes, so its face indices
+    // (and therefore its hash colours) are identical. That makes
+    // pixel-equality at the centre a stable assertion — without the
+    // depth test this expectation would fail.
+
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
+
+    auto sceneAlone = std::make_shared<Scene>(Colord::black());
+    sceneAlone->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+
+    auto sceneWithBack = std::make_shared<Scene>(Colord::black());
+    sceneWithBack->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));    // near, idx 0..N-1
+    sceneWithBack->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));  // far back wall
+
+    Rasterizer eAlone(cam, sceneAlone);
+    Rasterizer eWithBack(cam, sceneWithBack);
+
+    Buffer<Colord> bAlone(64, 64);
+    Buffer<Colord> bWithBack(64, 64);
+    eAlone.render(bAlone);
+    eWithBack.render(bWithBack);
+
+    // Centre pixel: covered by the near sphere in both renders. With
+    // the Z-buffer, the back box's pixels at the centre fail the
+    // depth test; without it, the box would overdraw the sphere
+    // there because it's added second in mesh order.
+    EXPECT_EQ(bAlone[32][32], bWithBack[32][32])
+      << "Centre pixel changed when an occluded back wall was added — "
+      << "Z-buffer is failing to cull the farther geometry.";
+    EXPECT_FALSE(bAlone[32][32] == Colord::black())
+      << "Centre pixel should be coloured by the near sphere.";
+  }
+
   TEST(Rasterizer, UncancelAllowsSubsequentRender) {
     Rasterizer engine(camera(), sceneWithBox());
     Buffer<Colord> buffer(64, 64);
