@@ -20,7 +20,7 @@ GIVEN(EngineFeatureTest, "a displaced sphere") {
 }
 
 THEN(EngineFeatureTest, "i should see the sphere") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
@@ -44,6 +44,6 @@ THEN(EngineFeatureTest, "i should see the sphere with size larger than S") {
 }
 
 THEN(EngineFeatureTest, "i should not see the sphere") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }

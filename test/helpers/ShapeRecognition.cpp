@@ -6,12 +6,12 @@ using namespace std;
 
 vector<int> ShapeRecognition::lines(const Buffer<unsigned int>& buffer) const {
   vector<int> lineLengths;
-  unsigned int red = Colord(1, 0, 0).rgb();
-  
+  unsigned int target = m_targetColor.rgb();
+
   for (int j = 0; j != buffer.height(); ++j) {
     int start = -1;
     for (int i = 0; i != buffer.width(); ++i) {
-      if (start == -1 && buffer[j][i] == red) {
+      if (start == -1 && buffer[j][i] == target) {
         start = i;
         break;
       }
@@ -19,17 +19,17 @@ vector<int> ShapeRecognition::lines(const Buffer<unsigned int>& buffer) const {
 
     int end = -1;
     for (int i = buffer.width() - 1; i != start; --i) {
-      if (end == -1 && buffer[j][i] == red) {
+      if (end == -1 && buffer[j][i] == target) {
         end = i;
         break;
       }
     }
-    
+
     if (start != -1 && end != -1) {
       lineLengths.push_back(end - start);
     }
   }
-  
+
   return lineLengths;
 }
 

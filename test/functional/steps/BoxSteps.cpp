@@ -20,11 +20,11 @@ GIVEN(EngineFeatureTest, "a displaced box") {
 }
 
 THEN(EngineFeatureTest, "i should see the box") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   ASSERT_TRUE(rec.recognizeRect(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should not see the box") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   ASSERT_FALSE(rec.recognizeRect(test->buffer()));
 }

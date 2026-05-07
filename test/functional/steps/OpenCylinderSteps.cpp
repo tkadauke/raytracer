@@ -36,18 +36,18 @@ GIVEN(EngineFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around the 
 }
 
 THEN(EngineFeatureTest, "i should see the open cylinder") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   // This should be a different shape than circle
   ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should not see the open cylinder") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should see a ring") {
-  ShapeRecognition rec;
+  ShapeRecognition rec(test->primaryColor());
   // This should be a different shape than circle, since it is a ring. The
   // ShapeRecognition class only looks at the outlines.
   ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
