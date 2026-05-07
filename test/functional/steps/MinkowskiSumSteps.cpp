@@ -1,6 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
-#include "test/helpers/ShapeRecognition.h"
+#include "test/helpers/ShapeClassifier.h"
 
 #include "render/primitives/MinkowskiSum.h"
 #include "render/primitives/Instance.h"

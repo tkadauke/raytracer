@@ -1,6 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
-#include "test/helpers/ShapeRecognition.h"
+#include "test/helpers/ShapeClassifier.h"
 
 #include "render/primitives/OpenCylinder.h"
 #include "render/primitives/Instance.h"
@@ -36,19 +36,19 @@ GIVEN(EngineFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around the 
 }
 
 THEN(EngineFeatureTest, "i should see the open cylinder") {
-  ShapeRecognition rec(test->primaryColor());
+  ShapeClassifier rec(test->primaryColor());
   // This should be a different shape than circle
-  ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
+  ASSERT_TRUE(rec.isCircle(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should not see the open cylinder") {
-  ShapeRecognition rec(test->primaryColor());
-  ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
+  ShapeClassifier rec(test->primaryColor());
+  ASSERT_FALSE(rec.isCircle(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should see a ring") {
-  ShapeRecognition rec(test->primaryColor());
+  ShapeClassifier rec(test->primaryColor());
   // This should be a different shape than circle, since it is a ring. The
   // ShapeRecognition class only looks at the outlines.
-  ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
+  ASSERT_TRUE(rec.isCircle(test->buffer()));
 }

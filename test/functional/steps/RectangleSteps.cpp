@@ -1,6 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
-#include "test/helpers/ShapeRecognition.h"
+#include "test/helpers/ShapeClassifier.h"
 
 #include "render/primitives/Rectangle.h"
 
@@ -20,11 +20,11 @@ GIVEN(EngineFeatureTest, "a displaced rectangle") {
 }
 
 THEN(EngineFeatureTest, "i should see the rectangle") {
-  ShapeRecognition rec(test->primaryColor());
-  ASSERT_TRUE(rec.recognizeRect(test->buffer()));
+  ShapeClassifier rec(test->primaryColor());
+  ASSERT_TRUE(rec.isRectangle(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should not see the rectangle") {
-  ShapeRecognition rec(test->primaryColor());
-  ASSERT_FALSE(rec.recognizeRect(test->buffer()));
+  ShapeClassifier rec(test->primaryColor());
+  ASSERT_FALSE(rec.isRectangle(test->buffer()));
 }

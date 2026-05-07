@@ -1,6 +1,6 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
-#include "test/helpers/ShapeRecognition.h"
+#include "test/helpers/ShapeClassifier.h"
 
 #include "render/primitives/Torus.h"
 #include "render/primitives/Instance.h"
@@ -30,8 +30,8 @@ GIVEN(EngineFeatureTest, "a torus rotated ([\\d.]+) degrees around the ([xyz]) a
 }
 
 THEN(EngineFeatureTest, "i should see the torus") {
-  ShapeRecognition rec(test->primaryColor());
-  ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
+  ShapeClassifier rec(test->primaryColor());
+  ASSERT_TRUE(rec.isCircle(test->buffer()));
 }
 
 THEN(EngineFeatureTest, "i should see the torus with a hole in the middle") {
@@ -40,6 +40,6 @@ THEN(EngineFeatureTest, "i should see the torus with a hole in the middle") {
 }
 
 THEN(EngineFeatureTest, "i should not see the torus") {
-  ShapeRecognition rec(test->primaryColor());
-  ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
+  ShapeClassifier rec(test->primaryColor());
+  ASSERT_FALSE(rec.isCircle(test->buffer()));
 }

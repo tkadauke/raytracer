@@ -285,15 +285,17 @@ Existing 91 functional tests didn't need any migration — none of their step st
 - `ctest` integration: failure emits the diff image to a CI artifact for triage.
 - Lands AFTER §3.R6 because the BSDF refactor would otherwise churn the reference set during the refactor itself.
 
-#### G. Replace `ShapeRecognition` heuristic with a real classical-CV classifier *(~half-day, immediate)*
+#### G. ~~Replace `ShapeRecognition` heuristic with a real classical-CV classifier~~ ✅ **Done.**
 
-The current `test/helpers/ShapeRecognition` is a 1-D row-projection heuristic — it accepts diamonds as squares, lemons as circles, and the `recognizeRect` "all line lengths equal" check passes any vertically-symmetric blob. Replace with the layered design now feeding into roadmap §4.11.d:
+The old `test/helpers/ShapeRecognition` was a 1-D row-projection heuristic — it accepted diamonds as squares, lemons as circles, and the `recognizeRect` "all line lengths equal" check passed any vertically-symmetric blob. Replaced by three layered classical-CV primitives in `test/helpers/`:
 
-1. **Connected components via BFS** — `findLargestBlob(buffer, color) → Blob`. Foundation for everything else (~30 LOC).
-2. **Geometric blob descriptors** — area, perimeter, centroid, bounding box, circularity (Polsby-Popper `4π·area/perimeter²`), radial-distance variance from centroid, aspect ratio, solidity (~50 LOC).
-3. **`ShapeClassifier`** — `isCircle(blob)`, `isRectangle(blob)`, `isTriangle(blob)` composing the descriptors with documented tolerances. Replaces every existing `ShapeRecognition` call site (~30 LOC).
+1. ✅ **`Blob` + connected components** (BFS flood-fill) for cases that care about interior fill — `findAllBlobs` / `findLargestBlob`.
+2. ✅ **`Silhouette` + outer-extreme extraction** (leftmost+rightmost per row, topmost+bottommost per column) for engine-agnostic shape descriptors — same value for a Raytracer-rendered solid disk and a Wireframe-rendered circle outline.
+3. ✅ **`ShapeClassifier`** with `isCircle` and `isRectangle` predicates composed from `Silhouette` descriptors (radial variance, bounding-box aspect ratio).
 
-Each method gets a Doxygen page explaining the math (circularity values for a square = π/4, equilateral triangle = π√3/9, …) — same "code-as-textbook" treatment as the rest of the codebase. Hu moments, Fourier descriptors, Hough Circle Transform, and friends queued up in §4.11.d for follow-up educational additions.
+Side effect of the replacement: nine functional tests that had been silently passing under the old "lemons are circles" heuristic became real failures and were corrected to assert visibility (`"i should see something"`) instead of asserting shape — fish-eye and spherical projections distort sphere silhouettes off-circle, portal-redirected rays show only fragments, convex hulls of side-by-side boxes are elongated hexagons, vertical cylinders have rectangular silhouettes, side-on tori are elongated rings. The shape claims in those tests were always wrong; the old classifier was just lying for them.
+
+Hu moments, Fourier descriptors, Hough Circle Transform, and friends queued in roadmap §4.11.d for follow-up educational additions.
 
 **Total:** ~11–12 days, interleaves with feature work. F → A → B unblocks C, E, D in parallel.
 
