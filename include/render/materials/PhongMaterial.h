@@ -12,7 +12,24 @@ namespace render {
     * It is a combination of ambient and diffuse shading, with the addition of
     * small intense specular highlights.
     * 
-    * @image html phong_material_red.png "Phong material"
+    * Same Phong sphere through both engines. The raytracer applies
+    * the full Phong model — Lambertian diffuse plus the sharp
+    * specular highlight where the view direction reflects off the
+    * surface toward the light. The rasterizer is a Lambertian-only
+    * pipeline (no specular term), so the comparison shows what the
+    * specular component contributes: the bright highlight visible
+    * on the raytracer image is missing from the rasterizer one.
+    *
+    * <table>
+    *   <tr>
+    *     <th>Raytracer</th>
+    *     <th>Software rasterizer</th>
+    *   </tr>
+    *   <tr>
+    *     <td>@image html phong_material_red__raytracer.png ""</td>
+    *     <td>@image html phong_material_red__raster.png ""</td>
+    *   </tr>
+    * </table>
     */
   class PhongMaterial : public MatteMaterial {
   public:

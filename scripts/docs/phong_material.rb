@@ -1,4 +1,4 @@
-class_doc do
+class_doc(engines: [:raytracer, :raster]) do
   name "phong_material_red"
   material_scene phong_material(:diffuseTexture => red)
 end

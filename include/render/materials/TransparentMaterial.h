@@ -13,7 +13,28 @@ namespace render {
     * index](https://en.wikipedia.org/wiki/Refractive_index) describes how light
     * propagates through the medium.
     *
-    * @image html transparent_material.png "Transparent material"
+    * Same transparent sphere through both engines:
+    *
+    * <table>
+    *   <tr>
+    *     <th>Raytracer</th>
+    *     <th>Software rasterizer</th>
+    *   </tr>
+    *   <tr>
+    *     <td>@image html transparent_material__raytracer.png ""</td>
+    *     <td>@image html transparent_material__raster.png ""</td>
+    *   </tr>
+    * </table>
+    *
+    * The raytracer fires a refracted ray through the surface (and
+    * a reflected ray for the Fresnel-style reflection on the silhouette)
+    * and uses the resulting colours as the visible appearance — the
+    * sphere shows the floor and sky bent through it. The rasterizer
+    * doesn't recurse, so it has nothing to display other than the
+    * diffuse base; here that base is the medium-grey configured by
+    * the doc-render driver, giving an opaque grey sphere instead.
+    * The comparison is "this is what the recursion buys you" — same
+    * lesson as for the reflective material.
     */
   class TransparentMaterial : public PhongMaterial {
   public:

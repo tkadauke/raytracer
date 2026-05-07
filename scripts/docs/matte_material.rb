@@ -1,4 +1,4 @@
-class_doc do
+class_doc(engines: [:raytracer, :raster]) do
   name "matte_material_red"
   material_scene red_matte
 end

@@ -10,7 +10,7 @@ module ::Common
   end
 end
 
-class_doc do
+class_doc(engines: [:raytracer, :raster]) do
   name "transparent_material"
   material_scene transparent_doc
 end

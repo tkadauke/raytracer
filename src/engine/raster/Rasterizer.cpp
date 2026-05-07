@@ -101,12 +101,16 @@ namespace {
         // aren't used by the texture eval path; pass placeholders.
         const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal);
         const Rayd ray(worldPos, -normal);
-        return texture->evaluate(ray, hp);
+        const Colord c = texture->evaluate(ray, hp);
+        // Fall back to the hash when the material evaluates to pure
+        // black — typically Reflective / Transparent materials that
+        // the world side fills in with a black default texture when
+        // no diffuse is set. The raytracer makes such surfaces
+        // visible via reflection / refraction; the rasterizer can't,
+        // so a hash colour stand-in keeps the silhouette readable.
+        if (c.r() != 0.0 || c.g() != 0.0 || c.b() != 0.0) return c;
       }
     }
-    // Material without a diffuseTexture (PortalMaterial, custom
-    // materials) → fall back to the hash colour so the primitive is
-    // still visible.
     return faceColor(faceIdx);
   }
 }

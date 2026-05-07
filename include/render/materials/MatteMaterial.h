@@ -10,7 +10,24 @@ namespace render {
     * Matte materials have no reflection, or transmission. As the name suggests,
     * they appear matte.
     * 
-    * @image html matte_material_red.png "Matte material with red constant texture"
+    * Same red-matte sphere through both engines. The matte material
+    * is the simplest case: pure Lambertian with no recursion, so
+    * both engines produce the same fundamental shading model.
+    * The raytracer additionally renders the textured floor
+    * reflection (because the floor itself is reflective) and a soft
+    * shadow under the sphere; the rasterizer produces the same red
+    * shaded sphere on its default background.
+    *
+    * <table>
+    *   <tr>
+    *     <th>Raytracer</th>
+    *     <th>Software rasterizer</th>
+    *   </tr>
+    *   <tr>
+    *     <td>@image html matte_material_red__raytracer.png ""</td>
+    *     <td>@image html matte_material_red__raster.png ""</td>
+    *   </tr>
+    * </table>
     */
   class MatteMaterial : public Material {
   public:

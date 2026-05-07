@@ -9,7 +9,7 @@ module ::Common
   end
 end
 
-class_doc do
+class_doc(engines: [:raytracer, :raster]) do
   name "reflective_material_red"
   material_scene reflective_doc
 end

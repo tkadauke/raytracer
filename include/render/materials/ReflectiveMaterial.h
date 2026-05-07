@@ -9,7 +9,29 @@ namespace render {
     * Reflective materials describe shiny objects like polished metal or
     * mirrors.
     * 
-    * @image html reflective_material_red.png "Reflective material"
+    * Same reflective sphere through both engines — the comparison
+    * makes the reflection contribution visible by its absence:
+    *
+    * <table>
+    *   <tr>
+    *     <th>Raytracer</th>
+    *     <th>Software rasterizer</th>
+    *   </tr>
+    *   <tr>
+    *     <td>@image html reflective_material_red__raytracer.png ""</td>
+    *     <td>@image html reflective_material_red__raster.png ""</td>
+    *   </tr>
+    * </table>
+    *
+    * The raytracer fires a recursive ray off the surface in the
+    * mirror direction and uses the resulting colour as the visible
+    * appearance — the sphere shows the floor and sky reflected back.
+    * The rasterizer doesn't recurse, so it has nothing to display
+    * other than the diffuse base; here that base is pure black
+    * (the default for materials with no diffuse texture set), so
+    * the rasterizer falls back to a per-face hash colour just to
+    * keep the silhouette readable. The comparison is "this is what
+    * the recursion buys you."
     */
   class ReflectiveMaterial : public PhongMaterial {
   public:
