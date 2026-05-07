@@ -3,27 +3,27 @@
 
 using namespace testing;
 
-GIVEN(RaytracerFeatureTest, "a blank canvas") {
+GIVEN(EngineFeatureTest, "a blank canvas") {
   test->clear();
 }
 
-GIVEN(RaytracerFeatureTest, "an empty scene") {
+GIVEN(EngineFeatureTest, "an empty scene") {
   // do nothing
   (void)test;
 }
 
-WHEN(RaytracerFeatureTest, "the render process is canceled") {
+WHEN(EngineFeatureTest, "the render process is canceled") {
   test->cancel();
 }
 
-THEN(RaytracerFeatureTest, "i should see something") {
+THEN(EngineFeatureTest, "i should see something") {
   ASSERT_TRUE(test->objectVisible());
 }
 
-THEN(RaytracerFeatureTest, "i should see nothing") {
+THEN(EngineFeatureTest, "i should see nothing") {
   ASSERT_FALSE(test->objectVisible());
 }
 
-THEN(RaytracerFeatureTest, "show me") {
+THEN(EngineFeatureTest, "show me") {
   test->show();
 }

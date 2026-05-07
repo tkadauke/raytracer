@@ -7,10 +7,9 @@
 #include "render/primitives/Box.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered minkowski sum with two boxes") {
+GIVEN(EngineFeatureTest, "a centered minkowski sum with two boxes") {
   auto hull = std::make_shared<MinkowskiSum>();
   hull->add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.25, 0.25, 0.25)));
   hull->add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.25, 0.25, 0.25)));
@@ -19,7 +18,7 @@ GIVEN(RaytracerFeatureTest, "a centered minkowski sum with two boxes") {
   test->add(hull);
 }
 
-GIVEN(RaytracerFeatureTest, "a displaced minkowski sum with two boxes") {
+GIVEN(EngineFeatureTest, "a displaced minkowski sum with two boxes") {
   auto hull = std::make_shared<MinkowskiSum>();
   hull->add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.25, 0.25, 0.25)));
   hull->add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.25, 0.25, 0.25)));

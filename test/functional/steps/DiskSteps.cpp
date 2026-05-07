@@ -5,27 +5,26 @@
 #include "render/primitives/Disk.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered disk") {
+GIVEN(EngineFeatureTest, "a centered disk") {
   auto disk = std::make_shared<Disk>(Vector3d::null(), Vector3d(0, 0, -1), 1);
   disk->setMaterial(test->redDiffuse());
   test->add(disk);
 }
 
-GIVEN(RaytracerFeatureTest, "a displaced disk") {
+GIVEN(EngineFeatureTest, "a displaced disk") {
   auto disk = std::make_shared<Disk>(Vector3d(0, 20, 0), Vector3d(0, 0, -1), 1);
   disk->setMaterial(test->redDiffuse());
   test->add(disk);
 }
 
-THEN(RaytracerFeatureTest, "i should see the disk") {
+THEN(EngineFeatureTest, "i should see the disk") {
   ShapeRecognition rec;
   ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
-THEN(RaytracerFeatureTest, "i should not see the disk") {
+THEN(EngineFeatureTest, "i should not see the disk") {
   ShapeRecognition rec;
   ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }

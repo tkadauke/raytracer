@@ -4,9 +4,8 @@
 #include "render/cameras/OrthographicCamera.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "an orthographic camera") {
+GIVEN(EngineFeatureTest, "an orthographic camera") {
   test->setCamera(std::make_shared<OrthographicCamera>());
 }

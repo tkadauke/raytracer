@@ -7,17 +7,16 @@
 #include "render/textures/ConstantColorTexture.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a perfectly reflective box") {
+GIVEN(EngineFeatureTest, "a perfectly reflective box") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
   auto material = std::make_shared<ReflectiveMaterial>();
   box->setMaterial(material);
   test->add(box);
 }
 
-GIVEN(RaytracerFeatureTest, "a reflective box which filters the colors") {
+GIVEN(EngineFeatureTest, "a reflective box which filters the colors") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
   auto material = std::make_shared<ReflectiveMaterial>(
     std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))
@@ -28,12 +27,12 @@ GIVEN(RaytracerFeatureTest, "a reflective box which filters the colors") {
   test->add(box);
 }
 
-GIVEN(RaytracerFeatureTest, "a sphere behind the camera") {
+GIVEN(EngineFeatureTest, "a sphere behind the camera") {
   auto sphere = std::make_shared<Sphere>(Vector3d(0, 0, -4), 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
 }
 
-THEN(RaytracerFeatureTest, "i should see the color filtered view through the box") {
+THEN(EngineFeatureTest, "i should see the color filtered view through the box") {
   ASSERT_TRUE(test->colorPresent(Colord(1, 0, 0)));
 }

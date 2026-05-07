@@ -5,10 +5,9 @@
 #include "core/geometry/Mesh.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered flat mesh triangle") {
+GIVEN(EngineFeatureTest, "a centered flat mesh triangle") {
   auto mesh = new Mesh;
   mesh->addVertex(Vector3d(-1, -1, 0), Vector3d(0, 0, 1).normalized());
   mesh->addVertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1).normalized());
@@ -19,7 +18,7 @@ GIVEN(RaytracerFeatureTest, "a centered flat mesh triangle") {
   test->add(triangle);
 }
 
-GIVEN(RaytracerFeatureTest, "a displaced flat mesh triangle") {
+GIVEN(EngineFeatureTest, "a displaced flat mesh triangle") {
   auto mesh = new Mesh;
   mesh->addVertex(Vector3d(-1, 20, 0), Vector3d(0, 0, 1).normalized());
   mesh->addVertex(Vector3d(-1, 21, 0), Vector3d(0, 0, 1).normalized());

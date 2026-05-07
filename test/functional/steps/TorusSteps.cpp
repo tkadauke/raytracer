@@ -8,16 +8,15 @@
 #include "core/math/Matrix.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered torus") {
+GIVEN(EngineFeatureTest, "a centered torus") {
   auto torus = std::make_shared<Torus>(1, 0.5);
   torus->setMaterial(test->redDiffuse());
   test->add(torus);
 }
 
-GIVEN(RaytracerFeatureTest, "a torus rotated ([\\d.]+) degrees around the ([xyz]) axis") {
+GIVEN(EngineFeatureTest, "a torus rotated ([\\d.]+) degrees around the ([xyz]) axis") {
   double degrees = std::stod(match[1]);
   std::string axis = match[2];
   auto torus = std::make_shared<Torus>(1, 0.5);
@@ -30,17 +29,17 @@ GIVEN(RaytracerFeatureTest, "a torus rotated ([\\d.]+) degrees around the ([xyz]
   test->add(instance);
 }
 
-THEN(RaytracerFeatureTest, "i should see the torus") {
+THEN(EngineFeatureTest, "i should see the torus") {
   ShapeRecognition rec;
   ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
-THEN(RaytracerFeatureTest, "i should see the torus with a hole in the middle") {
+THEN(EngineFeatureTest, "i should see the torus with a hole in the middle") {
   ASSERT_TRUE(test->objectVisible());
   ASSERT_EQ(Colord::white().rgb(), test->colorAt(100, 75));
 }
 
-THEN(RaytracerFeatureTest, "i should not see the torus") {
+THEN(EngineFeatureTest, "i should not see the torus") {
   ShapeRecognition rec;
   ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }

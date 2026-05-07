@@ -11,10 +11,9 @@
 
 using namespace testing;
 using namespace std;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered cube mesh") {
+GIVEN(EngineFeatureTest, "a centered cube mesh") {
   ifstream stream("test/fixtures/cube.ply");
   auto mesh = new Mesh;
   PlyFile file(stream, *mesh);
@@ -23,7 +22,7 @@ GIVEN(RaytracerFeatureTest, "a centered cube mesh") {
   FlatMeshTriangle::build(mesh, test->scene(), test->redDiffuse());
 }
 
-GIVEN(RaytracerFeatureTest, "a displaced cube mesh") {
+GIVEN(EngineFeatureTest, "a displaced cube mesh") {
   ifstream stream("test/fixtures/cube.ply");
   auto mesh = new Mesh;
   PlyFile file(stream, *mesh);
@@ -37,10 +36,10 @@ GIVEN(RaytracerFeatureTest, "a displaced cube mesh") {
   test->add(instance);
 }
 
-THEN(RaytracerFeatureTest, "i should see the mesh") {
+THEN(EngineFeatureTest, "i should see the mesh") {
   ASSERT_TRUE(test->objectVisible());
 }
 
-THEN(RaytracerFeatureTest, "i should not see the mesh") {
+THEN(EngineFeatureTest, "i should not see the mesh") {
   ASSERT_FALSE(test->objectVisible());
 }

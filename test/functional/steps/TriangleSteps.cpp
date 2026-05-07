@@ -4,25 +4,24 @@
 #include "render/primitives/Triangle.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered triangle") {
+GIVEN(EngineFeatureTest, "a centered triangle") {
   auto triangle = std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0));
   triangle->setMaterial(test->redDiffuse());
   test->add(triangle);
 }
 
-GIVEN(RaytracerFeatureTest, "a displaced triangle") {
+GIVEN(EngineFeatureTest, "a displaced triangle") {
   auto triangle = std::make_shared<Triangle>(Vector3d(-1, 20, 0), Vector3d(-1, 21, 0), Vector3d(1, 20, 0));
   triangle->setMaterial(test->redDiffuse());
   test->add(triangle);
 }
 
-THEN(RaytracerFeatureTest, "i should see the triangle") {
+THEN(EngineFeatureTest, "i should see the triangle") {
   ASSERT_TRUE(test->objectVisible());
 }
 
-THEN(RaytracerFeatureTest, "i should not see the triangle") {
+THEN(EngineFeatureTest, "i should not see the triangle") {
   ASSERT_FALSE(test->objectVisible());
 }

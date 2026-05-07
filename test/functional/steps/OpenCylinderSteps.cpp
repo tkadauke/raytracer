@@ -6,16 +6,15 @@
 #include "render/primitives/Instance.h"
 
 using namespace testing;
-using namespace engine::raytracer;
 using namespace render;
 
-GIVEN(RaytracerFeatureTest, "a centered open cylinder") {
+GIVEN(EngineFeatureTest, "a centered open cylinder") {
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);
   cylinder->setMaterial(test->redDiffuse());
   test->add(cylinder);
 }
 
-GIVEN(RaytracerFeatureTest, "a displaced open cylinder") {
+GIVEN(EngineFeatureTest, "a displaced open cylinder") {
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);
   cylinder->setMaterial(test->redDiffuse());
   auto instance = std::make_shared<Instance>(cylinder);
@@ -23,7 +22,7 @@ GIVEN(RaytracerFeatureTest, "a displaced open cylinder") {
   test->add(instance);
 }
 
-GIVEN(RaytracerFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around the ([xyz]) axis") {
+GIVEN(EngineFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around the ([xyz]) axis") {
   double degrees = std::stod(match[1]);
   std::string axis = match[2];
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);
@@ -36,18 +35,18 @@ GIVEN(RaytracerFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around t
   test->add(instance);
 }
 
-THEN(RaytracerFeatureTest, "i should see the open cylinder") {
+THEN(EngineFeatureTest, "i should see the open cylinder") {
   ShapeRecognition rec;
   // This should be a different shape than circle
   ASSERT_TRUE(rec.recognizeCircle(test->buffer()));
 }
 
-THEN(RaytracerFeatureTest, "i should not see the open cylinder") {
+THEN(EngineFeatureTest, "i should not see the open cylinder") {
   ShapeRecognition rec;
   ASSERT_FALSE(rec.recognizeCircle(test->buffer()));
 }
 
-THEN(RaytracerFeatureTest, "i should see a ring") {
+THEN(EngineFeatureTest, "i should see a ring") {
   ShapeRecognition rec;
   // This should be a different shape than circle, since it is a ring. The
   // ShapeRecognition class only looks at the outlines.
