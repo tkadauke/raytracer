@@ -153,7 +153,7 @@ Unblocks: GL viewport, wireframe engine, software rasterizer, OBJ/STL/glTF expor
 
 ### R5b. Namespace + directory cleanup — `raytracer::` → `render::`
 
-Now that R5 has surfaced what's shared vs engine-specific, lift the shared types out of `raytracer::` into a new top-level `render::` namespace + `include/render/` directory. Anything that future non-raytracing engines (wireframe, software raster, OpenGL, path tracer) will use shouldn't live in a namespace named after one engine.
+~~Lift the shared types out of `raytracer::` into a new top-level `render::` namespace + `include/render/` directory.~~ ✅ **Done** in 10 phased commits (`0cdcfd3` through `fff5ea8`). All engine-shared types now live in `render::`. The `raytracer::` namespace is reduced to `Raytracer` (the engine), `State` (per-ray recursion state), and `stats::Counters` (the raytracer-specific stats namespace).
 
 **Stays in `raytracer::` / `include/raytracer/`**:
 
