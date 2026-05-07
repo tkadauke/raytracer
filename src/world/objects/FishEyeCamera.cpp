@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/FishEyeCamera.h"
 
-#include "raytracer/cameras/FishEyeCamera.h"
+#include "render/cameras/FishEyeCamera.h"
 
 FishEyeCamera::FishEyeCamera(Element* parent)
   : Camera(parent),
@@ -9,8 +9,8 @@ FishEyeCamera::FishEyeCamera(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Camera> FishEyeCamera::toRaytracer() const {
-  auto camera = make_named<raytracer::FishEyeCamera>(position(), target());
+std::shared_ptr<render::Camera> FishEyeCamera::toRaytracer() const {
+  auto camera = make_named<render::FishEyeCamera>(position(), target());
   camera->setFieldOfView(fieldOfView());
   return camera;
 }

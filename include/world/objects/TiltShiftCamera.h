@@ -8,7 +8,7 @@
 /**
   * Tilt-shift / Scheimpflug camera — a thin-lens camera with a tilted
   * focal plane and an optionally shifted lens. See
-  * `raytracer::TiltShiftCamera` for the geometric derivation and the
+  * `render::TiltShiftCamera` for the geometric derivation and the
   * canonical use cases (miniature effect, tilted-plane focus,
   * converging-vertical correction).
   *
@@ -92,10 +92,10 @@ public:
 
   /**
     * Convert this editable camera into the runtime
-    * `raytracer::TiltShiftCamera`. Copies the inherited ThinLens
+    * `render::TiltShiftCamera`. Copies the inherited ThinLens
     * parameters plus the two new tilt-shift parameters.
     */
-  virtual std::shared_ptr<raytracer::Camera> toRaytracer() const;
+  virtual std::shared_ptr<render::Camera> toRaytracer() const;
 
 private:
   Angled m_tilt;

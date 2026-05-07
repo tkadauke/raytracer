@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/PinholeCamera.h"
 
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 
 PinholeCamera::PinholeCamera(Element* parent)
   : Camera(parent),
@@ -10,8 +10,8 @@ PinholeCamera::PinholeCamera(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Camera> PinholeCamera::toRaytracer() const {
-  auto camera = make_named<raytracer::PinholeCamera>(position(), target());
+std::shared_ptr<render::Camera> PinholeCamera::toRaytracer() const {
+  auto camera = make_named<render::PinholeCamera>(position(), target());
   camera->setDistance(distance());
   camera->setZoom(zoom());
   return camera;

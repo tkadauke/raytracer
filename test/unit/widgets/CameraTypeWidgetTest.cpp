@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "widgets/CameraTypeWidget.h"
-#include "raytracer/cameras/CameraFactory.h"
+#include "render/cameras/CameraFactory.h"
 
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
@@ -20,7 +20,7 @@ namespace CameraTypeWidgetTest {
     // membership rather than a specific name so adding a new camera
     // doesn't churn this test.
     CameraTypeWidget widget;
-    auto identifiers = raytracer::CameraFactory::self().identifiers();
+    auto identifiers = render::CameraFactory::self().identifiers();
     EXPECT_NE(
       std::find(identifiers.begin(), identifiers.end(), widget.type()),
       identifiers.end()

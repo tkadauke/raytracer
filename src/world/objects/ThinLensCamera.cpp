@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/ThinLensCamera.h"
 
-#include "raytracer/cameras/ThinLensCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 
 ThinLensCamera::ThinLensCamera(Element* parent)
   : Camera(parent),
@@ -12,8 +12,8 @@ ThinLensCamera::ThinLensCamera(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Camera> ThinLensCamera::toRaytracer() const {
-  auto camera = make_named<raytracer::ThinLensCamera>(position(), target());
+std::shared_ptr<render::Camera> ThinLensCamera::toRaytracer() const {
+  auto camera = make_named<render::ThinLensCamera>(position(), target());
   camera->setDistance(m_distance);
   camera->setZoom(m_zoom);
   camera->setApertureRadius(m_apertureRadius);

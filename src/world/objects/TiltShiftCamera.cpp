@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/TiltShiftCamera.h"
 
-#include "raytracer/cameras/TiltShiftCamera.h"
+#include "render/cameras/TiltShiftCamera.h"
 
 TiltShiftCamera::TiltShiftCamera(Element* parent)
   : ThinLensCamera(parent),
@@ -11,8 +11,8 @@ TiltShiftCamera::TiltShiftCamera(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Camera> TiltShiftCamera::toRaytracer() const {
-  auto camera = make_named<raytracer::TiltShiftCamera>(position(), target());
+std::shared_ptr<render::Camera> TiltShiftCamera::toRaytracer() const {
+  auto camera = make_named<render::TiltShiftCamera>(position(), target());
   camera->setDistance(distance());
   camera->setZoom(zoom());
   camera->setApertureRadius(apertureRadius());

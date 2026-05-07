@@ -2,7 +2,7 @@
 
 #include "core/Buffer.h"
 #include "raytracer/WireframeEngine.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"

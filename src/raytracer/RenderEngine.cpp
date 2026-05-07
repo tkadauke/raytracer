@@ -1,5 +1,5 @@
 #include "raytracer/RenderEngine.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "render/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
@@ -15,13 +15,13 @@ struct RenderEngine::Private {
 };
 
 RenderEngine::RenderEngine(std::shared_ptr<Scene> scene)
-  : m_camera(std::make_shared<PinholeCamera>()),
+  : m_camera(std::make_shared<render::PinholeCamera>()),
     m_scene(std::move(scene)),
     p(std::make_unique<Private>())
 {
 }
 
-RenderEngine::RenderEngine(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene)
+RenderEngine::RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene)
   : m_camera(std::move(camera)),
     m_scene(std::move(scene)),
     p(std::make_unique<Private>())

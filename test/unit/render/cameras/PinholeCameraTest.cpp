@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"

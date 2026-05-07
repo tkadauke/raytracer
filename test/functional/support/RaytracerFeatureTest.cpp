@@ -2,7 +2,7 @@
 
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
@@ -41,7 +41,7 @@ using namespace render;
     return m_scene.get();
   }
 
-  std::shared_ptr<Camera> RaytracerFeatureTest::camera() {
+  std::shared_ptr<render::Camera> RaytracerFeatureTest::camera() {
     if (!m_camera)
       m_camera = std::make_shared<PinholeCamera>();
     return m_camera;
@@ -51,7 +51,7 @@ using namespace render;
     setCamera(std::make_shared<PinholeCamera>(position, lookAt));
   }
 
-  void RaytracerFeatureTest::setCamera(std::shared_ptr<Camera> camera) {
+  void RaytracerFeatureTest::setCamera(std::shared_ptr<render::Camera> camera) {
     m_camera = camera;
   }
 

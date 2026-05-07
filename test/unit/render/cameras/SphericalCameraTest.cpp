@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/cameras/SphericalCamera.h"
+#include "render/cameras/SphericalCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "core/Buffer.h"

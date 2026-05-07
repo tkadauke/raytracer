@@ -1,7 +1,7 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 #include "test/functional/support/GivenWhenThen.h"
 
-#include "raytracer/cameras/OrthographicCamera.h"
+#include "render/cameras/OrthographicCamera.h"
 
 using namespace testing;
 using namespace raytracer;

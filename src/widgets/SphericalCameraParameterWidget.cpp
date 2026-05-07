@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/SphericalCameraParameterWidget.h"
 #include "ui_SphericalCameraParameterWidget.h"
-#include "raytracer/cameras/SphericalCamera.h"
+#include "render/cameras/SphericalCamera.h"
 
 using namespace raytracer;
 
@@ -33,8 +33,8 @@ int SphericalCameraParameterWidget::verticalFieldOfView() const {
   return p->ui.verticalFieldOfViewSlider->value();
 }
 
-void SphericalCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
-  auto sphericalCamera = dynamic_cast<SphericalCamera*>(camera.get());
+void SphericalCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> camera) {
+  auto sphericalCamera = dynamic_cast<render::SphericalCamera*>(camera.get());
   if (sphericalCamera) {
     sphericalCamera->setHorizontalFieldOfView(Angled::fromDegrees(horizontalFieldOfView()));
     sphericalCamera->setVerticalFieldOfView(Angled::fromDegrees(verticalFieldOfView()));

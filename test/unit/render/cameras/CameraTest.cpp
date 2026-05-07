@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "test/mocks/raytracer/MockViewPlane.h"
 

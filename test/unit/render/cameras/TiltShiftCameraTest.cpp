@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "raytracer/cameras/TiltShiftCamera.h"
+#include "render/cameras/TiltShiftCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 

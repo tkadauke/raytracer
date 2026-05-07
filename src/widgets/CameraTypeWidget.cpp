@@ -1,6 +1,6 @@
 #include "widgets/CameraTypeWidget.h"
 #include "ui_CameraTypeWidget.h"
-#include "raytracer/cameras/CameraFactory.h"
+#include "render/cameras/CameraFactory.h"
 
 #include <list>
 
@@ -16,7 +16,7 @@ CameraTypeWidget::CameraTypeWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
-  list<string> types = CameraFactory::self().identifiers();
+  list<string> types = render::CameraFactory::self().identifiers();
   for (const auto& type : types) {
     p->ui.cameraTypeComboBox->addItem(QString::fromStdString(type));
   }

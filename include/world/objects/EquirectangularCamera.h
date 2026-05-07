@@ -10,12 +10,12 @@
   *
   * @image html equirectangular_camera.png "Equirectangular render — coloured spheres at every cardinal direction wrap around the full panorama"
   *
-  * Editable wrapper for `raytracer::EquirectangularCamera`. Inherits
+  * Editable wrapper for `render::EquirectangularCamera`. Inherits
   * `position` and `target` from `Camera`; has no additional tunable
   * parameters — the projection is always the canonical full-sphere
   * mapping.
   *
-  * See `raytracer::EquirectangularCamera` for the underlying math,
+  * See `render::EquirectangularCamera` for the underlying math,
   * the pole-stretching / seam artefacts inherent to the projection,
   * and how it differs from `SphericalCamera`.
   *
@@ -41,8 +41,8 @@ public:
 
   /**
     * Convert this editable camera into the runtime
-    * `raytracer::EquirectangularCamera` used by the renderer. Just
+    * `render::EquirectangularCamera` used by the renderer. Just
     * forwards `position` / `target`.
     */
-  virtual std::shared_ptr<raytracer::Camera> toRaytracer() const;
+  virtual std::shared_ptr<render::Camera> toRaytracer() const;
 };

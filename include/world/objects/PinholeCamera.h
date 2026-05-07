@@ -70,7 +70,7 @@ public:
     }
   }
 
-  virtual std::shared_ptr<raytracer::Camera> toRaytracer() const;
+  virtual std::shared_ptr<render::Camera> toRaytracer() const;
   
 private:
   double m_distance;

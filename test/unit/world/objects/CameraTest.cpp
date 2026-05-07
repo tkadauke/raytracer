@@ -6,11 +6,11 @@
 #include "world/objects/SphericalCamera.h"
 #include "world/objects/FishEyeCamera.h"
 
-#include "raytracer/cameras/Camera.h"
-#include "raytracer/cameras/PinholeCamera.h"
-#include "raytracer/cameras/OrthographicCamera.h"
-#include "raytracer/cameras/SphericalCamera.h"
-#include "raytracer/cameras/FishEyeCamera.h"
+#include "render/cameras/Camera.h"
+#include "render/cameras/PinholeCamera.h"
+#include "render/cameras/OrthographicCamera.h"
+#include "render/cameras/SphericalCamera.h"
+#include "render/cameras/FishEyeCamera.h"
 
 #include "core/math/Angle.h"
 
@@ -65,7 +65,7 @@ namespace CameraTest {
 
   TEST(PinholeCamera, ShouldProduceRaytracerPinholeCamera) {
     PinholeCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<raytracer::PinholeCamera>(
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::PinholeCamera>(
       camera.toRaytracer()));
   }
 
@@ -84,7 +84,7 @@ namespace CameraTest {
 
   TEST(OrthographicCamera, ShouldProduceRaytracerOrthographicCamera) {
     OrthographicCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<raytracer::OrthographicCamera>(
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::OrthographicCamera>(
       camera.toRaytracer()));
   }
 
@@ -117,7 +117,7 @@ namespace CameraTest {
 
   TEST(SphericalCamera, ShouldProduceRaytracerSphericalCamera) {
     SphericalCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<raytracer::SphericalCamera>(
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::SphericalCamera>(
       camera.toRaytracer()));
   }
 
@@ -138,7 +138,7 @@ namespace CameraTest {
 
   TEST(FishEyeCamera, ShouldProduceRaytracerFishEyeCamera) {
     FishEyeCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<raytracer::FishEyeCamera>(
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::FishEyeCamera>(
       camera.toRaytracer()));
   }
 }

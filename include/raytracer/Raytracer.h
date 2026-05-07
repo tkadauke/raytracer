@@ -14,7 +14,9 @@ template<class T>
 class Buffer;
 
 namespace raytracer {
-  class Camera;
+  }
+namespace render { class Camera; }
+namespace raytracer {
   class Primitive;
   class Scene;
   class State;
@@ -73,7 +75,7 @@ namespace raytracer {
       * constructor set it to; callers who care about pixel size /
       * sampler / interlacing should configure it themselves.
       */
-    explicit Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene);
+    explicit Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene);
 
     virtual ~Raytracer();
 

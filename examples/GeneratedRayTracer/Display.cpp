@@ -10,7 +10,7 @@
 #include "raytracer/primitives/Primitive.h"
 #include "raytracer/primitives/Scene.h"
 #include "render/lights/PointLight.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "core/math/HitPointInterval.h"
 
 #include "widgets/world/PropertyEditorWidget.h"

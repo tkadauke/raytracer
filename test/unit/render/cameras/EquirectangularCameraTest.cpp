@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "raytracer/cameras/EquirectangularCamera.h"
+#include "render/cameras/EquirectangularCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "core/Buffer.h"

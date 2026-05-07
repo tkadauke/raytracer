@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "world/objects/ThinLensCamera.h"
-#include "raytracer/cameras/ThinLensCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 
 namespace ThinLensCameraWorldTest {
   TEST(WorldThinLensCamera, ShouldDefaultToCannedValues) {
@@ -38,7 +38,7 @@ namespace ThinLensCameraWorldTest {
 
   TEST(WorldThinLensCamera, ShouldProduceRaytracerThinLensCamera) {
     ThinLensCamera camera;
-    auto rt = std::dynamic_pointer_cast<raytracer::ThinLensCamera>(camera.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::ThinLensCamera>(camera.toRaytracer());
     ASSERT_NE(nullptr, rt);
     EXPECT_DOUBLE_EQ(camera.distance(), rt->distance());
     EXPECT_DOUBLE_EQ(camera.zoom(), rt->zoom());

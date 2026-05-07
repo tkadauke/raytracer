@@ -1,9 +1,9 @@
-#include "raytracer/cameras/CameraFactory.h"
-#include "raytracer/cameras/OrthographicCamera.h"
+#include "render/cameras/CameraFactory.h"
+#include "render/cameras/OrthographicCamera.h"
 #include "core/math/Ray.h"
 #include "render/viewplanes/ViewPlane.h"
 
-using namespace raytracer;
+using namespace render;
 
 Rayd OrthographicCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();

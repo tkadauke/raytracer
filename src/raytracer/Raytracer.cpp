@@ -11,7 +11,7 @@
 #include "core/math/Matrix.h"
 #include "core/math/Rect.h"
 #include "core/math/IntegerDecomposition.h"
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 #include "render/tonemap/Tonemap.h"
 #include "core/Exception.h"
 #include "core/ScopeExit.h"
@@ -90,7 +90,7 @@ Raytracer::Raytracer(std::shared_ptr<Scene> scene)
 {
 }
 
-Raytracer::Raytracer(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene)
+Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene)
   : RenderEngine(std::move(camera), std::move(scene)),
     p(std::make_unique<Private>())
 {

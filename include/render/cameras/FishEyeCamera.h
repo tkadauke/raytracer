@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core/math/Angle.h"
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 
-namespace raytracer {
+namespace render {
   class ViewPlane;
 
   /**

@@ -1,6 +1,6 @@
 #include "widgets/QtDisplay.h"
 #include "raytracer/RenderEngine.h"
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 
 #include <QMouseEvent>
 

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "world/objects/TiltShiftCamera.h"
-#include "raytracer/cameras/TiltShiftCamera.h"
+#include "render/cameras/TiltShiftCamera.h"
 
 namespace TiltShiftCameraWorldTest {
   TEST(WorldTiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {
@@ -38,7 +38,7 @@ namespace TiltShiftCameraWorldTest {
     camera.setShiftX(0.1);
     camera.setShiftY(0.2);
 
-    auto rt = std::dynamic_pointer_cast<raytracer::TiltShiftCamera>(camera.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::TiltShiftCamera>(camera.toRaytracer());
     ASSERT_NE(nullptr, rt);
     // Inherited ThinLens parameters propagate.
     EXPECT_DOUBLE_EQ(camera.distance(),       rt->distance());

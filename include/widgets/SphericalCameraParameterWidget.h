@@ -13,7 +13,7 @@ public:
   int horizontalFieldOfView() const;
   int verticalFieldOfView() const;
 
-  virtual void applyTo(std::shared_ptr<raytracer::Camera> camera);
+  virtual void applyTo(std::shared_ptr<render::Camera> camera);
 
 signals:
   void changed();

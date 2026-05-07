@@ -11,12 +11,12 @@
   *
   * @image html thin_lens_camera_dof.png "Thin-lens camera with apertureRadius=0.2, focalDistance=8"
   *
-  * Editable wrapper for `raytracer::ThinLensCamera`. Exposes the four
+  * Editable wrapper for `render::ThinLensCamera`. Exposes the four
   * tunable parameters as `Q_PROPERTY`s so the SceneBrowser /
   * GeneratedRayTracer property editors build double-spinbox controls for
   * them automatically.
   *
-  * See `raytracer::ThinLensCamera` for the underlying physical model and
+  * See `render::ThinLensCamera` for the underlying physical model and
   * the geometric derivation of the focal-plane convergence guarantee.
   *
   * ### Empirical exploration
@@ -115,10 +115,10 @@ public:
   inline void setFocalDistance(double d) { m_focalDistance = d > 0 ? d : m_focalDistance; }
 
   /**
-    * Convert this editable camera into the runtime `raytracer::ThinLensCamera`
+    * Convert this editable camera into the runtime `render::ThinLensCamera`
     * used by the renderer. Copies all four parameters across.
     */
-  virtual std::shared_ptr<raytracer::Camera> toRaytracer() const;
+  virtual std::shared_ptr<render::Camera> toRaytracer() const;
 
 private:
   double m_distance;

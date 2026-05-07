@@ -1,4 +1,4 @@
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 #include "core/math/Rect.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/viewplanes/PointInterlacedViewPlane.h"
@@ -8,7 +8,7 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
 
-using namespace raytracer;
+using namespace render;
 
 Camera::Camera()
   : m_cancelled(false),
@@ -49,11 +49,11 @@ const Matrix4d& Camera::matrix() const {
   return m_matrix;
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer) const {
+void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colord>& buffer) const {
   render(raytracer, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer, const Recti& rect) const {
+void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colord>& buffer, const Recti& rect) const {
   if (isCancelled())
     return;
 
@@ -101,7 +101,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<Colord>& buffer
 
       Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
       if (ray.direction().isDefined()) {
-        State state;
+        raytracer::State state;
         state.timeSample = timeSample;
         pixelColor += raytracer->rayColor(ray, state);
       }
@@ -141,7 +141,7 @@ void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const rend
   }
 }
 
-void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& buffer,
+void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<unsigned int>& buffer,
                     std::shared_ptr<render::Tonemap> tonemap, const Recti& rect) const {
   if (isCancelled())
     return;
@@ -179,7 +179,7 @@ void Camera::render(std::shared_ptr<Raytracer> raytracer, Buffer<unsigned int>& 
 
       Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
       if (ray.direction().isDefined()) {
-        State state;
+        raytracer::State state;
         state.timeSample = timeSample;
         pixelColor += raytracer->rayColor(ray, state);
       }

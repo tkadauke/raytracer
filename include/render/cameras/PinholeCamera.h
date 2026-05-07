@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 
-namespace raytracer {
+namespace render {
   /**
     * Pinhole cameras produce a perspective projection of the scene onto the
     * view plane.

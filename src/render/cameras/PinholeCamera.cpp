@@ -1,9 +1,9 @@
-#include "raytracer/cameras/CameraFactory.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/CameraFactory.h"
+#include "render/cameras/PinholeCamera.h"
 #include "core/math/Ray.h"
 #include "render/viewplanes/ViewPlane.h"
 
-using namespace raytracer;
+using namespace render;
 
 Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
@@ -49,4 +49,4 @@ void PinholeCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   viewPlane()->setPixelSize(1.0 / m_zoom);
 }
 
-static bool dummy = CameraFactory::self().registerClass<PinholeCamera>("PinholeCamera");
+static bool dummy = CameraFactory::self().registerClass<render::PinholeCamera>("PinholeCamera");

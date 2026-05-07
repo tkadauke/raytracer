@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "world/objects/EquirectangularCamera.h"
-#include "raytracer/cameras/EquirectangularCamera.h"
+#include "render/cameras/EquirectangularCamera.h"
 
 namespace EquirectangularCameraWorldTest {
   TEST(WorldEquirectangularCamera, ShouldInitialize) {
@@ -10,7 +10,7 @@ namespace EquirectangularCameraWorldTest {
 
   TEST(WorldEquirectangularCamera, ShouldProduceRaytracerEquirectangularCamera) {
     EquirectangularCamera camera;
-    auto rt = std::dynamic_pointer_cast<raytracer::EquirectangularCamera>(camera.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::EquirectangularCamera>(camera.toRaytracer());
     EXPECT_NE(nullptr, rt);
   }
 }

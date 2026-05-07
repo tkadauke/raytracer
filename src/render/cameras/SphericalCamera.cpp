@@ -1,5 +1,5 @@
-#include "raytracer/cameras/CameraFactory.h"
-#include "raytracer/cameras/SphericalCamera.h"
+#include "render/cameras/CameraFactory.h"
+#include "render/cameras/SphericalCamera.h"
 #include "core/math/Ray.h"
 #include "core/math/Constants.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -7,7 +7,7 @@
 #include <cmath>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 Vector3d SphericalCamera::direction(double x, double y) const {
   Vector2d point(2.0 / viewPlane()->width() * x + 1.0, 2.0 / viewPlane()->height() * y - 1.0);

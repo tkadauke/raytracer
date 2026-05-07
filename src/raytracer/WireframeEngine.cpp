@@ -4,7 +4,7 @@
 #include "core/geometry/Bresenham.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Vector.h"
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 #include "raytracer/primitives/Scene.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -17,7 +17,7 @@ WireframeEngine::WireframeEngine(std::shared_ptr<Scene> scene)
 {
 }
 
-WireframeEngine::WireframeEngine(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene)
+WireframeEngine::WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene)
   : RenderEngine(std::move(camera), std::move(scene))
 {
 }
@@ -41,7 +41,7 @@ namespace {
   // visible glitch when the camera moves close to geometry, fixed in
   // V2 by Liang-Barsky or Cohen-Sutherland clipping.
   void rasterizeEdge(Buffer<Colord>& buffer,
-                     const Camera& camera,
+                     const render::Camera& camera,
                      const Vector3d& worldA,
                      const Vector3d& worldB,
                      const Colord& color) {

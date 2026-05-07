@@ -12,7 +12,7 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/WireframeEngine.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 #include "render/samplers/SamplerFactory.h"
 #include "render/tonemap/TonemapFactory.h"
 #include "render/viewplanes/TiledViewPlane.h"
@@ -84,7 +84,7 @@ void Renderer::render() const {
   // view plane sized to the output buffer; the only engine-specific
   // wiring (recursion depth, threads, sampler) lives on the engine
   // construction below.
-  std::shared_ptr<raytracer::Camera> rtCamera;
+  std::shared_ptr<render::Camera> rtCamera;
   auto camera = scene->activeCamera();
   if (camera) {
     rtCamera = camera->toRaytracer();

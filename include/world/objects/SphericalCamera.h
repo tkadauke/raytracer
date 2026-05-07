@@ -67,7 +67,7 @@ public:
     m_verticalFieldOfView = fov;
   }
   
-  virtual std::shared_ptr<raytracer::Camera> toRaytracer() const;
+  virtual std::shared_ptr<render::Camera> toRaytracer() const;
   
 private:
   Angled m_horizontalFieldOfView;

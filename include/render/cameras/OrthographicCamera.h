@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 
-namespace raytracer {
+namespace render {
   /**
     * An orthographic camera projects the scene orthographically onto the view
     * plane.

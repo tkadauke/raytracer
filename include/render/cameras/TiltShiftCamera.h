@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/cameras/ThinLensCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 #include "core/math/Angle.h"
 #include "core/math/Vector.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Thin-lens camera with a tilted focal plane and a
     *        shiftable lens — the optical setup used by tilt-shift

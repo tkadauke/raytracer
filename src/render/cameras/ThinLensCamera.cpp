@@ -1,12 +1,12 @@
-#include "raytracer/cameras/CameraFactory.h"
-#include "raytracer/cameras/ThinLensCamera.h"
+#include "render/cameras/CameraFactory.h"
+#include "render/cameras/ThinLensCamera.h"
 #include "core/math/Ray.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/samplers/JitteredSampler.h"
 
 #include <cmath>
 
-using namespace raytracer;
+using namespace render;
 
 namespace {
   // Concentric mapping from a square sample to the unit disc (Shirley

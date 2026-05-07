@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "widgets/PinholeCameraParameterWidget.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Signal.h"
 #include "test/helpers/Slot.h"

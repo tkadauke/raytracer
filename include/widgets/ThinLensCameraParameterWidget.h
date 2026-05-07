@@ -4,7 +4,7 @@
 #include "widgets/CameraParameterWidget.h"
 
 /**
-  * Sidebar parameter editor for `raytracer::ThinLensCamera` — exposes
+  * Sidebar parameter editor for `render::ThinLensCamera` — exposes
   * `distance`, `zoom`, `apertureRadius`, and `focalDistance` as live
   * spin-box inputs in `SceneBrowser`. Picked up automatically when the
   * user selects "ThinLensCamera" from the camera-type dropdown
@@ -28,7 +28,7 @@ public:
   double focalDistance() const;
 
   /** Pushes the four spin-box values onto a (presumed) ThinLensCamera. */
-  virtual void applyTo(std::shared_ptr<raytracer::Camera> camera);
+  virtual void applyTo(std::shared_ptr<render::Camera> camera);
 
 signals:
   void changed();

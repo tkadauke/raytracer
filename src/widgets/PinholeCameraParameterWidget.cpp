@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/PinholeCameraParameterWidget.h"
 #include "ui_PinholeCameraParameterWidget.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 
 using namespace raytracer;
 
@@ -33,8 +33,8 @@ double PinholeCameraParameterWidget::zoom() const {
   return p->ui.zoomInput->value();
 }
 
-void PinholeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
-  auto pinholeCamera = dynamic_cast<PinholeCamera*>(camera.get());
+void PinholeCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> camera) {
+  auto pinholeCamera = dynamic_cast<render::PinholeCamera*>(camera.get());
   if (pinholeCamera) {
     pinholeCamera->setDistance(distance());
     pinholeCamera->setZoom(zoom());

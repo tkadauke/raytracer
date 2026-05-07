@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/cameras/FishEyeCamera.h"
+#include "render/cameras/FishEyeCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "core/Buffer.h"

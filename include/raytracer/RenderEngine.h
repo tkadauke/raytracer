@@ -14,7 +14,9 @@ namespace render {
 }
 
 namespace raytracer {
-  class Camera;
+  }
+namespace render { class Camera; }
+namespace raytracer {
   class Scene;
 
   /**
@@ -69,7 +71,7 @@ namespace raytracer {
   class RenderEngine : public std::enable_shared_from_this<RenderEngine> {
   public:
     explicit RenderEngine(std::shared_ptr<Scene> scene);
-    explicit RenderEngine(std::shared_ptr<Camera> camera, std::shared_ptr<Scene> scene);
+    explicit RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<Scene> scene);
 
     virtual ~RenderEngine();
 
@@ -109,13 +111,13 @@ namespace raytracer {
     virtual void render(Buffer<Colord>& buffer) = 0;
 
     /// @returns the active camera (shared ownership).
-    inline std::shared_ptr<Camera> camera() const {
+    inline std::shared_ptr<render::Camera> camera() const {
       return m_camera;
     }
 
     /// Replaces the active camera. Safe to call between renders;
     /// undefined while `render` is executing on another thread.
-    inline void setCamera(std::shared_ptr<Camera> camera) {
+    inline void setCamera(std::shared_ptr<render::Camera> camera) {
       m_camera = std::move(camera);
     }
 
@@ -158,7 +160,7 @@ namespace raytracer {
     virtual std::list<Recti> activeRects() const;
 
   protected:
-    std::shared_ptr<Camera> m_camera;
+    std::shared_ptr<render::Camera> m_camera;
     std::shared_ptr<Scene> m_scene;
 
   private:

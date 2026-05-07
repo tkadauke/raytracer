@@ -7,7 +7,7 @@
 #include "raytracer/WireframeEngine.h"
 #include "render/lights/PointLight.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 
 #include "render/samplers/SamplerFactory.h"
 #include "render/viewplanes/ViewPlaneFactory.h"
@@ -148,7 +148,7 @@ void RenderWindow::setScene(::Scene* scene) {
   p->wireframe->setScene(raytracerScene);
 
   auto camera = scene->activeCamera();
-  std::shared_ptr<raytracer::Camera> rtCamera;
+  std::shared_ptr<render::Camera> rtCamera;
   if (camera) {
     rtCamera = camera->toRaytracer();
   } else {

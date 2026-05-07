@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "raytracer/cameras/ThinLensCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "render/viewplanes/PointInterlacedViewPlane.h"

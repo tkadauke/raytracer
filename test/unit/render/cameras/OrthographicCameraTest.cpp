@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/cameras/OrthographicCamera.h"
+#include "render/cameras/OrthographicCamera.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/primitives/Scene.h"
 #include "core/Buffer.h"

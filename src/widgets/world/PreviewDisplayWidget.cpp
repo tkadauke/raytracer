@@ -11,7 +11,7 @@
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/mappings/PlanarMapping2D.h"
-#include "raytracer/cameras/PinholeCamera.h"
+#include "render/cameras/PinholeCamera.h"
 
 PreviewDisplayWidget::PreviewDisplayWidget(QWidget* parent)
   : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr))
@@ -35,7 +35,7 @@ void PreviewDisplayWidget::setMaterial(Material* material, Scene* s) {
   setInteractive(true);
   updateScene([&]() {
     m_engine->setScene(sphereOnPlane(material, s));
-    m_engine->setCamera(std::make_shared<raytracer::PinholeCamera>());
+    m_engine->setCamera(std::make_shared<render::PinholeCamera>());
   });
 }
 

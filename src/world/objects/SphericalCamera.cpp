@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/SphericalCamera.h"
 
-#include "raytracer/cameras/SphericalCamera.h"
+#include "render/cameras/SphericalCamera.h"
 
 SphericalCamera::SphericalCamera(Element* parent)
   : Camera(parent),
@@ -10,8 +10,8 @@ SphericalCamera::SphericalCamera(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Camera> SphericalCamera::toRaytracer() const {
-  auto camera = make_named<raytracer::SphericalCamera>(position(), target());
+std::shared_ptr<render::Camera> SphericalCamera::toRaytracer() const {
+  auto camera = make_named<render::SphericalCamera>(position(), target());
   camera->setFieldOfView(
     horizontalFieldOfView(),
     verticalFieldOfView()

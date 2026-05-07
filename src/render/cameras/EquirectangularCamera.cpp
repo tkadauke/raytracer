@@ -1,5 +1,5 @@
-#include "raytracer/cameras/CameraFactory.h"
-#include "raytracer/cameras/EquirectangularCamera.h"
+#include "render/cameras/CameraFactory.h"
+#include "render/cameras/EquirectangularCamera.h"
 #include "core/math/Ray.h"
 #include "core/math/Constants.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -7,7 +7,7 @@
 #include <cmath>
 
 using namespace std;
-using namespace raytracer;
+using namespace render;
 
 Vector3d EquirectangularCamera::direction(double x, double y) const {
   // Map pixel (x, y) → (lon, lat) in the canonical equirectangular layout:

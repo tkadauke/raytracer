@@ -1,11 +1,11 @@
-#include "raytracer/cameras/CameraFactory.h"
-#include "raytracer/cameras/TiltShiftCamera.h"
+#include "render/cameras/CameraFactory.h"
+#include "render/cameras/TiltShiftCamera.h"
 #include "core/math/Ray.h"
 #include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
 
-using namespace raytracer;
+using namespace render;
 
 Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, double lensV) const {
   // Pinhole reference ray, with optional lateral shift baked into

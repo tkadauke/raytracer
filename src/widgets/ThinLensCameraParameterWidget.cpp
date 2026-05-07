@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/ThinLensCameraParameterWidget.h"
 #include "ui_ThinLensCameraParameterWidget.h"
-#include "raytracer/cameras/ThinLensCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 
 using namespace raytracer;
 
@@ -43,11 +43,11 @@ double ThinLensCameraParameterWidget::focalDistance() const {
   return p->ui.focalDistanceInput->value();
 }
 
-void ThinLensCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
+void ThinLensCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> camera) {
   // dynamic_cast guards against a registry / dropdown mismatch (the
   // factory hands us this widget when the user picks "ThinLensCamera",
   // so the camera *should* be a ThinLensCamera, but pin the contract).
-  auto thinLens = dynamic_cast<ThinLensCamera*>(camera.get());
+  auto thinLens = dynamic_cast<render::ThinLensCamera*>(camera.get());
   if (thinLens) {
     thinLens->setDistance(distance());
     thinLens->setZoom(zoom());

@@ -4,7 +4,7 @@
 #include "world/objects/Element.h"
 #include "core/math/Vector.h"
 
-namespace raytracer {
+namespace render {
   class Camera;
 }
 
@@ -69,7 +69,7 @@ public:
     m_target = target;
   }
   
-  virtual std::shared_ptr<raytracer::Camera> toRaytracer() const = 0;
+  virtual std::shared_ptr<render::Camera> toRaytracer() const = 0;
   
 private:
   Vector3d m_position;

@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/OrthographicCamera.h"
 
-#include "raytracer/cameras/OrthographicCamera.h"
+#include "render/cameras/OrthographicCamera.h"
 
 OrthographicCamera::OrthographicCamera(Element* parent)
   : Camera(parent),
@@ -9,8 +9,8 @@ OrthographicCamera::OrthographicCamera(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Camera> OrthographicCamera::toRaytracer() const {
-  auto camera = make_named<raytracer::OrthographicCamera>(position(), target());
+std::shared_ptr<render::Camera> OrthographicCamera::toRaytracer() const {
+  auto camera = make_named<render::OrthographicCamera>(position(), target());
   camera->setZoom(zoom());
   return camera;
 }

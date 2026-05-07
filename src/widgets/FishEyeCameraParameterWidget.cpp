@@ -1,7 +1,7 @@
 #include "widgets/CameraParameterWidgetFactory.h"
 #include "widgets/FishEyeCameraParameterWidget.h"
 #include "ui_FishEyeCameraParameterWidget.h"
-#include "raytracer/cameras/FishEyeCamera.h"
+#include "render/cameras/FishEyeCamera.h"
 
 using namespace raytracer;
 
@@ -28,8 +28,8 @@ int FishEyeCameraParameterWidget::fieldOfView() const {
   return p->ui.fieldOfViewSlider->value();
 }
 
-void FishEyeCameraParameterWidget::applyTo(std::shared_ptr<Camera> camera) {
-  auto fishEyeCamera = dynamic_cast<FishEyeCamera*>(camera.get());
+void FishEyeCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> camera) {
+  auto fishEyeCamera = dynamic_cast<render::FishEyeCamera*>(camera.get());
   if (fishEyeCamera) {
     fishEyeCamera->setFieldOfView(Angled::fromDegrees(fieldOfView()));
   }

@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/cameras/Camera.h"
+#include "render/cameras/Camera.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Pinhole camera with a finite aperture — produces depth of field.
     *
