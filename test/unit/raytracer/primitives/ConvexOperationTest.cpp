@@ -2,7 +2,7 @@
 #include "gmock/gmock.h"
 #include "raytracer/State.h"
 #include "raytracer/primitives/ConvexOperation.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace testing {

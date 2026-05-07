@@ -5,7 +5,7 @@
 #include "raytracer/State.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "raytracer/lights/DirectionalLight.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"

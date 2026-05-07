@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/materials/PhongMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"

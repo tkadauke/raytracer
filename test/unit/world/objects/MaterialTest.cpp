@@ -7,11 +7,11 @@
 #include "world/objects/TransparentMaterial.h"
 #include "world/objects/ConstantColorTexture.h"
 
-#include "raytracer/materials/Material.h"
-#include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/materials/PhongMaterial.h"
-#include "raytracer/materials/ReflectiveMaterial.h"
-#include "raytracer/materials/TransparentMaterial.h"
+#include "render/materials/Material.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 
 namespace MaterialTest {
   // ---------- Material (abstract base) --------------------------------------
@@ -55,7 +55,7 @@ namespace MaterialTest {
   TEST(MatteMaterial, ShouldProduceRaytracerMatteMaterial) {
     MatteMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<raytracer::MatteMaterial>(
+    auto rt = std::dynamic_pointer_cast<render::MatteMaterial>(
       base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
@@ -103,7 +103,7 @@ namespace MaterialTest {
   TEST(PhongMaterial, ShouldProduceRaytracerPhongMaterial) {
     PhongMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<raytracer::PhongMaterial>(
+    auto rt = std::dynamic_pointer_cast<render::PhongMaterial>(
       base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
@@ -135,7 +135,7 @@ namespace MaterialTest {
   TEST(ReflectiveMaterial, ShouldProduceRaytracerReflectiveMaterial) {
     ReflectiveMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<raytracer::ReflectiveMaterial>(
+    auto rt = std::dynamic_pointer_cast<render::ReflectiveMaterial>(
       base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
@@ -181,7 +181,7 @@ namespace MaterialTest {
   TEST(TransparentMaterial, ShouldProduceRaytracerTransparentMaterial) {
     TransparentMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<raytracer::TransparentMaterial>(
+    auto rt = std::dynamic_pointer_cast<render::TransparentMaterial>(
       base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }

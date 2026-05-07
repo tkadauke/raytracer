@@ -3,7 +3,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/cameras/PinholeCamera.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "test/helpers/ImageViewer.h"

@@ -2,7 +2,7 @@
 #include "world/objects/ReflectiveMaterial.h"
 #include "world/objects/Texture.h"
 
-#include "raytracer/materials/ReflectiveMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
 
 ReflectiveMaterial::ReflectiveMaterial(Element* parent)
   : PhongMaterial(parent),
@@ -11,8 +11,8 @@ ReflectiveMaterial::ReflectiveMaterial(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Material> ReflectiveMaterial::toRaytracerMaterial() const {
-  auto material = make_named<raytracer::ReflectiveMaterial>(
+std::shared_ptr<render::Material> ReflectiveMaterial::toRaytracerMaterial() const {
+  auto material = make_named<render::ReflectiveMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor()
   );
   material->setAmbientCoefficient(ambientCoefficient());

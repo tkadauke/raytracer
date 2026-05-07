@@ -7,7 +7,7 @@
 
 using namespace raytracer;
 
-void FlatMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material) {
+void FlatMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material) {
   for (const auto& triangle : *mesh) {
     auto primitive = std::make_shared<FlatMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
     primitive->setMaterial(material);

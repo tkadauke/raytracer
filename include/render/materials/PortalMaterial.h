@@ -1,10 +1,10 @@
 #pragma once
 
-#include "raytracer/materials/Material.h"
+#include "render/materials/Material.h"
 #include "core/math/Matrix.h"
 #include "core/math/Ray.h"
 
-namespace raytracer {
+namespace render {
   class PortalMaterial : public Material {
   public:
     inline explicit PortalMaterial(const Matrix4d& transformation, const Colord& filter)
@@ -15,7 +15,7 @@ namespace raytracer {
 
     void setMatrix(const Matrix4d& matrix);
 
-    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
 
   private:
     inline Rayd transformedRay(const Rayd& ray) const {

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "raytracer/primitives/Primitive.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 
 namespace PrimitiveTest {
   using namespace raytracer;

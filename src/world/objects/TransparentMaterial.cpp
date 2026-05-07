@@ -2,7 +2,7 @@
 #include "world/objects/TransparentMaterial.h"
 #include "world/objects/Texture.h"
 
-#include "raytracer/materials/TransparentMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 
 TransparentMaterial::TransparentMaterial(Element* parent)
   : PhongMaterial(parent),
@@ -11,8 +11,8 @@ TransparentMaterial::TransparentMaterial(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Material> TransparentMaterial::toRaytracerMaterial() const {
-  auto material = make_named<raytracer::TransparentMaterial>();
+std::shared_ptr<render::Material> TransparentMaterial::toRaytracerMaterial() const {
+  auto material = make_named<render::TransparentMaterial>();
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());

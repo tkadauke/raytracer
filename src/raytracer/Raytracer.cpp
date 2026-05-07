@@ -7,7 +7,7 @@
 #include "core/Buffer.h"
 #include "core/math/HitPoint.h"
 #include "core/math/HitPointInterval.h"
-#include "raytracer/materials/Material.h"
+#include "render/materials/Material.h"
 #include "core/math/Matrix.h"
 #include "core/math/Rect.h"
 #include "core/math/IntegerDecomposition.h"

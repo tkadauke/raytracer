@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Union.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace UnionTest {

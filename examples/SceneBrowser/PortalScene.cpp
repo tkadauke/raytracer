@@ -3,10 +3,10 @@
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Plane.h"
 #include "raytracer/lights/PointLight.h"
-#include "raytracer/materials/Material.h"
-#include "raytracer/materials/PortalMaterial.h"
-#include "raytracer/materials/ReflectiveMaterial.h"
-#include "raytracer/materials/TransparentMaterial.h"
+#include "render/materials/Material.h"
+#include "render/materials/PortalMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;

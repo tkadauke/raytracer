@@ -2,7 +2,7 @@
 #include "core/geometry/Mesh.h"
 #include "test/helpers/ContainerTestHelper.h"
 
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "raytracer/primitives/Scene.h"
 
 namespace MeshTest {

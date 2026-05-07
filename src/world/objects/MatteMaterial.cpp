@@ -2,7 +2,7 @@
 #include "world/objects/MatteMaterial.h"
 #include "world/objects/Texture.h"
 
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 
 MatteMaterial::MatteMaterial(Element* parent)
   : Material(parent),
@@ -12,8 +12,8 @@ MatteMaterial::MatteMaterial(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Material> MatteMaterial::toRaytracerMaterial() const {
-  auto material = make_named<raytracer::MatteMaterial>(
+std::shared_ptr<render::Material> MatteMaterial::toRaytracerMaterial() const {
+  auto material = make_named<render::MatteMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture()
   );
   material->setAmbientCoefficient(ambientCoefficient());

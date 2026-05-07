@@ -66,7 +66,7 @@ namespace raytracer {
     /// wrapped primitive's material), otherwise the wrapped
     /// primitive's. This is what makes `Surface::applyTransform`
     /// preserve material assignment on world-to-runtime conversion.
-    virtual std::shared_ptr<Material> material() const;
+    virtual std::shared_ptr<render::Material> material() const;
 
     /**
       * Set the world-to-instance transform matrix. Internally

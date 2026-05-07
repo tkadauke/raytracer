@@ -5,7 +5,7 @@
 #include "raytracer/primitives/Disk.h"
 #include "raytracer/primitives/Torus.h"
 #include "raytracer/primitives/Instance.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 
 Cylinder::Cylinder(Element* parent)
   : Surface(parent),

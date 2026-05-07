@@ -1,10 +1,10 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/brdf/GlossySpecular.h"
 
-namespace raytracer {
+namespace render {
   /**
     * Phong materials are used to shade physically incorrect, but easy-to-compute
     * shiny surfaces. The reflection model used in this material is the
@@ -124,7 +124,7 @@ namespace raytracer {
       m_specularBRDF.setExponent(exponent);
     }
     
-    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
 
   private:
     render::GlossySpecular m_specularBRDF;

@@ -10,8 +10,11 @@
 class HitPointInterval;
 class Mesh;
 
-namespace raytracer {
+namespace render {
   class Material;
+}
+
+namespace raytracer {
   class State;
 
   /**
@@ -101,13 +104,13 @@ namespace raytracer {
       * composite's `material()` returns non-null it acts as a
       * fallback for children with no material of their own.
       */
-    inline void setMaterial(std::shared_ptr<Material> material) {
+    inline void setMaterial(std::shared_ptr<render::Material> material) {
       m_material = material;
     }
 
     /// @returns the material attached to this primitive, or null
     /// if none was set. See `setMaterial` for fallback semantics.
-    inline virtual std::shared_ptr<Material> material() const {
+    inline virtual std::shared_ptr<render::Material> material() const {
       return m_material;
     }
 
@@ -185,7 +188,7 @@ namespace raytracer {
     bool convexIntersect(const Rayd& ray, HitPointInterval& hitPoints) const;
 
   private:
-    std::shared_ptr<Material> m_material;
+    std::shared_ptr<render::Material> m_material;
     mutable MemoizedValue<BoundingBoxd> m_cachedBoundingBox;
   };
 }

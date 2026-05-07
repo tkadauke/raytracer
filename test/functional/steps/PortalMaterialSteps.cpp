@@ -3,7 +3,7 @@
 
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Sphere.h"
-#include "raytracer/materials/PortalMaterial.h"
+#include "render/materials/PortalMaterial.h"
 
 using namespace testing;
 using namespace raytracer;

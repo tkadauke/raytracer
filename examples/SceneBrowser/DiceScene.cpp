@@ -7,10 +7,10 @@
 #include "raytracer/primitives/Plane.h"
 #include "raytracer/lights/PointLight.h"
 #include "raytracer/primitives/Difference.h"
-#include "raytracer/materials/Material.h"
-#include "raytracer/materials/PhongMaterial.h"
-#include "raytracer/materials/ReflectiveMaterial.h"
-#include "raytracer/materials/TransparentMaterial.h"
+#include "render/materials/Material.h"
+#include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;

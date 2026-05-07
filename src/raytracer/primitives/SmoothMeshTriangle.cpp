@@ -47,7 +47,7 @@ SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1,
   cnv = -c[u] * reci;
 }
 
-void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material) {
+void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material) {
   for (const auto& triangle : *mesh) {
     auto primitive = std::make_shared<SmoothMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
     primitive->setMaterial(material);

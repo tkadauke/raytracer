@@ -81,7 +81,7 @@ void Instance::setVelocity(const Vector3d& velocity) {
   m_velocity = velocity;
 }
 
-std::shared_ptr<Material> Instance::material() const {
+std::shared_ptr<render::Material> Instance::material() const {
   auto parent = Primitive::material();
   if (parent)
     return parent;

@@ -5,7 +5,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/lights/DirectionalLight.h"
 #include "render/textures/CheckerBoardTexture.h"
@@ -69,7 +69,7 @@ std::shared_ptr<raytracer::Scene> PreviewDisplayWidget::sphereOnPlane(Material* 
   auto sphere = std::make_shared<raytracer::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);
 
-  auto planeMaterial = std::make_shared<raytracer::MatteMaterial>(
+  auto planeMaterial = std::make_shared<render::MatteMaterial>(
     std::make_shared<render::CheckerBoardTexture>(
       new render::PlanarMapping2D,
       std::make_shared<render::ConstantColorTexture>(Colord::black()),

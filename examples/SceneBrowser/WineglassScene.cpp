@@ -8,9 +8,9 @@
 #include "raytracer/primitives/Intersection.h"
 #include "raytracer/primitives/Union.h"
 #include "raytracer/primitives/Instance.h"
-#include "raytracer/materials/Material.h"
-#include "raytracer/materials/PhongMaterial.h"
-#include "raytracer/materials/TransparentMaterial.h"
+#include "render/materials/Material.h"
+#include "render/materials/PhongMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;

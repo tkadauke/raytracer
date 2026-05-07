@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/Sphere.h"
 #include "raytracer/primitives/Sphere.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 
 Sphere::Sphere(Element* parent)
   : Surface(parent),

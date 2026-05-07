@@ -1,10 +1,10 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/materials/PhongMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/brdf/PerfectSpecular.h"
 
-namespace raytracer {
+namespace render {
   /**
     * Reflective materials describe shiny objects like polished metal or
     * mirrors.
@@ -92,7 +92,7 @@ namespace raytracer {
       m_reflectiveBRDF.setReflectionCoefficient(coeff);
     }
     
-    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
     
   protected:
     render::PerfectSpecular m_reflectiveBRDF;

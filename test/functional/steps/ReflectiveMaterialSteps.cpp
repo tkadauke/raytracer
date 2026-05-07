@@ -3,7 +3,7 @@
 
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Sphere.h"
-#include "raytracer/materials/ReflectiveMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 using namespace testing;

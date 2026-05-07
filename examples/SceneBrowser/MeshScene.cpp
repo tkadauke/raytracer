@@ -7,8 +7,8 @@
 #include "raytracer/primitives/Instance.h"
 #include "core/formats/ply/PlyFile.h"
 #include "raytracer/lights/PointLight.h"
-#include "raytracer/materials/ReflectiveMaterial.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include <fstream>

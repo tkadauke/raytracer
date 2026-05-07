@@ -3,7 +3,7 @@
 
 #include "world/objects/Element.h"
 
-namespace raytracer {
+namespace render {
   class Material;
 }
 
@@ -28,5 +28,5 @@ public:
     * Converts this material to the corresponding class in the raytracer
     * namespace.
     */
-  virtual std::shared_ptr<raytracer::Material> toRaytracerMaterial() const = 0;
+  virtual std::shared_ptr<render::Material> toRaytracerMaterial() const = 0;
 };

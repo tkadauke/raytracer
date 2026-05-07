@@ -5,7 +5,7 @@
 #include "raytracer/primitives/OpenCylinder.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Instance.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 
 Box::Box(Element* parent)
   : Surface(parent),

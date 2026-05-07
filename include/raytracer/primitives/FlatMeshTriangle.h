@@ -16,7 +16,7 @@ namespace raytracer {
       m_normal = computeNormal();
     }
 
-    static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material);
+    static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
 
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
 

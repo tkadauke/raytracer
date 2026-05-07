@@ -7,11 +7,14 @@
 #include "core/Color.h"
 #include "core/Buffer.h"
 
+namespace render {
+  class Material;
+}
+
 namespace raytracer {
   class Primitive;
   class Camera;
   class Raytracer;
-  class Material;
   class Scene;
 }
 
@@ -43,7 +46,7 @@ namespace testing {
     unsigned int colorAt(int x, int y) const;
     void show() const;
 
-    std::shared_ptr<raytracer::Material> redDiffuse() const;
+    std::shared_ptr<render::Material> redDiffuse() const;
     void lookAtOrigin();
     void lookAway();
     void goFarAway();

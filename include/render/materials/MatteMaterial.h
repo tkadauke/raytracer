@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/materials/Material.h"
+#include "render/materials/Material.h"
 #include "render/brdf/Lambertian.h"
 #include "render/textures/Texture.h"
 
-namespace raytracer {
+namespace render {
   /**
     * Matte materials have no reflection, or transmission. As the name suggests,
     * they appear matte.
@@ -106,7 +106,7 @@ namespace raytracer {
       m_diffuseCoefficient = coeff;
     }
     
-    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
 
   private:
     std::shared_ptr<render::Texturec> m_diffuseTexture;

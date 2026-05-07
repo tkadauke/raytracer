@@ -8,9 +8,13 @@
 
 class HitPoint;
 
-namespace raytracer {
-  class Raytracer;
-  class State;
+namespace render {
+}
+namespace raytracer { class Raytracer; }
+namespace render {
+}
+namespace raytracer { class State; }
+namespace render {
 
   /**
     * @brief Abstract base for everything that can be assigned to a
@@ -66,6 +70,6 @@ namespace raytracer {
       * emits "TIR" / "Tracing reflection" / "Tracing transmission"
       * events here.
       */
-    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const = 0;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const = 0;
   };
 }

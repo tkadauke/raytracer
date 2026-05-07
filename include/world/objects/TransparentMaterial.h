@@ -119,7 +119,7 @@ public:
   }
 
 protected:
-  virtual std::shared_ptr<raytracer::Material> toRaytracerMaterial() const;
+  virtual std::shared_ptr<render::Material> toRaytracerMaterial() const;
 
 private:
   double m_transmissionCoefficient;

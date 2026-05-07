@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"

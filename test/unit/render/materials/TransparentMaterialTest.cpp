@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "raytracer/materials/TransparentMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"

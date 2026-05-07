@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 
-#include "raytracer/materials/PhongMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/brdf/PerfectSpecular.h"
 #include "render/brdf/PerfectTransmitter.h"
 
-namespace raytracer {
+namespace render {
   /**
     * Transparent materials are used to describe perfectly transparent materials
     * like air, water, glass, or diamonds, that may be tinted on the outside,
@@ -130,7 +130,7 @@ namespace raytracer {
       m_specularBTDF.setRefractionIndex(index);
     }
 
-    virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
 
   private:
     Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);

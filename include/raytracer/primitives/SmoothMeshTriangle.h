@@ -15,7 +15,7 @@ namespace raytracer {
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, State& state) const;
     virtual bool intersects(const Rayd& ray, State& state) const;
 
-    static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<Material> material);
+    static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
 
     /**
       * Returns a single-triangle Mesh with vertex positions and UVs copied from

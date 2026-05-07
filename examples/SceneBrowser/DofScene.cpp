@@ -4,7 +4,7 @@
 #include "raytracer/primitives/Plane.h"
 #include "raytracer/lights/PointLight.h"
 #include "raytracer/lights/DirectionalLight.h"
-#include "raytracer/materials/MatteMaterial.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;

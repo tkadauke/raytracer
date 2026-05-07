@@ -2,7 +2,7 @@
 #include "world/objects/PhongMaterial.h"
 #include "world/objects/Texture.h"
 
-#include "raytracer/materials/PhongMaterial.h"
+#include "render/materials/PhongMaterial.h"
 
 PhongMaterial::PhongMaterial(Element* parent)
   : MatteMaterial(parent),
@@ -12,8 +12,8 @@ PhongMaterial::PhongMaterial(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Material> PhongMaterial::toRaytracerMaterial() const {
-  auto material = make_named<raytracer::PhongMaterial>(
+std::shared_ptr<render::Material> PhongMaterial::toRaytracerMaterial() const {
+  auto material = make_named<render::PhongMaterial>(
     textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor(), exponent()
   );
   material->setAmbientCoefficient(ambientCoefficient());
