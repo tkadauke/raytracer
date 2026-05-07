@@ -4,7 +4,7 @@
 #include "core/InequalityOperator.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
-#include "raytracer/Stats.h"
+#include "render/Stats.h"
 
 #include <iostream>
 #include <algorithm>

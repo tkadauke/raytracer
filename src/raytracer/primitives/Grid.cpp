@@ -1,5 +1,5 @@
 #include "raytracer/State.h"
-#include "raytracer/Stats.h"
+#include "render/Stats.h"
 #include "raytracer/primitives/Grid.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"

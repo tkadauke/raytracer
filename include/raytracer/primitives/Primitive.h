@@ -5,7 +5,7 @@
 #include "core/math/Ray.h"
 #include "core/MemoizedValue.h"
 
-#include "raytracer/Object.h"
+#include "render/Object.h"
 
 class HitPointInterval;
 class Mesh;
@@ -50,7 +50,7 @@ namespace raytracer {
     * @see Grid — spatial-hashing acceleration for large composites.
     * @see Instance — primitive wrapped in a transform matrix.
     */
-  class Primitive : public Object {
+  class Primitive : public render::Object {
   public:
     inline Primitive()
       : m_material(nullptr)

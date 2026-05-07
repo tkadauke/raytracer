@@ -35,7 +35,7 @@ target_link_libraries(raytracer
 )
 
 if(RAYTRACER_ENABLE_STATS)
-  # PUBLIC so headers like include/raytracer/Stats.h see the same definition
+  # PUBLIC so headers like include/render/Stats.h see the same definition
   # in the library and in dependents (tests, examples, tools). Without that,
   # a translation unit could include Stats.h with the macro undefined and
   # silently emit no-op increments while the library counted them.

@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <iosfwd>
 
-namespace raytracer {
+namespace render {
   namespace stats {
 
 #ifdef RAYTRACER_ENABLE_STATS
@@ -56,7 +56,7 @@ namespace raytracer {
     };
 
 #define RAYTRACER_STATS_INC(field)                                             \
-  ::raytracer::stats::Counters::instance().field.fetch_add(                    \
+  ::render::stats::Counters::instance().field.fetch_add(                    \
       1, std::memory_order_relaxed)
 
 #else  // !RAYTRACER_ENABLE_STATS
@@ -66,4 +66,4 @@ namespace raytracer {
 #endif  // RAYTRACER_ENABLE_STATS
 
   }  // namespace stats
-}  // namespace raytracer
+}  // namespace render

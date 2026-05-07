@@ -4,7 +4,7 @@
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 
-#include "raytracer/Object.h"
+#include "render/Object.h"
 
 class HitPoint;
 
@@ -43,7 +43,7 @@ namespace raytracer {
     * @see BRDF / BTDF — the reflectance / transmittance lobes
     *      composed by these materials.
     */
-  class Material : public Object {
+  class Material : public render::Object {
   public:
     virtual ~Material() {}
 

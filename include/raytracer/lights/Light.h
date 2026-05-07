@@ -3,7 +3,7 @@
 #include "core/math/Vector.h"
 #include "core/Color.h"
 
-#include "raytracer/Object.h"
+#include "render/Object.h"
 
 namespace raytracer {
   /**
@@ -36,7 +36,7 @@ namespace raytracer {
     * @see PointLight, DirectionalLight — concrete subclasses.
     * @see Scene::lights() — where materials read these from.
     */
-  class Light : public Object {
+  class Light : public render::Object {
   public:
     inline Light() {}
 

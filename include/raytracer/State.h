@@ -5,7 +5,7 @@
 #include <string>
 
 #include "core/math/HitPoint.h"
-#include "raytracer/Object.h"
+#include "render/Object.h"
 
 namespace raytracer {
   class Primitive;
@@ -78,7 +78,7 @@ namespace raytracer {
       *
       * No-op when `traceEvents` is false.
       */
-    inline void recordEvent(const Object* obj, const std::string& event) {
+    inline void recordEvent(const render::Object* obj, const std::string& event) {
       if (traceEvents) {
         std::string indent;
         for (int i = 0; i != recursionDepth; i++)
@@ -108,13 +108,13 @@ namespace raytracer {
 
     /// Record an intersection hit: bumps `intersectionHits` and
     /// emits an event. Called from primitive `intersect` methods.
-    inline void hit(const Object* obj, const std::string& info) {
+    inline void hit(const render::Object* obj, const std::string& info) {
       intersectionHits++;
       recordEvent(obj, "Intersection hit: " + info);
     }
 
     /// Record an intersection miss. Counterpart to `hit`.
-    inline void miss(const Object* obj, const std::string& info) {
+    inline void miss(const render::Object* obj, const std::string& info) {
       intersectionMisses++;
       recordEvent(obj, "Intersection miss: " + info);
     }
@@ -122,13 +122,13 @@ namespace raytracer {
     /// Record a shadow-ray hit. Tracked separately so cost analyses
     /// can break out direct-lighting visibility cost from primary
     /// + reflection / refraction cost.
-    inline void shadowHit(const Object* obj, const std::string& info) {
+    inline void shadowHit(const render::Object* obj, const std::string& info) {
       shadowIntersectionHits++;
       recordEvent(obj, "Shadow intersection hit: " + info);
     }
 
     /// Record a shadow-ray miss. Counterpart to `shadowHit`.
-    inline void shadowMiss(const Object* obj, const std::string& info) {
+    inline void shadowMiss(const render::Object* obj, const std::string& info) {
       shadowIntersectionMisses++;
       recordEvent(obj, "Shadow intersection miss: " + info);
     }

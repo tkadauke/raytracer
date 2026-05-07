@@ -1,10 +1,10 @@
-#include "raytracer/Stats.h"
+#include "render/Stats.h"
 
 #ifdef RAYTRACER_ENABLE_STATS
 
 #include <ostream>
 
-namespace raytracer {
+namespace render {
   namespace stats {
 
     void Counters::dumpJson(std::ostream& out) const {
@@ -21,6 +21,6 @@ namespace raytracer {
     }
 
   }  // namespace stats
-}  // namespace raytracer
+}  // namespace render
 
 #endif  // RAYTRACER_ENABLE_STATS

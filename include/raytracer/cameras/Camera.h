@@ -8,7 +8,7 @@
 #include "core/MemoizedValue.h"
 #include "raytracer/viewplanes/ViewPlane.h"
 #include "raytracer/samplers/SampleStream.h"
-#include "raytracer/Object.h"
+#include "render/Object.h"
 
 template<class T>
 class Buffer;
@@ -22,7 +22,7 @@ namespace render {
 namespace raytracer {
   class Raytracer;
 
-  class Camera : public Object {
+  class Camera : public render::Object {
   public:
     Camera();
     explicit Camera(const Vector3d& position, const Vector3d& target);

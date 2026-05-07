@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/Color.h"
-#include "raytracer/Object.h"
+#include "render/Object.h"
 
 namespace render {
   /**
@@ -63,7 +63,7 @@ namespace render {
     *
     * @see Raytracer::setTonemap — how to install one.
     */
-  class Tonemap : public raytracer::Object {
+  class Tonemap : public render::Object {
   public:
     virtual ~Tonemap() = default;
 

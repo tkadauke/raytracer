@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Tiny base class — gives every named entity a `name()`
     *        without forcing it to derive from `QObject`.

@@ -1,5 +1,5 @@
 #include "raytracer/State.h"
-#include "raytracer/Stats.h"
+#include "render/Stats.h"
 #include "raytracer/primitives/Sphere.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Constants.h"
