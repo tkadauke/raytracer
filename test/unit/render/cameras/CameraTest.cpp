@@ -70,6 +70,11 @@ namespace CameraTest {
     ASSERT_EQ(2, camera.matrix()[2][3]);
   }
 
+  TEST(Camera, ShouldReturnInverseMatrix) {
+    ConcreteCamera camera(Vector3d(0, 0, -2), Vector3d::null());
+    ASSERT_EQ(camera.matrix().inverted(), camera.inverseMatrix());
+  }
+
   TEST(Camera, ShouldRecalculateMatrixWhenPositionIsChanged) {
     ConcreteCamera camera;
     camera.setPosition(Vector3d(0, 0, -2));
@@ -82,6 +87,20 @@ namespace CameraTest {
     ASSERT_EQ(expected, camera.matrix());
   }
 
+  TEST(Camera, ShouldRecalculateInverseMatrixWhenPositionIsChanged) {
+    ConcreteCamera camera(Vector3d(0, 0, -2), Vector3d::null());
+    camera.inverseMatrix();
+    camera.setPosition(Vector3d(0, 0, -3));
+
+    Matrix4d expected(
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 3,
+      0, 0, 0, 1
+    );
+    ASSERT_EQ(expected, camera.inverseMatrix());
+  }
+
   TEST(Camera, ShouldRecalculateMatrixWhenTargetIsChanged) {
     ConcreteCamera camera;
     camera.setTarget(Vector3d(0, 0, 1));
@@ -92,6 +111,14 @@ namespace CameraTest {
       0, 0, 0, 1
     );
     ASSERT_EQ(expected, camera.matrix());
+  }
+
+  TEST(Camera, ShouldRecalculateInverseMatrixWhenTargetIsChanged) {
+    ConcreteCamera camera(Vector3d(0, 0, -2), Vector3d::null());
+    camera.inverseMatrix();
+    camera.setTarget(Vector3d(0, 0, 1));
+
+    ASSERT_EQ(camera.matrix().inverted(), camera.inverseMatrix());
   }
 
   TEST(Camera, ShouldSetViewPlane) {

@@ -16,7 +16,7 @@ Vector2d OrthographicCamera::projectPoint(const Vector3d& worldPoint) const {
   // and convert the remaining camera-space (x, y) directly into
   // pixel coordinates. No perspective divide — every world point
   // projects via parallel rays.
-  Matrix4d worldToCamera = matrix().inverted();
+  const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   if (pCam.z() < 0.0) {
@@ -35,7 +35,7 @@ Vector2d OrthographicCamera::projectPoint(const Vector3d& worldPoint) const {
 }
 
 Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) const {
-  Matrix4d worldToCamera = matrix().inverted();
+  const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   if (pCam.z() < 0.0) {
@@ -60,7 +60,7 @@ double OrthographicCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
   // Orthographic projection has no perspective eye point; depth is
   // just the camera-space `z` coordinate. Positive in front of the
   // viewplane, negative behind.
-  Matrix4d worldToCamera = matrix().inverted();
+  const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
   return pCam.z();
 }

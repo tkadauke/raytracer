@@ -17,7 +17,7 @@ Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {
   // in camera space is at z=0 regardless of pixelSize, so the
   // inversion is straightforward: project pCam through eye=(0,0,-d)
   // onto z=0, then convert camera-space plane coords to pixels.
-  Matrix4d worldToCamera = matrix().inverted();
+  const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   // Eye is at (0, 0, -distance) in camera space; perspective
@@ -49,7 +49,7 @@ Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const 
   // returning the eye-relative distance along the camera's forward
   // axis. Used by the software rasterizer's Z-buffer for depth
   // tests and by perspective-correct attribute interpolation.
-  Matrix4d worldToCamera = matrix().inverted();
+  const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   // The eye sits at camera-space (0, 0, -distance); a world point at
@@ -80,7 +80,7 @@ double PinholeCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
   // points behind the eye — which the rasterizer's clipper trims to
   // the near plane rather than dropping the whole containing
   // triangle.
-  Matrix4d worldToCamera = matrix().inverted();
+  const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
   return pCam.z() + m_distance;
 }

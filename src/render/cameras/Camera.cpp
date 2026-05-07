@@ -68,6 +68,13 @@ const Matrix4d& Camera::matrix() const {
   return m_matrix;
 }
 
+const Matrix4d& Camera::inverseMatrix() const {
+  if (!m_inverseMatrix) {
+    m_inverseMatrix = matrix().inverted();
+  }
+  return m_inverseMatrix;
+}
+
 void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer) const {
   render(raycaster, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }

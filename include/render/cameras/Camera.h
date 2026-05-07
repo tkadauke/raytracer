@@ -28,11 +28,13 @@ namespace render {
 
     inline void setPosition(const Vector3d& position) {
       m_matrix.reset();
+      m_inverseMatrix.reset();
       m_position = position;
     }
 
     inline void setTarget(const Vector3d& target) {
       m_matrix.reset();
+      m_inverseMatrix.reset();
       m_target = target;
     }
 
@@ -51,6 +53,14 @@ namespace render {
     }
 
     const Matrix4d& matrix() const;
+
+    /**
+      * Cached inverse of `matrix()`, mapping world-space points into
+      * camera space. Projection-heavy renderers call this for every
+      * vertex; caching keeps them from recomputing a 4x4 inverse per
+      * projected point.
+      */
+    const Matrix4d& inverseMatrix() const;
 
     /**
       * Render into an HDR `Buffer<Colord>`. Each pixel accumulates
@@ -216,6 +226,7 @@ namespace render {
     bool m_showProgressIndicators;
     Vector3d m_position, m_target;
     mutable MemoizedValue<Matrix4d> m_matrix;
+    mutable MemoizedValue<Matrix4d> m_inverseMatrix;
     std::shared_ptr<render::ViewPlane> m_viewPlane;
   };
 }
