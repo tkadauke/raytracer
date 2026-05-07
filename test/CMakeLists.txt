@@ -38,10 +38,11 @@ set_target_properties(unit_tests PROPERTIES
 # ScriptElementRegistry's moc inline. AUTOMOC can't find a separate
 # moc_ScriptedSurface.cpp in the raytracer build tree and regenerates
 # one for unit_tests, which causes duplicate-symbol link failures when
-# raytracer is linked with --whole-archive. Skipping AUTOMOC on the
-# one test file that includes ScriptedSurface.h prevents this.
+# raytracer is linked with --whole-archive. ScriptedSurfaceTest.cpp is
+# the only unit-test file that includes ScriptedSurface.h; skipping
+# AUTOMOC on it prevents the collision.
 set_source_files_properties(
-  "${CMAKE_CURRENT_SOURCE_DIR}/unit/world/objects/PrimitiveShapeTest.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/unit/world/objects/ScriptedSurfaceTest.cpp"
   PROPERTIES SKIP_AUTOMOC ON
 )
 target_compile_options(unit_tests PRIVATE ${_RAYTRACER_TEST_COMPILE_OPTIONS})
