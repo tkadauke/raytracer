@@ -1,6 +1,6 @@
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/DirectionalLight.h"
 
-using namespace raytracer;
+using namespace render;
 
 Vector3d DirectionalLight::direction(const Vector3d&) const {
   return direction();

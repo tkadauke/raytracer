@@ -1,6 +1,6 @@
-#include "raytracer/lights/PointLight.h"
+#include "render/lights/PointLight.h"
 
-using namespace raytracer;
+using namespace render;
 
 Vector3d PointLight::direction(const Vector3d& point) const {
   return (position() - point).normalized();

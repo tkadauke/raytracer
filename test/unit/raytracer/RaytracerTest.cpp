@@ -4,7 +4,7 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
 #include "raytracer/cameras/PinholeCamera.h"
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"

@@ -2,8 +2,8 @@
 
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/PointLight.h"
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/PointLight.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 

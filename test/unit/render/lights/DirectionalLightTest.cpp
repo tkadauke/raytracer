@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/DirectionalLight.h"
 
 namespace DirectionalLightTest {
-  using namespace raytracer;
+  using namespace render;
 using namespace render;
 
   TEST(DirectionalLight, ShouldInitializeWithValues) {

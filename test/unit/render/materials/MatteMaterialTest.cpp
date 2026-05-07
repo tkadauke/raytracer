@@ -5,7 +5,7 @@
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/DirectionalLight.h"
 #include "raytracer/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"

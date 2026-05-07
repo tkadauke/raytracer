@@ -5,7 +5,7 @@
 
 #include "raytracer/Raytracer.h"
 #include "raytracer/WireframeEngine.h"
-#include "raytracer/lights/PointLight.h"
+#include "render/lights/PointLight.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/cameras/Camera.h"
 

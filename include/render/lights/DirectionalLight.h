@@ -1,9 +1,9 @@
 #pragma once
 
-#include "raytracer/lights/Light.h"
+#include "render/lights/Light.h"
 #include "core/Color.h"
 
-namespace raytracer {
+namespace render {
   class DirectionalLight : public Light {
   public:
     inline explicit DirectionalLight(const Vector3d& direction, const Colord& color)

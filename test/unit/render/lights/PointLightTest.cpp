@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "raytracer/lights/PointLight.h"
+#include "render/lights/PointLight.h"
 
 namespace PointLightTest {
-  using namespace raytracer;
+  using namespace render;
 using namespace render;
 
   TEST(PointLight, ShouldInitializeWithValues) {

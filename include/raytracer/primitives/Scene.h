@@ -5,8 +5,11 @@
 #include "raytracer/primitives/Composite.h"
 #include "core/Color.h"
 
-namespace raytracer {
+namespace render {
   class Light;
+}
+
+namespace raytracer {
 
   /**
     * @brief Top-level scene graph node — geometry, lights, ambient,
@@ -44,7 +47,7 @@ namespace raytracer {
     /// `Light` is a non-`Object` (it lives outside the geometry
     /// composite tree), so lights are tracked here in a flat list
     /// and shared with materials at shade-time via `lights()`.
-    typedef std::list<std::shared_ptr<Light>> Lights;
+    typedef std::list<std::shared_ptr<render::Light>> Lights;
 
     /**
       * Default constructor. Constructs an empty scene with a white ambient
@@ -69,7 +72,7 @@ namespace raytracer {
     /**
       * Adds light to the scene.
       */
-    inline void addLight(std::shared_ptr<Light> light) {
+    inline void addLight(std::shared_ptr<render::Light> light) {
       m_lights.push_back(light);
     }
 

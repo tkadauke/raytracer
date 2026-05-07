@@ -7,7 +7,7 @@
 #include "raytracer/primitives/Plane.h"
 #include "render/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/mappings/PlanarMapping2D.h"
@@ -83,7 +83,7 @@ std::shared_ptr<raytracer::Scene> PreviewDisplayWidget::sphereOnPlane(Material* 
   scene->add(sphere);
   scene->add(plane);
 
-  auto light = std::make_shared<raytracer::DirectionalLight>(Vector3d(-0.5, -1, -0.5), Colord(1, 1, 1));
+  auto light = std::make_shared<render::DirectionalLight>(Vector3d(-0.5, -1, -0.5), Colord(1, 1, 1));
   scene->addLight(light);
 
   return scene;

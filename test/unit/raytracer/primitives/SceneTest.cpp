@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "raytracer/primitives/Scene.h"
-#include "raytracer/lights/PointLight.h"
+#include "render/lights/PointLight.h"
 
 namespace SceneTest {
   using namespace ::testing;

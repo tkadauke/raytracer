@@ -3,9 +3,9 @@
 #include "world/objects/Light.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/DirectionalLight.h"
-#include "raytracer/lights/Light.h"
-#include "raytracer/lights/PointLight.h"
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/Light.h"
+#include "render/lights/PointLight.h"
+#include "render/lights/DirectionalLight.h"
 
 #include "test/helpers/VectorTestHelper.h"
 
@@ -65,12 +65,12 @@ namespace LightTest {
     PointLight light;
     auto rt = light.toRaytracer();
     ASSERT_NE(nullptr, rt);
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<raytracer::PointLight>(rt));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::PointLight>(rt));
   }
 
   TEST(PointLight, ShouldDefaultRaytracerPositionToOrigin) {
     PointLight light;
-    auto rt = std::dynamic_pointer_cast<raytracer::PointLight>(light.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::PointLight>(light.toRaytracer());
     ASSERT_NE(nullptr, rt);
     ASSERT_VECTOR_NEAR(Vector3d(0, 0, 0), rt->position(), 1e-9);
   }
@@ -78,7 +78,7 @@ namespace LightTest {
   TEST(PointLight, ShouldApplyPositionToRaytracerPosition) {
     PointLight light;
     light.setPosition(Vector3d(1, 2, 3));
-    auto rt = std::dynamic_pointer_cast<raytracer::PointLight>(light.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::PointLight>(light.toRaytracer());
     ASSERT_NE(nullptr, rt);
     ASSERT_VECTOR_NEAR(Vector3d(1, 2, 3), rt->position(), 1e-9);
   }
@@ -92,7 +92,7 @@ namespace LightTest {
     PointLight light;
     light.setColor(Colord(1.0, 0.8, 0.6));
     light.setIntensity(0.5);
-    auto rt = std::dynamic_pointer_cast<raytracer::PointLight>(light.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::PointLight>(light.toRaytracer());
     ASSERT_NE(nullptr, rt);
     EXPECT_DOUBLE_EQ(0.5, rt->color().r());
     EXPECT_DOUBLE_EQ(0.4, rt->color().g());
@@ -116,17 +116,17 @@ namespace LightTest {
     DirectionalLight light;
     auto rt = light.toRaytracer();
     ASSERT_NE(nullptr, rt);
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<raytracer::DirectionalLight>(rt));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::DirectionalLight>(rt));
   }
 
   TEST(DirectionalLight, ShouldNormalizeDirectionInRaytracerOutput) {
-    // raytracer::DirectionalLight's ctor normalizes its direction argument
+    // render::DirectionalLight's ctor normalizes its direction argument
     // (so radiance falls off correctly per the rendering equation). This
     // test pins that contract by feeding a non-unit direction and reading
     // it back unit-length.
     DirectionalLight light;
     light.setDirection(Vector3d(2, 0, 0));
-    auto rt = std::dynamic_pointer_cast<raytracer::DirectionalLight>(light.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::DirectionalLight>(light.toRaytracer());
     ASSERT_NE(nullptr, rt);
     ASSERT_VECTOR_NEAR(Vector3d(1, 0, 0), rt->direction(), 1e-9);
   }
@@ -144,8 +144,8 @@ namespace LightTest {
     b.setDirection(Vector3d(1, 0, 0));
     b.setPosition(Vector3d(100, 200, 300));
 
-    auto rtA = std::dynamic_pointer_cast<raytracer::DirectionalLight>(a.toRaytracer());
-    auto rtB = std::dynamic_pointer_cast<raytracer::DirectionalLight>(b.toRaytracer());
+    auto rtA = std::dynamic_pointer_cast<render::DirectionalLight>(a.toRaytracer());
+    auto rtB = std::dynamic_pointer_cast<render::DirectionalLight>(b.toRaytracer());
     ASSERT_NE(nullptr, rtA);
     ASSERT_NE(nullptr, rtB);
     ASSERT_VECTOR_NEAR(rtA->direction(), rtB->direction(), 1e-9);
@@ -155,7 +155,7 @@ namespace LightTest {
     DirectionalLight light;
     light.setColor(Colord(1, 1, 1));
     light.setIntensity(0.25);
-    auto rt = std::dynamic_pointer_cast<raytracer::DirectionalLight>(light.toRaytracer());
+    auto rt = std::dynamic_pointer_cast<render::DirectionalLight>(light.toRaytracer());
     ASSERT_NE(nullptr, rt);
     EXPECT_DOUBLE_EQ(0.25, rt->color().r());
     EXPECT_DOUBLE_EQ(0.25, rt->color().g());

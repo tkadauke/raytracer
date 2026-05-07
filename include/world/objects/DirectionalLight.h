@@ -41,7 +41,7 @@ public:
     m_direction = direction;
   }
 
-  virtual std::shared_ptr<raytracer::Light> toRaytracer() const;
+  virtual std::shared_ptr<render::Light> toRaytracer() const;
 
 private:
   Vector3d m_direction;

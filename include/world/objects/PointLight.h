@@ -22,5 +22,5 @@ class PointLight : public Light {
 public:
   explicit PointLight(Element* parent = nullptr);
 
-  virtual std::shared_ptr<raytracer::Light> toRaytracer() const;
+  virtual std::shared_ptr<render::Light> toRaytracer() const;
 };

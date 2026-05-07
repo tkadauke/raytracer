@@ -2,7 +2,7 @@
 
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/PointLight.h"
+#include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
 #include "render/materials/PortalMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"

@@ -4,7 +4,7 @@
 #include "world/objects/Transformable.h"
 #include "core/Color.h"
 
-namespace raytracer {
+namespace render {
   class Light;
 }
 
@@ -101,7 +101,7 @@ public:
     m_intensity = intensity;
   }
 
-  virtual std::shared_ptr<raytracer::Light> toRaytracer() const = 0;
+  virtual std::shared_ptr<render::Light> toRaytracer() const = 0;
 
 private:
   bool m_visible;

@@ -5,7 +5,7 @@
 
 #include "render/Object.h"
 
-namespace raytracer {
+namespace render {
   /**
     * @brief Abstract base for scene light sources.
     *

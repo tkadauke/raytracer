@@ -2,7 +2,7 @@
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/primitives/Plane.h"
-#include "raytracer/lights/PointLight.h"
+#include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/materials/ReflectiveMaterial.h"

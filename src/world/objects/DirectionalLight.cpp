@@ -1,6 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/DirectionalLight.h"
-#include "raytracer/lights/DirectionalLight.h"
+#include "render/lights/DirectionalLight.h"
 
 DirectionalLight::DirectionalLight(Element* parent)
   : Light(parent),
@@ -8,8 +8,8 @@ DirectionalLight::DirectionalLight(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Light> DirectionalLight::toRaytracer() const {
-  return make_named<raytracer::DirectionalLight>(Matrix3d(globalTransform()) * direction(), color() * intensity());
+std::shared_ptr<render::Light> DirectionalLight::toRaytracer() const {
+  return make_named<render::DirectionalLight>(Matrix3d(globalTransform()) * direction(), color() * intensity());
 }
 
 static bool dummy = ElementFactory::self().registerClass<DirectionalLight>("DirectionalLight");
