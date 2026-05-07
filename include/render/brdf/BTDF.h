@@ -33,7 +33,7 @@ namespace render {
     * @see PerfectTransmitter — concrete subclass.
     * @see BRDF — reflection counterpart.
     */
-  class BTDF : BRDF {
+  class BTDF : public BRDF {
   public:
     /**
       * @returns true if the configured refractive index and the
@@ -43,5 +43,7 @@ namespace render {
       * fires a full reflection instead.
       */
     virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const = 0;
+
+    int flags() const override { return BSDF::Specular | BSDF::Transmission; }
   };
 }

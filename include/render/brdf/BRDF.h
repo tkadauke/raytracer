@@ -1,5 +1,6 @@
 #pragma once
 
+#include "render/bsdf/BSDF.h"
 #include "core/Color.h"
 #include "core/math/Vector.h"
 
@@ -8,7 +9,7 @@ class HitPoint;
 namespace render {
   /**
     * @brief Bidirectional Reflectance Distribution Function — the
-    *        per-direction scattering model for a surface.
+    *        per-direction scattering model for a reflective surface.
     *
     * A BRDF answers: "given an outgoing direction `out`, how much
     * light scattered in incoming direction `in` will reach the
@@ -16,7 +17,7 @@ namespace render {
     * for diffuse, Phong / GGX for specular highlights, perfect
     * specular for mirror reflection — and weight + sum the results.
     *
-    * The class has three virtual entry points so callers can pick
+    * The class has three legacy entry points so callers can pick
     * the cheapest one for their use case:
     *
     *  - `calculate(hitPoint, out, in)` — returns the BRDF value for
@@ -31,11 +32,19 @@ namespace render {
     *    for that draw. Used by perfect-specular materials and the
     *    importance-sampling path that's coming with the future path
     *    tracer; the caller passes the result back through
-    *    `raytracer->rayColor(reflectedRay, state)`.
+    *    `raycaster->rayColor(reflectedRay, state)`.
     *
     * The default implementations of all three return black —
     * concrete BRDFs override the methods they implement and leave
     * the others at the no-op default.
+    *
+    * `BRDF` also satisfies the `BSDF` interface — `eval` /
+    * `BSDF::sample` / `pdf` forward to the legacy `calculate` /
+    * `sample` here, and concrete subclasses override `flags()` (and
+    * `pdf` for delta lobes) to give the future path-tracer
+    * integrator the lobe classification it needs. The Whitted
+    * integrator (`Material::shade`) still uses the legacy methods
+    * directly.
     *
     * Note the `operator()` overload: takes `(hitPoint, out, in)`
     * but forwards as `calculate(hitPoint, in, out)` (parameters
@@ -45,8 +54,9 @@ namespace render {
     * @see Lambertian, PhongSpecular, PerfectSpecular — concrete
     *      BRDFs.
     * @see BTDF — the transmittance counterpart.
+    * @see BSDF — the unifying interface this inherits.
     */
-  class BRDF {
+  class BRDF : public BSDF {
   public:
     /// Convenience operator that forwards to `calculate`. Note the
     /// argument order is swapped: `(hitPoint, out, in)` here calls
@@ -75,7 +85,7 @@ namespace render {
       * hemispherical integral exists (e.g. Lambertian: just the
       * diffuse colour).
       */
-    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const;
+    Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const override;
 
     /**
       * Generate an incoming direction by importance-sampling the
@@ -90,5 +100,26 @@ namespace render {
       * Default returns black; concrete specular BRDFs override.
       */
     virtual Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const;
+
+    /// BSDF::eval forwarder. The (wi, wo) pair maps to (out, in)
+    /// in the legacy BRDF naming: `wi` is the direction back toward
+    /// the camera, `wo` is the direction toward the light or sample.
+    Colord eval(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override {
+      return calculate(hitPoint, wi, wo);
+    }
+
+    /// BSDF::sample forwarder. Reports `pdf = 0` by default — the
+    /// finite-value BRDFs (Lambertian, GlossySpecular) don't yet
+    /// provide an importance-sampling density. Specular subclasses
+    /// override to set `pdf = 1` (delta).
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf) const override {
+      pdf = 0.0;
+      return sample(hitPoint, wi, wo);
+    }
+
+    /// BSDF::pdf — defaults to 0 (no closed-form sampling density
+    /// for the finite-value BRDFs yet; delta lobes also return 0
+    /// by definition).
+    double pdf(const HitPoint& hitPoint, const Vector3d& wi, const Vector3d& wo) const override;
   };
 }

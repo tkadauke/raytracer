@@ -17,8 +17,10 @@ namespace render {
     {
     }
     
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const;
-    virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const;
+    Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const override;
+    Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const override;
+
+    int flags() const override { return BSDF::Diffuse | BSDF::Reflection; }
     
     inline const Colord& diffuseColor() const {
       return m_diffuseColor;

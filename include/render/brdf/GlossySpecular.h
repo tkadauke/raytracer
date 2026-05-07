@@ -12,7 +12,9 @@ namespace render {
     {
     }
     
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const;
+    Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const override;
+
+    int flags() const override { return BSDF::Glossy | BSDF::Reflection; }
     
     inline const Colord& specularColor() const {
       return m_specularColor;

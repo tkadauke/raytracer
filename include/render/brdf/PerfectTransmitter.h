@@ -12,8 +12,18 @@ namespace render {
     {
     }
     
-    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const;
-    virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const;
+    Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const override;
+    bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const override;
+
+    /// BSDF::sample for the delta-transmission lobe — sets
+    /// `pdf = 1` to flag the delta, delegates to the geometric
+    /// `sample(hp, out, in)` above. Note: this does NOT branch on
+    /// TIR; that decision lives in `TransparentMaterial::shade`,
+    /// which inspects `totalInternalReflection` first.
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf) const override {
+      pdf = 1.0;
+      return sample(hitPoint, wi, wo);
+    }
     
     inline double transmissionCoefficient() const {
       return m_transmissionCoefficient;
