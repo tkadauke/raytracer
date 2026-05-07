@@ -153,6 +153,31 @@ namespace PinholeCameraTest {
     }
   }
 
+  TEST(PinholeCamera, RoundTripsWithNonUnitZoomAndOffAxisCamera) {
+    // Regression test for the wireframe-vs-raytracer alignment bug.
+    // pixelAt() scales the world-space pixel by pixelSize, which moves
+    // the view plane along with the camera position; projectPoint has
+    // to account for the resulting (pixelSize - 1) * (R^-1 * E) offset.
+    // A unit-zoom round trip masks the bug; this test uses zoom=1.5
+    // and a camera positioned off-axis (matching the glass-torus demo
+    // scene) so any miscompensation surfaces.
+    PinholeCamera camera(Vector3d(0, -3, -10), Vector3d::null());
+    camera.setZoom(1.5);
+    initViewPlane(camera, 320, 240);
+
+    const std::pair<double, double> samples[] = {
+      {160.0, 120.0}, {64.0, 60.0}, {256.0, 180.0}, {80.0, 200.0}
+    };
+    for (const auto& [x, y] : samples) {
+      Rayd ray = camera.rayForPixel(x, y);
+      Vector3d worldPoint = ray.at(15.0);
+      Vector2d back = camera.projectPoint(worldPoint);
+      ASSERT_FALSE(back.isUndefined()) << "for (" << x << ", " << y << ")";
+      EXPECT_NEAR(x, back.x(), 1e-6) << "x for (" << x << ", " << y << ")";
+      EXPECT_NEAR(y, back.y(), 1e-6) << "y for (" << x << ", " << y << ")";
+    }
+  }
+
   TEST(PinholeCamera, ProjectionRespectsZoom) {
     // At zoom=2, the same world point should project to a pixel
     // closer to the image centre because the view plane is "smaller"

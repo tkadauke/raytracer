@@ -262,9 +262,20 @@ namespace raytracer {
       * `(x, y)`. Pixel coordinates are window-relative; non-integer
       * inputs are valid (and used by the sub-pixel jitter path,
       * which adds `[0, 1)` offsets to the integer pixel coords).
+      *
+      * `pixelSize` scales the view plane around the camera position
+      * (`m_matrix.translationVector()`), not around world origin.
+      * Scaling around world origin — what an earlier version did —
+      * made the camera's effective FOV depend on its absolute world
+      * position, so two cameras with identical intrinsics in
+      * different scenes saw the world differently. Scaling around
+      * the camera makes pixelSize a pure FOV knob: smaller pixelSize
+      * = narrower FOV (zoomed in) regardless of where the camera
+      * sits.
       */
     inline Vector3d pixelAt(double x, double y) {
-      return (m_topLeft + m_right * x + m_down * y) * m_pixelSize;
+      const Vector3d cameraPos = m_matrix.translationVector();
+      return cameraPos + (m_topLeft - cameraPos + m_right * x + m_down * y) * m_pixelSize;
     }
 
     /**
