@@ -11,17 +11,19 @@ namespace core {
   *        barycentric-coordinate algorithm.
   *
   * Calls `plot(x, y, w0, w1, w2)` for every pixel inside the
-  * triangle with vertices `(x0, y0)`, `(x1, y1)`, `(x2, y2)`.
+  * triangle with vertices `(x0, y0)`, `(x1, y1)`, `(x2, y2)` and
+  * inside the clip rectangle `[clipLeft, clipRight) ×
+  * [clipTop, clipBottom)`.
   * The barycentric weights `w0..w2` correspond to vertices
   * `p0..p2` respectively, are normalised to sum to 1.0, and are
   * the textbook input for per-vertex attribute interpolation
   * (z-depth, normals, UVs, colours).
   *
-  * The algorithm walks the triangle's bounding box and for each
-  * candidate pixel computes three edge-function values — the signed
-  * areas of the three sub-triangles formed by the pixel and each
-  * pair of vertices. A pixel is inside iff all three sub-area signs
-  * match the parent triangle's signed area (positive for CCW,
+  * The algorithm walks the triangle's clipped bounding box and for
+  * each candidate pixel computes three edge-function values — the
+  * signed areas of the three sub-triangles formed by the pixel and
+  * each pair of vertices. A pixel is inside iff all three sub-area
+  * signs match the parent triangle's signed area (positive for CCW,
   * negative for CW). The barycentric weights then fall out of the
   * sub-areas divided by the parent area — no extra computation
   * needed.
@@ -42,11 +44,12 @@ template <typename PlotFn>
 inline void rasterizeTriangle(int x0, int y0,
                               int x1, int y1,
                               int x2, int y2,
+                              int clipLeft,
+                              int clipTop,
+                              int clipRight,
+                              int clipBottom,
                               PlotFn&& plot) {
-  const int minX = std::min({x0, x1, x2});
-  const int maxX = std::max({x0, x1, x2});
-  const int minY = std::min({y0, y1, y2});
-  const int maxY = std::max({y0, y1, y2});
+  if (clipLeft >= clipRight || clipTop >= clipBottom) return;
 
   // Twice the signed area of the parent triangle. Sign indicates
   // winding (positive = CCW, negative = CW); zero indicates the
@@ -63,6 +66,12 @@ inline void rasterizeTriangle(int x0, int y0,
   const I X0 = x0, X1 = x1, X2 = x2, Y0 = y0, Y1 = y1, Y2 = y2;
   const I area = (X1 - X0) * (Y2 - Y0) - (Y1 - Y0) * (X2 - X0);
   if (area == 0) return;
+
+  const int minX = std::max(std::min({x0, x1, x2}), clipLeft);
+  const int maxX = std::min(std::max({x0, x1, x2}), clipRight - 1);
+  const int minY = std::max(std::min({y0, y1, y2}), clipTop);
+  const int maxY = std::min(std::max({y0, y1, y2}), clipBottom - 1);
+  if (minX > maxX || minY > maxY) return;
 
   const double invArea = 1.0 / static_cast<double>(area);
 

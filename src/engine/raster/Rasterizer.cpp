@@ -247,8 +247,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
             const std::uint64_t capturedFaceIdx = globalFaceIdx;
             core::rasterizeTriangle(x0, y0, x1, y1, x2, y2,
+              0, 0, width, height,
               [&, capturedFaceIdx](int x, int y, double w0b, double w1b, double w2b) {
-              if (x < 0 || x >= width || y < 0 || y >= height) return;
               // Perspective-correct depth interpolation. The
               // screen-space barycentric weights from
               // `rasterizeTriangle` are linear in screen space — but

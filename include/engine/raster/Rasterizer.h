@@ -46,10 +46,9 @@ namespace engine::raster {
   * complexity. Replacing the hash with material albedo is a future
   * improvement.
   *
-  * Triangles with any vertex behind the eye are dropped entirely —
-  * the rasterizer doesn't yet implement near-plane clipping, so a
-  * triangle that straddles the near plane is invisible. Backface
-  * culling is also pending; the rasterizer currently shades both
+  * Triangles that straddle the near plane are clipped in eye space
+  * before projection so their visible portion can still render.
+  * Backface culling is pending; the rasterizer currently shades both
   * sides of every triangle.
   *
   * <table><tr>
@@ -68,9 +67,12 @@ namespace engine::raster {
   * the rasterizer scans; pixel colours are interpolated from the
   * three vertex colours via barycentric weights, exactly as the
   * real rasterizer would interpolate per-vertex normals or texture
-  * coordinates. Hover anywhere to read the live `(w0, w1, w2)`
-  * weights at the cursor — outside the triangle, at least one
-  * weight goes negative.
+  * coordinates. The production rasterizer additionally clamps that
+  * bounding box to the framebuffer before scanning, so off-screen
+  * projected triangles don't spend time on pixels that cannot be
+  * written. Hover anywhere to read the live `(w0, w1, w2)` weights
+  * at the cursor — outside the triangle, at least one weight goes
+  * negative.
   *
   * @htmlonly
   * <script type="text/javascript" src="rasterizer_pipeline.js"></script>
@@ -79,7 +81,7 @@ namespace engine::raster {
   * Cameras supported: any subclass that overrides
   * `Camera::projectPoint` (currently `PinholeCamera` and
   * inheritors `ThinLensCamera` / `TiltShiftCamera`). Cameras
-  * without a closed-form inverse (`FishEyeCamera`,
+  * without a closed-form projection (`FishEyeCamera`,
   * `SphericalCamera`, `EquirectangularCamera`) silently produce
   * empty / degenerate renders.
   *
