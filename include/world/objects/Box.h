@@ -8,7 +8,7 @@
   * Represents a box primitive.
   *
   * @image html box.png "Box with origin (0, 0, 0) and size (1, 1, 1)"
-  * @image html box_wireframe.png "Box rendered through WireframeEngine"
+  * @image html box_wireframe.png "Box rendered through Wireframe"
   */
 class Box : public Surface {
   Q_OBJECT;

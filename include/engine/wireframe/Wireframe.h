@@ -4,13 +4,13 @@
 
 #include <atomic>
 
-namespace render {
+namespace engine::wireframe {
 
 /**
   * @brief `RenderEngine` that draws every mesh face's edges as
   *        rasterized lines on the framebuffer.
   *
-  * @image html wireframe_engine.png "Sphere through WireframeEngine at default LOD"
+  * @image html wireframe_engine.png "Sphere through Wireframe at default LOD"
   *
   * For each primitive in the scene, calls `Primitive::tessellate(lod)`
   * to obtain a `Mesh`, projects every face vertex to screen space via
@@ -58,12 +58,12 @@ namespace render {
   * checks before each face. Exits gracefully — partial edges remain
   * on screen, but no in-progress edge is left half-drawn.
   */
-class WireframeEngine : public RenderEngine {
+class Wireframe : public render::RenderEngine {
 public:
-  explicit WireframeEngine(std::shared_ptr<render::Scene> scene);
-  WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
+  explicit Wireframe(std::shared_ptr<render::Scene> scene);
+  Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
-  ~WireframeEngine() override;
+  ~Wireframe() override;
 
   using RenderEngine::render;
   void render(Buffer<Colord>& buffer) override;
@@ -93,4 +93,4 @@ private:
   Colord m_backgroundColor{Colord::black()};
 };
 
-}  // namespace raytracer
+}  // namespace engine::wireframe

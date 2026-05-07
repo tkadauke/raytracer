@@ -1,5 +1,4 @@
-#include "render/WireframeEngine.h"
-using namespace render;
+#include "engine/wireframe/Wireframe.h"
 
 #include "core/Buffer.h"
 #include "core/geometry/Bresenham.h"
@@ -11,24 +10,25 @@ using namespace render;
 
 #include <cmath>
 
+using namespace engine::wireframe;
 
-WireframeEngine::WireframeEngine(std::shared_ptr<render::Scene> scene)
+Wireframe::Wireframe(std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(scene))
 {
 }
 
-WireframeEngine::WireframeEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
+Wireframe::Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
   : RenderEngine(std::move(camera), std::move(scene))
 {
 }
 
-WireframeEngine::~WireframeEngine() = default;
+Wireframe::~Wireframe() = default;
 
-void WireframeEngine::cancel() {
+void Wireframe::cancel() {
   m_cancelled.store(true);
 }
 
-void WireframeEngine::uncancel() {
+void Wireframe::uncancel() {
   m_cancelled.store(false);
 }
 
@@ -65,7 +65,7 @@ namespace {
   }
 }  // namespace
 
-void WireframeEngine::render(Buffer<Colord>& buffer) {
+void Wireframe::render(Buffer<Colord>& buffer) {
   // Note: this function does NOT reset the cancellation flag — the
   // caller is expected to call `uncancel()` between renders. That
   // matches the `Raytracer` convention and lets pre-cancellation

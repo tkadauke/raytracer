@@ -51,7 +51,7 @@ namespace render {
       * <script type="text/javascript" src="open_cylinder_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html open_cylinder_wireframe.png "OpenCylinder rendered through WireframeEngine"
+      * @image html open_cylinder_wireframe.png "OpenCylinder rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

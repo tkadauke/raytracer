@@ -4,7 +4,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "engine/raytracer/Raytracer.h"
-#include "render/WireframeEngine.h"
+#include "engine/wireframe/Wireframe.h"
 #include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
@@ -37,7 +37,7 @@ struct RenderWindow::Private {
   // is wired into renderWidget at a time; the other holds onto its
   // scene + camera ready to take over on the next "Render" click.
   std::shared_ptr<engine::raytracer::Raytracer> raytracer;
-  std::shared_ptr<render::WireframeEngine> wireframe;
+  std::shared_ptr<engine::wireframe::Wireframe> wireframe;
 
   bool busy;
   int timer;
@@ -49,7 +49,7 @@ RenderWindow::RenderWindow(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
-  p->wireframe = std::make_shared<render::WireframeEngine>(nullptr);
+  p->wireframe = std::make_shared<engine::wireframe::Wireframe>(nullptr);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);

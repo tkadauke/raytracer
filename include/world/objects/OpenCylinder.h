@@ -9,7 +9,7 @@
   * no end caps, axis along local +Y. For a closed cylinder (with
   * disk caps), use `Cylinder`.
   *
-  * @image html open_cylinder_wireframe.png "OpenCylinder rendered through WireframeEngine"
+  * @image html open_cylinder_wireframe.png "OpenCylinder rendered through Wireframe"
   */
 class OpenCylinder : public Surface {
   Q_OBJECT;

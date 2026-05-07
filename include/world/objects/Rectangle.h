@@ -10,7 +10,7 @@
   * cross product of the two legs (so swapping them flips the
   * normal direction).
   *
-  * @image html rectangle_wireframe.png "Rectangle rendered through WireframeEngine"
+  * @image html rectangle_wireframe.png "Rectangle rendered through Wireframe"
   */
 class Rectangle : public Surface {
   Q_OBJECT;

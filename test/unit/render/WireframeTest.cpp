@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
-#include "render/WireframeEngine.h"
+#include "engine/wireframe/Wireframe.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Scene.h"
@@ -9,9 +9,9 @@
 
 #include <memory>
 
-namespace WireframeEngineTest {
+namespace WireframeTest {
 using namespace render;
-using namespace render;
+using namespace engine::wireframe;
 
   // Helper: count pixels that match a given colour. Background
   // counting / edge counting both go through this.
@@ -37,9 +37,9 @@ using namespace render;
     return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null());
   }
 
-  TEST(WireframeEngine, EmptySceneRendersBackground) {
+  TEST(Wireframe, EmptySceneRendersBackground) {
     auto scene = std::make_shared<Scene>(Colord::black());
-    WireframeEngine engine(camera(), scene);
+    Wireframe engine(camera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -48,8 +48,8 @@ using namespace render;
     EXPECT_EQ(64 * 64, countPixels(buffer, Colord::black()));
   }
 
-  TEST(WireframeEngine, SceneWithBoxProducesEdgePixels) {
-    WireframeEngine engine(camera(), sceneWithBox());
+  TEST(Wireframe, SceneWithBoxProducesEdgePixels) {
+    Wireframe engine(camera(), sceneWithBox());
     Buffer<Colord> buffer(128, 128);
 
     engine.render(buffer);
@@ -66,9 +66,9 @@ using namespace render;
     EXPECT_EQ(128 * 128, white + black);  // every pixel is one or the other
   }
 
-  TEST(WireframeEngine, BackgroundColorIsConfigurable) {
+  TEST(Wireframe, BackgroundColorIsConfigurable) {
     auto scene = std::make_shared<Scene>(Colord::black());
-    WireframeEngine engine(camera(), scene);
+    Wireframe engine(camera(), scene);
     engine.setBackgroundColor(Colord(0.2, 0.3, 0.4));
     Buffer<Colord> buffer(32, 32);
 
@@ -77,8 +77,8 @@ using namespace render;
     EXPECT_EQ(32 * 32, countPixels(buffer, Colord(0.2, 0.3, 0.4)));
   }
 
-  TEST(WireframeEngine, EdgeColorIsConfigurable) {
-    WireframeEngine engine(camera(), sceneWithBox());
+  TEST(Wireframe, EdgeColorIsConfigurable) {
+    Wireframe engine(camera(), sceneWithBox());
     engine.setEdgeColor(Colord(1.0, 0.0, 0.5));
     Buffer<Colord> buffer(128, 128);
 
@@ -89,20 +89,20 @@ using namespace render;
     EXPECT_EQ(0, countPixels(buffer, Colord::white()));
   }
 
-  TEST(WireframeEngine, HigherLodProducesMoreEdges) {
+  TEST(Wireframe, HigherLodProducesMoreEdges) {
     auto scene = std::make_shared<Scene>(Colord::black());
     // Use a Sphere primitive — UV sphere quad count scales 4× per LOD step.
     // (Box is LOD-invariant, so wouldn't show the difference.)
     auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1.0);
     scene->add(sphere);
 
-    WireframeEngine engineLow(camera(), scene);
+    Wireframe engineLow(camera(), scene);
     engineLow.setLod(0);
     Buffer<Colord> bufferLow(256, 256);
     engineLow.render(bufferLow);
     int edgeLow = countPixels(bufferLow, Colord::white());
 
-    WireframeEngine engineHigh(camera(), scene);
+    Wireframe engineHigh(camera(), scene);
     engineHigh.setLod(2);
     Buffer<Colord> bufferHigh(256, 256);
     engineHigh.render(bufferHigh);
@@ -111,8 +111,8 @@ using namespace render;
     EXPECT_GT(edgeHigh, edgeLow);
   }
 
-  TEST(WireframeEngine, HandlesNullSceneGracefully) {
-    WireframeEngine engine(camera(), nullptr);
+  TEST(Wireframe, HandlesNullSceneGracefully) {
+    Wireframe engine(camera(), nullptr);
     engine.setBackgroundColor(Colord(0.1, 0.1, 0.1));
     Buffer<Colord> buffer(32, 32);
 
@@ -122,8 +122,8 @@ using namespace render;
     EXPECT_EQ(32 * 32, countPixels(buffer, Colord(0.1, 0.1, 0.1)));
   }
 
-  TEST(WireframeEngine, CancelStopsFurtherDrawing) {
-    WireframeEngine engine(camera(), sceneWithBox());
+  TEST(Wireframe, CancelStopsFurtherDrawing) {
+    Wireframe engine(camera(), sceneWithBox());
     Buffer<Colord> buffer(64, 64);
 
     // Pre-cancel — the render loop checks the flag at face boundaries
@@ -136,8 +136,8 @@ using namespace render;
     EXPECT_EQ(64 * 64, countPixels(buffer, Colord::black()));
   }
 
-  TEST(WireframeEngine, UncancelAllowsSubsequentRender) {
-    WireframeEngine engine(camera(), sceneWithBox());
+  TEST(Wireframe, UncancelAllowsSubsequentRender) {
+    Wireframe engine(camera(), sceneWithBox());
     Buffer<Colord> buffer(64, 64);
 
     engine.cancel();

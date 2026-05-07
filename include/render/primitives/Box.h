@@ -41,7 +41,7 @@ namespace render {
       * UVs differ per face; sharing would require splitting on
       * texture seams anyway.
       *
-      * @image html box_wireframe.png "Box rendered through WireframeEngine"
+      * @image html box_wireframe.png "Box rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

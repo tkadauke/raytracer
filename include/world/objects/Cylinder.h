@@ -8,7 +8,7 @@
   * Represents a cylinder.
   *
   * @image html cylinder.png "Cylinder with origin (0, 0, 0), radius 1 and height 2"
-  * @image html cylinder_wireframe.png "Cylinder rendered through WireframeEngine"
+  * @image html cylinder_wireframe.png "Cylinder rendered through Wireframe"
   */
 class Cylinder : public Surface {
   Q_OBJECT;

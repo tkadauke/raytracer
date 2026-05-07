@@ -10,7 +10,7 @@
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
-#include "render/WireframeEngine.h"
+#include "engine/wireframe/Wireframe.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/SamplerFactory.h"
@@ -95,7 +95,7 @@ void Renderer::render() const {
   std::shared_ptr<render::RenderEngine> engine;
 
   if (m_engine == "wireframe") {
-    auto wireframe = std::make_shared<render::WireframeEngine>(raytracerScene);
+    auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
     if (rtCamera) wireframe->setCamera(rtCamera);
     wireframe->setLod(m_wireframeLod);
     engine = wireframe;

@@ -68,7 +68,7 @@ using namespace render;
   // End-to-end test: Composite-of-Grid-of-Instance tessellation
   // should preserve the Instance transform. This is the path the
   // world-side scene conversion takes — Scene::toRaytracerScene wraps
-  // surfaces in Grid(Composite), and the WireframeEngine calls
+  // surfaces in Grid(Composite), and the Wireframe engine calls
   // tessellate on the resulting Scene.
   TEST(InstanceTessellate, ShouldPreserveRotationThroughGridAndScene) {
     auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 0.5, 0.25));

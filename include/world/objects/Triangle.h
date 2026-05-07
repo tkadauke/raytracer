@@ -8,7 +8,7 @@
   * positions in the local frame. Position and orientation of the
   * triangle as a whole are inherited from `Transformable`.
   *
-  * @image html triangle_wireframe.png "Triangle rendered through WireframeEngine"
+  * @image html triangle_wireframe.png "Triangle rendered through Wireframe"
   */
 class Triangle : public Surface {
   Q_OBJECT;

@@ -8,7 +8,7 @@
   * Represents a sphere primitive.
   *
   * @image html sphere.png "Sphere with origin (0, 0, 0) and radius 1"
-  * @image html sphere_wireframe.png "Sphere rendered through WireframeEngine"
+  * @image html sphere_wireframe.png "Sphere rendered through Wireframe"
   */
 class Sphere : public Surface {
   Q_OBJECT;

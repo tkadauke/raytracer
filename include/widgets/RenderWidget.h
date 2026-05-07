@@ -23,7 +23,7 @@ namespace render {
   * is responsible for reissuing `render()` on the widget afterwards.
   *
   * Engine-agnostic: any `RenderEngine` subclass (Raytracer,
-  * WireframeEngine, future SoftwareRasterEngine, ...) drops in.
+  * Wireframe, future SoftwareRasterEngine, ...) drops in.
   * Subclasses that want raytracer-specific operations (e.g. the
   * mouse-pick `rayState` probe in `Display`) `dynamic_cast` to
   * `Raytracer*` and skip the operation when the active engine

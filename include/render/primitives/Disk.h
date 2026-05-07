@@ -41,7 +41,7 @@ namespace render {
       * <script type="text/javascript" src="disk_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html disk_wireframe.png "Disk rendered through WireframeEngine"
+      * @image html disk_wireframe.png "Disk rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

@@ -23,7 +23,7 @@ namespace render {
       * standard barycentric convention: vertex 0 at (0,0), vertex 1 at (1,0),
       * vertex 2 at (0,1). The @p lod parameter is ignored.
       *
-      * @image html triangle_wireframe.png "Triangle rendered through WireframeEngine"
+      * @image html triangle_wireframe.png "Triangle rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const;
 

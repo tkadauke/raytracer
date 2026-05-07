@@ -114,7 +114,7 @@ namespace render {
       * The inverse of `rayForPixel`: given a 3D point in world
       * space, return the pixel through which a primary ray would
       * pass on its way to that point. Used by non-raytracing engines
-      * (`WireframeEngine`, future `OpenGLEngine`) that need to map
+      * (`Wireframe`, future `OpenGLEngine`) that need to map
       * mesh vertices onto the display.
       *
       * Returns `Vector2d::undefined()` if:

@@ -31,7 +31,7 @@ namespace render {
       * corner at (0,0), corner+leg1 at (1,0), corner+leg1+leg2 at (1,1), and
       * corner+leg2 at (0,1). The @p lod parameter is ignored.
       *
-      * @image html rectangle_wireframe.png "Rectangle rendered through WireframeEngine"
+      * @image html rectangle_wireframe.png "Rectangle rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const;
 

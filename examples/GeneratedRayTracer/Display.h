@@ -7,7 +7,10 @@ class Element;
 
 namespace render {
   class Camera;
-  class WireframeEngine;
+}
+
+namespace engine::wireframe {
+  class Wireframe;
 }
 
 namespace engine::raytracer {
@@ -38,5 +41,5 @@ public slots:
 
 private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
-  std::shared_ptr<render::WireframeEngine> m_wireframeEngine;
+  std::shared_ptr<engine::wireframe::Wireframe> m_wireframeEngine;
 };

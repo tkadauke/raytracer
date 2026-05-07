@@ -10,7 +10,7 @@
   * `radius`. Position and orientation are inherited from
   * `Transformable`.
   *
-  * @image html disk_wireframe.png "Disk rendered through WireframeEngine"
+  * @image html disk_wireframe.png "Disk rendered through Wireframe"
   */
 class Disk : public Surface {
   Q_OBJECT;

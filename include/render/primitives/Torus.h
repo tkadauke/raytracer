@@ -49,7 +49,7 @@ namespace render {
       * <script type="text/javascript" src="torus_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html torus_wireframe.png "Torus rendered through WireframeEngine"
+      * @image html torus_wireframe.png "Torus rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

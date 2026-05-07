@@ -24,7 +24,7 @@ namespace render {
     *  - `Raytracer` — Whitted-style recursive raytracer (the
     *    historical and currently only engine). Shoots rays through
     *    pixels, traces reflection / refraction recursively.
-    *  - Future: `WireframeEngine` (edge projection from
+    *  - Future: `Wireframe` (edge projection from
     *    `Mesh::tessellate` outputs), `SoftwareRasterEngine`
     *    (scanline + Z-buffer), `OpenGLEngine` (real-time GL
     *    viewport), `PathTracerEngine` (Monte Carlo over the same
