@@ -104,6 +104,8 @@ The project's hot paths are the `Vector`, `Matrix`, and `Color` math primitives 
 
 The roadmap item under `docs/modernize.md` §3.4 is to grow the benchmark suite to cover all SSE3 hot paths; until then, any regression that the existing benchmarks miss is on the author of the change.
 
+**Performance-regression tests**: where ratios between alternatives are large (≥5×) and stable across debug/release/CI, encode them as ratio assertions in the regular unit-test suite — see `test/unit/render/primitives/BVHPerformanceTest.cpp` for the canonical pattern. Ratio-based assertions tolerate environmental noise (debug-vs-release, CI-vs-dev) far better than absolute timings, and run as part of `ctest` so they catch regressions automatically. Pair with the precision Google Benchmark for tuning. Don't add ratio tests where the expected ratio is small (<2×) — flaky failures will erode the suite's trust.
+
 ## CHANGELOG convention
 
 Behaviour-affecting changes — anything users (developers included) would notice — get a one-line entry in `CHANGELOG.md` under the `## Unreleased` heading. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with `Added` / `Changed` / `Fixed` / `Deprecated` / `Removed` / `Security` subsections. Each entry ends with the author's attribution — for AI agents, that's the model name (e.g., `— Claude Opus 4.7`). Pure refactors that preserve behaviour, internal-only test additions, and CI-only tooling tweaks don't need an entry.
