@@ -18,20 +18,12 @@ WHEN(RaytracerFeatureTest, "i go far away from the origin") {
   test->goFarAway();
 }
 
-WHEN(RaytracerFeatureTest, "i zoom in") {
+WHEN(RaytracerFeatureTest, "i zoom by a factor of ([\\d.]+)") {
+  double factor = std::stod(match[1]);
   auto camera = static_cast<render::Camera*>(test->camera().get());
   if (auto c = dynamic_cast<render::PinholeCamera*>(camera)) {
-    c->setZoom(c->zoom() * 2);
+    c->setZoom(c->zoom() * factor);
   } else if (auto c = dynamic_cast<render::OrthographicCamera*>(camera)) {
-    c->setZoom(c->zoom() * 2);
-  }
-}
-
-WHEN(RaytracerFeatureTest, "i zoom out") {
-  auto camera = static_cast<render::Camera*>(test->camera().get());
-  if (auto c = dynamic_cast<render::PinholeCamera*>(camera)) {
-    c->setZoom(c->zoom() * 0.8);
-  } else if (auto c = dynamic_cast<render::OrthographicCamera*>(camera)) {
-    c->setZoom(c->zoom() * 0.8);
+    c->setZoom(c->zoom() * factor);
   }
 }

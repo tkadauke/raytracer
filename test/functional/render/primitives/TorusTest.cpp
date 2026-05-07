@@ -18,7 +18,7 @@ namespace TorusTest {
   }
   
   TEST_F(TorusTest, ShouldHaveAHoleInTheMiddle) {
-    given("a 90 degree rotated torus");
+    given("a torus rotated 90 degrees around the x axis");
     when("i look at the origin");
     then("i should see the torus with a hole in the middle");
   }

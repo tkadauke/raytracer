@@ -36,7 +36,7 @@ namespace FishEyeCameraTest {
     given("a fish-eye camera");
     given("a displaced sphere");
     when("i look at the origin");
-    when("i set the fish-eye camera's field of view to maximum");
+    when("i set the fish-eye camera's field of view to 360 degrees");
     then("i should see the sphere");
   }
   
@@ -44,7 +44,7 @@ namespace FishEyeCameraTest {
     given("a fish-eye camera");
     given("a centered sphere");
     when("i look away from the origin");
-    when("i set the fish-eye camera's field of view to maximum");
+    when("i set the fish-eye camera's field of view to 360 degrees");
     then("i should see something");
   }
 

@@ -23,11 +23,16 @@ GIVEN(RaytracerFeatureTest, "a displaced open cylinder") {
   test->add(instance);
 }
 
-GIVEN(RaytracerFeatureTest, "an open cylinder rotated 90 degrees around the x axis") {
+GIVEN(RaytracerFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around the ([xyz]) axis") {
+  double degrees = std::stod(match[1]);
+  std::string axis = match[2];
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);
   cylinder->setMaterial(test->redDiffuse());
   auto instance = std::make_shared<Instance>(cylinder);
-  instance->setMatrix(Matrix3d::rotateX(90_degrees));
+  Matrix3d m = (axis == "x") ? Matrix3d::rotateX(Angled::fromDegrees(degrees))
+             : (axis == "y") ? Matrix3d::rotateY(Angled::fromDegrees(degrees))
+                             : Matrix3d::rotateZ(Angled::fromDegrees(degrees));
+  instance->setMatrix(m);
   test->add(instance);
 }
 

@@ -39,9 +39,9 @@ namespace PinholeCameraTest {
     given("a pinhole camera");
     given("a centered sphere");
     when("i look at the origin");
-    when("i set the pinhole camera's view plane distance to a normal value");
+    when("i set the pinhole camera's view plane distance to 5");
     then("i should see the sphere with size S");
-    when("i set the pinhole camera's view plane distance to a very small value");
+    when("i set the pinhole camera's view plane distance to 1");
     then("i should see the sphere with size smaller than S");
   }
 
@@ -50,7 +50,7 @@ namespace PinholeCameraTest {
     given("a centered sphere");
     when("i look at the origin");
     then("i should see the sphere with size S");
-    when("i zoom in");
+    when("i zoom by a factor of 2");
     then("i should see the sphere with size larger than S");
   }
   
@@ -58,9 +58,9 @@ namespace PinholeCameraTest {
     given("a pinhole camera");
     given("a centered sphere");
     when("i look at the origin");
-    when("i set the pinhole camera's view plane distance to a normal value");
+    when("i set the pinhole camera's view plane distance to 5");
     then("i should see the sphere with size S");
-    when("i zoom out");
+    when("i zoom by a factor of 0.8");
     then("i should see the sphere with size smaller than S");
   }
 

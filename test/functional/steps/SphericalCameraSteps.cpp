@@ -11,7 +11,9 @@ GIVEN(RaytracerFeatureTest, "a spherical camera") {
   test->setCamera(std::make_shared<SphericalCamera>());
 }
 
-WHEN(RaytracerFeatureTest, "i set the spherical camera's field of view to maximum") {
+WHEN(RaytracerFeatureTest, "i set the spherical camera's field of view to ([\\d.]+) by ([\\d.]+) degrees") {
+  double horizontal = std::stod(match[1]);
+  double vertical = std::stod(match[2]);
   static_cast<SphericalCamera*>(test->camera().get())
-    ->setFieldOfView(360_degrees, 180_degrees);
+    ->setFieldOfView(Angled::fromDegrees(horizontal), Angled::fromDegrees(vertical));
 }

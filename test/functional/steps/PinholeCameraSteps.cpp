@@ -12,10 +12,7 @@ GIVEN(RaytracerFeatureTest, "a pinhole camera") {
   (void)test;
 }
 
-WHEN(RaytracerFeatureTest, "i set the pinhole camera's view plane distance to a very small value") {
-  static_cast<PinholeCamera*>(test->camera().get())->setDistance(1);
-}
-
-WHEN(RaytracerFeatureTest, "i set the pinhole camera's view plane distance to a normal value") {
-  static_cast<PinholeCamera*>(test->camera().get())->setDistance(5);
+WHEN(RaytracerFeatureTest, "i set the pinhole camera's view plane distance to ([\\d.]+)") {
+  double distance = std::stod(match[1]);
+  static_cast<PinholeCamera*>(test->camera().get())->setDistance(distance);
 }

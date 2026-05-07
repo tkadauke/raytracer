@@ -17,11 +17,15 @@ GIVEN(RaytracerFeatureTest, "a centered torus") {
   test->add(torus);
 }
 
-GIVEN(RaytracerFeatureTest, "a 90 degree rotated torus") {
+GIVEN(RaytracerFeatureTest, "a torus rotated ([\\d.]+) degrees around the ([xyz]) axis") {
+  double degrees = std::stod(match[1]);
+  std::string axis = match[2];
   auto torus = std::make_shared<Torus>(1, 0.5);
   auto instance = std::make_shared<Instance>(torus);
-  instance->setMatrix(Matrix3d::rotateX(90_degrees));
-  
+  Matrix3d m = (axis == "x") ? Matrix3d::rotateX(Angled::fromDegrees(degrees))
+             : (axis == "y") ? Matrix3d::rotateY(Angled::fromDegrees(degrees))
+                             : Matrix3d::rotateZ(Angled::fromDegrees(degrees));
+  instance->setMatrix(m);
   instance->setMaterial(test->redDiffuse());
   test->add(instance);
 }

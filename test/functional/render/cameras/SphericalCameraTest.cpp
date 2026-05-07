@@ -30,7 +30,7 @@ namespace SphericalCameraTest {
     given("a spherical camera");
     given("a displaced sphere");
     when("i look at the origin");
-    when("i set the spherical camera's field of view to maximum");
+    when("i set the spherical camera's field of view to 360 by 180 degrees");
     then("i should see the sphere");
   }
   
@@ -38,7 +38,7 @@ namespace SphericalCameraTest {
     given("a spherical camera");
     given("a centered sphere");
     when("i look away from the origin");
-    when("i set the spherical camera's field of view to maximum");
+    when("i set the spherical camera's field of view to 360 by 180 degrees");
     then("i should see the sphere");
   }
 
