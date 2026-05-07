@@ -1,4 +1,4 @@
-class_doc do
+class_doc(engines: [:raytracer, :raster]) do
   name "pinhole_camera_cube"
   camera_scene
   pinhole_camera :position => [0, -1, -3]

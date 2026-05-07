@@ -4,6 +4,24 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * @brief An axis-aligned box defined by its `center` and half-edge
+    *        vector.
+    *
+    * Same scene rendered through every supporting engine — only the
+    * integrator differs:
+    *
+    * <table>
+    *   <tr>
+    *     <th>Raytracer</th>
+    *     <th>Software rasterizer</th>
+    *   </tr>
+    *   <tr>
+    *     <td>@image html box__raytracer.png ""</td>
+    *     <td>@image html box__raster.png ""</td>
+    *   </tr>
+    * </table>
+    */
   class Box : public Primitive {
   public:
     inline explicit Box(const Vector3d& center, const Vector3d& edge)

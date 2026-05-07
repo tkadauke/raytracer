@@ -17,8 +17,8 @@ namespace render {
     *     <th>Software rasterizer</th>
     *   </tr>
     *   <tr>
-    *     <td>@image html sphere__raytracer.png</td>
-    *     <td>@image html sphere__raster.png</td>
+    *     <td>@image html sphere__raytracer.png ""</td>
+    *     <td>@image html sphere__raster.png ""</td>
     *   </tr>
     * </table>
     *
