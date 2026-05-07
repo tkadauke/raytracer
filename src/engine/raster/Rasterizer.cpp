@@ -5,9 +5,11 @@
 #include "core/geometry/Rasterize.h"
 #include "core/math/Vector.h"
 #include "render/cameras/Camera.h"
+#include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -35,10 +37,18 @@ void Rasterizer::uncancel() {
 }
 
 namespace {
+  // Ambient floor — the unlit side of an object isn't pure black,
+  // it's lit by the scene's ambient term scaled by this coefficient.
+  // Matches MatteMaterial's default ambientCoefficient of 1.0 modulo
+  // a fixed 0.15 pulldown so direct lighting has visible
+  // contribution against the ambient baseline.
+  constexpr double kAmbientCoefficient = 0.15;
+
   // A reasonably colour-spread hash from a uint64 face index → RGB
   // in [0, 1]³. Used so adjacent faces are visually distinguishable
-  // in the V1 flat-shaded output. Replaced by real shading in a
-  // later phase.
+  // in the flat-coloured output. The Lambertian shading multiplies
+  // this base colour by the per-pixel intensity, giving smoothly
+  // shaded surfaces with face-coloured triangles.
   Colord faceColor(std::uint64_t index) {
     // Three independent hashes — the multipliers are large primes
     // that produce well-separated bit patterns under modulo.
@@ -99,13 +109,13 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
     // the simple fan is correct for everything that ships in this
     // codebase.
     for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-      const Vector3d& w0 = vertices[face[0]].point;
-      const Vector3d& w1 = vertices[face[i]].point;
-      const Vector3d& w2 = vertices[face[i + 1]].point;
+      const auto& v0 = vertices[face[0]];
+      const auto& v1 = vertices[face[i]];
+      const auto& v2 = vertices[face[i + 1]];
 
-      const Vector3d s0 = m_camera->projectPointWithDepth(w0);
-      const Vector3d s1 = m_camera->projectPointWithDepth(w1);
-      const Vector3d s2 = m_camera->projectPointWithDepth(w2);
+      const Vector3d s0 = m_camera->projectPointWithDepth(v0.point);
+      const Vector3d s1 = m_camera->projectPointWithDepth(v1.point);
+      const Vector3d s2 = m_camera->projectPointWithDepth(v2.point);
 
       // Skip if any vertex projection is undefined — vertex behind
       // the eye, camera with no closed-form inverse, or otherwise
@@ -134,10 +144,43 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
           // polygon texture mapping and shading".)
           const double oneOverZ = w0b * invZ0 + w1b * invZ1 + w2b * invZ2;
           const double pixelDepth = 1.0 / oneOverZ;
-          if (pixelDepth < zBuffer[y][x]) {
-            zBuffer[y][x] = pixelDepth;
-            buffer[y][x] = color;
+          if (pixelDepth >= zBuffer[y][x]) return;
+
+          // Perspective-correct attribute interpolation: same trick
+          // as depth, applied to vertex normals and world positions.
+          //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
+          // For normals this gives smoothly-shaded curved surfaces
+          // (a tessellated sphere looks round, not faceted) where
+          // the underlying mesh provides per-vertex normals.
+          const double wp0 = w0b * invZ0;
+          const double wp1 = w1b * invZ1;
+          const double wp2 = w2b * invZ2;
+          const Vector3d normal = (
+            v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2
+          ) * pixelDepth;
+          const Vector3d worldPos = (
+            v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2
+          ) * pixelDepth;
+
+          // Renormalise — interpolation typically denormalises the
+          // result, and the Lambertian dot product needs unit length
+          // for the angle to be meaningful.
+          const Vector3d n = normal.normalized();
+
+          // Lambertian shading. No shadow rays (no recursive ray
+          // tracing in this engine); each light contributes
+          // diffuse-cosine-weighted radiance directly.
+          Colord shaded = m_scene->ambient() * kAmbientCoefficient * color;
+          for (const auto& light : m_scene->lights()) {
+            const Vector3d lightDir = light->direction(worldPos);
+            const double nDotL = std::max(0.0, n * lightDir);
+            if (nDotL > 0.0) {
+              shaded += color * light->radiance() * nDotL;
+            }
           }
+
+          zBuffer[y][x] = pixelDepth;
+          buffer[y][x] = shaded;
         });
     }
   }

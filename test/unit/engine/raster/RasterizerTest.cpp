@@ -36,13 +36,13 @@ namespace RasterizerTest {
   }
 
   static std::shared_ptr<Scene> sceneWithBox() {
-    auto scene = std::make_shared<Scene>(Colord::black());
+    auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1)));
     return scene;
   }
 
   static std::shared_ptr<Scene> sceneWithSphere() {
-    auto scene = std::make_shared<Scene>(Colord::black());
+    auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Sphere>(Vector3d::null(), 1));
     return scene;
   }
@@ -52,7 +52,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
-    auto scene = std::make_shared<Scene>(Colord::black());
+    auto scene = std::make_shared<Scene>(Colord::white());
     Rasterizer engine(camera(), scene);
     engine.setBackgroundColor(Colord(0.1, 0.2, 0.3));
     Buffer<Colord> buffer(64, 64);
@@ -95,7 +95,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, BackgroundColorIsConfigurable) {
-    auto scene = std::make_shared<Scene>(Colord::black());
+    auto scene = std::make_shared<Scene>(Colord::white());
     Rasterizer engine(camera(), scene);
     engine.setBackgroundColor(Colord(0.5, 0.0, 0.5));
     Buffer<Colord> buffer(32, 32);
@@ -167,10 +167,10 @@ namespace RasterizerTest {
 
     auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
 
-    auto sceneAlone = std::make_shared<Scene>(Colord::black());
+    auto sceneAlone = std::make_shared<Scene>(Colord::white());
     sceneAlone->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
 
-    auto sceneWithBack = std::make_shared<Scene>(Colord::black());
+    auto sceneWithBack = std::make_shared<Scene>(Colord::white());
     sceneWithBack->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));    // near, idx 0..N-1
     sceneWithBack->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));  // far back wall
 
