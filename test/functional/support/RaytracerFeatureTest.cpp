@@ -1,7 +1,7 @@
 #include "test/functional/support/RaytracerFeatureTest.h"
 
 #include "render/primitives/Scene.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -9,7 +9,7 @@
 #include "test/helpers/ImageViewer.h"
 
 namespace testing {
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
 
   RaytracerFeatureTest::RaytracerFeatureTest()

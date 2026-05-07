@@ -10,7 +10,7 @@ namespace render {
   class WireframeEngine;
 }
 
-namespace raytracer {
+namespace engine::raytracer {
   class Raytracer;
 }
 
@@ -37,6 +37,6 @@ public slots:
   void setEngineKind(EngineKind kind);
 
 private:
-  std::shared_ptr<raytracer::Raytracer> m_raytracerEngine;
+  std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   std::shared_ptr<render::WireframeEngine> m_wireframeEngine;
 };

@@ -3,7 +3,7 @@
 
 #include "widgets/RenderWidget.h"
 
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/WireframeEngine.h"
 #include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
@@ -19,7 +19,7 @@
 #include <QScrollArea>
 #include <QElapsedTimer>
 
-using namespace raytracer;
+using namespace engine::raytracer;
 
 struct RenderWindow::Private {
   inline Private()
@@ -36,7 +36,7 @@ struct RenderWindow::Private {
   // Per-engine instances kept around so swapping is cheap. Only one
   // is wired into renderWidget at a time; the other holds onto its
   // scene + camera ready to take over on the next "Render" click.
-  std::shared_ptr<raytracer::Raytracer> raytracer;
+  std::shared_ptr<engine::raytracer::Raytracer> raytracer;
   std::shared_ptr<render::WireframeEngine> wireframe;
 
   bool busy;

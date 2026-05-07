@@ -3,7 +3,7 @@
 #include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/primitives/Scene.h"
@@ -12,11 +12,11 @@
 
 namespace MatteMaterialTest {
   using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;

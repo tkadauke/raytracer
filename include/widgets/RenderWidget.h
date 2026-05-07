@@ -72,7 +72,7 @@ public:
   void setEngine(std::shared_ptr<render::RenderEngine> engine);
 
   /// @returns the active render engine.
-  std::shared_ptr<render::RenderEngine> engine() const;
+  std::shared_ptr<render::RenderEngine> renderEngine() const;
 
   /**
     * Resize the internal buffer. Call before `render()` to match

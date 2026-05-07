@@ -11,7 +11,7 @@
 
 using namespace testing;
 using namespace std;
-using namespace raytracer;
+using namespace engine::raytracer;
 using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered cube mesh") {

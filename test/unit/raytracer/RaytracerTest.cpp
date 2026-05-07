@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
@@ -21,7 +21,7 @@
 
 namespace RaytracerTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
 
   // Tests for the orchestration class itself (issue #20). render() is not

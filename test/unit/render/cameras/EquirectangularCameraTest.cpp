@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "render/cameras/EquirectangularCamera.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 #include "core/math/Constants.h"
@@ -11,11 +11,11 @@
 
 namespace EquirectangularCameraTest {
   using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 
   // EquirectangularCamera::rayForPixel divides by viewPlane()->width()
   // and ::height(), which are 0 on a freshly-constructed camera (the

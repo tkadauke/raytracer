@@ -17,7 +17,7 @@
 
 #include "MainWindow.h"
 #include "Display.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/lights/PointLight.h"

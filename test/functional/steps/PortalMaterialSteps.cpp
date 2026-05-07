@@ -6,7 +6,7 @@
 #include "render/materials/PortalMaterial.h"
 
 using namespace testing;
-using namespace raytracer;
+using namespace engine::raytracer;
 using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a box portal") {

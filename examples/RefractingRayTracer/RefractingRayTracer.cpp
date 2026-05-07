@@ -1,4 +1,4 @@
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Plane.h"
@@ -12,7 +12,7 @@
 
 #include <QApplication>
 
-using namespace raytracer;
+using namespace engine::raytracer;
 using namespace render;
 
 int main(int argc, char** argv) {

@@ -1,4 +1,4 @@
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/Stats.h"
 #include "core/math/Vector.h"
@@ -27,7 +27,7 @@
 #include <iostream>
 
 using namespace std;
-using namespace raytracer;
+using namespace engine::raytracer;
 
 namespace {
   // Tile-render task — generic over what the per-tile work is so the

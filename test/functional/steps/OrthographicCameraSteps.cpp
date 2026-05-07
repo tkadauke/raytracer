@@ -4,7 +4,7 @@
 #include "render/cameras/OrthographicCamera.h"
 
 using namespace testing;
-using namespace raytracer;
+using namespace engine::raytracer;
 using namespace render;
 
 GIVEN(RaytracerFeatureTest, "an orthographic camera") {

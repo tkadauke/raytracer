@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/primitives/Scene.h"
 #include "core/math/Ray.h"
@@ -10,7 +10,7 @@
 #include <cmath>
 
 #include "core/math/HitPoint.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/primitives/Scene.h"
 
@@ -18,11 +18,11 @@
 
 namespace TransparentMaterialTest {
   using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 
   TEST(TransparentMaterial, ShouldInitialize) {
     TransparentMaterial material;

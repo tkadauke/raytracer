@@ -18,14 +18,11 @@ namespace render {
     * against any future ray-based engine (Whitted raytracer today,
     * path tracer later) without coupling to a concrete engine type.
     *
-    * `raytracer::Raytracer` implements this interface; the previous
-    * design passed a raw `Raytracer*` directly through the call
-    * chain, leaking the concrete engine type into `render::Material`
-    * and `render::Camera` — which then forced those (engine-agnostic)
-    * subsystems to live in `raytracer::` or hold a cross-namespace
-    * dependency on it. The interface is the architectural seam that
-    * lets `render::` be the actually-engine-agnostic namespace its
-    * name promises.
+    * `engine::raytracer::Raytracer` implements this interface. The
+    * interface is the architectural seam that lets `render::` be
+    * the actually-engine-agnostic namespace its name promises:
+    * `Material` and `Camera` recurse through `RayCaster*` rather
+    * than holding a direct dependency on a concrete engine type.
     *
     * Future engines that don't have a sensible "trace one ray" notion
     * (wireframe, software raster, GL) just don't implement

@@ -21,7 +21,7 @@ namespace render {
   class State;
 }
 
-namespace raytracer {
+namespace engine::raytracer {
 
   /**
     * @brief Whitted-style recursive raytracer — the historical (and

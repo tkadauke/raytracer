@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "render/cameras/SphericalCamera.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 
@@ -9,11 +9,11 @@
 namespace SphericalCameraTest {
   using namespace ::testing;
   using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
   
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;

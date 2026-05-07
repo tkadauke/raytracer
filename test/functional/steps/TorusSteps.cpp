@@ -8,7 +8,7 @@
 #include "core/math/Matrix.h"
 
 using namespace testing;
-using namespace raytracer;
+using namespace engine::raytracer;
 using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered torus") {

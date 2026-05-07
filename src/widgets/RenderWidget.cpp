@@ -58,7 +58,7 @@ void RenderWidget::setEngine(std::shared_ptr<render::RenderEngine> engine) {
   m_engine = std::move(engine);
 }
 
-std::shared_ptr<render::RenderEngine> RenderWidget::engine() const {
+std::shared_ptr<render::RenderEngine> RenderWidget::renderEngine() const {
   return m_engine;
 }
 

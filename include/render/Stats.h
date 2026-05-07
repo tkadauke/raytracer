@@ -10,7 +10,7 @@
 //
 // When enabled, each RAYTRACER_STATS_INC is an atomic fetch_add with
 // memory_order_relaxed, which is the cheapest atomic operation modern CPUs
-// support. Counters are global and process-wide; raytracer::Raytracer::render
+// support. Counters are global and process-wide; engine::raytracer::Raytracer::render
 // resets them at the start of each render and dumps the JSON snapshot to
 // stderr at the end.
 //

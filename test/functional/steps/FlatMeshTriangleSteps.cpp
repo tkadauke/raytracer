@@ -5,7 +5,7 @@
 #include "core/geometry/Mesh.h"
 
 using namespace testing;
-using namespace raytracer;
+using namespace engine::raytracer;
 using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered flat mesh triangle") {

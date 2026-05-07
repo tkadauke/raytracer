@@ -4,7 +4,7 @@
 #include <QMouseEvent>
 
 #include "Display.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/WireframeEngine.h"
 #include "render/State.h"
 #include "render/primitives/Primitive.h"
@@ -21,12 +21,12 @@
 using namespace std;
 
 Display::Display(QWidget* parent)
-  : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr))
+  : QtDisplay(parent, std::make_shared<engine::raytracer::Raytracer>(nullptr))
 {
   // The QtDisplay base now holds the active engine in m_engine. Cache
   // the typed shared_ptr alongside so engine swaps don't have to
   // dynamic_cast the base pointer.
-  m_raytracerEngine = std::dynamic_pointer_cast<raytracer::Raytracer>(m_engine);
+  m_raytracerEngine = std::dynamic_pointer_cast<engine::raytracer::Raytracer>(m_engine);
   m_wireframeEngine = std::make_shared<render::WireframeEngine>(nullptr);
 }
 
@@ -71,7 +71,7 @@ void Display::mousePressEvent(QMouseEvent* event) {
     // The Ctrl-click ray-state probe is raytracer-specific (no
     // ray recursion in wireframe / future raster engines), so it
     // only fires when the active engine is actually a Raytracer.
-    auto rt = std::dynamic_pointer_cast<raytracer::Raytracer>(m_engine);
+    auto rt = std::dynamic_pointer_cast<engine::raytracer::Raytracer>(m_engine);
     if (!rt) return;
 
     Rayd ray = m_engine->camera()->rayForPixel(event->pos().x(), event->pos().y());

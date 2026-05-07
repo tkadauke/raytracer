@@ -6,7 +6,7 @@
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Plane.h"
 #include "render/materials/MatteMaterial.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -14,7 +14,7 @@
 #include "render/cameras/PinholeCamera.h"
 
 PreviewDisplayWidget::PreviewDisplayWidget(QWidget* parent)
-  : QtDisplay(parent, std::make_shared<raytracer::Raytracer>(nullptr))
+  : QtDisplay(parent, std::make_shared<engine::raytracer::Raytracer>(nullptr))
 {
 }
 

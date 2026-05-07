@@ -20,7 +20,7 @@ namespace render {
   class Scene;
 }
 
-namespace raytracer {
+namespace engine::raytracer {
   class Raytracer;
 }
 
@@ -64,7 +64,7 @@ namespace testing {
   private:
     std::shared_ptr<render::Scene> m_scene;
     std::shared_ptr<render::Camera> m_camera;
-    std::shared_ptr<raytracer::Raytracer> m_raytracer;
+    std::shared_ptr<engine::raytracer::Raytracer> m_raytracer;
     Buffer<unsigned int> m_buffer;
   };
 }

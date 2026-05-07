@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "render/cameras/ThinLensCamera.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
 #include "render/viewplanes/PointInterlacedViewPlane.h"
 #include "render/samplers/JitteredSampler.h"
@@ -12,11 +12,11 @@
 
 namespace ThinLensCameraTest {
   using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
     ThinLensCamera camera;

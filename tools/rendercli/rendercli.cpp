@@ -9,7 +9,7 @@
 
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/WireframeEngine.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
@@ -100,7 +100,7 @@ void Renderer::render() const {
     wireframe->setLod(m_wireframeLod);
     engine = wireframe;
   } else {
-    auto rt = std::make_shared<raytracer::Raytracer>(raytracerScene);
+    auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
     // We don't need a fancy view plane, so we can optimize for fast rendering.
     rt->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
     rt->setMaximumRecursionDepth(m_maximumRecursionDepth);

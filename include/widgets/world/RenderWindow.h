@@ -8,7 +8,7 @@ class Scene;
 class RenderWidget;
 class RenderSettingsWidget;
 
-namespace raytracer {
+namespace engine::raytracer {
   class Raytracer;
 }
 

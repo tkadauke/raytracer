@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 #include "render/cameras/FishEyeCamera.h"
-#include "raytracer/Raytracer.h"
+#include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
 #include "core/Buffer.h"
 
 namespace FishEyeCameraTest {
   using namespace ::testing;
   using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
 using namespace render;
-  using namespace raytracer;
+  using namespace engine::raytracer;
   
   TEST(FishEyeCamera, ShouldConstructWithoutParameters) {
     FishEyeCamera camera;
