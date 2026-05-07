@@ -189,11 +189,13 @@ Introduce a `BSDF` interface with `eval(wi, wo) → spectrum`, `sample(wi) → (
 
 Replace the current hierarchical container with a proper acceleration tree, behind a `SpatialIndex` (or `Accelerator`) interface so multiple structures can coexist:
 
-- **BVH** (binary, with SAH build) — the workhorse for general scenes.
+- ✅ **BVH** (binary, with SAH build) — the workhorse for general scenes. Lives at `include/render/primitives/BVH.h`; SAH (Surface Area Heuristic) builder, ray-AABB cull at every node, falls back to linear scan if `setup()` is skipped. Drop-in replacement for `Composite` / `Grid`.
 - **Octree** — natural fit for unbounded/heterogeneous scenes and volumetrics.
 - **kd-tree** — best for static, geometry-heavy scenes; teaches a different traversal style.
-- **Uniform / hashed grid** — fast build, good for animated/dynamic scenes.
+- ✅ **Uniform / hashed grid** — fast build, good for animated/dynamic scenes. Pre-existing as `render::Grid`.
 - **Two-level (TLAS / BLAS) layout** — stable per-mesh BLASes referenced by transformed instances; matches GPU RT API patterns and supports instancing-heavy scenes.
+
+The `SpatialIndex` interface itself isn't yet extracted — `BVH` and `Grid` both inherit from `Composite` and share the `intersect` / `intersects` virtual signatures already on `Primitive`, which serves as the de-facto interface until a third implementation makes the abstraction useful. Scene-conversion currently picks `Grid` for meshes and plain `Composite` for everything else; switching the default to `BVH` is the natural follow-up once benchmarks show the win on representative scenes.
 
 Per-engine backends pick the right structure (raytracer/path tracer want BVH; rasterizers want frustum-cull-friendly trees). Scenes can request a specific structure for benchmarking, since "compare them all" *is* the educational point.
 
