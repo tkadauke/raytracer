@@ -7,7 +7,7 @@ namespace render {
   public:
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
 
-    /** CSG mesh booleans are queued under roadmap §4.2.a. Returns empty Mesh. */
+    /** CSG mesh booleans are not implemented. Returns empty Mesh. */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const;
 
   protected:

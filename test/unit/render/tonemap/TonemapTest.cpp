@@ -18,10 +18,8 @@ namespace TonemapTest {
   }
 
   TEST(LinearTonemap, PassesHDRColorsThroughUnchanged) {
-    // The pre-R1 behaviour was "let .rgb() clamp at the end" — so
-    // the tonemap stage must not do its own clamping. This test
-    // pins that contract; without it, anyone editing LinearTonemap
-    // could break the regression baseline.
+    // LinearTonemap is a pass-through — the only clamping happens
+    // downstream in `.rgb()`. This test pins that contract.
     LinearTonemap t;
     ASSERT_COLOR_NEAR(Colord(2.5, 4.0, 100.0),
                       t.apply(Colord(2.5, 4.0, 100.0)),

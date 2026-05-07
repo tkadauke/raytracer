@@ -8,7 +8,7 @@ using namespace render;
 using namespace render;
 
   TEST(IntersectionTessellate, ShouldReturnEmptyMesh) {
-    // CSG mesh booleans are not implemented; queued under roadmap §4.2.a.
+    // CSG mesh booleans are not implemented; not implemented.
     Intersection isect;
     auto mesh = isect.tessellate(0);
     EXPECT_TRUE(mesh->vertices().empty());

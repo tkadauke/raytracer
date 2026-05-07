@@ -1,4 +1,4 @@
-// SIMD regression tests — modernize.md §3.4.
+// SIMD regression tests.
 //
 // The SSE3 specialisations of Vector3<float>, Vector3<double>, Vector4<float>,
 // Vector4<double>, Color<float>, and Color<double> live in
@@ -8,18 +8,15 @@
 // x86-family CPUs), the specialisations replace the generic Vector / Color
 // templates for those particular instantiations.
 //
-// Until now there was no test that *compares* the specialised paths against
-// the generic templates with the same inputs — the "is the SSE3 result the
-// same as the scalar result?" question went unverified. This file holds
-// parametric tests that take a battery of inputs, run each operation through
-// both the SSE3 specialisation and an explicit instantiation of the generic
+// Each test below takes a battery of inputs, runs each operation through both
+// the SSE3 specialisation and an explicit instantiation of the generic
 // underlying template, and asserts the two results are equal within FP
 // tolerance.
 //
-// On platforms without SSE3 (e.g. Apple Silicon arm64 — the local dev
-// machine) the comparison block compiles to nothing, so the test merely
-// verifies the generic-vs-generic path of the same operations against the
-// same inputs. On x86 CI it does the real SIMD-vs-generic comparison.
+// On platforms without SSE3 (e.g. Apple Silicon arm64) the comparison block
+// compiles to nothing and the test verifies the generic-vs-generic path of
+// the same operations against the same inputs. On x86 the real
+// SIMD-vs-generic comparison runs.
 
 #include <gtest/gtest.h>
 

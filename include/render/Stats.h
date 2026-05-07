@@ -1,6 +1,6 @@
 #pragma once
 
-// Per-render performance counters (modernize.md §3.7).
+// Per-render performance counters.
 //
 // The whole subsystem is gated on the RAYTRACER_ENABLE_STATS preprocessor
 // macro, which the build sets when the user passes -DRAYTRACER_ENABLE_STATS
@@ -14,9 +14,9 @@
 // resets them at the start of each render and dumps the JSON snapshot to
 // stderr at the end.
 //
-// "Cache misses" from the modernize.md spec are intentionally out of scope
-// here — they need perf_event_open / Apple's `kperf` and platform-specific
-// privileges; if you need them, run the binary under `perf stat`.
+// Cache-miss counters are intentionally out of scope — they need
+// perf_event_open / Apple's `kperf` and platform-specific privileges;
+// if you need them, run the binary under `perf stat`.
 
 #include <atomic>
 #include <cstdint>

@@ -8,7 +8,7 @@
 using namespace render;
 
 std::shared_ptr<Mesh> MinkowskiSum::tessellate(int) const {
-  qWarning() << "MinkowskiSum::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  qWarning() << "MinkowskiSum::tessellate not implemented — CSG mesh booleans not implemented.";
   return std::make_shared<Mesh>();
 }
 

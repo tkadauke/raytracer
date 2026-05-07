@@ -8,7 +8,7 @@ using namespace render;
 using namespace render;
 
   TEST(ConvexHullTessellate, ShouldReturnEmptyMesh) {
-    // CSG mesh booleans are not implemented; queued under roadmap §4.2.a.
+    // CSG mesh booleans are not implemented; not implemented.
     ConvexHull ch;
     auto mesh = ch.tessellate(0);
     EXPECT_TRUE(mesh->vertices().empty());

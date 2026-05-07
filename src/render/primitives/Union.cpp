@@ -33,7 +33,7 @@ const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
 }
 
 std::shared_ptr<Mesh> Union::tessellate(int) const {
-  qWarning() << "Union::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  qWarning() << "Union::tessellate not implemented — CSG mesh booleans not implemented.";
   return std::make_shared<Mesh>();
 }
 

@@ -149,7 +149,7 @@ namespace render {
       * compositors (`Composite`, `Instance`, `Grid`, `Scene`)
       * concatenate or transform their children's meshes; CSG
       * primitives stub out until the mesh-boolean epic lands (see
-      * roadmap §4.2.a).
+      * ).
       *
       * The returned `shared_ptr<Mesh>` is fresh per call — callers
       * may modify it in place. Caching, if any, is the consumer's

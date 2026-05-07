@@ -51,7 +51,7 @@ bool Intersection::intersects(const Rayd& ray, render::State& state) const {
 }
 
 std::shared_ptr<Mesh> Intersection::tessellate(int) const {
-  qWarning() << "Intersection::tessellate not implemented — CSG mesh booleans queued under roadmap §4.2.a.";
+  qWarning() << "Intersection::tessellate not implemented — CSG mesh booleans not implemented.";
   return std::make_shared<Mesh>();
 }
 
