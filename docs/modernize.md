@@ -243,14 +243,11 @@ endif()
 - Remove empty `test/functional/raytracer/` directory.
 - Move `test/functional/steps/MinkowskiSumTest.cpp` into `test/functional/render/primitives/` to match its siblings.
 
-#### A. Replace string-keyed Given/When/Then with typed fixture methods *(~2 days, mechanical)*
+#### A. ~~Replace string-keyed Given/When/Then with typed fixture methods~~ Cucumber-style regex steps with hard-fail on miss ✅ **Done.**
 
-- Drop the `GIVEN(...)` / `WHEN(...)` / `THEN(...)` macros from `GivenWhenThen.h` and the `Steps` singleton from `FeatureTest.h`.
-- Convert the 30+ step implementations into named protected methods on `RaytracerFeatureTest`: `givenCenteredSphere()`, `whenILookAtOrigin()`, `thenIShouldSeeTheSphere()`. Body of each method matches the current `GIVEN(..., "a centered sphere") { ... }` body exactly.
-- Tests read identically (`givenCenteredSphere(); whenILookAtOrigin(); thenIShouldSeeTheSphere();`) but typos become compile errors and IDE jump-to-definition works.
-- The `beforeGiven/beforeWhen/beforeThen` lifecycle hook from `FeatureTest.h` is preserved by setting an internal phase flag inside each named method.
+The original plan was to drop the macros and convert step bodies into named protected methods on the fixture (`givenCenteredSphere()`, `whenILookAtOrigin()`, …) so typos became compile errors. After review, pivoted to keep the natural-language registration style but make it parameterisable like Cucumber's Ruby DSL — patterns are now regular expressions, capture groups expose `const std::smatch& match` to the step body, and `given/when/then` calls that don't match exactly one registered pattern raise `GTEST_FAIL` instead of the old `cerr << "WARNING"` stderr line. Same diagnostic value as the typed-method variant (typos surface as failures, not silent passes); plus parameter-passing for free.
 
-**Why:** the silent-warning failure mode is a real bug class. Today's framework's `cerr << "WARNING"` is invisible in CI. Compile-time linkage gives the typing guarantee for free.
+Existing 91 functional tests didn't need any migration — none of their step strings contain regex metacharacters, so they match as literals against the same input. New `FeatureTestSelfTest.cpp` pins the regex-capture, missing-step, and ambiguity behaviours (7 tests).
 
 #### B. Parameterise the fixture over engine type *(~3 days)*
 
