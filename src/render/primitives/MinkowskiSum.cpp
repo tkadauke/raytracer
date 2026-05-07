@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/MinkowskiSum.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"

@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Rectangle.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -6,7 +6,7 @@
 
 using namespace render;
 
-const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Rectangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   double t = (m_corner - ray.origin()) * m_normal / (ray.direction() * m_normal);
   if (std::isinf(t)) {
     state.miss(this, "Rectangle, parallel");

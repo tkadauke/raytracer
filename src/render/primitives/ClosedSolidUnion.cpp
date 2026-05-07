@@ -1,11 +1,11 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/ClosedSolidUnion.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
 using namespace render;
 
-const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }

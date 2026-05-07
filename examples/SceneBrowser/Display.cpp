@@ -5,7 +5,7 @@
 
 #include "Display.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/cameras/CameraFactory.h"
 #include "render/cameras/PinholeCamera.h"
 #include "SceneFactory.h"

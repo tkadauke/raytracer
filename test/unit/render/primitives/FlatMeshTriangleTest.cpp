@@ -7,7 +7,8 @@
 
 namespace FlatMeshTriangleTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
   
   TEST(FlatMeshTriangle, ShouldBuildFromMesh) {

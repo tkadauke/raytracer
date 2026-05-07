@@ -3,7 +3,8 @@
 #include "core/geometry/Mesh.h"
 
 namespace RectangleTessellateTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   TEST(RectangleTessellate, ShouldHave4VerticesAnd2Faces) {

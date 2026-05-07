@@ -4,14 +4,11 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 
 namespace testing {
   using namespace render;
-  using namespace raytracer;
-using namespace render;
-using namespace render;
-  
+
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
     inline void SetUp() {

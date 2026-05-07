@@ -6,7 +6,8 @@
 
 namespace UnionTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
   
   TEST(Union, ShouldReturnClosestPrimitiveForUnion) {

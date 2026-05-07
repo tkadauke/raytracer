@@ -2,7 +2,7 @@
 #include <gmock/gmock.h>
 
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"

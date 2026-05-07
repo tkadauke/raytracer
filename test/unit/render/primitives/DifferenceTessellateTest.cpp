@@ -3,7 +3,8 @@
 #include "core/geometry/Mesh.h"
 
 namespace DifferenceTessellateTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   TEST(DifferenceTessellate, ShouldReturnEmptyMesh) {

@@ -3,7 +3,8 @@
 #include "core/geometry/Mesh.h"
 
 namespace IntersectionTessellateTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   TEST(IntersectionTessellate, ShouldReturnEmptyMesh) {

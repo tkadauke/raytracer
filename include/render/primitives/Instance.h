@@ -57,10 +57,10 @@ namespace render {
       * composites), not the instance itself, so material lookups
       * find the right surface.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
 
     /// Boolean variant — same transform-and-delegate pattern.
-    virtual bool intersects(const Rayd& ray, raytracer::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const;
 
     /// @returns the instance's own material if set (overrides the
     /// wrapped primitive's material), otherwise the wrapped

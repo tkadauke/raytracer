@@ -12,8 +12,8 @@ namespace render {
   public:
     explicit SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2);
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
-    virtual bool intersects(const Rayd& ray, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const;
 
     static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
 

@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Composite.h"
 #include "core/geometry/Mesh.h"
@@ -15,7 +15,7 @@ void FlatMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared
   }
 }
 
-const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   Vector3d v0(m_mesh->vertices()[m_index0].point);
   Vector3d v1(m_mesh->vertices()[m_index1].point);
   Vector3d v2(m_mesh->vertices()[m_index2].point);

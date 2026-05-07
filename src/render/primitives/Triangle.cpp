@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Triangle.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -6,7 +6,7 @@
 
 using namespace render;
 
-const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Triangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   double a = m_point0.x() - m_point1.x(), b = m_point0.x() - m_point2.x(), c = ray.direction().x(), d = m_point0.x() - ray.origin().x();
   double e = m_point0.y() - m_point1.y(), f = m_point0.y() - m_point2.y(), g = ray.direction().y(), h = m_point0.y() - ray.origin().y();
   double i = m_point0.z() - m_point1.z(), j = m_point0.z() - m_point2.z(), k = ray.direction().z(), l = m_point0.z() - ray.origin().z();

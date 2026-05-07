@@ -3,7 +3,8 @@
 #include "core/geometry/Mesh.h"
 
 namespace FlatMeshTriangleTessellateTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   // Mesh vertices have normals pointing in +Y; FlatMeshTriangle averages them

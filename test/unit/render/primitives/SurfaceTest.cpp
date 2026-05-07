@@ -3,7 +3,8 @@
 #include "render/materials/MatteMaterial.h"
 
 namespace PrimitiveTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   class ConcretePrimitive : public Primitive {

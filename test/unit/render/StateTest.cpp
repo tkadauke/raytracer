@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
-#include "raytracer/State.h"
+#include "render/State.h"
 
 namespace StateTest {
   using namespace ::testing;
-  using namespace raytracer;
 using namespace render;
 
   TEST(State, ShouldInitialize) {

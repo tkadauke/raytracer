@@ -1,14 +1,14 @@
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/materials/PhongMaterial.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "raytracer/Raytracer.h"
 #include "core/math/HitPoint.h"
 #include "render/primitives/Scene.h"
 #include "render/lights/Light.h"
 #include "core/math/Ray.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/textures/Texture.h"
 
 #include <algorithm>
@@ -17,7 +17,7 @@ using namespace std;
 using namespace render;
 using namespace raytracer;
 
-Colord PhongMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const {
+Colord PhongMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
 
   render::Lambertian ambientBRDF(texColor, ambientCoefficient());

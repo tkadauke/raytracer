@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Difference.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
@@ -7,7 +7,7 @@
 
 using namespace render;
 
-const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -43,7 +43,7 @@ const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoi
 
 // Shadow implementation of Composite, which generates spourious shadows of
 // differential objects
-bool Difference::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Difference::intersects(const Rayd& ray, render::State& state) const {
   return Primitive::intersects(ray, state);
 }
 

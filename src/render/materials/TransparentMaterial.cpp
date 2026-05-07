@@ -1,7 +1,7 @@
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/materials/TransparentMaterial.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "raytracer/Raytracer.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
@@ -12,7 +12,7 @@ using namespace std;
 using namespace render;
 using namespace raytracer;
 
-Colord TransparentMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const {
+Colord TransparentMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
   Vector3d out = -ray.direction();
   Vector3d in;
   Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, out, in);

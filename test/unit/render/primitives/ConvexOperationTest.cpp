@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/ConvexOperation.h"
 #include "render/materials/MatteMaterial.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
@@ -16,7 +16,8 @@ namespace testing {
 
 namespace ConvexOperationTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
   
   TEST(ConvexOperation, ShouldReturnSelfForConvexOperation) {

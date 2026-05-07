@@ -18,7 +18,7 @@ namespace render {
 
     static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
 
     /**
       * Returns a single-triangle Mesh with vertex positions and UVs copied from

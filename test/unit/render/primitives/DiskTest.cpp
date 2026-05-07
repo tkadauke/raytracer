@@ -1,12 +1,13 @@
 #include "gtest/gtest.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Disk.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace DiskTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   TEST(Disk, ShouldInitializeWithValues) {

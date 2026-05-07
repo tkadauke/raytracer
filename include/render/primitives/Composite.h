@@ -53,14 +53,14 @@ namespace render {
       * useful for "all the boxes in this group are made of glass"
       * semantics.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
 
     /**
       * Boolean shadow-ray check across every child. Short-circuits
       * on the first hit — cheaper than `intersect` because the
       * t-value is irrelevant for shadow visibility.
       */
-    virtual bool intersects(const Rayd& ray, raytracer::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const;
 
     /// Append `primitive` to the child list. Order doesn't matter
     /// for correctness, but front-loaded common-hit primitives can

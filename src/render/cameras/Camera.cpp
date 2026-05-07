@@ -6,7 +6,7 @@
 #include "render/tonemap/Tonemap.h"
 #include "core/Buffer.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 
 using namespace render;
 
@@ -101,7 +101,7 @@ void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<Colo
 
       Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
       if (ray.direction().isDefined()) {
-        raytracer::State state;
+        render::State state;
         state.timeSample = timeSample;
         pixelColor += raytracer->rayColor(ray, state);
       }
@@ -179,7 +179,7 @@ void Camera::render(std::shared_ptr<raytracer::Raytracer> raytracer, Buffer<unsi
 
       Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
       if (ray.direction().isDefined()) {
-        raytracer::State state;
+        render::State state;
         state.timeSample = timeSample;
         pixelColor += raytracer->rayColor(ray, state);
       }

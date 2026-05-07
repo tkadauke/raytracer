@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Composite.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -12,7 +12,7 @@ using namespace render;
 Composite::~Composite() {
 }
 
-const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -37,7 +37,7 @@ const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoin
   return hit;
 }
 
-bool Composite::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Composite::intersects(const Rayd& ray, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return false;
   }

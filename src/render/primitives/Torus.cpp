@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Torus.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Constants.h"
@@ -10,7 +10,7 @@
 using namespace std;
 using namespace render;
 
-const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     state.miss(this, "Torus, bounding box miss");
     return nullptr;

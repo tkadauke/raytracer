@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Primitive.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -9,7 +9,7 @@
 
 using namespace render;
 
-bool Primitive::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Primitive::intersects(const Rayd& ray, render::State& state) const {
   HitPointInterval hitPoints;
   intersect(ray, hitPoints, state);
   return !hitPoints.minWithPositiveDistance().isUndefined();

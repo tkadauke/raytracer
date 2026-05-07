@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/Stats.h"
 #include "render/primitives/Grid.h"
 #include "core/math/Ray.h"
@@ -139,7 +139,7 @@ namespace {
   }
 }
 
-const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (m_boundingBox.isInfinite()) {
     return nullptr;
   }
@@ -161,7 +161,7 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, r
   return hit;
 }
 
-bool Grid::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Grid::intersects(const Rayd& ray, render::State& state) const {
   if (m_boundingBox.isInfinite()) {
     return false;
   }

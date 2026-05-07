@@ -14,9 +14,7 @@ namespace render {
   class Material;
 }
 
-namespace raytracer {
-  class State;
-}
+namespace render { class State; }
 
 namespace render {
 
@@ -76,7 +74,7 @@ namespace render {
       * be non-empty in that case if a wrapping composite has
       * partial information from siblings.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const = 0;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const = 0;
 
     /**
       * Boolean flavour for shadow rays — "is anything between the
@@ -85,7 +83,7 @@ namespace render {
       * with cheaper closed-form tests (`Sphere`, `Plane`) can
       * override. Updates `state.shadowHit`/`shadowMiss`.
       */
-    virtual bool intersects(const Rayd& ray, raytracer::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const;
 
     /**
       * @returns the axis-aligned bounding box, computed lazily from

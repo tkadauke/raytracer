@@ -1,11 +1,11 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/ConvexOperation.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
 
 using namespace render;
 
-const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     state.miss(this, "ConvexOperation, bounding box miss");
     return nullptr;
@@ -54,7 +54,7 @@ const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& h
   return nullptr;
 }
 
-bool ConvexOperation::intersects(const Rayd& ray, raytracer::State&) const {
+bool ConvexOperation::intersects(const Rayd& ray, render::State&) const {
   if (!boundingBoxIntersects(ray)) {
     return false;
   }

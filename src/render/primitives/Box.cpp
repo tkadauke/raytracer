@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Box.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -8,7 +8,7 @@
 using namespace std;
 using namespace render;
 
-const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   int parallel = 0;
   bool found = false;
   Vector3d d = m_center - ray.origin();
@@ -72,7 +72,7 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, ra
   return this;
 }
 
-bool Box::intersects(const Rayd& ray, raytracer::State&) const {
+bool Box::intersects(const Rayd& ray, render::State&) const {
   return boundingBox().intersects(ray);
 }
 

@@ -13,17 +13,14 @@
 template<class T>
 class Buffer;
 
-namespace raytracer {
-  }
-namespace render { class Camera; }
-namespace raytracer {
-  }
-namespace render { class Primitive; }
-namespace raytracer {
-  }
-namespace render { class Scene; }
-namespace raytracer {
+namespace render {
+  class Camera;
+  class Primitive;
+  class Scene;
   class State;
+}
+
+namespace raytracer {
 
   /**
     * @brief Whitted-style recursive raytracer — the historical (and
@@ -60,7 +57,7 @@ namespace raytracer {
     *
     * @see RenderEngine — the abstract base.
     * @see Camera, Scene, Tonemap.
-    * @see State — per-ray state threaded through `rayColor`.
+    * @see render::State — per-ray state threaded through `rayColor`.
     */
   class Raytracer : public render::RenderEngine {
   public:
@@ -119,7 +116,7 @@ namespace raytracer {
       * `hitPoint` and recursion counters as if the ray were the
       * primary in a fresh render.
       */
-    State rayState(const Rayd& ray) const;
+    render::State rayState(const Rayd& ray) const;
 
     /**
       * Recursive shading entry point. Returns the colour produced by
@@ -132,7 +129,7 @@ namespace raytracer {
       * scene background; misses also return the scene background; a
       * hit on a primitive with no material returns black.
       */
-    Colord rayColor(const Rayd& ray, State& state) const;
+    Colord rayColor(const Rayd& ray, render::State& state) const;
 
     /**
       * Request cancellation of an in-flight render. Tiles already

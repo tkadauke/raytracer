@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/OpenCylinder.h"
 #include "core/math/Ray.h"
 #include "core/math/Range.h"
@@ -10,7 +10,7 @@
 using namespace std;
 using namespace render;
 
-const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -56,7 +56,7 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
   }
 }
 
-bool OpenCylinder::intersects(const Rayd& ray, raytracer::State& state) const {
+bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();

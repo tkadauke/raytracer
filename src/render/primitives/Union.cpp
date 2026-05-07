@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Union.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
@@ -7,7 +7,7 @@
 
 using namespace render;
 
-const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -37,7 +37,7 @@ std::shared_ptr<Mesh> Union::tessellate(int) const {
   return std::make_shared<Mesh>();
 }
 
-bool Union::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Union::intersects(const Rayd& ray, render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return false;
   }

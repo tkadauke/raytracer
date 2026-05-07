@@ -1,12 +1,13 @@
 #include "gtest/gtest.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Sphere.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 #include "test/helpers/VectorTestHelper.h"
 
 namespace SphereTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
   
   TEST(Sphere, ShouldInitializeWithValues) {

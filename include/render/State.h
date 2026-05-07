@@ -7,7 +7,7 @@
 #include "core/math/HitPoint.h"
 #include "render/Object.h"
 
-namespace raytracer {
+namespace render {
   class Primitive;
 
   /**

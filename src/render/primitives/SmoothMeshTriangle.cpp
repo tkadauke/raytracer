@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/SmoothMeshTriangle.h"
 #include "render/primitives/Composite.h"
 #include "core/geometry/Mesh.h"
@@ -55,7 +55,7 @@ void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shar
   }
 }
 
-const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
 
@@ -91,7 +91,7 @@ const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval
   return this;
 }
 
-bool SmoothMeshTriangle::intersects(const Rayd& ray, raytracer::State& state) const {
+bool SmoothMeshTriangle::intersects(const Rayd& ray, render::State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
 

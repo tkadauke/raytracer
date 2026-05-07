@@ -7,7 +7,8 @@
 
 namespace MeshTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
   
   struct MeshTest : public ::testing::Test {

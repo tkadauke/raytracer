@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/MinkowskiSum.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace MinkowskiSumTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
   
   TEST(MinkowskiSum, ShouldReturnFarthestPoint) {

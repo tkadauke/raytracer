@@ -1,5 +1,5 @@
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/Stats.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
@@ -207,14 +207,14 @@ const render::Primitive* Raytracer::primitiveForRay(const Rayd& ray) const {
   return rayState(ray).hitPoint.primitive();
 }
 
-State Raytracer::rayState(const Rayd& ray) const {
-  State state;
+render::State Raytracer::rayState(const Rayd& ray) const {
+  render::State state;
   state.startTrace();
   rayColor(ray, state);
   return state;
 }
 
-Colord Raytracer::rayColor(const Rayd& ray, State& state) const {
+Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
   state.recurseIn();
   ScopeExit sx([&] { state.recurseOut(); });
 

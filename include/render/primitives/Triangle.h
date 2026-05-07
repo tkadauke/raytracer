@@ -15,7 +15,7 @@ namespace render {
       m_normal = computeNormal();
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
 
     /**
       * Returns a single-triangle Mesh identical to this Triangle. All three

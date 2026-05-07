@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/Stats.h"
 #include "render/primitives/Sphere.h"
 #include "core/geometry/Mesh.h"
@@ -10,7 +10,7 @@
 using namespace std;
 using namespace render;
 
-const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersect);
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
   
@@ -45,7 +45,7 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
   return nullptr;
 }
 
-bool Sphere::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Sphere::intersects(const Rayd& ray, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersects);
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
   

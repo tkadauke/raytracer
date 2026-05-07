@@ -53,13 +53,13 @@ namespace render {
       * the closest hit. Returns the hit child, with `hitPoints`
       * populated by the children that actually intersected.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
 
     /**
       * Boolean shadow-ray variant — same DDA traversal but
       * short-circuits on the first hit.
       */
-    virtual bool intersects(const Rayd& ray, raytracer::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const;
 
     /**
       * Build the cell grid from the children added so far. Cell

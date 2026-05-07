@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Instance.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
@@ -9,7 +9,7 @@
 using namespace std;
 using namespace render;
 
-const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   // Static fast path — no motion blur math when velocity is zero.
   // Most instances in any given scene fall through here, so the
   // branch keeps the cost of the new feature to one comparison per
@@ -57,7 +57,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   return nullptr;
 }
 
-bool Instance::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Instance::intersects(const Rayd& ray, render::State& state) const {
   if (m_velocity == Vector3d::null()) {
     return m_primitive->intersects(instancedRay(ray), state);
   }

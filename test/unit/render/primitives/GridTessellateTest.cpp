@@ -5,7 +5,8 @@
 #include "core/geometry/Mesh.h"
 
 namespace GridTessellateTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   // Grid inherits tessellate() from Composite and provides no override —

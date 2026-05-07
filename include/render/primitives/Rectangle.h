@@ -23,7 +23,7 @@ namespace render {
       m_normal = normal;
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
 
     /**
       * Returns a Mesh with 4 vertices and 2 triangles covering the rectangle.

@@ -6,7 +6,7 @@
 #include "Display.h"
 #include "raytracer/Raytracer.h"
 #include "render/WireframeEngine.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/lights/PointLight.h"

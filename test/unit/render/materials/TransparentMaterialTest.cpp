@@ -2,7 +2,7 @@
 #include "render/materials/TransparentMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Scene.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPoint.h"
@@ -11,7 +11,7 @@
 
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"

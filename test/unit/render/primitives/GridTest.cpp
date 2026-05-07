@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Grid.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace GridTest {
   using namespace ::testing;
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   // Convenience: wire a MockPrimitive's bounding box and (optionally) its

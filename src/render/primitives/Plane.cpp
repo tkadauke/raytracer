@@ -1,4 +1,4 @@
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Plane.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
@@ -7,7 +7,7 @@
 
 using namespace render;
 
-const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, raytracer::State& state) const {
+const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   double t = calculateIntersectionDistance(ray);
   
   if (t > 0) {
@@ -20,7 +20,7 @@ const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
   }
 }
 
-bool Plane::intersects(const Rayd& ray, raytracer::State& state) const {
+bool Plane::intersects(const Rayd& ray, render::State& state) const {
   if (calculateIntersectionDistance(ray) > 0) {
     state.shadowHit(this, "Plane");
     return true;

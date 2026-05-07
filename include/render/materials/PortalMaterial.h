@@ -15,7 +15,7 @@ namespace render {
 
     void setMatrix(const Matrix4d& matrix);
 
-    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
 
   private:
     inline Rayd transformedRay(const Rayd& ray) const {

@@ -13,7 +13,7 @@ namespace render {
 namespace raytracer { class Raytracer; }
 namespace render {
 }
-namespace raytracer { class State; }
+namespace render { class State; }
 namespace render {
 
   /**
@@ -70,6 +70,6 @@ namespace render {
       * emits "TIR" / "Tracing reflection" / "Tracing transmission"
       * events here.
       */
-    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const = 0;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
   };
 }

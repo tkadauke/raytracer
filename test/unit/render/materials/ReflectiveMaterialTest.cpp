@@ -4,7 +4,7 @@
 
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Scene.h"
 
 #include "test/helpers/ColorTestHelper.h"

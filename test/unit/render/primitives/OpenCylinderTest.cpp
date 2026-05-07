@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/OpenCylinder.h"
 #include "core/DivisionByZeroException.h"
 #include "core/math/Ray.h"
@@ -7,7 +7,8 @@
 #include "test/helpers/VectorTestHelper.h"
 
 namespace OpenCylinderTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   TEST(OpenCylinder, ShouldInitializeWithValues) {

@@ -5,7 +5,8 @@
 #include "core/geometry/Mesh.h"
 
 namespace SceneTessellateTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   // Scene inherits tessellate() from Composite and provides no override —

@@ -1,5 +1,5 @@
 #include "raytracer/Raytracer.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/materials/PortalMaterial.h"
 #include "raytracer/Raytracer.h"
 #include "core/math/HitPoint.h"
@@ -13,6 +13,6 @@ void PortalMaterial::setMatrix(const Matrix4d& matrix) {
   m_directionMatrix = Matrix3d(m_originMatrix);
 }
 
-Colord PortalMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const {
+Colord PortalMaterial::shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
   return raytracer->rayColor(transformedRay(ray.from(hitPoint.point()).epsilonShifted()), state) * m_filterColor;
 }

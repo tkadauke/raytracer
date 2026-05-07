@@ -124,7 +124,7 @@ namespace render {
       m_specularBRDF.setExponent(exponent);
     }
     
-    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, raytracer::State& state) const;
+    virtual Colord shade(const raytracer::Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
 
   private:
     render::GlossySpecular m_specularBRDF;

@@ -1,11 +1,12 @@
 #include "gtest/gtest.h"
-#include "raytracer/State.h"
+#include "render/State.h"
 #include "render/primitives/Box.h"
 #include "core/math/Ray.h"
 #include "core/math/HitPointInterval.h"
 
 namespace BoxTest {
-  using namespace raytracer;
+  using namespace render;
+using namespace render;
 using namespace render;
 
   TEST(Box, ShouldInitializeWithValues) {
