@@ -18,9 +18,9 @@ namespace engine::raster {
   *
   *  1. Tessellate the scene into a single `Mesh` via
   *     `Scene::tessellate(lod)`.
-  *  2. For every face, project its vertices to screen space + depth
-  *     via `Camera::projectPointWithDepth` — the depth value is the
-  *     eye-relative distance along the camera's forward axis.
+  *  2. For each leaf mesh, precompute every vertex's eye-relative
+  *     depth and projected screen position via the camera projection
+  *     APIs, then reuse those values across the face fan.
   *  3. Triangulate the face (fan from vertex 0 — assumes convex
   *     faces, which the per-primitive tessellate impls guarantee).
   *  4. Rasterize each triangle via `core::rasterizeTriangle`. For

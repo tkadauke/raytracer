@@ -50,6 +50,16 @@ namespace {
   // contribution rather than darkened.
   constexpr double kAmbientCoefficient = 1.0;
 
+  // Near-plane depth used by the rasterizer's eye-space clipper. It
+  // sits just in front of the eye to keep perspective divides bounded
+  // for clipped vertices.
+  constexpr double kNearClipDepth = 0.1;
+
+  struct ProjectedVertex {
+    double depth;
+    Vector3d screen;
+  };
+
   // A reasonably colour-spread hash from a uint64 face index → RGB
   // in [0, 1]³. Fallback when a primitive has no material from which
   // an albedo can be recovered.
@@ -156,6 +166,18 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
       const auto& vertices = mesh->vertices();
       const auto& faces = mesh->faces();
 
+      std::vector<ProjectedVertex> projected(vertices.size());
+      for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
+        const auto& vertex = vertices[vi];
+        const double depth = m_camera->eyeRelativeDepth(vertex.point);
+        projected[vi] = {
+          depth,
+          depth >= kNearClipDepth
+            ? m_camera->projectPointWithDepth(vertex.point)
+            : Vector3d::undefined()
+        };
+      }
+
       for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
         if (m_cancelled.load()) return;
 
@@ -180,59 +202,49 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
             Vector3d point;
             Vector3d normal;
             double depth;
+            Vector3d screen;
           };
           const std::array<ClipVert, 3> input = {{
             { vertices[face[0]].point, vertices[face[0]].normal,
-              m_camera->eyeRelativeDepth(vertices[face[0]].point) },
+              projected[face[0]].depth, projected[face[0]].screen },
             { vertices[face[i]].point, vertices[face[i]].normal,
-              m_camera->eyeRelativeDepth(vertices[face[i]].point) },
+              projected[face[i]].depth, projected[face[i]].screen },
             { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-              m_camera->eyeRelativeDepth(vertices[face[i + 1]].point) },
+              projected[face[i + 1]].depth, projected[face[i + 1]].screen },
           }};
 
-          // EPS pulled in from the eye by a small distance — far
-          // enough to keep the perspective divide bounded at the
-          // clipped vertex (otherwise the projected screen coords
-          // explode and the rasterizer's bounding-box scan iterates
-          // for hundreds of millions of pixels off-screen) without
-          // introducing visible offset on unclipped geometry. 0.1
-          // is empirically safe for unit-scale scenes on a Pinhole
-          // with `m_distance ≈ 5`: clipped vertices project at most
-          // ~50× the eye's view-plane angle, which keeps screen
-          // coords within sensible bounds for typical viewports.
-          constexpr double kClipEps = 0.1;
-
-          std::vector<ClipVert> clipped;
-          clipped.reserve(4);
+          std::array<ClipVert, 4> clipped;
+          std::size_t clippedCount = 0;
           for (std::size_t k = 0; k < 3; ++k) {
             const ClipVert& curr = input[k];
             const ClipVert& prev = input[(k + 2) % 3];
-            const bool currIn = curr.depth >= kClipEps;
-            const bool prevIn = prev.depth >= kClipEps;
+            const bool currIn = curr.depth >= kNearClipDepth;
+            const bool prevIn = prev.depth >= kNearClipDepth;
             if (currIn != prevIn) {
               // Edge crosses — interpolate to find the intersection.
-              const double t = (kClipEps - prev.depth) / (curr.depth - prev.depth);
+              const double t = (kNearClipDepth - prev.depth) / (curr.depth - prev.depth);
               ClipVert mid;
               mid.point = prev.point + (curr.point - prev.point) * t;
               mid.normal = prev.normal + (curr.normal - prev.normal) * t;
-              mid.depth = kClipEps;
-              clipped.push_back(mid);
+              mid.depth = kNearClipDepth;
+              mid.screen = m_camera->projectPointWithDepth(mid.point);
+              clipped[clippedCount++] = mid;
             }
-            if (currIn) clipped.push_back(curr);
+            if (currIn) clipped[clippedCount++] = curr;
           }
-          if (clipped.size() < 3) continue;
+          if (clippedCount < 3) continue;
 
           // Triangulate the clipped polygon as a fan from clipped[0].
           // For a 3-vertex result this is a single triangle; for a
           // 4-vertex result, two triangles.
-          for (std::size_t t = 1; t + 1 < clipped.size(); ++t) {
+          for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
             const ClipVert& v0 = clipped[0];
             const ClipVert& v1 = clipped[t];
             const ClipVert& v2 = clipped[t + 1];
 
-            const Vector3d s0 = m_camera->projectPointWithDepth(v0.point);
-            const Vector3d s1 = m_camera->projectPointWithDepth(v1.point);
-            const Vector3d s2 = m_camera->projectPointWithDepth(v2.point);
+            const Vector3d& s0 = v0.screen;
+            const Vector3d& s1 = v1.screen;
+            const Vector3d& s2 = v2.screen;
             if (s0.isUndefined() || s1.isUndefined() || s2.isUndefined()) continue;
 
             const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
