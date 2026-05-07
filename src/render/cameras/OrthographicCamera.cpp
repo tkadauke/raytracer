@@ -56,6 +56,15 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
   return Vector3d(x, y, pCam.z());
 }
 
+double OrthographicCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
+  // Orthographic projection has no perspective eye point; depth is
+  // just the camera-space `z` coordinate. Positive in front of the
+  // viewplane, negative behind.
+  Matrix4d worldToCamera = matrix().inverted();
+  Vector3d pCam = worldToCamera * Vector4d(worldPoint);
+  return pCam.z();
+}
+
 void OrthographicCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   Camera::setViewPlane(plane);
   viewPlane()->setPixelSize(1.0 / m_zoom);

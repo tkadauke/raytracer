@@ -15,9 +15,11 @@
 #include "render/viewplanes/ViewPlane.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 using namespace engine::raster;
 
@@ -101,16 +103,12 @@ namespace {
         // aren't used by the texture eval path; pass placeholders.
         const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal);
         const Rayd ray(worldPos, -normal);
-        const Colord c = texture->evaluate(ray, hp);
-        // Fall back to the hash when the material evaluates to pure
-        // black — typically Reflective / Transparent materials that
-        // the world side fills in with a black default texture when
-        // no diffuse is set. The raytracer makes such surfaces
-        // visible via reflection / refraction; the rasterizer can't,
-        // so a hash colour stand-in keeps the silhouette readable.
-        if (c.r() != 0.0 || c.g() != 0.0 || c.b() != 0.0) return c;
+        return texture->evaluate(ray, hp);
       }
     }
+    // Fall back to a per-face hash colour when no material is set
+    // — a primitive with `material() == nullptr` would otherwise
+    // render as an indistinct black silhouette.
     return faceColor(faceIdx);
   }
 }
@@ -165,29 +163,91 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
         if (face.size() < 3) continue;
 
         for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-          const auto& v0 = vertices[face[0]];
-          const auto& v1 = vertices[face[i]];
-          const auto& v2 = vertices[face[i + 1]];
+          // Sutherland-Hodgman near-plane clip — the input triangle's
+          // three vertices, classified by signed eye-relative depth.
+          // Vertices on or behind the near plane (depth < EPS) are
+          // unprojectable; clipping replaces each crossing edge with
+          // its intersection with the plane, producing an output
+          // polygon (3 or 4 vertices) entirely in front of the eye.
+          //
+          // Without this, triangles straddling the near plane get
+          // dropped wholesale — most visibly the floor box in scenes
+          // where the camera is close to the floor, leaving only the
+          // tiny far-edge triangle of the floor visible. The classic
+          // GPU pipeline does the same clip in clip space; doing it
+          // in eye-space here is the simpler textbook formulation.
+          struct ClipVert {
+            Vector3d point;
+            Vector3d normal;
+            double depth;
+          };
+          const std::array<ClipVert, 3> input = {{
+            { vertices[face[0]].point, vertices[face[0]].normal,
+              m_camera->eyeRelativeDepth(vertices[face[0]].point) },
+            { vertices[face[i]].point, vertices[face[i]].normal,
+              m_camera->eyeRelativeDepth(vertices[face[i]].point) },
+            { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+              m_camera->eyeRelativeDepth(vertices[face[i + 1]].point) },
+          }};
 
-          const Vector3d s0 = m_camera->projectPointWithDepth(v0.point);
-          const Vector3d s1 = m_camera->projectPointWithDepth(v1.point);
-          const Vector3d s2 = m_camera->projectPointWithDepth(v2.point);
+          // EPS pulled in from the eye by a small distance — far
+          // enough to keep the perspective divide bounded at the
+          // clipped vertex (otherwise the projected screen coords
+          // explode and the rasterizer's bounding-box scan iterates
+          // for hundreds of millions of pixels off-screen) without
+          // introducing visible offset on unclipped geometry. 0.1
+          // is empirically safe for unit-scale scenes on a Pinhole
+          // with `m_distance ≈ 5`: clipped vertices project at most
+          // ~50× the eye's view-plane angle, which keeps screen
+          // coords within sensible bounds for typical viewports.
+          constexpr double kClipEps = 0.1;
 
-          if (s0.isUndefined() || s1.isUndefined() || s2.isUndefined()) continue;
+          std::vector<ClipVert> clipped;
+          clipped.reserve(4);
+          for (std::size_t k = 0; k < 3; ++k) {
+            const ClipVert& curr = input[k];
+            const ClipVert& prev = input[(k + 2) % 3];
+            const bool currIn = curr.depth >= kClipEps;
+            const bool prevIn = prev.depth >= kClipEps;
+            if (currIn != prevIn) {
+              // Edge crosses — interpolate to find the intersection.
+              const double t = (kClipEps - prev.depth) / (curr.depth - prev.depth);
+              ClipVert mid;
+              mid.point = prev.point + (curr.point - prev.point) * t;
+              mid.normal = prev.normal + (curr.normal - prev.normal) * t;
+              mid.depth = kClipEps;
+              clipped.push_back(mid);
+            }
+            if (currIn) clipped.push_back(curr);
+          }
+          if (clipped.size() < 3) continue;
 
-          const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
-          const double invZ0 = 1.0 / z0, invZ1 = 1.0 / z1, invZ2 = 1.0 / z2;
+          // Triangulate the clipped polygon as a fan from clipped[0].
+          // For a 3-vertex result this is a single triangle; for a
+          // 4-vertex result, two triangles.
+          for (std::size_t t = 1; t + 1 < clipped.size(); ++t) {
+            const ClipVert& v0 = clipped[0];
+            const ClipVert& v1 = clipped[t];
+            const ClipVert& v2 = clipped[t + 1];
 
-          const int x0 = static_cast<int>(std::lround(s0.x()));
-          const int y0 = static_cast<int>(std::lround(s0.y()));
-          const int x1 = static_cast<int>(std::lround(s1.x()));
-          const int y1 = static_cast<int>(std::lround(s1.y()));
-          const int x2 = static_cast<int>(std::lround(s2.x()));
-          const int y2 = static_cast<int>(std::lround(s2.y()));
+            const Vector3d s0 = m_camera->projectPointWithDepth(v0.point);
+            const Vector3d s1 = m_camera->projectPointWithDepth(v1.point);
+            const Vector3d s2 = m_camera->projectPointWithDepth(v2.point);
+            if (s0.isUndefined() || s1.isUndefined() || s2.isUndefined()) continue;
 
-          const std::uint64_t capturedFaceIdx = globalFaceIdx;
-          core::rasterizeTriangle(x0, y0, x1, y1, x2, y2,
-            [&, capturedFaceIdx](int x, int y, double w0b, double w1b, double w2b) {
+            const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
+            const double invZ0 = 1.0 / z0, invZ1 = 1.0 / z1, invZ2 = 1.0 / z2;
+
+            const int x0 = static_cast<int>(std::lround(s0.x()));
+            const int y0 = static_cast<int>(std::lround(s0.y()));
+            const int x1 = static_cast<int>(std::lround(s1.x()));
+            const int y1 = static_cast<int>(std::lround(s1.y()));
+            const int x2 = static_cast<int>(std::lround(s2.x()));
+            const int y2 = static_cast<int>(std::lround(s2.y()));
+
+            const std::uint64_t capturedFaceIdx = globalFaceIdx;
+            core::rasterizeTriangle(x0, y0, x1, y1, x2, y2,
+              [&, capturedFaceIdx](int x, int y, double w0b, double w1b, double w2b) {
               if (x < 0 || x >= width || y < 0 || y >= height) return;
               // Perspective-correct depth interpolation. The
               // screen-space barycentric weights from
@@ -232,6 +292,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
               zBuffer[y][x] = pixelDepth;
               buffer[y][x] = shaded;
             });
+          }
         }
       }
     });

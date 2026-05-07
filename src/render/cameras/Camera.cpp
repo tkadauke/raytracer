@@ -46,6 +46,14 @@ Vector3d Camera::projectPointWithDepth(const Vector3d& worldPoint) const {
   return Vector3d(screen.x(), screen.y(), 0.0);
 }
 
+double Camera::eyeRelativeDepth(const Vector3d&) const {
+  // Default implementation: cameras without a closed-form projection
+  // (FishEye, Spherical, …) report zero. The rasterizer's clipper
+  // skips triangles whose vertices have undefined projection anyway,
+  // so this default is purely a "don't crash" fallback.
+  return 0.0;
+}
+
 const Matrix4d& Camera::matrix() const {
   if (!m_matrix) {
     auto zAxis = (m_target - m_position).normalized();

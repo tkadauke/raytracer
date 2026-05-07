@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <utility>
 
 namespace core {
@@ -50,19 +51,30 @@ inline void rasterizeTriangle(int x0, int y0,
   // Twice the signed area of the parent triangle. Sign indicates
   // winding (positive = CCW, negative = CW); zero indicates the
   // three points are collinear — nothing to fill.
-  const int area = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0);
+  //
+  // Integer arithmetic in int64_t throughout. The native `int`
+  // overflows for triangle vertices at large screen coordinates
+  // (which the rasterizer's near-plane clipper can produce when a
+  // clipped vertex projects close to a viewport edge): the edge
+  // function squares pixel deltas, so coords above ~46k overflow
+  // a signed 32-bit int. int64_t lifts that to ~3 billion, well
+  // beyond any realistic post-clip screen coordinate.
+  using I = std::int64_t;
+  const I X0 = x0, X1 = x1, X2 = x2, Y0 = y0, Y1 = y1, Y2 = y2;
+  const I area = (X1 - X0) * (Y2 - Y0) - (Y1 - Y0) * (X2 - X0);
   if (area == 0) return;
 
-  const double invArea = 1.0 / area;
+  const double invArea = 1.0 / static_cast<double>(area);
 
   for (int y = minY; y <= maxY; ++y) {
     for (int x = minX; x <= maxX; ++x) {
+      const I X = x, Y = y;
       // Edge functions: twice the signed sub-area opposite each
       // vertex. Computed via the same formula as `area` above with
       // the pixel substituted for the missing vertex.
-      const int w0 = (x1 - x) * (y2 - y) - (y1 - y) * (x2 - x);  // opposite p0
-      const int w1 = (x2 - x) * (y0 - y) - (y2 - y) * (x0 - x);  // opposite p1
-      const int w2 = area - w0 - w1;                              // opposite p2
+      const I w0 = (X1 - X) * (Y2 - Y) - (Y1 - Y) * (X2 - X);  // opposite p0
+      const I w1 = (X2 - X) * (Y0 - Y) - (Y2 - Y) * (X0 - X);  // opposite p1
+      const I w2 = area - w0 - w1;                              // opposite p2
 
       // Inside iff all sub-area signs match the parent's.
       const bool inside = (area > 0)
@@ -70,7 +82,9 @@ inline void rasterizeTriangle(int x0, int y0,
         : (w0 <= 0 && w1 <= 0 && w2 <= 0);
 
       if (inside) {
-        plot(x, y, w0 * invArea, w1 * invArea, w2 * invArea);
+        plot(x, y, static_cast<double>(w0) * invArea,
+                   static_cast<double>(w1) * invArea,
+                   static_cast<double>(w2) * invArea);
       }
     }
   }

@@ -155,6 +155,21 @@ namespace render {
     virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
 
     /**
+      * Eye-relative depth scalar for the world-space point — positive
+      * in front of the camera's near plane, negative behind it. Used
+      * by the software rasterizer's Sutherland-Hodgman clipper to
+      * trim triangles straddling the near plane (otherwise such
+      * triangles get dropped entirely, since `projectPointWithDepth`
+      * returns undefined for behind-eye points).
+      *
+      * Default returns 0 — projection is undefined for cameras
+      * without a closed-form forward projection. Subclasses with
+      * meaningful depth (Pinhole, Orthographic, and inheritors)
+      * override.
+      */
+    virtual double eyeRelativeDepth(const Vector3d& worldPoint) const;
+
+    /**
       * Convenience overload that uses a `NullSampleStream` returning
       * the centre of every dimension. Useful for tests and ad-hoc
       * callers (e.g. `SceneBrowser`'s pixel-pick) that don't have a

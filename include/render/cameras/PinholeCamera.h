@@ -61,6 +61,11 @@ namespace render {
       */
     virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
 
+    /// Signed eye-relative depth — positive in front of the eye,
+    /// negative behind. Used by the rasterizer's near-plane clipper
+    /// to trim triangles straddling the near plane.
+    virtual double eyeRelativeDepth(const Vector3d& worldPoint) const;
+
     /**
       * @returns the distance between the eye and the viewplane. Defaults to 5.
       */

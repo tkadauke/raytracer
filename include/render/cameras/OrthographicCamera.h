@@ -71,6 +71,11 @@ namespace render {
       */
     virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
 
+    /// Signed eye-relative depth — positive in front of the camera
+    /// plane, negative behind. For ortho this is the camera-space z
+    /// directly (no perspective eye point).
+    virtual double eyeRelativeDepth(const Vector3d& worldPoint) const;
+
     /**
       * @returns the camera'z zoom.
       */
