@@ -4,6 +4,7 @@
 
 namespace ConvexHullTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(ConvexHullTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; queued under roadmap §4.2.a.

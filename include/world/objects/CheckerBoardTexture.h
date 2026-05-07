@@ -77,7 +77,7 @@ public:
     }
   }
   
-  virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const;
+  virtual std::shared_ptr<render::Texturec> toRaytracerTexture() const;
 
 private:
   Colord m_color;

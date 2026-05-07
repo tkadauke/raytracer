@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "raytracer/materials/ReflectiveMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
@@ -11,6 +11,7 @@
 
 namespace ReflectiveMaterialTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(ReflectiveMaterial, ShouldInitialize) {
     ReflectiveMaterial material;

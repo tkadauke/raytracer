@@ -6,6 +6,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered sphere") {
   auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1);

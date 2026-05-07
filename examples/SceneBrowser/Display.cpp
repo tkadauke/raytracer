@@ -19,6 +19,8 @@
 using namespace std;
 using namespace render;
 using namespace raytracer;
+using namespace render;
+using namespace render;
 
 Display::Display()
   : QtDisplay(nullptr, std::make_shared<Raytracer>(nullptr)),

@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "raytracer/materials/PhongMaterial.h"
-#include "raytracer/brdf/PerfectSpecular.h"
+#include "render/brdf/PerfectSpecular.h"
 
 namespace raytracer {
   /**
@@ -28,7 +28,7 @@ namespace raytracer {
       * Constructs a reflective material with diffuseTexture, a reflection
       * coefficient of 0.75 and a white reflection color.
       */
-    inline explicit ReflectiveMaterial(std::shared_ptr<Texturec> diffuseTexture)
+    inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
       : PhongMaterial(diffuseTexture)
     {
       setReflectionCoefficient(0.75);
@@ -39,7 +39,7 @@ namespace raytracer {
       * Constructs a reflective material with diffuseTexture, the given specular
       * color, a reflection coefficient of 0.75 and a white reflection color.
       */
-    inline explicit ReflectiveMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular)
+    inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular)
       : PhongMaterial(diffuseTexture, specular)
     {
       setReflectionCoefficient(0.75);
@@ -95,6 +95,6 @@ namespace raytracer {
     virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
     
   protected:
-    PerfectSpecular m_reflectiveBRDF;
+    render::PerfectSpecular m_reflectiveBRDF;
   };
 }

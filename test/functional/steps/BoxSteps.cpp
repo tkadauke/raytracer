@@ -6,6 +6,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered box") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1));

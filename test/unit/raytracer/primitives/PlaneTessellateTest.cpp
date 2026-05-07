@@ -4,6 +4,7 @@
 
 namespace PlaneTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(PlaneTessellate, ShouldReturnEmptyMesh) {
     // Plane is infinite and has no finite tessellation — empty Mesh by design.

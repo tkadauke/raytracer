@@ -4,6 +4,7 @@
 
 namespace PrimitiveTest {
   using namespace raytracer;
+using namespace render;
 
   class ConcretePrimitive : public Primitive {
   public:

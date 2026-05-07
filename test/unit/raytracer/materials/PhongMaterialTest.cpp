@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "raytracer/materials/PhongMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
@@ -12,6 +12,7 @@
 
 namespace PhongMaterialTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(PhongMaterial, ShouldInitialize) {
     PhongMaterial material;

@@ -4,6 +4,7 @@
 
 namespace MinkowskiSumTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(MinkowskiSumTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; queued under roadmap §4.2.a.

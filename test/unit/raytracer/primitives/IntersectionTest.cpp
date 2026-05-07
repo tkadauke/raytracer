@@ -8,6 +8,7 @@
 namespace IntersectionTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(Intersection, ShouldReturnClosestPrimitiveForIntersection) {
     Intersection i;

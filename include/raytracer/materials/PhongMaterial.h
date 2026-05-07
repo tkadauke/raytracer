@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/brdf/GlossySpecular.h"
+#include "render/brdf/GlossySpecular.h"
 
 namespace raytracer {
   /**
@@ -30,7 +30,7 @@ namespace raytracer {
       * Constructs a Phong material with diffuseTexture and a white specular
       * color.
       */
-    inline explicit PhongMaterial(std::shared_ptr<Texturec> diffuseTexture)
+    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(Colord::white());
@@ -39,7 +39,7 @@ namespace raytracer {
     /**
       * Constructs a Phong material with diffuseTexture and specularColor.
       */
-    inline explicit PhongMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular)
+    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(specular);
@@ -49,7 +49,7 @@ namespace raytracer {
       * Constructs a Phong material with diffuseTexture and specularColor and
       * the given Phong exponent.
       */
-    inline explicit PhongMaterial(std::shared_ptr<Texturec> diffuseTexture, const Colord& specular, double exponent)
+    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular, double exponent)
       : MatteMaterial(diffuseTexture)
     {
       setSpecularColor(specular);
@@ -127,6 +127,6 @@ namespace raytracer {
     virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
 
   private:
-    GlossySpecular m_specularBRDF;
+    render::GlossySpecular m_specularBRDF;
   };
 }

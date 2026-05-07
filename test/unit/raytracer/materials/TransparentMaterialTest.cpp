@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "raytracer/materials/TransparentMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/State.h"
 #include "raytracer/primitives/Scene.h"
@@ -18,6 +18,7 @@
 
 namespace TransparentMaterialTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(TransparentMaterial, ShouldInitialize) {
     TransparentMaterial material;

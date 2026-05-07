@@ -6,6 +6,7 @@
 
 namespace BoxTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(Box, ShouldInitializeWithValues) {
     Box box(Vector3d(), Vector3d(1, 1, 1));

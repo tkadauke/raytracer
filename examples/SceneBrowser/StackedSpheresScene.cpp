@@ -9,9 +9,11 @@
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
+using namespace render;
+using namespace render;
 
 class StackedSpheresScene : public Scene {
 public:

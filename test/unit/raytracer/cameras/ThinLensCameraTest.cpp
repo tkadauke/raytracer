@@ -12,6 +12,7 @@
 
 namespace ThinLensCameraTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
     ThinLensCamera camera;

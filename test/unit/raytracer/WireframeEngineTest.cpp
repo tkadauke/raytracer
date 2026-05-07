@@ -11,6 +11,7 @@
 
 namespace WireframeEngineTest {
   using namespace raytracer;
+using namespace render;
 
   // Helper: count pixels that match a given colour. Background
   // counting / edge counting both go through this.

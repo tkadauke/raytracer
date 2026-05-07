@@ -6,6 +6,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered disk") {
   auto disk = std::make_shared<Disk>(Vector3d::null(), Vector3d(0, 0, -1), 1);

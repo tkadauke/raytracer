@@ -3,9 +3,9 @@
 #include "world/objects/Texture.h"
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/CheckerBoardTexture.h"
-#include "raytracer/textures/Texture.h"
-#include "raytracer/textures/ConstantColorTexture.h"
-#include "raytracer/textures/CheckerBoardTexture.h"
+#include "render/textures/Texture.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "render/textures/CheckerBoardTexture.h"
 
 namespace TextureTest {
   // ---------- Texture (abstract base) ---------------------------------------
@@ -48,7 +48,7 @@ namespace TextureTest {
   TEST(ConstantColorTexture, ShouldProduceRaytracerConstantColorTexture) {
     ConstantColorTexture texture;
     texture.setColor(Colord(0.1, 0.2, 0.3));
-    auto rt = std::dynamic_pointer_cast<raytracer::ConstantColorTexture>(
+    auto rt = std::dynamic_pointer_cast<render::ConstantColorTexture>(
       texture.toRaytracerTexture());
     ASSERT_NE(nullptr, rt);
     EXPECT_EQ(Colord(0.1, 0.2, 0.3), rt->color());
@@ -94,7 +94,7 @@ namespace TextureTest {
 
   TEST(CheckerBoardTexture, ShouldProduceRaytracerCheckerBoardTexture) {
     CheckerBoardTexture texture;
-    auto rt = std::dynamic_pointer_cast<raytracer::CheckerBoardTexture>(
+    auto rt = std::dynamic_pointer_cast<render::CheckerBoardTexture>(
       texture.toRaytracerTexture());
     ASSERT_NE(nullptr, rt);
     // Both sub-textures fall through textureOrDefault → the default

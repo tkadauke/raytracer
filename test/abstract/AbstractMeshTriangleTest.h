@@ -9,6 +9,8 @@
 namespace testing {
   using namespace render;
   using namespace raytracer;
+using namespace render;
+using namespace render;
   
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {

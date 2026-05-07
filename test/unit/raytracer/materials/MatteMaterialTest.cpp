@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include "core/math/HitPoint.h"
 #include "raytracer/Raytracer.h"
@@ -12,6 +12,7 @@
 
 namespace MatteMaterialTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;

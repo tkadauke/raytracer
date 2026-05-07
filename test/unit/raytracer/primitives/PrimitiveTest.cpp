@@ -7,6 +7,7 @@
 
 namespace PrimitiveTest {
   using namespace raytracer;
+using namespace render;
   using namespace testing;
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsObject) {

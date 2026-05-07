@@ -17,6 +17,7 @@ namespace testing {
 namespace ConvexOperationTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(ConvexOperation, ShouldReturnSelfForConvexOperation) {
     MockConvexOperation i;

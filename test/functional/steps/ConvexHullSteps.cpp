@@ -8,6 +8,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered convex hull with two boxes side by side") {
   auto hull = std::make_shared<ConvexHull>();

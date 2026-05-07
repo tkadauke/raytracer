@@ -8,6 +8,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered minkowski sum with two boxes") {
   auto hull = std::make_shared<MinkowskiSum>();

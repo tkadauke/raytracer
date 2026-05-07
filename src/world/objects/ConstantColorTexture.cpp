@@ -1,6 +1,6 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/ConstantColorTexture.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 ConstantColorTexture::ConstantColorTexture(Element* parent)
   : Texture(parent),
@@ -8,8 +8,8 @@ ConstantColorTexture::ConstantColorTexture(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Texturec> ConstantColorTexture::toRaytracerTexture() const {
-  return make_named<raytracer::ConstantColorTexture>(m_color);
+std::shared_ptr<render::Texturec> ConstantColorTexture::toRaytracerTexture() const {
+  return make_named<render::ConstantColorTexture>(m_color);
 }
 
 static bool dummy = ElementFactory::self().registerClass<ConstantColorTexture>("ConstantColorTexture");

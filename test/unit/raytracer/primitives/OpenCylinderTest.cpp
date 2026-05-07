@@ -8,6 +8,7 @@
 
 namespace OpenCylinderTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(OpenCylinder, ShouldInitializeWithValues) {
     OpenCylinder cylinder(1, 2);

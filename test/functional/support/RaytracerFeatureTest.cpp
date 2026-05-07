@@ -4,12 +4,13 @@
 #include "raytracer/Raytracer.h"
 #include "raytracer/cameras/PinholeCamera.h"
 #include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include "test/helpers/ImageViewer.h"
 
 namespace testing {
   using namespace raytracer;
+using namespace render;
 
   RaytracerFeatureTest::RaytracerFeatureTest()
     : FeatureTest<RaytracerFeatureTest>(),

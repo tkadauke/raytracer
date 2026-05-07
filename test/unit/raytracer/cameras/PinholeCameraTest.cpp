@@ -8,6 +8,7 @@
 namespace PinholeCameraTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(PinholeCamera, ShouldConstructWithoutParameters) {
     PinholeCamera camera;

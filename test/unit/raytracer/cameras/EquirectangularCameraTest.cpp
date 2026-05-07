@@ -11,6 +11,7 @@
 
 namespace EquirectangularCameraTest {
   using namespace raytracer;
+using namespace render;
 
   // EquirectangularCamera::rayForPixel divides by viewPlane()->width()
   // and ::height(), which are 0 on a freshly-constructed camera (the

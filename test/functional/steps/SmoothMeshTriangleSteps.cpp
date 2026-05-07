@@ -6,6 +6,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered smooth mesh triangle") {
   auto mesh = new Mesh;

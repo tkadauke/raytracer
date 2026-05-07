@@ -8,6 +8,7 @@
 namespace DifferenceTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
 
   TEST(Difference, ShouldReturnClosestPrimitiveForDifference) {
     Difference i;

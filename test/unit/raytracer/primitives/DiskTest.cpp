@@ -7,6 +7,7 @@
 
 namespace DiskTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(Disk, ShouldInitializeWithValues) {
     Disk disk(Vector3d(), Vector3d(0, 0, -1), 1);

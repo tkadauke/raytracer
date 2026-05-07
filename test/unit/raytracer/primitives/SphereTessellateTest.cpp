@@ -5,6 +5,7 @@
 
 namespace SphereTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   const double kEps = 1e-10;
 

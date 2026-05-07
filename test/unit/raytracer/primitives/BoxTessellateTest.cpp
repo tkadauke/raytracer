@@ -5,6 +5,7 @@
 
 namespace BoxTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(BoxTessellate, ProducesNonEmptyMesh) {
     Box box(Vector3d::null(), Vector3d(1, 1, 1));

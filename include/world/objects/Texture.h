@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "world/objects/Element.h"
-#include "raytracer/textures/Texture.h"
+#include "render/textures/Texture.h"
 #include "core/Color.h"
 
 /**
@@ -22,7 +22,7 @@ public:
     */
   explicit Texture(Element* parent = nullptr);
 
-  virtual std::shared_ptr<raytracer::Texturec> toRaytracerTexture() const = 0;
+  virtual std::shared_ptr<render::Texturec> toRaytracerTexture() const = 0;
 };
 
 /**

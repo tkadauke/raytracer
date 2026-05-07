@@ -3,6 +3,7 @@
 
 namespace PointLightTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(PointLight, ShouldInitializeWithValues) {
     PointLight light(Vector3d(1, 0, 0), Colord::white());

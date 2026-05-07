@@ -6,6 +6,7 @@
 namespace CompositeTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(Composite, ShouldInitializeWithEmptyList) {
     Composite composite;

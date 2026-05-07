@@ -6,6 +6,7 @@
 namespace MinkowskiSumTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(MinkowskiSum, ShouldReturnFarthestPoint) {
     auto hull = std::make_shared<MinkowskiSum>();

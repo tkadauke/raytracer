@@ -6,6 +6,7 @@
 
 namespace TorusTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(Torus, ShouldInitializeWithValues) {
     Torus torus(2, 1);

@@ -1,7 +1,7 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/CheckerBoardTexture.h"
-#include "raytracer/textures/CheckerBoardTexture.h"
-#include "raytracer/textures/mappings/PlanarMapping2D.h"
+#include "render/textures/CheckerBoardTexture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 
 CheckerBoardTexture::CheckerBoardTexture(Element* parent)
   : Texture(parent),
@@ -10,9 +10,9 @@ CheckerBoardTexture::CheckerBoardTexture(Element* parent)
 {
 }
 
-std::shared_ptr<raytracer::Texturec> CheckerBoardTexture::toRaytracerTexture() const {
-  return make_named<raytracer::CheckerBoardTexture>(
-    new raytracer::PlanarMapping2D,
+std::shared_ptr<render::Texturec> CheckerBoardTexture::toRaytracerTexture() const {
+  return make_named<render::CheckerBoardTexture>(
+    new render::PlanarMapping2D,
     textureOrDefault(brightTexture())->toRaytracerTexture(),
     textureOrDefault(darkTexture())->toRaytracerTexture()
   );

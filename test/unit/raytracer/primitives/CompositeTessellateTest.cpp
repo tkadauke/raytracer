@@ -7,6 +7,7 @@
 
 namespace CompositeTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(CompositeTessellate, ShouldReturnEmptyMeshForNoChildren) {
     Composite composite;

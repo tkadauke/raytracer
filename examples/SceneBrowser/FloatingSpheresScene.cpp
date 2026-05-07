@@ -5,9 +5,11 @@
 #include "raytracer/lights/PointLight.h"
 #include "raytracer/materials/Material.h"
 #include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
+using namespace render;
+using namespace render;
 
 class FloatingSpheresScene : public Scene {
 public:

@@ -8,6 +8,7 @@
 
 namespace TiltShiftCameraTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(TiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {
     TiltShiftCamera camera;

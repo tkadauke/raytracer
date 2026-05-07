@@ -9,12 +9,14 @@
 #include "raytracer/lights/PointLight.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include <fstream>
 
 using namespace std;
 using namespace raytracer;
+using namespace render;
+using namespace render;
 
 class MeshScene : public Scene {
 public:

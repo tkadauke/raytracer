@@ -8,7 +8,7 @@
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/primitives/Scene.h"
 #include "raytracer/primitives/Sphere.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 #include "core/Buffer.h"
 #include "core/math/BoundingBox.h"
@@ -22,6 +22,7 @@
 namespace RaytracerTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
 
   // Tests for the orchestration class itself (issue #20). render() is not
   // exercised here because it spins up a QThreadPool; that path is covered

@@ -25,8 +25,8 @@ namespace raytracer {
     *
     * Concrete materials in this codebase:
     *
-    *  - `MatteMaterial` — Lambertian diffuse only.
-    *  - `PhongMaterial` — Lambertian + Phong specular highlight.
+    *  - `MatteMaterial` — render::Lambertian diffuse only.
+    *  - `PhongMaterial` — render::Lambertian + Phong specular highlight.
     *  - `ReflectiveMaterial` — `PhongMaterial` + perfect mirror
     *    reflection.
     *  - `TransparentMaterial` — `PhongMaterial` + perfect specular

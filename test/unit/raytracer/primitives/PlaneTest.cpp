@@ -6,6 +6,7 @@
 
 namespace PlaneTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(Plane, ShouldInitializeWithValues) {
     Plane plane(Vector3d(0, 1, 0), 0);

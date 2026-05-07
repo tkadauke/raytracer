@@ -7,6 +7,7 @@
 
 namespace SphereTest {
   using namespace raytracer;
+using namespace render;
   
   TEST(Sphere, ShouldInitializeWithValues) {
     Sphere sphere(Vector3d(), 1);

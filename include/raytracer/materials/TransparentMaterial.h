@@ -2,8 +2,8 @@
 #include <memory>
 
 #include "raytracer/materials/PhongMaterial.h"
-#include "raytracer/brdf/PerfectSpecular.h"
-#include "raytracer/brdf/PerfectTransmitter.h"
+#include "render/brdf/PerfectSpecular.h"
+#include "render/brdf/PerfectTransmitter.h"
 
 namespace raytracer {
   /**
@@ -32,7 +32,7 @@ namespace raytracer {
       * Constructs a transparent material with diffuseTexture and a refraction
       * index of 1.
       */
-    inline explicit TransparentMaterial(std::shared_ptr<Texturec> diffuseTexture)
+    inline explicit TransparentMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
       : PhongMaterial(diffuseTexture)
     {
       setRefractionIndex(1);
@@ -136,7 +136,7 @@ namespace raytracer {
     Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
     bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint);
 
-    PerfectSpecular m_reflectiveBRDF;
-    PerfectTransmitter m_specularBTDF;
+    render::PerfectSpecular m_reflectiveBRDF;
+    render::PerfectTransmitter m_specularBTDF;
   };
 }

@@ -6,6 +6,7 @@
 namespace CameraTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
 
   class ConcreteCamera : public Camera {
   public:

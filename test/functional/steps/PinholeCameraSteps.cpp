@@ -5,6 +5,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a pinhole camera") {
   // do nothing, the pinhole camera is the default

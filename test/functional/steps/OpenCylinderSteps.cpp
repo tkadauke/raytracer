@@ -7,6 +7,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered open cylinder") {
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);

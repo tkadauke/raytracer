@@ -2,8 +2,8 @@
 #include <memory>
 
 #include "raytracer/materials/Material.h"
-#include "raytracer/brdf/Lambertian.h"
-#include "raytracer/textures/Texture.h"
+#include "render/brdf/Lambertian.h"
+#include "render/textures/Texture.h"
 
 namespace raytracer {
   /**
@@ -30,7 +30,7 @@ namespace raytracer {
       * Constructs the default matte material with the given texture and ambient
       * and diffuse coefficients of 1.
       */
-    inline explicit MatteMaterial(std::shared_ptr<Texturec> texture)
+    inline explicit MatteMaterial(std::shared_ptr<render::Texturec> texture)
       : Material(),
         m_diffuseTexture(texture),
         m_ambientCoefficient(1),
@@ -41,7 +41,7 @@ namespace raytracer {
     /**
       * @returns the diffuse texture.
       */
-    inline std::shared_ptr<Texturec> diffuseTexture() const {
+    inline std::shared_ptr<render::Texturec> diffuseTexture() const {
       return m_diffuseTexture;
     }
 
@@ -58,7 +58,7 @@ namespace raytracer {
       * <td>@image html matte_material_rainbow_violet.png "violet"</td>
       * </tr></table>
       */
-    inline void setDiffuseTexture(std::shared_ptr<Texturec> texture) {
+    inline void setDiffuseTexture(std::shared_ptr<render::Texturec> texture) {
       m_diffuseTexture = texture;
     }
     
@@ -109,7 +109,7 @@ namespace raytracer {
     virtual Colord shade(const Raytracer* raytracer, const Rayd& ray, const HitPoint& hitPoint, State& state) const;
 
   private:
-    std::shared_ptr<Texturec> m_diffuseTexture;
+    std::shared_ptr<render::Texturec> m_diffuseTexture;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
   };

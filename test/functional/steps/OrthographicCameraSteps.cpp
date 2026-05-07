@@ -5,6 +5,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "an orthographic camera") {
   test->setCamera(std::make_shared<OrthographicCamera>());

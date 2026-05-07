@@ -4,10 +4,11 @@
 #include "raytracer/primitives/Box.h"
 #include "raytracer/primitives/Sphere.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a perfectly reflective box") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));

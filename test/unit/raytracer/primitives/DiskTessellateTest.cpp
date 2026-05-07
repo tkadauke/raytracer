@@ -5,6 +5,7 @@
 
 namespace DiskTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   static constexpr double kEps = 1e-9;
 

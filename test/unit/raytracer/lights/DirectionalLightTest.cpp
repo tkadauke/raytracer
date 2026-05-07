@@ -3,6 +3,7 @@
 
 namespace DirectionalLightTest {
   using namespace raytracer;
+using namespace render;
 
   TEST(DirectionalLight, ShouldInitializeWithValues) {
     DirectionalLight light(Vector3d(-0.5, -1, -0.5), Colord::white());

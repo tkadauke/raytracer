@@ -5,9 +5,11 @@
 #include "raytracer/lights/PointLight.h"
 #include "raytracer/lights/DirectionalLight.h"
 #include "raytracer/materials/MatteMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 
 using namespace raytracer;
+using namespace render;
+using namespace render;
 
 // DOF demo scene built around the canonical "three coloured spheres at
 // distinct depths" arrangement that makes depth-of-field visible at a

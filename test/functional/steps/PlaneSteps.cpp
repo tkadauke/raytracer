@@ -5,6 +5,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered plane") {
   auto plane = std::make_shared<Plane>(Vector3d(0, 0, 1), 0);

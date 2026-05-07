@@ -6,6 +6,7 @@
 namespace SceneTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
 
   TEST(Scene, ShouldInitialize) {
     Scene scene;

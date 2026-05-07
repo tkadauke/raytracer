@@ -7,6 +7,7 @@
 namespace TriangleTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   struct TriangleTest : public ::testing::Test {
     void SetUp() {

@@ -4,6 +4,7 @@
 namespace StateTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
 
   TEST(State, ShouldInitialize) {
     State state;

@@ -9,6 +9,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a centered torus") {
   auto torus = std::make_shared<Torus>(1, 0.5);

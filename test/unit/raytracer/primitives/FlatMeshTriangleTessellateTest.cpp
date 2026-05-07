@@ -4,6 +4,7 @@
 
 namespace FlatMeshTriangleTessellateTest {
   using namespace raytracer;
+using namespace render;
 
   // Mesh vertices have normals pointing in +Y; FlatMeshTriangle averages them
   // to get its face normal, which is also +Y.

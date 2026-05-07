@@ -9,6 +9,7 @@
 namespace SphericalCameraTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;

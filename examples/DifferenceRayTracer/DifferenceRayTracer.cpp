@@ -10,12 +10,13 @@
 #include "raytracer/materials/PhongMaterial.h"
 #include "raytracer/materials/ReflectiveMaterial.h"
 #include "raytracer/materials/TransparentMaterial.h"
-#include "raytracer/textures/ConstantColorTexture.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "widgets/QtDisplay.h"
 
 #include <QApplication>
 
 using namespace raytracer;
+using namespace render;
 
 int main(int argc, char** argv) {
   QApplication app(argc, argv);

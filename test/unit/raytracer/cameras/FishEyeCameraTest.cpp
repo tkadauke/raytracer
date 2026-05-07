@@ -7,6 +7,7 @@
 namespace FishEyeCameraTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(FishEyeCamera, ShouldConstructWithoutParameters) {
     FishEyeCamera camera;

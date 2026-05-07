@@ -7,6 +7,7 @@
 
 using namespace testing;
 using namespace raytracer;
+using namespace render;
 
 GIVEN(RaytracerFeatureTest, "a box portal") {
   auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));

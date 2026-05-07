@@ -7,6 +7,7 @@
 namespace InstanceTest {
   using namespace ::testing;
   using namespace raytracer;
+using namespace render;
   
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();

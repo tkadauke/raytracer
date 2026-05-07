@@ -8,9 +8,9 @@
 #include "raytracer/materials/MatteMaterial.h"
 #include "raytracer/Raytracer.h"
 #include "raytracer/lights/DirectionalLight.h"
-#include "raytracer/textures/CheckerBoardTexture.h"
-#include "raytracer/textures/ConstantColorTexture.h"
-#include "raytracer/textures/mappings/PlanarMapping2D.h"
+#include "render/textures/CheckerBoardTexture.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "render/textures/mappings/PlanarMapping2D.h"
 #include "raytracer/cameras/PinholeCamera.h"
 
 PreviewDisplayWidget::PreviewDisplayWidget(QWidget* parent)
@@ -70,10 +70,10 @@ std::shared_ptr<raytracer::Scene> PreviewDisplayWidget::sphereOnPlane(Material* 
   sphere->setMaterial(mat);
 
   auto planeMaterial = std::make_shared<raytracer::MatteMaterial>(
-    std::make_shared<raytracer::CheckerBoardTexture>(
-      new raytracer::PlanarMapping2D,
-      std::make_shared<raytracer::ConstantColorTexture>(Colord::black()),
-      std::make_shared<raytracer::ConstantColorTexture>(Colord::white())
+    std::make_shared<render::CheckerBoardTexture>(
+      new render::PlanarMapping2D,
+      std::make_shared<render::ConstantColorTexture>(Colord::black()),
+      std::make_shared<render::ConstantColorTexture>(Colord::white())
     )
   );
 
