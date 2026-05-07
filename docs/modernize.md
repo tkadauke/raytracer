@@ -217,6 +217,86 @@ endif()
 
 ---
 
+### 3.4.a Functional test infrastructure
+
+**Current state:** `test/functional/` has 91 tests across 35 files driven by a custom Given/When/Then framework (`test/functional/support/FeatureTest.h` + the `GIVEN/WHEN/THEN` macros in `GivenWhenThen.h`). Reads like English; three rough edges:
+
+1. **String-keyed step lookup at runtime.** Step names live in a `std::map<std::string, Step*>` populated at static-init time by `bool dummy = registerGiven(...)` initialisers. A typo or stale copy-paste prints `WARNING: 'given' step '...' is not defined!` to `stderr` but the `TEST_F` reports green. Real silent-failure path — invisible in CI summaries.
+2. **Hardcoded to one engine.** `RaytracerFeatureTest::render()` always constructs `engine::raytracer::Raytracer`. The Wireframe engine has only unit tests today; future path tracer / software rasterizer / GL viewport will too unless the fixture grows engine pluralism.
+3. **Hardcoded `redDiffuse` + `objectVisible/objectSize` semantics.** `objectVisible` literally counts red pixels in the buffer; tests can't easily assert non-red rendering. The `ShapeRecognition::recognizeCircle` heuristic is the only escape hatch and lives in `test/helpers/`.
+
+**Coverage gaps from recent work:**
+
+- `ThinLensCamera`, `TiltShiftCamera`, `EquirectangularCamera` — no functional tests (units exist).
+- `MatteMaterial`, `PhongMaterial` — no functional tests (Reflective + Portal do).
+- `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap` — none.
+- `JitteredSampler` / `RegularSampler` / `RandomSampler` — none at integration level.
+- Wireframe engine — only unit tests, nothing at the scene-render level.
+- `BSDF` interface (just landed, §3.R6 phase 1) — no integration smoke.
+- `PointLight` — no end-to-end shadow-boundary test.
+- Layout drift: empty `test/functional/raytracer/` directory; `MinkowskiSumTest.cpp` is mis-filed under `steps/` despite being a test, not steps.
+
+**Proposed sub-items**, ordered by dependency:
+
+#### F. Layout cleanup *(half day)*
+
+- Remove empty `test/functional/raytracer/` directory.
+- Move `test/functional/steps/MinkowskiSumTest.cpp` into `test/functional/render/primitives/` to match its siblings.
+
+#### A. Replace string-keyed Given/When/Then with typed fixture methods *(~2 days, mechanical)*
+
+- Drop the `GIVEN(...)` / `WHEN(...)` / `THEN(...)` macros from `GivenWhenThen.h` and the `Steps` singleton from `FeatureTest.h`.
+- Convert the 30+ step implementations into named protected methods on `RaytracerFeatureTest`: `givenCenteredSphere()`, `whenILookAtOrigin()`, `thenIShouldSeeTheSphere()`. Body of each method matches the current `GIVEN(..., "a centered sphere") { ... }` body exactly.
+- Tests read identically (`givenCenteredSphere(); whenILookAtOrigin(); thenIShouldSeeTheSphere();`) but typos become compile errors and IDE jump-to-definition works.
+- The `beforeGiven/beforeWhen/beforeThen` lifecycle hook from `FeatureTest.h` is preserved by setting an internal phase flag inside each named method.
+
+**Why:** the silent-warning failure mode is a real bug class. Today's framework's `cerr << "WARNING"` is invisible in CI. Compile-time linkage gives the typing guarantee for free.
+
+#### B. Parameterise the fixture over engine type *(~3 days)*
+
+- Rename `RaytracerFeatureTest` to `EngineFeatureTest<Engine>`. Engine type becomes the template parameter; the constructor news up `std::make_shared<Engine>(scene, camera)` instead of hardcoded `Raytracer`.
+- Existing tests where the assertion only makes sense for a raytracer — recursion, TIR, ambient lighting, soft shadows, recursive reflections, transparency — keep raytracer-specific assertions and explicit `EngineFeatureTest<Raytracer>` instantiation.
+- Tests for *engine-agnostic* properties — primitive visibility, camera framing, view-frustum culling, per-primitive sphere/box/torus visibility — become typed tests via `TYPED_TEST_SUITE_P`, instantiated for both `Raytracer` and `Wireframe`.
+- Assertion adapter: a virtual `objectVisible() / objectSize()` per engine. `Raytracer` overload counts shaded red pixels (current behaviour); `Wireframe` overload counts edge-colour pixels and runs `ShapeRecognition` for silhouette shape.
+
+**Why:** "respect the new multi-engine world" concretely means a `Sphere` test should pass on Raytracer (red shaded sphere) AND Wireframe (recognisable circle of silhouette edges) without two parallel test files.
+
+#### C. Wireframe functional coverage *(~1 day, builds on B)*
+
+- Empty scene → buffer matches background everywhere.
+- Sphere → `ShapeRecognition::recognizeCircle` passes on the silhouette.
+- Box → recognisable rectangular outline.
+- LOD knob: higher LOD strictly increases edge-pixel count for a Sphere (Box is LOD-invariant).
+- Camera-frustum culling: behind-camera primitives produce no edges.
+- Cancel-during-render: pre-cancel produces only the cleared background.
+
+#### E. Cover the new-abstraction surface *(~3 days)*
+
+- **Matte + Phong materials** — full given/when/then coverage matching `ReflectiveMaterial`'s existing pattern.
+- **ThinLensCamera focus-plane invariant** — "a sphere on the focus plane is sharp; an off-plane sphere is blurred" via `ShapeRecognition` edge-pixel-density delta.
+- **TiltShiftCamera + EquirectangularCamera** — visibility + framing tests at parity with `PinholeCamera`.
+- **Tonemap monotonicity** — render the same HDR scene through `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap`, assert the max LDR pixel value is monotone-decreasing as compression strengthens (`Linear ≥ Reinhard ≥ ACES` for over-1.0 input).
+- **Sampler determinism** — `RegularSampler` produces bit-identical output across runs for a deterministic scene; `JitteredSampler` produces statistically-uniform sub-pixel coverage (test the histogram, not the bytes); `RandomSampler` differs across runs at fixed seed only when re-seeded.
+- **PointLight shadow boundary** — shadow edge falls at the geometrically expected angle for a known-position light + occluder.
+- **BSDF integration smoke** — render the canonical Reflective + Transparent scenes via the post-§3.R6 paths, expect outputs identical to the pre-R6 baseline within sampler tolerance.
+
+#### D. Reference-image regression tests *(~2 days, lands after B + §3.R6)*
+
+- Curated scene set: `sphere_matte`, `sphere_phong`, `sphere_reflective`, `sphere_transparent_TIR`, `csg_difference`, `mesh_ply_bunny` (or smaller stand-in).
+- Render through each engine that supports the scene (Wireframe skips transparent / TIR; Raytracer renders all).
+- Diff against committed PNG with per-channel-percent tolerance — sampler stochasticity needs a tolerance, not exact equality. Tolerance should be tight enough to catch the kind of regression a refactor introduces (R6's BSDF dispatch shift would otherwise slip through).
+- `ctest` integration: failure emits the diff image to a CI artifact for triage.
+- Lands AFTER §3.R6 because the BSDF refactor would otherwise churn the reference set during the refactor itself.
+
+**Total:** ~11–12 days, interleaves with feature work. F → A → B unblocks C, E, D in parallel.
+
+**Cross-references:**
+
+- §3.R0 (`docs/roadmap.md`) covers the *unit*-test gaps in the integrator + materials + texture mappings. This sub-item is the *functional*-test counterpart and is independent.
+- §3.R5b (recently completed) is what made multi-engine functional pluralism even possible — the `engine::raytracer::Raytracer` / `engine::wireframe::Wireframe` split removes the hardcoded raytracer assumption from the type system, so item B becomes a clean parameterisation rather than a refactor of cross-namespace dependencies.
+
+---
+
 ### 3.5 CI/CD
 
 **Current state:** No CI whatsoever.
