@@ -37,12 +37,11 @@ void Rasterizer::uncancel() {
 }
 
 namespace {
-  // Ambient floor — the unlit side of an object isn't pure black,
-  // it's lit by the scene's ambient term scaled by this coefficient.
-  // Matches MatteMaterial's default ambientCoefficient of 1.0 modulo
-  // a fixed 0.15 pulldown so direct lighting has visible
-  // contribution against the ambient baseline.
-  constexpr double kAmbientCoefficient = 0.15;
+  // Ambient coefficient — same role as MatteMaterial's
+  // `ambientCoefficient`. Multiplies the scene's ambient term so
+  // the unlit side of an object is visible at its full ambient
+  // contribution rather than darkened.
+  constexpr double kAmbientCoefficient = 1.0;
 
   // A reasonably colour-spread hash from a uint64 face index → RGB
   // in [0, 1]³. Used so adjacent faces are visually distinguishable

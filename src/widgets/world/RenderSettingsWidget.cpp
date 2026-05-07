@@ -86,9 +86,12 @@ int RenderSettingsWidget::lod() const {
 void RenderSettingsWidget::engineChanged() {
   // Show the engine-specific frame; hide the others. Resolution +
   // engine selector + progress indicators stay visible regardless.
-  bool isWireframe = (engine() == "Wireframe");
-  p->ui.raytracerFrame->setVisible(!isWireframe);
-  p->ui.wireframeFrame->setVisible(isWireframe);
+  // Rasterizer shares Wireframe's LOD-only knob set, so it shows
+  // the same wireframeFrame.
+  const QString eng = engine();
+  const bool isRaytracer = (eng == "Raytracer");
+  p->ui.raytracerFrame->setVisible(isRaytracer);
+  p->ui.wireframeFrame->setVisible(!isRaytracer);
 }
 
 bool RenderSettingsWidget::showProgressIndicators() const {

@@ -7,29 +7,58 @@
 namespace engine::raster {
 
 /**
-  * @brief `RenderEngine` that fills every mesh face's projected
-  *        triangle as a flat-shaded coloured region on the
-  *        framebuffer — the textbook software-rasterizer pipeline
-  *        in the simplest form that produces a recognisable image.
+  * @brief `RenderEngine` that projects every mesh face's triangles
+  *        to screen space, depth-tests them through a Z-buffer, and
+  *        Lambertian-shades each pixel using interpolated vertex
+  *        normals — the textbook software-rasterizer pipeline.
   *
-  * Pipeline (V1, no Z-buffer / no shading / no clipping):
+  * @image html rasterizer_engine.png "Sphere through Rasterizer at default LOD"
+  *
+  * Pipeline:
   *
   *  1. Tessellate the scene into a single `Mesh` via
   *     `Scene::tessellate(lod)`.
-  *  2. For every face, project its vertices to screen space via
-  *     `Camera::projectPoint` (same forward-projection used by
-  *     `engine::wireframe::Wireframe`).
+  *  2. For every face, project its vertices to screen space + depth
+  *     via `Camera::projectPointWithDepth` — the depth value is the
+  *     eye-relative distance along the camera's forward axis.
   *  3. Triangulate the face (fan from vertex 0 — assumes convex
   *     faces, which the per-primitive tessellate impls guarantee).
-  *  4. Rasterize each triangle via `core::rasterizeTriangle`,
-  *     writing a per-face hash colour for every pixel inside.
+  *  4. Rasterize each triangle via `core::rasterizeTriangle`. For
+  *     every pixel inside:
+  *      - Depth-test against a per-pixel Z-buffer using the
+  *        perspective-correct interpolation trick (`1/z` is linear
+  *        in screen space; the screen-space barycentric weights
+  *        from the rasterizer give the correct interpolated depth
+  *        when applied to `1/z` and inverted).
+  *      - Interpolate the vertex normal and world position, again
+  *        perspective-correct.
+  *      - Apply Lambertian shading: `scene.ambient × ambientCoeff +
+  *        Σ_lights faceColor × light.radiance × max(0, n · light.dir)`.
+  *      - Write the shaded colour iff the new depth beats the
+  *        existing Z-buffer cell.
   *
-  * V1 omits the depth pass — overlapping faces overdraw and the
-  * last-rasterized one wins. That's the simplest possible pixel
-  * pipeline that still demonstrates the projection + coverage
-  * stages; later phases add the depth buffer, vertex normal
-  * interpolation, Lambertian shading via `Material`, backface
-  * culling, and near-plane clipping.
+  * Each face is coloured by an index hash rather than the
+  * primitive's material — recovering per-primitive material from the
+  * merged mesh requires either UV-interpolated texture sampling or a
+  * primitive-tracking path through the tessellation. The hash
+  * approach gives recognisably-shaded objects (the unlit side is
+  * dim, the lit side bright) without the material-tracking
+  * complexity. Replacing the hash with material albedo is a future
+  * improvement.
+  *
+  * Triangles with any vertex behind the eye are dropped entirely —
+  * the rasterizer doesn't yet implement near-plane clipping, so a
+  * triangle that straddles the near plane is invisible. Backface
+  * culling is also pending; the rasterizer currently shades both
+  * sides of every triangle.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
+  * <td>@image html rasterizer_engine_lod_1.png "lod=1"</td>
+  * <td>@image html rasterizer_engine_lod_2.png "lod=2"</td>
+  * <td>@image html rasterizer_engine_lod_3.png "lod=3"</td>
+  * <td>@image html rasterizer_engine_lod_4.png "lod=4"</td>
+  * </tr></table>
   *
   * Cameras supported: any subclass that overrides
   * `Camera::projectPoint` (currently `PinholeCamera` and

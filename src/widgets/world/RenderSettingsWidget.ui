@@ -60,6 +60,11 @@
           <string>Wireframe</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>Rasterizer</string>
+         </property>
+        </item>
        </widget>
       </item>
       <item row="1" column="0">

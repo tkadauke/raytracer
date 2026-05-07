@@ -13,6 +13,10 @@ namespace engine::wireframe {
   class Wireframe;
 }
 
+namespace engine::raster {
+  class Rasterizer;
+}
+
 namespace engine::raytracer {
   class Raytracer;
 }
@@ -31,7 +35,7 @@ public:
   /// Engine kinds supported by the modeling preview. The render
   /// dialog has its own selector — this one only affects the
   /// always-on preview pane.
-  enum class EngineKind { Raytracer, Wireframe };
+  enum class EngineKind { Raytracer, Wireframe, Rasterizer };
 
 public slots:
   /// Swap the live preview engine. The new engine inherits the
@@ -42,4 +46,5 @@ public slots:
 private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   std::shared_ptr<engine::wireframe::Wireframe> m_wireframeEngine;
+  std::shared_ptr<engine::raster::Rasterizer> m_rasterizerEngine;
 };

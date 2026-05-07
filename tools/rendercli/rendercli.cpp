@@ -10,6 +10,7 @@
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
@@ -99,6 +100,11 @@ void Renderer::render() const {
     if (rtCamera) wireframe->setCamera(rtCamera);
     wireframe->setLod(m_wireframeLod);
     engine = wireframe;
+  } else if (m_engine == "raster") {
+    auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
+    if (rtCamera) raster->setCamera(rtCamera);
+    raster->setLod(m_wireframeLod);  // shares the LOD knob with Wireframe
+    engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
     // We don't need a fancy view plane, so we can optimize for fast rendering.
@@ -163,8 +169,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {{"j", "threads"}, "Number of threads", "threads"},
     {"queue_size", "Queue size for thread pool", "queue_size"},
     {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
-    {"engine", "Render engine (raytracer, wireframe)", "engine"},
-    {"lod", "Tessellation level of detail for wireframe engine", "lod"}
+    {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
+    {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"}
   });
   
   parser.addPositionalArgument("input", QCoreApplication::translate("main", "Input file to render."));
@@ -245,8 +251,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
 
   if (parser.isSet("engine")) {
     const QString engine = parser.value("engine").toLower();
-    if (engine != "raytracer" && engine != "wireframe") {
-      *errorMessage = "Engine must be 'raytracer' or 'wireframe'";
+    if (engine != "raytracer" && engine != "wireframe" && engine != "raster") {
+      *errorMessage = "Engine must be 'raytracer', 'wireframe', or 'raster'";
       return CommandLineError;
     }
     m_engine = engine;

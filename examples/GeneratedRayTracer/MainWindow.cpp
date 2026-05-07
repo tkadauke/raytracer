@@ -136,6 +136,7 @@ struct MainWindow::Private {
   QAction* renderAct;
   QAction* previewRaytracerAct;
   QAction* previewWireframeAct;
+  QAction* previewRasterizerAct;
 
   QAction* aboutAct;
   QAction* helpAct;
@@ -367,9 +368,15 @@ void MainWindow::createActions() {
   p->previewWireframeAct->setCheckable(true);
   connect(p->previewWireframeAct, SIGNAL(triggered()), this, SLOT(usePreviewWireframe()));
 
+  p->previewRasterizerAct = new QAction(tr("Ras&terizer"), this);
+  p->previewRasterizerAct->setStatusTip(tr("Show the modeling preview as a software-rasterized render (filled triangles, Lambertian shading, no recursion)"));
+  p->previewRasterizerAct->setCheckable(true);
+  connect(p->previewRasterizerAct, SIGNAL(triggered()), this, SLOT(usePreviewRasterizer()));
+
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
   previewGroup->addAction(p->previewWireframeAct);
+  previewGroup->addAction(p->previewRasterizerAct);
 
   p->helpAct = new QAction(tr("Raytracer &Help"), this);
   p->helpAct->setStatusTip(tr("Go to the Github page"));
@@ -448,6 +455,7 @@ void MainWindow::createMenus() {
   auto previewMenu = p->renderMenu->addMenu(tr("&Preview Engine"));
   previewMenu->addAction(p->previewRaytracerAct);
   previewMenu->addAction(p->previewWireframeAct);
+  previewMenu->addAction(p->previewRasterizerAct);
 
   p->helpMenu = menuBar()->addMenu(tr("&Help"));
   p->helpMenu->addAction(p->aboutAct);
@@ -707,6 +715,10 @@ void MainWindow::render() {
 
 void MainWindow::usePreviewRaytracer() {
   p->display->setEngineKind(Display::EngineKind::Raytracer);
+}
+
+void MainWindow::usePreviewRasterizer() {
+  p->display->setEngineKind(Display::EngineKind::Rasterizer);
 }
 
 void MainWindow::usePreviewWireframe() {

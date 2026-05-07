@@ -84,6 +84,7 @@ private slots:
   void render();
   void usePreviewRaytracer();
   void usePreviewWireframe();
+  void usePreviewRasterizer();
 
   void about();
   void help();

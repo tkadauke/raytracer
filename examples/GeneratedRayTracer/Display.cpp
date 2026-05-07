@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 
 #include "Display.h"
+#include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/State.h"
@@ -28,6 +29,7 @@ Display::Display(QWidget* parent)
   // dynamic_cast the base pointer.
   m_raytracerEngine = std::dynamic_pointer_cast<engine::raytracer::Raytracer>(m_engine);
   m_wireframeEngine = std::make_shared<engine::wireframe::Wireframe>(nullptr);
+  m_rasterizerEngine = std::make_shared<engine::raster::Rasterizer>(nullptr);
 }
 
 Display::~Display() {
@@ -44,6 +46,10 @@ void Display::setEngineKind(EngineKind kind) {
     m_wireframeEngine->setScene(m_engine->scene());
     m_wireframeEngine->setCamera(m_engine->camera());
     next = m_wireframeEngine;
+  } else if (kind == EngineKind::Rasterizer) {
+    m_rasterizerEngine->setScene(m_engine->scene());
+    m_rasterizerEngine->setCamera(m_engine->camera());
+    next = m_rasterizerEngine;
   } else {
     m_raytracerEngine->setScene(m_engine->scene());
     m_raytracerEngine->setCamera(m_engine->camera());

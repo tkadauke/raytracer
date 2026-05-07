@@ -3,6 +3,7 @@
 
 #include "widgets/RenderWidget.h"
 
+#include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/lights/PointLight.h"
@@ -38,6 +39,7 @@ struct RenderWindow::Private {
   // scene + camera ready to take over on the next "Render" click.
   std::shared_ptr<engine::raytracer::Raytracer> raytracer;
   std::shared_ptr<engine::wireframe::Wireframe> wireframe;
+  std::shared_ptr<engine::raster::Rasterizer> rasterizer;
 
   bool busy;
   int timer;
@@ -50,6 +52,7 @@ RenderWindow::RenderWindow(QWidget* parent)
 {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
   p->wireframe = std::make_shared<engine::wireframe::Wireframe>(nullptr);
+  p->rasterizer = std::make_shared<engine::raster::Rasterizer>(nullptr);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
@@ -104,6 +107,11 @@ void RenderWindow::render() {
     p->wireframe->setScene(p->raytracer->scene());
     p->wireframe->setLod(p->settingsWidget->lod());
     engine = p->wireframe;
+  } else if (p->settingsWidget->engine() == "Rasterizer") {
+    p->rasterizer->setCamera(p->raytracer->camera());
+    p->rasterizer->setScene(p->raytracer->scene());
+    p->rasterizer->setLod(p->settingsWidget->lod());
+    engine = p->rasterizer;
   } else {
     auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
     auto sampler = render::SamplerFactory::self().createShared(samplerClass);
@@ -146,6 +154,7 @@ void RenderWindow::setScene(::Scene* scene) {
 
   p->raytracer->setScene(raytracerScene);
   p->wireframe->setScene(raytracerScene);
+  p->rasterizer->setScene(raytracerScene);
 
   auto camera = scene->activeCamera();
   std::shared_ptr<render::Camera> rtCamera;
@@ -161,5 +170,6 @@ void RenderWindow::setScene(::Scene* scene) {
   }
   p->raytracer->setCamera(rtCamera);
   p->wireframe->setCamera(rtCamera);
+  p->rasterizer->setCamera(rtCamera);
 }
 
