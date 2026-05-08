@@ -1,5 +1,5 @@
 // Interactive widget for homogeneous/screen clipping preserving interpolated
-// attributes. Drag the outside source vertex; each generated clip vertex keeps
+// attributes. Drag any source vertex; each generated clip vertex keeps
 // linearly interpolated UVs.
 
 class RasterizerClipAttributes {
@@ -8,9 +8,9 @@ class RasterizerClipAttributes {
     this.height = 300;
     this.clip = { left: 145, top: 54, right: 430, bottom: 246 };
     this.vertices = [
-      { x: 42,  y: 150, u: 0.00, v: 0.50, generated: false, draggable: true },
-      { x: 360, y: 42,  u: 1.00, v: 0.00, generated: false, draggable: false },
-      { x: 384, y: 262, u: 1.00, v: 1.00, generated: false, draggable: false },
+      { x: 42,  y: 150, u: 0.00, v: 0.50, generated: false },
+      { x: 360, y: 42,  u: 1.00, v: 0.00, generated: false },
+      { x: 384, y: 262, u: 1.00, v: 1.00, generated: false },
     ];
   }
 
@@ -44,7 +44,6 @@ class RasterizerClipAttributes {
       u: a.u + (b.u - a.u) * t,
       v: a.v + (b.v - a.v) * t,
       generated,
-      draggable: false,
     };
   }
 
@@ -144,35 +143,24 @@ class RasterizerClipAttributes {
 
   renderSourceVertices() {
     this.vertices.forEach((vertex, index) => {
-      if (vertex.draggable) {
-        const handle = new FigureDraggablePoint({
-          canvas: this.canvas,
-          point: vertex,
-          radius: 8,
-          attrs: {
-            fill: this.uvColor(vertex),
-            stroke: '#111',
-            'stroke-width': 2,
-            'data-drag-handle': 'outside-vertex',
-            'data-vertex-index': index,
-          },
-          onDrag: (point) => {
-            vertex.x = this.clamp(point.x, 20, 190);
-            vertex.y = this.clamp(point.y, 75, 225);
-            this.render();
-          },
-        });
-        this.canvas.append(handle.element());
-      } else {
-        this.canvas.add('circle', {
-          cx: vertex.x,
-          cy: vertex.y,
-          r: 7,
+      const handle = new FigureDraggablePoint({
+        canvas: this.canvas,
+        point: vertex,
+        radius: 8,
+        attrs: {
           fill: this.uvColor(vertex),
           stroke: '#111',
-          'stroke-width': 1.5,
-        });
-      }
+          'stroke-width': 2,
+          'data-drag-handle': 'source-vertex',
+          'data-vertex-index': index,
+        },
+        onDrag: (point) => {
+          vertex.x = this.clamp(point.x, 0, this.width);
+          vertex.y = this.clamp(point.y, 0, this.height);
+          this.render();
+        },
+      });
+      this.canvas.append(handle.element());
     });
   }
 

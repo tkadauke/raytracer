@@ -65,7 +65,7 @@ end
 
 class_doc(engine: "wireframe", width: 320, height: 240) do
   name "rectangle_wireframe"
-  # Aim at the rectangle's centre (0.5, 0, 0.5) since the default
+  # Aim at the rectangle's center (0.5, 0, 0.5) since the default
   # legs anchor the corner at the origin.
   pinhole_camera :position => [0.5, -0.7, -0.7], :target => [0.5, 0, 0.5], :zoom => 3.5
   rectangle

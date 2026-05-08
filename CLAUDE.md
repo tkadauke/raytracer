@@ -108,7 +108,7 @@ The roadmap item under `docs/modernize.md` §3.4 is to grow the benchmark suite 
 
 ## CHANGELOG convention
 
-Behaviour-affecting changes — anything users (developers included) would notice — get a one-line entry in `CHANGELOG.md` under the `## Unreleased` heading. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with `Added` / `Changed` / `Fixed` / `Deprecated` / `Removed` / `Security` subsections. Each entry ends with the author's attribution — for AI agents, that's the model name (e.g., `— Claude Opus 4.7`). Pure refactors that preserve behaviour, internal-only test additions, and CI-only tooling tweaks don't need an entry.
+Behavior-affecting changes — anything users (developers included) would notice — get a one-line entry in `CHANGELOG.md` under the `## Unreleased` heading. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with `Added` / `Changed` / `Fixed` / `Deprecated` / `Removed` / `Security` subsections. Each entry ends with the author's attribution — for AI agents, that's the model name (e.g., `— Claude Opus 4.7`). Pure refactors that preserve behavior, internal-only test additions, and CI-only tooling tweaks don't need an entry.
 
 This is the audit trail per `docs/modernize.md` §3.11 — agent-introduced changes should be greppable from the changelog.
 
@@ -124,7 +124,7 @@ The same rule applies to `docs/modernize.md` for engineering-hygiene work. Both 
 
 If a change ships something that isn't in the roadmap and probably should be, add the bullet first (in the right pillar/theme), then mark it done in the same PR. Don't let undocumented features accumulate.
 
-**Don't let roadmap labels bleed into user-facing documentation.** Phrases like "pre-R1 behaviour preserved" or "post-3.10 cleanup" are meaningless to a reader who hasn't read the roadmap. In docstrings, comments, and PR descriptions, describe the actual behaviour ("pass-through, hard clamp at 1.0," "Qt 6 migration, QtScript→QJSEngine"). The CHANGELOG is the one place where roadmap references are appropriate — that's the audit trail linking commits to roadmap items, and entries there explicitly reference the section ("closes roadmap §3.R1").
+**Don't let roadmap labels bleed into user-facing documentation.** Phrases like "pre-R1 behavior preserved" or "post-3.10 cleanup" are meaningless to a reader who hasn't read the roadmap. In docstrings, comments, and PR descriptions, describe the actual behavior ("pass-through, hard clamp at 1.0," "Qt 6 migration, QtScript→QJSEngine"). The CHANGELOG is the one place where roadmap references are appropriate — that's the audit trail linking commits to roadmap items, and entries there explicitly reference the section ("closes roadmap §3.R1").
 
 ## Interactive documentation widgets
 
@@ -133,13 +133,15 @@ Interactive JS widgets under `scripts/docs/*.js` should follow the rules in
 
 - Spatial values that move (points, vertices, edge endpoints, ray origins) get
   visible draggable handles at the thing being moved.
-- Scalar values get labelled sliders or segmented controls.
+- Scalar values get labeled sliders or segmented controls.
 - Do not add new whole-widget drag gestures; `DragHandler` is legacy-only during
   migration.
 - Build new widgets on shared `figure.js` primitives before adding local raw-DOM
   infrastructure.
 - Keep widget CSS scoped to a widget root or library-owned SVG class. Never add
   global SVG element rules that can leak across widgets.
+- Use US English spelling in widget labels, documentation, comments, tests, and
+  changelog entries: "color", "behavior", "labeled", "gray".
 
 ## Adding a new visible-output feature
 
@@ -181,7 +183,7 @@ hand-edited JSON can reach it.
   on a stochastic state.
 - World side: pin the canned defaults, the property clamps, and the
   `toRaytracer*()` factory dispatch.
-- Auto-install or auto-detect behaviour gets BOTH branches tested
+- Auto-install or auto-detect behavior gets BOTH branches tested
   (e.g. ThinLens auto-installs a sampler IF the incoming viewplane
   has the factory default; the test pins both "yes installs" and
   "no, leaves alone").
@@ -211,7 +213,7 @@ Match the canonical placement in `SphericalCamera.h` / `PhongMaterial.h`:
 - Filenames in `@image html` must EXACTLY match what the doc-render
   script produces. Hard-code the float→string conversions in the .rb
   driver as strings (e.g. `radii = ["0.0", "0.2", ...]`) rather than
-  computing via `(i * 0.1).to_s` — IEEE 754 round-trip artefacts like
+  computing via `(i * 0.1).to_s` — IEEE 754 round-trip artifacts like
   `0.30000000000000004` will break the references silently.
 
 ### 4. Empirical-testing surfaces in three example apps

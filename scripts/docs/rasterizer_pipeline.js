@@ -17,7 +17,7 @@ class RasterizerPipeline {
       { u: 1.0, v: 1.0 },
       { u: 0.5, v: 0.0 },
     ];
-    this.vertexColours = ['#d22', '#2c2', '#26d'];
+    this.vertexColors = ['#d22', '#2c2', '#26d'];
     this.vertexLabels = ['p0', 'p1', 'p2'];
     this.cursor = { x: 4.0, y: 3.5 };
     this.mode = 'barycentric';
@@ -45,8 +45,8 @@ class RasterizerPipeline {
     this.modeControl = new FigureSegmentedControl({
       value: this.mode,
       options: [
-        { label: 'Barycentric colour', value: 'barycentric' },
-        { label: 'UV colour', value: 'uv' },
+        { label: 'Barycentric color', value: 'barycentric' },
+        { label: 'UV color', value: 'uv' },
       ],
       onChange: (value) => {
         this.mode = value;
@@ -220,7 +220,7 @@ class RasterizerPipeline {
         point: this.toSvgPoint(vertex),
         radius: 9,
         attrs: {
-          fill: this.vertexColours[index],
+          fill: this.vertexColors[index],
           stroke: '#000',
           'stroke-width': 2,
           'data-drag-handle': 'triangle-vertex',
@@ -238,7 +238,7 @@ class RasterizerPipeline {
         y: vertex.y * this.cell - 10,
         'font-size': 13,
         'font-family': 'monospace',
-        fill: this.vertexColours[index],
+        fill: this.vertexColors[index],
         'font-weight': 'bold',
       });
       label.textContent = this.vertexLabels[index];

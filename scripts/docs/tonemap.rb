@@ -13,7 +13,7 @@
 #
 # The differences are still moderate (the scene is mostly LDR — no
 # emissive surfaces, no HDR environment map yet), but the relative
-# behaviour reads clearly side-by-side: Reinhard darker overall,
+# behavior reads clearly side-by-side: Reinhard darker overall,
 # ACES bluer in the sky and punchier in the spheres' midtones.
 
 # All three renders use the same sampler + spp so the only thing

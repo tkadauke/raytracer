@@ -273,16 +273,17 @@ test('Rasterizer perspective UV widget emits UV grid lines', () => {
 test('Rasterizer clipping widget omits coordinate labels', () => {
   const body = loadWidget('rasterizer_clip_attributes.js');
   const text = textContents(body).join(' ');
-  assert.ok(!/\bnew\b/.test(text), 'generated clip vertices should not be labelled "new"');
+  assert.ok(!/\bnew\b/.test(text), 'generated clip vertices should not be labeled "new"');
   assert.ok(!/\bp\d\b/.test(text), 'source vertices should not show p0/p1/p2 coordinate labels');
   assert.equal(countElements(body, 'input'), 0,
-    'spatial outside vertex control should not use a scalar slider');
+    'spatial source vertex controls should not use scalar sliders');
   assert.ok(countElements(body, 'rect') >= 4,
     'widget should still draw viewport and generated clip-vertex markers');
   const handles = elementsByTag(body, 'circle')
-    .filter(c => c.attributes['data-drag-handle'] === 'outside-vertex');
-  assert.equal(handles.length, 1,
-    'outside source vertex should be manipulated through a visible draggable handle');
+    .filter(c => c.attributes['data-drag-handle'] === 'source-vertex');
+  assert.equal(handles.length, 3,
+    'all source vertices should be manipulated through visible draggable handles');
+  assert.deepEqual(handles.map(c => c.attributes['data-vertex-index']), ['0', '1', '2']);
 });
 
 test('Rasterizer MSAA widget emits samples and partial resolves', () => {
@@ -313,7 +314,7 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
 test('Rasterizer pipeline widget uses draggable vertex handles', () => {
   const body = loadWidget('rasterizer_pipeline.js');
   assert.equal(countElements(body, 'button'), 2,
-    'pipeline widget should expose the barycentric/UV colour mode control');
+    'pipeline widget should expose the barycentric/UV color mode control');
   const handles = elementsByTag(body, 'circle')
     .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
   assert.equal(handles.length, 3,
@@ -368,6 +369,18 @@ test('Ray-at widget uses an explicit t slider', () => {
     'ray_at.js should make the evaluated point prominent');
 });
 
+test('Ray-project widget exposes draggable source points', () => {
+  const body = loadWidget('ray_project.js');
+  assert.equal(countElements(body, 'input'), 0,
+    'ray_project.js should use direct manipulation for spatial points');
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'project-point');
+  assert.equal(handles.length, 8,
+    'ray_project.js should expose every generated point as a visible drag handle');
+  assert.deepEqual(handles.map(c => c.attributes['data-point-index']),
+    ['0', '1', '2', '3', '4', '5', '6', '7']);
+});
+
 test('Bounding-box spatial widgets use visible drag handles', () => {
   [
     ['bounding_box_include.js', 'included-point'],
@@ -387,6 +400,17 @@ test('Bounding-box spatial widgets use visible drag handles', () => {
       assert.ok(Number(handles[0].attributes.cy) < -2,
         'grown-by drag handle should start above the original top-right corner');
     }
+  });
+});
+
+test('Bounding-box boolean widgets expose draggable source boxes', () => {
+  ['bounding_box_and.js', 'bounding_box_or.js'].forEach((widget) => {
+    const body = loadWidget(widget);
+    const sourceBoxes = elementsByTag(body, 'rect')
+      .filter(r => r.attributes['data-drag-handle'] === 'source-box');
+    assert.equal(sourceBoxes.length, 2,
+      `${widget} should expose both source boxes as direct drag targets`);
+    assert.deepEqual(sourceBoxes.map(r => r.attributes['data-box-index']), ['0', '1']);
   });
 });
 

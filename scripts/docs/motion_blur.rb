@@ -26,7 +26,7 @@ end
 # higher speeds smear over a wider arc. Sweep tops out at 2.0 — past
 # that the sphere stretches off-frame at the default camera framing
 # and the blur becomes too faded to read at thumbnail size. Hard-coded
-# value strings avoid IEEE 754 round-trip artefacts in the generated
+# value strings avoid IEEE 754 round-trip artifacts in the generated
 # filenames.
 property_doc(**MOTION_BLUR_RENDER_OPTIONS) do |i|
   speeds = ["0", "0.5", "1", "1.5", "2"]

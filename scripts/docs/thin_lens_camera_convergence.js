@@ -17,7 +17,7 @@
 // Drag horizontally to slide the focal plane (focalDistance). Watch:
 // - The focal plane moves; the rays still converge at it.
 // - The blur "fans" of rays past the focal plane open or close.
-// - The pinhole reference ray (the one through the lens centre) is
+// - The pinhole reference ray (the one through the lens center) is
 //   identical regardless of focalDistance — that's the chief ray that
 //   all the off-axis rays converge to at the focal plane.
 
@@ -68,14 +68,14 @@ class ThinLensConvergence {
     // Aperture disc — vertical line spanning ±apertureRadius at x = -distance
     canvas.add(new Line(new Vector(-this.distance, -this.apertureRadius),
                         new Vector(0, 2 * this.apertureRadius)));
-    canvas.add(new Text(new Vector(-this.distance - 0.7, 0.05), "lens"));
+    canvas.add(new Text(new Vector(-this.distance + 0.15, -0.85), "lens"));
 
     // Pixel point on image plane (the "this is the pixel we're rendering" marker)
     const pixel = new Vector(0, this.pixelY);
     canvas.add(new Circle(pixel, 0.06, "intersection"));
-    canvas.add(new Text(pixel.plus(new Vector(0.1, -0.1)), "pixel"));
+    canvas.add(new Text(pixel.plus(new Vector(0.18, -0.8)), "pixel"));
 
-    // Compute the focal point (intersection of the chief ray — eye-centre
+    // Compute the focal point (intersection of the chief ray — eye-center
     // through pixel — with the focal plane). All rays from the lens disc
     // for THIS pixel must pass through this same point: that's the
     // convergence guarantee.
@@ -102,7 +102,7 @@ class ThinLensConvergence {
 
     // Mark the convergence point on the focal plane
     canvas.add(new Circle(focalPoint, 0.1, "result"));
-    canvas.add(new Text(focalPoint.plus(new Vector(0.2, -0.15)), "in-focus point"));
+    canvas.add(new Text(focalPoint.plus(new Vector(0.2, -0.75)), "in-focus point"));
 
     return canvas.toSVG();
   }

@@ -85,7 +85,7 @@ class TonemapCurves {
     canvas.add(new Line(new Vector(0, 0),
                         new Vector(0, -this.plotHeight - 0.6),
                         'axis'));
-    canvas.add(new Text(new Vector(this.plotWidth + 0.4, 0.4), 'input (HDR)'));
+    canvas.add(new Text(new Vector(this.plotWidth + 0.8, 0.4), 'input (HDR)'));
     canvas.add(new Text(new Vector(-0.6, -this.plotHeight - 0.7), 'output'));
 
     // Grid lines at output = 1 (the LDR ceiling) and at input = 1
@@ -94,7 +94,7 @@ class TonemapCurves {
     canvas.add(new Line(new Vector(0, -this.plotHeight),
                         new Vector(this.plotWidth, 0),
                         'dashed'));
-    canvas.add(new Text(new Vector(this.plotWidth + 0.05, -this.plotHeight + 0.1), '1.0'));
+    canvas.add(new Text(new Vector(this.plotWidth + 0.25, -this.plotHeight + 0.1), '1.0'));
     const inputOnePos = (1.0 / this.maxInput) * this.plotWidth;
     canvas.add(new Line(new Vector(inputOnePos, 0),
                         new Vector(0, -this.plotHeight),
@@ -105,10 +105,10 @@ class TonemapCurves {
     canvas.add(new Path(this.curvePath((x) => this.reinhardOf(x)), 'blue'));
     canvas.add(new Path(this.curvePath((x) => this.acesOf(x)),     'green'));
 
-    // Legend — short labelled segments at fixed positions. Order
+    // Legend — short labeled segments at fixed positions. Order
     // (Linear/Reinhard/ACES) matches the C++ class declaration
     // order and the comparison-image table in Tonemap.h.
-    const legendX = this.plotWidth - 1.6;
+    const legendX = this.plotWidth + 1.0;
     const legendY = -this.plotHeight + 0.4;
     canvas.add(new Line(new Vector(legendX, legendY),
                         new Vector(0.4, 0),

@@ -115,7 +115,7 @@ class ScheimpflugConvergence {
     // Aperture
     canvas.add(new Line(new Vector(-this.distance, -this.apertureRadius),
                         new Vector(0, 2 * this.apertureRadius)));
-    canvas.add(new Text(new Vector(-this.distance - 0.7, 0.05), "lens"));
+    canvas.add(new Text(new Vector(-this.distance + 0.15, -0.85), "lens"));
 
     // For each of the two pixels: draw the pixel marker, compute its
     // focal point on the tilted plane, and fan out N lens-disc rays
@@ -127,7 +127,7 @@ class ScheimpflugConvergence {
       const focal = new Vector(...Object.values(this.focalPointFor(pixelY)));
 
       canvas.add(new Circle(pixel, 0.06, "intersection"));
-      canvas.add(new Text(pixel.plus(new Vector(-0.85, 0.06)), pixelLabels[p]));
+      canvas.add(new Text(new Vector(0.28, pixelY > 0 ? 1.25 : -1.25), pixelLabels[p]));
 
       for (let i = 0; i < this.numRays; i++) {
         const t = this.numRays === 1 ? 0.5 : i / (this.numRays - 1);

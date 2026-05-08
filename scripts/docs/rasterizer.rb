@@ -7,7 +7,7 @@
 #
 # Property sweep: same sphere across LOD 0..4. Higher LOD =
 # denser triangulation = smoother shaded silhouette (the
-# per-face hash colours blur out as triangles shrink past the
+# per-face hash colors blur out as triangles shrink past the
 # pixel size).
 
 class_doc(engine: "raster", width: 320, height: 240) do

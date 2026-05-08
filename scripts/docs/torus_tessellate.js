@@ -43,7 +43,7 @@ class TorusTessellate {
   createCanvas() {
     // Canvas(440, 240) at the default 30 px/unit scale ≈ 14.67 × 8
     // user units. translate(0, -4) places user y = 0 at the
-    // vertical centre of the canvas.
+    // vertical center of the canvas.
     const canvas = new Canvas(440, 240);
     canvas.translate(new Vector(0, -4));
 

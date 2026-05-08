@@ -21,8 +21,8 @@ on-disk PNGs.
 |---|---|
 | `render_docs.rb` | Top-level CLI. Walks `docs/*.rb` and renders each via rendercli. |
 | `lib/scene.rb` | The DSL primitives — `Element`, `ElementCreator`, `Scene`, `Transformable`, ..., plus the `scene { ... }` entry point. |
-| `lib/colors.rb` | Memoised colour-texture helpers — `red`, `green`, `blue`, `yellow`, `white`, ... |
-| `lib/materials.rb` | Memoised material helpers — `red_matte`, `glass`, ... |
+| `lib/colors.rb` | Memoized color-texture helpers — `red`, `green`, `blue`, `yellow`, `white`, ... |
+| `lib/materials.rb` | Memoized material helpers — `red_matte`, `glass`, ... |
 | `lib/objects.rb` | Compound object helpers — `checker_board` (the floor box). |
 | `lib/lights.rb` | Light helpers — `sunlight` (a directional light). |
 | `lib/cameras.rb` | Camera helpers — `default_camera` (a pinhole). |
@@ -181,14 +181,14 @@ mechanism is local and reversible.
   Float only for the actual render value, not the filename. See
   `scripts/docs/thin_lens_camera.rb` for the canonical pattern.
 
-- **Memoised colour helpers.** `red`, `green`, `blue`, `yellow` in
-  `lib/colors.rb` are *each* memoised in their own instance variable
+- **Memoized color helpers.** `red`, `green`, `blue`, `yellow` in
+  `lib/colors.rb` are *each* memoized in their own instance variable
   on `ElementCreator`. Calling `red()` twice returns the same texture
   instance — which is the point, it keeps the JSON small. But any
   copy-paste from one helper to another that fails to update the
   ivar name (`@red ||= ...` → `@green ||= ...` is a real example
-  that shipped) silently aliases the colours. The
-  `scripts/test/test_colors.rb` "different colours are distinct
+  that shipped) silently aliases the colors. The
+  `scripts/test/test_colors.rb` "different colors are distinct
   instances" test catches this; keep it green.
 
 - **`red`/`green`/`blue`/etc. are TEXTURES, not RGB tuples.** When
@@ -205,7 +205,7 @@ mechanism is local and reversible.
   fix (autogeneration from C++ metadata).
 
 - **`class_doc` always produces 1 image; `property_doc` produces 5
-  by default; `rainbow_doc` produces 7 (one per rainbow colour).**
+  by default; `rainbow_doc` produces 7 (one per rainbow color).**
   The first argument to each is the count; the keyword argument
   `aspect:` is the shape. If you need a custom count, pass it
   positionally to `property_doc(num)`.
@@ -243,7 +243,7 @@ small DOM library in `figure.js`:
 
 - If a point, vertex, edge endpoint, ray origin, or similar spatial value moves,
   make the visible point draggable directly.
-- If a value is scalar, expose it through a labelled slider or segmented
+- If a value is scalar, expose it through a labeled slider or segmented
   control.
 - Do not add new whole-widget drag interactions. The legacy `DragHandler` exists
   only for widgets that have not been migrated yet.
@@ -251,6 +251,7 @@ small DOM library in `figure.js`:
   global `svg`, `circle`, `line`, `text`, or `rect` rules.
 - Prefer shared `figure.js` primitives for controls, SVG creation, handles, and
   rerendering before adding widget-local infrastructure.
+- Use US English spelling in user-facing labels, comments, tests, and docs.
 
 Use native ES6 class syntax for new widgets:
 

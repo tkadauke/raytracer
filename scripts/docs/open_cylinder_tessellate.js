@@ -34,7 +34,7 @@ class OpenCylinderTessellate {
   createCanvas() {
     // Canvas(320, 240) is the geometry `Canvas#center()` is
     // calibrated for — it translates by (5.5, -4) which puts user
-    // (0, 0) at the viewport centre (160, 120).
+    // (0, 0) at the viewport center (160, 120).
     const canvas = new Canvas(320, 240);
     canvas.center();
 

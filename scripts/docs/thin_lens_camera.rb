@@ -1,7 +1,7 @@
 # ThinLens needs a stochastic sampler — the framework's default
 # `Regular` produces a deterministic n×n grid which, when routed
 # through the lens-disc concentric mapping, gives visible stripey
-# artefacts in heavy-bokeh frames. `Jittered` at 64 spp is enough
+# artifacts in heavy-bokeh frames. `Jittered` at 64 spp is enough
 # to smooth even the widest aperture in the sweep below; the cost
 # is a few seconds per frame (doc-render is offline so this is
 # fine).
@@ -27,7 +27,7 @@ end
 # what's physically plausible but make the educational point clearly.
 #
 # Hard-coded value strings (rather than computed) avoid IEEE 754
-# precision artefacts in the generated filenames; (i-1)*0.2 for i=2
+# precision artifacts in the generated filenames; (i-1)*0.2 for i=2
 # gives 0.20000000000000001 in double precision, which Ruby's "#{...}"
 # prints with all the digits — and the Doxygen header expects exactly
 # "..._aperture_0.2.png".
@@ -55,7 +55,7 @@ end
 # focus from front to back.
 #
 # Same value-string pattern as the aperture sweep above to avoid
-# float→string precision artefacts in the generated filenames.
+# float→string precision artifacts in the generated filenames.
 property_doc(**THIN_LENS_RENDER_OPTIONS) do |i|
   distances = ["5.5", "6.75", "8", "9.25", "10.5"]
   distance_str = distances[i - 1]

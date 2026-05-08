@@ -32,7 +32,7 @@ class RasterizerMSAACoverage {
         { x:  0.4375, y: -0.4375 },
       ],
     };
-    this.handleColours = ['#2f9e44', '#f03e3e', '#f59f00'];
+    this.handleColors = ['#2f9e44', '#f03e3e', '#f59f00'];
     this.sampleCount = 4;
     this.vertices = [
       { x: 1.0, y: 5.35 },
@@ -202,7 +202,7 @@ class RasterizerMSAACoverage {
         point: this.toSvgPoint(vertex),
         radius: 8,
         attrs: {
-          fill: this.handleColours[index],
+          fill: this.handleColors[index],
           stroke: '#111',
           'stroke-width': 2,
           'data-drag-handle': 'triangle-vertex',
@@ -226,7 +226,7 @@ class RasterizerMSAACoverage {
       fill: '#333',
     });
     caption.textContent =
-      `${this.sampleCount}x MSAA: resolved colour = covered samples / ${this.sampleCount}`;
+      `${this.sampleCount}x MSAA: resolved color = covered samples / ${this.sampleCount}`;
   }
 }
 

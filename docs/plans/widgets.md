@@ -12,7 +12,7 @@ preserving the existing Doxygen embedding model.
    ray origin, or other spatial handle moves, the user should drag that visible
    thing directly. Do not hide a spatial update behind a generic slider or
    whole-widget drag gesture.
-2. **Sliders for scalar state.** If the input is one-dimensional, use a labelled
+2. **Sliders for scalar state.** If the input is one-dimensional, use a labeled
    slider or segmented control with a visible value. Do not use "drag anywhere
    horizontally" for scalar parameters.
 3. **No hidden gestures.** Every interactive affordance must be visible: point
@@ -24,6 +24,9 @@ preserving the existing Doxygen embedding model.
    clear one-off reason.
 6. **One lifecycle.** Widgets should be state-driven: render from current state,
    update state from controls/handles, then rerender through a shared helper.
+7. **US English spelling.** User-facing widget text, documentation, comments,
+   tests, and changelog entries should use US English spellings such as
+   "color", "behavior", "labeled", and "gray".
 
 ## Migration Phases
 

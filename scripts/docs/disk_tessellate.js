@@ -3,7 +3,7 @@
 // to watch the segment count double at each level (16 → 32 → 64 →
 // …). The teaching points the static image table can't show:
 //
-//  - Every triangle shares the centre vertex (index 0). That's why
+//  - Every triangle shares the center vertex (index 0). That's why
 //    the fan layout has `1 + segments` vertices and `segments`
 //    triangles, not `2 * segments` of either.
 //  - Doubling the segment count halves the angular gap on the rim,
@@ -32,7 +32,7 @@ class DiskTessellate {
   createCanvas() {
     // Canvas(320, 240) is the geometry `Canvas#center()` is
     // calibrated for — it translates by (5.5, -4) which puts user
-    // (0, 0) at the viewport centre (160, 120).
+    // (0, 0) at the viewport center (160, 120).
     const canvas = new Canvas(320, 240);
     canvas.center();
 
@@ -43,7 +43,7 @@ class DiskTessellate {
     // viewer can see how closely the polygon approximates it.
     canvas.add(new Circle(Vector.null, radius, 'dashed'));
 
-    // Rim vertices around the circle, plus the centre.
+    // Rim vertices around the circle, plus the center.
     const rim = [];
     for (let i = 0; i < segments; i++) {
       const theta = (2 * Math.PI * i) / segments;
@@ -51,10 +51,10 @@ class DiskTessellate {
                           radius * Math.sin(theta)));
     }
 
-    // The triangle-fan edges: from centre to each rim vertex (the
+    // The triangle-fan edges: from center to each rim vertex (the
     // "spokes") and along the rim itself (the polygon outline).
     for (let i = 0; i < segments; i++) {
-      // Spoke from centre to rim[i]
+      // Spoke from center to rim[i]
       canvas.add(new Line(Vector.null, rim[i]));
       // Polygon edge from rim[i] to rim[i+1]
       const next = rim[(i + 1) % segments];

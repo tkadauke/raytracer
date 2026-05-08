@@ -18,7 +18,7 @@ class_doc(**TILT_SHIFT_RENDER_OPTIONS) do
 end
 
 # Tilt-angle sweep. 0 degenerates to ThinLens (uniform DOF — the focus
-# band is centred at focalDistance and parallel to the image plane);
+# band is centerd at focalDistance and parallel to the image plane);
 # higher angles produce progressively more dramatic tilted focus.
 property_doc(**TILT_SHIFT_RENDER_OPTIONS) do |i|
   tilts = ["0", "10", "20", "30", "45"]

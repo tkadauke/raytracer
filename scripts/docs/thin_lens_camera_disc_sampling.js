@@ -50,9 +50,9 @@ class ThinLensDiscSampling {
     canvas.translate(new Vector(0.7, -3.5));
 
     // Layout:
-    //   square:  centred at (1.7, 0), side length 2.4
+    //   square:  centered at (1.7, 0), side length 2.4
     //   arrow:   x ≈ 4.5
-    //   disc:    centred at (7.7, 0), radius 1.2
+    //   disc:    centered at (7.7, 0), radius 1.2
     const squareCenter = new Vector(1.7, 0);
     const squareHalf = 1.2;
     const discCenter = new Vector(7.7, 0);
@@ -63,18 +63,17 @@ class ThinLensDiscSampling {
       squareCenter.plus(new Vector(-squareHalf, -squareHalf)),
       new Vector(2 * squareHalf, 2 * squareHalf)
     ));
-    canvas.add(new Text(squareCenter.plus(new Vector(-1.4, -1.5)),
-                        'stratified [0,1]² (sampler input)'));
+    canvas.add(new Text(squareCenter.plus(new Vector(-1.05, -1.55)),
+                        'stratified grid'));
 
     // Disc outline
     canvas.add(new Circle(discCenter, discRadius));
-    canvas.add(new Text(discCenter.plus(new Vector(-1.0, -1.5)),
-                        'unit disc (lens sample)'));
+    canvas.add(new Text(discCenter.plus(new Vector(-0.7, -1.55)),
+                        'unit disk'));
 
     // Arrow between them
     canvas.add(new Line(new Vector(3.1, 0), new Vector(3.5, 0), 'arrow'));
-    canvas.add(new Text(new Vector(4.6, -0.2), 'concentric'));
-    canvas.add(new Text(new Vector(4.7, 0.4), 'mapping'));
+    canvas.add(new Text(new Vector(4.05, 0.75), 'mapping'));
 
     // Plot N×N samples in both shapes.
     for (let x = 0; x < this.n; x++) {
