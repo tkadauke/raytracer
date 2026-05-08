@@ -7,7 +7,14 @@ namespace render {
 
   /**
     * Spherical cameras produce a spherical projection of the scene onto the
-    * view plane.
+    * view plane. The horizontal and vertical field-of-view values select a
+    * partial longitude/latitude window on the unit sphere, which makes this a
+    * tunable partial panorama rather than a fixed full-sphere map.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="wide_angle_camera_mappings.js"></script>
+    * @endhtmlonly
     * 
     * @image html spherical_camera_cube.png "Spherical camera with horizontalFieldOfView=180° and verticalFieldOfView=120°"
     */

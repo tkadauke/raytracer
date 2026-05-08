@@ -160,7 +160,9 @@ These are useful follow-ups once the core rendering and sampling widgets exist.
    - Teaches: perspective divide, eye-relative depth, why orthographic has
      `w = 1`, and why the rasterizer needs clip-space projection.
 
-2. **Wide-angle and panoramic camera mappings**
+2. ~~**Wide-angle and panoramic camera mappings**~~ ✅ **Done.** Added
+   `wide_angle_camera_mappings.js` and embedded it in the fisheye,
+   spherical, and equirectangular runtime camera docs.
    - Targets: `include/render/cameras/FishEyeCamera.h`,
      `include/render/cameras/SphericalCamera.h`,
      `include/render/cameras/EquirectangularCamera.h`.

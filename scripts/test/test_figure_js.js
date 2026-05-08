@@ -42,6 +42,7 @@ function makeNode(tag, ns) {
     children: [],
     parentNode: null,
     style: {},
+    listeners: {},
     _innerHTML: '',
     setAttribute(key, value) { this.attributes[key] = String(value); },
     getAttribute(key) { return this.attributes[key]; },
@@ -65,8 +66,15 @@ function makeNode(tag, ns) {
       oldNode.parentNode = null;
       return oldNode;
     },
-    addEventListener() {},
+    addEventListener(type, handler) {
+      this.listeners[type] = this.listeners[type] || [];
+      this.listeners[type].push(handler);
+    },
     removeEventListener() {},
+    dispatchEvent(event) {
+      (this.listeners[event.type] || []).forEach(handler => handler(event));
+    },
+    click() { this.dispatchEvent({ type: 'click', target: this }); },
     get innerHTML() { return this._innerHTML; },
     set innerHTML(v) { this._innerHTML = v; }
   };
@@ -469,6 +477,49 @@ test('Ray-project widget exposes draggable source points', () => {
     'ray_project.js should expose every generated point as a visible drag handle');
   assert.deepEqual(handles.map(c => c.attributes['data-point-index']),
     ['0', '1', '2', '3', '4', '5', '6', '7']);
+});
+
+test('Wide-angle camera mapping widget exposes camera modes and image handle', () => {
+  const body = loadWidget('wide_angle_camera_mappings.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('fisheye'), 'widget should expose the fisheye mode');
+  assert.ok(text.includes('spherical'), 'widget should expose the spherical mode');
+  assert.ok(text.includes('equirectangular'), 'widget should expose the equirectangular mode');
+  assert.ok(text.includes('fieldOfView'), 'fisheye mode should expose an FOV slider');
+  assert.ok(text.includes('unit sphere direction'), 'widget should label the sphere-side mapping');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'image-point');
+  assert.equal(handles.length, 1,
+    'image coordinate should be manipulated through one visible draggable handle');
+  assert.equal(countElements(body, 'button'), 3,
+    'widget should use a segmented mode control for the three camera mappings');
+  assert.equal(countElements(body, 'input'), 3,
+    'widget should keep the three FOV controls available for mode switching');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-fisheye-valid-disc'] === '1').length, 1,
+    'fisheye mode should draw the valid unit-disc cutoff');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-ray-direction-marker'] === '1').length, 1,
+    'widget should mark the mapped ray direction on the sphere');
+
+  const buttons = elementsByTag(body, 'button');
+  buttons.find(button => button.textContent === 'spherical').click();
+  assert.equal(elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-partial-panorama'] === '1').length, 1,
+    'spherical mode should draw the partial-panorama image window');
+  assert.ok(textContents(body).join(' ').includes('horizontalFieldOfView'),
+    'spherical mode should expose the horizontal FOV slider');
+  assert.ok(textContents(body).join(' ').includes('verticalFieldOfView'),
+    'spherical mode should expose the vertical FOV slider');
+
+  buttons.find(button => button.textContent === 'equirectangular').click();
+  assert.equal(elementsByTag(body, 'line')
+    .filter(line => line.attributes['data-equirectangular-seam'] === '1').length, 2,
+    'equirectangular mode should mark both horizontal seam edges');
+  assert.equal(elementsByTag(body, 'rect')
+    .filter(rect => rect.attributes['data-pole-stretch']).length, 2,
+    'equirectangular mode should mark both pole-stretched image rows');
 });
 
 test('Bounding-box spatial widgets use visible drag handles', () => {
