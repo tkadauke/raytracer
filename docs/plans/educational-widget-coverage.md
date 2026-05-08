@@ -39,7 +39,7 @@ from still images.
    - Teaches: Snell's law, ray bending, reflection/transmission split, and why
      high IOR values can trap rays inside a medium.
 
-2. **Reflective material recursion**
+2. ~~**Reflective material recursion**~~ ✅ **Done.** Added `reflective_material_recursion.js` and embedded it in the runtime reflective-material and perfect-specular BRDF docs, with draggable incoming-ray/normal handles, a mirror-ray formula, a reflection-coefficient slider, and a recursive-bounce tree.
    - Targets: `include/render/materials/ReflectiveMaterial.h`,
      `include/render/brdf/PerfectSpecular.h`.
    - Widget: incoming ray plus draggable normal, mirror ray, and a small

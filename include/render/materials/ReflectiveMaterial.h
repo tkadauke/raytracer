@@ -24,14 +24,27 @@ namespace render {
     * </table>
     *
     * The raytracer fires a recursive ray off the surface in the
-    * mirror direction and uses the resulting colour as the visible
+    * mirror direction and uses the resulting color as the visible
     * appearance — the sphere shows the floor and sky reflected back.
     * The rasterizer doesn't recurse, so it has nothing to display
     * other than the diffuse base; here that base is pure black
     * (the default for materials with no diffuse texture set), so
-    * the rasterizer falls back to a per-face hash colour just to
+    * the rasterizer falls back to a per-face hash color just to
     * keep the silhouette readable. The comparison is "this is what
     * the recursion buys you."
+    *
+    * The mirror direction is a deterministic BRDF sample: if `d` is
+    * the incoming ray direction at the hit point and `n` is the
+    * surface normal, the reflected direction is `d - 2(d dot n)n`.
+    * The material then asks the raytracer to shade that new ray, so
+    * reflections can see other reflective objects, and so on until
+    * the recursion limit stops the tree. The reflection coefficient
+    * scales the contribution from each reflected branch.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="reflective_material_recursion.js"></script>
+    * @endhtmlonly
     */
   class ReflectiveMaterial : public PhongMaterial {
   public:
@@ -40,19 +53,17 @@ namespace render {
       * reflection coefficient of 0.75 and a white reflection color.
       */
     inline ReflectiveMaterial()
-      : PhongMaterial()
-    {
+        : PhongMaterial() {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
-    
+
     /**
       * Constructs a reflective material with diffuseTexture, a reflection
       * coefficient of 0.75 and a white reflection color.
       */
     inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
-      : PhongMaterial(diffuseTexture)
-    {
+        : PhongMaterial(diffuseTexture) {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
@@ -61,20 +72,20 @@ namespace render {
       * Constructs a reflective material with diffuseTexture, the given specular
       * color, a reflection coefficient of 0.75 and a white reflection color.
       */
-    inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular)
-      : PhongMaterial(diffuseTexture, specular)
-    {
+    inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture,
+                                       const Colord& specular)
+        : PhongMaterial(diffuseTexture, specular) {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
-    
+
     /**
       * @returns the reflection color.
       */
     inline const Colord& reflectionColor() const {
       return m_reflectiveBRDF.reflectionColor();
     }
-    
+
     /**
       * Sets the material's reflection color.
       * 
@@ -91,14 +102,14 @@ namespace render {
     inline void setReflectionColor(const Colord& color) {
       m_reflectiveBRDF.setReflectionColor(color);
     }
-    
+
     /**
       * @returns the reflection coefficient.
       */
     inline double reflectionCoefficient() const {
       return m_reflectiveBRDF.reflectionCoefficient();
     }
-    
+
     /**
       * Sets the reflection coefficient.
       * 
@@ -113,9 +124,10 @@ namespace render {
     inline void setReflectionCoefficient(double coeff) {
       m_reflectiveBRDF.setReflectionCoefficient(coeff);
     }
-    
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
-    
+
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+
   protected:
     render::PerfectSpecular m_reflectiveBRDF;
   };
