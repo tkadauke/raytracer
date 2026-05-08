@@ -7,8 +7,14 @@
 
 /**
   * Represents a checker box texture.
+  *
+  * The editable wrapper exposes the runtime checker texture's mapping choice:
+  * `planar` uses the hit point position, while `uv` uses stored UV coordinates
+  * with `uScale` and `vScale`.
   * 
   * @image html checker_board.png "Checker board texture with white and black fields"
+  *
+  * @see render::CheckerBoardTexture
   */
 class CheckerBoardTexture : public Texture {
   Q_OBJECT;

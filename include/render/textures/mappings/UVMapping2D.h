@@ -3,6 +3,15 @@
 #include "render/textures/mappings/TextureMapping2D.h"
 
 namespace render {
+  /**
+    * Maps a HitPoint's stored UV coordinates onto 2D texture coordinates.
+    *
+    * `uScale` and `vScale` multiply the incoming UV values before texture
+    * lookup. CheckerBoardTexture then uses those scaled coordinates for its
+    * `floor(s) + floor(t)` parity lookup.
+    *
+    * @see CheckerBoardTexture
+    */
   class UVMapping2D : public TextureMapping2D {
   public:
     inline explicit UVMapping2D(double uScale = 1.0, double vScale = 1.0)
