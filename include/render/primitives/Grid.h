@@ -20,6 +20,11 @@ namespace render {
     * traversal from the ray's bounding-box entry point, testing
     * only the children in each cell as it steps.
     *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="grid_dda_traversal.js"></script>
+    * @endhtmlonly
+    *
     * Use Grid instead of plain `Composite` when:
     *
     *  - The composite has more than ~50 children (the linear scan

@@ -96,13 +96,16 @@ images cannot show directly.
    - Teaches: why BVHs adapt to scene distribution, what SAH is optimizing, and
      why ray-AABB tests skip whole subtrees.
 
-2. **Grid 3D-DDA traversal**
+2. ~~**Grid 3D-DDA traversal**~~ ✅ **Done.** Added
+   `grid_dda_traversal.js` next to `Grid`'s runtime docs, with draggable ray
+   origin/direction handles, grid-density control, entry marker, current cell,
+   `t_next` readout, and visited-cell trail.
    - Targets: `include/render/primitives/Grid.h`.
    - Widget: 2D grid slice, ray entry point, current cell, `t_next` per axis,
      and visited-cell trail.
    - Interaction: drag ray origin and direction; adjust grid density.
-   - Teaches: uniform spatial hashing, cell stepping, and why grids work best
-     for evenly distributed primitives.
+   - Teaches: uniform grid cell stepping and why grids work best for evenly
+     distributed primitives.
 
 3. ~~**ViewPlane iteration strategies**~~ ✅ **Done.** Added
    `viewplane_iteration_order.js` next to `ViewPlane`'s runtime iteration docs;
