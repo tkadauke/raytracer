@@ -1,8 +1,9 @@
 # Rendered Image Coverage
 
 This is the audit trail for class-level rendered documentation images.
-The durable rules live in `scripts/README.md`; this file tracks the
-current gaps.
+The durable rules live in `scripts/README.md`; this file records the
+completed coverage pass and the cases that were intentionally deferred
+or classified as non-gaps.
 
 ## Principles
 
@@ -55,7 +56,7 @@ current gaps.
 - `rake check:doc-images` now passes with all `@image html`
   references backed by files under `docs/images`.
 
-## Current Gaps
+## Deferred Or Non-Gaps
 
 ### Material coverage
 
