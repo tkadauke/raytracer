@@ -15,7 +15,7 @@
 
 A renderer is the *core*, not the *whole product*. The goal is a working 3D content creation tool that:
 
-- ships several rendering backends (wireframe, software raster, OpenGL viewport, **WebGL/WebGPU preview**, CPU raytracer, CPU path tracer) over a single scene representation, with web-based previews for static scenes — and, as a stretch goal, animations,
+- ships several rendering backends (wireframe, software raster, OpenGL viewport, **WebGL/WebGPU preview**, CPU raytracer, CPU path tracer) over a single scene representation, with a render-pass graph that can mix engines in one frame, plus web-based previews for static scenes — and, as a stretch goal, animations,
 - carries a rich material library with physically-based BSDFs, NPR variants, subsurface scattering, volumetrics, and a complete shading-normal pipeline (smooth normals → bump → normal map → displacement),
 - grounds all mesh geometry in a **comprehensive computational geometry library** with first-class spatial acceleration (BVH, octrees, kd-trees, uniform grids — selected per workload),
 - imports and exports the formats the rest of the world uses (OBJ, glTF, USD, EXR, PLY, STL, FBX, OpenVDB), reading and writing where reasonable,
@@ -241,9 +241,10 @@ Beyond the existing `Raytracer`, factor in (in suggested order):
   - **Material-sidedness follow-up** — face culling is now switchable explicitly; once materials expose sidedness, connect that material intent to the rasterizer's default cull mode instead of relying only on caller configuration.
   - **UV/attribute interpolation** — carry texture coordinates and material inputs through the same projected-attribute path as world position and normals; make albedo texture sampling the first visible milestone before adding richer material models.
   - **Tile-parallel performance follow-up** — the opt-in tiled path is correct but currently slower on measured scenes. Keep it behind `queueSize > 1` until binning, work partitioning, and per-tile setup are cheap enough to beat the streaming single-tile path; track every change with `rendercli` measurements in the changelog.
-  - **Rasterizer anti-aliasing** — implement the AA ladder from §4.1.a, starting with MSAA for coverage/depth and a single resolve stage before moving to stochastic/TAA/post-process variants.
+  - **Rasterizer anti-aliasing** — implement the AA ladder from §4.1.b, starting with MSAA for coverage/depth and a single resolve stage before moving to stochastic/TAA/post-process variants.
   - **Frustum-culling integration** — once §R7 extracts a real `SpatialIndex`, feed the rasterizer from a frustum-cull-friendly view of the scene rather than traversing every tessellated mesh every frame.
   - **Rasterized shadows** — add a shadow-map renderer on top of the depth/stencil path: directional-light shadow maps first, then PCF/PCSS and cascades for comparison with the raytracer's shadow rays.
+  - **Planar reflections and portals** — classic stencil/pass-graph use case: mark a mirror/portal surface, render a reflected or redirected view only through that mask, clip against the portal/mirror plane, then composite. This gives raster/GPU previews good parity for flat mirrors, water planes, polished floors, and portal screens without pretending arbitrary recursive reflection is a raster strength.
 - **OpenGL viewport.** Real-time editor view. Tessellated meshes feed VBOs; GLSL shaders mirror the material library for live preview parity. Also unlocks gizmo rendering.
 - **WebGL / WebGPU preview.** The same scene rendered in a browser, served alongside the GitHub Pages docs. WebGL first (broadest support, simpler), WebGPU as a follow-up. Static-scene preview is the v1 target; web preview of *animations* (timeline scrubbing in the browser) is a stretch goal that lands after §4.7. This engine doubles as the canvas for the §4.0 interactive diagrams — the rendering engine and the explainer engine are the same code path.
 - **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile.
@@ -251,7 +252,55 @@ Beyond the existing `Raytracer`, factor in (in suggested order):
 
 The "all engines over one scene" property is itself the pedagogical payoff — being able to render a single test scene through wireframe, software raster, OpenGL, WebGL, raytracer, and path tracer side-by-side teaches more about the rendering equation than any single engine ever could.
 
-#### 4.1.a Anti-aliasing and raster quality
+#### 4.1.a Render-pass graph and hybrid execution
+
+The long-term renderer should not treat "Rasterizer", "Raytracer", "Wireframe", and "PathTracer" as mutually exclusive whole-frame endpoints. The state-of-the-art shape is a render graph / frame graph: a per-frame DAG of passes and typed resources, compiled from the scene, camera, and render intent. Unreal's RDG, Unity's Render Graph, Frostbite's FrameGraph, and USD Hydra's scene/render delegate split are the industry reference points; the project version should stay smaller and more explicit, but aim at the same separation of concerns.
+
+Proposed architecture:
+
+- **`RenderPlan` DAG** — produced per frame from scene features plus explicit user overrides. Nodes are passes; edges are resource dependencies.
+- **Typed resources / AOVs** — colour, depth, stencil, object id, material id, normal, world position, motion vectors, shadow masks, reflection targets, user render textures, and the final display/export target.
+- **`RenderPass` contract** — each pass declares inputs, outputs, required scene subset, camera/view state, clear/load/store behaviour, and the executor it needs (`raster`, `raytracer`, `wireframe`, `pathtracer`, compositor, future GPU rasterizer, future GPU ray backend).
+- **Pass executors instead of monoliths** — engines become implementations of pass kinds. A `RasterDrawPass`, `RayShadowMaskPass`, `WireframeOverlayPass`, `PathTraceBeautyPass`, `CompositePass`, and `TonemapPass` can all contribute to one frame.
+- **Planner + explicit override** — automatic discovery handles common cases; advanced users can still pin or reorder passes for experiments and teaching.
+
+Feature discovery should start conservative and grow by material / object intent:
+
+- Lights that request preview shadows add a `ShadowMapPass` or `RayShadowMaskPass`.
+- Materials that request planar reflection add a stencil mask, reflected-view pass, clip plane, and composite step.
+- Objects marked as screens, portals, scopes, mirrors, minimaps, or render-texture receivers produce offscreen render targets and dependency edges before the containing scene pass.
+- Overlays and diagnostics add wireframe, normal, depth, object-id, or bounding-volume passes on top of the beauty pass.
+- Postprocess effects request the AOVs they need: depth for DoF/SSAO, motion vectors for motion blur/TAA, normals/world positions for denoisers and relighting.
+
+Canonical hybrid examples:
+
+- **Computer screen inside a photoreal scene** — render a nested cartoon scene to `screen_color`, render wireframe diagnostics over that texture, then render the main environment with `screen_color` bound as the screen material.
+- **Rasterized preview with raytraced shadows** — rasterize a G-buffer (`world_position`, `normal`, `material_id`, `depth`), run a raytraced `shadow_mask` pass against the scene BVH, then shade/composite in raster or image space.
+- **Planar mirror / water plane** — mark the mirror pixels in stencil, render the scene from a reflected camera only where stencil matches, clip reflected geometry against the mirror plane, then blend with the mirror material.
+- **Mixed-style frame** — rasterize the base scene, path-trace a hero object or inset panel into a separate target, draw wireframe overlays where requested, then depth/object-id composite the pieces.
+
+Hard problems to design for up front:
+
+- **Shared semantics** — every executor must agree on camera projection, clip/depth conventions, colour space, alpha, normals, object/material IDs, material intent, and AOV names.
+- **Scene partitioning** — the planner needs layers, tags, material features, visibility masks, render-target ownership, and "this surface shows that scene" relationships. Geometry alone is not enough.
+- **Cycles and recursion limits** — mirrors reflecting mirrors, portals showing portals, and screens displaying scenes that include the same screen create graph cycles. Break them with explicit recursion limits, previous-frame history, or diagnostic errors.
+- **CPU/GPU resource boundaries** — the current CPU engines can share `Buffer<T>` easily; future OpenGL/WebGPU/Vulkan paths must avoid readbacks by keeping resources resident on the device until the final display/export boundary.
+- **Parity limits** — flat reflections, shadow masks, environment probes, and overlays can preview well in raster. Arbitrary recursive reflection/refraction, caustics, and multi-bounce glossy transport remain ray/path tracer territory.
+
+Implementation order:
+
+1. Define render-resource descriptors and AOV handles (`Color`, `Depth`, `Stencil`, `ObjectId`, `Normal`, `WorldPosition`, `MotionVector`, custom texture).
+2. Add a minimal `RenderPass` interface with declared reads/writes, clear/load/store operations, and an executor enum.
+3. Split current monolithic engines into first passes without changing output: `RasterDrawPass`, `WireframeOverlayPass`, `RaytraceBeautyPass`, and `TonemapPass`.
+4. Add `CompositePass` plus offscreen render-to-texture so nested scenes can be rendered before the materials that consume them.
+5. Ship the first hybrid demo: photoreal main scene with a cartoon/wireframe render-target screen inside it.
+6. Add planar reflections and raster shadow maps as pass-graph clients.
+7. Add raytraced shadow masks and path-traced inset/hero passes once AOV resource sharing is solid.
+8. Build a plan visualizer: dump the DAG as text/Graphviz and show resources, lifetimes, and executor choices in docs.
+
+This pass graph is the bridge between renderer parity and composability. It lets the rasterizer and future GPU rasterizer preview the parts they can approximate, while still delegating specific expensive or truth-critical work to raytracing/path tracing.
+
+#### 4.1.b Anti-aliasing and raster quality
 
 Anti-aliasing should be a cross-engine feature rather than a one-off rasterizer trick. The shared API is "sample pattern + reconstruction filter + resolve", with each backend choosing the parts it can implement:
 
@@ -263,7 +312,7 @@ Anti-aliasing should be a cross-engine feature rather than a one-off rasterizer 
 - **Transparency edge cases** — alpha-to-coverage, stochastic alpha, and stochastic transparency so foliage, hair, sprites, and partially transparent surfaces have an AA story.
 - **Conservative rasterization** — useful for voxelization, visibility masks, and procedural geometry; implement as its own rasterizer mode rather than folding it into ordinary MSAA.
 
-#### 4.1.b Interactive display buffers
+#### 4.1.c Interactive display buffers
 
 `RenderWidget` / GeneratedRaytracer currently expose progress by letting worker threads mutate a display buffer that the UI thread periodically copies into a `QImage`. That is simple and useful, but it mixes "render target" and "paintable snapshot" in one object. The long-term display pipeline should be explicit:
 
@@ -390,7 +439,7 @@ Each mode gets its own doc page and interactive WebGL diagram showing the differ
 
 #### 4.3.d AOV (Arbitrary Output Variable) pipeline
 
-Every renderer writes more than a beauty pass. AOVs are first-class outputs of the integrator, available to the postprocessing/compositing stage (§4.9):
+Every renderer writes more than a beauty pass. AOVs are first-class outputs of the integrator, typed resources in the render-pass graph (§4.1.a), and inputs to the postprocessing/compositing stage (§4.9):
 
 - Beauty (RGB).
 - Depth (Z) and normal.
@@ -651,17 +700,18 @@ All implemented as full-screen fragment shaders (or compute passes), over the fl
 
 #### 4.9.c AOV-based compositing
 
-Using the §4.3.d AOV outputs:
+Using the §4.3.d AOV outputs and any intermediate render-graph resources that a pass chooses to publish:
 
 - Per-pass multiply/add compositing (diffuse+specular+emission+indirect = beauty, manually verifiable).
 - Object/material-id mask extraction for selective colour grading or motion-blur exclusion.
 - Cryptomatte-based selection (anti-aliased ID masks from the Cryptomatte AOV).
 - Z-composite for inserting CG into photo backgrounds.
+- Render-graph composites for hybrid frames: raster base + raytraced shadow mask, offscreen cartoon scene inside a screen material, planar reflection target masked by stencil, wireframe diagnostics over arbitrary passes.
 - Denoising: OIDN (Intel Open Image Denoise) as the drop-in; optionally OptiX denoiser for NVIDIA hardware.
 
 #### 4.9.d Compositing node graph
 
-A node-based compositor (Nuke/Blender Compositor-style) that wires AOV inputs, colour-science nodes, effect nodes, and mask nodes into a final output. The same node-graph widget from §4.6.c is reused with a different node palette. This is the natural endpoint for all of §4.9 — not a priority for v1, but the architecture should accommodate it from the start.
+A node-based compositor (Nuke/Blender Compositor-style) that wires AOV inputs, render-target resources, colour-science nodes, effect nodes, and mask nodes into a final output. The same node-graph widget from §4.6.c is reused with a different node palette. This is the natural endpoint for all of §4.9, while §4.1.a's render-pass graph is the lower-level execution plan that produces the resources the compositor consumes. Not a priority for v1, but the architecture should accommodate it from the start.
 
 ### 4.11 Image processing & computer vision
 
@@ -841,7 +891,7 @@ The eight refactors from §3 (R0–R7). Gatekeeping nothing else runs well witho
 
 ### T2. More engines
 
-Wireframe → Software rasterizer → OpenGL viewport → Path tracer → WebGL preview. Each engine is self-contained once R4 (tessellate) and R5 (`RenderEngine` abstraction) land. Suggested order: wireframe (cheapest), OpenGL (most immediately useful for the UI), path tracer (the pedagogical centrepiece), software raster (the most educational about the pipeline), WebGL (most shareable). GPU backends (Vulkan/OptiX/Metal) are their own long-tail item.
+Wireframe → Software rasterizer → render-pass graph → OpenGL viewport → Path tracer → WebGL preview. Each engine starts self-contained once R4 (tessellate) and R5 (`RenderEngine` abstraction) land, then graduates into pass executors behind the §4.1.a `RenderPlan`. Suggested order: wireframe (cheapest), software raster (most educational about the pipeline and already in progress), render-pass graph (the composability bridge), OpenGL (most immediately useful for the UI once pass resources exist), path tracer (the pedagogical centrepiece), WebGL (most shareable). GPU backends (Vulkan/OptiX/Metal) are their own long-tail item.
 
 ### T3. Better shading
 
