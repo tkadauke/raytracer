@@ -8,6 +8,18 @@ namespace render {
   /**
     * Redirects rays through a transformed view of the scene.
     *
+    * `PortalMaterial` is evaluated at the surface hit point; it is not a
+    * screen-space border or an image pasted onto the rectangle. When a ray
+    * hits the portal surface, the material applies the inverse portal
+    * transform to the shifted hit-point ray origin and to the ray direction,
+    * asks the scene what that transformed ray sees, then multiplies the
+    * returned color by the configured filter.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="portal_material_ray_redirection.js"></script>
+    * @endhtmlonly
+    *
     * <table><tr>
     * <td>@image html portal_material__raytracer.png "Raytracer"</td>
     * </tr></table>

@@ -49,7 +49,7 @@ from still images.
    - Teaches: mirror-direction calculation and why recursive ray tracing is
      needed for reflections.
 
-3. **Portal material ray redirection**
+3. ~~**Portal material ray redirection**~~ ✅ **Done.** Added `portal_material_ray_redirection.js`, embedded it in both PortalMaterial headers, and pinned its controls in the JS widget tests.
    - Targets: `include/render/materials/PortalMaterial.h`,
      `include/world/objects/PortalMaterial.h`.
    - Widget: portal plane, incoming ray, transformed origin/direction, and

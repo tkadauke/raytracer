@@ -376,6 +376,38 @@ test('Transparent material refraction widget exposes IOR controls and TIR state'
     'widget should name the reflection/transmission branch split');
 });
 
+test('Portal material widget exposes ray, transform, and filter controls', () => {
+  const body = loadWidget('portal_material_ray_redirection.js');
+  assert.equal(countElements(body, 'button'), 3,
+    'filter should use a simple segmented color control');
+  assert.equal(countElements(body, 'input'), 0,
+    'portal ray and transform should use draggable handles, not scalar sliders');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle']);
+  assert.deepEqual(handles.map(c => c.attributes['data-drag-handle']), [
+    'source-ray-origin',
+    'source-ray-hit',
+    'portal-transform-origin',
+    'portal-transform-rotation',
+  ]);
+
+  assert.equal(elementsByTag(body, 'line')
+    .filter(line => line.attributes['data-incoming-ray'] === 'true').length, 1,
+    'incoming ray should be explicitly marked');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-transformed-origin'] === 'true').length, 1,
+    'transformed origin should be explicitly marked');
+  assert.equal(elementsByTag(body, 'line')
+    .filter(line => line.attributes['data-transformed-direction'] === 'true').length, 1,
+    'transformed direction should be explicitly marked');
+  assert.equal(elementsByTag(body, 'rect')
+    .filter(rect => rect.attributes['data-filter-swatch']).length, 1,
+    'filter color should be visible as a swatch');
+  assert.ok(textContents(body).join(' ').includes('Scene is asked what this new ray sees'),
+    'widget should state that the transformed ray queries the scene');
+});
+
 test('Rasterizer clipping widget omits coordinate labels', () => {
   const body = loadWidget('rasterizer_clip_attributes.js');
   const text = textContents(body).join(' ');
