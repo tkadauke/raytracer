@@ -323,6 +323,13 @@ class TransparentMaterial < PhongMaterial
            :reflectionCoefficient => 0
 end
 
+class PortalMaterial < Material
+  property :position => [0, 0, 0],
+           :rotation => [0, 0, 0],
+           :scale => [1, 1, 1],
+           :filterColor => [1, 1, 1]
+end
+
 class Box < Surface
   property :size => [1, 1, 1],
            :bevelRadius => 0

@@ -5,6 +5,13 @@
 #include "core/math/Ray.h"
 
 namespace render {
+  /**
+    * Redirects rays through a transformed view of the scene.
+    *
+    * <table><tr>
+    * <td>@image html portal_material__raytracer.png "Raytracer"</td>
+    * </tr></table>
+    */
   class PortalMaterial : public Material {
   public:
     inline explicit PortalMaterial(const Matrix4d& transformation, const Colord& filter)

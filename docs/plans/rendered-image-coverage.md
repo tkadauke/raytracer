@@ -49,6 +49,9 @@ current gaps.
 - Normalized supported-engine class tables for `Box`, `Sphere`, and
   `Cylinder` so the `__wireframe` image is generated and presented
   alongside the Raytracer and Rasterizer images.
+- Added a world-side `PortalMaterial` wrapper and Raytracer class
+  image so portal materials can be rendered through the standard
+  docs JSON pipeline.
 - `rake check:doc-images` now passes with all `@image html`
   references backed by files under `docs/images`.
 
@@ -56,11 +59,6 @@ current gaps.
 
 ### Material coverage
 
-- `PortalMaterial` has no rendered documentation image. It is a
-  runtime-only material today, so adding coverage needs a doc-render
-  DSL path or a small bespoke render driver. Raytracer should be the
-  first image; Rasterizer has no portal semantics and should be
-  skipped or shown only as an explicit limitation comparison.
 - Wireframe material renders are intentionally absent because
   Wireframe ignores material shading.
 
@@ -91,3 +89,6 @@ current gaps.
   identifies specific educational value in an engine comparison.
 - Rasterizer UV, Rasterizer MSAA, Rasterizer LOD, and Wireframe LOD
   are correctly engine-specific.
+- `PortalMaterial` is correctly Raytracer-only for now. Rasterized
+  portal previews belong to the future stencil / render-pass graph
+  work tracked in the roadmap.
