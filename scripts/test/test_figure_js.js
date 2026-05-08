@@ -502,6 +502,39 @@ test('Grid DDA widget exposes traversal state and controls', () => {
     'the ray entry point should be marked');
 });
 
+test('Mesh triangle interpolation widget exposes hit and normal controls', () => {
+  const body = loadWidget('mesh_triangle_interpolation.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('alpha'), 'widget should show barycentric alpha');
+  assert.ok(text.includes('beta'), 'widget should show barycentric beta');
+  assert.ok(text.includes('gamma'), 'widget should show barycentric gamma');
+  assert.ok(text.includes('UV uses the same weights'),
+    'widget should connect barycentric weights to UV interpolation');
+  assert.equal(countElements(body, 'input'), 0,
+    'spatial triangle and hit-point controls should use direct manipulation');
+  assert.equal(countElements(body, 'button'), 2,
+    'normal interpolation should be toggled with flat/smooth segmented buttons');
+
+  const vertexHandles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
+  assert.equal(vertexHandles.length, 3,
+    'all triangle vertices should have visible draggable handles');
+  assert.deepEqual(vertexHandles.map(c => c.attributes['data-vertex-index']), ['0', '1', '2']);
+
+  const hitHandles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'triangle-hit-point');
+  assert.equal(hitHandles.length, 1,
+    'the interpolated hit point should have one visible draggable handle');
+
+  const normalVectors = elementsByTag(body, 'line')
+    .filter(line => line.attributes['data-normal-vector']);
+  assert.ok(normalVectors.some(line => line.attributes['data-normal-vector'] === 'smooth'),
+    'default mode should draw the smooth interpolated normal');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-interpolated-uv'] === '1').length, 1,
+    'widget should draw the interpolated UV sample');
+});
+
 test('Farthest-point widgets use explicit angle sliders', () => {
   [
     'box_farthest_point.js',
