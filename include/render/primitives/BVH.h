@@ -14,7 +14,7 @@ namespace render {
     *
     * Classic BVH structure: each internal node owns two children and
     * an AABB tight around all primitives below it; each leaf node
-    * owns a small batch of primitives (default 4) to amortise the
+    * owns a small batch of primitives (default 4) to amortize the
     * traversal overhead. `intersect` walks the tree, descending only
     * into nodes whose AABB the ray hits.
     *
@@ -25,7 +25,12 @@ namespace render {
     * split improves the expected traversal cost. The split axis is
     * the longest dimension of the centroid bounding box at each
     * level, with N-1 candidate split positions evaluated per recursion
-    * (sorted-then-swept; binned SAH is a future optimisation).
+    * (sorted-then-swept; binned SAH is a future optimization).
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="bvh_sah_traversal.js"></script>
+    * @endhtmlonly
     *
     * Use `BVH` instead of `Grid` when:
     *
