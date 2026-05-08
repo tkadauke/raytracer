@@ -18,6 +18,8 @@ CLEAN.include(Rake::FileList["src/**/ui_*.h", "examples/**/ui_*.h"])
 RENDERCLI_DEFAULT = 'build/release/tools/rendercli/rendercli'
 DOC_WIDGET_DEPENDENCIES = ["angle_from_x.js"].freeze
 DOC_WIDGET_FRAME_DIR = "docs/html/widget-pages".freeze
+DOC_IMAGE_GALLERY_PATH = "docs/html/rendered-images.html".freeze
+DOC_IMAGE_GALLERY_ASSET_DIR = "docs/html/rendered-images".freeze
 FIGURE_DEPENDENCY_PATTERN =
   /\b(new\s+(Canvas|Vector|Group|Line|Ray|Circle|Rectangle|Text|Axes|Path|Slider|DragHandler|OrderedHash|FigureWidget|FigureSvg|FigureSegmentedControl|FigureSliderControl|FigureDraggablePoint)|Path\.polyline|extends\s+AngleFromX)\b/
 
@@ -239,6 +241,220 @@ def write_docs_widget_gallery(path, widgets)
   File.write(path, html)
 end
 
+def docs_rendered_images
+  extensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"]
+  Dir.glob("docs/images/*")
+    .select { |path| File.file?(path) && extensions.include?(File.extname(path).downcase) }
+    .sort
+end
+
+def docs_image_title(path)
+  File.basename(path, File.extname(path)).split("_").reject(&:empty?).map(&:capitalize).join(" ")
+end
+
+def docs_file_size_label(bytes)
+  return "#{bytes} B" if bytes < 1024
+
+  kib = bytes / 1024.0
+  return format("%.1f KB", kib) if kib < 1024
+
+  format("%.1f MB", kib / 1024.0)
+end
+
+def write_docs_image_gallery(path, images)
+  generated_at = Time.now.utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+  rows = images.map do |image_path|
+    filename = File.basename(image_path)
+    title = CGI.escapeHTML(docs_image_title(image_path))
+    escaped_filename = CGI.escapeHTML(filename)
+    relative_path = "rendered-images/#{escaped_filename}"
+    size = CGI.escapeHTML(docs_file_size_label(File.size(image_path)))
+    filter_name = CGI.escapeHTML(filename.downcase)
+
+    <<~HTML
+      <figure class="image-card" data-name="#{filter_name}">
+        <a href="#{relative_path}">
+          <img
+            src="#{relative_path}"
+            alt="Rendered documentation image #{escaped_filename}"
+            loading="lazy">
+        </a>
+        <figcaption>
+          <span class="image-title">#{title}</span>
+          <span class="image-meta">#{escaped_filename} &middot; #{size}</span>
+        </figcaption>
+      </figure>
+    HTML
+  end.join("\n")
+
+  html = <<~HTML
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Raytracer Rendered Image Gallery</title>
+      <style>
+        :root {
+          color-scheme: light;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          background: #f5f5f5;
+          color: #202020;
+        }
+
+        body {
+          margin: 0;
+        }
+
+        header {
+          background: #ffffff;
+          border-bottom: 1px solid #d8d8d8;
+          padding: 24px clamp(16px, 4vw, 48px);
+        }
+
+        h1 {
+          font-size: clamp(28px, 4vw, 42px);
+          line-height: 1.1;
+          margin: 0 0 8px 0;
+        }
+
+        header p {
+          color: #555;
+          margin: 0 0 16px 0;
+          max-width: 900px;
+        }
+
+        .toolbar {
+          align-items: center;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        input[type="search"] {
+          border: 1px solid #bdbdbd;
+          border-radius: 6px;
+          box-sizing: border-box;
+          font: inherit;
+          min-width: min(100%, 320px);
+          padding: 8px 10px;
+        }
+
+        #image-count {
+          color: #555;
+          font-size: 14px;
+        }
+
+        main {
+          display: grid;
+          gap: 18px;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          padding: 24px clamp(16px, 4vw, 48px) 48px;
+        }
+
+        .image-card {
+          background: #ffffff;
+          border: 1px solid #d8d8d8;
+          border-radius: 8px;
+          margin: 0;
+          overflow: hidden;
+        }
+
+        .image-card[hidden] {
+          display: none;
+        }
+
+        .image-card a {
+          align-items: center;
+          background:
+            linear-gradient(45deg, #ececec 25%, transparent 25%),
+            linear-gradient(-45deg, #ececec 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #ececec 75%),
+            linear-gradient(-45deg, transparent 75%, #ececec 75%),
+            #ffffff;
+          background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+          background-size: 16px 16px;
+          border-bottom: 1px solid #e5e5e5;
+          display: flex;
+          min-height: 220px;
+          padding: 12px;
+        }
+
+        img {
+          display: block;
+          height: auto;
+          margin: auto;
+          max-height: 260px;
+          max-width: 100%;
+          object-fit: contain;
+        }
+
+        figcaption {
+          padding: 12px 14px 14px;
+        }
+
+        .image-title {
+          display: block;
+          font-weight: 700;
+          line-height: 1.25;
+          margin-bottom: 4px;
+        }
+
+        .image-meta {
+          color: #666;
+          display: block;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 12px;
+          overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 420px) {
+          main {
+            grid-template-columns: 1fr;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <header>
+        <h1>Raytracer Rendered Image Gallery</h1>
+        <p>Generated by <code>rake docs:images</code> at #{generated_at}. This page loads #{images.length} rendered documentation images from <code>docs/images</code> for quick visual regression checks.</p>
+        <div class="toolbar">
+          <input id="image-filter" type="search" placeholder="Filter filenames" autocomplete="off">
+          <span id="image-count"></span>
+        </div>
+      </header>
+      <main>
+    #{rows}
+      </main>
+      <script>
+        (() => {
+          const filter = document.getElementById("image-filter");
+          const count = document.getElementById("image-count");
+          const cards = Array.from(document.querySelectorAll(".image-card"));
+
+          const update = () => {
+            const query = filter.value.trim().toLowerCase();
+            let visible = 0;
+            cards.forEach(card => {
+              const matches = card.dataset.name.includes(query);
+              card.hidden = !matches;
+              if (matches) visible += 1;
+            });
+            count.textContent = `${visible} / ${cards.length} images`;
+          };
+
+          filter.addEventListener("input", update);
+          update();
+        })();
+      </script>
+    </body>
+    </html>
+  HTML
+
+  File.write(path, html)
+end
+
 desc "Build (debug) via CMake"
 task :build do
   sh "cmake --preset debug"
@@ -302,6 +518,18 @@ namespace :docs do
     end
     write_docs_widget_gallery(output, widgets)
     puts "Wrote #{output} with #{widgets.length} widgets"
+  end
+
+  desc "Create a standalone HTML gallery containing every rendered docs image"
+  task :images do
+    images = docs_rendered_images
+    fail "No rendered images found under docs/images; run `rake docs:render` first" if images.empty?
+
+    FileUtils.mkdir_p("docs/html")
+    FileUtils.mkdir_p(DOC_IMAGE_GALLERY_ASSET_DIR)
+    FileUtils.cp(images, DOC_IMAGE_GALLERY_ASSET_DIR)
+    write_docs_image_gallery(DOC_IMAGE_GALLERY_PATH, images)
+    puts "Wrote #{DOC_IMAGE_GALLERY_PATH} with #{images.length} images"
   end
 
   task :clean

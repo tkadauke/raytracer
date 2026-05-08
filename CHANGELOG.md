@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rendered documentation image gallery.** `rake docs:images` now writes `docs/html/rendered-images.html`, a standalone filterable page containing every rendered documentation image copied from `docs/images` for bulk visual review. — GPT-5
 - **Rasterizer perspective UV widget shared controls.** `rasterizer_perspective_uv.js` now uses the shared ES6 widget lifecycle, `FigureSvg`, and `FigureSliderControl`; the right-edge depth remains a scalar slider while the UV grid rendering shares the same container and styling path as the other migrated rasterizer widgets. — GPT-5
 - **Rasterizer pipeline widget shared primitives.** `rasterizer_pipeline.js` now follows the same ES6 class/shared-widget primitive pattern as the migrated MSAA and clipping widgets while preserving its three draggable triangle vertices, barycentric readout, and barycentric-vs-UV color control. — GPT-5
 - **Farthest-point widgets use explicit angle sliders.** `sphere_farthest_point.js`, `box_farthest_point.js`, and `convex_hull_farthest_point.js` now expose their direction angle through a labeled shared slider instead of the old hidden whole-widget horizontal drag gesture, and their final farthest points are drawn larger for readability. — GPT-5

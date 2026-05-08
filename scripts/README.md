@@ -329,6 +329,11 @@ For bulk visual checks, `rake docs:widgets` writes
 `docs/html/widgets.html`, a standalone gallery that loads every
 interactive widget on one page.
 
+For rendered-output checks, `rake docs:images` writes
+`docs/html/rendered-images.html`, a standalone gallery that copies
+every PNG under `docs/images` into `docs/html/rendered-images` and
+loads them on one filterable page.
+
 ### When to write a widget
 
 Widgets earn their keep when the underlying *math* is geometrically
@@ -360,6 +365,7 @@ roadmap items (ES6 modernisation, scoped CSS, optional WebGL
 
 ```bash
 rake docs:render           # render all images (skips up-to-date)
+rake docs:images           # build the standalone rendered-image gallery
 rake docs:widgets          # build the standalone widget gallery
 rake check:doc-images      # lint @image html refs vs PNGs
 rake test:scripts          # run all framework tests (Ruby + JS)
