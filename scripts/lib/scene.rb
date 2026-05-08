@@ -7,7 +7,7 @@ require_relative 'core_ext'
 # The Ruby DSL backing the doc-render framework + scene scripts.
 #
 # This file mirrors the C++ Q_PROPERTY hierarchy in `include/world/objects/`
-# as plain Ruby classes, plus a Scene class that knows how to serialise
+# as plain Ruby classes, plus a Scene class that knows how to serialize
 # itself to JSON and shell out to `rendercli`. The DSL on top of those
 # classes is what makes doc-render drivers like
 # `scripts/docs/thin_lens_camera.rb` readable:
@@ -66,7 +66,7 @@ end
 
 # Base class for every entity in the scene tree — cameras, lights,
 # materials, textures, primitives, and the scene itself. Subclasses
-# declare their JSON-serialised fields via `property :foo => default`
+# declare their JSON-serialized fields via `property :foo => default`
 # at the class level (see `Camera`, `Sphere`, etc. below); the values
 # round-trip through `to_json` / `read` (the C++ side) by name.
 #
@@ -188,7 +188,7 @@ end
 #
 #   1. The DSL block populates `@children` with cameras, lights,
 #      surfaces, materials, textures.
-#   2. `to_json` serialises the whole tree (inherited from `Element`).
+#   2. `to_json` serializes the whole tree (inherited from `Element`).
 #   3. `render` writes the JSON to a temp file, shells out to
 #      `rendercli`, and writes a sidecar `.png.hash` for the
 #      staleness check on the next run.
@@ -267,20 +267,42 @@ class Scene < Element
   # Compute a content hash of (scene JSON + render options) suitable
   # for staleness detection. The JSON's element IDs are random UUIDs
   # generated per-run via SecureRandom (see Element#initialize), so a
-  # raw hash of `to_json` would change on every run. Strip / normalise
-  # them out so the hash captures the SCENE structure, not the per-run
-  # random labels.
+  # raw hash of `to_json` would change on every run. Auto-generated
+  # names also include a process-global object counter, so adding an
+  # object to one docs scene would otherwise invalidate the hashes for
+  # later scenes in the same `rake docs:render` run. Strip those
+  # non-rendering labels out so the hash captures the SCENE structure,
+  # not per-run metadata.
   #
   # The render options (sampler, samples_per_pixel, width, height) are
   # included too — changing the sample count should re-render even if
   # the scene is otherwise identical.
   def self.scene_hash(json_str, opts)
-    # Element id values: "id":"{8-4-4-4-12}" → "id":"<id>"
-    normalised = json_str.gsub(/"id"\s*:\s*"\{[a-f0-9-]+\}"/, '"id":"<id>"')
-    # Property references that point to those ids: "{8-4-4-4-12}" → "<id>"
-    normalised = normalised.gsub(/"\{[a-f0-9-]{30,}\}"/, '"<id>"')
-    payload = "#{normalised}\n#{opts.sort.to_h.inspect}"
+    normalized = normalize_hash_payload(JSON.parse(json_str))
+    payload = "#{JSON.generate(normalized)}\n#{opts.sort.to_h.inspect}"
     Digest::SHA1.hexdigest(payload)
+  end
+
+  def self.normalize_hash_payload(value)
+    case value
+    when Hash
+      value.keys.sort.each_with_object({}) do |key, result|
+        result[key] =
+          if key == "id"
+            "<id>"
+          elsif key == "name"
+            "<name>"
+          else
+            normalize_hash_payload(value[key])
+          end
+      end
+    when Array
+      value.map { |item| normalize_hash_payload(item) }
+    when String
+      value.match?(/\A\{[a-f0-9-]+\}\z/i) ? "<id>" : value
+    else
+      value
+    end
   end
 end
 

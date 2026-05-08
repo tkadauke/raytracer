@@ -56,7 +56,7 @@ Concretely, when you run `rake docs:render`:
    matching Ruby DSL class — `PinholeCamera`, `Sphere`,
    `MatteMaterial` — which gets attached as a child of the scene.
 5. After the block runs, `Scene#render`:
-   - Computes a SHA1 over the (normalised) JSON + render options
+   - Computes a SHA1 over the (normalized) JSON + render options
      (see "Staleness detection" below).
    - Compares against the sidecar `<image>.png.hash` file.
    - If unchanged, skips the render. Else writes the JSON to a
@@ -183,7 +183,7 @@ meaningfully:
 ## Staleness detection
 
 `Scene#render` writes a sidecar `<image>.png.hash` file containing a
-SHA1 over (normalised JSON + render options). On the next run with
+SHA1 over (normalized JSON + render options). On the next run with
 `--missing`, it recomputes the hash and skips the render if it
 matches.
 
@@ -202,6 +202,10 @@ matches.
   `SecureRandom`. These differ on every run; the hash function
   strips them out before hashing so logically-identical scenes
   produce identical hashes.
+- Auto-generated element names such as `Sphere 17`. The numeric suffix
+  comes from a process-global object counter, so it changes when an
+  earlier docs scene adds or removes objects, but names do not affect
+  rendered pixels.
 
 If you suspect the staleness check is wrongly skipping, just delete
 the `.png.hash` sidecar (or the `.png` itself) and re-run. The
@@ -232,7 +236,7 @@ mechanism is local and reversible.
   building a material in a doc-render driver, write
   `matte_material(:diffuseTexture => red)`, not
   `matte_material(:diffuseTexture => constant_color_texture(:color => red))`.
-  The nested form serialises a texture into a `:color` slot, which
+  The nested form serializes a texture into a `:color` slot, which
   is meaningless and silently produces a black material.
 
 - **The Ruby DSL classes in `lib/scene.rb` are a parallel hierarchy

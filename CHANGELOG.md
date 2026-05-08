@@ -48,6 +48,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Documentation render staleness hashing.** `rake docs:render` now ignores non-rendering JSON metadata (`id` values and generated `name` fields) when deciding whether an existing docs image is stale, so adding objects to one docs scene no longer forces unrelated later scenes to re-render. — GPT-5
 - **Rendered image gallery stale asset cleanup.** `rake docs:images` now clears the copied `docs/html/rendered-images` assets before recopying from `docs/images`, so renamed or removed rendered images no longer linger in the gallery output. — GPT-5
 - **Documentation widget interaction instructions.** Doxygen comments, widget source comments, and contributor docs now describe the current interaction model: sliders for scalar values, visible drag handles for spatial values, and no hidden whole-widget drag gestures. — GPT-5
 - **Documentation widget label overlaps.** The thin-lens convergence, thin-lens disk sampling, tilt-shift Scheimpflug, and tonemap curve widgets now place labels outside their dense diagram areas so the widget gallery does not show clipped or overlapping text. — GPT-5

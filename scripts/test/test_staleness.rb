@@ -14,7 +14,7 @@ require 'lib/scene'
 
 class SceneHashTest < Minitest::Test
   # Each scene gets fresh element IDs (random UUIDs from
-  # SecureRandom) on every initialise. The hash function strips
+  # SecureRandom) on every initialize. The hash function strips
   # those out so it captures the SCENE STRUCTURE, not the per-run
   # random labels.
 
@@ -52,12 +52,30 @@ class SceneHashTest < Minitest::Test
       "trigger re-render."
   end
 
-  def test_uuid_property_references_normalised
+  def test_uuid_property_references_normalized
     # Material/texture references in JSON are stored as the target
     # element's UUID. Same property, two different UUIDs → same scene
     # logically; the hash should agree.
     a = '{"material":"{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}"}'
     b = '{"material":"{11111111-2222-3333-4444-555555555555}"}'
+    assert_equal hash_of(a), hash_of(b)
+  end
+
+  def test_generated_names_do_not_affect_hash
+    # Element#initialize assigns auto names from a process-global object
+    # counter, e.g. "Sphere 17". Adding a new object in an earlier docs
+    # scene changes those numbers for every later scene in the same run,
+    # but names do not affect rendered pixels.
+    a = '{"children":[{"type":"Sphere","name":"Sphere 17","radius":1}]}'
+    b = '{"children":[{"type":"Sphere","name":"Sphere 42","radius":1}]}'
+    assert_equal hash_of(a), hash_of(b),
+      "Hash must ignore element names; otherwise adding objects to one " \
+      "docs driver makes unrelated later images look stale."
+  end
+
+  def test_scene_hash_is_order_independent_for_json_objects
+    a = '{"type":"Sphere","radius":1,"name":"Sphere 17"}'
+    b = '{"name":"Sphere 42","radius":1,"type":"Sphere"}'
     assert_equal hash_of(a), hash_of(b)
   end
 
