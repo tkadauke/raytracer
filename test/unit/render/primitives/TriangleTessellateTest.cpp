@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "render/primitives/Triangle.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 
 namespace TriangleTessellateTest {
   using namespace render;
@@ -40,6 +41,11 @@ using namespace render;
     for (const auto& v : mesh->vertices()) {
       EXPECT_EQ(Vector3d(0, 0, 1), v.normal);
     }
+  }
+
+  TEST(TriangleTessellate, ShouldWindFaceWithFlatNormal) {
+    Triangle tri(Vector3d(0, 0, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*tri.tessellate(0));
   }
 
   TEST(TriangleTessellate, ShouldHaveBarycentricUVs) {

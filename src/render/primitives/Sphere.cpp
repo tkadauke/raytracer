@@ -100,11 +100,13 @@ shared_ptr<Mesh> Sphere::tessellate(int lod) const {
   }
 
   // One quad per (lat-band, lon-segment) cell — uniform topology, no fans.
+  // Corners are listed CCW when viewed from outside so raster backface
+  // culling agrees with the outward radial vertex normals.
   for (int lat = 0; lat < latBands; ++lat) {
     for (int lon = 0; lon < lonSegs; ++lon) {
       int row     = lat       * (lonSegs + 1);
       int nextRow = (lat + 1) * (lonSegs + 1);
-      mesh->addFace({ row + lon, row + lon + 1, nextRow + lon + 1, nextRow + lon });
+      mesh->addFace({ row + lon, nextRow + lon, nextRow + lon + 1, row + lon + 1 });
     }
   }
 

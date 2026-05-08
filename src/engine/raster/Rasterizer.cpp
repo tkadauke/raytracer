@@ -172,6 +172,29 @@ namespace {
     };
   }
 
+  inline double signedScreenArea(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) {
+    return (v1.screen.x() - v0.screen.x()) * (v2.screen.y() - v0.screen.y())
+         - (v1.screen.y() - v0.screen.y()) * (v2.screen.x() - v0.screen.x());
+  }
+
+  inline bool shouldCullTriangle(Rasterizer::CullMode mode,
+                                 const ClipVert& v0,
+                                 const ClipVert& v1,
+                                 const ClipVert& v2) {
+    if (mode == Rasterizer::CullMode::Both) return false;
+
+    // Tessellated primitives use CCW winding when viewed from the
+    // outside. With the current camera projection, front-facing
+    // triangles have negative projected area and back-facing
+    // triangles have positive projected area.
+    const double area = signedScreenArea(v0, v1, v2);
+    if (area == 0.0) return false;
+
+    return mode == Rasterizer::CullMode::Back
+      ? area > 0.0
+      : area < 0.0;
+  }
+
   inline std::size_t addTriangleToTiles(
     const RasterTriangle& triangle,
     std::size_t triangleIndex,
@@ -330,6 +353,7 @@ namespace {
   void emitRasterTriangles(const render::Scene* scene,
                            const std::shared_ptr<render::Camera>& camera,
                            int lod,
+                           Rasterizer::CullMode cullMode,
                            const std::atomic<bool>& cancelled,
                            EmitFn&& callback) {
     std::uint64_t globalFaceIdx = 0;
@@ -406,6 +430,9 @@ namespace {
               const ClipVert& v2 = clipped[t + 1];
 
               if (v0.screen.isUndefined() || v1.screen.isUndefined() || v2.screen.isUndefined()) {
+                continue;
+              }
+              if (shouldCullTriangle(cullMode, v0, v1, v2)) {
                 continue;
               }
 
@@ -528,6 +555,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
               const Vector3d& s1 = v1.screen;
               const Vector3d& s2 = v2.screen;
               if (s0.isUndefined() || s1.isUndefined() || s2.isUndefined()) continue;
+              if (shouldCullTriangle(m_cullMode, v0, v1, v2)) continue;
 
               const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
               const double invZ0 = 1.0 / z0, invZ1 = 1.0 / z1, invZ2 = 1.0 / z2;
@@ -583,7 +611,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   std::vector<RasterTriangle> triangles;
   std::vector<std::vector<std::size_t>> tileTriangles(rows * cols);
   std::size_t binnedTriangleCount = 0;
-  emitRasterTriangles(scene.get(), m_camera, m_lod, m_cancelled,
+  emitRasterTriangles(scene.get(), m_camera, m_lod, m_cullMode, m_cancelled,
     [&](const RasterTriangle& triangle) {
       const std::size_t triangleIndex = triangles.size();
       const std::size_t added = addTriangleToTiles(

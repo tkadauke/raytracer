@@ -128,13 +128,15 @@ std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {
     mesh->addVertex(Vector3d(m_radius * c,  m_halfHeight, m_radius * s), normal, Vector2d(u, 1.0));
   }
 
-  // Quads: each column i connects bottom[i]/top[i] to bottom[i+1]/top[i+1]
+  // Quads: each column i connects bottom[i]/top[i] to
+  // bottom[i+1]/top[i+1]. Corners are listed CCW when viewed from
+  // outside so face winding matches the radial vertex normals.
   for (int i = 0; i < segments; ++i) {
     int bl = 2 * i;          // bottom left
     int tl = 2 * i + 1;     // top left
     int br = 2 * (i + 1);   // bottom right
     int tr = 2 * (i + 1) + 1; // top right
-    mesh->addFace({bl, br, tr, tl});
+    mesh->addFace({bl, tl, tr, br});
   }
 
   return mesh;

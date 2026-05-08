@@ -18,10 +18,10 @@
      behavior.
    - Record canonical `rendercli` timing commands for rasterizer comparisons.
 
-2. **Backface culling**
-   - Add a switchable front/back/both culling stage before triangle setup.
-   - Pin winding conventions across tessellated primitives with tests.
-   - Keep the default two-sided until material-sidedness exists.
+2. ✅ **Backface culling**
+   - Added `Rasterizer::CullMode::{Both,Back,Front}` and `rendercli --cull`.
+   - Pinned winding conventions in each primitive's tessellation tests.
+   - Kept the default two-sided until material-sidedness exists.
 
 3. **Homogeneous clip-space clipping**
    - Add camera support for un-divided clip-space projection.
@@ -137,3 +137,39 @@ Measurement rules:
 - If a rasterizer performance change lands, update this section only when the
   command set changes; put the actual before/after measurements in
   `CHANGELOG.md`.
+
+## Task 2 backface culling
+
+The rasterizer now exposes three cull modes:
+
+- `Rasterizer::CullMode::Both` / `rendercli --cull both` — default two-sided
+  rendering.
+- `Rasterizer::CullMode::Back` / `rendercli --cull back` — skip back-facing
+  triangles.
+- `Rasterizer::CullMode::Front` / `rendercli --cull front` — skip
+  front-facing triangles for diagnostics and teaching.
+
+Culling runs after near-plane clipping and before triangle rasterization or
+tile binning. With the current camera projection, source meshes are wound CCW
+when viewed from outside; after projection, visible front-facing triangles have
+negative screen-space signed area and back-facing triangles have positive
+screen-space signed area. The rasterizer tests pin that convention for
+hand-authored triangles and for both single-tile and tiled paths.
+
+Winding belongs to the primitive tessellation implementations, so those tests
+live beside each source primitive's existing tessellation tests:
+
+- `BoxTessellate.FacesAreWoundWithOutwardNormals`
+- `DiskTessellate.ShouldWindFacesWithDiskNormal`
+- `OpenCylinderTessellate.ShouldWindFacesWithRadialNormals`
+- `RectangleTessellate.ShouldWindFacesWithPlaneNormal`
+- `SphereTessellate.FacesAreWoundWithRadialNormals`
+- `TorusTessellate.FacesAreWoundWithParametricNormals`
+- `TriangleTessellate.ShouldWindFaceWithFlatNormal`
+
+Measurement note: on the dense sphere baseline at 640x480 LOD 8 with
+`--repeat 10`, `--cull both` reported median `1158.779 ms` and `--cull back`
+reported median `1133.989 ms`; the final PNGs were byte-identical. The modest
+speedup is expected because this cull stage still happens after tessellation,
+per-mesh projection, and near-plane setup. Full measurements are in
+`CHANGELOG.md`.

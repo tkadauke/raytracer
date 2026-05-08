@@ -100,12 +100,13 @@ shared_ptr<Mesh> Torus::tessellate(int lod) const {
     }
   }
 
-  // One quad per (major-segment, minor-segment) cell.
+  // One quad per (major-segment, minor-segment) cell, wound CCW from
+  // outside so raster culling agrees with the parametric normals.
   for (int i = 0; i < majorSegs; ++i) {
     for (int j = 0; j < minorSegs; ++j) {
       int row     = i       * (minorSegs + 1);
       int nextRow = (i + 1) * (minorSegs + 1);
-      mesh->addFace({ row + j, nextRow + j, nextRow + j + 1, row + j + 1 });
+      mesh->addFace({ row + j, row + j + 1, nextRow + j + 1, nextRow + j });
     }
   }
 

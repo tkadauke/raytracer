@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "render/primitives/Torus.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 #include <cmath>
 
 namespace TorusTessellateTest {
@@ -84,6 +85,11 @@ using namespace render;
       Vector3d dir = toSurface / r;
       EXPECT_NEAR(1.0, dir * v.normal, kEps);
     }
+  }
+
+  TEST(TorusTessellate, FacesAreWoundWithParametricNormals) {
+    Torus torus(2.0, 0.5);
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*torus.tessellate(1));
   }
 
   // u ∈ [0,1] around the major circle, v ∈ [0,1] around the tube

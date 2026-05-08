@@ -50,9 +50,11 @@ namespace engine::raster {
   *
   * Triangles that straddle the near plane are clipped in eye space
   * before projection so their visible portion can still render.
-  * Backface culling is pending; the rasterizer currently shades both
-  * sides of every triangle. It does not trace shadow rays; lights are
-  * direct Lambertian contributions only.
+  * Face culling is switchable via `setCullMode`: the default
+  * `CullMode::Both` shades both sides of every triangle, while
+  * `CullMode::Back` / `CullMode::Front` skip triangles by projected
+  * screen-space winding after near-plane clipping. It does not trace
+  * shadow rays; lights are direct Lambertian contributions only.
   *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
@@ -100,6 +102,12 @@ namespace engine::raster {
   */
 class Rasterizer : public render::RenderEngine {
 public:
+  enum class CullMode {
+    Both,
+    Back,
+    Front
+  };
+
   explicit Rasterizer(std::shared_ptr<render::Scene> scene);
   Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
@@ -125,6 +133,13 @@ public:
   /// values above 1 enable the tiled `QThreadPool` path.
   void setQueueSize(int queue);
 
+  /// Face-culling mode used after near-plane clipping and before
+  /// triangle rasterization. `Both` keeps the historical two-sided
+  /// behavior; `Back` and `Front` skip triangles by projected
+  /// screen-space winding.
+  inline CullMode cullMode() const { return m_cullMode; }
+  inline void setCullMode(CullMode mode) { m_cullMode = mode; }
+
   /// Colour the framebuffer is cleared to before triangles are
   /// rasterized. Defaults to pure black (`Colord::black()`).
   inline const Colord& backgroundColor() const { return m_backgroundColor; }
@@ -135,6 +150,7 @@ private:
   std::unique_ptr<Private> p;
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
+  CullMode m_cullMode{CullMode::Both};
   Colord m_backgroundColor{Colord::black()};
 };
 

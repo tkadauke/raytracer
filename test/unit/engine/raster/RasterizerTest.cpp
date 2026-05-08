@@ -6,6 +6,7 @@
 #include "render/primitives/Box.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/primitives/Triangle.h"
 
 #include <memory>
 
@@ -55,8 +56,30 @@ namespace RasterizerTest {
     return scene;
   }
 
+  static std::shared_ptr<Scene> sceneWithBackFacingTriangle() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Triangle>(
+      Vector3d(-1, -1, 0),
+      Vector3d( 1, -1, 0),
+      Vector3d( 0,  1, 0)));
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithFrontFacingTriangle() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Triangle>(
+      Vector3d(-1, -1, 0),
+      Vector3d( 0,  1, 0),
+      Vector3d( 1, -1, 0)));
+    return scene;
+  }
+
   static std::shared_ptr<PinholeCamera> camera() {
     return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null());
+  }
+
+  static std::shared_ptr<PinholeCamera> headOnCamera() {
+    return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null());
   }
 
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
@@ -198,6 +221,58 @@ namespace RasterizerTest {
       << "Z-buffer is failing to cull the farther geometry.";
     EXPECT_FALSE(bAlone[32][32] == Colord::black())
       << "Centre pixel should be coloured by the near sphere.";
+  }
+
+  TEST(Rasterizer, CullModeDefaultsToBothSides) {
+    Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    EXPECT_EQ(Rasterizer::CullMode::Both, engine.cullMode());
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+  }
+
+  TEST(Rasterizer, BackfaceCullingSkipsBackFacingTriangles) {
+    Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    engine.setCullMode(Rasterizer::CullMode::Back);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, BackfaceCullingKeepsFrontFacingTriangles) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setCullMode(Rasterizer::CullMode::Back);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+  }
+
+  TEST(Rasterizer, FrontfaceCullingSkipsFrontFacingTriangles) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setCullMode(Rasterizer::CullMode::Front);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, BackfaceCullingAppliesToTiledPath) {
+    Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    engine.setCullMode(Rasterizer::CullMode::Back);
+    engine.setMaximumThreads(2);
+    engine.setQueueSize(4);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRender) {

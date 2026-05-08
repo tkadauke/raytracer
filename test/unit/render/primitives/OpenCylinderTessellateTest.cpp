@@ -2,6 +2,7 @@
 #include <cmath>
 #include "render/primitives/OpenCylinder.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 
 namespace OpenCylinderTessellateTest {
   using namespace render;
@@ -46,6 +47,11 @@ using namespace render;
       // Normal must be unit-length
       EXPECT_NEAR(1.0, v.normal.length(), kEps);
     }
+  }
+
+  TEST(OpenCylinderTessellate, ShouldWindFacesWithRadialNormals) {
+    OpenCylinder cyl(1.0, 2.0);
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*cyl.tessellate(1));
   }
 
   TEST(OpenCylinderTessellate, ShouldHaveRimVerticesAtRadius) {

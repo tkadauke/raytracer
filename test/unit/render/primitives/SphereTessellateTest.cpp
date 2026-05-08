@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "render/primitives/Sphere.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 #include <cmath>
 
 namespace SphereTessellateTest {
@@ -73,6 +74,11 @@ using namespace render;
       Vector3d radial = (v.point - origin) / radius;
       EXPECT_NEAR(1.0, v.normal * radial, kEps);
     }
+  }
+
+  TEST(SphereTessellate, FacesAreWoundWithRadialNormals) {
+    Sphere sphere(Vector3d(), 1.0);
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*sphere.tessellate(1));
   }
 
   // u ∈ [0,1] across the longitude range, v ∈ [0,1] south→north

@@ -2,6 +2,7 @@
 #include <cmath>
 #include "render/primitives/Disk.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 
 namespace DiskTessellateTest {
   using namespace render;
@@ -43,6 +44,11 @@ using namespace render;
     auto mesh = disk.tessellate(0);
     for (const auto& v : mesh->vertices())
       EXPECT_EQ(normal, v.normal);
+  }
+
+  TEST(DiskTessellate, ShouldWindFacesWithDiskNormal) {
+    Disk disk(Vector3d(), Vector3d(0, 1, 0), 1.0);
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*disk.tessellate(1));
   }
 
   TEST(DiskTessellate, ShouldHaveCentreUVAtHalfHalf) {

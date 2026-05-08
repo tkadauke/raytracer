@@ -109,6 +109,7 @@ private:
   QString m_tonemap;
   QString m_engine;
   int m_wireframeLod;
+  QString m_rasterCullMode;
   int m_repeat;
   bool m_timing;
 };
@@ -126,6 +127,7 @@ Renderer::Renderer()
     m_tonemap("Linear"),
     m_engine("raytracer"),
     m_wireframeLod(0),
+    m_rasterCullMode("both"),
     m_repeat(1),
     m_timing(false)
 {
@@ -161,6 +163,11 @@ void Renderer::render() const {
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
     if (rtCamera) raster->setCamera(rtCamera);
     raster->setLod(m_wireframeLod);  // shares the LOD knob with Wireframe
+    if (m_rasterCullMode == "back") {
+      raster->setCullMode(engine::raster::Rasterizer::CullMode::Back);
+    } else if (m_rasterCullMode == "front") {
+      raster->setCullMode(engine::raster::Rasterizer::CullMode::Front);
+    }
     if (m_threadsSet) raster->setMaximumThreads(m_threads);
     if (m_queueSizeSet) {
       raster->setQueueSize(m_queueSize);
@@ -245,6 +252,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
     {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
     {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
+    {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
     {"timing", "Print render-only timing information to stdout"},
     {"repeat", "Render the loaded scene N times and print render-only timing statistics", "runs"}
   });
@@ -343,6 +351,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       *errorMessage = "LOD must be a non-negative integer";
       return CommandLineError;
     }
+  }
+
+  if (parser.isSet("cull")) {
+    const QString cull = parser.value("cull").toLower();
+    if (cull != "both" && cull != "back" && cull != "front") {
+      *errorMessage = "Cull mode must be 'both', 'back', or 'front'";
+      return CommandLineError;
+    }
+    m_rasterCullMode = cull;
   }
 
   if (parser.isSet("timing")) {

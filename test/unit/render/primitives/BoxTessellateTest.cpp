@@ -2,6 +2,7 @@
 
 #include "render/primitives/Box.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 
 namespace BoxTessellateTest {
   using namespace render;
@@ -95,6 +96,11 @@ using namespace render;
       EXPECT_EQ(1, count[i]) << "expected exactly one face with outward "
                                 "axis " << i;
     }
+  }
+
+  TEST(BoxTessellate, FacesAreWoundWithOutwardNormals) {
+    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*box.tessellate());
   }
 
   TEST(BoxTessellate, UVsSpanUnitSquarePerFace) {

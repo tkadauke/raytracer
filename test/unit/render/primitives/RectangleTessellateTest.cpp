@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "render/primitives/Rectangle.h"
 #include "core/geometry/Mesh.h"
+#include "test/helpers/MeshTestHelper.h"
 
 namespace RectangleTessellateTest {
   using namespace render;
@@ -29,6 +30,11 @@ using namespace render;
     for (const auto& v : mesh->vertices()) {
       EXPECT_EQ(Vector3d(0, 0, 1), v.normal);
     }
+  }
+
+  TEST(RectangleTessellate, ShouldWindFacesWithPlaneNormal) {
+    Rectangle rect(Vector3d(), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
+    EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*rect.tessellate(0));
   }
 
   TEST(RectangleTessellate, ShouldHaveVerticesAtFourCorners) {
