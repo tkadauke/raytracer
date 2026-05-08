@@ -179,15 +179,18 @@ These are useful follow-ups once the core rendering and sampling widgets exist.
    - Teaches: texture evaluation is a coordinate-mapping step followed by a
      color lookup; checker parity comes from `floor(s) + floor(t)`.
 
-4. **Instance transforms and normal transforms**
-   - Targets: `include/render/primitives/Instance.h`,
-     `include/world/objects/Transformable.h`.
-   - Widget: world ray, local-space ray, transformed object, geometric normal,
-     and inverse-transpose normal under non-uniform scale.
-   - Interaction: adjust scale/rotation; drag ray; toggle point, direction, and
-     normal transform views.
-   - Teaches: intersecting an instance means transforming the ray into local
-     space, while normals need inverse-transpose handling.
+4. ~~**Instance transforms and normal transforms**~~ ✅ **Done.** Added
+   `instance_transform_normals.js` beside `render::Instance` docs, with
+   scale/rotation controls, ray handles, and point/direction/normal transform
+   modes.
+   - ~~Targets: `include/render/primitives/Instance.h`,
+     `include/world/objects/Transformable.h`.~~
+   - ~~Widget: world ray, local-space ray, transformed object, geometric normal,
+     and inverse-transpose normal under non-uniform scale.~~
+   - ~~Interaction: adjust scale/rotation; drag ray; toggle point, direction, and
+     normal transform views.~~
+   - ~~Teaches: intersecting an instance means transforming the ray into local
+     space, while normals need inverse-transpose handling.~~
 
 5. ~~**Mesh triangle interpolation**~~ ✅ **Done.** Added
    `mesh_triangle_interpolation.js` and embedded it in the runtime triangle
