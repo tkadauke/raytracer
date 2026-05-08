@@ -236,6 +236,8 @@ small DOM library in `figure.js`:
 | `FigureSvg({width, height, viewBox})` | Raw SVG helper with scoped widget styling, `add`, `append`, and `clear`. Use when the older scene-coordinate `Canvas` abstraction is too limited. |
 | `FigureSegmentedControl({label, options, value, onChange})` | Standard segmented buttons for small enumerated option sets. |
 | `FigureDraggablePoint({svg, point, radius, attrs, onDrag})` | Visible draggable SVG point handle. Use for vertices, control points, edge endpoints, and ray origins. |
+| `FigureStrokeWidth`, `FigureGuideStrokeWidth` | Standard line weights for scene-coordinate widgets. |
+| `FigurePixelStrokeWidth`, `FigurePixelGuideStrokeWidth` | Standard line weights for pixel-coordinate widgets. |
 
 ### Writing a widget — canonical pattern
 
@@ -251,6 +253,8 @@ small DOM library in `figure.js`:
   global `svg`, `circle`, `line`, `text`, or `rect` rules.
 - Prefer shared `figure.js` primitives for controls, SVG creation, handles, and
   rerendering before adding widget-local infrastructure.
+- Use the shared stroke-width constants instead of local numeric
+  `stroke-width` literals.
 - Use US English spelling in user-facing labels, comments, tests, and docs.
 
 Use native ES6 class syntax for new widgets:

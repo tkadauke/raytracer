@@ -140,6 +140,8 @@ Interactive JS widgets under `scripts/docs/*.js` should follow the rules in
   infrastructure.
 - Keep widget CSS scoped to a widget root or library-owned SVG class. Never add
   global SVG element rules that can leak across widgets.
+- Use shared `figure.js` stroke-width constants instead of widget-local numeric
+  `stroke-width` literals.
 - Use US English spelling in widget labels, documentation, comments, tests, and
   changelog entries: "color", "behavior", "labeled", "gray".
 

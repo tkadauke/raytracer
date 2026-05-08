@@ -7,6 +7,11 @@
 
 'use strict';
 
+const FigureStrokeWidth = 0.05;
+const FigureGuideStrokeWidth = 0.035;
+const FigurePixelStrokeWidth = 2;
+const FigurePixelGuideStrokeWidth = 1;
+
 // CSS injection — runs at script-load time. Wrapped so it no-ops in
 // non-browser environments (Node test runner): the test shim
 // provides a `document` but doesn't simulate `<style>` parsing.
@@ -15,7 +20,7 @@ if (typeof document !== 'undefined' && document.head) {
   style.type = 'text/css';
   style.innerHTML = `
 svg.figure-canvas * {
-  stroke-width: 0.033;
+  stroke-width: ${FigureStrokeWidth};
 }
 
 svg.figure-canvas .dashed {
@@ -59,7 +64,7 @@ svg.figure-canvas line.arrow {
 }
 
 svg.figure-canvas line.axis {
-  stroke-width: 0.05;
+  stroke-width: ${FigureStrokeWidth};
   marker-end: url(#arrow);
 }
 
@@ -954,5 +959,7 @@ Object.assign(globalThis, {
   OrderedHash, Vector, Canvas, Group, Line, Ray, Circle,
   Rectangle, Text, Axes, Path, Slider, setAttributes, createSvgElement,
   FigureWidget, FigureSvg, FigureSegmentedControl,
-  FigureSliderControl, FigureDraggablePoint, DragHandler, svgns, degrees
+  FigureSliderControl, FigureDraggablePoint, DragHandler, svgns, degrees,
+  FigureStrokeWidth, FigureGuideStrokeWidth,
+  FigurePixelStrokeWidth, FigurePixelGuideStrokeWidth
 });

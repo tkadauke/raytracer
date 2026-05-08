@@ -51,7 +51,7 @@ class BoundingBoxInclude {
       height: size.y,
       fill: 'none',
       stroke: '#111',
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       'stroke-dasharray': dashed ? '0.14 0.14' : undefined,
     });
   }
@@ -69,7 +69,7 @@ class BoundingBoxInclude {
       attrs: {
         fill: '#f03e3e',
         stroke: '#111',
-        'stroke-width': 0.05,
+        'stroke-width': FigureStrokeWidth,
         'data-drag-handle': 'included-point',
       },
       onDrag: (point) => {

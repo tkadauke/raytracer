@@ -78,7 +78,7 @@ class RayProject {
       x2: end.x,
       y2: end.y,
       stroke: '#111',
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       ...attrs,
     });
   }
@@ -90,7 +90,7 @@ class RayProject {
       r: radius,
       fill: 'none',
       stroke: '#111',
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       ...attrs,
     });
   }
@@ -130,7 +130,7 @@ class RayProject {
     const projected = projection.projected(point);
     this.addLine(point, projected, {
       stroke: '#777',
-      'stroke-width': 0.035,
+      'stroke-width': FigureGuideStrokeWidth,
       'stroke-dasharray': '0.12 0.12',
     });
     this.addCircle(projected, 0.08, {
@@ -146,7 +146,7 @@ class RayProject {
       attrs: {
         fill: '#f03e3e',
         stroke: '#111',
-        'stroke-width': 0.05,
+        'stroke-width': FigureStrokeWidth,
         'data-drag-handle': 'project-point',
         'data-point-index': index,
       },

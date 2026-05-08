@@ -63,7 +63,7 @@ class BoundingBoxGrownBy {
       height: size.y,
       fill: 'none',
       stroke: '#111',
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       'stroke-dasharray': dashed ? '0.14 0.14' : undefined,
     });
   }
@@ -75,7 +75,7 @@ class BoundingBoxGrownBy {
       x2: start.x + vector.x,
       y2: start.y + vector.y,
       stroke,
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       'marker-end': `url(#${this.arrowId})`,
     });
   }
@@ -106,7 +106,7 @@ class BoundingBoxGrownBy {
       attrs: {
         fill: '#f03e3e',
         stroke: '#111',
-        'stroke-width': 0.05,
+        'stroke-width': FigureStrokeWidth,
         'data-drag-handle': 'growth-vector-end',
       },
       onDrag: (point) => {

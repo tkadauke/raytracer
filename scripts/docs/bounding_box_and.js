@@ -63,7 +63,7 @@ class BoundingBoxAnd {
       fill: '#ffffff',
       'fill-opacity': 0.01,
       stroke: '#111',
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       'stroke-dasharray': '0.14 0.14',
       cursor: 'move',
       'data-drag-handle': 'source-box',
@@ -99,7 +99,7 @@ class BoundingBoxAnd {
     this.addRectangle(intersection, {
       fill: 'none',
       stroke: '#111',
-      'stroke-width': 0.05,
+      'stroke-width': FigureStrokeWidth,
       'pointer-events': 'none',
     });
   }

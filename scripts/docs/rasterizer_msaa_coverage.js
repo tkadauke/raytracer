@@ -144,7 +144,7 @@ class RasterizerMSAACoverage {
           height: this.cell,
           fill: this.coverageColor(covered, pattern.length),
           stroke: '#d4d4d4',
-          'stroke-width': 1,
+          'stroke-width': FigurePixelGuideStrokeWidth,
           'data-covered-samples': covered,
           'data-sample-count': pattern.length,
         });
@@ -180,7 +180,7 @@ class RasterizerMSAACoverage {
         r: Math.max(2.5, 6 - pattern.length * 0.35),
         fill: hit ? '#0b7285' : '#ffffff',
         stroke: hit ? '#083f4a' : '#9b9b9b',
-        'stroke-width': 1.25,
+        'stroke-width': FigurePixelGuideStrokeWidth,
         'data-sample-hit': hit ? '1' : '0',
       });
     }
@@ -192,7 +192,7 @@ class RasterizerMSAACoverage {
       fill: '#0b7285',
       'fill-opacity': 0.08,
       stroke: '#111',
-      'stroke-width': 3,
+      'stroke-width': FigurePixelStrokeWidth,
       'stroke-linejoin': 'round',
     });
 
@@ -204,7 +204,7 @@ class RasterizerMSAACoverage {
         attrs: {
           fill: this.handleColors[index],
           stroke: '#111',
-          'stroke-width': 2,
+          'stroke-width': FigurePixelStrokeWidth,
           'data-drag-handle': 'triangle-vertex',
           'data-vertex-index': index,
         },

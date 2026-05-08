@@ -158,7 +158,7 @@ class RasterizerPipeline {
         x2: this.width(),
         y2: y * this.cell,
         stroke: '#ddd',
-        'stroke-width': 1,
+        'stroke-width': FigurePixelGuideStrokeWidth,
       });
     }
     for (let x = 0; x <= this.cols; x++) {
@@ -168,7 +168,7 @@ class RasterizerPipeline {
         x2: x * this.cell,
         y2: this.height(),
         stroke: '#ddd',
-        'stroke-width': 1,
+        'stroke-width': FigurePixelGuideStrokeWidth,
       });
     }
   }
@@ -182,7 +182,7 @@ class RasterizerPipeline {
       height: (maxY - minY + 1) * this.cell,
       fill: 'none',
       stroke: '#888',
-      'stroke-width': 2,
+      'stroke-width': FigurePixelStrokeWidth,
       'stroke-dasharray': '4 4',
     });
   }
@@ -211,7 +211,7 @@ class RasterizerPipeline {
       points: this.vertices.map(v => `${v.x * this.cell},${v.y * this.cell}`).join(' '),
       fill: 'none',
       stroke: '#222',
-      'stroke-width': 2.5,
+      'stroke-width': FigurePixelStrokeWidth,
     });
 
     this.vertices.forEach((vertex, index) => {
@@ -222,7 +222,7 @@ class RasterizerPipeline {
         attrs: {
           fill: this.vertexColors[index],
           stroke: '#000',
-          'stroke-width': 2,
+          'stroke-width': FigurePixelStrokeWidth,
           'data-drag-handle': 'triangle-vertex',
           'data-vertex-index': index,
         },
@@ -255,7 +255,7 @@ class RasterizerPipeline {
       r: 5,
       fill: weights.inside ? '#fff' : '#fff8',
       stroke: '#000',
-      'stroke-width': 2,
+      'stroke-width': FigurePixelStrokeWidth,
       'pointer-events': 'none',
     });
     this.canvas.add('rect', {
@@ -265,7 +265,7 @@ class RasterizerPipeline {
       height: 58,
       fill: '#fffe',
       stroke: '#888',
-      'stroke-width': 1,
+      'stroke-width': FigurePixelGuideStrokeWidth,
       rx: 4,
       'pointer-events': 'none',
     });

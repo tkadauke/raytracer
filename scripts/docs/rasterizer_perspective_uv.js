@@ -161,19 +161,19 @@ class RasterizerPerspectiveUV {
     });
 
     for (const t of this.gridSteps) {
-      this.drawGridLine(offsetX, u => point(t, u), '#9dc0c4', 6);
-      this.drawGridLine(offsetX, u => point(u, t), '#9dc0c4', 6);
+      this.drawGridLine(offsetX, u => point(t, u), '#9dc0c4', FigurePixelStrokeWidth * 3);
+      this.drawGridLine(offsetX, u => point(u, t), '#9dc0c4', FigurePixelStrokeWidth * 3);
     }
     for (const t of this.gridSteps) {
-      this.drawGridLine(offsetX, u => point(t, u), '#246b8f', 2);
-      this.drawGridLine(offsetX, u => point(u, t), '#246b8f', 2);
+      this.drawGridLine(offsetX, u => point(t, u), '#246b8f', FigurePixelStrokeWidth);
+      this.drawGridLine(offsetX, u => point(u, t), '#246b8f', FigurePixelStrokeWidth);
     }
 
     this.canvas.add('polygon', {
       points: this.polygonPoints(projection.vertices, offsetX),
       fill: 'none',
       stroke: '#111',
-      'stroke-width': 2,
+      'stroke-width': FigurePixelStrokeWidth,
     });
   }
 

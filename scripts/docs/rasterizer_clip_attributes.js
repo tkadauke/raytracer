@@ -107,7 +107,7 @@ class RasterizerClipAttributes {
       height: this.clip.bottom - this.clip.top,
       fill: '#fff',
       stroke: '#333',
-      'stroke-width': 2,
+      'stroke-width': FigurePixelStrokeWidth,
     });
 
     const label = this.canvas.add('text', {
@@ -125,7 +125,7 @@ class RasterizerClipAttributes {
       points: this.polygonPoints(this.vertices),
       fill: 'none',
       stroke: '#999',
-      'stroke-width': 2,
+      'stroke-width': FigurePixelStrokeWidth,
       'stroke-dasharray': '7 5',
     });
   }
@@ -137,7 +137,7 @@ class RasterizerClipAttributes {
       fill: '#83c5be',
       'fill-opacity': 0.25,
       stroke: '#0b7285',
-      'stroke-width': 3,
+      'stroke-width': FigurePixelStrokeWidth,
     });
   }
 
@@ -150,7 +150,7 @@ class RasterizerClipAttributes {
         attrs: {
           fill: this.uvColor(vertex),
           stroke: '#111',
-          'stroke-width': 2,
+          'stroke-width': FigurePixelStrokeWidth,
           'data-drag-handle': 'source-vertex',
           'data-vertex-index': index,
         },
@@ -174,7 +174,7 @@ class RasterizerClipAttributes {
         height: 12,
         fill: this.uvColor(v),
         stroke: '#111',
-        'stroke-width': 1.5,
+        'stroke-width': FigurePixelStrokeWidth,
         'data-generated-clip-vertex': '1',
       });
     });

@@ -201,6 +201,19 @@ test('Vector: static constants', () => {
   assert.deepEqual({ x: Vector.right.x, y: Vector.right.y }, { x: 1, y: 0 });
 });
 
+test('Figure stroke constants: standard weights are exported', () => {
+  const {
+    FigureStrokeWidth,
+    FigureGuideStrokeWidth,
+    FigurePixelStrokeWidth,
+    FigurePixelGuideStrokeWidth,
+  } = loadFigure();
+  assert.equal(FigureStrokeWidth, 0.05);
+  assert.equal(FigureGuideStrokeWidth, 0.035);
+  assert.equal(FigurePixelStrokeWidth, 2);
+  assert.equal(FigurePixelGuideStrokeWidth, 1);
+});
+
 // --- Widget smoke test ----------------------------------------------------
 //
 // Loads every widget under scripts/docs/ in a single shared
@@ -419,6 +432,17 @@ test('Production widgets no longer instantiate DragHandler', () => {
   const offenders = fs.readdirSync(docsDir)
     .filter(file => file.endsWith('.js') && file !== 'figure.js')
     .filter(file => fs.readFileSync(path.join(docsDir, file), 'utf8').includes('new DragHandler'));
+  assert.deepEqual(offenders, []);
+});
+
+test('Production widgets use shared stroke width constants', () => {
+  const docsDir = path.resolve(__dirname, '..', 'docs');
+  const offenders = fs.readdirSync(docsDir)
+    .filter(file => file.endsWith('.js') && file !== 'figure.js')
+    .filter((file) => {
+      const source = fs.readFileSync(path.join(docsDir, file), 'utf8');
+      return /['"]stroke-width['"]\s*:\s*[0-9.]+/.test(source);
+    });
   assert.deepEqual(offenders, []);
 });
 

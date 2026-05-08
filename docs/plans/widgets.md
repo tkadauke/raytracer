@@ -24,7 +24,12 @@ preserving the existing Doxygen embedding model.
    clear one-off reason.
 6. **One lifecycle.** Widgets should be state-driven: render from current state,
    update state from controls/handles, then rerender through a shared helper.
-7. **US English spelling.** User-facing widget text, documentation, comments,
+7. **Shared stroke widths.** Use `FigureStrokeWidth`/`FigureGuideStrokeWidth`
+   for scene-coordinate widgets and
+   `FigurePixelStrokeWidth`/`FigurePixelGuideStrokeWidth` for pixel-coordinate
+   widgets. Do not add local numeric `stroke-width` values unless a diagram
+   needs a deliberately exceptional weight.
+8. **US English spelling.** User-facing widget text, documentation, comments,
    tests, and changelog entries should use US English spellings such as
    "color", "behavior", "labeled", and "gray".
 
