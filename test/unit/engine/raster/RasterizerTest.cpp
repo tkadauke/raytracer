@@ -24,9 +24,9 @@ namespace RasterizerTest {
   }
 
   // Counter helper — total pixels in the buffer NOT matching the
-  // background colour. The V1 rasterizer paints each face a hash
-  // colour; we don't predict the colour, only that something painted
-  // *some* pixels.
+  // background colour. The rasterizer shades from material albedo
+  // when available and falls back to a face hash otherwise; these
+  // tests only need to know that something painted *some* pixels.
   static int countNonBackground(const Buffer<Colord>& buffer, const Colord& bg) {
     int count = 0;
     for (int y = 0; y < buffer.height(); ++y)
@@ -118,8 +118,8 @@ namespace RasterizerTest {
     // — but the silhouette area is bounded by the sphere's actual
     // projected size, so the filled region grows toward but doesn't
     // exceed that bound. Looser invariant: high-LOD render fills at
-    // least as many pixels as low-LOD (V1 has no z-buffer so this
-    // is monotonic in practice; not a strict mathematical claim).
+    // least as many pixels as low-LOD for this centred sphere; not a
+    // strict mathematical claim for arbitrary scenes.
     auto scene = sceneWithSphere();
 
     Rasterizer engineLow(camera(), scene);
@@ -160,16 +160,15 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, ZBufferCullsOccludedGeometryAddedAfterTheOccluder) {
     // Scene 1: just a near sphere.
-    // Scene 2: the same near sphere added first (so its face indices
-    //          and hash colours match scene 1), plus a large box
+    // Scene 2: the same near sphere added first (so its fallback
+    //          face colours match scene 1), plus a large box
     //          rendered behind it. The box would overdraw the
-    //          sphere's centre pixels without depth-testing — V1
-    //          rasterizes faces in mesh order with no Z-buffer
-    //          rejection. With the Z-buffer, the box's centre pixels
-    //          fail the depth test and the sphere's colour stays.
+    //          sphere's centre pixels without depth-testing. With
+    //          the Z-buffer, the box's centre pixels fail the depth
+    //          test and the sphere's colour stays.
     //
-    // The sphere is added first in BOTH scenes, so its face indices
-    // (and therefore its hash colours) are identical. That makes
+    // The sphere is added first in BOTH scenes, so its fallback face
+    // colours are identical when no material is attached. That makes
     // pixel-equality at the centre a stable assertion — without the
     // depth test this expectation would fail.
 

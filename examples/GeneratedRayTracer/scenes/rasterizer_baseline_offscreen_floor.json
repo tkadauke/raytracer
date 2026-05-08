@@ -1,0 +1,88 @@
+{
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.03, 0.04, 0.06],
+  "children": [
+    {
+      "id": "{12000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0, -1.2, -5],
+      "target": [0, 0.35, 2],
+      "distance": 5,
+      "zoom": 1.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{12000000-0000-0000-0000-000000000002}",
+      "name": "Sun",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "color": [1, 1, 1],
+      "intensity": 1,
+      "direction": [-0.35, -0.9, -0.3],
+      "type": "DirectionalLight",
+      "children": []
+    },
+
+    { "id": "{12000000-0000-0000-0000-000000000010}", "name": "WhiteTex", "color": [0.95, 0.95, 0.9], "type": "ConstantColorTexture", "children": [] },
+    { "id": "{12000000-0000-0000-0000-000000000011}", "name": "DarkTex", "color": [0.05, 0.06, 0.08], "type": "ConstantColorTexture", "children": [] },
+    {
+      "id": "{12000000-0000-0000-0000-000000000012}",
+      "name": "CheckerTex",
+      "brightTexture": "{12000000-0000-0000-0000-000000000010}",
+      "darkTexture": "{12000000-0000-0000-0000-000000000011}",
+      "type": "CheckerBoardTexture",
+      "children": []
+    },
+    { "id": "{12000000-0000-0000-0000-000000000013}", "name": "RedTex", "color": [1.0, 0.15, 0.1], "type": "ConstantColorTexture", "children": [] },
+    { "id": "{12000000-0000-0000-0000-000000000014}", "name": "BlueTex", "color": [0.2, 0.35, 1.0], "type": "ConstantColorTexture", "children": [] },
+
+    { "id": "{12000000-0000-0000-0000-000000000020}", "name": "FloorMat", "diffuseTexture": "{12000000-0000-0000-0000-000000000012}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "type": "MatteMaterial", "children": [] },
+    { "id": "{12000000-0000-0000-0000-000000000021}", "name": "RedMat", "diffuseTexture": "{12000000-0000-0000-0000-000000000013}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "type": "MatteMaterial", "children": [] },
+    { "id": "{12000000-0000-0000-0000-000000000022}", "name": "BlueMat", "diffuseTexture": "{12000000-0000-0000-0000-000000000014}", "ambientCoefficient": 1, "diffuseCoefficient": 1, "type": "MatteMaterial", "children": [] },
+
+    {
+      "id": "{12000000-0000-0000-0000-000000000030}",
+      "name": "HugeFloor",
+      "position": [0, 1.15, 20],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "material": "{12000000-0000-0000-0000-000000000020}",
+      "size": [300, 0.1, 300],
+      "bevelRadius": 0,
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "{12000000-0000-0000-0000-000000000031}",
+      "name": "NearSphere",
+      "position": [0, 0.1, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "material": "{12000000-0000-0000-0000-000000000021}",
+      "radius": 0.8,
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{12000000-0000-0000-0000-000000000032}",
+      "name": "BackWall",
+      "position": [0, 0.25, 8],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "material": "{12000000-0000-0000-0000-000000000022}",
+      "size": [4, 2, 0.1],
+      "bevelRadius": 0,
+      "type": "Box",
+      "children": []
+    }
+  ],
+  "id": "{12000000-0000-0000-0000-000000000000}",
+  "name": "Rasterizer Baseline - Offscreen Floor",
+  "type": "Scene"
+}

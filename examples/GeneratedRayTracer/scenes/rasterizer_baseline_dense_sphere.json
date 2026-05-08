@@ -1,0 +1,60 @@
+{
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.03, 0.04, 0.06],
+  "children": [
+    {
+      "id": "{10000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0, 0, -6],
+      "target": [0, 0, 0],
+      "distance": 5,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000002}",
+      "name": "Sun",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "color": [1, 1, 1],
+      "intensity": 1,
+      "direction": [-0.45, -0.8, -0.4],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000010}",
+      "name": "SphereTex",
+      "color": [0.95, 0.42, 0.18],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000020}",
+      "name": "SphereMat",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 1,
+      "diffuseCoefficient": 1,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000030}",
+      "name": "DenseSphere",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000000020}",
+      "radius": 1,
+      "type": "Sphere",
+      "children": []
+    }
+  ],
+  "id": "{10000000-0000-0000-0000-000000000000}",
+  "name": "Rasterizer Baseline - Dense Sphere",
+  "type": "Scene"
+}

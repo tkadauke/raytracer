@@ -72,3 +72,62 @@
     - Keep as an educational comparison.
     - Do not prioritize it ahead of homogeneous clipping because the current
       scissor path is already fast and correct.
+
+---
+
+## Task 1 baseline suite
+
+Canonical scenes live under `examples/GeneratedRayTracer/scenes/`:
+
+- `rasterizer_baseline_dense_sphere.json` — one material-backed sphere. Run
+  at high `--lod` to stress tessellation, projection caching, near-plane
+  clipping setup, and the triangle loop without scene-composition noise.
+- `rasterizer_baseline_materials.json` — checker floor, sphere, box, and
+  torus with explicit `MatteMaterial` albedos. Catches regressions where the
+  rasterizer falls back to face hashes instead of preserving materials.
+- `rasterizer_baseline_offscreen_floor.json` — huge floor plus foreground and
+  background geometry. Catches regressions in framebuffer clipping and
+  Z-buffer behavior on projected triangles whose bounding boxes extend far
+  outside the image.
+
+Build the renderer before timing:
+
+```sh
+cmake --build --preset release --target rendercli --parallel
+```
+
+Use `/usr/bin/time -p` so measurements are easy to paste into
+`CHANGELOG.md`:
+
+```sh
+/usr/bin/time -p build/release/tools/rendercli/rendercli \
+  --engine raster --width 640 --height 480 --lod 8 \
+  examples/GeneratedRayTracer/scenes/rasterizer_baseline_dense_sphere.json \
+  /tmp/rasterizer-dense-sphere.png
+
+/usr/bin/time -p build/release/tools/rendercli/rendercli \
+  --engine raster --width 640 --height 480 --lod 3 \
+  examples/GeneratedRayTracer/scenes/rasterizer_baseline_materials.json \
+  /tmp/rasterizer-materials.png
+
+/usr/bin/time -p build/release/tools/rendercli/rendercli \
+  --engine raster --width 1920 --height 1080 --lod 0 \
+  examples/GeneratedRayTracer/scenes/rasterizer_baseline_offscreen_floor.json \
+  /tmp/rasterizer-offscreen-floor.png
+
+/usr/bin/time -p build/release/tools/rendercli/rendercli \
+  --engine raster --width 640 --height 480 --lod 8 \
+  --threads 8 --queue_size 16 \
+  examples/GeneratedRayTracer/scenes/rasterizer_baseline_dense_sphere.json \
+  /tmp/rasterizer-dense-sphere-tiled.png
+```
+
+Measurement rules:
+
+- Record the machine/date, commit, command, `real`, `user`, and `sys`.
+- Keep single-tile and tiled results separate; tiled correctness exists today,
+  but tiled speed is not expected to win until later raster stages add more
+  per-pixel work.
+- If a rasterizer performance change lands, update this section only when the
+  command set changes; put the actual before/after measurements in
+  `CHANGELOG.md`.

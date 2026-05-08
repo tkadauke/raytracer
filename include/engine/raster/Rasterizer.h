@@ -34,24 +34,25 @@ namespace engine::raster {
   *        when applied to `1/z` and inverted).
   *      - Interpolate the vertex normal and world position, again
   *        perspective-correct.
-  *      - Apply Lambertian shading: `scene.ambient × ambientCoeff +
-  *        Σ_lights faceColor × light.radiance × max(0, n · light.dir)`.
+  *      - Recover a diffuse albedo from the primitive's
+  *        `MatteMaterial` texture when possible, otherwise fall back
+  *        to a stable per-face colour hash.
+  *      - Apply Lambertian shading: `scene.ambient × ambientCoeff ×
+  *        albedo + Σ_lights albedo × light.radiance × max(0, n · light.dir)`.
   *      - Write the shaded colour iff the new depth beats the
   *        existing Z-buffer cell.
   *
-  * Each face is coloured by an index hash rather than the
-  * primitive's material — recovering per-primitive material from the
-  * merged mesh requires either UV-interpolated texture sampling or a
-  * primitive-tracking path through the tessellation. The hash
-  * approach gives recognisably-shaded objects (the unlit side is
-  * dim, the lit side bright) without the material-tracking
-  * complexity. Replacing the hash with material albedo is a future
-  * improvement.
+  * The rasterizer walks leaf primitives directly, preserving each
+  * primitive's effective material before tessellation. Matte diffuse
+  * textures therefore shade with their material albedo today, while
+  * primitives with no usable diffuse texture still receive a stable
+  * per-face fallback colour so missing materials remain visible.
   *
   * Triangles that straddle the near plane are clipped in eye space
   * before projection so their visible portion can still render.
   * Backface culling is pending; the rasterizer currently shades both
-  * sides of every triangle.
+  * sides of every triangle. It does not trace shadow rays; lights are
+  * direct Lambertian contributions only.
   *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
