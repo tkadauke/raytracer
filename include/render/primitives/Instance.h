@@ -90,6 +90,20 @@ namespace render {
       * did before motion blur was added. Rotation and scale
       * animation are not supported in this first pass — only linear
       * translation.
+      *
+      * The interactive figure below shows the same primitive sampled
+      * at several shutter times. Drag the velocity endpoint to change
+      * the path, scrub the shutter-time slider to see the instantaneous
+      * position, and switch between regular and stochastic sampling to
+      * see why time is just another sample dimension: a non-zero
+      * linear velocity turns one static primitive into many
+      * time-offset intersection tests that are averaged into the
+      * ghosted silhouette.
+      *
+      * @htmlonly
+      * <script type="text/javascript" src="figure.js"></script>
+      * <script type="text/javascript" src="motion_blur_time_sampling.js"></script>
+      * @endhtmlonly
       */
     void setVelocity(const Vector3d& velocity);
 

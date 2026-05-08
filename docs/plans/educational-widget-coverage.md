@@ -130,7 +130,9 @@ images cannot show directly.
    - Teaches: regular vs jittered vs random sampling, stratification, and why
      extra camera dimensions should not reuse the exact same 2D pattern.
 
-5. **Motion blur time sampling**
+5. ~~**Motion blur time sampling**~~ ✅ **Done.** `motion_blur_time_sampling.js`
+   embeds the shutter-time sampling diagram in `Instance::setVelocity`, with a
+   world-side pointer from `Surface::setVelocity`.
    - Targets: `include/world/objects/Surface.h`,
      `include/render/primitives/Instance.h`.
    - Widget: object path over shutter time, sampled positions, and accumulated
