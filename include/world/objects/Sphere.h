@@ -7,8 +7,11 @@
 /**
   * Represents a sphere primitive.
   *
-  * @image html sphere.png "Sphere with origin (0, 0, 0) and radius 1"
-  * @image html sphere_wireframe.png "Sphere rendered through Wireframe"
+  * <table><tr>
+  * <td>@image html sphere__raytracer.png "Raytracer"</td>
+  * <td>@image html sphere__raster.png "Rasterizer"</td>
+  * <td>@image html sphere__wireframe.png "Wireframe"</td>
+  * </tr></table>
   */
 class Sphere : public Surface {
   Q_OBJECT;

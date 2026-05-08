@@ -526,6 +526,7 @@ namespace :docs do
     fail "No rendered images found under docs/images; run `rake docs:render` first" if images.empty?
 
     FileUtils.mkdir_p("docs/html")
+    FileUtils.rm_rf(DOC_IMAGE_GALLERY_ASSET_DIR)
     FileUtils.mkdir_p(DOC_IMAGE_GALLERY_ASSET_DIR)
     FileUtils.cp(images, DOC_IMAGE_GALLERY_ASSET_DIR)
     write_docs_image_gallery(DOC_IMAGE_GALLERY_PATH, images)

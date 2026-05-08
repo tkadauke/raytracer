@@ -10,7 +10,11 @@
   * the centre. The hole points along the local +y axis; rotate via
   * the inherited `rotation` property to lay it flat.
   *
-  * @image html torus_wireframe.png "Torus rendered through Wireframe"
+  * <table><tr>
+  * <td>@image html torus__raytracer.png "Raytracer"</td>
+  * <td>@image html torus__raster.png "Rasterizer"</td>
+  * <td>@image html torus__wireframe.png "Wireframe"</td>
+  * </tr></table>
   */
 class Torus : public Surface {
   Q_OBJECT;

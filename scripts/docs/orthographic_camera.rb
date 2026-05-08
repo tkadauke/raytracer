@@ -1,4 +1,4 @@
-class_doc(engines: [:raytracer, :raster]) do
+class_doc(engines: [:raytracer, :raster, :wireframe]) do
   name "orthographic_camera_cube"
   camera_scene
   orthographic_camera :position => [0, -1, -3]

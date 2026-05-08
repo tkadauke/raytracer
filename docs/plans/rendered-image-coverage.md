@@ -34,45 +34,38 @@ current gaps.
   `world::` wrapper headers must reference the actual generated image
   names.
 
+## Completed Coverage Passes
+
+- Fixed stale unsuffixed image references in the `world::` wrappers
+  for `Box`, `Sphere`, `MatteMaterial`, `PhongMaterial`,
+  `ReflectiveMaterial`, `TransparentMaterial`, `PinholeCamera`, and
+  `OrthographicCamera`.
+- Added class-level Raytracer and Rasterizer render drivers for
+  `OpenCylinder`, `Disk`, `Triangle`, `Rectangle`, and `Torus`, while
+  rendering Wireframe through the same multi-engine `class_doc`
+  blocks.
+- Added Wireframe class images for `PinholeCamera` and
+  `OrthographicCamera`.
+- Normalized supported-engine class tables for `Box`, `Sphere`, and
+  `Cylinder` so the `__wireframe` image is generated and presented
+  alongside the Raytracer and Rasterizer images.
+- `rake check:doc-images` now passes with all `@image html`
+  references backed by files under `docs/images`.
+
 ## Current Gaps
 
-### Broken image references
+### Material coverage
 
-`rake check:doc-images` currently fails because several headers still
-reference old unsuffixed class image names after the
-raytracer/rasterizer comparison images were introduced:
+- `PortalMaterial` has no rendered documentation image. It is a
+  runtime-only material today, so adding coverage needs a doc-render
+  DSL path or a small bespoke render driver. Raytracer should be the
+  first image; Rasterizer has no portal semantics and should be
+  skipped or shown only as an explicit limitation comparison.
+- Wireframe material renders are intentionally absent because
+  Wireframe ignores material shading.
 
-- `box.png` from `include/world/objects/Box.h`
-- `matte_material_red.png` from `include/world/objects/MatteMaterial.h`
-- `orthographic_camera_cube.png` from
-  `include/world/objects/OrthographicCamera.h`
-- `phong_material_red.png` from
-  `include/world/objects/PhongMaterial.h`
-- `pinhole_camera_cube.png` from
-  `include/render/cameras/PinholeCamera.h` and
-  `include/world/objects/PinholeCamera.h`
-- `reflective_material_red.png` from
-  `include/world/objects/ReflectiveMaterial.h`
-- `sphere.png` from `include/world/objects/Sphere.h`
-- `transparent_material.png` from
-  `include/world/objects/TransparentMaterial.h`
+### Deferred engine coverage
 
-The same lint run reports
-`pinhole_camera_cube__raytracer.png` and
-`pinhole_camera_cube__raster.png` as orphan PNGs because the Pinhole
-headers still point at `pinhole_camera_cube.png`.
-
-### Primitive and surface coverage
-
-- `OpenCylinder`, `Disk`, `Triangle`, `Rectangle`, and `Torus` have
-  Wireframe images only. They need class-level Raytracer and
-  Rasterizer renders because they have ray intersections, world
-  wrappers, and non-empty `tessellate()` implementations.
-- `Box`, `Sphere`, and `Cylinder` have the needed Raytracer,
-  Rasterizer, and Wireframe images, but the references are not
-  normalized. `Box` and `Sphere` still have stale `world::` wrapper
-  references, and all three split Wireframe out instead of presenting
-  the default class image as a consistent engine comparison.
 - `Ring` is raytracer-only. This is not a current coverage gap:
   its default shape is built from `Difference`, and CSG tessellation
   is not implemented.
@@ -83,31 +76,6 @@ headers still point at `pinhole_camera_cube.png`.
   Rasterizer and Wireframe coverage should wait until scripted
   surfaces and the CSG-heavy scripts they use can produce useful
   tessellated meshes.
-
-### Material coverage
-
-- `MatteMaterial`, `PhongMaterial`, `ReflectiveMaterial`, and
-  `TransparentMaterial` already have Raytracer and Rasterizer class
-  images in the runtime headers, but the corresponding `world::`
-  wrapper headers still reference stale unsuffixed names.
-- `PortalMaterial` has no rendered documentation image. It is a
-  runtime-only material today, so adding coverage needs a doc-render
-  DSL path or a small bespoke render driver. Raytracer should be the
-  first image; Rasterizer has no portal semantics and should be
-  skipped or shown only as an explicit limitation comparison.
-- Wireframe material renders are intentionally absent because
-  Wireframe ignores material shading.
-
-### Camera coverage
-
-- `PinholeCamera` has generated Raytracer and Rasterizer images, but
-  the headers reference the stale unsuffixed name. It also needs a
-  Wireframe class image because Wireframe can project Pinhole camera
-  points.
-- `OrthographicCamera` has generated Raytracer and Rasterizer images,
-  but its `world::` wrapper references the stale unsuffixed name. It
-  also needs a Wireframe class image because Wireframe can project
-  Orthographic camera points.
 - `FishEyeCamera`, `SphericalCamera`, and `EquirectangularCamera` are
   raytracer-only. That is expected until they implement a forward
   projection suitable for Rasterizer or Wireframe.

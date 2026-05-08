@@ -7,7 +7,10 @@
   * Reflective materials describe shiny objects like polished metal or
   * mirrors.
   *
-  * @image html reflective_material_red.png "Reflective material"
+  * <table><tr>
+  * <td>@image html reflective_material_red__raytracer.png "Raytracer"</td>
+  * <td>@image html reflective_material_red__raster.png "Rasterizer"</td>
+  * </tr></table>
   */
 class ReflectiveMaterial : public PhongMaterial {
   Q_OBJECT;

@@ -8,18 +8,20 @@ namespace render {
     * @brief An orthographic camera projects the scene orthographically
     *        onto the view plane.
     *
-    * Same camera and scene through both engines — note how the
+    * Same camera and scene through the supported engines — note how the
     * orthographic projection's lack of perspective foreshortening
-    * is faithfully preserved by both:
+    * is faithfully preserved:
     *
     * <table>
     *   <tr>
     *     <th>Raytracer</th>
     *     <th>Software rasterizer</th>
+    *     <th>Wireframe</th>
     *   </tr>
     *   <tr>
     *     <td>@image html orthographic_camera_cube__raytracer.png ""</td>
     *     <td>@image html orthographic_camera_cube__raster.png ""</td>
+    *     <td>@image html orthographic_camera_cube__wireframe.png ""</td>
     *   </tr>
     * </table>
     */

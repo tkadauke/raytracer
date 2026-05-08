@@ -15,10 +15,12 @@ namespace render {
     *   <tr>
     *     <th>Raytracer</th>
     *     <th>Software rasterizer</th>
+    *     <th>Wireframe</th>
     *   </tr>
     *   <tr>
     *     <td>@image html box__raytracer.png ""</td>
     *     <td>@image html box__raster.png ""</td>
+    *     <td>@image html box__wireframe.png ""</td>
     *   </tr>
     * </table>
     */
@@ -59,7 +61,7 @@ namespace render {
       * UVs differ per face; sharing would require splitting on
       * texture seams anyway.
       *
-      * @image html box_wireframe.png "Box rendered through Wireframe"
+      * @image html box__wireframe.png "Box rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

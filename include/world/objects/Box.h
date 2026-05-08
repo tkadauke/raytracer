@@ -7,8 +7,11 @@
 /**
   * Represents a box primitive.
   *
-  * @image html box.png "Box with origin (0, 0, 0) and size (1, 1, 1)"
-  * @image html box_wireframe.png "Box rendered through Wireframe"
+  * <table><tr>
+  * <td>@image html box__raytracer.png "Raytracer"</td>
+  * <td>@image html box__raster.png "Rasterizer"</td>
+  * <td>@image html box__wireframe.png "Wireframe"</td>
+  * </tr></table>
   */
 class Box : public Surface {
   Q_OBJECT;

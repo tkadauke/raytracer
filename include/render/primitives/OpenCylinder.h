@@ -5,6 +5,16 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * Open cylinder side surface, rendered through the engines that
+    * support it:
+    *
+    * <table><tr>
+    * <td>@image html open_cylinder__raytracer.png "Raytracer"</td>
+    * <td>@image html open_cylinder__raster.png "Rasterizer"</td>
+    * <td>@image html open_cylinder__wireframe.png "Wireframe"</td>
+    * </tr></table>
+    */
   class OpenCylinder : public Primitive {
   public:
     /**
@@ -51,7 +61,7 @@ namespace render {
       * <script type="text/javascript" src="open_cylinder_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html open_cylinder_wireframe.png "OpenCylinder rendered through Wireframe"
+      * @image html open_cylinder__wireframe.png "OpenCylinder rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

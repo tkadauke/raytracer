@@ -4,6 +4,16 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * Finite disk primitive, rendered through the engines that support
+    * it:
+    *
+    * <table><tr>
+    * <td>@image html disk__raytracer.png "Raytracer"</td>
+    * <td>@image html disk__raster.png "Rasterizer"</td>
+    * <td>@image html disk__wireframe.png "Wireframe"</td>
+    * </tr></table>
+    */
   class Disk : public Primitive {
   public:
     inline explicit Disk(const Vector3d& center, const Vector3d& normal, double radius)
@@ -41,7 +51,7 @@ namespace render {
       * <script type="text/javascript" src="disk_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html disk_wireframe.png "Disk rendered through Wireframe"
+      * @image html disk__wireframe.png "Disk rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

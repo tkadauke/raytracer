@@ -12,7 +12,10 @@
   * It is a combination of ambient and diffuse shading, with the addition of
   * small intense specular highlights.
   *
-  * @image html phong_material_red.png "Phong material"
+  * <table><tr>
+  * <td>@image html phong_material_red__raytracer.png "Raytracer"</td>
+  * <td>@image html phong_material_red__raster.png "Rasterizer"</td>
+  * </tr></table>
   */
 class PhongMaterial : public MatteMaterial {
   Q_OBJECT;

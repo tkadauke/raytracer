@@ -7,7 +7,11 @@
   * Pinhole cameras produce a perspective projection of the scene onto the
   * view plane.
   * 
-  * @image html pinhole_camera_cube.png "Pinhole with distance=5 and zoom=1"
+  * <table><tr>
+  * <td>@image html pinhole_camera_cube__raytracer.png "Raytracer"</td>
+  * <td>@image html pinhole_camera_cube__raster.png "Rasterizer"</td>
+  * <td>@image html pinhole_camera_cube__wireframe.png "Wireframe"</td>
+  * </tr></table>
   */
 class PinholeCamera : public Camera {
   Q_OBJECT;

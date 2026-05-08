@@ -9,7 +9,10 @@ class Texture;
   * Matte materials have no reflection, or transmission. As the name suggests,
   * they appear matte.
   *
-  * @image html matte_material_red.png "Matte material with red constant texture"
+  * <table><tr>
+  * <td>@image html matte_material_red__raytracer.png "Raytracer"</td>
+  * <td>@image html matte_material_red__raster.png "Rasterizer"</td>
+  * </tr></table>
   */
 class MatteMaterial : public Material {
   Q_OBJECT;

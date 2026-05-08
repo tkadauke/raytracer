@@ -10,7 +10,10 @@
   * index](https://en.wikipedia.org/wiki/Refractive_index) describes how light
   * propagates through the medium.
   *
-  * @image html transparent_material.png "Transparent material"
+  * <table><tr>
+  * <td>@image html transparent_material__raytracer.png "Raytracer"</td>
+  * <td>@image html transparent_material__raster.png "Rasterizer"</td>
+  * </tr></table>
   */
 class TransparentMaterial : public PhongMaterial {
   Q_OBJECT;

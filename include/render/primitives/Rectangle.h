@@ -4,6 +4,16 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * Finite rectangle primitive, rendered through the engines that
+    * support it:
+    *
+    * <table><tr>
+    * <td>@image html rectangle__raytracer.png "Raytracer"</td>
+    * <td>@image html rectangle__raster.png "Rasterizer"</td>
+    * <td>@image html rectangle__wireframe.png "Wireframe"</td>
+    * </tr></table>
+    */
   class Rectangle : public Primitive {
   public:
     inline explicit Rectangle(const Vector3d& corner, const Vector3d& leg1, const Vector3d& leg2)
@@ -31,7 +41,7 @@ namespace render {
       * corner at (0,0), corner+leg1 at (1,0), corner+leg1+leg2 at (1,1), and
       * corner+leg2 at (0,1). The @p lod parameter is ignored.
       *
-      * @image html rectangle_wireframe.png "Rectangle rendered through Wireframe"
+      * @image html rectangle__wireframe.png "Rectangle rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const;
 

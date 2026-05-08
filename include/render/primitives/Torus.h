@@ -4,6 +4,15 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * Torus primitive, rendered through the engines that support it:
+    *
+    * <table><tr>
+    * <td>@image html torus__raytracer.png "Raytracer"</td>
+    * <td>@image html torus__raster.png "Rasterizer"</td>
+    * <td>@image html torus__wireframe.png "Wireframe"</td>
+    * </tr></table>
+    */
   class Torus : public Primitive {
   public:
     inline explicit Torus(double sweptRadius, double tubeRadius)
@@ -49,7 +58,7 @@ namespace render {
       * <script type="text/javascript" src="torus_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html torus_wireframe.png "Torus rendered through Wireframe"
+      * @image html torus__wireframe.png "Torus rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

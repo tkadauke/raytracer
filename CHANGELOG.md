@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rendered docs engine coverage.** Class-level docs now include supported-engine render coverage for `OpenCylinder`, `Disk`, `Triangle`, `Rectangle`, `Torus`, `PinholeCamera`, and `OrthographicCamera`, primitive Wireframe images are generated through the same multi-engine `class_doc` suffix convention, and stale unsuffixed image references in the `world::` wrappers were updated so `rake check:doc-images` passes again. — GPT-5
 - **Rendered documentation image gallery.** `rake docs:images` now writes `docs/html/rendered-images.html`, a standalone filterable page containing every rendered documentation image copied from `docs/images` for bulk visual review. — GPT-5
 - **Rasterizer perspective UV widget shared controls.** `rasterizer_perspective_uv.js` now uses the shared ES6 widget lifecycle, `FigureSvg`, and `FigureSliderControl`; the right-edge depth remains a scalar slider while the UV grid rendering shares the same container and styling path as the other migrated rasterizer widgets. — GPT-5
 - **Rasterizer pipeline widget shared primitives.** `rasterizer_pipeline.js` now follows the same ES6 class/shared-widget primitive pattern as the migrated MSAA and clipping widgets while preserving its three draggable triangle vertices, barycentric readout, and barycentric-vs-UV color control. — GPT-5
@@ -46,6 +47,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Rendered image gallery stale asset cleanup.** `rake docs:images` now clears the copied `docs/html/rendered-images` assets before recopying from `docs/images`, so renamed or removed rendered images no longer linger in the gallery output. — GPT-5
 - **Documentation widget interaction instructions.** Doxygen comments, widget source comments, and contributor docs now describe the current interaction model: sliders for scalar values, visible drag handles for spatial values, and no hidden whole-widget drag gestures. — GPT-5
 - **Documentation widget label overlaps.** The thin-lens convergence, thin-lens disk sampling, tilt-shift Scheimpflug, and tonemap curve widgets now place labels outside their dense diagram areas so the widget gallery does not show clipped or overlapping text. — GPT-5
 - **Widget gallery pointer mapping now matches responsive SVG layout.** `FigureSvg.pointFromEvent` maps browser pointer coordinates through the rendered SVG rectangle and `preserveAspectRatio` letterbox offsets, and the rasterizer pipeline widget now uses that shared mapping for its hover cursor. The generated widget gallery also cache-busts widget script URLs so rebuilt frames do not keep stale interaction code. Tests cover both SVG transform mapping and gallery-style letterboxing. — GPT-5

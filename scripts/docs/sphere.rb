@@ -1,4 +1,4 @@
-class_doc(engines: [:raytracer, :raster]) do
+class_doc(engines: [:raytracer, :raster, :wireframe]) do
   name "sphere"
   object_scene
   sphere :material => red_matte

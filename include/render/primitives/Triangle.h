@@ -4,6 +4,16 @@
 #include "core/math/Vector.h"
 
 namespace render {
+  /**
+    * Single triangle primitive, rendered through the engines that
+    * support it:
+    *
+    * <table><tr>
+    * <td>@image html triangle__raytracer.png "Raytracer"</td>
+    * <td>@image html triangle__raster.png "Rasterizer"</td>
+    * <td>@image html triangle__wireframe.png "Wireframe"</td>
+    * </tr></table>
+    */
   class Triangle : public Primitive {
   public:
     inline explicit Triangle(const Vector3d& a, const Vector3d& b, const Vector3d& c)
@@ -23,7 +33,7 @@ namespace render {
       * standard barycentric convention: vertex 0 at (0,0), vertex 1 at (1,0),
       * vertex 2 at (0,1). The @p lod parameter is ignored.
       *
-      * @image html triangle_wireframe.png "Triangle rendered through Wireframe"
+      * @image html triangle__wireframe.png "Triangle rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod) const;
 

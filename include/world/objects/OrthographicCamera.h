@@ -7,7 +7,11 @@
   * An orthographic camera projects the scene orthographically onto the view
   * plane.
   * 
-  * @image html orthographic_camera_cube.png "Orthographic camera with zoom=1"
+  * <table><tr>
+  * <td>@image html orthographic_camera_cube__raytracer.png "Raytracer"</td>
+  * <td>@image html orthographic_camera_cube__raster.png "Rasterizer"</td>
+  * <td>@image html orthographic_camera_cube__wireframe.png "Wireframe"</td>
+  * </tr></table>
   */
 class OrthographicCamera : public Camera {
   Q_OBJECT;

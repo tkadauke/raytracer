@@ -15,10 +15,12 @@ namespace render {
     *   <tr>
     *     <th>Raytracer</th>
     *     <th>Software rasterizer</th>
+    *     <th>Wireframe</th>
     *   </tr>
     *   <tr>
     *     <td>@image html sphere__raytracer.png ""</td>
     *     <td>@image html sphere__raster.png ""</td>
+    *     <td>@image html sphere__wireframe.png ""</td>
     *   </tr>
     * </table>
     *
@@ -74,7 +76,7 @@ namespace render {
       * <script type="text/javascript" src="sphere_tessellate.js"></script>
       * @endhtmlonly
       *
-      * @image html sphere_wireframe.png "Sphere rendered through Wireframe"
+      * @image html sphere__wireframe.png "Sphere rendered through Wireframe"
       */
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 

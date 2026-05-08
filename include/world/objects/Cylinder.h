@@ -13,14 +13,14 @@
   *   <tr>
   *     <th>Raytracer</th>
   *     <th>Software rasterizer</th>
+  *     <th>Wireframe</th>
   *   </tr>
   *   <tr>
   *     <td>@image html cylinder__raytracer.png ""</td>
   *     <td>@image html cylinder__raster.png ""</td>
+  *     <td>@image html cylinder__wireframe.png ""</td>
   *   </tr>
   * </table>
-  *
-  * @image html cylinder_wireframe.png "Cylinder rendered through Wireframe"
   */
 class Cylinder : public Surface {
   Q_OBJECT;
