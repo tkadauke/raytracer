@@ -338,6 +338,44 @@ test('Camera forward projection widget exposes projection controls', () => {
   assert.ok(text.includes('w ='), 'widget should show homogeneous w');
 });
 
+test('Transparent material refraction widget exposes IOR controls and TIR state', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'transparent_material_refraction.js'), 'utf8');
+  assert.ok(!/\n\s*(vector|length|normalize|dot)\([^)]*\)\s*\{/.test(source),
+    'transparent refraction widget should use figure.js Vector math helpers');
+
+  const body = loadWidget('transparent_material_refraction.js');
+  assert.equal(countElements(body, 'input'), 2,
+    'inner and outer IOR should be scalar sliders');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'incident-direction');
+  assert.equal(handles.length, 1,
+    'incident direction should be manipulated through a visible draggable handle');
+
+  const rays = elementsByTag(body, 'line')
+    .filter(line => line.attributes['data-ray'])
+    .map(line => line.attributes['data-ray']);
+  assert.deepEqual(rays, ['incident', 'reflected', 'refracted'],
+    'default non-TIR state should draw incident, reflected, and refracted rays');
+
+  const criticalMarkers = elementsByTag(body, 'line')
+    .filter(line => line.attributes['data-critical-angle-marker']);
+  assert.equal(criticalMarkers.length, 2,
+    'higher inner IOR should draw both sides of the critical-angle marker');
+
+  const readouts = elementsByTag(body, 'text')
+    .filter(text => text.attributes['data-readout'])
+    .map(text => text.attributes['data-readout']);
+  assert.deepEqual(readouts, ['incident-angle', 'snell-law']);
+
+  const states = elementsByTag(body, 'text')
+    .filter(text => text.attributes['data-state'])
+    .map(text => text.attributes['data-state']);
+  assert.deepEqual(states, ['refracting']);
+  assert.ok(textContents(body).join(' ').includes('reflection and transmission split'),
+    'widget should name the reflection/transmission branch split');
+});
+
 test('Rasterizer clipping widget omits coordinate labels', () => {
   const body = loadWidget('rasterizer_clip_attributes.js');
   const text = textContents(body).join(' ');

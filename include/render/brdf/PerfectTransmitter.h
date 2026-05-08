@@ -4,6 +4,22 @@
 #include "core/math/Range.h"
 
 namespace render {
+  /**
+    * Perfect delta-transmission BTDF used by TransparentMaterial. It computes
+    * the single refracted direction from Snell's law and reports total
+    * internal reflection when the requested transmission angle has no real
+    * solution.
+    *
+    * The widget below shows the same geometric branch used by
+    * `sample()` and `totalInternalReflection()`: rays inside a higher-IOR
+    * medium bend away from the normal as they exit, and beyond the critical
+    * angle the transmitted branch disappears entirely.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="transparent_material_refraction.js"></script>
+    * @endhtmlonly
+    */
   class PerfectTransmitter : public BTDF {
   public:
     inline PerfectTransmitter()

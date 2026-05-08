@@ -29,7 +29,7 @@ alone.
 These explain behavior that is visible in rendered docs but hard to understand
 from still images.
 
-1. **Transparent material refraction and total internal reflection**
+1. ~~**Transparent material refraction and total internal reflection**~~ ✅ **Done.** Added `transparent_material_refraction.js` and embedded it in the runtime transparent material and perfect transmitter docs, with controls for incident direction, inner/outer IOR, critical-angle markers, and total-internal-reflection state.
    - Targets: `include/render/materials/TransparentMaterial.h`,
      `include/render/brdf/PerfectTransmitter.h`.
    - Widget: incident ray, surface normal, reflected ray, refracted ray, IOR
