@@ -308,6 +308,28 @@ test('Texture coordinate mapping widget exposes mapping controls and lookup stat
     'widget should show the checker parity formula');
 });
 
+test('Camera forward projection widget exposes projection controls', () => {
+  const body = loadWidget('camera_forward_projection.js');
+  assert.equal(countElements(body, 'button'), 2,
+    'camera projection widget should toggle pinhole and orthographic modes');
+  assert.equal(countElements(body, 'input'), 0,
+    'world point position should use a draggable handle instead of scalar sliders');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'world-point');
+  assert.equal(handles.length, 1,
+    'widget should expose one visible draggable world point');
+
+  const projectedPixels = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-projected-pixel'] === 'true');
+  assert.equal(projectedPixels.length, 1,
+    'widget should mark the projected pixel on the view plane');
+
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('clip space'), 'widget should label the clip-space readout');
+  assert.ok(text.includes('w ='), 'widget should show homogeneous w');
+});
+
 test('Rasterizer clipping widget omits coordinate labels', () => {
   const body = loadWidget('rasterizer_clip_attributes.js');
   const text = textContents(body).join(' ');

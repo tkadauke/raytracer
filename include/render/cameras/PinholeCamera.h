@@ -71,6 +71,9 @@ namespace render {
       * the positive eye-relative depth. Points behind the eye return
       * finite clip coordinates with `w <= 0` so the rasterizer can
       * clip edges before the perspective divide.
+      *
+      * @see Camera::projectPointToClipSpace for an interactive
+      *      comparison with orthographic projection.
       */
     virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
 

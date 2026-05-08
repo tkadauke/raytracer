@@ -144,7 +144,10 @@ images cannot show directly.
 
 These are useful follow-ups once the core rendering and sampling widgets exist.
 
-1. **Forward projection and clip-space depth**
+1. ~~**Forward projection and clip-space depth**~~ ✅ **Done.** Added
+   `camera_forward_projection.js` and embedded it beside
+   `Camera::projectPointToClipSpace`, with pinhole/orthographic controls and
+   tests.
    - Targets: `include/render/cameras/Camera.h`,
      `include/render/cameras/PinholeCamera.h`,
      `include/render/cameras/OrthographicCamera.h`.
