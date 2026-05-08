@@ -117,7 +117,7 @@ images cannot show directly.
    - Teaches: the same pixels can be rendered in different orders, and
      progressive previews benefit from early whole-frame coverage.
 
-4. **Sampler patterns and sample streams**
+4. ~~**Sampler patterns and sample streams**~~ ✅ **Done.** Added `sampler_streams.js` with sampler-pattern and independent-dimension controls, embedded from `Sampler` docs.
    - Targets: `include/render/samplers/Sampler.h`,
      `include/render/samplers/RegularSampler.h`,
      `include/render/samplers/JitteredSampler.h`,

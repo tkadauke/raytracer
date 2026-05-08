@@ -6,7 +6,9 @@
 namespace render {
   /**
     * Samples the pixels in a regular grid, but each ray is displaced by a
-    * random amount within its own cell.
+    * random amount within its own cell. The grid still gives each stratum
+    * one sample; see `Sampler` for the interactive sampler-stream widget
+    * that compares regular, jittered, and random sample dimensions.
     * 
     * <table><tr>
     * <td>@image html jittered_sampler_spp_1.png "samplesPerPixel=1"</td>

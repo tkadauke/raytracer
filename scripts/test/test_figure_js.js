@@ -419,6 +419,36 @@ test('Rasterizer pipeline widget uses draggable vertex handles', () => {
     'pipeline triangle should keep its three visible draggable vertices');
 });
 
+test('Sampler streams widget exposes sampler and dimension controls', () => {
+  const body = loadWidget('sampler_streams.js');
+  const text = textContents(body).join(' ');
+
+  assert.equal(countElements(body, 'button'), 9,
+    'sampler widget should expose sampler type, sample count, and dimension mode controls');
+  assert.equal(countElements(body, 'input'), 0,
+    'sampler widget should use segmented controls for discrete choices');
+  assert.ok(text.includes('pixel jitter'), 'widget should label the pixel sample dimension');
+  assert.ok(text.includes('lens sample'), 'widget should label the lens sample dimension');
+  assert.ok(text.includes('shutter time'), 'widget should label the shutter-time sample dimension');
+  assert.ok(text.includes('different pre-baked set'),
+    'default view should explain independent stream dimensions');
+
+  const panels = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-sample-panel']);
+  assert.deepEqual(panels.map(r => r.attributes['data-sample-panel']),
+    ['pixel', 'pixel', 'lens', 'shutter-time']);
+
+  const sampleDots = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-sample-dot']);
+  assert.equal(sampleDots.length, 16 * 4,
+    'default 16-sample view should draw every sample in each panel');
+
+  const lensDots = sampleDots.filter(c => c.attributes['data-sample-dot'] === 'lens');
+  const shutterDots = sampleDots.filter(c => c.attributes['data-sample-dot'] === 'shutter-time');
+  assert.equal(lensDots.length, 16);
+  assert.equal(shutterDots.length, 16);
+});
+
 test('Farthest-point widgets use explicit angle sliders', () => {
   [
     'box_farthest_point.js',

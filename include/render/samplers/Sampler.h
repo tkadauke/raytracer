@@ -44,6 +44,11 @@ namespace render {
     * implement low-discrepancy sequences (Sobol, Halton, future
     * QMC samplers) will override `stream` to return a sequence-aware
     * stream rather than the default per-set look-up.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="sampler_streams.js"></script>
+    * @endhtmlonly
     */
   class Sampler {
   public:

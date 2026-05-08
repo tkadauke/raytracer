@@ -21,8 +21,10 @@ namespace render {
     *
     * Each call advances an internal dimension counter, so consecutive
     * pulls return *independently stratified* samples (modulo the
-    * concrete sampler's stratification scheme — see `Sampler::stream`
-    * for the default implementation).
+    * concrete sampler's stratification scheme). See `Sampler::stream`
+    * for the default implementation and the interactive sampler-stream
+    * widget that shows why pixel, lens, and shutter-time dimensions
+    * should not reuse the same 2D pattern.
     *
     * **Why a stream and not a struct?** A struct that names dimensions
     * (`{pixelJitter, lens, time}`) hard-codes the dimensions every
