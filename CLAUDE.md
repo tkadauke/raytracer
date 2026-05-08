@@ -129,7 +129,8 @@ If a change ships something that isn't in the roadmap and probably should be, ad
 ## Interactive documentation widgets
 
 Interactive JS widgets under `scripts/docs/*.js` should follow the rules in
-`docs/plans/widgets.md` and `scripts/README.md`:
+`scripts/README.md`. The completed modernization plan is archived at
+`docs/plans/complete/widgets.md`:
 
 - Spatial values that move (points, vertices, edge endpoints, ray origins) get
   visible draggable handles at the thing being moved.

@@ -1,10 +1,9 @@
-# Interactive Widget Modernization Plan
+# Completed Interactive Widget Modernization Plan
 
-The documentation widgets should feel like one coherent teaching tool, even
-when they explain different parts of the renderer. Today they are split across
-older `figure.js` canvas widgets, newer slider-based widgets, and custom raw SVG
-widgets. This plan standardizes them on an evolved `figure.js` library while
-preserving the existing Doxygen embedding model.
+This completed plan records the modernization pass that made the documentation
+widgets feel like one coherent teaching tool while preserving the existing
+Doxygen embedding model. The current rules for new and migrated widgets live in
+`scripts/README.md`.
 
 ## Principles
 
