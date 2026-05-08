@@ -238,12 +238,40 @@ Beyond the existing `Raytracer`, factor in (in suggested order):
 - **Software rasterizer.** Scanline + Z-buffer; runs on CPU; no GL dependency. Great for headless preview when the GL stack is unavailable. The educational version implements the textbook pipeline end-to-end: clipping (Sutherland-Hodgman), perspective-correct attribute interpolation, depth and stencil, vertex/fragment shading hooks. Current state ships an edge-function rasterizer (Pineda 1988) with eye-space near-plane Sutherland-Hodgman, perspective-correct depth + normal + worldPos interpolation, Lambertian shading, per-primitive material albedo, a scissor-rect viewport clip in `core::rasterizeTriangle`, and an opt-in tile-parallel `QThreadPool` path (`queueSize > 1`) that keeps default renders on the faster streaming single-tile path until tile binning wins on measured scenes. Two clip-pipeline upgrades are queued and worth implementing for the educational comparison rather than for any visual gain over the current state:
   - **Geometric polygon-clipping preprocessing** — replace the scissor-rect bbox-scan in `core::rasterizeTriangle` with a Sutherland-Hodgman clip of the input triangle against the four viewport edges, producing an on-screen polygon (3-7 vertices) which gets fan-triangulated and rasterized. Same algorithm we already use for the near plane, just applied four more times. The educational payoff is "here's the canonical 2D polygon clipper, here it is in 3D camera space, here's the unified clip-space variant." Real GPUs prefer the scissor-rect we have today (one bbox-scan vs N rasterizer calls) so this is purely a teaching artefact, not a perf win.
   - **Homogeneous (clip-space) clipping** — the textbook GPU pipeline. Clip in 4D *before* perspective divide; the same algorithm handles near-plane, far-plane, and viewport-edge clipping in one pass, and the post-clip vertex's `w` is finite so the divide is well-conditioned (today's "clipped vertex projection blows up screen coords past 32-bit int" issue disappears). Requires extending the camera API with a `projectPointToClipSpace(world) → Vector4d` returning the un-divided homogeneous coordinate, plus per-vertex `w` interpolation in the fragment loop. This is the V2 unification of `Camera::projectPoint` / `projectPointWithDepth` / `eyeRelativeDepth` into a single homogeneous output, and unblocks teaching "this is what the GPU actually does" with the same machinery.
+  - **Backface culling** — add a switchable culling stage before triangle setup, with front/back/both modes and tests that pin winding conventions across tessellated primitives. The default can stay two-sided until material-sidedness exists, but the rasterizer should be able to teach the canonical cull step and skip hidden triangle work in closed meshes.
+  - **Depth/stencil and shader hooks** — keep the current Z-buffer path as the baseline, then expose the textbook stages explicitly: depth func, optional depth writes, stencil ops, and tiny vertex/fragment shader interfaces over the mesh attributes already projected by the rasterizer.
+  - **Tile-parallel performance follow-up** — the opt-in tiled path is correct but currently slower on measured scenes. Keep it behind `queueSize > 1` until binning, work partitioning, and per-tile setup are cheap enough to beat the streaming single-tile path; track every change with `rendercli` measurements in the changelog.
+  - **Rasterizer anti-aliasing** — implement the AA ladder from §4.1.a, starting with MSAA for coverage/depth and a single resolve stage before moving to stochastic/TAA/post-process variants.
+  - **Frustum-culling integration** — once §R7 extracts a real `SpatialIndex`, feed the rasterizer from a frustum-cull-friendly view of the scene rather than traversing every tessellated mesh every frame.
+  - **Rasterized shadows** — add a shadow-map renderer after the depth/stencil path exists: directional-light shadow maps first, then PCF/PCSS and cascades for comparison with the raytracer's shadow rays.
 - **OpenGL viewport.** Real-time editor view. Tessellated meshes feed VBOs; GLSL shaders mirror the material library for live preview parity. Also unlocks gizmo rendering.
 - **WebGL / WebGPU preview.** The same scene rendered in a browser, served alongside the GitHub Pages docs. WebGL first (broadest support, simpler), WebGPU as a follow-up. Static-scene preview is the v1 target; web preview of *animations* (timeline scrubbing in the browser) is a stretch goal that lands after §4.7. This engine doubles as the canvas for the §4.0 interactive diagrams — the rendering engine and the explainer engine are the same code path.
 - **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile.
 - **GPU backends, eventually.** Vulkan compute, OptiX, or Metal. Templated math primitives port reasonably to CUDA. Massive undertaking; not a near-term priority.
 
 The "all engines over one scene" property is itself the pedagogical payoff — being able to render a single test scene through wireframe, software raster, OpenGL, WebGL, raytracer, and path tracer side-by-side teaches more about the rendering equation than any single engine ever could.
+
+#### 4.1.a Anti-aliasing and raster quality
+
+Anti-aliasing should be a cross-engine feature rather than a one-off rasterizer trick. The shared API is "sample pattern + reconstruction filter + resolve", with each backend choosing the parts it can implement:
+
+- **Camera supersampling baseline** — already natural for raytraced engines via samples-per-pixel; formalise regular, jittered, stratified, blue-noise, and Sobol sample patterns so visual comparisons use the same scenes and seeds.
+- **Reconstruction filters** — box, tent, Gaussian, Mitchell-Netravali, Lanczos, and Blackman-Harris, with weight accumulation in the float framebuffer and side-by-side renders that show blur, sharpness, and ringing.
+- **Rasterizer MSAA** — per-sample coverage/depth with per-fragment shading first, then per-sample shading as the expensive correctness mode. Resolve into the float framebuffer so tonemapping and postprocessing stay engine-agnostic.
+- **Post-process AA** — FXAA and SMAA for the OpenGL/WebGL preview path, because editor responsiveness sometimes matters more than ground-truth edge coverage.
+- **Temporal AA / TAAU** — jittered projection, history reprojection, neighbourhood clamping, and motion-vector AOV input. This depends on the AOV pipeline and the interactive display buffer work below.
+- **Transparency edge cases** — alpha-to-coverage, stochastic alpha, and stochastic transparency so foliage, hair, sprites, and partially transparent surfaces have an AA story.
+- **Conservative rasterization** — useful for voxelization, visibility masks, and procedural geometry; implement as its own rasterizer mode rather than folding it into ordinary MSAA.
+
+#### 4.1.b Interactive display buffers
+
+`RenderWidget` / GeneratedRaytracer currently expose progress by letting worker threads mutate a display buffer that the UI thread periodically copies into a `QImage`. That is simple and useful, but it mixes "render target" and "paintable snapshot" in one object. The long-term display pipeline should be explicit:
+
+- **Front/back display buffers** — workers render into a back buffer or tile-local staging buffer; the UI paints an immutable front buffer. Completed tiles or frames publish by swap, avoiding partial reads while a worker is writing.
+- **Dirty-tile publication** — engines report completed rectangles; the widget only converts/copies dirty tiles into the paintable `QImage` instead of rebuilding the full image every paint event.
+- **Progressive mode as a policy** — keep live partial rendering for raytracer previews, but let final-frame and screenshot paths require complete tile publication only.
+- **HDR/display split** — preserve the `Buffer<Colord>` accumulator for offline output while the display path owns LDR snapshots, tonemap timing, and optional progress overlays.
+- **Resize/cancel safety** — buffer swaps, render cancellation, and widget resize need a clear ownership protocol so GeneratedRaytracer can change scenes/cameras while long renders are stopping.
 
 ### 4.2 Primitives, meshes & computational geometry
 
@@ -307,19 +335,25 @@ Layered upgrade path, but the destination is the full list:
 
 - **Lambertian** (already there).
 - **Phong / Blinn-Phong** (already there) — kept as the legacy baseline and as the NPR entry point.
+- **Oren-Nayar rough diffuse** — the first "Lambert is an approximation" step; cheap, intuitive, and good for chalk, clay, unpolished stone, and fabric bases.
 - **GGX / Trowbridge-Reitz microfacet** (isotropic and anisotropic) — the modern workhorse.
 - **Cook-Torrance, Beckmann, GGX-VNDF** — comparative implementations, all behind the same BSDF interface.
 - **Disney Principled BSDF** — artist-friendly über-shader over a diffuse base.
 - **Smooth and rough dielectric** with proper Fresnel and nested-medium tracking.
 - **Conductors** (with full Fresnel from complex IOR — copper, gold, silver, aluminium, iron).
+- **Emission materials** — constant, textured, and mesh-emitter-backed surfaces, with the same material usable by the Whitted, raster, and path-tracing engines even if only the latter two can exploit every path.
+- **Thin surfaces** — thin glass, thin translucent sheets, leaves, paper, and two-sided materials; important because not every transparent object deserves full nested-medium volume handling.
 - **Layered materials** (clear coat over base; iridescence as a thin-film layer).
 - **Iridescence / thin-film interference** — proper interference, not a colour ramp.
+- **Car paint / metallic flakes** — base + flake + clearcoat model; a good stress test for layered BSDFs and material presets.
 - **Sheen / fabric BRDFs** (Charlie / ASM cloth).
 - **Hair / fur** (Marschner, Chiang).
 - **Subsurface scattering** — random-walk SSS in PT, Christensen-Burley for fast preview, BSSRDF for the textbook completeness; skin/jade/milk/wax tests.
 - **Volumetric participating media** (homogeneous + heterogeneous) — fog, smoke, clouds; Henyey-Greenstein and Mie phase functions.
 - **NPR shaders.** Toon/cel, Gooch (warm/cool), hatching, contour/silhouette extraction, halftone, Kuwahara. NPR is its own family — not "make the PBR pipeline look stylised" but a parallel pipeline with its own shading-normal logic.
 - **Spectral rendering** — replace RGB with wavelength sampling for correct dispersion, fluorescence, and (eventually) polarization. Big architectural change; lives at the end of this pillar.
+
+Pragmatic first wave: GGX conductor/dielectric, Oren-Nayar, emission, and a metallic/roughness material that maps cleanly to glTF. That gives the renderer modern-looking surfaces before the full Disney/layered/spectral catalog lands.
 
 #### 4.3.b Textures (a four-layer stack)
 
@@ -331,6 +365,15 @@ Textures are not just colour sources — they are the input to every shading par
 4. **Scripted textures.** Same DSL/scripting layer as §4.6's parametric objects. The user (or the AI agent) can write `(u, v, p, n) → colour` in a small language and drop it on a material slot. Hot-reload at edit time. This is where most of the "I want to try X" experiments happen; making it first-class is what keeps them from leaking into the C++ codebase.
 
 Texture inputs feed *any* material parameter — albedo, roughness, metallic, IOR, normal, displacement, emission, subsurface radius, sheen colour, etc. — through a common `Sampler2D<T>` interface.
+
+The texture-mapping roadmap is separate from the texture-source roadmap:
+
+- **UV mapping first** — carry stable UVs from `Mesh::Vertex` through `HitPoint`, the rasterizer, and every material evaluation path. Tests should pin seam duplication and primitive-generated UV conventions.
+- **Derivative and tangent data** — expose `dPdu`, `dPdv`, `dUVdx`, and `dUVdy` where an engine can provide them; needed for MIP level selection, bump mapping, anisotropic filtering, and tangent-space normal maps.
+- **Projection modes** — planar, spherical, cylindrical, cube/box, triplanar, object-space, world-space, and camera/projector mapping. These should be explicit mapping objects, not special cases inside individual textures.
+- **Environment mapping** — equirectangular and cubemap lookup for backgrounds, reflection/refraction probes, and HDRI lighting. This overlaps §4.4.b's HDRI light, but the material side needs its own sampler, transform, and roughness-filtered lookup path.
+- **Texture cache and filtering** — image decode, colour-space conversion, MIP generation, tile/cache lifetime, and sampling policy belong below materials so all engines see the same texture values.
+- **Material slots** — albedo, roughness, metallic, specular, IOR, alpha, emission, normal, bump height, displacement, ambient occlusion, clearcoat, sheen, and subsurface slots should all accept the same `Sampler2D<T>` machinery.
 
 #### 4.3.c Shading-normal pipeline
 

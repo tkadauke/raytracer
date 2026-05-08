@@ -137,7 +137,7 @@ Hosek-Wilkie is in §4.4.b; the surrounding work isn't.
 
 ## L. Anti-aliasing catalog
 
-Implicit in §4.1; should be its own subsection there.
+The implementation sequence has been promoted to roadmap §4.1.a; keep this catalog here for variants that have not been pulled into active work yet.
 
 - **Stochastic supersampling.** N samples per pixel, jittered/blue-noise distributions, reconstruction filter (see M).
 - **MSAA.** Multi-sample anti-aliasing in a rasterizer; per-fragment vs per-sample shading.
