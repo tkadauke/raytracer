@@ -11,10 +11,5 @@ class AngleFromTurns extends AngleFromX {
 
 ((scriptElement) => {
   const figure = new AngleFromTurns();
-  const handler = new DragHandler(figure);
-  handler.handlerFunc = (delta, figure) => {
-    figure.radians += delta.x * 0.033;
-    return true;
-  };
-  scriptElement.parentNode.appendChild(handler.divElement());
+  scriptElement.parentNode.appendChild(figure.element());
 })(document.currentScript);

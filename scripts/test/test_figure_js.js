@@ -114,15 +114,23 @@ function loadFigure() {
 }
 
 function loadWidget(widget) {
+  return loadWidgets([widget]);
+}
+
+function loadWidgets(widgets) {
   const sandbox = loadFigure();
   const body = sandbox.document.createElement('body');
-  const script = sandbox.document.createElement('script');
-  body.appendChild(script);
-  sandbox.document.currentScript = script;
-  sandbox.document.scripts = [script];
+  const scripts = [];
+  widgets.forEach((widget) => {
+    const script = sandbox.document.createElement('script');
+    body.appendChild(script);
+    scripts.push(script);
+    sandbox.document.currentScript = script;
+    sandbox.document.scripts = scripts;
 
-  const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', widget), 'utf8');
-  vm.runInContext(source, sandbox);
+    const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', widget), 'utf8');
+    vm.runInContext(source, sandbox);
+  });
   return body;
 }
 
@@ -254,6 +262,8 @@ test('All widgets load without throwing', () => {
 
 test('Rasterizer perspective UV widget emits UV grid lines', () => {
   const body = loadWidget('rasterizer_perspective_uv.js');
+  assert.equal(countElements(body, 'input'), 1,
+    'perspective depth should remain a scalar slider control');
   assert.equal(countElements(body, 'path'), 32,
     'perspective UV widget should draw stroked UV grid lines, not just the quad outline');
   assert.equal(countElements(body, 'polygon'), 4,
@@ -308,6 +318,84 @@ test('Rasterizer pipeline widget uses draggable vertex handles', () => {
     .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
   assert.equal(handles.length, 3,
     'pipeline triangle should keep its three visible draggable vertices');
+});
+
+test('Farthest-point widgets use explicit angle sliders', () => {
+  [
+    'box_farthest_point.js',
+    'convex_hull_farthest_point.js',
+    'sphere_farthest_point.js',
+  ].forEach((widget) => {
+    const body = loadWidget(widget);
+    assert.equal(countElements(body, 'input'), 1,
+      `${widget} should expose its direction as a scalar slider`);
+    assert.ok(textContents(body).join(' ').includes('direction angle'),
+      `${widget} should label the angle control`);
+    const resultPoints = elementsByTag(body, 'circle')
+      .filter(c => c.attributes.class === 'result');
+    assert.ok(resultPoints.some(c => Number(c.attributes.r) >= 0.14),
+      `${widget} should make the farthest result point prominent`);
+  });
+});
+
+test('Angle widgets use the shared scalar angle slider', () => {
+  [
+    'angle_from_clock.js',
+    'angle_from_degrees.js',
+    'angle_from_radians.js',
+    'angle_from_turns.js',
+  ].forEach((widget) => {
+    const body = loadWidgets(['angle_from_x.js', widget]);
+    const inputs = elementsByTag(body, 'input');
+    assert.equal(inputs.length, 1,
+      `${widget} should expose its angle as a scalar slider`);
+    assert.equal(String(inputs[0].max), '720',
+      `${widget} should show the non-bijective second revolution`);
+    assert.ok(textContents(body).join(' ').includes('angle'),
+      `${widget} should label the angle control`);
+  });
+});
+
+test('Ray-at widget uses an explicit t slider', () => {
+  const body = loadWidget('ray_at.js');
+  assert.equal(countElements(body, 'input'), 1,
+    'ray_at.js should expose ray parameter t as a scalar slider');
+  assert.ok(textContents(body).join(' ').includes('t'),
+    'ray_at.js should label the t control');
+  const resultPoints = elementsByTag(body, 'circle')
+    .filter(c => c.attributes.class === 'result');
+  assert.ok(resultPoints.some(c => Number(c.attributes.r) >= 0.14),
+    'ray_at.js should make the evaluated point prominent');
+});
+
+test('Bounding-box spatial widgets use visible drag handles', () => {
+  [
+    ['bounding_box_include.js', 'included-point'],
+    ['bounding_box_moved_by.js', 'move-vector-end'],
+    ['bounding_box_grown_by.js', 'growth-vector-end'],
+  ].forEach(([widget, handleName]) => {
+    const body = loadWidget(widget);
+    assert.equal(countElements(body, 'input'), 0,
+      `${widget} should not use scalar controls for spatial state`);
+    const handles = elementsByTag(body, 'circle')
+      .filter(c => c.attributes['data-drag-handle'] === handleName);
+    assert.equal(handles.length, 1,
+      `${widget} should expose a visible ${handleName} drag handle`);
+    if (widget === 'bounding_box_grown_by.js') {
+      assert.ok(Number(handles[0].attributes.cx) > 2,
+        'grown-by drag handle should start at the top-right growth endpoint');
+      assert.ok(Number(handles[0].attributes.cy) < -2,
+        'grown-by drag handle should start above the original top-right corner');
+    }
+  });
+});
+
+test('Production widgets no longer instantiate DragHandler', () => {
+  const docsDir = path.resolve(__dirname, '..', 'docs');
+  const offenders = fs.readdirSync(docsDir)
+    .filter(file => file.endsWith('.js') && file !== 'figure.js')
+    .filter(file => fs.readFileSync(path.join(docsDir, file), 'utf8').includes('new DragHandler'));
+  assert.deepEqual(offenders, []);
 });
 
 // --- Path primitive --------------------------------------------------------
@@ -472,4 +560,23 @@ test('FigureSegmentedControl: exposes options and active state', () => {
   assert.equal(element.children[3].className, 'is-active');
   control.update(8);
   assert.equal(element.children[4].className, 'is-active');
+});
+
+test('FigureSliderControl: exposes range input and formatted value', () => {
+  const { FigureSliderControl } = loadFigure();
+  const control = new FigureSliderControl({
+    label: 'depth',
+    min: 1,
+    max: 6,
+    step: 0.5,
+    value: 3,
+    precision: 1,
+    format: value => value.toFixed(1).replace(/\.0$/, ''),
+  });
+  const element = control.element();
+  assert.equal(countElements(element, 'input'), 1);
+  assert.equal(element.children[1].type, 'range');
+  assert.equal(element.children[2].textContent, '3');
+  control.update(3.5);
+  assert.equal(element.children[2].textContent, '3.5');
 });

@@ -772,6 +772,7 @@ class FigureSliderControl {
     step,
     value,
     precision = 2,
+    format = null,
     onChange = () => {},
   }) {
     this.label = label;
@@ -780,6 +781,7 @@ class FigureSliderControl {
     this.step = step !== undefined ? step : (max - min) / 100.0;
     this.value = value !== undefined ? value : (min + max) / 2.0;
     this.precision = precision;
+    this.format = format || (v => v.toFixed(this.precision));
     this.onChange = onChange;
   }
 
@@ -815,7 +817,7 @@ class FigureSliderControl {
   update(value, notify = false) {
     this.value = value;
     if (this.input) this.input.value = value;
-    if (this.valueElement) this.valueElement.textContent = value.toFixed(this.precision);
+    if (this.valueElement) this.valueElement.textContent = this.format(value);
     if (notify) this.onChange(value);
   }
 }

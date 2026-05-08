@@ -15,6 +15,27 @@ var AngleFromX = class {
     this.radius = 3;
   }
 
+  element() {
+    if (this.widget) return this.widget.root;
+
+    this.widget = new FigureWidget({ className: 'angle-from-x-widget' });
+    this.angleControl = new FigureSliderControl({
+      label: 'angle',
+      min: 0,
+      max: 720,
+      step: 1,
+      value: this.radians / degrees,
+      precision: 0,
+      onChange: (value) => {
+        this.radians = value * degrees;
+        this.render();
+      },
+    });
+    this.widget.addControl(this.angleControl.element());
+    this.render();
+    return this.widget.root;
+  }
+
   createCanvas() {
     const canvas = new Canvas(320, 240);
     canvas.translate(new Vector(4, -4));
@@ -47,5 +68,9 @@ var AngleFromX = class {
   // the current angle in the subclass's chosen unit.
   createLabel() {
     return new Text(new Vector(3, -2), `${this.radians.toFixed(2)} radians`);
+  }
+
+  render() {
+    this.widget.setContent(this.createCanvas());
   }
 };

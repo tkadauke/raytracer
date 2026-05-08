@@ -1,10 +1,35 @@
 class ConvexHullFarthestPoint {
   constructor() {
-    this.angle = 162 * degrees;
+    this.angleDegrees = 162;
+  }
+
+  element() {
+    if (this.widget) return this.widget.root;
+
+    this.widget = new FigureWidget({ className: 'convex-hull-farthest-point-widget' });
+    this.angleControl = new FigureSliderControl({
+      label: 'direction angle',
+      min: 0,
+      max: 360,
+      step: 1,
+      value: this.angleDegrees,
+      precision: 0,
+      onChange: (value) => {
+        this.angleDegrees = value;
+        this.render();
+      },
+    });
+    this.widget.addControl(this.angleControl.element());
+    this.render();
+    return this.widget.root;
+  }
+
+  angle() {
+    return this.angleDegrees * degrees;
   }
 
   createCanvas() {
-    const direction = Vector.up.rotated(this.angle);
+    const direction = Vector.up.rotated(this.angle());
 
     const canvas = new Canvas(320, 240);
     canvas.translate(new Vector(2, -1));
@@ -46,18 +71,17 @@ class ConvexHullFarthestPoint {
     // projected distance along `direction`.
     const keys = distances.sortedKeys();
     const point = distances.get(keys[keys.length - 1]);
-    canvas.add(new Circle(point, 0.05, 'result'));
+    canvas.add(new Circle(point, 0.14, 'result'));
 
     return canvas.toSVG();
+  }
+
+  render() {
+    this.widget.setContent(this.createCanvas());
   }
 }
 
 ((scriptElement) => {
   const figure = new ConvexHullFarthestPoint();
-  const handler = new DragHandler(figure);
-  handler.handlerFunc = (delta, figure) => {
-    figure.angle += delta.x * degrees;
-    return true;
-  };
-  scriptElement.parentNode.appendChild(handler.divElement());
+  scriptElement.parentNode.appendChild(figure.element());
 })(document.currentScript);
