@@ -53,19 +53,17 @@ namespace render {
       * reflection coefficient of 0.75 and a white reflection color.
       */
     inline ReflectiveMaterial()
-      : PhongMaterial()
-    {
+        : PhongMaterial() {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
-    
+
     /**
       * Constructs a reflective material with diffuseTexture, a reflection
       * coefficient of 0.75 and a white reflection color.
       */
     inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
-      : PhongMaterial(diffuseTexture)
-    {
+        : PhongMaterial(diffuseTexture) {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
@@ -74,20 +72,20 @@ namespace render {
       * Constructs a reflective material with diffuseTexture, the given specular
       * color, a reflection coefficient of 0.75 and a white reflection color.
       */
-    inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular)
-      : PhongMaterial(diffuseTexture, specular)
-    {
+    inline explicit ReflectiveMaterial(std::shared_ptr<render::Texturec> diffuseTexture,
+                                       const Colord& specular)
+        : PhongMaterial(diffuseTexture, specular) {
       setReflectionCoefficient(0.75);
       setReflectionColor(Colord::white());
     }
-    
+
     /**
       * @returns the reflection color.
       */
     inline const Colord& reflectionColor() const {
       return m_reflectiveBRDF.reflectionColor();
     }
-    
+
     /**
       * Sets the material's reflection color.
       * 
@@ -104,14 +102,14 @@ namespace render {
     inline void setReflectionColor(const Colord& color) {
       m_reflectiveBRDF.setReflectionColor(color);
     }
-    
+
     /**
       * @returns the reflection coefficient.
       */
     inline double reflectionCoefficient() const {
       return m_reflectiveBRDF.reflectionCoefficient();
     }
-    
+
     /**
       * Sets the reflection coefficient.
       * 
@@ -126,9 +124,10 @@ namespace render {
     inline void setReflectionCoefficient(double coeff) {
       m_reflectiveBRDF.setReflectionCoefficient(coeff);
     }
-    
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
-    
+
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+
   protected:
     render::PerfectSpecular m_reflectiveBRDF;
   };
