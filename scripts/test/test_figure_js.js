@@ -825,6 +825,30 @@ test('Bounding-box boolean widgets expose draggable source boxes', () => {
   });
 });
 
+test('CSG hit-interval widget exposes operation control and interval endpoints', () => {
+  const body = loadWidget('csg_hit_intervals.js');
+  assert.equal(countElements(body, 'button'), 3,
+    'CSG interval widget should expose union/intersection/difference modes');
+  assert.equal(countElements(body, 'input'), 0,
+    'interval endpoints should be dragged directly on the ray timeline');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'csg-interval-endpoint');
+  assert.equal(handles.length, 4,
+    'both shapes should expose enter and exit handles');
+  assert.deepEqual(handles.map(c => `${c.attributes['data-shape']}:${c.attributes['data-endpoint']}`),
+    ['A:enter', 'A:exit', 'B:enter', 'B:exit']);
+
+  const resultSpans = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-result-interval'] === 'union');
+  assert.ok(resultSpans.length >= 1,
+    'default union mode should draw the resulting interval set');
+  assert.ok(elementsByTag(body, 'circle').some(c => c.attributes['data-selected-positive-hit'] === 'true'),
+    'widget should mark the first positive-distance hit');
+  assert.ok(textContents(body).join(' ').includes('first positive hit'),
+    'widget should explain which result boundary minWithPositiveDistance selects');
+});
+
 test('Production widgets no longer instantiate DragHandler', () => {
   const docsDir = path.resolve(__dirname, '..', 'docs');
   const offenders = fs.readdirSync(docsDir)
