@@ -27,6 +27,13 @@ option(RAYTRACER_ENABLE_FUZZING    "Build LibFuzzer harnesses (needs Clang)" OFF
 option(RAYTRACER_ENABLE_STATS      "Per-render performance counters (modernize.md §3.7)" OFF)
 option(RAYTRACER_ENABLE_MUTATION   "Build with the mull mutation-testing pass plugin (closes #28)" OFF)
 
+if(DEFINED ENV{GITHUB_ACTIONS})
+  set(_RAYTRACER_NATIVE_TUNING_DEFAULT OFF)
+else()
+  set(_RAYTRACER_NATIVE_TUNING_DEFAULT ON)
+endif()
+option(RAYTRACER_ENABLE_NATIVE_TUNING "Tune release builds for the current CPU" ${_RAYTRACER_NATIVE_TUNING_DEFAULT})
+
 # Match the warning flags from the Rakefile.
 add_compile_options(-W -Wall -pedantic -Wno-extra-semi)
 
@@ -42,7 +49,10 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|i[3-6]86)")
 endif()
 
 if(NOT (CMAKE_BUILD_TYPE STREQUAL "Debug" OR RAYTRACER_ENABLE_COVERAGE))
-  add_compile_options(-O3 -funroll-loops -mtune=native)
+  add_compile_options(-O3 -funroll-loops)
+  if(RAYTRACER_ENABLE_NATIVE_TUNING)
+    add_compile_options(-mtune=native)
+  endif()
 endif()
 
 if(RAYTRACER_ENABLE_ASAN)
