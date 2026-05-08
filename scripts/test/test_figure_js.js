@@ -283,6 +283,31 @@ test('Rasterizer perspective UV widget emits UV grid lines', () => {
     'each panel should draw a filled quad and a stroked quad outline');
 });
 
+test('Texture coordinate mapping widget exposes mapping controls and lookup state', () => {
+  const body = loadWidget('texture_coordinate_mapping.js');
+  assert.equal(countElements(body, 'button'), 2,
+    'mapping mode should be a planar/UV segmented control');
+  assert.equal(countElements(body, 'input'), 2,
+    'U and V scale should use scalar sliders');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'sample-point');
+  assert.equal(handles.length, 1,
+    'sample point should be manipulated through a visible draggable handle');
+
+  const previewCells = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-preview-cell']);
+  assert.equal(previewCells.length, 36,
+    'sampled texture preview should draw a small checker grid');
+
+  const readouts = elementsByTag(body, 'text')
+    .filter(t => t.attributes['data-readout']);
+  assert.deepEqual(readouts.map(t => t.attributes['data-readout']),
+    ['texture-coordinates', 'checker-parity']);
+  assert.ok(textContents(body).join(' ').includes('floor(s) + floor(t)'),
+    'widget should show the checker parity formula');
+});
+
 test('Rasterizer clipping widget omits coordinate labels', () => {
   const body = loadWidget('rasterizer_clip_attributes.js');
   const text = textContents(body).join(' ');

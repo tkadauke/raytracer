@@ -4,7 +4,24 @@
 
 namespace render {
   class TextureMapping2D;
-  
+
+  /**
+    * Texture that alternates between two child textures using mapped 2D
+    * coordinates.
+    *
+    * Evaluation is a two-step process: first the configured
+    * TextureMapping2D turns the HitPoint into texture coordinates `(s, t)`;
+    * then the checker lookup chooses the bright child texture when
+    * `floor(s) + floor(t)` is even and the dark child texture when it is odd.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="texture_coordinate_mapping.js"></script>
+    * @endhtmlonly
+    *
+    * PlanarMapping2D derives `(s, t)` from the hit point's position, while
+    * UVMapping2D derives it from the hit point's stored UV coordinates.
+    */
   class CheckerBoardTexture : public Texturec {
   public:
     inline explicit CheckerBoardTexture(TextureMapping2D* mapping)

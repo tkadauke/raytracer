@@ -165,7 +165,7 @@ These are useful follow-ups once the core rendering and sampling widgets exist.
    - Teaches: fisheye disc cutoff, spherical partial panorama, equirectangular
      seam, and pole stretching.
 
-3. **Texture coordinate mapping**
+3. ~~**Texture coordinate mapping**~~ ✅ **Done.** Added `texture_coordinate_mapping.js` and embedded it in the checker texture runtime docs, with controls for planar vs UV mapping, U/V scale, sample-point dragging, and parity lookup.
    - Targets: `include/world/objects/CheckerBoardTexture.h`,
      `include/render/textures/mappings/PlanarMapping2D.h`,
      `include/render/textures/mappings/UVMapping2D.h`,
