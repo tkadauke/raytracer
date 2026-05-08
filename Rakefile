@@ -1,4 +1,6 @@
 require 'rake/clean'
+require 'cgi'
+require 'fileutils'
 
 # The Rakefile is now a thin layer of project utilities. Compilation lives
 # entirely under CMake (see CMakePresets.json); the tasks below either
@@ -14,6 +16,227 @@ CLEAN.include(Rake::FileList["src/**/*.moc", "test/**/*.moc", "examples/**/*.moc
 CLEAN.include(Rake::FileList["src/**/ui_*.h", "examples/**/ui_*.h"])
 
 RENDERCLI_DEFAULT = 'build/release/tools/rendercli/rendercli'
+DOC_WIDGET_DEPENDENCIES = ["angle_from_x.js"].freeze
+DOC_WIDGET_FRAME_DIR = "docs/html/widget-pages".freeze
+FIGURE_DEPENDENCY_PATTERN =
+  /\b(new\s+(Canvas|Vector|Group|Line|Ray|Circle|Rectangle|Text|Axes|Path|Slider|DragHandler|OrderedHash|FigureWidget|FigureSvg|FigureSegmentedControl|FigureDraggablePoint)|Path\.polyline|extends\s+AngleFromX)\b/
+
+def docs_widget_scripts
+  Dir.glob("scripts/docs/*.js")
+    .map { |path| File.basename(path) }
+    .reject { |file| file == "figure.js" || DOC_WIDGET_DEPENDENCIES.include?(file) }
+    .sort
+end
+
+def docs_widget_title(file)
+  File.basename(file, ".js").split("_").map(&:capitalize).join(" ")
+end
+
+def docs_widget_slug(file)
+  File.basename(file, ".js").gsub(/[^a-z0-9]+/i, "-").downcase
+end
+
+def docs_widget_dependencies(file)
+  source = File.read(File.join("scripts/docs", file))
+  dependencies = []
+  dependencies << "figure.js" if source.match?(FIGURE_DEPENDENCY_PATTERN)
+  dependencies << "angle_from_x.js" if File.basename(file, ".js").start_with?("angle_from_")
+  dependencies.uniq
+end
+
+def write_docs_widget_frame(path, widget)
+  slug = docs_widget_slug(widget)
+  scripts = (docs_widget_dependencies(widget) + [widget]).map do |file|
+    %(<script src="../#{CGI.escapeHTML(file)}"></script>)
+  end.join("\n    ")
+
+  html = <<~HTML
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        html,
+        body {
+          margin: 0;
+          background: #ffffff;
+          color: #202020;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .widget-stage {
+          box-sizing: border-box;
+          overflow: auto;
+          padding: 16px;
+        }
+
+        .widget-stage > script {
+          display: none;
+        }
+
+        .widget-stage svg {
+          max-width: 100%;
+          height: auto;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="widget-stage">
+    #{scripts}
+      </div>
+      <script>
+        (() => {
+          const id = "#{CGI.escapeHTML(slug)}";
+          const reportHeight = () => {
+            const height = Math.ceil(document.documentElement.scrollHeight);
+            parent.postMessage({ type: "widget-gallery-resize", id, height }, "*");
+          };
+          window.addEventListener("load", reportHeight);
+          if (typeof ResizeObserver !== "undefined") {
+            new ResizeObserver(reportHeight).observe(document.body);
+          } else {
+            setTimeout(reportHeight, 100);
+          }
+        })();
+      </script>
+    </body>
+    </html>
+  HTML
+
+  File.write(path, html)
+end
+
+def write_docs_widget_gallery(path, widgets)
+  generated_at = Time.now.utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+  rows = widgets.map do |widget|
+    title = CGI.escapeHTML(docs_widget_title(widget))
+    filename = CGI.escapeHTML(widget)
+    slug = docs_widget_slug(widget)
+    <<~HTML
+      <section class="widget-card" id="widget-#{slug}">
+        <h2>#{title}</h2>
+        <div class="widget-meta">#{filename}</div>
+        <iframe
+          title="#{title}"
+          data-widget-id="#{slug}"
+          src="widget-pages/#{slug}.html"
+          loading="lazy"></iframe>
+      </section>
+    HTML
+  end.join("\n")
+
+  html = <<~HTML
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Raytracer Widget Gallery</title>
+      <style>
+        :root {
+          color-scheme: light;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          background: #f5f5f5;
+          color: #202020;
+        }
+
+        body {
+          margin: 0;
+        }
+
+        header {
+          background: #ffffff;
+          border-bottom: 1px solid #d8d8d8;
+          padding: 24px clamp(16px, 4vw, 48px);
+        }
+
+        h1 {
+          font-size: clamp(28px, 4vw, 42px);
+          line-height: 1.1;
+          margin: 0 0 8px 0;
+        }
+
+        header p {
+          margin: 0;
+          max-width: 820px;
+          color: #555;
+        }
+
+        main {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+          gap: 18px;
+          padding: 24px clamp(16px, 4vw, 48px) 48px;
+        }
+
+        .widget-card {
+          background: #ffffff;
+          border: 1px solid #d8d8d8;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .widget-card h2 {
+          font-size: 18px;
+          line-height: 1.25;
+          margin: 0;
+          padding: 14px 16px 4px;
+        }
+
+        .widget-meta {
+          color: #666;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 12px;
+          padding: 0 16px 12px;
+        }
+
+        iframe {
+          border-top: 1px solid #e5e5e5;
+          border-right: 0;
+          border-bottom: 0;
+          border-left: 0;
+          display: block;
+          height: 360px;
+          width: 100%;
+        }
+
+        @media (max-width: 420px) {
+          main {
+            grid-template-columns: 1fr;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <header>
+        <h1>Raytracer Widget Gallery</h1>
+        <p>Generated by <code>rake docs:widgets</code> at #{generated_at}. This page loads #{widgets.length} interactive docs widgets from <code>scripts/docs</code> for quick visual regression checks.</p>
+      </header>
+      <main>
+    #{rows}
+      </main>
+      <script>
+        (() => {
+          const frames = new Map(
+            Array.from(document.querySelectorAll("iframe[data-widget-id]"))
+              .map(frame => [frame.dataset.widgetId, frame])
+          );
+          window.addEventListener("message", event => {
+            const data = event.data || {};
+            if (data.type !== "widget-gallery-resize") return;
+            const frame = frames.get(data.id);
+            if (!frame) return;
+            frame.style.height = `${Math.max(260, Number(data.height) || 0)}px`;
+          });
+        })();
+      </script>
+    </body>
+    </html>
+  HTML
+
+  File.write(path, html)
+end
 
 desc "Build (debug) via CMake"
 task :build do
@@ -62,6 +285,22 @@ namespace :docs do
   task :html do
     sh "doxygen"
     sh "cp scripts/docs/*.js docs/html"
+  end
+
+  desc "Create a standalone HTML gallery containing every interactive widget"
+  task :widgets do
+    widgets = docs_widget_scripts
+    fail "No widgets found under scripts/docs" if widgets.empty?
+
+    FileUtils.mkdir_p("docs/html")
+    FileUtils.mkdir_p(DOC_WIDGET_FRAME_DIR)
+    FileUtils.cp(Dir.glob("scripts/docs/*.js"), "docs/html")
+    output = "docs/html/widgets.html"
+    widgets.each do |widget|
+      write_docs_widget_frame(File.join(DOC_WIDGET_FRAME_DIR, "#{docs_widget_slug(widget)}.html"), widget)
+    end
+    write_docs_widget_gallery(output, widgets)
+    puts "Wrote #{output} with #{widgets.length} widgets"
   end
 
   task :clean

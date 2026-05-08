@@ -14,73 +14,133 @@ if (typeof document !== 'undefined' && document.head) {
   const style = document.createElement('style');
   style.type = 'text/css';
   style.innerHTML = `
-svg * {
+svg.figure-canvas * {
   stroke-width: 0.033;
 }
 
-svg .dashed {
+svg.figure-canvas .dashed {
   stroke-dasharray: 0.1, 0.1;
 }
 
-svg .red {
+svg.figure-canvas .red {
   stroke: #ff0000;
 }
 
-svg .red marker {
+svg.figure-canvas .red marker {
   stroke: #ff0000;
 }
 
-svg .blue {
+svg.figure-canvas .blue {
   stroke: #2060d0;
 }
 
-svg .blue marker {
+svg.figure-canvas .blue marker {
   stroke: #2060d0;
 }
 
-svg .green {
+svg.figure-canvas .green {
   stroke: #20a050;
 }
 
-svg .green marker {
+svg.figure-canvas .green marker {
   stroke: #20a050;
 }
 
-text {
+svg.figure-canvas text {
   font-size: 3.3%;
 }
 
-line {
+svg.figure-canvas line {
   stroke: #000000;
 }
 
-line.arrow {
+svg.figure-canvas line.arrow {
   marker-end: url(#arrow);
 }
 
-line.axis {
+svg.figure-canvas line.axis {
   stroke-width: 0.05;
   marker-end: url(#arrow);
 }
 
-circle {
+svg.figure-canvas circle {
   stroke: #000000;
   fill: transparent;
 }
 
-circle.intersection {
+svg.figure-canvas circle.intersection {
   stroke: #000000;
   fill: #000000;
 }
 
-circle.result {
+svg.figure-canvas circle.result {
   stroke: #ff0000;
   fill: #ff0000;
 }
 
-rect {
+svg.figure-canvas rect {
   stroke: #000000;
   fill: transparent;
+}
+
+.figure-widget {
+  color: #202020;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 100%;
+}
+
+.figure-widget-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px 0;
+}
+
+.figure-widget-control-label {
+  font-size: 14px;
+}
+
+.figure-widget-segmented {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.figure-widget-segmented button {
+  background: #fff;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  color: #111;
+  cursor: pointer;
+  font: inherit;
+  padding: 4px 8px;
+}
+
+.figure-widget-segmented button.is-active {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.figure-widget-stage {
+  max-width: 100%;
+}
+
+.figure-widget-svg {
+  background: #fafafa;
+  max-width: 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+.figure-point-handle {
+  cursor: grab;
+}
+
+.figure-point-handle:hover,
+.figure-point-handle.is-dragging {
+  fill: #fff3bf;
 }
 `;
   (document.getElementsByTagName('head')[0] || document.head).appendChild(style);
@@ -217,6 +277,7 @@ class Canvas {
     const element = document.createElementNS(svgns, 'svg');
     element.setAttribute('width', this.width);
     element.setAttribute('height', this.height);
+    element.setAttribute('class', 'figure-canvas');
 
     const defs = document.createElementNS(svgns, 'defs');
     defs.innerHTML = `
@@ -480,6 +541,199 @@ class Slider {
   }
 }
 
+function setAttributes(element, attrs = {}) {
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === undefined || value === null) continue;
+    if (key === 'style' && typeof value === 'object') {
+      Object.assign(element.style, value);
+    } else if (key === 'textContent') {
+      element.textContent = value;
+    } else {
+      element.setAttribute(key, value);
+    }
+  }
+  return element;
+}
+
+function createSvgElement(name, attrs = {}) {
+  return setAttributes(document.createElementNS(svgns, name), attrs);
+}
+
+class FigureWidget {
+  constructor({ className = '' } = {}) {
+    this.root = document.createElement('div');
+    this.root.className = ['figure-widget', className].filter(Boolean).join(' ');
+    this.controls = document.createElement('div');
+    this.controls.className = 'figure-widget-controls';
+    this.stage = document.createElement('div');
+    this.stage.className = 'figure-widget-stage';
+    this.root.appendChild(this.controls);
+    this.root.appendChild(this.stage);
+  }
+
+  addControl(element) {
+    this.controls.appendChild(element);
+    return element;
+  }
+
+  setControlsVisible(visible) {
+    this.controls.style.display = visible ? 'flex' : 'none';
+  }
+
+  setContent(element) {
+    while (this.stage.children.length > 0) {
+      this.stage.removeChild(this.stage.children[0]);
+    }
+    this.stage.appendChild(element);
+  }
+
+  mount(scriptElement) {
+    scriptElement.parentNode.appendChild(this.root);
+  }
+}
+
+class FigureSvg {
+  constructor({ width, height, viewBox, className = '', background = '#fafafa' }) {
+    this.width = width;
+    this.height = height;
+    this.element = createSvgElement('svg', {
+      width,
+      height,
+      viewBox: viewBox || `0 0 ${width} ${height}`,
+      class: ['figure-widget-svg', className].filter(Boolean).join(' '),
+      style: `background: ${background};`,
+    });
+  }
+
+  clear() {
+    while (this.element.children.length > 0) {
+      this.element.removeChild(this.element.children[0]);
+    }
+  }
+
+  add(name, attrs = {}) {
+    const element = createSvgElement(name, attrs);
+    this.element.appendChild(element);
+    return element;
+  }
+
+  append(element) {
+    this.element.appendChild(element);
+    return element;
+  }
+}
+
+class FigureSegmentedControl {
+  constructor({ label = '', options = [], value, onChange = () => {} }) {
+    this.label = label;
+    this.options = options;
+    this.value = value;
+    this.onChange = onChange;
+    this.buttons = [];
+  }
+
+  element() {
+    if (this.root) return this.root;
+
+    this.root = document.createElement('div');
+    this.root.className = 'figure-widget-segmented';
+
+    if (this.label) {
+      const label = document.createElement('span');
+      label.className = 'figure-widget-control-label';
+      label.textContent = this.label;
+      this.root.appendChild(label);
+    }
+
+    this.buttons = this.options.map((option) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = option.label;
+      button.setAttribute('data-value', option.value);
+      button.addEventListener('click', () => {
+        this.update(option.value);
+        this.onChange(option.value);
+      });
+      this.root.appendChild(button);
+      return button;
+    });
+
+    this.update(this.value);
+    return this.root;
+  }
+
+  update(value) {
+    this.value = value;
+    this.buttons.forEach((button) => {
+      const active = button.getAttribute('data-value') === String(value);
+      button.className = active ? 'is-active' : '';
+    });
+  }
+}
+
+class FigureDraggablePoint {
+  constructor({ svg, point, radius = 8, className = '', attrs = {}, onDrag = () => {} }) {
+    this.svg = svg;
+    this.point = point;
+    this.radius = radius;
+    this.className = className;
+    this.attrs = attrs;
+    this.onDrag = onDrag;
+  }
+
+  element() {
+    const handle = createSvgElement('circle', {
+      cx: this.point.x,
+      cy: this.point.y,
+      r: this.radius,
+      class: ['figure-point-handle', this.className].filter(Boolean).join(' '),
+      tabindex: 0,
+      ...this.attrs,
+    });
+
+    handle.addEventListener('pointerdown', (event) => {
+      const move = (moveEvent) => {
+        handle.setAttribute('class', ['figure-point-handle', 'is-dragging', this.className]
+          .filter(Boolean).join(' '));
+        this.onDrag(this.pointFromEvent(moveEvent), moveEvent);
+        moveEvent.preventDefault();
+      };
+      const up = () => {
+        handle.setAttribute('class', ['figure-point-handle', this.className].filter(Boolean).join(' '));
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+      move(event);
+      event.preventDefault();
+    });
+
+    return handle;
+  }
+
+  pointFromEvent(event) {
+    if (this.svg.createSVGPoint) {
+      const point = this.svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      const matrix = this.svg.getScreenCTM();
+      if (matrix) {
+        const local = point.matrixTransform(matrix.inverse());
+        return { x: local.x, y: local.y };
+      }
+    }
+
+    const rect = this.svg.getBoundingClientRect();
+    const [minX, minY, width, height] = this.svg.getAttribute('viewBox')
+      .split(/\s+/).map(Number);
+    return {
+      x: minX + ((event.clientX - rect.left) / rect.width) * width,
+      y: minY + ((event.clientY - rect.top) / rect.height) * height,
+    };
+  }
+}
+
 // Mouse-drag affordance. Wraps a figure object that has a
 // `createCanvas()` method and a per-drag handler. The handler
 // receives the (delta, figure) and returns true to redraw the
@@ -554,5 +808,7 @@ const degrees = 0.01745329251996;
 // window in browsers and the vm sandbox in tests.
 Object.assign(globalThis, {
   OrderedHash, Vector, Canvas, Group, Line, Ray, Circle,
-  Rectangle, Text, Axes, Path, Slider, DragHandler, svgns, degrees
+  Rectangle, Text, Axes, Path, Slider, setAttributes, createSvgElement,
+  FigureWidget, FigureSvg, FigureSegmentedControl, FigureDraggablePoint,
+  DragHandler, svgns, degrees
 });

@@ -126,6 +126,21 @@ If a change ships something that isn't in the roadmap and probably should be, ad
 
 **Don't let roadmap labels bleed into user-facing documentation.** Phrases like "pre-R1 behaviour preserved" or "post-3.10 cleanup" are meaningless to a reader who hasn't read the roadmap. In docstrings, comments, and PR descriptions, describe the actual behaviour ("pass-through, hard clamp at 1.0," "Qt 6 migration, QtScript→QJSEngine"). The CHANGELOG is the one place where roadmap references are appropriate — that's the audit trail linking commits to roadmap items, and entries there explicitly reference the section ("closes roadmap §3.R1").
 
+## Interactive documentation widgets
+
+Interactive JS widgets under `scripts/docs/*.js` should follow the rules in
+`docs/plans/widgets.md` and `scripts/README.md`:
+
+- Spatial values that move (points, vertices, edge endpoints, ray origins) get
+  visible draggable handles at the thing being moved.
+- Scalar values get labelled sliders or segmented controls.
+- Do not add new whole-widget drag gestures; `DragHandler` is legacy-only during
+  migration.
+- Build new widgets on shared `figure.js` primitives before adding local raw-DOM
+  infrastructure.
+- Keep widget CSS scoped to a widget root or library-owned SVG class. Never add
+  global SVG element rules that can leak across widgets.
+
 ## Adding a new visible-output feature
 
 Cameras, materials, primitives, lights, textures, viewplanes — anything

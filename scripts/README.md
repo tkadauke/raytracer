@@ -232,8 +232,25 @@ small DOM library in `figure.js`:
 | `Path(d, klass)` | **Arbitrary SVG path.** Use for curves, polygons, function plots — anything not expressible as line/circle/rect. `Path.polyline(points, {closed: true})` builds a straight-segment d-string from a `Vector[]`. |
 | `Slider({label, min, max, value, step, precision, onChange})` | **HTML range input with a live label.** First-class slider for parameter widgets — much better discoverability than the drag-horizontally affordance. Returns a `<div>` from `.element()`. |
 | `DragHandler(figure)` | Mouse-drag affordance over the canvas. Useful when the parameter is naturally continuous and you want spatial input. `Slider` is usually clearer for documentation. |
+| `FigureWidget({className})` | Scoped widget root with standard controls and stage containers. Use for new and migrated widgets. |
+| `FigureSvg({width, height, viewBox})` | Raw SVG helper with scoped widget styling, `add`, `append`, and `clear`. Use when the older scene-coordinate `Canvas` abstraction is too limited. |
+| `FigureSegmentedControl({label, options, value, onChange})` | Standard segmented buttons for small enumerated option sets. |
+| `FigureDraggablePoint({svg, point, radius, attrs, onDrag})` | Visible draggable SVG point handle. Use for vertices, control points, edge endpoints, and ray origins. |
 
 ### Writing a widget — canonical pattern
+
+### Widget rules
+
+- If a point, vertex, edge endpoint, ray origin, or similar spatial value moves,
+  make the visible point draggable directly.
+- If a value is scalar, expose it through a labelled slider or segmented
+  control.
+- Do not add new whole-widget drag interactions. The legacy `DragHandler` exists
+  only for widgets that have not been migrated yet.
+- Keep CSS scoped to the widget root or to library-owned SVG classes. Do not add
+  global `svg`, `circle`, `line`, `text`, or `rect` rules.
+- Prefer shared `figure.js` primitives for controls, SVG creation, handles, and
+  rerendering before adding widget-local infrastructure.
 
 Use native ES6 class syntax for new widgets:
 
@@ -304,6 +321,10 @@ Two important details in the anchor pattern:
 
 Both files get copied to `docs/html/` by `rake docs:html`.
 
+For bulk visual checks, `rake docs:widgets` writes
+`docs/html/widgets.html`, a standalone gallery that loads every
+interactive widget on one page.
+
 ### When to write a widget
 
 Widgets earn their keep when the underlying *math* is geometrically
@@ -335,6 +356,7 @@ roadmap items (ES6 modernisation, scoped CSS, optional WebGL
 
 ```bash
 rake docs:render           # render all images (skips up-to-date)
+rake docs:widgets          # build the standalone widget gallery
 rake check:doc-images      # lint @image html refs vs PNGs
 rake test:scripts          # run all framework tests (Ruby + JS)
 rake test:scripts:rb       # Ruby-only (doc-render framework)

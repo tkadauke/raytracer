@@ -50,6 +50,13 @@ function makeNode(tag, ns) {
       this.children.push(child);
       return child;
     },
+    removeChild(child) {
+      const i = this.children.indexOf(child);
+      if (i === -1) throw new Error('removeChild: node not a child');
+      this.children.splice(i, 1);
+      child.parentNode = null;
+      return child;
+    },
     replaceChild(newNode, oldNode) {
       const i = this.children.indexOf(oldNode);
       if (i === -1) throw new Error('replaceChild: oldNode not a child');
@@ -269,6 +276,8 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
     'MSAA widget should default to a multi-sample resolve view');
   assert.equal(countElements(body, 'button'), 4,
     'widget should expose the supported 1x/2x/4x/8x sample counts');
+  assert.equal(countElements(body, 'input'), 0,
+    'spatial triangle control should use draggable vertices, not a scalar slider');
   assert.ok(countElements(body, 'circle') >= 9 * 6 * 4,
     'default 4x mode should draw one visible dot per subpixel sample');
 
@@ -278,6 +287,11 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
     'widget should emit one resolvable rectangle per pixel');
   assert.ok(pixelRects.some(r => ['1', '2', '3'].includes(r.attributes['data-covered-samples'])),
     'at least one edge pixel should resolve to a fractional 4x coverage value');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
+  assert.equal(handles.length, 3,
+    'triangle geometry should be manipulated through visible draggable vertices');
 });
 
 // --- Path primitive --------------------------------------------------------
@@ -366,4 +380,33 @@ test('Slider: defaults step to 1/100th of range', () => {
   const { Slider } = loadFigure();
   const slider = new Slider({ label: 'x', min: 0, max: 100 });
   assert.equal(slider.step, 1);
+});
+
+// --- Figure v2 primitives --------------------------------------------------
+
+test('FigureSvg: creates scoped SVGs and can clear children', () => {
+  const { FigureSvg } = loadFigure();
+  const canvas = new FigureSvg({ width: 100, height: 50 });
+  assert.equal(canvas.element.tagName, 'svg');
+  assert.equal(canvas.element.getAttribute('class'), 'figure-widget-svg');
+  canvas.add('circle', { cx: 10, cy: 10, r: 3 });
+  canvas.add('rect', { x: 0, y: 0, width: 5, height: 5 });
+  assert.equal(canvas.element.children.length, 2);
+  canvas.clear();
+  assert.equal(canvas.element.children.length, 0);
+});
+
+test('FigureSegmentedControl: exposes options and active state', () => {
+  const { FigureSegmentedControl } = loadFigure();
+  const control = new FigureSegmentedControl({
+    label: 'samples',
+    value: 4,
+    options: [1, 2, 4, 8].map(n => ({ label: `${n}x`, value: n })),
+  });
+  const element = control.element();
+  assert.equal(countElements(element, 'button'), 4);
+  assert.ok(textContents(element).join(' ').includes('samples'));
+  assert.equal(element.children[3].className, 'is-active');
+  control.update(8);
+  assert.equal(element.children[4].className, 'is-active');
 });

@@ -112,12 +112,13 @@ namespace engine::raster {
   * <td>@image html rasterizer_msaa_4x.png "4x MSAA resolve"</td>
   * </tr></table>
   *
-  * The widget below magnifies the same resolve operation. Move the
-  * triangle edge and switch between sample counts to see why 1x
+  * The widget below magnifies the same resolve operation. Drag the
+  * triangle vertices and switch between sample counts to see why 1x
   * coverage produces only on/off pixels, while MSAA can turn a
   * partially covered pixel into a proportional grey resolve.
   *
   * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
   * <script type="text/javascript" src="rasterizer_msaa_coverage.js"></script>
   * @endhtmlonly
   *
