@@ -8,6 +8,13 @@
 /**
   * Represents an object with a position, size and/or orientation. This includes
   * all visible objects, and lights.
+  *
+  * Visible `Surface` objects convert this user-facing position / rotation /
+  * scale state into a render::Instance transform. The runtime documentation on
+  * render::Instance includes an interactive widget showing how those matrices
+  * transform rays and normals during intersection.
+  *
+  * @see render::Instance
   */
 class Transformable : public Element {
   Q_OBJECT;

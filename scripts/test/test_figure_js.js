@@ -638,6 +638,40 @@ test('Wide-angle camera mapping widget exposes camera modes and image handle', (
     'equirectangular mode should mark both pole-stretched image rows');
 });
 
+test('Instance transform widget exposes ray handles and transform modes', () => {
+  const body = loadWidget('instance_transform_normals.js');
+  assert.equal(countElements(body, 'input'), 2,
+    'scale and rotation should be scalar sliders');
+  assert.equal(countElements(body, 'button'), 3,
+    'point, direction, and normal views should be segmented controls');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle']);
+  assert.deepEqual(handles.map(c => c.attributes['data-drag-handle']),
+    ['ray-origin', 'ray-end'],
+    'world ray should be manipulated through visible origin/end handles');
+
+  const paths = elementsByTag(body, 'path')
+    .filter(p => p.attributes.stroke === '#1864ab' || p.attributes.stroke === '#d9480f');
+  assert.ok(paths.length >= 2,
+    'widget should draw both transformed world object and local wrapped primitive');
+
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('world ray'));
+  assert.ok(text.includes('local-space ray'));
+  assert.ok(text.includes('geometric normal'));
+  assert.ok(text.includes('inverse-transpose normal'));
+
+  const normalLines = elementsByTag(body, 'line')
+    .filter(line => [
+      'geometric-normal',
+      'inverse-transpose-normal',
+      'naive-normal',
+    ].includes(line.attributes['data-transform-view']));
+  assert.equal(normalLines.length, 3,
+    'normal view should compare geometric, inverse-transpose, and direction-scaled normals');
+});
+
 test('Bounding-box spatial widgets use visible drag handles', () => {
   [
     ['bounding_box_include.js', 'included-point'],

@@ -32,6 +32,17 @@ namespace render {
     * different forms each transform needs to avoid recomputing
     * inverses per ray.
     *
+    * The interactive figure below shows the same contract in 2D:
+    * the world ray is transformed into the wrapped primitive's local
+    * space for intersection, while normals use the inverse-transpose
+    * transform so they stay perpendicular to non-uniformly scaled
+    * geometry.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="instance_transform_normals.js"></script>
+    * @endhtmlonly
+    *
     * @see TorusScene — the canonical use of `Instance` for
     *      orientation, demonstrating glass torus + 90° X-rotation.
     */
