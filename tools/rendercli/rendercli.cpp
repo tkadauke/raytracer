@@ -22,9 +22,58 @@
 
 #include <QThread>
 
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <numeric>
+#include <vector>
+
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
+
+namespace {
+  using Clock = std::chrono::steady_clock;
+
+  struct TimingStats {
+    double minMs;
+    double medianMs;
+    double avgMs;
+    double maxMs;
+  };
+
+  double elapsedMilliseconds(Clock::time_point start, Clock::time_point end) {
+    return std::chrono::duration<double, std::milli>(end - start).count();
+  }
+
+  TimingStats summarizeTimings(std::vector<double> timings) {
+    std::sort(timings.begin(), timings.end());
+    const std::size_t n = timings.size();
+    const double median = (n % 2 == 0)
+      ? (timings[n / 2 - 1] + timings[n / 2]) / 2.0
+      : timings[n / 2];
+    const double total = std::accumulate(timings.begin(), timings.end(), 0.0);
+    return {
+      timings.front(),
+      median,
+      total / static_cast<double>(n),
+      timings.back()
+    };
+  }
+
+  void printTimings(const std::vector<double>& timings) {
+    const auto stats = summarizeTimings(timings);
+    std::cout << std::fixed << std::setprecision(3)
+              << "render_ms"
+              << " runs=" << timings.size()
+              << " min=" << stats.minMs
+              << " median=" << stats.medianMs
+              << " avg=" << stats.avgMs
+              << " max=" << stats.maxMs
+              << '\n';
+  }
+}
 
 class Renderer {
 public:
@@ -60,6 +109,8 @@ private:
   QString m_tonemap;
   QString m_engine;
   int m_wireframeLod;
+  int m_repeat;
+  bool m_timing;
 };
 
 Renderer::Renderer()
@@ -74,7 +125,9 @@ Renderer::Renderer()
     m_queueSizeSet(false),
     m_tonemap("Linear"),
     m_engine("raytracer"),
-    m_wireframeLod(0)
+    m_wireframeLod(0),
+    m_repeat(1),
+    m_timing(false)
 {
   parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -138,7 +191,18 @@ void Renderer::render() const {
   }
 
   Buffer<unsigned int> buffer(m_width, m_height);
-  engine->render(buffer);
+  std::vector<double> timings;
+  timings.reserve(static_cast<std::size_t>(m_repeat));
+  for (int i = 0; i < m_repeat; ++i) {
+    const auto start = Clock::now();
+    engine->render(buffer);
+    const auto end = Clock::now();
+    timings.push_back(elapsedMilliseconds(start, end));
+  }
+
+  if (m_timing || m_repeat > 1) {
+    printTimings(timings);
+  }
 
   QImage image = bufferToImage(buffer);
 
@@ -166,7 +230,7 @@ QImage Renderer::bufferToImage(const Buffer<unsigned int>& buffer) const {
 }
 
 Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessage) {
-  parser.setApplicationDescription("Test helper");
+  parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
   const QCommandLineOption helpOption = parser.addHelpOption();
   const QCommandLineOption versionOption = parser.addVersionOption();
   
@@ -180,7 +244,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {"queue_size", "Queue size for thread pool", "queue_size"},
     {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
     {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
-    {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"}
+    {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
+    {"timing", "Print render-only timing information to stdout"},
+    {"repeat", "Render the loaded scene N times and print render-only timing statistics", "runs"}
   });
   
   parser.addPositionalArgument("input", QCoreApplication::translate("main", "Input file to render."));
@@ -277,6 +343,20 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       *errorMessage = "LOD must be a non-negative integer";
       return CommandLineError;
     }
+  }
+
+  if (parser.isSet("timing")) {
+    m_timing = true;
+  }
+
+  if (parser.isSet("repeat")) {
+    bool ok = false;
+    m_repeat = parser.value("repeat").toInt(&ok);
+    if (!ok || m_repeat <= 0) {
+      *errorMessage = "Repeat must be a positive integer";
+      return CommandLineError;
+    }
+    m_timing = true;
   }
 
   const QStringList args = parser.positionalArguments();

@@ -96,35 +96,41 @@ Build the renderer before timing:
 cmake --build --preset release --target rendercli --parallel
 ```
 
-Use `/usr/bin/time -p` so measurements are easy to paste into
-`CHANGELOG.md`:
+Use `rendercli --repeat N` so measurements exclude process startup,
+scene loading, engine setup, image conversion, and PNG writing. The timer wraps
+only `engine->render(buffer)`; the output image is saved once from the final
+run.
 
 ```sh
-/usr/bin/time -p build/release/tools/rendercli/rendercli \
+build/release/tools/rendercli/rendercli \
   --engine raster --width 640 --height 480 --lod 8 \
+  --repeat 10 \
   benchmarks/scenes/rasterizer_baseline_dense_sphere.json \
   /tmp/rasterizer-dense-sphere.png
 
-/usr/bin/time -p build/release/tools/rendercli/rendercli \
+build/release/tools/rendercli/rendercli \
   --engine raster --width 640 --height 480 --lod 3 \
+  --repeat 10 \
   benchmarks/scenes/rasterizer_baseline_materials.json \
   /tmp/rasterizer-materials.png
 
-/usr/bin/time -p build/release/tools/rendercli/rendercli \
+build/release/tools/rendercli/rendercli \
   --engine raster --width 1920 --height 1080 --lod 0 \
+  --repeat 10 \
   benchmarks/scenes/rasterizer_baseline_offscreen_floor.json \
   /tmp/rasterizer-offscreen-floor.png
 
-/usr/bin/time -p build/release/tools/rendercli/rendercli \
+build/release/tools/rendercli/rendercli \
   --engine raster --width 640 --height 480 --lod 8 \
-  --threads 8 --queue_size 16 \
+  --threads 8 --queue_size 16 --repeat 10 \
   benchmarks/scenes/rasterizer_baseline_dense_sphere.json \
   /tmp/rasterizer-dense-sphere-tiled.png
 ```
 
 Measurement rules:
 
-- Record the machine/date, commit, command, `real`, `user`, and `sys`.
+- Record the machine/date, commit, command, and the reported
+  `render_ms runs=... min=... median=... avg=... max=...` line.
 - Keep single-tile and tiled results separate; tiled correctness exists today,
   but tiled speed is not expected to win until later raster stages add more
   per-pixel work.
