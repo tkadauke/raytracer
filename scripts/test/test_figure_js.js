@@ -739,6 +739,46 @@ test('Color model conversion widget shows RGB storage and helper views', () => {
     'widget should include swatches and component bars for each model');
 });
 
+test('Rasterizer state widget exposes depth stencil and culling controls', () => {
+  const body = loadWidget('rasterizer_depth_stencil_cull.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('framebuffer'));
+  assert.ok(text.includes('depth buffer'));
+  assert.ok(text.includes('stencil mask'));
+  assert.ok(text.includes('pass 1 writes stencil=1'),
+    'caption should explain the mark-then-draw pass structure');
+
+  assert.equal(countElements(body, 'button'), 5,
+    'stencil and cull modes should use segmented controls');
+  assert.equal(countElements(body, 'input'), 0,
+    'state toggles should not create raw form controls');
+  assert.equal(countElements(body, 'select'), 0,
+    'cull mode should use the shared segmented control');
+
+  const root = elementsByTag(body, 'svg')[0];
+  assert.equal(root.attributes['data-stencil-enabled'], '1');
+  assert.equal(root.attributes['data-cull-mode'], 'both');
+
+  const colorCells = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-buffer'] === 'color');
+  const depthCells = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-buffer'] === 'depth');
+  const stencilCells = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-buffer'] === 'stencil');
+  assert.equal(colorCells.length, 8 * 6);
+  assert.equal(depthCells.length, 8 * 6);
+  assert.equal(stencilCells.length, 8 * 6);
+  assert.ok(stencilCells.some(r => r.attributes['data-stencil'] === '1'));
+  assert.ok(stencilCells.some(r => r.attributes['data-stencil'] === '0'));
+  assert.ok(depthCells.some(r => r.attributes['data-depth'] !== 'clear'),
+    'depth buffer should show at least one written fragment');
+
+  const triangleOutlines = elementsByTag(body, 'polygon')
+    .filter(p => p.attributes['data-triangle-facing']);
+  assert.ok(triangleOutlines.some(p => p.attributes['data-triangle-facing'] === 'front'));
+  assert.ok(triangleOutlines.some(p => p.attributes['data-triangle-facing'] === 'back'));
+});
+
 // --- Path primitive --------------------------------------------------------
 
 test('Path: emits a <path> element with the supplied d attribute', () => {

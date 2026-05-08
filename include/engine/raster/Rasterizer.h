@@ -84,6 +84,19 @@ namespace engine::raster {
   * the programmable callbacks. It does not trace shadow rays;
   * lights are direct Lambertian contributions only.
   *
+  * The widget below shows the fixed-function state in the order the
+  * rasterizer applies it: a first pass marks a stencil region, then
+  * overlapping triangles draw through that mask while depth keeps the
+  * nearest fragment. Changing the cull mode removes triangles by
+  * screen-space winding before coverage reaches the depth/stencil
+  * tests. This is the same pass structure later used for planar
+  * reflections, mirrors, and portals.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="rasterizer_depth_stencil_cull.js"></script>
+  * @endhtmlonly
+  *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
   * <td>@image html rasterizer_engine_lod_1.png "lod=1"</td>
