@@ -4,6 +4,20 @@
 #include "core/math/Range.h"
 
 namespace render {
+  /**
+    * Lambertian diffuse reflection is view independent. The BRDF returns a
+    * constant color term, while the direct-lighting code multiplies it by the
+    * geometric cosine factor `max(n dot l, 0)`: light at grazing angles
+    * contributes less than light aligned with the surface normal.
+    *
+    * The widget compares that cosine-weighted diffuse term with the
+    * view-dependent Phong specular lobe used by GlossySpecular.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="phong_lambertian_lobes.js"></script>
+    * @endhtmlonly
+    */
   class Lambertian : public BRDF {
   public:
     inline Lambertian()

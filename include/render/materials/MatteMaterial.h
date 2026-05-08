@@ -18,6 +18,15 @@ namespace render {
     * shadow under the sphere; the rasterizer produces the same red
     * shaded sphere on its default background.
     *
+    * MatteMaterial's diffuse component is Lambertian: the brightness
+    * from each light follows `max(n dot l, 0)` and does not depend on
+    * the camera/view direction.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="phong_lambertian_lobes.js"></script>
+    * @endhtmlonly
+    *
     * <table>
     *   <tr>
     *     <th>Raytracer</th>

@@ -760,6 +760,38 @@ test('Reflective-material recursion widget exposes mirror controls and tree', ()
     'widget should show the mirror-direction formula');
 });
 
+test('Phong/Lambertian lobe widget exposes vectors and BRDF controls', () => {
+  const body = loadWidget('phong_lambertian_lobes.js');
+  assert.equal(countElements(body, 'input'), 3,
+    'diffuse coefficient, specular coefficient, and Phong exponent should be scalar sliders');
+
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('diffuse coefficient'),
+    'widget should label the diffuse coefficient control');
+  assert.ok(text.includes('specular coefficient'),
+    'widget should label the specular coefficient control');
+  assert.ok(text.includes('Phong exponent'),
+    'widget should label the exponent control');
+  assert.ok(text.includes('n dot l'),
+    'widget should show the Lambertian cosine term');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle']);
+  assert.deepEqual(handles.map(c => c.attributes['data-drag-handle']).sort(),
+    ['light-vector', 'view-vector'],
+    'light and view directions should be manipulated through visible vector handles');
+
+  const diffuseRects = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-diffuse-term'] !== undefined);
+  assert.equal(diffuseRects.length, 1,
+    'widget should render a diffuse-term meter');
+
+  const lobes = elementsByTag(body, 'path')
+    .filter(p => p.attributes['data-specular-lobe'] === 'phong');
+  assert.equal(lobes.length, 1,
+    'widget should render the Phong specular lobe');
+});
+
 test('Bounding-box spatial widgets use visible drag handles', () => {
   [
     ['bounding_box_include.js', 'included-point'],
