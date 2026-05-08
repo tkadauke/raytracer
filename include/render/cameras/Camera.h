@@ -181,6 +181,21 @@ namespace render {
       * before the divide. The base implementation returns undefined;
       * cameras without a closed-form projection stay unsupported by
       * software rasterization.
+      *
+      * The widget below shows the same world point through the two
+      * camera projections currently supported by the rasterizer. In
+      * pinhole mode, `w` is the signed eye-relative depth, so the
+      * projected pixel is only known after the `x / w`, `y / w`
+      * perspective divide. In orthographic mode, rays stay parallel
+      * and `w = 1`, so clip coordinates are already linear in screen
+      * space. Drag the world point through and behind the camera to
+      * see why the rasterizer clips in homogeneous space before that
+      * divide.
+      *
+      * @htmlonly
+      * <script type="text/javascript" src="figure.js"></script>
+      * <script type="text/javascript" src="camera_forward_projection.js"></script>
+      * @endhtmlonly
       */
     virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
 

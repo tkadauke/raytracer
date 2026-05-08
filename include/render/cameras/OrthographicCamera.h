@@ -78,6 +78,9 @@ namespace render {
       * are normalized viewport coordinates, `z` is camera-space
       * depth, and `w` is always 1 because orthographic projection
       * has no perspective divide.
+      *
+      * @see Camera::projectPointToClipSpace for an interactive
+      *      comparison with pinhole projection.
       */
     virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
 
