@@ -779,6 +779,21 @@ test('Rasterizer state widget exposes depth stencil and culling controls', () =>
   assert.ok(triangleOutlines.some(p => p.attributes['data-triangle-facing'] === 'back'));
 });
 
+test('Support mapping GJK widget exposes controls and simplex structure', () => {
+  const body = loadWidget('support_mapping_gjk.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('shape separation'),
+    'widget should expose a separation control for the two convex shapes');
+  assert.ok(text.includes('GJK step'),
+    'widget should expose a discrete step control for simplex evolution');
+  assert.equal(countElements(body, 'input'), 2,
+    'widget should use two range controls');
+  assert.ok(countElements(body, 'path') >= 4,
+    'widget should draw both convex shapes, the Minkowski difference, and the simplex');
+  assert.ok(countElements(body, 'circle') >= 6,
+    'widget should draw support points, the origin, and simplex points');
+});
+
 // --- Path primitive --------------------------------------------------------
 
 test('Path: emits a <path> element with the supplied d attribute', () => {
