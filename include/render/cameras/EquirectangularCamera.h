@@ -14,7 +14,7 @@ namespace render {
     * used by Google Street View, VR environment maps, HDR sky
     * textures, and reflection probes.
     *
-    * @image html equirectangular_camera.png "Equirectangular render — coloured spheres at every cardinal direction wrap around the full panorama"
+    * @image html equirectangular_camera.png "Equirectangular render — colored spheres at every cardinal direction wrap around the full panorama"
     *
     * ### How it works
     *
@@ -28,7 +28,7 @@ namespace render {
     *     y = height  → latitude  = -π/2   (bottom edge,  south pole)
     *
     * The `(longitude, latitude)` pair becomes a unit-sphere direction
-    * via the standard parameterisation
+    * via the standard parameterization
     * \f$(\sin\phi\cos\theta,\ \sin\theta,\ \cos\phi\cos\theta)\f$
     * where φ = longitude and θ = latitude. The camera's local-to-world
     * matrix rotates that direction into world space; the resulting ray
@@ -50,7 +50,7 @@ namespace render {
     *
     * ### Pole stretching and the seam
     *
-    * The rendered output has two visual artefacts inherent to the
+    * The rendered output has two visual artifacts inherent to the
     * projection itself:
     *
     * - **Pole stretching**: the top and bottom rows correspond to a
@@ -66,6 +66,11 @@ namespace render {
     * Both are properties of the equirectangular projection, not bugs.
     * Cubemap and stereographic cameras avoid them at the cost of
     * other distortions.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="wide_angle_camera_mappings.js"></script>
+    * @endhtmlonly
     *
     * ### Distinct from `SphericalCamera`
     *

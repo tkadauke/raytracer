@@ -8,7 +8,14 @@ namespace render {
 
   /**
     * Fish eye cameras produce a hemispherical projection of the scene onto the
-    * view plane.
+    * view plane. Image points inside the unit disc map to ray directions on
+    * the unit sphere; image points outside that disc are cut off and do not
+    * produce a primary ray.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="wide_angle_camera_mappings.js"></script>
+    * @endhtmlonly
     * 
     * @image html fish_eye_camera_cube.png "Fish eye with fieldOfView=180°"
     */
