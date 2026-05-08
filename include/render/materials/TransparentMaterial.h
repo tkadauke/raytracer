@@ -28,13 +28,27 @@ namespace render {
     *
     * The raytracer fires a refracted ray through the surface (and
     * a reflected ray for the Fresnel-style reflection on the silhouette)
-    * and uses the resulting colours as the visible appearance — the
+    * and uses the resulting colors as the visible appearance — the
     * sphere shows the floor and sky bent through it. The rasterizer
     * doesn't recurse, so it has nothing to display other than the
-    * diffuse base; here that base is the medium-grey configured by
-    * the doc-render driver, giving an opaque grey sphere instead.
+    * diffuse base; here that base is the medium-gray configured by
+    * the doc-render driver, giving an opaque gray sphere instead.
     * The comparison is "this is what the recursion buys you" — same
     * lesson as for the reflective material.
+    *
+    * Refraction follows Snell's law: the incoming angle, the surface normal,
+    * and the ratio between the current medium's IOR and the next medium's
+    * IOR determine the transmitted ray direction. When a ray tries to leave a
+    * denser medium at an angle greater than the critical angle, no real
+    * transmitted direction exists, so the material traces only the mirror
+    * reflection branch. That total internal reflection is why high-IOR glass
+    * or diamond can trap rays until they strike the surface closer to the
+    * normal.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="transparent_material_refraction.js"></script>
+    * @endhtmlonly
     */
   class TransparentMaterial : public PhongMaterial {
   public:
