@@ -8,6 +8,22 @@ namespace render {
   class Composite;
   class Material;
 
+  /**
+    * Mesh-backed triangle with per-vertex normal interpolation.
+    *
+    * The ray-triangle test first solves barycentric weights for the hit point:
+    * `alpha = 1 - beta - gamma`, `beta`, and `gamma`. Those coordinates are
+    * shared across the mesh pipeline: they decide whether the ray is inside
+    * the triangle, they interpolate UVs, and they are the same coordinates a
+    * rasterizer uses for per-fragment attributes. `SmoothMeshTriangle` also
+    * uses those weights to blend the three vertex normals, then normalizes
+    * the result before storing it on the `HitPoint`.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="mesh_triangle_interpolation.js"></script>
+    * @endhtmlonly
+    */
   class SmoothMeshTriangle : public MeshTriangle {
   public:
     explicit SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2);

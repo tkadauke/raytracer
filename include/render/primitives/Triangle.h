@@ -13,6 +13,19 @@ namespace render {
     * <td>@image html triangle__raster.png "Rasterizer"</td>
     * <td>@image html triangle__wireframe.png "Wireframe"</td>
     * </tr></table>
+    *
+    * Triangle intersection computes barycentric weights for the hit point:
+    * `alpha = 1 - beta - gamma`, `beta`, and `gamma`. The same weights
+    * define the default tessellated UVs (`p0 -> (0,0)`, `p1 -> (1,0)`,
+    * `p2 -> (0,1)`) and are the attribute-interpolation coordinates used
+    * by mesh triangles and the rasterizer. `Triangle` itself returns one
+    * flat geometric normal, but it follows the same hit-test convention as
+    * `FlatMeshTriangle` and `SmoothMeshTriangle`.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="mesh_triangle_interpolation.js"></script>
+    * @endhtmlonly
     */
   class Triangle : public Primitive {
   public:

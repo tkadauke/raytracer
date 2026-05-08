@@ -189,7 +189,10 @@ These are useful follow-ups once the core rendering and sampling widgets exist.
    - Teaches: intersecting an instance means transforming the ray into local
      space, while normals need inverse-transpose handling.
 
-5. **Mesh triangle interpolation**
+5. ~~**Mesh triangle interpolation**~~ ✅ **Done.** Added
+   `mesh_triangle_interpolation.js` and embedded it in the runtime triangle
+   docs so barycentric weights, UVs, and flat-vs-smooth normals can be explored
+   interactively.
    - Targets: `include/render/primitives/FlatMeshTriangle.h`,
      `include/render/primitives/SmoothMeshTriangle.h`,
      `include/render/primitives/Triangle.h`.
