@@ -339,6 +339,10 @@ test('Camera forward projection widget exposes projection controls', () => {
 });
 
 test('Transparent material refraction widget exposes IOR controls and TIR state', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'transparent_material_refraction.js'), 'utf8');
+  assert.ok(!/\n\s*(vector|length|normalize|dot)\([^)]*\)\s*\{/.test(source),
+    'transparent refraction widget should use figure.js Vector math helpers');
+
   const body = loadWidget('transparent_material_refraction.js');
   assert.equal(countElements(body, 'input'), 2,
     'inner and outer IOR should be scalar sliders');

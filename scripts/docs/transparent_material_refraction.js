@@ -15,8 +15,8 @@ class TransparentMaterialRefraction {
   constructor() {
     this.width = 640;
     this.height = 360;
-    this.hit = { x: 320, y: 178 };
-    this.incidentSource = { x: 230, y: 330 };
+    this.hit = new Vector(320, 178);
+    this.incidentSource = new Vector(230, 330);
     this.innerIor = 1.5;
     this.outerIor = 1.0;
   }
@@ -67,37 +67,13 @@ class TransparentMaterialRefraction {
     return Math.max(min, Math.min(max, value));
   }
 
-  vector(from, to) {
-    return {
-      x: to.x - from.x,
-      y: to.y - from.y,
-    };
-  }
-
-  length(vector) {
-    return Math.sqrt(vector.x * vector.x + vector.y * vector.y);
-  }
-
-  normalize(vector) {
-    const length = this.length(vector);
-    return {
-      x: vector.x / length,
-      y: vector.y / length,
-    };
-  }
-
-  dot(a, b) {
-    return a.x * b.x + a.y * b.y;
-  }
-
   incidentDirection() {
-    return this.normalize(this.vector(this.incidentSource, this.hit));
+    return this.hit.minus(this.incidentSource).normalized();
   }
 
   incidentAngle() {
     const incoming = this.incidentDirection();
-    const normal = { x: 0, y: -1 };
-    return Math.acos(this.clamp(this.dot(incoming, normal), -1, 1));
+    return Math.acos(this.clamp(incoming.dot(Vector.up), -1, 1));
   }
 
   criticalAngle() {
@@ -119,17 +95,11 @@ class TransparentMaterialRefraction {
   }
 
   pointOnLowerAngle(angle, radius, sign) {
-    return {
-      x: this.hit.x + sign * Math.sin(angle) * radius,
-      y: this.hit.y + Math.cos(angle) * radius,
-    };
+    return this.hit.plus(new Vector(sign * Math.sin(angle) * radius, Math.cos(angle) * radius));
   }
 
   pointOnUpperAngle(angle, radius, sign) {
-    return {
-      x: this.hit.x + sign * Math.sin(angle) * radius,
-      y: this.hit.y - Math.cos(angle) * radius,
-    };
+    return this.hit.plus(new Vector(sign * Math.sin(angle) * radius, -Math.cos(angle) * radius));
   }
 
   arcPath(radius, angle, side, sign) {
@@ -189,10 +159,7 @@ class TransparentMaterialRefraction {
   }
 
   addRay(from, direction, length, attrs = {}) {
-    const to = {
-      x: from.x + direction.x * length,
-      y: from.y + direction.y * length,
-    };
+    const to = from.plus(direction.multiply(length));
     return this.addLine(from, to, {
       'marker-end': 'url(#transparent-refraction-arrow)',
       ...attrs,
@@ -229,7 +196,7 @@ class TransparentMaterialRefraction {
     this.addText(46, 30, `outer medium (IOR ${this.outerIor.toFixed(2)})`);
     this.addText(46, 342, `inner medium (IOR ${this.innerIor.toFixed(2)})`);
 
-    this.addRay(this.hit, { x: 0, y: -1 }, 94, {
+    this.addRay(this.hit, Vector.up, 94, {
       stroke: '#111',
       'marker-end': 'url(#transparent-refraction-arrow)',
     });
@@ -245,11 +212,7 @@ class TransparentMaterialRefraction {
     const state = this.state();
     const incoming = this.incidentDirection();
     const sign = incoming.x < 0 ? -1 : 1;
-    const normal = { x: 0, y: -1 };
-    const reflect = {
-      x: incoming.x,
-      y: incoming.y - 2 * this.dot(incoming, normal) * normal.y,
-    };
+    const reflect = incoming.minus(Vector.up.multiply(2 * incoming.dot(Vector.up)));
 
     this.addLine(this.incidentSource, this.hit, {
       stroke: '#d9480f',
@@ -263,10 +226,7 @@ class TransparentMaterialRefraction {
     });
 
     if (!state.tir) {
-      const trans = {
-        x: sign * Math.sin(state.thetaT),
-        y: -Math.cos(state.thetaT),
-      };
+      const trans = new Vector(sign * Math.sin(state.thetaT), -Math.cos(state.thetaT));
       this.addRay(this.hit, trans, 170, {
         stroke: '#2b8a3e',
         'marker-end': 'url(#transparent-refraction-green-arrow)',
@@ -341,10 +301,10 @@ class TransparentMaterialRefraction {
         'data-drag-handle': 'incident-direction',
       },
       onDrag: (point) => {
-        this.incidentSource = {
-          x: this.clamp(point.x, 70, 570),
-          y: this.clamp(point.y, this.hit.y + 45, 340),
-        };
+        this.incidentSource = new Vector(
+          this.clamp(point.x, 70, 570),
+          this.clamp(point.y, this.hit.y + 45, 340)
+        );
         this.render();
       },
     });
