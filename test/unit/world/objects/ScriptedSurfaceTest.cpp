@@ -1,25 +1,29 @@
 #include <gtest/gtest.h>
 
-#include "world/objects/ScriptedSurface.h"
+#include "world/objects/Element.h"
+#include "world/objects/ElementFactory.h"
 
-// ScriptedSurface.cpp uses #include "ScriptedSurface.moc" (inline moc) to
-// compile ScriptElementRegistry, so there is no separate
-// moc_ScriptedSurface.cpp in the raytracer build tree. Including
-// ScriptedSurface.h here without SKIP_AUTOMOC would cause CMake AUTOMOC to
-// generate one for unit_tests, which then duplicates the ScriptedSurface
-// symbols already pulled in via --whole-archive. This file has SKIP_AUTOMOC
-// set in test/CMakeLists.txt to avoid that collision.
+#include <QVariant>
+
+#include <memory>
 
 namespace ScriptedSurfaceTest {
-  TEST(ScriptedSurface, ShouldDefaultToEmptyScriptName) {
-    ScriptedSurface s;
-    EXPECT_TRUE(s.scriptName().isEmpty());
+  std::unique_ptr<Element> createScriptedSurface() {
+    auto surface = ElementFactory::self().create("ScriptedSurface");
+    EXPECT_NE(nullptr, surface.get());
+    return surface;
   }
 
-  TEST(ScriptedSurface, ShouldDefaultToNotGeneratedAndVisible) {
-    // Inherits Surface defaults: visible=true, material=nullptr.
-    ScriptedSurface s;
-    EXPECT_TRUE(s.visible());
-    EXPECT_EQ(nullptr, s.material());
+  TEST(ScriptedSurface, ShouldDefaultToEmptyScriptName) {
+    const auto surface = createScriptedSurface();
+    ASSERT_NE(nullptr, surface.get());
+    EXPECT_TRUE(surface->property("scriptName").toString().isEmpty());
+  }
+
+  TEST(ScriptedSurface, ShouldDefaultToVisibleAndNotGenerated) {
+    const auto surface = createScriptedSurface();
+    ASSERT_NE(nullptr, surface.get());
+    EXPECT_TRUE(surface->property("visible").toBool());
+    EXPECT_FALSE(surface->isGenerated());
   }
 }
