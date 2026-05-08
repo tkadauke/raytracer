@@ -141,6 +141,43 @@ sweep images for the docs. Steps:
    ruby scripts/render_docs.rb --only kaleidoscope_camera
    ```
 
+## Rendered-image coverage principles
+
+Class-level images should answer "what does this object look like?"
+across every engine that can currently render that object
+meaningfully:
+
+- **Primitives / surfaces:** render the canonical class image with
+  Raytracer, Rasterizer, and Wireframe when the engine supports the
+  primitive. Rasterizer and Wireframe require a non-empty
+  `tessellate()` result and a camera with the corresponding forward
+  projection API. Infinite primitives, aggregators with no intrinsic
+  shape, and CSG operations whose mesh boolean tessellation is still
+  unimplemented are explicitly deferred.
+- **Materials:** render class-level material comparisons with engines
+  that evaluate material semantics. Raytracer is the reference path.
+  Rasterizer comparisons are useful when the rasterizer implements the
+  material path or when the contrast teaches an engine limitation.
+  Wireframe ignores material shading, so it is not part of material
+  coverage unless that changes.
+- **Cameras:** render each camera with Raytracer. Add Rasterizer and
+  Wireframe images only for cameras with implemented forward
+  projection (`projectPointToClipSpace` for Rasterizer,
+  `projectPoint` for Wireframe). Cameras without that projection stay
+  raytracer-only until support exists.
+- **Property docs:** parameter sweeps such as radius, FOV, material
+  coefficients, or sampler density stay raytracer-only by default.
+  Add extra engines only when the comparison teaches something beyond
+  the parameter itself.
+- **Engine-specific features:** render them only with the engines that
+  expose the feature. Rasterizer MSAA, for example, belongs to
+  Rasterizer; Wireframe LOD belongs to Wireframe.
+- **Names and references:** multi-engine class renders use
+  `class_doc(engines: [...])`, producing `__raytracer`, `__raster`,
+  and similar filename suffixes. Every generated filename must match
+  the `@image html` references in both runtime and `world::` wrapper
+  headers; `rake check:doc-images` is the guardrail.
+
 ---
 
 ## Staleness detection
