@@ -10,7 +10,7 @@
 //          of one tube cross-section. Each segment becomes one row
 //          of quads.
 //
-// Drag the LOD slider to watch BOTH dimensions double. The full
+// Use the LOD slider to watch BOTH dimensions double. The full
 // mesh has `majorSegs × minorSegs` quads — the product is what
 // makes torus vertex counts grow fast (lod 0 → 289, lod 1 → 1089,
 // lod 2 → 4225…).

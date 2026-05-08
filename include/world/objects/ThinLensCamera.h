@@ -24,8 +24,8 @@
   * Open `examples/GeneratedRayTracer/scenes/dof_demo.json` in
   * GeneratedRayTracer (File → Open) for a pre-built three-sphere scene,
   * or pick **Edit → Add Camera → Thin Lens Camera (DOF)** in a fresh
-  * scene. Selecting the camera node exposes the four sliders below;
-  * dragging them re-renders the preview live.
+  * scene. Selecting the camera node exposes the four property controls;
+  * changing them re-renders the preview live.
   *
   * For headless renders, use `rendercli` against the same scene file:
   * `rendercli --width 800 --height 600 --sampler MultiJittered

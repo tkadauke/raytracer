@@ -33,8 +33,8 @@ namespace render {
       * All vertex normals equal the disk's plane normal — flat
       * shading, since a tessellated disk is mathematically flat.
       *
-      * The interactive widget below shows the fan layout from above
-      * with a live LOD slider.
+      * The interactive widget below shows the fan layout from above. Use the
+      * LOD slider to change the segment count.
       *
       * @htmlonly
       * <script type="text/javascript" src="figure.js"></script>

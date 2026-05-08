@@ -57,7 +57,7 @@ public:
     * radians, with \f$r = d \times \frac{2\pi}{360}\f$, where \f$d\f$ is
     * @p degrees (the angle in degrees) and \f$r\f$ is the internal angle in
     * radians. The following interactive figure shows the angle in degrees.
-    * Click and drag horizontally to change the angle.
+    * Use the angle slider to change the angle.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -104,8 +104,7 @@ public:
   
   /**
     * Constructs an angle from @p radians. The following interactive figure
-    * shows the angle in radians. Click and drag horizontally to change the
-    * angle.
+    * shows the angle in radians. Use the angle slider to change the angle.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -129,8 +128,8 @@ public:
     * Constructs an angle from @p turns. Internally, the angle is stored in
     * radians, with \f$r = t \times 2\pi\f$, where \f$t\f$ is @p turns (the
     * angle in turns) and \f$r\f$ is the internal angle in radians. The
-    * following interactive figure shows the angle in turns. Click and drag
-    * horizontally to change the angle.
+    * following interactive figure shows the angle in turns. Use the angle
+    * slider to change the angle.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -162,8 +161,8 @@ public:
     * Constructs an angle from @p oClock. Internally, the angle is stored in
     * radians, with \f$r = \frac{o \times 2\pi}{12}\f$, where \f$o\f$ is
     * @p oClock (the hour on a clock) and \f$r\f$ is the angle in radians. The
-    * following interactive figure shows the angle in hours. Click and drag
-    * horizontally to change the angle.
+    * following interactive figure shows the angle in hours. Use the angle
+    * slider to change the angle.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>

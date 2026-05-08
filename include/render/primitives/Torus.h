@@ -41,8 +41,8 @@ namespace render {
       * sphere topology.
       *
       * The interactive widget below shows the major and minor
-      * segmentation as two side-by-side cross-sections with a live
-      * LOD slider.
+      * segmentation as two side-by-side cross-sections. Use the LOD slider to
+      * change both segment counts.
       *
       * @htmlonly
       * <script type="text/javascript" src="figure.js"></script>

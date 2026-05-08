@@ -86,8 +86,8 @@ public:
     * @returns the solution to the Ray's equation \f$r = o + td\f$ for the given
     *   t, i.e. the point along the Ray with distance t from the origin.
     * 
-    * The following interactive figure illustrates the geometry. Click and drag
-    * horizontally to move the resulting point along the ray, shown in red.
+    * The following interactive figure illustrates the geometry. Use the `t`
+    * slider to move the resulting point along the ray, shown in red.
     *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>

@@ -105,7 +105,7 @@ namespace engine::raster {
   * MSAA is opt-in because it multiplies raster work. The comparison
   * below renders the same high-contrast diagonal triangle with 1x
   * coverage and 4x MSAA; the 4x image resolves partially covered
-  * edge samples into grey pixels instead of a binary stair-step.
+  * edge samples into gray pixels instead of a binary stair-step.
   *
   * <table><tr>
   * <td>@image html rasterizer_msaa_1x.png "1x raster coverage"</td>
@@ -113,22 +113,22 @@ namespace engine::raster {
   * </tr></table>
   *
   * The widget below magnifies the same resolve operation. Drag the
-  * triangle vertices and switch between sample counts to see why 1x
+  * triangle vertex handles and switch between sample counts to see why 1x
   * coverage produces only on/off pixels, while MSAA can turn a
-  * partially covered pixel into a proportional grey resolve.
+  * partially covered pixel into a proportional gray resolve.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>
   * <script type="text/javascript" src="rasterizer_msaa_coverage.js"></script>
   * @endhtmlonly
   *
-  * The interactive widget below visualises the edge-function
+  * The interactive widget below visualizes the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
   * the rasterizer runs for every triangle. Drag the three vertex
   * handles to reshape the triangle and watch the filled region
   * update in real time; the dashed rectangle is the bounding box
-  * the rasterizer scans. Toggle between barycentric vertex colour
-  * and UV colour to see the same weights drive arbitrary attributes.
+  * the rasterizer scans. Toggle between barycentric vertex color
+  * and UV color to see the same weights drive arbitrary attributes.
   * The production rasterizer clips triangles against the homogeneous
   * viewport before this step, then still clamps the bounding box to
   * the framebuffer as a final guard. Hover anywhere to read the live
@@ -151,8 +151,8 @@ namespace engine::raster {
   * Clipping creates new vertices on viewport or near-plane edges.
   * Those generated vertices must carry interpolated attributes too;
   * otherwise UVs and normals would jump exactly where clipping
-  * happens. The widget below moves one triangle vertex outside the
-  * viewport and shows the generated clipped vertices with their UVs.
+  * happens. Drag any source vertex handle across the viewport boundary to see
+  * generated clipped vertices and their interpolated UVs.
   *
   * @htmlonly
   * <script type="text/javascript" src="rasterizer_clip_attributes.js"></script>

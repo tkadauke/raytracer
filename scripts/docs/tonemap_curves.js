@@ -13,7 +13,7 @@
 //   - Reinhard (blue):        y = x / (1 + x)
 //   - ACES (green):           y = clamp((x*(2.51x + 0.03)) / (x*(2.43x + 0.59) + 0.14))
 //
-// A draggable slider sets the "current input" — a vertical line
+// The input HDR luminance slider sets the "current input" — a vertical line
 // drops from x to each curve, and dots mark where each operator
 // lands. The output values appear beside each dot.
 

@@ -116,11 +116,10 @@
   of thing this raytracer is built for*; not having it in the doc
   widgets is ironic.
 
-- **One interaction model: drag-horizontally.** No sliders with snap,
-  no buttons, no keyboard navigation, no touch support. That's a lot
-  of "click to drag, hope you guess what it does." A "reset to
-  default" button on every widget would help; a small slider widget
-  primitive would too.
+- **Historical interaction problem: drag-horizontally everywhere.**
+  The old widgets relied on hidden whole-widget drag gestures. Current
+  widgets should use explicit sliders or segmented controls for scalar
+  state, and visible draggable handles for spatial state.
 
 - **Global CSS injection** — `figure.js` prepends a `<style>` to
   `<head>`. All widgets on a page share the same styles. Adding

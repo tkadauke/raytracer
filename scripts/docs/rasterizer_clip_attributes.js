@@ -1,5 +1,5 @@
 // Interactive widget for homogeneous/screen clipping preserving interpolated
-// attributes. Drag any source vertex; each generated clip vertex keeps
+// attributes. Drag any source vertex handle; each generated clip vertex keeps
 // linearly interpolated UVs.
 
 class RasterizerClipAttributes {

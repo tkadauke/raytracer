@@ -27,8 +27,8 @@ namespace render {
     * The rendered images show the *qualitative* effect; the
     * underlying *transfer functions* — what each operator
     * actually does to a given input value — are what make the
-    * rendered differences predictable. Drag the slider in the
-    * widget below to see where each operator maps your chosen
+    * rendered differences predictable. Use the input HDR luminance slider in
+    * the widget below to see where each operator maps your chosen
     * input HDR luminance: at x=1.0 Linear is at its clamp ceiling,
     * Reinhard is at exactly 0.5, and ACES is at ~0.8 (the
     * "punchy midtone" claim, made concrete). At x=4.0 all three

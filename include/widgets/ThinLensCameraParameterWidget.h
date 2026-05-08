@@ -12,8 +12,8 @@
   *
   * Each spin-box change emits the inherited `changed()` signal so
   * `Display::cameraParameterChanged()` can call `applyTo()` and
-  * re-render. Drag the aperture slider 0 → 0.5 to watch DOF blur grow;
-  * drag focal distance to slide focus through the scene.
+  * re-render. Adjust `apertureRadius` to watch DOF blur grow; adjust
+  * `focalDistance` to slide focus through the scene.
   */
 class ThinLensCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT;

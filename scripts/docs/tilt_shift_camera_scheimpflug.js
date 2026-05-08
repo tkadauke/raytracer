@@ -23,7 +23,7 @@
 // focal plane) and why the miniature effect compresses focus to a
 // thin band when the tilt is steep.
 //
-// Drag the slider to rotate the focal plane. At tilt = 0 the widget
+// Use the tilt slider to rotate the focal plane. At tilt = 0 the widget
 // degenerates to the ThinLens convergence diagram (same focal point
 // for every pixel). At tilt = 30° the focal plane visibly leans, and
 // the in-focus points for the upper and lower pixels separate.

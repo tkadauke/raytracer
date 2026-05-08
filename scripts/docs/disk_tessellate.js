@@ -1,5 +1,5 @@
 // Interactive widget for `Disk::tessellate` — top-down view of the
-// triangle-fan layout the tessellator produces. Drag the LOD slider
+// triangle-fan layout the tessellator produces. Use the LOD slider
 // to watch the segment count double at each level (16 → 32 → 64 →
 // …). The teaching points the static image table can't show:
 //

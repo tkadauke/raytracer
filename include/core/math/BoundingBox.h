@@ -225,8 +225,8 @@ public:
   /**
     * This function expands this bounding box, so that @p point will be inside
     * this box. The bounding box object is changed in place. The following
-    * interactive figure illustrates the geometry. Click and drag to move the
-    * included point around, shown in red.
+    * interactive figure illustrates the geometry. Drag the red point handle to
+    * move the included point.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -280,9 +280,8 @@ public:
   /**
     * @returns a bounding box that is grown by @p vec in each direction. The
     *   resulting bounding box's size is the original size plus two times
-    *   @p vec. The following interactive figure illustrates the geometry. Click
-    *   and drag to change the size of the resulting bounding box. The red
-    *   vector is @p vec.
+    *   @p vec. The following interactive figure illustrates the geometry. Drag
+    *   the red top-right handle to change @p vec and the resulting box size.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
@@ -309,8 +308,8 @@ public:
   
   /**
     * @returns a bounding box that is moved by @p vec. The following interactive
-    *   figure illustrates the geometry. Click and drag to move the resulting
-    *   bounding box around.
+    *   figure illustrates the geometry. Drag the red corner handle to change
+    *   @p vec and move the resulting bounding box.
     * 
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>

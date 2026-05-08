@@ -34,9 +34,9 @@ namespace render {
     virtual bool intersects(const Rayd& ray, render::State& state) const;
 
     /**
-      * @returns the farthest point on the box in the given diretion. The
-      *   following interactive figure illustrates the geometry. Click and drag
-      *   horizontally to change the angle of the direction vector. The
+      * @returns the farthest point on the box in the given direction. The
+      *   following interactive figure illustrates the geometry. Use the
+      *   direction-angle slider to change the direction vector. The
       *   resulting point is highlighted in red.
       * 
       * @htmlonly

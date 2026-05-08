@@ -64,7 +64,8 @@ namespace render {
       * quad topology stay uniform across the surface (no fan).
       *
       * The interactive widget below shows the band layout from a
-      * side view with a live LOD slider. Pole vertices (drawn red)
+      * side view. Use the LOD slider to change the segment count. Pole vertices
+      * (drawn red)
       * collapse to a single point on this projection but live as
       * `lonSegs + 1` distinct mesh vertices.
       *
@@ -78,9 +79,9 @@ namespace render {
     virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
 
     /**
-      * Returns the farthest point on the sphere in the given diretion. The
-      * following interactive figure illustrates the geometry. Click and drag
-      * horizontally to change the angle of the direction vector. The resulting
+      * Returns the farthest point on the sphere in the given direction. The
+      * following interactive figure illustrates the geometry. Use the
+      * direction-angle slider to change the direction vector. The resulting
       * point is highlighted in red.
       * 
       * @htmlonly

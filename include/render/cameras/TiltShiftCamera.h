@@ -56,10 +56,10 @@ namespace render {
     * `KolbCamera` implementation — that's the right place for
     * full physical lens modelling.
     *
-    * The widget below makes the geometric idea concrete. Drag the
+    * The widget below makes the geometric idea concrete. Use the
     * tilt slider: at `tilt = 0` the focal plane is perpendicular to
     * forward and *every* pixel focuses at the same depth (pure
-    * `ThinLensCamera` behaviour). As the slider moves, the focal
+    * `ThinLensCamera` behavior). As the slider changes, the focal
     * plane rotates and the focal points for pixels above vs below
     * the optical axis separate — that's the entire reason a single
     * tilted focal plane can keep a long horizontal surface sharp

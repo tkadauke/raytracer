@@ -1,6 +1,6 @@
 // Interactive widget for `OpenCylinder::tessellate` — top-down view
 // of the side-surface tessellation, looking down the cylinder's Y
-// axis. Drag the LOD slider to watch the segment count double at
+// axis. Use the LOD slider to watch the segment count double at
 // each level (16 → 32 → 64 → …). The teaching points:
 //
 //  - From above, the side-surface tessellation looks like a regular

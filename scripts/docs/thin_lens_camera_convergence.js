@@ -14,7 +14,7 @@
 //      |          |        ··· · (5 rays from lens disc all converging)
 //      |          |           |
 //
-// Drag horizontally to slide the focal plane (focalDistance). Watch:
+// Use the focalDistance slider to slide the focal plane. Watch:
 // - The focal plane moves; the rays still converge at it.
 // - The blur "fans" of rays past the focal plane open or close.
 // - The pinhole reference ray (the one through the lens center) is
@@ -116,7 +116,7 @@ class ThinLensConvergence {
   const figure = new ThinLensConvergence();
 
   // A `Slider` (HTML range input with a live label) replaces the
-  // earlier "drag horizontally and hope you guess" affordance. The
+  // earlier hidden horizontal drag affordance. The
   // user gets a clear range, a known control, and a numeric readout
   // — much better discoverability for a docs page.
   const container = document.createElement('div');

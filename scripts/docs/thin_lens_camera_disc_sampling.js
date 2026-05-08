@@ -10,7 +10,7 @@
 //          and (importantly for ThinLensCamera) preserve the input
 //          stratification.
 //
-// Drag the slider to change N — bigger N → finer grid → smoother
+// Use the grid density slider to change N — bigger N → finer grid → smoother
 // bokeh in the rendered output. The visible structure of the disc
 // pattern (concentric rings + radial spokes) is what makes lens
 // samples STRATIFIED rather than purely random; that's why bokeh

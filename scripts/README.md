@@ -230,8 +230,8 @@ small DOM library in `figure.js`:
 | `Text(position, text, klass)` | Text label. |
 | `Axes(length)` | x/y reference axes with arrowheads + labels. |
 | `Path(d, klass)` | **Arbitrary SVG path.** Use for curves, polygons, function plots — anything not expressible as line/circle/rect. `Path.polyline(points, {closed: true})` builds a straight-segment d-string from a `Vector[]`. |
-| `Slider({label, min, max, value, step, precision, onChange})` | **HTML range input with a live label.** First-class slider for parameter widgets — much better discoverability than the drag-horizontally affordance. Returns a `<div>` from `.element()`. |
-| `DragHandler(figure)` | Mouse-drag affordance over the canvas. Useful when the parameter is naturally continuous and you want spatial input. `Slider` is usually clearer for documentation. |
+| `Slider({label, min, max, value, step, precision, onChange})` | **HTML range input with a live label.** First-class control for scalar parameters. Returns a `<div>` from `.element()`. |
+| `DragHandler(figure)` | Legacy whole-widget mouse-drag affordance. Do not use in new or migrated widgets; prefer visible handles for spatial state and sliders/segmented controls for scalar state. |
 | `FigureWidget({className})` | Scoped widget root with standard controls and stage containers. Use for new and migrated widgets. |
 | `FigureSvg({width, height, viewBox})` | Raw SVG helper with scoped widget styling, `add`, `append`, and `clear`. Use when the older scene-coordinate `Canvas` abstraction is too limited. |
 | `FigureSegmentedControl({label, options, value, onChange})` | Standard segmented buttons for small enumerated option sets. |
@@ -282,9 +282,8 @@ class FooClass {
   let canvas = figure.createCanvas();
   container.appendChild(canvas);
 
-  // Slider gives the user a known affordance + numeric readout —
-  // much better discoverability than DragHandler for docs pages
-  // where the user isn't primed for "drag the SVG horizontally."
+  // Slider gives the user a known affordance + numeric readout for
+  // scalar state.
   const slider = new Slider({
     label: "value", min: 0, max: 10, value: figure.value,
     step: 0.1, precision: 1,

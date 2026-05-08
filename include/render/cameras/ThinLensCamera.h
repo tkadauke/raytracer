@@ -32,7 +32,7 @@ namespace render {
     * geometric definition of "in focus".
     *
     * The interactive figure below shows that convergence in a side-view
-    * cross-section. Click and drag horizontally to slide the focal
+    * cross-section. Use the `focalDistance` slider to slide the focal
     * plane: the rays still converge at it regardless of where it sits.
     *
     * @htmlonly
@@ -76,10 +76,10 @@ namespace render {
     * points, not N random ones, which drops the dominant bokeh-noise
     * term from `O(1/√N)` to `O(1/N)`.
     *
-    * The widget below visualises that mapping. Drag horizontally to
-    * change the grid density (N×N samples). The disc plot on the right
+    * The widget below visualizes that mapping. Use the grid-density slider to
+    * change N (for N×N samples). The disk plot on the right
     * shows the resulting lens-sample distribution: stratified, no
-    * rejection, no clustering at the centre.
+    * rejection, no clustering at the center.
     *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>

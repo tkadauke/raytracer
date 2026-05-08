@@ -1,6 +1,6 @@
 // Interactive widget for `Sphere::tessellate` — side view (looking
 // down +X) of the UV-sphere parametrisation, showing latitude bands
-// stacked from south pole to north pole. Drag the LOD slider to
+// stacked from south pole to north pole. Use the LOD slider to
 // watch the band count double at each level (8 → 16 → 32 → …).
 //
 // Teaching points the static image table can't show:
