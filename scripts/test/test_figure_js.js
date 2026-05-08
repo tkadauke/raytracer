@@ -470,6 +470,38 @@ test('Sampler streams widget exposes sampler and dimension controls', () => {
   assert.equal(shutterDots.length, 16);
 });
 
+test('Grid DDA widget exposes traversal state and controls', () => {
+  const body = loadWidget('grid_dda_traversal.js');
+  assert.equal(countElements(body, 'input'), 1,
+    'grid density should be adjusted with one scalar slider');
+
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('grid density'),
+    'density control should be labeled');
+  assert.ok(text.includes('t_next x'),
+    'widget should expose the next x-boundary parameter');
+  assert.ok(text.includes('t_next y'),
+    'widget should expose the next y-boundary parameter');
+  assert.ok(text.includes('visited cells'),
+    'widget should summarize the traversal trail');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle']);
+  assert.deepEqual(handles.map(c => c.attributes['data-drag-handle']),
+    ['ray-origin', 'ray-direction']);
+
+  const visitedCells = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-grid-dda-cell'] === 'visited');
+  assert.ok(visitedCells.length >= 4,
+    'default ray should visit multiple cells');
+  assert.equal(elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-grid-dda-cell'] === 'current').length, 1,
+    'the current cell should be highlighted separately');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-grid-dda-entry'] === '1').length, 1,
+    'the ray entry point should be marked');
+});
+
 test('Farthest-point widgets use explicit angle sliders', () => {
   [
     'box_farthest_point.js',
