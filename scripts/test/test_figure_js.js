@@ -710,6 +710,24 @@ test('Instance transform widget exposes ray handles and transform modes', () => 
     'normal view should compare geometric, inverse-transpose, and direction-scaled normals');
 });
 
+test('Reflective-material recursion widget exposes mirror controls and tree', () => {
+  const body = loadWidget('reflective_material_recursion.js');
+  assert.equal(countElements(body, 'input'), 1,
+    'reflection coefficient should be a scalar slider');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle']);
+  assert.deepEqual(handles.map(c => c.attributes['data-drag-handle']),
+    ['surface-normal', 'incoming-ray']);
+
+  const treeNodes = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-recursion-depth']);
+  assert.deepEqual(treeNodes.map(c => c.attributes['data-recursion-depth']),
+    ['0', '1', '2', '3']);
+  assert.ok(textContents(body).join(' ').includes('d - 2(d dot n)n'),
+    'widget should show the mirror-direction formula');
+});
+
 test('Bounding-box spatial widgets use visible drag handles', () => {
   [
     ['bounding_box_include.js', 'included-point'],

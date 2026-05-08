@@ -4,6 +4,28 @@
 #include "core/math/Range.h"
 
 namespace render {
+  /**
+    * @brief Ideal mirror BRDF used by recursive reflective materials.
+    *
+    * `sample()` has no random choice to make: it mirrors the outgoing
+    * view direction around the hit normal and writes that direction
+    * into `in`. Equivalently, for an incoming ray direction `d` and a
+    * unit normal `n`, the traced mirror direction is
+    * `d - 2(d dot n)n`.
+    *
+    * `ReflectiveMaterial` uses that sampled direction to call
+    * `raycaster->rayColor(...)` recursively. The widget below shows
+    * the geometric mirror calculation and the recursive call tree
+    * that lets a reflection contain more scene information than the
+    * first surface hit.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="reflective_material_recursion.js"></script>
+    * @endhtmlonly
+    *
+    * @see ReflectiveMaterial
+    */
   class PerfectSpecular : public BRDF {
   public:
     inline PerfectSpecular()
