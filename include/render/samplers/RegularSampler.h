@@ -5,7 +5,10 @@
 
 namespace render {
   /**
-    * Samples the pixels in a regular grid.
+    * Samples the pixels in a regular grid. The grid gives each stratum
+    * exactly one sample at its center; see `Sampler` for the interactive
+    * sampler-stream widget that compares regular, jittered, and random
+    * sample dimensions.
     * 
     * <table><tr>
     * <td>@image html regular_sampler_spp_1.png "samplesPerPixel=1"</td>

@@ -5,8 +5,11 @@
 
 namespace render {
   /**
-    * Samples the pixels in a regular grid, but each ray is displaced by a
-    * random amount within its own cell.
+    * Samples the pixel with independent random points. This removes the
+    * grid structure of `RegularSampler` / `JitteredSampler`, so clumping
+    * and empty regions are possible; see `Sampler` for the interactive
+    * sampler-stream widget that compares the patterns and stream
+    * dimensions.
     * 
     * <table><tr>
     * <td>@image html random_sampler_spp_1.png "samplesPerPixel=1"</td>
