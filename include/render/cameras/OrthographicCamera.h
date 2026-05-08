@@ -71,6 +71,14 @@ namespace render {
       */
     virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
 
+    /**
+      * Homogeneous orthographic projection. `x / w` and `y / w`
+      * are normalized viewport coordinates, `z` is camera-space
+      * depth, and `w` is always 1 because orthographic projection
+      * has no perspective divide.
+      */
+    virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
+
     /// Signed eye-relative depth — positive in front of the camera
     /// plane, negative behind. For ortho this is the camera-space z
     /// directly (no perspective eye point).

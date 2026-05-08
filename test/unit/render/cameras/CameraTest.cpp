@@ -75,6 +75,11 @@ namespace CameraTest {
     ASSERT_EQ(camera.matrix().inverted(), camera.inverseMatrix());
   }
 
+  TEST(Camera, ClipSpaceProjectionIsUndefinedByDefault) {
+    ConcreteCamera camera(Vector3d(0, 0, -2), Vector3d::null());
+    EXPECT_TRUE(camera.projectPointToClipSpace(Vector3d::null()).isUndefined());
+  }
+
   TEST(Camera, ShouldRecalculateMatrixWhenPositionIsChanged) {
     ConcreteCamera camera;
     camera.setPosition(Vector3d(0, 0, -2));

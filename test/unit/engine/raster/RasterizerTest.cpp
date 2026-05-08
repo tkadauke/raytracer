@@ -4,6 +4,7 @@
 #include "engine/raster/Rasterizer.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
@@ -53,6 +54,15 @@ namespace RasterizerTest {
   static std::shared_ptr<Scene> sceneWithSphere() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Sphere>(Vector3d::null(), 1));
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithOversizedRectangle() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Rectangle>(
+      Vector3d(-100, -100, 0),
+      Vector3d( 200,    0, 0),
+      Vector3d(   0,  200, 0)));
     return scene;
   }
 
@@ -273,6 +283,15 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, ViewportClippedGeometryFillsFramebuffer) {
+    Rasterizer engine(headOnCamera(), sceneWithOversizedRectangle());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(64 * 64, countNonBackground(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRender) {

@@ -20,12 +20,16 @@ namespace engine::raster {
   *
   *  1. Tessellate the scene into a single `Mesh` via
   *     `Scene::tessellate(lod)`.
-  *  2. For each leaf mesh, precompute every vertex's eye-relative
-  *     depth and projected screen position via the camera projection
-  *     APIs, then reuse those values across the face fan.
+  *  2. For each leaf mesh, precompute every vertex's homogeneous
+  *     clip coordinate via `Camera::projectPointToClipSpace`, plus
+  *     cached screen coordinates for vertices already inside the
+  *     clip volume.
   *  3. Triangulate the face (fan from vertex 0 — assumes convex
   *     faces, which the per-primitive tessellate impls guarantee).
-  *  4. Rasterize each triangle via `core::rasterizeTriangle`. For
+  *  4. Clip each triangle in homogeneous space against the near
+  *     plane and the four viewport edges before the perspective
+  *     divide.
+  *  5. Rasterize each triangle via `core::rasterizeTriangle`. For
   *     every pixel inside:
   *      - Depth-test against a per-pixel Z-buffer using the
   *        perspective-correct interpolation trick (`1/z` is linear
@@ -48,13 +52,15 @@ namespace engine::raster {
   * primitives with no usable diffuse texture still receive a stable
   * per-face fallback colour so missing materials remain visible.
   *
-  * Triangles that straddle the near plane are clipped in eye space
-  * before projection so their visible portion can still render.
+  * Triangles that straddle the near plane or viewport edge are
+  * clipped in homogeneous space before projection so their visible
+  * portion can still render without producing enormous post-divide
+  * screen coordinates.
   * Face culling is switchable via `setCullMode`: the default
   * `CullMode::Both` shades both sides of every triangle, while
   * `CullMode::Back` / `CullMode::Front` skip triangles by projected
-  * screen-space winding after near-plane clipping. It does not trace
-  * shadow rays; lights are direct Lambertian contributions only.
+  * screen-space winding after clipping. It does not trace shadow
+  * rays; lights are direct Lambertian contributions only.
   *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
@@ -72,23 +78,22 @@ namespace engine::raster {
   * the rasterizer scans; pixel colours are interpolated from the
   * three vertex colours via barycentric weights, exactly as the
   * real rasterizer would interpolate per-vertex normals or texture
-  * coordinates. The production rasterizer additionally clamps that
-  * bounding box to the framebuffer before scanning, so off-screen
-  * projected triangles don't spend time on pixels that cannot be
-  * written. Hover anywhere to read the live `(w0, w1, w2)` weights
-  * at the cursor — outside the triangle, at least one weight goes
-  * negative.
+  * coordinates. The production rasterizer clips triangles against
+  * the homogeneous viewport before this step, then still clamps the
+  * bounding box to the framebuffer as a final guard. Hover anywhere
+  * to read the live `(w0, w1, w2)` weights at the cursor — outside
+  * the triangle, at least one weight goes negative.
   *
   * @htmlonly
   * <script type="text/javascript" src="rasterizer_pipeline.js"></script>
   * @endhtmlonly
   *
   * Cameras supported: any subclass that overrides
-  * `Camera::projectPoint` (currently `PinholeCamera` and
-  * inheritors `ThinLensCamera` / `TiltShiftCamera`). Cameras
-  * without a closed-form projection (`FishEyeCamera`,
-  * `SphericalCamera`, `EquirectangularCamera`) silently produce
-  * empty / degenerate renders.
+  * `Camera::projectPointToClipSpace` (currently `PinholeCamera`
+  * and `OrthographicCamera`). Cameras without a closed-form clip
+  * projection (`FishEyeCamera`, `SphericalCamera`,
+  * `EquirectangularCamera`, `ThinLensCamera`, `TiltShiftCamera`)
+  * silently produce empty / degenerate renders.
   *
   * Threading: the default single-tile path streams triangles on the
   * calling thread. Setting `setQueueSize(queue)` with `queue > 1`

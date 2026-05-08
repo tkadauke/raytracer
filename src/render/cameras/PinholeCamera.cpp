@@ -73,6 +73,20 @@ Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const 
   return Vector3d(x, y, depth);
 }
 
+Vector4d PinholeCamera::projectPointToClipSpace(const Vector3d& worldPoint) const {
+  const Matrix4d& worldToCamera = inverseMatrix();
+  Vector3d pCam = worldToCamera * Vector4d(worldPoint);
+
+  const double depth = pCam.z() + m_distance;
+  const double pxSize = viewPlane()->pixelSize();
+  return Vector4d(
+    pCam.x() * m_distance / (pxSize * 4.0),
+    pCam.y() * m_distance / (pxSize * 3.0),
+    depth,
+    depth
+  );
+}
+
 double PinholeCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
   // The eye sits at camera-space (0, 0, -distance); a world point at
   // camera-space depth `pCam.z()` is `pCam.z() + distance` units

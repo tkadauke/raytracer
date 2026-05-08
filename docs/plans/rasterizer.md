@@ -23,11 +23,13 @@
    - Pinned winding conventions in each primitive's tessellation tests.
    - Kept the default two-sided until material-sidedness exists.
 
-3. **Homogeneous clip-space clipping**
-   - Add camera support for un-divided clip-space projection.
-   - Clip in 4D before perspective divide.
-   - Use the result to unify projection, depth, near-plane, and viewport-edge
-     behavior before adding more fragment attributes.
+3. ✅ **Homogeneous clip-space clipping**
+   - Added `Camera::projectPointToClipSpace` for `PinholeCamera` and
+     `OrthographicCamera`.
+   - Clip near-plane and viewport edges in homogeneous space before the
+     perspective divide.
+   - Use cached per-vertex clip outcodes so fully-inside triangles skip the
+     Sutherland-Hodgman path.
 
 4. **Depth/stencil + shader hook skeleton**
    - Keep the current Z-buffer path as the default.
@@ -173,3 +175,38 @@ reported median `1133.989 ms`; the final PNGs were byte-identical. The modest
 speedup is expected because this cull stage still happens after tessellation,
 per-mesh projection, and near-plane setup. Full measurements are in
 `CHANGELOG.md`.
+
+## Task 3 homogeneous clip-space clipping
+
+The rasterizer now consumes `Camera::projectPointToClipSpace` rather than
+combining `eyeRelativeDepth` with already-divided screen coordinates. The clip
+space convention is:
+
+- `x / w` and `y / w` are normalized viewport coordinates in `[-1, 1]`.
+- `z` is the positive eye-relative depth used by the Z-buffer.
+- `w` is the perspective divisor; orthographic cameras use `w = 1`.
+
+`PinholeCamera` returns defined clip coordinates even for points behind the
+eye, so triangles that cross the eye/near plane can be clipped before any
+divide. `OrthographicCamera` uses the same normalized viewport convention with
+unit `w`. Cameras without a closed-form clip projection still render empty in
+the software rasterizer.
+
+The triangle path uses cached per-vertex clip outcodes:
+
+- `(out0 & out1 & out2) != 0` rejects triangles fully outside one clip plane.
+- `(out0 | out1 | out2) == 0` accepts fully-inside triangles without running
+  Sutherland-Hodgman.
+- Mixed triangles run the fixed-size homogeneous Sutherland-Hodgman clipper
+  against the near plane plus left/right/top/bottom viewport planes.
+
+There is still no far plane because cameras do not expose one yet. The clipper
+is structured so a far-depth plane can be added once camera/render settings
+grow an explicit far-clip policy.
+
+Measurement note: after the clip-outcode fast path and cached per-vertex screen
+coordinates, the dense sphere baseline at 640x480 LOD 8 with `--repeat 10`
+reported `render_ms runs=10 min=999.101 median=1039.896 avg=1134.154
+max=1609.866`. The offscreen-floor baseline at 1920x1080 LOD 0 reported
+`render_ms runs=10 min=95.352 median=98.215 avg=98.771 max=104.422`. Full
+measurements are in `CHANGELOG.md`.

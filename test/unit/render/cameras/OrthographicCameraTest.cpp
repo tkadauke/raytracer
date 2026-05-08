@@ -12,6 +12,19 @@ using namespace render;
   using namespace engine::raytracer;
 using namespace render;
   using namespace engine::raytracer;
+
+  static void initViewPlane(OrthographicCamera& camera, int width = 100, int height = 100) {
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
+  }
+
+  static Vector3d screenFromClip(const Vector4d& clip, int width, int height) {
+    const double invW = 1.0 / clip.w();
+    return Vector3d(
+      (clip.x() * invW + 1.0) * width / 2.0,
+      (clip.y() * invW + 1.0) * height / 2.0,
+      clip.z()
+    );
+  }
   
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {
     OrthographicCamera camera;
@@ -46,5 +59,35 @@ using namespace render;
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, 0), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
+  }
+
+  TEST(OrthographicCamera, ClipSpaceProjectionMatchesProjectionWithDepth) {
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    const Vector3d point(1.5, -0.5, 4.0);
+    const Vector4d clip = camera.projectPointToClipSpace(point);
+    const Vector3d projected = camera.projectPointWithDepth(point);
+    const Vector3d fromClip = screenFromClip(clip, 200, 150);
+
+    ASSERT_FALSE(clip.isUndefined());
+    EXPECT_NEAR(projected.x(), fromClip.x(), 1e-9);
+    EXPECT_NEAR(projected.y(), fromClip.y(), 1e-9);
+    EXPECT_NEAR(projected.z(), fromClip.z(), 1e-9);
+  }
+
+  TEST(OrthographicCamera, ClipSpaceProjectionUsesUnitPerspectiveDivisor) {
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera);
+
+    const Vector4d inFront = camera.projectPointToClipSpace(Vector3d::null());
+    const Vector4d behind = camera.projectPointToClipSpace(Vector3d(0, 0, -2));
+
+    EXPECT_FALSE(inFront.isUndefined());
+    EXPECT_FALSE(behind.isUndefined());
+    EXPECT_EQ(1.0, inFront.w());
+    EXPECT_EQ(1.0, behind.w());
+    EXPECT_GT(inFront.z(), 0.0);
+    EXPECT_LT(behind.z(), 0.0);
   }
 }

@@ -108,6 +108,15 @@ using namespace render;
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
   }
 
+  static Vector3d screenFromClip(const Vector4d& clip, int width, int height) {
+    const double invW = 1.0 / clip.w();
+    return Vector3d(
+      (clip.x() * invW + 1.0) * width / 2.0,
+      (clip.y() * invW + 1.0) * height / 2.0,
+      clip.z()
+    );
+  }
+
   TEST(PinholeCamera, ProjectsCameraTargetToImageCenter) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
     initViewPlane(camera);
@@ -201,5 +210,33 @@ using namespace render;
     Vector2d zoom1 = unzoomed.projectPoint(Vector3d(1, 0, 5));
 
     EXPECT_GT(zoom2.x(), zoom1.x());
+  }
+
+  TEST(PinholeCamera, ClipSpaceProjectionMatchesProjectionWithDepth) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    const Vector3d point(1.5, -0.5, 4.0);
+    const Vector4d clip = camera.projectPointToClipSpace(point);
+    const Vector3d projected = camera.projectPointWithDepth(point);
+    const Vector3d fromClip = screenFromClip(clip, 200, 150);
+
+    ASSERT_FALSE(clip.isUndefined());
+    EXPECT_NEAR(projected.x(), fromClip.x(), 1e-9);
+    EXPECT_NEAR(projected.y(), fromClip.y(), 1e-9);
+    EXPECT_NEAR(projected.z(), fromClip.z(), 1e-9);
+  }
+
+  TEST(PinholeCamera, ClipSpaceProjectionKeepsBehindEyePointsRepresentable) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera);
+
+    const Vector4d atEye = camera.projectPointToClipSpace(Vector3d(0, 0, -6));
+    const Vector4d behindEye = camera.projectPointToClipSpace(Vector3d(0, 0, -10));
+
+    EXPECT_FALSE(atEye.isUndefined());
+    EXPECT_FALSE(behindEye.isUndefined());
+    EXPECT_EQ(0.0, atEye.w());
+    EXPECT_LT(behindEye.w(), 0.0);
   }
 }

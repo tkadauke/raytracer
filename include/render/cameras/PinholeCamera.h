@@ -61,6 +61,15 @@ namespace render {
       */
     virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
 
+    /**
+      * Homogeneous form of the same projection. `x / w` and `y / w`
+      * are normalized viewport coordinates; `z` and `w` both carry
+      * the positive eye-relative depth. Points behind the eye return
+      * finite clip coordinates with `w <= 0` so the rasterizer can
+      * clip edges before the perspective divide.
+      */
+    virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
+
     /// Signed eye-relative depth — positive in front of the eye,
     /// negative behind. Used by the rasterizer's near-plane clipper
     /// to trim triangles straddling the near plane.

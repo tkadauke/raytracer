@@ -121,20 +121,22 @@ namespace {
   // contribution rather than darkened.
   constexpr double kAmbientCoefficient = 1.0;
 
-  // Near-plane depth used by the rasterizer's eye-space clipper. It
+  // Near-plane depth used by the rasterizer's homogeneous clipper. It
   // sits just in front of the eye to keep perspective divides bounded
   // for clipped vertices.
   constexpr double kNearClipDepth = 0.1;
+  constexpr std::size_t kMaxClipVertices = 32;
 
   struct ProjectedVertex {
-    double depth;
+    Vector4d clip;
     Vector3d screen;
+    std::uint8_t outCode;
   };
 
   struct ClipVert {
     Vector3d point;
     Vector3d normal;
-    double depth;
+    Vector4d clip;
     Vector3d screen;
   };
 
@@ -170,6 +172,173 @@ namespace {
       static_cast<int>(std::lround(vertex.screen.x())),
       static_cast<int>(std::lround(vertex.screen.y()))
     };
+  }
+
+  enum class ClipPlane {
+    Near,
+    Left,
+    Right,
+    Top,
+    Bottom
+  };
+
+  constexpr std::array<ClipPlane, 5> kClipPlanes = {{
+    ClipPlane::Near,
+    ClipPlane::Left,
+    ClipPlane::Right,
+    ClipPlane::Top,
+    ClipPlane::Bottom
+  }};
+
+  using ClipPolygon = std::array<ClipVert, kMaxClipVertices>;
+
+  inline std::uint8_t clipBit(ClipPlane plane) {
+    return static_cast<std::uint8_t>(1u << static_cast<int>(plane));
+  }
+
+  inline std::uint8_t clipOutCode(const Vector4d& clip) {
+    if (clip.isUndefined()) {
+      std::uint8_t all = 0;
+      for (ClipPlane plane : kClipPlanes) {
+        all |= clipBit(plane);
+      }
+      return all;
+    }
+
+    std::uint8_t outCode = 0;
+    if (clip.z() < kNearClipDepth) outCode |= clipBit(ClipPlane::Near);
+    if (clip.x() < -clip.w()) outCode |= clipBit(ClipPlane::Left);
+    if (clip.x() >  clip.w()) outCode |= clipBit(ClipPlane::Right);
+    if (clip.y() < -clip.w()) outCode |= clipBit(ClipPlane::Top);
+    if (clip.y() >  clip.w()) outCode |= clipBit(ClipPlane::Bottom);
+    return outCode;
+  }
+
+  inline double clipDistance(const ClipVert& vertex, ClipPlane plane) {
+    switch (plane) {
+    case ClipPlane::Near:
+      return vertex.clip.z() - kNearClipDepth;
+    case ClipPlane::Left:
+      return vertex.clip.x() + vertex.clip.w();
+    case ClipPlane::Right:
+      return vertex.clip.w() - vertex.clip.x();
+    case ClipPlane::Top:
+      return vertex.clip.y() + vertex.clip.w();
+    case ClipPlane::Bottom:
+      return vertex.clip.w() - vertex.clip.y();
+    }
+    return -1.0;
+  }
+
+  inline ClipVert interpolateClipVert(const ClipVert& from,
+                                      const ClipVert& to,
+                                      double t) {
+    return {
+      from.point + (to.point - from.point) * t,
+      from.normal + (to.normal - from.normal) * t,
+      from.clip + (to.clip - from.clip) * t,
+      Vector3d::undefined()
+    };
+  }
+
+  inline std::size_t clipPolygonAgainstPlane(const ClipPolygon& input,
+                                             std::size_t inputCount,
+                                             ClipPlane plane,
+                                             ClipPolygon& output) {
+    if (inputCount == 0) return 0;
+
+    std::size_t outputCount = 0;
+    ClipVert prev = input[inputCount - 1];
+    double prevDistance = clipDistance(prev, plane);
+    bool prevInside = prevDistance >= 0.0;
+
+    for (std::size_t i = 0; i < inputCount; ++i) {
+      const ClipVert& curr = input[i];
+      const double currDistance = clipDistance(curr, plane);
+      const bool currInside = currDistance >= 0.0;
+
+      if (currInside != prevInside) {
+        const double t = prevDistance / (prevDistance - currDistance);
+        output[outputCount++] = interpolateClipVert(prev, curr, t);
+      }
+      if (currInside) {
+        output[outputCount++] = curr;
+      }
+
+      prev = curr;
+      prevDistance = currDistance;
+      prevInside = currInside;
+    }
+
+    return outputCount;
+  }
+
+  inline std::size_t clipTriangleToView(const std::array<ClipVert, 3>& input,
+                                        ClipPolygon& clipped) {
+    bool allInside = true;
+    for (ClipPlane plane : kClipPlanes) {
+      std::size_t insideCount = 0;
+      for (const ClipVert& vertex : input) {
+        if (clipDistance(vertex, plane) >= 0.0) {
+          ++insideCount;
+        }
+      }
+      if (insideCount == 0) return 0;
+      if (insideCount != input.size()) {
+        allInside = false;
+      }
+    }
+
+    if (allInside) {
+      for (std::size_t i = 0; i < input.size(); ++i) {
+        clipped[i] = input[i];
+      }
+      return input.size();
+    }
+
+    ClipPolygon polygonA;
+    ClipPolygon polygonB;
+    for (std::size_t i = 0; i < input.size(); ++i) {
+      polygonA[i] = input[i];
+    }
+
+    std::size_t count = input.size();
+    ClipPolygon* in = &polygonA;
+    ClipPolygon* out = &polygonB;
+
+    for (ClipPlane plane : kClipPlanes) {
+      count = clipPolygonAgainstPlane(*in, count, plane, *out);
+      if (count < 3) return 0;
+      std::swap(in, out);
+    }
+
+    for (std::size_t i = 0; i < count; ++i) {
+      clipped[i] = (*in)[i];
+    }
+    return count;
+  }
+
+  inline Vector3d screenFromClipUnchecked(const Vector4d& clip, const render::ViewPlane& viewPlane) {
+    const double invW = 1.0 / clip.w();
+    const double ndcX = clip.x() * invW;
+    const double ndcY = clip.y() * invW;
+    return Vector3d(
+      (ndcX + 1.0) * viewPlane.width() / 2.0,
+      (ndcY + 1.0) * viewPlane.height() / 2.0,
+      clip.z()
+    );
+  }
+
+  inline Vector3d screenFromClip(const Vector4d& clip, const render::ViewPlane& viewPlane) {
+    if (clip.isUndefined() || clip.w() <= 0.0) return Vector3d::undefined();
+    return screenFromClipUnchecked(clip, viewPlane);
+  }
+
+  inline bool ensureScreen(ClipVert& vertex, const render::ViewPlane& viewPlane) {
+    if (vertex.screen.isUndefined()) {
+      vertex.screen = screenFromClip(vertex.clip, viewPlane);
+    }
+    return vertex.screen.isDefined();
   }
 
   inline double signedScreenArea(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) {
@@ -366,16 +535,17 @@ namespace {
 
         const auto& vertices = mesh->vertices();
         const auto& faces = mesh->faces();
+        const auto& viewPlane = *camera->viewPlane();
 
         std::vector<ProjectedVertex> projected(vertices.size());
         for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
           const auto& vertex = vertices[vi];
-          const double depth = camera->eyeRelativeDepth(vertex.point);
+          const Vector4d clip = camera->projectPointToClipSpace(vertex.point);
+          const std::uint8_t outCode = clipOutCode(clip);
           projected[vi] = {
-            depth,
-            depth >= kNearClipDepth
-              ? camera->projectPointWithDepth(vertex.point)
-              : Vector3d::undefined()
+            clip,
+            outCode == 0 ? screenFromClipUnchecked(clip, viewPlane) : Vector3d::undefined(),
+            outCode
           };
         }
 
@@ -386,50 +556,61 @@ namespace {
           if (face.size() < 3) continue;
 
           for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-            // Sutherland-Hodgman near-plane clip — the input
-            // triangle's three vertices, classified by signed
-            // eye-relative depth. Vertices on or behind the near
-            // plane are unprojectable; clipping replaces each
-            // crossing edge with its intersection with the plane,
-            // producing an output polygon entirely in front of the
-            // eye. The classic GPU pipeline does the same clip in
-            // clip space; doing it in eye-space here is the simpler
-            // textbook formulation.
+            const ProjectedVertex& p0 = projected[face[0]];
+            const ProjectedVertex& p1 = projected[face[i]];
+            const ProjectedVertex& p2 = projected[face[i + 1]];
+            if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
+              continue;
+            }
+
+            const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
+            if (outCodeOr == 0) {
+              ClipVert v0{ vertices[face[0]].point, vertices[face[0]].normal,
+                Vector4d::undefined(), p0.screen };
+              ClipVert v1{ vertices[face[i]].point, vertices[face[i]].normal,
+                Vector4d::undefined(), p1.screen };
+              ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+                Vector4d::undefined(), p2.screen };
+
+              if (shouldCullTriangle(cullMode, v0, v1, v2)) {
+                continue;
+              }
+
+              callback(RasterTriangle{
+                {{ rasterVertex(v0), rasterVertex(v1), rasterVertex(v2) }},
+                primitive,
+                material,
+                globalFaceIdx
+              });
+              continue;
+            }
+
+            // Sutherland-Hodgman homogeneous clipping. The camera
+            // gives us un-divided clip coordinates, so the same
+            // polygon clipper handles the near plane and the four
+            // viewport edges before any perspective divide can blow
+            // up screen coordinates.
             const std::array<ClipVert, 3> input = {{
               { vertices[face[0]].point, vertices[face[0]].normal,
-                projected[face[0]].depth, projected[face[0]].screen },
+                p0.clip, p0.screen },
               { vertices[face[i]].point, vertices[face[i]].normal,
-                projected[face[i]].depth, projected[face[i]].screen },
+                p1.clip, p1.screen },
               { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                projected[face[i + 1]].depth, projected[face[i + 1]].screen },
+                p2.clip, p2.screen },
             }};
 
-            std::array<ClipVert, 4> clipped;
-            std::size_t clippedCount = 0;
-            for (std::size_t k = 0; k < 3; ++k) {
-              const ClipVert& curr = input[k];
-              const ClipVert& prev = input[(k + 2) % 3];
-              const bool currIn = curr.depth >= kNearClipDepth;
-              const bool prevIn = prev.depth >= kNearClipDepth;
-              if (currIn != prevIn) {
-                const double t = (kNearClipDepth - prev.depth) / (curr.depth - prev.depth);
-                ClipVert mid;
-                mid.point = prev.point + (curr.point - prev.point) * t;
-                mid.normal = prev.normal + (curr.normal - prev.normal) * t;
-                mid.depth = kNearClipDepth;
-                mid.screen = camera->projectPointWithDepth(mid.point);
-                clipped[clippedCount++] = mid;
-              }
-              if (currIn) clipped[clippedCount++] = curr;
-            }
+            ClipPolygon clipped;
+            const std::size_t clippedCount = clipTriangleToView(input, clipped);
             if (clippedCount < 3) continue;
 
             for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
-              const ClipVert& v0 = clipped[0];
-              const ClipVert& v1 = clipped[t];
-              const ClipVert& v2 = clipped[t + 1];
+              ClipVert v0 = clipped[0];
+              ClipVert v1 = clipped[t];
+              ClipVert v2 = clipped[t + 1];
 
-              if (v0.screen.isUndefined() || v1.screen.isUndefined() || v2.screen.isUndefined()) {
+              if (!ensureScreen(v0, viewPlane)
+                  || !ensureScreen(v1, viewPlane)
+                  || !ensureScreen(v2, viewPlane)) {
                 continue;
               }
               if (shouldCullTriangle(cullMode, v0, v1, v2)) {
@@ -497,16 +678,17 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
         const auto& vertices = mesh->vertices();
         const auto& faces = mesh->faces();
+        const auto& viewPlane = *m_camera->viewPlane();
 
         std::vector<ProjectedVertex> projected(vertices.size());
         for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
           const auto& vertex = vertices[vi];
-          const double depth = m_camera->eyeRelativeDepth(vertex.point);
+          const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
+          const std::uint8_t outCode = clipOutCode(clip);
           projected[vi] = {
-            depth,
-            depth >= kNearClipDepth
-              ? m_camera->projectPointWithDepth(vertex.point)
-              : Vector3d::undefined()
+            clip,
+            outCode == 0 ? screenFromClipUnchecked(clip, viewPlane) : Vector3d::undefined(),
+            outCode
           };
         }
 
@@ -517,45 +699,103 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
           if (face.size() < 3) continue;
 
           for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-            const std::array<ClipVert, 3> input = {{
-              { vertices[face[0]].point, vertices[face[0]].normal,
-                projected[face[0]].depth, projected[face[0]].screen },
-              { vertices[face[i]].point, vertices[face[i]].normal,
-                projected[face[i]].depth, projected[face[i]].screen },
-              { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                projected[face[i + 1]].depth, projected[face[i + 1]].screen },
-            }};
-
-            std::array<ClipVert, 4> clipped;
-            std::size_t clippedCount = 0;
-            for (std::size_t k = 0; k < 3; ++k) {
-              const ClipVert& curr = input[k];
-              const ClipVert& prev = input[(k + 2) % 3];
-              const bool currIn = curr.depth >= kNearClipDepth;
-              const bool prevIn = prev.depth >= kNearClipDepth;
-              if (currIn != prevIn) {
-                const double t = (kNearClipDepth - prev.depth) / (curr.depth - prev.depth);
-                ClipVert mid;
-                mid.point = prev.point + (curr.point - prev.point) * t;
-                mid.normal = prev.normal + (curr.normal - prev.normal) * t;
-                mid.depth = kNearClipDepth;
-                mid.screen = m_camera->projectPointWithDepth(mid.point);
-                clipped[clippedCount++] = mid;
-              }
-              if (currIn) clipped[clippedCount++] = curr;
+            const ProjectedVertex& p0 = projected[face[0]];
+            const ProjectedVertex& p1 = projected[face[i]];
+            const ProjectedVertex& p2 = projected[face[i + 1]];
+            if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
+              continue;
             }
-            if (clippedCount < 3) continue;
 
-            for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
-              const ClipVert& v0 = clipped[0];
-              const ClipVert& v1 = clipped[t];
-              const ClipVert& v2 = clipped[t + 1];
+            const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
+            if (outCodeOr == 0) {
+              ClipVert v0{ vertices[face[0]].point, vertices[face[0]].normal,
+                Vector4d::undefined(), p0.screen };
+              ClipVert v1{ vertices[face[i]].point, vertices[face[i]].normal,
+                Vector4d::undefined(), p1.screen };
+              ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+                Vector4d::undefined(), p2.screen };
+
+              if (shouldCullTriangle(m_cullMode, v0, v1, v2)) continue;
 
               const Vector3d& s0 = v0.screen;
               const Vector3d& s1 = v1.screen;
               const Vector3d& s2 = v2.screen;
-              if (s0.isUndefined() || s1.isUndefined() || s2.isUndefined()) continue;
+
+              const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
+              const double invZ0 = 1.0 / z0, invZ1 = 1.0 / z1, invZ2 = 1.0 / z2;
+
+              const int x0 = static_cast<int>(std::lround(s0.x()));
+              const int y0 = static_cast<int>(std::lround(s0.y()));
+              const int x1 = static_cast<int>(std::lround(s1.x()));
+              const int y1 = static_cast<int>(std::lround(s1.y()));
+              const int x2 = static_cast<int>(std::lround(s2.x()));
+              const int y2 = static_cast<int>(std::lround(s2.y()));
+
+              const std::uint64_t capturedFaceIdx = globalFaceIdx;
+              core::rasterizeTriangle(x0, y0, x1, y1, x2, y2,
+                0, 0, width, height,
+                [&, capturedFaceIdx](int x, int y, double w0b, double w1b, double w2b) {
+                const double oneOverZ = w0b * invZ0 + w1b * invZ1 + w2b * invZ2;
+                const double pixelDepth = 1.0 / oneOverZ;
+                if (pixelDepth >= zBuffer[y][x]) return;
+
+                const double wp0 = w0b * invZ0;
+                const double wp1 = w1b * invZ1;
+                const double wp2 = w2b * invZ2;
+                const Vector3d normal = (
+                  v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2
+                ) * pixelDepth;
+                const Vector3d worldPos = (
+                  v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2
+                ) * pixelDepth;
+                const Vector3d n = normal.normalized();
+
+                const Colord albedo = materialAlbedo(
+                  material, primitive, worldPos, n, capturedFaceIdx);
+
+                Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
+                for (const auto& light : m_scene->lights()) {
+                  const Vector3d lightDir = light->direction(worldPos);
+                  const double nDotL = std::max(0.0, n * lightDir);
+                  if (nDotL > 0.0) {
+                    shaded += albedo * light->radiance() * nDotL;
+                  }
+                }
+
+                zBuffer[y][x] = pixelDepth;
+                buffer[y][x] = shaded;
+              });
+              continue;
+            }
+
+            const std::array<ClipVert, 3> input = {{
+              { vertices[face[0]].point, vertices[face[0]].normal,
+                p0.clip, p0.screen },
+              { vertices[face[i]].point, vertices[face[i]].normal,
+                p1.clip, p1.screen },
+              { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+                p2.clip, p2.screen },
+            }};
+
+            ClipPolygon clipped;
+            const std::size_t clippedCount = clipTriangleToView(input, clipped);
+            if (clippedCount < 3) continue;
+
+            for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
+              ClipVert v0 = clipped[0];
+              ClipVert v1 = clipped[t];
+              ClipVert v2 = clipped[t + 1];
+
+              if (!ensureScreen(v0, viewPlane)
+                  || !ensureScreen(v1, viewPlane)
+                  || !ensureScreen(v2, viewPlane)) {
+                continue;
+              }
               if (shouldCullTriangle(m_cullMode, v0, v1, v2)) continue;
+
+              const Vector3d& s0 = v0.screen;
+              const Vector3d& s1 = v1.screen;
+              const Vector3d& s2 = v2.screen;
 
               const double z0 = s0.z(), z1 = s1.z(), z2 = s2.z();
               const double invZ0 = 1.0 / z0, invZ1 = 1.0 / z1, invZ2 = 1.0 / z2;

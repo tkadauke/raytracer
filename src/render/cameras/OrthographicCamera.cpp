@@ -56,6 +56,19 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
   return Vector3d(x, y, pCam.z());
 }
 
+Vector4d OrthographicCamera::projectPointToClipSpace(const Vector3d& worldPoint) const {
+  const Matrix4d& worldToCamera = inverseMatrix();
+  Vector3d pCam = worldToCamera * Vector4d(worldPoint);
+
+  const double pxSize = viewPlane()->pixelSize();
+  return Vector4d(
+    pCam.x() / (pxSize * 4.0),
+    pCam.y() / (pxSize * 3.0),
+    pCam.z(),
+    1.0
+  );
+}
+
 double OrthographicCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
   // Orthographic projection has no perspective eye point; depth is
   // just the camera-space `z` coordinate. Positive in front of the

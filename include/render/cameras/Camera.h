@@ -165,6 +165,26 @@ namespace render {
     virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
 
     /**
+      * Forward projection before the perspective divide, in the
+      * software rasterizer's clip-space convention.
+      *
+      * `x / w` and `y / w` are normalized viewport coordinates in
+      * `[-1, 1]`, where `(-1, -1)` maps to the framebuffer's
+      * top-left corner and `(1, 1)` maps to the bottom-right corner.
+      * `z` is the positive eye-relative depth used by the rasterizer
+      * Z-buffer, and `w` is the perspective divisor. Orthographic
+      * cameras use `w = 1`.
+      *
+      * Unlike `projectPoint` / `projectPointWithDepth`, this method
+      * can return defined values for points behind the eye so the
+      * rasterizer can clip straddling triangles in homogeneous space
+      * before the divide. The base implementation returns undefined;
+      * cameras without a closed-form projection stay unsupported by
+      * software rasterization.
+      */
+    virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
+
+    /**
       * Eye-relative depth scalar for the world-space point — positive
       * in front of the camera's near plane, negative behind it. Used
       * by the software rasterizer's Sutherland-Hodgman clipper to
