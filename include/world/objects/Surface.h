@@ -100,6 +100,10 @@ public:
     * primary ray's time sample to a constant and produces a sharp
     * render at the half-shutter position.
     *
+    * For the runtime intersection diagram, see
+    * `render::Instance::setVelocity`: the same `velocity` value is
+    * converted into per-ray time-offset primitive intersections.
+    *
     * <table><tr>
     * <td>@image html motion_blur_velocity_0.png "velocity=(0, 0, 0) — static"</td>
     * <td>@image html motion_blur_velocity_0.5.png "velocity=(0.5, 0, 0)"</td>

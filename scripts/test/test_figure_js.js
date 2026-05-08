@@ -371,6 +371,36 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
     'triangle geometry should be manipulated through visible draggable vertices');
 });
 
+test('Motion blur widget exposes shutter-time sampling controls', () => {
+  const body = loadWidget('motion_blur_time_sampling.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('current t = 0.50'),
+    'motion blur widget should default to the half-shutter position');
+  assert.ok(text.includes('sampled positions'),
+    'widget should label the sampled position marks');
+  assert.equal(countElements(body, 'input'), 1,
+    'shutter time should be exposed as a scalar slider');
+  assert.equal(countElements(body, 'button'), 2,
+    'regular vs stochastic sampling should be a segmented control');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'velocity-end');
+  assert.equal(handles.length, 1,
+    'velocity should be manipulated through a visible endpoint handle');
+
+  const samples = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-time-sample'] === '1');
+  assert.equal(samples.length, 8,
+    'default stochastic mode should draw every shutter-time sample');
+  assert.ok(new Set(samples.map(c => c.attributes['data-sample-time'])).size > 1,
+    'stochastic mode should distribute samples across shutter time');
+
+  const ghosts = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-ghost-silhouette'] === '1');
+  assert.equal(ghosts.length, 8,
+    'accumulated silhouettes should mirror the time samples');
+});
+
 test('Rasterizer pipeline widget uses draggable vertex handles', () => {
   const body = loadWidget('rasterizer_pipeline.js');
   assert.equal(countElements(body, 'button'), 2,
