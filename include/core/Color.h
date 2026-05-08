@@ -15,6 +15,11 @@
   * 
   * This class supports three color models: RGB, CMYK, and HSV. Internally, the
   * color is stored using the RGB model.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="color_model_conversions.js"></script>
+  * @endhtmlonly
   * 
   * * To use the RGB model, either use the component-wise constructor, or if
   *   you want to create a color from integer values, use the fromRGB() method.
