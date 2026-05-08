@@ -46,11 +46,12 @@ namespace engine::raster {
   *        in screen space; the screen-space barycentric weights
   *        from the rasterizer give the correct interpolated depth
   *        when applied to `1/z` and inverted).
-  *      - Interpolate the vertex normal and world position, again
-  *        perspective-correct.
+  *      - Interpolate the vertex normal, world position, and UV
+  *        coordinates, again perspective-correct.
   *      - Recover a diffuse albedo from the primitive's
-  *        `MatteMaterial` texture when possible, otherwise fall back
-  *        to a stable per-face colour hash.
+  *        `MatteMaterial` texture with the interpolated hit context
+  *        when possible, otherwise fall back to a stable per-face
+  *        colour hash.
   *      - Apply Lambertian shading: `scene.ambient × ambientCoeff ×
   *        albedo + Σ_lights albedo × light.radiance × max(0, n · light.dir)`.
   *      - Run the configured depth/stencil tests and operations.
@@ -164,6 +165,7 @@ public:
   struct VertexInput {
     Vector3d worldPosition;
     Vector3d normal;
+    Vector2d uv;
     Vector4d clipPosition;
     Vector3d screenPosition;
     const render::Primitive* primitive;
@@ -174,6 +176,7 @@ public:
   struct VertexOutput {
     Vector3d worldPosition;
     Vector3d normal;
+    Vector2d uv;
     Vector4d clipPosition;
     Vector3d screenPosition;
   };
@@ -185,6 +188,7 @@ public:
     Vector3d barycentric;
     Vector3d worldPosition;
     Vector3d normal;
+    Vector2d uv;
     const render::Primitive* primitive;
     const render::Material* material;
     std::uint64_t faceIdx;

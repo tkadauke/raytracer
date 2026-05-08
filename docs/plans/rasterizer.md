@@ -38,9 +38,11 @@
    - Added small vertex/fragment shader hooks over projected and interpolated
      mesh attributes.
 
-5. **UV/attribute interpolation**
-   - Carry UVs and material inputs through raster fragments.
-   - Make albedo texture sampling the first visible milestone.
+5. ✅ **UV/attribute interpolation**
+   - `HitPoint` now carries UV coordinates for texture evaluation.
+   - Raster vertices/fragments carry perspective-correct UVs through both
+     fixed-function material shading and fragment shader hooks.
+   - Added `UVMapping2D` and unit coverage for UV-backed albedo sampling.
 
 6. **MSAA + resolve**
    - Start with per-sample coverage/depth and per-fragment shading.
@@ -249,3 +251,32 @@ The offscreen-floor baseline at 1920x1080 LOD 0 reported `render_ms runs=10
 min=98.212 median=109.761 avg=110.942 max=132.385`. The materials baseline at
 640x480 LOD 3 reported `render_ms runs=10 min=14.073 median=14.313 avg=14.544
 max=15.527`. Full measurements are in `CHANGELOG.md`.
+
+## Task 5 UV/attribute interpolation
+
+UVs now travel through the same raster attribute path as normals and world
+positions:
+
+- `HitPoint` stores optional `Vector2d` UV coordinates and preserves them
+  across normal swapping and instance transforms.
+- `Rasterizer::VertexInput`, `VertexOutput`, and `FragmentInput` expose UVs to
+  shader hooks.
+- The homogeneous clipper interpolates UVs when it creates clip-edge vertices.
+- The raster pixel loop perspective-correctly interpolates UVs, then passes the
+  full hit context into `MatteMaterial` diffuse textures.
+- `UVMapping2D` maps `HitPoint::uv()` directly to texture-space `(s, t)`.
+
+The first visible milestone is pinned by `Rasterizer.BuiltInMaterialTextureReceivesInterpolatedUV`:
+a matte triangle uses a texture whose colour is derived from the interpolated
+UV, and the built-in material path renders that albedo without a custom
+fragment shader. `Rasterizer.FragmentShaderReceivesInterpolatedUV` pins the
+programmable fragment hook separately.
+
+Measurement note: the extra UV math is present in the hot path, but current
+baseline impact is small. With `rendercli --repeat 10`, the dense sphere
+baseline at 640x480 LOD 8 reported `render_ms runs=10 min=1022.142
+median=1039.353 avg=1142.892 max=1635.037`. The offscreen-floor baseline at
+1920x1080 LOD 0 reported `render_ms runs=10 min=98.156 median=99.687
+avg=100.820 max=105.644`. The materials baseline at 640x480 LOD 3 reported
+`render_ms runs=10 min=14.308 median=15.128 avg=15.427 max=18.247`. Full
+measurements are in `CHANGELOG.md`.

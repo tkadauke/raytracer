@@ -21,6 +21,12 @@ namespace HitPointTest {
     ASSERT_EQ(3, point.distance());
     ASSERT_EQ(Vector3d(1, 0, 0), point.point());
     ASSERT_EQ(Vector3d(0, 1, 0), point.normal());
+    ASSERT_EQ(Vector2d(0, 0), point.uv());
+  }
+
+  TEST(HitPoint, ShouldInitializeWithUV) {
+    HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.25, 0.75));
+    ASSERT_EQ(Vector2d(0.25, 0.75), point.uv());
   }
   
   TEST(HitPoint, ShouldAssign) {
@@ -55,6 +61,12 @@ namespace HitPointTest {
     point.setNormal(Vector3d(0, 1, 0));
     ASSERT_EQ(Vector3d(0, 1, 0), point.normal());
   }
+
+  TEST(HitPoint, ShouldSetUV) {
+    HitPoint point;
+    point.setUV(Vector2d(0.25, 0.75));
+    ASSERT_EQ(Vector2d(0.25, 0.75), point.uv());
+  }
   
   TEST(HitPoint, ShouldCompareSameHitPointForEquality) {
     HitPoint point;
@@ -72,6 +84,12 @@ namespace HitPointTest {
              point2(box, 4, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
     ASSERT_FALSE(point1 == point2);
   }
+
+  TEST(HitPoint, ShouldCompareUVsForEquality) {
+    HitPoint point1(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.25, 0.75)),
+             point2(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.5, 0.75));
+    ASSERT_FALSE(point1 == point2);
+  }
   
   TEST(HitPoint, ShouldCompareHitPointsByDistance) {
     HitPoint point1(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
@@ -86,6 +104,7 @@ namespace HitPointTest {
     ASSERT_TRUE(isnan(point.distance()));
     ASSERT_TRUE(point.point().isUndefined());
     ASSERT_TRUE(point.normal().isUndefined());
+    ASSERT_TRUE(point.uv().isUndefined());
   }
   
   TEST(HitPoint, ShouldReturnTrueIfHitPointIsUndefined) {
@@ -102,6 +121,11 @@ namespace HitPointTest {
     HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
              expected(box, 3, Vector3d(1, 0, 0), Vector3d(0, -1, 0));
     ASSERT_TRUE(expected == point.swappedNormal());
+  }
+
+  TEST(HitPoint, ShouldPreserveUVWhenSwappingNormal) {
+    HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.25, 0.75));
+    ASSERT_EQ(point.uv(), point.swappedNormal().uv());
   }
   
   TEST(HitPoint, ShouldTransformHitpointWithPointMatrix) {
@@ -129,6 +153,14 @@ namespace HitPointTest {
     Matrix4d pointMatrix = Matrix3d::rotateX(1_radians);
     HitPoint transformed = hp.transform(pointMatrix, Matrix3d());
     ASSERT_EQ(hp.distance(), transformed.distance());
+  }
+
+  TEST(HitPoint, ShouldNotAlterUVWhenTransforming) {
+    Vector3d point(1, 0, 0), normal(0, 1, 0);
+    HitPoint hp(box, 3, point, normal, Vector2d(0.25, 0.75));
+    Matrix4d pointMatrix = Matrix3d::rotateX(1_radians);
+    HitPoint transformed = hp.transform(pointMatrix, Matrix3d());
+    ASSERT_EQ(hp.uv(), transformed.uv());
   }
   
   TEST(HitPoint, ShouldStreamHitPointToString) {

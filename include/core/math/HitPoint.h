@@ -13,8 +13,9 @@ namespace render {
 /**
   * This class keeps track of ray/object intersection information. It holds the
   * ray distance (the distance between the ray origin and the intersection
-  * point), the intersection point and the normal vector at the point of
-  * intersection. The following figure shows how everything fits together. A ray
+  * point), the intersection point, the normal vector, and optional UV
+  * coordinates at the point of intersection. The following figure shows how
+  * everything fits together. A ray
   * originating at \f$r\f$ hit a sphere at the hit point \f$p\f$ with distance
   * \f$d\f$ and normal \f$n\f$ at the hit point.
   * 
@@ -57,7 +58,21 @@ public:
     : m_primitive(primitive),
       m_distance(distance),
       m_point(point),
-      m_normal(normal)
+      m_normal(normal),
+      m_uv(Vector2d::null())
+  {
+  }
+
+  /**
+    * Constructs a HitPoint on @p primitive from the specified @p distance,
+    * @p point, @p normal, and texture coordinates.
+    */
+  inline explicit HitPoint(const render::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal, const Vector2d& uv)
+    : m_primitive(primitive),
+      m_distance(distance),
+      m_point(point),
+      m_normal(normal),
+      m_uv(uv)
   {
   }
   
@@ -124,12 +139,26 @@ public:
   inline void setNormal(const Vector3d& normal) {
     m_normal = normal;
   }
+
+  /**
+    * @returns the UV coordinates at the intersection point.
+    */
+  inline const Vector2d& uv() const {
+    return m_uv;
+  }
+
+  /**
+    * Sets HitPoint's UV coordinates.
+    */
+  inline void setUV(const Vector2d& uv) {
+    m_uv = uv;
+  }
   
   /**
     * @returns a copy of this HitPoint with the normal swapped.
     */
   inline HitPoint swappedNormal() const {
-    return HitPoint(m_primitive, m_distance, m_point, -m_normal);
+    return HitPoint(m_primitive, m_distance, m_point, -m_normal, m_uv);
   }
   
   /**
@@ -138,7 +167,7 @@ public:
     *   The resulting normal is then normalized.
     */
   inline HitPoint transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
-    return HitPoint(m_primitive, m_distance, pointMatrix * m_point, (normalMatrix * m_normal).normalized());
+    return HitPoint(m_primitive, m_distance, pointMatrix * m_point, (normalMatrix * m_normal).normalized(), m_uv);
   }
   
   /**
@@ -151,7 +180,8 @@ public:
     return m_primitive == other.primitive() &&
            m_distance == other.distance() &&
            m_point == other.point() &&
-           m_normal == other.normal();
+           m_normal == other.normal() &&
+           m_uv == other.uv();
   }
   
   /**
@@ -159,7 +189,7 @@ public:
     *   normal is undefined.
     */
   inline bool isUndefined() const {
-    return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined();
+    return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined() || m_uv.isUndefined();
   }
   
 private:
@@ -167,6 +197,7 @@ private:
   double m_distance;
   Vector4d m_point;
   Vector3d m_normal;
+  Vector2d m_uv;
 };
 
 /**

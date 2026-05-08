@@ -136,6 +136,7 @@ namespace {
   struct ClipVert {
     Vector3d point;
     Vector3d normal;
+    Vector2d uv;
     Vector4d clip;
     Vector3d screen;
   };
@@ -143,6 +144,7 @@ namespace {
   struct RasterVertex {
     Vector3d point;
     Vector3d normal;
+    Vector2d uv;
     double invZ;
     int x;
     int y;
@@ -225,6 +227,7 @@ namespace {
     return {
       from.point + (to.point - from.point) * t,
       from.normal + (to.normal - from.normal) * t,
+      from.uv + (to.uv - from.uv) * t,
       from.clip + (to.clip - from.clip) * t,
       Vector3d::undefined()
     };
@@ -361,12 +364,14 @@ namespace {
                                RasterVertex& out) {
     Vector3d point = vertex.point;
     Vector3d normal = vertex.normal;
+    Vector2d uv = vertex.uv;
     Vector3d screen = vertex.screen;
 
     if (const auto& shader = rasterizer.vertexShader()) {
       Rasterizer::VertexInput input{
         vertex.point,
         vertex.normal,
+        vertex.uv,
         vertex.clip,
         vertex.screen,
         primitive,
@@ -376,6 +381,7 @@ namespace {
       const Rasterizer::VertexOutput output = shader(input);
       point = output.worldPosition;
       normal = output.normal;
+      uv = output.uv;
       screen = output.screenPosition;
     }
 
@@ -384,6 +390,7 @@ namespace {
     out = {
       point,
       normal,
+      uv,
       1.0 / screen.z(),
       static_cast<int>(std::lround(screen.x())),
       static_cast<int>(std::lround(screen.y()))
@@ -496,15 +503,16 @@ namespace {
                         const render::Primitive* primitive,
                         const Vector3d& worldPos,
                         const Vector3d& normal,
+                        const Vector2d& uv,
                         std::uint64_t faceIdx) {
     if (auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material)) {
       auto texture = matte->diffuseTexture();
       if (texture) {
         // Synthesize a HitPoint at the interpolated surface position
-        // and normal so position-dependent textures (CheckerBoard)
+        // normal, and UVs so position- and UV-dependent textures
         // sample at the right place. The ray and distance fields
         // aren't used by the texture eval path; pass placeholders.
-        const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal);
+        const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
         const Rayd ray(worldPos, -normal);
         return texture->evaluate(ray, hp);
       }
@@ -519,6 +527,7 @@ namespace {
     double depth;
     Vector3d worldPos;
     Vector3d normal;
+    Vector2d uv;
   };
 
   inline InterpolatedFragment interpolateFragment(const RasterVertex& v0,
@@ -536,7 +545,7 @@ namespace {
     const double pixelDepth = 1.0 / oneOverZ;
 
     // Perspective-correct attribute interpolation: same trick as
-    // depth, applied to vertex normals and world positions:
+    // depth, applied to vertex normals, world positions, and UVs:
     //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
     const double wp0 = w0b * v0.invZ;
     const double wp1 = w1b * v1.invZ;
@@ -544,7 +553,8 @@ namespace {
     return {
       pixelDepth,
       (v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2) * pixelDepth,
-      (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * pixelDepth
+      (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * pixelDepth,
+      (v0.uv     * wp0 + v1.uv     * wp1 + v2.uv     * wp2) * pixelDepth
     };
   }
 
@@ -618,10 +628,11 @@ namespace {
   inline Colord shadeBuiltInFragment(const RasterTriangle& triangle,
                                      const render::Scene* scene,
                                      const Vector3d& worldPos,
-                                     const Vector3d& normal) {
+                                     const Vector3d& normal,
+                                     const Vector2d& uv) {
     const Vector3d n = normal.normalized();
     const Colord albedo = materialAlbedo(
-      triangle.material, triangle.primitive, worldPos, n, triangle.faceIdx);
+      triangle.material, triangle.primitive, worldPos, n, uv, triangle.faceIdx);
 
     // Lambertian shading. No shadow rays (no recursive ray tracing
     // in this engine); each light contributes diffuse-cosine-
@@ -664,7 +675,7 @@ namespace {
 
         zBuffer[y][x] = fragment.depth;
         buffer[y][x] = shadeBuiltInFragment(
-          triangle, scene, fragment.worldPos, fragment.normal);
+          triangle, scene, fragment.worldPos, fragment.normal, fragment.uv);
       });
       return;
     }
@@ -702,6 +713,7 @@ namespace {
           Vector3d(w0b, w1b, w2b),
           fragment.worldPos,
           n,
+          fragment.uv,
           triangle.primitive,
           triangle.material.get(),
           triangle.faceIdx
@@ -709,7 +721,7 @@ namespace {
         shaded = shader(input);
       } else {
         shaded = shadeBuiltInFragment(
-          triangle, scene, fragment.worldPos, fragment.normal);
+          triangle, scene, fragment.worldPos, fragment.normal, fragment.uv);
       }
 
       if (rasterizer.depthWriteEnabled()) {
@@ -767,11 +779,11 @@ namespace {
             const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
             if (outCodeOr == 0) {
               ClipVert v0{ vertices[face[0]].point, vertices[face[0]].normal,
-                Vector4d::undefined(), p0.screen };
+                vertices[face[0]].uv, Vector4d::undefined(), p0.screen };
               ClipVert v1{ vertices[face[i]].point, vertices[face[i]].normal,
-                Vector4d::undefined(), p1.screen };
+                vertices[face[i]].uv, Vector4d::undefined(), p1.screen };
               ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                Vector4d::undefined(), p2.screen };
+                vertices[face[i + 1]].uv, Vector4d::undefined(), p2.screen };
 
               if (shouldCullTriangle(rasterizer.cullMode(), v0, v1, v2)) {
                 continue;
@@ -792,11 +804,11 @@ namespace {
             // up screen coordinates.
             const std::array<ClipVert, 3> input = {{
               { vertices[face[0]].point, vertices[face[0]].normal,
-                p0.clip, p0.screen },
+                vertices[face[0]].uv, p0.clip, p0.screen },
               { vertices[face[i]].point, vertices[face[i]].normal,
-                p1.clip, p1.screen },
+                vertices[face[i]].uv, p1.clip, p1.screen },
               { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                p2.clip, p2.screen },
+                vertices[face[i + 1]].uv, p2.clip, p2.screen },
             }};
 
             ClipPolygon clipped;
@@ -915,11 +927,11 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
             const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
             if (outCodeOr == 0) {
               ClipVert v0{ vertices[face[0]].point, vertices[face[0]].normal,
-                Vector4d::undefined(), p0.screen };
+                vertices[face[0]].uv, Vector4d::undefined(), p0.screen };
               ClipVert v1{ vertices[face[i]].point, vertices[face[i]].normal,
-                Vector4d::undefined(), p1.screen };
+                vertices[face[i]].uv, Vector4d::undefined(), p1.screen };
               ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                Vector4d::undefined(), p2.screen };
+                vertices[face[i + 1]].uv, Vector4d::undefined(), p2.screen };
 
               if (shouldCullTriangle(m_cullMode, v0, v1, v2)) continue;
 
@@ -954,10 +966,13 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
                 const Vector3d worldPos = (
                   v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2
                 ) * pixelDepth;
+                const Vector2d uv = (
+                  v0.uv     * wp0 + v1.uv     * wp1 + v2.uv     * wp2
+                ) * pixelDepth;
                 const Vector3d n = normal.normalized();
 
                 const Colord albedo = materialAlbedo(
-                  material, primitive, worldPos, n, capturedFaceIdx);
+                  material, primitive, worldPos, n, uv, capturedFaceIdx);
 
                 Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
                 for (const auto& light : m_scene->lights()) {
@@ -976,11 +991,11 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
             const std::array<ClipVert, 3> input = {{
               { vertices[face[0]].point, vertices[face[0]].normal,
-                p0.clip, p0.screen },
+                vertices[face[0]].uv, p0.clip, p0.screen },
               { vertices[face[i]].point, vertices[face[i]].normal,
-                p1.clip, p1.screen },
+                vertices[face[i]].uv, p1.clip, p1.screen },
               { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                p2.clip, p2.screen },
+                vertices[face[i + 1]].uv, p2.clip, p2.screen },
             }};
 
             ClipPolygon clipped;
@@ -1030,10 +1045,13 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
                 const Vector3d worldPos = (
                   v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2
                 ) * pixelDepth;
+                const Vector2d uv = (
+                  v0.uv     * wp0 + v1.uv     * wp1 + v2.uv     * wp2
+                ) * pixelDepth;
                 const Vector3d n = normal.normalized();
 
                 const Colord albedo = materialAlbedo(
-                  material, primitive, worldPos, n, capturedFaceIdx);
+                  material, primitive, worldPos, n, uv, capturedFaceIdx);
 
                 Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
                 for (const auto& light : m_scene->lights()) {

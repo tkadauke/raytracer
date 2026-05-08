@@ -8,7 +8,8 @@ const HitPoint& HitPoint::undefined() {
     nullptr,
     numeric_limits<double>::quiet_NaN(),
     Vector4d::undefined(),
-    Vector3d::undefined()
+    Vector3d::undefined(),
+    Vector2d::undefined()
   );
   return h;
 }

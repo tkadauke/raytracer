@@ -1,13 +1,16 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
+#include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
+#include "render/textures/Texture.h"
 
 #include <memory>
 
@@ -15,6 +18,13 @@ namespace RasterizerTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raster;
+
+  class UVColorTexture : public Texturec {
+  public:
+    virtual Colord evaluate(const Rayd&, const HitPoint& hitPoint) const {
+      return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
+    }
+  };
 
   // Counter helper — total pixels in the buffer matching `color`.
   static int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
@@ -82,6 +92,26 @@ namespace RasterizerTest {
       Vector3d( 0,  1, 0),
       Vector3d( 1, -1, 0)));
     return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithTexturedFrontFacingTriangle() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto triangle = std::make_shared<Triangle>(
+      Vector3d(-1, -1, 0),
+      Vector3d( 0,  1, 0),
+      Vector3d( 1, -1, 0));
+    triangle->setMaterial(std::make_shared<MatteMaterial>(
+      std::make_shared<UVColorTexture>()));
+    scene->add(triangle);
+    return scene;
+  }
+
+  static void expectCenterLooksLikeTriangleUV(const Colord& color) {
+    EXPECT_GT(color.r(), 0.35);
+    EXPECT_LT(color.r(), 0.65);
+    EXPECT_GT(color.g(), 0.15);
+    EXPECT_LT(color.g(), 0.35);
+    EXPECT_DOUBLE_EQ(0.0, color.b());
   }
 
   static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
@@ -340,12 +370,34 @@ namespace RasterizerTest {
     EXPECT_EQ(shaderColor, buffer[32][32]);
   }
 
+  TEST(Rasterizer, FragmentShaderReceivesInterpolatedUV) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput& fragment) {
+      return Colord(fragment.uv.x(), fragment.uv.y(), 0.0);
+    });
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialTextureReceivesInterpolatedUV) {
+    Rasterizer engine(headOnCamera(), sceneWithTexturedFrontFacingTriangle());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
   TEST(Rasterizer, VertexShaderCanAdjustProjectedPosition) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{
         vertex.worldPosition,
         vertex.normal,
+        vertex.uv,
         vertex.clipPosition,
         vertex.screenPosition + Vector3d(1000, 0, 0)
       };
