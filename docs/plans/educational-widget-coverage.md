@@ -227,7 +227,9 @@ place, or until nearby roadmap work makes them more visible.
    - Teaches: convex intersection via support functions. This should follow the
      simpler farthest-point and CSG interval widgets.
 
-3. **Color model conversions**
+3. ~~**Color model conversions**~~ ✅ **Done.** Added
+   `color_model_conversions.js` next to `Color` docs as a static RGB storage
+   diagram with HSV and CMYK helper views.
    - Target: `include/core/Color.h`.
    - Widget: likely static or lightly interactive swatches for RGB, HSV, and
      CMYK relationships.

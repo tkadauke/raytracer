@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Color model conversion documentation widget.** `Color` docs now include a static educational widget showing RGB storage alongside HSV and CMYK helper views and conversion entry points. — GPT-5
 - **Texture coordinate mapping widget.** Checker board texture docs now include an interactive widget showing the hit point, generated `(s, t)` coordinates, `floor(s) + floor(t)` checker parity, and sampled checker preview for planar vs UV mapping with U/V scale controls. — GPT-5
 - **Camera forward-projection widget.** `Camera::projectPointToClipSpace` docs now include an interactive pinhole-vs-orthographic widget with a draggable world point, projected pixel, eye-relative depth, and homogeneous `w` readout; JS tests pin the widget structure and controls. — GPT-5
 - **Motion blur time-sampling widget.** `Instance::setVelocity` docs now include an interactive shutter-time diagram with a draggable velocity vector, a time scrubber, regular-vs-stochastic sampling controls, sampled positions, and accumulated ghosted silhouettes; the `world::Surface` velocity docs point to the same runtime explanation. — GPT-5

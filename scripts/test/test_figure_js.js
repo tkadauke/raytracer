@@ -153,7 +153,7 @@ function elementsByTag(node, tagName) {
 }
 
 function textContents(node) {
-  const own = node.textContent ? [node.textContent] : [];
+  const own = node.textContent ? [node.textContent] : (node.innerHTML ? [node.innerHTML] : []);
   return own.concat(node.children.flatMap(textContents));
 }
 
@@ -722,6 +722,21 @@ test('Production widgets use shared stroke width constants', () => {
       return /['"]stroke-width['"]\s*:\s*[0-9.]+/.test(source);
     });
   assert.deepEqual(offenders, []);
+});
+
+test('Color model conversion widget shows RGB storage and helper views', () => {
+  const body = loadWidget('color_model_conversions.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('RGB storage'),
+    'widget should identify RGB as the stored representation');
+  assert.ok(text.includes('HSV helper view'),
+    'widget should show HSV as a computed helper view');
+  assert.ok(text.includes('CMYK helper view'),
+    'widget should show CMYK as a computed helper view');
+  assert.ok(text.includes('fromHSV()'));
+  assert.ok(text.includes('fromCMYK()'));
+  assert.ok(countElements(body, 'rect') >= 15,
+    'widget should include swatches and component bars for each model');
 });
 
 // --- Path primitive --------------------------------------------------------
