@@ -6,7 +6,7 @@
 #include "world/objects/Torus.h"
 #include "world/objects/Triangle.h"
 
-#include "raytracer/primitives/Scene.h"
+#include "render/primitives/Scene.h"
 
 #include <limits>
 
@@ -38,7 +38,7 @@ namespace PrimitiveShapeTest {
 
   TEST(Disk, ShouldProduceRaytracerPrimitive) {
     Disk d;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, d.toRaytracer(&scene));
   }
 
@@ -88,7 +88,7 @@ namespace PrimitiveShapeTest {
 
   TEST(OpenCylinder, ShouldProduceRaytracerPrimitive) {
     OpenCylinder c;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, c.toRaytracer(&scene));
   }
 
@@ -118,7 +118,7 @@ namespace PrimitiveShapeTest {
 
   TEST(Rectangle, ShouldProduceRaytracerPrimitive) {
     Rectangle r;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, r.toRaytracer(&scene));
   }
 
@@ -168,7 +168,7 @@ namespace PrimitiveShapeTest {
 
   TEST(Torus, ShouldProduceRaytracerPrimitive) {
     Torus t;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, t.toRaytracer(&scene));
   }
 
@@ -204,7 +204,7 @@ namespace PrimitiveShapeTest {
 
   TEST(Triangle, ShouldProduceRaytracerPrimitive) {
     Triangle t;
-    raytracer::Scene scene;
+    render::Scene scene;
     EXPECT_NE(nullptr, t.toRaytracer(&scene));
   }
 
