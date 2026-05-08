@@ -163,17 +163,6 @@ namespace {
     return Recti(left, top, right - left, bottom - top);
   }
 
-  inline RasterVertex rasterVertex(const ClipVert& vertex) {
-    const double z = vertex.screen.z();
-    return {
-      vertex.point,
-      vertex.normal,
-      1.0 / z,
-      static_cast<int>(std::lround(vertex.screen.x())),
-      static_cast<int>(std::lround(vertex.screen.y()))
-    };
-  }
-
   enum class ClipPlane {
     Near,
     Left,
@@ -364,6 +353,69 @@ namespace {
       : area < 0.0;
   }
 
+  inline bool makeRasterVertex(const ClipVert& vertex,
+                               const Rasterizer& rasterizer,
+                               const render::Primitive* primitive,
+                               const render::Material* material,
+                               std::uint64_t faceIdx,
+                               RasterVertex& out) {
+    Vector3d point = vertex.point;
+    Vector3d normal = vertex.normal;
+    Vector3d screen = vertex.screen;
+
+    if (const auto& shader = rasterizer.vertexShader()) {
+      Rasterizer::VertexInput input{
+        vertex.point,
+        vertex.normal,
+        vertex.clip,
+        vertex.screen,
+        primitive,
+        material,
+        faceIdx
+      };
+      const Rasterizer::VertexOutput output = shader(input);
+      point = output.worldPosition;
+      normal = output.normal;
+      screen = output.screenPosition;
+    }
+
+    if (screen.isUndefined() || screen.z() <= 0.0) return false;
+
+    out = {
+      point,
+      normal,
+      1.0 / screen.z(),
+      static_cast<int>(std::lround(screen.x())),
+      static_cast<int>(std::lround(screen.y()))
+    };
+    return true;
+  }
+
+  inline bool makeRasterTriangle(const ClipVert& v0,
+                                 const ClipVert& v1,
+                                 const ClipVert& v2,
+                                 const Rasterizer& rasterizer,
+                                 const render::Primitive* primitive,
+                                 const std::shared_ptr<render::Material>& material,
+                                 std::uint64_t faceIdx,
+                                 RasterTriangle& out) {
+    RasterVertex r0, r1, r2;
+    const render::Material* materialPtr = material.get();
+    if (!makeRasterVertex(v0, rasterizer, primitive, materialPtr, faceIdx, r0)
+        || !makeRasterVertex(v1, rasterizer, primitive, materialPtr, faceIdx, r1)
+        || !makeRasterVertex(v2, rasterizer, primitive, materialPtr, faceIdx, r2)) {
+      return false;
+    }
+
+    out = RasterTriangle{
+      {{ r0, r1, r2 }},
+      primitive,
+      material,
+      faceIdx
+    };
+    return true;
+  }
+
   inline std::size_t addTriangleToTiles(
     const RasterTriangle& triangle,
     std::size_t triangleIndex,
@@ -463,57 +515,206 @@ namespace {
     return faceColor(faceIdx);
   }
 
+  struct InterpolatedFragment {
+    double depth;
+    Vector3d worldPos;
+    Vector3d normal;
+  };
+
+  inline InterpolatedFragment interpolateFragment(const RasterVertex& v0,
+                                                 const RasterVertex& v1,
+                                                 const RasterVertex& v2,
+                                                 double w0b,
+                                                 double w1b,
+                                                 double w2b) {
+    // Perspective-correct depth interpolation. The screen-space
+    // barycentric weights from `rasterizeTriangle` are linear in
+    // screen space — but vertex *depth* is not. The standard trick:
+    // 1/z IS linear in screen space, so interpolate 1/z and invert.
+    // (Heckbert & Moreton 1991.)
+    const double oneOverZ = w0b * v0.invZ + w1b * v1.invZ + w2b * v2.invZ;
+    const double pixelDepth = 1.0 / oneOverZ;
+
+    // Perspective-correct attribute interpolation: same trick as
+    // depth, applied to vertex normals and world positions:
+    //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
+    const double wp0 = w0b * v0.invZ;
+    const double wp1 = w1b * v1.invZ;
+    const double wp2 = w2b * v2.invZ;
+    return {
+      pixelDepth,
+      (v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2) * pixelDepth,
+      (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * pixelDepth
+    };
+  }
+
+  inline bool depthTestPass(Rasterizer::DepthFunc func, double incoming, double stored) {
+    switch (func) {
+    case Rasterizer::DepthFunc::Never:        return false;
+    case Rasterizer::DepthFunc::Less:         return incoming <  stored;
+    case Rasterizer::DepthFunc::Equal:        return incoming == stored;
+    case Rasterizer::DepthFunc::LessEqual:    return incoming <= stored;
+    case Rasterizer::DepthFunc::Greater:      return incoming >  stored;
+    case Rasterizer::DepthFunc::GreaterEqual: return incoming >= stored;
+    case Rasterizer::DepthFunc::NotEqual:     return incoming != stored;
+    case Rasterizer::DepthFunc::Always:       return true;
+    }
+    return false;
+  }
+
+  inline bool stencilTestPass(Rasterizer::StencilFunc func,
+                              std::uint8_t reference,
+                              std::uint8_t stored,
+                              std::uint8_t mask) {
+    const std::uint8_t lhs = reference & mask;
+    const std::uint8_t rhs = stored & mask;
+    switch (func) {
+    case Rasterizer::StencilFunc::Never:        return false;
+    case Rasterizer::StencilFunc::Less:         return lhs <  rhs;
+    case Rasterizer::StencilFunc::Equal:        return lhs == rhs;
+    case Rasterizer::StencilFunc::LessEqual:    return lhs <= rhs;
+    case Rasterizer::StencilFunc::Greater:      return lhs >  rhs;
+    case Rasterizer::StencilFunc::GreaterEqual: return lhs >= rhs;
+    case Rasterizer::StencilFunc::NotEqual:     return lhs != rhs;
+    case Rasterizer::StencilFunc::Always:       return true;
+    }
+    return false;
+  }
+
+  inline std::uint8_t applyStencilOp(Rasterizer::StencilOp op,
+                                     std::uint8_t current,
+                                     std::uint8_t reference) {
+    switch (op) {
+    case Rasterizer::StencilOp::Keep:
+      return current;
+    case Rasterizer::StencilOp::Zero:
+      return 0;
+    case Rasterizer::StencilOp::Replace:
+      return reference;
+    case Rasterizer::StencilOp::IncrementClamp:
+      return current == 0xFF ? current : static_cast<std::uint8_t>(current + 1);
+    case Rasterizer::StencilOp::DecrementClamp:
+      return current == 0 ? current : static_cast<std::uint8_t>(current - 1);
+    case Rasterizer::StencilOp::Invert:
+      return static_cast<std::uint8_t>(~current);
+    }
+    return current;
+  }
+
+  inline void updateStencil(Buffer<std::uint8_t>* stencilBuffer,
+                            const Rasterizer& rasterizer,
+                            int x,
+                            int y,
+                            Rasterizer::StencilOp op) {
+    if (!stencilBuffer) return;
+
+    const std::uint8_t current = (*stencilBuffer)[y][x];
+    const std::uint8_t updated = applyStencilOp(op, current, rasterizer.stencilReference());
+    const std::uint8_t writeMask = rasterizer.stencilWriteMask();
+    (*stencilBuffer)[y][x] = static_cast<std::uint8_t>(
+      (current & ~writeMask) | (updated & writeMask));
+  }
+
+  inline Colord shadeBuiltInFragment(const RasterTriangle& triangle,
+                                     const render::Scene* scene,
+                                     const Vector3d& worldPos,
+                                     const Vector3d& normal) {
+    const Vector3d n = normal.normalized();
+    const Colord albedo = materialAlbedo(
+      triangle.material, triangle.primitive, worldPos, n, triangle.faceIdx);
+
+    // Lambertian shading. No shadow rays (no recursive ray tracing
+    // in this engine); each light contributes diffuse-cosine-
+    // weighted radiance directly.
+    Colord shaded = scene->ambient() * kAmbientCoefficient * albedo;
+    for (const auto& light : scene->lights()) {
+      const Vector3d lightDir = light->direction(worldPos);
+      const double nDotL = std::max(0.0, n * lightDir);
+      if (nDotL > 0.0) {
+        shaded += albedo * light->radiance() * nDotL;
+      }
+    }
+    return shaded;
+  }
+
+  inline bool usesBuiltInDepthStencilAndFragment(const Rasterizer& rasterizer) {
+    return rasterizer.depthFunc() == Rasterizer::DepthFunc::Less
+      && rasterizer.depthWriteEnabled()
+      && !rasterizer.stencilTestEnabled()
+      && !rasterizer.fragmentShader();
+  }
+
   inline void rasterizePreparedTriangle(const RasterTriangle& triangle,
                                         const Recti& clipRect,
                                         const render::Scene* scene,
+                                        const Rasterizer& rasterizer,
                                         Buffer<Colord>& buffer,
-                                        Buffer<double>& zBuffer) {
+                                        Buffer<double>& zBuffer,
+                                        Buffer<std::uint8_t>* stencilBuffer) {
     const RasterVertex& v0 = triangle.vertices[0];
     const RasterVertex& v1 = triangle.vertices[1];
     const RasterVertex& v2 = triangle.vertices[2];
 
+    if (usesBuiltInDepthStencilAndFragment(rasterizer)) {
+      core::rasterizeTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
+        clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
+        [&](int x, int y, double w0b, double w1b, double w2b) {
+        const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
+        if (fragment.depth >= zBuffer[y][x]) return;
+
+        zBuffer[y][x] = fragment.depth;
+        buffer[y][x] = shadeBuiltInFragment(
+          triangle, scene, fragment.worldPos, fragment.normal);
+      });
+      return;
+    }
+
     core::rasterizeTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
       clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
       [&](int x, int y, double w0b, double w1b, double w2b) {
-      // Perspective-correct depth interpolation. The screen-space
-      // barycentric weights from `rasterizeTriangle` are linear in
-      // screen space — but vertex *depth* is not. The standard trick:
-      // 1/z IS linear in screen space, so interpolate 1/z and invert.
-      // (Heckbert & Moreton 1991.)
-      const double oneOverZ = w0b * v0.invZ + w1b * v1.invZ + w2b * v2.invZ;
-      const double pixelDepth = 1.0 / oneOverZ;
-      if (pixelDepth >= zBuffer[y][x]) return;
-
-      // Perspective-correct attribute interpolation: same trick as
-      // depth, applied to vertex normals and world positions:
-      //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
-      const double wp0 = w0b * v0.invZ;
-      const double wp1 = w1b * v1.invZ;
-      const double wp2 = w2b * v2.invZ;
-      const Vector3d normal = (
-        v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2
-      ) * pixelDepth;
-      const Vector3d worldPos = (
-        v0.point  * wp0 + v1.point  * wp1 + v2.point  * wp2
-      ) * pixelDepth;
-      const Vector3d n = normal.normalized();
-
-      const Colord albedo = materialAlbedo(
-        triangle.material, triangle.primitive, worldPos, n, triangle.faceIdx);
-
-      // Lambertian shading. No shadow rays (no recursive ray tracing
-      // in this engine); each light contributes diffuse-cosine-
-      // weighted radiance directly.
-      Colord shaded = scene->ambient() * kAmbientCoefficient * albedo;
-      for (const auto& light : scene->lights()) {
-        const Vector3d lightDir = light->direction(worldPos);
-        const double nDotL = std::max(0.0, n * lightDir);
-        if (nDotL > 0.0) {
-          shaded += albedo * light->radiance() * nDotL;
+      if (stencilBuffer) {
+        const std::uint8_t stored = (*stencilBuffer)[y][x];
+        if (!stencilTestPass(
+              rasterizer.stencilFunc(),
+              rasterizer.stencilReference(),
+              stored,
+              rasterizer.stencilMask())) {
+          updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilFailOp());
+          return;
         }
       }
 
-      zBuffer[y][x] = pixelDepth;
+      const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
+      if (!depthTestPass(rasterizer.depthFunc(), fragment.depth, zBuffer[y][x])) {
+        updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilDepthFailOp());
+        return;
+      }
+
+      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilPassOp());
+
+      Colord shaded;
+      if (const auto& shader = rasterizer.fragmentShader()) {
+        const Vector3d n = fragment.normal.normalized();
+        const Rasterizer::FragmentInput input{
+          x,
+          y,
+          fragment.depth,
+          Vector3d(w0b, w1b, w2b),
+          fragment.worldPos,
+          n,
+          triangle.primitive,
+          triangle.material.get(),
+          triangle.faceIdx
+        };
+        shaded = shader(input);
+      } else {
+        shaded = shadeBuiltInFragment(
+          triangle, scene, fragment.worldPos, fragment.normal);
+      }
+
+      if (rasterizer.depthWriteEnabled()) {
+        zBuffer[y][x] = fragment.depth;
+      }
       buffer[y][x] = shaded;
     });
   }
@@ -522,7 +723,7 @@ namespace {
   void emitRasterTriangles(const render::Scene* scene,
                            const std::shared_ptr<render::Camera>& camera,
                            int lod,
-                           Rasterizer::CullMode cullMode,
+                           const Rasterizer& rasterizer,
                            const std::atomic<bool>& cancelled,
                            EmitFn&& callback) {
     std::uint64_t globalFaceIdx = 0;
@@ -572,16 +773,15 @@ namespace {
               ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
                 Vector4d::undefined(), p2.screen };
 
-              if (shouldCullTriangle(cullMode, v0, v1, v2)) {
+              if (shouldCullTriangle(rasterizer.cullMode(), v0, v1, v2)) {
                 continue;
               }
 
-              callback(RasterTriangle{
-                {{ rasterVertex(v0), rasterVertex(v1), rasterVertex(v2) }},
-                primitive,
-                material,
-                globalFaceIdx
-              });
+              RasterTriangle triangle;
+              if (makeRasterTriangle(v0, v1, v2,
+                    rasterizer, primitive, material, globalFaceIdx, triangle)) {
+                callback(triangle);
+              }
               continue;
             }
 
@@ -613,16 +813,15 @@ namespace {
                   || !ensureScreen(v2, viewPlane)) {
                 continue;
               }
-              if (shouldCullTriangle(cullMode, v0, v1, v2)) {
+              if (shouldCullTriangle(rasterizer.cullMode(), v0, v1, v2)) {
                 continue;
               }
 
-              callback(RasterTriangle{
-                {{ rasterVertex(v0), rasterVertex(v1), rasterVertex(v2) }},
-                primitive,
-                material,
-                globalFaceIdx
-              });
+              RasterTriangle triangle;
+              if (makeRasterTriangle(v0, v1, v2,
+                    rasterizer, primitive, material, globalFaceIdx, triangle)) {
+                callback(triangle);
+              }
             }
           }
         }
@@ -657,17 +856,24 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   const int rows = std::max(1, std::min(decomposition.first(), height));
   const int cols = std::max(1, std::min(decomposition.second(), width));
 
-  // Z-buffer: per-pixel eye-relative depth, initialised to +infinity
-  // so the first triangle to write any pixel always wins. Smaller
-  // depth = closer to the eye; the test "new < old" replaces the cell.
+  // Z-buffer: per-pixel eye-relative depth. Smaller depth = closer
+  // to the eye for the default `DepthFunc::Less` path.
   Buffer<double> zBuffer(width, height);
   for (int y = 0; y < height; ++y)
     for (int x = 0; x < width; ++x)
-      zBuffer[y][x] = std::numeric_limits<double>::infinity();
+      zBuffer[y][x] = m_depthClearValue;
+
+  std::unique_ptr<Buffer<std::uint8_t>> stencilBuffer;
+  if (m_stencilTestEnabled) {
+    stencilBuffer = std::make_unique<Buffer<std::uint8_t>>(width, height);
+    for (int y = 0; y < height; ++y)
+      for (int x = 0; x < width; ++x)
+        (*stencilBuffer)[y][x] = m_stencilClearValue;
+  }
 
   auto scene = m_scene;
 
-  if (tileCount == 1) {
+  if (tileCount == 1 && usesBuiltInDepthStencilAndFragment(*this) && !m_vertexShader) {
     std::uint64_t globalFaceIdx = 0;
     walkLeaves(m_scene.get(), nullptr,
       [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
@@ -848,10 +1054,20 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
     return;
   }
 
+  if (tileCount == 1) {
+    const Recti fullRect(0, 0, width, height);
+    emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+      [&](const RasterTriangle& triangle) {
+        rasterizePreparedTriangle(
+          triangle, fullRect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get());
+      });
+    return;
+  }
+
   std::vector<RasterTriangle> triangles;
   std::vector<std::vector<std::size_t>> tileTriangles(rows * cols);
   std::size_t binnedTriangleCount = 0;
-  emitRasterTriangles(scene.get(), m_camera, m_lod, m_cullMode, m_cancelled,
+  emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
     [&](const RasterTriangle& triangle) {
       const std::size_t triangleIndex = triangles.size();
       const std::size_t added = addTriangleToTiles(
@@ -874,7 +1090,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
         const auto& triangleIndices = tileTriangles[tileIndex];
         for (const std::size_t triangleIndex : triangleIndices) {
           if (m_cancelled.load()) return;
-          rasterizePreparedTriangle(triangles[triangleIndex], rect, scene.get(), buffer, zBuffer);
+          rasterizePreparedTriangle(
+            triangles[triangleIndex], rect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get());
         }
       });
 

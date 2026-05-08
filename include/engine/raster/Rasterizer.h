@@ -1,10 +1,20 @@
 #pragma once
 
 #include "render/RenderEngine.h"
+#include "core/math/Vector.h"
 
 #include <atomic>
+#include <cstdint>
+#include <functional>
+#include <limits>
 #include <list>
 #include <memory>
+#include <utility>
+
+namespace render {
+  class Material;
+  class Primitive;
+}
 
 namespace engine::raster {
 
@@ -43,8 +53,12 @@ namespace engine::raster {
   *        to a stable per-face colour hash.
   *      - Apply Lambertian shading: `scene.ambient × ambientCoeff ×
   *        albedo + Σ_lights albedo × light.radiance × max(0, n · light.dir)`.
-  *      - Write the shaded colour iff the new depth beats the
-  *        existing Z-buffer cell.
+  *      - Run the configured depth/stencil tests and operations.
+  *        The default state is the historical Z-buffer behaviour:
+  *        `DepthFunc::Less`, depth writes enabled, stencil disabled.
+  *      - Shade through the built-in material/Lambertian fragment
+  *        path, or through a caller-provided `FragmentShader`.
+  *      - Write the shaded colour iff the fragment passes.
   *
   * The rasterizer walks leaf primitives directly, preserving each
   * primitive's effective material before tessellation. Matte diffuse
@@ -59,8 +73,11 @@ namespace engine::raster {
   * Face culling is switchable via `setCullMode`: the default
   * `CullMode::Both` shades both sides of every triangle, while
   * `CullMode::Back` / `CullMode::Front` skip triangles by projected
-  * screen-space winding after clipping. It does not trace shadow
-  * rays; lights are direct Lambertian contributions only.
+  * screen-space winding after clipping. Depth/stencil state and
+  * tiny vertex/fragment shader hooks are exposed for teaching the
+  * fixed-function stages without forcing the default path through
+  * the programmable callbacks. It does not trace shadow rays;
+  * lights are direct Lambertian contributions only.
   *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
@@ -113,6 +130,69 @@ public:
     Front
   };
 
+  enum class DepthFunc {
+    Never,
+    Less,
+    Equal,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    NotEqual,
+    Always
+  };
+
+  enum class StencilFunc {
+    Never,
+    Less,
+    Equal,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    NotEqual,
+    Always
+  };
+
+  enum class StencilOp {
+    Keep,
+    Zero,
+    Replace,
+    IncrementClamp,
+    DecrementClamp,
+    Invert
+  };
+
+  struct VertexInput {
+    Vector3d worldPosition;
+    Vector3d normal;
+    Vector4d clipPosition;
+    Vector3d screenPosition;
+    const render::Primitive* primitive;
+    const render::Material* material;
+    std::uint64_t faceIdx;
+  };
+
+  struct VertexOutput {
+    Vector3d worldPosition;
+    Vector3d normal;
+    Vector4d clipPosition;
+    Vector3d screenPosition;
+  };
+
+  struct FragmentInput {
+    int x;
+    int y;
+    double depth;
+    Vector3d barycentric;
+    Vector3d worldPosition;
+    Vector3d normal;
+    const render::Primitive* primitive;
+    const render::Material* material;
+    std::uint64_t faceIdx;
+  };
+
+  using VertexShader = std::function<VertexOutput(const VertexInput&)>;
+  using FragmentShader = std::function<Colord(const FragmentInput&)>;
+
   explicit Rasterizer(std::shared_ptr<render::Scene> scene);
   Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
@@ -145,6 +225,67 @@ public:
   inline CullMode cullMode() const { return m_cullMode; }
   inline void setCullMode(CullMode mode) { m_cullMode = mode; }
 
+  /// Depth comparison applied after coverage and stencil tests.
+  /// Defaults to `Less`, matching the original Z-buffer path.
+  inline DepthFunc depthFunc() const { return m_depthFunc; }
+  inline void setDepthFunc(DepthFunc func) { m_depthFunc = func; }
+
+  /// Initial value for the per-render depth buffer. Defaults to
+  /// positive infinity so `DepthFunc::Less` accepts the first
+  /// visible fragment at each pixel.
+  inline double depthClearValue() const { return m_depthClearValue; }
+  inline void setDepthClearValue(double value) { m_depthClearValue = value; }
+
+  /// Controls whether passing fragments update the depth buffer.
+  /// Defaults to true. Disabling writes keeps depth testing active
+  /// but makes later geometry compare against the old depth value.
+  inline bool depthWriteEnabled() const { return m_depthWriteEnabled; }
+  inline void setDepthWriteEnabled(bool enabled) { m_depthWriteEnabled = enabled; }
+
+  /// Optional 8-bit stencil test. Disabled by default; when enabled,
+  /// the reference and stored stencil values are compared after
+  /// applying `stencilMask`.
+  inline bool stencilTestEnabled() const { return m_stencilTestEnabled; }
+  inline void setStencilTestEnabled(bool enabled) { m_stencilTestEnabled = enabled; }
+
+  inline StencilFunc stencilFunc() const { return m_stencilFunc; }
+  inline std::uint8_t stencilReference() const { return m_stencilReference; }
+  inline std::uint8_t stencilMask() const { return m_stencilMask; }
+  inline void setStencilFunc(StencilFunc func, std::uint8_t reference, std::uint8_t mask = 0xFF) {
+    m_stencilFunc = func;
+    m_stencilReference = reference;
+    m_stencilMask = mask;
+  }
+
+  inline std::uint8_t stencilClearValue() const { return m_stencilClearValue; }
+  inline void setStencilClearValue(std::uint8_t value) { m_stencilClearValue = value; }
+
+  inline std::uint8_t stencilWriteMask() const { return m_stencilWriteMask; }
+  inline void setStencilWriteMask(std::uint8_t mask) { m_stencilWriteMask = mask; }
+
+  inline StencilOp stencilFailOp() const { return m_stencilFailOp; }
+  inline StencilOp stencilDepthFailOp() const { return m_stencilDepthFailOp; }
+  inline StencilOp stencilPassOp() const { return m_stencilPassOp; }
+  inline void setStencilOps(StencilOp stencilFail, StencilOp depthFail, StencilOp pass) {
+    m_stencilFailOp = stencilFail;
+    m_stencilDepthFailOp = depthFail;
+    m_stencilPassOp = pass;
+  }
+
+  /// Optional programmable vertex stage over already-projected mesh
+  /// attributes. Return an adjusted `VertexOutput`, or leave unset
+  /// for the built-in pass-through stage.
+  inline const VertexShader& vertexShader() const { return m_vertexShader; }
+  inline void setVertexShader(VertexShader shader) { m_vertexShader = std::move(shader); }
+  inline void clearVertexShader() { m_vertexShader = VertexShader(); }
+
+  /// Optional fragment stage over the perspective-correct interpolated
+  /// attributes. Leave unset for the built-in material/Lambertian
+  /// fragment shading path.
+  inline const FragmentShader& fragmentShader() const { return m_fragmentShader; }
+  inline void setFragmentShader(FragmentShader shader) { m_fragmentShader = std::move(shader); }
+  inline void clearFragmentShader() { m_fragmentShader = FragmentShader(); }
+
   /// Colour the framebuffer is cleared to before triangles are
   /// rasterized. Defaults to pure black (`Colord::black()`).
   inline const Colord& backgroundColor() const { return m_backgroundColor; }
@@ -156,6 +297,20 @@ private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   CullMode m_cullMode{CullMode::Both};
+  DepthFunc m_depthFunc{DepthFunc::Less};
+  double m_depthClearValue{std::numeric_limits<double>::infinity()};
+  bool m_depthWriteEnabled{true};
+  bool m_stencilTestEnabled{false};
+  StencilFunc m_stencilFunc{StencilFunc::Always};
+  std::uint8_t m_stencilReference{0};
+  std::uint8_t m_stencilMask{0xFF};
+  std::uint8_t m_stencilClearValue{0};
+  std::uint8_t m_stencilWriteMask{0xFF};
+  StencilOp m_stencilFailOp{StencilOp::Keep};
+  StencilOp m_stencilDepthFailOp{StencilOp::Keep};
+  StencilOp m_stencilPassOp{StencilOp::Keep};
+  VertexShader m_vertexShader;
+  FragmentShader m_fragmentShader;
   Colord m_backgroundColor{Colord::black()};
 };
 

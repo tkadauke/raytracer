@@ -84,6 +84,32 @@ namespace RasterizerTest {
     return scene;
   }
 
+  static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Triangle>(
+      Vector3d(-1, -1, 0),
+      Vector3d( 0,  1, 0),
+      Vector3d( 1, -1, 0)));
+    scene->add(std::make_shared<Triangle>(
+      Vector3d(-1, -1, 1),
+      Vector3d( 0,  1, 1),
+      Vector3d( 1, -1, 1)));
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithDuplicateTriangles() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Triangle>(
+      Vector3d(-1, -1, 0),
+      Vector3d( 0,  1, 0),
+      Vector3d( 1, -1, 0)));
+    scene->add(std::make_shared<Triangle>(
+      Vector3d(-1, -1, 0),
+      Vector3d( 0,  1, 0),
+      Vector3d( 1, -1, 0)));
+    return scene;
+  }
+
   static std::shared_ptr<PinholeCamera> camera() {
     return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null());
   }
@@ -231,6 +257,104 @@ namespace RasterizerTest {
       << "Z-buffer is failing to cull the farther geometry.";
     EXPECT_FALSE(bAlone[32][32] == Colord::black())
       << "Centre pixel should be coloured by the near sphere.";
+  }
+
+  TEST(Rasterizer, DepthStencilAndShaderDefaultsMatchFixedPipeline) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+
+    EXPECT_EQ(Rasterizer::DepthFunc::Less, engine.depthFunc());
+    EXPECT_TRUE(engine.depthWriteEnabled());
+    EXPECT_FALSE(engine.stencilTestEnabled());
+    EXPECT_EQ(Rasterizer::StencilFunc::Always, engine.stencilFunc());
+    EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilFailOp());
+    EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilDepthFailOp());
+    EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilPassOp());
+    EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
+    EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
+  }
+
+  TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setDepthFunc(Rasterizer::DepthFunc::Never);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, DisabledDepthWritesLetLaterGeometryOverdraw) {
+    const Colord nearColor(1.0, 0.0, 0.0);
+    const Colord farColor(0.0, 1.0, 0.0);
+
+    Rasterizer defaultDepth(headOnCamera(), sceneWithOverlappingTriangles());
+    defaultDepth.setFragmentShader([&](const Rasterizer::FragmentInput& fragment) {
+      return fragment.faceIdx == 0 ? nearColor : farColor;
+    });
+
+    Rasterizer noDepthWrites(headOnCamera(), sceneWithOverlappingTriangles());
+    noDepthWrites.setDepthWriteEnabled(false);
+    noDepthWrites.setFragmentShader([&](const Rasterizer::FragmentInput& fragment) {
+      return fragment.faceIdx == 0 ? nearColor : farColor;
+    });
+
+    Buffer<Colord> defaultBuffer(64, 64);
+    Buffer<Colord> noWriteBuffer(64, 64);
+    defaultDepth.render(defaultBuffer);
+    noDepthWrites.render(noWriteBuffer);
+
+    EXPECT_EQ(nearColor, defaultBuffer[32][32]);
+    EXPECT_EQ(farColor, noWriteBuffer[32][32]);
+  }
+
+  TEST(Rasterizer, StencilFailOpCanSeedLaterGeometry) {
+    const Colord secondTriangleColor(0.0, 0.5, 1.0);
+
+    Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
+    engine.setStencilTestEnabled(true);
+    engine.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
+    engine.setStencilOps(
+      Rasterizer::StencilOp::Replace,
+      Rasterizer::StencilOp::Keep,
+      Rasterizer::StencilOp::Keep);
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) {
+      return secondTriangleColor;
+    });
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    EXPECT_EQ(secondTriangleColor, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, FragmentShaderOverridesBuiltInShading) {
+    const Colord shaderColor(0.25, 0.5, 0.75);
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) {
+      return shaderColor;
+    });
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(shaderColor, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, VertexShaderCanAdjustProjectedPosition) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      return Rasterizer::VertexOutput{
+        vertex.worldPosition,
+        vertex.normal,
+        vertex.clipPosition,
+        vertex.screenPosition + Vector3d(1000, 0, 0)
+      };
+    });
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, CullModeDefaultsToBothSides) {

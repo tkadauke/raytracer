@@ -31,10 +31,12 @@
    - Use cached per-vertex clip outcodes so fully-inside triangles skip the
      Sutherland-Hodgman path.
 
-4. **Depth/stencil + shader hook skeleton**
-   - Keep the current Z-buffer path as the default.
-   - Expose depth functions, optional depth writes, stencil operations, and
-     small vertex/fragment shader interfaces over projected mesh attributes.
+4. ✅ **Depth/stencil + shader hook skeleton**
+   - Kept the current Z-buffer path as the default fast path.
+   - Added configurable depth functions, depth clear value, optional depth
+     writes, 8-bit stencil compare/write state, and stencil operations.
+   - Added small vertex/fragment shader hooks over projected and interpolated
+     mesh attributes.
 
 5. **UV/attribute interpolation**
    - Carry UVs and material inputs through raster fragments.
@@ -210,3 +212,40 @@ reported `render_ms runs=10 min=999.101 median=1039.896 avg=1134.154
 max=1609.866`. The offscreen-floor baseline at 1920x1080 LOD 0 reported
 `render_ms runs=10 min=95.352 median=98.215 avg=98.771 max=104.422`. Full
 measurements are in `CHANGELOG.md`.
+
+## Task 4 depth/stencil + shader hook skeleton
+
+The rasterizer now exposes the fixed-function stages that were previously
+hard-coded into the pixel loop:
+
+- `Rasterizer::DepthFunc::{Never,Less,Equal,LessEqual,Greater,GreaterEqual,NotEqual,Always}`
+- `setDepthClearValue` and `setDepthWriteEnabled`
+- `Rasterizer::StencilFunc` with reference/mask state
+- `Rasterizer::StencilOp::{Keep,Zero,Replace,IncrementClamp,DecrementClamp,Invert}`
+- `setStencilClearValue`, `setStencilWriteMask`, and `setStencilOps`
+- `VertexShader` over clipped/projected vertex attributes
+- `FragmentShader` over perspective-correct interpolated fragment attributes
+
+Defaults preserve the fixed-function output: depth func `Less`, depth writes
+enabled, depth clear `+infinity`, stencil disabled, and no custom shader hooks.
+The single-tile default path stays specialized so normal raster renders do not
+pay per-fragment `std::function` or stencil/depth-dispatch overhead. The
+generic path is used when depth/stencil/fragment state changes, when a vertex
+shader is installed, or for the opt-in tiled path.
+
+Unit coverage pins the new behavior:
+
+- `DepthStencilAndShaderDefaultsMatchFixedPipeline`
+- `DepthFuncNeverRejectsFragments`
+- `DisabledDepthWritesLetLaterGeometryOverdraw`
+- `StencilFailOpCanSeedLaterGeometry`
+- `FragmentShaderOverridesBuiltInShading`
+- `VertexShaderCanAdjustProjectedPosition`
+
+Measurement note: after restoring the specialized fixed-function single-tile
+path, the dense sphere baseline at 640x480 LOD 8 with `--repeat 10` reported
+`render_ms runs=10 min=1014.534 median=1057.099 avg=1156.787 max=1726.229`.
+The offscreen-floor baseline at 1920x1080 LOD 0 reported `render_ms runs=10
+min=98.212 median=109.761 avg=110.942 max=132.385`. The materials baseline at
+640x480 LOD 3 reported `render_ms runs=10 min=14.073 median=14.313 avg=14.544
+max=15.527`. Full measurements are in `CHANGELOG.md`.
