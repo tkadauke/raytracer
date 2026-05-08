@@ -89,7 +89,7 @@ from still images.
 These explain performance and progressive-rendering behavior that rendered
 images cannot show directly.
 
-1. **BVH SAH split and traversal**
+1. ~~**BVH SAH split and traversal**~~ ✅ **Done.** Added `bvh_sah_traversal.js` beside `render::BVH` docs with draggable primitive AABBs, SAH split costs, the selected split, and a movable traversal ray that prunes missed child subtrees.
    - Targets: `include/render/primitives/BVH.h`.
    - Widget: draggable primitive AABBs, candidate split positions, surface-area
      costs, selected split, and a ray that prunes missed subtrees.

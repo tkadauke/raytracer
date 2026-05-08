@@ -849,6 +849,46 @@ test('CSG hit-interval widget exposes operation control and interval endpoints',
     'widget should explain which result boundary minWithPositiveDistance selects');
 });
 
+test('BVH SAH widget exposes split costs, selected split, and traversal handles', () => {
+  const body = loadWidget('bvh_sah_traversal.js');
+  assert.equal(countElements(body, 'button'), 4,
+    'BVH widget should expose the step-by-step build/traversal control');
+
+  const primitiveBoxes = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-drag-handle'] === 'primitive-aabb');
+  assert.equal(primitiveBoxes.length, 4,
+    'all primitive AABBs should be directly draggable boxes');
+  assert.deepEqual(primitiveBoxes.map(r => r.attributes['data-box-index']),
+    ['0', '1', '2', '3']);
+
+  const candidates = elementsByTag(body, 'line')
+    .filter(l => l.attributes['data-candidate-split'] !== undefined);
+  assert.equal(candidates.length, 3,
+    'four primitives should produce three centroid-ordered split candidates');
+  assert.equal(candidates.filter(l => l.attributes['data-selected-split'] === 'true').length, 1,
+    'exactly one candidate should be marked as the selected SAH split');
+
+  const costBars = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-sah-cost'] !== undefined);
+  assert.equal(costBars.length, 3,
+    'each split candidate should emit a surface-area cost bar');
+  assert.equal(costBars.filter(r => r.attributes['data-selected-cost'] === 'true').length, 1,
+    'the chosen split should be highlighted in the cost plot');
+
+  const rayHandles = elementsByTag(body, 'circle')
+    .filter(c => ['ray-origin', 'ray-target'].includes(c.attributes['data-drag-handle']));
+  assert.equal(rayHandles.length, 2,
+    'the traversal ray should expose draggable origin and target handles');
+
+  const subtreeStatuses = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-subtree-status'] !== undefined)
+    .map(r => r.attributes['data-subtree-status']);
+  assert.ok(subtreeStatuses.includes('hit'),
+    'the default ray should hit at least one selected child subtree');
+  assert.ok(subtreeStatuses.includes('miss'),
+    'the default ray should prune at least one selected child subtree');
+});
+
 test('Production widgets no longer instantiate DragHandler', () => {
   const docsDir = path.resolve(__dirname, '..', 'docs');
   const offenders = fs.readdirSync(docsDir)
