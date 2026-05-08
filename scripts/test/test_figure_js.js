@@ -409,6 +409,27 @@ test('Motion blur widget exposes shutter-time sampling controls', () => {
     'accumulated silhouettes should mirror the time samples');
 });
 
+test('ViewPlane iteration widget exposes mode and progress controls', () => {
+  const body = loadWidget('viewplane_iteration_order.js');
+  assert.equal(countElements(body, 'button'), 6,
+    'viewplane widget should expose every documented iteration mode');
+  assert.equal(countElements(body, 'input'), 1,
+    'viewplane widget should expose render progress as a scalar slider');
+  assert.ok(textContents(body).join(' ').includes('Point interlaced'),
+    'default mode should name the active iteration strategy');
+
+  const cells = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-viewplane-cell']);
+  assert.equal(cells.length, 16 * 10,
+    'widget should draw one visible cell for every pixel in the image grid');
+  assert.ok(cells.some(r => r.attributes['data-rendered'] === '1'),
+    'default progress should show already-rendered pixels');
+  assert.ok(cells.every(r => r.attributes['data-rendered'] === '1'),
+    'point interlacing should give early whole-frame coverage');
+  assert.ok(new Set(cells.map(r => r.attributes.fill)).size > 1,
+    'cell colors should preserve the visible traversal order');
+});
+
 test('Rasterizer pipeline widget uses draggable vertex handles', () => {
   const body = loadWidget('rasterizer_pipeline.js');
   assert.equal(countElements(body, 'button'), 2,

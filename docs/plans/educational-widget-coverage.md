@@ -104,18 +104,10 @@ images cannot show directly.
    - Teaches: uniform spatial hashing, cell stepping, and why grids work best
      for evenly distributed primitives.
 
-3. **ViewPlane iteration strategies**
-   - Targets: `include/render/viewplanes/ViewPlane.h`,
-     `include/render/viewplanes/TiledViewPlane.h`,
-     `include/render/viewplanes/PointInterlacedViewPlane.h`,
-     `include/render/viewplanes/RowInterlacedViewPlane.h`,
-     `include/render/viewplanes/PointShuffledViewPlane.h`,
-     `include/render/viewplanes/RowShuffledViewPlane.h`.
-   - Widget: small image grid with a progress slider and mode selector.
-   - Interaction: choose row-major, tiled, row interlaced, point interlaced, and
-     shuffled variants; scrub progress.
-   - Teaches: the same pixels can be rendered in different orders, and
-     progressive previews benefit from early whole-frame coverage.
+3. ~~**ViewPlane iteration strategies**~~ ✅ **Done.** Added
+   `viewplane_iteration_order.js` next to `ViewPlane`'s runtime iteration docs;
+   it compares row-major, tiled, interlaced, and shuffled traversal with a
+   progress slider.
 
 4. ~~**Sampler patterns and sample streams**~~ ✅ **Done.** Added `sampler_streams.js` with sampler-pattern and independent-dimension controls, embedded from `Sampler` docs.
    - Targets: `include/render/samplers/Sampler.h`,

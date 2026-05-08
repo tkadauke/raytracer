@@ -38,6 +38,11 @@ namespace render {
     *     interlaced where you see a low-resolution version of the
     *     whole frame within a second or two.
     *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="viewplane_iteration_order.js"></script>
+    * @endhtmlonly
+    *
     * The pixel `Iterator` is type-erased over the concrete
     * `IteratorBase` subclass each `ViewPlane` returns from
     * `begin()`, so the `Camera::render` loop is a single `for (it
