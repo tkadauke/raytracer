@@ -77,7 +77,7 @@
 
 ## Task 1 baseline suite
 
-Canonical scenes live under `examples/GeneratedRayTracer/scenes/`:
+Canonical scenes live under `benchmarks/scenes/`:
 
 - `rasterizer_baseline_dense_sphere.json` — one material-backed sphere. Run
   at high `--lod` to stress tessellation, projection caching, near-plane
@@ -102,23 +102,23 @@ Use `/usr/bin/time -p` so measurements are easy to paste into
 ```sh
 /usr/bin/time -p build/release/tools/rendercli/rendercli \
   --engine raster --width 640 --height 480 --lod 8 \
-  examples/GeneratedRayTracer/scenes/rasterizer_baseline_dense_sphere.json \
+  benchmarks/scenes/rasterizer_baseline_dense_sphere.json \
   /tmp/rasterizer-dense-sphere.png
 
 /usr/bin/time -p build/release/tools/rendercli/rendercli \
   --engine raster --width 640 --height 480 --lod 3 \
-  examples/GeneratedRayTracer/scenes/rasterizer_baseline_materials.json \
+  benchmarks/scenes/rasterizer_baseline_materials.json \
   /tmp/rasterizer-materials.png
 
 /usr/bin/time -p build/release/tools/rendercli/rendercli \
   --engine raster --width 1920 --height 1080 --lod 0 \
-  examples/GeneratedRayTracer/scenes/rasterizer_baseline_offscreen_floor.json \
+  benchmarks/scenes/rasterizer_baseline_offscreen_floor.json \
   /tmp/rasterizer-offscreen-floor.png
 
 /usr/bin/time -p build/release/tools/rendercli/rendercli \
   --engine raster --width 640 --height 480 --lod 8 \
   --threads 8 --queue_size 16 \
-  examples/GeneratedRayTracer/scenes/rasterizer_baseline_dense_sphere.json \
+  benchmarks/scenes/rasterizer_baseline_dense_sphere.json \
   /tmp/rasterizer-dense-sphere-tiled.png
 ```
 
