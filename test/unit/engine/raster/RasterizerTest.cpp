@@ -114,6 +114,27 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.0, color.b());
   }
 
+  static void configureScreenSpaceEdgeTriangle(Rasterizer& engine) {
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      Vector3d screen(32, 16, 1);
+      if (vertex.worldPosition.x() < -0.5) {
+        screen = Vector3d(16, 16, 1);
+      } else if (vertex.worldPosition.x() > 0.5) {
+        screen = Vector3d(16, 32, 1);
+      }
+      return Rasterizer::VertexOutput{
+        vertex.worldPosition,
+        vertex.normal,
+        vertex.uv,
+        vertex.clipPosition,
+        screen
+      };
+    });
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
+      return Colord::white();
+    });
+  }
+
   static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Triangle>(
@@ -301,6 +322,7 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilPassOp());
     EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
     EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
+    EXPECT_EQ(1, engine.msaaSamples());
   }
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
@@ -488,6 +510,38 @@ namespace RasterizerTest {
 
     Buffer<Colord> expected(128, 128);
     Buffer<Colord> actual(128, 128);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, MSAAResolveBlendsPartiallyCoveredEdge) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setMSAASamples(4);
+    configureScreenSpaceEdgeTriangle(engine);
+    Buffer<Colord> buffer(40, 40);
+
+    engine.render(buffer);
+
+    EXPECT_NEAR(0.5, buffer[24][24].r(), 1e-9);
+    EXPECT_NEAR(0.5, buffer[24][24].g(), 1e-9);
+    EXPECT_NEAR(0.5, buffer[24][24].b(), 1e-9);
+  }
+
+  TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAA) {
+    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    singleTile.setMSAASamples(4);
+    configureScreenSpaceEdgeTriangle(singleTile);
+
+    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    tiled.setMSAASamples(4);
+    tiled.setMaximumThreads(2);
+    tiled.setQueueSize(4);
+    configureScreenSpaceEdgeTriangle(tiled);
+
+    Buffer<Colord> expected(40, 40);
+    Buffer<Colord> actual(40, 40);
     singleTile.render(expected);
     tiled.render(actual);
 

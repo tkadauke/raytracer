@@ -124,6 +124,11 @@ function countElements(node, tagName) {
   return self + node.children.reduce((sum, child) => sum + countElements(child, tagName), 0);
 }
 
+function elementsByTag(node, tagName) {
+  const self = node.tagName === tagName ? [node] : [];
+  return self.concat(node.children.flatMap(child => elementsByTag(child, tagName)));
+}
+
 function textContents(node) {
   const own = node.textContent ? [node.textContent] : [];
   return own.concat(node.children.flatMap(textContents));
@@ -255,6 +260,24 @@ test('Rasterizer clipping widget omits coordinate labels', () => {
   assert.ok(!/\bp\d\b/.test(text), 'source vertices should not show p0/p1/p2 coordinate labels');
   assert.ok(countElements(body, 'rect') >= 4,
     'widget should still draw viewport and generated clip-vertex markers');
+});
+
+test('Rasterizer MSAA widget emits samples and partial resolves', () => {
+  const body = loadWidget('rasterizer_msaa_coverage.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('4x MSAA'),
+    'MSAA widget should default to a multi-sample resolve view');
+  assert.equal(countElements(body, 'button'), 4,
+    'widget should expose the supported 1x/2x/4x/8x sample counts');
+  assert.ok(countElements(body, 'circle') >= 9 * 6 * 4,
+    'default 4x mode should draw one visible dot per subpixel sample');
+
+  const pixelRects = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-sample-count'] === '4');
+  assert.equal(pixelRects.length, 9 * 6,
+    'widget should emit one resolvable rectangle per pixel');
+  assert.ok(pixelRects.some(r => ['1', '2', '3'].includes(r.attributes['data-covered-samples'])),
+    'at least one edge pixel should resolve to a fractional 4x coverage value');
 });
 
 // --- Path primitive --------------------------------------------------------

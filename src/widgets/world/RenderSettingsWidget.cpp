@@ -83,15 +83,21 @@ int RenderSettingsWidget::lod() const {
   return p->ui.lod->value();
 }
 
+int RenderSettingsWidget::msaaSamples() const {
+  return p->ui.rasterMsaaSamples->currentText().toInt();
+}
+
 void RenderSettingsWidget::engineChanged() {
   // Show the engine-specific frame; hide the others. Resolution +
   // engine selector + progress indicators stay visible regardless.
-  // Rasterizer shares Wireframe's LOD-only knob set, so it shows
-  // the same wireframeFrame.
+  // Rasterizer shares Wireframe's LOD knob, and adds an MSAA selector.
   const QString eng = engine();
   const bool isRaytracer = (eng == "Raytracer");
+  const bool isRasterizer = (eng == "Rasterizer");
   p->ui.raytracerFrame->setVisible(isRaytracer);
   p->ui.wireframeFrame->setVisible(!isRaytracer);
+  p->ui.label_rasterMsaa->setVisible(isRasterizer);
+  p->ui.rasterMsaaSamples->setVisible(isRasterizer);
 }
 
 bool RenderSettingsWidget::showProgressIndicators() const {
@@ -108,6 +114,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.renderThreads->setEnabled(!busy);
   p->ui.queueSize->setEnabled(!busy);
   p->ui.lod->setEnabled(!busy);
+  p->ui.rasterMsaaSamples->setEnabled(!busy);
   p->ui.showProgressIndicators->setEnabled(!busy);
 
   p->ui.renderButton->setEnabled(!busy);
@@ -131,4 +138,3 @@ void RenderSettingsWidget::render() {
 void RenderSettingsWidget::stop() {
   emit stopClicked();
 }
-

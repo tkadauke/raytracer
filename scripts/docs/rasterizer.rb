@@ -58,3 +58,27 @@ class_doc(engine: "raster", width: 320, height: 240) do
         )
       )
 end
+
+class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do
+  name "rasterizer_msaa_1x"
+
+  ambient [1, 1, 1]
+  background [0, 0, 0]
+  pinhole_camera :position => [0, 0, -4], :target => [0, 0, 0], :zoom => 1.45
+  triangle :vertexA => [-1.7, -1.05, 0],
+           :vertexB => [ 1.7, -1.05, 0],
+           :vertexC => [-1.7,  1.05, 0],
+           :material => matte_material(:diffuseTexture => white)
+end
+
+class_doc(engine: "raster", width: 320, height: 180, msaa: 4) do
+  name "rasterizer_msaa_4x"
+
+  ambient [1, 1, 1]
+  background [0, 0, 0]
+  pinhole_camera :position => [0, 0, -4], :target => [0, 0, 0], :zoom => 1.45
+  triangle :vertexA => [-1.7, -1.05, 0],
+           :vertexB => [ 1.7, -1.05, 0],
+           :vertexC => [-1.7,  1.05, 0],
+           :material => matte_material(:diffuseTexture => white)
+end

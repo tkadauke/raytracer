@@ -7,6 +7,7 @@
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
 
+#include <QComboBox>
 #include <QThread>
 
 namespace RenderSettingsWidgetTest {
@@ -50,6 +51,28 @@ namespace RenderSettingsWidgetTest {
   TEST_F(RenderSettingsWidgetTest, ShouldReturnPositiveMaxRecursionDepth) {
     RenderSettingsWidget widget;
     EXPECT_GT(widget.maxRecursionDepth(), 0);
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterMSAAToOneSample) {
+    RenderSettingsWidget widget;
+    EXPECT_EQ(1, widget.msaaSamples());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldShowMSAAOnlyForRasterizer) {
+    RenderSettingsWidget widget;
+
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto msaa = widget.findChild<QComboBox*>("rasterMsaaSamples");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, msaa);
+
+    EXPECT_TRUE(msaa->isHidden());
+
+    engineType->setCurrentText("Wireframe");
+    EXPECT_TRUE(msaa->isHidden());
+
+    engineType->setCurrentText("Rasterizer");
+    EXPECT_FALSE(msaa->isHidden());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldReturnNonZeroResolution) {

@@ -112,6 +112,7 @@ void RenderWindow::render() {
     p->rasterizer->setCamera(p->raytracer->camera());
     p->rasterizer->setScene(p->raytracer->scene());
     p->rasterizer->setLod(p->settingsWidget->lod());
+    p->rasterizer->setMSAASamples(p->settingsWidget->msaaSamples());
     p->rasterizer->setMaximumThreads(p->settingsWidget->renderThreads());
     engine = p->rasterizer;
   } else {

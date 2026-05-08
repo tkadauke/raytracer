@@ -13,9 +13,14 @@ file(GLOB_RECURSE RAYTRACER_HEADERS CONFIGURE_DEPENDS
   "${PROJECT_SOURCE_DIR}/include/*.h"
 )
 
+file(GLOB_RECURSE RAYTRACER_UIS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.ui"
+)
+
 add_library(raytracer STATIC
   ${RAYTRACER_SOURCES}
   ${RAYTRACER_HEADERS}
+  ${RAYTRACER_UIS}
 )
 
 target_include_directories(raytracer

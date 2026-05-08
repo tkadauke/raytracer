@@ -114,6 +114,18 @@ void Rasterizer::setQueueSize(int queue) {
   p->queueSize = std::max(1, queue);
 }
 
+void Rasterizer::setMSAASamples(int samples) {
+  if (samples <= 1) {
+    m_msaaSamples = 1;
+  } else if (samples <= 2) {
+    m_msaaSamples = 2;
+  } else if (samples <= 4) {
+    m_msaaSamples = 4;
+  } else {
+    m_msaaSamples = 8;
+  }
+}
+
 namespace {
   // Ambient coefficient — same role as MatteMaterial's
   // `ambientCoefficient`. Multiplies the scene's ambient term so
@@ -126,6 +138,67 @@ namespace {
   // for clipped vertices.
   constexpr double kNearClipDepth = 0.1;
   constexpr std::size_t kMaxClipVertices = 32;
+
+  struct RasterSampleOffset {
+    double x;
+    double y;
+  };
+
+  struct RasterSamplePattern {
+    std::array<RasterSampleOffset, 8> offsets;
+    int count;
+  };
+
+  inline RasterSamplePattern samplePattern(int sampleCount) {
+    RasterSamplePattern pattern{};
+    switch (sampleCount) {
+    case 2:
+      pattern.offsets[0] = {-0.25, -0.25};
+      pattern.offsets[1] = { 0.25,  0.25};
+      pattern.count = 2;
+      return pattern;
+    case 4:
+      pattern.offsets[0] = {-0.125, -0.375};
+      pattern.offsets[1] = { 0.375, -0.125};
+      pattern.offsets[2] = {-0.375,  0.125};
+      pattern.offsets[3] = { 0.125,  0.375};
+      pattern.count = 4;
+      return pattern;
+    case 8:
+      pattern.offsets[0] = { 0.0625, -0.1875};
+      pattern.offsets[1] = {-0.0625,  0.1875};
+      pattern.offsets[2] = { 0.3125,  0.0625};
+      pattern.offsets[3] = {-0.1875, -0.3125};
+      pattern.offsets[4] = {-0.3125,  0.3125};
+      pattern.offsets[5] = {-0.4375, -0.0625};
+      pattern.offsets[6] = { 0.1875,  0.4375};
+      pattern.offsets[7] = { 0.4375, -0.4375};
+      pattern.count = 8;
+      return pattern;
+    default:
+      pattern.offsets[0] = {0.0, 0.0};
+      pattern.count = 1;
+      return pattern;
+    }
+  }
+
+  inline void clearColorBuffer(Buffer<Colord>& buffer, const Colord& color) {
+    for (int y = 0; y < buffer.height(); ++y)
+      for (int x = 0; x < buffer.width(); ++x)
+        buffer[y][x] = color;
+  }
+
+  inline void clearDepthBuffer(Buffer<double>& buffer, double value) {
+    for (int y = 0; y < buffer.height(); ++y)
+      for (int x = 0; x < buffer.width(); ++x)
+        buffer[y][x] = value;
+  }
+
+  inline void clearStencilBuffer(Buffer<std::uint8_t>& buffer, std::uint8_t value) {
+    for (int y = 0; y < buffer.height(); ++y)
+      for (int x = 0; x < buffer.width(); ++x)
+        buffer[y][x] = value;
+  }
 
   struct ProjectedVertex {
     Vector4d clip;
@@ -661,14 +734,16 @@ namespace {
                                         const Rasterizer& rasterizer,
                                         Buffer<Colord>& buffer,
                                         Buffer<double>& zBuffer,
-                                        Buffer<std::uint8_t>* stencilBuffer) {
+                                        Buffer<std::uint8_t>* stencilBuffer,
+                                        const RasterSampleOffset& sampleOffset) {
     const RasterVertex& v0 = triangle.vertices[0];
     const RasterVertex& v1 = triangle.vertices[1];
     const RasterVertex& v2 = triangle.vertices[2];
 
     if (usesBuiltInDepthStencilAndFragment(rasterizer)) {
-      core::rasterizeTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
+      core::rasterizeTriangleSampled(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
         clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
+        sampleOffset.x, sampleOffset.y,
         [&](int x, int y, double w0b, double w1b, double w2b) {
         const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
         if (fragment.depth >= zBuffer[y][x]) return;
@@ -680,8 +755,9 @@ namespace {
       return;
     }
 
-    core::rasterizeTriangle(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
+    core::rasterizeTriangleSampled(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
       clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
+      sampleOffset.x, sampleOffset.y,
       [&](int x, int y, double w0b, double w1b, double w2b) {
       if (stencilBuffer) {
         const std::uint8_t stored = (*stencilBuffer)[y][x];
@@ -847,9 +923,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   // Clear to background. Buffer<T>::clear() default-constructs every
   // cell; write the configured colour explicitly instead.
-  for (int y = 0; y < buffer.height(); ++y)
-    for (int x = 0; x < buffer.width(); ++x)
-      buffer[y][x] = m_backgroundColor;
+  clearColorBuffer(buffer, m_backgroundColor);
 
   if (!m_scene || !m_camera) return;
 
@@ -867,23 +941,112 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   IntegerDecomposition decomposition(tileCount);
   const int rows = std::max(1, std::min(decomposition.first(), height));
   const int cols = std::max(1, std::min(decomposition.second(), width));
+  auto scene = m_scene;
+
+  const RasterSamplePattern pattern = samplePattern(m_msaaSamples);
+  if (pattern.count > 1) {
+    std::vector<RasterTriangle> triangles;
+    std::vector<std::vector<std::size_t>> tileTriangles(tileCount == 1 ? 0 : rows * cols);
+    std::size_t binnedTriangleCount = 0;
+    emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+      [&](const RasterTriangle& triangle) {
+        if (tileCount == 1) {
+          triangles.push_back(triangle);
+          return;
+        }
+
+        const std::size_t triangleIndex = triangles.size();
+        const std::size_t added = addTriangleToTiles(
+          triangle, triangleIndex, width, height, rows, cols, tileTriangles);
+        if (added != 0) {
+          triangles.push_back(triangle);
+          binnedTriangleCount += added;
+        }
+      });
+
+    if (m_cancelled.load() || triangles.empty()
+        || (tileCount > 1 && binnedTriangleCount == 0)) {
+      return;
+    }
+
+    clearColorBuffer(buffer, Colord::black());
+    const Recti fullRect(0, 0, width, height);
+
+    for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
+      if (m_cancelled.load()) return;
+
+      Buffer<Colord> sampleBuffer(width, height);
+      clearColorBuffer(sampleBuffer, m_backgroundColor);
+
+      Buffer<double> sampleZBuffer(width, height);
+      clearDepthBuffer(sampleZBuffer, m_depthClearValue);
+
+      std::unique_ptr<Buffer<std::uint8_t>> sampleStencilBuffer;
+      if (m_stencilTestEnabled) {
+        sampleStencilBuffer = std::make_unique<Buffer<std::uint8_t>>(width, height);
+        clearStencilBuffer(*sampleStencilBuffer, m_stencilClearValue);
+      }
+
+      const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
+      if (tileCount == 1) {
+        for (const RasterTriangle& triangle : triangles) {
+          if (m_cancelled.load()) return;
+          rasterizePreparedTriangle(
+            triangle, fullRect, scene.get(), *this,
+            sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+        }
+      } else {
+        p->tasks.clear();
+        for (int row = 0; row != rows; ++row) {
+          for (int col = 0; col != cols; ++col) {
+            const Recti rect = tileRect(width, height, rows, cols, row, col);
+            if (rect.width() <= 0 || rect.height() <= 0) continue;
+            const std::size_t tileIndex = row * cols + col;
+
+            auto task = std::make_shared<RasterTileTask>(rect,
+              [&, rect, scene, tileIndex, sampleOffset] {
+              const auto& triangleIndices = tileTriangles[tileIndex];
+              for (const std::size_t triangleIndex : triangleIndices) {
+                if (m_cancelled.load()) return;
+                rasterizePreparedTriangle(
+                  triangles[triangleIndex], rect, scene.get(), *this,
+                  sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+              }
+            });
+
+            p->tasks.push_back(task);
+            p->threadPool->start(task.get());
+          }
+        }
+
+        p->threadPool->waitForDone();
+      }
+
+      if (m_cancelled.load()) return;
+      for (int y = 0; y < height; ++y)
+        for (int x = 0; x < width; ++x)
+          buffer[y][x] += sampleBuffer[y][x];
+    }
+
+    const double resolveScale = 1.0 / static_cast<double>(pattern.count);
+    for (int y = 0; y < height; ++y)
+      for (int x = 0; x < width; ++x)
+        buffer[y][x] = buffer[y][x] * resolveScale;
+
+    p->tasks.clear();
+    return;
+  }
 
   // Z-buffer: per-pixel eye-relative depth. Smaller depth = closer
   // to the eye for the default `DepthFunc::Less` path.
   Buffer<double> zBuffer(width, height);
-  for (int y = 0; y < height; ++y)
-    for (int x = 0; x < width; ++x)
-      zBuffer[y][x] = m_depthClearValue;
+  clearDepthBuffer(zBuffer, m_depthClearValue);
 
   std::unique_ptr<Buffer<std::uint8_t>> stencilBuffer;
   if (m_stencilTestEnabled) {
     stencilBuffer = std::make_unique<Buffer<std::uint8_t>>(width, height);
-    for (int y = 0; y < height; ++y)
-      for (int x = 0; x < width; ++x)
-        (*stencilBuffer)[y][x] = m_stencilClearValue;
+    clearStencilBuffer(*stencilBuffer, m_stencilClearValue);
   }
-
-  auto scene = m_scene;
 
   if (tileCount == 1 && usesBuiltInDepthStencilAndFragment(*this) && !m_vertexShader) {
     std::uint64_t globalFaceIdx = 0;
@@ -1077,7 +1240,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
     emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
       [&](const RasterTriangle& triangle) {
         rasterizePreparedTriangle(
-          triangle, fullRect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get());
+          triangle, fullRect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get(),
+          RasterSampleOffset{0.0, 0.0});
       });
     return;
   }
@@ -1109,7 +1273,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
         for (const std::size_t triangleIndex : triangleIndices) {
           if (m_cancelled.load()) return;
           rasterizePreparedTriangle(
-            triangles[triangleIndex], rect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get());
+            triangles[triangleIndex], rect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get(),
+            RasterSampleOffset{0.0, 0.0});
         }
       });
 

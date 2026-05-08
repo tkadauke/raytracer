@@ -60,6 +60,10 @@ namespace engine::raster {
   *      - Shade through the built-in material/Lambertian fragment
   *        path, or through a caller-provided `FragmentShader`.
   *      - Write the shaded colour iff the fragment passes.
+  *  6. When MSAA is enabled, repeat the coverage/depth path at a
+  *     fixed 2x/4x/8x subpixel sample pattern and resolve those
+  *     samples into the same float framebuffer the rest of the
+  *     renderer stack tonemaps.
   *
   * The rasterizer walks leaf primitives directly, preserving each
   * primitive's effective material before tessellation. Matte diffuse
@@ -97,6 +101,25 @@ namespace engine::raster {
   * <td>@image html rasterizer_uv_albedo.png "UV albedo diagnostic: red = u, green = v"</td>
   * <td>@image html rasterizer_uv_checker.png "UV-mapped checkerboard on a box"</td>
   * </tr></table>
+  *
+  * MSAA is opt-in because it multiplies raster work. The comparison
+  * below renders the same high-contrast diagonal triangle with 1x
+  * coverage and 4x MSAA; the 4x image resolves partially covered
+  * edge samples into grey pixels instead of a binary stair-step.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_msaa_1x.png "1x raster coverage"</td>
+  * <td>@image html rasterizer_msaa_4x.png "4x MSAA resolve"</td>
+  * </tr></table>
+  *
+  * The widget below magnifies the same resolve operation. Move the
+  * triangle edge and switch between sample counts to see why 1x
+  * coverage produces only on/off pixels, while MSAA can turn a
+  * partially covered pixel into a proportional grey resolve.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="rasterizer_msaa_coverage.js"></script>
+  * @endhtmlonly
   *
   * The interactive widget below visualises the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
@@ -250,6 +273,12 @@ public:
   /// values above 1 enable the tiled `QThreadPool` path.
   void setQueueSize(int queue);
 
+  /// Number of fixed subpixel MSAA samples per pixel. Defaults to 1
+  /// (disabled). Values are rounded up to the supported 1/2/4/8
+  /// sample counts.
+  inline int msaaSamples() const { return m_msaaSamples; }
+  void setMSAASamples(int samples);
+
   /// Face-culling mode used after near-plane clipping and before
   /// triangle rasterization. `Both` keeps the historical two-sided
   /// behavior; `Back` and `Front` skip triangles by projected
@@ -328,6 +357,7 @@ private:
   std::unique_ptr<Private> p;
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
+  int m_msaaSamples{1};
   CullMode m_cullMode{CullMode::Both};
   DepthFunc m_depthFunc{DepthFunc::Less};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};

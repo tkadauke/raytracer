@@ -46,6 +46,25 @@ namespace RasterizeTest {
     return pixels;
   }
 
+  static std::set<std::pair<int, int>> rasterizeSampledToSet(int x0, int y0,
+                                                             int x1, int y1,
+                                                             int x2, int y2,
+                                                             double sampleOffsetX,
+                                                             double sampleOffsetY) {
+    std::set<std::pair<int, int>> pixels;
+    const int minX = std::min({x0, x1, x2});
+    const int maxX = std::max({x0, x1, x2});
+    const int minY = std::min({y0, y1, y2});
+    const int maxY = std::max({y0, y1, y2});
+    core::rasterizeTriangleSampled(x0, y0, x1, y1, x2, y2,
+      minX, minY, maxX + 1, maxY + 1,
+      sampleOffsetX, sampleOffsetY,
+      [&](int x, int y, double, double, double) {
+        pixels.emplace(x, y);
+      });
+    return pixels;
+  }
+
   TEST(Rasterize, DegenerateTriangleEmitsNoPixels) {
     // All three points collinear → zero signed area → skipped.
     EXPECT_EQ(0u, rasterizeToSet(0, 0, 5, 0, 10, 0).size());
@@ -107,6 +126,30 @@ namespace RasterizeTest {
         }
       });
     EXPECT_TRUE(foundP0);
+  }
+
+  TEST(Rasterize, SampleOffsetMovesBarycentricPointWithinPixel) {
+    bool foundP0Pixel = false;
+    core::rasterizeTriangleSampled(0, 0, 4, 0, 0, 4,
+      0, 0, 5, 5,
+      0.25, 0.25,
+      [&](int x, int y, double w0, double w1, double w2) {
+        if (x == 0 && y == 0) {
+          foundP0Pixel = true;
+          EXPECT_NEAR(w0, 0.875, 1e-9);
+          EXPECT_NEAR(w1, 0.0625, 1e-9);
+          EXPECT_NEAR(w2, 0.0625, 1e-9);
+        }
+      });
+    EXPECT_TRUE(foundP0Pixel);
+  }
+
+  TEST(Rasterize, SampleOffsetChangesEdgeCoverage) {
+    auto centre = rasterizeSampledToSet(0, 0, 2, 0, 0, 2, 0.0, 0.0);
+    auto shifted = rasterizeSampledToSet(0, 0, 2, 0, 0, 2, 0.25, 0.25);
+
+    EXPECT_TRUE(centre.count({1, 1}));
+    EXPECT_FALSE(shifted.count({1, 1}));
   }
 
   TEST(Rasterize, NegativeCoordinatesWorkCorrectly) {

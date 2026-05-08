@@ -110,6 +110,7 @@ private:
   QString m_engine;
   int m_wireframeLod;
   QString m_rasterCullMode;
+  int m_rasterMsaaSamples;
   int m_repeat;
   bool m_timing;
 };
@@ -128,6 +129,7 @@ Renderer::Renderer()
     m_engine("raytracer"),
     m_wireframeLod(0),
     m_rasterCullMode("both"),
+    m_rasterMsaaSamples(1),
     m_repeat(1),
     m_timing(false)
 {
@@ -174,6 +176,7 @@ void Renderer::render() const {
     } else if (m_threadsSet) {
       raster->setQueueSize(m_threads);
     }
+    raster->setMSAASamples(m_rasterMsaaSamples);
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -253,6 +256,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
     {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
     {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
+    {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
     {"timing", "Print render-only timing information to stdout"},
     {"repeat", "Render the loaded scene N times and print render-only timing statistics", "runs"}
   });
@@ -360,6 +364,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       return CommandLineError;
     }
     m_rasterCullMode = cull;
+  }
+
+  if (parser.isSet("msaa")) {
+    bool ok = false;
+    m_rasterMsaaSamples = parser.value("msaa").toInt(&ok);
+    if (!ok || (m_rasterMsaaSamples != 1 && m_rasterMsaaSamples != 2
+        && m_rasterMsaaSamples != 4 && m_rasterMsaaSamples != 8)) {
+      *errorMessage = "MSAA samples must be 1, 2, 4, or 8";
+      return CommandLineError;
+    }
   }
 
   if (parser.isSet("timing")) {

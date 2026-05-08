@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <utility>
 
@@ -35,20 +36,28 @@ namespace core {
   * weights as a side effect of the inside-test. Hardware GPUs use
   * variants of it.
   *
+  * `rasterizeTriangleSampled` evaluates the inside-test at
+  * `(x + sampleOffsetX, y + sampleOffsetY)` while still reporting
+  * the owning integer pixel `(x, y)`. The default
+  * `rasterizeTriangle` wrapper uses `(0, 0)`, preserving the
+  * historical single-sample behaviour.
+  *
   * Degenerate (zero-area) triangles produce no pixels.
   *
   * @tparam PlotFn callable with signature
   *         `void(int x, int y, double w0, double w1, double w2)`.
   */
 template <typename PlotFn>
-inline void rasterizeTriangle(int x0, int y0,
-                              int x1, int y1,
-                              int x2, int y2,
-                              int clipLeft,
-                              int clipTop,
-                              int clipRight,
-                              int clipBottom,
-                              PlotFn&& plot) {
+inline void rasterizeTriangleSampled(int x0, int y0,
+                                     int x1, int y1,
+                                     int x2, int y2,
+                                     int clipLeft,
+                                     int clipTop,
+                                     int clipRight,
+                                     int clipBottom,
+                                     double sampleOffsetX,
+                                     double sampleOffsetY,
+                                     PlotFn&& plot) {
   if (clipLeft >= clipRight || clipTop >= clipBottom) return;
 
   // Twice the signed area of the parent triangle. Sign indicates
@@ -60,10 +69,23 @@ inline void rasterizeTriangle(int x0, int y0,
   // (which the rasterizer's near-plane clipper can produce when a
   // clipped vertex projects close to a viewport edge): the edge
   // function squares pixel deltas, so coords above ~46k overflow
-  // a signed 32-bit int. int64_t lifts that to ~3 billion, well
-  // beyond any realistic post-clip screen coordinate.
+  // a signed 32-bit int. int64_t leaves ample room even after the
+  // sixteenth-pixel fixed-point scale used for MSAA sample offsets.
   using I = std::int64_t;
-  const I X0 = x0, X1 = x1, X2 = x2, Y0 = y0, Y1 = y1, Y2 = y2;
+
+  // Subpixel sample offsets are represented in sixteenths of a
+  // pixel. The single-sample path uses offset (0, 0), exactly
+  // preserving the historical integer-pixel sample location; MSAA
+  // callers pass offsets in [-0.5, 0.5] around that pixel centre.
+  constexpr I kSubpixelScale = 16;
+  const I sampleX = static_cast<I>(std::lround(sampleOffsetX * kSubpixelScale));
+  const I sampleY = static_cast<I>(std::lround(sampleOffsetY * kSubpixelScale));
+  const I X0 = static_cast<I>(x0) * kSubpixelScale;
+  const I X1 = static_cast<I>(x1) * kSubpixelScale;
+  const I X2 = static_cast<I>(x2) * kSubpixelScale;
+  const I Y0 = static_cast<I>(y0) * kSubpixelScale;
+  const I Y1 = static_cast<I>(y1) * kSubpixelScale;
+  const I Y2 = static_cast<I>(y2) * kSubpixelScale;
   const I area = (X1 - X0) * (Y2 - Y0) - (Y1 - Y0) * (X2 - X0);
   if (area == 0) return;
 
@@ -77,7 +99,8 @@ inline void rasterizeTriangle(int x0, int y0,
 
   for (int y = minY; y <= maxY; ++y) {
     for (int x = minX; x <= maxX; ++x) {
-      const I X = x, Y = y;
+      const I X = static_cast<I>(x) * kSubpixelScale + sampleX;
+      const I Y = static_cast<I>(y) * kSubpixelScale + sampleY;
       // Edge functions: twice the signed sub-area opposite each
       // vertex. Computed via the same formula as `area` above with
       // the pixel substituted for the missing vertex.
@@ -97,6 +120,20 @@ inline void rasterizeTriangle(int x0, int y0,
       }
     }
   }
+}
+
+template <typename PlotFn>
+inline void rasterizeTriangle(int x0, int y0,
+                              int x1, int y1,
+                              int x2, int y2,
+                              int clipLeft,
+                              int clipTop,
+                              int clipRight,
+                              int clipBottom,
+                              PlotFn&& plot) {
+  rasterizeTriangleSampled(x0, y0, x1, y1, x2, y2,
+    clipLeft, clipTop, clipRight, clipBottom,
+    0.0, 0.0, std::forward<PlotFn>(plot));
 }
 
 }  // namespace core

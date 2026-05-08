@@ -19,6 +19,7 @@ public:
   int renderThreads() const;
   int queueSize() const;
   int lod() const;
+  int msaaSamples() const;
 
   bool showProgressIndicators() const;
 

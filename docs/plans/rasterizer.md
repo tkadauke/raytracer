@@ -44,11 +44,12 @@
      fixed-function material shading and fragment shader hooks.
    - Added `UVMapping2D` and unit coverage for UV-backed albedo sampling.
 
-6. **MSAA + resolve**
-   - Start with per-sample coverage/depth and per-fragment shading.
-   - Resolve into the float framebuffer so tonemapping and postprocessing stay
-     engine-agnostic.
-   - Add per-sample shading later as the expensive correctness mode.
+6. ✅ **MSAA + resolve**
+   - Added fixed 1x/2x/4x/8x subpixel sample patterns.
+   - Added per-sample colour/depth/stencil buffers and a float-framebuffer
+     resolve path.
+   - Current implementation shades covered samples directly; centroid /
+     per-fragment shading remains a performance follow-up.
 
 7. **Rasterized shadow maps**
    - Add a depth-only shadow pass after depth/stencil infrastructure exists.
@@ -280,3 +281,58 @@ median=1039.353 avg=1142.892 max=1635.037`. The offscreen-floor baseline at
 avg=100.820 max=105.644`. The materials baseline at 640x480 LOD 3 reported
 `render_ms runs=10 min=14.308 median=15.128 avg=15.427 max=18.247`. Full
 measurements are in `CHANGELOG.md`.
+
+## Task 6 MSAA + resolve
+
+`Rasterizer::setMSAASamples` accepts the supported 1x/2x/4x/8x sample counts,
+and `rendercli --engine raster --msaa N` exposes the same setting from the
+command line. `--msaa 1` is the default and preserves the existing single-sample
+fast path. Values above 1 use a fixed subpixel pattern around the historical
+integer pixel sample point.
+
+The implementation keeps the engine-level framebuffer contract unchanged:
+
+- `core::rasterizeTriangleSampled` evaluates the edge-function inside-test at
+  a subpixel offset while still emitting the owning integer pixel and
+  barycentric weights.
+- The rasterizer projects, clips, culls, and bins triangles once per render,
+  then renders each MSAA sample against independent colour, depth, and optional
+  stencil buffers.
+- The final resolve averages the sample colours into the existing
+  `Buffer<Colord>` output, so tonemapping and future postprocess passes do not
+  need an MSAA-specific display path.
+- The tiled path is supported for MSAA and is pinned against single-tile output,
+  but it stays opt-in for the same reason as the 1x tiled path: current scenes
+  still do not have enough per-tile work to repay binning overhead reliably.
+- GeneratedRaytracer's render dialog exposes the same 1x/2x/4x/8x selector
+  when the Rasterizer engine is active.
+- The rasterizer docs include both static 1x/4x comparison renders and an
+  interactive MSAA coverage widget that shows sample positions, partial edge
+  coverage, and the resolved per-pixel value.
+
+Current limitation: the first implementation shades at each covered sample
+position. That is correct for attributes and depth, but more expensive than a
+centroid/per-fragment shading mode that computes one colour for a pixel and
+replicates it to covered samples. Keep that optimization in the raster-quality
+backlog until measurements show MSAA cost is blocking preview use.
+
+Measurement note: full measurements are in `CHANGELOG.md`. On this change, the
+materials baseline moved from median `14.431 ms` at `--msaa 1` to
+`55.513 ms` at `--msaa 4`; the offscreen-floor baseline moved from median
+`101.965 ms` to `442.536 ms`; the dense LOD 8 sphere moved from median
+`1035.287 ms` to `3778.575 ms`. The canonical comparison command is the
+materials baseline with `--msaa 1` and `--msaa 4`:
+
+```sh
+build/release/tools/rendercli/rendercli \
+  --engine raster --width 640 --height 480 --lod 3 \
+  --msaa 1 --repeat 10 \
+  benchmarks/scenes/rasterizer_baseline_materials.json \
+  /tmp/rasterizer-materials-msaa1.png
+
+build/release/tools/rendercli/rendercli \
+  --engine raster --width 640 --height 480 --lod 3 \
+  --msaa 4 --repeat 10 \
+  benchmarks/scenes/rasterizer_baseline_materials.json \
+  /tmp/rasterizer-materials-msaa4.png
+```
