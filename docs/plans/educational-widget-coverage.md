@@ -73,16 +73,16 @@ from still images.
    - ~~Teaches: Lambertian `n dot l`, view-dependent specular highlights, and why
      the Phong exponent narrows the highlight.~~
 
-5. **CSG hit intervals**
-   - Targets: `include/core/math/HitPointInterval.h`,
+5. ~~**CSG hit intervals**~~ ✅ **Done.** Added `scripts/docs/csg_hit_intervals.js` beside `HitPointInterval` in this PR, with CSG primitive headers cross-referencing the interval-set explanation.
+   - ~~Targets: `include/core/math/HitPointInterval.h`,
      `include/render/primitives/Union.h`,
      `include/render/primitives/Intersection.h`,
-     `include/render/primitives/Difference.h`.
-   - Widget: one ray timeline with enter/exit markers for two shapes and an
-     operation selector.
-   - Interaction: drag interval endpoints; switch union/intersection/difference.
-   - Teaches: CSG as interval set operations, positive-distance hit selection,
-     and normal flipping for difference.
+     `include/render/primitives/Difference.h`.~~
+   - ~~Widget: one ray timeline with enter/exit markers for two shapes and an
+     operation selector.~~
+   - ~~Interaction: drag interval endpoints; switch union/intersection/difference.~~
+   - ~~Teaches: CSG as interval set operations, positive-distance hit selection,
+     and normal flipping for difference.~~
 
 ## Priority 2: Acceleration And Sampling
 

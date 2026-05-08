@@ -10,6 +10,11 @@
   * described by an entering and exiting HitPoint. This class also supports
   * set operations on the intervals. With that, CSG operations are implemented
   * in the Raytracer.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="csg_hit_intervals.js"></script>
+  * @endhtmlonly
   * 
   * Hit points must be added in ascending order of distance.
   */
