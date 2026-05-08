@@ -3,6 +3,8 @@
 #include "render/RenderEngine.h"
 
 #include <atomic>
+#include <list>
+#include <memory>
 
 namespace engine::raster {
 
@@ -85,7 +87,12 @@ namespace engine::raster {
   * `SphericalCamera`, `EquirectangularCamera`) silently produce
   * empty / degenerate renders.
   *
-  * Threading: V1 renders on the calling thread.
+  * Threading: the default single-tile path streams triangles on the
+  * calling thread. Setting `setQueueSize(queue)` with `queue > 1`
+  * enables a tiled
+  * `QThreadPool` path: projected/clipped triangles are binned by
+  * tile, and each tile owns a disjoint pixel rectangle, so colour
+  * and Z-buffer writes do not need locks.
   *
   * @see Wireframe — the cheaper sibling that draws only edges; the
   *      same projection + tessellation pipeline drives both.
@@ -101,6 +108,7 @@ public:
   void render(Buffer<Colord>& buffer) override;
   void cancel() override;
   void uncancel() override;
+  std::list<Recti> activeRects() const override;
 
   /// Level of detail forwarded to `Primitive::tessellate(lod)`.
   /// Higher values produce denser triangulation (a UV sphere at
@@ -108,12 +116,22 @@ public:
   inline int lod() const { return m_lod; }
   inline void setLod(int lod) { m_lod = lod; }
 
+  /// Sets the worker-thread count for tile rasterization. Defaults
+  /// to `QThread::idealThreadCount()`.
+  void setMaximumThreads(int threads);
+
+  /// Sets the number of tiles dispatched per render. Defaults to 1;
+  /// values above 1 enable the tiled `QThreadPool` path.
+  void setQueueSize(int queue);
+
   /// Colour the framebuffer is cleared to before triangles are
   /// rasterized. Defaults to pure black (`Colord::black()`).
   inline const Colord& backgroundColor() const { return m_backgroundColor; }
   inline void setBackgroundColor(const Colord& color) { m_backgroundColor = color; }
 
 private:
+  struct Private;
+  std::unique_ptr<Private> p;
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   Colord m_backgroundColor{Colord::black()};

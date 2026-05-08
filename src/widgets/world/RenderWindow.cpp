@@ -98,9 +98,10 @@ void RenderWindow::render() {
   p->renderWidget->resize(p->settingsWidget->resolution());
   p->renderWidget->setBufferSize(p->settingsWidget->resolution());
 
-  // Pick the engine and wire it into the widget. Most settings only
-  // apply to the raytracer; wireframe ignores sampler / recursion
-  // depth / threading knobs.
+  // Pick the engine and wire it into the widget. Some settings are
+  // engine-specific: wireframe ignores sampler / recursion depth /
+  // threading knobs; rasterizer uses LOD and keeps its default
+  // single-tile path unless a caller explicitly changes its queue.
   std::shared_ptr<render::RenderEngine> engine;
   if (p->settingsWidget->engine() == "Wireframe") {
     p->wireframe->setCamera(p->raytracer->camera());
@@ -111,6 +112,7 @@ void RenderWindow::render() {
     p->rasterizer->setCamera(p->raytracer->camera());
     p->rasterizer->setScene(p->raytracer->scene());
     p->rasterizer->setLod(p->settingsWidget->lod());
+    p->rasterizer->setMaximumThreads(p->settingsWidget->renderThreads());
     engine = p->rasterizer;
   } else {
     auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
@@ -172,4 +174,3 @@ void RenderWindow::setScene(::Scene* scene) {
   p->wireframe->setCamera(rtCamera);
   p->rasterizer->setCamera(rtCamera);
 }
-

@@ -55,6 +55,8 @@ private:
   int m_samplesPerPixel;
   int m_threads;
   int m_queueSize;
+  bool m_threadsSet;
+  bool m_queueSizeSet;
   QString m_tonemap;
   QString m_engine;
   int m_wireframeLod;
@@ -68,6 +70,8 @@ Renderer::Renderer()
     m_samplesPerPixel(1),
     m_threads(QThread::idealThreadCount()),
     m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
+    m_threadsSet(false),
+    m_queueSizeSet(false),
     m_tonemap("Linear"),
     m_engine("raytracer"),
     m_wireframeLod(0)
@@ -104,6 +108,12 @@ void Renderer::render() const {
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
     if (rtCamera) raster->setCamera(rtCamera);
     raster->setLod(m_wireframeLod);  // shares the LOD knob with Wireframe
+    if (m_threadsSet) raster->setMaximumThreads(m_threads);
+    if (m_queueSizeSet) {
+      raster->setQueueSize(m_queueSize);
+    } else if (m_threadsSet) {
+      raster->setQueueSize(m_threads);
+    }
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -234,6 +244,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       *errorMessage = "Threads must be > 0";
       return CommandLineError;
     }
+    m_threadsSet = true;
   }
   
   if (parser.isSet("queue_size")) {
@@ -243,6 +254,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       *errorMessage = "Queue size must be > threads";
       return CommandLineError;
     }
+    m_queueSizeSet = true;
   }
 
   if (parser.isSet("tonemap")) {

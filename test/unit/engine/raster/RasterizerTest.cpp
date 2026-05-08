@@ -35,6 +35,14 @@ namespace RasterizerTest {
     return count;
   }
 
+  static void expectBuffersEqual(const Buffer<Colord>& expected, const Buffer<Colord>& actual) {
+    ASSERT_EQ(expected.width(), actual.width());
+    ASSERT_EQ(expected.height(), actual.height());
+    for (int y = 0; y < expected.height(); ++y)
+      for (int x = 0; x < expected.width(); ++x)
+        EXPECT_EQ(expected[y][x], actual[y][x]) << "at (" << x << ", " << y << ")";
+  }
+
   static std::shared_ptr<Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1)));
@@ -191,6 +199,30 @@ namespace RasterizerTest {
       << "Z-buffer is failing to cull the farther geometry.";
     EXPECT_FALSE(bAlone[32][32] == Colord::black())
       << "Centre pixel should be coloured by the near sphere.";
+  }
+
+  TEST(Rasterizer, TiledRenderMatchesSingleTileRender) {
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    scene->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));
+
+    Rasterizer singleTile(cam, scene);
+    singleTile.setLod(2);
+    singleTile.setMaximumThreads(1);
+    singleTile.setQueueSize(1);
+
+    Rasterizer tiled(cam, scene);
+    tiled.setLod(2);
+    tiled.setMaximumThreads(4);
+    tiled.setQueueSize(16);
+
+    Buffer<Colord> expected(128, 128);
+    Buffer<Colord> actual(128, 128);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
   }
 
   TEST(Rasterizer, UncancelAllowsSubsequentRender) {
