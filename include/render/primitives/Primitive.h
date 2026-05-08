@@ -116,12 +116,21 @@ namespace render {
       * extends farthest in `direction`. Used by the CSG convex-hull
       * and Minkowski-sum primitives, which need a per-shape support
       * function to evaluate combined-shape intersections via GJK.
+      * GJK repeatedly asks two convex shapes for support points in
+      * opposite directions, subtracts them to form a point on the
+      * Minkowski difference, and evolves a simplex toward the origin.
+      * If that simplex encloses the origin, the convex shapes overlap.
       *
       * Default implementation scans the eight bounding-box corners,
       * which is correct for any primitive contained in its bounds.
       * Subclasses with cheap closed-form support functions (e.g.
       * `Sphere`: `center + radius * direction.normalized()`)
       * override for accuracy and speed.
+      *
+      * @htmlonly
+      * <script type="text/javascript" src="figure.js"></script>
+      * <script type="text/javascript" src="support_mapping_gjk.js"></script>
+      * @endhtmlonly
       */
     virtual Vector3d farthestPoint(const Vector3d& direction) const;
 

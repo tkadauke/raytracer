@@ -3,7 +3,20 @@
 #include "core/math/Vector.h"
 
 /**
-  * This class implements the GJKSimplex for the GJK algorithm.
+  * This class implements the evolving simplex used by the GJK
+  * algorithm. GJK treats convex intersection as an origin-containment
+  * question on the Minkowski difference \f$A - B\f$: each iteration
+  * asks the shapes for support points in opposite directions, stores
+  * their difference in the simplex, then keeps the simplex subset
+  * closest to the origin. A full tetrahedron that contains the origin
+  * means the convex shapes overlap; otherwise the closest point gives
+  * the next search direction.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="support_mapping_gjk.js"></script>
+  * @endhtmlonly
+  *
   * The implementation of this class is borrowed from
   * https://github.com/DanielChappuis/reactphysics3d
   */

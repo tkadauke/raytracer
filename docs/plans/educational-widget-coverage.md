@@ -221,7 +221,9 @@ place, or until nearby roadmap work makes them more visible.
    - Teaches: why render passes can mark a region first, then draw only through
      that mask; useful groundwork for planar reflections and portals.
 
-2. **Support mapping and GJK**
+2. ~~**Support mapping and GJK**~~ ✅ **Done.** Added
+   `support_mapping_gjk.js` beside the primitive support-function,
+   Minkowski-sum, and GJK simplex docs.
    - Targets: `include/render/primitives/Primitive.h`,
      `include/render/primitives/MinkowskiSum.h`,
      `include/core/math/GJKSimplex.h`.
