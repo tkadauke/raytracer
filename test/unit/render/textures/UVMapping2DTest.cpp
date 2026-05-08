@@ -17,4 +17,16 @@ namespace UVMapping2DTest {
     EXPECT_DOUBLE_EQ(1.25, s);
     EXPECT_DOUBLE_EQ(0.75, t);
   }
+
+  TEST(UVMapping2D, ShouldScaleTextureCoordinates) {
+    UVMapping2D mapping(4.0, 8.0);
+    HitPoint hitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.25, 0.75));
+    double s = 0;
+    double t = 0;
+
+    mapping.map(hitPoint, s, t);
+
+    EXPECT_DOUBLE_EQ(1.0, s);
+    EXPECT_DOUBLE_EQ(6.0, t);
+  }
 }

@@ -3,9 +3,15 @@
 #include "world/objects/Texture.h"
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/CheckerBoardTexture.h"
+#include "world/objects/UVColorTexture.h"
+#include "core/math/HitPoint.h"
 #include "render/textures/Texture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/CheckerBoardTexture.h"
+#include "render/textures/UVColorTexture.h"
+
+#include <QString>
+#include <QJsonObject>
 
 namespace TextureTest {
   // ---------- Texture (abstract base) ---------------------------------------
@@ -62,6 +68,13 @@ namespace TextureTest {
     EXPECT_EQ(nullptr, texture.darkTexture());
   }
 
+  TEST(CheckerBoardTexture, ShouldDefaultToPlanarMappingWithUnitScale) {
+    CheckerBoardTexture texture;
+    EXPECT_EQ(QString("planar"), texture.mapping());
+    EXPECT_DOUBLE_EQ(1.0, texture.uScale());
+    EXPECT_DOUBLE_EQ(1.0, texture.vScale());
+  }
+
   TEST(CheckerBoardTexture, ShouldSetAndGetBrightTexture) {
     CheckerBoardTexture texture;
     ConstantColorTexture bright;
@@ -74,6 +87,44 @@ namespace TextureTest {
     ConstantColorTexture dark;
     texture.setDarkTexture(&dark);
     EXPECT_EQ(&dark, texture.darkTexture());
+  }
+
+  TEST(CheckerBoardTexture, ShouldSetAndGetUVMapping) {
+    CheckerBoardTexture texture;
+    texture.setMapping("uv");
+    texture.setUScale(4.0);
+    texture.setVScale(8.0);
+    EXPECT_EQ(QString("uv"), texture.mapping());
+    EXPECT_DOUBLE_EQ(4.0, texture.uScale());
+    EXPECT_DOUBLE_EQ(8.0, texture.vScale());
+  }
+
+  TEST(CheckerBoardTexture, ShouldApplyUVMappingPropertiesReadFromJson) {
+    ConstantColorTexture bright;
+    bright.setColor(Colord::white());
+    ConstantColorTexture dark;
+    dark.setColor(Colord::black());
+
+    CheckerBoardTexture texture;
+    texture.setBrightTexture(&bright);
+    texture.setDarkTexture(&dark);
+
+    QJsonObject json;
+    json["mapping"] = "uv";
+    json["uScale"] = 4.0;
+    json["vScale"] = 1.0;
+
+    texture.read(json);
+
+    auto rt = texture.toRaytracerTexture();
+    HitPoint hp(nullptr, 0.0, Vector4d(0, 0, 0), Vector3d(0, 1, 0), Vector2d(0.3, 0.0));
+    EXPECT_EQ(Colord::black(), rt->evaluate(Rayd::undefined(), hp));
+  }
+
+  TEST(CheckerBoardTexture, ShouldTreatUnknownMappingAsPlanar) {
+    CheckerBoardTexture texture;
+    texture.setMapping("unknown");
+    EXPECT_EQ(QString("planar"), texture.mapping());
   }
 
   TEST(CheckerBoardTexture, ShouldRejectSelfAsBrightTexture) {
@@ -102,5 +153,40 @@ namespace TextureTest {
     // side resolve to non-null.
     EXPECT_NE(nullptr, rt->brightTexture());
     EXPECT_NE(nullptr, rt->darkTexture());
+  }
+
+  TEST(CheckerBoardTexture, ShouldProduceUVMappedRaytracerCheckerBoardTexture) {
+    ConstantColorTexture bright;
+    bright.setColor(Colord::white());
+    ConstantColorTexture dark;
+    dark.setColor(Colord::black());
+    CheckerBoardTexture texture;
+    texture.setBrightTexture(&bright);
+    texture.setDarkTexture(&dark);
+    texture.setMapping("uv");
+    texture.setUScale(4.0);
+    texture.setVScale(1.0);
+
+    auto rt = texture.toRaytracerTexture();
+
+    EXPECT_EQ(
+      Colord::black(),
+      rt->evaluate(
+        Rayd::undefined(),
+        HitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.3, 0.0))));
+  }
+
+  // ---------- UVColorTexture -----------------------------------------------
+
+  TEST(UVColorTexture, ShouldProduceRaytracerUVColorTexture) {
+    UVColorTexture texture;
+    auto rt = std::dynamic_pointer_cast<render::UVColorTexture>(
+      texture.toRaytracerTexture());
+    ASSERT_NE(nullptr, rt);
+    EXPECT_EQ(
+      Colord(0.25, 0.75, 0.0),
+      rt->evaluate(
+        Rayd::undefined(),
+        HitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.25, 0.75))));
   }
 }

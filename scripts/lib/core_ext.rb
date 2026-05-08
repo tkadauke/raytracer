@@ -3,14 +3,20 @@
 # would warrant pulling in ActiveSupport, which we don't want for
 # such a small consumer.
 
-# `"thin_lens_camera".camelize → "ThinLensCamera"`. Used by
+# `"thin_lens_camera".camelize -> "ThinLensCamera"`. Used by
 # `ElementCreator#method_missing` to turn snake_case DSL method names
-# into the matching class name. `constantize` then resolves it via
-# `eval`. Both are needed for the `pinhole_camera :position => …`
+# into the matching class name. Known rendering acronyms are preserved
+# so `uv_color_texture` maps to `UVColorTexture`.
+# `constantize` then resolves it via `eval`. Both are needed for the
+# `pinhole_camera :position => ...`
 # style of DSL.
 class String
+  CAMELIZE_ACRONYMS = {
+    "uv" => "UV",
+  }.freeze
+
   def camelize
-    split('_').map {|w| w.capitalize}.join
+    split('_').map { |w| CAMELIZE_ACRONYMS.fetch(w, w.capitalize) }.join
   end
 
   def constantize

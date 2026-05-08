@@ -450,11 +450,17 @@ end
 
 class CheckerBoardTexture < Texture
   property :brightTexture => nil,
-           :darkTexture => nil
+           :darkTexture => nil,
+           :mapping => "planar",
+           :uScale => 1,
+           :vScale => 1
 end
 
 class ConstantColorTexture < Texture
   property :color => [0, 0, 0]
+end
+
+class UVColorTexture < Texture
 end
 
 def scene(opts = {}, &block)

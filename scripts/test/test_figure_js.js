@@ -106,6 +106,29 @@ function loadFigure() {
   return sandbox;
 }
 
+function loadWidget(widget) {
+  const sandbox = loadFigure();
+  const body = sandbox.document.createElement('body');
+  const script = sandbox.document.createElement('script');
+  body.appendChild(script);
+  sandbox.document.currentScript = script;
+  sandbox.document.scripts = [script];
+
+  const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', widget), 'utf8');
+  vm.runInContext(source, sandbox);
+  return body;
+}
+
+function countElements(node, tagName) {
+  const self = node.tagName === tagName ? 1 : 0;
+  return self + node.children.reduce((sum, child) => sum + countElements(child, tagName), 0);
+}
+
+function textContents(node) {
+  const own = node.textContent ? [node.textContent] : [];
+  return own.concat(node.children.flatMap(textContents));
+}
+
 // --- Vector tests ----------------------------------------------------------
 
 test('Vector: arithmetic produces the right components', () => {
@@ -215,6 +238,23 @@ test('All widgets load without throwing', () => {
       `widget ${widget} threw during load`
     );
   }
+});
+
+test('Rasterizer perspective UV widget emits UV grid lines', () => {
+  const body = loadWidget('rasterizer_perspective_uv.js');
+  assert.equal(countElements(body, 'path'), 32,
+    'perspective UV widget should draw stroked UV grid lines, not just the quad outline');
+  assert.equal(countElements(body, 'polygon'), 4,
+    'each panel should draw a filled quad and a stroked quad outline');
+});
+
+test('Rasterizer clipping widget omits coordinate labels', () => {
+  const body = loadWidget('rasterizer_clip_attributes.js');
+  const text = textContents(body).join(' ');
+  assert.ok(!/\bnew\b/.test(text), 'generated clip vertices should not be labelled "new"');
+  assert.ok(!/\bp\d\b/.test(text), 'source vertices should not show p0/p1/p2 coordinate labels');
+  assert.ok(countElements(body, 'rect') >= 4,
+    'widget should still draw viewport and generated clip-vertex markers');
 });
 
 // --- Path primitive --------------------------------------------------------

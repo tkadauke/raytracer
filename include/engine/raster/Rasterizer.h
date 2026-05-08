@@ -88,22 +88,50 @@ namespace engine::raster {
   * <td>@image html rasterizer_engine_lod_4.png "lod=4"</td>
   * </tr></table>
   *
+  * Interpolated UVs feed the same material texture path as ray-hit
+  * positions. The first image maps `(u, v)` directly to `(red,
+  * green)` so interpolation errors are visible as colour bends; the
+  * second samples a UV-scaled checkerboard on a rotated box.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_uv_albedo.png "UV albedo diagnostic: red = u, green = v"</td>
+  * <td>@image html rasterizer_uv_checker.png "UV-mapped checkerboard on a box"</td>
+  * </tr></table>
+  *
   * The interactive widget below visualises the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
   * the rasterizer runs for every triangle. Drag the three vertex
   * handles to reshape the triangle and watch the filled region
   * update in real time; the dashed rectangle is the bounding box
-  * the rasterizer scans; pixel colours are interpolated from the
-  * three vertex colours via barycentric weights, exactly as the
-  * real rasterizer would interpolate per-vertex normals or texture
-  * coordinates. The production rasterizer clips triangles against
-  * the homogeneous viewport before this step, then still clamps the
-  * bounding box to the framebuffer as a final guard. Hover anywhere
-  * to read the live `(w0, w1, w2)` weights at the cursor — outside
-  * the triangle, at least one weight goes negative.
+  * the rasterizer scans. Toggle between barycentric vertex colour
+  * and UV colour to see the same weights drive arbitrary attributes.
+  * The production rasterizer clips triangles against the homogeneous
+  * viewport before this step, then still clamps the bounding box to
+  * the framebuffer as a final guard. Hover anywhere to read the live
+  * `(w0, w1, w2)` weights and interpolated UVs at the cursor —
+  * outside the triangle, at least one weight goes negative.
   *
   * @htmlonly
   * <script type="text/javascript" src="rasterizer_pipeline.js"></script>
+  * @endhtmlonly
+  *
+  * Perspective projection makes screen-space barycentric weights
+  * affine in screen space, not in camera space. The widget below
+  * compares a tilted textured quad using affine UV interpolation
+  * versus the rasterizer's perspective-correct `1/z` interpolation.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="rasterizer_perspective_uv.js"></script>
+  * @endhtmlonly
+  *
+  * Clipping creates new vertices on viewport or near-plane edges.
+  * Those generated vertices must carry interpolated attributes too;
+  * otherwise UVs and normals would jump exactly where clipping
+  * happens. The widget below moves one triangle vertex outside the
+  * viewport and shows the generated clipped vertices with their UVs.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="rasterizer_clip_attributes.js"></script>
   * @endhtmlonly
   *
   * Cameras supported: any subclass that overrides

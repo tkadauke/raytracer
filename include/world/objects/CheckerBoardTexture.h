@@ -3,6 +3,7 @@
 
 #include "world/objects/Texture.h"
 #include "core/Color.h"
+#include <QString>
 
 /**
   * Represents a checker box texture.
@@ -13,6 +14,9 @@ class CheckerBoardTexture : public Texture {
   Q_OBJECT;
   Q_PROPERTY(Texture* brightTexture READ brightTexture WRITE setBrightTexture);
   Q_PROPERTY(Texture* darkTexture READ darkTexture WRITE setDarkTexture);
+  Q_PROPERTY(QString mapping READ mapping WRITE setMapping);
+  Q_PROPERTY(double uScale READ uScale WRITE setUScale);
+  Q_PROPERTY(double vScale READ vScale WRITE setVScale);
   
 public:
   /**
@@ -76,6 +80,34 @@ public:
       m_darkTexture = texture;
     }
   }
+
+  /**
+    * @returns the coordinate mapping used before the checker test.
+    * Supported values are "planar" and "uv".
+    */
+  inline const QString& mapping() const {
+    return m_mapping;
+  }
+
+  inline void setMapping(const QString& mapping) {
+    m_mapping = mapping == "uv" ? "uv" : "planar";
+  }
+
+  inline double uScale() const {
+    return m_uScale;
+  }
+
+  inline void setUScale(double scale) {
+    m_uScale = scale;
+  }
+
+  inline double vScale() const {
+    return m_vScale;
+  }
+
+  inline void setVScale(double scale) {
+    m_vScale = scale;
+  }
   
   virtual std::shared_ptr<render::Texturec> toRaytracerTexture() const;
 
@@ -83,4 +115,7 @@ private:
   Colord m_color;
   Texture* m_brightTexture;
   Texture* m_darkTexture;
+  QString m_mapping;
+  double m_uScale;
+  double m_vScale;
 };

@@ -43,6 +43,11 @@
   const COLS = 12;
   const ROWS = 8;
   const CELL = 32;
+  const vertexUVs = [
+    { u: 0.0, v: 1.0 },
+    { u: 1.0, v: 1.0 },
+    { u: 0.5, v: 0.0 },
+  ];
 
   function svg(name, attrs) {
     const e = document.createElementNS(svgns, name);
@@ -54,7 +59,26 @@
     return e;
   }
 
-  function build(verts, cursor) {
+  function interpolatedUV(b0, b1, b2) {
+    return {
+      u: vertexUVs[0].u * b0 + vertexUVs[1].u * b1 + vertexUVs[2].u * b2,
+      v: vertexUVs[0].v * b0 + vertexUVs[1].v * b1 + vertexUVs[2].v * b2,
+    };
+  }
+
+  function fillForWeights(b0, b1, b2, mode) {
+    if (mode === 'uv') {
+      const uv = interpolatedUV(b0, b1, b2);
+      return `rgb(${Math.round(255 * uv.u)}, ${Math.round(255 * uv.v)}, 0)`;
+    }
+
+    // R-G-B per vertex: vertex 0 = red, vertex 1 = green,
+    // vertex 2 = blue. Interpolated weights produce a smooth
+    // colour gradient across the triangle.
+    return `rgb(${Math.round(255 * b0)}, ${Math.round(255 * b1)}, ${Math.round(255 * b2)})`;
+  }
+
+  function build(verts, cursor, mode) {
     const root = svg('svg', {
       width: COLS * CELL,
       height: ROWS * CELL,
@@ -117,16 +141,10 @@
           const b0 = w0 / area;
           const b1 = w1 / area;
           const b2 = w2 / area;
-          // R-G-B per vertex: vertex 0 = red, vertex 1 = green,
-          // vertex 2 = blue. Interpolated weights produce a smooth
-          // colour gradient across the triangle.
-          const r = Math.round(255 * b0);
-          const g = Math.round(255 * b1);
-          const b = Math.round(255 * b2);
           root.appendChild(svg('rect', {
             x: px * CELL, y: py * CELL,
             width: CELL, height: CELL,
-            fill: `rgb(${r}, ${g}, ${b})`,
+            fill: fillForWeights(b0, b1, b2, mode),
             'fill-opacity': 0.85,
           }));
         }
@@ -164,6 +182,7 @@
       const b0 = w0 / area;
       const b1 = w1 / area;
       const b2 = w2 / area;
+      const uv = interpolatedUV(b0, b1, b2);
       const inside = (area > 0)
         ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
         : (w0 <= 0 && w1 <= 0 && w2 <= 0);
@@ -182,7 +201,7 @@
       const fmt = n => (n >= 0 ? ' ' : '') + n.toFixed(2);
       const lines = [
         `w0 = ${fmt(b0)}   w1 = ${fmt(b1)}   w2 = ${fmt(b2)}`,
-        `sum = ${fmt(b0 + b1 + b2)}`,
+        `uv = (${uv.u.toFixed(2)}, ${uv.v.toFixed(2)})  sum = ${fmt(b0 + b1 + b2)}`,
         `${inside ? 'inside' : 'outside'} the triangle`,
       ];
       lines.forEach((line, i) => {
@@ -201,8 +220,27 @@
 
   const verts = initialVerts.map(v => ({ x: v.x, y: v.y }));
   let cursor = { x: 4.0, y: 3.5 };
+  let mode = 'barycentric';
   const container = document.createElement('div');
-  let svgEl = build(verts, cursor);
+
+  const controls = document.createElement('div');
+  controls.style.margin = '0 0 8px 0';
+  controls.style.display = 'flex';
+  controls.style.gap = '8px';
+  const baryButton = document.createElement('button');
+  baryButton.textContent = 'Barycentric colour';
+  const uvButton = document.createElement('button');
+  uvButton.textContent = 'UV colour';
+  controls.appendChild(baryButton);
+  controls.appendChild(uvButton);
+  container.appendChild(controls);
+
+  function syncButtons() {
+    baryButton.disabled = mode === 'barycentric';
+    uvButton.disabled = mode === 'uv';
+  }
+
+  let svgEl = build(verts, cursor, mode);
   container.appendChild(svgEl);
 
   // Drag a vertex (mousedown on a circle with data-vertex-index)
@@ -216,11 +254,21 @@
     };
   }
   function rebuild() {
-    const next = build(verts, cursor);
+    const next = build(verts, cursor, mode);
     container.replaceChild(next, svgEl);
     svgEl = next;
     attach();
   }
+  baryButton.addEventListener('click', () => {
+    mode = 'barycentric';
+    syncButtons();
+    rebuild();
+  });
+  uvButton.addEventListener('click', () => {
+    mode = 'uv';
+    syncButtons();
+    rebuild();
+  });
   function attach() {
     svgEl.addEventListener('mousedown', (ev) => {
       const idx = ev.target.getAttribute && ev.target.getAttribute('data-vertex-index');
@@ -243,6 +291,7 @@
     svgEl.addEventListener('mouseup', () => { dragging = null; });
     svgEl.addEventListener('mouseleave', () => { dragging = null; });
   }
+  syncButtons();
   attach();
 
   scriptElement.parentNode.appendChild(container);

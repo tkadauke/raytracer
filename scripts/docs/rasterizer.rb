@@ -26,3 +26,35 @@ property_doc(engine: "raster") do |i|
   pinhole_camera :position => [0, 0, -3], :zoom => 1.4
   sphere
 end
+
+class_doc(engine: "raster", width: 320, height: 240) do
+  name "rasterizer_uv_albedo"
+
+  ambient [1, 1, 1]
+  background [0.03, 0.03, 0.035]
+  pinhole_camera :position => [0, 0, -4], :target => [0, 0, 0], :zoom => 1.25
+  rectangle :position => [-1.3, 0.9, 0],
+            :leg1 => [2.6, 0, 0],
+            :leg2 => [0, -1.8, 0],
+            :material => matte_material(:diffuseTexture => uv_color_texture)
+end
+
+class_doc(engine: "raster", width: 320, height: 240) do
+  name "rasterizer_uv_checker"
+
+  options(lod: 3)
+  ambient [1, 1, 1]
+  background [0.03, 0.03, 0.035]
+  pinhole_camera :position => [0.35, 0.15, -4.2], :target => [0, 0, 0], :zoom => 1.2
+  box :size => [1.5, 1.2, 1.0],
+      :rotation => [0.25, -0.55, 0],
+      :material => matte_material(
+        :diffuseTexture => checker_board_texture(
+          :mapping => "uv",
+          :uScale => 8,
+          :vScale => 8,
+          :brightTexture => white,
+          :darkTexture => black,
+        )
+      )
+end
