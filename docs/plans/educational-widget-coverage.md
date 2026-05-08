@@ -59,17 +59,19 @@ from still images.
    - Teaches: the portal is not a screen border; it transforms the ray and asks
      the scene what the transformed ray sees.
 
-4. **Phong and Lambertian BRDF lobes**
-   - Targets: `include/render/materials/MatteMaterial.h`,
+4. ~~**Phong and Lambertian BRDF lobes**~~ ✅ **Done.**
+   Added `phong_lambertian_lobes.js`, embedded it in the runtime material/BRDF
+   docs, and pinned its controls/handles in JS widget tests.
+   - ~~Targets: `include/render/materials/MatteMaterial.h`,
      `include/render/materials/PhongMaterial.h`,
      `include/render/brdf/Lambertian.h`,
-     `include/render/brdf/GlossySpecular.h`.
-   - Widget: surface normal, light vector, view vector, diffuse term, and
-     specular lobe.
-   - Interaction: drag light/view vectors; adjust Phong exponent and
-     coefficients.
-   - Teaches: Lambertian `n dot l`, view-dependent specular highlights, and why
-     the Phong exponent narrows the highlight.
+     `include/render/brdf/GlossySpecular.h`.~~
+   - ~~Widget: surface normal, light vector, view vector, diffuse term, and
+     specular lobe.~~
+   - ~~Interaction: drag light/view vectors; adjust Phong exponent and
+     coefficients.~~
+   - ~~Teaches: Lambertian `n dot l`, view-dependent specular highlights, and why
+     the Phong exponent narrows the highlight.~~
 
 5. **CSG hit intervals**
    - Targets: `include/core/math/HitPointInterval.h`,

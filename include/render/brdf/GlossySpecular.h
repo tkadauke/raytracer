@@ -4,6 +4,21 @@
 #include "core/math/Range.h"
 
 namespace render {
+  /**
+    * GlossySpecular evaluates the Phong specular lobe around the reflected
+    * light direction. The highlight is visible only when the outgoing view
+    * vector points near that lobe; increasing the exponent raises the
+    * alignment term to a higher power, narrowing the highlight.
+    *
+    * The widget shows the fixed surface normal, draggable light and view
+    * vectors, the Lambertian `n dot l` term, and the Phong lobe controlled by
+    * the specular coefficient and exponent.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="phong_lambertian_lobes.js"></script>
+    * @endhtmlonly
+    */
   class GlossySpecular : public BRDF {
   public:
     inline GlossySpecular()

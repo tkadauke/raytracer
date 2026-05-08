@@ -20,6 +20,16 @@ namespace render {
     * specular component contributes: the bright highlight visible
     * on the raytracer image is missing from the rasterizer one.
     *
+    * The specular highlight is view dependent. The Phong exponent
+    * narrows the reflected-light lobe: low values make broad, soft
+    * highlights, while high values leave only view vectors close to
+    * the mirror-reflection direction.
+    *
+    * @htmlonly
+    * <script type="text/javascript" src="figure.js"></script>
+    * <script type="text/javascript" src="phong_lambertian_lobes.js"></script>
+    * @endhtmlonly
+    *
     * <table>
     *   <tr>
     *     <th>Raytracer</th>
