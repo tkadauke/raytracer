@@ -198,7 +198,7 @@ class RasterizerMSAACoverage {
 
     this.vertices.forEach((vertex, index) => {
       const handle = new FigureDraggablePoint({
-        svg: this.canvas.element,
+        canvas: this.canvas,
         point: this.toSvgPoint(vertex),
         radius: 8,
         attrs: {

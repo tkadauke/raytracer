@@ -19,7 +19,7 @@ RENDERCLI_DEFAULT = 'build/release/tools/rendercli/rendercli'
 DOC_WIDGET_DEPENDENCIES = ["angle_from_x.js"].freeze
 DOC_WIDGET_FRAME_DIR = "docs/html/widget-pages".freeze
 FIGURE_DEPENDENCY_PATTERN =
-  /\b(new\s+(Canvas|Vector|Group|Line|Ray|Circle|Rectangle|Text|Axes|Path|Slider|DragHandler|OrderedHash|FigureWidget|FigureSvg|FigureSegmentedControl|FigureDraggablePoint)|Path\.polyline|extends\s+AngleFromX)\b/
+  /\b(new\s+(Canvas|Vector|Group|Line|Ray|Circle|Rectangle|Text|Axes|Path|Slider|DragHandler|OrderedHash|FigureWidget|FigureSvg|FigureSegmentedControl|FigureSliderControl|FigureDraggablePoint)|Path\.polyline|extends\s+AngleFromX)\b/
 
 def docs_widget_scripts
   Dir.glob("scripts/docs/*.js")
@@ -47,7 +47,8 @@ end
 def write_docs_widget_frame(path, widget)
   slug = docs_widget_slug(widget)
   scripts = (docs_widget_dependencies(widget) + [widget]).map do |file|
-    %(<script src="../#{CGI.escapeHTML(file)}"></script>)
+    version = File.mtime(File.join("scripts/docs", file)).to_i
+    %(<script src="../#{CGI.escapeHTML(file)}?v=#{version}"></script>)
   end.join("\n    ")
 
   html = <<~HTML

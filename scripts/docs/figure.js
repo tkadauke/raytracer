@@ -123,12 +123,36 @@ svg.figure-canvas rect {
   color: #fff;
 }
 
+.figure-widget-slider {
+  align-items: center;
+  display: flex;
+  flex: 1 1 260px;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.figure-widget-slider label {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.figure-widget-slider input {
+  flex: 1;
+  min-width: 120px;
+}
+
+.figure-widget-slider-value {
+  font-variant-numeric: tabular-nums;
+  min-width: 3em;
+}
+
 .figure-widget-stage {
   max-width: 100%;
 }
 
 .figure-widget-svg {
   background: #fafafa;
+  height: auto;
   max-width: 100%;
   touch-action: none;
   user-select: none;
@@ -621,6 +645,75 @@ class FigureSvg {
     this.element.appendChild(element);
     return element;
   }
+
+  pointFromEvent(event) {
+    return FigureSvg.pointFromEvent(this.element, event);
+  }
+
+  static pointFromEvent(svg, event) {
+    if (svg.getBoundingClientRect) {
+      const rect = svg.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        return FigureSvg.pointFromRect(svg, event, rect);
+      }
+    }
+
+    if (svg.createSVGPoint) {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      const matrix = svg.getScreenCTM();
+      if (matrix) {
+        const local = point.matrixTransform(matrix.inverse());
+        return { x: local.x, y: local.y };
+      }
+    }
+
+    const rect = svg.getBoundingClientRect();
+    const [minX, minY, width, height] = svg.getAttribute('viewBox')
+      .split(/\s+/).map(Number);
+    return {
+      x: minX + ((event.clientX - rect.left) / rect.width) * width,
+      y: minY + ((event.clientY - rect.top) / rect.height) * height,
+    };
+  }
+
+  static pointFromRect(svg, event, rect) {
+    const [minX, minY, viewBoxWidth, viewBoxHeight] = svg.getAttribute('viewBox')
+      .split(/\s+/).map(Number);
+    const preserve = (svg.getAttribute('preserveAspectRatio') || 'xMidYMid meet')
+      .trim().split(/\s+/).filter(token => token !== 'defer');
+    const align = preserve[0] || 'xMidYMid';
+    const meetOrSlice = preserve[1] || 'meet';
+    const clientX = event.clientX - rect.left;
+    const clientY = event.clientY - rect.top;
+
+    if (align === 'none') {
+      return {
+        x: minX + (clientX / rect.width) * viewBoxWidth,
+        y: minY + (clientY / rect.height) * viewBoxHeight,
+      };
+    }
+
+    const scaleX = rect.width / viewBoxWidth;
+    const scaleY = rect.height / viewBoxHeight;
+    const scale = meetOrSlice === 'slice'
+      ? Math.max(scaleX, scaleY)
+      : Math.min(scaleX, scaleY);
+    const contentWidth = viewBoxWidth * scale;
+    const contentHeight = viewBoxHeight * scale;
+    let offsetX = 0;
+    let offsetY = 0;
+    if (align.includes('xMid')) offsetX = (rect.width - contentWidth) / 2;
+    if (align.includes('xMax')) offsetX = rect.width - contentWidth;
+    if (align.includes('YMid')) offsetY = (rect.height - contentHeight) / 2;
+    if (align.includes('YMax')) offsetY = rect.height - contentHeight;
+
+    return {
+      x: minX + (clientX - offsetX) / scale,
+      y: minY + (clientY - offsetY) / scale,
+    };
+  }
 }
 
 class FigureSegmentedControl {
@@ -671,9 +764,66 @@ class FigureSegmentedControl {
   }
 }
 
+class FigureSliderControl {
+  constructor({
+    label = '',
+    min,
+    max,
+    step,
+    value,
+    precision = 2,
+    onChange = () => {},
+  }) {
+    this.label = label;
+    this.min = min;
+    this.max = max;
+    this.step = step !== undefined ? step : (max - min) / 100.0;
+    this.value = value !== undefined ? value : (min + max) / 2.0;
+    this.precision = precision;
+    this.onChange = onChange;
+  }
+
+  element() {
+    if (this.root) return this.root;
+
+    this.root = document.createElement('div');
+    this.root.className = 'figure-widget-slider';
+
+    this.labelElement = document.createElement('label');
+    this.labelElement.textContent = this.label;
+    this.root.appendChild(this.labelElement);
+
+    this.input = document.createElement('input');
+    this.input.type = 'range';
+    this.input.min = this.min;
+    this.input.max = this.max;
+    this.input.step = this.step;
+    this.input.value = this.value;
+    this.input.addEventListener('input', (event) => {
+      this.update(parseFloat(event.target.value), true);
+    });
+    this.root.appendChild(this.input);
+
+    this.valueElement = document.createElement('span');
+    this.valueElement.className = 'figure-widget-slider-value';
+    this.root.appendChild(this.valueElement);
+
+    this.update(this.value, false);
+    return this.root;
+  }
+
+  update(value, notify = false) {
+    this.value = value;
+    if (this.input) this.input.value = value;
+    if (this.valueElement) this.valueElement.textContent = value.toFixed(this.precision);
+    if (notify) this.onChange(value);
+  }
+}
+
 class FigureDraggablePoint {
-  constructor({ svg, point, radius = 8, className = '', attrs = {}, onDrag = () => {} }) {
-    this.svg = svg;
+  constructor({ canvas = null, svg = null, point, radius = 8, className = '', attrs = {}, onDrag = () => {} }) {
+    this.canvas = canvas;
+    this.svg = svg || (canvas && canvas.element);
     this.point = point;
     this.radius = radius;
     this.className = className;
@@ -692,10 +842,19 @@ class FigureDraggablePoint {
     });
 
     handle.addEventListener('pointerdown', (event) => {
+      const start = this.pointFromEvent(event);
+      const dragOffset = {
+        x: this.point.x - start.x,
+        y: this.point.y - start.y,
+      };
       const move = (moveEvent) => {
         handle.setAttribute('class', ['figure-point-handle', 'is-dragging', this.className]
           .filter(Boolean).join(' '));
-        this.onDrag(this.pointFromEvent(moveEvent), moveEvent);
+        const point = this.pointFromEvent(moveEvent);
+        this.onDrag({
+          x: point.x + dragOffset.x,
+          y: point.y + dragOffset.y,
+        }, moveEvent);
         moveEvent.preventDefault();
       };
       const up = () => {
@@ -713,24 +872,7 @@ class FigureDraggablePoint {
   }
 
   pointFromEvent(event) {
-    if (this.svg.createSVGPoint) {
-      const point = this.svg.createSVGPoint();
-      point.x = event.clientX;
-      point.y = event.clientY;
-      const matrix = this.svg.getScreenCTM();
-      if (matrix) {
-        const local = point.matrixTransform(matrix.inverse());
-        return { x: local.x, y: local.y };
-      }
-    }
-
-    const rect = this.svg.getBoundingClientRect();
-    const [minX, minY, width, height] = this.svg.getAttribute('viewBox')
-      .split(/\s+/).map(Number);
-    return {
-      x: minX + ((event.clientX - rect.left) / rect.width) * width,
-      y: minY + ((event.clientY - rect.top) / rect.height) * height,
-    };
+    return this.canvas ? this.canvas.pointFromEvent(event) : FigureSvg.pointFromEvent(this.svg, event);
   }
 }
 
@@ -809,6 +951,6 @@ const degrees = 0.01745329251996;
 Object.assign(globalThis, {
   OrderedHash, Vector, Canvas, Group, Line, Ray, Circle,
   Rectangle, Text, Axes, Path, Slider, setAttributes, createSvgElement,
-  FigureWidget, FigureSvg, FigureSegmentedControl, FigureDraggablePoint,
-  DragHandler, svgns, degrees
+  FigureWidget, FigureSvg, FigureSegmentedControl,
+  FigureSliderControl, FigureDraggablePoint, DragHandler, svgns, degrees
 });

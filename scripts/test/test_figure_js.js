@@ -265,8 +265,14 @@ test('Rasterizer clipping widget omits coordinate labels', () => {
   const text = textContents(body).join(' ');
   assert.ok(!/\bnew\b/.test(text), 'generated clip vertices should not be labelled "new"');
   assert.ok(!/\bp\d\b/.test(text), 'source vertices should not show p0/p1/p2 coordinate labels');
+  assert.equal(countElements(body, 'input'), 0,
+    'spatial outside vertex control should not use a scalar slider');
   assert.ok(countElements(body, 'rect') >= 4,
     'widget should still draw viewport and generated clip-vertex markers');
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'outside-vertex');
+  assert.equal(handles.length, 1,
+    'outside source vertex should be manipulated through a visible draggable handle');
 });
 
 test('Rasterizer MSAA widget emits samples and partial resolves', () => {
@@ -292,6 +298,16 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
     .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
   assert.equal(handles.length, 3,
     'triangle geometry should be manipulated through visible draggable vertices');
+});
+
+test('Rasterizer pipeline widget uses draggable vertex handles', () => {
+  const body = loadWidget('rasterizer_pipeline.js');
+  assert.equal(countElements(body, 'button'), 2,
+    'pipeline widget should expose the barycentric/UV colour mode control');
+  const handles = elementsByTag(body, 'circle')
+    .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
+  assert.equal(handles.length, 3,
+    'pipeline triangle should keep its three visible draggable vertices');
 });
 
 // --- Path primitive --------------------------------------------------------
@@ -394,6 +410,53 @@ test('FigureSvg: creates scoped SVGs and can clear children', () => {
   assert.equal(canvas.element.children.length, 2);
   canvas.clear();
   assert.equal(canvas.element.children.length, 0);
+});
+
+test('FigureSvg: maps pointer events through the rendered SVG transform', () => {
+  const { FigureSvg } = loadFigure();
+  const canvas = new FigureSvg({ width: 100, height: 50 });
+  canvas.element.createSVGPoint = () => ({
+    x: 0,
+    y: 0,
+    matrixTransform(matrix) {
+      return matrix.transform({ x: this.x, y: this.y });
+    },
+  });
+  canvas.element.getScreenCTM = () => ({
+    inverse() {
+      return {
+        transform(point) {
+          return {
+            x: (point.x - 20) / 2,
+            y: (point.y - 30) / 3,
+          };
+        },
+      };
+    },
+  });
+
+  const point = canvas.pointFromEvent({ clientX: 220, clientY: 180 });
+  assert.equal(point.x, 100);
+  assert.equal(point.y, 50);
+});
+
+test('FigureSvg: accounts for preserveAspectRatio letterboxing', () => {
+  const { FigureSvg } = loadFigure();
+  const canvas = new FigureSvg({ width: 384, height: 256 });
+  canvas.element.getBoundingClientRect = () => ({
+    left: 20,
+    top: 40,
+    width: 600,
+    height: 360,
+  });
+
+  const topLeft = canvas.pointFromEvent({ clientX: 50, clientY: 40 });
+  assert.equal(topLeft.x, 0);
+  assert.equal(topLeft.y, 0);
+
+  const bottomRight = canvas.pointFromEvent({ clientX: 590, clientY: 400 });
+  assert.equal(bottomRight.x, 384);
+  assert.equal(bottomRight.y, 256);
 });
 
 test('FigureSegmentedControl: exposes options and active state', () => {
