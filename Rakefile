@@ -501,7 +501,7 @@ namespace :docs do
 
   task :html do
     sh "doxygen"
-    sh "cp scripts/docs/*.js docs/html"
+    Rake::Task["docs:widgets"].invoke
   end
 
   desc "Create a standalone HTML gallery containing every interactive widget"

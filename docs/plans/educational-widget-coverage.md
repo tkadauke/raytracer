@@ -211,7 +211,10 @@ These are useful follow-ups once the core rendering and sampling widgets exist.
 These are valuable but should wait until the higher-priority concepts are in
 place, or until nearby roadmap work makes them more visible.
 
-1. **Depth, stencil, and culling state**
+1. ~~**Depth, stencil, and culling state**~~ ✅ **Done.** Added
+   `rasterizer_depth_stencil_cull.js` beside `engine::raster::Rasterizer`
+   docs, with framebuffer/depth/stencil panels and segmented controls for the
+   stencil test and cull mode.
    - Targets: `include/engine/raster/Rasterizer.h`.
    - Widget: small framebuffer, overlapping triangles, depth buffer, stencil
      mask, and cull-mode selector.
