@@ -631,70 +631,72 @@ namespace {
     };
   }
 
-  inline bool depthTestPass(Rasterizer::DepthFunc func, double incoming, double stored) {
-    switch (func) {
-    case Rasterizer::DepthFunc::Never:        return false;
-    case Rasterizer::DepthFunc::Less:         return incoming <  stored;
-    case Rasterizer::DepthFunc::Equal:        return incoming == stored;
-    case Rasterizer::DepthFunc::LessEqual:    return incoming <= stored;
-    case Rasterizer::DepthFunc::Greater:      return incoming >  stored;
-    case Rasterizer::DepthFunc::GreaterEqual: return incoming >= stored;
-    case Rasterizer::DepthFunc::NotEqual:     return incoming != stored;
-    case Rasterizer::DepthFunc::Always:       return true;
-    }
-    return false;
-  }
+  struct DepthState {
+    Rasterizer::DepthFunc func;
 
-  inline bool stencilTestPass(Rasterizer::StencilFunc func,
-                              std::uint8_t reference,
-                              std::uint8_t stored,
-                              std::uint8_t mask) {
-    const std::uint8_t lhs = reference & mask;
-    const std::uint8_t rhs = stored & mask;
-    switch (func) {
-    case Rasterizer::StencilFunc::Never:        return false;
-    case Rasterizer::StencilFunc::Less:         return lhs <  rhs;
-    case Rasterizer::StencilFunc::Equal:        return lhs == rhs;
-    case Rasterizer::StencilFunc::LessEqual:    return lhs <= rhs;
-    case Rasterizer::StencilFunc::Greater:      return lhs >  rhs;
-    case Rasterizer::StencilFunc::GreaterEqual: return lhs >= rhs;
-    case Rasterizer::StencilFunc::NotEqual:     return lhs != rhs;
-    case Rasterizer::StencilFunc::Always:       return true;
+    inline bool pass(double incoming, double stored) const {
+      switch (func) {
+      case Rasterizer::DepthFunc::Never:        return false;
+      case Rasterizer::DepthFunc::Less:         return incoming <  stored;
+      case Rasterizer::DepthFunc::Equal:        return incoming == stored;
+      case Rasterizer::DepthFunc::LessEqual:    return incoming <= stored;
+      case Rasterizer::DepthFunc::Greater:      return incoming >  stored;
+      case Rasterizer::DepthFunc::GreaterEqual: return incoming >= stored;
+      case Rasterizer::DepthFunc::NotEqual:     return incoming != stored;
+      case Rasterizer::DepthFunc::Always:       return true;
+      }
+      return false;
     }
-    return false;
-  }
+  };
 
-  inline std::uint8_t applyStencilOp(Rasterizer::StencilOp op,
-                                     std::uint8_t current,
-                                     std::uint8_t reference) {
-    switch (op) {
-    case Rasterizer::StencilOp::Keep:
+  struct StencilState {
+    Rasterizer::StencilFunc func;
+    std::uint8_t reference;
+    std::uint8_t mask;
+    std::uint8_t writeMask;
+    Rasterizer::StencilOp failOp;
+    Rasterizer::StencilOp depthFailOp;
+    Rasterizer::StencilOp passOp;
+
+    inline bool pass(std::uint8_t stored) const {
+      const std::uint8_t lhs = reference & mask;
+      const std::uint8_t rhs = stored & mask;
+      switch (func) {
+      case Rasterizer::StencilFunc::Never:        return false;
+      case Rasterizer::StencilFunc::Less:         return lhs <  rhs;
+      case Rasterizer::StencilFunc::Equal:        return lhs == rhs;
+      case Rasterizer::StencilFunc::LessEqual:    return lhs <= rhs;
+      case Rasterizer::StencilFunc::Greater:      return lhs >  rhs;
+      case Rasterizer::StencilFunc::GreaterEqual: return lhs >= rhs;
+      case Rasterizer::StencilFunc::NotEqual:     return lhs != rhs;
+      case Rasterizer::StencilFunc::Always:       return true;
+      }
+      return false;
+    }
+
+    inline std::uint8_t apply(Rasterizer::StencilOp op, std::uint8_t current) const {
+      switch (op) {
+      case Rasterizer::StencilOp::Keep:
+        return current;
+      case Rasterizer::StencilOp::Zero:
+        return 0;
+      case Rasterizer::StencilOp::Replace:
+        return reference;
+      case Rasterizer::StencilOp::IncrementClamp:
+        return current == 0xFF ? current : static_cast<std::uint8_t>(current + 1);
+      case Rasterizer::StencilOp::DecrementClamp:
+        return current == 0 ? current : static_cast<std::uint8_t>(current - 1);
+      case Rasterizer::StencilOp::Invert:
+        return static_cast<std::uint8_t>(~current);
+      }
       return current;
-    case Rasterizer::StencilOp::Zero:
-      return 0;
-    case Rasterizer::StencilOp::Replace:
-      return reference;
-    case Rasterizer::StencilOp::IncrementClamp:
-      return current == 0xFF ? current : static_cast<std::uint8_t>(current + 1);
-    case Rasterizer::StencilOp::DecrementClamp:
-      return current == 0 ? current : static_cast<std::uint8_t>(current - 1);
-    case Rasterizer::StencilOp::Invert:
-      return static_cast<std::uint8_t>(~current);
     }
-    return current;
-  }
 
-  inline void updateStencil(Buffer<std::uint8_t>& stencilBuffer,
-                            const Rasterizer& rasterizer,
-                            int x,
-                            int y,
-                            Rasterizer::StencilOp op) {
-    const std::uint8_t current = stencilBuffer[y][x];
-    const std::uint8_t updated = applyStencilOp(op, current, rasterizer.stencilReference());
-    const std::uint8_t writeMask = rasterizer.stencilWriteMask();
-    stencilBuffer[y][x] = static_cast<std::uint8_t>(
-      (current & ~writeMask) | (updated & writeMask));
-  }
+    inline std::uint8_t update(Rasterizer::StencilOp op, std::uint8_t current) const {
+      const std::uint8_t updated = apply(op, current);
+      return static_cast<std::uint8_t>((current & ~writeMask) | (updated & writeMask));
+    }
+  };
 
   inline Colord shadeBuiltInFragment(const RasterTriangle& triangle,
                                      const render::Scene* scene,
@@ -735,36 +737,36 @@ namespace {
 
   struct RasterStencilPolicy {
     Buffer<std::uint8_t>& stencilBuffer;
-    const Rasterizer& rasterizer;
+    StencilState state;
 
     inline bool pass(int x, int y) const {
-      const std::uint8_t stored = stencilBuffer[y][x];
-      return stencilTestPass(
-        rasterizer.stencilFunc(),
-        rasterizer.stencilReference(),
-        stored,
-        rasterizer.stencilMask());
+      return state.pass(stencilBuffer[y][x]);
     }
 
     inline void onStencilFail(int x, int y) const {
-      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilFailOp());
+      update(x, y, state.failOp);
     }
 
     inline void onDepthFail(int x, int y) const {
-      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilDepthFailOp());
+      update(x, y, state.depthFailOp);
     }
 
     inline void onPass(int x, int y) const {
-      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilPassOp());
+      update(x, y, state.passOp);
+    }
+
+  private:
+    inline void update(int x, int y, Rasterizer::StencilOp op) const {
+      stencilBuffer[y][x] = state.update(op, stencilBuffer[y][x]);
     }
   };
 
   struct DepthWritePolicy {
-    const Rasterizer& rasterizer;
     Buffer<double>& zBuffer;
+    DepthState state;
 
     inline bool pass(int x, int y, double depth) const {
-      return depthTestPass(rasterizer.depthFunc(), depth, zBuffer[y][x]);
+      return state.pass(depth, zBuffer[y][x]);
     }
 
     inline void write(int x, int y, double depth) const {
@@ -773,11 +775,11 @@ namespace {
   };
 
   struct DepthReadOnlyPolicy {
-    const Rasterizer& rasterizer;
     Buffer<double>& zBuffer;
+    DepthState state;
 
     inline bool pass(int x, int y, double depth) const {
-      return depthTestPass(rasterizer.depthFunc(), depth, zBuffer[y][x]);
+      return state.pass(depth, zBuffer[y][x]);
     }
 
     inline void write(int, int, double) const {}
@@ -867,10 +869,11 @@ namespace {
     Stencil stencil,
     Fragment fragmentPolicy,
     RenderFn&& render) {
+    const DepthState depthState{rasterizer.depthFunc()};
     if (rasterizer.depthWriteEnabled()) {
-      render(stencil, DepthWritePolicy{rasterizer, zBuffer}, fragmentPolicy);
+      render(stencil, DepthWritePolicy{zBuffer, depthState}, fragmentPolicy);
     } else {
-      render(stencil, DepthReadOnlyPolicy{rasterizer, zBuffer}, fragmentPolicy);
+      render(stencil, DepthReadOnlyPolicy{zBuffer, depthState}, fragmentPolicy);
     }
   }
 
@@ -885,7 +888,16 @@ namespace {
     const bool useFragmentShader = static_cast<bool>(rasterizer.fragmentShader());
 
     if (useStencil) {
-      RasterStencilPolicy stencil{*stencilBuffer, rasterizer};
+      const StencilState stencilState{
+        rasterizer.stencilFunc(),
+        rasterizer.stencilReference(),
+        rasterizer.stencilMask(),
+        rasterizer.stencilWriteMask(),
+        rasterizer.stencilFailOp(),
+        rasterizer.stencilDepthFailOp(),
+        rasterizer.stencilPassOp()
+      };
+      RasterStencilPolicy stencil{*stencilBuffer, stencilState};
       if (useFragmentShader) {
         withPreparedTriangleDepthPolicy(
           rasterizer, zBuffer, stencil, ShaderFragmentPolicy{rasterizer}, render);
