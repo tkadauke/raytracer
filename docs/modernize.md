@@ -269,7 +269,7 @@ Existing 91 functional tests didn't need any migration — none of their step st
 
 #### E. Cover the new-abstraction surface *(~3 days)*
 
-- **Matte + Phong materials** — full given/when/then coverage matching `ReflectiveMaterial`'s existing pattern.
+- ~~**Matte + Phong materials** — full given/when/then coverage matching `ReflectiveMaterial`'s existing pattern.~~ ✅ **Done.** `MatteMaterialTest` pins texture-color passthrough, ambient-coefficient linearity, and the no-illumination contract; `PhongMaterialTest` pins the head-on specular highlight and its absence under matte.
 - ~~**ThinLensCamera focus-plane invariant** — "a sphere on the focus plane is sharp; an off-plane sphere is blurred" via `ShapeRecognition` edge-pixel-density delta.~~ ✅ **Done.** `ThinLensCameraTest.FocalPlaneContractSharpVsBlurred` compares focused vs. defocused silhouette edge-transition counts.
 - **TiltShiftCamera + EquirectangularCamera** — visibility + framing tests at parity with `PinholeCamera`.
 - ~~**Tonemap monotonicity** — render the same HDR scene through `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap`, assert the max LDR pixel value ordering across the built-in operators.~~ ✅ **Done.** PR #58 adds `TonemapMonotonicityTest` for an HDR Lambertian render; the shipped Narkowicz ACES fit has brighter midtones than Reinhard, so the pinned max-channel order is `Linear ≥ ACES ≥ Reinhard`.
