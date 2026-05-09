@@ -3,6 +3,7 @@
 #include "render/RenderEngine.h"
 #include "core/math/Vector.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <functional>
@@ -57,6 +58,8 @@ namespace engine::raster {
   *      - Run the configured depth/stencil tests and operations.
   *        The default state is the historical Z-buffer behaviour:
   *        `DepthFunc::Less`, depth writes enabled, stencil disabled.
+  *      - Optionally query a rasterized directional-light shadow
+  *        map before adding each diffuse light contribution.
   *      - Shade through the built-in material/Lambertian fragment
   *        path, or through a caller-provided `FragmentShader`.
   *      - Write the shaded colour iff the fragment passes.
@@ -78,11 +81,12 @@ namespace engine::raster {
   * Face culling is switchable via `setCullMode`: the default
   * `CullMode::Both` shades both sides of every triangle, while
   * `CullMode::Back` / `CullMode::Front` skip triangles by projected
-  * screen-space winding after clipping. Depth/stencil state and
-  * tiny vertex/fragment shader hooks are exposed for teaching the
-  * fixed-function stages without forcing the default path through
-  * the programmable callbacks. It does not trace shadow rays;
-  * lights are direct Lambertian contributions only.
+  * screen-space winding after clipping. Depth/stencil state, opt-in
+  * directional-light shadow maps, and tiny vertex/fragment shader
+  * hooks are exposed for teaching the fixed-function stages without
+  * forcing the default path through the programmable callbacks.
+  * Shadow maps are disabled by default; with them disabled, lights
+  * are direct Lambertian contributions only.
   *
   * The widget below shows the fixed-function state in the order the
   * rasterizer applies it: a first pass marks a stencil region, then
@@ -293,6 +297,22 @@ public:
   inline int msaaSamples() const { return m_msaaSamples; }
   void setMSAASamples(int samples);
 
+  /// Enables rasterized directional-light shadow maps for the
+  /// built-in Lambertian fragment path. Custom fragment shaders are
+  /// responsible for their own visibility model and bypass this.
+  inline bool shadowMapsEnabled() const { return m_shadowMapsEnabled; }
+  inline void setShadowMapsEnabled(bool enabled) { m_shadowMapsEnabled = enabled; }
+
+  /// Square resolution used for each generated directional-light
+  /// shadow map. Defaults to 256 and is clamped to at least 1.
+  inline int shadowMapSize() const { return m_shadowMapSize; }
+  void setShadowMapSize(int size);
+
+  /// Depth bias added during the shadow-map comparison to avoid
+  /// self-shadowing from small interpolation differences.
+  inline double shadowBias() const { return m_shadowBias; }
+  inline void setShadowBias(double bias) { m_shadowBias = std::max(0.0, bias); }
+
   /// Face-culling mode used after near-plane clipping and before
   /// triangle rasterization. `Both` keeps the historical two-sided
   /// behavior; `Back` and `Front` skip triangles by projected
@@ -372,6 +392,9 @@ private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   int m_msaaSamples{1};
+  bool m_shadowMapsEnabled{false};
+  int m_shadowMapSize{256};
+  double m_shadowBias{1e-3};
   CullMode m_cullMode{CullMode::Both};
   DepthFunc m_depthFunc{DepthFunc::Less};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};

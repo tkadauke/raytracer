@@ -52,9 +52,11 @@
      per-fragment shading remains a performance follow-up.
 
 7. **Rasterized shadow maps**
-   - Add a depth-only shadow pass after depth/stencil infrastructure exists.
-   - Start with directional-light shadow maps, then add PCF, PCSS, and
-     cascades for comparison with raytraced shadow rays.
+   - ✅ Added an opt-in depth-only directional-light shadow pass for the
+     built-in Lambertian fragment path, with configurable shadow-map size and
+     depth bias exposed on `Rasterizer` and `rendercli`.
+   - Next add filtering (PCF first), then PCSS and cascades for comparison
+     with raytraced shadow rays.
 
 8. **GeneratedRaytracer / RenderWidget front-back buffers**
    - Add dirty-tile publication and immutable paint snapshots.

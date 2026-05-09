@@ -4,14 +4,17 @@
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
 
+#include <cmath>
 #include <memory>
 
 namespace RasterizerTest {
@@ -31,7 +34,8 @@ namespace RasterizerTest {
     int count = 0;
     for (int y = 0; y < buffer.height(); ++y)
       for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color) ++count;
+        if (buffer[y][x] == color)
+          ++count;
     return count;
   }
 
@@ -43,7 +47,8 @@ namespace RasterizerTest {
     int count = 0;
     for (int y = 0; y < buffer.height(); ++y)
       for (int x = 0; x < buffer.width(); ++x)
-        if (!(buffer[y][x] == bg)) ++count;
+        if (!(buffer[y][x] == bg))
+          ++count;
     return count;
   }
 
@@ -69,39 +74,30 @@ namespace RasterizerTest {
 
   static std::shared_ptr<Scene> sceneWithOversizedRectangle() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Rectangle>(
-      Vector3d(-100, -100, 0),
-      Vector3d( 200,    0, 0),
-      Vector3d(   0,  200, 0)));
+    scene->add(std::make_shared<Rectangle>(Vector3d(-100, -100, 0), Vector3d(200, 0, 0),
+                                           Vector3d(0, 200, 0)));
     return scene;
   }
 
   static std::shared_ptr<Scene> sceneWithBackFacingTriangle() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Triangle>(
-      Vector3d(-1, -1, 0),
-      Vector3d( 1, -1, 0),
-      Vector3d( 0,  1, 0)));
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0)));
     return scene;
   }
 
   static std::shared_ptr<Scene> sceneWithFrontFacingTriangle() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Triangle>(
-      Vector3d(-1, -1, 0),
-      Vector3d( 0,  1, 0),
-      Vector3d( 1, -1, 0)));
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
     return scene;
   }
 
   static std::shared_ptr<Scene> sceneWithTexturedFrontFacingTriangle() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    auto triangle = std::make_shared<Triangle>(
-      Vector3d(-1, -1, 0),
-      Vector3d( 0,  1, 0),
-      Vector3d( 1, -1, 0));
-    triangle->setMaterial(std::make_shared<MatteMaterial>(
-      std::make_shared<UVColorTexture>()));
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0));
+    triangle->setMaterial(std::make_shared<MatteMaterial>(std::make_shared<UVColorTexture>()));
     scene->add(triangle);
     return scene;
   }
@@ -122,42 +118,27 @@ namespace RasterizerTest {
       } else if (vertex.worldPosition.x() > 0.5) {
         screen = Vector3d(16, 32, 1);
       }
-      return Rasterizer::VertexOutput{
-        vertex.worldPosition,
-        vertex.normal,
-        vertex.uv,
-        vertex.clipPosition,
-        screen
-      };
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, screen};
     });
-    engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
-      return Colord::white();
-    });
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
   }
 
   static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Triangle>(
-      Vector3d(-1, -1, 0),
-      Vector3d( 0,  1, 0),
-      Vector3d( 1, -1, 0)));
-    scene->add(std::make_shared<Triangle>(
-      Vector3d(-1, -1, 1),
-      Vector3d( 0,  1, 1),
-      Vector3d( 1, -1, 1)));
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 1), Vector3d(0, 1, 1), Vector3d(1, -1, 1)));
     return scene;
   }
 
   static std::shared_ptr<Scene> sceneWithDuplicateTriangles() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Triangle>(
-      Vector3d(-1, -1, 0),
-      Vector3d( 0,  1, 0),
-      Vector3d( 1, -1, 0)));
-    scene->add(std::make_shared<Triangle>(
-      Vector3d(-1, -1, 0),
-      Vector3d( 0,  1, 0),
-      Vector3d( 1, -1, 0)));
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
     return scene;
   }
 
@@ -167,6 +148,44 @@ namespace RasterizerTest {
 
   static std::shared_ptr<PinholeCamera> headOnCamera() {
     return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null());
+  }
+
+  static std::shared_ptr<MatteMaterial> matte(const Colord& color) {
+    return std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(color));
+  }
+
+  static std::shared_ptr<Scene> sceneWithDirectionalShadowCaster() {
+    auto scene = std::make_shared<Scene>(Colord(0.1, 0.1, 0.1));
+
+    auto wall = std::make_shared<Rectangle>(Vector3d(-2.0, -2.0, 1.0), Vector3d(0.0, 4.0, 0.0),
+                                            Vector3d(4.0, 0.0, 0.0));
+    wall->setMaterial(matte(Colord::white()));
+    scene->add(wall);
+
+    auto caster = std::make_shared<Box>(Vector3d(0.0, 0.0, 0.0), Vector3d(0.35, 0.35, 0.35));
+    caster->setMaterial(matte(Colord::white()));
+    scene->add(caster);
+
+    scene->addLight(std::make_shared<DirectionalLight>(Vector3d(-0.5, 0.2, -1.0), Colord::white()));
+    return scene;
+  }
+
+  static Colord colorAtWorldPoint(const Buffer<Colord>& buffer,
+                                  const std::shared_ptr<PinholeCamera>& cam,
+                                  const Vector3d& point) {
+    const Vector2d screen = cam->projectPoint(point);
+    EXPECT_TRUE(screen.isDefined());
+    if (screen.isUndefined())
+      return Colord::black();
+    const int x = static_cast<int>(std::lround(screen.x()));
+    const int y = static_cast<int>(std::lround(screen.y()));
+    EXPECT_GE(x, 0);
+    EXPECT_GE(y, 0);
+    EXPECT_LT(x, buffer.width());
+    EXPECT_LT(y, buffer.height());
+    if (x < 0 || y < 0 || x >= buffer.width() || y >= buffer.height())
+      return Colord::black();
+    return buffer[y][x];
   }
 
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
@@ -288,8 +307,9 @@ namespace RasterizerTest {
     sceneAlone->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
 
     auto sceneWithBack = std::make_shared<Scene>(Colord::white());
-    sceneWithBack->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));    // near, idx 0..N-1
-    sceneWithBack->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));  // far back wall
+    sceneWithBack->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0)); // near, idx 0..N-1
+    sceneWithBack->add(
+      std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1))); // far back wall
 
     Rasterizer eAlone(cam, sceneAlone);
     Rasterizer eWithBack(cam, sceneWithBack);
@@ -323,6 +343,9 @@ namespace RasterizerTest {
     EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
     EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
     EXPECT_EQ(1, engine.msaaSamples());
+    EXPECT_FALSE(engine.shadowMapsEnabled());
+    EXPECT_EQ(256, engine.shadowMapSize());
+    EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
   }
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
@@ -365,13 +388,9 @@ namespace RasterizerTest {
     Rasterizer engine(headOnCamera(), sceneWithDuplicateTriangles());
     engine.setStencilTestEnabled(true);
     engine.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
-    engine.setStencilOps(
-      Rasterizer::StencilOp::Replace,
-      Rasterizer::StencilOp::Keep,
-      Rasterizer::StencilOp::Keep);
-    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) {
-      return secondTriangleColor;
-    });
+    engine.setStencilOps(Rasterizer::StencilOp::Replace, Rasterizer::StencilOp::Keep,
+                         Rasterizer::StencilOp::Keep);
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) { return secondTriangleColor; });
 
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
@@ -395,9 +414,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, FragmentShaderOverridesBuiltInShading) {
     const Colord shaderColor(0.25, 0.5, 0.75);
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
-    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) {
-      return shaderColor;
-    });
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);
@@ -426,16 +443,37 @@ namespace RasterizerTest {
     expectCenterLooksLikeTriangleUV(buffer[32][32]);
   }
 
+  TEST(Rasterizer, DirectionalShadowMapsDarkenOccludedDiffuseLight) {
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.5));
+    auto scene = sceneWithDirectionalShadowCaster();
+
+    Rasterizer directOnly(cam, scene);
+    Rasterizer shadowed(cam, scene);
+    shadowed.setShadowMapsEnabled(true);
+    shadowed.setShadowMapSize(256);
+    shadowed.setShadowBias(0.1);
+
+    Buffer<Colord> directBuffer(96, 96);
+    Buffer<Colord> shadowBuffer(96, 96);
+    directOnly.render(directBuffer);
+    shadowed.render(shadowBuffer);
+
+    const Colord directShadowPoint = colorAtWorldPoint(directBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const Colord shadowedShadowPoint =
+      colorAtWorldPoint(shadowBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const Colord shadowedLitPoint = colorAtWorldPoint(shadowBuffer, cam, Vector3d(-1.2, 0.0, 1.0));
+
+    EXPECT_GT(directShadowPoint.r(), shadowedShadowPoint.r() + 0.4);
+    EXPECT_GT(shadowedLitPoint.r(), shadowedShadowPoint.r() + 0.4);
+    EXPECT_LT(shadowedShadowPoint.r(), 0.35);
+  }
+
   TEST(Rasterizer, VertexShaderCanAdjustProjectedPosition) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
-      return Rasterizer::VertexOutput{
-        vertex.worldPosition,
-        vertex.normal,
-        vertex.uv,
-        vertex.clipPosition,
-        vertex.screenPosition + Vector3d(1000, 0, 0)
-      };
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition,
+                                      vertex.screenPosition + Vector3d(1000, 0, 0)};
     });
     Buffer<Colord> buffer(64, 64);
 

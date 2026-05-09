@@ -9,6 +9,7 @@
 #include "render/HomogeneousClipVolume.h"
 #include "render/TilePlan.h"
 #include "render/cameras/Camera.h"
+#include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
@@ -25,6 +26,7 @@
 #include <list>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -86,6 +88,7 @@ using namespace engine::raster;
 namespace {
   class RasterTriangleEmitter;
   class RasterTriangleSet;
+  class ShadowMaps;
 }
 
 // Pimpl: hides Qt threading and render-pass orchestration from the
@@ -189,19 +192,23 @@ struct Rasterizer::Private {
                                const std::shared_ptr<render::Scene>& scene,
                                const render::TilePlan& tilePlan,
                                const RasterTriangleEmitter& triangleEmitter,
-                               const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+                               const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled,
+                               Buffer<Colord>& buffer);
 
   void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                        const render::TilePlan& tilePlan, const SamplePattern& pattern,
-                       const RasterTriangleEmitter& triangleEmitter,
+                       const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
                        const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
   void renderTriangleSetPass(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
-                             const RasterTriangleSet& triangleSet,
-                             const render::TilePlan& tilePlan,
-                             const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-                             const Vector2d& sampleOffset);
+                             const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
+                             const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled,
+                             Buffer<Colord>& buffer, const Vector2d& sampleOffset);
+
+  ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
+                             const std::shared_ptr<render::Scene>& scene,
+                             const std::atomic<bool>& cancelled);
 
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
                                                   const render::TilePlan& tilePlan);
@@ -257,6 +264,10 @@ void Rasterizer::setMSAASamples(int samples) {
   } else {
     m_msaaSamples = 8;
   }
+}
+
+void Rasterizer::setShadowMapSize(int size) {
+  m_shadowMapSize = std::max(1, size);
 }
 
 void Rasterizer::render(Buffer<Colord>& buffer) {
@@ -368,8 +379,7 @@ namespace {
 
     std::size_t addBounds(int rawMinX, int rawMaxX, int rawMinY, int rawMaxY,
                           std::size_t triangleIndex) {
-      if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width() ||
-          rawMinY >= m_plan.height()) {
+      if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width() || rawMinY >= m_plan.height()) {
         return 0;
       }
 
@@ -529,13 +539,127 @@ namespace {
     Vector2d uv;
   };
 
+  // Directional-light shadow maps use their own orthographic camera
+  // math instead of render::OrthographicCamera so top-down lights do
+  // not inherit Camera's fixed world-up degeneracy. The interface is
+  // still Camera-shaped because the raster front end only needs
+  // projectPointToClipSpace() plus a ViewPlane for clip->screen.
+  class DirectionalShadowCamera : public render::Camera {
+  public:
+    DirectionalShadowCamera(const Vector3d& center, const Vector3d& lightDirection,
+                            double halfExtent)
+        : m_origin(center + lightDirection * (halfExtent * 2.0)),
+          m_forward((-lightDirection).normalized()),
+          m_halfExtent(halfExtent) {
+      const Vector3d upCandidate =
+        std::abs(m_forward * Vector3d::up()) > 0.95 ? Vector3d::forward() : Vector3d::up();
+      m_right = (upCandidate ^ m_forward).normalized();
+      m_up = (m_right ^ -m_forward).normalized();
+    }
+
+    Rayd rayForPixel(double, double, render::SampleStream&) const override {
+      return Rayd::undefined();
+    }
+
+    Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override {
+      const Vector3d cameraPoint = toCameraSpace(worldPoint);
+      if (cameraPoint.z() < 0.0)
+        return Vector3d::undefined();
+
+      const auto plane = viewPlane();
+      return Vector3d((cameraPoint.x() / m_halfExtent + 1.0) * plane->width() / 2.0,
+                      (cameraPoint.y() / m_halfExtent + 1.0) * plane->height() / 2.0,
+                      cameraPoint.z());
+    }
+
+    Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const override {
+      const Vector3d cameraPoint = toCameraSpace(worldPoint);
+      return Vector4d(cameraPoint.x() / m_halfExtent, cameraPoint.y() / m_halfExtent,
+                      cameraPoint.z(), 1.0);
+    }
+
+  private:
+    Vector3d toCameraSpace(const Vector3d& worldPoint) const {
+      const Vector3d rel = worldPoint - m_origin;
+      return Vector3d(rel * m_right, rel * m_up, rel * m_forward);
+    }
+
+    Vector3d m_origin;
+    Vector3d m_forward;
+    Vector3d m_right;
+    Vector3d m_up;
+    double m_halfExtent;
+  };
+
+  class DirectionalShadowMap {
+  public:
+    DirectionalShadowMap(const render::Light* light,
+                         std::shared_ptr<DirectionalShadowCamera> camera,
+                         std::unique_ptr<Buffer<double>> depthBuffer, double bias)
+        : m_light(light),
+          m_camera(std::move(camera)),
+          m_depthBuffer(std::move(depthBuffer)),
+          m_bias(bias) {
+    }
+
+    const render::Light* light() const {
+      return m_light;
+    }
+
+    bool isLit(const Vector3d& worldPos) const {
+      const Vector3d shadowPixel = m_camera->projectPointWithDepth(worldPos);
+      if (shadowPixel.isUndefined())
+        return true;
+
+      const int x = static_cast<int>(std::lround(shadowPixel.x()));
+      const int y = static_cast<int>(std::lround(shadowPixel.y()));
+      if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
+        return true;
+
+      const double occluderDepth = (*m_depthBuffer)[y][x];
+      if (!std::isfinite(occluderDepth))
+        return true;
+
+      return shadowPixel.z() <= occluderDepth + m_bias;
+    }
+
+  private:
+    const render::Light* m_light;
+    std::shared_ptr<DirectionalShadowCamera> m_camera;
+    std::unique_ptr<Buffer<double>> m_depthBuffer;
+    double m_bias;
+  };
+
+  class ShadowMaps {
+  public:
+    void add(DirectionalShadowMap shadowMap) {
+      m_directional.push_back(std::move(shadowMap));
+    }
+
+    bool empty() const {
+      return m_directional.empty();
+    }
+
+    bool isLit(const render::Light* light, const Vector3d& worldPos) const {
+      for (const auto& shadowMap : m_directional) {
+        if (shadowMap.light() == light)
+          return shadowMap.isLit(worldPos);
+      }
+      return true;
+    }
+
+  private:
+    std::vector<DirectionalShadowMap> m_directional;
+  };
+
   // The default fragment path is intentionally modest: material
   // albedo plus direct Lambertian lights. More advanced visibility
   // effects belong to later render passes or to the ray/path tracers.
   class MaterialEvaluator {
   public:
-    explicit MaterialEvaluator(const render::Scene* scene)
-        : m_scene(scene) {
+    explicit MaterialEvaluator(const render::Scene* scene, const ShadowMaps* shadowMaps)
+        : m_scene(scene),
+          m_shadowMaps(shadowMaps) {
     }
 
     Colord shade(const RasterTriangle& triangle, const InterpolatedFragment& fragment) const {
@@ -549,14 +673,14 @@ namespace {
       const Vector3d n = normal.normalized();
       const Colord albedo = albedoFor(material, primitive, worldPos, n, uv, faceIdx);
 
-      // Lambertian shading. No shadow rays (no recursive ray tracing
-      // in this engine); each light contributes diffuse-cosine-
-      // weighted radiance directly.
+      // Lambertian shading. Raster shadow maps, when enabled, only
+      // mask direct diffuse light. Ambient remains visible because
+      // it models light not explained by the direct-light pass.
       Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
       for (const auto& light : m_scene->lights()) {
         const Vector3d lightDir = light->direction(worldPos);
         const double nDotL = std::max(0.0, n * lightDir);
-        if (nDotL > 0.0) {
+        if (nDotL > 0.0 && (!m_shadowMaps || m_shadowMaps->isLit(light.get(), worldPos))) {
           shaded += albedo * light->radiance() * nDotL;
         }
       }
@@ -586,6 +710,7 @@ namespace {
     }
 
     const render::Scene* m_scene;
+    const ShadowMaps* m_shadowMaps;
   };
 
   // Small value objects capture fixed-function state at pass setup
@@ -780,12 +905,21 @@ namespace {
     }
   };
 
+  // Shadow-map pass fragment policy. It exists only to satisfy the
+  // shared raster loop's "shade then write colour" contract; the
+  // useful output of the pass is the depth policy's z-buffer write.
+  struct DepthOnlyFragmentPolicy {
+    inline Colord shade(const RasterTriangle&, int, int, double, double, double,
+                        const InterpolatedFragment&) const {
+      return Colord::black();
+    }
+  };
+
   template<class Stencil, class Depth, class Fragment>
   inline void rasterizePreparedTriangleWithPolicies(const RasterTriangle& triangle,
                                                     const Recti& clipRect, Buffer<Colord>& buffer,
-                                                    const Vector2d& sampleOffset,
-                                                    Stencil stencil, Depth depth,
-                                                    Fragment fragmentPolicy) {
+                                                    const Vector2d& sampleOffset, Stencil stencil,
+                                                    Depth depth, Fragment fragmentPolicy) {
     const RasterVertex& v0 = triangle.vertices[0];
     const RasterVertex& v1 = triangle.vertices[1];
     const RasterVertex& v2 = triangle.vertices[2];
@@ -834,8 +968,7 @@ namespace {
   template<class Stencil, class Depth, class Fragment>
   inline void rasterizeTriangleSetWithPolicies(
     const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
-    std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
-    const std::atomic<bool>& cancelled,
+    std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, const std::atomic<bool>& cancelled,
     Buffer<Colord>& buffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
     Fragment fragmentPolicy) {
     if (tilePlan.isSingleTile()) {
@@ -845,13 +978,12 @@ namespace {
       return;
     }
 
-    engine::dispatchTileTasks(tilePlan, threadPool, tasks,
-                              [&, sampleOffset, stencil, depth, fragmentPolicy](
-                                const Recti& rect, std::size_t tileIndex) {
-                                rasterizeTileWithPolicies(triangleSet, rect, tileIndex, buffer,
-                                                          sampleOffset, cancelled, stencil, depth,
-                                                          fragmentPolicy);
-                              });
+    engine::dispatchTileTasks(
+      tilePlan, threadPool, tasks,
+      [&, sampleOffset, stencil, depth, fragmentPolicy](const Recti& rect, std::size_t tileIndex) {
+        rasterizeTileWithPolicies(triangleSet, rect, tileIndex, buffer, sampleOffset, cancelled,
+                                  stencil, depth, fragmentPolicy);
+      });
   }
 
   template<class Stencil, class Fragment, class RenderFn>
@@ -868,7 +1000,7 @@ namespace {
 
   template<class RenderFn>
   inline void withPreparedTrianglePolicies(const render::Scene* scene, const Rasterizer& rasterizer,
-                                           Buffer<double>& zBuffer,
+                                           const ShadowMaps& shadowMaps, Buffer<double>& zBuffer,
                                            Buffer<std::uint8_t>* stencilBuffer, RenderFn&& render) {
     const bool useStencil = rasterizer.stencilTestEnabled();
     const bool useFragmentShader = static_cast<bool>(rasterizer.fragmentShader());
@@ -886,14 +1018,18 @@ namespace {
                                         ShaderFragmentPolicy{rasterizer}, render);
       } else {
         withPreparedTriangleDepthPolicy(rasterizer, zBuffer, stencil,
-                                        BuiltInFragmentPolicy{MaterialEvaluator(scene)}, render);
+                                        BuiltInFragmentPolicy{MaterialEvaluator(
+                                          scene, shadowMaps.empty() ? nullptr : &shadowMaps)},
+                                        render);
       }
     } else if (useFragmentShader) {
       withPreparedTriangleDepthPolicy(rasterizer, zBuffer, NoStencilPolicy{},
                                       ShaderFragmentPolicy{rasterizer}, render);
     } else {
-      withPreparedTriangleDepthPolicy(rasterizer, zBuffer, NoStencilPolicy{},
-                                      BuiltInFragmentPolicy{MaterialEvaluator(scene)}, render);
+      withPreparedTriangleDepthPolicy(
+        rasterizer, zBuffer, NoStencilPolicy{},
+        BuiltInFragmentPolicy{MaterialEvaluator(scene, shadowMaps.empty() ? nullptr : &shadowMaps)},
+        render);
     }
   }
 
@@ -903,12 +1039,14 @@ namespace {
   class RasterTriangleEmitter {
   public:
     RasterTriangleEmitter(const render::Scene* scene, const std::shared_ptr<render::Camera>& camera,
-                          int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled)
+                          int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled,
+                          Rasterizer::CullMode cullMode, bool applyVertexShader)
         : m_scene(scene),
           m_camera(camera),
           m_lod(lod),
           m_rasterizer(rasterizer),
-          m_cullPolicy{rasterizer.cullMode()},
+          m_cullPolicy{cullMode},
+          m_applyVertexShader(applyVertexShader),
           m_cancelled(cancelled) {
     }
 
@@ -1034,14 +1172,16 @@ namespace {
       // The optional vertex shader is deliberately late: it sees
       // already-clipped vertices and may adjust the screen-space
       // result used by the teaching/debug shader path.
-      if (const auto& shader = m_rasterizer.vertexShader()) {
-        Rasterizer::VertexInput input{vertex.point,  vertex.normal, vertex.uv, vertex.clip,
-                                      vertex.screen, primitive,     material,  faceIdx};
-        const Rasterizer::VertexOutput output = shader(input);
-        point = output.worldPosition;
-        normal = output.normal;
-        uv = output.uv;
-        screen = output.screenPosition;
+      if (m_applyVertexShader) {
+        if (const auto& shader = m_rasterizer.vertexShader()) {
+          Rasterizer::VertexInput input{vertex.point,  vertex.normal, vertex.uv, vertex.clip,
+                                        vertex.screen, primitive,     material,  faceIdx};
+          const Rasterizer::VertexOutput output = shader(input);
+          point = output.worldPosition;
+          normal = output.normal;
+          uv = output.uv;
+          screen = output.screenPosition;
+        }
       }
 
       if (screen.isUndefined() || screen.z() <= 0.0)
@@ -1077,13 +1217,15 @@ namespace {
     int m_lod;
     const Rasterizer& m_rasterizer;
     TriangleCullPolicy m_cullPolicy;
+    bool m_applyVertexShader;
     const std::atomic<bool>& m_cancelled;
   };
 
 }
 
-RasterTriangleSet Rasterizer::Private::collectRasterTriangles(
-  const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan) {
+RasterTriangleSet
+Rasterizer::Private::collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
+                                            const render::TilePlan& tilePlan) {
   // The emitter streams triangles, the set owns them and their tile
   // bins. Keeping those roles separate makes the later tile raster
   // pass independent of scene traversal and tessellation.
@@ -1106,39 +1248,93 @@ void Rasterizer::Private::resolveMSAA(Buffer<Colord>& buffer, int sampleCount) {
       buffer[y][x] = buffer[y][x] * resolveScale;
 }
 
+ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
+                                                const std::shared_ptr<render::Scene>& scene,
+                                                const std::atomic<bool>& cancelled) {
+  ShadowMaps shadowMaps;
+  if (!rasterizer.shadowMapsEnabled() || rasterizer.fragmentShader() || cancelled.load())
+    return shadowMaps;
+
+  const BoundingBoxd bounds = scene->boundingBox();
+  if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite())
+    return shadowMaps;
+
+  const int size = rasterizer.shadowMapSize();
+  const double halfExtent = std::max(1.0, bounds.size().length() * 0.5) * 1.05;
+  const Vector3d center = bounds.center();
+
+  for (const auto& light : scene->lights()) {
+    if (cancelled.load())
+      break;
+
+    auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light);
+    if (!directional)
+      continue;
+
+    auto shadowCamera =
+      std::make_shared<DirectionalShadowCamera>(center, directional->direction(), halfExtent);
+    shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
+    shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
+
+    auto depthBuffer = std::make_unique<Buffer<double>>(size, size);
+    depthBuffer->clear(std::numeric_limits<double>::infinity());
+
+    Buffer<Colord> scratch(size, size);
+    scratch.clear(Colord::black());
+    const render::TilePlan shadowTilePlan = render::TilePlan::forBuffer(size, size, 1);
+    RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
+                                        cancelled, Rasterizer::CullMode::Both, false);
+    const RasterTriangleSet shadowTriangles = collectRasterTriangles(shadowEmitter, shadowTilePlan);
+    if (!shadowTriangles.empty()) {
+      std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
+      rasterizeTriangleSetWithPolicies(
+        shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled, scratch,
+        Vector2d(0.0, 0.0), NoStencilPolicy{},
+        DepthWritePolicy{*depthBuffer, DepthState{Rasterizer::DepthFunc::Less}},
+        DepthOnlyFragmentPolicy{});
+    }
+
+    shadowMaps.add(DirectionalShadowMap(light.get(), shadowCamera, std::move(depthBuffer),
+                                        rasterizer.shadowBias()));
+  }
+
+  return shadowMaps;
+}
+
 void Rasterizer::Private::renderTriangleSetPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
-  const std::atomic<bool>& cancelled, Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
+  const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+  const Vector2d& sampleOffset) {
   // A pass freezes current depth/stencil/shader state into policies,
   // then hands the triangle set to either the direct or tiled path.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer);
-  withPreparedTrianglePolicies(scene.get(), rasterizer, passBuffers.depth(), passBuffers.stencil(),
-                               [&](auto stencil, auto depth, auto fragmentPolicy) {
-                                 rasterizeTriangleSetWithPolicies(
-                                   triangleSet, tilePlan, *threadPool, tasks, cancelled,
-                                   passBuffers.color(), sampleOffset, stencil, depth,
-                                   fragmentPolicy);
-                               });
+  withPreparedTrianglePolicies(
+    scene.get(), rasterizer, shadowMaps, passBuffers.depth(), passBuffers.stencil(),
+    [&](auto stencil, auto depth, auto fragmentPolicy) {
+      rasterizeTriangleSetWithPolicies(triangleSet, tilePlan, *threadPool, tasks, cancelled,
+                                       passBuffers.color(), sampleOffset, stencil, depth,
+                                       fragmentPolicy);
+    });
 }
 
 void Rasterizer::Private::renderSingleSampleFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const RasterTriangleEmitter& triangleEmitter,
-  const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
 
-  renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, cancelled, buffer,
+  renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, cancelled, buffer,
                         Vector2d(0.0, 0.0));
 }
 
 void Rasterizer::Private::renderMSAAFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const SamplePattern& pattern,
-  const RasterTriangleEmitter& triangleEmitter, const std::atomic<bool>& cancelled,
-  Buffer<Colord>& buffer) {
+  const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
+  const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
@@ -1155,8 +1351,8 @@ void Rasterizer::Private::renderMSAAFrame(
     sampleBuffer.clear(rasterizer.backgroundColor());
 
     const Vector2d& sampleOffset = pattern.offsets[sampleIndex];
-    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, cancelled, sampleBuffer,
-                          sampleOffset);
+    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, cancelled,
+                          sampleBuffer, sampleOffset);
 
     if (cancelled.load())
       return;
@@ -1169,8 +1365,7 @@ void Rasterizer::Private::renderMSAAFrame(
 void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
                                       const std::shared_ptr<render::Scene>& scene,
                                       const std::shared_ptr<render::Camera>& camera,
-                                      const std::atomic<bool>& cancelled,
-                                      Buffer<Colord>& buffer) {
+                                      const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   const int width = buffer.width();
   const int height = buffer.height();
 
@@ -1180,11 +1375,14 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
   const SamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
-                                              cancelled);
+                                              cancelled, rasterizer.cullMode(), true);
+  const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, cancelled);
   if (pattern.count > 1) {
-    renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, cancelled, buffer);
+    renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, cancelled,
+                    buffer);
     return;
   }
 
-  renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, cancelled, buffer);
+  renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, cancelled,
+                          buffer);
 }

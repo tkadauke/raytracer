@@ -50,41 +50,30 @@ namespace {
   TimingStats summarizeTimings(std::vector<double> timings) {
     std::sort(timings.begin(), timings.end());
     const std::size_t n = timings.size();
-    const double median = (n % 2 == 0)
-      ? (timings[n / 2 - 1] + timings[n / 2]) / 2.0
-      : timings[n / 2];
+    const double median =
+      (n % 2 == 0) ? (timings[n / 2 - 1] + timings[n / 2]) / 2.0 : timings[n / 2];
     const double total = std::accumulate(timings.begin(), timings.end(), 0.0);
-    return {
-      timings.front(),
-      median,
-      total / static_cast<double>(n),
-      timings.back()
-    };
+    return {timings.front(), median, total / static_cast<double>(n), timings.back()};
   }
 
   void printTimings(const std::vector<double>& timings) {
     const auto stats = summarizeTimings(timings);
-    std::cout << std::fixed << std::setprecision(3)
-              << "render_ms"
-              << " runs=" << timings.size()
-              << " min=" << stats.minMs
-              << " median=" << stats.medianMs
-              << " avg=" << stats.avgMs
-              << " max=" << stats.maxMs
+    std::cout << std::fixed << std::setprecision(3) << "render_ms"
+              << " runs=" << timings.size() << " min=" << stats.minMs
+              << " median=" << stats.medianMs << " avg=" << stats.avgMs << " max=" << stats.maxMs
               << '\n';
   }
 }
 
 class Renderer {
 public:
-  enum CommandLineParseResult
-  {
+  enum CommandLineParseResult {
     CommandLineOk,
     CommandLineError,
     CommandLineVersionRequested,
     CommandLineHelpRequested
   };
-  
+
   Renderer();
   void render() const;
   CommandLineParseResult parseCommandLine(QString* errorMessage);
@@ -92,11 +81,11 @@ public:
   QImage bufferToImage(const Buffer<unsigned int>& buffer) const;
 
   QCommandLineParser parser;
-  
+
 private:
   QString m_filename;
   QString m_output;
-  
+
   int m_maximumRecursionDepth;
   int m_width;
   int m_height;
@@ -111,29 +100,35 @@ private:
   int m_wireframeLod;
   QString m_rasterCullMode;
   int m_rasterMsaaSamples;
+  bool m_rasterShadowMaps;
+  int m_rasterShadowMapSize;
+  double m_rasterShadowBias;
   int m_repeat;
   bool m_timing;
 };
 
 Renderer::Renderer()
-  : m_maximumRecursionDepth(10),
-    m_width(640),
-    m_height(480),
-    m_sampler("Regular"),
-    m_samplesPerPixel(1),
-    m_threads(QThread::idealThreadCount()),
-    m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
-    m_threadsSet(false),
-    m_queueSizeSet(false),
-    m_tonemap("Linear"),
-    m_engine("raytracer"),
-    m_wireframeLod(0),
-    m_rasterCullMode("both"),
-    m_rasterMsaaSamples(1),
-    m_repeat(1),
-    m_timing(false)
-{
-  parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
+    : m_maximumRecursionDepth(10),
+      m_width(640),
+      m_height(480),
+      m_sampler("Regular"),
+      m_samplesPerPixel(1),
+      m_threads(QThread::idealThreadCount()),
+      m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
+      m_threadsSet(false),
+      m_queueSizeSet(false),
+      m_tonemap("Linear"),
+      m_engine("raytracer"),
+      m_wireframeLod(0),
+      m_rasterCullMode("both"),
+      m_rasterMsaaSamples(1),
+      m_rasterShadowMaps(false),
+      m_rasterShadowMapSize(256),
+      m_rasterShadowBias(1e-3),
+      m_repeat(1),
+      m_timing(false) {
+  parser.setApplicationDescription(
+    QCoreApplication::translate("rendercli", "Command line renderer."));
 }
 
 void Renderer::render() const {
@@ -158,25 +153,31 @@ void Renderer::render() const {
 
   if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
-    if (rtCamera) wireframe->setCamera(rtCamera);
+    if (rtCamera)
+      wireframe->setCamera(rtCamera);
     wireframe->setLod(m_wireframeLod);
     engine = wireframe;
   } else if (m_engine == "raster") {
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
-    if (rtCamera) raster->setCamera(rtCamera);
-    raster->setLod(m_wireframeLod);  // shares the LOD knob with Wireframe
+    if (rtCamera)
+      raster->setCamera(rtCamera);
+    raster->setLod(m_wireframeLod); // shares the LOD knob with Wireframe
     if (m_rasterCullMode == "back") {
       raster->setCullMode(engine::raster::Rasterizer::CullMode::Back);
     } else if (m_rasterCullMode == "front") {
       raster->setCullMode(engine::raster::Rasterizer::CullMode::Front);
     }
-    if (m_threadsSet) raster->setMaximumThreads(m_threads);
+    if (m_threadsSet)
+      raster->setMaximumThreads(m_threads);
     if (m_queueSizeSet) {
       raster->setQueueSize(m_queueSize);
     } else if (m_threadsSet) {
       raster->setQueueSize(m_threads);
     }
     raster->setMSAASamples(m_rasterMsaaSamples);
+    raster->setShadowMapsEnabled(m_rasterShadowMaps);
+    raster->setShadowMapSize(m_rasterShadowMapSize);
+    raster->setShadowBias(m_rasterShadowBias);
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -229,46 +230,51 @@ std::shared_ptr<render::Sampler> Renderer::sampler() const {
 
 QImage Renderer::bufferToImage(const Buffer<unsigned int>& buffer) const {
   QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
-  
+
   for (int i = 0; i != buffer.width(); ++i) {
     for (int j = 0; j != buffer.height(); ++j) {
       image.setPixel(i, j, buffer[j][i]);
     }
   }
-  
+
   return image;
 }
 
-Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessage) {
-  parser.setApplicationDescription(QCoreApplication::translate("rendercli", "Command line renderer."));
+Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessage) {
+  parser.setApplicationDescription(
+    QCoreApplication::translate("rendercli", "Command line renderer."));
   const QCommandLineOption helpOption = parser.addHelpOption();
   const QCommandLineOption versionOption = parser.addVersionOption();
-  
-  parser.addOptions({
-    {"width", "Output image width", "width"},
-    {"height", "Output image height", "height"},
-    {"depth", "Maximum recursion depth", "depth"},
-    {"sampler", "Sampler type", "sampler"},
-    {"samples_per_pixel", "Samples per pixel", "samples"},
-    {{"j", "threads"}, "Number of threads", "threads"},
-    {"queue_size", "Queue size for thread pool", "queue_size"},
-    {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
-    {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
-    {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
-    {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
-    {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
-    {"timing", "Print render-only timing information to stdout"},
-    {"repeat", "Render the loaded scene N times and print render-only timing statistics", "runs"}
-  });
-  
-  parser.addPositionalArgument("input", QCoreApplication::translate("main", "Input file to render."));
+
+  parser.addOptions(
+    {{"width", "Output image width", "width"},
+     {"height", "Output image height", "height"},
+     {"depth", "Maximum recursion depth", "depth"},
+     {"sampler", "Sampler type", "sampler"},
+     {"samples_per_pixel", "Samples per pixel", "samples"},
+     {{"j", "threads"}, "Number of threads", "threads"},
+     {"queue_size", "Queue size for thread pool", "queue_size"},
+     {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
+     {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
+     {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
+     {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
+     {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
+     {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
+     {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
+     {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
+     {"timing", "Print render-only timing information to stdout"},
+     {"repeat", "Render the loaded scene N times and print render-only timing statistics",
+      "runs"}});
+
+  parser.addPositionalArgument("input",
+                               QCoreApplication::translate("main", "Input file to render."));
   parser.addPositionalArgument("output", QCoreApplication::translate("main", "Output file."));
-  
+
   if (!parser.parse(QCoreApplication::arguments())) {
     *errorMessage = parser.errorText();
     return CommandLineError;
   }
-  
+
   if (parser.isSet(versionOption))
     return CommandLineVersionRequested;
 
@@ -292,7 +298,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       return CommandLineError;
     }
   }
-  
+
   if (parser.isSet("depth")) {
     const QString depthValue = parser.value("depth");
     m_maximumRecursionDepth = depthValue.toInt();
@@ -305,7 +311,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
   if (parser.isSet("sampler")) {
     m_sampler = parser.value("sampler");
   }
-  
+
   if (parser.isSet("samples_per_pixel")) {
     const QString samplesPerPixelValue = parser.value("samples_per_pixel");
     m_samplesPerPixel = samplesPerPixelValue.toInt();
@@ -314,7 +320,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
       return CommandLineError;
     }
   }
-  
+
   if (parser.isSet("threads")) {
     const QString threadsValue = parser.value("threads");
     m_threads = threadsValue.toInt();
@@ -324,7 +330,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     }
     m_threadsSet = true;
   }
-  
+
   if (parser.isSet("queue_size")) {
     const QString queueSizeValue = parser.value("queue_size");
     m_queueSize = queueSizeValue.toInt();
@@ -369,9 +375,31 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
   if (parser.isSet("msaa")) {
     bool ok = false;
     m_rasterMsaaSamples = parser.value("msaa").toInt(&ok);
-    if (!ok || (m_rasterMsaaSamples != 1 && m_rasterMsaaSamples != 2
-        && m_rasterMsaaSamples != 4 && m_rasterMsaaSamples != 8)) {
+    if (!ok || (m_rasterMsaaSamples != 1 && m_rasterMsaaSamples != 2 && m_rasterMsaaSamples != 4 &&
+                m_rasterMsaaSamples != 8)) {
       *errorMessage = "MSAA samples must be 1, 2, 4, or 8";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("shadow_maps")) {
+    m_rasterShadowMaps = true;
+  }
+
+  if (parser.isSet("shadow_map_size")) {
+    bool ok = false;
+    m_rasterShadowMapSize = parser.value("shadow_map_size").toInt(&ok);
+    if (!ok || m_rasterShadowMapSize <= 0) {
+      *errorMessage = "Shadow map size must be a positive integer";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("shadow_bias")) {
+    bool ok = false;
+    m_rasterShadowBias = parser.value("shadow_bias").toDouble(&ok);
+    if (!ok || m_rasterShadowBias < 0.0) {
+      *errorMessage = "Shadow bias must be a non-negative number";
       return CommandLineError;
     }
   }
@@ -391,7 +419,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
   }
 
   const QStringList args = parser.positionalArguments();
-  
+
   if (args.size() < 2) {
     *errorMessage = "Need input and output filename";
     return CommandLineError;
@@ -399,23 +427,24 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString *errorMessag
     m_filename = args.at(0);
     m_output = args.at(1);
   }
-  
+
   return CommandLineOk;
 }
 
 int main(int argc, char** argv) {
   QCoreApplication app(argc, argv);
-  QCoreApplication::setApplicationName(QCoreApplication::translate("rendercli", "Command line renderer"));
-  
+  QCoreApplication::setApplicationName(
+    QCoreApplication::translate("rendercli", "Command line renderer"));
+
   qRegisterMetaType<Vector3d>();
   qRegisterMetaType<Angled>();
   qRegisterMetaType<Colord>();
   qRegisterMetaType<Material*>();
   qRegisterMetaType<Texture*>();
-  
+
   Renderer r;
   QString errorMessage;
-  
+
   switch (r.parseCommandLine(&errorMessage)) {
   case Renderer::CommandLineOk:
     break;
@@ -432,6 +461,6 @@ int main(int argc, char** argv) {
     r.parser.showHelp();
     Q_UNREACHABLE();
   }
-  
+
   r.render();
 }
