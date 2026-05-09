@@ -18,6 +18,7 @@ namespace testing {
         m_buffer(200, 150),
         m_cancelled(false) {
     previousObjectSize = 0;
+    previousEdgeCount = 0;
   }
 
   void EngineFeatureTest::beforeThen() {

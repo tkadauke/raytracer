@@ -270,7 +270,7 @@ Existing 91 functional tests didn't need any migration — none of their step st
 #### E. Cover the new-abstraction surface *(~3 days)*
 
 - **Matte + Phong materials** — full given/when/then coverage matching `ReflectiveMaterial`'s existing pattern.
-- **ThinLensCamera focus-plane invariant** — "a sphere on the focus plane is sharp; an off-plane sphere is blurred" via `ShapeRecognition` edge-pixel-density delta.
+- ~~**ThinLensCamera focus-plane invariant** — "a sphere on the focus plane is sharp; an off-plane sphere is blurred" via `ShapeRecognition` edge-pixel-density delta.~~ ✅ **Done.** `ThinLensCameraTest.FocalPlaneContractSharpVsBlurred` compares focused vs. defocused silhouette edge-transition counts.
 - **TiltShiftCamera + EquirectangularCamera** — visibility + framing tests at parity with `PinholeCamera`.
 - ~~**Tonemap monotonicity** — render the same HDR scene through `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap`, assert the max LDR pixel value ordering across the built-in operators.~~ ✅ **Done.** PR #58 adds `TonemapMonotonicityTest` for an HDR Lambertian render; the shipped Narkowicz ACES fit has brighter midtones than Reinhard, so the pinned max-channel order is `Linear ≥ ACES ≥ Reinhard`.
 - **Sampler determinism** — `RegularSampler` produces bit-identical output across runs for a deterministic scene; `JitteredSampler` produces statistically-uniform sub-pixel coverage (test the histogram, not the bytes); `RandomSampler` differs across runs at fixed seed only when re-seeded.
