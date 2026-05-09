@@ -448,23 +448,24 @@ namespace {
          - (v1.screen.y() - v0.screen.y()) * (v2.screen.x() - v0.screen.x());
   }
 
-  inline bool shouldCullTriangle(Rasterizer::CullMode mode,
-                                 const ClipVert& v0,
-                                 const ClipVert& v1,
-                                 const ClipVert& v2) {
-    if (mode == Rasterizer::CullMode::Both) return false;
+  struct TriangleCullPolicy {
+    Rasterizer::CullMode mode;
 
-    // Tessellated primitives use CCW winding when viewed from the
-    // outside. With the current camera projection, front-facing
-    // triangles have negative projected area and back-facing
-    // triangles have positive projected area.
-    const double area = signedScreenArea(v0, v1, v2);
-    if (area == 0.0) return false;
+    bool shouldCull(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) const {
+      if (mode == Rasterizer::CullMode::Both) return false;
 
-    return mode == Rasterizer::CullMode::Back
-      ? area > 0.0
-      : area < 0.0;
-  }
+      // Tessellated primitives use CCW winding when viewed from the
+      // outside. With the current camera projection, front-facing
+      // triangles have negative projected area and back-facing
+      // triangles have positive projected area.
+      const double area = signedScreenArea(v0, v1, v2);
+      if (area == 0.0) return false;
+
+      return mode == Rasterizer::CullMode::Back
+        ? area > 0.0
+        : area < 0.0;
+    }
+  };
 
   // Recursive scene walker — visits every leaf primitive and emits
   // (primitive, effective material) pairs to the callback. Composite
@@ -864,6 +865,7 @@ namespace {
         m_camera(camera),
         m_lod(lod),
         m_rasterizer(rasterizer),
+        m_cullPolicy{rasterizer.cullMode()},
         m_cancelled(cancelled) {
     }
 
@@ -965,7 +967,7 @@ namespace {
                               const ClipVert& v1,
                               const ClipVert& v2,
                               EmitFn& callback) const {
-      if (shouldCullTriangle(m_rasterizer.cullMode(), v0, v1, v2)) {
+      if (m_cullPolicy.shouldCull(v0, v1, v2)) {
         return;
       }
 
@@ -1044,6 +1046,7 @@ namespace {
     const std::shared_ptr<render::Camera>& m_camera;
     int m_lod;
     const Rasterizer& m_rasterizer;
+    TriangleCullPolicy m_cullPolicy;
     const std::atomic<bool>& m_cancelled;
   };
 }
@@ -1184,6 +1187,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   if (tileCount == 1 && usesBuiltInDepthStencilAndFragment(*this) && !m_vertexShader) {
     std::uint64_t globalFaceIdx = 0;
     const MaterialEvaluator materialEvaluator(m_scene.get());
+    const TriangleCullPolicy cullPolicy{m_cullMode};
     walkLeaves(m_scene.get(), nullptr,
       [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
         if (m_cancelled.load()) return;
@@ -1230,7 +1234,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
               ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
                 vertices[face[i + 1]].uv, Vector4d::undefined(), p2.screen };
 
-              if (shouldCullTriangle(m_cullMode, v0, v1, v2)) continue;
+              if (cullPolicy.shouldCull(v0, v1, v2)) continue;
 
               const Vector3d& s0 = v0.screen;
               const Vector3d& s1 = v1.screen;
@@ -1298,7 +1302,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
                   || !ensureScreen(v2, viewPlane)) {
                 continue;
               }
-              if (shouldCullTriangle(m_cullMode, v0, v1, v2)) continue;
+              if (cullPolicy.shouldCull(v0, v1, v2)) continue;
 
               const Vector3d& s0 = v0.screen;
               const Vector3d& s1 = v1.screen;
