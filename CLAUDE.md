@@ -281,6 +281,38 @@ a "math-side" interpretation, pick the natural one. ThinLensCamera's
 A thin layer of "translate from user model to math model" in the
 implementation is fine; surfacing the math model in the API is not.
 
+## Keeping the textbook in sync
+
+The long-form textbook lives under `docs/markdown/` and is tracked by
+[`docs/plans/textbook.md`](docs/plans/textbook.md). Each chapter declares
+its **source anchors** — the files the chapter is "about" — and embeds
+widgets and rendered images by reference. A chapter that points at code
+that no longer exists is worse than no chapter at all.
+
+PRs that touch the codebase must consider chapter impact in the same PR:
+
+- **Renamed, moved, or deleted source file** that appears in any chapter's
+  *Source anchors* list → update the anchor in the same PR. Use
+  `rake docs:textbook:check` to catch dangling links before pushing.
+- **New public class, algorithm, or visible behaviour** — if it fits inside
+  an existing chapter's narrative arc, add a paragraph plus a source pointer
+  there. If it opens a new topic, add a `## TODO: chapter ...` line at the
+  end of the closest-matching chapter and (optionally) file a follow-up
+  issue. Don't ship new visible behaviour without telling the book.
+- **New `scripts/docs/*.js` widget** → either embed it via
+  `<!-- widget: foo -->` in an existing chapter or list it under the
+  closest chapter's "candidate embeds". A widget that exists but isn't
+  referenced is a sign the book missed an update.
+- **Removed widget or rendered image** that the book references → drop the
+  reference in the same PR. `rake docs:textbook:check` flags dangling
+  references the same way it flags dangling source anchors.
+- **Regenerate the source-map appendix** when any chapter's anchors list
+  changes: `rake docs:textbook:source-map`. The output
+  (`docs/markdown/appendix/c-source-map.md`) is committed.
+
+If you're not sure whether a change touches the book, run `rake
+docs:textbook:check` — drift surfaces as concrete file lists.
+
 ## Notes / Gotchas
 
 - macOS auto-detects Homebrew Qt 5 via `brew --prefix qt@5`; other platforms need `-DCMAKE_PREFIX_PATH=/path/to/qt5` (Linux: `apt install qtbase5-dev qtscript5-dev`).
