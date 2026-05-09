@@ -466,73 +466,6 @@ namespace {
       : area < 0.0;
   }
 
-  inline bool makeRasterVertex(const ClipVert& vertex,
-                               const Rasterizer& rasterizer,
-                               const render::Primitive* primitive,
-                               const render::Material* material,
-                               std::uint64_t faceIdx,
-                               RasterVertex& out) {
-    Vector3d point = vertex.point;
-    Vector3d normal = vertex.normal;
-    Vector2d uv = vertex.uv;
-    Vector3d screen = vertex.screen;
-
-    if (const auto& shader = rasterizer.vertexShader()) {
-      Rasterizer::VertexInput input{
-        vertex.point,
-        vertex.normal,
-        vertex.uv,
-        vertex.clip,
-        vertex.screen,
-        primitive,
-        material,
-        faceIdx
-      };
-      const Rasterizer::VertexOutput output = shader(input);
-      point = output.worldPosition;
-      normal = output.normal;
-      uv = output.uv;
-      screen = output.screenPosition;
-    }
-
-    if (screen.isUndefined() || screen.z() <= 0.0) return false;
-
-    out = {
-      point,
-      normal,
-      uv,
-      1.0 / screen.z(),
-      static_cast<int>(std::lround(screen.x())),
-      static_cast<int>(std::lround(screen.y()))
-    };
-    return true;
-  }
-
-  inline bool makeRasterTriangle(const ClipVert& v0,
-                                 const ClipVert& v1,
-                                 const ClipVert& v2,
-                                 const Rasterizer& rasterizer,
-                                 const render::Primitive* primitive,
-                                 const std::shared_ptr<render::Material>& material,
-                                 std::uint64_t faceIdx,
-                                 RasterTriangle& out) {
-    RasterVertex r0, r1, r2;
-    const render::Material* materialPtr = material.get();
-    if (!makeRasterVertex(v0, rasterizer, primitive, materialPtr, faceIdx, r0)
-        || !makeRasterVertex(v1, rasterizer, primitive, materialPtr, faceIdx, r1)
-        || !makeRasterVertex(v2, rasterizer, primitive, materialPtr, faceIdx, r2)) {
-      return false;
-    }
-
-    out = RasterTriangle{
-      {{ r0, r1, r2 }},
-      primitive,
-      material,
-      faceIdx
-    };
-    return true;
-  }
-
   // A reasonably colour-spread hash from a uint64 face index → RGB
   // in [0, 1]³. Fallback when a primitive has no material from which
   // an albedo can be recovered.
@@ -914,114 +847,199 @@ namespace {
     }
   }
 
-  template<class EmitFn>
-  void emitRasterTriangles(const render::Scene* scene,
-                           const std::shared_ptr<render::Camera>& camera,
-                           int lod,
-                           const Rasterizer& rasterizer,
-                           const std::atomic<bool>& cancelled,
-                           EmitFn&& callback) {
-    std::uint64_t globalFaceIdx = 0;
-    walkLeaves(scene, nullptr,
-      [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
-        if (cancelled.load()) return;
+  class RasterTriangleEmitter {
+  public:
+    RasterTriangleEmitter(const render::Scene* scene,
+                          const std::shared_ptr<render::Camera>& camera,
+                          int lod,
+                          const Rasterizer& rasterizer,
+                          const std::atomic<bool>& cancelled)
+      : m_scene(scene),
+        m_camera(camera),
+        m_lod(lod),
+        m_rasterizer(rasterizer),
+        m_cancelled(cancelled) {
+    }
 
-        auto mesh = primitive->tessellate(lod);
-        if (!mesh) return;
+    template<class EmitFn>
+    void forEachTriangle(EmitFn&& callback) const {
+      std::uint64_t globalFaceIdx = 0;
+      walkLeaves(m_scene, nullptr,
+        [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
+          if (m_cancelled.load()) return;
 
-        const auto& vertices = mesh->vertices();
-        const auto& faces = mesh->faces();
-        const auto& viewPlane = *camera->viewPlane();
+          auto mesh = primitive->tessellate(m_lod);
+          if (!mesh) return;
 
-        std::vector<ProjectedVertex> projected(vertices.size());
-        for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
-          const auto& vertex = vertices[vi];
-          const Vector4d clip = camera->projectPointToClipSpace(vertex.point);
-          const std::uint8_t outCode = clipOutCode(clip);
-          projected[vi] = {
-            clip,
-            outCode == 0 ? screenFromClipUnchecked(clip, viewPlane) : Vector3d::undefined(),
-            outCode
-          };
-        }
+          const auto& vertices = mesh->vertices();
+          const auto& faces = mesh->faces();
+          const auto& viewPlane = *m_camera->viewPlane();
 
-        for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
-          if (cancelled.load()) return;
+          std::vector<ProjectedVertex> projected(vertices.size());
+          for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
+            const auto& vertex = vertices[vi];
+            const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
+            const std::uint8_t outCode = clipOutCode(clip);
+            projected[vi] = {
+              clip,
+              outCode == 0 ? screenFromClipUnchecked(clip, viewPlane) : Vector3d::undefined(),
+              outCode
+            };
+          }
 
-          const auto& face = faces[fi];
-          if (face.size() < 3) continue;
+          for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
+            if (m_cancelled.load()) return;
 
-          for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-            const ProjectedVertex& p0 = projected[face[0]];
-            const ProjectedVertex& p1 = projected[face[i]];
-            const ProjectedVertex& p2 = projected[face[i + 1]];
-            if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
-              continue;
-            }
+            const auto& face = faces[fi];
+            if (face.size() < 3) continue;
 
-            const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
-            if (outCodeOr == 0) {
-              ClipVert v0{ vertices[face[0]].point, vertices[face[0]].normal,
-                vertices[face[0]].uv, Vector4d::undefined(), p0.screen };
-              ClipVert v1{ vertices[face[i]].point, vertices[face[i]].normal,
-                vertices[face[i]].uv, Vector4d::undefined(), p1.screen };
-              ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                vertices[face[i + 1]].uv, Vector4d::undefined(), p2.screen };
-
-              if (shouldCullTriangle(rasterizer.cullMode(), v0, v1, v2)) {
+            for (std::size_t i = 1; i + 1 < face.size(); ++i) {
+              const ProjectedVertex& p0 = projected[face[0]];
+              const ProjectedVertex& p1 = projected[face[i]];
+              const ProjectedVertex& p2 = projected[face[i + 1]];
+              if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
                 continue;
               }
 
-              RasterTriangle triangle;
-              if (makeRasterTriangle(v0, v1, v2,
-                    rasterizer, primitive, material, globalFaceIdx, triangle)) {
-                callback(triangle);
-              }
-              continue;
-            }
+              const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
+              if (outCodeOr == 0) {
+                ClipVert v0{ vertices[face[0]].point, vertices[face[0]].normal,
+                  vertices[face[0]].uv, Vector4d::undefined(), p0.screen };
+                ClipVert v1{ vertices[face[i]].point, vertices[face[i]].normal,
+                  vertices[face[i]].uv, Vector4d::undefined(), p1.screen };
+                ClipVert v2{ vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+                  vertices[face[i + 1]].uv, Vector4d::undefined(), p2.screen };
 
-            // Sutherland-Hodgman homogeneous clipping. The camera
-            // gives us un-divided clip coordinates, so the same
-            // polygon clipper handles the near plane and the four
-            // viewport edges before any perspective divide can blow
-            // up screen coordinates.
-            const std::array<ClipVert, 3> input = {{
-              { vertices[face[0]].point, vertices[face[0]].normal,
-                vertices[face[0]].uv, p0.clip, p0.screen },
-              { vertices[face[i]].point, vertices[face[i]].normal,
-                vertices[face[i]].uv, p1.clip, p1.screen },
-              { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                vertices[face[i + 1]].uv, p2.clip, p2.screen },
-            }};
-
-            ClipPolygon clipped;
-            const std::size_t clippedCount = clipTriangleToView(input, clipped);
-            if (clippedCount < 3) continue;
-
-            for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
-              ClipVert v0 = clipped[0];
-              ClipVert v1 = clipped[t];
-              ClipVert v2 = clipped[t + 1];
-
-              if (!ensureScreen(v0, viewPlane)
-                  || !ensureScreen(v1, viewPlane)
-                  || !ensureScreen(v2, viewPlane)) {
-                continue;
-              }
-              if (shouldCullTriangle(rasterizer.cullMode(), v0, v1, v2)) {
+                emitPreparedTriangle(primitive, material, globalFaceIdx, v0, v1, v2, callback);
                 continue;
               }
 
-              RasterTriangle triangle;
-              if (makeRasterTriangle(v0, v1, v2,
-                    rasterizer, primitive, material, globalFaceIdx, triangle)) {
-                callback(triangle);
+              // Sutherland-Hodgman homogeneous clipping. The camera
+              // gives us un-divided clip coordinates, so the same
+              // polygon clipper handles the near plane and the four
+              // viewport edges before any perspective divide can blow
+              // up screen coordinates.
+              const std::array<ClipVert, 3> input = {{
+                { vertices[face[0]].point, vertices[face[0]].normal,
+                  vertices[face[0]].uv, p0.clip, p0.screen },
+                { vertices[face[i]].point, vertices[face[i]].normal,
+                  vertices[face[i]].uv, p1.clip, p1.screen },
+                { vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+                  vertices[face[i + 1]].uv, p2.clip, p2.screen },
+              }};
+
+              ClipPolygon clipped;
+              const std::size_t clippedCount = clipTriangleToView(input, clipped);
+              if (clippedCount < 3) continue;
+
+              for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
+                ClipVert v0 = clipped[0];
+                ClipVert v1 = clipped[t];
+                ClipVert v2 = clipped[t + 1];
+
+                if (!ensureScreen(v0, viewPlane)
+                    || !ensureScreen(v1, viewPlane)
+                    || !ensureScreen(v2, viewPlane)) {
+                  continue;
+                }
+
+                emitPreparedTriangle(primitive, material, globalFaceIdx, v0, v1, v2, callback);
               }
             }
           }
-        }
-      });
-  }
+        });
+    }
+
+  private:
+    template<class EmitFn>
+    void emitPreparedTriangle(const render::Primitive* primitive,
+                              const std::shared_ptr<render::Material>& material,
+                              std::uint64_t faceIdx,
+                              const ClipVert& v0,
+                              const ClipVert& v1,
+                              const ClipVert& v2,
+                              EmitFn& callback) const {
+      if (shouldCullTriangle(m_rasterizer.cullMode(), v0, v1, v2)) {
+        return;
+      }
+
+      RasterTriangle triangle;
+      if (makeTriangle(v0, v1, v2, primitive, material, faceIdx, triangle)) {
+        callback(triangle);
+      }
+    }
+
+    bool makeVertex(const ClipVert& vertex,
+                    const render::Primitive* primitive,
+                    const render::Material* material,
+                    std::uint64_t faceIdx,
+                    RasterVertex& out) const {
+      Vector3d point = vertex.point;
+      Vector3d normal = vertex.normal;
+      Vector2d uv = vertex.uv;
+      Vector3d screen = vertex.screen;
+
+      if (const auto& shader = m_rasterizer.vertexShader()) {
+        Rasterizer::VertexInput input{
+          vertex.point,
+          vertex.normal,
+          vertex.uv,
+          vertex.clip,
+          vertex.screen,
+          primitive,
+          material,
+          faceIdx
+        };
+        const Rasterizer::VertexOutput output = shader(input);
+        point = output.worldPosition;
+        normal = output.normal;
+        uv = output.uv;
+        screen = output.screenPosition;
+      }
+
+      if (screen.isUndefined() || screen.z() <= 0.0) return false;
+
+      out = {
+        point,
+        normal,
+        uv,
+        1.0 / screen.z(),
+        static_cast<int>(std::lround(screen.x())),
+        static_cast<int>(std::lround(screen.y()))
+      };
+      return true;
+    }
+
+    bool makeTriangle(const ClipVert& v0,
+                      const ClipVert& v1,
+                      const ClipVert& v2,
+                      const render::Primitive* primitive,
+                      const std::shared_ptr<render::Material>& material,
+                      std::uint64_t faceIdx,
+                      RasterTriangle& out) const {
+      RasterVertex r0, r1, r2;
+      const render::Material* materialPtr = material.get();
+      if (!makeVertex(v0, primitive, materialPtr, faceIdx, r0)
+          || !makeVertex(v1, primitive, materialPtr, faceIdx, r1)
+          || !makeVertex(v2, primitive, materialPtr, faceIdx, r2)) {
+        return false;
+      }
+
+      out = RasterTriangle{
+        {{ r0, r1, r2 }},
+        primitive,
+        material,
+        faceIdx
+      };
+      return true;
+    }
+
+    const render::Scene* m_scene;
+    const std::shared_ptr<render::Camera>& m_camera;
+    int m_lod;
+    const Rasterizer& m_rasterizer;
+    const std::atomic<bool>& m_cancelled;
+  };
 }
 
 void Rasterizer::render(Buffer<Colord>& buffer) {
@@ -1050,11 +1068,12 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   auto scene = m_scene;
 
   const RasterSamplePattern pattern = samplePattern(m_msaaSamples);
+  const RasterTriangleEmitter triangleEmitter(scene.get(), m_camera, m_lod, *this, m_cancelled);
   if (pattern.count > 1) {
     std::vector<RasterTriangle> triangles;
     TileGrid tileGrid(width, height, rows, cols);
     std::size_t binnedTriangleCount = 0;
-    emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+    triangleEmitter.forEachTriangle(
       [&](const RasterTriangle& triangle) {
         if (tileCount == 1) {
           triangles.push_back(triangle);
@@ -1348,7 +1367,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
     withPreparedTrianglePolicies(
       scene.get(), *this, zBuffer, stencilBuffer.get(),
       [&](auto stencil, auto depth, auto fragmentPolicy) {
-        emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+        triangleEmitter.forEachTriangle(
           [&](const RasterTriangle& triangle) {
             rasterizePreparedTriangleWithPolicies(
               triangle, fullRect, buffer, RasterSampleOffset{0.0, 0.0},
@@ -1361,7 +1380,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   std::vector<RasterTriangle> triangles;
   TileGrid tileGrid(width, height, rows, cols);
   std::size_t binnedTriangleCount = 0;
-  emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+  triangleEmitter.forEachTriangle(
     [&](const RasterTriangle& triangle) {
       const std::size_t triangleIndex = triangles.size();
       const std::size_t added = tileGrid.addTriangle(triangle, triangleIndex);
