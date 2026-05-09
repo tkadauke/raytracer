@@ -82,9 +82,16 @@ public:
     * Clears the buffer by setting all the values to the default value of @p T.
     */
   inline void clear() {
+    clear(T());
+  }
+
+  /**
+    * Clears the buffer by setting all the values to @p value.
+    */
+  inline void clear(const T& value) {
     for (int i = 0; i != width(); ++i) {
       for (int j = 0; j != height(); ++j) {
-        m_buffer[j][i] = T();
+        m_buffer[j][i] = value;
       }
     }
   }

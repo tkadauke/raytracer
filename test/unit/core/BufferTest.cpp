@@ -38,6 +38,16 @@ namespace BufferTest {
     ASSERT_TRUE(TypeParam() == buffer[10][10]);
   }
 
+  TEST(BufferTest, ShouldClearToValue) {
+    Buffer<int> buffer(3, 2);
+    buffer.clear(7);
+
+    ASSERT_EQ(7, buffer[0][0]);
+    ASSERT_EQ(7, buffer[0][2]);
+    ASSERT_EQ(7, buffer[1][0]);
+    ASSERT_EQ(7, buffer[1][2]);
+  }
+
   template<class T>
   class ColorBufferTest : public ::testing::Test {
   };

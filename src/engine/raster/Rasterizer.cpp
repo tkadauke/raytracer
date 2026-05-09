@@ -181,24 +181,6 @@ namespace {
     }
   }
 
-  inline void clearColorBuffer(Buffer<Colord>& buffer, const Colord& color) {
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        buffer[y][x] = color;
-  }
-
-  inline void clearDepthBuffer(Buffer<double>& buffer, double value) {
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        buffer[y][x] = value;
-  }
-
-  inline void clearStencilBuffer(Buffer<std::uint8_t>& buffer, std::uint8_t value) {
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        buffer[y][x] = value;
-  }
-
   struct ProjectedVertex {
     Vector4d clip;
     Vector3d screen;
@@ -1015,9 +997,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   // Caller is expected to call uncancel() between renders. Matches
   // the Wireframe / Raytracer convention.
 
-  // Clear to background. Buffer<T>::clear() default-constructs every
-  // cell; write the configured colour explicitly instead.
-  clearColorBuffer(buffer, m_backgroundColor);
+  // Clear to the configured background before depth-tested fragments overwrite it.
+  buffer.clear(m_backgroundColor);
 
   if (!m_scene || !m_camera) return;
 
@@ -1063,22 +1044,22 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
       return;
     }
 
-    clearColorBuffer(buffer, Colord::black());
+    buffer.clear(Colord::black());
     const Recti fullRect(0, 0, width, height);
 
     for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
       if (m_cancelled.load()) return;
 
       Buffer<Colord> sampleBuffer(width, height);
-      clearColorBuffer(sampleBuffer, m_backgroundColor);
+      sampleBuffer.clear(m_backgroundColor);
 
       Buffer<double> sampleZBuffer(width, height);
-      clearDepthBuffer(sampleZBuffer, m_depthClearValue);
+      sampleZBuffer.clear(m_depthClearValue);
 
       std::unique_ptr<Buffer<std::uint8_t>> sampleStencilBuffer;
       if (m_stencilTestEnabled) {
         sampleStencilBuffer = std::make_unique<Buffer<std::uint8_t>>(width, height);
-        clearStencilBuffer(*sampleStencilBuffer, m_stencilClearValue);
+        sampleStencilBuffer->clear(m_stencilClearValue);
       }
 
       const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
@@ -1137,12 +1118,12 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   // Z-buffer: per-pixel eye-relative depth. Smaller depth = closer
   // to the eye for the default `DepthFunc::Less` path.
   Buffer<double> zBuffer(width, height);
-  clearDepthBuffer(zBuffer, m_depthClearValue);
+  zBuffer.clear(m_depthClearValue);
 
   std::unique_ptr<Buffer<std::uint8_t>> stencilBuffer;
   if (m_stencilTestEnabled) {
     stencilBuffer = std::make_unique<Buffer<std::uint8_t>>(width, height);
-    clearStencilBuffer(*stencilBuffer, m_stencilClearValue);
+    stencilBuffer->clear(m_stencilClearValue);
   }
 
   if (tileCount == 1 && usesBuiltInDepthStencilAndFragment(*this) && !m_vertexShader) {
