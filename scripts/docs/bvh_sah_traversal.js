@@ -9,7 +9,7 @@ class BVHSahTraversal {
     this.height = 340;
     this.scene = { x: 28, y: 28, width: 324, height: 234 };
     this.costPanel = { x: 382, y: 48, width: 150, height: 182 };
-    this.mode = 'overview';
+    this.mode = 'splits';
     this.boxes = [
       { x: 48, y: 66, width: 66, height: 50 },
       { x: 84, y: 154, width: 78, height: 62 },
@@ -33,12 +33,11 @@ class BVHSahTraversal {
     });
 
     this.modeControl = new FigureSegmentedControl({
-      label: 'Build step',
+      label: 'BVH topic',
       value: this.mode,
       options: [
-        { label: 'Overview', value: 'overview' },
-        { label: 'Splits', value: 'splits' },
-        { label: 'Costs', value: 'costs' },
+        { label: 'Split candidates', value: 'splits' },
+        { label: 'SAH cost', value: 'costs' },
         { label: 'Traversal', value: 'traversal' },
       ],
       onChange: (value) => {
@@ -162,11 +161,13 @@ class BVHSahTraversal {
     const selected = this.selectedCandidate();
 
     if (this.mode !== 'traversal') this.renderCandidates(selected);
-    if (this.mode === 'costs' || this.mode === 'overview') this.renderCosts(selected);
-    if (this.mode === 'traversal' || this.mode === 'overview') this.renderTraversal(selected);
+    if (this.mode === 'costs') this.renderCosts(selected);
+    if (this.mode === 'traversal') this.renderTraversal(selected);
     this.renderPrimitives();
-    if (this.mode === 'traversal' || this.mode === 'overview') this.renderRay();
-    this.renderRayHandles();
+    if (this.mode === 'traversal') {
+      this.renderRay();
+      this.renderRayHandles();
+    }
   }
 
   renderSceneFrame() {

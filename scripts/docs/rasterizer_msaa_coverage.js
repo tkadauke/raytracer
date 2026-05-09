@@ -9,6 +9,7 @@ class RasterizerMSAACoverage {
     this.rows = 6;
     this.cell = 48;
     this.captionHeight = 34;
+    this.handleRadius = 8;
     this.samplePatterns = {
       1: [{ x: 0.0, y: 0.0 }],
       2: [
@@ -79,6 +80,18 @@ class RasterizerMSAACoverage {
     return Math.max(min, Math.min(max, value));
   }
 
+  handleInsetCells() {
+    return this.handleRadius / this.cell;
+  }
+
+  clampGridPoint(point) {
+    const inset = this.handleInsetCells();
+    return {
+      x: this.clamp(point.x, inset, this.cols - inset),
+      y: this.clamp(point.y, inset, this.rows - inset),
+    };
+  }
+
   edge(a, b, p) {
     return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
   }
@@ -105,10 +118,10 @@ class RasterizerMSAACoverage {
   }
 
   fromSvgPoint(p) {
-    return {
-      x: this.clamp(p.x / this.cell, -0.2, this.cols + 0.2),
-      y: this.clamp(p.y / this.cell, 0.1, this.rows - 0.1),
-    };
+    return this.clampGridPoint({
+      x: p.x / this.cell,
+      y: p.y / this.cell,
+    });
   }
 
   trianglePoints() {
@@ -200,13 +213,14 @@ class RasterizerMSAACoverage {
       const handle = new FigureDraggablePoint({
         canvas: this.canvas,
         point: this.toSvgPoint(vertex),
-        radius: 8,
+        radius: this.handleRadius,
         attrs: {
           fill: this.handleColors[index],
           stroke: '#111',
           'stroke-width': FigurePixelStrokeWidth,
           'data-drag-handle': 'triangle-vertex',
           'data-vertex-index': index,
+          'data-drag-bounds': 'pixel-grid',
         },
         onDrag: (point) => {
           this.vertices[index] = this.fromSvgPoint(point);

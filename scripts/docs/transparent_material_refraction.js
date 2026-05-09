@@ -313,46 +313,51 @@ class TransparentMaterialRefraction {
 
   renderReadout() {
     const state = this.state();
-    const x = 418;
-    const y = 64;
+    const x = 60;
+    const y = 70;
     const incident = this.degrees(state.thetaI);
 
     this.canvas.add('rect', {
       x: x - 16,
       y: y - 28,
-      width: 188,
-      height: 116,
+      width: 242,
+      height: 128,
       rx: 6,
       fill: '#ffffff',
       stroke: '#c8c8c8',
       'stroke-width': FigurePixelGuideStrokeWidth,
+      'data-readout-panel': 'snell-law',
     });
     this.addText(x, y, `theta i = ${incident.toFixed(1)} deg`, {
       'font-family': 'monospace',
       'data-readout': 'incident-angle',
     });
-    this.addText(x, y + 24, `${this.innerIor.toFixed(2)} sin(theta i) = ${this.outerIor.toFixed(2)} sin(theta t)`, {
+    this.addText(x, y + 24, `${this.innerIor.toFixed(2)} sin(theta i)`, {
       'font-family': 'monospace',
       'font-size': 12,
       'data-readout': 'snell-law',
     });
+    this.addText(x, y + 42, `= ${this.outerIor.toFixed(2)} sin(theta t)`, {
+      'font-family': 'monospace',
+      'font-size': 12,
+    });
 
     if (state.tir) {
-      this.addText(x, y + 50, 'total internal reflection', {
+      this.addText(x, y + 70, 'total internal reflection', {
         fill: '#c92a2a',
         'font-weight': '700',
         'data-state': 'tir',
       });
-      this.addText(x, y + 74, 'transmitted ray disappears', {
+      this.addText(x, y + 94, 'transmitted ray disappears', {
         fill: '#c92a2a',
       });
     } else {
-      this.addText(x, y + 50, `theta t = ${this.degrees(state.thetaT).toFixed(1)} deg`, {
+      this.addText(x, y + 70, `theta t = ${this.degrees(state.thetaT).toFixed(1)} deg`, {
         fill: '#2b8a3e',
         'font-family': 'monospace',
         'data-state': 'refracting',
       });
-      this.addText(x, y + 74, 'reflection and transmission split', {
+      this.addText(x, y + 94, 'reflection and transmission split', {
         fill: '#2b8a3e',
       });
     }

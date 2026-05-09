@@ -130,10 +130,10 @@ class SamplerStreamsWidget {
       { label: 'lens sample', set: 1, color: '#c92a2a', data: 'lens' },
       { label: 'shutter time', set: 2, color: '#5f3dc4', data: 'shutter-time' },
     ];
-    const panelWidth = 132;
-    const panelHeight = 132;
-    const startX = 332;
-    const gap = 24;
+    const panelWidth = 108;
+    const panelHeight = 108;
+    const startX = 318;
+    const gap = 18;
 
     dimensions.forEach((dimension, index) => {
       const setIndex = this.mode === 'reused' ? 0 : dimension.set;
@@ -141,7 +141,7 @@ class SamplerStreamsWidget {
       this.renderSampleSquare({
         frame: {
           x: startX + index * (panelWidth + gap),
-          y: 76,
+          y: 84,
           size: panelWidth,
           height: panelHeight,
         },
@@ -154,7 +154,7 @@ class SamplerStreamsWidget {
       const source = this.mode === 'reused' ? 'same set' : `set ${setIndex}`;
       this.addText({
         x: startX + index * (panelWidth + gap) + panelWidth / 2,
-        y: 238,
+        y: 222,
         text: source,
         anchor: 'middle',
         size: 13,
@@ -233,8 +233,8 @@ class SamplerStreamsWidget {
       : 'Each camera dimension reads a different pre-baked set.';
 
     this.addText({
-      x: 332,
-      y: 288,
+      x: 318,
+      y: 270,
       text: message,
       anchor: 'start',
       size: 14,
@@ -242,9 +242,18 @@ class SamplerStreamsWidget {
     });
 
     this.addText({
-      x: 332,
-      y: 310,
-      text: 'Independent streams keep stratification without correlating lens and time with pixel jitter.',
+      x: 318,
+      y: 294,
+      text: 'Independent streams keep stratification',
+      anchor: 'start',
+      size: 13,
+      fill: '#555',
+    });
+
+    this.addText({
+      x: 318,
+      y: 314,
+      text: 'without correlating lens and time with pixel jitter.',
       anchor: 'start',
       size: 13,
       fill: '#555',

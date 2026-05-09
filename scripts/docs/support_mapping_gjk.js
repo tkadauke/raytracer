@@ -1,153 +1,427 @@
-((scriptElement) => {
+// Interactive widget for support mapping and GJK.
+//
+// The widget intentionally keeps the story to two linked panels:
+// first choose support points on A and B, then add their difference
+// to the simplex that GJK moves toward the origin.
+
 class SupportMappingGJK {
   constructor() {
+    this.width = 640;
+    this.height = 300;
     this.separation = 2.1;
-    this.step = 3;
+    this.step = 2;
   }
 
-  createCanvas() {
-    const canvas = new Canvas(520, 360);
-    canvas.setTransform('translate(260, 150) scale(42, 42)');
+  element() {
+    if (this.widget) return this.widget.root;
 
-    const shapeA = this.shapeA();
-    const shapeB = this.shapeB();
-    const iterations = this.gjkIterations(shapeA, shapeB);
-    const shown = iterations[Math.min(this.step, iterations.length - 1)];
-    const direction = shown.direction.normalized();
-    const support = shown.support;
-    const simplex = shown.simplex;
+    this.widget = new FigureWidget({ className: 'support-mapping-gjk-widget' });
+    this.canvas = new FigureSvg({
+      width: this.width,
+      height: this.height,
+      viewBox: `0 0 ${this.width} ${this.height}`,
+    });
 
-    this.drawWorldPanel(canvas, shapeA, shapeB, direction, support);
-    this.drawDifferencePanel(canvas, shapeA, shapeB, support, simplex);
+    this.separationControl = new FigureSliderControl({
+      label: 'shape separation',
+      min: 1.4,
+      max: 2.8,
+      step: 0.1,
+      value: this.separation,
+      precision: 2,
+      onChange: (value) => {
+        this.separation = value;
+        this.render();
+      },
+    });
 
-    return canvas.toSVG();
+    this.stepControl = new FigureSliderControl({
+      label: 'GJK step',
+      min: 0,
+      max: 4,
+      step: 1,
+      value: this.step,
+      precision: 0,
+      onChange: (value) => {
+        this.step = Math.round(value);
+        this.render();
+      },
+    });
+
+    this.widget.addControl(this.separationControl.element());
+    this.widget.addControl(this.stepControl.element());
+    this.widget.setContent(this.canvas.element);
+    this.render();
+    return this.widget.root;
+  }
+
+  supportPanel() {
+    return {
+      x: 24,
+      y: 54,
+      width: 286,
+      height: 210,
+      origin: { x: 158, y: 160 },
+      scale: 48,
+    };
+  }
+
+  differencePanel() {
+    return {
+      x: 338,
+      y: 54,
+      width: 278,
+      height: 210,
+      origin: { x: 528, y: 160 },
+      scale: 38,
+    };
   }
 
   shapeA() {
     return [
-      new Vector(-2.9, -0.9),
-      new Vector(-1.1, -1.0),
-      new Vector(-0.9, 0.7),
-      new Vector(-2.6, 1.0)
+      new Vector(-2.35, -0.62),
+      new Vector(-1.04, -0.76),
+      new Vector(-0.86, 0.62),
+      new Vector(-2.16, 0.78),
     ];
   }
 
   shapeB() {
-    const center = new Vector(this.separation - 1.6, 0.1);
+    const center = new Vector(this.separation - 1.05, 0.0);
     return [
-      center.plus(new Vector(-0.7, -0.8)),
-      center.plus(new Vector(0.9, -0.2)),
-      center.plus(new Vector(-0.1, 0.9))
+      center.plus(new Vector(-0.62, -0.78)),
+      center.plus(new Vector(0.82, -0.18)),
+      center.plus(new Vector(-0.12, 0.88)),
     ];
   }
 
-  drawWorldPanel(canvas, shapeA, shapeB, direction, support) {
-    canvas.add(new Text(new Vector(-5.7, -2.75), 'support functions'));
-    canvas.add(new Path(Path.polyline(shapeA, { closed: true }), 'blue'));
-    canvas.add(new Path(Path.polyline(shapeB, { closed: true }), 'green'));
-    canvas.add(new Text(new Vector(-2.25, 1.45), 'A', 'blue'));
-    canvas.add(new Text(new Vector(this.separation - 1.7, 1.45), 'B', 'green'));
+  render() {
+    this.canvas.clear();
+    this.addArrowDefs();
 
-    canvas.add(new Line(new Vector(-4.9, 1.8), direction.multiply(1.0), 'arrow red'));
-    canvas.add(new Text(new Vector(-4.75, 2.25), 'direction v', 'red'));
+    const shapeA = this.shapeA();
+    const shapeB = this.shapeB();
+    const steps = this.supportSteps(shapeA, shapeB);
+    const index = Math.min(this.step, steps.length - 1);
+    const shown = steps[index];
 
-    canvas.add(new Line(support.a, direction.multiply(0.7), 'arrow blue'));
-    canvas.add(new Line(support.b, direction.multiply(-0.7), 'arrow green'));
-    canvas.add(new Circle(support.a, 0.07, 'result'));
-    canvas.add(new Circle(support.b, 0.07, 'intersection'));
-    canvas.add(new Text(support.a.plus(new Vector(0.13, -0.08)), 'supportA(v)', 'blue'));
-    canvas.add(new Text(support.b.plus(new Vector(0.13, 0.18)), 'supportB(-v)', 'green'));
+    this.renderSupportPanel(shapeA, shapeB, shown, index);
+    this.renderDifferencePanel(shapeA, shapeB, shown, index);
+    this.renderExplanation(shown, index);
   }
 
-  drawDifferencePanel(canvas, shapeA, shapeB, support, simplex) {
-    const offset = new Vector(2.7, 0.2);
-    const difference = this.minkowskiDifference(shapeA, shapeB).map(p => p.plus(offset));
-    const supportPoint = support.point.plus(offset);
-    const origin = offset;
+  addArrowDefs() {
+    const defs = this.canvas.add('defs');
+    defs.innerHTML = `
+      <marker id="gjk-arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L9,3 z" fill="#333"></path>
+      </marker>
+      <marker id="gjk-arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L9,3 z" fill="#2060d0"></path>
+      </marker>
+      <marker id="gjk-arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L9,3 z" fill="#20a050"></path>
+      </marker>
+      <marker id="gjk-arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L0,6 L9,3 z" fill="#e03131"></path>
+      </marker>
+    `;
+  }
 
-    canvas.add(new Text(new Vector(1.35, -2.75), 'Minkowski difference A - B'));
-    canvas.add(new Path(Path.polyline(difference, { closed: true }), 'dashed'));
-    canvas.add(new Line(new Vector(offset.x - 2.1, offset.y), new Vector(4.2, 0)));
-    canvas.add(new Line(new Vector(offset.x, offset.y - 2.1), new Vector(0, 4.2)));
-    canvas.add(new Text(origin.plus(new Vector(0.12, 0.28)), 'origin'));
-    canvas.add(new Circle(origin, 0.06, 'intersection'));
+  map(panel, point) {
+    return {
+      x: panel.origin.x + point.x * panel.scale,
+      y: panel.origin.y - point.y * panel.scale,
+    };
+  }
 
-    canvas.add(new Circle(supportPoint, 0.08, 'result'));
-    canvas.add(new Text(supportPoint.plus(new Vector(0.12, -0.12)), 'A - B support', 'red'));
+  addText(x, y, text, attrs = {}) {
+    const element = this.canvas.add('text', {
+      x,
+      y,
+      fill: '#222',
+      'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      'font-size': 13,
+      ...attrs,
+    });
+    element.textContent = text;
+    return element;
+  }
 
-    const simplexPoints = simplex.map(p => p.plus(offset));
-    if (simplexPoints.length > 1) {
-      canvas.add(new Path(Path.polyline(simplexPoints, { closed: simplexPoints.length > 2 }), 'red'));
+  addPanel(panel, title, attrs = {}) {
+    this.canvas.add('rect', {
+      x: panel.x,
+      y: panel.y,
+      width: panel.width,
+      height: panel.height,
+      rx: 6,
+      fill: '#fbfbfb',
+      stroke: '#dddddd',
+      'stroke-width': FigurePixelGuideStrokeWidth,
+      ...attrs,
+    });
+    this.addText(panel.x + 14, panel.y + 26, title, {
+      'font-size': 17,
+      'font-weight': 700,
+    });
+  }
+
+  addPath(points, attrs = {}) {
+    const closed = attrs.closed !== false;
+    const pathAttrs = { ...attrs };
+    delete pathAttrs.closed;
+    const d = points.map((point, index) =>
+      `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+    return this.canvas.add('path', {
+      d: closed ? `${d} Z` : d,
+      fill: 'none',
+      stroke: '#222',
+      'stroke-width': FigurePixelStrokeWidth,
+      ...pathAttrs,
+    });
+  }
+
+  addLine(from, to, attrs = {}) {
+    return this.canvas.add('line', {
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      stroke: '#222',
+      'stroke-width': FigurePixelStrokeWidth,
+      ...attrs,
+    });
+  }
+
+  addCircle(point, radius, attrs = {}) {
+    return this.canvas.add('circle', {
+      cx: point.x,
+      cy: point.y,
+      r: radius,
+      fill: '#ffffff',
+      stroke: '#222',
+      'stroke-width': FigurePixelStrokeWidth,
+      ...attrs,
+    });
+  }
+
+  renderSupportPanel(shapeA, shapeB, shown) {
+    const panel = this.supportPanel();
+    const direction = shown.direction.normalized();
+    const support = shown.support;
+    this.addPanel(panel, '1. Ask support functions', { 'data-gjk-panel': 'support' });
+
+    this.addPath(shapeA.map(point => this.map(panel, point)), {
+      fill: '#e8f0ff',
+      stroke: '#2060d0',
+      'data-gjk-shape': 'A',
+    });
+    this.addPath(shapeB.map(point => this.map(panel, point)), {
+      fill: '#eaf8ef',
+      stroke: '#20a050',
+      'data-gjk-shape': 'B',
+    });
+
+    this.addText(this.map(panel, new Vector(-1.65, -1.08)).x,
+      this.map(panel, new Vector(-1.65, -1.08)).y, 'A', {
+        fill: '#2060d0',
+        'font-size': 15,
+        'font-weight': 700,
+      });
+    this.addText(this.map(panel, new Vector(this.separation - 1.12, -1.08)).x,
+      this.map(panel, new Vector(this.separation - 1.12, -1.08)).y, 'B', {
+        fill: '#20a050',
+        'font-size': 15,
+        'font-weight': 700,
+        'text-anchor': 'middle',
+      });
+
+    this.renderDirectionInset(panel, direction);
+    this.renderSupportPoint(panel, support.a, direction, '#2060d0',
+      'supportA(v)', 'A');
+    this.renderSupportPoint(panel, support.b, direction.multiply(-1), '#20a050',
+      'supportB(-v)', 'B');
+  }
+
+  renderDirectionInset(panel, direction) {
+    const start = { x: panel.x + 24, y: panel.y + panel.height - 30 };
+    const end = {
+      x: start.x + direction.x * 52,
+      y: start.y - direction.y * 52,
+    };
+    this.addLine(start, end, {
+      stroke: '#333',
+      'marker-end': 'url(#gjk-arrow-gray)',
+      'data-gjk-direction': 'v',
+    });
+    this.addText(start.x, start.y + 20, 'direction v', {
+      'font-size': 12,
+      fill: '#555',
+    });
+  }
+
+  renderSupportPoint(panel, point, direction, color, label, kind) {
+    const screen = this.map(panel, point);
+    const arrowStart = this.map(panel, point.minus(direction.normalized().multiply(0.52)));
+    const arrowEnd = this.map(panel, point.plus(direction.normalized().multiply(0.35)));
+
+    this.addLine(arrowStart, arrowEnd, {
+      stroke: color,
+      'marker-end': kind === 'A' ? 'url(#gjk-arrow-blue)' : 'url(#gjk-arrow-green)',
+      'data-gjk-support-direction': kind,
+    });
+    this.addCircle(screen, 5, {
+      fill: color,
+      stroke: '#ffffff',
+      'data-gjk-support-point': kind,
+    });
+
+    const labelPoint = kind === 'A'
+      ? { x: panel.x + 176, y: panel.y + 56 }
+      : { x: panel.x + 176, y: panel.y + panel.height - 36 };
+    this.addLine(labelPoint, screen, {
+      stroke: color,
+      'stroke-width': FigurePixelGuideStrokeWidth,
+      'stroke-dasharray': '4 4',
+    });
+    this.addText(labelPoint.x, labelPoint.y, label, {
+      fill: color,
+      'font-size': 12,
+      'font-weight': 700,
+      'data-gjk-callout': label,
+    });
+  }
+
+  renderDifferencePanel(shapeA, shapeB, shown, index) {
+    const panel = this.differencePanel();
+    const support = shown.support;
+    const simplex = shown.simplex;
+    const difference = this.minkowskiDifference(shapeA, shapeB);
+    const supportPoint = support.point;
+    const closest = this.closestPointToOrigin(simplex);
+    this.addPanel(panel, '2. Add A - B point', { 'data-gjk-panel': 'minkowski' });
+
+    this.renderAxes(panel);
+    this.addPath(difference.map(point => this.map(panel, point)), {
+      fill: '#fff1f1',
+      stroke: '#e03131',
+      'stroke-dasharray': '5 5',
+      'data-gjk-difference': 'A-minus-B',
+    });
+
+    if (simplex.length > 1) {
+      this.addPath(simplex.map(point => this.map(panel, point)), {
+        closed: simplex.length > 2,
+        fill: simplex.length > 2 ? '#ffe3e3' : 'none',
+        'fill-opacity': 0.35,
+        stroke: '#e03131',
+        'data-gjk-simplex': 'active',
+      });
     }
-    simplexPoints.forEach((point, i) => {
-      canvas.add(new Circle(point, 0.065, 'result'));
-      canvas.add(new Text(point.plus(new Vector(0.1, 0.18)), `s${i}`, 'red'));
+
+    simplex.forEach((point, i) => {
+      this.addCircle(this.map(panel, point), i === 0 ? 6 : 5, {
+        fill: i === 0 ? '#e03131' : '#ff8787',
+        stroke: '#ffffff',
+        'data-gjk-simplex-point': String(i),
+      });
+    });
+
+    this.addCircle(this.map(panel, supportPoint), 7, {
+      fill: '#e03131',
+      stroke: '#111',
+      'data-gjk-support-point': 'A-minus-B',
+    });
+
+    const origin = this.map(panel, Vector.null);
+    this.addCircle(origin, 5, {
+      fill: '#111',
+      stroke: '#111',
+      'data-gjk-origin': '1',
+    });
+    this.addText(origin.x + 8, origin.y - 8, 'origin', {
+      'font-size': 12,
+      fill: '#555',
     });
 
     if (simplex.length > 0) {
-      const closest = this.closestPointToOrigin(simplex).plus(offset);
-      canvas.add(new Line(origin, closest.minus(origin), 'arrow red'));
-      canvas.add(new Circle(closest, 0.055, 'intersection'));
-      canvas.add(new Text(closest.plus(new Vector(0.12, 0.2)), 'closest point'));
+      const closestScreen = this.map(panel, closest);
+      this.addLine(origin, closestScreen, {
+        stroke: '#555',
+        'stroke-width': FigurePixelGuideStrokeWidth,
+        'stroke-dasharray': '5 4',
+        'data-gjk-closest-vector': '1',
+      });
+      this.addCircle(closestScreen, 4.5, {
+        fill: '#ffffff',
+        stroke: '#555',
+        'data-gjk-closest-point': '1',
+      });
     }
+
+    this.addText(panel.x + 18, panel.y + panel.height - 44,
+      `step ${index}: simplex has ${simplex.length} point${simplex.length === 1 ? '' : 's'}`, {
+        'font-size': 12,
+        fill: '#555',
+      });
+    this.addText(panel.x + 18, panel.y + panel.height - 22,
+      'move the simplex toward the origin', {
+        'font-size': 12,
+        fill: '#555',
+      });
   }
 
-  gjkIterations(shapeA, shapeB) {
-    let direction = new Vector(1, -0.15);
-    let simplex = [];
-    const iterations = [];
+  renderAxes(panel) {
+    const origin = this.map(panel, Vector.null);
+    this.addLine({ x: panel.x + 14, y: origin.y }, { x: panel.x + panel.width - 14, y: origin.y }, {
+      stroke: '#aaaaaa',
+      'stroke-width': FigurePixelGuideStrokeWidth,
+      'data-gjk-axis': 'x',
+    });
+    this.addLine({ x: origin.x, y: panel.y + 38 }, { x: origin.x, y: panel.y + panel.height - 14 }, {
+      stroke: '#aaaaaa',
+      'stroke-width': FigurePixelGuideStrokeWidth,
+      'data-gjk-axis': 'y',
+    });
+  }
 
-    for (let i = 0; i < 5; i++) {
+  renderExplanation(shown, index) {
+    const support = shown.support;
+    this.addText(34, 288, 'support(A - B, v) = supportA(v) - supportB(-v)', {
+      'font-size': 13,
+      'font-family': 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+      'data-gjk-formula': 'support-difference',
+    });
+    this.addText(428, 288,
+      `new point = (${support.point.x.toFixed(2)}, ${support.point.y.toFixed(2)})`, {
+        'font-size': 13,
+        'font-family': 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+        fill: '#e03131',
+        'data-gjk-step-readout': String(index),
+      });
+  }
+
+  supportDirections() {
+    return [
+      new Vector(1.0, -0.15),
+      new Vector(0.2, -1.0),
+      new Vector(-0.55, 0.85),
+      new Vector(-1.0, -0.1),
+      new Vector(0.35, 1.0),
+    ];
+  }
+
+  supportSteps(shapeA, shapeB) {
+    const points = [];
+    return this.supportDirections().map((direction) => {
       const support = this.supportDifference(shapeA, shapeB, direction);
-      simplex.unshift(support.point);
-      iterations.push({
+      points.unshift(support.point);
+      return {
         direction,
         support,
-        simplex: simplex.slice()
-      });
-
-      const next = this.nextDirection(simplex);
-      simplex = next.simplex;
-      if (next.containsOrigin) break;
-      direction = next.direction;
-    }
-
-    return iterations;
-  }
-
-  nextDirection(simplex) {
-    if (simplex.length === 1) {
-      return { simplex, direction: simplex[0].multiply(-1), containsOrigin: false };
-    }
-
-    const a = simplex[0];
-    const b = simplex[1];
-    const ao = a.multiply(-1);
-    const ab = b.minus(a);
-
-    if (simplex.length === 2) {
-      if (ab.dot(ao) > 0) {
-        return {
-          simplex,
-          direction: this.tripleProduct(ab, ao, ab),
-          containsOrigin: false
-        };
-      }
-      return { simplex: [a], direction: ao, containsOrigin: false };
-    }
-
-    const c = simplex[2];
-    const ac = c.minus(a);
-    const abPerp = this.tripleProduct(ac, ab, ab);
-    const acPerp = this.tripleProduct(ab, ac, ac);
-
-    if (abPerp.dot(ao) > 0) {
-      return { simplex: [a, b], direction: abPerp, containsOrigin: false };
-    }
-    if (acPerp.dot(ao) > 0) {
-      return { simplex: [a, c], direction: acPerp, containsOrigin: false };
-    }
-    return { simplex, direction: Vector.null, containsOrigin: true };
+        simplex: points.slice(),
+      };
+    });
   }
 
   supportDifference(shapeA, shapeB, direction) {
@@ -193,7 +467,25 @@ class SupportMappingGJK {
   closestPointToOrigin(simplex) {
     if (simplex.length === 1) return simplex[0];
     if (simplex.length === 2) return this.closestPointOnSegment(Vector.null, simplex[0], simplex[1]);
-    return Vector.null;
+    if (this.pointInTriangle(Vector.null, simplex[0], simplex[1], simplex[2])) return Vector.null;
+
+    const candidates = [
+      this.closestPointOnSegment(Vector.null, simplex[0], simplex[1]),
+      this.closestPointOnSegment(Vector.null, simplex[1], simplex[2]),
+      this.closestPointOnSegment(Vector.null, simplex[2], simplex[0]),
+    ];
+    return candidates.reduce((best, candidate) =>
+      candidate.length() < best.length() ? candidate : best
+    );
+  }
+
+  pointInTriangle(point, a, b, c) {
+    const sign = (p1, p2, p3) =>
+      (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+    const d1 = sign(point, a, b);
+    const d2 = sign(point, b, c);
+    const d3 = sign(point, c, a);
+    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
   }
 
   closestPointOnSegment(point, a, b) {
@@ -202,49 +494,9 @@ class SupportMappingGJK {
     return a.plus(ab.multiply(t));
   }
 
-  tripleProduct(a, b, c) {
-    const ac = a.dot(c);
-    const bc = b.dot(c);
-    const result = b.multiply(ac).minus(a.multiply(bc));
-    return result.length() < 1e-9 ? new Vector(-c.y, c.x) : result;
-  }
 }
 
+((scriptElement) => {
   const figure = new SupportMappingGJK();
-  const container = document.createElement('div');
-
-  let canvas = figure.createCanvas();
-  const redraw = () => {
-    const newCanvas = figure.createCanvas();
-    container.replaceChild(newCanvas, canvas);
-    canvas = newCanvas;
-  };
-
-  container.appendChild(new Slider({
-    label: 'shape separation',
-    min: 1.4,
-    max: 2.8,
-    step: 0.1,
-    value: figure.separation,
-    onChange: (value) => {
-      figure.separation = value;
-      redraw();
-    }
-  }).element());
-
-  container.appendChild(new Slider({
-    label: 'GJK step',
-    min: 0,
-    max: 4,
-    step: 1,
-    value: figure.step,
-    precision: 0,
-    onChange: (value) => {
-      figure.step = Math.round(value);
-      redraw();
-    }
-  }).element());
-
-  container.appendChild(canvas);
-  scriptElement.parentNode.appendChild(container);
+  scriptElement.parentNode.appendChild(figure.element());
 })(document.currentScript);
