@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 
 #include "core/math/BoundingBox.h"
@@ -52,6 +53,9 @@ namespace render {
     */
   class Primitive : public render::Object {
   public:
+    using LeafVisitor =
+      std::function<void(const Primitive*, std::shared_ptr<render::Material>)>;
+
     inline Primitive()
       : m_material(nullptr)
     {
@@ -110,6 +114,23 @@ namespace render {
     inline virtual std::shared_ptr<render::Material> material() const {
       return m_material;
     }
+
+    /**
+      * Visit every leaf primitive under this node and pass the
+      * material that will shade that leaf after composite fallback
+      * inheritance is applied.
+      */
+    inline void forEachLeaf(const LeafVisitor& visitor) const {
+      forEachLeaf(nullptr, visitor);
+    }
+
+    /**
+      * Recursive worker for `forEachLeaf(visitor)`. Public so
+      * composite implementations can continue traversal through
+      * children held as `Primitive` pointers.
+      */
+    virtual void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                             const LeafVisitor& visitor) const;
 
     /**
       * Support function: returns the point on this primitive that

@@ -50,6 +50,16 @@ bool Composite::intersects(const Rayd& ray, render::State& state) const {
   return false;
 }
 
+void Composite::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                            const LeafVisitor& visitor) const {
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& primitive : m_primitives) {
+    primitive->forEachLeaf(effective, visitor);
+  }
+}
+
 BoundingBoxd Composite::calculateBoundingBox() const {
   BoundingBoxd b;
   for (const auto& i : m_primitives)

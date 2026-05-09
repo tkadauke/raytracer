@@ -219,6 +219,30 @@ namespace render {
     }
 
     /**
+      * Convert homogeneous clip coordinates into framebuffer pixel
+      * coordinates without validating the clip vector. Intended for
+      * engines that have already proven the point is projectable.
+      */
+    inline Vector3d screenFromClipUnchecked(const Vector4d& clip) const {
+      const double invW = 1.0 / clip.w();
+      const double ndcX = clip.x() * invW;
+      const double ndcY = clip.y() * invW;
+      return Vector3d((ndcX + 1.0) * width() / 2.0, (ndcY + 1.0) * height() / 2.0,
+                      clip.z());
+    }
+
+    /**
+      * Convert homogeneous clip coordinates into framebuffer pixel
+      * coordinates, returning `Vector3d::undefined()` when the
+      * perspective divide would be invalid.
+      */
+    inline Vector3d screenFromClip(const Vector4d& clip) const {
+      if (clip.isUndefined() || clip.w() <= 0.0)
+        return Vector3d::undefined();
+      return screenFromClipUnchecked(clip);
+    }
+
+    /**
       * @returns an iterator over `rect` in this plane's traversal
       * order. The base implementation returns a `RegularIterator`;
       * interlaced / shuffled / tiled subclasses override.

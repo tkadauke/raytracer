@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 #include "render/State.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Composite.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
+
+#include <vector>
 
 namespace CompositeTest {
   using namespace ::testing;
@@ -154,5 +157,44 @@ using namespace render;
     
     BoundingBoxd expected(Vector3d(-1, -1, -1), Vector3d(2, 2, 2));
     ASSERT_EQ(expected, composite.boundingBox());
+  }
+
+  TEST(Composite, ShouldVisitNestedLeavesWithInheritedMaterial) {
+    Composite root;
+    auto inherited = std::make_shared<MatteMaterial>();
+    root.setMaterial(inherited);
+
+    auto child = std::make_shared<Composite>();
+    auto leaf = std::make_shared<NiceMock<MockPrimitive>>();
+    child->add(leaf);
+    root.add(child);
+
+    std::vector<const Primitive*> visited;
+    std::vector<std::shared_ptr<Material>> materials;
+    root.forEachLeaf([&](const Primitive* primitive, std::shared_ptr<Material> material) {
+      visited.push_back(primitive);
+      materials.push_back(material);
+    });
+
+    ASSERT_THAT(visited, ElementsAre(leaf.get()));
+    ASSERT_THAT(materials, ElementsAre(inherited));
+  }
+
+  TEST(Composite, ShouldPreferLeafMaterialOverInheritedMaterial) {
+    Composite composite;
+    auto inherited = std::make_shared<MatteMaterial>();
+    auto own = std::make_shared<MatteMaterial>();
+    composite.setMaterial(inherited);
+
+    auto leaf = std::make_shared<NiceMock<MockPrimitive>>();
+    leaf->setMaterial(own);
+    composite.add(leaf);
+
+    std::shared_ptr<Material> visitedMaterial;
+    composite.forEachLeaf([&](const Primitive*, std::shared_ptr<Material> material) {
+      visitedMaterial = material;
+    });
+
+    ASSERT_EQ(own, visitedMaterial);
   }
 }

@@ -42,6 +42,17 @@ namespace ViewPlaneTest {
     ASSERT_VECTOR_NEAR(Vector3d(-4, -3, 0), plane.pixelAt(0, 0), 0.001);
     ASSERT_VECTOR_NEAR(Vector3d( 4,  3, 0), plane.pixelAt(10, 10), 0.001);
   }
+
+  TEST(ViewPlane, ShouldConvertClipCoordinatesToScreenCoordinates) {
+    ViewPlane plane(Matrix4d(), Recti(200, 150));
+    ASSERT_VECTOR_NEAR(Vector3d(150, 37.5, 4.0),
+                       plane.screenFromClipUnchecked(Vector4d(0.5, -0.5, 4.0, 1.0)), 0.001);
+  }
+
+  TEST(ViewPlane, ShouldRejectClipCoordinatesWithInvalidPerspectiveDivide) {
+    ViewPlane plane(Matrix4d(), Recti(200, 150));
+    ASSERT_TRUE(plane.screenFromClip(Vector4d(0.0, 0.0, 1.0, 0.0)).isUndefined());
+  }
   
   namespace Iterator {
     struct ViewPlane_Iterator : public ::testing::Test {

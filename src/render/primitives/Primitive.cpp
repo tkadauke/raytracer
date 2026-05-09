@@ -15,6 +15,12 @@ bool Primitive::intersects(const Rayd& ray, render::State& state) const {
   return !hitPoints.minWithPositiveDistance().isUndefined();
 }
 
+void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                            const LeafVisitor& visitor) const {
+  auto own = material();
+  visitor(this, own ? own : inheritedMaterial);
+}
+
 Vector3d Primitive::farthestPoint(const Vector3d&) const {
   return Vector3d::undefined();
 }

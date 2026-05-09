@@ -37,6 +37,7 @@ namespace render {
   class Composite : public Primitive {
   public:
     typedef std::list<std::shared_ptr<Primitive>> Primitives;
+    using Primitive::forEachLeaf;
 
     inline Composite() {}
 
@@ -53,14 +54,15 @@ namespace render {
       * useful for "all the boxes in this group are made of glass"
       * semantics.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                               render::State& state) const override;
 
     /**
       * Boolean shadow-ray check across every child. Short-circuits
       * on the first hit — cheaper than `intersect` because the
       * t-value is irrelevant for shadow visibility.
       */
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
+    bool intersects(const Rayd& ray, render::State& state) const override;
 
     /// Append `primitive` to the child list. Order doesn't matter
     /// for correctness, but front-loaded common-hit primitives can
@@ -75,6 +77,9 @@ namespace render {
       return m_primitives;
     }
 
+    void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                     const LeafVisitor& visitor) const override;
+
     /**
       * Tessellate every child and concatenate the resulting meshes
       * into one. Face indices are remapped per child so each face
@@ -85,7 +90,7 @@ namespace render {
       * child unchanged, since composites have no inherent geometry to
       * subdivide.
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
     /**
@@ -93,7 +98,7 @@ namespace render {
       * default-constructed (empty) box for an empty composite.
       * Cached by the `Primitive` base.
       */
-    virtual BoundingBoxd calculateBoundingBox() const;
+    BoundingBoxd calculateBoundingBox() const override;
 
   private:
     Primitives m_primitives;

@@ -11,7 +11,6 @@
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
 #include "render/materials/MatteMaterial.h"
-#include "render/primitives/Composite.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/Texture.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -243,42 +242,41 @@ namespace {
   };
 
   struct RasterSamplePattern {
-    std::array<RasterSampleOffset, 8> offsets;
-    int count;
-  };
-
-  inline RasterSamplePattern samplePattern(int sampleCount) {
-    RasterSamplePattern pattern{};
-    switch (sampleCount) {
-    case 2:
-      pattern.offsets[0] = {-0.25, -0.25};
-      pattern.offsets[1] = {0.25, 0.25};
-      pattern.count = 2;
-      return pattern;
-    case 4:
-      pattern.offsets[0] = {-0.125, -0.375};
-      pattern.offsets[1] = {0.375, -0.125};
-      pattern.offsets[2] = {-0.375, 0.125};
-      pattern.offsets[3] = {0.125, 0.375};
-      pattern.count = 4;
-      return pattern;
-    case 8:
-      pattern.offsets[0] = {0.0625, -0.1875};
-      pattern.offsets[1] = {-0.0625, 0.1875};
-      pattern.offsets[2] = {0.3125, 0.0625};
-      pattern.offsets[3] = {-0.1875, -0.3125};
-      pattern.offsets[4] = {-0.3125, 0.3125};
-      pattern.offsets[5] = {-0.4375, -0.0625};
-      pattern.offsets[6] = {0.1875, 0.4375};
-      pattern.offsets[7] = {0.4375, -0.4375};
-      pattern.count = 8;
-      return pattern;
-    default:
-      pattern.offsets[0] = {0.0, 0.0};
-      pattern.count = 1;
-      return pattern;
+    explicit RasterSamplePattern(int sampleCount) {
+      switch (sampleCount) {
+      case 2:
+        offsets[0] = {-0.25, -0.25};
+        offsets[1] = {0.25, 0.25};
+        count = 2;
+        break;
+      case 4:
+        offsets[0] = {-0.125, -0.375};
+        offsets[1] = {0.375, -0.125};
+        offsets[2] = {-0.375, 0.125};
+        offsets[3] = {0.125, 0.375};
+        count = 4;
+        break;
+      case 8:
+        offsets[0] = {0.0625, -0.1875};
+        offsets[1] = {-0.0625, 0.1875};
+        offsets[2] = {0.3125, 0.0625};
+        offsets[3] = {-0.1875, -0.3125};
+        offsets[4] = {-0.3125, 0.3125};
+        offsets[5] = {-0.4375, -0.0625};
+        offsets[6] = {0.1875, 0.4375};
+        offsets[7] = {0.4375, -0.4375};
+        count = 8;
+        break;
+      default:
+        offsets[0] = {0.0, 0.0};
+        count = 1;
+        break;
+      }
     }
-  }
+
+    std::array<RasterSampleOffset, 8> offsets{};
+    int count{1};
+  };
 
   struct ProjectedVertex {
     Vector4d clip;
@@ -292,6 +290,13 @@ namespace {
     Vector2d uv;
     Vector4d clip;
     Vector3d screen;
+
+    bool ensureScreen(const render::ViewPlane& viewPlane) {
+      if (screen.isUndefined()) {
+        screen = viewPlane.screenFromClip(clip);
+      }
+      return screen.isDefined();
+    }
   };
 
   struct RasterVertex {
@@ -354,54 +359,72 @@ namespace {
     std::size_t m_binnedTriangleCount{0};
   };
 
-  enum class ClipPlane { Near, Left, Right, Top, Bottom };
+  class ClipPlane {
+  public:
+    enum Kind { Near, Left, Right, Top, Bottom };
+
+    constexpr explicit ClipPlane(Kind kind)
+        : m_kind(kind) {
+    }
+
+    constexpr std::uint8_t bit() const {
+      return static_cast<std::uint8_t>(1u << static_cast<int>(m_kind));
+    }
+
+    double distance(const Vector4d& clip) const {
+      switch (m_kind) {
+      case Near:
+        return clip.z() - kNearClipDepth;
+      case Left:
+        return clip.x() + clip.w();
+      case Right:
+        return clip.w() - clip.x();
+      case Top:
+        return clip.y() + clip.w();
+      case Bottom:
+        return clip.w() - clip.y();
+      }
+      return -1.0;
+    }
+
+    double distance(const ClipVert& vertex) const {
+      return distance(vertex.clip);
+    }
+
+    bool contains(const Vector4d& clip) const {
+      return distance(clip) >= 0.0;
+    }
+
+    bool contains(const ClipVert& vertex) const {
+      return distance(vertex) >= 0.0;
+    }
+
+    static constexpr std::uint8_t allBits() {
+      return static_cast<std::uint8_t>((1u << 5) - 1u);
+    }
+
+  private:
+    Kind m_kind;
+  };
 
   constexpr std::array<ClipPlane, 5> kClipPlanes = {
-    {ClipPlane::Near, ClipPlane::Left, ClipPlane::Right, ClipPlane::Top, ClipPlane::Bottom}};
+    {ClipPlane(ClipPlane::Near), ClipPlane(ClipPlane::Left), ClipPlane(ClipPlane::Right),
+     ClipPlane(ClipPlane::Top), ClipPlane(ClipPlane::Bottom)}};
 
   using ClipPolygon = std::array<ClipVert, kMaxClipVertices>;
 
-  inline std::uint8_t clipBit(ClipPlane plane) {
-    return static_cast<std::uint8_t>(1u << static_cast<int>(plane));
-  }
-
   inline std::uint8_t clipOutCode(const Vector4d& clip) {
     if (clip.isUndefined()) {
-      std::uint8_t all = 0;
-      for (ClipPlane plane : kClipPlanes) {
-        all |= clipBit(plane);
-      }
-      return all;
+      return ClipPlane::allBits();
     }
 
     std::uint8_t outCode = 0;
-    if (clip.z() < kNearClipDepth)
-      outCode |= clipBit(ClipPlane::Near);
-    if (clip.x() < -clip.w())
-      outCode |= clipBit(ClipPlane::Left);
-    if (clip.x() > clip.w())
-      outCode |= clipBit(ClipPlane::Right);
-    if (clip.y() < -clip.w())
-      outCode |= clipBit(ClipPlane::Top);
-    if (clip.y() > clip.w())
-      outCode |= clipBit(ClipPlane::Bottom);
-    return outCode;
-  }
-
-  inline double clipDistance(const ClipVert& vertex, ClipPlane plane) {
-    switch (plane) {
-    case ClipPlane::Near:
-      return vertex.clip.z() - kNearClipDepth;
-    case ClipPlane::Left:
-      return vertex.clip.x() + vertex.clip.w();
-    case ClipPlane::Right:
-      return vertex.clip.w() - vertex.clip.x();
-    case ClipPlane::Top:
-      return vertex.clip.y() + vertex.clip.w();
-    case ClipPlane::Bottom:
-      return vertex.clip.w() - vertex.clip.y();
+    for (ClipPlane plane : kClipPlanes) {
+      if (!plane.contains(clip)) {
+        outCode |= plane.bit();
+      }
     }
-    return -1.0;
+    return outCode;
   }
 
   inline ClipVert interpolateClipVert(const ClipVert& from, const ClipVert& to, double t) {
@@ -417,12 +440,12 @@ namespace {
 
     std::size_t outputCount = 0;
     ClipVert prev = input[inputCount - 1];
-    double prevDistance = clipDistance(prev, plane);
+    double prevDistance = plane.distance(prev);
     bool prevInside = prevDistance >= 0.0;
 
     for (std::size_t i = 0; i < inputCount; ++i) {
       const ClipVert& curr = input[i];
-      const double currDistance = clipDistance(curr, plane);
+      const double currDistance = plane.distance(curr);
       const bool currInside = currDistance >= 0.0;
 
       if (currInside != prevInside) {
@@ -447,7 +470,7 @@ namespace {
     for (ClipPlane plane : kClipPlanes) {
       std::size_t insideCount = 0;
       for (const ClipVert& vertex : input) {
-        if (clipDistance(vertex, plane) >= 0.0) {
+        if (plane.contains(vertex)) {
           ++insideCount;
         }
       }
@@ -488,28 +511,6 @@ namespace {
     return count;
   }
 
-  inline Vector3d screenFromClipUnchecked(const Vector4d& clip,
-                                          const render::ViewPlane& viewPlane) {
-    const double invW = 1.0 / clip.w();
-    const double ndcX = clip.x() * invW;
-    const double ndcY = clip.y() * invW;
-    return Vector3d((ndcX + 1.0) * viewPlane.width() / 2.0, (ndcY + 1.0) * viewPlane.height() / 2.0,
-                    clip.z());
-  }
-
-  inline Vector3d screenFromClip(const Vector4d& clip, const render::ViewPlane& viewPlane) {
-    if (clip.isUndefined() || clip.w() <= 0.0)
-      return Vector3d::undefined();
-    return screenFromClipUnchecked(clip, viewPlane);
-  }
-
-  inline bool ensureScreen(ClipVert& vertex, const render::ViewPlane& viewPlane) {
-    if (vertex.screen.isUndefined()) {
-      vertex.screen = screenFromClip(vertex.clip, viewPlane);
-    }
-    return vertex.screen.isDefined();
-  }
-
   inline double signedScreenArea(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) {
     return (v1.screen.x() - v0.screen.x()) * (v2.screen.y() - v0.screen.y()) -
            (v1.screen.y() - v0.screen.y()) * (v2.screen.x() - v0.screen.x());
@@ -534,30 +535,28 @@ namespace {
     }
   };
 
-  // Recursive scene walker — visits every leaf primitive and emits
-  // (primitive, effective material) pairs to the callback. Composite
-  // children inherit their parent's material when they don't have
-  // one of their own (matching `Composite::intersect`'s material
-  // fallback semantics).
-  template<class Fn>
-  void walkLeaves(const render::Primitive* prim, std::shared_ptr<render::Material> inherited,
-                  Fn&& callback) {
-    if (!prim)
-      return;
-
-    auto own = prim->material();
-    auto effective = own ? own : inherited;
-
-    if (auto composite = dynamic_cast<const render::Composite*>(prim)) {
-      for (const auto& child : composite->primitives()) {
-        walkLeaves(child.get(), effective, callback);
-      }
-    } else {
-      callback(prim, effective);
-    }
-  }
-
   struct InterpolatedFragment {
+    InterpolatedFragment(const RasterVertex& v0, const RasterVertex& v1, const RasterVertex& v2,
+                         double w0b, double w1b, double w2b) {
+      // Perspective-correct depth interpolation. The screen-space
+      // barycentric weights from `rasterizeTriangle` are linear in
+      // screen space — but vertex *depth* is not. The standard trick:
+      // 1/z IS linear in screen space, so interpolate 1/z and invert.
+      // (Heckbert & Moreton 1991.)
+      const double oneOverZ = w0b * v0.invZ + w1b * v1.invZ + w2b * v2.invZ;
+      depth = 1.0 / oneOverZ;
+
+      // Perspective-correct attribute interpolation: same trick as
+      // depth, applied to vertex normals, world positions, and UVs:
+      //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
+      const double wp0 = w0b * v0.invZ;
+      const double wp1 = w1b * v1.invZ;
+      const double wp2 = w2b * v2.invZ;
+      worldPos = (v0.point * wp0 + v1.point * wp1 + v2.point * wp2) * depth;
+      normal = (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * depth;
+      uv = (v0.uv * wp0 + v1.uv * wp1 + v2.uv * wp2) * depth;
+    }
+
     double depth;
     Vector3d worldPos;
     Vector3d normal;
@@ -619,28 +618,6 @@ namespace {
 
     const render::Scene* m_scene;
   };
-
-  inline InterpolatedFragment interpolateFragment(const RasterVertex& v0, const RasterVertex& v1,
-                                                  const RasterVertex& v2, double w0b, double w1b,
-                                                  double w2b) {
-    // Perspective-correct depth interpolation. The screen-space
-    // barycentric weights from `rasterizeTriangle` are linear in
-    // screen space — but vertex *depth* is not. The standard trick:
-    // 1/z IS linear in screen space, so interpolate 1/z and invert.
-    // (Heckbert & Moreton 1991.)
-    const double oneOverZ = w0b * v0.invZ + w1b * v1.invZ + w2b * v2.invZ;
-    const double pixelDepth = 1.0 / oneOverZ;
-
-    // Perspective-correct attribute interpolation: same trick as
-    // depth, applied to vertex normals, world positions, and UVs:
-    //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
-    const double wp0 = w0b * v0.invZ;
-    const double wp1 = w1b * v1.invZ;
-    const double wp2 = w2b * v2.invZ;
-    return {pixelDepth, (v0.point * wp0 + v1.point * wp1 + v2.point * wp2) * pixelDepth,
-            (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * pixelDepth,
-            (v0.uv * wp0 + v1.uv * wp1 + v2.uv * wp2) * pixelDepth};
-  }
 
   struct DepthState {
     Rasterizer::DepthFunc func;
@@ -830,7 +807,7 @@ namespace {
           return;
         }
 
-        const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
+        const InterpolatedFragment fragment(v0, v1, v2, w0b, w1b, w2b);
         if (!depth.pass(x, y, fragment.depth)) {
           stencil.onDepthFail(x, y);
           return;
@@ -949,8 +926,7 @@ namespace {
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
       std::uint64_t globalFaceIdx = 0;
-      walkLeaves(
-        m_scene, nullptr,
+      m_scene->forEachLeaf(
         [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
           if (m_cancelled.load())
             return;
@@ -969,7 +945,7 @@ namespace {
             const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
             const std::uint8_t outCode = clipOutCode(clip);
             projected[vi] = {
-              clip, outCode == 0 ? screenFromClipUnchecked(clip, viewPlane) : Vector3d::undefined(),
+              clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined(),
               outCode};
           }
 
@@ -1026,8 +1002,8 @@ namespace {
                 ClipVert v1 = clipped[t];
                 ClipVert v2 = clipped[t + 1];
 
-                if (!ensureScreen(v0, viewPlane) || !ensureScreen(v1, viewPlane) ||
-                    !ensureScreen(v2, viewPlane)) {
+                if (!v0.ensureScreen(viewPlane) || !v1.ensureScreen(viewPlane) ||
+                    !v2.ensureScreen(viewPlane)) {
                   continue;
                 }
 
@@ -1200,9 +1176,7 @@ namespace {
 
     resolveMSAA(buffer, pattern.count);
   }
-}
 
-namespace {
   void renderRasterFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                          const std::shared_ptr<render::Camera>& camera, QThreadPool& threadPool,
                          std::list<std::shared_ptr<RasterTileTask>>& tasks, int queueSize,
@@ -1214,7 +1188,7 @@ namespace {
       return;
 
     const TilePlan tilePlan = TilePlan::forBuffer(width, height, queueSize);
-    const RasterSamplePattern pattern = samplePattern(rasterizer.msaaSamples());
+    const RasterSamplePattern pattern(rasterizer.msaaSamples());
     const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                                 cancelled);
     if (pattern.count > 1) {

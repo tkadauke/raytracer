@@ -17,15 +17,6 @@ using namespace render;
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
   }
 
-  static Vector3d screenFromClip(const Vector4d& clip, int width, int height) {
-    const double invW = 1.0 / clip.w();
-    return Vector3d(
-      (clip.x() * invW + 1.0) * width / 2.0,
-      (clip.y() * invW + 1.0) * height / 2.0,
-      clip.z()
-    );
-  }
-  
   TEST(OrthographicCamera, ShouldConstructWithoutParameters) {
     OrthographicCamera camera;
   }
@@ -68,7 +59,7 @@ using namespace render;
     const Vector3d point(1.5, -0.5, 4.0);
     const Vector4d clip = camera.projectPointToClipSpace(point);
     const Vector3d projected = camera.projectPointWithDepth(point);
-    const Vector3d fromClip = screenFromClip(clip, 200, 150);
+    const Vector3d fromClip = camera.viewPlane()->screenFromClipUnchecked(clip);
 
     ASSERT_FALSE(clip.isUndefined());
     EXPECT_NEAR(projected.x(), fromClip.x(), 1e-9);
