@@ -30,11 +30,66 @@
 
 using namespace engine::raster;
 
+// Rasterizer.cpp is organized as a software graphics pipeline:
+//
+//   Rasterizer::render()
+//     sets up the public engine state, clears the output, and hands
+//     the frame to Rasterizer::Private.
+//
+//   Rasterizer::Private
+//     owns frame-level orchestration: tile dispatch, MSAA sample
+//     passes, pass-local depth/stencil buffers, and the active task
+//     list used by the UI progress overlay.
+//
+//   anonymous namespace
+//     defines the local vocabulary of the pipeline: projected vertices,
+//     clip vertices, raster vertices, triangle batches, material
+//     evaluation, and the policy objects that specialize the hot loop.
+//
+//   RasterTriangleEmitter
+//     is the front end. It walks leaf primitives, tessellates them,
+//     projects each mesh vertex once, clips polygons in homogeneous
+//     space, applies culling/vertex-shader hooks, and streams prepared
+//     RasterTriangle objects.
+//
+//   RasterTriangleSet / RasterTileGrid
+//     is the batch. It stores the emitted triangles and bins each one
+//     into the tiles whose pixel rectangles it may touch.
+//
+//   rasterizeTriangleSetWithPolicies()
+//     is the draw step. It chooses direct single-tile rendering or
+//     QRunnable tile dispatch, then calls the core edge-function
+//     triangle rasterizer for each prepared triangle.
+//
+//   Depth/Stencil/Fragment policy objects
+//     are the C++ implementation trick: runtime state such as
+//     "stencil enabled?" or "custom fragment shader?" is resolved once
+//     per pass into concrete policy objects, so the per-pixel loop can
+//     inline pass/fail/write/shade behavior.
+//
+// Example path for a normal 1x render:
+//   render -> Private::renderFrame -> RasterTriangleEmitter
+//   -> RasterTriangleSet tile bins -> Private::renderTriangleSetPass
+//   -> withPreparedTrianglePolicies -> rasterizeTriangleSetWithPolicies.
+//
+// Example path for 4x MSAA:
+//   renderFrame builds the same triangle set once, then renderMSAAFrame
+//   runs four pass buffers with four subpixel Vector2d offsets, adds
+//   the sample buffers together, and divides by four.
+//
+// If you are reading for performance, start at
+// rasterizePreparedTriangleWithPolicies(): that is the fragment loop.
+// If you are reading for correctness of projection/clipping, start at
+// RasterTriangleEmitter::forEachTriangle(). If you are reading for
+// threading, start at Rasterizer::Private::renderTriangleSetPass().
+
 namespace {
   class RasterTriangleEmitter;
   class RasterTriangleSet;
 }
 
+// Pimpl: hides Qt threading and render-pass orchestration from the
+// public header, and gives the .cpp room for local pipeline types.
 struct Rasterizer::Private {
   Private()
       : threadPool(std::make_unique<QThreadPool>()),
@@ -46,7 +101,14 @@ struct Rasterizer::Private {
   std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
 
+  // The pimpl owns frame-level orchestration: tiling, pass buffers,
+  // MSAA resolve, and task lifetime. Keeping this here makes the
+  // public Rasterizer surface describe engine state, while the .cpp
+  // can still talk in terms of local pipeline objects.
   struct SamplePattern {
+    // Fixed rotated-ish subpixel patterns. These are not random
+    // samples; every render repeats the same offsets so tests and
+    // docs stay deterministic.
     explicit SamplePattern(int sampleCount) {
       switch (sampleCount) {
       case 2:
@@ -85,6 +147,10 @@ struct Rasterizer::Private {
 
   class PassBuffers {
   public:
+    // A render pass owns depth and optional stencil, but borrows the
+    // color target. Single-sample rendering writes straight to the
+    // final buffer; each MSAA sample pass writes to a temporary color
+    // buffer that gets accumulated during resolve.
     PassBuffers(const Rasterizer& rasterizer, const render::TilePlan& tilePlan,
                 Buffer<Colord>& colorBuffer)
         : m_colorBuffer(colorBuffer),
@@ -207,11 +273,18 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   // projection math depends on the cached basis vectors.
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
 
+  // From here down the render is expressed in pipeline terms. The
+  // Rasterizer object contributes configuration; Private drives the
+  // concrete passes and keeps task state available for activeRects().
   p->tasks.clear();
   p->renderFrame(*this, m_scene, m_camera, m_cancelled, buffer);
 }
 
 namespace {
+  // The anonymous namespace is the raster pipeline vocabulary:
+  // transient vertices, policy objects, and hot-path template helpers.
+  // None of these types are part of the engine API.
+
   // Ambient coefficient — same role as MatteMaterial's
   // `ambientCoefficient`. Multiplies the scene's ambient term so
   // the unlit side of an object is visible at its full ambient
@@ -224,12 +297,17 @@ namespace {
   constexpr double kNearClipDepth = 0.1;
   constexpr std::size_t kMaxClipVertices = 32;
 
+  // Projection produces clip-space data first. Screen coordinates are
+  // cached only when the vertex is already inside the clip volume.
   struct ProjectedVertex {
     Vector4d clip;
     Vector3d screen;
     std::uint8_t outCode;
   };
 
+  // A clip vertex carries every attribute that clipping may need to
+  // synthesize: world position, normal, UV, homogeneous clip coords,
+  // and eventually screen position.
   struct ClipVert {
     Vector3d point;
     Vector3d normal;
@@ -245,6 +323,9 @@ namespace {
     }
   };
 
+  // A raster vertex is after clipping and optional vertex shading:
+  // integer screen coordinates plus 1/z for perspective-correct
+  // interpolation in the fragment stage.
   struct RasterVertex {
     Vector3d point;
     Vector3d normal;
@@ -254,6 +335,9 @@ namespace {
     int y;
   };
 
+  // Material and primitive pointers stay attached to triangles so
+  // the fragment stage can use the same scene/material vocabulary as
+  // the raytracer, even though no rays are traced here.
   struct RasterTriangle {
     std::array<RasterVertex, 3> vertices;
     const render::Primitive* primitive;
@@ -261,6 +345,8 @@ namespace {
     std::uint64_t faceIdx;
   };
 
+  // Tile-local triangle bins. The tile plan owns pixel rectangles;
+  // this grid owns "which triangles might touch this rectangle".
   class RasterTileGrid {
   public:
     explicit RasterTileGrid(const render::TilePlan& plan)
@@ -312,6 +398,8 @@ namespace {
     std::vector<std::vector<std::size_t>> m_triangleIndices;
   };
 
+  // Renderable triangle batch for one frame. It stores prepared
+  // triangles once, plus per-tile index lists for parallel drawing.
   class RasterTriangleSet {
   public:
     explicit RasterTriangleSet(const render::TilePlan& tilePlan)
@@ -328,6 +416,9 @@ namespace {
       const int rawMaxY =
         std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
 
+      // Bin by conservative screen-space bounds. Tiles own disjoint
+      // pixel rectangles, so color/depth/stencil writes stay lock-free
+      // once a triangle has been copied into each overlapping tile.
       const std::size_t triangleIndex = m_triangles.size();
       const std::size_t added =
         m_tileGrid.addBounds(rawMinX, rawMaxX, rawMinY, rawMaxY, triangleIndex);
@@ -363,6 +454,10 @@ namespace {
     return volume;
   }
 
+  // Clipping creates new vertices on plane intersections. The
+  // geometry is homogeneous, but attributes are interpolated in the
+  // original primitive domain so the later perspective-correct stage
+  // still has meaningful per-vertex values.
   inline ClipVert interpolateClipVert(const ClipVert& from, const ClipVert& to, double t) {
     return {from.point + (to.point - from.point) * t, from.normal + (to.normal - from.normal) * t,
             from.uv + (to.uv - from.uv) * t, from.clip + (to.clip - from.clip) * t,
@@ -383,6 +478,8 @@ namespace {
            (v1.screen.y() - v0.screen.y()) * (v2.screen.x() - v0.screen.x());
   }
 
+  // Culling is a tiny policy too: it turns the public cull mode into
+  // a single projected-area decision used before rasterization.
   struct TriangleCullPolicy {
     Rasterizer::CullMode mode;
 
@@ -402,6 +499,8 @@ namespace {
     }
   };
 
+  // Fragment payload after barycentric interpolation. Constructing it
+  // is the handoff from coverage math to shading/depth tests.
   struct InterpolatedFragment {
     InterpolatedFragment(const RasterVertex& v0, const RasterVertex& v1, const RasterVertex& v2,
                          double w0b, double w1b, double w2b) {
@@ -430,6 +529,9 @@ namespace {
     Vector2d uv;
   };
 
+  // The default fragment path is intentionally modest: material
+  // albedo plus direct Lambertian lights. More advanced visibility
+  // effects belong to later render passes or to the ray/path tracers.
   class MaterialEvaluator {
   public:
     explicit MaterialEvaluator(const render::Scene* scene)
@@ -486,6 +588,11 @@ namespace {
     const render::Scene* m_scene;
   };
 
+  // Small value objects capture fixed-function state at pass setup
+  // time. The inner fragment loop then receives concrete policy
+  // objects instead of asking the Rasterizer about booleans per pixel.
+  // Pure depth comparison state. Kept separate from depth-buffer
+  // ownership so write/read-only policies can share the comparison.
   struct DepthState {
     Rasterizer::DepthFunc func;
 
@@ -512,6 +619,8 @@ namespace {
     }
   };
 
+  // Pure stencil state: compare function plus the update operations
+  // for stencil-fail, depth-fail, and pass outcomes.
   struct StencilState {
     Rasterizer::StencilFunc func;
     std::uint8_t reference;
@@ -569,6 +678,12 @@ namespace {
     }
   };
 
+  // Policy objects: C++ templates select "no stencil" vs "stencil",
+  // "write depth" vs "read-only depth", and "built-in" vs "shader"
+  // before entering the tile loops. The generated inner loop has
+  // direct calls and can inline the chosen behavior.
+  // Null object for disabled stencil. Same interface as the real
+  // policy, so the inner loop does not branch on "is stencil enabled".
   struct NoStencilPolicy {
     inline bool pass(int, int) const {
       return true;
@@ -581,6 +696,8 @@ namespace {
     }
   };
 
+  // Real stencil policy: owns access to the pass stencil buffer and
+  // applies the configured operation at each fragment outcome.
   struct RasterStencilPolicy {
     Buffer<std::uint8_t>& stencilBuffer;
     StencilState state;
@@ -607,6 +724,8 @@ namespace {
     }
   };
 
+  // Normal depth policy: compare incoming depth, then commit passing
+  // fragments back into the z-buffer.
   struct DepthWritePolicy {
     Buffer<double>& zBuffer;
     DepthState state;
@@ -620,6 +739,8 @@ namespace {
     }
   };
 
+  // Depth-test-only policy. Useful for passes that should respect
+  // existing depth without modifying it.
   struct DepthReadOnlyPolicy {
     Buffer<double>& zBuffer;
     DepthState state;
@@ -632,6 +753,8 @@ namespace {
     }
   };
 
+  // Built-in shader policy: material lookup and direct Lambertian
+  // shading. This is the default fixed-function fragment stage.
   struct BuiltInFragmentPolicy {
     MaterialEvaluator materialEvaluator;
 
@@ -641,6 +764,8 @@ namespace {
     }
   };
 
+  // User fragment-shader policy. It adapts the internal fragment
+  // payload to Rasterizer::FragmentInput and calls the callback.
   struct ShaderFragmentPolicy {
     const Rasterizer& rasterizer;
 
@@ -665,6 +790,9 @@ namespace {
     const RasterVertex& v1 = triangle.vertices[1];
     const RasterVertex& v2 = triangle.vertices[2];
 
+    // Hot loop boundary: core::rasterizeTriangleSampled supplies
+    // covered pixels and barycentric weights; the policies decide
+    // stencil/depth/shading without virtual dispatch.
     core::rasterizeTriangleSampled(
       v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, clipRect.left(), clipRect.top(), clipRect.right(),
       clipRect.bottom(), sampleOffset.x(), sampleOffset.y(),
@@ -711,6 +839,7 @@ namespace {
     Buffer<Colord>& buffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
     Fragment fragmentPolicy) {
     if (tilePlan.isSingleTile()) {
+      // Avoid QRunnable overhead for the common single-tile path.
       rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, buffer, sampleOffset,
                                 cancelled, stencil, depth, fragmentPolicy);
       return;
@@ -744,6 +873,8 @@ namespace {
     const bool useStencil = rasterizer.stencilTestEnabled();
     const bool useFragmentShader = static_cast<bool>(rasterizer.fragmentShader());
 
+    // One dispatch tree per pass, not per pixel. This is the bridge
+    // from runtime engine state to compile-time policy objects.
     if (useStencil) {
       const StencilState stencilState{rasterizer.stencilFunc(),   rasterizer.stencilReference(),
                                       rasterizer.stencilMask(),   rasterizer.stencilWriteMask(),
@@ -766,6 +897,9 @@ namespace {
     }
   }
 
+  // Scene traversal + primitive tessellation + clipping. This is the
+  // "front end" of the software raster pipeline; it streams prepared
+  // triangles without owning the final batch.
   class RasterTriangleEmitter {
   public:
     RasterTriangleEmitter(const render::Scene* scene, const std::shared_ptr<render::Camera>& camera,
@@ -794,6 +928,8 @@ namespace {
           const auto& faces = mesh->faces();
           const auto& viewPlane = *m_camera->viewPlane();
 
+          // Project each mesh vertex once per primitive. Faces then
+          // reuse clip/screen data while fan-triangulating polygons.
           std::vector<ProjectedVertex> projected(vertices.size());
           for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
             const auto& vertex = vertices[vi];
@@ -816,6 +952,8 @@ namespace {
               const ProjectedVertex& p0 = projected[face[0]];
               const ProjectedVertex& p1 = projected[face[i]];
               const ProjectedVertex& p2 = projected[face[i + 1]];
+              // Cohen-Sutherland-style bit tests: shared outside
+              // bits reject a triangle before invoking the clipper.
               if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
                 continue;
               }
@@ -893,6 +1031,9 @@ namespace {
       Vector2d uv = vertex.uv;
       Vector3d screen = vertex.screen;
 
+      // The optional vertex shader is deliberately late: it sees
+      // already-clipped vertices and may adjust the screen-space
+      // result used by the teaching/debug shader path.
       if (const auto& shader = m_rasterizer.vertexShader()) {
         Rasterizer::VertexInput input{vertex.point,  vertex.normal, vertex.uv, vertex.clip,
                                       vertex.screen, primitive,     material,  faceIdx};
@@ -943,6 +1084,9 @@ namespace {
 
 RasterTriangleSet Rasterizer::Private::collectRasterTriangles(
   const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan) {
+  // The emitter streams triangles, the set owns them and their tile
+  // bins. Keeping those roles separate makes the later tile raster
+  // pass independent of scene traversal and tessellation.
   RasterTriangleSet triangleSet(tilePlan);
   triangleEmitter.forEachTriangle(
     [&](const RasterTriangle& triangle) { triangleSet.add(triangle); });
@@ -966,6 +1110,8 @@ void Rasterizer::Private::renderTriangleSetPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
+  // A pass freezes current depth/stencil/shader state into policies,
+  // then hands the triangle set to either the direct or tiled path.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer);
   withPreparedTrianglePolicies(scene.get(), rasterizer, passBuffers.depth(), passBuffers.stencil(),
                                [&](auto stencil, auto depth, auto fragmentPolicy) {
@@ -1002,6 +1148,9 @@ void Rasterizer::Private::renderMSAAFrame(
     if (cancelled.load())
       return;
 
+    // This is simple supersampling: rerun coverage/depth at a fixed
+    // subpixel offset, accumulate colors, divide at the end. It trades
+    // work for deterministic edge quality.
     Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
     sampleBuffer.clear(rasterizer.backgroundColor());
 
