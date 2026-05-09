@@ -31,10 +31,9 @@
 using namespace engine::raster;
 
 namespace {
-  void renderRasterFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
-                         const std::shared_ptr<render::Camera>& camera, QThreadPool& threadPool,
-                         std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, int queueSize,
-                         const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+  struct RasterSamplePattern;
+  class RasterTriangleEmitter;
+  class RasterTriangleSet;
 }
 
 struct Rasterizer::Private {
@@ -47,6 +46,28 @@ struct Rasterizer::Private {
   std::unique_ptr<QThreadPool> threadPool;
   std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
+
+  void renderFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+                   const std::shared_ptr<render::Camera>& camera,
+                   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+
+  void renderSingleSampleFrame(const Rasterizer& rasterizer,
+                               const std::shared_ptr<render::Scene>& scene,
+                               const render::TilePlan& tilePlan,
+                               const RasterTriangleEmitter& triangleEmitter,
+                               const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+
+  void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+                       const render::TilePlan& tilePlan, const RasterSamplePattern& pattern,
+                       const RasterTriangleEmitter& triangleEmitter,
+                       const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+
+  void renderTriangleSetPass(const Rasterizer& rasterizer,
+                             const std::shared_ptr<render::Scene>& scene,
+                             const RasterTriangleSet& triangleSet,
+                             const render::TilePlan& tilePlan,
+                             const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+                             const Vector2d& sampleOffset);
 };
 
 Rasterizer::Rasterizer(std::shared_ptr<render::Scene> scene)
@@ -114,8 +135,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
 
   p->tasks.clear();
-  renderRasterFrame(*this, m_scene, m_camera, *p->threadPool, p->tasks, p->queueSize, m_cancelled,
-                    buffer);
+  p->renderFrame(*this, m_scene, m_camera, m_cancelled, buffer);
 }
 
 namespace {
@@ -938,91 +958,82 @@ namespace {
         buffer[y][x] = buffer[y][x] * resolveScale;
   }
 
-  inline void renderTriangleSetPass(const Rasterizer& rasterizer,
-                                    const std::shared_ptr<render::Scene>& scene,
-                                    const RasterTriangleSet& triangleSet,
-                                    const render::TilePlan& tilePlan, QThreadPool& threadPool,
-                                    std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
-                                    const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-                                    const RasterSampleOffset& sampleOffset) {
-    RasterPassBuffers passBuffers(rasterizer, tilePlan, buffer);
-    withPreparedTrianglePolicies(scene.get(), rasterizer, passBuffers.depth(),
-                                 passBuffers.stencil(),
-                                 [&](auto stencil, auto depth, auto fragmentPolicy) {
-                                   rasterizeTriangleSetWithPolicies(
-                                     triangleSet, tilePlan, threadPool, tasks, cancelled,
-                                     passBuffers.color(), sampleOffset, stencil, depth,
-                                     fragmentPolicy);
-                                 });
+}
+
+void Rasterizer::Private::renderTriangleSetPass(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
+  const std::atomic<bool>& cancelled, Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
+  RasterPassBuffers passBuffers(rasterizer, tilePlan, buffer);
+  withPreparedTrianglePolicies(scene.get(), rasterizer, passBuffers.depth(), passBuffers.stencil(),
+                               [&](auto stencil, auto depth, auto fragmentPolicy) {
+                                 rasterizeTriangleSetWithPolicies(
+                                   triangleSet, tilePlan, *threadPool, tasks, cancelled,
+                                   passBuffers.color(), sampleOffset, stencil, depth,
+                                   fragmentPolicy);
+                               });
+}
+
+void Rasterizer::Private::renderSingleSampleFrame(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const render::TilePlan& tilePlan, const RasterTriangleEmitter& triangleEmitter,
+  const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
+  if (cancelled.load() || triangleSet.empty())
+    return;
+
+  renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, cancelled, buffer,
+                        RasterSampleOffset(0.0, 0.0));
+}
+
+void Rasterizer::Private::renderMSAAFrame(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const render::TilePlan& tilePlan, const RasterSamplePattern& pattern,
+  const RasterTriangleEmitter& triangleEmitter, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer) {
+  const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
+  if (cancelled.load() || triangleSet.empty())
+    return;
+
+  buffer.clear(Colord::black());
+  for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
+    if (cancelled.load())
+      return;
+
+    Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
+    sampleBuffer.clear(rasterizer.backgroundColor());
+
+    const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
+    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, cancelled, sampleBuffer,
+                          sampleOffset);
+
+    if (cancelled.load())
+      return;
+    accumulateSample(buffer, sampleBuffer);
   }
 
-  inline void renderSingleSampleFrame(const Rasterizer& rasterizer,
+  resolveMSAA(buffer, pattern.count);
+}
+
+void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
                                       const std::shared_ptr<render::Scene>& scene,
-                                      const render::TilePlan& tilePlan,
-                                      const RasterTriangleEmitter& triangleEmitter,
-                                      QThreadPool& threadPool,
-                                      std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
-                                      const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
-    const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
-    if (cancelled.load() || triangleSet.empty())
-      return;
+                                      const std::shared_ptr<render::Camera>& camera,
+                                      const std::atomic<bool>& cancelled,
+                                      Buffer<Colord>& buffer) {
+  const int width = buffer.width();
+  const int height = buffer.height();
 
-    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, threadPool, tasks, cancelled,
-                          buffer, RasterSampleOffset(0.0, 0.0));
+  if (width <= 0 || height <= 0 || cancelled.load())
+    return;
+
+  const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
+  const RasterSamplePattern pattern(rasterizer.msaaSamples());
+  const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
+                                              cancelled);
+  if (pattern.count > 1) {
+    renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, cancelled, buffer);
+    return;
   }
 
-  inline void renderMSAAFrame(const Rasterizer& rasterizer,
-                              const std::shared_ptr<render::Scene>& scene,
-                              const render::TilePlan& tilePlan,
-                              const RasterSamplePattern& pattern,
-                              const RasterTriangleEmitter& triangleEmitter, QThreadPool& threadPool,
-                              std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
-                              const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
-    const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
-    if (cancelled.load() || triangleSet.empty())
-      return;
-
-    buffer.clear(Colord::black());
-    for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
-      if (cancelled.load())
-        return;
-
-      Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
-      sampleBuffer.clear(rasterizer.backgroundColor());
-
-      const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
-      renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, threadPool, tasks, cancelled,
-                            sampleBuffer, sampleOffset);
-
-      if (cancelled.load())
-        return;
-      accumulateSample(buffer, sampleBuffer);
-    }
-
-    resolveMSAA(buffer, pattern.count);
-  }
-
-  void renderRasterFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
-                         const std::shared_ptr<render::Camera>& camera, QThreadPool& threadPool,
-                         std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, int queueSize,
-                         const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
-    const int width = buffer.width();
-    const int height = buffer.height();
-
-    if (width <= 0 || height <= 0 || cancelled.load())
-      return;
-
-    const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
-    const RasterSamplePattern pattern(rasterizer.msaaSamples());
-    const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
-                                                cancelled);
-    if (pattern.count > 1) {
-      renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, threadPool, tasks,
-                      cancelled, buffer);
-      return;
-    }
-
-    renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, threadPool, tasks,
-                            cancelled, buffer);
-  }
+  renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, cancelled, buffer);
 }
