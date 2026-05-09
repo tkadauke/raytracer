@@ -211,13 +211,69 @@ namespace {
     std::uint64_t faceIdx;
   };
 
-  inline Recti tileRect(int width, int height, int rows, int cols, int rowIdx, int colIdx) {
-    const int left = static_cast<int>(std::floor(double(width) * colIdx / cols));
-    const int right = static_cast<int>(std::floor(double(width) * (colIdx + 1) / cols));
-    const int top = static_cast<int>(std::floor(double(height) * rowIdx / rows));
-    const int bottom = static_cast<int>(std::floor(double(height) * (rowIdx + 1) / rows));
-    return Recti(left, top, right - left, bottom - top);
-  }
+  class TileGrid {
+  public:
+    TileGrid(int width, int height, int rows, int cols)
+      : m_width(width),
+        m_height(height),
+        m_rows(rows),
+        m_cols(cols),
+        m_triangleIndices(rows * cols) {
+    }
+
+    Recti rect(int row, int col) const {
+      const int left = static_cast<int>(std::floor(double(m_width) * col / m_cols));
+      const int right = static_cast<int>(std::floor(double(m_width) * (col + 1) / m_cols));
+      const int top = static_cast<int>(std::floor(double(m_height) * row / m_rows));
+      const int bottom = static_cast<int>(std::floor(double(m_height) * (row + 1) / m_rows));
+      return Recti(left, top, right - left, bottom - top);
+    }
+
+    std::size_t index(int row, int col) const {
+      return static_cast<std::size_t>(row * m_cols + col);
+    }
+
+    const std::vector<std::size_t>& triangleIndices(std::size_t tileIndex) const {
+      return m_triangleIndices[tileIndex];
+    }
+
+    std::size_t addTriangle(const RasterTriangle& triangle, std::size_t triangleIndex) {
+      const int rawMinX = std::min({ triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x });
+      const int rawMaxX = std::max({ triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x });
+      const int rawMinY = std::min({ triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y });
+      const int rawMaxY = std::max({ triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y });
+
+      if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_width || rawMinY >= m_height) {
+        return 0;
+      }
+
+      const int minX = std::clamp(rawMinX, 0, m_width - 1);
+      const int maxX = std::clamp(rawMaxX, 0, m_width - 1);
+      const int minY = std::clamp(rawMinY, 0, m_height - 1);
+      const int maxY = std::clamp(rawMaxY, 0, m_height - 1);
+
+      const int firstCol = std::clamp(minX * m_cols / m_width, 0, m_cols - 1);
+      const int lastCol = std::clamp(maxX * m_cols / m_width, 0, m_cols - 1);
+      const int firstRow = std::clamp(minY * m_rows / m_height, 0, m_rows - 1);
+      const int lastRow = std::clamp(maxY * m_rows / m_height, 0, m_rows - 1);
+
+      std::size_t added = 0;
+      for (int row = firstRow; row <= lastRow; ++row) {
+        for (int col = firstCol; col <= lastCol; ++col) {
+          m_triangleIndices[index(row, col)].push_back(triangleIndex);
+          ++added;
+        }
+      }
+      return added;
+    }
+
+  private:
+    int m_width;
+    int m_height;
+    int m_rows;
+    int m_cols;
+    std::vector<std::vector<std::size_t>> m_triangleIndices;
+  };
 
   enum class ClipPlane {
     Near,
@@ -475,43 +531,6 @@ namespace {
       faceIdx
     };
     return true;
-  }
-
-  inline std::size_t addTriangleToTiles(
-    const RasterTriangle& triangle,
-    std::size_t triangleIndex,
-    int width,
-    int height,
-    int rows,
-    int cols,
-    std::vector<std::vector<std::size_t>>& tileTriangles) {
-    const int rawMinX = std::min({ triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x });
-    const int rawMaxX = std::max({ triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x });
-    const int rawMinY = std::min({ triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y });
-    const int rawMaxY = std::max({ triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y });
-
-    if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= width || rawMinY >= height) {
-      return 0;
-    }
-
-    const int minX = std::clamp(rawMinX, 0, width - 1);
-    const int maxX = std::clamp(rawMaxX, 0, width - 1);
-    const int minY = std::clamp(rawMinY, 0, height - 1);
-    const int maxY = std::clamp(rawMaxY, 0, height - 1);
-
-    const int firstCol = std::clamp(minX * cols / width, 0, cols - 1);
-    const int lastCol = std::clamp(maxX * cols / width, 0, cols - 1);
-    const int firstRow = std::clamp(minY * rows / height, 0, rows - 1);
-    const int lastRow = std::clamp(maxY * rows / height, 0, rows - 1);
-
-    std::size_t added = 0;
-    for (int row = firstRow; row <= lastRow; ++row) {
-      for (int col = firstCol; col <= lastCol; ++col) {
-        tileTriangles[row * cols + col].push_back(triangleIndex);
-        ++added;
-      }
-    }
-    return added;
   }
 
   // A reasonably colour-spread hash from a uint64 face index → RGB
@@ -1021,7 +1040,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   const RasterSamplePattern pattern = samplePattern(m_msaaSamples);
   if (pattern.count > 1) {
     std::vector<RasterTriangle> triangles;
-    std::vector<std::vector<std::size_t>> tileTriangles(tileCount == 1 ? 0 : rows * cols);
+    TileGrid tileGrid(width, height, rows, cols);
     std::size_t binnedTriangleCount = 0;
     emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
       [&](const RasterTriangle& triangle) {
@@ -1031,8 +1050,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
         }
 
         const std::size_t triangleIndex = triangles.size();
-        const std::size_t added = addTriangleToTiles(
-          triangle, triangleIndex, width, height, rows, cols, tileTriangles);
+        const std::size_t added = tileGrid.addTriangle(triangle, triangleIndex);
         if (added != 0) {
           triangles.push_back(triangle);
           binnedTriangleCount += added;
@@ -1076,13 +1094,13 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
             p->tasks.clear();
             for (int row = 0; row != rows; ++row) {
               for (int col = 0; col != cols; ++col) {
-                const Recti rect = tileRect(width, height, rows, cols, row, col);
+                const Recti rect = tileGrid.rect(row, col);
                 if (rect.width() <= 0 || rect.height() <= 0) continue;
-                const std::size_t tileIndex = row * cols + col;
+                const std::size_t tileIndex = tileGrid.index(row, col);
 
                 auto task = std::make_shared<RasterTileTask>(rect,
                   [&, rect, tileIndex, sampleOffset, stencil, depth, fragmentPolicy] {
-                    const auto& triangleIndices = tileTriangles[tileIndex];
+                    const auto& triangleIndices = tileGrid.triangleIndices(tileIndex);
                     for (const std::size_t triangleIndex : triangleIndices) {
                       if (m_cancelled.load()) return;
                       rasterizePreparedTriangleWithPolicies(
@@ -1329,13 +1347,12 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   }
 
   std::vector<RasterTriangle> triangles;
-  std::vector<std::vector<std::size_t>> tileTriangles(rows * cols);
+  TileGrid tileGrid(width, height, rows, cols);
   std::size_t binnedTriangleCount = 0;
   emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
     [&](const RasterTriangle& triangle) {
       const std::size_t triangleIndex = triangles.size();
-      const std::size_t added = addTriangleToTiles(
-        triangle, triangleIndex, width, height, rows, cols, tileTriangles);
+      const std::size_t added = tileGrid.addTriangle(triangle, triangleIndex);
       if (added != 0) {
         triangles.push_back(triangle);
         binnedTriangleCount += added;
@@ -1349,13 +1366,13 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
     [&](auto stencil, auto depth, auto fragmentPolicy) {
       for (int row = 0; row != rows; ++row) {
         for (int col = 0; col != cols; ++col) {
-          const Recti rect = tileRect(width, height, rows, cols, row, col);
+          const Recti rect = tileGrid.rect(row, col);
           if (rect.width() <= 0 || rect.height() <= 0) continue;
-          const std::size_t tileIndex = row * cols + col;
+          const std::size_t tileIndex = tileGrid.index(row, col);
 
           auto task = std::make_shared<RasterTileTask>(
             rect, [&, rect, tileIndex, stencil, depth, fragmentPolicy] {
-              const auto& triangleIndices = tileTriangles[tileIndex];
+              const auto& triangleIndices = tileGrid.triangleIndices(tileIndex);
               for (const std::size_t triangleIndex : triangleIndices) {
                 if (m_cancelled.load()) return;
                 rasterizePreparedTriangleWithPolicies(
