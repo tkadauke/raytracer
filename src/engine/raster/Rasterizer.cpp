@@ -728,38 +728,54 @@ namespace {
       && !rasterizer.fragmentShader();
   }
 
-  inline void rasterizePreparedTriangle(const RasterTriangle& triangle,
-                                        const Recti& clipRect,
-                                        const render::Scene* scene,
-                                        const Rasterizer& rasterizer,
-                                        Buffer<Colord>& buffer,
-                                        Buffer<double>& zBuffer,
-                                        Buffer<std::uint8_t>* stencilBuffer,
-                                        const RasterSampleOffset& sampleOffset) {
+  inline void rasterizePreparedTriangleBuiltIn(const RasterTriangle& triangle,
+                                               const Recti& clipRect,
+                                               const render::Scene* scene,
+                                               Buffer<Colord>& buffer,
+                                               Buffer<double>& zBuffer,
+                                               const RasterSampleOffset& sampleOffset) {
     const RasterVertex& v0 = triangle.vertices[0];
     const RasterVertex& v1 = triangle.vertices[1];
     const RasterVertex& v2 = triangle.vertices[2];
-
-    if (usesBuiltInDepthStencilAndFragment(rasterizer)) {
-      core::rasterizeTriangleSampled(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
-        clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
-        sampleOffset.x, sampleOffset.y,
-        [&](int x, int y, double w0b, double w1b, double w2b) {
-        const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
-        if (fragment.depth >= zBuffer[y][x]) return;
-
-        zBuffer[y][x] = fragment.depth;
-        buffer[y][x] = shadeBuiltInFragment(
-          triangle, scene, fragment.worldPos, fragment.normal, fragment.uv);
-      });
-      return;
-    }
 
     core::rasterizeTriangleSampled(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
       clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
       sampleOffset.x, sampleOffset.y,
       [&](int x, int y, double w0b, double w1b, double w2b) {
-      if (stencilBuffer) {
+      const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
+      if (fragment.depth >= zBuffer[y][x]) return;
+
+      zBuffer[y][x] = fragment.depth;
+      buffer[y][x] = shadeBuiltInFragment(
+        triangle, scene, fragment.worldPos, fragment.normal, fragment.uv);
+    });
+  }
+
+  template<bool UseStencil, bool UseFragmentShader, bool DepthWriteEnabled>
+  inline void rasterizePreparedTriangleConfigurable(const RasterTriangle& triangle,
+                                                    const Recti& clipRect,
+                                                    const render::Scene* scene,
+                                                    const Rasterizer& rasterizer,
+                                                    Buffer<Colord>& buffer,
+                                                    Buffer<double>& zBuffer,
+                                                    Buffer<std::uint8_t>* stencilBuffer,
+                                                    const RasterSampleOffset& sampleOffset) {
+    if constexpr (!UseStencil) {
+      (void)stencilBuffer;
+    }
+    if constexpr (UseFragmentShader) {
+      (void)scene;
+    }
+
+    const RasterVertex& v0 = triangle.vertices[0];
+    const RasterVertex& v1 = triangle.vertices[1];
+    const RasterVertex& v2 = triangle.vertices[2];
+
+    core::rasterizeTriangleSampled(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y,
+      clipRect.left(), clipRect.top(), clipRect.right(), clipRect.bottom(),
+      sampleOffset.x, sampleOffset.y,
+      [&](int x, int y, double w0b, double w1b, double w2b) {
+      if constexpr (UseStencil) {
         const std::uint8_t stored = (*stencilBuffer)[y][x];
         if (!stencilTestPass(
               rasterizer.stencilFunc(),
@@ -773,14 +789,19 @@ namespace {
 
       const InterpolatedFragment fragment = interpolateFragment(v0, v1, v2, w0b, w1b, w2b);
       if (!depthTestPass(rasterizer.depthFunc(), fragment.depth, zBuffer[y][x])) {
-        updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilDepthFailOp());
+        if constexpr (UseStencil) {
+          updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilDepthFailOp());
+        }
         return;
       }
 
-      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilPassOp());
+      if constexpr (UseStencil) {
+        updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilPassOp());
+      }
 
       Colord shaded;
-      if (const auto& shader = rasterizer.fragmentShader()) {
+      if constexpr (UseFragmentShader) {
+        const auto& shader = rasterizer.fragmentShader();
         const Vector3d n = fragment.normal.normalized();
         const Rasterizer::FragmentInput input{
           x,
@@ -800,11 +821,59 @@ namespace {
           triangle, scene, fragment.worldPos, fragment.normal, fragment.uv);
       }
 
-      if (rasterizer.depthWriteEnabled()) {
+      if constexpr (DepthWriteEnabled) {
         zBuffer[y][x] = fragment.depth;
       }
       buffer[y][x] = shaded;
     });
+  }
+
+  template<bool UseStencil, bool UseFragmentShader>
+  inline void rasterizePreparedTriangleConfigurableDepthWrite(
+    const RasterTriangle& triangle,
+    const Recti& clipRect,
+    const render::Scene* scene,
+    const Rasterizer& rasterizer,
+    Buffer<Colord>& buffer,
+    Buffer<double>& zBuffer,
+    Buffer<std::uint8_t>* stencilBuffer,
+    const RasterSampleOffset& sampleOffset) {
+    if (rasterizer.depthWriteEnabled()) {
+      rasterizePreparedTriangleConfigurable<UseStencil, UseFragmentShader, true>(
+        triangle, clipRect, scene, rasterizer, buffer, zBuffer, stencilBuffer, sampleOffset);
+    } else {
+      rasterizePreparedTriangleConfigurable<UseStencil, UseFragmentShader, false>(
+        triangle, clipRect, scene, rasterizer, buffer, zBuffer, stencilBuffer, sampleOffset);
+    }
+  }
+
+  inline void rasterizePreparedTriangleConfigurableDispatch(
+    const RasterTriangle& triangle,
+    const Recti& clipRect,
+    const render::Scene* scene,
+    const Rasterizer& rasterizer,
+    Buffer<Colord>& buffer,
+    Buffer<double>& zBuffer,
+    Buffer<std::uint8_t>* stencilBuffer,
+    const RasterSampleOffset& sampleOffset) {
+    const bool useStencil = rasterizer.stencilTestEnabled();
+    const bool useFragmentShader = static_cast<bool>(rasterizer.fragmentShader());
+
+    if (useStencil) {
+      if (useFragmentShader) {
+        rasterizePreparedTriangleConfigurableDepthWrite<true, true>(
+          triangle, clipRect, scene, rasterizer, buffer, zBuffer, stencilBuffer, sampleOffset);
+      } else {
+        rasterizePreparedTriangleConfigurableDepthWrite<true, false>(
+          triangle, clipRect, scene, rasterizer, buffer, zBuffer, stencilBuffer, sampleOffset);
+      }
+    } else if (useFragmentShader) {
+      rasterizePreparedTriangleConfigurableDepthWrite<false, true>(
+        triangle, clipRect, scene, rasterizer, buffer, zBuffer, stencilBuffer, sampleOffset);
+    } else {
+      rasterizePreparedTriangleConfigurableDepthWrite<false, false>(
+        triangle, clipRect, scene, rasterizer, buffer, zBuffer, stencilBuffer, sampleOffset);
+    }
   }
 
   template<class EmitFn>
@@ -971,6 +1040,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
     clearColorBuffer(buffer, Colord::black());
     const Recti fullRect(0, 0, width, height);
+    const bool useBuiltInPrepared = usesBuiltInDepthStencilAndFragment(*this);
 
     for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
       if (m_cancelled.load()) return;
@@ -989,11 +1059,19 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
       const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
       if (tileCount == 1) {
-        for (const RasterTriangle& triangle : triangles) {
-          if (m_cancelled.load()) return;
-          rasterizePreparedTriangle(
-            triangle, fullRect, scene.get(), *this,
-            sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+        if (useBuiltInPrepared) {
+          for (const RasterTriangle& triangle : triangles) {
+            if (m_cancelled.load()) return;
+            rasterizePreparedTriangleBuiltIn(
+              triangle, fullRect, scene.get(), sampleBuffer, sampleZBuffer, sampleOffset);
+          }
+        } else {
+          for (const RasterTriangle& triangle : triangles) {
+            if (m_cancelled.load()) return;
+            rasterizePreparedTriangleConfigurableDispatch(
+              triangle, fullRect, scene.get(), *this,
+              sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+          }
         }
       } else {
         p->tasks.clear();
@@ -1004,13 +1082,22 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
             const std::size_t tileIndex = row * cols + col;
 
             auto task = std::make_shared<RasterTileTask>(rect,
-              [&, rect, scene, tileIndex, sampleOffset] {
+              [&, rect, scene, tileIndex, sampleOffset, useBuiltInPrepared] {
               const auto& triangleIndices = tileTriangles[tileIndex];
-              for (const std::size_t triangleIndex : triangleIndices) {
-                if (m_cancelled.load()) return;
-                rasterizePreparedTriangle(
-                  triangles[triangleIndex], rect, scene.get(), *this,
-                  sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+              if (useBuiltInPrepared) {
+                for (const std::size_t triangleIndex : triangleIndices) {
+                  if (m_cancelled.load()) return;
+                  rasterizePreparedTriangleBuiltIn(
+                    triangles[triangleIndex], rect, scene.get(),
+                    sampleBuffer, sampleZBuffer, sampleOffset);
+                }
+              } else {
+                for (const std::size_t triangleIndex : triangleIndices) {
+                  if (m_cancelled.load()) return;
+                  rasterizePreparedTriangleConfigurableDispatch(
+                    triangles[triangleIndex], rect, scene.get(), *this,
+                    sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+                }
               }
             });
 
@@ -1237,12 +1324,20 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   if (tileCount == 1) {
     const Recti fullRect(0, 0, width, height);
-    emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
-      [&](const RasterTriangle& triangle) {
-        rasterizePreparedTriangle(
-          triangle, fullRect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get(),
-          RasterSampleOffset{0.0, 0.0});
-      });
+    if (usesBuiltInDepthStencilAndFragment(*this)) {
+      emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+        [&](const RasterTriangle& triangle) {
+          rasterizePreparedTriangleBuiltIn(
+            triangle, fullRect, scene.get(), buffer, zBuffer, RasterSampleOffset{0.0, 0.0});
+        });
+    } else {
+      emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+        [&](const RasterTriangle& triangle) {
+          rasterizePreparedTriangleConfigurableDispatch(
+            triangle, fullRect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get(),
+            RasterSampleOffset{0.0, 0.0});
+        });
+    }
     return;
   }
 
@@ -1262,19 +1357,29 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   if (m_cancelled.load() || binnedTriangleCount == 0) return;
 
+  const bool useBuiltInPrepared = usesBuiltInDepthStencilAndFragment(*this);
   for (int row = 0; row != rows; ++row) {
     for (int col = 0; col != cols; ++col) {
       const Recti rect = tileRect(width, height, rows, cols, row, col);
       if (rect.width() <= 0 || rect.height() <= 0) continue;
       const std::size_t tileIndex = row * cols + col;
 
-      auto task = std::make_shared<RasterTileTask>(rect, [&, rect, scene, tileIndex] {
+      auto task = std::make_shared<RasterTileTask>(rect, [&, rect, scene, tileIndex, useBuiltInPrepared] {
         const auto& triangleIndices = tileTriangles[tileIndex];
-        for (const std::size_t triangleIndex : triangleIndices) {
-          if (m_cancelled.load()) return;
-          rasterizePreparedTriangle(
-            triangles[triangleIndex], rect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get(),
-            RasterSampleOffset{0.0, 0.0});
+        if (useBuiltInPrepared) {
+          for (const std::size_t triangleIndex : triangleIndices) {
+            if (m_cancelled.load()) return;
+            rasterizePreparedTriangleBuiltIn(
+              triangles[triangleIndex], rect, scene.get(), buffer, zBuffer,
+              RasterSampleOffset{0.0, 0.0});
+          }
+        } else {
+          for (const std::size_t triangleIndex : triangleIndices) {
+            if (m_cancelled.load()) return;
+            rasterizePreparedTriangleConfigurableDispatch(
+              triangles[triangleIndex], rect, scene.get(), *this, buffer, zBuffer,
+              stencilBuffer.get(), RasterSampleOffset{0.0, 0.0});
+          }
         }
       });
 

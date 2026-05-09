@@ -379,6 +379,19 @@ namespace RasterizerTest {
     EXPECT_EQ(secondTriangleColor, buffer[32][32]);
   }
 
+  TEST(Rasterizer, StencilEnabledBuiltInFragmentMatchesDefaultWhenAlwaysPasses) {
+    Rasterizer fixedPipeline(headOnCamera(), sceneWithFrontFacingTriangle());
+    Rasterizer stencilPipeline(headOnCamera(), sceneWithFrontFacingTriangle());
+    stencilPipeline.setStencilTestEnabled(true);
+
+    Buffer<Colord> fixedBuffer(64, 64);
+    Buffer<Colord> stencilBuffer(64, 64);
+    fixedPipeline.render(fixedBuffer);
+    stencilPipeline.render(stencilBuffer);
+
+    expectBuffersEqual(fixedBuffer, stencilBuffer);
+  }
+
   TEST(Rasterizer, FragmentShaderOverridesBuiltInShading) {
     const Colord shaderColor(0.25, 0.5, 0.75);
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
