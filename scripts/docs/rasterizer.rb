@@ -10,6 +10,54 @@
 # per-face hash colors blur out as triangles shrink past the
 # pixel size).
 
+module ::Common
+  def rasterizer_shadow_scene(light_direction: [-0.52, -0.78, -0.28])
+    options(lod: 3)
+    ambient [0.18, 0.18, 0.20]
+    background [0.13, 0.16, 0.20]
+
+    directional_light :direction => light_direction,
+                      :color => [1.0, 0.96, 0.86],
+                      :intensity => 1.35
+
+    pinhole_camera :position => [2.45, -1.70, -3.65],
+                   :target => [0.12, 0.52, -0.02],
+                   :zoom => 2.15
+
+    rectangle :position => [-3.1, 1.05, -2.2],
+              :leg1 => [6.2, 0, 0],
+              :leg2 => [0, 0, 4.4],
+              :material => matte_material(
+                :diffuseTexture => checker_board_texture(
+                  :uScale => 1.25,
+                  :vScale => 1.25,
+                  :brightTexture => constant_color_texture(:color => [0.78, 0.76, 0.64]),
+                  :darkTexture => constant_color_texture(:color => [0.38, 0.43, 0.47]),
+                )
+              )
+
+    sphere :radius => 0.82,
+           :position => [-0.95, 0.24, -0.15],
+           :material => matte_material(:diffuseTexture => constant_color_texture(
+             :color => [0.76, 0.16, 0.12]
+           ))
+
+    box :size => [0.82, 1.02, 0.88],
+        :position => [0.62, 0.55, 0.05],
+        :rotation => [0.0, 0.32, 0.0],
+        :material => matte_material(:diffuseTexture => constant_color_texture(
+          :color => [0.13, 0.35, 0.74]
+        ))
+
+    cylinder :radius => 0.27,
+             :height => 0.72,
+             :position => [1.28, 0.70, -0.72],
+             :material => matte_material(:diffuseTexture => constant_color_texture(
+               :color => [0.77, 0.66, 0.10]
+             ))
+  end
+end
+
 class_doc(engine: "raster", width: 320, height: 240) do
   name "rasterizer_engine"
 
@@ -69,6 +117,43 @@ class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do
            :vertexB => [ 1.7, -1.05, 0],
            :vertexC => [-1.7,  1.05, 0],
            :material => matte_material(:diffuseTexture => white)
+end
+
+class_doc(engine: "raster", width: 320, height: 240) do
+  name "rasterizer_shadow_maps_off"
+
+  rasterizer_shadow_scene
+end
+
+class_doc(engine: "raster", width: 320, height: 240,
+          shadow_maps: true, shadow_map_size: 256, shadow_bias: 0.18) do
+  name "rasterizer_shadow_maps_on"
+
+  rasterizer_shadow_scene
+end
+
+shadow_map_sizes = [32, 64, 128, 256, 512]
+property_doc(5, engine: "raster", shadow_maps: true) do |i|
+  size = shadow_map_sizes[i - 1]
+  name "rasterizer_shadow_map_size_#{size}"
+
+  options(shadow_map_size: size, shadow_bias: 0.18)
+  rasterizer_shadow_scene
+end
+
+shadow_biases = [
+  ["0_030", 0.030],
+  ["0_060", 0.060],
+  ["0_080", 0.080],
+  ["0_250", 0.250],
+  ["1_500", 1.500],
+]
+property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256) do |i|
+  label, bias = shadow_biases[i - 1]
+  name "rasterizer_shadow_bias_#{label}"
+
+  options(shadow_bias: bias)
+  rasterizer_shadow_scene
 end
 
 class_doc(engine: "raster", width: 320, height: 180, msaa: 4) do

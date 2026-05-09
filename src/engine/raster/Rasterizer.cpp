@@ -335,13 +335,16 @@ namespace {
   };
 
   // A raster vertex is after clipping and optional vertex shading:
-  // integer screen coordinates plus 1/z for perspective-correct
-  // interpolation in the fragment stage.
+  // integer screen coordinates plus the homogeneous reciprocal used
+  // by perspective-correct interpolation. Perspective cameras emit
+  // clip.w = camera depth, while orthographic cameras emit clip.w = 1;
+  // carrying 1/w keeps both projections correct.
   struct RasterVertex {
     Vector3d point;
     Vector3d normal;
     Vector2d uv;
-    double invZ;
+    double invW;
+    double depthOverW;
     int x;
     int y;
   };
@@ -514,23 +517,21 @@ namespace {
   struct InterpolatedFragment {
     InterpolatedFragment(const RasterVertex& v0, const RasterVertex& v1, const RasterVertex& v2,
                          double w0b, double w1b, double w2b) {
-      // Perspective-correct depth interpolation. The screen-space
-      // barycentric weights from `rasterizeTriangle` are linear in
-      // screen space — but vertex *depth* is not. The standard trick:
-      // 1/z IS linear in screen space, so interpolate 1/z and invert.
-      // (Heckbert & Moreton 1991.)
-      const double oneOverZ = w0b * v0.invZ + w1b * v1.invZ + w2b * v2.invZ;
-      depth = 1.0 / oneOverZ;
+      // Projective interpolation uses homogeneous clip.w, not
+      // blindly camera-space depth. For pinhole projection w is the
+      // eye-relative depth, so this is the usual 1/z correction. For
+      // orthographic projection w is 1, so the same formula collapses
+      // to ordinary linear interpolation. Shadow-map passes rely on
+      // that second case because the light camera is orthographic.
+      const double wp0 = w0b * v0.invW;
+      const double wp1 = w1b * v1.invW;
+      const double wp2 = w2b * v2.invW;
+      const double correction = 1.0 / (wp0 + wp1 + wp2);
 
-      // Perspective-correct attribute interpolation: same trick as
-      // depth, applied to vertex normals, world positions, and UVs:
-      //   attr_pixel = (Σ_i w_i · attr_i / z_i) · pixelDepth
-      const double wp0 = w0b * v0.invZ;
-      const double wp1 = w1b * v1.invZ;
-      const double wp2 = w2b * v2.invZ;
-      worldPos = (v0.point * wp0 + v1.point * wp1 + v2.point * wp2) * depth;
-      normal = (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * depth;
-      uv = (v0.uv * wp0 + v1.uv * wp1 + v2.uv * wp2) * depth;
+      depth = (w0b * v0.depthOverW + w1b * v1.depthOverW + w2b * v2.depthOverW) * correction;
+      worldPos = (v0.point * wp0 + v1.point * wp1 + v2.point * wp2) * correction;
+      normal = (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * correction;
+      uv = (v0.uv * wp0 + v1.uv * wp1 + v2.uv * wp2) * correction;
     }
 
     double depth;
@@ -1099,11 +1100,11 @@ namespace {
               const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
               if (outCodeOr == 0) {
                 ClipVert v0{vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv,
-                            Vector4d::undefined(), p0.screen};
+                            p0.clip, p0.screen};
                 ClipVert v1{vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv,
-                            Vector4d::undefined(), p1.screen};
+                            p1.clip, p1.screen};
                 ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                            vertices[face[i + 1]].uv, Vector4d::undefined(), p2.screen};
+                            vertices[face[i + 1]].uv, p2.clip, p2.screen};
 
                 emitPreparedTriangle(primitive, material, globalFaceIdx, v0, v1, v2, callback);
                 continue;
@@ -1187,10 +1188,16 @@ namespace {
       if (screen.isUndefined() || screen.z() <= 0.0)
         return false;
 
+      const double clipW = vertex.clip.isDefined() ? vertex.clip.w() : screen.z();
+      if (clipW <= 0.0)
+        return false;
+
+      const double invW = 1.0 / clipW;
       out = {point,
              normal,
              uv,
-             1.0 / screen.z(),
+             invW,
+             screen.z() * invW,
              static_cast<int>(std::lround(screen.x())),
              static_cast<int>(std::lround(screen.y()))};
       return true;

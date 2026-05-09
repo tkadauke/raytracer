@@ -139,6 +139,52 @@ namespace engine::raster {
   * <script type="text/javascript" src="rasterizer_msaa_coverage.js"></script>
   * @endhtmlonly
   *
+  * Directional-light shadow maps are another opt-in quality/performance
+  * feature. With them enabled, the rasterizer first renders a depth-only
+  * view from each directional light, then the camera pass projects shaded
+  * points into that light-space image before adding direct diffuse light.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_maps_off.png "Direct Lambertian light only"</td>
+  * <td>@image html rasterizer_shadow_maps_on.png "Directional shadow maps enabled"</td>
+  * </tr></table>
+  *
+  * The widget below separates the two passes: the light pass stores one
+  * nearest depth per texel, then the camera pass compares a draggable
+  * receiver point against the stored depth plus bias. Move the caster or
+  * receiver, lower the shadow-map resolution, and increase the bias to see
+  * the same aliasing and shadow-detachment trade-offs exposed by the C++
+  * controls.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="rasterizer_shadow_map.js"></script>
+  * @endhtmlonly
+  *
+  * Resolution controls how finely the light-space depth image represents
+  * the scene. Low values are fast but visibly quantize shadow edges; higher
+  * values cost more raster work and memory.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_map_size_32.png "32x32 shadow map"</td>
+  * <td>@image html rasterizer_shadow_map_size_64.png "64x64 shadow map"</td>
+  * <td>@image html rasterizer_shadow_map_size_128.png "128x128 shadow map"</td>
+  * <td>@image html rasterizer_shadow_map_size_256.png "256x256 shadow map"</td>
+  * <td>@image html rasterizer_shadow_map_size_512.png "512x512 shadow map"</td>
+  * </tr></table>
+  *
+  * Bias is a depth comparison tolerance. Too little bias can let a surface
+  * shadow itself due to interpolation and quantization differences; too much
+  * bias detaches shadows from their casters.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_bias_0_030.png "bias=0.030"</td>
+  * <td>@image html rasterizer_shadow_bias_0_060.png "bias=0.060"</td>
+  * <td>@image html rasterizer_shadow_bias_0_080.png "bias=0.080"</td>
+  * <td>@image html rasterizer_shadow_bias_0_250.png "bias=0.250"</td>
+  * <td>@image html rasterizer_shadow_bias_1_500.png "bias=1.500"</td>
+  * </tr></table>
+  *
   * The interactive widget below visualizes the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
   * the rasterizer runs for every triangle. Drag the three vertex
@@ -297,20 +343,53 @@ public:
   inline int msaaSamples() const { return m_msaaSamples; }
   void setMSAASamples(int samples);
 
-  /// Enables rasterized directional-light shadow maps for the
-  /// built-in Lambertian fragment path. Custom fragment shaders are
-  /// responsible for their own visibility model and bypass this.
+  /// Returns whether rasterized directional-light shadow maps are enabled.
   inline bool shadowMapsEnabled() const { return m_shadowMapsEnabled; }
+
+  /**
+    * Enables rasterized directional-light shadow maps for the built-in
+    * Lambertian fragment path. Custom fragment shaders are responsible for
+    * their own visibility model and bypass this feature.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_maps_off.png "disabled"</td>
+    * <td>@image html rasterizer_shadow_maps_on.png "enabled"</td>
+    * </tr></table>
+    */
   inline void setShadowMapsEnabled(bool enabled) { m_shadowMapsEnabled = enabled; }
 
-  /// Square resolution used for each generated directional-light
-  /// shadow map. Defaults to 256 and is clamped to at least 1.
+  /// Returns the square resolution used for each generated shadow map.
   inline int shadowMapSize() const { return m_shadowMapSize; }
+
+  /**
+    * Sets the square resolution used for each generated directional-light
+    * shadow map. Defaults to 256 and is clamped to at least 1.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_map_size_32.png "32x32"</td>
+    * <td>@image html rasterizer_shadow_map_size_64.png "64x64"</td>
+    * <td>@image html rasterizer_shadow_map_size_128.png "128x128"</td>
+    * <td>@image html rasterizer_shadow_map_size_256.png "256x256"</td>
+    * <td>@image html rasterizer_shadow_map_size_512.png "512x512"</td>
+    * </tr></table>
+    */
   void setShadowMapSize(int size);
 
-  /// Depth bias added during the shadow-map comparison to avoid
-  /// self-shadowing from small interpolation differences.
+  /// Returns the depth bias used by the shadow-map comparison.
   inline double shadowBias() const { return m_shadowBias; }
+
+  /**
+    * Sets the depth bias added during the shadow-map comparison to avoid
+    * self-shadowing from small interpolation differences.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_bias_0_030.png "0.030"</td>
+    * <td>@image html rasterizer_shadow_bias_0_060.png "0.060"</td>
+    * <td>@image html rasterizer_shadow_bias_0_080.png "0.080"</td>
+    * <td>@image html rasterizer_shadow_bias_0_250.png "0.250"</td>
+    * <td>@image html rasterizer_shadow_bias_1_500.png "1.500"</td>
+    * </tr></table>
+    */
   inline void setShadowBias(double bias) { m_shadowBias = std::max(0.0, bias); }
 
   /// Face-culling mode used after near-plane clipping and before

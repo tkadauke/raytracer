@@ -50,9 +50,8 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
   double y = (ly + 3.0) * plane->height() / 6.0;
   // For orthographic projection, depth IS the camera-space z; no
   // m_distance offset since there's no perspective eye point. The
-  // rasterizer's perspective-correct 1/z interpolation degenerates
-  // to plain linear interpolation, which is exactly what
-  // orthographic semantics require.
+  // rasterizer uses clip.w for projective interpolation, and our
+  // clip.w is always 1, so depth and attributes interpolate linearly.
   return Vector3d(x, y, pCam.z());
 }
 

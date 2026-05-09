@@ -55,6 +55,9 @@
    - ✅ Added an opt-in depth-only directional-light shadow pass for the
      built-in Lambertian fragment path, with configurable shadow-map size and
      depth bias exposed on `Rasterizer` and `rendercli`.
+   - ✅ Added rendered docs for off/on, shadow-map resolution, and depth-bias
+     comparisons, plus an interactive widget for the light-pass depth map and
+     camera-pass comparison.
    - Next add filtering (PCF first), then PCSS and cascades for comparison
      with raytraced shadow rays.
 

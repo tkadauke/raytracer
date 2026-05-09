@@ -12,6 +12,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Added
 
 - **Rasterizer directional shadow maps.** `engine::raster::Rasterizer` can now opt into directional-light shadow maps for the built-in Lambertian path, with configurable map size and depth bias; `rendercli --engine raster` exposes the same controls through `--shadow_maps`, `--shadow_map_size`, and `--shadow_bias`. — GPT-5
+- **Rasterizer shadow-map documentation.** `engine::raster::Rasterizer` docs now include off/on, resolution, and bias render sweeps plus an interactive widget showing the light-space depth pass and camera-pass depth comparison; the doc-render DSL now emits boolean `rendercli` flags such as `--shadow_maps`. — GPT-5
 - **Reusable render tiling and homogeneous clip helpers.** `render::TilePlan` now owns exact framebuffer tile partitioning / pixel-to-tile lookup, `engine::TileRenderTask` owns shared QRunnable tile dispatch, and `render::HomogeneousClipVolume` owns reusable homogeneous clip outcodes and Sutherland-Hodgman clipping with caller-provided vertex interpolation. — GPT-5
 - **Primitive leaf traversal helper.** `render::Primitive::forEachLeaf` now walks nested composites and reports each leaf with its inherited effective material, giving rasterizer-style engines a reusable scene traversal path. — GPT-5
 - **Functional tests for `MatteMaterial` and `PhongMaterial`** (`test/functional/render/materials/MatteMaterialTest.cpp`, `PhongMaterialTest.cpp`): pin texture-color passthrough, ambient-coefficient linearity, the no-illumination contract, and the Phong specular highlight contrast against Matte under a head-on directional light. Shared regex steps in `test/functional/steps/MaterialSteps.cpp`: `"a matte sphere with a (red\|green\|blue\|white\|black) texture"`, `"a matte sphere with ambient ([\\d.]+) and diffuse ([\\d.]+)"`, `"a phong sphere"` / `"a phong sphere with white specular"`, `"a directional light from \\(...\\)"`, `"a dark scene"`, plus matching color-presence and specular-highlight predicates. — Claude Sonnet 4.6
@@ -74,6 +75,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Rasterizer orthographic interpolation.** Fragment depth, world position, normals, and UVs now interpolate through homogeneous `clip.w` rather than always using camera-space depth, so orthographic camera renders and directional-light shadow maps no longer warp light-space depth comparisons. — GPT-5
 - **Rasterizer uneven-tile binning.** The rasterizer now uses the same exact tile partition to compute both tile rectangles and triangle-bin ownership, so tiled renders match single-tile output even when framebuffer dimensions do not divide evenly by the tile grid. — GPT-5
 - **Rasterizer MSAA widget drag bounds.** The MSAA coverage widget now clamps triangle vertex handles to the pixel-grid bounds so dragged points cannot leave the sampled framebuffer area. — GPT-5
 - **Transparent refraction widget readout placement.** The Snell-law readout now sits in the open upper-left medium area and wraps the equation across two lines, avoiding the surface-normal/refracted-ray labels and the SVG right edge. — GPT-5

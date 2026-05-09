@@ -1129,6 +1129,39 @@ test('Rasterizer state widget exposes depth stencil and culling controls', () =>
   assert.ok(triangleOutlines.some(p => p.attributes['data-triangle-facing'] === 'back'));
 });
 
+test('Rasterizer shadow-map widget explains light depth comparison', () => {
+  const body = loadWidget('rasterizer_shadow_map.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('camera pass'));
+  assert.ok(text.includes('light pass'));
+  assert.ok(text.includes('depth test'));
+  assert.ok(text.includes('one nearest depth per texel'));
+  assert.ok(text.includes('receiver depth'));
+
+  assert.equal(countElements(body, 'button'), 3,
+    'shadow-map size should use a segmented control');
+  assert.equal(countElements(body, 'input'), 1,
+    'shadow bias should use a scalar slider');
+
+  const root = elementsByTag(body, 'svg')[0];
+  assert.equal(root.attributes['data-shadow-map-size'], '16');
+  assert.ok(['lit', 'shadowed'].includes(root.attributes['data-shadow-result']));
+
+  const texels = elementsByTag(body, 'rect')
+    .filter(rect => rect.attributes['data-shadow-map-texel'] !== undefined);
+  assert.equal(texels.length, 16,
+    'default light pass should draw one depth-map cell per texel');
+  assert.ok(texels.some(rect => rect.attributes['data-shadow-map-owner'] === 'caster'),
+    'caster should write at least one shadow-map texel');
+  assert.ok(texels.some(rect => rect.attributes['data-shadow-map-owner'] === 'floor'),
+    'receiver plane should write floor depth where not occluded');
+
+  const handles = elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-drag-handle']);
+  assert.deepEqual(handles.map(circle => circle.attributes['data-drag-handle']),
+                   ['shadow-receiver', 'shadow-caster']);
+});
+
 test('Support mapping GJK widget exposes controls and simplex structure', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'support_mapping_gjk.js'), 'utf8');
   assert.ok(source.includes('new FigureWidget'),

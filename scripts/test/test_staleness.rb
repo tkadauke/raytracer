@@ -96,4 +96,11 @@ class SceneHashTest < Minitest::Test
     h = hash_of('{"type":"Scene"}')
     assert_match(/\A[a-f0-9]{40}\z/, h, "Expected SHA1-hex sidecar form")
   end
+
+  def test_boolean_render_options_emit_flag_style_arguments
+    assert_equal "--shadow_maps --width=32",
+                 Scene.render_args(:shadow_maps => true, :width => 32)
+    assert_equal "--width=32",
+                 Scene.render_args(:shadow_maps => false, :width => 32)
+  end
 end

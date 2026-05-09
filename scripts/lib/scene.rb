@@ -255,7 +255,7 @@ class Scene < Element
 
     FileUtils.mkdir_p(File.dirname(file))
 
-    args = options.merge(opts).map { |key, value| "--#{key}=#{value}" }.join(" ")
+    args = Scene.render_args(options.merge(opts))
     rendercli = ENV.fetch('RENDERCLI', 'build/release/tools/rendercli/rendercli')
     if system "#{rendercli} #{file_name} #{file} #{args}"
       File.write(hash_file, new_hash)
@@ -281,6 +281,18 @@ class Scene < Element
     normalized = normalize_hash_payload(JSON.parse(json_str))
     payload = "#{JSON.generate(normalized)}\n#{opts.sort.to_h.inspect}"
     Digest::SHA1.hexdigest(payload)
+  end
+
+  def self.render_args(opts)
+    opts.map do |key, value|
+      if value == true
+        "--#{key}"
+      elsif value == false || value.nil?
+        nil
+      else
+        "--#{key}=#{value}"
+      end
+    end.compact.join(" ")
   end
 
   def self.normalize_hash_payload(value)

@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
+#include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
@@ -99,6 +100,13 @@ namespace RasterizerTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0));
     triangle->setMaterial(std::make_shared<MatteMaterial>(std::make_shared<UVColorTexture>()));
     scene->add(triangle);
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithSlopedTriangle() {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-2, -2, 0), Vector3d(2, -2, 2), Vector3d(0, 2, 4)));
     return scene;
   }
 
@@ -441,6 +449,20 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
+  TEST(Rasterizer, OrthographicProjectionInterpolatesWorldPositionLinearly) {
+    auto cam =
+      std::make_shared<OrthographicCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null());
+    Rasterizer engine(cam, sceneWithSlopedTriangle());
+    engine.setFragmentShader([](const Rasterizer::FragmentInput& input) {
+      return Colord(input.worldPosition.z() / 5.0, 0.0, 0.0);
+    });
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_NEAR(0.5, buffer[32][32].r(), 0.03);
   }
 
   TEST(Rasterizer, DirectionalShadowMapsDarkenOccludedDiffuseLight) {
