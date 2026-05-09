@@ -862,58 +862,45 @@ namespace {
     });
   }
 
-  template<class Stencil, class Fragment>
-  inline void rasterizePreparedTriangleDepthDispatch(
-    const RasterTriangle& triangle,
-    const Recti& clipRect,
+  template<class Stencil, class Fragment, class RenderFn>
+  inline void withPreparedTriangleDepthPolicy(
     const Rasterizer& rasterizer,
-    Buffer<Colord>& buffer,
     Buffer<double>& zBuffer,
-    const RasterSampleOffset& sampleOffset,
     Stencil stencil,
-    Fragment fragmentPolicy) {
+    Fragment fragmentPolicy,
+    RenderFn&& render) {
     if (rasterizer.depthWriteEnabled()) {
-      rasterizePreparedTriangleWithPolicies(
-        triangle, clipRect, buffer, sampleOffset, stencil,
-        DepthWritePolicy{rasterizer, zBuffer}, fragmentPolicy);
+      render(stencil, DepthWritePolicy{rasterizer, zBuffer}, fragmentPolicy);
     } else {
-      rasterizePreparedTriangleWithPolicies(
-        triangle, clipRect, buffer, sampleOffset, stencil,
-        DepthReadOnlyPolicy{rasterizer, zBuffer}, fragmentPolicy);
+      render(stencil, DepthReadOnlyPolicy{rasterizer, zBuffer}, fragmentPolicy);
     }
   }
 
-  inline void rasterizePreparedTriangle(
-    const RasterTriangle& triangle,
-    const Recti& clipRect,
+  template<class RenderFn>
+  inline void withPreparedTrianglePolicies(
     const render::Scene* scene,
     const Rasterizer& rasterizer,
-    Buffer<Colord>& buffer,
     Buffer<double>& zBuffer,
     Buffer<std::uint8_t>* stencilBuffer,
-    const RasterSampleOffset& sampleOffset) {
+    RenderFn&& render) {
     const bool useStencil = rasterizer.stencilTestEnabled();
     const bool useFragmentShader = static_cast<bool>(rasterizer.fragmentShader());
 
     if (useStencil) {
       RasterStencilPolicy stencil{*stencilBuffer, rasterizer};
       if (useFragmentShader) {
-        rasterizePreparedTriangleDepthDispatch(
-          triangle, clipRect, rasterizer, buffer, zBuffer, sampleOffset,
-          stencil, ShaderFragmentPolicy{rasterizer});
+        withPreparedTriangleDepthPolicy(
+          rasterizer, zBuffer, stencil, ShaderFragmentPolicy{rasterizer}, render);
       } else {
-        rasterizePreparedTriangleDepthDispatch(
-          triangle, clipRect, rasterizer, buffer, zBuffer, sampleOffset,
-          stencil, BuiltInFragmentPolicy{scene});
+        withPreparedTriangleDepthPolicy(
+          rasterizer, zBuffer, stencil, BuiltInFragmentPolicy{scene}, render);
       }
     } else if (useFragmentShader) {
-      rasterizePreparedTriangleDepthDispatch(
-        triangle, clipRect, rasterizer, buffer, zBuffer, sampleOffset,
-        NoStencilPolicy{}, ShaderFragmentPolicy{rasterizer});
+      withPreparedTriangleDepthPolicy(
+        rasterizer, zBuffer, NoStencilPolicy{}, ShaderFragmentPolicy{rasterizer}, render);
     } else {
-      rasterizePreparedTriangleDepthDispatch(
-        triangle, clipRect, rasterizer, buffer, zBuffer, sampleOffset,
-        NoStencilPolicy{}, BuiltInFragmentPolicy{scene});
+      withPreparedTriangleDepthPolicy(
+        rasterizer, zBuffer, NoStencilPolicy{}, BuiltInFragmentPolicy{scene}, render);
     }
   }
 
@@ -1098,39 +1085,42 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
       }
 
       const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
-      if (tileCount == 1) {
-        for (const RasterTriangle& triangle : triangles) {
-          if (m_cancelled.load()) return;
-          rasterizePreparedTriangle(
-            triangle, fullRect, scene.get(), *this,
-            sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
-        }
-      } else {
-        p->tasks.clear();
-        for (int row = 0; row != rows; ++row) {
-          for (int col = 0; col != cols; ++col) {
-            const Recti rect = tileRect(width, height, rows, cols, row, col);
-            if (rect.width() <= 0 || rect.height() <= 0) continue;
-            const std::size_t tileIndex = row * cols + col;
+      withPreparedTrianglePolicies(
+        scene.get(), *this, sampleZBuffer, sampleStencilBuffer.get(),
+        [&](auto stencil, auto depth, auto fragmentPolicy) {
+          if (tileCount == 1) {
+            for (const RasterTriangle& triangle : triangles) {
+              if (m_cancelled.load()) return;
+              rasterizePreparedTriangleWithPolicies(
+                triangle, fullRect, sampleBuffer, sampleOffset, stencil, depth, fragmentPolicy);
+            }
+          } else {
+            p->tasks.clear();
+            for (int row = 0; row != rows; ++row) {
+              for (int col = 0; col != cols; ++col) {
+                const Recti rect = tileRect(width, height, rows, cols, row, col);
+                if (rect.width() <= 0 || rect.height() <= 0) continue;
+                const std::size_t tileIndex = row * cols + col;
 
-            auto task = std::make_shared<RasterTileTask>(rect,
-              [&, rect, scene, tileIndex, sampleOffset] {
-              const auto& triangleIndices = tileTriangles[tileIndex];
-              for (const std::size_t triangleIndex : triangleIndices) {
-                if (m_cancelled.load()) return;
-                rasterizePreparedTriangle(
-                  triangles[triangleIndex], rect, scene.get(), *this,
-                  sampleBuffer, sampleZBuffer, sampleStencilBuffer.get(), sampleOffset);
+                auto task = std::make_shared<RasterTileTask>(rect,
+                  [&, rect, tileIndex, sampleOffset, stencil, depth, fragmentPolicy] {
+                    const auto& triangleIndices = tileTriangles[tileIndex];
+                    for (const std::size_t triangleIndex : triangleIndices) {
+                      if (m_cancelled.load()) return;
+                      rasterizePreparedTriangleWithPolicies(
+                        triangles[triangleIndex], rect, sampleBuffer, sampleOffset,
+                        stencil, depth, fragmentPolicy);
+                    }
+                  });
+
+                p->tasks.push_back(task);
+                p->threadPool->start(task.get());
               }
-            });
+            }
 
-            p->tasks.push_back(task);
-            p->threadPool->start(task.get());
+            p->threadPool->waitForDone();
           }
-        }
-
-        p->threadPool->waitForDone();
-      }
+        });
 
       if (m_cancelled.load()) return;
       for (int y = 0; y < height; ++y)
@@ -1347,11 +1337,15 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   if (tileCount == 1) {
     const Recti fullRect(0, 0, width, height);
-    emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
-      [&](const RasterTriangle& triangle) {
-        rasterizePreparedTriangle(
-          triangle, fullRect, scene.get(), *this, buffer, zBuffer, stencilBuffer.get(),
-          RasterSampleOffset{0.0, 0.0});
+    withPreparedTrianglePolicies(
+      scene.get(), *this, zBuffer, stencilBuffer.get(),
+      [&](auto stencil, auto depth, auto fragmentPolicy) {
+        emitRasterTriangles(scene.get(), m_camera, m_lod, *this, m_cancelled,
+          [&](const RasterTriangle& triangle) {
+            rasterizePreparedTriangleWithPolicies(
+              triangle, fullRect, buffer, RasterSampleOffset{0.0, 0.0},
+              stencil, depth, fragmentPolicy);
+          });
       });
     return;
   }
@@ -1372,26 +1366,31 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   if (m_cancelled.load() || binnedTriangleCount == 0) return;
 
-  for (int row = 0; row != rows; ++row) {
-    for (int col = 0; col != cols; ++col) {
-      const Recti rect = tileRect(width, height, rows, cols, row, col);
-      if (rect.width() <= 0 || rect.height() <= 0) continue;
-      const std::size_t tileIndex = row * cols + col;
+  withPreparedTrianglePolicies(
+    scene.get(), *this, zBuffer, stencilBuffer.get(),
+    [&](auto stencil, auto depth, auto fragmentPolicy) {
+      for (int row = 0; row != rows; ++row) {
+        for (int col = 0; col != cols; ++col) {
+          const Recti rect = tileRect(width, height, rows, cols, row, col);
+          if (rect.width() <= 0 || rect.height() <= 0) continue;
+          const std::size_t tileIndex = row * cols + col;
 
-      auto task = std::make_shared<RasterTileTask>(rect, [&, rect, scene, tileIndex] {
-        const auto& triangleIndices = tileTriangles[tileIndex];
-        for (const std::size_t triangleIndex : triangleIndices) {
-          if (m_cancelled.load()) return;
-          rasterizePreparedTriangle(
-            triangles[triangleIndex], rect, scene.get(), *this, buffer, zBuffer,
-            stencilBuffer.get(), RasterSampleOffset{0.0, 0.0});
+          auto task = std::make_shared<RasterTileTask>(
+            rect, [&, rect, tileIndex, stencil, depth, fragmentPolicy] {
+              const auto& triangleIndices = tileTriangles[tileIndex];
+              for (const std::size_t triangleIndex : triangleIndices) {
+                if (m_cancelled.load()) return;
+                rasterizePreparedTriangleWithPolicies(
+                  triangles[triangleIndex], rect, buffer, RasterSampleOffset{0.0, 0.0},
+                  stencil, depth, fragmentPolicy);
+              }
+            });
+
+          p->tasks.push_back(task);
+          p->threadPool->start(task.get());
         }
-      });
-
-      p->tasks.push_back(task);
-      p->threadPool->start(task.get());
-    }
-  }
+      }
+    });
 
   p->threadPool->waitForDone();
 }
