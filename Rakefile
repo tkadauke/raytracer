@@ -722,6 +722,308 @@ namespace :docs do
       chapter_count = textbook_chapter_files.length
       puts "Wrote #{TEXTBOOK_SOURCE_MAP_PATH} -- #{file_count} source files across #{chapter_count} chapters"
     end
+
+    TEXTBOOK_HTML_OUT = "docs/html/textbook".freeze
+
+    # Pinned CDN versions for the client-side renderer. Updating: bump the
+    # version, retest pages locally (rake docs:textbook:html and open the
+    # output in a browser), and commit the bumps in their own PR.
+    TEXTBOOK_VENDOR_SCRIPTS = [
+      ["marked",       "https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"],
+      ["katex",        "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"],
+      ["katex-render", "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"],
+    ].freeze
+    TEXTBOOK_VENDOR_STYLES = [
+      ["katex",        "https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"],
+    ].freeze
+
+    def textbook_widget_host_page(widget)
+      slug = docs_widget_slug(widget)
+      scripts = (docs_widget_dependencies(widget) + [widget]).map do |file|
+        %(<script src="#{CGI.escapeHTML(file)}"></script>)
+      end.join("\n    ")
+
+      <<~HTML
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>#{CGI.escapeHTML(docs_widget_title(widget))}</title>
+          <style>
+            html, body { margin: 0; background: #ffffff; color: #202020;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+            .widget-stage { padding: 16px; }
+            .widget-stage > script { display: none; }
+            .widget-stage svg { max-width: 100%; height: auto; }
+          </style>
+        </head>
+        <body>
+          <div class="widget-stage">
+        #{scripts}
+          </div>
+          <script>
+            (() => {
+              const id = "#{CGI.escapeHTML(slug)}";
+              const reportHeight = () => {
+                const height = Math.ceil(document.documentElement.scrollHeight);
+                parent.postMessage({ type: "textbook-widget-resize", id, height }, "*");
+              };
+              window.addEventListener("load", reportHeight);
+              if (typeof ResizeObserver !== "undefined") {
+                new ResizeObserver(reportHeight).observe(document.body);
+              } else {
+                setTimeout(reportHeight, 100);
+              }
+            })();
+          </script>
+        </body>
+        </html>
+      HTML
+    end
+
+    def textbook_runtime_js
+      <<~JS
+        // Textbook chapter runtime. Loaded once per page; finds the .md
+        // filename from the page's data-source attribute, fetches it,
+        // expands <!-- widget: foo --> markers into iframe stubs, runs
+        // the markdown through marked, and runs KaTeX over the result.
+        (function () {
+          const main = document.getElementById("textbook-content");
+          if (!main) return;
+          const source = main.dataset.source;
+          if (!source) {
+            main.textContent = "Missing data-source on #textbook-content.";
+            return;
+          }
+
+          fetch(source).then(r => r.text()).then(text => {
+            // Replace widget markers with placeholder divs before passing
+            // to marked, so they survive the markdown -> HTML conversion.
+            const expanded = text.replace(
+              /<!--\\s*widget:\\s*([A-Za-z0-9_]+)\\s*-->/g,
+              (_, name) =>
+                `<div class="textbook-widget" data-widget="${name}"></div>`
+            );
+
+            const html = marked.parse(expanded, { gfm: true, headerIds: true });
+            main.innerHTML = html;
+
+            // Mount each widget placeholder as an iframe pointing at the
+            // per-widget host page. Iframes auto-size via postMessage.
+            // The wrapper supplies data-widget-base so iframes resolve
+            // correctly regardless of how deep the chapter is.
+            const widgetBase = main.dataset.widgetBase || "../widgets/";
+            main.querySelectorAll(".textbook-widget").forEach(el => {
+              const name = el.dataset.widget;
+              const iframe = document.createElement("iframe");
+              iframe.src = widgetBase + name + ".html";
+              iframe.title = name;
+              iframe.dataset.widgetId = name;
+              iframe.loading = "lazy";
+              iframe.style.width = "100%";
+              iframe.style.height = "360px";
+              iframe.style.border = "1px solid #d0d0d0";
+              iframe.style.borderRadius = "6px";
+              el.appendChild(iframe);
+            });
+
+            // Resolve relative .md links to their .html siblings so the
+            // intra-book navigation works in the static site.
+            main.querySelectorAll('a[href$=".md"]').forEach(a => {
+              a.href = a.getAttribute("href").replace(/\\.md$/, ".html");
+            });
+            main.querySelectorAll('a[href*=".md#"]').forEach(a => {
+              a.href = a.getAttribute("href").replace(/\\.md#/, ".html#");
+            });
+
+            // KaTeX inline + display, supports $...$ and $$...$$.
+            renderMathInElement(main, {
+              delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$",  right: "$",  display: false },
+              ],
+              throwOnError: false,
+            });
+
+            window.addEventListener("message", event => {
+              const data = event.data || {};
+              if (data.type !== "textbook-widget-resize") return;
+              const frame = main.querySelector(
+                `iframe[data-widget-id="${data.id}"]`);
+              if (frame && Number.isFinite(data.height)) {
+                frame.style.height = (data.height + 8) + "px";
+              }
+            });
+          }).catch(err => {
+            main.textContent = "Failed to load " + source + ": " + err;
+          });
+        })();
+      JS
+    end
+
+    def textbook_styles
+      <<~CSS
+        :root {
+          color-scheme: light;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                       Helvetica, Arial, sans-serif;
+          background: #fafafa;
+          color: #1c1c1c;
+        }
+        body {
+          margin: 0;
+          line-height: 1.6;
+        }
+        main#textbook-content {
+          max-width: 760px;
+          margin: 0 auto;
+          padding: 32px clamp(16px, 4vw, 48px) 96px;
+          background: #ffffff;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+          min-height: 100vh;
+        }
+        main h1, main h2, main h3 {
+          line-height: 1.25;
+          margin-top: 1.6em;
+        }
+        main h1:first-child { margin-top: 0; }
+        main code {
+          background: #f3f3f3;
+          padding: 1px 5px;
+          border-radius: 3px;
+          font-size: 0.92em;
+        }
+        main pre {
+          background: #1f1f23;
+          color: #e6e6e6;
+          padding: 12px 16px;
+          border-radius: 6px;
+          overflow-x: auto;
+        }
+        main pre code {
+          background: transparent;
+          color: inherit;
+          padding: 0;
+          font-size: 0.88em;
+        }
+        main blockquote {
+          border-left: 4px solid #d0d0d0;
+          margin: 1em 0;
+          padding: 4px 16px;
+          background: #f5f5f5;
+          color: #4a4a4a;
+        }
+        main a { color: #064f9e; }
+        main a:hover { color: #0a6dd6; }
+        main table {
+          border-collapse: collapse;
+          margin: 1em 0;
+        }
+        main th, main td {
+          border: 1px solid #d0d0d0;
+          padding: 6px 10px;
+        }
+        main img { max-width: 100%; }
+        .textbook-nav {
+          background: #ffffff;
+          border-bottom: 1px solid #e0e0e0;
+          padding: 10px clamp(16px, 4vw, 48px);
+          font-size: 14px;
+        }
+        .textbook-nav a {
+          color: #064f9e;
+          text-decoration: none;
+        }
+        .textbook-nav a:hover { text-decoration: underline; }
+      CSS
+    end
+
+    def textbook_html_wrapper(md_relative)
+      title = md_relative.sub(/\.md$/, "").gsub(/[\/_-]/, " ").strip
+      depth = md_relative.count("/")
+      root = "../" * depth
+
+      vendor_css = TEXTBOOK_VENDOR_STYLES.map do |_, url|
+        %(<link rel="stylesheet" href="#{url}">)
+      end.join("\n  ")
+      vendor_js = TEXTBOOK_VENDOR_SCRIPTS.map do |_, url|
+        %(<script defer src="#{url}"></script>)
+      end.join("\n  ")
+
+      <<~HTML
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>#{CGI.escapeHTML(title)} -- raytracer textbook</title>
+          <link rel="stylesheet" href="#{root}textbook.css">
+          #{vendor_css}
+          #{vendor_js}
+        </head>
+        <body>
+          <nav class="textbook-nav">
+            <a href="#{root}README.html">Top</a> &middot;
+            <a href="#{root}preface.html">Preface</a> &middot;
+            <a href="#{root}appendix/a-glossary.html">Glossary</a> &middot;
+            <a href="#{root}appendix/c-source-map.html">Source map</a>
+          </nav>
+          <main id="textbook-content"
+                data-source="#{File.basename(md_relative)}"
+                data-widget-base="#{root}widgets/"></main>
+          <script defer src="#{root}textbook.js"></script>
+        </body>
+        </html>
+      HTML
+    end
+
+    desc "Build the textbook as a static HTML site under docs/html/textbook/"
+    task :html => :"check" do
+      FileUtils.rm_rf(TEXTBOOK_HTML_OUT)
+      FileUtils.mkdir_p(TEXTBOOK_HTML_OUT)
+
+      # 1. Mirror the markdown source so the client-side fetch resolves.
+      Dir.glob("#{TEXTBOOK_ROOT}/**/*.md").each do |md|
+        rel = md.sub("#{TEXTBOOK_ROOT}/", "")
+        dest = File.join(TEXTBOOK_HTML_OUT, rel)
+        FileUtils.mkdir_p(File.dirname(dest))
+        FileUtils.cp(md, dest)
+      end
+
+      # 2. Generate one HTML wrapper per chapter / volume README / appendix.
+      Dir.glob("#{TEXTBOOK_HTML_OUT}/**/*.md").each do |md|
+        rel = md.sub("#{TEXTBOOK_HTML_OUT}/", "")
+        wrapper = textbook_html_wrapper(rel)
+        File.write(md.sub(/\.md$/, ".html"), wrapper)
+      end
+
+      # 3. Root index.html points at README.html.
+      File.write(File.join(TEXTBOOK_HTML_OUT, "index.html"), <<~HTML)
+        <!doctype html>
+        <meta http-equiv="refresh" content="0; url=README.html">
+        <link rel="canonical" href="README.html">
+      HTML
+
+      # 4. Runtime + styles.
+      File.write(File.join(TEXTBOOK_HTML_OUT, "textbook.js"), textbook_runtime_js)
+      File.write(File.join(TEXTBOOK_HTML_OUT, "textbook.css"), textbook_styles)
+
+      # 5. Widgets: copy the JS files and emit per-widget host pages so
+      #    chapter iframes can point at them.
+      widgets_dir = File.join(TEXTBOOK_HTML_OUT, "widgets")
+      FileUtils.mkdir_p(widgets_dir)
+      FileUtils.cp(Dir.glob("scripts/docs/*.js"), widgets_dir)
+      docs_widget_scripts.each do |widget|
+        File.write(
+          File.join(widgets_dir, "#{File.basename(widget, '.js')}.html"),
+          textbook_widget_host_page(widget))
+      end
+
+      page_count = Dir.glob("#{TEXTBOOK_HTML_OUT}/**/*.html").length
+      widget_count = docs_widget_scripts.length
+      puts "Wrote #{TEXTBOOK_HTML_OUT}/ -- #{page_count} pages, #{widget_count} widget host frames"
+    end
   end
 
   desc "Run textbook static checks and regenerate the source-map appendix"
