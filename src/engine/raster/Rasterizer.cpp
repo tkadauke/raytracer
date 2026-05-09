@@ -26,7 +26,6 @@
 #include <list>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <vector>
 
@@ -684,17 +683,15 @@ namespace {
     return current;
   }
 
-  inline void updateStencil(Buffer<std::uint8_t>* stencilBuffer,
+  inline void updateStencil(Buffer<std::uint8_t>& stencilBuffer,
                             const Rasterizer& rasterizer,
                             int x,
                             int y,
                             Rasterizer::StencilOp op) {
-    if (!stencilBuffer) return;
-
-    const std::uint8_t current = (*stencilBuffer)[y][x];
+    const std::uint8_t current = stencilBuffer[y][x];
     const std::uint8_t updated = applyStencilOp(op, current, rasterizer.stencilReference());
     const std::uint8_t writeMask = rasterizer.stencilWriteMask();
-    (*stencilBuffer)[y][x] = static_cast<std::uint8_t>(
+    stencilBuffer[y][x] = static_cast<std::uint8_t>(
       (current & ~writeMask) | (updated & writeMask));
   }
 
@@ -749,15 +746,15 @@ namespace {
     }
 
     inline void onStencilFail(int x, int y) const {
-      updateStencil(&stencilBuffer, rasterizer, x, y, rasterizer.stencilFailOp());
+      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilFailOp());
     }
 
     inline void onDepthFail(int x, int y) const {
-      updateStencil(&stencilBuffer, rasterizer, x, y, rasterizer.stencilDepthFailOp());
+      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilDepthFailOp());
     }
 
     inline void onPass(int x, int y) const {
-      updateStencil(&stencilBuffer, rasterizer, x, y, rasterizer.stencilPassOp());
+      updateStencil(stencilBuffer, rasterizer, x, y, rasterizer.stencilPassOp());
     }
   };
 
