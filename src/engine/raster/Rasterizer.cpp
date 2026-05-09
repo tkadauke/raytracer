@@ -466,18 +466,6 @@ namespace {
       : area < 0.0;
   }
 
-  // A reasonably colour-spread hash from a uint64 face index → RGB
-  // in [0, 1]³. Fallback when a primitive has no material from which
-  // an albedo can be recovered.
-  Colord faceColor(std::uint64_t index) {
-    const std::uint64_t r = (index * 2654435761ULL)        & 0xFFu;
-    const std::uint64_t g = (index * 40503ULL + 12345)     & 0xFFu;
-    const std::uint64_t b = (index * 15485863ULL + 999983) & 0xFFu;
-    return Colord(0.3 + (r / 255.0) * 0.7,
-                  0.3 + (g / 255.0) * 0.7,
-                  0.3 + (b / 255.0) * 0.7);
-  }
-
   // Recursive scene walker — visits every leaf primitive and emits
   // (primitive, effective material) pairs to the callback. Composite
   // children inherit their parent's material when they don't have
@@ -501,39 +489,81 @@ namespace {
     }
   }
 
-  // Recover a per-pixel albedo (diffuse colour) from the primitive's
-  // material at the given hit context, or fall back to the per-face
-  // hash when the material has no diffuse texture (PortalMaterial,
-  // null material, …).
-  Colord materialAlbedo(const std::shared_ptr<render::Material>& material,
-                        const render::Primitive* primitive,
-                        const Vector3d& worldPos,
-                        const Vector3d& normal,
-                        const Vector2d& uv,
-                        std::uint64_t faceIdx) {
-    if (auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material)) {
-      auto texture = matte->diffuseTexture();
-      if (texture) {
-        // Synthesize a HitPoint at the interpolated surface position
-        // normal, and UVs so position- and UV-dependent textures
-        // sample at the right place. The ray and distance fields
-        // aren't used by the texture eval path; pass placeholders.
-        const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
-        const Rayd ray(worldPos, -normal);
-        return texture->evaluate(ray, hp);
-      }
-    }
-    // Fall back to a per-face hash colour when no material is set
-    // — a primitive with `material() == nullptr` would otherwise
-    // render as an indistinct black silhouette.
-    return faceColor(faceIdx);
-  }
-
   struct InterpolatedFragment {
     double depth;
     Vector3d worldPos;
     Vector3d normal;
     Vector2d uv;
+  };
+
+  class MaterialEvaluator {
+  public:
+    explicit MaterialEvaluator(const render::Scene* scene)
+      : m_scene(scene) {
+    }
+
+    Colord shade(const RasterTriangle& triangle,
+                 const InterpolatedFragment& fragment) const {
+      return shade(
+        triangle.material,
+        triangle.primitive,
+        fragment.worldPos,
+        fragment.normal,
+        fragment.uv,
+        triangle.faceIdx);
+    }
+
+    Colord shade(const std::shared_ptr<render::Material>& material,
+                 const render::Primitive* primitive,
+                 const Vector3d& worldPos,
+                 const Vector3d& normal,
+                 const Vector2d& uv,
+                 std::uint64_t faceIdx) const {
+      const Vector3d n = normal.normalized();
+      const Colord albedo = albedoFor(material, primitive, worldPos, n, uv, faceIdx);
+
+      // Lambertian shading. No shadow rays (no recursive ray tracing
+      // in this engine); each light contributes diffuse-cosine-
+      // weighted radiance directly.
+      Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
+      for (const auto& light : m_scene->lights()) {
+        const Vector3d lightDir = light->direction(worldPos);
+        const double nDotL = std::max(0.0, n * lightDir);
+        if (nDotL > 0.0) {
+          shaded += albedo * light->radiance() * nDotL;
+        }
+      }
+      return shaded;
+    }
+
+  private:
+    static Colord faceColor(std::uint64_t index) {
+      const std::uint64_t r = (index * 2654435761ULL)        & 0xFFu;
+      const std::uint64_t g = (index * 40503ULL + 12345)     & 0xFFu;
+      const std::uint64_t b = (index * 15485863ULL + 999983) & 0xFFu;
+      return Colord(0.3 + (r / 255.0) * 0.7,
+                    0.3 + (g / 255.0) * 0.7,
+                    0.3 + (b / 255.0) * 0.7);
+    }
+
+    static Colord albedoFor(const std::shared_ptr<render::Material>& material,
+                            const render::Primitive* primitive,
+                            const Vector3d& worldPos,
+                            const Vector3d& normal,
+                            const Vector2d& uv,
+                            std::uint64_t faceIdx) {
+      if (auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material)) {
+        auto texture = matte->diffuseTexture();
+        if (texture) {
+          const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
+          const Rayd ray(worldPos, -normal);
+          return texture->evaluate(ray, hp);
+        }
+      }
+      return faceColor(faceIdx);
+    }
+
+    const render::Scene* m_scene;
   };
 
   inline InterpolatedFragment interpolateFragment(const RasterVertex& v0,
@@ -631,29 +661,6 @@ namespace {
     }
   };
 
-  inline Colord shadeBuiltInFragment(const RasterTriangle& triangle,
-                                     const render::Scene* scene,
-                                     const Vector3d& worldPos,
-                                     const Vector3d& normal,
-                                     const Vector2d& uv) {
-    const Vector3d n = normal.normalized();
-    const Colord albedo = materialAlbedo(
-      triangle.material, triangle.primitive, worldPos, n, uv, triangle.faceIdx);
-
-    // Lambertian shading. No shadow rays (no recursive ray tracing
-    // in this engine); each light contributes diffuse-cosine-
-    // weighted radiance directly.
-    Colord shaded = scene->ambient() * kAmbientCoefficient * albedo;
-    for (const auto& light : scene->lights()) {
-      const Vector3d lightDir = light->direction(worldPos);
-      const double nDotL = std::max(0.0, n * lightDir);
-      if (nDotL > 0.0) {
-        shaded += albedo * light->radiance() * nDotL;
-      }
-    }
-    return shaded;
-  }
-
   inline bool usesBuiltInDepthStencilAndFragment(const Rasterizer& rasterizer) {
     return rasterizer.depthFunc() == Rasterizer::DepthFunc::Less
       && rasterizer.depthWriteEnabled()
@@ -719,7 +726,7 @@ namespace {
   };
 
   struct BuiltInFragmentPolicy {
-    const render::Scene* scene;
+    MaterialEvaluator materialEvaluator;
 
     inline Colord shade(const RasterTriangle& triangle,
                         int,
@@ -728,8 +735,7 @@ namespace {
                         double,
                         double,
                         const InterpolatedFragment& fragment) const {
-      return shadeBuiltInFragment(
-        triangle, scene, fragment.worldPos, fragment.normal, fragment.uv);
+      return materialEvaluator.shade(triangle, fragment);
     }
   };
 
@@ -836,14 +842,14 @@ namespace {
           rasterizer, zBuffer, stencil, ShaderFragmentPolicy{rasterizer}, render);
       } else {
         withPreparedTriangleDepthPolicy(
-          rasterizer, zBuffer, stencil, BuiltInFragmentPolicy{scene}, render);
+          rasterizer, zBuffer, stencil, BuiltInFragmentPolicy{MaterialEvaluator(scene)}, render);
       }
     } else if (useFragmentShader) {
       withPreparedTriangleDepthPolicy(
         rasterizer, zBuffer, NoStencilPolicy{}, ShaderFragmentPolicy{rasterizer}, render);
     } else {
       withPreparedTriangleDepthPolicy(
-        rasterizer, zBuffer, NoStencilPolicy{}, BuiltInFragmentPolicy{scene}, render);
+        rasterizer, zBuffer, NoStencilPolicy{}, BuiltInFragmentPolicy{MaterialEvaluator(scene)}, render);
     }
   }
 
@@ -1177,6 +1183,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   if (tileCount == 1 && usesBuiltInDepthStencilAndFragment(*this) && !m_vertexShader) {
     std::uint64_t globalFaceIdx = 0;
+    const MaterialEvaluator materialEvaluator(m_scene.get());
     walkLeaves(m_scene.get(), nullptr,
       [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
         if (m_cancelled.load()) return;
@@ -1259,19 +1266,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
                 const Vector2d uv = (
                   v0.uv     * wp0 + v1.uv     * wp1 + v2.uv     * wp2
                 ) * pixelDepth;
-                const Vector3d n = normal.normalized();
-
-                const Colord albedo = materialAlbedo(
-                  material, primitive, worldPos, n, uv, capturedFaceIdx);
-
-                Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
-                for (const auto& light : m_scene->lights()) {
-                  const Vector3d lightDir = light->direction(worldPos);
-                  const double nDotL = std::max(0.0, n * lightDir);
-                  if (nDotL > 0.0) {
-                    shaded += albedo * light->radiance() * nDotL;
-                  }
-                }
+                const Colord shaded = materialEvaluator.shade(
+                  material, primitive, worldPos, normal, uv, capturedFaceIdx);
 
                 zBuffer[y][x] = pixelDepth;
                 buffer[y][x] = shaded;
@@ -1338,19 +1334,8 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
                 const Vector2d uv = (
                   v0.uv     * wp0 + v1.uv     * wp1 + v2.uv     * wp2
                 ) * pixelDepth;
-                const Vector3d n = normal.normalized();
-
-                const Colord albedo = materialAlbedo(
-                  material, primitive, worldPos, n, uv, capturedFaceIdx);
-
-                Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
-                for (const auto& light : m_scene->lights()) {
-                  const Vector3d lightDir = light->direction(worldPos);
-                  const double nDotL = std::max(0.0, n * lightDir);
-                  if (nDotL > 0.0) {
-                    shaded += albedo * light->radiance() * nDotL;
-                  }
-                }
+                const Colord shaded = materialEvaluator.shade(
+                  material, primitive, worldPos, normal, uv, capturedFaceIdx);
 
                 zBuffer[y][x] = pixelDepth;
                 buffer[y][x] = shaded;
