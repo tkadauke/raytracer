@@ -31,7 +31,6 @@
 using namespace engine::raster;
 
 namespace {
-  struct RasterSamplePattern;
   class RasterTriangleEmitter;
   class RasterTriangleSet;
 }
@@ -47,6 +46,75 @@ struct Rasterizer::Private {
   std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
 
+  struct SamplePattern {
+    explicit SamplePattern(int sampleCount) {
+      switch (sampleCount) {
+      case 2:
+        offsets[0] = {-0.25, -0.25};
+        offsets[1] = {0.25, 0.25};
+        count = 2;
+        break;
+      case 4:
+        offsets[0] = {-0.125, -0.375};
+        offsets[1] = {0.375, -0.125};
+        offsets[2] = {-0.375, 0.125};
+        offsets[3] = {0.125, 0.375};
+        count = 4;
+        break;
+      case 8:
+        offsets[0] = {0.0625, -0.1875};
+        offsets[1] = {-0.0625, 0.1875};
+        offsets[2] = {0.3125, 0.0625};
+        offsets[3] = {-0.1875, -0.3125};
+        offsets[4] = {-0.3125, 0.3125};
+        offsets[5] = {-0.4375, -0.0625};
+        offsets[6] = {0.1875, 0.4375};
+        offsets[7] = {0.4375, -0.4375};
+        count = 8;
+        break;
+      default:
+        offsets[0] = {0.0, 0.0};
+        count = 1;
+        break;
+      }
+    }
+
+    std::array<Vector2d, 8> offsets{};
+    int count{1};
+  };
+
+  class PassBuffers {
+  public:
+    PassBuffers(const Rasterizer& rasterizer, const render::TilePlan& tilePlan,
+                Buffer<Colord>& colorBuffer)
+        : m_colorBuffer(colorBuffer),
+          m_depthBuffer(tilePlan.width(), tilePlan.height()) {
+      m_depthBuffer.clear(rasterizer.depthClearValue());
+      if (rasterizer.stencilTestEnabled()) {
+        m_stencilBuffer =
+          std::make_unique<Buffer<std::uint8_t>>(tilePlan.width(), tilePlan.height());
+        m_stencilBuffer->clear(rasterizer.stencilClearValue());
+      }
+    }
+
+    Buffer<Colord>& color() {
+      return m_colorBuffer;
+    }
+
+    Buffer<double>& depth() {
+      return m_depthBuffer;
+    }
+
+    Buffer<std::uint8_t>* stencil() {
+      return m_stencilBuffer.get();
+    }
+
+  private:
+    Buffer<Colord>& m_colorBuffer;
+    Buffer<double> m_depthBuffer;
+    std::unique_ptr<Buffer<std::uint8_t>> m_stencilBuffer;
+  };
+
   void renderFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                    const std::shared_ptr<render::Camera>& camera,
                    const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
@@ -58,7 +126,7 @@ struct Rasterizer::Private {
                                const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
   void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
-                       const render::TilePlan& tilePlan, const RasterSamplePattern& pattern,
+                       const render::TilePlan& tilePlan, const SamplePattern& pattern,
                        const RasterTriangleEmitter& triangleEmitter,
                        const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
@@ -68,6 +136,11 @@ struct Rasterizer::Private {
                              const render::TilePlan& tilePlan,
                              const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
                              const Vector2d& sampleOffset);
+
+  static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
+                                                  const render::TilePlan& tilePlan);
+  static void accumulateSample(Buffer<Colord>& target, const Buffer<Colord>& sample);
+  static void resolveMSAA(Buffer<Colord>& buffer, int sampleCount);
 };
 
 Rasterizer::Rasterizer(std::shared_ptr<render::Scene> scene)
@@ -150,45 +223,6 @@ namespace {
   // for clipped vertices.
   constexpr double kNearClipDepth = 0.1;
   constexpr std::size_t kMaxClipVertices = 32;
-
-  using RasterSampleOffset = Vector2d;
-
-  struct RasterSamplePattern {
-    explicit RasterSamplePattern(int sampleCount) {
-      switch (sampleCount) {
-      case 2:
-        offsets[0] = {-0.25, -0.25};
-        offsets[1] = {0.25, 0.25};
-        count = 2;
-        break;
-      case 4:
-        offsets[0] = {-0.125, -0.375};
-        offsets[1] = {0.375, -0.125};
-        offsets[2] = {-0.375, 0.125};
-        offsets[3] = {0.125, 0.375};
-        count = 4;
-        break;
-      case 8:
-        offsets[0] = {0.0625, -0.1875};
-        offsets[1] = {-0.0625, 0.1875};
-        offsets[2] = {0.3125, 0.0625};
-        offsets[3] = {-0.1875, -0.3125};
-        offsets[4] = {-0.3125, 0.3125};
-        offsets[5] = {-0.4375, -0.0625};
-        offsets[6] = {0.1875, 0.4375};
-        offsets[7] = {0.4375, -0.4375};
-        count = 8;
-        break;
-      default:
-        offsets[0] = {0.0, 0.0};
-        count = 1;
-        break;
-      }
-    }
-
-    std::array<RasterSampleOffset, 8> offsets{};
-    int count{1};
-  };
 
   struct ProjectedVertex {
     Vector4d clip;
@@ -624,7 +658,7 @@ namespace {
   template<class Stencil, class Depth, class Fragment>
   inline void rasterizePreparedTriangleWithPolicies(const RasterTriangle& triangle,
                                                     const Recti& clipRect, Buffer<Colord>& buffer,
-                                                    const RasterSampleOffset& sampleOffset,
+                                                    const Vector2d& sampleOffset,
                                                     Stencil stencil, Depth depth,
                                                     Fragment fragmentPolicy) {
     const RasterVertex& v0 = triangle.vertices[0];
@@ -656,7 +690,7 @@ namespace {
   template<class Stencil, class Depth, class Fragment>
   inline void rasterizeTileWithPolicies(const RasterTriangleSet& triangleSet, const Recti& rect,
                                         std::size_t tileIndex, Buffer<Colord>& buffer,
-                                        const RasterSampleOffset& sampleOffset,
+                                        const Vector2d& sampleOffset,
                                         const std::atomic<bool>& cancelled, Stencil stencil,
                                         Depth depth, Fragment fragmentPolicy) {
     const auto& triangles = triangleSet.triangles();
@@ -674,7 +708,7 @@ namespace {
     const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
     std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
     const std::atomic<bool>& cancelled,
-    Buffer<Colord>& buffer, const RasterSampleOffset& sampleOffset, Stencil stencil, Depth depth,
+    Buffer<Colord>& buffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
     Fragment fragmentPolicy) {
     if (tilePlan.isSingleTile()) {
       rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, buffer, sampleOffset,
@@ -905,66 +939,34 @@ namespace {
     const std::atomic<bool>& m_cancelled;
   };
 
-  inline RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
-                                                  const render::TilePlan& tilePlan) {
-    RasterTriangleSet triangleSet(tilePlan);
-    triangleEmitter.forEachTriangle(
-      [&](const RasterTriangle& triangle) { triangleSet.add(triangle); });
-    return triangleSet;
-  }
+}
 
-  class RasterPassBuffers {
-  public:
-    RasterPassBuffers(const Rasterizer& rasterizer, const render::TilePlan& tilePlan,
-                      Buffer<Colord>& colorBuffer)
-        : m_colorBuffer(colorBuffer),
-          m_depthBuffer(tilePlan.width(), tilePlan.height()) {
-      m_depthBuffer.clear(rasterizer.depthClearValue());
-      if (rasterizer.stencilTestEnabled()) {
-        m_stencilBuffer =
-          std::make_unique<Buffer<std::uint8_t>>(tilePlan.width(), tilePlan.height());
-        m_stencilBuffer->clear(rasterizer.stencilClearValue());
-      }
-    }
+RasterTriangleSet Rasterizer::Private::collectRasterTriangles(
+  const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan) {
+  RasterTriangleSet triangleSet(tilePlan);
+  triangleEmitter.forEachTriangle(
+    [&](const RasterTriangle& triangle) { triangleSet.add(triangle); });
+  return triangleSet;
+}
 
-    Buffer<Colord>& color() {
-      return m_colorBuffer;
-    }
+void Rasterizer::Private::accumulateSample(Buffer<Colord>& target, const Buffer<Colord>& sample) {
+  for (int y = 0; y < target.height(); ++y)
+    for (int x = 0; x < target.width(); ++x)
+      target[y][x] += sample[y][x];
+}
 
-    Buffer<double>& depth() {
-      return m_depthBuffer;
-    }
-
-    Buffer<std::uint8_t>* stencil() {
-      return m_stencilBuffer.get();
-    }
-
-  private:
-    Buffer<Colord>& m_colorBuffer;
-    Buffer<double> m_depthBuffer;
-    std::unique_ptr<Buffer<std::uint8_t>> m_stencilBuffer;
-  };
-
-  inline void accumulateSample(Buffer<Colord>& target, const Buffer<Colord>& sample) {
-    for (int y = 0; y < target.height(); ++y)
-      for (int x = 0; x < target.width(); ++x)
-        target[y][x] += sample[y][x];
-  }
-
-  inline void resolveMSAA(Buffer<Colord>& buffer, int sampleCount) {
-    const double resolveScale = 1.0 / static_cast<double>(sampleCount);
-    for (int y = 0; y < buffer.height(); ++y)
-      for (int x = 0; x < buffer.width(); ++x)
-        buffer[y][x] = buffer[y][x] * resolveScale;
-  }
-
+void Rasterizer::Private::resolveMSAA(Buffer<Colord>& buffer, int sampleCount) {
+  const double resolveScale = 1.0 / static_cast<double>(sampleCount);
+  for (int y = 0; y < buffer.height(); ++y)
+    for (int x = 0; x < buffer.width(); ++x)
+      buffer[y][x] = buffer[y][x] * resolveScale;
 }
 
 void Rasterizer::Private::renderTriangleSetPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
-  RasterPassBuffers passBuffers(rasterizer, tilePlan, buffer);
+  PassBuffers passBuffers(rasterizer, tilePlan, buffer);
   withPreparedTrianglePolicies(scene.get(), rasterizer, passBuffers.depth(), passBuffers.stencil(),
                                [&](auto stencil, auto depth, auto fragmentPolicy) {
                                  rasterizeTriangleSetWithPolicies(
@@ -983,12 +985,12 @@ void Rasterizer::Private::renderSingleSampleFrame(
     return;
 
   renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, cancelled, buffer,
-                        RasterSampleOffset(0.0, 0.0));
+                        Vector2d(0.0, 0.0));
 }
 
 void Rasterizer::Private::renderMSAAFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
-  const render::TilePlan& tilePlan, const RasterSamplePattern& pattern,
+  const render::TilePlan& tilePlan, const SamplePattern& pattern,
   const RasterTriangleEmitter& triangleEmitter, const std::atomic<bool>& cancelled,
   Buffer<Colord>& buffer) {
   const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
@@ -1003,7 +1005,7 @@ void Rasterizer::Private::renderMSAAFrame(
     Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
     sampleBuffer.clear(rasterizer.backgroundColor());
 
-    const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
+    const Vector2d& sampleOffset = pattern.offsets[sampleIndex];
     renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, cancelled, sampleBuffer,
                           sampleOffset);
 
@@ -1027,7 +1029,7 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
     return;
 
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
-  const RasterSamplePattern pattern(rasterizer.msaaSamples());
+  const SamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                               cancelled);
   if (pattern.count > 1) {
