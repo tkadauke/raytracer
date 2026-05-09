@@ -12,11 +12,11 @@ namespace testing {
   using namespace render;
 
   EngineFeatureTest::EngineFeatureTest()
-    : FeatureTest<EngineFeatureTest>(),
-      m_camera(0),
-      m_engine(0),
-      m_buffer(200, 150)
-  {
+      : FeatureTest<EngineFeatureTest>(),
+        m_camera(0),
+        m_engine(0),
+        m_buffer(200, 150),
+        m_cancelled(false) {
     previousObjectSize = 0;
   }
 
@@ -61,11 +61,24 @@ namespace testing {
 
   void EngineFeatureTest::render() {
     m_engine = createEngine();
+    if (m_cancelled) {
+      m_engine->cancel();
+    }
     m_engine->render(m_buffer);
   }
 
   void EngineFeatureTest::cancel() {
-    camera()->cancel();
+    m_cancelled = true;
+    if (m_engine) {
+      m_engine->cancel();
+    }
+  }
+
+  void EngineFeatureTest::uncancel() {
+    m_cancelled = false;
+    if (m_engine) {
+      m_engine->uncancel();
+    }
   }
 
   void EngineFeatureTest::clear() {

@@ -21,9 +21,16 @@ namespace testing {
     */
   class WireframeFeatureTest : public EngineFeatureTest {
   public:
+    inline void setLod(int lod) {
+      m_lod = lod;
+    }
+
     std::shared_ptr<render::RenderEngine> createEngine() override;
 
     /// Wireframe edges are white by default.
     Colord primaryColor() const override;
+
+  private:
+    int m_lod{0};
   };
 }
