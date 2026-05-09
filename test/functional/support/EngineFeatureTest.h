@@ -82,6 +82,7 @@ namespace testing {
     void goFarAway();
 
     int previousObjectSize;
+    int previousEdgeCount;
 
   protected:
     std::shared_ptr<render::Scene> m_scene;
