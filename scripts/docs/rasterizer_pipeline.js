@@ -36,8 +36,8 @@ class RasterizerPipeline {
     this.canvas.element.addEventListener('pointermove', (event) => {
       const cell = this.cellFromPointer(event);
       this.cursor = {
-        x: this.clamp(cell.x, 0, this.cols),
-        y: this.clamp(cell.y, 0, this.rows),
+        x: FigureMath.clamp(cell.x, 0, this.cols),
+        y: FigureMath.clamp(cell.y, 0, this.rows),
       };
       this.render();
     });
@@ -68,16 +68,8 @@ class RasterizerPipeline {
     return this.rows * this.cell;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  edge(a, b, p) {
-    return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
-  }
-
   area() {
-    return this.edge(this.vertices[0], this.vertices[1], this.vertices[2]);
+    return FigureGeometry.edge(this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 
   bounds() {
@@ -91,19 +83,14 @@ class RasterizerPipeline {
   }
 
   weightsAt(p) {
-    const area = this.area();
-    if (Math.abs(area) <= 0) return null;
-    const w0 = this.edge(this.vertices[1], this.vertices[2], p);
-    const w1 = this.edge(this.vertices[2], this.vertices[0], p);
-    const w2 = area - w0 - w1;
-    const inside = area > 0
-      ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
-      : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+    const weights = FigureGeometry.barycentric(
+      p, this.vertices[0], this.vertices[1], this.vertices[2]);
+    if (Math.abs(weights.area) <= 1e-9) return null;
     return {
-      b0: w0 / area,
-      b1: w1 / area,
-      b2: w2 / area,
-      inside,
+      b0: weights.w0,
+      b1: weights.w1,
+      b2: weights.w2,
+      inside: weights.inside,
     };
   }
 
@@ -128,8 +115,8 @@ class RasterizerPipeline {
 
   fromSvgPoint(point) {
     return {
-      x: this.clamp(point.x / this.cell, 0, this.cols),
-      y: this.clamp(point.y / this.cell, 0, this.rows),
+      x: FigureMath.clamp(point.x / this.cell, 0, this.cols),
+      y: FigureMath.clamp(point.y / this.cell, 0, this.rows),
     };
   }
 

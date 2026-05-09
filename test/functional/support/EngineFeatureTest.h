@@ -62,6 +62,7 @@ namespace testing {
     void setView(const Vector3d& position, const Vector3d& lookAt);
     void render();
     void cancel();
+    void uncancel();
 
     const Buffer<unsigned int>& buffer() const;
     void clear();
@@ -87,5 +88,6 @@ namespace testing {
     std::shared_ptr<render::Camera> m_camera;
     std::shared_ptr<render::RenderEngine> m_engine;
     Buffer<unsigned int> m_buffer;
+    bool m_cancelled;
   };
 }

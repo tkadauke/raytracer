@@ -209,6 +209,54 @@ test('Vector: static constants', () => {
   assert.deepEqual({ x: Vector.right.x, y: Vector.right.y }, { x: 1, y: 0 });
 });
 
+test('FigureMath: clamp helpers and interpolation', () => {
+  const { FigureMath } = loadFigure();
+  assert.equal(FigureMath.clamp(-2, 0, 1), 0);
+  assert.equal(FigureMath.clamp(0.4, 0, 1), 0.4);
+  assert.equal(FigureMath.clamp(8, 0, 1), 1);
+  assert.equal(FigureMath.clamp01(2.5), 1);
+  assert.equal(FigureMath.lerp(10, 20, 0.25), 12.5);
+});
+
+test('Vector: shared widget helpers cover common 2D math', () => {
+  const { Vector } = loadFigure();
+  const point = Vector.from({ x: 3, y: 4 });
+  assert.deepEqual({ x: point.x, y: point.y }, { x: 3, y: 4 });
+  assert.strictEqual(Vector.from(point), point,
+    'Vector.from should preserve existing Vector instances');
+
+  const normalized = point.safeNormalized();
+  assert.ok(Math.abs(normalized.x - 0.6) < 1e-12);
+  assert.ok(Math.abs(normalized.y - 0.8) < 1e-12);
+  const fallback = Vector.null.safeNormalized(new Vector(0, -1));
+  assert.deepEqual({ x: fallback.x, y: fallback.y }, { x: 0, y: -1 });
+  const perp = new Vector(2, 5).perp();
+  assert.deepEqual({ x: perp.x, y: perp.y }, { x: -5, y: 2 });
+  assert.equal(new Vector(3, 4).distanceTo(Vector.null), 5);
+  const halfway = new Vector(0, 10).lerp(new Vector(10, 20), 0.5);
+  assert.deepEqual({ x: halfway.x, y: halfway.y }, { x: 5, y: 15 });
+});
+
+test('FigureGeometry: triangle weights and segment projection', () => {
+  const { FigureGeometry, Vector } = loadFigure();
+  const a = new Vector(0, 0);
+  const b = new Vector(4, 0);
+  const c = new Vector(0, 4);
+  const weights = FigureGeometry.barycentric(new Vector(1, 1), a, b, c);
+  assert.equal(weights.inside, true);
+  assert.ok(Math.abs(weights.w0 - 0.5) < 1e-12);
+  assert.ok(Math.abs(weights.w1 - 0.25) < 1e-12);
+  assert.ok(Math.abs(weights.w2 - 0.25) < 1e-12);
+  assert.equal(FigureGeometry.pointInTriangle(new Vector(4, 4), a, b, c), false);
+
+  const closest = FigureGeometry.closestPointOnSegment(
+    new Vector(3, 4), new Vector(0, 0), new Vector(4, 0));
+  assert.deepEqual({ x: closest.x, y: closest.y }, { x: 3, y: 0 });
+  const clamped = FigureGeometry.closestPointOnSegment(
+    new Vector(10, 4), new Vector(0, 0), new Vector(4, 0));
+  assert.deepEqual({ x: clamped.x, y: clamped.y }, { x: 4, y: 0 });
+});
+
 test('Figure stroke constants: standard weights are exported', () => {
   const {
     FigureStrokeWidth,
@@ -307,6 +355,31 @@ test('Texture coordinate mapping widget exposes mapping controls and lookup stat
     .filter(r => r.attributes['data-preview-cell']);
   assert.equal(previewCells.length, 36,
     'sampled texture preview should draw a small checker grid');
+  const previewCoordinates = previewCells.map(cell => cell.attributes['data-preview-coordinate']);
+  assert.ok(previewCoordinates.includes('0,0'));
+  assert.ok(previewCoordinates.includes('5,5'));
+  const sampledColor = elementsByTag(body, 'rect')
+    .find(r => r.attributes['data-sampled-color']);
+  const previewSample = elementsByTag(body, 'circle')
+    .find(c => c.attributes['data-preview-sample'] === 'point');
+  assert.equal(previewSample.attributes['data-preview-sample-color'],
+    sampledColor.attributes['data-sampled-color'],
+    'texture preview marker should agree with the sampled color readout');
+  const sampledPreviewCell = previewCells.find(cell =>
+    cell.attributes['data-preview-coordinate'] === previewSample.attributes['data-preview-sample-cell']);
+  assert.ok(sampledPreviewCell,
+    'texture preview should include the checker cell containing the sampled coordinate');
+  assert.equal(sampledPreviewCell.attributes['data-preview-color'],
+    sampledColor.attributes['data-sampled-color'],
+    'sampled preview cell should use the same checker parity as the readout');
+  const uvButton = elementsByTag(body, 'button')
+    .find(button => button.textContent === 'UV');
+  uvButton.click();
+  const uvPreviewCoordinates = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-preview-cell'])
+    .map(cell => cell.attributes['data-preview-coordinate']);
+  assert.deepEqual(uvPreviewCoordinates, previewCoordinates,
+    'texture preview should stay fixed in texture space instead of jumping at integer boundaries');
 
   const readouts = elementsByTag(body, 'text')
     .filter(t => t.attributes['data-readout']);
@@ -367,6 +440,13 @@ test('Transparent material refraction widget exposes IOR controls and TIR state'
     .filter(text => text.attributes['data-readout'])
     .map(text => text.attributes['data-readout']);
   assert.deepEqual(readouts, ['incident-angle', 'snell-law']);
+  const readoutPanel = elementsByTag(body, 'rect')
+    .find(rect => rect.attributes['data-readout-panel'] === 'snell-law');
+  assert.ok(readoutPanel, 'Snell-law readout should have a positioned panel');
+  assert.ok(Number(readoutPanel.attributes.x) < 100,
+    'Snell-law readout should stay in the open upper-left medium area');
+  assert.ok(Number(readoutPanel.attributes.x) + Number(readoutPanel.attributes.width) < 320,
+    'Snell-law readout should not overlap the surface normal and refracted ray fan');
 
   const states = elementsByTag(body, 'text')
     .filter(text => text.attributes['data-state'])
@@ -425,6 +505,10 @@ test('Rasterizer clipping widget omits coordinate labels', () => {
 });
 
 test('Rasterizer MSAA widget emits samples and partial resolves', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'rasterizer_msaa_coverage.js'), 'utf8');
+  assert.ok(source.includes('clampGridPoint'),
+    'MSAA widget should clamp dragged vertices to the pixel grid');
+
   const body = loadWidget('rasterizer_msaa_coverage.js');
   const text = textContents(body).join(' ');
   assert.ok(text.includes('4x MSAA'),
@@ -447,6 +531,16 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
     .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');
   assert.equal(handles.length, 3,
     'triangle geometry should be manipulated through visible draggable vertices');
+  handles.forEach(handle => {
+    assert.equal(handle.attributes['data-drag-bounds'], 'pixel-grid');
+    const cx = Number(handle.attributes.cx);
+    const cy = Number(handle.attributes.cy);
+    const radius = Number(handle.attributes.r);
+    assert.ok(cx >= radius && cx <= 9 * 48 - radius,
+      `triangle handle x should stay inside the pixel grid, got ${cx}`);
+    assert.ok(cy >= radius && cy <= 6 * 48 - radius,
+      `triangle handle y should stay inside the pixel grid, got ${cy}`);
+  });
 });
 
 test('Motion blur widget exposes shutter-time sampling controls', () => {
@@ -528,6 +622,16 @@ test('Sampler streams widget exposes sampler and dimension controls', () => {
     .filter(r => r.attributes['data-sample-panel']);
   assert.deepEqual(panels.map(r => r.attributes['data-sample-panel']),
     ['pixel', 'pixel', 'lens', 'shutter-time']);
+  panels.forEach(panel => {
+    const x = Number(panel.attributes.x);
+    const y = Number(panel.attributes.y);
+    const width = Number(panel.attributes.width);
+    const height = Number(panel.attributes.height);
+    assert.ok(x >= 0 && x + width <= 720,
+      `sample panel should fit horizontally inside the SVG, got ${x}..${x + width}`);
+    assert.ok(y >= 0 && y + height <= 330,
+      `sample panel should fit vertically inside the SVG, got ${y}..${y + height}`);
+  });
 
   const sampleDots = elementsByTag(body, 'circle')
     .filter(c => c.attributes['data-sample-dot']);
@@ -559,6 +663,29 @@ test('Grid DDA widget exposes traversal state and controls', () => {
     .filter(c => c.attributes['data-drag-handle']);
   assert.deepEqual(handles.map(c => c.attributes['data-drag-handle']),
     ['ray-origin', 'ray-direction']);
+  const gridBounds = { minX: 38, maxX: 326, minY: 34, maxY: 322 };
+  handles.forEach(handle => {
+    const cx = Number(handle.attributes.cx);
+    const cy = Number(handle.attributes.cy);
+    assert.ok(cx >= gridBounds.minX && cx <= gridBounds.maxX,
+      `ray handle x should stay inside the grid, got ${cx}`);
+    assert.ok(cy >= gridBounds.minY && cy <= gridBounds.maxY,
+      `ray handle y should stay inside the grid, got ${cy}`);
+  });
+
+  const ray = elementsByTag(body, 'line')
+    .find(line => line.attributes['data-grid-dda-ray'] === 'segment');
+  assert.ok(ray, 'ray should expose its visible segment for containment checks');
+  ['x1', 'x2'].forEach(attr => {
+    const value = Number(ray.attributes[attr]);
+    assert.ok(value >= gridBounds.minX && value <= gridBounds.maxX,
+      `ray ${attr} should stay inside the grid, got ${value}`);
+  });
+  ['y1', 'y2'].forEach(attr => {
+    const value = Number(ray.attributes[attr]);
+    assert.ok(value >= gridBounds.minY && value <= gridBounds.maxY,
+      `ray ${attr} should stay inside the grid, got ${value}`);
+  });
 
   const visitedCells = elementsByTag(body, 'rect')
     .filter(r => r.attributes['data-grid-dda-cell'] === 'visited');
@@ -851,8 +978,13 @@ test('CSG hit-interval widget exposes operation control and interval endpoints',
 
 test('BVH SAH widget exposes split costs, selected split, and traversal handles', () => {
   const body = loadWidget('bvh_sah_traversal.js');
-  assert.equal(countElements(body, 'button'), 4,
-    'BVH widget should expose the step-by-step build/traversal control');
+  const buttons = elementsByTag(body, 'button');
+  assert.equal(buttons.length, 3,
+    'BVH widget should expose focused split/cost/traversal controls');
+  assert.deepEqual(buttons.map(button => button.textContent),
+    ['Split candidates', 'SAH cost', 'Traversal']);
+  assert.ok(!buttons.some(button => button.textContent === 'Overview'),
+    'BVH widget should not include a mixed overview mode');
 
   const primitiveBoxes = elementsByTag(body, 'rect')
     .filter(r => r.attributes['data-drag-handle'] === 'primitive-aabb');
@@ -867,7 +999,14 @@ test('BVH SAH widget exposes split costs, selected split, and traversal handles'
     'four primitives should produce three centroid-ordered split candidates');
   assert.equal(candidates.filter(l => l.attributes['data-selected-split'] === 'true').length, 1,
     'exactly one candidate should be marked as the selected SAH split');
+  assert.equal(elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-sah-cost'] !== undefined).length, 0,
+    'the default split-candidates view should not mix in the cost plot');
+  assert.equal(elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-subtree-status'] !== undefined).length, 0,
+    'the default split-candidates view should not mix in traversal state');
 
+  buttons[1].click();
   const costBars = elementsByTag(body, 'rect')
     .filter(r => r.attributes['data-sah-cost'] !== undefined);
   assert.equal(costBars.length, 3,
@@ -875,6 +1014,10 @@ test('BVH SAH widget exposes split costs, selected split, and traversal handles'
   assert.equal(costBars.filter(r => r.attributes['data-selected-cost'] === 'true').length, 1,
     'the chosen split should be highlighted in the cost plot');
 
+  buttons[2].click();
+  assert.equal(elementsByTag(body, 'line')
+    .filter(l => l.attributes['data-candidate-split'] !== undefined).length, 0,
+    'the traversal view should not mix in split-candidate markers');
   const rayHandles = elementsByTag(body, 'circle')
     .filter(c => ['ray-origin', 'ray-target'].includes(c.attributes['data-drag-handle']));
   assert.equal(rayHandles.length, 2,
@@ -906,6 +1049,29 @@ test('Production widgets use shared stroke width constants', () => {
       return /['"]stroke-width['"]\s*:\s*[0-9.]+/.test(source);
     });
   assert.deepEqual(offenders, []);
+});
+
+test('Migrated widgets use shared figure math instead of local vector libraries', () => {
+  const docsDir = path.resolve(__dirname, '..', 'docs');
+  const vectorDuplicatePattern =
+    /^\s{2}(sub|plus|minus|mul|multiply|dot|length|normalized|rotate)\([^)]*\) \{/m;
+  ['mesh_triangle_interpolation.js', 'portal_material_ray_redirection.js'].forEach((file) => {
+    const source = fs.readFileSync(path.join(docsDir, file), 'utf8');
+    assert.ok(!vectorDuplicatePattern.test(source),
+      `${file} should use Vector / FigureMath helpers instead of local vector math`);
+  });
+
+  [
+    'mesh_triangle_interpolation.js',
+    'rasterizer_depth_stencil_cull.js',
+    'rasterizer_msaa_coverage.js',
+    'rasterizer_pipeline.js',
+    'support_mapping_gjk.js',
+  ].forEach((file) => {
+    const source = fs.readFileSync(path.join(docsDir, file), 'utf8');
+    assert.ok(source.includes('FigureGeometry.'),
+      `${file} should use FigureGeometry for shared triangle/segment math`);
+  });
 });
 
 test('Color model conversion widget shows RGB storage and helper views', () => {
@@ -964,18 +1130,67 @@ test('Rasterizer state widget exposes depth stencil and culling controls', () =>
 });
 
 test('Support mapping GJK widget exposes controls and simplex structure', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'support_mapping_gjk.js'), 'utf8');
+  assert.ok(source.includes('new FigureWidget'),
+    'support mapping widget should use the shared widget container');
+  assert.ok(!source.includes('new Canvas'),
+    'support mapping widget should not use the legacy Canvas helper');
+  assert.ok(!source.includes('new Slider'),
+    'support mapping widget should use shared slider controls');
+
   const body = loadWidget('support_mapping_gjk.js');
   const text = textContents(body).join(' ');
   assert.ok(text.includes('shape separation'),
     'widget should expose a separation control for the two convex shapes');
   assert.ok(text.includes('GJK step'),
     'widget should expose a discrete step control for simplex evolution');
+  assert.ok(text.includes('support(A - B, v)'),
+    'widget should explicitly connect support mapping to the Minkowski difference');
+  assert.ok(text.includes('move the simplex toward the origin'),
+    'widget should explain what the active simplex is doing');
   assert.equal(countElements(body, 'input'), 2,
     'widget should use two range controls');
-  assert.ok(countElements(body, 'path') >= 4,
-    'widget should draw both convex shapes, the Minkowski difference, and the simplex');
-  assert.ok(countElements(body, 'circle') >= 6,
-    'widget should draw support points, the origin, and simplex points');
+
+  const panels = elementsByTag(body, 'rect')
+    .filter(rect => rect.attributes['data-gjk-panel'])
+    .map(rect => rect.attributes['data-gjk-panel']);
+  assert.deepEqual(panels, ['support', 'minkowski']);
+
+  const shapes = elementsByTag(body, 'path')
+    .filter(path => path.attributes['data-gjk-shape'])
+    .map(path => path.attributes['data-gjk-shape']);
+  assert.deepEqual(shapes, ['A', 'B']);
+  assert.equal(elementsByTag(body, 'path')
+    .filter(path => path.attributes['data-gjk-difference'] === 'A-minus-B').length, 1,
+    'widget should draw one subdued Minkowski-difference hull');
+
+  const supportPoints = elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-gjk-support-point'])
+    .map(circle => circle.attributes['data-gjk-support-point']);
+  assert.deepEqual(supportPoints, ['A', 'B', 'A-minus-B']);
+  const supportA = elementsByTag(body, 'circle')
+    .find(circle => circle.attributes['data-gjk-support-point'] === 'A');
+  const supportABefore = {
+    x: supportA.attributes.cx,
+    y: supportA.attributes.cy,
+  };
+  const separationSlider = elementsByTag(body, 'input')[0];
+  separationSlider.value = '2.8';
+  separationSlider.dispatchEvent({ type: 'input', target: separationSlider });
+  const supportAAfter = elementsByTag(body, 'circle')
+    .find(circle => circle.attributes['data-gjk-support-point'] === 'A');
+  assert.deepEqual({
+    x: supportAAfter.attributes.cx,
+    y: supportAAfter.attributes.cy,
+  }, supportABefore,
+    'moving only shape B should not make supportA(v) jump between vertices');
+  assert.ok(elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-gjk-simplex-point']).length >= 1,
+    'widget should draw the active simplex points');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-gjk-origin'] === '1').length, 1);
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-gjk-closest-point'] === '1').length, 1);
 });
 
 // --- Path primitive --------------------------------------------------------
@@ -1078,6 +1293,28 @@ test('FigureSvg: creates scoped SVGs and can clear children', () => {
   assert.equal(canvas.element.children.length, 2);
   canvas.clear();
   assert.equal(canvas.element.children.length, 0);
+});
+
+test('FigureSvg: convenience helpers emit text, lines, arrows, rays, and panels', () => {
+  const { FigureSvg, Vector } = loadFigure();
+  const canvas = new FigureSvg({ width: 100, height: 50 });
+  canvas.text(4, 8, 'hello');
+  canvas.line(new Vector(1, 2), new Vector(3, 4));
+  canvas.arrow(new Vector(5, 6), new Vector(7, 8), { markerId: 'test-arrow', stroke: '#d12' });
+  canvas.ray(new Vector(10, 10), new Vector(1, 0), 20, { markerId: 'test-ray' });
+  canvas.panel({ x: 12, y: 14, width: 30, height: 20 }, 'Panel');
+
+  const texts = elementsByTag(canvas.element, 'text').map(t => t.textContent);
+  assert.ok(texts.includes('hello'));
+  assert.ok(texts.includes('Panel'));
+  const arrows = elementsByTag(canvas.element, 'line')
+    .filter(line => line.attributes['marker-end']);
+  assert.equal(arrows.length, 2);
+  assert.equal(arrows[0].attributes['marker-end'], 'url(#test-arrow)');
+  assert.equal(arrows[1].attributes.x2, '30');
+  const panel = elementsByTag(canvas.element, 'rect')
+    .find(rect => rect.attributes.width === '30');
+  assert.equal(panel.attributes.rx, '6');
 });
 
 test('FigureSvg: maps pointer events through the rendered SVG transform', () => {

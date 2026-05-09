@@ -4,7 +4,9 @@
 
 namespace testing {
   std::shared_ptr<render::RenderEngine> WireframeFeatureTest::createEngine() {
-    return std::make_shared<engine::wireframe::Wireframe>(m_camera, m_scene);
+    auto engine = std::make_shared<engine::wireframe::Wireframe>(camera(), m_scene);
+    engine->setLod(m_lod);
+    return engine;
   }
 
   Colord WireframeFeatureTest::primaryColor() const {

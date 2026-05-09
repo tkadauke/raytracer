@@ -10,8 +10,9 @@ class GridDDATraversal {
     this.gridOffset = { x: 38, y: 34 };
     this.density = 8;
     this.maxSteps = 28;
-    this.origin = { x: -0.6, y: 5.8 };
-    this.target = { x: 9.7, y: 1.7 };
+    this.handleRadius = 8;
+    this.origin = { x: 0.35, y: 5.8 };
+    this.target = { x: 7.35, y: 2.95 };
   }
 
   element() {
@@ -34,6 +35,7 @@ class GridDDATraversal {
       format: value => `${value} x ${value}`,
       onChange: (value) => {
         this.density = Math.round(value);
+        this.constrainRayToGrid();
         this.render();
       },
     });
@@ -48,8 +50,25 @@ class GridDDATraversal {
     return this.gridSize / this.density;
   }
 
+  handleInsetCells() {
+    return this.handleRadius / this.cellSize();
+  }
+
   clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  clampGridPoint(point) {
+    const inset = this.handleInsetCells();
+    return {
+      x: this.clamp(point.x, inset, this.density - inset),
+      y: this.clamp(point.y, inset, this.density - inset),
+    };
+  }
+
+  constrainRayToGrid() {
+    this.origin = this.clampGridPoint(this.origin);
+    this.target = this.clampGridPoint(this.target);
   }
 
   direction() {
@@ -128,7 +147,12 @@ class GridDDATraversal {
       }
     }
 
-    return { entry, steps };
+    const exit = {
+      x: this.origin.x + dir.x * hit.tExit,
+      y: this.origin.y + dir.y * hit.tExit,
+    };
+
+    return { entry, exit, steps };
   }
 
   toSvgPoint(point) {
@@ -141,10 +165,10 @@ class GridDDATraversal {
 
   fromSvgPoint(point) {
     const cell = this.cellSize();
-    return {
-      x: this.clamp((point.x - this.gridOffset.x) / cell, -1.8, this.density + 1.8),
-      y: this.clamp((point.y - this.gridOffset.y) / cell, -1.2, this.density + 1.2),
-    };
+    return this.clampGridPoint({
+      x: (point.x - this.gridOffset.x) / cell,
+      y: (point.y - this.gridOffset.y) / cell,
+    });
   }
 
   addLine(start, end, attrs = {}) {
@@ -180,7 +204,7 @@ class GridDDATraversal {
     this.renderPrimitiveDistribution();
     this.renderVisitedCells(result.steps);
     this.renderCurrentCell(result.steps[0]);
-    this.renderRay(result.entry);
+    this.renderRay(result);
     this.renderLabels(result);
     this.renderHandles();
   }
@@ -280,20 +304,24 @@ class GridDDATraversal {
     });
   }
 
-  renderRay(entry) {
+  renderRay(result) {
     const dir = this.direction();
-    const start = this.toSvgPoint(this.origin);
-    const end = this.toSvgPoint({
-      x: this.origin.x + dir.x * (this.density + 4),
-      y: this.origin.y + dir.y * (this.density + 4),
-    });
+    const rayEnd = result.exit
+      ? this.clampGridPoint({
+        x: result.exit.x - dir.x * this.handleInsetCells(),
+        y: result.exit.y - dir.y * this.handleInsetCells(),
+      })
+      : this.target;
+    const start = this.toSvgPoint(this.clampGridPoint(result.entry || this.origin));
+    const end = this.toSvgPoint(rayEnd);
     this.addLine(start, end, {
       stroke: '#d6336c',
       'marker-end': 'url(#grid-dda-arrow)',
+      'data-grid-dda-ray': 'segment',
     });
 
-    if (entry) {
-      const p = this.toSvgPoint(entry);
+    if (result.entry) {
+      const p = this.toSvgPoint(this.clampGridPoint(result.entry));
       this.canvas.add('circle', {
         cx: p.x,
         cy: p.y,
@@ -349,7 +377,7 @@ class GridDDATraversal {
     const originHandle = new FigureDraggablePoint({
       canvas: this.canvas,
       point: this.toSvgPoint(this.origin),
-      radius: 8,
+      radius: this.handleRadius,
       attrs: {
         fill: '#d6336c',
         stroke: '#111',
@@ -366,7 +394,7 @@ class GridDDATraversal {
     const targetHandle = new FigureDraggablePoint({
       canvas: this.canvas,
       point: this.toSvgPoint(this.target),
-      radius: 8,
+      radius: this.handleRadius,
       attrs: {
         fill: '#fff',
         stroke: '#d6336c',

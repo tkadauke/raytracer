@@ -118,7 +118,7 @@ def write_docs_widget_gallery(path, widgets)
     slug = docs_widget_slug(widget)
     <<~HTML
       <section class="widget-card" id="widget-#{slug}">
-        <h2>#{title}</h2>
+        <h2><a href="widget-pages/#{slug}.html">#{title}</a></h2>
         <div class="widget-meta">#{filename}</div>
         <iframe
           title="#{title}"
@@ -185,6 +185,17 @@ def write_docs_widget_gallery(path, widgets)
           line-height: 1.25;
           margin: 0;
           padding: 14px 16px 4px;
+        }
+
+        .widget-card h2 a {
+          color: inherit;
+          text-decoration-color: #9a9a9a;
+          text-decoration-thickness: 1px;
+          text-underline-offset: 3px;
+        }
+
+        .widget-card h2 a:hover {
+          color: #064f9e;
         }
 
         .widget-meta {

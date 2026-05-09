@@ -7,7 +7,102 @@
 
 namespace core {
 
-/**
+  namespace detail {
+
+    using RasterFixed = std::int64_t;
+
+    // Subpixel sample offsets are represented in sixteenths of a pixel.
+    // The single-sample path uses offset (0, 0), exactly preserving the
+    // historical integer-pixel sample location; MSAA callers pass offsets
+    // in [-0.5, 0.5] around that pixel center.
+    //
+    // Integer arithmetic uses int64_t throughout. Native `int` overflows for
+    // large projected vertices because the edge function squares pixel deltas.
+    constexpr RasterFixed kRasterSubpixelScale = 16;
+
+    struct PreparedRasterTriangle {
+      bool valid = false;
+      int minX = 0;
+      int maxX = -1;
+      int minY = 0;
+      int maxY = -1;
+      RasterFixed area = 0;
+      double invArea = 0.0;
+      RasterFixed startW0 = 0;
+      RasterFixed startW1 = 0;
+      RasterFixed startW2 = 0;
+      RasterFixed stepXW0 = 0;
+      RasterFixed stepXW1 = 0;
+      RasterFixed stepXW2 = 0;
+      RasterFixed stepYW0 = 0;
+      RasterFixed stepYW1 = 0;
+      RasterFixed stepYW2 = 0;
+
+      PreparedRasterTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
+                             int clipTop, int clipRight, int clipBottom, double sampleOffsetX,
+                             double sampleOffsetY) {
+        if (clipLeft >= clipRight || clipTop >= clipBottom)
+          return;
+
+        const RasterFixed sampleX =
+          static_cast<RasterFixed>(std::lround(sampleOffsetX * kRasterSubpixelScale));
+        const RasterFixed sampleY =
+          static_cast<RasterFixed>(std::lround(sampleOffsetY * kRasterSubpixelScale));
+
+        const RasterFixed X0 = static_cast<RasterFixed>(x0) * kRasterSubpixelScale;
+        const RasterFixed X1 = static_cast<RasterFixed>(x1) * kRasterSubpixelScale;
+        const RasterFixed X2 = static_cast<RasterFixed>(x2) * kRasterSubpixelScale;
+        const RasterFixed Y0 = static_cast<RasterFixed>(y0) * kRasterSubpixelScale;
+        const RasterFixed Y1 = static_cast<RasterFixed>(y1) * kRasterSubpixelScale;
+        const RasterFixed Y2 = static_cast<RasterFixed>(y2) * kRasterSubpixelScale;
+
+        // Twice the signed area of the parent triangle. Sign indicates
+        // winding; zero indicates collinear vertices and produces no pixels.
+        area = (X1 - X0) * (Y2 - Y0) - (Y1 - Y0) * (X2 - X0);
+        if (area == 0)
+          return;
+
+        minX = std::max(std::min({x0, x1, x2}), clipLeft);
+        maxX = std::min(std::max({x0, x1, x2}), clipRight - 1);
+        minY = std::max(std::min({y0, y1, y2}), clipTop);
+        maxY = std::min(std::max({y0, y1, y2}), clipBottom - 1);
+        if (minX > maxX || minY > maxY)
+          return;
+
+        invArea = 1.0 / static_cast<double>(area);
+
+        const RasterFixed X = static_cast<RasterFixed>(minX) * kRasterSubpixelScale + sampleX;
+        const RasterFixed Y = static_cast<RasterFixed>(minY) * kRasterSubpixelScale + sampleY;
+
+        startW0 = edge(X1, Y1, X2, Y2, X, Y);
+        startW1 = edge(X2, Y2, X0, Y0, X, Y);
+        startW2 = area - startW0 - startW1;
+
+        stepXW0 = (Y1 - Y2) * kRasterSubpixelScale;
+        stepXW1 = (Y2 - Y0) * kRasterSubpixelScale;
+        stepXW2 = (Y0 - Y1) * kRasterSubpixelScale;
+
+        stepYW0 = (X2 - X1) * kRasterSubpixelScale;
+        stepYW1 = (X0 - X2) * kRasterSubpixelScale;
+        stepYW2 = (X1 - X0) * kRasterSubpixelScale;
+
+        valid = true;
+      }
+
+      bool contains(RasterFixed w0, RasterFixed w1, RasterFixed w2) const {
+        return (area > 0) ? (w0 >= 0 && w1 >= 0 && w2 >= 0) : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+      }
+
+    private:
+      static RasterFixed edge(RasterFixed ax, RasterFixed ay, RasterFixed bx, RasterFixed by,
+                              RasterFixed px, RasterFixed py) {
+        return (ax - px) * (by - py) - (ay - py) * (bx - px);
+      }
+    };
+
+  } // namespace detail
+
+  /**
   * @brief Filled-triangle rasterizer using the edge-function /
   *        barycentric-coordinate algorithm.
   *
@@ -16,21 +111,22 @@ namespace core {
   * inside the clip rectangle `[clipLeft, clipRight) ×
   * [clipTop, clipBottom)`.
   * The barycentric weights `w0..w2` correspond to vertices
-  * `p0..p2` respectively, are normalised to sum to 1.0, and are
+  * `p0..p2` respectively, are normalized to sum to 1.0, and are
   * the textbook input for per-vertex attribute interpolation
-  * (z-depth, normals, UVs, colours).
+  * (z-depth, normals, UVs, colors).
   *
-  * The algorithm walks the triangle's clipped bounding box and for
-  * each candidate pixel computes three edge-function values — the
-  * signed areas of the three sub-triangles formed by the pixel and
-  * each pair of vertices. A pixel is inside iff all three sub-area
-  * signs match the parent triangle's signed area (positive for CCW,
-  * negative for CW). The barycentric weights then fall out of the
-  * sub-areas divided by the parent area — no extra computation
-  * needed.
+  * The algorithm prepares the triangle's clipped bounding box and
+  * three edge-function values — the signed areas of the three
+  * sub-triangles formed by the sample point and each pair of
+  * vertices. It then increments those edge values across each row
+  * instead of recomputing them from scratch for every candidate
+  * pixel. A pixel is inside iff all three sub-area signs match the
+  * parent triangle's signed area (positive for CCW, negative for
+  * CW). The barycentric weights then fall out of the sub-areas
+  * divided by the parent area.
   *
   * Edge-function rasterization (Pineda 1988) is the modern
-  * alternative to scanline rasterization: it parallelises trivially
+  * alternative to scanline rasterization: it parallelizes trivially
   * (every pixel is independent), handles arbitrary triangle
   * orientations without special cases, and produces barycentric
   * weights as a side effect of the inside-test. Hardware GPUs use
@@ -40,100 +136,55 @@ namespace core {
   * `(x + sampleOffsetX, y + sampleOffsetY)` while still reporting
   * the owning integer pixel `(x, y)`. The default
   * `rasterizeTriangle` wrapper uses `(0, 0)`, preserving the
-  * historical single-sample behaviour.
+  * historical single-sample behavior.
   *
   * Degenerate (zero-area) triangles produce no pixels.
   *
   * @tparam PlotFn callable with signature
   *         `void(int x, int y, double w0, double w1, double w2)`.
   */
-template <typename PlotFn>
-inline void rasterizeTriangleSampled(int x0, int y0,
-                                     int x1, int y1,
-                                     int x2, int y2,
-                                     int clipLeft,
-                                     int clipTop,
-                                     int clipRight,
-                                     int clipBottom,
-                                     double sampleOffsetX,
-                                     double sampleOffsetY,
-                                     PlotFn&& plot) {
-  if (clipLeft >= clipRight || clipTop >= clipBottom) return;
+  template<typename PlotFn>
+  inline void rasterizeTriangleSampled(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
+                                       int clipTop, int clipRight, int clipBottom,
+                                       double sampleOffsetX, double sampleOffsetY, PlotFn&& plot) {
+    const detail::PreparedRasterTriangle triangle(x0, y0, x1, y1, x2, y2, clipLeft, clipTop,
+                                                  clipRight, clipBottom, sampleOffsetX,
+                                                  sampleOffsetY);
+    if (!triangle.valid)
+      return;
 
-  // Twice the signed area of the parent triangle. Sign indicates
-  // winding (positive = CCW, negative = CW); zero indicates the
-  // three points are collinear — nothing to fill.
-  //
-  // Integer arithmetic in int64_t throughout. The native `int`
-  // overflows for triangle vertices at large screen coordinates
-  // (which the rasterizer's near-plane clipper can produce when a
-  // clipped vertex projects close to a viewport edge): the edge
-  // function squares pixel deltas, so coords above ~46k overflow
-  // a signed 32-bit int. int64_t leaves ample room even after the
-  // sixteenth-pixel fixed-point scale used for MSAA sample offsets.
-  using I = std::int64_t;
+    detail::RasterFixed rowW0 = triangle.startW0;
+    detail::RasterFixed rowW1 = triangle.startW1;
+    detail::RasterFixed rowW2 = triangle.startW2;
 
-  // Subpixel sample offsets are represented in sixteenths of a
-  // pixel. The single-sample path uses offset (0, 0), exactly
-  // preserving the historical integer-pixel sample location; MSAA
-  // callers pass offsets in [-0.5, 0.5] around that pixel centre.
-  constexpr I kSubpixelScale = 16;
-  const I sampleX = static_cast<I>(std::lround(sampleOffsetX * kSubpixelScale));
-  const I sampleY = static_cast<I>(std::lround(sampleOffsetY * kSubpixelScale));
-  const I X0 = static_cast<I>(x0) * kSubpixelScale;
-  const I X1 = static_cast<I>(x1) * kSubpixelScale;
-  const I X2 = static_cast<I>(x2) * kSubpixelScale;
-  const I Y0 = static_cast<I>(y0) * kSubpixelScale;
-  const I Y1 = static_cast<I>(y1) * kSubpixelScale;
-  const I Y2 = static_cast<I>(y2) * kSubpixelScale;
-  const I area = (X1 - X0) * (Y2 - Y0) - (Y1 - Y0) * (X2 - X0);
-  if (area == 0) return;
+    for (int y = triangle.minY; y <= triangle.maxY; ++y) {
+      detail::RasterFixed w0 = rowW0;
+      detail::RasterFixed w1 = rowW1;
+      detail::RasterFixed w2 = rowW2;
 
-  const int minX = std::max(std::min({x0, x1, x2}), clipLeft);
-  const int maxX = std::min(std::max({x0, x1, x2}), clipRight - 1);
-  const int minY = std::max(std::min({y0, y1, y2}), clipTop);
-  const int maxY = std::min(std::max({y0, y1, y2}), clipBottom - 1);
-  if (minX > maxX || minY > maxY) return;
+      for (int x = triangle.minX; x <= triangle.maxX; ++x) {
+        if (triangle.contains(w0, w1, w2)) {
+          plot(x, y, static_cast<double>(w0) * triangle.invArea,
+               static_cast<double>(w1) * triangle.invArea,
+               static_cast<double>(w2) * triangle.invArea);
+        }
 
-  const double invArea = 1.0 / static_cast<double>(area);
-
-  for (int y = minY; y <= maxY; ++y) {
-    for (int x = minX; x <= maxX; ++x) {
-      const I X = static_cast<I>(x) * kSubpixelScale + sampleX;
-      const I Y = static_cast<I>(y) * kSubpixelScale + sampleY;
-      // Edge functions: twice the signed sub-area opposite each
-      // vertex. Computed via the same formula as `area` above with
-      // the pixel substituted for the missing vertex.
-      const I w0 = (X1 - X) * (Y2 - Y) - (Y1 - Y) * (X2 - X);  // opposite p0
-      const I w1 = (X2 - X) * (Y0 - Y) - (Y2 - Y) * (X0 - X);  // opposite p1
-      const I w2 = area - w0 - w1;                              // opposite p2
-
-      // Inside iff all sub-area signs match the parent's.
-      const bool inside = (area > 0)
-        ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
-        : (w0 <= 0 && w1 <= 0 && w2 <= 0);
-
-      if (inside) {
-        plot(x, y, static_cast<double>(w0) * invArea,
-                   static_cast<double>(w1) * invArea,
-                   static_cast<double>(w2) * invArea);
+        w0 += triangle.stepXW0;
+        w1 += triangle.stepXW1;
+        w2 += triangle.stepXW2;
       }
+
+      rowW0 += triangle.stepYW0;
+      rowW1 += triangle.stepYW1;
+      rowW2 += triangle.stepYW2;
     }
   }
-}
 
-template <typename PlotFn>
-inline void rasterizeTriangle(int x0, int y0,
-                              int x1, int y1,
-                              int x2, int y2,
-                              int clipLeft,
-                              int clipTop,
-                              int clipRight,
-                              int clipBottom,
-                              PlotFn&& plot) {
-  rasterizeTriangleSampled(x0, y0, x1, y1, x2, y2,
-    clipLeft, clipTop, clipRight, clipBottom,
-    0.0, 0.0, std::forward<PlotFn>(plot));
-}
+  template<typename PlotFn>
+  inline void rasterizeTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
+                                int clipTop, int clipRight, int clipBottom, PlotFn&& plot) {
+    rasterizeTriangleSampled(x0, y0, x1, y1, x2, y2, clipLeft, clipTop, clipRight, clipBottom, 0.0,
+                             0.0, std::forward<PlotFn>(plot));
+  }
 
-}  // namespace core
+} // namespace core

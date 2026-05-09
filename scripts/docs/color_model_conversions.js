@@ -1,14 +1,31 @@
-// Static widget for Color.h's class docstring. It shows the single
-// stored RGB triplet in the center, with HSV and CMYK helper views
-// converting into and out of that representation.
+// Static widget for Color.h's class docstring. The point is deliberately
+// narrow: RGB is the stored representation, while HSV and CMYK are helper
+// views computed at the API edges.
 
 class ColorModelConversions {
   constructor() {
+    this.width = 520;
+    this.height = 356;
     this.color = { r: 0.23, g: 0.53, b: 0.82 };
   }
 
+  element() {
+    if (this.widget) return this.widget.root;
+
+    this.widget = new FigureWidget({ className: 'color-model-conversions-widget' });
+    this.widget.setControlsVisible(false);
+    this.canvas = new FigureSvg({
+      width: this.width,
+      height: this.height,
+      viewBox: `0 0 ${this.width} ${this.height}`
+    });
+    this.widget.setContent(this.canvas.element);
+    this.render();
+    return this.widget.root;
+  }
+
   clamp01(value) {
-    return Math.max(0, Math.min(1, value));
+    return FigureMath.clamp01(value);
   }
 
   rgbCss(color) {
@@ -47,6 +64,7 @@ class ColorModelConversions {
     const k = 1 - Math.max(color.r, color.g, color.b);
     const w = 1 - k;
     if (w === 0) return { c: 0, m: 0, y: 0, k: 1 };
+
     return {
       c: (w - color.r) / w,
       m: (w - color.g) / w,
@@ -55,107 +73,122 @@ class ColorModelConversions {
     };
   }
 
-  swatch(topLeft, size, fill, label, value) {
-    const group = new Group();
-    const rect = new Rectangle(topLeft, size);
-    const rectSvg = rect.toSVG();
-    rectSvg.setAttribute('style', `fill: ${fill};`);
-    group.add({ toSVG: () => rectSvg });
-    group.add(new Text(topLeft.plus(new Vector(0.08, size.y + 0.28)), label));
-    if (value) {
-      group.add(new Text(topLeft.plus(new Vector(0.08, size.y + 0.62)), value));
-    }
-    return group;
+  addPanel(x, y, width, height, title) {
+    this.canvas.panel({ x, y, width, height }, title);
   }
 
-  arrow(from, to, klass) {
-    return new Line(from, to.minus(from), `${klass || ''} arrow`.trim());
-  }
-
-  componentBar(origin, label, color, amount) {
-    const group = new Group();
-    group.add(new Text(origin.plus(new Vector(0, 0.22)), label));
-
-    const outline = new Rectangle(origin.plus(new Vector(0.5, 0)), new Vector(1.35, 0.25));
-    group.add(outline);
-
-    const fill = new Rectangle(origin.plus(new Vector(0.5, 0)), new Vector(1.35 * amount, 0.25));
-    const fillSvg = fill.toSVG();
-    fillSvg.setAttribute('style', `fill: ${color}; stroke: none;`);
-    group.add({ toSVG: () => fillSvg });
-
-    group.add(new Text(origin.plus(new Vector(1.95, 0.22)), amount.toFixed(2)));
-    return group;
-  }
-
-  addPanel(canvas, origin, title, rows) {
-    canvas.add(new Rectangle(origin, new Vector(3.1, 2.15)));
-    canvas.add(new Text(origin.plus(new Vector(0.18, 0.32)), title));
-    rows.forEach((row, index) => {
-      canvas.add(this.componentBar(
-        origin.plus(new Vector(0.18, 0.68 + index * 0.38)),
-        row.label,
-        row.color,
-        row.amount
-      ));
+  addComponentBar(x, y, label, color, amount, valueText = amount.toFixed(2)) {
+    const trackX = x + 22;
+    const trackWidth = 72;
+    const trackHeight = 10;
+    this.canvas.text(x, y + 12, label, {
+      'font-size': 13,
+      'font-weight': 700
+    });
+    this.canvas.add('rect', {
+      x: trackX,
+      y,
+      width: trackWidth,
+      height: trackHeight,
+      fill: '#ffffff',
+      stroke: '#202020',
+      'stroke-width': FigurePixelGuideStrokeWidth
+    });
+    this.canvas.add('rect', {
+      x: trackX,
+      y,
+      width: trackWidth * this.clamp01(amount),
+      height: trackHeight,
+      fill: color,
+      stroke: 'none',
+      'data-component': label
+    });
+    this.canvas.text(trackX + trackWidth + 8, y + 12, valueText, {
+      'font-size': 13,
+      'font-variant-numeric': 'tabular-nums'
     });
   }
 
-  createCanvas() {
+  renderRgbPanel() {
+    this.addPanel(22, 78, 240, 260, 'RGB storage');
+
+    this.canvas.add('rect', {
+      x: 42,
+      y: 114,
+      width: 72,
+      height: 72,
+      fill: this.rgbCss(this.color),
+      stroke: '#202020',
+      'stroke-width': FigurePixelStrokeWidth,
+      'data-color-model': 'rgb-swatch'
+    });
+
+    this.addComponentBar(130, 116, 'R', '#d94848', this.color.r);
+    this.addComponentBar(130, 142, 'G', '#2f9e44', this.color.g);
+    this.addComponentBar(130, 168, 'B', '#2060d0', this.color.b);
+
+    this.canvas.text(42, 211, 'stored triplet', {
+      'font-size': 13,
+      'font-weight': 600
+    });
+    this.canvas.text(42, 231,
+      `(${this.color.r.toFixed(2)}, ${this.color.g.toFixed(2)}, ${this.color.b.toFixed(2)})`, {
+        'font-size': 13,
+        fill: '#555555'
+      });
+  }
+
+  renderHelperPanel() {
     const hsv = this.hsvFromRgb(this.color);
     const cmyk = this.cmykFromRgb(this.color);
 
-    const canvas = new Canvas(520, 300);
-    canvas.setTransform('translate(0, 0) scale(30, 30)');
+    this.addPanel(282, 78, 216, 260, 'Helper views');
 
-    const rgbOrigin = new Vector(6.8, 3.8);
-    const hsvOrigin = new Vector(0.35, 0.35);
-    const cmykOrigin = new Vector(13.85, 0.35);
+    this.canvas.text(302, 132, 'HSV helper view', {
+      'font-size': 14,
+      'font-weight': 700
+    });
+    this.canvas.text(304, 149, 'fromHSV()', {
+      'font-size': 12,
+      fill: '#555555'
+    });
+    this.addComponentBar(304, 162, 'H', 'hsl(208, 100%, 50%)', hsv.h / 360, `${hsv.h} deg`);
+    this.addComponentBar(304, 177, 'S', '#3b82f6', hsv.s);
+    this.addComponentBar(304, 192, 'V', '#555555', hsv.v);
 
-    canvas.add(new Text(new Vector(5.15, 0.55), 'Color stores RGB, helpers convert at the edges'));
+    this.canvas.text(302, 233, 'CMYK helper view', {
+      'font-size': 14,
+      'font-weight': 700
+    });
+    this.canvas.text(304, 250, 'fromCMYK()', {
+      'font-size': 12,
+      fill: '#555555'
+    });
+    this.addComponentBar(304, 263, 'C', '#00a7c8', cmyk.c);
+    this.addComponentBar(304, 278, 'M', '#c0008a', cmyk.m);
+    this.addComponentBar(304, 293, 'Y', '#d6b000', cmyk.y);
+    this.addComponentBar(304, 308, 'K', '#333333', cmyk.k);
+  }
 
-    this.addPanel(canvas, hsvOrigin, 'HSV helper view', [
-      { label: 'H', color: 'hsl(208, 100%, 50%)', amount: hsv.h / 360 },
-      { label: 'S', color: this.rgbCss({ r: 0.2, g: 0.55, b: 0.9 }), amount: hsv.s },
-      { label: 'V', color: '#555555', amount: hsv.v }
-    ]);
+  render() {
+    this.canvas.clear();
 
-    this.addPanel(canvas, cmykOrigin, 'CMYK helper view', [
-      { label: 'C', color: '#00a7c8', amount: cmyk.c },
-      { label: 'M', color: '#c0008a', amount: cmyk.m },
-      { label: 'Y', color: '#d6b000', amount: cmyk.y },
-      { label: 'K', color: '#333333', amount: cmyk.k }
-    ]);
+    this.canvas.text(22, 34, 'Color is stored once as RGB', {
+      'font-size': 22,
+      'font-weight': 700
+    });
+    this.canvas.text(22, 56, 'HSV and CMYK are conversion helpers, not separate stored state.', {
+      'font-size': 13,
+      fill: '#555555'
+    });
 
-    canvas.add(new Rectangle(rgbOrigin.minus(new Vector(0.25, 0.6)), new Vector(3.85, 3.0)));
-    canvas.add(new Text(rgbOrigin.plus(new Vector(-0.02, -0.25)), 'RGB storage'));
-    canvas.add(this.swatch(rgbOrigin, new Vector(1.25, 1.0), this.rgbCss(this.color), 'stored triplet',
-      `(${this.color.r.toFixed(2)}, ${this.color.g.toFixed(2)}, ${this.color.b.toFixed(2)})`));
+    this.renderRgbPanel();
 
-    const barsOrigin = rgbOrigin.plus(new Vector(1.55, 0.05));
-    canvas.add(this.componentBar(barsOrigin, 'R', '#d94848', this.color.r));
-    canvas.add(this.componentBar(barsOrigin.plus(new Vector(0, 0.42)), 'G', '#2f9e44', this.color.g));
-    canvas.add(this.componentBar(barsOrigin.plus(new Vector(0, 0.84)), 'B', '#2060d0', this.color.b));
-
-    canvas.add(this.arrow(new Vector(3.45, 1.35), new Vector(6.65, 4.2), 'blue'));
-    canvas.add(this.arrow(new Vector(6.65, 4.55), new Vector(3.45, 1.7), 'blue'));
-    canvas.add(new Text(new Vector(3.75, 2.25), 'fromHSV()'));
-    canvas.add(new Text(new Vector(3.42, 3.05), 'h(), s(), v()'));
-
-    canvas.add(this.arrow(new Vector(13.75, 1.35), new Vector(10.65, 4.2), 'green'));
-    canvas.add(this.arrow(new Vector(10.65, 4.55), new Vector(13.75, 1.7), 'green'));
-    canvas.add(new Text(new Vector(11.0, 2.25), 'fromCMYK()'));
-    canvas.add(new Text(new Vector(11.05, 3.05), 'c(), m(), y(), k()'));
-
-    canvas.add(new Text(new Vector(5.05, 7.55),
-      'RGB is compact for rendering math; HSV and CMYK are computed views.'));
-
-    return canvas.toSVG();
+    this.renderHelperPanel();
   }
 }
 
 ((scriptElement) => {
-  const container = document.createElement('div');
-  container.appendChild(new ColorModelConversions().createCanvas());
-  scriptElement.parentNode.appendChild(container);
+  const widget = new ColorModelConversions();
+  scriptElement.parentNode.appendChild(widget.element());
 })(document.currentScript);

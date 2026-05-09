@@ -261,7 +261,9 @@ small DOM library in `figure.js`:
 
 | Primitive | Use for |
 |---|---|
-| `Vector(x, y)` | 2D math (`plus`, `minus`, `multiply`, `dot`, `length`, `normalized`, `rotated`). Static constants `Vector.null`, `Vector.up`, `Vector.right`. |
+| `FigureMath` | Shared scalar helpers: `clamp`, `clamp01`, and `lerp`. Use these instead of widget-local clamp functions. |
+| `Vector(x, y)` | 2D math (`plus`, `minus`, `multiply`, `dot`, `length`, `normalized`, `safeNormalized`, `perp`, `distanceTo`, `lerp`, `rotated`). Static helpers/constants: `Vector.from`, `Vector.null`, `Vector.up`, `Vector.right`. |
+| `FigureGeometry` | Shared geometry helpers: `edge`, `barycentric`, `pointInTriangle`, and `closestPointOnSegment`. Use these for triangle coverage, interpolation weights, and segment projection instead of reimplementing them per widget. |
 | `Canvas(w, h)` | The SVG container. `add(element)`, `translate(vector)`, `toSVG()`. |
 | `Group()` | Sub-tree of elements with a shared transform. |
 | `Line(origin, direction, klass)` | Single line segment from origin to origin+direction. |
@@ -274,7 +276,7 @@ small DOM library in `figure.js`:
 | `Slider({label, min, max, value, step, precision, onChange})` | **HTML range input with a live label.** First-class control for scalar parameters. Returns a `<div>` from `.element()`. |
 | `DragHandler(figure)` | Legacy whole-widget mouse-drag affordance. Do not use in new or migrated widgets; prefer visible handles for spatial state and sliders/segmented controls for scalar state. |
 | `FigureWidget({className})` | Scoped widget root with standard controls and stage containers. Use for new and migrated widgets. |
-| `FigureSvg({width, height, viewBox})` | Raw SVG helper with scoped widget styling, `add`, `append`, and `clear`. Use when the older scene-coordinate `Canvas` abstraction is too limited. |
+| `FigureSvg({width, height, viewBox})` | Raw SVG helper with scoped widget styling, `add`, `append`, `clear`, `text`, `line`, `arrow`, `ray`, `panel`, and `arrowMarker`. Use when the older scene-coordinate `Canvas` abstraction is too limited. |
 | `FigureSegmentedControl({label, options, value, onChange})` | Standard segmented buttons for small enumerated option sets. |
 | `FigureDraggablePoint({svg, point, radius, attrs, onDrag})` | Visible draggable SVG point handle. Use for vertices, control points, edge endpoints, and ray origins. |
 | `FigureStrokeWidth`, `FigureGuideStrokeWidth` | Standard line weights for scene-coordinate widgets. |

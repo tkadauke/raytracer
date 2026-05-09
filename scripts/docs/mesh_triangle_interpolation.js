@@ -47,84 +47,30 @@ class MeshTriangleInterpolation {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  sub(a, b) {
-    return { x: a.x - b.x, y: a.y - b.y };
-  }
-
-  add(a, b) {
-    return { x: a.x + b.x, y: a.y + b.y };
-  }
-
-  mul(v, s) {
-    return { x: v.x * s, y: v.y * s };
-  }
-
-  dot(a, b) {
-    return a.x * b.x + a.y * b.y;
-  }
-
-  length(v) {
-    return Math.sqrt(this.dot(v, v));
-  }
-
-  normalized(v) {
-    const len = this.length(v);
-    if (len <= 1e-9) return { x: 0, y: -1 };
-    return { x: v.x / len, y: v.y / len };
-  }
-
-  signedArea(a, b, c) {
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-  }
-
   isUsableTriangle(vertices = this.vertices) {
-    return Math.abs(this.signedArea(vertices[0], vertices[1], vertices[2])) > 900;
+    return Math.abs(FigureGeometry.edge(vertices[0], vertices[1], vertices[2])) > 900;
   }
 
   barycentric(p) {
     const [a, b, c] = this.vertices;
-    const denom = this.signedArea(a, b, c);
-    if (Math.abs(denom) <= 1e-9) {
-      return { w0: 1, w1: 0, w2: 0, inside: false };
-    }
-    const w0 = this.signedArea(b, c, p) / denom;
-    const w1 = this.signedArea(c, a, p) / denom;
-    const w2 = 1 - w0 - w1;
-    return {
-      w0,
-      w1,
-      w2,
-      inside: w0 >= -1e-6 && w1 >= -1e-6 && w2 >= -1e-6,
-    };
-  }
-
-  closestPointOnSegment(p, a, b) {
-    const ab = this.sub(b, a);
-    const denom = this.dot(ab, ab);
-    if (denom <= 1e-9) return a;
-    const t = this.clamp(this.dot(this.sub(p, a), ab) / denom, 0, 1);
-    return this.add(a, this.mul(ab, t));
+    return FigureGeometry.barycentric(p, a, b, c);
   }
 
   clampToTriangle(point) {
     const p = {
-      x: this.clamp(point.x, 18, this.width - 210),
-      y: this.clamp(point.y, 18, this.height - 18),
+      x: FigureMath.clamp(point.x, 18, this.width - 210),
+      y: FigureMath.clamp(point.y, 18, this.height - 18),
     };
     if (this.barycentric(p).inside) return p;
 
     const candidates = [
-      this.closestPointOnSegment(p, this.vertices[0], this.vertices[1]),
-      this.closestPointOnSegment(p, this.vertices[1], this.vertices[2]),
-      this.closestPointOnSegment(p, this.vertices[2], this.vertices[0]),
+      FigureGeometry.closestPointOnSegment(p, this.vertices[0], this.vertices[1]),
+      FigureGeometry.closestPointOnSegment(p, this.vertices[1], this.vertices[2]),
+      FigureGeometry.closestPointOnSegment(p, this.vertices[2], this.vertices[0]),
     ];
     return candidates.reduce((best, candidate) => {
-      const bestDistance = this.dot(this.sub(best, p), this.sub(best, p));
-      const candidateDistance = this.dot(this.sub(candidate, p), this.sub(candidate, p));
+      const bestDistance = Vector.from(best).distanceTo(p);
+      const candidateDistance = Vector.from(candidate).distanceTo(p);
       return candidateDistance < bestDistance ? candidate : best;
     });
   }
@@ -139,17 +85,16 @@ class MeshTriangleInterpolation {
   }
 
   flatNormal() {
-    const edge = this.sub(this.vertices[1], this.vertices[0]);
-    return this.normalized({ x: -edge.y, y: edge.x });
+    const edge = Vector.from(this.vertices[1]).minus(this.vertices[0]);
+    return edge.perp().safeNormalized(Vector.up);
   }
 
   smoothNormal(weights) {
-    const n = { x: 0, y: 0 };
+    let n = Vector.null;
     [weights.w0, weights.w1, weights.w2].forEach((w, i) => {
-      n.x += this.vertices[i].normal.x * w;
-      n.y += this.vertices[i].normal.y * w;
+      n = n.plus(Vector.from(this.vertices[i].normal).multiply(w));
     });
-    return this.normalized(n);
+    return n.safeNormalized(Vector.up);
   }
 
   currentNormal(weights) {
@@ -209,7 +154,7 @@ class MeshTriangleInterpolation {
   }
 
   renderArrow(start, direction, length, stroke, attrs = {}) {
-    const end = this.add(start, this.mul(direction, length));
+    const end = Vector.from(start).plus(Vector.from(direction).multiply(length));
     this.canvas.add('line', {
       x1: start.x,
       y1: start.y,
@@ -284,8 +229,8 @@ class MeshTriangleInterpolation {
           const next = this.vertices.map(v => ({ ...v, uv: v.uv, normal: v.normal }));
           next[index] = {
             ...next[index],
-            x: this.clamp(point.x, 24, this.width - 220),
-            y: this.clamp(point.y, 24, this.height - 24),
+            x: FigureMath.clamp(point.x, 24, this.width - 220),
+            y: FigureMath.clamp(point.y, 24, this.height - 24),
           };
           if (!this.isUsableTriangle(next)) return;
           this.vertices = next;

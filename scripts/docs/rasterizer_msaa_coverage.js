@@ -9,6 +9,7 @@ class RasterizerMSAACoverage {
     this.rows = 6;
     this.cell = 48;
     this.captionHeight = 34;
+    this.handleRadius = 8;
     this.samplePatterns = {
       1: [{ x: 0.0, y: 0.0 }],
       2: [
@@ -75,28 +76,26 @@ class RasterizerMSAACoverage {
     return this.rows * this.cell + this.captionHeight;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
+  handleInsetCells() {
+    return this.handleRadius / this.cell;
   }
 
-  edge(a, b, p) {
-    return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+  clampGridPoint(point) {
+    const inset = this.handleInsetCells();
+    return {
+      x: FigureMath.clamp(point.x, inset, this.cols - inset),
+      y: FigureMath.clamp(point.y, inset, this.rows - inset),
+    };
   }
 
   insideTriangle(p) {
-    const area = this.edge(this.vertices[0], this.vertices[1], this.vertices[2]);
-    if (Math.abs(area) < 1e-9) return false;
-    const w0 = this.edge(this.vertices[1], this.vertices[2], p);
-    const w1 = this.edge(this.vertices[2], this.vertices[0], p);
-    const w2 = area - w0 - w1;
-    return area > 0
-      ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
-      : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+    return FigureGeometry.pointInTriangle(
+      p, this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 
   coverageColor(covered, total) {
     const t = covered / total;
-    const mix = (a, b) => Math.round(a + (b - a) * t);
+    const mix = (a, b) => Math.round(FigureMath.lerp(a, b, t));
     return `rgb(${mix(255, 11)}, ${mix(255, 114)}, ${mix(255, 133)})`;
   }
 
@@ -105,10 +104,10 @@ class RasterizerMSAACoverage {
   }
 
   fromSvgPoint(p) {
-    return {
-      x: this.clamp(p.x / this.cell, -0.2, this.cols + 0.2),
-      y: this.clamp(p.y / this.cell, 0.1, this.rows - 0.1),
-    };
+    return this.clampGridPoint({
+      x: p.x / this.cell,
+      y: p.y / this.cell,
+    });
   }
 
   trianglePoints() {
@@ -200,13 +199,14 @@ class RasterizerMSAACoverage {
       const handle = new FigureDraggablePoint({
         canvas: this.canvas,
         point: this.toSvgPoint(vertex),
-        radius: 8,
+        radius: this.handleRadius,
         attrs: {
           fill: this.handleColors[index],
           stroke: '#111',
           'stroke-width': FigurePixelStrokeWidth,
           'data-drag-handle': 'triangle-vertex',
           'data-vertex-index': index,
+          'data-drag-bounds': 'pixel-grid',
         },
         onDrag: (point) => {
           this.vertices[index] = this.fromSvgPoint(point);

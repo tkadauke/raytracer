@@ -54,3 +54,44 @@ namespace WireframeFunctionalTest {
     then("i should see nothing");
   }
 }
+
+namespace WireframeEngineFunctionalTest {
+  using namespace ::testing;
+
+  struct WireframeLodTest : public WireframeFeatureTest {};
+
+  // LOD scaling — Sphere tessellate produces 4× more quads per LOD step,
+  // so a higher-LOD wireframe render must have strictly more edge pixels.
+  TEST_F(WireframeLodTest, SphereEdgeCountIncreasesWithLod) {
+    given("a centered sphere");
+    when("i look at the origin");
+
+    setLod(0);
+    render();
+    int lowLodEdges = objectSize();
+
+    setLod(2);
+    render();
+    int highLodEdges = objectSize();
+
+    ASSERT_GT(lowLodEdges, 0);
+    EXPECT_GT(highLodEdges, lowLodEdges);
+  }
+
+  struct WireframeCancelTest : public WireframeFeatureTest {};
+
+  // Cancellation — engine cancelled before render() is called must
+  // produce a buffer that is entirely background: the clear runs first
+  // (so every pixel gets the background colour), then the face loop
+  // checks the flag immediately and exits without drawing any edges.
+  TEST_F(WireframeCancelTest, PreCancelProducesOnlyBackground) {
+    given("a centered sphere");
+    when("i look at the origin");
+
+    cancel();
+    render();
+
+    EXPECT_EQ(0, objectSize());
+    EXPECT_EQ(buffer().width() * buffer().height(), colorCount(Colord::black()));
+  }
+}

@@ -124,7 +124,11 @@ class TextureCoordinateMapping {
   }
 
   checkerColor(s, t) {
-    return (Math.floor(s) + Math.floor(t)) % 2 === 0 ? '#f7f0c2' : '#2f4050';
+    return this.checkerColorName(s, t) === 'bright' ? '#f7f0c2' : '#2f4050';
+  }
+
+  checkerColorName(s, t) {
+    return (Math.floor(s) + Math.floor(t)) % 2 === 0 ? 'bright' : 'dark';
   }
 
   addText(x, y, text, attrs = {}) {
@@ -249,25 +253,30 @@ class TextureCoordinateMapping {
     const origin = { x: 486, y: 46 };
     const cells = 6;
     const { s, t } = this.coordinates();
-    const localS = s - Math.floor(s);
-    const localT = t - Math.floor(t);
+    const sFloor = Math.floor(s);
+    const tFloor = Math.floor(t);
     const marker = {
-      x: origin.x + localS * cells * this.previewCell,
-      y: origin.y + (1.0 - localT) * cells * this.previewCell,
+      x: origin.x + this.clamp(s, 0, cells) * this.previewCell,
+      y: origin.y + (cells - this.clamp(t, 0, cells)) * this.previewCell,
     };
 
     this.addText(origin.x, 22, 'Sampled texture');
     for (let row = 0; row < cells; row++) {
       for (let col = 0; col < cells; col++) {
+        const cellS = col;
+        const cellT = cells - 1 - row;
+        const colorName = this.checkerColorName(cellS, cellT);
         this.canvas.add('rect', {
           x: origin.x + col * this.previewCell,
           y: origin.y + row * this.previewCell,
           width: this.previewCell,
           height: this.previewCell,
-          fill: this.checkerColor(col, cells - 1 - row),
+          fill: this.checkerColor(cellS, cellT),
           stroke: '#ffffff',
           'stroke-width': FigurePixelGuideStrokeWidth,
           'data-preview-cell': `${col},${row}`,
+          'data-preview-coordinate': `${cellS},${cellT}`,
+          'data-preview-color': colorName,
         });
       }
     }
@@ -290,6 +299,8 @@ class TextureCoordinateMapping {
       'stroke-width': FigurePixelStrokeWidth,
       'pointer-events': 'none',
       'data-preview-sample': 'point',
+      'data-preview-sample-cell': `${sFloor},${tFloor}`,
+      'data-preview-sample-color': this.checkerColorName(s, t),
     });
   }
 }
