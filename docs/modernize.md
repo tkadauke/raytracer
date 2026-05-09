@@ -233,7 +233,7 @@ endif()
 - `JitteredSampler` / `RegularSampler` / `RandomSampler` — none at integration level.
 - Wireframe engine — only unit tests, nothing at the scene-render level.
 - `BSDF` interface (just landed, §3.R6 phase 1) — no integration smoke.
-- `PointLight` — no end-to-end shadow-boundary test.
+- ~~`PointLight` — no end-to-end shadow-boundary test.~~ ✅ **Done.** Functional test added in `test/functional/render/lights/PointLightTest.cpp` for PR #57.
 - Layout drift: empty `test/functional/raytracer/` directory; `MinkowskiSumTest.cpp` is mis-filed under `steps/` despite being a test, not steps.
 
 **Proposed sub-items**, ordered by dependency:
@@ -274,7 +274,7 @@ Existing 91 functional tests didn't need any migration — none of their step st
 - **TiltShiftCamera + EquirectangularCamera** — visibility + framing tests at parity with `PinholeCamera`.
 - **Tonemap monotonicity** — render the same HDR scene through `LinearTonemap` / `ReinhardTonemap` / `AcesTonemap`, assert the max LDR pixel value is monotone-decreasing as compression strengthens (`Linear ≥ Reinhard ≥ ACES` for over-1.0 input).
 - **Sampler determinism** — `RegularSampler` produces bit-identical output across runs for a deterministic scene; `JitteredSampler` produces statistically-uniform sub-pixel coverage (test the histogram, not the bytes); `RandomSampler` differs across runs at fixed seed only when re-seeded.
-- **PointLight shadow boundary** — shadow edge falls at the geometrically expected angle for a known-position light + occluder.
+- ~~**PointLight shadow boundary** — shadow edge falls at the geometrically expected angle for a known-position light + occluder.~~ ✅ **Done.** PR #57 adds `PointLightTest.ShadowBoundaryFallsAtGeometricallyPredictedLocation`, sampling just inside and outside the tangent-predicted boundary.
 - **BSDF integration smoke** — render the canonical Reflective + Transparent scenes via the post-§3.R6 paths, expect outputs identical to the pre-R6 baseline within sampler tolerance.
 
 #### D. Reference-image regression tests *(~2 days, lands after B + §3.R6)*
