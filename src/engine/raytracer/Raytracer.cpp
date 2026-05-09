@@ -10,63 +10,20 @@
 #include "render/materials/Material.h"
 #include "core/math/Matrix.h"
 #include "core/math/Rect.h"
-#include "core/math/IntegerDecomposition.h"
+#include "render/TilePlan.h"
 #include "render/cameras/Camera.h"
 #include "render/tonemap/Tonemap.h"
-#include "core/Exception.h"
 #include "core/ScopeExit.h"
 
-#include <QThreadPool>
-#include <QRunnable>
+#include "../TileRenderTask.h"
 
-#include <atomic>
-#include <functional>
-#include <vector>
-#include <cmath>
+#include <QThread>
+#include <QThreadPool>
 
 #include <iostream>
 
 using namespace std;
 using namespace engine::raytracer;
-
-namespace {
-  // Tile-render task — generic over what the per-tile work is so the
-  // same task type can drive both the HDR (`Buffer<Colord>&`) and LDR
-  // (`Buffer<unsigned int>&` + tonemap) render paths. Both paths
-  // need the same activeRects bookkeeping, so duplicating the task
-  // class would just split that logic without buying anything.
-  class RenderTask : public QRunnable {
-  public:
-    inline RenderTask(const Recti& r, std::function<void()> w)
-      : QRunnable(),
-        active(false),
-        rect(r),
-        work(std::move(w))
-    {
-      setAutoDelete(false);
-    }
-
-    inline virtual void run() {
-      try {
-        active = true;
-        work();
-      } catch(Exception& e) {
-        e.printBacktrace();
-      }
-      active = false;
-    }
-
-    // Written by the worker thread that runs this task and read by the main
-    // thread in Raytracer::activeRects(). std::atomic<bool> gives a defined
-    // happens-before relationship with sequential consistency on load/store
-    // (the default), avoiding the data race that the previous plain bool had.
-    std::atomic<bool> active;
-    Recti rect;
-
-  private:
-    std::function<void()> work;
-  };
-}
 
 struct Raytracer::Private {
   inline Private()
@@ -78,7 +35,7 @@ struct Raytracer::Private {
   }
 
   std::unique_ptr<QThreadPool> threadPool;
-  list<shared_ptr<RenderTask>> tasks;
+  list<shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
   int maximumRecursionDepth;
   bool showProgressIndicators;
@@ -99,20 +56,6 @@ Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<ren
 Raytracer::~Raytracer() {
 }
 
-namespace {
-  // Per-tile rect for an `IntegerDecomposition` cell. Same math used
-  // by both the HDR and LDR dispatch paths below — pulling it out
-  // keeps the two paths from drifting.
-  Recti tileRect(int width, int height, int rows, int cols, int rowIdx, int colIdx) {
-    return Recti(
-      floor(double(width)  / cols * colIdx),
-      floor(double(height) / rows * rowIdx),
-      ceil (double(width)  / cols),
-      ceil (double(height) / rows)
-    );
-  }
-}
-
 void Raytracer::render(Buffer<Colord>& buffer) {
   if (!m_scene) {
     buffer.clear();
@@ -129,7 +72,7 @@ void Raytracer::render(Buffer<Colord>& buffer) {
   m_camera->setShowProgressIndicators(p->showProgressIndicators);
 
   // shared_from_this() returns shared_ptr<render::RenderEngine>; the
-  // RenderTask + Camera::render API both want shared_ptr<Raytracer>
+  // TileRenderTask + Camera::render API both want shared_ptr<Raytracer>
   // because the workers call rayColor() (a Raytracer-specific
   // method). Static-cast is safe — `this` is definitively a
   // Raytracer in our own member function.
@@ -137,20 +80,12 @@ void Raytracer::render(Buffer<Colord>& buffer) {
   auto camera = m_camera;
   Buffer<Colord>* bufferPtr = &buffer;
 
-  IntegerDecomposition d(p->queueSize);
-  for (int vert = 0; vert != d.first(); ++vert) {
-    for (int horz = 0; horz != d.second(); ++horz) {
-      Recti rect = tileRect(buffer.width(), buffer.height(), d.first(), d.second(), vert, horz);
-      auto task = std::make_shared<RenderTask>(rect, [self, camera, bufferPtr, rect] {
-        camera->render(self, *bufferPtr, rect);
-      });
-
-      p->tasks.push_back(task);
-      p->threadPool->start(task.get());
-    }
-  }
-
-  p->threadPool->waitForDone();
+  const render::TilePlan tilePlan =
+    render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
+  engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
+                            [self, camera, bufferPtr](const Recti& rect, std::size_t) {
+                              camera->render(self, *bufferPtr, rect);
+                            });
 
 #ifdef RAYTRACER_ENABLE_STATS
   // Sampling counters after waitForDone() returns means all worker writes are
@@ -183,20 +118,12 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
   auto tonemapOp = tonemap();
   Buffer<unsigned int>* bufferPtr = &buffer;
 
-  IntegerDecomposition d(p->queueSize);
-  for (int vert = 0; vert != d.first(); ++vert) {
-    for (int horz = 0; horz != d.second(); ++horz) {
-      Recti rect = tileRect(buffer.width(), buffer.height(), d.first(), d.second(), vert, horz);
-      auto task = std::make_shared<RenderTask>(rect, [self, camera, bufferPtr, tonemapOp, rect] {
-        camera->render(self, *bufferPtr, tonemapOp, rect);
-      });
-
-      p->tasks.push_back(task);
-      p->threadPool->start(task.get());
-    }
-  }
-
-  p->threadPool->waitForDone();
+  const render::TilePlan tilePlan =
+    render::TilePlan::forBuffer(buffer.width(), buffer.height(), p->queueSize);
+  engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
+                            [self, camera, bufferPtr, tonemapOp](const Recti& rect, std::size_t) {
+                              camera->render(self, *bufferPtr, tonemapOp, rect);
+                            });
 
 #ifdef RAYTRACER_ENABLE_STATS
   ::render::stats::Counters::instance().dumpJson(std::cerr);

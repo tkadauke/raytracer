@@ -529,6 +529,30 @@ namespace RasterizerTest {
     expectBuffersEqual(expected, actual);
   }
 
+  TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithUnevenTileSizes) {
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
+    scene->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));
+
+    Rasterizer singleTile(cam, scene);
+    singleTile.setLod(2);
+    singleTile.setMaximumThreads(1);
+    singleTile.setQueueSize(1);
+
+    Rasterizer tiled(cam, scene);
+    tiled.setLod(2);
+    tiled.setMaximumThreads(3);
+    tiled.setQueueSize(6);
+
+    Buffer<Colord> expected(127, 95);
+    Buffer<Colord> actual(127, 95);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
   TEST(Rasterizer, MSAAResolveBlendsPartiallyCoveredEdge) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setMSAASamples(4);

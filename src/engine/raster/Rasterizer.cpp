@@ -1,13 +1,13 @@
 #include "engine/raster/Rasterizer.h"
 
 #include "core/Buffer.h"
-#include "core/Exception.h"
 #include "core/geometry/Mesh.h"
 #include "core/geometry/Rasterize.h"
-#include "core/math/IntegerDecomposition.h"
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
 #include "core/math/Vector.h"
+#include "render/HomogeneousClipVolume.h"
+#include "render/TilePlan.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
 #include "render/materials/MatteMaterial.h"
@@ -15,13 +15,13 @@
 #include "render/textures/Texture.h"
 #include "render/viewplanes/ViewPlane.h"
 
+#include "../TileRenderTask.h"
+
 #include <QThread>
 #include <QThreadPool>
-#include <QRunnable>
 
 #include <algorithm>
 #include <array>
-#include <functional>
 #include <list>
 #include <cmath>
 #include <cstdint>
@@ -31,114 +31,9 @@
 using namespace engine::raster;
 
 namespace {
-  class RasterTileTask : public QRunnable {
-  public:
-    RasterTileTask(const Recti& rect, std::function<void()> work)
-        : active(false),
-          rect(rect),
-          m_work(std::move(work)) {
-      setAutoDelete(false);
-    }
-
-    void run() override {
-      try {
-        active = true;
-        m_work();
-      } catch (Exception& e) {
-        e.printBacktrace();
-      }
-      active = false;
-    }
-
-    std::atomic<bool> active;
-    Recti rect;
-
-  private:
-    std::function<void()> m_work;
-  };
-
-  struct TilePlan {
-    int width;
-    int height;
-    int tileCount;
-    int rows;
-    int cols;
-
-    static TilePlan forBuffer(int width, int height, int requestedTiles) {
-      const int tileCount = std::max(1, std::min(requestedTiles, width * height));
-      IntegerDecomposition decomposition(tileCount);
-      return {width, height, tileCount, std::max(1, std::min(decomposition.first(), height)),
-              std::max(1, std::min(decomposition.second(), width))};
-    }
-
-    bool isSingleTile() const {
-      return tileCount == 1;
-    }
-
-    Recti fullRect() const {
-      return Recti(0, 0, width, height);
-    }
-  };
-
-  class TileGrid {
-  public:
-    explicit TileGrid(const TilePlan& plan)
-        : m_plan(plan),
-          m_triangleIndices(plan.rows * plan.cols) {
-    }
-
-    Recti rect(int row, int col) const {
-      const int left = static_cast<int>(std::floor(double(m_plan.width) * col / m_plan.cols));
-      const int right =
-        static_cast<int>(std::floor(double(m_plan.width) * (col + 1) / m_plan.cols));
-      const int top = static_cast<int>(std::floor(double(m_plan.height) * row / m_plan.rows));
-      const int bottom =
-        static_cast<int>(std::floor(double(m_plan.height) * (row + 1) / m_plan.rows));
-      return Recti(left, top, right - left, bottom - top);
-    }
-
-    std::size_t index(int row, int col) const {
-      return static_cast<std::size_t>(row * m_plan.cols + col);
-    }
-
-    const std::vector<std::size_t>& triangleIndices(std::size_t tileIndex) const {
-      return m_triangleIndices[tileIndex];
-    }
-
-    std::size_t addBounds(int rawMinX, int rawMaxX, int rawMinY, int rawMaxY,
-                          std::size_t triangleIndex) {
-      if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width || rawMinY >= m_plan.height) {
-        return 0;
-      }
-
-      const int minX = std::clamp(rawMinX, 0, m_plan.width - 1);
-      const int maxX = std::clamp(rawMaxX, 0, m_plan.width - 1);
-      const int minY = std::clamp(rawMinY, 0, m_plan.height - 1);
-      const int maxY = std::clamp(rawMaxY, 0, m_plan.height - 1);
-
-      const int firstCol = std::clamp(minX * m_plan.cols / m_plan.width, 0, m_plan.cols - 1);
-      const int lastCol = std::clamp(maxX * m_plan.cols / m_plan.width, 0, m_plan.cols - 1);
-      const int firstRow = std::clamp(minY * m_plan.rows / m_plan.height, 0, m_plan.rows - 1);
-      const int lastRow = std::clamp(maxY * m_plan.rows / m_plan.height, 0, m_plan.rows - 1);
-
-      std::size_t added = 0;
-      for (int row = firstRow; row <= lastRow; ++row) {
-        for (int col = firstCol; col <= lastCol; ++col) {
-          m_triangleIndices[index(row, col)].push_back(triangleIndex);
-          ++added;
-        }
-      }
-      return added;
-    }
-
-  private:
-    TilePlan m_plan;
-    std::vector<std::vector<std::size_t>> m_triangleIndices;
-  };
-
   void renderRasterFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                          const std::shared_ptr<render::Camera>& camera, QThreadPool& threadPool,
-                         std::list<std::shared_ptr<RasterTileTask>>& tasks, int queueSize,
+                         std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, int queueSize,
                          const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 }
 
@@ -150,7 +45,7 @@ struct Rasterizer::Private {
   }
 
   std::unique_ptr<QThreadPool> threadPool;
-  std::list<std::shared_ptr<RasterTileTask>> tasks;
+  std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
 };
 
@@ -236,10 +131,7 @@ namespace {
   constexpr double kNearClipDepth = 0.1;
   constexpr std::size_t kMaxClipVertices = 32;
 
-  struct RasterSampleOffset {
-    double x;
-    double y;
-  };
+  using RasterSampleOffset = Vector2d;
 
   struct RasterSamplePattern {
     explicit RasterSamplePattern(int sampleCount) {
@@ -315,9 +207,60 @@ namespace {
     std::uint64_t faceIdx;
   };
 
+  class RasterTileGrid {
+  public:
+    explicit RasterTileGrid(const render::TilePlan& plan)
+        : m_plan(plan),
+          m_triangleIndices(plan.size()) {
+    }
+
+    Recti rect(int row, int col) const {
+      return m_plan.rect(row, col);
+    }
+
+    std::size_t index(int row, int col) const {
+      return m_plan.index(row, col);
+    }
+
+    const std::vector<std::size_t>& triangleIndices(std::size_t tileIndex) const {
+      return m_triangleIndices[tileIndex];
+    }
+
+    std::size_t addBounds(int rawMinX, int rawMaxX, int rawMinY, int rawMaxY,
+                          std::size_t triangleIndex) {
+      if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width() ||
+          rawMinY >= m_plan.height()) {
+        return 0;
+      }
+
+      const int minX = std::clamp(rawMinX, 0, m_plan.width() - 1);
+      const int maxX = std::clamp(rawMaxX, 0, m_plan.width() - 1);
+      const int minY = std::clamp(rawMinY, 0, m_plan.height() - 1);
+      const int maxY = std::clamp(rawMaxY, 0, m_plan.height() - 1);
+
+      const int firstCol = m_plan.columnForX(minX);
+      const int lastCol = m_plan.columnForX(maxX);
+      const int firstRow = m_plan.rowForY(minY);
+      const int lastRow = m_plan.rowForY(maxY);
+
+      std::size_t added = 0;
+      for (int row = firstRow; row <= lastRow; ++row) {
+        for (int col = firstCol; col <= lastCol; ++col) {
+          m_triangleIndices[index(row, col)].push_back(triangleIndex);
+          ++added;
+        }
+      }
+      return added;
+    }
+
+  private:
+    render::TilePlan m_plan;
+    std::vector<std::vector<std::size_t>> m_triangleIndices;
+  };
+
   class RasterTriangleSet {
   public:
-    explicit RasterTriangleSet(const TilePlan& tilePlan)
+    explicit RasterTriangleSet(const render::TilePlan& tilePlan)
         : m_tileGrid(tilePlan) {
     }
 
@@ -349,82 +292,21 @@ namespace {
       return m_triangles;
     }
 
-    const TileGrid& tileGrid() const {
+    const RasterTileGrid& tileGrid() const {
       return m_tileGrid;
     }
 
   private:
     std::vector<RasterTriangle> m_triangles;
-    TileGrid m_tileGrid;
+    RasterTileGrid m_tileGrid;
     std::size_t m_binnedTriangleCount{0};
   };
 
-  class ClipPlane {
-  public:
-    enum Kind { Near, Left, Right, Top, Bottom };
-
-    constexpr explicit ClipPlane(Kind kind)
-        : m_kind(kind) {
-    }
-
-    constexpr std::uint8_t bit() const {
-      return static_cast<std::uint8_t>(1u << static_cast<int>(m_kind));
-    }
-
-    double distance(const Vector4d& clip) const {
-      switch (m_kind) {
-      case Near:
-        return clip.z() - kNearClipDepth;
-      case Left:
-        return clip.x() + clip.w();
-      case Right:
-        return clip.w() - clip.x();
-      case Top:
-        return clip.y() + clip.w();
-      case Bottom:
-        return clip.w() - clip.y();
-      }
-      return -1.0;
-    }
-
-    double distance(const ClipVert& vertex) const {
-      return distance(vertex.clip);
-    }
-
-    bool contains(const Vector4d& clip) const {
-      return distance(clip) >= 0.0;
-    }
-
-    bool contains(const ClipVert& vertex) const {
-      return distance(vertex) >= 0.0;
-    }
-
-    static constexpr std::uint8_t allBits() {
-      return static_cast<std::uint8_t>((1u << 5) - 1u);
-    }
-
-  private:
-    Kind m_kind;
-  };
-
-  constexpr std::array<ClipPlane, 5> kClipPlanes = {
-    {ClipPlane(ClipPlane::Near), ClipPlane(ClipPlane::Left), ClipPlane(ClipPlane::Right),
-     ClipPlane(ClipPlane::Top), ClipPlane(ClipPlane::Bottom)}};
-
   using ClipPolygon = std::array<ClipVert, kMaxClipVertices>;
 
-  inline std::uint8_t clipOutCode(const Vector4d& clip) {
-    if (clip.isUndefined()) {
-      return ClipPlane::allBits();
-    }
-
-    std::uint8_t outCode = 0;
-    for (ClipPlane plane : kClipPlanes) {
-      if (!plane.contains(clip)) {
-        outCode |= plane.bit();
-      }
-    }
-    return outCode;
+  const render::HomogeneousClipVolume& clipVolume() {
+    static const render::HomogeneousClipVolume volume(kNearClipDepth);
+    return volume;
   }
 
   inline ClipVert interpolateClipVert(const ClipVert& from, const ClipVert& to, double t) {
@@ -433,82 +315,13 @@ namespace {
             Vector3d::undefined()};
   }
 
-  inline std::size_t clipPolygonAgainstPlane(const ClipPolygon& input, std::size_t inputCount,
-                                             ClipPlane plane, ClipPolygon& output) {
-    if (inputCount == 0)
-      return 0;
-
-    std::size_t outputCount = 0;
-    ClipVert prev = input[inputCount - 1];
-    double prevDistance = plane.distance(prev);
-    bool prevInside = prevDistance >= 0.0;
-
-    for (std::size_t i = 0; i < inputCount; ++i) {
-      const ClipVert& curr = input[i];
-      const double currDistance = plane.distance(curr);
-      const bool currInside = currDistance >= 0.0;
-
-      if (currInside != prevInside) {
-        const double t = prevDistance / (prevDistance - currDistance);
-        output[outputCount++] = interpolateClipVert(prev, curr, t);
-      }
-      if (currInside) {
-        output[outputCount++] = curr;
-      }
-
-      prev = curr;
-      prevDistance = currDistance;
-      prevInside = currInside;
-    }
-
-    return outputCount;
+  const Vector4d& clipOf(const ClipVert& vertex) {
+    return vertex.clip;
   }
 
   inline std::size_t clipTriangleToView(const std::array<ClipVert, 3>& input,
                                         ClipPolygon& clipped) {
-    bool allInside = true;
-    for (ClipPlane plane : kClipPlanes) {
-      std::size_t insideCount = 0;
-      for (const ClipVert& vertex : input) {
-        if (plane.contains(vertex)) {
-          ++insideCount;
-        }
-      }
-      if (insideCount == 0)
-        return 0;
-      if (insideCount != input.size()) {
-        allInside = false;
-      }
-    }
-
-    if (allInside) {
-      for (std::size_t i = 0; i < input.size(); ++i) {
-        clipped[i] = input[i];
-      }
-      return input.size();
-    }
-
-    ClipPolygon polygonA;
-    ClipPolygon polygonB;
-    for (std::size_t i = 0; i < input.size(); ++i) {
-      polygonA[i] = input[i];
-    }
-
-    std::size_t count = input.size();
-    ClipPolygon* in = &polygonA;
-    ClipPolygon* out = &polygonB;
-
-    for (ClipPlane plane : kClipPlanes) {
-      count = clipPolygonAgainstPlane(*in, count, plane, *out);
-      if (count < 3)
-        return 0;
-      std::swap(in, out);
-    }
-
-    for (std::size_t i = 0; i < count; ++i) {
-      clipped[i] = (*in)[i];
-    }
-    return count;
+    return clipVolume().clipTriangle(input, clipped, clipOf, interpolateClipVert);
   }
 
   inline double signedScreenArea(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) {
@@ -800,7 +613,7 @@ namespace {
 
     core::rasterizeTriangleSampled(
       v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, clipRect.left(), clipRect.top(), clipRect.right(),
-      clipRect.bottom(), sampleOffset.x, sampleOffset.y,
+      clipRect.bottom(), sampleOffset.x(), sampleOffset.y(),
       [&](int x, int y, double w0b, double w1b, double w2b) {
         if (!stencil.pass(x, y)) {
           stencil.onStencilFail(x, y);
@@ -838,8 +651,9 @@ namespace {
 
   template<class Stencil, class Depth, class Fragment>
   inline void rasterizeTriangleSetWithPolicies(
-    const RasterTriangleSet& triangleSet, const TilePlan& tilePlan, QThreadPool& threadPool,
-    std::list<std::shared_ptr<RasterTileTask>>& tasks, const std::atomic<bool>& cancelled,
+    const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
+    std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
+    const std::atomic<bool>& cancelled,
     Buffer<Colord>& buffer, const RasterSampleOffset& sampleOffset, Stencil stencil, Depth depth,
     Fragment fragmentPolicy) {
     if (tilePlan.isSingleTile()) {
@@ -848,26 +662,13 @@ namespace {
       return;
     }
 
-    tasks.clear();
-    for (int row = 0; row != tilePlan.rows; ++row) {
-      for (int col = 0; col != tilePlan.cols; ++col) {
-        const Recti rect = triangleSet.tileGrid().rect(row, col);
-        if (rect.width() <= 0 || rect.height() <= 0)
-          continue;
-        const std::size_t tileIndex = triangleSet.tileGrid().index(row, col);
-
-        auto task = std::make_shared<RasterTileTask>(
-          rect, [&, rect, tileIndex, sampleOffset, stencil, depth, fragmentPolicy] {
-            rasterizeTileWithPolicies(triangleSet, rect, tileIndex, buffer, sampleOffset, cancelled,
-                                      stencil, depth, fragmentPolicy);
-          });
-
-        tasks.push_back(task);
-        threadPool.start(task.get());
-      }
-    }
-
-    threadPool.waitForDone();
+    engine::dispatchTileTasks(tilePlan, threadPool, tasks,
+                              [&, sampleOffset, stencil, depth, fragmentPolicy](
+                                const Recti& rect, std::size_t tileIndex) {
+                                rasterizeTileWithPolicies(triangleSet, rect, tileIndex, buffer,
+                                                          sampleOffset, cancelled, stencil, depth,
+                                                          fragmentPolicy);
+                              });
   }
 
   template<class Stencil, class Fragment, class RenderFn>
@@ -943,7 +744,7 @@ namespace {
           for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
             const auto& vertex = vertices[vi];
             const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
-            const std::uint8_t outCode = clipOutCode(clip);
+            const std::uint8_t outCode = clipVolume().outCode(clip);
             projected[vi] = {
               clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined(),
               outCode};
@@ -1085,7 +886,7 @@ namespace {
   };
 
   inline RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
-                                                  const TilePlan& tilePlan) {
+                                                  const render::TilePlan& tilePlan) {
     RasterTriangleSet triangleSet(tilePlan);
     triangleEmitter.forEachTriangle(
       [&](const RasterTriangle& triangle) { triangleSet.add(triangle); });
@@ -1117,32 +918,33 @@ namespace {
 
   inline void renderSingleSampleFrame(const Rasterizer& rasterizer,
                                       const std::shared_ptr<render::Scene>& scene,
-                                      const TilePlan& tilePlan,
+                                      const render::TilePlan& tilePlan,
                                       const RasterTriangleEmitter& triangleEmitter,
                                       QThreadPool& threadPool,
-                                      std::list<std::shared_ptr<RasterTileTask>>& tasks,
+                                      std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
                                       const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
     const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
     if (cancelled.load() || triangleSet.empty())
       return;
 
-    Buffer<double> zBuffer(tilePlan.width, tilePlan.height);
+    Buffer<double> zBuffer(tilePlan.width(), tilePlan.height());
     zBuffer.clear(rasterizer.depthClearValue());
-    auto stencilBuffer = makeStencilBuffer(rasterizer, tilePlan.width, tilePlan.height);
+    auto stencilBuffer = makeStencilBuffer(rasterizer, tilePlan.width(), tilePlan.height());
 
     withPreparedTrianglePolicies(scene.get(), rasterizer, zBuffer, stencilBuffer.get(),
                                  [&](auto stencil, auto depth, auto fragmentPolicy) {
                                    rasterizeTriangleSetWithPolicies(
                                      triangleSet, tilePlan, threadPool, tasks, cancelled, buffer,
-                                     RasterSampleOffset{0.0, 0.0}, stencil, depth, fragmentPolicy);
+                                     RasterSampleOffset(0.0, 0.0), stencil, depth, fragmentPolicy);
                                  });
   }
 
   inline void renderMSAAFrame(const Rasterizer& rasterizer,
-                              const std::shared_ptr<render::Scene>& scene, const TilePlan& tilePlan,
+                              const std::shared_ptr<render::Scene>& scene,
+                              const render::TilePlan& tilePlan,
                               const RasterSamplePattern& pattern,
                               const RasterTriangleEmitter& triangleEmitter, QThreadPool& threadPool,
-                              std::list<std::shared_ptr<RasterTileTask>>& tasks,
+                              std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
                               const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
     const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
     if (cancelled.load() || triangleSet.empty())
@@ -1153,12 +955,12 @@ namespace {
       if (cancelled.load())
         return;
 
-      Buffer<Colord> sampleBuffer(tilePlan.width, tilePlan.height);
+      Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
       sampleBuffer.clear(rasterizer.backgroundColor());
 
-      Buffer<double> sampleZBuffer(tilePlan.width, tilePlan.height);
+      Buffer<double> sampleZBuffer(tilePlan.width(), tilePlan.height());
       sampleZBuffer.clear(rasterizer.depthClearValue());
-      auto sampleStencilBuffer = makeStencilBuffer(rasterizer, tilePlan.width, tilePlan.height);
+      auto sampleStencilBuffer = makeStencilBuffer(rasterizer, tilePlan.width(), tilePlan.height());
 
       const RasterSampleOffset& sampleOffset = pattern.offsets[sampleIndex];
       withPreparedTrianglePolicies(scene.get(), rasterizer, sampleZBuffer,
@@ -1179,7 +981,7 @@ namespace {
 
   void renderRasterFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                          const std::shared_ptr<render::Camera>& camera, QThreadPool& threadPool,
-                         std::list<std::shared_ptr<RasterTileTask>>& tasks, int queueSize,
+                         std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, int queueSize,
                          const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
     const int width = buffer.width();
     const int height = buffer.height();
@@ -1187,7 +989,7 @@ namespace {
     if (width <= 0 || height <= 0 || cancelled.load())
       return;
 
-    const TilePlan tilePlan = TilePlan::forBuffer(width, height, queueSize);
+    const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
     const RasterSamplePattern pattern(rasterizer.msaaSamples());
     const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                                 cancelled);
