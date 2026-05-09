@@ -209,6 +209,54 @@ test('Vector: static constants', () => {
   assert.deepEqual({ x: Vector.right.x, y: Vector.right.y }, { x: 1, y: 0 });
 });
 
+test('FigureMath: clamp helpers and interpolation', () => {
+  const { FigureMath } = loadFigure();
+  assert.equal(FigureMath.clamp(-2, 0, 1), 0);
+  assert.equal(FigureMath.clamp(0.4, 0, 1), 0.4);
+  assert.equal(FigureMath.clamp(8, 0, 1), 1);
+  assert.equal(FigureMath.clamp01(2.5), 1);
+  assert.equal(FigureMath.lerp(10, 20, 0.25), 12.5);
+});
+
+test('Vector: shared widget helpers cover common 2D math', () => {
+  const { Vector } = loadFigure();
+  const point = Vector.from({ x: 3, y: 4 });
+  assert.deepEqual({ x: point.x, y: point.y }, { x: 3, y: 4 });
+  assert.strictEqual(Vector.from(point), point,
+    'Vector.from should preserve existing Vector instances');
+
+  const normalized = point.safeNormalized();
+  assert.ok(Math.abs(normalized.x - 0.6) < 1e-12);
+  assert.ok(Math.abs(normalized.y - 0.8) < 1e-12);
+  const fallback = Vector.null.safeNormalized(new Vector(0, -1));
+  assert.deepEqual({ x: fallback.x, y: fallback.y }, { x: 0, y: -1 });
+  const perp = new Vector(2, 5).perp();
+  assert.deepEqual({ x: perp.x, y: perp.y }, { x: -5, y: 2 });
+  assert.equal(new Vector(3, 4).distanceTo(Vector.null), 5);
+  const halfway = new Vector(0, 10).lerp(new Vector(10, 20), 0.5);
+  assert.deepEqual({ x: halfway.x, y: halfway.y }, { x: 5, y: 15 });
+});
+
+test('FigureGeometry: triangle weights and segment projection', () => {
+  const { FigureGeometry, Vector } = loadFigure();
+  const a = new Vector(0, 0);
+  const b = new Vector(4, 0);
+  const c = new Vector(0, 4);
+  const weights = FigureGeometry.barycentric(new Vector(1, 1), a, b, c);
+  assert.equal(weights.inside, true);
+  assert.ok(Math.abs(weights.w0 - 0.5) < 1e-12);
+  assert.ok(Math.abs(weights.w1 - 0.25) < 1e-12);
+  assert.ok(Math.abs(weights.w2 - 0.25) < 1e-12);
+  assert.equal(FigureGeometry.pointInTriangle(new Vector(4, 4), a, b, c), false);
+
+  const closest = FigureGeometry.closestPointOnSegment(
+    new Vector(3, 4), new Vector(0, 0), new Vector(4, 0));
+  assert.deepEqual({ x: closest.x, y: closest.y }, { x: 3, y: 0 });
+  const clamped = FigureGeometry.closestPointOnSegment(
+    new Vector(10, 4), new Vector(0, 0), new Vector(4, 0));
+  assert.deepEqual({ x: clamped.x, y: clamped.y }, { x: 4, y: 0 });
+});
+
 test('Figure stroke constants: standard weights are exported', () => {
   const {
     FigureStrokeWidth,
@@ -1003,6 +1051,29 @@ test('Production widgets use shared stroke width constants', () => {
   assert.deepEqual(offenders, []);
 });
 
+test('Migrated widgets use shared figure math instead of local vector libraries', () => {
+  const docsDir = path.resolve(__dirname, '..', 'docs');
+  const vectorDuplicatePattern =
+    /^\s{2}(sub|plus|minus|mul|multiply|dot|length|normalized|rotate)\([^)]*\) \{/m;
+  ['mesh_triangle_interpolation.js', 'portal_material_ray_redirection.js'].forEach((file) => {
+    const source = fs.readFileSync(path.join(docsDir, file), 'utf8');
+    assert.ok(!vectorDuplicatePattern.test(source),
+      `${file} should use Vector / FigureMath helpers instead of local vector math`);
+  });
+
+  [
+    'mesh_triangle_interpolation.js',
+    'rasterizer_depth_stencil_cull.js',
+    'rasterizer_msaa_coverage.js',
+    'rasterizer_pipeline.js',
+    'support_mapping_gjk.js',
+  ].forEach((file) => {
+    const source = fs.readFileSync(path.join(docsDir, file), 'utf8');
+    assert.ok(source.includes('FigureGeometry.'),
+      `${file} should use FigureGeometry for shared triangle/segment math`);
+  });
+});
+
 test('Color model conversion widget shows RGB storage and helper views', () => {
   const body = loadWidget('color_model_conversions.js');
   const text = textContents(body).join(' ');
@@ -1222,6 +1293,28 @@ test('FigureSvg: creates scoped SVGs and can clear children', () => {
   assert.equal(canvas.element.children.length, 2);
   canvas.clear();
   assert.equal(canvas.element.children.length, 0);
+});
+
+test('FigureSvg: convenience helpers emit text, lines, arrows, rays, and panels', () => {
+  const { FigureSvg, Vector } = loadFigure();
+  const canvas = new FigureSvg({ width: 100, height: 50 });
+  canvas.text(4, 8, 'hello');
+  canvas.line(new Vector(1, 2), new Vector(3, 4));
+  canvas.arrow(new Vector(5, 6), new Vector(7, 8), { markerId: 'test-arrow', stroke: '#d12' });
+  canvas.ray(new Vector(10, 10), new Vector(1, 0), 20, { markerId: 'test-ray' });
+  canvas.panel({ x: 12, y: 14, width: 30, height: 20 }, 'Panel');
+
+  const texts = elementsByTag(canvas.element, 'text').map(t => t.textContent);
+  assert.ok(texts.includes('hello'));
+  assert.ok(texts.includes('Panel'));
+  const arrows = elementsByTag(canvas.element, 'line')
+    .filter(line => line.attributes['marker-end']);
+  assert.equal(arrows.length, 2);
+  assert.equal(arrows[0].attributes['marker-end'], 'url(#test-arrow)');
+  assert.equal(arrows[1].attributes.x2, '30');
+  const panel = elementsByTag(canvas.element, 'rect')
+    .find(rect => rect.attributes.width === '30');
+  assert.equal(panel.attributes.rx, '6');
 });
 
 test('FigureSvg: maps pointer events through the rendered SVG transform', () => {

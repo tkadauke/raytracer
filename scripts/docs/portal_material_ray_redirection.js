@@ -51,62 +51,29 @@ class PortalMaterialRayRedirection {
     return this.widget.root;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
-  plus(a, b) {
-    return { x: a.x + b.x, y: a.y + b.y };
-  }
-
-  minus(a, b) {
-    return { x: a.x - b.x, y: a.y - b.y };
-  }
-
-  multiply(v, scalar) {
-    return { x: v.x * scalar, y: v.y * scalar };
-  }
-
-  length(v) {
-    return Math.sqrt(v.x * v.x + v.y * v.y);
-  }
-
-  normalized(v) {
-    const len = this.length(v);
-    return len <= 0.0001 ? { x: 1, y: 0 } : this.multiply(v, 1.0 / len);
-  }
-
-  rotate(v, angle) {
-    return {
-      x: v.x * Math.cos(angle) - v.y * Math.sin(angle),
-      y: v.x * Math.sin(angle) + v.y * Math.cos(angle),
-    };
-  }
-
   portalTangent() {
-    return { x: Math.cos(this.portalAngle), y: Math.sin(this.portalAngle) };
+    return new Vector(Math.cos(this.portalAngle), Math.sin(this.portalAngle));
   }
 
   portalNormal() {
-    const tangent = this.portalTangent();
-    return { x: -tangent.y, y: tangent.x };
+    return this.portalTangent().perp();
   }
 
   hitPoint() {
-    return this.plus(this.portalCenter, this.multiply(this.portalTangent(), this.hitOffset));
+    return Vector.from(this.portalCenter).plus(this.portalTangent().multiply(this.hitOffset));
   }
 
   transformedRay() {
     const hit = this.hitPoint();
-    const sourceDirection = this.normalized(this.minus(hit, this.raySource));
-    const localOrigin = this.rotate(this.minus(hit, this.portalCenter), -this.portalAngle);
-    const localDirection = this.rotate(sourceDirection, -this.portalAngle);
+    const sourceDirection = hit.minus(this.raySource).safeNormalized(Vector.right);
+    const localOrigin = hit.minus(this.portalCenter).rotated(-this.portalAngle);
+    const localDirection = sourceDirection.rotated(-this.portalAngle);
     return {
       origin: {
         x: this.queryOrigin.x + this.querySize.width * 0.42 + localOrigin.x * 0.75,
         y: this.queryOrigin.y + this.querySize.height * 0.56 + localOrigin.y * 0.75,
       },
-      direction: this.normalized(localDirection),
+      direction: localDirection.safeNormalized(Vector.right),
     };
   }
 
@@ -175,8 +142,8 @@ class PortalMaterialRayRedirection {
   renderPortalPanel() {
     const tangent = this.portalTangent();
     const normal = this.portalNormal();
-    const portalStart = this.plus(this.portalCenter, this.multiply(tangent, -this.portalHalfLength));
-    const portalEnd = this.plus(this.portalCenter, this.multiply(tangent, this.portalHalfLength));
+    const portalStart = Vector.from(this.portalCenter).plus(tangent.multiply(-this.portalHalfLength));
+    const portalEnd = Vector.from(this.portalCenter).plus(tangent.multiply(this.portalHalfLength));
     const hit = this.hitPoint();
 
     this.canvas.add('line', {
@@ -225,8 +192,8 @@ class PortalMaterialRayRedirection {
       fill: '#d22',
       onDrag: (point) => {
         this.raySource = {
-          x: this.clamp(point.x, this.sceneOrigin.x + 18, this.sceneOrigin.x + this.sceneSize.width - 18),
-          y: this.clamp(point.y, this.sceneOrigin.y + 18, this.sceneOrigin.y + this.sceneSize.height - 18),
+          x: FigureMath.clamp(point.x, this.sceneOrigin.x + 18, this.sceneOrigin.x + this.sceneSize.width - 18),
+          y: FigureMath.clamp(point.y, this.sceneOrigin.y + 18, this.sceneOrigin.y + this.sceneSize.height - 18),
         };
         this.render();
       },
@@ -234,9 +201,8 @@ class PortalMaterialRayRedirection {
     this.renderHandle(hit, 'source-ray-hit', {
       fill: '#f08c00',
       onDrag: (point) => {
-        const offset = this.minus(point, this.portalCenter).x * tangent.x +
-                       this.minus(point, this.portalCenter).y * tangent.y;
-        this.hitOffset = this.clamp(offset, -this.portalHalfLength + 10, this.portalHalfLength - 10);
+        const offset = Vector.from(point).minus(this.portalCenter).dot(tangent);
+        this.hitOffset = FigureMath.clamp(offset, -this.portalHalfLength + 10, this.portalHalfLength - 10);
         this.render();
       },
     });
@@ -244,14 +210,14 @@ class PortalMaterialRayRedirection {
       fill: '#fff',
       onDrag: (point) => {
         this.portalCenter = {
-          x: this.clamp(point.x, this.sceneOrigin.x + 90, this.sceneOrigin.x + this.sceneSize.width - 90),
-          y: this.clamp(point.y, this.sceneOrigin.y + 70, this.sceneOrigin.y + this.sceneSize.height - 70),
+          x: FigureMath.clamp(point.x, this.sceneOrigin.x + 90, this.sceneOrigin.x + this.sceneSize.width - 90),
+          y: FigureMath.clamp(point.y, this.sceneOrigin.y + 70, this.sceneOrigin.y + this.sceneSize.height - 70),
         };
         this.render();
       },
     });
 
-    const rotationHandle = this.plus(this.portalCenter, this.multiply(tangent, this.portalHalfLength + 26));
+    const rotationHandle = Vector.from(this.portalCenter).plus(tangent.multiply(this.portalHalfLength + 26));
     this.canvas.add('line', {
       x1: this.portalCenter.x,
       y1: this.portalCenter.y,
@@ -264,7 +230,7 @@ class PortalMaterialRayRedirection {
     this.renderHandle(rotationHandle, 'portal-transform-rotation', {
       fill: '#2060d0',
       onDrag: (point) => {
-        const delta = this.minus(point, this.portalCenter);
+        const delta = Vector.from(point).minus(this.portalCenter);
         this.portalAngle = Math.atan2(delta.y, delta.x);
         this.render();
       },
@@ -273,7 +239,7 @@ class PortalMaterialRayRedirection {
 
   renderQueryPanel() {
     const ray = this.transformedRay();
-    const end = this.plus(ray.origin, this.multiply(ray.direction, 138));
+    const end = Vector.from(ray.origin).plus(ray.direction.multiply(138));
 
     this.canvas.add('line', {
       x1: this.queryOrigin.x + 28,

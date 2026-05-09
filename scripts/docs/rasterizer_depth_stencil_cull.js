@@ -10,22 +10,13 @@ class RasterizerDepthStencilTriangle {
     this.vertices = vertices;
     this.depth = depth;
     this.color = color;
-    this.area = RasterizerDepthStencilTriangle.edge(vertices[0], vertices[1], vertices[2]);
+    this.area = FigureGeometry.edge(vertices[0], vertices[1], vertices[2]);
     this.facing = this.area < 0 ? 'front' : 'back';
   }
 
-  static edge(a, b, p) {
-    return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
-  }
-
   contains(point) {
-    if (Math.abs(this.area) < 1e-9) return false;
-    const w0 = RasterizerDepthStencilTriangle.edge(this.vertices[1], this.vertices[2], point);
-    const w1 = RasterizerDepthStencilTriangle.edge(this.vertices[2], this.vertices[0], point);
-    const w2 = this.area - w0 - w1;
-    return this.area > 0
-      ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
-      : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+    return FigureGeometry.pointInTriangle(
+      point, this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 }
 

@@ -76,10 +76,6 @@ class RasterizerMSAACoverage {
     return this.rows * this.cell + this.captionHeight;
   }
 
-  clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-  }
-
   handleInsetCells() {
     return this.handleRadius / this.cell;
   }
@@ -87,29 +83,19 @@ class RasterizerMSAACoverage {
   clampGridPoint(point) {
     const inset = this.handleInsetCells();
     return {
-      x: this.clamp(point.x, inset, this.cols - inset),
-      y: this.clamp(point.y, inset, this.rows - inset),
+      x: FigureMath.clamp(point.x, inset, this.cols - inset),
+      y: FigureMath.clamp(point.y, inset, this.rows - inset),
     };
   }
 
-  edge(a, b, p) {
-    return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
-  }
-
   insideTriangle(p) {
-    const area = this.edge(this.vertices[0], this.vertices[1], this.vertices[2]);
-    if (Math.abs(area) < 1e-9) return false;
-    const w0 = this.edge(this.vertices[1], this.vertices[2], p);
-    const w1 = this.edge(this.vertices[2], this.vertices[0], p);
-    const w2 = area - w0 - w1;
-    return area > 0
-      ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
-      : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+    return FigureGeometry.pointInTriangle(
+      p, this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 
   coverageColor(covered, total) {
     const t = covered / total;
-    const mix = (a, b) => Math.round(a + (b - a) * t);
+    const mix = (a, b) => Math.round(FigureMath.lerp(a, b, t));
     return `rgb(${mix(255, 11)}, ${mix(255, 114)}, ${mix(255, 133)})`;
   }
 

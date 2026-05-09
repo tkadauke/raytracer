@@ -12,6 +12,20 @@ const FigureGuideStrokeWidth = 0.035;
 const FigurePixelStrokeWidth = 2;
 const FigurePixelGuideStrokeWidth = 1;
 
+const FigureMath = {
+  clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  },
+
+  clamp01(value) {
+    return FigureMath.clamp(value, 0, 1);
+  },
+
+  lerp(a, b, t) {
+    return a + (b - a) * t;
+  },
+};
+
 // CSS injection — runs at script-load time. Wrapped so it no-ops in
 // non-browser environments (Node test runner): the test shim
 // provides a `document` but doesn't simulate `<style>` parsing.
@@ -259,17 +273,83 @@ class Vector {
     return this.multiply(1.0 / this.length());
   }
 
+  safeNormalized(fallback = Vector.right) {
+    const length = this.length();
+    return length <= 1e-9 ? Vector.from(fallback) : this.multiply(1.0 / length);
+  }
+
+  perp() {
+    return new Vector(-this.y, this.x);
+  }
+
+  distanceTo(vector) {
+    return this.minus(vector).length();
+  }
+
+  lerp(vector, t) {
+    return new Vector(
+      FigureMath.lerp(this.x, vector.x, t),
+      FigureMath.lerp(this.y, vector.y, t)
+    );
+  }
+
   rotated(angle) {
     return new Vector(
       this.x * Math.cos(angle) - this.y * Math.sin(angle),
       this.x * Math.sin(angle) + this.y * Math.cos(angle)
     );
   }
+
+  static from(point) {
+    return point instanceof Vector ? point : new Vector(point.x, point.y);
+  }
 }
 
 Vector.null = new Vector(0, 0);
 Vector.up = new Vector(0, -1);     // y-axis points DOWN in SVG, so "up" is negative y.
 Vector.right = new Vector(1, 0);
+
+const FigureGeometry = {
+  edge(a, b, p) {
+    return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+  },
+
+  barycentric(p, a, b, c) {
+    const area = FigureGeometry.edge(a, b, c);
+    if (Math.abs(area) <= 1e-9) {
+      return { w0: 1, w1: 0, w2: 0, inside: false, area };
+    }
+
+    const w0 = FigureGeometry.edge(b, c, p);
+    const w1 = FigureGeometry.edge(c, a, p);
+    const w2 = area - w0 - w1;
+    const sameSide = area > 0
+      ? (w0 >= -1e-9 && w1 >= -1e-9 && w2 >= -1e-9)
+      : (w0 <= 1e-9 && w1 <= 1e-9 && w2 <= 1e-9);
+    return {
+      w0: w0 / area,
+      w1: w1 / area,
+      w2: w2 / area,
+      inside: sameSide,
+      area,
+    };
+  },
+
+  pointInTriangle(p, a, b, c) {
+    return FigureGeometry.barycentric(p, a, b, c).inside;
+  },
+
+  closestPointOnSegment(point, a, b) {
+    const p = Vector.from(point);
+    const start = Vector.from(a);
+    const end = Vector.from(b);
+    const segment = end.minus(start);
+    const denom = segment.dot(segment);
+    if (denom <= 1e-9) return start;
+    const t = FigureMath.clamp(p.minus(start).dot(segment) / denom, 0, 1);
+    return start.plus(segment.multiply(t));
+  },
+};
 
 const svgns = 'http://www.w3.org/2000/svg';
 
@@ -625,6 +705,7 @@ class FigureSvg {
   constructor({ width, height, viewBox, className = '', background = '#fafafa' }) {
     this.width = width;
     this.height = height;
+    this.markerIds = new Set();
     this.element = createSvgElement('svg', {
       width,
       height,
@@ -649,6 +730,95 @@ class FigureSvg {
   append(element) {
     this.element.appendChild(element);
     return element;
+  }
+
+  text(x, y, text, attrs = {}) {
+    const element = this.add('text', {
+      x,
+      y,
+      fill: '#202020',
+      'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      ...attrs,
+    });
+    element.textContent = text;
+    return element;
+  }
+
+  line(from, to, attrs = {}) {
+    const start = Vector.from(from);
+    const end = Vector.from(to);
+    return this.add('line', {
+      x1: start.x,
+      y1: start.y,
+      x2: end.x,
+      y2: end.y,
+      stroke: '#111',
+      'stroke-width': FigurePixelStrokeWidth,
+      ...attrs,
+    });
+  }
+
+  arrowMarker(id, color = '#111') {
+    if (this.markerIds.has(id)) return null;
+    this.markerIds.add(id);
+
+    const defs = createSvgElement('defs');
+    const marker = createSvgElement('marker', {
+      id,
+      markerWidth: 10,
+      markerHeight: 10,
+      refX: 8,
+      refY: 3,
+      orient: 'auto',
+      markerUnits: 'strokeWidth',
+    });
+    marker.appendChild(createSvgElement('path', {
+      d: 'M0,0 L0,6 L9,3 z',
+      fill: color,
+    }));
+    defs.appendChild(marker);
+    this.append(defs);
+    return marker;
+  }
+
+  arrow(from, to, attrs = {}) {
+    const markerId = attrs.markerId || 'figure-arrow';
+    const markerColor = attrs.markerColor || attrs.stroke || '#111';
+    const cleanAttrs = { ...attrs };
+    delete cleanAttrs.markerId;
+    delete cleanAttrs.markerColor;
+    this.arrowMarker(markerId, markerColor);
+    return this.line(from, to, {
+      'marker-end': `url(#${markerId})`,
+      ...cleanAttrs,
+    });
+  }
+
+  ray(from, direction, length, attrs = {}) {
+    const start = Vector.from(from);
+    const dir = Vector.from(direction);
+    return this.arrow(start, start.plus(dir.multiply(length)), attrs);
+  }
+
+  panel({ x, y, width, height }, title = '', attrs = {}) {
+    const rect = this.add('rect', {
+      x,
+      y,
+      width,
+      height,
+      rx: 6,
+      fill: '#ffffff',
+      stroke: '#202020',
+      'stroke-width': FigurePixelStrokeWidth,
+      ...attrs,
+    });
+    if (title) {
+      this.text(x + 16, y + 28, title, {
+        'font-size': 18,
+        'font-weight': 700,
+      });
+    }
+    return rect;
   }
 
   pointFromEvent(event) {
@@ -960,6 +1130,7 @@ Object.assign(globalThis, {
   Rectangle, Text, Axes, Path, Slider, setAttributes, createSvgElement,
   FigureWidget, FigureSvg, FigureSegmentedControl,
   FigureSliderControl, FigureDraggablePoint, DragHandler, svgns, degrees,
+  FigureMath, FigureGeometry,
   FigureStrokeWidth, FigureGuideStrokeWidth,
   FigurePixelStrokeWidth, FigurePixelGuideStrokeWidth
 });

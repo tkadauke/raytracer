@@ -25,7 +25,7 @@ class ColorModelConversions {
   }
 
   clamp01(value) {
-    return Math.max(0, Math.min(1, value));
+    return FigureMath.clamp01(value);
   }
 
   rgbCss(color) {
@@ -73,41 +73,15 @@ class ColorModelConversions {
     };
   }
 
-  addText(x, y, text, attrs = {}) {
-    const element = this.canvas.add('text', {
-      x,
-      y,
-      fill: '#202020',
-      'font-size': 13,
-      'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      ...attrs
-    });
-    element.textContent = text;
-    return element;
-  }
-
   addPanel(x, y, width, height, title) {
-    this.canvas.add('rect', {
-      x,
-      y,
-      width,
-      height,
-      rx: 6,
-      fill: '#ffffff',
-      stroke: '#202020',
-      'stroke-width': FigurePixelStrokeWidth
-    });
-    this.addText(x + 16, y + 28, title, {
-      'font-size': 18,
-      'font-weight': 700
-    });
+    this.canvas.panel({ x, y, width, height }, title);
   }
 
   addComponentBar(x, y, label, color, amount, valueText = amount.toFixed(2)) {
     const trackX = x + 22;
     const trackWidth = 72;
     const trackHeight = 10;
-    this.addText(x, y + 12, label, {
+    this.canvas.text(x, y + 12, label, {
       'font-size': 13,
       'font-weight': 700
     });
@@ -129,7 +103,7 @@ class ColorModelConversions {
       stroke: 'none',
       'data-component': label
     });
-    this.addText(trackX + trackWidth + 8, y + 12, valueText, {
+    this.canvas.text(trackX + trackWidth + 8, y + 12, valueText, {
       'font-size': 13,
       'font-variant-numeric': 'tabular-nums'
     });
@@ -153,11 +127,11 @@ class ColorModelConversions {
     this.addComponentBar(130, 142, 'G', '#2f9e44', this.color.g);
     this.addComponentBar(130, 168, 'B', '#2060d0', this.color.b);
 
-    this.addText(42, 211, 'stored triplet', {
+    this.canvas.text(42, 211, 'stored triplet', {
       'font-size': 13,
       'font-weight': 600
     });
-    this.addText(42, 231,
+    this.canvas.text(42, 231,
       `(${this.color.r.toFixed(2)}, ${this.color.g.toFixed(2)}, ${this.color.b.toFixed(2)})`, {
         'font-size': 13,
         fill: '#555555'
@@ -170,11 +144,11 @@ class ColorModelConversions {
 
     this.addPanel(282, 78, 216, 260, 'Helper views');
 
-    this.addText(302, 132, 'HSV helper view', {
+    this.canvas.text(302, 132, 'HSV helper view', {
       'font-size': 14,
       'font-weight': 700
     });
-    this.addText(304, 149, 'fromHSV()', {
+    this.canvas.text(304, 149, 'fromHSV()', {
       'font-size': 12,
       fill: '#555555'
     });
@@ -182,11 +156,11 @@ class ColorModelConversions {
     this.addComponentBar(304, 177, 'S', '#3b82f6', hsv.s);
     this.addComponentBar(304, 192, 'V', '#555555', hsv.v);
 
-    this.addText(302, 233, 'CMYK helper view', {
+    this.canvas.text(302, 233, 'CMYK helper view', {
       'font-size': 14,
       'font-weight': 700
     });
-    this.addText(304, 250, 'fromCMYK()', {
+    this.canvas.text(304, 250, 'fromCMYK()', {
       'font-size': 12,
       fill: '#555555'
     });
@@ -199,11 +173,11 @@ class ColorModelConversions {
   render() {
     this.canvas.clear();
 
-    this.addText(22, 34, 'Color is stored once as RGB', {
+    this.canvas.text(22, 34, 'Color is stored once as RGB', {
       'font-size': 22,
       'font-weight': 700
     });
-    this.addText(22, 56, 'HSV and CMYK are conversion helpers, not separate stored state.', {
+    this.canvas.text(22, 56, 'HSV and CMYK are conversion helpers, not separate stored state.', {
       'font-size': 13,
       fill: '#555555'
     });

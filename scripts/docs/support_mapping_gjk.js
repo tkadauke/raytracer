@@ -466,32 +466,19 @@ class SupportMappingGJK {
 
   closestPointToOrigin(simplex) {
     if (simplex.length === 1) return simplex[0];
-    if (simplex.length === 2) return this.closestPointOnSegment(Vector.null, simplex[0], simplex[1]);
-    if (this.pointInTriangle(Vector.null, simplex[0], simplex[1], simplex[2])) return Vector.null;
+    if (simplex.length === 2) {
+      return FigureGeometry.closestPointOnSegment(Vector.null, simplex[0], simplex[1]);
+    }
+    if (FigureGeometry.pointInTriangle(Vector.null, simplex[0], simplex[1], simplex[2])) return Vector.null;
 
     const candidates = [
-      this.closestPointOnSegment(Vector.null, simplex[0], simplex[1]),
-      this.closestPointOnSegment(Vector.null, simplex[1], simplex[2]),
-      this.closestPointOnSegment(Vector.null, simplex[2], simplex[0]),
+      FigureGeometry.closestPointOnSegment(Vector.null, simplex[0], simplex[1]),
+      FigureGeometry.closestPointOnSegment(Vector.null, simplex[1], simplex[2]),
+      FigureGeometry.closestPointOnSegment(Vector.null, simplex[2], simplex[0]),
     ];
     return candidates.reduce((best, candidate) =>
       candidate.length() < best.length() ? candidate : best
     );
-  }
-
-  pointInTriangle(point, a, b, c) {
-    const sign = (p1, p2, p3) =>
-      (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-    const d1 = sign(point, a, b);
-    const d2 = sign(point, b, c);
-    const d3 = sign(point, c, a);
-    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
-  }
-
-  closestPointOnSegment(point, a, b) {
-    const ab = b.minus(a);
-    const t = Math.max(0, Math.min(1, point.minus(a).dot(ab) / ab.dot(ab)));
-    return a.plus(ab.multiply(t));
   }
 
 }
