@@ -741,9 +741,9 @@ public:
   * crossProduct() function, or its operator^() synonym.
   *
   * There are two predefined types for three-dimensional vectors: Vector3f with
-  * float-typed components and Vector3d with double-typed components. Both of
-  * those have SSE-optimized template specializations, in case SSE is available
-  * on the machine.
+  * float-typed components and Vector3d with double-typed components. Vector3f
+  * has an SSE3-optimized template specialization; Vector3d uses the generic
+  * template and relies on the compiler's autovectorizer.
   *
   * @tparam T the coordinate type, usually a floating point type.
   */
@@ -1175,7 +1175,6 @@ inline constexpr Vector4<T> Vector4<T>::plusInfinity{
 #endif
 #include "core/math/vector/sse3/Vector3f.h"
 #include "core/math/vector/sse3/Vector4f.h"
-#include "core/math/vector/sse3/Vector3d.h"
 #include "core/math/vector/sse3/Vector4d.h"
 
 // The pop is deferred to after the typedef aliases and structured-bindings

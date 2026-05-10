@@ -751,12 +751,14 @@ namespace Vector3Test {
   
   TYPED_TEST(Vector3Test, ShouldHaveRightSize) {
 #if defined(__SSE__) || defined(__SSE3__)
-    if (sizeof(TypeParam) == sizeof(float) || sizeof(TypeParam) == sizeof(double)) {
+    if (sizeof(TypeParam) == sizeof(float)) {
+      // Vector3<float> has an SSE3 specialization that pads to one full XMM register.
       ASSERT_EQ(sizeof(Vector<3, TypeParam>) + sizeof(TypeParam), sizeof(Vector3<TypeParam>));
       ASSERT_EQ(4 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
     } else {
-      // long double has no SSE-enabled specializetion, so in this case, the
-      // size is as specified below
+      // Vector3<double> uses the generic template (SSE3 specialization was removed
+      // because fixing its UB erased the performance advantage; scalar+autovec wins).
+      // long double also has no SSE specialization.
       ASSERT_EQ(sizeof(Vector<3, TypeParam>), sizeof(Vector3<TypeParam>));
       ASSERT_EQ(3 * sizeof(TypeParam), sizeof(Vector3<TypeParam>));
     }

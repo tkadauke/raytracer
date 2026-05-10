@@ -265,25 +265,34 @@ matrices) shows tighter residuals.~~
 
 ✅ **Done.** Block-inverse via Schur complement implemented in `Matrix4<T>::inverted()`. Baseline: ~41 ns/op (float), ~39 ns/op (double); after: ~20 ns/op (float), ~17 ns/op (double) — consistent 2.0–2.4× speedup. Three numerical-stability tests added (`ShouldHaveSmallResidualForTRSMatrix`, `ShouldHaveSmallResidualForNearSingularMatrix`, `ShouldHaveSmallResidualForLargeTranslationMatrix`). Closes roadmap §2.2.
 
-### 2.3 Delete the broken `Vector3<double>` SSE3 specialization
+### ~~2.3 Delete the broken `Vector3<double>` SSE3 specialization~~
 
-**This is the controversial one.** Three possible resolutions:
+~~**This is the controversial one.** Three possible resolutions:~~
 
-- **A. Delete it outright** — let the compiler autovectorize the
-  scalar fallback. Modern compilers are very good at this; the
-  current SSE3 specialization may be a net loss because it blocks
-  autovectorization across the calling site.
-- **B. Replace with AVX2 `__m256d` storage** — one 256-bit register
-  holds .xyz plus a zeroed .w. Cross product becomes 4 shuffles +
-  2 multiplies + 1 subtract. Requires AVX2 (Haswell 2013+, modern
-  ARM has Neon equivalents).
-- **C. Keep, but fix.** Pack `(x,y,z,_)` into a single `__m128d`
-  pair more cleverly, vectorize cross product. Hardest of the three;
-  may still be inferior to A or B.
+~~- **A. Delete it outright** — let the compiler autovectorize the~~
+~~  scalar fallback. Modern compilers are very good at this; the~~
+~~  current SSE3 specialization may be a net loss because it blocks~~
+~~  autovectorization across the calling site.~~
+~~- **B. Replace with AVX2 `__m256d` storage** — one 256-bit register~~
+~~  holds .xyz plus a zeroed .w. Cross product becomes 4 shuffles +~~
+~~  2 multiplies + 1 subtract. Requires AVX2 (Haswell 2013+, modern~~
+~~  ARM has Neon equivalents).~~
+~~- **C. Keep, but fix.** Pack `(x,y,z,_)` into a single `__m128d`~~
+~~  pair more cleverly, vectorize cross product. Hardest of the three;~~
+~~  may still be inferior to A or B.~~
 
-**Benchmark gate:** `VectorBenchmark.cpp` head-to-head on all three.
-Pick the one that wins. Whole-render macro benchmark must not
-regress regardless of which path wins.
+~~**Benchmark gate:** `VectorBenchmark.cpp` head-to-head on all three.~~
+~~Pick the one that wins. Whole-render macro benchmark must not~~
+~~regress regardless of which path wins.~~
+
+✅ **Done.** Option A (delete) won. Four-way benchmark (baseline UB, fixed
+SSE3 via `_mm_hadd_pd`, scalar/autovec, AVX2) showed: the UB baseline's dot
+advantage evaporates when the UB is fixed — `_mm_hadd_pd` is 80% slower than
+the union trick; AVX2 is 2× slower on cross product; scalar/autovec ties or
+beats all correct alternatives and unblocks call-site autovectorization.
+`include/core/math/vector/sse3/Vector3d.h` and its companion
+`src/core/math/vector/sse3/Vector3d.cpp` deleted. Decision data at
+`docs/perf/phase-2.3-vec3d-decision-2026-05-10.txt`.
 
 ### ~~2.4 CRTP-ify `Polynomial::solve()`~~
 
