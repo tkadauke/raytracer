@@ -36,10 +36,10 @@ public:
 typedef Texture<Colord> Texturec;
 ```
 
-One pure-virtual method: given a ray and the hit point that ray
-produced, return a value of type `T`. For the color textures we
-care about, `T` is `Colord` and the typedef `Texturec` is what
-materials accept.
+The interface declares one pure-virtual method: given a ray and
+the hit point that ray produced, return a value of type `T`. For
+the color textures we care about, `T` is `Colord` and the typedef
+`Texturec` is what materials accept.
 
 The reason both the ray *and* the hit point are passed: most
 textures only need the hit point's surface position or its
@@ -53,9 +53,10 @@ extensions and to keep the interface honest.
 
 ### `ConstantColorTexture`
 
-The trivial one. Stores a `Colord`; `evaluate` returns it. This is
-how a "plain red sphere" actually works under the hood — its
-material wraps a `ConstantColorTexture(Colord(1, 0, 0))`.
+This is the trivial case. The class stores a single `Colord` and
+`evaluate` returns it unchanged. This is how a "plain red sphere"
+actually works under the hood — its material wraps a
+`ConstantColorTexture(Colord(1, 0, 0))`.
 
 ```cpp
 // concept, not the literal source
@@ -158,11 +159,11 @@ sphere->setMaterial(std::make_shared<MatteMaterial>(
   std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))));
 ```
 
-Three nested `make_shared`s. The outer one is the material; the
-middle is the texture pointer; the innermost is the actual color.
-Replace the inner `ConstantColorTexture` with a
-`CheckerBoardTexture(...)` and the same sphere now has a
-checkered surface — no other code changes.
+The three nested `make_shared` calls track the three layers: the
+outer one is the material, the middle one is the texture pointer,
+and the innermost is the actual color. Replace the inner
+`ConstantColorTexture` with a `CheckerBoardTexture(...)` and the
+same sphere now has a checkered surface — no other code changes.
 
 This is also why the Matte material's albedo lookup in the
 rasterizer
@@ -174,10 +175,10 @@ the hit point over and gets a color back.
 
 ## 11.5 What's missing — image textures
 
-Notably absent: an `ImageTexture` that reads a PNG or EXR off
-disk and samples it. That's a queued item under
-`docs/topics-backlog.md` (and roadmap §4.3.b). When it lands, it
-will look like:
+One thing is notably absent from this list: an `ImageTexture`
+that reads a PNG or EXR off disk and samples it. That's a queued
+item under `docs/topics-backlog.md` (and roadmap §4.3.b). When it
+lands, it will look like:
 
 - Constructor takes a path or a `Buffer<Colord>`.
 - `evaluate` reads $(s, t)$ via the configured mapping (probably

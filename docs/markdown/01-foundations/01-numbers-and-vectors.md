@@ -173,7 +173,7 @@ $$
 \mathbf{a} \cdot \mathbf{b} = a_x b_x + a_y b_y + a_z b_z
 $$
 
-Implementation is one loop:
+The implementation is one loop:
 
 ```cpp
 // include/core/math/Vector.h:204
@@ -242,7 +242,7 @@ a_x b_y - a_y b_x
 \end{pmatrix}
 $$
 
-Code:
+The implementation reads straight off the formula:
 
 ```cpp
 // include/core/math/Vector.h:801
@@ -319,10 +319,10 @@ inline void normalize() {
 }
 ```
 
-Two flavors: `normalized()` returns a fresh unit vector, leaving
-the original alone; `normalize()` mutates in place. Same naming
-convention as `reverse` / `reversed` and `transpose` / `transposed`
-elsewhere in the math library.
+There are two flavors. `normalized()` returns a fresh unit vector
+and leaves the original alone; `normalize()` mutates in place. The
+naming convention is the same one `reverse` / `reversed` and
+`transpose` / `transposed` use elsewhere in the math library.
 
 ### The invariant
 

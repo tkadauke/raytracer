@@ -47,8 +47,8 @@ There's an SSE2 specialization of `Colord` under
 [`include/core/color/sse3/`](../../../include/core/color/sse3/),
 analogous to the SSE3 vector specialization from
 [chapter 1](01-numbers-and-vectors.md#1-7-the-sse3-specializations).
-Same story: storage is an XMM register's worth, operators use
-intrinsics, the API is unchanged.
+The story is the same one: storage occupies an XMM register's
+worth, operators use intrinsics, and the API is unchanged.
 
 The arithmetic is component-wise: `a + b`, `a - b`, scalar
 `a * 0.5`, color-on-color `a * b` (which is what you want for a

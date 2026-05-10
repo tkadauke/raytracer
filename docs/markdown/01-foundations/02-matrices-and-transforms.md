@@ -67,7 +67,8 @@ where translation is genuinely irrelevant, namely transforming
 
 ## 2.2 The shape of `Matrix<N, T>`
 
-Same templated story as the vector class. From
+The class follows the same templated layout as the vector class
+from [chapter 1](01-numbers-and-vectors.md). From
 [`include/core/math/Matrix.h`](../../../include/core/math/Matrix.h):
 
 ```cpp
@@ -126,14 +127,15 @@ transpose, `A.inverted()` returns the inverse, and
 
 ## 2.3 Composition order: column-vector convention
 
-Two camps exist. **Row-vector** people write a vector as a 1×N row
-and apply transforms by post-multiplying: $\mathbf{v}' = \mathbf{v}
-M$. The transform on the right of an expression is the *first*
-applied. **Column-vector** people write a vector as an N×1 column
-and apply transforms by pre-multiplying: $\mathbf{v}' = M
-\mathbf{v}$. The transform on the right of an expression is the
-*last* applied. Both produce the same image; the conventions are
-just transposes of each other.
+Two camps exist on this question. The **row-vector** camp writes a
+vector as a 1×N row and applies transforms by post-multiplying:
+$\mathbf{v}' = \mathbf{v} M$. The transform on the right of an
+expression is the *first* applied. The **column-vector** camp
+writes a vector as an N×1 column and applies transforms by
+pre-multiplying: $\mathbf{v}' = M \mathbf{v}$. The transform on
+the right of an expression is the *last* applied. Both produce
+the same image; the two conventions are simply transposes of each
+other.
 
 This codebase is column-vector. So when you see:
 
@@ -281,8 +283,8 @@ void Instance::setMatrix(const Matrix4d& matrix) {
 }
 ```
 
-Four matrices precomputed from the one input. Reading them in
-order:
+All four matrices are precomputed from the one input. Reading them
+in order:
 
 - **`m_pointMatrix`** is the matrix you provided. It's used to
   transform hit-point world positions back to world space after

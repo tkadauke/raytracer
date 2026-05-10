@@ -319,7 +319,8 @@ subtrees.
 
 ## 3.7 `Range<T>`: a closed interval helper
 
-Tiny class, used everywhere. From
+`Range<T>` is a tiny class with disproportionate reach across the
+codebase. From
 [`include/core/math/Range.h`](../../../include/core/math/Range.h):
 
 ```cpp
@@ -345,10 +346,10 @@ typedef Range<double> Ranged;
 typedef Range<float>  Rangef;
 ```
 
-Two endpoints, a `contains(v)` membership test, a `clamp(v)`
-projection, a `random()` sample. The closed-interval semantics
-(both endpoints included) are convention; the contains check uses
-`<=`.
+The class wraps two endpoints with a `contains(v)` membership
+test, a `clamp(v)` projection, and a `random()` sample. The
+closed-interval semantics — both endpoints included — are a
+convention; the membership check uses `<=`.
 
 `Range<double>` shows up everywhere a "valid $t$ interval" needs to
 be expressed: shadow ray clipping, sampler stratification cells,

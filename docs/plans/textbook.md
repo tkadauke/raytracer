@@ -577,6 +577,19 @@ Two forms, used together:
   e.g.  *"The bit-identical render contract is pinned by
   [`SamplerDeterminismTest.RegularSamplerProducesBitIdenticalRenders`](../../test/functional/render/samplers/SamplerDeterminismTest.cpp)."*
 
+### Prose style
+
+The book is written for serious readers, so the prose should be
+written in serious sentences. Default to complete sentences with a
+subject and a verb; avoid noun-only fragments
+(*"Tiny class, used everywhere."*), verb-only fragments
+(*"Stores a `Colord`."*), and label-style one-word lead-ins
+(*"Code:"*) for anything more substantial than a one-line caption.
+Short, declarative sentences are welcome; truncated ones are not.
+The tone should sit a notch below an academic textbook — direct,
+no jargon hedging, no false-friendly contractions — but well above
+a stream of bullet-point notes.
+
 ### Math notation
 
 KaTeX-style fenced math (`$$ ... $$` for display, `$...$` inline). The
