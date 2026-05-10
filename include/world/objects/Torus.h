@@ -30,7 +30,9 @@ public:
     */
   explicit Torus(Element* parent = nullptr);
 
-  inline double sweptRadius() const { return m_sweptRadius; }
+  inline double sweptRadius() const {
+    return m_sweptRadius;
+  }
 
   /**
     * Sets the swept radius (distance from torus centre to tube
@@ -40,7 +42,9 @@ public:
     m_sweptRadius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
   }
 
-  inline double tubeRadius() const { return m_tubeRadius; }
+  inline double tubeRadius() const {
+    return m_tubeRadius;
+  }
 
   /**
     * Sets the tube radius (radius of the cross-section circle).

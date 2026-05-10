@@ -25,7 +25,9 @@ class Disk : public Surface {
 public:
   explicit Disk(Element* parent = nullptr);
 
-  inline double radius() const { return m_radius; }
+  inline double radius() const {
+    return m_radius;
+  }
 
   /// Sets the disk radius. Coerced to its absolute value with an
   /// epsilon floor.
