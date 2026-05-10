@@ -210,6 +210,15 @@ by editing this file.
 
 ## P
 
+- **PCF** — Percentage-Closer Filtering. The shadow-map
+  technique of averaging multiple depth comparisons in a
+  kernel around the projected light-space point, producing a
+  soft penumbra.
+  [Chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
+- **Peter Panning** — the visual artifact where a shadow
+  detaches from its caster, caused by an over-aggressive
+  shadow-map bias.
+  [Chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
 - **Phong** — the classical lobe-based reflection model
   combining a Lambertian diffuse base with a glossy
   specular highlight.
@@ -263,6 +272,14 @@ by editing this file.
 - **SAH** — Surface Area Heuristic. The cost-formula-driven
   split-selection criterion for BVH construction.
   [Chapter 15 §15.3](../03-scene-structure/15-spatial-acceleration.md#15-3-the-surface-area-heuristic).
+- **Shadow acne** — visual artifact where a surface appears to
+  shadow itself, caused by an under-aggressive shadow-map
+  bias.
+  [Chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
+- **Shadow map** — a depth-only buffer rendered from a light's
+  point of view, used by the rasterizer at fragment shading
+  time to decide whether a surface is in shadow.
+  [Chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
 - **Sampler** — generates sub-pixel and lens sample positions
   for anti-aliasing and depth-of-field.
   [Chapter 10](../02-ray-rendering/10-sampling-and-anti-aliasing.md).

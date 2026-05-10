@@ -229,7 +229,62 @@ ambient is set to black (as it is in the dark-room functional
 tests), shadows are properly black; when it's nonzero, shadows
 get the cheap fill.
 
-## 9.7 What this chapter does *not* cover
+## 9.7 Shadow maps for the rasterizer
+
+The shadow ray from §9.4 is the raytracer's mechanism. The
+rasterizer cannot use it: rasterization runs over screen-space
+triangles, with no ray-cast primitive available at fragment
+shading time. Its alternative is the **shadow map**, an
+opt-in feature on
+[`engine::raster::Rasterizer`](../../../include/engine/raster/Rasterizer.h).
+
+The algorithm is a two-pass render. The first pass renders the
+scene from each directional light's point of view into a
+depth-only buffer — the **shadow map**. Each texel of that
+map records the closest surface to the light along that
+texel's direction. The second (camera) pass renders the
+scene normally, and at each shaded fragment, projects the
+fragment's world-space position into the light's coordinate
+frame. The fragment's projected depth gets compared against
+the stored depth in the shadow map. If the projected depth is
+farther than what the map recorded, something else is closer
+to the light along that direction — the fragment is in shadow.
+
+Three knobs control quality versus cost:
+
+- **Map resolution** — how finely the light-space depth
+  image samples the scene. Low values quantize shadow edges
+  visibly; higher values cost proportionally more raster work
+  and memory.
+- **Bias** — an additive depth tolerance for the comparison.
+  Too little bias lets a surface shadow itself due to depth
+  quantization (the classic *shadow acne*); too much bias
+  detaches the shadow from the casting object (the classic
+  *Peter Panning*).
+- **PCF radius** — percentage-closer filtering. The
+  comparison runs over a $(2r + 1) \times (2r + 1)$ kernel of
+  neighboring texels and averages the results, producing a
+  soft penumbra around hard shadow edges. Radius 0 is the
+  exact nearest-texel comparison; radius 1 uses a 3×3 kernel,
+  radius 4 a 9×9 kernel.
+
+The widget below visualizes the two passes side by side. The
+left panel is the world: a draggable caster, a draggable
+receiver, a directional light. The right panels show the
+stored depth map and the receiver's projected-depth-vs-stored-
+depth comparison. Move the caster, lower the map resolution,
+or crank the bias to see shadow acne and Peter Panning
+appear:
+
+<!-- widget: rasterizer_shadow_map -->
+
+The default state ships shadow maps **disabled**, both
+because they multiply raster work and because not every scene
+benefits — a scene with only ambient lighting has nothing to
+cast shadows. Application code that wants shadows turns them
+on per-light through the rasterizer's setter API.
+
+## 9.8 What this chapter does *not* cover
 
 Two important light-related topics are out of scope until
 later:

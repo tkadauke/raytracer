@@ -66,6 +66,13 @@ goes through six stages:
 Step 4 is the heart of the algorithm and the namesake of the
 chapter; the rest is plumbing.
 
+When shadow maps are enabled, an extra light-space depth pass
+runs *before* step 1 — once per directional light. The fragment
+shader at step 6 then projects each shaded point into the
+stored depth image to decide whether the surface receives
+direct light. The shadow-map pipeline is documented in
+[chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
+
 ## 18.2 The edge-function inside-test
 
 A triangle in 2D has three edges. The **edge function** for an
@@ -196,11 +203,10 @@ attributes:
 
 - **Normal** — interpolated unit-length surface normal, used
   for Lambertian shading.
-- **World position** — used by the lighting code's shadow ray
-  (the rasterizer reuses
-  [chapter 9 §9.4](../02-ray-rendering/09-lights-and-shading.md#9-4-the-shadow-ray)'s
-  shadow-ray test against the scene's [BVH](../appendix/a-glossary.md#b)) and by texture
-  mappings that depend on world coords.
+- **World position** — used by texture mappings that depend on
+  world coordinates and (when shadow maps are enabled) by the
+  shadow-map projection step from
+  [chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
 - **UV** — used by texture sampling.
 
 The fragment shader is a small function that takes those

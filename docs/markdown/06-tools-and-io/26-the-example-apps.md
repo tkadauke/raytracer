@@ -84,10 +84,46 @@ The `Display` widget — the central preview — is a subclass of
 itself a subclass of
 [`RenderWidget`](../../../src/widgets/RenderWidget.cpp). The
 inheritance chain reflects the responsibilities:
-`RenderWidget` owns the framebuffer and the render loop;
-`QtDisplay` adds mouse-drag camera control;
+`RenderWidget` owns the framebuffer pair and the render-job
+lifecycle; `QtDisplay` adds mouse-drag camera control;
 `GeneratedRayTracer::Display` adds the engine-selector swap and
 the Ctrl-click ray-state probe.
+
+`RenderWidget` keeps a UI-thread *front* image plus a *back*
+buffer per render job. Worker threads write into the back
+buffer; the widget's `paintEvent` only ever draws the
+immutable front snapshot. The display mode chooses when pixels
+flow from back to front:
+
+- `PeriodicUpdate` copies the whole back buffer at every timer
+  tick, including in-flight tile writes. The historic
+  partial-output behavior; useful for the raytracer where
+  watching tiles fill in is informative.
+- `CompletedTilePublishing` copies only engine-reported
+  completed tiles. Avoids reading tiles still being written.
+- `DoubleBuffer` does not publish in-flight pixels at all; it
+  swaps front and back when the render thread finishes. The
+  natural choice for the rasterizer and wireframe engines,
+  which are fast enough that partial output isn't useful.
+
+Engines that implement `RenderEngine::cloneForRender()` get a
+snapshot per render job, which lets an interactive preview
+cancel an old job and start the replacement immediately while
+the old worker drains in the background. Engines that return
+`nullptr` from `cloneForRender` keep the serialized lifecycle
+— the widget waits for the current render to finish before
+starting the next one.
+
+The `Display::applyPreviewPolicy(kind)` helper picks one of
+two policies depending on the active engine. The raytracer
+runs `PeriodicUpdate` with a 16 ms publish tick and cancels
+the in-flight render when the camera moves, so users see
+partial output that snaps to the new view immediately. The
+rasterizer and wireframe engines run `DoubleBuffer` with no
+publish tick and no cancel-on-interaction; they finish each
+frame before swapping it in, since both engines render fast
+enough that partial output isn't useful and a swap-on-complete
+animation reads as smoother than a tile-by-tile fill.
 
 The engine selector is the most interesting piece of wiring.
 The `Display` holds three engine pointers — one for each kind
