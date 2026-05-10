@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 #include <algorithm>
 #include "core/DivisionByZeroException.h"
@@ -1165,10 +1166,10 @@ namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 }
 
 template<size_t I, class T>
-inline T get(const Vector2<T>& v) { static_assert(I < 2); return v.coordinate(I); }
+inline T get(const Vector2<T>& v) { static_assert(I < 2u); return v.coordinate(static_cast<int>(I)); }
 
 template<size_t I, class T>
-inline T get(const Vector3<T>& v) { static_assert(I < 3); return v.coordinate(I); }
+inline T get(const Vector3<T>& v) { static_assert(I < 3u); return v.coordinate(static_cast<int>(I)); }
 
 template<size_t I, class T>
-inline T get(const Vector4<T>& v) { static_assert(I < 4); return v.coordinate(I); }
+inline T get(const Vector4<T>& v) { static_assert(I < 4u); return v.coordinate(static_cast<int>(I)); }
