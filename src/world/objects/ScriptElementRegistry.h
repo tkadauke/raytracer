@@ -44,15 +44,41 @@ public:
   explicit ScriptElementRegistry(QJSEngine* engine, QObject* parent = nullptr)
     : QObject(parent), m_engine(engine) {}
 
-  Q_INVOKABLE QJSValue createBox(QJSValue p)          { return createElement<Box>(p); }
-  Q_INVOKABLE QJSValue createSphere(QJSValue p)       { return createElement<Sphere>(p); }
-  Q_INVOKABLE QJSValue createCylinder(QJSValue p)     { return createElement<Cylinder>(p); }
-  Q_INVOKABLE QJSValue createRing(QJSValue p)         { return createElement<Ring>(p); }
-  Q_INVOKABLE QJSValue createUnion(QJSValue p)        { return createElement<Union>(p); }
-  Q_INVOKABLE QJSValue createIntersection(QJSValue p) { return createElement<Intersection>(p); }
-  Q_INVOKABLE QJSValue createDifference(QJSValue p)   { return createElement<Difference>(p); }
-  Q_INVOKABLE QJSValue createMinkowskiSum(QJSValue p) { return createElement<MinkowskiSum>(p); }
-  Q_INVOKABLE QJSValue createConvexHull(QJSValue p)   { return createElement<ConvexHull>(p); }
+  Q_INVOKABLE QJSValue createBox(QJSValue p) {
+    return createElement<Box>(p);
+  }
+
+  Q_INVOKABLE QJSValue createSphere(QJSValue p) {
+    return createElement<Sphere>(p);
+  }
+
+  Q_INVOKABLE QJSValue createCylinder(QJSValue p) {
+    return createElement<Cylinder>(p);
+  }
+
+  Q_INVOKABLE QJSValue createRing(QJSValue p) {
+    return createElement<Ring>(p);
+  }
+
+  Q_INVOKABLE QJSValue createUnion(QJSValue p) {
+    return createElement<Union>(p);
+  }
+
+  Q_INVOKABLE QJSValue createIntersection(QJSValue p) {
+    return createElement<Intersection>(p);
+  }
+
+  Q_INVOKABLE QJSValue createDifference(QJSValue p) {
+    return createElement<Difference>(p);
+  }
+
+  Q_INVOKABLE QJSValue createMinkowskiSum(QJSValue p) {
+    return createElement<MinkowskiSum>(p);
+  }
+
+  Q_INVOKABLE QJSValue createConvexHull(QJSValue p) {
+    return createElement<ConvexHull>(p);
+  }
 
   Q_INVOKABLE QJSValue createVector3(double x, double y, double z) {
     return m_engine->toScriptValue(Vector3d(x, y, z));
