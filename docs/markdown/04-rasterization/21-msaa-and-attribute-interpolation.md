@@ -6,7 +6,7 @@ of *what value should be displayed at this pixel?* MSAA
 (multi-sample anti-aliasing) is about the **coverage** answer —
 "how much of this pixel does the triangle cover?" Attribute
 interpolation is about the **content** answer — "given that the
-triangle does cover this pixel, what depth, normal, UV, and
+triangle does cover this pixel, what depth, normal, [UV](../appendix/a-glossary.md#u), and
 color does it have here?" Both questions get answered using the
 same barycentric coordinates the edge-function rasterizer
 produced in [chapter 18](18-the-rasterization-pipeline.md), but
@@ -17,9 +17,9 @@ By the end of this chapter you should know:
 - the **screen-space barycentric weights** the rasterizer
   produces, and why they are *not* the perspective-correct
   attribute weights,
-- the **Heckbert-Moreton** $1/z$ trick that recovers
+- the **[Heckbert-Moreton](../appendix/a-glossary.md#h)** $1/z$ trick that recovers
   perspective-correct interpolation from screen-space weights,
-- what MSAA samples (coverage) and what it doesn't (shading),
+- what [MSAA](../appendix/a-glossary.md#m) samples (coverage) and what it doesn't (shading),
 - the codebase's single-tile-vs-N-sample-resolved framebuffer
   split, and the per-sample buffers MSAA needs for the resolve.
 
@@ -104,7 +104,7 @@ visible:
 The codebase's
 [`Rasterizer.cpp`](../../../src/engine/raster/Rasterizer.cpp)
 applies this trick consistently: depth interpolation
-(through the Z-buffer), normal interpolation (for shading),
+(through the [Z-buffer](../appendix/a-glossary.md#z)), normal interpolation (for shading),
 world-position interpolation (for shadow rays), and UV
 interpolation (for texture sampling) all go through the
 $1/z$-divided form. The result is that surfaces look correct
@@ -199,7 +199,7 @@ The doc-render benchmark sweep in the
 header shows the per-MSAA-level cost on three reference
 scenes:
 
-- Dense 640×480 LOD-8 sphere: 1× → 1035 ms median; 4× →
+- Dense 640×480 [LOD](../appendix/a-glossary.md#l)-8 sphere: 1× → 1035 ms median; 4× →
   3779 ms (about 3.6× slower).
 - 1920×1080 offscreen-floor: 1× → 102 ms; 4× → 443 ms (about
   4.3× slower).

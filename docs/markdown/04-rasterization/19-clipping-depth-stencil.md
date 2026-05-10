@@ -14,7 +14,7 @@ took over.
 
 By the end of this chapter you should know:
 
-- the **Sutherland-Hodgman** polygon-clipping algorithm, and
+- the **[Sutherland-Hodgman](../appendix/a-glossary.md#s)** polygon-clipping algorithm, and
   why the rasterizer runs it in homogeneous clip space rather
   than in screen space,
 - the depth test and the configurable depth functions,
@@ -103,7 +103,7 @@ along the way:
 The interesting detail in the widget is that **all per-vertex
 attributes** — UVs, normals, colors — get interpolated along
 with the position when a clip generates an intersection
-vertex. The intersection's UV is the linear blend of the
+vertex. The intersection's [UV](../appendix/a-glossary.md#u) is the linear blend of the
 edge's two endpoint UVs, with the same blend weight that
 produced the position. The same for normals (re-normalized
 after the blend, since linear-blended normals don't preserve
@@ -124,7 +124,7 @@ the clipping algorithm and rasterize directly.
 
 When two triangles project to overlapping screen-space pixels,
 the renderer needs to pick which one's color the pixel shows.
-The standard mechanism is the **Z-buffer**: a buffer the same
+The standard mechanism is the **[Z-buffer](../appendix/a-glossary.md#z)**: a buffer the same
 size as the framebuffer, holding one depth value per pixel.
 
 Initially, every pixel of the Z-buffer is set to the
@@ -290,7 +290,7 @@ state" is the same configuration as the codebase's, modulo
 spelling. The reason is that the state machine is the *minimum*
 configurability needed for the graphics-research-vintage
 techniques that pre-shader pipelines exposed: shadow volumes
-(stencil counting), reflections (stencil masking), CSG (depth
+(stencil counting), reflections (stencil masking), [CSG](../appendix/a-glossary.md#c) (depth
 peeling), portal rendering (stencil regions).
 
 When the codebase eventually grows a GPU rasterizer engine

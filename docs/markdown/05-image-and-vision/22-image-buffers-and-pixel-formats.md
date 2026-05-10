@@ -26,9 +26,9 @@ By the end of this chapter you should know:
 [Chapter 4 §4.5](../01-foundations/04-color-and-buffers.md#4-5-buffer-t-a-fixed-size-2d-array)
 introduced two `Buffer<T>` instantiations for the renderer:
 
-- `Buffer<Colord>` — the HDR float framebuffer the renderer
+- `Buffer<Colord>` — the [HDR](../appendix/a-glossary.md#h) float framebuffer the renderer
   writes into during the shading pass.
-- `Buffer<unsigned int>` — the LDR display buffer with packed
+- `Buffer<unsigned int>` — the [LDR](../appendix/a-glossary.md#l) display buffer with packed
   `0x00RRGGBB` pixels, what tonemap and the GUI consume.
 
 Volume V works exclusively with `Buffer<unsigned int>`. The
@@ -140,7 +140,7 @@ extreme pixels: the leftmost and rightmost target pixel in each
 row, plus the topmost and bottommost target pixel in each
 column. The point of `Silhouette` is that it works
 *identically* for a Raytracer-rendered solid disk (interior
-filled with target color) and a Wireframe-rendered circle
+filled with target color) and a [Wireframe](../appendix/a-glossary.md#w)-rendered circle
 outline (only the boundary is target color). The interior is
 ignored either way; only the outer extremes contribute.
 

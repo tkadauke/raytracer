@@ -83,7 +83,7 @@ The factory side is
 [`CameraFactory`](../../../include/render/cameras/CameraFactory.h).
 It registers each concrete camera by name so `rendercli` and
 `GeneratedRayTracer` can swap camera types from a config file or
-a dropdown, respectively. The Whitted renderer doesn't care which
+a dropdown, respectively. The [Whitted](../appendix/a-glossary.md#w) renderer doesn't care which
 factory produced the camera — it just calls `rayForPixel` on
 whatever it gets.
 
@@ -172,7 +172,7 @@ the corners.
 
 [`EquirectangularCamera`](../../../include/render/cameras/EquirectangularCamera.h)
 hard-codes the 360° × 180° lat-long projection used in Google
-Street View, VR environment maps, and HDR sky textures. The image
+Street View, VR environment maps, and [HDR](../appendix/a-glossary.md#h) sky textures. The image
 is always 2:1, the longitude varies linearly with $x$, and the
 latitude varies linearly with $y$. The poles get pixel-stretched
 near the top and bottom of the image; the seam at $x = 0$ and $x =
@@ -284,7 +284,7 @@ single parameter:
 - **`tilt`**: the angle of the focal plane, measured from the
   parallel default.
 
-The geometry is governed by the **Scheimpflug condition**: the
+The geometry is governed by the **[Scheimpflug](../appendix/a-glossary.md#s) condition**: the
 view plane, the lens plane, and the focal plane must all meet
 along a single line, called the Scheimpflug line. As you tilt
 the lens plane, the focal plane rotates around the Scheimpflug
@@ -320,7 +320,7 @@ schematics.
 
 The wide-angle cameras (spherical, fisheye, equirectangular) are
 for cases where the field of view exceeds what pinhole projection
-can express without absurd distortion. Equirectangular is the
+can express without absurd distortion. [Equirectangular](../appendix/a-glossary.md#e) is the
 right choice for VR environment maps and HDR sky probes;
 fisheye is for the "looking up at the dome" effect and for
 scenes where the corners-cut-off look is desired; spherical is

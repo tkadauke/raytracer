@@ -3,7 +3,7 @@
 A primitive is one shape; a *composite* is a tree of shapes
 combined with set-theoretic operations — union, intersection,
 difference. The classical name for this construction is
-**constructive solid geometry** (CSG), and it is the
+**constructive solid geometry** ([CSG](../appendix/a-glossary.md#c)), and it is the
 graphics-side trick for building complex shapes out of simple
 ones: a glass pawn carved from a cylinder with a sphere
 subtracted, a torus that's actually a difference of two
@@ -19,7 +19,7 @@ By the end of this chapter you should know:
   into a single output interval per ray,
 - the support-mapping family (Minkowski sum, convex hull) and
   what they compute that Booleans don't,
-- the GJK algorithm that intersects a ray with a convex
+- the [GJK](../appendix/a-glossary.md#g) algorithm that intersects a ray with a convex
   primitive defined only by its support function.
 
 ## 14.1 Hit intervals are the unifying abstraction
@@ -188,7 +188,7 @@ The widget shows the algorithm running step by step:
 
 <!-- widget: support_mapping_gjk -->
 
-For a Whitted ray-trace through a convex composite, the
+For a [Whitted](../appendix/a-glossary.md#w) ray-trace through a convex composite, the
 algorithm answers two questions:
 
 1. *Is there an intersection?* — the boolean form, used by
@@ -293,7 +293,7 @@ reach for **ConvexHull**.
 - Volume index: [Volume III — Scene structure](README.md)
 - Previous: [13. View planes](13-view-planes.md)
 - Next: [15. Spatial acceleration](15-spatial-acceleration.md)
-- HitPointInterval vocabulary:
+- [HitPointInterval](../appendix/a-glossary.md#h) vocabulary:
   [3. Rays and geometry §3.5](../01-foundations/03-rays-and-geometry.md#3-5-hitpointinterval-in-out-in-out)
 - Per-primitive intersection:
   [7. Primitives and intersection](../02-ray-rendering/07-primitives-and-intersection.md)

@@ -8,7 +8,7 @@ deliberately produces nothing of the kind. The
 [`engine::wireframe::Wireframe`](../../../include/engine/wireframe/Wireframe.h)
 engine draws every mesh face's *edges* as thin lines on an
 otherwise-blank framebuffer. No fill, no shading, no depth
-test, no Z-buffer.
+test, no [Z-buffer](../appendix/a-glossary.md#z).
 
 It is the simplest rasterization engine the codebase ships,
 and it earns its keep in two specific cases:
@@ -23,9 +23,9 @@ By the end of this chapter you should know:
 
 - what the wireframe engine actually draws, and what it
   doesn't,
-- the **Bresenham line algorithm** that does the per-edge
+- the **[Bresenham](../appendix/a-glossary.md#b) line algorithm** that does the per-edge
   rasterization,
-- the LOD-driven progression from "obviously polygonal" to
+- the [LOD](../appendix/a-glossary.md#l)-driven progression from "obviously polygonal" to
   "saturated silhouette,"
 - where wireframe renders earn their keep in the development
   workflow.
@@ -155,14 +155,14 @@ The engine pays its rent in three places.
 
 **Editor previews.** The interactive
 `examples/GeneratedRayTracer` lets the user toggle the engine
-between Raytracer, Rasterizer, and Wireframe. For "I want to
+between Raytracer, Rasterizer, and [Wireframe](../appendix/a-glossary.md#w). For "I want to
 position my camera and lights, then bake a final render,"
 the wireframe gives instant feedback (every edge is one
 Bresenham call; no shading, no shadow rays, no recursion)
 while the user spins the camera around. Once the framing is
 right, switch to the raytracer for the final render.
 
-**Tessellation debugging.** Mistakes in
+**[Tessellation](../appendix/a-glossary.md#t) debugging.** Mistakes in
 [chapter 17](17-tessellation.md)'s tessellation code — wrong
 vertex order, missing vertices, off-by-one in the seam
 duplication — are immediately visible in a wireframe render.
@@ -190,7 +190,7 @@ A few wireframe-related extensions are queued under roadmap
   implemented.
 - **Shaded wireframes.** Edges colored by their face's
   shading or by a per-vertex attribute. Useful for displaying
-  vertex normals, UV layouts, or per-face material assignments
+  vertex normals, [UV](../appendix/a-glossary.md#u) layouts, or per-face material assignments
   as a debug overlay.
 - **Anti-aliased lines.** Bresenham draws crisp 1-pixel
   lines; an anti-aliased variant (Wu's algorithm or the

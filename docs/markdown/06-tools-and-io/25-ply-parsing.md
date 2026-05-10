@@ -53,7 +53,7 @@ end_header
 
 Reading the header line by line:
 
-- `ply` is the file's magic number — every PLY file starts with
+- `ply` is the file's magic number — every [PLY](../appendix/a-glossary.md#p) file starts with
   this exact line.
 - `format ascii 1.0` declares the encoding. The alternatives
   are `format binary_little_endian 1.0` and

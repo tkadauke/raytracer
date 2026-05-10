@@ -10,7 +10,7 @@ operators, one transfer function each, and a contract that says
 they bracket each other in a specific order. By the end of this
 chapter you should know:
 
-- the role of the float framebuffer in keeping HDR data alive
+- the role of the float framebuffer in keeping [HDR](../appendix/a-glossary.md#h) data alive
   through the entire render,
 - the three tonemap operators the codebase ships, with their
   transfer functions written out,
@@ -67,7 +67,7 @@ Every concrete tonemap implements one method:
 virtual Colord apply(const Colord& hdr) const = 0;
 ```
 
-Pure function: input HDR color in, LDR-clamped color out.
+Pure function: input HDR color in, [LDR](../appendix/a-glossary.md#l)-clamped color out.
 Stateless. Per-pixel. Trivially parallelizable (the renderer
 applies it tile-by-tile during the final pass).
 
@@ -108,7 +108,7 @@ mapping.
 ## 12.4 Reinhard (compressed everywhere)
 
 [`ReinhardTonemap`](../../../include/render/tonemap/ReinhardTonemap.h)
-applies the canonical Reinhard 2002 operator:
+applies the canonical [Reinhard](../appendix/a-glossary.md#r) 2002 operator:
 
 $$
 y = \frac{x}{1 + x}
@@ -137,7 +137,7 @@ clipping anywhere.
 ## 12.5 ACES (filmic-ish, punchy midtones)
 
 [`AcesTonemap`](../../../include/render/tonemap/AcesTonemap.h)
-implements Krzysztof Narkowicz's polynomial fit to the ACES
+implements Krzysztof Narkowicz's polynomial fit to the [ACES](../appendix/a-glossary.md#a)
 filmic tone curve:
 
 $$

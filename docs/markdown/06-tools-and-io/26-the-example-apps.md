@@ -42,8 +42,8 @@ $ rendercli --engine raytracer --width 1920 --height 1080 \
 The flags cover everything the apps with GUI knobs cover:
 engine choice (`raytracer` / `raster` / `wireframe`), output
 size, sampler choice, samples-per-pixel, recursion depth,
-tonemap operator, and per-engine knobs (LOD for wireframe and
-raster, MSAA for raster, queue size and thread count for
+tonemap operator, and per-engine knobs ([LOD](../appendix/a-glossary.md#l) for wireframe and
+raster, [MSAA](../appendix/a-glossary.md#m) for raster, queue size and thread count for
 raytracer).
 
 `rendercli` is the right front end for:
@@ -76,7 +76,7 @@ right, a scene-tree outliner on the left, and a live preview
 in the center. The user can mouse-drag to rotate the camera,
 edit primitive parameters in the property editor and see the
 result re-render, swap the engine between Raytracer / Rasterizer /
-Wireframe via a dropdown, and trigger final-output renders to
+[Wireframe](../appendix/a-glossary.md#w) via a dropdown, and trigger final-output renders to
 file via a render dialog.
 
 The `Display` widget — the central preview — is a subclass of
@@ -143,7 +143,7 @@ and
 are smaller targeted examples — each one a single scene
 showcasing a specific feature.
 
-`DifferenceRayTracer` shows CSG difference operations: a
+`DifferenceRayTracer` shows [CSG](../appendix/a-glossary.md#c) difference operations: a
 sphere with smaller spheres carved out, demonstrating the
 [chapter 14](../03-scene-structure/14-csg.md) interval-set
 operations on a real render.

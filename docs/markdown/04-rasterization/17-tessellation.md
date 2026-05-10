@@ -62,7 +62,7 @@ A mesh is two arrays:
 
 - **Vertices** — a list of `Mesh::Vertex` records, each
   containing a 3D position, a surface normal (unit length), and
-  a 2D UV coordinate.
+  a 2D [UV](../appendix/a-glossary.md#u) coordinate.
 - **Faces** — a list of `std::vector<int>` records, each
   containing the vertex indices of one polygon. The vertices
   must be coplanar; faces with fewer than three vertices throw
@@ -118,7 +118,7 @@ sphere is at the origin with radius 1. The UV coords map
 longitude to $u$ and latitude to $v$, both in $[0, 1]$, which
 gives the sphere a textbook lat-long parameterization.
 
-Higher LODs give smoother silhouettes. A LOD-0 sphere has 16
+Higher LODs give smoother silhouettes. A [LOD](../appendix/a-glossary.md#l)-0 sphere has 16
 segments around — visibly polygonal at any reasonable render
 size. LOD 3 (128 segments) is essentially indistinguishable
 from a true sphere at typical render resolutions.
@@ -254,7 +254,7 @@ running vertex count.
 This works for any composite. `Grid` and `Scene`
 ([chapter 15](../03-scene-structure/15-spatial-acceleration.md))
 inherit `Composite::tessellate` unchanged because their child
-geometry is exactly Composite's child list. The CSG composites
+geometry is exactly Composite's child list. The [CSG](../appendix/a-glossary.md#c) composites
 ([chapter 14](../03-scene-structure/14-csg.md)) override with
 empty meshes — mesh-Boolean operations aren't implemented, as
 that chapter notes.

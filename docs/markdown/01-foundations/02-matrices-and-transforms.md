@@ -76,7 +76,7 @@ template<class T>
 class Matrix4 : public Matrix<4, T, Vector4<T>, Matrix4<T>> { ... };
 ```
 
-The CRTP `Derived` parameter does the same job it did for `Vector`
+The [CRTP](../appendix/a-glossary.md#c) `Derived` parameter does the same job it did for `Vector`
 — operator return types come back as the derived class instead of
 the parent template instance. The `VectorType` parameter encodes
 which vector size pairs with which matrix size, so
@@ -253,7 +253,7 @@ The codebase treats them as a side conversion: `Matrix4` exposes
 spatial-transform pipeline always feeds matrices into the
 intersection / projection code. Quaternions live where they win
 (animation interpolation, anywhere a rotation needs to be slerped
-between keyframes). For a Whitted raytracer doing static scenes,
+between keyframes). For a [Whitted](../appendix/a-glossary.md#w) raytracer doing static scenes,
 they're a shelf item.
 
 ## 2.6 The four-matrix dance: `Instance`

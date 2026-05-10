@@ -12,7 +12,7 @@ By the end you should know:
 - the analytic quadric that solves ray-sphere intersection,
 - the one-line plane intersection formula,
 - the slab method for ray-box intersection,
-- Möller-Trumbore for ray-triangle intersection,
+- [Möller-Trumbore](../appendix/a-glossary.md#m) for ray-triangle intersection,
 - how disks and open cylinders fall out of plane and quadric math,
 - the quartic-root-finding work that makes ray-torus intersection
   possible,
@@ -49,8 +49,8 @@ question.
 
 Most primitives also override:
 
-- `calculateBoundingBox()` — returns the AABB enclosing the
-  primitive in world space. The BVH builder
+- `calculateBoundingBox()` — returns the [AABB](../appendix/a-glossary.md#a) enclosing the
+  primitive in world space. The [BVH](../appendix/a-glossary.md#b) builder
   ([chapter 15](../03-scene-structure/15-spatial-acceleration.md))
   reads this when it builds the scene's spatial structure.
 - `tessellate(int lod)` — produces a triangle mesh approximation
@@ -153,7 +153,7 @@ The implementation in
 [`Plane.cpp`](../../../src/render/primitives/Plane.cpp) does
 exactly this and emits a `HitPoint` whose normal is the plane's
 $\hat{\mathbf{n}}$ — every point on a plane shares the same
-normal. The plane has no UV parameterization; texture sampling
+normal. The plane has no [UV](../appendix/a-glossary.md#u) parameterization; texture sampling
 on a plane has to come from a `PlanarMapping2D`
 ([chapter 11 §11.3](11-textures.md#11-3-mappings-from-hit-point-to-s-t)).
 
@@ -301,7 +301,7 @@ $$
 
 Quadratic equations have a one-line closed-form solution. Cubic
 equations have a closed-form solution that's three lines but
-includes complex arithmetic. Quartic equations have a closed-form
+includes complex arithmetic. [Quartic](../appendix/a-glossary.md#q) equations have a closed-form
 solution that runs about 50 lines — Ferrari's method, which
 reduces the quartic to a cubic ("the resolvent cubic") and then
 solves that cubic to back-solve the quartic.
@@ -384,7 +384,7 @@ The renderer treats them all the same: it asks each primitive's
    the routine emitted only the smaller positive root?
 2. The plane has a single normal that doesn't depend on the hit
    point. Now consider rendering a plane with a normal pointing
-   away from the camera. What does the Lambertian shading
+   away from the camera. What does the [Lambertian](../appendix/a-glossary.md#l) shading
    ([chapter 8](08-materials-and-brdfs.md)) produce, and why?
 3. Read the box slab-method code. The "swap if $d_i$ is negative"
    step can be expressed as a `std::swap` or, equivalently, as

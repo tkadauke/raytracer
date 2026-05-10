@@ -103,12 +103,12 @@ blob's shape:
 - **Perimeter** — boundary pixel count. The boundary is the
   subset of blob pixels with at least one non-blob 4-neighbor
   (or a buffer-edge neighbor).
-- **Centroid** — pixel-mass-weighted center. The average of
+- **[Centroid](../appendix/a-glossary.md#c)** — pixel-mass-weighted center. The average of
   every blob pixel's coordinates, rounded to integer.
 - **Bounding box** — the axis-aligned `Recti` tight to the
   blob's pixel extents.
 - **Aspect ratio** — bounding-box height over width.
-- **Circularity** (Polsby-Popper) — $4\pi \cdot \text{area} /
+- **Circularity** ([Polsby-Popper](../appendix/a-glossary.md#p)) — $4\pi \cdot \text{area} /
   \text{perimeter}^2$, normalized to $[0, 1]$ where $1.0$ is
   a perfect circle.
 - **Radial variance** — the standard deviation of boundary-
@@ -127,7 +127,7 @@ circle, square, etc.
 
 A specific design property is worth pinning. The
 **`circularity` descriptor** is sensible only for *filled*
-blobs — for outline-only shapes (Wireframe-rendered
+blobs — for outline-only shapes ([Wireframe](../appendix/a-glossary.md#w)-rendered
 silhouettes) the area equals the perimeter and the value
 collapses to a useless function of perimeter alone. The
 **`radialVariance` descriptor**, by contrast, depends only on

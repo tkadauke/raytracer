@@ -20,7 +20,7 @@ By the end you should know:
 - which file in the codebase owns each step,
 - the `RenderEngine` / `Raytracer` split and why the abstraction
   exists,
-- the recursive structure that gives Whitted its name, and the
+- the recursive structure that gives [Whitted](../appendix/a-glossary.md#w) its name, and the
   reason the recursion has a depth cap.
 
 ## 5.1 The algorithm in one paragraph
@@ -33,7 +33,7 @@ out which lights are visible. For reflection or refraction it
 recursively traces a secondary ray and combines the returned color
 with the local shading. The algorithm repeats this across the
 pixel grid, accumulates into the float framebuffer, tonemaps to
-LDR, and writes to the display buffer.
+[LDR](../appendix/a-glossary.md#l), and writes to the display buffer.
 
 That is the entire algorithm. Every chapter in Volume II takes one
 of those clauses and unpacks it.
@@ -50,7 +50,7 @@ It helps to enumerate the steps with the file that owns each one.
    - Owner: [`include/render/cameras/`](../../../include/render/cameras/).
    - Detail: [chapter 6](06-cameras.md).
 2. **Scene intersection.** The renderer walks the scene's spatial
-   structure (typically a BVH, sometimes a flat list) and tests
+   structure (typically a [BVH](../appendix/a-glossary.md#b), sometimes a flat list) and tests
    the ray against each primitive's bounding box, then against the
    primitive's actual geometry for every box that survives. The
    closest valid hit is returned.
@@ -62,9 +62,9 @@ It helps to enumerate the steps with the file that owns each one.
      [chapter 15](../03-scene-structure/15-spatial-acceleration.md).
 3. **Material shading.** The hit point is handed to the
    primitive's `Material::shade(...)` method. The material
-   consults its texture for the surface color, applies the BRDF
-   appropriate to its type (Lambertian for matte, glossy for
-   Phong, perfect specular for mirror, perfect transmitter for
+   consults its texture for the surface color, applies the [BRDF](../appendix/a-glossary.md#b)
+   appropriate to its type ([Lambertian](../appendix/a-glossary.md#l) for matte, glossy for
+   [Phong](../appendix/a-glossary.md#p), perfect specular for mirror, perfect transmitter for
    glass), and asks the renderer to recurse on any secondary rays
    it needs.
    - Owner:
@@ -93,7 +93,7 @@ It helps to enumerate the steps with the file that owns each one.
    over the pixel area.
    - Owner: the camera's view plane and sampler.
    - Detail: [chapter 10](10-sampling-and-anti-aliasing.md).
-7. **Tonemap.** Once every pixel of the HDR float framebuffer is
+7. **[Tonemap](../appendix/a-glossary.md#t).** Once every pixel of the [HDR](../appendix/a-glossary.md#h) float framebuffer is
    filled, a tonemap operator runs over the buffer to compress the
    high-dynamic-range floats into the $[0, 1]$ display range, and
    the result is packed into `unsigned int`s for the LDR display
@@ -299,7 +299,7 @@ but produce pixels through entirely different algorithms:
 - The **wireframe engine**
   ([chapter 20](../04-rasterization/20-wireframe-rendering.md))
   edge-projects tessellated geometry into screen space and rasters
-  the edges with Bresenham's line algorithm. No ray casting at all.
+  the edges with [Bresenham](../appendix/a-glossary.md#b)'s line algorithm. No ray casting at all.
 - The **software rasterizer**
   ([chapter 18](../04-rasterization/18-the-rasterization-pipeline.md))
   projects triangles into screen space and runs the textbook

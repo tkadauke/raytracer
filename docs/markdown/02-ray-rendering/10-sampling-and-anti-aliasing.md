@@ -162,7 +162,7 @@ need this — they consume one dimension for the pixel offset and
 *another* dimension for the lens-disc sample, and using
 correlated samples for both would produce visible artifacts in
 defocus blur. Future path tracers will pull even more
-dimensions per ray (BRDF importance sampling, light sampling,
+dimensions per ray ([BRDF](../appendix/a-glossary.md#b) importance sampling, light sampling,
 Russian-roulette decisions); the stream API scales to that
 without forcing every consumer to know about every other
 consumer's dimensional needs.
@@ -232,7 +232,7 @@ sampler's `numSets`.
 
 ## 10.7 Picking a sampler
 
-For the final-render output of a Whitted scene, **jittered**
+For the final-render output of a [Whitted](../appendix/a-glossary.md#w) scene, **jittered**
 is the right default. The stratification guarantee gives the
 $\mathcal{O}(1/N)$ variance reduction over random; the
 randomization inside cells avoids the regular sampler's moiré

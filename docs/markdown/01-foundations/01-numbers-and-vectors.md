@@ -18,7 +18,7 @@ its slots. By the end you should know:
   intuition,
 - the unit-length invariant that quietly underpins every shading
   computation in the rest of the book,
-- and where the SSE3 specializations slot in.
+- and where the [SSE3](../appendix/a-glossary.md#s) specializations slot in.
 
 ## 1.1 Scalars: `double` is the default
 
@@ -29,7 +29,7 @@ two exceptions:
 
 1. **Colors.** `Colord` (the [chapter 4](04-color-and-buffers.md)
    topic) is also `double`, but other color storage may be `float`
-   or `unsigned int` depending on whether we're holding HDR or LDR
+   or `unsigned int` depending on whether we're holding [HDR](../appendix/a-glossary.md#h) or [LDR](../appendix/a-glossary.md#l)
    data. That choice is independent of geometry.
 2. **The SSE3 specializations.** `Vector3<float>` and
    `Vector4<float>` exist for cases where you specifically need
@@ -104,7 +104,7 @@ hold the components in an XMM register's worth of storage instead
 dimension-agnostic operations. When you write
 `Vector3<T>::operator+`, you want the result to be a `Vector3<T>`
 — not a `Vector<3, T>` that you then have to convert. The trick is
-the curiously-recurring template pattern (CRTP): the parent
+the curiously-recurring template pattern ([CRTP](../appendix/a-glossary.md#c)): the parent
 template knows what the child type is at compile time, and returns
 that type from operations defined in the parent. The class
 declaration of `Vector3<T>` makes the loop:
@@ -207,7 +207,7 @@ invariant in §1.6 matters.
 Three uses of the dot product show up in essentially every chapter
 that follows:
 
-1. **Lambertian shading.** The brightness of a surface lit by a
+1. **[Lambertian](../appendix/a-glossary.md#l) shading.** The brightness of a surface lit by a
    directional light is $\mathbf{n} \cdot \mathbf{l}$, where
    $\mathbf{n}$ is the surface normal and $\mathbf{l}$ points
    toward the light. Both unit length, so the dot product is the
@@ -221,7 +221,7 @@ that follows:
 3. **Side-of-plane tests.** $\mathbf{n} \cdot (\mathbf{p} -
    \mathbf{p}_0)$ is positive on one side of the plane through
    $\mathbf{p}_0$ with normal $\mathbf{n}$, negative on the other,
-   zero on the plane. The signed-area test that drives Pineda's
+   zero on the plane. The signed-area test that drives [Pineda](../appendix/a-glossary.md#p)'s
    rasterization algorithm
    ([chapter 18](../04-rasterization/18-the-rasterization-pipeline.md))
    is this in 2D.
@@ -260,7 +260,7 @@ What it's used for, in the rest of the book:
 - **Triangle normals.** A triangle with vertices $\mathbf{a}$,
   $\mathbf{b}$, $\mathbf{c}$ has the (unnormalized) face normal
   $(\mathbf{b} - \mathbf{a}) \times (\mathbf{c} - \mathbf{a})$.
-  Möller-Trumbore intersection
+  [Möller-Trumbore](../appendix/a-glossary.md#m) intersection
   ([chapter 7](../02-ray-rendering/07-primitives-and-intersection.md))
   builds on this.
 - **Signed area in 2D.** The $z$-component of $(\mathbf{b} -
@@ -323,9 +323,9 @@ naming convention is the same one `reverse` / `reversed` and
 > are normalized.**
 
 This is one of those project conventions you can't see by reading
-a single function. The Whitted tracer assumes `Ray::direction()`
+a single function. The [Whitted](../appendix/a-glossary.md#w) tracer assumes `Ray::direction()`
 is unit length. The shading code assumes the surface normal you
-hand it from a `HitPoint` is unit length. The Lambertian BRDF
+hand it from a `HitPoint` is unit length. The Lambertian [BRDF](../appendix/a-glossary.md#b)
 assumes the light direction is unit length. The reflection
 formula $\mathbf{r} = \mathbf{i} - 2(\mathbf{i} \cdot
 \mathbf{n})\mathbf{n}$ only produces a unit reflected direction

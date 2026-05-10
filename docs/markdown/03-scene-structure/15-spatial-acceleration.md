@@ -20,11 +20,11 @@ By the end of this chapter you should know:
 
 - why $\mathcal{O}(N)$ per ray is unsustainable past a few
   hundred primitives,
-- how a BVH's binary tree of bounding boxes prunes most of the
+- how a [BVH](../appendix/a-glossary.md#b)'s binary tree of bounding boxes prunes most of the
   scene per ray,
 - the Surface Area Heuristic for picking BVH split axes and
   positions,
-- how a uniform grid does the same job through 3D-DDA traversal,
+- how a uniform grid does the same job through 3D-[DDA](../appendix/a-glossary.md#d) traversal,
 - which structure to pick for a given scene.
 
 ## 15.1 The cost of doing nothing
@@ -46,7 +46,7 @@ for (const auto& child : children) {
 
 One intersect call per child. For 100 children that's 100
 calls; for 10,000 it's 10,000. Worse, every child does its own
-work — a triangle's Möller-Trumbore is cheap, but a torus's
+work — a triangle's [Möller-Trumbore](../appendix/a-glossary.md#m) is cheap, but a torus's
 quartic root finding ([chapter 7
 §7.7](../02-ray-rendering/07-primitives-and-intersection.md#7-7-torus-a-quartic-root-problem))
 is expensive, and running 10,000 of them per ray is enough to
@@ -69,7 +69,7 @@ wins).
 ## 15.2 The bounding volume hierarchy
 
 A **BVH** is a binary tree where each internal node owns a
-bounding box (an AABB from
+bounding box (an [AABB](../appendix/a-glossary.md#a) from
 [chapter 3 §3.6](../01-foundations/03-rays-and-geometry.md#3-6-bounding-boxes))
 that tightly encloses all primitives in the subtree rooted at
 that node. Each leaf node owns a small batch of primitives
@@ -111,7 +111,7 @@ arbitrary in x, and the resulting AABBs at the top of the
 tree overlap heavily. Rays end up testing both children of the
 split, not just one — defeating the purpose.
 
-The **Surface Area Heuristic** (SAH; Goldsmith & Salmon 1987,
+The **Surface Area Heuristic** ([SAH](../appendix/a-glossary.md#s); Goldsmith & Salmon 1987,
 refined by MacDonald & Booth 1990) picks the split that
 minimizes the *expected* traversal cost. The cost model says:
 for a node containing children with AABBs $\{A_i\}$ and total
@@ -171,7 +171,7 @@ The widget shows the per-cell traversal step by step:
 <!-- widget: grid_dda_traversal -->
 
 The traversal algorithm is **3D-DDA** — Digital Differential
-Analyzer. The 1D version is the Bresenham line algorithm; the
+Analyzer. The 1D version is the [Bresenham](../appendix/a-glossary.md#b) line algorithm; the
 3D version steps a ray through a uniform-grid cell array, at
 each step picking the axis whose cell boundary the ray crosses
 *next*. The math is one increment per axis per step, with no

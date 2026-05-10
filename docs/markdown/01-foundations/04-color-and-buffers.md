@@ -11,7 +11,7 @@ By the end you should know:
   packed `unsigned int` form that ends up in a display framebuffer,
 - the practical difference between **linear RGB** (what the renderer
   works in) and **sRGB** (what the display expects),
-- what HDR and LDR mean, and where the conversion between them
+- what [HDR](../appendix/a-glossary.md#h) and [LDR](../appendix/a-glossary.md#l) mean, and where the conversion between them
   happens in this codebase,
 - how `Buffer<T>` provides a fixed-size 2D array with row-major
   indexing.
@@ -45,7 +45,7 @@ display values.
 
 There's an SSE2 specialization of `Colord` under
 [`include/core/color/sse3/`](../../../include/core/color/sse3/),
-analogous to the SSE3 vector specialization from
+analogous to the [SSE3](../appendix/a-glossary.md#s) vector specialization from
 [chapter 1](01-numbers-and-vectors.md#1-7-the-sse3-specializations).
 The story is the same one: storage occupies an XMM register's
 worth, operators use intrinsics, and the API is unchanged.
@@ -134,7 +134,7 @@ component, ready for display. Equivalently, in 8-bit
 The renderer works in HDR throughout. Only at the very end does it
 collapse the HDR float buffer to an LDR `unsigned int` buffer for
 display. That collapse is the **tonemap** stage, and the choice of
-tonemap operator (Linear / Reinhard / ACES) is what controls how
+tonemap operator (Linear / [Reinhard](../appendix/a-glossary.md#r) / [ACES](../appendix/a-glossary.md#a)) is what controls how
 brightness gets compressed.
 
 For this chapter, the takeaway is simply: **`Colord` carries HDR

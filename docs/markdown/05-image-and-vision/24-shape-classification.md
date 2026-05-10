@@ -308,7 +308,7 @@ test suite lives in.
 - Previous:
   [23. Blob analysis and silhouettes](23-blob-analysis-and-silhouettes.md)
 - Next volume: [Volume VI — Tools & I/O](../06-tools-and-io/README.md)
-- Silhouette source:
+- [Silhouette](../appendix/a-glossary.md#s) source:
   [23. Blob analysis and silhouettes §23.4](23-blob-analysis-and-silhouettes.md#23-4-the-silhouette-shortcut)
 - Functional tests that consume the classifier:
   `test/functional/render/primitives/SphereTest.cpp` and

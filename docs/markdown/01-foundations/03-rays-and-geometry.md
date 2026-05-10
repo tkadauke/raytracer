@@ -165,7 +165,7 @@ class HitPoint {
 ```
 
 - `m_primitive` is a back-pointer to the primitive the ray hit.
-  Materials, BVH bookkeeping, and the per-primitive scene picking
+  Materials, [BVH](../appendix/a-glossary.md#b) bookkeeping, and the per-primitive scene picking
   all consult this. It's a non-owning pointer; the primitive lives
   in the scene.
 - `m_distance` is the $t$ from §3.2. Why store it after computing
@@ -179,7 +179,7 @@ class HitPoint {
   [chapter 1 §1.6](01-numbers-and-vectors.md#1-6-length-normalization-and-the-unit-length-invariant)
   applies here too.
 - `m_uv` is the surface's $(u, v)$ texture coordinates at the hit
-  point. Filled by primitives that have a meaningful UV
+  point. Filled by primitives that have a meaningful [UV](../appendix/a-glossary.md#u)
   parameterization (sphere, cylinder, mesh triangles); zero
   otherwise.
 
@@ -187,7 +187,7 @@ The class also carries two helpers worth knowing:
 
 - `swappedNormal()` returns a copy with the normal negated. Used
   when a ray hits the *back* of a surface (the dot product of ray
-  direction and normal is positive instead of negative); CSG
+  direction and normal is positive instead of negative); [CSG](../appendix/a-glossary.md#c)
   intersection
   ([chapter 14](../03-scene-structure/14-csg.md)) and refraction
   inside-the-glass cases call it.
@@ -244,7 +244,7 @@ intervals — union, intersection, difference — are how CSG works at
 the math level, and they're covered in
 [chapter 14](../03-scene-structure/14-csg.md). For the rest of
 Volume II, all you need is "this is the interval form of a
-HitPoint, used when a primitive can produce more than one
+[HitPoint](../appendix/a-glossary.md#h), used when a primitive can produce more than one
 intersection per ray."
 
 ## 3.6 Bounding boxes
@@ -259,7 +259,7 @@ exists.
 A bounding box is two corners: `min` (lowest $x$, $y$, $z$) and
 `max` (highest of each). The box is the axis-aligned rectangle
 $[\text{min}.x, \text{max}.x] \times [\text{min}.y, \text{max}.y]
-\times [\text{min}.z, \text{max}.z]$. "AABB" — axis-aligned
+\times [\text{min}.z, \text{max}.z]$. "[AABB](../appendix/a-glossary.md#a)" — axis-aligned
 bounding box — is the canonical name in the literature.
 
 <!-- widget: bounding_box_class -->

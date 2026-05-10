@@ -44,13 +44,13 @@ convention.
 that direction. The convention is that intensity is folded into
 the color components — a "100 W bulb" is a `Colord(100, 100,
 100)`, not a separate brightness scalar. Materials simply
-multiply their BRDF result by the radiance and the geometric
+multiply their [BRDF](../appendix/a-glossary.md#b) result by the radiance and the geometric
 cosine, with no further scaling.
 
 Lights live on a separate list off
 [`Scene::lights()`](../../../include/render/primitives/Scene.h),
 not in the geometric primitive tree. The shading pipeline
-iterates the light list independently of the BVH traversal that
+iterates the light list independently of the [BVH](../appendix/a-glossary.md#b) traversal that
 finds the hit. This separation matters because lights aren't
 geometry: they don't intersect rays, they don't need bounding
 boxes, they don't get tessellated. A light is just a function
@@ -80,7 +80,7 @@ deliberately omits the falloff because it makes scene authoring
 much harder: a point light bright enough to illuminate the far
 side of a room would burn out the near side, and tuning that
 balance pixel-by-pixel is a path-tracing problem, not a
-Whitted-renderer problem. Distance falloff is queued under
+[Whitted](../appendix/a-glossary.md#w)-renderer problem. Distance falloff is queued under
 roadmap §4.4.b and lands when stochastic shadow sampling does.
 
 ## 9.3 Directional lights
@@ -212,7 +212,7 @@ $$
 
 where $k_a$ is the material's ambient coefficient, $f_d$ is the
 diffuse BRDF (reduces to the diffuse color divided by $\pi$
-for Lambertian), and $L_{\text{scene-ambient}}$ is the
+for [Lambertian](../appendix/a-glossary.md#l)), and $L_{\text{scene-ambient}}$ is the
 scene-level ambient color.
 
 This is not physically correct. A real scene's indirect light

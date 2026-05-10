@@ -16,7 +16,7 @@ By the end of this chapter you should know:
   `UVColorTexture`) and what each is for,
 - the **mapping** abstraction that turns a hit point into 2D
   texture coordinates, and the difference between planar and
-  UV-direct,
+  [UV](../appendix/a-glossary.md#u)-direct,
 - how a material plugs a texture in.
 
 ## 11.1 The `Texture<T>` interface

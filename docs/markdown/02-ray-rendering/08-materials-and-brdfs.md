@@ -10,12 +10,12 @@ useful abstractions in graphics: separating *geometry* from
 By the end of this chapter you should know:
 
 - the `Material` interface and its single `shade(...)` virtual,
-- what a BRDF is, mathematically and at the function-pointer
+- what a [BRDF](../appendix/a-glossary.md#b) is, mathematically and at the function-pointer
   level,
-- the four BRDFs the codebase ships (Lambertian, GlossySpecular,
+- the four BRDFs the codebase ships ([Lambertian](../appendix/a-glossary.md#l), GlossySpecular,
   PerfectSpecular, PerfectTransmitter), and the matching
   materials that compose them,
-- the `BSDF` abstraction that unifies BRDF and BTDF behind
+- the `BSDF` abstraction that unifies BRDF and [BTDF](../appendix/a-glossary.md#b) behind
   one interface,
 - and how reflection, transmission, and the portal effect fit
   the same shading frame.
@@ -88,7 +88,7 @@ $$
 L_o(\mathbf{w}_o) = \int f_r(\mathbf{w}_i, \mathbf{w}_o) \, L_i(\mathbf{w}_i) \, (\mathbf{n} \cdot \mathbf{w}_i) \, d\mathbf{w}_i
 $$
 
-A Whitted raytracer reduces that integral to a sum over the
+A [Whitted](../appendix/a-glossary.md#w) raytracer reduces that integral to a sum over the
 scene's lights — one BRDF evaluation per light, multiplied by
 the light's radiance and the geometric cosine. (A path tracer
 would Monte-Carlo-integrate the same equation; that's the
@@ -114,7 +114,7 @@ falloff at grazing angles. Lambertian is the cheapest BRDF in
 the catalog and the right default for matte surfaces.
 
 [`GlossySpecular`](../../../include/render/brdf/GlossySpecular.h)
-is the Phong specular lobe. It returns nonzero only when the
+is the [Phong](../appendix/a-glossary.md#p) specular lobe. It returns nonzero only when the
 outgoing direction $\mathbf{w}_o$ is close to the *mirror
 reflection* of the incoming direction; the lobe's tightness is
 controlled by an exponent. Higher exponents produce sharper
@@ -251,7 +251,7 @@ adds refraction. The shade routine delegates to Phong for direct
 lighting, samples both `PerfectSpecular` (the partial mirror
 reflection that any refractive surface still has) and
 `PerfectTransmitter` (the refracted ray through the surface),
-recurses on both, and combines using Fresnel weighting — more
+recurses on both, and combines using [Fresnel](../appendix/a-glossary.md#f) weighting — more
 reflection at glancing angles, more transmission near
 perpendicular. When the angle exceeds the critical angle for
 the medium, the transmission contribution drops to zero and the
@@ -291,7 +291,7 @@ virtual Colord sample(const Vector3d& wi, Vector3d& wo, double& pdf) const;
 virtual double pdf(const Vector3d& wi, const Vector3d& wo) const;
 ```
 
-`eval(wi, wo)` returns the BSDF value for a fully-specified
+`eval(wi, wo)` returns the [BSDF](../appendix/a-glossary.md#b) value for a fully-specified
 direction pair. Used by direct-lighting loops (which know the
 light's direction and the eye's direction) and by importance-
 sampling integrators that need a probability for a draw.

@@ -14,12 +14,12 @@ the end you should know:
 - the six stages a triangle goes through from "mesh face" to
   "shaded pixels in the framebuffer",
 - the **edge-function** algorithm that decides which pixels
-  are inside a triangle (Pineda 1988),
+  are inside a triangle ([Pineda](../appendix/a-glossary.md#p) 1988),
 - how the prepared-triangle structure precomputes the
   edge-function increments so the inner pixel loop is a few
   adds per pixel,
 - the perspective-correct interpolation trick that makes
-  per-vertex attributes (depth, normal, UV) survive projection,
+  per-vertex attributes (depth, normal, [UV](../appendix/a-glossary.md#u)) survive projection,
 - and the per-primitive material-lookup path that gives the
   rasterizer's shaded output something to look at.
 
@@ -52,13 +52,13 @@ goes through six stages:
    projected outline. The math is the **edge-function**
    algorithm (§18.3).
 5. **Depth test.** Each emitted pixel's perspective-correct
-   depth is compared against the per-pixel Z-buffer. Failing
+   depth is compared against the per-pixel [Z-buffer](../appendix/a-glossary.md#z). Failing
    pixels are dropped. The full depth-and-stencil state machine
    is in [chapter 19](19-clipping-depth-stencil.md); §18.4
    sketches the default `Less` test.
 6. **Fragment shading.** Surviving pixels get their normal,
    world position, and UV interpolated, the material is sampled
-   for albedo, and Lambertian shading produces the final color.
+   for albedo, and [Lambertian](../appendix/a-glossary.md#l) shading produces the final color.
    The result is written to the float framebuffer; tonemap
    ([chapter 12](../02-ray-rendering/12-tone-mapping.md)) does
    the rest.
@@ -174,7 +174,7 @@ $$
 z_{\text{interp}} = \frac{1}{w_0 / z_0 + w_1 / z_1 + w_2 / z_2}
 $$
 
-This is the **Heckbert-Moreton** trick (1991), and
+This is the **[Heckbert-Moreton](../appendix/a-glossary.md#h)** trick (1991), and
 [chapter 21](21-msaa-and-attribute-interpolation.md) walks it
 through in detail. The same trick applies to every per-vertex
 attribute (normals, UVs, world positions) — interpolate each
@@ -199,7 +199,7 @@ attributes:
 - **World position** — used by the lighting code's shadow ray
   (the rasterizer reuses
   [chapter 9 §9.4](../02-ray-rendering/09-lights-and-shading.md#9-4-the-shadow-ray)'s
-  shadow-ray test against the scene's BVH) and by texture
+  shadow-ray test against the scene's [BVH](../appendix/a-glossary.md#b)) and by texture
   mappings that depend on world coords.
 - **UV** — used by texture sampling.
 
@@ -222,7 +222,7 @@ materials remain *visible* (a colored mesh) rather than
 *invisible* (a black mesh).
 
 This is one place where the rasterizer takes a shortcut
-compared to the raytracer. The Whitted raytracer in
+compared to the raytracer. The [Whitted](../appendix/a-glossary.md#w) raytracer in
 [chapter 5 §5.4](../02-ray-rendering/05-the-whitted-pipeline.md#5-4-the-recursive-heart)
 calls the material's `shade(...)` method, which can recurse on
 secondary rays for reflection and refraction. The rasterizer
@@ -243,7 +243,7 @@ them.
 The full
 [`Rasterizer::render`](../../../src/engine/raster/Rasterizer.cpp)
 is large, but the structure follows §18.1's six steps with a
-seventh (the float-to-LDR conversion) bolted on the end.
+seventh (the float-to-[LDR](../appendix/a-glossary.md#l) conversion) bolted on the end.
 Reading the algorithmic spine:
 
 ```
