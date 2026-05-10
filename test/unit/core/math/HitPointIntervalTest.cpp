@@ -184,7 +184,7 @@ namespace HitPointIntervalTest {
     interval.addOut(HitPoint(box, 2, Vector3d(), Vector3d()));
     interval.addIn (HitPoint(box, 3, Vector3d(), Vector3d()));
     interval.addOut(HitPoint(box, 4, Vector3d(), Vector3d()));
-    ASSERT_EQ(4u, interval.points().size());
+    ASSERT_EQ(4ul, interval.points().size());
     ASSERT_TRUE(interval.points().usingInlineStorage());
   }
 
@@ -192,7 +192,7 @@ namespace HitPointIntervalTest {
     HitPointInterval interval;
     for (int i = 0; i < 5; ++i)
       interval.add(HitPoint(box, double(i + 1), Vector3d(), Vector3d()), (i & 1) == 0);
-    ASSERT_EQ(5u, interval.points().size());
+    ASSERT_EQ(5ul, interval.points().size());
     ASSERT_FALSE(interval.points().usingInlineStorage());
   }
 
