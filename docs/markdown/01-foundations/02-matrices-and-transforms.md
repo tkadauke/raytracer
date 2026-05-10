@@ -248,13 +248,20 @@ Three things make quaternions worth carrying:
 3. **Compact storage.** Four numbers vs nine for a 3×3 rotation
    matrix.
 
-The codebase treats them as a side conversion: `Matrix4` exposes
-`toQuaternion()` and `Quaternion` exposes `toMatrix4()`, but the
-spatial-transform pipeline always feeds matrices into the
-intersection / projection code. Quaternions live where they win
-(animation interpolation, anywhere a rotation needs to be slerped
-between keyframes). For a [Whitted](../appendix/a-glossary.md#w) raytracer doing static scenes,
+The codebase treats them as a side conversion: `Matrix3` exposes
+`rotationQuaternion()` and `Quaternion` exposes `toMatrix3()` /
+`toMatrix4()`, but the spatial-transform pipeline always feeds
+matrices into the intersection / projection code. Quaternions live
+where they win (animation interpolation, anywhere a rotation needs
+to be slerped between keyframes). For a [Whitted](../appendix/a-glossary.md#w) raytracer doing static scenes,
 they're a shelf item.
+
+The `Quaternion<T>` class provides the full rotation toolkit:
+`fromAxisAngle(axis, radians)` and `fromEulerAngles(rx, ry, rz)` to
+build rotations, `rotate(Vector3)` to apply one, `conjugate()` and
+`inverse()` for inversion, `toMatrix3()` / `toMatrix4()` for matrix
+interop, `slerp(a, b, t)` for smooth keyframe interpolation, and
+`nlerp(a, b, t)` as the faster approximate alternative.
 
 ## 2.6 The four-matrix dance: `Instance`
 
