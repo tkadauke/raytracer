@@ -218,14 +218,11 @@ own transform (see any standard graphics text for the derivation).
 For a *uniform* scale and pure rotation, $M$ is orthogonal up to a
 scalar, so $\big(M^{-1}\big)^T = M$ (modulo the scalar) and you
 don't see the difference. As soon as the scale is non-uniform,
-$M^{-1}$ stops equaling $M^T$ and the difference becomes visible.
-
-The shipped widget shows this in 2D. Drag the scale handles to
-make the transform non-uniform; you'll see the "naive" transformed
-normal (gray) tilt away from the surface while the inverse-
-transpose transformed normal (the bright one) stays perpendicular.
-
-<!-- widget: instance_transform_normals -->
+$M^{-1}$ stops equaling $M^T$ and the difference becomes visible:
+the "naive" transformed normal tilts away from perpendicular,
+while the inverse-transpose transformed normal stays correctly
+perpendicular to the deformed surface. The §2.6 widget shows
+this side-by-side in the context of the full `Instance` transform.
 
 The practical rule: any time you write code that transforms a
 normal, use the normal matrix, not the direction matrix. The
@@ -305,6 +302,15 @@ order:
   Since `m_directionMatrix` is already the inverse, the transpose
   of it is the inverse-transpose of the original — exactly the
   matrix the §2.4 normal-transform rule needs.
+
+The widget below shows the four matrices in action. The left side
+is the world-space ray; the right side is the same ray transformed
+into the primitive's local space (`m_originMatrix` on the origin,
+`m_directionMatrix` on the direction). The compared "naive normal"
+vs "inverse-transpose normal" arrows on the deformed shape show
+why `m_normalMatrix` exists as a separate precomputed matrix.
+
+<!-- widget: instance_transform_normals -->
 
 That's the full content of "what you need to know about
 matrices to follow the rest of the book." Every matrix-touching

@@ -605,6 +605,17 @@ Until the publish flow exists, chapters can use a static fallback —
 embedded screenshot + `<!-- widget: ... -->` comment — and the
 build step substitutes the live version when it's wired up.
 
+**The widget must match the surrounding prose exactly.** A widget
+that demonstrates more than the prose introduces is a distraction
+— the reader stops to figure out what the extra controls do, then
+comes back wondering whether they missed something. Read each
+widget's `scripts/docs/*.js` source before placing it: if the
+widget covers concepts A, B, and C but the chapter section only
+introduces concept A, embed it in the section that covers all
+three (or skip the embed and let the prose carry the section
+unaided). When in doubt, no widget is better than a too-complex
+one.
+
 ### Rendered images
 
 Images live in `docs/images/` and are rendered via `rake docs:render`.

@@ -63,6 +63,11 @@ is in force: **the direction is unit length**. Every public API
 that constructs a ray normalizes before returning. Intersection
 math throughout the book assumes this.
 
+The widget below is the labeled diagram. Origin $o$, direction
+$\mathbf{d}$, and the start of the parameter axis at $t = 0$:
+
+<!-- widget: ray_class -->
+
 ## 3.2 The parameter $t$ is the universal currency
 
 The interesting method on `Ray` is one line:
@@ -115,8 +120,6 @@ rest of the book.
 ## 3.3 The `Ray` class, all of it
 
 The full `Ray` class has a few additional helpers worth naming:
-
-<!-- widget: ray_class -->
 
 - `epsilonShifted()` returns a copy of the ray with its origin
   pushed forward by `epsilon` along the direction. This is the
