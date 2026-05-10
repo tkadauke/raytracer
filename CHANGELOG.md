@@ -12,6 +12,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Changed
 
 - **`Polynomial::solve()` CRTP refactor (roadmap §2.4).** `Polynomial<T,N>` is now a CRTP base `Polynomial<T,N,Derived>`; `solve()` is no longer virtual. `solveInto()` and `sortedResult()` dispatch to `Derived::solve()` via `static_cast`, eliminating the vtable pointer and indirect call on the torus inner loop where the polynomial degree is compile-time-known. — Claude Sonnet 4.6
+- **`Matrix4::inverted()` replaced cofactor expansion with block-inverse (Schur complement).** Partitions the 4×4 into four 2×2 blocks, inverts D and the Schur complement S = A − B·D⁻¹·C, and assembles the four result blocks — ~60 explicit multiplications vs ~120 in the old cofactor path. Benchmark: 41 ns → 20 ns (float), 39 ns → 17 ns (double) on a TRS matrix; 2.0–2.4× speedup consistently across runs. Three numerical-stability tests (`ShouldHaveSmallResidualForTRSMatrix`, `ShouldHaveSmallResidualForNearSingularMatrix`, `ShouldHaveSmallResidualForLargeTranslationMatrix`) verify `||M·M⁻¹ − I||` stays below 1e-3 even for condition-number ~200 matrices. Closes core-math-optimization.md §2.2. — Claude Sonnet 4.6
 
 ### Added
 

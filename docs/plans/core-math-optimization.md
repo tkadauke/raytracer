@@ -225,16 +225,18 @@ trick the Vector classes use.
 speedup; whole-render macro benchmark on any transform-heavy scene
 shows measurable improvement.
 
-### 2.2 Replace cofactor `Matrix4::inverted()` with block-inverse
+### ~~2.2 Replace cofactor `Matrix4::inverted()` with block-inverse~~
 
-96+ multiplies → ~30. The block-inverse formula partitions the
+~~96+ multiplies → ~30. The block-inverse formula partitions the
 4×4 into four 2×2 blocks and uses the Schur complement. Also more
 numerically stable than the cofactor expansion under
-ill-conditioned matrices.
+ill-conditioned matrices.~~
 
-**Benchmark gate:** `MatrixBenchmark.cpp`. **Pass condition:** ≥2×
+~~**Benchmark gate:** `MatrixBenchmark.cpp`. **Pass condition:** ≥2×
 speedup; numerical-stability test (a battery of near-singular
-matrices) shows tighter residuals.
+matrices) shows tighter residuals.~~
+
+✅ **Done.** Block-inverse via Schur complement implemented in `Matrix4<T>::inverted()`. Baseline: ~41 ns/op (float), ~39 ns/op (double); after: ~20 ns/op (float), ~17 ns/op (double) — consistent 2.0–2.4× speedup. Three numerical-stability tests added (`ShouldHaveSmallResidualForTRSMatrix`, `ShouldHaveSmallResidualForNearSingularMatrix`, `ShouldHaveSmallResidualForLargeTranslationMatrix`). Closes roadmap §2.2.
 
 ### 2.3 Delete the broken `Vector3<double>` SSE3 specialization
 
