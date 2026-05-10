@@ -359,3 +359,27 @@ jobs:
           format: spdx-json
           output-file: sbom.spdx.json
           artifact-name: raytracer-sbom-${{ github.sha }}.spdx.json
+
+  textbook:
+    name: Textbook (markdown drift)
+    # Validates docs/markdown/ links, source-anchor blocks, and widget
+    # references; verifies the generated source-map appendix is fresh.
+    # Lightweight: Ruby + git only, no C++ build.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: rake docs:textbook:check
+        run: rake docs:textbook:check
+
+      - name: rake docs:textbook:source-map (fail if committed file is stale)
+        run: |
+          rake docs:textbook:source-map
+          if ! git diff --quiet -- docs/markdown/appendix/c-source-map.md; then
+            echo "::error::docs/markdown/appendix/c-source-map.md is stale; run \`rake docs:textbook:source-map\` and commit the result."
+            git --no-pager diff -- docs/markdown/appendix/c-source-map.md
+            exit 1
+          fi
