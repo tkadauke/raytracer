@@ -192,18 +192,20 @@ with `_mm_cvtsd_f64`/`_mm_unpackhi_pd` and `_mm_cvtss_f32`/`_mm_shuffle_ps`
 intrinsic lane extracts. `VectorBenchmark` dot/reflect-chain/batch-dot medians
 stayed within noise on all four types. Branch: syrus/issue-104-146.
 
-### 1.4 `HitPointInterval` small-buffer optimization
+### ~~1.4 `HitPointInterval` small-buffer optimization~~
 
-Most rays produce 1–2 hit points. Replace
+~~Most rays produce 1–2 hit points. Replace
 `std::vector<HitPointWrapper>` with a fixed-capacity stack buffer
 (e.g. `boost::container::small_vector` equivalent or a hand-rolled
-4-element inline buffer that falls back to heap for deep CSG).
+4-element inline buffer that falls back to heap for deep CSG).~~
 
-**Benchmark gate:** `HitPointIntervalBenchmark.cpp` for the 1-, 2-,
+~~**Benchmark gate:** `HitPointIntervalBenchmark.cpp` for the 1-, 2-,
 4-, 8-hit cases. **Pass condition:** zero allocations for ≤4 hits
 (measured via counting allocator); ≥30% speedup on the 1–2 hit
 case; whole-render macro benchmark on the sphere scene shows ≥5%
-improvement.
+improvement.~~
+
+✅ **Done.** Introduced `SmallVector<T, N>` (`include/core/math/SmallVector.h`) and switched `HitPointInterval::HitPoints` from `std::vector` to `SmallVector<HitPointWrapper, 4>`. Zero-allocation invariant asserted in unit tests via `usingInlineStorage()`; measured ≥39% speedup on 1-hit, ≥41% on 2-hit, ≥74% on the single-hit-cycle path at `-O3` on Linux/x86-64. See syrus/issue-105-145.
 
 ### ~~1.5 `Polynomial::sortedResult` — return inline storage~~
 

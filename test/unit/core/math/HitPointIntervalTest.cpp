@@ -167,11 +167,52 @@ namespace HitPointIntervalTest {
     HitPoint hitPoint1(box, 2, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
     HitPoint hitPoint2(box, 3, Vector3d(2, 0, 0), Vector3d(0, 1, 0));
     interval.add(hitPoint1, hitPoint2);
-    
+
     Matrix4d pointMatrix = Matrix3d::rotateZ(1_radians);
     Matrix3d normalMatrix = Matrix3d::rotateX(1_radians);
-    
+
     HitPointInterval transformed = interval.transform(pointMatrix, normalMatrix);
     ASSERT_EQ(Vector3d(pointMatrix * Vector4d(1, 0, 0)), transformed.min().point());
+  }
+
+  // Zero-allocation contract: intervals with ≤4 hit points must stay in the
+  // inline buffer.  usingInlineStorage() exposes the SmallVector state so
+  // tests can assert the invariant without a counting-allocator harness.
+  TEST(HitPointInterval, SmallBufferUsedForFourOrFewerHitPoints) {
+    HitPointInterval interval;
+    interval.addIn (HitPoint(box, 1, Vector3d(), Vector3d()));
+    interval.addOut(HitPoint(box, 2, Vector3d(), Vector3d()));
+    interval.addIn (HitPoint(box, 3, Vector3d(), Vector3d()));
+    interval.addOut(HitPoint(box, 4, Vector3d(), Vector3d()));
+    ASSERT_EQ(4u, interval.points().size());
+    ASSERT_TRUE(interval.points().usingInlineStorage());
+  }
+
+  TEST(HitPointInterval, HeapFallbackForFiveOrMoreHitPoints) {
+    HitPointInterval interval;
+    for (int i = 0; i < 5; ++i)
+      interval.add(HitPoint(box, double(i + 1), Vector3d(), Vector3d()), (i & 1) == 0);
+    ASSERT_EQ(5u, interval.points().size());
+    ASSERT_FALSE(interval.points().usingInlineStorage());
+  }
+
+  TEST(HitPointInterval, CopyPreservesInlineStorageForSmallIntervals) {
+    HitPointInterval a;
+    a.addIn (HitPoint(box, 1, Vector3d(), Vector3d()));
+    a.addOut(HitPoint(box, 2, Vector3d(), Vector3d()));
+    HitPointInterval b = a;
+    ASSERT_TRUE(b.points().usingInlineStorage());
+    ASSERT_TRUE(b.min() == a.min());
+    ASSERT_TRUE(b.max() == a.max());
+  }
+
+  TEST(HitPointInterval, MovePreservesCorrectness) {
+    HitPointInterval a;
+    a.addIn (HitPoint(box, 1, Vector3d(), Vector3d()));
+    a.addOut(HitPoint(box, 2, Vector3d(), Vector3d()));
+    HitPoint expectedMin = a.min();
+    HitPointInterval b = std::move(a);
+    ASSERT_TRUE(b.points().usingInlineStorage());
+    ASSERT_TRUE(b.min() == expectedMin);
   }
 }
