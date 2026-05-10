@@ -309,18 +309,20 @@ trivially mechanical.
 improvement on construction-heavy tests. Whole-render macro
 benchmark must not regress.
 
-### 3.3 Complete the `Quaternion` class
+### ~~3.3 Complete the `Quaternion` class~~
 
-Add `conjugate`, `inverse`, `rotate(Vector3)`, `slerp(a, b, t)`,
+~~Add `conjugate`, `inverse`, `rotate(Vector3)`, `slerp(a, b, t)`,
 `nlerp(a, b, t)`, `fromAxisAngle`, `fromEulerAngles`,
 `toEulerAngles`, `toMatrix3`, `toMatrix4`, `dot`, `lengthSquared`.
-Aim for ~250-300 lines of fully-tested, idiomatic implementation.
+Aim for ~250-300 lines of fully-tested, idiomatic implementation.~~
 
-**Benchmark gate:** `QuaternionBenchmark.cpp` extended to cover all
+~~**Benchmark gate:** `QuaternionBenchmark.cpp` extended to cover all
 new ops. **Pass condition:** SLERP throughput within 2× of NLERP
 (the latter is the cheap-path option); all new ops have unit tests
 pinning the identities (`q * q.conjugate() ≈ I` for unit
-quaternions, etc.).
+quaternions, etc.).~~
+
+✅ **Done.** All 12 missing operations added to `include/core/math/Quaternion.h` (~250 lines). `QuaternionBenchmark.cpp` extended to 32 benchmarks covering all new ops. Unit tests pin `q * q.conjugate() ≈ I`, Euler round-trip, axis-angle/matrix round-trip, slerp/nlerp at t=0/1, and unit-length invariants. (syrus/issue-114-136)
 
 ### 3.4 Missing Vector operations
 

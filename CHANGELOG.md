@@ -15,6 +15,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Complete `Quaternion` class (Phase 3.3).** Added `conjugate`, `inverse`, `dot`, `lengthSquared`, `operator+`, `operator-`, `rotate(Vector3)`, `fromAxisAngle`, `fromEulerAngles`, `toEulerAngles`, `toMatrix3`, `toMatrix4`, `nlerp`, and `slerp` to `include/core/math/Quaternion.h`, growing it from ~90 to ~250 lines. `QuaternionBenchmark.cpp` extended to cover all new ops (32 benchmarks total). Unit tests pin all key identities including `q * q.conjugate() ≈ I` and Euler round-trip. — Claude Sonnet 4.6
 - **`Constants.h` inline constexpr + missing constants.** All four existing math constants (`PI`, `TAU`, `invPI`, `invTAU`) converted from `const double` to `inline constexpr double`; eight new constants added: `PI_OVER_2`, `PI_OVER_4`, `DEG_TO_RAD`, `RAD_TO_DEG`, `SQRT2`, `SQRT3`, `E`, `GOLDEN_RATIO`. A comment flags the C++20 `<numbers>` migration path (roadmap §3.1). All existing call sites compile unchanged. Closes core-math-optimization plan §3.7. — Claude Sonnet 4.6
 
 - **Syrus-native CI via `.syrus.yml`.** Two graders run on every implement→grade iteration: `build-test` (`cmake --preset release` + parallel ctest under xvfb) and `textbook` (markdown drift + source-map appendix freshness). Single compiler (clang-18); single Linux x86_64 worker (K3s on Intel NUC i7 gen 12). Parked all `.github/workflows/*.yml` and `.github/dependabot.yml` under `docs/plans/github_actions/` with a README explaining the migration scope and what's awaiting Syrus features. — Claude Opus 4.7
