@@ -25,7 +25,9 @@ class OpenCylinder : public Surface {
 public:
   explicit OpenCylinder(Element* parent = nullptr);
 
-  inline double radius() const { return m_radius; }
+  inline double radius() const {
+    return m_radius;
+  }
 
   /// Sets the cylinder radius. Coerced to its absolute value with
   /// an epsilon floor.
@@ -33,7 +35,9 @@ public:
     m_radius = std::max(std::abs(radius), std::numeric_limits<double>::epsilon());
   }
 
-  inline double height() const { return m_height; }
+  inline double height() const {
+    return m_height;
+  }
 
   /// Sets the cylinder height. Coerced to its absolute value with
   /// an epsilon floor.
