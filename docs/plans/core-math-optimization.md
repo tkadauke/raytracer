@@ -205,16 +205,18 @@ Most rays produce 1–2 hit points. Replace
 case; whole-render macro benchmark on the sphere scene shows ≥5%
 improvement.
 
-### 1.5 `Polynomial::sortedResult` — return inline storage
+### ~~1.5 `Polynomial::sortedResult` — return inline storage~~
 
-Same fix as 1.4 — `std::vector<T>` allocates per call. The result
+~~Same fix as 1.4 — `std::vector<T>` allocates per call. The result
 count is ≤ degree (≤ 4 for Quartic). Use a `std::array<T, N>` with
 a separate length, or a `std::pair<std::array<T, 4>, int>`. Update
-callers (torus intersection is the main one).
+callers (torus intersection is the main one).~~
 
-**Benchmark gate:** `PolynomialBenchmark.cpp`. **Pass condition:**
+~~**Benchmark gate:** `PolynomialBenchmark.cpp`. **Pass condition:**
 zero allocations on the hot path; whole-render macro benchmark on
-the torus scene shows ≥10% improvement.
+the torus scene shows ≥10% improvement.~~
+
+✅ **Done.** `Polynomial::sortedResult()` now returns `SortedResult<T, Dimension>` — a stack-allocated bounded array with vector-like interface. No heap allocation on the hot path. Torus intersection updated to `auto results = quartic.sortedResult()`. Baseline gap: `bm_quartic_sorted_result` ~160 ns vs `bm_quartic_solve_into` ~70 ns (syrus/issue-106-144).
 
 ---
 

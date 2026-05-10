@@ -32,7 +32,7 @@ const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
     oorr * oorr - fourRR * (m_tubeRadius * m_tubeRadius - origin.y() * origin.y())
   );
   
-  vector<double> results = quartic.sortedResult();
+  auto results = quartic.sortedResult();
   
   if (results.size() == 2 || results.size() == 4) {
     Vector3d hitPoint1 = ray.at(results[0]),

@@ -2,7 +2,31 @@
 
 #include <limits>
 #include <algorithm>
-#include <vector>
+#include <array>
+
+/**
+  * Stack-allocated sorted result from a polynomial solve. Avoids heap
+  * allocation on the hot intersection path. Supports the same size(),
+  * operator[], and begin()/end() interface as std::vector so callers
+  * that use range-for or index access need no changes.
+  */
+template<class T, int N>
+struct SortedResult {
+  using value_type = T;
+  using const_iterator = const T*;
+
+  std::array<T, N> values{};
+  int count = 0;
+
+  int size() const { return count; }
+  bool empty() const { return count == 0; }
+  const T& operator[](int i) const { return values[i]; }
+  T& operator[](int i) { return values[i]; }
+  const T* begin() const { return values.data(); }
+  const T* end() const { return values.data() + count; }
+  T* begin() { return values.data(); }
+  T* end() { return values.data() + count; }
+};
 
 /**
   * CRTP base class for solving polynomials. Derived must define solve().
@@ -18,7 +42,6 @@ class Polynomial {
 public:
   typedef T Coefficient;
   typedef T Result[Dimension];
-  typedef std::vector<T> Container;
 
   /**
     * Constructor. Initializes the result vector with NaN values.
@@ -54,14 +77,14 @@ public:
   }
 
   /**
-    * @returns a vector of results which are sorted ascending. There is no need
-    *   to call solve(), since this method calls it.
+    * @returns the sorted real roots in a stack-allocated SortedResult (no heap
+    *   allocation). There is no need to call solve() first.
     */
-  inline Container sortedResult() {
-    Container res;
+  inline SortedResult<T, Dimension> sortedResult() {
+    SortedResult<T, Dimension> res;
     int num = static_cast<Derived*>(this)->solve();
     for (int i = 0; i != num; ++i) {
-      res.push_back(result()[i]);
+      res.values[res.count++] = m_result[i];
     }
     std::sort(res.begin(), res.end());
     return res;
