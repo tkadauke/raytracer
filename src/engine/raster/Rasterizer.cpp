@@ -596,39 +596,57 @@ namespace {
   public:
     DirectionalShadowMap(const render::Light* light,
                          std::shared_ptr<DirectionalShadowCamera> camera,
-                         std::unique_ptr<Buffer<double>> depthBuffer, double bias)
+                         std::unique_ptr<Buffer<double>> depthBuffer, double bias, int filterRadius)
         : m_light(light),
           m_camera(std::move(camera)),
           m_depthBuffer(std::move(depthBuffer)),
-          m_bias(bias) {
+          m_bias(bias),
+          m_filterRadius(filterRadius) {
     }
 
     const render::Light* light() const {
       return m_light;
     }
 
-    bool isLit(const Vector3d& worldPos) const {
+    double visibility(const Vector3d& worldPos) const {
       const Vector3d shadowPixel = m_camera->projectPointWithDepth(worldPos);
       if (shadowPixel.isUndefined())
-        return true;
+        return 1.0;
 
       const int x = static_cast<int>(std::lround(shadowPixel.x()));
       const int y = static_cast<int>(std::lround(shadowPixel.y()));
-      if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
-        return true;
 
-      const double occluderDepth = (*m_depthBuffer)[y][x];
-      if (!std::isfinite(occluderDepth))
-        return true;
+      if (m_filterRadius == 0)
+        return sampleVisibility(x, y, shadowPixel.z());
 
-      return shadowPixel.z() <= occluderDepth + m_bias;
+      double litSamples = 0.0;
+      int samples = 0;
+      for (int dy = -m_filterRadius; dy <= m_filterRadius; ++dy) {
+        for (int dx = -m_filterRadius; dx <= m_filterRadius; ++dx) {
+          litSamples += sampleVisibility(x + dx, y + dy, shadowPixel.z());
+          ++samples;
+        }
+      }
+      return litSamples / static_cast<double>(samples);
     }
 
   private:
+    double sampleVisibility(int x, int y, double receiverDepth) const {
+      if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
+        return 1.0;
+
+      const double occluderDepth = (*m_depthBuffer)[y][x];
+      if (!std::isfinite(occluderDepth))
+        return 1.0;
+
+      return receiverDepth <= occluderDepth + m_bias ? 1.0 : 0.0;
+    }
+
     const render::Light* m_light;
     std::shared_ptr<DirectionalShadowCamera> m_camera;
     std::unique_ptr<Buffer<double>> m_depthBuffer;
     double m_bias;
+    int m_filterRadius;
   };
 
   class ShadowMaps {
@@ -641,12 +659,12 @@ namespace {
       return m_directional.empty();
     }
 
-    bool isLit(const render::Light* light, const Vector3d& worldPos) const {
+    double visibility(const render::Light* light, const Vector3d& worldPos) const {
       for (const auto& shadowMap : m_directional) {
         if (shadowMap.light() == light)
-          return shadowMap.isLit(worldPos);
+          return shadowMap.visibility(worldPos);
       }
-      return true;
+      return 1.0;
     }
 
   private:
@@ -681,8 +699,11 @@ namespace {
       for (const auto& light : m_scene->lights()) {
         const Vector3d lightDir = light->direction(worldPos);
         const double nDotL = std::max(0.0, n * lightDir);
-        if (nDotL > 0.0 && (!m_shadowMaps || m_shadowMaps->isLit(light.get(), worldPos))) {
-          shaded += albedo * light->radiance() * nDotL;
+        if (nDotL > 0.0) {
+          const double visibility =
+            m_shadowMaps ? m_shadowMaps->visibility(light.get(), worldPos) : 1.0;
+          if (visibility > 0.0)
+            shaded += albedo * light->radiance() * nDotL * visibility;
         }
       }
       return shaded;
@@ -1302,7 +1323,7 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
     }
 
     shadowMaps.add(DirectionalShadowMap(light.get(), shadowCamera, std::move(depthBuffer),
-                                        rasterizer.shadowBias()));
+                                        rasterizer.shadowBias(), rasterizer.shadowFilterRadius()));
   }
 
   return shadowMaps;

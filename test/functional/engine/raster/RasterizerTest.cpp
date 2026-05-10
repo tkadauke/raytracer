@@ -36,6 +36,14 @@ namespace {
       m_shadowBias = bias;
     }
 
+    void setShadowFilterRadius(int radius) {
+      m_shadowFilterRadius = radius;
+    }
+
+    int shadowFilterRadius() const {
+      return m_shadowFilterRadius;
+    }
+
     void renderColorSnapshot(bool shadowMapsEnabled, Buffer<Colord>& result) {
       createRasterizer(shadowMapsEnabled)->render(result);
     }
@@ -47,12 +55,14 @@ namespace {
       rasterizer->setShadowMapsEnabled(shadowMapsEnabled);
       rasterizer->setShadowMapSize(m_shadowMapSize);
       rasterizer->setShadowBias(m_shadowBias);
+      rasterizer->setShadowFilterRadius(m_shadowFilterRadius);
       return rasterizer;
     }
 
     int m_lod{3};
     int m_shadowMapSize{256};
     double m_shadowBias{0.1};
+    int m_shadowFilterRadius{0};
   };
 
   std::shared_ptr<MatteMaterial> matte(const Colord& color) {
@@ -83,6 +93,30 @@ namespace {
       return Colord::black();
 
     return buffer[y][x];
+  }
+
+  int countPixelsBrightenedByFiltering(const Buffer<Colord>& hardShadow,
+                                       const Buffer<Colord>& filteredShadow) {
+    int count = 0;
+    for (int y = 0; y < hardShadow.height(); ++y) {
+      for (int x = 0; x < hardShadow.width(); ++x) {
+        if (filteredShadow[y][x].r() > hardShadow[y][x].r() + 0.03)
+          ++count;
+      }
+    }
+    return count;
+  }
+
+  int countPixelsDarkenedByFiltering(const Buffer<Colord>& hardShadow,
+                                     const Buffer<Colord>& filteredShadow) {
+    int count = 0;
+    for (int y = 0; y < hardShadow.height(); ++y) {
+      for (int x = 0; x < hardShadow.width(); ++x) {
+        if (hardShadow[y][x].r() > filteredShadow[y][x].r() + 0.03)
+          ++count;
+      }
+    }
+    return count;
   }
 }
 
@@ -123,6 +157,12 @@ GIVEN(EngineFeatureTest, "a rasterizer shadow bias of ([\\d.]+)") {
   }
 }
 
+GIVEN(EngineFeatureTest, "a rasterizer shadow filter radius of ([0-9]+)") {
+  if (auto* rasterizer = rasterizerTest(test)) {
+    rasterizer->setShadowFilterRadius(std::stoi(match[1]));
+  }
+}
+
 WHEN(EngineFeatureTest, "i look at the rasterizer shadow receiver") {
   test->setCamera(
     std::make_shared<PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.5)));
@@ -146,6 +186,24 @@ THEN(EngineFeatureTest, "the rasterizer shadow map darkens the occluded receiver
   EXPECT_LT(shadowedOccluded.r(), 0.35);
 }
 
+THEN(EngineFeatureTest, "the rasterizer shadow edge is percentage closer filtered") {
+  auto* rasterizer = rasterizerTest(test);
+  ASSERT_NE(nullptr, rasterizer);
+
+  Buffer<Colord> hard(test->buffer().width(), test->buffer().height());
+  Buffer<Colord> filtered(test->buffer().width(), test->buffer().height());
+  const int filterRadius = rasterizer->shadowFilterRadius();
+  ASSERT_GT(filterRadius, 0);
+
+  rasterizer->setShadowFilterRadius(0);
+  rasterizer->renderColorSnapshot(true, hard);
+  rasterizer->setShadowFilterRadius(filterRadius);
+  rasterizer->renderColorSnapshot(true, filtered);
+
+  EXPECT_GT(countPixelsBrightenedByFiltering(hard, filtered), 0);
+  EXPECT_GT(countPixelsDarkenedByFiltering(hard, filtered), 0);
+}
+
 namespace RasterizerFunctionalTest {
   struct RasterizerTest : public RasterizerFeatureTest {};
 
@@ -156,6 +214,16 @@ namespace RasterizerFunctionalTest {
     given("a rasterizer shadow bias of 0.1");
     when("i look at the rasterizer shadow receiver");
     then("the rasterizer shadow map darkens the occluded receiver");
+  }
+
+  TEST_F(RasterizerTest, DirectionalShadowMapsSupportPercentageCloserFiltering) {
+    given("a rasterizer directional shadow scene");
+    given("a rasterizer lod of 3");
+    given("a rasterizer shadow map size of 64");
+    given("a rasterizer shadow bias of 0.1");
+    given("a rasterizer shadow filter radius of 2");
+    when("i look at the rasterizer shadow receiver");
+    then("the rasterizer shadow edge is percentage closer filtered");
   }
 
 }

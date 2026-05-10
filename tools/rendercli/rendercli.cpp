@@ -103,6 +103,7 @@ private:
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
   double m_rasterShadowBias;
+  int m_rasterShadowFilterRadius;
   int m_repeat;
   bool m_timing;
 };
@@ -125,6 +126,7 @@ Renderer::Renderer()
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
       m_rasterShadowBias(1e-3),
+      m_rasterShadowFilterRadius(0),
       m_repeat(1),
       m_timing(false) {
   parser.setApplicationDescription(
@@ -178,6 +180,7 @@ void Renderer::render() const {
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowBias(m_rasterShadowBias);
+    raster->setShadowFilterRadius(m_rasterShadowFilterRadius);
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -262,6 +265,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
+     {"shadow_filter_radius", "Rasterizer PCF shadow filter radius", "radius"},
      {"timing", "Print render-only timing information to stdout"},
      {"repeat", "Render the loaded scene N times and print render-only timing statistics",
       "runs"}});
@@ -400,6 +404,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_rasterShadowBias = parser.value("shadow_bias").toDouble(&ok);
     if (!ok || m_rasterShadowBias < 0.0) {
       *errorMessage = "Shadow bias must be a non-negative number";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("shadow_filter_radius")) {
+    bool ok = false;
+    m_rasterShadowFilterRadius = parser.value("shadow_filter_radius").toInt(&ok);
+    if (!ok || m_rasterShadowFilterRadius < 0) {
+      *errorMessage = "Shadow filter radius must be a non-negative integer";
       return CommandLineError;
     }
   }

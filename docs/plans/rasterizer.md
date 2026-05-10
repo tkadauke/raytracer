@@ -58,8 +58,9 @@
    - ✅ Added rendered docs for off/on, shadow-map resolution, and depth-bias
      comparisons, plus an interactive widget for the light-pass depth map and
      camera-pass comparison.
-   - Next add filtering (PCF first), then PCSS and cascades for comparison
-     with raytraced shadow rays.
+   - ✅ Added configurable PCF radius for percentage-closer filtering, exposed
+     on `Rasterizer`, `rendercli`, tests, and rendered docs.
+   - Next add PCSS and cascades for comparison with raytraced shadow rays.
 
 8. **GeneratedRaytracer / RenderWidget front-back buffers**
    - Add dirty-tile publication and immutable paint snapshots.

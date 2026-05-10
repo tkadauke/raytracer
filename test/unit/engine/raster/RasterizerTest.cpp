@@ -196,6 +196,30 @@ namespace RasterizerTest {
     return buffer[y][x];
   }
 
+  static int countPixelsBrightenedByFiltering(const Buffer<Colord>& hardShadow,
+                                              const Buffer<Colord>& filteredShadow) {
+    int count = 0;
+    for (int y = 0; y < hardShadow.height(); ++y) {
+      for (int x = 0; x < hardShadow.width(); ++x) {
+        if (filteredShadow[y][x].r() > hardShadow[y][x].r() + 0.03)
+          ++count;
+      }
+    }
+    return count;
+  }
+
+  static int countPixelsDarkenedByFiltering(const Buffer<Colord>& hardShadow,
+                                            const Buffer<Colord>& filteredShadow) {
+    int count = 0;
+    for (int y = 0; y < hardShadow.height(); ++y) {
+      for (int x = 0; x < hardShadow.width(); ++x) {
+        if (hardShadow[y][x].r() > filteredShadow[y][x].r() + 0.03)
+          ++count;
+      }
+    }
+    return count;
+  }
+
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
     auto scene = std::make_shared<Scene>(Colord::white());
     Rasterizer engine(camera(), scene);
@@ -354,6 +378,18 @@ namespace RasterizerTest {
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
     EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
+    EXPECT_EQ(0, engine.shadowFilterRadius());
+  }
+
+  TEST(Rasterizer, ShadowFilterRadiusClampsOnlyNegativeValues) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+
+    engine.setShadowFilterRadius(3);
+    EXPECT_EQ(3, engine.shadowFilterRadius());
+
+    engine.setShadowFilterRadius(-3);
+
+    EXPECT_EQ(0, engine.shadowFilterRadius());
   }
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
@@ -488,6 +524,30 @@ namespace RasterizerTest {
     EXPECT_GT(directShadowPoint.r(), shadowedShadowPoint.r() + 0.4);
     EXPECT_GT(shadowedLitPoint.r(), shadowedShadowPoint.r() + 0.4);
     EXPECT_LT(shadowedShadowPoint.r(), 0.35);
+  }
+
+  TEST(Rasterizer, ShadowFilterRadiusSoftensHardShadowBoundary) {
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.5));
+    auto scene = sceneWithDirectionalShadowCaster();
+
+    Rasterizer hard(cam, scene);
+    hard.setShadowMapsEnabled(true);
+    hard.setShadowMapSize(64);
+    hard.setShadowBias(0.1);
+
+    Rasterizer filtered(cam, scene);
+    filtered.setShadowMapsEnabled(true);
+    filtered.setShadowMapSize(64);
+    filtered.setShadowBias(0.1);
+    filtered.setShadowFilterRadius(2);
+
+    Buffer<Colord> hardBuffer(96, 96);
+    Buffer<Colord> filteredBuffer(96, 96);
+    hard.render(hardBuffer);
+    filtered.render(filteredBuffer);
+
+    EXPECT_GT(countPixelsBrightenedByFiltering(hardBuffer, filteredBuffer), 0);
+    EXPECT_GT(countPixelsDarkenedByFiltering(hardBuffer, filteredBuffer), 0);
   }
 
   TEST(Rasterizer, VertexShaderCanAdjustProjectedPosition) {

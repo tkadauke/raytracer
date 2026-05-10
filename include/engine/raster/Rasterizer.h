@@ -185,6 +185,19 @@ namespace engine::raster {
   * <td>@image html rasterizer_shadow_bias_1_500.png "bias=1.500"</td>
   * </tr></table>
   *
+  * Percentage-closer filtering (PCF) softens hard texel boundaries by
+  * averaging several neighboring depth comparisons around the projected
+  * light-space point. Radius 0 is the exact nearest-texel comparison; radius
+  * 1 uses a 3x3 kernel; radius 2 uses a 5x5 kernel.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_filter_radius_0.png "radius=0"</td>
+  * <td>@image html rasterizer_shadow_filter_radius_1.png "radius=1"</td>
+  * <td>@image html rasterizer_shadow_filter_radius_2.png "radius=2"</td>
+  * <td>@image html rasterizer_shadow_filter_radius_3.png "radius=3"</td>
+  * <td>@image html rasterizer_shadow_filter_radius_4.png "radius=4"</td>
+  * </tr></table>
+  *
   * The interactive widget below visualizes the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
   * the rasterizer runs for every triangle. Drag the three vertex
@@ -392,6 +405,26 @@ public:
     */
   inline void setShadowBias(double bias) { m_shadowBias = std::max(0.0, bias); }
 
+  /// Returns the PCF radius in shadow-map texels. Radius 0 is a hard
+  /// nearest-texel shadow comparison; radius 1 is a 3x3 kernel, etc.
+  inline int shadowFilterRadius() const { return m_shadowFilterRadius; }
+
+  /**
+    * Sets the percentage-closer filtering radius in shadow-map texels.
+    * The value is clamped to at least 0. Filtering averages neighboring
+    * depth-test results and therefore softens shadow-map texel edges; it is
+    * not physically based area-light softness.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_filter_radius_0.png "0"</td>
+    * <td>@image html rasterizer_shadow_filter_radius_1.png "1"</td>
+    * <td>@image html rasterizer_shadow_filter_radius_2.png "2"</td>
+    * <td>@image html rasterizer_shadow_filter_radius_3.png "3"</td>
+    * <td>@image html rasterizer_shadow_filter_radius_4.png "4"</td>
+    * </tr></table>
+    */
+  inline void setShadowFilterRadius(int radius) { m_shadowFilterRadius = std::max(0, radius); }
+
   /// Face-culling mode used after near-plane clipping and before
   /// triangle rasterization. `Both` keeps the historical two-sided
   /// behavior; `Back` and `Front` skip triangles by projected
@@ -474,6 +507,7 @@ private:
   bool m_shadowMapsEnabled{false};
   int m_shadowMapSize{256};
   double m_shadowBias{1e-3};
+  int m_shadowFilterRadius{0};
   CullMode m_cullMode{CullMode::Both};
   DepthFunc m_depthFunc{DepthFunc::Less};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};

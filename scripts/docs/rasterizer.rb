@@ -156,6 +156,15 @@ property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256) do |i
   rasterizer_shadow_scene
 end
 
+shadow_filter_radii = [0, 1, 2, 3, 4]
+property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 128, shadow_bias: 0.25) do |i|
+  radius = shadow_filter_radii[i - 1]
+  name "rasterizer_shadow_filter_radius_#{radius}"
+
+  options(shadow_filter_radius: radius)
+  rasterizer_shadow_scene
+end
+
 class_doc(engine: "raster", width: 320, height: 180, msaa: 4) do
   name "rasterizer_msaa_4x"
 
