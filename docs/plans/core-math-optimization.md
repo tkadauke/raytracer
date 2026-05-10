@@ -150,16 +150,18 @@ catastrophic regressions in CI.
 Each item below is independently shippable. After each: re-run the
 relevant benchmarks, paste before/after into the PR.
 
-### 1.1 Replace `std::rand` with a per-thread fast PRNG
+### ~~1.1 Replace `std::rand` with a per-thread fast PRNG~~ ✅ **Done.**
 
-`Number::random` and `Range::random` both call `std::rand`. Replace
+~~`Number::random` and `Range::random` both call `std::rand`. Replace
 with thread-local `std::mt19937_64` (or PCG32; benchmark both —
 expect PCG32 to win on throughput by ~2×). API stays the same; one
-new free function `seed(uint64_t)` for deterministic tests.
+new free function `seed(uint64_t)` for deterministic tests.~~
 
-**Benchmark gate:** `RandomBenchmark.cpp` single-thread + 8-thread.
-**Pass condition:** ≥5× single-thread throughput, ≥10× multi-thread
-(no global lock).
+Replaced with thread-local PCG32 in `include/core/math/Number.h`. `seed(uint64_t)` added as a free function. `include/core/util/Random.h` `random_shuffle` updated to use the same PRNG. Baseline: ~6.3 ns/call single-thread (`docs/perf/math-baseline-2026-05-10.txt`); branch `syrus/issue-102-148`.
+
+~~**Benchmark gate:** `RandomBenchmark.cpp` single-thread + 8-thread.~~
+~~**Pass condition:** ≥5× single-thread throughput, ≥10× multi-thread
+(no global lock).~~
 
 ### ~~1.2 SIMD `BoundingBox::intersects(Ray)` and return the t-interval~~
 
