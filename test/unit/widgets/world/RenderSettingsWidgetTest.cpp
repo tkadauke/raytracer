@@ -61,6 +61,11 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(1, widget.msaaSamples());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterPostAAToNone) {
+    RenderSettingsWidget widget;
+    EXPECT_EQ(QString("None"), widget.postProcessAA());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterShadowMapsToOffWithEngineDefaults) {
     RenderSettingsWidget widget;
     EXPECT_FALSE(widget.shadowMapsEnabled());
@@ -130,25 +135,40 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(3, widget.shadowFilterRadius());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldReadRasterPostAAControl) {
+    RenderSettingsWidget widget;
+    auto postAA = widget.findChild<QComboBox*>("rasterPostProcessAA");
+    ASSERT_NE(nullptr, postAA);
+
+    postAA->setCurrentText("FXAA");
+
+    EXPECT_EQ(QString("FXAA"), widget.postProcessAA());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldShowRasterControlsOnlyForRasterizer) {
     RenderSettingsWidget widget;
 
     auto engineType = widget.findChild<QComboBox*>("engineType");
     auto msaa = widget.findChild<QComboBox*>("rasterMsaaSamples");
+    auto postAA = widget.findChild<QComboBox*>("rasterPostProcessAA");
     auto shadowMaps = widget.findChild<QCheckBox*>("rasterShadowMaps");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, msaa);
+    ASSERT_NE(nullptr, postAA);
     ASSERT_NE(nullptr, shadowMaps);
 
     EXPECT_TRUE(msaa->isHidden());
+    EXPECT_TRUE(postAA->isHidden());
     EXPECT_TRUE(shadowMaps->isHidden());
 
     engineType->setCurrentText("Wireframe");
     EXPECT_TRUE(msaa->isHidden());
+    EXPECT_TRUE(postAA->isHidden());
     EXPECT_TRUE(shadowMaps->isHidden());
 
     engineType->setCurrentText("Rasterizer");
     EXPECT_FALSE(msaa->isHidden());
+    EXPECT_FALSE(postAA->isHidden());
     EXPECT_FALSE(shadowMaps->isHidden());
   }
 

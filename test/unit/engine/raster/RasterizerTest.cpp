@@ -375,10 +375,21 @@ namespace RasterizerTest {
     EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
     EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
     EXPECT_EQ(1, engine.msaaSamples());
+    EXPECT_EQ(Rasterizer::PostProcessAA::None, engine.postProcessAA());
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
     EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
     EXPECT_EQ(0, engine.shadowFilterRadius());
+  }
+
+  TEST(Rasterizer, ClonePreservesPostProcessAA) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+
+    auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
+
+    ASSERT_NE(nullptr, clone);
+    EXPECT_EQ(Rasterizer::PostProcessAA::FXAA, clone->postProcessAA());
   }
 
   TEST(Rasterizer, ShadowFilterRadiusClampsOnlyNegativeValues) {

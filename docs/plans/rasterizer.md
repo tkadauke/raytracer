@@ -83,7 +83,11 @@
      so interrupted live previews can hand off to the next frame sooner.
 
 9. **Post-process AA / TAA**
-   - Add FXAA/SMAA first for preview engines.
+   - ✅ Added reusable FXAA over the float framebuffer, exposed through
+     `Rasterizer::setPostProcessAA`, `rendercli --post_aa fxaa`, and the
+     GeneratedRayTracer render dialog.
+   - Add SMAA as a sharper image-space follow-up if FXAA blurs too much fine
+     texture/detail in previews.
    - Add TAA later once history buffers, motion vectors, and display-buffer
      ownership are explicit.
 

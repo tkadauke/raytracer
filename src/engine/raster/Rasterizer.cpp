@@ -12,6 +12,7 @@
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/postprocess/Fxaa.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/Texture.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -238,6 +239,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);
   result->setMSAASamples(m_msaaSamples);
+  result->setPostProcessAA(m_postProcessAA);
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowBias(m_shadowBias);
@@ -1455,9 +1457,12 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   if (pattern.count > 1) {
     renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, cancelled,
                     buffer);
-    return;
+  } else {
+    renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, cancelled,
+                            buffer);
   }
 
-  renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, cancelled,
-                          buffer);
+  if (!cancelled.load() && rasterizer.postProcessAA() == Rasterizer::PostProcessAA::FXAA) {
+    render::postprocess::applyFxaa(buffer);
+  }
 }

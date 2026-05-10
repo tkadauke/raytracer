@@ -119,13 +119,16 @@ namespace engine::raster {
   * <td>@image html rasterizer_uv_checker.png "UV-mapped checkerboard on a box"</td>
   * </tr></table>
   *
-  * MSAA is opt-in because it multiplies raster work. The comparison
-  * below renders the same high-contrast diagonal triangle with 1x
-  * coverage and 4x MSAA; the 4x image resolves partially covered
-  * edge samples into gray pixels instead of a binary stair-step.
+  * MSAA is opt-in because it multiplies raster work. FXAA is an
+  * image-space alternative that runs after the frame is complete: it
+  * can smooth high-contrast edges cheaply, but unlike MSAA it cannot
+  * recover hidden subpixel geometry or per-sample depth/stencil detail.
+  * The comparison below renders the same high-contrast diagonal
+  * triangle with raw 1x coverage, post-process FXAA, and 4x MSAA.
   *
   * <table><tr>
   * <td>@image html rasterizer_msaa_1x.png "1x raster coverage"</td>
+  * <td>@image html rasterizer_post_aa_fxaa.png "1x coverage plus FXAA"</td>
   * <td>@image html rasterizer_msaa_4x.png "4x MSAA resolve"</td>
   * </tr></table>
   *
@@ -290,6 +293,11 @@ public:
     Invert
   };
 
+  enum class PostProcessAA {
+    None,
+    FXAA
+  };
+
   struct VertexInput {
     Vector3d worldPosition;
     Vector3d normal;
@@ -356,6 +364,13 @@ public:
   /// sample counts.
   inline int msaaSamples() const { return m_msaaSamples; }
   void setMSAASamples(int samples);
+
+  /// Image-space anti-aliasing pass applied after the rasterizer has
+  /// produced its float framebuffer. Defaults to `None`. FXAA is a cheap
+  /// postprocess edge filter; unlike MSAA, it does not need extra coverage or
+  /// depth samples, so it is useful for fast previews.
+  inline PostProcessAA postProcessAA() const { return m_postProcessAA; }
+  inline void setPostProcessAA(PostProcessAA aa) { m_postProcessAA = aa; }
 
   /// Returns whether rasterized directional-light shadow maps are enabled.
   inline bool shadowMapsEnabled() const { return m_shadowMapsEnabled; }
@@ -505,6 +520,7 @@ private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   int m_msaaSamples{1};
+  PostProcessAA m_postProcessAA{PostProcessAA::None};
   bool m_shadowMapsEnabled{false};
   int m_shadowMapSize{256};
   double m_shadowBias{1e-3};

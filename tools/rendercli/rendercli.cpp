@@ -100,6 +100,7 @@ private:
   int m_wireframeLod;
   QString m_rasterCullMode;
   int m_rasterMsaaSamples;
+  QString m_rasterPostProcessAA;
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
   double m_rasterShadowBias;
@@ -123,6 +124,7 @@ Renderer::Renderer()
       m_wireframeLod(0),
       m_rasterCullMode("both"),
       m_rasterMsaaSamples(1),
+      m_rasterPostProcessAA("none"),
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
       m_rasterShadowBias(1e-3),
@@ -177,6 +179,9 @@ void Renderer::render() const {
       raster->setQueueSize(m_threads);
     }
     raster->setMSAASamples(m_rasterMsaaSamples);
+    if (m_rasterPostProcessAA == "fxaa") {
+      raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
+    }
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowBias(m_rasterShadowBias);
@@ -262,6 +267,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
+     {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa)", "mode"},
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
@@ -384,6 +390,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "MSAA samples must be 1, 2, 4, or 8";
       return CommandLineError;
     }
+  }
+
+  if (parser.isSet("post_aa")) {
+    const QString postAA = parser.value("post_aa").toLower();
+    if (postAA != "none" && postAA != "fxaa") {
+      *errorMessage = "Post-process AA must be 'none' or 'fxaa'";
+      return CommandLineError;
+    }
+    m_rasterPostProcessAA = postAA;
   }
 
   if (parser.isSet("shadow_maps")) {

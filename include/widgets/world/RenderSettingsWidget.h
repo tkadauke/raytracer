@@ -22,6 +22,7 @@ public:
   int queueSize() const;
   int lod() const;
   int msaaSamples() const;
+  QString postProcessAA() const;
   bool shadowMapsEnabled() const;
   int shadowMapSize() const;
   double shadowBias() const;
