@@ -1025,6 +1025,47 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, matrix.inverted());
   }
   
+  // Numerical-stability battery: verify ||M·M^{-1} - I|| stays tight.
+  // These exercise the block-inverse path against well-conditioned and
+  // near-singular inputs.
+
+  TYPED_TEST(Matrix4Test, ShouldHaveSmallResidualForTRSMatrix) {
+    // Rotation 30° + translation, condition number ≈ 1.
+    Matrix4<TypeParam> m(
+      TypeParam(0.866), TypeParam(-0.5),  TypeParam(0), TypeParam(1),
+      TypeParam(0.5),   TypeParam(0.866), TypeParam(0), TypeParam(2),
+      TypeParam(0),     TypeParam(0),     TypeParam(1), TypeParam(3),
+      TypeParam(0),     TypeParam(0),     TypeParam(0), TypeParam(1)
+    );
+    Matrix4<TypeParam> identity;
+    ASSERT_MATRIX_NEAR(identity, m * m.inverted(), 1e-4);
+  }
+
+  TYPED_TEST(Matrix4Test, ShouldHaveSmallResidualForNearSingularMatrix) {
+    // Rows 0 and 1 are nearly parallel: det(top-left 2×2) ≈ 0.01.
+    // Condition number ≈ 200 — a genuine stress test for numerical stability.
+    Matrix4<TypeParam> m(
+      TypeParam(1),     TypeParam(0.995), TypeParam(0), TypeParam(0),
+      TypeParam(0.995), TypeParam(1),     TypeParam(0), TypeParam(0),
+      TypeParam(0),     TypeParam(0),     TypeParam(1), TypeParam(0),
+      TypeParam(0),     TypeParam(0),     TypeParam(0), TypeParam(1)
+    );
+    Matrix4<TypeParam> identity;
+    ASSERT_MATRIX_NEAR(identity, m * m.inverted(), 1e-3);
+  }
+
+  TYPED_TEST(Matrix4Test, ShouldHaveSmallResidualForLargeTranslationMatrix) {
+    // Large translation values stress the off-diagonal blocks.
+    Matrix4<TypeParam> m(
+      TypeParam(1), TypeParam(0), TypeParam(0), TypeParam(1000),
+      TypeParam(0), TypeParam(1), TypeParam(0), TypeParam(1000),
+      TypeParam(0), TypeParam(0), TypeParam(1), TypeParam(1000),
+      TypeParam(0), TypeParam(0), TypeParam(0), TypeParam(1)
+    );
+    Matrix4<TypeParam> identity;
+    ASSERT_MATRIX_NEAR(identity, m * m.inverted(), 1e-4);
+  }
+
   TYPED_TEST(Matrix4Test, ShouldReturnTranslationMatrixFromVector) {
     Matrix4<TypeParam> expected(
       1, 0, 0, 1,

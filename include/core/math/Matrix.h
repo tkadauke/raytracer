@@ -1063,24 +1063,59 @@ public:
 
 template<class T>
 Matrix4<T> Matrix4<T>::inverted() const {
+  // Block-inverse via Schur complement: partition M into four 2×2 blocks
+  //   M = | A  B |   M^{-1} = | S^{-1}             -S^{-1}·B·D^{-1}               |
+  //       | C  D |             | -D^{-1}·C·S^{-1}   D^{-1}+D^{-1}·C·S^{-1}·B·D^{-1} |
+  // where S = A - B·D^{-1}·C is the Schur complement of D in M.
+  // det(S)==0 iff det(M)==0 (given det(D)!=0), so the second guard below is
+  // the correct singular-matrix check for the full 4×4.
+
+  const T a00 = cell(0,0), a01 = cell(0,1), a10 = cell(1,0), a11 = cell(1,1);
+  const T b00 = cell(0,2), b01 = cell(0,3), b10 = cell(1,2), b11 = cell(1,3);
+  const T c00 = cell(2,0), c01 = cell(2,1), c10 = cell(3,0), c11 = cell(3,1);
+  const T d00 = cell(2,2), d01 = cell(2,3), d10 = cell(3,2), d11 = cell(3,3);
+
+  // D^{-1} (bottom-right 2×2 block)
+  const T det_d = d00 * d11 - d01 * d10;
+  if (det_d == T())
+    throw DivisionByZeroException(__FILE__, __LINE__);
+  const T inv_det_d = T(1) / det_d;
+  const T di00 =  d11 * inv_det_d, di01 = -d01 * inv_det_d;
+  const T di10 = -d10 * inv_det_d, di11 =  d00 * inv_det_d;
+
+  // X = B·D^{-1}
+  const T x00 = b00*di00 + b01*di10, x01 = b00*di01 + b01*di11;
+  const T x10 = b10*di00 + b11*di10, x11 = b10*di01 + b11*di11;
+
+  // S = A - X·C  (Schur complement)
+  const T s00 = a00 - (x00*c00 + x01*c10), s01 = a01 - (x00*c01 + x01*c11);
+  const T s10 = a10 - (x10*c00 + x11*c10), s11 = a11 - (x10*c01 + x11*c11);
+
+  // S^{-1}
+  const T det_s = s00 * s11 - s01 * s10;
+  if (det_s == T())
+    throw DivisionByZeroException(__FILE__, __LINE__);
+  const T inv_det_s = T(1) / det_s;
+  const T si00 =  s11 * inv_det_s, si01 = -s01 * inv_det_s;
+  const T si10 = -s10 * inv_det_s, si11 =  s00 * inv_det_s;
+
+  // Top-right block: -S^{-1}·X = -S^{-1}·B·D^{-1}
+  const T tr00 = -(si00*x00 + si01*x10), tr01 = -(si00*x01 + si01*x11);
+  const T tr10 = -(si10*x00 + si11*x10), tr11 = -(si10*x01 + si11*x11);
+
+  // Q = D^{-1}·C·S^{-1}  (via Y = D^{-1}·C first)
+  const T y00 = di00*c00 + di01*c10, y01 = di00*c01 + di01*c11;
+  const T y10 = di10*c00 + di11*c10, y11 = di10*c01 + di11*c11;
+  const T q00 = y00*si00 + y01*si10, q01 = y00*si01 + y01*si11;
+  const T q10 = y10*si00 + y11*si10, q11 = y10*si01 + y11*si11;
+
+  // Bottom-left: -Q;  Bottom-right: D^{-1} + Q·X
   return Matrix4<T>(
-    cell(1, 2)*cell(2, 3)*cell(3, 1) - cell(1, 3)*cell(2, 2)*cell(3, 1) + cell(1, 3)*cell(2, 1)*cell(3, 2) - cell(1, 1)*cell(2, 3)*cell(3, 2) - cell(1, 2)*cell(2, 1)*cell(3, 3) + cell(1, 1)*cell(2, 2)*cell(3, 3),
-    cell(0, 3)*cell(2, 2)*cell(3, 1) - cell(0, 2)*cell(2, 3)*cell(3, 1) - cell(0, 3)*cell(2, 1)*cell(3, 2) + cell(0, 1)*cell(2, 3)*cell(3, 2) + cell(0, 2)*cell(2, 1)*cell(3, 3) - cell(0, 1)*cell(2, 2)*cell(3, 3),
-    cell(0, 2)*cell(1, 3)*cell(3, 1) - cell(0, 3)*cell(1, 2)*cell(3, 1) + cell(0, 3)*cell(1, 1)*cell(3, 2) - cell(0, 1)*cell(1, 3)*cell(3, 2) - cell(0, 2)*cell(1, 1)*cell(3, 3) + cell(0, 1)*cell(1, 2)*cell(3, 3),
-    cell(0, 3)*cell(1, 2)*cell(2, 1) - cell(0, 2)*cell(1, 3)*cell(2, 1) - cell(0, 3)*cell(1, 1)*cell(2, 2) + cell(0, 1)*cell(1, 3)*cell(2, 2) + cell(0, 2)*cell(1, 1)*cell(2, 3) - cell(0, 1)*cell(1, 2)*cell(2, 3),
-    cell(1, 3)*cell(2, 2)*cell(3, 0) - cell(1, 2)*cell(2, 3)*cell(3, 0) - cell(1, 3)*cell(2, 0)*cell(3, 2) + cell(1, 0)*cell(2, 3)*cell(3, 2) + cell(1, 2)*cell(2, 0)*cell(3, 3) - cell(1, 0)*cell(2, 2)*cell(3, 3),
-    cell(0, 2)*cell(2, 3)*cell(3, 0) - cell(0, 3)*cell(2, 2)*cell(3, 0) + cell(0, 3)*cell(2, 0)*cell(3, 2) - cell(0, 0)*cell(2, 3)*cell(3, 2) - cell(0, 2)*cell(2, 0)*cell(3, 3) + cell(0, 0)*cell(2, 2)*cell(3, 3),
-    cell(0, 3)*cell(1, 2)*cell(3, 0) - cell(0, 2)*cell(1, 3)*cell(3, 0) - cell(0, 3)*cell(1, 0)*cell(3, 2) + cell(0, 0)*cell(1, 3)*cell(3, 2) + cell(0, 2)*cell(1, 0)*cell(3, 3) - cell(0, 0)*cell(1, 2)*cell(3, 3),
-    cell(0, 2)*cell(1, 3)*cell(2, 0) - cell(0, 3)*cell(1, 2)*cell(2, 0) + cell(0, 3)*cell(1, 0)*cell(2, 2) - cell(0, 0)*cell(1, 3)*cell(2, 2) - cell(0, 2)*cell(1, 0)*cell(2, 3) + cell(0, 0)*cell(1, 2)*cell(2, 3),
-    cell(1, 1)*cell(2, 3)*cell(3, 0) - cell(1, 3)*cell(2, 1)*cell(3, 0) + cell(1, 3)*cell(2, 0)*cell(3, 1) - cell(1, 0)*cell(2, 3)*cell(3, 1) - cell(1, 1)*cell(2, 0)*cell(3, 3) + cell(1, 0)*cell(2, 1)*cell(3, 3),
-    cell(0, 3)*cell(2, 1)*cell(3, 0) - cell(0, 1)*cell(2, 3)*cell(3, 0) - cell(0, 3)*cell(2, 0)*cell(3, 1) + cell(0, 0)*cell(2, 3)*cell(3, 1) + cell(0, 1)*cell(2, 0)*cell(3, 3) - cell(0, 0)*cell(2, 1)*cell(3, 3),
-    cell(0, 1)*cell(1, 3)*cell(3, 0) - cell(0, 3)*cell(1, 1)*cell(3, 0) + cell(0, 3)*cell(1, 0)*cell(3, 1) - cell(0, 0)*cell(1, 3)*cell(3, 1) - cell(0, 1)*cell(1, 0)*cell(3, 3) + cell(0, 0)*cell(1, 1)*cell(3, 3),
-    cell(0, 3)*cell(1, 1)*cell(2, 0) - cell(0, 1)*cell(1, 3)*cell(2, 0) - cell(0, 3)*cell(1, 0)*cell(2, 1) + cell(0, 0)*cell(1, 3)*cell(2, 1) + cell(0, 1)*cell(1, 0)*cell(2, 3) - cell(0, 0)*cell(1, 1)*cell(2, 3),
-    cell(1, 2)*cell(2, 1)*cell(3, 0) - cell(1, 1)*cell(2, 2)*cell(3, 0) - cell(1, 2)*cell(2, 0)*cell(3, 1) + cell(1, 0)*cell(2, 2)*cell(3, 1) + cell(1, 1)*cell(2, 0)*cell(3, 2) - cell(1, 0)*cell(2, 1)*cell(3, 2),
-    cell(0, 1)*cell(2, 2)*cell(3, 0) - cell(0, 2)*cell(2, 1)*cell(3, 0) + cell(0, 2)*cell(2, 0)*cell(3, 1) - cell(0, 0)*cell(2, 2)*cell(3, 1) - cell(0, 1)*cell(2, 0)*cell(3, 2) + cell(0, 0)*cell(2, 1)*cell(3, 2),
-    cell(0, 2)*cell(1, 1)*cell(3, 0) - cell(0, 1)*cell(1, 2)*cell(3, 0) - cell(0, 2)*cell(1, 0)*cell(3, 1) + cell(0, 0)*cell(1, 2)*cell(3, 1) + cell(0, 1)*cell(1, 0)*cell(3, 2) - cell(0, 0)*cell(1, 1)*cell(3, 2),
-    cell(0, 1)*cell(1, 2)*cell(2, 0) - cell(0, 2)*cell(1, 1)*cell(2, 0) + cell(0, 2)*cell(1, 0)*cell(2, 1) - cell(0, 0)*cell(1, 2)*cell(2, 1) - cell(0, 1)*cell(1, 0)*cell(2, 2) + cell(0, 0)*cell(1, 1)*cell(2, 2)
-  ) * 1 / determinant();
+    si00, si01, tr00, tr01,
+    si10, si11, tr10, tr11,
+    -q00, -q01, di00 + q00*x00 + q01*x10, di01 + q00*x01 + q01*x11,
+    -q10, -q11, di10 + q10*x00 + q11*x10, di11 + q10*x01 + q11*x11
+  );
 }
 
 template<class T>
