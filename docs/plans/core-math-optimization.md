@@ -268,17 +268,19 @@ quartic solve ≥10% faster (the dispatch cost is small but
 consistent); whole-render macro benchmark on the torus scene
 shows ≥5% improvement.
 
-### 2.5 Affine-matrix fast path
+### ~~2.5 Affine-matrix fast path~~
 
-Every scene-graph transform has bottom row `(0,0,0,1)`. Add
+~~Every scene-graph transform has bottom row `(0,0,0,1)`. Add
 `Matrix4::transformPoint(Vector3)` and
 `Matrix4::transformDirection(Vector3)` that skip the homogeneous
 machinery. Route the renderer through them at every transform call
-that doesn't need the perspective row.
+that doesn't need the perspective row.~~
 
-**Benchmark gate:** `MatrixBenchmark.cpp` for the new ops. **Pass
+~~**Benchmark gate:** `MatrixBenchmark.cpp` for the new ops. **Pass
 condition:** ≥25% faster than the full 4×4 path; whole-render macro
-benchmark on transform-heavy scenes shows improvement.
+benchmark on transform-heavy scenes shows improvement.~~
+
+✅ **Done.** `Matrix4::transformPoint` and `Matrix4::transformDirection` added to `include/core/math/Matrix.h`; all `Instance` call sites (ray origin, bounding-box vertex loop, `farthestPoint`, `tessellate`, motion-blur path) routed through them. Four new benchmark entries added to `MatrixBenchmark.cpp`. Build environment lacked CMake so benchmark numbers could not be captured in this run — see CHANGELOG §Unreleased. (syrus/issue-111-139)
 
 ---
 

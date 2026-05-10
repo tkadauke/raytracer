@@ -35,9 +35,8 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   // build a `pointMatrix_at_t = pointMatrix + translate(velocity *
   // timeSample)` to map the resulting hit points back to world.
   Vector3d shift = m_velocity * state.timeSample;
-  Vector4d shift4(shift.x(), shift.y(), shift.z(), 0.0);
   Rayd localRay(
-    m_originMatrix * (ray.origin() - shift4),
+    Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
     m_directionMatrix * ray.direction()
   );
 
@@ -62,9 +61,8 @@ bool Instance::intersects(const Rayd& ray, render::State& state) const {
     return m_primitive->intersects(instancedRay(ray), state);
   }
   Vector3d shift = m_velocity * state.timeSample;
-  Vector4d shift4(shift.x(), shift.y(), shift.z(), 0.0);
   Rayd localRay(
-    m_originMatrix * (ray.origin() - shift4),
+    Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
     m_directionMatrix * ray.direction()
   );
   return m_primitive->intersects(localRay, state);
@@ -96,7 +94,7 @@ BoundingBoxd Instance::calculateBoundingBox() const {
 
   BoundingBoxd result;
   for (const auto& vertex : vertices) {
-    result.include(m_pointMatrix * Vector4d(vertex));
+    result.include(m_pointMatrix.transformPoint(vertex));
   }
 
   // For animated instances, the bbox must cover every position the
@@ -107,7 +105,7 @@ BoundingBoxd Instance::calculateBoundingBox() const {
   if (m_velocity != Vector3d::null()) {
     BoundingBoxd shifted;
     for (const auto& vertex : vertices) {
-      shifted.include(Vector3d(m_pointMatrix * Vector4d(vertex)) + m_velocity);
+      shifted.include(m_pointMatrix.transformPoint(vertex) + m_velocity);
     }
     result.include(shifted);
   }
@@ -116,7 +114,7 @@ BoundingBoxd Instance::calculateBoundingBox() const {
 }
 
 Vector3d Instance::farthestPoint(const Vector3d& direction) const {
-  return m_pointMatrix * m_primitive->farthestPoint(m_directionMatrix * direction);
+  return m_pointMatrix.transformPoint(m_primitive->farthestPoint(m_directionMatrix * direction));
 }
 
 std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
@@ -128,9 +126,7 @@ std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
     return result;
 
   for (const auto& v : childMesh->vertices()) {
-    // Use homogenized() so projective transforms (w≠1) are handled correctly;
-    // for the typical affine case this is equivalent to discarding w.
-    Vector3d point = (m_pointMatrix * Vector4d(v.point)).homogenized();
+    Vector3d point = m_pointMatrix.transformPoint(v.point);
     Vector3d normal = (m_normalMatrix * v.normal).normalized();
     result->addVertex(point, normal, v.uv);
   }

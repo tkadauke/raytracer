@@ -963,8 +963,60 @@ public:
   }
   
   /**
+    * @returns the result of transforming @p p as a 3D point (w = 1) by this
+    *   affine matrix. Skips computing the homogeneous w output and avoids
+    *   constructing an intermediate Vector4.
+    *
+    * Precondition: bottom row is `(0, 0, 0, 1)` — i.e. this is an affine
+    * (not perspective) matrix. Every scene-graph instance matrix satisfies
+    * this; the method deliberately does not enforce it at runtime for speed.
+    *
+    * \f[
+    * \begin{pmatrix} r_x \\ r_y \\ r_z \end{pmatrix} =
+    * \begin{pmatrix}
+    *   m_{00} p_x + m_{01} p_y + m_{02} p_z + m_{03} \\
+    *   m_{10} p_x + m_{11} p_y + m_{12} p_z + m_{13} \\
+    *   m_{20} p_x + m_{21} p_y + m_{22} p_z + m_{23}
+    * \end{pmatrix}
+    * \f]
+    */
+  inline Vector3<T> transformPoint(const Vector3<T>& p) const {
+    return Vector3<T>(
+      cell(0, 0) * p[0] + cell(0, 1) * p[1] + cell(0, 2) * p[2] + cell(0, 3),
+      cell(1, 0) * p[0] + cell(1, 1) * p[1] + cell(1, 2) * p[2] + cell(1, 3),
+      cell(2, 0) * p[0] + cell(2, 1) * p[1] + cell(2, 2) * p[2] + cell(2, 3)
+    );
+  }
+
+  /**
+    * @returns the result of transforming @p d as a 3D direction (w = 0) by
+    *   this affine matrix. Skips the translation column and avoids
+    *   constructing an intermediate Vector4.
+    *
+    * Precondition: bottom row is `(0, 0, 0, 1)` — i.e. this is an affine
+    * matrix. Direction vectors are unaffected by translation, so column 3
+    * is not read.
+    *
+    * \f[
+    * \begin{pmatrix} r_x \\ r_y \\ r_z \end{pmatrix} =
+    * \begin{pmatrix}
+    *   m_{00} d_x + m_{01} d_y + m_{02} d_z \\
+    *   m_{10} d_x + m_{11} d_y + m_{12} d_z \\
+    *   m_{20} d_x + m_{21} d_y + m_{22} d_z
+    * \end{pmatrix}
+    * \f]
+    */
+  inline Vector3<T> transformDirection(const Vector3<T>& d) const {
+    return Vector3<T>(
+      cell(0, 0) * d[0] + cell(0, 1) * d[1] + cell(0, 2) * d[2],
+      cell(1, 0) * d[0] + cell(1, 1) * d[1] + cell(1, 2) * d[2],
+      cell(2, 0) * d[0] + cell(2, 1) * d[1] + cell(2, 2) * d[2]
+    );
+  }
+
+  /**
     * @returns the translation vector \f$(x,y,z)\f$ extracted from the matrix:
-    * 
+    *
     * \f[\left(\begin{array}{cccc}
     *   c_{00} & c_{01} & c_{02} & x \\
     *   c_{10} & c_{11} & c_{12} & y \\

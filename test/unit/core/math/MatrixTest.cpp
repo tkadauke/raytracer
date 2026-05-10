@@ -1049,4 +1049,52 @@ namespace Matrix4Test {
     Vector3f expected(1, 2, 3);
     ASSERT_EQ(expected, Matrix4<TypeParam>::translate(expected).translationVector());
   }
+
+  TYPED_TEST(Matrix4Test, TransformPointAppliesRotationAndTranslation) {
+    // Pure translation: transformPoint should add the translation vector.
+    auto m = Matrix4<TypeParam>::translate(TypeParam(10), TypeParam(20), TypeParam(30));
+    Vector3<TypeParam> p(TypeParam(1), TypeParam(2), TypeParam(3));
+    Vector3<TypeParam> result = m.transformPoint(p);
+    ASSERT_EQ(Vector3<TypeParam>(TypeParam(11), TypeParam(22), TypeParam(33)), result);
+  }
+
+  TYPED_TEST(Matrix4Test, TransformPointMatchesFullMatrixMultiply) {
+    // transformPoint must produce the same xyz as Matrix4 * Vector4(p).
+    Matrix4<TypeParam> m(
+      TypeParam(0.866), TypeParam(-0.5),  TypeParam(0),    TypeParam(1),
+      TypeParam(0.5),   TypeParam(0.866), TypeParam(0),    TypeParam(2),
+      TypeParam(0),     TypeParam(0),     TypeParam(1),    TypeParam(3),
+      TypeParam(0),     TypeParam(0),     TypeParam(0),    TypeParam(1)
+    );
+    Vector3<TypeParam> p(TypeParam(1), TypeParam(2), TypeParam(3));
+    Vector3<TypeParam> fast = m.transformPoint(p);
+    Vector4<TypeParam> full = m * Vector4<TypeParam>(p);
+    ASSERT_NEAR(double(fast[0]), double(full[0]), 1e-5);
+    ASSERT_NEAR(double(fast[1]), double(full[1]), 1e-5);
+    ASSERT_NEAR(double(fast[2]), double(full[2]), 1e-5);
+  }
+
+  TYPED_TEST(Matrix4Test, TransformDirectionSkipsTranslation) {
+    // Pure translation should not affect a direction vector.
+    auto m = Matrix4<TypeParam>::translate(TypeParam(10), TypeParam(20), TypeParam(30));
+    Vector3<TypeParam> d(TypeParam(1), TypeParam(0), TypeParam(0));
+    Vector3<TypeParam> result = m.transformDirection(d);
+    ASSERT_EQ(d, result);
+  }
+
+  TYPED_TEST(Matrix4Test, TransformDirectionMatchesFullMatrixMultiplyWithWZero) {
+    // transformDirection must equal Matrix4 * Vector4(d, 0) (xyz of result).
+    Matrix4<TypeParam> m(
+      TypeParam(0.866), TypeParam(-0.5),  TypeParam(0),    TypeParam(1),
+      TypeParam(0.5),   TypeParam(0.866), TypeParam(0),    TypeParam(2),
+      TypeParam(0),     TypeParam(0),     TypeParam(1),    TypeParam(3),
+      TypeParam(0),     TypeParam(0),     TypeParam(0),    TypeParam(1)
+    );
+    Vector3<TypeParam> d(TypeParam(1), TypeParam(0), TypeParam(0));
+    Vector3<TypeParam> fast = m.transformDirection(d);
+    // w=0: only the rotation/scale part applies, no translation.
+    ASSERT_NEAR(double(fast[0]), double(m.cell(0, 0)), 1e-5);
+    ASSERT_NEAR(double(fast[1]), double(m.cell(1, 0)), 1e-5);
+    ASSERT_NEAR(double(fast[2]), double(m.cell(2, 0)), 1e-5);
+  }
 }

@@ -150,7 +150,10 @@ namespace render {
 
   private:
     inline Rayd instancedRay(const Rayd& ray) const {
-      return Rayd(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
+      return Rayd(
+        Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()))),
+        m_directionMatrix * ray.direction()
+      );
     }
 
     std::shared_ptr<Primitive> m_primitive;

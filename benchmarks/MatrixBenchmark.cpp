@@ -90,6 +90,32 @@ void bm_transposed(benchmark::State& state) {
   }
 }
 
+// Affine fast-path benchmarks — measure transformPoint / transformDirection
+// against the full Matrix4 * Vector4 path to verify the ≥25% gate.
+template <typename T>
+void bm_transform_point(benchmark::State& state) {
+  auto m = makeTransform<T>();
+  Vector3<T> p(T(1), T(2), T(3));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(m);
+    benchmark::DoNotOptimize(p);
+    auto r = m.transformPoint(p);
+    benchmark::DoNotOptimize(r);
+  }
+}
+
+template <typename T>
+void bm_transform_direction(benchmark::State& state) {
+  auto m = makeTransform<T>();
+  Vector3<T> d(T(1), T(0), T(0));
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(m);
+    benchmark::DoNotOptimize(d);
+    auto r = m.transformDirection(d);
+    benchmark::DoNotOptimize(r);
+  }
+}
+
 // "Build a transform from scratch" — a realistic camera/instance pattern.
 // Stresses the three rotation factories plus a scale plus a chain of
 // composition. Catches regressions in the factory functions themselves
@@ -133,3 +159,8 @@ BENCHMARK(bm_transposed<double, 4, Matrix4d>);
 
 BENCHMARK(bm_build_transform3<float>);
 BENCHMARK(bm_build_transform3<double>);
+
+BENCHMARK(bm_transform_point<float>);
+BENCHMARK(bm_transform_point<double>);
+BENCHMARK(bm_transform_direction<float>);
+BENCHMARK(bm_transform_direction<double>);
