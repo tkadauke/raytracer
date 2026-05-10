@@ -228,6 +228,35 @@ Rasterizer::Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<r
 
 Rasterizer::~Rasterizer() = default;
 
+std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
+  auto result = std::make_shared<Rasterizer>(
+    m_camera ? m_camera->clone() : nullptr,
+    m_scene
+  );
+  result->setTonemap(tonemap());
+  result->setLod(m_lod);
+  result->setMaximumThreads(p->threadPool->maxThreadCount());
+  result->setQueueSize(p->queueSize);
+  result->setMSAASamples(m_msaaSamples);
+  result->setShadowMapsEnabled(m_shadowMapsEnabled);
+  result->setShadowMapSize(m_shadowMapSize);
+  result->setShadowBias(m_shadowBias);
+  result->setShadowFilterRadius(m_shadowFilterRadius);
+  result->setCullMode(m_cullMode);
+  result->setDepthFunc(m_depthFunc);
+  result->setDepthClearValue(m_depthClearValue);
+  result->setDepthWriteEnabled(m_depthWriteEnabled);
+  result->setStencilTestEnabled(m_stencilTestEnabled);
+  result->setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
+  result->setStencilClearValue(m_stencilClearValue);
+  result->setStencilWriteMask(m_stencilWriteMask);
+  result->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
+  result->setVertexShader(m_vertexShader);
+  result->setFragmentShader(m_fragmentShader);
+  result->setBackgroundColor(m_backgroundColor);
+  return result;
+}
+
 void Rasterizer::cancel() {
   m_cancelled.store(true);
 }
@@ -562,6 +591,15 @@ namespace {
       return Rayd::undefined();
     }
 
+    std::shared_ptr<render::Camera> clone() const override {
+      auto result =
+        std::shared_ptr<DirectionalShadowCamera>(new DirectionalShadowCamera(
+          m_origin, m_forward, m_right, m_up, m_halfExtent
+        ));
+      copyBaseStateTo(*result);
+      return result;
+    }
+
     Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override {
       const Vector3d cameraPoint = toCameraSpace(worldPoint);
       if (cameraPoint.z() < 0.0)
@@ -580,6 +618,15 @@ namespace {
     }
 
   private:
+    DirectionalShadowCamera(const Vector3d& origin, const Vector3d& forward,
+                            const Vector3d& right, const Vector3d& up, double halfExtent)
+        : m_origin(origin),
+          m_forward(forward),
+          m_right(right),
+          m_up(up),
+          m_halfExtent(halfExtent) {
+    }
+
     Vector3d toCameraSpace(const Vector3d& worldPoint) const {
       const Vector3d rel = worldPoint - m_origin;
       return Vector3d(rel * m_right, rel * m_up, rel * m_forward);

@@ -9,6 +9,12 @@
 using namespace std;
 using namespace render;
 
+std::shared_ptr<Camera> EquirectangularCamera::clone() const {
+  auto result = std::make_shared<EquirectangularCamera>();
+  copyBaseStateTo(*result);
+  return result;
+}
+
 Vector3d EquirectangularCamera::direction(double x, double y) const {
   // Map pixel (x, y) → (lon, lat) in the canonical equirectangular layout:
   //   x = 0       → lon = -π   (left edge,    behind camera)

@@ -27,6 +27,16 @@ Camera::Camera(const Vector3d& position, const Vector3d& target)
 Camera::~Camera() {
 }
 
+void Camera::copyBaseStateTo(Camera& camera) const {
+  camera.m_cancelled.store(false, std::memory_order_release);
+  camera.m_showProgressIndicators = m_showProgressIndicators;
+  camera.m_position = m_position;
+  camera.m_target = m_target;
+  camera.m_matrix.reset();
+  camera.m_inverseMatrix.reset();
+  camera.m_viewPlane = m_viewPlane ? m_viewPlane->clone() : nullptr;
+}
+
 void Camera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   m_viewPlane = plane;
 }

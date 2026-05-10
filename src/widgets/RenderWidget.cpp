@@ -8,6 +8,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
+#include <list>
+#include <utility>
 
 using namespace std;
 using namespace render;
@@ -15,14 +18,15 @@ using namespace render;
 namespace {
   class RenderThread : public QThread {
   public:
-    inline RenderThread(std::shared_ptr<render::RenderEngine> e, Buffer<unsigned int>& b)
-      : engine(e),
-        buffer(b)
+    inline RenderThread(std::shared_ptr<render::RenderEngine> e,
+                        std::shared_ptr<Buffer<unsigned int>> b)
+      : engine(std::move(e)),
+        buffer(std::move(b))
     {
     }
 
     inline virtual void run() {
-      engine->render(buffer);
+      engine->render(*buffer);
     }
 
     inline void cancel() {
@@ -30,33 +34,52 @@ namespace {
     }
 
     std::shared_ptr<render::RenderEngine> engine;
-    Buffer<unsigned int>& buffer;
+    std::shared_ptr<Buffer<unsigned int>> buffer;
+  };
+
+  struct RenderJob {
+    RenderJob(std::uint64_t generation,
+              std::shared_ptr<render::RenderEngine> engine,
+              std::shared_ptr<Buffer<unsigned int>> buffer,
+              bool isolated)
+      : generation(generation),
+        thread(new RenderThread(std::move(engine), std::move(buffer))),
+        discardFinishedFrame(false),
+        isolated(isolated)
+    {
+    }
+
+    ~RenderJob() {
+      delete thread;
+    }
+
+    std::uint64_t generation;
+    RenderThread* thread;
+    bool discardFinishedFrame;
+    bool isolated;
   };
 }
 
 struct RenderWidget::Private {
   inline Private()
-    : renderThread(nullptr),
-      timer(0),
+    : timer(0),
       showProgressIndicators(false),
       displayMode(DisplayMode::PeriodicUpdate),
       clearBackBufferOnRenderStart(true),
       progressUpdateIntervalMs(0),
-      discardFinishedFrame(false),
       renderGeneration(0)
   {
   }
 
-  RenderThread* renderThread;
-
-  std::unique_ptr<Buffer<unsigned int>> backBuffer;
+  std::unique_ptr<RenderJob> activeJob;
+  std::list<std::unique_ptr<RenderJob>> retiredJobs;
+  QSize bufferSize;
   QImage frontImage;
   int timer;
   bool showProgressIndicators;
   DisplayMode displayMode;
   bool clearBackBufferOnRenderStart;
   int progressUpdateIntervalMs;
-  bool discardFinishedFrame;
   std::uint64_t renderGeneration;
 };
 
@@ -81,29 +104,37 @@ RenderWidget::~RenderWidget() {
 }
 
 void RenderWidget::stop() {
-  if (!p->discardFinishedFrame) {
+  if (p->activeJob && !p->activeJob->discardFinishedFrame) {
     publishProgressUpdate();
   }
-  const bool wasRunning = p->renderThread && p->renderThread->isRunning();
-  if (p->renderThread && p->renderThread->isRunning()) {
-    p->discardFinishedFrame = true;
-    p->renderThread->cancel();
-    p->renderThread->wait();
+  const bool wasRunning = p->activeJob && p->activeJob->thread->isRunning();
+  if (p->activeJob && p->activeJob->thread->isRunning()) {
+    p->activeJob->discardFinishedFrame = true;
+    p->activeJob->thread->cancel();
+    p->activeJob->thread->wait();
   }
 
-  if (p->renderThread && !wasRunning && !p->discardFinishedFrame) {
+  if (p->activeJob && !wasRunning && !p->activeJob->discardFinishedFrame) {
     publishFullBackBuffer();
-  } else if (!p->discardFinishedFrame) {
+  } else if (p->activeJob && !p->activeJob->discardFinishedFrame) {
     publishProgressUpdate();
   }
 
-  if (p->renderThread) {
-    disconnect(p->renderThread, nullptr, this, nullptr);
-    delete p->renderThread;
-    p->renderThread = nullptr;
+  if (p->activeJob) {
+    disconnect(p->activeJob->thread, nullptr, this, nullptr);
+    p->activeJob.reset();
     ++p->renderGeneration;
   }
-  p->discardFinishedFrame = false;
+
+  for (auto& job : p->retiredJobs) {
+    if (job->thread->isRunning()) {
+      job->thread->cancel();
+      job->thread->wait();
+    }
+    disconnect(job->thread, nullptr, this, nullptr);
+  }
+  p->retiredJobs.clear();
+
   if (p->timer != 0) {
     killTimer(p->timer);
     p->timer = 0;
@@ -112,31 +143,72 @@ void RenderWidget::stop() {
 }
 
 void RenderWidget::render() {
-  stop();
+  reapRetiredRenderJobs();
+
+  if (p->activeJob && p->activeJob->thread->isRunning() && p->activeJob->isolated
+      && !p->retiredJobs.empty()) {
+    // Backpressure before cloning: the next snapshot would allocate a
+    // fresh engine, buffer, and worker while an older cancellation is
+    // still draining. Cancel the active frame and let the caller
+    // coalesce to a later render request.
+    cancelActiveRender();
+    return;
+  }
+
+  auto renderEngine = m_engine->cloneForRender();
+  const bool isolatedRender = static_cast<bool>(renderEngine);
+  if (!renderEngine) {
+    renderEngine = m_engine;
+  }
+
+  if (p->activeJob) {
+    if (p->activeJob->thread->isRunning()) {
+      if (p->activeJob->isolated && isolatedRender) {
+        if (p->retiredJobs.empty()) {
+          retireActiveRender();
+        } else {
+          // One retired snapshot is already draining. Keep the
+          // current job as the active cancellation fence instead of
+          // spawning unbounded render pools while the user drags.
+          cancelActiveRender();
+          return;
+        }
+      } else {
+        stop();
+      }
+    } else {
+      clearInactiveActiveRender();
+    }
+  }
+
   m_engine->uncancel();
-  p->discardFinishedFrame = false;
+  renderEngine->uncancel();
+
+  auto buffer =
+    std::make_shared<Buffer<unsigned int>>(p->bufferSize.width(), p->bufferSize.height());
   if (p->clearBackBufferOnRenderStart) {
-    p->backBuffer->clear();
+    buffer->clear();
+  } else {
+    copyFrontImageTo(*buffer);
   }
 
   const std::uint64_t generation = ++p->renderGeneration;
-  p->renderThread = new RenderThread(m_engine, *p->backBuffer);
-  connect(p->renderThread, &QThread::finished, this, [this, generation]() {
+  p->activeJob = std::make_unique<RenderJob>(generation, renderEngine, buffer, isolatedRender);
+  connect(p->activeJob->thread, &QThread::finished, this, [this, generation]() {
     renderThreadDone(generation);
   });
-  p->renderThread->start();
+  p->activeJob->thread->start();
 
   if (p->displayMode != DisplayMode::DoubleBuffer || p->showProgressIndicators) {
     const int interval = p->progressUpdateIntervalMs > 0
       ? p->progressUpdateIntervalMs
-      : std::max(16, p->backBuffer->width() / 10);
+      : std::max(16, p->bufferSize.width() / 10);
     p->timer = startTimer(interval);
   }
 }
 
 void RenderWidget::setBufferSize(const QSize& size) {
-  p->backBuffer = std::make_unique<Buffer<unsigned int>>(size.width(), size.height());
-  p->backBuffer->clear();
+  p->bufferSize = size;
   p->frontImage = QImage(size.width(), size.height(), QImage::Format_RGB32);
   p->frontImage.fill(Qt::black);
 }
@@ -162,23 +234,70 @@ void RenderWidget::setProgressUpdateIntervalMs(int intervalMs) {
 }
 
 bool RenderWidget::isRendering() const {
-  return p->renderThread && p->renderThread->isRunning();
+  return p->activeJob && p->activeJob->thread->isRunning();
 }
 
 void RenderWidget::cancelRender() {
-  if (!p->renderThread || !p->renderThread->isRunning())
+  if (!p->activeJob || !p->activeJob->thread->isRunning())
     return;
 
-  p->discardFinishedFrame = true;
+  reapRetiredRenderJobs();
+
+  if (!p->activeJob->isolated || !p->retiredJobs.empty()) {
+    cancelActiveRender();
+    return;
+  }
+
+  retireActiveRender();
+}
+
+void RenderWidget::cancelActiveRender() {
+  if (!p->activeJob)
+    return;
+
+  p->activeJob->discardFinishedFrame = true;
   if (p->timer != 0) {
     killTimer(p->timer);
     p->timer = 0;
   }
-  p->renderThread->cancel();
+  p->activeJob->thread->cancel();
+  update();
+}
+
+void RenderWidget::clearInactiveActiveRender() {
+  if (!p->activeJob || p->activeJob->thread->isRunning())
+    return;
+
+  if (!p->activeJob->discardFinishedFrame) {
+    publishFullBackBuffer();
+  }
+  disconnect(p->activeJob->thread, nullptr, this, nullptr);
+  p->activeJob.reset();
+  ++p->renderGeneration;
+}
+
+void RenderWidget::reapRetiredRenderJobs() {
+  for (auto job = p->retiredJobs.begin(); job != p->retiredJobs.end();) {
+    if ((*job)->thread->isRunning()) {
+      ++job;
+      continue;
+    }
+    disconnect((*job)->thread, nullptr, this, nullptr);
+    job = p->retiredJobs.erase(job);
+  }
+}
+
+void RenderWidget::retireActiveRender() {
+  if (!p->activeJob)
+    return;
+
+  cancelActiveRender();
+  p->retiredJobs.push_back(std::move(p->activeJob));
+  update();
 }
 
 void RenderWidget::timerEvent(QTimerEvent*) {
-  if (!p->discardFinishedFrame) {
+  if (p->activeJob && !p->activeJob->discardFinishedFrame) {
     publishProgressUpdate();
   }
   update();
@@ -187,7 +306,7 @@ void RenderWidget::timerEvent(QTimerEvent*) {
 void RenderWidget::paintEvent(QPaintEvent*) {
   QPainter painter(this);
 
-  if (p->renderThread && p->renderThread->isRunning() && p->showProgressIndicators) {
+  if (p->activeJob && p->activeJob->thread->isRunning() && p->showProgressIndicators) {
     QImage image = p->frontImage.copy();
     markTilesInProgress(image);
     painter.drawImage(QPoint(0, 0), image);
@@ -195,6 +314,25 @@ void RenderWidget::paintEvent(QPaintEvent*) {
   }
 
   painter.drawImage(QPoint(0, 0), p->frontImage);
+}
+
+Buffer<unsigned int>* RenderWidget::activeBackBuffer() const {
+  if (!p->activeJob)
+    return nullptr;
+  return p->activeJob->thread->buffer.get();
+}
+
+render::RenderEngine* RenderWidget::activeRenderEngine() const {
+  if (!p->activeJob)
+    return nullptr;
+  return p->activeJob->thread->engine.get();
+}
+
+void RenderWidget::copyFrontImageTo(Buffer<unsigned int>& buffer) const {
+  for (int y = 0; y < buffer.height(); ++y) {
+    std::memcpy(buffer[y], p->frontImage.constScanLine(y),
+                sizeof(unsigned int) * buffer.width());
+  }
 }
 
 void RenderWidget::publishProgressUpdate() {
@@ -211,36 +349,46 @@ void RenderWidget::publishProgressUpdate() {
 }
 
 void RenderWidget::publishCompletedTiles() {
-  if (!p->renderThread)
+  auto* engine = activeRenderEngine();
+  if (!engine)
     return;
 
-  for (const auto& tile : p->renderThread->engine->completedTiles()) {
+  for (const auto& tile : engine->completedTiles()) {
     publishTile(tile);
   }
 }
 
 void RenderWidget::publishFullBackBuffer() {
-  if (!p->backBuffer)
+  auto* buffer = activeBackBuffer();
+  if (!buffer)
     return;
 
-  publishTile(Recti(0, 0, p->backBuffer->width(), p->backBuffer->height()));
+  publishTile(Recti(0, 0, buffer->width(), buffer->height()));
 }
 
 void RenderWidget::publishTile(const Recti& tile) {
+  auto* buffer = activeBackBuffer();
+  if (!buffer)
+    return;
+
   const int left = std::max(0, tile.left());
   const int top = std::max(0, tile.top());
-  const int right = std::min(p->backBuffer->width(), tile.right());
-  const int bottom = std::min(p->backBuffer->height(), tile.bottom());
+  const int right = std::min(buffer->width(), tile.right());
+  const int bottom = std::min(buffer->height(), tile.bottom());
 
   for (int x = left; x < right; ++x) {
     for (int y = top; y < bottom; ++y) {
-      p->frontImage.setPixel(x, y, (*p->backBuffer)[y][x]);
+      p->frontImage.setPixel(x, y, (*buffer)[y][x]);
     }
   }
 }
 
 void RenderWidget::markTilesInProgress(QImage& image) const {
-  for (const auto& tile : p->renderThread->engine->activeTiles()) {
+  auto* engine = activeRenderEngine();
+  if (!engine)
+    return;
+
+  for (const auto& tile : engine->activeTiles()) {
     const int left = std::max(0, tile.left());
     const int top = std::max(0, tile.top());
     const int right = std::min(image.width(), tile.right());
@@ -262,10 +410,19 @@ QRgb RenderWidget::progressTint(QRgb color) const {
 }
 
 void RenderWidget::renderThreadDone(std::uint64_t generation) {
-  if (generation != p->renderGeneration || !p->renderThread)
+  if (!p->activeJob || generation != p->activeJob->generation) {
+    auto retired = std::find_if(p->retiredJobs.begin(), p->retiredJobs.end(),
+                                [generation](const auto& job) {
+                                  return job->generation == generation;
+                                });
+    if (retired != p->retiredJobs.end()) {
+      disconnect((*retired)->thread, nullptr, this, nullptr);
+      p->retiredJobs.erase(retired);
+    }
     return;
+  }
 
-  if (!p->discardFinishedFrame) {
+  if (!p->activeJob->discardFinishedFrame) {
     publishFullBackBuffer();
   }
   if (p->timer != 0) {

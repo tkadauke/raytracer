@@ -36,6 +36,16 @@ namespace {
   }
 }
 
+std::shared_ptr<Camera> ThinLensCamera::clone() const {
+  auto result = std::make_shared<ThinLensCamera>();
+  copyBaseStateTo(*result);
+  result->m_distance = m_distance;
+  result->m_zoom = m_zoom;
+  result->m_apertureRadius = m_apertureRadius;
+  result->m_focalDistance = m_focalDistance;
+  return result;
+}
+
 Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& stream) const {
   // Pull the lens-disc sample from the stream's next 2D dimension.
   // The renderer has already consumed dimension 0 for sub-pixel

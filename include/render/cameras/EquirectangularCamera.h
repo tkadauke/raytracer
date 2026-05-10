@@ -113,6 +113,7 @@ namespace render {
       * class-level mapping table).
       */
     virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    std::shared_ptr<Camera> clone() const override;
 
   private:
     Vector3d direction(double x, double y) const;

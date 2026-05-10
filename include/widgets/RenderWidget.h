@@ -7,6 +7,8 @@
 #include <QWidget>
 
 class QImage;
+template<class T>
+class Buffer;
 
 namespace render {
   class RenderEngine;
@@ -17,10 +19,11 @@ namespace render {
   *
   * `RenderWidget` is what the GUI applications (`SceneBrowser`,
   * `GeneratedRayTracer`'s `RenderWindow`) display in their main
-  * pane. It owns a render-thread back buffer plus a UI-thread
-  * front image. Worker threads write the back buffer; the selected
-  * display mode decides when pixels are copied into the front image,
-  * and `paintEvent` only draws that immutable snapshot.
+  * pane. It owns a UI-thread front image plus one back buffer per
+  * active render job. Worker threads write their job-local back
+  * buffer; the selected display mode decides when pixels are copied
+  * into the front image, and `paintEvent` only draws that immutable
+  * snapshot.
   *
   * The widget does not own the `RenderEngine` — that's a
   * `shared_ptr` passed in from the application. The application
@@ -28,7 +31,12 @@ namespace render {
   * is responsible for reissuing `render()` on the widget afterwards.
   *
   * Engine-agnostic: any `RenderEngine` subclass (Raytracer,
-  * Wireframe, future SoftwareRasterEngine, ...) drops in.
+  * Wireframe, future SoftwareRasterEngine, ...) drops in. Engines
+  * that implement `RenderEngine::cloneForRender()` get a snapshot
+  * per render job, which lets interactive previews cancel an old job
+  * and start the replacement immediately while the old worker drains.
+  * Engines that return `nullptr` keep the serialized lifecycle: the
+  * widget waits for the current render before starting the next one.
   * Subclasses that want raytracer-specific operations (e.g. the
   * mouse-pick `rayState` probe in `Display`) `dynamic_cast` to
   * `Raytracer*` and skip the operation when the active engine
@@ -75,19 +83,23 @@ public:
   virtual void timerEvent(QTimerEvent *event);
 
   /**
-    * Kick off a render. Resets the buffer, starts the worker
-    * threads via the engine's `render()`, and starts the repaint
-    * timer. Emits `finished()` when the render completes (or is
-    * stopped).
+    * Kick off a render. Starts the worker thread through either an
+    * isolated engine snapshot (`cloneForRender`) or the control
+    * engine itself when snapshots are unsupported. Snapshot-capable
+    * in-flight renders are cancelled and retired without blocking so
+    * the replacement frame can start immediately; unsupported engines
+    * are still serialized. Emits `finished()` when the active render
+    * completes and publishes its final frame.
     */
   virtual void render();
 
   /**
-    * Swap the active render engine. The new engine should share
-    * scene + camera state with the previous one (callers
-    * typically use `RenderEngine::scene()` / `camera()` to copy
-    * over). Calling this during a render is undefined; use
-    * `stop()` first.
+    * Swap the control render engine. The new engine should share
+    * scene + camera state with the previous one (callers typically
+    * use `RenderEngine::scene()` / `camera()` to copy over). Call
+    * `stop()` first when changing engine kind; old snapshot jobs may
+    * be draining in the background, but the control engine pointer is
+    * what future renders clone from.
     */
   void setEngine(std::shared_ptr<render::RenderEngine> engine);
 
@@ -125,19 +137,22 @@ public:
   /// current frame.
   bool isRendering() const;
 
-  /// Request cancellation without waiting for the render thread to
-  /// finish. `finished()` is emitted when the worker thread exits.
+  /// Request cancellation. Snapshot-capable renders are detached and
+  /// allowed to drain in the background, so no `finished()` signal is
+  /// emitted for that stale frame. Non-snapshot renders remain the
+  /// active job until their worker exits.
   void cancelRender();
 
 signals:
-  /// Emitted when the render thread reports completion (success
-  /// or via `stop()`). Connect this to update the UI's busy state.
+  /// Emitted when the active render reports completion and its final
+  /// frame was considered for publication. Retired stale jobs do not
+  /// emit this signal when they eventually finish.
   void finished();
 
 public slots:
-  /// Cancel the in-flight render. The widget calls
-  /// `RenderEngine::cancel()` internally; the render exits when its
-  /// in-progress tiles finish, then `finished()` fires.
+  /// Cancel all known render jobs and wait for their worker threads
+  /// to exit. Unlike `cancelRender()`, this is a blocking teardown
+  /// path used by destruction, resize, and explicit engine swaps.
   void stop();
 
 protected:
@@ -145,6 +160,13 @@ protected:
 
 private:
   void renderThreadDone(std::uint64_t generation);
+  void cancelActiveRender();
+  void clearInactiveActiveRender();
+  void reapRetiredRenderJobs();
+  void retireActiveRender();
+  Buffer<unsigned int>* activeBackBuffer() const;
+  render::RenderEngine* activeRenderEngine() const;
+  void copyFrontImageTo(Buffer<unsigned int>& buffer) const;
   void publishProgressUpdate();
   void publishCompletedTiles();
   void publishFullBackBuffer();

@@ -5,6 +5,14 @@
 
 using namespace render;
 
+std::shared_ptr<Camera> PinholeCamera::clone() const {
+  auto result = std::make_shared<PinholeCamera>();
+  copyBaseStateTo(*result);
+  result->m_distance = m_distance;
+  result->m_zoom = m_zoom;
+  return result;
+}
+
 Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
   Vector3d pixel = viewPlane()->pixelAt(x, y);

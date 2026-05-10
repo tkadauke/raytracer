@@ -27,6 +27,11 @@ namespace render {
 
     virtual ~Camera();
 
+    /// Clone camera state for an isolated render job. The clone gets
+    /// its own view-plane instance so render-thread setup does not race
+    /// with the interactive camera being moved by the UI.
+    virtual std::shared_ptr<Camera> clone() const = 0;
+
     inline void setPosition(const Vector3d& position) {
       m_matrix.reset();
       m_inverseMatrix.reset();
@@ -244,6 +249,8 @@ namespace render {
     }
 
   protected:
+    void copyBaseStateTo(Camera& camera) const;
+
     /// Write `color` (already divided by sample count) into every
     /// pixel of the iterator's footprint — single pixel for the
     /// regular iterator, the size×size block for interlaced

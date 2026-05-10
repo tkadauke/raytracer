@@ -51,6 +51,7 @@ namespace render {
     }
 
     virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    std::shared_ptr<Camera> clone() const override;
 
     /**
       * @returns the camera's field of view.

@@ -72,6 +72,20 @@ namespace render {
     virtual ~RenderEngine();
 
     /**
+      * Creates an isolated engine instance for a render thread.
+      *
+      * GUI display widgets use this to give each render thread its
+      * own immutable engine snapshot. That lets a stale render be
+      * cancelled and left to drain while the next interactive frame
+      * starts immediately from a newer camera / scene state.
+      *
+      * Returning `nullptr` opts out: callers must serialize renders
+      * against this engine because the implementation cannot be safely
+      * run concurrently with a later render.
+      */
+    virtual std::shared_ptr<RenderEngine> cloneForRender() const;
+
+    /**
       * Render the full image into a packed-RGB display buffer.
       *
       * Default implementation: allocates a `Buffer<Colord>` HDR
@@ -111,8 +125,11 @@ namespace render {
       return m_camera;
     }
 
-    /// Replaces the active camera. Safe to call between renders;
-    /// undefined while `render` is executing on another thread.
+    /// Replaces the active camera. Safe to call between renders. If
+    /// a GUI render is running on a `cloneForRender()` snapshot, that
+    /// snapshot keeps its old camera; otherwise callers must not
+    /// mutate the engine while `render` is executing on another
+    /// thread.
     inline void setCamera(std::shared_ptr<render::Camera> camera) {
       m_camera = std::move(camera);
     }
@@ -123,8 +140,10 @@ namespace render {
     }
 
     /// Replaces the scene. The new scene is rendered on the next
-    /// `render` call; in-flight renders continue against the old
-    /// scene until they finish.
+    /// `render` call. If a GUI render is running on a
+    /// `cloneForRender()` snapshot, that snapshot keeps its old scene;
+    /// otherwise callers must not mutate the engine while `render` is
+    /// executing on another thread.
     inline void setScene(std::shared_ptr<render::Scene> scene) {
       m_scene = std::move(scene);
     }

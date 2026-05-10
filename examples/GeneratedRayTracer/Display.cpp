@@ -62,12 +62,9 @@ void Display::setEngineKind(EngineKind kind) {
 }
 
 void Display::setScene(Scene* scene) {
-  if (m_engine->scene()) {
-    stop();
-    // Old scene is owned by the engine's shared_ptr; setScene below
-    // swaps it out and the previous scene is destroyed.
-  }
-
+  // In-flight preview renders use an engine snapshot, so replacing
+  // the control engine's scene does not tear the scene out from
+  // under the worker that is finishing the previous frame.
   m_engine->setScene(scene->toRaytracerScene());
   render();
 }

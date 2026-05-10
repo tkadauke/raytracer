@@ -150,6 +150,7 @@ namespace render {
       *      used by tests.
       */
     virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    std::shared_ptr<Camera> clone() const override;
 
     /**
       * Generate a primary ray for pixel `(x, y)` with an explicit

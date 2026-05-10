@@ -133,6 +133,7 @@ namespace render {
       * blur) is unchanged from the parent.
       */
     virtual Rayd rayForPixelWithLens(double x, double y, double lensU, double lensV) const;
+    std::shared_ptr<Camera> clone() const override;
 
     /// @returns the focal-plane tilt angle. Zero means
     /// perpendicular to the forward axis (parent ThinLens

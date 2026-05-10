@@ -27,6 +27,12 @@ namespace CameraTest {
     inline virtual Rayd rayForPixel(double, double, render::SampleStream&) const {
       return Rayd::undefined();
     }
+
+    std::shared_ptr<Camera> clone() const override {
+      auto result = std::make_shared<ConcreteCamera>();
+      copyBaseStateTo(*result);
+      return result;
+    }
   };
 
   TEST(Camera, ShouldConstructWithoutParameters) {

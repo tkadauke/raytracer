@@ -9,6 +9,14 @@
 using namespace std;
 using namespace render;
 
+std::shared_ptr<Camera> SphericalCamera::clone() const {
+  auto result = std::make_shared<SphericalCamera>();
+  copyBaseStateTo(*result);
+  result->m_horizontalFieldOfView = m_horizontalFieldOfView;
+  result->m_verticalFieldOfView = m_verticalFieldOfView;
+  return result;
+}
+
 Vector3d SphericalCamera::direction(double x, double y) const {
   Vector2d point(2.0 / viewPlane()->width() * x + 1.0, 2.0 / viewPlane()->height() * y - 1.0);
 

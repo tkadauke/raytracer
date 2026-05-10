@@ -49,6 +49,7 @@ namespace render {
     }
 
     virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    std::shared_ptr<Camera> clone() const override;
 
     /**
       * Closed-form orthographic inverse of `rayForPixel`. Drops the

@@ -194,6 +194,11 @@ namespace render {
 
     virtual ~ViewPlane();
 
+    /// Clone the view plane for an isolated render job. The sampler is
+    /// shared because samplers are read-only after setup, while traversal
+    /// state and setup vectors stay private to the clone.
+    virtual std::shared_ptr<ViewPlane> clone() const;
+
     /**
       * Re-orient the plane in front of a new camera position /
       * target and resize for a new window. Called by the

@@ -31,6 +31,10 @@ RenderEngine::RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_p
 RenderEngine::~RenderEngine() {
 }
 
+std::shared_ptr<RenderEngine> RenderEngine::cloneForRender() const {
+  return nullptr;
+}
+
 void RenderEngine::render(Buffer<unsigned int>& displayBuffer) {
   // Allocate the float HDR accumulator that the engine writes
   // into, run the engine-specific render, then walk every pixel

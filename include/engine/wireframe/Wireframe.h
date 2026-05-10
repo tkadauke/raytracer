@@ -66,6 +66,7 @@ public:
   ~Wireframe() override;
 
   using RenderEngine::render;
+  std::shared_ptr<render::RenderEngine> cloneForRender() const override;
   void render(Buffer<Colord>& buffer) override;
   void cancel() override;
   void uncancel() override;

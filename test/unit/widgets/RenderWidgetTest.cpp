@@ -11,6 +11,10 @@
 #include <QPainter>
 #include <QSemaphore>
 
+#include <atomic>
+#include <utility>
+#include <vector>
+
 namespace RenderWidgetTest {
   class RenderWidgetTest : public ::testing::GuiTest {};
 
@@ -68,6 +72,62 @@ namespace RenderWidgetTest {
 
     QSemaphore entered;
     QSemaphore release;
+  };
+
+  struct CloneGate {
+    QSemaphore entered;
+    QSemaphore release;
+    QSemaphore finished;
+    std::atomic<int> cancelCalls{0};
+    std::atomic<bool> releaseOnCancel{true};
+  };
+
+  struct CloneState {
+    std::vector<std::shared_ptr<CloneGate>> gates;
+  };
+
+  class CloneableBlockingEngine : public render::RenderEngine {
+  public:
+    CloneableBlockingEngine()
+      : render::RenderEngine(std::shared_ptr<render::Scene>()),
+        state(std::make_shared<CloneState>())
+    {
+    }
+
+    explicit CloneableBlockingEngine(std::shared_ptr<CloneState> state)
+      : render::RenderEngine(std::shared_ptr<render::Scene>()),
+        state(std::move(state)),
+        gate(std::make_shared<CloneGate>())
+    {
+    }
+
+    std::shared_ptr<render::RenderEngine> cloneForRender() const override {
+      auto clone = std::make_shared<CloneableBlockingEngine>(state);
+      state->gates.push_back(clone->gate);
+      return clone;
+    }
+
+    void render(Buffer<Colord>&) override {
+    }
+
+    void render(Buffer<unsigned int>&) override {
+      gate->entered.release();
+      gate->release.acquire();
+      gate->finished.release();
+    }
+
+    void cancel() override {
+      ++gate->cancelCalls;
+      if (gate->releaseOnCancel.load()) {
+        gate->release.release();
+      }
+    }
+
+    void uncancel() override {
+    }
+
+    std::shared_ptr<CloneState> state;
+    std::shared_ptr<CloneGate> gate;
   };
 
   QRgb paintedPixel(RenderWidget& widget) {
@@ -180,6 +240,60 @@ namespace RenderWidgetTest {
 
     EXPECT_TRUE(widget.isRendering());
     EXPECT_EQ(0, finishedCount);
+  }
+
+  TEST_F(RenderWidgetTest, ShouldStartReplacementRenderWithoutWaitingForCancelledSnapshot) {
+    auto engine = std::make_shared<CloneableBlockingEngine>();
+    RenderWidget widget(nullptr, engine);
+    widget.setBufferSize(QSize(2, 2));
+
+    int finishedCount = 0;
+    QObject::connect(&widget, &RenderWidget::finished, [&finishedCount]() {
+      ++finishedCount;
+    });
+
+    widget.render();
+    ASSERT_EQ(1u, engine->state->gates.size());
+    ASSERT_TRUE(engine->state->gates[0]->entered.tryAcquire(1, 1000));
+
+    widget.render();
+
+    ASSERT_EQ(2u, engine->state->gates.size());
+    EXPECT_EQ(1, engine->state->gates[0]->cancelCalls.load());
+    ASSERT_TRUE(engine->state->gates[0]->finished.tryAcquire(1, 1000));
+    QCoreApplication::processEvents();
+    EXPECT_EQ(0, finishedCount);
+
+    EXPECT_TRUE(engine->state->gates[1]->entered.tryAcquire(1, 1000));
+    EXPECT_TRUE(widget.isRendering());
+
+    engine->state->gates[1]->release.release();
+    ASSERT_TRUE(engine->state->gates[1]->finished.tryAcquire(1, 1000));
+    QCoreApplication::processEvents();
+    EXPECT_EQ(1, finishedCount);
+  }
+
+  TEST_F(RenderWidgetTest, ShouldNotStartUnlimitedReplacementRendersWhileRetiredSnapshotDrains) {
+    auto engine = std::make_shared<CloneableBlockingEngine>();
+    RenderWidget widget(nullptr, engine);
+    widget.setBufferSize(QSize(2, 2));
+
+    widget.render();
+    ASSERT_EQ(1u, engine->state->gates.size());
+    ASSERT_TRUE(engine->state->gates[0]->entered.tryAcquire(1, 1000));
+    engine->state->gates[0]->releaseOnCancel.store(false);
+
+    widget.render();
+    ASSERT_EQ(2u, engine->state->gates.size());
+    ASSERT_TRUE(engine->state->gates[1]->entered.tryAcquire(1, 1000));
+
+    widget.render();
+
+    EXPECT_EQ(2u, engine->state->gates.size());
+    EXPECT_EQ(1, engine->state->gates[1]->cancelCalls.load());
+
+    engine->state->gates[0]->release.release();
+    engine->state->gates[1]->release.release();
   }
 
   TEST_F(RenderWidgetTest, ShouldAcceptStopBeforeRender) {

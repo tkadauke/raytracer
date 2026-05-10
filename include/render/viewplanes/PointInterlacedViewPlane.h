@@ -5,6 +5,10 @@
 namespace render {
   class PointInterlacedViewPlane : public ViewPlane {
   public:
+    std::shared_ptr<ViewPlane> clone() const override {
+      return std::make_shared<PointInterlacedViewPlane>(*this);
+    }
+
     virtual Iterator begin(const Recti& rect) const;
   };
 }

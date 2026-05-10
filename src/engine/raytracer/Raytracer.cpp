@@ -56,6 +56,19 @@ Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<ren
 Raytracer::~Raytracer() {
 }
 
+std::shared_ptr<render::RenderEngine> Raytracer::cloneForRender() const {
+  auto result = std::make_shared<Raytracer>(
+    m_camera ? m_camera->clone() : nullptr,
+    m_scene
+  );
+  result->setTonemap(tonemap());
+  result->setMaximumRecursionDepth(p->maximumRecursionDepth);
+  result->setMaximumThreads(p->threadPool->maxThreadCount());
+  result->setQueueSize(p->queueSize);
+  result->setShowProgressIndicators(p->showProgressIndicators);
+  return result;
+}
+
 void Raytracer::render(Buffer<Colord>& buffer) {
   if (!m_scene) {
     buffer.clear();

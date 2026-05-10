@@ -7,6 +7,18 @@
 
 using namespace render;
 
+std::shared_ptr<Camera> TiltShiftCamera::clone() const {
+  auto result = std::make_shared<TiltShiftCamera>();
+  copyBaseStateTo(*result);
+  result->setDistance(distance());
+  result->setZoom(zoom());
+  result->setApertureRadius(apertureRadius());
+  result->setFocalDistance(focalDistance());
+  result->m_tilt = m_tilt;
+  result->m_shift = m_shift;
+  return result;
+}
+
 Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, double lensV) const {
   // Pinhole reference ray, with optional lateral shift baked into
   // the principal direction. Conceptually, `setShift({sx, sy})`

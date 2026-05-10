@@ -82,6 +82,7 @@ namespace engine::raytracer {
     virtual ~Raytracer();
 
     using RenderEngine::render;
+    std::shared_ptr<render::RenderEngine> cloneForRender() const override;
 
     /**
       * Tile-and-thread render into the HDR accumulator. Implements

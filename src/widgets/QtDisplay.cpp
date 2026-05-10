@@ -102,11 +102,16 @@ void QtDisplay::wheelEvent(QWheelEvent* event) {
 
 void QtDisplay::render() {
   if (isRendering()) {
-    p->renderAfterCurrentFrame = true;
     if (p->cancelRenderOnInteraction) {
       cancelRender();
+      if (isRendering()) {
+        p->renderAfterCurrentFrame = true;
+        return;
+      }
+    } else {
+      p->renderAfterCurrentFrame = true;
+      return;
     }
-    return;
   }
 
   p->renderAfterCurrentFrame = false;

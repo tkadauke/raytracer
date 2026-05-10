@@ -5,6 +5,13 @@
 
 using namespace render;
 
+std::shared_ptr<Camera> OrthographicCamera::clone() const {
+  auto result = std::make_shared<OrthographicCamera>();
+  copyBaseStateTo(*result);
+  result->m_zoom = m_zoom;
+  return result;
+}
+
 Rayd OrthographicCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
   Vector3d pixel = viewPlane()->pixelAt(x, y);

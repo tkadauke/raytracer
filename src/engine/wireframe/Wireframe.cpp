@@ -24,6 +24,18 @@ Wireframe::Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<ren
 
 Wireframe::~Wireframe() = default;
 
+std::shared_ptr<render::RenderEngine> Wireframe::cloneForRender() const {
+  auto result = std::make_shared<Wireframe>(
+    m_camera ? m_camera->clone() : nullptr,
+    m_scene
+  );
+  result->setTonemap(tonemap());
+  result->setLod(m_lod);
+  result->setEdgeColor(m_edgeColor);
+  result->setBackgroundColor(m_backgroundColor);
+  return result;
+}
+
 void Wireframe::cancel() {
   m_cancelled.store(true);
 }

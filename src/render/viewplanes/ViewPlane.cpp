@@ -21,6 +21,10 @@ ViewPlane::ViewPlane(const Matrix4d& matrix, const Recti& window)
 ViewPlane::~ViewPlane() {
 }
 
+std::shared_ptr<ViewPlane> ViewPlane::clone() const {
+  return std::make_shared<ViewPlane>(*this);
+}
+
 void ViewPlane::setupVectors() {
   m_topLeft = m_matrix * Vector4d(-4, -3, 0);
   m_right = Matrix3d(m_matrix) * (Vector3d(1, 0, 0) / width() * 8.0);
