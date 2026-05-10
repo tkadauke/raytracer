@@ -47,6 +47,12 @@ add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi)
 # in their default ABI baseline.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|i[3-6]86)")
   add_compile_options(-msse3)
+  # GCC and Clang warn about SSE/SSE3 types (__m128, __m128d) losing attributes
+  # when used as template arguments (e.g. in the Vector3<float/double> SSE3
+  # specializations). This is expected and safe — the attribute only affects
+  # ABI/alignment inside SSE instructions and is harmless in the template
+  # context. Suppress it so -Werror doesn't break the x86 build.
+  add_compile_options(-Wno-ignored-attributes)
 endif()
 
 if(NOT (CMAKE_BUILD_TYPE STREQUAL "Debug" OR RAYTRACER_ENABLE_COVERAGE))
