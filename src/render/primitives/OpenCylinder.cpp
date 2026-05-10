@@ -23,7 +23,7 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
   double t[2];
   int results = Quadric<double>(a, b, c).solveInto(t);
 
-  if (results == 0) {
+  if (results < 2) {
     state.miss(this, "OpenCylinder, ray miss");
     return nullptr;
   } else {
@@ -69,7 +69,7 @@ bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
   double t[2];
   int results = Quadric<double>(a, b, c).solveInto(t);
 
-  if (results == 0) {
+  if (results < 2) {
     state.shadowMiss(this, "OpenCylinder, ray miss");
     return false;
   } else {
