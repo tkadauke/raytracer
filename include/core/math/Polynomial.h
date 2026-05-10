@@ -16,9 +16,9 @@ struct SortedResult {
   using const_iterator = const T*;
 
   std::array<T, N> values{};
-  int count = 0;
+  std::size_t count = 0;
 
-  int size() const { return count; }
+  std::size_t size() const { return count; }
   bool empty() const { return count == 0; }
   const T& operator[](int i) const { return values[i]; }
   T& operator[](int i) { return values[i]; }
