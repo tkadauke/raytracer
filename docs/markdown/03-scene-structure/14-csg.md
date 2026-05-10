@@ -104,8 +104,8 @@ is short:
 
 - A sphere of radius $r$ centered at $\mathbf{c}$:
   $\text{supp}(\mathbf{v}) = \mathbf{c} + r \, \hat{\mathbf{v}}$.
-- An axis-aligned box with corners $\mathbf{p}_{\min},
-  \mathbf{p}_{\max}$: pick the corner whose component sign
+- An axis-aligned box with low corner $\mathbf{p}_a$ and high
+  corner $\mathbf{p}_b$: pick the corner whose component sign
   matches $\mathbf{v}$'s on each axis.
 - A triangle (or any polytope): one of the vertices, whichever
   has the highest dot product with $\mathbf{v}$.

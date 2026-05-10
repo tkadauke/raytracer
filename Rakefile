@@ -738,7 +738,11 @@ namespace :docs do
     ].freeze
 
     def textbook_widget_host_page(widget)
-      slug = docs_widget_slug(widget)
+      # The id reported back by postMessage must match what the textbook
+      # runtime stores in iframe.dataset.widgetId — the bare basename
+      # (underscore form), not the dash-slugged variant used by the
+      # widget-gallery frame.
+      name = File.basename(widget, ".js")
       scripts = (docs_widget_dependencies(widget) + [widget]).map do |file|
         %(<script src="#{CGI.escapeHTML(file)}"></script>)
       end.join("\n    ")
@@ -764,7 +768,7 @@ namespace :docs do
           </div>
           <script>
             (() => {
-              const id = "#{CGI.escapeHTML(slug)}";
+              const id = "#{CGI.escapeHTML(name)}";
               const reportHeight = () => {
                 const height = Math.ceil(document.documentElement.scrollHeight);
                 parent.postMessage({ type: "textbook-widget-resize", id, height }, "*");
@@ -797,17 +801,80 @@ namespace :docs do
             return;
           }
 
+          // Stash math expressions into a side bank BEFORE marked sees
+          // the text, so marked's emphasis/table parsers never get a
+          // chance to eat underscores or pipe characters that live
+          // inside math. Each math span gets a placeholder built from
+          // characters with no markdown meaning (uppercase letters and
+          // digits surrounded by Unicode private-use codepoints), so
+          // marked passes the placeholder through unchanged.
+          const mathBank = new Map();
+          let mathCounter = 0;
+          function stashMath(content, display) {
+            const key = `\\uE000XTBKMATH${mathCounter++}\\uE001`;
+            mathBank.set(key, { content, display });
+            return key;
+          }
+
           fetch(source).then(r => r.text()).then(text => {
-            // Replace widget markers with placeholder divs before passing
-            // to marked, so they survive the markdown -> HTML conversion.
-            const expanded = text.replace(
+            // Order matters: widgets first, then $$...$$, then $...$
+            // (so the longer pattern wins).
+            let work = text.replace(
               /<!--\\s*widget:\\s*([A-Za-z0-9_]+)\\s*-->/g,
               (_, name) =>
                 `<div class="textbook-widget" data-widget="${name}"></div>`
             );
+            work = work.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g,
+              (_, content) => stashMath(content, true));
+            work = work.replace(/\\$([^\\$\\n]+?)\\$/g,
+              (_, content) => stashMath(content, false));
 
-            const html = marked.parse(expanded, { gfm: true, headerIds: true });
+            const html = marked.parse(work, { gfm: true, headerIds: true });
             main.innerHTML = html;
+
+            // Restore math placeholders. Walk the rendered DOM's text
+            // nodes (so we don't disturb element structure) and replace
+            // each placeholder with a span/div carrying the original
+            // math wrapped in $...$ or $$...$$, which KaTeX's
+            // auto-render then picks up below.
+            const placeholderRe = /\\uE000XTBKMATH(\\d+)\\uE001/g;
+            const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+              if (placeholderRe.test(n.nodeValue)) nodes.push(n);
+              placeholderRe.lastIndex = 0;
+            }
+            nodes.forEach(node => {
+              const original = node.nodeValue;
+              const frag = document.createDocumentFragment();
+              const re = /\\uE000XTBKMATH(\\d+)\\uE001/g;
+              let lastIndex = 0;
+              let match;
+              while ((match = re.exec(original)) !== null) {
+                if (match.index > lastIndex) {
+                  frag.appendChild(document.createTextNode(
+                    original.slice(lastIndex, match.index)));
+                }
+                const key = match[0];
+                const entry = mathBank.get(key);
+                if (entry) {
+                  const span = document.createElement(entry.display ? 'div' : 'span');
+                  span.className = entry.display
+                    ? 'textbook-math-display'
+                    : 'textbook-math-inline';
+                  span.textContent = entry.display
+                    ? `$$${entry.content}$$`
+                    : `$${entry.content}$`;
+                  frag.appendChild(span);
+                }
+                lastIndex = re.lastIndex;
+              }
+              if (lastIndex < original.length) {
+                frag.appendChild(document.createTextNode(
+                  original.slice(lastIndex)));
+              }
+              node.parentNode.replaceChild(frag, node);
+            });
 
             // Mount each widget placeholder as an iframe pointing at the
             // per-widget host page. Iframes auto-size via postMessage.
@@ -822,7 +889,10 @@ namespace :docs do
               iframe.dataset.widgetId = name;
               iframe.loading = "lazy";
               iframe.style.width = "100%";
-              iframe.style.height = "360px";
+              // Start small; the resize-on-message handler grows the
+              // frame to the widget's actual content height as soon
+              // as the widget reports back.
+              iframe.style.height = "80px";
               iframe.style.border = "1px solid #d0d0d0";
               iframe.style.borderRadius = "6px";
               el.appendChild(iframe);

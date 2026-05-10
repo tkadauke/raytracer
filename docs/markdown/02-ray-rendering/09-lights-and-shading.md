@@ -66,8 +66,11 @@ straight-line vector from the surface point to the light's
 position, normalized:
 
 $$
-\mathbf{l} = \frac{\mathbf{p}_{\text{light}} - \mathbf{p}_{\text{surface}}}{|\mathbf{p}_{\text{light}} - \mathbf{p}_{\text{surface}}|}
+\mathbf{l} = \frac{\mathbf{p}_L - \mathbf{p}_S}{\lVert \mathbf{p}_L - \mathbf{p}_S \rVert}
 $$
+
+where $\mathbf{p}_L$ is the light's position and $\mathbf{p}_S$
+is the surface point.
 
 `radiance()` returns the constructor's color regardless of
 where the surface is. This is *not* physically accurate — a

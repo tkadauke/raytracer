@@ -85,7 +85,7 @@ by editing this file.
 - **DOF** — Depth of Field. The defocus blur produced by a
   finite-aperture camera.
   [Chapter 6 §6.5](../02-ray-rendering/06-cameras.md#6-5-thin-lens-depth-of-field).
-- **Dot product** — $\mathbf{a} \cdot \mathbf{b} = |\mathbf{a}||\mathbf{b}|\cos\theta$;
+- **Dot product** — $\mathbf{a} \cdot \mathbf{b} = \lVert\mathbf{a}\rVert\lVert\mathbf{b}\rVert\cos\theta$;
   the workhorse 1D scalar derived from two vectors.
   [Chapter 1 §1.4](../01-foundations/01-numbers-and-vectors.md#1-4-dot-product).
 

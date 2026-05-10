@@ -67,12 +67,12 @@ shader looks up at hit time
 ## 7.2 Sphere: an analytic quadric
 
 A sphere with center $\mathbf{c}$ and radius $r$ is the set of
-points satisfying $|\mathbf{p} - \mathbf{c}|^2 = r^2$. Substitute
+points satisfying $\lVert\mathbf{p} - \mathbf{c}\rVert^2 = r^2$. Substitute
 the ray equation $\mathbf{p}(t) = \mathbf{o} + t\mathbf{d}$ and
 expand:
 
 $$
-|\mathbf{o} + t\mathbf{d} - \mathbf{c}|^2 = r^2
+\lVert\mathbf{o} + t\mathbf{d} - \mathbf{c}\rVert^2 = r^2
 $$
 
 Let $\mathbf{o}' = \mathbf{o} - \mathbf{c}$ to translate the
@@ -171,31 +171,32 @@ pair for each axis. The interval of $t$ values inside each pair
 is computed from two ray-plane intersections; the box's interior
 is the *intersection* of the three intervals.
 
-The procedure for an axis-aligned box with corners
-$\mathbf{p}_{\min}$ and $\mathbf{p}_{\max}$:
+The procedure for an axis-aligned box with corners $\mathbf{p}_a$
+(low) and $\mathbf{p}_b$ (high):
 
-1. For each axis $i \in \{x, y, z\}$, compute
-   $t_{\text{near},i} = (p_{\min,i} - o_i) / d_i$ and
-   $t_{\text{far},i} = (p_{\max,i} - o_i) / d_i$.
-2. If $d_i$ is negative, swap the two so $t_{\text{near},i}$ is
-   always the smaller of the two.
-3. Intersect the three intervals: $t_{\text{enter}} = \max
-   t_{\text{near},i}$, $t_{\text{exit}} = \min t_{\text{far},i}$.
-4. If $t_{\text{enter}} > t_{\text{exit}}$, the ray misses; the
-   intervals don't overlap. Otherwise, the entry hit is at
-   $t_{\text{enter}}$ and the exit hit is at $t_{\text{exit}}$.
+1. For each axis $i$ in $\{x, y, z\}$, compute the two slab-plane
+   intersection parameters
+   $t_{n,i} = (p_{a,i} - o_i) / d_i$ and
+   $t_{f,i} = (p_{b,i} - o_i) / d_i$.
+2. If $d_i$ is negative, swap the two so $t_{n,i}$ is always the
+   smaller of the two.
+3. Intersect the three intervals:
+   $t_\text{enter} = \max_i t_{n,i}$ and
+   $t_\text{exit} = \min_i t_{f,i}$.
+4. If $t_\text{enter} > t_\text{exit}$, the ray misses; the
+   intervals do not overlap. Otherwise, the entry hit is at
+   $t_\text{enter}$ and the exit hit is at $t_\text{exit}$.
 
 Six divisions and a small amount of comparison. The same
 algorithm is what the BVH traversal uses on every internal node,
 which is why "is this ray near this AABB?" is so cheap — it's the
 slab method without the hit-point construction.
 
-The box's surface normal at a hit depends on which face was hit;
-the implementation reads this off the axis whose
-$t_{\text{near},i}$ tied for the maximum at step 3 (or
-$t_{\text{far},i}$ tied for the minimum, for the exit hit). A
-unit vector along that axis, signed by the ray direction, is the
-face normal.
+The box's surface normal at a hit depends on which face was hit.
+The implementation reads this off the axis whose $t_{n,i}$ tied
+for the maximum at step 3 (or whose $t_{f,i}$ tied for the
+minimum, for the exit hit). A unit vector along that axis, signed
+by the ray direction, is the face normal.
 
 ## 7.5 Triangle: Möller-Trumbore
 
@@ -212,18 +213,10 @@ Substitute the ray equation, and you get a linear system in
 $(\beta, \gamma, t)$ that can be solved with one $3 \times 3$
 matrix inverse:
 
-$$
-\begin{pmatrix}
-| & | & | \\
-\mathbf{p}_0 - \mathbf{p}_1 & \mathbf{p}_0 - \mathbf{p}_2 & \mathbf{d} \\
-| & | & |
-\end{pmatrix}
-\begin{pmatrix}
-\beta \\ \gamma \\ t
-\end{pmatrix}
-=
-\mathbf{p}_0 - \mathbf{o}
-$$
+$$ \begin{pmatrix} \mathbf{p}_0 - \mathbf{p}_1 & \mathbf{p}_0 - \mathbf{p}_2 & \mathbf{d} \end{pmatrix} \begin{pmatrix} \beta \\ \gamma \\ t \end{pmatrix} = \mathbf{p}_0 - \mathbf{o} $$
+
+where each column of the $3 \times 3$ matrix is a 3D vector and
+the right-hand side is a 3D vector.
 
 Möller-Trumbore (1997) is the canonical algorithm that solves
 this system using Cramer's rule applied carefully so that the
@@ -234,13 +227,13 @@ implementation follows this structure exactly: compute β and
 test it; if it survives, compute γ and test it; if it survives,
 compute t and the hit point.
 
-The output of a successful test is the value of $t$, the hit
+A successful test produces the value of $t$, the hit
 point $\mathbf{p}$, and — for free, since they fall out of the
-linear-system solution — the barycentric coordinates $(1 - \beta
-- \gamma, \beta, \gamma)$. Those coordinates drive UV
-interpolation and per-vertex normal interpolation in the mesh
-primitives (§7.8), as well as the rasterizer's perspective-correct
-attribute interpolation in
+linear-system solution — the three barycentric coordinates
+$w_0 = 1 - \beta - \gamma$, $w_1 = \beta$, $w_2 = \gamma$.
+Those coordinates drive UV interpolation and per-vertex normal
+interpolation in the mesh primitives (§7.8), and they drive the
+rasterizer's perspective-correct attribute interpolation in
 [chapter 21](../04-rasterization/21-msaa-and-attribute-interpolation.md).
 
 The widget for chapter 17 has the same barycentric setup live;

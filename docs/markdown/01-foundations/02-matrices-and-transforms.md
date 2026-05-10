@@ -37,15 +37,7 @@ homogeneous 4-vector $(x, y, z, 1)$, and a direction $(d_x, d_y,
 d_z)$ becomes $(d_x, d_y, d_z, 0)$. The translation by
 $(t_x, t_y, t_z)$ becomes the matrix:
 
-$$
-T =
-\begin{pmatrix}
-1 & 0 & 0 & t_x \\
-0 & 1 & 0 & t_y \\
-0 & 0 & 1 & t_z \\
-0 & 0 & 0 & 1
-\end{pmatrix}
-$$
+$$ T = \begin{pmatrix} 1 & 0 & 0 & t_x \\ 0 & 1 & 0 & t_y \\ 0 & 0 & 1 & t_z \\ 0 & 0 & 0 & 1 \end{pmatrix} $$
 
 Multiply $T$ by the homogeneous point $(x, y, z, 1)^T$ and you get
 $(x + t_x, y + t_y, z + t_z, 1)^T$ — the translated point. Multiply

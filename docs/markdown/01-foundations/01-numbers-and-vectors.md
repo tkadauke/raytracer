@@ -195,7 +195,7 @@ vectors $\mathbf{a}$ and $\mathbf{b}$ separated by an angle
 $\theta$ satisfy
 
 $$
-\mathbf{a} \cdot \mathbf{b} = |\mathbf{a}| \, |\mathbf{b}| \cos\theta
+\mathbf{a} \cdot \mathbf{b} = \lVert\mathbf{a}\rVert \, \lVert\mathbf{b}\rVert \cos\theta
 $$
 
 so the dot product reads off the cosine of the angle between them
@@ -230,17 +230,10 @@ that follows:
 
 Cross product is 3D-only. Given $\mathbf{a}$ and $\mathbf{b}$ in
 3D, $\mathbf{a} \times \mathbf{b}$ is the vector perpendicular to
-both, with length $|\mathbf{a}||\mathbf{b}| \sin\theta$ and
+both, with length $\lVert\mathbf{a}\rVert\,\lVert\mathbf{b}\rVert\sin\theta$ and
 direction set by the right-hand rule:
 
-$$
-\mathbf{a} \times \mathbf{b} =
-\begin{pmatrix}
-a_y b_z - a_z b_y \\
-a_z b_x - a_x b_z \\
-a_x b_y - a_y b_x
-\end{pmatrix}
-$$
+$$ \mathbf{a} \times \mathbf{b} = \begin{pmatrix} a_y b_z - a_z b_y \\ a_z b_x - a_x b_z \\ a_x b_y - a_y b_x \end{pmatrix} $$
 
 The implementation reads straight off the formula:
 
@@ -285,7 +278,7 @@ The length of a vector is just the square root of its dot product
 with itself:
 
 $$
-|\mathbf{v}| = \sqrt{\mathbf{v} \cdot \mathbf{v}}
+\lVert\mathbf{v}\rVert = \sqrt{\mathbf{v} \cdot \mathbf{v}}
 $$
 
 ```cpp
