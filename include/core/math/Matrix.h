@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <functional>
 #include <type_traits>
 #include <algorithm>
 #include "core/math/Vector.h"
@@ -1038,3 +1039,68 @@ typedef Matrix4<float> Matrix4f;
   * Four-dimensional matrix with double components.
   */
 typedef Matrix4<double> Matrix4d;
+
+namespace std {
+  template<int Dimensions, class T, class VectorType, class Derived>
+  struct hash<Matrix<Dimensions, T, VectorType, Derived>> {
+    size_t operator()(const Matrix<Dimensions, T, VectorType, Derived>& m) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      for (int row = 0; row < Dimensions; ++row)
+        for (int col = 0; col < Dimensions; ++col)
+          seed ^= h(m.cell(row, col)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Matrix4<T>> {
+    size_t operator()(const Matrix4<T>& m) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      for (int row = 0; row < 4; ++row)
+        for (int col = 0; col < 4; ++col)
+          seed ^= h(m.cell(row, col)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+}
+
+#if __cplusplus >= 202002L && __has_include(<format>)
+#include <format>
+#ifdef __cpp_lib_format
+namespace std {
+  template<int Dimensions, class T, class VectorType, class Derived>
+  struct formatter<Matrix<Dimensions, T, VectorType, Derived>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Matrix<Dimensions, T, VectorType, Derived>& m, format_context& ctx) const {
+      auto out = ctx.out();
+      for (int row = 0; row < Dimensions; ++row) {
+        for (int col = 0; col < Dimensions; ++col) {
+          out = format_to(out, "{}", m.cell(row, col));
+          *out++ = ' ';
+        }
+        *out++ = '\n';
+      }
+      return out;
+    }
+  };
+
+  template<class T>
+  struct formatter<Matrix4<T>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Matrix4<T>& m, format_context& ctx) const {
+      auto out = ctx.out();
+      for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+          out = format_to(out, "{}", m.cell(row, col));
+          *out++ = ' ';
+        }
+        *out++ = '\n';
+      }
+      return out;
+    }
+  };
+}
+#endif
+#endif

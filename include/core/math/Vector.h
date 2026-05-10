@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <functional>
 #include <limits>
 #include <type_traits>
 #include <algorithm>
@@ -1044,3 +1045,98 @@ typedef Vector4<float> Vector4f;
   * Four-dimensional vector with double components.
   */
 typedef Vector4<double> Vector4d;
+
+namespace std {
+  template<int Dimensions, class T, class StorageCellType, class Derived>
+  struct hash<Vector<Dimensions, T, StorageCellType, Derived>> {
+    size_t operator()(const Vector<Dimensions, T, StorageCellType, Derived>& v) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      for (int i = 0; i < Dimensions; ++i)
+        seed ^= h(v[i]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Vector2<T>> {
+    size_t operator()(const Vector2<T>& v) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      seed ^= h(v[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(v[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Vector3<T>> {
+    size_t operator()(const Vector3<T>& v) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      seed ^= h(v[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(v[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(v[2]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Vector4<T>> {
+    size_t operator()(const Vector4<T>& v) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      seed ^= h(v[0]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(v[1]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(v[2]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(v[3]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+}
+
+#if __cplusplus >= 202002L && __has_include(<format>)
+#include <format>
+#ifdef __cpp_lib_format
+namespace std {
+  template<int Dimensions, class T, class StorageCellType, class Derived>
+  struct formatter<Vector<Dimensions, T, StorageCellType, Derived>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Vector<Dimensions, T, StorageCellType, Derived>& v, format_context& ctx) const {
+      auto out = ctx.out();
+      *out++ = '(';
+      for (int i = 0; i < Dimensions; ++i) {
+        if (i > 0) { *out++ = ','; *out++ = ' '; }
+        out = format_to(out, "{}", v[i]);
+      }
+      *out++ = ')';
+      return out;
+    }
+  };
+
+  template<class T>
+  struct formatter<Vector2<T>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Vector2<T>& v, format_context& ctx) const {
+      return format_to(ctx.out(), "({}, {})", v[0], v[1]);
+    }
+  };
+
+  template<class T>
+  struct formatter<Vector3<T>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Vector3<T>& v, format_context& ctx) const {
+      return format_to(ctx.out(), "({}, {}, {})", v[0], v[1], v[2]);
+    }
+  };
+
+  template<class T>
+  struct formatter<Vector4<T>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Vector4<T>& v, format_context& ctx) const {
+      return format_to(ctx.out(), "({}, {}, {}, {})", v[0], v[1], v[2], v[3]);
+    }
+  };
+}
+#endif
+#endif

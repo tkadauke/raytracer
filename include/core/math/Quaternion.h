@@ -2,6 +2,7 @@
 
 #include "core/InequalityOperator.h"
 #include <cmath>
+#include <functional>
 
 template<class T>
 class Quaternion : public InequalityOperator<Quaternion<T>> {
@@ -88,3 +89,33 @@ std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quaternion) {
 
 typedef Quaternion<float> Quaternionf;
 typedef Quaternion<double> Quaterniond;
+
+namespace std {
+  template<class T>
+  struct hash<Quaternion<T>> {
+    size_t operator()(const Quaternion<T>& q) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      seed ^= h(q.w()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(q.x()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(q.y()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= h(q.z()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+}
+
+#if __cplusplus >= 202002L && __has_include(<format>)
+#include <format>
+#ifdef __cpp_lib_format
+namespace std {
+  template<class T>
+  struct formatter<Quaternion<T>> {
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    auto format(const Quaternion<T>& q, format_context& ctx) const {
+      return format_to(ctx.out(), "[{}, {} {} {}]", q.w(), q.x(), q.y(), q.z());
+    }
+  };
+}
+#endif
+#endif

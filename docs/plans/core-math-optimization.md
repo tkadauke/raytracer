@@ -342,11 +342,13 @@ these get reinvented in Camera classes.
 
 **Benchmark gate:** none expected.
 
-### 3.6 `std::hash` and `std::formatter` specializations
+### ~~3.6 `std::hash` and `std::formatter` specializations~~
 
-For `Vector3`, `Vector4`, `Matrix4`, `Quaternion`. Hash unlocks
+~~For `Vector3`, `Vector4`, `Matrix4`, `Quaternion`. Hash unlocks
 unordered-map keys (mesh vertex deduplication, etc.); formatter
-unlocks `std::format` integration for debug output.
+unlocks `std::format` integration for debug output.~~
+
+✅ **Done.** Hash specializations (C++17) added to `Vector.h`, `Matrix.h`, and `Quaternion.h`; formatter specializations (C++20, `#ifdef __cpp_lib_format` guarded) match `operator<<` output. Tests in `test/unit/core/math/HashFormatterTest.cpp`.
 
 **Benchmark gate:** none expected.
 
