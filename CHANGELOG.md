@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Changed
+
+- **`Polynomial::solve()` CRTP refactor (roadmap §2.4).** `Polynomial<T,N>` is now a CRTP base `Polynomial<T,N,Derived>`; `solve()` is no longer virtual. `solveInto()` and `sortedResult()` dispatch to `Derived::solve()` via `static_cast`, eliminating the vtable pointer and indirect call on the torus inner loop where the polynomial degree is compile-time-known. — Claude Sonnet 4.6
+
 ### Added
 
 - **Core-math benchmark surface and optimization plan.** Six new Google Benchmark suites (`MatrixBenchmark`, `BoundingBoxBenchmark`, `PolynomialBenchmark`, `HitPointIntervalBenchmark`, `RandomBenchmark`, `QuaternionBenchmark`) plus an expanded `VectorBenchmark` (cross/normalize/sub/scalar mul-div/reflect-chain/dot-batch across Vector3f/3d/4f/4d). Baseline output saved at `docs/perf/math-baseline-2026-05-10.txt` against commit `a064505`. The phased optimization plan with per-step benchmark gates lives at `docs/plans/core-math-optimization.md`. — Claude Opus 4.7

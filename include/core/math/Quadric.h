@@ -8,9 +8,9 @@
   * Represents a quadric polynomial of the form \f$ax^2 + bx + c\f$.
   */
 template<class T>
-class Quadric : public Polynomial<T, 2> {
+class Quadric : public Polynomial<T, 2, Quadric<T>> {
 public:
-  typedef Polynomial<T, 2> Base;
+  typedef Polynomial<T, 2, Quadric<T>> Base;
   
   /**
     * Constructor. Takes the @p a, @p b, and @p c coefficients of the

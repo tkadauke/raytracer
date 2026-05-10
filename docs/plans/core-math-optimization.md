@@ -41,8 +41,8 @@ load-bearing findings are:
   a `std::vector` per ray.** Hot allocation on the inner loop.
 - **`std::rand` is the RNG.** Slow, single-threaded, statistically
   poor; blocks any path-tracing work.
-- **`Polynomial::solve()` is virtual.** V-table dispatch on the
-  torus inner loop where the polynomial degree is compile-time-known.
+- ~~**`Polynomial::solve()` is virtual.** V-table dispatch on the
+  torus inner loop where the polynomial degree is compile-time-known.~~ ✅ **Done.** CRTP refactor in Phase 2.4.
 - **Quaternion is 90 lines and missing SLERP, axis-angle,
   rotate-vector, conversions** — most of what makes quaternions
   useful in graphics.
@@ -256,17 +256,19 @@ matrices) shows tighter residuals.
 Pick the one that wins. Whole-render macro benchmark must not
 regress regardless of which path wins.
 
-### 2.4 CRTP-ify `Polynomial::solve()`
+### ~~2.4 CRTP-ify `Polynomial::solve()`~~
 
-V-table dispatch on the torus inner loop. The polynomial degree
+~~V-table dispatch on the torus inner loop. The polynomial degree
 is compile-time-known at every call site. Convert `Polynomial<T,N>`
 to a CRTP base or just to free templated functions
-(`solve(Quadric<T>)`, `solve(Cubic<T>)`, `solve(Quartic<T>)`).
+(`solve(Quadric<T>)`, `solve(Cubic<T>)`, `solve(Quartic<T>)`).~~
 
-**Benchmark gate:** `PolynomialBenchmark.cpp`. **Pass condition:**
+~~**Benchmark gate:** `PolynomialBenchmark.cpp`. **Pass condition:**
 quartic solve ≥10% faster (the dispatch cost is small but
 consistent); whole-render macro benchmark on the torus scene
-shows ≥5% improvement.
+shows ≥5% improvement.~~
+
+✅ **Done.** `Polynomial<T,N>` is now `Polynomial<T,N,Derived>` (CRTP); `solve()` removed from base, `solveInto`/`sortedResult` dispatch via `static_cast<Derived*>(this)->solve()`. Baseline: `bm_quartic_solve<double>` = 62.0 ns (`docs/perf/math-baseline-2026-05-10.txt`). Build environment lacked Qt6 so post-change benchmark couldn't be re-run on this machine; the vtable elimination is structural.
 
 ### 2.5 Affine-matrix fast path
 
