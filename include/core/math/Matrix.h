@@ -1009,34 +1009,34 @@ public:
     *
     *   @param fovY  vertical field-of-view angle
     *   @param aspect  width / height ratio
-    *   @param near  positive near-plane distance
-    *   @param far   positive far-plane distance (far > near)
+    *   @param nearPlane  positive near-plane distance
+    *   @param farPlane   positive far-plane distance (farPlane > nearPlane)
     */
   template<class A>
-  inline static Matrix4<T> perspective(const A& fovY, T aspect, T near, T far) {
+  inline static Matrix4<T> perspective(const A& fovY, T aspect, T nearPlane, T farPlane) {
     T f = T(1) / std::tan(fovY.radians() / T(2));
-    T inv_range = T(1) / (far - near);
+    T inv_range = T(1) / (farPlane - nearPlane);
     return Matrix4<T>(
-      f / aspect, T(),  T(),                        T(),
-      T(),        f,    T(),                        T(),
-      T(),        T(),  (far + near) * inv_range,   T(-2) * far * near * inv_range,
-      T(),        T(),  T(1),                       T()
+      f / aspect, T(),  T(),                                T(),
+      T(),        f,    T(),                                T(),
+      T(),        T(),  (farPlane + nearPlane) * inv_range,  T(-2) * farPlane * nearPlane * inv_range,
+      T(),        T(),  T(1),                               T()
     );
   }
 
   /**
     * @returns an orthographic-projection matrix that maps the axis-aligned box
-    *   [left, right] × [bottom, top] × [near, far] to NDC [-1, 1]³. No
-    *   perspective divide; w = 1.
+    *   [left, right] × [bottom, top] × [nearPlane, farPlane] to NDC [-1, 1]³.
+    *   No perspective divide; w = 1.
     */
-  inline static Matrix4<T> orthographic(T left, T right, T bottom, T top, T near, T far) {
+  inline static Matrix4<T> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane) {
     T inv_rl = T(1) / (right - left);
     T inv_tb = T(1) / (top - bottom);
-    T inv_fn = T(1) / (far - near);
+    T inv_fn = T(1) / (farPlane - nearPlane);
     return Matrix4<T>(
       T(2) * inv_rl, T(),           T(),           -(right + left) * inv_rl,
       T(),           T(2) * inv_tb, T(),           -(top + bottom) * inv_tb,
-      T(),           T(),           T(2) * inv_fn, -(far + near) * inv_fn,
+      T(),           T(),           T(2) * inv_fn, -(farPlane + nearPlane) * inv_fn,
       T(),           T(),           T(),            T(1)
     );
   }
@@ -1045,18 +1045,18 @@ public:
     * @returns a general (asymmetric) perspective-projection matrix defined by
     *   near-plane corners (left, bottom) and (right, top). Identical to
     *   perspective() for the symmetric case where left = -right and
-    *   bottom = -top. z_ndc = -1 at near, +1 at far after dividing by w
-    *   (= z_eye).
+    *   bottom = -top. z_ndc = -1 at nearPlane, +1 at farPlane after dividing
+    *   by w (= z_eye).
     */
-  inline static Matrix4<T> frustum(T left, T right, T bottom, T top, T near, T far) {
+  inline static Matrix4<T> frustum(T left, T right, T bottom, T top, T nearPlane, T farPlane) {
     T inv_rl = T(1) / (right - left);
     T inv_tb = T(1) / (top - bottom);
-    T inv_fn = T(1) / (far - near);
+    T inv_fn = T(1) / (farPlane - nearPlane);
     return Matrix4<T>(
-      T(2) * near * inv_rl, T(),                   -(right + left) * inv_rl,   T(),
-      T(),                  T(2) * near * inv_tb,  -(top + bottom) * inv_tb,   T(),
-      T(),                  T(),                    (far + near) * inv_fn,     T(-2) * far * near * inv_fn,
-      T(),                  T(),                    T(1),                       T()
+      T(2) * nearPlane * inv_rl, T(),                      -(right + left) * inv_rl,        T(),
+      T(),                       T(2) * nearPlane * inv_tb, -(top + bottom) * inv_tb,        T(),
+      T(),                       T(),                        (farPlane + nearPlane) * inv_fn, T(-2) * farPlane * nearPlane * inv_fn,
+      T(),                       T(),                        T(1),                            T()
     );
   }
 };
