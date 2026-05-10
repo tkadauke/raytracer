@@ -60,6 +60,8 @@
      camera-pass comparison.
    - ✅ Added configurable PCF radius for percentage-closer filtering, exposed
      on `Rasterizer`, `rendercli`, tests, and rendered docs.
+   - ✅ Added GeneratedRayTracer render-dialog controls for shadow-map enable,
+     resolution, bias, and PCF radius.
    - Next add PCSS and cascades for comparison with raytraced shadow rays.
 
 8. **GeneratedRaytracer / RenderWidget front-back buffers**

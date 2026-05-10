@@ -35,6 +35,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
   connect(p->ui.engineType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(engineChanged()));
+  connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(engineChanged()));
 
   // Initial visibility: defaults to Raytracer, so hide the wireframe-
   // only frame.
@@ -87,17 +88,41 @@ int RenderSettingsWidget::msaaSamples() const {
   return p->ui.rasterMsaaSamples->currentText().toInt();
 }
 
+bool RenderSettingsWidget::shadowMapsEnabled() const {
+  return p->ui.rasterShadowMaps->isChecked();
+}
+
+int RenderSettingsWidget::shadowMapSize() const {
+  return p->ui.rasterShadowMapSize->value();
+}
+
+double RenderSettingsWidget::shadowBias() const {
+  return p->ui.rasterShadowBias->value();
+}
+
+int RenderSettingsWidget::shadowFilterRadius() const {
+  return p->ui.rasterShadowFilterRadius->value();
+}
+
 void RenderSettingsWidget::engineChanged() {
   // Show the engine-specific frame; hide the others. Resolution +
   // engine selector + progress indicators stay visible regardless.
-  // Rasterizer shares Wireframe's LOD knob, and adds an MSAA selector.
+  // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.
   const QString eng = engine();
   const bool isRaytracer = (eng == "Raytracer");
   const bool isRasterizer = (eng == "Rasterizer");
+  const bool showShadowDetails = isRasterizer && shadowMapsEnabled();
   p->ui.raytracerFrame->setVisible(isRaytracer);
   p->ui.wireframeFrame->setVisible(!isRaytracer);
   p->ui.label_rasterMsaa->setVisible(isRasterizer);
   p->ui.rasterMsaaSamples->setVisible(isRasterizer);
+  p->ui.rasterShadowMaps->setVisible(isRasterizer);
+  p->ui.label_rasterShadowMapSize->setVisible(showShadowDetails);
+  p->ui.rasterShadowMapSize->setVisible(showShadowDetails);
+  p->ui.label_rasterShadowBias->setVisible(showShadowDetails);
+  p->ui.rasterShadowBias->setVisible(showShadowDetails);
+  p->ui.label_rasterShadowFilterRadius->setVisible(showShadowDetails);
+  p->ui.rasterShadowFilterRadius->setVisible(showShadowDetails);
 }
 
 bool RenderSettingsWidget::showProgressIndicators() const {
@@ -115,6 +140,10 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.queueSize->setEnabled(!busy);
   p->ui.lod->setEnabled(!busy);
   p->ui.rasterMsaaSamples->setEnabled(!busy);
+  p->ui.rasterShadowMaps->setEnabled(!busy);
+  p->ui.rasterShadowMapSize->setEnabled(!busy);
+  p->ui.rasterShadowBias->setEnabled(!busy);
+  p->ui.rasterShadowFilterRadius->setEnabled(!busy);
   p->ui.showProgressIndicators->setEnabled(!busy);
 
   p->ui.renderButton->setEnabled(!busy);

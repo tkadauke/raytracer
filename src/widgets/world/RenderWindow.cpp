@@ -113,6 +113,10 @@ void RenderWindow::render() {
     p->rasterizer->setScene(p->raytracer->scene());
     p->rasterizer->setLod(p->settingsWidget->lod());
     p->rasterizer->setMSAASamples(p->settingsWidget->msaaSamples());
+    p->rasterizer->setShadowMapsEnabled(p->settingsWidget->shadowMapsEnabled());
+    p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
+    p->rasterizer->setShadowBias(p->settingsWidget->shadowBias());
+    p->rasterizer->setShadowFilterRadius(p->settingsWidget->shadowFilterRadius());
     p->rasterizer->setMaximumThreads(p->settingsWidget->renderThreads());
     engine = p->rasterizer;
   } else {

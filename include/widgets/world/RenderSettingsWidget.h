@@ -20,6 +20,10 @@ public:
   int queueSize() const;
   int lod() const;
   int msaaSamples() const;
+  bool shadowMapsEnabled() const;
+  int shadowMapSize() const;
+  double shadowBias() const;
+  int shadowFilterRadius() const;
 
   bool showProgressIndicators() const;
 
