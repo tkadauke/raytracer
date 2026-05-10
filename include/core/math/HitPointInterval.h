@@ -2,7 +2,7 @@
 
 #include "core/math/HitPoint.h"
 #include "core/math/Matrix.h"
-#include <vector>
+#include "core/math/SmallVector.h"
 #include <iostream>
 
 /**
@@ -55,7 +55,7 @@ public:
     bool in;
   };
   
-  typedef std::vector<HitPointWrapper> HitPoints;
+  typedef SmallVector<HitPointWrapper, 4> HitPoints;
   
   /**
     * Default constructor. Constructs an empty HitPointInterval.
