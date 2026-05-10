@@ -106,7 +106,7 @@ silhouette.radialVariance() < 0.10
 silhouette.aspectRatio() in [0.83, 1.20]
 ```
 
-Two thresholds, AND-ed together.
+The predicate combines two thresholds with a logical AND.
 
 The **radial variance threshold** is `< 0.10`. From §24.2,
 that band tolerates slight ellipses and pixel-discretization

@@ -151,7 +151,7 @@ five LODs, with the saturation point visible at the high end.
 
 ## 20.4 Where wireframe earns its keep
 
-Three places.
+The engine pays its rent in three places.
 
 **Editor previews.** The interactive
 `examples/GeneratedRayTracer` lets the user toggle the engine

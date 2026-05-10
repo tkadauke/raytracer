@@ -36,7 +36,7 @@ virtual Colord shade(
     render::State&            state) const = 0;
 ```
 
-Five arguments, one return value. The `Colord` is the radiance
+The signature carries five arguments and one return value. The `Colord` is the radiance
 leaving the surface in the direction of the incoming ray —
 exactly the quantity the recursive `rayColor` from
 [chapter 5 §5.4](05-the-whitted-pipeline.md#5-4-the-recursive-heart)
