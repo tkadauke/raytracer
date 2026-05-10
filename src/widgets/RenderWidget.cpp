@@ -2,8 +2,11 @@
 #include "render/RenderEngine.h"
 #include "core/Buffer.h"
 
-#include <QThread>
+#include <QImage>
 #include <QPainter>
+#include <QThread>
+
+#include <algorithm>
 
 using namespace std;
 using namespace render;
@@ -33,7 +36,6 @@ namespace {
 struct RenderWidget::Private {
   inline Private()
     : renderThread(nullptr),
-      buffer(nullptr),
       timer(0),
       showProgressIndicators(false)
   {
@@ -41,7 +43,8 @@ struct RenderWidget::Private {
 
   RenderThread* renderThread;
 
-  Buffer<unsigned int>* buffer;
+  std::unique_ptr<Buffer<unsigned int>> backBuffer;
+  QImage frontImage;
   int timer;
   bool showProgressIndicators;
 };
@@ -63,17 +66,30 @@ std::shared_ptr<render::RenderEngine> RenderWidget::renderEngine() const {
 }
 
 RenderWidget::~RenderWidget() {
+  stop();
 }
 
 void RenderWidget::stop() {
+  publishCompletedTiles();
+  const bool wasRunning = p->renderThread && p->renderThread->isRunning();
   if (p->renderThread && p->renderThread->isRunning()) {
     p->renderThread->cancel();
     p->renderThread->wait();
   }
 
+  if (p->renderThread && !wasRunning) {
+    publishFullBackBuffer();
+  } else {
+    publishCompletedTiles();
+  }
+
   if (p->renderThread) {
     delete p->renderThread;
     p->renderThread = nullptr;
+  }
+  if (p->timer != 0) {
+    killTimer(p->timer);
+    p->timer = 0;
   }
   update();
 }
@@ -81,20 +97,22 @@ void RenderWidget::stop() {
 void RenderWidget::render() {
   stop();
   m_engine->uncancel();
-  p->renderThread = new RenderThread(m_engine, *p->buffer);
-  p->renderThread->start();
+  p->backBuffer->clear();
+  p->frontImage.fill(Qt::black);
+
+  p->renderThread = new RenderThread(m_engine, *p->backBuffer);
   connect(p->renderThread, SIGNAL(finished()), this, SLOT(renderThreadDone()));
+  p->renderThread->start();
 
-  auto interval = p->buffer->width();
-
-  p->timer = startTimer(interval / 10);
+  const int interval = std::max(16, p->backBuffer->width() / 10);
+  p->timer = startTimer(interval);
 }
 
 void RenderWidget::setBufferSize(const QSize& size) {
-  if (p->buffer)
-    delete p->buffer;
-  p->buffer = new Buffer<unsigned int>(size.width(), size.height());
-  p->buffer->clear();
+  p->backBuffer = std::make_unique<Buffer<unsigned int>>(size.width(), size.height());
+  p->backBuffer->clear();
+  p->frontImage = QImage(size.width(), size.height(), QImage::Format_RGB32);
+  p->frontImage.fill(Qt::black);
 }
 
 void RenderWidget::setShowProgressIndicators(bool show) {
@@ -102,33 +120,60 @@ void RenderWidget::setShowProgressIndicators(bool show) {
 }
 
 void RenderWidget::timerEvent(QTimerEvent*) {
+  publishCompletedTiles();
   update();
 }
 
 void RenderWidget::paintEvent(QPaintEvent*) {
-  if (p->renderThread && !p->renderThread->isRunning())
-    stop();
-
   QPainter painter(this);
-  QImage image(p->buffer->width(), p->buffer->height(), QImage::Format_RGB32);
-
-  for (int i = 0; i != p->buffer->width(); ++i) {
-    for (int j = 0; j != p->buffer->height(); ++j) {
-      image.setPixel(i, j, (*p->buffer)[j][i]);
-    }
-  }
 
   if (p->renderThread && p->renderThread->isRunning() && p->showProgressIndicators) {
-    markRectsInProgress(image);
+    QImage image = p->frontImage.copy();
+    markTilesInProgress(image);
+    painter.drawImage(QPoint(0, 0), image);
+    return;
   }
 
-  painter.drawImage(QPoint(0, 0), image);
+  painter.drawImage(QPoint(0, 0), p->frontImage);
 }
 
-void RenderWidget::markRectsInProgress(QImage& image) const {
-  for (const auto& rect : p->renderThread->engine->activeRects()) {
-    for (int x = rect.left(); x != rect.right(); ++x) {
-      for (int y = rect.top(); y != rect.bottom(); ++y) {
+void RenderWidget::publishCompletedTiles() {
+  if (!p->renderThread)
+    return;
+
+  for (const auto& tile : p->renderThread->engine->completedTiles()) {
+    publishTile(tile);
+  }
+}
+
+void RenderWidget::publishFullBackBuffer() {
+  if (!p->backBuffer)
+    return;
+
+  publishTile(Recti(0, 0, p->backBuffer->width(), p->backBuffer->height()));
+}
+
+void RenderWidget::publishTile(const Recti& tile) {
+  const int left = std::max(0, tile.left());
+  const int top = std::max(0, tile.top());
+  const int right = std::min(p->backBuffer->width(), tile.right());
+  const int bottom = std::min(p->backBuffer->height(), tile.bottom());
+
+  for (int x = left; x < right; ++x) {
+    for (int y = top; y < bottom; ++y) {
+      p->frontImage.setPixel(x, y, (*p->backBuffer)[y][x]);
+    }
+  }
+}
+
+void RenderWidget::markTilesInProgress(QImage& image) const {
+  for (const auto& tile : p->renderThread->engine->activeTiles()) {
+    const int left = std::max(0, tile.left());
+    const int top = std::max(0, tile.top());
+    const int right = std::min(image.width(), tile.right());
+    const int bottom = std::min(image.height(), tile.bottom());
+    for (int x = left; x != right; ++x) {
+      for (int y = top; y != bottom; ++y) {
         image.setPixel(x, y, darken(image.pixel(x, y), 0.8));
       }
     }
@@ -144,7 +189,11 @@ QRgb RenderWidget::darken(QRgb color, double factor) const {
 }
 
 void RenderWidget::renderThreadDone() {
+  publishFullBackBuffer();
+  if (p->timer != 0) {
+    killTimer(p->timer);
+    p->timer = 0;
+  }
   update();
   emit finished();
 }
-

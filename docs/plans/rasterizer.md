@@ -64,9 +64,13 @@
      resolution, bias, and PCF radius.
    - Next add PCSS and cascades for comparison with raytraced shadow rays.
 
-8. **GeneratedRaytracer / RenderWidget front-back buffers**
-   - Add dirty-tile publication and immutable paint snapshots.
-   - Separate progressive preview behavior from final-frame display.
+8. ✅ **GeneratedRaytracer / RenderWidget front-back buffers**
+   - Added a render-thread back buffer and UI-thread front `QImage`.
+   - `RenderEngine` now reports active/completed tiles for progress overlays
+     and dirty-tile publication; `Raytracer` publishes completed LDR tiles as
+     workers finish.
+   - Engines without progressive LDR tile output publish the full back buffer
+     only when the render finishes.
 
 9. **Post-process AA / TAA**
    - Add FXAA/SMAA first for preview engines.

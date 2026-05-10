@@ -317,10 +317,10 @@ Anti-aliasing should be a cross-engine feature rather than a one-off rasterizer 
 
 `RenderWidget` / GeneratedRaytracer currently expose progress by letting worker threads mutate a display buffer that the UI thread periodically copies into a `QImage`. That is simple and useful, but it mixes "render target" and "paintable snapshot" in one object. The long-term display pipeline should be explicit:
 
-- **Front/back display buffers** — workers render into a back buffer or tile-local staging buffer; the UI paints an immutable front buffer. Completed tiles or frames publish by swap, avoiding partial reads while a worker is writing.
-- **Dirty-tile publication** — engines report completed rectangles; the widget only converts/copies dirty tiles into the paintable `QImage` instead of rebuilding the full image every paint event.
-- **Progressive mode as a policy** — keep live partial rendering for raytracer previews, but let final-frame and screenshot paths require complete tile publication only.
-- **HDR/display split** — preserve the `Buffer<Colord>` accumulator for offline output while the display path owns LDR snapshots, tonemap timing, and optional progress overlays.
+- ~~**Front/back display buffers** — workers render into a back buffer or tile-local staging buffer; the UI paints an immutable front buffer. Completed tiles or frames publish by swap, avoiding partial reads while a worker is writing.~~ ✅ **Done.** `RenderWidget` now owns a render-thread back buffer and UI-thread front `QImage`; `paintEvent` only draws the immutable front image.
+- ~~**Dirty-tile publication** — engines report completed tiles; the widget only converts/copies dirty tiles into the paintable `QImage` instead of rebuilding the full image every paint event.~~ ✅ **Done.** `RenderEngine::completedTiles()` lets the raytracer publish completed LDR tiles progressively; non-progressive engines publish the full frame on completion.
+- **Progressive mode as a policy** — keep live partial rendering for raytracer previews, but let final-frame and screenshot paths require complete tile publication only. Current baseline: engines opt into progressive publication by returning completed tiles.
+- **HDR/display split** — preserve the `Buffer<Colord>` accumulator for offline output while the display path owns LDR snapshots, tonemap timing, and optional progress overlays. Current baseline: LDR display snapshots are separate from HDR engine output.
 - **Resize/cancel safety** — buffer swaps, render cancellation, and widget resize need a clear ownership protocol so GeneratedRaytracer can change scenes/cameras while long renders are stopping.
 
 ### 4.2 Primitives, meshes & computational geometry

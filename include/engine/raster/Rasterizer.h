@@ -334,7 +334,7 @@ public:
   void render(Buffer<Colord>& buffer) override;
   void cancel() override;
   void uncancel() override;
-  std::list<Recti> activeRects() const override;
+  std::list<Recti> activeTiles() const override;
 
   /// Level of detail forwarded to `Primitive::tessellate(lod)`.
   /// Higher values produce denser triangulation (a UV sphere at

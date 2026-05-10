@@ -236,10 +236,10 @@ void Rasterizer::uncancel() {
   m_cancelled.store(false);
 }
 
-std::list<Recti> Rasterizer::activeRects() const {
+std::list<Recti> Rasterizer::activeTiles() const {
   std::list<Recti> result;
   for (const auto& task : p->tasks) {
-    if (task->active) {
+    if (task->active.load(std::memory_order_acquire)) {
       result.push_back(task->rect);
     }
   }
@@ -286,7 +286,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   // From here down the render is expressed in pipeline terms. The
   // Rasterizer object contributes configuration; Private drives the
-  // concrete passes and keeps task state available for activeRects().
+  // concrete passes and keeps task state available for activeTiles().
   p->tasks.clear();
   p->renderFrame(*this, m_scene, m_camera, m_cancelled, buffer);
 }

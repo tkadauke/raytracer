@@ -40,11 +40,12 @@ namespace render {
     *    (`Buffer<Colord>` HDR + `Buffer<unsigned int>` LDR) lives
     *    here: subclasses implement the HDR variant; the LDR
     *    overload is a shared tonemap wrapper.
-    *  - **Cancellation** — `cancel` / `uncancel` plus the
-    *    `activeRects` query for the in-progress UI overlay. The
-    *    actual cancellation mechanism is engine-specific
-    *    (raytracer flips a per-camera flag); the base just exposes
-    *    the abstract hooks.
+    *  - **Cancellation + display progress** — `cancel` / `uncancel`,
+    *    `activeTiles` for the in-progress UI overlay, and
+    *    `completedTiles` for publishing finished tiles into the GUI's
+    *    immutable front buffer. The actual cancellation mechanism is
+    *    engine-specific (raytracer flips a per-camera flag); the base
+    *    just exposes the abstract hooks.
     *
     * What does NOT live here:
     *
@@ -148,11 +149,20 @@ namespace render {
     /// an engine that was previously cancelled.
     virtual void uncancel() = 0;
 
-    /// @returns the screen rectangles the engine is currently
+    /// @returns framebuffer tile bounds the engine is currently
     /// working on. Used by the GUI's progress overlay to draw
-    /// stripes over still-rendering regions. Default: empty list
+    /// stripes over still-rendering tiles. Default: empty list
     /// (engines without tile bookkeeping return nothing).
-    virtual std::list<Recti> activeRects() const;
+    virtual std::list<Recti> activeTiles() const;
+
+    /// @returns framebuffer tile bounds the engine has finished
+    /// writing. `RenderWidget` uses these as dirty-tile publication
+    /// hints: completed tiles are copied from the render thread's
+    /// back buffer into the UI thread's front image, while in-progress
+    /// tiles are left untouched until done. Engines without
+    /// progressive LDR tile output return an empty list and publish
+    /// the full image only when `render()` finishes.
+    virtual std::list<Recti> completedTiles() const;
 
   protected:
     std::shared_ptr<render::Camera> m_camera;

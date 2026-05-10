@@ -58,6 +58,10 @@ void RenderEngine::setTonemap(std::shared_ptr<render::Tonemap> tonemap) {
   p->tonemap = std::move(tonemap);
 }
 
-std::list<Recti> RenderEngine::activeRects() const {
+std::list<Recti> RenderEngine::activeTiles() const {
+  return {};
+}
+
+std::list<Recti> RenderEngine::completedTiles() const {
   return {};
 }

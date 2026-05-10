@@ -181,10 +181,20 @@ void Raytracer::uncancel() {
   m_camera->uncancel();
 }
 
-std::list<Recti> Raytracer::activeRects() const {
+std::list<Recti> Raytracer::activeTiles() const {
   std::list<Recti> result;
   for (const auto& task : p->tasks) {
-    if (task->active) {
+    if (task->active.load(std::memory_order_acquire)) {
+      result.push_back(task->rect);
+    }
+  }
+  return result;
+}
+
+std::list<Recti> Raytracer::completedTiles() const {
+  std::list<Recti> result;
+  for (const auto& task : p->tasks) {
+    if (task->completed.load(std::memory_order_acquire)) {
       result.push_back(task->rect);
     }
   }

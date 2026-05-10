@@ -1,7 +1,11 @@
 #pragma once
+#include "core/math/Rect.h"
+
 #include <memory>
 
 #include <QWidget>
+
+class QImage;
 
 namespace render {
   class RenderEngine;
@@ -12,10 +16,10 @@ namespace render {
   *
   * `RenderWidget` is what the GUI applications (`SceneBrowser`,
   * `GeneratedRayTracer`'s `RenderWindow`) display in their main
-  * pane. It owns a buffer the worker threads write into, paints
-  * the buffer on every `paintEvent`, and runs a `QTimer` that
-  * triggers repaints while the render is in flight so the user
-  * sees pixels appearing live.
+  * pane. It owns a render-thread back buffer plus a UI-thread
+  * front image. Worker threads write the back buffer; completed
+  * tiles are copied into the front image and `paintEvent` only
+  * draws that immutable snapshot.
   *
   * The widget does not own the `RenderEngine` — that's a
   * `shared_ptr` passed in from the application. The application
@@ -46,12 +50,12 @@ public:
   explicit RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine);
   ~RenderWidget();
 
-  /// Paints the current state of the buffer, optionally with the
+  /// Paints the current front-buffer snapshot, optionally with the
   /// red in-progress overlay over still-rendering tiles.
   virtual void paintEvent(QPaintEvent*);
 
-  /// Triggered on the in-render-progress timer; calls `update()`
-  /// so paint sees the latest pixel writes from worker threads.
+  /// Triggered on the in-render-progress timer; publishes completed
+  /// back-buffer tiles to the front image, then calls `update()`.
   virtual void timerEvent(QTimerEvent *event);
 
   /**
@@ -104,7 +108,10 @@ private slots:
   void renderThreadDone();
 
 private:
-  void markRectsInProgress(QImage& image) const;
+  void publishCompletedTiles();
+  void publishFullBackBuffer();
+  void publishTile(const Recti& tile);
+  void markTilesInProgress(QImage& image) const;
   QRgb darken(QRgb color, double factor) const;
 
   struct Private;

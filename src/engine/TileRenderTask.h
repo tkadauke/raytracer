@@ -19,6 +19,7 @@ namespace engine {
   public:
     TileRenderTask(const Recti& rect, std::function<void()> work)
         : active(false),
+          completed(false),
           rect(rect),
           m_work(std::move(work)) {
       setAutoDelete(false);
@@ -26,15 +27,17 @@ namespace engine {
 
     void run() override {
       try {
-        active = true;
+        active.store(true, std::memory_order_release);
         m_work();
       } catch (Exception& e) {
         e.printBacktrace();
       }
-      active = false;
+      active.store(false, std::memory_order_release);
+      completed.store(true, std::memory_order_release);
     }
 
     std::atomic<bool> active;
+    std::atomic<bool> completed;
     Recti rect;
 
   private:

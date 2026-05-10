@@ -144,11 +144,18 @@ namespace engine::raytracer {
     virtual void uncancel() override;
 
     /**
-      * @returns the rectangles currently being rendered by the
+      * @returns the framebuffer tiles currently being rendered by
       * worker threads. Used by the GUI's progress overlay; consumers
       * must not assume the list is stable across calls.
       */
-    virtual std::list<Recti> activeRects() const override;
+    virtual std::list<Recti> activeTiles() const override;
+
+    /**
+      * @returns framebuffer tiles whose workers have completed. The GUI
+      * copies these from the render thread's back buffer into its
+      * immutable front image for progressive display.
+      */
+    virtual std::list<Recti> completedTiles() const override;
 
     /**
       * Sets the maximum number of recursive `rayColor` calls along
