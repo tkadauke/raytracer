@@ -101,14 +101,12 @@ public:
   }
 
   inline double operator*(const Vector4<double>& other) const {
-    typedef union {
-      __m128d vec;
-      double coord[2];
-    } Half;
-    Half first, second;
-    first.vec = _mm_mul_pd(m_vector[0], other.m_vector[0]);
-    second.vec = _mm_mul_pd(m_vector[1], other.m_vector[1]);
-    return first.coord[0] + first.coord[1] + second.coord[0] + second.coord[1];
+    __m128d first = _mm_mul_pd(m_vector[0], other.m_vector[0]);
+    __m128d second = _mm_mul_pd(m_vector[1], other.m_vector[1]);
+    return _mm_cvtsd_f64(first)
+         + _mm_cvtsd_f64(_mm_unpackhi_pd(first, first))
+         + _mm_cvtsd_f64(second)
+         + _mm_cvtsd_f64(_mm_unpackhi_pd(second, second));
   }
 
   inline Vector4<double> operator*(const double& factor) const {

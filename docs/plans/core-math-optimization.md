@@ -175,16 +175,22 @@ single ray and 10k-ray batch.
 **Pass condition:** ≥3× speedup on the batch; whole-render macro
 benchmark on the BVH-heavy scene shows ≥10% improvement.
 
-### 1.3 Fix the SSE3 dot-product type-punning UB
+### ~~1.3 Fix the SSE3 dot-product type-punning UB~~ ✅ **Done.**
 
-The current union trick (`union { __m128d vec; double coord[2]; }`)
+~~The current union trick (`union { __m128d vec; double coord[2]; }`)
 is C-legal, C++-UB. Replace with `_mm_store_pd` to an `alignas(16)`
 local array, or `_mm_cvtsd_f64` + `_mm_unpackhi_pd` extracts.
-Either is correct and well-defined.
+Either is correct and well-defined.~~
 
-**Benchmark gate:** `VectorBenchmark` dot-product must not regress.
+~~**Benchmark gate:** `VectorBenchmark` dot-product must not regress.
 No functional regression — `unit_tests` and `functional_tests`
-must stay green.
+must stay green.~~
+
+Replaced type-punning unions in all four SSE vector dot products
+(`Vector3<double>`, `Vector4<double>`, `Vector3<float>`, `Vector4<float>`)
+with `_mm_cvtsd_f64`/`_mm_unpackhi_pd` and `_mm_cvtss_f32`/`_mm_shuffle_ps`
+intrinsic lane extracts. `VectorBenchmark` dot/reflect-chain/batch-dot medians
+stayed within noise on all four types. Branch: syrus/issue-104-146.
 
 ### 1.4 `HitPointInterval` small-buffer optimization
 
