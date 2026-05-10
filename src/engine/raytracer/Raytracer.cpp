@@ -142,6 +142,9 @@ render::State Raytracer::rayState(const Rayd& ray) const {
 }
 
 Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
+  if (m_camera->isCancelled())
+    return m_scene ? m_scene->background() : Colord::black();
+
   state.recurseIn();
   ScopeExit sx([&] { state.recurseOut(); });
 
@@ -153,6 +156,9 @@ Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
   HitPointInterval hitPoints;
 
   auto primitive = m_scene->intersect(ray, hitPoints, state);
+  if (m_camera->isCancelled())
+    return m_scene->background();
+
   if (primitive) {
     auto hitPoint = hitPoints.minWithPositiveDistance();
 

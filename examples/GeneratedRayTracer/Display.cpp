@@ -30,6 +30,7 @@ Display::Display(QWidget* parent)
   m_raytracerEngine = std::dynamic_pointer_cast<engine::raytracer::Raytracer>(m_engine);
   m_wireframeEngine = std::make_shared<engine::wireframe::Wireframe>(nullptr);
   m_rasterizerEngine = std::make_shared<engine::raster::Rasterizer>(nullptr);
+  applyPreviewPolicy(EngineKind::Raytracer);
 }
 
 Display::~Display() {
@@ -56,6 +57,7 @@ void Display::setEngineKind(EngineKind kind) {
     next = m_raytracerEngine;
   }
   setEngine(next);
+  applyPreviewPolicy(kind);
   render();
 }
 
@@ -68,6 +70,26 @@ void Display::setScene(Scene* scene) {
 
   m_engine->setScene(scene->toRaytracerScene());
   render();
+}
+
+void Display::applyPreviewPolicy(EngineKind kind) {
+  setShowProgressIndicators(false);
+  if (m_raytracerEngine) {
+    m_raytracerEngine->setShowProgressIndicators(false);
+  }
+
+  if (kind == EngineKind::Raytracer) {
+    setDisplayMode(RenderWidget::DisplayMode::PeriodicUpdate);
+    setClearBackBufferOnRenderStart(false);
+    setProgressUpdateIntervalMs(16);
+    setCancelRenderOnInteraction(true);
+    return;
+  }
+
+  setDisplayMode(RenderWidget::DisplayMode::DoubleBuffer);
+  setClearBackBufferOnRenderStart(true);
+  setProgressUpdateIntervalMs(0);
+  setCancelRenderOnInteraction(false);
 }
 
 void Display::mousePressEvent(QMouseEvent* event) {
@@ -98,4 +120,3 @@ void Display::mousePressEvent(QMouseEvent* event) {
     }
   }
 }
-

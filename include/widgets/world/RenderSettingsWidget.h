@@ -1,4 +1,6 @@
 #pragma once
+#include "widgets/RenderWidget.h"
+
 #include <memory>
 
 #include <QWidget>
@@ -24,6 +26,7 @@ public:
   int shadowMapSize() const;
   double shadowBias() const;
   int shadowFilterRadius() const;
+  RenderWidget::DisplayMode displayMode() const;
 
   bool showProgressIndicators() const;
 
@@ -38,6 +41,7 @@ private slots:
   void render();
   void stop();
   void engineChanged();
+  void updateEngineControls();
 
 private:
   struct Private;

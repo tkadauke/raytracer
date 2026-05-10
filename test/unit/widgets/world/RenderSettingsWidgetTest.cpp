@@ -69,6 +69,45 @@ namespace RenderSettingsWidgetTest {
     EXPECT_EQ(0, widget.shadowFilterRadius());
   }
 
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultRaytracerToPeriodicProgressDisplay) {
+    RenderSettingsWidget widget;
+    EXPECT_EQ(RenderWidget::DisplayMode::PeriodicUpdate, widget.displayMode());
+    EXPECT_TRUE(widget.showProgressIndicators());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldDefaultRasterizerToDoubleBufferedDisplay) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+
+    engineType->setCurrentText("Rasterizer");
+
+    EXPECT_EQ(RenderWidget::DisplayMode::DoubleBuffer, widget.displayMode());
+    EXPECT_FALSE(widget.showProgressIndicators());
+  }
+
+  TEST_F(RenderSettingsWidgetTest, ShouldExposeAllDisplayModesForAnyEngine) {
+    RenderSettingsWidget widget;
+    auto engineType = widget.findChild<QComboBox*>("engineType");
+    auto displayMode = widget.findChild<QComboBox*>("displayUpdateMode");
+    ASSERT_NE(nullptr, engineType);
+    ASSERT_NE(nullptr, displayMode);
+
+    for (const QString& engine : {QString("Raytracer"), QString("Wireframe"), QString("Rasterizer")}) {
+      engineType->setCurrentText(engine);
+      EXPECT_FALSE(displayMode->isHidden()) << engine.toStdString();
+    }
+
+    displayMode->setCurrentText("Periodic update");
+    EXPECT_EQ(RenderWidget::DisplayMode::PeriodicUpdate, widget.displayMode());
+
+    displayMode->setCurrentText("Completed tiles");
+    EXPECT_EQ(RenderWidget::DisplayMode::CompletedTilePublishing, widget.displayMode());
+
+    displayMode->setCurrentText("Double buffer");
+    EXPECT_EQ(RenderWidget::DisplayMode::DoubleBuffer, widget.displayMode());
+  }
+
   TEST_F(RenderSettingsWidgetTest, ShouldReadRasterShadowMapControls) {
     RenderSettingsWidget widget;
     auto shadowMaps = widget.findChild<QCheckBox*>("rasterShadowMaps");

@@ -57,7 +57,7 @@ namespace {
   }
 
   int PointInterlaceIterator::initialSize() const {
-    return min(1 << int(log(m_rect.width())), 1 << int(log(m_rect.height())));
+    return min(1 << int(log(m_plane->width())), 1 << int(log(m_plane->height())));
   }
 }
 

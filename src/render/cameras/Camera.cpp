@@ -93,6 +93,9 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
   const double sampleScale = 1.0 / samplesPerPixel;
 
   for (render::ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+    if (isCancelled())
+      break;
+
     if (m_showProgressIndicators) {
       // In-progress indicator: pure red HDR pixel. The downstream
       // tonemap maps `Colord(1, 0, 0)` to 0xff0000 for any operator
@@ -113,6 +116,9 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+      if (isCancelled())
+        break;
+
       auto stream = sampler->stream(sampleIndex, pixelHash);
 
       // Dimensions 0 and 1 of the stream are owned by the renderer
@@ -136,6 +142,9 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
         pixelColor += raycaster->rayColor(ray, state);
       }
     }
+
+    if (isCancelled())
+      break;
 
     // Average the accumulated radiance and write the HDR result.
     // No clamping or 8-bit packing here — that's the tonemap pass's
@@ -188,6 +197,9 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
   // `Camera::render(Buffer<Colord>&, ...)` for the documented
   // sample-stream contract that the two paths share.
   for (render::ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+    if (isCancelled())
+      break;
+
     if (m_showProgressIndicators) {
       // Pure red (0xff0000) on a saturated channel — every standard
       // tonemap operator (Linear, Reinhard, ACES) maps this to
@@ -201,6 +213,9 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+      if (isCancelled())
+        break;
+
       auto stream = sampler->stream(sampleIndex, pixelHash);
 
       Vector2d subPixel = stream->next2D();
@@ -214,6 +229,9 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
         pixelColor += raycaster->rayColor(ray, state);
       }
     }
+
+    if (isCancelled())
+      break;
 
     Colord averaged = pixelColor * sampleScale;
     unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();

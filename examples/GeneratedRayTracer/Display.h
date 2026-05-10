@@ -44,6 +44,8 @@ public slots:
   void setEngineKind(EngineKind kind);
 
 private:
+  void applyPreviewPolicy(EngineKind kind);
+
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   std::shared_ptr<engine::wireframe::Wireframe> m_wireframeEngine;
   std::shared_ptr<engine::raster::Rasterizer> m_rasterizerEngine;

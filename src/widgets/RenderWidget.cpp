@@ -7,6 +7,7 @@
 #include <QThread>
 
 #include <algorithm>
+#include <cstdint>
 
 using namespace std;
 using namespace render;
@@ -37,7 +38,12 @@ struct RenderWidget::Private {
   inline Private()
     : renderThread(nullptr),
       timer(0),
-      showProgressIndicators(false)
+      showProgressIndicators(false),
+      displayMode(DisplayMode::PeriodicUpdate),
+      clearBackBufferOnRenderStart(true),
+      progressUpdateIntervalMs(0),
+      discardFinishedFrame(false),
+      renderGeneration(0)
   {
   }
 
@@ -47,6 +53,11 @@ struct RenderWidget::Private {
   QImage frontImage;
   int timer;
   bool showProgressIndicators;
+  DisplayMode displayMode;
+  bool clearBackBufferOnRenderStart;
+  int progressUpdateIntervalMs;
+  bool discardFinishedFrame;
+  std::uint64_t renderGeneration;
 };
 
 RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
@@ -70,23 +81,29 @@ RenderWidget::~RenderWidget() {
 }
 
 void RenderWidget::stop() {
-  publishCompletedTiles();
+  if (!p->discardFinishedFrame) {
+    publishProgressUpdate();
+  }
   const bool wasRunning = p->renderThread && p->renderThread->isRunning();
   if (p->renderThread && p->renderThread->isRunning()) {
+    p->discardFinishedFrame = true;
     p->renderThread->cancel();
     p->renderThread->wait();
   }
 
-  if (p->renderThread && !wasRunning) {
+  if (p->renderThread && !wasRunning && !p->discardFinishedFrame) {
     publishFullBackBuffer();
-  } else {
-    publishCompletedTiles();
+  } else if (!p->discardFinishedFrame) {
+    publishProgressUpdate();
   }
 
   if (p->renderThread) {
+    disconnect(p->renderThread, nullptr, this, nullptr);
     delete p->renderThread;
     p->renderThread = nullptr;
+    ++p->renderGeneration;
   }
+  p->discardFinishedFrame = false;
   if (p->timer != 0) {
     killTimer(p->timer);
     p->timer = 0;
@@ -97,15 +114,24 @@ void RenderWidget::stop() {
 void RenderWidget::render() {
   stop();
   m_engine->uncancel();
-  p->backBuffer->clear();
-  p->frontImage.fill(Qt::black);
+  p->discardFinishedFrame = false;
+  if (p->clearBackBufferOnRenderStart) {
+    p->backBuffer->clear();
+  }
 
+  const std::uint64_t generation = ++p->renderGeneration;
   p->renderThread = new RenderThread(m_engine, *p->backBuffer);
-  connect(p->renderThread, SIGNAL(finished()), this, SLOT(renderThreadDone()));
+  connect(p->renderThread, &QThread::finished, this, [this, generation]() {
+    renderThreadDone(generation);
+  });
   p->renderThread->start();
 
-  const int interval = std::max(16, p->backBuffer->width() / 10);
-  p->timer = startTimer(interval);
+  if (p->displayMode != DisplayMode::DoubleBuffer || p->showProgressIndicators) {
+    const int interval = p->progressUpdateIntervalMs > 0
+      ? p->progressUpdateIntervalMs
+      : std::max(16, p->backBuffer->width() / 10);
+    p->timer = startTimer(interval);
+  }
 }
 
 void RenderWidget::setBufferSize(const QSize& size) {
@@ -119,8 +145,42 @@ void RenderWidget::setShowProgressIndicators(bool show) {
   p->showProgressIndicators = show;
 }
 
+void RenderWidget::setDisplayMode(DisplayMode mode) {
+  p->displayMode = mode;
+}
+
+RenderWidget::DisplayMode RenderWidget::displayMode() const {
+  return p->displayMode;
+}
+
+void RenderWidget::setClearBackBufferOnRenderStart(bool clear) {
+  p->clearBackBufferOnRenderStart = clear;
+}
+
+void RenderWidget::setProgressUpdateIntervalMs(int intervalMs) {
+  p->progressUpdateIntervalMs = std::max(0, intervalMs);
+}
+
+bool RenderWidget::isRendering() const {
+  return p->renderThread && p->renderThread->isRunning();
+}
+
+void RenderWidget::cancelRender() {
+  if (!p->renderThread || !p->renderThread->isRunning())
+    return;
+
+  p->discardFinishedFrame = true;
+  if (p->timer != 0) {
+    killTimer(p->timer);
+    p->timer = 0;
+  }
+  p->renderThread->cancel();
+}
+
 void RenderWidget::timerEvent(QTimerEvent*) {
-  publishCompletedTiles();
+  if (!p->discardFinishedFrame) {
+    publishProgressUpdate();
+  }
   update();
 }
 
@@ -135,6 +195,19 @@ void RenderWidget::paintEvent(QPaintEvent*) {
   }
 
   painter.drawImage(QPoint(0, 0), p->frontImage);
+}
+
+void RenderWidget::publishProgressUpdate() {
+  switch (p->displayMode) {
+  case DisplayMode::PeriodicUpdate:
+    publishFullBackBuffer();
+    break;
+  case DisplayMode::CompletedTilePublishing:
+    publishCompletedTiles();
+    break;
+  case DisplayMode::DoubleBuffer:
+    break;
+  }
 }
 
 void RenderWidget::publishCompletedTiles() {
@@ -174,22 +247,27 @@ void RenderWidget::markTilesInProgress(QImage& image) const {
     const int bottom = std::min(image.height(), tile.bottom());
     for (int x = left; x != right; ++x) {
       for (int y = top; y != bottom; ++y) {
-        image.setPixel(x, y, darken(image.pixel(x, y), 0.8));
+        image.setPixel(x, y, progressTint(image.pixel(x, y)));
       }
     }
   }
 }
 
-QRgb RenderWidget::darken(QRgb color, double factor) const {
+QRgb RenderWidget::progressTint(QRgb color) const {
   return qRgb(
-    qRed(color) * factor,
-    qGreen(color) * factor,
-    qBlue(color) * factor
+    std::min(255, qRed(color) + 64),
+    qGreen(color) * 0.75,
+    qBlue(color) * 0.75
   );
 }
 
-void RenderWidget::renderThreadDone() {
-  publishFullBackBuffer();
+void RenderWidget::renderThreadDone(std::uint64_t generation) {
+  if (generation != p->renderGeneration || !p->renderThread)
+    return;
+
+  if (!p->discardFinishedFrame) {
+    publishFullBackBuffer();
+  }
   if (p->timer != 0) {
     killTimer(p->timer);
     p->timer = 0;

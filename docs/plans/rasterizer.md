@@ -69,8 +69,18 @@
    - `RenderEngine` now reports active/completed tiles for progress overlays
      and dirty-tile publication; `Raytracer` publishes completed LDR tiles as
      workers finish.
-   - Engines without progressive LDR tile output publish the full back buffer
-     only when the render finishes.
+   - The render dialog now exposes periodic whole-buffer updates, completed-tile
+     publishing, and final-frame double buffering for every engine. Raytracer
+     defaults to periodic progress; Rasterizer defaults to double buffering.
+   - The central GeneratedRayTracer preview keeps the previous front image
+     visible while a new render starts, reuses the previous raytracer back
+     buffer for 16 ms whole-buffer point-interlaced updates, and double-buffers
+     Rasterizer/Wireframe previews while queueing the latest camera pose until
+     the current frame finishes. Point-interlaced view planes choose their
+     coarse starting resolution from the full view plane instead of each worker
+     tile so tiled raytracer previews still begin visibly coarse. Raytracer
+     cancellation uses an atomic camera flag with additional sample-loop checks
+     so interrupted live previews can hand off to the next frame sooner.
 
 9. **Post-process AA / TAA**
    - Add FXAA/SMAA first for preview engines.

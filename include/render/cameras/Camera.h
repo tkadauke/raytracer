@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <memory>
 
 #include "core/math/Vector.h"
@@ -231,15 +232,15 @@ namespace render {
     }
 
     inline void cancel() {
-      m_cancelled = true;
+      m_cancelled.store(true, std::memory_order_release);
     }
 
     inline bool isCancelled() const {
-      return m_cancelled;
+      return m_cancelled.load(std::memory_order_acquire);
     }
 
     inline void uncancel() {
-      m_cancelled = false;
+      m_cancelled.store(false, std::memory_order_release);
     }
 
   protected:
@@ -257,7 +258,7 @@ namespace render {
     void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, unsigned int rgb) const;
 
   private:
-    bool m_cancelled;
+    std::atomic<bool> m_cancelled;
     bool m_showProgressIndicators;
     Vector3d m_position, m_target;
     mutable MemoizedValue<Matrix4d> m_matrix;

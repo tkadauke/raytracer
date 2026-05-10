@@ -15,6 +15,13 @@ public:
   
   void setInteractive(bool interactive);
   bool interactive() const;
+
+  /// Controls whether a camera interaction cancels an unfinished
+  /// preview frame. Raytraced previews use this for immediate live
+  /// feedback; double-buffered raster/wireframe previews can defer
+  /// until the current frame completes.
+  void setCancelRenderOnInteraction(bool cancel);
+  bool cancelRenderOnInteraction() const;
   
   virtual void mouseMoveEvent(QMouseEvent* event);
   virtual void mousePressEvent(QMouseEvent* event);
@@ -26,6 +33,8 @@ public:
   void setDistance(double distance);
 
 private:
+  void renderAfterCurrentFrameIfRequested();
+
   struct Private;
   std::unique_ptr<Private> p;
 };

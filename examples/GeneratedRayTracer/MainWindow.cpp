@@ -518,11 +518,20 @@ void MainWindow::openFile() {
   QString fileName = QFileDialog::getOpenFileName(
     this, tr("Open File"), QString(), tr("Scenes (*.json)"));
 
-  if (!fileName.isNull()) {
-    newFile();
+  if (!fileName.isNull() && maybeSave()) {
+    if (p->scene)
+      delete p->scene;
+
+    p->fileName = QString();
+    p->currentElement = nullptr;
+    emit selectionChanged(nullptr);
+
+    p->scene = new ::Scene(nullptr);
     p->scene->load(fileName);
     p->fileName = fileName;
-    
+    p->propertyEditorWidget->setRoot(p->scene);
+    p->elementModel->setElement(p->scene);
+
     redraw();
   }
 }
@@ -840,4 +849,3 @@ void MainWindow::reorder() {
 void MainWindow::redraw() {
   p->display->setScene(p->scene);
 }
-

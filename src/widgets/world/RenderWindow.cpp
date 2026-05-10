@@ -139,6 +139,7 @@ void RenderWindow::render() {
     engine = p->raytracer;
   }
   p->renderWidget->setEngine(engine);
+  p->renderWidget->setDisplayMode(p->settingsWidget->displayMode());
   p->renderWidget->setShowProgressIndicators(p->settingsWidget->showProgressIndicators());
 
   p->renderWidget->render();

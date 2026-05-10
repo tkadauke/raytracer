@@ -35,7 +35,7 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
   connect(p->ui.engineType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(engineChanged()));
-  connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(engineChanged()));
+  connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
 
   // Initial visibility: defaults to Raytracer, so hide the wireframe-
   // only frame.
@@ -104,7 +104,28 @@ int RenderSettingsWidget::shadowFilterRadius() const {
   return p->ui.rasterShadowFilterRadius->value();
 }
 
+RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
+  const QString mode = p->ui.displayUpdateMode->currentText();
+  if (mode == "Completed tiles")
+    return RenderWidget::DisplayMode::CompletedTilePublishing;
+  if (mode == "Double buffer")
+    return RenderWidget::DisplayMode::DoubleBuffer;
+  return RenderWidget::DisplayMode::PeriodicUpdate;
+}
+
 void RenderSettingsWidget::engineChanged() {
+  if (engine() == "Raytracer") {
+    p->ui.displayUpdateMode->setCurrentText("Periodic update");
+    p->ui.showProgressIndicators->setChecked(true);
+  } else {
+    p->ui.displayUpdateMode->setCurrentText("Double buffer");
+    p->ui.showProgressIndicators->setChecked(false);
+  }
+
+  updateEngineControls();
+}
+
+void RenderSettingsWidget::updateEngineControls() {
   // Show the engine-specific frame; hide the others. Resolution +
   // engine selector + progress indicators stay visible regardless.
   // Rasterizer shares Wireframe's LOD knob, and adds raster-only quality controls.
@@ -144,6 +165,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.rasterShadowMapSize->setEnabled(!busy);
   p->ui.rasterShadowBias->setEnabled(!busy);
   p->ui.rasterShadowFilterRadius->setEnabled(!busy);
+  p->ui.displayUpdateMode->setEnabled(!busy);
   p->ui.showProgressIndicators->setEnabled(!busy);
 
   p->ui.renderButton->setEnabled(!busy);

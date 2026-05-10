@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>288</width>
-    <height>641</height>
+    <height>676</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -477,7 +477,39 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
       <item row="0" column="0">
+       <widget class="QLabel" name="label_displayUpdateMode">
+        <property name="text">
+         <string>Display update</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="displayUpdateMode">
+        <property name="toolTip">
+         <string>How in-flight render pixels are published to the display.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>Periodic update</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Completed tiles</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Double buffer</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
        <widget class="QCheckBox" name="showProgressIndicators">
+        <property name="toolTip">
+         <string>Draw a red overlay over tiles currently being rendered.</string>
+        </property>
         <property name="text">
          <string>Show progress indicators</string>
         </property>

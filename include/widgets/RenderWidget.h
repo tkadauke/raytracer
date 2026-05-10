@@ -1,6 +1,7 @@
 #pragma once
 #include "core/math/Rect.h"
 
+#include <cstdint>
 #include <memory>
 
 #include <QWidget>
@@ -17,9 +18,9 @@ namespace render {
   * `RenderWidget` is what the GUI applications (`SceneBrowser`,
   * `GeneratedRayTracer`'s `RenderWindow`) display in their main
   * pane. It owns a render-thread back buffer plus a UI-thread
-  * front image. Worker threads write the back buffer; completed
-  * tiles are copied into the front image and `paintEvent` only
-  * draws that immutable snapshot.
+  * front image. Worker threads write the back buffer; the selected
+  * display mode decides when pixels are copied into the front image,
+  * and `paintEvent` only draws that immutable snapshot.
   *
   * The widget does not own the `RenderEngine` — that's a
   * `shared_ptr` passed in from the application. The application
@@ -41,6 +42,21 @@ namespace render {
 class RenderWidget : public QWidget {
   Q_OBJECT;
 public:
+  enum class DisplayMode {
+    /// Periodically copy the whole back buffer while rendering.
+    /// This is the historic live-preview mode and can show partial
+    /// tile writes for engines that progressively fill the LDR buffer.
+    PeriodicUpdate,
+
+    /// Periodically copy only engine-reported completed tiles.
+    /// Avoids reading tiles still being written by workers.
+    CompletedTilePublishing,
+
+    /// Do not publish in-flight pixels; copy the completed frame
+    /// when the render thread finishes.
+    DoubleBuffer
+  };
+
   /**
     * Construct as a child of `parent`, rendering through `engine`.
     * Caller retains ownership of the engine; it may be reconfigured
@@ -54,8 +70,8 @@ public:
   /// red in-progress overlay over still-rendering tiles.
   virtual void paintEvent(QPaintEvent*);
 
-  /// Triggered on the in-render-progress timer; publishes completed
-  /// back-buffer tiles to the front image, then calls `update()`.
+  /// Triggered on the in-render-progress timer; publishes according
+  /// to `displayMode()`, then calls `update()`.
   virtual void timerEvent(QTimerEvent *event);
 
   /**
@@ -90,6 +106,29 @@ public:
   /// screenshots where the overlay would pollute the result.
   void setShowProgressIndicators(bool show);
 
+  /// Controls how the render-thread back buffer is published into
+  /// the UI-thread front image while the render is in flight.
+  void setDisplayMode(DisplayMode mode);
+  DisplayMode displayMode() const;
+
+  /// Controls whether a fresh render starts from the previous back
+  /// buffer contents. Interactive raytracer previews use this with
+  /// point-interlaced view planes so the first coarse pass overwrites
+  /// the previous frame instead of copying an empty buffer.
+  void setClearBackBufferOnRenderStart(bool clear);
+
+  /// Override the in-flight publication timer. Use `0` for the
+  /// automatic interval based on buffer width.
+  void setProgressUpdateIntervalMs(int intervalMs);
+
+  /// @returns true while the render thread is still producing the
+  /// current frame.
+  bool isRendering() const;
+
+  /// Request cancellation without waiting for the render thread to
+  /// finish. `finished()` is emitted when the worker thread exits.
+  void cancelRender();
+
 signals:
   /// Emitted when the render thread reports completion (success
   /// or via `stop()`). Connect this to update the UI's busy state.
@@ -104,15 +143,14 @@ public slots:
 protected:
   std::shared_ptr<render::RenderEngine> m_engine;
 
-private slots:
-  void renderThreadDone();
-
 private:
+  void renderThreadDone(std::uint64_t generation);
+  void publishProgressUpdate();
   void publishCompletedTiles();
   void publishFullBackBuffer();
   void publishTile(const Recti& tile);
   void markTilesInProgress(QImage& image) const;
-  QRgb darken(QRgb color, double factor) const;
+  QRgb progressTint(QRgb color) const;
 
   struct Private;
   std::unique_ptr<Private> p;

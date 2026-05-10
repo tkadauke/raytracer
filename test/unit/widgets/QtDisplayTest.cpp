@@ -2,11 +2,44 @@
 
 #include "widgets/QtDisplay.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/RenderEngine.h"
 
 #include "test/helpers/GuiTestHelper.h"
 
+#include <QSemaphore>
+
+#include <atomic>
+
 namespace QtDisplayTest {
   class QtDisplayTest : public ::testing::GuiTest {};
+
+  class BlockingEngine : public render::RenderEngine {
+  public:
+    BlockingEngine()
+      : render::RenderEngine(std::shared_ptr<render::Scene>())
+    {
+    }
+
+    void render(Buffer<Colord>&) override {
+    }
+
+    void render(Buffer<unsigned int>&) override {
+      entered.release();
+      release.acquire();
+    }
+
+    void cancel() override {
+      ++cancelCalls;
+      release.release();
+    }
+
+    void uncancel() override {
+    }
+
+    QSemaphore entered;
+    QSemaphore release;
+    std::atomic<int> cancelCalls{0};
+  };
 
   TEST_F(QtDisplayTest, ShouldInitialize) {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
@@ -24,6 +57,47 @@ namespace QtDisplayTest {
     QtDisplay display(nullptr, rt);
     display.setInteractive(false);
     EXPECT_FALSE(display.interactive());
+  }
+
+  TEST_F(QtDisplayTest, ShouldDefaultToCancelRenderOnInteraction) {
+    auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
+    QtDisplay display(nullptr, rt);
+    EXPECT_TRUE(display.cancelRenderOnInteraction());
+  }
+
+  TEST_F(QtDisplayTest, ShouldSetAndGetCancelRenderOnInteraction) {
+    auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
+    QtDisplay display(nullptr, rt);
+    display.setCancelRenderOnInteraction(false);
+    EXPECT_FALSE(display.cancelRenderOnInteraction());
+  }
+
+  TEST_F(QtDisplayTest, ShouldCancelInFlightRenderWhenInteractionPolicyAllows) {
+    auto engine = std::make_shared<BlockingEngine>();
+    QtDisplay display(nullptr, engine);
+    display.setBufferSize(QSize(4, 4));
+
+    display.render();
+    ASSERT_TRUE(engine->entered.tryAcquire(1, 1000));
+
+    display.render();
+
+    EXPECT_EQ(1, engine->cancelCalls.load());
+  }
+
+  TEST_F(QtDisplayTest, ShouldDeferInFlightRenderWhenInteractionPolicyDisallowsCancellation) {
+    auto engine = std::make_shared<BlockingEngine>();
+    QtDisplay display(nullptr, engine);
+    display.setBufferSize(QSize(4, 4));
+    display.setCancelRenderOnInteraction(false);
+
+    display.render();
+    ASSERT_TRUE(engine->entered.tryAcquire(1, 1000));
+
+    display.render();
+
+    EXPECT_EQ(0, engine->cancelCalls.load());
+    engine->release.release();
   }
 
   TEST_F(QtDisplayTest, ShouldAcceptSetDistance) {
