@@ -964,7 +964,7 @@ public:
   
   /**
     * @returns the translation vector \f$(x,y,z)\f$ extracted from the matrix:
-    * 
+    *
     * \f[\left(\begin{array}{cccc}
     *   c_{00} & c_{01} & c_{02} & x \\
     *   c_{10} & c_{11} & c_{12} & y \\
@@ -974,6 +974,90 @@ public:
     */
   inline Vector3<T> translationVector() const {
     return Vector3<T>(col(3));
+  }
+
+  /**
+    * @returns the camera-to-world transform for a camera at eye looking toward
+    *   target, with up as the world-space up hint. The resulting matrix maps
+    *   camera-space axes to world space:
+    *   - camera +Z (forward) → direction from eye to target
+    *   - camera +X (right) → right-hand perpendicular of up and forward
+    *   - camera +Y (up) → camera-space up direction
+    *   - camera origin → eye position
+    *
+    *   Use inverted() on the result to obtain the view matrix (world-to-camera).
+    *
+    *   Degenerates when eye == target or when up is parallel to the
+    *   eye-to-target direction (gimbal lock); callers must avoid these cases.
+    */
+  inline static Matrix4<T> lookAt(const Vector3<T>& eye, const Vector3<T>& target, const Vector3<T>& up) {
+    auto zAxis = (target - eye).normalized();
+    auto xAxis = (up ^ zAxis).normalized();
+    auto yAxis = xAxis ^ -zAxis;
+    return Matrix4<T>(
+      xAxis[0], yAxis[0], zAxis[0], eye[0],
+      xAxis[1], yAxis[1], zAxis[1], eye[1],
+      xAxis[2], yAxis[2], zAxis[2], eye[2],
+      T(),      T(),      T(),      T(1)
+    );
+  }
+
+  /**
+    * @returns a symmetric perspective-projection matrix. The camera looks along
+    *   +Z; z_ndc = -1 at the near plane and +1 at the far plane after the
+    *   perspective divide by w (= z_eye).
+    *
+    *   @param fovY  vertical field-of-view angle
+    *   @param aspect  width / height ratio
+    *   @param near  positive near-plane distance
+    *   @param far   positive far-plane distance (far > near)
+    */
+  template<class A>
+  inline static Matrix4<T> perspective(const A& fovY, T aspect, T near, T far) {
+    T f = T(1) / std::tan(fovY.radians() / T(2));
+    T inv_range = T(1) / (far - near);
+    return Matrix4<T>(
+      f / aspect, T(),  T(),                        T(),
+      T(),        f,    T(),                        T(),
+      T(),        T(),  (far + near) * inv_range,   T(-2) * far * near * inv_range,
+      T(),        T(),  T(1),                       T()
+    );
+  }
+
+  /**
+    * @returns an orthographic-projection matrix that maps the axis-aligned box
+    *   [left, right] × [bottom, top] × [near, far] to NDC [-1, 1]³. No
+    *   perspective divide; w = 1.
+    */
+  inline static Matrix4<T> orthographic(T left, T right, T bottom, T top, T near, T far) {
+    T inv_rl = T(1) / (right - left);
+    T inv_tb = T(1) / (top - bottom);
+    T inv_fn = T(1) / (far - near);
+    return Matrix4<T>(
+      T(2) * inv_rl, T(),           T(),           -(right + left) * inv_rl,
+      T(),           T(2) * inv_tb, T(),           -(top + bottom) * inv_tb,
+      T(),           T(),           T(2) * inv_fn, -(far + near) * inv_fn,
+      T(),           T(),           T(),            T(1)
+    );
+  }
+
+  /**
+    * @returns a general (asymmetric) perspective-projection matrix defined by
+    *   near-plane corners (left, bottom) and (right, top). Identical to
+    *   perspective() for the symmetric case where left = -right and
+    *   bottom = -top. z_ndc = -1 at near, +1 at far after dividing by w
+    *   (= z_eye).
+    */
+  inline static Matrix4<T> frustum(T left, T right, T bottom, T top, T near, T far) {
+    T inv_rl = T(1) / (right - left);
+    T inv_tb = T(1) / (top - bottom);
+    T inv_fn = T(1) / (far - near);
+    return Matrix4<T>(
+      T(2) * near * inv_rl, T(),                   -(right + left) * inv_rl,   T(),
+      T(),                  T(2) * near * inv_tb,  -(top + bottom) * inv_tb,   T(),
+      T(),                  T(),                    (far + near) * inv_fn,     T(-2) * far * near * inv_fn,
+      T(),                  T(),                    T(1),                       T()
+    );
   }
 };
 

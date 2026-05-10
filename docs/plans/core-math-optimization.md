@@ -334,13 +334,13 @@ duplicates.
 condition:** new ops match or beat the open-coded versions they
 replace.
 
-### 3.5 Missing Matrix factories
+### ~~3.5 Missing Matrix factories~~
 
-`Matrix4::lookAt(eye, target, up)`, `Matrix4::perspective(fovY, aspect, near, far)`,
+~~`Matrix4::lookAt(eye, target, up)`, `Matrix4::perspective(fovY, aspect, near, far)`,
 `Matrix4::orthographic(...)`, `Matrix4::frustum(...)`. Currently
-these get reinvented in Camera classes.
+these get reinvented in Camera classes.~~
 
-**Benchmark gate:** none expected.
+**Benchmark gate:** none expected. ✅ **Done.** All four factories added to `include/core/math/Matrix.h`; `Camera::matrix()` routed through `lookAt`, removing the open-coded duplicate and fixing a latent non-normalized-right-vector bug for cameras not looking horizontally. Unit tests added in `test/unit/core/math/MatrixTest.cpp`.
 
 ### 3.6 `std::hash` and `std::formatter` specializations
 
