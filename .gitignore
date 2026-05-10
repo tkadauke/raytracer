@@ -24,3 +24,6 @@ docs/latex
 /build-*
 CMakeUserPresets.json
 compile_commands.json
+
+# Compiled binaries that may appear at the repo root during development
+/a.out
