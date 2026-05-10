@@ -70,14 +70,7 @@ double Camera::eyeRelativeDepth(const Vector3d&) const {
 
 const Matrix4d& Camera::matrix() const {
   if (!m_matrix) {
-    auto zAxis = (m_target - m_position).normalized();
-    auto xAxis = Vector3d::up() ^ zAxis;
-    auto yAxis = xAxis ^ -zAxis;
-
-    m_matrix = Matrix4d(xAxis, yAxis, zAxis).inverted();
-    m_matrix.value().setCell(0, 3, m_position[0]);
-    m_matrix.value().setCell(1, 3, m_position[1]);
-    m_matrix.value().setCell(2, 3, m_position[2]);
+    m_matrix = Matrix4d::lookAt(m_position, m_target, Vector3d::up());
   }
   return m_matrix;
 }

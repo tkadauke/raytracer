@@ -1049,4 +1049,148 @@ namespace Matrix4Test {
     Vector3f expected(1, 2, 3);
     ASSERT_EQ(expected, Matrix4<TypeParam>::translate(expected).translationVector());
   }
+
+  TYPED_TEST(Matrix4Test, LookAtShouldPlaceEyeAtTranslationColumn) {
+    Vector3<TypeParam> eye(0, 0, -1), target(0, 0, 0), up(0, 1, 0);
+    auto m = Matrix4<TypeParam>::lookAt(eye, target, up);
+    ASSERT_NEAR(TypeParam(0),  m.cell(0, 3), TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(0),  m.cell(1, 3), TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(-1), m.cell(2, 3), TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(1),  m.cell(3, 3), TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, LookAtShouldAlignForwardColumnWithTargetDirection) {
+    // Camera at origin looking along +X toward (1,0,0)
+    Vector3<TypeParam> eye(0, 0, 0), target(1, 0, 0), up(0, 1, 0);
+    auto m = Matrix4<TypeParam>::lookAt(eye, target, up);
+    // col 2 is the forward (Z) axis in world space
+    ASSERT_NEAR(TypeParam(1), m.cell(0, 2), TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(0), m.cell(1, 2), TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(0), m.cell(2, 2), TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, LookAtShouldProduceOrthonormalBasis) {
+    Vector3<TypeParam> eye(3, 2, 1), target(0, 0, 0), up(0, 1, 0);
+    auto m = Matrix4<TypeParam>::lookAt(eye, target, up);
+    // Columns 0, 1, 2 are the right, up, forward axes — each should be unit
+    for (int col = 0; col < 3; ++col) {
+      TypeParam len2 = m.cell(0, col) * m.cell(0, col)
+                     + m.cell(1, col) * m.cell(1, col)
+                     + m.cell(2, col) * m.cell(2, col);
+      ASSERT_NEAR(TypeParam(1), len2, TypeParam(0.0001));
+    }
+    // Columns should be pairwise orthogonal
+    auto dot01 = m.cell(0,0)*m.cell(0,1) + m.cell(1,0)*m.cell(1,1) + m.cell(2,0)*m.cell(2,1);
+    auto dot02 = m.cell(0,0)*m.cell(0,2) + m.cell(1,0)*m.cell(1,2) + m.cell(2,0)*m.cell(2,2);
+    auto dot12 = m.cell(0,1)*m.cell(0,2) + m.cell(1,1)*m.cell(1,2) + m.cell(2,1)*m.cell(2,2);
+    ASSERT_NEAR(TypeParam(0), dot01, TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(0), dot02, TypeParam(0.0001));
+    ASSERT_NEAR(TypeParam(0), dot12, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, LookAtShouldMatchKnownCameraMatrix) {
+    // Camera at (0,0,-1) looking at origin — matches existing CameraTest expectation
+    Vector3<TypeParam> eye(0, 0, -1), target(0, 0, 0), up(0, 1, 0);
+    Matrix4<TypeParam> expected(
+      1, 0, 0,  0,
+      0, 1, 0,  0,
+      0, 0, 1, -1,
+      0, 0, 0,  1
+    );
+    ASSERT_MATRIX_NEAR(expected, Matrix4<TypeParam>::lookAt(eye, target, up), TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, PerspectiveShouldMapNearPlaneToMinusOne) {
+    auto fov = Angle<TypeParam>::fromDegrees(90);
+    auto m = Matrix4<TypeParam>::perspective(fov, TypeParam(1), TypeParam(1), TypeParam(10));
+    // z_ndc at z_eye = 1 (near): (z_clip) / w_clip = (M[2][2]*1 + M[2][3]) / 1
+    TypeParam z_clip = m.cell(2, 2) * TypeParam(1) + m.cell(2, 3) * TypeParam(1);
+    TypeParam w_clip = m.cell(3, 2) * TypeParam(1);
+    ASSERT_NEAR(TypeParam(-1), z_clip / w_clip, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, PerspectiveShouldMapFarPlaneToOne) {
+    auto fov = Angle<TypeParam>::fromDegrees(90);
+    auto m = Matrix4<TypeParam>::perspective(fov, TypeParam(1), TypeParam(1), TypeParam(10));
+    TypeParam z_clip = m.cell(2, 2) * TypeParam(10) + m.cell(2, 3) * TypeParam(1);
+    TypeParam w_clip = m.cell(3, 2) * TypeParam(10);
+    ASSERT_NEAR(TypeParam(1), z_clip / w_clip, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, PerspectiveShouldMapEdgeXToOne) {
+    // 90-degree fovY, aspect 1: at z=near=1 the visible x range is [-1, 1]
+    auto fov = Angle<TypeParam>::fromDegrees(90);
+    auto m = Matrix4<TypeParam>::perspective(fov, TypeParam(1), TypeParam(1), TypeParam(10));
+    // x_ndc = M[0][0]*x / z_eye; at x=1, z=1: x_ndc = M[0][0]*1/1
+    TypeParam x_ndc = m.cell(0, 0) * TypeParam(1) / TypeParam(1);
+    ASSERT_NEAR(TypeParam(1), x_ndc, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, OrthographicShouldMapNearToMinusOne) {
+    auto m = Matrix4<TypeParam>::orthographic(
+      TypeParam(-2), TypeParam(2), TypeParam(-2), TypeParam(2),
+      TypeParam(1), TypeParam(10)
+    );
+    TypeParam z_ndc = m.cell(2, 2) * TypeParam(1) + m.cell(2, 3);
+    ASSERT_NEAR(TypeParam(-1), z_ndc, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, OrthographicShouldMapFarToOne) {
+    auto m = Matrix4<TypeParam>::orthographic(
+      TypeParam(-2), TypeParam(2), TypeParam(-2), TypeParam(2),
+      TypeParam(1), TypeParam(10)
+    );
+    TypeParam z_ndc = m.cell(2, 2) * TypeParam(10) + m.cell(2, 3);
+    ASSERT_NEAR(TypeParam(1), z_ndc, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, OrthographicShouldMapRightEdgeXToOne) {
+    auto m = Matrix4<TypeParam>::orthographic(
+      TypeParam(-2), TypeParam(2), TypeParam(-2), TypeParam(2),
+      TypeParam(1), TypeParam(10)
+    );
+    TypeParam x_ndc = m.cell(0, 0) * TypeParam(2) + m.cell(0, 3);
+    ASSERT_NEAR(TypeParam(1), x_ndc, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, OrthographicShouldMapLeftEdgeXToMinusOne) {
+    auto m = Matrix4<TypeParam>::orthographic(
+      TypeParam(-2), TypeParam(2), TypeParam(-2), TypeParam(2),
+      TypeParam(1), TypeParam(10)
+    );
+    TypeParam x_ndc = m.cell(0, 0) * TypeParam(-2) + m.cell(0, 3);
+    ASSERT_NEAR(TypeParam(-1), x_ndc, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, FrustumShouldMapNearPlaneToMinusOne) {
+    auto m = Matrix4<TypeParam>::frustum(
+      TypeParam(-1), TypeParam(1), TypeParam(-1), TypeParam(1),
+      TypeParam(1), TypeParam(10)
+    );
+    TypeParam z_clip = m.cell(2, 2) * TypeParam(1) + m.cell(2, 3) * TypeParam(1);
+    TypeParam w_clip = m.cell(3, 2) * TypeParam(1);
+    ASSERT_NEAR(TypeParam(-1), z_clip / w_clip, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, FrustumShouldMapFarPlaneToOne) {
+    auto m = Matrix4<TypeParam>::frustum(
+      TypeParam(-1), TypeParam(1), TypeParam(-1), TypeParam(1),
+      TypeParam(1), TypeParam(10)
+    );
+    TypeParam z_clip = m.cell(2, 2) * TypeParam(10) + m.cell(2, 3) * TypeParam(1);
+    TypeParam w_clip = m.cell(3, 2) * TypeParam(10);
+    ASSERT_NEAR(TypeParam(1), z_clip / w_clip, TypeParam(0.0001));
+  }
+
+  TYPED_TEST(Matrix4Test, FrustumShouldMatchPerspectiveForSymmetricCase) {
+    // frustum(-1,1,-1,1,1,10) == perspective(90°, 1, 1, 10) because
+    // tan(45°) = 1, so half-width = near * tan(fovY/2) = 1 * 1 = 1
+    auto fov = Angle<TypeParam>::fromDegrees(90);
+    auto mp = Matrix4<TypeParam>::perspective(fov, TypeParam(1), TypeParam(1), TypeParam(10));
+    auto mf = Matrix4<TypeParam>::frustum(
+      TypeParam(-1), TypeParam(1), TypeParam(-1), TypeParam(1),
+      TypeParam(1), TypeParam(10)
+    );
+    ASSERT_MATRIX_NEAR(mp, mf, TypeParam(0.0001));
+  }
 }
