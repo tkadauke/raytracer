@@ -348,12 +348,14 @@ unlocks `std::format` integration for debug output.
 
 **Benchmark gate:** none expected.
 
-### 3.7 `Constants.h` — `inline constexpr`
+### ~~3.7 `Constants.h` — `inline constexpr`~~
 
-Replace `const double PI = ...` with `inline constexpr double PI = ...`.
+~~Replace `const double PI = ...` with `inline constexpr double PI = ...`.
 When the project moves to C++20, prefer `<numbers>` directly. Add
 the missing constants: `SQRT2`, `SQRT3`, `E`, `GOLDEN_RATIO`,
-`DEG_TO_RAD`, `RAD_TO_DEG`, `PI_OVER_2`, `PI_OVER_4`.
+`DEG_TO_RAD`, `RAD_TO_DEG`, `PI_OVER_2`, `PI_OVER_4`.~~
+
+✅ **Done.** All four existing constants converted to `inline constexpr double`; `SQRT2`, `SQRT3`, `E`, `GOLDEN_RATIO`, `DEG_TO_RAD`, `RAD_TO_DEG`, `PI_OVER_2`, `PI_OVER_4` added; C++20 `<numbers>` migration noted in a comment. Branch `syrus/issue-118-132`.
 
 **Benchmark gate:** none expected.
 
