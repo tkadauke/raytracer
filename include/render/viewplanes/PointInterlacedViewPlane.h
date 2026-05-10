@@ -9,6 +9,6 @@ namespace render {
       return std::make_shared<PointInterlacedViewPlane>(*this);
     }
 
-    virtual Iterator begin(const Recti& rect) const;
+    Iterator begin(const Recti& rect) const override;
   };
 }

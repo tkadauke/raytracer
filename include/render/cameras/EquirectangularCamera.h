@@ -92,8 +92,7 @@ namespace render {
       * and `setTarget` from the base class to point it elsewhere.
       */
     inline EquirectangularCamera()
-      : Camera()
-    {
+        : Camera() {
     }
 
     /**
@@ -102,8 +101,7 @@ namespace render {
       * `Camera::matrix` (world-up via `Vector3d::up()`).
       */
     inline explicit EquirectangularCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target)
-    {
+        : Camera(position, target) {
     }
 
     /**
@@ -112,7 +110,7 @@ namespace render {
       * /latitude implied by the pixel's image coordinates (see the
       * class-level mapping table).
       */
-    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
 
   private:

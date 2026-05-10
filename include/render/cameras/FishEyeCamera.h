@@ -28,29 +28,26 @@ namespace render {
       * looking at the origin.
       */
     inline explicit FishEyeCamera()
-      : m_fieldOfView(120_degrees)
-    {
+        : m_fieldOfView(120_degrees) {
     }
-    
+
     /**
       * Creates a fish eye camera with the given field of view, looking at the
       * origin.
       */
     inline explicit FishEyeCamera(const Angled& fieldOfView)
-      : m_fieldOfView(fieldOfView)
-    {
+        : m_fieldOfView(fieldOfView) {
     }
-    
+
     /**
       * Creates a fish eye camera at position looking at target.
       */
     inline explicit FishEyeCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target),
-        m_fieldOfView(120_degrees)
-    {
+        : Camera(position, target),
+          m_fieldOfView(120_degrees) {
     }
 
-    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
 
     /**
@@ -59,7 +56,7 @@ namespace render {
     inline Angled fieldOfView() const {
       return m_fieldOfView;
     }
-    
+
     /**
       * Sets the field of view of the camera.
       * 
@@ -74,7 +71,7 @@ namespace render {
     inline void setFieldOfView(const Angled& fieldOfView) {
       m_fieldOfView = fieldOfView;
     }
-    
+
   private:
     Vector3d direction(double x, double y) const;
     Angled m_fieldOfView;

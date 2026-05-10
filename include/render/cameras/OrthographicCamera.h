@@ -34,21 +34,19 @@ namespace render {
       * looking at the origin.
       */
     inline OrthographicCamera()
-      : m_zoom(1)
-    {
+        : m_zoom(1) {
     }
-    
+
     /**
       * Constructs an orthographic camera at position, looking at target with
       * a zoom value of 1.
       */
     inline explicit OrthographicCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target),
-        m_zoom(1)
-    {
+        : Camera(position, target),
+          m_zoom(1) {
     }
 
-    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
 
     /**
@@ -62,7 +60,7 @@ namespace render {
       * no perspective divide so doesn't diverge, but a point behind
       * the camera still shouldn't appear.
       */
-    virtual Vector2d projectPoint(const Vector3d& worldPoint) const;
+    Vector2d projectPoint(const Vector3d& worldPoint) const override;
 
     /**
       * Like `projectPoint` but additionally returns the eye-relative
@@ -72,7 +70,7 @@ namespace render {
       * so `1/z` interpolation also degenerates to plain linear
       * interpolation across the screen.
       */
-    virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
+    Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override;
 
     /**
       * Homogeneous orthographic projection. `x / w` and `y / w`
@@ -83,12 +81,12 @@ namespace render {
       * @see Camera::projectPointToClipSpace for an interactive
       *      comparison with pinhole projection.
       */
-    virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
+    Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const override;
 
     /// Signed eye-relative depth — positive in front of the camera
     /// plane, negative behind. For ortho this is the camera-space z
     /// directly (no perspective eye point).
-    virtual double eyeRelativeDepth(const Vector3d& worldPoint) const;
+    double eyeRelativeDepth(const Vector3d& worldPoint) const override;
 
     /**
       * @returns the camera'z zoom.
@@ -96,7 +94,7 @@ namespace render {
     inline double zoom() const {
       return m_zoom;
     }
-    
+
     /**
       * Sets zoom of the camera.
       * 
@@ -112,9 +110,9 @@ namespace render {
       m_zoom = zoom;
       viewPlane()->setPixelSize(1.0 / m_zoom);
     }
-    
-    virtual void setViewPlane(std::shared_ptr<render::ViewPlane> plane);
-    
+
+    void setViewPlane(std::shared_ptr<render::ViewPlane> plane) override;
+
   private:
     double m_zoom;
   };

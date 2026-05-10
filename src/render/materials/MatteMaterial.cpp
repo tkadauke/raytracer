@@ -16,7 +16,8 @@
 using namespace std;
 using namespace render;
 
-Colord MatteMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
+Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene, const Rayd& ray,
+                            const HitPoint& hitPoint, render::State& state) const {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
 
   render::Lambertian ambientBRDF(texColor, ambientCoefficient());
@@ -34,7 +35,8 @@ Colord MatteMaterial::shade(const render::RayCaster* raycaster, const render::Sc
       state.shadowMiss(this, "MatteMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0)
-        color += diffuseBRDF(hitPoint, Vector3d::null(), Vector3d::null()) * light->radiance() * normalDotIn;
+        color += diffuseBRDF(hitPoint, Vector3d::null(), Vector3d::null()) * light->radiance() *
+                 normalDotIn;
     }
   }
 

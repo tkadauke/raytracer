@@ -16,7 +16,8 @@
 using namespace std;
 using namespace render;
 
-Colord PhongMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
+Colord PhongMaterial::shade(const render::RayCaster*, const render::Scene& scene, const Rayd& ray,
+                            const HitPoint& hitPoint, render::State& state) const {
   auto texColor = diffuseTexture() ? diffuseTexture()->evaluate(ray, hitPoint) : Colord::black();
 
   render::Lambertian ambientBRDF(texColor, ambientCoefficient());
@@ -34,10 +35,8 @@ Colord PhongMaterial::shade(const render::RayCaster* raycaster, const render::Sc
       state.shadowMiss(this, "PhongMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0) {
-        color += (
-          diffuseBRDF(hitPoint, out, in)
-        + m_specularBRDF(hitPoint, out, in)
-        ) * light->radiance() * normalDotIn;
+        color += (diffuseBRDF(hitPoint, out, in) + m_specularBRDF(hitPoint, out, in)) *
+                 light->radiance() * normalDotIn;
       }
     }
   }

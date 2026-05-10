@@ -109,12 +109,11 @@ namespace render {
       * mild bokeh that's clearly visible without overwhelming the scene.
       */
     inline ThinLensCamera()
-      : Camera(),
-        m_distance(5),
-        m_zoom(1),
-        m_apertureRadius(0.1),
-        m_focalDistance(5)
-    {
+        : Camera(),
+          m_distance(5),
+          m_zoom(1),
+          m_apertureRadius(0.1),
+          m_focalDistance(5) {
     }
 
     /**
@@ -123,12 +122,11 @@ namespace render {
       * no-arg constructor.
       */
     inline explicit ThinLensCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target),
-        m_distance(5),
-        m_zoom(1),
-        m_apertureRadius(0.1),
-        m_focalDistance(5)
-    {
+        : Camera(position, target),
+          m_distance(5),
+          m_zoom(1),
+          m_apertureRadius(0.1),
+          m_focalDistance(5) {
     }
 
     /**
@@ -149,7 +147,7 @@ namespace render {
       * @see rayForPixelWithLens for the deterministic-aperture overload
       *      used by tests.
       */
-    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+    Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
 
     /**
@@ -172,7 +170,9 @@ namespace render {
     /**
       * @returns the eye-to-viewplane distance.
       */
-    inline double distance() const { return m_distance; }
+    inline double distance() const {
+      return m_distance;
+    }
 
     /**
       * Sets the distance between the eye and the viewplane. A lower
@@ -180,12 +180,16 @@ namespace render {
       * `PinholeCamera::distance`. Doesn't affect the depth of field
       * directly; for that, see `setApertureRadius` and `setFocalDistance`.
       */
-    inline void setDistance(double distance) { m_distance = distance; }
+    inline void setDistance(double distance) {
+      m_distance = distance;
+    }
 
     /**
       * @returns the magnification factor applied to the viewplane.
       */
-    inline double zoom() const { return m_zoom; }
+    inline double zoom() const {
+      return m_zoom;
+    }
 
     /**
       * Sets the zoom of the camera.
@@ -198,7 +202,9 @@ namespace render {
     /**
       * @returns the aperture radius in scene units.
       */
-    inline double apertureRadius() const { return m_apertureRadius; }
+    inline double apertureRadius() const {
+      return m_apertureRadius;
+    }
 
     /**
       * Sets the aperture radius. Larger aperture → more defocus blur on
@@ -221,7 +227,9 @@ namespace render {
       * @returns the focal distance in scene units, measured along the
       * camera's forward axis from the lens to the in-focus plane.
       */
-    inline double focalDistance() const { return m_focalDistance; }
+    inline double focalDistance() const {
+      return m_focalDistance;
+    }
 
     /**
       * Sets the focal distance. Slides the in-focus plane through the
@@ -253,7 +261,7 @@ namespace render {
       * out of the box. Callers (e.g. `rendercli`) can override by setting
       * a different sampler on the viewplane after construction.
       */
-    virtual void setViewPlane(std::shared_ptr<render::ViewPlane> plane);
+    void setViewPlane(std::shared_ptr<render::ViewPlane> plane) override;
 
   private:
     double m_distance;

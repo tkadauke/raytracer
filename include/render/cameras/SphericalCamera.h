@@ -28,34 +28,32 @@ namespace render {
       * origin.
       */
     inline SphericalCamera()
-      : m_horizontalFieldOfView(180_degrees),
-        m_verticalFieldOfView(120_degrees)
-    {
+        : m_horizontalFieldOfView(180_degrees),
+          m_verticalFieldOfView(120_degrees) {
     }
-    
+
     /**
       * Constructs a spherical camera with the specified horizontalFieldOfView
       * and verticalFieldOfView, looking at the origin.
       */
-    inline explicit SphericalCamera(const Angled& horizontalFieldOfView, const Angled& verticalFieldOfView)
-      : m_horizontalFieldOfView(horizontalFieldOfView),
-        m_verticalFieldOfView(verticalFieldOfView)
-    {
+    inline explicit SphericalCamera(const Angled& horizontalFieldOfView,
+                                    const Angled& verticalFieldOfView)
+        : m_horizontalFieldOfView(horizontalFieldOfView),
+          m_verticalFieldOfView(verticalFieldOfView) {
     }
-    
+
     /**
       * Constructs a spherical camera with a horizontal field of view of 180
       * degrees and a vertical field of view if 120 degrees, at position and
       * looking at target.
       */
     inline explicit SphericalCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target),
-        m_horizontalFieldOfView(180_degrees),
-        m_verticalFieldOfView(120_degrees)
-    {
+        : Camera(position, target),
+          m_horizontalFieldOfView(180_degrees),
+          m_verticalFieldOfView(120_degrees) {
     }
-    
-    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+
+    Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
 
     /**
@@ -64,7 +62,7 @@ namespace render {
     inline const Angled& horizontalFieldOfView() const {
       return m_horizontalFieldOfView;
     }
-  
+
     /**
       * Sets the horizontal field of view of the camera.
       * 
@@ -79,14 +77,14 @@ namespace render {
     inline void setHorizontalFieldOfView(Angled fov) {
       m_horizontalFieldOfView = fov;
     }
-    
+
     /**
       * @returns the vertical field of view of the camera.
       */
     inline const Angled& verticalFieldOfView() const {
       return m_verticalFieldOfView;
     }
-    
+
     /**
       * Sets the vertical field of view of the camera.
       * 
@@ -101,7 +99,7 @@ namespace render {
     inline void setVerticalFieldOfView(Angled fov) {
       m_verticalFieldOfView = fov;
     }
-    
+
     /**
       * Sets both the horizontal and vertical field of view.
       */

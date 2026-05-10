@@ -11,20 +11,18 @@ namespace CameraTest {
   class ConcreteCamera : public Camera {
   public:
     inline ConcreteCamera()
-      : Camera()
-    {
+        : Camera() {
     }
 
     inline ConcreteCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target)
-    {
+        : Camera(position, target) {
     }
 
-    inline virtual void render(std::shared_ptr<RayCaster>, Buffer<Colord>&, const Recti&) const {
+    void render(std::shared_ptr<RayCaster>, Buffer<Colord>&, const Recti&) const override {
       // noop
     }
 
-    inline virtual Rayd rayForPixel(double, double, render::SampleStream&) const {
+    Rayd rayForPixel(double, double, render::SampleStream&) const override {
       return Rayd::undefined();
     }
 
@@ -60,12 +58,7 @@ namespace CameraTest {
 
   TEST(Camera, ShouldReturnMatrix) {
     ConcreteCamera camera(Vector3d(0, 0, -1), Vector3d::null());
-    Matrix4d expected(
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, -1,
-      0, 0, 0, 1
-    );
+    Matrix4d expected(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -1, 0, 0, 0, 1);
     ASSERT_EQ(expected, camera.matrix());
   }
 
@@ -89,12 +82,7 @@ namespace CameraTest {
   TEST(Camera, ShouldRecalculateMatrixWhenPositionIsChanged) {
     ConcreteCamera camera;
     camera.setPosition(Vector3d(0, 0, -2));
-    Matrix4d expected(
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, -2,
-      0, 0, 0, 1
-    );
+    Matrix4d expected(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -2, 0, 0, 0, 1);
     ASSERT_EQ(expected, camera.matrix());
   }
 
@@ -103,24 +91,14 @@ namespace CameraTest {
     camera.inverseMatrix();
     camera.setPosition(Vector3d(0, 0, -3));
 
-    Matrix4d expected(
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 3,
-      0, 0, 0, 1
-    );
+    Matrix4d expected(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 3, 0, 0, 0, 1);
     ASSERT_EQ(expected, camera.inverseMatrix());
   }
 
   TEST(Camera, ShouldRecalculateMatrixWhenTargetIsChanged) {
     ConcreteCamera camera;
     camera.setTarget(Vector3d(0, 0, 1));
-    Matrix4d expected(
-      1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1
-    );
+    Matrix4d expected(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     ASSERT_EQ(expected, camera.matrix());
   }
 

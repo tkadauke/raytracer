@@ -106,17 +106,15 @@ namespace render {
       * call `setTilt` or `setShift`.
       */
     inline TiltShiftCamera()
-      : ThinLensCamera(),
-        m_tilt(0_degrees),
-        m_shift(0, 0)
-    {
+        : ThinLensCamera(),
+          m_tilt(0_degrees),
+          m_shift(0, 0) {
     }
 
     inline explicit TiltShiftCamera(const Vector3d& position, const Vector3d& target)
-      : ThinLensCamera(position, target),
-        m_tilt(0_degrees),
-        m_shift(0, 0)
-    {
+        : ThinLensCamera(position, target),
+          m_tilt(0_degrees),
+          m_shift(0, 0) {
     }
 
     /**
@@ -132,7 +130,7 @@ namespace render {
       * The lens-disc origin offset (the part responsible for DOF
       * blur) is unchanged from the parent.
       */
-    virtual Rayd rayForPixelWithLens(double x, double y, double lensU, double lensV) const;
+    Rayd rayForPixelWithLens(double x, double y, double lensU, double lensV) const override;
     std::shared_ptr<Camera> clone() const override;
 
     /// @returns the focal-plane tilt angle. Zero means
@@ -141,7 +139,9 @@ namespace render {
     /// plane toward the camera (i.e., the focal plane leans
     /// downward into the foreground), which is the canonical
     /// "miniature" direction.
-    inline Angled tilt() const { return m_tilt; }
+    inline Angled tilt() const {
+      return m_tilt;
+    }
 
     /**
       * Sets the focal-plane tilt angle. Tilt rotates the focal-
@@ -159,10 +159,14 @@ namespace render {
       * <td>@image html tilt_shift_camera_tilt_45.png "tilt=45° — extreme"</td>
       * </tr></table>
       */
-    inline void setTilt(const Angled& angle) { m_tilt = angle; }
+    inline void setTilt(const Angled& angle) {
+      m_tilt = angle;
+    }
 
     /// @returns the lens shift vector (in camera right/up basis).
-    inline const Vector2d& shift() const { return m_shift; }
+    inline const Vector2d& shift() const {
+      return m_shift;
+    }
 
     /**
       * Sets the lens shift — slides the lens parallel to the
@@ -175,7 +179,9 @@ namespace render {
       * Components are in camera-local right/up units; typical
       * values are in `[-0.5, 0.5]`.
       */
-    inline void setShift(const Vector2d& shift) { m_shift = shift; }
+    inline void setShift(const Vector2d& shift) {
+      m_shift = shift;
+    }
 
   private:
     Angled m_tilt;

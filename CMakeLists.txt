@@ -34,8 +34,9 @@ else()
 endif()
 option(RAYTRACER_ENABLE_NATIVE_TUNING "Tune release builds for the current CPU" ${_RAYTRACER_NATIVE_TUNING_DEFAULT})
 
-# Match the warning flags from the Rakefile.
-add_compile_options(-W -Wall -pedantic -Wno-extra-semi)
+# Match the warning flags from the Rakefile, and make new warnings fail the
+# build so CI catches them at the point of introduction.
+add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi)
 
 # Enable SSE3 intrinsics on x86 across every config so the Vector3<float/double>
 # and Color<float> SSE3 specializations under include/core/math/vector/sse3/

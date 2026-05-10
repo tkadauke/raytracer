@@ -23,23 +23,21 @@ namespace render {
       * eye-viewplane distance of 5, looking at the origin
       */
     inline PinholeCamera()
-      : Camera(),
-        m_distance(5),
-        m_zoom(1)
-    {
+        : Camera(),
+          m_distance(5),
+          m_zoom(1) {
     }
-    
+
     /**
       * Constructs a camera at position lookint at target.
       */
     inline explicit PinholeCamera(const Vector3d& position, const Vector3d& target)
-      : Camera(position, target),
-        m_distance(5),
-        m_zoom(1)
-    {
+        : Camera(position, target),
+          m_distance(5),
+          m_zoom(1) {
     }
-    
-    virtual Rayd rayForPixel(double x, double y, render::SampleStream& stream) const;
+
+    Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
 
     /**
@@ -56,7 +54,7 @@ namespace render {
       * out-of-range) pixel coordinates — callers that need a
       * visibility check do their own bounds test.
       */
-    virtual Vector2d projectPoint(const Vector3d& worldPoint) const;
+    Vector2d projectPoint(const Vector3d& worldPoint) const override;
 
     /**
       * Same projection math as `projectPoint` but additionally
@@ -64,7 +62,7 @@ namespace render {
       * axis in `result.z()`. Used by the software rasterizer's
       * Z-buffer for depth tests.
       */
-    virtual Vector3d projectPointWithDepth(const Vector3d& worldPoint) const;
+    Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override;
 
     /**
       * Homogeneous form of the same projection. `x / w` and `y / w`
@@ -76,12 +74,12 @@ namespace render {
       * @see Camera::projectPointToClipSpace for an interactive
       *      comparison with orthographic projection.
       */
-    virtual Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const;
+    Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const override;
 
     /// Signed eye-relative depth — positive in front of the eye,
     /// negative behind. Used by the rasterizer's near-plane clipper
     /// to trim triangles straddling the near plane.
-    virtual double eyeRelativeDepth(const Vector3d& worldPoint) const;
+    double eyeRelativeDepth(const Vector3d& worldPoint) const override;
 
     /**
       * @returns the distance between the eye and the viewplane. Defaults to 5.
@@ -89,7 +87,7 @@ namespace render {
     inline double distance() const {
       return m_distance;
     }
-    
+
     /**
       * Sets the distance between the eye and the viewplane. A lower distance
       * results in a higher field of view.
@@ -105,14 +103,14 @@ namespace render {
     inline void setDistance(double distance) {
       m_distance = distance;
     }
-    
+
     /**
       * @returns the zoom of the camera. Defaults to 1.
       */
     inline double zoom() const {
       return m_zoom;
     }
-    
+
     /**
       * Sets the zoom of the camera.
       * 
@@ -129,8 +127,8 @@ namespace render {
       viewPlane()->setPixelSize(1.0 / m_zoom);
     }
 
-    virtual void setViewPlane(std::shared_ptr<render::ViewPlane> plane);
-    
+    void setViewPlane(std::shared_ptr<render::ViewPlane> plane) override;
+
   private:
     double m_distance;
     double m_zoom;
