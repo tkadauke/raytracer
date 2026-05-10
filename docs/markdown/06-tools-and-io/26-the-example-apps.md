@@ -1,14 +1,242 @@
 # 26. The example apps
 
-> **Status:** Stub. Narrative not written yet. Source anchors and
-> embed plan are committed below; expect prose to fill in.
+The library is the renderer. The library is also useless on
+its own — a renderer with no front end produces no images.
+This chapter is a tour of the five front ends the codebase
+ships, what each one is for, and how each one wires the
+engine and scene abstractions together to actually run.
 
-## Arc
+This is a short chapter. The example apps are mostly Qt
+plumbing on top of abstractions covered in earlier chapters,
+and the per-app documentation lives in the apps' own source.
+The point of including them in the textbook is to show how
+the library *gets used*, so a reader who has finished
+Volumes I–V has a concrete map of where to look when they
+want to see a real run.
 
-Tour of `rendercli` (headless), `examples/GeneratedRayTracer`
-(interactive, full editor surface), `examples/SceneBrowser`
-(interactive, dropdown scenes). Talks about how to add a new
-built-in scene and how the engine selector wires in.
+By the end of this chapter you should know:
+
+- the five example apps and the use case each one serves,
+- the engine-selector wiring that lets all three rendering
+  engines drop in interchangeably,
+- how to add a new built-in scene to the apps that have
+  scene catalogs.
+
+## 26.1 `rendercli` — the headless renderer
+
+[`tools/rendercli/`](../../../tools/rendercli/) is a
+command-line front end. It reads a JSON scene file, builds the
+scene graph through the
+[`world::`](../../../include/world/) wrapper layer, configures
+a render engine according to command-line flags, runs one
+render, and writes a PNG to disk. Then it exits.
+
+The typical invocation:
+
+```sh
+$ rendercli --engine raytracer --width 1920 --height 1080 \
+            --scene examples/GeneratedRayTracer/scenes/spheres.json \
+            --output spheres.png
+```
+
+The flags cover everything the apps with GUI knobs cover:
+engine choice (`raytracer` / `raster` / `wireframe`), output
+size, sampler choice, samples-per-pixel, recursion depth,
+tonemap operator, and per-engine knobs (LOD for wireframe and
+raster, MSAA for raster, queue size and thread count for
+raytracer).
+
+`rendercli` is the right front end for:
+
+- **Headless rendering** — CI machines, remote servers, Docker
+  containers without a display server. The interactive apps
+  need a Qt event loop and at minimum a window, even if you
+  don't see it; `rendercli` runs cleanly without one.
+- **Batch rendering** — scripted sweeps over many scenes or
+  many parameter values. Wrap `rendercli` in a shell loop and
+  produce hundreds of images.
+- **Doc renders** — the
+  [`scripts/docs/`](../../../scripts/docs/) Ruby drivers all
+  invoke `rendercli` to produce the per-class image sweeps
+  that show up in Doxygen and (forwarded) in this book's
+  rendered figures.
+- **Performance testing** — `--timing` reports the render
+  time excluding setup; `--repeat N` runs the same render N
+  times and reports min/median/avg/max. Used for the
+  rasterizer benchmark numbers in
+  [chapter 21 §21.5](../04-rasterization/21-msaa-and-attribute-interpolation.md#21-5-the-cost-of-msaa).
+
+## 26.2 `examples/GeneratedRayTracer` — the interactive editor
+
+[`examples/GeneratedRayTracer/`](../../../examples/GeneratedRayTracer/)
+is the closest thing the codebase has to a 3D modeling app.
+It loads a JSON scene the same way `rendercli` does, but
+displays it in a Qt window with a property editor on the
+right, a scene-tree outliner on the left, and a live preview
+in the center. The user can mouse-drag to rotate the camera,
+edit primitive parameters in the property editor and see the
+result re-render, swap the engine between Raytracer / Rasterizer /
+Wireframe via a dropdown, and trigger final-output renders to
+file via a render dialog.
+
+The `Display` widget — the central preview — is a subclass of
+[`QtDisplay`](../../../src/widgets/QtDisplay.cpp), which is
+itself a subclass of
+[`RenderWidget`](../../../src/widgets/RenderWidget.cpp). The
+inheritance chain reflects the responsibilities:
+`RenderWidget` owns the framebuffer and the render loop;
+`QtDisplay` adds mouse-drag camera control;
+`GeneratedRayTracer::Display` adds the engine-selector swap and
+the Ctrl-click ray-state probe.
+
+The engine selector is the most interesting piece of wiring.
+The `Display` holds three engine pointers — one for each kind
+— and on a kind switch updates the active one to share the
+scene and camera with the previously-active one, so the
+preview keeps looking at the same thing across the swap.
+
+`GeneratedRayTracer` is the right front end for:
+
+- **Scene authoring** — building a scene by hand, with the
+  property editor giving immediate feedback on each parameter
+  change.
+- **Final-output rendering** — the render dialog opens a
+  separate window that renders at higher resolution and with
+  more samples than the preview.
+- **Engine debugging** — the side-by-side comparison of
+  Raytracer / Rasterizer / Wireframe outputs is the fastest way
+  to catch tessellation bugs (Wireframe shows the topology
+  directly), shading bugs (Raytracer-vs-Rasterizer
+  divergence), or material bugs (each engine handles materials
+  slightly differently).
+
+## 26.3 `examples/SceneBrowser` — interactive scene picker
+
+[`examples/SceneBrowser/`](../../../examples/SceneBrowser/) is
+the more lightweight interactive app. It carries a built-in
+catalog of scenes — each one a C++ file under
+`examples/SceneBrowser/<Name>Scene.cpp` — and presents a
+dropdown to select among them. Same `QtDisplay` mouse-drag
+camera control, no property editor, no scene-tree outliner.
+The user picks a scene from the dropdown and explores it.
+
+This is the right front end for:
+
+- **Demo / exploration** — showing what the renderer can do
+  to a curious viewer who just wants to drag the camera
+  around.
+- **Built-in test scenes** — scenes that don't fit the JSON
+  scene-graph model (procedurally generated, parametric,
+  tied to specific code paths) live as
+  `<Name>Scene.cpp` files and show up in the dropdown.
+- **Sidebar parameter widgets** — when a scene's interesting
+  parameter (camera focal distance, sampler count) wants a
+  visible knob, the scene's accompanying parameter widget
+  registers via `<Camera>ParameterWidgetFactory` and shows up
+  in the right-hand sidebar.
+
+## 26.4 The other two: `DifferenceRayTracer`, `RefractingRayTracer`
+
+[`examples/DifferenceRayTracer/`](../../../examples/DifferenceRayTracer/)
+and
+[`examples/RefractingRayTracer/`](../../../examples/RefractingRayTracer/)
+are smaller targeted examples — each one a single scene
+showcasing a specific feature.
+
+`DifferenceRayTracer` shows CSG difference operations: a
+sphere with smaller spheres carved out, demonstrating the
+[chapter 14](../03-scene-structure/14-csg.md) interval-set
+operations on a real render.
+
+`RefractingRayTracer` shows transparent materials: glass
+spheres, refraction with critical-angle total internal
+reflection, the multi-bounce recursion at the heart of
+[chapter 8 §8.4](../02-ray-rendering/08-materials-and-brdfs.md#8-4-the-five-shipped-materials).
+The interesting feature is its **debug visualization** — it
+uses
+[`render::State`](../../../include/render/State.h)'s event
+log to draw the actual paths rays take through refractive
+geometry, not just the final pixel output. Useful when
+you're debugging a specific scene's behavior.
+
+Both apps are essentially specialized `SceneBrowser`
+variants — one scene baked in, no dropdown — kept around as
+focused demos for the techniques they showcase.
+
+## 26.5 Adding a built-in scene
+
+Adding a scene to `SceneBrowser` is two files plus a
+registration line:
+
+1. **The scene class.** Subclass
+   [`SceneFactory::Scene`](../../../examples/SceneBrowser/) —
+   override `name()` to return the dropdown label, and
+   `build()` to return a `std::shared_ptr<render::Scene>`
+   carrying the populated scene graph.
+2. **The scene file.** Under
+   `examples/SceneBrowser/<Name>Scene.cpp`. The class lives
+   here.
+3. **The registration.** A static initializer in the same
+   file calls `SceneFactory::self().registerClass<MyScene>()`,
+   which adds the scene to the dropdown automatically. No
+   GUI code changes.
+
+Following the existing scenes as templates is the easiest
+path — most of them are 50 to 100 lines of scene-graph
+construction.
+
+## 26.6 The wireup, in one diagram
+
+```
+Scene description (C++ or JSON)
+       │
+       │  loaded by world:: wrappers (or built in code)
+       ▼
+render::Scene  +  render::Camera  +  render::Tonemap
+       │
+       │  passed to a chosen RenderEngine subclass
+       ▼
+engine::raytracer::Raytracer  /  engine::raster::Rasterizer  /  engine::wireframe::Wireframe
+       │
+       │  render(buffer)
+       ▼
+Buffer<unsigned int>  →  PNG file (rendercli) or QImage paint (interactive apps)
+```
+
+That is the whole library, viewed from the application side.
+Every front end is a different way of producing the inputs
+on the left and consuming the output on the right; the chain
+in the middle is what Volumes II, III, and IV cover.
+
+## 26.7 Exercises
+
+1. Predict what changes in the middle of the diagram when the
+   user toggles the engine selector in `GeneratedRayTracer`
+   from Raytracer to Wireframe. What persists across the
+   swap? What gets thrown away?
+2. Run `rendercli --engine raster --scene <some scene> --msaa 4`
+   on a scene with sharp edges, then again with `--msaa 1`.
+   Diff the two output PNGs and identify which pixels differ.
+   Explain the difference in terms of
+   [chapter 21 §21.3](../04-rasterization/21-msaa-and-attribute-interpolation.md#21-3-msaa-coverage-sampling-not-shading-sampling).
+3. Write a new `SceneBrowser` scene that demonstrates a torus
+   with a mirror surface. What scene-graph code is needed? Is
+   any new C++ or runtime code needed beyond the scene file
+   itself?
+4. The interactive apps construct a `QApplication` in their
+   `main`, which `rendercli` doesn't. Why does `rendercli`
+   need to construct a `QCoreApplication` instead? What would
+   happen if it constructed neither?
+
+## See also
+
+- Volume index: [Volume VI — Tools & I/O](README.md)
+- Previous: [25. PLY parsing](25-ply-parsing.md)
+- Engines used:
+  [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md),
+  [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md),
+  [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md)
+- [Top-level TOC](../README.md)
 
 ## Source anchors
 
@@ -19,14 +247,3 @@ built-in scene and how the engine selector wires in.
 - `examples/DifferenceRayTracer/`
 - `examples/RefractingRayTracer/`
 <!-- /source-anchors -->
-
-## Planned embeds
-
-(No widgets; the example apps are the live demos.)
-
-## See also
-
-- Volume index: [Volume VI — Tools & I/O](README.md)
-- Previous: [25. PLY parsing](25-ply-parsing.md)
-- Engines used: [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md), [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md), [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md)
-- [Top-level TOC](../README.md)
