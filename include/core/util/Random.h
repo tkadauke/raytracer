@@ -1,7 +1,8 @@
 #pragma once
 
-#include <random>
 #include <algorithm>
+
+#include "core/math/Number.h"
 
 /**
  * In-place Fisher–Yates shuffle of `[first, last)`.
@@ -13,9 +14,9 @@
  * sites that just want "randomise this range" without picking a
  * generator.
  *
- * The shuffle uses `std::rand() % (i+1)` to pick swap indices,
+ * The swap-index is chosen via modulo on a 32-bit uniform sample,
  * which is biased for most ranges (the modulo isn't uniform when
- * `RAND_MAX` doesn't divide evenly). The bias is small enough not
+ * 2^32 doesn't divide evenly by i+1). The bias is small enough not
  * to matter for the existing call sites (sample-set permutation,
  * not cryptographic shuffling). If a caller needs unbiased
  * shuffling, switch to `std::shuffle` with a URBG locally.
@@ -27,10 +28,6 @@ void random_shuffle(RandomIt first, RandomIt last)
     n = last - first;
     for (i = n-1; i > 0; --i) {
         using std::swap;
-        swap(first[i], first[std::rand() % (i+1)]);
-        // rand() % (i+1) isn't actually correct, because the generated number
-        // is not uniformly distributed for most values of i. A correct implementation
-        // will need to essentially reimplement C++11 std::uniform_int_distribution,
-        // which is beyond the scope of this example.
+        swap(first[i], first[::random(int(i+1))]);
     }
 }

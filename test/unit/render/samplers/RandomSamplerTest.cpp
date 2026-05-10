@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "render/samplers/RandomSampler.h"
-
-#include <cstdlib>
+#include "core/math/Number.h"
 
 namespace RandomSamplerTest {
   using namespace ::testing;
@@ -14,14 +13,14 @@ namespace RandomSamplerTest {
     ASSERT_EQ(4, sampler.numSamples());
   }
 
-  // RandomSampler routes through std::rand(), so seeding std::srand with
-  // the same value before two independent setups produces identical sets.
+  // RandomSampler routes through the thread-local PCG32 PRNG in Number.h,
+  // so seeding with seed() before two independent setups produces identical sets.
   TEST(RandomSampler, SameSeedProducesIdenticalSets) {
-    std::srand(42);
+    seed(42);
     RandomSampler s1;
     s1.setup(16, 10);
 
-    std::srand(42);
+    seed(42);
     RandomSampler s2;
     s2.setup(16, 10);
 
@@ -35,11 +34,11 @@ namespace RandomSamplerTest {
   // doubles per set across 10 sets the chance of accidental equality is
   // negligible.
   TEST(RandomSampler, DifferentSeedsProduceDifferentSets) {
-    std::srand(1);
+    seed(1);
     RandomSampler s1;
     s1.setup(16, 10);
 
-    std::srand(99999);
+    seed(99999);
     RandomSampler s2;
     s2.setup(16, 10);
 
