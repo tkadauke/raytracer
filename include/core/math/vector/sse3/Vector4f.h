@@ -88,13 +88,11 @@ public:
   }
 
   inline float operator*(const Vector4<float>& other) const {
-    typedef union {
-      __m128 vec;
-      float coord[4];
-    } Vec;
-    Vec vec;
-    vec.vec = _mm_mul_ps(m_vector[0], other.m_vector[0]);
-    return vec.coord[0] + vec.coord[1] + vec.coord[2] + vec.coord[3];
+    __m128 v = _mm_mul_ps(m_vector[0], other.m_vector[0]);
+    return _mm_cvtss_f32(v)
+         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1,1,1,1)))
+         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2,2,2,2)))
+         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(3,3,3,3)));
   }
 
   inline Vector4<float> operator*(const float& factor) const {
