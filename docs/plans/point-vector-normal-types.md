@@ -2,11 +2,14 @@
 
 > **Scope:** introduce semantic geometric types — `Point`,
 > `Vector`, `Direction`, `Normal` — alongside the existing
-> `Vector3<T>` / `Vector4<T>` in `include/core/math/`. Each type
-> carries different transform semantics and (in debug builds) a
-> different runtime invariant. Companion doc to
-> `core-math-optimization.md`. Captured 2026-05-10 from the
-> conversation that motivated the idea.
+> `Vector3<T>` / `Vector4<T>` in `include/core/math/`, paired with
+> companion matrix types — `Matrix3<T>` (linear-only) and
+> `NormalMatrix3<T>` (inverse-transpose) — alongside the existing
+> `Matrix4<T>`. Each geometric type carries different transform
+> semantics and (in debug builds) a different runtime invariant;
+> each matrix type only applies to the geometric types whose
+> transform rule matches. Companion doc to `core-math-optimization.md`.
+> Captured 2026-05-10 from the conversation that motivated the idea.
 >
 > **Status:** Living document — design proposal, not yet committed.
 > Open questions in the section of the same name need decisions
@@ -144,22 +147,30 @@ which transform semantics will apply.
 
 ## Matrix transforms by type
 
-The transform overloads are where the types earn their keep:
+The transform overloads are where the types earn their keep. Each
+geometric type pairs with the right matrix type for its transform
+semantics:
 
 ```cpp
-Matrix4<T>::operator*(Point<T>)      // full affine, w=1 row
-Matrix4<T>::operator*(Vector<T>)     // 3×3 sub-block, w=0 row
-Matrix4<T>::operator*(Direction<T>)  // 3×3 sub-block + optional renormalize
-Matrix4<T>::operator*(Normal<T>)     // inverse-transpose 3×3 sub-block + renormalize
+Matrix4<T>       * Point<T>      → Point<T>      // full affine, w=1 row
+Matrix4<T>       * Vector<T>     → Vector<T>     // 3×3 sub-block, w=0 row
+Matrix4<T>       * Direction<T>  → Direction<T>  // 3×3 sub-block + optional renormalize
+Matrix4<T>       * Normal<T>     → illegal       // must go via .normalMatrix()
+NormalMatrix3<T> * Normal<T>     → Normal<T>     // inverse-transpose, computed once
 ```
 
-For `Matrix4 * Normal`, the matrix's inverse-transpose is a
-property of the matrix, not of any individual call. Cache it on the
-matrix when first needed (or precompute it eagerly for matrices that
-will see many normal transforms — the scene-graph transforms qualify).
+The `Matrix4 * Normal` operation does not exist. To transform a
+normal, the caller must first explicitly construct the
+`NormalMatrix3<T>` via `matrix4.normalMatrix()`. This is the central
+design choice that makes the wrong-matrix-on-normal bug a compile
+error rather than a silent runtime hazard, and lets the
+inverse-transpose cost be paid once per matrix rather than per call.
+See the [Matrix companion types](#matrix-companion-types) section for
+the full type set and operator-overload table.
 
-For `Matrix4 * Direction`, the renormalize step is unnecessary for
+For `Matrix * Direction`, the renormalize step is unnecessary for
 orthonormal matrices. Two options:
+
 - **Always renormalize.** Simple, safe, costs a sqrt per transform.
 - **Skip renormalize when the matrix is known-orthonormal.** Tag
   matrices with an `isOrthonormal` bit at construction (rotations,
@@ -173,6 +184,157 @@ The existing `Matrix4::transformPoint(Vector3)` /
 `transformDirection(Vector3)` proposed in Phase 2.5 of the core-math
 optimization plan become natural overloads of `operator*` once the
 types exist — they don't go away, they become the canonical operator.
+
+---
+
+## Matrix companion types
+
+Three matrix types pair with the four geometric types. Each carries
+the right transform semantics for its associated entity, and the type
+system uses them to reject geometric type errors at compile time.
+
+### `Matrix4<T>` — full affine transform
+
+The existing type. 4×4 storage. Applied to **Points** via
+`Matrix4 * Point` (full affine including the translation row).
+Composes with other `Matrix4`s as scene-graph transforms do today.
+Also applies to Vectors and Directions automatically (it knows to
+ignore the translation row for them) via overloads, but for
+Normals the overload is intentionally omitted — see below.
+
+### `Matrix3<T>` — linear-only transform
+
+The 3×3 linear sub-block of an affine `Matrix4`. Applied to
+**Vectors** and **Directions** via `Matrix3 * Vector` and
+`Matrix3 * Direction`. No translation. Lives separately because
+Vector/Direction don't need the homogeneous-w machinery and
+shouldn't see translations.
+
+Construction: `Matrix4::linearPart()` returns `Matrix3<T>`; or
+constructed directly from rotation/scale factories that don't need
+the full affine container.
+
+### `NormalMatrix3<T>` — inverse-transpose of a `Matrix3<T>`
+
+Distinct type. Stores the already-inverse-transposed 3×3 matrix.
+Applied only to **Normals** via `NormalMatrix3 * Normal`. **Not**
+implicitly convertible back to `Matrix3<T>` — that conversion would
+defeat the entire point of the type. If a caller really wants the raw
+matrix back (rare; usually wrong), there's an explicit `.asMatrix3()`
+escape hatch that loudly forces the caller to acknowledge they're
+exiting the type-correct path.
+
+Construction: `Matrix4::normalMatrix()` returns `NormalMatrix3<T>`,
+performing the inverse-transpose of the linear sub-block exactly once
+at the call site. Subsequent applications of the resulting
+`NormalMatrix3` are cheap matrix-vector multiplies.
+
+### What this buys
+
+**Compile-time bug prevention.** The wrong-matrix-on-normal bug
+becomes a type error: `matrix4 * normal` doesn't compile (no
+overload); the only legal path is `matrix4.normalMatrix() * normal`,
+which forces the inverse-transpose to be explicit at the call site.
+
+**Performance.** Inverse-transpose cost is paid once at the
+`.normalMatrix()` call. Subsequent `NormalMatrix3 * Normal` operations
+are cheap and don't carry IT machinery internally. For a scene that
+transforms 10⁶ normals through a single transform, that's
+10⁶ − 1 redundant IT computations saved versus a "cache inside
+`Matrix * Normal`" strategy.
+
+### Why no `DirectionMatrix`
+
+Directions and Vectors share their transform rule (3×3 linear
+sub-block, no translation). A separate `DirectionMatrix` would be
+`Matrix3<T>` with a different name — solving a problem that doesn't
+exist. The renormalize-on-non-orthonormal-transform concern is
+either (a) a per-call decision (always renormalize, the v1 plan) or
+(b) a tag on the matrix (`isOrthonormal` bit, the v2 plan); neither
+requires a new type.
+
+### Construction boundary, not operator-level specialization
+
+Crucial design principle: `inverse()` and `transpose()` stay on the
+general types and return the same general type.
+`Matrix3::inverse() → Matrix3`. `Matrix4::transpose() → Matrix4`.
+Specialization happens only at *explicit* construction points like
+`matrix4.normalMatrix()`.
+
+This avoids the combinatorial overload explosion that "every operator
+returns a specialized result type" would create. Composition of normal
+matrices still works because (M₁·M₂)⁻ᵀ = M₂⁻ᵀ · M₁⁻ᵀ:
+`NormalMatrix3 * NormalMatrix3 → NormalMatrix3`. But you don't get
+`NormalMatrix3` from `m1.inverse().transpose()` — you get a plain
+`Matrix3` that you'd have to wrap explicitly. (You shouldn't want to;
+you want `normalMatrix()`.)
+
+### Operator-overload table for the matrix companions
+
+| Operation | Result | Notes |
+| --- | --- | --- |
+| `Matrix4 * Point` | `Point` | Full affine |
+| `Matrix4 * Vector` | `Vector` | 3×3 sub-block automatically |
+| `Matrix4 * Direction` | `Direction` | 3×3 sub-block + optional renormalize |
+| `Matrix4 * Normal` | **illegal** | Forces caller to use `.normalMatrix()` |
+| `Matrix3 * Point` | **illegal** | No translation row; Point needs Matrix4 |
+| `Matrix3 * Vector` | `Vector` | |
+| `Matrix3 * Direction` | `Direction` | + optional renormalize |
+| `Matrix3 * Normal` | **illegal** | Same reason as Matrix4 |
+| `NormalMatrix3 * Normal` | `Normal` | The whole point of the type |
+| `NormalMatrix3 * Vector` | **illegal** | Mathematically defined; not the intent |
+| `NormalMatrix3 * Direction` | **illegal** | Same |
+| `NormalMatrix3 * Point` | **illegal** | Same |
+| `Matrix4 * Matrix4` | `Matrix4` | Existing |
+| `Matrix3 * Matrix3` | `Matrix3` | |
+| `NormalMatrix3 * NormalMatrix3` | `NormalMatrix3` | (M₁·M₂)⁻ᵀ = M₂⁻ᵀ · M₁⁻ᵀ |
+| `Matrix4.linearPart()` | `Matrix3` | Extract 3×3 sub-block |
+| `Matrix4.normalMatrix()` | `NormalMatrix3` | Inverse-transpose of linear part |
+| `Matrix3.normalMatrix()` | `NormalMatrix3` | Same, no Matrix4 needed |
+| `Matrix4.inverse()` | `Matrix4` | Stays general |
+| `Matrix3.inverse()` | `Matrix3` | Stays general |
+| `Matrix3.transpose()` | `Matrix3` | Stays general |
+| `NormalMatrix3.asMatrix3()` | `Matrix3` | Explicit escape hatch; rarely useful |
+
+### The `Transform<T>` ergonomic wrapper
+
+For scene-graph nodes that transform a mix of Points, Vectors,
+Directions, and Normals through the *same* matrix, holding the
+`Matrix4`, the `Matrix3` linear sub-block, and the `NormalMatrix3`
+separately is awkward. An optional wrapper type — modeled on PBRT's
+`Transform` — bundles them with lazy caching:
+
+```cpp
+template<typename T>
+class Transform {
+  Matrix4<T> m_;
+  mutable std::optional<Matrix3<T>>       linear_;
+  mutable std::optional<NormalMatrix3<T>> normal_;
+public:
+  Point<T>     operator*(Point<T> p)     const { return m_ * p; }
+  Vector<T>    operator*(Vector<T> v)    const { return linearPart() * v; }
+  Direction<T> operator*(Direction<T> d) const { return linearPart() * d; }
+  Normal<T>    operator*(Normal<T> n)    const { return normalMatrix() * n; }
+
+  const Matrix3<T>&       linearPart()   const; // fills linear_ on first call
+  const NormalMatrix3<T>& normalMatrix() const; // fills normal_ on first call
+};
+```
+
+Scene-graph nodes hold a `Transform<T>`, not a bare `Matrix4<T>`.
+First call to each `operator*` overload fills its cache; subsequent
+calls are direct multiplies.
+
+**Trade-off**: a fully-populated `Transform<T>` is ~3× the storage of
+a `Matrix4<T>`. For scene-graph nodes that handle the full geometric
+type spectrum, that's exactly what you wanted anyway. For one-shot
+matrices in tight loops (a temporary built per-call and immediately
+applied to one point), use the raw `Matrix4` / `Matrix3` /
+`NormalMatrix3` types directly.
+
+`Transform` is **optional**, not required. The plan introduces the
+three matrix types as the substrate; `Transform` is a convenience on
+top. Code can use either layer.
 
 ---
 
@@ -319,13 +481,17 @@ Resolve the open questions below. Pick storage layout (A / B / C).
 Decide whether `Direction` is always-renormalized or matrix-tagged.
 Commit the design to this doc. **No code changes yet.**
 
-### Phase 1 — introduce the types alongside `Vector3<T>`
+### Phase 1 — introduce the types alongside `Vector3<T>` / `Matrix4<T>`
 
 Add `Point`, `Vector`, `Direction`, `Normal` to
-`include/core/math/`. Implement arithmetic + transforms + debug
-invariants. Existing `Vector3<T>` remains in place and untouched.
-Unit tests for the new types only; no existing call sites migrated
-yet.
+`include/core/math/`, plus the companion matrix types `Matrix3<T>`
+and `NormalMatrix3<T>` (and optionally `Transform<T>` — see open
+question 9). Implement arithmetic, the per-type matrix transforms,
+and debug invariants. Existing `Vector3<T>` and `Matrix4<T>` remain
+in place and untouched (`Matrix4` gains the new per-type `operator*`
+overloads and the `.linearPart()` / `.normalMatrix()` factories, but
+nothing else changes). Unit tests for the new types only; no
+existing call sites migrated yet.
 
 ### Phase 2 — migrate intersection code
 
@@ -407,9 +573,9 @@ These need decisions before Phase 1 of the migration plan starts.
    `Direction`, or `.toDirection()`?** Style preference. Lean
    `.normalized()` — matches `.normalize()` (mutating) and is the
    common idiom.
-6. **Where does the inverse-transpose live?** Computed on demand vs.
-   cached on the matrix. Cached is faster but doubles matrix memory
-   for transforms that never see a normal.
+6. ~~**Where does the inverse-transpose live?**~~ **Resolved**: in
+   the `NormalMatrix3<T>` type, computed at `.normalMatrix()`
+   construction. See [Matrix companion types](#matrix-companion-types).
 7. **Backward compatibility shim?** Should `Vector3<T>` remain a
    public alias forever, or be deprecated and eventually removed?
    Lean toward retain-as-alias; some uses (free-form 3-vectors that
@@ -418,6 +584,16 @@ These need decisions before Phase 1 of the migration plan starts.
    to `Normal<double>` (precision matters for grazing-angle lighting)
    or `Normal<float>` (storage)? Currently the codebase uses both;
    pick a default per type or per use-site.
+9. **Should `Transform<T>` ship in Phase 1, or be deferred?** The
+   wrapper is optional and orthogonal to the three matrix types
+   themselves. Lean ship-in-Phase-1: scene-graph nodes are the
+   highest-leverage call site and they want the wrapper. Counter-
+   argument: shipping it later lets us see whether the raw matrix
+   types are ergonomic enough without it.
+10. **Where does the `isOrthonormal` tag for Direction transforms
+    live?** On `Matrix4`, on `Matrix3`, on both? Lean both, set
+    by the rotation/reflection/identity factories. v2 work; v1
+    always-renormalizes.
 
 ---
 
@@ -429,9 +605,11 @@ creep in during implementation:
 - **It does not introduce a Color type.** Color-as-`Vector3<float>`
   is a real problem with separate semantics (gamut, gamma, alpha).
   Out of scope; flag as future work.
-- **It does not change the `Matrix` interface beyond adding the
-  per-type `operator*` overloads.** Matrix factories, decompositions,
-  inversion remain on the optimization plan's path.
+- **It does not change the existing `Matrix4` factories,
+  decompositions, or inversion algorithms.** Those remain on the
+  optimization plan's path. What this plan adds is per-type
+  `operator*` overloads and two new sibling types (`Matrix3<T>`,
+  `NormalMatrix3<T>`); the existing `Matrix4<T>` body stays put.
 - **It does not introduce projective `Point4` distinctly from
   `Point3`.** The homogeneous w=1 case is implicit in Point;
   perspective division at the projection boundary stays a free
