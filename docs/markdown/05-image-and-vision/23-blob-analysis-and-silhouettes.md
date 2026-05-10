@@ -78,23 +78,20 @@ target-colored pixels exist.
 ## 23.2 The new `connected_components` widget
 
 A still picture of a finished blob doesn't show the
-*algorithm*. The new widget under
+*algorithm*. The widget under
 `scripts/docs/connected_components.js` animates the BFS step
-by step, with a speed slider to slow it down enough to watch
-each pixel get added to the queue. Different components get
-different colors as they are discovered.
-
-> **Status:** the widget is queued for delivery alongside this
-> chapter (per the textbook plan §3 widget-pending convention),
-> not yet shipped.
-
-The placeholder marker:
+by step. The example raster contains three disconnected
+components; the slider advances the BFS one cell-pop at a
+time, and each component gets its own color as it is
+discovered:
 
 <!-- widget: connected_components -->
 
-When the widget lands the marker resolves to the live demo. In
-the meantime the algorithm description above is what the widget
-will implement.
+Drag the slider to the left and watch the BFS replay from a
+fresh start; drag to the right and the algorithm fast-forwards
+through every cell. The caption at the bottom counts the cells
+visited so far and the number of distinct components
+discovered.
 
 ## 23.3 What a blob carries
 

@@ -172,35 +172,28 @@ than the strict geometric definition.
 ## 24.5 The new `shape_descriptors` widget
 
 A static description of decision boundaries doesn't make the
-classifier *interactive*. The new widget under
+classifier *interactive*. The widget under
 `scripts/docs/shape_descriptors.js` shows the shape on the
-left, the descriptor readouts on the right (radial variance,
-aspect ratio, area, perimeter), and the classifier's verdict
-at the bottom. The polygon's vertices are draggable; deform
-the polygon and watch the descriptors shift, then watch the
-predicate flip from `true` to `false` as the shape crosses a
-threshold.
-
-> **Status:** the widget is queued for delivery alongside this
-> chapter (per the textbook plan §3 widget-pending convention),
-> not yet shipped.
-
-The placeholder marker:
+left, the descriptor readouts on the right (area, perimeter,
+bounding box, aspect ratio, radial variance), the classifier
+verdict for `isCircle` and `isRectangle`, and the threshold
+constants from
+[`ShapeClassifier.cpp`](../../../test/helpers/ShapeClassifier.cpp)
+so the comparison is concrete:
 
 <!-- widget: shape_descriptors -->
 
-Two illustrative things to try once the widget lands:
+Two illustrative things to try:
 
-1. Start with a regular pentagon and slowly deform it toward a
-   circle. Watch radial variance fall through the $0.10$
-   threshold; the predicate flips from "neither" to "circle"
-   at exactly that crossing.
-2. Start with a square and stretch it horizontally. Watch the
-   aspect ratio drop below $0.83$; even though the radial
-   variance is still in the rectangle band, `isRectangle`
-   stays true (no aspect-ratio gate), but `isCircle` is now
-   false even if you make the corners round (because the
-   aspect-ratio gate catches the elongation).
+1. Start with the default pentagon and drag the vertices
+   toward a regular shape — say, by pulling each vertex out
+   to the same radius. Watch the radial variance drop through
+   the $0.10$ threshold; the `isCircle` verdict flips from
+   `false` to `true` at exactly that crossing.
+2. Drag the vertices into a tall thin shape. Watch the aspect
+   ratio leave the $[0.83, 1.20]$ band. Even with low radial
+   variance, `isCircle` stays `false` because the aspect-ratio
+   gate catches the elongation.
 
 ## 24.6 The history: why two predicates, not one
 
