@@ -367,33 +367,36 @@ a tolerance.
 
 The headers under
 [`include/core/math/vector/sse3/`](../../../include/core/math/vector/sse3/)
-override two specific instantiations: `Vector3<double>` and
-`Vector4<double>` (and the `<float>` variants), to use SSE / SSE3
-intrinsics for storage and arithmetic.
+override specific instantiations — `Vector3<float>`, `Vector4<float>`,
+and `Vector4<double>` — to use SSE / SSE3 intrinsics for storage and
+arithmetic.
 
-The trick is in the storage type. The default `Vector3<double>`
-holds three doubles in an array of three doubles — 24 bytes,
-typically with 8 more bytes of padding for alignment. The SSE3
-specialization holds them in two `__m128d` lanes — 32 bytes total,
-with the first lane carrying $(x, y)$ and the second carrying $(z,
-\_)$:
+The trick is in the storage type. The default `Vector3<float>`
+holds three floats in an array of three floats — 12 bytes. The SSE3
+specialization holds them in a single `__m128` register — 16 bytes,
+with the fourth lane zeroed:
 
 ```cpp
-// include/core/math/vector/sse3/Vector3d.h:7
+// include/core/math/vector/sse3/Vector3f.h
 template<>
-class Vector3<double> : public Vector<3, double, __m128d, Vector3<double>> {
-  // ... constructors and operators using _mm_add_pd, _mm_mul_pd, etc.
+class Vector3<float> : public Vector<3, float, __m128, Vector3<float>> {
+  // ... constructors and operators using _mm_add_ps, _mm_mul_ps, etc.
 };
 ```
 
-The dot product becomes a horizontal add over the two lanes; the
-add and subtract operators become two `_mm_add_pd` /
-`_mm_sub_pd` calls. On a hot loop that touches a million vectors,
-this is measurably faster than the scalar form — somewhere between
-a 10% and a 30% speedup depending on what else is going on around
-it.
+The add and subtract operators become single `_mm_add_ps` /
+`_mm_sub_ps` calls that operate on all four lanes in one instruction.
+On a hot loop that touches a million vectors, this is measurably
+faster than the scalar form.
 
-The specializations are entirely transparent: you write `Vector3d
+`Vector3<double>` does *not* have an SSE3 specialization — benchmarking
+(Phase 2.3) showed that fixing the UB in the original two-`__m128d`
+implementation made dot product 80% slower than scalar, and AVX2 was
+2× slower on cross product. The scalar path with the compiler's
+autovectorizer wins on every operation and is what the generic template
+provides.
+
+The specializations are entirely transparent: you write `Vector3f
 a, b; auto c = a + b;` and the SSE3 path is selected automatically
 when you compile with `-msse3` (which the project's release preset
 does). When you compile without SSE3 — for a target that doesn't
@@ -421,9 +424,10 @@ discrepancy.
 3. Find one place in the codebase where `squaredLength` is used in
    preference to `length`. Why? Try replacing it with `length` and
    describe what would change in the rendered output.
-4. Read the SSE3 `Vector3<double>` operator implementations. Does
-   their result match the generic template's bit-for-bit? Are
-   there inputs where they wouldn't?
+4. Read the SSE3 `Vector3<float>` operator implementations in
+   [`include/core/math/vector/sse3/Vector3f.h`](../../../include/core/math/vector/sse3/Vector3f.h).
+   Do they produce the same result as the generic template bit-for-bit?
+   Are there inputs where they wouldn't?
 
 ## See also
 

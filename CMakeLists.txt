@@ -42,7 +42,7 @@ option(RAYTRACER_ENABLE_NATIVE_TUNING "Tune release builds for the current CPU" 
 # positive for this intentional SIMD-specialization pattern.
 add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi -Wno-ignored-attributes)
 
-# Enable SSE3 intrinsics on x86 across every config so the Vector3<float/double>
+# Enable SSE3 intrinsics on x86 across every config so the Vector3<float>
 # and Color<float> SSE3 specializations under include/core/math/vector/sse3/
 # and include/core/color/sse3/ are actually selected. -mtune=native alone
 # only changes scheduling, not the available instruction set, so without
