@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Core-math benchmark surface and optimization plan.** Six new Google Benchmark suites (`MatrixBenchmark`, `BoundingBoxBenchmark`, `PolynomialBenchmark`, `HitPointIntervalBenchmark`, `RandomBenchmark`, `QuaternionBenchmark`) plus an expanded `VectorBenchmark` (cross/normalize/sub/scalar mul-div/reflect-chain/dot-batch across Vector3f/3d/4f/4d). Baseline output saved at `docs/perf/math-baseline-2026-05-10.txt` against commit `a064505`. The phased optimization plan with per-step benchmark gates lives at `docs/plans/core-math-optimization.md`. — Claude Opus 4.7
 - **Rasterizer FXAA post-process anti-aliasing.** `render::postprocess::applyFxaa` adds a reusable image-space edge filter, `engine::raster::Rasterizer` exposes `setPostProcessAA`, and both `rendercli --engine raster --post_aa fxaa` and the GeneratedRayTracer render dialog expose it as a fast preview AA option alongside MSAA. — GPT-5
 - **Rasterizer directional shadow maps.** `engine::raster::Rasterizer` can now opt into directional-light shadow maps for the built-in Lambertian path, with configurable map size and depth bias; `rendercli --engine raster` exposes the same controls through `--shadow_maps`, `--shadow_map_size`, and `--shadow_bias`. — GPT-5
 - **Rasterizer PCF shadow filtering.** Directional shadow maps now support configurable percentage-closer filtering through `Rasterizer::setShadowFilterRadius` and `rendercli --engine raster --shadow_filter_radius`, preserving hard shadows at the default radius 0. — GPT-5

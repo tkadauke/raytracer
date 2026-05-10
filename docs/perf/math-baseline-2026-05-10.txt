@@ -1,0 +1,196 @@
+================================================================================
+Core math baseline — 2026-05-10
+================================================================================
+
+Reference run for the core-math-optimization plan (docs/plans/core-math-
+optimization.md). Every phase-1+ change measures against these numbers.
+
+Hardware / toolchain:
+  - Apple Silicon (arm64), 12-core
+  - macOS 26.3.1, Darwin 25.3.0
+  - Apple clang 16.0.0 (clang-1600.0.26.6)
+  - Build: cmake --preset benchmark (release flags: -O3 -funroll-loops
+    -mtune=native), Google Benchmark 1.8.3
+  - Source commit: a064505e91b374a355bf714eda5f696e7d266c48 (branch master)
+  - --benchmark_min_time=0.1s; spatial-index benchmarks excluded with
+    --benchmark_filter='-bm_intersect<|-bm_shadow|-bm_build<' (they are
+    container-level benchmarks; out of scope for this baseline)
+
+Re-baseline trigger: anything in Phase 1 (per docs/plans/core-math-
+optimization.md) plus a compiler bump in CI.
+
+Reading notes:
+  - Time / CPU columns are nanoseconds per call.
+  - Iterations is the count Google Benchmark settled on for ~0.1s runtime;
+    higher iterations means a faster per-call cost.
+  - Items/sec where present is from state.SetItemsProcessed (batched ops).
+  - Single-op microbenchmarks wrap every input in DoNotOptimize() so
+    the compiler can't constant-fold; an earlier draft of the run showed
+    ~0.3 ns for every microbenchmark because of constant folding —
+    that's the failure mode to look out for if a future change makes
+    a benchmark look implausibly fast.
+
+Observations worth flagging at baseline:
+  - random_threaded shows real-time scaling linearly with thread count
+    (6.5/3.2/1.7/1.0) but CPU-time-per-call flat (6.4/6.4/6.9/7.8) — so
+    on this Darwin libc, std::rand isn't lock-contended. Glibc would
+    contend hard; the PRNG replacement still matters for portability +
+    statistical quality.
+  - bm_quartic_sorted_result is ~2.5x slower than bm_quartic_solve_into
+    (160 ns vs 72 ns) — the per-call std::vector allocation in
+    sortedResult() is the largest single chunk of Phase 1 opportunity.
+  - bm_inverted4 is ~25 ns / ~27 ns at float / double — that's the
+    cofactor-expansion baseline; block-inverse target is <10 ns.
+  - bm_matmul<Matrix4> is ~5.5 ns regardless of float vs double; the
+    SIMD target is <2 ns for float, <3 ns for double.
+
+--------------------------------------------------------------------------------
+
+Unable to determine clock rate from sysctl: hw.cpufrequency: No such file or directory
+This does not affect benchmark measurements, only the metadata output.
+***WARNING*** Failed to set thread affinity. Estimated CPU frequency may be incorrect.
+2026-05-10T14:37:57-04:00
+Running ./build/benchmark/benchmarks/benchmarks
+Run on (12 X 24 MHz CPU s)
+CPU Caches:
+  L1 Data 64 KiB
+  L1 Instruction 128 KiB
+  L2 Unified 4096 KiB (x12)
+Load Average: 4.04, 6.61, 6.43
+----------------------------------------------------------------------------------------------------
+Benchmark                                          Time             CPU   Iterations UserCounters...
+----------------------------------------------------------------------------------------------------
+bm_intersects<float>                             769 ns          768 ns       180844 items_per_second=333.137M/s
+bm_intersects<double>                            770 ns          769 ns       184225 items_per_second=332.724M/s
+bm_contains_point<float>                         258 ns          258 ns       545002 items_per_second=994.047M/s
+bm_contains_point<double>                        257 ns          257 ns       534637 items_per_second=995.926M/s
+bm_union<float>                                 3.45 ns         3.44 ns     41394400
+bm_union<double>                                3.46 ns         3.46 ns     39177277
+bm_intersection<float>                          1.02 ns         1.02 ns    137281820
+bm_intersection<double>                         1.78 ns         1.78 ns     78837707
+bm_volume<float>                               0.419 ns        0.418 ns    333222259
+bm_volume<double>                              0.419 ns        0.418 ns    337626007
+bm_include_point<float>                          430 ns          429 ns       327011 items_per_second=596.174M/s
+bm_include_point<double>                         431 ns          431 ns       326257 items_per_second=594.533M/s
+bm_push_n<1>                                    24.2 ns         24.1 ns      5684356
+bm_push_n<2>                                    58.4 ns         58.3 ns      2440938
+bm_push_n<4>                                    85.8 ns         85.6 ns      1640766
+bm_push_n<8>                                     135 ns          135 ns      1043764
+bm_push_n<16>                                    201 ns          196 ns       715161
+bm_single_hit_cycle                             67.6 ns         67.4 ns      2006421
+bm_merge_union                                  60.0 ns         59.3 ns      2365065
+bm_merge_intersect                              58.3 ns         58.2 ns      2413003
+bm_iterate                                      2.86 ns         2.85 ns     49749476
+bm_matmul<float, 4, Matrix4f>                   5.52 ns         5.50 ns     24913249
+bm_matmul<double, 4, Matrix4d>                  5.58 ns         5.57 ns     25570309
+bm_matmul<float, 3, Matrix3f>                   2.46 ns         2.45 ns     53877237
+bm_matmul<double, 3, Matrix3d>                  2.41 ns         2.39 ns     58920079
+bm_mat_vec<float, 4, Matrix4f, Vector4f>        1.56 ns         1.55 ns     91677035
+bm_mat_vec<double, 4, Matrix4d, Vector4d>       1.55 ns         1.55 ns     91027308
+bm_mat_vec<float, 3, Matrix3f, Vector3f>       0.964 ns        0.963 ns    144332873
+bm_mat_vec<double, 3, Matrix3d, Vector3d>      0.966 ns        0.964 ns    145549814
+bm_inverted4<float>                             25.1 ns         25.1 ns      5465121
+bm_inverted4<double>                            27.2 ns         27.1 ns      5087579
+bm_determinant4<float>                          5.92 ns         5.91 ns     23718361
+bm_determinant4<double>                         5.86 ns         5.85 ns     23831004
+bm_transposed<float, 4, Matrix4f>               4.16 ns         4.15 ns     33779708
+bm_transposed<double, 4, Matrix4d>              4.42 ns         4.42 ns     31168600
+bm_build_transform3<float>                      12.4 ns         12.4 ns     11140288
+bm_build_transform3<double>                     17.9 ns         17.9 ns      7995431
+bm_quadric_solve<float>                         5.05 ns         5.04 ns     28058924
+bm_quadric_solve<double>                        2.57 ns         2.56 ns     55022795
+bm_cubic_solve<float>                           22.7 ns         22.7 ns      6157094
+bm_cubic_solve<double>                          28.8 ns         26.8 ns      5027291
+bm_quartic_solve<float>                         64.1 ns         64.0 ns      2189347
+bm_quartic_solve<double>                        62.1 ns         62.0 ns      2235922
+bm_quartic_sorted_result<float>                  160 ns          160 ns       859634
+bm_quartic_sorted_result<double>                 161 ns          161 ns       884229
+bm_quartic_solve_into<float>                    72.2 ns         72.1 ns      1928826
+bm_quartic_solve_into<double>                   69.8 ns         69.7 ns      2039805
+bm_quartic_grazing<float>                       33.7 ns         33.6 ns      4059618
+bm_quartic_grazing<double>                      44.8 ns         44.7 ns      3178279
+bm_multiply<float>                              1.24 ns         1.24 ns    110812094
+bm_multiply<double>                             1.34 ns         1.34 ns    103054840
+bm_length<float>                               0.589 ns        0.588 ns    233158464
+bm_length<double>                              0.585 ns        0.584 ns    237473284
+bm_normalize<float>                             1.00 ns         1.00 ns    100000000
+bm_normalize<double>                            1.22 ns         1.22 ns    114867082
+bm_scalar_mul<float>                           0.294 ns        0.293 ns    482143472
+bm_scalar_mul<double>                          0.370 ns        0.370 ns    378531837
+bm_random_unit<float>                           6.30 ns         6.29 ns     22207770
+bm_random_unit<double>                          6.30 ns         6.29 ns     22419729
+bm_random_range<float>                          6.35 ns         6.34 ns     21903406
+bm_random_range<double>                         6.40 ns         6.39 ns     21629973
+bm_random_int                                   6.52 ns         6.51 ns     22217638
+bm_random_batch<float>                          6897 ns         6752 ns        21621 items_per_second=151.65M/s
+bm_random_batch<double>                         6468 ns         6462 ns        21499 items_per_second=158.467M/s
+bm_random_threaded/threads:1                    6.53 ns         6.43 ns     22181380
+bm_random_threaded/threads:2                    3.21 ns         6.41 ns     21670150
+bm_random_threaded/threads:4                    1.74 ns         6.89 ns     20417836
+bm_random_threaded/threads:8                   0.985 ns         7.81 ns     16746160
+bm_shadowRay<Composite>/3                      17493 ns        17478 ns         8037 items_per_second=14.6473M/s
+bm_shadowRay<Composite>/5                      77763 ns        77668 ns         1803 items_per_second=3.29607M/s
+bm_shadowRay<Composite>/8                     361286 ns       360848 ns          389 items_per_second=709.439k/s
+bm_shadowRay<Composite>/12                   1170996 ns      1169042 ns          120 items_per_second=218.983k/s
+bm_shadowRay<Grid>/3                           13641 ns        13622 ns        10467 items_per_second=18.7935M/s
+bm_shadowRay<Grid>/5                           22049 ns        22028 ns         6410 items_per_second=11.6218M/s
+bm_shadowRay<Grid>/8                           32305 ns        32254 ns         4374 items_per_second=7.937M/s
+bm_shadowRay<Grid>/12                          47359 ns        47302 ns         2968 items_per_second=5.41201M/s
+bm_shadowRay<BVH>/3                             4803 ns         4797 ns        28893 items_per_second=53.3681M/s
+bm_shadowRay<BVH>/5                             7527 ns         7522 ns        18586 items_per_second=34.0349M/s
+bm_shadowRay<BVH>/8                             8718 ns         8708 ns        16080 items_per_second=29.3971M/s
+bm_shadowRay<BVH>/12                           10698 ns        10680 ns        13173 items_per_second=23.969M/s
+bm_build<Composite>/3                           1391 ns         1389 ns       100531
+bm_build<Composite>/5                           6265 ns         6258 ns        22331
+bm_build<Composite>/8                          25529 ns        25493 ns         5409
+bm_build<Composite>/12                         86078 ns        85979 ns         1624
+bm_build<Grid>/3                                4264 ns         4258 ns        32855
+bm_build<Grid>/5                               17803 ns        17769 ns         7715
+bm_build<Grid>/8                               63012 ns        62904 ns         2227
+bm_build<Grid>/12                             213227 ns       212886 ns          658
+bm_build<BVH>/3                                 4215 ns         4210 ns        33379
+bm_build<BVH>/5                                28085 ns        28051 ns         4929
+bm_build<BVH>/8                               161578 ns       161303 ns          882
+bm_build<BVH>/12                              928918 ns       928000 ns          149
+bm_dot<Vector3f>                               0.442 ns        0.442 ns    318514811
+bm_add<Vector3f>                               0.445 ns        0.444 ns    319598219
+bm_sub<Vector3f>                               0.442 ns        0.441 ns    313999910
+bm_scalar_mul<Vector3f>                        0.370 ns        0.369 ns    380838389
+bm_scalar_div<Vector3f>                        0.593 ns        0.592 ns    234997902
+bm_length<Vector3f>                            0.590 ns        0.590 ns    241475068
+bm_squared_length<Vector3f>                    0.331 ns        0.330 ns    424113905
+bm_normalize<Vector3f>                          1.31 ns         1.30 ns    108300456
+bm_reflect_chain<Vector3f>                     0.684 ns        0.683 ns    205077124
+bm_dot_batch<Vector3f>                           824 ns          819 ns       173137 items_per_second=1.25088G/s
+bm_dot<Vector3d>                               0.443 ns        0.443 ns    312646553
+bm_add<Vector3d>                               0.447 ns        0.447 ns    315542734
+bm_sub<Vector3d>                               0.443 ns        0.443 ns    317107975
+bm_scalar_mul<Vector3d>                        0.375 ns        0.373 ns    381773063
+bm_scalar_div<Vector3d>                        0.597 ns        0.596 ns    237332384
+bm_length<Vector3d>                            0.585 ns        0.584 ns    238801897
+bm_squared_length<Vector3d>                    0.332 ns        0.331 ns    426036943
+bm_normalize<Vector3d>                          1.33 ns         1.33 ns    105374078
+bm_reflect_chain<Vector3d>                     0.685 ns        0.684 ns    205077124
+bm_dot_batch<Vector3d>                           845 ns          843 ns       166077 items_per_second=1.21405G/s
+bm_dot<Vector4f>                               0.551 ns        0.550 ns    255320701
+bm_add<Vector4f>                               0.344 ns        0.325 ns    473292765
+bm_sub<Vector4f>                               0.332 ns        0.313 ns    478338117
+bm_scalar_mul<Vector4f>                        0.295 ns        0.294 ns    477261880
+bm_scalar_div<Vector4f>                        0.604 ns        0.602 ns    239742448
+bm_length<Vector4f>                            0.593 ns        0.593 ns    236147423
+bm_squared_length<Vector4f>                    0.404 ns        0.403 ns    348068221
+bm_normalize<Vector4f>                          1.47 ns         1.47 ns     95785441
+bm_reflect_chain<Vector4f>                     0.738 ns        0.738 ns    189943831
+bm_dot_batch<Vector4f>                           836 ns          835 ns       167242 items_per_second=1.22611G/s
+bm_dot<Vector4d>                               0.557 ns        0.556 ns    254115768
+bm_add<Vector4d>                               0.444 ns        0.443 ns    317907262
+bm_sub<Vector4d>                               0.446 ns        0.446 ns    315685037
+bm_scalar_mul<Vector4d>                        0.370 ns        0.370 ns    381004218
+bm_scalar_div<Vector4d>                        0.600 ns        0.599 ns    233972859
+bm_length<Vector4d>                            0.592 ns        0.592 ns    235416772
+bm_squared_length<Vector4d>                    0.406 ns        0.405 ns    344352617
+bm_normalize<Vector4d>                          1.55 ns         1.54 ns     91809299
+bm_reflect_chain<Vector4d>                     0.828 ns        0.827 ns    169409487
+bm_dot_batch<Vector4d>                           888 ns          887 ns       157723 items_per_second=1.15453G/s
+bm_cross<Vector3f>                             0.675 ns        0.674 ns    207318337
+bm_cross<Vector3d>                             0.678 ns        0.677 ns    205991407
