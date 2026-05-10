@@ -81,7 +81,7 @@ class ShapeDescriptors {
       fill: '#cce5ff',
       'fill-opacity': 0.7,
       stroke: '#1f77b4',
-      'stroke-width': 2,
+      'stroke-width': FigurePixelStrokeWidth,
     });
 
     // Centroid marker.
