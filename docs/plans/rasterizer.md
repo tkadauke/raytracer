@@ -91,10 +91,14 @@
    - Add TAA later once history buffers, motion vectors, and display-buffer
      ownership are explicit.
 
-10. **Tile-parallel rasterizer performance retry**
-    - Revisit once MSAA, shaders, and shadows make per-pixel work heavier.
-    - Keep `queueSize > 1` opt-in until measurements show it beats the
-      streaming single-tile path.
+10. ✅ **Tile-parallel rasterizer performance retry**
+    - Re-measured after MSAA, shader hooks, shadow maps, PCF, double buffering,
+      and FXAA landed. The tiled path still does not beat the streaming
+      single-tile path on representative scenes, so `queueSize > 1` stays
+      opt-in.
+    - Next retry should wait for a structural change: coarser per-tile work,
+      tile-local depth/color storage with a final stitch, a GPU path, or a
+      scene where shading cost dwarfs binning/task/cache overhead.
 
 11. **Frustum/spatial culling integration**
     - Integrate once the broader `SpatialIndex` work exists.
@@ -170,6 +174,25 @@ Measurement rules:
 - If a rasterizer performance change lands, update this section only when the
   command set changes; put the actual before/after measurements in
   `CHANGELOG.md`.
+
+## Task 10 tile-parallel retry
+
+Measured on May 10 2026 at `dcff8bc` after the MSAA/shadow/FXAA work. Tiled
+commands used `--threads 8 --queue_size 16` unless noted. The conclusion is
+unchanged from the first tile-parallel pass: correctness is pinned, but the
+current CPU tiled path is not a default-performance win.
+
+| Scene | Mode | Runs | Single-tile median | Tiled median |
+| --- | --- | ---: | ---: | ---: |
+| `rasterizer_baseline_materials.json` 640x480 LOD 3 | 1x | 10 | 20.352 ms | 52.945 ms |
+| `rasterizer_baseline_materials.json` 640x480 LOD 3 | 4x MSAA | 10 | 66.206 ms | 201.243 ms |
+| `rasterizer_baseline_offscreen_floor.json` 1920x1080 LOD 0 | 1x | 10 | 119.235 ms | 421.766 ms |
+| `rasterizer_baseline_offscreen_floor.json` 1920x1080 LOD 0 | 4x MSAA | 5 | 518.987 ms | 1565.575 ms |
+| `rasterizer_baseline_dense_sphere.json` 640x480 LOD 8 | 1x | 5 | 3608.142 ms | 3761.542 ms |
+
+Additional offscreen-floor 4x MSAA probes with `--threads 4 --queue_size 4`
+and `--threads 8 --queue_size 8` also lost, with medians `1353.344 ms` and
+`1697.626 ms` respectively.
 
 ## Task 2 backface culling
 
