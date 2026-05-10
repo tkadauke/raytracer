@@ -446,6 +446,93 @@ public:
     return result;
   }
 
+  /**
+    * @returns the component-wise minimum of this vector and other,
+    *   i.e. \f$(\min(v_1,u_1),\ldots,\min(v_n,u_n))\f$.
+    */
+  inline VectorType cwiseMin(const VectorType& other) const {
+    VectorType result;
+    for (int i = 0; i != Dimensions; ++i)
+      result.setCoordinate(i, std::min(coordinate(i), other.coordinate(i)));
+    return result;
+  }
+
+  /**
+    * @returns the component-wise maximum of this vector and other,
+    *   i.e. \f$(\max(v_1,u_1),\ldots,\max(v_n,u_n))\f$.
+    */
+  inline VectorType cwiseMax(const VectorType& other) const {
+    VectorType result;
+    for (int i = 0; i != Dimensions; ++i)
+      result.setCoordinate(i, std::max(coordinate(i), other.coordinate(i)));
+    return result;
+  }
+
+  /**
+    * @returns this vector with each component clamped to \f$[lo, hi]\f$.
+    */
+  inline VectorType clamp(const T& lo, const T& hi) const {
+    VectorType result;
+    for (int i = 0; i != Dimensions; ++i)
+      result.setCoordinate(i, std::max(lo, std::min(hi, coordinate(i))));
+    return result;
+  }
+
+  /**
+    * @returns this vector with each component clamped to \f$[0, 1]\f$.
+    */
+  inline VectorType saturate() const {
+    return clamp(T(0), T(1));
+  }
+
+  /**
+    * @returns the linear interpolation between this vector and other at
+    *   parameter \f$t\f$, i.e. \f$v + t(u - v) = (1-t)v + tu\f$.
+    */
+  inline VectorType lerp(const VectorType& other, const T& t) const {
+    return derived() + (other - derived()) * t;
+  }
+
+  /**
+    * @returns the reflection of this vector around unit normal \f$n\f$,
+    *   i.e. \f$v - 2(v \cdot n)n\f$.
+    *
+    * Both this vector and \f$n\f$ are expected to point away from the
+    * surface (same side). The returned direction also points away from
+    * the surface.
+    */
+  inline VectorType reflect(const VectorType& n) const {
+    return derived() - n * (T(2) * (derived() * n));
+  }
+
+  /**
+    * @returns the refracted direction of this vector through a surface
+    *   with unit outward normal \f$n\f$ and refractive-index ratio
+    *   \f$\eta = n_\text{inside}/n_\text{outside}\f$.
+    *
+    * Preconditions: (1) this vector and \f$n\f$ are on the same side
+    * (dot product is positive), (2) no total internal reflection —
+    * the caller should test \f$1-(1-\cos^2\theta)/\eta^2 \geq 0\f$
+    * before calling.
+    */
+  inline VectorType refract(const VectorType& n, const T& eta) const {
+    T cosTheta = derived() * n;
+    T cosTheta2 = std::sqrt(T(1) - (T(1) - cosTheta * cosTheta) / (eta * eta));
+    return -(derived() / eta) - n * (cosTheta2 - cosTheta / eta);
+  }
+
+  /**
+    * @returns true if this vector is approximately equal to other within
+    *   component-wise absolute tolerance \f$\epsilon\f$.
+    */
+  inline bool approxEqual(const VectorType& other, const T& epsilon) const {
+    for (int i = 0; i != Dimensions; ++i) {
+      if (std::abs(coordinate(i) - other.coordinate(i)) > epsilon)
+        return false;
+    }
+    return true;
+  }
+
 protected:
   inline const VectorType& derived() const {
     return static_cast<const VectorType&>(*this);
@@ -1044,3 +1131,44 @@ typedef Vector4<float> Vector4f;
   * Four-dimensional vector with double components.
   */
 typedef Vector4<double> Vector4d;
+
+// ---------------------------------------------------------------------------
+// Structured-bindings support (C++17).
+//
+// Enables: auto [x, y, z] = someVector3d;
+//          auto [x, y]    = someVector2f;
+//          auto [x, y, z, w] = someVector4f;
+//
+// All concrete Vector types store components accessible via coordinate(i),
+// so a single set of free get<> overloads covers both the generic and the
+// SSE3-specialized paths.
+// ---------------------------------------------------------------------------
+
+namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+  template<class T>
+  struct tuple_size<Vector2<T>> : integral_constant<size_t, 2> {};
+
+  template<size_t I, class T>
+  struct tuple_element<I, Vector2<T>> { using type = T; };
+
+  template<class T>
+  struct tuple_size<Vector3<T>> : integral_constant<size_t, 3> {};
+
+  template<size_t I, class T>
+  struct tuple_element<I, Vector3<T>> { using type = T; };
+
+  template<class T>
+  struct tuple_size<Vector4<T>> : integral_constant<size_t, 4> {};
+
+  template<size_t I, class T>
+  struct tuple_element<I, Vector4<T>> { using type = T; };
+}
+
+template<size_t I, class T>
+inline T get(const Vector2<T>& v) { static_assert(I < 2); return v.coordinate(I); }
+
+template<size_t I, class T>
+inline T get(const Vector3<T>& v) { static_assert(I < 3); return v.coordinate(I); }
+
+template<size_t I, class T>
+inline T get(const Vector4<T>& v) { static_assert(I < 4); return v.coordinate(I); }
