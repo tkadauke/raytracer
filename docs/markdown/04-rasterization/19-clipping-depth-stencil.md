@@ -275,12 +275,12 @@ The configurable state at a glance:
 | Stencil clear value | `0` | `setStencilClearValue` |
 | Stencil write mask | `0xFF` | `setStencilWriteMask` |
 
-The defaults reproduce the historical behavior of the chapter
-18 pipeline: `Less` depth test, depth writes on, no stencil
-test, no culling, both sides rendered. Applications that want
-custom behavior set the relevant state before calling
-`render(...)`; the state persists across renders, so a single
-configuration applies to the whole frame.
+The defaults give back the textbook fixed-function pipeline
+the chapter-18 walkthrough describes: `Less` depth test, depth
+writes on, no stencil test, no culling, both sides rendered.
+Applications that want custom behavior set the relevant state
+before calling `render(...)`; the state persists across
+renders, so a single configuration applies to the whole frame.
 
 ## 19.7 Where this connects to GPU pipelines
 

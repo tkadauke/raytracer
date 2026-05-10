@@ -269,7 +269,7 @@ Several acceleration structures are queued under roadmap
   align with axis planes).
 - **Octree.** 3D analogue of a quadtree — each internal node
   has eight children, partitioning its AABB into eight equal
-  octants. Used historically for voxel-grid scenes; less
+  octants. Common in voxel-grid scenes; less
   common for ray tracing today.
 - **BVH refinement.** Tree quality improvements over the
   initial SAH build (treelet rotation, repeated SAH sweeps,

@@ -75,11 +75,11 @@ A convenience wrapper, `findLargestBlob`, returns the
 single biggest blob by area or `std::nullopt` if no
 target-colored pixels exist.
 
-## 23.2 The new `connected_components` widget
+## 23.2 Watching the algorithm run
 
 A still picture of a finished blob doesn't show the
-*algorithm*. The widget under
-`scripts/docs/connected_components.js` animates the BFS step
+*algorithm*. The figure below — backed by
+`scripts/docs/connected_components.js` — animates the BFS step
 by step. The example raster contains three disconnected
 components; the slider advances the BFS one cell-pop at a
 time, and each component gets its own color as it is

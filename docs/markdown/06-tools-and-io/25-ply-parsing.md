@@ -200,11 +200,11 @@ crash-inducing inputs go into the regression corpus and the
 parser gets fixed; the regression corpus replays on every
 subsequent run.
 
-The PLY parser was hardened in PR #60's wake — among the bugs
-the fuzzer caught: properties before any element, missing or
+Specific malformed-input shapes the parser handles correctly
+include properties declared before any element, missing or
 negative element counts, positive-count full reads without
 properties, truncated scalar data, and negative list counts.
-All of these now throw `PlyParseError` instead of producing
+All of these throw `PlyParseError` rather than producing
 undefined behavior.
 
 ## 25.5 What the parser doesn't accept

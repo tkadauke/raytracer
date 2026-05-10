@@ -35,11 +35,11 @@ Part 1 is shared across all the subclasses — the math of
 the camera and doesn't depend on iteration order. Part 2 is what
 the subclasses override.
 
-The reason both live in the same class is historical: the
-iteration order needed access to the same pixel-grid bounds the
-projection used, and bundling them dodged a constructor argument.
-You can reasonably read every `ViewPlane` subclass as "an
-iteration policy that knows the pixel-grid size."
+Both live in the same class because the iteration order needs
+access to the same pixel-grid bounds the projection uses;
+bundling them avoids a separate constructor argument. You can
+reasonably read every `ViewPlane` subclass as "an iteration
+policy that knows the pixel-grid size."
 
 ## 13.2 The default: row-major
 

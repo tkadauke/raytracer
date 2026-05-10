@@ -15,7 +15,7 @@ By the end of this chapter you should know:
 - the four BRDFs the codebase ships (Lambertian, GlossySpecular,
   PerfectSpecular, PerfectTransmitter), and the matching
   materials that compose them,
-- the new `BSDF` abstraction that unifies BRDF and BTDF behind
+- the `BSDF` abstraction that unifies BRDF and BTDF behind
   one interface,
 - and how reflection, transmission, and the portal effect fit
   the same shading frame.
@@ -278,7 +278,7 @@ filter swatch:
 
 ## 8.5 The `BSDF` interface
 
-The newer abstraction that unifies the four BRDF/BTDF flavors
+The umbrella abstraction that unifies the four BRDF/BTDF flavors
 is
 [`render::BSDF`](../../../include/render/bsdf/BSDF.h)
 ("**B**idirectional **S**cattering **D**istribution

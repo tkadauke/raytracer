@@ -5,12 +5,12 @@
 > codebase. Reads top-to-bottom as a textbook; navigates sideways
 > as a wiki.
 
-This book exists because a renderer is more interesting if you can
-*see* what each piece does, and most interesting if you can also read
-the code that does it. Every chapter pairs the math with the
-implementation, embeds an interactive widget or a rendered image where
-that helps, and links to the exact file in the codebase the prose is
-talking about.
+This book exists because a renderer is most interesting when you
+can read the code that produces each pixel. Every chapter pairs
+the math with the implementation and links to the exact file in
+the codebase the prose is talking about. Where it helps the
+narrative, the chapter also embeds a small interactive figure or
+a rendered image; those are illustrations, not the point.
 
 It documents what the codebase actually contains. Topics queued in
 [`docs/topics-backlog.md`](../topics-backlog.md) — path tracing, ReSTIR,
@@ -84,7 +84,7 @@ so it's a viable second-pass read.
 
 ### Volume V — Image processing & computer vision
 
-The newer pillar. Currently scoped to the test-side helpers (`Blob`,
+Currently scoped to the test-side helpers (`Blob`,
 `Silhouette`, `ShapeClassifier`); will grow as
 [`docs/roadmap.md` §4.11](../roadmap.md) lands.
 
@@ -127,12 +127,6 @@ Skip rasterization and CV. About 16 chapters.
 Volume I, then chapter 5 (the Whitted overview, for the engine
 abstraction), then Volume IV in full, then chapter 17 from Volume IV
 revisits Volume I's geometry primitives. About 10 chapters.
-
-### "I'm here for the educational widgets"
-
-Open [`docs/html/widgets.html`](../html/widgets.html) directly — the
-widget gallery shows them all in one page. Use this book when a
-widget makes you want to know *why* it exists.
 
 ### "I want to fix one specific thing"
 

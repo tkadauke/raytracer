@@ -169,15 +169,15 @@ beyond a certain elongation, the *visual* shape stops looking
 is. The classifier matches that perceptual judgment rather
 than the strict geometric definition.
 
-## 24.5 The new `shape_descriptors` widget
+## 24.5 Pushing the descriptors across the boundary
 
-A static description of decision boundaries doesn't make the
-classifier *interactive*. The widget under
-`scripts/docs/shape_descriptors.js` shows the shape on the
-left, the descriptor readouts on the right (area, perimeter,
-bounding box, aspect ratio, radial variance), the classifier
-verdict for `isCircle` and `isRectangle`, and the threshold
-constants from
+A static description of decision boundaries doesn't show what
+happens when a shape *crosses* one. The figure below — backed
+by `scripts/docs/shape_descriptors.js` — has a draggable
+polygon on the left, the descriptor readouts on the right
+(area, perimeter, bounding box, aspect ratio, radial
+variance), the classifier verdict for `isCircle` and
+`isRectangle`, and the threshold constants from
 [`ShapeClassifier.cpp`](../../../test/helpers/ShapeClassifier.cpp)
 so the comparison is concrete:
 
@@ -195,33 +195,28 @@ Two illustrative things to try:
    variance, `isCircle` stays `false` because the aspect-ratio
    gate catches the elongation.
 
-## 24.6 The history: why two predicates, not one
+## 24.6 Why two predicates, not one
 
 A reasonable design alternative is *one* predicate per shape
 type — `isCircle`, `isRectangle`, `isTriangle`, `isPentagon`,
 … — with the classifier producing the most-likely shape from
-the descriptors. The current design is two-predicate: the
+the descriptors. The shipped design is two-predicate: the
 classifier returns boolean answers to specific questions
 rather than picking a single best classification.
 
-The reason is the history. The old `ShapeRecognition` class
-(replaced in PR #61's wake) was a 1D row-projection heuristic
-that *always* returned a classification — every rendered shape
-got labeled as "circle" or "rectangle" regardless of actual
-shape, sometimes lying outright. The replacement classifier
-returns boolean predicates because it's easier to be honest
-about *not* being a circle than to pick from N possible
-classifications when the shape doesn't match any of them
-cleanly. A torus side-view is neither a circle nor a
-rectangle; the test that asserts "the rendered output is a
-circle" should fail on a torus, not pick "rectangle" because
-that's the next-best match.
+The trade-off favors honest answers over forced ones. A torus
+side-view is neither a circle nor a rectangle; a test that
+asserts "the rendered output is a circle" should fail on a
+torus, not pick "rectangle" because that is the next-best
+match. With independent boolean predicates, a shape that
+fails both predicates produces a clear "neither" instead of a
+silent miscategorization.
 
-This is also why the predicates are AND-tight rather than
-OR-loose. `isCircle` requires *both* low variance *and*
-near-1.0 aspect ratio — getting either wrong is enough to
+The same reasoning explains why the predicates are AND-tight
+rather than OR-loose. `isCircle` requires *both* low variance
+*and* near-1.0 aspect ratio; getting either wrong is enough to
 reject. The conservative tightness produces predicate failures
-that point at exactly the shape property that's wrong, rather
+that point at exactly the shape property that is wrong, rather
 than rejecting on a vague averaged-out score.
 
 ## 24.7 What the classifier doesn't catch
