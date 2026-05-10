@@ -332,17 +332,15 @@ quaternions, etc.).~~
 
 ✅ **Done.** All 12 missing operations added to `include/core/math/Quaternion.h` (~250 lines). `QuaternionBenchmark.cpp` extended to 32 benchmarks covering all new ops. Unit tests pin `q * q.conjugate() ≈ I`, Euler round-trip, axis-angle/matrix round-trip, slerp/nlerp at t=0/1, and unit-length invariants. (syrus/issue-114-136)
 
-### 3.4 Missing Vector operations
+### ~~3.4 Missing Vector operations~~
 
-`reflect`, `refract`, `lerp`, `clamp`, `saturate`, componentwise
+~~`reflect`, `refract`, `lerp`, `clamp`, `saturate`, componentwise
 `min(a,b)` / `max(a,b)`, structured-bindings support
 (`auto [x,y,z] = v`), approximate equality. Route materials and
 camera code through the new helpers; remove the open-coded
-duplicates.
+duplicates.~~
 
-**Benchmark gate:** `VectorBenchmark.cpp` extended. **Pass
-condition:** new ops match or beat the open-coded versions they
-replace.
+✅ **Done.** Added `reflect`, `refract`, `lerp`, `clamp`, `saturate`, `cwiseMin`, `cwiseMax`, `approxEqual` to the base `Vector` template, plus C++17 structured-bindings support (`auto [x,y,z] = v`) for Vector2/3/4. `PerfectSpecular` now uses `(-out).reflect(n)` and `PerfectTransmitter` now uses `out.refract(n, eta)`. `VectorBenchmark.cpp` extended with `bm_reflect`, `bm_refract`, `bm_lerp`, `bm_clamp`, `bm_saturate`, `bm_cwise_min`, `bm_cwise_max`.
 
 ### ~~3.5 Missing Matrix factories~~
 

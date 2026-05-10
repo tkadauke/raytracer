@@ -10,13 +10,11 @@ Colord PerfectTransmitter::sample(const HitPoint& hitPoint, const Vector3d& out,
   double eta = refractionIndex();
   
   if (cosTheta < 0.0) {
-    cosTheta = -cosTheta;
     n = -n;
     eta = 1.0 / eta;
   }
-  
-  double cosTheta2 = sqrt(1.0 - (1.0 - cosTheta * cosTheta) / (eta * eta));
-  in = -out / eta - n * (cosTheta2 - cosTheta / eta);
+
+  in = out.refract(n, eta);
   
   return Colord::white() * (transmissionCoefficient() / (eta * eta) / fabs(hitPoint.normal() * in));
 }
