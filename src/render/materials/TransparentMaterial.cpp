@@ -28,17 +28,15 @@ Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const rend
     Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
     Rayd transmitted(hitPoint.point(), trans);
 
-    double savedThroughput = state.throughput;
+    state.withThroughput(state.throughput * reflectedColor.max() * fabs(hitPoint.normal() * in), [&] {
+      state.recordEvent(this, "TransparentMaterial: Tracing reflection");
+      color += reflectedColor * raycaster->rayColor(reflected.epsilonShifted(), state) * fabs(hitPoint.normal() * in);
+    });
 
-    state.throughput = savedThroughput * reflectedColor.max() * fabs(hitPoint.normal() * in);
-    state.recordEvent(this, "TransparentMaterial: Tracing reflection");
-    color += reflectedColor * raycaster->rayColor(reflected.epsilonShifted(), state) * fabs(hitPoint.normal() * in);
-
-    state.throughput = savedThroughput * transmittedColor.max() * fabs(hitPoint.normal() * trans);
-    state.recordEvent(this, "TransparentMaterial: Tracing transmission");
-    color += transmittedColor * raycaster->rayColor(transmitted.epsilonShifted(), state) * fabs(hitPoint.normal() * trans);
-
-    state.throughput = savedThroughput;
+    state.withThroughput(state.throughput * transmittedColor.max() * fabs(hitPoint.normal() * trans), [&] {
+      state.recordEvent(this, "TransparentMaterial: Tracing transmission");
+      color += transmittedColor * raycaster->rayColor(transmitted.epsilonShifted(), state) * fabs(hitPoint.normal() * trans);
+    });
   }
 
   return color;

@@ -3,6 +3,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <type_traits>
 
 #include "core/math/HitPoint.h"
 #include "render/Object.h"
@@ -172,6 +173,23 @@ namespace render {
     /// Optional indent-formatted event log. Allocated lazily by
     /// `startTrace()`; null when tracing is off.
     std::unique_ptr<std::list<std::string>> events;
+
+    /// Temporarily set `throughput` to `newThroughput`, invoke `fn`, then
+    /// restore. The compiler inlines the lambda; zero runtime overhead vs.
+    /// the manual save/restore pattern.
+    template<typename F>
+    inline auto withThroughput(double newThroughput, F&& fn) {
+      double saved = throughput;
+      throughput = newThroughput;
+      if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
+        fn();
+        throughput = saved;
+      } else {
+        auto result = fn();
+        throughput = saved;
+        return result;
+      }
+    }
 
     /// Accumulated path weight — product of the attenuation coefficients
     /// (reflection/transmission scalars × cosine terms) from the primary
