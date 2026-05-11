@@ -50,7 +50,7 @@ int Quartic<T>::solve() {
   T q = 1.0/8 * normASquared * normA - 0.5 * normA * normB + normC;
   T r = -3.0/256 * normASquared * normASquared + 1.0/16 * normASquared * normB - 0.25 * normA * normC + normD;
   
-  int numberOfResults;
+  int numberOfResults = 0;
   if (isAlmostZero(r)) {
     Cubic<T> cubic(1, 0, p, q);
     numberOfResults = cubic.solveInto(m_result);
