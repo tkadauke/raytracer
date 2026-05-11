@@ -66,3 +66,15 @@ inline constexpr double E = 2.7182818284590452353;
   * see [Golden ratio](https://en.wikipedia.org/wiki/Golden_ratio).
   */
 inline constexpr double GOLDEN_RATIO = 1.6180339887498948482;
+
+/**
+  * Throughput cutoff for adaptive recursion in `Raytracer::rayColor`. When
+  * the accumulated path weight (product of reflection/transmission
+  * attenuation coefficients along the bounce path) drops below this value,
+  * the recursion short-circuits and returns the scene background. The
+  * introduced bias is at most `ε × max_radiance`; at 1e-4 this is
+  * imperceptible in LDR-tonemapped output on all test scenes. Tighten to
+  * 1e-5 if artifacts appear; widen to 1e-3 to trade a little bias for more
+  * aggressive cutoff.
+  */
+inline constexpr double RAYTRACER_THROUGHPUT_CUTOFF = 1e-4;

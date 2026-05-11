@@ -1,6 +1,7 @@
 #include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/Stats.h"
+#include "core/math/Constants.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 #include "render/primitives/Scene.h"
@@ -163,6 +164,11 @@ Colord Raytracer::rayColor(const Rayd& ray, render::State& state) const {
 
   if (state.recursionDepth == p->maximumRecursionDepth) {
     state.recordEvent(nullptr, "Raytracer: maximum recursion depth reached, returning background");
+    return m_scene->background();
+  }
+
+  if (state.throughput < RAYTRACER_THROUGHPUT_CUTOFF) {
+    state.recordEvent(nullptr, "Raytracer: throughput below cutoff, returning background");
     return m_scene->background();
   }
 

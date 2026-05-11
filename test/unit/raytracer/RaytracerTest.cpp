@@ -234,6 +234,66 @@ using namespace render;
     ASSERT_NEAR(-1.0, state.hitPoint.point().z(), 1e-6);
   }
 
+  TEST(Raytracer, RayColorShouldReturnBackgroundWhenThroughputBelowCutoff) {
+    // Verify the throughput-cutoff path: if state.throughput is already below
+    // the threshold when rayColor is entered, it must short-circuit to the
+    // scene background without intersecting the scene.
+    auto scene = std::make_shared<Scene>();
+    scene->setBackground(Colord(0.3, 0.6, 0.9));
+    scene->add(makeAlwaysHit());  // would shade if reached
+    Raytracer raytracer(scene);
+
+    State state;
+    state.throughput = 1e-5;  // below RAYTRACER_THROUGHPUT_CUTOFF (1e-4)
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+    ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
+    // Only one rayColor entry (depth goes to 1) — no recursion was triggered.
+    ASSERT_EQ(1, state.numRays);
+  }
+
+  TEST(Raytracer, ThroughputCutoffFiresIndependentlyOfDepthLimit) {
+    // Both checks are independent: throughput cutoff must fire even when the
+    // recursion depth is not yet at the hard limit. Pre-loading recursionDepth
+    // to 8 of 10 simulates having recursed twice already; with throughput
+    // below the cutoff, the next call must return background immediately (not
+    // wait two more levels for the depth limit to trip).
+    auto scene = std::make_shared<Scene>();
+    scene->setBackground(Colord(0.1, 0.5, 0.8));
+    Raytracer raytracer(scene);
+    raytracer.setMaximumRecursionDepth(10);
+
+    State state;
+    state.recursionDepth = 8;  // 2 levels from the hard limit
+    state.throughput = 1e-5;   // below RAYTRACER_THROUGHPUT_CUTOFF
+    Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
+
+    ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
+    // Exactly one rayColor entry was made (numRays bumped from 0 to 1 by
+    // recurseIn). Depth limit would have required two more entries.
+    ASSERT_EQ(1, state.numRays);
+  }
+
+  TEST(Raytracer, MatteMaterialShadingUnaffectedByThroughputField) {
+    // Matte surfaces don't call rayColor recursively and never modify
+    // state.throughput. The pixel value must be identical regardless of
+    // what throughput is set to (as long as it's above the cutoff).
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->setAmbient(Colord::white());
+    scene->add(whiteSphere(1.0));
+    Raytracer raytracer(scene);
+
+    Rayd ray(Vector3d(0, 0, -5), Vector3d(0, 0, 1));
+
+    State state1;
+    auto color1 = raytracer.rayColor(ray, state1);  // default throughput = 1.0
+
+    State state2;
+    state2.throughput = 0.5;  // above cutoff, should not affect matte shading
+    auto color2 = raytracer.rayColor(ray, state2);
+
+    ASSERT_COLOR_NEAR(color1, color2, 1e-9);
+  }
+
   TEST(Raytracer, RenderShouldClearBufferWhenSceneIsNullptr) {
     Raytracer raytracer(std::shared_ptr<render::Scene>(nullptr));
     Buffer<unsigned int> buffer(4, 4);

@@ -55,7 +55,8 @@ namespace render {
         intersectionMisses(0),
         shadowIntersectionHits(0),
         shadowIntersectionMisses(0),
-        timeSample(0.0)
+        timeSample(0.0),
+        throughput(1.0)
     {
     }
 
@@ -171,5 +172,14 @@ namespace render {
     /// Optional indent-formatted event log. Allocated lazily by
     /// `startTrace()`; null when tracing is off.
     std::unique_ptr<std::list<std::string>> events;
+
+    /// Accumulated path weight — product of the attenuation coefficients
+    /// (reflection/transmission scalars × cosine terms) from the primary
+    /// ray to the current bounce. Defaults to `1.0` for the primary ray.
+    /// Materials update this before each recursive `RayCaster::rayColor`
+    /// call and restore it afterward; `Raytracer::rayColor` short-circuits
+    /// to the scene background when it drops below
+    /// `RAYTRACER_THROUGHPUT_CUTOFF`.
+    double throughput;
   };
 }
