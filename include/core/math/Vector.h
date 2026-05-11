@@ -1098,10 +1098,21 @@ public:
   }
 };
 
+// __m128/__m128d carry an alignment attribute that is silently dropped when
+// used as a template argument.  The drop is harmless (the union's storage
+// alignment is already handled by __m128 itself), but GCC/Clang emit
+// -Wignored-attributes for it.  Suppress it around these four headers only.
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
 #include "core/math/vector/sse3/Vector3f.h"
 #include "core/math/vector/sse3/Vector4f.h"
 #include "core/math/vector/sse3/Vector3d.h"
 #include "core/math/vector/sse3/Vector4d.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 /**
   * Two-dimensional vector with float components.
