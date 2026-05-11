@@ -2,12 +2,17 @@
 
 #include "core/InPlaceSetOperators.h"
 #include "core/InequalityOperator.h"
+#include "core/math/Range.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
 #include "render/Stats.h"
 
 #include <iostream>
 #include <algorithm>
+
+#ifdef __SSE2__
+#include <emmintrin.h>
+#endif
 
 /**
   * Represents a three-dimensional axis-aligned bounding box (AABB), a type of
@@ -336,7 +341,20 @@ public:
     * querying the bounding box first often leads to faster rendering times.
     */
   bool intersects(const Rayd& ray) const;
-  
+
+  /**
+    * Tests whether @p ray intersects the bounding box, and if so populates
+    * @p interval with the [t_enter, t_exit] slab intersection interval.
+    * The interval is always written (even on a miss) so BVH callers can
+    * use @p interval.begin() to prioritize child descent without recomputing
+    * the entry distance.
+    *
+    * @param ray     The ray to test.
+    * @param interval Output: the [t_enter, t_exit] interval along the ray.
+    * @returns true if the ray hits the box (t_enter <= t_exit && t_exit >= 0).
+    */
+  bool intersect(const Rayd& ray, Range<T>& interval) const;
+
 private:
   Vector3<T> m_min, m_max;
 };
@@ -366,66 +384,122 @@ void BoundingBox<T>::getVertices(Container& container) const {
   container.push_back(m_max);
 }
 
+// Generic branchless slab intersection — eliminates all per-axis sign branches
+// by computing both (min-o)*inv_d and (max-o)*inv_d and using std::min/max.
+// The compiler emits conditional-move instructions (no mispredicted branches).
+// The SSE2 double explicit specialization follows below.
 template<class T>
 bool BoundingBox<T>::intersects(const Rayd& ray) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
-  T ox = ray.origin().x();
-  T oy = ray.origin().y();
-  T oz = ray.origin().z();
-  T dx = ray.direction().x();
-  T dy = ray.direction().y();
-  T dz = ray.direction().z();
-  
-  T xMin, yMin, zMin;
-  T xMax, yMax, zMax;
-  
-  T a = 1.0 / dx;
-  if (a >= 0) {
-    xMin = (m_min.x() - ox) * a;
-    xMax = (m_max.x() - ox) * a;
-  } else {
-    xMin = (m_max.x() - ox) * a;
-    xMax = (m_min.x() - ox) * a;
-  }
-  
-  T b = 1.0 / dy;
-  if (b >= 0) {
-    yMin = (m_min.y() - oy) * b;
-    yMax = (m_max.y() - oy) * b;
-  } else {
-    yMin = (m_max.y() - oy) * b;
-    yMax = (m_min.y() - oy) * b;
-  }
-  
-  T c = 1.0 / dz;
-  if (c >= 0) {
-    zMin = (m_min.z() - oz) * c;
-    zMax = (m_max.z() - oz) * c;
-  } else {
-    zMin = (m_max.z() - oz) * c;
-    zMax = (m_min.z() - oz) * c;
-  }
-  
-  T t0, t1;
-  
-  if (xMin > yMin)
-    t0 = xMin;
-  else
-    t0 = yMin;
-  
-  if (zMin > t0)
-    t0 = zMin;
-  
-  if (xMax < yMax)
-    t1 = xMax;
-  else
-    t1 = yMax;
-  
-  if (zMax < t1)
-    t1 = zMax;
-  
-  return (t0 <= t1 && t1 >= 0.0);
+  const T ox = ray.origin().x(), oy = ray.origin().y(), oz = ray.origin().z();
+  const T invDx = T(1.0) / ray.direction().x();
+  const T invDy = T(1.0) / ray.direction().y();
+  const T invDz = T(1.0) / ray.direction().z();
+
+  const T t1x = (m_min.x() - ox) * invDx, t2x = (m_max.x() - ox) * invDx;
+  const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
+  const T t1z = (m_min.z() - oz) * invDz, t2z = (m_max.z() - oz) * invDz;
+
+  // Two-level reduce avoids std::initializer_list overhead.
+  const T t_enter = std::max(std::max(std::min(t1x, t2x), std::min(t1y, t2y)), std::min(t1z, t2z));
+  const T t_exit  = std::min(std::min(std::max(t1x, t2x), std::max(t1y, t2y)), std::max(t1z, t2z));
+  return t_enter <= t_exit && t_exit >= T(0.0);
 }
+
+template<class T>
+bool BoundingBox<T>::intersect(const Rayd& ray, Range<T>& interval) const {
+  RAYTRACER_STATS_INC(rayBoxIntersects);
+  const T ox = ray.origin().x(), oy = ray.origin().y(), oz = ray.origin().z();
+  const T invDx = T(1.0) / ray.direction().x();
+  const T invDy = T(1.0) / ray.direction().y();
+  const T invDz = T(1.0) / ray.direction().z();
+
+  const T t1x = (m_min.x() - ox) * invDx, t2x = (m_max.x() - ox) * invDx;
+  const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
+  const T t1z = (m_min.z() - oz) * invDz, t2z = (m_max.z() - oz) * invDz;
+
+  const T t_enter = std::max(std::max(std::min(t1x, t2x), std::min(t1y, t2y)), std::min(t1z, t2z));
+  const T t_exit  = std::min(std::min(std::max(t1x, t2x), std::max(t1y, t2y)), std::max(t1z, t2z));
+  interval = Range<T>(t_enter, t_exit);
+  return t_enter <= t_exit && t_exit >= T(0.0);
+}
+
+
+// ── SSE2 double specialization ───────────────────────────────────────────────
+// Processes X and Y axes together in one __m128d pair; Z is scalar.
+// The BVH uses BoundingBoxd (double) on every node per ray, so this is
+// the hot path.
+#ifdef __SSE2__
+template<>
+inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
+  RAYTRACER_STATS_INC(rayBoxIntersects);
+  // X+Y: two lanes of __m128d — _mm_set_pd(high=y, low=x)
+  const __m128d min_xy  = _mm_set_pd(m_min.y(), m_min.x());
+  const __m128d max_xy  = _mm_set_pd(m_max.y(), m_max.x());
+  const __m128d orig_xy = _mm_set_pd(ray.origin().y(), ray.origin().x());
+  // Use _mm_div_pd so both reciprocals are computed in one SIMD instruction.
+  const __m128d dir_xy  = _mm_set_pd(ray.direction().y(), ray.direction().x());
+  const __m128d invd_xy = _mm_div_pd(_mm_set1_pd(1.0), dir_xy);
+
+  const __m128d t1_xy = _mm_mul_pd(_mm_sub_pd(min_xy, orig_xy), invd_xy);
+  const __m128d t2_xy = _mm_mul_pd(_mm_sub_pd(max_xy, orig_xy), invd_xy);
+
+  const __m128d enter_xy = _mm_min_pd(t1_xy, t2_xy);
+  const __m128d exit_xy  = _mm_max_pd(t1_xy, t2_xy);
+
+  // Z axis — scalar; std::min/max become conditional moves under -O3
+  const double invDz  = 1.0 / ray.direction().z();
+  const double t1z    = (m_min.z() - ray.origin().z()) * invDz;
+  const double t2z    = (m_max.z() - ray.origin().z()) * invDz;
+  const double enter_z = std::min(t1z, t2z);
+  const double exit_z  = std::max(t1z, t2z);
+
+  // Horizontal reduce: max(enter_x, enter_y) then max with enter_z
+  // _mm_unpackhi_pd([x,y],[x,y]) = [y, y]
+  const __m128d enter_y    = _mm_unpackhi_pd(enter_xy, enter_xy);
+  const double  t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
+  const double  t_enter    = std::max(t_enter_xy, enter_z);
+
+  const __m128d exit_y    = _mm_unpackhi_pd(exit_xy, exit_xy);
+  const double  t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
+  const double  t_exit    = std::min(t_exit_xy, exit_z);
+
+  return t_enter <= t_exit && t_exit >= 0.0;
+}
+
+template<>
+inline bool BoundingBox<double>::intersect(const Rayd& ray, Range<double>& interval) const {
+  RAYTRACER_STATS_INC(rayBoxIntersects);
+  const __m128d min_xy  = _mm_set_pd(m_min.y(), m_min.x());
+  const __m128d max_xy  = _mm_set_pd(m_max.y(), m_max.x());
+  const __m128d orig_xy = _mm_set_pd(ray.origin().y(), ray.origin().x());
+  const __m128d dir_xy  = _mm_set_pd(ray.direction().y(), ray.direction().x());
+  const __m128d invd_xy = _mm_div_pd(_mm_set1_pd(1.0), dir_xy);
+
+  const __m128d t1_xy = _mm_mul_pd(_mm_sub_pd(min_xy, orig_xy), invd_xy);
+  const __m128d t2_xy = _mm_mul_pd(_mm_sub_pd(max_xy, orig_xy), invd_xy);
+
+  const __m128d enter_xy = _mm_min_pd(t1_xy, t2_xy);
+  const __m128d exit_xy  = _mm_max_pd(t1_xy, t2_xy);
+
+  const double invDz   = 1.0 / ray.direction().z();
+  const double t1z     = (m_min.z() - ray.origin().z()) * invDz;
+  const double t2z     = (m_max.z() - ray.origin().z()) * invDz;
+  const double enter_z = std::min(t1z, t2z);
+  const double exit_z  = std::max(t1z, t2z);
+
+  const __m128d enter_y    = _mm_unpackhi_pd(enter_xy, enter_xy);
+  const double  t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
+  const double  t_enter    = std::max(t_enter_xy, enter_z);
+
+  const __m128d exit_y    = _mm_unpackhi_pd(exit_xy, exit_xy);
+  const double  t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
+  const double  t_exit    = std::min(t_exit_xy, exit_z);
+
+  interval = Range<double>(t_enter, t_exit);
+  return t_enter <= t_exit && t_exit >= 0.0;
+}
+#endif  // __SSE2__
 
 
 /**
