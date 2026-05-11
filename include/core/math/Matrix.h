@@ -1069,6 +1069,7 @@ Matrix4<T> Matrix4<T>::inverted() const {
   // where S = A - B·D^{-1}·C is the Schur complement of D in M.
   // det(S)==0 iff det(M)==0 (given det(D)!=0), so the second guard below is
   // the correct singular-matrix check for the full 4×4.
+  // When det(D)==0 the block-inverse is inapplicable; fall back to cofactors.
 
   const T a00 = cell(0,0), a01 = cell(0,1), a10 = cell(1,0), a11 = cell(1,1);
   const T b00 = cell(0,2), b01 = cell(0,3), b10 = cell(1,2), b11 = cell(1,3);
@@ -1077,8 +1078,32 @@ Matrix4<T> Matrix4<T>::inverted() const {
 
   // D^{-1} (bottom-right 2×2 block)
   const T det_d = d00 * d11 - d01 * d10;
-  if (det_d == T())
-    throw DivisionByZeroException(__FILE__, __LINE__);
+  if (det_d == T()) {
+    // D is singular — fall back to adjugate / determinant (cofactor expansion).
+    const T det = determinant();
+    if (det == T())
+      throw DivisionByZeroException(__FILE__, __LINE__);
+    const T inv_det = T(1) / det;
+    return Matrix4<T>(
+      (cell(1,2)*cell(2,3)*cell(3,1)-cell(1,3)*cell(2,2)*cell(3,1)+cell(1,3)*cell(2,1)*cell(3,2)-cell(1,1)*cell(2,3)*cell(3,2)-cell(1,2)*cell(2,1)*cell(3,3)+cell(1,1)*cell(2,2)*cell(3,3))*inv_det,
+      (cell(0,3)*cell(2,2)*cell(3,1)-cell(0,2)*cell(2,3)*cell(3,1)-cell(0,3)*cell(2,1)*cell(3,2)+cell(0,1)*cell(2,3)*cell(3,2)+cell(0,2)*cell(2,1)*cell(3,3)-cell(0,1)*cell(2,2)*cell(3,3))*inv_det,
+      (cell(0,2)*cell(1,3)*cell(3,1)-cell(0,3)*cell(1,2)*cell(3,1)+cell(0,3)*cell(1,1)*cell(3,2)-cell(0,1)*cell(1,3)*cell(3,2)-cell(0,2)*cell(1,1)*cell(3,3)+cell(0,1)*cell(1,2)*cell(3,3))*inv_det,
+      (cell(0,3)*cell(1,2)*cell(2,1)-cell(0,2)*cell(1,3)*cell(2,1)-cell(0,3)*cell(1,1)*cell(2,2)+cell(0,1)*cell(1,3)*cell(2,2)+cell(0,2)*cell(1,1)*cell(2,3)-cell(0,1)*cell(1,2)*cell(2,3))*inv_det,
+      (cell(1,3)*cell(2,2)*cell(3,0)-cell(1,2)*cell(2,3)*cell(3,0)-cell(1,3)*cell(2,0)*cell(3,2)+cell(1,0)*cell(2,3)*cell(3,2)+cell(1,2)*cell(2,0)*cell(3,3)-cell(1,0)*cell(2,2)*cell(3,3))*inv_det,
+      (cell(0,2)*cell(2,3)*cell(3,0)-cell(0,3)*cell(2,2)*cell(3,0)+cell(0,3)*cell(2,0)*cell(3,2)-cell(0,0)*cell(2,3)*cell(3,2)-cell(0,2)*cell(2,0)*cell(3,3)+cell(0,0)*cell(2,2)*cell(3,3))*inv_det,
+      (cell(0,3)*cell(1,2)*cell(3,0)-cell(0,2)*cell(1,3)*cell(3,0)-cell(0,3)*cell(1,0)*cell(3,2)+cell(0,0)*cell(1,3)*cell(3,2)+cell(0,2)*cell(1,0)*cell(3,3)-cell(0,0)*cell(1,2)*cell(3,3))*inv_det,
+      (cell(0,2)*cell(1,3)*cell(2,0)-cell(0,3)*cell(1,2)*cell(2,0)+cell(0,3)*cell(1,0)*cell(2,2)-cell(0,0)*cell(1,3)*cell(2,2)-cell(0,2)*cell(1,0)*cell(2,3)+cell(0,0)*cell(1,2)*cell(2,3))*inv_det,
+      (cell(1,1)*cell(2,3)*cell(3,0)-cell(1,3)*cell(2,1)*cell(3,0)+cell(1,3)*cell(2,0)*cell(3,1)-cell(1,0)*cell(2,3)*cell(3,1)-cell(1,1)*cell(2,0)*cell(3,3)+cell(1,0)*cell(2,1)*cell(3,3))*inv_det,
+      (cell(0,3)*cell(2,1)*cell(3,0)-cell(0,1)*cell(2,3)*cell(3,0)-cell(0,3)*cell(2,0)*cell(3,1)+cell(0,0)*cell(2,3)*cell(3,1)+cell(0,1)*cell(2,0)*cell(3,3)-cell(0,0)*cell(2,1)*cell(3,3))*inv_det,
+      (cell(0,1)*cell(1,3)*cell(3,0)-cell(0,3)*cell(1,1)*cell(3,0)+cell(0,3)*cell(1,0)*cell(3,1)-cell(0,0)*cell(1,3)*cell(3,1)-cell(0,1)*cell(1,0)*cell(3,3)+cell(0,0)*cell(1,1)*cell(3,3))*inv_det,
+      (cell(0,3)*cell(1,1)*cell(2,0)-cell(0,1)*cell(1,3)*cell(2,0)-cell(0,3)*cell(1,0)*cell(2,1)+cell(0,0)*cell(1,3)*cell(2,1)+cell(0,1)*cell(1,0)*cell(2,3)-cell(0,0)*cell(1,1)*cell(2,3))*inv_det,
+      (cell(1,2)*cell(2,1)*cell(3,0)-cell(1,1)*cell(2,2)*cell(3,0)-cell(1,2)*cell(2,0)*cell(3,1)+cell(1,0)*cell(2,2)*cell(3,1)+cell(1,1)*cell(2,0)*cell(3,2)-cell(1,0)*cell(2,1)*cell(3,2))*inv_det,
+      (cell(0,1)*cell(2,2)*cell(3,0)-cell(0,2)*cell(2,1)*cell(3,0)+cell(0,2)*cell(2,0)*cell(3,1)-cell(0,0)*cell(2,2)*cell(3,1)-cell(0,1)*cell(2,0)*cell(3,2)+cell(0,0)*cell(2,1)*cell(3,2))*inv_det,
+      (cell(0,2)*cell(1,1)*cell(3,0)-cell(0,1)*cell(1,2)*cell(3,0)-cell(0,2)*cell(1,0)*cell(3,1)+cell(0,0)*cell(1,2)*cell(3,1)+cell(0,1)*cell(1,0)*cell(3,2)-cell(0,0)*cell(1,1)*cell(3,2))*inv_det,
+      (cell(0,1)*cell(1,2)*cell(2,0)-cell(0,2)*cell(1,1)*cell(2,0)+cell(0,2)*cell(1,0)*cell(2,1)-cell(0,0)*cell(1,2)*cell(2,1)-cell(0,1)*cell(1,0)*cell(2,2)+cell(0,0)*cell(1,1)*cell(2,2))*inv_det
+    );
+  }
+
   const T inv_det_d = T(1) / det_d;
   const T di00 =  d11 * inv_det_d, di01 = -d01 * inv_det_d;
   const T di10 = -d10 * inv_det_d, di11 =  d00 * inv_det_d;

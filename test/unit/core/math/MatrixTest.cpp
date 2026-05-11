@@ -1025,6 +1025,25 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, matrix.inverted());
   }
   
+  TYPED_TEST(Matrix4Test, ShouldInvertMatrixWithSingularDBlock) {
+    // Bottom-right 2×2 block has det=0, but the full matrix is invertible.
+    // This exercises the cofactor fallback path added to handle cases like
+    // Camera matrices where the view direction is horizontal (zAxis.z == 0).
+    Matrix4<TypeParam> matrix(
+      TypeParam(0), TypeParam(0), TypeParam(-1), TypeParam(0),
+      TypeParam(0), TypeParam(1), TypeParam( 0), TypeParam(0),
+      TypeParam(1), TypeParam(0), TypeParam( 0), TypeParam(0),
+      TypeParam(0), TypeParam(0), TypeParam( 0), TypeParam(1)
+    );
+    Matrix4<TypeParam> expected(
+      TypeParam(0), TypeParam(0), TypeParam(1), TypeParam(0),
+      TypeParam(0), TypeParam(1), TypeParam(0), TypeParam(0),
+      TypeParam(-1), TypeParam(0), TypeParam(0), TypeParam(0),
+      TypeParam(0), TypeParam(0), TypeParam(0), TypeParam(1)
+    );
+    ASSERT_EQ(expected, matrix.inverted());
+  }
+
   // Numerical-stability battery: verify ||M·M^{-1} - I|| stays tight.
   // These exercise the block-inverse path against well-conditioned and
   // near-singular inputs.
