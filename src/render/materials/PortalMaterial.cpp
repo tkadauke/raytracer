@@ -15,10 +15,8 @@ void PortalMaterial::setMatrix(const Matrix4d& matrix) {
 Colord PortalMaterial::shade(const render::RayCaster* raycaster, const render::Scene&,
                              const Rayd& ray, const HitPoint& hitPoint,
                              render::State& state) const {
-  double savedThroughput = state.throughput;
-  state.throughput *= m_filterColor.max();
-  auto result = raycaster->rayColor(transformedRay(ray.from(hitPoint.point()).epsilonShifted()), state) *
-                m_filterColor;
-  state.throughput = savedThroughput;
-  return result;
+  return state.withThroughput(state.throughput * m_filterColor.max(), [&] {
+    return raycaster->rayColor(transformedRay(ray.from(hitPoint.point()).epsilonShifted()), state) *
+           m_filterColor;
+  });
 }
