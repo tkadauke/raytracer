@@ -695,6 +695,72 @@ already in place from Phase 1's generic machinery. Migration of any
 2D call sites (UI overlays, image-processing helpers, future 2D
 graphics work) onto the new types.
 
+### Phase 8 — `AffineMatrix<T, N>` optional layer (deferred)
+
+Add `AffineMatrix<T, N>` as an additive layer alongside the existing
+size-named `Matrix<N>` types. **Not part of v1; explicitly deferred
+to a future phase, gated on observed need from the call sites that
+land in Phases 2–5.**
+
+What `AffineMatrix<T, N>` buys:
+
+- **Type-level guarantee** that affine ∘ affine = affine. The
+  compiler enforces composition correctness for scene-graph
+  transforms, view matrices, and other affine operations.
+- **Storage savings.** `AffineMatrix3<T>` stores 12 floats (3×4,
+  bottom row implied `(0,0,0,1)`) vs `Matrix4<T>`'s 16.
+  `AffineMatrix2<T>` stores 6 vs `Matrix3<T>`'s 9. Real memory
+  reduction for scene-graph nodes holding thousands of transforms.
+- **Cleaner inverse semantics.** Inverse of affine is affine:
+  `AffineMatrix::inverse() → AffineMatrix`. The general
+  `Matrix3::inverse() → Matrix3` doesn't carry that property.
+- **API can drop nonsensical ops.** No `operator+` on
+  `AffineMatrix` (the sum of two affine matrices isn't affine).
+  Smaller, more correct surface.
+- **Self-documenting at call sites.** A scene-graph node typed as
+  `AffineMatrix3` is unambiguous; `Matrix4` is just "some 4×4
+  matrix that happens to be affine."
+- **Symmetry with `NormalMatrix`**. Both types encode a specific
+  algebraic structure that the type tracks. Consistent design.
+
+Why deferred:
+
+- **Interacts with "operand decides".** v1's design says `Matrix3
+  * Point2` (affine-2D) and `Matrix3 * Vector3` (linear-3D) are
+  both legal and the operand's stored layout disambiguates. With
+  `AffineMatrix2` in play, the cleaner story is that only
+  `AffineMatrix2 * Point2` performs the affine-2D multiply; bare
+  `Matrix3 * Point2` becomes illegal. We're partially undoing the
+  operand-decides ergonomic. That's defensible but a real
+  philosophical shift — better to land the operand-decides design
+  first and see whether it produces bugs before reversing course.
+- **Migration cost.** Adopting `AffineMatrix` means migrating
+  scene-graph nodes, camera classes, and anything else holding
+  `Matrix4` to the new type. That's a separate sweep on top of the
+  PVN sweep — not v1 work.
+- **The wins are real but the absence of the type isn't urgent.**
+  No bugs land specifically because `Matrix4` is over-general for
+  affine use. Storage savings exist but aren't on a hot path today.
+  Better to ship v1, observe, then choose deliberately.
+
+Implementation when it does land:
+
+- `AffineMatrix<T, N>` stored as the compressed form (N+1 rows × N
+  columns, bottom row implied).
+- Factories migrate: `Matrix4::translate / rotate / scale / lookAt`
+  → `AffineMatrix3<T>::translate / ...`. `Matrix4::perspective /
+  frustum` stay on `Matrix4` (perspective isn't affine).
+- `AffineMatrix3<T>::asMatrix4()` and `Matrix4<T>::asAffine()`
+  (with a runtime check on the bottom row) for crossover.
+- `Transform<T, N>` wrapper updated to hold `AffineMatrix<T, N>`
+  instead of `Matrix<T, N+1>`. Lazy `linearPart()` / `normalMatrix()`
+  caches unchanged in shape.
+- `Matrix3` and `Matrix4` continue to exist for non-affine 3×3 /
+  4×4 uses (perspective projection, arbitrary linear transforms).
+
+Filed as a separate issue once v1 lands and we can evaluate based on
+real call-site evidence.
+
 Each phase is its own PR; each phase passes the test suite end-to-end
 before the next starts.
 
@@ -771,6 +837,12 @@ re-litigate.
 8. **No `UnitVector<T>` separate from `Direction<T>`.** Direction is
    the only unit-length type for geometric use; non-geometric uses
    are rare enough to handle ad-hoc.
+9. **No `AffineMatrix<T, N>` in v1.** Matrices stay named by size
+   (`Matrix2`, `Matrix3`, `Matrix4`); the operand's stored layout
+   disambiguates the geometric semantic. `AffineMatrix` is a real
+   design option but explicitly deferred — see
+   [Phase 8](#phase-8--affinematrixt-n-optional-layer-deferred) for
+   the rationale and the planned future addition.
 
 ## Open questions
 
