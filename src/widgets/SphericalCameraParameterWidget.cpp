@@ -3,6 +3,9 @@
 #include "ui_SphericalCameraParameterWidget.h"
 #include "render/cameras/SphericalCamera.h"
 
+#include <QLabel>
+#include <QSlider>
+
 using namespace render;
 
 struct SphericalCameraParameterWidget::Private {
@@ -10,9 +13,8 @@ struct SphericalCameraParameterWidget::Private {
 };
 
 SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : CameraParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   // Update the value labels when the sliders move.  Use lambdas rather than
   // &QLabel::setNum to avoid the int/double overload ambiguity in Qt 6.
@@ -47,5 +49,6 @@ void SphericalCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> cam
   }
 }
 
-static bool dummy = CameraParameterWidgetFactory::self().registerClass<SphericalCameraParameterWidget>("SphericalCamera");
-
+static bool dummy =
+  CameraParameterWidgetFactory::self().registerClass<SphericalCameraParameterWidget>(
+    "SphericalCamera");

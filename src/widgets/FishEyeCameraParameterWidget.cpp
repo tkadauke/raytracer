@@ -3,6 +3,9 @@
 #include "ui_FishEyeCameraParameterWidget.h"
 #include "render/cameras/FishEyeCamera.h"
 
+#include <QLabel>
+#include <QSlider>
+
 using namespace render;
 
 struct FishEyeCameraParameterWidget::Private {
@@ -10,15 +13,16 @@ struct FishEyeCameraParameterWidget::Private {
 };
 
 FishEyeCameraParameterWidget::FishEyeCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : CameraParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   // Update the value label when the slider moves.  Use a lambda rather than
   // &QLabel::setNum to avoid the int/double overload ambiguity in Qt 6.
   connect(p->ui.fieldOfViewSlider, &QSlider::valueChanged, this,
           [this](int v) { p->ui.fieldOfViewLabel->setNum(v); });
   connect(p->ui.fieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
+  connect(p->ui.fieldOfViewSlider, &QSlider::valueChanged, p->ui.fieldOfViewLabel,
+          qOverload<int>(&QLabel::setNum));
 }
 
 FishEyeCameraParameterWidget::~FishEyeCameraParameterWidget() {
@@ -39,5 +43,5 @@ void FishEyeCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> camer
   }
 }
 
-static bool dummy = CameraParameterWidgetFactory::self().registerClass<FishEyeCameraParameterWidget>("FishEyeCamera");
-
+static bool dummy =
+  CameraParameterWidgetFactory::self().registerClass<FishEyeCameraParameterWidget>("FishEyeCamera");
