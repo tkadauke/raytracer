@@ -36,7 +36,11 @@ option(RAYTRACER_ENABLE_NATIVE_TUNING "Tune release builds for the current CPU" 
 
 # Match the warning flags from the Rakefile, and make new warnings fail the
 # build so CI catches them at the point of introduction.
-add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi)
+# -Wno-ignored-attributes: GCC emits this when __m128/__m128d are used as
+# template type arguments (the SSE Vector specializations inherit from
+# Vector<N, T, __m128d, ...>). The attribute propagation warning is a false
+# positive for this intentional SIMD-specialization pattern.
+add_compile_options(-W -Wall -Werror -pedantic -Wno-extra-semi -Wno-ignored-attributes)
 
 # Enable SSE3 intrinsics on x86 across every config so the Vector3<float/double>
 # and Color<float> SSE3 specializations under include/core/math/vector/sse3/
