@@ -385,7 +385,9 @@ void BoundingBox<T>::getVertices(Container& container) const {
 }
 
 // Generic branchless slab intersection — eliminates all per-axis sign branches
-// by computing both (min-o)*inv_d and (max-o)*inv_d and using std::min/max.
+// by computing both (min-o)*inv_d and (max-o)*inv_d and using ternary min/max.
+// Ternary operators return values (not references), avoiding GCC 13's
+// -Wdangling-reference false positive on std::min/std::max chains.
 // The compiler emits conditional-move instructions (no mispredicted branches).
 // The SSE2 double explicit specialization follows below.
 template<class T>
@@ -400,12 +402,16 @@ bool BoundingBox<T>::intersects(const Rayd& ray) const {
   const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
   const T t1z = (m_min.z() - oz) * invDz, t2z = (m_max.z() - oz) * invDz;
 
-  const T enter_x = std::min(t1x, t2x), enter_y = std::min(t1y, t2y), enter_z = std::min(t1z, t2z);
-  const T exit_x  = std::max(t1x, t2x), exit_y  = std::max(t1y, t2y), exit_z  = std::max(t1z, t2z);
-  const T enter_xy = std::max(enter_x, enter_y);
-  const T t_enter  = std::max(enter_xy, enter_z);
-  const T exit_xy  = std::min(exit_x, exit_y);
-  const T t_exit   = std::min(exit_xy, exit_z);
+  const T enter_x = t1x < t2x ? t1x : t2x;
+  const T enter_y = t1y < t2y ? t1y : t2y;
+  const T enter_z = t1z < t2z ? t1z : t2z;
+  const T exit_x  = t1x > t2x ? t1x : t2x;
+  const T exit_y  = t1y > t2y ? t1y : t2y;
+  const T exit_z  = t1z > t2z ? t1z : t2z;
+  const T enter_xy = enter_x > enter_y ? enter_x : enter_y;
+  const T t_enter  = enter_xy > enter_z ? enter_xy : enter_z;
+  const T exit_xy  = exit_x  < exit_y  ? exit_x  : exit_y;
+  const T t_exit   = exit_xy  < exit_z  ? exit_xy  : exit_z;
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
 
@@ -421,12 +427,16 @@ bool BoundingBox<T>::intersect(const Rayd& ray, Range<T>& interval) const {
   const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
   const T t1z = (m_min.z() - oz) * invDz, t2z = (m_max.z() - oz) * invDz;
 
-  const T enter_x = std::min(t1x, t2x), enter_y = std::min(t1y, t2y), enter_z = std::min(t1z, t2z);
-  const T exit_x  = std::max(t1x, t2x), exit_y  = std::max(t1y, t2y), exit_z  = std::max(t1z, t2z);
-  const T enter_xy = std::max(enter_x, enter_y);
-  const T t_enter  = std::max(enter_xy, enter_z);
-  const T exit_xy  = std::min(exit_x, exit_y);
-  const T t_exit   = std::min(exit_xy, exit_z);
+  const T enter_x = t1x < t2x ? t1x : t2x;
+  const T enter_y = t1y < t2y ? t1y : t2y;
+  const T enter_z = t1z < t2z ? t1z : t2z;
+  const T exit_x  = t1x > t2x ? t1x : t2x;
+  const T exit_y  = t1y > t2y ? t1y : t2y;
+  const T exit_z  = t1z > t2z ? t1z : t2z;
+  const T enter_xy = enter_x > enter_y ? enter_x : enter_y;
+  const T t_enter  = enter_xy > enter_z ? enter_xy : enter_z;
+  const T exit_xy  = exit_x  < exit_y  ? exit_x  : exit_y;
+  const T t_exit   = exit_xy  < exit_z  ? exit_xy  : exit_z;
   interval = Range<T>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
@@ -454,22 +464,23 @@ inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
   const __m128d enter_xy = _mm_min_pd(t1_xy, t2_xy);
   const __m128d exit_xy  = _mm_max_pd(t1_xy, t2_xy);
 
-  // Z axis — scalar; std::min/max become conditional moves under -O3
+  // Z axis — scalar; ternary min/max become conditional moves under -O3.
+  // Ternary operators avoid -Wdangling-reference on std::min/std::max.
   const double invDz  = 1.0 / ray.direction().z();
   const double t1z    = (m_min.z() - ray.origin().z()) * invDz;
   const double t2z    = (m_max.z() - ray.origin().z()) * invDz;
-  const double enter_z = std::min(t1z, t2z);
-  const double exit_z  = std::max(t1z, t2z);
+  const double enter_z = t1z < t2z ? t1z : t2z;
+  const double exit_z  = t1z > t2z ? t1z : t2z;
 
   // Horizontal reduce: max(enter_x, enter_y) then max with enter_z
   // _mm_unpackhi_pd([x,y],[x,y]) = [y, y]
   const __m128d enter_y    = _mm_unpackhi_pd(enter_xy, enter_xy);
   const double  t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
-  const double  t_enter    = std::max(t_enter_xy, enter_z);
+  const double  t_enter    = t_enter_xy > enter_z ? t_enter_xy : enter_z;
 
   const __m128d exit_y    = _mm_unpackhi_pd(exit_xy, exit_xy);
   const double  t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
-  const double  t_exit    = std::min(t_exit_xy, exit_z);
+  const double  t_exit    = t_exit_xy < exit_z ? t_exit_xy : exit_z;
 
   return t_enter <= t_exit && t_exit >= 0.0;
 }
@@ -492,16 +503,16 @@ inline bool BoundingBox<double>::intersect(const Rayd& ray, Range<double>& inter
   const double invDz   = 1.0 / ray.direction().z();
   const double t1z     = (m_min.z() - ray.origin().z()) * invDz;
   const double t2z     = (m_max.z() - ray.origin().z()) * invDz;
-  const double enter_z = std::min(t1z, t2z);
-  const double exit_z  = std::max(t1z, t2z);
+  const double enter_z = t1z < t2z ? t1z : t2z;
+  const double exit_z  = t1z > t2z ? t1z : t2z;
 
   const __m128d enter_y    = _mm_unpackhi_pd(enter_xy, enter_xy);
   const double  t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
-  const double  t_enter    = std::max(t_enter_xy, enter_z);
+  const double  t_enter    = t_enter_xy > enter_z ? t_enter_xy : enter_z;
 
   const __m128d exit_y    = _mm_unpackhi_pd(exit_xy, exit_xy);
   const double  t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
-  const double  t_exit    = std::min(t_exit_xy, exit_z);
+  const double  t_exit    = t_exit_xy < exit_z ? t_exit_xy : exit_z;
 
   interval = Range<double>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= 0.0;
