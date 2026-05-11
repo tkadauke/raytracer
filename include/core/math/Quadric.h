@@ -11,7 +11,7 @@ template<class T>
 class Quadric : public Polynomial<T, 2, Quadric<T>> {
 public:
   typedef Polynomial<T, 2, Quadric<T>> Base;
-  
+
   /**
     * Constructor. Takes the @p a, @p b, and @p c coefficients of the
     * polynomial \f$ax^2 + bx + c\f$.
@@ -20,12 +20,12 @@ public:
     : m_a(a), m_b(b), m_c(c)
   {
   }
-  
+
   /**
     * Solves the polynomial equation \f$ax^2 + bx + c = 0\f$
-    * 
+    *
     * @returns the number of solutions.
-    * 
+    *
     * @see the Polynomial class for information how to retrieve the results.
     */
   int solve();
