@@ -695,12 +695,15 @@ already in place from Phase 1's generic machinery. Migration of any
 2D call sites (UI overlays, image-processing helpers, future 2D
 graphics work) onto the new types.
 
-### Phase 8 — `AffineMatrix<T, N>` optional layer (deferred)
+### Phase 8 — `AffineMatrix<T, N>` optional layer (deferred but intended)
 
 Add `AffineMatrix<T, N>` as an additive layer alongside the existing
-size-named `Matrix<N>` types. **Not part of v1; explicitly deferred
-to a future phase, gated on observed need from the call sites that
-land in Phases 2–5.**
+size-named `Matrix<N>` types. **Not part of v1, but the intended end
+state.** Deferred for v1 scope discipline, not because the value is
+in doubt — Thomas confirmed 2026-05-11 that `Matrix4 * Point3` reads
+counterintuitively in code (the 4D framing isn't natural for 3D
+geometry) and the eventual goal is to land `AffineMatrix3 * Point3`
+as the canonical 3D affine transform call site.
 
 What `AffineMatrix<T, N>` buys:
 
