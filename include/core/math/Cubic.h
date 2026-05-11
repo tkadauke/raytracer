@@ -48,7 +48,7 @@ int Cubic<T>::solve() {
   T pCube = p * p * p;
   T determinant = q * q + pCube;
 
-  int numberOfResults;
+  int numberOfResults = 0;
   if (isAlmostZero(determinant)) {
     if (isAlmostZero(q)) {
       m_result[0] = 0;
