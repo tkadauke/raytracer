@@ -20,6 +20,7 @@ Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const rend
   auto color = PhongMaterial::shade(raycaster, scene, ray, hitPoint, state);
 
   if (m_specularBTDF.totalInternalReflection(ray, hitPoint)) {
+    // TIR: full energy reflected, throughput unchanged (coefficient = 1.0).
     state.recordEvent(this, "TransparentMaterial: TIR, tracing full mirror reflection");
     color += raycaster->rayColor(reflected.epsilonShifted(), state);
   } else {
@@ -27,11 +28,17 @@ Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const rend
     Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
     Rayd transmitted(hitPoint.point(), trans);
 
+    double savedThroughput = state.throughput;
+
+    state.throughput = savedThroughput * reflectedColor.max() * fabs(hitPoint.normal() * in);
     state.recordEvent(this, "TransparentMaterial: Tracing reflection");
     color += reflectedColor * raycaster->rayColor(reflected.epsilonShifted(), state) * fabs(hitPoint.normal() * in);
 
+    state.throughput = savedThroughput * transmittedColor.max() * fabs(hitPoint.normal() * trans);
     state.recordEvent(this, "TransparentMaterial: Tracing transmission");
     color += transmittedColor * raycaster->rayColor(transmitted.epsilonShifted(), state) * fabs(hitPoint.normal() * trans);
+
+    state.throughput = savedThroughput;
   }
 
   return color;

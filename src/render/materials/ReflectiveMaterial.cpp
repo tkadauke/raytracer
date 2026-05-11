@@ -18,8 +18,11 @@ Colord ReflectiveMaterial::shade(const render::RayCaster* raycaster, const rende
 
   double normalDotIn = hitPoint.normal() * in;
 
+  double savedThroughput = state.throughput;
+  state.throughput *= refl.max() * normalDotIn;
   state.recordEvent(this, "ReflectiveMaterial: Tracing reflection");
   color += refl * raycaster->rayColor(reflected.epsilonShifted(), state) * normalDotIn;
+  state.throughput = savedThroughput;
 
   return color;
 }
