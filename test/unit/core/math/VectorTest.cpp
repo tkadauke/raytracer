@@ -378,6 +378,175 @@ namespace VectorTest {
     Vector<3, TypeParam> expected({ 2, 4, -4});
     ASSERT_EQ(expected, TypeParam(2) * vec);
   }
+
+  TYPED_TEST(VectorTest, ShouldComputeCwiseMin) {
+    Vector<3, TypeParam> a({ 1, 5, 3 });
+    Vector<3, TypeParam> b({ 4, 2, 6 });
+    Vector<3, TypeParam> expected({ 1, 2, 3 });
+    ASSERT_EQ(expected, a.cwiseMin(b));
+  }
+
+  TYPED_TEST(VectorTest, ShouldComputeCwiseMax) {
+    Vector<3, TypeParam> a({ 1, 5, 3 });
+    Vector<3, TypeParam> b({ 4, 2, 6 });
+    Vector<3, TypeParam> expected({ 4, 5, 6 });
+    ASSERT_EQ(expected, a.cwiseMax(b));
+  }
+
+  TYPED_TEST(VectorTest, ShouldClampComponents) {
+    Vector<3, TypeParam> vec({ -1, 0.5, 2 });
+    Vector<3, TypeParam> expected({ 0, 0.5, 1 });
+    ASSERT_EQ(expected, vec.clamp(TypeParam(0), TypeParam(1)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldClampBelowLo) {
+    Vector<3, TypeParam> vec({ -5, -5, -5 });
+    Vector<3, TypeParam> expected({ 0, 0, 0 });
+    ASSERT_EQ(expected, vec.clamp(TypeParam(0), TypeParam(1)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldClampAboveHi) {
+    Vector<3, TypeParam> vec({ 5, 5, 5 });
+    Vector<3, TypeParam> expected({ 1, 1, 1 });
+    ASSERT_EQ(expected, vec.clamp(TypeParam(0), TypeParam(1)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldSaturate) {
+    Vector<3, TypeParam> vec({ -0.5, 0.5, 1.5 });
+    Vector<3, TypeParam> expected({ 0, 0.5, 1 });
+    ASSERT_EQ(expected, vec.saturate());
+  }
+
+  TYPED_TEST(VectorTest, ShouldLerp) {
+    Vector<3, TypeParam> a({ 0, 0, 0 });
+    Vector<3, TypeParam> b({ 2, 4, 6 });
+    Vector<3, TypeParam> expected({ 1, 2, 3 });
+    ASSERT_EQ(expected, a.lerp(b, TypeParam(0.5)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldLerpAtZeroReturnSelf) {
+    Vector<3, TypeParam> a({ 1, 2, 3 });
+    Vector<3, TypeParam> b({ 4, 5, 6 });
+    ASSERT_EQ(a, a.lerp(b, TypeParam(0)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldLerpAtOneReturnOther) {
+    Vector<3, TypeParam> a({ 1, 2, 3 });
+    Vector<3, TypeParam> b({ 4, 5, 6 });
+    ASSERT_EQ(b, a.lerp(b, TypeParam(1)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldApproxEqualWithinTolerance) {
+    Vector<3, TypeParam> a({ 1, 2, 3 });
+    Vector<3, TypeParam> b({ 1, 2, 3 });
+    ASSERT_TRUE(a.approxEqual(b, TypeParam(0)));
+  }
+
+  TYPED_TEST(VectorTest, ShouldApproxEqualWithSmallDiff) {
+    Vector<3, TypeParam> a({ 1, 2, 3 });
+    Vector<3, TypeParam> b({ 1 + TypeParam(0.001), 2, 3 });
+    ASSERT_TRUE(a.approxEqual(b, TypeParam(0.01)));
+    ASSERT_FALSE(a.approxEqual(b, TypeParam(0.0001)));
+  }
+}
+
+namespace VectorNewOpsTest {
+  template<class T>
+  class VectorNewOpsTest : public ::testing::Test {
+  };
+
+  typedef ::testing::Types<float, double, long double> NewOpsTypes;
+  TYPED_TEST_SUITE(VectorNewOpsTest, NewOpsTypes);
+
+  TYPED_TEST(VectorNewOpsTest, ShouldReflectAroundNormal) {
+    // incident direction along -y, normal along +y → reflected direction along +y
+    Vector3<TypeParam> incident(0, -1, 0);
+    Vector3<TypeParam> normal(0, 1, 0);
+    Vector3<TypeParam> reflected = incident.reflect(normal);
+    Vector3<TypeParam> expected(0, 1, 0);
+    ASSERT_EQ(expected, reflected);
+  }
+
+  TYPED_TEST(VectorNewOpsTest, ShouldReflect45Degrees) {
+    // (1, -1, 0) reflected around (0, 1, 0) gives (1, 1, 0)
+    Vector3<TypeParam> incident(1, -1, 0);
+    Vector3<TypeParam> normal(0, 1, 0);
+    Vector3<TypeParam> reflected = incident.reflect(normal);
+    Vector3<TypeParam> expected(1, 1, 0);
+    ASSERT_EQ(expected, reflected);
+  }
+
+  TYPED_TEST(VectorNewOpsTest, ShouldPreserveLengthUnderReflection) {
+    Vector3<TypeParam> v(3, 4, 0);
+    Vector3<TypeParam> n(0, 1, 0);
+    auto r = v.reflect(n);
+    TypeParam lenBefore = v.length();
+    TypeParam lenAfter = r.length();
+    ASSERT_NEAR(static_cast<double>(lenBefore), static_cast<double>(lenAfter), 1e-5);
+  }
+
+  TYPED_TEST(VectorNewOpsTest, ShouldRefractAtNormalIncidence) {
+    // normal incidence: direction straight into the surface, no bending
+    Vector3<TypeParam> out(0, 1, 0);
+    Vector3<TypeParam> normal(0, 1, 0);
+    TypeParam eta(1.5);
+    Vector3<TypeParam> refracted = out.refract(normal, eta);
+    // y-component should be negative (going through), x and z zero
+    ASSERT_NEAR(0.0, static_cast<double>(refracted.x()), 1e-5);
+    ASSERT_NEAR(0.0, static_cast<double>(refracted.z()), 1e-5);
+    ASSERT_LT(static_cast<double>(refracted.y()), 0.0);
+  }
+
+  TYPED_TEST(VectorNewOpsTest, ShouldRefractAccordingToSnellsLaw) {
+    // sin(theta_t) / sin(theta_i) = eta_i / eta_t = 1/1.5
+    const double n2 = 1.5;
+    const double angleIn = 45.0 * 3.14159265358979323846 / 180.0;
+    Vector3<TypeParam> out(static_cast<TypeParam>(std::sin(angleIn)),
+                           static_cast<TypeParam>(std::cos(angleIn)), 0);
+    Vector3<TypeParam> normal(0, 1, 0);
+    TypeParam eta(static_cast<TypeParam>(n2));
+    Vector3<TypeParam> refracted = out.refract(normal, eta);
+
+    ASSERT_LT(static_cast<double>(refracted.y()), 0.0);
+    auto dirT = refracted.normalized();
+    double sinThetaOut = std::abs(static_cast<double>(dirT.x()));
+    double expected = std::sin(angleIn) / n2;
+    ASSERT_NEAR(expected, sinThetaOut, 1e-5);
+  }
+}
+
+namespace Vector3StructuredBindingsTest {
+  TEST(Vector3StructuredBindings, ShouldDecomposeFloat) {
+    Vector3f v(1.0f, 2.0f, 3.0f);
+    auto [x, y, z] = v;
+    ASSERT_EQ(1.0f, x);
+    ASSERT_EQ(2.0f, y);
+    ASSERT_EQ(3.0f, z);
+  }
+
+  TEST(Vector3StructuredBindings, ShouldDecomposeDouble) {
+    Vector3d v(4.0, 5.0, 6.0);
+    auto [x, y, z] = v;
+    ASSERT_EQ(4.0, x);
+    ASSERT_EQ(5.0, y);
+    ASSERT_EQ(6.0, z);
+  }
+
+  TEST(Vector2StructuredBindings, ShouldDecomposeFloat) {
+    Vector2f v(7.0f, 8.0f);
+    auto [x, y] = v;
+    ASSERT_EQ(7.0f, x);
+    ASSERT_EQ(8.0f, y);
+  }
+
+  TEST(Vector4StructuredBindings, ShouldDecomposeDouble) {
+    Vector4d v(1.0, 2.0, 3.0, 4.0);
+    auto [x, y, z, w] = v;
+    ASSERT_EQ(1.0, x);
+    ASSERT_EQ(2.0, y);
+    ASSERT_EQ(3.0, z);
+    ASSERT_EQ(4.0, w);
+  }
 }
 
 namespace DerivedVectorTest {
