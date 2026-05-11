@@ -14,7 +14,7 @@ template<class T>
 class Quartic : public Polynomial<T, 4, Quartic<T>> {
 public:
   typedef Polynomial<T, 4, Quartic<T>> Base;
-  
+
   /**
     * Constructor. Takes the @p a, @p b, @p c, @p d, and @p e coefficients of
     * the polynomial \f$ax^4 + bx^3 + cx^2 + dx + e\f$.
@@ -23,12 +23,12 @@ public:
     : m_a(a), m_b(b), m_c(c), m_d(d), m_e(e)
   {
   }
-  
+
   /**
     * Solves the polynomial equation \f$ax^4 + bx^3 + cx^2 + dx + e = 0\f$
-    * 
+    *
     * @returns the number of solutions.
-    * 
+    *
     * @see the Polynomial class for information how to retrieve the results.
     */
   int solve();
@@ -44,12 +44,12 @@ int Quartic<T>::solve() {
   T normB = m_c / m_a;
   T normC = m_d / m_a;
   T normD = m_e / m_a;
-  
+
   T normASquared = normA * normA;
   T p = -3.0/8 * normASquared + normB;
   T q = 1.0/8 * normASquared * normA - 0.5 * normA * normB + normC;
   T r = -3.0/256 * normASquared * normASquared + 1.0/16 * normASquared * normB - 0.25 * normA * normC + normD;
-  
+
   int numberOfResults = 0;
   if (isAlmostZero(r)) {
     Cubic<T> cubic(1, 0, p, q);
@@ -57,7 +57,7 @@ int Quartic<T>::solve() {
   } else {
     Cubic<T> cubic(1, -0.5 * p, -r, 0.5 * r * p - 1.0/8 * q * q);
     cubic.solveInto(m_result);
-  
+
     T z = m_result[0];
 
     T u = z * z - r;
@@ -79,18 +79,18 @@ int Quartic<T>::solve() {
 
     if (v < -vTol) return 0;
     v = v <= T(0) ? T(0) : std::sqrt(v);
-  
+
     Quadric<T> first(1, q < 0 ? -v : v, z - u);
     numberOfResults = first.solveInto(m_result);
-  
+
     Quadric<T> second(1, q < 0 ? v : -v, z + u);
     numberOfResults += second.solveInto(m_result + numberOfResults);
   }
-  
+
   T sub = 0.25 * normA;
-  
+
   for (int i = 0; i < numberOfResults; ++i)
     m_result[i] -= sub;
-  
+
   return numberOfResults;
 }

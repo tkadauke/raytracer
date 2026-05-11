@@ -11,7 +11,7 @@ template<class T>
 class Cubic : public Polynomial<T, 3, Cubic<T>> {
 public:
   typedef Polynomial<T, 3, Cubic<T>> Base;
-  
+
   /**
     * Constructor. Takes the @p a, @p b, @p c, and @p d coefficients of the
     * polynomial \f$ax^3 + bx^2 + cx + d\f$.
@@ -20,12 +20,12 @@ public:
     : m_a(a), m_b(b), m_c(c), m_d(d)
   {
   }
-  
+
   /**
     * Solves the polynomial equation \f$ax^3 + bx^2 + cx + d = 0\f$
-    * 
+    *
     * @returns the number of solutions.
-    * 
+    *
     * @see the Polynomial class for information how to retrieve the results.
     */
   int solve();
