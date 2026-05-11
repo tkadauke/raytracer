@@ -3,7 +3,6 @@ noExplicitConstructor:include/core/math/Vector.h
 noExplicitConstructor:include/core/math/Matrix.h
 useInitializationList:include/raytracer/primitives/Rectangle.h
 useInitializationList:src/raytracer/cameras/Camera.cpp
-unusedPrivateFunction:include/core/math/vector/sse3/Vector3d.h
 unusedPrivateFunction:include/core/math/vector/sse3/Vector4d.h
 unusedPrivateFunction:include/core/math/vector/sse3/Vector3f.h
 unusedPrivateFunction:include/core/math/vector/sse3/Vector4f.h

@@ -1,9 +1,10 @@
 // Microbenchmarks for the Vector hot path. Both the generic and SSE3
 // specializations resolve through the same template surface — Vector3<float>
 // and Vector4<float> hit the SSE3 paths from include/core/math/vector/sse3/,
-// Vector3<double> hits a partial SSE3 specialization on x86 (and the SSE2-via-
-// double-pair path on Apple Silicon). Comparing types side by side gives a
-// quick proxy for whether the SSE3 inlining still works after a refactor.
+// while Vector3<double> and Vector4<double> use different paths (Vector3d is
+// the generic template after the Phase-2.3 deletion; Vector4d has its own SSE3
+// path). Comparing types side by side gives a quick proxy for whether the SSE3
+// inlining still works after a refactor.
 
 #include <benchmark/benchmark.h>
 
