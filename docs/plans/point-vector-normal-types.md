@@ -452,23 +452,15 @@ option(RAYTRACER_STRICT_GEOM_INVARIANTS
 
 Defaults to `ON` in Debug builds, `OFF` in Release.
 
-When `ON`, the constructors and mutating operators of `Point`,
-`Direction`, `Normal` assert their invariants:
+When `ON`, the policy object attached to each derived type's `Vec`
+base (`HomogeneousPointPolicy`, `UnitLengthPolicy`, `VectorPolicy`)
+is invoked from the base's `checkInvariant()` path, which the
+constructors and mutating operators call. See
+[Implementation machinery — Base templates](#base-templates-vecn-t-tag-policy-and-matr-c-t-tag)
+for the policy definitions.
 
-```cpp
-Point(T x, T y, T z, T w = 1) {
-  RT_GEOM_ASSERT(approx_equal(w, 1, geom_tol));
-  ...
-}
-
-Direction(T x, T y, T z) {
-  T len_sq = x*x + y*y + z*z;
-  RT_GEOM_ASSERT(approx_equal(len_sq, 1, geom_tol_squared));
-  ...
-}
-```
-
-`RT_GEOM_ASSERT` compiles to `assert(...)` when the option is on,
+`RT_GEOM_ASSERT` is the macro the policies use; it compiles to
+`assert(...)` when the option is on,
 and to nothing (or `[[assume(...)]]` for optimizer hints) when off.
 The macro path is important — bare `assert()` would not give us the
 release-build optimizer-hint variant.
@@ -504,34 +496,79 @@ Nothing can catch that automatically — code review territory.
 
 ## Implementation machinery
 
-### The `Tagged<T, N, Tag>` base template
+### Base templates: `Vec<N, T, Tag, Policy>` and `Mat<R, C, T, Tag>`
 
-All four geometric types share an underlying template:
+Two base templates carry the shared machinery: `Vec` for everything
+that's a vector at the storage level (Point, Vector, Direction,
+Normal), and `Mat` for everything that's a matrix at the storage
+level (Matrix2/3/4, NormalMatrix, future AffineMatrix). Names chosen
+to read naturally at the `class X : public Vec<...>` boundary; the
+phantom-tag mechanism is a parameter on the base, not the base's
+name.
 
 ```cpp
 namespace core::math::detail {
-  // Storage policy: Point has w; Vector/Direction/Normal don't.
-  template<typename T, int N, typename Tag>
-  struct TaggedStorage {
+  // Vec: N-tuple storage + element-wise math + per-tag operator dispatch
+  // + per-policy invariant enforcement. Houses CRTP plumbing,
+  // construction, copy construction, debug printing, dot/length/
+  // arithmetic that's tag-agnostic, and SIMD specializations keyed
+  // on (N, T).
+  template<typename T, int N, typename Tag, typename Policy>
+  class Vec {
     std::array<T, N> v;
-    // Vector / Direction / Normal layout (no w).
+    // Invariant assertion (debug only):
+    constexpr void checkInvariant() const { Policy::check(v); }
+    // ... arithmetic, dot, length, accessors, debug printing
   };
 
-  template<typename T, int N>
-  struct TaggedStorage<T, N, PointTag> {
-    std::array<T, N + 1> v;  // includes w (last slot)
-    constexpr T w() const { return v[N]; }
-  };
-
-  template<typename T, int N, typename Tag>
-  class Tagged : public TaggedStorage<T, N, Tag> {
-    // Component-wise arithmetic, dot, length, etc. — anything tag-agnostic.
-    // SIMD specializations live here on N == 3 / N == 4 storage size.
+  // Mat: R×C storage + matrix arithmetic + per-tag operator dispatch.
+  // Houses construction, copy, debug printing, determinant/transpose/
+  // inverse where they're tag-agnostic. SIMD specializations keyed
+  // on (R, C, T).
+  template<int R, int C, typename T, typename Tag>
+  class Mat {
+    std::array<T, R * C> v;
+    // ...
   };
 }
 ```
 
-Concrete types inherit from `Tagged` with the matching tag:
+The invariant policies are small free-standing types:
+
+```cpp
+namespace core::math::detail {
+  struct VectorPolicy {
+    template<typename T, int N>
+    static void check(const std::array<T, N>&) noexcept { /* no-op */ }
+  };
+
+  struct HomogeneousPointPolicy {
+    // The last component is the homogeneous w; assert it ≈ 1.
+    template<typename T, int N>
+    static void check(const std::array<T, N>& v) noexcept {
+      RT_GEOM_ASSERT(approx_equal(v[N - 1], T{1}, geom_tol));
+    }
+  };
+
+  struct UnitLengthPolicy {
+    // Sum of squares over the spatial (non-w) prefix ≈ 1.
+    // For Vec<T, N, *, UnitLengthPolicy>, all N components are spatial
+    // (Direction/Normal don't carry w; they're directional).
+    template<typename T, int N>
+    static void check(const std::array<T, N>& v) noexcept {
+      T sumSq = T{0};
+      for (int i = 0; i < N; ++i) sumSq += v[i] * v[i];
+      RT_GEOM_ASSERT(approx_equal(sumSq, T{1}, geom_tol_squared));
+    }
+  };
+}
+```
+
+The concrete types pick `(N_storage, Tag, Policy)` to express their
+identity. **`Point<N, T>` derives from `Vec<N+1, T, ...>`** — its
+storage dimension is one larger than its logical dimension, holding
+the homogeneous `w` as the last component. Vector / Direction /
+Normal use `N` for both:
 
 ```cpp
 namespace core::math {
@@ -540,12 +577,22 @@ namespace core::math {
   struct DirectionTag {};
   struct NormalTag {};
 
-  template<typename T, int N> class Point     : public detail::Tagged<T, N, PointTag>     { /* ... */ };
-  template<typename T, int N> class Vector    : public detail::Tagged<T, N, VectorTag>    { /* ... */ };
-  template<typename T, int N> class Direction : public detail::Tagged<T, N, DirectionTag> { /* ... */ };
-  template<typename T, int N> class Normal    : public detail::Tagged<T, N, NormalTag>    { /* ... */ };
+  template<typename T, int N>
+  class Point : public detail::Vec<T, N + 1, PointTag, detail::HomogeneousPointPolicy> {
+    // logical dimension N; storage dimension N+1 (the +1 is w).
+    constexpr T w() const { return this->v[N]; }
+  };
 
-  // Dimension typedefs (per-type, not just per-element-type).
+  template<typename T, int N>
+  class Vector : public detail::Vec<T, N, VectorTag, detail::VectorPolicy> {};
+
+  template<typename T, int N>
+  class Direction : public detail::Vec<T, N, DirectionTag, detail::UnitLengthPolicy> {};
+
+  template<typename T, int N>
+  class Normal : public detail::Vec<T, N, NormalTag, detail::UnitLengthPolicy> {};
+
+  // Dimension typedefs.
   template<typename T> using Point2 = Point<T, 2>;
   template<typename T> using Point3 = Point<T, 3>;
   template<typename T> using Vector2 = Vector<T, 2>;
@@ -557,37 +604,66 @@ namespace core::math {
   using Point2d = Point2<double>;
   using Point3f = Point3<float>;
   using Point3d = Point3<double>;
-  // ... 32 typedefs total for 8 types × 4 elementary types (float/double/int/long)
+  // ... 32 typedefs total for 8 types × 4 elementary types
 }
 ```
 
-**Concrete classes, not typedefs of `Tagged`** — each derived class is
+**Three things this factoring buys**:
+
+1. **`Vec` has no Point-specific specialization.** The "Point carries
+   `w`" detail is captured in the *choice of base* (`Vec<N+1, ...>`),
+   not in a storage specialization inside `Vec`. The base template
+   is uniform across all four geometric types.
+2. **Invariant policies are composable and explicit.** Direction and
+   Normal share `UnitLengthPolicy` cleanly. Adding a new geometric
+   type (say a future `Position2D` that requires positive components)
+   means writing a one-method policy struct, not modifying `Vec`.
+3. **Phase 6 spike starts further along.** When we benchmark
+   full-policy-objects vs phantom-tags (Phase 6), invariant policies
+   are already in place; the spike's remaining work is just porting
+   *operator behavior* into policies. Half the migration is free.
+
+**Concrete classes, not typedefs of `Vec`** — each derived class is
 its own type, has its own constructors and member functions, shows up
-distinctly in error messages and debuggers. The `Tagged` base supplies
+distinctly in error messages and debuggers. The `Vec` base supplies
 the shared machinery; the derived classes add the type identity and
 the per-type interface (e.g., `Point::w()`, `Vector::toDirection()`).
 
 ### Operator overloads via phantom-tag `if constexpr`
 
 The legal-op table is enforced in free-function operators that
-inspect the tags via `if constexpr`:
+inspect the tags via `if constexpr`. Because `Point<N>` and
+`Vector<N>` have different storage dimensions (`Vec<N+1>` vs
+`Vec<N>`), operators between them perform an explicit storage-shape
+adjustment at the boundary:
 
 ```cpp
-template<typename T, int N, typename Tag1, typename Tag2>
-auto operator+(Tagged<T, N, Tag1> a, Tagged<T, N, Tag2> b) {
-  if constexpr (std::is_same_v<Tag1, PointTag> && std::is_same_v<Tag2, VectorTag>) {
-    return Point<T, N>{ /* element-wise add, keep w from a */ };
-  } else if constexpr (std::is_same_v<Tag1, VectorTag> && std::is_same_v<Tag2, VectorTag>) {
-    return Vector<T, N>{ /* element-wise add */ };
-  } else if constexpr (std::is_same_v<Tag1, PointTag> && std::is_same_v<Tag2, PointTag>) {
-    static_assert(!std::is_same_v<Tag1, PointTag>, "Point + Point is geometrically meaningless");
-  }
-  // ... etc, encoding the algebra from above
-}
+// Vector + Vector -> Vector
+template<typename T, int N>
+Vector<T, N> operator+(Vec<T, N, VectorTag, /*...*/> a,
+                       Vec<T, N, VectorTag, /*...*/> b);
+
+// Point - Point -> Vector (drops the w=0 result component)
+template<typename T, int N>
+Vector<T, N> operator-(Vec<T, N + 1, PointTag, /*...*/> a,
+                       Vec<T, N + 1, PointTag, /*...*/> b);
+
+// Point + Point -> illegal
+template<typename T, int N>
+void operator+(Vec<T, N + 1, PointTag, /*...*/>,
+               Vec<T, N + 1, PointTag, /*...*/>) = delete;
+
+// ... ~80 cases total for 4 types × ~20 ops
 ```
 
-~80 cases for 4 types × ~20 ops. Verbose but **centralized** — the
-whole interaction surface is readable in one file.
+The `if constexpr` ladders from the earlier draft are replaced by
+direct overload resolution on tag + storage-dimension combinations.
+That's actually a small improvement over the ladders — most cases
+resolve via simple overload matching; only ambiguous tag pairs
+need explicit `if constexpr`.
+
+Verbose but **centralized** — the whole interaction surface is
+readable in one file.
 
 ### Why phantom tags now, policy objects later (maybe)
 
@@ -613,10 +689,13 @@ Tracked as a follow-up issue once Phase 1 ships.
 
 The current `Vector3<double>` SSE3 specialization (resolved in Phase
 2.3 of the optimization plan — the agent picked "delete") is going
-away. The new SIMD path for 3-element `T = double` storage lives on
-`Tagged<T, 3, *>` and benefits all four geometric types uniformly,
-not just `Vector`. SIMD specializations on the `Tagged` storage are
-keyed on `(T, N)`; the tag is irrelevant for the bit-level math.
+away. The new SIMD path for `Vec<T, N>` storage lives on `Vec`
+specializations keyed on `(T, N)`, and benefits all four geometric
+types uniformly. Concretely: `Vec<double, 4, *, *>` (which is
+`Point3<double>`'s storage) and `Vec<double, 3, *, *>` (which is
+`Vector3<double>` / `Direction3<double>` / `Normal3<double>`'s
+storage) each get one SIMD specialization; the tag and policy are
+irrelevant for the bit-level math.
 
 Implication: this plan is downstream of `core-math-optimization.md`
 Phase 2.3. Don't start implementation until that phase has shipped.
@@ -635,8 +714,9 @@ doc. **No code changes yet.** (Most of Phase 0 was completed in the
 
 ### Phase 1 — introduce the 3D types alongside `Vector3<T>` / `Matrix4<T>`
 
-Add the `Tagged<T, N, Tag>` template machinery and the four
-`Point3<T>` / `Vector3<T>` / `Direction3<T>` / `Normal3<T>` concrete
+Add the `Vec<T, N, Tag, Policy>` / `Mat<R, C, T, Tag>` template
+machinery and the four `Point3<T>` / `Vector3<T>` / `Direction3<T>` /
+`Normal3<T>` concrete
 classes to `include/core/math/`. Add `NormalMatrix<T, 3>`. Add (or
 not, per open question 5) `Transform3<T>`. The 2D specializations of
 the template machinery exist from day one but no public 2D typedefs
@@ -689,7 +769,9 @@ later (maybe)](#why-phantom-tags-now-policy-objects-later-maybe).
 ### Phase 7 — 2D follow-up
 
 Public typedefs (`Point2f`, `Vector2d`, etc.) for the 2D types that
-already exist as `Tagged<T, 2, *>` instantiations from Phase 1.
+already exist as `Vec<T, 2-or-3, *, *>` instantiations from Phase 1
+(Point2 uses storage 3 = 2+1; Vector2 / Direction2 / Normal2 use
+storage 2).
 `Matrix2<T>` added as a new sibling. `NormalMatrix<T, 2>` if not
 already in place from Phase 1's generic machinery. Migration of any
 2D call sites (UI overlays, image-processing helpers, future 2D
@@ -808,15 +890,20 @@ These were open in the original draft and resolved in the 2026-05-11
 design discussion. Captured here so the implementing agent doesn't
 re-litigate.
 
-1. **Storage layout / sharing model: phantom tags via `Tagged<T, N, Tag>`.**
-   See [Implementation machinery](#implementation-machinery). Concrete
-   classes inherit from the tagged base; operator overloads use
-   `if constexpr` on the tag pair. Chosen for performance (`if constexpr`
-   compiles to direct dispatch with no v-table); revisit via the
-   policy-object spike (see open question 1 below) after Phase 1 ships.
+1. **Storage layout / sharing model: phantom tags + invariant
+   policies on `Vec<T, N, Tag, Policy>` and `Mat<R, C, T, Tag>`
+   bases.** See [Implementation machinery](#implementation-machinery).
+   Concrete classes inherit from the base; operator overloads use
+   tag-keyed overload resolution + `if constexpr` for ambiguous
+   pairs; invariants are enforced via small policy structs called
+   in debug-only `checkInvariant()` paths. Point's homogeneous `w`
+   is captured by `Point<N, T>` deriving from `Vec<N+1, T, ...>`,
+   not by a storage specialization. Chosen for performance and for
+   keeping the operator-dispatch path on direct overloads.
+   Operator-behavior policies remain deferred to the Phase 6 spike.
 2. **Concrete classes, not typedefs.** Each semantic type (`Point3`,
    `Vector3`, etc.) is its own `class` declaration inheriting from
-   `Tagged`. Typedefs are reserved for element-type aliases
+   `Vec`. Typedefs are reserved for element-type aliases
    (`Point3f = Point3<float>`, etc.).
 3. **Element-type typedefs in glm/Eigen style.**
    `Point3f` / `Point3d`, etc.
