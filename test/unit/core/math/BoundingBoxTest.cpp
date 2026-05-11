@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "core/math/BoundingBox.h"
+#include "core/math/Range.h"
 #include "core/math/Ray.h"
 
 #include <sstream>
@@ -458,7 +459,49 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(1, 1, 1)
     );
     Rayd ray(Vector3<TypeParam>(0, 0, 2), Vector3<TypeParam>(0, 0, 1));
-    
+
     ASSERT_FALSE(box.intersects(ray));
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnIntervalForHittingRay) {
+    BoundingBox<TypeParam> box(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    Rayd ray(Vector4d(-3, 0, 0, 1), Vector3d(1, 0, 0));
+    ::Range<TypeParam> interval(TypeParam(0), TypeParam(0));
+
+    ASSERT_TRUE(box.intersect(ray, interval));
+    // Ray along +X from x=-3: enters at x=-1 (t=2) and exits at x=+1 (t=4)
+    EXPECT_NEAR(double(interval.begin()), 2.0, 1e-5);
+    EXPECT_NEAR(double(interval.end()),   4.0, 1e-5);
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnIntervalForMissingRay) {
+    BoundingBox<TypeParam> box(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    // Ray moves in +Y from outside the box's X range
+    Rayd ray(Vector4d(0, 0, -2, 1), Vector3d(0, 1, 0));
+    ::Range<TypeParam> interval(TypeParam(0), TypeParam(0));
+
+    ASSERT_FALSE(box.intersect(ray, interval));
+    // t_enter > t_exit confirms a miss
+    EXPECT_GT(double(interval.begin()), double(interval.end()));
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnNegativeExitForBoxBehindRay) {
+    BoundingBox<TypeParam> box(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    // Ray moves in +Z from z=+2 (box is behind)
+    Rayd ray(Vector4d(0, 0, 2, 1), Vector3d(0, 0, 1));
+    ::Range<TypeParam> interval(TypeParam(0), TypeParam(0));
+
+    ASSERT_FALSE(box.intersect(ray, interval));
+    // t_exit is negative — the box is entirely behind the ray origin
+    EXPECT_LT(double(interval.end()), 0.0);
   }
 }

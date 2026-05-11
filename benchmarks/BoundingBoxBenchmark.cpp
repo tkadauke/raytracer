@@ -1,12 +1,12 @@
 // Microbenchmarks for BoundingBox<T>. The intersects(Ray) call is the
 // hottest single function in the BVH-accelerated renderer — every internal
-// BVH node tests it once per ray. The current implementation is a scalar
-// slab method with a branch per axis on the ray-direction sign. These
-// benchmarks pin the baseline before any SIMD work.
+// BVH node tests it once per ray. Two batch sizes: 256-ray (fits in L1) and
+// 10k-ray (spills to L2/L3, closer to real BVH traversal access patterns).
 
 #include <benchmark/benchmark.h>
 
 #include "core/math/BoundingBox.h"
+#include "core/math/Range.h"
 #include "core/math/Ray.h"
 #include "core/math/Vector.h"
 
@@ -40,6 +40,43 @@ void bm_intersects(benchmark::State& state) {
     int hits = 0;
     for (const auto& ray : rays) {
       if (box.intersects(ray)) ++hits;
+    }
+    benchmark::DoNotOptimize(hits);
+    benchmark::ClobberMemory();
+  }
+  state.SetItemsProcessed(state.iterations() * rays.size());
+}
+
+// 10k-ray batch — the primary gate for the Phase 1.2 SIMD target (≥3×).
+// Larger than L1 D-cache so it exercises the out-of-order engine under
+// realistic memory pressure.
+template <typename T>
+void bm_intersects_batch(benchmark::State& state) {
+  BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+  const auto rays = generateRays<T>(10000, T(2));
+  for (auto _ : state) {
+    int hits = 0;
+    for (const auto& ray : rays) {
+      if (box.intersects(ray)) ++hits;
+    }
+    benchmark::DoNotOptimize(hits);
+    benchmark::ClobberMemory();
+  }
+  state.SetItemsProcessed(state.iterations() * rays.size());
+}
+
+// Batch variant for the new intersect(Ray, Range&) overload that returns
+// the [t_enter, t_exit] interval — lets BVH avoid recomputing entry times.
+template <typename T>
+void bm_intersect_interval(benchmark::State& state) {
+  BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+  const auto rays = generateRays<T>(10000, T(2));
+  for (auto _ : state) {
+    int hits = 0;
+    for (const auto& ray : rays) {
+      Range<T> interval(T(0), T(0));
+      if (box.intersect(ray, interval)) ++hits;
+      benchmark::DoNotOptimize(interval);
     }
     benchmark::DoNotOptimize(hits);
     benchmark::ClobberMemory();
@@ -122,6 +159,12 @@ void bm_include_point(benchmark::State& state) {
 
 BENCHMARK(bm_intersects<float>);
 BENCHMARK(bm_intersects<double>);
+
+BENCHMARK(bm_intersects_batch<float>);
+BENCHMARK(bm_intersects_batch<double>);
+
+BENCHMARK(bm_intersect_interval<float>);
+BENCHMARK(bm_intersect_interval<double>);
 
 BENCHMARK(bm_contains_point<float>);
 BENCHMARK(bm_contains_point<double>);
