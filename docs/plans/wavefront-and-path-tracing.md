@@ -132,7 +132,9 @@ routines may grow batched overloads. The existing AoS path stays for
 
 ### Per-pixel state
 
-For an image of W×H pixels, allocate state arrays sized W·H:
+Each tile owns a per-pixel state array sized to the tile's pixel count
+(typically 64×64 or 128×128 — same tile-size knob as the recursive
+engine):
 
 ```cpp
 struct PixelState {
@@ -148,10 +150,11 @@ struct PixelState {
 (Once the PVN type split lands, the geometric types here become the
 typed Point/Direction. Until then, plain `Vector3<double>`.)
 
-Memory: a `PixelState` is probably ~80 bytes; for a 1920×1080 image
-that's ~160 MB. Manageable on a desktop, tight on a laptop. For larger
-resolutions or multiple samples-per-pixel state, tile the work — see
-[Tile-based wavefront](#tile-based-wavefront).
+Memory: a `PixelState` is probably ~80 bytes; a 64×64 tile is ~320 KB,
+comfortably in L2. The whole-image per-pixel state would be ~160 MB at
+1080p — *would*, if we held it all at once, but we don't:
+tile-based scheduling means only the active worker threads' tiles are
+hot at any moment.
 
 ### The scheduler
 
@@ -188,26 +191,76 @@ void WavefrontRaytracer::render(Buffer<Colord>& buffer) {
 }
 ```
 
-Each pass parallelizes over the active-pixel set. The existing
-tile+thread machinery in `Raytracer.cpp:Private` can be reused for the
-parallel loop body — different scheduler, same threading primitive
-(`QThreadPool`).
+### Parallelism: tile-based by default
 
-### Tile-based wavefront
+Tile-based scheduling is **how the wavefront engine exploits multiple
+CPU cores**, the same way the existing `Raytracer` does today. This
+isn't only a memory-management concern (though it helps there too) —
+it's the central reason CPU-side wavefront wants tiles:
 
-For very large images or many-samples-per-pixel, hold state arrays for
-a single tile at a time rather than the whole image:
+1. **Multicore utilization.** Each tile is an independent unit of work
+   that a thread can pull from the pool. Reuse the existing
+   `QThreadPool` + tile dispatch in `Raytracer.cpp:Private`; only the
+   *body* of the tile-worker differs (depth-major scheduler vs
+   recursive `rayColor`).
+2. **BVH cache coherence.** Rays in a spatial tile hit clustered BVH
+   nodes; cache lines are shared across the rays a single thread
+   processes. This is the standard reason classical raytracers tile.
+   Wavefront benefits identically.
+3. **Memory pressure.** Per-pixel state for a 64×64 tile fits in L2;
+   per-pixel state for a 1920×1080 whole image is ~160 MB and trashes
+   L3. Tiling keeps the hot data hot.
+4. **Progressive display.** Existing GUI overlays "tiles complete"
+   visualization. Wavefront with tiles reuses it for free.
+
+The scheduler from the previous section runs *per tile* — the outer
+loop is "for each tile, dispatched to a worker thread"; the inner
+loop is the depth-major loop over that tile's pixels:
 
 ```
-for each tile T:
-  allocate state[T]
-  run the depth loop above on T
-  write tile T into buffer
+for each tile T (dispatched in parallel via QThreadPool):
+  allocate state[T]  // per-pixel state for this tile's pixels
+  initialize primary rays for T's pixels
+  for depth in 0..maxDepth:
+    intersect active rays in T
+    shade and scatter
+    deactivate terminated pixels in T
+    if tile-local convergence reached for T: break
+  write tile T into the buffer + report local convergence delta
 ```
 
-Loses image-wide convergence (now per-tile convergence), but recovers
-memory. Default to whole-image for ≤1080p, fall back to tiles for
-larger.
+Tile size is the same tuning knob `Raytracer` already exposes
+(thread count, queue size, tile dimensions). Defaults should match
+the recursive engine's defaults until profiling suggests otherwise.
+
+### Why not other parallelism schemes
+
+Two alternatives considered and not picked for v1:
+
+- **Whole-image, parallelize-over-pixel-chunks.** Threads pull index
+  ranges from a shared queue of active pixels. Better load balancing
+  at deep passes (when the active set is sparse), but loses BVH cache
+  coherence — a thread processing pixels (3,17), (88,201), (412,49)
+  hits very different BVH nodes than one processing a contiguous
+  tile. Profile in Phase 3+ if tile imbalance becomes the bottleneck;
+  not worth the complexity in v1.
+- **Hybrid work-stealing.** Threads start with their assigned tile,
+  steal from neighbors when their tile empties. The natural endgame
+  for v1 if profiling shows idle threads waiting on slow tiles. Defer
+  to Phase 6+ unless data demands it sooner.
+
+### Implication for convergence detection
+
+With tile-based scheduling, "image-wide convergence" is naturally
+expressed as **aggregated across tiles**: each tile reports its local
+convergence delta (or active-pixel count) when its depth pass
+completes; the engine sums them for the global stop condition.
+
+This is also a feature, not just an accommodation: tiles that
+converge early stop locally, freeing worker threads to keep working
+on tiles that haven't converged. The active region of the image keeps
+computing while the quiet region stops — better thread utilization
+than "wait for the whole image to converge."
 
 ### Convergence detection
 
@@ -406,9 +459,9 @@ architecturally tractable but is a major lift; not committed.
 ## Risks
 
 - **Memory explosion**. Per-pixel state arrays for 4K images at
-  many-samples-per-pixel get large. Mitigation: tile-based wavefront
-  for the large case; document the resolution × spp × memory
-  trade-off clearly.
+  many-samples-per-pixel get large. Mitigation: tile-based scheduling
+  is the default (not just a large-case fallback) — per-tile state
+  fits in L2/L3, and only the per-tile state is hot at any moment.
 - **Convergence threshold tuning**. A threshold that's too tight
   defeats the speedup; too loose introduces visible artifacts.
   Mitigation: bake threshold tuning into the macro benchmark; treat
@@ -427,11 +480,13 @@ architecturally tractable but is a major lift; not committed.
   `RayCaster` mixin on `Raytracer` only; UI code that depends on
   single-ray probes uses `Raytracer` even when `WavefrontRaytracer`
   is doing the main render.
-- **Threading model**. The existing `QThreadPool` orchestration in
-  `Raytracer::Private` is tile-major. Wavefront wants pixel-major
-  parallelism within each depth pass. Mitigation: shared parallel
-  primitives in `render::` but different orchestration in each
-  engine; benchmark thread saturation per pass.
+- **Threading model**. The wavefront engine is still tile-major
+  for the same reasons the recursive engine is — tiles map cleanly
+  onto `QThreadPool` workers, preserve BVH cache coherence, and
+  enable the existing progressive-display UI. The depth-major
+  scheduling happens *inside* each tile's worker, not across the
+  whole image. Mitigation: reuse the existing tile dispatch in
+  `Raytracer.cpp:Private`; only the tile-worker body differs.
 
 ---
 
@@ -440,10 +495,13 @@ architecturally tractable but is a major lift; not committed.
 These need decisions before Phase 2 (the bare wavefront engine)
 starts.
 
-1. **Whole-image or tile-based as the default?** Whole-image is
-   simpler and supports image-wide convergence test. Tile-based
-   contains memory and parallelizes obviously. Lean whole-image for
-   ≤1080p with a tile fallback above; expose as user-configurable.
+1. ~~**Whole-image or tile-based as the default?**~~ **Resolved**:
+   tile-based, always. That's how the engine exploits multiple CPU
+   cores — same reason the existing `Raytracer` is tile-based. See
+   [Parallelism: tile-based by default](#parallelism-tile-based-by-default).
+   The remaining question is the right tile size; default to whatever
+   the recursive engine uses, retune in Phase 3 if profiling shows
+   load imbalance.
 2. **Convergence-detection scheme.** L2, max, percentile,
    active-pixel count, or combination. Lean active-pixel count + L2
    over active subset; not locked.
