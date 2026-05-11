@@ -400,9 +400,10 @@ bool BoundingBox<T>::intersects(const Rayd& ray) const {
   const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
   const T t1z = (m_min.z() - oz) * invDz, t2z = (m_max.z() - oz) * invDz;
 
-  // Two-level reduce avoids std::initializer_list overhead.
-  const T t_enter = std::max(std::max(std::min(t1x, t2x), std::min(t1y, t2y)), std::min(t1z, t2z));
-  const T t_exit  = std::min(std::min(std::max(t1x, t2x), std::max(t1y, t2y)), std::max(t1z, t2z));
+  const T enter_x = std::min(t1x, t2x), enter_y = std::min(t1y, t2y), enter_z = std::min(t1z, t2z);
+  const T exit_x  = std::max(t1x, t2x), exit_y  = std::max(t1y, t2y), exit_z  = std::max(t1z, t2z);
+  const T t_enter = std::max(std::max(enter_x, enter_y), enter_z);
+  const T t_exit  = std::min(std::min(exit_x,  exit_y),  exit_z);
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
 
@@ -418,8 +419,10 @@ bool BoundingBox<T>::intersect(const Rayd& ray, Range<T>& interval) const {
   const T t1y = (m_min.y() - oy) * invDy, t2y = (m_max.y() - oy) * invDy;
   const T t1z = (m_min.z() - oz) * invDz, t2z = (m_max.z() - oz) * invDz;
 
-  const T t_enter = std::max(std::max(std::min(t1x, t2x), std::min(t1y, t2y)), std::min(t1z, t2z));
-  const T t_exit  = std::min(std::min(std::max(t1x, t2x), std::max(t1y, t2y)), std::max(t1z, t2z));
+  const T enter_x = std::min(t1x, t2x), enter_y = std::min(t1y, t2y), enter_z = std::min(t1z, t2z);
+  const T exit_x  = std::max(t1x, t2x), exit_y  = std::max(t1y, t2y), exit_z  = std::max(t1z, t2z);
+  const T t_enter = std::max(std::max(enter_x, enter_y), enter_z);
+  const T t_exit  = std::min(std::min(exit_x,  exit_y),  exit_z);
   interval = Range<T>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
