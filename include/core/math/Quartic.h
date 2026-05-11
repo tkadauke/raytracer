@@ -11,9 +11,9 @@
   * \f$ax^4 + bx^3 + cx^2 + dx + e\f$.
   */
 template<class T>
-class Quartic : public Polynomial<T, 4> {
+class Quartic : public Polynomial<T, 4, Quartic<T>> {
 public:
-  typedef Polynomial<T, 4> normBase;
+  typedef Polynomial<T, 4, Quartic<T>> Base;
   
   /**
     * Constructor. Takes the @p a, @p b, @p c, @p d, and @p e coefficients of
@@ -34,7 +34,7 @@ public:
   int solve();
 
 private:
-  using normBase::m_result;
+  using Base::m_result;
   T m_a, m_b, m_c, m_d, m_e;
 };
 
@@ -50,7 +50,7 @@ int Quartic<T>::solve() {
   T q = 1.0/8 * normASquared * normA - 0.5 * normA * normB + normC;
   T r = -3.0/256 * normASquared * normASquared + 1.0/16 * normASquared * normB - 0.25 * normA * normC + normD;
   
-  int numberOfResults;
+  int numberOfResults = 0;
   if (isAlmostZero(r)) {
     Cubic<T> cubic(1, 0, p, q);
     numberOfResults = cubic.solveInto(m_result);

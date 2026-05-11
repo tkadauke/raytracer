@@ -8,9 +8,9 @@
   * Represents a cubic polynomial of the form \f$ax^3 + bx^2 + cx + d\f$.
   */
 template<class T>
-class Cubic : public Polynomial<T, 3> {
+class Cubic : public Polynomial<T, 3, Cubic<T>> {
 public:
-  typedef Polynomial<T, 3> Base;
+  typedef Polynomial<T, 3, Cubic<T>> Base;
   
   /**
     * Constructor. Takes the @p a, @p b, @p c, and @p d coefficients of the
@@ -28,7 +28,7 @@ public:
     * 
     * @see the Polynomial class for information how to retrieve the results.
     */
-  int solve() override;
+  int solve();
 
 private:
   using Base::m_result;
@@ -48,7 +48,7 @@ int Cubic<T>::solve() {
   T pCube = p * p * p;
   T determinant = q * q + pCube;
 
-  int numberOfResults;
+  int numberOfResults = 0;
   if (isAlmostZero(determinant)) {
     if (isAlmostZero(q)) {
       m_result[0] = 0;

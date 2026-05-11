@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Changed
+
+- **`Polynomial::solve()` CRTP refactor (roadmap §2.4).** `Polynomial<T,N>` is now a CRTP base `Polynomial<T,N,Derived>`; `solve()` is no longer virtual. `solveInto()` and `sortedResult()` dispatch to `Derived::solve()` via `static_cast`, eliminating the vtable pointer and indirect call on the torus inner loop where the polynomial degree is compile-time-known. — Claude Sonnet 4.6
+
 ### Added
 
 - **`Constants.h` inline constexpr + missing constants.** All four existing math constants (`PI`, `TAU`, `invPI`, `invTAU`) converted from `const double` to `inline constexpr double`; eight new constants added: `PI_OVER_2`, `PI_OVER_4`, `DEG_TO_RAD`, `RAD_TO_DEG`, `SQRT2`, `SQRT3`, `E`, `GOLDEN_RATIO`. A comment flags the C++20 `<numbers>` migration path (roadmap §3.1). All existing call sites compile unchanged. Closes core-math-optimization plan §3.7. — Claude Sonnet 4.6
