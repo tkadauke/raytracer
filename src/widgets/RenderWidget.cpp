@@ -1,5 +1,6 @@
 #include "widgets/RenderWidget.h"
 #include "render/RenderEngine.h"
+#include "render/cameras/Camera.h"
 #include "core/Buffer.h"
 
 #include <QImage>
@@ -67,7 +68,9 @@ struct RenderWidget::Private {
       displayMode(DisplayMode::PeriodicUpdate),
       clearBackBufferOnRenderStart(true),
       progressUpdateIntervalMs(0),
-      renderGeneration(0)
+      renderGeneration(0),
+      aspectMode(render::AspectMode::FitWidth),
+      aspectRatio(0.0)
   {
   }
 
@@ -81,6 +84,8 @@ struct RenderWidget::Private {
   bool clearBackBufferOnRenderStart;
   int progressUpdateIntervalMs;
   std::uint64_t renderGeneration;
+  render::AspectMode aspectMode;
+  double aspectRatio;
 };
 
 RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
@@ -144,6 +149,13 @@ void RenderWidget::stop() {
 
 void RenderWidget::render() {
   reapRetiredRenderJobs();
+
+  // Apply stored aspect settings to the control engine's camera before
+  // cloneForRender() captures a snapshot, so the clone inherits them.
+  if (m_engine && m_engine->camera()) {
+    m_engine->camera()->setAspectMode(p->aspectMode);
+    m_engine->camera()->setAspectRatio(p->aspectRatio);
+  }
 
   if (p->activeJob && p->activeJob->thread->isRunning() && p->activeJob->isolated
       && !p->retiredJobs.empty()) {
@@ -231,6 +243,24 @@ void RenderWidget::setClearBackBufferOnRenderStart(bool clear) {
 
 void RenderWidget::setProgressUpdateIntervalMs(int intervalMs) {
   p->progressUpdateIntervalMs = std::max(0, intervalMs);
+}
+
+void RenderWidget::setAspectMode(render::AspectMode mode) {
+  p->aspectMode = mode;
+}
+
+render::AspectMode RenderWidget::aspectMode() const {
+  return p->aspectMode;
+}
+
+void RenderWidget::setAspectRatio(double ratio) {
+  if (ratio > 0.0) {
+    p->aspectMode = render::AspectMode::FitExact;
+    p->aspectRatio = ratio;
+  } else {
+    p->aspectMode = render::AspectMode::FitWidth;
+    p->aspectRatio = 0.0;
+  }
 }
 
 bool RenderWidget::isRendering() const {

@@ -86,6 +86,16 @@ private slots:
   void usePreviewWireframe();
   void usePreviewRasterizer();
 
+  void setAspectStretch();
+  void setAspectFitWidth();
+  void setAspectFitHeight();
+  void setAspectFitExact();
+  void setAspectRatio16x9();
+  void setAspectRatio4x3();
+  void setAspectRatio1x1();
+  void setAspectRatio239x1();
+  void setAspectRatio21x9();
+
   void about();
   void help();
 

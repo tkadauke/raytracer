@@ -30,14 +30,15 @@ Vector2d OrthographicCamera::projectPoint(const Vector3d& worldPoint) const {
     return Vector2d::undefined();
   }
 
-  // Same view-plane mapping as PinholeCamera: the camera-space plane
-  // spans (-4, -3, 0)..(+4, +3, 0) before pixelSize scaling.
   auto plane = viewPlane();
   double pxSize = plane->pixelSize();
+  double halfH = plane->hSpan() / 2.0;
+  double halfV = plane->vSpan() / 2.0;
   double lx = pCam.x() / pxSize;
   double ly = pCam.y() / pxSize;
-  double x = (lx + 4.0) * plane->width()  / 8.0;
-  double y = (ly + 3.0) * plane->height() / 6.0;
+  const Recti& inner = plane->innerRect();
+  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   return Vector2d(x, y);
 }
 
@@ -51,10 +52,13 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
 
   auto plane = viewPlane();
   double pxSize = plane->pixelSize();
+  double halfH = plane->hSpan() / 2.0;
+  double halfV = plane->vSpan() / 2.0;
   double lx = pCam.x() / pxSize;
   double ly = pCam.y() / pxSize;
-  double x = (lx + 4.0) * plane->width()  / 8.0;
-  double y = (ly + 3.0) * plane->height() / 6.0;
+  const Recti& inner = plane->innerRect();
+  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   // For orthographic projection, depth IS the camera-space z; no
   // m_distance offset since there's no perspective eye point. The
   // rasterizer uses clip.w for projective interpolation, and our
@@ -66,10 +70,13 @@ Vector4d OrthographicCamera::projectPointToClipSpace(const Vector3d& worldPoint)
   const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
-  const double pxSize = viewPlane()->pixelSize();
+  auto plane = viewPlane();
+  const double pxSize = plane->pixelSize();
+  const double halfH = plane->hSpan() / 2.0;
+  const double halfV = plane->vSpan() / 2.0;
   return Vector4d(
-    pCam.x() / (pxSize * 4.0),
-    pCam.y() / (pxSize * 3.0),
+    pCam.x() / (pxSize * halfH),
+    pCam.y() / (pxSize * halfV),
     pCam.z(),
     1.0
   );

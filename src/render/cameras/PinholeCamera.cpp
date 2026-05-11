@@ -40,15 +40,18 @@ Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {
   double qxCam = pCam.x() * t;
   double qyCam = pCam.y() * t;
 
-  // The view plane in camera space spans (-4, -3, 0) to (+4, +3, 0)
-  // before pixelSize scaling; the pixelSize factor scales the
-  // camera-space plane coords directly.
   auto plane = viewPlane();
   double pxSize = plane->pixelSize();
+  double halfH = plane->hSpan() / 2.0;
+  double halfV = plane->vSpan() / 2.0;
   double lx = qxCam / pxSize;
   double ly = qyCam / pxSize;
-  double x = (lx + 4.0) * plane->width()  / 8.0;
-  double y = (ly + 3.0) * plane->height() / 6.0;
+
+  // For FitExact the renderable area is the inner rect; map to that
+  // sub-rectangle and then offset into the full buffer.
+  const Recti& inner = plane->innerRect();
+  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   return Vector2d(x, y);
 }
 
@@ -74,10 +77,14 @@ Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const 
 
   auto plane = viewPlane();
   double pxSize = plane->pixelSize();
+  double halfH = plane->hSpan() / 2.0;
+  double halfV = plane->vSpan() / 2.0;
   double lx = qxCam / pxSize;
   double ly = qyCam / pxSize;
-  double x = (lx + 4.0) * plane->width()  / 8.0;
-  double y = (ly + 3.0) * plane->height() / 6.0;
+
+  const Recti& inner = plane->innerRect();
+  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   return Vector3d(x, y, depth);
 }
 
@@ -86,10 +93,15 @@ Vector4d PinholeCamera::projectPointToClipSpace(const Vector3d& worldPoint) cons
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   const double depth = pCam.z() + m_distance;
-  const double pxSize = viewPlane()->pixelSize();
+  auto plane = viewPlane();
+  const double pxSize = plane->pixelSize();
+  // halfH and halfV are the camera-space half-extents; the clip-space
+  // x/y convention maps [-1, 1] to the view-plane edges.
+  const double halfH = plane->hSpan() / 2.0;
+  const double halfV = plane->vSpan() / 2.0;
   return Vector4d(
-    pCam.x() * m_distance / (pxSize * 4.0),
-    pCam.y() * m_distance / (pxSize * 3.0),
+    pCam.x() * m_distance / (pxSize * halfH),
+    pCam.y() * m_distance / (pxSize * halfV),
     depth,
     depth
   );
