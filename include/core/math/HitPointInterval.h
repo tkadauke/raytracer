@@ -229,7 +229,7 @@ public:
   inline const HitPoint& max() const {
     if (m_hitPoints.empty())
       return HitPoint::undefined();
-    return m_hitPoints.rbegin()->point;
+    return (m_hitPoints.end() - 1)->point;
   }
   
 private:
