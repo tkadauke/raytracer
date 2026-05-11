@@ -4,6 +4,11 @@
 
 #include <pmmintrin.h>
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+#endif
+
 template<>
 class Vector3<double> : public Vector<3, double, __m128d, Vector3<double>> {
   typedef double CellsType[3];
@@ -172,5 +177,9 @@ inline const Vector3<double> Vector3<double>::plusInfinity{
   std::numeric_limits<double>::infinity(),
   std::numeric_limits<double>::infinity()
 };
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif
