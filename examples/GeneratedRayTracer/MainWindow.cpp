@@ -1,4 +1,6 @@
 #include <QGuiApplication>
+#include <QComboBox>
+#include <QInputDialog>
 
 #include <QVBoxLayout>
 #include <QSpacerItem>
@@ -10,6 +12,7 @@
 
 #include <QAction>
 #include <QActionGroup>
+#include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QDesktopServices>
@@ -18,6 +21,7 @@
 #include "MainWindow.h"
 #include "Display.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/lights/PointLight.h"
@@ -137,6 +141,17 @@ struct MainWindow::Private {
   QAction* previewRaytracerAct;
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
+
+  QAction* aspectStretchAct;
+  QAction* aspectFitWidthAct;
+  QAction* aspectFitHeightAct;
+  QAction* aspectFitExactAct;
+  QMenu* aspectRatioMenu;
+  QAction* aspect16x9Act;
+  QAction* aspect4x3Act;
+  QAction* aspect1x1Act;
+  QAction* aspect239x1Act;
+  QAction* aspect21x9Act;
 
   QAction* aboutAct;
   QAction* helpAct;
@@ -378,6 +393,48 @@ void MainWindow::createActions() {
   previewGroup->addAction(p->previewWireframeAct);
   previewGroup->addAction(p->previewRasterizerAct);
 
+  p->aspectStretchAct = new QAction(tr("&Stretch"), this);
+  p->aspectStretchAct->setStatusTip(tr("Fill both axes independently (may distort geometry)"));
+  p->aspectStretchAct->setCheckable(true);
+  connect(p->aspectStretchAct, SIGNAL(triggered()), this, SLOT(setAspectStretch()));
+
+  p->aspectFitWidthAct = new QAction(tr("Fit &Width"), this);
+  p->aspectFitWidthAct->setStatusTip(tr("Horizontal FOV constant, vertical derived from window (square pixels, no distortion)"));
+  p->aspectFitWidthAct->setCheckable(true);
+  p->aspectFitWidthAct->setChecked(true);
+  connect(p->aspectFitWidthAct, SIGNAL(triggered()), this, SLOT(setAspectFitWidth()));
+
+  p->aspectFitHeightAct = new QAction(tr("Fit &Height"), this);
+  p->aspectFitHeightAct->setStatusTip(tr("Vertical FOV constant, horizontal derived from window (square pixels, no distortion)"));
+  p->aspectFitHeightAct->setCheckable(true);
+  connect(p->aspectFitHeightAct, SIGNAL(triggered()), this, SLOT(setAspectFitHeight()));
+
+  p->aspectFitExactAct = new QAction(tr("Fit &Exact (letterbox)"), this);
+  p->aspectFitExactAct->setStatusTip(tr("Fixed intrinsic aspect ratio with black bars for the remainder"));
+  p->aspectFitExactAct->setCheckable(true);
+  connect(p->aspectFitExactAct, SIGNAL(triggered()), this, SLOT(setAspectFitExact()));
+
+  auto aspectGroup = new QActionGroup(this);
+  aspectGroup->addAction(p->aspectStretchAct);
+  aspectGroup->addAction(p->aspectFitWidthAct);
+  aspectGroup->addAction(p->aspectFitHeightAct);
+  aspectGroup->addAction(p->aspectFitExactAct);
+
+  p->aspect16x9Act = new QAction(tr("16:9"), this);
+  connect(p->aspect16x9Act, SIGNAL(triggered()), this, SLOT(setAspectRatio16x9()));
+
+  p->aspect4x3Act = new QAction(tr("4:3"), this);
+  connect(p->aspect4x3Act, SIGNAL(triggered()), this, SLOT(setAspectRatio4x3()));
+
+  p->aspect1x1Act = new QAction(tr("1:1"), this);
+  connect(p->aspect1x1Act, SIGNAL(triggered()), this, SLOT(setAspectRatio1x1()));
+
+  p->aspect239x1Act = new QAction(tr("2.39:1 (CinemaScope)"), this);
+  connect(p->aspect239x1Act, SIGNAL(triggered()), this, SLOT(setAspectRatio239x1()));
+
+  p->aspect21x9Act = new QAction(tr("21:9 (Ultrawide)"), this);
+  connect(p->aspect21x9Act, SIGNAL(triggered()), this, SLOT(setAspectRatio21x9()));
+
   p->helpAct = new QAction(tr("Raytracer &Help"), this);
   p->helpAct->setStatusTip(tr("Go to the Github page"));
   connect(p->helpAct, SIGNAL(triggered()), this, SLOT(help()));
@@ -456,6 +513,21 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewRaytracerAct);
   previewMenu->addAction(p->previewWireframeAct);
   previewMenu->addAction(p->previewRasterizerAct);
+
+  p->renderMenu->addSeparator();
+  auto aspectModeMenu = p->renderMenu->addMenu(tr("&Aspect Mode"));
+  aspectModeMenu->addAction(p->aspectStretchAct);
+  aspectModeMenu->addAction(p->aspectFitWidthAct);
+  aspectModeMenu->addAction(p->aspectFitHeightAct);
+  aspectModeMenu->addAction(p->aspectFitExactAct);
+
+  p->aspectRatioMenu = p->renderMenu->addMenu(tr("Aspect &Ratio"));
+  p->aspectRatioMenu->setEnabled(false);
+  p->aspectRatioMenu->addAction(p->aspect16x9Act);
+  p->aspectRatioMenu->addAction(p->aspect4x3Act);
+  p->aspectRatioMenu->addAction(p->aspect1x1Act);
+  p->aspectRatioMenu->addAction(p->aspect239x1Act);
+  p->aspectRatioMenu->addAction(p->aspect21x9Act);
 
   p->helpMenu = menuBar()->addMenu(tr("&Help"));
   p->helpMenu->addAction(p->aboutAct);
@@ -732,6 +804,65 @@ void MainWindow::usePreviewRasterizer() {
 
 void MainWindow::usePreviewWireframe() {
   p->display->setEngineKind(Display::EngineKind::Wireframe);
+}
+
+void MainWindow::setAspectStretch() {
+  p->display->setAspectMode(render::AspectMode::Stretch);
+  p->aspectRatioMenu->setEnabled(false);
+  p->display->render();
+}
+
+void MainWindow::setAspectFitWidth() {
+  p->display->setAspectMode(render::AspectMode::FitWidth);
+  p->aspectRatioMenu->setEnabled(false);
+  p->display->render();
+}
+
+void MainWindow::setAspectFitHeight() {
+  p->display->setAspectMode(render::AspectMode::FitHeight);
+  p->aspectRatioMenu->setEnabled(false);
+  p->display->render();
+}
+
+void MainWindow::setAspectFitExact() {
+  p->display->setAspectMode(render::AspectMode::FitExact);
+  p->aspectRatioMenu->setEnabled(true);
+  p->display->render();
+}
+
+void MainWindow::setAspectRatio16x9() {
+  p->display->setAspectRatio(16.0 / 9.0);
+  p->aspectFitExactAct->setChecked(true);
+  p->aspectRatioMenu->setEnabled(true);
+  p->display->render();
+}
+
+void MainWindow::setAspectRatio4x3() {
+  p->display->setAspectRatio(4.0 / 3.0);
+  p->aspectFitExactAct->setChecked(true);
+  p->aspectRatioMenu->setEnabled(true);
+  p->display->render();
+}
+
+void MainWindow::setAspectRatio1x1() {
+  p->display->setAspectRatio(1.0);
+  p->aspectFitExactAct->setChecked(true);
+  p->aspectRatioMenu->setEnabled(true);
+  p->display->render();
+}
+
+void MainWindow::setAspectRatio239x1() {
+  p->display->setAspectRatio(2.39);
+  p->aspectFitExactAct->setChecked(true);
+  p->aspectRatioMenu->setEnabled(true);
+  p->display->render();
+}
+
+void MainWindow::setAspectRatio21x9() {
+  p->display->setAspectRatio(21.0 / 9.0);
+  p->aspectFitExactAct->setChecked(true);
+  p->aspectRatioMenu->setEnabled(true);
+  p->display->render();
 }
 
 void MainWindow::about() {

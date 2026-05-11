@@ -110,6 +110,46 @@ namespace CameraTest {
     ASSERT_EQ(camera.matrix().inverted(), camera.inverseMatrix());
   }
 
+  TEST(Camera, DefaultAspectModeIsStretch) {
+    ConcreteCamera camera;
+    ASSERT_EQ(render::AspectMode::Stretch, camera.aspectMode());
+  }
+
+  TEST(Camera, CanSetAspectMode) {
+    ConcreteCamera camera;
+    camera.setAspectMode(render::AspectMode::FitWidth);
+    ASSERT_EQ(render::AspectMode::FitWidth, camera.aspectMode());
+  }
+
+  TEST(Camera, AspectModeIsPropagatedToViewPlane) {
+    ConcreteCamera camera;
+    camera.setAspectMode(render::AspectMode::FitHeight);
+    ASSERT_EQ(render::AspectMode::FitHeight, camera.viewPlane()->aspectMode());
+  }
+
+  TEST(Camera, AspectModeIsPropagatedToNewViewPlane) {
+    ConcreteCamera camera;
+    camera.setAspectMode(render::AspectMode::FitWidth);
+    auto plane = std::make_shared<render::ViewPlane>();
+    camera.setViewPlane(plane);
+    ASSERT_EQ(render::AspectMode::FitWidth, plane->aspectMode());
+  }
+
+  TEST(Camera, AspectRatioIsPropagatedToViewPlane) {
+    ConcreteCamera camera;
+    camera.setAspectRatio(16.0 / 9.0);
+    ASSERT_NEAR(16.0 / 9.0, camera.viewPlane()->aspectRatio(), 0.001);
+  }
+
+  TEST(Camera, AspectSettingsArePreservedInClone) {
+    ConcreteCamera camera;
+    camera.setAspectMode(render::AspectMode::FitExact);
+    camera.setAspectRatio(2.39);
+    auto clone = camera.clone();
+    ASSERT_EQ(render::AspectMode::FitExact, clone->aspectMode());
+    ASSERT_NEAR(2.39, clone->aspectRatio(), 0.001);
+  }
+
   TEST(Camera, ShouldSetViewPlane) {
     ConcreteCamera camera;
     auto plane = std::make_shared<render::ViewPlane>();

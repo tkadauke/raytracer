@@ -58,6 +58,35 @@ namespace render {
       return m_showProgressIndicators;
     }
 
+    /**
+      * Set the aspect-ratio fit mode for this camera's view plane.
+      *
+      * The mode is propagated to the view plane immediately and
+      * persists across `setViewPlane()` calls (the new plane inherits
+      * the camera's stored mode). Defaults to `Stretch`, which
+      * preserves the pre-AspectMode behavior exactly.
+      *
+      * Non-rectilinear cameras (FishEye, Spherical, Equirectangular)
+      * accept any mode, but `FitWidth` and `FitHeight` have the same
+      * pixel-squaring effect as for pinhole cameras — the concept of a
+      * "horizontal FOV" is less meaningful for equirectangular
+      * projections, but the output is still undistorted.
+      */
+    void setAspectMode(render::AspectMode mode);
+
+    /// @returns the current aspect-ratio fit mode.
+    render::AspectMode aspectMode() const;
+
+    /**
+      * Set the intrinsic aspect ratio (width / height) used by
+      * `FitExact` mode. Ignored in other modes. Values ≤ 0 default
+      * to 4:3 inside the view plane.
+      */
+    void setAspectRatio(double ratio);
+
+    /// @returns the intrinsic aspect ratio passed to `FitExact` mode.
+    double aspectRatio() const;
+
     const Matrix4d& matrix() const;
 
     /**
@@ -267,6 +296,8 @@ namespace render {
   private:
     std::atomic<bool> m_cancelled;
     bool m_showProgressIndicators;
+    render::AspectMode m_aspectMode;
+    double m_aspectRatio;
     Vector3d m_position, m_target;
     mutable MemoizedValue<Matrix4d> m_matrix;
     mutable MemoizedValue<Matrix4d> m_inverseMatrix;

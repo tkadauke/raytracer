@@ -13,6 +13,33 @@ namespace render {
   class Sampler;
 
   /**
+    * Controls how the camera's view rectangle is sized when the
+    * framebuffer's aspect ratio differs from the camera's intrinsic
+    * aspect ratio.
+    */
+  enum class AspectMode {
+    /// Fixed 8×6 world-space extents regardless of buffer shape.
+    /// Geometric proportions distort when the buffer is not 4:3.
+    /// Matches the pre-AspectMode rendering behavior exactly.
+    Stretch,
+
+    /// Horizontal FOV is constant (8 world units wide). Vertical FOV
+    /// derived from the buffer's height/width ratio. Pixels are square;
+    /// geometry is never distorted. The default for interactive widgets.
+    FitWidth,
+
+    /// Vertical FOV is constant (6 world units tall). Horizontal FOV
+    /// derived from the buffer's width/height ratio. Pixels are square.
+    FitHeight,
+
+    /// Camera has an explicit intrinsic aspect ratio. The view rect is
+    /// the largest sub-rectangle of the framebuffer that matches that
+    /// ratio. Pixels outside the inner rect stay black (pillarbox /
+    /// letterbox bars).
+    FitExact,
+  };
+
+  /**
     * @brief The 2D pixel grid the camera projects rays through —
     *        plus the iteration order the renderer walks it in.
     *
@@ -329,6 +356,50 @@ namespace render {
       return m_sampler;
     }
 
+    /// Sets the aspect mode used by `setupVectors()`. Changing this
+    /// takes effect on the next `setup()` call.
+    inline void setAspectMode(AspectMode mode) {
+      m_aspectMode = mode;
+    }
+
+    /// @returns the current aspect mode.
+    inline AspectMode aspectMode() const {
+      return m_aspectMode;
+    }
+
+    /// Sets the intrinsic aspect ratio (width / height) used by
+    /// `FitExact` mode. Values ≤ 0 default to 4:3. Ignored in other
+    /// modes.
+    inline void setAspectRatio(double ratio) {
+      m_aspectRatio = ratio;
+    }
+
+    /// @returns the intrinsic aspect ratio used by `FitExact` mode.
+    inline double aspectRatio() const {
+      return m_aspectRatio;
+    }
+
+    /// @returns the pixel rectangle within the buffer that `FitExact`
+    /// actually renders into. Pixels outside this rect stay at the
+    /// buffer's cleared value (black bars). For other modes this is
+    /// the full buffer rect.
+    inline const Recti& innerRect() const {
+      return m_innerRect;
+    }
+
+    /// @returns the total horizontal world-space span of the view
+    /// plane (width in camera-space units). Cameras use this for
+    /// their forward-projection inverses so they stay correct across
+    /// all aspect modes.
+    inline double hSpan() const {
+      return m_hSpan;
+    }
+
+    /// @returns the total vertical world-space span of the view plane.
+    inline double vSpan() const {
+      return m_vSpan;
+    }
+
   protected:
     /// Recompute `m_topLeft` / `m_right` / `m_down` after a
     /// `setup` call. Called automatically; not for direct use.
@@ -340,6 +411,10 @@ namespace render {
     Recti m_window;
     Vector3d m_topLeft, m_right, m_down;
     float m_pixelSize;
+    AspectMode m_aspectMode;
+    double m_aspectRatio;
+    Recti m_innerRect;
+    double m_hSpan, m_vSpan;
 
     std::shared_ptr<render::Sampler> m_sampler;
   };

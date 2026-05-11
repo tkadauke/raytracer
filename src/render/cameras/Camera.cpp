@@ -8,11 +8,15 @@
 #include "render/RayCaster.h"
 #include "render/State.h"
 
+#include <algorithm>
+
 using namespace render;
 
 Camera::Camera()
   : m_cancelled(false),
     m_showProgressIndicators(false),
+    m_aspectMode(render::AspectMode::Stretch),
+    m_aspectRatio(0.0),
     m_viewPlane(std::make_shared<render::PointInterlacedViewPlane>())
 {
 }
@@ -30,15 +34,44 @@ Camera::~Camera() {
 void Camera::copyBaseStateTo(Camera& camera) const {
   camera.m_cancelled.store(false, std::memory_order_release);
   camera.m_showProgressIndicators = m_showProgressIndicators;
+  camera.m_aspectMode = m_aspectMode;
+  camera.m_aspectRatio = m_aspectRatio;
   camera.m_position = m_position;
   camera.m_target = m_target;
   camera.m_matrix.reset();
   camera.m_inverseMatrix.reset();
+  // The cloned view plane already carries m_aspectMode / m_aspectRatio
+  // because clone() copies all fields; the camera-side copies above
+  // keep the two in sync if setViewPlane() is called on the clone later.
   camera.m_viewPlane = m_viewPlane ? m_viewPlane->clone() : nullptr;
 }
 
 void Camera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   m_viewPlane = plane;
+  if (m_viewPlane) {
+    m_viewPlane->setAspectMode(m_aspectMode);
+    m_viewPlane->setAspectRatio(m_aspectRatio);
+  }
+}
+
+void Camera::setAspectMode(render::AspectMode mode) {
+  m_aspectMode = mode;
+  if (m_viewPlane)
+    m_viewPlane->setAspectMode(mode);
+}
+
+render::AspectMode Camera::aspectMode() const {
+  return m_aspectMode;
+}
+
+void Camera::setAspectRatio(double ratio) {
+  m_aspectRatio = ratio;
+  if (m_viewPlane)
+    m_viewPlane->setAspectRatio(ratio);
+}
+
+double Camera::aspectRatio() const {
+  return m_aspectRatio;
 }
 
 Vector2d Camera::projectPoint(const Vector3d&) const {
@@ -91,11 +124,25 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
     return;
 
   auto plane = viewPlane();
+
+  // FitExact: bar area stays at the buffer's cleared value (black).
+  // Only render pixels inside the inner rect.
+  Recti actualRect = rect;
+  if (plane->aspectMode() == render::AspectMode::FitExact) {
+    const Recti& inner = plane->innerRect();
+    int left   = std::max(rect.left(),   inner.left());
+    int top    = std::max(rect.top(),    inner.top());
+    int right  = std::min(rect.right(),  inner.right());
+    int bottom = std::min(rect.bottom(), inner.bottom());
+    if (left >= right || top >= bottom) return;
+    actualRect = Recti(left, top, right - left, bottom - top);
+  }
+
   auto sampler = plane->sampler();
   const int samplesPerPixel = sampler->numSamples();
   const double sampleScale = 1.0 / samplesPerPixel;
 
-  for (render::ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect); pixel != end; ++pixel) {
     if (isCancelled())
       break;
 
@@ -104,7 +151,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
       // tonemap maps `Colord(1, 0, 0)` to 0xff0000 for any operator
       // that's identity-on-pure-channels (Linear, Reinhard, ACES
       // all qualify on a single saturated channel).
-      plot(buffer, rect, pixel, Colord(1, 0, 0));
+      plot(buffer, actualRect, pixel, Colord(1, 0, 0));
     }
 
     // Per-pixel hash: any cheap function that varies per (column,
@@ -154,7 +201,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
     // job in `Raytracer::render(Buffer<unsigned int>&)`. Direct
     // float-buffer consumers (EXR writers, future path-tracing
     // accumulators) get the unclipped value.
-    plot(buffer, rect, pixel, pixelColor * sampleScale);
+    plot(buffer, actualRect, pixel, pixelColor * sampleScale);
 
     if (isCancelled())
       break;
@@ -189,6 +236,20 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
     return;
 
   auto plane = viewPlane();
+
+  // FitExact: bar area stays at the buffer's cleared value (black).
+  // Only render pixels inside the inner rect.
+  Recti actualRect = rect;
+  if (plane->aspectMode() == render::AspectMode::FitExact) {
+    const Recti& inner = plane->innerRect();
+    int left   = std::max(rect.left(),   inner.left());
+    int top    = std::max(rect.top(),    inner.top());
+    int right  = std::min(rect.right(),  inner.right());
+    int bottom = std::min(rect.bottom(), inner.bottom());
+    if (left >= right || top >= bottom) return;
+    actualRect = Recti(left, top, right - left, bottom - top);
+  }
+
   auto sampler = plane->sampler();
   const int samplesPerPixel = sampler->numSamples();
   const double sampleScale = 1.0 / samplesPerPixel;
@@ -199,7 +260,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
   // duplication here is the price of progressive display — see
   // `Camera::render(Buffer<Colord>&, ...)` for the documented
   // sample-stream contract that the two paths share.
-  for (render::ViewPlane::Iterator pixel = plane->begin(rect), end = plane->end(rect); pixel != end; ++pixel) {
+  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect); pixel != end; ++pixel) {
     if (isCancelled())
       break;
 
@@ -207,7 +268,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       // Pure red (0xff0000) on a saturated channel — every standard
       // tonemap operator (Linear, Reinhard, ACES) maps this to
       // 0xff0000 unchanged.
-      plotRGB(buffer, rect, pixel, 0xffff0000);
+      plotRGB(buffer, actualRect, pixel, 0xffff0000);
     }
 
     const std::uint64_t pixelHash =
@@ -238,7 +299,7 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
 
     Colord averaged = pixelColor * sampleScale;
     unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
-    plotRGB(buffer, rect, pixel, rgb);
+    plotRGB(buffer, actualRect, pixel, rgb);
 
     if (isCancelled())
       break;

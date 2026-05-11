@@ -1,5 +1,6 @@
 #pragma once
 #include "core/math/Rect.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <cstdint>
 #include <memory>
@@ -132,6 +133,31 @@ public:
   /// Override the in-flight publication timer. Use `0` for the
   /// automatic interval based on buffer width.
   void setProgressUpdateIntervalMs(int intervalMs);
+
+  /**
+    * Set the aspect-ratio fit mode applied to the engine's camera
+    * before each render. Defaults to `FitWidth` — the fix for the
+    * "squishes on resize" bug present with the historical `Stretch`
+    * behavior.
+    *
+    * This is applied to `m_engine->camera()` at the start of every
+    * `render()` call, so it survives engine and camera swaps.
+    */
+  void setAspectMode(render::AspectMode mode);
+
+  /// @returns the stored aspect mode.
+  render::AspectMode aspectMode() const;
+
+  /**
+    * Switch to `FitExact` mode with the given intrinsic aspect ratio
+    * (width / height), or return to `FitWidth` when `ratio` is ≤ 0.
+    *
+    * A positive value sets the mode to `FitExact` and stores `ratio`
+    * as the intrinsic aspect for the bar-fill calculation. Passing
+    * `0.0` or a negative value reverts to `FitWidth` (no bars,
+    * always square pixels).
+    */
+  void setAspectRatio(double ratio);
 
   /// @returns true while the render thread is still producing the
   /// current frame.
