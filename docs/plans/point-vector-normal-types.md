@@ -1,19 +1,22 @@
 # Point / Vector / Direction / Normal type split
 
-> **Scope:** introduce semantic geometric types — `Point`,
-> `Vector`, `Direction`, `Normal` — alongside the existing
-> `Vector3<T>` / `Vector4<T>` in `include/core/math/`, paired with
-> companion matrix types — `Matrix3<T>` (linear-only) and
-> `NormalMatrix3<T>` (inverse-transpose) — alongside the existing
-> `Matrix4<T>`. Each geometric type carries different transform
-> semantics and (in debug builds) a different runtime invariant;
-> each matrix type only applies to the geometric types whose
-> transform rule matches. Companion doc to `core-math-optimization.md`.
-> Captured 2026-05-10 from the conversation that motivated the idea.
+> **Scope:** introduce semantic geometric types — `Point`, `Vector`,
+> `Direction`, `Normal` — alongside the existing `Vector3<T>` /
+> `Vector4<T>` in `include/core/math/`, paired with companion matrix
+> types `Matrix2<T>` / `Matrix3<T>` / `Matrix4<T>` (existing sizes,
+> disambiguated by operand) and `NormalMatrix<T, N>` (inverse-transpose).
+> All types parametrized by both element type `T` and dimension `N ∈
+> {2, 3}` — the public surface in this plan is 3D only; 2D types
+> drop in as a follow-up via the same N-templated machinery without
+> a rewrite. Each geometric type carries different transform semantics
+> and (in debug builds) a different runtime invariant. Companion doc
+> to `core-math-optimization.md`. Captured 2026-05-10 from the
+> conversation that motivated the idea; design refined 2026-05-11.
 >
 > **Status:** Living document — design proposal, not yet committed.
-> Open questions in the section of the same name need decisions
-> before any implementation issues fan out.
+> Most open questions from the original draft are resolved (see
+> [Resolved design decisions](#resolved-design-decisions) below); the
+> few remaining are tagged as such.
 >
 > **Rule:** the headline isn't the debug assertions — it's the
 > compile-time prevention of wrong-transform-on-normal and similar
@@ -58,46 +61,98 @@ invariants catch the fourth at the earliest write that breaks it.
 
 ## The four types
 
-All parametrized by element type `T` (float / double) like the existing
-`Vector3<T>` / `Vector4<T>`. Storage layout discussed in
-[Storage and SIMD](#storage-and-simd).
+All parametrized by element type `T` (`float` / `double`) and
+dimension `N` (`2` / `3`). The public surface in this plan ships 3D
+only; 2D types come in a follow-up (no rewrite — see
+[Implementation machinery](#implementation-machinery)).
 
-### `Point<T>` — a position in space
+**Concrete classes**, not typedefs of a generic template: each type
+gets its own `class` declaration inheriting from the shared template
+base. Distinct type identity in error messages, debuggers, and reader
+intuition.
 
-- Homogeneous w = 1 (logically; storage may or may not include w).
-- Transforms via the full 4×4 affine path (includes translation).
-- Invariant (debug): w ≈ 1 within tolerance.
+**Element-type typedefs** in the glm / Eigen style:
+
+```cpp
+using Point3f = Point3<float>;
+using Point3d = Point3<double>;
+using Direction3f = Direction3<float>;
+using Direction3d = Direction3<double>;
+using Normal3f = Normal3<float>;
+using Normal3d = Normal3<double>;
+using Vector3f = Vector3<float>;
+using Vector3d = Vector3<double>;
+// 2D analogs land in the follow-up phase.
+```
+
+### `Point<T, N>` — a position in space
+
+- **Stores `w` explicitly** as part of the type's storage. `Point2`
+  is `(x, y, w)` — 3 components. `Point3` is `(x, y, z, w)` — 4
+  components. `w` defaults to 1.0 at construction.
+- Transforms via the full affine matrix (`Matrix3 * Point2` for 2D,
+  `Matrix4 * Point3` for 3D — see [Matrix transforms by type](#matrix-transforms-by-type)).
+- Invariant (debug): `w` ≈ 1 within tolerance.
 - Conceptually a *coordinate*, not a magnitude.
+- The explicit `w` is the load-bearing design choice that lets the
+  matrix companion types stay size-named (`Matrix3`, `Matrix4`)
+  without semantic ambiguity — see
+  [Why explicit `w`](#why-explicit-w-on-point).
 
-### `Vector<T>` — a free-form displacement
+### `Vector<T, N>` — a free-form displacement
 
-- Homogeneous w = 0.
-- Transforms via the 3×3 linear sub-block (no translation).
+- Stores N components only (no w; w is implicitly 0 for displacement
+  arithmetic).
+- Transforms via the linear-only matrix (`Matrix2 * Vector2`,
+  `Matrix3 * Vector3`).
 - No magnitude invariant; this is the "anything else" bucket.
-- The closest type to the existing `Vector3<T>`. Most current uses of
-  `Vector3` are semantically Vectors.
+- The closest type to the existing `Vector3<T>`. Most current uses
+  of `Vector3` are semantically Vectors.
 
-### `Direction<T>` — a unit-length displacement
+### `Direction<T, N>` — a unit-length displacement
 
-- Homogeneous w = 0.
-- Transforms via the 3×3 linear sub-block, **renormalized** if the
-  matrix is non-orthonormal (or if the caller opts in to skip the
-  renormalize for an orthonormal matrix — see open questions).
-- Invariant (debug): |d| ≈ 1.
+- Stores N components only.
+- Transforms via the linear matrix, **renormalized** if the matrix is
+  non-orthonormal (or skipped via an `isOrthonormal` tag — open
+  question, [#10](#open-questions)).
+- Invariant (debug): `|d|` ≈ 1.
 - Use cases: ray directions, light directions, view directions.
 
-### `Normal<T>` — a unit-length surface normal
+### `Normal<T, N>` — a unit-length surface normal
 
-- Homogeneous w = 0.
-- Transforms via the **inverse-transpose** of the matrix's 3×3
-  sub-block. This is the load-bearing differentiator from Direction.
-- Invariant (debug): |n| ≈ 1.
+- Stores N components only.
+- Transforms via the **inverse-transpose** of the linear matrix
+  (`NormalMatrix<T, N>`). This is the load-bearing differentiator
+  from Direction — see [Matrix companion types](#matrix-companion-types).
+- Invariant (debug): `|n|` ≈ 1.
 - Use cases: shading normals, geometric normals, anything used in a
   cosine-weighted lighting integrand.
 
 Direction and Normal share an invariant (unit length) but differ in
 *how they transform*. That difference is the entire reason for the
 two-type split rather than one `UnitVector`.
+
+### Why explicit `w` on Point
+
+Storing `w` on `Point` makes the matrix-companion design clean:
+
+- `Matrix3` is "a 3×3 matrix." It applies to anything whose storage
+  is 3 components — `Vector3` (linear-3D transform of a displacement),
+  or `Point2` (affine-2D transform of a homogeneous position). The
+  *operand's stored layout* decides what the operation means; the
+  matrix size doesn't have to encode the semantic.
+- `Matrix4` is "a 4×4 matrix" — applies to `Vector4` or `Point3`.
+- No naming collision between "linear-3D" and "affine-2D" — both are
+  `Matrix3 * <3-component-thing>`, and the 3-component-thing's type
+  carries the geometry.
+- Perspective division becomes the natural operation it should be:
+  divide `(x, y, z, w)` by `w`. No special "now interpret as
+  homogeneous" mode.
+
+Storage cost: `Point2` is 3 floats instead of 2; `Point3` is 4
+instead of 3. For SIMD this often helps — `Point3<float>` aligns to
+16 bytes naturally, which most SIMD-friendly graphics libraries do
+anyway for the same reason.
 
 ---
 
@@ -125,13 +180,13 @@ The legal-operation table the types enforce:
 | `dot(Normal, Direction)` | scalar | The cosine that lighting integrands depend on |
 | `cross(Vector, Vector)` | `Vector` | |
 | `cross(Direction, Direction)` | `Vector` | Result is not unit-length |
-| `Vector.normalized()` | `Direction` | Explicit conversion |
-| `Vector.normalizedAsNormal()` | `Normal` | Explicit conversion (different name to force semantic choice) |
+| `Vector.toDirection()` | `Direction` | Normalizes and tags as a direction |
+| `Vector.toNormal()` | `Normal` | Normalizes and tags as a surface normal |
 | `Direction → Vector` | implicit | Direction is-a Vector with a stronger invariant; widening is safe |
 | `Normal → Vector` | implicit | Same |
-| `Vector → Direction` | **explicit only** | Must call `.normalized()` |
-| `Vector → Normal` | **explicit only** | Must call `.normalizedAsNormal()` |
-| `Direction ↔ Normal` | **explicit only** | Different transform semantics; never silently |
+| `Vector → Direction` | **explicit only** | Must call `.toDirection()` |
+| `Vector → Normal` | **explicit only** | Must call `.toNormal()` |
+| `Direction ↔ Normal` | **explicit only** | Different transform semantics; never silently — use `.toNormal()` / `.toDirection()` on the source |
 
 **Key design choice:** widening (Direction → Vector) is implicit;
 narrowing (Vector → Direction) is explicit. The asymmetry mirrors
@@ -141,27 +196,52 @@ intentionally.
 
 The Direction ↔ Normal conversion being explicit-only is the most
 important rule: it forces the caller to acknowledge they're switching
-which transform semantics will apply.
+which transform semantics will apply. The `.toDirection()` /
+`.toNormal()` naming carries this in the function name itself, where
+a generic `.normalized()` would have been mathematically vague.
+
+**No bare `.normalized()` on `Vector`.** If you want a unit-length
+3-tuple, you want either a Direction or a Normal; call one. "I want a
+unit-length thing that isn't either" is a code smell — what's its
+geometric role? Force the answer at the call site.
 
 ---
 
 ## Matrix transforms by type
 
-The transform overloads are where the types earn their keep. Each
-geometric type pairs with the right matrix type for its transform
-semantics:
+The transform overloads are where the types earn their keep. Because
+`Point` stores its homogeneous `w` explicitly, the matrix type does
+NOT need to encode the geometric semantic — same-size matrices apply
+to any matching-size operand, and the operand's stored layout decides
+what the operation means.
 
 ```cpp
-Matrix4<T>       * Point<T>      → Point<T>      // full affine, w=1 row
-Matrix4<T>       * Vector<T>     → Vector<T>     // 3×3 sub-block, w=0 row
-Matrix4<T>       * Direction<T>  → Direction<T>  // 3×3 sub-block + optional renormalize
-Matrix4<T>       * Normal<T>     → illegal       // must go via .normalMatrix()
-NormalMatrix3<T> * Normal<T>     → Normal<T>     // inverse-transpose, computed once
+// 3D transforms (the surface this plan ships first)
+Matrix4<T>            * Point3<T>     → Point3<T>      // full affine, w preserved
+Matrix3<T>            * Vector3<T>    → Vector3<T>     // linear-3D on a displacement
+Matrix3<T>            * Direction3<T> → Direction3<T>  // linear-3D + optional renormalize
+Matrix3<T>            * Normal3<T>    → illegal        // must go via .normalMatrix()
+NormalMatrix<T, 3>    * Normal3<T>    → Normal3<T>     // inverse-transpose, computed once
+
+// 2D transforms (lands in the follow-up phase; same template machinery)
+Matrix3<T>            * Point2<T>     → Point2<T>      // affine-2D on the (x,y,1) homogeneous
+Matrix2<T>            * Vector2<T>    → Vector2<T>     // linear-2D on a displacement
+Matrix2<T>            * Direction2<T> → Direction2<T>  // linear-2D + optional renormalize
+Matrix2<T>            * Normal2<T>    → illegal        // via NormalMatrix<T, 2>
+NormalMatrix<T, 2>    * Normal2<T>    → Normal2<T>     // 2×2 inverse-transpose
 ```
 
-The `Matrix4 * Normal` operation does not exist. To transform a
+Notice the `Matrix3 * Point2` row: same matrix size as `Matrix3 *
+Vector3`, completely different operation. The disambiguation lives in
+the operand: `Point2` stores `(x, y, w=1)` so `Matrix3 * Point2` is
+the 3×3 affine-2D multiply (translation included via the bottom row);
+`Vector3` stores `(x, y, z)` so `Matrix3 * Vector3` is the 3×3
+linear-3D multiply. No matrix-naming-collision; the matrix is just
+"a matrix of this size."
+
+The `Matrix * Normal` operation does not exist. To transform a
 normal, the caller must first explicitly construct the
-`NormalMatrix3<T>` via `matrix4.normalMatrix()`. This is the central
+`NormalMatrix<T, N>` via `.normalMatrix()`. This is the central
 design choice that makes the wrong-matrix-on-normal bug a compile
 error rather than a silent runtime hazard, and lets the
 inverse-transpose cost be paid once per matrix rather than per call.
@@ -189,45 +269,60 @@ types exist — they don't go away, they become the canonical operator.
 
 ## Matrix companion types
 
-Three matrix types pair with the four geometric types. Each carries
-the right transform semantics for its associated entity, and the type
-system uses them to reject geometric type errors at compile time.
+The matrix types stay **named by size** (`Matrix2`, `Matrix3`,
+`Matrix4`) — the geometric semantic comes from the operand, not the
+matrix. There's one additional type for the inverse-transpose case
+that *can't* be carried by matrix size alone: `NormalMatrix<T, N>`.
 
-### `Matrix4<T>` — full affine transform
+### `Matrix2<T>` / `Matrix3<T>` / `Matrix4<T>` — matrices by size
 
-The existing type. 4×4 storage. Applied to **Points** via
-`Matrix4 * Point` (full affine including the translation row).
-Composes with other `Matrix4`s as scene-graph transforms do today.
-Also applies to Vectors and Directions automatically (it knows to
-ignore the translation row for them) via overloads, but for
-Normals the overload is intentionally omitted — see below.
+The existing `Matrix4<T>` stays as-is; `Matrix3<T>` already exists in
+the codebase as a 3×3 matrix; `Matrix2<T>` is new for the 2D
+follow-up. Each is just "an n×n matrix of T" — no embedded geometric
+semantic.
 
-### `Matrix3<T>` — linear-only transform
+Applies to anything whose operand size matches:
 
-The 3×3 linear sub-block of an affine `Matrix4`. Applied to
-**Vectors** and **Directions** via `Matrix3 * Vector` and
-`Matrix3 * Direction`. No translation. Lives separately because
-Vector/Direction don't need the homogeneous-w machinery and
-shouldn't see translations.
+- `Matrix4 * Point3` — 4×4 multiply, full affine 3D.
+- `Matrix3 * Vector3` — 3×3 multiply, linear-3D on a displacement.
+- `Matrix3 * Point2` — 3×3 multiply, affine-2D on a homogeneous (x,y,1).
+- `Matrix2 * Vector2` — 2×2 multiply, linear-2D on a displacement.
 
-Construction: `Matrix4::linearPart()` returns `Matrix3<T>`; or
-constructed directly from rotation/scale factories that don't need
-the full affine container.
+Construction stays as today: factories (`Matrix4::translate`,
+`Matrix3::rotate`, etc.) for common transforms; component-wise ctor
+for arbitrary matrices; `Matrix4::linearPart()` returns the
+`Matrix3<T>` upper-3×3 (or `Matrix3::linearPart()` returns
+`Matrix2<T>` for 2D).
 
-### `NormalMatrix3<T>` — inverse-transpose of a `Matrix3<T>`
+### `NormalMatrix<T, N>` — inverse-transpose, distinct type
 
-Distinct type. Stores the already-inverse-transposed 3×3 matrix.
-Applied only to **Normals** via `NormalMatrix3 * Normal`. **Not**
-implicitly convertible back to `Matrix3<T>` — that conversion would
-defeat the entire point of the type. If a caller really wants the raw
-matrix back (rare; usually wrong), there's an explicit `.asMatrix3()`
-escape hatch that loudly forces the caller to acknowledge they're
-exiting the type-correct path.
+Distinct type for the inverse-transpose case. Stores the
+already-inverse-transposed n×n matrix internally. Applied only to
+`Normal<T, N>` via `NormalMatrix * Normal`. **Not** implicitly
+convertible back to the corresponding `Matrix<T, N>` — that
+conversion would defeat the entire point of the type. If a caller
+really wants the raw matrix back (rare; usually wrong), there's an
+explicit `.asMatrix()` escape hatch that loudly forces the caller to
+acknowledge they're exiting the type-correct path.
 
-Construction: `Matrix4::normalMatrix()` returns `NormalMatrix3<T>`,
-performing the inverse-transpose of the linear sub-block exactly once
-at the call site. Subsequent applications of the resulting
-`NormalMatrix3` are cheap matrix-vector multiplies.
+Construction: `Matrix4::normalMatrix()` returns `NormalMatrix<T, 3>`,
+performing the inverse-transpose of the 3×3 linear sub-block exactly
+once at the call site. `Matrix3::normalMatrix()` returns
+`NormalMatrix<T, 3>` directly (no 4D detour). For 2D:
+`Matrix3::normalMatrix2()` returns `NormalMatrix<T, 2>` from the 2×2
+linear sub-block, or `Matrix2::normalMatrix()` returns it directly.
+
+Element-type typedefs:
+
+```cpp
+using NormalMatrix3f = NormalMatrix<float, 3>;
+using NormalMatrix3d = NormalMatrix<double, 3>;
+using NormalMatrix2f = NormalMatrix<float, 2>;
+using NormalMatrix2d = NormalMatrix<double, 2>;
+```
+
+Subsequent applications of a constructed `NormalMatrix` are cheap
+matrix-vector multiplies — no IT machinery on the per-multiply path.
 
 ### What this buys
 
@@ -269,72 +364,80 @@ matrices still works because (M₁·M₂)⁻ᵀ = M₂⁻ᵀ · M₁⁻ᵀ:
 `Matrix3` that you'd have to wrap explicitly. (You shouldn't want to;
 you want `normalMatrix()`.)
 
-### Operator-overload table for the matrix companions
+### Operator-overload table for the matrix companions (3D)
 
 | Operation | Result | Notes |
 | --- | --- | --- |
-| `Matrix4 * Point` | `Point` | Full affine |
-| `Matrix4 * Vector` | `Vector` | 3×3 sub-block automatically |
-| `Matrix4 * Direction` | `Direction` | 3×3 sub-block + optional renormalize |
-| `Matrix4 * Normal` | **illegal** | Forces caller to use `.normalMatrix()` |
-| `Matrix3 * Point` | **illegal** | No translation row; Point needs Matrix4 |
-| `Matrix3 * Vector` | `Vector` | |
-| `Matrix3 * Direction` | `Direction` | + optional renormalize |
-| `Matrix3 * Normal` | **illegal** | Same reason as Matrix4 |
-| `NormalMatrix3 * Normal` | `Normal` | The whole point of the type |
-| `NormalMatrix3 * Vector` | **illegal** | Mathematically defined; not the intent |
-| `NormalMatrix3 * Direction` | **illegal** | Same |
-| `NormalMatrix3 * Point` | **illegal** | Same |
+| `Matrix4 * Point3` | `Point3` | Full affine 3D; w stored on Point preserves homogeneous semantics |
+| `Matrix3 * Vector3` | `Vector3` | Linear-3D on a displacement |
+| `Matrix3 * Direction3` | `Direction3` | Linear-3D + optional renormalize |
+| `Matrix3 * Normal3` | **illegal** | Forces caller to use `.normalMatrix()` |
+| `Matrix4 * Vector3` | `Vector3` | Convenience: ignores translation row, returns Vector3 |
+| `Matrix4 * Direction3` | `Direction3` | Convenience: same |
+| `Matrix4 * Normal3` | **illegal** | Same reason |
+| `NormalMatrix<T,3> * Normal3` | `Normal3` | The whole point of the type |
+| `NormalMatrix<T,3> * Vector3` | **illegal** | Mathematically defined; not the intent |
+| `NormalMatrix<T,3> * Direction3` | **illegal** | Same |
+| `NormalMatrix<T,3> * Point3` | **illegal** | Same |
 | `Matrix4 * Matrix4` | `Matrix4` | Existing |
-| `Matrix3 * Matrix3` | `Matrix3` | |
-| `NormalMatrix3 * NormalMatrix3` | `NormalMatrix3` | (M₁·M₂)⁻ᵀ = M₂⁻ᵀ · M₁⁻ᵀ |
+| `Matrix3 * Matrix3` | `Matrix3` | Existing |
+| `NormalMatrix<T,3> * NormalMatrix<T,3>` | `NormalMatrix<T,3>` | (M₁·M₂)⁻ᵀ = M₂⁻ᵀ · M₁⁻ᵀ |
 | `Matrix4.linearPart()` | `Matrix3` | Extract 3×3 sub-block |
-| `Matrix4.normalMatrix()` | `NormalMatrix3` | Inverse-transpose of linear part |
-| `Matrix3.normalMatrix()` | `NormalMatrix3` | Same, no Matrix4 needed |
+| `Matrix4.normalMatrix()` | `NormalMatrix<T,3>` | IT of linear sub-block |
+| `Matrix3.normalMatrix()` | `NormalMatrix<T,3>` | Same, no Matrix4 needed |
 | `Matrix4.inverse()` | `Matrix4` | Stays general |
 | `Matrix3.inverse()` | `Matrix3` | Stays general |
 | `Matrix3.transpose()` | `Matrix3` | Stays general |
-| `NormalMatrix3.asMatrix3()` | `Matrix3` | Explicit escape hatch; rarely useful |
+| `NormalMatrix<T,3>.asMatrix3()` | `Matrix3` | Explicit escape hatch; rarely useful |
 
-### The `Transform<T>` ergonomic wrapper
+The 2D table is the same shape with `N=2`, dimensions decremented by
+one (Matrix3 in place of Matrix4 for affine, Matrix2 in place of
+Matrix3 for linear). Lands in the 2D follow-up phase.
+
+### The `Transform<T, N>` ergonomic wrapper
 
 For scene-graph nodes that transform a mix of Points, Vectors,
 Directions, and Normals through the *same* matrix, holding the
-`Matrix4`, the `Matrix3` linear sub-block, and the `NormalMatrix3`
-separately is awkward. An optional wrapper type — modeled on PBRT's
-`Transform` — bundles them with lazy caching:
+affine matrix, linear sub-block, and `NormalMatrix` separately is
+awkward. An optional wrapper type — modeled on PBRT's `Transform` —
+bundles them with lazy caching:
 
 ```cpp
+// Shape for 3D; 2D analog has Matrix3/Matrix2 instead of Matrix4/Matrix3.
 template<typename T>
-class Transform {
+class Transform3 {
   Matrix4<T> m_;
-  mutable std::optional<Matrix3<T>>       linear_;
-  mutable std::optional<NormalMatrix3<T>> normal_;
+  mutable std::optional<Matrix3<T>>          linear_;
+  mutable std::optional<NormalMatrix<T, 3>>  normal_;
 public:
-  Point<T>     operator*(Point<T> p)     const { return m_ * p; }
-  Vector<T>    operator*(Vector<T> v)    const { return linearPart() * v; }
-  Direction<T> operator*(Direction<T> d) const { return linearPart() * d; }
-  Normal<T>    operator*(Normal<T> n)    const { return normalMatrix() * n; }
+  Point3<T>     operator*(Point3<T> p)     const { return m_ * p; }
+  Vector3<T>    operator*(Vector3<T> v)    const { return linearPart() * v; }
+  Direction3<T> operator*(Direction3<T> d) const { return linearPart() * d; }
+  Normal3<T>    operator*(Normal3<T> n)    const { return normalMatrix() * n; }
 
-  const Matrix3<T>&       linearPart()   const; // fills linear_ on first call
-  const NormalMatrix3<T>& normalMatrix() const; // fills normal_ on first call
+  const Matrix3<T>&         linearPart()   const; // fills linear_ on first call
+  const NormalMatrix<T, 3>& normalMatrix() const; // fills normal_ on first call
 };
+
+using Transform3f = Transform3<float>;
+using Transform3d = Transform3<double>;
+// Transform2 lands in the 2D follow-up.
 ```
 
-Scene-graph nodes hold a `Transform<T>`, not a bare `Matrix4<T>`.
-First call to each `operator*` overload fills its cache; subsequent
-calls are direct multiplies.
+Scene-graph nodes hold a `Transform`, not a bare matrix. First call
+to each `operator*` overload fills its cache; subsequent calls are
+direct multiplies.
 
-**Trade-off**: a fully-populated `Transform<T>` is ~3× the storage of
-a `Matrix4<T>`. For scene-graph nodes that handle the full geometric
-type spectrum, that's exactly what you wanted anyway. For one-shot
-matrices in tight loops (a temporary built per-call and immediately
-applied to one point), use the raw `Matrix4` / `Matrix3` /
-`NormalMatrix3` types directly.
+**Trade-off**: a fully-populated `Transform3<T>` is ~3× the storage
+of a `Matrix4<T>`. For scene-graph nodes that handle the full
+geometric type spectrum, that's exactly what you wanted anyway. For
+one-shot matrices in tight loops (a temporary built per-call and
+immediately applied to one point), use the raw `Matrix4` / `Matrix3`
+/ `NormalMatrix` types directly.
 
 `Transform` is **optional**, not required. The plan introduces the
 three matrix types as the substrate; `Transform` is a convenience on
-top. Code can use either layer.
+top.
 
 ---
 
@@ -387,10 +490,11 @@ that the caller forgot to renormalize; mistakenly using a Vector's raw
 components to construct a Direction; points with w=0 silently treated as
 positions.
 
-**Doesn't catch:** explicit Vector → Direction conversions via
-`.normalized()` that produce a *correctly* unit-length result but that
-the caller meant to be a Normal (different transform semantics, same
-invariant). Type-system rules handle this; assertions can't.
+**Doesn't catch:** explicit `Vector::toDirection()` calls that
+produce a *correctly* unit-length result but where the caller meant
+to be a Normal (different transform semantics, same invariant). The
+typed-conversion API (`.toDirection()` vs `.toNormal()`) handles
+this at the call site; assertions can't.
 
 **Doesn't catch:** semantic misuse hidden behind explicit conversions
 (the caller knew they were lying and the type system let them).
@@ -398,76 +502,124 @@ Nothing can catch that automatically — code review territory.
 
 ---
 
-## Storage and SIMD
+## Implementation machinery
 
-Three viable layouts for the underlying data. The choice has
-performance implications and interacts with the existing SSE3
-specializations in `Vector.h`.
+### The `Tagged<T, N, Tag>` base template
 
-### A. Each type stores its own 3 components
+All four geometric types share an underlying template:
 
 ```cpp
-template<typename T> class Point  { T x, y, z; };
-template<typename T> class Vector { T x, y, z; };
-template<typename T> class Direction { T x, y, z; };
-template<typename T> class Normal { T x, y, z; };
+namespace core::math::detail {
+  // Storage policy: Point has w; Vector/Direction/Normal don't.
+  template<typename T, int N, typename Tag>
+  struct TaggedStorage {
+    std::array<T, N> v;
+    // Vector / Direction / Normal layout (no w).
+  };
+
+  template<typename T, int N>
+  struct TaggedStorage<T, N, PointTag> {
+    std::array<T, N + 1> v;  // includes w (last slot)
+    constexpr T w() const { return v[N]; }
+  };
+
+  template<typename T, int N, typename Tag>
+  class Tagged : public TaggedStorage<T, N, Tag> {
+    // Component-wise arithmetic, dot, length, etc. — anything tag-agnostic.
+    // SIMD specializations live here on N == 3 / N == 4 storage size.
+  };
+}
 ```
 
-- Pro: smallest storage, simplest to reason about.
-- Con: transforms re-add the implicit w (1 for Point, 0 for everyone
-  else) on every multiply; SIMD specializations need to be replicated
-  across all four types or shared via CRTP base.
-
-### B. Shared `Vec3<T>` base; types are thin wrappers
+Concrete types inherit from `Tagged` with the matching tag:
 
 ```cpp
-template<typename T> class Vec3 { T x, y, z; /* arithmetic, dot, etc. */ };
-template<typename T> class Point     : private Vec3<T> { /* exposes affine ops */ };
-template<typename T> class Vector    : public Vec3<T>  { /* re-exposes raw ops */ };
-template<typename T> class Direction : private Vec3<T> { /* invariant-guarded */ };
-template<typename T> class Normal    : private Vec3<T> { /* invariant + IT transform */ };
+namespace core::math {
+  struct PointTag {};
+  struct VectorTag {};
+  struct DirectionTag {};
+  struct NormalTag {};
+
+  template<typename T, int N> class Point     : public detail::Tagged<T, N, PointTag>     { /* ... */ };
+  template<typename T, int N> class Vector    : public detail::Tagged<T, N, VectorTag>    { /* ... */ };
+  template<typename T, int N> class Direction : public detail::Tagged<T, N, DirectionTag> { /* ... */ };
+  template<typename T, int N> class Normal    : public detail::Tagged<T, N, NormalTag>    { /* ... */ };
+
+  // Dimension typedefs (per-type, not just per-element-type).
+  template<typename T> using Point2 = Point<T, 2>;
+  template<typename T> using Point3 = Point<T, 3>;
+  template<typename T> using Vector2 = Vector<T, 2>;
+  template<typename T> using Vector3 = Vector<T, 3>;
+  // ... etc
+
+  // Element-type typedefs.
+  using Point2f = Point2<float>;
+  using Point2d = Point2<double>;
+  using Point3f = Point3<float>;
+  using Point3d = Point3<double>;
+  // ... 32 typedefs total for 8 types × 4 elementary types (float/double/int/long)
+}
 ```
 
-- Pro: SIMD specializations live on `Vec3<T>`; types share them.
-- Pro: minimal code duplication.
-- Con: have to be careful that `Point` does NOT implicitly convert to
-  `Vec3` or `Vector` — private inheritance plus selectively `using`
-  the right operators.
+**Concrete classes, not typedefs of `Tagged`** — each derived class is
+its own type, has its own constructors and member functions, shows up
+distinctly in error messages and debuggers. The `Tagged` base supplies
+the shared machinery; the derived classes add the type identity and
+the per-type interface (e.g., `Point::w()`, `Vector::toDirection()`).
 
-### C. Tagged storage: one underlying class with a phantom type
+### Operator overloads via phantom-tag `if constexpr`
+
+The legal-op table is enforced in free-function operators that
+inspect the tags via `if constexpr`:
 
 ```cpp
-enum class GeomKind { Point, Vector, Direction, Normal };
-template<typename T, GeomKind K> class Tagged3 { T x, y, z; };
-using Point     = Tagged3<T, GeomKind::Point>;
-using Vector    = Tagged3<T, GeomKind::Vector>;
-using Direction = Tagged3<T, GeomKind::Direction>;
-using Normal    = Tagged3<T, GeomKind::Normal>;
+template<typename T, int N, typename Tag1, typename Tag2>
+auto operator+(Tagged<T, N, Tag1> a, Tagged<T, N, Tag2> b) {
+  if constexpr (std::is_same_v<Tag1, PointTag> && std::is_same_v<Tag2, VectorTag>) {
+    return Point<T, N>{ /* element-wise add, keep w from a */ };
+  } else if constexpr (std::is_same_v<Tag1, VectorTag> && std::is_same_v<Tag2, VectorTag>) {
+    return Vector<T, N>{ /* element-wise add */ };
+  } else if constexpr (std::is_same_v<Tag1, PointTag> && std::is_same_v<Tag2, PointTag>) {
+    static_assert(!std::is_same_v<Tag1, PointTag>, "Point + Point is geometrically meaningless");
+  }
+  // ... etc, encoding the algebra from above
+}
 ```
 
-- Pro: single template, single SIMD specialization, operators
-  constrained via `if constexpr` on the tag.
-- Pro: type identity comes for free from the phantom parameter.
-- Con: implementation of operator overloads becomes a chain of
-  `if constexpr` (legal-op table from above, encoded as predicates).
-  More dense but harder to read.
+~80 cases for 4 types × ~20 ops. Verbose but **centralized** — the
+whole interaction surface is readable in one file.
 
-**Recommendation:** start with **B**. CRTP-style shared base is the
-idiom most familiar to C++ readers, the SIMD path lives in one place,
-and the type-safety story is clear in the public interface. Revisit if
-B's verbosity becomes painful.
+### Why phantom tags now, policy objects later (maybe)
+
+Policy-object design — each semantic type supplies a policy class
+that defines its behavior, the main template delegates — is the
+alternative considered. Cleaner per type, more modular, but more
+boilerplate per policy and tricky cross-type result-type traits.
+
+**The decision is benchmark-gated.** We ship phantom tags in Phase 1.
+A planned spike (Phase N+1, after the type split has settled) ports
+the same surface to policy objects on a throwaway branch and
+benchmarks the two head-to-head on the macro render benchmark and
+the targeted vector/matrix microbenchmarks from
+`core-math-optimization.md`. If policy objects are equal-or-faster
+*and* the stylistic gains justify the migration cost, we refactor; if
+they regress performance, we stay with phantom tags. The public
+surface (concrete classes, typedefs, operator overloads) doesn't
+change either way — refactor risk is bounded to the internals.
+
+Tracked as a follow-up issue once Phase 1 ships.
 
 ### Interaction with SSE3 specializations
 
-The current `Vector3<double>` SSE3 specialization (slated for
-resolution in Phase 2.3 of the optimization plan) is structurally
-broken and partly UB. The type split should land **after** Phase 2.3
-resolves the storage question. Whatever Phase 2.3 picks (delete the
-specialization, replace with AVX2 `__m256d`, fix-in-place) becomes the
-`Vec3<T>` base for the type split.
+The current `Vector3<double>` SSE3 specialization (resolved in Phase
+2.3 of the optimization plan — the agent picked "delete") is going
+away. The new SIMD path for 3-element `T = double` storage lives on
+`Tagged<T, 3, *>` and benefits all four geometric types uniformly,
+not just `Vector`. SIMD specializations on the `Tagged` storage are
+keyed on `(T, N)`; the tag is irrelevant for the bit-level math.
 
 Implication: this plan is downstream of `core-math-optimization.md`
-Phase 2.3. Do not start implementation until that phase has shipped.
+Phase 2.3. Don't start implementation until that phase has shipped.
 
 ---
 
@@ -477,48 +629,71 @@ API churn through the entire renderer codebase. Phasing matters.
 
 ### Phase 0 — design lock
 
-Resolve the open questions below. Pick storage layout (A / B / C).
-Decide whether `Direction` is always-renormalized or matrix-tagged.
-Commit the design to this doc. **No code changes yet.**
+Resolve the remaining open questions above. Commit decisions to this
+doc. **No code changes yet.** (Most of Phase 0 was completed in the
+2026-05-11 design discussion that produced the current draft.)
 
-### Phase 1 — introduce the types alongside `Vector3<T>` / `Matrix4<T>`
+### Phase 1 — introduce the 3D types alongside `Vector3<T>` / `Matrix4<T>`
 
-Add `Point`, `Vector`, `Direction`, `Normal` to
-`include/core/math/`, plus the companion matrix types `Matrix3<T>`
-and `NormalMatrix3<T>` (and optionally `Transform<T>` — see open
-question 9). Implement arithmetic, the per-type matrix transforms,
-and debug invariants. Existing `Vector3<T>` and `Matrix4<T>` remain
-in place and untouched (`Matrix4` gains the new per-type `operator*`
-overloads and the `.linearPart()` / `.normalMatrix()` factories, but
-nothing else changes). Unit tests for the new types only; no
-existing call sites migrated yet.
+Add the `Tagged<T, N, Tag>` template machinery and the four
+`Point3<T>` / `Vector3<T>` / `Direction3<T>` / `Normal3<T>` concrete
+classes to `include/core/math/`. Add `NormalMatrix<T, 3>`. Add (or
+not, per open question 5) `Transform3<T>`. The 2D specializations of
+the template machinery exist from day one but no public 2D typedefs
+are exposed yet — keeps the new types' surface narrow.
+
+Implement arithmetic, the per-type matrix transforms, the
+`.toDirection()` / `.toNormal()` conversions, and debug invariants.
+Existing `Vector3<T>` (the current free-form type) and `Matrix4<T>`
+remain in place and untouched, except `Matrix4` gains the new
+per-type `operator*` overloads and the `.linearPart()` /
+`.normalMatrix()` factories. `Matrix3<T>` similarly gains its own
+`.normalMatrix()`. Unit tests for the new types only; no existing
+call sites migrated yet.
 
 ### Phase 2 — migrate intersection code
 
 `include/raytracer/primitives/` and friends. Ray now carries a
-`Point` origin and a `Direction` direction. Hit records carry a
-`Point` position and a `Normal` normal. This is the densest
-concentration of vector use in the codebase and the highest-value
-migration target.
+`Point3` origin and a `Direction3` direction. Hit records carry a
+`Point3` position and a `Normal3` normal. Densest concentration of
+vector use in the codebase; highest-value migration target.
 
 ### Phase 3 — migrate materials and shading
 
 `include/raytracer/materials/`. Reflect, refract, cosine terms all
-become `Direction`/`Normal`-typed. Phase 3.4 of the core-math
+become `Direction3` / `Normal3`-typed. Phase 3.4 of the core-math
 optimization plan (missing Vector ops: reflect, refract, lerp, …)
 should land *after* this so those ops are written against the right
 types from day one.
 
 ### Phase 4 — migrate cameras and rasterizer
 
-The remaining geometry-heavy subsystems.
+The remaining 3D-heavy subsystems.
 
 ### Phase 5 — audit and cleanup
 
 `grep` for remaining `Vector3<T>` in geometric contexts; convert
 where appropriate. Some uses are genuinely free-form (e.g. RGB
-color stored as Vector3 — this should arguably be a separate type,
-but that's a *different* sweep, not this one).
+color stored as Vector3 — flagged as a separate future sweep, see
+[What this is not](#what-this-is-not)).
+
+### Phase 6 — policy-object spike (optional)
+
+Throwaway branch ports the same surface to policy objects;
+benchmark head-to-head against phantom tags on the macro render +
+microbenchmarks. Refactor only if policies are equal-or-faster and
+the modularity gains justify the cost. See
+[Implementation machinery — Why phantom tags now, policy objects
+later (maybe)](#why-phantom-tags-now-policy-objects-later-maybe).
+
+### Phase 7 — 2D follow-up
+
+Public typedefs (`Point2f`, `Vector2d`, etc.) for the 2D types that
+already exist as `Tagged<T, 2, *>` instantiations from Phase 1.
+`Matrix2<T>` added as a new sibling. `NormalMatrix<T, 2>` if not
+already in place from Phase 1's generic machinery. Migration of any
+2D call sites (UI overlays, image-processing helpers, future 2D
+graphics work) onto the new types.
 
 Each phase is its own PR; each phase passes the test suite end-to-end
 before the next starts.
@@ -533,9 +708,9 @@ before the next starts.
 - **Conversion ergonomics.** If `Vector → Direction` conversion is
   painful, callers will fight it (e.g. cast to `Vector3` to avoid
   the conversion, defeating the type safety). Mitigation: keep the
-  `.normalized()` API tight and well-documented; provide free
-  functions for common patterns (`directionFromTo(Point, Point)`,
-  `normalAt(...)`).
+  `.toDirection()` / `.toNormal()` API tight and well-documented;
+  provide free functions for common patterns
+  (`directionFromTo(Point, Point)`, `normalAt(...)`).
 - **Debug-build performance.** Unit-length assertions on every
   Direction/Normal mutation are not free. A scene with millions of
   ray–hit pairs sees millions of `dot(d,d) - 1 < ε` checks. Mitigation:
@@ -545,55 +720,86 @@ before the next starts.
   scene file — which type is it? The scene-format parser has to make
   the decision. Mitigation: scene-format schema declares the type per
   field; loader returns the right type.
-- **Operator overload explosion.** Layout B with private inheritance
-  needs careful `using` declarations to expose the right subset of
-  base ops on each derived type. Mitigation: hide everything by
-  default, `using` only what's in the legal-op table.
+- **Operator overload `if constexpr` ladders get unwieldy.** With
+  4 types × ~20 ops = ~80 cases encoded in `if constexpr` chains, the
+  free-function operator definitions can become hard to read.
+  Mitigation: keep each operator's ladder in its own translation unit
+  (or at least its own header section), grouped by op (one ladder for
+  `operator+`, one for `operator-`, etc.). The post-Phase-1
+  policy-object spike addresses this directly if needed.
 - **The "color as Vector3" issue.** Some code uses `Vector3<float>`
   for RGB. Explicitly out of scope for this plan; flag as a separate
   future sweep.
 
 ---
 
+## Resolved design decisions
+
+These were open in the original draft and resolved in the 2026-05-11
+design discussion. Captured here so the implementing agent doesn't
+re-litigate.
+
+1. **Storage layout / sharing model: phantom tags via `Tagged<T, N, Tag>`.**
+   See [Implementation machinery](#implementation-machinery). Concrete
+   classes inherit from the tagged base; operator overloads use
+   `if constexpr` on the tag pair. Chosen for performance (`if constexpr`
+   compiles to direct dispatch with no v-table); revisit via the
+   policy-object spike (see open question 1 below) after Phase 1 ships.
+2. **Concrete classes, not typedefs.** Each semantic type (`Point3`,
+   `Vector3`, etc.) is its own `class` declaration inheriting from
+   `Tagged`. Typedefs are reserved for element-type aliases
+   (`Point3f = Point3<float>`, etc.).
+3. **Element-type typedefs in glm/Eigen style.**
+   `Point3f` / `Point3d`, etc.
+4. **Dimension as a template parameter.** `Vector<T, N>` with
+   `N ∈ {2, 3}`. The public surface ships 3D only; 2D types drop in
+   as a follow-up via the same template machinery.
+5. **`Point` stores `w` explicitly.** `Point2` is 3-component
+   `(x, y, w)`; `Point3` is 4-component `(x, y, z, w)`. This sidesteps
+   the matrix naming collision — matrices stay named by size
+   (`Matrix2`, `Matrix3`, `Matrix4`), the operand's storage
+   disambiguates the geometric semantic. See
+   [Why explicit `w`](#why-explicit-w-on-point).
+6. **Inverse-transpose lives in `NormalMatrix<T, N>`.** Constructed
+   via `Matrix4::normalMatrix()` / `Matrix3::normalMatrix()`. Distinct
+   type, not implicitly convertible back to `Matrix<N>`.
+7. **Naming for typed conversions: `.toDirection()` / `.toNormal()`.**
+   Not `.normalized()`. The named-target form forces the caller to
+   acknowledge which transform semantics will apply at the call site.
+   Vector has *no* bare `.normalized()` — unit-length-without-semantic
+   is a code smell.
+8. **No `UnitVector<T>` separate from `Direction<T>`.** Direction is
+   the only unit-length type for geometric use; non-geometric uses
+   are rare enough to handle ad-hoc.
+
 ## Open questions
 
-These need decisions before Phase 1 of the migration plan starts.
+The remaining items the implementing agent needs guidance on:
 
-1. **Storage layout: A, B, or C?** Recommendation B; not locked.
-2. **Direction transform: always renormalize, or matrix-orthonormal
-   tag?** Recommendation always-renormalize for v1; tag in v2.
-3. **Does `Point` store w explicitly, or imply w=1?** Storage savings
-   vs. transform-path simplicity. Probably imply w=1 and add it at
-   transform time; revisit if Matrix×Point becomes a hot spot.
-4. **Should there be a `UnitVector<T>` alongside `Direction<T>` for
-   non-geometric unit vectors?** Probably not — Direction is the
-   geometric "unit vector that lives in space"; non-geometric uses
-   are rare enough to handle ad-hoc. Defer.
-5. **What's the name of the conversion: `.normalized()` returning
-   `Direction`, or `.toDirection()`?** Style preference. Lean
-   `.normalized()` — matches `.normalize()` (mutating) and is the
-   common idiom.
-6. ~~**Where does the inverse-transpose live?**~~ **Resolved**: in
-   the `NormalMatrix3<T>` type, computed at `.normalMatrix()`
-   construction. See [Matrix companion types](#matrix-companion-types).
-7. **Backward compatibility shim?** Should `Vector3<T>` remain a
-   public alias forever, or be deprecated and eventually removed?
-   Lean toward retain-as-alias; some uses (free-form 3-vectors that
-   aren't geometric) are legitimate.
-8. **`float` vs `double` defaults per type.** Does `Normal` default
-   to `Normal<double>` (precision matters for grazing-angle lighting)
-   or `Normal<float>` (storage)? Currently the codebase uses both;
-   pick a default per type or per use-site.
-9. **Should `Transform<T>` ship in Phase 1, or be deferred?** The
-   wrapper is optional and orthogonal to the three matrix types
-   themselves. Lean ship-in-Phase-1: scene-graph nodes are the
-   highest-leverage call site and they want the wrapper. Counter-
-   argument: shipping it later lets us see whether the raw matrix
-   types are ergonomic enough without it.
-10. **Where does the `isOrthonormal` tag for Direction transforms
-    live?** On `Matrix4`, on `Matrix3`, on both? Lean both, set
-    by the rotation/reflection/identity factories. v2 work; v1
-    always-renormalizes.
+1. **When to do the policy-object spike.** After Phase 1 ships and
+   call sites stabilize. Ports the same surface to policies on a
+   throwaway branch; benchmarks head-to-head. Refactor only if
+   policies are equal-or-faster *and* the modularity gains justify
+   the migration. File as a separate issue once Phase 1 lands.
+2. **Backward-compatibility shim for the existing `Vector3<T>`.**
+   Retain as an alias for `Vector<T, 3>` forever, or deprecate +
+   eventually remove? Lean retain — many existing uses are
+   semantically "Vector," not "ambiguous geometry," and the alias
+   keeps churn contained. Final call belongs with the migration PRs.
+3. **`float` vs `double` default per type.** Does `Normal` default to
+   `Normal3d` (precision for grazing-angle lighting) or `Normal3f`
+   (storage)? Codebase uses both today. Pick per-type or per-use-site
+   based on what the migration phases find.
+4. **Where the `isOrthonormal` tag lives** for the
+   Direction-transform fast path. On `Matrix4`, on `Matrix3`, on
+   both? Lean both, set by rotation/reflection/identity factories.
+   v2 work; v1 always-renormalizes.
+5. **Should `Transform<T, N>` ship in Phase 1, or be deferred?** The
+   wrapper is optional and orthogonal to the three matrix types. Lean
+   ship-in-Phase-1 — scene-graph nodes are the highest-leverage call
+   site and they want the wrapper. Counter-argument: shipping it
+   later lets us see whether the raw matrix types are ergonomic
+   enough without it.
 
 ---
 
@@ -605,15 +811,16 @@ creep in during implementation:
 - **It does not introduce a Color type.** Color-as-`Vector3<float>`
   is a real problem with separate semantics (gamut, gamma, alpha).
   Out of scope; flag as future work.
-- **It does not change the existing `Matrix4` factories,
+- **It does not change the existing `Matrix4` / `Matrix3` factories,
   decompositions, or inversion algorithms.** Those remain on the
   optimization plan's path. What this plan adds is per-type
-  `operator*` overloads and two new sibling types (`Matrix3<T>`,
-  `NormalMatrix3<T>`); the existing `Matrix4<T>` body stays put.
+  `operator*` overloads, a new `NormalMatrix<T, N>` sibling type, the
+  `.linearPart()` / `.normalMatrix()` factories, and the future
+  `Matrix2<T>` (in the 2D follow-up). The existing matrix bodies stay
+  put.
 - **It does not introduce projective `Point4` distinctly from
-  `Point3`.** The homogeneous w=1 case is implicit in Point;
-  perspective division at the projection boundary stays a free
-  function operating on Vector4-like data.
+  `Point3`.** `Point3` already stores its homogeneous `w`; perspective
+  division is the natural `(x, y, z, w) / w` operation on its storage.
 - **It does not unify SoA/batched ray ops** — that's Phase 4 of the
   optimization plan and depends on a stable scalar foundation
   (which this plan provides) but isn't part of this plan's scope.
