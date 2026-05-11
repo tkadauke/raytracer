@@ -20,8 +20,8 @@ struct SortedResult {
 
   std::size_t size() const { return count; }
   bool empty() const { return count == 0; }
-  const T& operator[](int i) const { return values[i]; }
-  T& operator[](int i) { return values[i]; }
+  const T& operator[](std::size_t i) const { return values[i]; }
+  T& operator[](std::size_t i) { return values[i]; }
   const T* begin() const { return values.data(); }
   const T* end() const { return values.data() + count; }
   T* begin() { return values.data(); }

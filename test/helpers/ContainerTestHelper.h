@@ -19,7 +19,7 @@ namespace testing {
     
     template<class Ostream, class Container>
     void outputContainer(Ostream& os, const Container& container) {
-      unsigned int count = 0;
+      std::size_t count = 0;
       os << '[';
       for (const auto& element : container) {
         os << element;
