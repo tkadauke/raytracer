@@ -27,7 +27,7 @@ void GJKSimplex::addPoint(const Vector3d& point, const Vector3d& suppPointA, con
     m_lastFoundBit <<= 1;
   }
 
-  assert(m_lastFound >= 0 && m_lastFound < 4);
+  assert(m_lastFound < 4);
 
   // Add the point into the simplex
   m_points[m_lastFound] = point;
