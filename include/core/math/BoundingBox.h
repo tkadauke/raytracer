@@ -210,16 +210,20 @@ public:
     *   contained in this and in @p other.
     */
   inline BoundingBox operator&(const BoundingBox& other) const {
+    const T minX = min().x(), minY = min().y(), minZ = min().z();
+    const T oMinX = other.min().x(), oMinY = other.min().y(), oMinZ = other.min().z();
+    const T maxX = max().x(), maxY = max().y(), maxZ = max().z();
+    const T oMaxX = other.max().x(), oMaxY = other.max().y(), oMaxZ = other.max().z();
     BoundingBox result(
       Vector3<T>(
-        std::max(min().x(), other.min().x()),
-        std::max(min().y(), other.min().y()),
-        std::max(min().z(), other.min().z())
+        minX > oMinX ? minX : oMinX,
+        minY > oMinY ? minY : oMinY,
+        minZ > oMinZ ? minZ : oMinZ
       ),
       Vector3<T>(
-        std::min(max().x(), other.max().x()),
-        std::min(max().y(), other.max().y()),
-        std::min(max().z(), other.max().z())
+        maxX < oMaxX ? maxX : oMaxX,
+        maxY < oMaxY ? maxY : oMaxY,
+        maxZ < oMaxZ ? maxZ : oMaxZ
       )
     );
     if (!result.isValid())
