@@ -17,12 +17,12 @@
   * @see render::CheckerBoardTexture
   */
 class CheckerBoardTexture : public Texture {
-  Q_OBJECT;
-  Q_PROPERTY(Texture* brightTexture READ brightTexture WRITE setBrightTexture);
-  Q_PROPERTY(Texture* darkTexture READ darkTexture WRITE setDarkTexture);
-  Q_PROPERTY(QString mapping READ mapping WRITE setMapping);
-  Q_PROPERTY(double uScale READ uScale WRITE setUScale);
-  Q_PROPERTY(double vScale READ vScale WRITE setVScale);
+  Q_OBJECT
+  Q_PROPERTY(Texture* brightTexture READ brightTexture WRITE setBrightTexture)
+  Q_PROPERTY(Texture* darkTexture READ darkTexture WRITE setDarkTexture)
+  Q_PROPERTY(QString mapping READ mapping WRITE setMapping)
+  Q_PROPERTY(double uScale READ uScale WRITE setUScale)
+  Q_PROPERTY(double vScale READ vScale WRITE setVScale)
   
 public:
   /**

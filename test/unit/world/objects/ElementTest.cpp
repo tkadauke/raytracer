@@ -14,8 +14,8 @@ namespace ElementTest {
   // ElementFactory so the JSON-roundtrip tests can deserialise a child of
   // type "TestElement".
   class TestElement : public Element {
-    Q_OBJECT;
-    Q_PROPERTY(QString tag READ tag WRITE setTag);
+    Q_OBJECT
+    Q_PROPERTY(QString tag READ tag WRITE setTag)
 
   public:
     explicit TestElement(Element* parent = nullptr) : Element(parent) {}

@@ -14,8 +14,8 @@
   * </tr></table>
   */
 class Sphere : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(double radius READ radius WRITE setRadius);
+  Q_OBJECT
+  Q_PROPERTY(double radius READ radius WRITE setRadius)
   
 public:
   /**

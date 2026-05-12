@@ -7,7 +7,7 @@ class Element;
 class AbstractParameterWidget;
 
 class PropertyEditorWidget : public QWidget {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   explicit PropertyEditorWidget(Element* root, QWidget* parent = nullptr);

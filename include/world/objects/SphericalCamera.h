@@ -11,9 +11,9 @@
   * @image html spherical_camera_cube.png "Spherical camera with horizontalFieldOfView=180° and verticalFieldOfView=120°"
   */
 class SphericalCamera : public Camera {
-  Q_OBJECT;
-  Q_PROPERTY(Angled horizontalFieldOfView READ horizontalFieldOfView WRITE setHorizontalFieldOfView);
-  Q_PROPERTY(Angled verticalFieldOfView READ verticalFieldOfView WRITE setVerticalFieldOfView);
+  Q_OBJECT
+  Q_PROPERTY(Angled horizontalFieldOfView READ horizontalFieldOfView WRITE setHorizontalFieldOfView)
+  Q_PROPERTY(Angled verticalFieldOfView READ verticalFieldOfView WRITE setVerticalFieldOfView)
   
 public:
   /**

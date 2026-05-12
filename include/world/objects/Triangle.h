@@ -15,10 +15,10 @@
   * </tr></table>
   */
 class Triangle : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d vertexA READ vertexA WRITE setVertexA);
-  Q_PROPERTY(Vector3d vertexB READ vertexB WRITE setVertexB);
-  Q_PROPERTY(Vector3d vertexC READ vertexC WRITE setVertexC);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d vertexA READ vertexA WRITE setVertexA)
+  Q_PROPERTY(Vector3d vertexB READ vertexB WRITE setVertexB)
+  Q_PROPERTY(Vector3d vertexC READ vertexC WRITE setVertexC)
 
 public:
   explicit Triangle(Element* parent = nullptr);

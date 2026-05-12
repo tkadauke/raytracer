@@ -17,7 +17,7 @@
   * </tr></table>
   */
 class PointLight : public Light {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   explicit PointLight(Element* parent = nullptr);

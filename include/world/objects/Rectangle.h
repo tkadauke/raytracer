@@ -17,9 +17,9 @@
   * </tr></table>
   */
 class Rectangle : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d leg1 READ leg1 WRITE setLeg1);
-  Q_PROPERTY(Vector3d leg2 READ leg2 WRITE setLeg2);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d leg1 READ leg1 WRITE setLeg1)
+  Q_PROPERTY(Vector3d leg2 READ leg2 WRITE setLeg2)
 
 public:
   explicit Rectangle(Element* parent = nullptr);

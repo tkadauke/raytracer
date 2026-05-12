@@ -21,14 +21,14 @@ namespace engine::raytracer {
   class Raytracer;
 }
 
-class Display : public QtDisplay {
-  Q_OBJECT;
+class RenderDisplay : public QtDisplay {
+  Q_OBJECT
 
   virtual void mousePressEvent(QMouseEvent* event);
 
 public:
-  Display(QWidget* parent);
-  ~Display();
+  RenderDisplay(QWidget* parent);
+  ~RenderDisplay();
 
   void setScene(Scene* scene);
 

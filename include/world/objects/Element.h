@@ -4,9 +4,9 @@
 #include <QObject>
 
 class Element : public QObject {
-  Q_OBJECT;
-  Q_PROPERTY(QString id READ id WRITE setId);
-  Q_PROPERTY(QString name READ name WRITE setName);
+  Q_OBJECT
+  Q_PROPERTY(QString id READ id WRITE setId)
+  Q_PROPERTY(QString name READ name WRITE setName)
 
 public:
   explicit Element(Element* parent = nullptr);

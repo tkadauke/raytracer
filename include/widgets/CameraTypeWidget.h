@@ -7,7 +7,7 @@
 #include <string>
 
 class CameraTypeWidget : public QWidget {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   explicit CameraTypeWidget(QWidget* parent = nullptr);

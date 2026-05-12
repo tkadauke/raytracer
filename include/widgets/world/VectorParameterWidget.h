@@ -5,7 +5,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 class VectorParameterWidget : public AbstractParameterWidget {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   explicit VectorParameterWidget(QWidget* parent = nullptr);

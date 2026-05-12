@@ -4,7 +4,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 class DoubleParameterWidget : public AbstractParameterWidget {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   explicit DoubleParameterWidget(QWidget* parent = nullptr);

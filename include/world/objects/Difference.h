@@ -10,7 +10,7 @@
   * @image html difference.png "Difference between a red box and a blue sphere"
   */
 class Difference : public CSGSurface {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   /**

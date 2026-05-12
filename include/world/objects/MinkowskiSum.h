@@ -9,7 +9,7 @@
   * @image html minkowski_sum.png "Minkowski sum of a box and a cylinder"
   */
 class MinkowskiSum : public CSGSurface {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   /**

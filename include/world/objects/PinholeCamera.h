@@ -14,9 +14,9 @@
   * </tr></table>
   */
 class PinholeCamera : public Camera {
-  Q_OBJECT;
-  Q_PROPERTY(double distance READ distance WRITE setDistance);
-  Q_PROPERTY(double zoom READ zoom WRITE setZoom);
+  Q_OBJECT
+  Q_PROPERTY(double distance READ distance WRITE setDistance)
+  Q_PROPERTY(double zoom READ zoom WRITE setZoom)
   
 public:
   /**

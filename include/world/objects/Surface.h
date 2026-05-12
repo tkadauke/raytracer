@@ -18,10 +18,10 @@ class Material;
   * @image html motion_blur_hero.png "Motion blur on a red sphere with velocity (1.5, 0, 0) — stratified shutter sampling produces the smooth fade from leading to trailing edge."
   */
 class Surface : public Transformable {
-  Q_OBJECT;
-  Q_PROPERTY(bool visible READ visible WRITE setVisible);
-  Q_PROPERTY(Material* material READ material WRITE setMaterial);
-  Q_PROPERTY(Vector3d velocity READ velocity WRITE setVelocity);
+  Q_OBJECT
+  Q_PROPERTY(bool visible READ visible WRITE setVisible)
+  Q_PROPERTY(Material* material READ material WRITE setMaterial)
+  Q_PROPERTY(Vector3d velocity READ velocity WRITE setVelocity)
 
 public:
   /**

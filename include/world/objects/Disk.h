@@ -17,8 +17,8 @@
   * </tr></table>
   */
 class Disk : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(double radius READ radius WRITE setRadius);
+  Q_OBJECT
+  Q_PROPERTY(double radius READ radius WRITE setRadius)
 
 public:
   explicit Disk(Element* parent = nullptr);

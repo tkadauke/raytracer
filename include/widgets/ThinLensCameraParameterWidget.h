@@ -16,7 +16,7 @@
   * `focalDistance` to slide focus through the scene.
   */
 class ThinLensCameraParameterWidget : public CameraParameterWidget {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   explicit ThinLensCameraParameterWidget(QWidget* parent = nullptr);

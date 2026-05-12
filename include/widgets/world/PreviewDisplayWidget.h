@@ -14,7 +14,7 @@ namespace render {
 }
 
 class PreviewDisplayWidget : public QtDisplay {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   explicit PreviewDisplayWidget(QWidget* parent);

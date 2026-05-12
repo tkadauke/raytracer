@@ -13,9 +13,9 @@
   * </tr></table>
   */
 class ReflectiveMaterial : public PhongMaterial {
-  Q_OBJECT;
-  Q_PROPERTY(Colord reflectionColor READ reflectionColor WRITE setReflectionColor);
-  Q_PROPERTY(double reflectionCoefficient READ reflectionCoefficient WRITE setReflectionCoefficient);
+  Q_OBJECT
+  Q_PROPERTY(Colord reflectionColor READ reflectionColor WRITE setReflectionColor)
+  Q_PROPERTY(double reflectionCoefficient READ reflectionCoefficient WRITE setReflectionCoefficient)
 
 public:
   /**

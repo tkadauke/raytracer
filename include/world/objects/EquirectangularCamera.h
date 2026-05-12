@@ -30,7 +30,7 @@
   * around full-sphere coverage with square equator-pixels.
   */
 class EquirectangularCamera : public Camera {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   /**

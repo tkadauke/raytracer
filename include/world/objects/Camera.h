@@ -15,9 +15,9 @@ namespace render {
   * position in space, and a target the camera looks at.
   */
 class Camera : public Element {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d position READ position WRITE setPosition);
-  Q_PROPERTY(Vector3d target READ target WRITE setTarget);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d position READ position WRITE setPosition)
+  Q_PROPERTY(Vector3d target READ target WRITE setTarget)
   
 public:
   /**

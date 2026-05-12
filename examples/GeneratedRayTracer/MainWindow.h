@@ -7,7 +7,7 @@ class QDockWidget;
 
 class PropertyEditorWidget;
 class PreviewDisplayWidget;
-class Display;
+class RenderDisplay;
 class SceneModel;
 
 class Element;
@@ -16,7 +16,7 @@ class Scene;
 class RenderWindow;
 
 class MainWindow : public QMainWindow {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   MainWindow();

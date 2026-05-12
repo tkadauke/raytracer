@@ -11,8 +11,8 @@
   * @image html fish_eye_camera_cube.png "Fish eye with fieldOfView=180°"
   */
 class FishEyeCamera : public Camera {
-  Q_OBJECT;
-  Q_PROPERTY(Angled fieldOfView READ fieldOfView WRITE setFieldOfView);
+  Q_OBJECT
+  Q_PROPERTY(Angled fieldOfView READ fieldOfView WRITE setFieldOfView)
   
 public:
   /**

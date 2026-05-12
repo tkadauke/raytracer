@@ -9,7 +9,7 @@
   * Represents a texture.
   */
 class Texture : public Element {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   /**

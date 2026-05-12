@@ -4,7 +4,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 
 class ReferenceParameterWidget : public AbstractParameterWidget {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   explicit ReferenceParameterWidget(const QString& baseClassName, Element* root, QWidget* parent = nullptr);

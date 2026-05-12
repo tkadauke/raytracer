@@ -14,9 +14,9 @@
   * </tr></table>
   */
 class Box : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d size READ size WRITE setSize);
-  Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d size READ size WRITE setSize)
+  Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius)
   
 public:
   /**

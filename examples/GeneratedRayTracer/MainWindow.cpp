@@ -74,7 +74,7 @@ struct MainWindow::Private {
   
   QString fileName;
 
-  Display* display;
+  RenderDisplay* display;
   PreviewDisplayWidget* materialDisplay;
   PropertyEditorWidget* propertyEditorWidget;
   SceneModel* elementModel;
@@ -164,7 +164,7 @@ MainWindow::MainWindow()
 {
   p->scene = new ::Scene(nullptr);
 
-  p->display = new Display(this);
+  p->display = new RenderDisplay(this);
   p->display->setScene(p->scene);
   setCentralWidget(p->display);
   
@@ -795,15 +795,15 @@ void MainWindow::render() {
 }
 
 void MainWindow::usePreviewRaytracer() {
-  p->display->setEngineKind(Display::EngineKind::Raytracer);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Raytracer);
 }
 
 void MainWindow::usePreviewRasterizer() {
-  p->display->setEngineKind(Display::EngineKind::Rasterizer);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
 }
 
 void MainWindow::usePreviewWireframe() {
-  p->display->setEngineKind(Display::EngineKind::Wireframe);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Wireframe);
 }
 
 void MainWindow::setAspectStretch() {

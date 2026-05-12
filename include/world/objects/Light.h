@@ -16,10 +16,10 @@ namespace render {
   * position part of the transformation.
   */
 class Light : public Transformable {
-  Q_OBJECT;
-  Q_PROPERTY(bool visible READ visible WRITE setVisible);
-  Q_PROPERTY(Colord color READ color WRITE setColor);
-  Q_PROPERTY(double intensity READ intensity WRITE setIntensity);
+  Q_OBJECT
+  Q_PROPERTY(bool visible READ visible WRITE setVisible)
+  Q_PROPERTY(Colord color READ color WRITE setColor)
+  Q_PROPERTY(double intensity READ intensity WRITE setIntensity)
 
 public:
   /**

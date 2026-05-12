@@ -49,7 +49,7 @@ namespace render {
   * @see QtDisplay — interactive variant with click-to-pick.
   */
 class RenderWidget : public QWidget {
-  Q_OBJECT;
+  Q_OBJECT
 public:
   enum class DisplayMode {
     /// Periodically copy the whole back buffer while rendering.

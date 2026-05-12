@@ -13,7 +13,7 @@ namespace engine::raytracer {
 }
 
 class RenderWindow : public QWidget {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   explicit RenderWindow(QWidget* parent = nullptr);

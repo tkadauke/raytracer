@@ -10,7 +10,7 @@
   * @image html union.png "Union between a red box and a blue sphere"
   */
 class Union : public CSGSurface {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   /**
