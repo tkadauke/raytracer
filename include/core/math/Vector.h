@@ -1110,9 +1110,10 @@ public:
 #include "core/math/vector/sse3/Vector4f.h"
 #include "core/math/vector/sse3/Vector3d.h"
 #include "core/math/vector/sse3/Vector4d.h"
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+
+// The pop is deferred to after the typedef aliases and structured-bindings
+// support below, since those also reference the SSE3-specialised types and
+// would otherwise trigger -Wignored-attributes outside the suppressed block.
 
 /**
   * Two-dimensional vector with float components.
@@ -1184,3 +1185,7 @@ inline T get(const Vector3<T>& v) { static_assert(I < 3u, "Vector3 index out of 
 
 template<size_t I, class T>
 inline T get(const Vector4<T>& v) { static_assert(I < 4u, "Vector4 index out of range"); return v.coordinate(static_cast<int>(I)); }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
