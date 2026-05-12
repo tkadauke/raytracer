@@ -361,13 +361,13 @@ private:
 
 template<class T>
 const BoundingBox<T>& BoundingBox<T>::undefined() {
-  static BoundingBox<T> b(Vector3d::undefined(), Vector3d::undefined());
+  static BoundingBox<T> b(Vector3<T>::undefined(), Vector3<T>::undefined());
   return b;
 }
 
 template<class T>
 const BoundingBox<T>& BoundingBox<T>::infinity() {
-  static BoundingBox<T> b(Vector3d::minusInfinity(), Vector3d::plusInfinity());
+  static BoundingBox<T> b(Vector3<T>::minusInfinity(), Vector3<T>::plusInfinity());
   return b;
 }
 
