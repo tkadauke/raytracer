@@ -474,7 +474,7 @@ namespace BoundingBoxTest {
     ASSERT_TRUE(box.intersect(ray, interval));
     // Ray along +X from x=-3: enters at x=-1 (t=2) and exits at x=+1 (t=4)
     EXPECT_NEAR(double(interval.begin()), 2.0, 1e-5);
-    EXPECT_NEAR(double(interval.end()),   4.0, 1e-5);
+    EXPECT_NEAR(double(interval.end()), 4.0, 1e-5);
   }
 
   TYPED_TEST(BoundingBoxTest, ShouldReturnIntervalForMissingRay) {

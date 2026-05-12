@@ -15,7 +15,7 @@
 
 namespace {
 
-template <typename T>
+template<typename T>
 std::vector<Rayd> generateRays(int count, T extent) {
   std::mt19937 rng(42);
   std::uniform_real_distribution<double> origin(-double(extent) * 2, double(extent) * 2);
@@ -32,7 +32,7 @@ std::vector<Rayd> generateRays(int count, T extent) {
   return rays;
 }
 
-template <typename T>
+template<typename T>
 void bm_intersects(benchmark::State& state) {
   BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   const auto rays = generateRays<T>(256, T(2));
@@ -50,7 +50,7 @@ void bm_intersects(benchmark::State& state) {
 // 10k-ray batch — the primary gate for the Phase 1.2 SIMD target (≥3×).
 // Larger than L1 D-cache so it exercises the out-of-order engine under
 // realistic memory pressure.
-template <typename T>
+template<typename T>
 void bm_intersects_batch(benchmark::State& state) {
   BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   const auto rays = generateRays<T>(10000, T(2));
@@ -67,7 +67,7 @@ void bm_intersects_batch(benchmark::State& state) {
 
 // Batch variant for the new intersect(Ray, Range&) overload that returns
 // the [t_enter, t_exit] interval — lets BVH avoid recomputing entry times.
-template <typename T>
+template<typename T>
 void bm_intersect_interval(benchmark::State& state) {
   BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   const auto rays = generateRays<T>(10000, T(2));
@@ -84,7 +84,7 @@ void bm_intersect_interval(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * rays.size());
 }
 
-template <typename T>
+template<typename T>
 void bm_contains_point(benchmark::State& state) {
   BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   std::vector<Vector3<T>> points;
@@ -104,7 +104,7 @@ void bm_contains_point(benchmark::State& state) {
   state.SetItemsProcessed(state.iterations() * points.size());
 }
 
-template <typename T>
+template<typename T>
 void bm_union(benchmark::State& state) {
   BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   BoundingBox<T> b(Vector3<T>(0, 0, 0), Vector3<T>(2, 2, 2));
@@ -116,7 +116,7 @@ void bm_union(benchmark::State& state) {
   }
 }
 
-template <typename T>
+template<typename T>
 void bm_intersection(benchmark::State& state) {
   BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   BoundingBox<T> b(Vector3<T>(0, 0, 0), Vector3<T>(2, 2, 2));
@@ -128,7 +128,7 @@ void bm_intersection(benchmark::State& state) {
   }
 }
 
-template <typename T>
+template<typename T>
 void bm_volume(benchmark::State& state) {
   BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
   for (auto _ : state) {
@@ -138,7 +138,7 @@ void bm_volume(benchmark::State& state) {
   }
 }
 
-template <typename T>
+template<typename T>
 void bm_include_point(benchmark::State& state) {
   std::vector<Vector3<T>> points;
   std::mt19937 rng(11);

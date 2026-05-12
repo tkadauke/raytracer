@@ -409,13 +409,13 @@ bool BoundingBox<T>::intersects(const Rayd& ray) const {
   const T enter_x = t1x < t2x ? t1x : t2x;
   const T enter_y = t1y < t2y ? t1y : t2y;
   const T enter_z = t1z < t2z ? t1z : t2z;
-  const T exit_x  = t1x > t2x ? t1x : t2x;
-  const T exit_y  = t1y > t2y ? t1y : t2y;
-  const T exit_z  = t1z > t2z ? t1z : t2z;
+  const T exit_x = t1x > t2x ? t1x : t2x;
+  const T exit_y = t1y > t2y ? t1y : t2y;
+  const T exit_z = t1z > t2z ? t1z : t2z;
   const T enter_xy = enter_x > enter_y ? enter_x : enter_y;
-  const T t_enter  = enter_xy > enter_z ? enter_xy : enter_z;
-  const T exit_xy  = exit_x  < exit_y  ? exit_x  : exit_y;
-  const T t_exit   = exit_xy  < exit_z  ? exit_xy  : exit_z;
+  const T t_enter = enter_xy > enter_z ? enter_xy : enter_z;
+  const T exit_xy = exit_x < exit_y ? exit_x : exit_y;
+  const T t_exit = exit_xy < exit_z ? exit_xy : exit_z;
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
 
@@ -434,13 +434,13 @@ bool BoundingBox<T>::intersect(const Rayd& ray, Range<T>& interval) const {
   const T enter_x = t1x < t2x ? t1x : t2x;
   const T enter_y = t1y < t2y ? t1y : t2y;
   const T enter_z = t1z < t2z ? t1z : t2z;
-  const T exit_x  = t1x > t2x ? t1x : t2x;
-  const T exit_y  = t1y > t2y ? t1y : t2y;
-  const T exit_z  = t1z > t2z ? t1z : t2z;
+  const T exit_x = t1x > t2x ? t1x : t2x;
+  const T exit_y = t1y > t2y ? t1y : t2y;
+  const T exit_z = t1z > t2z ? t1z : t2z;
   const T enter_xy = enter_x > enter_y ? enter_x : enter_y;
-  const T t_enter  = enter_xy > enter_z ? enter_xy : enter_z;
-  const T exit_xy  = exit_x  < exit_y  ? exit_x  : exit_y;
-  const T t_exit   = exit_xy  < exit_z  ? exit_xy  : exit_z;
+  const T t_enter = enter_xy > enter_z ? enter_xy : enter_z;
+  const T exit_xy = exit_x < exit_y ? exit_x : exit_y;
+  const T t_exit = exit_xy < exit_z ? exit_xy : exit_z;
   interval = Range<T>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= T(0.0);
 }
@@ -455,36 +455,36 @@ template<>
 inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
   // X+Y: two lanes of __m128d — _mm_set_pd(high=y, low=x)
-  const __m128d min_xy  = _mm_set_pd(m_min.y(), m_min.x());
-  const __m128d max_xy  = _mm_set_pd(m_max.y(), m_max.x());
+  const __m128d min_xy = _mm_set_pd(m_min.y(), m_min.x());
+  const __m128d max_xy = _mm_set_pd(m_max.y(), m_max.x());
   const __m128d orig_xy = _mm_set_pd(ray.origin().y(), ray.origin().x());
   // Use _mm_div_pd so both reciprocals are computed in one SIMD instruction.
-  const __m128d dir_xy  = _mm_set_pd(ray.direction().y(), ray.direction().x());
+  const __m128d dir_xy = _mm_set_pd(ray.direction().y(), ray.direction().x());
   const __m128d invd_xy = _mm_div_pd(_mm_set1_pd(1.0), dir_xy);
 
   const __m128d t1_xy = _mm_mul_pd(_mm_sub_pd(min_xy, orig_xy), invd_xy);
   const __m128d t2_xy = _mm_mul_pd(_mm_sub_pd(max_xy, orig_xy), invd_xy);
 
   const __m128d enter_xy = _mm_min_pd(t1_xy, t2_xy);
-  const __m128d exit_xy  = _mm_max_pd(t1_xy, t2_xy);
+  const __m128d exit_xy = _mm_max_pd(t1_xy, t2_xy);
 
   // Z axis — scalar; ternary min/max become conditional moves under -O3.
   // Ternary operators avoid -Wdangling-reference on std::min/std::max.
-  const double invDz  = 1.0 / ray.direction().z();
-  const double t1z    = (m_min.z() - ray.origin().z()) * invDz;
-  const double t2z    = (m_max.z() - ray.origin().z()) * invDz;
+  const double invDz = 1.0 / ray.direction().z();
+  const double t1z = (m_min.z() - ray.origin().z()) * invDz;
+  const double t2z = (m_max.z() - ray.origin().z()) * invDz;
   const double enter_z = t1z < t2z ? t1z : t2z;
-  const double exit_z  = t1z > t2z ? t1z : t2z;
+  const double exit_z = t1z > t2z ? t1z : t2z;
 
   // Horizontal reduce: max(enter_x, enter_y) then max with enter_z
   // _mm_unpackhi_pd([x,y],[x,y]) = [y, y]
-  const __m128d enter_y    = _mm_unpackhi_pd(enter_xy, enter_xy);
-  const double  t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
-  const double  t_enter    = t_enter_xy > enter_z ? t_enter_xy : enter_z;
+  const __m128d enter_y = _mm_unpackhi_pd(enter_xy, enter_xy);
+  const double t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
+  const double t_enter = t_enter_xy > enter_z ? t_enter_xy : enter_z;
 
-  const __m128d exit_y    = _mm_unpackhi_pd(exit_xy, exit_xy);
-  const double  t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
-  const double  t_exit    = t_exit_xy < exit_z ? t_exit_xy : exit_z;
+  const __m128d exit_y = _mm_unpackhi_pd(exit_xy, exit_xy);
+  const double t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
+  const double t_exit = t_exit_xy < exit_z ? t_exit_xy : exit_z;
 
   return t_enter <= t_exit && t_exit >= 0.0;
 }
@@ -492,31 +492,31 @@ inline bool BoundingBox<double>::intersects(const Rayd& ray) const {
 template<>
 inline bool BoundingBox<double>::intersect(const Rayd& ray, Range<double>& interval) const {
   RAYTRACER_STATS_INC(rayBoxIntersects);
-  const __m128d min_xy  = _mm_set_pd(m_min.y(), m_min.x());
-  const __m128d max_xy  = _mm_set_pd(m_max.y(), m_max.x());
+  const __m128d min_xy = _mm_set_pd(m_min.y(), m_min.x());
+  const __m128d max_xy = _mm_set_pd(m_max.y(), m_max.x());
   const __m128d orig_xy = _mm_set_pd(ray.origin().y(), ray.origin().x());
-  const __m128d dir_xy  = _mm_set_pd(ray.direction().y(), ray.direction().x());
+  const __m128d dir_xy = _mm_set_pd(ray.direction().y(), ray.direction().x());
   const __m128d invd_xy = _mm_div_pd(_mm_set1_pd(1.0), dir_xy);
 
   const __m128d t1_xy = _mm_mul_pd(_mm_sub_pd(min_xy, orig_xy), invd_xy);
   const __m128d t2_xy = _mm_mul_pd(_mm_sub_pd(max_xy, orig_xy), invd_xy);
 
   const __m128d enter_xy = _mm_min_pd(t1_xy, t2_xy);
-  const __m128d exit_xy  = _mm_max_pd(t1_xy, t2_xy);
+  const __m128d exit_xy = _mm_max_pd(t1_xy, t2_xy);
 
-  const double invDz   = 1.0 / ray.direction().z();
-  const double t1z     = (m_min.z() - ray.origin().z()) * invDz;
-  const double t2z     = (m_max.z() - ray.origin().z()) * invDz;
+  const double invDz = 1.0 / ray.direction().z();
+  const double t1z = (m_min.z() - ray.origin().z()) * invDz;
+  const double t2z = (m_max.z() - ray.origin().z()) * invDz;
   const double enter_z = t1z < t2z ? t1z : t2z;
-  const double exit_z  = t1z > t2z ? t1z : t2z;
+  const double exit_z = t1z > t2z ? t1z : t2z;
 
-  const __m128d enter_y    = _mm_unpackhi_pd(enter_xy, enter_xy);
-  const double  t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
-  const double  t_enter    = t_enter_xy > enter_z ? t_enter_xy : enter_z;
+  const __m128d enter_y = _mm_unpackhi_pd(enter_xy, enter_xy);
+  const double t_enter_xy = _mm_cvtsd_f64(_mm_max_sd(enter_xy, enter_y));
+  const double t_enter = t_enter_xy > enter_z ? t_enter_xy : enter_z;
 
-  const __m128d exit_y    = _mm_unpackhi_pd(exit_xy, exit_xy);
-  const double  t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
-  const double  t_exit    = t_exit_xy < exit_z ? t_exit_xy : exit_z;
+  const __m128d exit_y = _mm_unpackhi_pd(exit_xy, exit_xy);
+  const double t_exit_xy = _mm_cvtsd_f64(_mm_min_sd(exit_xy, exit_y));
+  const double t_exit = t_exit_xy < exit_z ? t_exit_xy : exit_z;
 
   interval = Range<double>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= 0.0;
