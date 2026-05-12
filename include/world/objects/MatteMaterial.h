@@ -15,10 +15,10 @@ class Texture;
   * </tr></table>
   */
 class MatteMaterial : public Material {
-  Q_OBJECT;
-  Q_PROPERTY(Texture* diffuseTexture READ diffuseTexture WRITE setDiffuseTexture);
-  Q_PROPERTY(double ambientCoefficient READ ambientCoefficient WRITE setAmbientCoefficient);
-  Q_PROPERTY(double diffuseCoefficient READ diffuseCoefficient WRITE setDiffuseCoefficient);
+  Q_OBJECT
+  Q_PROPERTY(Texture* diffuseTexture READ diffuseTexture WRITE setDiffuseTexture)
+  Q_PROPERTY(double ambientCoefficient READ ambientCoefficient WRITE setAmbientCoefficient)
+  Q_PROPERTY(double diffuseCoefficient READ diffuseCoefficient WRITE setDiffuseCoefficient)
 
 public:
   /**

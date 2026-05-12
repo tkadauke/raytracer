@@ -16,9 +16,9 @@
   * </tr></table>
   */
 class OpenCylinder : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(double radius READ radius WRITE setRadius);
-  Q_PROPERTY(double height READ height WRITE setHeight);
+  Q_OBJECT
+  Q_PROPERTY(double radius READ radius WRITE setRadius)
+  Q_PROPERTY(double height READ height WRITE setHeight)
 
 public:
   explicit OpenCylinder(Element* parent = nullptr);

@@ -8,7 +8,7 @@ namespace render {
 }
 
 class QtDisplay : public RenderWidget {
-  Q_OBJECT;
+  Q_OBJECT
 public:
   explicit QtDisplay(QWidget* parent, std::shared_ptr<render::RenderEngine> engine);
   ~QtDisplay();

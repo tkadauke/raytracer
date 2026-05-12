@@ -5,7 +5,7 @@
 class Element;
 
 class SceneModel : public QAbstractItemModel {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   explicit SceneModel(Element* root, QObject* parent = nullptr);

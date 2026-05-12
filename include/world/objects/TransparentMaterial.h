@@ -16,11 +16,11 @@
   * </tr></table>
   */
 class TransparentMaterial : public PhongMaterial {
-  Q_OBJECT;
-  Q_PROPERTY(double transmissionCoefficient READ transmissionCoefficient WRITE setTransmissionCoefficient);
-  Q_PROPERTY(double refractionIndex READ refractionIndex WRITE setRefractionIndex);
-  Q_PROPERTY(Colord reflectionColor READ reflectionColor WRITE setReflectionColor);
-  Q_PROPERTY(double reflectionCoefficient READ reflectionCoefficient WRITE setReflectionCoefficient);
+  Q_OBJECT
+  Q_PROPERTY(double transmissionCoefficient READ transmissionCoefficient WRITE setTransmissionCoefficient)
+  Q_PROPERTY(double refractionIndex READ refractionIndex WRITE setRefractionIndex)
+  Q_PROPERTY(Colord reflectionColor READ reflectionColor WRITE setReflectionColor)
+  Q_PROPERTY(double reflectionCoefficient READ reflectionCoefficient WRITE setReflectionCoefficient)
 
 public:
   /**

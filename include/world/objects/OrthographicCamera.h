@@ -14,8 +14,8 @@
   * </tr></table>
   */
 class OrthographicCamera : public Camera {
-  Q_OBJECT;
-  Q_PROPERTY(double zoom READ zoom WRITE setZoom);
+  Q_OBJECT
+  Q_PROPERTY(double zoom READ zoom WRITE setZoom)
   
 public:
   /**

@@ -10,7 +10,7 @@
   * @image html intersection.png "Intersection between a red box and a blue sphere"
   */
 class Intersection : public CSGSurface {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   /**

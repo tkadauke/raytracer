@@ -8,8 +8,8 @@
   * Represents a texture that has the same color regardless of position.
   */
 class ConstantColorTexture : public Texture {
-  Q_OBJECT;
-  Q_PROPERTY(Colord color READ color WRITE setColor);
+  Q_OBJECT
+  Q_PROPERTY(Colord color READ color WRITE setColor)
   
 public:
   /**

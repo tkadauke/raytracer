@@ -20,7 +20,7 @@ using namespace std;
 using namespace render;
 using namespace render;
 
-Display::Display()
+RenderDisplay::RenderDisplay()
   : QtDisplay(nullptr, std::make_shared<engine::raytracer::Raytracer>(nullptr)),
     m_camera(std::make_shared<PinholeCamera>()),
     m_cameraParameter(nullptr)
@@ -50,22 +50,22 @@ Display::Display()
   connect(m_cameraType, SIGNAL(changed()), this, SLOT(cameraTypeChanged()));
 }
 
-Display::~Display() {
+RenderDisplay::~RenderDisplay() {
   delete m_sidebar;
 }
 
-void Display::sceneChanged() {
+void RenderDisplay::sceneChanged() {
   stop();
   m_engine->setScene(SceneFactory::self().createShared(m_scene->sceneName()));
   render();
 }
 
-void Display::viewPlaneTypeChanged() {
+void RenderDisplay::viewPlaneTypeChanged() {
   m_camera->setViewPlane(render::ViewPlaneFactory::self().createShared(m_viewPlaneType->type()));
   render();
 }
 
-void Display::cameraTypeChanged() {
+void RenderDisplay::cameraTypeChanged() {
   stop();
   m_camera = CameraFactory::self().createShared(m_cameraType->type());
   m_engine->setCamera(m_camera);
@@ -86,13 +86,13 @@ void Display::cameraTypeChanged() {
   viewPlaneTypeChanged();
 }
 
-void Display::cameraParameterChanged() {
+void RenderDisplay::cameraParameterChanged() {
   stop();
   m_cameraParameter->applyTo(m_camera);
   render();
 }
 
-void Display::mousePressEvent(QMouseEvent* event) {
+void RenderDisplay::mousePressEvent(QMouseEvent* event) {
   QtDisplay::mousePressEvent(event);
 
   // Ctrl-click ray-state probe is raytracer-specific; skip if the

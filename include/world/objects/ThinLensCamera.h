@@ -34,11 +34,11 @@
   * renders look like shifted pinholes rather than blurred photographs.
   */
 class ThinLensCamera : public Camera {
-  Q_OBJECT;
-  Q_PROPERTY(double distance READ distance WRITE setDistance);
-  Q_PROPERTY(double zoom READ zoom WRITE setZoom);
-  Q_PROPERTY(double apertureRadius READ apertureRadius WRITE setApertureRadius);
-  Q_PROPERTY(double focalDistance READ focalDistance WRITE setFocalDistance);
+  Q_OBJECT
+  Q_PROPERTY(double distance READ distance WRITE setDistance)
+  Q_PROPERTY(double zoom READ zoom WRITE setZoom)
+  Q_PROPERTY(double apertureRadius READ apertureRadius WRITE setApertureRadius)
+  Q_PROPERTY(double focalDistance READ focalDistance WRITE setFocalDistance)
 
 public:
   /**

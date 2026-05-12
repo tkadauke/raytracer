@@ -13,7 +13,7 @@ namespace AbstractParameterWidgetTest {
   // from a Qt input control. Kept inside the test TU so we can reach
   // parameterChanged() (a protected slot) by calling it ourselves.
   class TestParameterWidget : public AbstractParameterWidget {
-    Q_OBJECT;
+    Q_OBJECT
   public:
     explicit TestParameterWidget(QWidget* parent = nullptr)
       : AbstractParameterWidget(parent), m_value() {}

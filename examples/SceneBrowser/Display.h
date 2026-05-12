@@ -12,12 +12,12 @@ namespace render {
   class Camera;
 }
 
-class Display : public QtDisplay {
-  Q_OBJECT;
+class RenderDisplay : public QtDisplay {
+  Q_OBJECT
 
 public:
-  Display();
-  ~Display();
+  RenderDisplay();
+  ~RenderDisplay();
   
   virtual void mousePressEvent(QMouseEvent* event);
 

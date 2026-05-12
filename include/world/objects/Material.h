@@ -11,7 +11,7 @@ namespace render {
   * Abstract base class for materials.
   */
 class Material : public Element {
-  Q_OBJECT;
+  Q_OBJECT
 
 public:
   /**

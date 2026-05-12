@@ -79,8 +79,8 @@ class QJSEngine;
   * </tr></table>
   */
 class ScriptedSurface : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(QString scriptName READ scriptName WRITE setScriptName);
+  Q_OBJECT
+  Q_PROPERTY(QString scriptName READ scriptName WRITE setScriptName)
 
 public:
   /**

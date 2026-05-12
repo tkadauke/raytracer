@@ -9,8 +9,8 @@
   * light to approximate light sources like the sun.
   */
 class DirectionalLight : public Light {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d direction READ direction WRITE setDirection);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d direction READ direction WRITE setDirection)
 
 public:
   /**

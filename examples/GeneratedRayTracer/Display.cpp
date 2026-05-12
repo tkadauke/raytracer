@@ -21,7 +21,7 @@
 
 using namespace std;
 
-Display::Display(QWidget* parent)
+RenderDisplay::RenderDisplay(QWidget* parent)
   : QtDisplay(parent, std::make_shared<engine::raytracer::Raytracer>(nullptr))
 {
   // The QtDisplay base now holds the active engine in m_engine. Cache
@@ -33,10 +33,10 @@ Display::Display(QWidget* parent)
   applyPreviewPolicy(EngineKind::Raytracer);
 }
 
-Display::~Display() {
+RenderDisplay::~RenderDisplay() {
 }
 
-void Display::setEngineKind(EngineKind kind) {
+void RenderDisplay::setEngineKind(EngineKind kind) {
   // Stop any in-flight render before swapping; the new engine
   // inherits the old engine's scene + camera so the preview keeps
   // looking at the same thing.
@@ -61,7 +61,7 @@ void Display::setEngineKind(EngineKind kind) {
   render();
 }
 
-void Display::setScene(Scene* scene) {
+void RenderDisplay::setScene(Scene* scene) {
   // In-flight preview renders use an engine snapshot, so replacing
   // the control engine's scene does not tear the scene out from
   // under the worker that is finishing the previous frame.
@@ -69,7 +69,7 @@ void Display::setScene(Scene* scene) {
   render();
 }
 
-void Display::applyPreviewPolicy(EngineKind kind) {
+void RenderDisplay::applyPreviewPolicy(EngineKind kind) {
   setShowProgressIndicators(false);
   if (m_raytracerEngine) {
     m_raytracerEngine->setShowProgressIndicators(false);
@@ -89,7 +89,7 @@ void Display::applyPreviewPolicy(EngineKind kind) {
   setCancelRenderOnInteraction(false);
 }
 
-void Display::mousePressEvent(QMouseEvent* event) {
+void RenderDisplay::mousePressEvent(QMouseEvent* event) {
   QtDisplay::mousePressEvent(event);
 
   if (event->modifiers() & Qt::ControlModifier) {

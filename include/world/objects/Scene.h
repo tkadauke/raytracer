@@ -12,9 +12,9 @@ namespace render {
 }
 
 class Scene : public Element {
-  Q_OBJECT;
-  Q_PROPERTY(Colord ambient READ ambient WRITE setAmbient);
-  Q_PROPERTY(Colord background READ background WRITE setBackground);
+  Q_OBJECT
+  Q_PROPERTY(Colord ambient READ ambient WRITE setAmbient)
+  Q_PROPERTY(Colord background READ background WRITE setBackground)
   
 public:
   /**

@@ -18,10 +18,10 @@
   * </tr></table>
   */
 class PhongMaterial : public MatteMaterial {
-  Q_OBJECT;
-  Q_PROPERTY(Colord specularColor READ specularColor WRITE setSpecularColor);
-  Q_PROPERTY(double exponent READ exponent WRITE setExponent);
-  Q_PROPERTY(double specularCoefficient READ specularCoefficient WRITE setSpecularCoefficient);
+  Q_OBJECT
+  Q_PROPERTY(Colord specularColor READ specularColor WRITE setSpecularColor)
+  Q_PROPERTY(double exponent READ exponent WRITE setExponent)
+  Q_PROPERTY(double specularCoefficient READ specularCoefficient WRITE setSpecularCoefficient)
 
 public:
   /**

@@ -4,7 +4,7 @@
 #include "widgets/CameraParameterWidget.h"
 
 class FishEyeCameraParameterWidget : public CameraParameterWidget {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   explicit FishEyeCameraParameterWidget(QWidget* parent = nullptr);

@@ -9,7 +9,7 @@
   * @image html convex_hull.png "Convex hull of two spheres"
   */
 class ConvexHull : public CSGSurface {
-  Q_OBJECT;
+  Q_OBJECT
   
 public:
   /**

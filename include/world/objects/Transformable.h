@@ -17,10 +17,10 @@
   * @see render::Instance
   */
 class Transformable : public Element {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d position READ position WRITE setPosition);
-  Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation);
-  Q_PROPERTY(Vector3d scale READ scale WRITE setScale);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d position READ position WRITE setPosition)
+  Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation)
+  Q_PROPERTY(Vector3d scale READ scale WRITE setScale)
   
 public:
   /**

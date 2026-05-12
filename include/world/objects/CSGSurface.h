@@ -8,8 +8,8 @@
   * @image html csg_surface.png "Complex CSG object"
   */
 class CSGSurface : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(bool active READ active WRITE setActive);
+  Q_OBJECT
+  Q_PROPERTY(bool active READ active WRITE setActive)
   
 public:
   /**

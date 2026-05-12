@@ -27,11 +27,11 @@
   * </tr></table>
   */
 class PortalMaterial : public Material {
-  Q_OBJECT;
-  Q_PROPERTY(Vector3d position READ position WRITE setPosition);
-  Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation);
-  Q_PROPERTY(Vector3d scale READ scale WRITE setScale);
-  Q_PROPERTY(Colord filterColor READ filterColor WRITE setFilterColor);
+  Q_OBJECT
+  Q_PROPERTY(Vector3d position READ position WRITE setPosition)
+  Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation)
+  Q_PROPERTY(Vector3d scale READ scale WRITE setScale)
+  Q_PROPERTY(Colord filterColor READ filterColor WRITE setFilterColor)
 
 public:
   /**

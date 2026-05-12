@@ -29,10 +29,10 @@
   * accordingly.
   */
 class TiltShiftCamera : public ThinLensCamera {
-  Q_OBJECT;
-  Q_PROPERTY(Angled tilt READ tilt WRITE setTilt);
-  Q_PROPERTY(double shiftX READ shiftX WRITE setShiftX);
-  Q_PROPERTY(double shiftY READ shiftY WRITE setShiftY);
+  Q_OBJECT
+  Q_PROPERTY(Angled tilt READ tilt WRITE setTilt)
+  Q_PROPERTY(double shiftX READ shiftX WRITE setShiftX)
+  Q_PROPERTY(double shiftY READ shiftY WRITE setShiftY)
 
 public:
   /**

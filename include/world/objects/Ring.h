@@ -10,11 +10,11 @@
   * @image html ring.png "Ring with origin (0, 0, 0), outer radius 1, inner radius 0.5 and height 2"
   */
 class Ring : public Surface {
-  Q_OBJECT;
-  Q_PROPERTY(double outerRadius READ outerRadius WRITE setOuterRadius);
-  Q_PROPERTY(double innerRadius READ innerRadius WRITE setInnerRadius);
-  Q_PROPERTY(double height READ height WRITE setHeight);
-  Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius);
+  Q_OBJECT
+  Q_PROPERTY(double outerRadius READ outerRadius WRITE setOuterRadius)
+  Q_PROPERTY(double innerRadius READ innerRadius WRITE setInnerRadius)
+  Q_PROPERTY(double height READ height WRITE setHeight)
+  Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius)
   
 public:
   /**
