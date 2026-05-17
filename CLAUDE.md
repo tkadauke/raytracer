@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (and similar coding agents) when work
 - Qt 5 (`QtCore`, `QtGui`, `QtWidgets`, `QtScript`) for widgets and example apps — Qt 6 migration is on the modernization roadmap (`docs/modernize.md` §3.10).
 - CMake 3.28+ with Ninja as the primary build, driven by `CMakePresets.json`. The `Rakefile` is a thin layer of project utilities that wraps the CMake presets (`rake build` / `rake release` / `rake test`) and hosts the cppcheck, inline-method, line-stat, and Doxygen-image-render tasks.
 - GoogleTest + GoogleMock 1.14 via CMake `FetchContent` (no longer vendored).
-- Doxygen for API docs, published to GitHub Pages on push to master.
+- Doxygen for API docs (published flow currently parked; see `docs/plans/github_actions/README.md`).
 - `cppcheck` for static analysis; `clang-format` and `clang-tidy` configs are checked in (`.clang-format`, `.clang-tidy`).
 - `gcovr`/`lcov` for coverage; LibFuzzer harness for the PLY parser; Google Benchmark for SSE3 microbenchmarks.
 - SSE3 optimizations on supported targets.
@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (and similar coding agents) when work
 - `tools/rendercli/` — command-line renderer
 - `scripts/` — Ruby/JS helpers, including `render_docs.rb` and scene scripts
 - `Dockerfile`, `.devcontainer/` — container image (rendercli only) and dev container
-- `.github/workflows/` — CI, CodeQL, Dependabot, Doxygen Pages
+- `.syrus.yml` — Syrus-native CI graders (`build-test`, `textbook`); runs on every implement→grade iteration. The old `.github/workflows/` are parked in `docs/plans/github_actions/` — see the README there for what migrated and what's awaiting Syrus features to come back.
 - `CMakeLists.txt`, `CMakePresets.json`, `Rakefile`, `Doxyfile`, `.cppchecksuppress`, `.clang-format`, `.clang-tidy` — top-level config
 
 ## Common Commands

@@ -73,4 +73,4 @@ Other useful Rake tasks: `rake docs:render` regenerates the Doxygen example imag
 * Write tests
 * Send a pull request
 
-See [`CLAUDE.md`](CLAUDE.md) for repository conventions and common commands, and [`docs/modernize.md`](docs/modernize.md) for the 2026 modernization roadmap (CMake migration, Qt 6, GitHub Actions CI, supply-chain hardening).
+See [`CLAUDE.md`](CLAUDE.md) for repository conventions and common commands, and [`docs/modernize.md`](docs/modernize.md) for the 2026 modernization roadmap (CMake migration, Qt 6, supply-chain hardening). CI runs via Syrus graders defined in [`.syrus.yml`](.syrus.yml); the parked GitHub Actions workflows live under [`docs/plans/github_actions/`](docs/plans/github_actions/) with a README explaining what migrated and what's awaiting features.
