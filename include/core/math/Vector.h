@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <tuple>
@@ -1189,3 +1190,100 @@ inline T get(const Vector4<T>& v) { static_assert(I < 4u, "Vector4 index out of 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
+// ---------------------------------------------------------------------------
+// std::hash specializations — enables unordered_map/unordered_set keys.
+// ---------------------------------------------------------------------------
+namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+
+  template<int Dimensions, class T, class StorageCellType, class Derived>
+  struct hash<Vector<Dimensions, T, StorageCellType, Derived>> {
+    size_t operator()(const Vector<Dimensions, T, StorageCellType, Derived>& v) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      for (int i = 0; i < Dimensions; ++i)
+        seed ^= h(v.coordinate(i)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Vector2<T>> {
+    size_t operator()(const Vector2<T>& v) const noexcept {
+      size_t seed = hash<T>{}(v.coordinate(0));
+      seed ^= hash<T>{}(v.coordinate(1)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Vector3<T>> {
+    size_t operator()(const Vector3<T>& v) const noexcept {
+      size_t seed = hash<T>{}(v.coordinate(0));
+      seed ^= hash<T>{}(v.coordinate(1)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      seed ^= hash<T>{}(v.coordinate(2)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Vector4<T>> {
+    size_t operator()(const Vector4<T>& v) const noexcept {
+      size_t seed = hash<T>{}(v.coordinate(0));
+      seed ^= hash<T>{}(v.coordinate(1)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      seed ^= hash<T>{}(v.coordinate(2)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      seed ^= hash<T>{}(v.coordinate(3)) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// std::formatter specializations (C++20). Fallback: the operator<< above.
+// ---------------------------------------------------------------------------
+#if defined(__cplusplus) && __cplusplus >= 202002L
+#  if __has_include(<format>)
+#    include <format>
+#  endif
+#endif
+
+#ifdef __cpp_lib_format
+
+template<int Dimensions, class T, class StorageCellType, class Derived>
+struct std::formatter<Vector<Dimensions, T, StorageCellType, Derived>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const Vector<Dimensions, T, StorageCellType, Derived>& v, std::format_context& ctx) const {
+    auto out = std::format_to(ctx.out(), "(");
+    for (int i = 0; i < Dimensions; ++i) {
+      if (i > 0) out = std::format_to(out, ", ");
+      out = std::format_to(out, "{}", v.coordinate(i));
+    }
+    return std::format_to(out, ")");
+  }
+};
+
+template<class T>
+struct std::formatter<Vector2<T>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const Vector2<T>& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "({}, {})", v.coordinate(0), v.coordinate(1));
+  }
+};
+
+template<class T>
+struct std::formatter<Vector3<T>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const Vector3<T>& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "({}, {}, {})", v.coordinate(0), v.coordinate(1), v.coordinate(2));
+  }
+};
+
+template<class T>
+struct std::formatter<Vector4<T>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const Vector4<T>& v, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "({}, {}, {}, {})", v.coordinate(0), v.coordinate(1), v.coordinate(2), v.coordinate(3));
+  }
+};
+
+#endif  // __cpp_lib_format
