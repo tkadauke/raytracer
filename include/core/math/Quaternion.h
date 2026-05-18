@@ -3,6 +3,7 @@
 #include "core/InequalityOperator.h"
 #include "core/math/Matrix.h"
 #include <cmath>
+#include <functional>
 
 template<class T>
 class Quaternion : public InequalityOperator<Quaternion<T>> {
@@ -198,3 +199,35 @@ std::ostream& operator<<(std::ostream& os, const Quaternion<T>& quaternion) {
 
 typedef Quaternion<float> Quaternionf;
 typedef Quaternion<double> Quaterniond;
+
+// ---------------------------------------------------------------------------
+// std::hash specialization — enables unordered_map/unordered_set keys.
+// ---------------------------------------------------------------------------
+namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+
+  template<class T>
+  struct hash<Quaternion<T>> {
+    size_t operator()(const Quaternion<T>& q) const noexcept {
+      size_t seed = hash<T>{}(q.w());
+      seed ^= hash<T>{}(q.x()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      seed ^= hash<T>{}(q.y()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      seed ^= hash<T>{}(q.z()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// std::formatter specialization (C++20). Fallback: the operator<< above.
+// ---------------------------------------------------------------------------
+#ifdef __cpp_lib_format
+
+template<class T>
+struct std::formatter<Quaternion<T>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const Quaternion<T>& q, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "[{}, {} {} {}]", q.w(), q.x(), q.y(), q.z());
+  }
+};
+
+#endif  // __cpp_lib_format

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <iostream>
 #include <cmath>
 #include <type_traits>
@@ -1182,3 +1183,74 @@ typedef Matrix4<float> Matrix4f;
   * Four-dimensional matrix with double components.
   */
 typedef Matrix4<double> Matrix4d;
+
+// ---------------------------------------------------------------------------
+// std::hash specializations — enables unordered_map/unordered_set keys.
+// ---------------------------------------------------------------------------
+namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+
+  template<int Dimensions, class T, class VectorType, class Derived>
+  struct hash<Matrix<Dimensions, T, VectorType, Derived>> {
+    size_t operator()(const Matrix<Dimensions, T, VectorType, Derived>& m) const noexcept {
+      size_t seed = 0;
+      hash<T> h;
+      for (int row = 0; row < Dimensions; ++row)
+        for (int col = 0; col < Dimensions; ++col)
+          seed ^= h(m[row][col]) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template<class T>
+  struct hash<Matrix2<T>> {
+    size_t operator()(const Matrix2<T>& m) const noexcept {
+      return hash<Matrix<2, T, Vector2<T>, Matrix2<T>>>{}(m);
+    }
+  };
+
+  template<class T>
+  struct hash<Matrix3<T>> {
+    size_t operator()(const Matrix3<T>& m) const noexcept {
+      return hash<Matrix<3, T, Vector3<T>, Matrix3<T>>>{}(m);
+    }
+  };
+
+  template<class T>
+  struct hash<Matrix4<T>> {
+    size_t operator()(const Matrix4<T>& m) const noexcept {
+      return hash<Matrix<4, T, Vector4<T>, Matrix4<T>>>{}(m);
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// std::formatter specializations (C++20). Fallback: the operator<< above.
+// ---------------------------------------------------------------------------
+#ifdef __cpp_lib_format
+
+template<int Dimensions, class T, class VectorType, class Derived>
+struct std::formatter<Matrix<Dimensions, T, VectorType, Derived>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const Matrix<Dimensions, T, VectorType, Derived>& m, std::format_context& ctx) const {
+    auto out = ctx.out();
+    for (int row = 0; row < Dimensions; ++row) {
+      for (int col = 0; col < Dimensions; ++col) {
+        if (col > 0) out = std::format_to(out, " ");
+        out = std::format_to(out, "{}", m[row][col]);
+      }
+      out = std::format_to(out, "\n");
+    }
+    return out;
+  }
+};
+
+template<class T>
+struct std::formatter<Matrix2<T>> : std::formatter<Matrix<2, T, Vector2<T>, Matrix2<T>>> {};  // NOLINT(cert-dcl58-cpp)
+
+template<class T>
+struct std::formatter<Matrix3<T>> : std::formatter<Matrix<3, T, Vector3<T>, Matrix3<T>>> {};  // NOLINT(cert-dcl58-cpp)
+
+template<class T>
+struct std::formatter<Matrix4<T>> : std::formatter<Matrix<4, T, Vector4<T>, Matrix4<T>>> {};  // NOLINT(cert-dcl58-cpp)
+
+#endif  // __cpp_lib_format

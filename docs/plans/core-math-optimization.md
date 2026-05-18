@@ -369,13 +369,15 @@ these get reinvented in Camera classes.~~
 
 **Benchmark gate:** none expected. ✅ **Done.** All four factories added to `include/core/math/Matrix.h`; `Camera::matrix()` routed through `lookAt`, removing the open-coded duplicate and fixing a latent non-normalized-right-vector bug for cameras not looking horizontally. Unit tests added in `test/unit/core/math/MatrixTest.cpp`.
 
-### 3.6 `std::hash` and `std::formatter` specializations
+### ~~3.6 `std::hash` and `std::formatter` specializations~~
 
-For `Vector3`, `Vector4`, `Matrix4`, `Quaternion`. Hash unlocks
+~~For `Vector3`, `Vector4`, `Matrix4`, `Quaternion`. Hash unlocks
 unordered-map keys (mesh vertex deduplication, etc.); formatter
-unlocks `std::format` integration for debug output.
+unlocks `std::format` integration for debug output.~~
 
 **Benchmark gate:** none expected.
+
+✅ **Done.** `std::hash` added for `Vector2/3/4<T>` (including SSE3 float/double specializations), the generic `Vector` base, `Matrix2/3/4<T>`, `BoundingBox<T>`, and `Quaternion<T>` — all using Boost-style hash-combine. `std::formatter` specializations compile in on C++20+ toolchains (`__cpp_lib_format`); `operator<<` is the C++17 fallback. Unit tests cover vertex-dedup via `unordered_map<Vector3d, int>`, equal-hash invariants for all types, and `operator<<` output format. (syrus/issue-147-363)
 
 ### ~~3.7 `Constants.h` — `inline constexpr`~~
 

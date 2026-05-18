@@ -7,6 +7,7 @@
 #include "core/math/Ray.h"
 #include "render/Stats.h"
 
+#include <functional>
 #include <iostream>
 #include <algorithm>
 
@@ -543,3 +544,33 @@ typedef BoundingBox<float> BoundingBoxf;
   * Shortcut for bounding box with double precision.
   */
 typedef BoundingBox<double> BoundingBoxd;
+
+// ---------------------------------------------------------------------------
+// std::hash specialization — enables unordered_map/unordered_set keys.
+// ---------------------------------------------------------------------------
+namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+
+  template<class T>
+  struct hash<BoundingBox<T>> {
+    size_t operator()(const BoundingBox<T>& b) const noexcept {
+      size_t seed = hash<Vector3<T>>{}(b.min());
+      seed ^= hash<Vector3<T>>{}(b.max()) + size_t(0x9e3779b9) + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+}
+
+// ---------------------------------------------------------------------------
+// std::formatter specialization (C++20). Fallback: the operator<< above.
+// ---------------------------------------------------------------------------
+#ifdef __cpp_lib_format
+
+template<class T>
+struct std::formatter<BoundingBox<T>> {  // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+  auto format(const BoundingBox<T>& b, std::format_context& ctx) const {
+    return std::format_to(ctx.out(), "{}-{}", b.min(), b.max());
+  }
+};
+
+#endif  // __cpp_lib_format
