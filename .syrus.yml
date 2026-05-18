@@ -26,14 +26,15 @@ grade:
   steps:
     - name: build-test
       # cmake configure is idempotent; ninja incremental rebuild on
-      # iterations 2-5 is seconds, not minutes. xvfb is required because
-      # several widget tests construct a QApplication. Default compiler
-      # is g++-12 from build-essential — CMakePresets.json's release
-      # preset doesn't pin a compiler.
+      # iterations 2-5 is seconds, not minutes. QT_QPA_PLATFORM=offscreen
+      # lets widget tests that construct a QApplication run without a real
+      # display server (xvfb requires xauth, which is absent in the worker
+      # image). Default compiler is g++-12 from build-essential —
+      # CMakePresets.json's release preset doesn't pin a compiler.
       run: |
         cmake --preset release && \
         cmake --build --preset release --parallel && \
-        xvfb-run --auto-servernum ctest --preset release --parallel $(nproc) --output-on-failure
+        QT_QPA_PLATFORM=offscreen ctest --preset release --parallel $(nproc) --output-on-failure
       timeout_minutes: 20
 
     - name: textbook
