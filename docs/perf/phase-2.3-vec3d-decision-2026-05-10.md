@@ -1,0 +1,122 @@
+# Phase 2.3 decision benchmark — Vector3\<double\> SSE3 resolution
+
+**Date:** 2026-05-10
+
+Benchmark comparing four implementations of `Vector3<double>` to decide
+which resolution wins for Phase 2.3 of `docs/plans/core-math-optimization.md`.
+
+## Hardware / toolchain
+
+- x86\_64 (Intel), Linux 5.15.0
+- g++ (Debian 12.2.0), `-std=c++17 -O3 -msse3 -mavx2 -funroll-loops`
+- CPU pinned to core 0 (`taskset -c 0`) to reduce scheduling noise
+- 5 000 000 iterations per benchmark with 100 000 warmup reps
+- DCE barrier: `asm volatile("" : "+m"(a), "+m"(b))` per iteration
+
+## Implementations tested
+
+| Name | Description |
+|------|-------------|
+| `baseline-sse3` | Current code: two `__m128d` registers, UB union dot product, scalar cross product fallback. (`Vector3d.h` as of master.) |
+| `option-C-fixed-sse3` | Same two-`__m128d` storage but dot product fixed via `_mm_hadd_pd` (no UB). Tests whether fixing the UB alone preserves the dot-product advantage. |
+| `option-A-scalar` | Plain scalar struct with 3-double array; no intrinsics. With `-O3 -mavx2` the compiler can autovectorize. |
+| `option-B-avx2` | Single `__m256d` register storing `(x,y,z,0)`; full cross-product via `_mm256_permute4x64_pd` shuffles. |
+
+All times in ns/op. Lower is better.
+
+## Benchmark results
+
+### Run 1
+
+| Implementation | dot | add | s\*mul | cross | norm | reflect |
+|---|---|---|---|---|---|---|
+| `baseline-sse3` | 0.613 | 0.592 | 0.597 | 0.645 | 2.810 | 1.210 |
+| `option-C-fixed-sse3` | 1.130 | 0.568 | 0.563 | 0.569 | 2.967 | 1.720 |
+| `option-A-scalar` | 0.790 | 0.564 | 0.567 | 0.564 | 3.010 | 1.014 |
+| `option-B-avx2` | 0.947 | 0.577 | 0.573 | 1.136 | 2.887 | 1.422 |
+
+### Run 2
+
+| Implementation | dot | add | s\*mul | cross | norm | reflect |
+|---|---|---|---|---|---|---|
+| `baseline-sse3` | 0.570 | 0.547 | 0.550 | 0.544 | 2.806 | 1.111 |
+| `option-C-fixed-sse3` | 1.071 | 0.549 | 0.535 | 0.534 | 2.751 | 1.522 |
+| `option-A-scalar` | 0.792 | 0.575 | 0.543 | 0.531 | 2.689 | 0.939 |
+| `option-B-avx2` | 0.922 | 0.562 | 0.547 | 1.094 | 2.769 | 1.426 |
+
+### Run 3
+
+| Implementation | dot | add | s\*mul | cross | norm | reflect |
+|---|---|---|---|---|---|---|
+| `baseline-sse3` | 0.601 | 0.563 | 0.559 | 0.561 | 2.807 | 1.070 |
+| `option-C-fixed-sse3` | 1.126 | 0.558 | 0.560 | 0.559 | 2.971 | 1.561 |
+| `option-A-scalar` | 0.678 | 0.560 | 0.552 | 0.549 | 2.973 | 0.969 |
+| `option-B-avx2` | 0.908 | 0.563 | 0.547 | 1.127 | 2.851 | 1.406 |
+
+## Analysis
+
+### dot product
+
+The baseline (UB union) wins at 0.57–0.61 ns. But Option C — which fixes the
+UB using `_mm_hadd_pd` — is dramatically **slower** at 1.07–1.13 ns (+80% vs
+baseline). The union trick happens to produce register-resident values that the
+compiler reads directly from XMM without memory round-trips; `_mm_hadd_pd` has
+3–4 cycle latency and loses badly. Option A (scalar) is in between at
+0.68–0.79 ns. Option B (AVX2) is 0.91–0.95 ns.
+
+**Conclusion:** the baseline's dot advantage is entirely due to the UB. Any
+correct implementation (Option A or Option C) is competitive or worse on dot.
+
+### add / scalar\_mul / normalize
+
+All four implementations are within noise of each other (0.54–0.60 ns for
+add, 0.54–0.60 ns for scalar\_mul, 2.7–3.0 ns for normalize). No clear winner.
+
+### cross product
+
+Baseline SSE3 and Option C both use a scalar fallback: ~0.54–0.65 ns.
+Option A (scalar): ~0.53–0.56 ns — essentially identical to baseline.
+Option B (AVX2): 1.09–1.14 ns — consistently **2× slower** than scalar.
+The permute-based AVX2 cross product is dominated by shuffle latency; scalar
+code on a modern out-of-order CPU wins here.
+
+### reflect chain (realistic shading pipeline: `i - 2*(i·n)*n`)
+
+| Implementation | Range (ns) | vs baseline |
+|---|---|---|
+| `baseline-sse3` | 1.07–1.21 | — |
+| `option-C-fixed-sse3` | 1.52–1.72 | +50% (hadd latency propagates) |
+| `option-A-scalar` | 0.94–1.01 | **7–14% faster** |
+| `option-B-avx2` | 1.41–1.43 | +30% slower |
+
+## Decision: Option A (delete the SSE3 specialization)
+
+1. The baseline SSE3 dot-product advantage is entirely due to UB type-punning
+   that happens to produce register-resident values. Fixing the UB (Option C)
+   makes dot 80% slower than the UB version — worse than scalar.
+
+2. Option A (scalar) is the only correct implementation that is competitive
+   across all benchmarks, and it's 7–14% faster on the reflect chain, the
+   most realistic shading workload.
+
+3. Option B (AVX2) loses on cross product (2×) and is not clearly better
+   anywhere else. Eliminated.
+
+4. Per the plan: "if results are inconclusive, default to A (delete) —
+   simpler is better." The results are in fact conclusive: once the UB is
+   accounted for, Option A wins or ties on every operation except dot product,
+   where it is 25% slower than the UB baseline (but equal to or faster than
+   any correct specialization).
+
+5. Option A also unblocks compiler autovectorization at call sites — a benefit
+   that single-op microbenchmarks cannot measure but real workloads can exploit.
+
+## Reproduction
+
+Standalone benchmark source: `benchmarks/vec3d_option_bench.cpp`
+
+```sh
+g++ -std=c++17 -O3 -msse3 -mavx2 -funroll-loops \
+    -I include -o bench_vec3d_options \
+    benchmarks/vec3d_option_bench.cpp
+```
