@@ -86,7 +86,17 @@ public:
     for (int i = 0; i != num; ++i) {
       res.values[res.count++] = m_result[i];
     }
+    // GCC 12 inlines std::sort's insertion-sort path (threshold 16) and emits
+    // a false-positive -Warray-bounds for the fixed-size array.  The access is
+    // dead code for N <= 16; suppress the diagnostic locally.
+#if defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
     std::sort(res.begin(), res.end());
+#if defined(__GNUC__) && !defined(__clang__)
+#  pragma GCC diagnostic pop
+#endif
     return res;
   }
 

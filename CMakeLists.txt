@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.25)
 project(raytracer
   VERSION 0.1.0
   DESCRIPTION "Multithreaded raytracing library with interactive Qt viewer"
