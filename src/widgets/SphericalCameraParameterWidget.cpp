@@ -14,6 +14,12 @@ SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
     p(std::make_unique<Private>())
 {
   p->ui.setupUi(this);
+  // Update the value labels when the sliders move.  Use lambdas rather than
+  // &QLabel::setNum to avoid the int/double overload ambiguity in Qt 6.
+  connect(p->ui.horizontalFieldOfViewSlider, &QSlider::valueChanged, this,
+          [this](int v) { p->ui.horizontalFieldOfViewLabel->setNum(v); });
+  connect(p->ui.verticalFieldOfViewSlider, &QSlider::valueChanged, this,
+          [this](int v) { p->ui.verticalFieldOfViewLabel->setNum(v); });
   connect(p->ui.horizontalFieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
   connect(p->ui.verticalFieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
 }

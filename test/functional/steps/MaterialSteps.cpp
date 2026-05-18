@@ -100,7 +100,7 @@ THEN(EngineFeatureTest, "i should see a dim red sphere") {
 
 THEN(EngineFeatureTest, "i should see a (red|green|blue) sphere") {
   ASSERT_TRUE(test->colorPresent(namedColor(match[1])));
-  if (match[1] != "red") ASSERT_FALSE(test->colorPresent(Colord(1, 0, 0)));
+  if (match[1] != "red") { ASSERT_FALSE(test->colorPresent(Colord(1, 0, 0))); }
 }
 
 THEN(EngineFeatureTest, "i should see a specular highlight") {
