@@ -2,7 +2,14 @@
 #include "core/math/Vector.h"
 #include "test/helpers/TypeTestHelper.h"
 
+#include <functional>
 #include <limits>
+#include <unordered_map>
+#include <unordered_set>
+
+#if __cplusplus >= 202002L && __has_include(<format>)
+#include <format>
+#endif
 
 using namespace std;
 
@@ -809,6 +816,59 @@ namespace Vector3Test {
     vec.setZ(5);
     ASSERT_EQ(Vector3<TypeParam>(3, 4, 5), vec);
   }
+
+  TYPED_TEST(Vector3Test, HashOfEqualVectorsIsEqual) {
+    hash<Vector3<TypeParam>> h;
+    EXPECT_EQ(h(Vector3<TypeParam>(1, 2, 3)), h(Vector3<TypeParam>(1, 2, 3)));
+  }
+
+  TYPED_TEST(Vector3Test, HashOfDistinctVectorsDiffers) {
+    hash<Vector3<TypeParam>> h;
+    EXPECT_NE(h(Vector3<TypeParam>(1, 0, 0)), h(Vector3<TypeParam>(0, 1, 0)));
+    EXPECT_NE(h(Vector3<TypeParam>(1, 0, 0)), h(Vector3<TypeParam>(0, 0, 1)));
+    EXPECT_NE(h(Vector3<TypeParam>(0, 1, 0)), h(Vector3<TypeParam>(0, 0, 1)));
+  }
+
+  TYPED_TEST(Vector3Test, WorksAsUnorderedMapKey) {
+    unordered_map<Vector3<TypeParam>, int> map;
+    map[Vector3<TypeParam>(1, 0, 0)] = 1;
+    map[Vector3<TypeParam>(0, 1, 0)] = 2;
+    map[Vector3<TypeParam>(0, 0, 1)] = 3;
+    EXPECT_EQ(map[Vector3<TypeParam>(1, 0, 0)], 1);
+    EXPECT_EQ(map[Vector3<TypeParam>(0, 1, 0)], 2);
+    EXPECT_EQ(map[Vector3<TypeParam>(0, 0, 1)], 3);
+    EXPECT_EQ(map.size(), 3u);
+  }
+
+  TYPED_TEST(Vector3Test, WorksAsUnorderedSetElement) {
+    unordered_set<Vector3<TypeParam>> set;
+    set.insert(Vector3<TypeParam>(1, 0, 0));
+    set.insert(Vector3<TypeParam>(0, 1, 0));
+    set.insert(Vector3<TypeParam>(1, 0, 0));
+    EXPECT_EQ(set.size(), 2u);
+  }
+
+  TYPED_TEST(Vector3Test, HashDistributionForTypicalPopulation) {
+    unordered_set<Vector3<TypeParam>> set;
+    TypeParam vals[] = {-1, -0.5, 0, 0.5, 1};
+    for (TypeParam x : vals)
+      for (TypeParam y : vals)
+        for (TypeParam z : vals)
+          set.insert(Vector3<TypeParam>(x, y, z));
+    EXPECT_GE(set.size(), 100u);
+  }
+
+#ifdef __cpp_lib_format
+  TYPED_TEST(Vector3Test, FormatsVector3) {
+    Vector3<TypeParam> v(1, 2, 3);
+    EXPECT_EQ(format("{}", v), "(1, 2, 3)");
+  }
+
+  TYPED_TEST(Vector3Test, FormatsZeroVector3) {
+    Vector3<TypeParam> v(0, 0, 0);
+    EXPECT_EQ(format("{}", v), "(0, 0, 0)");
+  }
+#endif
 }
 
 namespace Vector4Test {
@@ -1054,4 +1114,34 @@ namespace Vector4Test {
     vec.setW(5);
     ASSERT_EQ(Vector4<TypeParam>(3, 4, 2, 5), vec);
   }
+
+  TYPED_TEST(Vector4Test, HashOfEqualVectorsIsEqual) {
+    hash<Vector4<TypeParam>> h;
+    EXPECT_EQ(h(Vector4<TypeParam>(1, 2, 3, 4)), h(Vector4<TypeParam>(1, 2, 3, 4)));
+  }
+
+  TYPED_TEST(Vector4Test, HashOfDistinctVectorsDiffers) {
+    hash<Vector4<TypeParam>> h;
+    EXPECT_NE(h(Vector4<TypeParam>(1, 0, 0, 0)), h(Vector4<TypeParam>(0, 1, 0, 0)));
+    EXPECT_NE(h(Vector4<TypeParam>(1, 0, 0, 0)), h(Vector4<TypeParam>(0, 0, 1, 0)));
+    EXPECT_NE(h(Vector4<TypeParam>(1, 0, 0, 0)), h(Vector4<TypeParam>(0, 0, 0, 1)));
+  }
+
+  TYPED_TEST(Vector4Test, WorksAsUnorderedMapKey) {
+    unordered_map<Vector4<TypeParam>, string> map;
+    map[Vector4<TypeParam>(1, 0, 0, 0)] = "x";
+    map[Vector4<TypeParam>(0, 1, 0, 0)] = "y";
+    map[Vector4<TypeParam>(0, 0, 1, 0)] = "z";
+    map[Vector4<TypeParam>(0, 0, 0, 1)] = "w";
+    EXPECT_EQ(map[Vector4<TypeParam>(1, 0, 0, 0)], "x");
+    EXPECT_EQ(map[Vector4<TypeParam>(0, 0, 0, 1)], "w");
+    EXPECT_EQ(map.size(), 4u);
+  }
+
+#ifdef __cpp_lib_format
+  TYPED_TEST(Vector4Test, FormatsVector4) {
+    Vector4<TypeParam> v(1, 2, 3, 4);
+    EXPECT_EQ(format("{}", v), "(1, 2, 3, 4)");
+  }
+#endif
 }

@@ -2,7 +2,13 @@
 #include "core/math/Quaternion.h"
 #include "core/math/Vector.h"
 
+#include <functional>
 #include <sstream>
+#include <unordered_set>
+
+#if __cplusplus >= 202002L && __has_include(<format>)
+#include <format>
+#endif
 
 namespace QuaternionTest {
   using namespace std;
@@ -105,10 +111,43 @@ namespace QuaternionTest {
 
   TYPED_TEST(QuaternionTest, ShouldStreamQuaternionToString) {
     Quaternion<TypeParam> quaternion(4, 1, 2, 3);
-    
+
     ostringstream str;
     str << quaternion;
-    
+
     ASSERT_EQ("[4, 1 2 3]", str.str());
   }
+
+  TYPED_TEST(QuaternionTest, HashOfEqualQuaternionsIsEqual) {
+    hash<Quaternion<TypeParam>> h;
+    EXPECT_EQ(h(Quaternion<TypeParam>(1, 2, 3, 4)), h(Quaternion<TypeParam>(1, 2, 3, 4)));
+  }
+
+  TYPED_TEST(QuaternionTest, HashOfDistinctQuaternionsDiffers) {
+    hash<Quaternion<TypeParam>> h;
+    EXPECT_NE(h(Quaternion<TypeParam>(1, 0, 0, 0)), h(Quaternion<TypeParam>(0, 1, 0, 0)));
+    EXPECT_NE(h(Quaternion<TypeParam>(1, 0, 0, 0)), h(Quaternion<TypeParam>(0, 0, 1, 0)));
+    EXPECT_NE(h(Quaternion<TypeParam>(1, 0, 0, 0)), h(Quaternion<TypeParam>(0, 0, 0, 1)));
+  }
+
+  TYPED_TEST(QuaternionTest, WorksAsUnorderedSetElement) {
+    unordered_set<Quaternion<TypeParam>> set;
+    set.insert(Quaternion<TypeParam>(1, 0, 0, 0));
+    set.insert(Quaternion<TypeParam>(0, 1, 0, 0));
+    set.insert(Quaternion<TypeParam>(0, 0, 1, 0));
+    set.insert(Quaternion<TypeParam>(1, 0, 0, 0));
+    EXPECT_EQ(set.size(), 3u);
+  }
+
+#ifdef __cpp_lib_format
+  TYPED_TEST(QuaternionTest, FormatsIdentityQuaternion) {
+    Quaternion<TypeParam> q;
+    EXPECT_EQ(format("{}", q), "[1, 0 0 0]");
+  }
+
+  TYPED_TEST(QuaternionTest, FormatsArbitraryQuaternion) {
+    Quaternion<TypeParam> q(4, 1, 2, 3);
+    EXPECT_EQ(format("{}", q), "[4, 1 2 3]");
+  }
+#endif
 }

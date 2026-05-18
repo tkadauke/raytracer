@@ -6,7 +6,13 @@
 #include "test/helpers/MatrixTestHelper.h"
 #include "test/helpers/TypeTestHelper.h"
 
+#include <functional>
 #include <sstream>
+#include <unordered_map>
+
+#if __cplusplus >= 202002L && __has_include(<format>)
+#include <format>
+#endif
 
 using namespace std;
 
@@ -1049,4 +1055,39 @@ namespace Matrix4Test {
     Vector3f expected(1, 2, 3);
     ASSERT_EQ(expected, Matrix4<TypeParam>::translate(expected).translationVector());
   }
+
+  TYPED_TEST(Matrix4Test, HashOfEqualMatricesIsEqual) {
+    hash<Matrix4<TypeParam>> h;
+    EXPECT_EQ(h(Matrix4<TypeParam>()), h(Matrix4<TypeParam>()));
+  }
+
+  TYPED_TEST(Matrix4Test, HashOfDistinctMatricesDiffers) {
+    hash<Matrix4<TypeParam>> h;
+    Matrix4<TypeParam> identity;
+    Matrix4<TypeParam> translated = Matrix4<TypeParam>::translate(1, 0, 0);
+    EXPECT_NE(h(identity), h(translated));
+  }
+
+  TYPED_TEST(Matrix4Test, WorksAsUnorderedMapKey) {
+    unordered_map<Matrix4<TypeParam>, int> map;
+    Matrix4<TypeParam> id;
+    Matrix4<TypeParam> tx = Matrix4<TypeParam>::translate(1, 0, 0);
+    Matrix4<TypeParam> ty = Matrix4<TypeParam>::translate(0, 1, 0);
+    map[id] = 0;
+    map[tx] = 1;
+    map[ty] = 2;
+    EXPECT_EQ(map[id], 0);
+    EXPECT_EQ(map[tx], 1);
+    EXPECT_EQ(map[ty], 2);
+    EXPECT_EQ(map.size(), 3u);
+  }
+
+#ifdef __cpp_lib_format
+  TYPED_TEST(Matrix4Test, FormatsIdentityMatrix4) {
+    Matrix4<TypeParam> m;
+    string result = format("{}", m);
+    EXPECT_FALSE(result.empty());
+    EXPECT_NE(result.find("1"), string::npos);
+  }
+#endif
 }
