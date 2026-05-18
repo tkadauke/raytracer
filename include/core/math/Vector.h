@@ -102,6 +102,23 @@ public:
   }
 
   /**
+    * Component-wise constructor: accepts exactly Dimensions values convertible
+    * to T.  Allows Vector<3, float, float, void>(x, y, z) for the generic
+    * base type (used in SIMD regression tests and vertex-dedup benchmarks).
+    * The concrete subclasses (Vector3<T> etc.) provide their own typed
+    * constructors that take priority when called on the derived type.
+    */
+  template<class... Args,
+           typename = std::enable_if_t<
+             sizeof...(Args) == static_cast<std::size_t>(Dimensions) &&
+             (std::is_convertible_v<Args, T> && ...)>>
+  inline explicit Vector(Args&&... args) {
+    T values[] = {static_cast<T>(std::forward<Args>(args))...};
+    for (int i = 0; i != Dimensions; ++i)
+      m_coordinates[i] = values[i];
+  }
+
+  /**
     * Constructs a Vector<T> from an arbitrary-dimensioned and arbitrary-
     * typed source Vector. Any fields not contained in the source vector will
     * be initialized with zeroes.

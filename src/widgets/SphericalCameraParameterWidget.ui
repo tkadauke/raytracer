@@ -122,38 +122,5 @@
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>horizontalFieldOfViewSlider</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>horizontalFieldOfViewLabel</receiver>
-   <slot>setNum(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>112</x>
-     <y>57</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>195</x>
-     <y>23</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>verticalFieldOfViewSlider</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>verticalFieldOfViewLabel</receiver>
-   <slot>setNum(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>112</x>
-     <y>125</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>199</x>
-     <y>91</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>
