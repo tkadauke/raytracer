@@ -89,6 +89,20 @@ namespace render {
     double eyeRelativeDepth(const Vector3d& worldPoint) const override;
 
     /**
+      * @returns the orthographic projection matrix that maps camera-space
+      *   points into clip space. Built from `Matrix4::orthographic` using the
+      *   current view-plane dimensions.
+      *
+      *   `x` and `y` of the result are normalized viewport coordinates in
+      *   `[-1, 1]`; `w` is always 1 (no perspective divide). `z` maps the
+      *   camera-space depth range `[0, 1e6]` to NDC `[-1, +1]`.
+      *
+      *   Callers that need the camera-space-z clip convention used by the
+      *   software rasterizer should use `projectPointToClipSpace` instead.
+      */
+    Matrix4d projectionMatrix() const;
+
+    /**
       * @returns the camera'z zoom.
       */
     inline double zoom() const {

@@ -88,23 +88,24 @@ Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const 
   return Vector3d(x, y, depth);
 }
 
+Matrix4d PinholeCamera::projectionMatrix() const {
+  auto plane = viewPlane();
+  const double halfW = plane->hSpan() * plane->pixelSize() / 2.0;
+  const double halfH = plane->vSpan() * plane->pixelSize() / 2.0;
+  return Matrix4d::frustum(-halfW, halfW, -halfH, halfH, m_distance, 1e6);
+}
+
 Vector4d PinholeCamera::projectPointToClipSpace(const Vector3d& worldPoint) const {
   const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
+  // Eye sits at camera-space (0,0,-distance); shift z so the eye is at the
+  // origin before applying the frustum projection matrix.
   const double depth = pCam.z() + m_distance;
-  auto plane = viewPlane();
-  const double pxSize = plane->pixelSize();
-  // halfH and halfV are the camera-space half-extents; the clip-space
-  // x/y convention maps [-1, 1] to the view-plane edges.
-  const double halfH = plane->hSpan() / 2.0;
-  const double halfV = plane->vSpan() / 2.0;
-  return Vector4d(
-    pCam.x() * m_distance / (pxSize * halfH),
-    pCam.y() * m_distance / (pxSize * halfV),
-    depth,
-    depth
-  );
+  const Vector4d v = projectionMatrix() * Vector4d(pCam.x(), pCam.y(), depth, 1.0);
+  // Use raw eye depth for both z and w: the rasterizer's HomogeneousClipVolume
+  // near test and depth buffer operate in eye-space units, not NDC z.
+  return Vector4d(v.x(), v.y(), depth, depth);
 }
 
 double PinholeCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {

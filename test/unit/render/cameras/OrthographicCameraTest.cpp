@@ -81,4 +81,36 @@ using namespace render;
     EXPECT_GT(inFront.z(), 0.0);
     EXPECT_LT(behind.z(), 0.0);
   }
+
+  TEST(OrthographicCamera, ProjectionMatrixMapsViewPlaneEdgeToNdcOne) {
+    // projectionMatrix() is built via Matrix4::orthographic; verify the
+    // canonical property: a point at the right edge of the view plane
+    // (x = halfW) should project to NDC x = +1.
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    auto plane = camera.viewPlane();
+    const double halfW = plane->hSpan() * plane->pixelSize() / 2.0;
+
+    const Matrix4d m = camera.projectionMatrix();
+    const Vector4d v = m * Vector4d(halfW, 0, 0, 1.0);
+    EXPECT_NEAR(1.0, v.x(), 1e-9);
+  }
+
+  TEST(OrthographicCamera, ProjectionMatrixIsConsistentWithProjectPointToClipSpace) {
+    // The x and y components of projectPointToClipSpace must match the x and y
+    // produced by applying projectionMatrix() directly.
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    const Vector3d worldPoint(1.5, -0.5, 4.0);
+    const Vector4d clip = camera.projectPointToClipSpace(worldPoint);
+
+    const Vector3d pCam = camera.inverseMatrix() * Vector4d(worldPoint);
+    const Vector4d v = camera.projectionMatrix() * Vector4d(pCam.x(), pCam.y(), pCam.z(), 1.0);
+
+    ASSERT_FALSE(clip.isUndefined());
+    EXPECT_NEAR(v.x(), clip.x(), 1e-9);
+    EXPECT_NEAR(v.y(), clip.y(), 1e-9);
+  }
 }

@@ -230,4 +230,51 @@ using namespace render;
     EXPECT_EQ(0.0, atEye.w());
     EXPECT_LT(behindEye.w(), 0.0);
   }
+
+  TEST(PinholeCamera, ProjectionMatrixMapsViewPlaneEdgeToNdcOne) {
+    // projectionMatrix() is built via Matrix4::frustum; verify the canonical
+    // property: a point at the right edge of the view plane (x = halfW) at
+    // the near plane (z = distance) should project to NDC x = +1.
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    auto plane = camera.viewPlane();
+    const double halfW = plane->hSpan() * plane->pixelSize() / 2.0;
+    const double near = camera.distance();
+
+    const Matrix4d m = camera.projectionMatrix();
+    const Vector4d v = m * Vector4d(halfW, 0, near, 1.0);
+    EXPECT_NEAR(1.0, v.x() / v.w(), 1e-9);
+  }
+
+  TEST(PinholeCamera, ProjectionMatrixMapsViewPlaneTopEdgeToNdcOne) {
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    auto plane = camera.viewPlane();
+    const double halfH = plane->vSpan() * plane->pixelSize() / 2.0;
+    const double near = camera.distance();
+
+    const Matrix4d m = camera.projectionMatrix();
+    const Vector4d v = m * Vector4d(0, halfH, near, 1.0);
+    EXPECT_NEAR(1.0, v.y() / v.w(), 1e-9);
+  }
+
+  TEST(PinholeCamera, ProjectionMatrixIsConsistentWithProjectPointToClipSpace) {
+    // The x/w and y/w components of projectPointToClipSpace must match those
+    // produced by applying projectionMatrix() to the eye-shifted camera point.
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    initViewPlane(camera, 200, 150);
+
+    const Vector3d worldPoint(2.0, -1.0, 3.0);
+    const Vector4d clip = camera.projectPointToClipSpace(worldPoint);
+
+    const Vector3d pCam = camera.inverseMatrix() * Vector4d(worldPoint);
+    const double depth = pCam.z() + camera.distance();
+    const Vector4d v = camera.projectionMatrix() * Vector4d(pCam.x(), pCam.y(), depth, 1.0);
+
+    ASSERT_FALSE(clip.isUndefined());
+    EXPECT_NEAR(v.x() / v.w(), clip.x() / clip.w(), 1e-9);
+    EXPECT_NEAR(v.y() / v.w(), clip.y() / clip.w(), 1e-9);
+  }
 }

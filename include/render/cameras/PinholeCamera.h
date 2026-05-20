@@ -89,6 +89,21 @@ namespace render {
     }
 
     /**
+      * @returns the perspective projection matrix that maps eye-space points
+      *   (translated so the eye is at the origin) into clip space. The matrix
+      *   is built from `Matrix4::frustum` using the current view-plane
+      *   dimensions and `distance` as the near-plane distance.
+      *
+      *   `x/w` and `y/w` of the result are normalized viewport coordinates
+      *   in `[-1, 1]`; `w` is the eye-relative depth. `z` maps the depth
+      *   range `[distance, far]` to NDC `[-1, +1]`.
+      *
+      *   Callers that need the raw-depth clip convention used by the
+      *   software rasterizer should use `projectPointToClipSpace` instead.
+      */
+    Matrix4d projectionMatrix() const;
+
+    /**
       * Sets the distance between the eye and the viewplane. A lower distance
       * results in a higher field of view.
       * 
