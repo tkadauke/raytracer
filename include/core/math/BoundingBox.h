@@ -83,7 +83,7 @@ public:
     *   box is only valid if all components of min() are smaller than or equal
     *   to their corresponding component of max().
     */
-  inline bool isValid() const {
+  [[nodiscard]] inline bool isValid() const noexcept {
     return min().x() <= max().x() &&
            min().y() <= max().y() &&
            min().z() <= max().z();
@@ -93,7 +93,7 @@ public:
     * @returns true if the bounding box is undefined, false otherwise. A
     *   bounding box is undefined if either of the corner vectors is undefined.
     */
-  inline bool isUndefined() const {
+  [[nodiscard]] inline bool isUndefined() const noexcept {
     return min().isUndefined() || max().isUndefined();
   }
 
@@ -102,78 +102,78 @@ public:
     *   bounding box is infinitely large if at least one coordinate from any of
     *   the corner vectors is infinte.
     */
-  inline bool isInfinite() const {
+  [[nodiscard]] inline bool isInfinite() const noexcept {
     return min().isInfinite() || max().isInfinite();
   }
 
   /**
     * @returns the smaller corner vector.
     */
-  inline const Vector3<T>& min() const {
+  [[nodiscard]] inline const Vector3<T>& min() const noexcept {
     return m_min;
   }
-  
+
   /**
     * @returns the larger corner vector.
     */
-  inline const Vector3<T>& max() const {
+  [[nodiscard]] inline const Vector3<T>& max() const noexcept {
     return m_max;
   }
-  
+
   /**
     * @returns the size of the bounding box, which is the difference of the
     *   max() and min() points.
     */
-  inline Vector3<T> size() const {
+  [[nodiscard]] inline Vector3<T> size() const noexcept {
     return max() - min();
   }
-  
+
   /**
     * @returns the center point of the bounding box.
     */
-  inline Vector3<T> center() const {
+  [[nodiscard]] inline Vector3<T> center() const noexcept {
     return (min() + max()) * 0.5;
   }
-  
+
   /**
     * @returns the width of the bounding box, i.e. the size along the X axis.
     */
-  inline T width() const {
+  [[nodiscard]] inline T width() const noexcept {
     return max().x() - min().x();
   }
-  
+
   /**
     * @returns the height of the bounding box, i.e. the size along the Y axis.
     */
-  inline T height() const {
+  [[nodiscard]] inline T height() const noexcept {
     return max().y() - min().y();
   }
-  
+
   /**
     * @returns the depth of the bounding box, i.e. the size along the Z axis.
     */
-  inline T depth() const {
+  [[nodiscard]] inline T depth() const noexcept {
     return max().z() - min().z();
   }
-  
+
   /**
     * @returns the volume of the bounding box.
     */
-  inline T volume() const {
+  [[nodiscard]] inline T volume() const noexcept {
     return width() * height() * depth();
   }
-  
+
   /**
     * @returns true if the volume of the bounding box is 0, false otherwise.
     */
-  inline bool isEmpty() const {
+  [[nodiscard]] inline bool isEmpty() const noexcept {
     return volume() == 0;
   }
-  
+
   /**
     * @returns true if this bounding box is equal to @p other, false otherwise.
     */
-  inline bool operator==(const BoundingBox& other) const {
+  [[nodiscard]] inline bool operator==(const BoundingBox& other) const noexcept {
     if (this == &other)
       return true;
     return min() == other.min() && max() == other.max();
@@ -191,7 +191,7 @@ public:
     * 
     * @returns the smallest bouding box that contains both this and @p other.
     */
-  inline BoundingBox operator|(const BoundingBox& other) const {
+  [[nodiscard]] inline BoundingBox operator|(const BoundingBox& other) const noexcept {
     BoundingBox result(*this);
     result.include(other);
     return result;
@@ -210,7 +210,7 @@ public:
     * @returns the smallest bounding box that contains all points that are both
     *   contained in this and in @p other.
     */
-  inline BoundingBox operator&(const BoundingBox& other) const {
+  [[nodiscard]] inline BoundingBox operator&(const BoundingBox& other) const noexcept {
     const T minX = min().x(), minY = min().y(), minZ = min().z();
     const T oMinX = other.min().x(), oMinY = other.min().y(), oMinZ = other.min().z();
     const T maxX = max().x(), maxY = max().y(), maxZ = max().z();
@@ -264,7 +264,7 @@ public:
   /**
     * @returns true if and only if @p point is inside the box, false otherwise.
     */
-  inline bool contains(const Vector3<T>& point) const {
+  [[nodiscard]] inline bool contains(const Vector3<T>& point) const noexcept {
     for (int i = 0; i != 3; ++i) {
       if (point[i] < m_min[i] || point[i] > m_max[i])
         return false;
@@ -275,15 +275,15 @@ public:
   /**
     * Alias for movedBy().
     */
-  inline BoundingBox<T> operator+(const Vector3<T>& vec) const {
+  [[nodiscard]] inline BoundingBox<T> operator+(const Vector3<T>& vec) const noexcept {
     return movedBy(vec);
   }
-  
+
   /**
     * @returns a bounding box that is the Minkowski sum of this bounding box and
     *   @p bbox.
     */
-  inline BoundingBox<T> operator+(const BoundingBox<T>& bbox) const {
+  [[nodiscard]] inline BoundingBox<T> operator+(const BoundingBox<T>& bbox) const noexcept {
     return BoundingBox<T>(min() + bbox.min(), max() + bbox.max());
   }
   
@@ -305,28 +305,28 @@ public:
     * 
     * @see valid().
     */
-  inline BoundingBox<T> grownBy(const Vector3<T>& vec) const {
+  [[nodiscard]] inline BoundingBox<T> grownBy(const Vector3<T>& vec) const noexcept {
     return BoundingBox<T>(min() - vec, max() + vec);
   }
-  
+
   /**
     * @returns a bounding box that is grown by \f$\epsilon\f$.
     */
-  inline BoundingBox<T> grownByEpsilon() const {
+  [[nodiscard]] inline BoundingBox<T> grownByEpsilon() const noexcept {
     return grownBy(Vector3<T>::epsilon());
   }
-  
+
   /**
     * @returns a bounding box that is moved by @p vec. The following interactive
     *   figure illustrates the geometry. Drag the red corner handle to change
     *   @p vec and move the resulting bounding box.
-    * 
+    *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
     * <script type="text/javascript" src="bounding_box_moved_by.js"></script>
     * @endhtmlonly
     */
-  inline BoundingBox<T> movedBy(const Vector3<T>& vec) const {
+  [[nodiscard]] inline BoundingBox<T> movedBy(const Vector3<T>& vec) const noexcept {
     return BoundingBox<T>(min() + vec, max() + vec);
   }
   

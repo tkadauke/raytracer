@@ -29,7 +29,7 @@ public:
   /**
     * @returns an undefined Ray.
     */
-  inline static const Ray& undefined() {
+  [[nodiscard]] inline static const Ray& undefined() {
     static Ray r(Vector4<T>::undefined(), Vector3<T>::undefined());
     return r;
   }
@@ -43,49 +43,49 @@ public:
       m_direction(direction)
   {
   }
-  
+
   /**
     * @returns a Ray with the same direction as this one, but the origin shifted
     *   by epsilon along the direction: \f$o' = o + \epsilon d\f$.
     */
-  inline Ray<T> epsilonShifted() const {
+  [[nodiscard]] inline Ray<T> epsilonShifted() const noexcept {
     return Ray<T>(at(Ray::epsilon), m_direction);
   }
-  
+
   /**
     * @returns a Ray with the same direction as this ray, but with the given
     *   origin.
     */
-  inline Ray<T> from(const Vector4<T>& origin) const {
+  [[nodiscard]] inline Ray<T> from(const Vector4<T>& origin) const noexcept {
     return Ray<T>(origin, m_direction);
   }
-  
+
   /**
     * @returns a Ray with the same origin as this ray, but with the given
     *   direction.
     */
-  inline Ray<T> to(const Vector3<T>& direction) const {
+  [[nodiscard]] inline Ray<T> to(const Vector3<T>& direction) const noexcept {
     return Ray<T>(m_origin, direction);
   }
-  
+
   /**
     * @returns this Ray's origin.
     */
-  inline const Vector4<T>& origin() const {
+  [[nodiscard]] inline const Vector4<T>& origin() const noexcept {
     return m_origin;
   }
-  
+
   /**
     * @returns this Ray's direction.
     */
-  inline const Vector3<T>& direction() const {
+  [[nodiscard]] inline const Vector3<T>& direction() const noexcept {
     return m_direction;
   }
-  
+
   /**
     * @returns the solution to the Ray's equation \f$r = o + td\f$ for the given
     *   t, i.e. the point along the Ray with distance t from the origin.
-    * 
+    *
     * The following interactive figure illustrates the geometry. Use the `t`
     * slider to move the resulting point along the ray, shown in red.
     *
@@ -94,41 +94,41 @@ public:
     * <script type="text/javascript" src="ray_at.js"></script>
     * @endhtmlonly
     */
-  inline Vector4<T> at(T t) const {
+  [[nodiscard]] inline Vector4<T> at(T t) const noexcept {
     return Vector3<T>(m_origin) + m_direction * t;
   }
-  
+
   /**
     * @returns the distance of the orthogonal projection point of point onto
     *   this ray.
-    * 
+    *
     * @see project().
     */
-  inline T projectedDistance(const Vector3<T>& point) const {
+  [[nodiscard]] inline T projectedDistance(const Vector3<T>& point) const {
     return (direction() * (point - origin())) / (direction() * direction());
   }
 
   /**
     * @returns the orthogonal projection of point onto this ray.
-    * 
+    *
     * The following figure shows a few random points that are being projected
     * onto a ray.
-    * 
+    *
     * @htmlonly
     * <script type="text/javascript" src="figure.js"></script>
     * <script type="text/javascript" src="ray_project.js"></script>
     * @endhtmlonly
     */
-  inline Vector3<T> project(const Vector3<T>& point) const {
+  [[nodiscard]] inline Vector3<T> project(const Vector3<T>& point) const {
     return at(projectedDistance(point));
   }
-  
+
   /**
     * @returns the shortest distance between point and this ray.
-    * 
+    *
     * @see project().
     */
-  inline T distanceTo(const Vector3<T>& point) const {
+  [[nodiscard]] inline T distanceTo(const Vector3<T>& point) const {
     return (point - project(point)).length();
   }
   

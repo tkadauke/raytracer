@@ -47,60 +47,60 @@ public:
       m_coordinates[i] = source.coordinate(i);
   }
 
-  inline double x() const {
+  [[nodiscard]] inline double x() const noexcept {
     return m_coordinates[0];
   }
-  
-  inline void setX(const double& value) {
+
+  inline void setX(const double& value) noexcept {
     m_coordinates[0] = value;
   }
-  
-  inline double y() const {
+
+  [[nodiscard]] inline double y() const noexcept {
     return m_coordinates[1];
   }
-  
-  inline void setY(const double& value) {
+
+  inline void setY(const double& value) noexcept {
     m_coordinates[1] = value;
   }
-  
-  inline double z() const {
+
+  [[nodiscard]] inline double z() const noexcept {
     return m_coordinates[2];
   }
-  
-  inline void setZ(const double& value) {
+
+  inline void setZ(const double& value) noexcept {
     m_coordinates[2] = value;
   }
-  
-  inline double w() const {
+
+  [[nodiscard]] inline double w() const noexcept {
     return m_coordinates[3];
   }
-  
-  inline void setW(const double& value) {
+
+  inline void setW(const double& value) noexcept {
     m_coordinates[3] = value;
   }
-  
-  inline Vector4<double> operator+(const Vector4<double>& other) const {
+
+  [[nodiscard]] inline Vector4<double> operator+(const Vector4<double>& other) const noexcept {
     return Vector4<double>(
       _mm_add_pd(m_vector[0], other.m_vector[0]),
       _mm_add_pd(m_vector[1], other.m_vector[1])
     );
   }
 
-  inline Vector4<double> operator-(const Vector4<double>& other) const {
+  [[nodiscard]] inline Vector4<double> operator-(const Vector4<double>& other) const noexcept {
     return Vector4<double>(
       _mm_sub_pd(m_vector[0], other.m_vector[0]),
       _mm_sub_pd(m_vector[1], other.m_vector[1])
     );
   }
 
-  inline Vector4<double> operator-() const {
+  [[nodiscard]] inline Vector4<double> operator-() const noexcept {
     return Vector4<double>(
       _mm_sub_pd(_mm_setzero_pd(), m_vector[0]),
       _mm_sub_pd(_mm_setzero_pd(), m_vector[1])
     );
   }
 
-  inline double operator*(const Vector4<double>& other) const {
+  [[nodiscard]] inline double operator*(const Vector4<double>& other) const noexcept {
     __m128d first = _mm_mul_pd(m_vector[0], other.m_vector[0]);
     __m128d second = _mm_mul_pd(m_vector[1], other.m_vector[1]);
     return _mm_cvtsd_f64(first)
@@ -109,34 +109,34 @@ public:
          + _mm_cvtsd_f64(_mm_unpackhi_pd(second, second));
   }
 
-  inline Vector4<double> operator*(const double& factor) const {
+  [[nodiscard]] inline Vector4<double> operator*(const double& factor) const noexcept {
     __m128d f = _mm_set1_pd(factor);
     return Vector4<double>(
       _mm_mul_pd(m_vector[0], f),
       _mm_mul_pd(m_vector[1], f)
     );
   }
-  
-  inline Vector4<double>& operator+=(const Vector4<double>& other) {
+
+  inline Vector4<double>& operator+=(const Vector4<double>& other) noexcept {
     m_vector[0] = _mm_add_pd(m_vector[0], other.m_vector[0]);
     m_vector[1] = _mm_add_pd(m_vector[1], other.m_vector[1]);
     return *this;
   }
 
-  inline Vector4<double>& operator-=(const Vector4<double>& other) {
+  inline Vector4<double>& operator-=(const Vector4<double>& other) noexcept {
     m_vector[0] = _mm_sub_pd(m_vector[0], other.m_vector[0]);
     m_vector[1] = _mm_sub_pd(m_vector[1], other.m_vector[1]);
     return *this;
   }
 
-  inline Vector4<double>& operator*=(const double& factor) {
+  inline Vector4<double>& operator*=(const double& factor) noexcept {
     __m128d f = _mm_set1_pd(factor);
     m_vector[0] = _mm_mul_pd(m_vector[0], f);
     m_vector[1] = _mm_mul_pd(m_vector[1], f);
     return *this;
   }
 
-  inline Vector3<double> homogenized() const {
+  [[nodiscard]] inline Vector3<double> homogenized() const {
     return Vector3<double>(*this) / w();
   }
 

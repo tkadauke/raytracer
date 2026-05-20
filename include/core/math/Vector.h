@@ -85,17 +85,14 @@ public:
   /**
     * Constructs a null vector \f$(0,\ldots,0)\f$.
     */
-  inline Vector() {
-    for (int i = 0; i != Dimensions; ++i) {
-      m_coordinates[i] = T();
-    }
+  inline constexpr Vector() : m_coordinates{} {
   }
 
   /**
     * Constructs a vector component wise from the given array. The array's size
     * must be exactly the same as the dimensions of the vector.
     */
-  inline explicit Vector(const CellsType& cells) {
+  inline constexpr explicit Vector(const CellsType& cells) : m_coordinates{} {
     for (int i = 0; i != Dimensions; ++i) {
       m_coordinates[i] = cells[i];
     }
@@ -112,7 +109,7 @@ public:
            typename = std::enable_if_t<
              sizeof...(Args) == static_cast<std::size_t>(Dimensions) &&
              (std::is_convertible_v<Args, T> && ...)>>
-  inline explicit Vector(Args&&... args) {
+  inline constexpr explicit Vector(Args&&... args) : m_coordinates{} {
     T values[] = {static_cast<T>(std::forward<Args>(args))...};
     for (int i = 0; i != Dimensions; ++i)
       m_coordinates[i] = values[i];
@@ -124,7 +121,7 @@ public:
     * be initialized with zeroes.
     */
   template<int D, class C, class S, class V>
-  inline Vector(const Vector<D, C, S, V>& source) {
+  inline constexpr Vector(const Vector<D, C, S, V>& source) : m_coordinates{} {
     for (int i = 0; i != Dimensions; ++i) {
       if (i >= D)
         m_coordinates[i] = T();
@@ -136,33 +133,33 @@ public:
   /**
     * @returns the coordinate with index dim.
     */
-  inline T coordinate(int dim) const {
+  [[nodiscard]] inline constexpr T coordinate(int dim) const noexcept {
     return m_coordinates[dim];
   }
-  
+
   /**
     * Sets the coordinate with index dim to value.
     */
-  inline void setCoordinate(int dim, const T& value) {
+  inline constexpr void setCoordinate(int dim, const T& value) noexcept {
     m_coordinates[dim] = value;
   }
-  
+
   /**
     * Array index operator for the vector.
     *
     * @returns a reference to the coordinate with index dim, suitable for
     *   writing.
     */
-  inline T& operator[](int dim) {
+  inline constexpr T& operator[](int dim) noexcept {
     return m_coordinates[dim];
   }
-  
+
   /**
     * Constant array index operator for the vector.
     *
     * @returns a read-only reference to the coordinate with index dim.
     */
-  inline const T& operator[](int dim) const {
+  [[nodiscard]] inline constexpr const T& operator[](int dim) const noexcept {
     return m_coordinates[dim];
   }
   
@@ -170,7 +167,7 @@ public:
     * @returns the sum of the vectors \f$v+u = (v_1+u_1,\ldots,v_n+u_n)\f$, for
     *   where this vector is \f$v\f$ and other is \f$u\f$.
     */
-  inline VectorType operator+(const VectorType& other) const {
+  [[nodiscard]] inline constexpr VectorType operator+(const VectorType& other) const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, coordinate(i) + other.coordinate(i));
@@ -182,7 +179,7 @@ public:
     * @returns the difference of the vectors \f$v-u = (v_1-u_1,\ldots,v_n-u_n)\f$,
     *   where this vector is \f$v\f$ and other is \f$u\f$.
     */
-  inline VectorType operator-(const VectorType& other) const {
+  [[nodiscard]] inline constexpr VectorType operator-(const VectorType& other) const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, coordinate(i) - other.coordinate(i));
@@ -194,7 +191,7 @@ public:
     * @returns the negative of the vector \f$-v = (-v_1,\ldots,-v_n)\f$, where
     *   this vector is \f$v\f$.
     */
-  inline VectorType operator-() const {
+  [[nodiscard]] inline constexpr VectorType operator-() const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, - coordinate(i));
@@ -208,19 +205,19 @@ public:
     *   \f$c\f$.
     * @throws a DivisionByZeroException if factor is zero.
     */
-  inline VectorType operator/(const T& factor) const {
+  [[nodiscard]] inline VectorType operator/(const T& factor) const {
     if (factor == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
     T recip = 1.0 / factor;
     return derived() * recip;
   }
-  
+
   /**
     * @returns the dot product of the vectors \f$v \cdot u = (v_1u_1,\ldots,
     *   v_nu_n)\f$, where this vector is \f$v\f$ and other is \f$u\f$.
     */
-  inline T dotProduct(const VectorType& other) const {
+  [[nodiscard]] inline constexpr T dotProduct(const VectorType& other) const noexcept {
     T result = T();
     for (int i = 0; i != Dimensions; ++i) {
       result += coordinate(i) * other.coordinate(i);
@@ -231,7 +228,7 @@ public:
   /**
     * Synonym for dotProduct().
     */
-  inline T operator*(const VectorType& other) const {
+  [[nodiscard]] inline constexpr T operator*(const VectorType& other) const noexcept {
     return dotProduct(other);
   }
 
@@ -239,7 +236,7 @@ public:
     * @returns the product of the vector and the constant \f$vc = (v_{1}c,\ldots,
     *   v_{n}c)\f$, where this vector is \f$v\f$ and factor is \f$c\f$
     */
-  inline VectorType operator*(const T& factor) const {
+  [[nodiscard]] inline constexpr VectorType operator*(const T& factor) const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
       result.setCoordinate(i, coordinate(i) * factor);
@@ -251,7 +248,7 @@ public:
     * Returns true if any of the components in this vector is different from the
     * corresponding component in the other vector.
     */
-  inline bool operator!=(const VectorType& other) const {
+  [[nodiscard]] inline constexpr bool operator!=(const VectorType& other) const noexcept {
     return !(derived() == other);
   }
 
@@ -259,7 +256,7 @@ public:
     * @returns true if all components of this vector are equal to components of
     *   the other vector, false otherwise.
     */
-  inline bool operator==(const VectorType& other) const {
+  [[nodiscard]] inline constexpr bool operator==(const VectorType& other) const noexcept {
     if (&other == &derived())
       return true;
     for (int i = 0; i != Dimensions; ++i) {
@@ -271,10 +268,10 @@ public:
 
   /**
     * Adds vector other to this vector, mutating this vector. See operator+().
-    * 
+    *
     * @returns itself.
     */
-  inline VectorType& operator+=(const VectorType& other) {
+  inline constexpr VectorType& operator+=(const VectorType& other) noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) + other.coordinate(i));
     }
@@ -283,10 +280,10 @@ public:
 
   /**
     * Subtracts other from this vector, mutating this vector. See operator-().
-    * 
+    *
     * @returns itself.
     */
-  inline VectorType& operator-=(const VectorType& other) {
+  inline constexpr VectorType& operator-=(const VectorType& other) noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) - other.coordinate(i));
     }
@@ -295,10 +292,10 @@ public:
 
   /**
     * Scales this vector by factor, mutating this vector. See operator*().
-    * 
+    *
     * @returns itself.
     */
-  inline VectorType& operator*=(const T& factor) {
+  inline constexpr VectorType& operator*=(const T& factor) noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       setCoordinate(i, coordinate(i) * factor);
     }
@@ -308,7 +305,7 @@ public:
   /**
     * Divides this vector by factor, mutating this vector. Throws a
     * DivisionByZeroException if factor is zero. See operator/().
-    * 
+    *
     * @returns itself.
     */
   inline VectorType& operator/=(const T& factor) {
@@ -322,7 +319,7 @@ public:
   /**
     * @returns the length of this vector \f$v\f$, i.e. \f$|v|\f$.
     */
-  inline T length() const {
+  [[nodiscard]] inline T length() const noexcept {
     return std::sqrt(squaredLength());
   }
 
@@ -330,40 +327,40 @@ public:
     * @returns the square of the length of this vector \f$v\f$, i.e. \f$v \cdot
     *   v\f$.
     */
-  inline T squaredLength() const {
+  [[nodiscard]] inline constexpr T squaredLength() const noexcept {
     return derived() * derived();
   }
-  
+
   /**
     * Interprets this vector \f$v\f$ as well as other \f$u\f$ as points.
     *
     * @returns the distance between those points, i.e. \f$|u-v|\f$.
     */
-  inline T distanceTo(const VectorType& other) const {
+  [[nodiscard]] inline T distanceTo(const VectorType& other) const noexcept {
     return (derived() - other).length();
   }
-  
+
   /**
     * Interprets this vector \f$v\f$ as well as other \f$u\f$ as points.
     *
     * @returns the squared distance between those points, i.e. \f$|u-v|^2\f$.
     */
-  inline T squaredDistanceTo(const VectorType& other) const {
+  [[nodiscard]] inline constexpr T squaredDistanceTo(const VectorType& other) const noexcept {
     return (derived() - other).squaredLength();
   }
-  
+
   /**
     * @returns the reversed vector to this vector. For vector \f$v\f$, this is
     *   equivalent to writing \f$-v\f$.
     */
-  inline VectorType reversed() const {
+  [[nodiscard]] inline constexpr VectorType reversed() const noexcept {
     return -derived();
   }
-  
+
   /**
     * Reverses this vector in place, i.e. negates all its components.
     */
-  inline void reverse() {
+  inline constexpr void reverse() noexcept {
     derived() = -derived();
   }
 
@@ -372,10 +369,10 @@ public:
     * this vector devided by its length, which is a unit vector with the same
     * direction as the original, but length 1.
     */
-  inline VectorType normalized() const {
+  [[nodiscard]] inline VectorType normalized() const {
     return derived() / length();
   }
-  
+
   /**
     * For vector \f$v\f$, turns this into vector \f$\frac{v}{|v|}\f$, i.e. the
     * vector devided by its length, which is a unit vector with the same
@@ -388,26 +385,26 @@ public:
   /**
     * @returns true if the vector has length 1, false otherwise.
     */
-  inline bool isNormalized() const {
+  [[nodiscard]] inline bool isNormalized() const noexcept {
     return length() == T(1);
   }
-  
+
   /**
     * @returns true if any of the vector's components is NaN, false otherwise.
     */
-  inline bool isUndefined() const {
+  [[nodiscard]] inline bool isUndefined() const noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       if (std::isnan(coordinate(i)))
         return true;
     }
     return false;
   }
-  
+
   /**
     * @returns true if any of the vector's components is +inf or -inf, false
     * otherwise.
     */
-  inline bool isInfinite() const {
+  [[nodiscard]] inline bool isInfinite() const noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       if (std::isinf(coordinate(i)))
         return true;
@@ -419,36 +416,36 @@ public:
     * @returns true if the vector is defined, false otherwise. Opposite of
     * isUndefined().
     */
-  inline bool isDefined() const {
+  [[nodiscard]] inline bool isDefined() const noexcept {
     return !isUndefined();
   }
-  
+
   /**
     * @returns true if the vector is the null vector, i.e. all its components
     *   are 0, false otherwise.
     */
-  inline bool isNull() const {
+  [[nodiscard]] inline constexpr bool isNull() const noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       if (coordinate(i) != T())
         return false;
     }
     return true;
   }
-  
+
   /**
     * @returns the minimum component of this vector.
     */
-  inline T min() const {
+  [[nodiscard]] inline constexpr T min() const noexcept {
     T result = coordinate(0);
     for (int i = 1; i != Dimensions; ++i)
       result = std::min(result, coordinate(i));
     return result;
   }
-  
+
   /**
     * @returns the maximum component of this vector.
     */
-  inline T max() const {
+  [[nodiscard]] inline constexpr T max() const noexcept {
     T result = coordinate(0);
     for (int i = 1; i != Dimensions; ++i)
       result = std::max(result, coordinate(i));
@@ -458,7 +455,7 @@ public:
   /**
     * @returns a vector with an absolute value for all components.
     */
-  inline VectorType abs() const {
+  [[nodiscard]] inline VectorType abs() const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i)
       result.setCoordinate(i, std::abs(coordinate(i)));
@@ -469,7 +466,7 @@ public:
     * @returns the component-wise minimum of this vector and other,
     *   i.e. \f$(\min(v_1,u_1),\ldots,\min(v_n,u_n))\f$.
     */
-  inline VectorType cwiseMin(const VectorType& other) const {
+  [[nodiscard]] inline constexpr VectorType cwiseMin(const VectorType& other) const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i)
       result.setCoordinate(i, std::min(coordinate(i), other.coordinate(i)));
@@ -480,7 +477,7 @@ public:
     * @returns the component-wise maximum of this vector and other,
     *   i.e. \f$(\max(v_1,u_1),\ldots,\max(v_n,u_n))\f$.
     */
-  inline VectorType cwiseMax(const VectorType& other) const {
+  [[nodiscard]] inline constexpr VectorType cwiseMax(const VectorType& other) const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i)
       result.setCoordinate(i, std::max(coordinate(i), other.coordinate(i)));
@@ -490,7 +487,7 @@ public:
   /**
     * @returns this vector with each component clamped to \f$[lo, hi]\f$.
     */
-  inline VectorType clamp(const T& lo, const T& hi) const {
+  [[nodiscard]] inline constexpr VectorType clamp(const T& lo, const T& hi) const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i)
       result.setCoordinate(i, std::max(lo, std::min(hi, coordinate(i))));
@@ -500,7 +497,7 @@ public:
   /**
     * @returns this vector with each component clamped to \f$[0, 1]\f$.
     */
-  inline VectorType saturate() const {
+  [[nodiscard]] inline constexpr VectorType saturate() const noexcept {
     return clamp(T(0), T(1));
   }
 
@@ -508,7 +505,7 @@ public:
     * @returns the linear interpolation between this vector and other at
     *   parameter \f$t\f$, i.e. \f$v + t(u - v) = (1-t)v + tu\f$.
     */
-  inline VectorType lerp(const VectorType& other, const T& t) const {
+  [[nodiscard]] inline constexpr VectorType lerp(const VectorType& other, const T& t) const noexcept {
     return derived() + (other - derived()) * t;
   }
 
@@ -520,7 +517,7 @@ public:
     * surface (same side). The returned direction also points away from
     * the surface.
     */
-  inline VectorType reflect(const VectorType& n) const {
+  [[nodiscard]] inline constexpr VectorType reflect(const VectorType& n) const noexcept {
     return derived() - n * (T(2) * (derived() * n));
   }
 
@@ -534,7 +531,7 @@ public:
     * the caller should test \f$1-(1-\cos^2\theta)/\eta^2 \geq 0\f$
     * before calling.
     */
-  inline VectorType refract(const VectorType& n, const T& eta) const {
+  [[nodiscard]] inline VectorType refract(const VectorType& n, const T& eta) const {
     T cosTheta = derived() * n;
     T cosTheta2 = std::sqrt(T(1) - (T(1) - cosTheta * cosTheta) / (eta * eta));
     return -(derived() / eta) - n * (cosTheta2 - cosTheta / eta);
@@ -544,7 +541,7 @@ public:
     * @returns true if this vector is approximately equal to other within
     *   component-wise absolute tolerance \f$\epsilon\f$.
     */
-  inline bool approxEqual(const VectorType& other, const T& epsilon) const {
+  [[nodiscard]] inline bool approxEqual(const VectorType& other, const T& epsilon) const noexcept {
     for (int i = 0; i != Dimensions; ++i) {
       if (std::abs(coordinate(i) - other.coordinate(i)) > epsilon)
         return false;
@@ -553,11 +550,11 @@ public:
   }
 
 protected:
-  inline const VectorType& derived() const {
+  [[nodiscard]] inline constexpr const VectorType& derived() const noexcept {
     return static_cast<const VectorType&>(*this);
   }
-  
-  inline VectorType& derived() {
+
+  [[nodiscard]] inline constexpr VectorType& derived() noexcept {
     return static_cast<VectorType&>(*this);
   }
 
@@ -590,8 +587,8 @@ std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, StorageCe
   *   v_{n}c)\f$, where this vector is \f$v\f$ and factor is \f$c\f$
   */
 template<int Dimensions, class T, class StorageCellType, class Derived>
-inline typename Vector<Dimensions, T, StorageCellType, Derived>::VectorType
-operator*(const T& factor, const Vector<Dimensions, T, StorageCellType, Derived>& vector) {
+[[nodiscard]] inline constexpr typename Vector<Dimensions, T, StorageCellType, Derived>::VectorType
+operator*(const T& factor, const Vector<Dimensions, T, StorageCellType, Derived>& vector) noexcept {
   return vector * factor;
 }
 
@@ -658,7 +655,7 @@ public:
   /**
     * Constructs a null vector \f$(0,0)\f$.
     */
-  inline Vector2()
+  inline constexpr Vector2()
     : Base()
   {
   }
@@ -666,7 +663,7 @@ public:
   /**
     * Constructs the vector \f$(x,y)\f$.
     */
-  inline Vector2(const T& x, const T& y) {
+  inline constexpr Vector2(const T& x, const T& y) {
     setCoordinate(0, x);
     setCoordinate(1, y);
   }
@@ -676,7 +673,7 @@ public:
     * typed source Vector.
     */
   template<int D, class C, class S, class V>
-  inline Vector2(const Vector<D, C, S, V>& source)
+  inline constexpr Vector2(const Vector<D, C, S, V>& source)
     : Base(source)
   {
   }
@@ -685,29 +682,29 @@ public:
     * @returns the vector's first component, i.e. returns \f$x\f$ from
     *   \f$(x,y)\f$.
     */
-  inline T x() const {
+  [[nodiscard]] inline constexpr T x() const noexcept {
     return Base::coordinate(0);
   }
-  
+
   /**
     * Sets the vector's first component to @p value.
     */
-  inline void setX(const T& value) {
+  inline constexpr void setX(const T& value) noexcept {
     Base::setCoordinate(0, value);
   }
-  
+
   /**
     * @returns the vector's second component, i.e. returns \f$y\f$ from
     *   \f$(x,y)\f$.
     */
-  inline T y() const {
+  [[nodiscard]] inline constexpr T y() const noexcept {
     return Base::coordinate(1);
   }
 
   /**
     * Sets the vector's second component to @p value.
     */
-  inline void setY(const T& value) {
+  inline constexpr void setY(const T& value) noexcept {
     Base::setCoordinate(1, value);
   }
 };
@@ -829,7 +826,7 @@ public:
   /**
     * Default constructor. Constructs the null vector \f$(0,0,0)\f$.
     */
-  inline Vector3()
+  inline constexpr Vector3()
     : Base()
   {
   }
@@ -839,7 +836,7 @@ public:
     * and defaults to 0, which is handy for vectors in the two-dimensional
     * plane.
     */
-  inline Vector3(const T& x, const T& y, const T& z = 0) {
+  inline constexpr Vector3(const T& x, const T& y, const T& z = 0) {
     setCoordinate(0, x);
     setCoordinate(1, y);
     setCoordinate(2, z);
@@ -850,7 +847,7 @@ public:
     * typed source Vector.
     */
   template<int D, class C, class S, class V>
-  inline Vector3(const Vector<D, C, S, V>& source)
+  inline constexpr Vector3(const Vector<D, C, S, V>& source)
     : Base(source)
   {
   }
@@ -859,14 +856,14 @@ public:
     * @returns this vector's first component, i.e. returns \f$x\f$ from
     *   \f$(x,y,z)\f$.
     */
-  inline T x() const {
+  [[nodiscard]] inline constexpr T x() const noexcept {
     return Base::coordinate(0);
   }
 
   /**
     * Sets the vector's first component to @p value.
     */
-  inline void setX(const T& value) {
+  inline constexpr void setX(const T& value) noexcept {
     Base::setCoordinate(0, value);
   }
 
@@ -874,14 +871,14 @@ public:
     * @returns this vector's second component, i.e. returns \f$y\f$ from
     *   \f$(x,y,z)\f$.
     */
-  inline T y() const {
+  [[nodiscard]] inline constexpr T y() const noexcept {
     return Base::coordinate(1);
   }
 
   /**
     * Sets the vector's second component to @p value.
     */
-  inline void setY(const T& value) {
+  inline constexpr void setY(const T& value) noexcept {
     Base::setCoordinate(1, value);
   }
 
@@ -889,14 +886,14 @@ public:
     * @returns this vector's third component, i.e. returns \f$z\f$ from
     *   \f$(x,y,z)\f$.
     */
-  inline T z() const {
+  [[nodiscard]] inline constexpr T z() const noexcept {
     return Base::coordinate(2);
   }
-  
+
   /**
     * Sets the vector's third component to @p value.
     */
-  inline void setZ(const T& value) {
+  inline constexpr void setZ(const T& value) noexcept {
     Base::setCoordinate(2, value);
   }
 
@@ -904,7 +901,7 @@ public:
     * @returns the cross product \f$u \times v\f$, where this vector is \f$u\f$
     *   and other is \f$v\f$.
     */
-  inline Vector3<T> crossProduct(const Vector3<T>& other) const {
+  [[nodiscard]] inline constexpr Vector3<T> crossProduct(const Vector3<T>& other) const noexcept {
     return Vector3<T>(y() * other.z() - z() * other.y(),
                       z() * other.x() - x() * other.z(),
                       x() * other.y() - y() * other.x());
@@ -913,7 +910,7 @@ public:
   /**
     * Synonym for crossProduct().
     */
-  inline Vector3<T> operator^(const Vector3<T>& other) const {
+  [[nodiscard]] inline constexpr Vector3<T> operator^(const Vector3<T>& other) const noexcept {
     return crossProduct(other);
   }
 };
@@ -1017,7 +1014,7 @@ public:
   /**
     * Constructs the null vector, but sets the \f$w\f$ component to \f$1\f$.
     */
-  inline Vector4()
+  inline constexpr Vector4()
     : Base()
   {
     setCoordinate(3, T(1));
@@ -1027,7 +1024,7 @@ public:
     * Component-wise constructor that sets the vector to \f$(x,y,z,w)\f$, where
     *   \f$w\f$ defaults to \f$1\f$ for convenience.
     */
-  inline Vector4(const T& x, const T& y, const T& z, const T& w = 1) {
+  inline constexpr Vector4(const T& x, const T& y, const T& z, const T& w = 1) {
     setCoordinate(0, x);
     setCoordinate(1, y);
     setCoordinate(2, z);
@@ -1040,7 +1037,7 @@ public:
     * constructor sets the \f$w\f$ component to \f$1\f$.
     */
   template<int D, class C, class S, class V>
-  inline Vector4(const Vector<D, C, S, V>& source)
+  inline constexpr Vector4(const Vector<D, C, S, V>& source)
     : Base(source)
   {
     if (D != 4)
@@ -1051,67 +1048,67 @@ public:
     * @returns this vector's first component, i.e. returns \f$x\f$ from
     *   \f$(x,y,z,w)\f$.
     */
-  inline T x() const {
+  [[nodiscard]] inline constexpr T x() const noexcept {
     return Base::coordinate(0);
   }
-  
+
   /**
     * Sets the vector's first component to @p value.
     */
-  inline void setX(const T& value) {
+  inline constexpr void setX(const T& value) noexcept {
     Base::setCoordinate(0, value);
   }
-  
+
   /**
     * @returns this vector's second component, i.e. returns \f$y\f$ from
     *   \f$(x,y,z,w)\f$.
     */
-  inline T y() const {
+  [[nodiscard]] inline constexpr T y() const noexcept {
     return Base::coordinate(1);
   }
-  
+
   /**
     * Sets the vector's second component to @p value.
     */
-  inline void setY(const T& value) {
+  inline constexpr void setY(const T& value) noexcept {
     Base::setCoordinate(1, value);
   }
-  
+
   /**
     * @returns this vector's third component, i.e. returns \f$z\f$ from
     *   \f$(x,y,z,w)\f$.
     */
-  inline T z() const {
+  [[nodiscard]] inline constexpr T z() const noexcept {
     return Base::coordinate(2);
   }
-  
+
   /**
     * Sets the vector's third component to @p value.
     */
-  inline void setZ(const T& value) {
+  inline constexpr void setZ(const T& value) noexcept {
     Base::setCoordinate(2, value);
   }
-  
+
   /**
     * @returns this vector's fourth component, i.e. returns \f$w\f$ from
     *   \f$(x,y,z,w)\f$.
     */
-  inline T w() const {
+  [[nodiscard]] inline constexpr T w() const noexcept {
     return Base::coordinate(3);
   }
-  
+
   /**
     * Sets the vector's fourth component to @p value.
     */
-  inline void setW(const T& value) {
+  inline constexpr void setW(const T& value) noexcept {
     Base::setCoordinate(3, value);
   }
-  
+
   /**
     * @returns ths vector's homogenized three-dimensional vector, i.e. returns
     *   \f$\frac{(x,y,z)}{w}\f$.
     */
-  inline Vector3<T> homogenized() const {
+  [[nodiscard]] inline Vector3<T> homogenized() const {
     return Vector3<T>(*this) / w();
   }
 };
@@ -1196,13 +1193,13 @@ namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 }
 
 template<size_t I, class T>
-inline T get(const Vector2<T>& v) { static_assert(I < 2u, "Vector2 index out of range"); return v.coordinate(static_cast<int>(I)); }
+[[nodiscard]] inline constexpr T get(const Vector2<T>& v) noexcept { static_assert(I < 2u, "Vector2 index out of range"); return v.coordinate(static_cast<int>(I)); }
 
 template<size_t I, class T>
-inline T get(const Vector3<T>& v) { static_assert(I < 3u, "Vector3 index out of range"); return v.coordinate(static_cast<int>(I)); }
+[[nodiscard]] inline constexpr T get(const Vector3<T>& v) noexcept { static_assert(I < 3u, "Vector3 index out of range"); return v.coordinate(static_cast<int>(I)); }
 
 template<size_t I, class T>
-inline T get(const Vector4<T>& v) { static_assert(I < 4u, "Vector4 index out of range"); return v.coordinate(static_cast<int>(I)); }
+[[nodiscard]] inline constexpr T get(const Vector4<T>& v) noexcept { static_assert(I < 4u, "Vector4 index out of range"); return v.coordinate(static_cast<int>(I)); }
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

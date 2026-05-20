@@ -63,7 +63,7 @@ public:
     *   0      & \ldots & 0      & 1
     * \end{array}\right)\f]
     */
-  inline Matrix() {
+  inline constexpr Matrix() {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         if (row == col) {
@@ -78,14 +78,14 @@ public:
   /**
     * Constructs a matrix from cells, a two-dimensional array of size Dim.
     */
-  inline explicit Matrix(const CellsType& cells) {
+  inline constexpr explicit Matrix(const CellsType& cells) {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         m_cells[row][col] = cells[row][col];
       }
     }
   }
-  
+
   /**
     * Constructs a matrix from source, which can be of a different Matrix type.
     * The source Matrix can be of different size. If bigger, only what fits into
@@ -93,7 +93,7 @@ public:
     * with zeroes, except the diagonal, which will be filled with ones.
     */
   template<int D, class V, class M>
-  inline Matrix(const Matrix<D, T, V, M>& source) {
+  inline constexpr Matrix(const Matrix<D, T, V, M>& source) {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         if (row >= D || col >= D) {
@@ -111,35 +111,35 @@ public:
   /**
     * @returns the cell at coordinate (row, col).
     */
-  inline const T& cell(int row, int col) const {
+  [[nodiscard]] inline constexpr const T& cell(int row, int col) const noexcept {
     return m_cells[row][col];
   }
 
   /**
     * Sets the cell at coordinate (row, col) to value.
     */
-  inline void setCell(int row, int col, const T& value) {
+  inline constexpr void setCell(int row, int col, const T& value) noexcept {
     m_cells[row][col] = value;
   }
 
   /**
     * @returns the row at index as a constant array.
     */
-  inline const RowType& operator[](int index) const {
+  [[nodiscard]] inline constexpr const RowType& operator[](int index) const noexcept {
     return m_cells[index];
   }
 
   /**
     * @returns the row at index as a mutable array.
     */
-  inline RowType& operator[](int index) {
+  inline constexpr RowType& operator[](int index) noexcept {
     return m_cells[index];
   }
 
   /**
     * @returns true, if this matrix equals other, false otherwise.
     */
-  inline bool operator==(const MatrixType& other) const {
+  [[nodiscard]] inline constexpr bool operator==(const MatrixType& other) const noexcept {
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = 0; col != Dimensions; ++col) {
         if (m_cells[row][col] != other[row][col])
@@ -152,14 +152,14 @@ public:
   /**
     * @returns true if this matrix is different from other, false otherwise.
     */
-  inline bool operator!=(const MatrixType& other) const {
+  [[nodiscard]] inline constexpr bool operator!=(const MatrixType& other) const noexcept {
     return !(*this == other);
   }
 
   /**
     * @returns the matrix multiplication of this matrix and other.
     */
-  inline MatrixType operator*(const MatrixType& other) const {
+  [[nodiscard]] inline constexpr MatrixType operator*(const MatrixType& other) const noexcept {
     MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -173,11 +173,11 @@ public:
     }
     return result;
   }
-  
+
   /**
     * Multiplies this matrix with other in-place.
     */
-  inline MatrixType& operator*=(const MatrixType& other) {
+  inline constexpr MatrixType& operator*=(const MatrixType& other) noexcept {
     *this = *this * other;
     return static_cast<MatrixType&>(*this);
   }
@@ -186,7 +186,7 @@ public:
     * @returns the Vector that is the result of the multiplication of this
     *   Matrix and vector.
     */
-  inline Vector operator*(const Vector& vector) const {
+  [[nodiscard]] inline constexpr Vector operator*(const Vector& vector) const noexcept {
     Vector result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -202,7 +202,7 @@ public:
   /**
     * @returns the Matrix that is the result of the multiplication of this
     *   Matrix \f$M\f$ with scalar \f$c\f$.
-    * 
+    *
     *   \f[
     *   Mc =
     *   \left(\begin{array}{cccc}
@@ -212,7 +212,7 @@ public:
     *     m_{n0}c & m_{n1}c & \ldots & m_{nn}c
     *   \end{array}\right)\f]
     */
-  inline MatrixType operator*(const T& scalar) const {
+  [[nodiscard]] inline constexpr MatrixType operator*(const T& scalar) const noexcept {
     MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -226,7 +226,7 @@ public:
   /**
     * Multiplies this matrix with scalar in-place.
     */
-  inline MatrixType& operator*=(const T& scalar) {
+  inline constexpr MatrixType& operator*=(const T& scalar) noexcept {
     *this = *this * scalar;
     return static_cast<MatrixType&>(*this);
   }
@@ -234,7 +234,7 @@ public:
   /**
     * @returns the Matrix that is the result of the addition of this matrix
     *   \f$A\f$ and other \f$B\f$.
-    * 
+    *
     *   \f[
     *   A + B =
     *   \left(\begin{array}{cccc}
@@ -244,7 +244,7 @@ public:
     *     a_{n0} + b_{n0} & a_{n1} + b_{n1} & \ldots & a_{nn} + b_{nn}
     *   \end{array}\right)\f]
     */
-  inline MatrixType operator+(const MatrixType& other) const {
+  [[nodiscard]] inline constexpr MatrixType operator+(const MatrixType& other) const noexcept {
     MatrixType result;
 
     for (int row = 0; row != Dimensions; ++row) {
@@ -258,7 +258,7 @@ public:
   /**
     * @returns the Matrix that is the result of this Matrix \f$M\f$ divided by
     *   scalar \f$c\f$.
-    * 
+    *
     *   \f[
     *   \frac{M}{c} =
     *   \left(\begin{array}{cccc}
@@ -268,7 +268,7 @@ public:
     *     m_{n0} / c & m_{n1} / c & \ldots & m_{nn} / c
     *   \end{array}\right)\f]
     */
-  inline MatrixType operator/(const T& scalar) const {
+  [[nodiscard]] inline MatrixType operator/(const T& scalar) const {
     if (scalar == T())
       throw DivisionByZeroException(__FILE__, __LINE__);
 
@@ -281,11 +281,11 @@ public:
     }
     return result;
   }
-  
+
   /**
     * @returns the row vector for row.
     */
-  inline Vector row(int row) const {
+  [[nodiscard]] inline constexpr Vector row(int row) const noexcept {
     Vector result;
     for (int col = 0; col != Dimensions; ++col) {
       result[col] = m_cells[row][col];
@@ -296,7 +296,7 @@ public:
   /**
     * @returns the column vector for col.
     */
-  inline Vector col(int col) const {
+  [[nodiscard]] inline constexpr Vector col(int col) const noexcept {
     Vector result;
     for (int row = 0; row != Dimensions; ++row) {
       result[row] = m_cells[row][col];
@@ -307,7 +307,7 @@ public:
   /**
     * @returns the sum of all elements in row.
     */
-  inline T rowSum(int row) const {
+  [[nodiscard]] inline constexpr T rowSum(int row) const noexcept {
     T result = T();
     for (int col = 0; col != Dimensions; ++col) {
       result += m_cells[row][col];
@@ -318,20 +318,20 @@ public:
   /**
     * @returns the sum of all elements in col.
     */
-  inline T colSum(int col) const {
+  [[nodiscard]] inline constexpr T colSum(int col) const noexcept {
     T result = T();
     for (int row = 0; row != Dimensions; ++row) {
       result += m_cells[row][col];
     }
     return result;
   }
-  
+
   /**
     * @returns the transpose of this Matrix.
     */
-  inline MatrixType transposed() const {
+  [[nodiscard]] inline MatrixType transposed() const noexcept {
     MatrixType result(*this);
-    
+
     for (int row = 0; row != Dimensions; ++row) {
       for (int col = row + 1; col != Dimensions; ++col) {
         std::swap(result[row][col], result[col][row]);
@@ -403,7 +403,7 @@ public:
     *   0 & 1 \\
     * \end{array}\right)\f]
     */
-  inline Matrix2()
+  inline constexpr Matrix2()
     : Base()
   {
   }
@@ -415,7 +415,7 @@ public:
     * with zeroes, except for the diagonal.
     */
   template<int D, class V, class M>
-  inline Matrix2(const Matrix<D, T, V, M>& source)
+  inline constexpr Matrix2(const Matrix<D, T, V, M>& source)
     : Base(source)
   {
   }
@@ -423,59 +423,59 @@ public:
   /**
     * Component-wise constructor for a Matrix2.
     */
-  inline Matrix2(const T& c00, const T& c01,
-                 const T& c10, const T& c11) {
+  inline constexpr Matrix2(const T& c00, const T& c01,
+                            const T& c10, const T& c11) {
     setCell(0, 0, c00); setCell(0, 1, c01);
     setCell(1, 0, c10); setCell(1, 1, c11);
   }
-  
+
   /**
     * @returns this matrix' determinant.
     */
-  inline T determinant() const {
+  [[nodiscard]] inline constexpr T determinant() const noexcept {
     return cell(0, 0) * cell(1, 1) - cell(0, 1) * cell(1, 0);
   }
-  
+
   /**
     * @returns the inverse \f$M'\f$ of this matrix \f$M\f$, so that \f$M \times
     *   M' = I\f$, where \f$I\f$ is the identity matrix.
     */
-  inline Matrix2<T> inverted() const {
+  [[nodiscard]] inline Matrix2<T> inverted() const {
     return Matrix2<T>(cell(1, 1), -cell(0, 1), -cell(1, 0), cell(0, 0)) / determinant();
   }
-  
+
   /**
     * @returns a matrix that represents a rotation around the origin with angle.
     */
   template<class A>
-  inline static Matrix2<T> rotate(const A& angle) {
+  [[nodiscard]] inline static Matrix2<T> rotate(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix2<T>(cos, -sin,
                       sin, cos);
   }
-  
+
   /**
     * @returns a matrix that represents a clockwise rotation around the origin
     *   with angle.
     */
   template<class A>
-  inline static Matrix2<T> clockwise(const A& angle) {
+  [[nodiscard]] inline static Matrix2<T> clockwise(const A& angle) noexcept {
     return rotate(-angle);
   }
-  
+
   /**
     * @returns a matrix that represents a counter-clockwise rotation around the
     *   origin with angle.
     */
   template<class A>
-  inline static Matrix2<T> counterclockwise(const A& angle) {
+  [[nodiscard]] inline static Matrix2<T> counterclockwise(const A& angle) noexcept {
     return rotate(angle);
   }
-  
+
   /**
     * @returns a matrix that represents a scaling of factor.
     */
-  inline static Matrix2<T> scale(const T& factor) {
+  [[nodiscard]] inline static constexpr Matrix2<T> scale(const T& factor) noexcept {
     return Matrix2<T>(factor, 0,
                       0,      factor);
   }
@@ -484,7 +484,7 @@ public:
     * @returns a matrix that represents a horizontal scaling of xFactor, and
     *   vertical scaling of yFactor.
     */
-  inline static Matrix2<T> scale(const T& xFactor, const T& yFactor) {
+  [[nodiscard]] inline static constexpr Matrix2<T> scale(const T& xFactor, const T& yFactor) noexcept {
     return Matrix2<T>(xFactor, 0,
                       0,       yFactor);
   }
@@ -493,7 +493,7 @@ public:
     * @returns a matrix that represents a horizontal sharing of xShear, and
     *   vertical sharing of yShear.
     */
-  inline static Matrix2<T> shear(const T& xShear, const T& yShear) {
+  [[nodiscard]] inline static constexpr Matrix2<T> shear(const T& xShear, const T& yShear) noexcept {
     return Matrix2<T>(1,      xShear,
                       yShear, 1);
   }
@@ -501,7 +501,7 @@ public:
   /**
     * @returns a matrix that represents a reflection along vector.
     */
-  inline static Matrix2<T> reflect(const Vector2<T>& vector) {
+  [[nodiscard]] inline static Matrix2<T> reflect(const Vector2<T>& vector) noexcept {
     return reflect(vector.x(), vector.y());
   }
 
@@ -509,12 +509,12 @@ public:
     * @returns a matrix that represents a reflection along the line going
     *   through the origin and \f$(x, y)\f$.
     */
-  inline static Matrix2<T> reflect(const T& x, const T& y) {
+  [[nodiscard]] inline static Matrix2<T> reflect(const T& x, const T& y) noexcept {
     T len = std::sqrt(x * x + y * y);
     T divider = len*len;
-    
+
     T coordProduct = (2 * x * y) / divider;
-    
+
     return Matrix2<T>((x*x - y*y) / divider, coordProduct,
                       coordProduct,          (y*y - x*x) / divider);
   }
@@ -522,7 +522,7 @@ public:
   /**
     * @returns a matrix that represents a reflection along vector.
     */
-  inline static Matrix2<T> project(const Vector2<T>& vector) {
+  [[nodiscard]] inline static Matrix2<T> project(const Vector2<T>& vector) noexcept {
     return project(vector.x(), vector.y());
   }
 
@@ -530,12 +530,12 @@ public:
     * @returns an orthogonal projection matrix, that projects vectors onto the
     *   line going through the origin and \f$(x, y)\f$.
     */
-  inline static Matrix2<T> project(const T& x, const T& y) {
+  [[nodiscard]] inline static Matrix2<T> project(const T& x, const T& y) noexcept {
     T len = std::sqrt(x * x + y * y);
     T divider = len*len;
-    
+
     T coordProduct = (x * y) / divider;
-    
+
     return Matrix2<T>((x * x) / divider, coordProduct,
                       coordProduct,      (y * y) / divider);
   }
@@ -664,7 +664,7 @@ public:
     *   0 & 0 & 1 \\
     * \end{array}\right)\f]
     */
-  inline Matrix3()
+  inline constexpr Matrix3()
     : Base()
   {
   }
@@ -676,7 +676,7 @@ public:
     * with zeroes, except for the diagonal.
     */
   template<int D, class V, class M>
-  inline Matrix3(const Matrix<D, T, V, M>& source)
+  inline constexpr Matrix3(const Matrix<D, T, V, M>& source)
     : Base(source)
   {
   }
@@ -684,82 +684,82 @@ public:
   /**
     * Component-wise constructor for a Matrix3.
     */
-  inline Matrix3(const T& c00, const T& c01, const T& c02,
-                 const T& c10, const T& c11, const T& c12,
-                 const T& c20, const T& c21, const T& c22) {
+  inline constexpr Matrix3(const T& c00, const T& c01, const T& c02,
+                            const T& c10, const T& c11, const T& c12,
+                            const T& c20, const T& c21, const T& c22) {
     setCell(0, 0, c00); setCell(0, 1, c01); setCell(0, 2, c02);
     setCell(1, 0, c10); setCell(1, 1, c11); setCell(1, 2, c12);
     setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22);
   }
-  
+
   /**
     * @returns a matrix that represents a rotation around the x axis with angle.
     */
   template<class A>
-  inline static Matrix3<T> rotateX(const A& angle) {
+  [[nodiscard]] inline static Matrix3<T> rotateX(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix3<T>(T(1), T(), T(),
                       T(),  cos, -sin,
                       T(),  sin, cos);
   }
-  
+
   /**
     * @returns a matrix that represents a rotation around the y axis with angle.
     */
   template<class A>
-  inline static Matrix3<T> rotateY(const A& angle) {
+  [[nodiscard]] inline static Matrix3<T> rotateY(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix3<T>(cos,  T(),  sin,
                       T(),  T(1), T(),
                       -sin, T(),  cos);
   }
-  
+
   /**
     * @returns a matrix that represents a rotation around the z axis with angle.
     */
   template<class A>
-  inline static Matrix3<T> rotateZ(const A& angle) {
+  [[nodiscard]] inline static Matrix3<T> rotateZ(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
     return Matrix3<T>(cos, -sin, T(),
                       sin, cos,  T(),
                       T(), T(),  T(1));
   }
-  
+
   /**
     * @returns a matrix that represents a rotation around all axes with angles
     *   given in the angles Vector3.
     */
-  inline static Matrix3<T> rotate(const Vector3<T>& angles) {
+  [[nodiscard]] inline static Matrix3<T> rotate(const Vector3<T>& angles) noexcept {
     return rotate(
       Angle<T>::fromRadians(angles.x()),
       Angle<T>::fromRadians(angles.y()),
       Angle<T>::fromRadians(angles.z())
     );
   }
-  
+
   /**
     * @returns a matrix that represents a rotation around all axes with angles
     *   x, y, and z.
     */
   template<class A>
-  inline static Matrix3<T> rotate(const A& x, const A& y, const A& z) {
+  [[nodiscard]] inline static Matrix3<T> rotate(const A& x, const A& y, const A& z) noexcept {
     return rotateZ(z) * rotateY(y) * rotateX(x);
   }
-  
+
   /**
     * @returns a matrix that represents a scaling of factor.
     */
-  inline static Matrix3<T> scale(const T& factor) {
+  [[nodiscard]] inline static constexpr Matrix3<T> scale(const T& factor) noexcept {
     return Matrix3<T>(factor, T(),    T(),
                       T(),    factor, T(),
                       T(),    T(),    factor);
   }
 
   /**
-    * @returns a matrix that represents a scaling of the x axis with xFactor, 
+    * @returns a matrix that represents a scaling of the x axis with xFactor,
     *   the y axis with yFactor, and the z axis with zFactor.
     */
-  inline static Matrix3<T> scale(const T& xFactor, const T& yFactor, const T& zFactor) {
+  [[nodiscard]] inline static constexpr Matrix3<T> scale(const T& xFactor, const T& yFactor, const T& zFactor) noexcept {
     return Matrix3<T>(xFactor, T(),     T(),
                       T(),     yFactor, T(),
                       T(),     T(),     zFactor);
@@ -769,7 +769,7 @@ public:
     * @returns a matrix that represents a scaling of three axes given by the
     *   components of the factor Vector3.
     */
-  inline static Matrix3<T> scale(const Vector3<T>& factor) {
+  [[nodiscard]] inline static constexpr Matrix3<T> scale(const Vector3<T>& factor) noexcept {
     return Matrix3<T>(factor[0], T(),       T(),
                       T(),       factor[1], T(),
                       T(),       T(),       factor[2]);
@@ -779,32 +779,32 @@ public:
     * @returns a vector containing the scaling factors in the matrix. This
     *   method assumes that the matrix was generated as a TRS matrix.
     */
-  inline Vector3<T> scaleVector() const {
+  [[nodiscard]] inline Vector3<T> scaleVector() const noexcept {
     return Vector3<T>(
       col(0).length(),
       col(1).length(),
       col(2).length()
     );
   }
-  
+
   /**
     * @returns a quaternion describing the same rotation as the matrix.
     */
-  inline Quaternion<T> rotationQuaternion() const;
+  [[nodiscard]] inline Quaternion<T> rotationQuaternion() const;
 
   /**
     * @returns a vector with the three Euler angles that describe the same
     *   rotation as this matrix. This  method assumes that the matrix was
     *   generated as a TRS matrix.
     */
-  inline Vector3<T> rotationVector() const {
+  [[nodiscard]] inline Vector3<T> rotationVector() const noexcept {
     T t1 = std::atan2(cell(2, 1), cell(2, 2));
     T c2 = std::sqrt(cell(0, 0) * cell(0, 0) + cell(1, 0) * cell(1, 0));
     T t2 = std::atan2(-cell(2, 0), c2);
     T s1 = std::sin(t1),
       c1 = std::cos(t1);
     T t3 = std::atan2(s1 * cell(0, 2) - c1 * cell(0, 1), c1 * cell(1, 1) - s1 * cell(1, 2));
-    
+
     return Vector3<T>(t1, t2, t3);
   }
 };
@@ -872,11 +872,11 @@ public:
     *   0 & 0 & 0 & 1 \\
     * \end{array}\right)\f]
     */
-  inline Matrix4()
+  inline constexpr Matrix4()
     : Base()
   {
   }
-  
+
   /**
     * Constructs a matrix from source, which can be of a different Matrix type.
     * The source Matrix can be of different size, but only the top left 4x4
@@ -884,7 +884,7 @@ public:
     * with zeroes, except for the diagonal.
     */
   template<int D, class V, class M>
-  inline Matrix4(const Matrix<D, T, V, M>& source)
+  inline constexpr Matrix4(const Matrix<D, T, V, M>& source)
     : Base(source)
   {
   }
@@ -892,10 +892,10 @@ public:
   /**
     * Component-wise constructor for a Matrix4.
     */
-  inline Matrix4(const T& c00, const T& c01, const T& c02, const T& c03,
-                 const T& c10, const T& c11, const T& c12, const T& c13,
-                 const T& c20, const T& c21, const T& c22, const T& c23,
-                 const T& c30, const T& c31, const T& c32, const T& c33) {
+  inline constexpr Matrix4(const T& c00, const T& c01, const T& c02, const T& c03,
+                            const T& c10, const T& c11, const T& c12, const T& c13,
+                            const T& c20, const T& c21, const T& c22, const T& c23,
+                            const T& c30, const T& c31, const T& c32, const T& c33) {
     setCell(0, 0, c00); setCell(0, 1, c01); setCell(0, 2, c02); setCell(0, 3, c03);
     setCell(1, 0, c10); setCell(1, 1, c11); setCell(1, 2, c12); setCell(1, 3, c13);
     setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22); setCell(2, 3, c23);
@@ -904,7 +904,7 @@ public:
 
   /**
     * Constructs a matrix using three axis vectors xAxis, yAxis, and zAxis:
-    * 
+    *
     * \f[\left(\begin{array}{cccc}
     *   x_0 & x_1 & x_2 & 0 \\
     *   y_0 & y_1 & y_2 & 0 \\
@@ -912,23 +912,23 @@ public:
     *   0   & 0   & 0   & 1 \\
     * \end{array}\right)\f]
     */
-  inline Matrix4(const Vector3<T>& xAxis, const Vector3<T>& yAxis, const Vector3<T>& zAxis) {
+  inline constexpr Matrix4(const Vector3<T>& xAxis, const Vector3<T>& yAxis, const Vector3<T>& zAxis) {
     setCell(0, 0, xAxis[0]); setCell(0, 1, xAxis[1]); setCell(0, 2, xAxis[2]); setCell(0, 3, T());
     setCell(1, 0, yAxis[0]); setCell(1, 1, yAxis[1]); setCell(1, 2, yAxis[2]); setCell(1, 3, T());
     setCell(2, 0, zAxis[0]); setCell(2, 1, zAxis[1]); setCell(2, 2, zAxis[2]); setCell(2, 3, T());
     setCell(3, 0, T());      setCell(3, 1, T());      setCell(3, 2, T());      setCell(3, 3, T(1));
   }
-  
+
   /**
     * @returns the inverse \f$M'\f$ of this matrix \f$M\f$, so that \f$M \times
     *   M' = I\f$, where \f$I\f$ is the identity matrix.
     */
-  Matrix4<T> inverted() const;
-  
+  [[nodiscard]] Matrix4<T> inverted() const;
+
   /**
     * @returns the determinant \f$|M|\f$ of this matrix \f$M\f$.
     */
-  T determinant() const;
+  [[nodiscard]] T determinant() const noexcept;
   
   /**
     * @returns the translation matrix for position \f$p\f$:
@@ -940,13 +940,13 @@ public:
     *   0 & 0 & 0 & 1 \\
     * \end{array}\right)\f]
     */
-  inline static Matrix4<T> translate(const Vector3<T>& position) {
+  [[nodiscard]] inline static constexpr Matrix4<T> translate(const Vector3<T>& position) noexcept {
     return translate(position.x(), position.y(), position.z());
   }
-  
+
   /**
     * @returns the translation matrix for position \f$(x, y, z)\f$:
-    * 
+    *
     * \f[\left(\begin{array}{cccc}
     *   1 & 0 & 0 & x \\
     *   0 & 1 & 0 & y \\
@@ -954,7 +954,7 @@ public:
     *   0 & 0 & 0 & 1 \\
     * \end{array}\right)\f]
     */
-  inline static Matrix4<T> translate(T x, T y, T z) {
+  [[nodiscard]] inline static constexpr Matrix4<T> translate(T x, T y, T z) noexcept {
     return Matrix4<T>(
       1, 0, 0, x,
       0, 1, 0, y,
@@ -962,7 +962,7 @@ public:
       0, 0, 0, 1
     );
   }
-  
+
   /**
     * @returns the translation vector \f$(x,y,z)\f$ extracted from the matrix:
     *
@@ -973,7 +973,7 @@ public:
     *   c_{30} & c_{31} & c_{32} & c_{33} \\
     * \end{array}\right)\f]
     */
-  inline Vector3<T> translationVector() const {
+  [[nodiscard]] inline constexpr Vector3<T> translationVector() const noexcept {
     return Vector3<T>(col(3));
   }
 
@@ -1023,7 +1023,7 @@ public:
     *   Degenerates when eye == target or when up is parallel to the
     *   eye-to-target direction (gimbal lock); callers must avoid these cases.
     */
-  inline static Matrix4<T> lookAt(const Vector3<T>& eye, const Vector3<T>& target, const Vector3<T>& up) {
+  [[nodiscard]] inline static Matrix4<T> lookAt(const Vector3<T>& eye, const Vector3<T>& target, const Vector3<T>& up) {
     auto zAxis = (target - eye).normalized();
     auto xAxis = (up ^ zAxis).normalized();
     auto yAxis = xAxis ^ -zAxis;
@@ -1046,7 +1046,7 @@ public:
     *   @param farPlane   positive far-plane distance (farPlane > nearPlane)
     */
   template<class A>
-  inline static Matrix4<T> perspective(const A& fovY, T aspect, T nearPlane, T farPlane) {
+  [[nodiscard]] inline static Matrix4<T> perspective(const A& fovY, T aspect, T nearPlane, T farPlane) noexcept {
     T f = T(1) / std::tan(fovY.radians() / T(2));
     T inv_range = T(1) / (farPlane - nearPlane);
     return Matrix4<T>(
@@ -1062,7 +1062,7 @@ public:
     *   [left, right] × [bottom, top] × [nearPlane, farPlane] to NDC [-1, 1]³.
     *   No perspective divide; w = 1.
     */
-  inline static Matrix4<T> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane) {
+  [[nodiscard]] inline static constexpr Matrix4<T> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane) noexcept {
     T inv_rl = T(1) / (right - left);
     T inv_tb = T(1) / (top - bottom);
     T inv_fn = T(1) / (farPlane - nearPlane);
@@ -1081,7 +1081,7 @@ public:
     *   bottom = -top. z_ndc = -1 at nearPlane, +1 at farPlane after dividing
     *   by w (= z_eye).
     */
-  inline static Matrix4<T> frustum(T left, T right, T bottom, T top, T nearPlane, T farPlane) {
+  [[nodiscard]] inline static constexpr Matrix4<T> frustum(T left, T right, T bottom, T top, T nearPlane, T farPlane) noexcept {
     T inv_rl = T(1) / (right - left);
     T inv_tb = T(1) / (top - bottom);
     T inv_fn = T(1) / (farPlane - nearPlane);
@@ -1177,7 +1177,7 @@ Matrix4<T> Matrix4<T>::inverted() const {
 }
 
 template<class T>
-T Matrix4<T>::determinant() const {
+T Matrix4<T>::determinant() const noexcept {
   return cell(0, 3) * cell(1, 2) * cell(2, 1) * cell(3, 0)-cell(0, 2) * cell(1, 3) * cell(2, 1) * cell(3, 0)-cell(0, 3) * cell(1, 1) * cell(2, 2) * cell(3, 0)+cell(0, 1) * cell(1, 3) * cell(2, 2) * cell(3, 0) +
          cell(0, 2) * cell(1, 1) * cell(2, 3) * cell(3, 0)-cell(0, 1) * cell(1, 2) * cell(2, 3) * cell(3, 0)-cell(0, 3) * cell(1, 2) * cell(2, 0) * cell(3, 1)+cell(0, 2) * cell(1, 3) * cell(2, 0) * cell(3, 1) +
          cell(0, 3) * cell(1, 0) * cell(2, 2) * cell(3, 1)-cell(0, 0) * cell(1, 3) * cell(2, 2) * cell(3, 1)-cell(0, 2) * cell(1, 0) * cell(2, 3) * cell(3, 1)+cell(0, 0) * cell(1, 2) * cell(2, 3) * cell(3, 1) +

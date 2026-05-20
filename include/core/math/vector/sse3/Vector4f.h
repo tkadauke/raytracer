@@ -43,51 +43,51 @@ public:
       m_coordinates[i] = source.coordinate(i);
   }
 
-  inline float x() const {
+  [[nodiscard]] inline float x() const noexcept {
     return m_coordinates[0];
   }
-  
-  inline void setX(const float& value) {
+
+  inline void setX(const float& value) noexcept {
     m_coordinates[0] = value;
   }
-  
-  inline float y() const {
+
+  [[nodiscard]] inline float y() const noexcept {
     return m_coordinates[1];
   }
-  
-  inline void setY(const float& value) {
+
+  inline void setY(const float& value) noexcept {
     m_coordinates[1] = value;
   }
-  
-  inline float z() const {
+
+  [[nodiscard]] inline float z() const noexcept {
     return m_coordinates[2];
   }
-  
-  inline void setZ(const float& value) {
+
+  inline void setZ(const float& value) noexcept {
     m_coordinates[2] = value;
   }
-  
-  inline float w() const {
+
+  [[nodiscard]] inline float w() const noexcept {
     return m_coordinates[3];
   }
-  
-  inline void setW(const float& value) {
+
+  inline void setW(const float& value) noexcept {
     m_coordinates[3] = value;
   }
-  
-  inline Vector4<float> operator+(const Vector4<float>& other) const {
+
+  [[nodiscard]] inline Vector4<float> operator+(const Vector4<float>& other) const noexcept {
     return Vector4<float>(_mm_add_ps(m_vector[0], other.m_vector[0]));
   }
 
-  inline Vector4<float> operator-(const Vector4<float>& other) const {
+  [[nodiscard]] inline Vector4<float> operator-(const Vector4<float>& other) const noexcept {
     return Vector4<float>(_mm_sub_ps(m_vector[0], other.m_vector[0]));
   }
 
-  inline Vector4<float> operator-() const {
+  [[nodiscard]] inline Vector4<float> operator-() const noexcept {
     return Vector4<float>(_mm_sub_ps(_mm_setzero_ps(), m_vector[0]));
   }
 
-  inline float operator*(const Vector4<float>& other) const {
+  [[nodiscard]] inline float operator*(const Vector4<float>& other) const noexcept {
     __m128 v = _mm_mul_ps(m_vector[0], other.m_vector[0]);
     return _mm_cvtss_f32(v)
          + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1,1,1,1)))
@@ -95,26 +95,26 @@ public:
          + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(3,3,3,3)));
   }
 
-  inline Vector4<float> operator*(const float& factor) const {
+  [[nodiscard]] inline Vector4<float> operator*(const float& factor) const noexcept {
     return Vector4<float>(_mm_mul_ps(m_vector[0], _mm_set1_ps(factor)));
   }
-  
-  inline Vector4<float>& operator+=(const Vector4<float>& other) {
+
+  inline Vector4<float>& operator+=(const Vector4<float>& other) noexcept {
     m_vector[0] = _mm_add_ps(m_vector[0], other.m_vector[0]);
     return *this;
   }
 
-  inline Vector4<float>& operator-=(const Vector4<float>& other) {
+  inline Vector4<float>& operator-=(const Vector4<float>& other) noexcept {
     m_vector[0] = _mm_sub_ps(m_vector[0], other.m_vector[0]);
     return *this;
   }
 
-  inline Vector4<float>& operator*=(const float& factor) {
+  inline Vector4<float>& operator*=(const float& factor) noexcept {
     m_vector[0] = _mm_mul_ps(m_vector[0], _mm_set1_ps(factor));
     return *this;
   }
 
-  inline Vector3<float> homogenized() const {
+  [[nodiscard]] inline Vector3<float> homogenized() const {
     return Vector3<float>(*this) / w();
   }
 

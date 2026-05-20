@@ -59,11 +59,13 @@
 
 **Migration path:**
 
-1. Change the Rakefile / future CMakeLists flag from `-std=c++17` to `-std=c++23`.
-2. Delete `include/core/meta/StaticIf.h` and `include/core/meta/NullType.h`; replace all usages with `std::conditional_t` and `void`/`std::monostate`.
-3. Replace manual `typedef` aliases throughout `include/` with `using` declarations.
-4. Switch `DivisionByZeroException` to inherit from `std::exception` and use `std::expected<T, E>` at call sites where the current design throws into template-heavy paths (the renderer hot loop should never throw; push exceptions to the boundary).
-5. Pin the compiler in CI: `gcc-13` and `clang-18` packages on Ubuntu 24.04.
+~~1. **`constexpr` / `noexcept` / `[[nodiscard]]` sweep of all math primitives** (`Vector`, `Matrix`, `Ray`, `BoundingBox`, `Quaternion`, `Range` + SSE3 specializations).~~ ✅ **Done.** All pure arithmetic operators and getters are `constexpr noexcept`; `sqrt`/`abs`/trig-calling methods are `noexcept`; all value-returning functions carry `[[nodiscard]]`; a compile-time `static_assert` block proves constexpr evaluation. SSE3 specializations get `noexcept` + `[[nodiscard]]` only (SIMD intrinsics not constexpr-eligible). See CHANGELOG.md for details.
+
+2. Change the Rakefile / future CMakeLists flag from `-std=c++17` to `-std=c++23`.
+3. Delete `include/core/meta/StaticIf.h` and `include/core/meta/NullType.h`; replace all usages with `std::conditional_t` and `void`/`std::monostate`.
+4. Replace manual `typedef` aliases throughout `include/` with `using` declarations.
+5. Switch `DivisionByZeroException` to inherit from `std::exception` and use `std::expected<T, E>` at call sites where the current design throws into template-heavy paths (the renderer hot loop should never throw; push exceptions to the boundary).
+6. Pin the compiler in CI: `gcc-13` and `clang-18` packages on Ubuntu 24.04.
 
 **Minimum compiler matrix:**
 
