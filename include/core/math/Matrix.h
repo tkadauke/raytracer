@@ -978,6 +978,38 @@ public:
   }
 
   /**
+    * Transforms point p by this affine matrix, skipping the homogeneous bottom
+    * row (assumed (0,0,0,1)) and returning a Vector3 directly.  Equivalent to
+    * `((*this) * Vector4(p, 1)).xyz()` but computes only 12 multiply-adds
+    * instead of 16 and avoids the perspective divide.
+    *
+    * Precondition: row 3 is (0,0,0,1). Results are undefined otherwise.
+    */
+  inline Vector3<T> transformPoint(const Vector3<T>& p) const {
+    return Vector3<T>(
+      cell(0,0)*p.x() + cell(0,1)*p.y() + cell(0,2)*p.z() + cell(0,3),
+      cell(1,0)*p.x() + cell(1,1)*p.y() + cell(1,2)*p.z() + cell(1,3),
+      cell(2,0)*p.x() + cell(2,1)*p.y() + cell(2,2)*p.z() + cell(2,3)
+    );
+  }
+
+  /**
+    * Transforms direction d by this affine matrix, skipping the translation
+    * column and the homogeneous bottom row.  Equivalent to
+    * `((*this) * Vector4(d, 0)).xyz()` but computes only 9 multiply-adds
+    * instead of 16.
+    *
+    * Precondition: row 3 is (0,0,0,1). Results are undefined otherwise.
+    */
+  inline Vector3<T> transformDirection(const Vector3<T>& d) const {
+    return Vector3<T>(
+      cell(0,0)*d.x() + cell(0,1)*d.y() + cell(0,2)*d.z(),
+      cell(1,0)*d.x() + cell(1,1)*d.y() + cell(1,2)*d.z(),
+      cell(2,0)*d.x() + cell(2,1)*d.y() + cell(2,2)*d.z()
+    );
+  }
+
+  /**
     * @returns the camera-to-world transform for a camera at eye looking toward
     *   target, with up as the world-space up hint. The resulting matrix maps
     *   camera-space axes to world space:

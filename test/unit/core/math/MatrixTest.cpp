@@ -1253,4 +1253,69 @@ namespace Matrix4Test {
     );
     ASSERT_MATRIX_NEAR(mp, mf, TypeParam(0.0001));
   }
+
+  TYPED_TEST(Matrix4Test, TransformPointShouldMatchHomogeneousPathForAffineMatrix) {
+    // Verify bit-identical result against the full Matrix4 * Vector4 path.
+    Matrix4<TypeParam> m(
+      TypeParam(0.866), TypeParam(-0.5),  TypeParam(0), TypeParam(1),
+      TypeParam(0.5),   TypeParam(0.866), TypeParam(0), TypeParam(2),
+      TypeParam(0),     TypeParam(0),     TypeParam(1), TypeParam(3),
+      TypeParam(0),     TypeParam(0),     TypeParam(0), TypeParam(1)
+    );
+    Vector3<TypeParam> p(TypeParam(4), TypeParam(5), TypeParam(6));
+    Vector3<TypeParam> fast = m.transformPoint(p);
+    Vector3<TypeParam> full = Vector3<TypeParam>(m * Vector4<TypeParam>(p));
+    ASSERT_EQ(fast.x(), full.x());
+    ASSERT_EQ(fast.y(), full.y());
+    ASSERT_EQ(fast.z(), full.z());
+  }
+
+  TYPED_TEST(Matrix4Test, TransformDirectionShouldMatchHomogeneousPathForAffineMatrix) {
+    // Verify bit-identical result against the full Matrix4 * Vector4(d, 0) path.
+    Matrix4<TypeParam> m(
+      TypeParam(0.866), TypeParam(-0.5),  TypeParam(0), TypeParam(1),
+      TypeParam(0.5),   TypeParam(0.866), TypeParam(0), TypeParam(2),
+      TypeParam(0),     TypeParam(0),     TypeParam(1), TypeParam(3),
+      TypeParam(0),     TypeParam(0),     TypeParam(0), TypeParam(1)
+    );
+    Vector3<TypeParam> d(TypeParam(1), TypeParam(0), TypeParam(0));
+    Vector3<TypeParam> fast = m.transformDirection(d);
+    Vector4<TypeParam> v4(d.x(), d.y(), d.z(), TypeParam(0));
+    Vector3<TypeParam> full = Vector3<TypeParam>(m * v4);
+    ASSERT_EQ(fast.x(), full.x());
+    ASSERT_EQ(fast.y(), full.y());
+    ASSERT_EQ(fast.z(), full.z());
+  }
+
+  TYPED_TEST(Matrix4Test, TransformPointShouldApplyTranslation) {
+    // Translation must affect points (w=1).
+    auto m = Matrix4<TypeParam>::translate(TypeParam(10), TypeParam(20), TypeParam(30));
+    Vector3<TypeParam> p(TypeParam(1), TypeParam(2), TypeParam(3));
+    Vector3<TypeParam> result = m.transformPoint(p);
+    ASSERT_EQ(TypeParam(11), result.x());
+    ASSERT_EQ(TypeParam(22), result.y());
+    ASSERT_EQ(TypeParam(33), result.z());
+  }
+
+  TYPED_TEST(Matrix4Test, TransformDirectionShouldIgnoreTranslation) {
+    // Translation must not affect directions (w=0).
+    auto m = Matrix4<TypeParam>::translate(TypeParam(10), TypeParam(20), TypeParam(30));
+    Vector3<TypeParam> d(TypeParam(1), TypeParam(0), TypeParam(0));
+    Vector3<TypeParam> result = m.transformDirection(d);
+    ASSERT_EQ(TypeParam(1), result.x());
+    ASSERT_EQ(TypeParam(0), result.y());
+    ASSERT_EQ(TypeParam(0), result.z());
+  }
+
+  TYPED_TEST(Matrix4Test, TransformPointShouldReturnInputForIdentity) {
+    Matrix4<TypeParam> m;
+    Vector3<TypeParam> p(TypeParam(3), TypeParam(7), TypeParam(-2));
+    ASSERT_EQ(p, m.transformPoint(p));
+  }
+
+  TYPED_TEST(Matrix4Test, TransformDirectionShouldReturnInputForIdentity) {
+    Matrix4<TypeParam> m;
+    Vector3<TypeParam> d(TypeParam(0), TypeParam(1), TypeParam(0));
+    ASSERT_EQ(d, m.transformDirection(d));
+  }
 }
