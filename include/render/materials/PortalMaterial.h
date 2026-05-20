@@ -38,7 +38,7 @@ namespace render {
 
   private:
     inline Rayd transformedRay(const Rayd& ray) const {
-      return Rayd(m_originMatrix * ray.origin(), m_directionMatrix * ray.direction());
+      return Rayd(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()))), m_directionMatrix * ray.direction());
     }
 
     Matrix4d m_originMatrix;

@@ -297,17 +297,19 @@ shows ≥5% improvement.~~
 
 ✅ **Done.** `Polynomial<T,N>` is now `Polynomial<T,N,Derived>` (CRTP); `solve()` removed from base, `solveInto`/`sortedResult` dispatch via `static_cast<Derived*>(this)->solve()`. Baseline: `bm_quartic_solve<double>` = 62.0 ns (`docs/perf/math-baseline-2026-05-10.txt`). Build environment lacked Qt6 so post-change benchmark couldn't be re-run on this machine; the vtable elimination is structural.
 
-### 2.5 Affine-matrix fast path
+### ~~2.5 Affine-matrix fast path~~
 
-Every scene-graph transform has bottom row `(0,0,0,1)`. Add
+~~Every scene-graph transform has bottom row `(0,0,0,1)`. Add
 `Matrix4::transformPoint(Vector3)` and
 `Matrix4::transformDirection(Vector3)` that skip the homogeneous
 machinery. Route the renderer through them at every transform call
-that doesn't need the perspective row.
+that doesn't need the perspective row.~~
 
-**Benchmark gate:** `MatrixBenchmark.cpp` for the new ops. **Pass
+~~**Benchmark gate:** `MatrixBenchmark.cpp` for the new ops. **Pass
 condition:** ≥25% faster than the full 4×4 path; whole-render macro
-benchmark on transform-heavy scenes shows improvement.
+benchmark on transform-heavy scenes shows improvement.~~
+
+✅ **Done.** `Matrix4::transformPoint` (12 multiply-adds, vs 16 for full path) and `Matrix4::transformDirection` (9 multiply-adds) added to `include/core/math/Matrix.h`. All `Instance` call sites updated (bbox loop, tessellation, `farthestPoint`, motion-blur ray origin); `PortalMaterial::transformedRay` also updated. `bm_transform_point` / `bm_transform_direction` benchmarks added; six correctness tests pin bit-identical output vs the homogeneous path.
 
 ---
 
