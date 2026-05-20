@@ -66,20 +66,22 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
   return Vector3d(x, y, pCam.z());
 }
 
+Matrix4d OrthographicCamera::projectionMatrix() const {
+  auto plane = viewPlane();
+  const double halfW = plane->hSpan() * plane->pixelSize() / 2.0;
+  const double halfH = plane->vSpan() * plane->pixelSize() / 2.0;
+  return Matrix4d::orthographic(-halfW, halfW, -halfH, halfH, 0.0, 1e6);
+}
+
 Vector4d OrthographicCamera::projectPointToClipSpace(const Vector3d& worldPoint) const {
   const Matrix4d& worldToCamera = inverseMatrix();
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
-  auto plane = viewPlane();
-  const double pxSize = plane->pixelSize();
-  const double halfH = plane->hSpan() / 2.0;
-  const double halfV = plane->vSpan() / 2.0;
-  return Vector4d(
-    pCam.x() / (pxSize * halfH),
-    pCam.y() / (pxSize * halfV),
-    pCam.z(),
-    1.0
-  );
+  const Vector4d v = projectionMatrix() * Vector4d(pCam.x(), pCam.y(), pCam.z(), 1.0);
+  // Use camera-space z for the depth component: the rasterizer's
+  // HomogeneousClipVolume near test and depth buffer use it directly in
+  // eye-space units rather than the NDC z the orthographic factory produces.
+  return Vector4d(v.x(), v.y(), pCam.z(), 1.0);
 }
 
 double OrthographicCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
