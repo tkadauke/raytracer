@@ -15,7 +15,7 @@ public:
   /**
     * Creates a new range between begin and end.
     */
-  inline explicit Range(const T& begin, const T& end)
+  inline constexpr explicit Range(const T& begin, const T& end)
     : m_begin(begin),
       m_end(end)
   {
@@ -24,28 +24,28 @@ public:
   /**
     * @returns the begin of the Range.
     */
-  inline T begin() const {
+  [[nodiscard]] inline constexpr T begin() const noexcept {
     return m_begin;
   }
-  
+
   /**
     * @returns the end of the Range.
     */
-  inline T end() const {
+  [[nodiscard]] inline constexpr T end() const noexcept {
     return m_end;
   }
 
   /**
     * @returns true if value is inside the Range, false otherwise.
     */
-  inline bool contains(const T& value) const {
+  [[nodiscard]] inline constexpr bool contains(const T& value) const noexcept {
     return begin() <= value && value <= end();
   }
-  
+
   /**
     * @returns value, clamped to the boundaries of this Range.
     */
-  inline T clamp(const T& value) const {
+  [[nodiscard]] inline constexpr T clamp(const T& value) const noexcept {
     if (value < begin()) {
       return begin();
     } else if (value > end()) {

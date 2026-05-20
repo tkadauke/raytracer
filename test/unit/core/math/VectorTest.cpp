@@ -4,6 +4,18 @@
 
 #include <limits>
 
+// Verify that constexpr arithmetic compiles and evaluates at compile time.
+// Uses Vector3<int> to avoid SSE3 specializations, which use SIMD intrinsics
+// that are not constexpr-eligible.
+static_assert(Vector3<int>(1, 2, 3) + Vector3<int>(4, 5, 6) == Vector3<int>(5, 7, 9),
+              "Vector constexpr operator+ must work at compile time");
+static_assert(Vector3<int>(5, 7, 9) - Vector3<int>(4, 5, 6) == Vector3<int>(1, 2, 3),
+              "Vector constexpr operator- must work at compile time");
+static_assert(Vector3<int>(1, 2, 3) * Vector3<int>(4, 5, 6) == 32,
+              "Vector constexpr dot product must work at compile time");
+static_assert(Vector3<int>(0, 0, 0).isNull(),
+              "Vector constexpr isNull must work at compile time");
+
 using namespace std;
 
 namespace VectorTest {
@@ -190,7 +202,7 @@ namespace VectorTest {
 
   TYPED_TEST(VectorTest, ShouldNotAllowDivisionByZero) {
     Vector<3, TypeParam> vector;
-    ASSERT_THROW(vector / 0, DivisionByZeroException);
+    ASSERT_THROW([[maybe_unused]] auto r = (vector / 0), DivisionByZeroException);
   }
   
   TYPED_TEST(VectorTest, ShouldNotAllowInPlaceDivisionByZero) {
@@ -860,7 +872,7 @@ namespace Vector3Test {
   
   TYPED_TEST(Vector3Test, ShouldNotAllowDivisionByZero) {
     Vector3<TypeParam> vector;
-    ASSERT_THROW(vector / 0, DivisionByZeroException);
+    ASSERT_THROW([[maybe_unused]] auto r = (vector / 0), DivisionByZeroException);
   }
   
   TYPED_TEST(Vector3Test, ShouldCalculateDotProduct) {
@@ -1094,7 +1106,7 @@ namespace Vector4Test {
 
   TYPED_TEST(Vector4Test, ShouldNotAllowDivisionByZero) {
     Vector4<TypeParam> vector;
-    ASSERT_THROW(vector / 0, DivisionByZeroException);
+    ASSERT_THROW([[maybe_unused]] auto r = (vector / 0), DivisionByZeroException);
   }
 
   TYPED_TEST(Vector4Test, ShouldCalculateDotProduct) {

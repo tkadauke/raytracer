@@ -365,7 +365,7 @@ namespace MatrixTest {
 
   TYPED_TEST(MatrixTest, ShouldNotAllowDivisionByZero) {
     Matrix<3, TypeParam> matrix;
-    ASSERT_THROW(matrix / 0, DivisionByZeroException);
+    ASSERT_THROW([[maybe_unused]] auto r = (matrix / 0), DivisionByZeroException);
   }
   
   TYPED_TEST(MatrixTest, ShouldReturnTransposedMatrix) {
