@@ -255,7 +255,9 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
   result->setVertexShader(m_vertexShader);
   result->setFragmentShader(m_fragmentShader);
-  result->setBackgroundColor(m_backgroundColor);
+  if (hasBackgroundColorOverride()) {
+    result->setBackgroundColor(backgroundColor());
+  }
   return result;
 }
 
@@ -306,7 +308,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   // the Wireframe / Raytracer convention.
 
   // Clear to the configured background before depth-tested fragments overwrite it.
-  buffer.clear(m_backgroundColor);
+  buffer.clear(backgroundColor());
 
   if (!m_scene || !m_camera)
     return;

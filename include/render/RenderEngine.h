@@ -5,6 +5,7 @@
 
 #include <list>
 #include <memory>
+#include <optional>
 
 template<class T>
 class Buffer;
@@ -183,9 +184,33 @@ namespace render {
     /// the full image only when `render()` finishes.
     virtual std::list<Recti> completedTiles() const;
 
+    /// @returns the colour the framebuffer is cleared to before the
+    /// engine writes any fragments. Default implementation returns
+    /// the explicit override if one was set via `setBackgroundColor`,
+    /// otherwise falls back to the attached scene's `background()`,
+    /// or black if there is no scene either. Subclasses may override
+    /// to change the no-override fallback — `Wireframe` returns black
+    /// rather than the scene background so its line-on-black look is
+    /// preserved by default.
+    virtual Colord backgroundColor() const;
+
+    /// Sets an explicit override for `backgroundColor()`. Survives
+    /// `clearBackgroundColor` and `cloneForRender` propagation paths.
+    void setBackgroundColor(const Colord& color);
+
+    /// Drops the explicit override so `backgroundColor()` falls back
+    /// to its subclass-chosen default again.
+    void clearBackgroundColor();
+
+    /// @returns true iff `setBackgroundColor` has been called more
+    /// recently than `clearBackgroundColor`. Engines use this to decide
+    /// whether to propagate the override through `cloneForRender`.
+    bool hasBackgroundColorOverride() const;
+
   protected:
     std::shared_ptr<render::Camera> m_camera;
     std::shared_ptr<render::Scene> m_scene;
+    std::optional<Colord> m_backgroundColorOverride;
 
   private:
     struct Private;

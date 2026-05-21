@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Fixed
+
+- **Rasterizer and Wireframe now honor the scene's `background()`.** Previously both engines kept a private `m_backgroundColor` field defaulted to black and ignored the scene's background — any scene loaded into `rendercli --engine raster` or `GeneratedRayTracer`'s preview rendered against black regardless of what the scene specified. Background handling moved to `render::RenderEngine` as a single shared override-plus-fallback: `setBackgroundColor`/`clearBackgroundColor`/`hasBackgroundColorOverride` live on the base, and the virtual `backgroundColor()` returns the override if set, otherwise the scene's `background()`, otherwise black. Rasterizer inherits the default; Wireframe overrides to fall back to black (preserving its lines-on-black look). Raytracer is unaffected (it already read the scene's background directly for miss rays). — Claude Opus 4.7
+
 ### Changed
 
 - **Replace Meyer's-singleton static factories with `inline` variables on all math types (modernize.md §3.1, item 1a).** `null()`, `one()`, `epsilon()`, `undefined()`, `minusInfinity()`, `plusInfinity()` on `Vector2/3/4<T>` and their SSE3 specializations — plus `Ray::undefined()` and `BoundingBox::undefined()`/`infinity()` — converted from Meyer's-singleton functions to `inline const` (SSE3 types) or `inline constexpr` (generic templates) static data members. All ~258 call sites updated; parentheses removed. `HitPoint::undefined()` is out of scope and preserved. — Claude Sonnet 4.6

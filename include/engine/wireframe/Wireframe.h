@@ -83,15 +83,18 @@ public:
   inline void setEdgeColor(const Colord& color) { m_edgeColor = color; }
 
   /// Colour the framebuffer is cleared to before edges are drawn.
-  /// Defaults to pure black (`Colord::black()`).
-  inline const Colord& backgroundColor() const { return m_backgroundColor; }
-  inline void setBackgroundColor(const Colord& color) { m_backgroundColor = color; }
+  /// Defaults to pure black — the Wireframe overrides the
+  /// `RenderEngine` default (which would fall back to the scene's
+  /// `background()`) so the canonical lines-on-black look survives
+  /// even when the scene carries a colourful background. Call
+  /// `setBackgroundColor` to install an explicit override or copy
+  /// the scene's background back in.
+  Colord backgroundColor() const override;
 
 private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   Colord m_edgeColor{Colord::white()};
-  Colord m_backgroundColor{Colord::black()};
 };
 
 }  // namespace engine::wireframe

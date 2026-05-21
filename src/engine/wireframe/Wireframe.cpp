@@ -32,8 +32,21 @@ std::shared_ptr<render::RenderEngine> Wireframe::cloneForRender() const {
   result->setTonemap(tonemap());
   result->setLod(m_lod);
   result->setEdgeColor(m_edgeColor);
-  result->setBackgroundColor(m_backgroundColor);
+  if (hasBackgroundColorOverride()) {
+    result->setBackgroundColor(backgroundColor());
+  }
   return result;
+}
+
+Colord Wireframe::backgroundColor() const {
+  // Override the RenderEngine default: when there's no explicit
+  // override, fall back to black instead of the scene's background.
+  // Keeps the canonical lines-on-black look even when the scene
+  // carries a colourful background.
+  if (hasBackgroundColorOverride()) {
+    return *m_backgroundColorOverride;
+  }
+  return Colord::black();
 }
 
 void Wireframe::cancel() {
@@ -86,9 +99,10 @@ void Wireframe::render(Buffer<Colord>& buffer) {
   // Clear to background colour. Buffer<T>::clear() default-constructs
   // every cell, which would give us black regardless of the
   // configured backgroundColor — write explicitly instead.
+  const Colord bg = backgroundColor();
   for (int y = 0; y < buffer.height(); ++y)
     for (int x = 0; x < buffer.width(); ++x)
-      buffer[y][x] = m_backgroundColor;
+      buffer[y][x] = bg;
 
   if (!m_scene || !m_camera) return;
 

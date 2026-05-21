@@ -310,6 +310,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, CancelStopsFurtherDrawing) {
     Rasterizer engine(camera(), sceneWithBox());
+    engine.setBackgroundColor(Colord::black());
     Buffer<Colord> buffer(64, 64);
 
     engine.cancel();
@@ -405,6 +406,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
     engine.setDepthFunc(Rasterizer::DepthFunc::Never);
     Buffer<Colord> buffer(64, 64);
 
@@ -563,6 +565,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, VertexShaderCanAdjustProjectedPosition) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
                                       vertex.clipPosition,
@@ -587,6 +590,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, BackfaceCullingSkipsBackFacingTriangles) {
     Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Back);
     Buffer<Colord> buffer(64, 64);
 
@@ -607,6 +611,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, FrontfaceCullingSkipsFrontFacingTriangles) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Front);
     Buffer<Colord> buffer(64, 64);
 
@@ -617,6 +622,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, BackfaceCullingAppliesToTiledPath) {
     Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
     engine.setCullMode(Rasterizer::CullMode::Back);
     engine.setMaximumThreads(2);
     engine.setQueueSize(4);
@@ -686,6 +692,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, MSAAResolveBlendsPartiallyCoveredEdge) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
     engine.setMSAASamples(4);
     configureScreenSpaceEdgeTriangle(engine);
     Buffer<Colord> buffer(40, 40);

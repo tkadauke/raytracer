@@ -1,6 +1,7 @@
 #include "render/RenderEngine.h"
 using namespace render;
 #include "render/cameras/PinholeCamera.h"
+#include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
@@ -68,4 +69,22 @@ std::list<Recti> RenderEngine::activeTiles() const {
 
 std::list<Recti> RenderEngine::completedTiles() const {
   return {};
+}
+
+Colord RenderEngine::backgroundColor() const {
+  if (m_backgroundColorOverride) return *m_backgroundColorOverride;
+  if (m_scene) return m_scene->background();
+  return Colord::black();
+}
+
+void RenderEngine::setBackgroundColor(const Colord& color) {
+  m_backgroundColorOverride = color;
+}
+
+void RenderEngine::clearBackgroundColor() {
+  m_backgroundColorOverride.reset();
+}
+
+bool RenderEngine::hasBackgroundColorOverride() const {
+  return m_backgroundColorOverride.has_value();
 }

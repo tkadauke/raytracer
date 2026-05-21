@@ -509,10 +509,10 @@ public:
   inline void setFragmentShader(FragmentShader shader) { m_fragmentShader = std::move(shader); }
   inline void clearFragmentShader() { m_fragmentShader = FragmentShader(); }
 
-  /// Colour the framebuffer is cleared to before triangles are
-  /// rasterized. Defaults to pure black (`Colord::black()`).
-  inline const Colord& backgroundColor() const { return m_backgroundColor; }
-  inline void setBackgroundColor(const Colord& color) { m_backgroundColor = color; }
+  // `backgroundColor()`, `setBackgroundColor`, `clearBackgroundColor`,
+  // and `hasBackgroundColorOverride` are inherited from `render::RenderEngine`.
+  // The Rasterizer uses the default fallback: when no override is set,
+  // the framebuffer is cleared to the scene's `background()`.
 
 private:
   struct Private;
@@ -540,7 +540,6 @@ private:
   StencilOp m_stencilPassOp{StencilOp::Keep};
   VertexShader m_vertexShader;
   FragmentShader m_fragmentShader;
-  Colord m_backgroundColor{Colord::black()};
 };
 
 }  // namespace engine::raster
