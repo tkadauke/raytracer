@@ -2,6 +2,7 @@
 #include "render/State.h"
 #include "render/primitives/Sphere.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include "test/helpers/VectorTestHelper.h"
 
@@ -75,6 +76,31 @@ using namespace render;
     ASSERT_EQ(1, hitPoints.max().distance());
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
+  }
+
+  TEST(Sphere, ShouldIntersectRay4Packet) {
+    Sphere sphere(Vector3d(), 1);
+    const Ray4 rays(std::array<Rayf, 4>{
+      Rayf(Vector3f(0, 0, -2), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, -2), Vector3f(0, 1, 0)),
+      Rayf(Vector3f(0, 0, 2), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1))
+    });
+
+    State state;
+    const auto result = sphere.intersectPacket(rays, state);
+
+    ASSERT_TRUE(result.hit(0));
+    ASSERT_FALSE(result.hit(1));
+    ASSERT_FALSE(result.hit(2));
+    ASSERT_TRUE(result.hit(3));
+    ASSERT_EQ(0b1001, result.hitMask);
+    ASSERT_EQ(1.0f, result.tNear[0]);
+    ASSERT_EQ(3.0f, result.tFar[0]);
+    ASSERT_EQ(-1.0f, result.tNear[3]);
+    ASSERT_EQ(1.0f, result.tFar[3]);
+    ASSERT_EQ(2, state.intersectionHits);
+    ASSERT_EQ(2, state.intersectionMisses);
   }
   
   TEST(Sphere, ShouldReturnTrueForIntersectsIfThereIsAIntersectionWithRay) {

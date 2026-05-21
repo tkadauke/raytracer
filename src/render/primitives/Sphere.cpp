@@ -4,8 +4,12 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/Constants.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include <cmath>
+#ifdef __SSE__
+#include <xmmintrin.h>
+#endif
 
 using namespace std;
 using namespace render;
@@ -43,6 +47,56 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
   }
   state.miss(this, "Sphere, ray miss");
   return nullptr;
+}
+
+RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& state) const {
+#ifndef __SSE__
+  return Primitive::intersectPacket(rays, state);
+#else
+  RAYTRACER_STATS_INC(raySphereIntersect);
+  RayPacketIntersection4 result;
+
+  const __m128 ox = _mm_sub_ps(_mm_load_ps(rays.originX.data()), _mm_set1_ps(static_cast<float>(m_origin.x())));
+  const __m128 oy = _mm_sub_ps(_mm_load_ps(rays.originY.data()), _mm_set1_ps(static_cast<float>(m_origin.y())));
+  const __m128 oz = _mm_sub_ps(_mm_load_ps(rays.originZ.data()), _mm_set1_ps(static_cast<float>(m_origin.z())));
+  const __m128 dx = _mm_load_ps(rays.directionX.data());
+  const __m128 dy = _mm_load_ps(rays.directionY.data());
+  const __m128 dz = _mm_load_ps(rays.directionZ.data());
+
+  const __m128 od = _mm_add_ps(_mm_add_ps(_mm_mul_ps(ox, dx), _mm_mul_ps(oy, dy)), _mm_mul_ps(oz, dz));
+  const __m128 dd = _mm_add_ps(_mm_add_ps(_mm_mul_ps(dx, dx), _mm_mul_ps(dy, dy)), _mm_mul_ps(dz, dz));
+  const __m128 oo = _mm_add_ps(_mm_add_ps(_mm_mul_ps(ox, ox), _mm_mul_ps(oy, oy)), _mm_mul_ps(oz, oz));
+  const __m128 radius2 = _mm_set1_ps(static_cast<float>(m_radius * m_radius));
+  const __m128 discriminant = _mm_sub_ps(_mm_mul_ps(od, od), _mm_mul_ps(dd, _mm_sub_ps(oo, radius2)));
+  const __m128 zero = _mm_setzero_ps();
+  const __m128 positiveDiscriminant = _mm_cmpgt_ps(discriminant, zero);
+  const __m128 root = _mm_sqrt_ps(discriminant);
+  const __m128 negOd = _mm_sub_ps(zero, od);
+  const __m128 t1 = _mm_div_ps(_mm_sub_ps(negOd, root), dd);
+  const __m128 t2 = _mm_div_ps(_mm_add_ps(negOd, root), dd);
+  const __m128 positiveT = _mm_or_ps(_mm_cmpgt_ps(t1, zero), _mm_cmpgt_ps(t2, zero));
+  const int hitMask = _mm_movemask_ps(_mm_and_ps(positiveDiscriminant, positiveT));
+  const int discriminantMask = _mm_movemask_ps(positiveDiscriminant);
+
+  alignas(16) float nearDistances[4];
+  alignas(16) float farDistances[4];
+  _mm_store_ps(nearDistances, t1);
+  _mm_store_ps(farDistances, t2);
+
+  for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+    const int laneBit = 1 << lane;
+    if ((hitMask & laneBit) != 0) {
+      result.setHit(lane, nearDistances[lane], farDistances[lane]);
+      state.hit(this, "Sphere");
+    } else if ((discriminantMask & laneBit) != 0) {
+      state.miss(this, "Sphere, behind ray");
+    } else {
+      state.miss(this, "Sphere, ray miss");
+    }
+  }
+
+  return result;
+#endif
 }
 
 bool Sphere::intersects(const Rayd& ray, render::State& state) const {
