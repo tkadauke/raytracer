@@ -349,6 +349,7 @@ Once tessellation lands (R4), the geometry engine can also do:
 Behind the §3 R7 interface, with each variant documented and benchmarked side-by-side:
 
 - BVH (binary, SAH-built; also try equal-counts, mid-split, and binned SAH for the writeup).
+- ~~BVH block-batched packet traversal (Ray4/Ray8 active-mask descent; coherent primary-ray cache-reuse path)~~ ✅ **Done.** `BVH::intersectPacket(Ray4/Ray8)` added with active-mask descent; `BVHPacketBenchmark.cpp` measures coherent vs incoherent throughput; closes Epic #141 Phase 4.3.
 - Octree (loose and tight variants).
 - kd-tree (with and without SAH).
 - Uniform grid and hashed grid.
