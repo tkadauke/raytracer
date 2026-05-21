@@ -70,6 +70,16 @@ void bm_inverted4(benchmark::State& state) {
 }
 
 template <typename T>
+void bm_stable_inverse4(benchmark::State& state) {
+  auto m = makeTransform<T>();
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(m);
+    auto r = m.stableInverse();
+    benchmark::DoNotOptimize(r);
+  }
+}
+
+template <typename T>
 void bm_determinant4(benchmark::State& state) {
   auto m = makeTransform<T>();
   for (auto _ : state) {
@@ -148,6 +158,8 @@ BENCHMARK(bm_mat_vec<double, 3, Matrix3d, Vector3d>);
 
 BENCHMARK(bm_inverted4<float>);
 BENCHMARK(bm_inverted4<double>);
+BENCHMARK(bm_stable_inverse4<float>);
+BENCHMARK(bm_stable_inverse4<double>);
 
 BENCHMARK(bm_determinant4<float>);
 BENCHMARK(bm_determinant4<double>);

@@ -1,4 +1,5 @@
 #pragma once
+#define RAYTRACER_CORE_MATH_MATRIX_H
 
 #include <functional>
 #include <iostream>
@@ -947,6 +948,13 @@ public:
   [[nodiscard]] Matrix4<T> inverted() const;
 
   /**
+    * @returns a numerically stable inverse of this matrix. Well-conditioned
+    *   matrices use the fast block inverse from inverted(); ill-conditioned
+    *   matrices are recomputed with LU partial pivoting.
+    */
+  [[nodiscard]] Matrix4<T> stableInverse() const;
+
+  /**
     * @returns the determinant \f$|M|\f$ of this matrix \f$M\f$.
     */
   [[nodiscard]] T determinant() const noexcept;
@@ -1313,3 +1321,5 @@ template<class T>
 struct std::formatter<Matrix4<T>> : std::formatter<Matrix<4, T, Vector4<T>, Matrix4<T>>> {};  // NOLINT(cert-dcl58-cpp)
 
 #endif  // __cpp_lib_format
+
+#include "core/math/MatrixDecomposition.h"
