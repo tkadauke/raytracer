@@ -29,7 +29,6 @@
 | `include/core/math/HitPoint.h` | [3. Rays and geometry](../01-foundations/03-rays-and-geometry.md) |
 | `include/core/math/HitPointInterval.h` | [3. Rays and geometry](../01-foundations/03-rays-and-geometry.md)<br>[14. Constructive solid geometry](../03-scene-structure/14-csg.md) |
 | `include/core/math/Matrix.h` | [2. Matrices and transforms](../01-foundations/02-matrices-and-transforms.md)<br>[16. Instances and motion blur](../03-scene-structure/16-instances-and-motion-blur.md) |
-| `include/core/math/MatrixDecomposition.h` | [2. Matrices and transforms](../01-foundations/02-matrices-and-transforms.md) |
 | `include/core/math/Number.h` | [1. Numbers and vectors](../01-foundations/01-numbers-and-vectors.md) |
 | `include/core/math/Polynomial.h` | [7. Primitives and intersection](../02-ray-rendering/07-primitives-and-intersection.md) |
 | `include/core/math/Quadric.h` | [7. Primitives and intersection](../02-ray-rendering/07-primitives-and-intersection.md) |
