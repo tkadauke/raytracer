@@ -13,6 +13,17 @@
 template<class T>
 class Quaternion;
 
+namespace matrix_decomposition {
+  template<int Dimensions, class T, class VectorType, class MatrixType>
+  struct LU;
+
+  template<int Dimensions, class T, class VectorType, class MatrixType>
+  struct QR;
+
+  template<int Dimensions, class T, class VectorType, class MatrixType>
+  struct SVD;
+}
+
 /**
   * Represents a square matrix with arbitrary, but fixed size. It implements
   * many matrix operations in a generic way.
@@ -306,6 +317,15 @@ public:
   }
 
   /**
+    * Sets the column at index col from vector.
+    */
+  inline constexpr void setCol(int col, const Vector& vector) noexcept {
+    for (int row = 0; row != Dimensions; ++row) {
+      m_cells[row][col] = vector[row];
+    }
+  }
+
+  /**
     * @returns the sum of all elements in row.
     */
   [[nodiscard]] inline constexpr T rowSum(int row) const noexcept {
@@ -328,6 +348,21 @@ public:
   }
 
   /**
+    * @returns the matrix 1-norm: the maximum absolute column sum.
+    */
+  [[nodiscard]] inline T norm1() const noexcept {
+    T result = T();
+    for (int col = 0; col != Dimensions; ++col) {
+      T sum = T();
+      for (int row = 0; row != Dimensions; ++row) {
+        sum += std::abs(m_cells[row][col]);
+      }
+      result = std::max(result, sum);
+    }
+    return result;
+  }
+
+  /**
     * @returns the transpose of this Matrix.
     */
   [[nodiscard]] inline MatrixType transposed() const noexcept {
@@ -340,6 +375,24 @@ public:
     }
     return result;
   }
+
+  /**
+    * @returns the LU decomposition of this matrix, with partial pivoting.
+    */
+  [[nodiscard]] inline matrix_decomposition::LU<Dimensions, T, Vector, MatrixType>
+  luDecomposition() const noexcept;
+
+  /**
+    * @returns the QR decomposition of this matrix.
+    */
+  [[nodiscard]] inline matrix_decomposition::QR<Dimensions, T, Vector, MatrixType>
+  qrDecomposition() const;
+
+  /**
+    * @returns the singular value decomposition of this matrix.
+    */
+  [[nodiscard]] inline matrix_decomposition::SVD<Dimensions, T, Vector, MatrixType>
+  svdDecomposition() const;
 
 private:
   CellsType m_cells;

@@ -23,13 +23,7 @@ namespace matrix_decomposition {
 
   template<int Dimensions, class T, class VectorType, class MatrixType>
   [[nodiscard]] inline MatrixType zeroMatrix() noexcept {
-    MatrixType result;
-    for (int row = 0; row != Dimensions; ++row) {
-      for (int col = 0; col != Dimensions; ++col) {
-        result[row][col] = T();
-      }
-    }
-    return result;
+    return MatrixType() * T();
   }
 
   template<int Dimensions, class T, class VectorType, class MatrixType>
@@ -37,26 +31,6 @@ namespace matrix_decomposition {
     MatrixType result = zeroMatrix<Dimensions, T, VectorType, MatrixType>();
     for (int i = 0; i != Dimensions; ++i) {
       result[i][i] = diagonal[i];
-    }
-    return result;
-  }
-
-  template<int Dimensions, class T, class VectorType, class MatrixType>
-  inline void setColumn(MatrixType& matrix, int col, const VectorType& vector) noexcept {
-    for (int row = 0; row != Dimensions; ++row) {
-      matrix[row][col] = vector[row];
-    }
-  }
-
-  template<int Dimensions, class T, class VectorType, class MatrixType>
-  [[nodiscard]] inline T norm1(const Matrix<Dimensions, T, VectorType, MatrixType>& matrix) noexcept {
-    T result = T();
-    for (int col = 0; col != Dimensions; ++col) {
-      T sum = T();
-      for (int row = 0; row != Dimensions; ++row) {
-        sum += std::abs(matrix[row][col]);
-      }
-      result = std::max(result, sum);
     }
     return result;
   }
@@ -151,7 +125,7 @@ namespace matrix_decomposition {
       for (int col = 0; col != Dimensions; ++col) {
         VectorType basis = zeroVector<Dimensions, T, VectorType, MatrixType>();
         basis[col] = T(1);
-        setColumn<Dimensions, T, VectorType, MatrixType>(result, col, solve(basis));
+        result.setCol(col, solve(basis));
       }
       return result;
     }
@@ -167,7 +141,7 @@ namespace matrix_decomposition {
     }
 
     const T tolerance = std::numeric_limits<T>::epsilon() *
-                        std::max(T(1), norm1<Dimensions, T, VectorType, MatrixType>(matrix)) *
+                        std::max(T(1), matrix.norm1()) *
                         T(Dimensions);
 
     for (int col = 0; col != Dimensions; ++col) {
@@ -217,7 +191,7 @@ namespace matrix_decomposition {
     result.r = zeroMatrix<Dimensions, T, VectorType, MatrixType>();
 
     const T tolerance = std::numeric_limits<T>::epsilon() *
-                        std::max(T(1), norm1<Dimensions, T, VectorType, MatrixType>(matrix)) *
+                        std::max(T(1), matrix.norm1()) *
                         T(64);
 
     for (int col = 0; col != Dimensions; ++col) {
@@ -246,7 +220,7 @@ namespace matrix_decomposition {
 
       const VectorType q = v / length;
       result.r[col][col] = length;
-      setColumn<Dimensions, T, VectorType, MatrixType>(result.q, col, q);
+      result.q.setCol(col, q);
     }
 
     return result;
@@ -339,14 +313,14 @@ namespace matrix_decomposition {
     result.v = zeroMatrix<Dimensions, T, VectorType, MatrixType>();
 
     const T tolerance = std::numeric_limits<T>::epsilon() *
-                        std::max(T(1), norm1<Dimensions, T, VectorType, MatrixType>(matrix)) *
+                        std::max(T(1), matrix.norm1()) *
                         T(64);
 
     for (int outCol = 0; outCol != Dimensions; ++outCol) {
       const int sourceCol = order[outCol];
       const T eigenvalue = std::max(T(), ata[sourceCol][sourceCol]);
       result.singularValues[outCol] = std::sqrt(eigenvalue);
-      setColumn<Dimensions, T, VectorType, MatrixType>(result.v, outCol, v.col(sourceCol));
+      result.v.setCol(outCol, v.col(sourceCol));
 
       VectorType uCol = matrix * result.v.col(outCol);
       if (result.singularValues[outCol] > tolerance) {
@@ -367,31 +341,83 @@ namespace matrix_decomposition {
         }
       }
 
-      setColumn<Dimensions, T, VectorType, MatrixType>(
-        result.u, outCol,
-        normalizedOrZero<Dimensions, T, VectorType, MatrixType>(uCol, tolerance));
+      result.u.setCol(outCol, normalizedOrZero<Dimensions, T, VectorType, MatrixType>(uCol, tolerance));
     }
 
     return result;
   }
 }
 
-template<int Dimensions, class T, class VectorType, class MatrixType>
-[[nodiscard]] inline matrix_decomposition::LU<Dimensions, T, VectorType, MatrixType>
-luDecomposition(const Matrix<Dimensions, T, VectorType, MatrixType>& matrix) noexcept {
-  return matrix_decomposition::lu<Dimensions, T, VectorType, MatrixType>(matrix);
+template<int Dimensions, class T, class VectorType, class Derived>
+matrix_decomposition::LU<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+Matrix<Dimensions, T, VectorType, Derived>::luDecomposition() const noexcept {
+  return matrix_decomposition::lu<
+    Dimensions,
+    T,
+    VectorType,
+    typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>(*this);
 }
 
-template<int Dimensions, class T, class VectorType, class MatrixType>
-[[nodiscard]] inline matrix_decomposition::QR<Dimensions, T, VectorType, MatrixType>
-qrDecomposition(const Matrix<Dimensions, T, VectorType, MatrixType>& matrix) {
-  return matrix_decomposition::qr<Dimensions, T, VectorType, MatrixType>(matrix);
+template<int Dimensions, class T, class VectorType, class Derived>
+matrix_decomposition::QR<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
+  return matrix_decomposition::qr<
+    Dimensions,
+    T,
+    VectorType,
+    typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>(*this);
 }
 
-template<int Dimensions, class T, class VectorType, class MatrixType>
-[[nodiscard]] inline matrix_decomposition::SVD<Dimensions, T, VectorType, MatrixType>
-svdDecomposition(const Matrix<Dimensions, T, VectorType, MatrixType>& matrix) {
-  return matrix_decomposition::svd<Dimensions, T, VectorType, MatrixType>(matrix);
+template<int Dimensions, class T, class VectorType, class Derived>
+matrix_decomposition::SVD<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+Matrix<Dimensions, T, VectorType, Derived>::svdDecomposition() const {
+  return matrix_decomposition::svd<
+    Dimensions,
+    T,
+    VectorType,
+    typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>(*this);
+}
+
+template<int Dimensions, class T, class VectorType, class Derived>
+[[nodiscard]] inline matrix_decomposition::LU<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+luDecomposition(const Matrix<Dimensions, T, VectorType, Derived>& matrix) noexcept {
+  return matrix.luDecomposition();
+}
+
+template<int Dimensions, class T, class VectorType, class Derived>
+[[nodiscard]] inline matrix_decomposition::QR<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+qrDecomposition(const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
+  return matrix.qrDecomposition();
+}
+
+template<int Dimensions, class T, class VectorType, class Derived>
+[[nodiscard]] inline matrix_decomposition::SVD<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+svdDecomposition(const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
+  return matrix.svdDecomposition();
 }
 
 template<class T>
@@ -407,7 +433,7 @@ Matrix4<T> Matrix4<T>::stableInverse() const {
   }
 
   try {
-    return luDecomposition<4, T, Vector4<T>, Matrix4<T>>(*this).inverse();
+    return this->luDecomposition().inverse();
   } catch (const DivisionByZeroException&) {
     return inverted();
   }
