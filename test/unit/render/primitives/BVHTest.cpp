@@ -200,4 +200,86 @@ namespace BVHTest {
     EXPECT_LE(bbox.min().x(), -6.0);
     EXPECT_GE(bbox.max().x(), 6.0);
   }
+
+  // ── Packet traversal tests ──────────────────────────────────────────────
+
+  TEST(BVH, PacketIntersectHitMaskMatchesScalarPath) {
+    // Build a 4×4×4 grid of spheres and verify that intersectPacket(Ray4)
+    // returns the same hit/miss result per lane as four scalar intersect
+    // calls for the same rays.
+    auto bvh = gridSpheres(4);  // 64 spheres
+
+    // Four rays aimed through the grid at known spheres.
+    const std::array<Rayd, 4> testRays = {
+      Rayd(Vector3d(-10, 0, 0), Vector3d(1, 0, 0)),   // hits x=0 sphere row
+      Rayd(Vector3d(-10, 2, 0), Vector3d(1, 0, 0)),   // hits x=0,y=1 row
+      Rayd(Vector3d(0, 1000, 0), Vector3d(1, 0, 0)),  // misses (y=1000)
+      Rayd(Vector3d(-10, 0, 2), Vector3d(1, 0, 0)),   // hits x=0,z=1 row
+    };
+
+    Ray4 packet(testRays);
+    State packetState;
+    const auto result = bvh->intersectPacket(packet, packetState);
+
+    for (std::size_t i = 0; i < 4; ++i) {
+      State scalarState;
+      HitPointInterval hp;
+      const bool scalarHit = (bvh->intersect(testRays[i], hp, scalarState) != nullptr);
+      EXPECT_EQ(scalarHit, result.hit(i))
+        << "Lane " << i << ": packet hit=" << result.hit(i)
+        << " scalar hit=" << scalarHit;
+    }
+  }
+
+  TEST(BVH, PacketIntersectTMinApproximatesScalarDistance) {
+    // Verify that tNear from intersectPacket is close to the t returned
+    // by scalar intersect for the same rays (within float precision).
+    auto bvh = gridSpheres(4);
+
+    const std::array<Rayd, 4> testRays = {
+      Rayd(Vector3d(-10, 0, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-10, 2, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-10, 4, 0), Vector3d(1, 0, 0)),
+      Rayd(Vector3d(-10, 6, 0), Vector3d(1, 0, 0)),
+    };
+
+    Ray4 packet(testRays);
+    State packetState;
+    const auto result = bvh->intersectPacket(packet, packetState);
+
+    for (std::size_t i = 0; i < 4; ++i) {
+      State scalarState;
+      HitPointInterval hp;
+      const bool scalarHit = (bvh->intersect(testRays[i], hp, scalarState) != nullptr);
+      ASSERT_TRUE(scalarHit) << "Lane " << i << " expected a hit";
+      ASSERT_TRUE(result.hit(i)) << "Lane " << i << " packet expected a hit";
+
+      const double scalarT = hp.minWithPositiveDistance().distance();
+      const double packetT = static_cast<double>(result.tNear[i]);
+      // Ray4 uses float lanes, so compare within float epsilon.
+      EXPECT_NEAR(scalarT, packetT, 1e-3)
+        << "Lane " << i << ": scalar t=" << scalarT << " packet t=" << packetT;
+    }
+  }
+
+  TEST(BVH, PacketIntersectFallsBackToLinearScanIfSetupNotCalled) {
+    BVH bvh;
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
+    bvh.add(sphere);
+    // No setup() call — should fall back to base class scalar loop.
+
+    const std::array<Rayd, 4> testRays = {
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)),  // hits
+      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)),  // misses (x=5, sphere at origin)
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)),  // hits
+      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)),  // misses
+    };
+    Ray4 packet(testRays);
+    State state;
+    const auto result = bvh.intersectPacket(packet, state);
+    EXPECT_TRUE(result.hit(0));
+    EXPECT_FALSE(result.hit(1));
+    EXPECT_TRUE(result.hit(2));
+    EXPECT_FALSE(result.hit(3));
+  }
 }

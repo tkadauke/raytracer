@@ -214,3 +214,116 @@ bool BVH::intersectsNode(const Node* node, const Rayd& ray, render::State& state
   return intersectsNode(node->left.get(), ray, state)
       || intersectsNode(node->right.get(), ray, state);
 }
+
+RayPacketIntersection4 BVH::intersectPacket(const Ray4& rays, render::State& state) const {
+  if (!m_root) {
+    return Primitive::intersectPacket(rays, state);
+  }
+  std::array<float, Ray4::lanes> tMin;
+  tMin.fill(std::numeric_limits<float>::infinity());
+  uint16_t hitMask = 0;
+  constexpr uint16_t allActive = static_cast<uint16_t>((1u << Ray4::lanes) - 1u);
+  intersectPacketNode(m_root.get(), rays, allActive, tMin, hitMask, state);
+  RayPacketIntersection4 result;
+  for (std::size_t i = 0; i < Ray4::lanes; ++i) {
+    if (hitMask & (1u << i)) {
+      result.setHit(i, tMin[i], tMin[i]);
+    }
+  }
+  return result;
+}
+
+void BVH::intersectPacketNode(const Node* node, const Ray4& rays,
+                               uint16_t activeMask,
+                               std::array<float, Ray4::lanes>& tMin,
+                               uint16_t& hitMask,
+                               render::State& state) const {
+  if (!node || activeMask == 0) return;
+
+  // Test each active-mask lane against this node's AABB. Lanes that miss
+  // are excluded from the descending mask, pruning the subtree for those
+  // rays without a separate traversal.
+  uint16_t nodeMask = 0;
+  for (std::size_t i = 0; i < Ray4::lanes; ++i) {
+    if ((activeMask & (1u << i)) && node->bbox.intersects(rays.rayd(i))) {
+      nodeMask |= static_cast<uint16_t>(1u << i);
+    }
+  }
+  if (!nodeMask) return;
+
+  if (node->isLeaf()) {
+    for (const auto& prim : node->primitives) {
+      const RayPacketIntersection4 r = prim->intersectPacket(rays, state);
+      for (std::size_t i = 0; i < Ray4::lanes; ++i) {
+        if ((nodeMask & (1u << i)) && r.hit(i)) {
+          // tNear may be negative when the ray origin is inside the primitive;
+          // fall back to tFar (the exit point) in that case.
+          const float hitT = r.tNear[i] > 0.0f ? r.tNear[i] : r.tFar[i];
+          if (hitT > 0.0f && hitT < tMin[i]) {
+            tMin[i] = hitT;
+            hitMask |= static_cast<uint16_t>(1u << i);
+          }
+        }
+      }
+    }
+    return;
+  }
+
+  intersectPacketNode(node->left.get(), rays, nodeMask, tMin, hitMask, state);
+  intersectPacketNode(node->right.get(), rays, nodeMask, tMin, hitMask, state);
+}
+
+#ifdef __AVX__
+RayPacketIntersection8 BVH::intersectPacket(const Ray8& rays, render::State& state) const {
+  if (!m_root) {
+    return Primitive::intersectPacket(rays, state);
+  }
+  std::array<float, Ray8::lanes> tMin;
+  tMin.fill(std::numeric_limits<float>::infinity());
+  uint16_t hitMask = 0;
+  constexpr uint16_t allActive = static_cast<uint16_t>((1u << Ray8::lanes) - 1u);
+  intersectPacketNode(m_root.get(), rays, allActive, tMin, hitMask, state);
+  RayPacketIntersection8 result;
+  for (std::size_t i = 0; i < Ray8::lanes; ++i) {
+    if (hitMask & (1u << i)) {
+      result.setHit(i, tMin[i], tMin[i]);
+    }
+  }
+  return result;
+}
+
+void BVH::intersectPacketNode(const Node* node, const Ray8& rays,
+                               uint16_t activeMask,
+                               std::array<float, Ray8::lanes>& tMin,
+                               uint16_t& hitMask,
+                               render::State& state) const {
+  if (!node || activeMask == 0) return;
+
+  uint16_t nodeMask = 0;
+  for (std::size_t i = 0; i < Ray8::lanes; ++i) {
+    if ((activeMask & (1u << i)) && node->bbox.intersects(rays.rayd(i))) {
+      nodeMask |= static_cast<uint16_t>(1u << i);
+    }
+  }
+  if (!nodeMask) return;
+
+  if (node->isLeaf()) {
+    for (const auto& prim : node->primitives) {
+      const RayPacketIntersection8 r = prim->intersectPacket(rays, state);
+      for (std::size_t i = 0; i < Ray8::lanes; ++i) {
+        if ((nodeMask & (1u << i)) && r.hit(i)) {
+          const float hitT = r.tNear[i] > 0.0f ? r.tNear[i] : r.tFar[i];
+          if (hitT > 0.0f && hitT < tMin[i]) {
+            tMin[i] = hitT;
+            hitMask |= static_cast<uint16_t>(1u << i);
+          }
+        }
+      }
+    }
+    return;
+  }
+
+  intersectPacketNode(node->left.get(), rays, nodeMask, tMin, hitMask, state);
+  intersectPacketNode(node->right.get(), rays, nodeMask, tMin, hitMask, state);
+}
+#endif  // __AVX__

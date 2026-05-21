@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -67,6 +69,31 @@ namespace render {
     bool intersects(const Rayd& ray, render::State& state) const override;
 
     /**
+      * Block-batched packet traversal for four rays. Walks all lanes
+      * through a single BVH descent, pruning subtrees where every
+      * active-mask ray misses the node AABB. Leaf hits are accumulated
+      * per-lane via Primitive::intersectPacket (SSE path for Sphere,
+      * scalar fallback for other primitives). Returns tNear set to the
+      * closest positive hit distance per lane; tFar mirrors tNear.
+      *
+      * Coherent rays (same pixel tile, nearly identical directions)
+      * follow the same BVH path and benefit from both tree-level cache
+      * reuse and leaf-level SIMD parallelism. Incoherent rays (random
+      * directions) produce sparse active masks and fall back toward
+      * scalar cost.
+      */
+    RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
+
+#ifdef __AVX__
+    /**
+      * Eight-lane variant. Active-mask descent is identical to the
+      * Ray4 path; leaf dispatch calls Primitive::intersectPacket(Ray8).
+      * Only compiled when the toolchain has AVX enabled.
+      */
+    RayPacketIntersection8 intersectPacket(const Ray8& rays, render::State& state) const override;
+#endif
+
+    /**
       * Build the BVH from the children added so far. Must be called
       * after all `add()` calls and before the first `intersect`.
       * Re-calling rebuilds from scratch.
@@ -100,5 +127,18 @@ namespace render {
     const Primitive* intersectNode(const Node* node, const Rayd& ray,
                                     HitPointInterval& hitPoints, render::State& state) const;
     bool intersectsNode(const Node* node, const Rayd& ray, render::State& state) const;
+
+    void intersectPacketNode(const Node* node, const Ray4& rays,
+                              uint16_t activeMask,
+                              std::array<float, Ray4::lanes>& tMin,
+                              uint16_t& hitMask,
+                              render::State& state) const;
+#ifdef __AVX__
+    void intersectPacketNode(const Node* node, const Ray8& rays,
+                              uint16_t activeMask,
+                              std::array<float, Ray8::lanes>& tMin,
+                              uint16_t& hitMask,
+                              render::State& state) const;
+#endif
   };
 }
