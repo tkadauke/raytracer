@@ -59,4 +59,33 @@ namespace QuarticTest {
     Quartic<TypeParam> quartic(1, -16, 86, -176, 105);
     ASSERT_CONTAINERS_NEAR(testing::makeStdVector<TypeParam>(1, 3, 5, 7), quartic.sortedResult(), 0.01);
   }
+
+  TYPED_TEST(QuarticTest, ShouldSolveIllConditionedGrazingQuartic) {
+    // This is the PolynomialBenchmark grazing-incidence case. Ferrari's
+    // closed-form path used to report 0 roots for float and a spurious
+    // -0.298... root for double; the stable fallback finds the two real roots.
+    Quartic<TypeParam> quartic(TypeParam(1e-6), TypeParam(1), TypeParam(-2), TypeParam(1), TypeParam(-1));
+    ASSERT_CONTAINERS_NEAR(
+      testing::makeStdVector<TypeParam>(TypeParam(-1000002), TypeParam(1.7548747)),
+      quartic.stableSortedResult(),
+      TypeParam(2));
+  }
+
+  TYPED_TEST(QuarticTest, ShouldSolveQuarticWithWideCoefficientScale) {
+    // Wide coefficient ranges are common in grazing geometry after expansion.
+    // Keeping the real-axis isolation fallback on this path preserves the
+    // root count while avoiding closed-form cancellation.
+    Quartic<TypeParam> quartic(
+      TypeParam(1),
+      TypeParam(-10000),
+      TypeParam(-7),
+      TypeParam(70006),
+      TypeParam(-60000));
+
+    ASSERT_CONTAINERS_NEAR(
+      testing::makeStdVector<TypeParam>(
+        TypeParam(-3), TypeParam(1), TypeParam(2), TypeParam(10000)),
+      quartic.stableSortedResult(),
+      TypeParam(0.01));
+  }
 }
