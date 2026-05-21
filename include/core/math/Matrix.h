@@ -1,5 +1,4 @@
 #pragma once
-#define RAYTRACER_CORE_MATH_MATRIX_H
 
 #include <functional>
 #include <iostream>
