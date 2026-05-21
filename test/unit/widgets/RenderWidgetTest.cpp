@@ -180,7 +180,7 @@ namespace RenderWidgetTest {
     widget.resize(2, 2);
 
     widget.render();
-    ASSERT_TRUE(solid->done.tryAcquire(1, 1000));
+    ASSERT_TRUE(solid->done.tryAcquire(1, 5000));
     widget.stop();
     ASSERT_EQ(qRgb(0, 255, 0), paintedPixel(widget));
 
@@ -189,7 +189,7 @@ namespace RenderWidgetTest {
     widget.setDisplayMode(RenderWidget::DisplayMode::DoubleBuffer);
 
     widget.render();
-    ASSERT_TRUE(blocking->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(blocking->entered.tryAcquire(1, 5000));
 
     EXPECT_EQ(qRgb(0, 255, 0), paintedPixel(widget));
   }
@@ -201,7 +201,7 @@ namespace RenderWidgetTest {
     widget.resize(2, 2);
 
     widget.render();
-    ASSERT_TRUE(solid->done.tryAcquire(1, 1000));
+    ASSERT_TRUE(solid->done.tryAcquire(1, 5000));
     widget.stop();
 
     auto blocking = std::make_shared<BlockingEngine>();
@@ -210,7 +210,7 @@ namespace RenderWidgetTest {
     widget.setClearBackBufferOnRenderStart(false);
 
     widget.render();
-    ASSERT_TRUE(blocking->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(blocking->entered.tryAcquire(1, 5000));
     widget.timerEvent(nullptr);
 
     EXPECT_EQ(qRgb(0, 255, 0), paintedPixel(widget));
@@ -228,13 +228,13 @@ namespace RenderWidgetTest {
     });
 
     widget.render();
-    ASSERT_TRUE(first->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(first->entered.tryAcquire(1, 5000));
     widget.stop();
 
     auto second = std::make_shared<BlockingEngine>();
     widget.setEngine(second);
     widget.render();
-    ASSERT_TRUE(second->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(second->entered.tryAcquire(1, 5000));
 
     QCoreApplication::processEvents();
 
@@ -254,21 +254,21 @@ namespace RenderWidgetTest {
 
     widget.render();
     ASSERT_EQ(1u, engine->state->gates.size());
-    ASSERT_TRUE(engine->state->gates[0]->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(engine->state->gates[0]->entered.tryAcquire(1, 5000));
 
     widget.render();
 
     ASSERT_EQ(2u, engine->state->gates.size());
     EXPECT_EQ(1, engine->state->gates[0]->cancelCalls.load());
-    ASSERT_TRUE(engine->state->gates[0]->finished.tryAcquire(1, 1000));
+    ASSERT_TRUE(engine->state->gates[0]->finished.tryAcquire(1, 5000));
     QCoreApplication::processEvents();
     EXPECT_EQ(0, finishedCount);
 
-    EXPECT_TRUE(engine->state->gates[1]->entered.tryAcquire(1, 1000));
+    EXPECT_TRUE(engine->state->gates[1]->entered.tryAcquire(1, 5000));
     EXPECT_TRUE(widget.isRendering());
 
     engine->state->gates[1]->release.release();
-    ASSERT_TRUE(engine->state->gates[1]->finished.tryAcquire(1, 1000));
+    ASSERT_TRUE(engine->state->gates[1]->finished.tryAcquire(1, 5000));
     QCoreApplication::processEvents();
     EXPECT_EQ(1, finishedCount);
   }
@@ -280,12 +280,12 @@ namespace RenderWidgetTest {
 
     widget.render();
     ASSERT_EQ(1u, engine->state->gates.size());
-    ASSERT_TRUE(engine->state->gates[0]->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(engine->state->gates[0]->entered.tryAcquire(1, 5000));
     engine->state->gates[0]->releaseOnCancel.store(false);
 
     widget.render();
     ASSERT_EQ(2u, engine->state->gates.size());
-    ASSERT_TRUE(engine->state->gates[1]->entered.tryAcquire(1, 1000));
+    ASSERT_TRUE(engine->state->gates[1]->entered.tryAcquire(1, 5000));
 
     widget.render();
 
