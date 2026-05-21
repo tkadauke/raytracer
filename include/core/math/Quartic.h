@@ -1,10 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include "core/math/Polynomial.h"
 #include "core/math/Number.h"
 #include "core/math/Cubic.h"
 #include "core/math/Quadric.h"
+#include "core/math/StablePolynomial.h"
 
 /**
   * Represents a quartic polynomial of the form
@@ -32,6 +35,31 @@ public:
     * @see the Polynomial class for information how to retrieve the results.
     */
   int solve();
+
+  /**
+    * Solves the polynomial using a real-axis isolation fallback. This path is
+    * slower than Ferrari's method but preserves root counts for badly scaled
+    * quartics such as grazing torus intersections.
+    */
+  int solveStable();
+
+  /**
+    * @returns the sorted real roots from solveStable().
+    */
+  inline SortedResult<T, 4> stableSortedResult() {
+    SortedResult<T, 4> res;
+    int num = solveStable();
+    for (int i = 0; i != num; ++i) {
+      res.values[res.count++] = m_result[i];
+    }
+    return res;
+  }
+
+  /**
+    * @returns true when the coefficient magnitudes are spread enough that the
+    * closed-form path is likely to lose precision.
+    */
+  bool shouldUseStableSolver() const;
 
 private:
   using Base::m_result;
@@ -93,4 +121,33 @@ int Quartic<T>::solve() {
     m_result[i] -= sub;
 
   return numberOfResults;
+}
+
+template<class T>
+int Quartic<T>::solveStable() {
+  auto stableRoots = StablePolynomial<T>::solveQuartic(m_a, m_b, m_c, m_d, m_e);
+  for (std::size_t i = 0; i < stableRoots.count; ++i) {
+    m_result[i] = stableRoots.values[i];
+  }
+  return static_cast<int>(stableRoots.count);
+}
+
+template<class T>
+bool Quartic<T>::shouldUseStableSolver() const {
+  T maxCoefficient = std::max({std::abs(m_a), std::abs(m_b), std::abs(m_c),
+                               std::abs(m_d), std::abs(m_e)});
+  if (maxCoefficient == T(0) ||
+      std::abs(m_a) <= std::numeric_limits<T>::epsilon() * maxCoefficient) {
+    return true;
+  }
+
+  T minNonZeroCoefficient = maxCoefficient;
+  for (T coefficient : {m_a, m_b, m_c, m_d, m_e}) {
+    T magnitude = std::abs(coefficient);
+    if (magnitude > T(0)) {
+      minNonZeroCoefficient = std::min(minNonZeroCoefficient, magnitude);
+    }
+  }
+
+  return maxCoefficient / minNonZeroCoefficient > T(100000);
 }

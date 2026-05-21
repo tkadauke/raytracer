@@ -24,15 +24,17 @@ const Primitive* Torus::intersect(const Rayd& ray, HitPointInterval& hitPoints, 
   double od = origin * direction;
   double fourRR = 4.0 * m_sweptRadius * m_sweptRadius;
   
-  Quartic<double> quartic(
-    dd * dd,
-    4.0 * dd * od,
-    2.0 * dd * oorr + 4.0 * od * od + fourRR * direction.y() * direction.y(),
-    4.0 * od * oorr + 2.0 * fourRR * origin.y() * direction.y(),
-    oorr * oorr - fourRR * (m_tubeRadius * m_tubeRadius - origin.y() * origin.y())
-  );
+  double a = dd * dd;
+  double b = 4.0 * dd * od;
+  double c = 2.0 * dd * oorr + 4.0 * od * od + fourRR * direction.y() * direction.y();
+  double d = 4.0 * od * oorr + 2.0 * fourRR * origin.y() * direction.y();
+  double e = oorr * oorr - fourRR * (m_tubeRadius * m_tubeRadius - origin.y() * origin.y());
+
+  Quartic<double> quartic(a, b, c, d, e);
   
-  auto results = quartic.sortedResult();
+  auto results = quartic.shouldUseStableSolver()
+                   ? quartic.stableSortedResult()
+                   : quartic.sortedResult();
   
   if (results.size() == 2 || results.size() == 4) {
     Vector3d hitPoint1 = ray.at(results[0]),

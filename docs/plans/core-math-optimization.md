@@ -404,8 +404,12 @@ tracing arrives. Listed for completeness.
 - **SoA / batched ray operations.** `Ray4`, `Ray8` types; batched
   `BoundingBox::intersects4`; batched primitive intersection. New
   benchmark suite: `BatchedRayBenchmark.cpp`.
-- **Stable polynomial solvers for ill-conditioned cases.**
-  Jenkins-Traub or similar for the torus grazing-incidence case.
+- ~~**Stable polynomial solvers for ill-conditioned cases.**
+  Jenkins-Traub or similar for the torus grazing-incidence case.~~
+  ✅ **Done.** `StablePolynomial` adds a quartic real-root isolation fallback;
+  `Quartic::solveStable()` exposes it explicitly, and torus intersection
+  selects it for poorly scaled coefficients while preserving the default
+  Ferrari fast path.
 - **Block-batched BVH traversal.** 4 or 8 rays per traversal step,
   using the SIMD AABB intersection from phase 1.2.
 - **Matrix decompositions** (LU, QR, SVD). Useful for stable

@@ -28,6 +28,25 @@ using namespace render;
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
+
+  TEST(Torus, ShouldIntersectAtGrazingIncidence) {
+    Torus torus(2, 1);
+    Rayd ray(Vector3d(0, 0.999999, -4), Vector3d(0, 0, 1));
+
+    State state;
+    HitPointInterval hitPoints;
+    auto primitive = torus.intersect(ray, hitPoints, state);
+
+    ASSERT_EQ(primitive, &torus);
+    ASSERT_EQ(4u, hitPoints.points().size());
+    auto points = hitPoints.points().begin();
+    EXPECT_NEAR(1.99858578679, points[0].point.distance(), 1e-8);
+    EXPECT_NEAR(2.00141421321, points[1].point.distance(), 1e-8);
+    EXPECT_NEAR(5.99858578679, points[2].point.distance(), 1e-8);
+    EXPECT_NEAR(6.00141421321, points[3].point.distance(), 1e-8);
+    ASSERT_EQ(1, state.intersectionHits);
+    ASSERT_EQ(0, state.intersectionMisses);
+  }
   
   TEST(Torus, ShouldNotIntersectWithMissingRay) {
     Torus torus(2, 1);
