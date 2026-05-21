@@ -2,6 +2,7 @@
 #include "render/primitives/Primitive.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/GJKSimplex.h"
 
@@ -9,10 +10,34 @@
 
 using namespace render;
 
+namespace {
+  template<typename Packet, typename Result>
+  Result intersectPacketScalarFallback(const Primitive& primitive, const Packet& rays, render::State& state) {
+    Result result;
+    for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
+      HitPointInterval hitPoints;
+      if (primitive.intersect(rays.rayd(lane), hitPoints, state)) {
+        result.setHit(lane,
+                      static_cast<float>(hitPoints.min().distance()),
+                      static_cast<float>(hitPoints.max().distance()));
+      }
+    }
+    return result;
+  }
+}
+
 bool Primitive::intersects(const Rayd& ray, render::State& state) const {
   HitPointInterval hitPoints;
   intersect(ray, hitPoints, state);
   return !hitPoints.minWithPositiveDistance().isUndefined();
+}
+
+RayPacketIntersection4 Primitive::intersectPacket(const Ray4& rays, render::State& state) const {
+  return intersectPacketScalarFallback<Ray4, RayPacketIntersection4>(*this, rays, state);
+}
+
+RayPacketIntersection8 Primitive::intersectPacket(const Ray8& rays, render::State& state) const {
+  return intersectPacketScalarFallback<Ray8, RayPacketIntersection8>(*this, rays, state);
 }
 
 void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,

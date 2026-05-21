@@ -4,6 +4,7 @@
 
 #include "core/math/BoundingBox.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/MemoizedValue.h"
 
 #include "render/Object.h"
@@ -75,6 +76,15 @@ namespace render {
       * partial information from siblings.
       */
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const = 0;
+
+    /**
+      * Packet intersection entry points for SIMD/block traversal.
+      * The base implementation preserves correctness by extracting
+      * each lane and calling the scalar `intersect`; primitives with
+      * a cheaper SoA kernel override the matching packet width.
+      */
+    virtual RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const;
+    virtual RayPacketIntersection8 intersectPacket(const Ray8& rays, render::State& state) const;
 
     /**
       * Boolean flavour for shadow rays — "is anything between the

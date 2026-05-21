@@ -4,6 +4,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Primitive.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "test/mocks/raytracer/MockPrimitive.h"
 
 namespace PrimitiveTest {
@@ -33,6 +34,35 @@ using namespace render;
     
     State state;
     ASSERT_FALSE(primitive->intersects(Rayd(Vector3d::null, Vector3d::one), state));
+  }
+
+  TEST(Primitive, ShouldIntersectRay4PacketWithScalarFallback) {
+    auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .Times(4)
+      .WillRepeatedly(
+        DoAll(
+          AddHitPoints(
+            HitPoint(primitive.get(), 1.0, Vector3d(0, 0, 1), Vector3d(0, 0, -1)),
+            HitPoint(primitive.get(), 3.0, Vector3d(0, 0, 3), Vector3d(0, 0, 1))
+          ),
+          Return(primitive.get())
+        )
+      );
+
+    const Ray4 rays(std::array<Rayf, 4>{
+      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))
+    });
+
+    State state;
+    const auto result = primitive->Primitive::intersectPacket(rays, state);
+
+    ASSERT_EQ(0b1111, result.hitMask);
+    ASSERT_EQ(1.0f, result.tNear[0]);
+    ASSERT_EQ(3.0f, result.tFar[3]);
   }
   
   TEST(Primitive, ShouldReturnFarthestPoint) {
