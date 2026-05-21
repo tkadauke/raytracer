@@ -9,12 +9,12 @@ class Vector4<float> : public Vector<4, float, __m128, Vector4<float>> {
   typedef float CellsType[4];
 public:
   static const int Dim = 4;
-  
-  static const Vector4<float>& null();
-  static const Vector4<float>& epsilon();
-  static const Vector4<float>& undefined();
-  static const Vector4<float>& minusInfinity();
-  static const Vector4<float>& plusInfinity();
+
+  static const Vector4<float> null;
+  static const Vector4<float> epsilon;
+  static const Vector4<float> undefined;
+  static const Vector4<float> minusInfinity;
+  static const Vector4<float> plusInfinity;
 
   inline Vector4() {
     m_vector[0] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
@@ -23,7 +23,7 @@ public:
   inline Vector4(const float& x, const float& y, const float& z = 0, const float& w = 1) {
     m_vector[0] = _mm_set_ps(w, z, y, x);
   }
-  
+
   inline explicit Vector4(const CellsType& cells) {
     m_vector[0] = _mm_set_ps(cells[3], cells[2], cells[1], cells[0]);
   }
@@ -122,6 +122,32 @@ private:
   inline explicit Vector4(const __m128& vec) {
     m_vector[0] = vec;
   }
+};
+
+inline const Vector4<float> Vector4<float>::null{0.0f, 0.0f, 0.0f, 1.0f};
+inline const Vector4<float> Vector4<float>::epsilon{
+  std::numeric_limits<float>::epsilon(),
+  std::numeric_limits<float>::epsilon(),
+  std::numeric_limits<float>::epsilon(),
+  std::numeric_limits<float>::epsilon()
+};
+inline const Vector4<float> Vector4<float>::undefined{
+  std::numeric_limits<float>::quiet_NaN(),
+  std::numeric_limits<float>::quiet_NaN(),
+  std::numeric_limits<float>::quiet_NaN(),
+  std::numeric_limits<float>::quiet_NaN()
+};
+inline const Vector4<float> Vector4<float>::minusInfinity{
+  -std::numeric_limits<float>::infinity(),
+  -std::numeric_limits<float>::infinity(),
+  -std::numeric_limits<float>::infinity(),
+  -std::numeric_limits<float>::infinity()
+};
+inline const Vector4<float> Vector4<float>::plusInfinity{
+  std::numeric_limits<float>::infinity(),
+  std::numeric_limits<float>::infinity(),
+  std::numeric_limits<float>::infinity(),
+  std::numeric_limits<float>::infinity()
 };
 
 #endif

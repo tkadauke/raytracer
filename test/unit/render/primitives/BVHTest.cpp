@@ -41,7 +41,7 @@ namespace BVHTest {
 
   TEST(BVH, SinglePrimitiveHitForwardsToTheChild) {
     BVH bvh;
-    auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1.0);
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
     bvh.add(sphere);
     bvh.setup();
 
@@ -162,7 +162,7 @@ namespace BVHTest {
     // produce correct (if slower) results via the inherited
     // Composite::intersect path.
     BVH bvh;
-    auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1.0);
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
     bvh.add(sphere);
     // Note: no setup() call.
 

@@ -99,7 +99,7 @@ BoundingBoxd OpenCylinder::calculateBoundingBox() const {
 
 Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
   Vector3d planar = Vector3d(direction.x(), 0, direction.z());
-  if (planar != Vector3d::null()) {
+  if (planar != Vector3d::null) {
     planar.normalize();
   }
 

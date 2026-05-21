@@ -602,7 +602,7 @@ operator*(const T& factor, const Vector<Dimensions, T, StorageCellType, Derived>
   * vector, or a normal.
   * 
   * This class defines a number of different constant vectors, such as the unit
-  * vectors (right(), up()), the null vector null(), and the undefined() vector.
+  * vectors (right(), up()), the null vector null, and the undefined vector.
   * 
   * Construction of vectors is as expected. The default constructor creates the
   * null vector, there is a component-wise constructor, and a generic copy
@@ -620,21 +620,14 @@ public:
   using Base::setCoordinate;
   
   /**
-    * @returns the null vector \f$(0,0)\f$.
+    * The null vector \f$(0,0)\f$.
     */
-  static const Vector2<T>& null() {
-    static Vector2<T> v(0, 0);
-    return v;
-  }
-  
+  static const Vector2<T> null;
+
   /**
-    * @returns an undefined vector \f$(NaN,NaN)\f$.
+    * An undefined vector \f$(NaN,NaN)\f$.
     */
-  static const Vector2<T>& undefined() {
-    static Vector2<T> v(std::numeric_limits<T>::quiet_NaN(),
-                        std::numeric_limits<T>::quiet_NaN());
-    return v;
-  }
+  static const Vector2<T> undefined;
 
   /**
     * @returns the right unit vector \f$(1,0)\f$.
@@ -744,60 +737,34 @@ public:
   using Base::setCoordinate;
   
   /**
-    * @returns the null vector \f$(0,0,0)\f$.
+    * The null vector \f$(0,0,0)\f$.
     */
-  static const Vector3<T>& null() {
-    static Vector3<T> v(0, 0, 0);
-    return v;
-  }
+  static const Vector3<T> null;
 
   /**
-    * @returns the null vector \f$(1,1,1)\f$.
+    * The one vector \f$(1,1,1)\f$.
     */
-  static const Vector3<T>& one() {
-    static Vector3<T> v(1, 1, 1);
-    return v;
-  }
-  
+  static const Vector3<T> one;
+
   /**
-    * @returns \f$(\epsilon,\epsilon,\epsilon)\f$.
+    * \f$(\epsilon,\epsilon,\epsilon)\f$.
     */
-  static const Vector3<T>& epsilon() {
-    static Vector3<T> v(std::numeric_limits<T>::epsilon(),
-                        std::numeric_limits<T>::epsilon(),
-                        std::numeric_limits<T>::epsilon());
-    return v;
-  }
-  
+  static const Vector3<T> epsilon;
+
   /**
-    * @returns an undefined vector: \f$(NaN,NaN,NaN)\f$.
+    * An undefined vector: \f$(NaN,NaN,NaN)\f$.
     */
-  static const Vector3<T>& undefined() {
-    static Vector3<T> v(std::numeric_limits<T>::quiet_NaN(),
-                        std::numeric_limits<T>::quiet_NaN(),
-                        std::numeric_limits<T>::quiet_NaN());
-    return v;
-  }
-  
+  static const Vector3<T> undefined;
+
   /**
-    * @returns \f$(-\infty,-\infty,-\infty)\f$.
+    * \f$(-\infty,-\infty,-\infty)\f$.
     */
-  static const Vector3<T>& minusInfinity() {
-    static Vector3<T> v(-std::numeric_limits<T>::infinity(),
-                        -std::numeric_limits<T>::infinity(),
-                        -std::numeric_limits<T>::infinity());
-    return v;
-  }
-  
+  static const Vector3<T> minusInfinity;
+
   /**
-    * @returns \f$(\infty,\infty,\infty)\f$.
+    * \f$(\infty,\infty,\infty)\f$.
     */
-  static const Vector3<T>& plusInfinity() {
-    static Vector3<T> v(std::numeric_limits<T>::infinity(),
-                        std::numeric_limits<T>::infinity(),
-                        std::numeric_limits<T>::infinity());
-    return v;
-  }
+  static const Vector3<T> plusInfinity;
 
   /**
     * @returns the right unit vector \f$(1,0,0)\f$.
@@ -925,8 +892,8 @@ public:
   * four-dimensional vectors have \f$1\f$ as the fourth \f$w\f$ component. This
   * is in order to be able to translate points in three-dimensional space.
   * 
-  * This class defines only a few constants, namely the null() vector, as well
-  * as the undefined() vector. The null() vector still has \f$1\f$ as the
+  * This class defines only a few constants, namely the null vector, as well
+  * as the undefined vector. The null vector still has \f$1\f$ as the
   * \f$w\f$ component. For any other three-dimensional constant, create a
   * Vector3 and convert it to this class.
   * 
@@ -958,58 +925,31 @@ public:
   using Base::setCoordinate;
   
   /**
-    * @returns the null vector \f$(0,0,0,1)\f$, which notably contains a \f$1\f$
+    * The null vector \f$(0,0,0,1)\f$, which notably contains a \f$1\f$
     *   for the \f$w\f$ component.
     */
-  static const Vector4<T>& null() {
-    static Vector4<T> v(0, 0, 0, 1);
-    return v;
-  }
-  
+  static const Vector4<T> null;
+
   /**
-    * @returns the epsilon vector \f$(\epsilon,\epsilon,\epsilon,\epsilon)\f$,
+    * The epsilon vector \f$(\epsilon,\epsilon,\epsilon,\epsilon)\f$,
     *   which is minimally shifted from the origin in all directions.
     */
-  static const Vector4<T>& epsilon() {
-    static Vector4<T> v(std::numeric_limits<T>::epsilon(),
-                        std::numeric_limits<T>::epsilon(),
-                        std::numeric_limits<T>::epsilon(),
-                        std::numeric_limits<T>::epsilon());
-    return v;
-  }
-  
-  /**
-    * @returns an undefined vector \f$(NaN,NaN,NaN,NaN)\f$.
-    */
-  static const Vector4<T>& undefined() {
-    static Vector4<T> v(std::numeric_limits<T>::quiet_NaN(),
-                        std::numeric_limits<T>::quiet_NaN(),
-                        std::numeric_limits<T>::quiet_NaN(),
-                        std::numeric_limits<T>::quiet_NaN());
-    return v;
-  }
+  static const Vector4<T> epsilon;
 
   /**
-    * @returns the vector \f$(-\infty,-\infty,-\infty,-\infty)\f$.
+    * An undefined vector \f$(NaN,NaN,NaN,NaN)\f$.
     */
-  static const Vector4<T>& minusInfinity() {
-    static Vector4<T> v(-std::numeric_limits<T>::infinity(),
-                        -std::numeric_limits<T>::infinity(),
-                        -std::numeric_limits<T>::infinity(),
-                        -std::numeric_limits<T>::infinity());
-    return v;
-  }
+  static const Vector4<T> undefined;
 
   /**
-    * @returns the vector \f$(\infty,\infty,\infty,\infty)\f$.
+    * The vector \f$(-\infty,-\infty,-\infty,-\infty)\f$.
     */
-  static const Vector4<T>& plusInfinity() {
-    static Vector4<T> v(std::numeric_limits<T>::infinity(),
-                        std::numeric_limits<T>::infinity(),
-                        std::numeric_limits<T>::infinity(),
-                        std::numeric_limits<T>::infinity());
-    return v;
-  }
+  static const Vector4<T> minusInfinity;
+
+  /**
+    * The vector \f$(\infty,\infty,\infty,\infty)\f$.
+    */
+  static const Vector4<T> plusInfinity;
 
   /**
     * Constructs the null vector, but sets the \f$w\f$ component to \f$1\f$.
@@ -1111,6 +1051,91 @@ public:
   [[nodiscard]] inline Vector3<T> homogenized() const {
     return Vector3<T>(*this) / w();
   }
+};
+
+// ---------------------------------------------------------------------------
+// Out-of-class definitions for inline constexpr constants (C++17).
+// The declarations are in the class bodies above; definitions are here so that
+// the class type is complete at the point of initialization.
+// SSE3 specializations below override these for float and double.
+// ---------------------------------------------------------------------------
+
+template<class T>
+inline constexpr Vector2<T> Vector2<T>::null{T(0), T(0)};
+
+template<class T>
+inline constexpr Vector2<T> Vector2<T>::undefined{
+  std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN()
+};
+
+template<class T>
+inline constexpr Vector3<T> Vector3<T>::null{T(0), T(0), T(0)};
+
+template<class T>
+inline constexpr Vector3<T> Vector3<T>::one{T(1), T(1), T(1)};
+
+template<class T>
+inline constexpr Vector3<T> Vector3<T>::epsilon{
+  std::numeric_limits<T>::epsilon(),
+  std::numeric_limits<T>::epsilon(),
+  std::numeric_limits<T>::epsilon()
+};
+
+template<class T>
+inline constexpr Vector3<T> Vector3<T>::undefined{
+  std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN()
+};
+
+template<class T>
+inline constexpr Vector3<T> Vector3<T>::minusInfinity{
+  -std::numeric_limits<T>::infinity(),
+  -std::numeric_limits<T>::infinity(),
+  -std::numeric_limits<T>::infinity()
+};
+
+template<class T>
+inline constexpr Vector3<T> Vector3<T>::plusInfinity{
+  std::numeric_limits<T>::infinity(),
+  std::numeric_limits<T>::infinity(),
+  std::numeric_limits<T>::infinity()
+};
+
+template<class T>
+inline constexpr Vector4<T> Vector4<T>::null{T(0), T(0), T(0), T(1)};
+
+template<class T>
+inline constexpr Vector4<T> Vector4<T>::epsilon{
+  std::numeric_limits<T>::epsilon(),
+  std::numeric_limits<T>::epsilon(),
+  std::numeric_limits<T>::epsilon(),
+  std::numeric_limits<T>::epsilon()
+};
+
+template<class T>
+inline constexpr Vector4<T> Vector4<T>::undefined{
+  std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN()
+};
+
+template<class T>
+inline constexpr Vector4<T> Vector4<T>::minusInfinity{
+  -std::numeric_limits<T>::infinity(),
+  -std::numeric_limits<T>::infinity(),
+  -std::numeric_limits<T>::infinity(),
+  -std::numeric_limits<T>::infinity()
+};
+
+template<class T>
+inline constexpr Vector4<T> Vector4<T>::plusInfinity{
+  std::numeric_limits<T>::infinity(),
+  std::numeric_limits<T>::infinity(),
+  std::numeric_limits<T>::infinity(),
+  std::numeric_limits<T>::infinity()
 };
 
 // __m128/__m128d carry an alignment attribute that is silently dropped when

@@ -55,7 +55,7 @@ namespace render {
       */
     inline explicit Instance(std::shared_ptr<Primitive> primitive)
       : m_primitive(primitive),
-        m_velocity(Vector3d::null())
+        m_velocity(Vector3d::null)
     {
     }
     virtual ~Instance() { }

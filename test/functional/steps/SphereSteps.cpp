@@ -8,7 +8,7 @@ using namespace testing;
 using namespace render;
 
 GIVEN(EngineFeatureTest, "a centered sphere") {
-  auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d::null, 1);
   sphere->setMaterial(test->redDiffuse());
   test->add(sphere);
 }

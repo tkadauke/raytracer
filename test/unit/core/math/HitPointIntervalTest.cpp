@@ -3,7 +3,7 @@
 #include "render/primitives/Box.h"
 
 namespace HitPointIntervalTest {
-  static render::Box* box = new render::Box(Vector3d::null(), Vector3d::one());
+  static render::Box* box = new render::Box(Vector3d::null, Vector3d::one);
   
   TEST(HitPointInterval, ShouldInitialize) {
     HitPointInterval interval;

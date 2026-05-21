@@ -665,7 +665,7 @@ namespace DerivedVectorTest {
   }
   
   TYPED_TEST(DerivedVectorTest, ShouldProvideUndefinedVector) {
-    TypeParam vector = TypeParam::undefined();
+    TypeParam vector = TypeParam::undefined;
     ASSERT_TRUE(vector.isUndefined());
   }
 }
@@ -704,8 +704,8 @@ namespace Vector2Test {
   
   TYPED_TEST(Vector2Test, ShouldDefineNullVector) {
     Vector2<TypeParam> expected(0, 0);
-    ASSERT_EQ(expected, Vector2<TypeParam>::null());
-    ASSERT_TRUE(Vector2<TypeParam>::null().isNull());
+    ASSERT_EQ(expected, Vector2<TypeParam>::null);
+    ASSERT_TRUE(Vector2<TypeParam>::null.isNull());
   }
   
   TYPED_TEST(Vector2Test, ShouldDefineRightVector) {
@@ -804,26 +804,26 @@ namespace Vector3Test {
 
   TYPED_TEST(Vector3Test, ShouldDefineNullVector) {
     Vector3<TypeParam> expected(0, 0, 0);
-    ASSERT_EQ(expected, Vector3<TypeParam>::null());
-    ASSERT_TRUE(Vector3<TypeParam>::null().isNull());
+    ASSERT_EQ(expected, Vector3<TypeParam>::null);
+    ASSERT_TRUE(Vector3<TypeParam>::null.isNull());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineEpsilonVector) {
-    ASSERT_TRUE(Vector3<TypeParam>::epsilon().x() > 0.0);
-    ASSERT_TRUE(Vector3<TypeParam>::epsilon().y() > 0.0);
-    ASSERT_TRUE(Vector3<TypeParam>::epsilon().z() > 0.0);
+    ASSERT_TRUE(Vector3<TypeParam>::epsilon.x() > 0.0);
+    ASSERT_TRUE(Vector3<TypeParam>::epsilon.y() > 0.0);
+    ASSERT_TRUE(Vector3<TypeParam>::epsilon.z() > 0.0);
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineUndefinedVector) {
-    ASSERT_TRUE(Vector3<TypeParam>::undefined().isUndefined());
+    ASSERT_TRUE(Vector3<TypeParam>::undefined.isUndefined());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineMinusInfinityVector) {
-    ASSERT_EQ(- numeric_limits<TypeParam>::infinity(), Vector3<TypeParam>::minusInfinity().x());
+    ASSERT_EQ(- numeric_limits<TypeParam>::infinity(), Vector3<TypeParam>::minusInfinity.x());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefinePlusInfinityVector) {
-    ASSERT_EQ(numeric_limits<TypeParam>::infinity(), Vector3<TypeParam>::plusInfinity().x());
+    ASSERT_EQ(numeric_limits<TypeParam>::infinity(), Vector3<TypeParam>::plusInfinity.x());
   }
   
   TYPED_TEST(Vector3Test, ShouldDefineRightVector) {
@@ -1053,28 +1053,28 @@ namespace Vector4Test {
 
   TYPED_TEST(Vector4Test, ShouldDefineNullVector) {
     Vector4<TypeParam> expected(0, 0, 0, 1);
-    ASSERT_EQ(expected, Vector4<TypeParam>::null());
+    ASSERT_EQ(expected, Vector4<TypeParam>::null);
     // The w component is 1, so it's not a true null vector
-    ASSERT_FALSE(Vector4<TypeParam>::null().isNull());
+    ASSERT_FALSE(Vector4<TypeParam>::null.isNull());
   }
 
   TYPED_TEST(Vector4Test, ShouldDefineEpsilonVector) {
-    ASSERT_TRUE(Vector4<TypeParam>::epsilon().x() > 0.0);
-    ASSERT_TRUE(Vector4<TypeParam>::epsilon().y() > 0.0);
-    ASSERT_TRUE(Vector4<TypeParam>::epsilon().z() > 0.0);
-    ASSERT_TRUE(Vector4<TypeParam>::epsilon().w() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon.x() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon.y() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon.z() > 0.0);
+    ASSERT_TRUE(Vector4<TypeParam>::epsilon.w() > 0.0);
   }
   
   TYPED_TEST(Vector4Test, ShouldDefineUndefinedVector) {
-    ASSERT_TRUE(Vector4<TypeParam>::undefined().isUndefined());
+    ASSERT_TRUE(Vector4<TypeParam>::undefined.isUndefined());
   }
   
   TYPED_TEST(Vector4Test, ShouldDefineMinusInfinityVector) {
-    ASSERT_EQ(- numeric_limits<TypeParam>::infinity(), Vector4<TypeParam>::minusInfinity().x());
+    ASSERT_EQ(- numeric_limits<TypeParam>::infinity(), Vector4<TypeParam>::minusInfinity.x());
   }
   
   TYPED_TEST(Vector4Test, ShouldDefinePlusInfinityVector) {
-    ASSERT_EQ(numeric_limits<TypeParam>::infinity(), Vector4<TypeParam>::plusInfinity().x());
+    ASSERT_EQ(numeric_limits<TypeParam>::infinity(), Vector4<TypeParam>::plusInfinity.x());
   }
   
   TYPED_TEST(Vector4Test, ShouldReturnHomogenizedVector) {

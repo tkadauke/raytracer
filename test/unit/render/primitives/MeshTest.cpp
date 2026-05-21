@@ -13,9 +13,9 @@ using namespace render;
   
   struct MeshTest : public ::testing::Test {
     inline void SetUp() {
-      mesh.addVertex(Vector3d(0, 0, 0), Vector3d::null());
-      mesh.addVertex(Vector3d(0, 1, 0), Vector3d::null());
-      mesh.addVertex(Vector3d(1, 0, 0), Vector3d::null());
+      mesh.addVertex(Vector3d(0, 0, 0), Vector3d::null);
+      mesh.addVertex(Vector3d(0, 1, 0), Vector3d::null);
+      mesh.addVertex(Vector3d(1, 0, 0), Vector3d::null);
 
       mesh.addFace(makeStdVector(0, 1, 2));
     }
@@ -34,7 +34,7 @@ using namespace render;
   
   TEST_F(MeshTest, ShouldAddVertex) {
     auto before = this->mesh.vertices().size();
-    this->mesh.addVertex(Vector3d(1, 1, 1), Vector3d::null());
+    this->mesh.addVertex(Vector3d(1, 1, 1), Vector3d::null);
     auto after = this->mesh.vertices().size();
     ASSERT_EQ(1u, after - before);
   }
@@ -64,7 +64,7 @@ using namespace render;
   }
   
   TEST_F(MeshTest, ShouldIteratorOverBigMesh) {
-    this->mesh.addVertex(Vector3d(1, 1, 1), Vector3d::null());
+    this->mesh.addVertex(Vector3d(1, 1, 1), Vector3d::null);
     this->mesh.addFace(makeStdVector(1, 2, 3, 1, 2));
 
     int count = 0;

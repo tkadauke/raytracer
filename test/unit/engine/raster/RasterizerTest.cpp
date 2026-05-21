@@ -63,13 +63,13 @@ namespace RasterizerTest {
 
   static std::shared_ptr<Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1)));
+    scene->add(std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1)));
     return scene;
   }
 
   static std::shared_ptr<Scene> sceneWithSphere() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Sphere>(Vector3d::null(), 1));
+    scene->add(std::make_shared<Sphere>(Vector3d::null, 1));
     return scene;
   }
 
@@ -151,11 +151,11 @@ namespace RasterizerTest {
   }
 
   static std::shared_ptr<PinholeCamera> camera() {
-    return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null());
+    return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null);
   }
 
   static std::shared_ptr<PinholeCamera> headOnCamera() {
-    return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null());
+    return std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
 
   static std::shared_ptr<MatteMaterial> matte(const Colord& color) {
@@ -333,7 +333,7 @@ namespace RasterizerTest {
     // pixel-equality at the centre a stable assertion — without the
     // depth test this expectation would fail.
 
-    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null);
 
     auto sceneAlone = std::make_shared<Scene>(Colord::white());
     sceneAlone->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
@@ -500,7 +500,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, OrthographicProjectionInterpolatesWorldPositionLinearly) {
     auto cam =
-      std::make_shared<OrthographicCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null());
+      std::make_shared<OrthographicCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
     Rasterizer engine(cam, sceneWithSlopedTriangle());
     engine.setFragmentShader([](const Rasterizer::FragmentInput& input) {
       return Colord(input.worldPosition.z() / 5.0, 0.0, 0.0);
@@ -637,7 +637,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRender) {
-    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
     scene->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));
@@ -661,7 +661,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithUnevenTileSizes) {
-    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null());
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Sphere>(Vector3d(0, 0, 0), 1.0));
     scene->add(std::make_shared<Box>(Vector3d(0, 0, 10), Vector3d(5, 5, 0.1)));

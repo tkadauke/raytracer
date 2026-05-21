@@ -23,7 +23,7 @@ using namespace render;
     );
     
     State state;
-    ASSERT_TRUE(primitive->intersects(Rayd(Vector3d::null(), Vector3d::one()), state));
+    ASSERT_TRUE(primitive->intersects(Rayd(Vector3d::null, Vector3d::one), state));
   }
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsNoObject) {
@@ -32,7 +32,7 @@ using namespace render;
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(nullptr));
     
     State state;
-    ASSERT_FALSE(primitive->intersects(Rayd(Vector3d::null(), Vector3d::one()), state));
+    ASSERT_FALSE(primitive->intersects(Rayd(Vector3d::null, Vector3d::one), state));
   }
   
   TEST(Primitive, ShouldReturnFarthestPoint) {

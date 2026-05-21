@@ -34,12 +34,12 @@ using namespace render;
   TEST(PerfectSpecular, ShouldHaveBlackReflectance) {
     PerfectSpecular specular;
     
-    ASSERT_EQ(Colord::black(), specular.reflectance(HitPoint::undefined(), Vector3d::null()));
+    ASSERT_EQ(Colord::black(), specular.reflectance(HitPoint::undefined(), Vector3d::null));
   }
 
   TEST(PerfectSpecular, ShouldBeBlack) {
     PerfectSpecular specular;
     
-    ASSERT_EQ(Colord::black(), specular(HitPoint::undefined(), Vector3d::null(), Vector3d::null()));
+    ASSERT_EQ(Colord::black(), specular(HitPoint::undefined(), Vector3d::null, Vector3d::null));
   }
 }

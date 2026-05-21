@@ -26,7 +26,7 @@ using namespace engine::wireframe;
   // Helper: build a scene with one centered axis-aligned box.
   static std::shared_ptr<render::Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::black());
-    scene->add(std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1)));
+    scene->add(std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1)));
     return scene;
   }
 
@@ -34,7 +34,7 @@ using namespace engine::wireframe;
   // outside it. Eye at (2, 2, -5) looking at origin; the box
   // straddles origin so it's safely in front of the camera.
   static std::shared_ptr<PinholeCamera> camera() {
-    return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null());
+    return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null);
   }
 
   TEST(Wireframe, EmptySceneRendersBackground) {
@@ -93,7 +93,7 @@ using namespace engine::wireframe;
     auto scene = std::make_shared<Scene>(Colord::black());
     // Use a Sphere primitive — UV sphere quad count scales 4× per LOD step.
     // (Box is LOD-invariant, so wouldn't show the difference.)
-    auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1.0);
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
     scene->add(sphere);
 
     Wireframe engineLow(camera(), scene);

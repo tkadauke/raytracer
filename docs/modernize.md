@@ -61,6 +61,8 @@
 
 ~~1. **`constexpr` / `noexcept` / `[[nodiscard]]` sweep of all math primitives** (`Vector`, `Matrix`, `Ray`, `BoundingBox`, `Quaternion`, `Range` + SSE3 specializations).~~ ✅ **Done.** All pure arithmetic operators and getters are `constexpr noexcept`; `sqrt`/`abs`/trig-calling methods are `noexcept`; all value-returning functions carry `[[nodiscard]]`; a compile-time `static_assert` block proves constexpr evaluation. SSE3 specializations get `noexcept` + `[[nodiscard]]` only (SIMD intrinsics not constexpr-eligible). See CHANGELOG.md for details.
 
+~~1a. **Replace Meyer's-singleton static factories with `inline` variables** on all math types (`Vector2/3/4`, `Ray`, `BoundingBox` sentinels).~~ ✅ **Done.** `null()`, `one()`, `epsilon()`, `undefined()`, `minusInfinity()`, `plusInfinity()` on every vector type plus `Ray::undefined()` and `BoundingBox::undefined()`/`infinity()` converted from Meyer's-singleton functions to `inline const` (SSE3 types) or `inline constexpr` (generic templates) static data members. All ~258 call sites updated (parentheses removed). `HitPoint::undefined()` preserved. See CHANGELOG.md for details.
+
 2. Change the Rakefile / future CMakeLists flag from `-std=c++17` to `-std=c++23`.
 3. Delete `include/core/meta/StaticIf.h` and `include/core/meta/NullType.h`; replace all usages with `std::conditional_t` and `void`/`std::monostate`.
 4. Replace manual `typedef` aliases throughout `include/` with `using` declarations.

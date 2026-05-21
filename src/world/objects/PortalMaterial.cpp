@@ -5,9 +5,9 @@
 
 PortalMaterial::PortalMaterial(Element* parent)
   : Material(parent),
-    m_position(Vector3d::null()),
-    m_rotation(Vector3d::null()),
-    m_scale(Vector3d::one()),
+    m_position(Vector3d::null),
+    m_rotation(Vector3d::null),
+    m_scale(Vector3d::one),
     m_filterColor(Colord::white())
 {
 }

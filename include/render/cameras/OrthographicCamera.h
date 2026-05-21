@@ -55,7 +55,7 @@ namespace render {
       * projection) and converts the remaining camera-space x/y to
       * pixel coordinates.
       *
-      * Returns `Vector2d::undefined()` if the point is at or behind
+      * Returns `Vector2d::undefined` if the point is at or behind
       * the camera plane (`z_cam < 0`) — orthographic projection has
       * no perspective divide so doesn't diverge, but a point behind
       * the camera still shouldn't appear.

@@ -8,7 +8,7 @@ using namespace testing;
 using namespace render;
 
 GIVEN(EngineFeatureTest, "a centered disk") {
-  auto disk = std::make_shared<Disk>(Vector3d::null(), Vector3d(0, 0, -1), 1);
+  auto disk = std::make_shared<Disk>(Vector3d::null, Vector3d(0, 0, -1), 1);
   disk->setMaterial(test->redDiffuse());
   test->add(disk);
 }

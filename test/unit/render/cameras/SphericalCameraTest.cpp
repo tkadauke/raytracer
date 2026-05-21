@@ -22,7 +22,7 @@ using namespace render;
   }
   
   TEST(SphericalCamera, ShouldConstructWithParameters) {
-    SphericalCamera camera(Vector3d(0, 0, 1), Vector3d::null());
+    SphericalCamera camera(Vector3d(0, 0, 1), Vector3d::null);
     ASSERT_NEAR(180, camera.horizontalFieldOfView().degrees(), 0.001);
     ASSERT_NEAR(120, camera.verticalFieldOfView().degrees(), 0.001);
   }
@@ -46,7 +46,7 @@ using namespace render;
   }
   
   TEST(SphericalCamera, ShouldRender) {
-    auto camera = std::make_shared<SphericalCamera>(Vector3d(0, 0, -1), Vector3d::null());
+    auto camera = std::make_shared<SphericalCamera>(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(camera, scene);
     Buffer<Colord> buffer(1, 1);
@@ -55,14 +55,14 @@ using namespace render;
   }
   
   TEST(SphericalCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
-    SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_TRUE(ray.direction().isUndefined());
   }
   
   TEST(SphericalCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
-    SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
 
     Rayd ray = camera.rayForPixel(0, 0);

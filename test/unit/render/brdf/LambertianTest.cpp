@@ -41,6 +41,6 @@ using namespace render;
     Lambertian lambertian;
     lambertian.setDiffuseColor(Colord(1, 0, 0));
     
-    ASSERT_EQ(Colord(1, 0, 0), lambertian.reflectance(HitPoint::undefined(), Vector3d::null()));
+    ASSERT_EQ(Colord(1, 0, 0), lambertian.reflectance(HitPoint::undefined(), Vector3d::null));
   }
 }

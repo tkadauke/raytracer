@@ -48,12 +48,12 @@ using namespace render;
     // The whole TiltShift contract is "tilt=0, shift=0 → identical to
     // ThinLens." Pin it so a future change to the focal-plane math
     // can't silently break the degenerate case.
-    TiltShiftCamera ts(Vector3d(0, 0, -1), Vector3d::null());
+    TiltShiftCamera ts(Vector3d(0, 0, -1), Vector3d::null);
     ts.setApertureRadius(0.5);
     ts.setFocalDistance(4);
     // tilt and shift left at default zero.
 
-    ThinLensCamera ref(Vector3d(0, 0, -1), Vector3d::null());
+    ThinLensCamera ref(Vector3d(0, 0, -1), Vector3d::null);
     ref.setApertureRadius(0.5);
     ref.setFocalDistance(4);
 
@@ -70,7 +70,7 @@ using namespace render;
     // converges at the *same* focal point (which now lives on the
     // tilted plane instead of the perpendicular one). Without that,
     // depth-of-field for objects on the tilted plane breaks down.
-    TiltShiftCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    TiltShiftCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setApertureRadius(0.5);
     camera.setFocalDistance(4);
     camera.setTilt(20_degrees);
@@ -109,7 +109,7 @@ using namespace render;
     // Inherited DOF behaviour should still hold: with a non-zero
     // aperture, two different lens samples produce rays from
     // different origins.
-    TiltShiftCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    TiltShiftCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setApertureRadius(0.5);
     camera.setTilt(15_degrees);
 

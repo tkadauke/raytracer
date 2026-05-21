@@ -120,7 +120,7 @@ namespace testing {
   }
 
   void EngineFeatureTest::lookAtOrigin() {
-    setView(Vector3d(0, 0, -5), Vector3d::null());
+    setView(Vector3d(0, 0, -5), Vector3d::null);
   }
 
   void EngineFeatureTest::lookAway() {
@@ -128,7 +128,7 @@ namespace testing {
   }
 
   void EngineFeatureTest::goFarAway() {
-    setView(Vector3d(0, 0, -30), Vector3d::null());
+    setView(Vector3d(0, 0, -30), Vector3d::null);
   }
 
   Colord EngineFeatureTest::primaryColor() const {

@@ -74,7 +74,7 @@ using namespace render;
     // zero, so every (lensU, lensV) yields the same eyeOrigin. The
     // resulting ray must then be identical to the equivalent pinhole
     // ray at the same pixel.
-    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setApertureRadius(0);
 
     Rayd a = camera.rayForPixelWithLens(0, 0, 0.5, 0.5);
@@ -87,7 +87,7 @@ using namespace render;
     // With a non-zero aperture, two different lens samples must produce
     // rays from different origins — that's what creates DOF blur for
     // out-of-focus geometry.
-    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setApertureRadius(0.5);
 
     Rayd a = camera.rayForPixelWithLens(0, 0, 0.0, 0.0);   // lens centre
@@ -104,7 +104,7 @@ using namespace render;
     // Test by sampling several lens positions for the same pixel,
     // intersecting each ray with the plane at z=focalDistance from the
     // eye, and verifying all hits land at the same point.
-    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setApertureRadius(0.5);
     camera.setFocalDistance(4);
 
@@ -134,7 +134,7 @@ using namespace render;
     // empty white scene should be white. Set up the viewplane manually
     // (Camera::render doesn't, only Raytracer::render does) — the
     // ThinLens lens-disc math relies on the viewplane being sized.
-    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, 2, 2));
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);

@@ -46,21 +46,21 @@ class BoundingBox
 {
 public:
   /**
-    * @returns the "undefined" bounding box.
+    * The "undefined" bounding box.
     */
-  static const BoundingBox<T>& undefined();
-  
+  static const BoundingBox<T> undefined;
+
   /**
-    * @returns an infinitely large bounding box.
+    * An infinitely large bounding box.
     */
-  static const BoundingBox<T>& infinity();
-  
+  static const BoundingBox<T> infinity;
+
   /**
     * Default constructor. Creates an infinitely large bounding box.
     */
   inline BoundingBox()
-    : m_min(Vector3<T>::plusInfinity()),
-      m_max(Vector3<T>::minusInfinity())
+    : m_min(Vector3<T>::plusInfinity),
+      m_max(Vector3<T>::minusInfinity)
   { 
   }
 
@@ -228,7 +228,7 @@ public:
       )
     );
     if (!result.isValid())
-      return BoundingBox::undefined();
+      return BoundingBox::undefined;
     return result;
   }
   
@@ -313,7 +313,7 @@ public:
     * @returns a bounding box that is grown by \f$\epsilon\f$.
     */
   [[nodiscard]] inline BoundingBox<T> grownByEpsilon() const noexcept {
-    return grownBy(Vector3<T>::epsilon());
+    return grownBy(Vector3<T>::epsilon);
   }
 
   /**
@@ -365,16 +365,24 @@ private:
 };
 
 template<class T>
-const BoundingBox<T>& BoundingBox<T>::undefined() {
-  static BoundingBox<T> b(Vector3<T>::undefined(), Vector3<T>::undefined());
-  return b;
-}
+inline const BoundingBox<T> BoundingBox<T>::undefined{
+  Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN()),
+  Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN())
+};
 
 template<class T>
-const BoundingBox<T>& BoundingBox<T>::infinity() {
-  static BoundingBox<T> b(Vector3<T>::minusInfinity(), Vector3<T>::plusInfinity());
-  return b;
-}
+inline const BoundingBox<T> BoundingBox<T>::infinity{
+  Vector3<T>(-std::numeric_limits<T>::infinity(),
+             -std::numeric_limits<T>::infinity(),
+             -std::numeric_limits<T>::infinity()),
+  Vector3<T>(std::numeric_limits<T>::infinity(),
+             std::numeric_limits<T>::infinity(),
+             std::numeric_limits<T>::infinity())
+};
 
 template<class T>
 template<class Container>

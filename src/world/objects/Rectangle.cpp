@@ -13,7 +13,7 @@ std::shared_ptr<render::Primitive> Rectangle::toRaytracerPrimitive() const {
   // Local frame: corner at origin, two legs as configured. The
   // Surface base wraps this in an Instance carrying the position /
   // rotation transform.
-  return make_named<render::Rectangle>(Vector3d::null(), m_leg1, m_leg2);
+  return make_named<render::Rectangle>(Vector3d::null, m_leg1, m_leg2);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Rectangle>("Rectangle");

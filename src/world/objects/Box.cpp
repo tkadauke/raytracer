@@ -9,7 +9,7 @@
 
 Box::Box(Element* parent)
   : Surface(parent),
-    m_size(Vector3d::one()),
+    m_size(Vector3d::one),
     m_bevelRadius(0)
 {
 }
@@ -19,9 +19,9 @@ std::shared_ptr<render::Primitive> Box::toRaytracerPrimitive() const {
   const double r = bevelRadius();
 
   if (r == 0.0) {
-    return make_named<render::Box>(Vector3d::null(), s);
+    return make_named<render::Box>(Vector3d::null, s);
   } else if (r == s.min()) {
-    return make_named<render::Sphere>(Vector3d::null(), r);
+    return make_named<render::Sphere>(Vector3d::null, r);
   } else {
     auto result = make_named<render::ClosedSolidUnion>();
 
@@ -36,17 +36,17 @@ std::shared_ptr<render::Primitive> Box::toRaytracerPrimitive() const {
     }
 
     result->add(make_named<render::Box>(
-      Vector3d::null(),
+      Vector3d::null,
       Vector3d(s.x(), s.y() - r, s.z() - r)
     ));
 
     result->add(make_named<render::Box>(
-      Vector3d::null(),
+      Vector3d::null,
       Vector3d(s.x() - r, s.y(), s.z() - r)
     ));
 
     result->add(make_named<render::Box>(
-      Vector3d::null(),
+      Vector3d::null,
       Vector3d(s.x() - r, s.y() - r, s.z())
     ));
 

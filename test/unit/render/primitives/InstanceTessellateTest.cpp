@@ -71,7 +71,7 @@ using namespace render;
   // surfaces in Grid(Composite), and the Wireframe engine calls
   // tessellate on the resulting Scene.
   TEST(InstanceTessellate, ShouldPreserveRotationThroughGridAndScene) {
-    auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 0.5, 0.25));
+    auto box = std::make_shared<Box>(Vector3d::null, Vector3d(1, 0.5, 0.25));
     auto instance = std::make_shared<Instance>(box);
     instance->setMatrix(Matrix3d::rotateY(Angled::fromDegrees(90)));
 
@@ -101,7 +101,7 @@ using namespace render;
     // Regression test for the wireframe-vs-raytracer alignment bug.
     // After a 90-degree rotation around Y, every vertex (x, y, z)
     // should map to (z, y, -x) (right-hand rule, +Y rotation).
-    auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 0.5, 0.25));
+    auto box = std::make_shared<Box>(Vector3d::null, Vector3d(1, 0.5, 0.25));
     Instance instance(box);
     instance.setMatrix(Matrix3d::rotateY(Angled::fromDegrees(90)));
 

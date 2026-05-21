@@ -13,7 +13,7 @@ std::shared_ptr<render::Primitive> Disk::toRaytracerPrimitive() const {
   // base wraps this in an Instance with the position / rotation
   // transform from the editable scene graph.
   return make_named<render::Disk>(
-    Vector3d::null(), Vector3d(0, 1, 0), m_radius);
+    Vector3d::null, Vector3d(0, 1, 0), m_radius);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Disk>("Disk");

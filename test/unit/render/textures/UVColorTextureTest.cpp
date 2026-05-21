@@ -8,8 +8,8 @@ namespace UVColorTextureTest {
 
   TEST(UVColorTexture, ShouldMapUVToRedAndGreenChannels) {
     UVColorTexture texture;
-    HitPoint hitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.25, 0.75));
+    HitPoint hitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.25, 0.75));
 
-    EXPECT_EQ(Colord(0.25, 0.75, 0.0), texture.evaluate(Rayd::undefined(), hitPoint));
+    EXPECT_EQ(Colord(0.25, 0.75, 0.0), texture.evaluate(Rayd::undefined, hitPoint));
   }
 }

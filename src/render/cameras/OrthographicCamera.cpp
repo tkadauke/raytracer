@@ -27,7 +27,7 @@ Vector2d OrthographicCamera::projectPoint(const Vector3d& worldPoint) const {
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   if (pCam.z() < 0.0) {
-    return Vector2d::undefined();
+    return Vector2d::undefined;
   }
 
   auto plane = viewPlane();
@@ -47,7 +47,7 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
   Vector3d pCam = worldToCamera * Vector4d(worldPoint);
 
   if (pCam.z() < 0.0) {
-    return Vector3d::undefined();
+    return Vector3d::undefined;
   }
 
   auto plane = viewPlane();

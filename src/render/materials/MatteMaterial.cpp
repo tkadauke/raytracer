@@ -24,7 +24,7 @@ Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene
   render::Lambertian diffuseBRDF(texColor, diffuseCoefficient());
 
   // for diffuse BRDFs the in and out vectors are irrelevant, so let's not calculate them
-  auto color = ambientBRDF.reflectance(hitPoint, Vector3d::null()) * scene.ambient();
+  auto color = ambientBRDF.reflectance(hitPoint, Vector3d::null) * scene.ambient();
 
   for (const auto& light : scene.lights()) {
     Vector3d in = light->direction(hitPoint.point());
@@ -35,7 +35,7 @@ Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene
       state.shadowMiss(this, "MatteMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0)
-        color += diffuseBRDF(hitPoint, Vector3d::null(), Vector3d::null()) * light->radiance() *
+        color += diffuseBRDF(hitPoint, Vector3d::null, Vector3d::null) * light->radiance() *
                  normalDotIn;
     }
   }

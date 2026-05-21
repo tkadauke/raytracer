@@ -48,7 +48,7 @@ namespace render {
       * pixel coordinates using the same `topLeft` / `right` / `down`
       * basis the renderer uses forward.
       *
-      * Returns `Vector2d::undefined()` if the point is at or behind
+      * Returns `Vector2d::undefined` if the point is at or behind
       * the eye (`z_cam ≤ -distance`), since perspective projection
       * is undefined there. Off-screen points project to valid (but
       * out-of-range) pixel coordinates — callers that need a
