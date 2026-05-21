@@ -8,8 +8,11 @@
 #include "test/helpers/GuiTestHelper.h"
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QPainter>
 #include <QSemaphore>
+#include <QThread>
 
 #include <atomic>
 #include <utility>
@@ -136,6 +139,18 @@ namespace RenderWidgetTest {
     QPainter painter(&image);
     widget.QWidget::render(&painter);
     return image.pixel(0, 0);
+  }
+
+  template<class Predicate>
+  bool processEventsUntil(Predicate predicate, int timeoutMs = 5000) {
+    QElapsedTimer timer;
+    timer.start();
+    while (!predicate() && timer.elapsed() < timeoutMs) {
+      QCoreApplication::processEvents(QEventLoop::AllEvents);
+      QThread::msleep(1);
+    }
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    return predicate();
   }
 
   TEST_F(RenderWidgetTest, ShouldInitializeWithNullScene) {
@@ -269,8 +284,9 @@ namespace RenderWidgetTest {
 
     engine->state->gates[1]->release.release();
     ASSERT_TRUE(engine->state->gates[1]->finished.tryAcquire(1, 5000));
-    QCoreApplication::processEvents();
-    EXPECT_EQ(1, finishedCount);
+    EXPECT_TRUE(processEventsUntil([&finishedCount]() {
+      return finishedCount == 1;
+    }));
   }
 
   TEST_F(RenderWidgetTest, ShouldNotStartUnlimitedReplacementRendersWhileRetiredSnapshotDrains) {
