@@ -117,6 +117,15 @@ B` and `A - B` are componentwise, `A.transposed()` returns the
 transpose, `A.inverted()` returns the inverse, and
 `A.determinant()` returns the scalar determinant.
 
+Numerically sensitive work has a separate decomposition surface in
+[`MatrixDecomposition.h`](../../../include/core/math/MatrixDecomposition.h).
+It provides LU with partial pivoting for stable solves and inverses, QR
+for rebuilding an orthonormal basis after drift, and SVD for breaking a
+small matrix into orthogonal axes plus singular scales. The renderer's
+hot path still uses `Matrix4::inverted()`, but `Matrix4::stableInverse()`
+can switch to LU when the matrix is close enough to singular that the
+block inverse is the wrong tradeoff.
+
 ## 2.3 Composition order: column-vector convention
 
 Two camps exist on this question. The **row-vector** camp writes a
@@ -351,6 +360,7 @@ shipped tests pin them.
 
 <!-- source-anchors -->
 - `include/core/math/Matrix.h`
+- `include/core/math/MatrixDecomposition.h`
 - `include/core/math/Quaternion.h`
 - `include/render/primitives/Instance.h`
 <!-- /source-anchors -->
