@@ -126,7 +126,7 @@ namespace LinearInterpolationTest {
   }
   
   TEST(LinearInterpolation, ShouldReturnCurrentStep) {
-    Vector3f begin(1, 0, 0), end(2, 1, 0), expected(1.1, 0.1, 0);
+    Vector3f begin(1, 0, 0), end(2, 1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
   
     auto iter = interpolation.begin();

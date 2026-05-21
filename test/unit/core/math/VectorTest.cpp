@@ -159,7 +159,7 @@ namespace VectorTest {
   }
   
   TYPED_TEST(VectorTest, ShouldReturnSameValueForReversedDistance) {
-    Vector<3, TypeParam> vector1, vector2, foo;
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector2[0] = 5.0;
     
@@ -175,7 +175,7 @@ namespace VectorTest {
   }
   
   TYPED_TEST(VectorTest, ShouldReturnSameValueForReversedSquaredDistance) {
-    Vector<3, TypeParam> vector1, vector2, foo;
+    Vector<3, TypeParam> vector1, vector2;
     vector1[0] = 10.0;
     vector2[0] = 5.0;
     
