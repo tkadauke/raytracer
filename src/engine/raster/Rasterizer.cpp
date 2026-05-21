@@ -505,7 +505,7 @@ namespace {
   inline ClipVert interpolateClipVert(const ClipVert& from, const ClipVert& to, double t) {
     return {from.point + (to.point - from.point) * t, from.normal + (to.normal - from.normal) * t,
             from.uv + (to.uv - from.uv) * t, from.clip + (to.clip - from.clip) * t,
-            Vector3d::undefined()};
+            Vector3d::undefined};
   }
 
   const Vector4d& clipOf(const ClipVert& vertex) {
@@ -590,7 +590,7 @@ namespace {
     }
 
     Rayd rayForPixel(double, double, render::SampleStream&) const override {
-      return Rayd::undefined();
+      return Rayd::undefined;
     }
 
     std::shared_ptr<render::Camera> clone() const override {
@@ -605,7 +605,7 @@ namespace {
     Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override {
       const Vector3d cameraPoint = toCameraSpace(worldPoint);
       if (cameraPoint.z() < 0.0)
-        return Vector3d::undefined();
+        return Vector3d::undefined;
 
       const auto plane = viewPlane();
       return Vector3d((cameraPoint.x() / m_halfExtent + 1.0) * plane->width() / 2.0,
@@ -1145,7 +1145,7 @@ namespace {
             const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
             const std::uint8_t outCode = clipVolume().outCode(clip);
             projected[vi] = {
-              clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined(),
+              clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
               outCode};
           }
 

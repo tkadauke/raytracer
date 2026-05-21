@@ -9,13 +9,13 @@ class Vector3<float> : public Vector<3, float, __m128, Vector3<float>> {
   typedef float CellsType[3];
 public:
   static const int Dim = 3;
-  
-  static const Vector3<float>& null();
-  static const Vector3<float>& one();
-  static const Vector3<float>& epsilon();
-  static const Vector3<float>& undefined();
-  static const Vector3<float>& minusInfinity();
-  static const Vector3<float>& plusInfinity();
+
+  static const Vector3<float> null;
+  static const Vector3<float> one;
+  static const Vector3<float> epsilon;
+  static const Vector3<float> undefined;
+  static const Vector3<float> minusInfinity;
+  static const Vector3<float> plusInfinity;
 
   static const Vector3<float>& right();
   static const Vector3<float>& up();
@@ -28,7 +28,7 @@ public:
   inline Vector3(const float& x, const float& y, const float& z = 0) {
     m_vector[0] = _mm_set_ps(0.0f, z, y, x);
   }
-  
+
   inline explicit Vector3(const CellsType& cells) {
     m_vector[0] = _mm_set_ps(0.0f, cells[2], cells[1], cells[0]);
   }
@@ -125,6 +125,29 @@ private:
   inline explicit Vector3(const __m128& vec) {
     m_vector[0] = vec;
   }
+};
+
+inline const Vector3<float> Vector3<float>::null{0.0f, 0.0f, 0.0f};
+inline const Vector3<float> Vector3<float>::one{1.0f, 1.0f, 1.0f};
+inline const Vector3<float> Vector3<float>::epsilon{
+  std::numeric_limits<float>::epsilon(),
+  std::numeric_limits<float>::epsilon(),
+  std::numeric_limits<float>::epsilon()
+};
+inline const Vector3<float> Vector3<float>::undefined{
+  std::numeric_limits<float>::quiet_NaN(),
+  std::numeric_limits<float>::quiet_NaN(),
+  std::numeric_limits<float>::quiet_NaN()
+};
+inline const Vector3<float> Vector3<float>::minusInfinity{
+  -std::numeric_limits<float>::infinity(),
+  -std::numeric_limits<float>::infinity(),
+  -std::numeric_limits<float>::infinity()
+};
+inline const Vector3<float> Vector3<float>::plusInfinity{
+  std::numeric_limits<float>::infinity(),
+  std::numeric_limits<float>::infinity(),
+  std::numeric_limits<float>::infinity()
 };
 
 #endif

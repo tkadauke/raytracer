@@ -10,7 +10,7 @@ Surface::Surface(Element* parent)
   : Transformable(parent),
     m_material(nullptr),
     m_visible(true),
-    m_velocity(Vector3d::null())
+    m_velocity(Vector3d::null)
 {
 }
 

@@ -5,7 +5,7 @@
 
 Transformable::Transformable(Element* parent)
   : Element(parent),
-    m_scale(Vector3d::one())
+    m_scale(Vector3d::one)
 {
 }
 

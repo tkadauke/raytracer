@@ -25,7 +25,7 @@ using namespace render;
 
   TEST(Grid, ShouldNotIntersectIfBoundingBoxIsInfinite) {
     Grid grid;
-    auto plane = primitiveAt(BoundingBoxd::infinity());
+    auto plane = primitiveAt(BoundingBoxd::infinity);
     grid.add(plane);
     grid.setup();
 
@@ -39,7 +39,7 @@ using namespace render;
 
   TEST(Grid, ShouldNotReportIntersectsIfBoundingBoxIsInfinite) {
     Grid grid;
-    grid.add(primitiveAt(BoundingBoxd::infinity()));
+    grid.add(primitiveAt(BoundingBoxd::infinity));
     grid.setup();
 
     Rayd ray(Vector3d(0, 0, -10), Vector3d(0, 0, 1));

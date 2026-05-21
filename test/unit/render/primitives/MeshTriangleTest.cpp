@@ -23,9 +23,9 @@ using namespace render;
   TEST(MeshTriangle, ShouldComputeBoundingBox) {
     Mesh mesh;
     
-    mesh.addVertex(Vector3d(0, 0, 0), Vector3d::null());
-    mesh.addVertex(Vector3d(0, 1, 0), Vector3d::null());
-    mesh.addVertex(Vector3d(1, 0, 0), Vector3d::null());
+    mesh.addVertex(Vector3d(0, 0, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(0, 1, 0), Vector3d::null);
+    mesh.addVertex(Vector3d(1, 0, 0), Vector3d::null);
     ConcreteMeshTriangle triangle(&mesh, 0, 1, 2);
     
     BoundingBoxd expected = BoundingBoxd(Vector3d(0, 0, 0), Vector3d(1, 1, 0)).grownByEpsilon();

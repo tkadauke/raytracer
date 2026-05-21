@@ -47,7 +47,7 @@ void Wireframe::uncancel() {
 namespace {
   // Project a single edge from world space to screen space and
   // rasterize it into `buffer`. Returns silently if either endpoint
-  // is behind the eye (projectPoint returns Vector2d::undefined())
+  // is behind the eye (projectPoint returns Vector2d::undefined)
   // — V1 doesn't clip mixed-case lines against the near plane, so
   // edges that straddle the camera are dropped entirely. That's a
   // visible glitch when the camera moves close to geometry, fixed in

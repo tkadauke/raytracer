@@ -46,5 +46,5 @@ std::shared_ptr<Mesh> Plane::tessellate(int) const {
 }
 
 BoundingBoxd Plane::calculateBoundingBox() const {
-  return BoundingBoxd::infinity();
+  return BoundingBoxd::infinity;
 }

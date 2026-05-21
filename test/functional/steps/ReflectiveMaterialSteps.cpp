@@ -10,14 +10,14 @@ using namespace testing;
 using namespace render;
 
 GIVEN(EngineFeatureTest, "a perfectly reflective box") {
-  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
+  auto box = std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 0.1));
   auto material = std::make_shared<ReflectiveMaterial>();
   box->setMaterial(material);
   test->add(box);
 }
 
 GIVEN(EngineFeatureTest, "a reflective box which filters the colors") {
-  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 0.1));
+  auto box = std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 0.1));
   auto material = std::make_shared<ReflectiveMaterial>(
     std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))
   );

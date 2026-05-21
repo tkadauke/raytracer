@@ -32,7 +32,7 @@ namespace HomogeneousClipVolumeTest {
   TEST(HomogeneousClipVolume, ShouldReturnAllOutCodeBitsForUndefinedClipPoint) {
     HomogeneousClipVolume volume(0.1);
 
-    ASSERT_EQ(HomogeneousClipVolume::allBits(), volume.outCode(Vector4d::undefined()));
+    ASSERT_EQ(HomogeneousClipVolume::allBits(), volume.outCode(Vector4d::undefined));
   }
 
   TEST(HomogeneousClipVolume, ShouldKeepFullyInsideTriangle) {

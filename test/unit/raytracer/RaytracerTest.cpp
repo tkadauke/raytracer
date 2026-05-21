@@ -34,7 +34,7 @@ using namespace render;
     // Build a sphere of `radius` at the origin with a unit-white matte
     // material — the simplest "primitive that shades to a known colour".
     std::shared_ptr<Sphere> whiteSphere(double radius) {
-      auto sphere = std::make_shared<Sphere>(Vector3d::null(), radius);
+      auto sphere = std::make_shared<Sphere>(Vector3d::null, radius);
       sphere->setMaterial(std::make_shared<MatteMaterial>(
         std::make_shared<ConstantColorTexture>(Colord::white())));
       return sphere;
@@ -65,7 +65,7 @@ using namespace render;
 
   TEST(Raytracer, ShouldUseExplicitCameraWhenProvided) {
     auto scene = std::make_shared<Scene>(Colord::black());
-    auto camera = std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null());
+    auto camera = std::make_shared<PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
     Raytracer raytracer(camera, scene);
     ASSERT_EQ(camera, raytracer.camera());
   }
@@ -112,7 +112,7 @@ using namespace render;
 
   TEST(Raytracer, RayColorShouldReturnBlackWhenHitPrimitiveHasNoMaterial) {
     auto scene = std::make_shared<Scene>(Colord(1, 1, 1));
-    auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1.0);
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
     // Deliberately don't set a material on `sphere`.
     scene->add(sphere);
     Raytracer raytracer(scene);

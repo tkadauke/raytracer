@@ -21,7 +21,7 @@ using namespace render;
   }
   
   TEST(PinholeCamera, ShouldConstructWithParameters) {
-    PinholeCamera camera(Vector3d(0, 0, 1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, 1), Vector3d::null);
     ASSERT_EQ(5, camera.distance());
     ASSERT_EQ(1, camera.zoom());
   }
@@ -39,7 +39,7 @@ using namespace render;
   }
   
   TEST(PinholeCamera, ShouldRender) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<Colord> buffer(1, 1);
@@ -55,7 +55,7 @@ using namespace render;
     // the path produces correct pixel values; the
     // mid-render-non-empty property is timing-dependent and
     // covered by visual smoke-testing in GeneratedRayTracer.
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<unsigned int> buffer(1, 1);
@@ -73,7 +73,7 @@ using namespace render;
   }
   
   TEST(PinholeCamera, ShouldSetViewplanePixelSize) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<Colord> buffer(1, 1);
@@ -84,14 +84,14 @@ using namespace render;
   }
   
   TEST(PinholeCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }
   
   TEST(PinholeCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
     Buffer<Colord> buffer(1, 1);
     camera.render(raytracer, buffer);
@@ -109,18 +109,18 @@ using namespace render;
   }
 
   TEST(PinholeCamera, ProjectsCameraTargetToImageCenter) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera);
 
     // The camera looks at the origin. Origin should project to the
     // pixel-grid centre of a 100×100 window.
-    Vector2d projected = camera.projectPoint(Vector3d::null());
+    Vector2d projected = camera.projectPoint(Vector3d::null);
     EXPECT_NEAR(50.0, projected.x(), 1e-9);
     EXPECT_NEAR(50.0, projected.y(), 1e-9);
   }
 
   TEST(PinholeCamera, ProjectsPointAtEyeToUndefined) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera);
     // Eye is at world (0, 0, -6) — z=-1 camera position pulled back
     // by distance=5.
@@ -129,7 +129,7 @@ using namespace render;
   }
 
   TEST(PinholeCamera, ProjectsPointBehindEyeToUndefined) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera);
     // Anything further from origin than the eye on the same ray
     // points the wrong way through the pinhole.
@@ -138,7 +138,7 @@ using namespace render;
   }
 
   TEST(PinholeCamera, RoundTripsThroughRayForPixel) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     // For each of a handful of pixels, generate the primary ray, walk
@@ -166,7 +166,7 @@ using namespace render;
     // A unit-zoom round trip masks the bug; this test uses zoom=1.5
     // and a camera positioned off-axis (matching the glass-torus demo
     // scene) so any miscompensation surfaces.
-    PinholeCamera camera(Vector3d(0, -3, -10), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, -3, -10), Vector3d::null);
     camera.setZoom(1.5);
     initViewPlane(camera, 320, 240);
 
@@ -187,7 +187,7 @@ using namespace render;
     // At zoom=2, the same world point should project to a pixel
     // closer to the image centre because the view plane is "smaller"
     // (each pixel covers less world space).
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setZoom(2.0);
     initViewPlane(camera);
 
@@ -196,7 +196,7 @@ using namespace render;
     // angular field of view shrinks). Verify monotonicity.
     Vector2d zoom2 = camera.projectPoint(Vector3d(1, 0, 5));
 
-    PinholeCamera unzoomed(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera unzoomed(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(unzoomed);
     Vector2d zoom1 = unzoomed.projectPoint(Vector3d(1, 0, 5));
 
@@ -204,7 +204,7 @@ using namespace render;
   }
 
   TEST(PinholeCamera, ClipSpaceProjectionMatchesProjectionWithDepth) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     const Vector3d point(1.5, -0.5, 4.0);
@@ -219,7 +219,7 @@ using namespace render;
   }
 
   TEST(PinholeCamera, ClipSpaceProjectionKeepsBehindEyePointsRepresentable) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera);
 
     const Vector4d atEye = camera.projectPointToClipSpace(Vector3d(0, 0, -6));
@@ -235,7 +235,7 @@ using namespace render;
     // projectionMatrix() is built via Matrix4::frustum; verify the canonical
     // property: a point at the right edge of the view plane (x = halfW) at
     // the near plane (z = distance) should project to NDC x = +1.
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     auto plane = camera.viewPlane();
@@ -248,7 +248,7 @@ using namespace render;
   }
 
   TEST(PinholeCamera, ProjectionMatrixMapsViewPlaneTopEdgeToNdcOne) {
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     auto plane = camera.viewPlane();
@@ -263,7 +263,7 @@ using namespace render;
   TEST(PinholeCamera, ProjectionMatrixIsConsistentWithProjectPointToClipSpace) {
     // The x/w and y/w components of projectPointToClipSpace must match those
     // produced by applying projectionMatrix() to the eye-shifted camera point.
-    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     const Vector3d worldPoint(2.0, -1.0, 3.0);

@@ -42,14 +42,14 @@ namespace {
 }
 
 GIVEN(EngineFeatureTest, "a matte sphere with a (red|green|blue|white|black) texture") {
-  auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d::null, 1);
   sphere->setMaterial(
     std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(namedColor(match[1]))));
   test->add(sphere);
 }
 
 GIVEN(EngineFeatureTest, "a matte sphere with ambient ([\\d.]+) and diffuse ([\\d.]+)") {
-  auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d::null, 1);
   auto material =
     std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   material->setAmbientCoefficient(std::stod(match[1]));
@@ -59,7 +59,7 @@ GIVEN(EngineFeatureTest, "a matte sphere with ambient ([\\d.]+) and diffuse ([\\
 }
 
 GIVEN(EngineFeatureTest, "a phong sphere") {
-  auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d::null, 1);
   sphere->setMaterial(
     std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0))));
   test->add(sphere);
@@ -68,7 +68,7 @@ GIVEN(EngineFeatureTest, "a phong sphere") {
 // Red diffuse + white specular at full strength, with ambient zeroed so the
 // specular contribution shows up cleanly against a black scene.
 GIVEN(EngineFeatureTest, "a phong sphere with white specular") {
-  auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1);
+  auto sphere = std::make_shared<Sphere>(Vector3d::null, 1);
   auto material =
     std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord(1, 0, 0)));
   material->setAmbientCoefficient(0);

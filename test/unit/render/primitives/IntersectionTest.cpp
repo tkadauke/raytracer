@@ -17,8 +17,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -55,8 +55,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -91,8 +91,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(Return(static_cast<render::Primitive*>(nullptr)));
     EXPECT_CALL(*primitive2, intersect(_, _, _)).WillOnce(Return(static_cast<render::Primitive*>(nullptr)));
     
@@ -111,8 +111,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -139,8 +139,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1.get(), intersect(_, _, _)).WillOnce(
       DoAll(
         AddHitPoints(
@@ -175,8 +175,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined));
     
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     
@@ -193,8 +193,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*primitive2, intersects(_, _)).WillOnce(Return(true));
     
@@ -212,8 +212,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(false));
     
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
@@ -230,8 +230,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one(), Vector3d::one())));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
     EXPECT_CALL(*primitive1, intersects(_, _)).WillOnce(Return(true));
     EXPECT_CALL(*primitive2, intersects(_, _)).WillOnce(Return(false));
     
@@ -249,8 +249,8 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined()));
+    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined));
+    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined));
     
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     

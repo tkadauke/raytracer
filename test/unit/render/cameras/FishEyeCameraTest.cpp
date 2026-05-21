@@ -19,7 +19,7 @@ using namespace render;
   }
   
   TEST(FishEyeCamera, ShouldConstructWithParameters) {
-    FishEyeCamera camera(Vector3d(0, 0, 1), Vector3d::null());
+    FishEyeCamera camera(Vector3d(0, 0, 1), Vector3d::null);
     ASSERT_NEAR(120, camera.fieldOfView().degrees(), 0.001);
   }
   
@@ -35,7 +35,7 @@ using namespace render;
   }
   
   TEST(FishEyeCamera, ShouldRender) {
-    FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<Colord> buffer(1, 1);
@@ -45,14 +45,14 @@ using namespace render;
   }
   
   TEST(FishEyeCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
-    FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -1), ray.origin());
     ASSERT_TRUE(ray.direction().isUndefined());
   }
   
   TEST(FishEyeCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
-    FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    FishEyeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
     Buffer<Colord> buffer(1, 1);
     camera.render(raytracer, buffer);

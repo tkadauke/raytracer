@@ -118,7 +118,7 @@ namespace TextureTest {
 
     auto rt = texture.toRaytracerTexture();
     HitPoint hp(nullptr, 0.0, Vector4d(0, 0, 0), Vector3d(0, 1, 0), Vector2d(0.3, 0.0));
-    EXPECT_EQ(Colord::black(), rt->evaluate(Rayd::undefined(), hp));
+    EXPECT_EQ(Colord::black(), rt->evaluate(Rayd::undefined, hp));
   }
 
   TEST(CheckerBoardTexture, ShouldTreatUnknownMappingAsPlanar) {
@@ -172,8 +172,8 @@ namespace TextureTest {
     EXPECT_EQ(
       Colord::black(),
       rt->evaluate(
-        Rayd::undefined(),
-        HitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.3, 0.0))));
+        Rayd::undefined,
+        HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.3, 0.0))));
   }
 
   // ---------- UVColorTexture -----------------------------------------------
@@ -186,7 +186,7 @@ namespace TextureTest {
     EXPECT_EQ(
       Colord(0.25, 0.75, 0.0),
       rt->evaluate(
-        Rayd::undefined(),
-        HitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.25, 0.75))));
+        Rayd::undefined,
+        HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.25, 0.75))));
   }
 }

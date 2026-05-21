@@ -8,7 +8,7 @@ using namespace testing;
 using namespace render;
 
 GIVEN(EngineFeatureTest, "a centered box") {
-  auto box = std::make_shared<Box>(Vector3d::null(), Vector3d(1, 1, 1));
+  auto box = std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1));
   box->setMaterial(test->redDiffuse());
   test->add(box);
 }

@@ -188,8 +188,8 @@ bool GJKSimplex::isValidSubset(Bits subset) const {
 
 void GJKSimplex::computeClosestPointsOfAandB(Vector3d& pA, Vector3d& pB) const {
   double deltaX = 0.0;
-  pA = Vector3d::null();
-  pB = Vector3d::null();
+  pA = Vector3d::null;
+  pB = Vector3d::null;
   int i;
   Bits bit;
 

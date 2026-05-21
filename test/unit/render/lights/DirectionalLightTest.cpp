@@ -25,7 +25,7 @@ namespace DirectionalLightTest {
     Vector3d dir = Vector3d(-0.5, -1, -0.5).normalized();
 
     DirectionalLight light(dir, Colord::white());
-    ASSERT_EQ(dir, light.direction(Vector3d::undefined()));
+    ASSERT_EQ(dir, light.direction(Vector3d::undefined));
   }
   
   TEST(DirectionalLight, ShouldReturnRadiance) {

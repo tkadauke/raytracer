@@ -75,7 +75,7 @@ double Camera::aspectRatio() const {
 }
 
 Vector2d Camera::projectPoint(const Vector3d&) const {
-  return Vector2d::undefined();
+  return Vector2d::undefined;
 }
 
 Vector3d Camera::projectPointWithDepth(const Vector3d& worldPoint) const {
@@ -85,12 +85,12 @@ Vector3d Camera::projectPointWithDepth(const Vector3d& worldPoint) const {
   // Cameras without a closed-form inverse return undefined, which
   // propagates through here.
   Vector2d screen = projectPoint(worldPoint);
-  if (screen.isUndefined()) return Vector3d::undefined();
+  if (screen.isUndefined()) return Vector3d::undefined;
   return Vector3d(screen.x(), screen.y(), 0.0);
 }
 
 Vector4d Camera::projectPointToClipSpace(const Vector3d&) const {
-  return Vector4d::undefined();
+  return Vector4d::undefined;
 }
 
 double Camera::eyeRelativeDepth(const Vector3d&) const {

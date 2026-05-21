@@ -19,19 +19,19 @@ namespace BoundingBoxTest {
   TYPED_TEST_SUITE(BoundingBoxTest, BoundingBoxTypes);
 
   TYPED_TEST(BoundingBoxTest, ShouldDefineInfiniteBoundingBox) {
-    BoundingBox<TypeParam> bbox = BoundingBox<TypeParam>::infinity();
-    ASSERT_EQ(Vector3<TypeParam>::minusInfinity(), bbox.min());
-    ASSERT_EQ(Vector3<TypeParam>::plusInfinity(), bbox.max());
+    BoundingBox<TypeParam> bbox = BoundingBox<TypeParam>::infinity;
+    ASSERT_EQ(Vector3<TypeParam>::minusInfinity, bbox.min());
+    ASSERT_EQ(Vector3<TypeParam>::plusInfinity, bbox.max());
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldDefineUndefinedBoundingBox) {
-    ASSERT_TRUE(BoundingBox<TypeParam>::undefined().isUndefined());
+    ASSERT_TRUE(BoundingBox<TypeParam>::undefined.isUndefined());
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldInitializeBoundingBoxAsInfinitelyLarge) {
     BoundingBox<TypeParam> bbox;
-    ASSERT_EQ(Vector3<TypeParam>::plusInfinity(), bbox.min());
-    ASSERT_EQ(Vector3<TypeParam>::minusInfinity(), bbox.max());
+    ASSERT_EQ(Vector3<TypeParam>::plusInfinity, bbox.min());
+    ASSERT_EQ(Vector3<TypeParam>::minusInfinity, bbox.max());
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldInitializeWithValues) {
@@ -57,7 +57,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    ASSERT_EQ(Vector3<TypeParam>::null(), bbox.center());
+    ASSERT_EQ(Vector3<TypeParam>::null, bbox.center());
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldCompareSameInstanceForEquality) {
@@ -114,9 +114,9 @@ namespace BoundingBoxTest {
   
   TYPED_TEST(BoundingBoxTest, ShouldIncludePoint) {
     BoundingBox<TypeParam> bbox;
-    bbox.include(Vector3<TypeParam>::null());
+    bbox.include(Vector3<TypeParam>::null);
     ASSERT_EQ(bbox.min(), bbox.max());
-    ASSERT_EQ(Vector3<TypeParam>::null(), bbox.min());
+    ASSERT_EQ(Vector3<TypeParam>::null, bbox.min());
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldIncludeMultiplePoints) {
@@ -334,7 +334,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(2, 2, 2)
     );
 
-    ASSERT_EQ(expected, bbox.grownBy(Vector3d::one()));
+    ASSERT_EQ(expected, bbox.grownBy(Vector3d::one));
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldMoveBoundingBox) {
@@ -347,7 +347,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(2, 2, 2)
     );
 
-    ASSERT_EQ(expected, bbox.movedBy(Vector3d::one()));
+    ASSERT_EQ(expected, bbox.movedBy(Vector3d::one));
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldMoveBoundingBoxWithPlusOperator) {
@@ -360,7 +360,7 @@ namespace BoundingBoxTest {
       Vector3<TypeParam>(2, 2, 2)
     );
 
-    ASSERT_EQ(expected, bbox + Vector3d::one());
+    ASSERT_EQ(expected, bbox + Vector3d::one);
   }
 
   TYPED_TEST(BoundingBoxTest, ShouldComputeMinkowskiSum) {

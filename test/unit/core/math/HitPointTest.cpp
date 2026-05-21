@@ -9,7 +9,7 @@
 using namespace std;
 
 namespace HitPointTest {
-  static render::Box* box = new render::Box(Vector3d::null(), Vector3d::one());
+  static render::Box* box = new render::Box(Vector3d::null, Vector3d::one);
   
   TEST(HitPoint, ShouldInitialize) {
     HitPoint point;

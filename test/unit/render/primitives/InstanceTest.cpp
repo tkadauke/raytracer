@@ -72,7 +72,7 @@ using namespace render;
     EXPECT_CALL(*primitive, farthestPoint(_)).WillOnce(Return(Vector3d(1, 1, 1)));
     
     Vector3d expected(2, 2, 2);
-    ASSERT_EQ(expected, instance.farthestPoint(Vector3d::one()));
+    ASSERT_EQ(expected, instance.farthestPoint(Vector3d::one));
   }
   
   TEST(Instance, ShouldReturnBoundingBox) {
@@ -90,7 +90,7 @@ using namespace render;
   TEST(Instance, ShouldDefaultToZeroVelocity) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
-    ASSERT_EQ(Vector3d::null(), instance.velocity());
+    ASSERT_EQ(Vector3d::null, instance.velocity());
   }
 
   TEST(Instance, ShouldSetAndGetVelocity) {

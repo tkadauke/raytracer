@@ -52,7 +52,7 @@ namespace TonemapMonotonicityTest {
   };
 
   GIVEN(EngineFeatureTest, "a unit white sphere at the origin with no ambient") {
-    auto sphere = std::make_shared<Sphere>(Vector3d::null(), 1.0);
+    auto sphere = std::make_shared<Sphere>(Vector3d::null, 1.0);
     sphere->setMaterial(std::make_shared<MatteMaterial>(
       std::make_shared<ConstantColorTexture>(Colord(1.0, 1.0, 1.0))));
     test->add(sphere);

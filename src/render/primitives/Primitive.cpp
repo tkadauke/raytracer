@@ -22,7 +22,7 @@ void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
 }
 
 Vector3d Primitive::farthestPoint(const Vector3d&) const {
-  return Vector3d::undefined();
+  return Vector3d::undefined;
 }
 
 std::shared_ptr<Mesh> Primitive::tessellate(int) const {
@@ -112,7 +112,7 @@ bool Primitive::convexIntersect(const Rayd& ray, HitPointInterval& hitPoints) co
     normal = n.normalized();
   } else {
     // Degenerated normal vector, we return a zero normal vector
-    normal = Vector3d::null();
+    normal = Vector3d::null;
   }
   hitPoints.add(HitPoint(this, t, pointB, normal));
   return true;

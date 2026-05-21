@@ -32,7 +32,7 @@ Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {
   // projection diverges at or behind the eye.
   double denominator = pCam.z() + m_distance;
   if (denominator <= 0.0) {
-    return Vector2d::undefined();
+    return Vector2d::undefined;
   }
 
   // Similar-triangles projection onto the camera-space z=0 plane.
@@ -68,7 +68,7 @@ Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const 
   // from the eye along the forward axis. Behind the eye → undefined.
   double depth = pCam.z() + m_distance;
   if (depth <= 0.0) {
-    return Vector3d::undefined();
+    return Vector3d::undefined;
   }
 
   double t = m_distance / depth;

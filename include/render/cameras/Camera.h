@@ -162,7 +162,7 @@ namespace render {
       * (`Wireframe`, future `OpenGLEngine`) that need to map
       * mesh vertices onto the display.
       *
-      * Returns `Vector2d::undefined()` if:
+      * Returns `Vector2d::undefined` if:
       *
       *  - the point is behind the eye (camera-space z ≤ -distance
       *    on a pinhole / thin-lens camera), or
@@ -184,7 +184,7 @@ namespace render {
       * `result.z()` — the eye-relative distance along the camera's
       * forward axis. Smaller depth = closer to the eye; depth is
       * always positive for points in front of the eye. Returns
-      * `Vector3d::undefined()` when projection is undefined (point
+      * `Vector3d::undefined` when projection is undefined (point
       * behind eye / camera has no closed-form inverse).
       *
       * Consumed by the software rasterizer for Z-buffer depth tests

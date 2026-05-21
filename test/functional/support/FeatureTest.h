@@ -25,7 +25,7 @@ namespace testing {
     * @code
     *   GIVEN(MyTest, "a sphere with radius ([\\d.]+)") {
     *     double r = std::stod(match[1]);
-    *     test->add(std::make_shared<Sphere>(Vector3d::null(), r));
+    *     test->add(std::make_shared<Sphere>(Vector3d::null, r));
     *   }
     *   // ...
     *   given("a sphere with radius 0.5");

@@ -22,11 +22,11 @@ using namespace render;
   }
   
   TEST(OrthographicCamera, ShouldConstructWithParameters) {
-    OrthographicCamera camera(Vector3d(0, 0, 1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, 1), Vector3d::null);
   }
   
   TEST(OrthographicCamera, ShouldRender) {
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);
     Buffer<Colord> buffer(1, 1);
@@ -35,14 +35,14 @@ using namespace render;
   }
   
   TEST(OrthographicCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, 0), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }
   
   TEST(OrthographicCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
     Buffer<Colord> buffer(1, 1);
     camera.render(raytracer, buffer);
@@ -53,7 +53,7 @@ using namespace render;
   }
 
   TEST(OrthographicCamera, ClipSpaceProjectionMatchesProjectionWithDepth) {
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     const Vector3d point(1.5, -0.5, 4.0);
@@ -68,10 +68,10 @@ using namespace render;
   }
 
   TEST(OrthographicCamera, ClipSpaceProjectionUsesUnitPerspectiveDivisor) {
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera);
 
-    const Vector4d inFront = camera.projectPointToClipSpace(Vector3d::null());
+    const Vector4d inFront = camera.projectPointToClipSpace(Vector3d::null);
     const Vector4d behind = camera.projectPointToClipSpace(Vector3d(0, 0, -2));
 
     EXPECT_FALSE(inFront.isUndefined());
@@ -86,7 +86,7 @@ using namespace render;
     // projectionMatrix() is built via Matrix4::orthographic; verify the
     // canonical property: a point at the right edge of the view plane
     // (x = halfW) should project to NDC x = +1.
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     auto plane = camera.viewPlane();
@@ -100,7 +100,7 @@ using namespace render;
   TEST(OrthographicCamera, ProjectionMatrixIsConsistentWithProjectPointToClipSpace) {
     // The x and y components of projectPointToClipSpace must match the x and y
     // produced by applying projectionMatrix() directly.
-    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null());
+    OrthographicCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     initViewPlane(camera, 200, 150);
 
     const Vector3d worldPoint(1.5, -0.5, 4.0);

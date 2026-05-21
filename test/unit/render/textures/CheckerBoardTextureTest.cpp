@@ -27,10 +27,10 @@ using namespace render;
     );
     
     ASSERT_EQ(Colord::white(), texture.evaluate(
-      Rayd::undefined(), HitPoint(nullptr, 0, Vector4d(0.5, 0, 0.5), Vector3d::null()))
+      Rayd::undefined, HitPoint(nullptr, 0, Vector4d(0.5, 0, 0.5), Vector3d::null))
     );
     ASSERT_EQ(Colord::black(), texture.evaluate(
-      Rayd::undefined(), HitPoint(nullptr, 0, Vector4d(1.5, 0, 0.5), Vector3d::null()))
+      Rayd::undefined, HitPoint(nullptr, 0, Vector4d(1.5, 0, 0.5), Vector3d::null))
     );
   }
 }

@@ -14,7 +14,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   // Most instances in any given scene fall through here, so the
   // branch keeps the cost of the new feature to one comparison per
   // ray for unanimated geometry.
-  if (m_velocity == Vector3d::null()) {
+  if (m_velocity == Vector3d::null) {
     const Primitive* result = m_primitive->intersect(instancedRay(ray), hitPoints, state);
     if (result) {
       hitPoints = hitPoints.transform(m_pointMatrix, m_normalMatrix);
@@ -57,7 +57,7 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
 }
 
 bool Instance::intersects(const Rayd& ray, render::State& state) const {
-  if (m_velocity == Vector3d::null()) {
+  if (m_velocity == Vector3d::null) {
     return m_primitive->intersects(instancedRay(ray), state);
   }
   Vector3d shift = m_velocity * state.timeSample;
@@ -102,7 +102,7 @@ BoundingBoxd Instance::calculateBoundingBox() const {
   // end-of-shutter position too. Without this, a bbox-based
   // accelerator (Grid) could miss rays whose timeSample puts them
   // outside the static bbox.
-  if (m_velocity != Vector3d::null()) {
+  if (m_velocity != Vector3d::null) {
     BoundingBoxd shifted;
     for (const auto& vertex : vertices) {
       shifted.include(m_pointMatrix.transformPoint(vertex) + m_velocity);

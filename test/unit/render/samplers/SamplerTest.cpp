@@ -12,7 +12,7 @@ namespace SamplerTest {
     virtual std::vector<Vector2d> generateSet() {
       std::vector<Vector2d> result;
       for (int i = 0; i != numSamples(); ++i)
-        result.push_back(Vector2d::null());
+        result.push_back(Vector2d::null);
       return result;
     }
   };

@@ -9,9 +9,9 @@ namespace PortalMaterialTest {
   TEST(PortalMaterial, ShouldDefaultToIdentityTransform) {
     PortalMaterial material;
 
-    EXPECT_EQ(Vector3d::null(), material.position());
-    EXPECT_EQ(Vector3d::null(), material.rotation());
-    EXPECT_EQ(Vector3d::one(), material.scale());
+    EXPECT_EQ(Vector3d::null, material.position());
+    EXPECT_EQ(Vector3d::null, material.rotation());
+    EXPECT_EQ(Vector3d::one, material.scale());
   }
 
   TEST(PortalMaterial, ShouldDefaultToWhiteFilter) {

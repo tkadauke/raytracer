@@ -9,13 +9,13 @@ class Vector3<double> : public Vector<3, double, __m128d, Vector3<double>> {
   typedef double CellsType[3];
 public:
   static const int Dim = 3;
-  
-  static const Vector3<double>& null();
-  static const Vector3<double>& one();
-  static const Vector3<double>& epsilon();
-  static const Vector3<double>& undefined();
-  static const Vector3<double>& minusInfinity();
-  static const Vector3<double>& plusInfinity();
+
+  static const Vector3<double> null;
+  static const Vector3<double> one;
+  static const Vector3<double> epsilon;
+  static const Vector3<double> undefined;
+  static const Vector3<double> minusInfinity;
+  static const Vector3<double> plusInfinity;
 
   static const Vector3<double>& right();
   static const Vector3<double>& up();
@@ -30,7 +30,7 @@ public:
     m_vector[0] = _mm_set_pd(y, x);
     m_vector[1] = _mm_set_sd(z);
   }
-  
+
   inline explicit Vector3(const CellsType& cells) {
     m_vector[0] = _mm_set_pd(cells[1], cells[0]);
     m_vector[1] = _mm_set_sd(cells[2]);
@@ -148,6 +148,29 @@ private:
     m_vector[0] = vec0;
     m_vector[1] = vec1;
   }
+};
+
+inline const Vector3<double> Vector3<double>::null{0.0, 0.0, 0.0};
+inline const Vector3<double> Vector3<double>::one{1.0, 1.0, 1.0};
+inline const Vector3<double> Vector3<double>::epsilon{
+  std::numeric_limits<double>::epsilon(),
+  std::numeric_limits<double>::epsilon(),
+  std::numeric_limits<double>::epsilon()
+};
+inline const Vector3<double> Vector3<double>::undefined{
+  std::numeric_limits<double>::quiet_NaN(),
+  std::numeric_limits<double>::quiet_NaN(),
+  std::numeric_limits<double>::quiet_NaN()
+};
+inline const Vector3<double> Vector3<double>::minusInfinity{
+  -std::numeric_limits<double>::infinity(),
+  -std::numeric_limits<double>::infinity(),
+  -std::numeric_limits<double>::infinity()
+};
+inline const Vector3<double> Vector3<double>::plusInfinity{
+  std::numeric_limits<double>::infinity(),
+  std::numeric_limits<double>::infinity(),
+  std::numeric_limits<double>::infinity()
 };
 
 #endif

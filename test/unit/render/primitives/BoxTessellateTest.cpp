@@ -10,7 +10,7 @@ using namespace render;
 using namespace render;
 
   TEST(BoxTessellate, ProducesNonEmptyMesh) {
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     ASSERT_NE(nullptr, mesh);
     EXPECT_GT(mesh->vertices().size(), 0u);
@@ -23,7 +23,7 @@ using namespace render;
     // and per-face UVs would force a split anyway. Pin the count so
     // a future "share corners" optimisation can't silently break the
     // flat-shading / per-face-UV invariants.
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     EXPECT_EQ(24u, mesh->vertices().size());
     EXPECT_EQ(6u, mesh->faces().size());
@@ -34,7 +34,7 @@ using namespace render;
     // (Sphere/Torus tessellate scale up with LOD; Box does not. Pin
     // so a future "make Box LOD-able with subdivisions" change is
     // loud.)
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto m0 = box.tessellate(0);
     auto m5 = box.tessellate(5);
     EXPECT_EQ(m0->vertices().size(), m5->vertices().size());
@@ -45,7 +45,7 @@ using namespace render;
     // For a unit cube centred at the origin, every vertex must have
     // at least one component at ±1 (the surface) — interior points
     // would mean the tessellation is wrong.
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     for (const auto& v : mesh->vertices()) {
       const double tol = 1e-9;
@@ -63,7 +63,7 @@ using namespace render;
     // Box face normals should be exactly ±X, ±Y, or ±Z. Pin so a
     // future change can't silently introduce skewed normals that
     // would break flat shading.
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     for (const auto& v : mesh->vertices()) {
       EXPECT_NEAR(1.0, v.normal.length(), 1e-9);
@@ -79,7 +79,7 @@ using namespace render;
   TEST(BoxTessellate, EachFaceHasAllSixOutwardNormals) {
     // Across the 6 quad faces, the set of outward normals must
     // cover ±X, ±Y, ±Z exactly once each.
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     int count[6] = {0, 0, 0, 0, 0, 0};  // +X, -X, +Y, -Y, +Z, -Z
     for (const auto& face : mesh->faces()) {
@@ -99,7 +99,7 @@ using namespace render;
   }
 
   TEST(BoxTessellate, FacesAreWoundWithOutwardNormals) {
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(*box.tessellate());
   }
 
@@ -107,7 +107,7 @@ using namespace render;
     // Every face's four vertices must produce the four corners of
     // [0, 1]² in UV space — not necessarily in any particular order,
     // but the SET of UVs must be {(0,0), (1,0), (1,1), (0,1)}.
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     for (const auto& face : mesh->faces()) {
       bool corners[4] = {false, false, false, false};
@@ -127,7 +127,7 @@ using namespace render;
     // Sanity — pin that we use 4-vertex faces (so the
     // TriangleIterator's fan triangulation produces exactly 2
     // triangles per face = 12 triangles total).
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     for (const auto& face : mesh->faces()) {
       EXPECT_EQ(4u, face.size());
@@ -135,7 +135,7 @@ using namespace render;
   }
 
   TEST(BoxTessellate, TriangleIteratorYieldsTwelveTriangles) {
-    Box box(Vector3d::null(), Vector3d(1, 1, 1));
+    Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     int count = 0;
     for (auto it = mesh->begin(); it != mesh->end(); ++it) ++count;

@@ -8,7 +8,7 @@ namespace UVMapping2DTest {
 
   TEST(UVMapping2D, ShouldMapHitPointUVToTextureCoordinates) {
     UVMapping2D mapping;
-    HitPoint hitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(1.25, 0.75));
+    HitPoint hitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(1.25, 0.75));
     double s = 0;
     double t = 0;
 
@@ -20,7 +20,7 @@ namespace UVMapping2DTest {
 
   TEST(UVMapping2D, ShouldScaleTextureCoordinates) {
     UVMapping2D mapping(4.0, 8.0);
-    HitPoint hitPoint(nullptr, 0, Vector3d::null(), Vector3d::up(), Vector2d(0.25, 0.75));
+    HitPoint hitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.25, 0.75));
     double s = 0;
     double t = 0;
 

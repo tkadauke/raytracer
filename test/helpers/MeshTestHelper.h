@@ -16,13 +16,13 @@ namespace testing {
         ASSERT_GE(face.size(), 3u);
 
         const Vector3d& p0 = vertices[face[0]].point;
-        Vector3d faceNormal = Vector3d::null();
+        Vector3d faceNormal = Vector3d::null;
         for (std::size_t i = 1; i + 1 < face.size(); ++i) {
           faceNormal += (vertices[face[i]].point - p0) ^ (vertices[face[i + 1]].point - p0);
         }
         if (faceNormal.length() == 0.0) continue;
 
-        Vector3d averageVertexNormal = Vector3d::null();
+        Vector3d averageVertexNormal = Vector3d::null;
         for (int index : face) {
           averageVertexNormal += vertices[index].normal;
         }

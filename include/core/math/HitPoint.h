@@ -59,7 +59,7 @@ public:
       m_distance(distance),
       m_point(point),
       m_normal(normal),
-      m_uv(Vector2d::null())
+      m_uv(Vector2d::null)
   {
   }
 

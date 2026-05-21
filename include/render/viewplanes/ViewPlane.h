@@ -265,12 +265,12 @@ namespace render {
 
     /**
       * Convert homogeneous clip coordinates into framebuffer pixel
-      * coordinates, returning `Vector3d::undefined()` when the
+      * coordinates, returning `Vector3d::undefined` when the
       * perspective divide would be invalid.
       */
     inline Vector3d screenFromClip(const Vector4d& clip) const {
       if (clip.isUndefined() || clip.w() <= 0.0)
-        return Vector3d::undefined();
+        return Vector3d::undefined;
       return screenFromClipUnchecked(clip);
     }
 

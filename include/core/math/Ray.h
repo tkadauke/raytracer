@@ -27,12 +27,9 @@ public:
   static const T epsilon;
 
   /**
-    * @returns an undefined Ray.
+    * An undefined Ray.
     */
-  [[nodiscard]] inline static const Ray& undefined() {
-    static Ray r(Vector4<T>::undefined(), Vector3<T>::undefined());
-    return r;
-  }
+  static const Ray<T> undefined;
 
   /**
     * Constructs a Ray \f$r = o + td\f$, where origin is \f$o\f$ and direction
@@ -139,6 +136,17 @@ private:
 
 template<> inline const float  Ray<float>::epsilon  = 0.0001f;
 template<> inline const double Ray<double>::epsilon = 0.0000001;
+
+template<class T>
+inline const Ray<T> Ray<T>::undefined{
+  Vector4<T>(std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN()),
+  Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN())
+};
 
 /**
   * Serializes ray to the given std::ostream.

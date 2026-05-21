@@ -15,7 +15,7 @@ std::shared_ptr<Mesh> ConvexHull::tessellate(int) const {
 }
 
 Vector3d ConvexHull::farthestPoint(const Vector3d& direction) const {
-  Rayd ray(Vector3d::null(), direction);
+  Rayd ray(Vector3d::null, direction);
 
   std::map<double, Vector3d> points;
   for (const auto& primitive : primitives()) {

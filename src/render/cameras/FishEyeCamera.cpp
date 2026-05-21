@@ -27,7 +27,7 @@ Vector3d FishEyeCamera::direction(double x, double y) const {
     double cosAlpha = point.x() / r;
     return Matrix3d(matrix()) * Vector3d(sinPsi * cosAlpha, sinPsi * sinAlpha, cosPsi);
   } else
-    return Vector3d::undefined();
+    return Vector3d::undefined;
 }
 
 Rayd FishEyeCamera::rayForPixel(double x, double y, render::SampleStream&) const {

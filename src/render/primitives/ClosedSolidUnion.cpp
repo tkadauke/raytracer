@@ -39,5 +39,5 @@ Vector3d ClosedSolidUnion::farthestPoint(const Vector3d& direction) const {
     if (!point.isUndefined())
       return point;
   }
-  return Vector3d::undefined();
+  return Vector3d::undefined;
 }
