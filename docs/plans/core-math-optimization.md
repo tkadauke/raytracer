@@ -239,16 +239,18 @@ the torus scene shows ≥10% improvement.~~
 
 ## Phase 2 — bigger payoffs, more code change
 
-### 2.1 SIMD `Matrix4 * Matrix4` and `Matrix4 * Vector4`
+### ~~2.1 SIMD `Matrix4 * Matrix4` and `Matrix4 * Vector4`~~
 
-A 4×4 matrix multiply is the canonical SIMD demo. SSE2 path for
+~~A 4×4 matrix multiply is the canonical SIMD demo. SSE2 path for
 `Matrix4<float>` (single `__m128` per row), SSE2-via-pair or AVX
 for `Matrix4<double>`. Specialize via the same template-partial
-trick the Vector classes use.
+trick the Vector classes use.~~
 
-**Benchmark gate:** `MatrixBenchmark.cpp`. **Pass condition:** ≥3×
+~~**Benchmark gate:** `MatrixBenchmark.cpp`. **Pass condition:** ≥3×
 speedup; whole-render macro benchmark on any transform-heavy scene
-shows measurable improvement.
+shows measurable improvement.~~
+
+✅ **Done.** `Matrix4<float>::operator*(Matrix4<float>)` and `operator*(Vector4<float>)` use SSE column-broadcast matmul and transpose-based mat-vec respectively; `Matrix4<double>` uses SSE2 with paired `__m128d` registers. Specializations live in `include/core/math/matrix/sse2/Matrix4f.h` and `Matrix4d.h`, wired into `Matrix.h` via explicit member-function specialization (same pattern as `vector/sse3/`). Before/after benchmark numbers in the PR description.
 
 ### ~~2.2 Replace cofactor `Matrix4::inverted()` with block-inverse~~
 

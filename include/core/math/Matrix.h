@@ -861,7 +861,28 @@ public:
   using Base::cell;
   using Base::setCell;
   using Base::col;
-  
+  // Re-introduce all base operator* overloads (scalar multiply, etc.) so
+  // the two explicit declarations below don't hide them via name hiding.
+  using Base::operator*;
+
+  /**
+    * @returns the matrix multiplication of this matrix and other.
+    * Declared explicitly so the matrix/sse2/ headers can provide SIMD
+    * specializations for float and double without specializing the whole class.
+    */
+  [[nodiscard]] inline Matrix4<T> operator*(const Matrix4<T>& other) const noexcept {
+    return Base::operator*(other);
+  }
+
+  /**
+    * @returns the Vector that is the result of multiplying this Matrix by vec.
+    * Declared explicitly so the matrix/sse2/ headers can provide SIMD
+    * specializations for float and double without specializing the whole class.
+    */
+  [[nodiscard]] inline Vector4<T> operator*(const Vector4<T>& vec) const noexcept {
+    return Base::operator*(vec);
+  }
+
   /**
     * Default constructor. Constructs the identity matrix
     * 
@@ -1185,6 +1206,12 @@ T Matrix4<T>::determinant() const noexcept {
          cell(0, 1) * cell(1, 0) * cell(2, 3) * cell(3, 2)-cell(0, 0) * cell(1, 1) * cell(2, 3) * cell(3, 2)-cell(0, 2) * cell(1, 1) * cell(2, 0) * cell(3, 3)+cell(0, 1) * cell(1, 2) * cell(2, 0) * cell(3, 3) +
          cell(0, 2) * cell(1, 0) * cell(2, 1) * cell(3, 3)-cell(0, 0) * cell(1, 2) * cell(2, 1) * cell(3, 3)-cell(0, 1) * cell(1, 0) * cell(2, 2) * cell(3, 3)+cell(0, 0) * cell(1, 1) * cell(2, 2) * cell(3, 3);
 }
+
+// SIMD specializations of Matrix4<float> and Matrix4<double> operator* and
+// operator*(Vector4).  Must come after the Matrix4<T> class definition but
+// before the typedef aliases, mirroring the Vector.h / vector/sse3/ pattern.
+#include "core/math/matrix/sse2/Matrix4f.h"
+#include "core/math/matrix/sse2/Matrix4d.h"
 
 /**
   * Two-dimensional matrix with float components.
