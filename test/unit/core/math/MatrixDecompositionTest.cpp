@@ -23,7 +23,7 @@ namespace MatrixDecompositionTest {
       TypeParam(-2), TypeParam(7), TypeParam(2)
     );
 
-    const auto decomposition = luDecomposition<3, TypeParam, Vector3<TypeParam>, Matrix3<TypeParam>>(matrix);
+    const auto decomposition = matrix.luDecomposition();
 
     ASSERT_FALSE(decomposition.singular);
     ASSERT_MATRIX_NEAR(
@@ -44,7 +44,7 @@ namespace MatrixDecompositionTest {
     Vector4<TypeParam> expected(TypeParam(1), TypeParam(2), TypeParam(-1), TypeParam(3));
     Vector4<TypeParam> rhs = matrix * expected;
 
-    const auto decomposition = luDecomposition<4, TypeParam, Vector4<TypeParam>, Matrix4<TypeParam>>(matrix);
+    const auto decomposition = matrix.luDecomposition();
 
     ASSERT_FALSE(decomposition.singular);
     const Vector4<TypeParam> actual = decomposition.solve(rhs);
@@ -60,7 +60,7 @@ namespace MatrixDecompositionTest {
       TypeParam(-4), TypeParam(24), TypeParam(-41)
     );
 
-    const auto decomposition = qrDecomposition<3, TypeParam, Vector3<TypeParam>, Matrix3<TypeParam>>(matrix);
+    const auto decomposition = matrix.qrDecomposition();
 
     Matrix3<TypeParam> identity;
     ASSERT_MATRIX_NEAR(identity, decomposition.q.transposed() * decomposition.q, TypeParam(0.0001));
@@ -77,7 +77,7 @@ namespace MatrixDecompositionTest {
       TypeParam(0), TypeParam(0), TypeParam(1)
     );
 
-    const auto decomposition = svdDecomposition<3, TypeParam, Vector3<TypeParam>, Matrix3<TypeParam>>(matrix);
+    const auto decomposition = matrix.svdDecomposition();
 
     Matrix3<TypeParam> identity;
     ASSERT_MATRIX_NEAR(identity, decomposition.u.transposed() * decomposition.u, TypeParam(0.0001));
@@ -96,7 +96,7 @@ namespace MatrixDecompositionTest {
       TypeParam(0), TypeParam(0), TypeParam(0), TypeParam(-4)
     );
 
-    const auto decomposition = svdDecomposition<4, TypeParam, Vector4<TypeParam>, Matrix4<TypeParam>>(matrix);
+    const auto decomposition = matrix.svdDecomposition();
 
     Matrix4<TypeParam> identity;
     ASSERT_MATRIX_NEAR(identity, decomposition.u.transposed() * decomposition.u, TypeParam(0.0001));
