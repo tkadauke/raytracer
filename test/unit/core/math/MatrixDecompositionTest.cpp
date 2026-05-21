@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "core/math/MatrixDecomposition.h"
+#include "core/math/Matrix.h"
 #include "test/helpers/MatrixTestHelper.h"
 
 namespace MatrixDecompositionTest {
