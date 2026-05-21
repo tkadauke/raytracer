@@ -422,14 +422,21 @@ svdDecomposition(const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
 
 template<class T>
 Matrix4<T> Matrix4<T>::stableInverse() const {
-  const T determinantMagnitude = std::abs(determinant());
+  try {
+    const Matrix4<T> blockInverse = inverted();
+    const T conditionEstimate = this->norm1() * blockInverse.norm1();
 
-  // The determinant is the cheapest near-singularity screen available here:
-  // ordinary transform matrices stay on the block-inverse fast path, while
-  // matrices with tiny determinant pay for pivoted LU.
-  constexpr T kFastPathThreshold = T(1e-5);
-  if (std::isfinite(determinantMagnitude) && determinantMagnitude > kFastPathThreshold) {
-    return inverted();
+    // Estimate kappa_1(A) = ||A||_1 * ||A^-1||_1 from the already-computed
+    // fast inverse. Well-conditioned transforms return the block inverse;
+    // ill-conditioned matrices pay for pivoted LU to avoid Schur-complement
+    // cancellation near singularity.
+    constexpr T kConditionThreshold = T(100000);
+    if (std::isfinite(conditionEstimate) && conditionEstimate <= kConditionThreshold) {
+      return blockInverse;
+    }
+  } catch (const DivisionByZeroException&) {
+    // The block inverse can fail on singular Schur-complement pivots even when
+    // the full matrix is invertible. Pivoted LU gets the final decision.
   }
 
   try {
