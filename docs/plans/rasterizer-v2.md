@@ -86,8 +86,10 @@ clipping / culling front end now lives in
 `src/engine/raster/RasterTriangleEmitter.h`. Directional shadow-map cameras,
 cascades, filtering, and visibility queries now live in
 `src/engine/raster/RasterShadowMaps.h`. `Rasterizer.cpp` still owns pass policy
-dispatch, material evaluation, MSAA orchestration, shadow-map depth-pass
-construction, and frame setup.
+dispatch, MSAA orchestration, shadow-map depth-pass construction, and frame
+setup. Raster material adaptation and the built-in Lambertian evaluator now live
+in `src/engine/raster/RasterMaterial.h` and
+`src/engine/raster/RasterMaterialEvaluator.h`.
 
 Extract internal files without changing public behavior:
 
@@ -95,8 +97,8 @@ Extract internal files without changing public behavior:
   homogeneous clipping, culling, vertex hook adaptation, and face emission.
 - ✅ `RasterShadowMaps` — directional shadow cameras, cascade fitting,
   stabilization, filtering, and visibility queries.
-- `RasterMaterial` — fallback colors, matte/texture adaptation, and the built-in
-  Lambertian evaluator.
+- ✅ `RasterMaterial` — fallback colors, matte/texture adaptation, and the
+  built-in Lambertian evaluator.
 - `RasterPass` — pass buffers, tile/full-buffer views, depth/stencil policies,
   fragment policies, and depth-only pass support.
 - `RasterMSAA` — sample patterns, sample offsets, scratch storage, accumulation,

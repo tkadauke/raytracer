@@ -1,5 +1,6 @@
 #include "engine/raster/Rasterizer.h"
 
+#include "RasterMaterialEvaluator.h"
 #include "RasterPipelineTypes.h"
 #include "RasterShadowMaps.h"
 #include "RasterTriangleEmitter.h"
@@ -93,8 +94,9 @@ namespace {
   using engine::raster::detail::DirectionalShadowCascade;
   using engine::raster::detail::DirectionalShadowMap;
   using engine::raster::detail::fullBufferView;
+  using engine::raster::detail::InterpolatedFragment;
+  using engine::raster::detail::MaterialEvaluator;
   using engine::raster::detail::RasterFullBufferView;
-  using engine::raster::detail::RasterMaterial;
   using engine::raster::detail::RasterTileBufferView;
   using engine::raster::detail::RasterTriangle;
   using engine::raster::detail::RasterTriangleEmitter;
@@ -361,82 +363,6 @@ namespace {
   // The anonymous namespace is the raster pipeline vocabulary:
   // transient vertices, policy objects, and hot-path template helpers.
   // None of these types are part of the engine API.
-
-  // Ambient coefficient — same role as MatteMaterial's
-  // `ambientCoefficient`. Multiplies the scene's ambient term so
-  // the unlit side of an object is visible at its full ambient
-  // contribution rather than darkened.
-  constexpr double kAmbientCoefficient = 1.0;
-
-  // Fragment payload after barycentric interpolation. Constructing it
-  // is the handoff from coverage math to shading/depth tests.
-  struct InterpolatedFragment {
-    InterpolatedFragment(const RasterVertex& v0, const RasterVertex& v1, const RasterVertex& v2,
-                         double w0b, double w1b, double w2b) {
-      // Projective interpolation uses homogeneous clip.w, not
-      // blindly camera-space depth. For pinhole projection w is the
-      // eye-relative depth, so this is the usual 1/z correction. For
-      // orthographic projection w is 1, so the same formula collapses
-      // to ordinary linear interpolation. Shadow-map passes rely on
-      // that second case because the light camera is orthographic.
-      const double wp0 = w0b * v0.invW;
-      const double wp1 = w1b * v1.invW;
-      const double wp2 = w2b * v2.invW;
-      const double correction = 1.0 / (wp0 + wp1 + wp2);
-
-      depth = (w0b * v0.depthOverW + w1b * v1.depthOverW + w2b * v2.depthOverW) * correction;
-      worldPos = (v0.point * wp0 + v1.point * wp1 + v2.point * wp2) * correction;
-      normal = (v0.normal * wp0 + v1.normal * wp1 + v2.normal * wp2) * correction;
-      uv = (v0.uv * wp0 + v1.uv * wp1 + v2.uv * wp2) * correction;
-    }
-
-    double depth;
-    Vector3d worldPos;
-    Vector3d normal;
-    Vector2d uv;
-  };
-
-  // The default fragment path is intentionally modest: material
-  // albedo plus direct Lambertian lights. More advanced visibility
-  // effects belong to later render passes or to the ray/path tracers.
-  class MaterialEvaluator {
-  public:
-    explicit MaterialEvaluator(const render::Scene* scene, const ShadowMaps* shadowMaps)
-        : m_scene(scene),
-          m_shadowMaps(shadowMaps) {
-    }
-
-    Colord shade(const RasterTriangle& triangle, const InterpolatedFragment& fragment) const {
-      return shade(triangle.rasterMaterial, triangle.primitive, fragment.worldPos, fragment.normal,
-                   fragment.uv);
-    }
-
-    Colord shade(const RasterMaterial& rasterMaterial, const render::Primitive* primitive,
-                 const Vector3d& worldPos, const Vector3d& normal, const Vector2d& uv) const {
-      const Vector3d n = normal.normalized();
-      const Colord albedo = rasterMaterial.albedo(primitive, worldPos, n, uv);
-
-      // Lambertian shading. Raster shadow maps, when enabled, only
-      // mask direct diffuse light. Ambient remains visible because
-      // it models light not explained by the direct-light pass.
-      Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
-      for (const auto& light : m_scene->lights()) {
-        const Vector3d lightDir = light->direction(worldPos);
-        const double nDotL = std::max(0.0, n * lightDir);
-        if (nDotL > 0.0) {
-          const double visibility =
-            m_shadowMaps ? m_shadowMaps->visibility(light.get(), worldPos) : 1.0;
-          if (visibility > 0.0)
-            shaded += albedo * light->radiance() * nDotL * visibility;
-        }
-      }
-      return shaded;
-    }
-
-  private:
-    const render::Scene* m_scene;
-    const ShadowMaps* m_shadowMaps;
-  };
 
   // Small value objects capture fixed-function state at pass setup
   // time. The inner fragment loop then receives concrete policy
