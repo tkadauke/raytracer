@@ -73,20 +73,23 @@ coverage paths such as tiled dense-sphere and 4x/8x MSAA improved.
 
 ### 3. Templated triangle emitter
 
-Status: partially done. `RasterTriangleEmitter` now owns the shared scene walk,
+Status: done. `RasterTriangleEmitter` now owns the shared scene walk,
 per-leaf tessellation, projection, homogeneous clipping, culling, optional
-vertex-shader adaptation, and face-fan emission. `RasterTriangleSet` owns the
-emitted triangles plus their tile bins, and both single-tile and tiled paths draw
-through the same raster loop.
+vertex-shader adaptation, and face-fan emission. Ordinary 1x single-tile
+previews stream emitted triangles directly into the full-frame pass buffers
+through concrete depth/stencil/fragment policy types, so they skip
+`RasterTriangleSet` materialization and tile binning. Tiled rendering and MSAA
+still retain a `RasterTriangleSet` because they reuse projected/clipped
+triangles across tile ownership or multiple sample offsets.
 
-Remaining work:
+Measured on May 22 2026 with `rendercli --repeat`; output PNGs stayed
+byte-identical.
 
-- Add an immediate default raster sink if measurement shows that materializing
-  and binning a `RasterTriangleSet` is still too expensive for ordinary 1x
-  single-tile previews.
-- Keep the sink type compile-time visible so the default path does not pay for
-  virtual dispatch or `std::function` calls.
-- Re-measure before touching the remaining fragment/material path.
+| Scene | Runs | Before median | After median |
+| --- | ---: | ---: | ---: |
+| `rasterizer_baseline_materials.json` 640x480 LOD 3, 1x | 10 | 18.760 ms | 16.829 ms |
+| `rasterizer_baseline_offscreen_floor.json` 1920x1080 LOD 0, 1x | 10 | 104.814 ms | 100.461 ms |
+| `rasterizer_baseline_dense_sphere.json` 640x480 LOD 8, 1x | 5 | 4194.552 ms | 1841.772 ms |
 
 ### 4. Fragment/depth/stencil policies
 

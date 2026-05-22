@@ -273,12 +273,17 @@ for each leaf primitive in mesh:
                     write color and depth
 ```
 
-Two important details. First, the rasterizer **walks leaf
+Three important details. First, the rasterizer **walks leaf
 primitives directly** rather than tessellating the entire
 scene into one mega-mesh. The motivation is per-primitive
 material lookup: each leaf carries its own material, and
 collapsing everything into one mesh would lose that
-information. Second, the inner loops are written for
+information. Second, the default 1x single-tile path streams
+those projected and clipped triangles directly into the pass
+buffers. The retained `RasterTriangleSet` appears only when
+the renderer needs reuse: tiled rendering bins triangles by
+tile, and MSAA replays the same projected triangles across
+multiple sample offsets. Third, the inner loops are written for
 straight-line CPU performance — the `core::rasterizeTriangle`
 inline expansion gets the per-pixel callback inlined into the
 prepared-triangle inner loop, so the entire `rasterize +

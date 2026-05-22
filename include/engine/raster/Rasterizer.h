@@ -250,15 +250,18 @@ namespace engine::raster {
   * `EquirectangularCamera`, `ThinLensCamera`, `TiltShiftCamera`)
   * silently produce empty / degenerate renders.
   *
-  * Threading: the default single-tile path streams triangles on the
-  * calling thread. Setting `setQueueSize(queue)` with `queue > 1`
-  * enables a tiled `QThreadPool` path: projected/clipped triangles
-  * are binned by tile, and each tile owns a disjoint pixel rectangle,
-  * so color and Z-buffer writes do not need locks. The tiled path
-  * is correctness-tested against the single-tile output but is
-  * intentionally opt-in: current scenes do not have enough per-tile
-  * shading cost to repay the binning + task overhead, so the streaming
-  * single-tile path is the faster default. See
+  * Threading: the default 1x single-tile path streams triangles
+  * directly into the full-frame pass buffers on the calling thread.
+  * MSAA and tiled rendering retain a prepared triangle set because
+  * they need to reuse the same projected/clipped triangles across
+  * sample offsets or tile ownership. Setting `setQueueSize(queue)`
+  * with `queue > 1` enables a tiled `QThreadPool` path: projected /
+  * clipped triangles are binned by tile, and each tile owns a
+  * disjoint pixel rectangle, so color and Z-buffer writes do not
+  * need locks. The tiled path is correctness-tested against the
+  * single-tile output but is intentionally opt-in: current performance
+  * is scene-dependent, and dense tessellation can still lose enough to
+  * make the streaming single-tile path the predictable default. See
   * `docs/plans/rasterizer.md` Task 10 for the latest measurement
   * conclusion.
   *

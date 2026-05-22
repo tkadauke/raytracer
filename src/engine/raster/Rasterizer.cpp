@@ -72,10 +72,10 @@ using namespace engine::raster;
 //     per pass into concrete policy objects, so the per-pixel loop can
 //     inline pass/fail/write/shade behavior.
 //
-// Example path for a normal 1x render:
+// Example path for a normal 1x single-tile render:
 //   render -> Private::renderFrame -> RasterTriangleEmitter
-//   -> RasterTriangleSet tile bins -> Private::renderTriangleSetPass
-//   -> withPreparedTrianglePolicies -> rasterizeTriangleSetWithPolicies.
+//   -> Private::renderTriangleStreamPass -> withPreparedTrianglePolicies
+//   -> rasterizePreparedTriangleWithPolicies.
 //
 // Example path for queued 4x MSAA:
 //   renderFrame builds the same triangle set once, then renderMSAAFrame
@@ -219,6 +219,12 @@ struct Rasterizer::Private {
                              const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
                              const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled,
                              Buffer<Colord>& buffer, const Vector2d& sampleOffset);
+  void renderTriangleStreamPass(const Rasterizer& rasterizer,
+                                const std::shared_ptr<render::Scene>& scene,
+                                const RasterTriangleEmitter& triangleEmitter,
+                                const render::TilePlan& tilePlan, const ShadowMaps& shadowMaps,
+                                const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+                                const Vector2d& sampleOffset);
 
   ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
@@ -1587,10 +1593,45 @@ void Rasterizer::Private::renderTriangleSetPass(
     });
 }
 
+void Rasterizer::Private::renderTriangleStreamPass(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan,
+  const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+  const Vector2d& sampleOffset) {
+  // The ordinary 1x single-tile path does not need a retained triangle
+  // batch or tile bins. Freeze render state once, then draw each emitted
+  // triangle immediately into the full-frame pass buffers.
+  PassBuffers passBuffers(rasterizer, tilePlan, buffer);
+  auto colorView = fullBufferView(passBuffers.color());
+  auto depthView = fullBufferView(passBuffers.depth());
+  RasterFullBufferView<std::uint8_t> stencilView;
+  if (passBuffers.stencil()) {
+    stencilView = fullBufferView(*passBuffers.stencil());
+  }
+
+  const Recti clipRect = tilePlan.fullRect();
+  withPreparedTrianglePolicies(
+    scene.get(), rasterizer, shadowMaps, depthView, stencilView,
+    [&](auto stencil, auto depth, auto fragmentPolicy) {
+      triangleEmitter.forEachTriangle([&](const RasterTriangle& triangle) {
+        if (cancelled.load())
+          return;
+        rasterizePreparedTriangleWithPolicies(triangle, clipRect, colorView, sampleOffset, stencil,
+                                              depth, fragmentPolicy);
+      });
+    });
+}
+
 void Rasterizer::Private::renderSingleSampleFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const RasterTriangleEmitter& triangleEmitter,
   const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  if (tilePlan.isSingleTile()) {
+    renderTriangleStreamPass(rasterizer, scene, triangleEmitter, tilePlan, shadowMaps, cancelled,
+                             buffer, Vector2d(0.0, 0.0));
+    return;
+  }
+
   const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
