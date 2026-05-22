@@ -25,7 +25,7 @@ let those workflows migrate too.
 
 | Old location | Status | Notes |
 |---|---|---|
-| `.github/workflows/ci.yml` | Replaced (partially) by `.syrus.yml` | Only `build-test` + `textbook` graders survived the migration — see "What lives in Syrus" below. The sanitize/fuzz/coverage/lint/docker/sbom jobs are awaiting Syrus's post-grade primitive. |
+| `.github/workflows/ci.yml` | Replaced (partially) by `.syrus.yml` | `build-test`, `benchmark-build`, and `textbook` graders run in Syrus — see "What lives in Syrus" below. The sanitize/fuzz/coverage/lint/docker/sbom jobs are awaiting Syrus's post-grade primitive. |
 | `.github/workflows/codeql.yml` | Parked | CodeQL uploads SARIF to GitHub's Security tab, which is a GitHub-only sink. No Syrus equivalent. |
 | `.github/workflows/docs.yml` | Parked | Doxygen + textbook publish to GitHub Pages. Pages deploy is a GitHub-only primitive. |
 | `.github/workflows/mutation.yml` | Parked | Monthly `mull-runner` against the math module. Cron-triggered; Syrus has no cron equivalent. |
@@ -34,10 +34,11 @@ let those workflows migrate too.
 
 ## What lives in Syrus today
 
-Two graders run in the implement → grade iteration loop:
+Three graders run in the implement → grade iteration loop:
 
-1. **`build-test`** — `cmake --preset release && cmake --build --preset release --parallel && xvfb-run ctest --preset release --parallel $(nproc)`. Catches compile and correctness regressions in one pass. Single compiler (clang-18); incremental rebuilds across iterations.
-2. **`textbook`** — `rake docs:textbook:check && rake docs:textbook:source-map && git diff --exit-code -- docs/markdown/appendix/c-source-map.md`. Catches markdown drift and stale generated source-map appendix.
+1. **`build-test`** — `cmake --preset release && cmake --build --preset release --parallel && QT_QPA_PLATFORM=offscreen ctest --preset release --parallel $(nproc) --output-on-failure`. Catches compile and correctness regressions in one pass. Single compiler (g++-12); incremental rebuilds across iterations.
+2. **`benchmark-build`** — `cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks --parallel && ./build/benchmark/benchmarks/benchmarks --benchmark_list_tests=true`. Catches compile/link errors and benchmark registration drift for sources excluded from the default release build, without running timing-sensitive measurements.
+3. **`textbook`** — `rake docs:textbook:check && rake docs:textbook:source-map && git diff --exit-code -- docs/markdown/appendix/c-source-map.md`. Catches markdown drift and stale generated source-map appendix.
 
 See `.syrus.yml` at the repo root for the full configuration.
 

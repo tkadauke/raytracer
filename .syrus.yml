@@ -11,10 +11,12 @@
 #     xvfb, build-essential (g++-12), and Ruby + rake via mise. The
 #     worker runs as uid 1000 with no sudo capability, so per-iteration
 #     apt-get is not an option even if it were fast.
-#   - Single combined "build-test" grader so the agent gets one signal
-#     covering both compile and correctness regressions. Per-iteration
-#     incremental rebuilds are cheap because the workspace persists
-#     across iterations.
+#   - The release build/test path stays combined so the agent gets one
+#     signal covering both compile and correctness regressions. Benchmark
+#     sources get their own compile-only gate because they are off by
+#     default in release builds and can otherwise rot unnoticed.
+#     Per-iteration incremental rebuilds are cheap because the workspace
+#     persists across iterations.
 #   - Only fast, broad-coverage gates live in the loop. Sanitize, fuzz,
 #     coverage, and lint are not run here — they would multiply the
 #     agent's wall time with no per-iteration value. When Syrus grows a
@@ -36,6 +38,18 @@ grade:
         cmake --build --preset release --parallel && \
         QT_QPA_PLATFORM=offscreen ctest --preset release --parallel $(nproc) --output-on-failure
       timeout_minutes: 20
+
+    - name: benchmark-build
+      # Compile-only benchmark gate. Full benchmark timing runs are too
+      # slow and noisy for the implement -> grade loop, but building the
+      # benchmark preset catches compile/link errors in sources that are
+      # not part of the default release build. The list-tests smoke keeps
+      # registration/main wiring honest without measuring performance.
+      run: |
+        cmake --preset benchmark && \
+        cmake --build --preset benchmark --target benchmarks --parallel && \
+        ./build/benchmark/benchmarks/benchmarks --benchmark_list_tests=true >/dev/null
+      timeout_minutes: 10
 
     - name: textbook
       # Markdown drift check + freshness of the generated source-map
