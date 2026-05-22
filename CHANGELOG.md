@@ -9,6 +9,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ## Unreleased
 
+### Added
+
+- **Rasterizer PCSS shadow filtering.** Directional-light shadow maps now support an opt-in `Rasterizer::ShadowFilterMode::PCSS` mode that searches the configured shadow-filter kernel for blockers, estimates a receiver-local penumbra radius from blocker depth, and then runs PCF with that clamped radius. Existing PCF behavior remains the default. The mode is exposed through `rendercli --shadow_filter pcf|pcss`, the GeneratedRayTracer render settings widget, functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section; cascaded shadow maps remain the next shadow-map follow-up. — GPT-5
+
 ### Fixed
 
 - **Benchmark preset builds no longer fail in `BVHPacketBenchmark`.** Packet benchmark ray groups now initialize their non-default-constructible `Rayd` arrays explicitly, and packet results are passed to Google Benchmark's non-deprecated `DoNotOptimize` overload. — GPT-5

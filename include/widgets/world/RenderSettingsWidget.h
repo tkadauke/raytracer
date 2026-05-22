@@ -27,6 +27,7 @@ public:
   int shadowMapSize() const;
   double shadowBias() const;
   int shadowFilterRadius() const;
+  QString shadowFilterMode() const;
   RenderWidget::DisplayMode displayMode() const;
 
   bool showProgressIndicators() const;

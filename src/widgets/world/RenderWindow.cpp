@@ -121,6 +121,10 @@ void RenderWindow::render() {
     p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
     p->rasterizer->setShadowBias(p->settingsWidget->shadowBias());
     p->rasterizer->setShadowFilterRadius(p->settingsWidget->shadowFilterRadius());
+    p->rasterizer->setShadowFilterMode(
+      p->settingsWidget->shadowFilterMode() == "PCSS"
+        ? engine::raster::Rasterizer::ShadowFilterMode::PCSS
+        : engine::raster::Rasterizer::ShadowFilterMode::PCF);
     p->rasterizer->setMaximumThreads(p->settingsWidget->renderThreads());
     engine = p->rasterizer;
   } else {

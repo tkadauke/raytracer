@@ -267,6 +267,13 @@ Three knobs control quality versus cost:
   soft penumbra around hard shadow edges. Radius 0 is the
   exact nearest-texel comparison; radius 1 uses a 3×3 kernel,
   radius 4 a 9×9 kernel.
+- **Filter mode** — fixed PCF or blocker-search
+  [PCSS](../appendix/a-glossary.md#p). PCSS first searches the
+  configured radius for blockers, estimates how far the shaded
+  receiver is behind the average blocker in light space, and then
+  runs PCF with a receiver-local radius clamped by the configured
+  maximum. The result is still a shadow-map approximation, but it
+  distinguishes near-contact hard edges from farther soft edges.
 
 The widget below visualizes the two passes side by side. The
 left panel is the world: a draggable caster, a draggable

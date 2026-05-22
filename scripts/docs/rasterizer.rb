@@ -177,6 +177,22 @@ property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 128, shado
   rasterizer_shadow_scene
 end
 
+class_doc(engine: "raster", width: 320, height: 240, shadow_maps: true,
+          shadow_map_size: 128, shadow_bias: 0.25, shadow_filter_radius: 4,
+          shadow_filter: "pcf") do
+  name "rasterizer_shadow_filter_mode_pcf"
+
+  rasterizer_shadow_scene
+end
+
+class_doc(engine: "raster", width: 320, height: 240, shadow_maps: true,
+          shadow_map_size: 128, shadow_bias: 0.25, shadow_filter_radius: 4,
+          shadow_filter: "pcss") do
+  name "rasterizer_shadow_filter_mode_pcss"
+
+  rasterizer_shadow_scene
+end
+
 class_doc(engine: "raster", width: 320, height: 180, msaa: 4) do
   name "rasterizer_msaa_4x"
 

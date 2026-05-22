@@ -468,7 +468,7 @@
       <item row="6" column="0">
        <widget class="QLabel" name="label_rasterShadowFilterRadius">
         <property name="text">
-         <string>PCF radius</string>
+         <string>Filter radius</string>
         </property>
        </widget>
       </item>
@@ -486,6 +486,30 @@
         <property name="value">
          <number>0</number>
         </property>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="label_rasterShadowFilterMode">
+        <property name="text">
+         <string>Filter mode</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="QComboBox" name="rasterShadowFilterMode">
+        <property name="toolTip">
+         <string>PCF uses one fixed kernel; PCSS searches blockers and grows the kernel with receiver distance.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>PCF</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>PCSS</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>

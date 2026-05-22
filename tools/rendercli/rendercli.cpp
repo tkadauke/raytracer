@@ -105,6 +105,7 @@ private:
   int m_rasterShadowMapSize;
   double m_rasterShadowBias;
   int m_rasterShadowFilterRadius;
+  QString m_rasterShadowFilterMode;
   int m_repeat;
   bool m_timing;
 };
@@ -129,6 +130,7 @@ Renderer::Renderer()
       m_rasterShadowMapSize(256),
       m_rasterShadowBias(1e-3),
       m_rasterShadowFilterRadius(0),
+      m_rasterShadowFilterMode("pcf"),
       m_repeat(1),
       m_timing(false) {
   parser.setApplicationDescription(
@@ -186,6 +188,9 @@ void Renderer::render() const {
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowBias(m_rasterShadowBias);
     raster->setShadowFilterRadius(m_rasterShadowFilterRadius);
+    if (m_rasterShadowFilterMode == "pcss") {
+      raster->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+    }
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
@@ -271,7 +276,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
-     {"shadow_filter_radius", "Rasterizer PCF shadow filter radius", "radius"},
+     {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
+     {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
      {"repeat", "Render the loaded scene N times and print render-only timing statistics",
       "runs"}});
@@ -430,6 +436,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Shadow filter radius must be a non-negative integer";
       return CommandLineError;
     }
+  }
+
+  if (parser.isSet("shadow_filter")) {
+    const QString filterMode = parser.value("shadow_filter").toLower();
+    if (filterMode != "pcf" && filterMode != "pcss") {
+      *errorMessage = "Shadow filter must be 'pcf' or 'pcss'";
+      return CommandLineError;
+    }
+    m_rasterShadowFilterMode = filterMode;
   }
 
   if (parser.isSet("timing")) {

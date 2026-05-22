@@ -215,6 +215,11 @@ by editing this file.
   kernel around the projected light-space point, producing a
   soft penumbra.
   [Chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
+- **PCSS** — Percentage-Closer Soft Shadows. A shadow-map
+  technique that first searches for blockers, estimates penumbra
+  width from blocker-to-receiver depth, then applies PCF with that
+  adaptive radius.
+  [Chapter 9 §9.7](../02-ray-rendering/09-lights-and-shading.md#9-7-shadow-maps-for-the-rasterizer).
 - **Peter Panning** — the visual artifact where a shadow
   detaches from its caster, caused by an over-aggressive
   shadow-map bias.

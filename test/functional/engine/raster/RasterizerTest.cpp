@@ -40,8 +40,16 @@ namespace {
       m_shadowFilterRadius = radius;
     }
 
+    void setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode mode) {
+      m_shadowFilterMode = mode;
+    }
+
     int shadowFilterRadius() const {
       return m_shadowFilterRadius;
+    }
+
+    engine::raster::Rasterizer::ShadowFilterMode shadowFilterMode() const {
+      return m_shadowFilterMode;
     }
 
     void renderColorSnapshot(bool shadowMapsEnabled, Buffer<Colord>& result) {
@@ -56,6 +64,7 @@ namespace {
       rasterizer->setShadowMapSize(m_shadowMapSize);
       rasterizer->setShadowBias(m_shadowBias);
       rasterizer->setShadowFilterRadius(m_shadowFilterRadius);
+      rasterizer->setShadowFilterMode(m_shadowFilterMode);
       return rasterizer;
     }
 
@@ -63,6 +72,8 @@ namespace {
     int m_shadowMapSize{256};
     double m_shadowBias{0.1};
     int m_shadowFilterRadius{0};
+    engine::raster::Rasterizer::ShadowFilterMode m_shadowFilterMode{
+      engine::raster::Rasterizer::ShadowFilterMode::PCF};
   };
 
   std::shared_ptr<MatteMaterial> matte(const Colord& color) {
@@ -118,6 +129,17 @@ namespace {
     }
     return count;
   }
+
+  int countPixelsDifferent(const Buffer<Colord>& lhs, const Buffer<Colord>& rhs, double threshold) {
+    int count = 0;
+    for (int y = 0; y < lhs.height(); ++y) {
+      for (int x = 0; x < lhs.width(); ++x) {
+        if (std::abs(lhs[y][x].r() - rhs[y][x].r()) > threshold)
+          ++count;
+      }
+    }
+    return count;
+  }
 }
 
 GIVEN(EngineFeatureTest, "a rasterizer directional shadow scene") {
@@ -163,6 +185,12 @@ GIVEN(EngineFeatureTest, "a rasterizer shadow filter radius of ([0-9]+)") {
   }
 }
 
+GIVEN(EngineFeatureTest, "a rasterizer PCSS shadow filter") {
+  if (auto* rasterizer = rasterizerTest(test)) {
+    rasterizer->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+  }
+}
+
 WHEN(EngineFeatureTest, "i look at the rasterizer shadow receiver") {
   test->setCamera(
     std::make_shared<PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.5)));
@@ -204,6 +232,30 @@ THEN(EngineFeatureTest, "the rasterizer shadow edge is percentage closer filtere
   EXPECT_GT(countPixelsDarkenedByFiltering(hard, filtered), 0);
 }
 
+THEN(EngineFeatureTest, "the rasterizer shadow edge uses blocker-search softening") {
+  auto* rasterizer = rasterizerTest(test);
+  ASSERT_NE(nullptr, rasterizer);
+
+  Buffer<Colord> hard(test->buffer().width(), test->buffer().height());
+  Buffer<Colord> pcf(test->buffer().width(), test->buffer().height());
+  Buffer<Colord> pcss(test->buffer().width(), test->buffer().height());
+  const int filterRadius = rasterizer->shadowFilterRadius();
+  ASSERT_GT(filterRadius, 0);
+
+  rasterizer->setShadowFilterRadius(0);
+  rasterizer->renderColorSnapshot(true, hard);
+
+  rasterizer->setShadowFilterRadius(filterRadius);
+  rasterizer->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCF);
+  rasterizer->renderColorSnapshot(true, pcf);
+
+  rasterizer->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+  rasterizer->renderColorSnapshot(true, pcss);
+
+  EXPECT_GT(countPixelsDifferent(hard, pcss, 0.03), 0);
+  EXPECT_GT(countPixelsDifferent(pcf, pcss, 0.03), 0);
+}
+
 namespace RasterizerFunctionalTest {
   struct RasterizerTest : public RasterizerFeatureTest {};
 
@@ -224,6 +276,17 @@ namespace RasterizerFunctionalTest {
     given("a rasterizer shadow filter radius of 2");
     when("i look at the rasterizer shadow receiver");
     then("the rasterizer shadow edge is percentage closer filtered");
+  }
+
+  TEST_F(RasterizerTest, DirectionalShadowMapsSupportPCSSFiltering) {
+    given("a rasterizer directional shadow scene");
+    given("a rasterizer lod of 3");
+    given("a rasterizer shadow map size of 64");
+    given("a rasterizer shadow bias of 0.1");
+    given("a rasterizer shadow filter radius of 4");
+    given("a rasterizer PCSS shadow filter");
+    when("i look at the rasterizer shadow receiver");
+    then("the rasterizer shadow edge uses blocker-search softening");
   }
 
 }

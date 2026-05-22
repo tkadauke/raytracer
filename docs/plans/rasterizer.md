@@ -65,7 +65,10 @@
      on `Rasterizer`, `rendercli`, tests, and rendered docs.
    - ✅ Added GeneratedRayTracer render-dialog controls for shadow-map enable,
      resolution, bias, and PCF radius.
-   - Next add PCSS and cascades for comparison with raytraced shadow rays.
+   - ✅ Added opt-in PCSS blocker-search filtering, exposed on `Rasterizer`,
+     `rendercli`, GeneratedRayTracer controls, tests, API docs, and rendered
+     docs.
+   - Next add cascaded shadow maps for comparison with raytraced shadow rays.
 
 8. ✅ **GeneratedRaytracer / RenderWidget front-back buffers**
    - Added a render-thread back buffer and UI-thread front `QImage`.

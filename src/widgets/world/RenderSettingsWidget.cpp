@@ -108,6 +108,10 @@ int RenderSettingsWidget::shadowFilterRadius() const {
   return p->ui.rasterShadowFilterRadius->value();
 }
 
+QString RenderSettingsWidget::shadowFilterMode() const {
+  return p->ui.rasterShadowFilterMode->currentText();
+}
+
 RenderWidget::DisplayMode RenderSettingsWidget::displayMode() const {
   const QString mode = p->ui.displayUpdateMode->currentText();
   if (mode == "Completed tiles")
@@ -150,6 +154,8 @@ void RenderSettingsWidget::updateEngineControls() {
   p->ui.rasterShadowBias->setVisible(showShadowDetails);
   p->ui.label_rasterShadowFilterRadius->setVisible(showShadowDetails);
   p->ui.rasterShadowFilterRadius->setVisible(showShadowDetails);
+  p->ui.label_rasterShadowFilterMode->setVisible(showShadowDetails);
+  p->ui.rasterShadowFilterMode->setVisible(showShadowDetails);
 }
 
 bool RenderSettingsWidget::showProgressIndicators() const {
@@ -172,6 +178,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.rasterShadowMapSize->setEnabled(!busy);
   p->ui.rasterShadowBias->setEnabled(!busy);
   p->ui.rasterShadowFilterRadius->setEnabled(!busy);
+  p->ui.rasterShadowFilterMode->setEnabled(!busy);
   p->ui.displayUpdateMode->setEnabled(!busy);
   p->ui.showProgressIndicators->setEnabled(!busy);
 

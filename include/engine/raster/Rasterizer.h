@@ -207,6 +207,16 @@ namespace engine::raster {
   * <td>@image html rasterizer_shadow_filter_radius_4.png "radius=4"</td>
   * </tr></table>
   *
+  * PCSS keeps the same maximum radius but makes the per-fragment
+  * kernel adaptive: it first searches for blockers, estimates how far
+  * the receiver is behind those blockers in light space, then grows a
+  * PCF kernel up to the configured radius.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_filter_mode_pcf.png "fixed PCF"</td>
+  * <td>@image html rasterizer_shadow_filter_mode_pcss.png "blocker-search PCSS"</td>
+  * </tr></table>
+  *
   * The interactive widget below visualizes the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
   * the rasterizer runs for every triangle. Drag the three vertex
@@ -310,6 +320,11 @@ public:
   enum class PostProcessAA {
     None,
     FXAA
+  };
+
+  enum class ShadowFilterMode {
+    PCF,
+    PCSS
   };
 
   struct VertexInput {
@@ -435,8 +450,8 @@ public:
     */
   inline void setShadowBias(double bias) { m_shadowBias = std::max(0.0, bias); }
 
-  /// Returns the PCF radius in shadow-map texels. Radius 0 is a hard
-  /// nearest-texel shadow comparison; radius 1 is a 3x3 kernel, etc.
+  /// Returns the maximum filter radius in shadow-map texels. Radius 0 is a
+  /// hard nearest-texel shadow comparison; radius 1 is a 3x3 kernel, etc.
   inline int shadowFilterRadius() const { return m_shadowFilterRadius; }
 
   /**
@@ -454,6 +469,23 @@ public:
     * </tr></table>
     */
   inline void setShadowFilterRadius(int radius) { m_shadowFilterRadius = std::max(0, radius); }
+
+  /// Returns the active shadow-map filter. PCF uses the configured
+  /// radius directly; PCSS searches blockers first and derives a
+  /// receiver-local penumbra radius, clamped by `shadowFilterRadius()`.
+  inline ShadowFilterMode shadowFilterMode() const { return m_shadowFilterMode; }
+
+  /**
+    * Sets the shadow-map filter mode. PCF keeps one fixed percentage-closer
+    * kernel. PCSS performs a blocker search over the configured radius, then
+    * uses a smaller or larger PCF kernel based on receiver-vs-blocker depth.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_filter_mode_pcf.png "PCF"</td>
+    * <td>@image html rasterizer_shadow_filter_mode_pcss.png "PCSS"</td>
+    * </tr></table>
+    */
+  inline void setShadowFilterMode(ShadowFilterMode mode) { m_shadowFilterMode = mode; }
 
   /// Face-culling mode used after near-plane clipping and before
   /// triangle rasterization. `Both` keeps the historical two-sided
@@ -539,6 +571,7 @@ private:
   int m_shadowMapSize{256};
   double m_shadowBias{1e-3};
   int m_shadowFilterRadius{0};
+  ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
   CullMode m_cullMode{CullMode::Both};
   DepthFunc m_depthFunc{DepthFunc::Less};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};

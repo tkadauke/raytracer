@@ -265,6 +265,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowBias(m_shadowBias);
   result->setShadowFilterRadius(m_shadowFilterRadius);
+  result->setShadowFilterMode(m_shadowFilterMode);
   result->setCullMode(m_cullMode);
   result->setDepthFunc(m_depthFunc);
   result->setDepthClearValue(m_depthClearValue);
@@ -843,12 +844,14 @@ namespace {
   public:
     DirectionalShadowMap(const render::Light* light,
                          std::shared_ptr<DirectionalShadowCamera> camera,
-                         std::unique_ptr<Buffer<double>> depthBuffer, double bias, int filterRadius)
+                         std::unique_ptr<Buffer<double>> depthBuffer, double bias,
+                         int filterRadius, Rasterizer::ShadowFilterMode filterMode)
         : m_light(light),
           m_camera(std::move(camera)),
           m_depthBuffer(std::move(depthBuffer)),
           m_bias(bias),
-          m_filterRadius(filterRadius) {
+          m_filterRadius(filterRadius),
+          m_filterMode(filterMode) {
     }
 
     const render::Light* light() const {
@@ -866,18 +869,63 @@ namespace {
       if (m_filterRadius == 0)
         return sampleVisibility(x, y, shadowPixel.z());
 
+      if (m_filterMode == Rasterizer::ShadowFilterMode::PCSS)
+        return pcssVisibility(x, y, shadowPixel.z());
+
+      return pcfVisibility(x, y, shadowPixel.z(), m_filterRadius);
+    }
+
+  private:
+    double pcfVisibility(int x, int y, double receiverDepth, int radius) const {
       double litSamples = 0.0;
       int samples = 0;
-      for (int dy = -m_filterRadius; dy <= m_filterRadius; ++dy) {
-        for (int dx = -m_filterRadius; dx <= m_filterRadius; ++dx) {
-          litSamples += sampleVisibility(x + dx, y + dy, shadowPixel.z());
+      for (int dy = -radius; dy <= radius; ++dy) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+          litSamples += sampleVisibility(x + dx, y + dy, receiverDepth);
           ++samples;
         }
       }
       return litSamples / static_cast<double>(samples);
     }
 
-  private:
+    double pcssVisibility(int x, int y, double receiverDepth) const {
+      double blockerDepthSum = 0.0;
+      int blockerSamples = 0;
+      for (int dy = -m_filterRadius; dy <= m_filterRadius; ++dy) {
+        for (int dx = -m_filterRadius; dx <= m_filterRadius; ++dx) {
+          const double blockerDepth = sampleBlockerDepth(x + dx, y + dy, receiverDepth);
+          if (std::isfinite(blockerDepth)) {
+            blockerDepthSum += blockerDepth;
+            ++blockerSamples;
+          }
+        }
+      }
+
+      if (blockerSamples == 0)
+        return 1.0;
+
+      const double averageBlockerDepth = blockerDepthSum / static_cast<double>(blockerSamples);
+      const int radius = pcssFilterRadius(receiverDepth, averageBlockerDepth);
+      return pcfVisibility(x, y, receiverDepth, radius);
+    }
+
+    int pcssFilterRadius(double receiverDepth, double blockerDepth) const {
+      const double gap = std::max(0.0, receiverDepth - blockerDepth - m_bias);
+      return std::clamp(static_cast<int>(std::ceil(gap)), 1, m_filterRadius);
+    }
+
+    double sampleBlockerDepth(int x, int y, double receiverDepth) const {
+      if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
+        return std::numeric_limits<double>::infinity();
+
+      const double occluderDepth = (*m_depthBuffer)[y][x];
+      if (!std::isfinite(occluderDepth))
+        return std::numeric_limits<double>::infinity();
+
+      return receiverDepth > occluderDepth + m_bias ? occluderDepth
+                                                    : std::numeric_limits<double>::infinity();
+    }
+
     double sampleVisibility(int x, int y, double receiverDepth) const {
       if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
         return 1.0;
@@ -894,6 +942,7 @@ namespace {
     std::unique_ptr<Buffer<double>> m_depthBuffer;
     double m_bias;
     int m_filterRadius;
+    Rasterizer::ShadowFilterMode m_filterMode;
   };
 
   class ShadowMaps {
@@ -1566,7 +1615,8 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
     }
 
     shadowMaps.add(DirectionalShadowMap(light.get(), shadowCamera, std::move(depthBuffer),
-                                        rasterizer.shadowBias(), rasterizer.shadowFilterRadius()));
+                                        rasterizer.shadowBias(), rasterizer.shadowFilterRadius(),
+                                        rasterizer.shadowFilterMode()));
   }
 
   return shadowMaps;
