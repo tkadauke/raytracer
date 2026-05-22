@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **`rendercli --frame` animation evaluation.** `rendercli` can now render a specific evaluated animation frame before converting the world scene to runtime render objects. Static scenes still render with `--frame`, invalid frame arguments fail during CLI parsing, and an `animation_frame_demo.json` scene plus CTest smoke cover frame-specific output. — GPT-5
 - **World scene animation timeline loading and evaluation.** Scene JSON can now carry a top-level `animation` block with fps, frame range, and id-targeted `Q_PROPERTY` tracks. `world::Timeline` and `world::AnimationTrack` preserve animation on scene save/load and can evaluate editable scenes at a frame for direct `double`, `Vector3d`, `Colord`, and step-only `bool` properties. — GPT-5
 - **Core timeline and interpolation primitives.** New Qt-free timeline/keyframe types under `core::animation` and reusable interpolation policies under `core::math::interpolation` provide validated frame timelines, typed tracks, `step`/`linear`/`smoothstep` sampling, scalar/vector/color tests, interpolation-mode parsing, API widgets, and a new textbook animation chapter for the upcoming world and `rendercli` animation work. — GPT-5
 - **Rasterizer shadow-cascade split widget.** The Rasterizer API docs and shadow-map textbook section now include an interactive cascade diagnostic that shows camera-depth split bands, per-cascade light-space map coverage, and raw-vs-texel-snapped cascade centers while panning the camera. — GPT-5

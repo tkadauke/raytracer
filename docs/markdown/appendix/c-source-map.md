@@ -13,6 +13,7 @@
 |---|---|
 | `examples/DifferenceRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 | `examples/GeneratedRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
+| `examples/GeneratedRayTracer/scenes/animation_frame_demo.json` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `examples/RefractingRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 | `examples/SceneBrowser/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 | `fuzz/` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
@@ -143,6 +144,7 @@
 | `test/helpers/ShapeClassifier.h` | [24. Shape classification](../05-image-and-vision/24-shape-classification.md) |
 | `test/helpers/Silhouette.cpp` | [23. Blob analysis and silhouettes](../05-image-and-vision/23-blob-analysis-and-silhouettes.md) |
 | `test/helpers/Silhouette.h` | [22. Image buffers and pixel formats](../05-image-and-vision/22-image-buffers-and-pixel-formats.md)<br>[23. Blob analysis and silhouettes](../05-image-and-vision/23-blob-analysis-and-silhouettes.md)<br>[24. Shape classification](../05-image-and-vision/24-shape-classification.md) |
+| `test/rendercli/FrameOptionTest.cmake` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
@@ -153,6 +155,7 @@
 | `test/unit/world/animation/TimelineTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `tools/rendercli/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
+| `tools/rendercli/rendercli.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 
 ## See also
 

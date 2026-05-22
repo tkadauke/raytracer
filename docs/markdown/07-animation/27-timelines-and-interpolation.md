@@ -158,7 +158,28 @@ applied, leaving the authoring scene unchanged. Missing targets, missing
 properties, unsupported property types, and non-step bool interpolation fail
 with explicit runtime errors.
 
-## 27.8 Exercises
+## 27.8 Rendering one frame
+
+`rendercli --frame N` loads a JSON scene, evaluates its world timeline at
+frame `N`, and then builds the runtime render scene and camera from that
+evaluated world state. The flag does not require an animation block; static
+scenes render unchanged.
+
+The checked-in demo scene
+[`animation_frame_demo.json`](../../../examples/GeneratedRayTracer/scenes/animation_frame_demo.json)
+moves one sphere across its timeline:
+
+```sh
+rendercli --engine raster --frame 1 \
+  examples/GeneratedRayTracer/scenes/animation_frame_demo.json frame_0001.png
+
+rendercli --engine raster --frame 48 \
+  examples/GeneratedRayTracer/scenes/animation_frame_demo.json frame_0048.png
+```
+
+Frame parsing is strict: `--frame` accepts integer frame numbers.
+
+## 27.9 Exercises
 
 1. Given keys `(10, 4.0)` and `(22, 10.0)`, compute the linear sampled value
    at frame 16.
@@ -188,9 +209,12 @@ with explicit runtime errors.
 - `include/world/animation/AnimationTrack.h`
 - `include/world/animation/Timeline.h`
 - `include/world/objects/Scene.h`
+- `tools/rendercli/rendercli.cpp`
+- `examples/GeneratedRayTracer/scenes/animation_frame_demo.json`
 - `test/unit/core/animation/AnimationTrackTest.cpp`
 - `test/unit/core/math/interpolation/InterpolationTest.cpp`
 - `test/unit/world/animation/AnimationTrackTest.cpp`
 - `test/unit/world/animation/TimelineTest.cpp`
 - `test/unit/world/objects/SceneTest.cpp`
+- `test/rendercli/FrameOptionTest.cmake`
 <!-- /source-anchors -->

@@ -53,6 +53,18 @@ target_link_libraries(functional_tests PRIVATE
 add_test(NAME unit_tests       COMMAND unit_tests)
 add_test(NAME functional_tests COMMAND functional_tests)
 
+if(TARGET rendercli)
+  add_test(
+    NAME rendercli_frame
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-frame
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake
+  )
+endif()
+
 # Functional tests load fixtures from the source tree at runtime.
 set_tests_properties(unit_tests functional_tests PROPERTIES
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"

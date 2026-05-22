@@ -1,0 +1,105 @@
+{
+  "id": "{00000000-0000-0000-0000-000000010000}",
+  "name": "Animation Frame Demo",
+  "ambient": [0.35, 0.35, 0.35],
+  "background": [0.08, 0.09, 0.11],
+  "type": "Scene",
+  "animation": {
+    "fps": 24,
+    "startFrame": 1,
+    "endFrame": 48,
+    "tracks": [
+      {
+        "target": "{00000000-0000-0000-0000-000000010040}",
+        "property": "position",
+        "interpolation": "smoothstep",
+        "keys": [
+          { "frame": 1, "value": [-2.0, 0.0, 0.0] },
+          { "frame": 48, "value": [2.0, 0.0, 0.0] }
+        ]
+      }
+    ]
+  },
+  "children": [
+    {
+      "id": "{00000000-0000-0000-0000-000000010001}",
+      "name": "Camera",
+      "position": [0.0, -1.5, -6.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010002}",
+      "name": "KeyLight",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 0.9,
+      "direction": [-0.35, -1.0, -0.45],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010010}",
+      "name": "FloorTexture",
+      "color": [0.55, 0.55, 0.55],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010011}",
+      "name": "SphereTexture",
+      "color": [1.0, 0.12, 0.08],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010020}",
+      "name": "FloorMaterial",
+      "diffuseTexture": "{00000000-0000-0000-0000-000000010010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010021}",
+      "name": "SphereMaterial",
+      "diffuseTexture": "{00000000-0000-0000-0000-000000010011}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010030}",
+      "name": "Floor",
+      "position": [0.0, 1.1, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{00000000-0000-0000-0000-000000010020}",
+      "size": [8.0, 0.1, 6.0],
+      "bevelRadius": 0.0,
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "{00000000-0000-0000-0000-000000010040}",
+      "name": "Animated Sphere",
+      "position": [-2.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{00000000-0000-0000-0000-000000010021}",
+      "radius": 0.65,
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

@@ -46,6 +46,19 @@ tonemap operator, and per-engine knobs ([LOD](../appendix/a-glossary.md#l) for w
 raster, [MSAA](../appendix/a-glossary.md#m) for raster, queue size and thread count for
 raytracer).
 
+If the scene has a top-level `animation` block, `--frame N`
+evaluates the world scene at frame `N` before the runtime
+render scene and active camera are built:
+
+```sh
+$ rendercli --engine raster --frame 24 \
+            examples/GeneratedRayTracer/scenes/animation_frame_demo.json \
+            frame_0024.png
+```
+
+The same flag is valid for static scenes; it simply leaves the
+loaded scene unchanged.
+
 `rendercli` is the right front end for:
 
 - **Headless rendering** — CI machines, remote servers, Docker

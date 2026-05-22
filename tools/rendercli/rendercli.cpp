@@ -26,7 +26,9 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <numeric>
+#include <stdexcept>
 #include <vector>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -109,6 +111,8 @@ private:
   QString m_rasterShadowFilterMode;
   int m_repeat;
   bool m_timing;
+  int m_frame;
+  bool m_frameSet;
 };
 
 Renderer::Renderer()
@@ -134,14 +138,20 @@ Renderer::Renderer()
       m_rasterShadowFilterRadius(0),
       m_rasterShadowFilterMode("pcf"),
       m_repeat(1),
-      m_timing(false) {
+      m_timing(false),
+      m_frame(0),
+      m_frameSet(false) {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
 }
 
 void Renderer::render() const {
-  auto scene = new Scene(nullptr);
-  scene->load(m_filename);
+  auto scene = std::make_unique<Scene>(nullptr);
+  if (!scene->load(m_filename))
+    throw std::runtime_error(QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+
+  if (m_frameSet)
+    scene->evaluateAnimationAtFrame(m_frame);
 
   auto raytracerScene = scene->toRaytracerScene();
 
@@ -283,6 +293,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
+     {"frame", "Evaluate the scene animation at the given frame before rendering", "frame"},
      {"repeat", "Render the loaded scene N times and print render-only timing statistics",
       "runs"}});
 
@@ -474,6 +485,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_timing = true;
   }
 
+  if (parser.isSet("frame")) {
+    bool ok = false;
+    m_frame = parser.value("frame").toInt(&ok);
+    if (!ok) {
+      *errorMessage = "Frame must be an integer";
+      return CommandLineError;
+    }
+    m_frameSet = true;
+  }
+
   const QStringList args = parser.positionalArguments();
 
   if (args.size() < 2) {
@@ -518,5 +539,12 @@ int main(int argc, char** argv) {
     Q_UNREACHABLE();
   }
 
-  r.render();
+  try {
+    r.render();
+  } catch (const std::exception& error) {
+    std::cerr << error.what() << '\n';
+    return 1;
+  }
+
+  return 0;
 }

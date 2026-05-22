@@ -9,9 +9,10 @@
 > `include/core/animation/`, with reusable interpolation policies under
 > `include/core/math/interpolation/`. Phase 2 world-scene JSON loading,
 > saving, and frame evaluation is implemented under `include/world/animation/`
-> and `Scene`'s top-level `animation` block handling. `rendercli` animation
-> flags are still pending. Update this file as API shape, JSON format, or
-> implementation order changes.
+> and `Scene`'s top-level `animation` block handling. Phase 3 `rendercli
+> --frame` single-frame evaluation is implemented. `rendercli --animation`
+> image sequences are still pending. Update this file as API shape, JSON
+> format, or implementation order changes.
 
 ---
 
@@ -330,11 +331,11 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 3 — `rendercli --frame`
 
-- Add `--frame N`.
-- Evaluate world scene before runtime conversion.
-- Render one frame through existing engine flags.
-- Add a fixture scene where a camera pan changes rasterizer shadow output.
-- Functional tests:
+- ✅ Add `--frame N`.
+- ✅ Evaluate world scene before runtime conversion.
+- ✅ Render one frame through existing engine flags.
+- ✅ Add a fixture scene where animation changes frame output.
+- ✅ Functional tests:
   - static scene with `--frame` still renders
   - animated transform at frame 1 vs frame N produces different pixels
   - invalid frame argument fails with a clear CLI error
