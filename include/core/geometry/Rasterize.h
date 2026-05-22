@@ -37,6 +37,9 @@ namespace core {
       RasterFixed stepYW0 = 0;
       RasterFixed stepYW1 = 0;
       RasterFixed stepYW2 = 0;
+      bool includeW0 = false;
+      bool includeW1 = false;
+      bool includeW2 = false;
 
       PreparedRasterTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
                              int clipTop, int clipRight, int clipBottom, double sampleOffsetX,
@@ -86,14 +89,42 @@ namespace core {
         stepYW1 = (X0 - X2) * kRasterSubpixelScale;
         stepYW2 = (X1 - X0) * kRasterSubpixelScale;
 
+        if (area > 0) {
+          includeW0 = isTopLeftEdge(X1, Y1, X2, Y2);
+          includeW1 = isTopLeftEdge(X2, Y2, X0, Y0);
+          includeW2 = isTopLeftEdge(X0, Y0, X1, Y1);
+        } else {
+          includeW0 = isTopLeftEdge(X2, Y2, X1, Y1);
+          includeW1 = isTopLeftEdge(X0, Y0, X2, Y2);
+          includeW2 = isTopLeftEdge(X1, Y1, X0, Y0);
+        }
+
         valid = true;
       }
 
       bool contains(RasterFixed w0, RasterFixed w1, RasterFixed w2) const {
-        return (area > 0) ? (w0 >= 0 && w1 >= 0 && w2 >= 0) : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+        return (area > 0)
+                 ? containsPositiveEdge(w0, includeW0) && containsPositiveEdge(w1, includeW1) &&
+                     containsPositiveEdge(w2, includeW2)
+                 : containsNegativeEdge(w0, includeW0) && containsNegativeEdge(w1, includeW1) &&
+                     containsNegativeEdge(w2, includeW2);
       }
 
     private:
+      static bool isTopLeftEdge(RasterFixed ax, RasterFixed ay, RasterFixed bx, RasterFixed by) {
+        const RasterFixed dx = bx - ax;
+        const RasterFixed dy = by - ay;
+        return dy < 0 || (dy == 0 && dx > 0);
+      }
+
+      static bool containsPositiveEdge(RasterFixed value, bool includeEdge) {
+        return value > 0 || (value == 0 && includeEdge);
+      }
+
+      static bool containsNegativeEdge(RasterFixed value, bool includeEdge) {
+        return value < 0 || (value == 0 && includeEdge);
+      }
+
       static RasterFixed edge(RasterFixed ax, RasterFixed ay, RasterFixed bx, RasterFixed by,
                               RasterFixed px, RasterFixed py) {
         return (ax - px) * (by - py) - (ay - py) * (bx - px);
@@ -120,10 +151,13 @@ namespace core {
   * sub-triangles formed by the sample point and each pair of
   * vertices. It then increments those edge values across each row
   * instead of recomputing them from scratch for every candidate
-  * pixel. A pixel is inside iff all three sub-area signs match the
-  * parent triangle's signed area (positive for CCW, negative for
-  * CW). The barycentric weights then fall out of the sub-areas
-  * divided by the parent area.
+  * pixel. A pixel is inside when all three sub-area signs match the
+  * parent triangle's signed area (positive for CCW, negative for CW).
+  * Samples exactly on an edge use a top-left fill rule: top or left
+  * edges are included, bottom or right edges are excluded. That keeps
+  * two triangles sharing an edge from both emitting the same pixel.
+  * The barycentric weights then fall out of the sub-areas divided by
+  * the parent area.
   *
   * Edge-function rasterization (Pineda 1988) is the modern
   * alternative to scanline rasterization: it parallelizes trivially

@@ -149,6 +149,15 @@ namespace RasterizerTest {
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
   }
 
+  static void configureScreenSpaceQuad(Rasterizer& engine) {
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      const double x = vertex.worldPosition.x() < 0.0 ? 8.0 : 24.0;
+      const double y = vertex.worldPosition.y() < 0.0 ? 8.0 : 24.0;
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, Vector3d(x, y, 1.0)};
+    });
+  }
+
   static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(
@@ -164,6 +173,17 @@ namespace RasterizerTest {
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
     scene->add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithAdjacentQuadTriangles() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    const Vector3d p00(-1.0, -1.0, 0.0);
+    const Vector3d p10(1.0, -1.0, 0.0);
+    const Vector3d p01(-1.0, 1.0, 0.0);
+    const Vector3d p11(1.0, 1.0, 0.0);
+    scene->add(std::make_shared<Triangle>(p00, p10, p01));
+    scene->add(std::make_shared<Triangle>(p10, p11, p01));
     return scene;
   }
 
@@ -491,6 +511,25 @@ namespace RasterizerTest {
     EXPECT_EQ(secondTriangleColor, buffer[32][32]);
   }
 
+  TEST(Rasterizer, SharedTriangleEdgeDoesNotDoubleApplyStencil) {
+    const Colord overlapColor(1.0, 0.0, 0.0);
+
+    Rasterizer engine(headOnCamera(), sceneWithAdjacentQuadTriangles());
+    engine.setBackgroundColor(Colord::black());
+    engine.setDepthFunc(Rasterizer::DepthFunc::Always);
+    engine.setStencilTestEnabled(true);
+    engine.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
+    engine.setStencilOps(Rasterizer::StencilOp::Replace, Rasterizer::StencilOp::Keep,
+                         Rasterizer::StencilOp::Keep);
+    configureScreenSpaceQuad(engine);
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) { return overlapColor; });
+
+    Buffer<Colord> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countPixels(buffer, overlapColor));
+  }
+
   TEST(Rasterizer, StencilEnabledBuiltInFragmentMatchesDefaultWhenAlwaysPasses) {
     Rasterizer fixedPipeline(headOnCamera(), sceneWithFrontFacingTriangle());
     Rasterizer stencilPipeline(headOnCamera(), sceneWithFrontFacingTriangle());
@@ -560,8 +599,7 @@ namespace RasterizerTest {
   }
 
   TEST(Rasterizer, OrthographicProjectionInterpolatesWorldPositionLinearly) {
-    auto cam =
-      std::make_shared<OrthographicCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
+    auto cam = std::make_shared<OrthographicCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
     Rasterizer engine(cam, sceneWithSlopedTriangle());
     engine.setFragmentShader([](const Rasterizer::FragmentInput& input) {
       return Colord(input.worldPosition.z() / 5.0, 0.0, 0.0);
@@ -743,6 +781,27 @@ namespace RasterizerTest {
 
     Buffer<Colord> expected(127, 95);
     Buffer<Colord> actual(127, 95);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, TiledRenderMatchesSingleTileRenderAcrossSharedTriangleEdge) {
+    const Colord fillColor(0.2, 0.4, 0.8);
+
+    Rasterizer singleTile(headOnCamera(), sceneWithAdjacentQuadTriangles());
+    configureScreenSpaceQuad(singleTile);
+    singleTile.setFragmentShader([&](const Rasterizer::FragmentInput&) { return fillColor; });
+
+    Rasterizer tiled(headOnCamera(), sceneWithAdjacentQuadTriangles());
+    tiled.setMaximumThreads(2);
+    tiled.setQueueSize(4);
+    configureScreenSpaceQuad(tiled);
+    tiled.setFragmentShader([&](const Rasterizer::FragmentInput&) { return fillColor; });
+
+    Buffer<Colord> expected(32, 32);
+    Buffer<Colord> actual(32, 32);
     singleTile.render(expected);
     tiled.render(actual);
 

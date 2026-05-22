@@ -83,7 +83,7 @@ class RasterizerPipeline {
   }
 
   weightsAt(p) {
-    const weights = FigureGeometry.barycentric(
+    const weights = FigureGeometry.barycentricTopLeft(
       p, this.vertices[0], this.vertices[1], this.vertices[2]);
     if (Math.abs(weights.area) <= 1e-9) return null;
     return {

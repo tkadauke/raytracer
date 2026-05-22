@@ -59,9 +59,6 @@ unit and becomes testable only through full-frame output.
 
 ### Quality and feature gaps
 
-- The edge-function coverage path needs a deliberate top-left fill rule so
-  shared triangle edges do not double-shade in stencil, selection, or diagnostic
-  passes.
 - Projected vertices are rounded to integer pixel coordinates before
   rasterization. Keeping subpixel coordinates through edge setup should reduce
   shimmer under animation and camera motion.
@@ -113,14 +110,14 @@ must continue streaming emitted triangles directly into full-frame buffers.
 
 ### 2. Fix deterministic triangle coverage
 
-Add focused tests for shared-edge rasterization:
+Status: completed. The edge-function rasterizer now uses a top-left fill rule
+for samples exactly on triangle edges, and the focused tests cover:
 
-- adjacent triangles covering a rectangle should not double-apply stencil
-  operations along the shared edge;
-- coverage should be stable between equivalent triangulations of the same quad;
-- single-tile and tiled paths should agree.
-
-Then implement a top-left fill convention in the edge-function rasterizer.
+- adjacent triangles covering a rectangle do not double-apply coverage along the
+  shared edge;
+- rasterizer stencil operations do not observe shared-edge double shading;
+- coverage is stable between equivalent triangulations of the same quad;
+- single-tile and tiled paths agree across a shared triangle edge.
 
 ### 3. Preserve subpixel screen coordinates
 

@@ -242,6 +242,8 @@ namespace engine::raster {
   * update in real time; the dashed rectangle is the bounding box
   * the rasterizer scans. Toggle between barycentric vertex color
   * and UV color to see the same weights drive arbitrary attributes.
+  * Edge samples use the same top-left fill rule as the C++ rasterizer,
+  * so adjacent triangles assign shared-edge pixels to exactly one face.
   * The production rasterizer clips triangles against the homogeneous
   * viewport before this step, then still clamps the bounding box to
   * the framebuffer as a final guard. Hover anywhere to read the live

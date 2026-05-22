@@ -99,6 +99,13 @@ two negative, or vice versa) for any $\mathbf{p}$ outside. The
 the triangle iff all three edge functions have the same sign as
 the parent triangle's signed area.
 
+Samples exactly on an edge need a tie break. This rasterizer uses
+the standard **top-left fill rule**: top or left edges include
+edge samples, while bottom or right edges exclude them. Two
+adjacent triangles sharing an edge therefore cannot both claim the
+same pixel, which matters for stencil operations, object-id
+passes, and any diagnostic pass that counts fragments.
+
 The widget shows this hands-on with three draggable triangle
 vertices, the bounding-box scan region the algorithm walks, and
 the per-pixel inside test plus barycentric weights:
@@ -144,8 +151,9 @@ The codebase's implementation precomputes the three edges'
 starting values at the bounding-box corner, plus the row and
 column step deltas, into a `PreparedRasterTriangle` struct.
 The inner pixel loop is then three adds per pixel — one per
-edge — plus the sign comparisons. The inside-test cost drops
-from ~30 ops per pixel to ~6 ops per pixel.
+edge — plus the sign comparisons and the top-left equality tests.
+The inside-test cost drops from ~30 ops per pixel to a handful of
+integer comparisons.
 
 The struct also holds the parent triangle's signed area and
 its inverse (the latter precomputed once so the per-pixel
@@ -156,8 +164,8 @@ divide). The fixed-point representation — `kRasterSubpixelScale
 overflows) is the right precision for typical scene sizes.
 
 The integer fixed-point form has a second benefit: the
-inside-test reduces to three sign comparisons, which compile to
-single CPU instructions on essentially every CPU since 1985.
+inside-test reduces to integer comparisons, including exact
+zero-on-edge checks for the top-left rule.
 
 ## 18.4 The depth test
 

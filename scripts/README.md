@@ -263,7 +263,7 @@ small DOM library in `figure.js`:
 |---|---|
 | `FigureMath` | Shared scalar helpers: `clamp`, `clamp01`, and `lerp`. Use these instead of widget-local clamp functions. |
 | `Vector(x, y)` | 2D math (`plus`, `minus`, `multiply`, `dot`, `length`, `normalized`, `safeNormalized`, `perp`, `distanceTo`, `lerp`, `rotated`). Static helpers/constants: `Vector.from`, `Vector.null`, `Vector.up`, `Vector.right`. |
-| `FigureGeometry` | Shared geometry helpers: `edge`, `barycentric`, `pointInTriangle`, and `closestPointOnSegment`. Use these for triangle coverage, interpolation weights, and segment projection instead of reimplementing them per widget. |
+| `FigureGeometry` | Shared geometry helpers: `edge`, `barycentric`, `barycentricTopLeft`, `pointInTriangle`, `pointInTriangleTopLeft`, and `closestPointOnSegment`. Use these for triangle coverage, interpolation weights, and segment projection instead of reimplementing them per widget. |
 | `Canvas(w, h)` | The SVG container. `add(element)`, `translate(vector)`, `toSVG()`. |
 | `Group()` | Sub-tree of elements with a shared transform. |
 | `Line(origin, direction, klass)` | Single line segment from origin to origin+direction. |

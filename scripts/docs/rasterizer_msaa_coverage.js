@@ -89,7 +89,7 @@ class RasterizerMSAACoverage {
   }
 
   insideTriangle(p) {
-    return FigureGeometry.pointInTriangle(
+    return FigureGeometry.pointInTriangleTopLeft(
       p, this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 

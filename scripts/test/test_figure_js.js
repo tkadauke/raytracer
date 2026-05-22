@@ -248,6 +248,8 @@ test('FigureGeometry: triangle weights and segment projection', () => {
   assert.ok(Math.abs(weights.w1 - 0.25) < 1e-12);
   assert.ok(Math.abs(weights.w2 - 0.25) < 1e-12);
   assert.equal(FigureGeometry.pointInTriangle(new Vector(4, 4), a, b, c), false);
+  assert.equal(FigureGeometry.pointInTriangleTopLeft(new Vector(0, 0), a, b, c), true);
+  assert.equal(FigureGeometry.pointInTriangleTopLeft(new Vector(2, 2), a, b, c), false);
 
   const closest = FigureGeometry.closestPointOnSegment(
     new Vector(3, 4), new Vector(0, 0), new Vector(4, 0));

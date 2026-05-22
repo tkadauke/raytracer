@@ -335,8 +335,58 @@ const FigureGeometry = {
     };
   },
 
+  topLeftEdge(a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    return dy < -1e-9 || (Math.abs(dy) <= 1e-9 && dx > 0);
+  },
+
+  barycentricTopLeft(p, a, b, c) {
+    const area = FigureGeometry.edge(a, b, c);
+    if (Math.abs(area) <= 1e-9) {
+      return { w0: 1, w1: 0, w2: 0, inside: false, area };
+    }
+
+    const w0 = FigureGeometry.edge(b, c, p);
+    const w1 = FigureGeometry.edge(c, a, p);
+    const w2 = area - w0 - w1;
+    const includes = area > 0
+      ? [
+          FigureGeometry.topLeftEdge(b, c),
+          FigureGeometry.topLeftEdge(c, a),
+          FigureGeometry.topLeftEdge(a, b),
+        ]
+      : [
+          FigureGeometry.topLeftEdge(c, b),
+          FigureGeometry.topLeftEdge(a, c),
+          FigureGeometry.topLeftEdge(b, a),
+        ];
+    const containsPositive = (value, includeEdge) =>
+      value > 1e-9 || (Math.abs(value) <= 1e-9 && includeEdge);
+    const containsNegative = (value, includeEdge) =>
+      value < -1e-9 || (Math.abs(value) <= 1e-9 && includeEdge);
+    const inside = area > 0
+      ? containsPositive(w0, includes[0]) &&
+          containsPositive(w1, includes[1]) &&
+          containsPositive(w2, includes[2])
+      : containsNegative(w0, includes[0]) &&
+          containsNegative(w1, includes[1]) &&
+          containsNegative(w2, includes[2]);
+    return {
+      w0: w0 / area,
+      w1: w1 / area,
+      w2: w2 / area,
+      inside,
+      area,
+    };
+  },
+
   pointInTriangle(p, a, b, c) {
     return FigureGeometry.barycentric(p, a, b, c).inside;
+  },
+
+  pointInTriangleTopLeft(p, a, b, c) {
+    return FigureGeometry.barycentricTopLeft(p, a, b, c).inside;
   },
 
   closestPointOnSegment(point, a, b) {

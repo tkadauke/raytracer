@@ -15,7 +15,7 @@ class RasterizerDepthStencilTriangle {
   }
 
   contains(point) {
-    return FigureGeometry.pointInTriangle(
+    return FigureGeometry.pointInTriangleTopLeft(
       point, this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 }
