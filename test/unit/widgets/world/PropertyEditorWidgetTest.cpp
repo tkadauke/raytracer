@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "widgets/world/PropertyEditorWidget.h"
+#include "widgets/world/AbstractParameterWidget.h"
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
 #include "core/math/Vector.h"
@@ -24,6 +25,15 @@ namespace PropertyEditorWidgetTest {
   static const MetaTypeRegistrar s_registrar;
 
   class PropertyEditorWidgetTest : public ::testing::GuiTest {};
+
+  AbstractParameterWidget* parameterWidget(PropertyEditorWidget& editor, const QString& name) {
+    const auto widgets = editor.findChildren<AbstractParameterWidget*>();
+    for (auto* widget : widgets) {
+      if (widget->parameterName() == name)
+        return widget;
+    }
+    return nullptr;
+  }
 
   TEST_F(PropertyEditorWidgetTest, ShouldInitializeWithRoot) {
     Scene root;
@@ -75,5 +85,21 @@ namespace PropertyEditorWidgetTest {
     // setRoot also clears the current element selection, so a subsequent
     // setElement(nullptr) is the no-op deselect case.
     editor.setElement(nullptr);
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldCreateVectorParameterWidgets) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+
+    auto* position = parameterWidget(editor, "position");
+    auto* target = parameterWidget(editor, "target");
+    ASSERT_NE(nullptr, position);
+    ASSERT_NE(nullptr, target);
+    EXPECT_TRUE(position->isEnabled());
+    EXPECT_TRUE(target->isEnabled());
   }
 }

@@ -2,6 +2,8 @@
 #include "render/RenderEngine.h"
 #include "render/cameras/Camera.h"
 
+#include <algorithm>
+#include <cmath>
 #include <QMouseEvent>
 #include <QTimer>
 
@@ -15,7 +17,8 @@ struct QtDisplay::Private {
       renderAfterCurrentFrame(false),
       xAngle(0),
       yAngle(0),
-      distance(1)
+      distance(1),
+      target(Vector3d::zero)
   {
   }
   
@@ -23,6 +26,7 @@ struct QtDisplay::Private {
   bool cancelRenderOnInteraction;
   bool renderAfterCurrentFrame;
   double xAngle, yAngle, distance;
+  Vector3d target;
   QPoint dragPosition;
 };
 
@@ -116,7 +120,9 @@ void QtDisplay::render() {
 
   p->renderAfterCurrentFrame = false;
   if (interactive()) {
+    m_engine->camera()->setTarget(p->target);
     m_engine->camera()->setPosition(
+      p->target +
       Matrix3d::rotateY(Angled::fromRadians(p->yAngle)) *
       Matrix3d::rotateX(Angled::fromRadians(p->xAngle)) *
       Vector3d(0, 0, -p->distance)
@@ -128,6 +134,14 @@ void QtDisplay::render() {
 
 void QtDisplay::setDistance(double distance) {
   p->distance = distance;
+}
+
+void QtDisplay::setInteractiveCameraPose(const Vector3d& position, const Vector3d& target) {
+  const auto offset = position - target;
+  p->distance = std::max(offset.length(), 0.000001);
+  p->target = target;
+  p->xAngle = std::asin(std::clamp(offset.y() / p->distance, -1.0, 1.0));
+  p->yAngle = std::atan2(-offset.x(), -offset.z());
 }
 
 void QtDisplay::renderAfterCurrentFrameIfRequested() {

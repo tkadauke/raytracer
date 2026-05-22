@@ -1,0 +1,126 @@
+{
+  "id": "{10000000-0000-0000-0000-000000030000}",
+  "name": "Animated Motion Blur Sweep",
+  "ambient": [0.35, 0.35, 0.35],
+  "background": [0.08, 0.09, 0.11],
+  "type": "Scene",
+  "animation": {
+    "fps": 24,
+    "startFrame": 1,
+    "endFrame": 72,
+    "tracks": [
+      {
+        "target": "{10000000-0000-0000-0000-000000030040}",
+        "property": "position",
+        "interpolation": "linear",
+        "keys": [
+          { "frame": 1, "value": [-2.0, 0.0, 0.0] },
+          { "frame": 72, "value": [1.2, 0.0, 0.0] }
+        ]
+      },
+      {
+        "target": "{10000000-0000-0000-0000-000000030040}",
+        "property": "velocity",
+        "interpolation": "smoothstep",
+        "keys": [
+          { "frame": 1, "value": [0.0, 0.0, 0.0] },
+          { "frame": 36, "value": [4.0, 0.0, 0.0] },
+          { "frame": 72, "value": [0.0, 0.0, 0.0] }
+        ]
+      },
+      {
+        "target": "{10000000-0000-0000-0000-000000030001}",
+        "property": "target",
+        "interpolation": "linear",
+        "keys": [
+          { "frame": 1, "value": [-0.8, 0.0, 0.0] },
+          { "frame": 72, "value": [0.9, 0.0, 0.0] }
+        ]
+      }
+    ]
+  },
+  "children": [
+    {
+      "id": "{10000000-0000-0000-0000-000000030001}",
+      "name": "Camera",
+      "position": [0.0, -2.0, -7.0],
+      "target": [-0.8, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.35,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030002}",
+      "name": "KeyLight",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 0.9,
+      "direction": [-0.4, -1.0, -0.45],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030010}",
+      "name": "FloorTexture",
+      "color": [0.48, 0.48, 0.48],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030011}",
+      "name": "SphereTexture",
+      "color": [0.98, 0.18, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030020}",
+      "name": "FloorMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000030010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030021}",
+      "name": "SphereMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000030011}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030030}",
+      "name": "Floor",
+      "position": [0.0, 1.1, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000030020}",
+      "size": [7.0, 0.1, 4.5],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000030040}",
+      "name": "BlurredSphere",
+      "position": [-2.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000030021}",
+      "radius": 0.65,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

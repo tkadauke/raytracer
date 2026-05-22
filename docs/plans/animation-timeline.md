@@ -360,6 +360,8 @@ encoder, not a hard dependency for animation support.
 - ✅ Add minimal UI awareness:
   - ✅ current frame spinbox or scrubber
   - ✅ preview evaluates scene at current frame
+  - ✅ active scene cameras reset the preview pose on frame changes while
+    preserving interactive viewport controls
   - ✅ no full keyframe editor yet
 - ✅ Ensure property editing still targets the base authoring scene, not a baked
   evaluated clone.
@@ -393,6 +395,15 @@ Animation needs tests at multiple levels:
   - moving object with raytraced motion blur
   - material color fade
   - rotating light direction
+
+Current reusable animated fixtures live under `scenes/`:
+
+- `animated_camera_pan.json` for camera `position`, `target`, and `zoom`.
+- `animated_light_sweep.json` for light `direction`, `color`, and `intensity`.
+- `animated_material_fade.json` for scene/background color tracks.
+- `animated_motion_blur_sweep.json` for timeline position plus render-time
+  motion-blur velocity.
+- `animated_visibility_steps.json` for step-interpolated bool visibility.
 
 Avoid full video-output assertions. Prefer frame-specific PNG checks or simple
 pixel-difference predicates.

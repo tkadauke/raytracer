@@ -16,6 +16,14 @@
 
 Q_DECLARE_METATYPE(Vector3d)
 
+namespace {
+
+bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) {
+  return actual == qt5Name || actual == qt6Name;
+}
+
+}  // namespace
+
 struct PropertyEditorWidget::Private {
   inline Private()
     : root(nullptr),
@@ -109,11 +117,11 @@ void PropertyEditorWidget::addParameter(const QString& name) {
 
   AbstractParameterWidget* widget = nullptr;
 
-  if (type == "Vector3d") {
+  if (isType(type, "Vector3d", "Vector3<double>")) {
     widget = new VectorParameterWidget(this);
-  } else if (type == "Angled") {
+  } else if (isType(type, "Angled", "Angle<double>")) {
     widget = new AngleParameterWidget(this);
-  } else if (type == "Colord") {
+  } else if (isType(type, "Colord", "Color<double>")) {
     widget = new ColorParameterWidget(this);
   } else if (type == "QString") {
     widget = new StringParameterWidget(this);
@@ -158,4 +166,3 @@ void PropertyEditorWidget::elementChanged(const QString& propertyName, const QVa
   p->element->setProperty(propertyName.toStdString().c_str(), value);
   emit changed(p->element);
 }
-

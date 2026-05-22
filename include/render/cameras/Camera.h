@@ -44,6 +44,20 @@ namespace render {
       m_target = target;
     }
 
+    /**
+      * @returns the current camera position in world space.
+      */
+    [[nodiscard]] inline const Vector3d& position() const {
+      return m_position;
+    }
+
+    /**
+      * @returns the world-space point the camera is looking at.
+      */
+    [[nodiscard]] inline const Vector3d& target() const {
+      return m_target;
+    }
+
     inline std::shared_ptr<render::ViewPlane> viewPlane() const {
       return m_viewPlane;
     }

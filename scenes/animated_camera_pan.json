@@ -1,0 +1,186 @@
+{
+  "id": "{10000000-0000-0000-0000-000000000000}",
+  "name": "Animated Camera Pan",
+  "ambient": [0.28, 0.28, 0.30],
+  "background": [0.06, 0.07, 0.09],
+  "type": "Scene",
+  "animation": {
+    "fps": 24,
+    "startFrame": 1,
+    "endFrame": 72,
+    "tracks": [
+      {
+        "target": "{10000000-0000-0000-0000-000000000001}",
+        "property": "position",
+        "interpolation": "linear",
+        "keys": [
+          { "frame": 1, "value": [-4.0, -2.2, -7.0] },
+          { "frame": 36, "value": [0.0, -2.0, -6.4] },
+          { "frame": 72, "value": [4.0, -2.2, -7.0] }
+        ]
+      },
+      {
+        "target": "{10000000-0000-0000-0000-000000000001}",
+        "property": "target",
+        "interpolation": "smoothstep",
+        "keys": [
+          { "frame": 1, "value": [-0.7, 0.0, 0.0] },
+          { "frame": 72, "value": [0.7, 0.0, 0.0] }
+        ]
+      },
+      {
+        "target": "{10000000-0000-0000-0000-000000000001}",
+        "property": "zoom",
+        "interpolation": "smoothstep",
+        "keys": [
+          { "frame": 1, "value": 1.15 },
+          { "frame": 36, "value": 1.55 },
+          { "frame": 72, "value": 1.15 }
+        ]
+      }
+    ]
+  },
+  "children": [
+    {
+      "id": "{10000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [-4.0, -2.2, -7.0],
+      "target": [-0.7, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.15,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000002}",
+      "name": "KeyLight",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.95, 0.86],
+      "intensity": 0.95,
+      "direction": [-0.4, -1.0, -0.35],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000010}",
+      "name": "FloorTexture",
+      "color": [0.42, 0.42, 0.42],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000011}",
+      "name": "RedTexture",
+      "color": [0.95, 0.16, 0.10],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000012}",
+      "name": "GreenTexture",
+      "color": [0.12, 0.75, 0.26],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000013}",
+      "name": "BlueTexture",
+      "color": [0.14, 0.34, 0.95],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000020}",
+      "name": "FloorMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000021}",
+      "name": "RedMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000022}",
+      "name": "GreenMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000023}",
+      "name": "BlueMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000000013}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000030}",
+      "name": "Floor",
+      "position": [0.0, 1.1, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000000020}",
+      "size": [7.0, 0.1, 5.0],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000040}",
+      "name": "LeftSphere",
+      "position": [-2.0, 0.0, -0.4],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000000021}",
+      "radius": 0.65,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000041}",
+      "name": "MiddleBox",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.35, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000000022}",
+      "size": [0.65, 0.65, 0.65],
+      "bevelRadius": 0.05,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000000042}",
+      "name": "RightSphere",
+      "position": [2.0, 0.0, 0.35],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{10000000-0000-0000-0000-000000000023}",
+      "radius": 0.65,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

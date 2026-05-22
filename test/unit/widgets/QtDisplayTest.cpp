@@ -2,9 +2,11 @@
 
 #include "widgets/QtDisplay.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/cameras/Camera.h"
 #include "render/RenderEngine.h"
 
 #include "test/helpers/GuiTestHelper.h"
+#include "test/helpers/VectorTestHelper.h"
 
 #include <QSemaphore>
 
@@ -107,5 +109,21 @@ namespace QtDisplayTest {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
     QtDisplay display(nullptr, rt);
     display.setDistance(2.5);
+  }
+
+  TEST_F(QtDisplayTest, ShouldRenderFromInteractiveCameraPose) {
+    auto engine = std::make_shared<BlockingEngine>();
+    QtDisplay display(nullptr, engine);
+    display.setBufferSize(QSize(4, 4));
+
+    display.setInteractiveCameraPose(Vector3d(1, 2, 3), Vector3d(1, 2, 1));
+    display.render();
+    ASSERT_TRUE(engine->entered.tryAcquire(1, 1000));
+
+    ASSERT_VECTOR_NEAR(Vector3d(1, 2, 3), engine->camera()->position(), 1e-9);
+    ASSERT_VECTOR_NEAR(Vector3d(1, 2, 1), engine->camera()->target(), 1e-9);
+
+    engine->release.release();
+    display.stop();
   }
 }

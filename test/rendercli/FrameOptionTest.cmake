@@ -80,6 +80,33 @@ if(frame_compare EQUAL 0)
   message(FATAL_ERROR "animated frame renders were unexpectedly identical")
 endif()
 
+set(animated_catalog
+  animated_camera_pan.json
+  animated_light_sweep.json
+  animated_material_fade.json
+  animated_motion_blur_sweep.json
+  animated_visibility_steps.json
+)
+foreach(scene_name IN LISTS animated_catalog)
+  string(REPLACE ".json" "" scene_stem "${scene_name}")
+  foreach(frame IN ITEMS 1 72)
+    set(catalog_frame "${TEST_OUTPUT_DIR}/${scene_stem}_${frame}.png")
+    run_rendercli(
+      catalog_stdout
+      catalog_stderr
+      catalog_result
+      "${RENDERCLI}" --engine raster --width 48 --height 32 --frame "${frame}"
+      "${PROJECT_SOURCE_DIR}/scenes/${scene_name}" "${catalog_frame}"
+    )
+    if(NOT catalog_result EQUAL 0)
+      message(FATAL_ERROR "rendercli --frame ${frame} failed for ${scene_name}: ${catalog_stderr}")
+    endif()
+    if(NOT EXISTS "${catalog_frame}")
+      message(FATAL_ERROR "rendercli --frame ${frame} did not create output for ${scene_name}")
+    endif()
+  endforeach()
+endforeach()
+
 run_rendercli(
   invalid_stdout
   invalid_stderr

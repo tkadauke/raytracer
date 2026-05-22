@@ -17,6 +17,7 @@
 #include "widgets/world/PropertyEditorWidget.h"
 
 #include "world/objects/Scene.h"
+#include "world/objects/Camera.h"
 #include "world/objects/Sphere.h"
 
 using namespace std;
@@ -75,6 +76,11 @@ void RenderDisplay::setScene(Scene* scene) {
   // the control engine's scene does not tear the scene out from
   // under the worker that is finishing the previous frame.
   m_engine->setScene(scene->toRaytracerScene());
+  if (auto* camera = scene->activeCamera()) {
+    m_engine->setCamera(camera->toRaytracer());
+    setInteractiveCameraPose(camera->position(), camera->target());
+  }
+  setInteractive(true);
   render();
 }
 

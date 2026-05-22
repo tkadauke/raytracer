@@ -521,7 +521,7 @@ Scope = "Blender-lite." Qt is already the toolkit. The UI's modality structure m
 
 #### 4.6.a Core editor
 
-- Multi-viewport (top / front / side / perspective). Each viewport picks its own engine — perspective uses GL, orthographic views use wireframe.
+- Multi-viewport (top / front / side / perspective / final camera). Each viewport picks its own engine — perspective uses GL, orthographic views use wireframe, and one view can follow the active render camera for final-output preview.
 - Object hierarchy / outliner with selection, naming, grouping, parenting.
 - Property editor for the selected object's transform, material, primitive parameters.
 - Move / rotate / scale gizmos with snapping (unit, grid, surface, increment).

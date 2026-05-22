@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Additional animated scene fixtures.** Five reusable scene JSON files now cover camera panning, directional-light sweeps, material/background color fades, motion-blur velocity changes, and step-interpolated visibility toggles. The rendercli animation smoke test renders their first and last frames to keep the fixtures loadable. — GPT-5
 - **Modeler timeline preview controls.** Scenes with a top-level `animation` block now enable a read-only Timeline dock with a frame slider and spinbox. The central preview and render dialog evaluate a copied scene at the selected frame, while the property editor continues editing the base authoring scene. — GPT-5
 - **`rendercli --animation` image sequences.** `rendercli` can now render a scene timeline to numbered image files using a printf-style output pattern, with optional `--frame_start`, `--frame_end`, and `--fps` overrides. The CLI reports per-frame progress and rejects missing frame placeholders, invalid ranges, static scenes, and ambiguous `--animation` combinations. — GPT-5
 - **`rendercli --frame` animation evaluation.** `rendercli` can now render a specific evaluated animation frame before converting the world scene to runtime render objects. Static scenes still render with `--frame`, invalid frame arguments fail during CLI parsing, and an `animation_frame_demo.json` scene plus CTest smoke cover frame-specific output. — GPT-5
@@ -23,6 +24,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler timeline preview now starts from animated scene cameras.** Changing timeline frames rebuilds the central preview camera from the evaluated scene's active camera, then keeps the viewport interactive so modeler camera controls continue from that keyed pose. — GPT-5
 - **Rasterizer shadow-map projections no longer drift by fractional texels during small camera moves.** Directional shadow-map and cascade centers are now snapped to their light-space texel grid before the depth pass, reducing preview shimmer while preserving the existing shadow-map size, bias, filtering, and cascade controls. — GPT-5
 - **Benchmark preset builds no longer fail in `BVHPacketBenchmark`.** Packet benchmark ray groups now initialize their non-default-constructible `Rayd` arrays explicitly, and packet results are passed to Google Benchmark's non-deprecated `DoNotOptimize` overload. — GPT-5
 - **Raytraced instanced objects no longer warp when their transform makes `Matrix4::inverted()` choose a near-singular block pivot.** The 4×4 block inverse now falls back to the cofactor path for near-zero bottom-right 2×2 determinants, fixing rotated/scaled torus intersections and their shadow rays. — GPT-5

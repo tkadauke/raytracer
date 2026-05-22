@@ -73,8 +73,9 @@ chain reflects the responsibilities:
 
 - `RenderWidget` owns the framebuffer pair and render-job lifecycle.
 - `QtDisplay` adds mouse-drag camera control.
-- `src/modeler/Display.cpp` adds engine selection, rasterizer-preview shadow
-  policy, and the Ctrl-click ray-state probe.
+- `src/modeler/Display.cpp` adds scene-camera timeline poses, engine
+  selection, rasterizer-preview shadow policy, and the Ctrl-click ray-state
+  probe.
 
 The editor can swap the live preview between Raytracer, Rasterizer, and
 [Wireframe](../appendix/a-glossary.md#w). On a kind switch it updates the new
@@ -85,16 +86,19 @@ Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog
 evaluate a copied scene at that frame before building runtime render objects,
 so animated camera poses, transforms, colors, and lights are visible in the
-editor. The scene tree and property editor remain attached to the unevaluated
-authoring scene.
+editor. When the scene has an active camera, changing frames resets the
+central preview to that evaluated camera pose; mouse-drag preview controls can
+then move from the keyed pose. The scene tree and property editor remain
+attached to the unevaluated authoring scene.
 
 ## 26.3 Scene files
 
 Reusable scene JSON files live under [`scenes/`](../../../scenes/). They are
 ordinary world-scene files, so both `rendercli` and `Modeler` load the same
 data. The current checked-in scenes cover camera demos, depth of field,
-animation frame evaluation, motion blur, transparent materials, reflections,
-and small geometry fixtures used by tests.
+animation frame evaluation, camera panning, light sweeps, material fades,
+motion-blur velocity sweeps, visibility-step timelines, transparent materials,
+reflections, and small geometry fixtures used by tests.
 
 The Modeler does not bake scene catalogs into C++; it opens JSON scene files
 directly. New reusable demos should be added as scene files unless they need a

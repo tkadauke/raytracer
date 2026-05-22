@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 
+#include "core/math/Vector.h"
 #include "widgets/RenderWidget.h"
 
 namespace render {
@@ -31,6 +32,11 @@ public:
   virtual void render();
   
   void setDistance(double distance);
+
+  /// Reset the interactive orbit camera to a concrete world-space
+  /// pose. The next render starts from this pose, and subsequent
+  /// mouse/wheel input continues interactively from it.
+  void setInteractiveCameraPose(const Vector3d& position, const Vector3d& target);
 
 private:
   void renderAfterCurrentFrameIfRequested();

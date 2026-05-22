@@ -165,9 +165,23 @@ frame `N`, and then builds the runtime render scene and camera from that
 evaluated world state. The flag does not require an animation block; static
 scenes render unchanged.
 
-The checked-in demo scene
-[`animation_frame_demo.json`](../../../scenes/animation_frame_demo.json)
-moves one sphere across its timeline:
+The checked-in animated scene fixtures exercise the value types that world
+tracks can currently write:
+
+- [`animation_frame_demo.json`](../../../scenes/animation_frame_demo.json)
+  moves one sphere across its timeline.
+- [`animated_camera_pan.json`](../../../scenes/animated_camera_pan.json)
+  animates camera `position`, `target`, and `zoom`.
+- [`animated_light_sweep.json`](../../../scenes/animated_light_sweep.json)
+  animates a directional light's `direction`, `color`, and `intensity`.
+- [`animated_material_fade.json`](../../../scenes/animated_material_fade.json)
+  animates scene `background` and texture `color`.
+- [`animated_motion_blur_sweep.json`](../../../scenes/animated_motion_blur_sweep.json)
+  animates a sphere's timeline `position` and per-shutter `velocity`.
+- [`animated_visibility_steps.json`](../../../scenes/animated_visibility_steps.json)
+  uses step interpolation on `visible` bool tracks.
+
+For a single-frame render, choose a frame and output path:
 
 ```sh
 rendercli --engine raster --frame 1 \
@@ -206,9 +220,11 @@ Modeler reads and writes the same top-level `animation` block as
 inclusive frame range as a slider and spinbox. Changing the current frame
 evaluates a copied scene and sends that evaluated copy to the live preview.
 
-The property editor stays attached to the authoring scene. Editing a property
-there changes the base value stored in the JSON scene; frame evaluation is
-applied only to the copied scene used for preview and final renders.
+The property editor stays attached to the authoring scene. Editing an
+property there changes the base value stored in the JSON scene; frame
+evaluation is applied only to the copied scene used for preview and final
+renders. Changing frames resets the central preview to the evaluated scene
+camera, and the viewport remains interactive from that keyed pose.
 
 ## 27.11 Exercises
 
