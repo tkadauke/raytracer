@@ -89,15 +89,9 @@ public:
   }
 
   /**
-    * @returns the all-zero vector \f$(0,\ldots,0)\f$.
+    * The all-zero vector \f$(0,\ldots,0)\f$.
     */
-  [[nodiscard]] inline static constexpr VectorType zero() noexcept {
-    VectorType result;
-    for (int i = 0; i != Dimensions; ++i) {
-      result[i] = T();
-    }
-    return result;
-  }
+  static const VectorType zero;
 
   /**
     * Constructs a vector component wise from the given array. The array's size
@@ -385,13 +379,13 @@ public:
   }
 
   /**
-    * @returns the normalized vector, or zero() when its length is no larger
+    * @returns the normalized vector, or zero when its length is no larger
     * than tolerance.
     */
   [[nodiscard]] inline VectorType normalizedOrZero(const T& tolerance) const {
     const T len = length();
     if (len <= tolerance) {
-      return zero();
+      return zero;
     }
     return derived() / len;
   }
@@ -1082,6 +1076,16 @@ public:
 // the class type is complete at the point of initialization.
 // SSE3 specializations below override these for float and double.
 // ---------------------------------------------------------------------------
+
+template<int Dimensions, class T, class StorageCellType, class Derived>
+inline const typename Vector<Dimensions, T, StorageCellType, Derived>::VectorType
+  Vector<Dimensions, T, StorageCellType, Derived>::zero = [] {
+    typename Vector<Dimensions, T, StorageCellType, Derived>::VectorType result;
+    for (int i = 0; i != Dimensions; ++i) {
+      result[i] = T();
+    }
+    return result;
+  }();
 
 template<class T>
 inline constexpr Vector2<T> Vector2<T>::null{T(0), T(0)};

@@ -378,23 +378,15 @@ public:
   }
 
   /**
-    * @returns the all-zero matrix.
+    * The all-zero matrix.
     */
-  [[nodiscard]] inline static constexpr MatrixType zero() noexcept {
-    MatrixType result;
-    for (int row = 0; row != Dimensions; ++row) {
-      for (int col = 0; col != Dimensions; ++col) {
-        result[row][col] = T();
-      }
-    }
-    return result;
-  }
+  static const MatrixType zero;
 
   /**
     * @returns a zero matrix with diagonal on the main diagonal.
     */
-  [[nodiscard]] inline static constexpr MatrixType diagonal(const Vector& diagonal) noexcept {
-    MatrixType result = zero();
+  [[nodiscard]] inline static MatrixType diagonal(const Vector& diagonal) noexcept {
+    MatrixType result = zero;
     for (int i = 0; i != Dimensions; ++i) {
       result[i][i] = diagonal[i];
     }
@@ -410,12 +402,12 @@ public:
     int preferredColumn,
     T tolerance
   ) const {
-    Vector best = Vector::zero();
+    Vector best = Vector::zero;
     T bestSquaredLength = T(-1);
 
     for (int attempt = 0; attempt != Dimensions; ++attempt) {
       const int axis = (preferredColumn + attempt) % Dimensions;
-      Vector candidate = Vector::zero();
+      Vector candidate = Vector::zero;
       candidate[axis] = T(1);
 
       for (int previous = 0; previous < basisColumns; ++previous) {
@@ -431,7 +423,7 @@ public:
     }
 
     if (bestSquaredLength <= tolerance * tolerance) {
-      return Vector::zero();
+      return Vector::zero;
     }
     return best / std::sqrt(bestSquaredLength);
   }
@@ -467,7 +459,7 @@ namespace matrix_decomposition {
     bool singular = false;
 
     [[nodiscard]] MatrixType lower() const noexcept {
-      MatrixType result = MatrixType::zero();
+      MatrixType result = MatrixType::zero;
       for (int row = 0; row != Dimensions; ++row) {
         result[row][row] = T(1);
         for (int col = 0; col < row; ++col) {
@@ -478,7 +470,7 @@ namespace matrix_decomposition {
     }
 
     [[nodiscard]] MatrixType upper() const noexcept {
-      MatrixType result = MatrixType::zero();
+      MatrixType result = MatrixType::zero;
       for (int row = 0; row != Dimensions; ++row) {
         for (int col = row; col != Dimensions; ++col) {
           result[row][col] = lu[row][col];
@@ -488,7 +480,7 @@ namespace matrix_decomposition {
     }
 
     [[nodiscard]] MatrixType permutation() const noexcept {
-      MatrixType result = MatrixType::zero();
+      MatrixType result = MatrixType::zero;
       for (int row = 0; row != Dimensions; ++row) {
         result[row][pivot[row]] = T(1);
       }
@@ -512,7 +504,7 @@ namespace matrix_decomposition {
         throw DivisionByZeroException(__FILE__, __LINE__);
       }
 
-      VectorType x = VectorType::zero();
+      VectorType x = VectorType::zero;
       for (int row = 0; row != Dimensions; ++row) {
         x[row] = rhs[pivot[row]];
       }
@@ -536,9 +528,9 @@ namespace matrix_decomposition {
     }
 
     [[nodiscard]] MatrixType inverse() const {
-      MatrixType result = MatrixType::zero();
+      MatrixType result = MatrixType::zero;
       for (int col = 0; col != Dimensions; ++col) {
-        VectorType basis = VectorType::zero();
+        VectorType basis = VectorType::zero;
         basis[col] = T(1);
         result.setCol(col, solve(basis));
       }
@@ -626,8 +618,8 @@ Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
   using Result = matrix_decomposition::QR<Dimensions, T, VectorType, MatrixType>;
 
   Result result;
-  result.q = MatrixType::zero();
-  result.r = MatrixType::zero();
+  result.q = MatrixType::zero;
+  result.r = MatrixType::zero;
 
   const T tolerance = std::numeric_limits<T>::epsilon() *
                       std::max(T(1), norm1()) *
@@ -731,9 +723,9 @@ Matrix<Dimensions, T, VectorType, Derived>::svdDecomposition() const {
   });
 
   Result result;
-  result.u = MatrixType::zero();
-  result.v = MatrixType::zero();
-  result.singularValues = VectorType::zero();
+  result.u = MatrixType::zero;
+  result.v = MatrixType::zero;
+  result.singularValues = VectorType::zero;
 
   for (int outCol = 0; outCol != Dimensions; ++outCol) {
     const int sourceCol = order[outCol];
@@ -1695,6 +1687,23 @@ typedef Matrix4<float> Matrix4f;
   * Four-dimensional matrix with double components.
   */
 typedef Matrix4<double> Matrix4d;
+
+// ---------------------------------------------------------------------------
+// Out-of-class definition for the all-zero matrix constant.
+// The declaration is in the Matrix template so Matrix2/3/4 inherit it.
+// ---------------------------------------------------------------------------
+
+template<int Dimensions, class T, class VectorType, class Derived>
+inline const typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType
+  Matrix<Dimensions, T, VectorType, Derived>::zero = [] {
+    typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType result;
+    for (int row = 0; row != Dimensions; ++row) {
+      for (int col = 0; col != Dimensions; ++col) {
+        result[row][col] = T();
+      }
+    }
+    return result;
+  }();
 
 // ---------------------------------------------------------------------------
 // std::hash specializations — enables unordered_map/unordered_set keys.
