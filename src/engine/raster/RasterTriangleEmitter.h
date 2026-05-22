@@ -249,13 +249,7 @@ namespace engine::raster::detail {
         return false;
 
       const double invW = 1.0 / clipW;
-      out = {point,
-             normal,
-             uv,
-             invW,
-             screen.z() * invW,
-             static_cast<int>(std::lround(screen.x())),
-             static_cast<int>(std::lround(screen.y()))};
+      out = {point, normal, uv, invW, screen.z() * invW, screen.x(), screen.y()};
       return true;
     }
 

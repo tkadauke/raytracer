@@ -50,6 +50,27 @@ namespace RasterizeTest {
     return pixels;
   }
 
+  static std::set<std::pair<int, int>> rasterizeSubpixelToSet(double x0, double y0, double x1,
+                                                              double y1, double x2, double y2,
+                                                              int clipLeft, int clipTop,
+                                                              int clipRight, int clipBottom) {
+    std::set<std::pair<int, int>> pixels;
+    core::rasterizeTriangle(x0, y0, x1, y1, x2, y2, clipLeft, clipTop, clipRight, clipBottom,
+                            [&](int x, int y, double, double, double) { pixels.emplace(x, y); });
+    return pixels;
+  }
+
+  static std::set<std::pair<int, int>>
+  rasterizeSubpixelSampledToSet(double x0, double y0, double x1, double y1, double x2, double y2,
+                                int clipLeft, int clipTop, int clipRight, int clipBottom,
+                                double sampleOffsetX, double sampleOffsetY) {
+    std::set<std::pair<int, int>> pixels;
+    core::rasterizeTriangleSampled(
+      x0, y0, x1, y1, x2, y2, clipLeft, clipTop, clipRight, clipBottom, sampleOffsetX,
+      sampleOffsetY, [&](int x, int y, double, double, double) { pixels.emplace(x, y); });
+    return pixels;
+  }
+
   static void addRasterizedTriangleCounts(std::map<std::pair<int, int>, int>& counts, int x0,
                                           int y0, int x1, int y1, int x2, int y2, int clipLeft,
                                           int clipTop, int clipRight, int clipBottom) {
@@ -156,6 +177,32 @@ namespace RasterizeTest {
 
     EXPECT_FALSE(centre.count({1, 1}));
     EXPECT_TRUE(shifted.count({1, 1}));
+  }
+
+  TEST(Rasterize, SubpixelVerticesDoNotRoundAtHalfPixel) {
+    const auto beforeHalfPixel = rasterizeSubpixelToSet(0.0, 0.0, 2.49, 0.0, 0.0, 4.0, 0, 0, 5, 5);
+    const auto afterHalfPixel = rasterizeSubpixelToSet(0.0, 0.0, 2.51, 0.0, 0.0, 4.0, 0, 0, 5, 5);
+
+    EXPECT_EQ(beforeHalfPixel, afterHalfPixel);
+  }
+
+  TEST(Rasterize, SubpixelVerticesChangeCoverageWhenEdgeCrossesSamplePoint) {
+    const auto beforeSamplePoint =
+      rasterizeSubpixelToSet(0.0, 0.0, 2.99, 0.0, 0.0, 4.0, 0, 0, 5, 5);
+    const auto afterSamplePoint = rasterizeSubpixelToSet(0.0, 0.0, 3.01, 0.0, 0.0, 4.0, 0, 0, 5, 5);
+
+    EXPECT_FALSE(beforeSamplePoint.count({3, 0}));
+    EXPECT_TRUE(afterSamplePoint.count({3, 0}));
+  }
+
+  TEST(Rasterize, SubpixelVerticesAndSampleOffsetsUseSameCoordinateSpace) {
+    const auto leftSample =
+      rasterizeSubpixelSampledToSet(0.125, 0.0, 4.0, 0.0, 0.125, 4.0, -1, 0, 5, 5, -0.25, 0.0);
+    const auto rightSample =
+      rasterizeSubpixelSampledToSet(0.125, 0.0, 4.0, 0.0, 0.125, 4.0, -1, 0, 5, 5, 0.25, 0.0);
+
+    EXPECT_FALSE(leftSample.count({0, 1}));
+    EXPECT_TRUE(rightSample.count({0, 1}));
   }
 
   TEST(Rasterize, AdjacentTrianglesCoverRectangleWithoutOverdraw) {

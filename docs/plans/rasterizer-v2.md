@@ -59,9 +59,6 @@ unit and becomes testable only through full-frame output.
 
 ### Quality and feature gaps
 
-- Projected vertices are rounded to integer pixel coordinates before
-  rasterization. Keeping subpixel coordinates through edge setup should reduce
-  shimmer under animation and camera motion.
 - Depth equality is exact. That is a reasonable minimal fixed-function rule, but
   multi-pass effects may need an explicit depth precision policy.
 - The near clip depth is hard-coded, and far-plane behavior is still undefined.
@@ -121,11 +118,12 @@ for samples exactly on triangle edges, and the focused tests cover:
 
 ### 3. Preserve subpixel screen coordinates
 
-Stop rounding projected vertices before edge setup. Keep screen coordinates in
-fixed-point or floating form until `PreparedRasterTriangle` builds edge
-equations.
+Status: completed. Projected screen coordinates now stay fractional in
+`RasterVertex`, tile binning uses conservative fractional bounds, and
+`PreparedRasterTriangle` converts vertex positions and sample offsets into
+1/256-pixel fixed-point edge equations.
 
-Verify with animation-sensitive tests:
+The focused tests cover:
 
 - tiny camera moves should not make static edges jump by whole pixels earlier
   than necessary;

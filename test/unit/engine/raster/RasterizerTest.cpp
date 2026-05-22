@@ -158,6 +158,34 @@ namespace RasterizerTest {
     });
   }
 
+  static void configureScreenSpaceSubpixelTriangle(Rasterizer& engine, double rightX) {
+    engine.setVertexShader([=](const Rasterizer::VertexInput& vertex) {
+      Vector3d screen(8.0, 24.0, 1.0);
+      if (vertex.worldPosition.x() < -0.5) {
+        screen = Vector3d(8.0, 8.0, 1.0);
+      } else if (vertex.worldPosition.x() > 0.5) {
+        screen = Vector3d(rightX, 8.0, 1.0);
+      }
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, screen};
+    });
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+  }
+
+  static void configureScreenSpaceMSAASubpixelTriangle(Rasterizer& engine) {
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      Vector3d screen(16.0, 32.0, 1.0);
+      if (vertex.worldPosition.x() < -0.5) {
+        screen = Vector3d(16.0, 0.0, 1.0);
+      } else if (vertex.worldPosition.x() > 0.5) {
+        screen = Vector3d(32.0, 0.0, 1.0);
+      }
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, screen};
+    });
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+  }
+
   static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(
@@ -808,6 +836,58 @@ namespace RasterizerTest {
     expectBuffersEqual(expected, actual);
   }
 
+  TEST(Rasterizer, SubpixelScreenCoordinatesDoNotRoundAtHalfPixel) {
+    Rasterizer beforeHalfPixel(headOnCamera(), sceneWithFrontFacingTriangle());
+    beforeHalfPixel.setBackgroundColor(Colord::black());
+    configureScreenSpaceSubpixelTriangle(beforeHalfPixel, 18.49);
+
+    Rasterizer afterHalfPixel(headOnCamera(), sceneWithFrontFacingTriangle());
+    afterHalfPixel.setBackgroundColor(Colord::black());
+    configureScreenSpaceSubpixelTriangle(afterHalfPixel, 18.51);
+
+    Buffer<Colord> before(32, 32);
+    Buffer<Colord> after(32, 32);
+    beforeHalfPixel.render(before);
+    afterHalfPixel.render(after);
+
+    expectBuffersEqual(before, after);
+  }
+
+  TEST(Rasterizer, SubpixelScreenCoordinatesChangeCoverageAtSamplePoint) {
+    Rasterizer beforeSamplePoint(headOnCamera(), sceneWithFrontFacingTriangle());
+    beforeSamplePoint.setBackgroundColor(Colord::black());
+    configureScreenSpaceSubpixelTriangle(beforeSamplePoint, 18.99);
+
+    Rasterizer afterSamplePoint(headOnCamera(), sceneWithFrontFacingTriangle());
+    afterSamplePoint.setBackgroundColor(Colord::black());
+    configureScreenSpaceSubpixelTriangle(afterSamplePoint, 19.01);
+
+    Buffer<Colord> before(32, 32);
+    Buffer<Colord> after(32, 32);
+    beforeSamplePoint.render(before);
+    afterSamplePoint.render(after);
+
+    EXPECT_LT(countNonBackground(before, Colord::black()),
+              countNonBackground(after, Colord::black()));
+  }
+
+  TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithSubpixelVertices) {
+    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    configureScreenSpaceSubpixelTriangle(singleTile, 18.51);
+
+    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    tiled.setMaximumThreads(2);
+    tiled.setQueueSize(4);
+    configureScreenSpaceSubpixelTriangle(tiled, 18.51);
+
+    Buffer<Colord> expected(32, 32);
+    Buffer<Colord> actual(32, 32);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
   TEST(Rasterizer, MSAAResolveBlendsPartiallyCoveredEdge) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord::black());
@@ -820,6 +900,20 @@ namespace RasterizerTest {
     EXPECT_NEAR(0.5, buffer[24][24].r(), 1e-9);
     EXPECT_NEAR(0.5, buffer[24][24].g(), 1e-9);
     EXPECT_NEAR(0.5, buffer[24][24].b(), 1e-9);
+  }
+
+  TEST(Rasterizer, MSAASampleOffsetsUseSubpixelScreenCoordinates) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setMSAASamples(2);
+    configureScreenSpaceMSAASubpixelTriangle(engine);
+    Buffer<Colord> buffer(40, 40);
+
+    engine.render(buffer);
+
+    EXPECT_NEAR(0.5, buffer[16][16].r(), 1e-9);
+    EXPECT_NEAR(0.5, buffer[16][16].g(), 1e-9);
+    EXPECT_NEAR(0.5, buffer[16][16].b(), 1e-9);
   }
 
   TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAA) {

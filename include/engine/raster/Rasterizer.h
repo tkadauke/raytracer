@@ -42,8 +42,9 @@ namespace engine::raster {
   *  4. Clip each triangle in homogeneous space against the near
   *     plane and the four viewport edges before the perspective
   *     divide.
-  *  5. Rasterize each triangle via `core::rasterizeTriangle`. For
-  *     every pixel inside:
+  *  5. Rasterize each triangle via `core::rasterizeTriangle`. Projected
+  *     screen coordinates stay fractional until the edge setup converts
+  *     them to fixed-point subpixel values. For every pixel inside:
   *      - Depth-test against a per-pixel Z-buffer using the
   *        perspective-correct interpolation trick (`1/z` is linear
   *        in screen space; the screen-space barycentric weights

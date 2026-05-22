@@ -11,14 +11,14 @@ namespace core {
 
     using RasterFixed = std::int64_t;
 
-    // Subpixel sample offsets are represented in sixteenths of a pixel.
-    // The single-sample path uses offset (0, 0), exactly preserving the
-    // historical integer-pixel sample location; MSAA callers pass offsets
-    // in [-0.5, 0.5] around that pixel center.
+    // Screen coordinates and sample offsets are represented in 1/256ths of a
+    // pixel while preparing edge equations. The single-sample path uses offset
+    // (0, 0), exactly preserving the historical integer-pixel sample location;
+    // MSAA callers pass offsets in [-0.5, 0.5] around that pixel center.
     //
     // Integer arithmetic uses int64_t throughout. Native `int` overflows for
     // large projected vertices because the edge function squares pixel deltas.
-    constexpr RasterFixed kRasterSubpixelScale = 16;
+    constexpr RasterFixed kRasterSubpixelScale = 256;
 
     struct PreparedRasterTriangle {
       bool valid = false;
@@ -41,23 +41,21 @@ namespace core {
       bool includeW1 = false;
       bool includeW2 = false;
 
-      PreparedRasterTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
-                             int clipTop, int clipRight, int clipBottom, double sampleOffsetX,
-                             double sampleOffsetY) {
+      PreparedRasterTriangle(double x0, double y0, double x1, double y1, double x2, double y2,
+                             int clipLeft, int clipTop, int clipRight, int clipBottom,
+                             double sampleOffsetX, double sampleOffsetY) {
         if (clipLeft >= clipRight || clipTop >= clipBottom)
           return;
 
-        const RasterFixed sampleX =
-          static_cast<RasterFixed>(std::lround(sampleOffsetX * kRasterSubpixelScale));
-        const RasterFixed sampleY =
-          static_cast<RasterFixed>(std::lround(sampleOffsetY * kRasterSubpixelScale));
+        const RasterFixed sampleX = toFixed(sampleOffsetX);
+        const RasterFixed sampleY = toFixed(sampleOffsetY);
 
-        const RasterFixed X0 = static_cast<RasterFixed>(x0) * kRasterSubpixelScale;
-        const RasterFixed X1 = static_cast<RasterFixed>(x1) * kRasterSubpixelScale;
-        const RasterFixed X2 = static_cast<RasterFixed>(x2) * kRasterSubpixelScale;
-        const RasterFixed Y0 = static_cast<RasterFixed>(y0) * kRasterSubpixelScale;
-        const RasterFixed Y1 = static_cast<RasterFixed>(y1) * kRasterSubpixelScale;
-        const RasterFixed Y2 = static_cast<RasterFixed>(y2) * kRasterSubpixelScale;
+        const RasterFixed X0 = toFixed(x0);
+        const RasterFixed X1 = toFixed(x1);
+        const RasterFixed X2 = toFixed(x2);
+        const RasterFixed Y0 = toFixed(y0);
+        const RasterFixed Y1 = toFixed(y1);
+        const RasterFixed Y2 = toFixed(y2);
 
         // Twice the signed area of the parent triangle. Sign indicates
         // winding; zero indicates collinear vertices and produces no pixels.
@@ -65,10 +63,26 @@ namespace core {
         if (area == 0)
           return;
 
-        minX = std::max(std::min({x0, x1, x2}), clipLeft);
-        maxX = std::min(std::max({x0, x1, x2}), clipRight - 1);
-        minY = std::max(std::min({y0, y1, y2}), clipTop);
-        maxY = std::min(std::max({y0, y1, y2}), clipBottom - 1);
+        const RasterFixed rawMinX = ceilDiv(std::min({X0, X1, X2}) - sampleX, kRasterSubpixelScale);
+        const RasterFixed rawMaxX =
+          floorDiv(std::max({X0, X1, X2}) - sampleX, kRasterSubpixelScale);
+        const RasterFixed rawMinY = ceilDiv(std::min({Y0, Y1, Y2}) - sampleY, kRasterSubpixelScale);
+        const RasterFixed rawMaxY =
+          floorDiv(std::max({Y0, Y1, Y2}) - sampleY, kRasterSubpixelScale);
+
+        const RasterFixed clipLeftFixed = clipLeft;
+        const RasterFixed clipRightFixed = static_cast<RasterFixed>(clipRight) - 1;
+        const RasterFixed clipTopFixed = clipTop;
+        const RasterFixed clipBottomFixed = static_cast<RasterFixed>(clipBottom) - 1;
+        if (rawMaxX < clipLeftFixed || rawMinX > clipRightFixed || rawMaxY < clipTopFixed ||
+            rawMinY > clipBottomFixed) {
+          return;
+        }
+
+        minX = static_cast<int>(std::max(rawMinX, clipLeftFixed));
+        maxX = static_cast<int>(std::min(rawMaxX, clipRightFixed));
+        minY = static_cast<int>(std::max(rawMinY, clipTopFixed));
+        maxY = static_cast<int>(std::min(rawMaxY, clipBottomFixed));
         if (minX > maxX || minY > maxY)
           return;
 
@@ -111,6 +125,28 @@ namespace core {
       }
 
     private:
+      static RasterFixed toFixed(double value) {
+        return static_cast<RasterFixed>(std::llround(value * kRasterSubpixelScale));
+      }
+
+      static RasterFixed floorDiv(RasterFixed numerator, RasterFixed denominator) {
+        RasterFixed quotient = numerator / denominator;
+        const RasterFixed remainder = numerator % denominator;
+        if (remainder != 0 && ((remainder < 0) != (denominator < 0))) {
+          --quotient;
+        }
+        return quotient;
+      }
+
+      static RasterFixed ceilDiv(RasterFixed numerator, RasterFixed denominator) {
+        RasterFixed quotient = numerator / denominator;
+        const RasterFixed remainder = numerator % denominator;
+        if (remainder != 0 && ((remainder > 0) == (denominator > 0))) {
+          ++quotient;
+        }
+        return quotient;
+      }
+
       static bool isTopLeftEdge(RasterFixed ax, RasterFixed ay, RasterFixed bx, RasterFixed by) {
         const RasterFixed dx = bx - ax;
         const RasterFixed dy = by - ay;
@@ -140,7 +176,9 @@ namespace core {
   * Calls `plot(x, y, w0, w1, w2)` for every pixel inside the
   * triangle with vertices `(x0, y0)`, `(x1, y1)`, `(x2, y2)` and
   * inside the clip rectangle `[clipLeft, clipRight) ×
-  * [clipTop, clipBottom)`.
+  * [clipTop, clipBottom)`. Vertex coordinates may be fractional;
+  * the edge setup keeps them as subpixel fixed-point values instead
+  * of rounding them to integer pixels first.
   * The barycentric weights `w0..w2` correspond to vertices
   * `p0..p2` respectively, are normalized to sum to 1.0, and are
   * the textbook input for per-vertex attribute interpolation
@@ -178,9 +216,10 @@ namespace core {
   *         `void(int x, int y, double w0, double w1, double w2)`.
   */
   template<typename PlotFn>
-  inline void rasterizeTriangleSampled(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
-                                       int clipTop, int clipRight, int clipBottom,
-                                       double sampleOffsetX, double sampleOffsetY, PlotFn&& plot) {
+  inline void rasterizeTriangleSampled(double x0, double y0, double x1, double y1, double x2,
+                                       double y2, int clipLeft, int clipTop, int clipRight,
+                                       int clipBottom, double sampleOffsetX, double sampleOffsetY,
+                                       PlotFn&& plot) {
     const detail::PreparedRasterTriangle triangle(x0, y0, x1, y1, x2, y2, clipLeft, clipTop,
                                                   clipRight, clipBottom, sampleOffsetX,
                                                   sampleOffsetY);
@@ -215,10 +254,29 @@ namespace core {
   }
 
   template<typename PlotFn>
-  inline void rasterizeTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
-                                int clipTop, int clipRight, int clipBottom, PlotFn&& plot) {
+  inline void rasterizeTriangleSampled(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
+                                       int clipTop, int clipRight, int clipBottom,
+                                       double sampleOffsetX, double sampleOffsetY, PlotFn&& plot) {
+    rasterizeTriangleSampled(
+      static_cast<double>(x0), static_cast<double>(y0), static_cast<double>(x1),
+      static_cast<double>(y1), static_cast<double>(x2), static_cast<double>(y2), clipLeft, clipTop,
+      clipRight, clipBottom, sampleOffsetX, sampleOffsetY, std::forward<PlotFn>(plot));
+  }
+
+  template<typename PlotFn>
+  inline void rasterizeTriangle(double x0, double y0, double x1, double y1, double x2, double y2,
+                                int clipLeft, int clipTop, int clipRight, int clipBottom,
+                                PlotFn&& plot) {
     rasterizeTriangleSampled(x0, y0, x1, y1, x2, y2, clipLeft, clipTop, clipRight, clipBottom, 0.0,
                              0.0, std::forward<PlotFn>(plot));
+  }
+
+  template<typename PlotFn>
+  inline void rasterizeTriangle(int x0, int y0, int x1, int y1, int x2, int y2, int clipLeft,
+                                int clipTop, int clipRight, int clipBottom, PlotFn&& plot) {
+    rasterizeTriangle(static_cast<double>(x0), static_cast<double>(y0), static_cast<double>(x1),
+                      static_cast<double>(y1), static_cast<double>(x2), static_cast<double>(y2),
+                      clipLeft, clipTop, clipRight, clipBottom, std::forward<PlotFn>(plot));
   }
 
 } // namespace core

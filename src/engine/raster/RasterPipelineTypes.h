@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -56,17 +57,18 @@ namespace engine::raster::detail {
   };
 
   // Final per-vertex data consumed by the edge-function rasterizer. Coordinates
-  // are currently integer pixel positions; the reciprocal terms preserve enough
-  // homogeneous state for perspective-correct depth, world position, normal,
-  // and UV interpolation in the fragment loop.
+  // remain fractional screen positions until the rasterizer prepares fixed-point
+  // edge equations; the reciprocal terms preserve enough homogeneous state for
+  // perspective-correct depth, world position, normal, and UV interpolation in
+  // the fragment loop.
   struct RasterVertex {
     Vector3d point;
     Vector3d normal;
     Vector2d uv;
     double invW;
     double depthOverW;
-    int x;
-    int y;
+    double x;
+    double y;
   };
 
   // Fragment payload after barycentric interpolation. Constructing it is the
@@ -237,14 +239,20 @@ namespace engine::raster::detail {
     }
 
     void add(const RasterTriangle& triangle) {
-      const int rawMinX =
+      const double minX =
         std::min({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-      const int rawMaxX =
+      const double maxX =
         std::max({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-      const int rawMinY =
+      const double minY =
         std::min({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-      const int rawMaxY =
+      const double maxY =
         std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
+      // Triangle sets are reused for all MSAA samples, so bins cover the
+      // possible half-pixel sample-offset envelope around fractional vertices.
+      const int rawMinX = static_cast<int>(std::ceil(minX - 0.5));
+      const int rawMaxX = static_cast<int>(std::floor(maxX + 0.5));
+      const int rawMinY = static_cast<int>(std::ceil(minY - 0.5));
+      const int rawMaxY = static_cast<int>(std::floor(maxY + 0.5));
 
       const std::size_t triangleIndex = m_triangles.size();
       const std::size_t added =

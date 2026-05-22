@@ -159,13 +159,16 @@ The struct also holds the parent triangle's signed area and
 its inverse (the latter precomputed once so the per-pixel
 barycentric-weight conversion is a multiply instead of a
 divide). The fixed-point representation — `kRasterSubpixelScale
-= 16` — keeps the edge values in `int64_t` instead of
-`double`, which the codebase confirmed empirically (over `int`
-overflows) is the right precision for typical scene sizes.
+= 256` — keeps fractional projected vertices and MSAA sample
+offsets in the same coordinate system while storing edge values
+in `int64_t` instead of `double`.
 
-The integer fixed-point form has a second benefit: the
-inside-test reduces to integer comparisons, including exact
-zero-on-edge checks for the top-left rule.
+The integer fixed-point form has two benefits. First, small
+camera or object movements can shift an edge by a fraction of a
+pixel without forcing all vertices to round to new integer
+locations at once. Second, the inside-test reduces to integer
+comparisons, including exact zero-on-edge checks for the top-left
+rule.
 
 ## 18.4 The depth test
 
