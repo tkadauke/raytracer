@@ -83,15 +83,17 @@ unit and becomes testable only through full-frame output.
 Status: started. The shared raster vocabulary now lives in
 `src/engine/raster/RasterPipelineTypes.h`, and the scene-walk / projection /
 clipping / culling front end now lives in
-`src/engine/raster/RasterTriangleEmitter.h`. `Rasterizer.cpp` still owns pass
-policy dispatch, material evaluation, MSAA orchestration, shadow maps, and frame
-setup.
+`src/engine/raster/RasterTriangleEmitter.h`. Directional shadow-map cameras,
+cascades, filtering, and visibility queries now live in
+`src/engine/raster/RasterShadowMaps.h`. `Rasterizer.cpp` still owns pass policy
+dispatch, material evaluation, MSAA orchestration, shadow-map depth-pass
+construction, and frame setup.
 
 Extract internal files without changing public behavior:
 
 - ✅ `RasterTriangleEmitter` — scene traversal, tessellation, projection,
   homogeneous clipping, culling, vertex hook adaptation, and face emission.
-- `RasterShadowMaps` — directional shadow cameras, cascade fitting,
+- ✅ `RasterShadowMaps` — directional shadow cameras, cascade fitting,
   stabilization, filtering, and visibility queries.
 - `RasterMaterial` — fallback colors, matte/texture adaptation, and the built-in
   Lambertian evaluator.

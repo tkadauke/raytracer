@@ -17,11 +17,6 @@
 
 namespace engine::raster::detail {
 
-  // Near-plane depth used by the current homogeneous clipper. It is intentionally
-  // local to the raster front end until near/far clip policy becomes explicit
-  // rasterizer state.
-  inline constexpr double kNearClipDepth = 0.1;
-
   // Worst-case clipped polygon storage for a triangle clipped against the near
   // plane and four viewport planes. The current bound is deliberately generous
   // so the clipper can use fixed storage during emission.
