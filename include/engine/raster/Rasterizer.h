@@ -380,6 +380,40 @@ public:
     std::uint64_t faceIdx;
   };
 
+  /**
+    * Optional pass outputs populated during `render(Buffer<Colord>&)`.
+    *
+    * These buffers are borrowed; callers own allocation and lifetime.
+    * A non-null buffer is written only when its dimensions match the
+    * render target. Mismatched buffers are ignored for that render.
+    *
+    * The values describe the rasterizer's final passing fragments:
+    * depth is the post-depth-test Z value, normal is normalized,
+    * primitive/material/face identify the source triangle, and stencil
+    * mirrors the pass stencil value after stencil operations. Buffers are
+    * cleared at the start of every render using the rasterizer's clear
+    * values (`nullptr` for pointer IDs and the largest `std::uint64_t`
+    * value for face IDs).
+    *
+    * With MSAA enabled, a pixel can have several passing subpixel
+    * samples. These diagnostics store the last passing sample processed
+    * for that pixel; use 1x rendering when inspecting exact per-pixel
+    * pass state.
+    *
+    * `cloneForRender()` does not copy these borrowed pointers. GUI code
+    * that renders isolated snapshots should attach outputs to the snapshot
+    * it actually renders, or wait for the broader render-pass resource
+    * contract.
+    */
+  struct DiagnosticOutputBuffers {
+    Buffer<double>* depth = nullptr;
+    Buffer<Vector3d>* normal = nullptr;
+    Buffer<const render::Primitive*>* primitive = nullptr;
+    Buffer<const render::Material*>* material = nullptr;
+    Buffer<std::uint64_t>* face = nullptr;
+    Buffer<std::uint8_t>* stencil = nullptr;
+  };
+
   using VertexShader = std::function<VertexOutput(const VertexInput&)>;
   using FragmentShader = std::function<Colord(const FragmentInput&)>;
 
@@ -613,6 +647,21 @@ public:
   inline void setFragmentShader(FragmentShader shader) { m_fragmentShader = std::move(shader); }
   inline void clearFragmentShader() { m_fragmentShader = FragmentShader(); }
 
+  /// Returns the borrowed diagnostic buffers written by direct renders.
+  inline const DiagnosticOutputBuffers& diagnosticOutputBuffers() const {
+    return m_diagnosticOutputBuffers;
+  }
+
+  /// Attaches borrowed diagnostic buffers. Buffers must outlive the render.
+  inline void setDiagnosticOutputBuffers(DiagnosticOutputBuffers buffers) {
+    m_diagnosticOutputBuffers = buffers;
+  }
+
+  /// Stops writing diagnostic pass outputs.
+  inline void clearDiagnosticOutputBuffers() {
+    m_diagnosticOutputBuffers = DiagnosticOutputBuffers();
+  }
+
   // `backgroundColor()`, `setBackgroundColor`, `clearBackgroundColor`,
   // and `hasBackgroundColorOverride` are inherited from `render::RenderEngine`.
   // The Rasterizer uses the default fallback: when no override is set,
@@ -648,6 +697,7 @@ private:
   StencilOp m_stencilPassOp{StencilOp::Keep};
   VertexShader m_vertexShader;
   FragmentShader m_fragmentShader;
+  DiagnosticOutputBuffers m_diagnosticOutputBuffers;
 };
 
 }  // namespace engine::raster

@@ -16,6 +16,8 @@
 #include "render/textures/Texture.h"
 
 #include <cmath>
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <utility>
 
@@ -40,6 +42,12 @@ namespace RasterizerTest {
     Colord evaluate(const Rayd&, const HitPoint& hitPoint) const override {
       return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
     }
+  };
+
+  struct TrackedTriangleScene {
+    std::shared_ptr<Scene> scene;
+    std::shared_ptr<Triangle> triangle;
+    std::shared_ptr<MatteMaterial> material;
   };
 
   // Counter helper — total pixels in the buffer matching `color`.
@@ -104,6 +112,18 @@ namespace RasterizerTest {
     scene->add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
     return scene;
+  }
+
+  static TrackedTriangleScene sceneWithTrackedFrontFacingTriangle() {
+    TrackedTriangleScene result;
+    result.scene = std::make_shared<Scene>(Colord::white());
+    result.triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0));
+    result.material = std::make_shared<MatteMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.5, 0.75)));
+    result.triangle->setMaterial(result.material);
+    result.scene->add(result.triangle);
+    return result;
   }
 
   static std::shared_ptr<Scene>
@@ -450,6 +470,12 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
     EXPECT_EQ(0, engine.shadowFilterRadius());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCF, engine.shadowFilterMode());
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().depth);
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().normal);
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().primitive);
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().material);
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().face);
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().stencil);
   }
 
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
@@ -459,6 +485,10 @@ namespace RasterizerTest {
     engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
     engine.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
+    Buffer<double> depth(1, 1);
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.depth = &depth;
+    engine.setDiagnosticOutputBuffers(outputs);
 
     auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
 
@@ -468,6 +498,81 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
     EXPECT_EQ(3, clone->shadowCascadeCount());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, clone->shadowFilterMode());
+    EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
+  }
+
+  TEST(Rasterizer, DiagnosticOutputBuffersCapturePassingFragmentData) {
+    auto tracked = sceneWithTrackedFrontFacingTriangle();
+    Rasterizer engine(headOnCamera(), tracked.scene);
+    engine.setStencilTestEnabled(true);
+    engine.setStencilFunc(Rasterizer::StencilFunc::Always, 7);
+    engine.setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
+                         Rasterizer::StencilOp::Replace);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    Buffer<Vector3d> normal(64, 64);
+    Buffer<const Primitive*> primitive(64, 64);
+    Buffer<const Material*> material(64, 64);
+    Buffer<std::uint64_t> face(64, 64);
+    Buffer<std::uint8_t> stencil(64, 64);
+
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.depth = &depth;
+    outputs.normal = &normal;
+    outputs.primitive = &primitive;
+    outputs.material = &material;
+    outputs.face = &face;
+    outputs.stencil = &stencil;
+    engine.setDiagnosticOutputBuffers(outputs);
+
+    engine.render(color);
+
+    EXPECT_EQ(engine.depthClearValue(), depth[0][0]);
+    EXPECT_TRUE(normal[0][0].isUndefined());
+    EXPECT_EQ(nullptr, primitive[0][0]);
+    EXPECT_EQ(nullptr, material[0][0]);
+    EXPECT_EQ(std::numeric_limits<std::uint64_t>::max(), face[0][0]);
+    EXPECT_EQ(0, stencil[0][0]);
+
+    EXPECT_TRUE(std::isfinite(depth[32][32]));
+    EXPECT_GT(depth[32][32], 0.0);
+    EXPECT_NEAR(1.0, normal[32][32].length(), 1e-9);
+    EXPECT_EQ(tracked.triangle.get(), primitive[32][32]);
+    EXPECT_EQ(tracked.material.get(), material[32][32]);
+    EXPECT_EQ(0u, face[32][32]);
+    EXPECT_EQ(7, stencil[32][32]);
+  }
+
+  TEST(Rasterizer, DiagnosticOutputBuffersIgnoreMismatchedBuffers) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(32, 32);
+    depth.clear(123.0);
+
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.depth = &depth;
+    engine.setDiagnosticOutputBuffers(outputs);
+
+    engine.render(color);
+
+    EXPECT_DOUBLE_EQ(123.0, depth[16][16]);
+  }
+
+  TEST(Rasterizer, ClearDiagnosticOutputBuffersStopsWrites) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    depth.clear(123.0);
+
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.depth = &depth;
+    engine.setDiagnosticOutputBuffers(outputs);
+    engine.clearDiagnosticOutputBuffers();
+
+    engine.render(color);
+
+    EXPECT_DOUBLE_EQ(123.0, depth[32][32]);
   }
 
   TEST(Rasterizer, ShadowCascadeCountClampsToSupportedRange) {

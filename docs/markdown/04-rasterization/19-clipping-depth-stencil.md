@@ -185,6 +185,19 @@ The widget covers these states alongside the cull mode:
 
 <!-- widget: rasterizer_depth_stencil_cull -->
 
+The same pass can expose its resolved per-pixel state through
+`Rasterizer::DiagnosticOutputBuffers`. A caller may attach borrowed
+buffers for depth, normalized surface normal, primitive pointer,
+material pointer, face id, and stencil value. The rasterizer clears
+those same-size buffers at render start and writes them from the
+fragment path that passes the configured stencil and depth tests. The
+buffers are diagnostics rather than part of a general render graph:
+they inspect the current software-raster pass directly and do not
+change how color is shaded. With MSAA enabled, a pixel can have
+several passing subpixel samples; the diagnostic value is the last
+passing sample processed for that pixel, so 1x rendering is the exact
+inspection mode.
+
 ## 19.4 The stencil buffer
 
 The Z-buffer answers *which fragment is closest at this pixel*.

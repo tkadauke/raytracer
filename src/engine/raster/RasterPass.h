@@ -150,6 +150,9 @@ namespace engine::raster::detail {
     inline bool pass(int, int) const {
       return true;
     }
+    inline std::uint8_t value(int, int) const {
+      return 0;
+    }
     inline void onStencilFail(int, int) const {
     }
     inline void onDepthFail(int, int) const {
@@ -167,6 +170,10 @@ namespace engine::raster::detail {
 
     inline bool pass(int x, int y) const {
       return state.pass(stencilBuffer.at(x, y));
+    }
+
+    inline std::uint8_t value(int x, int y) const {
+      return stencilBuffer.at(x, y);
     }
 
     inline void onStencilFail(int x, int y) const {
@@ -255,11 +262,12 @@ namespace engine::raster::detail {
     }
   };
 
-  template<class ColorBuffer, class Stencil, class Depth, class Fragment>
+  template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizePreparedTriangleWithPolicies(const RasterTriangle& triangle,
                                                     const Recti& clipRect, ColorBuffer colorBuffer,
                                                     const Vector2d& sampleOffset, Stencil stencil,
-                                                    Depth depth, Fragment fragmentPolicy) {
+                                                    Depth depth, Fragment fragmentPolicy,
+                                                    Diagnostics diagnostics) {
     const RasterVertex& v0 = triangle.vertices[0];
     const RasterVertex& v1 = triangle.vertices[1];
     const RasterVertex& v2 = triangle.vertices[2];
@@ -273,57 +281,64 @@ namespace engine::raster::detail {
       [&](int x, int y, double w0b, double w1b, double w2b) {
         if (!stencil.pass(x, y)) {
           stencil.onStencilFail(x, y);
+          diagnostics.writeStencil(x, y, stencil.value(x, y));
           return;
         }
 
         const InterpolatedFragment fragment(v0, v1, v2, w0b, w1b, w2b);
         if (!depth.pass(x, y, fragment.depth)) {
           stencil.onDepthFail(x, y);
+          diagnostics.writeStencil(x, y, stencil.value(x, y));
           return;
         }
 
         stencil.onPass(x, y);
+        diagnostics.writeStencil(x, y, stencil.value(x, y));
         const Colord shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         depth.write(x, y, fragment.depth);
         colorBuffer.at(x, y) = shaded;
+        diagnostics.writeFragment(triangle, x, y, fragment);
       });
   }
 
-  template<class ColorBuffer, class Stencil, class Depth, class Fragment>
+  template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizeTileWithPolicies(const RasterTriangleSet& triangleSet, const Recti& rect,
                                         std::size_t tileIndex, ColorBuffer colorBuffer,
                                         const Vector2d& sampleOffset,
                                         const std::atomic<bool>& cancelled, Stencil stencil,
-                                        Depth depth, Fragment fragmentPolicy) {
+                                        Depth depth, Fragment fragmentPolicy,
+                                        Diagnostics diagnostics) {
     const auto& triangles = triangleSet.triangles();
     const auto& triangleIndices = triangleSet.tileGrid().triangleIndices(tileIndex);
     for (const std::size_t triangleIndex : triangleIndices) {
       if (cancelled.load())
         return;
       rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rect, colorBuffer,
-                                            sampleOffset, stencil, depth, fragmentPolicy);
+                                            sampleOffset, stencil, depth, fragmentPolicy,
+                                            diagnostics);
     }
   }
 
-  template<class ColorBuffer, class Stencil, class Depth, class Fragment>
+  template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizeTriangleSetWithPolicies(
     const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
     std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, const std::atomic<bool>& cancelled,
     ColorBuffer colorBuffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
-    Fragment fragmentPolicy) {
+    Fragment fragmentPolicy, Diagnostics diagnostics) {
     if (tilePlan.isSingleTile()) {
       // Avoid QRunnable overhead for the common single-tile path.
       rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, colorBuffer, sampleOffset,
-                                cancelled, stencil, depth, fragmentPolicy);
+                                cancelled, stencil, depth, fragmentPolicy, diagnostics);
       return;
     }
 
-    engine::dispatchTileTasks(
-      tilePlan, threadPool, tasks,
-      [&, sampleOffset, stencil, depth, fragmentPolicy](const Recti& rect, std::size_t tileIndex) {
-        rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer, sampleOffset,
-                                  cancelled, stencil, depth, fragmentPolicy);
-      });
+    engine::dispatchTileTasks(tilePlan, threadPool, tasks,
+                              [&, sampleOffset, stencil, depth, fragmentPolicy,
+                               diagnostics](const Recti& rect, std::size_t tileIndex) {
+                                rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer,
+                                                          sampleOffset, cancelled, stencil, depth,
+                                                          fragmentPolicy, diagnostics);
+                              });
   }
 
   template<class DepthBuffer, class Stencil, class Fragment, class RenderFn>

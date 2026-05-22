@@ -143,14 +143,18 @@ interval limits.
 
 ### 5. Add raster pass outputs for diagnostics and Modeler workflows
 
-Introduce a small output-resource surface before larger render-graph work:
+Status: completed. `Rasterizer::DiagnosticOutputBuffers` is a local
+borrowed-buffer surface for direct raster renders. Same-size output buffers are
+cleared at render start and populated from the fragment path after stencil and
+depth tests decide the committed pass state. The surface is deliberately not
+copied through `cloneForRender()`; GUI snapshot resources belong in the later
+render-pass resource contract. MSAA diagnostics report the last passing subpixel
+sample for each pixel, so exact per-pixel inspection uses 1x rendering.
 
-- depth buffer export;
-- normal buffer export;
-- object/material ID buffer for picking and debug views;
-- optional stencil/depth inspection images for tests and documentation.
-
-Keep this local to the rasterizer until the broader `RenderPass` contract exists.
+- ✅ depth buffer export;
+- ✅ normal buffer export;
+- ✅ primitive/material/face ID buffers for picking and debug views;
+- ✅ stencil value export for depth/stencil inspection tests.
 
 ### 6. Improve shadow-map implementation quality
 

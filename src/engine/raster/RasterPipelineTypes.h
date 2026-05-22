@@ -170,6 +170,43 @@ namespace engine::raster::detail {
     std::uint64_t faceIdx;
   };
 
+  // Borrowed full-frame outputs used by diagnostics and picking experiments.
+  // They mirror the committed raster pass results without owning storage or
+  // changing the color/depth/stencil buffer lifetime of the normal pass.
+  struct RasterDiagnosticBufferViews {
+    RasterFullBufferView<double> depth;
+    RasterFullBufferView<Vector3d> normal;
+    RasterFullBufferView<const render::Primitive*> primitive;
+    RasterFullBufferView<const render::Material*> material;
+    RasterFullBufferView<std::uint64_t> face;
+    RasterFullBufferView<std::uint8_t> stencil;
+
+    void writeStencil(int x, int y, std::uint8_t value) const {
+      if (stencil.isValid()) {
+        stencil.at(x, y) = value;
+      }
+    }
+
+    void writeFragment(const RasterTriangle& triangle, int x, int y,
+                       const InterpolatedFragment& fragment) const {
+      if (depth.isValid()) {
+        depth.at(x, y) = fragment.depth;
+      }
+      if (normal.isValid()) {
+        normal.at(x, y) = fragment.normal.normalized();
+      }
+      if (primitive.isValid()) {
+        primitive.at(x, y) = triangle.primitive;
+      }
+      if (material.isValid()) {
+        material.at(x, y) = triangle.material.get();
+      }
+      if (face.isValid()) {
+        face.at(x, y) = triangle.faceIdx;
+      }
+    }
+  };
+
   // Per-frame tile binning structure. The tile plan defines disjoint pixel
   // rectangles; this grid records which prepared triangle indices may touch
   // each rectangle so worker tasks can render without locking shared pixels.

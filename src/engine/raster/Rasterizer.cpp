@@ -109,6 +109,7 @@ namespace {
   using engine::raster::detail::MSAATileScratch;
   using engine::raster::detail::NoStencilPolicy;
   using engine::raster::detail::PassBuffers;
+  using engine::raster::detail::RasterDiagnosticBufferViews;
   using engine::raster::detail::RasterFullBufferView;
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
   using engine::raster::detail::rasterizeTileWithPolicies;
@@ -123,6 +124,47 @@ namespace {
   using engine::raster::detail::tileBufferView;
   using engine::raster::detail::viewDepthRange;
   using engine::raster::detail::withPreparedTrianglePolicies;
+
+  template<class T>
+  bool bufferMatches(const Buffer<T>* buffer, int width, int height) {
+    return buffer && buffer->width() == width && buffer->height() == height;
+  }
+
+  template<class T>
+  RasterFullBufferView<T> diagnosticView(Buffer<T>* buffer, int width, int height) {
+    if (!bufferMatches(buffer, width, height))
+      return RasterFullBufferView<T>();
+    return fullBufferView(*buffer);
+  }
+
+  RasterDiagnosticBufferViews diagnosticViews(const Rasterizer& rasterizer, int width, int height) {
+    const auto& outputs = rasterizer.diagnosticOutputBuffers();
+    return {diagnosticView(outputs.depth, width, height),
+            diagnosticView(outputs.normal, width, height),
+            diagnosticView(outputs.primitive, width, height),
+            diagnosticView(outputs.material, width, height),
+            diagnosticView(outputs.face, width, height),
+            diagnosticView(outputs.stencil, width, height)};
+  }
+
+  template<class T>
+  void clearDiagnosticBuffer(Buffer<T>* buffer, int width, int height, const T& value) {
+    if (bufferMatches(buffer, width, height)) {
+      buffer->clear(value);
+    }
+  }
+
+  void clearDiagnosticOutputsForRender(const Rasterizer& rasterizer, int width, int height) {
+    const auto& outputs = rasterizer.diagnosticOutputBuffers();
+    clearDiagnosticBuffer(outputs.depth, width, height, rasterizer.depthClearValue());
+    clearDiagnosticBuffer(outputs.normal, width, height, Vector3d::undefined);
+    clearDiagnosticBuffer(outputs.primitive, width, height,
+                          static_cast<const render::Primitive*>(nullptr));
+    clearDiagnosticBuffer(outputs.material, width, height,
+                          static_cast<const render::Material*>(nullptr));
+    clearDiagnosticBuffer(outputs.face, width, height, std::numeric_limits<std::uint64_t>::max());
+    clearDiagnosticBuffer(outputs.stencil, width, height, rasterizer.stencilClearValue());
+  }
 }
 
 // Pimpl: hides Qt threading and render-pass orchestration from the
@@ -295,6 +337,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   // Clear to the configured background before depth-tested fragments overwrite it.
   buffer.clear(backgroundColor());
+  clearDiagnosticOutputsForRender(*this, buffer.width(), buffer.height());
 
   if (!m_scene || !m_camera)
     return;
@@ -384,7 +427,7 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
           fullBufferView(scratch), Vector2d(0.0, 0.0), NoStencilPolicy{},
           DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(*depthBuffer),
                                                          DepthState{Rasterizer::DepthFunc::Less}},
-          DepthOnlyFragmentPolicy{});
+          DepthOnlyFragmentPolicy{}, RasterDiagnosticBufferViews{});
       }
 
       cascades.push_back(
@@ -413,12 +456,14 @@ void Rasterizer::Private::renderTriangleSetPass(
   if (passBuffers.stencil()) {
     stencilView = fullBufferView(*passBuffers.stencil());
   }
+  const RasterDiagnosticBufferViews diagnostics =
+    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
   withPreparedTrianglePolicies(
     scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
     [&](auto stencil, auto depth, auto fragmentPolicy) {
       rasterizeTriangleSetWithPolicies(triangleSet, tilePlan, *threadPool, tasks, cancelled,
                                        fullBufferView(passBuffers.color()), sampleOffset, stencil,
-                                       depth, fragmentPolicy);
+                                       depth, fragmentPolicy, diagnostics);
     });
 }
 
@@ -437,6 +482,8 @@ void Rasterizer::Private::renderTriangleStreamPass(
   if (passBuffers.stencil()) {
     stencilView = fullBufferView(*passBuffers.stencil());
   }
+  const RasterDiagnosticBufferViews diagnostics =
+    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
 
   const Recti clipRect = tilePlan.fullRect();
   withPreparedTrianglePolicies(
@@ -446,7 +493,7 @@ void Rasterizer::Private::renderTriangleStreamPass(
         if (cancelled.load())
           return;
         rasterizePreparedTriangleWithPolicies(triangle, clipRect, colorView, sampleOffset, stencil,
-                                              depth, fragmentPolicy);
+                                              depth, fragmentPolicy, diagnostics);
       });
     });
 }
@@ -540,13 +587,15 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     if (scratch.stencil()) {
       stencilView = tileBufferView(*scratch.stencil(), rect);
     }
+    const RasterDiagnosticBufferViews diagnostics =
+      diagnosticViews(rasterizer, buffer.width(), buffer.height());
 
     withPreparedTrianglePolicies(
       scene.get(), rasterizer, shadowMaps, tileBufferView(scratch.depth(), rect), stencilView,
       [&](auto stencil, auto depth, auto fragmentPolicy) {
         rasterizeTileWithPolicies(
           triangleSet, rect, tileIndex, tileBufferView(scratch.sampleColor(), rect),
-          pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy);
+          pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy, diagnostics);
       });
 
     if (cancelled.load())
