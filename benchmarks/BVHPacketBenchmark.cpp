@@ -74,7 +74,12 @@ namespace {
   // cache reuse at internal nodes and active-mask density at leaf nodes.
 
   struct CoherentGroup {
-    std::array<Rayd, 4> rays;
+    std::array<Rayd, 4> rays{
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward())
+    };
   };
 
   std::vector<CoherentGroup> generateCoherentGroups(int numGroups) {
@@ -119,7 +124,12 @@ namespace {
   // doing four separate scalar traversals.
 
   struct IncoherentGroup {
-    std::array<Rayd, 4> rays;
+    std::array<Rayd, 4> rays{
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward())
+    };
   };
 
   std::vector<IncoherentGroup> generateIncoherentGroups(int numGroups) {
@@ -175,7 +185,7 @@ namespace {
       int hits = 0;
       for (const auto& group : groups) {
         State traceState;
-        const auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
+        auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
         hits += countBits(result.hitMask);
         benchmark::DoNotOptimize(result);
       }
@@ -213,7 +223,7 @@ namespace {
       int hits = 0;
       for (const auto& group : groups) {
         State traceState;
-        const auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
+        auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
         hits += countBits(result.hitMask);
         benchmark::DoNotOptimize(result);
       }
@@ -255,7 +265,7 @@ namespace {
       int hits = 0;
       for (const auto& group : groups) {
         State traceState;
-        const auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
+        auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
         hits += countBits(result.hitMask);
         benchmark::DoNotOptimize(result);
       }
@@ -269,7 +279,16 @@ namespace {
   // ── Ray8 benchmarks (AVX only) ──────────────────────────────────────────
 
   struct CoherentGroup8 {
-    std::array<Rayd, 8> rays;
+    std::array<Rayd, 8> rays{
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward())
+    };
   };
 
   std::vector<CoherentGroup8> generateCoherentGroups8(int numGroups) {
@@ -336,7 +355,7 @@ namespace {
       int hits = 0;
       for (const auto& group : groups) {
         State traceState;
-        const auto result = bvh->intersectPacket(toRay8(group.rays), traceState);
+        auto result = bvh->intersectPacket(toRay8(group.rays), traceState);
         hits += countBits(result.hitMask);
         benchmark::DoNotOptimize(result);
       }
