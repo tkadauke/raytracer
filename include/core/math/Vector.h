@@ -89,6 +89,17 @@ public:
   }
 
   /**
+    * @returns the all-zero vector \f$(0,\ldots,0)\f$.
+    */
+  [[nodiscard]] inline static constexpr VectorType zero() noexcept {
+    VectorType result;
+    for (int i = 0; i != Dimensions; ++i) {
+      result[i] = T();
+    }
+    return result;
+  }
+
+  /**
     * Constructs a vector component wise from the given array. The array's size
     * must be exactly the same as the dimensions of the vector.
     */
@@ -371,6 +382,18 @@ public:
     */
   [[nodiscard]] inline VectorType normalized() const {
     return derived() / length();
+  }
+
+  /**
+    * @returns the normalized vector, or zero() when its length is no larger
+    * than tolerance.
+    */
+  [[nodiscard]] inline VectorType normalizedOrZero(const T& tolerance) const {
+    const T len = length();
+    if (len <= tolerance) {
+      return zero();
+    }
+    return derived() / len;
   }
 
   /**
