@@ -1044,6 +1044,21 @@ namespace Matrix4Test {
     ASSERT_EQ(expected, matrix.inverted());
   }
 
+  TYPED_TEST(Matrix4Test, ShouldInvertAffineTransformWithNearSingularDBlock) {
+    // A 90° X rotation leaves cos(x) as a tiny floating-point value, not
+    // always exact zero. The block inverse must treat that pivot as singular;
+    // otherwise transformed instances such as rotated tori get a corrupted
+    // world-to-local matrix.
+    const TypeParam halfPi = std::acos(TypeParam(-1)) / TypeParam(2);
+    Matrix4<TypeParam> matrix =
+      Matrix4<TypeParam>::translate(TypeParam(1.15), TypeParam(0.15), TypeParam(-0.15)) *
+      Matrix3<TypeParam>::rotate(Vector3<TypeParam>(halfPi, TypeParam(0.2), TypeParam(0))) *
+      Matrix3<TypeParam>::scale(TypeParam(0.45), TypeParam(0.45), TypeParam(0.45));
+
+    Matrix4<TypeParam> identity;
+    ASSERT_MATRIX_NEAR(identity, matrix * matrix.inverted(), TypeParam(0.0001));
+  }
+
   // Numerical-stability battery: verify ||M·M^{-1} - I|| stays tight.
   // These exercise the block-inverse path against well-conditioned and
   // near-singular inputs.

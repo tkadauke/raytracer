@@ -1551,7 +1551,11 @@ Matrix4<T> Matrix4<T>::inverted() const {
 
   // D^{-1} (bottom-right 2×2 block)
   const T det_d = d00 * d11 - d01 * d10;
-  if (det_d == T()) {
+  const T d_scale = std::max(
+    {std::abs(d00), std::abs(d01), std::abs(d10), std::abs(d11), T(1)}
+  );
+  const T near_singular_d = std::numeric_limits<T>::epsilon() * d_scale * d_scale * T(16);
+  if (std::abs(det_d) <= near_singular_d) {
     // D is singular — fall back to adjugate / determinant (cofactor expansion).
     const T det = determinant();
     if (det == T())
