@@ -85,11 +85,13 @@ Status: started. The shared raster vocabulary now lives in
 clipping / culling front end now lives in
 `src/engine/raster/RasterTriangleEmitter.h`. Directional shadow-map cameras,
 cascades, filtering, and visibility queries now live in
-`src/engine/raster/RasterShadowMaps.h`. `Rasterizer.cpp` still owns pass policy
-dispatch, MSAA orchestration, shadow-map depth-pass construction, and frame
-setup. Raster material adaptation and the built-in Lambertian evaluator now live
-in `src/engine/raster/RasterMaterial.h` and
-`src/engine/raster/RasterMaterialEvaluator.h`.
+`src/engine/raster/RasterShadowMaps.h`. `Rasterizer.cpp` still owns MSAA
+orchestration, shadow-map depth-pass construction, and frame setup. Raster
+material adaptation and the built-in Lambertian evaluator now live in
+`src/engine/raster/RasterMaterial.h` and
+`src/engine/raster/RasterMaterialEvaluator.h`. Pass-owned buffers, depth/stencil
+state and policies, fragment policies, and tile/full-frame draw helpers now live
+in `src/engine/raster/RasterPass.h`.
 
 Extract internal files without changing public behavior:
 
@@ -99,8 +101,8 @@ Extract internal files without changing public behavior:
   stabilization, filtering, and visibility queries.
 - ✅ `RasterMaterial` — fallback colors, matte/texture adaptation, and the
   built-in Lambertian evaluator.
-- `RasterPass` — pass buffers, tile/full-buffer views, depth/stencil policies,
-  fragment policies, and depth-only pass support.
+- ✅ `RasterPass` — pass buffers, tile/full-buffer views, depth/stencil
+  policies, fragment policies, and depth-only pass support.
 - `RasterMSAA` — sample patterns, sample offsets, scratch storage, accumulation,
   and resolve.
 

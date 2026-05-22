@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace engine::raster::detail {
@@ -91,11 +92,11 @@ namespace engine::raster::detail {
   // streams prepared RasterTriangle values to the caller.
   class RasterTriangleEmitter {
   public:
-    RasterTriangleEmitter(const render::Scene* scene, const std::shared_ptr<render::Camera>& camera,
+    RasterTriangleEmitter(const render::Scene* scene, std::shared_ptr<render::Camera> camera,
                           int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled,
                           Rasterizer::CullMode cullMode, bool applyVertexShader)
         : m_scene(scene),
-          m_camera(camera),
+          m_camera(std::move(camera)),
           m_lod(lod),
           m_rasterizer(rasterizer),
           m_cullPolicy{cullMode},
@@ -277,7 +278,7 @@ namespace engine::raster::detail {
     }
 
     const render::Scene* m_scene;
-    const std::shared_ptr<render::Camera>& m_camera;
+    std::shared_ptr<render::Camera> m_camera;
     int m_lod;
     const Rasterizer& m_rasterizer;
     TriangleCullPolicy m_cullPolicy;
