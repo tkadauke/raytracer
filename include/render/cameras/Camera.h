@@ -126,7 +126,8 @@ namespace render {
       * buffer directly.
       */
     void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer) const;
-    virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer, const Rect<int>& rect) const;
+    virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
+                        const Rect<int>& rect) const;
 
     /**
       * Render into a packed-RGB display buffer with inline
@@ -250,9 +251,9 @@ namespace render {
 
     /**
       * Eye-relative depth scalar for the world-space point — positive
-      * in front of the camera's near plane, negative behind it. Used
-      * by the software rasterizer's Sutherland-Hodgman clipper to
-      * trim triangles straddling the near plane (otherwise such
+      * in front of the camera, negative behind it. Used by the
+      * software rasterizer's Sutherland-Hodgman clipper to trim
+      * triangles straddling the configured near/far planes (otherwise such
       * triangles get dropped entirely, since `projectPointWithDepth`
       * returns undefined for behind-eye points).
       *
@@ -298,14 +299,16 @@ namespace render {
     /// pixel of the iterator's footprint — single pixel for the
     /// regular iterator, the size×size block for interlaced
     /// iterators that haven't refined yet.
-    void plot(Buffer<Colord>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, const Colord& color) const;
+    void plot(Buffer<Colord>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel,
+              const Colord& color) const;
 
     /// LDR variant — writes a packed-RGB pixel value (the result of
     /// `tonemap->apply(color).rgb()` from the LDR camera path). The
     /// footprint logic matches `plot(Buffer<Colord>&, ...)` so
     /// interlaced iterators show the same coarse-then-refine
     /// progression in either output buffer.
-    void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, unsigned int rgb) const;
+    void plotRGB(Buffer<unsigned int>& buffer, const Recti& rect,
+                 const render::ViewPlane::Iterator& pixel, unsigned int rgb) const;
 
   private:
     std::atomic<bool> m_cancelled;

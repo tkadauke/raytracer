@@ -305,10 +305,11 @@ namespace engine::raster::detail {
   };
 
   // Compute the scene-bound depth interval visible to the main camera. Cascades
-  // subdivide this interval; invalid or behind-camera bounds fall back to the
-  // near clip depth so the shadow builder still has a finite range.
+  // subdivide this interval; invalid or clipped-away bounds fall back to the
+  // configured clip range so the shadow builder still has a finite range.
   inline std::pair<double, double> viewDepthRange(const render::Camera& camera,
-                                                  const std::array<Vector3d, 8>& corners) {
+                                                  const std::array<Vector3d, 8>& corners,
+                                                  double nearClipDepth, double farClipDepth) {
     double minDepth = std::numeric_limits<double>::infinity();
     double maxDepth = 0.0;
 
@@ -316,14 +317,17 @@ namespace engine::raster::detail {
       const double depth = camera.eyeRelativeDepth(corner);
       if (!std::isfinite(depth))
         continue;
-      if (depth > kNearClipDepth) {
+      if (depth > nearClipDepth && depth < farClipDepth) {
         minDepth = std::min(minDepth, depth);
         maxDepth = std::max(maxDepth, depth);
       }
     }
 
-    if (!std::isfinite(minDepth) || maxDepth <= minDepth)
-      return {kNearClipDepth, std::max(kNearClipDepth * 2.0, maxDepth)};
+    if (!std::isfinite(minDepth) || maxDepth <= minDepth) {
+      const double fallbackMax =
+        std::isfinite(farClipDepth) ? farClipDepth : std::max(nearClipDepth * 2.0, maxDepth);
+      return {nearClipDepth, fallbackMax};
+    }
 
     return {minDepth, maxDepth};
   }

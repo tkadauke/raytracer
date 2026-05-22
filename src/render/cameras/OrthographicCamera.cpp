@@ -37,7 +37,7 @@ Vector2d OrthographicCamera::projectPoint(const Vector3d& worldPoint) const {
   double lx = pCam.x() / pxSize;
   double ly = pCam.y() / pxSize;
   const Recti& inner = plane->innerRect();
-  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double x = (lx + halfH) * inner.width() / plane->hSpan() + inner.left();
   double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   return Vector2d(x, y);
 }
@@ -57,7 +57,7 @@ Vector3d OrthographicCamera::projectPointWithDepth(const Vector3d& worldPoint) c
   double lx = pCam.x() / pxSize;
   double ly = pCam.y() / pxSize;
   const Recti& inner = plane->innerRect();
-  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double x = (lx + halfH) * inner.width() / plane->hSpan() + inner.left();
   double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   // For orthographic projection, depth IS the camera-space z; no
   // m_distance offset since there's no perspective eye point. The
@@ -79,7 +79,7 @@ Vector4d OrthographicCamera::projectPointToClipSpace(const Vector3d& worldPoint)
 
   const Vector4d v = projectionMatrix() * Vector4d(pCam.x(), pCam.y(), pCam.z(), 1.0);
   // Use camera-space z for the depth component: the rasterizer's
-  // HomogeneousClipVolume near test and depth buffer use it directly in
+  // HomogeneousClipVolume depth planes and depth buffer use it directly in
   // eye-space units rather than the NDC z the orthographic factory produces.
   return Vector4d(v.x(), v.y(), pCam.z(), 1.0);
 }

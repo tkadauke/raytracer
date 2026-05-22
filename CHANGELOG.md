@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rasterizer near/far clip-depth controls.** `Rasterizer` now exposes configurable eye-relative near and far clip depths; the near plane defaults to 0.1, the far plane defaults to infinity, and finite far depths clip geometry before perspective divide just like the near and viewport planes. — GPT-5
 - **Additional animated scene fixtures.** Five reusable scene JSON files now cover camera panning, directional-light sweeps, material/background color fades, motion-blur velocity changes, and step-interpolated visibility toggles. The rendercli animation smoke test renders their first and last frames to keep the fixtures loadable. — GPT-5
 - **Modeler timeline preview controls.** Scenes with a top-level `animation` block now enable a read-only Timeline dock with a frame slider and spinbox. The central preview and render dialog evaluate a copied scene at the selected frame, while the property editor continues editing the base authoring scene. — GPT-5
 - **`rendercli --animation` image sequences.** `rendercli` can now render a scene timeline to numbered image files using a printf-style output pattern, with optional `--frame_start`, `--frame_end`, and `--fps` overrides. The CLI reports per-frame progress and rejects missing frame placeholders, invalid ranges, static scenes, and ambiguous `--animation` combinations. — GPT-5

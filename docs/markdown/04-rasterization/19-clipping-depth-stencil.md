@@ -88,12 +88,24 @@ options exist:
 The codebase uses option 2. The clip planes live in
 [`include/render/HomogeneousClipVolume.h`](../../../include/render/HomogeneousClipVolume.h)
 as the `HomogeneousClipPlane` family — `Near`, `Left`,
-`Right`, `Top`, `Bottom` — each defined by a linear inequality
+`Right`, `Top`, `Bottom`, `Far` — each defined by a linear inequality
 over $(x, y, z, w)$. The clipping routine walks the polygon's
 edges and tests each vertex's signed distance to the plane:
 positive means inside, negative means outside. When the sign
 changes between consecutive vertices, the routine computes the
 intersection point by linearly interpolating along the edge.
+
+The depth planes use the rasterizer's eye-relative depth
+convention. `Rasterizer::nearClipDepth()` defaults to `0.1`.
+`Rasterizer::farClipDepth()` defaults to positive infinity, which
+disables far clipping; setting it to a finite value adds the far
+plane to the same homogeneous clipping step. Pinhole cameras
+measure these depths from the perspective eye. Orthographic
+cameras use camera-space `z`. These are rasterizer visibility
+planes, not raytracer ray interval limits: the raytracer still
+shoots rays according to its camera and primitive intersection
+rules, while the rasterizer clips projected triangles before it
+runs coverage, depth, and stencil tests.
 
 The widget shows the clipping with attributes interpolated
 along the way:

@@ -39,9 +39,9 @@ namespace engine::raster {
   *     clip volume.
   *  3. Triangulate the face (fan from vertex 0 — assumes convex
   *     faces, which the per-primitive tessellate impls guarantee).
-  *  4. Clip each triangle in homogeneous space against the near
-  *     plane and the four viewport edges before the perspective
-  *     divide.
+  *  4. Clip each triangle in homogeneous space against the configured
+  *     near/far depth interval and the four viewport edges before the
+  *     perspective divide.
   *  5. Rasterize each triangle via `core::rasterizeTriangle`. Projected
   *     screen coordinates stay fractional until the edge setup converts
   *     them to fixed-point subpixel values. For every pixel inside:
@@ -77,7 +77,7 @@ namespace engine::raster {
   * primitives with no usable diffuse texture still receive a stable
   * per-face fallback color so missing materials remain visible.
   *
-  * Triangles that straddle the near plane or viewport edge are
+  * Triangles that straddle the configured depth interval or viewport edge are
   * clipped in homogeneous space before projection so their visible
   * portion can still render without producing enormous post-divide
   * screen coordinates.
@@ -415,6 +415,22 @@ public:
   inline int msaaSamples() const { return m_msaaSamples; }
   void setMSAASamples(int samples);
 
+  /// Near clip depth in the rasterizer's eye-relative depth units.
+  /// Defaults to 0.1. Pinhole cameras measure this from the
+  /// perspective eye; orthographic cameras measure camera-space z.
+  /// Triangles straddling this depth are clipped before perspective
+  /// divide, rather than dropped wholesale.
+  inline double nearClipDepth() const { return m_nearClipDepth; }
+  void setNearClipDepth(double depth);
+
+  /// Far clip depth in the same eye-relative units as `nearClipDepth()`.
+  /// Defaults to positive infinity, which disables far-plane clipping.
+  /// Finite values clip geometry whose raster depth is greater than
+  /// this value.
+  inline double farClipDepth() const { return m_farClipDepth; }
+  void setFarClipDepth(double depth);
+  inline void clearFarClipDepth() { setFarClipDepth(std::numeric_limits<double>::infinity()); }
+
   /// Image-space anti-aliasing pass applied after the rasterizer has
   /// produced its float framebuffer. Defaults to `None`. FXAA is a cheap
   /// postprocess edge filter; unlike MSAA, it does not need extra coverage or
@@ -608,6 +624,8 @@ private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   int m_msaaSamples{1};
+  double m_nearClipDepth{0.1};
+  double m_farClipDepth{std::numeric_limits<double>::infinity()};
   PostProcessAA m_postProcessAA{PostProcessAA::None};
   bool m_shadowMapsEnabled{false};
   int m_shadowMapSize{256};

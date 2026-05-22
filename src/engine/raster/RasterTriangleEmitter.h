@@ -27,14 +27,6 @@ namespace engine::raster::detail {
   // fan-triangulates the surviving polygon back into RasterTriangle objects.
   using ClipPolygon = std::array<ClipVert, kMaxClipVertices>;
 
-  // Shared clip-volume instance for the raster front end. Keeping this as a
-  // helper makes outcode generation and full polygon clipping use the exact same
-  // near/viewport plane definitions.
-  inline const render::HomogeneousClipVolume& clipVolume() {
-    static const render::HomogeneousClipVolume volume(kNearClipDepth);
-    return volume;
-  }
-
   // Attribute interpolation callback used by HomogeneousClipVolume. Geometry is
   // clipped in homogeneous coordinates, but the attributes remain in primitive
   // space so the later perspective-correct stage starts from meaningful values.
@@ -52,9 +44,10 @@ namespace engine::raster::detail {
   // Clip one triangle against the rasterizer's homogeneous view volume. Fully
   // visible triangles skip this path in RasterTriangleEmitter; this helper is
   // only for mixed in/out cases.
-  inline std::size_t clipTriangleToView(const std::array<ClipVert, 3>& input,
+  inline std::size_t clipTriangleToView(const render::HomogeneousClipVolume& clipVolume,
+                                        const std::array<ClipVert, 3>& input,
                                         ClipPolygon& clipped) {
-    return clipVolume().clipTriangle(input, clipped, clipOf, interpolateClipVert);
+    return clipVolume.clipTriangle(input, clipped, clipOf, interpolateClipVert);
   }
 
   // Projected signed area used only for face-culling decisions. The winding sign
@@ -99,6 +92,7 @@ namespace engine::raster::detail {
           m_camera(std::move(camera)),
           m_lod(lod),
           m_rasterizer(rasterizer),
+          m_clipVolume(rasterizer.nearClipDepth(), rasterizer.farClipDepth()),
           m_cullPolicy{cullMode},
           m_applyVertexShader(applyVertexShader),
           m_cancelled(cancelled) {
@@ -127,7 +121,7 @@ namespace engine::raster::detail {
           for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
             const auto& vertex = vertices[vi];
             const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
-            const std::uint8_t outCode = clipVolume().outCode(clip);
+            const std::uint8_t outCode = m_clipVolume.outCode(clip);
             projected[vi] = {
               clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
               outCode};
@@ -179,7 +173,7 @@ namespace engine::raster::detail {
               }};
 
               ClipPolygon clipped;
-              const std::size_t clippedCount = clipTriangleToView(input, clipped);
+              const std::size_t clippedCount = clipTriangleToView(m_clipVolume, input, clipped);
               if (clippedCount < 3)
                 continue;
 
@@ -275,6 +269,7 @@ namespace engine::raster::detail {
     std::shared_ptr<render::Camera> m_camera;
     int m_lod;
     const Rasterizer& m_rasterizer;
+    render::HomogeneousClipVolume m_clipVolume;
     TriangleCullPolicy m_cullPolicy;
     bool m_applyVertexShader;
     const std::atomic<bool>& m_cancelled;

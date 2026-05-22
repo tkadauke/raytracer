@@ -32,6 +32,14 @@
 
 using namespace engine::raster;
 
+namespace {
+  constexpr double kMinimumRasterClipDepth = 1e-6;
+
+  double minimumFarClipDepth(double nearDepth) {
+    return std::nextafter(nearDepth, std::numeric_limits<double>::infinity());
+  }
+}
+
 // Rasterizer.cpp is organized as a software graphics pipeline:
 //
 //   Rasterizer::render()
@@ -197,6 +205,8 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);
   result->setMSAASamples(m_msaaSamples);
+  result->setNearClipDepth(m_nearClipDepth);
+  result->setFarClipDepth(m_farClipDepth);
   result->setPostProcessAA(m_postProcessAA);
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
   result->setShadowMapSize(m_shadowMapSize);
@@ -259,6 +269,22 @@ void Rasterizer::setMSAASamples(int samples) {
   }
 }
 
+void Rasterizer::setNearClipDepth(double depth) {
+  m_nearClipDepth =
+    std::isfinite(depth) ? std::max(kMinimumRasterClipDepth, depth) : kMinimumRasterClipDepth;
+  if (std::isfinite(m_farClipDepth) && m_farClipDepth <= m_nearClipDepth) {
+    m_farClipDepth = minimumFarClipDepth(m_nearClipDepth);
+  }
+}
+
+void Rasterizer::setFarClipDepth(double depth) {
+  if (!std::isfinite(depth)) {
+    m_farClipDepth = std::numeric_limits<double>::infinity();
+    return;
+  }
+  m_farClipDepth = std::max(depth, minimumFarClipDepth(m_nearClipDepth));
+}
+
 void Rasterizer::setShadowMapSize(int size) {
   m_shadowMapSize = std::max(1, size);
 }
@@ -310,7 +336,8 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
 
   const int size = rasterizer.shadowMapSize();
   const auto corners = bounds.vertices();
-  const auto [minViewDepth, maxViewDepth] = viewDepthRange(*camera, corners);
+  const auto [minViewDepth, maxViewDepth] =
+    viewDepthRange(*camera, corners, rasterizer.nearClipDepth(), rasterizer.farClipDepth());
   const auto cascadeDepths =
     cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount());
 

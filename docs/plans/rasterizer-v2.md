@@ -61,7 +61,6 @@ unit and becomes testable only through full-frame output.
 
 - Depth equality is exact. That is a reasonable minimal fixed-function rule, but
   multi-pass effects may need an explicit depth precision policy.
-- The near clip depth is hard-coded, and far-plane behavior is still undefined.
 - Built-in material shading is Lambertian-only. Phong/specular, alpha,
   transparency approximations, and richer texture inputs need explicit raster
   preview policy.
@@ -132,16 +131,15 @@ The focused tests cover:
 
 ### 4. Make clip-depth policy explicit
 
-Move near/far clipping out of hard-coded rasterizer constants:
+Status: completed. `Rasterizer` now carries explicit near and far clip-depth
+state. The near plane defaults to 0.1 eye-relative depth, the far plane defaults
+to infinity, finite far depths participate in homogeneous clipping, and clone /
+render tests pin the behavior.
 
-- expose near-depth semantics consistently with existing camera projection;
-- add deliberate far-plane behavior before enabling far-plane homogeneous
-  clipping;
-- document the difference between raytracer depth limits and rasterizer clip
-  planes.
-
-This carries forward the original far-plane follow-up from the roadmap and the
-near-plane issue found during implementation review.
+The textbook and API docs describe the unit convention: pinhole cameras measure
+depth from the perspective eye, orthographic cameras use camera-space z, and
+these clip depths are rasterizer visibility planes rather than raytracer ray
+interval limits.
 
 ### 5. Add raster pass outputs for diagnostics and Modeler workflows
 

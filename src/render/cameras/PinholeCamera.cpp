@@ -50,7 +50,7 @@ Vector2d PinholeCamera::projectPoint(const Vector3d& worldPoint) const {
   // For FitExact the renderable area is the inner rect; map to that
   // sub-rectangle and then offset into the full buffer.
   const Recti& inner = plane->innerRect();
-  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double x = (lx + halfH) * inner.width() / plane->hSpan() + inner.left();
   double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   return Vector2d(x, y);
 }
@@ -83,7 +83,7 @@ Vector3d PinholeCamera::projectPointWithDepth(const Vector3d& worldPoint) const 
   double ly = qyCam / pxSize;
 
   const Recti& inner = plane->innerRect();
-  double x = (lx + halfH) * inner.width()  / plane->hSpan() + inner.left();
+  double x = (lx + halfH) * inner.width() / plane->hSpan() + inner.left();
   double y = (ly + halfV) * inner.height() / plane->vSpan() + inner.top();
   return Vector3d(x, y, depth);
 }
@@ -104,7 +104,7 @@ Vector4d PinholeCamera::projectPointToClipSpace(const Vector3d& worldPoint) cons
   const double depth = pCam.z() + m_distance;
   const Vector4d v = projectionMatrix() * Vector4d(pCam.x(), pCam.y(), depth, 1.0);
   // Use raw eye depth for both z and w: the rasterizer's HomogeneousClipVolume
-  // near test and depth buffer operate in eye-space units, not NDC z.
+  // depth planes and depth buffer operate in eye-space units, not NDC z.
   return Vector4d(v.x(), v.y(), depth, depth);
 }
 

@@ -5,16 +5,21 @@
 #include <array>
 #include <cstdint>
 #include <cstddef>
+#include <limits>
 #include <utility>
 
 namespace render {
   class HomogeneousClipPlane {
   public:
-    enum Kind { Near, Left, Right, Top, Bottom };
+    // The rasterizer clips against eye-relative depth and the normalized
+    // viewport in one homogeneous pass before x/w and y/w are converted to
+    // pixels. A far depth of infinity makes the Far plane accept everything.
+    enum Kind { Near, Left, Right, Top, Bottom, Far };
 
-    constexpr HomogeneousClipPlane(Kind kind, double nearDepth)
+    constexpr HomogeneousClipPlane(Kind kind, double nearDepth, double farDepth)
         : m_kind(kind),
-          m_nearDepth(nearDepth) {
+          m_nearDepth(nearDepth),
+          m_farDepth(farDepth) {
     }
 
     constexpr std::uint8_t bit() const {
@@ -33,6 +38,8 @@ namespace render {
         return clip.y() + clip.w();
       case Bottom:
         return clip.w() - clip.y();
+      case Far:
+        return m_farDepth - clip.z();
       }
       return -1.0;
     }
@@ -44,20 +51,23 @@ namespace render {
   private:
     Kind m_kind;
     double m_nearDepth;
+    double m_farDepth;
   };
 
   class HomogeneousClipVolume {
   public:
-    explicit HomogeneousClipVolume(double nearDepth)
-        : m_planes({{HomogeneousClipPlane(HomogeneousClipPlane::Near, nearDepth),
-                     HomogeneousClipPlane(HomogeneousClipPlane::Left, nearDepth),
-                     HomogeneousClipPlane(HomogeneousClipPlane::Right, nearDepth),
-                     HomogeneousClipPlane(HomogeneousClipPlane::Top, nearDepth),
-                     HomogeneousClipPlane(HomogeneousClipPlane::Bottom, nearDepth)}}) {
+    explicit HomogeneousClipVolume(double nearDepth,
+                                   double farDepth = std::numeric_limits<double>::infinity())
+        : m_planes({{HomogeneousClipPlane(HomogeneousClipPlane::Near, nearDepth, farDepth),
+                     HomogeneousClipPlane(HomogeneousClipPlane::Left, nearDepth, farDepth),
+                     HomogeneousClipPlane(HomogeneousClipPlane::Right, nearDepth, farDepth),
+                     HomogeneousClipPlane(HomogeneousClipPlane::Top, nearDepth, farDepth),
+                     HomogeneousClipPlane(HomogeneousClipPlane::Bottom, nearDepth, farDepth),
+                     HomogeneousClipPlane(HomogeneousClipPlane::Far, nearDepth, farDepth)}}) {
     }
 
     static constexpr std::uint8_t allBits() {
-      return static_cast<std::uint8_t>((1u << 5) - 1u);
+      return static_cast<std::uint8_t>((1u << 6) - 1u);
     }
 
     std::uint8_t outCode(const Vector4d& clip) const {
@@ -76,9 +86,9 @@ namespace render {
 
     template<class Vertex, std::size_t MaxVertices, class ClipFn, class InterpolateFn>
     std::size_t clipTriangle(const std::array<Vertex, 3>& input,
-                             std::array<Vertex, MaxVertices>& clipped,
-                             ClipFn clipOf, InterpolateFn interpolate) const {
-      static_assert(MaxVertices >= 8, "clipped output must fit a triangle clipped by five planes");
+                             std::array<Vertex, MaxVertices>& clipped, ClipFn clipOf,
+                             InterpolateFn interpolate) const {
+      static_assert(MaxVertices >= 9, "clipped output must fit a triangle clipped by six planes");
 
       bool allInside = true;
       for (const HomogeneousClipPlane& plane : m_planes) {
@@ -128,10 +138,9 @@ namespace render {
   private:
     template<class Vertex, std::size_t MaxVertices, class ClipFn, class InterpolateFn>
     std::size_t clipPolygonAgainstPlane(const std::array<Vertex, MaxVertices>& input,
-                                        std::size_t inputCount,
-                                        const HomogeneousClipPlane& plane,
-                                        std::array<Vertex, MaxVertices>& output,
-                                        ClipFn clipOf, InterpolateFn interpolate) const {
+                                        std::size_t inputCount, const HomogeneousClipPlane& plane,
+                                        std::array<Vertex, MaxVertices>& output, ClipFn clipOf,
+                                        InterpolateFn interpolate) const {
       if (inputCount == 0)
         return 0;
 
@@ -161,6 +170,6 @@ namespace render {
       return outputCount;
     }
 
-    std::array<HomogeneousClipPlane, 5> m_planes;
+    std::array<HomogeneousClipPlane, 6> m_planes;
   };
 }

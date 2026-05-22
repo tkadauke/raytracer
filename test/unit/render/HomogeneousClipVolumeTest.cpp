@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 namespace HomogeneousClipVolumeTest {
@@ -42,7 +43,7 @@ namespace HomogeneousClipVolumeTest {
       {Vector4d(0.5, 0.0, 1.0, 1.0), 2.0},
       {Vector4d(0.0, 0.5, 1.0, 1.0), 3.0},
     }};
-    std::array<TestVertex, 8> clipped;
+    std::array<TestVertex, 16> clipped;
 
     const std::size_t count = volume.clipTriangle(input, clipped, clipOf, interpolate);
 
@@ -59,7 +60,7 @@ namespace HomogeneousClipVolumeTest {
       {Vector4d(0.0, 0.0, 1.0, 1.0), 2.0},
       {Vector4d(0.0, 0.5, 1.0, 1.0), 4.0},
     }};
-    std::array<TestVertex, 8> clipped;
+    std::array<TestVertex, 16> clipped;
 
     const std::size_t count = volume.clipTriangle(input, clipped, clipOf, interpolate);
 
@@ -75,5 +76,37 @@ namespace HomogeneousClipVolumeTest {
     ASSERT_EQ(2u, boundaryAttributes.size());
     EXPECT_DOUBLE_EQ(1.0, boundaryAttributes[0]);
     EXPECT_DOUBLE_EQ(2.0, boundaryAttributes[1]);
+  }
+
+  TEST(HomogeneousClipVolume, ShouldMarkFarClipPointOutside) {
+    HomogeneousClipVolume volume(0.1, 10.0);
+    const auto farBit = static_cast<std::uint8_t>(1u << HomogeneousClipPlane::Far);
+
+    ASSERT_EQ(farBit, volume.outCode(Vector4d(0.0, 0.0, 11.0, 1.0)));
+  }
+
+  TEST(HomogeneousClipVolume, ShouldClipTriangleAgainstFarPlane) {
+    HomogeneousClipVolume volume(0.1, 10.0);
+    const std::array<TestVertex, 3> input = {{
+      {Vector4d(0.0, 0.0, 9.0, 1.0), 0.0},
+      {Vector4d(0.5, 0.0, 11.0, 1.0), 2.0},
+      {Vector4d(0.0, 0.5, 9.0, 1.0), 4.0},
+    }};
+    std::array<TestVertex, 16> clipped;
+
+    const std::size_t count = volume.clipTriangle(input, clipped, clipOf, interpolate);
+
+    ASSERT_EQ(4u, count);
+    std::vector<double> boundaryAttributes;
+    for (std::size_t i = 0; i != count; ++i) {
+      EXPECT_LE(clipped[i].clip.z(), 10.0);
+      if (std::abs(clipped[i].clip.z() - 10.0) < 1e-12) {
+        boundaryAttributes.push_back(clipped[i].attribute);
+      }
+    }
+    std::sort(boundaryAttributes.begin(), boundaryAttributes.end());
+    ASSERT_EQ(2u, boundaryAttributes.size());
+    EXPECT_DOUBLE_EQ(1.0, boundaryAttributes[0]);
+    EXPECT_DOUBLE_EQ(3.0, boundaryAttributes[1]);
   }
 }

@@ -441,6 +441,8 @@ namespace RasterizerTest {
     EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
     EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
     EXPECT_EQ(1, engine.msaaSamples());
+    EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
+    EXPECT_TRUE(std::isinf(engine.farClipDepth()));
     EXPECT_EQ(Rasterizer::PostProcessAA::None, engine.postProcessAA());
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
@@ -453,6 +455,8 @@ namespace RasterizerTest {
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+    engine.setNearClipDepth(0.5);
+    engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
     engine.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
 
@@ -460,6 +464,8 @@ namespace RasterizerTest {
 
     ASSERT_NE(nullptr, clone);
     EXPECT_EQ(Rasterizer::PostProcessAA::FXAA, clone->postProcessAA());
+    EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
+    EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
     EXPECT_EQ(3, clone->shadowCascadeCount());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, clone->shadowFilterMode());
   }
@@ -486,6 +492,41 @@ namespace RasterizerTest {
     engine.setShadowFilterRadius(-3);
 
     EXPECT_EQ(0, engine.shadowFilterRadius());
+  }
+
+  TEST(Rasterizer, ClipDepthsClampToValidRange) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+
+    engine.setNearClipDepth(-1.0);
+    EXPECT_GT(engine.nearClipDepth(), 0.0);
+
+    engine.setFarClipDepth(engine.nearClipDepth() * 0.5);
+    EXPECT_GT(engine.farClipDepth(), engine.nearClipDepth());
+
+    engine.clearFarClipDepth();
+    EXPECT_TRUE(std::isinf(engine.farClipDepth()));
+  }
+
+  TEST(Rasterizer, NearClipDepthCanClipGeometryBeforeRasterization) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setNearClipDepth(100.0);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, FarClipDepthCanClipGeometryBeforeRasterization) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setFarClipDepth(1.0);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
   }
 
   TEST(Rasterizer, DepthFuncNeverRejectsFragments) {

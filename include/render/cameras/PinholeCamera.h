@@ -78,7 +78,7 @@ namespace render {
 
     /// Signed eye-relative depth — positive in front of the eye,
     /// negative behind. Used by the rasterizer's near-plane clipper
-    /// to trim triangles straddling the near plane.
+    /// to trim triangles straddling the configured clip-depth planes.
     double eyeRelativeDepth(const Vector3d& worldPoint) const override;
 
     /**

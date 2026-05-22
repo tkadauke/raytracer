@@ -19,12 +19,6 @@
 
 namespace engine::raster::detail {
 
-  // Current homogeneous near-plane depth for the raster front end. Shadow
-  // cascade range selection shares the value so light-space depth maps cover the
-  // same visible depth interval as camera-space clipping. The v2 plan tracks
-  // making this explicit rasterizer state.
-  inline constexpr double kNearClipDepth = 0.1;
-
   // Result of projecting one mesh vertex before triangle assembly. The emitter
   // caches these per source mesh vertex so every face that references the vertex
   // can reuse the clip coordinate, outcode, and already-valid screen point.

@@ -85,7 +85,8 @@ namespace render {
 
     /// Signed eye-relative depth — positive in front of the camera
     /// plane, negative behind. For ortho this is the camera-space z
-    /// directly (no perspective eye point).
+    /// directly (no perspective eye point), and the rasterizer compares it
+    /// against the configured clip-depth planes.
     double eyeRelativeDepth(const Vector3d& worldPoint) const override;
 
     /**
