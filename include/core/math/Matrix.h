@@ -5,6 +5,8 @@
 #include <cmath>
 #include <type_traits>
 #include <algorithm>
+#include <array>
+#include <limits>
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/DivisionByZeroException.h"
@@ -455,6 +457,312 @@ public:
 private:
   CellsType m_cells;
 };
+
+namespace matrix_decomposition {
+  template<int Dimensions, class T, class VectorType, class MatrixType>
+  struct LU {
+    MatrixType lu;
+    std::array<int, Dimensions> pivot;
+    int swapCount = 0;
+    bool singular = false;
+
+    [[nodiscard]] MatrixType lower() const noexcept {
+      MatrixType result = MatrixType::zero();
+      for (int row = 0; row != Dimensions; ++row) {
+        result[row][row] = T(1);
+        for (int col = 0; col < row; ++col) {
+          result[row][col] = lu[row][col];
+        }
+      }
+      return result;
+    }
+
+    [[nodiscard]] MatrixType upper() const noexcept {
+      MatrixType result = MatrixType::zero();
+      for (int row = 0; row != Dimensions; ++row) {
+        for (int col = row; col != Dimensions; ++col) {
+          result[row][col] = lu[row][col];
+        }
+      }
+      return result;
+    }
+
+    [[nodiscard]] MatrixType permutation() const noexcept {
+      MatrixType result = MatrixType::zero();
+      for (int row = 0; row != Dimensions; ++row) {
+        result[row][pivot[row]] = T(1);
+      }
+      return result;
+    }
+
+    [[nodiscard]] T determinant() const noexcept {
+      if (singular) {
+        return T();
+      }
+
+      T result = swapCount % 2 == 0 ? T(1) : T(-1);
+      for (int i = 0; i != Dimensions; ++i) {
+        result *= lu[i][i];
+      }
+      return result;
+    }
+
+    [[nodiscard]] VectorType solve(const VectorType& rhs) const {
+      if (singular) {
+        throw DivisionByZeroException(__FILE__, __LINE__);
+      }
+
+      VectorType x = VectorType::zero();
+      for (int row = 0; row != Dimensions; ++row) {
+        x[row] = rhs[pivot[row]];
+      }
+
+      for (int row = 0; row != Dimensions; ++row) {
+        for (int col = 0; col < row; ++col) {
+          x[row] -= lu[row][col] * x[col];
+        }
+      }
+
+      for (int row = Dimensions - 1; row >= 0; --row) {
+        for (int col = row + 1; col != Dimensions; ++col) {
+          x[row] -= lu[row][col] * x[col];
+        }
+        if (lu[row][row] == T()) {
+          throw DivisionByZeroException(__FILE__, __LINE__);
+        }
+        x[row] /= lu[row][row];
+      }
+      return x;
+    }
+
+    [[nodiscard]] MatrixType inverse() const {
+      MatrixType result = MatrixType::zero();
+      for (int col = 0; col != Dimensions; ++col) {
+        VectorType basis = VectorType::zero();
+        basis[col] = T(1);
+        result.setCol(col, solve(basis));
+      }
+      return result;
+    }
+  };
+
+  template<int Dimensions, class T, class VectorType, class MatrixType>
+  struct QR {
+    MatrixType q;
+    MatrixType r;
+  };
+
+  template<int Dimensions, class T, class VectorType, class MatrixType>
+  struct SVD {
+    MatrixType u;
+    VectorType singularValues;
+    MatrixType v;
+
+    [[nodiscard]] MatrixType sigma() const noexcept {
+      return MatrixType::diagonal(singularValues);
+    }
+  };
+}
+
+template<int Dimensions, class T, class VectorType, class Derived>
+matrix_decomposition::LU<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+Matrix<Dimensions, T, VectorType, Derived>::luDecomposition() const noexcept {
+  using Result = matrix_decomposition::LU<Dimensions, T, VectorType, MatrixType>;
+
+  Result result;
+  result.lu = MatrixType(static_cast<const MatrixType&>(*this));
+  for (int i = 0; i != Dimensions; ++i) {
+    result.pivot[i] = i;
+  }
+
+  const T tolerance = std::numeric_limits<T>::epsilon() *
+                      std::max(T(1), norm1()) *
+                      T(Dimensions);
+
+  for (int col = 0; col != Dimensions; ++col) {
+    int pivotRow = col;
+    T pivotMagnitude = std::abs(result.lu[col][col]);
+    for (int row = col + 1; row != Dimensions; ++row) {
+      const T magnitude = std::abs(result.lu[row][col]);
+      if (magnitude > pivotMagnitude) {
+        pivotMagnitude = magnitude;
+        pivotRow = row;
+      }
+    }
+
+    if (pivotMagnitude <= tolerance) {
+      result.singular = true;
+      return result;
+    }
+
+    if (pivotRow != col) {
+      std::swap(result.lu[pivotRow], result.lu[col]);
+      std::swap(result.pivot[pivotRow], result.pivot[col]);
+      ++result.swapCount;
+    }
+
+    for (int row = col + 1; row != Dimensions; ++row) {
+      result.lu[row][col] /= result.lu[col][col];
+      for (int k = col + 1; k != Dimensions; ++k) {
+        result.lu[row][k] -= result.lu[row][col] * result.lu[col][k];
+      }
+    }
+  }
+
+  return result;
+}
+
+template<int Dimensions, class T, class VectorType, class Derived>
+matrix_decomposition::QR<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
+  using Result = matrix_decomposition::QR<Dimensions, T, VectorType, MatrixType>;
+
+  Result result;
+  result.q = MatrixType::zero();
+  result.r = MatrixType::zero();
+
+  const T tolerance = std::numeric_limits<T>::epsilon() *
+                      std::max(T(1), norm1()) *
+                      T(64);
+
+  for (int col = 0; col != Dimensions; ++col) {
+    VectorType v = this->col(col);
+    for (int pass = 0; pass != 2; ++pass) {
+      for (int j = 0; j < col; ++j) {
+        const VectorType qj = result.q.col(j);
+        const T projection = qj * v;
+        result.r[j][col] += projection;
+        v -= qj * projection;
+      }
+    }
+
+    T length = v.length();
+    if (length <= tolerance) {
+      v = result.q.orthogonalizedBasisVector(
+        col,
+        col,
+        tolerance
+      );
+      length = v.length();
+    }
+
+    if (length <= tolerance) {
+      result.r[col][col] = T();
+      continue;
+    }
+
+    const VectorType q = v / length;
+    result.r[col][col] = length;
+    result.q.setCol(col, q);
+  }
+
+  return result;
+}
+
+template<int Dimensions, class T, class VectorType, class Derived>
+matrix_decomposition::SVD<
+  Dimensions,
+  T,
+  VectorType,
+  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+Matrix<Dimensions, T, VectorType, Derived>::svdDecomposition() const {
+  using Result = matrix_decomposition::SVD<Dimensions, T, VectorType, MatrixType>;
+
+  MatrixType columns(static_cast<const MatrixType&>(*this));
+  MatrixType v;
+  const T tolerance = std::numeric_limits<T>::epsilon() *
+                      std::max(T(1), norm1()) *
+                      T(64);
+
+  for (int sweep = 0; sweep != 32; ++sweep) {
+    bool changed = false;
+    for (int p = 0; p != Dimensions - 1; ++p) {
+      for (int q = p + 1; q != Dimensions; ++q) {
+        const VectorType colP = columns.col(p);
+        const VectorType colQ = columns.col(q);
+        const T alpha = colP * colP;
+        const T beta = colQ * colQ;
+        const T gamma = colP * colQ;
+        const T scale = std::sqrt(std::max(T(), alpha * beta));
+        if (scale <= tolerance || std::abs(gamma) <= tolerance * scale) {
+          continue;
+        }
+
+        const T tau = (beta - alpha) / (T(2) * gamma);
+        const T sign = tau >= T() ? T(1) : T(-1);
+        const T t = sign / (std::abs(tau) + std::sqrt(T(1) + tau * tau));
+        const T c = T(1) / std::sqrt(T(1) + t * t);
+        const T s = t * c;
+
+        for (int row = 0; row != Dimensions; ++row) {
+          const T oldP = columns[row][p];
+          const T oldQ = columns[row][q];
+          columns[row][p] = c * oldP - s * oldQ;
+          columns[row][q] = s * oldP + c * oldQ;
+
+          const T oldVP = v[row][p];
+          const T oldVQ = v[row][q];
+          v[row][p] = c * oldVP - s * oldVQ;
+          v[row][q] = s * oldVP + c * oldVQ;
+        }
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      break;
+    }
+  }
+
+  std::array<int, Dimensions> order;
+  for (int i = 0; i != Dimensions; ++i) {
+    order[i] = i;
+  }
+  std::sort(order.begin(), order.end(), [&](int left, int right) {
+    return columns.col(left).squaredLength() > columns.col(right).squaredLength();
+  });
+
+  Result result;
+  result.u = MatrixType::zero();
+  result.v = MatrixType::zero();
+  result.singularValues = VectorType::zero();
+
+  for (int outCol = 0; outCol != Dimensions; ++outCol) {
+    const int sourceCol = order[outCol];
+    result.singularValues[outCol] = columns.col(sourceCol).length();
+    result.v.setCol(outCol, v.col(sourceCol));
+
+    VectorType uCol = columns.col(sourceCol);
+    if (result.singularValues[outCol] > tolerance) {
+      uCol /= result.singularValues[outCol];
+    }
+
+    for (int previous = 0; previous < outCol; ++previous) {
+      const VectorType q = result.u.col(previous);
+      uCol -= q * (q * uCol);
+    }
+
+    if (uCol.length() <= tolerance) {
+      uCol = result.u.orthogonalizedBasisVector(
+        outCol,
+        outCol,
+        tolerance
+      );
+    }
+
+    result.u.setCol(outCol, uCol.normalizedOrZero(tolerance));
+  }
+
+  return result;
+}
 
 /**
   * Generic string serialization function for Matrixes. Turns a matrix
@@ -1326,6 +1634,32 @@ T Matrix4<T>::determinant() const noexcept {
          cell(0, 2) * cell(1, 0) * cell(2, 1) * cell(3, 3)-cell(0, 0) * cell(1, 2) * cell(2, 1) * cell(3, 3)-cell(0, 1) * cell(1, 0) * cell(2, 2) * cell(3, 3)+cell(0, 0) * cell(1, 1) * cell(2, 2) * cell(3, 3);
 }
 
+template<class T>
+Matrix4<T> Matrix4<T>::stableInverse() const {
+  try {
+    const Matrix4<T> blockInverse = inverted();
+    const T conditionEstimate = this->norm1() * blockInverse.norm1();
+
+    // Estimate kappa_1(A) = ||A||_1 * ||A^-1||_1 from the already-computed
+    // fast inverse. Well-conditioned transforms return the block inverse;
+    // ill-conditioned matrices pay for pivoted LU to avoid Schur-complement
+    // cancellation near singularity.
+    constexpr T kConditionThreshold = T(100000);
+    if (std::isfinite(conditionEstimate) && conditionEstimate <= kConditionThreshold) {
+      return blockInverse;
+    }
+  } catch (const DivisionByZeroException&) {
+    // The block inverse can fail on singular Schur-complement pivots even when
+    // the full matrix is invertible. Pivoted LU gets the final decision.
+  }
+
+  try {
+    return this->luDecomposition().inverse();
+  } catch (const DivisionByZeroException&) {
+    return inverted();
+  }
+}
+
 // SIMD specializations of Matrix4<float> and Matrix4<double> operator* and
 // operator*(Vector4).  Must come after the Matrix4<T> class definition but
 // before the typedef aliases, mirroring the Vector.h / vector/sse3/ pattern.
@@ -1432,5 +1766,3 @@ template<class T>
 struct std::formatter<Matrix4<T>> : std::formatter<Matrix<4, T, Vector4<T>, Matrix4<T>>> {};  // NOLINT(cert-dcl58-cpp)
 
 #endif  // __cpp_lib_format
-
-#include "core/math/MatrixDecomposition.h"
