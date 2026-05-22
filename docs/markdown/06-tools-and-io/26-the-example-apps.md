@@ -59,6 +59,18 @@ $ rendercli --engine raster --frame 24 \
 The same flag is valid for static scenes; it simply leaves the
 loaded scene unchanged.
 
+`--animation` renders the scene timeline as an image sequence. The
+output path must contain one printf-style integer placeholder:
+
+```sh
+$ rendercli --engine raster --animation --frame_start 1 --frame_end 48 \
+            examples/GeneratedRayTracer/scenes/animation_frame_demo.json \
+            frames/frame_%04d.png
+```
+
+Without explicit frame-range overrides, `rendercli` uses the
+scene's `animation.startFrame` and `animation.endFrame` values.
+
 `rendercli` is the right front end for:
 
 - **Headless rendering** — CI machines, remote servers, Docker

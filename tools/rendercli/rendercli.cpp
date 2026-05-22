@@ -23,12 +23,15 @@
 #include <QThread>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
+#include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <numeric>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -113,6 +116,19 @@ private:
   bool m_timing;
   int m_frame;
   bool m_frameSet;
+  bool m_animation;
+  int m_frameStart;
+  int m_frameEnd;
+  double m_fps;
+  bool m_frameStartSet;
+  bool m_frameEndSet;
+  bool m_fpsSet;
+
+  std::unique_ptr<Scene> loadScene() const;
+  std::vector<double> renderScene(const Scene& scene, const QString& output) const;
+  void renderAnimation(const Scene& scene) const;
+  QString outputForFrame(int frame) const;
+  static bool hasFramePlaceholder(const QString& pattern, QString* errorMessage);
 };
 
 Renderer::Renderer()
@@ -140,27 +156,34 @@ Renderer::Renderer()
       m_repeat(1),
       m_timing(false),
       m_frame(0),
-      m_frameSet(false) {
+      m_frameSet(false),
+      m_animation(false),
+      m_frameStart(0),
+      m_frameEnd(0),
+      m_fps(0.0),
+      m_frameStartSet(false),
+      m_frameEndSet(false),
+      m_fpsSet(false) {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
 }
 
-void Renderer::render() const {
+std::unique_ptr<Scene> Renderer::loadScene() const {
   auto scene = std::make_unique<Scene>(nullptr);
   if (!scene->load(m_filename))
     throw std::runtime_error(QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+  return scene;
+}
 
-  if (m_frameSet)
-    scene->evaluateAnimationAtFrame(m_frame);
-
-  auto raytracerScene = scene->toRaytracerScene();
+std::vector<double> Renderer::renderScene(const Scene& scene, const QString& output) const {
+  auto raytracerScene = scene.toRaytracerScene();
 
   // Engine-agnostic camera setup. Both engines need a camera with a
   // view plane sized to the output buffer; the only engine-specific
   // wiring (recursion depth, threads, sampler) lives on the engine
   // construction below.
   std::shared_ptr<render::Camera> rtCamera;
-  auto camera = scene->activeCamera();
+  auto camera = scene.activeCamera();
   if (camera) {
     rtCamera = camera->toRaytracer();
   } else {
@@ -243,7 +266,126 @@ void Renderer::render() const {
 
   QImage image = bufferToImage(buffer);
 
-  image.save(m_output);
+  if (!image.save(output))
+    throw std::runtime_error(QString("Unable to write output image: %1").arg(output).toStdString());
+
+  return timings;
+}
+
+void Renderer::render() const {
+  auto scene = loadScene();
+
+  if (m_animation) {
+    renderAnimation(*scene);
+    return;
+  }
+
+  if (m_frameSet)
+    scene->evaluateAnimationAtFrame(m_frame);
+
+  const auto timings = renderScene(*scene, m_output);
+  if (m_timing || m_repeat > 1) {
+    printTimings(timings);
+  }
+}
+
+void Renderer::renderAnimation(const Scene& scene) const {
+  const auto* timeline = scene.animation();
+  if (!timeline)
+    throw std::runtime_error("Animation rendering requires a scene animation block");
+
+  const int startFrame = m_frameStartSet ? m_frameStart : timeline->startFrame();
+  const int endFrame = m_frameEndSet ? m_frameEnd : timeline->endFrame();
+  const double fps = m_fpsSet ? m_fps : timeline->fps();
+  if (endFrame < startFrame)
+    throw std::runtime_error("Frame end must be greater than or equal to frame start");
+
+  QString placeholderError;
+  if (!hasFramePlaceholder(m_output, &placeholderError))
+    throw std::runtime_error(placeholderError.toStdString());
+
+  std::vector<double> frameTimings;
+  frameTimings.reserve(static_cast<std::size_t>(endFrame - startFrame + 1));
+
+  for (int frame = startFrame; frame <= endFrame; ++frame) {
+    auto evaluatedScene = scene.evaluatedAtFrame(frame);
+    const auto output = outputForFrame(frame);
+    const auto timings = renderScene(*evaluatedScene, output);
+    frameTimings.push_back(timings.front());
+
+    std::cout << "frame " << (frame - startFrame + 1) << "/" << (endFrame - startFrame + 1)
+              << " number=" << frame << " fps=" << fps << " output=" << output.toStdString()
+              << " render_ms=" << std::fixed << std::setprecision(3) << timings.front()
+              << '\n';
+  }
+
+  if (m_timing) {
+    printTimings(frameTimings);
+  }
+}
+
+QString Renderer::outputForFrame(int frame) const {
+  const auto pattern = m_output.toStdString();
+  const int size = std::snprintf(nullptr, 0, pattern.c_str(), frame);
+  if (size < 0)
+    throw std::runtime_error("Unable to format animation output filename");
+
+  std::vector<char> formatted(static_cast<std::size_t>(size) + 1);
+  std::snprintf(formatted.data(), formatted.size(), pattern.c_str(), frame);
+  return QString::fromStdString(formatted.data());
+}
+
+bool Renderer::hasFramePlaceholder(const QString& pattern, QString* errorMessage) {
+  int placeholderCount = 0;
+  const auto text = pattern.toStdString();
+
+  for (std::size_t i = 0; i < text.size(); ++i) {
+    if (text[i] != '%')
+      continue;
+
+    ++i;
+    if (i >= text.size()) {
+      *errorMessage = "Animation output pattern has an incomplete printf placeholder";
+      return false;
+    }
+    if (text[i] == '%')
+      continue;
+
+    while (i < text.size() && (text[i] == '-' || text[i] == '+' || text[i] == ' ' ||
+                              text[i] == '#' || text[i] == '0')) {
+      ++i;
+    }
+    while (i < text.size() && std::isdigit(static_cast<unsigned char>(text[i]))) {
+      ++i;
+    }
+    if (i < text.size() && text[i] == '.') {
+      ++i;
+      while (i < text.size() && std::isdigit(static_cast<unsigned char>(text[i]))) {
+        ++i;
+      }
+    }
+
+    if (i >= text.size()) {
+      *errorMessage = "Animation output pattern has an incomplete printf placeholder";
+      return false;
+    }
+    if (text[i] == 'd' || text[i] == 'i') {
+      ++placeholderCount;
+      continue;
+    }
+
+    *errorMessage =
+      "Animation output must contain exactly one printf-style signed integer placeholder such as %04d";
+    return false;
+  }
+
+  if (placeholderCount != 1) {
+    *errorMessage =
+      "Animation output must contain exactly one printf-style signed integer placeholder such as %04d";
+    return false;
+  }
+
+  return true;
 }
 
 std::shared_ptr<render::Sampler> Renderer::sampler() const {
@@ -294,6 +436,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
      {"frame", "Evaluate the scene animation at the given frame before rendering", "frame"},
+     {"animation", "Render the scene animation as an image sequence"},
+     {"frame_start", "Override the first animation frame", "frame"},
+     {"frame_end", "Override the last animation frame", "frame"},
+     {"fps", "Override the animation frame rate used for sequence metadata/progress", "fps"},
      {"repeat", "Render the loaded scene N times and print render-only timing statistics",
       "runs"}});
 
@@ -475,6 +621,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_timing = true;
   }
 
+  if (parser.isSet("animation")) {
+    m_animation = true;
+  }
+
   if (parser.isSet("repeat")) {
     bool ok = false;
     m_repeat = parser.value("repeat").toInt(&ok);
@@ -493,6 +643,46 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_frameSet = true;
+  }
+
+  if (parser.isSet("frame_start")) {
+    bool ok = false;
+    m_frameStart = parser.value("frame_start").toInt(&ok);
+    if (!ok) {
+      *errorMessage = "Frame start must be an integer";
+      return CommandLineError;
+    }
+    m_frameStartSet = true;
+  }
+
+  if (parser.isSet("frame_end")) {
+    bool ok = false;
+    m_frameEnd = parser.value("frame_end").toInt(&ok);
+    if (!ok) {
+      *errorMessage = "Frame end must be an integer";
+      return CommandLineError;
+    }
+    m_frameEndSet = true;
+  }
+
+  if (parser.isSet("fps")) {
+    bool ok = false;
+    m_fps = parser.value("fps").toDouble(&ok);
+    if (!ok || m_fps <= 0.0) {
+      *errorMessage = "FPS must be a positive number";
+      return CommandLineError;
+    }
+    m_fpsSet = true;
+  }
+
+  if (m_animation && m_frameSet) {
+    *errorMessage = "Cannot combine --animation with --frame";
+    return CommandLineError;
+  }
+
+  if (m_animation && m_repeat > 1) {
+    *errorMessage = "Cannot combine --animation with --repeat";
+    return CommandLineError;
   }
 
   const QStringList args = parser.positionalArguments();

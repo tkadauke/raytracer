@@ -10,8 +10,8 @@
 > `include/core/math/interpolation/`. Phase 2 world-scene JSON loading,
 > saving, and frame evaluation is implemented under `include/world/animation/`
 > and `Scene`'s top-level `animation` block handling. Phase 3 `rendercli
-> --frame` single-frame evaluation is implemented. `rendercli --animation`
-> image sequences are still pending. Update this file as API shape, JSON
+> --frame` single-frame evaluation and Phase 4 `rendercli --animation`
+> image-sequence output are implemented. Update this file as API shape, JSON
 > format, or implementation order changes.
 
 ---
@@ -342,12 +342,12 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 4 — `rendercli --animation` image sequences
 
-- Add `--animation`.
-- Add output pattern validation.
-- Add frame range / fps overrides.
-- Render `startFrame..endFrame` inclusive.
-- Print progress line per frame.
-- Tests:
+- ✅ Add `--animation`.
+- ✅ Add output pattern validation.
+- ✅ Add frame range / fps overrides.
+- ✅ Render `startFrame..endFrame` inclusive.
+- ✅ Print progress line per frame.
+- ✅ Tests:
   - output sequence filenames are generated correctly
   - frame override narrows the range
   - missing `%d`-style placeholder fails

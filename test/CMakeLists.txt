@@ -55,7 +55,7 @@ add_test(NAME functional_tests COMMAND functional_tests)
 
 if(TARGET rendercli)
   add_test(
-    NAME rendercli_frame
+    NAME rendercli_animation
     COMMAND
       ${CMAKE_COMMAND}
       -DRENDERCLI=$<TARGET_FILE:rendercli>

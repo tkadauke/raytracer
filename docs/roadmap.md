@@ -614,9 +614,10 @@ A scene-script DSL for parametric/procedural geometry. See §7 open question on 
 ### 4.7 Animation & timeline
 
 - Scene timeline with keyframes on any animatable parameter — transforms, material parameters, camera pose, light intensity, scene-level globals (time of day, weather).
-- ✅ **Timeline math foundation.** Shared Qt-free timeline/keyframe primitives now live under `include/core/animation/`, with reusable interpolation policies under `include/core/math/interpolation/`; CLI animation output still TODO.
-- ✅ **World scene timeline loading and evaluation.** Editable scenes now preserve a top-level JSON `animation` block and evaluate id-targeted direct `Q_PROPERTY` tracks through `world::Timeline` / `world::AnimationTrack`; `rendercli` image-sequence output still TODO.
-- ✅ **`rendercli --frame`.** The command-line renderer now evaluates an optional animation frame before runtime scene conversion, with a checked-in animation-frame demo scene and CTest smoke coverage; image-sequence output still TODO.
+- ✅ **Timeline math foundation.** Shared Qt-free timeline/keyframe primitives now live under `include/core/animation/`, with reusable interpolation policies under `include/core/math/interpolation/`.
+- ✅ **World scene timeline loading and evaluation.** Editable scenes now preserve a top-level JSON `animation` block and evaluate id-targeted direct `Q_PROPERTY` tracks through `world::Timeline` / `world::AnimationTrack`.
+- ✅ **`rendercli --frame`.** The command-line renderer now evaluates an optional animation frame before runtime scene conversion, with a checked-in animation-frame demo scene and CTest smoke coverage.
+- ✅ **`rendercli --animation`.** The command-line renderer now emits timeline image sequences from a printf-style output pattern, with range/fps overrides, progress output, and CTest smoke coverage.
 - Interpolation curves: linear, Bezier, ease-in/out, hold.
 - ✅ **Time-sampled rendering for motion blur** (multiple time samples per frame within shutter-open). First pass landed in 7c81d11 — `State::timeSample` drawn from `SampleStream::next1D` (dim 1 in the renderer's stream allocation), `world::Surface::velocity` Q_PROPERTY, `Instance` interpolates linear translation. Rotation/scale animation, full timeline, and keyframe interpolation curves still TODO.
 - Output: image sequence or piped to ffmpeg for video (configurable codec).

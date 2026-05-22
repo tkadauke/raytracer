@@ -179,7 +179,27 @@ rendercli --engine raster --frame 48 \
 
 Frame parsing is strict: `--frame` accepts integer frame numbers.
 
-## 27.9 Exercises
+## 27.9 Rendering an image sequence
+
+`rendercli --animation` renders each frame in a timeline range to a separate
+image file. By default, the range comes from the scene's `animation` block.
+`--frame_start`, `--frame_end`, and `--fps` override the loaded timeline values
+for the sequence run.
+
+The output path must contain exactly one printf-style integer placeholder:
+
+```sh
+rendercli --engine raster --animation \
+  examples/GeneratedRayTracer/scenes/animation_frame_demo.json frames/frame_%04d.png
+```
+
+For each frame, `rendercli` evaluates the world scene at that frame, builds a
+fresh runtime render scene from the evaluated world state, renders one image,
+and prints a progress line with the frame number, output path, and render
+time. Static scenes do not have a timeline range, so `--animation` requires an
+`animation` block.
+
+## 27.10 Exercises
 
 1. Given keys `(10, 4.0)` and `(22, 10.0)`, compute the linear sampled value
    at frame 16.
