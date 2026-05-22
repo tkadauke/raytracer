@@ -80,18 +80,20 @@ unit and becomes testable only through full-frame output.
 
 ### 1. Split raster internals into focused implementation units
 
-Status: started. The shared raster vocabulary now lives in
+Status: completed. The shared raster vocabulary now lives in
 `src/engine/raster/RasterPipelineTypes.h`, and the scene-walk / projection /
 clipping / culling front end now lives in
 `src/engine/raster/RasterTriangleEmitter.h`. Directional shadow-map cameras,
 cascades, filtering, and visibility queries now live in
-`src/engine/raster/RasterShadowMaps.h`. `Rasterizer.cpp` still owns MSAA
-orchestration, shadow-map depth-pass construction, and frame setup. Raster
-material adaptation and the built-in Lambertian evaluator now live in
-`src/engine/raster/RasterMaterial.h` and
-`src/engine/raster/RasterMaterialEvaluator.h`. Pass-owned buffers, depth/stencil
-state and policies, fragment policies, and tile/full-frame draw helpers now live
-in `src/engine/raster/RasterPass.h`.
+`src/engine/raster/RasterShadowMaps.h`. Raster material adaptation and the
+built-in Lambertian evaluator now live in `src/engine/raster/RasterMaterial.h`
+and `src/engine/raster/RasterMaterialEvaluator.h`. Pass-owned buffers,
+depth/stencil state and policies, fragment policies, and tile/full-frame draw
+helpers now live in `src/engine/raster/RasterPass.h`. MSAA sample patterns,
+tile scratch storage, accumulation, and resolve helpers now live in
+`src/engine/raster/RasterMSAA.h`. `Rasterizer.cpp` owns the high-level frame
+flow, shadow-map depth-pass construction, and decisions about which pass helper
+to run.
 
 Extract internal files without changing public behavior:
 
@@ -103,8 +105,8 @@ Extract internal files without changing public behavior:
   built-in Lambertian evaluator.
 - ✅ `RasterPass` — pass buffers, tile/full-buffer views, depth/stencil
   policies, fragment policies, and depth-only pass support.
-- `RasterMSAA` — sample patterns, sample offsets, scratch storage, accumulation,
-  and resolve.
+- ✅ `RasterMSAA` — sample patterns, sample offsets, scratch storage,
+  accumulation, and resolve.
 
 Preserve the current fast path: ordinary `queueSize == 1`, `msaa == 1` renders
 must continue streaming emitted triangles directly into full-frame buffers.
