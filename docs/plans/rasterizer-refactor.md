@@ -62,51 +62,42 @@ Status: done. Numbers are recorded above.
 
 ### 2. Prepared triangle coverage in `core::rasterizeTriangleSampled`
 
-Current issue: the edge-function rasterizer recomputes all three edge
-functions from scratch for every sampled pixel. That is correct, but it spends
-integer multiplies in the innermost loop that can be replaced by incremental
-edge stepping.
+Status: done. `core::rasterizeTriangleSampled` now prepares fixed-point edge
+values, row/column deltas, area, inverse area, and the clipped bounding box
+once per triangle. The public wrappers and barycentric/sample-offset contracts
+are unchanged.
 
-Plan:
-
-- Add an internal prepared triangle representation that precomputes fixed-point
-  vertices, area, inverse area, clipped bounding box, and edge deltas.
-- Keep the existing public wrappers:
-  - `core::rasterizeTriangle`
-  - `core::rasterizeTriangleSampled`
-- Preserve barycentric output and sample-offset behavior exactly.
-- Extend `RasterizeTest` where needed to cover sample offsets, clipped
-  rectangles, and degenerate triangles.
-- Re-run the baseline suite and compare output.
+Latest recorded measurements are in `CHANGELOG.md`: output stayed byte-for-byte
+identical on the baseline PNGs; 1x timings were broadly neutral, while repeated
+coverage paths such as tiled dense-sphere and 4x/8x MSAA improved.
 
 ### 3. Templated triangle emitter
 
-Current issue: the specialized single-tile rasterizer path duplicates the same
-projection, homogeneous clipping, culling, and face-fan code used by the
-generic emitter.
+Status: partially done. `RasterTriangleEmitter` now owns the shared scene walk,
+per-leaf tessellation, projection, homogeneous clipping, culling, optional
+vertex-shader adaptation, and face-fan emission. `RasterTriangleSet` owns the
+emitted triangles plus their tile bins, and both single-tile and tiled paths draw
+through the same raster loop.
 
-Plan:
+Remaining work:
 
-- Replace the duplicate walk with a templated emitter plus inlined sinks:
-  - immediate default raster sink
-  - collect-only sink
-  - collect-and-bin-by-tile sink
+- Add an immediate default raster sink if measurement shows that materializing
+  and binning a `RasterTriangleSet` is still too expensive for ordinary 1x
+  single-tile previews.
 - Keep the sink type compile-time visible so the default path does not pay for
   virtual dispatch or `std::function` calls.
-- Re-measure before touching the fragment path.
+- Re-measure before touching the remaining fragment/material path.
 
 ### 4. Fragment/depth/stencil policies
 
-Current issue: configurable depth/stencil/shader behavior is correct, but the
-generic path carries runtime branching inside the fragment loop.
+Status: done. `withPreparedTrianglePolicies` resolves public rasterizer state
+once per pass into concrete stencil, depth, and fragment policy objects:
+disabled-vs-enabled stencil, write-vs-read-only depth, built-in Lambertian
+fragments, programmable fragments, and depth-only shadow-map fragments. The
+inner triangle loop receives concrete policy types and makes direct calls.
 
-Plan:
-
-- Split fixed-function behavior into small policy objects selected before
-  rasterization.
-- Keep the default depth-less, depth-write, no-stencil, built-in-fragment path
-  as a branch-free specialization.
-- Keep programmable shader and stencil behavior in separate slower policies.
+Follow-up performance work belongs under the material evaluator and tile-local
+MSAA items below.
 
 ### 5. Per-primitive material evaluator
 

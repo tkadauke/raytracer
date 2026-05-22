@@ -21,12 +21,12 @@ namespace render {
       * @returns the sum of all child support points in `direction`.
       * This is the support function for the Minkowski sum itself.
       */
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /** CSG mesh booleans are not implemented. Returns empty Mesh. */
-    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
   };
 }

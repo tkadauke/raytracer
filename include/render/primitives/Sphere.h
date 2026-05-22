@@ -43,9 +43,9 @@ namespace render {
     {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const override;
 
     /**
       * UV-sphere mesh approximation. Latitude–longitude grid:
@@ -79,7 +79,7 @@ namespace render {
       *
       * @image html sphere__wireframe.png "Sphere rendered through Wireframe"
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
     /**
       * Returns the farthest point on the sphere in the given direction. The
@@ -92,10 +92,10 @@ namespace render {
       * <script type="text/javascript" src="sphere_farthest_point.js"></script>
       * @endhtmlonly
       */
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     Vector3d m_origin;

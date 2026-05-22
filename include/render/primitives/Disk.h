@@ -25,8 +25,8 @@ namespace render {
     {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**
       * Triangle-fan tessellation: one centre vertex plus N rim
@@ -53,10 +53,10 @@ namespace render {
       *
       * @image html disk__wireframe.png "Disk rendered through Wireframe"
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     Vector4d m_center;

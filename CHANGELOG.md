@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Clang release builds no longer fail on render primitive override warnings.** Render primitive headers now mark their `Primitive`/`Composite` overrides explicitly, keeping `-Werror -Winconsistent-missing-override` builds green. — GPT-5
 - **Rasterizer and Wireframe now honor the scene's `background()`.** Previously both engines kept a private `m_backgroundColor` field defaulted to black and ignored the scene's background — any scene loaded into `rendercli --engine raster` or `GeneratedRayTracer`'s preview rendered against black regardless of what the scene specified. Background handling moved to `render::RenderEngine` as a single shared override-plus-fallback: `setBackgroundColor`/`clearBackgroundColor`/`hasBackgroundColorOverride` live on the base, and the virtual `backgroundColor()` returns the override if set, otherwise the scene's `background()`, otherwise black. Rasterizer inherits the default; Wireframe overrides to fall back to black (preserving its lines-on-black look). Raytracer is unaffected (it already read the scene's background directly for miss rays). — Claude Opus 4.7
 
 ### Changed

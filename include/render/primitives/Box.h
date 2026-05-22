@@ -32,8 +32,8 @@ namespace render {
     {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual bool intersects(const Rayd& ray, render::State& state) const override;
 
     /**
       * @returns the farthest point on the box in the given direction. The
@@ -46,7 +46,7 @@ namespace render {
       * <script type="text/javascript" src="box_farthest_point.js"></script>
       * @endhtmlonly
       */
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**
       * Produce the canonical 12-triangle box mesh. Box is polyhedral
@@ -63,10 +63,10 @@ namespace render {
       *
       * @image html box__wireframe.png "Box rendered through Wireframe"
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     Vector3d m_center, m_edge;

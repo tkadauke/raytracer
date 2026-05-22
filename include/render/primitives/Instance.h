@@ -68,16 +68,16 @@ namespace render {
       * composites), not the instance itself, so material lookups
       * find the right surface.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
 
     /// Boolean variant — same transform-and-delegate pattern.
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
+    virtual bool intersects(const Rayd& ray, render::State& state) const override;
 
     /// @returns the instance's own material if set (overrides the
     /// wrapped primitive's material), otherwise the wrapped
     /// primitive's. This is what makes `Surface::applyTransform`
     /// preserve material assignment on world-to-runtime conversion.
-    virtual std::shared_ptr<render::Material> material() const;
+    virtual std::shared_ptr<render::Material> material() const override;
 
     /**
       * Set the world-to-instance transform matrix. Internally
@@ -123,7 +123,7 @@ namespace render {
 
     /// Support function — transforms `direction` into local space,
     /// queries the wrapped primitive, transforms the result back.
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**
       * Tessellates the wrapped primitive and applies the instance
@@ -138,7 +138,7 @@ namespace render {
       * `tessellate()` once per frame and translate the result by
       * `velocity * t`. `lod` is forwarded to the wrapped primitive.
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
     /// @returns the wrapped primitive's bounding box, transformed
@@ -146,7 +146,7 @@ namespace render {
     /// instances (non-zero `velocity`), expanded by the motion
     /// vector so the bbox covers every position the primitive
     /// occupies during the shutter.
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     inline Rayd instancedRay(const Rayd& ray) const {

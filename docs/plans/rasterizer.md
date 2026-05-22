@@ -12,11 +12,14 @@
 
 ## Proposed execution order
 
-1. **Rasterizer housekeeping + baselines**
-   - Clean stale rasterizer header docs.
-   - Add or refresh golden scenes that exercise the rasterizer's current
-     behavior.
-   - Record canonical `rendercli` timing commands for rasterizer comparisons.
+1. ✅ **Rasterizer housekeeping + baselines**
+   - Cleaned stale rasterizer header docs so they describe the current
+     per-leaf primitive traversal, per-primitive materials, and opt-in tiled
+     path.
+   - Added benchmark scenes that exercise dense tessellation, material-backed
+     shading, offscreen geometry, and tiled rendering.
+   - Recorded canonical `rendercli --repeat` timing commands for rasterizer
+     comparisons.
 
 2. ✅ **Backface culling**
    - Added `Rasterizer::CullMode::{Both,Back,Front}` and `rendercli --cull`.

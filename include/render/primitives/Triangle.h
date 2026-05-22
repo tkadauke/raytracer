@@ -38,7 +38,7 @@ namespace render {
       m_normal = computeNormal();
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
 
     /**
       * Returns a single-triangle Mesh identical to this Triangle. All three
@@ -48,10 +48,10 @@ namespace render {
       *
       * @image html triangle__wireframe.png "Triangle rendered through Wireframe"
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     Vector3d computeNormal() const;

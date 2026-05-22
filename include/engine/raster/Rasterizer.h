@@ -29,8 +29,10 @@ namespace engine::raster {
   *
   * Pipeline:
   *
-  *  1. Tessellate the scene into a single `Mesh` via
-  *     `Scene::tessellate(lod)`.
+  *  1. Walk the scene's leaf primitives via
+  *     `render::Primitive::forEachLeaf`, calling `tessellate(lod)`
+  *     on each so the rasterizer keeps per-primitive material
+  *     associations rather than collapsing the scene into one mesh.
   *  2. For each leaf mesh, precompute every vertex's homogeneous
   *     clip coordinate via `Camera::projectPointToClipSpace`, plus
   *     cached screen coordinates for vertices already inside the
@@ -246,10 +248,15 @@ namespace engine::raster {
   *
   * Threading: the default single-tile path streams triangles on the
   * calling thread. Setting `setQueueSize(queue)` with `queue > 1`
-  * enables a tiled
-  * `QThreadPool` path: projected/clipped triangles are binned by
-  * tile, and each tile owns a disjoint pixel rectangle, so colour
-  * and Z-buffer writes do not need locks.
+  * enables a tiled `QThreadPool` path: projected/clipped triangles
+  * are binned by tile, and each tile owns a disjoint pixel rectangle,
+  * so colour and Z-buffer writes do not need locks. The tiled path
+  * is correctness-tested against the single-tile output but is
+  * intentionally opt-in: current scenes do not have enough per-tile
+  * shading cost to repay the binning + task overhead, so the streaming
+  * single-tile path is the faster default. See
+  * `docs/plans/rasterizer.md` Task 10 for the latest measurement
+  * conclusion.
   *
   * @see Wireframe — the cheaper sibling that draws only edges; the
   *      same projection + tessellation pipeline drives both.

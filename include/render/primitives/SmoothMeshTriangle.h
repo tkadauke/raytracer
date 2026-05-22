@@ -28,8 +28,8 @@ namespace render {
   public:
     explicit SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2);
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual bool intersects(const Rayd& ray, render::State& state) const override;
 
     static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
 
@@ -39,7 +39,7 @@ namespace render {
       * source mesh, preserving smooth shading data. The @p lod parameter is
       * ignored.
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
 
   private:
     Vector3d interpolateNormal(float beta, float gamma) const;

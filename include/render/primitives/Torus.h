@@ -21,7 +21,7 @@ namespace render {
     {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
 
     /**
       * Mesh approximation. The torus is aligned with its hole along
@@ -60,10 +60,10 @@ namespace render {
       *
       * @image html torus__wireframe.png "Torus rendered through Wireframe"
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     Vector3d computeNormal(const Vector3d& p) const;

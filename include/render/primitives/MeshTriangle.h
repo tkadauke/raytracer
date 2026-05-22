@@ -17,7 +17,7 @@ namespace render {
     }
     
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   protected:
     const Mesh* m_mesh;

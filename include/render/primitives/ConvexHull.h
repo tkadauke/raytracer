@@ -20,9 +20,9 @@ namespace render {
       * <script type="text/javascript" src="convex_hull_farthest_point.js"></script>
       * @endhtmlonly
       */
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /** CSG mesh booleans are not implemented. Returns empty Mesh. */
-    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
   };
 }

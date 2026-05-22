@@ -12,18 +12,18 @@ namespace render {
     {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual bool intersects(const Rayd& ray, render::State& state) const override;
 
     /**
       * Plane is infinite and cannot be tessellated without first clipping it to
       * a finite region. Returns an empty Mesh and emits a warning. To obtain a
       * mesh, replace this Plane with a Rectangle and tessellate that instead.
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     double calculateIntersectionDistance(const Rayd& ray) const;

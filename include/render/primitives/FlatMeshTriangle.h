@@ -33,14 +33,14 @@ namespace render {
 
     static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
 
     /**
       * Returns a single-triangle Mesh with vertex positions and UVs copied from
       * the parent mesh. All three vertices share the precomputed face normal
       * (@p m_normal). The @p lod parameter is ignored.
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod) const override;
 
   private:
     Vector3d computeNormal() const;

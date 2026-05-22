@@ -34,9 +34,9 @@ namespace render {
         throw DivisionByZeroException(__FILE__, __LINE__);
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const;
-    virtual bool intersects(const Rayd& ray, render::State& state) const;
-    virtual Vector3d farthestPoint(const Vector3d& direction) const;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual bool intersects(const Rayd& ray, render::State& state) const override;
+    virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**
       * Tessellates the side surface (no caps) as a quad strip
@@ -63,10 +63,10 @@ namespace render {
       *
       * @image html open_cylinder__wireframe.png "OpenCylinder rendered through Wireframe"
       */
-    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const;
+    virtual std::shared_ptr<Mesh> tessellate(int lod = 0) const override;
 
   protected:
-    virtual BoundingBoxd calculateBoundingBox() const;
+    virtual BoundingBoxd calculateBoundingBox() const override;
 
   private:
     double m_radius;
