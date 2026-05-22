@@ -9,6 +9,10 @@
 #include <QFile>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonValue>
+
+#include <stdexcept>
+#include <utility>
 
 Scene::Scene(Element* parent)
   : Element(parent),
@@ -51,6 +55,34 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
   return result;
 }
 
+void Scene::read(const QJsonObject& json) {
+  auto sceneJson = json;
+  sceneJson.remove("animation");
+
+  Element::read(sceneJson);
+
+  const auto animationValue = json["animation"];
+  if (animationValue.isUndefined()) {
+    m_animation.reset();
+    return;
+  }
+
+  if (!animationValue.isObject())
+    throw std::invalid_argument("scene animation must be an object");
+
+  m_animation = std::make_unique<world::Timeline>(world::Timeline::read(animationValue.toObject()));
+}
+
+void Scene::write(QJsonObject& json) {
+  Element::write(json);
+
+  if (m_animation) {
+    QJsonObject animationObject;
+    m_animation->write(animationObject);
+    json["animation"] = animationObject;
+  }
+}
+
 bool Scene::save(const QString& filename) {
   QFile file(filename);
 
@@ -91,6 +123,38 @@ bool Scene::load(const QString& filename) {
   return true;
 }
 
+const world::Timeline* Scene::animation() const {
+  return m_animation.get();
+}
+
+void Scene::setAnimation(std::unique_ptr<world::Timeline> animation) {
+  m_animation = std::move(animation);
+}
+
+bool Scene::hasAnimation() const {
+  return static_cast<bool>(m_animation);
+}
+
+void Scene::evaluateAnimationAtFrame(int frame) {
+  if (m_animation)
+    m_animation->apply(*this, frame);
+}
+
+std::unique_ptr<Scene> Scene::evaluatedAtFrame(int frame) const {
+  QJsonObject json;
+  const_cast<Scene*>(this)->write(json);
+
+  auto result = std::make_unique<Scene>();
+  result->read(json);
+
+  QMap<QString, Element*> references;
+  result->findReferences(result.get(), references);
+  result->resolveReferences(references);
+
+  result->evaluateAnimationAtFrame(frame);
+  return result;
+}
+
 Camera* Scene::activeCamera() const {
   Camera* camera = nullptr;
   for (const auto& child : childElements()) {
@@ -112,4 +176,3 @@ void Scene::findReferences(Element* root, QMap<QString, Element*>& references) {
 bool Scene::canHaveChild(Element*) const {
   return true;
 }
-

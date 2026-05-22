@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "world/objects/Element.h"
+#include "world/animation/Timeline.h"
 #include "core/Color.h"
 
 class Camera;
@@ -28,6 +29,18 @@ public:
     * Raytracer class.
     */
   std::shared_ptr<render::Scene> toRaytracerScene() const;
+
+  /**
+    * Reads this scene from its JSON representation, including the optional
+    * top-level `animation` block.
+    */
+  void read(const QJsonObject& json);
+
+  /**
+    * Writes this scene to its JSON representation, including the optional
+    * top-level `animation` block.
+    */
+  void write(QJsonObject& json);
   
   /**
     * Saves the scene into a file specified by filename.
@@ -40,6 +53,40 @@ public:
     * create children for the child objects in the file.
     */
   bool load(const QString& filename);
+
+  /**
+    * @returns the scene's animation timeline, or `nullptr` when the scene is
+    *   static.
+    */
+  const world::Timeline* animation() const;
+
+  /**
+    * Replaces the scene's animation timeline.
+    */
+  void setAnimation(std::unique_ptr<world::Timeline> animation);
+
+  /**
+    * @returns true if this scene owns an animation timeline.
+    */
+  bool hasAnimation() const;
+
+  /**
+    * Applies the scene's animation timeline at @p frame.
+    *
+    * Static scenes are left unchanged.
+    *
+    * @throws std::runtime_error if a track cannot be evaluated or applied.
+    */
+  void evaluateAnimationAtFrame(int frame);
+
+  /**
+    * @returns a deep-copied scene with animation evaluated at @p frame.
+    *
+    * The original authoring scene is not modified.
+    *
+    * @throws std::runtime_error if a track cannot be evaluated or applied.
+    */
+  std::unique_ptr<Scene> evaluatedAtFrame(int frame) const;
   
   /**
     * @returns true if the scene was changed, false otherwise.
@@ -115,4 +162,5 @@ private:
   bool m_changed;
   Colord m_ambient;
   Colord m_background;
+  std::unique_ptr<world::Timeline> m_animation;
 };

@@ -121,6 +121,9 @@
 | `include/render/viewplanes/TiledViewPlane.h` | [13. View planes](../03-scene-structure/13-view-planes.md) |
 | `include/render/viewplanes/ViewPlane.h` | [13. View planes](../03-scene-structure/13-view-planes.md) |
 | `include/render/viewplanes/ViewPlaneFactory.h` | [13. View planes](../03-scene-structure/13-view-planes.md) |
+| `include/world/animation/AnimationTrack.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `include/world/animation/Timeline.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `include/world/objects/Scene.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `src/core/formats/ply/PlyElement.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
@@ -146,6 +149,9 @@
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [15. Spatial acceleration](../03-scene-structure/15-spatial-acceleration.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |
+| `test/unit/world/animation/AnimationTrackTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `test/unit/world/animation/TimelineTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `test/unit/world/objects/SceneTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `tools/rendercli/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 
 ## See also

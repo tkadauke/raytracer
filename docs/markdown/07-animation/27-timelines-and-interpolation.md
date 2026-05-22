@@ -110,7 +110,55 @@ value = LinearInterpolator<T>::interpolate(from, to, u);
 So the path is linear in value space, but the value as a function of frame is
 not linear.
 
-## 27.7 Exercises
+## 27.7 World-scene timelines
+
+The world-scene layer connects the core timeline math to editable scene files.
+[`world::Timeline`](../../../include/world/animation/Timeline.h) stores the
+animation frame range and a list of
+[`world::AnimationTrack`](../../../include/world/animation/AnimationTrack.h)
+objects. `Scene` reads and writes these tracks through a top-level
+`animation` block:
+
+```json
+{
+  "animation": {
+    "fps": 24,
+    "startFrame": 1,
+    "endFrame": 120,
+    "tracks": [
+      {
+        "target": "camera-id",
+        "property": "position",
+        "interpolation": "linear",
+        "keys": [
+          { "frame": 1, "value": [0, 0, 0] },
+          { "frame": 120, "value": [4, 0, 0] }
+        ]
+      }
+    ]
+  }
+}
+```
+
+World tracks target one element id and one direct `Q_PROPERTY` name. During
+evaluation, the track finds the target element, reads the property's Qt type,
+decodes the keyed JSON values, samples the core typed track, and writes the
+sampled value back through `QObject::setProperty()`.
+
+The supported world property types are:
+
+- `double`
+- `Vector3d`
+- `Colord`
+- `bool`, with step interpolation only
+
+`Scene::evaluateAnimationAtFrame(frame)` applies the scene's tracks in place.
+`Scene::evaluatedAtFrame(frame)` returns a deep-copied scene with the tracks
+applied, leaving the authoring scene unchanged. Missing targets, missing
+properties, unsupported property types, and non-step bool interpolation fail
+with explicit runtime errors.
+
+## 27.8 Exercises
 
 1. Given keys `(10, 4.0)` and `(22, 10.0)`, compute the linear sampled value
    at frame 16.
@@ -137,6 +185,12 @@ not linear.
 - `include/core/animation/AnimationTrack.h`
 - `include/core/animation/Timeline.h`
 - `include/core/math/interpolation/Interpolation.h`
+- `include/world/animation/AnimationTrack.h`
+- `include/world/animation/Timeline.h`
+- `include/world/objects/Scene.h`
 - `test/unit/core/animation/AnimationTrackTest.cpp`
 - `test/unit/core/math/interpolation/InterpolationTest.cpp`
+- `test/unit/world/animation/AnimationTrackTest.cpp`
+- `test/unit/world/animation/TimelineTest.cpp`
+- `test/unit/world/objects/SceneTest.cpp`
 <!-- /source-anchors -->

@@ -1,18 +1,27 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
+#include "world/animation/AnimationTrack.h"
+#include "world/animation/Timeline.h"
 #include "render/primitives/Scene.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
 
+#include <memory>
+#include <stdexcept>
+#include <vector>
+
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonValue>
 #include <QTemporaryFile>
 #include <QUuid>
 
@@ -25,6 +34,8 @@ Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
 
 namespace SceneTest {
+  using ::testing::HasSubstr;
+
   // Register the custom metatypes the world::* Q_PROPERTYs use. Without
   // this, QMetaProperty::read silently returns an invalid QVariant for
   // Vector3d/Colord/Angled/Material*/Texture* properties, so JSON
@@ -43,6 +54,15 @@ namespace SceneTest {
     }
   };
   static const MetaTypeRegistrar s_registrar;
+
+  QJsonValue vectorValue(double x, double y, double z) {
+    return QJsonValue(QJsonArray({ x, y, z }));
+  }
+
+  QJsonValue colorValue(double r, double g, double b) {
+    return QJsonValue(QJsonArray({ r, g, b }));
+  }
+
   TEST(Scene, ShouldDefaultToCannedNewSceneName) {
     Scene scene;
     EXPECT_EQ(QString("New Scene"), scene.name());
@@ -65,6 +85,12 @@ namespace SceneTest {
     EXPECT_FALSE(scene.changed());
   }
 
+  TEST(Scene, ShouldDefaultToNoAnimation) {
+    Scene scene;
+    EXPECT_FALSE(scene.hasAnimation());
+    EXPECT_EQ(nullptr, scene.animation());
+  }
+
   TEST(Scene, ShouldSetAndGetAmbient) {
     Scene scene;
     scene.setAmbient(Colord(0.1, 0.2, 0.3));
@@ -81,6 +107,17 @@ namespace SceneTest {
     Scene scene;
     scene.setChanged(true);
     EXPECT_TRUE(scene.changed());
+  }
+
+  TEST(Scene, ShouldSetAndGetAnimation) {
+    Scene scene;
+    scene.setAnimation(std::make_unique<world::Timeline>(1, 10, 24.0));
+
+    ASSERT_TRUE(scene.hasAnimation());
+    ASSERT_NE(nullptr, scene.animation());
+    EXPECT_EQ(1, scene.animation()->startFrame());
+    EXPECT_EQ(10, scene.animation()->endFrame());
+    EXPECT_DOUBLE_EQ(24.0, scene.animation()->fps());
   }
 
   TEST(Scene, ShouldAcceptAnyChild) {
@@ -212,6 +249,138 @@ namespace SceneTest {
     EXPECT_NE(nullptr, qobject_cast<PinholeCamera*>(decoded.activeCamera()));
 
     QFile::remove(path);
+  }
+
+  TEST(Scene, ShouldRoundtripAnimationViaSaveLoad) {
+    QTemporaryFile temp;
+    ASSERT_TRUE(temp.open());
+    auto path = temp.fileName();
+    temp.close();
+
+    Scene original;
+    auto* camera = new PinholeCamera;
+    camera->setId("camera-id");
+    original.addChild(camera);
+    original.setAnimation(std::make_unique<world::Timeline>(
+      1,
+      10,
+      24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack(
+          "camera-id",
+          "position",
+          {
+            { 1, vectorValue(0.0, 0.0, 0.0) },
+            { 10, vectorValue(9.0, 0.0, 0.0) },
+          })
+      })));
+
+    ASSERT_TRUE(original.save(path));
+
+    Scene decoded;
+    ASSERT_TRUE(decoded.load(path));
+    ASSERT_TRUE(decoded.hasAnimation());
+    ASSERT_NE(nullptr, decoded.animation());
+    EXPECT_EQ(1, decoded.animation()->startFrame());
+    EXPECT_EQ(10, decoded.animation()->endFrame());
+    EXPECT_DOUBLE_EQ(24.0, decoded.animation()->fps());
+    ASSERT_EQ(1u, decoded.animation()->tracks().size());
+
+    const auto& track = decoded.animation()->tracks().front();
+    EXPECT_EQ(QString("camera-id"), track.targetId());
+    EXPECT_EQ(QString("position"), track.propertyName());
+    ASSERT_EQ(2u, track.keyframes().size());
+    EXPECT_EQ(10, track.keyframes()[1].frame);
+    EXPECT_DOUBLE_EQ(9.0, track.keyframes()[1].value.toArray()[0].toDouble());
+
+    QFile::remove(path);
+  }
+
+  TEST(Scene, ShouldEvaluateAnimationAtFrame) {
+    Scene scene;
+    scene.setId("scene-id");
+    scene.setBackground(Colord(0.0, 0.0, 0.0));
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1,
+      11,
+      24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack(
+          "scene-id",
+          "background",
+          {
+            { 1, colorValue(0.0, 0.0, 0.0) },
+            { 11, colorValue(1.0, 0.5, 0.0) },
+          })
+      })));
+
+    scene.evaluateAnimationAtFrame(6);
+
+    EXPECT_EQ(Colord(0.5, 0.25, 0.0), scene.background());
+  }
+
+  TEST(Scene, ShouldLeaveStaticSceneUnchangedWhenEvaluatingAnimation) {
+    Scene scene;
+    scene.setBackground(Colord(0.1, 0.2, 0.3));
+
+    scene.evaluateAnimationAtFrame(50);
+
+    EXPECT_EQ(Colord(0.1, 0.2, 0.3), scene.background());
+  }
+
+  TEST(Scene, ShouldReturnEvaluatedStaticSceneCopy) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("camera-id");
+    scene.addChild(camera);
+
+    const auto evaluated = scene.evaluatedAtFrame(12);
+
+    ASSERT_NE(nullptr, evaluated);
+    EXPECT_NE(&scene, evaluated.get());
+    EXPECT_NE(nullptr, qobject_cast<PinholeCamera*>(evaluated->findById("camera-id")));
+  }
+
+  TEST(Scene, ShouldReturnEvaluatedAnimationCopyWithoutChangingAuthoringScene) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("camera-id");
+    camera->setPosition(Vector3d(0.0, 0.0, 0.0));
+    scene.addChild(camera);
+    scene.setAnimation(std::make_unique<world::Timeline>(
+      1,
+      11,
+      24.0,
+      std::vector<world::AnimationTrack>({
+        world::AnimationTrack(
+          "camera-id",
+          "position",
+          {
+            { 1, vectorValue(0.0, 0.0, 0.0) },
+            { 11, vectorValue(10.0, 0.0, 0.0) },
+          })
+      })));
+
+    const auto evaluated = scene.evaluatedAtFrame(6);
+
+    EXPECT_EQ(Vector3d(0.0, 0.0, 0.0), camera->position());
+    auto* evaluatedCamera = qobject_cast<PinholeCamera*>(evaluated->findById("camera-id"));
+    ASSERT_NE(nullptr, evaluatedCamera);
+    EXPECT_EQ(Vector3d(5.0, 0.0, 0.0), evaluatedCamera->position());
+  }
+
+  TEST(Scene, ShouldRejectNonObjectAnimationJson) {
+    Scene scene;
+    QJsonObject json;
+    scene.write(json);
+    json["animation"] = true;
+
+    try {
+      scene.read(json);
+      FAIL() << "expected invalid animation block to throw";
+    } catch (const std::invalid_argument& error) {
+      EXPECT_THAT(error.what(), HasSubstr("scene animation must be an object"));
+    }
   }
 
   TEST(Scene, ShouldProduceRaytracerSceneWithMatchingAmbient) {

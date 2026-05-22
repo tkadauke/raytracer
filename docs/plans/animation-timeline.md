@@ -7,10 +7,11 @@
 >
 > **Status:** Phase 1 shared timeline math is implemented under
 > `include/core/animation/`, with reusable interpolation policies under
-> `include/core/math/interpolation/`. The implemented foundation is documented
-> in textbook chapter 27 and the interpolation API widgets. World-scene
-> loading/evaluation and `rendercli` animation flags are still pending. Update
-> this file as API shape, JSON format, or implementation order changes.
+> `include/core/math/interpolation/`. Phase 2 world-scene JSON loading,
+> saving, and frame evaluation is implemented under `include/world/animation/`
+> and `Scene`'s top-level `animation` block handling. `rendercli` animation
+> flags are still pending. Update this file as API shape, JSON format, or
+> implementation order changes.
 
 ---
 
@@ -309,11 +310,11 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 2 — World timeline loading and evaluation
 
-- Add `world::Timeline` / `world::AnimationTrack` wrappers that use the shared
+- ✅ Add `world::Timeline` / `world::AnimationTrack` wrappers that use the shared
   core math but target `world` element IDs and property names.
-- Load/save top-level `animation` JSON.
-- Evaluate an editable scene at a frame by applying sampled property values.
-- Start with direct properties:
+- ✅ Load/save top-level `animation` JSON.
+- ✅ Evaluate an editable scene at a frame by applying sampled property values.
+- ✅ Start with direct properties:
   - `position`
   - `rotation`
   - `scale`
@@ -321,7 +322,7 @@ encoder, not a hard dependency for animation support.
   - camera `target`
   - directional light `direction`
   - material color where the property is already simple and stable
-- Tests:
+- ✅ Tests:
   - round-trip animation JSON
   - transforms evaluate at expected frames
   - missing target/property fails clearly
