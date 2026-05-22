@@ -54,17 +54,17 @@ namespace engine::raster {
   *      - Recover a diffuse albedo from the primitive's
   *        `MatteMaterial` texture with the interpolated hit context
   *        when possible, otherwise fall back to a stable per-face
-  *        colour hash.
+  *        color hash.
   *      - Apply Lambertian shading: `scene.ambient × ambientCoeff ×
   *        albedo + Σ_lights albedo × light.radiance × max(0, n · light.dir)`.
   *      - Run the configured depth/stencil tests and operations.
-  *        The default state is the historical Z-buffer behaviour:
+  *        The default state is the historical Z-buffer behavior:
   *        `DepthFunc::Less`, depth writes enabled, stencil disabled.
   *      - Optionally query a rasterized directional-light shadow
   *        map before adding each diffuse light contribution.
   *      - Shade through the built-in material/Lambertian fragment
   *        path, or through a caller-provided `FragmentShader`.
-  *      - Write the shaded colour iff the fragment passes.
+  *      - Write the shaded color iff the fragment passes.
   *  6. When MSAA is enabled, repeat the coverage/depth path at a
   *     fixed 2x/4x/8x subpixel sample pattern and resolve those
   *     samples into the same float framebuffer the rest of the
@@ -74,7 +74,7 @@ namespace engine::raster {
   * primitive's effective material before tessellation. Matte diffuse
   * textures therefore shade with their material albedo today, while
   * primitives with no usable diffuse texture still receive a stable
-  * per-face fallback colour so missing materials remain visible.
+  * per-face fallback color so missing materials remain visible.
   *
   * Triangles that straddle the near plane or viewport edge are
   * clipped in homogeneous space before projection so their visible
@@ -113,7 +113,7 @@ namespace engine::raster {
   *
   * Interpolated UVs feed the same material texture path as ray-hit
   * positions. The first image maps `(u, v)` directly to `(red,
-  * green)` so interpolation errors are visible as colour bends; the
+  * green)` so interpolation errors are visible as color bends; the
   * second samples a UV-scaled checkerboard on a rotated box.
   *
   * <table><tr>
@@ -138,6 +138,10 @@ namespace engine::raster {
   * triangle vertex handles and switch between sample counts to see why 1x
   * coverage produces only on/off pixels, while MSAA can turn a
   * partially covered pixel into a proportional gray resolve.
+  * The default single-tile path keeps full-frame per-sample buffers
+  * for low overhead; the queued tiled path uses tile-local color,
+  * depth, and stencil sample buffers and resolves each tile directly
+  * into the output framebuffer.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>
@@ -250,7 +254,7 @@ namespace engine::raster {
   * calling thread. Setting `setQueueSize(queue)` with `queue > 1`
   * enables a tiled `QThreadPool` path: projected/clipped triangles
   * are binned by tile, and each tile owns a disjoint pixel rectangle,
-  * so colour and Z-buffer writes do not need locks. The tiled path
+  * so color and Z-buffer writes do not need locks. The tiled path
   * is correctness-tested against the single-tile output but is
   * intentionally opt-in: current scenes do not have enough per-tile
   * shading cost to repay the binning + task overhead, so the streaming

@@ -124,15 +124,30 @@ Measured on May 22 2026 against `rasterizer_baseline_materials.json` at
 
 ### 6. MSAA tile-local storage
 
-Current issue: MSAA renders one full-frame colour/depth/stencil set per sample,
-with one clear and one resolve pass per sample.
+Status: done for the queued tiled MSAA path. The default `queueSize == 1` path
+keeps the specialized full-frame MSAA loop so ordinary single-tile renders do
+not pick up tile-coordinate translation overhead. When `queueSize > 1`, each
+tile task now renders all sample offsets using tile-local color/depth/stencil
+buffers and resolves the tile directly into the output framebuffer.
 
-Plan:
+What changed:
 
-- Render all samples for a tile inside the same task.
-- Use tile-local sample colour/depth/stencil buffers.
-- Resolve each tile directly into the output framebuffer.
-- Keep single-tile and tiled output equivalence tests.
+- Full-frame and tile-local buffer views are separate template types, so the
+  default path keeps direct framebuffer indexing while the tiled path translates
+  global fragment coordinates into local storage.
+- Tiled MSAA equivalence tests now cover uneven tile sizes and stencil-enabled
+  MSAA, in addition to the existing color/depth case.
+- Before/after PNGs stayed byte-identical, including default-vs-tiled output.
+
+Measured on May 22 2026 with `rendercli --repeat`; tiled commands used
+`--threads 8 --queue_size 16`.
+
+| Scene | Mode | Runs | Before median | After median |
+| --- | --- | ---: | ---: | ---: |
+| `rasterizer_baseline_materials.json` 640x480 LOD 3 | 4x MSAA default | 10 | 64.660 ms | 59.718 ms |
+| `rasterizer_baseline_materials.json` 640x480 LOD 3 | 4x MSAA tiled | 10 | 38.918 ms | 20.236 ms |
+| `rasterizer_baseline_offscreen_floor.json` 1920x1080 LOD 0 | 4x MSAA default | 5 | 454.027 ms | 436.677 ms |
+| `rasterizer_baseline_offscreen_floor.json` 1920x1080 LOD 0 | 4x MSAA tiled | 5 | 231.608 ms | 95.671 ms |
 
 ## Non-goals for this pass
 

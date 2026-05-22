@@ -53,7 +53,7 @@ namespace RasterizerTest {
   }
 
   // Counter helper — total pixels in the buffer NOT matching the
-  // background colour. The rasterizer shades from material albedo
+  // background color. The rasterizer shades from material albedo
   // when available and falls back to a face hash otherwise; these
   // tests only need to know that something painted *some* pixels.
   static int countNonBackground(const Buffer<Colord>& buffer, const Colord& bg) {
@@ -296,7 +296,7 @@ namespace RasterizerTest {
     // — but the silhouette area is bounded by the sphere's actual
     // projected size, so the filled region grows toward but doesn't
     // exceed that bound. Looser invariant: high-LOD render fills at
-    // least as many pixels as low-LOD for this centred sphere; not a
+    // least as many pixels as low-LOD for this centered sphere; not a
     // strict mathematical claim for arbitrary scenes.
     auto scene = sceneWithSphere();
 
@@ -340,15 +340,15 @@ namespace RasterizerTest {
   TEST(Rasterizer, ZBufferCullsOccludedGeometryAddedAfterTheOccluder) {
     // Scene 1: just a near sphere.
     // Scene 2: the same near sphere added first (so its fallback
-    //          face colours match scene 1), plus a large box
+    //          face colors match scene 1), plus a large box
     //          rendered behind it. The box would overdraw the
-    //          sphere's centre pixels without depth-testing. With
-    //          the Z-buffer, the box's centre pixels fail the depth
-    //          test and the sphere's colour stays.
+    //          sphere's center pixels without depth-testing. With
+    //          the Z-buffer, the box's center pixels fail the depth
+    //          test and the sphere's color stays.
     //
     // The sphere is added first in BOTH scenes, so its fallback face
-    // colours are identical when no material is attached. That makes
-    // pixel-equality at the centre a stable assertion — without the
+    // colors are identical when no material is attached. That makes
+    // pixel-equality at the center a stable assertion — without the
     // depth test this expectation would fail.
 
     auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null);
@@ -369,15 +369,15 @@ namespace RasterizerTest {
     eAlone.render(bAlone);
     eWithBack.render(bWithBack);
 
-    // Centre pixel: covered by the near sphere in both renders. With
-    // the Z-buffer, the back box's pixels at the centre fail the
+    // Center pixel: covered by the near sphere in both renders. With
+    // the Z-buffer, the back box's pixels at the center fail the
     // depth test; without it, the box would overdraw the sphere
     // there because it's added second in mesh order.
     EXPECT_EQ(bAlone[32][32], bWithBack[32][32])
-      << "Centre pixel changed when an occluded back wall was added — "
+      << "Center pixel changed when an occluded back wall was added — "
       << "Z-buffer is failing to cull the farther geometry.";
     EXPECT_FALSE(bAlone[32][32] == Colord::black())
-      << "Centre pixel should be coloured by the near sphere.";
+      << "Center pixel should be colored by the near sphere.";
   }
 
   TEST(Rasterizer, DepthStencilAndShaderDefaultsMatchFixedPipeline) {
@@ -757,6 +757,55 @@ namespace RasterizerTest {
 
     Buffer<Colord> expected(40, 40);
     Buffer<Colord> actual(40, 40);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAAWithUnevenTileSizes) {
+    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    singleTile.setMSAASamples(4);
+    configureScreenSpaceEdgeTriangle(singleTile);
+
+    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    tiled.setMSAASamples(4);
+    tiled.setMaximumThreads(3);
+    tiled.setQueueSize(6);
+    configureScreenSpaceEdgeTriangle(tiled);
+
+    Buffer<Colord> expected(41, 37);
+    Buffer<Colord> actual(41, 37);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAAWithStencil) {
+    const Colord secondTriangleColor(0.0, 0.5, 1.0);
+
+    Rasterizer singleTile(headOnCamera(), sceneWithDuplicateTriangles());
+    singleTile.setMSAASamples(4);
+    singleTile.setStencilTestEnabled(true);
+    singleTile.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
+    singleTile.setStencilOps(Rasterizer::StencilOp::Replace, Rasterizer::StencilOp::Keep,
+                             Rasterizer::StencilOp::Keep);
+    singleTile.setFragmentShader(
+      [&](const Rasterizer::FragmentInput&) { return secondTriangleColor; });
+
+    Rasterizer tiled(headOnCamera(), sceneWithDuplicateTriangles());
+    tiled.setMSAASamples(4);
+    tiled.setMaximumThreads(2);
+    tiled.setQueueSize(4);
+    tiled.setStencilTestEnabled(true);
+    tiled.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
+    tiled.setStencilOps(Rasterizer::StencilOp::Replace, Rasterizer::StencilOp::Keep,
+                        Rasterizer::StencilOp::Keep);
+    tiled.setFragmentShader([&](const Rasterizer::FragmentInput&) { return secondTriangleColor; });
+
+    Buffer<Colord> expected(64, 64);
+    Buffer<Colord> actual(64, 64);
     singleTile.render(expected);
     tiled.render(actual);
 

@@ -42,8 +42,8 @@ using namespace engine::raster;
 //     the frame to Rasterizer::Private.
 //
 //   Rasterizer::Private
-//     owns frame-level orchestration: tile dispatch, MSAA sample
-//     passes, pass-local depth/stencil buffers, and the active task
+//     owns frame-level orchestration: tile dispatch, pass-local
+//     depth/stencil buffers, tile-local MSAA storage, and the active task
 //     list used by the UI progress overlay.
 //
 //   anonymous namespace
@@ -77,10 +77,10 @@ using namespace engine::raster;
 //   -> RasterTriangleSet tile bins -> Private::renderTriangleSetPass
 //   -> withPreparedTrianglePolicies -> rasterizeTriangleSetWithPolicies.
 //
-// Example path for 4x MSAA:
+// Example path for queued 4x MSAA:
 //   renderFrame builds the same triangle set once, then renderMSAAFrame
-//   runs four pass buffers with four subpixel Vector2d offsets, adds
-//   the sample buffers together, and divides by four.
+//   renders each tile's four subpixel offsets into tile-local buffers
+//   and resolves the tile directly into the output framebuffer.
 //
 // If you are reading for performance, start at
 // rasterizePreparedTriangleWithPolicies(): that is the fragment loop.
@@ -155,8 +155,8 @@ struct Rasterizer::Private {
   public:
     // A render pass owns depth and optional stencil, but borrows the
     // color target. Single-sample rendering writes straight to the
-    // final buffer; each MSAA sample pass writes to a temporary color
-    // buffer that gets accumulated during resolve.
+    // final buffer; full-frame MSAA borrows temporary sample buffers
+    // through this wrapper, while queued MSAA uses tile-local buffers.
     PassBuffers(const Rasterizer& rasterizer, const render::TilePlan& tilePlan,
                 Buffer<Colord>& colorBuffer)
         : m_colorBuffer(colorBuffer),
@@ -203,6 +203,17 @@ struct Rasterizer::Private {
                        const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
                        const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
+  void renderMSAAFullFrame(const Rasterizer& rasterizer,
+                           const std::shared_ptr<render::Scene>& scene,
+                           const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
+                           const ShadowMaps& shadowMaps, const SamplePattern& pattern,
+                           const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+
+  void renderMSAATile(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+                      const RasterTriangleSet& triangleSet, const ShadowMaps& shadowMaps,
+                      const SamplePattern& pattern, const Recti& rect, std::size_t tileIndex,
+                      const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+
   void renderTriangleSetPass(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
                              const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
@@ -217,6 +228,8 @@ struct Rasterizer::Private {
                                                   const render::TilePlan& tilePlan);
   static void accumulateSample(Buffer<Colord>& target, const Buffer<Colord>& sample);
   static void resolveMSAA(Buffer<Colord>& buffer, int sampleCount);
+  static void resolveMSAATile(Buffer<Colord>& buffer, const Buffer<Colord>& accumulated,
+                              const Recti& rect, int sampleCount);
 };
 
 Rasterizer::Rasterizer(std::shared_ptr<render::Scene> scene)
@@ -383,6 +396,68 @@ namespace {
     int x;
     int y;
   };
+
+  template<class T>
+  class RasterFullBufferView {
+  public:
+    RasterFullBufferView()
+        : m_buffer(nullptr) {
+    }
+
+    explicit RasterFullBufferView(Buffer<T>& buffer)
+        : m_buffer(&buffer) {
+    }
+
+    T& at(int x, int y) const {
+      return (*m_buffer)[y][x];
+    }
+
+    bool isValid() const {
+      return m_buffer != nullptr;
+    }
+
+  private:
+    Buffer<T>* m_buffer;
+  };
+
+  template<class T>
+  class RasterTileBufferView {
+  public:
+    RasterTileBufferView()
+        : m_buffer(nullptr),
+          m_originX(0),
+          m_originY(0) {
+    }
+
+    RasterTileBufferView(Buffer<T>& buffer, int originX, int originY)
+        : m_buffer(&buffer),
+          m_originX(originX),
+          m_originY(originY) {
+    }
+
+    T& at(int x, int y) const {
+      return (*m_buffer)[y - m_originY][x - m_originX];
+    }
+
+    bool isValid() const {
+      return m_buffer != nullptr;
+    }
+
+  private:
+    Buffer<T>* m_buffer;
+    int m_originX;
+    int m_originY;
+  };
+
+  template<class T>
+  RasterFullBufferView<T> fullBufferView(Buffer<T>& buffer) {
+    return RasterFullBufferView<T>(buffer);
+  }
+
+  template<class T>
+  RasterTileBufferView<T> tileBufferView(Buffer<T>& buffer, const Recti& rect) {
+    return RasterTileBufferView<T>(buffer, rect.left(), rect.top());
+  }
 
   inline Colord fallbackFaceColor(std::uint64_t index) {
     const std::uint64_t r = (index * 2654435761ULL) & 0xFFu;
@@ -989,12 +1064,13 @@ namespace {
 
   // Real stencil policy: owns access to the pass stencil buffer and
   // applies the configured operation at each fragment outcome.
+  template<class BufferView>
   struct RasterStencilPolicy {
-    Buffer<std::uint8_t>& stencilBuffer;
+    BufferView stencilBuffer;
     StencilState state;
 
     inline bool pass(int x, int y) const {
-      return state.pass(stencilBuffer[y][x]);
+      return state.pass(stencilBuffer.at(x, y));
     }
 
     inline void onStencilFail(int x, int y) const {
@@ -1011,33 +1087,35 @@ namespace {
 
   private:
     inline void update(int x, int y, Rasterizer::StencilOp op) const {
-      stencilBuffer[y][x] = state.update(op, stencilBuffer[y][x]);
+      stencilBuffer.at(x, y) = state.update(op, stencilBuffer.at(x, y));
     }
   };
 
   // Normal depth policy: compare incoming depth, then commit passing
   // fragments back into the z-buffer.
+  template<class BufferView>
   struct DepthWritePolicy {
-    Buffer<double>& zBuffer;
+    BufferView zBuffer;
     DepthState state;
 
     inline bool pass(int x, int y, double depth) const {
-      return state.pass(depth, zBuffer[y][x]);
+      return state.pass(depth, zBuffer.at(x, y));
     }
 
     inline void write(int x, int y, double depth) const {
-      zBuffer[y][x] = depth;
+      zBuffer.at(x, y) = depth;
     }
   };
 
   // Depth-test-only policy. Useful for passes that should respect
   // existing depth without modifying it.
+  template<class BufferView>
   struct DepthReadOnlyPolicy {
-    Buffer<double>& zBuffer;
+    BufferView zBuffer;
     DepthState state;
 
     inline bool pass(int x, int y, double depth) const {
-      return state.pass(depth, zBuffer[y][x]);
+      return state.pass(depth, zBuffer.at(x, y));
     }
 
     inline void write(int, int, double) const {
@@ -1072,7 +1150,7 @@ namespace {
   };
 
   // Shadow-map pass fragment policy. It exists only to satisfy the
-  // shared raster loop's "shade then write colour" contract; the
+  // shared raster loop's "shade then write color" contract; the
   // useful output of the pass is the depth policy's z-buffer write.
   struct DepthOnlyFragmentPolicy {
     inline Colord shade(const RasterTriangle&, int, int, double, double, double,
@@ -1081,9 +1159,9 @@ namespace {
     }
   };
 
-  template<class Stencil, class Depth, class Fragment>
+  template<class ColorBuffer, class Stencil, class Depth, class Fragment>
   inline void rasterizePreparedTriangleWithPolicies(const RasterTriangle& triangle,
-                                                    const Recti& clipRect, Buffer<Colord>& buffer,
+                                                    const Recti& clipRect, ColorBuffer colorBuffer,
                                                     const Vector2d& sampleOffset, Stencil stencil,
                                                     Depth depth, Fragment fragmentPolicy) {
     const RasterVertex& v0 = triangle.vertices[0];
@@ -1111,13 +1189,13 @@ namespace {
         stencil.onPass(x, y);
         const Colord shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         depth.write(x, y, fragment.depth);
-        buffer[y][x] = shaded;
+        colorBuffer.at(x, y) = shaded;
       });
   }
 
-  template<class Stencil, class Depth, class Fragment>
+  template<class ColorBuffer, class Stencil, class Depth, class Fragment>
   inline void rasterizeTileWithPolicies(const RasterTriangleSet& triangleSet, const Recti& rect,
-                                        std::size_t tileIndex, Buffer<Colord>& buffer,
+                                        std::size_t tileIndex, ColorBuffer colorBuffer,
                                         const Vector2d& sampleOffset,
                                         const std::atomic<bool>& cancelled, Stencil stencil,
                                         Depth depth, Fragment fragmentPolicy) {
@@ -1126,20 +1204,20 @@ namespace {
     for (const std::size_t triangleIndex : triangleIndices) {
       if (cancelled.load())
         return;
-      rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rect, buffer, sampleOffset,
-                                            stencil, depth, fragmentPolicy);
+      rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rect, colorBuffer,
+                                            sampleOffset, stencil, depth, fragmentPolicy);
     }
   }
 
-  template<class Stencil, class Depth, class Fragment>
+  template<class ColorBuffer, class Stencil, class Depth, class Fragment>
   inline void rasterizeTriangleSetWithPolicies(
     const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
     std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, const std::atomic<bool>& cancelled,
-    Buffer<Colord>& buffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
+    ColorBuffer colorBuffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
     Fragment fragmentPolicy) {
     if (tilePlan.isSingleTile()) {
       // Avoid QRunnable overhead for the common single-tile path.
-      rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, buffer, sampleOffset,
+      rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, colorBuffer, sampleOffset,
                                 cancelled, stencil, depth, fragmentPolicy);
       return;
     }
@@ -1147,27 +1225,27 @@ namespace {
     engine::dispatchTileTasks(
       tilePlan, threadPool, tasks,
       [&, sampleOffset, stencil, depth, fragmentPolicy](const Recti& rect, std::size_t tileIndex) {
-        rasterizeTileWithPolicies(triangleSet, rect, tileIndex, buffer, sampleOffset, cancelled,
-                                  stencil, depth, fragmentPolicy);
+        rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer, sampleOffset,
+                                  cancelled, stencil, depth, fragmentPolicy);
       });
   }
 
-  template<class Stencil, class Fragment, class RenderFn>
-  inline void withPreparedTriangleDepthPolicy(const Rasterizer& rasterizer, Buffer<double>& zBuffer,
+  template<class DepthBuffer, class Stencil, class Fragment, class RenderFn>
+  inline void withPreparedTriangleDepthPolicy(const Rasterizer& rasterizer, DepthBuffer zBuffer,
                                               Stencil stencil, Fragment fragmentPolicy,
                                               RenderFn&& render) {
     const DepthState depthState{rasterizer.depthFunc()};
     if (rasterizer.depthWriteEnabled()) {
-      render(stencil, DepthWritePolicy{zBuffer, depthState}, fragmentPolicy);
+      render(stencil, DepthWritePolicy<DepthBuffer>{zBuffer, depthState}, fragmentPolicy);
     } else {
-      render(stencil, DepthReadOnlyPolicy{zBuffer, depthState}, fragmentPolicy);
+      render(stencil, DepthReadOnlyPolicy<DepthBuffer>{zBuffer, depthState}, fragmentPolicy);
     }
   }
 
-  template<class RenderFn>
+  template<class DepthBuffer, class StencilBuffer, class RenderFn>
   inline void withPreparedTrianglePolicies(const render::Scene* scene, const Rasterizer& rasterizer,
-                                           const ShadowMaps& shadowMaps, Buffer<double>& zBuffer,
-                                           Buffer<std::uint8_t>* stencilBuffer, RenderFn&& render) {
+                                           const ShadowMaps& shadowMaps, DepthBuffer zBuffer,
+                                           StencilBuffer stencilBuffer, RenderFn&& render) {
     const bool useStencil = rasterizer.stencilTestEnabled();
     const bool useFragmentShader = static_cast<bool>(rasterizer.fragmentShader());
 
@@ -1178,7 +1256,7 @@ namespace {
                                       rasterizer.stencilMask(),   rasterizer.stencilWriteMask(),
                                       rasterizer.stencilFailOp(), rasterizer.stencilDepthFailOp(),
                                       rasterizer.stencilPassOp()};
-      RasterStencilPolicy stencil{*stencilBuffer, stencilState};
+      RasterStencilPolicy<StencilBuffer> stencil{stencilBuffer, stencilState};
       if (useFragmentShader) {
         withPreparedTriangleDepthPolicy(rasterizer, zBuffer, stencil,
                                         ShaderFragmentPolicy{rasterizer}, render);
@@ -1426,6 +1504,14 @@ void Rasterizer::Private::resolveMSAA(Buffer<Colord>& buffer, int sampleCount) {
       buffer[y][x] = buffer[y][x] * resolveScale;
 }
 
+void Rasterizer::Private::resolveMSAATile(Buffer<Colord>& buffer, const Buffer<Colord>& accumulated,
+                                          const Recti& rect, int sampleCount) {
+  const double resolveScale = 1.0 / static_cast<double>(sampleCount);
+  for (int y = 0; y < accumulated.height(); ++y)
+    for (int x = 0; x < accumulated.width(); ++x)
+      buffer[rect.top() + y][rect.left() + x] = accumulated[y][x] * resolveScale;
+}
+
 ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
                                                 const std::shared_ptr<render::Scene>& scene,
                                                 const std::atomic<bool>& cancelled) {
@@ -1466,9 +1552,10 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
     if (!shadowTriangles.empty()) {
       std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
       rasterizeTriangleSetWithPolicies(
-        shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled, scratch,
-        Vector2d(0.0, 0.0), NoStencilPolicy{},
-        DepthWritePolicy{*depthBuffer, DepthState{Rasterizer::DepthFunc::Less}},
+        shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled,
+        fullBufferView(scratch), Vector2d(0.0, 0.0), NoStencilPolicy{},
+        DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(*depthBuffer),
+                                                       DepthState{Rasterizer::DepthFunc::Less}},
         DepthOnlyFragmentPolicy{});
     }
 
@@ -1487,12 +1574,16 @@ void Rasterizer::Private::renderTriangleSetPass(
   // A pass freezes current depth/stencil/shader state into policies,
   // then hands the triangle set to either the direct or tiled path.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer);
+  RasterFullBufferView<std::uint8_t> stencilView;
+  if (passBuffers.stencil()) {
+    stencilView = fullBufferView(*passBuffers.stencil());
+  }
   withPreparedTrianglePolicies(
-    scene.get(), rasterizer, shadowMaps, passBuffers.depth(), passBuffers.stencil(),
+    scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
     [&](auto stencil, auto depth, auto fragmentPolicy) {
       rasterizeTriangleSetWithPolicies(triangleSet, tilePlan, *threadPool, tasks, cancelled,
-                                       passBuffers.color(), sampleOffset, stencil, depth,
-                                       fragmentPolicy);
+                                       fullBufferView(passBuffers.color()), sampleOffset, stencil,
+                                       depth, fragmentPolicy);
     });
 }
 
@@ -1517,20 +1608,34 @@ void Rasterizer::Private::renderMSAAFrame(
   if (cancelled.load() || triangleSet.empty())
     return;
 
+  if (tilePlan.isSingleTile()) {
+    renderMSAAFullFrame(rasterizer, scene, triangleSet, tilePlan, shadowMaps, pattern, cancelled,
+                        buffer);
+    return;
+  }
+
+  engine::dispatchTileTasks(tilePlan, *threadPool, tasks,
+                            [&](const Recti& rect, std::size_t tileIndex) {
+                              renderMSAATile(rasterizer, scene, triangleSet, shadowMaps, pattern,
+                                             rect, tileIndex, cancelled, buffer);
+                            });
+}
+
+void Rasterizer::Private::renderMSAAFullFrame(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
+  const ShadowMaps& shadowMaps, const SamplePattern& pattern, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer) {
   buffer.clear(Colord::black());
   for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
     if (cancelled.load())
       return;
 
-    // This is simple supersampling: rerun coverage/depth at a fixed
-    // subpixel offset, accumulate colors, divide at the end. It trades
-    // work for deterministic edge quality.
     Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
     sampleBuffer.clear(rasterizer.backgroundColor());
 
-    const Vector2d& sampleOffset = pattern.offsets[sampleIndex];
     renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, cancelled,
-                          sampleBuffer, sampleOffset);
+                          sampleBuffer, pattern.offsets[sampleIndex]);
 
     if (cancelled.load())
       return;
@@ -1538,6 +1643,56 @@ void Rasterizer::Private::renderMSAAFrame(
   }
 
   resolveMSAA(buffer, pattern.count);
+}
+
+void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
+                                         const std::shared_ptr<render::Scene>& scene,
+                                         const RasterTriangleSet& triangleSet,
+                                         const ShadowMaps& shadowMaps, const SamplePattern& pattern,
+                                         const Recti& rect, std::size_t tileIndex,
+                                         const std::atomic<bool>& cancelled,
+                                         Buffer<Colord>& buffer) {
+  if (rect.width() <= 0 || rect.height() <= 0)
+    return;
+
+  Buffer<Colord> accumulated(rect.width(), rect.height());
+  accumulated.clear(Colord::black());
+
+  for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
+    if (cancelled.load())
+      return;
+
+    // This is simple supersampling scoped to one tile: rerun
+    // coverage/depth at a fixed subpixel offset, accumulate local
+    // colors, and resolve the tile into the output framebuffer.
+    Buffer<Colord> sampleBuffer(rect.width(), rect.height());
+    sampleBuffer.clear(rasterizer.backgroundColor());
+
+    Buffer<double> depthBuffer(rect.width(), rect.height());
+    depthBuffer.clear(rasterizer.depthClearValue());
+
+    std::unique_ptr<Buffer<std::uint8_t>> stencilBuffer;
+    RasterTileBufferView<std::uint8_t> stencilView;
+    if (rasterizer.stencilTestEnabled()) {
+      stencilBuffer = std::make_unique<Buffer<std::uint8_t>>(rect.width(), rect.height());
+      stencilBuffer->clear(rasterizer.stencilClearValue());
+      stencilView = tileBufferView(*stencilBuffer, rect);
+    }
+
+    withPreparedTrianglePolicies(
+      scene.get(), rasterizer, shadowMaps, tileBufferView(depthBuffer, rect), stencilView,
+      [&](auto stencil, auto depth, auto fragmentPolicy) {
+        rasterizeTileWithPolicies(triangleSet, rect, tileIndex, tileBufferView(sampleBuffer, rect),
+                                  pattern.offsets[sampleIndex], cancelled, stencil, depth,
+                                  fragmentPolicy);
+      });
+
+    if (cancelled.load())
+      return;
+    accumulateSample(accumulated, sampleBuffer);
+  }
+
+  resolveMSAATile(buffer, accumulated, rect, pattern.count);
 }
 
 void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,

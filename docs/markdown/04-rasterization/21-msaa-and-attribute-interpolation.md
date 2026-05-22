@@ -142,20 +142,21 @@ get the right *fraction* of red — three of four samples
 covered means 0.75 red — and the staircase smooths into a
 gradient.
 
-The crucial property is that **MSAA samples coverage, not
-shading**. The four samples per pixel all evaluate to the same
-shading function (because the pixel center is what gets
-shaded), but each one tests *coverage* at a different sub-pixel
-position. The averaged result is "0.75 red" for an edge pixel,
-not "the average of four shading evaluations" — it's "the
-shading evaluation, weighted by the per-sample coverage."
+The crucial property of hardware MSAA is that **MSAA samples
+coverage, not shading**. The four samples per pixel usually
+share one shading result, while each sample tests coverage at
+a different sub-pixel position. The averaged result is "0.75
+red" for an edge pixel, not "the average of four unrelated
+material evaluations" — it is one material evaluation weighted
+by the per-sample coverage.
 
-This is the difference from the raytracer's per-pixel
-super-sampling. The raytracer does run the full shading
-function at each sub-pixel sample (because it has no separate
-notion of coverage). The rasterizer's MSAA cuts the shading
-work to once per pixel, even at 4× MSAA — the multiplication
-is in coverage and depth tests, not shading.
+This codebase's software rasterizer currently takes the simpler
+V1 route: each covered sample runs the fragment path directly,
+then the samples are averaged. That is more expensive than
+centroid/per-fragment MSAA, but it keeps depth, stencil,
+textures, and programmable fragment hooks unambiguous. A
+cheaper centroid/per-fragment shading mode is left as a future
+quality/performance option.
 
 ## 21.4 The MSAA implementation
 
@@ -169,16 +170,24 @@ $8$. The implementation has two paths:
   the [chapter 18](18-the-rasterization-pipeline.md) pipeline.
   This is the default and the codepath optimized for the most
   common case.
-- **N-sample resolved path** (`m_msaaSamples > 1`): N
-  per-sample color buffers, N per-sample Z-buffers, N
-  per-sample stencil buffers. Each sample is rasterized
-  independently against its own buffers, then a final
-  *resolve* pass averages the N samples per pixel into the
-  single output framebuffer.
+- **Full-frame N-sample path** (`m_msaaSamples > 1` and
+  `queueSize == 1`): N per-sample color buffers, N per-sample
+  Z-buffers, and N per-sample stencil buffers cover the whole
+  framebuffer. Each sample is rasterized independently, then a
+  final *resolve* pass averages the N samples per pixel into
+  the single output framebuffer. This preserves the low-overhead
+  default path.
+- **Tile-local N-sample path** (`m_msaaSamples > 1` and
+  `queueSize > 1`): each tile task loops over all sample
+  offsets for that tile, using tile-local color, depth, and
+  stencil sample buffers. The task resolves its tile directly
+  into the output framebuffer. That avoids allocating and
+  clearing full-frame sample buffers in every worker pass.
 
 The per-sample subpixel offsets follow a fixed pattern:
-$2$-sample uses $(0, 0)$ and $(0.5, 0.5)$; $4$-sample uses a
-diagonal-rotated grid; $8$-sample uses an 8-rook pattern.
+$2$-sample uses $(-0.25, -0.25)$ and $(0.25, 0.25)$;
+$4$-sample uses a diagonal-rotated grid; $8$-sample uses an
+8-rook pattern.
 Each pattern covers the pixel area more uniformly than the
 naive regular grid, with the same anti-correlation properties
 that make jittered sampling
@@ -207,10 +216,13 @@ scenes:
   (about 4× slower).
 
 The 4× number is the dominant cost. The raster work
-quadruples (4× per-sample triangle binning, 4× per-sample
-depth tests, 4× per-sample writes). The shading work stays
-constant (one fragment shader per pixel). The resolve pass
-adds a small amortized cost.
+quadruples (4× per-sample coverage, depth/stencil tests, and
+writes). In the current implementation, covered samples also
+run the fragment path directly; the planned centroid/per-fragment
+mode would reduce that shading share. The resolve pass adds a
+small amortized cost, and the tiled path keeps the sample buffers
+small enough that worker tasks no longer clear full-frame color,
+depth, and stencil storage for every sample.
 
 The verdict is that MSAA is *expensive but worth it* for final
 output. For interactive editing, single-sample is the right
