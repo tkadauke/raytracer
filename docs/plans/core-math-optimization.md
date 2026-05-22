@@ -423,8 +423,12 @@ tracing arrives. Listed for completeness.
   `Quartic::solveStable()` exposes it explicitly, and torus intersection
   selects it for poorly scaled coefficients while preserving the default
   Ferrari fast path.
-- **Block-batched BVH traversal.** 4 or 8 rays per traversal step,
-  using the SIMD AABB intersection from phase 1.2.
+- ~~**Block-batched BVH traversal.** 4 or 8 rays per traversal step,
+  using the SIMD AABB intersection from phase 1.2.~~ ✅ **Done.** `BVH`
+  now walks Ray4 packets through a shared active-mask descent using
+  `BoundingBox::intersects4` at interior nodes and packet primitive
+  dispatch at leaves; `BVHPacketBenchmark.cpp` tracks coherent,
+  incoherent, and primary-render packet ratios for Epic #141 / Phase 4.3.
 - ~~**Matrix decompositions** (LU, QR, SVD). Useful for stable
   inversion and future PT/learning paths.~~ ✅ **Done.** `Matrix.h`
   now provides LU partial pivoting, QR orthonormalization, and SVD for
