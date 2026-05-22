@@ -84,9 +84,8 @@ so it's a viable second-pass read.
 
 ### Volume V — Image processing & computer vision
 
-Currently scoped to the test-side helpers (`Blob`,
-`Silhouette`, `ShapeClassifier`); will grow as
-[`docs/roadmap.md` §4.11](../roadmap.md) lands.
+Volume V covers the test-side helpers `Blob`, `Silhouette`, and
+`ShapeClassifier`.
 
 - [Volume index](05-image-and-vision/README.md)
 - [22. Image buffers and pixel formats](05-image-and-vision/22-image-buffers-and-pixel-formats.md)
@@ -101,6 +100,13 @@ The supporting cast around the rendering core.
 - [25. PLY parsing](06-tools-and-io/25-ply-parsing.md)
 - [26. The example apps](06-tools-and-io/26-the-example-apps.md)
 
+### Volume VII — Animation
+
+Frame timelines, typed keyframe tracks, and interpolation policies.
+
+- [Volume index](07-animation/README.md)
+- [27. Timelines and interpolation](07-animation/27-timelines-and-interpolation.md)
+
 ### Appendix
 
 - [A. Glossary](appendix/a-glossary.md)
@@ -114,7 +120,7 @@ The supporting cast around the rendering core.
 
 ### Top-to-bottom
 
-Volumes I → II → III → IV → V → VI, in order. The longest path; works
+Volumes I → II → III → IV → V → VI → VII, in order. The longest path; works
 if you have time and want the full picture.
 
 ### "I just want to understand the raytracer"
@@ -132,6 +138,11 @@ revisits Volume I's geometry primitives. About 10 chapters.
 
 Use [Appendix C — Source map](appendix/c-source-map.md). It indexes
 every header against the chapters that reference it.
+
+### "I want to understand animation"
+
+Read chapter 16 for the renderer's existing velocity-based motion blur, then
+chapter 27 for frame timelines and keyframe interpolation.
 
 ---
 

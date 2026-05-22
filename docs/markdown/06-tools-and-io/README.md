@@ -26,5 +26,6 @@ documentation for that, and the source is small enough to read.
 ## See also
 
 - Previous: [Volume V — Image processing & computer vision](../05-image-and-vision/README.md)
+- Next: [Volume VII — Animation](../07-animation/README.md)
 - [Top-level TOC](../README.md)
 - [Appendix](../appendix/a-glossary.md)

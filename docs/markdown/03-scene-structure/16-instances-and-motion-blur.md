@@ -206,30 +206,7 @@ to `stream.next()` pulls from a fresh sample dimension, so
 the camera draws the pixel-offset and `timeSample` (and, for
 thin-lens, the lens-disc sample) from non-correlated streams.
 
-## 16.7 What this chapter does *not* cover
-
-Two motion-blur extensions are queued under roadmap §4.7:
-
-- **Rotational motion blur.** The current model handles only
-  *linear* velocity — straight-line motion. A wheel spinning
-  during the shutter needs *rotational* blur: the instance's
-  *orientation* changes over the shutter, not just its
-  position. This requires a richer transform-over-time model:
-  not "position at t = 1" but "matrix at t = 1", with the
-  intermediate matrix computed by interpolation between the
-  endpoints.
-- **Animated geometry.** Vertex positions changing over the
-  shutter (a deforming mesh, a fluid simulation) need the
-  underlying primitive to be time-aware, not just the
-  instance. This is queued for the eventual animation/timeline
-  feature; it requires the rendering engine to retessellate or
-  re-bind vertex data per `timeSample`.
-
-Neither is missing because of an architectural problem; both
-are deferrals to keep the scope of motion blur bounded to what
-a [Whitted](../appendix/a-glossary.md#w) renderer can produce cleanly.
-
-## 16.8 Exercises
+## 16.7 Exercises
 
 1. Construct a scene of 1000 instances of a single 10-MB mesh.
    Estimate the total memory cost of the scene. Compare to the
@@ -261,6 +238,8 @@ a [Whitted](../appendix/a-glossary.md#w) renderer can produce cleanly.
   [10. Sampling and anti-aliasing §10.4](../02-ray-rendering/10-sampling-and-anti-aliasing.md#10-4-two-access-patterns-sets-and-streams)
 - BVH traversal that the AABB expansion serves:
   [15. Spatial acceleration §15.2](15-spatial-acceleration.md#15-2-the-bounding-volume-hierarchy)
+- Keyframe timelines:
+  [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md)
 
 ## Source anchors
 

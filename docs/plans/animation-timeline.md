@@ -5,9 +5,12 @@
 > roadmap §4.7 and connects it to the existing velocity-only motion-blur model
 > in chapter 16.
 >
-> **Status:** Planning document. Nothing here is implemented yet unless marked
-> done. Update this file as API shape, JSON format, or implementation order
-> changes.
+> **Status:** Phase 1 shared timeline math is implemented under
+> `include/core/animation/`, with reusable interpolation policies under
+> `include/core/math/interpolation/`. The implemented foundation is documented
+> in textbook chapter 27 and the interpolation API widgets. World-scene
+> loading/evaluation and `rendercli` animation flags are still pending. Update
+> this file as API shape, JSON format, or implementation order changes.
 
 ---
 
@@ -39,10 +42,12 @@ Non-goals for the first pass:
 The project ultimately needs both world-side and render-side animation, but
 they should share one core model.
 
-### 1. Shared animation core
+### 1. Shared timeline and interpolation core
 
-Add a Qt-free core library, tentatively under `include/core/animation/`, that
-owns pure timeline math:
+Add a Qt-free core layer for pure timeline and interpolation math. Timeline
+types live under `include/core/animation/`; interpolation policies live under
+`include/core/math/interpolation/` so they can also serve rasterization,
+sampling, UI widgets, and other non-animation callers later.
 
 - `FrameTime` / `TimelineTime`
   - Exact frame number plus seconds conversion through fps.
@@ -56,7 +61,7 @@ owns pure timeline math:
   - frame or seconds timestamp
   - typed value
   - interpolation mode
-- interpolation functions
+- interpolation policies
   - `step`
   - `linear`
   - `smoothstep`
@@ -281,7 +286,7 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 0 — Format and invariants
 
-- Add this plan.
+- ✅ Add this plan.
 - Decide exact JSON schema for timeline blocks.
 - Decide where stable IDs live in serialized world scenes if any ambiguity
   exists.
@@ -290,10 +295,11 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 1 — Shared core timeline math
 
-- Add Qt-free timeline/keyframe/interpolation types.
-- Support `step`, `linear`, and `smoothstep`.
-- Support scalar, `Vector3d`, and `Colord` values first.
-- Unit tests for:
+- ✅ Add Qt-free timeline/keyframe types and reusable core math interpolation policies.
+- ✅ Support `step`, `linear`, and `smoothstep`.
+- ✅ Support scalar, `Vector3d`, and `Colord` values first.
+- ✅ Document implemented behavior in API widgets and textbook chapter 27.
+- ✅ Unit tests for:
   - exact key lookup
   - before-first and after-last behavior
   - between-key interpolation

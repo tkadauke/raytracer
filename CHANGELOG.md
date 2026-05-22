@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Core timeline and interpolation primitives.** New Qt-free timeline/keyframe types under `core::animation` and reusable interpolation policies under `core::math::interpolation` provide validated frame timelines, typed tracks, `step`/`linear`/`smoothstep` sampling, scalar/vector/color tests, interpolation-mode parsing, API widgets, and a new textbook animation chapter for the upcoming world and `rendercli` animation work. — GPT-5
 - **Rasterizer shadow-cascade split widget.** The Rasterizer API docs and shadow-map textbook section now include an interactive cascade diagnostic that shows camera-depth split bands, per-cascade light-space map coverage, and raw-vs-texel-snapped cascade centers while panning the camera. — GPT-5
 - **GeneratedRayTracer rasterizer preview shadows.** The live preview's Rasterizer engine now has a `Render → Preview Engine → Rasterizer Preview Shadows` toggle that enables directional shadow maps with four stabilized cascades for interactive shadow-map inspection. The render dialog keeps its separate explicit shadow settings. — GPT-5
 - **Rasterizer cascaded shadow maps.** Directional-light shadow maps can now split scene bounds into 1-4 camera-depth cascades, building a tighter shadow map for each slice. The setting is exposed through `Rasterizer::setShadowCascadeCount`, `rendercli --shadow_cascades`, the GeneratedRayTracer render settings widget, unit and functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5

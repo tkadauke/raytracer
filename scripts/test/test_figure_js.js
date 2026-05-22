@@ -339,6 +339,24 @@ test('Rasterizer perspective UV widget emits UV grid lines', () => {
     'each panel should draw a filled quad and a stroked quad outline');
 });
 
+test('Interpolation widgets expose scalar sampling controls and nonblank plots', () => {
+  [
+    ['interpolation_step.js', 'step'],
+    ['interpolation_linear.js', 'linear'],
+    ['interpolation_smoothstep.js', 'smoothstep'],
+  ].forEach(([widget, mode]) => {
+    const body = loadWidget(widget);
+    const svg = elementsByTag(body, 'svg')[0];
+    assert.equal(countElements(body, 'input'), 1,
+      `${widget} should expose t as a scalar slider`);
+    assert.equal(svg.getAttribute('data-interpolator'), mode);
+    assert.ok(countElements(body, 'line') >= 5,
+      `${widget} should draw axes and interpolation guides`);
+    assert.ok(countElements(body, 'circle') >= 1,
+      `${widget} should draw the sampled value marker`);
+  });
+});
+
 test('Texture coordinate mapping widget exposes mapping controls and lookup state', () => {
   const body = loadWidget('texture_coordinate_mapping.js');
   assert.equal(countElements(body, 'button'), 2,
