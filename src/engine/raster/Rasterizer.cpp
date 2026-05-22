@@ -1,21 +1,17 @@
 #include "engine/raster/Rasterizer.h"
 
+#include "RasterPipelineTypes.h"
+#include "RasterTriangleEmitter.h"
+
 #include "core/Buffer.h"
-#include "core/geometry/Mesh.h"
 #include "core/geometry/Rasterize.h"
-#include "core/math/HitPoint.h"
-#include "core/math/Ray.h"
 #include "core/math/Vector.h"
-#include "render/HomogeneousClipVolume.h"
 #include "render/TilePlan.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
-#include "render/materials/MatteMaterial.h"
 #include "render/postprocess/Fxaa.h"
 #include "render/primitives/Scene.h"
-#include "render/textures/ConstantColorTexture.h"
-#include "render/textures/Texture.h"
 #include "render/viewplanes/ViewPlane.h"
 
 #include "../TileRenderTask.h"
@@ -90,8 +86,16 @@ using namespace engine::raster;
 // threading, start at Rasterizer::Private::renderTriangleSetPass().
 
 namespace {
-  class RasterTriangleEmitter;
-  class RasterTriangleSet;
+  using engine::raster::detail::fullBufferView;
+  using engine::raster::detail::RasterFullBufferView;
+  using engine::raster::detail::RasterMaterial;
+  using engine::raster::detail::RasterTileBufferView;
+  using engine::raster::detail::RasterTriangle;
+  using engine::raster::detail::RasterTriangleEmitter;
+  using engine::raster::detail::RasterTriangleSet;
+  using engine::raster::detail::RasterVertex;
+  using engine::raster::detail::tileBufferView;
+
   class ShadowMaps;
 }
 
@@ -253,10 +257,7 @@ Rasterizer::Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<r
 Rasterizer::~Rasterizer() = default;
 
 std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
-  auto result = std::make_shared<Rasterizer>(
-    m_camera ? m_camera->clone() : nullptr,
-    m_scene
-  );
+  auto result = std::make_shared<Rasterizer>(m_camera ? m_camera->clone() : nullptr, m_scene);
   result->setTonemap(tonemap());
   result->setLod(m_lod);
   result->setMaximumThreads(p->threadPool->maxThreadCount());
@@ -360,391 +361,6 @@ namespace {
   // contribution rather than darkened.
   constexpr double kAmbientCoefficient = 1.0;
 
-  // Near-plane depth used by the rasterizer's homogeneous clipper. It
-  // sits just in front of the eye to keep perspective divides bounded
-  // for clipped vertices.
-  constexpr double kNearClipDepth = 0.1;
-  constexpr std::size_t kMaxClipVertices = 32;
-
-  // Projection produces clip-space data first. Screen coordinates are
-  // cached only when the vertex is already inside the clip volume.
-  struct ProjectedVertex {
-    Vector4d clip;
-    Vector3d screen;
-    std::uint8_t outCode;
-  };
-
-  // A clip vertex carries every attribute that clipping may need to
-  // synthesize: world position, normal, UV, homogeneous clip coords,
-  // and eventually screen position.
-  struct ClipVert {
-    Vector3d point;
-    Vector3d normal;
-    Vector2d uv;
-    Vector4d clip;
-    Vector3d screen;
-
-    bool ensureScreen(const render::ViewPlane& viewPlane) {
-      if (screen.isUndefined()) {
-        screen = viewPlane.screenFromClip(clip);
-      }
-      return screen.isDefined();
-    }
-  };
-
-  // A raster vertex is after clipping and optional vertex shading:
-  // integer screen coordinates plus the homogeneous reciprocal used
-  // by perspective-correct interpolation. Perspective cameras emit
-  // clip.w = camera depth, while orthographic cameras emit clip.w = 1;
-  // carrying 1/w keeps both projections correct.
-  struct RasterVertex {
-    Vector3d point;
-    Vector3d normal;
-    Vector2d uv;
-    double invW;
-    double depthOverW;
-    int x;
-    int y;
-  };
-
-  template<class T>
-  class RasterFullBufferView {
-  public:
-    RasterFullBufferView()
-        : m_buffer(nullptr) {
-    }
-
-    explicit RasterFullBufferView(Buffer<T>& buffer)
-        : m_buffer(&buffer) {
-    }
-
-    T& at(int x, int y) const {
-      return (*m_buffer)[y][x];
-    }
-
-    bool isValid() const {
-      return m_buffer != nullptr;
-    }
-
-  private:
-    Buffer<T>* m_buffer;
-  };
-
-  template<class T>
-  class RasterTileBufferView {
-  public:
-    RasterTileBufferView()
-        : m_buffer(nullptr),
-          m_originX(0),
-          m_originY(0) {
-    }
-
-    RasterTileBufferView(Buffer<T>& buffer, int originX, int originY)
-        : m_buffer(&buffer),
-          m_originX(originX),
-          m_originY(originY) {
-    }
-
-    T& at(int x, int y) const {
-      return (*m_buffer)[y - m_originY][x - m_originX];
-    }
-
-    bool isValid() const {
-      return m_buffer != nullptr;
-    }
-
-  private:
-    Buffer<T>* m_buffer;
-    int m_originX;
-    int m_originY;
-  };
-
-  template<class T>
-  RasterFullBufferView<T> fullBufferView(Buffer<T>& buffer) {
-    return RasterFullBufferView<T>(buffer);
-  }
-
-  template<class T>
-  RasterTileBufferView<T> tileBufferView(Buffer<T>& buffer, const Recti& rect) {
-    return RasterTileBufferView<T>(buffer, rect.left(), rect.top());
-  }
-
-  inline Colord fallbackFaceColor(std::uint64_t index) {
-    const std::uint64_t r = (index * 2654435761ULL) & 0xFFu;
-    const std::uint64_t g = (index * 40503ULL + 12345) & 0xFFu;
-    const std::uint64_t b = (index * 15485863ULL + 999983) & 0xFFu;
-    return Colord(0.3 + (r / 255.0) * 0.7, 0.3 + (g / 255.0) * 0.7, 0.3 + (b / 255.0) * 0.7);
-  }
-
-  // Per-triangle material evaluator prepared during emission. Most
-  // raster fragments use either a cached fallback face color or a
-  // cached constant matte albedo; only arbitrary textures need the
-  // heavier HitPoint/Ray context.
-  class RasterMaterial {
-  public:
-    RasterMaterial()
-        : m_kind(Kind::Constant),
-          m_albedo(Colord::black()),
-          m_texture(nullptr) {
-    }
-
-    static RasterMaterial constant(const Colord& albedo) {
-      return RasterMaterial(Kind::Constant, albedo, nullptr);
-    }
-
-    static RasterMaterial texture(std::shared_ptr<render::Texturec> texture) {
-      return RasterMaterial(Kind::Texture, Colord::black(), std::move(texture));
-    }
-
-    Colord albedo(const render::Primitive* primitive, const Vector3d& worldPos,
-                  const Vector3d& normal, const Vector2d& uv) const {
-      if (m_kind == Kind::Constant || !m_texture)
-        return m_albedo;
-
-      const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
-      const Rayd ray(worldPos, -normal);
-      return m_texture->evaluate(ray, hp);
-    }
-
-  private:
-    enum class Kind { Constant, Texture };
-
-    RasterMaterial(Kind kind, const Colord& albedo, std::shared_ptr<render::Texturec> texture)
-        : m_kind(kind),
-          m_albedo(albedo),
-          m_texture(std::move(texture)) {
-    }
-
-    Kind m_kind;
-    Colord m_albedo;
-    std::shared_ptr<render::Texturec> m_texture;
-  };
-
-  // Per-primitive source for RasterMaterial. The expensive material
-  // type checks happen once per leaf primitive, while face-indexed
-  // fallback colors are still baked per emitted triangle.
-  class RasterMaterialSource {
-  public:
-    static RasterMaterialSource from(const std::shared_ptr<render::Material>& material) {
-      auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material);
-      if (!matte)
-        return faceColor();
-
-      auto texture = matte->diffuseTexture();
-      if (!texture)
-        return faceColor();
-
-      const render::Texturec* texturePtr = texture.get();
-      if (typeid(*texturePtr) == typeid(render::ConstantColorTexture)) {
-        const auto* constant = static_cast<const render::ConstantColorTexture*>(texturePtr);
-        return constantAlbedo(constant->color());
-      }
-
-      return textured(std::move(texture));
-    }
-
-    RasterMaterial forFace(std::uint64_t faceIdx) const {
-      switch (m_kind) {
-      case Kind::FaceColor:
-        return RasterMaterial::constant(fallbackFaceColor(faceIdx));
-      case Kind::Constant:
-        return RasterMaterial::constant(m_albedo);
-      case Kind::Texture:
-        return RasterMaterial::texture(m_texture);
-      }
-      return RasterMaterial::constant(fallbackFaceColor(faceIdx));
-    }
-
-  private:
-    enum class Kind { FaceColor, Constant, Texture };
-
-    static RasterMaterialSource faceColor() {
-      return RasterMaterialSource(Kind::FaceColor, Colord::black(), nullptr);
-    }
-
-    static RasterMaterialSource constantAlbedo(const Colord& albedo) {
-      return RasterMaterialSource(Kind::Constant, albedo, nullptr);
-    }
-
-    static RasterMaterialSource textured(std::shared_ptr<render::Texturec> texture) {
-      return RasterMaterialSource(Kind::Texture, Colord::black(), std::move(texture));
-    }
-
-    RasterMaterialSource(Kind kind, const Colord& albedo, std::shared_ptr<render::Texturec> texture)
-        : m_kind(kind),
-          m_albedo(albedo),
-          m_texture(std::move(texture)) {
-    }
-
-    Kind m_kind;
-    Colord m_albedo;
-    std::shared_ptr<render::Texturec> m_texture;
-  };
-
-  // Material and primitive pointers stay attached to triangles so
-  // the fragment stage can use the same scene/material vocabulary as
-  // the raytracer, even though no rays are traced here.
-  struct RasterTriangle {
-    std::array<RasterVertex, 3> vertices;
-    const render::Primitive* primitive;
-    std::shared_ptr<render::Material> material;
-    RasterMaterial rasterMaterial;
-    std::uint64_t faceIdx;
-  };
-
-  // Tile-local triangle bins. The tile plan owns pixel rectangles;
-  // this grid owns "which triangles might touch this rectangle".
-  class RasterTileGrid {
-  public:
-    explicit RasterTileGrid(const render::TilePlan& plan)
-        : m_plan(plan),
-          m_triangleIndices(plan.size()) {
-    }
-
-    Recti rect(int row, int col) const {
-      return m_plan.rect(row, col);
-    }
-
-    std::size_t index(int row, int col) const {
-      return m_plan.index(row, col);
-    }
-
-    const std::vector<std::size_t>& triangleIndices(std::size_t tileIndex) const {
-      return m_triangleIndices[tileIndex];
-    }
-
-    std::size_t addBounds(int rawMinX, int rawMaxX, int rawMinY, int rawMaxY,
-                          std::size_t triangleIndex) {
-      if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width() || rawMinY >= m_plan.height()) {
-        return 0;
-      }
-
-      const int minX = std::clamp(rawMinX, 0, m_plan.width() - 1);
-      const int maxX = std::clamp(rawMaxX, 0, m_plan.width() - 1);
-      const int minY = std::clamp(rawMinY, 0, m_plan.height() - 1);
-      const int maxY = std::clamp(rawMaxY, 0, m_plan.height() - 1);
-
-      const int firstCol = m_plan.columnForX(minX);
-      const int lastCol = m_plan.columnForX(maxX);
-      const int firstRow = m_plan.rowForY(minY);
-      const int lastRow = m_plan.rowForY(maxY);
-
-      std::size_t added = 0;
-      for (int row = firstRow; row <= lastRow; ++row) {
-        for (int col = firstCol; col <= lastCol; ++col) {
-          m_triangleIndices[index(row, col)].push_back(triangleIndex);
-          ++added;
-        }
-      }
-      return added;
-    }
-
-  private:
-    render::TilePlan m_plan;
-    std::vector<std::vector<std::size_t>> m_triangleIndices;
-  };
-
-  // Renderable triangle batch for one frame. It stores prepared
-  // triangles once, plus per-tile index lists for parallel drawing.
-  class RasterTriangleSet {
-  public:
-    explicit RasterTriangleSet(const render::TilePlan& tilePlan)
-        : m_tileGrid(tilePlan) {
-    }
-
-    void add(const RasterTriangle& triangle) {
-      const int rawMinX =
-        std::min({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-      const int rawMaxX =
-        std::max({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
-      const int rawMinY =
-        std::min({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-      const int rawMaxY =
-        std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
-
-      // Bin by conservative screen-space bounds. Tiles own disjoint
-      // pixel rectangles, so color/depth/stencil writes stay lock-free
-      // once a triangle has been copied into each overlapping tile.
-      const std::size_t triangleIndex = m_triangles.size();
-      const std::size_t added =
-        m_tileGrid.addBounds(rawMinX, rawMaxX, rawMinY, rawMaxY, triangleIndex);
-      if (added == 0)
-        return;
-
-      m_triangles.push_back(triangle);
-      m_binnedTriangleCount += added;
-    }
-
-    bool empty() const {
-      return m_binnedTriangleCount == 0;
-    }
-
-    const std::vector<RasterTriangle>& triangles() const {
-      return m_triangles;
-    }
-
-    const RasterTileGrid& tileGrid() const {
-      return m_tileGrid;
-    }
-
-  private:
-    std::vector<RasterTriangle> m_triangles;
-    RasterTileGrid m_tileGrid;
-    std::size_t m_binnedTriangleCount{0};
-  };
-
-  using ClipPolygon = std::array<ClipVert, kMaxClipVertices>;
-
-  const render::HomogeneousClipVolume& clipVolume() {
-    static const render::HomogeneousClipVolume volume(kNearClipDepth);
-    return volume;
-  }
-
-  // Clipping creates new vertices on plane intersections. The
-  // geometry is homogeneous, but attributes are interpolated in the
-  // original primitive domain so the later perspective-correct stage
-  // still has meaningful per-vertex values.
-  inline ClipVert interpolateClipVert(const ClipVert& from, const ClipVert& to, double t) {
-    return {from.point + (to.point - from.point) * t, from.normal + (to.normal - from.normal) * t,
-            from.uv + (to.uv - from.uv) * t, from.clip + (to.clip - from.clip) * t,
-            Vector3d::undefined};
-  }
-
-  const Vector4d& clipOf(const ClipVert& vertex) {
-    return vertex.clip;
-  }
-
-  inline std::size_t clipTriangleToView(const std::array<ClipVert, 3>& input,
-                                        ClipPolygon& clipped) {
-    return clipVolume().clipTriangle(input, clipped, clipOf, interpolateClipVert);
-  }
-
-  inline double signedScreenArea(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) {
-    return (v1.screen.x() - v0.screen.x()) * (v2.screen.y() - v0.screen.y()) -
-           (v1.screen.y() - v0.screen.y()) * (v2.screen.x() - v0.screen.x());
-  }
-
-  // Culling is a tiny policy too: it turns the public cull mode into
-  // a single projected-area decision used before rasterization.
-  struct TriangleCullPolicy {
-    Rasterizer::CullMode mode;
-
-    bool shouldCull(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) const {
-      if (mode == Rasterizer::CullMode::Both)
-        return false;
-
-      // Tessellated primitives use CCW winding when viewed from the
-      // outside. With the current camera projection, front-facing
-      // triangles have negative projected area and back-facing
-      // triangles have positive projected area.
-      const double area = signedScreenArea(v0, v1, v2);
-      if (area == 0.0)
-        return false;
-
-      return mode == Rasterizer::CullMode::Back ? area > 0.0 : area < 0.0;
-    }
-  };
-
   // Fragment payload after barycentric interpolation. Constructing it
   // is the handoff from coverage math to shading/depth tests.
   struct InterpolatedFragment {
@@ -789,8 +405,7 @@ namespace {
     return basis;
   }
 
-  Vector3d stabilizeDirectionalShadowCenter(const Vector3d& center,
-                                            const Vector3d& lightDirection,
+  Vector3d stabilizeDirectionalShadowCenter(const Vector3d& center, const Vector3d& lightDirection,
                                             double halfExtent, int shadowMapSize) {
     if (center.isUndefined() || center.isInfinite() || !std::isfinite(halfExtent) ||
         halfExtent <= 0.0 || shadowMapSize <= 0)
@@ -834,10 +449,8 @@ namespace {
     }
 
     std::shared_ptr<render::Camera> clone() const override {
-      auto result =
-        std::shared_ptr<DirectionalShadowCamera>(new DirectionalShadowCamera(
-          m_origin, m_forward, m_right, m_up, m_halfExtent
-        ));
+      auto result = std::shared_ptr<DirectionalShadowCamera>(
+        new DirectionalShadowCamera(m_origin, m_forward, m_right, m_up, m_halfExtent));
       copyBaseStateTo(*result);
       return result;
     }
@@ -860,8 +473,8 @@ namespace {
     }
 
   private:
-    DirectionalShadowCamera(const Vector3d& origin, const Vector3d& forward,
-                            const Vector3d& right, const Vector3d& up, double halfExtent)
+    DirectionalShadowCamera(const Vector3d& origin, const Vector3d& forward, const Vector3d& right,
+                            const Vector3d& up, double halfExtent)
         : m_origin(origin),
           m_forward(forward),
           m_right(right),
@@ -944,8 +557,7 @@ namespace {
           return &cascade;
       }
 
-      return viewDepth < m_cascades.front().minViewDepth ? &m_cascades.front()
-                                                         : &m_cascades.back();
+      return viewDepth < m_cascades.front().minViewDepth ? &m_cascades.front() : &m_cascades.back();
     }
 
     double pcfVisibility(const DirectionalShadowCascade& cascade, int x, int y,
@@ -967,8 +579,7 @@ namespace {
       int blockerSamples = 0;
       for (int dy = -m_filterRadius; dy <= m_filterRadius; ++dy) {
         for (int dx = -m_filterRadius; dx <= m_filterRadius; ++dx) {
-          const double blockerDepth =
-            sampleBlockerDepth(cascade, x + dx, y + dy, receiverDepth);
+          const double blockerDepth = sampleBlockerDepth(cascade, x + dx, y + dy, receiverDepth);
           if (std::isfinite(blockerDepth)) {
             blockerDepthSum += blockerDepth;
             ++blockerSamples;
@@ -1409,208 +1020,8 @@ namespace {
     }
   }
 
-  // Scene traversal + primitive tessellation + clipping. This is the
-  // "front end" of the software raster pipeline; it streams prepared
-  // triangles without owning the final batch.
-  class RasterTriangleEmitter {
-  public:
-    RasterTriangleEmitter(const render::Scene* scene, const std::shared_ptr<render::Camera>& camera,
-                          int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled,
-                          Rasterizer::CullMode cullMode, bool applyVertexShader)
-        : m_scene(scene),
-          m_camera(camera),
-          m_lod(lod),
-          m_rasterizer(rasterizer),
-          m_cullPolicy{cullMode},
-          m_applyVertexShader(applyVertexShader),
-          m_cancelled(cancelled) {
-    }
-
-    template<class EmitFn>
-    void forEachTriangle(EmitFn&& callback) const {
-      std::uint64_t globalFaceIdx = 0;
-      m_scene->forEachLeaf(
-        [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
-          if (m_cancelled.load())
-            return;
-
-          auto mesh = primitive->tessellate(m_lod);
-          if (!mesh)
-            return;
-
-          const auto& vertices = mesh->vertices();
-          const auto& faces = mesh->faces();
-          const auto& viewPlane = *m_camera->viewPlane();
-          const RasterMaterialSource materialSource = RasterMaterialSource::from(material);
-
-          // Project each mesh vertex once per primitive. Faces then
-          // reuse clip/screen data while fan-triangulating polygons.
-          std::vector<ProjectedVertex> projected(vertices.size());
-          for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
-            const auto& vertex = vertices[vi];
-            const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
-            const std::uint8_t outCode = clipVolume().outCode(clip);
-            projected[vi] = {
-              clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
-              outCode};
-          }
-
-          for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
-            if (m_cancelled.load())
-              return;
-
-            const auto& face = faces[fi];
-            if (face.size() < 3)
-              continue;
-
-            for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-              const ProjectedVertex& p0 = projected[face[0]];
-              const ProjectedVertex& p1 = projected[face[i]];
-              const ProjectedVertex& p2 = projected[face[i + 1]];
-              // Cohen-Sutherland-style bit tests: shared outside
-              // bits reject a triangle before invoking the clipper.
-              if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
-                continue;
-              }
-
-              const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
-              if (outCodeOr == 0) {
-                ClipVert v0{vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv,
-                            p0.clip, p0.screen};
-                ClipVert v1{vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv,
-                            p1.clip, p1.screen};
-                ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                            vertices[face[i + 1]].uv, p2.clip, p2.screen};
-
-                emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
-                                     callback);
-                continue;
-              }
-
-              // Sutherland-Hodgman homogeneous clipping. The camera
-              // gives us un-divided clip coordinates, so the same
-              // polygon clipper handles the near plane and the four
-              // viewport edges before any perspective divide can blow
-              // up screen coordinates.
-              const std::array<ClipVert, 3> input = {{
-                {vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv, p0.clip,
-                 p0.screen},
-                {vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv, p1.clip,
-                 p1.screen},
-                {vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                 vertices[face[i + 1]].uv, p2.clip, p2.screen},
-              }};
-
-              ClipPolygon clipped;
-              const std::size_t clippedCount = clipTriangleToView(input, clipped);
-              if (clippedCount < 3)
-                continue;
-
-              for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
-                ClipVert v0 = clipped[0];
-                ClipVert v1 = clipped[t];
-                ClipVert v2 = clipped[t + 1];
-
-                if (!v0.ensureScreen(viewPlane) || !v1.ensureScreen(viewPlane) ||
-                    !v2.ensureScreen(viewPlane)) {
-                  continue;
-                }
-
-                emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
-                                     callback);
-              }
-            }
-          }
-        });
-    }
-
-  private:
-    template<class EmitFn>
-    void emitPreparedTriangle(const render::Primitive* primitive,
-                              const std::shared_ptr<render::Material>& material,
-                              const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
-                              const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
-                              EmitFn& callback) const {
-      if (m_cullPolicy.shouldCull(v0, v1, v2)) {
-        return;
-      }
-
-      RasterTriangle triangle;
-      if (makeTriangle(v0, v1, v2, primitive, material, materialSource, faceIdx, triangle)) {
-        callback(triangle);
-      }
-    }
-
-    bool makeVertex(const ClipVert& vertex, const render::Primitive* primitive,
-                    const render::Material* material, std::uint64_t faceIdx,
-                    RasterVertex& out) const {
-      Vector3d point = vertex.point;
-      Vector3d normal = vertex.normal;
-      Vector2d uv = vertex.uv;
-      Vector3d screen = vertex.screen;
-
-      // The optional vertex shader is deliberately late: it sees
-      // already-clipped vertices and may adjust the screen-space
-      // result used by the teaching/debug shader path.
-      if (m_applyVertexShader) {
-        if (const auto& shader = m_rasterizer.vertexShader()) {
-          Rasterizer::VertexInput input{vertex.point,  vertex.normal, vertex.uv, vertex.clip,
-                                        vertex.screen, primitive,     material,  faceIdx};
-          const Rasterizer::VertexOutput output = shader(input);
-          point = output.worldPosition;
-          normal = output.normal;
-          uv = output.uv;
-          screen = output.screenPosition;
-        }
-      }
-
-      if (screen.isUndefined() || screen.z() <= 0.0)
-        return false;
-
-      const double clipW = vertex.clip.isDefined() ? vertex.clip.w() : screen.z();
-      if (clipW <= 0.0)
-        return false;
-
-      const double invW = 1.0 / clipW;
-      out = {point,
-             normal,
-             uv,
-             invW,
-             screen.z() * invW,
-             static_cast<int>(std::lround(screen.x())),
-             static_cast<int>(std::lround(screen.y()))};
-      return true;
-    }
-
-    bool makeTriangle(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
-                      const render::Primitive* primitive,
-                      const std::shared_ptr<render::Material>& material,
-                      const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
-                      RasterTriangle& out) const {
-      RasterVertex r0, r1, r2;
-      const render::Material* materialPtr = material.get();
-      if (!makeVertex(v0, primitive, materialPtr, faceIdx, r0) ||
-          !makeVertex(v1, primitive, materialPtr, faceIdx, r1) ||
-          !makeVertex(v2, primitive, materialPtr, faceIdx, r2)) {
-        return false;
-      }
-
-      out = RasterTriangle{
-        {{r0, r1, r2}}, primitive, material, materialSource.forFace(faceIdx), faceIdx};
-      return true;
-    }
-
-    const render::Scene* m_scene;
-    const std::shared_ptr<render::Camera>& m_camera;
-    int m_lod;
-    const Rasterizer& m_rasterizer;
-    TriangleCullPolicy m_cullPolicy;
-    bool m_applyVertexShader;
-    const std::atomic<bool>& m_cancelled;
-  };
-
-  std::pair<double, double>
-  viewDepthRange(const render::Camera& camera, const std::array<Vector3d, 8>& corners) {
+  std::pair<double, double> viewDepthRange(const render::Camera& camera,
+                                           const std::array<Vector3d, 8>& corners) {
     double minDepth = std::numeric_limits<double>::infinity();
     double maxDepth = 0.0;
 
@@ -1618,14 +1029,15 @@ namespace {
       const double depth = camera.eyeRelativeDepth(corner);
       if (!std::isfinite(depth))
         continue;
-      if (depth > kNearClipDepth) {
+      if (depth > engine::raster::detail::kNearClipDepth) {
         minDepth = std::min(minDepth, depth);
         maxDepth = std::max(maxDepth, depth);
       }
     }
 
     if (!std::isfinite(minDepth) || maxDepth <= minDepth)
-      return {kNearClipDepth, std::max(kNearClipDepth * 2.0, maxDepth)};
+      return {engine::raster::detail::kNearClipDepth,
+              std::max(engine::raster::detail::kNearClipDepth * 2.0, maxDepth)};
 
     return {minDepth, maxDepth};
   }
@@ -1648,8 +1060,8 @@ namespace {
     if (!std::isfinite(depthA) || !std::isfinite(depthB) || depthA == depthB)
       return;
 
-    const bool crosses = (depthA < splitDepth && depthB > splitDepth) ||
-                         (depthB < splitDepth && depthA > splitDepth);
+    const bool crosses =
+      (depthA < splitDepth && depthB > splitDepth) || (depthB < splitDepth && depthA > splitDepth);
     if (!crosses)
       return;
 
@@ -1662,8 +1074,18 @@ namespace {
                                           const render::Camera& camera, double minDepth,
                                           double maxDepth) {
     static constexpr std::array<std::array<int, 2>, 12> edges = {{
-      {{0, 1}}, {{0, 2}}, {{0, 4}}, {{1, 3}}, {{1, 5}}, {{2, 3}},
-      {{2, 6}}, {{3, 7}}, {{4, 5}}, {{4, 6}}, {{5, 7}}, {{6, 7}},
+      {{0, 1}},
+      {{0, 2}},
+      {{0, 4}},
+      {{1, 3}},
+      {{1, 5}},
+      {{2, 3}},
+      {{2, 6}},
+      {{3, 7}},
+      {{4, 5}},
+      {{4, 6}},
+      {{5, 7}},
+      {{6, 7}},
     }};
 
     std::array<double, 8> depths{};
@@ -1727,8 +1149,7 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
                                                 const std::shared_ptr<render::Camera>& camera,
                                                 const std::atomic<bool>& cancelled) {
   ShadowMaps shadowMaps;
-  if (!rasterizer.shadowMapsEnabled() || rasterizer.fragmentShader() || !camera ||
-      cancelled.load())
+  if (!rasterizer.shadowMapsEnabled() || rasterizer.fragmentShader() || !camera || cancelled.load())
     return shadowMaps;
 
   const BoundingBoxd bounds = scene->boundingBox();
@@ -1755,11 +1176,10 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
       if (cancelled.load())
         break;
 
-      const BoundingBoxd cascadeBounds = cascadeDepths.size() == 1
-                                           ? bounds
-                                           : cascadeBoundsForDepthRange(
-                                               bounds, corners, *camera, cascadeMinDepth,
-                                               cascadeMaxDepth);
+      const BoundingBoxd cascadeBounds =
+        cascadeDepths.size() == 1
+          ? bounds
+          : cascadeBoundsForDepthRange(bounds, corners, *camera, cascadeMinDepth, cascadeMaxDepth);
       const double halfExtent = std::max(1.0, cascadeBounds.size().length() * 0.5) * 1.05;
       const Vector3d shadowCenter = stabilizeDirectionalShadowCenter(
         cascadeBounds.center(), directional->direction(), halfExtent, size);
@@ -1788,14 +1208,13 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
           DepthOnlyFragmentPolicy{});
       }
 
-      cascades.push_back({std::move(shadowCamera), std::move(depthBuffer), cascadeMinDepth,
-                          cascadeMaxDepth});
+      cascades.push_back(
+        {std::move(shadowCamera), std::move(depthBuffer), cascadeMinDepth, cascadeMaxDepth});
     }
 
     if (!cascades.empty()) {
       shadowMaps.add(DirectionalShadowMap(light.get(), camera.get(), std::move(cascades),
-                                          rasterizer.shadowBias(),
-                                          rasterizer.shadowFilterRadius(),
+                                          rasterizer.shadowBias(), rasterizer.shadowFilterRadius(),
                                           rasterizer.shadowFilterMode()));
     }
   }

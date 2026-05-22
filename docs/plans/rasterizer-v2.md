@@ -80,9 +80,16 @@ unit and becomes testable only through full-frame output.
 
 ### 1. Split raster internals into focused implementation units
 
+Status: started. The shared raster vocabulary now lives in
+`src/engine/raster/RasterPipelineTypes.h`, and the scene-walk / projection /
+clipping / culling front end now lives in
+`src/engine/raster/RasterTriangleEmitter.h`. `Rasterizer.cpp` still owns pass
+policy dispatch, material evaluation, MSAA orchestration, shadow maps, and frame
+setup.
+
 Extract internal files without changing public behavior:
 
-- `RasterTriangleEmitter` — scene traversal, tessellation, projection,
+- ✅ `RasterTriangleEmitter` — scene traversal, tessellation, projection,
   homogeneous clipping, culling, vertex hook adaptation, and face emission.
 - `RasterShadowMaps` — directional shadow cameras, cascade fitting,
   stabilization, filtering, and visibility queries.
