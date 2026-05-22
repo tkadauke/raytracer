@@ -3,11 +3,19 @@
 
 #include "core/geometry/Mesh.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 #include "render/State.h"
 
 namespace testing {
   using namespace render;
+
+  inline Rayd toRayd(const Rayf& ray) {
+    return Rayd(
+      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
+    );
+  }
 
   template<class MT>
   struct AbstractMeshTriangleTest : public ::testing::Test {
@@ -68,6 +76,31 @@ namespace testing {
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
+
+  TYPED_TEST_P(AbstractMeshTriangleTest, ShouldIntersectRay4PacketLikeScalarRays) {
+    TypeParam triangle(&this->mesh, 0, 1, 2);
+    const std::array<Rayf, 4> rayArray{
+      Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 4, -1), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, -1)),
+      Rayf(Vector3f(-0.5f, -0.5f, -1), Vector3f(0, 0, 1))
+    };
+
+    State packetState;
+    const auto result = triangle.intersectPacket(Ray4(rayArray), packetState);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      State scalarState;
+      HitPointInterval hitPoints;
+      const auto primitive = triangle.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
+      if (primitive != nullptr) {
+        ASSERT_NEAR(hitPoints.min().distance(), result.tNear[lane], 1e-5) << "lane " << lane;
+      }
+    }
+    ASSERT_EQ(2, packetState.intersectionHits);
+    ASSERT_EQ(2, packetState.intersectionMisses);
+  }
   
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
@@ -91,6 +124,7 @@ namespace testing {
     ShouldIntersectWithRay,
     ShouldNotIntersectWithMissingRay,
     ShouldNotIntersectIfPointIsBehindRayOrigin,
+    ShouldIntersectRay4PacketLikeScalarRays,
     ShouldReturnTrueForIntersectsIfThereIsAIntersection,
     ShouldReturnFalseForIntersectsIfThereIsNoIntersection
   );

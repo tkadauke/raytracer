@@ -14,6 +14,26 @@
 using namespace std;
 using namespace render;
 
+#ifdef __SSE__
+namespace {
+  void packetHit(State& state, const Primitive* primitive, const std::string& reason) {
+    if (state.traceEvents) {
+      state.hit(primitive, reason);
+    } else {
+      ++state.intersectionHits;
+    }
+  }
+
+  void packetMiss(State& state, const Primitive* primitive, const std::string& reason) {
+    if (state.traceEvents) {
+      state.miss(primitive, reason);
+    } else {
+      ++state.intersectionMisses;
+    }
+  }
+}
+#endif
+
 const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersect);
   const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
@@ -87,11 +107,11 @@ RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& 
     const int laneBit = 1 << lane;
     if ((hitMask & laneBit) != 0) {
       result.setHit(lane, nearDistances[lane], farDistances[lane]);
-      state.hit(this, "Sphere");
+      packetHit(state, this, "Sphere");
     } else if ((discriminantMask & laneBit) != 0) {
-      state.miss(this, "Sphere, behind ray");
+      packetMiss(state, this, "Sphere, behind ray");
     } else {
-      state.miss(this, "Sphere, ray miss");
+      packetMiss(state, this, "Sphere, ray miss");
     }
   }
 

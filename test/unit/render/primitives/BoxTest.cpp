@@ -2,12 +2,18 @@
 #include "render/State.h"
 #include "render/primitives/Box.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 
 namespace BoxTest {
   using namespace render;
-using namespace render;
-using namespace render;
+
+  Rayd toRayd(const Rayf& ray) {
+    return Rayd(
+      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
+    );
+  }
 
   TEST(Box, ShouldInitializeWithValues) {
     Box box(Vector3d(), Vector3d(1, 1, 1));
@@ -119,6 +125,32 @@ using namespace render;
 
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
+  }
+
+  TEST(Box, ShouldIntersectRay4PacketLikeScalarRays) {
+    Box box(Vector3d(), Vector3d(1, 1, 1));
+    const std::array<Rayf, 4> rayArray{
+      Rayf(Vector3f(0, 0, -2), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, -2), Vector3f(0, 1, 0)),
+      Rayf(Vector3f(0, 0, 2), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1))
+    };
+
+    State packetState;
+    const auto result = box.intersectPacket(Ray4(rayArray), packetState);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      State scalarState;
+      HitPointInterval hitPoints;
+      const auto primitive = box.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
+      if (primitive != nullptr) {
+        ASSERT_NEAR(hitPoints.min().distance(), result.tNear[lane], 1e-5) << "lane " << lane;
+        ASSERT_NEAR(hitPoints.max().distance(), result.tFar[lane], 1e-5) << "lane " << lane;
+      }
+    }
+    ASSERT_EQ(2, packetState.intersectionHits);
+    ASSERT_EQ(2, packetState.intersectionMisses);
   }
   
   TEST(Box, ShouldReturnFarthestPoint) {

@@ -15,6 +15,8 @@ namespace render {
         m_index2(index2)
     {
     }
+
+    RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     
   protected:
     virtual BoundingBoxd calculateBoundingBox() const override;

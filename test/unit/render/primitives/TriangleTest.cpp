@@ -2,13 +2,19 @@
 #include "render/State.h"
 #include "render/primitives/Triangle.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 #include "core/math/HitPointInterval.h"
 
 namespace TriangleTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-using namespace render;
+
+  Rayd toRayd(const Rayf& ray) {
+    return Rayd(
+      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
+    );
+  }
   
   struct TriangleTest : public ::testing::Test {
     void SetUp() {
@@ -65,6 +71,31 @@ using namespace render;
     ASSERT_TRUE(hitPoints.minWithPositiveDistance().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
+  }
+
+  TEST_F(TriangleTest, ShouldIntersectRay4PacketLikeScalarRays) {
+    Triangle triangle(this->point0, this->point1, this->point2);
+    const std::array<Rayf, 4> rayArray{
+      Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 4, -1), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, -1)),
+      Rayf(Vector3f(-0.5f, -0.5f, -1), Vector3f(0, 0, 1))
+    };
+
+    State packetState;
+    const auto result = triangle.intersectPacket(Ray4(rayArray), packetState);
+
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      State scalarState;
+      HitPointInterval hitPoints;
+      const auto primitive = triangle.intersect(toRayd(rayArray[lane]), hitPoints, scalarState);
+      ASSERT_EQ(primitive != nullptr, result.hit(lane)) << "lane " << lane;
+      if (primitive != nullptr) {
+        ASSERT_NEAR(hitPoints.min().distance(), result.tNear[lane], 1e-5) << "lane " << lane;
+      }
+    }
+    ASSERT_EQ(2, packetState.intersectionHits);
+    ASSERT_EQ(2, packetState.intersectionMisses);
   }
   
   TEST_F(TriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {

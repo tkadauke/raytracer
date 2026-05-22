@@ -410,14 +410,13 @@ the missing constants: `SQRT2`, `SQRT3`, `E`, `GOLDEN_RATIO`,
 These items are large and the project doesn't need them until path
 tracing arrives. Listed for completeness.
 
-- **SoA / batched ray operations.** `Ray4`, `Ray8` types; batched
+- ~~**SoA / batched ray operations.** `Ray4`, `Ray8` types; batched
   `BoundingBox::intersects4`; batched primitive intersection. New
-  benchmark suite: `BatchedRayBenchmark.cpp`. 🟡 **Partially done.**
-  Aligned packet transport, primitive packet entry points with scalar
-  fallback, and an SSE `Sphere::intersectPacket(Ray4)` proof kernel
-  landed (Epic #141 first round). Triangle/Plane/Box packet kernels,
-  batched `BoundingBox::intersects4`, and a dedicated
-  `BatchedRayBenchmark.cpp` are the remaining follow-ups.
+  benchmark suite: `BatchedRayBenchmark.cpp`.~~ ✅ **Done.** Aligned
+  packet transport, primitive packet entry points with scalar fallback,
+  SSE `Sphere`, `Triangle`, `Plane`, `Box`, and `MeshTriangle` Ray4 kernels,
+  batched `BoundingBox::intersects4`, and `BatchedRayBenchmark.cpp` landed
+  for Epic #141 / Phase 4.1.
 - ~~**Stable polynomial solvers for ill-conditioned cases.**
   Jenkins-Traub or similar for the torus grazing-incidence case.~~
   ✅ **Done.** `StablePolynomial` adds a quartic real-root isolation fallback;

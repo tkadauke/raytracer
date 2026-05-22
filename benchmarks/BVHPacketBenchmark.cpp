@@ -187,7 +187,6 @@ namespace {
         State traceState;
         auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
         hits += countBits(result.hitMask);
-        benchmark::DoNotOptimize(result);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -225,7 +224,6 @@ namespace {
         State traceState;
         auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
         hits += countBits(result.hitMask);
-        benchmark::DoNotOptimize(result);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -267,7 +265,6 @@ namespace {
         State traceState;
         auto result = bvh->intersectPacket(toRay4(group.rays), traceState);
         hits += countBits(result.hitMask);
-        benchmark::DoNotOptimize(result);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
@@ -357,7 +354,6 @@ namespace {
         State traceState;
         auto result = bvh->intersectPacket(toRay8(group.rays), traceState);
         hits += countBits(result.hitMask);
-        benchmark::DoNotOptimize(result);
       }
       benchmark::DoNotOptimize(hits);
       benchmark::ClobberMemory();
