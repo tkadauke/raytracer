@@ -22,7 +22,7 @@
   *
   * ### Empirical exploration
   *
-  * Open `examples/GeneratedRayTracer/scenes/tilt_shift_demo.json` for
+  * Open `scenes/tilt_shift_demo.json` for
   * a pre-built scene, or pick **Edit → Add Camera → Tilt-Shift Camera**
   * in a fresh scene. Adjust the `tilt` control through `0..45°` to watch
   * the focal plane rotate; the focus band sweeps across the scene

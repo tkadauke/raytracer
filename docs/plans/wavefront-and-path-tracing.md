@@ -77,8 +77,8 @@ Three reasons:
    scheduling is iterative-with-per-pixel-state. Trying to fit both
    into one class produces a mess. The recursive form also supports
    the single-ray probe API (`primitiveForRay`, `rayState`,
-   `rayColor`) used by interactive picking, tests pinning shading
-   behavior, and `RefractingRayTracer`'s debug visualization. Those
+   `rayColor`) used by interactive picking and tests pinning shading
+   behavior. Those
    probes don't want depth-major scheduling.
 2. **A/B benchmarking.** With both engines shipping, you can run the
    same scene through both and directly measure the difference rather

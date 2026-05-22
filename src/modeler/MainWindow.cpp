@@ -85,7 +85,7 @@ struct MainWindow::Private {
       currentElement(nullptr)
   {
   }
-  
+
   QString fileName;
 
   RenderDisplay* display;
@@ -96,15 +96,15 @@ struct MainWindow::Private {
   QSlider* timelineFrameSlider;
   QSpinBox* timelineFrameSpinBox;
   QLabel* timelineSummaryLabel;
-  
+
   RenderWindow* renderWindow;
-  
+
   Scene* scene;
   int currentFrame;
-  
+
   Element* currentElement;
   QModelIndex currentIndex;
-  
+
   QMenu* fileMenu;
   QMenu* editMenu;
   QMenu* renderMenu;
@@ -127,12 +127,12 @@ struct MainWindow::Private {
   QAction* addDifferenceAct;
   QAction* addMinkowskiSumAct;
   QAction* addConvexHullAct;
-  
+
   QAction* addMatteMaterialAct;
   QAction* addPhongMaterialAct;
   QAction* addTransparentMaterialAct;
   QAction* addReflectiveMaterialAct;
-  
+
   QAction* addConstantColorTextureAct;
   QAction* addCheckerBoardTextureAct;
 
@@ -146,7 +146,7 @@ struct MainWindow::Private {
   QAction* addThinLensCameraAct;
   QAction* addTiltShiftCameraAct;
   QAction* addEquirectangularCameraAct;
-  
+
   QAction* deleteElementAct;
 
   QAction* moveForwardsAlongXAct;
@@ -187,18 +187,18 @@ MainWindow::MainWindow()
   p->display = new RenderDisplay(this);
   p->display->setScene(p->scene);
   setCentralWidget(p->display);
-  
+
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
   addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
   addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
-  
+
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
-  
+
   createActions();
   createMenus();
-  
+
   p->renderWindow = new RenderWindow(nullptr);
   resetTimelineFrame();
 }
@@ -208,34 +208,34 @@ void MainWindow::createActions() {
   p->newAct->setShortcuts(QKeySequence::New);
   p->newAct->setStatusTip(tr("Create a new file"));
   connect(p->newAct, SIGNAL(triggered()), this, SLOT(newFile()));
-  
+
   p->openAct = new QAction(tr("&Open"), this);
   p->openAct->setShortcuts(QKeySequence::Open);
   p->openAct->setStatusTip(tr("Open a file from disk"));
   connect(p->openAct, SIGNAL(triggered()), this, SLOT(openFile()));
-  
+
   p->saveAct = new QAction(tr("&Save"), this);
   p->saveAct->setShortcuts(QKeySequence::Save);
   p->saveAct->setStatusTip(tr("Save the current project to a file"));
   connect(p->saveAct, SIGNAL(triggered()), this, SLOT(saveFile()));
-  
+
   p->saveAsAct = new QAction(tr("Save &As"), this);
   p->saveAsAct->setShortcuts(QKeySequence::SaveAs);
   p->saveAsAct->setStatusTip(tr("Save the current project to a new file"));
   connect(p->saveAsAct, SIGNAL(triggered()), this, SLOT(saveFileAs()));
-  
+
   p->addBoxAct = new QAction(tr("Box"), this);
   p->addBoxAct->setStatusTip(tr("Add a Box to the scene"));
   connect(p->addBoxAct, SIGNAL(triggered()), this, SLOT(addBox()));
-  
+
   p->addSphereAct = new QAction(tr("Sphere"), this);
   p->addSphereAct->setStatusTip(tr("Add a Sphere to the scene"));
   connect(p->addSphereAct, SIGNAL(triggered()), this, SLOT(addSphere()));
-  
+
   p->addCylinderAct = new QAction(tr("Cylinder"), this);
   p->addCylinderAct->setStatusTip(tr("Add a Cylinder to the scene"));
   connect(p->addCylinderAct, SIGNAL(triggered()), this, SLOT(addCylinder()));
-  
+
   p->addRingAct = new QAction(tr("Ring"), this);
   p->addRingAct->setStatusTip(tr("Add a Ring to the scene"));
   connect(p->addRingAct, SIGNAL(triggered()), this, SLOT(addRing()));
@@ -247,27 +247,27 @@ void MainWindow::createActions() {
   p->addScriptAct = new QAction(tr("Script"), this);
   p->addScriptAct->setStatusTip(tr("Add a Script to the scene"));
   connect(p->addScriptAct, SIGNAL(triggered()), this, SLOT(addScript()));
-  
+
   p->addIntersectionAct = new QAction(tr("Intersection"), this);
   p->addIntersectionAct->setStatusTip(tr("Add an intersection to the scene"));
   connect(p->addIntersectionAct, SIGNAL(triggered()), this, SLOT(addIntersection()));
-  
+
   p->addUnionAct = new QAction(tr("Union"), this);
   p->addUnionAct->setStatusTip(tr("Add a union to the scene"));
   connect(p->addUnionAct, SIGNAL(triggered()), this, SLOT(addUnion()));
-  
+
   p->addDifferenceAct = new QAction(tr("Difference"), this);
   p->addDifferenceAct->setStatusTip(tr("Add a difference to the scene"));
   connect(p->addDifferenceAct, SIGNAL(triggered()), this, SLOT(addDifference()));
-  
+
   p->addMinkowskiSumAct = new QAction(tr("Minkowski Sum"), this);
   p->addMinkowskiSumAct->setStatusTip(tr("Add a Minkowski sum to the scene"));
   connect(p->addMinkowskiSumAct, SIGNAL(triggered()), this, SLOT(addMinkowskiSum()));
-  
+
   p->addConvexHullAct = new QAction(tr("Convex Hull"), this);
   p->addConvexHullAct->setStatusTip(tr("Add a Convex Hull to the scene"));
   connect(p->addConvexHullAct, SIGNAL(triggered()), this, SLOT(addConvexHull()));
-  
+
   p->addMatteMaterialAct = new QAction(tr("Matte Material"), this);
   p->addMatteMaterialAct->setStatusTip(tr("Add a matte material to the scene"));
   connect(p->addMatteMaterialAct, SIGNAL(triggered()), this, SLOT(addMatteMaterial()));
@@ -466,11 +466,11 @@ void MainWindow::createActions() {
   p->helpAct = new QAction(tr("Raytracer &Help"), this);
   p->helpAct->setStatusTip(tr("Go to the Github page"));
   connect(p->helpAct, SIGNAL(triggered()), this, SLOT(help()));
-  
+
   auto modifyingActions = {
     p->newAct, p->openAct, p->saveAct, p->saveAsAct, p->addBoxAct, p->deleteElementAct
   };
-  
+
   for (auto& act : modifyingActions) {
     connect(act, SIGNAL(triggered()), this, SLOT(updateWindowModified()));
   }
@@ -498,13 +498,13 @@ void MainWindow::createMenus() {
   addComposite->addAction(p->addDifferenceAct);
   addComposite->addAction(p->addMinkowskiSumAct);
   addComposite->addAction(p->addConvexHullAct);
-  
+
   auto addMaterial = p->editMenu->addMenu(tr("Add Material"));
   addMaterial->addAction(p->addMatteMaterialAct);
   addMaterial->addAction(p->addPhongMaterialAct);
   addMaterial->addAction(p->addTransparentMaterialAct);
   addMaterial->addAction(p->addReflectiveMaterialAct);
-  
+
   auto addTexture = p->editMenu->addMenu(tr("Add Texture"));
   addTexture->addAction(p->addConstantColorTextureAct);
   addTexture->addAction(p->addCheckerBoardTextureAct);
@@ -521,10 +521,10 @@ void MainWindow::createMenus() {
   addCamera->addAction(p->addThinLensCameraAct);
   addCamera->addAction(p->addTiltShiftCameraAct);
   addCamera->addAction(p->addEquirectangularCameraAct);
-  
+
   p->editMenu->addSeparator();
   p->editMenu->addAction(p->deleteElementAct);
-  
+
   p->editMenu->addSeparator();
   auto move = p->editMenu->addMenu(tr("Move"));
   move->addAction(p->moveForwardsAlongXAct);
@@ -572,7 +572,7 @@ bool MainWindow::maybeSave() {
       tr("There are unsaved changes to this document. Would you like to save them?"),
       QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save
     );
-    
+
     switch (response) {
       case QMessageBox::Save: {
         saveFile();
@@ -587,7 +587,7 @@ bool MainWindow::maybeSave() {
       }
     }
   }
-  
+
   return true;
 }
 
@@ -603,11 +603,11 @@ void MainWindow::newFile() {
   if (maybeSave()) {
     if (p->scene)
       delete p->scene;
-  
+
     p->fileName = QString();
     p->currentElement = nullptr;
     emit selectionChanged(nullptr);
-  
+
     p->scene = new ::Scene(nullptr);
     p->propertyEditorWidget->setRoot(p->scene);
 
@@ -651,7 +651,7 @@ void MainWindow::saveFile() {
 void MainWindow::saveFileAs() {
   QString fileName = QFileDialog::getSaveFileName(
     this, tr("Save File"), p->fileName, tr("Scenes (*.json)"));
-  
+
   if (!fileName.isNull()) {
     p->fileName = fileName;
     p->scene->save(p->fileName);
@@ -910,7 +910,7 @@ void MainWindow::setAspectRatio21x9() {
 
 void MainWindow::about() {
   QMessageBox::about(this, tr("About"),
-          tr("This is a modeler for the Raytracer library."));
+          tr("This is the Modeler for the Raytracer library."));
 }
 
 void MainWindow::help() {
@@ -927,7 +927,7 @@ QDockWidget* MainWindow::createPropertyEditor() {
 
   auto dockWidget = new QDockWidget("Properties", this);
   dockWidget->setWidget(p->propertyEditorWidget);
-  
+
   return dockWidget;
 }
 
@@ -940,29 +940,29 @@ QDockWidget* MainWindow::createElementSelector() {
   elementTree->setModel(p->elementModel);
   auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
-  
+
   connect(
     itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)),
     this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&))
   );
-    
+
   connect(
     p->elementModel, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
     this, SLOT(reorder())
   );
-  
+
   auto dockWidget = new QDockWidget("Elements", this);
   dockWidget->setWidget(elementTree);
-  
+
   return dockWidget;
 }
 
 QDockWidget* MainWindow::createPreviewDisplay() {
   p->materialDisplay = new PreviewDisplayWidget(this);
-  
+
   auto dockWidget = new QDockWidget("Preview", this);
   dockWidget->setWidget(p->materialDisplay);
-  
+
   return dockWidget;
 }
 
@@ -1007,7 +1007,7 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   p->currentElement = element;
   p->currentIndex = current;
   p->deleteElementAct->setEnabled(element != nullptr && dynamic_cast<Scene*>(element) == nullptr);
-  
+
   auto transformable = dynamic_cast<Transformable*>(element);
   p->moveForwardsAlongXAct->setEnabled(transformable != nullptr);
   p->moveBackwardsAlongXAct->setEnabled(transformable != nullptr);
@@ -1015,7 +1015,7 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   p->moveBackwardsAlongYAct->setEnabled(transformable != nullptr);
   p->moveForwardsAlongZAct->setEnabled(transformable != nullptr);
   p->moveBackwardsAlongZAct->setEnabled(transformable != nullptr);
-  
+
   if (element) {
     p->propertyEditorWidget->setElement(element);
   }

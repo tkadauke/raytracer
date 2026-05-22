@@ -18,8 +18,7 @@ namespace render {
 /**
   * @brief Qt widget that hosts an in-progress render.
   *
-  * `RenderWidget` is what the GUI applications (`SceneBrowser`,
-  * `GeneratedRayTracer`'s `RenderWindow`) display in their main
+  * `RenderWidget` is what the modeler preview and render dialog display in their main
   * pane. It owns a UI-thread front image plus one back buffer per
   * active render job. Worker threads write their job-local back
   * buffer; the selected display mode decides when pixels are copied

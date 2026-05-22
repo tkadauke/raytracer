@@ -5,6 +5,7 @@
 file(GLOB_RECURSE RAYTRACER_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
 )
+list(FILTER RAYTRACER_SOURCES EXCLUDE REGEX "/modeler/")
 
 # AUTOMOC scans .cpp files for #include "*.moc" and headers reachable via
 # target sources. Add the include/ headers to the target so AUTOMOC sees the
@@ -16,6 +17,7 @@ file(GLOB_RECURSE RAYTRACER_HEADERS CONFIGURE_DEPENDS
 file(GLOB_RECURSE RAYTRACER_UIS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/*.ui"
 )
+list(FILTER RAYTRACER_UIS EXCLUDE REGEX "/modeler/")
 
 add_library(raytracer STATIC
   ${RAYTRACER_SOURCES}
@@ -41,7 +43,7 @@ target_link_libraries(raytracer
 
 if(RAYTRACER_ENABLE_STATS)
   # PUBLIC so headers like include/render/Stats.h see the same definition
-  # in the library and in dependents (tests, examples, tools). Without that,
+  # in the library and in dependents (tests, tools, Modeler). Without that,
   # a translation unit could include Stats.h with the macro undefined and
   # silently emit no-op increments while the library counted them.
   target_compile_definitions(raytracer PUBLIC RAYTRACER_ENABLE_STATS)

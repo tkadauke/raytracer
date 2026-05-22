@@ -35,10 +35,9 @@ namespace engine::raytracer {
     *    lives in a pimpl so this header stays free of `<QtCore>`.
     *  - **Single-ray probes** (`primitiveForRay`, `rayState`,
     *    `rayColor`). Bypass the threading machinery — used by the
-    *    interactive picking path in `SceneBrowser` /
-    *    `GeneratedRayTracer` (mouse click → "what primitive is
-    *    under the cursor?"), by tests pinning shading behaviour, and
-    *    by the `RefractingRayTracer` example's debug visualisation.
+    *    interactive picking path in `Modeler` (mouse click → "what
+    *    primitive is under the cursor?") and by tests pinning shading
+    *    behaviour.
     *  - **Recursion-depth limit.** Specific to ray-recursive engines
     *    (raytracer, future path tracer). Wireframe / raster engines
     *    have no analogue, so it doesn't live on `RenderEngine`.

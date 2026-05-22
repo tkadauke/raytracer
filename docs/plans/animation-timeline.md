@@ -11,7 +11,7 @@
 > saving, and frame evaluation is implemented under `include/world/animation/`
 > and `Scene`'s top-level `animation` block handling. Phase 3 `rendercli
 > --frame` single-frame evaluation and Phase 4 `rendercli --animation`
-> image-sequence output are implemented. Phase 5 GeneratedRayTracer read-only
+> image-sequence output are implemented. Phase 5 Modeler read-only
 > timeline awareness is implemented. Update this file as API shape, JSON
 > format, or implementation order changes.
 
@@ -35,7 +35,7 @@ Non-goals for the first pass:
 - A full graph editor, dopesheet, nonlinear editor, or curve editor.
 - Skeletal animation, blend shapes, physics, or constraints.
 - Continuous motion-blur sampling from arbitrary keyframed properties.
-- Editing animation in the GeneratedRayTracer UI beyond loading/saving and
+- Editing animation in the Modeler UI beyond loading/saving and
   evaluating timelines.
 
 ---
@@ -354,7 +354,7 @@ encoder, not a hard dependency for animation support.
   - missing `%d`-style placeholder fails
   - empty/invalid timeline range fails
 
-### Phase 5 — GeneratedRayTracer read-only timeline awareness
+### Phase 5 — Modeler read-only timeline awareness
 
 - ✅ Load/save animation blocks without losing them.
 - ✅ Add minimal UI awareness:
@@ -407,8 +407,8 @@ When implementation begins, keep these in sync:
 - `docs/roadmap.md` §4.7 as milestones complete.
 - `docs/markdown/03-scene-structure/16-instances-and-motion-blur.md` when
   velocity becomes part of a broader timeline model.
-- `docs/markdown/06-tools-and-io/26-the-example-apps.md` when `rendercli` and
-  GeneratedRayTracer gain animation controls.
+- `docs/markdown/06-tools-and-io/26-tools-and-modeler.md` when `rendercli` and
+  Modeler gain animation controls.
 - API docs on any new public timeline/keyframe classes.
 - Rendered examples once there is a stable animated fixture; likely commit
   representative still frames rather than video files.

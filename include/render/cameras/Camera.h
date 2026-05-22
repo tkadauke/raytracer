@@ -117,7 +117,7 @@ namespace render {
     /**
       * Render into a packed-RGB display buffer with inline
       * tonemapping. This is the path used by interactive display
-      * widgets (`RenderWidget` / `QtDisplay` / `GeneratedRayTracer`):
+      * widgets (`RenderWidget` / `QtDisplay` / `Modeler`):
       * each tile worker tonemaps its pixels and writes packed
       * `unsigned int` values to the display buffer as it goes, so
       * the GUI's progress timer sees partial output during the
@@ -252,7 +252,7 @@ namespace render {
     /**
       * Convenience overload that uses a `NullSampleStream` returning
       * the centre of every dimension. Useful for tests and ad-hoc
-      * callers (e.g. `SceneBrowser`'s pixel-pick) that don't have a
+      * callers (e.g. UI pixel-pick paths) that don't have a
       * sampler at hand. Don't use in production rendering — the
       * camera loses access to stratification.
       */

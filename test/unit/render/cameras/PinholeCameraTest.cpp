@@ -54,7 +54,7 @@ using namespace render;
     // sees output before the render finishes. This test verifies
     // the path produces correct pixel values; the
     // mid-render-non-empty property is timing-dependent and
-    // covered by visual smoke-testing in GeneratedRayTracer.
+    // covered by visual smoke-testing in Modeler.
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
     auto raytracer = std::make_shared<Raytracer>(scene);

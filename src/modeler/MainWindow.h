@@ -25,23 +25,23 @@ public:
 
 protected:
   virtual void closeEvent(QCloseEvent* event);
-  
+
 signals:
   void selectionChanged(Element* element);
   void currentElementChanged();
-  
+
 private slots:
   void elementSelected(const QModelIndex& current, const QModelIndex& previous);
   void elementChanged(Element*);
   void updateWindowModified();
   void updatePreviewWidget();
   void setCurrentFrame(int frame);
-  
+
   void newFile();
   void openFile();
   void saveFile();
   void saveFileAs();
-  
+
   void addBox();
   void addSphere();
   void addCylinder();
@@ -54,15 +54,15 @@ private slots:
   void addDifference();
   void addMinkowskiSum();
   void addConvexHull();
-  
+
   void addMatteMaterial();
   void addPhongMaterial();
   void addTransparentMaterial();
   void addReflectiveMaterial();
-  
+
   void addConstantColorTexture();
   void addCheckerBoardTexture();
-  
+
   void addDirectionalLight();
   void addPointLight();
 
@@ -73,16 +73,16 @@ private slots:
   void addThinLensCamera();
   void addTiltShiftCamera();
   void addEquirectangularCamera();
-  
+
   void deleteElement();
-  
+
   void moveForwardsAlongX();
   void moveBackwardsAlongX();
   void moveForwardsAlongY();
   void moveBackwardsAlongY();
   void moveForwardsAlongZ();
   void moveBackwardsAlongZ();
-  
+
   void render();
   void usePreviewRaytracer();
   void usePreviewWireframe();
@@ -112,17 +112,17 @@ private:
 
   void createActions();
   void createMenus();
-  
+
   bool maybeSave();
-  
+
   void redraw();
   void resetTimelineFrame();
   void syncTimelineControls();
   std::unique_ptr<Scene> evaluatedSceneForCurrentFrame() const;
-  
+
   template<class T>
   void add();
-  
+
   void moveTransformable(const Vector3d& vec);
 
   struct Private;

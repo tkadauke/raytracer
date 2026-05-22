@@ -12,24 +12,23 @@
   * @image html thin_lens_camera_dof.png "Thin-lens camera with apertureRadius=0.2, focalDistance=8"
   *
   * Editable wrapper for `render::ThinLensCamera`. Exposes the four
-  * tunable parameters as `Q_PROPERTY`s so the SceneBrowser /
-  * GeneratedRayTracer property editors build double-spinbox controls for
-  * them automatically.
+  * tunable parameters as `Q_PROPERTY`s so the Modeler property editor
+  * builds double-spinbox controls for them automatically.
   *
   * See `render::ThinLensCamera` for the underlying physical model and
   * the geometric derivation of the focal-plane convergence guarantee.
   *
   * ### Empirical exploration
   *
-  * Open `examples/GeneratedRayTracer/scenes/dof_demo.json` in
-  * GeneratedRayTracer (File → Open) for a pre-built three-sphere scene,
+  * Open `scenes/dof_demo.json` in
+  * Modeler (File → Open) for a pre-built three-sphere scene,
   * or pick **Edit → Add Camera → Thin Lens Camera (DOF)** in a fresh
   * scene. Selecting the camera node exposes the four property controls;
   * changing them re-renders the preview live.
   *
   * For headless renders, use `rendercli` against the same scene file:
   * `rendercli --width 800 --height 600 --sampler MultiJittered
-  * --samples_per_pixel 64 examples/GeneratedRayTracer/scenes/dof_demo.json
+  * --samples_per_pixel 64 scenes/dof_demo.json
   * out.png`. Bump the sample count to 64+ for clean DOF — 1-sample
   * renders look like shifted pinholes rather than blurred photographs.
   */

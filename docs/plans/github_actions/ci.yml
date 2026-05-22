@@ -268,7 +268,7 @@ jobs:
       - name: clang-format --dry-run
         run: |
           set +e
-          violations=$(find include src test examples tools benchmarks fuzz \
+          violations=$(find include src test tools benchmarks fuzz \
               -name '*.h' -o -name '*.cpp' \
               | xargs clang-format --dry-run 2>&1 \
               | grep -c 'code should be clang-formatted' || true)
@@ -287,7 +287,7 @@ jobs:
           # Lint our own translation units only — skip generated autogen
           # sources (mocs_compilation.cpp, ui_*.h) and the FetchContent
           # GoogleTest tree.
-          files=$(find include src test examples tools benchmarks fuzz \
+          files=$(find include src test tools benchmarks fuzz \
               -name '*.cpp' \
               | head -200)
           run-clang-tidy-18 -p build/release -quiet -j 4 $files \

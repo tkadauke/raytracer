@@ -11,12 +11,6 @@
 
 | Source file | Chapters |
 |---|---|
-| `examples/DifferenceRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
-| `examples/GeneratedRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
-| `examples/GeneratedRayTracer/MainWindow.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `examples/GeneratedRayTracer/scenes/animation_frame_demo.json` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `examples/RefractingRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
-| `examples/SceneBrowser/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 | `fuzz/` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `include/core/Buffer.h` | [4. Color and buffers](../01-foundations/04-color-and-buffers.md)<br>[22. Image buffers and pixel formats](../05-image-and-vision/22-image-buffers-and-pixel-formats.md) |
 | `include/core/Color.h` | [4. Color and buffers](../01-foundations/04-color-and-buffers.md)<br>[22. Image buffers and pixel formats](../05-image-and-vision/22-image-buffers-and-pixel-formats.md) |
@@ -126,11 +120,15 @@
 | `include/world/animation/AnimationTrack.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `include/world/animation/Timeline.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `include/world/objects/Scene.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `scenes/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
+| `scenes/animation_frame_demo.json` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `src/core/formats/ply/PlyElement.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/engine/raster/Rasterizer.cpp` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md)<br>[19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md)<br>[21. MSAA and attribute interpolation](../04-rasterization/21-msaa-and-attribute-interpolation.md) |
 | `src/engine/raytracer/Raytracer.cpp` | [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md) |
+| `src/modeler/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
+| `src/modeler/MainWindow.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [6. Cameras](../02-ray-rendering/06-cameras.md) |
 | `test/functional/render/lights/PointLightTest.cpp` | [9. Lights and shading](../02-ray-rendering/09-lights-and-shading.md) |
@@ -155,7 +153,7 @@
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/unit/world/animation/TimelineTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `tools/rendercli/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
+| `tools/rendercli/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
 | `tools/rendercli/rendercli.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 
 ## See also

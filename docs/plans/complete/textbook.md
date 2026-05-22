@@ -120,7 +120,7 @@ docs/markdown/
   06-tools-and-io/
     README.md
     25-ply-parsing.md
-    26-the-example-apps.md
+    26-tools-and-modeler.md
   appendix/
     a-glossary.md
     b-bibliography.md
@@ -515,18 +515,16 @@ the §4.11 backlog lands.
   [`fuzz/`](../../fuzz/).
 - **New artifacts.** None.
 
-#### 26. The example apps
+#### 26. Tools and the Modeler
 
-- **Arc.** Tour of `rendercli` (headless),
-  `examples/GeneratedRayTracer` (interactive, full editor surface),
-  `examples/SceneBrowser` (interactive, dropdown scenes). Talks about
-  how to add a new built-in scene and how the engine selector wires
-  in.
+- **Arc.** Tour of `rendercli` (headless), `src/modeler`
+  (interactive, full editor surface), reusable scene JSON, and how the
+  engine selector wires in.
 - **Widgets reused.** None.
 - **Images reused.** None.
 - **Source anchors.**
   [`tools/rendercli/rendercli.cpp`](../../tools/rendercli/rendercli.cpp),
-  [`examples/`](../../examples/).
+  [`src/modeler/`](../../src/modeler/), [`scenes/`](../../scenes/).
 - **New artifacts.** None.
 
 ### Appendix

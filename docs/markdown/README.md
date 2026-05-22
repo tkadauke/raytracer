@@ -98,7 +98,7 @@ The supporting cast around the rendering core.
 
 - [Volume index](06-tools-and-io/README.md)
 - [25. PLY parsing](06-tools-and-io/25-ply-parsing.md)
-- [26. The example apps](06-tools-and-io/26-the-example-apps.md)
+- [26. Tools and the Modeler](06-tools-and-io/26-tools-and-modeler.md)
 
 ### Volume VII — Animation
 

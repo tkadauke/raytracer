@@ -74,7 +74,7 @@ applies it tile-by-tile during the final pass).
 The three concrete subclasses below differ only in the formula
 inside `apply`. The factory in
 [`TonemapFactory`](../../../include/render/tonemap/TonemapFactory.h)
-registers each by name so `rendercli` and `GeneratedRayTracer`
+registers each by name so `rendercli` and `Modeler`
 can switch operators from a config file or a dropdown.
 
 ## 12.3 Linear (pass-through, hard clamp)

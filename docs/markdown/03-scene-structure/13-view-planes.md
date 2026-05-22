@@ -122,7 +122,7 @@ The defaults the codebase makes:
 
 - `rendercli` (offline batch) → row-major. No interactive consumer
   to please; the simplest order is fine.
-- `examples/GeneratedRayTracer` and `examples/SceneBrowser` →
+- `src/modeler` →
   `RowShuffledViewPlane`. Editor previews need uniform coverage
   early so the camera position is observable a second or two into
   the render.

@@ -118,9 +118,9 @@ void ThinLensCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   // the lens disc, and the lens-disc samples have to AVERAGE together
   // to produce DOF blur. With 1 sample per pixel, every pixel gets one
   // lens position and the output is pure noise, not bokeh (see the
-  // SceneBrowser confetti regression that motivated this hook).
+  // interactive-preview confetti regression that motivated this hook).
   //
-  // The numSamples > 1 guard exists because GeneratedRayTracer's
+  // The numSamples > 1 guard exists because Modeler's
   // RenderWindow attaches the user's chosen sampler to the viewplane
   // BEFORE calling setViewPlane on the camera — without this guard,
   // we'd silently clobber the user's "1024 spp" UI setting back to 16,

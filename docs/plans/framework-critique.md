@@ -210,7 +210,7 @@
   `qRegisterMetaType` is per-process-startup.** `Element.cpp` declares
   the three numeric types it cares about; `ScriptedSurface.cpp`
   declares two; every widget `.cpp` re-declares its own; and rendercli
-  / GeneratedRayTracer / every test that round-trips properties each
+  / Modeler / every test that round-trips properties each
   repeats the `qRegisterMetaType` list. **Forgetting the registration
   is a silent failure** — `QMetaProperty::read` returns an invalid
   `QVariant` and the JSON roundtrip drops the property without
@@ -260,8 +260,8 @@ sampling theme; this is a focused note from the camera-shipping work.)
   properly.
 
 - The factory-default 1-spp `RegularSampler` is a footgun for any
-  camera that *needs* multi-sample. The SceneBrowser confetti
-  regression on ThinLens was this bug. The auto-install workaround is
+  camera that *needs* multi-sample. The ThinLens preview-confetti
+  regression was this bug. The auto-install workaround is
   per-camera and stringly couples the camera to a sampler choice — a
   cleaner fix would be a "minimum samples" hint on the camera that
   the framework reconciles with the user's choice.

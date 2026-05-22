@@ -144,7 +144,7 @@ using namespace render;
   }
 
   TEST(ThinLensCamera, ShouldAutoInstallMultiSampleSamplerOnDefault1SppViewPlane) {
-    // SceneBrowser default flow: a fresh ViewPlane comes in with the
+    // Default UI-preview flow: a fresh ViewPlane comes in with the
     // factory-default 1-spp render::RegularSampler. ThinLens should bump that
     // to a multi-sample sampler so the GUI render isn't confetti.
     ThinLensCamera camera;
@@ -159,7 +159,7 @@ using namespace render;
   }
 
   TEST(ThinLensCamera, ShouldRespectExistingMultiSampleSamplerOnIncomingViewPlane) {
-    // GeneratedRayTracer's RenderWindow flow: caller attaches a chosen
+    // Modeler's RenderWindow flow: caller attaches a chosen
     // multi-sample sampler to the viewplane BEFORE calling setViewPlane.
     // ThinLens must NOT clobber that sampler — doing so silently
     // discards the user's "Samples per pixel" UI setting.

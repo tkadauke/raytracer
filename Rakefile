@@ -11,9 +11,9 @@ require 'fileutils'
 # Stale `.moc` and `ui_*.h` siblings left over from old Rakefile-driven
 # builds shadow AUTOMOC's autogen output and produce duplicate-symbol link
 # errors. CMake never writes into the source tree, so anything matching
-# these patterns under src/, test/, or examples/ is dead.
-CLEAN.include(Rake::FileList["src/**/*.moc", "test/**/*.moc", "examples/**/*.moc"])
-CLEAN.include(Rake::FileList["src/**/ui_*.h", "examples/**/ui_*.h"])
+# these patterns under src/ or test/ is dead.
+CLEAN.include(Rake::FileList["src/**/*.moc", "test/**/*.moc"])
+CLEAN.include(Rake::FileList["src/**/ui_*.h"])
 
 RENDERCLI_DEFAULT = 'build/release/tools/rendercli/rendercli'
 DOC_WIDGET_DEPENDENCIES = ["angle_from_x.js"].freeze

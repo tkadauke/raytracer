@@ -63,24 +63,24 @@
      camera-pass comparison.
    - ✅ Added configurable PCF radius for percentage-closer filtering, exposed
      on `Rasterizer`, `rendercli`, tests, and rendered docs.
-   - ✅ Added GeneratedRayTracer render-dialog controls for shadow-map enable,
+   - ✅ Added Modeler render-dialog controls for shadow-map enable,
      resolution, bias, and PCF radius.
    - ✅ Added opt-in PCSS blocker-search filtering, exposed on `Rasterizer`,
-     `rendercli`, GeneratedRayTracer controls, tests, API docs, and rendered
+     `rendercli`, Modeler controls, tests, API docs, and rendered
      docs.
    - ✅ Added cascaded directional shadow maps with 1-4 camera-depth slices,
-     exposed on `Rasterizer`, `rendercli`, GeneratedRayTracer controls, tests,
+     exposed on `Rasterizer`, `rendercli`, Modeler controls, tests,
      API docs, rendered docs, and the textbook shadow-map section.
    - ✅ Stabilized directional shadow-map projections by snapping each cascade
      center to its light-space texel grid.
-   - ✅ Added a GeneratedRayTracer live-preview toggle for rasterizer shadows
+   - ✅ Added a Modeler live-preview toggle for rasterizer shadows
      so shadow-map stabilization can be inspected while orbiting / editing.
    - ✅ Added an interactive cascade-split widget showing camera-depth bands,
      light-space cascade coverage, and raw-vs-snapped shadow-map centers.
    - Next decide whether the split diagnostic should also be exposed inside
-     the GeneratedRayTracer live preview.
+     the Modeler live preview.
 
-8. ✅ **GeneratedRaytracer / RenderWidget front-back buffers**
+8. ✅ **Modeler / RenderWidget front-back buffers**
    - Added a render-thread back buffer and UI-thread front `QImage`.
    - `RenderEngine` now reports active/completed tiles for progress overlays
      and dirty-tile publication; `Raytracer` publishes completed LDR tiles as
@@ -88,7 +88,7 @@
    - The render dialog now exposes periodic whole-buffer updates, completed-tile
      publishing, and final-frame double buffering for every engine. Raytracer
      defaults to periodic progress; Rasterizer defaults to double buffering.
-   - The central GeneratedRayTracer preview keeps the previous front image
+   - The central Modeler preview keeps the previous front image
      visible while a new render starts, reuses the previous raytracer back
      buffer for 16 ms whole-buffer point-interlaced updates, and double-buffers
      Rasterizer/Wireframe previews while queueing the latest camera pose until
@@ -101,7 +101,7 @@
 9. **Post-process AA / TAA**
    - ✅ Added reusable FXAA over the float framebuffer, exposed through
      `Rasterizer::setPostProcessAA`, `rendercli --post_aa fxaa`, and the
-     GeneratedRayTracer render dialog.
+     Modeler render dialog.
    - Add SMAA as a sharper image-space follow-up if FXAA blurs too much fine
      texture/detail in previews.
    - Add TAA later once history buffers, motion vectors, and display-buffer
@@ -373,7 +373,7 @@ The implementation keeps the engine-level framebuffer contract unchanged:
 - The tiled path is supported for MSAA and is pinned against single-tile output,
   but it stays opt-in for the same reason as the 1x tiled path: current scenes
   still do not have enough per-tile work to repay binning overhead reliably.
-- GeneratedRaytracer's render dialog exposes the same 1x/2x/4x/8x selector
+- Modeler's render dialog exposes the same 1x/2x/4x/8x selector
   when the Rasterizer engine is active.
 - The rasterizer docs include both static 1x/4x comparison renders and an
   interactive MSAA coverage widget that shows sample positions, partial edge

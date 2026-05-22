@@ -18,7 +18,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(RAYTRACER_BUILD_TESTS       "Build the test suite"            ON)
-option(RAYTRACER_BUILD_EXAMPLES    "Build the example applications"  ON)
+option(RAYTRACER_BUILD_MODELER     "Build the Qt Modeler application" ON)
 option(RAYTRACER_BUILD_TOOLS       "Build the CLI tools"             ON)
 option(RAYTRACER_BUILD_BENCHMARKS  "Build the Google Benchmark microbenchmarks" OFF)
 option(RAYTRACER_ENABLE_ASAN       "Build with AddressSanitizer + UBSan" OFF)
@@ -113,8 +113,8 @@ set(CMAKE_AUTORCC ON)
 
 add_subdirectory(src)
 
-if(RAYTRACER_BUILD_EXAMPLES)
-  add_subdirectory(examples)
+if(RAYTRACER_BUILD_MODELER)
+  add_subdirectory(src/modeler)
 endif()
 
 if(RAYTRACER_BUILD_TOOLS)

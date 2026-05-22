@@ -89,10 +89,10 @@ namespace render {
     * To make this work without surprising the user, `setViewPlane`
     * detects when the incoming viewplane has the factory-default 1-spp
     * sampler and replaces it with a `JitteredSampler` at 16 samples
-    * per pixel — that's enough to keep the SceneBrowser preview from
+    * per pixel — that's enough to keep the interactive preview from
     * showing confetti at the default settings. If the caller has
     * already attached a multi-sample sampler (rendercli does this for
-    * `--samples_per_pixel`; GeneratedRayTracer's RenderWindow does it
+    * `--samples_per_pixel`; Modeler's RenderWindow does it
     * for the GUI's "Samples per pixel" field), the auto-install is
     * skipped and the caller's choice wins.
     *
@@ -257,7 +257,7 @@ namespace render {
       * `JitteredSampler` at 16 samples per pixel. ThinLens is fundamentally
       * a multi-sample camera — with one sample per pixel the lens-disc
       * randomness produces noise instead of blur, so the auto-installed
-      * sampler is what makes interactive tools like SceneBrowser usable
+      * sampler is what makes interactive tools like Modeler usable
       * out of the box. Callers (e.g. `rendercli`) can override by setting
       * a different sampler on the viewplane after construction.
       */

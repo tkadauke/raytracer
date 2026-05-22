@@ -6,8 +6,8 @@
 /**
   * Sidebar parameter editor for `render::ThinLensCamera` — exposes
   * `distance`, `zoom`, `apertureRadius`, and `focalDistance` as live
-  * spin-box inputs in `SceneBrowser`. Picked up automatically when the
-  * user selects "ThinLensCamera" from the camera-type dropdown
+  * spin-box inputs in camera parameter UIs. Picked up automatically when the
+  * user selects "ThinLensCamera" from a camera-type dropdown
   * (registered with `CameraParameterWidgetFactory`).
   *
   * Each spin-box change emits the inherited `changed()` signal so

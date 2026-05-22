@@ -46,8 +46,8 @@ namespace PropertyEditorWidgetTest {
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldAcceptNullSetElement) {
-    // setElement(nullptr) is the "deselect" case used by SceneBrowser
-    // when the user clicks empty space in the tree view; clears the
+    // setElement(nullptr) is the "deselect" case used when the user clicks
+    // empty space in the tree view; clears the
     // parameter widgets without crashing.
     Scene root;
     PropertyEditorWidget editor(&root);

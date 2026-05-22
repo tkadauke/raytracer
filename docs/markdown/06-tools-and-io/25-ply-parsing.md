@@ -282,7 +282,7 @@ place.
 - Volume index: [Volume VI — Tools & I/O](README.md)
 - Previous:
   [24. Shape classification](../05-image-and-vision/24-shape-classification.md)
-- Next: [26. The example apps](26-the-example-apps.md)
+- Next: [26. Tools and the Modeler](26-tools-and-modeler.md)
 - Mesh consumer:
   [17. Tessellation](../04-rasterization/17-tessellation.md)
 - The fuzzer harness:

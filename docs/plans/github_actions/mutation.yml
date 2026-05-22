@@ -76,7 +76,7 @@ jobs:
         run: |
           cmake --preset mutation \
             -DMULL_PLUGIN=${{ steps.mull.outputs.plugin }} \
-            -DRAYTRACER_BUILD_EXAMPLES=OFF \
+            -DRAYTRACER_BUILD_MODELER=OFF \
             -DRAYTRACER_BUILD_TOOLS=OFF
 
       - name: Build

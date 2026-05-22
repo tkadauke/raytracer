@@ -22,8 +22,8 @@ namespace RenderWindowTest {
 
   TEST_F(RenderWindowTest, ShouldAcceptSetSceneWithRealScene) {
     // Note: setScene is documented as taking a non-null pointer (it
-    // immediately calls scene->toRaytracerScene()) — SceneBrowser only
-    // ever passes a real scene. A defensive null-guard would be a
+    // immediately calls scene->toRaytracerScene()) — the Modeler only ever
+    // passes a real scene. A defensive null-guard would be a
     // reasonable hardening change but is out of scope for this test.
     RenderWindow window;
     Scene scene;

@@ -21,8 +21,8 @@
   *
   * ### Empirical exploration
   *
-  * Open `examples/GeneratedRayTracer/scenes/panorama_demo.json` in
-  * GeneratedRayTracer (File → Open) for a pre-built scene with
+  * Open `scenes/panorama_demo.json` in
+  * Modeler (File → Open) for a pre-built scene with
   * coloured spheres in every cardinal direction; or pick **Edit → Add
   * Camera → Equirectangular Camera (360°)** in a fresh scene. **Render
   * the scene at a 2:1 aspect ratio** (e.g. 1024×512) — the output is

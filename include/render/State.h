@@ -30,15 +30,14 @@ namespace render {
     *    the GUI's "Render Stats" pane and in performance benchmarks.
     *  - **Final hit point**: `hitPoint`. After a top-level call to
     *    `Raytracer::rayState`, this is what the click-to-identify
-    *    path in the example apps reads to surface "you clicked on
+    *    path in the modeler reads to surface "you clicked on
     *    this primitive at this 3D position."
     *  - **Optional event log** (`events`): when `startTrace()` is
     *    called, every `recordEvent`/`hit`/`miss`/`shadowHit`/
     *    `shadowMiss` call appends an indented string. Used by the
-    *    `RefractingRayTracer` example and the `ShouldIncludeDirect-
-    *    LightingOnTIRBranch` regression test in
-    *    `TransparentMaterialTest.cpp` to assert that a particular
-    *    branch of the shading pipeline executed.
+    *    `ShouldIncludeDirectLightingOnTIRBranch` regression test in
+    *    `TransparentMaterialTest.cpp` to assert that a particular branch
+    *    of the shading pipeline executed.
     *
     * The default-constructed state has tracing disabled and all
     * counters at zero — fine for production renders. Tests that

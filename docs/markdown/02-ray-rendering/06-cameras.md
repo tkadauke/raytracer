@@ -82,7 +82,7 @@ pixel and the homogeneous $w$ readout update:
 The factory side is
 [`CameraFactory`](../../../include/render/cameras/CameraFactory.h).
 It registers each concrete camera by name so `rendercli` and
-`GeneratedRayTracer` can swap camera types from a config file or
+`Modeler` can swap camera types from a config file or
 a dropdown, respectively. The [Whitted](../appendix/a-glossary.md#w) renderer doesn't care which
 factory produced the camera — it just calls `rayForPixel` on
 whatever it gets.

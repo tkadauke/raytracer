@@ -37,9 +37,9 @@ To filter tests with gtest, run a test binary directly:
     build/release/test/unit/unit_tests --gtest_filter=PinholeCamera.*
     build/release/test/functional/functional_tests --gtest_filter=Sphere*
 
-The most useful example to launch interactively is
+The interactive Modeler can be launched with
 
-    build/release/examples/SceneBrowser/SceneBrowser
+    build/release/src/modeler/Modeler
 
 Other useful Rake tasks: `rake docs:render` regenerates the Doxygen example images (auto-builds rendercli via CMake on first run); `rake check:cpp` runs cppcheck against the CMake `compile_commands.json`; `rake stats` counts test/code lines.
 

@@ -10,17 +10,16 @@ codebase, not just understand it.
     element / property declarations, why this is the project's only
     untrusted-input surface, and how the LibFuzzer harness keeps it
     honest.
-26. [The example apps](26-the-example-apps.md) — tour of `rendercli`
-    (headless), `examples/GeneratedRayTracer` (interactive editor),
-    `examples/SceneBrowser` (interactive scene picker). How to add
-    a built-in scene; how the engine selector wires in.
+26. [Tools and the Modeler](26-tools-and-modeler.md) — tour of `rendercli`
+    (headless), `src/modeler` (interactive editor), checked-in scene
+    JSON, and the engine-selector wiring.
 
 ## Light coverage
 
 Both chapters are deliberately short. PLY parsing is one file plus
-the fuzzer; the example apps are mostly Qt wiring on top of
-abstractions covered in earlier volumes. The book doesn't try to
-walk you through every menu of `GeneratedRayTracer` — Qt has
+the fuzzer; the Modeler is mostly Qt wiring on top of abstractions
+covered in earlier volumes. The book doesn't try to walk you through
+every menu of `Modeler` — Qt has
 documentation for that, and the source is small enough to read.
 
 ## See also

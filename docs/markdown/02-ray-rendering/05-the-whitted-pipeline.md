@@ -248,9 +248,8 @@ the recursion descends and unwinds.
   came from the camera, not any secondary ray. The interactive
   picking path reads this to figure out which primitive the user
   clicked on.
-- An optional event log for debug visualization (the
-  `RefractingRayTracer` example uses it to draw the actual ray
-  path through a refractive scene).
+- An optional event log for debug visualization. The transparent-material
+  regression tests use it to assert the ray path through refractive scenes.
 
 A fresh `State` is constructed once per primary ray — at the start
 of rendering each pixel — and threaded by mutable reference

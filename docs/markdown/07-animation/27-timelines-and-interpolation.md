@@ -166,15 +166,15 @@ evaluated world state. The flag does not require an animation block; static
 scenes render unchanged.
 
 The checked-in demo scene
-[`animation_frame_demo.json`](../../../examples/GeneratedRayTracer/scenes/animation_frame_demo.json)
+[`animation_frame_demo.json`](../../../scenes/animation_frame_demo.json)
 moves one sphere across its timeline:
 
 ```sh
 rendercli --engine raster --frame 1 \
-  examples/GeneratedRayTracer/scenes/animation_frame_demo.json frame_0001.png
+  scenes/animation_frame_demo.json frame_0001.png
 
 rendercli --engine raster --frame 48 \
-  examples/GeneratedRayTracer/scenes/animation_frame_demo.json frame_0048.png
+  scenes/animation_frame_demo.json frame_0048.png
 ```
 
 Frame parsing is strict: `--frame` accepts integer frame numbers.
@@ -190,7 +190,7 @@ The output path must contain exactly one printf-style integer placeholder:
 
 ```sh
 rendercli --engine raster --animation \
-  examples/GeneratedRayTracer/scenes/animation_frame_demo.json frames/frame_%04d.png
+  scenes/animation_frame_demo.json frames/frame_%04d.png
 ```
 
 For each frame, `rendercli` evaluates the world scene at that frame, builds a
@@ -199,9 +199,9 @@ and prints a progress line with the frame number, output path, and render
 time. Static scenes do not have a timeline range, so `--animation` requires an
 `animation` block.
 
-## 27.10 Previewing animation in GeneratedRayTracer
+## 27.10 Previewing animation in Modeler
 
-GeneratedRayTracer reads and writes the same top-level `animation` block as
+Modeler reads and writes the same top-level `animation` block as
 `rendercli`. When a loaded scene has a timeline, the Timeline dock exposes the
 inclusive frame range as a slider and spinbox. Changing the current frame
 evaluates a copied scene and sends that evaluated copy to the live preview.
@@ -240,9 +240,9 @@ applied only to the copied scene used for preview and final renders.
 - `include/world/animation/AnimationTrack.h`
 - `include/world/animation/Timeline.h`
 - `include/world/objects/Scene.h`
-- `examples/GeneratedRayTracer/MainWindow.cpp`
+- `src/modeler/MainWindow.cpp`
 - `tools/rendercli/rendercli.cpp`
-- `examples/GeneratedRayTracer/scenes/animation_frame_demo.json`
+- `scenes/animation_frame_demo.json`
 - `test/unit/core/animation/AnimationTrackTest.cpp`
 - `test/unit/core/math/interpolation/InterpolationTest.cpp`
 - `test/unit/world/animation/AnimationTrackTest.cpp`

@@ -154,7 +154,7 @@ five LODs, with the saturation point visible at the high end.
 The engine pays its rent in three places.
 
 **Editor previews.** The interactive
-`examples/GeneratedRayTracer` lets the user toggle the engine
+`src/modeler` lets the user toggle the engine
 between Raytracer, Rasterizer, and [Wireframe](../appendix/a-glossary.md#w). For "I want to
 position my camera and lights, then bake a final render,"
 the wireframe gives instant feedback (every edge is one

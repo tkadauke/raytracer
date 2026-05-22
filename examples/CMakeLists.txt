@@ -1,4 +1,0 @@
-add_subdirectory(DifferenceRayTracer)
-add_subdirectory(GeneratedRayTracer)
-add_subdirectory(RefractingRayTracer)
-add_subdirectory(SceneBrowser)
