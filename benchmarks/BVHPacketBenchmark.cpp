@@ -18,7 +18,7 @@
 //
 // Build and run:
 //   cmake --preset benchmark && cmake --build --preset benchmark --target benchmarks
-//   ./build/benchmark/benchmarks/benchmarks --benchmark_filter=BVHPacket
+//   ./build/benchmark/benchmarks/benchmarks --benchmark_filter=bm_bvh_
 
 #include <benchmark/benchmark.h>
 
@@ -27,7 +27,7 @@
 #include "core/math/RayPacket.h"
 #include "render/State.h"
 #include "render/primitives/BVH.h"
-#include "render/primitives/Sphere.h"
+#include "render/primitives/Triangle.h"
 
 #include <array>
 #include <cstddef>
@@ -39,19 +39,24 @@
 namespace {
   using namespace render;
 
-  // 3D grid of spheres: side³ primitives, spacing 2.0, radius 0.5.
-  // 12×12×12 = 1728 spheres pushes the BVH (~3456 nodes) past L1 cache,
-  // making tree-level cache reuse the primary coherent-path win.
-  constexpr int kSide = 12;
+  // Tessellated wall of triangles: 32×32 cells, two triangles per cell.
+  // 2048 primitives keep the benchmark BVH-heavy while matching the Phase 4.3
+  // acceptance workload of a ~1000+ triangle scene.
+  constexpr int kSide = 32;
 
   std::shared_ptr<BVH> buildScene() {
     auto bvh = std::make_shared<BVH>();
-    for (int x = 0; x < kSide; ++x) {
-      for (int y = 0; y < kSide; ++y) {
-        for (int z = 0; z < kSide; ++z) {
-          bvh->add(std::make_shared<Sphere>(
-            Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
-        }
+    // Keep enough triangles in each leaf that leaf packet SIMD is visible
+    // alongside the shared tree walk; this benchmark measures both together.
+    bvh->setLeafSize(192);
+    for (int y = 0; y < kSide; ++y) {
+      for (int z = 0; z < kSide; ++z) {
+        const Vector3d p00(0.0, y, z);
+        const Vector3d p10(0.0, y + 1.0, z);
+        const Vector3d p01(0.0, y, z + 1.0);
+        const Vector3d p11(0.0, y + 1.0, z + 1.0);
+        bvh->add(std::make_shared<Triangle>(p00, p10, p11));
+        bvh->add(std::make_shared<Triangle>(p00, p11, p01));
       }
     }
     bvh->setup();
@@ -67,8 +72,8 @@ namespace {
 
   // ── Coherent ray generation ─────────────────────────────────────────────
   //
-  // Eye at (-15, 11, 11) looking at the scene centre (11, 11, 11). For each
-  // group, pick a random 2×2 pixel tile from a 128×128 virtual image and
+  // Eye at (-30, 16, 16) looking at the triangle wall center. For each
+  // group, pick a random 2×2 pixel tile from a 2048×2048 virtual image and
   // cast one ray per pixel. Adjacent pixels share nearly the same direction,
   // so all four rays follow essentially the same BVH path — maximising both
   // cache reuse at internal nodes and active-mask density at leaf nodes.
@@ -83,16 +88,16 @@ namespace {
   };
 
   std::vector<CoherentGroup> generateCoherentGroups(int numGroups) {
-    const Vector3d eye(-15.0, 11.0, 11.0);
-    const Vector3d center(11.0, 11.0, 11.0);
+    const Vector3d eye(-30.0, kSide * 0.5, kSide * 0.5);
+    const Vector3d center(0.0, kSide * 0.5, kSide * 0.5);
 
     const Vector3d fwd = (center - eye).normalized();
     const Vector3d worldUp(0, 1, 0);
     const Vector3d right = fwd.crossProduct(worldUp).normalized();
     const Vector3d up = right.crossProduct(fwd).normalized();
 
-    constexpr int kRes = 128;
-    constexpr double kPixelSize = 22.0 / kRes;
+    constexpr int kRes = 2048;
+    constexpr double kPixelSize = static_cast<double>(kSide) / kRes;
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> tileDist(0, kRes / 2 - 1);
@@ -134,7 +139,7 @@ namespace {
 
   std::vector<IncoherentGroup> generateIncoherentGroups(int numGroups) {
     std::mt19937 rng(99);
-    const double extent = kSide * 2.0;
+    const double extent = kSide;
     std::uniform_real_distribution<double> origDist(-extent, extent * 2);
     std::uniform_real_distribution<double> dirDist(-1.0, 1.0);
 
@@ -289,15 +294,15 @@ namespace {
   };
 
   std::vector<CoherentGroup8> generateCoherentGroups8(int numGroups) {
-    const Vector3d eye(-15.0, 11.0, 11.0);
-    const Vector3d center(11.0, 11.0, 11.0);
+    const Vector3d eye(-30.0, kSide * 0.5, kSide * 0.5);
+    const Vector3d center(0.0, kSide * 0.5, kSide * 0.5);
     const Vector3d fwd = (center - eye).normalized();
     const Vector3d worldUp(0, 1, 0);
     const Vector3d right = fwd.crossProduct(worldUp).normalized();
     const Vector3d up = right.crossProduct(fwd).normalized();
 
-    constexpr int kRes = 128;
-    constexpr double kPixelSize = 22.0 / kRes;
+    constexpr int kRes = 2048;
+    constexpr double kPixelSize = static_cast<double>(kSide) / kRes;
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<int> tileDist(0, kRes / 2 - 2);
