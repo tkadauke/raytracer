@@ -14,6 +14,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/postprocess/Fxaa.h"
 #include "render/primitives/Scene.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -29,6 +30,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <typeinfo>
 #include <vector>
 
 using namespace engine::raster;
@@ -382,6 +384,118 @@ namespace {
     int y;
   };
 
+  inline Colord fallbackFaceColor(std::uint64_t index) {
+    const std::uint64_t r = (index * 2654435761ULL) & 0xFFu;
+    const std::uint64_t g = (index * 40503ULL + 12345) & 0xFFu;
+    const std::uint64_t b = (index * 15485863ULL + 999983) & 0xFFu;
+    return Colord(0.3 + (r / 255.0) * 0.7, 0.3 + (g / 255.0) * 0.7, 0.3 + (b / 255.0) * 0.7);
+  }
+
+  // Per-triangle material evaluator prepared during emission. Most
+  // raster fragments use either a cached fallback face color or a
+  // cached constant matte albedo; only arbitrary textures need the
+  // heavier HitPoint/Ray context.
+  class RasterMaterial {
+  public:
+    RasterMaterial()
+        : m_kind(Kind::Constant),
+          m_albedo(Colord::black()),
+          m_texture(nullptr) {
+    }
+
+    static RasterMaterial constant(const Colord& albedo) {
+      return RasterMaterial(Kind::Constant, albedo, nullptr);
+    }
+
+    static RasterMaterial texture(std::shared_ptr<render::Texturec> texture) {
+      return RasterMaterial(Kind::Texture, Colord::black(), std::move(texture));
+    }
+
+    Colord albedo(const render::Primitive* primitive, const Vector3d& worldPos,
+                  const Vector3d& normal, const Vector2d& uv) const {
+      if (m_kind == Kind::Constant || !m_texture)
+        return m_albedo;
+
+      const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
+      const Rayd ray(worldPos, -normal);
+      return m_texture->evaluate(ray, hp);
+    }
+
+  private:
+    enum class Kind { Constant, Texture };
+
+    RasterMaterial(Kind kind, const Colord& albedo, std::shared_ptr<render::Texturec> texture)
+        : m_kind(kind),
+          m_albedo(albedo),
+          m_texture(std::move(texture)) {
+    }
+
+    Kind m_kind;
+    Colord m_albedo;
+    std::shared_ptr<render::Texturec> m_texture;
+  };
+
+  // Per-primitive source for RasterMaterial. The expensive material
+  // type checks happen once per leaf primitive, while face-indexed
+  // fallback colors are still baked per emitted triangle.
+  class RasterMaterialSource {
+  public:
+    static RasterMaterialSource from(const std::shared_ptr<render::Material>& material) {
+      auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material);
+      if (!matte)
+        return faceColor();
+
+      auto texture = matte->diffuseTexture();
+      if (!texture)
+        return faceColor();
+
+      const render::Texturec* texturePtr = texture.get();
+      if (typeid(*texturePtr) == typeid(render::ConstantColorTexture)) {
+        const auto* constant = static_cast<const render::ConstantColorTexture*>(texturePtr);
+        return constantAlbedo(constant->color());
+      }
+
+      return textured(std::move(texture));
+    }
+
+    RasterMaterial forFace(std::uint64_t faceIdx) const {
+      switch (m_kind) {
+      case Kind::FaceColor:
+        return RasterMaterial::constant(fallbackFaceColor(faceIdx));
+      case Kind::Constant:
+        return RasterMaterial::constant(m_albedo);
+      case Kind::Texture:
+        return RasterMaterial::texture(m_texture);
+      }
+      return RasterMaterial::constant(fallbackFaceColor(faceIdx));
+    }
+
+  private:
+    enum class Kind { FaceColor, Constant, Texture };
+
+    static RasterMaterialSource faceColor() {
+      return RasterMaterialSource(Kind::FaceColor, Colord::black(), nullptr);
+    }
+
+    static RasterMaterialSource constantAlbedo(const Colord& albedo) {
+      return RasterMaterialSource(Kind::Constant, albedo, nullptr);
+    }
+
+    static RasterMaterialSource textured(std::shared_ptr<render::Texturec> texture) {
+      return RasterMaterialSource(Kind::Texture, Colord::black(), std::move(texture));
+    }
+
+    RasterMaterialSource(Kind kind, const Colord& albedo, std::shared_ptr<render::Texturec> texture)
+        : m_kind(kind),
+          m_albedo(albedo),
+          m_texture(std::move(texture)) {
+    }
+
+    Kind m_kind;
+    Colord m_albedo;
+    std::shared_ptr<render::Texturec> m_texture;
+  };
+
   // Material and primitive pointers stay attached to triangles so
   // the fragment stage can use the same scene/material vocabulary as
   // the raytracer, even though no rays are traced here.
@@ -389,6 +503,7 @@ namespace {
     std::array<RasterVertex, 3> vertices;
     const render::Primitive* primitive;
     std::shared_ptr<render::Material> material;
+    RasterMaterial rasterMaterial;
     std::uint64_t faceIdx;
   };
 
@@ -733,15 +848,14 @@ namespace {
     }
 
     Colord shade(const RasterTriangle& triangle, const InterpolatedFragment& fragment) const {
-      return shade(triangle.material, triangle.primitive, fragment.worldPos, fragment.normal,
-                   fragment.uv, triangle.faceIdx);
+      return shade(triangle.rasterMaterial, triangle.primitive, fragment.worldPos, fragment.normal,
+                   fragment.uv);
     }
 
-    Colord shade(const std::shared_ptr<render::Material>& material,
-                 const render::Primitive* primitive, const Vector3d& worldPos,
-                 const Vector3d& normal, const Vector2d& uv, std::uint64_t faceIdx) const {
+    Colord shade(const RasterMaterial& rasterMaterial, const render::Primitive* primitive,
+                 const Vector3d& worldPos, const Vector3d& normal, const Vector2d& uv) const {
       const Vector3d n = normal.normalized();
-      const Colord albedo = albedoFor(material, primitive, worldPos, n, uv, faceIdx);
+      const Colord albedo = rasterMaterial.albedo(primitive, worldPos, n, uv);
 
       // Lambertian shading. Raster shadow maps, when enabled, only
       // mask direct diffuse light. Ambient remains visible because
@@ -761,27 +875,6 @@ namespace {
     }
 
   private:
-    static Colord faceColor(std::uint64_t index) {
-      const std::uint64_t r = (index * 2654435761ULL) & 0xFFu;
-      const std::uint64_t g = (index * 40503ULL + 12345) & 0xFFu;
-      const std::uint64_t b = (index * 15485863ULL + 999983) & 0xFFu;
-      return Colord(0.3 + (r / 255.0) * 0.7, 0.3 + (g / 255.0) * 0.7, 0.3 + (b / 255.0) * 0.7);
-    }
-
-    static Colord albedoFor(const std::shared_ptr<render::Material>& material,
-                            const render::Primitive* primitive, const Vector3d& worldPos,
-                            const Vector3d& normal, const Vector2d& uv, std::uint64_t faceIdx) {
-      if (auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material)) {
-        auto texture = matte->diffuseTexture();
-        if (texture) {
-          const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
-          const Rayd ray(worldPos, -normal);
-          return texture->evaluate(ray, hp);
-        }
-      }
-      return faceColor(faceIdx);
-    }
-
     const render::Scene* m_scene;
     const ShadowMaps* m_shadowMaps;
   };
@@ -1138,6 +1231,7 @@ namespace {
           const auto& vertices = mesh->vertices();
           const auto& faces = mesh->faces();
           const auto& viewPlane = *m_camera->viewPlane();
+          const RasterMaterialSource materialSource = RasterMaterialSource::from(material);
 
           // Project each mesh vertex once per primitive. Faces then
           // reuse clip/screen data while fan-triangulating polygons.
@@ -1178,7 +1272,8 @@ namespace {
                 ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
                             vertices[face[i + 1]].uv, p2.clip, p2.screen};
 
-                emitPreparedTriangle(primitive, material, globalFaceIdx, v0, v1, v2, callback);
+                emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
+                                     callback);
                 continue;
               }
 
@@ -1211,7 +1306,8 @@ namespace {
                   continue;
                 }
 
-                emitPreparedTriangle(primitive, material, globalFaceIdx, v0, v1, v2, callback);
+                emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
+                                     callback);
               }
             }
           }
@@ -1222,14 +1318,15 @@ namespace {
     template<class EmitFn>
     void emitPreparedTriangle(const render::Primitive* primitive,
                               const std::shared_ptr<render::Material>& material,
-                              std::uint64_t faceIdx, const ClipVert& v0, const ClipVert& v1,
-                              const ClipVert& v2, EmitFn& callback) const {
+                              const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
+                              const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
+                              EmitFn& callback) const {
       if (m_cullPolicy.shouldCull(v0, v1, v2)) {
         return;
       }
 
       RasterTriangle triangle;
-      if (makeTriangle(v0, v1, v2, primitive, material, faceIdx, triangle)) {
+      if (makeTriangle(v0, v1, v2, primitive, material, materialSource, faceIdx, triangle)) {
         callback(triangle);
       }
     }
@@ -1277,7 +1374,8 @@ namespace {
 
     bool makeTriangle(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                       const render::Primitive* primitive,
-                      const std::shared_ptr<render::Material>& material, std::uint64_t faceIdx,
+                      const std::shared_ptr<render::Material>& material,
+                      const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
                       RasterTriangle& out) const {
       RasterVertex r0, r1, r2;
       const render::Material* materialPtr = material.get();
@@ -1287,7 +1385,8 @@ namespace {
         return false;
       }
 
-      out = RasterTriangle{{{r0, r1, r2}}, primitive, material, faceIdx};
+      out = RasterTriangle{
+        {{r0, r1, r2}}, primitive, material, materialSource.forFace(faceIdx), faceIdx};
       return true;
     }
 

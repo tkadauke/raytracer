@@ -101,18 +101,26 @@ MSAA items below.
 
 ### 5. Per-primitive material evaluator
 
-Current issue: built-in shading does material type discovery in the fragment
-path. `dynamic_pointer_cast`, `HitPoint`, and synthetic `Rayd` construction are
-too expensive to repeat for every visible sample when the material is known per
-primitive.
+Status: done. `RasterTriangleEmitter` now builds a `RasterMaterialSource` once
+per leaf primitive, and emitted triangles carry a small `RasterMaterial` value
+that either returns a cached color or evaluates the original texture.
 
-Plan:
+What changed:
 
-- Build a small `RasterMaterial` / material-evaluator value while emitting
-  triangles.
-- Detect matte-material and fallback-colour cases once per primitive.
-- Only build the full texture-evaluation hit context when the chosen evaluator
-  actually needs it.
+- Matte-material and fallback-color type discovery moved out of the fragment
+  path.
+- Exact `ConstantColorTexture` matte albedos are cached as colors; subclasses
+  keep their virtual `evaluate` behavior.
+- Arbitrary textures still receive the full interpolated `HitPoint` and
+  synthetic `Rayd`, but only on the texture path.
+
+Measured on May 22 2026 against `rasterizer_baseline_materials.json` at
+640x480 LOD 3 with `rendercli --repeat 10`; output PNGs stayed byte-identical.
+
+| Mode | Before median | After median |
+| --- | ---: | ---: |
+| 1x | 21.602 ms | 20.688 ms |
+| 4x MSAA | 69.370 ms | 63.474 ms |
 
 ### 6. MSAA tile-local storage
 

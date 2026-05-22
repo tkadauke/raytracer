@@ -18,7 +18,7 @@ photogrammetry, NeRF/3DGS, and more — get chapters when they ship,
 not before.
 
 The plan that produced this structure is at
-[`docs/plans/textbook.md`](../plans/textbook.md). Conventions for
+[`docs/plans/complete/textbook.md`](../plans/complete/textbook.md). Conventions for
 cross-linking, code references, math notation, widget embedding, and
 image embedding are documented there too.
 
@@ -147,4 +147,4 @@ into a runnable iframe. Rendered images embed as standard
 **See also** section.
 
 For the full conventions, see
-[`docs/plans/textbook.md`](../plans/textbook.md) §3.
+[`docs/plans/complete/textbook.md`](../plans/complete/textbook.md) §3.

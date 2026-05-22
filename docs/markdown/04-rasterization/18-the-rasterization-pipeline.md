@@ -227,6 +227,12 @@ material fall back to a stable per-face hash so missing
 materials remain *visible* (a colored mesh) rather than
 *invisible* (a black mesh).
 
+The implementation prepares this material path while it emits
+triangles: each leaf primitive is classified once, and each emitted
+triangle carries either a cached albedo or the texture object that
+still needs the interpolated hit context. That keeps material type
+discovery out of the per-pixel loop while preserving texture behavior.
+
 This is one place where the rasterizer takes a shortcut
 compared to the raytracer. The [Whitted](../appendix/a-glossary.md#w) raytracer in
 [chapter 5 §5.4](../02-ray-rendering/05-the-whitted-pipeline.md#5-4-the-recursive-heart)

@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <memory>
+#include <utility>
 
 namespace RasterizerTest {
   using namespace ::testing;
@@ -26,6 +27,17 @@ namespace RasterizerTest {
   class UVColorTexture : public Texturec {
   public:
     virtual Colord evaluate(const Rayd&, const HitPoint& hitPoint) const {
+      return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
+    }
+  };
+
+  class OverridingConstantColorTexture : public ConstantColorTexture {
+  public:
+    OverridingConstantColorTexture()
+        : ConstantColorTexture(Colord::red()) {
+    }
+
+    Colord evaluate(const Rayd&, const HitPoint& hitPoint) const override {
       return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
     }
   };
@@ -94,13 +106,18 @@ namespace RasterizerTest {
     return scene;
   }
 
-  static std::shared_ptr<Scene> sceneWithTexturedFrontFacingTriangle() {
+  static std::shared_ptr<Scene>
+  sceneWithTexturedFrontFacingTriangle(std::shared_ptr<Texturec> texture) {
     auto scene = std::make_shared<Scene>(Colord::white());
     auto triangle =
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0));
-    triangle->setMaterial(std::make_shared<MatteMaterial>(std::make_shared<UVColorTexture>()));
+    triangle->setMaterial(std::make_shared<MatteMaterial>(std::move(texture)));
     scene->add(triangle);
     return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithTexturedFrontFacingTriangle() {
+    return sceneWithTexturedFrontFacingTriangle(std::make_shared<UVColorTexture>());
   }
 
   static std::shared_ptr<Scene> sceneWithSlopedTriangle() {
@@ -493,6 +510,29 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, BuiltInMaterialTextureReceivesInterpolatedUV) {
     Rasterizer engine(headOnCamera(), sceneWithTexturedFrontFacingTriangle());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialConstantTextureUsesStoredAlbedo) {
+    const Colord albedo(0.25, 0.5, 0.75);
+    auto scene =
+      sceneWithTexturedFrontFacingTriangle(std::make_shared<ConstantColorTexture>(albedo));
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(albedo, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialKeepsVirtualTextureBehaviorForConstantTextureSubclasses) {
+    auto scene =
+      sceneWithTexturedFrontFacingTriangle(std::make_shared<OverridingConstantColorTexture>());
+    Rasterizer engine(headOnCamera(), scene);
     Buffer<Colord> buffer(64, 64);
 
     engine.render(buffer);

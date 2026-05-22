@@ -63,7 +63,7 @@ raytracer, the rasterizer, or a specific source file.
 
 Conventions for cross-linking, code references, math notation, widget
 embedding, and image embedding are documented in
-[`docs/plans/textbook.md`](../plans/textbook.md) §3 — useful if you're
+[`docs/plans/complete/textbook.md`](../plans/complete/textbook.md) §3 — useful if you're
 *writing* a chapter, not just reading one.
 
 ## A note on staleness
