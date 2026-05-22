@@ -2,6 +2,8 @@
 #include <QComboBox>
 #include <QInputDialog>
 
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QSpacerItem>
 #include <QDockWidget>
@@ -17,6 +19,13 @@
 #include <QMessageBox>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QSignalBlocker>
+#include <QSlider>
+#include <QSpinBox>
+#include <QStatusBar>
+
+#include <algorithm>
+#include <exception>
 
 #include "MainWindow.h"
 #include "Display.h"
@@ -68,7 +77,12 @@
 
 struct MainWindow::Private {
   inline Private()
-    : currentElement(nullptr)
+    : timelineDockWidget(nullptr),
+      timelineFrameSlider(nullptr),
+      timelineFrameSpinBox(nullptr),
+      timelineSummaryLabel(nullptr),
+      currentFrame(0),
+      currentElement(nullptr)
   {
   }
   
@@ -78,10 +92,15 @@ struct MainWindow::Private {
   PreviewDisplayWidget* materialDisplay;
   PropertyEditorWidget* propertyEditorWidget;
   SceneModel* elementModel;
+  QDockWidget* timelineDockWidget;
+  QSlider* timelineFrameSlider;
+  QSpinBox* timelineFrameSpinBox;
+  QLabel* timelineSummaryLabel;
   
   RenderWindow* renderWindow;
   
   Scene* scene;
+  int currentFrame;
   
   Element* currentElement;
   QModelIndex currentIndex;
@@ -172,6 +191,7 @@ MainWindow::MainWindow()
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
   addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
+  addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
   
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
@@ -180,6 +200,7 @@ MainWindow::MainWindow()
   createMenus();
   
   p->renderWindow = new RenderWindow(nullptr);
+  resetTimelineFrame();
 }
 
 void MainWindow::createActions() {
@@ -589,9 +610,10 @@ void MainWindow::newFile() {
   
     p->scene = new ::Scene(nullptr);
     p->propertyEditorWidget->setRoot(p->scene);
-    p->display->setScene(p->scene);
 
     p->elementModel->setElement(p->scene);
+    resetTimelineFrame();
+    redraw();
   }
 }
 
@@ -613,6 +635,7 @@ void MainWindow::openFile() {
     p->propertyEditorWidget->setRoot(p->scene);
     p->elementModel->setElement(p->scene);
 
+    resetTimelineFrame();
     redraw();
   }
 }
@@ -797,7 +820,14 @@ void MainWindow::moveBackwardsAlongZ() {
 
 void MainWindow::render() {
   if (!p->renderWindow->isBusy()) {
-    p->renderWindow->setScene(p->scene);
+    try {
+      auto evaluatedScene = evaluatedSceneForCurrentFrame();
+      p->renderWindow->setScene(evaluatedScene ? evaluatedScene.get() : p->scene);
+      statusBar()->clearMessage();
+    } catch (const std::exception& error) {
+      statusBar()->showMessage(tr("Animation render failed: %1").arg(error.what()));
+      return;
+    }
   }
 
   p->renderWindow->show();
@@ -936,6 +966,34 @@ QDockWidget* MainWindow::createPreviewDisplay() {
   return dockWidget;
 }
 
+QDockWidget* MainWindow::createTimelineControls() {
+  auto widget = new QWidget(this);
+  auto layout = new QHBoxLayout(widget);
+
+  auto frameLabel = new QLabel(tr("Frame"), widget);
+  p->timelineFrameSlider = new QSlider(Qt::Horizontal, widget);
+  p->timelineFrameSpinBox = new QSpinBox(widget);
+  p->timelineSummaryLabel = new QLabel(widget);
+
+  p->timelineFrameSpinBox->setKeyboardTracking(false);
+  p->timelineFrameSpinBox->setFixedWidth(90);
+
+  layout->addWidget(frameLabel);
+  layout->addWidget(p->timelineFrameSlider, 1);
+  layout->addWidget(p->timelineFrameSpinBox);
+  layout->addWidget(p->timelineSummaryLabel);
+  widget->setLayout(layout);
+
+  connect(p->timelineFrameSlider, SIGNAL(valueChanged(int)), this, SLOT(setCurrentFrame(int)));
+  connect(p->timelineFrameSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setCurrentFrame(int)));
+
+  auto dockWidget = new QDockWidget("Timeline", this);
+  dockWidget->setWidget(widget);
+  p->timelineDockWidget = dockWidget;
+
+  return dockWidget;
+}
+
 void MainWindow::elementChanged(Element*) {
   p->scene->setChanged(true);
   p->propertyEditorWidget->update();
@@ -980,6 +1038,16 @@ void MainWindow::updatePreviewWidget() {
   }
 }
 
+void MainWindow::setCurrentFrame(int frame) {
+  if (!p->scene->hasAnimation())
+    return;
+
+  const auto* timeline = p->scene->animation();
+  p->currentFrame = std::clamp(frame, timeline->startFrame(), timeline->endFrame());
+  syncTimelineControls();
+  redraw();
+}
+
 void MainWindow::reorder() {
   redraw();
   p->scene->setChanged(true);
@@ -991,5 +1059,61 @@ void MainWindow::reorder() {
 }
 
 void MainWindow::redraw() {
-  p->display->setScene(p->scene);
+  try {
+    auto evaluatedScene = evaluatedSceneForCurrentFrame();
+    p->display->setScene(evaluatedScene ? evaluatedScene.get() : p->scene);
+    statusBar()->clearMessage();
+  } catch (const std::exception& error) {
+    statusBar()->showMessage(tr("Animation preview failed: %1").arg(error.what()));
+    p->display->setScene(p->scene);
+  }
+}
+
+void MainWindow::resetTimelineFrame() {
+  if (const auto* timeline = p->scene->animation()) {
+    p->currentFrame = timeline->startFrame();
+  } else {
+    p->currentFrame = 0;
+  }
+  syncTimelineControls();
+}
+
+void MainWindow::syncTimelineControls() {
+  const auto* timeline = p->scene->animation();
+  const bool hasAnimation = timeline != nullptr;
+
+  p->timelineDockWidget->setEnabled(hasAnimation);
+  {
+    const QSignalBlocker sliderBlocker(p->timelineFrameSlider);
+    const QSignalBlocker spinBoxBlocker(p->timelineFrameSpinBox);
+
+    if (hasAnimation) {
+      p->currentFrame = std::clamp(p->currentFrame, timeline->startFrame(), timeline->endFrame());
+      p->timelineFrameSlider->setRange(timeline->startFrame(), timeline->endFrame());
+      p->timelineFrameSpinBox->setRange(timeline->startFrame(), timeline->endFrame());
+      p->timelineFrameSlider->setValue(p->currentFrame);
+      p->timelineFrameSpinBox->setValue(p->currentFrame);
+    } else {
+      p->timelineFrameSlider->setRange(0, 0);
+      p->timelineFrameSpinBox->setRange(0, 0);
+      p->timelineFrameSlider->setValue(0);
+      p->timelineFrameSpinBox->setValue(0);
+    }
+  }
+
+  if (hasAnimation) {
+    p->timelineSummaryLabel->setText(
+      tr("%1-%2, %3 fps")
+        .arg(timeline->startFrame())
+        .arg(timeline->endFrame())
+        .arg(timeline->fps()));
+  } else {
+    p->timelineSummaryLabel->setText(tr("No animation"));
+  }
+}
+
+std::unique_ptr<Scene> MainWindow::evaluatedSceneForCurrentFrame() const {
+  if (!p->scene->hasAnimation())
+    return nullptr;
+  return p->scene->evaluatedAtFrame(p->currentFrame);
 }

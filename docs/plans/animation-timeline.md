@@ -11,7 +11,8 @@
 > saving, and frame evaluation is implemented under `include/world/animation/`
 > and `Scene`'s top-level `animation` block handling. Phase 3 `rendercli
 > --frame` single-frame evaluation and Phase 4 `rendercli --animation`
-> image-sequence output are implemented. Update this file as API shape, JSON
+> image-sequence output are implemented. Phase 5 GeneratedRayTracer read-only
+> timeline awareness is implemented. Update this file as API shape, JSON
 > format, or implementation order changes.
 
 ---
@@ -355,12 +356,12 @@ encoder, not a hard dependency for animation support.
 
 ### Phase 5 — GeneratedRayTracer read-only timeline awareness
 
-- Load/save animation blocks without losing them.
-- Add minimal UI awareness:
-  - current frame spinbox or scrubber
-  - preview evaluates scene at current frame
-  - no full keyframe editor yet
-- Ensure property editing still targets the base authoring scene, not a baked
+- ✅ Load/save animation blocks without losing them.
+- ✅ Add minimal UI awareness:
+  - ✅ current frame spinbox or scrubber
+  - ✅ preview evaluates scene at current frame
+  - ✅ no full keyframe editor yet
+- ✅ Ensure property editing still targets the base authoring scene, not a baked
   evaluated clone.
 
 ### Phase 6 — Render-side compilation

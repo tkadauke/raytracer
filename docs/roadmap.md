@@ -618,6 +618,7 @@ A scene-script DSL for parametric/procedural geometry. See §7 open question on 
 - ✅ **World scene timeline loading and evaluation.** Editable scenes now preserve a top-level JSON `animation` block and evaluate id-targeted direct `Q_PROPERTY` tracks through `world::Timeline` / `world::AnimationTrack`.
 - ✅ **`rendercli --frame`.** The command-line renderer now evaluates an optional animation frame before runtime scene conversion, with a checked-in animation-frame demo scene and CTest smoke coverage.
 - ✅ **`rendercli --animation`.** The command-line renderer now emits timeline image sequences from a printf-style output pattern, with range/fps overrides, progress output, and CTest smoke coverage.
+- ✅ **GeneratedRayTracer timeline preview.** Animated scene files now enable a read-only Timeline dock; the frame control evaluates copied scenes for preview/final renders while property editing stays on the base authoring scene.
 - Interpolation curves: linear, Bezier, ease-in/out, hold.
 - ✅ **Time-sampled rendering for motion blur** (multiple time samples per frame within shutter-open). First pass landed in 7c81d11 — `State::timeSample` drawn from `SampleStream::next1D` (dim 1 in the renderer's stream allocation), `world::Surface::velocity` Q_PROPERTY, `Instance` interpolates linear translation. Rotation/scale animation, full timeline, and keyframe interpolation curves still TODO.
 - Output: image sequence or piped to ffmpeg for video (configurable codec).

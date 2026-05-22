@@ -160,6 +160,14 @@ interaction speed, but the render menu exposes a preview-only
 shadow toggle that enables four stabilized directional-light
 cascades for inspecting shadow-map behavior while editing.
 
+Scenes with a top-level `animation` block enable the Timeline
+dock. Its slider and spinbox choose the current frame. The
+central preview and render dialog evaluate a copied scene at
+that frame before building runtime render objects, so animated
+camera poses, transforms, colors, and lights are visible in
+the editor. The scene tree and property editor remain attached
+to the unevaluated authoring scene.
+
 `GeneratedRayTracer` is the right front end for:
 
 - **Scene authoring** — building a scene by hand, with the

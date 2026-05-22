@@ -199,7 +199,18 @@ and prints a progress line with the frame number, output path, and render
 time. Static scenes do not have a timeline range, so `--animation` requires an
 `animation` block.
 
-## 27.10 Exercises
+## 27.10 Previewing animation in GeneratedRayTracer
+
+GeneratedRayTracer reads and writes the same top-level `animation` block as
+`rendercli`. When a loaded scene has a timeline, the Timeline dock exposes the
+inclusive frame range as a slider and spinbox. Changing the current frame
+evaluates a copied scene and sends that evaluated copy to the live preview.
+
+The property editor stays attached to the authoring scene. Editing a property
+there changes the base value stored in the JSON scene; frame evaluation is
+applied only to the copied scene used for preview and final renders.
+
+## 27.11 Exercises
 
 1. Given keys `(10, 4.0)` and `(22, 10.0)`, compute the linear sampled value
    at frame 16.
@@ -229,6 +240,7 @@ time. Static scenes do not have a timeline range, so `--animation` requires an
 - `include/world/animation/AnimationTrack.h`
 - `include/world/animation/Timeline.h`
 - `include/world/objects/Scene.h`
+- `examples/GeneratedRayTracer/MainWindow.cpp`
 - `tools/rendercli/rendercli.cpp`
 - `examples/GeneratedRayTracer/scenes/animation_frame_demo.json`
 - `test/unit/core/animation/AnimationTrackTest.cpp`

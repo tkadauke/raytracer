@@ -2,6 +2,7 @@
 
 #include "core/math/Vector.h"
 #include <QMainWindow>
+#include <memory>
 
 class QDockWidget;
 
@@ -34,6 +35,7 @@ private slots:
   void elementChanged(Element*);
   void updateWindowModified();
   void updatePreviewWidget();
+  void setCurrentFrame(int frame);
   
   void newFile();
   void openFile();
@@ -106,6 +108,7 @@ private:
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();
   QDockWidget* createPreviewDisplay();
+  QDockWidget* createTimelineControls();
 
   void createActions();
   void createMenus();
@@ -113,6 +116,9 @@ private:
   bool maybeSave();
   
   void redraw();
+  void resetTimelineFrame();
+  void syncTimelineControls();
+  std::unique_ptr<Scene> evaluatedSceneForCurrentFrame() const;
   
   template<class T>
   void add();

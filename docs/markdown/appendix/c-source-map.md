@@ -13,6 +13,7 @@
 |---|---|
 | `examples/DifferenceRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 | `examples/GeneratedRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
+| `examples/GeneratedRayTracer/MainWindow.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `examples/GeneratedRayTracer/scenes/animation_frame_demo.json` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `examples/RefractingRayTracer/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
 | `examples/SceneBrowser/` | [26. The example apps](../06-tools-and-io/26-the-example-apps.md) |
