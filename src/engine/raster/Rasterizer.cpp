@@ -773,6 +773,45 @@ namespace {
     Vector2d uv;
   };
 
+  struct DirectionalShadowBasis {
+    Vector3d forward;
+    Vector3d right;
+    Vector3d up;
+  };
+
+  DirectionalShadowBasis directionalShadowBasis(const Vector3d& lightDirection) {
+    DirectionalShadowBasis basis;
+    basis.forward = (-lightDirection).normalized();
+    const Vector3d upCandidate =
+      std::abs(basis.forward * Vector3d::up()) > 0.95 ? Vector3d::forward() : Vector3d::up();
+    basis.right = (upCandidate ^ basis.forward).normalized();
+    basis.up = (basis.right ^ -basis.forward).normalized();
+    return basis;
+  }
+
+  Vector3d stabilizeDirectionalShadowCenter(const Vector3d& center,
+                                            const Vector3d& lightDirection,
+                                            double halfExtent, int shadowMapSize) {
+    if (center.isUndefined() || center.isInfinite() || !std::isfinite(halfExtent) ||
+        halfExtent <= 0.0 || shadowMapSize <= 0)
+      return center;
+
+    const double texelSize = (halfExtent * 2.0) / static_cast<double>(shadowMapSize);
+    if (!std::isfinite(texelSize) || texelSize <= 0.0)
+      return center;
+
+    const DirectionalShadowBasis basis = directionalShadowBasis(lightDirection);
+    if (basis.right.isUndefined() || basis.up.isUndefined())
+      return center;
+
+    const auto snap = [texelSize](double coordinate) {
+      return std::round(coordinate / texelSize) * texelSize;
+    };
+    const double x = center * basis.right;
+    const double y = center * basis.up;
+    return center + basis.right * (snap(x) - x) + basis.up * (snap(y) - y);
+  }
+
   // Directional-light shadow maps use their own orthographic camera
   // math instead of render::OrthographicCamera so top-down lights do
   // not inherit Camera's fixed world-up degeneracy. The interface is
@@ -782,13 +821,12 @@ namespace {
   public:
     DirectionalShadowCamera(const Vector3d& center, const Vector3d& lightDirection,
                             double halfExtent)
-        : m_origin(center + lightDirection * (halfExtent * 2.0)),
-          m_forward((-lightDirection).normalized()),
-          m_halfExtent(halfExtent) {
-      const Vector3d upCandidate =
-        std::abs(m_forward * Vector3d::up()) > 0.95 ? Vector3d::forward() : Vector3d::up();
-      m_right = (upCandidate ^ m_forward).normalized();
-      m_up = (m_right ^ -m_forward).normalized();
+        : m_halfExtent(halfExtent) {
+      const DirectionalShadowBasis basis = directionalShadowBasis(lightDirection);
+      m_forward = basis.forward;
+      m_right = basis.right;
+      m_up = basis.up;
+      m_origin = center - m_forward * (halfExtent * 2.0);
     }
 
     Rayd rayForPixel(double, double, render::SampleStream&) const override {
@@ -1723,8 +1761,10 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
                                                bounds, corners, *camera, cascadeMinDepth,
                                                cascadeMaxDepth);
       const double halfExtent = std::max(1.0, cascadeBounds.size().length() * 0.5) * 1.05;
+      const Vector3d shadowCenter = stabilizeDirectionalShadowCenter(
+        cascadeBounds.center(), directional->direction(), halfExtent, size);
       auto shadowCamera = std::make_shared<DirectionalShadowCamera>(
-        cascadeBounds.center(), directional->direction(), halfExtent);
+        shadowCenter, directional->direction(), halfExtent);
       shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
       shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
 

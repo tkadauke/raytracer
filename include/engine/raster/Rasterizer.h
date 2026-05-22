@@ -185,7 +185,9 @@ namespace engine::raster {
   * Cascades split the scene bounds across camera depth and build several
   * tighter directional-light maps instead of one map around the whole scene.
   * This spends more depth-pass work to improve shadow detail in near and
-  * middle camera slices.
+  * middle camera slices. Each cascade center is snapped to its light-space
+  * texel grid so small camera movements do not make the shadow projection
+  * drift by fractional texels.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
@@ -452,7 +454,8 @@ public:
     * Sets the number of cascaded shadow maps per directional light.
     * Values are clamped to the range [1, 4]. Counts above 1 split the
     * scene bounds by camera view depth and build one tighter light-space
-    * shadow map per slice.
+    * shadow map per slice. Cascade centers are snapped to the shadow-map
+    * texel grid for stable camera previews.
     *
     * <table><tr>
     * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>

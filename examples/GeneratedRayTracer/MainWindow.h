@@ -85,6 +85,7 @@ private slots:
   void usePreviewRaytracer();
   void usePreviewWireframe();
   void usePreviewRasterizer();
+  void setPreviewRasterizerShadows(bool enabled);
 
   void setAspectStretch();
   void setAspectFitWidth();

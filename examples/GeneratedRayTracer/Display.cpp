@@ -30,6 +30,7 @@ RenderDisplay::RenderDisplay(QWidget* parent)
   m_raytracerEngine = std::dynamic_pointer_cast<engine::raytracer::Raytracer>(m_engine);
   m_wireframeEngine = std::make_shared<engine::wireframe::Wireframe>(nullptr);
   m_rasterizerEngine = std::make_shared<engine::raster::Rasterizer>(nullptr);
+  applyRasterizerPreviewPolicy();
   applyPreviewPolicy(EngineKind::Raytracer);
 }
 
@@ -50,6 +51,7 @@ void RenderDisplay::setEngineKind(EngineKind kind) {
   } else if (kind == EngineKind::Rasterizer) {
     m_rasterizerEngine->setScene(m_engine->scene());
     m_rasterizerEngine->setCamera(m_engine->camera());
+    applyRasterizerPreviewPolicy();
     next = m_rasterizerEngine;
   } else {
     m_raytracerEngine->setScene(m_engine->scene());
@@ -59,6 +61,13 @@ void RenderDisplay::setEngineKind(EngineKind kind) {
   setEngine(next);
   applyPreviewPolicy(kind);
   render();
+}
+
+void RenderDisplay::setRasterizerPreviewShadowsEnabled(bool enabled) {
+  m_rasterizerPreviewShadowsEnabled = enabled;
+  applyRasterizerPreviewPolicy();
+  if (m_engine == m_rasterizerEngine)
+    render();
 }
 
 void RenderDisplay::setScene(Scene* scene) {
@@ -87,6 +96,18 @@ void RenderDisplay::applyPreviewPolicy(EngineKind kind) {
   setClearBackBufferOnRenderStart(true);
   setProgressUpdateIntervalMs(0);
   setCancelRenderOnInteraction(false);
+}
+
+void RenderDisplay::applyRasterizerPreviewPolicy() {
+  if (!m_rasterizerEngine)
+    return;
+
+  m_rasterizerEngine->setShadowMapsEnabled(m_rasterizerPreviewShadowsEnabled);
+  m_rasterizerEngine->setShadowMapSize(256);
+  m_rasterizerEngine->setShadowCascadeCount(4);
+  m_rasterizerEngine->setShadowBias(0.1);
+  m_rasterizerEngine->setShadowFilterRadius(1);
+  m_rasterizerEngine->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCF);
 }
 
 void RenderDisplay::mousePressEvent(QMouseEvent* event) {

@@ -71,8 +71,12 @@
    - ✅ Added cascaded directional shadow maps with 1-4 camera-depth slices,
      exposed on `Rasterizer`, `rendercli`, GeneratedRayTracer controls, tests,
      API docs, rendered docs, and the textbook shadow-map section.
-   - Next add shadow-map stabilization / split visualization for easier
-     comparison with raytraced shadow rays.
+   - ✅ Stabilized directional shadow-map projections by snapping each cascade
+     center to its light-space texel grid.
+   - ✅ Added a GeneratedRayTracer live-preview toggle for rasterizer shadows
+     so shadow-map stabilization can be inspected while orbiting / editing.
+   - Next add split visualization for easier comparison with raytraced shadow
+     rays.
 
 8. ✅ **GeneratedRaytracer / RenderWidget front-back buffers**
    - Added a render-thread back buffer and UI-thread front `QImage`.

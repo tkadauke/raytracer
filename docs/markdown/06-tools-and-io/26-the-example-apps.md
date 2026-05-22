@@ -129,7 +129,11 @@ The engine selector is the most interesting piece of wiring.
 The `Display` holds three engine pointers — one for each kind
 — and on a kind switch updates the active one to share the
 scene and camera with the previously-active one, so the
-preview keeps looking at the same thing across the swap.
+preview keeps looking at the same thing across the swap. The
+live rasterizer preview keeps shadow maps off by default for
+interaction speed, but the render menu exposes a preview-only
+shadow toggle that enables four stabilized directional-light
+cascades for inspecting shadow-map behavior while editing.
 
 `GeneratedRayTracer` is the right front end for:
 

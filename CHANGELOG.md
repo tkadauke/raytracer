@@ -11,11 +11,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **GeneratedRayTracer rasterizer preview shadows.** The live preview's Rasterizer engine now has a `Render → Preview Engine → Rasterizer Preview Shadows` toggle that enables directional shadow maps with four stabilized cascades for interactive shadow-map inspection. The render dialog keeps its separate explicit shadow settings. — GPT-5
 - **Rasterizer cascaded shadow maps.** Directional-light shadow maps can now split scene bounds into 1-4 camera-depth cascades, building a tighter shadow map for each slice. The setting is exposed through `Rasterizer::setShadowCascadeCount`, `rendercli --shadow_cascades`, the GeneratedRayTracer render settings widget, unit and functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
 - **Rasterizer PCSS shadow filtering.** Directional-light shadow maps now support an opt-in `Rasterizer::ShadowFilterMode::PCSS` mode that searches the configured shadow-filter kernel for blockers, estimates a receiver-local penumbra radius from blocker depth, and then runs PCF with that clamped radius. Existing PCF behavior remains the default. The mode is exposed through `rendercli --shadow_filter pcf|pcss`, the GeneratedRayTracer render settings widget, functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
 
 ### Fixed
 
+- **Rasterizer shadow-map projections no longer drift by fractional texels during small camera moves.** Directional shadow-map and cascade centers are now snapped to their light-space texel grid before the depth pass, reducing preview shimmer while preserving the existing shadow-map size, bias, filtering, and cascade controls. — GPT-5
 - **Benchmark preset builds no longer fail in `BVHPacketBenchmark`.** Packet benchmark ray groups now initialize their non-default-constructible `Rayd` arrays explicitly, and packet results are passed to Google Benchmark's non-deprecated `DoNotOptimize` overload. — GPT-5
 - **Raytraced instanced objects no longer warp when their transform makes `Matrix4::inverted()` choose a near-singular block pivot.** The 4×4 block inverse now falls back to the cofactor path for near-zero bottom-right 2×2 determinants, fixing rotated/scaled torus intersections and their shadow rays. — GPT-5
 - **Clang release builds no longer fail on render primitive override warnings.** Render primitive headers now mark their `Primitive`/`Composite` overrides explicitly, keeping `-Werror -Winconsistent-missing-override` builds green. — GPT-5

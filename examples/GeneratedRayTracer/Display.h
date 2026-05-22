@@ -43,10 +43,16 @@ public slots:
   /// view rendered through the new engine.
   void setEngineKind(EngineKind kind);
 
+  /// Toggle directional shadow maps for the live Rasterizer preview.
+  /// Final renders keep using RenderWindow's explicit render settings.
+  void setRasterizerPreviewShadowsEnabled(bool enabled);
+
 private:
   void applyPreviewPolicy(EngineKind kind);
+  void applyRasterizerPreviewPolicy();
 
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   std::shared_ptr<engine::wireframe::Wireframe> m_wireframeEngine;
   std::shared_ptr<engine::raster::Rasterizer> m_rasterizerEngine;
+  bool m_rasterizerPreviewShadowsEnabled{false};
 };

@@ -260,7 +260,10 @@ Five knobs control quality versus cost:
   directional light receives. A single map covers the whole
   scene bounds; multiple cascades build tighter light-space
   maps for near and middle view-depth ranges, trading extra
-  depth passes for more usable shadow-map detail.
+  depth passes for more usable shadow-map detail. The rasterizer
+  snaps each cascade center to the corresponding light-space
+  texel grid, which keeps small camera moves from shifting the
+  shadow projection by fractional texels.
 - **Bias** — an additive depth tolerance for the comparison.
   Too little bias lets a surface shadow itself due to depth
   quantization (the classic *shadow acne*); too much bias

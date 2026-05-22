@@ -141,6 +141,7 @@ struct MainWindow::Private {
   QAction* previewRaytracerAct;
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
+  QAction* previewRasterizerShadowsAct;
 
   QAction* aspectStretchAct;
   QAction* aspectFitWidthAct;
@@ -388,6 +389,12 @@ void MainWindow::createActions() {
   p->previewRasterizerAct->setCheckable(true);
   connect(p->previewRasterizerAct, SIGNAL(triggered()), this, SLOT(usePreviewRasterizer()));
 
+  p->previewRasterizerShadowsAct = new QAction(tr("Rasterizer Preview &Shadows"), this);
+  p->previewRasterizerShadowsAct->setStatusTip(tr("Enable directional shadow maps in the live rasterizer preview"));
+  p->previewRasterizerShadowsAct->setCheckable(true);
+  connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)),
+          this, SLOT(setPreviewRasterizerShadows(bool)));
+
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
   previewGroup->addAction(p->previewWireframeAct);
@@ -513,6 +520,8 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewRaytracerAct);
   previewMenu->addAction(p->previewWireframeAct);
   previewMenu->addAction(p->previewRasterizerAct);
+  previewMenu->addSeparator();
+  previewMenu->addAction(p->previewRasterizerShadowsAct);
 
   p->renderMenu->addSeparator();
   auto aspectModeMenu = p->renderMenu->addMenu(tr("&Aspect Mode"));
@@ -804,6 +813,10 @@ void MainWindow::usePreviewRasterizer() {
 
 void MainWindow::usePreviewWireframe() {
   p->display->setEngineKind(RenderDisplay::EngineKind::Wireframe);
+}
+
+void MainWindow::setPreviewRasterizerShadows(bool enabled) {
+  p->display->setRasterizerPreviewShadowsEnabled(enabled);
 }
 
 void MainWindow::setAspectStretch() {
