@@ -326,28 +326,28 @@ benchmark on transform-heavy scenes shows improvement.~~
 
 ## Phase 3 — modernization (lower urgency, broader touch)
 
-### 3.1 `constexpr` / `noexcept` / `[[nodiscard]]` sweep
+### ~~3.1 `constexpr` / `noexcept` / `[[nodiscard]]` sweep~~
 
-Every operator that doesn't allocate or call non-constexpr math
+~~Every operator that doesn't allocate or call non-constexpr math
 becomes `constexpr`. Every operator that doesn't throw becomes
 `noexcept` (only `operator/` and a handful of explicit checks
 throw). Every getter and pure-function operator gets
-`[[nodiscard]]`.
+`[[nodiscard]]`.~~
+
+✅ **Done.** Annotations applied across `Vector.h`, `Matrix.h`, `Ray.h`, `BoundingBox.h`, `Quaternion.h`, `Range.h` and the SSE3 specializations where intrinsics permit. `static_assert` checks pin compile-time evaluation of vector identities. Commit `7c26e4d` ("Add constexpr/noexcept/[[nodiscard]] sweep across all math headers").
 
 **Benchmark gate:** none expected (compile-time annotations) but
-the whole-render macro benchmark must not regress.
+the whole-render macro benchmark did not regress.
 
-### 3.2 Replace Meyer's-singleton statics with inline-variable constants
+### ~~3.2 Replace Meyer's-singleton statics with inline-variable constants~~
 
-`Vector3d::null()` → `inline constexpr Vector3d Vector3d::null{0,0,0};`.
+~~`Vector3d::null()` → `inline constexpr Vector3d Vector3d::null{0,0,0};`.
 Same for `one`, `right`, `up`, `forward`, `epsilon`,
 `undefined`, `minusInfinity`, `plusInfinity`. Callers move from
 `Vector3d::null()` to `Vector3d::null` — one breaking change,
-trivially mechanical.
+trivially mechanical.~~
 
-**Benchmark gate:** `VectorBenchmark.cpp` should show a tiny
-improvement on construction-heavy tests. Whole-render macro
-benchmark must not regress.
+✅ **Done.** All math-type static factories converted from Meyer's-singleton functions to `inline constexpr` (or `inline const` for SSE3 specializations) static data members. ~258 call sites mechanically migrated; parentheses dropped throughout. Commits `439fadc` and `d2b1336` ("Replace Meyer's-singleton static factories with inline variables on all math types"). `HitPoint::undefined()` was deliberately kept out of scope.
 
 ### ~~3.3 Complete the `Quaternion` class~~
 
@@ -412,7 +412,12 @@ tracing arrives. Listed for completeness.
 
 - **SoA / batched ray operations.** `Ray4`, `Ray8` types; batched
   `BoundingBox::intersects4`; batched primitive intersection. New
-  benchmark suite: `BatchedRayBenchmark.cpp`.
+  benchmark suite: `BatchedRayBenchmark.cpp`. 🟡 **Partially done.**
+  Aligned packet transport, primitive packet entry points with scalar
+  fallback, and an SSE `Sphere::intersectPacket(Ray4)` proof kernel
+  landed (Epic #141 first round). Triangle/Plane/Box packet kernels,
+  batched `BoundingBox::intersects4`, and a dedicated
+  `BatchedRayBenchmark.cpp` are the remaining follow-ups.
 - ~~**Stable polynomial solvers for ill-conditioned cases.**
   Jenkins-Traub or similar for the torus grazing-incidence case.~~
   ✅ **Done.** `StablePolynomial` adds a quartic real-root isolation fallback;
