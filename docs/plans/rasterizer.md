@@ -75,8 +75,10 @@
      center to its light-space texel grid.
    - ✅ Added a GeneratedRayTracer live-preview toggle for rasterizer shadows
      so shadow-map stabilization can be inspected while orbiting / editing.
-   - Next add split visualization for easier comparison with raytraced shadow
-     rays.
+   - ✅ Added an interactive cascade-split widget showing camera-depth bands,
+     light-space cascade coverage, and raw-vs-snapped shadow-map centers.
+   - Next decide whether the split diagnostic should also be exposed inside
+     the GeneratedRayTracer live preview.
 
 8. ✅ **GeneratedRaytracer / RenderWidget front-back buffers**
    - Added a render-thread back buffer and UI-thread front `QImage`.

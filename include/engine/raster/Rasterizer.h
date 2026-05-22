@@ -195,6 +195,11 @@ namespace engine::raster {
   * <td>@image html rasterizer_shadow_cascades_4.png "4 cascades"</td>
   * </tr></table>
   *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="rasterizer_shadow_cascades.js"></script>
+  * @endhtmlonly
+  *
   * Bias is a depth comparison tolerance. Too little bias can let a surface
   * shadow itself due to interpolation and quantization differences; too much
   * bias detaches shadows from their casters.

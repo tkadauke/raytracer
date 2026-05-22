@@ -264,6 +264,9 @@ Five knobs control quality versus cost:
   snaps each cascade center to the corresponding light-space
   texel grid, which keeps small camera moves from shifting the
   shadow projection by fractional texels.
+
+<!-- widget: rasterizer_shadow_cascades -->
+
 - **Bias** — an additive depth tolerance for the comparison.
   Too little bias lets a surface shadow itself due to depth
   quantization (the classic *shadow acne*); too much bias
