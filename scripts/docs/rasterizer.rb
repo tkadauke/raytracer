@@ -56,6 +56,52 @@ module ::Common
                :color => [0.77, 0.66, 0.10]
              ))
   end
+
+  def rasterizer_shadow_cascade_scene
+    options(lod: 3)
+    ambient [0.18, 0.18, 0.20]
+    background [0.13, 0.16, 0.20]
+
+    directional_light :direction => [-0.52, -0.78, -0.28],
+                      :color => [1.0, 0.96, 0.86],
+                      :intensity => 1.35
+
+    pinhole_camera :position => [2.55, -1.92, -4.85],
+                   :target => [0.05, 0.58, 1.65],
+                   :zoom => 1.55
+
+    rectangle :position => [-3.35, 1.05, -2.4],
+              :leg1 => [6.7, 0, 0],
+              :leg2 => [0, 0, 10.4],
+              :material => matte_material(
+                :diffuseTexture => checker_board_texture(
+                  :uScale => 1.0,
+                  :vScale => 3.0,
+                  :brightTexture => constant_color_texture(:color => [0.78, 0.76, 0.64]),
+                  :darkTexture => constant_color_texture(:color => [0.38, 0.43, 0.47]),
+                )
+              )
+
+    sphere :radius => 0.72,
+           :position => [-0.92, 0.28, -0.22],
+           :material => matte_material(:diffuseTexture => constant_color_texture(
+             :color => [0.76, 0.16, 0.12]
+           ))
+
+    box :size => [0.74, 0.96, 0.82],
+        :position => [0.62, 0.57, 0.12],
+        :rotation => [0.0, 0.32, 0.0],
+        :material => matte_material(:diffuseTexture => constant_color_texture(
+          :color => [0.13, 0.35, 0.74]
+        ))
+
+    box :size => [0.65, 1.00, 0.65],
+        :position => [1.15, 0.55, 6.15],
+        :rotation => [0.0, -0.45, 0.0],
+        :material => matte_material(:diffuseTexture => constant_color_texture(
+          :color => [0.77, 0.66, 0.10]
+        ))
+  end
 end
 
 class_doc(engine: "raster", width: 320, height: 240) do
@@ -151,6 +197,17 @@ property_doc(5, engine: "raster", shadow_maps: true) do |i|
 
   options(shadow_map_size: size, shadow_bias: 0.18)
   rasterizer_shadow_scene
+end
+
+shadow_cascade_counts = [1, 2, 4]
+shadow_cascade_counts.each do |count|
+  class_doc(engine: "raster", width: 320, height: 240,
+            shadow_maps: true, shadow_map_size: 64, shadow_bias: 0.35,
+            shadow_cascades: count) do
+    name "rasterizer_shadow_cascades_#{count}"
+
+    rasterizer_shadow_cascade_scene
+  end
 end
 
 shadow_biases = [

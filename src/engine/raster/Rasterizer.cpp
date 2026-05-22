@@ -31,6 +31,7 @@
 #include <limits>
 #include <memory>
 #include <typeinfo>
+#include <utility>
 #include <vector>
 
 using namespace engine::raster;
@@ -228,6 +229,7 @@ struct Rasterizer::Private {
 
   ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
+                             const std::shared_ptr<render::Camera>& camera,
                              const std::atomic<bool>& cancelled);
 
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
@@ -263,6 +265,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setPostProcessAA(m_postProcessAA);
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
   result->setShadowMapSize(m_shadowMapSize);
+  result->setShadowCascadeCount(m_shadowCascadeCount);
   result->setShadowBias(m_shadowBias);
   result->setShadowFilterRadius(m_shadowFilterRadius);
   result->setShadowFilterMode(m_shadowFilterMode);
@@ -840,15 +843,21 @@ namespace {
     double m_halfExtent;
   };
 
+  struct DirectionalShadowCascade {
+    std::shared_ptr<DirectionalShadowCamera> camera;
+    std::unique_ptr<Buffer<double>> depthBuffer;
+    double minViewDepth;
+    double maxViewDepth;
+  };
+
   class DirectionalShadowMap {
   public:
-    DirectionalShadowMap(const render::Light* light,
-                         std::shared_ptr<DirectionalShadowCamera> camera,
-                         std::unique_ptr<Buffer<double>> depthBuffer, double bias,
+    DirectionalShadowMap(const render::Light* light, const render::Camera* viewCamera,
+                         std::vector<DirectionalShadowCascade> cascades, double bias,
                          int filterRadius, Rasterizer::ShadowFilterMode filterMode)
         : m_light(light),
-          m_camera(std::move(camera)),
-          m_depthBuffer(std::move(depthBuffer)),
+          m_viewCamera(viewCamera),
+          m_cascades(std::move(cascades)),
           m_bias(bias),
           m_filterRadius(filterRadius),
           m_filterMode(filterMode) {
@@ -859,7 +868,11 @@ namespace {
     }
 
     double visibility(const Vector3d& worldPos) const {
-      const Vector3d shadowPixel = m_camera->projectPointWithDepth(worldPos);
+      const DirectionalShadowCascade* cascade = cascadeFor(worldPos);
+      if (!cascade)
+        return 1.0;
+
+      const Vector3d shadowPixel = cascade->camera->projectPointWithDepth(worldPos);
       if (shadowPixel.isUndefined())
         return 1.0;
 
@@ -867,33 +880,57 @@ namespace {
       const int y = static_cast<int>(std::lround(shadowPixel.y()));
 
       if (m_filterRadius == 0)
-        return sampleVisibility(x, y, shadowPixel.z());
+        return sampleVisibility(*cascade, x, y, shadowPixel.z());
 
       if (m_filterMode == Rasterizer::ShadowFilterMode::PCSS)
-        return pcssVisibility(x, y, shadowPixel.z());
+        return pcssVisibility(*cascade, x, y, shadowPixel.z());
 
-      return pcfVisibility(x, y, shadowPixel.z(), m_filterRadius);
+      return pcfVisibility(*cascade, x, y, shadowPixel.z(), m_filterRadius);
     }
 
   private:
-    double pcfVisibility(int x, int y, double receiverDepth, int radius) const {
+    const DirectionalShadowCascade* cascadeFor(const Vector3d& worldPos) const {
+      if (m_cascades.empty())
+        return nullptr;
+
+      if (m_cascades.size() == 1 || !m_viewCamera)
+        return &m_cascades.front();
+
+      const Vector3d viewPixel = m_viewCamera->projectPointWithDepth(worldPos);
+      if (viewPixel.isUndefined())
+        return &m_cascades.front();
+
+      const double viewDepth = viewPixel.z();
+      for (const auto& cascade : m_cascades) {
+        if (viewDepth >= cascade.minViewDepth && viewDepth <= cascade.maxViewDepth)
+          return &cascade;
+      }
+
+      return viewDepth < m_cascades.front().minViewDepth ? &m_cascades.front()
+                                                         : &m_cascades.back();
+    }
+
+    double pcfVisibility(const DirectionalShadowCascade& cascade, int x, int y,
+                         double receiverDepth, int radius) const {
       double litSamples = 0.0;
       int samples = 0;
       for (int dy = -radius; dy <= radius; ++dy) {
         for (int dx = -radius; dx <= radius; ++dx) {
-          litSamples += sampleVisibility(x + dx, y + dy, receiverDepth);
+          litSamples += sampleVisibility(cascade, x + dx, y + dy, receiverDepth);
           ++samples;
         }
       }
       return litSamples / static_cast<double>(samples);
     }
 
-    double pcssVisibility(int x, int y, double receiverDepth) const {
+    double pcssVisibility(const DirectionalShadowCascade& cascade, int x, int y,
+                          double receiverDepth) const {
       double blockerDepthSum = 0.0;
       int blockerSamples = 0;
       for (int dy = -m_filterRadius; dy <= m_filterRadius; ++dy) {
         for (int dx = -m_filterRadius; dx <= m_filterRadius; ++dx) {
-          const double blockerDepth = sampleBlockerDepth(x + dx, y + dy, receiverDepth);
+          const double blockerDepth =
+            sampleBlockerDepth(cascade, x + dx, y + dy, receiverDepth);
           if (std::isfinite(blockerDepth)) {
             blockerDepthSum += blockerDepth;
             ++blockerSamples;
@@ -906,7 +943,7 @@ namespace {
 
       const double averageBlockerDepth = blockerDepthSum / static_cast<double>(blockerSamples);
       const int radius = pcssFilterRadius(receiverDepth, averageBlockerDepth);
-      return pcfVisibility(x, y, receiverDepth, radius);
+      return pcfVisibility(cascade, x, y, receiverDepth, radius);
     }
 
     int pcssFilterRadius(double receiverDepth, double blockerDepth) const {
@@ -914,11 +951,12 @@ namespace {
       return std::clamp(static_cast<int>(std::ceil(gap)), 1, m_filterRadius);
     }
 
-    double sampleBlockerDepth(int x, int y, double receiverDepth) const {
-      if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
+    double sampleBlockerDepth(const DirectionalShadowCascade& cascade, int x, int y,
+                              double receiverDepth) const {
+      if (x < 0 || y < 0 || x >= cascade.depthBuffer->width() || y >= cascade.depthBuffer->height())
         return std::numeric_limits<double>::infinity();
 
-      const double occluderDepth = (*m_depthBuffer)[y][x];
+      const double occluderDepth = (*cascade.depthBuffer)[y][x];
       if (!std::isfinite(occluderDepth))
         return std::numeric_limits<double>::infinity();
 
@@ -926,11 +964,12 @@ namespace {
                                                     : std::numeric_limits<double>::infinity();
     }
 
-    double sampleVisibility(int x, int y, double receiverDepth) const {
-      if (x < 0 || y < 0 || x >= m_depthBuffer->width() || y >= m_depthBuffer->height())
+    double sampleVisibility(const DirectionalShadowCascade& cascade, int x, int y,
+                            double receiverDepth) const {
+      if (x < 0 || y < 0 || x >= cascade.depthBuffer->width() || y >= cascade.depthBuffer->height())
         return 1.0;
 
-      const double occluderDepth = (*m_depthBuffer)[y][x];
+      const double occluderDepth = (*cascade.depthBuffer)[y][x];
       if (!std::isfinite(occluderDepth))
         return 1.0;
 
@@ -938,8 +977,8 @@ namespace {
     }
 
     const render::Light* m_light;
-    std::shared_ptr<DirectionalShadowCamera> m_camera;
-    std::unique_ptr<Buffer<double>> m_depthBuffer;
+    const render::Camera* m_viewCamera;
+    std::vector<DirectionalShadowCascade> m_cascades;
     double m_bias;
     int m_filterRadius;
     Rasterizer::ShadowFilterMode m_filterMode;
@@ -1532,6 +1571,84 @@ namespace {
     const std::atomic<bool>& m_cancelled;
   };
 
+  std::pair<double, double>
+  viewDepthRange(const render::Camera& camera, const std::array<Vector3d, 8>& corners) {
+    double minDepth = std::numeric_limits<double>::infinity();
+    double maxDepth = 0.0;
+
+    for (const Vector3d& corner : corners) {
+      const double depth = camera.eyeRelativeDepth(corner);
+      if (!std::isfinite(depth))
+        continue;
+      if (depth > kNearClipDepth) {
+        minDepth = std::min(minDepth, depth);
+        maxDepth = std::max(maxDepth, depth);
+      }
+    }
+
+    if (!std::isfinite(minDepth) || maxDepth <= minDepth)
+      return {kNearClipDepth, std::max(kNearClipDepth * 2.0, maxDepth)};
+
+    return {minDepth, maxDepth};
+  }
+
+  std::vector<std::pair<double, double>> cascadeDepthRanges(double minDepth, double maxDepth,
+                                                            int cascadeCount) {
+    std::vector<std::pair<double, double>> ranges;
+    ranges.reserve(static_cast<std::size_t>(cascadeCount));
+    const double span = maxDepth - minDepth;
+    for (int i = 0; i != cascadeCount; ++i) {
+      const double start = minDepth + span * static_cast<double>(i) / cascadeCount;
+      const double end = minDepth + span * static_cast<double>(i + 1) / cascadeCount;
+      ranges.emplace_back(start, end);
+    }
+    return ranges;
+  }
+
+  void includeDepthPlaneIntersection(BoundingBoxd& bounds, const Vector3d& a, double depthA,
+                                     const Vector3d& b, double depthB, double splitDepth) {
+    if (!std::isfinite(depthA) || !std::isfinite(depthB) || depthA == depthB)
+      return;
+
+    const bool crosses = (depthA < splitDepth && depthB > splitDepth) ||
+                         (depthB < splitDepth && depthA > splitDepth);
+    if (!crosses)
+      return;
+
+    const double t = (splitDepth - depthA) / (depthB - depthA);
+    bounds.include(a + (b - a) * t);
+  }
+
+  BoundingBoxd cascadeBoundsForDepthRange(const BoundingBoxd& sceneBounds,
+                                          const std::array<Vector3d, 8>& corners,
+                                          const render::Camera& camera, double minDepth,
+                                          double maxDepth) {
+    static constexpr std::array<std::array<int, 2>, 12> edges = {{
+      {{0, 1}}, {{0, 2}}, {{0, 4}}, {{1, 3}}, {{1, 5}}, {{2, 3}},
+      {{2, 6}}, {{3, 7}}, {{4, 5}}, {{4, 6}}, {{5, 7}}, {{6, 7}},
+    }};
+
+    std::array<double, 8> depths{};
+    for (std::size_t i = 0; i != corners.size(); ++i) {
+      depths[i] = camera.eyeRelativeDepth(corners[i]);
+    }
+
+    BoundingBoxd result;
+    for (std::size_t i = 0; i != corners.size(); ++i) {
+      if (std::isfinite(depths[i]) && depths[i] >= minDepth && depths[i] <= maxDepth)
+        result.include(corners[i]);
+    }
+
+    for (const auto& edge : edges) {
+      const int a = edge[0];
+      const int b = edge[1];
+      includeDepthPlaneIntersection(result, corners[a], depths[a], corners[b], depths[b], minDepth);
+      includeDepthPlaneIntersection(result, corners[a], depths[a], corners[b], depths[b], maxDepth);
+    }
+
+    return result.isValid() ? result : sceneBounds;
+  }
+
 }
 
 RasterTriangleSet
@@ -1569,9 +1686,11 @@ void Rasterizer::Private::resolveMSAATile(Buffer<Colord>& buffer, const Buffer<C
 
 ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
                                                 const std::shared_ptr<render::Scene>& scene,
+                                                const std::shared_ptr<render::Camera>& camera,
                                                 const std::atomic<bool>& cancelled) {
   ShadowMaps shadowMaps;
-  if (!rasterizer.shadowMapsEnabled() || rasterizer.fragmentShader() || cancelled.load())
+  if (!rasterizer.shadowMapsEnabled() || rasterizer.fragmentShader() || !camera ||
+      cancelled.load())
     return shadowMaps;
 
   const BoundingBoxd bounds = scene->boundingBox();
@@ -1579,8 +1698,10 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
     return shadowMaps;
 
   const int size = rasterizer.shadowMapSize();
-  const double halfExtent = std::max(1.0, bounds.size().length() * 0.5) * 1.05;
-  const Vector3d center = bounds.center();
+  const auto corners = bounds.vertices();
+  const auto [minViewDepth, maxViewDepth] = viewDepthRange(*camera, corners);
+  const auto cascadeDepths =
+    cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount());
 
   for (const auto& light : scene->lights()) {
     if (cancelled.load())
@@ -1590,33 +1711,53 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
     if (!directional)
       continue;
 
-    auto shadowCamera =
-      std::make_shared<DirectionalShadowCamera>(center, directional->direction(), halfExtent);
-    shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
-    shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
+    std::vector<DirectionalShadowCascade> cascades;
+    cascades.reserve(cascadeDepths.size());
+    for (const auto& [cascadeMinDepth, cascadeMaxDepth] : cascadeDepths) {
+      if (cancelled.load())
+        break;
 
-    auto depthBuffer = std::make_unique<Buffer<double>>(size, size);
-    depthBuffer->clear(std::numeric_limits<double>::infinity());
+      const BoundingBoxd cascadeBounds = cascadeDepths.size() == 1
+                                           ? bounds
+                                           : cascadeBoundsForDepthRange(
+                                               bounds, corners, *camera, cascadeMinDepth,
+                                               cascadeMaxDepth);
+      const double halfExtent = std::max(1.0, cascadeBounds.size().length() * 0.5) * 1.05;
+      auto shadowCamera = std::make_shared<DirectionalShadowCamera>(
+        cascadeBounds.center(), directional->direction(), halfExtent);
+      shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
+      shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
 
-    Buffer<Colord> scratch(size, size);
-    scratch.clear(Colord::black());
-    const render::TilePlan shadowTilePlan = render::TilePlan::forBuffer(size, size, 1);
-    RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
-                                        cancelled, Rasterizer::CullMode::Both, false);
-    const RasterTriangleSet shadowTriangles = collectRasterTriangles(shadowEmitter, shadowTilePlan);
-    if (!shadowTriangles.empty()) {
-      std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
-      rasterizeTriangleSetWithPolicies(
-        shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled,
-        fullBufferView(scratch), Vector2d(0.0, 0.0), NoStencilPolicy{},
-        DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(*depthBuffer),
-                                                       DepthState{Rasterizer::DepthFunc::Less}},
-        DepthOnlyFragmentPolicy{});
+      auto depthBuffer = std::make_unique<Buffer<double>>(size, size);
+      depthBuffer->clear(std::numeric_limits<double>::infinity());
+
+      Buffer<Colord> scratch(size, size);
+      scratch.clear(Colord::black());
+      const render::TilePlan shadowTilePlan = render::TilePlan::forBuffer(size, size, 1);
+      RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
+                                          cancelled, Rasterizer::CullMode::Both, false);
+      const RasterTriangleSet shadowTriangles =
+        collectRasterTriangles(shadowEmitter, shadowTilePlan);
+      if (!shadowTriangles.empty()) {
+        std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
+        rasterizeTriangleSetWithPolicies(
+          shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled,
+          fullBufferView(scratch), Vector2d(0.0, 0.0), NoStencilPolicy{},
+          DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(*depthBuffer),
+                                                         DepthState{Rasterizer::DepthFunc::Less}},
+          DepthOnlyFragmentPolicy{});
+      }
+
+      cascades.push_back({std::move(shadowCamera), std::move(depthBuffer), cascadeMinDepth,
+                          cascadeMaxDepth});
     }
 
-    shadowMaps.add(DirectionalShadowMap(light.get(), shadowCamera, std::move(depthBuffer),
-                                        rasterizer.shadowBias(), rasterizer.shadowFilterRadius(),
-                                        rasterizer.shadowFilterMode()));
+    if (!cascades.empty()) {
+      shadowMaps.add(DirectionalShadowMap(light.get(), camera.get(), std::move(cascades),
+                                          rasterizer.shadowBias(),
+                                          rasterizer.shadowFilterRadius(),
+                                          rasterizer.shadowFilterMode()));
+    }
   }
 
   return shadowMaps;
@@ -1800,7 +1941,7 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   const SamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                               cancelled, rasterizer.cullMode(), true);
-  const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, cancelled);
+  const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, camera, cancelled);
   if (pattern.count > 1) {
     renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, cancelled,
                     buffer);

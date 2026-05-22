@@ -250,12 +250,17 @@ the stored depth in the shadow map. If the projected depth is
 farther than what the map recorded, something else is closer
 to the light along that direction — the fragment is in shadow.
 
-Three knobs control quality versus cost:
+Five knobs control quality versus cost:
 
 - **Map resolution** — how finely the light-space depth
   image samples the scene. Low values quantize shadow edges
   visibly; higher values cost proportionally more raster work
   and memory.
+- **Cascade count** — how many camera-depth slices each
+  directional light receives. A single map covers the whole
+  scene bounds; multiple cascades build tighter light-space
+  maps for near and middle view-depth ranges, trading extra
+  depth passes for more usable shadow-map detail.
 - **Bias** — an additive depth tolerance for the comparison.
   Too little bias lets a surface shadow itself due to depth
   quantization (the classic *shadow acne*); too much bias

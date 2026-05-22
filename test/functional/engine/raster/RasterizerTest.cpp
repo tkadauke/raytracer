@@ -32,6 +32,10 @@ namespace {
       m_shadowMapSize = size;
     }
 
+    void setShadowCascadeCount(int count) {
+      m_shadowCascadeCount = count;
+    }
+
     void setShadowBias(double bias) {
       m_shadowBias = bias;
     }
@@ -62,6 +66,7 @@ namespace {
       rasterizer->setLod(m_lod);
       rasterizer->setShadowMapsEnabled(shadowMapsEnabled);
       rasterizer->setShadowMapSize(m_shadowMapSize);
+      rasterizer->setShadowCascadeCount(m_shadowCascadeCount);
       rasterizer->setShadowBias(m_shadowBias);
       rasterizer->setShadowFilterRadius(m_shadowFilterRadius);
       rasterizer->setShadowFilterMode(m_shadowFilterMode);
@@ -70,6 +75,7 @@ namespace {
 
     int m_lod{3};
     int m_shadowMapSize{256};
+    int m_shadowCascadeCount{1};
     double m_shadowBias{0.1};
     int m_shadowFilterRadius{0};
     engine::raster::Rasterizer::ShadowFilterMode m_shadowFilterMode{
@@ -170,6 +176,12 @@ GIVEN(EngineFeatureTest, "a rasterizer lod of ([0-9]+)") {
 GIVEN(EngineFeatureTest, "a rasterizer shadow map size of ([0-9]+)") {
   if (auto* rasterizer = rasterizerTest(test)) {
     rasterizer->setShadowMapSize(std::stoi(match[1]));
+  }
+}
+
+GIVEN(EngineFeatureTest, "a rasterizer shadow cascade count of ([0-9]+)") {
+  if (auto* rasterizer = rasterizerTest(test)) {
+    rasterizer->setShadowCascadeCount(std::stoi(match[1]));
   }
 }
 
@@ -287,6 +299,16 @@ namespace RasterizerFunctionalTest {
     given("a rasterizer PCSS shadow filter");
     when("i look at the rasterizer shadow receiver");
     then("the rasterizer shadow edge uses blocker-search softening");
+  }
+
+  TEST_F(RasterizerTest, DirectionalShadowMapsSupportCascades) {
+    given("a rasterizer directional shadow scene");
+    given("a rasterizer lod of 3");
+    given("a rasterizer shadow map size of 64");
+    given("a rasterizer shadow cascade count of 3");
+    given("a rasterizer shadow bias of 0.1");
+    when("i look at the rasterizer shadow receiver");
+    then("the rasterizer shadow map darkens the occluded receiver");
   }
 
 }

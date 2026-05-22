@@ -25,6 +25,7 @@ public:
   QString postProcessAA() const;
   bool shadowMapsEnabled() const;
   int shadowMapSize() const;
+  int shadowCascadeCount() const;
   double shadowBias() const;
   int shadowFilterRadius() const;
   QString shadowFilterMode() const;

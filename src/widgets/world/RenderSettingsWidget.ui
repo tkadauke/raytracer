@@ -440,13 +440,36 @@
        </widget>
       </item>
       <item row="5" column="0">
+       <widget class="QLabel" name="label_rasterShadowCascadeCount">
+        <property name="text">
+         <string>Cascades</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QSpinBox" name="rasterShadowCascadeCount">
+        <property name="toolTip">
+         <string>Number of camera-depth slices rendered for each directional-light shadow map.</string>
+        </property>
+        <property name="minimum">
+         <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>4</number>
+        </property>
+        <property name="value">
+         <number>1</number>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
        <widget class="QLabel" name="label_rasterShadowBias">
         <property name="text">
          <string>Shadow bias</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="6" column="1">
        <widget class="QDoubleSpinBox" name="rasterShadowBias">
         <property name="toolTip">
          <string>Depth-comparison tolerance used to reduce self-shadowing.</string>
@@ -465,14 +488,14 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="label_rasterShadowFilterRadius">
         <property name="text">
          <string>Filter radius</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="7" column="1">
        <widget class="QSpinBox" name="rasterShadowFilterRadius">
         <property name="toolTip">
          <string>Percentage-closer filtering radius in shadow-map texels. 0 keeps hard shadows.</string>
@@ -488,14 +511,14 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_rasterShadowFilterMode">
         <property name="text">
          <string>Filter mode</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="8" column="1">
        <widget class="QComboBox" name="rasterShadowFilterMode">
         <property name="toolTip">
          <string>PCF uses one fixed kernel; PCSS searches blockers and grows the kernel with receiver distance.</string>

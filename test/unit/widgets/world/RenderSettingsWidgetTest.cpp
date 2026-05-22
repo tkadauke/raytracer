@@ -70,6 +70,7 @@ namespace RenderSettingsWidgetTest {
     RenderSettingsWidget widget;
     EXPECT_FALSE(widget.shadowMapsEnabled());
     EXPECT_EQ(256, widget.shadowMapSize());
+    EXPECT_EQ(1, widget.shadowCascadeCount());
     EXPECT_DOUBLE_EQ(0.001, widget.shadowBias());
     EXPECT_EQ(0, widget.shadowFilterRadius());
     EXPECT_EQ(QString("PCF"), widget.shadowFilterMode());
@@ -118,23 +119,27 @@ namespace RenderSettingsWidgetTest {
     RenderSettingsWidget widget;
     auto shadowMaps = widget.findChild<QCheckBox*>("rasterShadowMaps");
     auto shadowMapSize = widget.findChild<QSpinBox*>("rasterShadowMapSize");
+    auto cascadeCount = widget.findChild<QSpinBox*>("rasterShadowCascadeCount");
     auto shadowBias = widget.findChild<QDoubleSpinBox*>("rasterShadowBias");
     auto filterRadius = widget.findChild<QSpinBox*>("rasterShadowFilterRadius");
     auto filterMode = widget.findChild<QComboBox*>("rasterShadowFilterMode");
     ASSERT_NE(nullptr, shadowMaps);
     ASSERT_NE(nullptr, shadowMapSize);
+    ASSERT_NE(nullptr, cascadeCount);
     ASSERT_NE(nullptr, shadowBias);
     ASSERT_NE(nullptr, filterRadius);
     ASSERT_NE(nullptr, filterMode);
 
     shadowMaps->setChecked(true);
     shadowMapSize->setValue(1024);
+    cascadeCount->setValue(3);
     shadowBias->setValue(0.25);
     filterRadius->setValue(3);
     filterMode->setCurrentText("PCSS");
 
     EXPECT_TRUE(widget.shadowMapsEnabled());
     EXPECT_EQ(1024, widget.shadowMapSize());
+    EXPECT_EQ(3, widget.shadowCascadeCount());
     EXPECT_DOUBLE_EQ(0.25, widget.shadowBias());
     EXPECT_EQ(3, widget.shadowFilterRadius());
     EXPECT_EQ(QString("PCSS"), widget.shadowFilterMode());
@@ -182,24 +187,28 @@ namespace RenderSettingsWidgetTest {
     auto engineType = widget.findChild<QComboBox*>("engineType");
     auto shadowMaps = widget.findChild<QCheckBox*>("rasterShadowMaps");
     auto shadowMapSize = widget.findChild<QSpinBox*>("rasterShadowMapSize");
+    auto cascadeCount = widget.findChild<QSpinBox*>("rasterShadowCascadeCount");
     auto shadowBias = widget.findChild<QDoubleSpinBox*>("rasterShadowBias");
     auto filterRadius = widget.findChild<QSpinBox*>("rasterShadowFilterRadius");
     auto filterMode = widget.findChild<QComboBox*>("rasterShadowFilterMode");
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, shadowMaps);
     ASSERT_NE(nullptr, shadowMapSize);
+    ASSERT_NE(nullptr, cascadeCount);
     ASSERT_NE(nullptr, shadowBias);
     ASSERT_NE(nullptr, filterRadius);
     ASSERT_NE(nullptr, filterMode);
 
     engineType->setCurrentText("Rasterizer");
     EXPECT_TRUE(shadowMapSize->isHidden());
+    EXPECT_TRUE(cascadeCount->isHidden());
     EXPECT_TRUE(shadowBias->isHidden());
     EXPECT_TRUE(filterRadius->isHidden());
     EXPECT_TRUE(filterMode->isHidden());
 
     shadowMaps->setChecked(true);
     EXPECT_FALSE(shadowMapSize->isHidden());
+    EXPECT_FALSE(cascadeCount->isHidden());
     EXPECT_FALSE(shadowBias->isHidden());
     EXPECT_FALSE(filterRadius->isHidden());
     EXPECT_FALSE(filterMode->isHidden());

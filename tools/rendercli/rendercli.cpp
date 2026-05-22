@@ -103,6 +103,7 @@ private:
   QString m_rasterPostProcessAA;
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
+  int m_rasterShadowCascadeCount;
   double m_rasterShadowBias;
   int m_rasterShadowFilterRadius;
   QString m_rasterShadowFilterMode;
@@ -128,6 +129,7 @@ Renderer::Renderer()
       m_rasterPostProcessAA("none"),
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
+      m_rasterShadowCascadeCount(1),
       m_rasterShadowBias(1e-3),
       m_rasterShadowFilterRadius(0),
       m_rasterShadowFilterMode("pcf"),
@@ -186,6 +188,7 @@ void Renderer::render() const {
     }
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
+    raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
     raster->setShadowBias(m_rasterShadowBias);
     raster->setShadowFilterRadius(m_rasterShadowFilterRadius);
     if (m_rasterShadowFilterMode == "pcss") {
@@ -275,6 +278,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa)", "mode"},
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
+     {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
@@ -416,6 +420,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_rasterShadowMapSize = parser.value("shadow_map_size").toInt(&ok);
     if (!ok || m_rasterShadowMapSize <= 0) {
       *errorMessage = "Shadow map size must be a positive integer";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("shadow_cascades")) {
+    bool ok = false;
+    m_rasterShadowCascadeCount = parser.value("shadow_cascades").toInt(&ok);
+    if (!ok || m_rasterShadowCascadeCount <= 0) {
+      *errorMessage = "Shadow cascade count must be a positive integer";
       return CommandLineError;
     }
   }

@@ -412,13 +412,30 @@ namespace BoundingBoxTest {
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldReturnEightVertices) {
-    vector<Vector3<TypeParam>> vertices;
     BoundingBox<TypeParam> bbox(
       Vector3<TypeParam>(-1, -1, -1),
       Vector3<TypeParam>(1, 1, 1)
     );
-    bbox.getVertices(vertices);
+    const auto vertices = bbox.vertices();
     ASSERT_EQ(8u, vertices.size());
+  }
+
+  TYPED_TEST(BoundingBoxTest, ShouldReturnVerticesInStableCornerOrder) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(-1, -2, -3),
+      Vector3<TypeParam>(4, 5, 6)
+    );
+
+    const auto vertices = bbox.vertices();
+
+    ASSERT_EQ(Vector3<TypeParam>(-1, -2, -3), vertices[0]);
+    ASSERT_EQ(Vector3<TypeParam>(-1, -2, 6), vertices[1]);
+    ASSERT_EQ(Vector3<TypeParam>(-1, 5, -3), vertices[2]);
+    ASSERT_EQ(Vector3<TypeParam>(-1, 5, 6), vertices[3]);
+    ASSERT_EQ(Vector3<TypeParam>(4, -2, -3), vertices[4]);
+    ASSERT_EQ(Vector3<TypeParam>(4, -2, 6), vertices[5]);
+    ASSERT_EQ(Vector3<TypeParam>(4, 5, -3), vertices[6]);
+    ASSERT_EQ(Vector3<TypeParam>(4, 5, 6), vertices[7]);
   }
   
   TYPED_TEST(BoundingBoxTest, ShouldIncludeMinAndMaxVertices) {

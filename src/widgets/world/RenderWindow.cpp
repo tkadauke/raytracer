@@ -119,6 +119,7 @@ void RenderWindow::render() {
         : engine::raster::Rasterizer::PostProcessAA::None);
     p->rasterizer->setShadowMapsEnabled(p->settingsWidget->shadowMapsEnabled());
     p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
+    p->rasterizer->setShadowCascadeCount(p->settingsWidget->shadowCascadeCount());
     p->rasterizer->setShadowBias(p->settingsWidget->shadowBias());
     p->rasterizer->setShadowFilterRadius(p->settingsWidget->shadowFilterRadius());
     p->rasterizer->setShadowFilterMode(

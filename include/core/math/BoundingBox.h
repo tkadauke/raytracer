@@ -8,6 +8,7 @@
 #include "core/math/RayPacket.h"
 #include "render/Stats.h"
 
+#include <array>
 #include <functional>
 #include <iostream>
 #include <algorithm>
@@ -333,6 +334,11 @@ public:
   [[nodiscard]] inline BoundingBox<T> movedBy(const Vector3<T>& vec) const noexcept {
     return BoundingBox<T>(min() + vec, max() + vec);
   }
+
+  /**
+    * @returns the 8 corner vertices of the bounding box.
+    */
+  [[nodiscard]] std::array<Vector3<T>, 8> vertices() const;
   
   /**
     * Adds the 8 corner vertices of the bounding box to the given generic
@@ -399,14 +405,22 @@ inline const BoundingBox<T> BoundingBox<T>::infinity{
 template<class T>
 template<class Container>
 void BoundingBox<T>::getVertices(Container& container) const {
-  container.push_back(m_min);
-  container.push_back(Vector3<T>(m_min.x(), m_min.y(), m_max.z()));
-  container.push_back(Vector3<T>(m_min.x(), m_max.y(), m_min.z()));
-  container.push_back(Vector3<T>(m_min.x(), m_max.y(), m_max.z()));
-  container.push_back(Vector3<T>(m_max.x(), m_min.y(), m_min.z()));
-  container.push_back(Vector3<T>(m_max.x(), m_min.y(), m_max.z()));
-  container.push_back(Vector3<T>(m_max.x(), m_max.y(), m_min.z()));
-  container.push_back(m_max);
+  for (const auto& vertex : vertices())
+    container.push_back(vertex);
+}
+
+template<class T>
+std::array<Vector3<T>, 8> BoundingBox<T>::vertices() const {
+  return {{
+    m_min,
+    Vector3<T>(m_min.x(), m_min.y(), m_max.z()),
+    Vector3<T>(m_min.x(), m_max.y(), m_min.z()),
+    Vector3<T>(m_min.x(), m_max.y(), m_max.z()),
+    Vector3<T>(m_max.x(), m_min.y(), m_min.z()),
+    Vector3<T>(m_max.x(), m_min.y(), m_max.z()),
+    Vector3<T>(m_max.x(), m_max.y(), m_min.z()),
+    m_max,
+  }};
 }
 
 // Generic branchless slab intersection — eliminates all per-axis sign branches

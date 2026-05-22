@@ -182,6 +182,17 @@ namespace engine::raster {
   * <td>@image html rasterizer_shadow_map_size_512.png "512x512 shadow map"</td>
   * </tr></table>
   *
+  * Cascades split the scene bounds across camera depth and build several
+  * tighter directional-light maps instead of one map around the whole scene.
+  * This spends more depth-pass work to improve shadow detail in near and
+  * middle camera slices.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
+  * <td>@image html rasterizer_shadow_cascades_2.png "2 cascades"</td>
+  * <td>@image html rasterizer_shadow_cascades_4.png "4 cascades"</td>
+  * </tr></table>
+  *
   * Bias is a depth comparison tolerance. Too little bias can let a surface
   * shadow itself due to interpolation and quantization differences; too much
   * bias detaches shadows from their casters.
@@ -433,6 +444,26 @@ public:
     */
   void setShadowMapSize(int size);
 
+  /// Returns how many camera-depth slices each directional light gets.
+  /// The default is 1, which is the original single shadow-map behavior.
+  inline int shadowCascadeCount() const { return m_shadowCascadeCount; }
+
+  /**
+    * Sets the number of cascaded shadow maps per directional light.
+    * Values are clamped to the range [1, 4]. Counts above 1 split the
+    * scene bounds by camera view depth and build one tighter light-space
+    * shadow map per slice.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
+    * <td>@image html rasterizer_shadow_cascades_2.png "2 cascades"</td>
+    * <td>@image html rasterizer_shadow_cascades_4.png "4 cascades"</td>
+    * </tr></table>
+    */
+  inline void setShadowCascadeCount(int count) {
+    m_shadowCascadeCount = std::clamp(count, 1, 4);
+  }
+
   /// Returns the depth bias used by the shadow-map comparison.
   inline double shadowBias() const { return m_shadowBias; }
 
@@ -569,6 +600,7 @@ private:
   PostProcessAA m_postProcessAA{PostProcessAA::None};
   bool m_shadowMapsEnabled{false};
   int m_shadowMapSize{256};
+  int m_shadowCascadeCount{1};
   double m_shadowBias{1e-3};
   int m_shadowFilterRadius{0};
   ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};

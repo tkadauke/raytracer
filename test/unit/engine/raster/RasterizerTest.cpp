@@ -396,6 +396,7 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::PostProcessAA::None, engine.postProcessAA());
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
+    EXPECT_EQ(1, engine.shadowCascadeCount());
     EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
     EXPECT_EQ(0, engine.shadowFilterRadius());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCF, engine.shadowFilterMode());
@@ -404,13 +405,28 @@ namespace RasterizerTest {
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+    engine.setShadowCascadeCount(3);
     engine.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
 
     auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
 
     ASSERT_NE(nullptr, clone);
     EXPECT_EQ(Rasterizer::PostProcessAA::FXAA, clone->postProcessAA());
+    EXPECT_EQ(3, clone->shadowCascadeCount());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, clone->shadowFilterMode());
+  }
+
+  TEST(Rasterizer, ShadowCascadeCountClampsToSupportedRange) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+
+    engine.setShadowCascadeCount(3);
+    EXPECT_EQ(3, engine.shadowCascadeCount());
+
+    engine.setShadowCascadeCount(0);
+    EXPECT_EQ(1, engine.shadowCascadeCount());
+
+    engine.setShadowCascadeCount(9);
+    EXPECT_EQ(4, engine.shadowCascadeCount());
   }
 
   TEST(Rasterizer, ShadowFilterRadiusClampsOnlyNegativeValues) {

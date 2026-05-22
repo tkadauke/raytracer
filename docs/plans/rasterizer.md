@@ -68,7 +68,11 @@
    - ✅ Added opt-in PCSS blocker-search filtering, exposed on `Rasterizer`,
      `rendercli`, GeneratedRayTracer controls, tests, API docs, and rendered
      docs.
-   - Next add cascaded shadow maps for comparison with raytraced shadow rays.
+   - ✅ Added cascaded directional shadow maps with 1-4 camera-depth slices,
+     exposed on `Rasterizer`, `rendercli`, GeneratedRayTracer controls, tests,
+     API docs, rendered docs, and the textbook shadow-map section.
+   - Next add shadow-map stabilization / split visualization for easier
+     comparison with raytraced shadow rays.
 
 8. ✅ **GeneratedRaytracer / RenderWidget front-back buffers**
    - Added a render-thread back buffer and UI-thread front `QImage`.
