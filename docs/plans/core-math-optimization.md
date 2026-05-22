@@ -413,7 +413,7 @@ tracing arrives. Listed for completeness.
 - **Block-batched BVH traversal.** 4 or 8 rays per traversal step,
   using the SIMD AABB intersection from phase 1.2.
 - ~~**Matrix decompositions** (LU, QR, SVD). Useful for stable
-  inversion and future PT/learning paths.~~ ✅ **Done.** `Matrix.h`
+  inversion and future PT/learning paths.~~ ✅ **Done.** `MatrixDecomposition.h`
   now provides LU partial pivoting, QR orthonormalization, and SVD for
   small matrices; `Matrix4::stableInverse()` keeps the block-inverse fast
   path and switches to LU for ill-conditioned matrices.
