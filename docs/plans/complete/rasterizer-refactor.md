@@ -1,8 +1,9 @@
 # Rasterizer refactor plan
 
 > **Scope:** performance and structure cleanup before adding the next feature
-> wave to the software rasterizer. Keep this plan separate from
-> `docs/plans/rasterizer.md`, which tracks user-visible feature order.
+> wave to the software rasterizer. This plan is archived alongside
+> `docs/plans/complete/rasterizer.md`, which tracked the first user-visible
+> feature wave.
 >
 > **Rule:** one step at a time. Re-measure before and after each performance
 > change, preserve rendered output unless the step explicitly says otherwise,
