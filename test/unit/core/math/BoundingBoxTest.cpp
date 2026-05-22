@@ -2,13 +2,24 @@
 #include "core/math/BoundingBox.h"
 #include "core/math/Range.h"
 #include "core/math/Ray.h"
+#include "core/math/RayPacket.h"
 
 #include <sstream>
+#ifdef __SSE__
+#include <xmmintrin.h>
+#endif
 
 using namespace std;
 
 namespace BoundingBoxTest {
   using namespace ::testing;
+
+  Rayd toRayd(const Rayf& ray) {
+    return Rayd(
+      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
+    );
+  }
   
   template<class T>
   class BoundingBoxTest : public ::testing::Test {
@@ -42,6 +53,26 @@ namespace BoundingBoxTest {
     ASSERT_EQ(Vector3<TypeParam>(-1, -1, -1), bbox.min());
     ASSERT_EQ(Vector3<TypeParam>(1, 1, 1), bbox.max());
   }
+
+#ifdef __SSE__
+  TYPED_TEST(BoundingBoxTest, ShouldIntersectRay4PacketLikeScalarRays) {
+    BoundingBox<TypeParam> bbox(
+      Vector3<TypeParam>(-1, -1, -1),
+      Vector3<TypeParam>(1, 1, 1)
+    );
+    const std::array<Rayf, 4> rayArray{
+      Rayf(Vector3f(0, 0, -2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
+      Rayf(Vector3f(3, 3, -2), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(0, 0, 2), Vector3f(0.1f, 0.1f, 1.0f).normalized()),
+      Rayf(Vector3f(0, 0, 0), Vector3f(1, 0, 0))
+    };
+
+    const int mask = _mm_movemask_ps(bbox.intersects4(Ray4(rayArray)));
+    for (std::size_t lane = 0; lane != Ray4::lanes; ++lane) {
+      ASSERT_EQ(bbox.intersects(toRayd(rayArray[lane])), (mask & (1 << lane)) != 0) << "lane " << lane;
+    }
+  }
+#endif
   
   TYPED_TEST(BoundingBoxTest, ShouldCalculateSize) {
     BoundingBox<TypeParam> bbox(
