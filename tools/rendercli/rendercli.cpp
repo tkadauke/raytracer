@@ -418,6 +418,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     raster->setMSAASamples(m_rasterMsaaSamples);
     if (m_rasterPostProcessAA == "fxaa") {
       raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
+    } else if (m_rasterPostProcessAA == "smaa") {
+      raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::SMAA);
     }
     raster->setColorWriteMask(m_rasterColorWriteMask);
     raster->setBlendingEnabled(m_rasterBlending);
@@ -643,7 +645,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
-     {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa)", "mode"},
+     {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa, smaa)", "mode"},
      {"color_write_mask", "Rasterizer color-write mask (rgb, r, g, b, rg, rb, gb, none)",
       "mask"},
      {"blend", "Enable rasterizer fixed-function blending"},
@@ -798,8 +800,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("post_aa")) {
     const QString postAA = parser.value("post_aa").toLower();
-    if (postAA != "none" && postAA != "fxaa") {
-      *errorMessage = "Post-process AA must be 'none' or 'fxaa'";
+    if (postAA != "none" && postAA != "fxaa" && postAA != "smaa") {
+      *errorMessage = "Post-process AA must be 'none', 'fxaa', or 'smaa'";
       return CommandLineError;
     }
     m_rasterPostProcessAA = postAA;

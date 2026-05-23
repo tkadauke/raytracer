@@ -217,21 +217,24 @@ namespace engine::raster {
   * @par Antialiasing
   *
   * The antialiasing figures separate coverage quality from postprocessing.
-  * Raw 1x coverage is binary at each pixel center. FXAA only sees the completed
-  * image, so it can soften contrast but cannot recover geometry that never
-  * covered a pixel sample. MSAA reruns coverage at several subpixel positions,
-  * so the resolve can represent a partly covered pixel directly.
+  * Raw 1x coverage is binary at each pixel center. FXAA and SMAA only see the
+  * completed image, so they can soften contrast but cannot recover geometry
+  * that never covered a pixel sample. MSAA reruns coverage at several subpixel
+  * positions, so the resolve can represent a partly covered pixel directly.
   *
-  * MSAA is opt-in because it multiplies raster work. FXAA is an
-  * image-space alternative that runs after the frame is complete: it
-  * can smooth high-contrast edges cheaply, but unlike MSAA it cannot
+  * MSAA is opt-in because it multiplies raster work. FXAA and SMAA are
+  * image-space alternatives that run after the frame is complete: they
+  * can smooth high-contrast edges cheaply, but unlike MSAA they cannot
   * recover hidden subpixel geometry or per-sample depth/stencil detail.
-  * The comparison below renders the same high-contrast diagonal
-  * triangle with raw 1x coverage, post-process FXAA, and 4x MSAA.
+  * SMAA keeps a sharper edge-direction blend than FXAA in this CPU preview
+  * approximation. The comparison below renders the same high-contrast diagonal
+  * triangle with raw 1x coverage, post-process FXAA, post-process SMAA, and 4x
+  * MSAA.
   *
   * <table><tr>
   * <td>@image html rasterizer_msaa_1x.png "1x raster coverage"</td>
   * <td>@image html rasterizer_post_aa_fxaa.png "1x coverage plus FXAA"</td>
+  * <td>@image html rasterizer_post_aa_smaa.png "1x coverage plus SMAA"</td>
   * <td>@image html rasterizer_msaa_4x.png "4x MSAA resolve"</td>
   * </tr></table>
   *
@@ -513,7 +516,8 @@ public:
 
   enum class PostProcessAA {
     None,
-    FXAA
+    FXAA,
+    SMAA
   };
 
   enum class ShadowFilterMode {
@@ -686,9 +690,9 @@ public:
   inline void clearFarClipDepth() { setFarClipDepth(std::numeric_limits<double>::infinity()); }
 
   /// Image-space anti-aliasing pass applied after the rasterizer has
-  /// produced its float framebuffer. Defaults to `None`. FXAA is a cheap
-  /// postprocess edge filter; unlike MSAA, it does not need extra coverage or
-  /// depth samples, so it is useful for fast previews.
+  /// produced its float framebuffer. Defaults to `None`. FXAA and SMAA are
+  /// cheap postprocess edge filters; unlike MSAA, they do not need extra
+  /// coverage or depth samples, so they are useful for fast previews.
   inline PostProcessAA postProcessAA() const { return m_postProcessAA; }
   inline void setPostProcessAA(PostProcessAA aa) { m_postProcessAA = aa; }
 

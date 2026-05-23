@@ -275,12 +275,13 @@ Several anti-aliasing variants are queued under roadmap
   Belongs to a future real-time engine, not a static renderer.
 - **FXAA / SMAA (post-process anti-aliasing).** Run an
   edge-detection pass on the rendered framebuffer and
-  selectively blur edge pixels. Cheap; lower quality than
-  MSAA. Useful for engines that can't afford MSAA's per-pixel
-  cost.
+  selectively blend edge pixels. Cheap; lower quality than
+  MSAA because these passes cannot recover missing subpixel
+  coverage. The rasterizer preview implements FXAA and a first
+  CPU SMAA-style approximation for cases where MSAA's repeated
+  coverage and depth work is too expensive.
 
-All three are reasonable future additions; none are needed for
-the current educational target. MSAA is the canonical
+SSAA and TAA remain future additions. MSAA is still the canonical
 hardware-vintage anti-aliasing technique, which makes it the
 right one to teach first.
 

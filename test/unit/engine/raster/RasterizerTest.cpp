@@ -699,7 +699,7 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
-    engine.setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+    engine.setPostProcessAA(Rasterizer::PostProcessAA::SMAA);
     engine.setNearClipDepth(0.5);
     engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
@@ -736,7 +736,7 @@ namespace RasterizerTest {
     auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
 
     ASSERT_NE(nullptr, clone);
-    EXPECT_EQ(Rasterizer::PostProcessAA::FXAA, clone->postProcessAA());
+    EXPECT_EQ(Rasterizer::PostProcessAA::SMAA, clone->postProcessAA());
     EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
     EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
     EXPECT_EQ(3, clone->shadowCascadeCount());

@@ -13,6 +13,7 @@
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
 #include "render/postprocess/Fxaa.h"
+#include "render/postprocess/Smaa.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/Tonemap.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -778,7 +779,16 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
                             cancelled, buffer);
   }
 
-  if (!cancelled.load() && rasterizer.postProcessAA() == Rasterizer::PostProcessAA::FXAA) {
-    render::postprocess::applyFxaa(buffer);
+  if (!cancelled.load()) {
+    switch (rasterizer.postProcessAA()) {
+      case Rasterizer::PostProcessAA::None:
+        break;
+      case Rasterizer::PostProcessAA::FXAA:
+        render::postprocess::applyFxaa(buffer);
+        break;
+      case Rasterizer::PostProcessAA::SMAA:
+        render::postprocess::applySmaa(buffer);
+        break;
+    }
   }
 }
