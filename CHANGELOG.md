@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph-backed beauty rendering.** `RenderGraphCompiler` now emits the first executable whole-frame beauty plan and `GraphRenderEngine` can compile or accept that plan, validate it, execute exactly one enabled Raytracer/Rasterizer/Wireframe beauty pass, and expose the last plan for inspection. — GPT-5
 - **Raster recursive-material fallback diagnostics.** Reflective materials now advertise a raster fallback of local Phong only, transparent materials advertise local Phong plus transmission-derived source alpha, and `rendercli --engine raster` warns when recursive reflection/refraction has been dropped from the preview. — GPT-5
 - **Rasterizer scene-aware tiling default.** Rasterizer queue sizing now defaults to an automatic policy that uses projected triangle count, projected bounds, tile-list duplication, framebuffer size, worker count, and MSAA samples to choose tiled rendering only for measured win cases; explicit `setQueueSize(...)` and `rendercli --queue_size` still force the caller's choice. Closes rasterizer-v2 §7 / Epic #167. — GPT-5
 - **Render graph foundation types.** The new `engine::graph` module defines render intent, scene selectors, graph resources, pass declarations, virtual pass payloads, plan validation, graph override disabling, text/DOT/JSON plan export, and a new textbook render-graph volume as the first CPU-only infrastructure slice for the future hybrid render graph. — GPT-5

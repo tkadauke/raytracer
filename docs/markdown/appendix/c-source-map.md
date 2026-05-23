@@ -38,6 +38,8 @@
 | `include/core/math/Vector.h` | [Numbers and vectors](../foundations/numbers-and-vectors.md) |
 | `include/core/math/interpolation/Interpolation.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/core/math/vector/sse3/` | [Numbers and vectors](../foundations/numbers-and-vectors.md) |
+| `include/engine/graph/GraphRenderEngine.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderGraphCompiler.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphTypes.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassPayload.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPlan.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -130,6 +132,8 @@
 | `src/core/formats/ply/PlyElement.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/engine/graph/GraphRenderEngine.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `src/engine/graph/RenderGraphCompiler.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderGraphTypes.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderPlan.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResourceStorage.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -159,6 +163,8 @@
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `test/unit/engine/graph/GraphRenderEngineTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `test/unit/engine/graph/RenderGraphCompilerTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/RenderPlanTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/RenderResourceStorageTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/render/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |

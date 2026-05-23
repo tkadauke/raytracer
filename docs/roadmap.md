@@ -293,7 +293,7 @@ Implementation order:
 
 1. Define ~~render-resource descriptors~~ and AOV handles (`Color`, `Depth`, `Stencil`, `ObjectId`, `Normal`, `WorldPosition`, `MotionVector`, custom texture). ✅ **Partially done.** Initial `engine::graph::RenderResourceDescriptor` covers typed CPU/GPU-open image-resource declarations, with CPU storage for color/depth/stencil/object-id buffers; concrete AOV handles and future non-image resource categories remain TODO.
 2. Add a minimal `RenderPass` interface with ~~declared reads/writes~~, clear/load/store operations, and ~~an executor enum~~. ✅ **Partially done.** Initial `engine::graph::RenderPassNode` declares read/write resources, executor, pass kind, disabled behavior, and graph validation/export; load/store operations and executable graph plumbing remain TODO.
-3. Split current monolithic engines into first passes without changing output: `RasterDrawPass`, `WireframeOverlayPass`, `RaytraceBeautyPass`, and `TonemapPass`.
+3. Split current monolithic engines into first passes without changing output: ~~graph-backed whole-frame raytracer, rasterizer, and wireframe beauty execution~~ ✅ **Partially done.** `RenderGraphCompiler` now emits a single whole-frame beauty plan and `GraphRenderEngine` executes that plan through the existing Raytracer/Rasterizer/Wireframe engines; named pass payload classes, wireframe overlay composition, and `TonemapPass` remain TODO.
 4. Add `CompositePass` plus offscreen render-to-texture so nested scenes can be rendered before the materials that consume them.
 5. Ship the first hybrid demo: photoreal main scene with a cartoon/wireframe render-target screen inside it.
 6. Add planar reflections and raster shadow maps as pass-graph clients.

@@ -1024,9 +1024,11 @@ object. Rendercli and Modeler should show why a plan is invalid.
 Status: started. The initial foundation now lives in `include/engine/graph/`
 and `src/engine/graph/`: render intent, scene selectors, resource descriptors,
 CPU resource storage, pass declarations, virtual pass payloads, plan validation,
-graph override disabling, text/DOT/JSON plan export, and the textbook's
-render-graph volume. The standalone compiler, graph engine facade, and real
-pass execution remain TODO.
+graph override disabling, text/DOT/JSON plan export, a minimal compiler that
+emits one whole-frame beauty pass, a graph engine facade that can execute that
+single pass through Raytracer/Rasterizer/Wireframe, and the textbook's
+render-graph volume. Multi-pass compilation, postprocess/composite execution,
+scene JSON intent, and real graph scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1038,14 +1040,19 @@ Implement the smallest graph that proves the architecture:
    shading profile, camera, and per-selector overrides for the same fields.
    ✅ Core intent data is defined; scene JSON read/write is TODO.
 4. Add `RenderGraphCompiler` so plans can be compiled, inspected, exported, and
-   manipulated without rendering.
+   manipulated without rendering. ✅ Done for the first whole-frame beauty
+   pass compiler; scene-feature expansion remains TODO.
 5. Add `GraphRenderEngine` that can either compile from intent or execute a
-   precompiled plan.
+   precompiled plan. ✅ Done for the first execution slice: exactly one enabled
+   beauty pass backed by Raytracer, Rasterizer, or Wireframe.
 6. Wrap existing whole-frame engines as pass executors:
    - `RaytraceBeautyPass`;
    - `RasterBeautyPass`;
    - `WireframeOverlayPass`;
    - `TonemapPass` or final copy/tonemap stage.
+   ✅ Partial: whole-frame raytracer, rasterizer, and wireframe beauty passes
+   are selected by `GraphRenderEngine`; named payload classes and tonemap
+   execution remain TODO.
 7. Add node disabling with `Passthrough` and `SubstituteDefault` for the first
    supported pass kinds.
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
