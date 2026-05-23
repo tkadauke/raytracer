@@ -28,6 +28,8 @@ namespace RenderResourceStorageTest {
 
     EXPECT_TRUE(storage.contains("color"));
     EXPECT_TRUE(storage.hasBuffer("color"));
+    EXPECT_TRUE(storage.resource("color").colorBacked());
+    EXPECT_FALSE(storage.resource("depth").colorBacked());
     EXPECT_EQ(4, storage.color("color").width());
     EXPECT_EQ(3, storage.color("color").height());
     EXPECT_EQ(4, storage.depth("depth").width());

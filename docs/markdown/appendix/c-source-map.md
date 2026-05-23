@@ -43,6 +43,7 @@
 | `include/engine/graph/RenderGraphTypes.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassPayload.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPlan.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderResource.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderResourceStorage.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/raster/Rasterizer.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raytracer/Raytracer.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
@@ -136,6 +137,7 @@
 | `src/engine/graph/RenderGraphCompiler.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderGraphTypes.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderPlan.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `src/engine/graph/RenderResource.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResourceStorage.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/raster/RasterMaterial.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `src/engine/raster/RasterPass.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md) |

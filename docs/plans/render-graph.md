@@ -1027,13 +1027,15 @@ CPU resource storage, pass declarations, virtual pass payloads, plan validation,
 graph override disabling, text/DOT/JSON plan export, a minimal compiler that
 emits one whole-frame beauty pass, a graph engine facade that can execute that
 single pass through Raytracer/Rasterizer/Wireframe, and the textbook's
-render-graph volume. Multi-pass compilation, postprocess/composite execution,
-scene JSON intent, and real graph scheduling remain TODO.
+render-graph volume. Multi-pass compilation, arbitrary postprocess/composite
+execution, scene JSON intent, and real graph scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
 1. Add `RenderResourceDescriptor`, `RenderResourceId`, and CPU storage for color
-   and depth. ✅ Done for initial CPU color/depth/stencil/object-id storage.
+   and depth. ✅ Done for initial CPU color/depth/stencil/object-id storage,
+   with execution-time `RenderResource` objects behind the serializable
+   descriptors.
 2. Add `RenderPassNode`, `RenderPlan`, plan validation, plan overrides, and
    text/DOT/JSON dumps. ✅ Done for the initial declarative graph model.
 3. Add JSON-serializable `RenderIntent`, including default executor, view mode,
@@ -1043,18 +1045,20 @@ Implement the smallest graph that proves the architecture:
    manipulated without rendering. ✅ Done for the first whole-frame beauty
    pass compiler; scene-feature expansion remains TODO.
 5. Add `GraphRenderEngine` that can either compile from intent or execute a
-   precompiled plan. ✅ Done for the first execution slice: exactly one enabled
-   beauty pass backed by Raytracer, Rasterizer, or Wireframe.
+   precompiled plan. ✅ Done for the first execution slice: whole-frame beauty
+   passes backed by Raytracer, Rasterizer, or Wireframe, plus simple serial
+   color-resource chains.
 6. Wrap existing whole-frame engines as pass executors:
    - `RaytraceBeautyPass`;
    - `RasterBeautyPass`;
    - `WireframeOverlayPass`;
    - `TonemapPass` or final copy/tonemap stage.
    ✅ Partial: whole-frame raytracer, rasterizer, and wireframe beauty passes
-   are selected by `GraphRenderEngine`; named payload classes and tonemap
-   execution remain TODO.
+   are selected by `GraphRenderEngine`, and enabled tonemap passes can transform
+   a color resource; named payload classes remain TODO.
 7. Add node disabling with `Passthrough` and `SubstituteDefault` for the first
-   supported pass kinds.
+   supported pass kinds. ✅ Done for disabled default substitution and color
+   passthrough in the serial graph engine.
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
    runtime intent overrides, and node-disabling flags.
 9. Add a Modeler graph inspector that compiles the plan before rendering and

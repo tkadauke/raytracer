@@ -1,9 +1,8 @@
 #pragma once
 
-#include "core/Color.h"
+#include "engine/graph/RenderResource.h"
 #include "engine/graph/RenderGraphTypes.h"
 
-#include <cstdint>
 #include <map>
 #include <memory>
 #include <stdexcept>
@@ -51,6 +50,14 @@ namespace engine::graph {
       */
     const RenderResourceDescriptor& descriptor(const RenderResourceId& id) const;
 
+    /**
+      * Looks up the execution-time resource for @p id.
+      *
+      * @throws std::out_of_range if no resource with that id exists.
+      */
+    RenderResource& resource(const RenderResourceId& id);
+    const RenderResource& resource(const RenderResourceId& id) const;
+
     Buffer<Colord>& color(const RenderResourceId& id);
     const Buffer<Colord>& color(const RenderResourceId& id) const;
 
@@ -64,20 +71,6 @@ namespace engine::graph {
     const Buffer<std::uint32_t>& objectId(const RenderResourceId& id) const;
 
   private:
-    template<class T>
-    using BufferMap = std::map<RenderResourceId, std::unique_ptr<Buffer<T>>>;
-
-    template<class T>
-    Buffer<T>& typedBuffer(BufferMap<T>& buffers, const RenderResourceId& id, const char* typeName);
-
-    template<class T>
-    const Buffer<T>& typedBuffer(const BufferMap<T>& buffers, const RenderResourceId& id,
-                                 const char* typeName) const;
-
-    std::map<RenderResourceId, RenderResourceDescriptor> m_descriptors;
-    BufferMap<Colord> m_colorBuffers;
-    BufferMap<double> m_depthBuffers;
-    BufferMap<std::uint8_t> m_stencilBuffers;
-    BufferMap<std::uint32_t> m_objectIdBuffers;
+    std::map<RenderResourceId, std::unique_ptr<RenderResource>> m_resources;
   };
 }

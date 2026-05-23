@@ -177,6 +177,31 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, DisabledPassthroughCanSatisfyConsumer) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color"));
+    plan.addResource(colorResource("display_color"));
+    plan.addResource(colorResource("export_color", RenderResourceLifetime::Exported));
+
+    auto main = pass("main");
+    main.writes.push_back({"main_color"});
+    plan.addPass(main);
+
+    auto post = pass("post", RenderPassKind::PostProcess);
+    post.reads.push_back({"main_color"});
+    post.writes.push_back({"display_color"});
+    post.disabledBehavior = DisabledBehavior::Passthrough;
+    post.enabled = false;
+    plan.addPass(post);
+
+    auto final = pass("final", RenderPassKind::PostProcess);
+    final.reads.push_back({"display_color"});
+    final.writes.push_back({"export_color"});
+    plan.addPass(final);
+
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderPlan, DisabledCullDependencyDoesNotSatisfyConsumer) {
     RenderPlan plan;
     plan.addResource(colorResource("shadow_mask"));

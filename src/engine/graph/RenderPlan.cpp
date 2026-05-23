@@ -43,7 +43,8 @@ namespace engine::graph {
     }
 
     bool passProducesWhenDisabled(const RenderPassNode& pass) {
-      return pass.disabledBehavior == DisabledBehavior::SubstituteDefault;
+      return pass.disabledBehavior == DisabledBehavior::SubstituteDefault ||
+             pass.disabledBehavior == DisabledBehavior::Passthrough;
     }
 
     QJsonArray stringArray(const std::vector<RenderFeatureKind>& values) {

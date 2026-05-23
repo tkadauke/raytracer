@@ -232,7 +232,13 @@ is the allocation side of the descriptor model. `allocate()` receives a list of
 resource descriptors, records every descriptor, and creates CPU buffers for
 supported CPU image resources with positive width and height.
 
-The storage maps resource types to concrete buffers:
+The storage creates execution-time
+[`RenderResource`](../../../include/engine/graph/RenderResource.h) objects.
+The descriptor remains the serializable plan data; the resource object owns the
+runtime buffer and answers capability questions such as `colorBacked()`.
+
+The first CPU storage slice maps resource descriptors to these resource
+classes:
 
 | Resource types | CPU buffer |
 |---|---|
@@ -245,7 +251,9 @@ Descriptors with `RenderResourceDomain::GPU` are still recorded, but
 `hasBuffer(id)` is false for them in CPU storage. Typed accessors such as
 `color(id)`, `depth(id)`, `stencil(id)`, and `objectId(id)` throw
 `std::out_of_range` when the id is missing or when the descriptor does not have
-that concrete CPU buffer.
+that concrete CPU buffer. Execution code can also ask for the resource object
+directly through `resource(id)` and use virtual capabilities instead of
+switching on `RenderResourceType`.
 
 ## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits a beauty pass
 [`RenderGraphCompiler`](../../../include/engine/graph/RenderGraphCompiler.h)
@@ -261,20 +269,26 @@ resource named `main_color`, then adds one pass that writes it:
 the resource descriptor. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
 
-## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes one pass
+## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current
-intent or execute a caller-provided plan. The implemented execution slice is
-deliberately narrow: the plan must validate and contain exactly one enabled
-`Beauty` pass backed by `Raytracer`, `Rasterizer`, or `Wireframe`.
+intent or execute a caller-provided plan. The compiler still emits only one
+whole-frame beauty pass, but the engine can execute a small serial color
+resource chain:
 
-For that pass, the graph engine creates the matching existing engine, gives it
-the graph engine's camera and scene, and renders into the caller's color
-buffer. The last compiled or executed plan remains available through
-`lastPlan()`, so tools can render and then inspect the exact graph shape that
-produced the image.
+- enabled `Beauty` passes backed by `Raytracer`, `Rasterizer`, or `Wireframe`;
+- enabled `Tonemap` passes backed by the `PostProcess` executor;
+- disabled passes with `SubstituteDefault`, which clear their outputs to a
+  meaningful default;
+- disabled color passes with `Passthrough`, which copy their input color
+  resource to their output color resources.
 
-Multiple enabled passes, postprocess passes, composite passes, and history
+The graph engine writes pass results into `RenderResourceStorage` and then
+copies the first exported color resource into the caller's output buffer.
+`lastPlan()` remains available after rendering, so tools can render and then
+inspect the exact graph shape that produced the image.
+
+Composite passes, arbitrary postprocess effects, graph scheduling, and history
 resources are not executed by this first slice.
 
 ## <a id="a-small-plan-by-hand"></a>A small plan by hand
@@ -337,12 +351,14 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderGraphCompiler.h`
 - `include/engine/graph/RenderPlan.h`
 - `include/engine/graph/RenderPassPayload.h`
+- `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
 - `src/engine/graph/RenderGraphCompiler.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/engine/graph/RenderPlan.cpp`
+- `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`
 - `test/unit/engine/graph/RenderGraphCompilerTest.cpp`
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
