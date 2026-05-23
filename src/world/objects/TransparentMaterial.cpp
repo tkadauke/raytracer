@@ -23,9 +23,9 @@ std::shared_ptr<render::Material> TransparentMaterial::toRaytracerMaterial() con
   material->setRefractionIndex(refractionIndex());
   material->setReflectionColor(reflectionColor());
   material->setReflectionCoefficient(reflectionCoefficient());
+  applyMaterialProperties(material);
 
   return material;
 }
 
 static bool dummy = ElementFactory::self().registerClass<TransparentMaterial>("TransparentMaterial");
-

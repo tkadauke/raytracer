@@ -44,6 +44,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Rasterizer culling defaults now follow material sidedness.** Front-sided materials default to backface culling, back-sided materials default to frontface culling, and two-sided materials keep both faces unless the caller explicitly sets a rasterizer cull mode. — GPT-5
 - **Rasterizer UV texture sampling avoids unnecessary hit-context fabrication.** The built-in raster material path now samples exact `UVColorTexture` and UV-mapped `CheckerBoardTexture` albedos directly from interpolated fragment UVs, while arbitrary texture subclasses still use virtual `Texture::evaluate(...)` with a synthesized hit context. — GPT-5
 - **Rasterizer built-in material shading now previews local Phong terms.** The raster material path now honors Matte ambient/diffuse coefficients and Phong specular color, coefficient, and exponent for local direct lighting; recursive reflection and refraction remain raytracer-only. — GPT-5
 - **Rasterizer culls off-frustum finite primitive bounds before tessellation.** The raster front end now rejects leaf primitives whose finite bounding boxes are wholly outside one homogeneous clip plane before building their meshes, while keeping infinite/invalid bounds and custom vertex-shader camera passes conservative. — GPT-5

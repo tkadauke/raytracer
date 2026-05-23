@@ -49,7 +49,21 @@ namespace render {
     */
   class Material : public render::Object {
   public:
+    enum class Sidedness {
+      Front,
+      Back,
+      TwoSided
+    };
+
     virtual ~Material() {}
+
+    inline Sidedness sidedness() const {
+      return m_sidedness;
+    }
+
+    inline void setSidedness(Sidedness sidedness) {
+      m_sidedness = sidedness;
+    }
 
     /**
       * Shade `hitPoint` along `ray`. Returns the colour produced by
@@ -71,5 +85,8 @@ namespace render {
       * events here.
       */
     virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
+
+  private:
+    Sidedness m_sidedness{Sidedness::TwoSided};
   };
 }

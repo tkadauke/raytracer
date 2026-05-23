@@ -21,9 +21,9 @@ std::shared_ptr<render::Material> ReflectiveMaterial::toRaytracerMaterial() cons
   material->setSpecularCoefficient(specularCoefficient());
   material->setReflectionColor(reflectionColor());
   material->setReflectionCoefficient(reflectionCoefficient());
+  applyMaterialProperties(material);
 
   return material;
 }
 
 static bool dummy = ElementFactory::self().registerClass<ReflectiveMaterial>("ReflectiveMaterial");
-

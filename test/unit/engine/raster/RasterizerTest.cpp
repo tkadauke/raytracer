@@ -170,6 +170,16 @@ namespace RasterizerTest {
     return scene;
   }
 
+  static std::shared_ptr<Scene>
+  sceneWithMaterialBackFacingTriangle(std::shared_ptr<render::Material> material) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(1, -1, 0), Vector3d(0, 1, 0));
+    triangle->setMaterial(std::move(material));
+    scene->add(triangle);
+    return scene;
+  }
+
   static TrackedTriangleScene sceneWithTrackedFrontFacingTriangle() {
     TrackedTriangleScene result;
     result.scene = std::make_shared<Scene>(Colord::white());
@@ -1536,10 +1546,69 @@ namespace RasterizerTest {
   TEST(Rasterizer, CullModeDefaultsToBothSides) {
     Rasterizer engine(headOnCamera(), sceneWithBackFacingTriangle());
     EXPECT_EQ(Rasterizer::CullMode::Both, engine.cullMode());
+    EXPECT_FALSE(engine.hasCullModeOverride());
 
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
 
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+  }
+
+  TEST(Rasterizer, FrontSidedMaterialDefaultsToBackfaceCulling) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::Front);
+    auto scene = sceneWithMaterialBackFacingTriangle(material);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, BackSidedMaterialDefaultsToFrontfaceCulling) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::Back);
+    auto scene = sceneWithMaterialFrontFacingTriangle(material);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, TwoSidedMaterialDefaultsToNoCulling) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::TwoSided);
+    auto scene = sceneWithMaterialBackFacingTriangle(material);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+  }
+
+  TEST(Rasterizer, ExplicitCullModeOverridesMaterialSidednessDefault) {
+    auto material = matte(Colord::white());
+    material->setSidedness(render::Material::Sidedness::Front);
+    auto scene = sceneWithMaterialBackFacingTriangle(material);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    engine.setCullMode(Rasterizer::CullMode::Both);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_TRUE(engine.hasCullModeOverride());
     EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
   }
 

@@ -61,9 +61,13 @@ namespace engine::raster::detail {
   // emitter applies it after clipping and before RasterVertex construction so
   // culled triangles never reach tile binning or the fragment loop.
   struct TriangleCullPolicy {
-    Rasterizer::CullMode mode;
+    Rasterizer::CullMode overrideMode;
+    bool hasOverride;
 
-    bool shouldCull(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2) const {
+    bool shouldCull(const RasterMaterialSource& materialSource, const ClipVert& v0,
+                    const ClipVert& v1, const ClipVert& v2) const {
+      const Rasterizer::CullMode mode =
+        hasOverride ? overrideMode : materialSource.defaultCullMode();
       if (mode == Rasterizer::CullMode::Both)
         return false;
 
@@ -87,13 +91,14 @@ namespace engine::raster::detail {
   public:
     RasterTriangleEmitter(const render::Scene* scene, std::shared_ptr<render::Camera> camera,
                           int lod, const Rasterizer& rasterizer, const std::atomic<bool>& cancelled,
-                          Rasterizer::CullMode cullMode, bool applyVertexShader)
+                          Rasterizer::CullMode cullMode, bool hasCullModeOverride,
+                          bool applyVertexShader)
         : m_scene(scene),
           m_camera(std::move(camera)),
           m_lod(lod),
           m_rasterizer(rasterizer),
           m_clipVolume(rasterizer.nearClipDepth(), rasterizer.farClipDepth()),
-          m_cullPolicy{cullMode},
+          m_cullPolicy{cullMode, hasCullModeOverride},
           m_applyVertexShader(applyVertexShader),
           m_cancelled(cancelled) {
     }
@@ -231,7 +236,7 @@ namespace engine::raster::detail {
                               const RasterMaterialSource& materialSource, std::uint64_t faceIdx,
                               const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                               EmitFn& callback) const {
-      if (m_cullPolicy.shouldCull(v0, v1, v2)) {
+      if (m_cullPolicy.shouldCull(materialSource, v0, v1, v2)) {
         return;
       }
 

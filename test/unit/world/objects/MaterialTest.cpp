@@ -13,6 +13,8 @@
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 
+#include <QString>
+
 namespace MaterialTest {
   // ---------- Material (abstract base) --------------------------------------
 
@@ -35,6 +37,32 @@ namespace MaterialTest {
     MatteMaterial m;
     EXPECT_DOUBLE_EQ(1.0, m.ambientCoefficient());
     EXPECT_DOUBLE_EQ(1.0, m.diffuseCoefficient());
+  }
+
+  TEST(MatteMaterial, ShouldDefaultToTwoSided) {
+    MatteMaterial m;
+    EXPECT_EQ(Material::Sidedness::TwoSided, m.sidedness());
+    EXPECT_EQ(QString("TwoSided"), m.sidednessName());
+  }
+
+  TEST(MatteMaterial, ShouldConvertSidednessToRaytracerMaterial) {
+    MatteMaterial m;
+    m.setSidedness(Material::Sidedness::Front);
+    Material* base = &m;
+
+    auto rt = base->toRaytracerMaterial();
+
+    EXPECT_EQ(render::Material::Sidedness::Front, rt->sidedness());
+  }
+
+  TEST(MatteMaterial, ShouldRoundTripSidednessName) {
+    MatteMaterial m;
+    m.setSidednessName("Back");
+    EXPECT_EQ(Material::Sidedness::Back, m.sidedness());
+    EXPECT_EQ(QString("Back"), m.sidednessName());
+
+    m.setSidednessName("unknown");
+    EXPECT_EQ(Material::Sidedness::TwoSided, m.sidedness());
   }
 
   TEST(MatteMaterial, ShouldSetAndGetCoefficients) {
