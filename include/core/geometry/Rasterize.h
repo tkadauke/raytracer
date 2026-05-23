@@ -2,10 +2,34 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 namespace core {
+
+  /**
+    * A 2D vertex used by the educational screen-space clipping helpers.
+    *
+    * Runtime rasterization carries richer vertex payloads, but screen-space
+    * Sutherland-Hodgman clipping only needs the projected coordinate. Attribute
+    * interpolation follows the same edge parameter as `x` and `y`; callers that
+    * need richer payloads should use this helper as the geometric reference.
+    */
+  struct RasterClipVertex {
+    double x = 0.0;
+    double y = 0.0;
+  };
+
+  /**
+    * A triangle emitted from fan-triangulating a clipped screen-space polygon.
+    */
+  struct RasterClipTriangle {
+    RasterClipVertex v0;
+    RasterClipVertex v1;
+    RasterClipVertex v2;
+  };
 
   namespace detail {
 
@@ -167,7 +191,128 @@ namespace core {
       }
     };
 
+    enum class RasterClipEdge { Left, Right, Top, Bottom };
+
+    inline bool insideEdge(const RasterClipVertex& vertex, RasterClipEdge edge, double value) {
+      switch (edge) {
+      case RasterClipEdge::Left:
+        return vertex.x >= value;
+      case RasterClipEdge::Right:
+        return vertex.x <= value;
+      case RasterClipEdge::Top:
+        return vertex.y >= value;
+      case RasterClipEdge::Bottom:
+        return vertex.y <= value;
+      }
+      return false;
+    }
+
+    inline RasterClipVertex interpolateClipVertex(const RasterClipVertex& a,
+                                                  const RasterClipVertex& b, double t) {
+      return RasterClipVertex{a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t};
+    }
+
+    inline RasterClipVertex intersectEdge(const RasterClipVertex& a, const RasterClipVertex& b,
+                                          RasterClipEdge edge, double value) {
+      if (edge == RasterClipEdge::Left || edge == RasterClipEdge::Right) {
+        const double dx = b.x - a.x;
+        const double t = dx == 0.0 ? 0.0 : (value - a.x) / dx;
+        return interpolateClipVertex(a, b, t);
+      }
+
+      const double dy = b.y - a.y;
+      const double t = dy == 0.0 ? 0.0 : (value - a.y) / dy;
+      return interpolateClipVertex(a, b, t);
+    }
+
+    inline std::vector<RasterClipVertex>
+    clipPolygonAgainstEdge(const std::vector<RasterClipVertex>& input, RasterClipEdge edge,
+                           double value) {
+      if (input.empty())
+        return {};
+
+      std::vector<RasterClipVertex> output;
+      output.reserve(input.size() + 1);
+
+      RasterClipVertex previous = input.back();
+      bool previousInside = insideEdge(previous, edge, value);
+
+      for (const RasterClipVertex& current : input) {
+        const bool currentInside = insideEdge(current, edge, value);
+        if (currentInside != previousInside) {
+          output.push_back(intersectEdge(previous, current, edge, value));
+        }
+        if (currentInside) {
+          output.push_back(current);
+        }
+        previous = current;
+        previousInside = currentInside;
+      }
+
+      return output;
+    }
+
   } // namespace detail
+
+  /**
+    * Clips a projected triangle against an axis-aligned viewport rectangle.
+    *
+    * This is the classical 2D Sutherland-Hodgman algorithm: the triangle is
+    * clipped against the left, right, top, and bottom half-spaces one at a time.
+    * The returned polygon is convex, has vertices in traversal order, and is
+    * empty when the triangle is wholly outside the rectangle.
+    *
+    * The rectangle is expressed in the same screen-space units as the
+    * rasterizer's clip rectangle arguments, but it clips geometry to the
+    * boundary lines `x = clipLeft`, `x = clipRight`, `y = clipTop`, and
+    * `y = clipBottom`. The rasterizer itself still clips in homogeneous space
+    * before perspective divide; this helper is the 2D teaching counterpart for
+    * triangles that are already safely projected.
+    */
+  inline std::vector<RasterClipVertex> clipTriangleToRect(const RasterClipVertex& v0,
+                                                          const RasterClipVertex& v1,
+                                                          const RasterClipVertex& v2,
+                                                          double clipLeft, double clipTop,
+                                                          double clipRight, double clipBottom) {
+    if (clipLeft >= clipRight || clipTop >= clipBottom)
+      return {};
+
+    std::vector<RasterClipVertex> polygon{v0, v1, v2};
+    polygon = detail::clipPolygonAgainstEdge(polygon, detail::RasterClipEdge::Left, clipLeft);
+    polygon = detail::clipPolygonAgainstEdge(polygon, detail::RasterClipEdge::Right, clipRight);
+    polygon = detail::clipPolygonAgainstEdge(polygon, detail::RasterClipEdge::Top, clipTop);
+    polygon = detail::clipPolygonAgainstEdge(polygon, detail::RasterClipEdge::Bottom, clipBottom);
+    return polygon;
+  }
+
+  inline std::vector<RasterClipVertex> clipTriangleToRect(double x0, double y0, double x1,
+                                                          double y1, double x2, double y2,
+                                                          double clipLeft, double clipTop,
+                                                          double clipRight, double clipBottom) {
+    return clipTriangleToRect(RasterClipVertex{x0, y0}, RasterClipVertex{x1, y1},
+                              RasterClipVertex{x2, y2}, clipLeft, clipTop, clipRight, clipBottom);
+  }
+
+  /**
+    * Fan-triangulates a convex screen-space polygon.
+    *
+    * The clipping helper always returns a convex polygon, so a fan from vertex
+    * 0 is sufficient: `(0, 1, 2)`, `(0, 2, 3)`, and so on. Polygons with fewer
+    * than three vertices emit no triangles.
+    *
+    * @tparam EmitFn callable with signature
+    *         `void(const RasterClipTriangle& triangle)`.
+    */
+  template<typename EmitFn>
+  inline void fanTriangulateRasterClipPolygon(const std::vector<RasterClipVertex>& polygon,
+                                              EmitFn&& emit) {
+    if (polygon.size() < 3)
+      return;
+
+    for (std::size_t i = 2; i < polygon.size(); ++i) {
+      emit(RasterClipTriangle{polygon[0], polygon[i - 1], polygon[i]});
+    }
+  }
 
   /**
   * @brief Filled-triangle rasterizer using the edge-function /

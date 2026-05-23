@@ -258,14 +258,19 @@ Carry forward the remaining post-process AA items:
 
 ### 11. Add 2D geometric viewport clipping as a teaching path
 
-Carry forward the original 2D clipping item:
+Status: completed. `core::clipTriangleToRect(...)` now implements the
+screen-space Sutherland-Hodgman reference helper for already-projected
+triangles, and `core::fanTriangulateRasterClipPolygon(...)` fan-splits the
+resulting convex polygon. The clipping chapter presents this as the 2D
+counterpart to the runtime homogeneous clipper.
 
-- add a screen-space Sutherland-Hodgman clipper against viewport edges;
-- fan-triangulate the resulting 3-7 vertex polygon;
-- present it as the educational counterpart to the current homogeneous clipper.
+This remains a teaching helper, not a performance optimization. The runtime
+rasterizer keeps homogeneous clipping before perspective divide, followed by
+the existing scissor/bounding-box raster path.
 
-Do not treat this as a performance optimization. The current scissor/bounding
-box path is the practical runtime path.
+Future teaching work: add a 3D frustum-clipping widget that shows the render
+camera's frustum as a wireframe volume, clips source geometry against that
+volume, and lets an independent observer camera orbit the setup.
 
 ### 12. Prepare for multi-pass effects
 
@@ -312,5 +317,4 @@ Their remaining open items were migrated here:
 - Modeler cascade split diagnostic decision;
 - SMAA/TAA follow-up;
 - tile-parallel default-policy retry;
-- frustum/spatial culling integration;
-- 2D geometric viewport clipping.
+- frustum/spatial culling integration.

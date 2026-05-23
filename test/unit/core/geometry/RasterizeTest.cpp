@@ -78,6 +78,11 @@ namespace RasterizeTest {
                             [&](int x, int y, double, double, double) { ++counts[{x, y}]; });
   }
 
+  static void expectVertexNear(const core::RasterClipVertex& vertex, double x, double y) {
+    EXPECT_NEAR(x, vertex.x, 1e-9);
+    EXPECT_NEAR(y, vertex.y, 1e-9);
+  }
+
   static std::set<std::pair<int, int>> rasterizeQuadToSet(bool firstDiagonal) {
     std::set<std::pair<int, int>> pixels;
     const auto addTriangle = [&](int x0, int y0, int x1, int y1, int x2, int y2) {
@@ -258,6 +263,61 @@ namespace RasterizeTest {
       EXPECT_GE(pixel.second, 0);
       EXPECT_LT(pixel.second, 8);
     }
+  }
+
+  TEST(Rasterize, ClipTriangleToRectKeepsInsideTriangle) {
+    const auto polygon = core::clipTriangleToRect(1.0, 1.0, 3.0, 1.0, 2.0, 3.0, 0.0, 0.0, 4.0, 4.0);
+
+    ASSERT_EQ(3u, polygon.size());
+    expectVertexNear(polygon[0], 1.0, 1.0);
+    expectVertexNear(polygon[1], 3.0, 1.0);
+    expectVertexNear(polygon[2], 2.0, 3.0);
+  }
+
+  TEST(Rasterize, ClipTriangleToRectRejectsOutsideTriangle) {
+    const auto polygon =
+      core::clipTriangleToRect(-4.0, 1.0, -2.0, 3.0, -1.0, 1.0, 0.0, 0.0, 4.0, 4.0);
+
+    EXPECT_TRUE(polygon.empty());
+  }
+
+  TEST(Rasterize, ClipTriangleToRectCutsAgainstViewportEdge) {
+    const auto polygon =
+      core::clipTriangleToRect(-1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 0.0, 0.0, 4.0, 4.0);
+
+    ASSERT_EQ(4u, polygon.size());
+    expectVertexNear(polygon[0], 0.0, 2.0);
+    expectVertexNear(polygon[1], 0.0, 1.0);
+    expectVertexNear(polygon[2], 1.0, 1.0);
+    expectVertexNear(polygon[3], 1.0, 3.0);
+  }
+
+  TEST(Rasterize, ClipTriangleToRectCanProduceMoreThanThreeVertices) {
+    const auto polygon =
+      core::clipTriangleToRect(-1.0, 2.0, 2.0, -1.0, 5.0, 2.0, 0.0, 0.0, 4.0, 4.0);
+
+    EXPECT_GT(polygon.size(), 3u);
+    for (const auto& vertex : polygon) {
+      EXPECT_GE(vertex.x, -1e-9);
+      EXPECT_LE(vertex.x, 4.0 + 1e-9);
+      EXPECT_GE(vertex.y, -1e-9);
+      EXPECT_LE(vertex.y, 4.0 + 1e-9);
+    }
+  }
+
+  TEST(Rasterize, FanTriangulateRasterClipPolygonEmitsNMinusTwoTriangles) {
+    const auto polygon =
+      core::clipTriangleToRect(-1.0, 2.0, 2.0, -1.0, 5.0, 2.0, 0.0, 0.0, 4.0, 4.0);
+    std::vector<core::RasterClipTriangle> triangles;
+
+    core::fanTriangulateRasterClipPolygon(
+      polygon, [&](const core::RasterClipTriangle& triangle) { triangles.push_back(triangle); });
+
+    ASSERT_GE(polygon.size(), 3u);
+    EXPECT_EQ(polygon.size() - 2, triangles.size());
+    expectVertexNear(triangles.front().v0, polygon[0].x, polygon[0].y);
+    expectVertexNear(triangles.front().v1, polygon[1].x, polygon[1].y);
+    expectVertexNear(triangles.front().v2, polygon[2].x, polygon[2].y);
   }
 
   TEST(Rasterize, ClippedHugeTriangleDoesNotWalkTheUnboundedBox) {

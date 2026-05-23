@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Screen-space raster clipping helpers.** `core::clipTriangleToRect(...)` and `core::fanTriangulateRasterClipPolygon(...)` now provide a 2D Sutherland-Hodgman viewport-clipping reference path for already-projected triangles, matching the rasterization textbook's teaching counterpart to homogeneous clipping. — GPT-5
 - **Rasterizer attachment load/store state.** Direct `Rasterizer::render(Buffer<Colord>&)` calls now expose explicit color load/store operations plus borrowed depth/stencil attachments with clear/load/store/discard behavior, giving multi-pass raster effects a deterministic way to preserve or exchange pass resources. — GPT-5
 - **Rasterizer pass depth bias.** `Rasterizer` and `rendercli --depth_bias` now expose a signed constant depth offset applied before camera-pass depth test/write, allowing multi-pass raster overlays to pull fragments forward or push them behind existing depth without changing shader-visible geometric depth. — GPT-5
 - **Rasterizer viewport and scissor state.** `Rasterizer` and `rendercli` now expose framebuffer viewport and scissor rectangles so raster previews can project into subregions or discard fragments outside a fixed rectangle before depth/stencil and color output. — GPT-5

@@ -19,7 +19,7 @@
 | `include/core/color/sse3/` | [4. Color and buffers](../01-foundations/04-color-and-buffers.md) |
 | `include/core/geometry/Bresenham.h` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `include/core/geometry/Mesh.h` | [17. Tessellation](../04-rasterization/17-tessellation.md) |
-| `include/core/geometry/Rasterize.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md)<br>[21. MSAA and attribute interpolation](../04-rasterization/21-msaa-and-attribute-interpolation.md) |
+| `include/core/geometry/Rasterize.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md)<br>[19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md)<br>[21. MSAA and attribute interpolation](../04-rasterization/21-msaa-and-attribute-interpolation.md) |
 | `include/core/math/BoundingBox.h` | [3. Rays and geometry](../01-foundations/03-rays-and-geometry.md)<br>[15. Spatial acceleration](../03-scene-structure/15-spatial-acceleration.md) |
 | `include/core/math/Constants.h` | [1. Numbers and vectors](../01-foundations/01-numbers-and-vectors.md) |
 | `include/core/math/Cubic.h` | [7. Primitives and intersection](../02-ray-rendering/07-primitives-and-intersection.md) |

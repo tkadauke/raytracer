@@ -95,6 +95,18 @@ positive means inside, negative means outside. When the sign
 changes between consecutive vertices, the routine computes the
 intersection point by linearly interpolating along the edge.
 
+For comparison,
+[`include/core/geometry/Rasterize.h`](../../../include/core/geometry/Rasterize.h)
+also exposes a 2D screen-space teaching helper:
+`core::clipTriangleToRect(...)` clips an already projected triangle
+against a rectangular viewport, and
+`core::fanTriangulateRasterClipPolygon(...)` decomposes the resulting
+convex polygon back into triangles. That helper is the classical
+Sutherland-Hodgman algorithm in its simplest form. The runtime
+rasterizer still uses homogeneous clipping before the perspective
+divide, because screen-space clipping is only safe once every vertex
+has already projected to finite screen coordinates.
+
 The depth planes use the rasterizer's eye-relative depth
 convention. `Rasterizer::nearClipDepth()` defaults to `0.1`.
 `Rasterizer::farClipDepth()` defaults to positive infinity, which
@@ -455,6 +467,7 @@ portal rendering (stencil regions), and layered compositing
 ## Source anchors
 
 <!-- source-anchors -->
+- `include/core/geometry/Rasterize.h`
 - `include/render/HomogeneousClipVolume.h`
 - `include/engine/raster/Rasterizer.h`
 - `src/engine/raster/Rasterizer.cpp`
