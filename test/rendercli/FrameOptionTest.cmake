@@ -6,6 +6,8 @@ if(NOT DEFINED TEST_OUTPUT_DIR)
   message(FATAL_ERROR "TEST_OUTPUT_DIR is required")
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/RendercliTestHelpers.cmake")
+
 file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
@@ -24,61 +26,29 @@ set(static_animation_pattern "${sequence_dir}/static_%04d.png")
 
 file(MAKE_DIRECTORY "${sequence_dir}")
 
-function(run_rendercli output_variable error_variable result_variable)
-  execute_process(
-    COMMAND ${ARGN}
-    RESULT_VARIABLE result
-    OUTPUT_VARIABLE stdout
-    ERROR_VARIABLE stderr
-  )
-  set(${output_variable} "${stdout}" PARENT_SCOPE)
-  set(${error_variable} "${stderr}" PARENT_SCOPE)
-  set(${result_variable} "${result}" PARENT_SCOPE)
-endfunction()
-
-run_rendercli(
-  static_stdout
-  static_stderr
-  static_result
-  "${RENDERCLI}" --engine wireframe --width 32 --height 32 --frame 5
-  "${static_scene}" "${static_frame}"
+rendercli_run(
+  NAME "rendercli --frame renders a static scene"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 32 --height 32 --frame 5
+    "${static_scene}" "${static_frame}"
 )
-if(NOT static_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --frame failed for static scene: ${static_stderr}")
-endif()
-if(NOT EXISTS "${static_frame}")
-  message(FATAL_ERROR "rendercli --frame did not create static output")
-endif()
+rendercli_assert_nonempty("${static_frame}" NAME "rendercli --frame static scene output")
 
-run_rendercli(
-  frame_1_stdout
-  frame_1_stderr
-  frame_1_result
-  "${RENDERCLI}" --engine wireframe --width 64 --height 64 --frame 1
-  "${animated_scene}" "${frame_1}"
+rendercli_run(
+  NAME "rendercli --frame 1 renders animated scene"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 64 --height 64 --frame 1
+    "${animated_scene}" "${frame_1}"
 )
-if(NOT frame_1_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --frame 1 failed: ${frame_1_stderr}")
-endif()
 
-run_rendercli(
-  frame_48_stdout
-  frame_48_stderr
-  frame_48_result
-  "${RENDERCLI}" --engine wireframe --width 64 --height 64 --frame 48
-  "${animated_scene}" "${frame_48}"
+rendercli_run(
+  NAME "rendercli --frame 48 renders animated scene"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 64 --height 64 --frame 48
+    "${animated_scene}" "${frame_48}"
 )
-if(NOT frame_48_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --frame 48 failed: ${frame_48_stderr}")
-endif()
-
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E compare_files "${frame_1}" "${frame_48}"
-  RESULT_VARIABLE frame_compare
-)
-if(frame_compare EQUAL 0)
-  message(FATAL_ERROR "animated frame renders were unexpectedly identical")
-endif()
+rendercli_assert_files_differ("${frame_1}" "${frame_48}"
+                              NAME "animated frame renders differ")
 
 set(animated_catalog
   animated_camera_pan.json
@@ -91,115 +61,72 @@ foreach(scene_name IN LISTS animated_catalog)
   string(REPLACE ".json" "" scene_stem "${scene_name}")
   foreach(frame IN ITEMS 1 72)
     set(catalog_frame "${TEST_OUTPUT_DIR}/${scene_stem}_${frame}.png")
-    run_rendercli(
-      catalog_stdout
-      catalog_stderr
-      catalog_result
-      "${RENDERCLI}" --engine raster --width 48 --height 32 --frame "${frame}"
-      "${PROJECT_SOURCE_DIR}/scenes/${scene_name}" "${catalog_frame}"
+    rendercli_run(
+      NAME "rendercli --frame ${frame} renders ${scene_name}"
+      COMMAND
+        "${RENDERCLI}" --engine raster --width 48 --height 32 --frame "${frame}"
+        "${PROJECT_SOURCE_DIR}/scenes/${scene_name}" "${catalog_frame}"
     )
-    if(NOT catalog_result EQUAL 0)
-      message(FATAL_ERROR "rendercli --frame ${frame} failed for ${scene_name}: ${catalog_stderr}")
-    endif()
-    if(NOT EXISTS "${catalog_frame}")
-      message(FATAL_ERROR "rendercli --frame ${frame} did not create output for ${scene_name}")
-    endif()
+    rendercli_assert_nonempty("${catalog_frame}"
+                              NAME "rendercli --frame ${frame} output for ${scene_name}")
   endforeach()
 endforeach()
 
-run_rendercli(
-  invalid_stdout
-  invalid_stderr
-  invalid_result
-  "${RENDERCLI}" --frame not-an-integer
-  "${static_scene}" "${invalid_frame}"
+rendercli_expect_failure(
+  NAME "rendercli rejects non-integer --frame"
+  STDERR_MATCHES "Frame must be an integer"
+  COMMAND
+    "${RENDERCLI}" --frame not-an-integer
+    "${static_scene}" "${invalid_frame}"
 )
-if(invalid_result EQUAL 0)
-  message(FATAL_ERROR "rendercli accepted a non-integer --frame value")
-endif()
-if(NOT invalid_stderr MATCHES "Frame must be an integer")
-  message(FATAL_ERROR "rendercli reported an unexpected invalid-frame error: ${invalid_stderr}")
-endif()
+rendercli_assert_not_exists("${invalid_frame}" NAME "invalid --frame output")
 
-run_rendercli(
-  animation_stdout
-  animation_stderr
-  animation_result
-  "${RENDERCLI}" --engine wireframe --width 64 --height 64 --animation
-  --frame_start 2 --frame_end 4 --fps 12
-  "${animated_scene}" "${sequence_pattern}"
+rendercli_run(
+  NAME "rendercli --animation renders selected frame range"
+  STDOUT_MATCHES "frame 1/3 number=2"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 64 --height 64 --animation
+    --frame_start 2 --frame_end 4 --fps 12
+    "${animated_scene}" "${sequence_pattern}"
 )
-if(NOT animation_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --animation failed: ${animation_stderr}")
-endif()
 foreach(frame 0002 0003 0004)
-  if(NOT EXISTS "${sequence_dir}/frame_${frame}.png")
-    message(FATAL_ERROR "rendercli --animation did not create frame_${frame}.png")
-  endif()
+  rendercli_assert_nonempty("${sequence_dir}/frame_${frame}.png"
+                            NAME "rendercli --animation frame_${frame}.png")
 endforeach()
-if(EXISTS "${sequence_dir}/frame_0001.png")
-  message(FATAL_ERROR "rendercli --animation ignored --frame_start")
-endif()
-if(EXISTS "${sequence_dir}/frame_0005.png")
-  message(FATAL_ERROR "rendercli --animation ignored --frame_end")
-endif()
-if(NOT animation_stdout MATCHES "frame 1/3 number=2")
-  message(FATAL_ERROR "rendercli --animation did not print expected progress: ${animation_stdout}")
-endif()
+rendercli_assert_not_exists("${sequence_dir}/frame_0001.png"
+                            NAME "rendercli --animation honors --frame_start")
+rendercli_assert_not_exists("${sequence_dir}/frame_0005.png"
+                            NAME "rendercli --animation honors --frame_end")
 
-run_rendercli(
-  missing_placeholder_stdout
-  missing_placeholder_stderr
-  missing_placeholder_result
-  "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
-  "${animated_scene}" "${missing_placeholder_pattern}"
+rendercli_expect_failure(
+  NAME "rendercli --animation rejects missing frame placeholder"
+  STDERR_MATCHES "printf-style signed integer placeholder"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    "${animated_scene}" "${missing_placeholder_pattern}"
 )
-if(missing_placeholder_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --animation accepted an output path without a frame placeholder")
-endif()
-if(NOT missing_placeholder_stderr MATCHES "printf-style signed integer placeholder")
-  message(FATAL_ERROR "rendercli reported an unexpected missing-placeholder error: ${missing_placeholder_stderr}")
-endif()
 
-run_rendercli(
-  unsigned_placeholder_stdout
-  unsigned_placeholder_stderr
-  unsigned_placeholder_result
-  "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
-  "${animated_scene}" "${unsigned_placeholder_pattern}"
+rendercli_expect_failure(
+  NAME "rendercli --animation rejects unsigned frame placeholder"
+  STDERR_MATCHES "printf-style signed integer placeholder"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    "${animated_scene}" "${unsigned_placeholder_pattern}"
 )
-if(unsigned_placeholder_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --animation accepted an unsupported unsigned placeholder")
-endif()
-if(NOT unsigned_placeholder_stderr MATCHES "printf-style signed integer placeholder")
-  message(FATAL_ERROR "rendercli reported an unexpected unsigned-placeholder error: ${unsigned_placeholder_stderr}")
-endif()
 
-run_rendercli(
-  invalid_range_stdout
-  invalid_range_stderr
-  invalid_range_result
-  "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
-  --frame_start 4 --frame_end 2
-  "${animated_scene}" "${invalid_range_pattern}"
+rendercli_expect_failure(
+  NAME "rendercli --animation rejects invalid frame range"
+  STDERR_MATCHES "Frame end must be greater than or equal to frame start"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    --frame_start 4 --frame_end 2
+    "${animated_scene}" "${invalid_range_pattern}"
 )
-if(invalid_range_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --animation accepted an invalid frame range")
-endif()
-if(NOT invalid_range_stderr MATCHES "Frame end must be greater than or equal to frame start")
-  message(FATAL_ERROR "rendercli reported an unexpected invalid-range error: ${invalid_range_stderr}")
-endif()
 
-run_rendercli(
-  static_animation_stdout
-  static_animation_stderr
-  static_animation_result
-  "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
-  "${static_scene}" "${static_animation_pattern}"
+rendercli_expect_failure(
+  NAME "rendercli --animation rejects static scene"
+  STDERR_MATCHES "requires a scene animation block"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    "${static_scene}" "${static_animation_pattern}"
 )
-if(static_animation_result EQUAL 0)
-  message(FATAL_ERROR "rendercli --animation accepted a static scene")
-endif()
-if(NOT static_animation_stderr MATCHES "requires a scene animation block")
-  message(FATAL_ERROR "rendercli reported an unexpected static-scene animation error: ${static_animation_stderr}")
-endif()
