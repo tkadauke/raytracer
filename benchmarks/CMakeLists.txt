@@ -20,6 +20,9 @@ file(GLOB BENCHMARK_SOURCES CONFIGURE_DEPENDS
 )
 
 add_executable(benchmarks ${BENCHMARK_SOURCES})
+target_include_directories(benchmarks PRIVATE
+  "${PROJECT_SOURCE_DIR}/src"
+)
 target_link_libraries(benchmarks PRIVATE
   raytracer
   benchmark::benchmark

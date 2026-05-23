@@ -83,20 +83,20 @@ namespace engine::raster::detail {
   class MSAAFragmentShadeCache {
   public:
     template<class Compute>
-    Colord shade(const RasterTriangle* triangle, int x, int y, Compute&& compute) {
+    RasterFragment shade(const RasterTriangle* triangle, int x, int y, Compute&& compute) {
       const MSAAFragmentShadeKey key{triangle, x, y};
-      const auto found = m_colors.find(key);
-      if (found != m_colors.end()) {
+      const auto found = m_fragments.find(key);
+      if (found != m_fragments.end()) {
         return found->second;
       }
 
-      const Colord color = compute();
-      m_colors.emplace(key, color);
-      return color;
+      const RasterFragment fragment = compute();
+      m_fragments.emplace(key, fragment);
+      return fragment;
     }
 
   private:
-    std::unordered_map<MSAAFragmentShadeKey, Colord, MSAAFragmentShadeKeyHash> m_colors;
+    std::unordered_map<MSAAFragmentShadeKey, RasterFragment, MSAAFragmentShadeKeyHash> m_fragments;
   };
 
   template<class FragmentPolicy>
@@ -104,8 +104,9 @@ namespace engine::raster::detail {
     FragmentPolicy fragmentPolicy;
     MSAAFragmentShadeCache* cache;
 
-    inline Colord shade(const RasterTriangle& triangle, int x, int y, double w0b, double w1b,
-                        double w2b, const InterpolatedFragment& fragment) const {
+    inline RasterFragment shade(const RasterTriangle& triangle, int x, int y, double w0b,
+                                double w1b, double w2b,
+                                const InterpolatedFragment& fragment) const {
       return cache->shade(&triangle, x, y, [&]() {
         return fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
       });
