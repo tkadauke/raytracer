@@ -298,7 +298,7 @@ Implementation order:
 5. Ship the first hybrid demo: photoreal main scene with a cartoon/wireframe render-target screen inside it.
 6. Add planar reflections and raster shadow maps as pass-graph clients.
 7. Add raytraced shadow masks and path-traced inset/hero passes once AOV resource sharing is solid.
-8. Build a plan visualizer: ~~dump the DAG as text/Graphviz~~ and show resources, lifetimes, and executor choices in docs. ✅ **Partially done.** `RenderPlan::toText()` and `RenderPlan::toDot()` expose inspectable plan dumps, `rendercli --render_graph_only --render_graph_format text|dot|json` exports compiled plans with disable filters, `rendercli --render_graph_in` replays saved JSON plans, and the textbook now has a render-graph volume; interactive plan visualization remains TODO.
+8. Build a plan visualizer: ~~dump the DAG as text/Graphviz~~ and show resources, lifetimes, and executor choices in docs. ✅ **Partially done.** `RenderPlan::toText()` and `RenderPlan::toDot()` expose inspectable plan dumps, `rendercli --render_graph_only --render_graph_format text|dot|json` exports compiled plans with disable filters and default intent overrides, `rendercli --render_graph_in` replays saved JSON plans, and the textbook now has a render-graph volume; interactive plan visualization remains TODO.
 
 This pass graph is the bridge between renderer parity and composability. It lets the rasterizer and future GPU rasterizer preview the parts they can approximate, while still delegating specific expensive or truth-critical work to raytracing/path tracing.
 

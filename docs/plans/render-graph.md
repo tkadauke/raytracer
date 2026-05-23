@@ -1062,9 +1062,9 @@ Implement the smallest graph that proves the architecture:
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
    runtime intent overrides, and node-disabling flags. ✅ Partial: rendercli
    can compile/export text, DOT, and JSON plans, render through the graph,
-   load and replay JSON plans, apply pass id/kind/executor/feature disable
-   filters, and validate the manipulated plan. Richer intent overrides remain
-   TODO.
+   load and replay JSON plans, override the compiled default executor/view mode,
+   apply pass id/kind/executor/feature disable filters, and validate the
+   manipulated plan. Selector-specific intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe

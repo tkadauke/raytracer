@@ -199,6 +199,13 @@ applied after the JSON is loaded, so a saved plan can still be tested with
 exported color resource dimensions unless `--width` or `--height` explicitly
 request matching values.
 
+Before compilation, `rendercli` can also override the default graph intent:
+`--render_graph_executor` selects the default executor and
+`--render_graph_view` selects the structural view mode. The current compiler
+uses those fields to choose the initial whole-frame beauty executor; selector
+specific overrides will matter once compilation can produce multi-selection
+plans.
+
 A two-pass plan might read textually as:
 
 ```text

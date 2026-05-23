@@ -301,6 +301,38 @@ namespace {
     return true;
   }
 
+  bool parseRenderExecutorPreference(const QString& value,
+                                     engine::graph::RenderExecutorPreference* executor) {
+    const QString normalized = normalizedRasterOption(value);
+    using RenderExecutorPreference = engine::graph::RenderExecutorPreference;
+    if (normalized == "raytracer" || normalized == "raytrace") {
+      *executor = RenderExecutorPreference::Raytracer;
+    } else if (normalized == "rasterizer" || normalized == "raster") {
+      *executor = RenderExecutorPreference::Rasterizer;
+    } else if (normalized == "wireframe") {
+      *executor = RenderExecutorPreference::Wireframe;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool parseImplementedRenderViewMode(const QString& value,
+                                      engine::graph::RenderViewMode* viewMode) {
+    const QString normalized = normalizedRasterOption(value);
+    using RenderViewMode = engine::graph::RenderViewMode;
+    if (normalized == "default") {
+      *viewMode = RenderViewMode::Default;
+    } else if (normalized == "beauty") {
+      *viewMode = RenderViewMode::Beauty;
+    } else if (normalized == "wireframe") {
+      *viewMode = RenderViewMode::Wireframe;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
     std::set<std::string> materialTypes;
     scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
@@ -370,6 +402,10 @@ private:
   QString m_renderGraphFormat;
   QString m_renderGraphOut;
   QString m_renderGraphIn;
+  bool m_renderGraphExecutorSet;
+  engine::graph::RenderExecutorPreference m_renderGraphExecutor;
+  bool m_renderGraphViewModeSet;
+  engine::graph::RenderViewMode m_renderGraphViewMode;
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
@@ -447,6 +483,10 @@ Renderer::Renderer()
       m_renderGraphFormat("text"),
       m_renderGraphOut(),
       m_renderGraphIn(),
+      m_renderGraphExecutorSet(false),
+      m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
+      m_renderGraphViewModeSet(false),
+      m_renderGraphViewMode(engine::graph::RenderViewMode::Beauty),
       m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
@@ -501,13 +541,19 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
 
 engine::graph::RenderIntent Renderer::renderIntent() const {
   engine::graph::RenderIntent intent;
-  if (m_engine == "raster") {
+  if (m_renderGraphExecutorSet) {
+    intent.defaultExecutor = m_renderGraphExecutor;
+  } else if (m_engine == "raster") {
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
   } else if (m_engine == "wireframe") {
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
-    intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
   } else {
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+  }
+  if (m_renderGraphViewModeSet) {
+    intent.defaultViewMode = m_renderGraphViewMode;
+  } else if (!m_renderGraphExecutorSet && m_engine == "wireframe") {
+    intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
   }
   return intent;
 }
@@ -955,6 +1001,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_format", "Render graph export format (text, dot, json)", "format"},
      {"render_graph_out", "Write the compiled render graph to a file", "file"},
      {"render_graph_in", "Load a JSON render graph plan instead of compiling one", "file"},
+     {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
+      "executor"},
+     {"render_graph_view", "Override graph intent view mode (default, beauty, wireframe)", "mode"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
      {"disable_pass_kind",
       "Disable render graph pass kind (beauty, shadow, overlay, composite, tonemap, postprocess, "
@@ -1121,6 +1170,26 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_in")) {
     m_renderGraph = true;
     m_renderGraphIn = parser.value("render_graph_in");
+  }
+
+  if (parser.isSet("render_graph_executor")) {
+    m_renderGraph = true;
+    if (!parseRenderExecutorPreference(parser.value("render_graph_executor"),
+                                       &m_renderGraphExecutor)) {
+      *errorMessage = "Render graph executor must be 'raytracer', 'rasterizer', or 'wireframe'";
+      return CommandLineError;
+    }
+    m_renderGraphExecutorSet = true;
+  }
+
+  if (parser.isSet("render_graph_view")) {
+    m_renderGraph = true;
+    if (!parseImplementedRenderViewMode(parser.value("render_graph_view"),
+                                        &m_renderGraphViewMode)) {
+      *errorMessage = "Render graph view mode must be 'default', 'beauty', or 'wireframe'";
+      return CommandLineError;
+    }
+    m_renderGraphViewModeSet = true;
   }
 
   if (parser.isSet("disable_pass")) {

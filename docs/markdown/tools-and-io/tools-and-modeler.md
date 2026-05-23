@@ -62,6 +62,10 @@ $ rendercli --render_graph_only --render_graph_format dot \
 The graph export formats are `text`, `dot`, and `json`. `--render_graph`
 renders through the graph engine instead of a direct engine, and
 `--render_graph_in plan.json` loads a saved JSON plan instead of compiling one.
+When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
+overrides the graph intent's default executor, and
+`--render_graph_view default|beauty|wireframe` overrides the graph intent's
+structural view mode.
 `--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
 `--disable_feature` apply graph overrides before validation or rendering.
 Those controls are intentionally graph-level: disabling the required

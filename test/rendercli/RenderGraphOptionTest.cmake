@@ -12,6 +12,8 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
+set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
+set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
 set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
@@ -67,6 +69,39 @@ if(NOT dot_graph MATCHES "digraph RenderPlan")
 endif()
 if(NOT dot_graph MATCHES "wireframe_beauty")
   message(FATAL_ERROR "DOT graph export did not contain wireframe_beauty: ${dot_graph}")
+endif()
+
+run_rendercli(
+  intent_stdout
+  intent_stderr
+  intent_result
+  "${RENDERCLI}" --render_graph_only --render_graph_format text
+  --engine raytracer --render_graph_executor rasterizer --width 32 --height 16
+  "${static_scene}" "${intent_plan}"
+)
+if(NOT intent_result EQUAL 0)
+  message(FATAL_ERROR "rendercli graph executor override failed: ${intent_stderr}")
+endif()
+file(READ "${intent_plan}" intent_graph)
+if(NOT intent_graph MATCHES "raster_beauty")
+  message(FATAL_ERROR "graph executor override did not select raster_beauty: ${intent_graph}")
+endif()
+
+run_rendercli(
+  intent_view_stdout
+  intent_view_stderr
+  intent_view_result
+  "${RENDERCLI}" --render_graph_only --render_graph_format text
+  --engine raytracer --render_graph_executor raytracer --render_graph_view wireframe
+  --width 32 --height 16
+  "${static_scene}" "${intent_view_plan}"
+)
+if(NOT intent_view_result EQUAL 0)
+  message(FATAL_ERROR "rendercli graph view override failed: ${intent_view_stderr}")
+endif()
+file(READ "${intent_view_plan}" intent_view_graph)
+if(NOT intent_view_graph MATCHES "wireframe_beauty")
+  message(FATAL_ERROR "graph view override did not select wireframe_beauty: ${intent_view_graph}")
 endif()
 
 run_rendercli(
