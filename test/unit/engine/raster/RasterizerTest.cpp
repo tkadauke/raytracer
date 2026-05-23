@@ -110,6 +110,12 @@ namespace RasterizerTest {
         EXPECT_EQ(expected[y][x], actual[y][x]) << "at (" << x << ", " << y << ")";
   }
 
+  static void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
+    EXPECT_NEAR(expected.r(), actual.r(), epsilon);
+    EXPECT_NEAR(expected.g(), actual.g(), epsilon);
+    EXPECT_NEAR(expected.b(), actual.b(), epsilon);
+  }
+
   static std::shared_ptr<Scene> sceneWithBox() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Box>(Vector3d::null, Vector3d(1, 1, 1)));
@@ -561,6 +567,13 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilFailOp());
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilDepthFailOp());
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilPassOp());
+    EXPECT_EQ(Rasterizer::ColorWriteAll, engine.colorWriteMask());
+    EXPECT_FALSE(engine.blendingEnabled());
+    EXPECT_EQ(Rasterizer::BlendFactor::One, engine.sourceBlendFactor());
+    EXPECT_EQ(Rasterizer::BlendFactor::Zero, engine.destinationBlendFactor());
+    EXPECT_EQ(Rasterizer::BlendOp::Add, engine.blendOp());
+    EXPECT_EQ(Colord::white(), engine.blendConstantColor());
+    EXPECT_DOUBLE_EQ(1.0, engine.blendConstantAlpha());
     EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
     EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
     EXPECT_EQ(1, engine.msaaSamples());
@@ -592,6 +605,12 @@ namespace RasterizerTest {
     engine.setShadowCascadeSplitLambda(0.75);
     engine.setShadowSlopeBias(0.02);
     engine.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
+    engine.setColorWriteMask(Rasterizer::ColorWriteGreen);
+    engine.setBlendingEnabled(true);
+    engine.setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
+                           Rasterizer::BlendFactor::OneMinusConstantAlpha);
+    engine.setBlendOp(Rasterizer::BlendOp::ReverseSubtract);
+    engine.setBlendConstant(Colord(0.25, 0.5, 0.75), 0.35);
     Buffer<double> depth(1, 1);
     Rasterizer::DiagnosticOutputBuffers outputs;
     outputs.depth = &depth;
@@ -607,6 +626,13 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.75, clone->shadowCascadeSplitLambda());
     EXPECT_DOUBLE_EQ(0.02, clone->shadowSlopeBias());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, clone->shadowFilterMode());
+    EXPECT_EQ(Rasterizer::ColorWriteGreen, clone->colorWriteMask());
+    EXPECT_TRUE(clone->blendingEnabled());
+    EXPECT_EQ(Rasterizer::BlendFactor::ConstantAlpha, clone->sourceBlendFactor());
+    EXPECT_EQ(Rasterizer::BlendFactor::OneMinusConstantAlpha, clone->destinationBlendFactor());
+    EXPECT_EQ(Rasterizer::BlendOp::ReverseSubtract, clone->blendOp());
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), clone->blendConstantColor());
+    EXPECT_DOUBLE_EQ(0.35, clone->blendConstantAlpha());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
   }
 
@@ -914,6 +940,65 @@ namespace RasterizerTest {
     stencilPipeline.render(stencilBuffer);
 
     expectBuffersEqual(fixedBuffer, stencilBuffer);
+  }
+
+  TEST(Rasterizer, ColorWriteMaskPreservesDisabledChannels) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord(0.1, 0.2, 0.3));
+    engine.setColorWriteMask(false, true, false);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
+      return Colord(0.8, 0.9, 1.0);
+    });
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    expectColorNear(Colord(0.1, 0.9, 0.3), buffer[32][32], 1e-12);
+  }
+
+  TEST(Rasterizer, BlendStateCombinesSourceAndDestinationColor) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
+    engine.setBlendingEnabled(true);
+    engine.setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
+                           Rasterizer::BlendFactor::OneMinusConstantAlpha);
+    engine.setBlendConstantAlpha(0.25);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
+      return Colord(1.0, 0.0, 0.0);
+    });
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    expectColorNear(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
+  }
+
+  TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithBlendState) {
+    auto scene = sceneWithFrontFacingTriangle();
+    auto configure = [](Rasterizer& engine) {
+      engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
+      engine.setBlendingEnabled(true);
+      engine.setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
+                             Rasterizer::BlendFactor::OneMinusConstantAlpha);
+      engine.setBlendConstantAlpha(0.25);
+      engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
+        return Colord(1.0, 0.0, 0.0);
+      });
+    };
+
+    Rasterizer singleTile(headOnCamera(), scene);
+    configure(singleTile);
+
+    Rasterizer tiled(headOnCamera(), scene);
+    tiled.setQueueSize(4);
+    configure(tiled);
+
+    Buffer<Colord> singleTileBuffer(64, 64);
+    Buffer<Colord> tiledBuffer(64, 64);
+    singleTile.render(singleTileBuffer);
+    tiled.render(tiledBuffer);
+
+    expectBuffersEqual(singleTileBuffer, tiledBuffer);
   }
 
   TEST(Rasterizer, FragmentShaderOverridesBuiltInShading) {

@@ -75,6 +75,24 @@ module ::Common
            )
   end
 
+  def rasterizer_color_output_scene
+    ambient [1.0, 1.0, 1.0]
+    background [0.18, 0.24, 0.34]
+
+    pinhole_camera :position => [0.0, 0.0, -3.4],
+                   :target => [0.0, 0.0, 0.0],
+                   :zoom => 1.55
+
+    rectangle :position => [-1.75, 1.10, 0.0],
+              :leg1 => [3.5, 0.0, 0.0],
+              :leg2 => [0.0, -2.20, 0.0],
+              :material => matte_material(
+                :diffuseTexture => constant_color_texture(:color => [0.94, 0.72, 0.12]),
+                :ambientCoefficient => 1.0,
+                :diffuseCoefficient => 0.0,
+              )
+  end
+
   def rasterizer_shadow_scene(light_direction: [-0.52, -0.78, -0.28])
     options(lod: 3)
     ambient [0.18, 0.18, 0.20]
@@ -221,6 +239,26 @@ class_doc(engine: "raster", width: 480, height: 240) do
   name "rasterizer_material_preview"
 
   rasterizer_material_preview_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180) do
+  name "rasterizer_color_output_rgb"
+
+  rasterizer_color_output_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180, color_write_mask: "g") do
+  name "rasterizer_color_output_green_mask"
+
+  rasterizer_color_output_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180, blend: true,
+          blend_src: "constant_alpha", blend_dst: "one_minus_constant_alpha",
+          blend_constant_alpha: 0.45) do
+  name "rasterizer_color_output_constant_alpha"
+
+  rasterizer_color_output_scene
 end
 
 class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do

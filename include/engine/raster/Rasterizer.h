@@ -90,7 +90,10 @@ namespace engine::raster {
   * screen-space winding after clipping. Depth/stencil state, opt-in
   * directional-light shadow maps, and tiny vertex/fragment shader
   * hooks are exposed for teaching the fixed-function stages without
-  * forcing the default path through the programmable callbacks.
+  * forcing the default path through the programmable callbacks. The final
+  * color-output stage supports RGB write masks and fixed-function blending;
+  * alpha-style composition is currently pass-constant because `Colord` has no
+  * stored alpha channel.
   * Shadow maps are disabled by default; with them disabled, lights are direct
   * material contributions only.
   *
@@ -106,6 +109,23 @@ namespace engine::raster {
   * <script type="text/javascript" src="figure.js"></script>
   * <script type="text/javascript" src="rasterizer_depth_stencil_cull.js"></script>
   * @endhtmlonly
+  *
+  * The color-output widget shows the final pass step: optional blending
+  * combines the shaded source with the framebuffer destination, then the
+  * write mask decides which RGB channels commit. The rendered examples below
+  * show the same source rectangle with all channels enabled, with only green
+  * writes enabled, and with constant-alpha source-over-destination blending.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="figure.js"></script>
+  * <script type="text/javascript" src="rasterizer_color_output.js"></script>
+  * @endhtmlonly
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_color_output_rgb.png "RGB write mask"</td>
+  * <td>@image html rasterizer_color_output_green_mask.png "green-only write mask"</td>
+  * <td>@image html rasterizer_color_output_constant_alpha.png "constant-alpha blending"</td>
+  * </tr></table>
   *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
@@ -367,6 +387,27 @@ public:
     Invert
   };
 
+  enum class BlendFactor {
+    Zero,
+    One,
+    SourceColor,
+    OneMinusSourceColor,
+    DestinationColor,
+    OneMinusDestinationColor,
+    ConstantColor,
+    OneMinusConstantColor,
+    ConstantAlpha,
+    OneMinusConstantAlpha
+  };
+
+  enum class BlendOp {
+    Add,
+    Subtract,
+    ReverseSubtract,
+    Min,
+    Max
+  };
+
   enum class PostProcessAA {
     None,
     FXAA
@@ -445,6 +486,12 @@ public:
 
   using VertexShader = std::function<VertexOutput(const VertexInput&)>;
   using FragmentShader = std::function<Colord(const FragmentInput&)>;
+
+  static constexpr std::uint8_t ColorWriteRed = 0x1;
+  static constexpr std::uint8_t ColorWriteGreen = 0x2;
+  static constexpr std::uint8_t ColorWriteBlue = 0x4;
+  static constexpr std::uint8_t ColorWriteAll =
+    ColorWriteRed | ColorWriteGreen | ColorWriteBlue;
 
   explicit Rasterizer(std::shared_ptr<render::Scene> scene);
   Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
@@ -712,6 +759,43 @@ public:
     m_stencilPassOp = pass;
   }
 
+  /// RGB channel mask applied after shading and blending. A disabled channel
+  /// preserves the destination framebuffer value while depth/stencil state
+  /// still updates normally. Defaults to all channels enabled.
+  inline std::uint8_t colorWriteMask() const { return m_colorWriteMask; }
+  inline void setColorWriteMask(std::uint8_t mask) { m_colorWriteMask = mask & ColorWriteAll; }
+  inline void setColorWriteMask(bool red, bool green, bool blue) {
+    setColorWriteMask((red ? ColorWriteRed : 0) | (green ? ColorWriteGreen : 0) |
+                      (blue ? ColorWriteBlue : 0));
+  }
+
+  /// Fixed-function RGB blending applied before the color write mask. The
+  /// current color type has no stored alpha channel; use `ConstantAlpha` /
+  /// `OneMinusConstantAlpha` for pass-level alpha-style compositing.
+  inline bool blendingEnabled() const { return m_blendingEnabled; }
+  inline void setBlendingEnabled(bool enabled) { m_blendingEnabled = enabled; }
+
+  inline BlendFactor sourceBlendFactor() const { return m_sourceBlendFactor; }
+  inline BlendFactor destinationBlendFactor() const { return m_destinationBlendFactor; }
+  inline void setBlendFactors(BlendFactor source, BlendFactor destination) {
+    m_sourceBlendFactor = source;
+    m_destinationBlendFactor = destination;
+  }
+
+  inline BlendOp blendOp() const { return m_blendOp; }
+  inline void setBlendOp(BlendOp op) { m_blendOp = op; }
+
+  inline const Colord& blendConstantColor() const { return m_blendConstantColor; }
+  inline double blendConstantAlpha() const { return m_blendConstantAlpha; }
+  inline void setBlendConstantColor(const Colord& color) { m_blendConstantColor = color; }
+  inline void setBlendConstantAlpha(double alpha) {
+    m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+  }
+  inline void setBlendConstant(const Colord& color, double alpha) {
+    setBlendConstantColor(color);
+    setBlendConstantAlpha(alpha);
+  }
+
   /// Optional programmable vertex stage over already-projected mesh
   /// attributes. Return an adjusted `VertexOutput`, or leave unset
   /// for the built-in pass-through stage.
@@ -775,6 +859,13 @@ private:
   StencilOp m_stencilFailOp{StencilOp::Keep};
   StencilOp m_stencilDepthFailOp{StencilOp::Keep};
   StencilOp m_stencilPassOp{StencilOp::Keep};
+  std::uint8_t m_colorWriteMask{ColorWriteAll};
+  bool m_blendingEnabled{false};
+  BlendFactor m_sourceBlendFactor{BlendFactor::One};
+  BlendFactor m_destinationBlendFactor{BlendFactor::Zero};
+  BlendOp m_blendOp{BlendOp::Add};
+  Colord m_blendConstantColor{Colord::white()};
+  double m_blendConstantAlpha{1.0};
   VertexShader m_vertexShader;
   FragmentShader m_fragmentShader;
   DiagnosticOutputBuffers m_diagnosticOutputBuffers;

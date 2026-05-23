@@ -98,6 +98,7 @@ namespace {
   using engine::raster::detail::accumulateMSAASample;
   using engine::raster::detail::cascadePointsForDepthRange;
   using engine::raster::detail::cascadeDepthRanges;
+  using engine::raster::detail::colorOutputPolicy;
   using engine::raster::detail::DepthState;
   using engine::raster::detail::DepthWritePolicy;
   using engine::raster::detail::DirectionalShadowCamera;
@@ -268,6 +269,11 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setStencilClearValue(m_stencilClearValue);
   result->setStencilWriteMask(m_stencilWriteMask);
   result->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
+  result->setColorWriteMask(m_colorWriteMask);
+  result->setBlendingEnabled(m_blendingEnabled);
+  result->setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
+  result->setBlendOp(m_blendOp);
+  result->setBlendConstant(m_blendConstantColor, m_blendConstantAlpha);
   result->setVertexShader(m_vertexShader);
   result->setFragmentShader(m_fragmentShader);
   if (hasBackgroundColorOverride()) {
@@ -465,8 +471,9 @@ void Rasterizer::Private::renderTriangleSetPass(
     scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
     [&](auto stencil, auto depth, auto fragmentPolicy) {
       rasterizeTriangleSetWithPolicies(triangleSet, tilePlan, *threadPool, tasks, cancelled,
-                                       fullBufferView(passBuffers.color()), sampleOffset, stencil,
-                                       depth, fragmentPolicy, diagnostics);
+                                       colorOutputPolicy(rasterizer,
+                                                         fullBufferView(passBuffers.color())),
+                                       sampleOffset, stencil, depth, fragmentPolicy, diagnostics);
     });
 }
 
@@ -479,7 +486,7 @@ void Rasterizer::Private::renderTriangleStreamPass(
   // batch or tile bins. Freeze render state once, then draw each emitted
   // triangle immediately into the full-frame pass buffers.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer);
-  auto colorView = fullBufferView(passBuffers.color());
+  auto colorView = colorOutputPolicy(rasterizer, fullBufferView(passBuffers.color()));
   auto depthView = fullBufferView(passBuffers.depth());
   RasterFullBufferView<std::uint8_t> stencilView;
   if (passBuffers.stencil()) {
@@ -597,7 +604,8 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
       scene.get(), rasterizer, shadowMaps, tileBufferView(scratch.depth(), rect), stencilView,
       [&](auto stencil, auto depth, auto fragmentPolicy) {
         rasterizeTileWithPolicies(
-          triangleSet, rect, tileIndex, tileBufferView(scratch.sampleColor(), rect),
+          triangleSet, rect, tileIndex,
+          colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)),
           pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy, diagnostics);
       });
 

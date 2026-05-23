@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rasterizer color-output state.** `Rasterizer` and `rendercli` now expose RGB color write masks and fixed-function blend state with source/destination factors, blend ops, and pass-constant blend color/alpha for multi-pass raster effects. — GPT-5
 - **Rasterizer slope-scaled shadow bias.** Directional shadow-map comparisons now support an opt-in `shadowSlopeBias` term that adds receiver-angle-dependent depth tolerance on top of the existing constant bias, with controls in `rendercli --shadow_slope_bias`, the Modeler render dialog, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
 - **Rasterizer diagnostic output buffers.** Direct `Rasterizer::render(Buffer<Colord>&)` calls can now attach borrowed depth, normal, primitive, material, face-id, and stencil buffers for pass diagnostics, picking experiments, and debug views. — GPT-5
 - **Rasterizer near/far clip-depth controls.** `Rasterizer` now exposes configurable eye-relative near and far clip depths; the near plane defaults to 0.1, the far plane defaults to infinity, and finite far depths clip geometry before perspective divide just like the near and viewport planes. — GPT-5

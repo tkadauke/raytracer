@@ -285,7 +285,41 @@ counter-clockwise convention); a positive signed area means
 counter-clockwise (front-facing). The cull check is one sign
 test before the rasterization-prep work begins.
 
-## 19.6 The full state machine, default values
+## 19.6 Color output
+
+After a fragment passes depth and stencil, the rasterizer enters
+the color-output stage. The default behavior is replacement:
+write the shaded RGB value into the framebuffer. Two pieces of
+state can change that write:
+
+- **Color write mask** — one bit each for red, green, and blue.
+  Disabled channels preserve the destination framebuffer value.
+  Depth and stencil updates still happen, so a pass can populate
+  visibility buffers without touching color.
+- **Blend state** — an optional RGB combine between the shaded
+  source color and the current destination color. The codebase
+  supports the standard source/destination factor shape
+  (`source * sourceFactor` combined with
+  `destination * destinationFactor`) plus `Add`, `Subtract`,
+  `ReverseSubtract`, `Min`, and `Max`.
+
+The current framebuffer color type is RGB-only. There is no
+stored source or destination alpha channel, so alpha-style
+compositing uses the rasterizer's pass-constant alpha through
+`BlendFactor::ConstantAlpha` and
+`BlendFactor::OneMinusConstantAlpha`. Material and texture opacity are
+not inputs to this stage today; the only alpha-like input is the pass
+constant alpha.
+
+The same source rectangle rendered through three color-output states:
+
+| RGB write mask | Green-only write mask | Constant-alpha blending |
+|---|---|---|
+| ![RGB write mask](../../images/rasterizer_color_output_rgb.png) | ![Green-only color write mask](../../images/rasterizer_color_output_green_mask.png) | ![Constant-alpha blend over the framebuffer destination](../../images/rasterizer_color_output_constant_alpha.png) |
+
+<!-- widget: rasterizer_color_output -->
+
+## 19.7 The full state machine, default values
 
 The configurable state at a glance:
 
@@ -299,24 +333,32 @@ The configurable state at a glance:
 | `StencilOp` (3) | all `Keep` | `setStencilOps` |
 | Stencil clear value | `0` | `setStencilClearValue` |
 | Stencil write mask | `0xFF` | `setStencilWriteMask` |
+| Color write mask | RGB enabled | `setColorWriteMask` |
+| Blending | disabled | `setBlendingEnabled` |
+| Blend factors | `One`, `Zero` | `setBlendFactors` |
+| Blend op | `Add` | `setBlendOp` |
+| Blend constant | white, alpha 1 | `setBlendConstant` |
 
 The defaults give back the textbook fixed-function pipeline
 the chapter-18 walkthrough describes: `Less` depth test, depth
-writes on, no stencil test, no culling, both sides rendered.
-Applications that want custom behavior set the relevant state
-before calling `render(...)`; the state persists across
-renders, so a single configuration applies to the whole frame.
+writes on, no stencil test, no blending, all RGB channels
+writable, no culling, both sides rendered. Applications that
+want custom behavior set the relevant state before calling
+`render(...)`; the state persists across renders, so a single
+configuration applies to the whole frame.
 
-## 19.7 Where this connects to GPU pipelines
+## 19.8 Where this connects to GPU pipelines
 
 Real-time GPU rasterizers expose essentially the same state
-machine — the Direct3D / OpenGL / Vulkan / Metal "depth-stencil
-state" is the same configuration as the codebase's, modulo
-spelling. The reason is that the state machine is the *minimum*
-configurability needed for the graphics-research-vintage
-techniques that pre-shader pipelines exposed: shadow volumes
-(stencil counting), reflections (stencil masking), [CSG](../appendix/a-glossary.md#c) (depth
-peeling), portal rendering (stencil regions).
+machine — the Direct3D / OpenGL / Vulkan / Metal depth-stencil
+and color-blend states are the same configuration as the
+codebase's, modulo spelling. The reason is that the state
+machine is the *minimum* configurability needed for the
+graphics-research-vintage techniques that pre-shader pipelines
+exposed: shadow volumes (stencil counting), reflections (stencil
+masking), [CSG](../appendix/a-glossary.md#c) (depth peeling),
+portal rendering (stencil regions), and layered compositing
+(blend state).
 
 When the codebase eventually grows a GPU rasterizer engine
 (roadmap §4.1, second-order item), the GPU rasterizer will
@@ -324,7 +366,7 @@ take exactly these state knobs and translate them to the GPU's
 native state objects. The fixed-function semantics carry over
 unchanged.
 
-## 19.8 Exercises
+## 19.9 Exercises
 
 1. Predict what happens when a triangle has all three vertices
    *behind* the camera. Trace the clipping algorithm: what

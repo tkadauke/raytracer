@@ -225,7 +225,120 @@ namespace engine::raster::detail {
     }
   };
 
-  // Built-in fragment policy: material lookup and direct Lambertian shading.
+  // Fixed-function color output state. It resolves the shaded source color
+  // against the current framebuffer value, then applies the RGB write mask.
+  // There is no alpha channel in `Colord`, so alpha-style blending uses the
+  // pass constant alpha because material/fragment opacity is not represented
+  // in this path.
+  struct ColorOutputState {
+    std::uint8_t writeMask;
+    bool blendEnabled;
+    Rasterizer::BlendFactor sourceFactor;
+    Rasterizer::BlendFactor destinationFactor;
+    Rasterizer::BlendOp op;
+    Colord constantColor;
+    double constantAlpha;
+
+    inline double factor(Rasterizer::BlendFactor blendFactor, const Colord& source,
+                         const Colord& destination, int channel) const {
+      switch (blendFactor) {
+      case Rasterizer::BlendFactor::Zero:
+        return 0.0;
+      case Rasterizer::BlendFactor::One:
+        return 1.0;
+      case Rasterizer::BlendFactor::SourceColor:
+        return source[channel];
+      case Rasterizer::BlendFactor::OneMinusSourceColor:
+        return 1.0 - source[channel];
+      case Rasterizer::BlendFactor::DestinationColor:
+        return destination[channel];
+      case Rasterizer::BlendFactor::OneMinusDestinationColor:
+        return 1.0 - destination[channel];
+      case Rasterizer::BlendFactor::ConstantColor:
+        return constantColor[channel];
+      case Rasterizer::BlendFactor::OneMinusConstantColor:
+        return 1.0 - constantColor[channel];
+      case Rasterizer::BlendFactor::ConstantAlpha:
+        return constantAlpha;
+      case Rasterizer::BlendFactor::OneMinusConstantAlpha:
+        return 1.0 - constantAlpha;
+      }
+      return 1.0;
+    }
+
+    inline Colord blend(const Colord& source, const Colord& destination) const {
+      if (!blendEnabled) {
+        return source;
+      }
+
+      Colord result;
+      for (int i = 0; i != 3; ++i) {
+        if (op == Rasterizer::BlendOp::Min) {
+          result[i] = std::min(source[i], destination[i]);
+        } else if (op == Rasterizer::BlendOp::Max) {
+          result[i] = std::max(source[i], destination[i]);
+        } else {
+          const double sourceTerm = source[i] * factor(sourceFactor, source, destination, i);
+          const double destinationTerm =
+            destination[i] * factor(destinationFactor, source, destination, i);
+          switch (op) {
+          case Rasterizer::BlendOp::Add:
+            result[i] = sourceTerm + destinationTerm;
+            break;
+          case Rasterizer::BlendOp::Subtract:
+            result[i] = sourceTerm - destinationTerm;
+            break;
+          case Rasterizer::BlendOp::ReverseSubtract:
+            result[i] = destinationTerm - sourceTerm;
+            break;
+          case Rasterizer::BlendOp::Min:
+          case Rasterizer::BlendOp::Max:
+            break;
+          }
+        }
+      }
+      return result;
+    }
+
+    inline Colord resolve(const Colord& source, const Colord& destination) const {
+      const Colord blended = blend(source, destination);
+      Colord result = destination;
+      if (writeMask & Rasterizer::ColorWriteRed) {
+        result[0] = blended[0];
+      }
+      if (writeMask & Rasterizer::ColorWriteGreen) {
+        result[1] = blended[1];
+      }
+      if (writeMask & Rasterizer::ColorWriteBlue) {
+        result[2] = blended[2];
+      }
+      return result;
+    }
+  };
+
+  template<class BufferView>
+  struct ColorOutputPolicy {
+    BufferView colorBuffer;
+    ColorOutputState state;
+
+    inline void write(int x, int y, const Colord& source) const {
+      const Colord destination = colorBuffer.at(x, y);
+      colorBuffer.at(x, y) = state.resolve(source, destination);
+    }
+  };
+
+  template<class BufferView>
+  inline ColorOutputPolicy<BufferView> colorOutputPolicy(const Rasterizer& rasterizer,
+                                                         BufferView colorBuffer) {
+    const ColorOutputState state{
+      rasterizer.colorWriteMask(),       rasterizer.blendingEnabled(),
+      rasterizer.sourceBlendFactor(),    rasterizer.destinationBlendFactor(),
+      rasterizer.blendOp(),              rasterizer.blendConstantColor(),
+      rasterizer.blendConstantAlpha()};
+    return {colorBuffer, state};
+  }
+
+  // Built-in fragment policy: material lookup and direct local material shading.
   // This is the default fixed-function fragment stage.
   struct BuiltInFragmentPolicy {
     MaterialEvaluator materialEvaluator;
@@ -286,7 +399,7 @@ namespace engine::raster::detail {
         diagnostics.writeStencil(x, y, stencil.value(x, y));
         const Colord shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         depth.write(x, y, fragment.depth);
-        colorBuffer.at(x, y) = shaded;
+        colorBuffer.write(x, y, shaded);
         diagnostics.writeFragment(triangle, x, y, fragment);
       });
   }

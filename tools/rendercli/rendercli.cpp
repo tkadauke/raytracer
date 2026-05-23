@@ -26,6 +26,7 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
@@ -69,6 +70,117 @@ namespace {
               << " median=" << stats.medianMs << " avg=" << stats.avgMs << " max=" << stats.maxMs
               << '\n';
   }
+
+  QString normalizedRasterOption(QString value) {
+    value = value.trimmed().toLower();
+    value.remove('_');
+    value.remove('-');
+    value.remove(',');
+    value.remove(' ');
+    return value;
+  }
+
+  bool parseColorWriteMask(const QString& value, std::uint8_t* mask) {
+    const QString normalized = normalizedRasterOption(value);
+    if (normalized == "none" || normalized == "0") {
+      *mask = 0;
+      return true;
+    }
+    if (normalized == "all") {
+      *mask = engine::raster::Rasterizer::ColorWriteAll;
+      return true;
+    }
+    if (normalized.isEmpty()) {
+      return false;
+    }
+
+    std::uint8_t parsed = 0;
+    for (const QChar ch : normalized) {
+      if (ch == 'r') {
+        parsed |= engine::raster::Rasterizer::ColorWriteRed;
+      } else if (ch == 'g') {
+        parsed |= engine::raster::Rasterizer::ColorWriteGreen;
+      } else if (ch == 'b') {
+        parsed |= engine::raster::Rasterizer::ColorWriteBlue;
+      } else {
+        return false;
+      }
+    }
+    *mask = parsed;
+    return true;
+  }
+
+  bool parseBlendFactor(const QString& value, engine::raster::Rasterizer::BlendFactor* factor) {
+    const QString normalized = normalizedRasterOption(value);
+    using BlendFactor = engine::raster::Rasterizer::BlendFactor;
+    if (normalized == "zero") {
+      *factor = BlendFactor::Zero;
+    } else if (normalized == "one") {
+      *factor = BlendFactor::One;
+    } else if (normalized == "sourcecolor" || normalized == "srccolor") {
+      *factor = BlendFactor::SourceColor;
+    } else if (normalized == "oneminussourcecolor" || normalized == "1minussourcecolor" ||
+               normalized == "1srccolor") {
+      *factor = BlendFactor::OneMinusSourceColor;
+    } else if (normalized == "destinationcolor" || normalized == "dstcolor") {
+      *factor = BlendFactor::DestinationColor;
+    } else if (normalized == "oneminusdestinationcolor" ||
+               normalized == "1minusdestinationcolor" || normalized == "1dstcolor") {
+      *factor = BlendFactor::OneMinusDestinationColor;
+    } else if (normalized == "constantcolor" || normalized == "constcolor") {
+      *factor = BlendFactor::ConstantColor;
+    } else if (normalized == "oneminusconstantcolor" || normalized == "1minusconstantcolor" ||
+               normalized == "1constcolor") {
+      *factor = BlendFactor::OneMinusConstantColor;
+    } else if (normalized == "constantalpha" || normalized == "constalpha") {
+      *factor = BlendFactor::ConstantAlpha;
+    } else if (normalized == "oneminusconstantalpha" || normalized == "1minusconstantalpha" ||
+               normalized == "1constalpha") {
+      *factor = BlendFactor::OneMinusConstantAlpha;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool parseBlendOp(const QString& value, engine::raster::Rasterizer::BlendOp* op) {
+    const QString normalized = normalizedRasterOption(value);
+    using BlendOp = engine::raster::Rasterizer::BlendOp;
+    if (normalized == "add") {
+      *op = BlendOp::Add;
+    } else if (normalized == "subtract" || normalized == "sub") {
+      *op = BlendOp::Subtract;
+    } else if (normalized == "reversesubtract" || normalized == "revsub") {
+      *op = BlendOp::ReverseSubtract;
+    } else if (normalized == "min") {
+      *op = BlendOp::Min;
+    } else if (normalized == "max") {
+      *op = BlendOp::Max;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool parseColorTriplet(const QString& value, Colord* color) {
+    const QStringList parts = value.split(',', Qt::SkipEmptyParts);
+    if (parts.size() != 3) {
+      return false;
+    }
+
+    double components[3];
+    for (int i = 0; i < 3; ++i) {
+      bool ok = false;
+      components[i] = parts[i].trimmed().toDouble(&ok);
+      if (!ok || !std::isfinite(components[i]) || components[i] < 0.0 ||
+          components[i] > 1.0) {
+        return false;
+      }
+    }
+
+    *color = Colord(components[0], components[1], components[2]);
+    return true;
+  }
 }
 
 class Renderer {
@@ -107,6 +219,13 @@ private:
   QString m_rasterCullMode;
   int m_rasterMsaaSamples;
   QString m_rasterPostProcessAA;
+  std::uint8_t m_rasterColorWriteMask;
+  bool m_rasterBlending;
+  engine::raster::Rasterizer::BlendFactor m_rasterBlendSourceFactor;
+  engine::raster::Rasterizer::BlendFactor m_rasterBlendDestinationFactor;
+  engine::raster::Rasterizer::BlendOp m_rasterBlendOp;
+  Colord m_rasterBlendConstantColor;
+  double m_rasterBlendConstantAlpha;
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
   int m_rasterShadowCascadeCount;
@@ -150,6 +269,13 @@ Renderer::Renderer()
       m_rasterCullMode("both"),
       m_rasterMsaaSamples(1),
       m_rasterPostProcessAA("none"),
+      m_rasterColorWriteMask(engine::raster::Rasterizer::ColorWriteAll),
+      m_rasterBlending(false),
+      m_rasterBlendSourceFactor(engine::raster::Rasterizer::BlendFactor::One),
+      m_rasterBlendDestinationFactor(engine::raster::Rasterizer::BlendFactor::Zero),
+      m_rasterBlendOp(engine::raster::Rasterizer::BlendOp::Add),
+      m_rasterBlendConstantColor(Colord::white()),
+      m_rasterBlendConstantAlpha(1.0),
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
       m_rasterShadowCascadeCount(1),
@@ -224,6 +350,11 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (m_rasterPostProcessAA == "fxaa") {
       raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
     }
+    raster->setColorWriteMask(m_rasterColorWriteMask);
+    raster->setBlendingEnabled(m_rasterBlending);
+    raster->setBlendFactors(m_rasterBlendSourceFactor, m_rasterBlendDestinationFactor);
+    raster->setBlendOp(m_rasterBlendOp);
+    raster->setBlendConstant(m_rasterBlendConstantColor, m_rasterBlendConstantAlpha);
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
@@ -435,6 +566,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa)", "mode"},
+     {"color_write_mask", "Rasterizer color-write mask (rgb, r, g, b, rg, rb, gb, none)",
+      "mask"},
+     {"blend", "Enable rasterizer fixed-function blending"},
+     {"blend_src", "Rasterizer source blend factor", "factor"},
+     {"blend_dst", "Rasterizer destination blend factor", "factor"},
+     {"blend_op", "Rasterizer blend operation (add, subtract, reverse_subtract, min, max)",
+      "op"},
+     {"blend_constant_color", "Rasterizer blend constant color as r,g,b in 0..1", "color"},
+     {"blend_constant_alpha", "Rasterizer blend constant alpha in 0..1", "alpha"},
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
@@ -576,6 +716,55 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterPostProcessAA = postAA;
+  }
+
+  if (parser.isSet("color_write_mask")) {
+    if (!parseColorWriteMask(parser.value("color_write_mask"), &m_rasterColorWriteMask)) {
+      *errorMessage = "Color write mask must contain only r, g, b, or be 'none'";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("blend")) {
+    m_rasterBlending = true;
+  }
+
+  if (parser.isSet("blend_src")) {
+    if (!parseBlendFactor(parser.value("blend_src"), &m_rasterBlendSourceFactor)) {
+      *errorMessage = "Source blend factor is not recognized";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("blend_dst")) {
+    if (!parseBlendFactor(parser.value("blend_dst"), &m_rasterBlendDestinationFactor)) {
+      *errorMessage = "Destination blend factor is not recognized";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("blend_op")) {
+    if (!parseBlendOp(parser.value("blend_op"), &m_rasterBlendOp)) {
+      *errorMessage = "Blend operation must be add, subtract, reverse_subtract, min, or max";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("blend_constant_color")) {
+    if (!parseColorTriplet(parser.value("blend_constant_color"), &m_rasterBlendConstantColor)) {
+      *errorMessage = "Blend constant color must be three comma-separated values in 0..1";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("blend_constant_alpha")) {
+    bool ok = false;
+    const double alpha = parser.value("blend_constant_alpha").toDouble(&ok);
+    if (!ok || !std::isfinite(alpha) || alpha < 0.0 || alpha > 1.0) {
+      *errorMessage = "Blend constant alpha must be a number from 0 to 1";
+      return CommandLineError;
+    }
+    m_rasterBlendConstantAlpha = alpha;
   }
 
   if (parser.isSet("shadow_maps")) {

@@ -233,8 +233,9 @@ Define explicit raster-preview behavior for:
   raytracer, while still omitting recursive reflection/refraction;
 - ✅ a reusable raster material preview scene and rendered API/textbook image
   exercise Matte coefficient differences plus broad and tight Phong highlights;
-- alpha test and alpha blending;
-- color write masks and blend state;
+- alpha test and material/texture-sourced alpha blending;
+- ✅ color write masks and RGB blend state, including rendercli flags plus
+  rendered API/textbook examples;
 - direct UV texture lookup paths;
 - mipmapping or other texture filtering once image textures are prominent;
 - tangent-space normal mapping if/when normal maps enter the material system;
@@ -270,8 +271,8 @@ Before planar reflections, portals, decals, or selection overlays become real
 features, the rasterizer needs more fixed-function state:
 
 - scissor and viewport state;
-- blend state;
-- color write masks;
+- ✅ blend state;
+- ✅ color write masks;
 - depth bias that applies outside shadow maps too;
 - explicit load/clear/store behavior for color, depth, and stencil buffers.
 

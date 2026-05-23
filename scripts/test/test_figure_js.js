@@ -1149,6 +1149,42 @@ test('Rasterizer state widget exposes depth stencil and culling controls', () =>
   assert.ok(triangleOutlines.some(p => p.attributes['data-triangle-facing'] === 'back'));
 });
 
+test('Rasterizer color-output widget exposes blend and write-mask state', () => {
+  const body = loadWidget('rasterizer_color_output.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('blend equation'));
+  assert.ok(text.includes('write mask'));
+  assert.ok(text.includes('framebuffer output'));
+
+  assert.equal(countElements(body, 'select'), 2,
+    'source and destination blend factors should use compact menus');
+  assert.equal(countElements(body, 'input'), 1,
+    'constant alpha should use a scalar slider');
+  assert.equal(countElements(body, 'button'), 17,
+    'color choices, blend toggle, op, and write mask should use segmented controls');
+
+  const root = elementsByTag(body, 'svg')[0];
+  assert.equal(root.attributes['data-blend-enabled'], '1');
+  assert.equal(root.attributes['data-source-factor'], 'ConstantAlpha');
+  assert.equal(root.attributes['data-destination-factor'], 'OneMinusConstantAlpha');
+  assert.equal(root.attributes['data-blend-op'], 'Add');
+  assert.equal(root.attributes['data-write-mask'], 'rgb');
+
+  const roles = elementsByTag(body, 'rect')
+    .map(rect => rect.attributes['data-color-role'])
+    .filter(Boolean);
+  assert.ok(roles.includes('source'));
+  assert.ok(roles.includes('destination'));
+  assert.ok(roles.includes('blended'));
+  assert.ok(roles.includes('constant'));
+  assert.ok(roles.includes('output'));
+
+  const channelStates = elementsByTag(body, 'rect')
+    .filter(rect => rect.attributes['data-write-channel'])
+    .map(rect => rect.attributes['data-channel-enabled']);
+  assert.deepEqual(channelStates, ['1', '1', '1']);
+});
+
 test('Rasterizer shadow-map widget explains light depth comparison', () => {
   const body = loadWidget('rasterizer_shadow_map.js');
   const text = textContents(body).join(' ');
