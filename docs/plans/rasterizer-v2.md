@@ -164,7 +164,7 @@ review:
 - decide whether the cascade split diagnostic belongs inside the Modeler live
   preview;
 - ✅ make shadow passes true depth-only passes with no color scratch buffer;
-- pre-bind shadow maps to prepared light data instead of doing per-fragment
+- ✅ pre-bind shadow maps to prepared light data instead of doing per-fragment
   light-pointer lookup;
 - add slope-scaled and/or normal-offset bias in addition to constant bias;
 - tighten directional cascade fitting using light-space bounds rather than broad

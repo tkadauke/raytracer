@@ -9,6 +9,7 @@
 #include "render/primitives/Scene.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace engine::raster::detail {
 
@@ -17,14 +18,28 @@ namespace engine::raster::detail {
   // scene ambient contribution at full albedo strength.
   inline constexpr double kAmbientCoefficient = 1.0;
 
+  // Per-pass light payload for the built-in fragment path. Shadow maps are
+  // bound here once when the pass state is frozen, so fragment shading does not
+  // search the frame-level shadow-map collection for every light contribution.
+  struct PreparedRasterLight {
+    const render::Light* light;
+    Colord radiance;
+    const DirectionalShadowMap* shadowMap;
+  };
+
   // Built-in material shader for the fixed-function raster path. It deliberately
   // stays modest: raster material albedo plus ambient and direct Lambertian
   // lights, optionally masked by the frame's directional shadow maps.
   class MaterialEvaluator {
   public:
     explicit MaterialEvaluator(const render::Scene* scene, const ShadowMaps* shadowMaps)
-        : m_scene(scene),
-          m_shadowMaps(shadowMaps) {
+        : m_scene(scene) {
+      m_lights.reserve(static_cast<std::size_t>(m_scene->lights().size()));
+      for (const auto& light : m_scene->lights()) {
+        const render::Light* lightPtr = light.get();
+        m_lights.push_back({lightPtr, lightPtr->radiance(),
+                            shadowMaps ? shadowMaps->forLight(lightPtr) : nullptr});
+      }
     }
 
     Colord shade(const RasterTriangle& triangle, const InterpolatedFragment& fragment) const {
@@ -40,14 +55,13 @@ namespace engine::raster::detail {
       // Raster shadow maps only mask direct diffuse light. Ambient remains
       // visible because it models light not explained by the direct-light pass.
       Colord shaded = m_scene->ambient() * kAmbientCoefficient * albedo;
-      for (const auto& light : m_scene->lights()) {
-        const Vector3d lightDir = light->direction(worldPos);
+      for (const auto& light : m_lights) {
+        const Vector3d lightDir = light.light->direction(worldPos);
         const double nDotL = std::max(0.0, n * lightDir);
         if (nDotL > 0.0) {
-          const double visibility =
-            m_shadowMaps ? m_shadowMaps->visibility(light.get(), worldPos) : 1.0;
+          const double visibility = light.shadowMap ? light.shadowMap->visibility(worldPos) : 1.0;
           if (visibility > 0.0)
-            shaded += albedo * light->radiance() * nDotL * visibility;
+            shaded += albedo * light.radiance * nDotL * visibility;
         }
       }
       return shaded;
@@ -55,7 +69,7 @@ namespace engine::raster::detail {
 
   private:
     const render::Scene* m_scene;
-    const ShadowMaps* m_shadowMaps;
+    std::vector<PreparedRasterLight> m_lights;
   };
 
 }

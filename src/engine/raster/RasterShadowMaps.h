@@ -278,10 +278,10 @@ namespace engine::raster::detail {
     Rasterizer::ShadowFilterMode m_filterMode;
   };
 
-  // Frame-level shadow-map collection. The built-in material evaluator asks it
-  // for visibility per light; lights without a matching shadow map are treated
-  // as fully visible so non-directional lights and disabled shadow passes keep
-  // their direct contribution.
+  // Frame-level shadow-map collection. It stores directional-light maps built
+  // before the camera pass; the material evaluator binds matching maps to its
+  // prepared light list once per pass instead of searching this collection for
+  // every shaded fragment.
   class ShadowMaps {
   public:
     void add(DirectionalShadowMap shadowMap) {
@@ -292,12 +292,12 @@ namespace engine::raster::detail {
       return m_directional.empty();
     }
 
-    double visibility(const render::Light* light, const Vector3d& worldPos) const {
+    const DirectionalShadowMap* forLight(const render::Light* light) const {
       for (const auto& shadowMap : m_directional) {
         if (shadowMap.light() == light)
-          return shadowMap.visibility(worldPos);
+          return &shadowMap;
       }
-      return 1.0;
+      return nullptr;
     }
 
   private:
