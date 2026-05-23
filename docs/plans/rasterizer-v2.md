@@ -236,7 +236,9 @@ Define explicit raster-preview behavior for:
 - alpha test and material/texture-sourced alpha blending;
 - ✅ color write masks and RGB blend state, including rendercli flags plus
   rendered API/textbook examples;
-- direct UV texture lookup paths;
+- ✅ direct UV texture lookup paths for exact `UVColorTexture` and UV-mapped
+  `CheckerBoardTexture`, with arbitrary textures still falling back to virtual
+  `Texture::evaluate(...)` on a synthesized raster hit context;
 - mipmapping or other texture filtering once image textures are prominent;
 - tangent-space normal mapping if/when normal maps enter the material system;
 - material-sidedness-driven default culling.
@@ -290,8 +292,12 @@ applying the material's color filter at composite time. The existing
 `scripts/docs/portal_material.rb` image stays raytracer-only until that pass
 composition exists.
 
-This can stay rasterizer-local at first, but it should align with the future
-render-pass graph rather than inventing incompatible state names.
+Do not grow this into a rasterizer-only multi-pass API. The eventual
+render-pass graph should be engine-agnostic: one frame may raytrace a room,
+rasterize an offscreen computer display, draw a wireframe diagnostic view, and
+composite the pieces through shared color/depth/stencil/AOV resources. The
+rasterizer-local state above is only the fixed-function vocabulary needed to
+participate in that broader graph later.
 
 ---
 

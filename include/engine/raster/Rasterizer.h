@@ -176,10 +176,14 @@ namespace engine::raster {
   * <td>@image html rasterizer_engine_lod_4.png "lod=4"</td>
   * </tr></table>
   *
-  * Interpolated UVs feed the same material texture path as ray-hit
-  * positions. The first image maps `(u, v)` directly to `(red,
-  * green)` so interpolation errors are visible as color bends; the
-  * second samples a UV-scaled checkerboard on a rotated box.
+  * Interpolated UVs feed material texture sampling with the same values a
+  * ray-hit path would see. Common UV-only textures such as UVColorTexture and
+  * UV-mapped CheckerBoardTexture are sampled directly from the raster
+  * fragment's UV; arbitrary texture objects still receive a synthesized hit
+  * context so their virtual evaluate() behavior is preserved. The first image
+  * maps `(u, v)` directly to `(red, green)` so interpolation errors are visible
+  * as color bends; the second samples a UV-scaled checkerboard on a rotated
+  * box.
   *
   * <table><tr>
   * <td>@image html rasterizer_uv_albedo.png "UV albedo diagnostic: red = u, green = v"</td>

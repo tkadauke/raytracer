@@ -7,9 +7,13 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/primitives/Primitive.h"
+#include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
+#include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <typeinfo>
@@ -27,16 +31,112 @@ namespace engine::raster::detail {
     return Colord(0.3 + (r / 255.0) * 0.7, 0.3 + (g / 255.0) * 0.7, 0.3 + (b / 255.0) * 0.7);
   }
 
+  // Raster-native wrapper around render textures. Textures that only need the
+  // interpolated UV can be evaluated directly; arbitrary textures still fall
+  // back to the render::Texture interface with a synthetic ray-hit context.
+  class RasterTexture {
+  public:
+    RasterTexture()
+        : m_kind(Kind::Constant),
+          m_color(Colord::black()),
+          m_uScale(1.0),
+          m_vScale(1.0) {
+    }
+
+    static RasterTexture constant(const Colord& color) {
+      RasterTexture result;
+      result.m_color = color;
+      return result;
+    }
+
+    static RasterTexture from(std::shared_ptr<render::Texturec> texture) {
+      if (!texture)
+        return fallback(nullptr);
+
+      const render::Texturec* texturePtr = texture.get();
+      if (typeid(*texturePtr) == typeid(render::ConstantColorTexture)) {
+        const auto* constantTexture = static_cast<const render::ConstantColorTexture*>(texturePtr);
+        return constant(constantTexture->color());
+      }
+
+      if (typeid(*texturePtr) == typeid(render::UVColorTexture)) {
+        RasterTexture result;
+        result.m_kind = Kind::UVColor;
+        return result;
+      }
+
+      if (typeid(*texturePtr) == typeid(render::CheckerBoardTexture)) {
+        const auto* checker = static_cast<const render::CheckerBoardTexture*>(texturePtr);
+        const render::TextureMapping2D* mapping = checker->mapping();
+        if (mapping && typeid(*mapping) == typeid(render::UVMapping2D) &&
+            checker->brightTexture() && checker->darkTexture()) {
+          const auto* uvMapping = static_cast<const render::UVMapping2D*>(mapping);
+          RasterTexture result;
+          result.m_kind = Kind::UVChecker;
+          result.m_uScale = uvMapping->uScale();
+          result.m_vScale = uvMapping->vScale();
+          result.m_bright = std::make_shared<RasterTexture>(from(checker->brightTexture()));
+          result.m_dark = std::make_shared<RasterTexture>(from(checker->darkTexture()));
+          return result;
+        }
+      }
+
+      return fallback(std::move(texture));
+    }
+
+    Colord evaluate(const render::Primitive* primitive, const Vector3d& worldPos,
+                    const Vector3d& normal, const Vector2d& uv) const {
+      switch (m_kind) {
+      case Kind::Constant:
+        return m_color;
+      case Kind::UVColor:
+        return Colord(uv.x(), uv.y(), 0.0);
+      case Kind::UVChecker:
+        return checkerChild(uv).evaluate(primitive, worldPos, normal, uv);
+      case Kind::Fallback: {
+        const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
+        const Rayd ray(worldPos, -normal);
+        return m_texture->evaluate(ray, hp);
+      }
+      }
+      return m_color;
+    }
+
+  private:
+    enum class Kind { Constant, UVColor, UVChecker, Fallback };
+
+    static RasterTexture fallback(std::shared_ptr<render::Texturec> texture) {
+      RasterTexture result;
+      result.m_kind = Kind::Fallback;
+      result.m_texture = std::move(texture);
+      return result;
+    }
+
+    const RasterTexture& checkerChild(const Vector2d& uv) const {
+      const double s = uv.x() * m_uScale;
+      const double t = uv.y() * m_vScale;
+      const int parity = static_cast<int>(std::floor(s)) + static_cast<int>(std::floor(t));
+      return (parity % 2 == 0) ? *m_bright : *m_dark;
+    }
+
+    Kind m_kind;
+    Colord m_color;
+    std::shared_ptr<render::Texturec> m_texture;
+    double m_uScale;
+    double m_vScale;
+    std::shared_ptr<RasterTexture> m_bright;
+    std::shared_ptr<RasterTexture> m_dark;
+  };
+
   // Per-triangle material adapter used by the built-in fragment path. Most
   // triangles collapse to a constant albedo; texture-backed materials keep a
-  // shared texture pointer and evaluate it with the interpolated fragment
-  // context only when a fragment is actually shaded.
+  // raster texture adapter and evaluate it with the interpolated fragment
+  // context only when a fragment is actually shaded. Common UV-only textures
+  // avoid constructing ray-hit context in the fragment loop.
   class RasterMaterial {
   public:
     RasterMaterial()
-        : m_kind(Kind::Constant),
-          m_albedo(Colord::black()),
-          m_texture(nullptr),
+        : m_albedo(RasterTexture::constant(Colord::black())),
           m_ambientCoefficient(1.0),
           m_diffuseCoefficient(1.0),
           m_specularColor(Colord::black()),
@@ -49,28 +149,29 @@ namespace engine::raster::detail {
                                    const Colord& specularColor = Colord::black(),
                                    double specularCoefficient = 0.0,
                                    double specularExponent = 16.0) {
-      return RasterMaterial(Kind::Constant, albedo, nullptr, ambientCoefficient,
-                            diffuseCoefficient, specularColor, specularCoefficient,
-                            specularExponent);
+      return RasterMaterial(RasterTexture::constant(albedo), ambientCoefficient, diffuseCoefficient,
+                            specularColor, specularCoefficient, specularExponent);
+    }
+
+    static RasterMaterial texture(const RasterTexture& texture, double ambientCoefficient,
+                                  double diffuseCoefficient, const Colord& specularColor,
+                                  double specularCoefficient, double specularExponent) {
+      return RasterMaterial(texture, ambientCoefficient, diffuseCoefficient, specularColor,
+                            specularCoefficient, specularExponent);
     }
 
     static RasterMaterial texture(std::shared_ptr<render::Texturec> texture,
                                   double ambientCoefficient, double diffuseCoefficient,
                                   const Colord& specularColor, double specularCoefficient,
                                   double specularExponent) {
-      return RasterMaterial(Kind::Texture, Colord::black(), std::move(texture), ambientCoefficient,
+      return RasterMaterial(RasterTexture::from(std::move(texture)), ambientCoefficient,
                             diffuseCoefficient, specularColor, specularCoefficient,
                             specularExponent);
     }
 
     Colord albedo(const render::Primitive* primitive, const Vector3d& worldPos,
                   const Vector3d& normal, const Vector2d& uv) const {
-      if (m_kind == Kind::Constant || !m_texture)
-        return m_albedo;
-
-      const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
-      const Rayd ray(worldPos, -normal);
-      return m_texture->evaluate(ray, hp);
+      return m_albedo.evaluate(primitive, worldPos, normal, uv);
     }
 
     double ambientCoefficient() const {
@@ -98,15 +199,10 @@ namespace engine::raster::detail {
     }
 
   private:
-    enum class Kind { Constant, Texture };
-
-    RasterMaterial(Kind kind, const Colord& albedo, std::shared_ptr<render::Texturec> texture,
-                   double ambientCoefficient, double diffuseCoefficient,
-                   const Colord& specularColor, double specularCoefficient,
-                   double specularExponent)
-        : m_kind(kind),
-          m_albedo(albedo),
-          m_texture(std::move(texture)),
+    RasterMaterial(const RasterTexture& albedo, double ambientCoefficient,
+                   double diffuseCoefficient, const Colord& specularColor,
+                   double specularCoefficient, double specularExponent)
+        : m_albedo(albedo),
           m_ambientCoefficient(ambientCoefficient),
           m_diffuseCoefficient(diffuseCoefficient),
           m_specularColor(specularColor),
@@ -114,9 +210,7 @@ namespace engine::raster::detail {
           m_specularExponent(specularExponent) {
     }
 
-    Kind m_kind;
-    Colord m_albedo;
-    std::shared_ptr<render::Texturec> m_texture;
+    RasterTexture m_albedo;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
     Colord m_specularColor;
@@ -145,7 +239,7 @@ namespace engine::raster::detail {
         return constantAlbedo(constant->color(), *matte, phong.get());
       }
 
-      return textured(std::move(texture), *matte, phong.get());
+      return textured(RasterTexture::from(std::move(texture)), *matte, phong.get());
     }
 
     RasterMaterial forFace(std::uint64_t faceIdx) const {
@@ -154,8 +248,7 @@ namespace engine::raster::detail {
         return RasterMaterial::constant(fallbackFaceColor(faceIdx));
       case Kind::Constant:
         return RasterMaterial::constant(m_albedo, m_ambientCoefficient, m_diffuseCoefficient,
-                                        m_specularColor, m_specularCoefficient,
-                                        m_specularExponent);
+                                        m_specularColor, m_specularCoefficient, m_specularExponent);
       case Kind::Texture:
         return RasterMaterial::texture(m_texture, m_ambientCoefficient, m_diffuseCoefficient,
                                        m_specularColor, m_specularCoefficient, m_specularExponent);
@@ -167,40 +260,42 @@ namespace engine::raster::detail {
     enum class Kind { FaceColor, Constant, Texture };
 
     static RasterMaterialSource faceColor() {
-      return RasterMaterialSource(Kind::FaceColor, Colord::black(), nullptr);
+      return RasterMaterialSource(Kind::FaceColor, Colord::black(),
+                                  RasterTexture::constant(Colord::black()));
     }
 
     static RasterMaterialSource constantAlbedo(const Colord& albedo,
                                                const render::MatteMaterial& matte,
                                                const render::PhongMaterial* phong) {
-      return material(Kind::Constant, albedo, nullptr, matte, phong);
+      return material(Kind::Constant, albedo, RasterTexture::constant(Colord::black()), matte,
+                      phong);
     }
 
-    static RasterMaterialSource textured(std::shared_ptr<render::Texturec> texture,
+    static RasterMaterialSource textured(const RasterTexture& texture,
                                          const render::MatteMaterial& matte,
                                          const render::PhongMaterial* phong) {
-      return material(Kind::Texture, Colord::black(), std::move(texture), matte, phong);
+      return material(Kind::Texture, Colord::black(), texture, matte, phong);
     }
 
     static RasterMaterialSource material(Kind kind, const Colord& albedo,
-                                         std::shared_ptr<render::Texturec> texture,
+                                         const RasterTexture& texture,
                                          const render::MatteMaterial& matte,
                                          const render::PhongMaterial* phong) {
       const Colord specularColor = phong ? phong->specularColor() : Colord::black();
       const double specularCoefficient = phong ? phong->specularCoefficient() : 0.0;
       const double specularExponent = phong ? phong->exponent() : 16.0;
-      return RasterMaterialSource(kind, albedo, std::move(texture), matte.ambientCoefficient(),
+      return RasterMaterialSource(kind, albedo, texture, matte.ambientCoefficient(),
                                   matte.diffuseCoefficient(), specularColor, specularCoefficient,
                                   specularExponent);
     }
 
-    RasterMaterialSource(Kind kind, const Colord& albedo, std::shared_ptr<render::Texturec> texture,
+    RasterMaterialSource(Kind kind, const Colord& albedo, const RasterTexture& texture,
                          double ambientCoefficient = 1.0, double diffuseCoefficient = 1.0,
                          const Colord& specularColor = Colord::black(),
                          double specularCoefficient = 0.0, double specularExponent = 16.0)
         : m_kind(kind),
           m_albedo(albedo),
-          m_texture(std::move(texture)),
+          m_texture(texture),
           m_ambientCoefficient(ambientCoefficient),
           m_diffuseCoefficient(diffuseCoefficient),
           m_specularColor(specularColor),
@@ -210,7 +305,7 @@ namespace engine::raster::detail {
 
     Kind m_kind;
     Colord m_albedo;
-    std::shared_ptr<render::Texturec> m_texture;
+    RasterTexture m_texture;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
     Colord m_specularColor;

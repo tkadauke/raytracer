@@ -250,10 +250,12 @@ base in this path.
 
 The implementation prepares this material path while it emits
 triangles: each leaf primitive is classified once, and each emitted
-triangle carries either cached constant material terms or the texture
-object that still needs the interpolated hit context. That keeps material
-type discovery out of the per-pixel loop while preserving texture
-behavior.
+triangle carries cached material terms plus a raster albedo evaluator.
+Exact `ConstantColorTexture` values are stored directly. Exact
+`UVColorTexture` objects and UV-mapped `CheckerBoardTexture` objects sample
+from the interpolated UV without fabricating a ray-hit context. Arbitrary
+texture objects still use the virtual `Texture::evaluate(...)` path with a
+synthesized `HitPoint`, preserving custom texture behavior.
 
 This is one place where the rasterizer takes a shortcut
 compared to the raytracer. The [Whitted](../appendix/a-glossary.md#w) raytracer in
@@ -398,6 +400,7 @@ all engines, look for differences" grows.
 - `include/core/geometry/Rasterize.h`
 - `include/engine/raster/Rasterizer.h`
 - `src/engine/raster/Rasterizer.cpp`
+- `src/engine/raster/RasterMaterial.h`
 - `src/engine/raster/RasterTriangleEmitter.h`
 - `include/render/HomogeneousClipVolume.h`
 - `include/render/TilePlan.h`

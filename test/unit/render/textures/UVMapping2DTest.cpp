@@ -29,4 +29,11 @@ namespace UVMapping2DTest {
     EXPECT_DOUBLE_EQ(1.0, s);
     EXPECT_DOUBLE_EQ(6.0, t);
   }
+
+  TEST(UVMapping2D, ShouldExposeScaleFactors) {
+    UVMapping2D mapping(4.0, 8.0);
+
+    EXPECT_DOUBLE_EQ(4.0, mapping.uScale());
+    EXPECT_DOUBLE_EQ(8.0, mapping.vScale());
+  }
 }

@@ -4,6 +4,7 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
+#include "src/engine/raster/RasterMaterial.h"
 #include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
@@ -15,8 +16,11 @@
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/primitives/Triangle.h"
+#include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/Texture.h"
+#include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
 #include <cmath>
 #include <cstdint>
@@ -29,10 +33,17 @@ namespace RasterizerTest {
   using namespace render;
   using namespace engine::raster;
 
-  class UVColorTexture : public Texturec {
+  class HitPointUVTexture : public Texturec {
   public:
     virtual Colord evaluate(const Rayd&, const HitPoint& hitPoint) const {
       return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
+    }
+  };
+
+  class OverridingUVColorTexture : public render::UVColorTexture {
+  public:
+    Colord evaluate(const Rayd&, const HitPoint& hitPoint) const override {
+      return Colord(0.0, hitPoint.uv().x(), hitPoint.uv().y());
     }
   };
 
@@ -182,7 +193,7 @@ namespace RasterizerTest {
   }
 
   static std::shared_ptr<Scene> sceneWithTexturedFrontFacingTriangle() {
-    return sceneWithTexturedFrontFacingTriangle(std::make_shared<UVColorTexture>());
+    return sceneWithTexturedFrontFacingTriangle(std::make_shared<render::UVColorTexture>());
   }
 
   static std::shared_ptr<Scene> sceneWithSlopedTriangle() {
@@ -350,9 +361,9 @@ namespace RasterizerTest {
     return count;
   }
 
-  static engine::raster::detail::DirectionalShadowMap syntheticShadowMap(
-    double constantBias, double slopeBias, int filterRadius = 0,
-    Rasterizer::ShadowFilterMode filterMode = Rasterizer::ShadowFilterMode::PCF) {
+  static engine::raster::detail::DirectionalShadowMap
+  syntheticShadowMap(double constantBias, double slopeBias, int filterRadius = 0,
+                     Rasterizer::ShadowFilterMode filterMode = Rasterizer::ShadowFilterMode::PCF) {
     const Vector3d lightDirection(0.0, 0.0, -1.0);
     auto shadowCamera = std::make_shared<engine::raster::detail::DirectionalShadowCamera>(
       Vector3d::null, lightDirection, 1.0);
@@ -451,8 +462,7 @@ namespace RasterizerTest {
     int tessellateCalls = 0;
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<CountingPrimitive>(
-      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
-      &tessellateCalls));
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
     Rasterizer engine(headOnCamera(), scene);
     Buffer<Colord> buffer(32, 32);
 
@@ -478,8 +488,7 @@ namespace RasterizerTest {
     int tessellateCalls = 0;
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<CountingPrimitive>(
-      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
-      &tessellateCalls));
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
     Rasterizer engine(headOnCamera(), scene);
     engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
       return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
@@ -1051,9 +1060,8 @@ namespace RasterizerTest {
 
   TEST(Rasterizer, DirectionalShadowFitUsesLightSpaceBounds) {
     const std::vector<Vector3d> points = {
-      Vector3d(-1.0, -0.25, -50.0), Vector3d(1.0, -0.25, -50.0),
-      Vector3d(-1.0, 0.25, -50.0),  Vector3d(1.0, 0.25, -50.0),
-      Vector3d(-1.0, -0.25, 50.0),  Vector3d(1.0, -0.25, 50.0),
+      Vector3d(-1.0, -0.25, -50.0), Vector3d(1.0, -0.25, -50.0), Vector3d(-1.0, 0.25, -50.0),
+      Vector3d(1.0, 0.25, -50.0),   Vector3d(-1.0, -0.25, 50.0), Vector3d(1.0, -0.25, 50.0),
       Vector3d(-1.0, 0.25, 50.0),   Vector3d(1.0, 0.25, 50.0),
     };
     const auto fit = engine::raster::detail::directionalShadowFitForPoints(
@@ -1255,9 +1263,8 @@ namespace RasterizerTest {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setBackgroundColor(Colord(0.1, 0.2, 0.3));
     engine.setColorWriteMask(false, true, false);
-    engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
-      return Colord(0.8, 0.9, 1.0);
-    });
+    engine.setFragmentShader(
+      [](const Rasterizer::FragmentInput&) { return Colord(0.8, 0.9, 1.0); });
 
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
@@ -1272,9 +1279,8 @@ namespace RasterizerTest {
     engine.setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
                            Rasterizer::BlendFactor::OneMinusConstantAlpha);
     engine.setBlendConstantAlpha(0.25);
-    engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
-      return Colord(1.0, 0.0, 0.0);
-    });
+    engine.setFragmentShader(
+      [](const Rasterizer::FragmentInput&) { return Colord(1.0, 0.0, 0.0); });
 
     Buffer<Colord> buffer(64, 64);
     engine.render(buffer);
@@ -1290,9 +1296,8 @@ namespace RasterizerTest {
       engine.setBlendFactors(Rasterizer::BlendFactor::ConstantAlpha,
                              Rasterizer::BlendFactor::OneMinusConstantAlpha);
       engine.setBlendConstantAlpha(0.25);
-      engine.setFragmentShader([](const Rasterizer::FragmentInput&) {
-        return Colord(1.0, 0.0, 0.0);
-      });
+      engine.setFragmentShader(
+        [](const Rasterizer::FragmentInput&) { return Colord(1.0, 0.0, 0.0); });
     };
 
     Rasterizer singleTile(headOnCamera(), scene);
@@ -1340,6 +1345,41 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialFallbackTextureReceivesInterpolatedUV) {
+    Rasterizer engine(headOnCamera(),
+                      sceneWithTexturedFrontFacingTriangle(std::make_shared<HitPointUVTexture>()));
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
+  TEST(RasterTexture, DirectUVColorTextureReadsInterpolatedUV) {
+    const auto texture =
+      engine::raster::detail::RasterTexture::from(std::make_shared<render::UVColorTexture>());
+
+    const Colord color =
+      texture.evaluate(nullptr, Vector3d::null, Vector3d::up(), Vector2d(0.25, 0.75));
+
+    EXPECT_EQ(Colord(0.25, 0.75, 0.0), color);
+  }
+
+  TEST(RasterTexture, DirectUVCheckerUsesScaledUVParity) {
+    auto checker = std::make_shared<render::CheckerBoardTexture>(
+      new render::UVMapping2D(2.0, 4.0), std::make_shared<ConstantColorTexture>(Colord::white()),
+      std::make_shared<ConstantColorTexture>(Colord::black()));
+    const auto texture = engine::raster::detail::RasterTexture::from(checker);
+
+    const Colord bright =
+      texture.evaluate(nullptr, Vector3d::null, Vector3d::up(), Vector2d(0.2, 0.2));
+    const Colord dark =
+      texture.evaluate(nullptr, Vector3d::null, Vector3d::up(), Vector2d(0.6, 0.2));
+
+    EXPECT_EQ(Colord::white(), bright);
+    EXPECT_EQ(Colord::black(), dark);
   }
 
   TEST(Rasterizer, BuiltInMaterialConstantTextureUsesStoredAlbedo) {
@@ -1400,6 +1440,20 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     expectCenterLooksLikeTriangleUV(buffer[32][32]);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialKeepsVirtualTextureBehaviorForUVColorTextureSubclasses) {
+    auto scene = sceneWithTexturedFrontFacingTriangle(std::make_shared<OverridingUVColorTexture>());
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_NEAR(0.0, buffer[32][32].r(), 0.001);
+    EXPECT_GT(buffer[32][32].g(), 0.35);
+    EXPECT_LT(buffer[32][32].g(), 0.65);
+    EXPECT_GT(buffer[32][32].b(), 0.15);
+    EXPECT_LT(buffer[32][32].b(), 0.35);
   }
 
   TEST(Rasterizer, OrthographicProjectionInterpolatesWorldPositionLinearly) {
