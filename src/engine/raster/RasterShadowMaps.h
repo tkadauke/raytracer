@@ -40,6 +40,23 @@ namespace engine::raster::detail {
     return basis;
   }
 
+  inline Vector3d fromDirectionalShadowSpace(const DirectionalShadowBasis& basis, double x,
+                                             double y, double z) {
+    return basis.right * x + basis.up * y + basis.forward * z;
+  }
+
+  // Light-space fit used for one directional-light shadow pass. `center` is
+  // the stabilized XY center of the square orthographic projection;
+  // `halfExtent` is its radius. `origin` shares that XY center and is placed
+  // just before the nearest fitted point along the light direction so depth
+  // precision is not wasted on empty space behind the cascade.
+  struct DirectionalShadowFit {
+    DirectionalShadowBasis basis;
+    Vector3d center;
+    Vector3d origin;
+    double halfExtent;
+  };
+
   // Snap the light-space center to the shadow-map texel grid. This keeps small
   // camera edits from moving a cascade by fractional texels, which is the source
   // of the most obvious shadow shimmer in the Modeler preview.
@@ -80,6 +97,14 @@ namespace engine::raster::detail {
       m_right = basis.right;
       m_up = basis.up;
       m_origin = center - m_forward * (halfExtent * 2.0);
+    }
+
+    explicit DirectionalShadowCamera(const DirectionalShadowFit& fit)
+        : m_origin(fit.origin),
+          m_forward(fit.basis.forward),
+          m_right(fit.basis.right),
+          m_up(fit.basis.up),
+          m_halfExtent(fit.halfExtent) {
     }
 
     Rayd rayForPixel(double, double, render::SampleStream&) const override {
@@ -368,10 +393,26 @@ namespace engine::raster::detail {
     return ranges;
   }
 
+  inline constexpr std::array<std::array<int, 2>, 12> kBoundingBoxEdges = {{
+    {{0, 1}},
+    {{0, 2}},
+    {{0, 4}},
+    {{1, 3}},
+    {{1, 5}},
+    {{2, 3}},
+    {{2, 6}},
+    {{3, 7}},
+    {{4, 5}},
+    {{4, 6}},
+    {{5, 7}},
+    {{6, 7}},
+  }};
+
   // Include the point where a scene-bounds edge crosses a cascade split plane.
   // This lets cascade bounds include sliced faces rather than only original box
   // corners that happen to fall inside the depth range.
-  inline void includeDepthPlaneIntersection(BoundingBoxd& bounds, const Vector3d& a, double depthA,
+  inline void includeDepthPlaneIntersection(std::vector<Vector3d>& points, const Vector3d& a,
+                                            double depthA,
                                             const Vector3d& b, double depthB, double splitDepth) {
     if (!std::isfinite(depthA) || !std::isfinite(depthB) || depthA == depthB)
       return;
@@ -382,51 +423,68 @@ namespace engine::raster::detail {
       return;
 
     const double t = (splitDepth - depthA) / (depthB - depthA);
-    bounds.include(a + (b - a) * t);
+    points.push_back(a + (b - a) * t);
   }
 
-  // Build a world-space box around the portion of the scene bounds that belongs
-  // to one camera-depth cascade. The current implementation uses this as input
-  // to a square light-space projection; tighter light-space fitting is a future
-  // quality/performance follow-up.
-  inline BoundingBoxd cascadeBoundsForDepthRange(const BoundingBoxd& sceneBounds,
-                                                 const std::array<Vector3d, 8>& corners,
-                                                 const render::Camera& camera, double minDepth,
-                                                 double maxDepth) {
-    static constexpr std::array<std::array<int, 2>, 12> edges = {{
-      {{0, 1}},
-      {{0, 2}},
-      {{0, 4}},
-      {{1, 3}},
-      {{1, 5}},
-      {{2, 3}},
-      {{2, 6}},
-      {{3, 7}},
-      {{4, 5}},
-      {{4, 6}},
-      {{5, 7}},
-      {{6, 7}},
-    }};
-
+  // Collect the scene-bounds points that define one camera-depth cascade. The
+  // point set includes original AABB corners inside the depth interval and the
+  // edge/split-plane intersections where the interval cuts through the AABB.
+  inline std::vector<Vector3d> cascadePointsForDepthRange(
+    const std::array<Vector3d, 8>& corners, const render::Camera& camera, double minDepth,
+    double maxDepth) {
     std::array<double, 8> depths{};
     for (std::size_t i = 0; i != corners.size(); ++i) {
       depths[i] = camera.eyeRelativeDepth(corners[i]);
     }
 
-    BoundingBoxd result;
+    std::vector<Vector3d> result;
+    result.reserve(corners.size() + kBoundingBoxEdges.size() * 2);
     for (std::size_t i = 0; i != corners.size(); ++i) {
       if (std::isfinite(depths[i]) && depths[i] >= minDepth && depths[i] <= maxDepth)
-        result.include(corners[i]);
+        result.push_back(corners[i]);
     }
 
-    for (const auto& edge : edges) {
+    for (const auto& edge : kBoundingBoxEdges) {
       const int a = edge[0];
       const int b = edge[1];
       includeDepthPlaneIntersection(result, corners[a], depths[a], corners[b], depths[b], minDepth);
       includeDepthPlaneIntersection(result, corners[a], depths[a], corners[b], depths[b], maxDepth);
     }
 
-    return result.isValid() ? result : sceneBounds;
+    if (result.empty()) {
+      result.assign(corners.begin(), corners.end());
+    }
+    return result;
+  }
+
+  inline DirectionalShadowFit directionalShadowFitForPoints(const std::vector<Vector3d>& points,
+                                                            const Vector3d& lightDirection,
+                                                            double nearClipDepth,
+                                                            int shadowMapSize) {
+    const DirectionalShadowBasis basis = directionalShadowBasis(lightDirection);
+    BoundingBoxd lightBounds;
+    for (const Vector3d& point : points) {
+      lightBounds.include(Vector3d(point * basis.right, point * basis.up, point * basis.forward));
+    }
+
+    if (!lightBounds.isValid() || lightBounds.isUndefined() || lightBounds.isInfinite()) {
+      const Vector3d center = Vector3d::zero;
+      return {basis, center, center - basis.forward, 1.0};
+    }
+
+    const double halfExtent =
+      std::max(1.0, std::max(lightBounds.width(), lightBounds.height()) * 0.5) * 1.05;
+    const double centerX = (lightBounds.min().x() + lightBounds.max().x()) * 0.5;
+    const double centerY = (lightBounds.min().y() + lightBounds.max().y()) * 0.5;
+    const double centerZ = (lightBounds.min().z() + lightBounds.max().z()) * 0.5;
+    const Vector3d center = fromDirectionalShadowSpace(basis, centerX, centerY, centerZ);
+    const Vector3d stabilizedCenter =
+      stabilizeDirectionalShadowCenter(center, lightDirection, halfExtent, shadowMapSize);
+    const double originX = stabilizedCenter * basis.right;
+    const double originY = stabilizedCenter * basis.up;
+    const double originZ = lightBounds.min().z() - std::max(nearClipDepth, 0.0);
+    const Vector3d origin = fromDirectionalShadowSpace(basis, originX, originY, originZ);
+    return {basis, stabilizedCenter, origin, halfExtent};
   }
 
 }

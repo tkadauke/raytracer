@@ -646,6 +646,28 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(1.0, slopeBiased.visibility(receiver, grazingNormal, lightDirection));
   }
 
+  TEST(Rasterizer, DirectionalShadowFitUsesLightSpaceBounds) {
+    const std::vector<Vector3d> points = {
+      Vector3d(-1.0, -0.25, -50.0), Vector3d(1.0, -0.25, -50.0),
+      Vector3d(-1.0, 0.25, -50.0),  Vector3d(1.0, 0.25, -50.0),
+      Vector3d(-1.0, -0.25, 50.0),  Vector3d(1.0, -0.25, 50.0),
+      Vector3d(-1.0, 0.25, 50.0),   Vector3d(1.0, 0.25, 50.0),
+    };
+    const auto fit = engine::raster::detail::directionalShadowFitForPoints(
+      points, Vector3d(0.0, 0.0, -1.0), 0.1, 64);
+    engine::raster::detail::DirectionalShadowCamera shadowCamera(fit);
+    shadowCamera.setViewPlane(std::make_shared<ViewPlane>());
+    shadowCamera.viewPlane()->setup(Matrix4d(), Recti(64, 64));
+
+    EXPECT_LT(fit.halfExtent, 2.0);
+    for (const Vector3d& point : points) {
+      const Vector4d clip = shadowCamera.projectPointToClipSpace(point);
+      EXPECT_LE(std::abs(clip.x()), 1.0);
+      EXPECT_LE(std::abs(clip.y()), 1.0);
+      EXPECT_GE(clip.z(), 0.1);
+    }
+  }
+
   TEST(Rasterizer, ClipDepthsClampToValidRange) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
 

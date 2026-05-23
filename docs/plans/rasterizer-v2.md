@@ -167,7 +167,7 @@ review:
 - ✅ pre-bind shadow maps to prepared light data instead of doing per-fragment
   light-pointer lookup;
 - ✅ add slope-scaled bias in addition to constant bias;
-- tighten directional cascade fitting using light-space bounds rather than broad
+- ✅ tighten directional cascade fitting using light-space bounds rather than broad
   scene/cascade diagonals;
 - revisit cascade split policy, including practical log/linear splits;
 - document the current "outside the shadow map is lit" border behavior;

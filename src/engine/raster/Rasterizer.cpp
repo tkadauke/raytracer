@@ -96,12 +96,13 @@ namespace {
 
 namespace {
   using engine::raster::detail::accumulateMSAASample;
-  using engine::raster::detail::cascadeBoundsForDepthRange;
+  using engine::raster::detail::cascadePointsForDepthRange;
   using engine::raster::detail::cascadeDepthRanges;
   using engine::raster::detail::DepthState;
   using engine::raster::detail::DepthWritePolicy;
   using engine::raster::detail::DirectionalShadowCamera;
   using engine::raster::detail::DirectionalShadowCascade;
+  using engine::raster::detail::directionalShadowFitForPoints;
   using engine::raster::detail::DirectionalShadowMap;
   using engine::raster::detail::fullBufferView;
   using engine::raster::detail::MSAASamplePattern;
@@ -399,15 +400,16 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
       if (cancelled.load())
         break;
 
-      const BoundingBoxd cascadeBounds =
-        cascadeDepths.size() == 1
-          ? bounds
-          : cascadeBoundsForDepthRange(bounds, corners, *camera, cascadeMinDepth, cascadeMaxDepth);
-      const double halfExtent = std::max(1.0, cascadeBounds.size().length() * 0.5) * 1.05;
-      const Vector3d shadowCenter = stabilizeDirectionalShadowCenter(
-        cascadeBounds.center(), directional->direction(), halfExtent, size);
-      auto shadowCamera = std::make_shared<DirectionalShadowCamera>(
-        shadowCenter, directional->direction(), halfExtent);
+      std::vector<Vector3d> cascadePoints;
+      if (cascadeDepths.size() == 1) {
+        cascadePoints.assign(corners.begin(), corners.end());
+      } else {
+        cascadePoints =
+          cascadePointsForDepthRange(corners, *camera, cascadeMinDepth, cascadeMaxDepth);
+      }
+      const auto shadowFit = directionalShadowFitForPoints(
+        cascadePoints, directional->direction(), rasterizer.nearClipDepth(), size);
+      auto shadowCamera = std::make_shared<DirectionalShadowCamera>(shadowFit);
       shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
       shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
 

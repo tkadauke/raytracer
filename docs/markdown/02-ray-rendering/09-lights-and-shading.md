@@ -260,10 +260,11 @@ Five knobs control quality versus cost:
   directional light receives. A single map covers the whole
   scene bounds; multiple cascades build tighter light-space
   maps for near and middle view-depth ranges, trading extra
-  depth passes for more usable shadow-map detail. The rasterizer
-  snaps each cascade center to the corresponding light-space
-  texel grid, which keeps small camera moves from shifting the
-  shadow projection by fractional texels.
+  depth passes for more usable shadow-map detail. Each map is
+  fit around its slice in the directional light's basis, and the
+  rasterizer snaps each cascade center to the corresponding
+  light-space texel grid. That keeps small camera moves from
+  shifting the shadow projection by fractional texels.
 
 <!-- widget: rasterizer_shadow_cascades -->
 

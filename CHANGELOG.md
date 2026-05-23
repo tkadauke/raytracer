@@ -38,6 +38,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Rasterizer directional shadow cascades now fit light-space bounds.** Directional shadow-map cameras measure each camera-depth slice in the light's own basis instead of sizing the map from the world-space cascade diagonal, giving cascades denser texel coverage while preserving texel snapping and existing cascade controls. — GPT-5
 - **Rasterizer shadow-map visibility is pre-bound per pass.** The built-in raster material evaluator now prepares each scene light with its radiance and optional directional shadow map before fragment shading, avoiding per-fragment searches through the shadow-map collection. — GPT-5
 - **Rasterizer shadow-map depth passes now skip color scratch buffers.** Directional shadow maps use a true depth-only raster pass, preserving the same shadow visibility behavior while avoiding unused color allocation and writes during light-space rendering. — GPT-5
 - **Modeler promoted out of `examples/`.** The interactive scene editor now builds as the `Modeler` target from `src/modeler`, reusable JSON scenes live under top-level `scenes/`, and the legacy `examples/` applications have been removed. — GPT-5

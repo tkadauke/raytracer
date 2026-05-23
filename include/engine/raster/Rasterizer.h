@@ -185,10 +185,9 @@ namespace engine::raster {
   *
   * Cascades split the scene bounds across camera depth and build several
   * tighter directional-light maps instead of one map around the whole scene.
-  * This spends more depth-pass work to improve shadow detail in near and
-  * middle camera slices. Each cascade center is snapped to its light-space
-  * texel grid so small camera movements do not make the shadow projection
-  * drift by fractional texels.
+  * Each map is fit around its slice in light space, then its center is snapped
+  * to the light-space texel grid so small camera movements do not make the
+  * shadow projection drift by fractional texels.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
