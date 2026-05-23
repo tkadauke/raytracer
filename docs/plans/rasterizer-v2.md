@@ -158,10 +158,18 @@ sample for each pixel, so exact per-pixel inspection uses 1x rendering.
 
 ### 6. Improve shadow-map implementation quality
 
+Status: completed for the current directional-light shadow-map scope. Cascade
+split diagnostics should stay in the textbook/widget surface for now, not in the
+Modeler live preview. The live preview should stay focused on final-frame
+inspection until Modeler has a broader debug-overlay or multi-view framework.
+Point and spot-light shadow maps remain deferred; directional-light behavior now
+has the expected controls, fitting, filtering, stabilization, and documented
+border policy.
+
 Carry forward the remaining shadow work and add the implementation gaps found in
 review:
 
-- decide whether the cascade split diagnostic belongs inside the Modeler live
+- ✅ decide whether the cascade split diagnostic belongs inside the Modeler live
   preview;
 - ✅ make shadow passes true depth-only passes with no color scratch buffer;
 - ✅ pre-bind shadow maps to prepared light data instead of doing per-fragment
@@ -171,13 +179,25 @@ review:
   scene/cascade diagonals;
 - ✅ revisit cascade split policy, including practical log/linear splits;
 - ✅ document the current "outside the shadow map is lit" border behavior;
-- defer point/spot-light shadows until directional-light behavior is solid.
+- ✅ defer point/spot-light shadows until directional-light behavior is solid.
 
 ### 7. Revisit tiled rendering defaults
 
-The completed tile-parallel retry showed that queued tiles now win on
-screen-heavy 1x and 4x scenes but still lose badly on dense tessellation. The
-next retry should decide whether the default policy needs:
+Status: measured; keep `queueSize > 1` opt-in. A quick release-build retry on
+May 22, 2026, with `rendercli --repeat 3` and four worker threads confirmed the
+same split behavior as the earlier pass:
+
+- `rasterizer_baseline_materials.json`, 640x480, LOD 3, 1x: single-tile
+  21.874 ms median, tiled 15.873 ms median;
+- `rasterizer_baseline_materials.json`, 640x480, LOD 3, 4x MSAA: single-tile
+  69.933 ms median, tiled 28.440 ms median;
+- `rasterizer_baseline_dense_sphere.json`, 640x480, LOD 8, 1x: single-tile
+  2336.393 ms median, tiled 4100.182 ms median.
+
+Queued tiles win on screen-heavy 1x and 4x scenes but still lose badly on dense
+tessellation. Do not make tiled rendering the default until the policy can
+predict this difference from scene/render statistics. The next retry should
+decide whether the default policy needs:
 
 - an automatic tiling heuristic based on resolution, triangle count, projected
   coverage, MSAA level, and expected fragment cost;

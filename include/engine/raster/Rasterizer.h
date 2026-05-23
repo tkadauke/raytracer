@@ -314,9 +314,7 @@ namespace engine::raster {
   * need locks. The tiled path is correctness-tested against the
   * single-tile output but is intentionally opt-in: current performance
   * is scene-dependent, and dense tessellation can still lose enough to
-  * make the streaming single-tile path the predictable default. See
-  * `docs/plans/rasterizer.md` Task 10 for the latest measurement
-  * conclusion.
+  * make the streaming single-tile path the predictable default.
   *
   * @see Wireframe — the cheaper sibling that draws only edges; the
   *      same projection + tessellation pipeline drives both.
