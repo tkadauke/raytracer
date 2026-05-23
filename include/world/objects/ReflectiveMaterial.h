@@ -11,6 +11,10 @@
   * <td>@image html reflective_material_red__raytracer.png "Raytracer"</td>
   * <td>@image html reflective_material_red__raster.png "Rasterizer"</td>
   * </tr></table>
+  *
+  * The software rasterizer preview is explicitly non-recursive: it shows this
+  * material's local Phong base and reports that mirror recursion is available
+  * only in the raytracer.
   */
 class ReflectiveMaterial : public PhongMaterial {
   Q_OBJECT

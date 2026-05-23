@@ -12,6 +12,7 @@
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Rectangle.h"
@@ -1649,6 +1650,44 @@ namespace RasterizerTest {
     EXPECT_NEAR(expected.x(), mapped.x(), 1e-9);
     EXPECT_NEAR(expected.y(), mapped.y(), 1e-9);
     EXPECT_NEAR(expected.z(), mapped.z(), 1e-9);
+  }
+
+  TEST(RasterMaterialSource, MatteMaterialHasNoRecursiveFallbackDiagnostic) {
+    const auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    const auto source = engine::raster::detail::RasterMaterialSource::from(material);
+
+    EXPECT_FALSE(source.usesRecursiveFallback());
+    EXPECT_EQ(engine::raster::detail::RasterMaterialSource::RecursiveFallback::None,
+              source.recursiveFallback());
+    EXPECT_STREQ("none", source.recursiveFallbackName());
+  }
+
+  TEST(RasterMaterialSource, ReflectiveMaterialSelectsLocalPhongFallback) {
+    const auto material =
+      std::make_shared<ReflectiveMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+    const auto source = engine::raster::detail::RasterMaterialSource::from(material);
+
+    EXPECT_TRUE(source.usesRecursiveFallback());
+    EXPECT_EQ(engine::raster::detail::RasterMaterialSource::RecursiveFallback::ReflectiveLocalPhong,
+              source.recursiveFallback());
+    EXPECT_STREQ("reflective-local-phong", source.recursiveFallbackName());
+  }
+
+  TEST(RasterMaterialSource, TransparentMaterialSelectsAlphaPhongFallback) {
+    const auto material =
+      std::make_shared<TransparentMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    material->setTransmissionCoefficient(0.75);
+    const auto source = engine::raster::detail::RasterMaterialSource::from(material);
+    const auto rasterMaterial = source.forFace(0);
+
+    EXPECT_TRUE(source.usesRecursiveFallback());
+    EXPECT_EQ(engine::raster::detail::RasterMaterialSource::RecursiveFallback::TransparentAlphaPhong,
+              source.recursiveFallback());
+    EXPECT_STREQ("transparent-alpha-phong", source.recursiveFallbackName());
+    EXPECT_NEAR(0.25, rasterMaterial.alpha(nullptr, Vector3d::null, Vector3d::forward(),
+                                           Vector2d::null, Vector2d::null, Vector2d::null),
+                1e-9);
   }
 
   TEST(RasterMaterial, NormalMapFallsBackToGeometricNormalWithoutTangentFrame) {

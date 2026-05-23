@@ -8,6 +8,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/Material.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Primitive.h"
 #include "render/textures/CheckerBoardTexture.h"
@@ -327,25 +328,34 @@ namespace engine::raster::detail {
   // expensive material/type checks stay out of the fragment loop.
   class RasterMaterialSource {
   public:
+    enum class RecursiveFallback {
+      None,
+      ReflectiveLocalPhong,
+      TransparentAlphaPhong
+    };
+
     static RasterMaterialSource from(const std::shared_ptr<render::Material>& material) {
       const auto sidedness =
         material ? material->sidedness() : render::Material::Sidedness::TwoSided;
+      const RecursiveFallback recursiveFallback = recursiveFallbackFor(material.get());
       auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material);
       if (!matte)
-        return faceColor(sidedness);
+        return faceColor(sidedness, recursiveFallback);
 
       const auto phong = std::dynamic_pointer_cast<render::PhongMaterial>(material);
       auto texture = matte->diffuseTexture();
       if (!texture)
-        return faceColor(sidedness);
+        return faceColor(sidedness, recursiveFallback);
 
       const render::Texturec* texturePtr = texture.get();
       if (typeid(*texturePtr) == typeid(render::ConstantColorTexture)) {
         const auto* constant = static_cast<const render::ConstantColorTexture*>(texturePtr);
-        return constantAlbedo(constant->color(), *matte, phong.get(), sidedness);
+        return constantAlbedo(constant->color(), *matte, phong.get(), sidedness,
+                              recursiveFallback);
       }
 
-      return textured(RasterTexture::from(std::move(texture)), *matte, phong.get(), sidedness);
+      return textured(RasterTexture::from(std::move(texture)), *matte, phong.get(), sidedness,
+                      recursiveFallback);
     }
 
     Rasterizer::CullMode defaultCullMode() const {
@@ -376,48 +386,85 @@ namespace engine::raster::detail {
       return RasterMaterial::constant(fallbackFaceColor(faceIdx));
     }
 
+    RecursiveFallback recursiveFallback() const {
+      return m_recursiveFallback;
+    }
+
+    bool usesRecursiveFallback() const {
+      return m_recursiveFallback != RecursiveFallback::None;
+    }
+
+    const char* recursiveFallbackName() const {
+      switch (m_recursiveFallback) {
+      case RecursiveFallback::None:
+        return "none";
+      case RecursiveFallback::ReflectiveLocalPhong:
+        return "reflective-local-phong";
+      case RecursiveFallback::TransparentAlphaPhong:
+        return "transparent-alpha-phong";
+      }
+      return "none";
+    }
+
   private:
     enum class Kind { FaceColor, Constant, Texture };
 
-    static RasterMaterialSource faceColor(render::Material::Sidedness sidedness) {
+    static RecursiveFallback recursiveFallbackFor(const render::Material* material) {
+      if (dynamic_cast<const render::TransparentMaterial*>(material)) {
+        return RecursiveFallback::TransparentAlphaPhong;
+      }
+      if (dynamic_cast<const render::ReflectiveMaterial*>(material)) {
+        return RecursiveFallback::ReflectiveLocalPhong;
+      }
+      return RecursiveFallback::None;
+    }
+
+    static RasterMaterialSource faceColor(render::Material::Sidedness sidedness,
+                                          RecursiveFallback recursiveFallback) {
       return RasterMaterialSource(Kind::FaceColor, Colord::black(),
-                                  RasterTexture::constant(Colord::black()), sidedness);
+                                  RasterTexture::constant(Colord::black()), sidedness,
+                                  recursiveFallback);
     }
 
     static RasterMaterialSource constantAlbedo(const Colord& albedo,
                                                const render::MatteMaterial& matte,
                                                const render::PhongMaterial* phong,
-                                               render::Material::Sidedness sidedness) {
+                                               render::Material::Sidedness sidedness,
+                                               RecursiveFallback recursiveFallback) {
       return material(Kind::Constant, albedo, RasterTexture::constant(Colord::black()), matte,
-                      phong, sidedness);
+                      phong, sidedness, recursiveFallback);
     }
 
     static RasterMaterialSource textured(const RasterTexture& texture,
                                          const render::MatteMaterial& matte,
                                          const render::PhongMaterial* phong,
-                                         render::Material::Sidedness sidedness) {
-      return material(Kind::Texture, Colord::black(), texture, matte, phong, sidedness);
+                                         render::Material::Sidedness sidedness,
+                                         RecursiveFallback recursiveFallback) {
+      return material(Kind::Texture, Colord::black(), texture, matte, phong, sidedness,
+                      recursiveFallback);
     }
 
     static RasterMaterialSource material(Kind kind, const Colord& albedo,
                                          const RasterTexture& texture,
                                          const render::MatteMaterial& matte,
                                          const render::PhongMaterial* phong,
-                                         render::Material::Sidedness sidedness) {
+                                         render::Material::Sidedness sidedness,
+                                         RecursiveFallback recursiveFallback) {
       const Colord specularColor = phong ? phong->specularColor() : Colord::black();
       const double specularCoefficient = phong ? phong->specularCoefficient() : 0.0;
       const double specularExponent = phong ? phong->exponent() : 16.0;
       const auto* transparent = dynamic_cast<const render::TransparentMaterial*>(&matte);
       const double materialAlpha = transparent ? 1.0 - transparent->transmissionCoefficient() : 1.0;
       const auto normalTexture = matte.normalTexture();
-      return RasterMaterialSource(kind, albedo, texture, sidedness, matte.ambientCoefficient(),
-                                  matte.diffuseCoefficient(), materialAlpha, specularColor,
-                                  specularCoefficient, specularExponent,
+      return RasterMaterialSource(kind, albedo, texture, sidedness, recursiveFallback,
+                                  matte.ambientCoefficient(), matte.diffuseCoefficient(),
+                                  materialAlpha, specularColor, specularCoefficient, specularExponent,
                                   RasterTexture::from(normalTexture), normalTexture != nullptr);
     }
 
     RasterMaterialSource(Kind kind, const Colord& albedo, const RasterTexture& texture,
                          render::Material::Sidedness sidedness,
+                         RecursiveFallback recursiveFallback = RecursiveFallback::None,
                          double ambientCoefficient = 1.0, double diffuseCoefficient = 1.0,
                          double materialAlpha = 1.0,
                          const Colord& specularColor = Colord::black(),
@@ -431,6 +478,7 @@ namespace engine::raster::detail {
           m_normalMap(normalMap),
           m_hasNormalMap(hasNormalMap),
           m_sidedness(sidedness),
+          m_recursiveFallback(recursiveFallback),
           m_ambientCoefficient(ambientCoefficient),
           m_diffuseCoefficient(diffuseCoefficient),
           m_materialAlpha(std::clamp(materialAlpha, 0.0, 1.0)),
@@ -445,6 +493,7 @@ namespace engine::raster::detail {
     RasterTexture m_normalMap;
     bool m_hasNormalMap;
     render::Material::Sidedness m_sidedness;
+    RecursiveFallback m_recursiveFallback;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
     double m_materialAlpha;

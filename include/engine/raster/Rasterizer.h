@@ -86,7 +86,11 @@ namespace engine::raster {
   * The rasterizer walks leaf primitives directly, preserving each
   * primitive's effective material before tessellation. Matte diffuse
   * textures shade with their material albedo and coefficients, Phong
-  * materials add local specular highlights, and primitives with no usable
+  * materials add local specular highlights, and recursive material features
+  * use explicit previews: `ReflectiveMaterial` drops mirror recursion and
+  * shows the local Phong base, while `TransparentMaterial` drops recursive
+  * refraction/reflection and exposes transmission as transient source alpha
+  * for alpha testing and source-alpha blending. Primitives with no usable
   * diffuse texture still receive a stable per-face fallback color so
   * missing materials remain visible.
   *

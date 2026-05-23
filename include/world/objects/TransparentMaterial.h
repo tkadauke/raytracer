@@ -14,6 +14,11 @@
   * <td>@image html transparent_material__raytracer.png "Raytracer"</td>
   * <td>@image html transparent_material__raster.png "Rasterizer"</td>
   * </tr></table>
+  *
+  * The software rasterizer preview is explicitly non-recursive: it shows this
+  * material's local Phong base, exposes transmission as transient source alpha
+  * (`1 - transmissionCoefficient`), and reports that recursive refraction and
+  * reflection are available only in the raytracer.
   */
 class TransparentMaterial : public PhongMaterial {
   Q_OBJECT
