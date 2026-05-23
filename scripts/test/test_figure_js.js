@@ -533,8 +533,10 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
   const text = textContents(body).join(' ');
   assert.ok(text.includes('4x MSAA'),
     'MSAA widget should default to a multi-sample resolve view');
-  assert.equal(countElements(body, 'button'), 4,
-    'widget should expose the supported 1x/2x/4x/8x sample counts');
+  assert.ok(text.includes('per sample') && text.includes('per fragment'),
+    'widget should expose the MSAA shading policy control');
+  assert.equal(countElements(body, 'button'), 6,
+    'widget should expose the supported sample counts plus shading modes');
   assert.equal(countElements(body, 'input'), 0,
     'spatial triangle control should use draggable vertices, not a scalar slider');
   assert.ok(countElements(body, 'circle') >= 9 * 6 * 4,
@@ -544,8 +546,21 @@ test('Rasterizer MSAA widget emits samples and partial resolves', () => {
     .filter(r => r.attributes['data-sample-count'] === '4');
   assert.equal(pixelRects.length, 9 * 6,
     'widget should emit one resolvable rectangle per pixel');
+  assert.ok(pixelRects.every(r => r.attributes['data-shading-mode'] === 'per_sample'),
+    'widget should default to the rasterizer per-sample shading mode');
   assert.ok(pixelRects.some(r => ['1', '2', '3'].includes(r.attributes['data-covered-samples'])),
     'at least one edge pixel should resolve to a fractional 4x coverage value');
+
+  const perFragmentButton = elementsByTag(body, 'button')
+    .find(button => button.textContent === 'per fragment');
+  assert.ok(perFragmentButton, 'widget should expose the per-fragment shading mode');
+  perFragmentButton.click();
+  const perFragmentRects = elementsByTag(body, 'rect')
+    .filter(r => r.attributes['data-sample-count'] === '4');
+  assert.ok(perFragmentRects.every(r => r.attributes['data-shading-mode'] === 'per_fragment'),
+    'widget should redraw resolved pixels after switching shading mode');
+  assert.ok(elementsByTag(body, 'circle').some(c => c.attributes['data-shading-source'] === '1'),
+    'per-fragment mode should mark which covered samples supplied the cached shade');
 
   const handles = elementsByTag(body, 'circle')
     .filter(c => c.attributes['data-drag-handle'] === 'triangle-vertex');

@@ -271,6 +271,7 @@ private:
   int m_wireframeLod;
   QString m_rasterCullMode;
   int m_rasterMsaaSamples;
+  QString m_rasterMsaaShadingMode;
   QString m_rasterPostProcessAA;
   std::uint8_t m_rasterColorWriteMask;
   bool m_rasterBlending;
@@ -329,6 +330,7 @@ Renderer::Renderer()
       m_wireframeLod(0),
       m_rasterCullMode("both"),
       m_rasterMsaaSamples(1),
+      m_rasterMsaaShadingMode("per_sample"),
       m_rasterPostProcessAA("none"),
       m_rasterColorWriteMask(engine::raster::Rasterizer::ColorWriteAll),
       m_rasterBlending(false),
@@ -416,6 +418,9 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       raster->setQueueSize(m_threads);
     }
     raster->setMSAASamples(m_rasterMsaaSamples);
+    if (m_rasterMsaaShadingMode == "per_fragment") {
+      raster->setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
+    }
     if (m_rasterPostProcessAA == "fxaa") {
       raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
     } else if (m_rasterPostProcessAA == "smaa") {
@@ -645,6 +650,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
+     {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
      {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa, smaa)", "mode"},
      {"color_write_mask", "Rasterizer color-write mask (rgb, r, g, b, rg, rb, gb, none)",
       "mask"},
@@ -796,6 +802,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "MSAA samples must be 1, 2, 4, or 8";
       return CommandLineError;
     }
+  }
+
+  if (parser.isSet("msaa_shading")) {
+    const QString mode = parser.value("msaa_shading").toLower();
+    if (mode != "per_sample" && mode != "per_fragment") {
+      *errorMessage = "MSAA shading mode must be 'per_sample' or 'per_fragment'";
+      return CommandLineError;
+    }
+    m_rasterMsaaShadingMode = mode;
   }
 
   if (parser.isSet("post_aa")) {

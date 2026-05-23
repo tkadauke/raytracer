@@ -663,6 +663,7 @@ namespace RasterizerTest {
     EXPECT_FALSE(static_cast<bool>(engine.vertexShader()));
     EXPECT_FALSE(static_cast<bool>(engine.fragmentShader()));
     EXPECT_EQ(1, engine.msaaSamples());
+    EXPECT_EQ(Rasterizer::MSAAShadingMode::PerSample, engine.msaaShadingMode());
     EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
     EXPECT_TRUE(std::isinf(engine.farClipDepth()));
     EXPECT_EQ(Rasterizer::PostProcessAA::None, engine.postProcessAA());
@@ -700,6 +701,7 @@ namespace RasterizerTest {
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::SMAA);
+    engine.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     engine.setNearClipDepth(0.5);
     engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
@@ -736,6 +738,7 @@ namespace RasterizerTest {
     auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
 
     ASSERT_NE(nullptr, clone);
+    EXPECT_EQ(Rasterizer::MSAAShadingMode::PerFragment, clone->msaaShadingMode());
     EXPECT_EQ(Rasterizer::PostProcessAA::SMAA, clone->postProcessAA());
     EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
     EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
@@ -2057,6 +2060,39 @@ namespace RasterizerTest {
     EXPECT_NEAR(0.5, buffer[16][16].b(), 1e-9);
   }
 
+  TEST(Rasterizer, PerFragmentMSAAReusesShadedColorAcrossCoveredSamples) {
+    int perSampleCalls = 0;
+    Rasterizer perSample(headOnCamera(), sceneWithFrontFacingTriangle());
+    perSample.setBackgroundColor(Colord::black());
+    perSample.setMSAASamples(4);
+    configureScreenSpaceEdgeTriangle(perSample);
+    perSample.setFragmentShader([&](const Rasterizer::FragmentInput&) {
+      ++perSampleCalls;
+      return Colord::white();
+    });
+
+    int perFragmentCalls = 0;
+    Rasterizer perFragment(headOnCamera(), sceneWithFrontFacingTriangle());
+    perFragment.setBackgroundColor(Colord::black());
+    perFragment.setMSAASamples(4);
+    perFragment.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
+    configureScreenSpaceEdgeTriangle(perFragment);
+    perFragment.setFragmentShader([&](const Rasterizer::FragmentInput&) {
+      ++perFragmentCalls;
+      return Colord::white();
+    });
+
+    Buffer<Colord> perSampleBuffer(40, 40);
+    Buffer<Colord> perFragmentBuffer(40, 40);
+    perSample.render(perSampleBuffer);
+    perFragment.render(perFragmentBuffer);
+
+    expectBuffersEqual(perSampleBuffer, perFragmentBuffer);
+    EXPECT_GT(perSampleCalls, 0);
+    EXPECT_GT(perFragmentCalls, 0);
+    EXPECT_LT(perFragmentCalls, perSampleCalls);
+  }
+
   TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAA) {
     Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
     singleTile.setMSAASamples(4);
@@ -2076,13 +2112,15 @@ namespace RasterizerTest {
     expectBuffersEqual(expected, actual);
   }
 
-  TEST(Rasterizer, TiledMSAAMatchesSingleTileMSAAWithUnevenTileSizes) {
+  TEST(Rasterizer, TiledPerFragmentMSAAMatchesSingleTileMSAAWithUnevenTileSizes) {
     Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
     singleTile.setMSAASamples(4);
+    singleTile.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     configureScreenSpaceEdgeTriangle(singleTile);
 
     Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
     tiled.setMSAASamples(4);
+    tiled.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
     tiled.setMaximumThreads(3);
     tiled.setQueueSize(6);
     configureScreenSpaceEdgeTriangle(tiled);

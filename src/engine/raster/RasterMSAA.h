@@ -8,6 +8,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 
 namespace engine::raster::detail {
 
@@ -54,6 +55,62 @@ namespace engine::raster::detail {
   inline void accumulateMSAASample(Buffer<Colord>& target, const Buffer<Colord>& sample);
   inline void resolveMSAATile(Buffer<Colord>& buffer, const Buffer<Colord>& accumulated,
                               const Recti& rect, int sampleCount);
+
+  struct MSAAFragmentShadeKey {
+    const RasterTriangle* triangle;
+    int x;
+    int y;
+
+    bool operator==(const MSAAFragmentShadeKey& other) const {
+      return triangle == other.triangle && x == other.x && y == other.y;
+    }
+  };
+
+  struct MSAAFragmentShadeKeyHash {
+    std::size_t operator()(const MSAAFragmentShadeKey& key) const {
+      const auto triangleBits = reinterpret_cast<std::uintptr_t>(key.triangle);
+      std::size_t hash = static_cast<std::size_t>(triangleBits >> 4);
+      hash ^= static_cast<std::size_t>(key.x) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+      hash ^= static_cast<std::size_t>(key.y) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+      return hash;
+    }
+  };
+
+  // Per-frame or per-tile cache for `MSAAShadingMode::PerFragment`. The
+  // software MSAA pass still reruns coverage/depth/stencil for each sample,
+  // but expensive material or fragment-shader color evaluation is reused for
+  // the same prepared triangle and pixel after the first passing sample.
+  class MSAAFragmentShadeCache {
+  public:
+    template<class Compute>
+    Colord shade(const RasterTriangle* triangle, int x, int y, Compute&& compute) {
+      const MSAAFragmentShadeKey key{triangle, x, y};
+      const auto found = m_colors.find(key);
+      if (found != m_colors.end()) {
+        return found->second;
+      }
+
+      const Colord color = compute();
+      m_colors.emplace(key, color);
+      return color;
+    }
+
+  private:
+    std::unordered_map<MSAAFragmentShadeKey, Colord, MSAAFragmentShadeKeyHash> m_colors;
+  };
+
+  template<class FragmentPolicy>
+  struct CachedMSAAFragmentPolicy {
+    FragmentPolicy fragmentPolicy;
+    MSAAFragmentShadeCache* cache;
+
+    inline Colord shade(const RasterTriangle& triangle, int x, int y, double w0b, double w1b,
+                        double w2b, const InterpolatedFragment& fragment) const {
+      return cache->shade(&triangle, x, y, [&]() {
+        return fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
+      });
+    }
+  };
 
   // Tile-local scratch storage for the queued MSAA path. One worker owns one of
   // these while it rerenders the tile at each sample offset, accumulates colors,

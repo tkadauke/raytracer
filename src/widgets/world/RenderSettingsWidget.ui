@@ -383,13 +383,37 @@
        </widget>
       </item>
       <item row="2" column="0">
+       <widget class="QLabel" name="label_rasterMsaaShading">
+        <property name="text">
+         <string>MSAA shading</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="rasterMsaaShadingMode">
+        <property name="toolTip">
+         <string>Per sample shades every covered MSAA sample. Per fragment reuses one shaded color for the same triangle and pixel while keeping coverage, depth, and stencil per sample.</string>
+        </property>
+        <item>
+         <property name="text">
+          <string>Per sample</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Per fragment</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="3" column="0">
        <widget class="QLabel" name="label_rasterPostAA">
         <property name="text">
          <string>Post AA</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <widget class="QComboBox" name="rasterPostProcessAA">
         <property name="toolTip">
          <string>Rasterizer image-space anti-aliasing applied after rendering. FXAA is fast but can blur fine detail; SMAA keeps sharper edge-directed blends.</string>
@@ -411,7 +435,7 @@
         </item>
        </widget>
       </item>
-      <item row="3" column="0" colspan="2">
+      <item row="4" column="0" colspan="2">
        <widget class="QCheckBox" name="rasterShadowMaps">
         <property name="toolTip">
          <string>Enable rasterizer directional-light shadow maps.</string>
@@ -421,14 +445,14 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="label_rasterShadowMapSize">
         <property name="text">
          <string>Shadow size</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QSpinBox" name="rasterShadowMapSize">
         <property name="toolTip">
          <string>Square shadow-map resolution in pixels.</string>
@@ -444,14 +468,14 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="6" column="0">
        <widget class="QLabel" name="label_rasterShadowCascadeCount">
         <property name="text">
          <string>Cascades</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="6" column="1">
        <widget class="QSpinBox" name="rasterShadowCascadeCount">
         <property name="toolTip">
          <string>Number of camera-depth slices rendered for each directional-light shadow map.</string>
@@ -467,14 +491,14 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="label_rasterShadowCascadeSplitLambda">
         <property name="text">
          <string>Split blend</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="7" column="1">
        <widget class="QDoubleSpinBox" name="rasterShadowCascadeSplitLambda">
         <property name="toolTip">
          <string>Cascade split blend. 0 is linear; 1 is logarithmic.</string>
@@ -493,14 +517,14 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_rasterShadowBias">
         <property name="text">
          <string>Shadow bias</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="8" column="1">
        <widget class="QDoubleSpinBox" name="rasterShadowBias">
         <property name="toolTip">
          <string>Depth-comparison tolerance used to reduce self-shadowing.</string>
@@ -519,14 +543,14 @@
         </property>
        </widget>
       </item>
-      <item row="8" column="0">
+      <item row="9" column="0">
        <widget class="QLabel" name="label_rasterShadowSlopeBias">
         <property name="text">
          <string>Slope bias</string>
         </property>
        </widget>
       </item>
-      <item row="8" column="1">
+      <item row="9" column="1">
        <widget class="QDoubleSpinBox" name="rasterShadowSlopeBias">
         <property name="toolTip">
          <string>Additional depth-comparison tolerance scaled by receiver angle to the light.</string>
@@ -542,14 +566,14 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="0">
+      <item row="10" column="0">
        <widget class="QLabel" name="label_rasterShadowFilterRadius">
         <property name="text">
          <string>Filter radius</string>
         </property>
        </widget>
       </item>
-      <item row="9" column="1">
+      <item row="10" column="1">
        <widget class="QSpinBox" name="rasterShadowFilterRadius">
         <property name="toolTip">
          <string>Percentage-closer filtering radius in shadow-map texels. 0 keeps hard shadows.</string>
@@ -565,14 +589,14 @@
         </property>
        </widget>
       </item>
-      <item row="10" column="0">
+      <item row="11" column="0">
        <widget class="QLabel" name="label_rasterShadowFilterMode">
         <property name="text">
          <string>Filter mode</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="1">
+      <item row="11" column="1">
        <widget class="QComboBox" name="rasterShadowFilterMode">
         <property name="toolTip">
          <string>PCF uses one fixed kernel; PCSS searches blockers and grows the kernel with receiver distance.</string>

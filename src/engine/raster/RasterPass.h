@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RasterMaterialEvaluator.h"
+#include "RasterMSAA.h"
 #include "RasterPipelineTypes.h"
 #include "RasterShadowMaps.h"
 #include "engine/raster/Rasterizer.h"
@@ -506,6 +507,18 @@ namespace engine::raster::detail {
         colorBuffer.write(x, y, shaded);
         diagnostics.writeFragment(triangle, x, y, fragment, committedDepth);
       });
+  }
+
+  template<class Fragment, class RenderFn>
+  inline void withMSAAFragmentShadingPolicy(const Rasterizer& rasterizer,
+                                            MSAAFragmentShadeCache* shadeCache,
+                                            Fragment fragmentPolicy, RenderFn&& render) {
+    if (shadeCache && rasterizer.msaaShadingMode() == Rasterizer::MSAAShadingMode::PerFragment) {
+      render(CachedMSAAFragmentPolicy<Fragment>{fragmentPolicy, shadeCache});
+      return;
+    }
+
+    render(fragmentPolicy);
   }
 
   template<class Stencil, class Depth>

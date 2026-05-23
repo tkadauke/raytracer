@@ -110,6 +110,7 @@ namespace {
   using engine::raster::detail::DirectionalShadowMap;
   using engine::raster::detail::copyRasterBuffer;
   using engine::raster::detail::fullBufferView;
+  using engine::raster::detail::MSAAFragmentShadeCache;
   using engine::raster::detail::MSAASamplePattern;
   using engine::raster::detail::MSAATileScratch;
   using engine::raster::detail::NoStencilPolicy;
@@ -132,6 +133,7 @@ namespace {
   using engine::raster::detail::stabilizeDirectionalShadowCenter;
   using engine::raster::detail::tileBufferView;
   using engine::raster::detail::viewDepthRange;
+  using engine::raster::detail::withMSAAFragmentShadingPolicy;
   using engine::raster::detail::withPreparedTrianglePolicies;
 
   template<class T>
@@ -272,7 +274,8 @@ struct Rasterizer::Private {
                              const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
                              const ShadowMaps& shadowMaps, const Recti& renderClip,
                              const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-                             const Vector2d& sampleOffset, bool useExternalAttachments = true);
+                             const Vector2d& sampleOffset, bool useExternalAttachments = true,
+                             MSAAFragmentShadeCache* shadeCache = nullptr);
   void renderTriangleStreamPass(const Rasterizer& rasterizer,
                                 const std::shared_ptr<render::Scene>& scene,
                                 const RasterTriangleEmitter& triangleEmitter,
@@ -308,6 +311,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setMaximumThreads(p->threadPool->maxThreadCount());
   result->setQueueSize(p->queueSize);
   result->setMSAASamples(m_msaaSamples);
+  result->setMSAAShadingMode(m_msaaShadingMode);
   result->setNearClipDepth(m_nearClipDepth);
   result->setFarClipDepth(m_farClipDepth);
   result->setPostProcessAA(m_postProcessAA);
@@ -577,7 +581,8 @@ void Rasterizer::Private::renderTriangleSetPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
-  Buffer<Colord>& buffer, const Vector2d& sampleOffset, bool useExternalAttachments) {
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset, bool useExternalAttachments,
+  MSAAFragmentShadeCache* shadeCache) {
   // A pass freezes current depth/stencil/shader state into policies,
   // then hands the triangle set to either the direct or tiled path.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer, useExternalAttachments);
@@ -592,11 +597,13 @@ void Rasterizer::Private::renderTriangleSetPass(
   withPreparedTrianglePolicies(
     scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
     [&](auto stencil, auto depth, auto fragmentPolicy) {
-      rasterizeTriangleSetWithPolicies(triangleSet, tilePlan, *threadPool, tasks, cancelled,
-                                       colorOutputPolicy(rasterizer,
-                                                         fullBufferView(passBuffers.color())),
-                                       renderClip, sampleOffset, stencil, depth, fragmentPolicy,
-                                       alphaTest, diagnostics);
+      withMSAAFragmentShadingPolicy(
+        rasterizer, shadeCache, fragmentPolicy, [&](auto msaaFragmentPolicy) {
+          rasterizeTriangleSetWithPolicies(
+            triangleSet, tilePlan, *threadPool, tasks, cancelled,
+            colorOutputPolicy(rasterizer, fullBufferView(passBuffers.color())), renderClip,
+            sampleOffset, stencil, depth, msaaFragmentPolicy, alphaTest, diagnostics);
+        });
     });
 }
 
@@ -685,6 +692,10 @@ void Rasterizer::Private::renderMSAAFullFrame(
   Buffer<Colord> loadedColor(tilePlan.width(), tilePlan.height());
   copyRasterBuffer(loadedColor, buffer);
   buffer.clear(Colord::black());
+  MSAAFragmentShadeCache shadeCache;
+  MSAAFragmentShadeCache* shadeCachePtr =
+    rasterizer.msaaShadingMode() == Rasterizer::MSAAShadingMode::PerFragment ? &shadeCache
+                                                                             : nullptr;
   for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
     if (cancelled.load())
       return;
@@ -693,7 +704,8 @@ void Rasterizer::Private::renderMSAAFullFrame(
     copyRasterBuffer(sampleBuffer, loadedColor);
 
     renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip,
-                          cancelled, sampleBuffer, pattern.offsets[sampleIndex], false);
+                          cancelled, sampleBuffer, pattern.offsets[sampleIndex], false,
+                          shadeCachePtr);
 
     if (cancelled.load())
       return;
@@ -714,6 +726,10 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     return;
 
   MSAATileScratch scratch(rasterizer, rect);
+  MSAAFragmentShadeCache shadeCache;
+  MSAAFragmentShadeCache* shadeCachePtr =
+    rasterizer.msaaShadingMode() == Rasterizer::MSAAShadingMode::PerFragment ? &shadeCache
+                                                                             : nullptr;
 
   for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
     if (cancelled.load())
@@ -736,11 +752,14 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     withPreparedTrianglePolicies(
       scene.get(), rasterizer, shadowMaps, tileBufferView(scratch.depth(), rect), stencilView,
       [&](auto stencil, auto depth, auto fragmentPolicy) {
-        rasterizeTileWithPolicies(
-          triangleSet, rect, tileIndex,
-          colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)), renderClip,
-          pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy, alphaTest,
-          diagnostics);
+        withMSAAFragmentShadingPolicy(
+          rasterizer, shadeCachePtr, fragmentPolicy, [&](auto msaaFragmentPolicy) {
+            rasterizeTileWithPolicies(
+              triangleSet, rect, tileIndex,
+              colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)),
+              renderClip, pattern.offsets[sampleIndex], cancelled, stencil, depth,
+              msaaFragmentPolicy, alphaTest, diagnostics);
+          });
       });
 
     if (cancelled.load())

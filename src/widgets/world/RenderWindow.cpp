@@ -121,6 +121,10 @@ void RenderWindow::render() {
     } else if (postAA == "SMAA") {
       postProcessAA = engine::raster::Rasterizer::PostProcessAA::SMAA;
     }
+    p->rasterizer->setMSAAShadingMode(
+      p->settingsWidget->msaaShadingMode() == "Per fragment"
+        ? engine::raster::Rasterizer::MSAAShadingMode::PerFragment
+        : engine::raster::Rasterizer::MSAAShadingMode::PerSample);
     p->rasterizer->setPostProcessAA(postProcessAA);
     p->rasterizer->setShadowMapsEnabled(p->settingsWidget->shadowMapsEnabled());
     p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());

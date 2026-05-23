@@ -76,10 +76,12 @@ namespace engine::raster {
   *      - Shade through the built-in material fragment path, or through a
   *        caller-provided `FragmentShader`.
   *      - Write the shaded color iff the fragment passes.
-  *  6. When MSAA is enabled, repeat the coverage/depth path at a
-  *     fixed 2x/4x/8x subpixel sample pattern and resolve those
+  *  6. When MSAA is enabled, repeat the coverage/depth/stencil path
+  *     at a fixed 2x/4x/8x subpixel sample pattern and resolve those
   *     samples into the same float framebuffer the rest of the
-  *     renderer stack tonemaps.
+  *     renderer stack tonemaps. Fragment shading defaults to
+  *     per-covered-sample evaluation; `setMSAAShadingMode` can switch
+  *     to one cached shaded color per triangle/pixel.
   *
   * The rasterizer walks leaf primitives directly, preserving each
   * primitive's effective material before tessellation. Matte diffuse
@@ -241,11 +243,18 @@ namespace engine::raster {
   * The widget below magnifies the same resolve operation. Drag the
   * triangle vertex handles and switch between sample counts to see why 1x
   * coverage produces only on/off pixels, while MSAA can turn a
-  * partially covered pixel into a proportional gray resolve.
+  * partially covered pixel into a proportional color resolve.
+  * Switch the shading mode to compare independent per-sample colors
+  * with the cheaper per-fragment cache: the sample positions stay the same,
+  * but the covered samples either carry their own interpolated color or reuse
+  * the triangle/pixel color selected by the first covered sample.
   * The default single-tile path keeps full-frame per-sample buffers
   * for low overhead; the queued tiled path uses tile-local color,
   * depth, and stencil sample buffers and resolves each tile directly
-  * into the output framebuffer.
+  * into the output framebuffer. The default `PerSample` shading mode
+  * runs the material or fragment shader for every covered sample;
+  * `PerFragment` keeps the same sample coverage/depth/stencil path but
+  * reuses the first passing shaded color for that triangle and pixel.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>
@@ -520,6 +529,11 @@ public:
     SMAA
   };
 
+  enum class MSAAShadingMode {
+    PerSample,
+    PerFragment
+  };
+
   enum class ShadowFilterMode {
     PCF,
     PCSS
@@ -672,6 +686,14 @@ public:
   /// sample counts.
   inline int msaaSamples() const { return m_msaaSamples; }
   void setMSAASamples(int samples);
+
+  /// Fragment shading policy used when `msaaSamples() > 1`.
+  /// `PerSample` runs the fragment path for every covered sample.
+  /// `PerFragment` keeps coverage/depth/stencil per sample but reuses
+  /// the first passing shaded color for the same triangle/pixel across
+  /// the remaining samples. Defaults to `PerSample`.
+  inline MSAAShadingMode msaaShadingMode() const { return m_msaaShadingMode; }
+  inline void setMSAAShadingMode(MSAAShadingMode mode) { m_msaaShadingMode = mode; }
 
   /// Near clip depth in the rasterizer's eye-relative depth units.
   /// Defaults to 0.1. Pinhole cameras measure this from the
@@ -1100,6 +1122,7 @@ private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   int m_msaaSamples{1};
+  MSAAShadingMode m_msaaShadingMode{MSAAShadingMode::PerSample};
   double m_nearClipDepth{0.1};
   double m_farClipDepth{std::numeric_limits<double>::infinity()};
   PostProcessAA m_postProcessAA{PostProcessAA::None};

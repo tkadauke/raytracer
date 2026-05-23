@@ -257,8 +257,10 @@ Carry forward the remaining post-process AA items:
 - add TAA accumulation once the resource contract below is backed by frame
   resources, motion-vector production, and render-state lifetime in the
   engine-agnostic pass system;
-- decide whether rasterizer MSAA needs a cheaper centroid/per-fragment shading
-  mode beside the current per-covered-sample shading.
+- ✅ add a cheaper rasterizer MSAA per-fragment shading mode beside the current
+  per-covered-sample shading. The new mode keeps coverage/depth/stencil
+  per sample and caches the first passing shaded color per prepared
+  triangle/pixel across sample passes; it is not a full centroid sampler.
 
 #### Temporal anti-aliasing resource contract
 

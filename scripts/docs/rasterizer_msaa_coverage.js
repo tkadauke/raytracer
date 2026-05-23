@@ -1,7 +1,7 @@
-// Interactive widget for the rasterizer's MSAA coverage and resolve step.
-// Each pixel is shaded by the fraction of its subpixel samples covered by a
-// draggable triangle. 1x coverage is binary; 2x/4x/8x can resolve edge pixels
-// to intermediate values.
+// Interactive widget for the rasterizer's MSAA coverage, shading, and resolve
+// step. A draggable triangle controls which subpixel samples are covered. The
+// shading mode controls whether each covered sample uses its own interpolated
+// color or reuses one shaded color for the whole triangle/pixel pair.
 
 class RasterizerMSAACoverage {
   constructor() {
@@ -35,6 +35,8 @@ class RasterizerMSAACoverage {
     };
     this.handleColors = ['#2f9e44', '#f03e3e', '#f59f00'];
     this.sampleCount = 4;
+    this.shadingMode = 'per_sample';
+    this.backgroundColor = { r: 255, g: 255, b: 255 };
     this.vertices = [
       { x: 1.0, y: 5.35 },
       { x: 8.35, y: 4.65 },
@@ -62,7 +64,21 @@ class RasterizerMSAACoverage {
       },
     });
 
+    this.shadingControl = new FigureSegmentedControl({
+      label: 'shading',
+      value: this.shadingMode,
+      options: [
+        { label: 'per sample', value: 'per_sample' },
+        { label: 'per fragment', value: 'per_fragment' },
+      ],
+      onChange: (value) => {
+        this.shadingMode = value;
+        this.render();
+      },
+    });
+
     this.widget.addControl(this.sampleControl.element());
+    this.widget.addControl(this.shadingControl.element());
     this.widget.setContent(this.canvas.element);
     this.render();
     return this.widget.root;
@@ -93,10 +109,71 @@ class RasterizerMSAACoverage {
       p, this.vertices[0], this.vertices[1], this.vertices[2]);
   }
 
-  coverageColor(covered, total) {
-    const t = covered / total;
-    const mix = (a, b) => Math.round(FigureMath.lerp(a, b, t));
-    return `rgb(${mix(255, 11)}, ${mix(255, 114)}, ${mix(255, 133)})`;
+  sampleShadeColor(p) {
+    const weights = FigureGeometry.barycentricTopLeft(
+      p, this.vertices[0], this.vertices[1], this.vertices[2]);
+    const w0 = FigureMath.clamp01(weights.w0);
+    const w1 = FigureMath.clamp01(weights.w1);
+    const w2 = FigureMath.clamp01(weights.w2);
+    return {
+      r: 235 * w0 + 35 * w1 + 35 * w2,
+      g: 55 * w0 + 165 * w1 + 85 * w2,
+      b: 55 * w0 + 70 * w1 + 225 * w2,
+    };
+  }
+
+  colorCss(color) {
+    return `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
+  }
+
+  colorLuminance(color) {
+    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+  }
+
+  resolvedPixel(px, py, pattern) {
+    const samples = pattern.map((offset) => {
+      const point = {
+        x: px + 0.5 + offset.x,
+        y: py + 0.5 + offset.y,
+      };
+      const hit = this.insideTriangle(point);
+      return {
+        point,
+        hit,
+        shadeColor: hit ? this.sampleShadeColor(point) : this.backgroundColor,
+      };
+    });
+
+    const firstHit = samples.find(sample => sample.hit);
+    const sharedShadeColor = firstHit ? firstHit.shadeColor : this.backgroundColor;
+    const covered = samples.filter(sample => sample.hit).length;
+    const total = { r: 0, g: 0, b: 0 };
+
+    samples.forEach((sample) => {
+      if (!sample.hit) {
+        sample.resolvedColor = this.backgroundColor;
+        sample.shadingSource = false;
+      } else if (this.shadingMode === 'per_fragment') {
+        sample.resolvedColor = sharedShadeColor;
+        sample.shadingSource = sample === firstHit;
+      } else {
+        sample.resolvedColor = sample.shadeColor;
+        sample.shadingSource = true;
+      }
+      total.r += sample.resolvedColor.r;
+      total.g += sample.resolvedColor.g;
+      total.b += sample.resolvedColor.b;
+    });
+
+    return {
+      covered,
+      samples,
+      color: {
+        r: total.r / samples.length,
+        g: total.g / samples.length,
+        b: total.b / samples.length,
+      },
+    };
   }
 
   toSvgPoint(v) {
@@ -126,26 +203,21 @@ class RasterizerMSAACoverage {
 
     for (let py = 0; py < this.rows; py++) {
       for (let px = 0; px < this.cols; px++) {
-        let covered = 0;
-        for (const offset of pattern) {
-          if (this.insideTriangle({
-            x: px + 0.5 + offset.x,
-            y: py + 0.5 + offset.y,
-          })) {
-            covered++;
-          }
-        }
+        const resolved = this.resolvedPixel(px, py, pattern);
+        const covered = resolved.covered;
 
         this.canvas.add('rect', {
           x: px * this.cell,
           y: py * this.cell,
           width: this.cell,
           height: this.cell,
-          fill: this.coverageColor(covered, pattern.length),
+          fill: this.colorCss(resolved.color),
           stroke: '#d4d4d4',
           'stroke-width': FigurePixelGuideStrokeWidth,
           'data-covered-samples': covered,
           'data-sample-count': pattern.length,
+          'data-shading-mode': this.shadingMode,
+          'data-resolved-color': this.colorCss(resolved.color),
         });
 
         if (covered > 0 && covered < pattern.length) {
@@ -155,32 +227,30 @@ class RasterizerMSAACoverage {
             'font-family': 'monospace',
             'font-size': 11,
             'text-anchor': 'middle',
-            fill: covered > pattern.length / 2 ? '#fff' : '#222',
+            fill: this.colorLuminance(resolved.color) < 135 ? '#fff' : '#222',
             'pointer-events': 'none',
           });
           label.textContent = `${covered}/${pattern.length}`;
         }
 
-        this.renderSamples(px, py, pattern);
+        this.renderSamples(resolved.samples, pattern);
       }
     }
   }
 
-  renderSamples(px, py, pattern) {
-    for (const offset of pattern) {
-      const samplePoint = {
-        x: px + 0.5 + offset.x,
-        y: py + 0.5 + offset.y,
-      };
-      const hit = this.insideTriangle(samplePoint);
+  renderSamples(samples, pattern) {
+    for (const sample of samples) {
+      const source = sample.hit && sample.shadingSource;
       this.canvas.add('circle', {
-        cx: samplePoint.x * this.cell,
-        cy: samplePoint.y * this.cell,
+        cx: sample.point.x * this.cell,
+        cy: sample.point.y * this.cell,
         r: Math.max(2.5, 6 - pattern.length * 0.35),
-        fill: hit ? '#0b7285' : '#ffffff',
-        stroke: hit ? '#083f4a' : '#9b9b9b',
-        'stroke-width': FigurePixelGuideStrokeWidth,
-        'data-sample-hit': hit ? '1' : '0',
+        fill: sample.hit ? this.colorCss(sample.resolvedColor) : '#ffffff',
+        stroke: source ? '#111111' : (sample.hit ? '#516173' : '#9b9b9b'),
+        'stroke-width': source ? FigurePixelStrokeWidth : FigurePixelGuideStrokeWidth,
+        'data-sample-hit': sample.hit ? '1' : '0',
+        'data-shading-source': source ? '1' : '0',
+        'data-shading-mode': this.shadingMode,
       });
     }
   }
@@ -226,7 +296,10 @@ class RasterizerMSAACoverage {
       fill: '#333',
     });
     caption.textContent =
-      `${this.sampleCount}x MSAA: resolved color = covered samples / ${this.sampleCount}`;
+      `${this.sampleCount}x MSAA, ${this.shadingMode.replace('_', ' ')}: ` +
+      (this.shadingMode === 'per_fragment'
+        ? 'covered samples reuse one triangle/pixel color'
+        : 'covered samples shade independently');
   }
 }
 

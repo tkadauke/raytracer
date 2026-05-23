@@ -132,15 +132,19 @@ captures most of the anti-aliasing benefit at a fraction of the
 cost.
 
 The `rasterizer_msaa_coverage` widget shows the effect with a
-high-contrast diagonal triangle:
+high-contrast diagonal triangle. The sample-count control changes
+the coverage pattern. The shading control keeps those sample
+positions fixed and switches between independent per-sample colors
+and one cached color reused by the covered samples in the same
+triangle/pixel pair:
 
 <!-- widget: rasterizer_msaa_coverage -->
 
-At 1× sampling, edge pixels are either fully red or fully
+At 1× sampling, edge pixels are either fully colored or fully
 blank, producing the staircase. At 4× sampling, edge pixels
-get the right *fraction* of red — three of four samples
-covered means 0.75 red — and the staircase smooths into a
-gradient.
+get the right *fraction* of the shaded triangle — three of four
+samples covered means 75% triangle color plus 25% background —
+and the staircase smooths into a gradient.
 
 The crucial property of hardware MSAA is that **MSAA samples
 coverage, not shading**. The four samples per pixel usually
@@ -150,13 +154,18 @@ red" for an edge pixel, not "the average of four unrelated
 material evaluations" — it is one material evaluation weighted
 by the per-sample coverage.
 
-This codebase's software rasterizer currently takes the simpler
-V1 route: each covered sample runs the fragment path directly,
-then the samples are averaged. That is more expensive than
-centroid/per-fragment MSAA, but it keeps depth, stencil,
-textures, and programmable fragment hooks unambiguous. A
-cheaper centroid/per-fragment shading mode is left as a future
-quality/performance option.
+This codebase's software rasterizer exposes both policies.
+`Rasterizer::MSAAShadingMode::PerSample` is the default: each
+covered sample runs the fragment path directly, then the samples
+are averaged. That is the most explicit path because textures and
+programmable fragment hooks see the exact sample attributes.
+`Rasterizer::MSAAShadingMode::PerFragment` keeps coverage,
+depth, and stencil per sample, but caches the first passing shaded
+color for the same prepared triangle and pixel and reuses it for
+later covered samples. It is cheaper for expensive material or
+fragment shader paths, with the expected trade-off that
+sample-varying attributes no longer produce separate colors inside
+one pixel.
 
 ## 21.4 The MSAA implementation
 
@@ -175,14 +184,17 @@ $8$. The implementation has two paths:
   Z-buffers, and N per-sample stencil buffers cover the whole
   framebuffer. Each sample is rasterized independently, then a
   final *resolve* pass averages the N samples per pixel into
-  the single output framebuffer. This preserves the low-overhead
-  default path.
+  the single output framebuffer. In per-fragment shading mode, a
+  frame-local shade cache is shared across those sample passes.
+  This preserves the low-overhead default path.
 - **Tile-local N-sample path** (`m_msaaSamples > 1` and
   `queueSize > 1`): each tile task loops over all sample
   offsets for that tile, using tile-local color, depth, and
   stencil sample buffers. The task resolves its tile directly
-  into the output framebuffer. That avoids allocating and
-  clearing full-frame sample buffers in every worker pass.
+  into the output framebuffer. In per-fragment shading mode, the
+  shade cache is tile-local because each worker owns a disjoint
+  pixel rectangle. That avoids allocating and clearing full-frame
+  sample buffers in every worker pass.
 
 The per-sample subpixel offsets follow a fixed pattern:
 $2$-sample uses $(-0.25, -0.25)$ and $(0.25, 0.25)$;
@@ -217,12 +229,14 @@ scenes:
 
 The 4× number is the dominant cost. The raster work
 quadruples (4× per-sample coverage, depth/stencil tests, and
-writes). In the current implementation, covered samples also
-run the fragment path directly; the planned centroid/per-fragment
-mode would reduce that shading share. The resolve pass adds a
-small amortized cost, and the tiled path keeps the sample buffers
-small enough that worker tasks no longer clear full-frame color,
-depth, and stencil storage for every sample.
+writes). With the default per-sample shading mode, covered samples
+also run the fragment path directly. Per-fragment shading reduces
+that shading share by reusing one shaded color per triangle/pixel,
+but it does not reduce the per-sample coverage or depth/stencil
+work. The resolve pass adds a small amortized cost, and the tiled
+path keeps the sample buffers small enough that worker tasks no
+longer clear full-frame color, depth, and stencil storage for
+every sample.
 
 The verdict is that MSAA is *expensive but worth it* for final
 output. For interactive editing, single-sample is the right
