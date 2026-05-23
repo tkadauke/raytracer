@@ -26,6 +26,11 @@ namespace engine::raster {
   *        direct-shades each pixel from interpolated vertex normals
   *        and material data — the textbook software-rasterizer pipeline.
   *
+  * The default render below is intentionally plain: one tessellated sphere,
+  * projected, depth-tested, shaded, and written to the framebuffer. The rest
+  * of this page then changes one rasterizer stage at a time so each image or
+  * widget has a single job.
+  *
   * @image html rasterizer_engine.png "Sphere through Rasterizer at default LOD"
   *
   * Pipeline:
@@ -97,13 +102,21 @@ namespace engine::raster {
   * Shadow maps are disabled by default; with them disabled, lights are direct
   * material contributions only.
   *
+  * @par Fixed-function tests and color output
+  *
+  * The first two widgets are about pass state rather than mesh shape. Read them
+  * from left to right in pipeline order: coverage creates candidate fragments,
+  * culling can reject whole triangles, stencil and depth decide which fragments
+  * survive, and color output decides how a surviving RGB value changes the
+  * framebuffer.
+  *
   * The widget below shows the fixed-function state in the order the
   * rasterizer applies it: a first pass marks a stencil region, then
   * overlapping triangles draw through that mask while depth keeps the
   * nearest fragment. Changing the cull mode removes triangles by
   * screen-space winding before coverage reaches the depth/stencil
-  * tests. This is the same pass structure later used for planar
-  * reflections, mirrors, and portals.
+  * tests. The same stencil-then-draw shape is the basis for planar
+  * reflections, mirrors, portals, decals, and selection outlines.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>
@@ -115,6 +128,9 @@ namespace engine::raster {
   * write mask decides which RGB channels commit. The rendered examples below
   * show the same source rectangle with all channels enabled, with only green
   * writes enabled, and with constant-alpha source-over-destination blending.
+  * In the green-mask image, the untouched red/blue destination channels are
+  * what make the result dark and muted; in the blend image, the destination
+  * still contributes because the pass constant alpha is below 1.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>
@@ -131,12 +147,22 @@ namespace engine::raster {
   * viewport maps clip-space coordinates into a sub-rectangle of the render
   * buffer; the scissor rectangle rejects fragments outside its bounds after
   * projection. Both rectangles are clipped to the framebuffer at render time.
+  * The viewport example changes the projection scale, so the same clip-space
+  * square becomes a smaller image. The scissor example keeps the original
+  * projection and simply masks the final fragments to a framebuffer rectangle.
   *
   * <table><tr>
   * <td>@image html rasterizer_viewport_full.png "full framebuffer"</td>
   * <td>@image html rasterizer_viewport_rect.png "viewport rectangle"</td>
   * <td>@image html rasterizer_scissor_rect.png "scissor rectangle"</td>
   * </tr></table>
+  *
+  * @par Tessellation, attributes, and materials
+  *
+  * LOD controls how dense the generated mesh is before rasterization starts.
+  * The sphere sequence shows the visible side effect: low LOD exposes a coarse
+  * faceted silhouette, while higher LOD spends more triangles to approach the
+  * smooth analytic sphere shape.
   *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
@@ -156,12 +182,27 @@ namespace engine::raster {
   * <td>@image html rasterizer_uv_checker.png "UV-mapped checkerboard on a box"</td>
   * </tr></table>
   *
+  * The checkerboard image is the more practical texture case, while the UV
+  * color diagnostic is deliberately artificial: a smooth red/green gradient is
+  * easier to audit than a textured picture when looking for interpolation or
+  * clipping mistakes.
+  *
   * The built-in material preview path handles the local direct-lighting subset
   * shared by the raytracer and rasterizer. The scene below keeps the first two
   * spheres Matte-only so ambient and diffuse coefficients are easy to compare,
   * then uses two Phong spheres to show broad and tight specular lobes.
+  * Reflection, refraction, and recursive portal transport are raytracer effects;
+  * the rasterizer preview stays on local material terms.
   *
   * @image html rasterizer_material_preview.png "Matte coefficient and Phong specular preview"
+  *
+  * @par Antialiasing
+  *
+  * The antialiasing figures separate coverage quality from postprocessing.
+  * Raw 1x coverage is binary at each pixel center. FXAA only sees the completed
+  * image, so it can soften contrast but cannot recover geometry that never
+  * covered a pixel sample. MSAA reruns coverage at several subpixel positions,
+  * so the resolve can represent a partly covered pixel directly.
   *
   * MSAA is opt-in because it multiplies raster work. FXAA is an
   * image-space alternative that runs after the frame is complete: it
@@ -189,6 +230,13 @@ namespace engine::raster {
   * <script type="text/javascript" src="figure.js"></script>
   * <script type="text/javascript" src="rasterizer_msaa_coverage.js"></script>
   * @endhtmlonly
+  *
+  * @par Directional shadow maps
+  *
+  * Shadow maps add a second raster pass from the light's point of view. That
+  * light pass records nearest depth only; the normal camera pass later compares
+  * each shaded point against that stored depth. The images show the visible
+  * effect first, and the widget then exposes the underlying depth comparison.
   *
   * Directional-light shadow maps are another opt-in quality/performance
   * feature. With them enabled, the rasterizer first renders a depth-only
@@ -218,6 +266,8 @@ namespace engine::raster {
   * Resolution controls how finely the light-space depth image represents
   * the scene. Low values are fast but visibly quantize shadow edges; higher
   * values cost more raster work and memory.
+  * The sequence below keeps the scene and bias fixed so only texel density is
+  * changing.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_map_size_32.png "32x32 shadow map"</td>
@@ -235,6 +285,8 @@ namespace engine::raster {
   * light space, then its center is snapped to the light-space texel grid so
   * small camera movements do not make the shadow projection drift by
   * fractional texels.
+  * The first row below changes how many maps are used; the second row keeps
+  * four cascades and changes where their depth split boundaries land.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
@@ -258,6 +310,9 @@ namespace engine::raster {
   * where the receiver turns away from the light. Too little bias can let a
   * surface shadow itself due to interpolation and quantization differences;
   * too much bias detaches shadows from their casters.
+  * The constant-bias row shows the global trade-off. The slope-bias row keeps
+  * the base bias fixed and adds more tolerance only for receiver angles that
+  * are difficult for a depth map to represent.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_bias_0_030.png "bias=0.030"</td>
@@ -292,11 +347,21 @@ namespace engine::raster {
   * kernel adaptive: it first searches for blockers, estimates how far
   * the receiver is behind those blockers in light space, then grows a
   * PCF kernel up to the configured radius.
+  * In the comparison image, PCF applies a uniform blur everywhere; PCSS varies
+  * the apparent softness from the receiver's relation to nearby blockers.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_filter_mode_pcf.png "fixed PCF"</td>
   * <td>@image html rasterizer_shadow_filter_mode_pcss.png "blocker-search PCSS"</td>
   * </tr></table>
+  *
+  * @par Coverage, interpolation, and clipping widgets
+  *
+  * The last three widgets zoom into the math that every rendered image above
+  * depends on. They are diagnostic views of the pipeline's geometry stage:
+  * edge functions decide coverage, perspective-correct weights carry
+  * attributes across the triangle, and clipping creates replacement vertices
+  * before the perspective divide.
   *
   * The interactive widget below visualizes the edge-function
   * rasterization step (Pineda 1988) — the per-pixel inside-test
@@ -335,6 +400,13 @@ namespace engine::raster {
   * @htmlonly
   * <script type="text/javascript" src="rasterizer_clip_attributes.js"></script>
   * @endhtmlonly
+  *
+  * @par Limits and threading
+  *
+  * The implementation is intentionally a CPU software rasterizer. Its camera
+  * support is limited to camera types that can provide closed-form clip-space
+  * projection, and its default execution path favors predictable single-tile
+  * rendering unless the caller explicitly opts into queued tiles.
   *
   * Cameras supported: any subclass that overrides
   * `Camera::projectPointToClipSpace` (currently `PinholeCamera`
