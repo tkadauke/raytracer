@@ -270,7 +270,8 @@ box path is the practical runtime path.
 Before planar reflections, portals, decals, or selection overlays become real
 features, the rasterizer needs more fixed-function state:
 
-- scissor and viewport state;
+- ✅ scissor and viewport state, including rendercli flags, unit coverage, API
+  docs, textbook notes, and rendered visual examples;
 - ✅ blend state;
 - ✅ color write masks;
 - depth bias that applies outside shadow maps too;

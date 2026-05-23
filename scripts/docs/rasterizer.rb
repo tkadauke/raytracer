@@ -93,6 +93,24 @@ module ::Common
               )
   end
 
+  def rasterizer_viewport_scissor_scene
+    ambient [1.0, 1.0, 1.0]
+    background [0.035, 0.045, 0.060]
+
+    pinhole_camera :position => [0.0, 0.0, -3.4],
+                   :target => [0.0, 0.0, 0.0],
+                   :zoom => 1.55
+
+    rectangle :position => [-20.0, 14.0, 0.0],
+              :leg1 => [40.0, 0.0, 0.0],
+              :leg2 => [0.0, -28.0, 0.0],
+              :material => matte_material(
+                :diffuseTexture => constant_color_texture(:color => [0.12, 0.66, 0.88]),
+                :ambientCoefficient => 1.0,
+                :diffuseCoefficient => 0.0,
+              )
+  end
+
   def rasterizer_shadow_scene(light_direction: [-0.52, -0.78, -0.28])
     options(lod: 3)
     ambient [0.18, 0.18, 0.20]
@@ -259,6 +277,24 @@ class_doc(engine: "raster", width: 240, height: 180, blend: true,
   name "rasterizer_color_output_constant_alpha"
 
   rasterizer_color_output_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180) do
+  name "rasterizer_viewport_full"
+
+  rasterizer_viewport_scissor_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180, viewport: "48,36,144,108") do
+  name "rasterizer_viewport_rect"
+
+  rasterizer_viewport_scissor_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180, scissor: "72,54,96,72") do
+  name "rasterizer_scissor_rect"
+
+  rasterizer_viewport_scissor_scene
 end
 
 class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do

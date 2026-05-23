@@ -588,6 +588,12 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.0, engine.shadowSlopeBias());
     EXPECT_EQ(0, engine.shadowFilterRadius());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCF, engine.shadowFilterMode());
+    EXPECT_FALSE(engine.viewportEnabled());
+    EXPECT_EQ(0, engine.viewportRect().width());
+    EXPECT_EQ(0, engine.viewportRect().height());
+    EXPECT_FALSE(engine.scissorTestEnabled());
+    EXPECT_EQ(0, engine.scissorRect().width());
+    EXPECT_EQ(0, engine.scissorRect().height());
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().depth);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().normal);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().primitive);
@@ -611,6 +617,8 @@ namespace RasterizerTest {
                            Rasterizer::BlendFactor::OneMinusConstantAlpha);
     engine.setBlendOp(Rasterizer::BlendOp::ReverseSubtract);
     engine.setBlendConstant(Colord(0.25, 0.5, 0.75), 0.35);
+    engine.setViewportRect(8, 10, 40, 42);
+    engine.setScissorRect(12, 14, 20, 22);
     Buffer<double> depth(1, 1);
     Rasterizer::DiagnosticOutputBuffers outputs;
     outputs.depth = &depth;
@@ -633,7 +641,32 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::BlendOp::ReverseSubtract, clone->blendOp());
     EXPECT_EQ(Colord(0.25, 0.5, 0.75), clone->blendConstantColor());
     EXPECT_DOUBLE_EQ(0.35, clone->blendConstantAlpha());
+    EXPECT_TRUE(clone->viewportEnabled());
+    EXPECT_EQ(8, clone->viewportRect().left());
+    EXPECT_EQ(10, clone->viewportRect().top());
+    EXPECT_EQ(40, clone->viewportRect().width());
+    EXPECT_EQ(42, clone->viewportRect().height());
+    EXPECT_TRUE(clone->scissorTestEnabled());
+    EXPECT_EQ(12, clone->scissorRect().left());
+    EXPECT_EQ(14, clone->scissorRect().top());
+    EXPECT_EQ(20, clone->scissorRect().width());
+    EXPECT_EQ(22, clone->scissorRect().height());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
+  }
+
+  TEST(Rasterizer, ClonePreservesDisabledScissorRectangle) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setScissorRect(12, 14, 20, 22);
+    engine.setScissorTestEnabled(false);
+
+    auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
+
+    ASSERT_NE(nullptr, clone);
+    EXPECT_FALSE(clone->scissorTestEnabled());
+    EXPECT_EQ(12, clone->scissorRect().left());
+    EXPECT_EQ(14, clone->scissorRect().top());
+    EXPECT_EQ(20, clone->scissorRect().width());
+    EXPECT_EQ(22, clone->scissorRect().height());
   }
 
   TEST(Rasterizer, DiagnosticOutputBuffersCapturePassingFragmentData) {
@@ -1234,6 +1267,46 @@ namespace RasterizerTest {
     EXPECT_EQ(64 * 64, countNonBackground(buffer, Colord::black()));
   }
 
+  TEST(Rasterizer, ViewportRectMapsClipSpaceIntoFramebufferSubrect) {
+    Rasterizer engine(headOnCamera(), sceneWithOversizedRectangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setViewportRect(16, 12, 32, 24);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(32 * 24, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(Colord::black(), buffer[20][8]);
+    EXPECT_NE(Colord::black(), buffer[20][32]);
+  }
+
+  TEST(Rasterizer, ViewportRectUsesConfiguredProjectionBeforeFramebufferClipping) {
+    auto cam = headOnCamera();
+    Rasterizer engine(cam, sceneWithOversizedRectangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setViewportRect(-16, -12, 32, 24);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    const Vector2d projectedCenter = cam->projectPoint(Vector3d::null);
+    EXPECT_DOUBLE_EQ(0.0, projectedCenter.x());
+    EXPECT_DOUBLE_EQ(0.0, projectedCenter.y());
+  }
+
+  TEST(Rasterizer, ScissorRectRejectsFragmentsOutsideSubrect) {
+    Rasterizer engine(headOnCamera(), sceneWithOversizedRectangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setScissorRect(20, 16, 24, 32);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(24 * 32, countNonBackground(buffer, Colord::black()));
+    EXPECT_EQ(Colord::black(), buffer[20][8]);
+    EXPECT_NE(Colord::black(), buffer[20][32]);
+  }
+
   TEST(Rasterizer, TiledRenderMatchesSingleTileRender) {
     auto cam = std::make_shared<PinholeCamera>(Vector3d(0, 0, -8), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
@@ -1252,6 +1325,29 @@ namespace RasterizerTest {
 
     Buffer<Colord> expected(128, 128);
     Buffer<Colord> actual(128, 128);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithViewportAndScissor) {
+    auto scene = sceneWithOversizedRectangle();
+
+    Rasterizer singleTile(headOnCamera(), scene);
+    singleTile.setViewportRect(8, 6, 48, 44);
+    singleTile.setScissorRect(18, 14, 22, 24);
+    singleTile.setMaximumThreads(1);
+    singleTile.setQueueSize(1);
+
+    Rasterizer tiled(headOnCamera(), scene);
+    tiled.setViewportRect(8, 6, 48, 44);
+    tiled.setScissorRect(18, 14, 22, 24);
+    tiled.setMaximumThreads(4);
+    tiled.setQueueSize(16);
+
+    Buffer<Colord> expected(64, 64);
+    Buffer<Colord> actual(64, 64);
     singleTile.render(expected);
     tiled.render(actual);
 

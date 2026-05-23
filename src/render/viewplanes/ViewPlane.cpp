@@ -46,18 +46,18 @@ void ViewPlane::setupVectors() {
       innerH = static_cast<int>(width() / intrinsicAspect);
       offsetY = (height() - innerH) / 2;
     }
-    m_innerRect = Recti(offsetX, offsetY, innerW, innerH);
+    m_innerRect = Recti(m_window.left() + offsetX, m_window.top() + offsetY, innerW, innerH);
 
     m_hSpan = 8.0;
     m_vSpan = m_hSpan / intrinsicAspect;
     Vector3d r = Matrix3d(m_matrix) * (Vector3d(1, 0, 0) / innerW * m_hSpan);
     Vector3d d = Matrix3d(m_matrix) * (Vector3d(0, 1, 0) / innerH * m_vSpan);
-    // Offset m_topLeft so that pixelAt(offsetX, offsetY) lands at the
-    // inner rect's top-left in camera space.
+    // Offset m_topLeft so that pixelAt(innerRect.left, innerRect.top)
+    // lands at the inner rect's top-left in camera space.
     Vector3d tlCam = m_matrix * Vector4d(-m_hSpan / 2.0, -m_vSpan / 2.0, 0);
     m_right = r;
     m_down = d;
-    m_topLeft = tlCam - r * offsetX - d * offsetY;
+    m_topLeft = tlCam - r * m_innerRect.left() - d * m_innerRect.top();
     return;
   }
 
@@ -78,9 +78,10 @@ void ViewPlane::setupVectors() {
     break;
   }
 
-  m_topLeft = m_matrix * Vector4d(-m_hSpan / 2.0, -m_vSpan / 2.0, 0);
   m_right = Matrix3d(m_matrix) * (Vector3d(1, 0, 0) / width() * m_hSpan);
   m_down = Matrix3d(m_matrix) * (Vector3d(0, 1, 0) / height() * m_vSpan);
+  m_topLeft = m_matrix * Vector4d(-m_hSpan / 2.0, -m_vSpan / 2.0, 0) -
+    m_right * m_window.left() - m_down * m_window.top();
   m_innerRect = m_window;
 }
 

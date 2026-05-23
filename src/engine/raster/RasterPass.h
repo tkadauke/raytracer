@@ -439,16 +439,20 @@ namespace engine::raster::detail {
   template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizeTileWithPolicies(const RasterTriangleSet& triangleSet, const Recti& rect,
                                         std::size_t tileIndex, ColorBuffer colorBuffer,
-                                        const Vector2d& sampleOffset,
+                                        const Recti& clipRect, const Vector2d& sampleOffset,
                                         const std::atomic<bool>& cancelled, Stencil stencil,
                                         Depth depth, Fragment fragmentPolicy,
                                         Diagnostics diagnostics) {
+    const Recti rasterRect = intersectRasterRects(rect, clipRect);
+    if (rasterRectEmpty(rasterRect))
+      return;
+
     const auto& triangles = triangleSet.triangles();
     const auto& triangleIndices = triangleSet.tileGrid().triangleIndices(tileIndex);
     for (const std::size_t triangleIndex : triangleIndices) {
       if (cancelled.load())
         return;
-      rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rect, colorBuffer,
+      rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rasterRect, colorBuffer,
                                             sampleOffset, stencil, depth, fragmentPolicy,
                                             diagnostics);
     }
@@ -472,14 +476,16 @@ namespace engine::raster::detail {
 
   template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizeTriangleSetWithPolicies(
-    const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
-    std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, const std::atomic<bool>& cancelled,
-    ColorBuffer colorBuffer, const Vector2d& sampleOffset, Stencil stencil, Depth depth,
-    Fragment fragmentPolicy, Diagnostics diagnostics) {
+    const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
+    QThreadPool& threadPool, std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
+    const std::atomic<bool>& cancelled, ColorBuffer colorBuffer, const Recti& clipRect,
+    const Vector2d& sampleOffset, Stencil stencil, Depth depth, Fragment fragmentPolicy,
+    Diagnostics diagnostics) {
     if (tilePlan.isSingleTile()) {
       // Avoid QRunnable overhead for the common single-tile path.
-      rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, colorBuffer, sampleOffset,
-                                cancelled, stencil, depth, fragmentPolicy, diagnostics);
+      rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, colorBuffer, clipRect,
+                                sampleOffset, cancelled, stencil, depth, fragmentPolicy,
+                                diagnostics);
       return;
     }
 
@@ -487,8 +493,9 @@ namespace engine::raster::detail {
                               [&, sampleOffset, stencil, depth, fragmentPolicy,
                                diagnostics](const Recti& rect, std::size_t tileIndex) {
                                 rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer,
-                                                          sampleOffset, cancelled, stencil, depth,
-                                                          fragmentPolicy, diagnostics);
+                                                          clipRect, sampleOffset, cancelled,
+                                                          stencil, depth, fragmentPolicy,
+                                                          diagnostics);
                               });
   }
 

@@ -127,6 +127,17 @@ namespace engine::raster {
   * <td>@image html rasterizer_color_output_constant_alpha.png "constant-alpha blending"</td>
   * </tr></table>
   *
+  * Viewport and scissor state are framebuffer-space pass controls. The
+  * viewport maps clip-space coordinates into a sub-rectangle of the render
+  * buffer; the scissor rectangle rejects fragments outside its bounds after
+  * projection. Both rectangles are clipped to the framebuffer at render time.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_viewport_full.png "full framebuffer"</td>
+  * <td>@image html rasterizer_viewport_rect.png "viewport rectangle"</td>
+  * <td>@image html rasterizer_scissor_rect.png "scissor rectangle"</td>
+  * </tr></table>
+  *
   * <table><tr>
   * <td>@image html rasterizer_engine_lod_0.png "lod=0"</td>
   * <td>@image html rasterizer_engine_lod_1.png "lod=1"</td>
@@ -712,6 +723,48 @@ public:
   inline CullMode cullMode() const { return m_cullMode; }
   inline void setCullMode(CullMode mode) { m_cullMode = mode; }
 
+  /// Returns whether the rasterizer maps clip-space coordinates into an
+  /// explicit framebuffer viewport. Disabled means the full render buffer is
+  /// the viewport.
+  inline bool viewportEnabled() const { return m_viewportEnabled; }
+
+  /// Returns the configured viewport rectangle. The value may extend beyond the
+  /// framebuffer; rendering intersects it with the target buffer before drawing.
+  inline const Recti& viewportRect() const { return m_viewportRect; }
+
+  /// Enables an explicit framebuffer viewport. Homogeneous clip coordinates in
+  /// the canonical [-1, 1] range map into this rectangle instead of the full
+  /// render buffer. Negative widths and heights are clamped to zero.
+  void setViewportRect(const Recti& rect);
+  inline void setViewportRect(int x, int y, int width, int height) {
+    setViewportRect(Recti(x, y, width, height));
+  }
+
+  /// Disables the explicit viewport and returns to full-frame projection.
+  void clearViewportRect();
+
+  /// Returns whether the framebuffer scissor test is active.
+  inline bool scissorTestEnabled() const { return m_scissorTestEnabled; }
+
+  /// Enables or disables the scissor test while preserving the configured
+  /// scissor rectangle.
+  inline void setScissorTestEnabled(bool enabled) { m_scissorTestEnabled = enabled; }
+
+  /// Returns the configured scissor rectangle. The value may extend beyond the
+  /// framebuffer; rendering intersects it with the target buffer before drawing.
+  inline const Recti& scissorRect() const { return m_scissorRect; }
+
+  /// Sets and enables the framebuffer scissor rectangle. Fragments outside this
+  /// rectangle are discarded after projection but before depth/stencil and color
+  /// output. Negative widths and heights are clamped to zero.
+  void setScissorRect(const Recti& rect);
+  inline void setScissorRect(int x, int y, int width, int height) {
+    setScissorRect(Recti(x, y, width, height));
+  }
+
+  /// Disables the scissor test and clears its rectangle.
+  void clearScissorRect();
+
   /// Depth comparison applied after coverage and stencil tests.
   /// Defaults to `Less`, matching the original Z-buffer path.
   inline DepthFunc depthFunc() const { return m_depthFunc; }
@@ -847,6 +900,10 @@ private:
   int m_shadowFilterRadius{0};
   ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
   CullMode m_cullMode{CullMode::Both};
+  bool m_viewportEnabled{false};
+  Recti m_viewportRect;
+  bool m_scissorTestEnabled{false};
+  Recti m_scissorRect;
   DepthFunc m_depthFunc{DepthFunc::Less};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};
   bool m_depthWriteEnabled{true};

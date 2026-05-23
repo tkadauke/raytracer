@@ -116,6 +116,8 @@ namespace {
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
   using engine::raster::detail::rasterizeTileWithPolicies;
   using engine::raster::detail::rasterizeTriangleSetWithPolicies;
+  using engine::raster::detail::intersectRasterRects;
+  using engine::raster::detail::rasterRectEmpty;
   using engine::raster::detail::RasterTileBufferView;
   using engine::raster::detail::RasterTriangle;
   using engine::raster::detail::RasterTriangleEmitter;
@@ -167,6 +169,26 @@ namespace {
     clearDiagnosticBuffer(outputs.face, width, height, std::numeric_limits<std::uint64_t>::max());
     clearDiagnosticBuffer(outputs.stencil, width, height, rasterizer.stencilClearValue());
   }
+
+  Recti sanitizeRasterRect(const Recti& rect) {
+    return Recti(rect.left(), rect.top(), std::max(0, rect.width()), std::max(0, rect.height()));
+  }
+
+  Recti configuredViewportRect(const Rasterizer& rasterizer, const Recti& framebufferRect) {
+    if (!rasterizer.viewportEnabled()) {
+      return framebufferRect;
+    }
+    return rasterizer.viewportRect();
+  }
+
+  Recti effectiveRasterClipRect(const Rasterizer& rasterizer, const Recti& framebufferRect) {
+    Recti result = intersectRasterRects(framebufferRect,
+                                        configuredViewportRect(rasterizer, framebufferRect));
+    if (rasterizer.scissorTestEnabled()) {
+      result = intersectRasterRects(result, rasterizer.scissorRect());
+    }
+    return result;
+  }
 }
 
 // Pimpl: hides Qt threading and render-pass orchestration from the
@@ -190,36 +212,40 @@ struct Rasterizer::Private {
                                const std::shared_ptr<render::Scene>& scene,
                                const render::TilePlan& tilePlan,
                                const RasterTriangleEmitter& triangleEmitter,
-                               const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled,
-                               Buffer<Colord>& buffer);
+                               const ShadowMaps& shadowMaps, const Recti& renderClip,
+                               const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
   void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                        const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
                        const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
-                       const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+                       const Recti& renderClip, const std::atomic<bool>& cancelled,
+                       Buffer<Colord>& buffer);
 
   void renderMSAAFullFrame(const Rasterizer& rasterizer,
                            const std::shared_ptr<render::Scene>& scene,
                            const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
-                           const ShadowMaps& shadowMaps, const MSAASamplePattern& pattern,
-                           const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+                           const ShadowMaps& shadowMaps, const Recti& renderClip,
+                           const MSAASamplePattern& pattern, const std::atomic<bool>& cancelled,
+                           Buffer<Colord>& buffer);
 
   void renderMSAATile(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                       const RasterTriangleSet& triangleSet, const ShadowMaps& shadowMaps,
-                      const MSAASamplePattern& pattern, const Recti& rect, std::size_t tileIndex,
-                      const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+                      const Recti& renderClip, const MSAASamplePattern& pattern, const Recti& rect,
+                      std::size_t tileIndex, const std::atomic<bool>& cancelled,
+                      Buffer<Colord>& buffer);
 
   void renderTriangleSetPass(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
                              const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
-                             const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled,
-                             Buffer<Colord>& buffer, const Vector2d& sampleOffset);
+                             const ShadowMaps& shadowMaps, const Recti& renderClip,
+                             const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+                             const Vector2d& sampleOffset);
   void renderTriangleStreamPass(const Rasterizer& rasterizer,
                                 const std::shared_ptr<render::Scene>& scene,
                                 const RasterTriangleEmitter& triangleEmitter,
                                 const render::TilePlan& tilePlan, const ShadowMaps& shadowMaps,
-                                const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-                                const Vector2d& sampleOffset);
+                                const Recti& renderClip, const std::atomic<bool>& cancelled,
+                                Buffer<Colord>& buffer, const Vector2d& sampleOffset);
 
   ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
@@ -261,6 +287,10 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setShadowFilterRadius(m_shadowFilterRadius);
   result->setShadowFilterMode(m_shadowFilterMode);
   result->setCullMode(m_cullMode);
+  result->m_viewportEnabled = m_viewportEnabled;
+  result->m_viewportRect = m_viewportRect;
+  result->m_scissorTestEnabled = m_scissorTestEnabled;
+  result->m_scissorRect = m_scissorRect;
   result->setDepthFunc(m_depthFunc);
   result->setDepthClearValue(m_depthClearValue);
   result->setDepthWriteEnabled(m_depthWriteEnabled);
@@ -308,6 +338,26 @@ void Rasterizer::setQueueSize(int queue) {
   p->queueSize = std::max(1, queue);
 }
 
+void Rasterizer::setViewportRect(const Recti& rect) {
+  m_viewportRect = sanitizeRasterRect(rect);
+  m_viewportEnabled = true;
+}
+
+void Rasterizer::clearViewportRect() {
+  m_viewportRect = Recti();
+  m_viewportEnabled = false;
+}
+
+void Rasterizer::setScissorRect(const Recti& rect) {
+  m_scissorRect = sanitizeRasterRect(rect);
+  m_scissorTestEnabled = true;
+}
+
+void Rasterizer::clearScissorRect() {
+  m_scissorRect = Recti();
+  m_scissorTestEnabled = false;
+}
+
 void Rasterizer::setMSAASamples(int samples) {
   if (samples <= 1) {
     m_msaaSamples = 1;
@@ -353,7 +403,10 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
 
   // Same view-plane setup the other engines perform — the camera
   // projection math depends on the cached basis vectors.
-  m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
+  const Recti viewport = configuredViewportRect(*this, buffer.rect());
+  if (rasterRectEmpty(viewport))
+    return;
+  m_camera->viewPlane()->setup(m_camera->matrix(), viewport);
 
   // From here down the render is expressed in pipeline terms. The
   // Rasterizer object contributes configuration; Private drives the
@@ -456,8 +509,8 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
 void Rasterizer::Private::renderTriangleSetPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
-  const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-  const Vector2d& sampleOffset) {
+  const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
   // A pass freezes current depth/stencil/shader state into policies,
   // then hands the triangle set to either the direct or tiled path.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer);
@@ -473,15 +526,16 @@ void Rasterizer::Private::renderTriangleSetPass(
       rasterizeTriangleSetWithPolicies(triangleSet, tilePlan, *threadPool, tasks, cancelled,
                                        colorOutputPolicy(rasterizer,
                                                          fullBufferView(passBuffers.color())),
-                                       sampleOffset, stencil, depth, fragmentPolicy, diagnostics);
+                                       renderClip, sampleOffset, stencil, depth, fragmentPolicy,
+                                       diagnostics);
     });
 }
 
 void Rasterizer::Private::renderTriangleStreamPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan,
-  const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-  const Vector2d& sampleOffset) {
+  const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
   // The ordinary 1x single-tile path does not need a retained triangle
   // batch or tile bins. Freeze render state once, then draw each emitted
   // triangle immediately into the full-frame pass buffers.
@@ -495,7 +549,10 @@ void Rasterizer::Private::renderTriangleStreamPass(
   const RasterDiagnosticBufferViews diagnostics =
     diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
 
-  const Recti clipRect = tilePlan.fullRect();
+  const Recti clipRect = intersectRasterRects(tilePlan.fullRect(), renderClip);
+  if (rasterRectEmpty(clipRect))
+    return;
+
   withPreparedTrianglePolicies(
     scene.get(), rasterizer, shadowMaps, depthView, stencilView,
     [&](auto stencil, auto depth, auto fragmentPolicy) {
@@ -511,10 +568,11 @@ void Rasterizer::Private::renderTriangleStreamPass(
 void Rasterizer::Private::renderSingleSampleFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const RasterTriangleEmitter& triangleEmitter,
-  const ShadowMaps& shadowMaps, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer) {
   if (tilePlan.isSingleTile()) {
-    renderTriangleStreamPass(rasterizer, scene, triangleEmitter, tilePlan, shadowMaps, cancelled,
-                             buffer, Vector2d(0.0, 0.0));
+    renderTriangleStreamPass(rasterizer, scene, triangleEmitter, tilePlan, shadowMaps, renderClip,
+                             cancelled, buffer, Vector2d(0.0, 0.0));
     return;
   }
 
@@ -522,36 +580,36 @@ void Rasterizer::Private::renderSingleSampleFrame(
   if (cancelled.load() || triangleSet.empty())
     return;
 
-  renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, cancelled, buffer,
-                        Vector2d(0.0, 0.0));
+  renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, cancelled,
+                        buffer, Vector2d(0.0, 0.0));
 }
 
 void Rasterizer::Private::renderMSAAFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
-  const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
+  const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps, const Recti& renderClip,
   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
 
   if (tilePlan.isSingleTile()) {
-    renderMSAAFullFrame(rasterizer, scene, triangleSet, tilePlan, shadowMaps, pattern, cancelled,
-                        buffer);
+    renderMSAAFullFrame(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, pattern,
+                        cancelled, buffer);
     return;
   }
 
   engine::dispatchTileTasks(tilePlan, *threadPool, tasks,
                             [&](const Recti& rect, std::size_t tileIndex) {
-                              renderMSAATile(rasterizer, scene, triangleSet, shadowMaps, pattern,
-                                             rect, tileIndex, cancelled, buffer);
+                              renderMSAATile(rasterizer, scene, triangleSet, shadowMaps, renderClip,
+                                             pattern, rect, tileIndex, cancelled, buffer);
                             });
 }
 
 void Rasterizer::Private::renderMSAAFullFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
-  const ShadowMaps& shadowMaps, const MSAASamplePattern& pattern,
+  const ShadowMaps& shadowMaps, const Recti& renderClip, const MSAASamplePattern& pattern,
   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   buffer.clear(Colord::black());
   for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
@@ -561,7 +619,7 @@ void Rasterizer::Private::renderMSAAFullFrame(
     Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
     sampleBuffer.clear(rasterizer.backgroundColor());
 
-    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, cancelled,
+    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, cancelled,
                           sampleBuffer, pattern.offsets[sampleIndex]);
 
     if (cancelled.load())
@@ -575,7 +633,7 @@ void Rasterizer::Private::renderMSAAFullFrame(
 void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
                                          const std::shared_ptr<render::Scene>& scene,
                                          const RasterTriangleSet& triangleSet,
-                                         const ShadowMaps& shadowMaps,
+                                         const ShadowMaps& shadowMaps, const Recti& renderClip,
                                          const MSAASamplePattern& pattern, const Recti& rect,
                                          std::size_t tileIndex, const std::atomic<bool>& cancelled,
                                          Buffer<Colord>& buffer) {
@@ -605,7 +663,7 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
       [&](auto stencil, auto depth, auto fragmentPolicy) {
         rasterizeTileWithPolicies(
           triangleSet, rect, tileIndex,
-          colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)),
+          colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)), renderClip,
           pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy, diagnostics);
       });
 
@@ -627,17 +685,21 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   if (width <= 0 || height <= 0 || cancelled.load())
     return;
 
+  const Recti renderClip = effectiveRasterClipRect(rasterizer, buffer.rect());
+  if (rasterRectEmpty(renderClip))
+    return;
+
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
   const MSAASamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                               cancelled, rasterizer.cullMode(), true);
   const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, camera, cancelled);
   if (pattern.count > 1) {
-    renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, cancelled,
-                    buffer);
+    renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, renderClip,
+                    cancelled, buffer);
   } else {
-    renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, cancelled,
-                            buffer);
+    renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, renderClip,
+                            cancelled, buffer);
   }
 
   if (!cancelled.load() && rasterizer.postProcessAA() == Rasterizer::PostProcessAA::FXAA) {

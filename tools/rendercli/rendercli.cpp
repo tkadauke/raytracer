@@ -181,6 +181,29 @@ namespace {
     *color = Colord(components[0], components[1], components[2]);
     return true;
   }
+
+  bool parseRasterRect(const QString& value, Recti* rect) {
+    const QStringList parts = value.split(',', Qt::SkipEmptyParts);
+    if (parts.size() != 4) {
+      return false;
+    }
+
+    int components[4];
+    for (int i = 0; i < 4; ++i) {
+      bool ok = false;
+      components[i] = parts[i].trimmed().toInt(&ok);
+      if (!ok) {
+        return false;
+      }
+    }
+
+    if (components[2] < 0 || components[3] < 0) {
+      return false;
+    }
+
+    *rect = Recti(components[0], components[1], components[2], components[3]);
+    return true;
+  }
 }
 
 class Renderer {
@@ -226,6 +249,10 @@ private:
   engine::raster::Rasterizer::BlendOp m_rasterBlendOp;
   Colord m_rasterBlendConstantColor;
   double m_rasterBlendConstantAlpha;
+  bool m_rasterViewportSet;
+  Recti m_rasterViewport;
+  bool m_rasterScissorSet;
+  Recti m_rasterScissor;
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
   int m_rasterShadowCascadeCount;
@@ -276,6 +303,10 @@ Renderer::Renderer()
       m_rasterBlendOp(engine::raster::Rasterizer::BlendOp::Add),
       m_rasterBlendConstantColor(Colord::white()),
       m_rasterBlendConstantAlpha(1.0),
+      m_rasterViewportSet(false),
+      m_rasterViewport(),
+      m_rasterScissorSet(false),
+      m_rasterScissor(),
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
       m_rasterShadowCascadeCount(1),
@@ -355,6 +386,12 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     raster->setBlendFactors(m_rasterBlendSourceFactor, m_rasterBlendDestinationFactor);
     raster->setBlendOp(m_rasterBlendOp);
     raster->setBlendConstant(m_rasterBlendConstantColor, m_rasterBlendConstantAlpha);
+    if (m_rasterViewportSet) {
+      raster->setViewportRect(m_rasterViewport);
+    }
+    if (m_rasterScissorSet) {
+      raster->setScissorRect(m_rasterScissor);
+    }
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
@@ -575,6 +612,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "op"},
      {"blend_constant_color", "Rasterizer blend constant color as r,g,b in 0..1", "color"},
      {"blend_constant_alpha", "Rasterizer blend constant alpha in 0..1", "alpha"},
+     {"viewport", "Rasterizer viewport rectangle as x,y,width,height", "rect"},
+     {"scissor", "Rasterizer scissor rectangle as x,y,width,height", "rect"},
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
@@ -765,6 +804,24 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterBlendConstantAlpha = alpha;
+  }
+
+  if (parser.isSet("viewport")) {
+    if (!parseRasterRect(parser.value("viewport"), &m_rasterViewport)) {
+      *errorMessage =
+        "Viewport must be four comma-separated integers x,y,width,height with non-negative size";
+      return CommandLineError;
+    }
+    m_rasterViewportSet = true;
+  }
+
+  if (parser.isSet("scissor")) {
+    if (!parseRasterRect(parser.value("scissor"), &m_rasterScissor)) {
+      *errorMessage =
+        "Scissor must be four comma-separated integers x,y,width,height with non-negative size";
+      return CommandLineError;
+    }
+    m_rasterScissorSet = true;
   }
 
   if (parser.isSet("shadow_maps")) {

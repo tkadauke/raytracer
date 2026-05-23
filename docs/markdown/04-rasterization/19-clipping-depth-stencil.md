@@ -20,7 +20,7 @@ By the end of this chapter you should know:
 - the depth test and the configurable depth functions,
 - the stencil buffer as a per-pixel marker mechanism, and the
   three-action stencil op state machine,
-- the face-culling state and how the rasterizer uses it.
+- the face-culling, viewport/scissor, and color-output states.
 
 ## 19.1 Why clip at all
 
@@ -285,7 +285,30 @@ counter-clockwise convention); a positive signed area means
 counter-clockwise (front-facing). The cull check is one sign
 test before the rasterization-prep work begins.
 
-## 19.6 Color output
+## 19.6 Viewport and scissor
+
+The viewport decides where projected clip-space coordinates land in
+the framebuffer. With the default state, normalized device coordinates
+from $(-1, -1)$ to $(1, 1)$ map across the whole render target. Calling
+`Rasterizer::setViewportRect(...)` maps that same clip-space square into
+a smaller framebuffer rectangle instead.
+
+The scissor rectangle is different: it does not change projection. It is
+a framebuffer-space reject test. After a triangle has projected to screen
+space, fragments outside `Rasterizer::scissorRect()` are discarded before
+depth, stencil, shading, blending, and color writes.
+
+Both rectangles are clipped to the framebuffer before drawing. A viewport
+outside the framebuffer, a zero-size viewport, or a zero-size scissor
+rectangle leaves only the already-cleared background.
+
+The images below use the same oversized source rectangle:
+
+| Full framebuffer | Viewport rectangle | Scissor rectangle |
+|---|---|---|
+| ![Full framebuffer viewport](../../images/rasterizer_viewport_full.png) | ![Clip-space mapped into a smaller viewport rectangle](../../images/rasterizer_viewport_rect.png) | ![Full projection clipped by a scissor rectangle](../../images/rasterizer_scissor_rect.png) |
+
+## 19.7 Color output
 
 After a fragment passes depth and stencil, the rasterizer enters
 the color-output stage. The default behavior is replacement:
@@ -319,15 +342,17 @@ The same source rectangle rendered through three color-output states:
 
 <!-- widget: rasterizer_color_output -->
 
-## 19.7 The full state machine, default values
+## 19.8 The full state machine, default values
 
 The configurable state at a glance:
 
 | State | Default | Rasterizer setter |
 |---|---|---|
 | `CullMode` | `Both` | `setCullMode` |
+| Viewport | full framebuffer | `setViewportRect` |
+| Scissor | disabled | `setScissorRect` |
 | `DepthFunc` | `Less` | `setDepthFunc` |
-| Depth writes | enabled | `setDepthWrite` |
+| Depth writes | enabled | `setDepthWriteEnabled` |
 | Depth clear value | `+∞` | `setDepthClearValue` |
 | `StencilFunc` | `Always` | `setStencilFunc` |
 | `StencilOp` (3) | all `Keep` | `setStencilOps` |
@@ -341,13 +366,13 @@ The configurable state at a glance:
 
 The defaults give back the textbook fixed-function pipeline
 the chapter-18 walkthrough describes: `Less` depth test, depth
-writes on, no stencil test, no blending, all RGB channels
-writable, no culling, both sides rendered. Applications that
-want custom behavior set the relevant state before calling
-`render(...)`; the state persists across renders, so a single
-configuration applies to the whole frame.
+writes on, full-frame viewport, no scissor test, no stencil test,
+no blending, all RGB channels writable, no culling, both sides
+rendered. Applications that want custom behavior set the relevant
+state before calling `render(...)`; the state persists across renders,
+so a single configuration applies to the whole frame.
 
-## 19.8 Where this connects to GPU pipelines
+## 19.9 Where this connects to GPU pipelines
 
 Real-time GPU rasterizers expose essentially the same state
 machine — the Direct3D / OpenGL / Vulkan / Metal depth-stencil
@@ -360,13 +385,7 @@ masking), [CSG](../appendix/a-glossary.md#c) (depth peeling),
 portal rendering (stencil regions), and layered compositing
 (blend state).
 
-When the codebase eventually grows a GPU rasterizer engine
-(roadmap §4.1, second-order item), the GPU rasterizer will
-take exactly these state knobs and translate them to the GPU's
-native state objects. The fixed-function semantics carry over
-unchanged.
-
-## 19.9 Exercises
+## 19.10 Exercises
 
 1. Predict what happens when a triangle has all three vertices
    *behind* the camera. Trace the clipping algorithm: what

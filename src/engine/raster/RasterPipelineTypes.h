@@ -159,6 +159,18 @@ namespace engine::raster::detail {
     return RasterTileBufferView<T>(buffer, rect.left(), rect.top());
   }
 
+  inline Recti intersectRasterRects(const Recti& a, const Recti& b) {
+    const int left = std::max(a.left(), b.left());
+    const int top = std::max(a.top(), b.top());
+    const int right = std::min(a.right(), b.right());
+    const int bottom = std::min(a.bottom(), b.bottom());
+    return Recti(left, top, std::max(0, right - left), std::max(0, bottom - top));
+  }
+
+  inline bool rasterRectEmpty(const Recti& rect) {
+    return rect.width() <= 0 || rect.height() <= 0;
+  }
+
   // Prepared triangle handed from the emitter to the raster pass. It stores the
   // three raster vertices plus enough scene identity to support material
   // evaluation, fragment shader inputs, and face-indexed diagnostic colors.

@@ -259,8 +259,8 @@ namespace render {
       const double invW = 1.0 / clip.w();
       const double ndcX = clip.x() * invW;
       const double ndcY = clip.y() * invW;
-      return Vector3d((ndcX + 1.0) * width() / 2.0, (ndcY + 1.0) * height() / 2.0,
-                      clip.z());
+      return Vector3d(m_window.left() + (ndcX + 1.0) * width() / 2.0,
+                      m_window.top() + (ndcY + 1.0) * height() / 2.0, clip.z());
     }
 
     /**
