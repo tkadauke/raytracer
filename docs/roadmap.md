@@ -421,7 +421,7 @@ Texture inputs feed *any* material parameter — albedo, roughness, metallic, IO
 The texture-mapping roadmap is separate from the texture-source roadmap:
 
 - **UV mapping first** — carry stable UVs from `Mesh::Vertex` through `HitPoint`, the rasterizer, and every material evaluation path. Tests should pin seam duplication and primitive-generated UV conventions.
-- **Derivative and tangent data** — expose `dPdu`, `dPdv`, ~~`dUVdx`, and `dUVdy` where an engine can provide them; needed for MIP level selection~~ ✅ **Done.** The software rasterizer now computes per-triangle UV gradients for image-texture mip selection (#167). Still TODO: full surface derivatives for bump mapping, anisotropic filtering, and tangent-space normal maps.
+- **Derivative and tangent data** — expose `dPdu`, `dPdv`, ~~`dUVdx`, and `dUVdy` where an engine can provide them; needed for MIP level selection~~ ✅ **Done.** The software rasterizer now computes per-triangle UV gradients for image-texture mip selection (#167). ~~Derive raster tangent/bitangent frames for tangent-space normal maps.~~ ✅ **Done.** Raster material evaluation derives per-triangle tangent frames from world-space and UV edges for normal-map preview (#167). Still TODO: full surface derivatives for bump mapping and anisotropic filtering.
 - **Projection modes** — planar, spherical, cylindrical, cube/box, triplanar, object-space, world-space, and camera/projector mapping. These should be explicit mapping objects, not special cases inside individual textures.
 - **Environment mapping** — equirectangular and cubemap lookup for backgrounds, reflection/refraction probes, and HDRI lighting. This overlaps §4.4.b's HDRI light, but the material side needs its own sampler, transform, and roughness-filtered lookup path.
 - **Texture cache and filtering** — image decode, colour-space conversion, MIP generation, tile/cache lifetime, and sampling policy belong below materials so all engines see the same texture values.
@@ -434,7 +434,7 @@ A first-class pass that runs between intersection and BSDF eval, with all four s
 1. **Geometric normal** (the raw triangle normal — the baseline).
 2. **Smooth / interpolated normal** (vertex normals, tangent-frame interpolation).
 3. **Bump mapping** (height-derivative perturbation; needs `dPdu`/`dPdv` on the hit).
-4. **Normal mapping** (tangent-space normal sampled from a texture, properly handled across non-planar UV seams — Mikktspace tangents).
+4. **Normal mapping** (~~tangent-space normal sampled from a texture for raster previews~~ ✅ **Done.** The software rasterizer now samples Matte/Phong normal textures through UV-derived tangent frames (#167); still TODO: cross-engine shading-normal slots and Mikktspace tangents across non-planar UV seams).
 5. **Parallax / steep parallax / parallax occlusion** (visual depth without geometry).
 6. **Displacement mapping** (real geometry — pre-tessellation displacement on `Mesh`, or adaptive subdivision in PT).
 

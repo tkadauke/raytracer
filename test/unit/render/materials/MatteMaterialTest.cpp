@@ -21,6 +21,7 @@ using namespace render;
   TEST(MatteMaterial, ShouldInitialize) {
     MatteMaterial material;
     ASSERT_EQ(nullptr, material.diffuseTexture());
+    ASSERT_EQ(nullptr, material.normalTexture());
   }
 
   TEST(MatteMaterial, ShouldInitializeWithDiffuseTexture) {
@@ -35,6 +36,14 @@ using namespace render;
     auto texture = std::make_shared<ConstantColorTexture>(Colord(0, 1, 0));
     material.setDiffuseTexture(texture);
     ASSERT_EQ(texture, material.diffuseTexture());
+  }
+
+  TEST(MatteMaterial, ShouldSetNormalTexture) {
+    MatteMaterial material;
+
+    auto texture = std::make_shared<ConstantColorTexture>(Colord(0.5, 0.5, 1.0));
+    material.setNormalTexture(texture);
+    ASSERT_EQ(texture, material.normalTexture());
   }
 
   TEST(MatteMaterial, ShouldSetAmbientCoefficient) {

@@ -257,6 +257,18 @@ from the interpolated UV without fabricating a ray-hit context. Arbitrary
 texture objects still use the virtual `Texture::evaluate(...)` path with a
 synthesized `HitPoint`, preserving custom texture behavior.
 
+Normal maps use the same UV stream but feed the lighting normal rather than the
+albedo. For each rasterized triangle, the emitter derives a tangent and
+bitangent from the triangle's world-space edges and UV edges. A sampled normal
+map color is decoded from RGB into tangent space, then transformed through that
+frame before the diffuse and Phong terms evaluate `n dot l`. If the UVs are
+degenerate and no tangent frame can be derived, the rasterizer keeps the
+interpolated geometric normal.
+
+| Flat geometric normal | Tangent-space normal map |
+| --- | --- |
+| ![Flat raster rectangle lit by its geometric normal](../../images/rasterizer_normal_map_flat.png) | ![Raster rectangle with checker normal map changing the lighting](../../images/rasterizer_normal_map_mapped.png) |
+
 This is one place where the rasterizer takes a shortcut
 compared to the raytracer. The [Whitted](../appendix/a-glossary.md#w) raytracer in
 [chapter 5 §5.4](../02-ray-rendering/05-the-whitted-pipeline.md#5-4-the-recursive-heart)

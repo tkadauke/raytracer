@@ -335,6 +335,7 @@ end
 
 class MatteMaterial < Material
   property :diffuseTexture => nil,
+           :normalTexture => nil,
            :ambientCoefficient => 1,
            :diffuseCoefficient => 1
 end

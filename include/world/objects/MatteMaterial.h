@@ -17,6 +17,7 @@ class Texture;
 class MatteMaterial : public Material {
   Q_OBJECT
   Q_PROPERTY(Texture* diffuseTexture READ diffuseTexture WRITE setDiffuseTexture)
+  Q_PROPERTY(Texture* normalTexture READ normalTexture WRITE setNormalTexture)
   Q_PROPERTY(double ambientCoefficient READ ambientCoefficient WRITE setAmbientCoefficient)
   Q_PROPERTY(double diffuseCoefficient READ diffuseCoefficient WRITE setDiffuseCoefficient)
 
@@ -49,6 +50,25 @@ public:
     */
   inline void setDiffuseTexture(Texture* texture) {
     m_diffuseTexture = texture;
+  }
+
+  /**
+    * @returns the tangent-space normal map texture.
+    */
+  inline Texture* normalTexture() const {
+    return m_normalTexture;
+  }
+
+  /**
+    * Sets the tangent-space normal map texture used by raster previews.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_normal_map_flat.png "flat normals"</td>
+    * <td>@image html rasterizer_normal_map_mapped.png "normal mapped"</td>
+    * </tr></table>
+    */
+  inline void setNormalTexture(Texture* texture) {
+    m_normalTexture = texture;
   }
 
   /**
@@ -100,6 +120,7 @@ protected:
 
 private:
   Texture* m_diffuseTexture;
+  Texture* m_normalTexture;
   double m_ambientCoefficient;
   double m_diffuseCoefficient;
 };

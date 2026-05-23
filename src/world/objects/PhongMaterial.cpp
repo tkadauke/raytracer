@@ -18,6 +18,9 @@ std::shared_ptr<render::Material> PhongMaterial::toRaytracerMaterial() const {
   );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
+  if (normalTexture()) {
+    material->setNormalTexture(normalTexture()->toRaytracerTexture());
+  }
   material->setSpecularCoefficient(specularCoefficient());
   applyMaterialProperties(material);
 

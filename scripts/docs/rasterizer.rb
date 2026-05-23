@@ -75,6 +75,40 @@ module ::Common
            )
   end
 
+  def rasterizer_normal_map_scene(mapped)
+    options(engine: "raster", lod: 0)
+    ambient [0.04, 0.04, 0.04]
+    background [0.035, 0.04, 0.05]
+
+    directional_light :direction => [0.72, 0.0, 0.70],
+                      :color => [1.0, 0.96, 0.88],
+                      :intensity => 1.35
+
+    pinhole_camera :position => [0.0, 0.0, -3.6],
+                   :target => [0.0, 0.0, 0.0],
+                   :zoom => 1.55
+
+    normal_map = checker_board_texture(
+      :mapping => "uv",
+      :uScale => 10.0,
+      :vScale => 4.0,
+      :brightTexture => constant_color_texture(:color => [1.0, 0.5, 1.0]),
+      :darkTexture => constant_color_texture(:color => [0.0, 0.5, 1.0]),
+    )
+
+    material_options = {
+      :diffuseTexture => constant_color_texture(:color => [0.58, 0.64, 0.72]),
+      :ambientCoefficient => 0.12,
+      :diffuseCoefficient => 1.0,
+    }
+    material_options[:normalTexture] = normal_map if mapped
+
+    rectangle :position => [-1.45, -0.85, 0.0],
+              :leg1 => [2.9, 0.0, 0.0],
+              :leg2 => [0.0, 1.7, 0.0],
+              :material => matte_material(material_options)
+  end
+
   def rasterizer_color_output_scene
     ambient [1.0, 1.0, 1.0]
     background [0.18, 0.24, 0.34]
@@ -228,6 +262,18 @@ class_doc(engine: "raster", width: 320, height: 240) do
   sunlight
   pinhole_camera :position => [0, 0, -3], :zoom => 1.4
   sphere
+end
+
+class_doc(engine: "raster", width: 320, height: 180) do
+  name "rasterizer_normal_map_flat"
+
+  rasterizer_normal_map_scene(false)
+end
+
+class_doc(engine: "raster", width: 320, height: 180) do
+  name "rasterizer_normal_map_mapped"
+
+  rasterizer_normal_map_scene(true)
 end
 
 property_doc(engine: "raster") do |i|
