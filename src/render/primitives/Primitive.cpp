@@ -46,6 +46,12 @@ void Primitive::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
   visitor(this, own ? own : inheritedMaterial);
 }
 
+void Primitive::forEachLeafInBounds(const BoundsFilter&,
+                                    std::shared_ptr<render::Material> inheritedMaterial,
+                                    const LeafVisitor& visitor) const {
+  forEachLeaf(inheritedMaterial, visitor);
+}
+
 Vector3d Primitive::farthestPoint(const Vector3d&) const {
   return Vector3d::undefined;
 }

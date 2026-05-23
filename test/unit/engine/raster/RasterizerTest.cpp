@@ -87,6 +87,31 @@ namespace RasterizerTest {
     int* m_tessellateCalls;
   };
 
+  class CountingComposite : public Composite {
+  public:
+    explicit CountingComposite(int* flattenCalls)
+        : m_flattenCalls(flattenCalls) {
+    }
+
+    void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                     const LeafVisitor& visitor) const override {
+      ++(*m_flattenCalls);
+      Composite::forEachLeaf(inheritedMaterial, visitor);
+    }
+
+  private:
+    int* m_flattenCalls;
+  };
+
+  class NonSpatialScene : public Scene {
+  public:
+    void forEachLeafInBounds(const BoundsFilter&,
+                             std::shared_ptr<render::Material> inheritedMaterial,
+                             const LeafVisitor& visitor) const override {
+      Composite::forEachLeaf(inheritedMaterial, visitor);
+    }
+  };
+
   struct TrackedTriangleScene {
     std::shared_ptr<Scene> scene;
     std::shared_ptr<Triangle> triangle;
@@ -495,6 +520,42 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(1, tessellateCalls);
+  }
+
+  TEST(Rasterizer, FrustumBoundsOutsideGroupSkipFlatteningAndTessellation) {
+    int flattenCalls = 0;
+    int tessellateCalls = 0;
+    auto scene = std::make_shared<Scene>(Colord::white());
+    auto group = std::make_shared<CountingComposite>(&flattenCalls);
+    group->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
+      &tessellateCalls));
+    scene->add(group);
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, flattenCalls);
+    EXPECT_EQ(0, tessellateCalls);
+  }
+
+  TEST(Rasterizer, FrustumBoundsFallbackTraversalStillSkipsTessellation) {
+    int flattenCalls = 0;
+    int tessellateCalls = 0;
+    auto scene = std::make_shared<NonSpatialScene>();
+    auto group = std::make_shared<CountingComposite>(&flattenCalls);
+    group->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
+      &tessellateCalls));
+    scene->add(group);
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(1, flattenCalls);
+    EXPECT_EQ(0, tessellateCalls);
   }
 
   TEST(Rasterizer, FrustumBoundsCullingKeepsVertexShaderPathConservative) {

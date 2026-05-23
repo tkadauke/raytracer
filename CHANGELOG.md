@@ -33,6 +33,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Rasterizer PCSS shadow filtering.** Directional-light shadow maps now support an opt-in `Rasterizer::ShadowFilterMode::PCSS` mode that searches the configured shadow-filter kernel for blockers, estimates a receiver-local penumbra radius from blocker depth, and then runs PCF with that clamped radius. Existing PCF behavior remains the default. The mode is exposed through `rendercli --shadow_filter pcf|pcss`, the Modeler render settings widget, functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
 - **Raster material preview scene.** `scenes/raster_material_preview.json` and the rasterizer rendered-doc image now provide a reusable visual check for Matte ambient/diffuse coefficients and broad-vs-tight Phong highlights in the software rasterizer. — GPT-5
 
+### Changed
+
+- **Rasterizer scene traversal now uses grouped bounds for frustum culling.** `Primitive::forEachLeafInBounds(...)` lets composite scenes reject off-frustum groups before leaf flattening and tessellation, while primitives without grouped traversal keep the existing leaf-walk behavior. — GPT-5
+
 ### Fixed
 
 - **Rasterizer coverage now preserves subpixel projected vertex positions.** Projected screen coordinates remain fractional until fixed-point edge setup, reducing whole-pixel edge jumps during small camera or object motion while keeping tiled and MSAA paths consistent. — GPT-5

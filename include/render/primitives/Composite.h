@@ -38,6 +38,7 @@ namespace render {
   public:
     typedef std::list<std::shared_ptr<Primitive>> Primitives;
     using Primitive::forEachLeaf;
+    using Primitive::forEachLeafInBounds;
 
     inline Composite() {}
 
@@ -79,6 +80,9 @@ namespace render {
 
     void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
                      const LeafVisitor& visitor) const override;
+    void forEachLeafInBounds(const BoundsFilter& boundsFilter,
+                             std::shared_ptr<render::Material> inheritedMaterial,
+                             const LeafVisitor& visitor) const override;
 
     /**
       * Tessellate every child and concatenate the resulting meshes

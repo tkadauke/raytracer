@@ -35,9 +35,12 @@ namespace engine::raster {
   *
   * Pipeline:
   *
-  *  1. Walk the scene's leaf primitives via
-  *     `render::Primitive::forEachLeaf`. Finite primitive bounds
-  *     wholly outside one clip plane are rejected before tessellation;
+  *  1. Walk the scene through
+  *     `render::Primitive::forEachLeafInBounds` so bounded composite
+  *     groups wholly outside one clip plane can be rejected before
+  *     their leaves are flattened. Scenes without spatial grouping
+  *     fall back to `render::Primitive::forEachLeaf`. Finite leaf
+  *     bounds get the same conservative rejection before tessellation;
   *     otherwise the rasterizer calls `tessellate(lod)` on each leaf
   *     so it keeps per-primitive material associations rather than
   *     collapsing the scene into one mesh.
