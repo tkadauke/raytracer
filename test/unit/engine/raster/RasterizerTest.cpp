@@ -6,6 +6,7 @@
 #include "engine/raster/Rasterizer.h"
 #include "src/engine/raster/RasterMaterial.h"
 #include "src/engine/raster/RasterMaterialEvaluator.h"
+#include "src/engine/raster/RasterPipelineTypes.h"
 #include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
@@ -301,6 +302,20 @@ namespace RasterizerTest {
     engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
   }
 
+  static void configureOversizedScreenTriangle(Rasterizer& engine) {
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      Vector3d screen(0.0, 64.0, 1.0);
+      if (vertex.worldPosition.y() > 0.5) {
+        screen = Vector3d(0.0, 0.0, 1.0);
+      } else if (vertex.worldPosition.x() > 0.5) {
+        screen = Vector3d(64.0, 0.0, 1.0);
+      }
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, screen};
+    });
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+  }
+
   static std::shared_ptr<Scene> sceneWithOverlappingTriangles() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(
@@ -328,6 +343,25 @@ namespace RasterizerTest {
     scene->add(std::make_shared<Triangle>(p00, p10, p01));
     scene->add(std::make_shared<Triangle>(p10, p11, p01));
     return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithOversizedScreenTriangle() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
+    return scene;
+  }
+
+  static engine::raster::detail::RasterTriangle screenTriangle(double x0, double y0, double x1,
+                                                               double y1, double x2, double y2) {
+    engine::raster::detail::RasterTriangle triangle{};
+    triangle.vertices[0].x = x0;
+    triangle.vertices[0].y = y0;
+    triangle.vertices[1].x = x1;
+    triangle.vertices[1].y = y1;
+    triangle.vertices[2].x = x2;
+    triangle.vertices[2].y = y2;
+    return triangle;
   }
 
   static std::shared_ptr<PinholeCamera> camera() {
@@ -2086,6 +2120,46 @@ namespace RasterizerTest {
 
     Buffer<Colord> expected(32, 32);
     Buffer<Colord> actual(32, 32);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, TileBinningSkipsLargeTriangleTilesOutsideCoverage) {
+    const render::TilePlan tilePlan = render::TilePlan::forBuffer(64, 64, 16);
+    engine::raster::detail::RasterTriangleSet triangleSet(tilePlan);
+
+    triangleSet.add(screenTriangle(0.0, 0.0, 64.0, 0.0, 0.0, 64.0));
+
+    ASSERT_EQ(1u, triangleSet.triangles().size());
+    EXPECT_LT(triangleSet.binnedTriangleCount(), tilePlan.size());
+    EXPECT_GE(triangleSet.binnedTriangleCount(), 8u);
+  }
+
+  TEST(Rasterizer, TileBinningKeepsOrdinarySmallTriangleLocal) {
+    const render::TilePlan tilePlan = render::TilePlan::forBuffer(64, 64, 16);
+    engine::raster::detail::RasterTriangleSet triangleSet(tilePlan);
+
+    triangleSet.add(screenTriangle(4.0, 4.0, 12.0, 4.0, 4.0, 12.0));
+
+    ASSERT_EQ(1u, triangleSet.triangles().size());
+    EXPECT_EQ(1u, triangleSet.binnedTriangleCount());
+  }
+
+  TEST(Rasterizer, TiledOversizedTriangleMatchesSingleTileRender) {
+    Rasterizer singleTile(headOnCamera(), sceneWithOversizedScreenTriangle());
+    singleTile.setMaximumThreads(1);
+    singleTile.setQueueSize(1);
+    configureOversizedScreenTriangle(singleTile);
+
+    Rasterizer tiled(headOnCamera(), sceneWithOversizedScreenTriangle());
+    tiled.setMaximumThreads(4);
+    tiled.setQueueSize(16);
+    configureOversizedScreenTriangle(tiled);
+
+    Buffer<Colord> expected(64, 64);
+    Buffer<Colord> actual(64, 64);
     singleTile.render(expected);
     tiled.render(actual);
 
