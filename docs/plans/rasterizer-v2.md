@@ -251,10 +251,83 @@ and transparent materials need an explicit approximation or diagnostic fallback.
 Carry forward the remaining post-process AA items:
 
 - add SMAA if FXAA proves too blurry for fine preview detail;
-- add TAA only after history buffers, motion vectors, and display-buffer
-  ownership are explicit;
+- ~~define the TAA resource contract for history buffers, motion vectors,
+  jitter, and display-buffer ownership~~ ✅ **Done.** This plan now names the
+  resources and reset rules required before TAA accumulation can land;
+- add TAA accumulation once the resource contract below is backed by frame
+  resources, motion-vector production, and render-state lifetime in the
+  engine-agnostic pass system;
 - decide whether rasterizer MSAA needs a cheaper centroid/per-fragment shading
   mode beside the current per-covered-sample shading.
+
+#### Temporal anti-aliasing resource contract
+
+TAA is a history-dependent post-process, not just another image filter. The
+rasterizer must not accumulate until the frame owns or receives a complete set
+of same-sized temporal resources:
+
+- **Current resolved color**: the color image produced by the current raster
+  pass after MSAA resolve and before TAA. This is the source for the temporal
+  resolve; it can be transient.
+- **History color**: the previous frame's post-TAA color in display-linear
+  space, read-only during the current resolve. A separate **next history color**
+  target receives the current resolved TAA result. Implementations may ping-pong
+  these two buffers, but the contract is read/write separation for the frame.
+- **Current depth**: the committed current-frame depth at the same resolution as
+  color. It is used for disocclusion rejection, neighborhood clamps, and depth
+  comparisons during reprojection. The existing diagnostic depth output proves
+  the rasterizer can expose this value, but a future pass resource must preserve
+  it as a first-class attachment rather than a debug side channel.
+- **History depth**: the previous frame's committed depth, same resolution and
+  depth convention as current depth. It is invalid whenever history color is
+  invalid.
+- **Motion vectors**: per-pixel screen-space displacement from the current pixel
+  to the previous frame's pixel, in render-target pixel units or an explicitly
+  documented normalized equivalent. The vector must include camera motion,
+  object transform motion, and any previous/current projection jitter
+  difference. Pixels with no reliable previous correspondence need a validity
+  convention, either a mask or a motion-vector sentinel owned by the eventual
+  pass graph.
+- **Current and previous jitter**: the subpixel projection offsets applied to
+  the current and previous frame. Jitter is part of frame state; it must be
+  generated deterministically from the frame index and preserved with the
+  evaluated camera/projection data used to build motion vectors.
+- **History validity/reset state**: a per-frame reason that tells the TAA pass
+  whether it may accumulate or must seed history from the current color.
+
+Reset conditions are not optional. Accumulation must be disabled and history
+must be reseeded when the render target size changes, TAA settings change,
+history resources are missing or discarded, the camera cuts or jumps without a
+continuous previous transform, the scene is loaded/replaced, the animation frame
+is scrubbed non-sequentially, object topology or IDs are not stable enough to
+produce motion vectors, or the color/depth convention changes. Ordinary
+continuous camera/object animation should not reset; it should produce motion
+vectors and preserve previous evaluated transforms.
+
+The existing systems that need to expose or preserve this state are:
+
+- `Rasterizer::AttachmentBuffers` / pass-owned buffers: current depth must move
+  from diagnostic-only observation into a retained frame resource when a render
+  graph exists.
+- `RasterTriangleEmitter` and the material/fragment path: rasterized fragments
+  need enough previous/current clip-space data to write motion vectors beside
+  color and depth.
+- `render::Camera` and projection setup: camera clones or evaluated frame
+  snapshots must retain previous and current projection matrices plus jitter.
+- `world::Scene::evaluatedAtFrame(...)` and Modeler frame scrubbing: animation
+  evaluation must distinguish sequential playback from timeline jumps and scene
+  replacement so history can be preserved or invalidated deliberately.
+- `RenderWidget` / display-buffer ownership: GUI rendering currently renders
+  isolated engine snapshots and discards finished jobs on edits. TAA history
+  belongs to the presented frame sequence, not to borrowed diagnostic pointers
+  copied through `cloneForRender()`.
+
+The small validation scaffold in
+`src/engine/raster/RasterTemporalResources.h` deliberately checks only the
+implementation-neutral contract: required buffers are present, match the render
+target size, jitter values are finite, and reset conditions block accumulation
+without making the resources incomplete. It does not choose ownership,
+ping-ponging, motion-vector encoding, or render-graph node shape.
 
 ### 11. Add 2D geometric viewport clipping as a teaching path
 
