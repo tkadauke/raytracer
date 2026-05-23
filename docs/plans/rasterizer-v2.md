@@ -267,6 +267,9 @@ box path is the practical runtime path.
 
 ### 12. Prepare for multi-pass effects
 
+Status: completed for the current rasterizer-local pass-state scope. A broader
+render-pass graph remains separate roadmap work.
+
 Before planar reflections, portals, decals, or selection overlays become real
 features, the rasterizer needs more fixed-function state:
 
@@ -276,7 +279,9 @@ features, the rasterizer needs more fixed-function state:
 - ✅ color write masks;
 - ✅ constant depth bias that applies outside shadow maps too, including
   rendercli flags, unit coverage, API docs, and textbook notes;
-- explicit load/clear/store behavior for color, depth, and stencil buffers.
+- ✅ explicit load/clear/store behavior for color, depth, and stencil buffers,
+  including direct-render color load/store state, borrowed depth/stencil
+  attachments, unit coverage, API docs, and textbook notes.
 
 Portal material previews should use this path rather than the current
 raytracer-only material shader: first mark the portal surface in stencil, then

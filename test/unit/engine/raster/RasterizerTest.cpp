@@ -595,12 +595,20 @@ namespace RasterizerTest {
     EXPECT_FALSE(engine.scissorTestEnabled());
     EXPECT_EQ(0, engine.scissorRect().width());
     EXPECT_EQ(0, engine.scissorRect().height());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Clear, engine.colorLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Store, engine.colorStoreOp());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Clear, engine.depthLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Store, engine.depthStoreOp());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Clear, engine.stencilLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Store, engine.stencilStoreOp());
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().depth);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().normal);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().primitive);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().material);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().face);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().stencil);
+    EXPECT_EQ(nullptr, engine.attachmentBuffers().depth);
+    EXPECT_EQ(nullptr, engine.attachmentBuffers().stencil);
   }
 
   TEST(Rasterizer, ClonePreservesPostProcessAAAndShadowFilterMode) {
@@ -620,11 +628,22 @@ namespace RasterizerTest {
     engine.setBlendConstant(Colord(0.25, 0.5, 0.75), 0.35);
     engine.setViewportRect(8, 10, 40, 42);
     engine.setScissorRect(12, 14, 20, 22);
+    engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     engine.setDepthBias(-0.125);
+    engine.setDepthLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    engine.setStencilLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setStencilStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     Buffer<double> depth(1, 1);
+    Buffer<std::uint8_t> stencil(1, 1);
     Rasterizer::DiagnosticOutputBuffers outputs;
     outputs.depth = &depth;
     engine.setDiagnosticOutputBuffers(outputs);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.depth = &depth;
+    attachments.stencil = &stencil;
+    engine.setAttachmentBuffers(attachments);
 
     auto clone = std::dynamic_pointer_cast<Rasterizer>(engine.cloneForRender());
 
@@ -653,8 +672,16 @@ namespace RasterizerTest {
     EXPECT_EQ(14, clone->scissorRect().top());
     EXPECT_EQ(20, clone->scissorRect().width());
     EXPECT_EQ(22, clone->scissorRect().height());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, clone->colorLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, clone->colorStoreOp());
     EXPECT_DOUBLE_EQ(-0.125, clone->depthBias());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, clone->depthLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, clone->depthStoreOp());
+    EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, clone->stencilLoadOp());
+    EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, clone->stencilStoreOp());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
+    EXPECT_EQ(nullptr, clone->attachmentBuffers().depth);
+    EXPECT_EQ(nullptr, clone->attachmentBuffers().stencil);
   }
 
   TEST(Rasterizer, ClonePreservesDisabledScissorRectangle) {
@@ -744,6 +771,190 @@ namespace RasterizerTest {
     engine.render(color);
 
     EXPECT_DOUBLE_EQ(123.0, depth[32][32]);
+  }
+
+  TEST(Rasterizer, ColorLoadOpLoadPreservesExistingFramebufferWhenNothingDraws) {
+    const Colord loadedColor(0.1, 0.2, 0.9);
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setDepthFunc(Rasterizer::DepthFunc::Never);
+    Buffer<Colord> buffer(64, 64);
+    buffer.clear(loadedColor);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(loadedColor, buffer[0][0]);
+    EXPECT_EQ(loadedColor, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, ColorLoadOpLoadPreservesExistingFramebufferThroughTiledMSAA) {
+    const Colord loadedColor(0.1, 0.2, 0.9);
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setDepthFunc(Rasterizer::DepthFunc::Never);
+    engine.setMSAASamples(4);
+    engine.setQueueSize(4);
+    Buffer<Colord> buffer(64, 64);
+    buffer.clear(loadedColor);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(loadedColor, buffer[0][0]);
+    EXPECT_EQ(loadedColor, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, ColorStoreOpDiscardLeavesFramebufferUnchanged) {
+    const Colord loadedColor(0.1, 0.2, 0.9);
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::red(); });
+    Buffer<Colord> buffer(64, 64);
+    buffer.clear(loadedColor);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(loadedColor, buffer[0][0]);
+    EXPECT_EQ(loadedColor, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, ColorLoadOpLoadPreservesDisplayFramebufferWhenNothingDraws) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setColorLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setDepthFunc(Rasterizer::DepthFunc::Never);
+    Buffer<unsigned int> buffer(64, 64);
+    buffer.clear(0x00010203u);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0x00010203u, buffer[0][0]);
+    EXPECT_EQ(0x00010203u, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, ColorStoreOpDiscardLeavesDisplayFramebufferUnchanged) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setColorStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::red(); });
+    Buffer<unsigned int> buffer(64, 64);
+    buffer.clear(0x00010203u);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0x00010203u, buffer[0][0]);
+    EXPECT_EQ(0x00010203u, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, DepthAttachmentLoadCanRejectFragments) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setDepthLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    depth.clear(9.75);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.depth = &depth;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_EQ(Colord::black(), color[32][32]);
+    EXPECT_DOUBLE_EQ(9.75, depth[32][32]);
+  }
+
+  TEST(Rasterizer, DepthAttachmentStoreWritesCommittedDepth) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    depth.clear(123.0);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.depth = &depth;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_NEAR(10.0, depth[32][32], 1e-9);
+    EXPECT_EQ(engine.depthClearValue(), depth[0][0]);
+  }
+
+  TEST(Rasterizer, DepthAttachmentStoreDiscardLeavesAttachmentUnchanged) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    depth.clear(123.0);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.depth = &depth;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_DOUBLE_EQ(123.0, depth[32][32]);
+  }
+
+  TEST(Rasterizer, StencilAttachmentLoadSeedsStencilTest) {
+    const Colord shaderColor(0.0, 0.5, 1.0);
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setBackgroundColor(Colord::black());
+    engine.setStencilTestEnabled(true);
+    engine.setStencilLoadOp(Rasterizer::AttachmentLoadOp::Load);
+    engine.setStencilFunc(Rasterizer::StencilFunc::Equal, 1);
+    engine.setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
+                         Rasterizer::StencilOp::Replace);
+    engine.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
+
+    Buffer<Colord> color(64, 64);
+    Buffer<std::uint8_t> stencil(64, 64);
+    stencil.clear(1);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.stencil = &stencil;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_EQ(shaderColor, color[32][32]);
+    EXPECT_EQ(1, stencil[0][0]);
+    EXPECT_EQ(1, stencil[32][32]);
+  }
+
+  TEST(Rasterizer, StencilAttachmentStoreWritesPassingStencilValue) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setStencilTestEnabled(true);
+    engine.setStencilFunc(Rasterizer::StencilFunc::Always, 7);
+    engine.setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
+                         Rasterizer::StencilOp::Replace);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<std::uint8_t> stencil(64, 64);
+    stencil.clear(123);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.stencil = &stencil;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_EQ(0, stencil[0][0]);
+    EXPECT_EQ(7, stencil[32][32]);
+  }
+
+  TEST(Rasterizer, StencilAttachmentStoreDiscardLeavesAttachmentUnchanged) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setStencilTestEnabled(true);
+    engine.setStencilStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    engine.setStencilFunc(Rasterizer::StencilFunc::Always, 7);
+    engine.setStencilOps(Rasterizer::StencilOp::Keep, Rasterizer::StencilOp::Keep,
+                         Rasterizer::StencilOp::Replace);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<std::uint8_t> stencil(64, 64);
+    stencil.clear(123);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.stencil = &stencil;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_EQ(123, stencil[32][32]);
   }
 
   TEST(Rasterizer, ShadowCascadeCountClampsToSupportedRange) {

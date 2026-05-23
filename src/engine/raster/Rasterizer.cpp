@@ -14,6 +14,7 @@
 #include "render/lights/Light.h"
 #include "render/postprocess/Fxaa.h"
 #include "render/primitives/Scene.h"
+#include "render/tonemap/Tonemap.h"
 #include "render/viewplanes/ViewPlane.h"
 
 #include "../TileRenderTask.h"
@@ -105,11 +106,13 @@ namespace {
   using engine::raster::detail::DirectionalShadowCascade;
   using engine::raster::detail::directionalShadowFitForPoints;
   using engine::raster::detail::DirectionalShadowMap;
+  using engine::raster::detail::copyRasterBuffer;
   using engine::raster::detail::fullBufferView;
   using engine::raster::detail::MSAASamplePattern;
   using engine::raster::detail::MSAATileScratch;
   using engine::raster::detail::NoStencilPolicy;
   using engine::raster::detail::PassBuffers;
+  using engine::raster::detail::rasterBufferMatches;
   using engine::raster::detail::RasterDiagnosticBufferViews;
   using engine::raster::detail::RasterFullBufferView;
   using engine::raster::detail::rasterizeDepthOnlyTriangleSetWithPolicies;
@@ -131,7 +134,7 @@ namespace {
 
   template<class T>
   bool bufferMatches(const Buffer<T>* buffer, int width, int height) {
-    return buffer && buffer->width() == width && buffer->height() == height;
+    return rasterBufferMatches(buffer, width, height);
   }
 
   template<class T>
@@ -168,6 +171,34 @@ namespace {
                           static_cast<const render::Material*>(nullptr));
     clearDiagnosticBuffer(outputs.face, width, height, std::numeric_limits<std::uint64_t>::max());
     clearDiagnosticBuffer(outputs.stencil, width, height, rasterizer.stencilClearValue());
+  }
+
+  void loadColorAttachment(const Rasterizer& rasterizer, Buffer<Colord>& target,
+                           const Buffer<Colord>& source) {
+    if (rasterizer.colorLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
+      if (&target != &source) {
+        copyRasterBuffer(target, source);
+      }
+    } else {
+      target.clear(rasterizer.backgroundColor());
+    }
+  }
+
+  Colord colorFromPackedRgb(unsigned int rgb) {
+    return Colord(static_cast<double>((rgb >> 16) & 0xFF) / 255.0,
+                  static_cast<double>((rgb >> 8) & 0xFF) / 255.0,
+                  static_cast<double>(rgb & 0xFF) / 255.0);
+  }
+
+  void loadColorAttachmentFromDisplay(const Rasterizer& rasterizer, Buffer<Colord>& target,
+                                      const Buffer<unsigned int>& source) {
+    if (rasterizer.colorLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
+      for (int y = 0; y != target.height(); ++y)
+        for (int x = 0; x != target.width(); ++x)
+          target[y][x] = colorFromPackedRgb(source[y][x]);
+    } else {
+      target.clear(rasterizer.backgroundColor());
+    }
   }
 
   Recti sanitizeRasterRect(const Recti& rect) {
@@ -239,7 +270,7 @@ struct Rasterizer::Private {
                              const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
                              const ShadowMaps& shadowMaps, const Recti& renderClip,
                              const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
-                             const Vector2d& sampleOffset);
+                             const Vector2d& sampleOffset, bool useExternalAttachments = true);
   void renderTriangleStreamPass(const Rasterizer& rasterizer,
                                 const std::shared_ptr<render::Scene>& scene,
                                 const RasterTriangleEmitter& triangleEmitter,
@@ -291,13 +322,19 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->m_viewportRect = m_viewportRect;
   result->m_scissorTestEnabled = m_scissorTestEnabled;
   result->m_scissorRect = m_scissorRect;
+  result->setColorLoadOp(m_colorLoadOp);
+  result->setColorStoreOp(m_colorStoreOp);
   result->setDepthFunc(m_depthFunc);
   result->setDepthBias(m_depthBias);
   result->setDepthClearValue(m_depthClearValue);
+  result->setDepthLoadOp(m_depthLoadOp);
+  result->setDepthStoreOp(m_depthStoreOp);
   result->setDepthWriteEnabled(m_depthWriteEnabled);
   result->setStencilTestEnabled(m_stencilTestEnabled);
   result->setStencilFunc(m_stencilFunc, m_stencilReference, m_stencilMask);
   result->setStencilClearValue(m_stencilClearValue);
+  result->setStencilLoadOp(m_stencilLoadOp);
+  result->setStencilStoreOp(m_stencilStoreOp);
   result->setStencilWriteMask(m_stencilWriteMask);
   result->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
   result->setColorWriteMask(m_colorWriteMask);
@@ -391,20 +428,44 @@ void Rasterizer::setShadowMapSize(int size) {
   m_shadowMapSize = std::max(1, size);
 }
 
+void Rasterizer::render(Buffer<unsigned int>& buffer) {
+  Buffer<Colord> hdr(buffer.width(), buffer.height());
+  loadColorAttachmentFromDisplay(*this, hdr, buffer);
+
+  render(hdr);
+
+  if (m_colorStoreOp == AttachmentStoreOp::Discard) {
+    return;
+  }
+
+  auto outputTonemap = tonemap();
+  for (int y = 0; y < hdr.height(); ++y) {
+    for (int x = 0; x < hdr.width(); ++x) {
+      buffer[y][x] = outputTonemap->apply(hdr[y][x]).rgb();
+    }
+  }
+}
+
 void Rasterizer::render(Buffer<Colord>& buffer) {
   // Caller is expected to call uncancel() between renders. Matches
   // the Wireframe / Raytracer convention.
 
-  // Clear to the configured background before depth-tested fragments overwrite it.
-  buffer.clear(backgroundColor());
-  clearDiagnosticOutputsForRender(*this, buffer.width(), buffer.height());
+  std::unique_ptr<Buffer<Colord>> transientColor;
+  Buffer<Colord>* colorTarget = &buffer;
+  if (m_colorStoreOp == AttachmentStoreOp::Discard) {
+    transientColor = std::make_unique<Buffer<Colord>>(buffer.width(), buffer.height());
+    colorTarget = transientColor.get();
+  }
+
+  loadColorAttachment(*this, *colorTarget, buffer);
+  clearDiagnosticOutputsForRender(*this, colorTarget->width(), colorTarget->height());
 
   if (!m_scene || !m_camera)
     return;
 
   // Same view-plane setup the other engines perform — the camera
   // projection math depends on the cached basis vectors.
-  const Recti viewport = configuredViewportRect(*this, buffer.rect());
+  const Recti viewport = configuredViewportRect(*this, colorTarget->rect());
   if (rasterRectEmpty(viewport))
     return;
   m_camera->viewPlane()->setup(m_camera->matrix(), viewport);
@@ -413,7 +474,7 @@ void Rasterizer::render(Buffer<Colord>& buffer) {
   // Rasterizer object contributes configuration; Private drives the
   // concrete passes and keeps task state available for activeTiles().
   p->tasks.clear();
-  p->renderFrame(*this, m_scene, m_camera, m_cancelled, buffer);
+  p->renderFrame(*this, m_scene, m_camera, m_cancelled, *colorTarget);
 }
 
 RasterTriangleSet
@@ -511,10 +572,10 @@ void Rasterizer::Private::renderTriangleSetPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
-  Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset, bool useExternalAttachments) {
   // A pass freezes current depth/stencil/shader state into policies,
   // then hands the triangle set to either the direct or tiled path.
-  PassBuffers passBuffers(rasterizer, tilePlan, buffer);
+  PassBuffers passBuffers(rasterizer, tilePlan, buffer, useExternalAttachments);
   RasterFullBufferView<std::uint8_t> stencilView;
   if (passBuffers.stencil()) {
     stencilView = fullBufferView(*passBuffers.stencil());
@@ -612,16 +673,18 @@ void Rasterizer::Private::renderMSAAFullFrame(
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const MSAASamplePattern& pattern,
   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  Buffer<Colord> loadedColor(tilePlan.width(), tilePlan.height());
+  copyRasterBuffer(loadedColor, buffer);
   buffer.clear(Colord::black());
   for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
     if (cancelled.load())
       return;
 
     Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
-    sampleBuffer.clear(rasterizer.backgroundColor());
+    copyRasterBuffer(sampleBuffer, loadedColor);
 
-    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, cancelled,
-                          sampleBuffer, pattern.offsets[sampleIndex]);
+    renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip,
+                          cancelled, sampleBuffer, pattern.offsets[sampleIndex], false);
 
     if (cancelled.load())
       return;
@@ -650,7 +713,7 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     // This is simple supersampling scoped to one tile: rerun
     // coverage/depth at a fixed subpixel offset, accumulate local
     // colors, and resolve the tile into the output framebuffer.
-    scratch.clearSample(rasterizer);
+    scratch.clearSample(rasterizer, &buffer);
 
     RasterTileBufferView<std::uint8_t> stencilView;
     if (scratch.stencil()) {

@@ -125,6 +125,7 @@
 | `src/core/formats/ply/PlyElement.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
+| `src/engine/raster/RasterPass.h` | [19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md) |
 | `src/engine/raster/RasterTriangleEmitter.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md) |
 | `src/engine/raster/Rasterizer.cpp` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md)<br>[19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md)<br>[21. MSAA and attribute interpolation](../04-rasterization/21-msaa-and-attribute-interpolation.md) |
 | `src/engine/raytracer/Raytracer.cpp` | [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md) |

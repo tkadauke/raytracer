@@ -350,6 +350,26 @@ The same source rectangle rendered through three color-output states:
 
 <!-- widget: rasterizer_color_output -->
 
+Before the pass runs, each attachment also has load/store state:
+
+- The color attachment is the caller's `Buffer<Colord>`. `Clear`
+  fills it with `backgroundColor()` before drawing; `Load`
+  preserves its existing pixels so blending, write masks, and
+  uncovered pixels see the old framebuffer. `Store` leaves the
+  rendered result in the buffer. `Discard` renders through transient
+  storage and leaves the caller's buffer unchanged.
+- The depth and stencil attachments are optional borrowed buffers
+  supplied through `Rasterizer::AttachmentBuffers`. Without attachments,
+  they are transient pass storage. With matching same-size attachments,
+  `Load` copies their old values into the pass, `Clear` uses
+  `depthClearValue()` or `stencilClearValue()`, `Store` copies the final
+  pass values back, and `Discard` leaves the borrowed buffer unchanged.
+
+This is what makes a software multi-pass effect deterministic. A first
+pass can render only depth or stencil and store that attachment; a later
+pass can load it, use `DepthFunc` or `StencilFunc` to select pixels, and
+then blend or mask color into the framebuffer.
+
 ## 19.8 The full state machine, default values
 
 The configurable state at a glance:
@@ -359,14 +379,18 @@ The configurable state at a glance:
 | `CullMode` | `Both` | `setCullMode` |
 | Viewport | full framebuffer | `setViewportRect` |
 | Scissor | disabled | `setScissorRect` |
+| Color load/store | `Clear`, `Store` | `setColorLoadOp`, `setColorStoreOp` |
 | `DepthFunc` | `Less` | `setDepthFunc` |
 | Depth bias | `0` | `setDepthBias` |
 | Depth writes | enabled | `setDepthWriteEnabled` |
 | Depth clear value | `+∞` | `setDepthClearValue` |
+| Depth load/store | `Clear`, `Store` | `setDepthLoadOp`, `setDepthStoreOp` |
 | `StencilFunc` | `Always` | `setStencilFunc` |
 | `StencilOp` (3) | all `Keep` | `setStencilOps` |
 | Stencil clear value | `0` | `setStencilClearValue` |
+| Stencil load/store | `Clear`, `Store` | `setStencilLoadOp`, `setStencilStoreOp` |
 | Stencil write mask | `0xFF` | `setStencilWriteMask` |
+| Depth/stencil attachments | none | `setAttachmentBuffers` |
 | Color write mask | RGB enabled | `setColorWriteMask` |
 | Blending | disabled | `setBlendingEnabled` |
 | Blend factors | `One`, `Zero` | `setBlendFactors` |
@@ -434,4 +458,5 @@ portal rendering (stencil regions), and layered compositing
 - `include/render/HomogeneousClipVolume.h`
 - `include/engine/raster/Rasterizer.h`
 - `src/engine/raster/Rasterizer.cpp`
+- `src/engine/raster/RasterPass.h`
 <!-- /source-anchors -->

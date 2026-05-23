@@ -71,8 +71,14 @@ namespace engine::raster::detail {
       }
     }
 
-    void clearSample(const Rasterizer& rasterizer) {
-      m_sampleColor.clear(rasterizer.backgroundColor());
+    void clearSample(const Rasterizer& rasterizer, const Buffer<Colord>* loadedColor = nullptr) {
+      if (loadedColor) {
+        for (int y = 0; y != m_rect.height(); ++y)
+          for (int x = 0; x != m_rect.width(); ++x)
+            m_sampleColor[y][x] = (*loadedColor)[m_rect.top() + y][m_rect.left() + x];
+      } else {
+        m_sampleColor.clear(rasterizer.backgroundColor());
+      }
       m_depth.clear(rasterizer.depthClearValue());
       if (m_stencil) {
         m_stencil->clear(rasterizer.stencilClearValue());

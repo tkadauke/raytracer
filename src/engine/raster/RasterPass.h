@@ -21,6 +21,18 @@
 
 namespace engine::raster::detail {
 
+  template<class T>
+  inline bool rasterBufferMatches(const Buffer<T>* buffer, int width, int height) {
+    return buffer && buffer->width() == width && buffer->height() == height;
+  }
+
+  template<class T>
+  inline void copyRasterBuffer(Buffer<T>& target, const Buffer<T>& source) {
+    for (int y = 0; y != target.height(); ++y)
+      for (int x = 0; x != target.width(); ++x)
+        target[y][x] = source[y][x];
+  }
+
   // A render pass owns depth and optional stencil, but borrows the color target.
   // Single-sample rendering writes straight to the final buffer; full-frame MSAA
   // borrows temporary sample buffers through this wrapper, while queued MSAA uses
@@ -28,14 +40,47 @@ namespace engine::raster::detail {
   class PassBuffers {
   public:
     PassBuffers(const Rasterizer& rasterizer, const render::TilePlan& tilePlan,
-                Buffer<Colord>& colorBuffer)
+                Buffer<Colord>& colorBuffer, bool useExternalAttachments = true)
         : m_colorBuffer(colorBuffer),
-          m_depthBuffer(tilePlan.width(), tilePlan.height()) {
-      m_depthBuffer.clear(rasterizer.depthClearValue());
-      if (rasterizer.stencilTestEnabled()) {
+          m_depthBuffer(tilePlan.width(), tilePlan.height()),
+          m_depthStoreOp(rasterizer.depthStoreOp()),
+          m_stencilStoreOp(rasterizer.stencilStoreOp()) {
+      const auto& attachments = rasterizer.attachmentBuffers();
+      if (useExternalAttachments &&
+          rasterBufferMatches(attachments.depth, tilePlan.width(), tilePlan.height())) {
+        m_depthAttachment = attachments.depth;
+      }
+
+      if (m_depthAttachment && rasterizer.depthLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
+        copyRasterBuffer(m_depthBuffer, *m_depthAttachment);
+      } else {
+        m_depthBuffer.clear(rasterizer.depthClearValue());
+      }
+
+      if (useExternalAttachments &&
+          rasterBufferMatches(attachments.stencil, tilePlan.width(), tilePlan.height())) {
+        m_stencilAttachment = attachments.stencil;
+      }
+
+      if (rasterizer.stencilTestEnabled() || m_stencilAttachment) {
         m_stencilBuffer =
           std::make_unique<Buffer<std::uint8_t>>(tilePlan.width(), tilePlan.height());
-        m_stencilBuffer->clear(rasterizer.stencilClearValue());
+        if (m_stencilAttachment &&
+            rasterizer.stencilLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
+          copyRasterBuffer(*m_stencilBuffer, *m_stencilAttachment);
+        } else {
+          m_stencilBuffer->clear(rasterizer.stencilClearValue());
+        }
+      }
+    }
+
+    ~PassBuffers() {
+      if (m_depthAttachment && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+        copyRasterBuffer(*m_depthAttachment, m_depthBuffer);
+      }
+      if (m_stencilAttachment && m_stencilBuffer &&
+          m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
+        copyRasterBuffer(*m_stencilAttachment, *m_stencilBuffer);
       }
     }
 
@@ -55,6 +100,10 @@ namespace engine::raster::detail {
     Buffer<Colord>& m_colorBuffer;
     Buffer<double> m_depthBuffer;
     std::unique_ptr<Buffer<std::uint8_t>> m_stencilBuffer;
+    Buffer<double>* m_depthAttachment{nullptr};
+    Buffer<std::uint8_t>* m_stencilAttachment{nullptr};
+    Rasterizer::AttachmentStoreOp m_depthStoreOp{Rasterizer::AttachmentStoreOp::Store};
+    Rasterizer::AttachmentStoreOp m_stencilStoreOp{Rasterizer::AttachmentStoreOp::Store};
   };
 
   // Pure depth comparison state. Kept separate from depth-buffer ownership so

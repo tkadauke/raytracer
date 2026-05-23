@@ -98,7 +98,10 @@ namespace engine::raster {
   * forcing the default path through the programmable callbacks. The final
   * color-output stage supports RGB write masks and fixed-function blending;
   * alpha-style composition is currently pass-constant because `Colord` has no
-  * stored alpha channel.
+  * stored alpha channel. Direct float-buffer renders can also use explicit
+  * attachment load/store state: color loads from or clears the caller's render
+  * target, while borrowed depth/stencil attachments can be loaded, cleared,
+  * stored, or discarded by pass state.
   * Shadow maps are disabled by default; with them disabled, lights are direct
   * material contributions only.
   *
@@ -502,6 +505,16 @@ public:
     PCSS
   };
 
+  enum class AttachmentLoadOp {
+    Clear,
+    Load
+  };
+
+  enum class AttachmentStoreOp {
+    Store,
+    Discard
+  };
+
   struct VertexInput {
     Vector3d worldPosition;
     Vector3d normal;
@@ -568,6 +581,25 @@ public:
     Buffer<std::uint8_t>* stencil = nullptr;
   };
 
+  /**
+    * Optional depth/stencil attachments used by `render(Buffer<Colord>&)`.
+    *
+    * Color is supplied by the render target argument. Depth and stencil are
+    * normally transient pass buffers, but callers that are building multi-pass
+    * effects may attach same-size buffers here and control whether the pass
+    * clears, loads, stores, or discards them with the attachment load/store
+    * state below. Mismatched buffers are ignored for that render.
+    *
+    * These pointers are borrowed and are intentionally not copied by
+    * `cloneForRender()`, matching `DiagnosticOutputBuffers`. Depth/stencil
+    * attachments are single-sample resources; MSAA renders keep their existing
+    * independent per-sample transient depth/stencil buffers.
+    */
+  struct AttachmentBuffers {
+    Buffer<double>* depth = nullptr;
+    Buffer<std::uint8_t>* stencil = nullptr;
+  };
+
   using VertexShader = std::function<VertexOutput(const VertexInput&)>;
   using FragmentShader = std::function<Colord(const FragmentInput&)>;
 
@@ -584,6 +616,7 @@ public:
 
   using RenderEngine::render;
   std::shared_ptr<render::RenderEngine> cloneForRender() const override;
+  void render(Buffer<unsigned int>& buffer) override;
   void render(Buffer<Colord>& buffer) override;
   void cancel() override;
   void uncancel() override;
@@ -838,6 +871,18 @@ public:
   /// Disables the scissor test and clears its rectangle.
   void clearScissorRect();
 
+  /// Color attachment load operation. `Clear` fills the target with
+  /// `backgroundColor()` before drawing; `Load` preserves the caller's existing
+  /// `Buffer<Colord>` contents. Defaults to `Clear`.
+  inline AttachmentLoadOp colorLoadOp() const { return m_colorLoadOp; }
+  inline void setColorLoadOp(AttachmentLoadOp op) { m_colorLoadOp = op; }
+
+  /// Color attachment store operation. `Store` leaves rendered color in the
+  /// target buffer; `Discard` renders through transient storage and leaves the
+  /// caller's color buffer unchanged. Defaults to `Store`.
+  inline AttachmentStoreOp colorStoreOp() const { return m_colorStoreOp; }
+  inline void setColorStoreOp(AttachmentStoreOp op) { m_colorStoreOp = op; }
+
   /// Depth comparison applied after coverage and stencil tests.
   /// Defaults to `Less`, matching the original Z-buffer path.
   inline DepthFunc depthFunc() const { return m_depthFunc; }
@@ -855,6 +900,19 @@ public:
   /// visible fragment at each pixel.
   inline double depthClearValue() const { return m_depthClearValue; }
   inline void setDepthClearValue(double value) { m_depthClearValue = value; }
+
+  /// Depth attachment load operation. `Clear` initializes depth from
+  /// `depthClearValue()`. `Load` copies a matching attached depth buffer into
+  /// the pass; without a valid depth attachment it falls back to `Clear`.
+  /// Defaults to `Clear`.
+  inline AttachmentLoadOp depthLoadOp() const { return m_depthLoadOp; }
+  inline void setDepthLoadOp(AttachmentLoadOp op) { m_depthLoadOp = op; }
+
+  /// Depth attachment store operation. `Store` copies the final pass depth into
+  /// a matching attached depth buffer. `Discard` leaves the attached buffer
+  /// unchanged. Defaults to `Store`.
+  inline AttachmentStoreOp depthStoreOp() const { return m_depthStoreOp; }
+  inline void setDepthStoreOp(AttachmentStoreOp op) { m_depthStoreOp = op; }
 
   /// Controls whether passing fragments update the depth buffer.
   /// Defaults to true. Disabling writes keeps depth testing active
@@ -879,6 +937,19 @@ public:
 
   inline std::uint8_t stencilClearValue() const { return m_stencilClearValue; }
   inline void setStencilClearValue(std::uint8_t value) { m_stencilClearValue = value; }
+
+  /// Stencil attachment load operation. `Clear` initializes stencil from
+  /// `stencilClearValue()`. `Load` copies a matching attached stencil buffer
+  /// into the pass; without a valid stencil attachment it falls back to `Clear`.
+  /// Defaults to `Clear`.
+  inline AttachmentLoadOp stencilLoadOp() const { return m_stencilLoadOp; }
+  inline void setStencilLoadOp(AttachmentLoadOp op) { m_stencilLoadOp = op; }
+
+  /// Stencil attachment store operation. `Store` copies final pass stencil into
+  /// a matching attached stencil buffer. `Discard` leaves the attached buffer
+  /// unchanged. Defaults to `Store`.
+  inline AttachmentStoreOp stencilStoreOp() const { return m_stencilStoreOp; }
+  inline void setStencilStoreOp(AttachmentStoreOp op) { m_stencilStoreOp = op; }
 
   inline std::uint8_t stencilWriteMask() const { return m_stencilWriteMask; }
   inline void setStencilWriteMask(std::uint8_t mask) { m_stencilWriteMask = mask; }
@@ -957,6 +1028,15 @@ public:
     m_diagnosticOutputBuffers = DiagnosticOutputBuffers();
   }
 
+  /// Returns the borrowed depth/stencil attachments used by direct renders.
+  inline const AttachmentBuffers& attachmentBuffers() const { return m_attachmentBuffers; }
+
+  /// Attaches borrowed depth/stencil buffers. Buffers must outlive the render.
+  inline void setAttachmentBuffers(AttachmentBuffers buffers) { m_attachmentBuffers = buffers; }
+
+  /// Stops loading from or storing to borrowed depth/stencil attachments.
+  inline void clearAttachmentBuffers() { m_attachmentBuffers = AttachmentBuffers(); }
+
   // `backgroundColor()`, `setBackgroundColor`, `clearBackgroundColor`,
   // and `hasBackgroundColorOverride` are inherited from `render::RenderEngine`.
   // The Rasterizer uses the default fallback: when no override is set,
@@ -984,15 +1064,21 @@ private:
   Recti m_viewportRect;
   bool m_scissorTestEnabled{false};
   Recti m_scissorRect;
+  AttachmentLoadOp m_colorLoadOp{AttachmentLoadOp::Clear};
+  AttachmentStoreOp m_colorStoreOp{AttachmentStoreOp::Store};
   DepthFunc m_depthFunc{DepthFunc::Less};
   double m_depthBias{0.0};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};
+  AttachmentLoadOp m_depthLoadOp{AttachmentLoadOp::Clear};
+  AttachmentStoreOp m_depthStoreOp{AttachmentStoreOp::Store};
   bool m_depthWriteEnabled{true};
   bool m_stencilTestEnabled{false};
   StencilFunc m_stencilFunc{StencilFunc::Always};
   std::uint8_t m_stencilReference{0};
   std::uint8_t m_stencilMask{0xFF};
   std::uint8_t m_stencilClearValue{0};
+  AttachmentLoadOp m_stencilLoadOp{AttachmentLoadOp::Clear};
+  AttachmentStoreOp m_stencilStoreOp{AttachmentStoreOp::Store};
   std::uint8_t m_stencilWriteMask{0xFF};
   StencilOp m_stencilFailOp{StencilOp::Keep};
   StencilOp m_stencilDepthFailOp{StencilOp::Keep};
@@ -1007,6 +1093,7 @@ private:
   VertexShader m_vertexShader;
   FragmentShader m_fragmentShader;
   DiagnosticOutputBuffers m_diagnosticOutputBuffers;
+  AttachmentBuffers m_attachmentBuffers;
 };
 
 }  // namespace engine::raster
