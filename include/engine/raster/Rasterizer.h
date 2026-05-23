@@ -166,6 +166,9 @@ namespace engine::raster {
   * receiver, lower the shadow-map resolution, and increase the bias to see
   * the same aliasing and shadow-detachment trade-offs exposed by the C++
   * controls.
+  * Fragments that project outside their selected shadow-map image are treated
+  * as lit; filtering taps outside the map use the same open/light border
+  * behavior.
   *
   * @htmlonly
   * <script type="text/javascript" src="figure.js"></script>
@@ -498,6 +501,9 @@ public:
     * Enables rasterized directional-light shadow maps for the built-in
     * Lambertian fragment path. Custom fragment shaders are responsible for
     * their own visibility model and bypass this feature.
+    *
+    * Shadow-map lookups use an open border: fragments or filter samples that
+    * project outside the selected map are treated as lit.
     *
     * <table><tr>
     * <td>@image html rasterizer_shadow_maps_off.png "disabled"</td>

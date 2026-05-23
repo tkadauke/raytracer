@@ -249,6 +249,10 @@ frame. The fragment's projected depth gets compared against
 the stored depth in the shadow map. If the projected depth is
 farther than what the map recorded, something else is closer
 to the light along that direction — the fragment is in shadow.
+If the fragment projects outside its selected shadow-map image,
+the rasterizer treats that lookup as lit. PCF taps outside the map
+also contribute lit samples, and PCSS taps outside the map do not
+count as blockers.
 
 Six knobs control quality versus cost:
 

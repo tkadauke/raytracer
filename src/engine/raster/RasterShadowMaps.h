@@ -292,6 +292,9 @@ namespace engine::raster::detail {
 
     double sampleBlockerDepth(const DirectionalShadowCascade& cascade, int x, int y,
                               double receiverDepth, double bias) const {
+      // The current shadow-map border policy is open: samples outside the map
+      // do not contribute blockers, so PCSS does not grow a penumbra from
+      // geometry the depth pass did not cover.
       if (x < 0 || y < 0 || x >= cascade.depthBuffer->width() || y >= cascade.depthBuffer->height())
         return std::numeric_limits<double>::infinity();
 
@@ -305,6 +308,8 @@ namespace engine::raster::detail {
 
     double sampleVisibility(const DirectionalShadowCascade& cascade, int x, int y,
                             double receiverDepth, double bias) const {
+      // Out-of-bounds shadow-map lookups are lit. This avoids false shadowing
+      // at cascade borders and matches an open/light border color.
       if (x < 0 || y < 0 || x >= cascade.depthBuffer->width() || y >= cascade.depthBuffer->height())
         return 1.0;
 

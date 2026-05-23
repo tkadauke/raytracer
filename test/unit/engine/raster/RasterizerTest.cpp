@@ -306,8 +306,9 @@ namespace RasterizerTest {
     return count;
   }
 
-  static engine::raster::detail::DirectionalShadowMap syntheticShadowMap(double constantBias,
-                                                                         double slopeBias) {
+  static engine::raster::detail::DirectionalShadowMap syntheticShadowMap(
+    double constantBias, double slopeBias, int filterRadius = 0,
+    Rasterizer::ShadowFilterMode filterMode = Rasterizer::ShadowFilterMode::PCF) {
     const Vector3d lightDirection(0.0, 0.0, -1.0);
     auto shadowCamera = std::make_shared<engine::raster::detail::DirectionalShadowCamera>(
       Vector3d::null, lightDirection, 1.0);
@@ -321,8 +322,7 @@ namespace RasterizerTest {
     std::vector<engine::raster::detail::DirectionalShadowCascade> cascades;
     cascades.push_back({std::move(shadowCamera), std::move(depthBuffer), 0.0, 1.0});
     return engine::raster::detail::DirectionalShadowMap(
-      nullptr, nullptr, std::move(cascades), constantBias, slopeBias, 0,
-      Rasterizer::ShadowFilterMode::PCF);
+      nullptr, nullptr, std::move(cascades), constantBias, slopeBias, filterRadius, filterMode);
   }
 
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
@@ -678,6 +678,19 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.0, constantOnly.visibility(receiver, lightFacingNormal, lightDirection));
     EXPECT_DOUBLE_EQ(0.0, slopeBiased.visibility(receiver, lightFacingNormal, lightDirection));
     EXPECT_DOUBLE_EQ(1.0, slopeBiased.visibility(receiver, grazingNormal, lightDirection));
+  }
+
+  TEST(Rasterizer, ShadowMapLookupsOutsideDepthBufferAreLit) {
+    const Vector3d outsideReceiver(2.0, 0.0, 0.0);
+    const Vector3d normal(0.0, 0.0, -1.0);
+    const Vector3d lightDirection(0.0, 0.0, -1.0);
+    auto hard = syntheticShadowMap(0.01, 0.0);
+    auto pcf = syntheticShadowMap(0.01, 0.0, 1, Rasterizer::ShadowFilterMode::PCF);
+    auto pcss = syntheticShadowMap(0.01, 0.0, 1, Rasterizer::ShadowFilterMode::PCSS);
+
+    EXPECT_DOUBLE_EQ(1.0, hard.visibility(outsideReceiver, normal, lightDirection));
+    EXPECT_DOUBLE_EQ(1.0, pcf.visibility(outsideReceiver, normal, lightDirection));
+    EXPECT_DOUBLE_EQ(1.0, pcss.visibility(outsideReceiver, normal, lightDirection));
   }
 
   TEST(Rasterizer, DirectionalShadowFitUsesLightSpaceBounds) {
