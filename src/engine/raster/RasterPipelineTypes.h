@@ -176,6 +176,83 @@ namespace engine::raster::detail {
     return rect.width() <= 0 || rect.height() <= 0;
   }
 
+  struct RasterPoint2d {
+    double x;
+    double y;
+  };
+
+  inline void projectRasterPoints(const std::array<RasterPoint2d, 3>& points, double axisX,
+                                  double axisY, double& minProjection,
+                                  double& maxProjection) {
+    minProjection = maxProjection = points[0].x * axisX + points[0].y * axisY;
+    for (std::size_t i = 1; i != points.size(); ++i) {
+      const double projection = points[i].x * axisX + points[i].y * axisY;
+      minProjection = std::min(minProjection, projection);
+      maxProjection = std::max(maxProjection, projection);
+    }
+  }
+
+  inline void projectRasterRect(double left, double top, double right, double bottom,
+                                double axisX, double axisY, double& minProjection,
+                                double& maxProjection) {
+    const std::array<RasterPoint2d, 4> corners{
+      RasterPoint2d{left, top}, RasterPoint2d{right, top}, RasterPoint2d{right, bottom},
+      RasterPoint2d{left, bottom}};
+    minProjection = maxProjection = corners[0].x * axisX + corners[0].y * axisY;
+    for (std::size_t i = 1; i != corners.size(); ++i) {
+      const double projection = corners[i].x * axisX + corners[i].y * axisY;
+      minProjection = std::min(minProjection, projection);
+      maxProjection = std::max(maxProjection, projection);
+    }
+  }
+
+  inline bool rasterProjectionsOverlap(double triangleMin, double triangleMax, double rectMin,
+                                       double rectMax) {
+    constexpr double epsilon = 1e-9;
+    return triangleMax + epsilon >= rectMin && rectMax + epsilon >= triangleMin;
+  }
+
+  inline bool rasterTriangleIntersectsExpandedRect(const std::array<RasterPoint2d, 3>& triangle,
+                                                   const Recti& rect) {
+    // The triangle set is reused by all MSAA samples, whose offsets stay within
+    // a half-pixel envelope. Expanding tile bounds by that amount keeps binning
+    // conservative while avoiding tiles that the triangle cannot touch.
+    constexpr double sampleEnvelope = 0.5;
+    const double left = static_cast<double>(rect.left()) - sampleEnvelope;
+    const double top = static_cast<double>(rect.top()) - sampleEnvelope;
+    const double right = static_cast<double>(rect.right()) + sampleEnvelope;
+    const double bottom = static_cast<double>(rect.bottom()) + sampleEnvelope;
+
+    const auto separatedOnAxis = [&](double axisX, double axisY) {
+      double triangleMin = 0.0;
+      double triangleMax = 0.0;
+      double rectMin = 0.0;
+      double rectMax = 0.0;
+      projectRasterPoints(triangle, axisX, axisY, triangleMin, triangleMax);
+      projectRasterRect(left, top, right, bottom, axisX, axisY, rectMin, rectMax);
+      return !rasterProjectionsOverlap(triangleMin, triangleMax, rectMin, rectMax);
+    };
+
+    if (separatedOnAxis(1.0, 0.0) || separatedOnAxis(0.0, 1.0)) {
+      return false;
+    }
+
+    for (std::size_t i = 0; i != triangle.size(); ++i) {
+      const RasterPoint2d& a = triangle[i];
+      const RasterPoint2d& b = triangle[(i + 1) % triangle.size()];
+      const double edgeX = b.x - a.x;
+      const double edgeY = b.y - a.y;
+      if (edgeX == 0.0 && edgeY == 0.0) {
+        continue;
+      }
+      if (separatedOnAxis(-edgeY, edgeX)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   // Prepared triangle handed from the emitter to the raster pass. It stores the
   // three raster vertices plus enough scene identity to support material
   // evaluation, fragment shader inputs, and face-indexed diagnostic colors.
@@ -250,6 +327,7 @@ namespace engine::raster::detail {
     }
 
     std::size_t addBounds(int rawMinX, int rawMaxX, int rawMinY, int rawMaxY,
+                          const std::array<RasterPoint2d, 3>& triangle,
                           std::size_t triangleIndex) {
       if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width() || rawMinY >= m_plan.height()) {
         return 0;
@@ -268,6 +346,9 @@ namespace engine::raster::detail {
       std::size_t added = 0;
       for (int row = firstRow; row <= lastRow; ++row) {
         for (int col = firstCol; col <= lastCol; ++col) {
+          if (!rasterTriangleIntersectsExpandedRect(triangle, rect(row, col))) {
+            continue;
+          }
           m_triangleIndices[index(row, col)].push_back(triangleIndex);
           ++added;
         }
@@ -306,8 +387,12 @@ namespace engine::raster::detail {
       const int rawMaxY = static_cast<int>(std::floor(maxY + 0.5));
 
       const std::size_t triangleIndex = m_triangles.size();
+      const std::array<RasterPoint2d, 3> screenTriangle{
+        RasterPoint2d{triangle.vertices[0].x, triangle.vertices[0].y},
+        RasterPoint2d{triangle.vertices[1].x, triangle.vertices[1].y},
+        RasterPoint2d{triangle.vertices[2].x, triangle.vertices[2].y}};
       const std::size_t added =
-        m_tileGrid.addBounds(rawMinX, rawMaxX, rawMinY, rawMaxY, triangleIndex);
+        m_tileGrid.addBounds(rawMinX, rawMaxX, rawMinY, rawMaxY, screenTriangle, triangleIndex);
       if (added == 0)
         return;
 
@@ -325,6 +410,10 @@ namespace engine::raster::detail {
 
     const RasterTileGrid& tileGrid() const {
       return m_tileGrid;
+    }
+
+    std::size_t binnedTriangleCount() const {
+      return m_binnedTriangleCount;
     }
 
   private:
