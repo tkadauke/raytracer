@@ -124,6 +124,13 @@ along the way:
 
 <!-- widget: rasterizer_clip_attributes -->
 
+The 2D rectangle above is the simplest version of the same idea.
+In the real rasterizer, the visible region is a **3D frustum** owned
+by the rendering camera, and it is often easier to understand the
+cut by inspecting that frustum from a separate viewpoint:
+
+<!-- widget: rasterizer_frustum_clipping -->
+
 The interesting detail in the widget is that **all per-vertex
 attributes** — UVs, normals, colors — get interpolated along
 with the position when a clip generates an intersection

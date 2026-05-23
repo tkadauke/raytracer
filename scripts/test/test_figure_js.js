@@ -524,6 +524,28 @@ test('Rasterizer clipping widget omits coordinate labels', () => {
   assert.deepEqual(handles.map(c => c.attributes['data-vertex-index']), ['0', '1', '2']);
 });
 
+test('Rasterizer frustum clipping widget shows 3D clip output from inspection view', () => {
+  const body = loadWidget('rasterizer_frustum_clipping.js');
+  const text = textContents(body).join(' ');
+  assert.ok(text.includes('inspection yaw'), 'widget should expose inspection yaw as a scalar slider');
+  assert.ok(text.includes('inspection pitch'), 'widget should expose inspection pitch as a scalar slider');
+  assert.ok(text.includes('near depth'), 'widget should expose the clipping near plane as a scalar slider');
+  assert.equal(countElements(body, 'input'), 3,
+    '3D frustum widget should use sliders for scalar view and clip controls');
+  assert.equal(elementsByTag(body, 'polygon')
+    .filter(poly => poly.attributes['data-source-geometry'] === 'true').length, 1,
+    'widget should draw the original source triangle');
+  assert.equal(elementsByTag(body, 'polygon')
+    .filter(poly => poly.attributes['data-clipped-output'] === 'true').length, 1,
+    'widget should draw the clipped polygon output');
+  assert.ok(elementsByTag(body, 'rect')
+    .filter(rect => rect.attributes['data-generated-clip-vertex'] === 'true').length >= 2,
+    'widget should mark generated clipping vertices');
+  assert.equal(elementsByTag(body, 'circle')
+    .filter(circle => circle.attributes['data-clipping-camera'] === 'true').length, 1,
+    'widget should show the camera that owns the frustum');
+});
+
 test('Rasterizer MSAA widget emits samples and partial resolves', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '..', 'docs', 'rasterizer_msaa_coverage.js'), 'utf8');
   assert.ok(source.includes('clampGridPoint'),

@@ -431,6 +431,14 @@ namespace engine::raster {
   * <script type="text/javascript" src="rasterizer_clip_attributes.js"></script>
   * @endhtmlonly
   *
+  * The next widget shows the same clipping problem in 3D: one camera defines
+  * the view frustum, while a separate inspection view orbits around the source
+  * triangle, the generated intersection vertices, and the clipped output.
+  *
+  * @htmlonly
+  * <script type="text/javascript" src="rasterizer_frustum_clipping.js"></script>
+  * @endhtmlonly
+  *
   * @par Limits and threading
   *
   * The implementation is intentionally a CPU software rasterizer. Its camera
