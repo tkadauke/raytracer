@@ -179,6 +179,8 @@ namespace engine::raster::detail {
     const render::Primitive* primitive;
     std::shared_ptr<render::Material> material;
     RasterMaterial rasterMaterial;
+    Vector2d uvDx;
+    Vector2d uvDy;
     std::uint64_t faceIdx;
   };
 

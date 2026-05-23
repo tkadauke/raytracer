@@ -3,12 +3,15 @@
 #include "world/objects/Texture.h"
 #include "world/objects/ConstantColorTexture.h"
 #include "world/objects/CheckerBoardTexture.h"
+#include "world/objects/ImageTexture.h"
 #include "world/objects/UVColorTexture.h"
 #include "core/math/HitPoint.h"
 #include "render/textures/Texture.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/textures/CheckerBoardTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "render/textures/UVColorTexture.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
 #include <QString>
 #include <QJsonObject>
@@ -174,6 +177,52 @@ namespace TextureTest {
       rt->evaluate(
         Rayd::undefined,
         HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.3, 0.0))));
+  }
+
+  // ---------- ImageTexture --------------------------------------------------
+
+  TEST(ImageTexture, ShouldDefaultToExplicitNearestRepeatUVSampling) {
+    ImageTexture texture;
+    EXPECT_EQ(QString(""), texture.path());
+    EXPECT_EQ(QString("nearest"), texture.filter());
+    EXPECT_EQ(QString("repeat"), texture.wrap());
+    EXPECT_EQ(QString("uv"), texture.mapping());
+    EXPECT_DOUBLE_EQ(1.0, texture.uScale());
+    EXPECT_DOUBLE_EQ(1.0, texture.vScale());
+  }
+
+  TEST(ImageTexture, ShouldCoerceUnknownFilterWrapAndMapping) {
+    ImageTexture texture;
+    texture.setFilter("mipmap");
+    texture.setWrap("clamp");
+    texture.setMapping("planar");
+    EXPECT_EQ(QString("mipmap"), texture.filter());
+    EXPECT_EQ(QString("clamp"), texture.wrap());
+    EXPECT_EQ(QString("planar"), texture.mapping());
+
+    texture.setFilter("unknown");
+    texture.setWrap("unknown");
+    texture.setMapping("unknown");
+    EXPECT_EQ(QString("nearest"), texture.filter());
+    EXPECT_EQ(QString("repeat"), texture.wrap());
+    EXPECT_EQ(QString("uv"), texture.mapping());
+  }
+
+  TEST(ImageTexture, ShouldProduceRaytracerImageTextureWithExplicitPolicy) {
+    ImageTexture texture;
+    texture.setPath("scripts/docs/image_texture_checker.ppm");
+    texture.setFilter("bilinear");
+    texture.setWrap("clamp");
+    texture.setMapping("uv");
+    texture.setUScale(4.0);
+    texture.setVScale(8.0);
+
+    auto rt = std::dynamic_pointer_cast<render::ImageTexture>(texture.toRaytracerTexture());
+
+    ASSERT_NE(nullptr, rt);
+    EXPECT_EQ(render::ImageTextureFilter::Bilinear, rt->filter());
+    EXPECT_EQ(render::ImageTextureWrap::Clamp, rt->wrap());
+    ASSERT_NE(nullptr, dynamic_cast<const render::UVMapping2D*>(rt->mapping()));
   }
 
   // ---------- UVColorTexture -----------------------------------------------

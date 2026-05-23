@@ -18,6 +18,7 @@
 #include "render/primitives/Triangle.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
@@ -27,6 +28,7 @@
 #include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace RasterizerTest {
   using namespace ::testing;
@@ -1390,6 +1392,40 @@ namespace RasterizerTest {
 
     EXPECT_EQ(Colord::white(), bright);
     EXPECT_EQ(Colord::black(), dark);
+  }
+
+  TEST(RasterTexture, DirectImageTextureUsesScaledUVMapping) {
+    auto image = std::make_shared<render::ImageTexture>(
+      new render::UVMapping2D(2.0, 1.0), 2, 1,
+      std::vector<Colord>{Colord::red(), Colord::green()}, render::ImageTextureFilter::Nearest,
+      render::ImageTextureWrap::Repeat);
+    const auto texture = engine::raster::detail::RasterTexture::from(image);
+
+    const Colord color =
+      texture.evaluate(nullptr, Vector3d::null, Vector3d::up(), Vector2d(0.6, 0.0));
+
+    EXPECT_EQ(Colord::red(), color);
+  }
+
+  TEST(RasterTexture, DirectImageTextureUsesUVGradientsForMipSelection) {
+    std::vector<Colord> pixels;
+    for (int y = 0; y != 4; ++y) {
+      for (int x = 0; x != 4; ++x) {
+        pixels.push_back(((x + y) % 2 == 0) ? Colord::black() : Colord::white());
+      }
+    }
+    auto image = std::make_shared<render::ImageTexture>(
+      new render::UVMapping2D, 4, 4, pixels, render::ImageTextureFilter::Mipmap,
+      render::ImageTextureWrap::Repeat);
+    const auto texture = engine::raster::detail::RasterTexture::from(image);
+
+    const Colord color = texture.evaluate(nullptr, Vector3d::null, Vector3d::up(),
+                                          Vector2d(0.3, 0.7), Vector2d(1.0, 0.0),
+                                          Vector2d(0.0, 0.0));
+
+    EXPECT_NEAR(0.5, color.r(), 1e-9);
+    EXPECT_NEAR(0.5, color.g(), 1e-9);
+    EXPECT_NEAR(0.5, color.b(), 1e-9);
   }
 
   TEST(Rasterizer, BuiltInMaterialConstantTextureUsesStoredAlbedo) {
