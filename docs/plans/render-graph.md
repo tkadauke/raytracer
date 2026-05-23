@@ -1060,7 +1060,11 @@ Implement the smallest graph that proves the architecture:
    supported pass kinds. ✅ Done for disabled default substitution and color
    passthrough in the serial graph engine.
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
-   runtime intent overrides, and node-disabling flags.
+   runtime intent overrides, and node-disabling flags. ✅ Partial: rendercli
+   can compile/export text, DOT, and JSON plans, render through the graph,
+   apply pass id/kind/executor/feature disable filters, and validate the
+   manipulated plan. Graph JSON input/replay and richer intent overrides remain
+   TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe

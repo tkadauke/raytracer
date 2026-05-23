@@ -185,6 +185,11 @@ the same resource is also reported as a cycle.
 - `toDot()` produces a Graphviz DOT graph.
 - `toJson()` produces a structured `QJsonObject`.
 
+`rendercli` exposes the same formats through `--render_graph_only` and
+`--render_graph_format text|dot|json`. With `--render_graph_out`, the CLI can
+save the compiled graph alongside a graph-backed render; without an output file,
+graph-only mode writes the graph to standard output.
+
 A two-pass plan might read textually as:
 
 ```text
@@ -204,6 +209,15 @@ The DOT export uses resource nodes and pass nodes, with arrows from resources
 to reader passes and from writer passes to resources. The JSON export carries
 the same ids, enum strings, resource dimensions, pass features, reads, writes,
 scene selector, disabled behavior, and scheduling flags.
+
+The first graph-backed render that exists today is deliberately small: a
+whole-frame raytraced beauty pass writes the exported color resource. The DOT
+artifact checked into this chapter is the same shape emitted by `rendercli` for
+`scenes/dice.json` when asked to compile, but not render, the graph.
+
+![Raytraced beauty render graph](../../images/render_graph_raytrace_beauty.svg)
+
+DOT source: [render_graph_raytrace_beauty.dot](render_graph_raytrace_beauty.dot)
 
 ## <a id="overrides-disable-by-id-kind-executor-or-feature"></a>Overrides disable by id, kind, executor, or feature
 `RenderGraphOverrides` stores four sets:
@@ -364,4 +378,6 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
 - `test/unit/engine/graph/RenderPlanTest.cpp`
 - `test/unit/engine/graph/RenderResourceStorageTest.cpp`
+- `tools/rendercli/rendercli.cpp`
+- `test/rendercli/RenderGraphOptionTest.cmake`
 <!-- /source-anchors -->

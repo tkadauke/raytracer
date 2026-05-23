@@ -51,6 +51,22 @@ $ rendercli --engine raster --animation --frame_start 1 --frame_end 48 \
 `rendercli` is the right front end for headless rendering, batch rendering,
 documentation image generation, and timing runs.
 
+It can also expose the compiled render graph without drawing pixels:
+
+```sh
+$ rendercli --render_graph_only --render_graph_format dot \
+            scenes/dice.json \
+            dice-graph.dot
+```
+
+The graph export formats are `text`, `dot`, and `json`. `--render_graph`
+renders through the graph engine instead of a direct engine, and
+`--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
+`--disable_feature` apply graph overrides before validation or rendering.
+Those controls are intentionally graph-level: disabling the required
+`raytrace_beauty` pass, for example, makes validation fail before any image is
+written.
+
 ## <a id="src-modeler-the-interactive-editor"></a>`src/modeler` — the interactive editor
 [`src/modeler/`](../../../src/modeler/) builds the `Modeler` executable. It is
 the general scene modeling UI: a scene tree on the left, a property editor on
@@ -151,6 +167,7 @@ scene-structure, and rasterization chapters cover.
 
 <!-- source-anchors -->
 - `tools/rendercli/`
+- `test/rendercli/RenderGraphOptionTest.cmake`
 - `src/modeler/`
 - `scenes/`
 <!-- /source-anchors -->

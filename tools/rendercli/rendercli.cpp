@@ -1,12 +1,15 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
+#include <QFile>
 #include <QImage>
+#include <QJsonDocument>
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
 
+#include "engine/graph/GraphRenderEngine.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
@@ -238,6 +241,66 @@ namespace {
     return true;
   }
 
+  QStringList splitOptionValues(const QStringList& values) {
+    QStringList result;
+    for (const QString& value : values) {
+      const QStringList parts = value.split(',', Qt::SkipEmptyParts);
+      for (const QString& part : parts) {
+        const QString trimmed = part.trimmed();
+        if (!trimmed.isEmpty()) {
+          result.push_back(trimmed);
+        }
+      }
+    }
+    return result;
+  }
+
+  bool parseRenderPassKind(const QString& value, engine::graph::RenderPassKind* kind) {
+    const QString normalized = normalizedRasterOption(value);
+    using RenderPassKind = engine::graph::RenderPassKind;
+    if (normalized == "beauty") {
+      *kind = RenderPassKind::Beauty;
+    } else if (normalized == "shadow") {
+      *kind = RenderPassKind::Shadow;
+    } else if (normalized == "overlay") {
+      *kind = RenderPassKind::Overlay;
+    } else if (normalized == "composite") {
+      *kind = RenderPassKind::Composite;
+    } else if (normalized == "tonemap") {
+      *kind = RenderPassKind::Tonemap;
+    } else if (normalized == "postprocess") {
+      *kind = RenderPassKind::PostProcess;
+    } else if (normalized == "aov") {
+      *kind = RenderPassKind::AOV;
+    } else if (normalized == "debug") {
+      *kind = RenderPassKind::Debug;
+    } else if (normalized == "custom") {
+      *kind = RenderPassKind::Custom;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool parseRenderExecutorKind(const QString& value, engine::graph::RenderExecutorKind* executor) {
+    const QString normalized = normalizedRasterOption(value);
+    using RenderExecutorKind = engine::graph::RenderExecutorKind;
+    if (normalized == "raytracer" || normalized == "raytrace") {
+      *executor = RenderExecutorKind::Raytracer;
+    } else if (normalized == "rasterizer" || normalized == "raster") {
+      *executor = RenderExecutorKind::Rasterizer;
+    } else if (normalized == "wireframe") {
+      *executor = RenderExecutorKind::Wireframe;
+    } else if (normalized == "composite") {
+      *executor = RenderExecutorKind::Composite;
+    } else if (normalized == "postprocess") {
+      *executor = RenderExecutorKind::PostProcess;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
     std::set<std::string> materialTypes;
     scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
@@ -299,6 +362,11 @@ private:
   bool m_queueSizeSet;
   QString m_tonemap;
   QString m_engine;
+  bool m_renderGraph;
+  bool m_renderGraphOnly;
+  QString m_renderGraphFormat;
+  QString m_renderGraphOut;
+  engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
   int m_rasterMsaaSamples;
@@ -342,6 +410,12 @@ private:
   std::unique_ptr<Scene> loadScene() const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
+  engine::graph::RenderIntent renderIntent() const;
+  int renderGraphSampleCount() const;
+  engine::graph::RenderPlan compileRenderGraphPlan() const;
+  void validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const;
+  void writeRenderGraphPlan(const engine::graph::RenderPlan& plan, const QString& output) const;
+  QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
   static bool hasFramePlaceholder(const QString& pattern, QString* errorMessage);
 };
@@ -358,6 +432,11 @@ Renderer::Renderer()
       m_queueSizeSet(false),
       m_tonemap("Linear"),
       m_engine("raytracer"),
+      m_renderGraph(false),
+      m_renderGraphOnly(false),
+      m_renderGraphFormat("text"),
+      m_renderGraphOut(),
+      m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
       m_rasterMsaaSamples(1),
@@ -408,6 +487,81 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   return scene;
 }
 
+engine::graph::RenderIntent Renderer::renderIntent() const {
+  engine::graph::RenderIntent intent;
+  if (m_engine == "raster") {
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+  } else if (m_engine == "wireframe") {
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
+  } else {
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+  }
+  return intent;
+}
+
+int Renderer::renderGraphSampleCount() const {
+  return m_engine == "raster" ? m_rasterMsaaSamples : m_samplesPerPixel;
+}
+
+engine::graph::RenderPlan Renderer::compileRenderGraphPlan() const {
+  engine::graph::RenderGraphCompiler compiler;
+  auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount()}, renderIntent());
+  return plan.withOverrides(m_renderGraphOverrides);
+}
+
+void Renderer::validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const {
+  const auto validation = plan.validate();
+  if (validation.valid()) {
+    return;
+  }
+
+  std::ostringstream out;
+  out << "Render graph is invalid";
+  for (const auto& error : validation.errors()) {
+    out << "; " << engine::graph::toString(error.code) << ": " << error.message;
+  }
+  throw std::runtime_error(out.str());
+}
+
+void Renderer::writeRenderGraphPlan(const engine::graph::RenderPlan& plan,
+                                    const QString& output) const {
+  std::string graph;
+  if (m_renderGraphFormat == "text") {
+    graph = plan.toText();
+  } else if (m_renderGraphFormat == "dot") {
+    graph = plan.toDot();
+  } else if (m_renderGraphFormat == "json") {
+    graph = QJsonDocument(plan.toJson()).toJson(QJsonDocument::Indented).toStdString();
+  } else {
+    throw std::runtime_error("Unknown render graph format");
+  }
+
+  if (output.isEmpty()) {
+    std::cout << graph;
+    return;
+  }
+
+  QFile file(output);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    throw std::runtime_error(QString("Unable to write render graph: %1").arg(output).toStdString());
+  }
+  const QByteArray bytes = QByteArray::fromStdString(graph);
+  if (file.write(bytes) != bytes.size()) {
+    throw std::runtime_error(QString("Unable to write render graph: %1").arg(output).toStdString());
+  }
+}
+
+QString Renderer::renderGraphOutputPath() const {
+  if (!m_renderGraphOut.isEmpty()) {
+    return m_renderGraphOut;
+  }
+  if (m_renderGraphOnly) {
+    return m_output;
+  }
+  return {};
+}
+
 std::vector<double> Renderer::renderScene(const Scene& scene, const QString& output) const {
   auto raytracerScene = scene.toRaytracerScene();
 
@@ -424,8 +578,32 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   }
 
   std::shared_ptr<render::RenderEngine> engine;
+  engine::graph::RenderPlan graphPlan;
 
-  if (m_engine == "wireframe") {
+  if (m_renderGraph) {
+    if (m_engine == "raster") {
+      for (const auto& warning : rasterRecursiveMaterialFallbackWarnings(*raytracerScene)) {
+        std::cerr << warning << '\n';
+      }
+    }
+    if (rtCamera) {
+      rtCamera->viewPlane()->setSampler(sampler());
+    }
+
+    graphPlan = compileRenderGraphPlan();
+    validateRenderGraphPlan(graphPlan);
+    const QString graphOutput = renderGraphOutputPath();
+    if (!graphOutput.isEmpty()) {
+      writeRenderGraphPlan(graphPlan, graphOutput);
+    }
+
+    auto graph = rtCamera ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera,
+                                                                               raytracerScene)
+                          : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
+    graph->setIntent(renderIntent());
+    graph->setPlan(graphPlan);
+    engine = graph;
+  } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
     if (rtCamera)
       wireframe->setCamera(rtCamera);
@@ -539,6 +717,13 @@ void Renderer::render() const {
 
   if (m_frameSet)
     scene->evaluateAnimationAtFrame(m_frame);
+
+  if (m_renderGraphOnly) {
+    const auto plan = compileRenderGraphPlan();
+    validateRenderGraphPlan(plan);
+    writeRenderGraphPlan(plan, renderGraphOutputPath());
+    return;
+  }
 
   const auto timings = renderScene(*scene, m_output);
   if (m_timing || m_repeat > 1) {
@@ -682,6 +867,20 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "queue_size"},
      {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
      {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
+     {"render_graph", "Render through the compiled render graph instead of the direct engine"},
+     {"render_graph_only", "Compile/export the render graph and skip image rendering"},
+     {"render_graph_format", "Render graph export format (text, dot, json)", "format"},
+     {"render_graph_out", "Write the compiled render graph to a file", "file"},
+     {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
+     {"disable_pass_kind",
+      "Disable render graph pass kind (beauty, shadow, overlay, composite, tonemap, postprocess, "
+      "aov, debug, custom)",
+      "kind"},
+     {"disable_executor",
+      "Disable render graph executor (raytracer, rasterizer, wireframe, composite, postprocess)",
+      "executor"},
+     {"disable_feature", "Disable a render graph feature; may be repeated or comma-separated",
+      "feature"},
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
@@ -725,7 +924,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   parser.addPositionalArgument("input",
                                QCoreApplication::translate("main", "Input file to render."));
-  parser.addPositionalArgument("output", QCoreApplication::translate("main", "Output file."));
+  parser.addPositionalArgument(
+    "output",
+    QCoreApplication::translate("main", "Output image file, or graph file with --render_graph_only."));
 
   if (!parser.parse(QCoreApplication::arguments())) {
     *errorMessage = parser.errorText();
@@ -809,6 +1010,67 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_engine = engine;
+  }
+
+  if (parser.isSet("render_graph")) {
+    m_renderGraph = true;
+  }
+
+  if (parser.isSet("render_graph_only")) {
+    m_renderGraph = true;
+    m_renderGraphOnly = true;
+  }
+
+  if (parser.isSet("render_graph_format")) {
+    const QString format = parser.value("render_graph_format").toLower();
+    if (format != "text" && format != "dot" && format != "json") {
+      *errorMessage = "Render graph format must be 'text', 'dot', or 'json'";
+      return CommandLineError;
+    }
+    m_renderGraphFormat = format;
+  }
+
+  if (parser.isSet("render_graph_out")) {
+    m_renderGraph = true;
+    m_renderGraphOut = parser.value("render_graph_out");
+  }
+
+  if (parser.isSet("disable_pass")) {
+    m_renderGraph = true;
+    for (const QString& passId : splitOptionValues(parser.values("disable_pass"))) {
+      m_renderGraphOverrides.disabledPasses.insert(passId.toStdString());
+    }
+  }
+
+  if (parser.isSet("disable_pass_kind")) {
+    m_renderGraph = true;
+    for (const QString& value : splitOptionValues(parser.values("disable_pass_kind"))) {
+      engine::graph::RenderPassKind kind;
+      if (!parseRenderPassKind(value, &kind)) {
+        *errorMessage = "Render graph pass kind is not recognized";
+        return CommandLineError;
+      }
+      m_renderGraphOverrides.disabledPassKinds.insert(kind);
+    }
+  }
+
+  if (parser.isSet("disable_executor")) {
+    m_renderGraph = true;
+    for (const QString& value : splitOptionValues(parser.values("disable_executor"))) {
+      engine::graph::RenderExecutorKind executor;
+      if (!parseRenderExecutorKind(value, &executor)) {
+        *errorMessage = "Render graph executor is not recognized";
+        return CommandLineError;
+      }
+      m_renderGraphOverrides.disabledExecutors.insert(executor);
+    }
+  }
+
+  if (parser.isSet("disable_feature")) {
+    m_renderGraph = true;
+    for (const QString& feature : splitOptionValues(parser.values("disable_feature"))) {
+      m_renderGraphOverrides.disabledFeatures.insert(feature.toStdString());
+    }
   }
 
   if (parser.isSet("lod")) {
@@ -1092,14 +1354,34 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && m_renderGraphOnly) {
+    *errorMessage = "Cannot combine --animation with --render_graph_only";
+    return CommandLineError;
+  }
+
+  if (m_animation && !m_renderGraphOut.isEmpty()) {
+    *errorMessage = "Cannot combine --animation with --render_graph_out";
+    return CommandLineError;
+  }
+
+  if (m_renderGraphOnly && m_repeat > 1) {
+    *errorMessage = "Cannot combine --render_graph_only with --repeat";
+    return CommandLineError;
+  }
+
   const QStringList args = parser.positionalArguments();
 
-  if (args.size() < 2) {
+  if (args.isEmpty()) {
+    *errorMessage = m_renderGraphOnly ? "Need input filename" : "Need input and output filename";
+    return CommandLineError;
+  }
+
+  m_filename = args.at(0);
+  if (args.size() >= 2) {
+    m_output = args.at(1);
+  } else if (!m_renderGraphOnly) {
     *errorMessage = "Need input and output filename";
     return CommandLineError;
-  } else {
-    m_filename = args.at(0);
-    m_output = args.at(1);
   }
 
   return CommandLineOk;

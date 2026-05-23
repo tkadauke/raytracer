@@ -63,6 +63,15 @@ if(TARGET rendercli)
       -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-frame
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake
   )
+  add_test(
+    NAME rendercli_render_graph
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-render-graph
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RenderGraphOptionTest.cmake
+  )
 endif()
 
 # Functional tests load fixtures from the source tree at runtime.

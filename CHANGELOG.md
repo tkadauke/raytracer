@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rendercli render-graph inspection.** `rendercli` can now compile/export graph plans in text, DOT, or JSON form, render through `GraphRenderEngine`, and apply graph disable filters by pass id, pass kind, executor, or feature before validation. — GPT-5
 - **Graph disabled-pass execution.** `GraphRenderEngine` now executes simple serial color-resource plans with enabled tonemap passes plus disabled-pass `SubstituteDefault` and color `Passthrough` behavior, backed by a runtime `RenderResource` hierarchy for resource capabilities. — GPT-5
 - **Graph-backed beauty rendering.** `RenderGraphCompiler` now emits the first executable whole-frame beauty plan and `GraphRenderEngine` can compile or accept that plan, validate it, execute exactly one enabled Raytracer/Rasterizer/Wireframe beauty pass, and expose the last plan for inspection. — GPT-5
 - **Raster recursive-material fallback diagnostics.** Reflective materials now advertise a raster fallback of local Phong only, transparent materials advertise local Phong plus transmission-derived source alpha, and `rendercli --engine raster` warns when recursive reflection/refraction has been dropped from the preview. — GPT-5
@@ -51,6 +52,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Textbook image assets now publish with the static HTML build.** `rake docs:textbook:html` copies `docs/images` into `docs/html/textbook/images`, so rendered PNGs and graph SVG artifacts resolve when the textbook is served locally. — GPT-5
 - **Wireframe now clips edges crossing the near plane instead of dropping them.** `Wireframe::nearClipDepth()` defaults to `0.1`; edges with one endpoint behind that depth are shortened before projection, while edges fully behind it are skipped. — GPT-5
 - **Rasterizer coverage now preserves subpixel projected vertex positions.** Projected screen coordinates remain fractional until fixed-point edge setup, reducing whole-pixel edge jumps during small camera or object motion while keeping tiled and MSAA paths consistent. — GPT-5
 - **Rasterizer shared triangle edges no longer shade twice.** `core::rasterizeTriangleSampled` now uses a top-left fill rule for samples exactly on triangle edges, so adjacent triangles covering one surface assign shared-edge pixels to only one triangle and avoid double-applying stencil operations. — GPT-5

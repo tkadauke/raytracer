@@ -1225,6 +1225,12 @@ namespace :docs do
         FileUtils.cp(md, dest)
       end
 
+      # Markdown chapters reference rendered artifacts as ../../images/foo.png.
+      # Once served from docs/html/textbook/, those URLs resolve to /images/*.
+      textbook_images_dir = File.join(TEXTBOOK_HTML_OUT, "images")
+      FileUtils.mkdir_p(textbook_images_dir)
+      FileUtils.cp(Dir.glob("docs/images/*"), textbook_images_dir)
+
       # 2. Generate one HTML wrapper per chapter / volume README / appendix.
       Dir.glob("#{TEXTBOOK_HTML_OUT}/**/*.md").each do |md|
         rel = md.sub("#{TEXTBOOK_HTML_OUT}/", "")
