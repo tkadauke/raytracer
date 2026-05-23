@@ -283,10 +283,12 @@ Several anti-aliasing variants are queued under roadmap
   high-res framebuffer pays full shading cost), but produces
   better quality on shading-driven aliasing (highlights, fine
   geometry). Currently not implemented.
-- **TAA (temporal anti-aliasing).** Accumulate samples across
-  multiple frames, jittering the camera slightly each frame.
-  Cheap per-frame, expensive in motion (ghosting artifacts).
-  Belongs to a future real-time engine, not a static renderer.
+- **TAA (temporal anti-aliasing).** The software rasterizer now has
+  an opt-in TAA mode that jitters repeated frames and blends them
+  through color/depth history. It is useful for static preview
+  renders and for teaching history validation, but moving scenes still
+  need stronger motion-vector and neighborhood-clamping policy before
+  it should be treated as final-frame quality.
 - **FXAA / SMAA (post-process anti-aliasing).** Run an
   edge-detection pass on the rendered framebuffer and
   selectively blend edge pixels. Cheap; lower quality than

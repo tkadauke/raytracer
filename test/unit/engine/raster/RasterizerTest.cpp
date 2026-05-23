@@ -668,6 +668,9 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
     EXPECT_TRUE(std::isinf(engine.farClipDepth()));
     EXPECT_EQ(Rasterizer::PostProcessAA::None, engine.postProcessAA());
+    EXPECT_DOUBLE_EQ(0.1, engine.temporalCurrentFrameWeight());
+    EXPECT_FALSE(engine.temporalHistoryValid());
+    EXPECT_EQ(0, engine.temporalFrameIndex());
     EXPECT_DOUBLE_EQ(0.0, engine.depthBias());
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
@@ -703,6 +706,8 @@ namespace RasterizerTest {
     Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
     engine.setPostProcessAA(Rasterizer::PostProcessAA::SMAA);
     engine.setMSAAShadingMode(Rasterizer::MSAAShadingMode::PerFragment);
+    engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
+    engine.setTemporalCurrentFrameWeight(0.35);
     engine.setNearClipDepth(0.5);
     engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
@@ -740,7 +745,8 @@ namespace RasterizerTest {
 
     ASSERT_NE(nullptr, clone);
     EXPECT_EQ(Rasterizer::MSAAShadingMode::PerFragment, clone->msaaShadingMode());
-    EXPECT_EQ(Rasterizer::PostProcessAA::SMAA, clone->postProcessAA());
+    EXPECT_EQ(Rasterizer::PostProcessAA::TAA, clone->postProcessAA());
+    EXPECT_DOUBLE_EQ(0.35, clone->temporalCurrentFrameWeight());
     EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
     EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
     EXPECT_EQ(3, clone->shadowCascadeCount());
@@ -777,6 +783,58 @@ namespace RasterizerTest {
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
     EXPECT_EQ(nullptr, clone->attachmentBuffers().depth);
     EXPECT_EQ(nullptr, clone->attachmentBuffers().stencil);
+  }
+
+  TEST(Rasterizer, TemporalAATracksHistoryLifecycle) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
+    Buffer<Colord> color(64, 64);
+
+    EXPECT_FALSE(engine.temporalHistoryValid());
+    EXPECT_EQ(0, engine.temporalFrameIndex());
+
+    engine.render(color);
+    EXPECT_TRUE(engine.temporalHistoryValid());
+    EXPECT_EQ(1, engine.temporalFrameIndex());
+
+    engine.render(color);
+    EXPECT_TRUE(engine.temporalHistoryValid());
+    EXPECT_EQ(2, engine.temporalFrameIndex());
+
+    engine.invalidateTemporalHistory();
+    engine.render(color);
+    EXPECT_TRUE(engine.temporalHistoryValid());
+    EXPECT_EQ(1, engine.temporalFrameIndex());
+  }
+
+  TEST(Rasterizer, TemporalAAResetsHistoryWhenRenderTargetResizes) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
+    Buffer<Colord> color64(64, 64);
+    Buffer<Colord> color32(32, 32);
+
+    engine.render(color64);
+    engine.render(color64);
+    EXPECT_EQ(2, engine.temporalFrameIndex());
+
+    engine.render(color32);
+    EXPECT_TRUE(engine.temporalHistoryValid());
+    EXPECT_EQ(1, engine.temporalFrameIndex());
+  }
+
+  TEST(Rasterizer, TemporalAAResetsHistoryWhenCameraChanges) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setPostProcessAA(Rasterizer::PostProcessAA::TAA);
+    Buffer<Colord> color(64, 64);
+
+    engine.render(color);
+    engine.render(color);
+    EXPECT_EQ(2, engine.temporalFrameIndex());
+
+    engine.setCamera(camera());
+    engine.render(color);
+    EXPECT_TRUE(engine.temporalHistoryValid());
+    EXPECT_EQ(1, engine.temporalFrameIndex());
   }
 
   TEST(Rasterizer, ClonePreservesDisabledScissorRectangle) {

@@ -4,6 +4,7 @@
 #include "RasterPass.h"
 #include "RasterPipelineTypes.h"
 #include "RasterShadowMaps.h"
+#include "RasterTemporalResources.h"
 #include "RasterTriangleEmitter.h"
 
 #include "core/Buffer.h"
@@ -132,6 +133,10 @@ namespace {
   using engine::raster::detail::ShadowMaps;
   using engine::raster::detail::stabilizeDirectionalShadowCenter;
   using engine::raster::detail::tileBufferView;
+  using engine::raster::detail::TemporalJitter;
+  using engine::raster::detail::TemporalResetCondition;
+  using engine::raster::detail::TemporalResourceContract;
+  using engine::raster::detail::validateTemporalResourceContract;
   using engine::raster::detail::viewDepthRange;
   using engine::raster::detail::withMSAAFragmentShadingPolicy;
   using engine::raster::detail::withPreparedTrianglePolicies;
@@ -224,6 +229,83 @@ namespace {
     }
     return result;
   }
+
+  double halton(int index, int base) {
+    double f = 1.0;
+    double result = 0.0;
+    while (index > 0) {
+      f /= static_cast<double>(base);
+      result += f * static_cast<double>(index % base);
+      index /= base;
+    }
+    return result;
+  }
+
+  TemporalJitter temporalJitterForFrame(int frame) {
+    const int index = frame + 1;
+    return {halton(index, 2) - 0.5, halton(index, 3) - 0.5};
+  }
+
+  void clearTemporalMotionVectors(Buffer<Vector2d>& motionVectors, const TemporalJitter& current,
+                                  const TemporalJitter& previous) {
+    const Vector2d delta(current.x - previous.x, current.y - previous.y);
+    motionVectors.clear(delta);
+  }
+
+  bool finiteDepth(double depth) {
+    return std::isfinite(depth);
+  }
+
+  Colord sampleHistoryColor(const Buffer<Colord>& history, double x, double y) {
+    const int sx = static_cast<int>(std::round(x));
+    const int sy = static_cast<int>(std::round(y));
+    if (sx < 0 || sy < 0 || sx >= history.width() || sy >= history.height()) {
+      return Colord::black();
+    }
+    return history[sy][sx];
+  }
+
+  bool historySampleUsable(const Buffer<double>& historyDepth, double x, double y,
+                           double currentDepth) {
+    const int sx = static_cast<int>(std::round(x));
+    const int sy = static_cast<int>(std::round(y));
+    if (sx < 0 || sy < 0 || sx >= historyDepth.width() || sy >= historyDepth.height()) {
+      return false;
+    }
+    const double previousDepth = historyDepth[sy][sx];
+    if (!finiteDepth(currentDepth) || !finiteDepth(previousDepth)) {
+      return false;
+    }
+    return std::abs(previousDepth - currentDepth) <= std::max(1e-4, currentDepth * 0.02);
+  }
+
+  void applyTemporalAccumulation(const TemporalResourceContract& contract,
+                                 Buffer<Colord>& currentColor, double currentFrameWeight) {
+    const auto validation =
+      validateTemporalResourceContract(contract, currentColor.width(), currentColor.height());
+    const double alpha = std::clamp(currentFrameWeight, 0.0, 1.0);
+
+    for (int y = 0; y != currentColor.height(); ++y) {
+      for (int x = 0; x != currentColor.width(); ++x) {
+        Colord resolved = currentColor[y][x];
+        if (validation.canAccumulate) {
+          const Vector2d motion = (*contract.motionVectors)[y][x];
+          const double hx = static_cast<double>(x) - motion.x();
+          const double hy = static_cast<double>(y) - motion.y();
+          if (historySampleUsable(*contract.historyDepth, hx, hy, (*contract.currentDepth)[y][x])) {
+            const Colord history = sampleHistoryColor(*contract.historyColor, hx, hy);
+            resolved = history * (1.0 - alpha) + currentColor[y][x] * alpha;
+          }
+        }
+        currentColor[y][x] = resolved;
+        (*contract.nextHistoryColor)[y][x] = resolved;
+      }
+    }
+  }
+
+  void copyDepthHistory(Buffer<double>& target, const Buffer<double>& source) {
+    copyRasterBuffer(target, source);
+  }
 }
 
 // Pimpl: hides Qt threading and render-pass orchestration from the
@@ -238,6 +320,18 @@ struct Rasterizer::Private {
   std::unique_ptr<QThreadPool> threadPool;
   std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
+  std::unique_ptr<Buffer<Colord>> historyColor;
+  std::unique_ptr<Buffer<Colord>> nextHistoryColor;
+  std::unique_ptr<Buffer<double>> historyDepth;
+  std::unique_ptr<Buffer<double>> currentDepth;
+  std::unique_ptr<Buffer<Vector2d>> motionVectors;
+  TemporalJitter previousJitter;
+  bool temporalHistoryValid{false};
+  bool temporalInvalidated{false};
+  TemporalResetCondition pendingTemporalReset{TemporalResetCondition::FirstFrame};
+  int temporalFrameIndex{0};
+  const render::Camera* temporalCamera{nullptr};
+  const render::Scene* temporalScene{nullptr};
 
   void renderFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                    const std::shared_ptr<render::Camera>& camera,
@@ -248,7 +342,8 @@ struct Rasterizer::Private {
                                const render::TilePlan& tilePlan,
                                const RasterTriangleEmitter& triangleEmitter,
                                const ShadowMaps& shadowMaps, const Recti& renderClip,
-                               const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
+                               const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+                               const Vector2d& sampleOffset);
 
   void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                        const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
@@ -275,13 +370,15 @@ struct Rasterizer::Private {
                              const ShadowMaps& shadowMaps, const Recti& renderClip,
                              const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
                              const Vector2d& sampleOffset, bool useExternalAttachments = true,
-                             MSAAFragmentShadeCache* shadeCache = nullptr);
+                             MSAAFragmentShadeCache* shadeCache = nullptr,
+                             Buffer<double>* depthCapture = nullptr);
   void renderTriangleStreamPass(const Rasterizer& rasterizer,
                                 const std::shared_ptr<render::Scene>& scene,
                                 const RasterTriangleEmitter& triangleEmitter,
                                 const render::TilePlan& tilePlan, const ShadowMaps& shadowMaps,
                                 const Recti& renderClip, const std::atomic<bool>& cancelled,
-                                Buffer<Colord>& buffer, const Vector2d& sampleOffset);
+                                Buffer<Colord>& buffer, const Vector2d& sampleOffset,
+                                Buffer<double>* depthCapture = nullptr);
 
   ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
@@ -290,6 +387,10 @@ struct Rasterizer::Private {
 
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
                                                   const render::TilePlan& tilePlan);
+  void prepareTemporalResources(int width, int height);
+  TemporalResetCondition temporalResetCondition(int width, int height) const;
+  void applyTemporalAA(const Rasterizer& rasterizer, Buffer<Colord>& buffer,
+                       const TemporalJitter& currentJitter);
 };
 
 Rasterizer::Rasterizer(std::shared_ptr<render::Scene> scene)
@@ -315,6 +416,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setNearClipDepth(m_nearClipDepth);
   result->setFarClipDepth(m_farClipDepth);
   result->setPostProcessAA(m_postProcessAA);
+  result->setTemporalCurrentFrameWeight(m_temporalCurrentFrameWeight);
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowCascadeCount(m_shadowCascadeCount);
@@ -435,6 +537,25 @@ void Rasterizer::setFarClipDepth(double depth) {
 
 void Rasterizer::setShadowMapSize(int size) {
   m_shadowMapSize = std::max(1, size);
+}
+
+void Rasterizer::setPostProcessAA(PostProcessAA aa) {
+  if (m_postProcessAA != aa) {
+    m_postProcessAA = aa;
+    invalidateTemporalHistory();
+  }
+}
+
+void Rasterizer::invalidateTemporalHistory() {
+  p->temporalInvalidated = true;
+}
+
+bool Rasterizer::temporalHistoryValid() const {
+  return p->temporalHistoryValid;
+}
+
+int Rasterizer::temporalFrameIndex() const {
+  return p->temporalFrameIndex;
 }
 
 void Rasterizer::render(Buffer<unsigned int>& buffer) {
@@ -582,7 +703,7 @@ void Rasterizer::Private::renderTriangleSetPass(
   const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
   Buffer<Colord>& buffer, const Vector2d& sampleOffset, bool useExternalAttachments,
-  MSAAFragmentShadeCache* shadeCache) {
+  MSAAFragmentShadeCache* shadeCache, Buffer<double>* depthCapture) {
   // A pass freezes current depth/stencil/shader state into policies,
   // then hands the triangle set to either the direct or tiled path.
   PassBuffers passBuffers(rasterizer, tilePlan, buffer, useExternalAttachments);
@@ -605,13 +726,17 @@ void Rasterizer::Private::renderTriangleSetPass(
             sampleOffset, stencil, depth, msaaFragmentPolicy, alphaTest, diagnostics);
         });
     });
+
+  if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
+    copyRasterBuffer(*depthCapture, passBuffers.depth());
+  }
 }
 
 void Rasterizer::Private::renderTriangleStreamPass(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const RasterTriangleEmitter& triangleEmitter, const render::TilePlan& tilePlan,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
-  Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset, Buffer<double>* depthCapture) {
   // The ordinary 1x single-tile path does not need a retained triangle
   // batch or tile bins. Freeze render state once, then draw each emitted
   // triangle immediately into the full-frame pass buffers.
@@ -641,16 +766,23 @@ void Rasterizer::Private::renderTriangleStreamPass(
                                               depth, fragmentPolicy, alphaTest, diagnostics);
       });
     });
+
+  if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
+    copyRasterBuffer(*depthCapture, passBuffers.depth());
+  }
 }
 
 void Rasterizer::Private::renderSingleSampleFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const RasterTriangleEmitter& triangleEmitter,
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
-  Buffer<Colord>& buffer) {
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
   if (tilePlan.isSingleTile()) {
     renderTriangleStreamPass(rasterizer, scene, triangleEmitter, tilePlan, shadowMaps, renderClip,
-                             cancelled, buffer, Vector2d(0.0, 0.0));
+                             cancelled, buffer, sampleOffset,
+                             rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
+                               ? currentDepth.get()
+                               : nullptr);
     return;
   }
 
@@ -659,7 +791,11 @@ void Rasterizer::Private::renderSingleSampleFrame(
     return;
 
   renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, cancelled,
-                        buffer, Vector2d(0.0, 0.0));
+                        buffer, sampleOffset, true,
+                        nullptr,
+                        rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
+                          ? currentDepth.get()
+                          : nullptr);
 }
 
 void Rasterizer::Private::renderMSAAFrame(
@@ -770,6 +906,80 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
   scratch.resolveTo(buffer, pattern.count);
 }
 
+void Rasterizer::Private::prepareTemporalResources(int width, int height) {
+  if (!bufferMatches(historyColor.get(), width, height)) {
+    historyColor = std::make_unique<Buffer<Colord>>(width, height);
+    nextHistoryColor = std::make_unique<Buffer<Colord>>(width, height);
+    historyDepth = std::make_unique<Buffer<double>>(width, height);
+    currentDepth = std::make_unique<Buffer<double>>(width, height);
+    motionVectors = std::make_unique<Buffer<Vector2d>>(width, height);
+    temporalHistoryValid = false;
+    temporalFrameIndex = 0;
+    previousJitter = TemporalJitter();
+    pendingTemporalReset = TemporalResetCondition::ResourceResize;
+    return;
+  }
+
+  if (!bufferMatches(nextHistoryColor.get(), width, height))
+    nextHistoryColor = std::make_unique<Buffer<Colord>>(width, height);
+  if (!bufferMatches(historyDepth.get(), width, height))
+    historyDepth = std::make_unique<Buffer<double>>(width, height);
+  if (!bufferMatches(currentDepth.get(), width, height))
+    currentDepth = std::make_unique<Buffer<double>>(width, height);
+  if (!bufferMatches(motionVectors.get(), width, height))
+    motionVectors = std::make_unique<Buffer<Vector2d>>(width, height);
+}
+
+TemporalResetCondition Rasterizer::Private::temporalResetCondition(int width, int height) const {
+  if (!bufferMatches(historyColor.get(), width, height) ||
+      !bufferMatches(historyDepth.get(), width, height)) {
+    return TemporalResetCondition::ResourceResize;
+  }
+  if (pendingTemporalReset != TemporalResetCondition::None) {
+    return pendingTemporalReset;
+  }
+  if (temporalInvalidated) {
+    return TemporalResetCondition::HistoryInvalidated;
+  }
+  if (!temporalHistoryValid) {
+    return TemporalResetCondition::FirstFrame;
+  }
+  return TemporalResetCondition::None;
+}
+
+void Rasterizer::Private::applyTemporalAA(const Rasterizer& rasterizer, Buffer<Colord>& buffer,
+                                          const TemporalJitter& currentJitter) {
+  const int width = buffer.width();
+  const int height = buffer.height();
+  const TemporalResetCondition resetCondition = temporalResetCondition(width, height);
+  if (resetCondition != TemporalResetCondition::None) {
+    temporalFrameIndex = 0;
+  }
+
+  clearTemporalMotionVectors(*motionVectors, currentJitter, previousJitter);
+
+  TemporalResourceContract contract;
+  contract.historyColor = historyColor.get();
+  contract.nextHistoryColor = nextHistoryColor.get();
+  contract.currentDepth = currentDepth.get();
+  contract.historyDepth = historyDepth.get();
+  contract.motionVectors = motionVectors.get();
+  contract.currentJitter = currentJitter;
+  contract.previousJitter = previousJitter;
+  contract.resetCondition = resetCondition;
+
+  applyTemporalAccumulation(contract, buffer, rasterizer.temporalCurrentFrameWeight());
+  copyRasterBuffer(*historyColor, *nextHistoryColor);
+  copyDepthHistory(*historyDepth, *currentDepth);
+  previousJitter = currentJitter;
+  temporalHistoryValid = true;
+  temporalCamera = rasterizer.camera().get();
+  temporalScene = rasterizer.scene().get();
+  temporalInvalidated = false;
+  pendingTemporalReset = TemporalResetCondition::None;
+  ++temporalFrameIndex;
+}
+
 void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
                                       const std::shared_ptr<render::Scene>& scene,
                                       const std::shared_ptr<render::Camera>& camera,
@@ -784,6 +994,24 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   if (rasterRectEmpty(renderClip))
     return;
 
+  const bool useTemporalAA = rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA;
+  if (useTemporalAA) {
+    if (temporalHistoryValid && temporalScene != scene.get()) {
+      pendingTemporalReset = TemporalResetCondition::SceneDiscontinuity;
+    } else if (temporalHistoryValid && temporalCamera != camera.get()) {
+      pendingTemporalReset = TemporalResetCondition::CameraCut;
+    }
+    prepareTemporalResources(width, height);
+    currentDepth->clear(std::numeric_limits<double>::infinity());
+  }
+  const TemporalResetCondition resetCondition =
+    useTemporalAA ? temporalResetCondition(width, height) : TemporalResetCondition::None;
+  const int jitterFrame =
+    resetCondition == TemporalResetCondition::None ? temporalFrameIndex : 0;
+  const TemporalJitter currentJitter =
+    useTemporalAA ? temporalJitterForFrame(jitterFrame) : TemporalJitter();
+  const Vector2d sampleOffset(currentJitter.x, currentJitter.y);
+
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
   const MSAASamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
@@ -795,12 +1023,19 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
                     cancelled, buffer);
   } else {
     renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, renderClip,
-                            cancelled, buffer);
+                            cancelled, buffer, sampleOffset);
   }
 
-  if (!cancelled.load()) {
+  if (cancelled.load()) {
+    return;
+  }
+
+  if (useTemporalAA && pattern.count == 1) {
+    applyTemporalAA(rasterizer, buffer, currentJitter);
+  } else {
     switch (rasterizer.postProcessAA()) {
       case Rasterizer::PostProcessAA::None:
+      case Rasterizer::PostProcessAA::TAA:
         break;
       case Rasterizer::PostProcessAA::FXAA:
         render::postprocess::applyFxaa(buffer);

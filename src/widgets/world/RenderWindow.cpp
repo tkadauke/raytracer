@@ -120,6 +120,8 @@ void RenderWindow::render() {
       postProcessAA = engine::raster::Rasterizer::PostProcessAA::FXAA;
     } else if (postAA == "SMAA") {
       postProcessAA = engine::raster::Rasterizer::PostProcessAA::SMAA;
+    } else if (postAA == "TAA") {
+      postProcessAA = engine::raster::Rasterizer::PostProcessAA::TAA;
     }
     p->rasterizer->setMSAAShadingMode(
       p->settingsWidget->msaaShadingMode() == "Per fragment"

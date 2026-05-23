@@ -234,22 +234,29 @@ namespace engine::raster {
   * The antialiasing figures separate coverage quality from postprocessing.
   * Raw 1x coverage is binary at each pixel center. FXAA and SMAA only see the
   * completed image, so they can soften contrast but cannot recover geometry
-  * that never covered a pixel sample. MSAA reruns coverage at several subpixel
-  * positions, so the resolve can represent a partly covered pixel directly.
+  * that never covered a pixel sample. TAA shifts the sample position across
+  * repeated frames and reuses a depth-validated history buffer, trading a
+  * little temporal latency for smoother static edges. MSAA reruns coverage at
+  * several subpixel positions in one frame, so the resolve can represent a
+  * partly covered pixel directly.
   *
   * MSAA is opt-in because it multiplies raster work. FXAA and SMAA are
   * image-space alternatives that run after the frame is complete: they
   * can smooth high-contrast edges cheaply, but unlike MSAA they cannot
   * recover hidden subpixel geometry or per-sample depth/stencil detail.
   * SMAA keeps a sharper edge-direction blend than FXAA in this CPU preview
-  * approximation. The comparison below renders the same high-contrast diagonal
-  * triangle with raw 1x coverage, post-process FXAA, post-process SMAA, and 4x
+  * approximation. TAA is also a post-render mode, but it needs persistent
+  * color/depth history and resets that history on the first frame, resource
+  * resize, or explicit invalidation. The comparison below renders the same
+  * high-contrast diagonal triangle with raw 1x coverage, post-process FXAA,
+  * post-process SMAA, accumulated TAA, and 4x
   * MSAA.
   *
   * <table><tr>
   * <td>@image html rasterizer_msaa_1x.png "1x raster coverage"</td>
   * <td>@image html rasterizer_post_aa_fxaa.png "1x coverage plus FXAA"</td>
   * <td>@image html rasterizer_post_aa_smaa.png "1x coverage plus SMAA"</td>
+  * <td>@image html rasterizer_post_aa_taa.png "jittered TAA history"</td>
   * <td>@image html rasterizer_msaa_4x.png "4x MSAA resolve"</td>
   * </tr></table>
   *
@@ -547,7 +554,8 @@ public:
   enum class PostProcessAA {
     None,
     FXAA,
-    SMAA
+    SMAA,
+    TAA
   };
 
   enum class MSAAShadingMode {
@@ -735,9 +743,29 @@ public:
   /// Image-space anti-aliasing pass applied after the rasterizer has
   /// produced its float framebuffer. Defaults to `None`. FXAA and SMAA are
   /// cheap postprocess edge filters; unlike MSAA, they do not need extra
-  /// coverage or depth samples, so they are useful for fast previews.
+  /// coverage or depth samples, so they are useful for fast previews. TAA
+  /// jitters successive raster frames and blends them through a depth-validated
+  /// history buffer.
   inline PostProcessAA postProcessAA() const { return m_postProcessAA; }
-  inline void setPostProcessAA(PostProcessAA aa) { m_postProcessAA = aa; }
+  void setPostProcessAA(PostProcessAA aa);
+
+  /// Invalidates temporal anti-aliasing history before the next render. Call
+  /// this after camera cuts or scene discontinuities when reusing a Rasterizer
+  /// instance across frames.
+  void invalidateTemporalHistory();
+
+  /// Returns true once TAA has a same-size previous frame available.
+  bool temporalHistoryValid() const;
+
+  /// Returns the number of TAA frames accepted into the current history.
+  int temporalFrameIndex() const;
+
+  /// Weight assigned to the current frame during TAA accumulation. Defaults to
+  /// 0.1 and is clamped to [0, 1].
+  inline double temporalCurrentFrameWeight() const { return m_temporalCurrentFrameWeight; }
+  inline void setTemporalCurrentFrameWeight(double weight) {
+    m_temporalCurrentFrameWeight = std::isfinite(weight) ? std::clamp(weight, 0.0, 1.0) : 0.1;
+  }
 
   /// Returns whether rasterized directional-light shadow maps are enabled.
   inline bool shadowMapsEnabled() const { return m_shadowMapsEnabled; }
@@ -1147,6 +1175,7 @@ private:
   double m_nearClipDepth{0.1};
   double m_farClipDepth{std::numeric_limits<double>::infinity()};
   PostProcessAA m_postProcessAA{PostProcessAA::None};
+  double m_temporalCurrentFrameWeight{0.1};
   bool m_shadowMapsEnabled{false};
   int m_shadowMapSize{256};
   int m_shadowCascadeCount{1};
