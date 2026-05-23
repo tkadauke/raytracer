@@ -18,9 +18,9 @@ std::shared_ptr<render::Material> MatteMaterial::toRaytracerMaterial() const {
   );
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
+  applyMaterialProperties(material);
 
   return material;
 }
 
 static bool dummy = ElementFactory::self().registerClass<MatteMaterial>("MatteMaterial");
-

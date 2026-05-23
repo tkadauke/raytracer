@@ -4,7 +4,9 @@
 #include "core/math/HitPoint.h"
 #include "core/math/Ray.h"
 #include "core/math/Vector.h"
+#include "engine/raster/Rasterizer.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/Material.h"
 #include "render/materials/PhongMaterial.h"
 #include "render/primitives/Primitive.h"
 #include "render/textures/CheckerBoardTexture.h"
@@ -224,22 +226,36 @@ namespace engine::raster::detail {
   class RasterMaterialSource {
   public:
     static RasterMaterialSource from(const std::shared_ptr<render::Material>& material) {
+      const auto sidedness =
+        material ? material->sidedness() : render::Material::Sidedness::TwoSided;
       auto matte = std::dynamic_pointer_cast<render::MatteMaterial>(material);
       if (!matte)
-        return faceColor();
+        return faceColor(sidedness);
 
       const auto phong = std::dynamic_pointer_cast<render::PhongMaterial>(material);
       auto texture = matte->diffuseTexture();
       if (!texture)
-        return faceColor();
+        return faceColor(sidedness);
 
       const render::Texturec* texturePtr = texture.get();
       if (typeid(*texturePtr) == typeid(render::ConstantColorTexture)) {
         const auto* constant = static_cast<const render::ConstantColorTexture*>(texturePtr);
-        return constantAlbedo(constant->color(), *matte, phong.get());
+        return constantAlbedo(constant->color(), *matte, phong.get(), sidedness);
       }
 
-      return textured(RasterTexture::from(std::move(texture)), *matte, phong.get());
+      return textured(RasterTexture::from(std::move(texture)), *matte, phong.get(), sidedness);
+    }
+
+    Rasterizer::CullMode defaultCullMode() const {
+      switch (m_sidedness) {
+      case render::Material::Sidedness::Front:
+        return Rasterizer::CullMode::Back;
+      case render::Material::Sidedness::Back:
+        return Rasterizer::CullMode::Front;
+      case render::Material::Sidedness::TwoSided:
+        return Rasterizer::CullMode::Both;
+      }
+      return Rasterizer::CullMode::Both;
     }
 
     RasterMaterial forFace(std::uint64_t faceIdx) const {
@@ -259,43 +275,48 @@ namespace engine::raster::detail {
   private:
     enum class Kind { FaceColor, Constant, Texture };
 
-    static RasterMaterialSource faceColor() {
+    static RasterMaterialSource faceColor(render::Material::Sidedness sidedness) {
       return RasterMaterialSource(Kind::FaceColor, Colord::black(),
-                                  RasterTexture::constant(Colord::black()));
+                                  RasterTexture::constant(Colord::black()), sidedness);
     }
 
     static RasterMaterialSource constantAlbedo(const Colord& albedo,
                                                const render::MatteMaterial& matte,
-                                               const render::PhongMaterial* phong) {
+                                               const render::PhongMaterial* phong,
+                                               render::Material::Sidedness sidedness) {
       return material(Kind::Constant, albedo, RasterTexture::constant(Colord::black()), matte,
-                      phong);
+                      phong, sidedness);
     }
 
     static RasterMaterialSource textured(const RasterTexture& texture,
                                          const render::MatteMaterial& matte,
-                                         const render::PhongMaterial* phong) {
-      return material(Kind::Texture, Colord::black(), texture, matte, phong);
+                                         const render::PhongMaterial* phong,
+                                         render::Material::Sidedness sidedness) {
+      return material(Kind::Texture, Colord::black(), texture, matte, phong, sidedness);
     }
 
     static RasterMaterialSource material(Kind kind, const Colord& albedo,
                                          const RasterTexture& texture,
                                          const render::MatteMaterial& matte,
-                                         const render::PhongMaterial* phong) {
+                                         const render::PhongMaterial* phong,
+                                         render::Material::Sidedness sidedness) {
       const Colord specularColor = phong ? phong->specularColor() : Colord::black();
       const double specularCoefficient = phong ? phong->specularCoefficient() : 0.0;
       const double specularExponent = phong ? phong->exponent() : 16.0;
-      return RasterMaterialSource(kind, albedo, texture, matte.ambientCoefficient(),
+      return RasterMaterialSource(kind, albedo, texture, sidedness, matte.ambientCoefficient(),
                                   matte.diffuseCoefficient(), specularColor, specularCoefficient,
                                   specularExponent);
     }
 
     RasterMaterialSource(Kind kind, const Colord& albedo, const RasterTexture& texture,
+                         render::Material::Sidedness sidedness,
                          double ambientCoefficient = 1.0, double diffuseCoefficient = 1.0,
                          const Colord& specularColor = Colord::black(),
                          double specularCoefficient = 0.0, double specularExponent = 16.0)
         : m_kind(kind),
           m_albedo(albedo),
           m_texture(texture),
+          m_sidedness(sidedness),
           m_ambientCoefficient(ambientCoefficient),
           m_diffuseCoefficient(diffuseCoefficient),
           m_specularColor(specularColor),
@@ -306,6 +327,7 @@ namespace engine::raster::detail {
     Kind m_kind;
     Colord m_albedo;
     RasterTexture m_texture;
+    render::Material::Sidedness m_sidedness;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
     Colord m_specularColor;

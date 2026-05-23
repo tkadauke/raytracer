@@ -89,10 +89,11 @@ namespace engine::raster {
   * clipped in homogeneous space before projection so their visible
   * portion can still render without producing enormous post-divide
   * screen coordinates.
-  * Face culling is switchable via `setCullMode`: the default
-  * `CullMode::Both` shades both sides of every triangle, while
-  * `CullMode::Back` / `CullMode::Front` skip triangles by projected
-  * screen-space winding after clipping. Depth/stencil state, opt-in
+  * Face culling is switchable via `setCullMode`: without an explicit
+  * override, each material's sidedness supplies the default. Two-sided
+  * materials shade both sides, while front-sided and back-sided materials
+  * skip the opposite projected screen-space winding after clipping.
+  * Depth/stencil state, opt-in
   * directional-light shadow maps, and tiny vertex/fragment shader
   * hooks are exposed for teaching the fixed-function stages without
   * forcing the default path through the programmable callbacks. The final
@@ -827,11 +828,18 @@ public:
   inline void setShadowFilterMode(ShadowFilterMode mode) { m_shadowFilterMode = mode; }
 
   /// Face-culling mode used after near-plane clipping and before
-  /// triangle rasterization. `Both` keeps the historical two-sided
-  /// behavior; `Back` and `Front` skip triangles by projected
-  /// screen-space winding.
+  /// triangle rasterization. Without an explicit override, material
+  /// sidedness chooses the default: front-sided materials cull back
+  /// faces, back-sided materials cull front faces, and two-sided
+  /// materials keep both. Calling `setCullMode` overrides those
+  /// material defaults for the whole pass.
   inline CullMode cullMode() const { return m_cullMode; }
-  inline void setCullMode(CullMode mode) { m_cullMode = mode; }
+  inline bool hasCullModeOverride() const { return m_hasCullModeOverride; }
+  inline void setCullMode(CullMode mode) {
+    m_cullMode = mode;
+    m_hasCullModeOverride = true;
+  }
+  inline void clearCullModeOverride() { m_hasCullModeOverride = false; }
 
   /// Returns whether the rasterizer maps clip-space coordinates into an
   /// explicit framebuffer viewport. Disabled means the full render buffer is
@@ -1064,6 +1072,7 @@ private:
   int m_shadowFilterRadius{0};
   ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
   CullMode m_cullMode{CullMode::Both};
+  bool m_hasCullModeOverride{false};
   bool m_viewportEnabled{false};
   Recti m_viewportRect;
   bool m_scissorTestEnabled{false};

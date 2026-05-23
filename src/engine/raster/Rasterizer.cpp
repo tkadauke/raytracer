@@ -317,7 +317,8 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setShadowSlopeBias(m_shadowSlopeBias);
   result->setShadowFilterRadius(m_shadowFilterRadius);
   result->setShadowFilterMode(m_shadowFilterMode);
-  result->setCullMode(m_cullMode);
+  result->m_cullMode = m_cullMode;
+  result->m_hasCullModeOverride = m_hasCullModeOverride;
   result->m_viewportEnabled = m_viewportEnabled;
   result->m_viewportRect = m_viewportRect;
   result->m_scissorTestEnabled = m_scissorTestEnabled;
@@ -541,7 +542,7 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
 
       const render::TilePlan shadowTilePlan = render::TilePlan::forBuffer(size, size, 1);
       RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
-                                          cancelled, Rasterizer::CullMode::Both, false);
+                                          cancelled, Rasterizer::CullMode::Both, true, false);
       const RasterTriangleSet shadowTriangles =
         collectRasterTriangles(shadowEmitter, shadowTilePlan);
       if (!shadowTriangles.empty()) {
@@ -756,7 +757,8 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   const render::TilePlan tilePlan = render::TilePlan::forBuffer(width, height, queueSize);
   const MSAASamplePattern pattern(rasterizer.msaaSamples());
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
-                                              cancelled, rasterizer.cullMode(), true);
+                                              cancelled, rasterizer.cullMode(),
+                                              rasterizer.hasCullModeOverride(), true);
   const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, camera, cancelled);
   if (pattern.count > 1) {
     renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, renderClip,

@@ -19,9 +19,9 @@ std::shared_ptr<render::Material> PhongMaterial::toRaytracerMaterial() const {
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setSpecularCoefficient(specularCoefficient());
+  applyMaterialProperties(material);
 
   return material;
 }
 
 static bool dummy = ElementFactory::self().registerClass<PhongMaterial>("PhongMaterial");
-
