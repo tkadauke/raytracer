@@ -176,6 +176,42 @@ namespace RasterizerTest {
     return scene;
   }
 
+  static std::shared_ptr<Scene> sceneWithTriangleGrid(int columns, int rows) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    const double viewWidth = 8.0;
+    const double viewHeight = 6.0;
+    const double cellWidth = viewWidth / static_cast<double>(columns);
+    const double cellHeight = viewHeight / static_cast<double>(rows);
+    const double left = -viewWidth / 2.0;
+    const double top = -viewHeight / 2.0;
+
+    for (int y = 0; y != rows; ++y) {
+      for (int x = 0; x != columns; ++x) {
+        const double x0 = left + static_cast<double>(x) * cellWidth;
+        const double x1 = x0 + cellWidth;
+        const double y0 = top + static_cast<double>(y) * cellHeight;
+        const double y1 = y0 + cellHeight;
+        scene->add(std::make_shared<Triangle>(Vector3d(x0, y0, 0.0), Vector3d(x1, y0, 0.0),
+                                              Vector3d(x0, y1, 0.0)));
+        scene->add(std::make_shared<Triangle>(Vector3d(x1, y0, 0.0), Vector3d(x1, y1, 0.0),
+                                              Vector3d(x0, y1, 0.0)));
+      }
+    }
+
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithLargeScreenTriangles() {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->add(std::make_shared<Triangle>(Vector3d(-4.0, -3.0, 0.0),
+                                          Vector3d(4.0, -3.0, 0.0),
+                                          Vector3d(-4.0, 3.0, 0.0)));
+    scene->add(std::make_shared<Triangle>(Vector3d(4.0, -3.0, 0.0),
+                                          Vector3d(4.0, 3.0, 0.0),
+                                          Vector3d(-4.0, 3.0, 0.0)));
+    return scene;
+  }
+
   static std::shared_ptr<Scene> sceneWithBackFacingTriangle() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(
@@ -1531,6 +1567,103 @@ namespace RasterizerTest {
     tiled.render(tiledBuffer);
 
     expectBuffersEqual(singleTileBuffer, tiledBuffer);
+  }
+
+  TEST(Rasterizer, AutomaticQueueSizeSelectsTilingForModerateScreenHeavyScene) {
+    Rasterizer engine(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    engine.setMaximumThreads(4);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_FALSE(engine.hasExplicitQueueSize());
+    EXPECT_EQ(16, engine.queueSize());
+    EXPECT_EQ(16, engine.lastResolvedQueueSize());
+  }
+
+  TEST(Rasterizer, AutomaticQueueSizeKeepsDenseTessellationSingleTile) {
+    Rasterizer engine(headOnCamera(), sceneWithTriangleGrid(80, 60));
+    engine.setMaximumThreads(4);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_FALSE(engine.hasExplicitQueueSize());
+    EXPECT_EQ(16, engine.queueSize());
+    EXPECT_EQ(1, engine.lastResolvedQueueSize());
+  }
+
+  TEST(Rasterizer, AutomaticQueueSizeKeepsLargeTriangleDuplicationSingleTile) {
+    Rasterizer engine(headOnCamera(), sceneWithLargeScreenTriangles());
+    engine.setMaximumThreads(4);
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(1, engine.lastResolvedQueueSize());
+  }
+
+  TEST(Rasterizer, ExplicitQueueSizeOverridesAutomaticPolicy) {
+    Rasterizer forcedSingle(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    forcedSingle.setMaximumThreads(4);
+    forcedSingle.setQueueSize(1);
+    forcedSingle.setFragmentShader(
+      [](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> singleBuffer(128, 128);
+
+    forcedSingle.render(singleBuffer);
+
+    EXPECT_TRUE(forcedSingle.hasExplicitQueueSize());
+    EXPECT_EQ(1, forcedSingle.lastResolvedQueueSize());
+
+    Rasterizer forcedTiled(headOnCamera(), sceneWithLargeScreenTriangles());
+    forcedTiled.setMaximumThreads(4);
+    forcedTiled.setQueueSize(4);
+    forcedTiled.setFragmentShader(
+      [](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> tiledBuffer(128, 128);
+
+    forcedTiled.render(tiledBuffer);
+
+    EXPECT_TRUE(forcedTiled.hasExplicitQueueSize());
+    EXPECT_EQ(4, forcedTiled.lastResolvedQueueSize());
+  }
+
+  TEST(Rasterizer, SetAutomaticQueueSizeRestoresDefaultPolicy) {
+    Rasterizer engine(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    engine.setMaximumThreads(4);
+    engine.setQueueSize(1);
+    engine.setAutomaticQueueSize();
+    engine.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_FALSE(engine.hasExplicitQueueSize());
+    EXPECT_EQ(16, engine.queueSize());
+    EXPECT_EQ(16, engine.lastResolvedQueueSize());
+  }
+
+  TEST(Rasterizer, ClonePreservesQueueSizePolicyMode) {
+    Rasterizer automatic(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    automatic.setMaximumThreads(4);
+    auto automaticClone = std::dynamic_pointer_cast<Rasterizer>(automatic.cloneForRender());
+
+    ASSERT_TRUE(automaticClone);
+    EXPECT_FALSE(automaticClone->hasExplicitQueueSize());
+    EXPECT_EQ(16, automaticClone->queueSize());
+
+    Rasterizer explicitQueue(headOnCamera(), sceneWithTriangleGrid(10, 8));
+    explicitQueue.setMaximumThreads(4);
+    explicitQueue.setQueueSize(7);
+    auto explicitClone = std::dynamic_pointer_cast<Rasterizer>(explicitQueue.cloneForRender());
+
+    ASSERT_TRUE(explicitClone);
+    EXPECT_TRUE(explicitClone->hasExplicitQueueSize());
+    EXPECT_EQ(7, explicitClone->queueSize());
   }
 
   TEST(Rasterizer, FragmentShaderOverridesBuiltInShading) {

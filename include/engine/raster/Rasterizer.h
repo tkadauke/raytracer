@@ -467,8 +467,8 @@ namespace engine::raster {
   *
   * The implementation is intentionally a CPU software rasterizer. Its camera
   * support is limited to camera types that can provide closed-form clip-space
-  * projection, and its default execution path favors predictable single-tile
-  * rendering unless the caller explicitly opts into queued tiles.
+  * projection, and its default execution path picks queued tiles only when
+  * projected scene statistics match the measured cases where tiling helps.
   *
   * Cameras supported: any subclass that overrides
   * `Camera::projectPointToClipSpace` (currently `PinholeCamera`
@@ -477,18 +477,17 @@ namespace engine::raster {
   * `EquirectangularCamera`, `ThinLensCamera`, `TiltShiftCamera`)
   * silently produce empty / degenerate renders.
   *
-  * Threading: the default 1x single-tile path streams triangles
-  * directly into the full-frame pass buffers on the calling thread.
-  * MSAA and tiled rendering retain a prepared triangle set because
-  * they need to reuse the same projected/clipped triangles across
-  * sample offsets or tile ownership. Setting `setQueueSize(queue)`
-  * with `queue > 1` enables a tiled `QThreadPool` path: projected /
-  * clipped triangles are binned by tile, and each tile owns a
-  * disjoint pixel rectangle, so color and Z-buffer writes do not
-  * need locks. The tiled path is correctness-tested against the
-  * single-tile output but is intentionally opt-in: current performance
-  * is scene-dependent, and dense tessellation can still lose enough to
-  * make the streaming single-tile path the predictable default.
+  * Threading: by default the rasterizer measures the frame's emitted
+  * projected triangles and chooses between one tile and a queued tile
+  * plan. The policy considers framebuffer area, worker count, triangle
+  * count, projected bounding-box area, tile-list duplication, and MSAA
+  * sample count. Dense tessellation and large triangles stay on the
+  * single-tile path; screen-heavy scenes with moderate projected
+  * triangle counts can use queued tiles automatically. Setting
+  * `setQueueSize(queue)` is an explicit override: `queue == 1` forces
+  * single-tile rendering, and `queue > 1` forces the tiled
+  * `QThreadPool` path. Call `setAutomaticQueueSize()` to return to
+  * the scene-aware default.
   *
   * @see Wireframe — the cheaper sibling that draws only edges; the
   *      same projection + tessellation pipeline drives both.
@@ -710,9 +709,26 @@ public:
   /// to `QThread::idealThreadCount()`.
   void setMaximumThreads(int threads);
 
-  /// Sets the number of tiles dispatched per render. Defaults to 1;
-  /// values above 1 enable the tiled `QThreadPool` path.
+  /// Returns the configured queue size. In automatic mode this is the
+  /// candidate tiled queue size; the actual per-frame choice is exposed
+  /// through `lastResolvedQueueSize()` after rendering.
+  int queueSize() const;
+
+  /// Returns true when the queue size is an explicit caller override.
+  bool hasExplicitQueueSize() const;
+
+  /// Returns the queue size used by the most recent render. Automatic
+  /// policy renders update this to either 1 or the selected tiled queue
+  /// size; explicit queue-size renders update it to the explicit value.
+  int lastResolvedQueueSize() const;
+
+  /// Sets the number of tiles dispatched per render and disables the
+  /// scene-aware automatic policy. Values above 1 enable the tiled
+  /// `QThreadPool` path; `1` forces the single-tile path.
   void setQueueSize(int queue);
+
+  /// Re-enables scene-aware automatic queue-size selection.
+  void setAutomaticQueueSize();
 
   /// Number of fixed subpixel MSAA samples per pixel. Defaults to 1
   /// (disabled). Values are rounded up to the supported 1/2/4/8

@@ -183,7 +183,7 @@ review:
 
 ### 7. Revisit tiled rendering defaults
 
-Status: measured; keep `queueSize > 1` opt-in. The repeatable coverage is now
+Status: completed. The repeatable coverage is now
 `benchmarks/RasterizerTilingBenchmark.cpp`, which compares single-tile and
 queued-tile rendering for synthetic scenes whose projected triangles are small,
 medium, and large. Run it with:
@@ -204,12 +204,13 @@ The benchmark reports render time plus policy-input counters:
 - configured worker and scheduling inputs (`threads`, `queue_size`);
 - MSAA sample count (`msaa_samples`).
 
-These are the minimum scene/runtime signals a future default policy should use:
-screen area, triangle count, projected coverage distribution, expected tile-bin
-duplication, thread count, queue size, MSAA sample count, and eventually a cheap
-fragment-cost class for material/shader work. The policy should also distinguish
-"many small triangles" from "few large triangles"; both can have similar final
-covered pixels but very different tile-list duplication and scheduling costs.
+These are the scene/runtime signals the default policy now uses: screen area,
+triangle count, projected coverage distribution, expected tile-bin duplication,
+thread count, queue size, and MSAA sample count. It distinguishes "many small
+triangles" from "few large triangles"; both can have similar final covered
+pixels but very different tile-list duplication and scheduling costs. A cheap
+fragment-cost class remains useful future work once raster material/shader costs
+become more varied.
 
 A short validation run on May 23, 2026 (`--benchmark_min_time=0.02s`, four
 worker threads, 640x480) showed the intended signal spread:
@@ -234,19 +235,20 @@ four worker threads confirmed the same split behavior as the earlier pass:
   2336.393 ms median, tiled 4100.182 ms median.
 
 Queued tiles win on screen-heavy 1x and 4x scenes but still lose badly on dense
-tessellation. Do not make tiled rendering the default until the policy can
-predict this difference from scene/render statistics. The next retry should
-decide whether the default policy needs:
+tessellation. The default rasterizer now keeps explicit caller queue sizes as
+overrides and otherwise applies a conservative automatic policy: it rejects
+large tile-list duplication, high triangle density, tiny frames, single-worker
+renders, and trivial projected work, then uses a `4 * thread_count` tiled queue
+for the screen-heavy cases that match the measured wins.
 
-- an automatic tiling heuristic based on resolution, triangle count, projected
-  coverage, MSAA level, and expected fragment cost;
+Remaining follow-up ideas:
+
+- add an expected fragment-cost class when material/shader paths diverge more;
 - coarser per-tile work;
 - large-triangle handling so one triangle is not duplicated across many tile
   lists unnecessarily;
 - tile-local depth/color storage with a final stitch for more paths;
 - a future GPU path instead of continued CPU tiling work.
-
-Keep `queueSize > 1` opt-in until this decision is backed by measurements.
 
 ### 8. Integrate frustum and spatial culling
 

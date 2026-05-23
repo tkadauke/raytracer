@@ -256,6 +256,78 @@ namespace {
     return std::isfinite(depth);
   }
 
+  struct RasterTilingStats {
+    std::size_t triangles{0};
+    std::size_t tileReferences{0};
+    double projectedBoundsPixels{0.0};
+    double maxProjectedBoundsPixels{0.0};
+  };
+
+  double projectedBoundsArea(const RasterTriangle& triangle) {
+    const double minX =
+      std::min({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
+    const double maxX =
+      std::max({triangle.vertices[0].x, triangle.vertices[1].x, triangle.vertices[2].x});
+    const double minY =
+      std::min({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
+    const double maxY =
+      std::max({triangle.vertices[0].y, triangle.vertices[1].y, triangle.vertices[2].y});
+    return std::max(0.0, maxX - minX) * std::max(0.0, maxY - minY);
+  }
+
+  RasterTilingStats tilingStats(const RasterTriangleSet& triangleSet,
+                                const render::TilePlan& tilePlan) {
+    RasterTilingStats stats;
+    stats.triangles = triangleSet.triangles().size();
+    for (const auto& triangle : triangleSet.triangles()) {
+      const double area = projectedBoundsArea(triangle);
+      stats.projectedBoundsPixels += area;
+      stats.maxProjectedBoundsPixels = std::max(stats.maxProjectedBoundsPixels, area);
+    }
+    for (std::size_t tile = 0; tile != tilePlan.size(); ++tile) {
+      stats.tileReferences += triangleSet.tileGrid().triangleIndices(tile).size();
+    }
+    return stats;
+  }
+
+  int automaticQueueCandidate(int threads) {
+    return std::max(1, threads * 4);
+  }
+
+  bool shouldUseTiledRasterization(const RasterTilingStats& stats, int width, int height,
+                                   int queueSize, int threads, int msaaSamples) {
+    if (threads <= 1 || queueSize <= 1 || stats.triangles == 0)
+      return false;
+
+    const double framePixels = static_cast<double>(std::max(1, width * height));
+    if (framePixels < 16384.0)
+      return false;
+
+    const double triangles = static_cast<double>(stats.triangles);
+    const double avgTilesPerTriangle =
+      triangles > 0.0 ? static_cast<double>(stats.tileReferences) / triangles : 0.0;
+    const double avgProjectedBounds =
+      triangles > 0.0 ? stats.projectedBoundsPixels / triangles : 0.0;
+    const double trianglesPerFramePixel = triangles / framePixels;
+
+    // Grounded in the #168 measurements: tiled rendering wins for screen-heavy
+    // scenes with moderate projected triangle counts, but loses badly when dense
+    // tessellation makes triangle preparation and tile-list duplication dominate.
+    if (avgTilesPerTriangle > 2.25)
+      return false;
+    if (trianglesPerFramePixel > 1.0 / 32.0)
+      return false;
+    if (triangles < static_cast<double>(threads * 16))
+      return false;
+
+    const double sampleMultiplier = static_cast<double>(std::max(1, msaaSamples));
+    const double projectedWork = stats.projectedBoundsPixels * sampleMultiplier;
+    if (projectedWork < framePixels * 0.20)
+      return false;
+
+    return avgProjectedBounds >= 16.0;
+  }
+
   Colord sampleHistoryColor(const Buffer<Colord>& history, double x, double y) {
     const int sx = static_cast<int>(std::round(x));
     const int sy = static_cast<int>(std::round(y));
@@ -313,13 +385,16 @@ namespace {
 struct Rasterizer::Private {
   Private()
       : threadPool(std::make_unique<QThreadPool>()),
-        queueSize(1) {
+        queueSize(automaticQueueCandidate(QThread::idealThreadCount())),
+        lastResolvedQueueSize(1) {
     threadPool->setMaxThreadCount(std::max(1, QThread::idealThreadCount()));
   }
 
   std::unique_ptr<QThreadPool> threadPool;
   std::list<std::shared_ptr<engine::TileRenderTask>> tasks;
   int queueSize;
+  int lastResolvedQueueSize;
+  bool automaticQueueSize{true};
   std::unique_ptr<Buffer<Colord>> historyColor;
   std::unique_ptr<Buffer<Colord>> nextHistoryColor;
   std::unique_ptr<Buffer<double>> historyDepth;
@@ -345,11 +420,27 @@ struct Rasterizer::Private {
                                const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
                                const Vector2d& sampleOffset);
 
+  void renderAutomaticSingleSampleFrame(const Rasterizer& rasterizer,
+                                        const std::shared_ptr<render::Scene>& scene,
+                                        const render::TilePlan& candidateTilePlan,
+                                        const RasterTriangleEmitter& triangleEmitter,
+                                        const ShadowMaps& shadowMaps, const Recti& renderClip,
+                                        const std::atomic<bool>& cancelled,
+                                        Buffer<Colord>& buffer, const Vector2d& sampleOffset);
+
   void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                        const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
                        const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
                        const Recti& renderClip, const std::atomic<bool>& cancelled,
                        Buffer<Colord>& buffer);
+
+  void renderAutomaticMSAAFrame(const Rasterizer& rasterizer,
+                                const std::shared_ptr<render::Scene>& scene,
+                                const render::TilePlan& candidateTilePlan,
+                                const MSAASamplePattern& pattern,
+                                const RasterTriangleEmitter& triangleEmitter,
+                                const ShadowMaps& shadowMaps, const Recti& renderClip,
+                                const std::atomic<bool>& cancelled, Buffer<Colord>& buffer);
 
   void renderMSAAFullFrame(const Rasterizer& rasterizer,
                            const std::shared_ptr<render::Scene>& scene,
@@ -379,6 +470,13 @@ struct Rasterizer::Private {
                                 const Recti& renderClip, const std::atomic<bool>& cancelled,
                                 Buffer<Colord>& buffer, const Vector2d& sampleOffset,
                                 Buffer<double>* depthCapture = nullptr);
+  void renderTriangleListPass(const Rasterizer& rasterizer,
+                              const std::shared_ptr<render::Scene>& scene,
+                              const std::vector<RasterTriangle>& triangles,
+                              const render::TilePlan& tilePlan, const ShadowMaps& shadowMaps,
+                              const Recti& renderClip, const std::atomic<bool>& cancelled,
+                              Buffer<Colord>& buffer, const Vector2d& sampleOffset,
+                              Buffer<double>* depthCapture = nullptr);
 
   ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
                              const std::shared_ptr<render::Scene>& scene,
@@ -387,6 +485,8 @@ struct Rasterizer::Private {
 
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
                                                   const render::TilePlan& tilePlan);
+  static RasterTriangleSet triangleSetForPlan(const std::vector<RasterTriangle>& triangles,
+                                              const render::TilePlan& tilePlan);
   void prepareTemporalResources(int width, int height);
   TemporalResetCondition temporalResetCondition(int width, int height) const;
   void applyTemporalAA(const Rasterizer& rasterizer, Buffer<Colord>& buffer,
@@ -410,7 +510,12 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setTonemap(tonemap());
   result->setLod(m_lod);
   result->setMaximumThreads(p->threadPool->maxThreadCount());
-  result->setQueueSize(p->queueSize);
+  if (p->automaticQueueSize) {
+    result->p->queueSize = p->queueSize;
+    result->setAutomaticQueueSize();
+  } else {
+    result->setQueueSize(p->queueSize);
+  }
   result->setMSAASamples(m_msaaSamples);
   result->setMSAAShadingMode(m_msaaShadingMode);
   result->setNearClipDepth(m_nearClipDepth);
@@ -481,10 +586,31 @@ std::list<Recti> Rasterizer::activeTiles() const {
 
 void Rasterizer::setMaximumThreads(int threads) {
   p->threadPool->setMaxThreadCount(std::max(1, threads));
+  if (p->automaticQueueSize) {
+    p->queueSize = automaticQueueCandidate(p->threadPool->maxThreadCount());
+  }
+}
+
+int Rasterizer::queueSize() const {
+  return p->queueSize;
+}
+
+bool Rasterizer::hasExplicitQueueSize() const {
+  return !p->automaticQueueSize;
+}
+
+int Rasterizer::lastResolvedQueueSize() const {
+  return p->lastResolvedQueueSize;
 }
 
 void Rasterizer::setQueueSize(int queue) {
   p->queueSize = std::max(1, queue);
+  p->automaticQueueSize = false;
+}
+
+void Rasterizer::setAutomaticQueueSize() {
+  p->automaticQueueSize = true;
+  p->queueSize = automaticQueueCandidate(p->threadPool->maxThreadCount());
 }
 
 void Rasterizer::setViewportRect(const Recti& rect) {
@@ -616,6 +742,16 @@ Rasterizer::Private::collectRasterTriangles(const RasterTriangleEmitter& triangl
   RasterTriangleSet triangleSet(tilePlan);
   triangleEmitter.forEachTriangle(
     [&](const RasterTriangle& triangle) { triangleSet.add(triangle); });
+  return triangleSet;
+}
+
+RasterTriangleSet
+Rasterizer::Private::triangleSetForPlan(const std::vector<RasterTriangle>& triangles,
+                                        const render::TilePlan& tilePlan) {
+  RasterTriangleSet triangleSet(tilePlan);
+  for (const auto& triangle : triangles) {
+    triangleSet.add(triangle);
+  }
   return triangleSet;
 }
 
@@ -772,6 +908,43 @@ void Rasterizer::Private::renderTriangleStreamPass(
   }
 }
 
+void Rasterizer::Private::renderTriangleListPass(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const std::vector<RasterTriangle>& triangles, const render::TilePlan& tilePlan,
+  const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset, Buffer<double>* depthCapture) {
+  PassBuffers passBuffers(rasterizer, tilePlan, buffer);
+  auto colorView = colorOutputPolicy(rasterizer, fullBufferView(passBuffers.color()));
+  auto depthView = fullBufferView(passBuffers.depth());
+  RasterFullBufferView<std::uint8_t> stencilView;
+  if (passBuffers.stencil()) {
+    stencilView = fullBufferView(*passBuffers.stencil());
+  }
+  const RasterDiagnosticBufferViews diagnostics =
+    diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
+  const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
+                                 rasterizer.alphaReference()};
+
+  const Recti clipRect = intersectRasterRects(tilePlan.fullRect(), renderClip);
+  if (rasterRectEmpty(clipRect))
+    return;
+
+  withPreparedTrianglePolicies(
+    scene.get(), rasterizer, shadowMaps, depthView, stencilView,
+    [&](auto stencil, auto depth, auto fragmentPolicy) {
+      for (const auto& triangle : triangles) {
+        if (cancelled.load())
+          return;
+        rasterizePreparedTriangleWithPolicies(triangle, clipRect, colorView, sampleOffset, stencil,
+                                              depth, fragmentPolicy, alphaTest, diagnostics);
+      }
+    });
+
+  if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
+    copyRasterBuffer(*depthCapture, passBuffers.depth());
+  }
+}
+
 void Rasterizer::Private::renderSingleSampleFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const RasterTriangleEmitter& triangleEmitter,
@@ -798,11 +971,43 @@ void Rasterizer::Private::renderSingleSampleFrame(
                           : nullptr);
 }
 
+void Rasterizer::Private::renderAutomaticSingleSampleFrame(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const render::TilePlan& candidateTilePlan, const RasterTriangleEmitter& triangleEmitter,
+  const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
+  Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
+  const RasterTriangleSet candidateSet = collectRasterTriangles(triangleEmitter, candidateTilePlan);
+  if (cancelled.load() || candidateSet.empty())
+    return;
+
+  const RasterTilingStats stats = tilingStats(candidateSet, candidateTilePlan);
+  if (shouldUseTiledRasterization(stats, candidateTilePlan.width(), candidateTilePlan.height(),
+                                  static_cast<int>(candidateTilePlan.size()),
+                                  threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
+    lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
+    renderTriangleSetPass(rasterizer, scene, candidateSet, candidateTilePlan, shadowMaps,
+                          renderClip, cancelled, buffer, sampleOffset, true, nullptr,
+                          rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
+                            ? currentDepth.get()
+                            : nullptr);
+    return;
+  }
+
+  const render::TilePlan singleTilePlan =
+    render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
+  lastResolvedQueueSize = 1;
+  renderTriangleListPass(rasterizer, scene, candidateSet.triangles(), singleTilePlan, shadowMaps,
+                         renderClip, cancelled, buffer, sampleOffset,
+                         rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
+                           ? currentDepth.get()
+                           : nullptr);
+}
+
 void Rasterizer::Private::renderMSAAFrame(
   const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
   const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
-  const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps, const Recti& renderClip,
-  const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
+  const Recti& renderClip, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   const RasterTriangleSet triangleSet = collectRasterTriangles(triangleEmitter, tilePlan);
   if (cancelled.load() || triangleSet.empty())
     return;
@@ -818,6 +1023,41 @@ void Rasterizer::Private::renderMSAAFrame(
                               renderMSAATile(rasterizer, scene, triangleSet, shadowMaps, renderClip,
                                              pattern, rect, tileIndex, cancelled, buffer);
                             });
+}
+
+void Rasterizer::Private::renderAutomaticMSAAFrame(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const render::TilePlan& candidateTilePlan, const MSAASamplePattern& pattern,
+  const RasterTriangleEmitter& triangleEmitter, const ShadowMaps& shadowMaps,
+  const Recti& renderClip, const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
+  const RasterTriangleSet candidateSet = collectRasterTriangles(triangleEmitter, candidateTilePlan);
+  if (cancelled.load() || candidateSet.empty())
+    return;
+
+  const RasterTilingStats stats = tilingStats(candidateSet, candidateTilePlan);
+  if (shouldUseTiledRasterization(stats, candidateTilePlan.width(), candidateTilePlan.height(),
+                                  static_cast<int>(candidateTilePlan.size()),
+                                  threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
+    lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
+    engine::dispatchTileTasks(candidateTilePlan, *threadPool, tasks,
+                              [&](const Recti& rect, std::size_t tileIndex) {
+                                renderMSAATile(rasterizer, scene, candidateSet, shadowMaps,
+                                               renderClip, pattern, rect, tileIndex, cancelled,
+                                               buffer);
+                              });
+    return;
+  }
+
+  const render::TilePlan singleTilePlan =
+    render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
+  const RasterTriangleSet singleTileSet =
+    triangleSetForPlan(candidateSet.triangles(), singleTilePlan);
+  if (singleTileSet.empty())
+    return;
+
+  lastResolvedQueueSize = 1;
+  renderMSAAFullFrame(rasterizer, scene, singleTileSet, singleTilePlan, shadowMaps, renderClip,
+                      pattern, cancelled, buffer);
 }
 
 void Rasterizer::Private::renderMSAAFullFrame(
@@ -1018,10 +1258,18 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
                                               cancelled, rasterizer.cullMode(),
                                               rasterizer.hasCullModeOverride(), true);
   const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, camera, cancelled);
-  if (pattern.count > 1) {
+  if (automaticQueueSize && pattern.count > 1) {
+    renderAutomaticMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps,
+                             renderClip, cancelled, buffer);
+  } else if (pattern.count > 1) {
+    lastResolvedQueueSize = static_cast<int>(tilePlan.size());
     renderMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps, renderClip,
                     cancelled, buffer);
+  } else if (automaticQueueSize) {
+    renderAutomaticSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps,
+                                     renderClip, cancelled, buffer, sampleOffset);
   } else {
+    lastResolvedQueueSize = static_cast<int>(tilePlan.size());
     renderSingleSampleFrame(rasterizer, scene, tilePlan, triangleEmitter, shadowMaps, renderClip,
                             cancelled, buffer, sampleOffset);
   }

@@ -448,8 +448,6 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       raster->setMaximumThreads(m_threads);
     if (m_queueSizeSet) {
       raster->setQueueSize(m_queueSize);
-    } else if (m_threadsSet) {
-      raster->setQueueSize(m_threads);
     }
     raster->setMSAASamples(m_rasterMsaaSamples);
     if (m_rasterMsaaShadingMode == "per_fragment") {
@@ -680,7 +678,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
-     {"queue_size", "Queue size for thread pool", "queue_size"},
+     {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",
+      "queue_size"},
      {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
      {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
      {"lod", "Tessellation level of detail for wireframe / raster engines", "lod"},
@@ -792,8 +791,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("queue_size")) {
     const QString queueSizeValue = parser.value("queue_size");
     m_queueSize = queueSizeValue.toInt();
-    if (m_queueSize < m_threads) {
-      *errorMessage = "Queue size must be > threads";
+    if (m_queueSize <= 0) {
+      *errorMessage = "Queue size must be > 0";
       return CommandLineError;
     }
     m_queueSizeSet = true;
