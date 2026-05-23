@@ -39,6 +39,8 @@ RenderDisplay::~RenderDisplay() {
 }
 
 void RenderDisplay::setEngineKind(EngineKind kind) {
+  m_engineKind = kind;
+
   // Stop any in-flight render before swapping; the new engine
   // inherits the old engine's scene + camera so the preview keeps
   // looking at the same thing.
@@ -61,14 +63,24 @@ void RenderDisplay::setEngineKind(EngineKind kind) {
   }
   setEngine(next);
   applyPreviewPolicy(kind);
+  emit renderGraphInputsChanged();
   render();
+}
+
+RenderDisplay::EngineKind RenderDisplay::engineKind() const {
+  return m_engineKind;
 }
 
 void RenderDisplay::setRasterizerPreviewShadowsEnabled(bool enabled) {
   m_rasterizerPreviewShadowsEnabled = enabled;
   applyRasterizerPreviewPolicy();
+  emit renderGraphInputsChanged();
   if (m_engine == m_rasterizerEngine)
     render();
+}
+
+bool RenderDisplay::rasterizerPreviewShadowsEnabled() const {
+  return m_rasterizerPreviewShadowsEnabled;
 }
 
 void RenderDisplay::setScene(Scene* scene) {
@@ -82,6 +94,11 @@ void RenderDisplay::setScene(Scene* scene) {
   }
   setInteractive(true);
   render();
+}
+
+void RenderDisplay::resizeEvent(QResizeEvent* event) {
+  emit renderGraphInputsChanged();
+  QtDisplay::resizeEvent(event);
 }
 
 void RenderDisplay::applyPreviewPolicy(EngineKind kind) {

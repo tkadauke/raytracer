@@ -1066,7 +1066,11 @@ Implement the smallest graph that proves the architecture:
    apply pass id/kind/executor/feature disable filters, and validate the
    manipulated plan. Selector-specific intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
-   toggles nodes.
+   toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
+   the current live-preview plan before preview renders, lists pass/resource
+   details, and validates per-pass checkbox overrides. Graph-backed Modeler
+   rendering, grouped toggles, graph export, resource previews, and
+   per-selector intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

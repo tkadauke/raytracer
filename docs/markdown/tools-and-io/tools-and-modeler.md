@@ -114,6 +114,13 @@ The editor can swap the live preview between Raytracer, Rasterizer, and
 engine to share the scene and camera with the previous one, so the preview
 keeps looking at the same thing across the swap.
 
+The Render Graph dock compiles the current preview intent into a
+[`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview
+renders begin. Its Passes tab shows each compiled pass id, kind, executor, and
+resource edges. Its Resources tab shows each declared resource's type, format,
+domain, lifetime, and dimensions. Unchecking a pass adds a graph override and
+the dock validates the manipulated plan immediately.
+
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog
 evaluate a copied scene at that frame before building runtime render objects,
@@ -187,5 +194,7 @@ scene-structure, and rasterization chapters cover.
 - `tools/rendercli/`
 - `test/rendercli/RenderGraphOptionTest.cmake`
 - `src/modeler/`
+- `include/widgets/world/RenderGraphInspectorWidget.h`
+- `src/widgets/world/RenderGraphInspectorWidget.cpp`
 - `scenes/`
 <!-- /source-anchors -->

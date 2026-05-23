@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/math/Vector.h"
+#include "engine/graph/RenderGraphTypes.h"
 #include <QMainWindow>
 #include <memory>
 
@@ -8,6 +9,7 @@ class QDockWidget;
 
 class PropertyEditorWidget;
 class PreviewDisplayWidget;
+class RenderGraphInspectorWidget;
 class RenderDisplay;
 class SceneModel;
 
@@ -35,6 +37,7 @@ private slots:
   void elementChanged(Element*);
   void updateWindowModified();
   void updatePreviewWidget();
+  void updateRenderGraphInspector();
   void setCurrentFrame(int frame);
 
   void newFile();
@@ -109,6 +112,7 @@ private:
   QDockWidget* createElementSelector();
   QDockWidget* createPreviewDisplay();
   QDockWidget* createTimelineControls();
+  QDockWidget* createRenderGraphInspector();
 
   void createActions();
   void createMenus();
@@ -118,6 +122,7 @@ private:
   void redraw();
   void resetTimelineFrame();
   void syncTimelineControls();
+  engine::graph::RenderIntent previewRenderIntent() const;
   std::unique_ptr<Scene> evaluatedSceneForCurrentFrame() const;
 
   template<class T>

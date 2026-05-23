@@ -299,6 +299,22 @@ resource named `main_color`, then adds one pass that writes it:
 the resource descriptor. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
 
+## <a id="inspecting-plans-in-modeler"></a>Inspecting plans in Modeler
+The `Modeler` Render Graph dock is the GUI counterpart to rendercli's
+graph-only dump. The dock compiles the current live-preview intent and target
+size into a `RenderPlan`, then shows the result as two tables:
+
+- the Passes table lists each pass id, pass kind, executor, read resources,
+  written resources, and disabled behavior;
+- the Resources table lists each resource id, type, format, domain, lifetime,
+  dimensions, and sample count.
+
+The checkbox in each pass row builds a `RenderGraphOverrides` value for that
+pass id. The dock applies those overrides to the compiled plan and runs
+`RenderPlan::validate()` immediately. Disabling the first required beauty pass
+therefore reports an invalid plan because that pass has
+`DisabledBehavior::Error`.
+
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current
@@ -384,16 +400,19 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
+- `include/widgets/world/RenderGraphInspectorWidget.h`
 - `src/engine/graph/RenderGraphCompiler.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/engine/graph/RenderPlan.cpp`
 - `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`
+- `src/widgets/world/RenderGraphInspectorWidget.cpp`
 - `test/unit/engine/graph/RenderGraphCompilerTest.cpp`
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
 - `test/unit/engine/graph/RenderPlanTest.cpp`
 - `test/unit/engine/graph/RenderResourceStorageTest.cpp`
+- `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp`
 - `tools/rendercli/rendercli.cpp`
 - `test/rendercli/RenderGraphOptionTest.cmake`
 <!-- /source-anchors -->

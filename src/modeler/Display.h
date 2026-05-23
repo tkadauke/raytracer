@@ -4,6 +4,7 @@
 
 class Scene;
 class Element;
+class QResizeEvent;
 
 namespace render {
   class Camera;
@@ -24,7 +25,12 @@ namespace engine::raytracer {
 class RenderDisplay : public QtDisplay {
   Q_OBJECT
 
-  virtual void mousePressEvent(QMouseEvent* event);
+signals:
+  void renderGraphInputsChanged();
+
+protected:
+  void resizeEvent(QResizeEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
 
 public:
   RenderDisplay(QWidget* parent);
@@ -42,10 +48,12 @@ public slots:
   /// previous engine's scene and camera, so the user sees the same
   /// view rendered through the new engine.
   void setEngineKind(EngineKind kind);
+  EngineKind engineKind() const;
 
   /// Toggle directional shadow maps for the live Rasterizer preview.
   /// Final renders keep using RenderWindow's explicit render settings.
   void setRasterizerPreviewShadowsEnabled(bool enabled);
+  bool rasterizerPreviewShadowsEnabled() const;
 
 private:
   void applyPreviewPolicy(EngineKind kind);
@@ -54,5 +62,6 @@ private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   std::shared_ptr<engine::wireframe::Wireframe> m_wireframeEngine;
   std::shared_ptr<engine::raster::Rasterizer> m_rasterizerEngine;
+  EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
 };

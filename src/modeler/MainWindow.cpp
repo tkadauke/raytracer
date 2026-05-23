@@ -29,6 +29,7 @@
 
 #include "MainWindow.h"
 #include "Display.h"
+#include "engine/graph/RenderGraphCompiler.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Primitive.h"
@@ -39,6 +40,7 @@
 
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/PreviewDisplayWidget.h"
+#include "widgets/world/RenderGraphInspectorWidget.h"
 #include "widgets/world/SceneModel.h"
 #include "widgets/world/RenderWindow.h"
 
@@ -81,6 +83,8 @@ struct MainWindow::Private {
       timelineFrameSlider(nullptr),
       timelineFrameSpinBox(nullptr),
       timelineSummaryLabel(nullptr),
+      renderGraphDockWidget(nullptr),
+      renderGraphInspectorWidget(nullptr),
       currentFrame(0),
       currentElement(nullptr)
   {
@@ -96,6 +100,8 @@ struct MainWindow::Private {
   QSlider* timelineFrameSlider;
   QSpinBox* timelineFrameSpinBox;
   QLabel* timelineSummaryLabel;
+  QDockWidget* renderGraphDockWidget;
+  RenderGraphInspectorWidget* renderGraphInspectorWidget;
 
   RenderWindow* renderWindow;
 
@@ -185,22 +191,25 @@ MainWindow::MainWindow()
   p->scene = new ::Scene(nullptr);
 
   p->display = new RenderDisplay(this);
-  p->display->setScene(p->scene);
   setCentralWidget(p->display);
 
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
   addDockWidget(Qt::RightDockWidgetArea, createPreviewDisplay());
   addDockWidget(Qt::BottomDockWidgetArea, createTimelineControls());
+  addDockWidget(Qt::BottomDockWidgetArea, createRenderGraphInspector());
 
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
+  connect(p->display, SIGNAL(renderGraphInputsChanged()), this, SLOT(updateRenderGraphInspector()));
 
   createActions();
   createMenus();
 
   p->renderWindow = new RenderWindow(nullptr);
   resetTimelineFrame();
+  updateRenderGraphInspector();
+  p->display->setScene(p->scene);
 }
 
 void MainWindow::createActions() {
@@ -994,6 +1003,16 @@ QDockWidget* MainWindow::createTimelineControls() {
   return dockWidget;
 }
 
+QDockWidget* MainWindow::createRenderGraphInspector() {
+  p->renderGraphInspectorWidget = new RenderGraphInspectorWidget(this);
+
+  auto dockWidget = new QDockWidget("Render Graph", this);
+  dockWidget->setWidget(p->renderGraphInspectorWidget);
+  p->renderGraphDockWidget = dockWidget;
+
+  return dockWidget;
+}
+
 void MainWindow::elementChanged(Element*) {
   p->scene->setChanged(true);
   p->propertyEditorWidget->update();
@@ -1038,6 +1057,20 @@ void MainWindow::updatePreviewWidget() {
   }
 }
 
+void MainWindow::updateRenderGraphInspector() {
+  if (!p->renderGraphInspectorWidget || !p->display)
+    return;
+
+  const QSize target = p->display->size();
+  engine::graph::RenderGraphCompiler compiler;
+  const engine::graph::RenderTargetSpec targetSpec{
+    std::max(1, target.width()),
+    std::max(1, target.height()),
+    1
+  };
+  p->renderGraphInspectorWidget->setPlan(compiler.compile(targetSpec, previewRenderIntent()));
+}
+
 void MainWindow::setCurrentFrame(int frame) {
   if (!p->scene->hasAnimation())
     return;
@@ -1061,6 +1094,7 @@ void MainWindow::reorder() {
 void MainWindow::redraw() {
   try {
     auto evaluatedScene = evaluatedSceneForCurrentFrame();
+    updateRenderGraphInspector();
     p->display->setScene(evaluatedScene ? evaluatedScene.get() : p->scene);
     statusBar()->clearMessage();
   } catch (const std::exception& error) {
@@ -1110,6 +1144,31 @@ void MainWindow::syncTimelineControls() {
   } else {
     p->timelineSummaryLabel->setText(tr("No animation"));
   }
+}
+
+engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
+  engine::graph::RenderIntent intent;
+  intent.enablePreviewShadows = p->display && p->display->rasterizerPreviewShadowsEnabled();
+
+  if (!p->display)
+    return intent;
+
+  switch (p->display->engineKind()) {
+  case RenderDisplay::EngineKind::Raytracer:
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+    break;
+  case RenderDisplay::EngineKind::Rasterizer:
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+    break;
+  case RenderDisplay::EngineKind::Wireframe:
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
+    break;
+  }
+
+  return intent;
 }
 
 std::unique_ptr<Scene> MainWindow::evaluatedSceneForCurrentFrame() const {
