@@ -183,9 +183,48 @@ review:
 
 ### 7. Revisit tiled rendering defaults
 
-Status: measured; keep `queueSize > 1` opt-in. A quick release-build retry on
-May 22, 2026, with `rendercli --repeat 3` and four worker threads confirmed the
-same split behavior as the earlier pass:
+Status: measured; keep `queueSize > 1` opt-in. The repeatable coverage is now
+`benchmarks/RasterizerTilingBenchmark.cpp`, which compares single-tile and
+queued-tile rendering for synthetic scenes whose projected triangles are small,
+medium, and large. Run it with:
+
+```sh
+cmake --preset benchmark
+cmake --build --preset benchmark --target benchmarks
+./build/benchmark/benchmarks/benchmarks --benchmark_filter=bm_rasterizerTiling
+```
+
+The benchmark reports render time plus policy-input counters:
+
+- framebuffer dimensions (`frame_px`);
+- emitted post-clipping triangle count (`triangles`);
+- average and maximum projected triangle bounding-box area
+  (`avg_projected_bbox_px`, `max_projected_bbox_px`);
+- duplicated tile-list work (`tile_refs`, `avg_tiles_per_triangle`);
+- configured worker and scheduling inputs (`threads`, `queue_size`);
+- MSAA sample count (`msaa_samples`).
+
+These are the minimum scene/runtime signals a future default policy should use:
+screen area, triangle count, projected coverage distribution, expected tile-bin
+duplication, thread count, queue size, MSAA sample count, and eventually a cheap
+fragment-cost class for material/shader work. The policy should also distinguish
+"many small triangles" from "few large triangles"; both can have similar final
+covered pixels but very different tile-list duplication and scheduling costs.
+
+A short validation run on May 23, 2026 (`--benchmark_min_time=0.02s`, four
+worker threads, 640x480) showed the intended signal spread:
+
+- small projected triangles: 2,400 triangles, 64 px average projected bounds,
+  `avg_tiles_per_triangle` 1.00 single-tile versus 1.12 tiled;
+- medium projected triangles: 160 triangles, 960 px average projected bounds,
+  `avg_tiles_per_triangle` 1.00 single-tile versus 1.50 tiled;
+- large projected triangles: 2 triangles, 76,800 px average projected bounds,
+  `avg_tiles_per_triangle` 1.00 single-tile versus 9.00 tiled;
+- medium 4x MSAA: same scene counters as medium 1x, with `msaa_samples=4` to
+  expose the multiplicative coverage/shading cost.
+
+A quick release-build retry on May 22, 2026, with `rendercli --repeat 3` and
+four worker threads confirmed the same split behavior as the earlier pass:
 
 - `rasterizer_baseline_materials.json`, 640x480, LOD 3, 1x: single-tile
   21.874 ms median, tiled 15.873 ms median;
