@@ -168,6 +168,10 @@ namespace RenderSettingsWidgetTest {
 
     EXPECT_EQ(QString("Per fragment"), widget.msaaShadingMode());
     EXPECT_EQ(QString("SMAA"), widget.postProcessAA());
+
+    postAA->setCurrentText("TAA");
+
+    EXPECT_EQ(QString("TAA"), widget.postProcessAA());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldShowRasterControlsOnlyForRasterizer) {
