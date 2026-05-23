@@ -201,9 +201,11 @@ namespace engine::raster {
   * <script type="text/javascript" src="rasterizer_shadow_cascades.js"></script>
   * @endhtmlonly
   *
-  * Bias is a depth comparison tolerance. Too little bias can let a surface
-  * shadow itself due to interpolation and quantization differences; too much
-  * bias detaches shadows from their casters.
+  * Bias is a depth comparison tolerance. Constant bias applies the same
+  * light-space depth offset everywhere; slope-scaled bias adds more tolerance
+  * where the receiver turns away from the light. Too little bias can let a
+  * surface shadow itself due to interpolation and quantization differences;
+  * too much bias detaches shadows from their casters.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_bias_0_030.png "bias=0.030"</td>
@@ -211,6 +213,14 @@ namespace engine::raster {
   * <td>@image html rasterizer_shadow_bias_0_080.png "bias=0.080"</td>
   * <td>@image html rasterizer_shadow_bias_0_250.png "bias=0.250"</td>
   * <td>@image html rasterizer_shadow_bias_1_500.png "bias=1.500"</td>
+  * </tr></table>
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_slope_bias_0_000.png "slope bias=0.000"</td>
+  * <td>@image html rasterizer_shadow_slope_bias_0_005.png "slope bias=0.005"</td>
+  * <td>@image html rasterizer_shadow_slope_bias_0_020.png "slope bias=0.020"</td>
+  * <td>@image html rasterizer_shadow_slope_bias_0_050.png "slope bias=0.050"</td>
+  * <td>@image html rasterizer_shadow_slope_bias_0_200.png "slope bias=0.200"</td>
   * </tr></table>
   *
   * Percentage-closer filtering (PCF) softens hard texel boundaries by
@@ -525,12 +535,15 @@ public:
     m_shadowCascadeCount = std::clamp(count, 1, 4);
   }
 
-  /// Returns the depth bias used by the shadow-map comparison.
+  /// Returns the constant light-space depth bias used by the shadow-map
+  /// comparison.
   inline double shadowBias() const { return m_shadowBias; }
 
   /**
-    * Sets the depth bias added during the shadow-map comparison to avoid
-    * self-shadowing from small interpolation differences.
+    * Sets the constant light-space depth bias added during the shadow-map
+    * comparison to avoid self-shadowing from small interpolation differences.
+    * Use `setShadowSlopeBias()` for additional angle-dependent tolerance on
+    * receivers that are nearly parallel to the light.
     *
     * <table><tr>
     * <td>@image html rasterizer_shadow_bias_0_030.png "0.030"</td>
@@ -541,6 +554,28 @@ public:
     * </tr></table>
     */
   inline void setShadowBias(double bias) { m_shadowBias = std::max(0.0, bias); }
+
+  /// Returns the slope-scaled shadow-map bias coefficient. The coefficient is
+  /// multiplied by the receiver's clamped light-space slope and added to
+  /// `shadowBias()` for each shadow comparison.
+  inline double shadowSlopeBias() const { return m_shadowSlopeBias; }
+
+  /**
+    * Sets the slope-scaled shadow-map bias coefficient.
+    *
+    * Slope bias adds little extra tolerance on surfaces facing the light and
+    * progressively more tolerance at grazing angles, where one shadow-map
+    * texel spans more receiver depth. Values are clamped to at least 0.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_slope_bias_0_000.png "0.000"</td>
+    * <td>@image html rasterizer_shadow_slope_bias_0_005.png "0.005"</td>
+    * <td>@image html rasterizer_shadow_slope_bias_0_020.png "0.020"</td>
+    * <td>@image html rasterizer_shadow_slope_bias_0_050.png "0.050"</td>
+    * <td>@image html rasterizer_shadow_slope_bias_0_200.png "0.200"</td>
+    * </tr></table>
+    */
+  inline void setShadowSlopeBias(double bias) { m_shadowSlopeBias = std::max(0.0, bias); }
 
   /// Returns the maximum filter radius in shadow-map texels. Radius 0 is a
   /// hard nearest-texel shadow comparison; radius 1 is a 3x3 kernel, etc.
@@ -680,6 +715,7 @@ private:
   int m_shadowMapSize{256};
   int m_shadowCascadeCount{1};
   double m_shadowBias{1e-3};
+  double m_shadowSlopeBias{0.0};
   int m_shadowFilterRadius{0};
   ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
   CullMode m_cullMode{CullMode::Both};

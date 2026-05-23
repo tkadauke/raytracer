@@ -121,6 +121,7 @@ void RenderWindow::render() {
     p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
     p->rasterizer->setShadowCascadeCount(p->settingsWidget->shadowCascadeCount());
     p->rasterizer->setShadowBias(p->settingsWidget->shadowBias());
+    p->rasterizer->setShadowSlopeBias(p->settingsWidget->shadowSlopeBias());
     p->rasterizer->setShadowFilterRadius(p->settingsWidget->shadowFilterRadius());
     p->rasterizer->setShadowFilterMode(
       p->settingsWidget->shadowFilterMode() == "PCSS"

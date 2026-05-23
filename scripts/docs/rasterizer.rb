@@ -225,6 +225,22 @@ property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256) do |i
   rasterizer_shadow_scene
 end
 
+shadow_slope_biases = [
+  ["0_000", 0.000],
+  ["0_005", 0.005],
+  ["0_020", 0.020],
+  ["0_050", 0.050],
+  ["0_200", 0.200],
+]
+property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256,
+                shadow_bias: 0.03) do |i|
+  label, bias = shadow_slope_biases[i - 1]
+  name "rasterizer_shadow_slope_bias_#{label}"
+
+  options(shadow_slope_bias: bias)
+  rasterizer_shadow_scene
+end
+
 shadow_filter_radii = [0, 1, 2, 3, 4]
 property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 128, shadow_bias: 0.25) do |i|
   radius = shadow_filter_radii[i - 1]

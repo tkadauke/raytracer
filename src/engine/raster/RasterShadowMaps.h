@@ -150,11 +150,13 @@ namespace engine::raster::detail {
   public:
     DirectionalShadowMap(const render::Light* light, const render::Camera* viewCamera,
                          std::vector<DirectionalShadowCascade> cascades, double bias,
-                         int filterRadius, Rasterizer::ShadowFilterMode filterMode)
+                         double slopeBias, int filterRadius,
+                         Rasterizer::ShadowFilterMode filterMode)
         : m_light(light),
           m_viewCamera(viewCamera),
           m_cascades(std::move(cascades)),
           m_bias(bias),
+          m_slopeBias(slopeBias),
           m_filterRadius(filterRadius),
           m_filterMode(filterMode) {
     }
@@ -163,7 +165,8 @@ namespace engine::raster::detail {
       return m_light;
     }
 
-    double visibility(const Vector3d& worldPos) const {
+    double visibility(const Vector3d& worldPos, const Vector3d& receiverNormal,
+                      const Vector3d& lightDirection) const {
       const DirectionalShadowCascade* cascade = cascadeFor(worldPos);
       if (!cascade)
         return 1.0;
@@ -174,17 +177,33 @@ namespace engine::raster::detail {
 
       const int x = static_cast<int>(std::lround(shadowPixel.x()));
       const int y = static_cast<int>(std::lround(shadowPixel.y()));
+      const double bias = receiverBias(receiverNormal, lightDirection);
 
       if (m_filterRadius == 0)
-        return sampleVisibility(*cascade, x, y, shadowPixel.z());
+        return sampleVisibility(*cascade, x, y, shadowPixel.z(), bias);
 
       if (m_filterMode == Rasterizer::ShadowFilterMode::PCSS)
-        return pcssVisibility(*cascade, x, y, shadowPixel.z());
+        return pcssVisibility(*cascade, x, y, shadowPixel.z(), bias);
 
-      return pcfVisibility(*cascade, x, y, shadowPixel.z(), m_filterRadius);
+      return pcfVisibility(*cascade, x, y, shadowPixel.z(), m_filterRadius, bias);
     }
 
   private:
+    double receiverBias(const Vector3d& receiverNormal, const Vector3d& lightDirection) const {
+      if (m_slopeBias == 0.0)
+        return m_bias;
+
+      const Vector3d normal = receiverNormal.normalized();
+      const Vector3d light = lightDirection.normalized();
+      if (normal.isUndefined() || light.isUndefined())
+        return m_bias;
+
+      const double nDotL = std::clamp(normal * light, 0.0, 1.0);
+      const double opposite = std::sqrt(std::max(0.0, 1.0 - nDotL * nDotL));
+      const double slope = opposite / std::max(nDotL, 0.1);
+      return m_bias + m_slopeBias * slope;
+    }
+
     const DirectionalShadowCascade* cascadeFor(const Vector3d& worldPos) const {
       if (m_cascades.empty())
         return nullptr;
@@ -206,12 +225,12 @@ namespace engine::raster::detail {
     }
 
     double pcfVisibility(const DirectionalShadowCascade& cascade, int x, int y,
-                         double receiverDepth, int radius) const {
+                         double receiverDepth, int radius, double bias) const {
       double litSamples = 0.0;
       int samples = 0;
       for (int dy = -radius; dy <= radius; ++dy) {
         for (int dx = -radius; dx <= radius; ++dx) {
-          litSamples += sampleVisibility(cascade, x + dx, y + dy, receiverDepth);
+          litSamples += sampleVisibility(cascade, x + dx, y + dy, receiverDepth, bias);
           ++samples;
         }
       }
@@ -219,12 +238,13 @@ namespace engine::raster::detail {
     }
 
     double pcssVisibility(const DirectionalShadowCascade& cascade, int x, int y,
-                          double receiverDepth) const {
+                          double receiverDepth, double bias) const {
       double blockerDepthSum = 0.0;
       int blockerSamples = 0;
       for (int dy = -m_filterRadius; dy <= m_filterRadius; ++dy) {
         for (int dx = -m_filterRadius; dx <= m_filterRadius; ++dx) {
-          const double blockerDepth = sampleBlockerDepth(cascade, x + dx, y + dy, receiverDepth);
+          const double blockerDepth =
+            sampleBlockerDepth(cascade, x + dx, y + dy, receiverDepth, bias);
           if (std::isfinite(blockerDepth)) {
             blockerDepthSum += blockerDepth;
             ++blockerSamples;
@@ -236,17 +256,17 @@ namespace engine::raster::detail {
         return 1.0;
 
       const double averageBlockerDepth = blockerDepthSum / static_cast<double>(blockerSamples);
-      const int radius = pcssFilterRadius(receiverDepth, averageBlockerDepth);
-      return pcfVisibility(cascade, x, y, receiverDepth, radius);
+      const int radius = pcssFilterRadius(receiverDepth, averageBlockerDepth, bias);
+      return pcfVisibility(cascade, x, y, receiverDepth, radius, bias);
     }
 
-    int pcssFilterRadius(double receiverDepth, double blockerDepth) const {
-      const double gap = std::max(0.0, receiverDepth - blockerDepth - m_bias);
+    int pcssFilterRadius(double receiverDepth, double blockerDepth, double bias) const {
+      const double gap = std::max(0.0, receiverDepth - blockerDepth - bias);
       return std::clamp(static_cast<int>(std::ceil(gap)), 1, m_filterRadius);
     }
 
     double sampleBlockerDepth(const DirectionalShadowCascade& cascade, int x, int y,
-                              double receiverDepth) const {
+                              double receiverDepth, double bias) const {
       if (x < 0 || y < 0 || x >= cascade.depthBuffer->width() || y >= cascade.depthBuffer->height())
         return std::numeric_limits<double>::infinity();
 
@@ -254,12 +274,12 @@ namespace engine::raster::detail {
       if (!std::isfinite(occluderDepth))
         return std::numeric_limits<double>::infinity();
 
-      return receiverDepth > occluderDepth + m_bias ? occluderDepth
-                                                    : std::numeric_limits<double>::infinity();
+      return receiverDepth > occluderDepth + bias ? occluderDepth
+                                                  : std::numeric_limits<double>::infinity();
     }
 
     double sampleVisibility(const DirectionalShadowCascade& cascade, int x, int y,
-                            double receiverDepth) const {
+                            double receiverDepth, double bias) const {
       if (x < 0 || y < 0 || x >= cascade.depthBuffer->width() || y >= cascade.depthBuffer->height())
         return 1.0;
 
@@ -267,13 +287,14 @@ namespace engine::raster::detail {
       if (!std::isfinite(occluderDepth))
         return 1.0;
 
-      return receiverDepth <= occluderDepth + m_bias ? 1.0 : 0.0;
+      return receiverDepth <= occluderDepth + bias ? 1.0 : 0.0;
     }
 
     const render::Light* m_light;
     const render::Camera* m_viewCamera;
     std::vector<DirectionalShadowCascade> m_cascades;
     double m_bias;
+    double m_slopeBias;
     int m_filterRadius;
     Rasterizer::ShadowFilterMode m_filterMode;
   };

@@ -40,6 +40,10 @@ namespace {
       m_shadowBias = bias;
     }
 
+    void setShadowSlopeBias(double bias) {
+      m_shadowSlopeBias = bias;
+    }
+
     void setShadowFilterRadius(int radius) {
       m_shadowFilterRadius = radius;
     }
@@ -68,6 +72,7 @@ namespace {
       rasterizer->setShadowMapSize(m_shadowMapSize);
       rasterizer->setShadowCascadeCount(m_shadowCascadeCount);
       rasterizer->setShadowBias(m_shadowBias);
+      rasterizer->setShadowSlopeBias(m_shadowSlopeBias);
       rasterizer->setShadowFilterRadius(m_shadowFilterRadius);
       rasterizer->setShadowFilterMode(m_shadowFilterMode);
       return rasterizer;
@@ -77,6 +82,7 @@ namespace {
     int m_shadowMapSize{256};
     int m_shadowCascadeCount{1};
     double m_shadowBias{0.1};
+    double m_shadowSlopeBias{0.0};
     int m_shadowFilterRadius{0};
     engine::raster::Rasterizer::ShadowFilterMode m_shadowFilterMode{
       engine::raster::Rasterizer::ShadowFilterMode::PCF};
@@ -188,6 +194,12 @@ GIVEN(EngineFeatureTest, "a rasterizer shadow cascade count of ([0-9]+)") {
 GIVEN(EngineFeatureTest, "a rasterizer shadow bias of ([\\d.]+)") {
   if (auto* rasterizer = rasterizerTest(test)) {
     rasterizer->setShadowBias(std::stod(match[1]));
+  }
+}
+
+GIVEN(EngineFeatureTest, "a rasterizer shadow slope bias of ([\\d.]+)") {
+  if (auto* rasterizer = rasterizerTest(test)) {
+    rasterizer->setShadowSlopeBias(std::stod(match[1]));
   }
 }
 

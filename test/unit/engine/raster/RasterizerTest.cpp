@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
+#include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
@@ -305,6 +306,25 @@ namespace RasterizerTest {
     return count;
   }
 
+  static engine::raster::detail::DirectionalShadowMap syntheticShadowMap(double constantBias,
+                                                                         double slopeBias) {
+    const Vector3d lightDirection(0.0, 0.0, -1.0);
+    auto shadowCamera = std::make_shared<engine::raster::detail::DirectionalShadowCamera>(
+      Vector3d::null, lightDirection, 1.0);
+    shadowCamera->setViewPlane(std::make_shared<ViewPlane>());
+    shadowCamera->viewPlane()->setup(Matrix4d(), Recti(4, 4));
+
+    auto depthBuffer = std::make_unique<Buffer<double>>(4, 4);
+    depthBuffer->clear(std::numeric_limits<double>::infinity());
+    (*depthBuffer)[2][2] = 1.95;
+
+    std::vector<engine::raster::detail::DirectionalShadowCascade> cascades;
+    cascades.push_back({std::move(shadowCamera), std::move(depthBuffer), 0.0, 1.0});
+    return engine::raster::detail::DirectionalShadowMap(
+      nullptr, nullptr, std::move(cascades), constantBias, slopeBias, 0,
+      Rasterizer::ShadowFilterMode::PCF);
+  }
+
   TEST(Rasterizer, EmptySceneRendersBackgroundOnly) {
     auto scene = std::make_shared<Scene>(Colord::white());
     Rasterizer engine(camera(), scene);
@@ -468,6 +488,7 @@ namespace RasterizerTest {
     EXPECT_EQ(256, engine.shadowMapSize());
     EXPECT_EQ(1, engine.shadowCascadeCount());
     EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
+    EXPECT_DOUBLE_EQ(0.0, engine.shadowSlopeBias());
     EXPECT_EQ(0, engine.shadowFilterRadius());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCF, engine.shadowFilterMode());
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().depth);
@@ -484,6 +505,7 @@ namespace RasterizerTest {
     engine.setNearClipDepth(0.5);
     engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
+    engine.setShadowSlopeBias(0.02);
     engine.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
     Buffer<double> depth(1, 1);
     Rasterizer::DiagnosticOutputBuffers outputs;
@@ -497,6 +519,7 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
     EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
     EXPECT_EQ(3, clone->shadowCascadeCount());
+    EXPECT_DOUBLE_EQ(0.02, clone->shadowSlopeBias());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, clone->shadowFilterMode());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
   }
@@ -597,6 +620,30 @@ namespace RasterizerTest {
     engine.setShadowFilterRadius(-3);
 
     EXPECT_EQ(0, engine.shadowFilterRadius());
+  }
+
+  TEST(Rasterizer, ShadowSlopeBiasClampsOnlyNegativeValues) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+
+    engine.setShadowSlopeBias(0.25);
+    EXPECT_DOUBLE_EQ(0.25, engine.shadowSlopeBias());
+
+    engine.setShadowSlopeBias(-0.25);
+
+    EXPECT_DOUBLE_EQ(0.0, engine.shadowSlopeBias());
+  }
+
+  TEST(Rasterizer, ShadowSlopeBiasAddsToleranceForGrazingReceivers) {
+    const Vector3d receiver(0.0, 0.0, 0.0);
+    const Vector3d lightDirection(0.0, 0.0, -1.0);
+    const Vector3d lightFacingNormal(0.0, 0.0, -1.0);
+    const Vector3d grazingNormal(0.0, 1.0, -0.1);
+    auto constantOnly = syntheticShadowMap(0.01, 0.0);
+    auto slopeBiased = syntheticShadowMap(0.01, 0.01);
+
+    EXPECT_DOUBLE_EQ(0.0, constantOnly.visibility(receiver, lightFacingNormal, lightDirection));
+    EXPECT_DOUBLE_EQ(0.0, slopeBiased.visibility(receiver, lightFacingNormal, lightDirection));
+    EXPECT_DOUBLE_EQ(1.0, slopeBiased.visibility(receiver, grazingNormal, lightDirection));
   }
 
   TEST(Rasterizer, ClipDepthsClampToValidRange) {

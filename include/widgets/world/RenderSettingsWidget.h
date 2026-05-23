@@ -27,6 +27,7 @@ public:
   int shadowMapSize() const;
   int shadowCascadeCount() const;
   double shadowBias() const;
+  double shadowSlopeBias() const;
   int shadowFilterRadius() const;
   QString shadowFilterMode() const;
   RenderWidget::DisplayMode displayMode() const;

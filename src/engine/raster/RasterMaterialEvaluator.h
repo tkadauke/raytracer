@@ -59,7 +59,8 @@ namespace engine::raster::detail {
         const Vector3d lightDir = light.light->direction(worldPos);
         const double nDotL = std::max(0.0, n * lightDir);
         if (nDotL > 0.0) {
-          const double visibility = light.shadowMap ? light.shadowMap->visibility(worldPos) : 1.0;
+          const double visibility =
+            light.shadowMap ? light.shadowMap->visibility(worldPos, n, lightDir) : 1.0;
           if (visibility > 0.0)
             shaded += albedo * light.radiance * nDotL * visibility;
         }

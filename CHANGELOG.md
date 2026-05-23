@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rasterizer slope-scaled shadow bias.** Directional shadow-map comparisons now support an opt-in `shadowSlopeBias` term that adds receiver-angle-dependent depth tolerance on top of the existing constant bias, with controls in `rendercli --shadow_slope_bias`, the Modeler render dialog, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
 - **Rasterizer diagnostic output buffers.** Direct `Rasterizer::render(Buffer<Colord>&)` calls can now attach borrowed depth, normal, primitive, material, face-id, and stencil buffers for pass diagnostics, picking experiments, and debug views. — GPT-5
 - **Rasterizer near/far clip-depth controls.** `Rasterizer` now exposes configurable eye-relative near and far clip depths; the near plane defaults to 0.1, the far plane defaults to infinity, and finite far depths clip geometry before perspective divide just like the near and viewport planes. — GPT-5
 - **Additional animated scene fixtures.** Five reusable scene JSON files now cover camera panning, directional-light sweeps, material/background color fades, motion-blur velocity changes, and step-interpolated visibility toggles. The rendercli animation smoke test renders their first and last frames to keep the fixtures loadable. — GPT-5

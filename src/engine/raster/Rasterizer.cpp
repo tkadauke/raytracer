@@ -254,6 +254,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowCascadeCount(m_shadowCascadeCount);
   result->setShadowBias(m_shadowBias);
+  result->setShadowSlopeBias(m_shadowSlopeBias);
   result->setShadowFilterRadius(m_shadowFilterRadius);
   result->setShadowFilterMode(m_shadowFilterMode);
   result->setCullMode(m_cullMode);
@@ -433,7 +434,8 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
 
     if (!cascades.empty()) {
       shadowMaps.add(DirectionalShadowMap(light.get(), camera.get(), std::move(cascades),
-                                          rasterizer.shadowBias(), rasterizer.shadowFilterRadius(),
+                                          rasterizer.shadowBias(), rasterizer.shadowSlopeBias(),
+                                          rasterizer.shadowFilterRadius(),
                                           rasterizer.shadowFilterMode()));
     }
   }

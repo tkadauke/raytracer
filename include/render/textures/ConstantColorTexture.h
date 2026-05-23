@@ -1,3 +1,5 @@
+#pragma once
+
 #include "render/textures/Texture.h"
 #include "core/Color.h"
 

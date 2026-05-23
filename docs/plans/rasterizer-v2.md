@@ -166,7 +166,7 @@ review:
 - ✅ make shadow passes true depth-only passes with no color scratch buffer;
 - ✅ pre-bind shadow maps to prepared light data instead of doing per-fragment
   light-pointer lookup;
-- add slope-scaled and/or normal-offset bias in addition to constant bias;
+- ✅ add slope-scaled bias in addition to constant bias;
 - tighten directional cascade fitting using light-space bounds rather than broad
   scene/cascade diagonals;
 - revisit cascade split policy, including practical log/linear splits;

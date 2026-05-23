@@ -110,6 +110,7 @@ private:
   int m_rasterShadowMapSize;
   int m_rasterShadowCascadeCount;
   double m_rasterShadowBias;
+  double m_rasterShadowSlopeBias;
   int m_rasterShadowFilterRadius;
   QString m_rasterShadowFilterMode;
   int m_repeat;
@@ -151,6 +152,7 @@ Renderer::Renderer()
       m_rasterShadowMapSize(256),
       m_rasterShadowCascadeCount(1),
       m_rasterShadowBias(1e-3),
+      m_rasterShadowSlopeBias(0.0),
       m_rasterShadowFilterRadius(0),
       m_rasterShadowFilterMode("pcf"),
       m_repeat(1),
@@ -223,6 +225,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
     raster->setShadowBias(m_rasterShadowBias);
+    raster->setShadowSlopeBias(m_rasterShadowSlopeBias);
     raster->setShadowFilterRadius(m_rasterShadowFilterRadius);
     if (m_rasterShadowFilterMode == "pcss") {
       raster->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
@@ -432,6 +435,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
+     {"shadow_slope_bias", "Rasterizer slope-scaled shadow-map depth bias", "bias"},
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
@@ -595,6 +599,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_rasterShadowBias = parser.value("shadow_bias").toDouble(&ok);
     if (!ok || m_rasterShadowBias < 0.0) {
       *errorMessage = "Shadow bias must be a non-negative number";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("shadow_slope_bias")) {
+    bool ok = false;
+    m_rasterShadowSlopeBias = parser.value("shadow_slope_bias").toDouble(&ok);
+    if (!ok || m_rasterShadowSlopeBias < 0.0) {
+      *errorMessage = "Shadow slope bias must be a non-negative number";
       return CommandLineError;
     }
   }

@@ -267,11 +267,14 @@ Five knobs control quality versus cost:
 
 <!-- widget: rasterizer_shadow_cascades -->
 
-- **Bias** — an additive depth tolerance for the comparison.
-  Too little bias lets a surface shadow itself due to depth
-  quantization (the classic *shadow acne*); too much bias
-  detaches the shadow from the casting object (the classic
-  *Peter Panning*).
+- **Bias** — additive depth tolerance for the comparison.
+  Constant bias applies the same light-space depth offset to
+  every receiver. Slope-scaled bias adds angle-dependent tolerance
+  for receivers that turn away from the light, where one shadow-map
+  texel covers more depth. Too little bias lets a surface shadow
+  itself due to depth quantization (the classic *shadow acne*);
+  too much bias detaches the shadow from the casting object (the
+  classic *Peter Panning*).
 - **PCF radius** — percentage-closer filtering. The
   comparison runs over a $(2r + 1) \times (2r + 1)$ kernel of
   neighboring texels and averages the results, producing a
