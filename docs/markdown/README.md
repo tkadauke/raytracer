@@ -100,12 +100,20 @@ The supporting cast around the rendering core.
 - [25. PLY parsing](06-tools-and-io/25-ply-parsing.md)
 - [26. Tools and the Modeler](06-tools-and-io/26-tools-and-modeler.md)
 
-### Volume VII — Animation
+### Volume VII — Render graph
+
+Pass/resource declarations for inspecting, validating, and exporting a render
+plan before pixels are produced.
+
+- [Volume index](07-render-graph/README.md)
+- [27. Render plans and resources](07-render-graph/27-render-plans-and-resources.md)
+
+### Volume VIII — Animation
 
 Frame timelines, typed keyframe tracks, and interpolation policies.
 
-- [Volume index](07-animation/README.md)
-- [27. Timelines and interpolation](07-animation/27-timelines-and-interpolation.md)
+- [Volume index](08-animation/README.md)
+- [28. Timelines and interpolation](08-animation/28-timelines-and-interpolation.md)
 
 ### Appendix
 
@@ -120,8 +128,8 @@ Frame timelines, typed keyframe tracks, and interpolation policies.
 
 ### Top-to-bottom
 
-Volumes I → II → III → IV → V → VI → VII, in order. The longest path; works
-if you have time and want the full picture.
+Volumes I → II → III → IV → V → VI → VII → VIII, in order. The longest path;
+works if you have time and want the full picture.
 
 ### "I just want to understand the raytracer"
 
@@ -142,7 +150,7 @@ every header against the chapters that reference it.
 ### "I want to understand animation"
 
 Read chapter 16 for the renderer's existing velocity-based motion blur, then
-chapter 27 for frame timelines and keyframe interpolation.
+chapter 28 for frame timelines and keyframe interpolation.
 
 ---
 

@@ -291,14 +291,14 @@ Hard problems to design for up front:
 
 Implementation order:
 
-1. Define render-resource descriptors and AOV handles (`Color`, `Depth`, `Stencil`, `ObjectId`, `Normal`, `WorldPosition`, `MotionVector`, custom texture).
-2. Add a minimal `RenderPass` interface with declared reads/writes, clear/load/store operations, and an executor enum.
+1. Define ~~render-resource descriptors~~ and AOV handles (`Color`, `Depth`, `Stencil`, `ObjectId`, `Normal`, `WorldPosition`, `MotionVector`, custom texture). ✅ **Partially done.** Initial `engine::graph::RenderResourceDescriptor` covers typed CPU/GPU-open image-resource declarations, with CPU storage for color/depth/stencil/object-id buffers; concrete AOV handles and future non-image resource categories remain TODO.
+2. Add a minimal `RenderPass` interface with ~~declared reads/writes~~, clear/load/store operations, and ~~an executor enum~~. ✅ **Partially done.** Initial `engine::graph::RenderPassNode` declares read/write resources, executor, pass kind, disabled behavior, and graph validation/export; load/store operations and executable graph plumbing remain TODO.
 3. Split current monolithic engines into first passes without changing output: `RasterDrawPass`, `WireframeOverlayPass`, `RaytraceBeautyPass`, and `TonemapPass`.
 4. Add `CompositePass` plus offscreen render-to-texture so nested scenes can be rendered before the materials that consume them.
 5. Ship the first hybrid demo: photoreal main scene with a cartoon/wireframe render-target screen inside it.
 6. Add planar reflections and raster shadow maps as pass-graph clients.
 7. Add raytraced shadow masks and path-traced inset/hero passes once AOV resource sharing is solid.
-8. Build a plan visualizer: dump the DAG as text/Graphviz and show resources, lifetimes, and executor choices in docs.
+8. Build a plan visualizer: ~~dump the DAG as text/Graphviz~~ and show resources, lifetimes, and executor choices in docs. ✅ **Partially done.** `RenderPlan::toText()` and `RenderPlan::toDot()` expose inspectable plan dumps, and the textbook now has a render-graph volume; interactive plan visualization remains TODO.
 
 This pass graph is the bridge between renderer parity and composability. It lets the rasterizer and future GPU rasterizer preview the parts they can approximate, while still delegating specific expensive or truth-critical work to raytracing/path tracing.
 

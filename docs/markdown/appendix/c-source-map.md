@@ -14,8 +14,8 @@
 | `fuzz/` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `include/core/Buffer.h` | [4. Color and buffers](../01-foundations/04-color-and-buffers.md)<br>[22. Image buffers and pixel formats](../05-image-and-vision/22-image-buffers-and-pixel-formats.md) |
 | `include/core/Color.h` | [4. Color and buffers](../01-foundations/04-color-and-buffers.md)<br>[22. Image buffers and pixel formats](../05-image-and-vision/22-image-buffers-and-pixel-formats.md) |
-| `include/core/animation/AnimationTrack.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `include/core/animation/Timeline.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `include/core/animation/AnimationTrack.h` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `include/core/animation/Timeline.h` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `include/core/color/sse3/` | [4. Color and buffers](../01-foundations/04-color-and-buffers.md) |
 | `include/core/geometry/Bresenham.h` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `include/core/geometry/Mesh.h` | [17. Tessellation](../04-rasterization/17-tessellation.md) |
@@ -36,8 +36,12 @@
 | `include/core/math/Ray.h` | [3. Rays and geometry](../01-foundations/03-rays-and-geometry.md) |
 | `include/core/math/Rect.h` | [3. Rays and geometry](../01-foundations/03-rays-and-geometry.md) |
 | `include/core/math/Vector.h` | [1. Numbers and vectors](../01-foundations/01-numbers-and-vectors.md) |
-| `include/core/math/interpolation/Interpolation.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `include/core/math/interpolation/Interpolation.h` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `include/core/math/vector/sse3/` | [1. Numbers and vectors](../01-foundations/01-numbers-and-vectors.md) |
+| `include/engine/graph/RenderGraphTypes.h` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
+| `include/engine/graph/RenderPassPayload.h` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
+| `include/engine/graph/RenderPlan.h` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
+| `include/engine/graph/RenderResourceStorage.h` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
 | `include/engine/raster/Rasterizer.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md)<br>[19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md)<br>[21. MSAA and attribute interpolation](../04-rasterization/21-msaa-and-attribute-interpolation.md) |
 | `include/engine/raytracer/Raytracer.h` | [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md) |
 | `include/engine/wireframe/Wireframe.h` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
@@ -118,14 +122,17 @@
 | `include/render/viewplanes/TiledViewPlane.h` | [13. View planes](../03-scene-structure/13-view-planes.md) |
 | `include/render/viewplanes/ViewPlane.h` | [13. View planes](../03-scene-structure/13-view-planes.md) |
 | `include/render/viewplanes/ViewPlaneFactory.h` | [13. View planes](../03-scene-structure/13-view-planes.md) |
-| `include/world/animation/AnimationTrack.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `include/world/animation/Timeline.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `include/world/objects/Scene.h` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `include/world/animation/AnimationTrack.h` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `include/world/animation/Timeline.h` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `include/world/objects/Scene.h` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `scenes/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
-| `scenes/animation_frame_demo.json` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `scenes/animation_frame_demo.json` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `src/core/formats/ply/PlyElement.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
+| `src/engine/graph/RenderGraphTypes.cpp` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
+| `src/engine/graph/RenderPlan.cpp` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
+| `src/engine/graph/RenderResourceStorage.cpp` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
 | `src/engine/raster/RasterMaterial.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md) |
 | `src/engine/raster/RasterPass.h` | [19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md) |
 | `src/engine/raster/RasterTriangleEmitter.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md) |
@@ -133,7 +140,7 @@
 | `src/engine/raytracer/Raytracer.cpp` | [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md) |
 | `src/engine/wireframe/Wireframe.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `src/modeler/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
-| `src/modeler/MainWindow.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `src/modeler/MainWindow.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [6. Cameras](../02-ray-rendering/06-cameras.md) |
 | `test/functional/render/lights/PointLightTest.cpp` | [9. Lights and shading](../02-ray-rendering/09-lights-and-shading.md) |
@@ -148,19 +155,21 @@
 | `test/helpers/ShapeClassifier.h` | [24. Shape classification](../05-image-and-vision/24-shape-classification.md) |
 | `test/helpers/Silhouette.cpp` | [23. Blob analysis and silhouettes](../05-image-and-vision/23-blob-analysis-and-silhouettes.md) |
 | `test/helpers/Silhouette.h` | [22. Image buffers and pixel formats](../05-image-and-vision/22-image-buffers-and-pixel-formats.md)<br>[23. Blob analysis and silhouettes](../05-image-and-vision/23-blob-analysis-and-silhouettes.md)<br>[24. Shape classification](../05-image-and-vision/24-shape-classification.md) |
-| `test/rendercli/FrameOptionTest.cmake` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `test/unit/core/animation/AnimationTrackTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `test/rendercli/FrameOptionTest.cmake` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `test/unit/core/animation/AnimationTrackTest.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
-| `test/unit/core/math/interpolation/InterpolationTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `test/unit/core/math/interpolation/InterpolationTest.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `test/unit/engine/graph/RenderPlanTest.cpp` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
+| `test/unit/engine/graph/RenderResourceStorageTest.cpp` | [27. Render plans and resources](../07-render-graph/27-render-plans-and-resources.md) |
 | `test/unit/render/WireframeTest.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [15. Spatial acceleration](../03-scene-structure/15-spatial-acceleration.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |
-| `test/unit/world/animation/AnimationTrackTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `test/unit/world/animation/TimelineTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
-| `test/unit/world/objects/SceneTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `test/unit/world/animation/AnimationTrackTest.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `test/unit/world/animation/TimelineTest.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
+| `test/unit/world/objects/SceneTest.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 | `tools/rendercli/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
-| `tools/rendercli/rendercli.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `tools/rendercli/rendercli.cpp` | [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md) |
 
 ## See also
 

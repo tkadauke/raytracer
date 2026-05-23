@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph foundation types.** The new `engine::graph` module defines render intent, scene selectors, graph resources, pass declarations, virtual pass payloads, plan validation, graph override disabling, text/DOT/JSON plan export, and a new textbook render-graph volume as the first CPU-only infrastructure slice for the future hybrid render graph. — GPT-5
 - **Image texture filtering and mipmaps.** `render::ImageTexture` and its world/JSON wrapper now support explicit nearest, bilinear, and mipmapped sampling with clamp/repeat wrapping; the raster material path supplies UV gradients for mip selection and rendered docs show the filtering differences. — GPT-5
 - **Rasterizer alpha test and source-alpha blending.** Built-in raster material shading now carries transient alpha from `TransparentMaterial` opacity and texture intensity into alpha testing and `SourceAlpha` / `OneMinusSourceAlpha` blend factors, so failed alpha tests skip color/depth writes and blended passes can use fragment-sourced opacity instead of only pass constants. — GPT-5
 - **Rasterizer SMAA post-process anti-aliasing.** `render::postprocess::applySmaa` adds a first CPU SMAA-style luminance-edge blend for raster previews, exposed through `Rasterizer::PostProcessAA::SMAA`, `rendercli --engine raster --post_aa smaa`, the Modeler render dialog, rendered docs, and the rasterization textbook (closes roadmap §4.1.b / Epic #167). — GPT-5

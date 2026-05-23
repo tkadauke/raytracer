@@ -73,7 +73,8 @@ Examples of render intent:
 
 - render this scene with the raytracer;
 - render this scene as a raster preview with shadows;
-- generally rasterize or generally path trace the frame;
+- generally rasterize the frame, and later generally path trace once a path
+  tracing engine exists;
 - add a wireframe overlay;
 - export `depth`, `normal`, and `object_id` AOVs;
 - show portal or mirror effects where the selected executor supports them;
@@ -243,7 +244,7 @@ enum class RenderExecutorPreference {
   Raytracer,
   Rasterizer,
   Wireframe,
-  PathTracer
+  // Add PathTracer once a concrete path tracing engine exists.
 };
 
 enum class RenderViewMode {
@@ -293,8 +294,8 @@ composite" for a planar mirror.
 
 The important requirement is that intent can express both:
 
-- broad defaults, such as "generally rasterize this frame" or "generally path
-  trace this frame"; and
+- broad defaults, such as "generally rasterize this frame" now and "generally
+  path trace this frame" once the path tracer exists; and
 - local overrides, such as "render this tagged subtree as wireframe" or "use
   a toon shading profile for these objects."
 
@@ -351,7 +352,7 @@ enum class RenderExecutorKind {
   Raytracer,
   Rasterizer,
   Wireframe,
-  PathTracer,
+  // Add PathTracer once a concrete path tracing engine exists.
   Composite,
   PostProcess
 };
@@ -418,16 +419,10 @@ enum class RenderResourceType {
   MotionVector,
   ShadowMap,
   ShadowMask,
-  EnvironmentMap,
-  IrradianceCache,
-  PhotonMap,
-  AccelerationData,
-  LookupTable,
-  ScalarBuffer,
-  Geometry,
-  Volume,
-  ProceduralField,
   CustomTexture
+  // Future additions: EnvironmentMap, IrradianceCache, PhotonMap,
+  // AccelerationData, LookupTable, ScalarBuffer, Geometry, Volume, and
+  // ProceduralField once the corresponding pass/storage paths exist.
 };
 
 enum class RenderResourceDomain {
@@ -472,11 +467,11 @@ Future GPU support should add GPU storage behind the same descriptors. The graph
 should know "this is a color resource with these dimensions and access modes,"
 not "this is always a `Buffer<Colord>`."
 
-Not every graph resource is a final-frame image. The graph also needs to model
-scene-derived data products such as photon maps, reflection probes, irradiance
-caches, denoiser feature buffers, lookup tables, and acceleration data. The
-first implementation can support only image-like CPU resources, but the type
-system should not make non-image resources a later redesign.
+Not every future graph resource will be a final-frame image. The first
+implementation supports only image-like CPU resources; later graph slices should
+add scene-derived data products such as photon maps, reflection probes,
+irradiance caches, denoiser feature buffers, lookup tables, acceleration data,
+geometry, volumes, and procedural fields when those pass/storage paths exist.
 
 ### Generated scene data vs. graph resources
 
@@ -489,11 +484,11 @@ products or caches. Examples:
 
 - a stable terrain mesh generated as part of loading the scene is ordinary scene
   geometry and should exist before graph compilation;
-- view-dependent terrain LOD tiles, clipmaps, or impostors may be
-  `Geometry`/`ProceduralField` graph resources with `PersistentCache` lifetime;
+- view-dependent terrain LOD tiles, clipmaps, or impostors may become future
+  geometry/procedural-field graph resources with `PersistentCache` lifetime;
 - a cloud material's procedural density function is scene/material data, but a
   froxel grid, shadow volume, or cached density field generated for the current
-  view can be a `Volume` or `ProceduralField` graph resource;
+  view can become a future volume or procedural-field graph resource;
 - photon maps, irradiance caches, path-guiding data, reflection probes, and
   acceleration data are render-derived resources even when they survive across
   frames.
@@ -619,10 +614,11 @@ hybrid previews, and progressive/denoised output:
 - **Debug ray-event pass** - output recursion depth, hit kind, material branch,
   or path contribution diagnostics.
 
-Cross-check: these require non-image resources (`PhotonMap`, `IrradianceCache`,
-path-guiding data), history resources, imported/exported progressive state, and
-passes that may not write the final framebuffer at all. The resource model must
-therefore describe arbitrary typed products, not only textures.
+Cross-check: these require future non-image resources such as photon maps,
+irradiance caches, and path-guiding data, plus history resources,
+imported/exported progressive state, and passes that may not write the final
+framebuffer at all. The resource model must therefore be able to grow beyond
+textures without adding those unimplemented resource types prematurely.
 
 ### Wireframe and modeling passes
 
@@ -780,7 +776,7 @@ the frame.
 Input intent:
 
 ```text
-primary = PathTracer
+primary = Raytracer
 override tag "screen_content" -> executor Rasterizer, shading profile "toon"
 ```
 
@@ -788,7 +784,7 @@ Compiled plan:
 
 ```text
 ToonRasterPass scene includes tag "screen_content" -> toon_color
-MainPathTracePass reads toon_color -> main_color
+MainRaytracePass reads toon_color -> main_color
 TonemapPass reads main_color -> display
 ```
 
@@ -928,7 +924,7 @@ Rendercli should expose both high-level and graph-level controls:
 --disable-executor wireframe
 --disable-feature portal
 --enable-aov depth,normal,object_id
---default-engine raytracer|rasterizer|wireframe|pathtracer
+--default-engine raytracer|rasterizer|wireframe
 --direct-engine raytracer|rasterizer|wireframe
 --view-mode selector=wireframe
 --shading-profile selector=toon
@@ -1025,14 +1021,22 @@ object. Rendercli and Modeler should show why a plan is invalid.
 
 ## First implementation slice
 
+Status: started. The initial foundation now lives in `include/engine/graph/`
+and `src/engine/graph/`: render intent, scene selectors, resource descriptors,
+CPU resource storage, pass declarations, virtual pass payloads, plan validation,
+graph override disabling, text/DOT/JSON plan export, and the textbook's
+render-graph volume. The standalone compiler, graph engine facade, and real
+pass execution remain TODO.
+
 Implement the smallest graph that proves the architecture:
 
 1. Add `RenderResourceDescriptor`, `RenderResourceId`, and CPU storage for color
-   and depth.
+   and depth. ✅ Done for initial CPU color/depth/stencil/object-id storage.
 2. Add `RenderPassNode`, `RenderPlan`, plan validation, plan overrides, and
-   text/DOT/JSON dumps.
+   text/DOT/JSON dumps. ✅ Done for the initial declarative graph model.
 3. Add JSON-serializable `RenderIntent`, including default executor, view mode,
    shading profile, camera, and per-selector overrides for the same fields.
+   ✅ Core intent data is defined; scene JSON read/write is TODO.
 4. Add `RenderGraphCompiler` so plans can be compiled, inspected, exported, and
    manipulated without rendering.
 5. Add `GraphRenderEngine` that can either compile from intent or execute a

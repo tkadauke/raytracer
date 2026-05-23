@@ -1,11 +1,11 @@
-# 27. Timelines and interpolation
+# 28. Timelines and interpolation
 
 Animation starts with a small question: if a scene says "at frame 1 this
 value is A, and at frame 24 this value is B," what value should frame 12 see?
 The core animation layer answers that question without pulling in Qt, JSON,
 scene graphs, or a render engine.
 
-## 27.1 Time is frame-based
+## 28.1 Time is frame-based
 
 The timeline primitive lives in
 [`Timeline`](../../../include/core/animation/Timeline.h). It records a start
@@ -23,7 +23,7 @@ seconds = (frame - startFrame) / fps;
 
 That means frame `startFrame` is time zero for the timeline.
 
-## 27.2 Tracks are typed
+## 28.2 Tracks are typed
 
 [`AnimationTrack<T>`](../../../include/core/animation/AnimationTrack.h) stores
 `Keyframe<T>` values:
@@ -51,7 +51,7 @@ It then delegates to the interpolation layer. The track does not know whether
 the value is a scalar, `Vector3d`, or `Colord`; it asks the core math
 interpolator to sample that segment.
 
-## 27.3 Interpolation is core math
+## 28.3 Interpolation is core math
 
 Interpolation policies live under
 [`include/core/math/interpolation`](../../../include/core/math/interpolation/),
@@ -71,7 +71,7 @@ Linear and smoothstep modes require the value type to support addition,
 subtraction, and scalar multiplication. Step interpolation works for
 non-numeric values because it only returns the first value.
 
-## 27.4 Step interpolation
+## 28.4 Step interpolation
 
 Step interpolation is the hold behavior. It is what bools, enums, references,
 and other discrete values usually need.
@@ -82,7 +82,7 @@ In an animation track, exact-key lookup happens before segment interpolation.
 So a step track returns the previous key between two keys, and returns the
 next key exactly when the sampled frame is that key's frame.
 
-## 27.5 Linear interpolation
+## 28.5 Linear interpolation
 
 Linear interpolation maps time progress directly to value progress. If `t` is
 `0.25`, the sampled value is one quarter of the way from A to B.
@@ -92,7 +92,7 @@ Linear interpolation maps time progress directly to value progress. If `t` is
 This is the default mode for `AnimationTrack<T>` because it is the most useful
 numeric behavior and works for scalar, vector, and color values.
 
-## 27.6 Smoothstep interpolation
+## 28.6 Smoothstep interpolation
 
 Smoothstep interpolation still follows the straight value path from A to B,
 but it does not move at constant speed along that path. It eases out of A,
@@ -110,7 +110,7 @@ value = LinearInterpolator<T>::interpolate(from, to, u);
 So the path is linear in value space, but the value as a function of frame is
 not linear.
 
-## 27.7 World-scene timelines
+## 28.7 World-scene timelines
 
 The world-scene layer connects the core timeline math to editable scene files.
 [`world::Timeline`](../../../include/world/animation/Timeline.h) stores the
@@ -158,7 +158,7 @@ applied, leaving the authoring scene unchanged. Missing targets, missing
 properties, unsupported property types, and non-step bool interpolation fail
 with explicit runtime errors.
 
-## 27.8 Rendering one frame
+## 28.8 Rendering one frame
 
 `rendercli --frame N` loads a JSON scene, evaluates its world timeline at
 frame `N`, and then builds the runtime render scene and camera from that
@@ -193,7 +193,7 @@ rendercli --engine raster --frame 48 \
 
 Frame parsing is strict: `--frame` accepts integer frame numbers.
 
-## 27.9 Rendering an image sequence
+## 28.9 Rendering an image sequence
 
 `rendercli --animation` renders each frame in a timeline range to a separate
 image file. By default, the range comes from the scene's `animation` block.
@@ -213,7 +213,7 @@ and prints a progress line with the frame number, output path, and render
 time. Static scenes do not have a timeline range, so `--animation` requires an
 `animation` block.
 
-## 27.10 Previewing animation in Modeler
+## 28.10 Previewing animation in Modeler
 
 Modeler reads and writes the same top-level `animation` block as
 `rendercli`. When a loaded scene has a timeline, the Timeline dock exposes the
@@ -226,7 +226,7 @@ evaluation is applied only to the copied scene used for preview and final
 renders. Changing frames resets the central preview to the evaluated scene
 camera, and the viewport remains interactive from that keyed pose.
 
-## 27.11 Exercises
+## 28.11 Exercises
 
 1. Given keys `(10, 4.0)` and `(22, 10.0)`, compute the linear sampled value
    at frame 16.
@@ -239,9 +239,9 @@ camera, and the viewport remains interactive from that keyed pose.
 
 ## See also
 
-- Volume index: [Volume VII — Animation](README.md)
+- Volume index: [Volume VIII — Animation](README.md)
 - Previous volume:
-  [Volume VI — Tools & I/O](../06-tools-and-io/README.md)
+  [Volume VII — Render graph](../07-render-graph/README.md)
 - Motion blur already in the renderer:
   [16. Instances and motion blur](../03-scene-structure/16-instances-and-motion-blur.md)
 - Sampling streams:

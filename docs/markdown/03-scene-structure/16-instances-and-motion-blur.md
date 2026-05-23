@@ -239,7 +239,7 @@ thin-lens, the lens-disc sample) from non-correlated streams.
 - BVH traversal that the AABB expansion serves:
   [15. Spatial acceleration §15.2](15-spatial-acceleration.md#15-2-the-bounding-volume-hierarchy)
 - Keyframe timelines:
-  [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md)
+  [28. Timelines and interpolation](../08-animation/28-timelines-and-interpolation.md)
 
 ## Source anchors
 
