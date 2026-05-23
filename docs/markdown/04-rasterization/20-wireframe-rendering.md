@@ -39,15 +39,20 @@ rasterizer's. Walking the algorithm:
 1. **Tessellate.** Call `Primitive::tessellate(lod)` on every
    primitive in the scene; the same path
    [chapter 17](17-tessellation.md) describes.
-2. **Project.** For every face vertex, call
-   `Camera::projectPoint(...)` to get screen-space coords.
-3. **Walk edges.** For each face, iterate the consecutive
+2. **Clip near-plane crossings.** For every edge, compare both
+   endpoints' eye-relative depths against
+   `Wireframe::nearClipDepth()` (default `0.1`). If both endpoints
+   are closer than that, skip the edge. If exactly one endpoint is
+   closer, linearly shorten the world-space edge to the near plane.
+3. **Project.** For every surviving edge endpoint, call
+   `Camera::projectPoint(...)` to get screen-space coordinates.
+4. **Walk edges.** For each face, iterate the consecutive
    vertex pairs around the polygon (vertex 0 → vertex 1, vertex
    1 → vertex 2, …, vertex N → vertex 0).
-4. **Rasterize each edge.** Call `core::drawLine(a, b)` —
+5. **Rasterize each edge.** Call `core::drawLine(a, b)` —
    Bresenham's algorithm — to plot pixels along the line from
    the first vertex's projected coordinates to the second.
-5. Repeat for every face of every primitive's mesh.
+6. Repeat for every face of every primitive's mesh.
 
 That is the whole engine. Notable absences:
 
@@ -61,12 +66,10 @@ That is the whole engine. Notable absences:
   by default). The geometry's material is irrelevant.
 - **No fill.** Triangles' interiors are blank framebuffer.
   Only the edges show.
-- **No clipping** beyond the implicit "if the projected
-  coordinates are off-screen, the pixel write is bounds-
-  checked." Edges that pass behind the camera produce
-  nonsense projection, and the engine relies on the camera's
-  `projectPoint` returning an "undefined" sentinel for
-  behind-camera vertices.
+- **No viewport clipping.** Projected coordinates outside the
+  framebuffer are still passed to Bresenham; the pixel write is
+  bounds-checked. The explicit clipping step is only the near-plane
+  edge trim needed before perspective projection.
 
 Each absence is deliberate. The engine is *minimum-viable*: it
 demonstrates the tessellate-and-project pipeline without any of
@@ -177,32 +180,22 @@ looks "smooth enough" but not yet saturated. Once the
 wireframe is approaching saturation, additional LOD bumps
 just add work without visible improvement.
 
-## 20.5 What this chapter does *not* cover
+## 20.5 Current limits
 
-A few wireframe-related extensions are queued under roadmap
-§4.1.b:
+Wireframe is intentionally small. Its current limits are:
 
-- **Hidden-line removal.** Real CAD wireframes hide edges
+- **No hidden-line removal.** Real CAD wireframes hide edges
   occluded by closer geometry. This requires per-edge depth
   testing (a different problem from per-pixel; the canonical
   algorithms are Appel's hidden-line algorithm and the
-  hidden-line variants of the painter's algorithm). Not yet
-  implemented.
-- **Shaded wireframes.** Edges colored by their face's
+  hidden-line variants of the painter's algorithm).
+- **No shaded wireframes.** Edges colored by their face's
   shading or by a per-vertex attribute. Useful for displaying
   vertex normals, [UV](../appendix/a-glossary.md#u) layouts, or per-face material assignments
   as a debug overlay.
-- **Anti-aliased lines.** Bresenham draws crisp 1-pixel
+- **No anti-aliased lines.** Bresenham draws crisp 1-pixel
   lines; an anti-aliased variant (Wu's algorithm or the
-  bilinear-filter form) would produce smoother edges at the
-  cost of one floating-point division per pixel. Currently
-  out of scope for the simplest-engine target.
-
-All three are reasonable future additions. None ship today;
-the simplest-engine framing is what the chapter is teaching,
-and adding hidden-line or anti-aliasing pulls in machinery
-that distracts from the core "tessellate and Bresenham"
-recipe.
+  bilinear-filter form) is a different line-rasterization model.
 
 ## 20.6 Exercises
 
@@ -219,11 +212,10 @@ recipe.
 3. The wireframe engine has no Z-buffer. What rendered artifact
    appears when two solid spheres overlap on screen? When a
    sphere is partially occluded by a plane?
-4. The engine relies on `Camera::projectPoint` returning an
-   "undefined" sentinel for vertices behind the camera. Find
-   that sentinel in the `Camera` interface. What does the
-   wireframe engine do with edges where one endpoint projects
-   to undefined?
+4. Find `Wireframe::nearClipDepth()` and
+   `Camera::eyeRelativeDepth(...)`. What happens to an edge when
+   both endpoints are closer than the near depth? What happens when
+   exactly one endpoint is closer?
 
 ## See also
 
@@ -242,6 +234,8 @@ recipe.
 <!-- source-anchors -->
 - `include/core/geometry/Bresenham.h`
 - `include/engine/wireframe/Wireframe.h`
+- `src/engine/wireframe/Wireframe.cpp`
 - `test/functional/engine/wireframe/WireframeTest.cpp`
 - `test/functional/steps/WireframeSteps.cpp`
+- `test/unit/render/WireframeTest.cpp`
 <!-- /source-anchors -->

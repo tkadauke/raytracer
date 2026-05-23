@@ -131,6 +131,7 @@
 | `src/engine/raster/RasterTriangleEmitter.h` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md) |
 | `src/engine/raster/Rasterizer.cpp` | [18. The rasterization pipeline](../04-rasterization/18-the-rasterization-pipeline.md)<br>[19. Clipping, depth, stencil](../04-rasterization/19-clipping-depth-stencil.md)<br>[21. MSAA and attribute interpolation](../04-rasterization/21-msaa-and-attribute-interpolation.md) |
 | `src/engine/raytracer/Raytracer.cpp` | [5. The Whitted pipeline](../02-ray-rendering/05-the-whitted-pipeline.md) |
+| `src/engine/wireframe/Wireframe.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `src/modeler/` | [26. Tools and the Modeler](../06-tools-and-io/26-tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
@@ -151,6 +152,7 @@
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [25. PLY parsing](../06-tools-and-io/25-ply-parsing.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [27. Timelines and interpolation](../07-animation/27-timelines-and-interpolation.md) |
+| `test/unit/render/WireframeTest.cpp` | [20. Wireframe rendering](../04-rasterization/20-wireframe-rendering.md) |
 | `test/unit/render/primitives/BVHPerformanceTest.cpp` | [15. Spatial acceleration](../03-scene-structure/15-spatial-acceleration.md) |
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |

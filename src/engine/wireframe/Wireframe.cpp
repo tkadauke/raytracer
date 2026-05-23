@@ -32,6 +32,7 @@ std::shared_ptr<render::RenderEngine> Wireframe::cloneForRender() const {
   result->setTonemap(tonemap());
   result->setLod(m_lod);
   result->setEdgeColor(m_edgeColor);
+  result->setNearClipDepth(m_nearClipDepth);
   if (hasBackgroundColorOverride()) {
     result->setBackgroundColor(backgroundColor());
   }
@@ -57,21 +58,57 @@ void Wireframe::uncancel() {
   m_cancelled.store(false);
 }
 
+void Wireframe::setNearClipDepth(double depth) {
+  m_nearClipDepth = (std::isfinite(depth) && depth > 0.0) ? depth : 0.1;
+}
+
 namespace {
-  // Project a single edge from world space to screen space and
-  // rasterize it into `buffer`. Returns silently if either endpoint
-  // is behind the eye (projectPoint returns Vector2d::undefined)
-  // — V1 doesn't clip mixed-case lines against the near plane, so
-  // edges that straddle the camera are dropped entirely. That's a
-  // visible glitch when the camera moves close to geometry, fixed in
-  // V2 by Liang-Barsky or Cohen-Sutherland clipping.
+  bool clipEdgeToNearPlane(const render::Camera& camera,
+                           Vector3d& worldA,
+                           Vector3d& worldB,
+                           double nearClipDepth) {
+    const double depthA = camera.eyeRelativeDepth(worldA);
+    const double depthB = camera.eyeRelativeDepth(worldB);
+    if (!std::isfinite(depthA) || !std::isfinite(depthB)) {
+      return false;
+    }
+
+    const bool aInside = depthA >= nearClipDepth;
+    const bool bInside = depthB >= nearClipDepth;
+    if (!aInside && !bInside) {
+      return false;
+    }
+
+    if (aInside != bInside) {
+      const double t = (nearClipDepth - depthA) / (depthB - depthA);
+      const Vector3d clipped = worldA + (worldB - worldA) * t;
+      if (aInside) {
+        worldB = clipped;
+      } else {
+        worldA = clipped;
+      }
+    }
+
+    return true;
+  }
+
+  // Project a single edge from world space to screen space and rasterize it
+  // into `buffer`. Edges that cross the near plane are shortened before
+  // projection so close camera moves do not drop otherwise-visible lines.
   void rasterizeEdge(Buffer<Colord>& buffer,
                      const render::Camera& camera,
                      const Vector3d& worldA,
                      const Vector3d& worldB,
-                     const Colord& color) {
-    Vector2d a = camera.projectPoint(worldA);
-    Vector2d b = camera.projectPoint(worldB);
+                     const Colord& color,
+                     double nearClipDepth) {
+    Vector3d clippedA = worldA;
+    Vector3d clippedB = worldB;
+    if (!clipEdgeToNearPlane(camera, clippedA, clippedB, nearClipDepth)) {
+      return;
+    }
+
+    Vector2d a = camera.projectPoint(clippedA);
+    Vector2d b = camera.projectPoint(clippedB);
     if (a.isUndefined() || b.isUndefined()) return;
 
     int x0 = static_cast<int>(std::lround(a.x()));
@@ -127,7 +164,7 @@ void Wireframe::render(Buffer<Colord>& buffer) {
     for (std::size_t i = 0; i < n; ++i) {
       const Vector3d& a = vertices[face[i]].point;
       const Vector3d& b = vertices[face[(i + 1) % n]].point;
-      rasterizeEdge(buffer, *m_camera, a, b, m_edgeColor);
+      rasterizeEdge(buffer, *m_camera, a, b, m_edgeColor, m_nearClipDepth);
     }
   }
 }

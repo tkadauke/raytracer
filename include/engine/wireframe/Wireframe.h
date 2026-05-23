@@ -13,10 +13,11 @@ namespace engine::wireframe {
   * @image html wireframe_engine.png "Sphere through Wireframe at default LOD"
   *
   * For each primitive in the scene, calls `Primitive::tessellate(lod)`
-  * to obtain a `Mesh`, projects every face vertex to screen space via
-  * `Camera::projectPoint`, and rasterizes each face edge using
-  * `core::drawLine` (Bresenham). No hidden-line removal — interior
-  * edges are visible alongside silhouette edges. That's the V1 trade:
+  * to obtain a `Mesh`, clips each face edge against the camera's near
+  * clip depth, projects the surviving endpoints via `Camera::projectPoint`,
+  * and rasterizes each edge using `core::drawLine` (Bresenham). No
+  * hidden-line removal — interior edges are visible alongside silhouette
+  * edges. That's the trade:
   * the simplest possible engine that demonstrates the
   * tessellate-and-project pipeline, useful as a debug / preview view
   * (and as a sanity check on the tessellate impls themselves —
@@ -91,10 +92,17 @@ public:
   /// the scene's background back in.
   Colord backgroundColor() const override;
 
+  /// Eye-relative near clip depth. Edges with both endpoints closer
+  /// than this value are skipped; edges that cross the depth are
+  /// shortened to the near plane before projection. Defaults to 0.1.
+  inline double nearClipDepth() const { return m_nearClipDepth; }
+  void setNearClipDepth(double depth);
+
 private:
   std::atomic<bool> m_cancelled{false};
   int m_lod{0};
   Colord m_edgeColor{Colord::white()};
+  double m_nearClipDepth{0.1};
 };
 
 }  // namespace engine::wireframe

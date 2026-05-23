@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
+#include "core/geometry/Mesh.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 
@@ -12,6 +14,27 @@
 namespace WireframeTest {
 using namespace render;
 using namespace engine::wireframe;
+
+  class NearPlaneTrianglePrimitive : public Primitive {
+  public:
+    const Primitive* intersect(const Rayd&, HitPointInterval&, render::State&) const override {
+      return nullptr;
+    }
+
+    std::shared_ptr<Mesh> tessellate(int = 0) const override {
+      auto mesh = std::make_shared<Mesh>();
+      mesh->addVertex(Vector3d(-1, 0, -6), Vector3d::forward());
+      mesh->addVertex(Vector3d(0, 0, 0), Vector3d::forward());
+      mesh->addVertex(Vector3d(1, 0, -6), Vector3d::forward());
+      mesh->addFace({0, 1, 2});
+      return mesh;
+    }
+
+  protected:
+    BoundingBoxd calculateBoundingBox() const override {
+      return BoundingBoxd(Vector3d(-1, 0, -6), Vector3d(1, 0, 0));
+    }
+  };
 
   // Helper: count pixels that match a given colour. Background
   // counting / edge counting both go through this.
@@ -35,6 +58,10 @@ using namespace engine::wireframe;
   // straddles origin so it's safely in front of the camera.
   static std::shared_ptr<PinholeCamera> camera() {
     return std::make_shared<PinholeCamera>(Vector3d(2, 2, -5), Vector3d::null);
+  }
+
+  static std::shared_ptr<PinholeCamera> headOnCamera() {
+    return std::make_shared<PinholeCamera>(Vector3d::null, Vector3d::forward());
   }
 
   TEST(Wireframe, EmptySceneRendersBackground) {
@@ -87,6 +114,37 @@ using namespace engine::wireframe;
     // Some pixels in the chosen edge colour, none white.
     EXPECT_GT(countPixels(buffer, Colord(1.0, 0.0, 0.5)), 0);
     EXPECT_EQ(0, countPixels(buffer, Colord::white()));
+  }
+
+  TEST(Wireframe, NearClipDepthIsConfigurable) {
+    Wireframe engine(camera(), sceneWithBox());
+
+    EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
+    engine.setNearClipDepth(0.5);
+    EXPECT_DOUBLE_EQ(0.5, engine.nearClipDepth());
+    engine.setNearClipDepth(-1.0);
+    EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
+  }
+
+  TEST(Wireframe, ClonePreservesNearClipDepth) {
+    Wireframe engine(camera(), sceneWithBox());
+    engine.setNearClipDepth(0.5);
+
+    auto clone = std::dynamic_pointer_cast<Wireframe>(engine.cloneForRender());
+
+    ASSERT_TRUE(clone);
+    EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
+  }
+
+  TEST(Wireframe, ClipsEdgesCrossingNearPlane) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->add(std::make_shared<NearPlaneTrianglePrimitive>());
+    Wireframe engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::white()), 0);
   }
 
   TEST(Wireframe, HigherLodProducesMoreEdges) {

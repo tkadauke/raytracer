@@ -22,14 +22,14 @@ namespace render {
     *
     * Subclasses are concrete engines:
     *
-    *  - `Raytracer` — Whitted-style recursive raytracer (the
-    *    historical and currently only engine). Shoots rays through
-    *    pixels, traces reflection / refraction recursively.
-    *  - Future: `Wireframe` (edge projection from
-    *    `Mesh::tessellate` outputs), `SoftwareRasterEngine`
-    *    (scanline + Z-buffer), `OpenGLEngine` (real-time GL
-    *    viewport), `PathTracerEngine` (Monte Carlo over the same
-    *    scene graph).
+    *  - `Raytracer` — Whitted-style recursive raytracer. Shoots
+    *    rays through pixels, traces reflection / refraction recursively.
+    *  - `Wireframe` — edge projection from `Mesh::tessellate`
+    *    outputs, near-plane line clipping, then Bresenham line drawing.
+    *  - `Rasterizer` — software triangle rasterizer with clipping,
+    *    depth/stencil state, material shading, MSAA, and shadow maps.
+    *  - Future: `OpenGLEngine` (real-time GL viewport),
+    *    `PathTracerEngine` (Monte Carlo over the same scene graph).
     *
     * The base owns:
     *
@@ -58,10 +58,13 @@ namespace render {
     *    only ray-recursive engines (raytracer, future path tracer)
     *    have a meaningful concept of recursion.
     *  - **Worker threads.** Each engine picks its own threading
-    *    strategy — the raytracer tiles pixels, the wireframe will
-    *    parallelize edges, the GL engine submits to the driver.
+    *    strategy — the raytracer tiles pixels, the software rasterizer
+    *    can tile the framebuffer, wireframe runs on the caller thread,
+    *    and the GL engine submits to the driver.
     *
-    * @see Raytracer — the concrete subclass shipping today.
+    * @see engine::raytracer::Raytracer — recursive raytracing engine.
+    * @see engine::wireframe::Wireframe — edge-only tessellation preview.
+    * @see engine::raster::Rasterizer — software triangle rasterizer.
     * @see Tonemap — the HDR-to-LDR operator the LDR-render
     *      overload runs through.
     */

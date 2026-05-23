@@ -41,6 +41,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Wireframe now clips edges crossing the near plane instead of dropping them.** `Wireframe::nearClipDepth()` defaults to `0.1`; edges with one endpoint behind that depth are shortened before projection, while edges fully behind it are skipped. — GPT-5
 - **Rasterizer coverage now preserves subpixel projected vertex positions.** Projected screen coordinates remain fractional until fixed-point edge setup, reducing whole-pixel edge jumps during small camera or object motion while keeping tiled and MSAA paths consistent. — GPT-5
 - **Rasterizer shared triangle edges no longer shade twice.** `core::rasterizeTriangleSampled` now uses a top-left fill rule for samples exactly on triangle edges, so adjacent triangles covering one surface assign shared-edge pixels to only one triangle and avoid double-applying stencil operations. — GPT-5
 - **Modeler timeline preview now starts from animated scene cameras.** Changing timeline frames rebuilds the central preview camera from the evaluated scene's active camera, then keeps the viewport interactive so modeler camera controls continue from that keyed pose. — GPT-5

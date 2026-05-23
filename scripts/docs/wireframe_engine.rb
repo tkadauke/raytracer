@@ -1,4 +1,4 @@
-# Doc-render driver for `raytracer::WireframeEngine`.
+# Doc-render driver for `engine::wireframe::Wireframe`.
 #
 # Hero image: a sphere at default LOD = 0. Picks sphere over box because
 # the LOD-invariant box gives no visual cue that a wireframe engine is
