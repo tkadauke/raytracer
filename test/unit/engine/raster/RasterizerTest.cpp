@@ -6,6 +6,7 @@
 #include "engine/raster/Rasterizer.h"
 #include "src/engine/raster/RasterMaterial.h"
 #include "src/engine/raster/RasterMaterialEvaluator.h"
+#include "src/engine/raster/RasterMSAA.h"
 #include "src/engine/raster/RasterPipelineTypes.h"
 #include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
@@ -1065,6 +1066,28 @@ namespace RasterizerTest {
 
     EXPECT_EQ(0x00010203u, buffer[0][0]);
     EXPECT_EQ(0x00010203u, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, TiledDisplayFramebufferMatchesSingleTileDisplayFramebuffer) {
+    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    singleTile.setMSAASamples(4);
+    singleTile.setQueueSize(1);
+    configureScreenSpaceEdgeTriangle(singleTile);
+
+    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    tiled.setMSAASamples(4);
+    tiled.setMaximumThreads(2);
+    tiled.setQueueSize(4);
+    configureScreenSpaceEdgeTriangle(tiled);
+
+    Buffer<unsigned int> expected(40, 40);
+    Buffer<unsigned int> actual(40, 40);
+    singleTile.render(expected);
+    tiled.render(actual);
+
+    for (int y = 0; y != expected.height(); ++y)
+      for (int x = 0; x != expected.width(); ++x)
+        EXPECT_EQ(expected[y][x], actual[y][x]) << "at pixel " << x << ", " << y;
   }
 
   TEST(Rasterizer, DepthAttachmentLoadCanRejectFragments) {
@@ -2468,6 +2491,38 @@ namespace RasterizerTest {
     tiled.render(actual);
 
     expectBuffersEqual(expected, actual);
+  }
+
+  TEST(Rasterizer, TiledMSAAReusesTileScratchAcrossFrames) {
+    Rasterizer singleTile(headOnCamera(), sceneWithFrontFacingTriangle());
+    singleTile.setMSAASamples(4);
+    configureScreenSpaceEdgeTriangle(singleTile);
+
+    Rasterizer tiled(headOnCamera(), sceneWithFrontFacingTriangle());
+    tiled.setMSAASamples(4);
+    tiled.setMaximumThreads(2);
+    tiled.setQueueSize(4);
+    configureScreenSpaceEdgeTriangle(tiled);
+
+    Buffer<Colord> expected(40, 40);
+    Buffer<Colord> first(40, 40);
+    Buffer<Colord> second(40, 40);
+
+    engine::raster::detail::resetMSAATileScratchAllocationCount();
+    singleTile.render(expected);
+    tiled.render(first);
+    const std::size_t firstScratchAllocations =
+      engine::raster::detail::msaaTileScratchAllocationCount();
+
+    engine::raster::detail::resetMSAATileScratchAllocationCount();
+    tiled.render(second);
+    const std::size_t secondScratchAllocations =
+      engine::raster::detail::msaaTileScratchAllocationCount();
+
+    expectBuffersEqual(expected, first);
+    expectBuffersEqual(expected, second);
+    EXPECT_GT(firstScratchAllocations, 0u);
+    EXPECT_EQ(0u, secondScratchAllocations);
   }
 
   TEST(Rasterizer, TiledPerFragmentMSAAMatchesSingleTileMSAAWithUnevenTileSizes) {

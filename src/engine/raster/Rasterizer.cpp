@@ -378,6 +378,15 @@ namespace {
   void copyDepthHistory(Buffer<double>& target, const Buffer<double>& source) {
     copyRasterBuffer(target, source);
   }
+
+  void writeTonemappedTile(Buffer<unsigned int>& target, const Buffer<Colord>& source,
+                           const render::Tonemap& tonemap, const Recti& rect) {
+    for (int y = rect.top(); y != rect.bottom(); ++y) {
+      for (int x = rect.left(); x != rect.right(); ++x) {
+        target[y][x] = tonemap.apply(source[y][x]).rgb();
+      }
+    }
+  }
 }
 
 // Pimpl: hides Qt threading and render-pass orchestration from the
@@ -400,6 +409,7 @@ struct Rasterizer::Private {
   std::unique_ptr<Buffer<double>> historyDepth;
   std::unique_ptr<Buffer<double>> currentDepth;
   std::unique_ptr<Buffer<Vector2d>> motionVectors;
+  std::vector<std::unique_ptr<MSAATileScratch>> msaaTileScratch;
   TemporalJitter previousJitter;
   bool temporalHistoryValid{false};
   bool temporalInvalidated{false};
@@ -488,6 +498,7 @@ struct Rasterizer::Private {
   static RasterTriangleSet triangleSetForPlan(const std::vector<RasterTriangle>& triangles,
                                               const render::TilePlan& tilePlan);
   void prepareTemporalResources(int width, int height);
+  void prepareMSAATileScratch(const Rasterizer& rasterizer, const render::TilePlan& tilePlan);
   TemporalResetCondition temporalResetCondition(int width, int height) const;
   void applyTemporalAA(const Rasterizer& rasterizer, Buffer<Colord>& buffer,
                        const TemporalJitter& currentJitter);
@@ -695,10 +706,15 @@ void Rasterizer::render(Buffer<unsigned int>& buffer) {
   }
 
   auto outputTonemap = tonemap();
-  for (int y = 0; y < hdr.height(); ++y) {
-    for (int x = 0; x < hdr.width(); ++x) {
-      buffer[y][x] = outputTonemap->apply(hdr[y][x]).rgb();
-    }
+  const render::TilePlan tilePlan =
+    render::TilePlan::forBuffer(hdr.width(), hdr.height(), p->lastResolvedQueueSize);
+  if (tilePlan.isSingleTile()) {
+    writeTonemappedTile(buffer, hdr, *outputTonemap, tilePlan.fullRect());
+  } else {
+    engine::dispatchTileTasks(tilePlan, *p->threadPool, p->tasks,
+                              [&](const Recti& rect, std::size_t) {
+                                writeTonemappedTile(buffer, hdr, *outputTonemap, rect);
+                              });
   }
 }
 
@@ -1018,6 +1034,7 @@ void Rasterizer::Private::renderMSAAFrame(
     return;
   }
 
+  prepareMSAATileScratch(rasterizer, tilePlan);
   engine::dispatchTileTasks(tilePlan, *threadPool, tasks,
                             [&](const Recti& rect, std::size_t tileIndex) {
                               renderMSAATile(rasterizer, scene, triangleSet, shadowMaps, renderClip,
@@ -1039,6 +1056,7 @@ void Rasterizer::Private::renderAutomaticMSAAFrame(
                                   static_cast<int>(candidateTilePlan.size()),
                                   threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
     lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
+    prepareMSAATileScratch(rasterizer, candidateTilePlan);
     engine::dispatchTileTasks(candidateTilePlan, *threadPool, tasks,
                               [&](const Recti& rect, std::size_t tileIndex) {
                                 renderMSAATile(rasterizer, scene, candidateSet, shadowMaps,
@@ -1072,11 +1090,11 @@ void Rasterizer::Private::renderMSAAFullFrame(
   MSAAFragmentShadeCache* shadeCachePtr =
     rasterizer.msaaShadingMode() == Rasterizer::MSAAShadingMode::PerFragment ? &shadeCache
                                                                              : nullptr;
+  Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
   for (int sampleIndex = 0; sampleIndex != pattern.count; ++sampleIndex) {
     if (cancelled.load())
       return;
 
-    Buffer<Colord> sampleBuffer(tilePlan.width(), tilePlan.height());
     copyRasterBuffer(sampleBuffer, loadedColor);
 
     renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip,
@@ -1101,7 +1119,13 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
   if (rect.width() <= 0 || rect.height() <= 0)
     return;
 
-  MSAATileScratch scratch(rasterizer, rect);
+  MSAATileScratch localScratch;
+  MSAATileScratch* scratch = &localScratch;
+  if (tileIndex < msaaTileScratch.size() && msaaTileScratch[tileIndex]) {
+    scratch = msaaTileScratch[tileIndex].get();
+  } else {
+    scratch->prepare(rasterizer, rect);
+  }
   MSAAFragmentShadeCache shadeCache;
   MSAAFragmentShadeCache* shadeCachePtr =
     rasterizer.msaaShadingMode() == Rasterizer::MSAAShadingMode::PerFragment ? &shadeCache
@@ -1114,11 +1138,11 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     // This is simple supersampling scoped to one tile: rerun
     // coverage/depth at a fixed subpixel offset, accumulate local
     // colors, and resolve the tile into the output framebuffer.
-    scratch.clearSample(rasterizer, &buffer);
+    scratch->clearSample(rasterizer, &buffer);
 
     RasterTileBufferView<std::uint8_t> stencilView;
-    if (scratch.stencil()) {
-      stencilView = tileBufferView(*scratch.stencil(), rect);
+    if (scratch->stencil()) {
+      stencilView = tileBufferView(*scratch->stencil(), rect);
     }
     const RasterDiagnosticBufferViews diagnostics =
       diagnosticViews(rasterizer, buffer.width(), buffer.height());
@@ -1126,13 +1150,13 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
                                    rasterizer.alphaReference()};
 
     withPreparedTrianglePolicies(
-      scene.get(), rasterizer, shadowMaps, tileBufferView(scratch.depth(), rect), stencilView,
+      scene.get(), rasterizer, shadowMaps, tileBufferView(scratch->depth(), rect), stencilView,
       [&](auto stencil, auto depth, auto fragmentPolicy) {
         withMSAAFragmentShadingPolicy(
           rasterizer, shadeCachePtr, fragmentPolicy, [&](auto msaaFragmentPolicy) {
             rasterizeTileWithPolicies(
               triangleSet, rect, tileIndex,
-              colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)),
+              colorOutputPolicy(rasterizer, tileBufferView(scratch->sampleColor(), rect)),
               renderClip, pattern.offsets[sampleIndex], cancelled, stencil, depth,
               msaaFragmentPolicy, alphaTest, diagnostics);
           });
@@ -1140,10 +1164,10 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
 
     if (cancelled.load())
       return;
-    scratch.accumulateSample();
+    scratch->accumulateSample();
   }
 
-  scratch.resolveTo(buffer, pattern.count);
+  scratch->resolveTo(buffer, pattern.count);
 }
 
 void Rasterizer::Private::prepareTemporalResources(int width, int height) {
@@ -1168,6 +1192,27 @@ void Rasterizer::Private::prepareTemporalResources(int width, int height) {
     currentDepth = std::make_unique<Buffer<double>>(width, height);
   if (!bufferMatches(motionVectors.get(), width, height))
     motionVectors = std::make_unique<Buffer<Vector2d>>(width, height);
+}
+
+void Rasterizer::Private::prepareMSAATileScratch(const Rasterizer& rasterizer,
+                                                 const render::TilePlan& tilePlan) {
+  if (msaaTileScratch.size() != tilePlan.size()) {
+    msaaTileScratch.clear();
+    msaaTileScratch.resize(tilePlan.size());
+  }
+
+  for (int row = 0; row != tilePlan.rows(); ++row) {
+    for (int col = 0; col != tilePlan.cols(); ++col) {
+      const Recti rect = tilePlan.rect(row, col);
+      if (rect.width() <= 0 || rect.height() <= 0)
+        continue;
+      const std::size_t tileIndex = tilePlan.index(row, col);
+      if (!msaaTileScratch[tileIndex]) {
+        msaaTileScratch[tileIndex] = std::make_unique<MSAATileScratch>();
+      }
+      msaaTileScratch[tileIndex]->prepare(rasterizer, rect);
+    }
+  }
 }
 
 TemporalResetCondition Rasterizer::Private::temporalResetCondition(int width, int height) const {
