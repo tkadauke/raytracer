@@ -274,7 +274,8 @@ features, the rasterizer needs more fixed-function state:
   docs, textbook notes, and rendered visual examples;
 - ✅ blend state;
 - ✅ color write masks;
-- depth bias that applies outside shadow maps too;
+- ✅ constant depth bias that applies outside shadow maps too, including
+  rendercli flags, unit coverage, API docs, and textbook notes;
 - explicit load/clear/store behavior for color, depth, and stencil buffers.
 
 Portal material previews should use this path rather than the current

@@ -200,9 +200,9 @@ namespace engine::raster::detail {
     }
 
     void writeFragment(const RasterTriangle& triangle, int x, int y,
-                       const InterpolatedFragment& fragment) const {
+                       const InterpolatedFragment& fragment, double committedDepth) const {
       if (depth.isValid()) {
-        depth.at(x, y) = fragment.depth;
+        depth.at(x, y) = committedDepth;
       }
       if (normal.isValid()) {
         normal.at(x, y) = fragment.normal.normalized();

@@ -253,6 +253,7 @@ private:
   Recti m_rasterViewport;
   bool m_rasterScissorSet;
   Recti m_rasterScissor;
+  double m_rasterDepthBias;
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
   int m_rasterShadowCascadeCount;
@@ -307,6 +308,7 @@ Renderer::Renderer()
       m_rasterViewport(),
       m_rasterScissorSet(false),
       m_rasterScissor(),
+      m_rasterDepthBias(0.0),
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
       m_rasterShadowCascadeCount(1),
@@ -392,6 +394,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     if (m_rasterScissorSet) {
       raster->setScissorRect(m_rasterScissor);
     }
+    raster->setDepthBias(m_rasterDepthBias);
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
@@ -614,6 +617,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"blend_constant_alpha", "Rasterizer blend constant alpha in 0..1", "alpha"},
      {"viewport", "Rasterizer viewport rectangle as x,y,width,height", "rect"},
      {"scissor", "Rasterizer scissor rectangle as x,y,width,height", "rect"},
+     {"depth_bias", "Rasterizer constant depth bias applied before depth test/write", "bias"},
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
@@ -822,6 +826,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterScissorSet = true;
+  }
+
+  if (parser.isSet("depth_bias")) {
+    bool ok = false;
+    m_rasterDepthBias = parser.value("depth_bias").toDouble(&ok);
+    if (!ok || !std::isfinite(m_rasterDepthBias)) {
+      *errorMessage = "Depth bias must be a finite number";
+      return CommandLineError;
+    }
   }
 
   if (parser.isSet("shadow_maps")) {

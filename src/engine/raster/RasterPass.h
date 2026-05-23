@@ -61,6 +61,11 @@ namespace engine::raster::detail {
   // write/read-only policies can share the comparison code.
   struct DepthState {
     Rasterizer::DepthFunc func;
+    double bias = 0.0;
+
+    inline double biasedDepth(double depth) const {
+      return depth + bias;
+    }
 
     inline bool pass(double incoming, double stored) const {
       switch (func) {
@@ -201,12 +206,16 @@ namespace engine::raster::detail {
     BufferView zBuffer;
     DepthState state;
 
+    inline double biasedDepth(double depth) const {
+      return state.biasedDepth(depth);
+    }
+
     inline bool pass(int x, int y, double depth) const {
-      return state.pass(depth, zBuffer.at(x, y));
+      return state.pass(biasedDepth(depth), zBuffer.at(x, y));
     }
 
     inline void write(int x, int y, double depth) const {
-      zBuffer.at(x, y) = depth;
+      zBuffer.at(x, y) = biasedDepth(depth);
     }
   };
 
@@ -217,8 +226,12 @@ namespace engine::raster::detail {
     BufferView zBuffer;
     DepthState state;
 
+    inline double biasedDepth(double depth) const {
+      return state.biasedDepth(depth);
+    }
+
     inline bool pass(int x, int y, double depth) const {
-      return state.pass(depth, zBuffer.at(x, y));
+      return state.pass(biasedDepth(depth), zBuffer.at(x, y));
     }
 
     inline void write(int, int, double) const {
@@ -397,10 +410,11 @@ namespace engine::raster::detail {
 
         stencil.onPass(x, y);
         diagnostics.writeStencil(x, y, stencil.value(x, y));
+        const double committedDepth = depth.biasedDepth(fragment.depth);
         const Colord shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         depth.write(x, y, fragment.depth);
         colorBuffer.write(x, y, shaded);
-        diagnostics.writeFragment(triangle, x, y, fragment);
+        diagnostics.writeFragment(triangle, x, y, fragment, committedDepth);
       });
   }
 
@@ -523,7 +537,7 @@ namespace engine::raster::detail {
   inline void withPreparedTriangleDepthPolicy(const Rasterizer& rasterizer, DepthBuffer zBuffer,
                                               Stencil stencil, Fragment fragmentPolicy,
                                               RenderFn&& render) {
-    const DepthState depthState{rasterizer.depthFunc()};
+    const DepthState depthState{rasterizer.depthFunc(), rasterizer.depthBias()};
     if (rasterizer.depthWriteEnabled()) {
       render(stencil, DepthWritePolicy<DepthBuffer>{zBuffer, depthState}, fragmentPolicy);
     } else {

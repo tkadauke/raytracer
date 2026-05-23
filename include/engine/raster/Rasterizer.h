@@ -107,8 +107,9 @@ namespace engine::raster {
   * The first two widgets are about pass state rather than mesh shape. Read them
   * from left to right in pipeline order: coverage creates candidate fragments,
   * culling can reject whole triangles, stencil and depth decide which fragments
-  * survive, and color output decides how a surviving RGB value changes the
-  * framebuffer.
+  * survive, depth bias can nudge those fragments forward or backward for
+  * multi-pass layering, and color output decides how a surviving RGB value
+  * changes the framebuffer.
   *
   * The widget below shows the fixed-function state in the order the
   * rasterizer applies it: a first pass marks a stencil region, then
@@ -842,6 +843,13 @@ public:
   inline DepthFunc depthFunc() const { return m_depthFunc; }
   inline void setDepthFunc(DepthFunc func) { m_depthFunc = func; }
 
+  /// Signed constant offset added to fragment depth before depth test/write.
+  /// Defaults to 0. Positive values push fragments farther away for the default
+  /// `DepthFunc::Less` test; negative values pull them forward. Fragment
+  /// shaders still receive the un-biased geometric depth.
+  inline double depthBias() const { return m_depthBias; }
+  inline void setDepthBias(double bias) { m_depthBias = std::isfinite(bias) ? bias : 0.0; }
+
   /// Initial value for the per-render depth buffer. Defaults to
   /// positive infinity so `DepthFunc::Less` accepts the first
   /// visible fragment at each pixel.
@@ -977,6 +985,7 @@ private:
   bool m_scissorTestEnabled{false};
   Recti m_scissorRect;
   DepthFunc m_depthFunc{DepthFunc::Less};
+  double m_depthBias{0.0};
   double m_depthClearValue{std::numeric_limits<double>::infinity()};
   bool m_depthWriteEnabled{true};
   bool m_stencilTestEnabled{false};

@@ -292,6 +292,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->m_scissorTestEnabled = m_scissorTestEnabled;
   result->m_scissorRect = m_scissorRect;
   result->setDepthFunc(m_depthFunc);
+  result->setDepthBias(m_depthBias);
   result->setDepthClearValue(m_depthClearValue);
   result->setDepthWriteEnabled(m_depthWriteEnabled);
   result->setStencilTestEnabled(m_stencilTestEnabled);

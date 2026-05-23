@@ -181,6 +181,14 @@ useful in specific cases:
   guaranteed by other means (back-to-front sorting in
   software).
 
+`Rasterizer::setDepthBias(...)` adds a signed constant offset to the
+fragment depth used for the depth comparison and depth write. Fragment
+shaders still see the original geometric depth. With the default `Less`
+test, positive bias pushes fragments farther away and negative bias pulls
+them forward. This is useful for multi-pass overlays that should sit just
+above or just behind previously written depth without moving the actual
+geometry.
+
 The widget covers these states alongside the cull mode:
 
 <!-- widget: rasterizer_depth_stencil_cull -->
@@ -352,6 +360,7 @@ The configurable state at a glance:
 | Viewport | full framebuffer | `setViewportRect` |
 | Scissor | disabled | `setScissorRect` |
 | `DepthFunc` | `Less` | `setDepthFunc` |
+| Depth bias | `0` | `setDepthBias` |
 | Depth writes | enabled | `setDepthWriteEnabled` |
 | Depth clear value | `+∞` | `setDepthClearValue` |
 | `StencilFunc` | `Always` | `setStencilFunc` |

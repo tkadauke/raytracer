@@ -580,6 +580,7 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.1, engine.nearClipDepth());
     EXPECT_TRUE(std::isinf(engine.farClipDepth()));
     EXPECT_EQ(Rasterizer::PostProcessAA::None, engine.postProcessAA());
+    EXPECT_DOUBLE_EQ(0.0, engine.depthBias());
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
     EXPECT_EQ(1, engine.shadowCascadeCount());
@@ -619,6 +620,7 @@ namespace RasterizerTest {
     engine.setBlendConstant(Colord(0.25, 0.5, 0.75), 0.35);
     engine.setViewportRect(8, 10, 40, 42);
     engine.setScissorRect(12, 14, 20, 22);
+    engine.setDepthBias(-0.125);
     Buffer<double> depth(1, 1);
     Rasterizer::DiagnosticOutputBuffers outputs;
     outputs.depth = &depth;
@@ -651,6 +653,7 @@ namespace RasterizerTest {
     EXPECT_EQ(14, clone->scissorRect().top());
     EXPECT_EQ(20, clone->scissorRect().width());
     EXPECT_EQ(22, clone->scissorRect().height());
+    EXPECT_DOUBLE_EQ(-0.125, clone->depthBias());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
   }
 
@@ -901,6 +904,68 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(0, countNonBackground(buffer, Colord::black()));
+  }
+
+  TEST(Rasterizer, PositiveDepthBiasPushesFragmentsFartherBeforeDepthTest) {
+    const Colord shaderColor(1.0, 0.0, 0.0);
+    auto scene = sceneWithFrontFacingTriangle();
+
+    Rasterizer unbiased(headOnCamera(), scene);
+    unbiased.setBackgroundColor(Colord::black());
+    unbiased.setDepthClearValue(10.5);
+    unbiased.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
+
+    Rasterizer biased(headOnCamera(), scene);
+    biased.setBackgroundColor(Colord::black());
+    biased.setDepthClearValue(10.5);
+    biased.setDepthBias(1.0);
+    biased.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
+
+    Buffer<Colord> unbiasedBuffer(64, 64);
+    Buffer<Colord> biasedBuffer(64, 64);
+    unbiased.render(unbiasedBuffer);
+    biased.render(biasedBuffer);
+
+    EXPECT_EQ(shaderColor, unbiasedBuffer[32][32]);
+    EXPECT_EQ(Colord::black(), biasedBuffer[32][32]);
+  }
+
+  TEST(Rasterizer, NegativeDepthBiasPullsFragmentsForwardBeforeDepthTest) {
+    const Colord shaderColor(0.0, 1.0, 0.0);
+    auto scene = sceneWithFrontFacingTriangle();
+
+    Rasterizer unbiased(headOnCamera(), scene);
+    unbiased.setBackgroundColor(Colord::black());
+    unbiased.setDepthClearValue(9.75);
+    unbiased.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
+
+    Rasterizer biased(headOnCamera(), scene);
+    biased.setBackgroundColor(Colord::black());
+    biased.setDepthClearValue(9.75);
+    biased.setDepthBias(-0.5);
+    biased.setFragmentShader([&](const Rasterizer::FragmentInput&) { return shaderColor; });
+
+    Buffer<Colord> unbiasedBuffer(64, 64);
+    Buffer<Colord> biasedBuffer(64, 64);
+    unbiased.render(unbiasedBuffer);
+    biased.render(biasedBuffer);
+
+    EXPECT_EQ(Colord::black(), unbiasedBuffer[32][32]);
+    EXPECT_EQ(shaderColor, biasedBuffer[32][32]);
+  }
+
+  TEST(Rasterizer, DiagnosticDepthOutputIncludesDepthBias) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+    engine.setDepthBias(0.25);
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    Rasterizer::DiagnosticOutputBuffers outputs;
+    outputs.depth = &depth;
+    engine.setDiagnosticOutputBuffers(outputs);
+
+    engine.render(color);
+
+    EXPECT_NEAR(10.25, depth[32][32], 1e-9);
   }
 
   TEST(Rasterizer, DisabledDepthWritesLetLaterGeometryOverdraw) {

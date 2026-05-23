@@ -11,6 +11,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Rasterizer pass depth bias.** `Rasterizer` and `rendercli --depth_bias` now expose a signed constant depth offset applied before camera-pass depth test/write, allowing multi-pass raster overlays to pull fragments forward or push them behind existing depth without changing shader-visible geometric depth. — GPT-5
 - **Rasterizer viewport and scissor state.** `Rasterizer` and `rendercli` now expose framebuffer viewport and scissor rectangles so raster previews can project into subregions or discard fragments outside a fixed rectangle before depth/stencil and color output. — GPT-5
 - **Rasterizer color-output state.** `Rasterizer` and `rendercli` now expose RGB color write masks and fixed-function blend state with source/destination factors, blend ops, and pass-constant blend color/alpha for multi-pass raster effects. — GPT-5
 - **Rasterizer slope-scaled shadow bias.** Directional shadow-map comparisons now support an opt-in `shadowSlopeBias` term that adds receiver-angle-dependent depth tolerance on top of the existing constant bias, with controls in `rendercli --shadow_slope_bias`, the Modeler render dialog, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
