@@ -160,9 +160,9 @@ namespace RenderSettingsWidgetTest {
     auto postAA = widget.findChild<QComboBox*>("rasterPostProcessAA");
     ASSERT_NE(nullptr, postAA);
 
-    postAA->setCurrentText("FXAA");
+    postAA->setCurrentText("SMAA");
 
-    EXPECT_EQ(QString("FXAA"), widget.postProcessAA());
+    EXPECT_EQ(QString("SMAA"), widget.postProcessAA());
   }
 
   TEST_F(RenderSettingsWidgetTest, ShouldShowRasterControlsOnlyForRasterizer) {

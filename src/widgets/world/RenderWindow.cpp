@@ -113,10 +113,15 @@ void RenderWindow::render() {
     p->rasterizer->setScene(p->raytracer->scene());
     p->rasterizer->setLod(p->settingsWidget->lod());
     p->rasterizer->setMSAASamples(p->settingsWidget->msaaSamples());
-    p->rasterizer->setPostProcessAA(
-      p->settingsWidget->postProcessAA() == "FXAA"
-        ? engine::raster::Rasterizer::PostProcessAA::FXAA
-        : engine::raster::Rasterizer::PostProcessAA::None);
+    const QString postAA = p->settingsWidget->postProcessAA();
+    engine::raster::Rasterizer::PostProcessAA postProcessAA =
+      engine::raster::Rasterizer::PostProcessAA::None;
+    if (postAA == "FXAA") {
+      postProcessAA = engine::raster::Rasterizer::PostProcessAA::FXAA;
+    } else if (postAA == "SMAA") {
+      postProcessAA = engine::raster::Rasterizer::PostProcessAA::SMAA;
+    }
+    p->rasterizer->setPostProcessAA(postProcessAA);
     p->rasterizer->setShadowMapsEnabled(p->settingsWidget->shadowMapsEnabled());
     p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
     p->rasterizer->setShadowCascadeCount(p->settingsWidget->shadowCascadeCount());
