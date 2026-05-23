@@ -9,6 +9,7 @@
 #include "render/primitives/Primitive.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "render/textures/Texture.h"
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
@@ -65,6 +66,21 @@ namespace engine::raster::detail {
         return result;
       }
 
+      if (typeid(*texturePtr) == typeid(render::ImageTexture)) {
+        const auto* image = static_cast<const render::ImageTexture*>(texturePtr);
+        const render::TextureMapping2D* mapping = image->mapping();
+        if (mapping && typeid(*mapping) == typeid(render::UVMapping2D)) {
+          const auto* uvMapping = static_cast<const render::UVMapping2D*>(mapping);
+          RasterTexture result;
+          result.m_kind = Kind::Image;
+          result.m_texture = texture;
+          result.m_image = image;
+          result.m_uScale = uvMapping->uScale();
+          result.m_vScale = uvMapping->vScale();
+          return result;
+        }
+      }
+
       if (typeid(*texturePtr) == typeid(render::CheckerBoardTexture)) {
         const auto* checker = static_cast<const render::CheckerBoardTexture*>(texturePtr);
         const render::TextureMapping2D* mapping = checker->mapping();
@@ -85,14 +101,20 @@ namespace engine::raster::detail {
     }
 
     Colord evaluate(const render::Primitive* primitive, const Vector3d& worldPos,
-                    const Vector3d& normal, const Vector2d& uv) const {
+                    const Vector3d& normal, const Vector2d& uv,
+                    const Vector2d& uvDx = Vector2d::null,
+                    const Vector2d& uvDy = Vector2d::null) const {
       switch (m_kind) {
       case Kind::Constant:
         return m_color;
       case Kind::UVColor:
         return Colord(uv.x(), uv.y(), 0.0);
+      case Kind::Image:
+        return m_image->sample(uv.x() * m_uScale, uv.y() * m_vScale,
+                               Vector2d(uvDx.x() * m_uScale, uvDx.y() * m_vScale),
+                               Vector2d(uvDy.x() * m_uScale, uvDy.y() * m_vScale));
       case Kind::UVChecker:
-        return checkerChild(uv).evaluate(primitive, worldPos, normal, uv);
+        return checkerChild(uv).evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
       case Kind::Fallback: {
         const HitPoint hp(primitive, 0.0, Vector4d(worldPos), normal, uv);
         const Rayd ray(worldPos, -normal);
@@ -103,7 +125,7 @@ namespace engine::raster::detail {
     }
 
   private:
-    enum class Kind { Constant, UVColor, UVChecker, Fallback };
+    enum class Kind { Constant, UVColor, UVChecker, Image, Fallback };
 
     static RasterTexture fallback(std::shared_ptr<render::Texturec> texture) {
       RasterTexture result;
@@ -122,6 +144,7 @@ namespace engine::raster::detail {
     Kind m_kind;
     Colord m_color;
     std::shared_ptr<render::Texturec> m_texture;
+    const render::ImageTexture* m_image = nullptr;
     double m_uScale;
     double m_vScale;
     std::shared_ptr<RasterTexture> m_bright;
@@ -170,8 +193,9 @@ namespace engine::raster::detail {
     }
 
     Colord albedo(const render::Primitive* primitive, const Vector3d& worldPos,
-                  const Vector3d& normal, const Vector2d& uv) const {
-      return m_albedo.evaluate(primitive, worldPos, normal, uv);
+                  const Vector3d& normal, const Vector2d& uv, const Vector2d& uvDx,
+                  const Vector2d& uvDy) const {
+      return m_albedo.evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
     }
 
     double ambientCoefficient() const {

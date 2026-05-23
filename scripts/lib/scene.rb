@@ -501,6 +501,15 @@ class ConstantColorTexture < Texture
   property :color => [0, 0, 0]
 end
 
+class ImageTexture < Texture
+  property :path => "",
+           :filter => "nearest",
+           :wrap => "repeat",
+           :mapping => "uv",
+           :uScale => 1,
+           :vScale => 1
+end
+
 class UVColorTexture < Texture
 end
 

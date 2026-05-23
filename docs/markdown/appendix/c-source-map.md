@@ -102,6 +102,7 @@
 | `include/render/samplers/SamplerFactory.h` | [10. Sampling and anti-aliasing](../02-ray-rendering/10-sampling-and-anti-aliasing.md) |
 | `include/render/textures/CheckerBoardTexture.h` | [11. Textures](../02-ray-rendering/11-textures.md) |
 | `include/render/textures/ConstantColorTexture.h` | [11. Textures](../02-ray-rendering/11-textures.md) |
+| `include/render/textures/ImageTexture.h` | [11. Textures](../02-ray-rendering/11-textures.md) |
 | `include/render/textures/Texture.h` | [11. Textures](../02-ray-rendering/11-textures.md) |
 | `include/render/textures/UVColorTexture.h` | [11. Textures](../02-ray-rendering/11-textures.md) |
 | `include/render/textures/mappings/` | [11. Textures](../02-ray-rendering/11-textures.md) |

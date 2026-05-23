@@ -11,9 +11,9 @@ By the end of this chapter you should know:
 
 - the `Texture<T>` interface and the contract it places on
   subclasses,
-- the three concrete textures the codebase ships
+- the four concrete textures the codebase ships
   (`ConstantColorTexture`, `CheckerBoardTexture`,
-  `UVColorTexture`) and what each is for,
+  `UVColorTexture`, `ImageTexture`) and what each is for,
 - the **mapping** abstraction that turns a hit point into 2D
   texture coordinates, and the difference between planar and
   [UV](../appendix/a-glossary.md#u)-direct,
@@ -173,23 +173,28 @@ a direct field read. The rasterizer doesn't know whether the
 texture is a constant, a checker, or anything else; it just hands
 the hit point over and gets a color back.
 
-## 11.5 What's missing — image textures
+## 11.5 Image textures and filtering
 
-One thing is notably absent from this list: an `ImageTexture`
-that reads a PNG or EXR off disk and samples it. That's a queued
-item under `docs/topics-backlog.md` (and roadmap §4.3.b). When it
-lands, it will look like:
+`ImageTexture` is the raster image counterpart to the procedural
+textures above. It stores texels as `Colord`, uses a normal 2D
+mapping to obtain $(s, t)$, then applies an explicit sampling
+policy:
 
-- Constructor takes a path or a `Buffer<Colord>`.
-- `evaluate` reads $(s, t)$ via the configured mapping (probably
-  `UVMapping2D` by default), wraps or clamps to $[0, 1]$, and
-  samples the buffer with bilinear interpolation.
-- Tone-mapping and gamma-decoding the source image is the
-  consumer's job; the texture itself works in linear RGB like
-  every other `Texturec`.
+- `nearest` picks the containing texel and preserves the crisp,
+  aliased look of point sampling.
+- `bilinear` blends the four neighboring texels in the base image.
+- `mipmap` builds a CPU mip chain and samples/blends lower-
+  resolution levels when the renderer can provide screen-space UV
+  gradients.
 
-This is the natural next chapter to revisit. The book will pick
-up the change in the same spot when it ships.
+The wrap policy is explicit too: `repeat` tiles the image outside
+the unit square, while `clamp` pins lookup to the nearest edge
+texel. The plain ray-tracing `Texture::evaluate` interface has no
+derivative channel, so mipmapped textures fall back to level 0
+there. The software rasterizer has interpolated UVs plus screen
+coordinates for each triangle, so it can estimate `dUVdx` and
+`dUVdy` and choose a mip level for distant or minified textured
+surfaces.
 
 ## 11.6 Exercises
 
@@ -208,6 +213,9 @@ up the change in the same spot when it ships.
    axes does it use for $(s, t)$? Is that choice configurable, or
    hard-coded? What changes if a primitive lies in the wrong
    plane for the default?
+5. Render the same high-frequency `ImageTexture` with `nearest`,
+   `bilinear`, and `mipmap` filters. Which artifacts are reduced by
+   each step, and which details disappear as the mip level rises?
 
 ## See also
 
@@ -229,6 +237,7 @@ up the change in the same spot when it ships.
 - `include/render/textures/Texture.h`
 - `include/render/textures/ConstantColorTexture.h`
 - `include/render/textures/CheckerBoardTexture.h`
+- `include/render/textures/ImageTexture.h`
 - `include/render/textures/UVColorTexture.h`
 - `include/render/textures/mappings/`
 <!-- /source-anchors -->

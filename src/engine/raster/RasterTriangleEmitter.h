@@ -276,6 +276,25 @@ namespace engine::raster::detail {
       return true;
     }
 
+    static void uvGradients(const RasterVertex& r0, const RasterVertex& r1,
+                            const RasterVertex& r2, Vector2d& uvDx, Vector2d& uvDy) {
+      const double x10 = r1.x - r0.x;
+      const double y10 = r1.y - r0.y;
+      const double x20 = r2.x - r0.x;
+      const double y20 = r2.y - r0.y;
+      const double determinant = x10 * y20 - x20 * y10;
+      if (std::abs(determinant) <= 1e-12) {
+        uvDx = Vector2d::null;
+        uvDy = Vector2d::null;
+        return;
+      }
+
+      const Vector2d uv10 = r1.uv - r0.uv;
+      const Vector2d uv20 = r2.uv - r0.uv;
+      uvDx = (uv10 * y20 - uv20 * y10) / determinant;
+      uvDy = (uv20 * x10 - uv10 * x20) / determinant;
+    }
+
     bool makeTriangle(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                       const render::Primitive* primitive,
                       const std::shared_ptr<render::Material>& material,
@@ -289,8 +308,11 @@ namespace engine::raster::detail {
         return false;
       }
 
+      Vector2d uvDx;
+      Vector2d uvDy;
+      uvGradients(r0, r1, r2, uvDx, uvDy);
       out = RasterTriangle{
-        {{r0, r1, r2}}, primitive, material, materialSource.forFace(faceIdx), faceIdx};
+        {{r0, r1, r2}}, primitive, material, materialSource.forFace(faceIdx), uvDx, uvDy, faceIdx};
       return true;
     }
 

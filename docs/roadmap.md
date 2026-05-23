@@ -411,7 +411,7 @@ Pragmatic first wave: GGX conductor/dielectric, Oren-Nayar, emission, and a meta
 
 Textures are not just colour sources — they are the input to every shading parameter, and the framework should make that explicit. The four layers, from most concrete to most abstract:
 
-1. **Image textures** with proper sampling: nearest / bilinear / trilinear / anisotropic; MIP-mapping; clamp/repeat/mirror; sRGB vs linear; HDR (EXR / Radiance HDR).
+1. **Image textures** with proper sampling: ~~nearest / bilinear / trilinear; MIP-mapping; clamp/repeat~~ ✅ **Done.** CPU `ImageTexture` now exposes explicit nearest, bilinear, and mipmapped filtering with clamp/repeat wrap and raster UV-gradient mip selection (#167). Still TODO: anisotropic filtering, mirror wrap, sRGB vs linear, and HDR (EXR / Radiance HDR).
 2. **Procedural textures** (Perlin, simplex, Worley, checker, marble, wood, brick, gabor, value noise, fractal noise variants). Templated `ProceduralTexture<F>` on a noise functor.
 3. **Calculated / data-driven textures** — functions of position, normal, UV, view, hit attributes, and previous shading state. Used for AO bake-in, curvature shading, world-space gradients, etc.
 4. **Scripted textures.** Same DSL/scripting layer as §4.6's parametric objects. The user (or the AI agent) can write `(u, v, p, n) → colour` in a small language and drop it on a material slot. Hot-reload at edit time. This is where most of the "I want to try X" experiments happen; making it first-class is what keeps them from leaking into the C++ codebase.
@@ -421,7 +421,7 @@ Texture inputs feed *any* material parameter — albedo, roughness, metallic, IO
 The texture-mapping roadmap is separate from the texture-source roadmap:
 
 - **UV mapping first** — carry stable UVs from `Mesh::Vertex` through `HitPoint`, the rasterizer, and every material evaluation path. Tests should pin seam duplication and primitive-generated UV conventions.
-- **Derivative and tangent data** — expose `dPdu`, `dPdv`, `dUVdx`, and `dUVdy` where an engine can provide them; needed for MIP level selection, bump mapping, anisotropic filtering, and tangent-space normal maps.
+- **Derivative and tangent data** — expose `dPdu`, `dPdv`, ~~`dUVdx`, and `dUVdy` where an engine can provide them; needed for MIP level selection~~ ✅ **Done.** The software rasterizer now computes per-triangle UV gradients for image-texture mip selection (#167). Still TODO: full surface derivatives for bump mapping, anisotropic filtering, and tangent-space normal maps.
 - **Projection modes** — planar, spherical, cylindrical, cube/box, triplanar, object-space, world-space, and camera/projector mapping. These should be explicit mapping objects, not special cases inside individual textures.
 - **Environment mapping** — equirectangular and cubemap lookup for backgrounds, reflection/refraction probes, and HDRI lighting. This overlaps §4.4.b's HDRI light, but the material side needs its own sampler, transform, and roughness-filtered lookup path.
 - **Texture cache and filtering** — image decode, colour-space conversion, MIP generation, tile/cache lifetime, and sampling policy belong below materials so all engines see the same texture values.
