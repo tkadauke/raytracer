@@ -211,10 +211,15 @@ Keep `queueSize > 1` opt-in until this decision is backed by measurements.
 
 ### 8. Integrate frustum and spatial culling
 
+Status: primitive-bound culling is partially complete; broader spatial-index
+integration remains open.
+
 Carry forward the original frustum/spatial culling item:
 
 - wait for the broader `SpatialIndex` work;
-- cull primitive bounds before tessellation where possible;
+- ✅ cull finite primitive bounds before tessellation when all AABB corners are
+  outside the same homogeneous clip plane; skip this camera-pass early-out when
+  a custom vertex shader can move projected positions;
 - feed the rasterizer from a frustum-friendly scene view instead of walking
   every tessellated primitive each frame.
 

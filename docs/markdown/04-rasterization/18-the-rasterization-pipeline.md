@@ -270,8 +270,10 @@ seventh (the float-to-[LDR](../appendix/a-glossary.md#l) conversion) bolted on t
 Reading the algorithmic spine:
 
 ```
-mesh = scene.tessellate(lod)
-for each leaf primitive in mesh:
+for each leaf primitive in scene:
+    if finite bounds are wholly outside one clip plane:
+        continue
+    mesh = primitive.tessellate(lod)
     project each vertex to clip space
     for each face (fan-triangulated to triangles):
         for each triangle:
@@ -289,7 +291,11 @@ primitives directly** rather than tessellating the entire
 scene into one mega-mesh. The motivation is per-primitive
 material lookup: each leaf carries its own material, and
 collapsing everything into one mesh would lose that
-information. Second, the default 1x single-tile path streams
+information. Finite primitive bounds are tested before
+tessellation with the same homogeneous outcode planes used for
+triangle clipping; a primitive is skipped only when every
+bounding-box corner is outside the same plane. Second, the
+default 1x single-tile path streams
 those projected and clipped triangles directly into the pass
 buffers. The retained `RasterTriangleSet` appears only when
 the renderer needs reuse: tiled rendering bins triangles by
@@ -375,6 +381,7 @@ all engines, look for differences" grows.
 - `include/core/geometry/Rasterize.h`
 - `include/engine/raster/Rasterizer.h`
 - `src/engine/raster/Rasterizer.cpp`
+- `src/engine/raster/RasterTriangleEmitter.h`
 - `include/render/HomogeneousClipVolume.h`
 - `include/render/TilePlan.h`
 <!-- /source-anchors -->

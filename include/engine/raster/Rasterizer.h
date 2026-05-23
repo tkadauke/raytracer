@@ -31,9 +31,11 @@ namespace engine::raster {
   * Pipeline:
   *
   *  1. Walk the scene's leaf primitives via
-  *     `render::Primitive::forEachLeaf`, calling `tessellate(lod)`
-  *     on each so the rasterizer keeps per-primitive material
-  *     associations rather than collapsing the scene into one mesh.
+  *     `render::Primitive::forEachLeaf`. Finite primitive bounds
+  *     wholly outside one clip plane are rejected before tessellation;
+  *     otherwise the rasterizer calls `tessellate(lod)` on each leaf
+  *     so it keeps per-primitive material associations rather than
+  *     collapsing the scene into one mesh.
   *  2. For each leaf mesh, precompute every vertex's homogeneous
   *     clip coordinate via `Camera::projectPointToClipSpace`, plus
   *     cached screen coordinates for vertices already inside the

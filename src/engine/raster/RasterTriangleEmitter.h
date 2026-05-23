@@ -106,6 +106,10 @@ namespace engine::raster::detail {
           if (m_cancelled.load())
             return;
 
+          if (canCullPrimitiveBounds() && primitiveBoundsOutsideClipVolume(primitive)) {
+            return;
+          }
+
           auto mesh = primitive->tessellate(m_lod);
           if (!mesh)
             return;
@@ -196,6 +200,31 @@ namespace engine::raster::detail {
     }
 
   private:
+    bool canCullPrimitiveBounds() const {
+      return !m_applyVertexShader || !m_rasterizer.vertexShader();
+    }
+
+    bool primitiveBoundsOutsideClipVolume(const render::Primitive* primitive) const {
+      const BoundingBoxd& bounds = primitive->boundingBox();
+      if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
+        return false;
+      }
+
+      // Conservative AABB/frustum reject: a primitive is skipped only when all
+      // eight bounds corners are outside the same homogeneous clip plane. Any
+      // mixed case may still intersect the view volume, so it is tessellated.
+      std::uint8_t sharedOutCode = render::HomogeneousClipVolume::allBits();
+      for (const Vector3d& corner : bounds.vertices()) {
+        const Vector4d clip = m_camera->projectPointToClipSpace(corner);
+        sharedOutCode &= m_clipVolume.outCode(clip);
+        if (sharedOutCode == 0) {
+          return false;
+        }
+      }
+
+      return sharedOutCode != 0;
+    }
+
     template<class EmitFn>
     void emitPreparedTriangle(const render::Primitive* primitive,
                               const std::shared_ptr<render::Material>& material,

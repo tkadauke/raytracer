@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
 #include "src/engine/raster/RasterShadowMaps.h"
@@ -43,6 +44,32 @@ namespace RasterizerTest {
     Colord evaluate(const Rayd&, const HitPoint& hitPoint) const override {
       return Colord(hitPoint.uv().x(), hitPoint.uv().y(), 0.0);
     }
+  };
+
+  class CountingPrimitive : public Primitive {
+  public:
+    CountingPrimitive(const BoundingBoxd& bounds, int* tessellateCalls)
+        : m_bounds(bounds),
+          m_tessellateCalls(tessellateCalls) {
+    }
+
+    const Primitive* intersect(const Rayd&, HitPointInterval&, render::State&) const override {
+      return nullptr;
+    }
+
+    std::shared_ptr<Mesh> tessellate(int = 0) const override {
+      ++(*m_tessellateCalls);
+      return std::make_shared<Mesh>();
+    }
+
+  protected:
+    BoundingBoxd calculateBoundingBox() const override {
+      return m_bounds;
+    }
+
+  private:
+    BoundingBoxd m_bounds;
+    int* m_tessellateCalls;
   };
 
   struct TrackedTriangleScene {
@@ -401,6 +428,51 @@ namespace RasterizerTest {
     const int filledHigh = countNonBackground(bufferHigh, Colord::black());
 
     EXPECT_GE(filledHigh, filledLow);
+  }
+
+  TEST(Rasterizer, FrustumBoundsOutsideViewSkipTessellation) {
+    int tessellateCalls = 0;
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
+      &tessellateCalls));
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, tessellateCalls);
+  }
+
+  TEST(Rasterizer, FrustumBoundsKeepVisiblePrimitiveForTessellation) {
+    int tessellateCalls = 0;
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(-1.0, -1.0, 0.0), Vector3d(1.0, 1.0, 1.0)), &tessellateCalls));
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(1, tessellateCalls);
+  }
+
+  TEST(Rasterizer, FrustumBoundsCullingKeepsVertexShaderPathConservative) {
+    int tessellateCalls = 0;
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<CountingPrimitive>(
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
+      &tessellateCalls));
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setVertexShader([](const Rasterizer::VertexInput& vertex) {
+      return Rasterizer::VertexOutput{vertex.worldPosition, vertex.normal, vertex.uv,
+                                      vertex.clipPosition, vertex.screenPosition};
+    });
+    Buffer<Colord> buffer(32, 32);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(1, tessellateCalls);
   }
 
   TEST(Rasterizer, HandlesNullSceneGracefully) {
