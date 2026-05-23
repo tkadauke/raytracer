@@ -378,17 +378,39 @@ namespace engine::raster::detail {
     return {minDepth, maxDepth};
   }
 
-  // Evenly split the camera-depth interval into cascade ranges. This is simple
-  // linear splitting; the v2 plan tracks revisiting the split policy later.
+  // Practical cascade splitting blends between linear splits and logarithmic
+  // splits. Linear ranges spend equal depth on every cascade; logarithmic
+  // ranges spend more cascades near the camera where fixed-size shadow maps
+  // need the most texel density.
+  inline double cascadeSplitDepth(double minDepth, double maxDepth, double ratio,
+                                  double splitLambda) {
+    const double linear = minDepth + (maxDepth - minDepth) * ratio;
+    if (minDepth <= 0.0 || maxDepth <= minDepth || !std::isfinite(minDepth) ||
+        !std::isfinite(maxDepth))
+      return linear;
+
+    const double lambda = std::isfinite(splitLambda) ? std::clamp(splitLambda, 0.0, 1.0) : 0.0;
+    const double logarithmic = minDepth * std::pow(maxDepth / minDepth, ratio);
+    return linear * (1.0 - lambda) + logarithmic * lambda;
+  }
+
+  // Split the camera-depth interval into cascade ranges. `splitLambda` controls
+  // the linear/logarithmic blend: 0 preserves the old uniform split, 1 is fully
+  // logarithmic, and the default 0.5 gives practical near-depth emphasis.
   inline std::vector<std::pair<double, double>> cascadeDepthRanges(double minDepth, double maxDepth,
-                                                                   int cascadeCount) {
+                                                                   int cascadeCount,
+                                                                   double splitLambda) {
+    cascadeCount = std::max(1, cascadeCount);
     std::vector<std::pair<double, double>> ranges;
     ranges.reserve(static_cast<std::size_t>(cascadeCount));
-    const double span = maxDepth - minDepth;
+    double start = minDepth;
     for (int i = 0; i != cascadeCount; ++i) {
-      const double start = minDepth + span * static_cast<double>(i) / cascadeCount;
-      const double end = minDepth + span * static_cast<double>(i + 1) / cascadeCount;
+      const double ratio = static_cast<double>(i + 1) / static_cast<double>(cascadeCount);
+      const double end = i + 1 == cascadeCount
+                           ? maxDepth
+                           : cascadeSplitDepth(minDepth, maxDepth, ratio, splitLambda);
       ranges.emplace_back(start, end);
+      start = end;
     }
     return ranges;
   }

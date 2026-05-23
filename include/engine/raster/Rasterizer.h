@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -185,14 +186,23 @@ namespace engine::raster {
   *
   * Cascades split the scene bounds across camera depth and build several
   * tighter directional-light maps instead of one map around the whole scene.
-  * Each map is fit around its slice in light space, then its center is snapped
-  * to the light-space texel grid so small camera movements do not make the
-  * shadow projection drift by fractional texels.
+  * The split blend controls how much of that partition is linear versus
+  * logarithmic: linear splits divide depth evenly, while logarithmic splits
+  * spend more cascades near the camera. Each map is fit around its slice in
+  * light space, then its center is snapped to the light-space texel grid so
+  * small camera movements do not make the shadow projection drift by
+  * fractional texels.
   *
   * <table><tr>
   * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
   * <td>@image html rasterizer_shadow_cascades_2.png "2 cascades"</td>
   * <td>@image html rasterizer_shadow_cascades_4.png "4 cascades"</td>
+  * </tr></table>
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_shadow_cascade_split_0_00.png "linear split"</td>
+  * <td>@image html rasterizer_shadow_cascade_split_0_50.png "practical split"</td>
+  * <td>@image html rasterizer_shadow_cascade_split_1_00.png "logarithmic split"</td>
   * </tr></table>
   *
   * @htmlonly
@@ -521,8 +531,8 @@ public:
     * Sets the number of cascaded shadow maps per directional light.
     * Values are clamped to the range [1, 4]. Counts above 1 split the
     * scene bounds by camera view depth and build one tighter light-space
-    * shadow map per slice. Cascade centers are snapped to the shadow-map
-    * texel grid for stable camera previews.
+    * shadow map per slice. `setShadowCascadeSplitLambda()` controls how
+    * those depth ranges are distributed.
     *
     * <table><tr>
     * <td>@image html rasterizer_shadow_cascades_1.png "1 cascade"</td>
@@ -532,6 +542,28 @@ public:
     */
   inline void setShadowCascadeCount(int count) {
     m_shadowCascadeCount = std::clamp(count, 1, 4);
+  }
+
+  /// Returns the practical split blend used for directional shadow cascades.
+  /// 0 is linear, 1 is logarithmic, and the default is 0.5.
+  inline double shadowCascadeSplitLambda() const { return m_shadowCascadeSplitLambda; }
+
+  /**
+    * Sets the linear/logarithmic blend for camera-depth cascade splits.
+    *
+    * Values are clamped to [0, 1]. A value of 0 preserves uniform linear
+    * splits across camera depth. A value of 1 uses logarithmic splits that
+    * concentrate more cascade resolution near the camera. The default 0.5
+    * is the common practical split used by parallel-split shadow maps.
+    *
+    * <table><tr>
+    * <td>@image html rasterizer_shadow_cascade_split_0_00.png "0.00"</td>
+    * <td>@image html rasterizer_shadow_cascade_split_0_50.png "0.50"</td>
+    * <td>@image html rasterizer_shadow_cascade_split_1_00.png "1.00"</td>
+    * </tr></table>
+    */
+  inline void setShadowCascadeSplitLambda(double lambda) {
+    m_shadowCascadeSplitLambda = std::isfinite(lambda) ? std::clamp(lambda, 0.0, 1.0) : 0.0;
   }
 
   /// Returns the constant light-space depth bias used by the shadow-map
@@ -713,6 +745,7 @@ private:
   bool m_shadowMapsEnabled{false};
   int m_shadowMapSize{256};
   int m_shadowCascadeCount{1};
+  double m_shadowCascadeSplitLambda{0.5};
   double m_shadowBias{1e-3};
   double m_shadowSlopeBias{0.0};
   int m_shadowFilterRadius{0};

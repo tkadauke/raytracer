@@ -487,6 +487,7 @@ namespace RasterizerTest {
     EXPECT_FALSE(engine.shadowMapsEnabled());
     EXPECT_EQ(256, engine.shadowMapSize());
     EXPECT_EQ(1, engine.shadowCascadeCount());
+    EXPECT_DOUBLE_EQ(0.5, engine.shadowCascadeSplitLambda());
     EXPECT_DOUBLE_EQ(1e-3, engine.shadowBias());
     EXPECT_DOUBLE_EQ(0.0, engine.shadowSlopeBias());
     EXPECT_EQ(0, engine.shadowFilterRadius());
@@ -505,6 +506,7 @@ namespace RasterizerTest {
     engine.setNearClipDepth(0.5);
     engine.setFarClipDepth(25.0);
     engine.setShadowCascadeCount(3);
+    engine.setShadowCascadeSplitLambda(0.75);
     engine.setShadowSlopeBias(0.02);
     engine.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCSS);
     Buffer<double> depth(1, 1);
@@ -519,6 +521,7 @@ namespace RasterizerTest {
     EXPECT_DOUBLE_EQ(0.5, clone->nearClipDepth());
     EXPECT_DOUBLE_EQ(25.0, clone->farClipDepth());
     EXPECT_EQ(3, clone->shadowCascadeCount());
+    EXPECT_DOUBLE_EQ(0.75, clone->shadowCascadeSplitLambda());
     EXPECT_DOUBLE_EQ(0.02, clone->shadowSlopeBias());
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, clone->shadowFilterMode());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
@@ -609,6 +612,37 @@ namespace RasterizerTest {
 
     engine.setShadowCascadeCount(9);
     EXPECT_EQ(4, engine.shadowCascadeCount());
+  }
+
+  TEST(Rasterizer, ShadowCascadeSplitLambdaClampsToSupportedRange) {
+    Rasterizer engine(headOnCamera(), sceneWithFrontFacingTriangle());
+
+    engine.setShadowCascadeSplitLambda(0.75);
+    EXPECT_DOUBLE_EQ(0.75, engine.shadowCascadeSplitLambda());
+
+    engine.setShadowCascadeSplitLambda(-0.25);
+    EXPECT_DOUBLE_EQ(0.0, engine.shadowCascadeSplitLambda());
+
+    engine.setShadowCascadeSplitLambda(1.25);
+    EXPECT_DOUBLE_EQ(1.0, engine.shadowCascadeSplitLambda());
+
+    engine.setShadowCascadeSplitLambda(std::numeric_limits<double>::infinity());
+    EXPECT_DOUBLE_EQ(0.0, engine.shadowCascadeSplitLambda());
+  }
+
+  TEST(Rasterizer, CascadeDepthRangesBlendLinearAndLogSplits) {
+    const auto linear = engine::raster::detail::cascadeDepthRanges(1.0, 100.0, 2, 0.0);
+    const auto practical = engine::raster::detail::cascadeDepthRanges(1.0, 100.0, 2, 0.5);
+    const auto logarithmic = engine::raster::detail::cascadeDepthRanges(1.0, 100.0, 2, 1.0);
+
+    ASSERT_EQ(2u, linear.size());
+    ASSERT_EQ(2u, practical.size());
+    ASSERT_EQ(2u, logarithmic.size());
+    EXPECT_DOUBLE_EQ(50.5, linear.front().second);
+    EXPECT_DOUBLE_EQ(30.25, practical.front().second);
+    EXPECT_DOUBLE_EQ(10.0, logarithmic.front().second);
+    EXPECT_DOUBLE_EQ(practical.front().second, practical.back().first);
+    EXPECT_DOUBLE_EQ(100.0, practical.back().second);
   }
 
   TEST(Rasterizer, ShadowFilterRadiusClampsOnlyNegativeValues) {

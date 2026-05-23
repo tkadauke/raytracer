@@ -26,6 +26,7 @@ public:
   bool shadowMapsEnabled() const;
   int shadowMapSize() const;
   int shadowCascadeCount() const;
+  double shadowCascadeSplitLambda() const;
   double shadowBias() const;
   double shadowSlopeBias() const;
   int shadowFilterRadius() const;

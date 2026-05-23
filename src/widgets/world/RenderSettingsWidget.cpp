@@ -104,6 +104,10 @@ int RenderSettingsWidget::shadowCascadeCount() const {
   return p->ui.rasterShadowCascadeCount->value();
 }
 
+double RenderSettingsWidget::shadowCascadeSplitLambda() const {
+  return p->ui.rasterShadowCascadeSplitLambda->value();
+}
+
 double RenderSettingsWidget::shadowBias() const {
   return p->ui.rasterShadowBias->value();
 }
@@ -160,6 +164,8 @@ void RenderSettingsWidget::updateEngineControls() {
   p->ui.rasterShadowMapSize->setVisible(showShadowDetails);
   p->ui.label_rasterShadowCascadeCount->setVisible(showShadowDetails);
   p->ui.rasterShadowCascadeCount->setVisible(showShadowDetails);
+  p->ui.label_rasterShadowCascadeSplitLambda->setVisible(showShadowDetails);
+  p->ui.rasterShadowCascadeSplitLambda->setVisible(showShadowDetails);
   p->ui.label_rasterShadowBias->setVisible(showShadowDetails);
   p->ui.rasterShadowBias->setVisible(showShadowDetails);
   p->ui.label_rasterShadowSlopeBias->setVisible(showShadowDetails);
@@ -189,6 +195,7 @@ void RenderSettingsWidget::setBusy(bool busy) {
   p->ui.rasterShadowMaps->setEnabled(!busy);
   p->ui.rasterShadowMapSize->setEnabled(!busy);
   p->ui.rasterShadowCascadeCount->setEnabled(!busy);
+  p->ui.rasterShadowCascadeSplitLambda->setEnabled(!busy);
   p->ui.rasterShadowBias->setEnabled(!busy);
   p->ui.rasterShadowSlopeBias->setEnabled(!busy);
   p->ui.rasterShadowFilterRadius->setEnabled(!busy);

@@ -250,7 +250,7 @@ the stored depth in the shadow map. If the projected depth is
 farther than what the map recorded, something else is closer
 to the light along that direction — the fragment is in shadow.
 
-Five knobs control quality versus cost:
+Six knobs control quality versus cost:
 
 - **Map resolution** — how finely the light-space depth
   image samples the scene. Low values quantize shadow edges
@@ -265,6 +265,12 @@ Five knobs control quality versus cost:
   rasterizer snaps each cascade center to the corresponding
   light-space texel grid. That keeps small camera moves from
   shifting the shadow projection by fractional texels.
+- **Cascade split blend** — how the cascade boundaries are
+  distributed between near and far camera depths. A blend of
+  0 uses linear splits, so every cascade receives the same
+  amount of depth. A blend of 1 uses logarithmic splits, so
+  more cascade resolution stays near the camera. The default
+  practical blend is 0.5.
 
 <!-- widget: rasterizer_shadow_cascades -->
 

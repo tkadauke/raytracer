@@ -169,7 +169,7 @@ review:
 - ✅ add slope-scaled bias in addition to constant bias;
 - ✅ tighten directional cascade fitting using light-space bounds rather than broad
   scene/cascade diagonals;
-- revisit cascade split policy, including practical log/linear splits;
+- ✅ revisit cascade split policy, including practical log/linear splits;
 - document the current "outside the shadow map is lit" border behavior;
 - defer point/spot-light shadows until directional-light behavior is solid.
 

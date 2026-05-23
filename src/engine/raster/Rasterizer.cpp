@@ -254,6 +254,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowCascadeCount(m_shadowCascadeCount);
+  result->setShadowCascadeSplitLambda(m_shadowCascadeSplitLambda);
   result->setShadowBias(m_shadowBias);
   result->setShadowSlopeBias(m_shadowSlopeBias);
   result->setShadowFilterRadius(m_shadowFilterRadius);
@@ -383,8 +384,9 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
   const auto corners = bounds.vertices();
   const auto [minViewDepth, maxViewDepth] =
     viewDepthRange(*camera, corners, rasterizer.nearClipDepth(), rasterizer.farClipDepth());
-  const auto cascadeDepths =
-    cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount());
+  const auto cascadeDepths = cascadeDepthRanges(
+    minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount(),
+    rasterizer.shadowCascadeSplitLambda());
 
   for (const auto& light : scene->lights()) {
     if (cancelled.load())

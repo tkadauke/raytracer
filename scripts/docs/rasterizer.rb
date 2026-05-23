@@ -203,8 +203,23 @@ shadow_cascade_counts = [1, 2, 4]
 shadow_cascade_counts.each do |count|
   class_doc(engine: "raster", width: 320, height: 240,
             shadow_maps: true, shadow_map_size: 64, shadow_bias: 0.35,
-            shadow_cascades: count) do
+            shadow_cascades: count, shadow_cascade_split: 0.5) do
     name "rasterizer_shadow_cascades_#{count}"
+
+    rasterizer_shadow_cascade_scene
+  end
+end
+
+shadow_cascade_splits = [
+  ["0_00", 0.0],
+  ["0_50", 0.5],
+  ["1_00", 1.0],
+]
+shadow_cascade_splits.each do |label, split|
+  class_doc(engine: "raster", width: 320, height: 240,
+            shadow_maps: true, shadow_map_size: 64, shadow_bias: 0.35,
+            shadow_cascades: 4, shadow_cascade_split: split) do
+    name "rasterizer_shadow_cascade_split_#{label}"
 
     rasterizer_shadow_cascade_scene
   end

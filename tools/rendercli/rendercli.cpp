@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
@@ -109,6 +110,7 @@ private:
   bool m_rasterShadowMaps;
   int m_rasterShadowMapSize;
   int m_rasterShadowCascadeCount;
+  double m_rasterShadowCascadeSplitLambda;
   double m_rasterShadowBias;
   double m_rasterShadowSlopeBias;
   int m_rasterShadowFilterRadius;
@@ -151,6 +153,7 @@ Renderer::Renderer()
       m_rasterShadowMaps(false),
       m_rasterShadowMapSize(256),
       m_rasterShadowCascadeCount(1),
+      m_rasterShadowCascadeSplitLambda(0.5),
       m_rasterShadowBias(1e-3),
       m_rasterShadowSlopeBias(0.0),
       m_rasterShadowFilterRadius(0),
@@ -224,6 +227,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     raster->setShadowMapsEnabled(m_rasterShadowMaps);
     raster->setShadowMapSize(m_rasterShadowMapSize);
     raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
+    raster->setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
     raster->setShadowBias(m_rasterShadowBias);
     raster->setShadowSlopeBias(m_rasterShadowSlopeBias);
     raster->setShadowFilterRadius(m_rasterShadowFilterRadius);
@@ -434,6 +438,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
+     {"shadow_cascade_split", "Rasterizer shadow cascade split blend (0=linear, 1=log)",
+      "blend"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
      {"shadow_slope_bias", "Rasterizer slope-scaled shadow-map depth bias", "bias"},
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
@@ -590,6 +596,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_rasterShadowCascadeCount = parser.value("shadow_cascades").toInt(&ok);
     if (!ok || m_rasterShadowCascadeCount <= 0) {
       *errorMessage = "Shadow cascade count must be a positive integer";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("shadow_cascade_split")) {
+    bool ok = false;
+    m_rasterShadowCascadeSplitLambda = parser.value("shadow_cascade_split").toDouble(&ok);
+    if (!ok || !std::isfinite(m_rasterShadowCascadeSplitLambda) ||
+        m_rasterShadowCascadeSplitLambda < 0.0 || m_rasterShadowCascadeSplitLambda > 1.0) {
+      *errorMessage = "Shadow cascade split blend must be a number from 0 to 1";
       return CommandLineError;
     }
   }

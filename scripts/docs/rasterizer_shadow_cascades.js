@@ -1,10 +1,11 @@
 // Interactive widget for rasterizer shadow-map cascades.
 //
-// The production rasterizer splits the scene bounds by camera depth, builds a
-// tighter directional-light shadow map for each slice, and snaps each cascade
-// center to the light-space texel grid. This 2D view shows those three ideas
-// together: depth slices in the camera view, light-space coverage per cascade,
-// and raw-vs-snapped map centers under small camera pans.
+// The production rasterizer splits the scene bounds by camera depth, blends
+// linear and logarithmic split positions, builds a tighter directional-light
+// shadow map for each slice, and snaps each cascade center to the light-space
+// texel grid. This 2D view shows those ideas together: depth slices in the
+// camera view, light-space coverage per cascade, and raw-vs-snapped map centers
+// under small camera pans.
 
 class RasterizerShadowCascades {
   constructor() {
@@ -14,6 +15,7 @@ class RasterizerShadowCascades {
     this.mapPanel = { x: 516, y: 56, width: 210, height: 286 };
     this.readoutPanel = { x: 32, y: 354, width: 694, height: 48 };
     this.cascadeCount = 4;
+    this.splitLambda = 0.5;
     this.pan = 0.0;
     this.snapCenters = true;
     this.mapTexels = 12;
@@ -50,6 +52,18 @@ class RasterizerShadowCascades {
         this.render();
       },
     });
+    this.splitControl = new FigureSliderControl({
+      label: 'split blend',
+      min: 0,
+      max: 1,
+      step: 0.05,
+      value: this.splitLambda,
+      precision: 2,
+      onChange: (value) => {
+        this.splitLambda = value;
+        this.render();
+      },
+    });
     this.panControl = new FigureSliderControl({
       label: 'camera pan',
       min: -1,
@@ -69,6 +83,7 @@ class RasterizerShadowCascades {
       viewBox: `0 0 ${this.width} ${this.height}`,
     });
     this.widget.addControl(this.countControl.element());
+    this.widget.addControl(this.splitControl.element());
     this.widget.addControl(this.snapControl.element());
     this.widget.addControl(this.panControl.element());
     this.widget.setContent(this.canvas.element);
@@ -89,13 +104,25 @@ class RasterizerShadowCascades {
   depthRanges() {
     const bounds = this.cameraBounds();
     const span = bounds.maxDepth - bounds.minDepth;
-    return Array.from({ length: this.cascadeCount }, (_, index) => ({
-      index,
-      minDepth: bounds.minDepth + span * index / this.cascadeCount,
-      maxDepth: bounds.minDepth + span * (index + 1) / this.cascadeCount,
-      minLateral: bounds.minLateral,
-      maxLateral: bounds.maxLateral,
-    }));
+    const ranges = [];
+    let minDepth = bounds.minDepth;
+    for (let index = 0; index < this.cascadeCount; ++index) {
+      const ratio = (index + 1) / this.cascadeCount;
+      const linear = bounds.minDepth + span * ratio;
+      const logarithmic = bounds.minDepth * Math.pow(bounds.maxDepth / bounds.minDepth, ratio);
+      const maxDepth = index + 1 === this.cascadeCount
+        ? bounds.maxDepth
+        : linear * (1 - this.splitLambda) + logarithmic * this.splitLambda;
+      ranges.push({
+        index,
+        minDepth,
+        maxDepth,
+        minLateral: bounds.minLateral,
+        maxLateral: bounds.maxLateral,
+      });
+      minDepth = maxDepth;
+    }
+    return ranges;
   }
 
   worldPoint(depth, lateral) {
@@ -142,6 +169,7 @@ class RasterizerShadowCascades {
   render() {
     this.canvas.clear();
     this.canvas.element.setAttribute('data-cascade-count', this.cascadeCount);
+    this.canvas.element.setAttribute('data-cascade-split', this.splitLambda.toFixed(2));
     this.canvas.element.setAttribute('data-center-snap', this.snapCenters ? 'on' : 'off');
 
     const metrics = this.metrics();
@@ -212,7 +240,7 @@ class RasterizerShadowCascades {
 
     this.renderSceneObjects(xForDepth, yForLateral);
     this.canvas.text(plot.x, this.cameraPanel.y + this.cameraPanel.height - 24,
-                     'near slices use tighter light-space maps', {
+                     'split blend moves detail toward near depth', {
       'font-size': 12,
       fill: '#444',
     });
@@ -323,12 +351,12 @@ class RasterizerShadowCascades {
     const texel = metrics.length > 0 ? metrics[0].texelSize : 0;
     const state = this.snapCenters ? 'snapped' : 'raw';
     this.canvas.text(this.readoutPanel.x + 18, this.readoutPanel.y + 30,
-                     `${this.cascadeCount} cascade(s), ${state} centers, max correction ${maxSnap.toFixed(1)} units`, {
+                     `${this.cascadeCount} cascade(s), split ${this.splitLambda.toFixed(2)}, ${state} centers`, {
       'font-size': 14,
       fill: '#333',
     });
-    this.canvas.text(this.readoutPanel.x + 474, this.readoutPanel.y + 30,
-                     `first texel ${texel.toFixed(1)} units`, {
+    this.canvas.text(this.readoutPanel.x + 430, this.readoutPanel.y + 30,
+                     `max correction ${maxSnap.toFixed(1)}, first texel ${texel.toFixed(1)}`, {
       'font-size': 14,
       fill: '#333',
     });
