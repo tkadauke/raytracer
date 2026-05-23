@@ -6,6 +6,7 @@
 #include "core/Buffer.h"
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -55,6 +56,25 @@ namespace engine::raster::detail {
   inline void accumulateMSAASample(Buffer<Colord>& target, const Buffer<Colord>& sample);
   inline void resolveMSAATile(Buffer<Colord>& buffer, const Buffer<Colord>& accumulated,
                               const Recti& rect, int sampleCount);
+
+  inline std::atomic<std::size_t>& msaaTileScratchAllocationCounter() {
+    static std::atomic<std::size_t> counter{0};
+    return counter;
+  }
+
+  inline void resetMSAATileScratchAllocationCount() {
+    msaaTileScratchAllocationCounter().store(0, std::memory_order_release);
+  }
+
+  inline std::size_t msaaTileScratchAllocationCount() {
+    return msaaTileScratchAllocationCounter().load(std::memory_order_acquire);
+  }
+
+  template<class T>
+  inline bool msaaScratchBufferMatches(const std::unique_ptr<Buffer<T>>& buffer, int width,
+                                       int height) {
+    return buffer && buffer->width() == width && buffer->height() == height;
+  }
 
   struct MSAAFragmentShadeKey {
     const RasterTriangle* triangle;
@@ -118,14 +138,25 @@ namespace engine::raster::detail {
   // and resolves back into the final framebuffer.
   class MSAATileScratch {
   public:
-    MSAATileScratch(const Rasterizer& rasterizer, const Recti& rect)
-        : m_rect(rect),
-          m_accumulated(rect.width(), rect.height()),
-          m_sampleColor(rect.width(), rect.height()),
-          m_depth(rect.width(), rect.height()) {
-      m_accumulated.clear(Colord::black());
+    void prepare(const Rasterizer& rasterizer, const Recti& rect) {
+      m_rect = rect;
+      if (!msaaScratchBufferMatches(m_accumulated, rect.width(), rect.height()) ||
+          !msaaScratchBufferMatches(m_sampleColor, rect.width(), rect.height()) ||
+          !msaaScratchBufferMatches(m_depth, rect.width(), rect.height())) {
+        m_accumulated = std::make_unique<Buffer<Colord>>(rect.width(), rect.height());
+        m_sampleColor = std::make_unique<Buffer<Colord>>(rect.width(), rect.height());
+        m_depth = std::make_unique<Buffer<double>>(rect.width(), rect.height());
+        msaaTileScratchAllocationCounter().fetch_add(1, std::memory_order_acq_rel);
+      }
+      m_accumulated->clear(Colord::black());
+
       if (rasterizer.stencilTestEnabled()) {
-        m_stencil = std::make_unique<Buffer<std::uint8_t>>(rect.width(), rect.height());
+        if (!msaaScratchBufferMatches(m_stencil, rect.width(), rect.height())) {
+          m_stencil = std::make_unique<Buffer<std::uint8_t>>(rect.width(), rect.height());
+          msaaTileScratchAllocationCounter().fetch_add(1, std::memory_order_acq_rel);
+        }
+      } else {
+        m_stencil.reset();
       }
     }
 
@@ -133,22 +164,22 @@ namespace engine::raster::detail {
       if (loadedColor) {
         for (int y = 0; y != m_rect.height(); ++y)
           for (int x = 0; x != m_rect.width(); ++x)
-            m_sampleColor[y][x] = (*loadedColor)[m_rect.top() + y][m_rect.left() + x];
+            (*m_sampleColor)[y][x] = (*loadedColor)[m_rect.top() + y][m_rect.left() + x];
       } else {
-        m_sampleColor.clear(rasterizer.backgroundColor());
+        m_sampleColor->clear(rasterizer.backgroundColor());
       }
-      m_depth.clear(rasterizer.depthClearValue());
+      m_depth->clear(rasterizer.depthClearValue());
       if (m_stencil) {
         m_stencil->clear(rasterizer.stencilClearValue());
       }
     }
 
     Buffer<Colord>& sampleColor() {
-      return m_sampleColor;
+      return *m_sampleColor;
     }
 
     Buffer<double>& depth() {
-      return m_depth;
+      return *m_depth;
     }
 
     Buffer<std::uint8_t>* stencil() {
@@ -156,18 +187,18 @@ namespace engine::raster::detail {
     }
 
     void accumulateSample() {
-      accumulateMSAASample(m_accumulated, m_sampleColor);
+      accumulateMSAASample(*m_accumulated, *m_sampleColor);
     }
 
     void resolveTo(Buffer<Colord>& target, int sampleCount) const {
-      resolveMSAATile(target, m_accumulated, m_rect, sampleCount);
+      resolveMSAATile(target, *m_accumulated, m_rect, sampleCount);
     }
 
   private:
     Recti m_rect;
-    Buffer<Colord> m_accumulated;
-    Buffer<Colord> m_sampleColor;
-    Buffer<double> m_depth;
+    std::unique_ptr<Buffer<Colord>> m_accumulated;
+    std::unique_ptr<Buffer<Colord>> m_sampleColor;
+    std::unique_ptr<Buffer<double>> m_depth;
     std::unique_ptr<Buffer<std::uint8_t>> m_stencil;
   };
 
