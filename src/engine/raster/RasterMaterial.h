@@ -8,6 +8,7 @@
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/Material.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Primitive.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -32,6 +33,10 @@ namespace engine::raster::detail {
     const std::uint64_t g = (index * 40503ULL + 12345) & 0xFFu;
     const std::uint64_t b = (index * 15485863ULL + 999983) & 0xFFu;
     return Colord(0.3 + (r / 255.0) * 0.7, 0.3 + (g / 255.0) * 0.7, 0.3 + (b / 255.0) * 0.7);
+  }
+
+  inline double rasterAlphaFromTextureColor(const Colord& color) {
+    return std::clamp(color.max(), 0.0, 1.0);
   }
 
   // Raster-native wrapper around render textures. Textures that only need the
@@ -164,33 +169,36 @@ namespace engine::raster::detail {
         : m_albedo(RasterTexture::constant(Colord::black())),
           m_ambientCoefficient(1.0),
           m_diffuseCoefficient(1.0),
+          m_materialAlpha(1.0),
           m_specularColor(Colord::black()),
           m_specularCoefficient(0.0),
           m_specularExponent(16.0) {
     }
 
     static RasterMaterial constant(const Colord& albedo, double ambientCoefficient = 1.0,
-                                   double diffuseCoefficient = 1.0,
+                                   double diffuseCoefficient = 1.0, double materialAlpha = 1.0,
                                    const Colord& specularColor = Colord::black(),
                                    double specularCoefficient = 0.0,
                                    double specularExponent = 16.0) {
       return RasterMaterial(RasterTexture::constant(albedo), ambientCoefficient, diffuseCoefficient,
-                            specularColor, specularCoefficient, specularExponent);
+                            materialAlpha, specularColor, specularCoefficient, specularExponent);
     }
 
     static RasterMaterial texture(const RasterTexture& texture, double ambientCoefficient,
-                                  double diffuseCoefficient, const Colord& specularColor,
-                                  double specularCoefficient, double specularExponent) {
-      return RasterMaterial(texture, ambientCoefficient, diffuseCoefficient, specularColor,
-                            specularCoefficient, specularExponent);
+                                  double diffuseCoefficient, double materialAlpha,
+                                  const Colord& specularColor, double specularCoefficient,
+                                  double specularExponent) {
+      return RasterMaterial(texture, ambientCoefficient, diffuseCoefficient, materialAlpha,
+                            specularColor, specularCoefficient, specularExponent);
     }
 
     static RasterMaterial texture(std::shared_ptr<render::Texturec> texture,
                                   double ambientCoefficient, double diffuseCoefficient,
+                                  double materialAlpha,
                                   const Colord& specularColor, double specularCoefficient,
                                   double specularExponent) {
       return RasterMaterial(RasterTexture::from(std::move(texture)), ambientCoefficient,
-                            diffuseCoefficient, specularColor, specularCoefficient,
+                            diffuseCoefficient, materialAlpha, specularColor, specularCoefficient,
                             specularExponent);
     }
 
@@ -198,6 +206,13 @@ namespace engine::raster::detail {
                   const Vector3d& normal, const Vector2d& uv, const Vector2d& uvDx,
                   const Vector2d& uvDy) const {
       return m_albedo.evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
+    }
+
+    double alpha(const render::Primitive* primitive, const Vector3d& worldPos,
+                 const Vector3d& normal, const Vector2d& uv, const Vector2d& uvDx,
+                 const Vector2d& uvDy) const {
+      const Colord textureColor = m_albedo.evaluate(primitive, worldPos, normal, uv, uvDx, uvDy);
+      return std::clamp(m_materialAlpha * rasterAlphaFromTextureColor(textureColor), 0.0, 1.0);
     }
 
     double ambientCoefficient() const {
@@ -226,11 +241,12 @@ namespace engine::raster::detail {
 
   private:
     RasterMaterial(const RasterTexture& albedo, double ambientCoefficient,
-                   double diffuseCoefficient, const Colord& specularColor,
+                   double diffuseCoefficient, double materialAlpha, const Colord& specularColor,
                    double specularCoefficient, double specularExponent)
         : m_albedo(albedo),
           m_ambientCoefficient(ambientCoefficient),
           m_diffuseCoefficient(diffuseCoefficient),
+          m_materialAlpha(std::clamp(materialAlpha, 0.0, 1.0)),
           m_specularColor(specularColor),
           m_specularCoefficient(specularCoefficient),
           m_specularExponent(specularExponent) {
@@ -239,6 +255,7 @@ namespace engine::raster::detail {
     RasterTexture m_albedo;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
+    double m_materialAlpha;
     Colord m_specularColor;
     double m_specularCoefficient;
     double m_specularExponent;
@@ -288,10 +305,12 @@ namespace engine::raster::detail {
         return RasterMaterial::constant(fallbackFaceColor(faceIdx));
       case Kind::Constant:
         return RasterMaterial::constant(m_albedo, m_ambientCoefficient, m_diffuseCoefficient,
-                                        m_specularColor, m_specularCoefficient, m_specularExponent);
+                                        m_materialAlpha, m_specularColor, m_specularCoefficient,
+                                        m_specularExponent);
       case Kind::Texture:
         return RasterMaterial::texture(m_texture, m_ambientCoefficient, m_diffuseCoefficient,
-                                       m_specularColor, m_specularCoefficient, m_specularExponent);
+                                       m_materialAlpha, m_specularColor, m_specularCoefficient,
+                                       m_specularExponent);
       }
       return RasterMaterial::constant(fallbackFaceColor(faceIdx));
     }
@@ -327,14 +346,17 @@ namespace engine::raster::detail {
       const Colord specularColor = phong ? phong->specularColor() : Colord::black();
       const double specularCoefficient = phong ? phong->specularCoefficient() : 0.0;
       const double specularExponent = phong ? phong->exponent() : 16.0;
+      const auto* transparent = dynamic_cast<const render::TransparentMaterial*>(&matte);
+      const double materialAlpha = transparent ? 1.0 - transparent->transmissionCoefficient() : 1.0;
       return RasterMaterialSource(kind, albedo, texture, sidedness, matte.ambientCoefficient(),
-                                  matte.diffuseCoefficient(), specularColor, specularCoefficient,
-                                  specularExponent);
+                                  matte.diffuseCoefficient(), materialAlpha, specularColor,
+                                  specularCoefficient, specularExponent);
     }
 
     RasterMaterialSource(Kind kind, const Colord& albedo, const RasterTexture& texture,
                          render::Material::Sidedness sidedness,
                          double ambientCoefficient = 1.0, double diffuseCoefficient = 1.0,
+                         double materialAlpha = 1.0,
                          const Colord& specularColor = Colord::black(),
                          double specularCoefficient = 0.0, double specularExponent = 16.0)
         : m_kind(kind),
@@ -343,6 +365,7 @@ namespace engine::raster::detail {
           m_sidedness(sidedness),
           m_ambientCoefficient(ambientCoefficient),
           m_diffuseCoefficient(diffuseCoefficient),
+          m_materialAlpha(std::clamp(materialAlpha, 0.0, 1.0)),
           m_specularColor(specularColor),
           m_specularCoefficient(specularCoefficient),
           m_specularExponent(specularExponent) {
@@ -354,6 +377,7 @@ namespace engine::raster::detail {
     render::Material::Sidedness m_sidedness;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
+    double m_materialAlpha;
     Colord m_specularColor;
     double m_specularCoefficient;
     double m_specularExponent;

@@ -122,6 +122,11 @@ namespace {
     } else if (normalized == "oneminussourcecolor" || normalized == "1minussourcecolor" ||
                normalized == "1srccolor") {
       *factor = BlendFactor::OneMinusSourceColor;
+    } else if (normalized == "sourcealpha" || normalized == "srcalpha") {
+      *factor = BlendFactor::SourceAlpha;
+    } else if (normalized == "oneminussourcealpha" || normalized == "1minussourcealpha" ||
+               normalized == "1srcalpha") {
+      *factor = BlendFactor::OneMinusSourceAlpha;
     } else if (normalized == "destinationcolor" || normalized == "dstcolor") {
       *factor = BlendFactor::DestinationColor;
     } else if (normalized == "oneminusdestinationcolor" ||
@@ -137,6 +142,31 @@ namespace {
     } else if (normalized == "oneminusconstantalpha" || normalized == "1minusconstantalpha" ||
                normalized == "1constalpha") {
       *factor = BlendFactor::OneMinusConstantAlpha;
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  bool parseAlphaFunc(const QString& value, engine::raster::Rasterizer::AlphaFunc* func) {
+    const QString normalized = normalizedRasterOption(value);
+    using AlphaFunc = engine::raster::Rasterizer::AlphaFunc;
+    if (normalized == "never") {
+      *func = AlphaFunc::Never;
+    } else if (normalized == "less") {
+      *func = AlphaFunc::Less;
+    } else if (normalized == "equal") {
+      *func = AlphaFunc::Equal;
+    } else if (normalized == "lessequal") {
+      *func = AlphaFunc::LessEqual;
+    } else if (normalized == "greater") {
+      *func = AlphaFunc::Greater;
+    } else if (normalized == "greaterequal") {
+      *func = AlphaFunc::GreaterEqual;
+    } else if (normalized == "notequal") {
+      *func = AlphaFunc::NotEqual;
+    } else if (normalized == "always") {
+      *func = AlphaFunc::Always;
     } else {
       return false;
     }
@@ -249,6 +279,9 @@ private:
   engine::raster::Rasterizer::BlendOp m_rasterBlendOp;
   Colord m_rasterBlendConstantColor;
   double m_rasterBlendConstantAlpha;
+  bool m_rasterAlphaTest;
+  engine::raster::Rasterizer::AlphaFunc m_rasterAlphaFunc;
+  double m_rasterAlphaReference;
   bool m_rasterViewportSet;
   Recti m_rasterViewport;
   bool m_rasterScissorSet;
@@ -304,6 +337,9 @@ Renderer::Renderer()
       m_rasterBlendOp(engine::raster::Rasterizer::BlendOp::Add),
       m_rasterBlendConstantColor(Colord::white()),
       m_rasterBlendConstantAlpha(1.0),
+      m_rasterAlphaTest(false),
+      m_rasterAlphaFunc(engine::raster::Rasterizer::AlphaFunc::Always),
+      m_rasterAlphaReference(0.0),
       m_rasterViewportSet(false),
       m_rasterViewport(),
       m_rasterScissorSet(false),
@@ -388,6 +424,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     raster->setBlendFactors(m_rasterBlendSourceFactor, m_rasterBlendDestinationFactor);
     raster->setBlendOp(m_rasterBlendOp);
     raster->setBlendConstant(m_rasterBlendConstantColor, m_rasterBlendConstantAlpha);
+    raster->setAlphaTestEnabled(m_rasterAlphaTest);
+    raster->setAlphaFunc(m_rasterAlphaFunc, m_rasterAlphaReference);
     if (m_rasterViewportSet) {
       raster->setViewportRect(m_rasterViewport);
     }
@@ -615,6 +653,12 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "op"},
      {"blend_constant_color", "Rasterizer blend constant color as r,g,b in 0..1", "color"},
      {"blend_constant_alpha", "Rasterizer blend constant alpha in 0..1", "alpha"},
+     {"alpha_test", "Enable rasterizer alpha test"},
+     {"alpha_func",
+      "Rasterizer alpha test function (never, less, equal, less_equal, greater, greater_equal, "
+      "not_equal, always)",
+      "func"},
+     {"alpha_ref", "Rasterizer alpha test reference in 0..1", "alpha"},
      {"viewport", "Rasterizer viewport rectangle as x,y,width,height", "rect"},
      {"scissor", "Rasterizer scissor rectangle as x,y,width,height", "rect"},
      {"depth_bias", "Rasterizer constant depth bias applied before depth test/write", "bias"},
@@ -808,6 +852,29 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_rasterBlendConstantAlpha = alpha;
+  }
+
+  if (parser.isSet("alpha_test")) {
+    m_rasterAlphaTest = true;
+  }
+
+  if (parser.isSet("alpha_func")) {
+    if (!parseAlphaFunc(parser.value("alpha_func"), &m_rasterAlphaFunc)) {
+      *errorMessage =
+        "Alpha function must be never, less, equal, less_equal, greater, greater_equal, "
+        "not_equal, or always";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("alpha_ref")) {
+    bool ok = false;
+    const double alpha = parser.value("alpha_ref").toDouble(&ok);
+    if (!ok || !std::isfinite(alpha) || alpha < 0.0 || alpha > 1.0) {
+      *errorMessage = "Alpha reference must be a number from 0 to 1";
+      return CommandLineError;
+    }
+    m_rasterAlphaReference = alpha;
   }
 
   if (parser.isSet("viewport")) {

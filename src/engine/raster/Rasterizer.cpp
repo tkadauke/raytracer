@@ -103,6 +103,7 @@ namespace {
   using engine::raster::detail::DepthState;
   using engine::raster::detail::DepthWritePolicy;
   using engine::raster::detail::DirectionalShadowCamera;
+  using engine::raster::detail::AlphaTestState;
   using engine::raster::detail::DirectionalShadowCascade;
   using engine::raster::detail::directionalShadowFitForPoints;
   using engine::raster::detail::DirectionalShadowMap;
@@ -338,6 +339,8 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setStencilStoreOp(m_stencilStoreOp);
   result->setStencilWriteMask(m_stencilWriteMask);
   result->setStencilOps(m_stencilFailOp, m_stencilDepthFailOp, m_stencilPassOp);
+  result->setAlphaTestEnabled(m_alphaTestEnabled);
+  result->setAlphaFunc(m_alphaFunc, m_alphaReference);
   result->setColorWriteMask(m_colorWriteMask);
   result->setBlendingEnabled(m_blendingEnabled);
   result->setBlendFactors(m_sourceBlendFactor, m_destinationBlendFactor);
@@ -583,6 +586,8 @@ void Rasterizer::Private::renderTriangleSetPass(
   }
   const RasterDiagnosticBufferViews diagnostics =
     diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
+  const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
+                                 rasterizer.alphaReference()};
   withPreparedTrianglePolicies(
     scene.get(), rasterizer, shadowMaps, fullBufferView(passBuffers.depth()), stencilView,
     [&](auto stencil, auto depth, auto fragmentPolicy) {
@@ -590,7 +595,7 @@ void Rasterizer::Private::renderTriangleSetPass(
                                        colorOutputPolicy(rasterizer,
                                                          fullBufferView(passBuffers.color())),
                                        renderClip, sampleOffset, stencil, depth, fragmentPolicy,
-                                       diagnostics);
+                                       alphaTest, diagnostics);
     });
 }
 
@@ -611,6 +616,8 @@ void Rasterizer::Private::renderTriangleStreamPass(
   }
   const RasterDiagnosticBufferViews diagnostics =
     diagnosticViews(rasterizer, tilePlan.width(), tilePlan.height());
+  const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
+                                 rasterizer.alphaReference()};
 
   const Recti clipRect = intersectRasterRects(tilePlan.fullRect(), renderClip);
   if (rasterRectEmpty(clipRect))
@@ -623,7 +630,7 @@ void Rasterizer::Private::renderTriangleStreamPass(
         if (cancelled.load())
           return;
         rasterizePreparedTriangleWithPolicies(triangle, clipRect, colorView, sampleOffset, stencil,
-                                              depth, fragmentPolicy, diagnostics);
+                                              depth, fragmentPolicy, alphaTest, diagnostics);
       });
     });
 }
@@ -722,6 +729,8 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
     }
     const RasterDiagnosticBufferViews diagnostics =
       diagnosticViews(rasterizer, buffer.width(), buffer.height());
+    const AlphaTestState alphaTest{rasterizer.alphaTestEnabled(), rasterizer.alphaFunc(),
+                                   rasterizer.alphaReference()};
 
     withPreparedTrianglePolicies(
       scene.get(), rasterizer, shadowMaps, tileBufferView(scratch.depth(), rect), stencilView,
@@ -729,7 +738,8 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
         rasterizeTileWithPolicies(
           triangleSet, rect, tileIndex,
           colorOutputPolicy(rasterizer, tileBufferView(scratch.sampleColor(), rect)), renderClip,
-          pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy, diagnostics);
+          pattern.offsets[sampleIndex], cancelled, stencil, depth, fragmentPolicy, alphaTest,
+          diagnostics);
       });
 
     if (cancelled.load())

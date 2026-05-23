@@ -91,6 +91,11 @@ namespace engine::raster::detail {
     Vector2d uv;
   };
 
+  struct RasterFragment {
+    Colord color;
+    double alpha{1.0};
+  };
+
   // Lightweight adapter for a full-frame pass buffer. The hot raster loop only
   // needs at(x, y); using this wrapper lets the same templated loop address
   // full-frame and tile-local storage without branching per fragment.
