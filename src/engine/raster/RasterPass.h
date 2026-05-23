@@ -230,9 +230,9 @@ namespace engine::raster::detail {
   struct BuiltInFragmentPolicy {
     MaterialEvaluator materialEvaluator;
 
-    inline Colord shade(const RasterTriangle& triangle, int, int, double, double, double,
+    inline Colord shade(const RasterTriangle& triangle, int x, int y, double, double, double,
                         const InterpolatedFragment& fragment) const {
-      return materialEvaluator.shade(triangle, fragment);
+      return materialEvaluator.shade(triangle, x, y, fragment);
     }
   };
 
@@ -432,7 +432,8 @@ namespace engine::raster::detail {
       } else {
         withPreparedTriangleDepthPolicy(rasterizer, zBuffer, stencil,
                                         BuiltInFragmentPolicy{MaterialEvaluator(
-                                          scene, shadowMaps.empty() ? nullptr : &shadowMaps)},
+                                          scene, shadowMaps.empty() ? nullptr : &shadowMaps,
+                                          rasterizer.camera().get())},
                                         render);
       }
     } else if (useFragmentShader) {
@@ -441,7 +442,8 @@ namespace engine::raster::detail {
     } else {
       withPreparedTriangleDepthPolicy(
         rasterizer, zBuffer, NoStencilPolicy{},
-        BuiltInFragmentPolicy{MaterialEvaluator(scene, shadowMaps.empty() ? nullptr : &shadowMaps)},
+        BuiltInFragmentPolicy{MaterialEvaluator(scene, shadowMaps.empty() ? nullptr : &shadowMaps,
+                                                rasterizer.camera().get())},
         render);
     }
   }

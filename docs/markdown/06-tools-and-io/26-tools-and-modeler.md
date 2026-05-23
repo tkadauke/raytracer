@@ -98,7 +98,8 @@ ordinary world-scene files, so both `rendercli` and `Modeler` load the same
 data. The current checked-in scenes cover camera demos, depth of field,
 animation frame evaluation, camera panning, light sweeps, material fades,
 motion-blur velocity sweeps, visibility-step timelines, transparent materials,
-reflections, and small geometry fixtures used by tests.
+reflections, raster material previews, and small geometry fixtures used by
+tests.
 
 The Modeler does not bake scene catalogs into C++; it opens JSON scene files
 directly. New reusable demos should be added as scene files unless they need a

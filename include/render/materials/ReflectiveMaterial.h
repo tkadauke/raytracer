@@ -26,12 +26,10 @@ namespace render {
     * The raytracer fires a recursive ray off the surface in the
     * mirror direction and uses the resulting color as the visible
     * appearance — the sphere shows the floor and sky reflected back.
-    * The rasterizer doesn't recurse, so it has nothing to display
-    * other than the diffuse base; here that base is pure black
-    * (the default for materials with no diffuse texture set), so
-    * the rasterizer falls back to a per-face hash color just to
-    * keep the silhouette readable. The comparison is "this is what
-    * the recursion buys you."
+    * The rasterizer doesn't recurse, so it displays only the local
+    * Phong base. If there is no usable diffuse texture, that base falls
+    * back to a per-face hash color just to keep the silhouette readable.
+    * The comparison is "this is what the recursion buys you."
     *
     * The mirror direction is a deterministic BRDF sample: if `d` is
     * the incoming ray direction at the hit point and `n` is the

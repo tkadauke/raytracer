@@ -1,0 +1,201 @@
+{
+  "id": "{50000000-0000-0000-0000-000000000000}",
+  "name": "Raster Material Preview",
+  "ambient": [0.10, 0.10, 0.11],
+  "background": [0.035, 0.04, 0.05],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{50000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, -2.25, -7.15],
+      "target": [0.0, -0.02, 0.05],
+      "distance": 5.0,
+      "zoom": 1.28,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000002}",
+      "name": "SpecularKey",
+      "position": [0.0, -3.1, -5.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.88],
+      "intensity": 1.55,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000010}",
+      "name": "FloorBright",
+      "color": [0.44, 0.44, 0.42],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000011}",
+      "name": "FloorDark",
+      "color": [0.20, 0.22, 0.24],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000012}",
+      "name": "FloorChecker",
+      "brightTexture": "{50000000-0000-0000-0000-000000000010}",
+      "darkTexture": "{50000000-0000-0000-0000-000000000011}",
+      "mapping": "planar",
+      "uScale": 1.25,
+      "vScale": 1.25,
+      "type": "CheckerBoardTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000013}",
+      "name": "LowAmbientRed",
+      "color": [0.88, 0.13, 0.08],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000014}",
+      "name": "HighAmbientGreen",
+      "color": [0.10, 0.72, 0.24],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000015}",
+      "name": "BroadPhongBlue",
+      "color": [0.13, 0.32, 0.88],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000016}",
+      "name": "TightPhongGold",
+      "color": [0.82, 0.58, 0.10],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000020}",
+      "name": "FloorMaterial",
+      "diffuseTexture": "{50000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000021}",
+      "name": "LowAmbientMatte",
+      "diffuseTexture": "{50000000-0000-0000-0000-000000000013}",
+      "ambientCoefficient": 0.12,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000022}",
+      "name": "HighAmbientMatte",
+      "diffuseTexture": "{50000000-0000-0000-0000-000000000014}",
+      "ambientCoefficient": 1.25,
+      "diffuseCoefficient": 0.55,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000023}",
+      "name": "BroadPhongMaterial",
+      "diffuseTexture": "{50000000-0000-0000-0000-000000000015}",
+      "ambientCoefficient": 0.20,
+      "diffuseCoefficient": 0.70,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 1.0,
+      "exponent": 8.0,
+      "type": "PhongMaterial",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000024}",
+      "name": "TightPhongMaterial",
+      "diffuseTexture": "{50000000-0000-0000-0000-000000000016}",
+      "ambientCoefficient": 0.20,
+      "diffuseCoefficient": 0.70,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 1.0,
+      "exponent": 90.0,
+      "type": "PhongMaterial",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000030}",
+      "name": "Floor",
+      "position": [-3.8, 1.02, -1.85],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{50000000-0000-0000-0000-000000000020}",
+      "leg1": [7.6, 0.0, 0.0],
+      "leg2": [0.0, 0.0, 4.4],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000040}",
+      "name": "LowAmbientMatteSphere",
+      "position": [-2.25, 0.20, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{50000000-0000-0000-0000-000000000021}",
+      "radius": 0.52,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000041}",
+      "name": "HighAmbientMatteSphere",
+      "position": [-0.75, 0.20, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{50000000-0000-0000-0000-000000000022}",
+      "radius": 0.52,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000042}",
+      "name": "BroadPhongSphere",
+      "position": [0.75, 0.20, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{50000000-0000-0000-0000-000000000023}",
+      "radius": 0.52,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{50000000-0000-0000-0000-000000000043}",
+      "name": "TightPhongSphere",
+      "position": [2.25, 0.20, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{50000000-0000-0000-0000-000000000024}",
+      "radius": 0.52,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    }
+  ]
+}

@@ -23,8 +23,8 @@ namespace engine::raster {
 /**
   * @brief `RenderEngine` that projects every mesh face's triangles
   *        to screen space, depth-tests them through a Z-buffer, and
-  *        Lambertian-shades each pixel using interpolated vertex
-  *        normals — the textbook software-rasterizer pipeline.
+  *        direct-shades each pixel from interpolated vertex normals
+  *        and material data — the textbook software-rasterizer pipeline.
   *
   * @image html rasterizer_engine.png "Sphere through Rasterizer at default LOD"
   *
@@ -55,19 +55,18 @@ namespace engine::raster {
   *        when applied to `1/z` and inverted).
   *      - Interpolate the vertex normal, world position, and UV
   *        coordinates, again perspective-correct.
-  *      - Recover a diffuse albedo from the primitive's
-  *        `MatteMaterial` texture with the interpolated hit context
-  *        when possible, otherwise fall back to a stable per-face
-  *        color hash.
-  *      - Apply Lambertian shading: `scene.ambient × ambientCoeff ×
-  *        albedo + Σ_lights albedo × light.radiance × max(0, n · light.dir)`.
+  *      - Recover a diffuse albedo and direct-lighting coefficients from
+  *        `MatteMaterial` / `PhongMaterial` with the interpolated hit context
+  *        when possible, otherwise fall back to a stable per-face color hash.
+  *      - Apply direct material shading: ambient plus diffuse, with a
+  *        Phong specular highlight when the material provides one.
   *      - Run the configured depth/stencil tests and operations.
   *        The default state is the historical Z-buffer behavior:
   *        `DepthFunc::Less`, depth writes enabled, stencil disabled.
   *      - Optionally query a rasterized directional-light shadow
   *        map before adding each diffuse light contribution.
-  *      - Shade through the built-in material/Lambertian fragment
-  *        path, or through a caller-provided `FragmentShader`.
+  *      - Shade through the built-in material fragment path, or through a
+  *        caller-provided `FragmentShader`.
   *      - Write the shaded color iff the fragment passes.
   *  6. When MSAA is enabled, repeat the coverage/depth path at a
   *     fixed 2x/4x/8x subpixel sample pattern and resolve those
@@ -76,9 +75,10 @@ namespace engine::raster {
   *
   * The rasterizer walks leaf primitives directly, preserving each
   * primitive's effective material before tessellation. Matte diffuse
-  * textures therefore shade with their material albedo today, while
-  * primitives with no usable diffuse texture still receive a stable
-  * per-face fallback color so missing materials remain visible.
+  * textures shade with their material albedo and coefficients, Phong
+  * materials add local specular highlights, and primitives with no usable
+  * diffuse texture still receive a stable per-face fallback color so
+  * missing materials remain visible.
   *
   * Triangles that straddle the configured depth interval or viewport edge are
   * clipped in homogeneous space before projection so their visible
@@ -91,8 +91,8 @@ namespace engine::raster {
   * directional-light shadow maps, and tiny vertex/fragment shader
   * hooks are exposed for teaching the fixed-function stages without
   * forcing the default path through the programmable callbacks.
-  * Shadow maps are disabled by default; with them disabled, lights
-  * are direct Lambertian contributions only.
+  * Shadow maps are disabled by default; with them disabled, lights are direct
+  * material contributions only.
   *
   * The widget below shows the fixed-function state in the order the
   * rasterizer applies it: a first pass marks a stencil region, then
@@ -125,6 +125,13 @@ namespace engine::raster {
   * <td>@image html rasterizer_uv_checker.png "UV-mapped checkerboard on a box"</td>
   * </tr></table>
   *
+  * The built-in material preview path handles the local direct-lighting subset
+  * shared by the raytracer and rasterizer. The scene below keeps the first two
+  * spheres Matte-only so ambient and diffuse coefficients are easy to compare,
+  * then uses two Phong spheres to show broad and tight specular lobes.
+  *
+  * @image html rasterizer_material_preview.png "Matte coefficient and Phong specular preview"
+  *
   * MSAA is opt-in because it multiplies raster work. FXAA is an
   * image-space alternative that runs after the frame is complete: it
   * can smooth high-contrast edges cheaply, but unlike MSAA it cannot
@@ -155,10 +162,10 @@ namespace engine::raster {
   * Directional-light shadow maps are another opt-in quality/performance
   * feature. With them enabled, the rasterizer first renders a depth-only
   * view from each directional light, then the camera pass projects shaded
-  * points into that light-space image before adding direct diffuse light.
+  * points into that light-space image before adding direct material light.
   *
   * <table><tr>
-  * <td>@image html rasterizer_shadow_maps_off.png "Direct Lambertian light only"</td>
+  * <td>@image html rasterizer_shadow_maps_off.png "Direct material lighting only"</td>
   * <td>@image html rasterizer_shadow_maps_on.png "Directional shadow maps enabled"</td>
   * </tr></table>
   *
@@ -499,8 +506,8 @@ public:
 
   /**
     * Enables rasterized directional-light shadow maps for the built-in
-    * Lambertian fragment path. Custom fragment shaders are responsible for
-    * their own visibility model and bypass this feature.
+    * material fragment path. Custom fragment shaders are responsible for their
+    * own visibility model and bypass this feature.
     *
     * Shadow-map lookups use an open border: fragments or filter samples that
     * project outside the selected map are treated as lit.
@@ -713,8 +720,7 @@ public:
   inline void clearVertexShader() { m_vertexShader = VertexShader(); }
 
   /// Optional fragment stage over the perspective-correct interpolated
-  /// attributes. Leave unset for the built-in material/Lambertian
-  /// fragment shading path.
+  /// attributes. Leave unset for the built-in material fragment shading path.
   inline const FragmentShader& fragmentShader() const { return m_fragmentShader; }
   inline void setFragmentShader(FragmentShader shader) { m_fragmentShader = std::move(shader); }
   inline void clearFragmentShader() { m_fragmentShader = FragmentShader(); }

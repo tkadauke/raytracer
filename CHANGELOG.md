@@ -24,6 +24,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Modeler rasterizer preview shadows.** The live preview's Rasterizer engine now has a `Render → Preview Engine → Rasterizer Preview Shadows` toggle that enables directional shadow maps with four stabilized cascades for interactive shadow-map inspection. The render dialog keeps its separate explicit shadow settings. — GPT-5
 - **Rasterizer cascaded shadow maps.** Directional-light shadow maps can now split scene bounds into 1-4 camera-depth cascades, building a tighter shadow map for each slice. The setting is exposed through `Rasterizer::setShadowCascadeCount`, `rendercli --shadow_cascades`, the Modeler render settings widget, unit and functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
 - **Rasterizer PCSS shadow filtering.** Directional-light shadow maps now support an opt-in `Rasterizer::ShadowFilterMode::PCSS` mode that searches the configured shadow-filter kernel for blockers, estimates a receiver-local penumbra radius from blocker depth, and then runs PCF with that clamped radius. Existing PCF behavior remains the default. The mode is exposed through `rendercli --shadow_filter pcf|pcss`, the Modeler render settings widget, functional tests, API docs, rendered-doc sweeps, and the shadow-map textbook section. — GPT-5
+- **Raster material preview scene.** `scenes/raster_material_preview.json` and the rasterizer rendered-doc image now provide a reusable visual check for Matte ambient/diffuse coefficients and broad-vs-tight Phong highlights in the software rasterizer. — GPT-5
 
 ### Fixed
 
@@ -38,6 +39,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Rasterizer built-in material shading now previews local Phong terms.** The raster material path now honors Matte ambient/diffuse coefficients and Phong specular color, coefficient, and exponent for local direct lighting; recursive reflection and refraction remain raytracer-only. — GPT-5
 - **Rasterizer culls off-frustum finite primitive bounds before tessellation.** The raster front end now rejects leaf primitives whose finite bounding boxes are wholly outside one homogeneous clip plane before building their meshes, while keeping infinite/invalid bounds and custom vertex-shader camera passes conservative. — GPT-5
 - **Rasterizer shadow cascades now use practical split blending.** Multi-cascade directional shadow maps expose a 0-to-1 linear/logarithmic split blend across the C++ API, rendercli, and Modeler settings, defaulting to 0.5 so near camera depths receive more stable shadow-map detail without giving up far coverage. — GPT-5
 - **Rasterizer directional shadow cascades now fit light-space bounds.** Directional shadow-map cameras measure each camera-depth slice in the light's own basis instead of sizing the map from the world-space cascade diagonal, giving cascades denser texel coverage while preserving texel snapping and existing cascade controls. — GPT-5

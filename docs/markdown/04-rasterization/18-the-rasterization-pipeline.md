@@ -58,7 +58,8 @@ goes through six stages:
    sketches the default `Less` test.
 6. **Fragment shading.** Surviving pixels get their normal,
    world position, and UV interpolated, the material is sampled
-   for albedo, and [Lambertian](../appendix/a-glossary.md#l) shading produces the final color.
+   for albedo and direct-lighting coefficients, and local material
+   shading produces the final color.
    The result is written to the float framebuffer; tonemap
    ([chapter 12](../02-ray-rendering/12-tone-mapping.md)) does
    the rest.
@@ -213,7 +214,7 @@ weights, and from those, perspective-correct interpolated
 attributes:
 
 - **Normal** — interpolated unit-length surface normal, used
-  for Lambertian shading.
+  for direct diffuse and specular shading.
 - **World position** — used by texture mappings that depend on
   world coordinates and (when shadow maps are enabled) by the
   shadow-map projection step from
@@ -222,13 +223,14 @@ attributes:
 
 The fragment shader is a small function that takes those
 interpolated attributes plus the primitive's material and
-produces the final pixel color. The default behavior is the
-direct equivalent of the
+produces the final pixel color. The default behavior handles the
+local direct-lighting subset of
 [`MatteMaterial`](../../../include/render/materials/MatteMaterial.h)
-shading from [chapter 8 §8.4](../02-ray-rendering/08-materials-and-brdfs.md#8-4-the-five-shipped-materials):
+and [`PhongMaterial`](../../../include/render/materials/PhongMaterial.h)
+from [chapter 8 §8.4](../02-ray-rendering/08-materials-and-brdfs.md#8-4-the-five-shipped-materials):
 
 $$
-L = k_a \, \mathbf{albedo} \, L_{\text{ambient}} + \sum_{\text{lights}} \mathbf{albedo} \, L_{\text{light}} \, \max(0, \mathbf{n} \cdot \mathbf{l})
+L = k_a \, \mathbf{albedo} \, L_{\text{ambient}} + \sum_{\text{lights}} (k_d \, \mathbf{albedo} + k_s \, \mathbf{specular} \, (\mathbf{r} \cdot \mathbf{v})^e) \, L_{\text{light}} \, \max(0, \mathbf{n} \cdot \mathbf{l})
 $$
 
 The `albedo` comes from the primitive's material — sampled at
@@ -238,11 +240,20 @@ material fall back to a stable per-face hash so missing
 materials remain *visible* (a colored mesh) rather than
 *invisible* (a black mesh).
 
+For Phong-family materials, the rasterizer also reads the specular
+color, coefficient, and exponent and evaluates the same local lobe as
+the raytracer. Recursive reflection and refraction remain raytracer-only;
+reflective and transparent materials still render only their local Phong
+base in this path.
+
+![Raster material preview: two Matte spheres followed by broad and tight Phong highlights](../../images/rasterizer_material_preview.png)
+
 The implementation prepares this material path while it emits
 triangles: each leaf primitive is classified once, and each emitted
-triangle carries either a cached albedo or the texture object that
-still needs the interpolated hit context. That keeps material type
-discovery out of the per-pixel loop while preserving texture behavior.
+triangle carries either cached constant material terms or the texture
+object that still needs the interpolated hit context. That keeps material
+type discovery out of the per-pixel loop while preserving texture
+behavior.
 
 This is one place where the rasterizer takes a shortcut
 compared to the raytracer. The [Whitted](../appendix/a-glossary.md#w) raytracer in
@@ -260,6 +271,12 @@ For diffuse surfaces, point lights, and directional lights, the
 rasterizer produces the same image as the raytracer. For
 mirror, glass, and refraction, only the raytracer can render
 them.
+
+The reusable scene file
+[`scenes/raster_material_preview.json`](../../../scenes/raster_material_preview.json)
+matches the preview image's intent: the left pair isolates Matte
+ambient/diffuse coefficients, and the right pair isolates broad versus
+tight Phong specular response.
 
 ## 18.6 The render method, end to end
 
@@ -355,7 +372,7 @@ all engines, look for differences" grows.
 4. Read the `Rasterizer::render` implementation and find the
    inner per-pixel callback. Identify exactly where the
    barycentric weights from §18.2, the perspective-correct
-   inversion from §18.4, and the Lambertian-shading sum from
+   inversion from §18.4, and the direct-material shading sum from
    §18.5 happen. How many CPU operations is the entire chain,
    per pixel, in the default state?
 

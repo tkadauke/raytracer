@@ -228,6 +228,8 @@ the new contribution. Phong-with-specular-zero degrades to
 Matte exactly. The contrast between Phong and Matte under the
 same dark scene + head-on light is pinned by
 [`PhongMaterialTest`](../../../test/functional/render/materials/PhongMaterialTest.cpp).
+The software rasterizer previews this same local Phong term; the
+difference between the engines starts with the recursive materials below.
 
 [`ReflectiveMaterial`](../../../include/render/materials/ReflectiveMaterial.h)
 adds recursive reflection on top of Phong. The shade routine

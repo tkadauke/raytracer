@@ -11,6 +11,70 @@
 # pixel size).
 
 module ::Common
+  def rasterizer_material_preview_scene
+    options(lod: 4)
+    ambient [0.10, 0.10, 0.11]
+    background [0.035, 0.04, 0.05]
+
+    point_light :position => [0.0, -3.1, -5.0],
+                :color => [1.0, 0.96, 0.88],
+                :intensity => 1.55
+
+    pinhole_camera :position => [0.0, -2.25, -7.15],
+                   :target => [0.0, -0.02, 0.05],
+                   :zoom => 1.28
+
+    rectangle :position => [-3.8, 1.02, -1.85],
+              :leg1 => [7.6, 0, 0],
+              :leg2 => [0, 0, 4.4],
+              :material => matte_material(
+                :diffuseTexture => checker_board_texture(
+                  :uScale => 1.25,
+                  :vScale => 1.25,
+                  :brightTexture => constant_color_texture(:color => [0.44, 0.44, 0.42]),
+                  :darkTexture => constant_color_texture(:color => [0.20, 0.22, 0.24]),
+                )
+              )
+
+    sphere :radius => 0.52,
+           :position => [-2.25, 0.20, 0.00],
+           :material => matte_material(
+             :diffuseTexture => constant_color_texture(:color => [0.88, 0.13, 0.08]),
+             :ambientCoefficient => 0.12,
+             :diffuseCoefficient => 1.0,
+           )
+
+    sphere :radius => 0.52,
+           :position => [-0.75, 0.20, 0.00],
+           :material => matte_material(
+             :diffuseTexture => constant_color_texture(:color => [0.10, 0.72, 0.24]),
+             :ambientCoefficient => 1.25,
+             :diffuseCoefficient => 0.55,
+           )
+
+    sphere :radius => 0.52,
+           :position => [0.75, 0.20, 0.00],
+           :material => phong_material(
+             :diffuseTexture => constant_color_texture(:color => [0.13, 0.32, 0.88]),
+             :ambientCoefficient => 0.20,
+             :diffuseCoefficient => 0.70,
+             :specularColor => [1.0, 1.0, 1.0],
+             :specularCoefficient => 1.0,
+             :exponent => 8,
+           )
+
+    sphere :radius => 0.52,
+           :position => [2.25, 0.20, 0.00],
+           :material => phong_material(
+             :diffuseTexture => constant_color_texture(:color => [0.82, 0.58, 0.10]),
+             :ambientCoefficient => 0.20,
+             :diffuseCoefficient => 0.70,
+             :specularColor => [1.0, 1.0, 1.0],
+             :specularCoefficient => 1.0,
+             :exponent => 90,
+           )
+  end
+
   def rasterizer_shadow_scene(light_direction: [-0.52, -0.78, -0.28])
     options(lod: 3)
     ambient [0.18, 0.18, 0.20]
@@ -151,6 +215,12 @@ class_doc(engine: "raster", width: 320, height: 240) do
           :darkTexture => black,
         )
       )
+end
+
+class_doc(engine: "raster", width: 480, height: 240) do
+  name "rasterizer_material_preview"
+
+  rasterizer_material_preview_scene
 end
 
 class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do

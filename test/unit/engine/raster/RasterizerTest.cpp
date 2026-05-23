@@ -9,6 +9,7 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
+#include "render/materials/PhongMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -139,6 +140,16 @@ namespace RasterizerTest {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(
       std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0)));
+    return scene;
+  }
+
+  static std::shared_ptr<Scene>
+  sceneWithMaterialFrontFacingTriangle(std::shared_ptr<render::Material> material) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    auto triangle =
+      std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(0, 1, 0), Vector3d(1, -1, 0));
+    triangle->setMaterial(std::move(material));
+    scene->add(triangle);
     return scene;
   }
 
@@ -947,6 +958,43 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     EXPECT_EQ(albedo, buffer[32][32]);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialHonorsMatteAmbientCoefficient) {
+    auto material =
+      std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+    material->setAmbientCoefficient(0.25);
+    auto scene = sceneWithMaterialFrontFacingTriangle(material);
+    scene->setAmbient(Colord(0.4, 0.4, 0.4));
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_NEAR(0.1, buffer[32][32].r(), 0.001);
+    EXPECT_NEAR(0.0, buffer[32][32].g(), 0.001);
+    EXPECT_NEAR(0.0, buffer[32][32].b(), 0.001);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialAddsPhongSpecularHighlight) {
+    auto material =
+      std::make_shared<PhongMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+    material->setAmbientCoefficient(0.0);
+    material->setDiffuseCoefficient(1.0);
+    material->setSpecularColor(Colord::white());
+    material->setSpecularCoefficient(0.5);
+    material->setExponent(16.0);
+    auto scene = sceneWithMaterialFrontFacingTriangle(material);
+    scene->setAmbient(Colord::black());
+    scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0.0, 0.0, -1.0), Colord::white()));
+    Rasterizer engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(64, 64);
+
+    engine.render(buffer);
+
+    EXPECT_NEAR(1.5, buffer[32][32].r(), 0.001);
+    EXPECT_NEAR(0.5, buffer[32][32].g(), 0.001);
+    EXPECT_NEAR(0.5, buffer[32][32].b(), 0.001);
   }
 
   TEST(Rasterizer, BuiltInMaterialKeepsVirtualTextureBehaviorForConstantTextureSubclasses) {

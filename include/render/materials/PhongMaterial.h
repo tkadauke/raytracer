@@ -12,13 +12,10 @@ namespace render {
     * It is a combination of ambient and diffuse shading, with the addition of
     * small intense specular highlights.
     * 
-    * Same Phong sphere through both engines. The raytracer applies
-    * the full Phong model — Lambertian diffuse plus the sharp
-    * specular highlight where the view direction reflects off the
-    * surface toward the light. The rasterizer is a Lambertian-only
-    * pipeline (no specular term), so the comparison shows what the
-    * specular component contributes: the bright highlight visible
-    * on the raytracer image is missing from the rasterizer one.
+    * Same Phong sphere through both engines. The raytracer and
+    * software rasterizer both apply the local Phong model:
+    * Lambertian diffuse plus the sharp specular highlight where the
+    * view direction reflects off the surface toward the light.
     *
     * The specular highlight is view dependent. The Phong exponent
     * narrows the reflected-light lobe: low values make broad, soft

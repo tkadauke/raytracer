@@ -30,11 +30,11 @@ namespace render {
     * a reflected ray for the Fresnel-style reflection on the silhouette)
     * and uses the resulting colors as the visible appearance — the
     * sphere shows the floor and sky bent through it. The rasterizer
-    * doesn't recurse, so it has nothing to display other than the
-    * diffuse base; here that base is the medium-gray configured by
-    * the doc-render driver, giving an opaque gray sphere instead.
-    * The comparison is "this is what the recursion buys you" — same
-    * lesson as for the reflective material.
+    * doesn't recurse, so it displays only the local Phong base; here
+    * that base is the medium-gray configured by the doc-render driver,
+    * giving an opaque gray sphere instead. The comparison is "this is
+    * what the recursion buys you" — same lesson as for the reflective
+    * material.
     *
     * Refraction follows Snell's law: the incoming angle, the surface normal,
     * and the ratio between the current medium's IOR and the next medium's

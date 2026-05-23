@@ -229,7 +229,10 @@ This should be high value for large scenes and for shadow cascades.
 
 Define explicit raster-preview behavior for:
 
-- Phong/specular material terms;
+- ✅ Phong/specular material terms use the same local highlight model as the
+  raytracer, while still omitting recursive reflection/refraction;
+- ✅ a reusable raster material preview scene and rendered API/textbook image
+  exercise Matte coefficient differences plus broad and tight Phong highlights;
 - alpha test and alpha blending;
 - color write masks and blend state;
 - direct UV texture lookup paths;
@@ -271,6 +274,13 @@ features, the rasterizer needs more fixed-function state:
 - color write masks;
 - depth bias that applies outside shadow maps too;
 - explicit load/clear/store behavior for color, depth, and stencil buffers.
+
+Portal material previews should use this path rather than the current
+raytracer-only material shader: first mark the portal surface in stencil, then
+render the scene from the portal-transformed camera into that stencil region,
+applying the material's color filter at composite time. The existing
+`scripts/docs/portal_material.rb` image stays raytracer-only until that pass
+composition exists.
 
 This can stay rasterizer-local at first, but it should align with the future
 render-pass graph rather than inventing incompatible state names.
