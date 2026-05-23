@@ -31,6 +31,7 @@ namespace MaterialTest {
   TEST(MatteMaterial, ShouldDefaultToNoTexture) {
     MatteMaterial m;
     EXPECT_EQ(nullptr, m.diffuseTexture());
+    EXPECT_EQ(nullptr, m.normalTexture());
   }
 
   TEST(MatteMaterial, ShouldDefaultToUnitCoefficients) {
@@ -78,6 +79,26 @@ namespace MaterialTest {
     ConstantColorTexture tex;
     m.setDiffuseTexture(&tex);
     EXPECT_EQ(&tex, m.diffuseTexture());
+  }
+
+  TEST(MatteMaterial, ShouldSetAndGetNormalTexture) {
+    MatteMaterial m;
+    ConstantColorTexture tex;
+    m.setNormalTexture(&tex);
+    EXPECT_EQ(&tex, m.normalTexture());
+  }
+
+  TEST(MatteMaterial, ShouldConvertNormalTextureToRaytracerMaterial) {
+    MatteMaterial m;
+    ConstantColorTexture tex;
+    m.setNormalTexture(&tex);
+    Material* base = &m;
+
+    auto rt = std::dynamic_pointer_cast<render::MatteMaterial>(
+      base->toRaytracerMaterial());
+
+    ASSERT_NE(nullptr, rt);
+    EXPECT_NE(nullptr, rt->normalTexture());
   }
 
   TEST(MatteMaterial, ShouldProduceRaytracerMatteMaterial) {

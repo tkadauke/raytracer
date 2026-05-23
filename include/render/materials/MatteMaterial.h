@@ -47,6 +47,7 @@ namespace render {
     inline MatteMaterial()
       : Material(),
         m_diffuseTexture(nullptr),
+        m_normalTexture(nullptr),
         m_ambientCoefficient(1),
         m_diffuseCoefficient(1)
     {
@@ -59,6 +60,7 @@ namespace render {
     inline explicit MatteMaterial(std::shared_ptr<render::Texturec> texture)
       : Material(),
         m_diffuseTexture(texture),
+        m_normalTexture(nullptr),
         m_ambientCoefficient(1),
         m_diffuseCoefficient(1)
     {
@@ -86,6 +88,29 @@ namespace render {
       */
     inline void setDiffuseTexture(std::shared_ptr<render::Texturec> texture) {
       m_diffuseTexture = texture;
+    }
+
+    /**
+      * @returns the tangent-space normal map texture.
+      */
+    inline std::shared_ptr<render::Texturec> normalTexture() const {
+      return m_normalTexture;
+    }
+
+    /**
+      * Sets the tangent-space normal map texture. Raster material evaluation
+      * decodes RGB as `(x, y, z) = color * 2 - 1` and transforms the result
+      * through the triangle's UV-derived tangent frame. When a triangle has no
+      * usable UV tangent frame, raster shading falls back to the interpolated
+      * geometric normal.
+      *
+      * <table><tr>
+      * <td>@image html rasterizer_normal_map_flat.png "flat normals"</td>
+      * <td>@image html rasterizer_normal_map_mapped.png "normal mapped"</td>
+      * </tr></table>
+      */
+    inline void setNormalTexture(std::shared_ptr<render::Texturec> texture) {
+      m_normalTexture = texture;
     }
     
     /**
@@ -136,6 +161,7 @@ namespace render {
 
   private:
     std::shared_ptr<render::Texturec> m_diffuseTexture;
+    std::shared_ptr<render::Texturec> m_normalTexture;
     double m_ambientCoefficient;
     double m_diffuseCoefficient;
   };

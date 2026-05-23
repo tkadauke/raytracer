@@ -207,6 +207,19 @@ namespace engine::raster {
   * easier to audit than a textured picture when looking for interpolation or
   * clipping mistakes.
   *
+  * Tangent-space normal maps are evaluated from the same interpolated UVs. The
+  * rasterizer derives each triangle's tangent and bitangent from world-space
+  * edge vectors and UV edge vectors; triangles with degenerate UVs keep the
+  * interpolated geometric normal. The pair below uses the same flat rectangle
+  * and light direction, first with only the surface normal and then with a
+  * checker normal map that alternates left- and right-leaning tangent-space
+  * normals.
+  *
+  * <table><tr>
+  * <td>@image html rasterizer_normal_map_flat.png "flat normals"</td>
+  * <td>@image html rasterizer_normal_map_mapped.png "normal mapped"</td>
+  * </tr></table>
+  *
   * The built-in material preview path handles the local direct-lighting subset
   * shared by the raytracer and rasterizer. The scene below keeps the first two
   * spheres Matte-only so ambient and diffuse coefficients are easy to compare,

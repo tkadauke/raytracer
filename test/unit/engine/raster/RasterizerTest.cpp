@@ -5,6 +5,7 @@
 #include "core/math/HitPoint.h"
 #include "engine/raster/Rasterizer.h"
 #include "src/engine/raster/RasterMaterial.h"
+#include "src/engine/raster/RasterMaterialEvaluator.h"
 #include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
@@ -1572,6 +1573,59 @@ namespace RasterizerTest {
     EXPECT_NEAR(0.5, color.r(), 1e-9);
     EXPECT_NEAR(0.5, color.g(), 1e-9);
     EXPECT_NEAR(0.5, color.b(), 1e-9);
+  }
+
+  TEST(RasterMaterial, NormalMapTransformsFromTangentSpaceToWorldSpace) {
+    const auto normalMap =
+      engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
+    const auto material = engine::raster::detail::RasterMaterial::constant(
+      Colord::white(), 0.0, 1.0, 1.0, Colord::black(), 0.0, 16.0, normalMap, true);
+    const engine::raster::detail::RasterTangentFrame frame{
+      Vector3d::right(), Vector3d::up(), true};
+
+    const Vector3d mapped = material.lightingNormal(
+      nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null, Vector2d::null,
+      Vector2d::null, frame);
+
+    const Vector3d expected = Vector3d(1.0, 0.0, 1.0).normalized();
+    EXPECT_NEAR(expected.x(), mapped.x(), 1e-9);
+    EXPECT_NEAR(expected.y(), mapped.y(), 1e-9);
+    EXPECT_NEAR(expected.z(), mapped.z(), 1e-9);
+  }
+
+  TEST(RasterMaterial, NormalMapFallsBackToGeometricNormalWithoutTangentFrame) {
+    const auto normalMap =
+      engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
+    const auto material = engine::raster::detail::RasterMaterial::constant(
+      Colord::white(), 0.0, 1.0, 1.0, Colord::black(), 0.0, 16.0, normalMap, true);
+
+    const Vector3d mapped = material.lightingNormal(
+      nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null, Vector2d::null,
+      Vector2d::null, engine::raster::detail::RasterTangentFrame{});
+
+    EXPECT_EQ(Vector3d::forward(), mapped);
+  }
+
+  TEST(Rasterizer, BuiltInMaterialUsesNormalMappedLightingNormal) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->setAmbient(Colord::black());
+    scene->addLight(std::make_shared<DirectionalLight>(
+      Vector3d(1.0, 0.0, 1.0).normalized(), Colord::white()));
+    engine::raster::detail::MaterialEvaluator evaluator(scene.get(), nullptr, nullptr);
+    const auto normalMap =
+      engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
+    const auto material = engine::raster::detail::RasterMaterial::constant(
+      Colord::white(), 0.0, 1.0, 1.0, Colord::black(), 0.0, 16.0, normalMap, true);
+    const engine::raster::detail::RasterTangentFrame frame{
+      Vector3d::right(), Vector3d::up(), true};
+
+    const auto shaded = evaluator.shade(material, nullptr, Vector3d::null, Vector3d::forward(),
+                                        Vector2d::null, Vector2d::null, Vector2d::null, frame, 0,
+                                        0);
+
+    EXPECT_NEAR(1.0, shaded.color.r(), 1e-9);
+    EXPECT_NEAR(1.0, shaded.color.g(), 1e-9);
+    EXPECT_NEAR(1.0, shaded.color.b(), 1e-9);
   }
 
   TEST(Rasterizer, BuiltInMaterialConstantTextureUsesStoredAlbedo) {

@@ -311,6 +311,27 @@ namespace engine::raster::detail {
       uvDy = (uv20 * x10 - uv10 * x20) / determinant;
     }
 
+    static RasterTangentFrame tangentFrame(const RasterVertex& r0, const RasterVertex& r1,
+                                           const RasterVertex& r2) {
+      const Vector3d edge1 = r1.point - r0.point;
+      const Vector3d edge2 = r2.point - r0.point;
+      const Vector2d duv1 = r1.uv - r0.uv;
+      const Vector2d duv2 = r2.uv - r0.uv;
+      const double determinant = duv1.x() * duv2.y() - duv2.x() * duv1.y();
+      if (std::abs(determinant) <= 1e-12) {
+        return {};
+      }
+
+      const double invDet = 1.0 / determinant;
+      const Vector3d tangent = (edge1 * duv2.y() - edge2 * duv1.y()) * invDet;
+      const Vector3d bitangent = (edge2 * duv1.x() - edge1 * duv2.x()) * invDet;
+      if (tangent.length() <= 1e-12 || bitangent.length() <= 1e-12) {
+        return {};
+      }
+
+      return {tangent.normalized(), bitangent.normalized(), true};
+    }
+
     bool makeTriangle(const ClipVert& v0, const ClipVert& v1, const ClipVert& v2,
                       const render::Primitive* primitive,
                       const std::shared_ptr<render::Material>& material,
@@ -327,8 +348,16 @@ namespace engine::raster::detail {
       Vector2d uvDx;
       Vector2d uvDy;
       uvGradients(r0, r1, r2, uvDx, uvDy);
+      RasterTangentFrame frame = tangentFrame(r0, r1, r2);
       out = RasterTriangle{
-        {{r0, r1, r2}}, primitive, material, materialSource.forFace(faceIdx), uvDx, uvDy, faceIdx};
+        {{r0, r1, r2}},
+        primitive,
+        material,
+        materialSource.forFace(faceIdx),
+        frame,
+        uvDx,
+        uvDy,
+        faceIdx};
       return true;
     }
 
