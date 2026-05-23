@@ -71,7 +71,7 @@ lands).
 
 ## 2. Volumes and chapters — outline
 
-Six volumes, twenty-six chapters, plus an appendix. Each chapter lists:
+Eight volumes, twenty-eight chapters, plus an appendix. Each chapter lists:
 **arc** (the narrative spine), **widgets reused**, **images reused**,
 **source anchors** (the files the chapter is "about"), and **new
 artifacts** (widgets/renders that don't exist yet and need to ship with
@@ -83,59 +83,66 @@ the chapter).
 docs/markdown/
   README.md                          ← top-level TOC + reading paths
   preface.md
-  01-foundations/
+  foundations/
     README.md                        ← volume TOC
-    01-numbers-and-vectors.md
-    02-matrices-and-transforms.md
-    03-rays-and-geometry.md
-    04-color-and-buffers.md
-  02-ray-rendering/
+    numbers-and-vectors.md
+    matrices-and-transforms.md
+    rays-and-geometry.md
+    color-and-buffers.md
+  ray-rendering/
     README.md
-    05-the-whitted-pipeline.md
-    06-cameras.md
-    07-primitives-and-intersection.md
-    08-materials-and-brdfs.md
-    09-lights-and-shading.md
-    10-sampling-and-anti-aliasing.md
-    11-textures.md
-    12-tone-mapping.md
-  03-scene-structure/
+    the-whitted-pipeline.md
+    cameras.md
+    primitives-and-intersection.md
+    materials-and-brdfs.md
+    lights-and-shading.md
+    sampling-and-anti-aliasing.md
+    textures.md
+    tone-mapping.md
+  scene-structure/
     README.md
-    13-view-planes.md
-    14-csg.md
-    15-spatial-acceleration.md
-    16-instances-and-motion-blur.md
-  04-rasterization/
+    view-planes.md
+    csg.md
+    spatial-acceleration.md
+    instances-and-motion-blur.md
+  rasterization/
     README.md
-    17-tessellation.md
-    18-the-rasterization-pipeline.md
-    19-clipping-depth-stencil.md
-    20-wireframe-rendering.md
-    21-msaa-and-attribute-interpolation.md
-  05-image-and-vision/
+    tessellation.md
+    the-rasterization-pipeline.md
+    clipping-depth-stencil.md
+    wireframe-rendering.md
+    msaa-and-attribute-interpolation.md
+  image-and-vision/
     README.md
-    22-image-buffers-and-pixel-formats.md
-    23-blob-analysis-and-silhouettes.md
-    24-shape-classification.md
-  06-tools-and-io/
+    image-buffers-and-pixel-formats.md
+    blob-analysis-and-silhouettes.md
+    shape-classification.md
+  tools-and-io/
     README.md
-    25-ply-parsing.md
-    26-tools-and-modeler.md
+    ply-parsing.md
+    tools-and-modeler.md
+  render-graph/
+    README.md
+    render-plans-and-resources.md
+  animation/
+    README.md
+    timelines-and-interpolation.md
   appendix/
     a-glossary.md
     b-bibliography.md
     c-source-map.md                  ← generated; see §4
 ```
 
-Filenames are kebab-case with a numeric prefix that fixes reading order.
-Volume folders carry their own README so a visitor can drop in mid-book.
+Filenames are stable kebab-case slugs without numeric prefixes. Reading order
+lives in the top-level and per-volume `README.md` files. Volume folders carry
+their own README so a visitor can drop in mid-book.
 
-### Volume I — Foundations
+### Foundations
 
 The math and data structures everything else stands on. Anything visible
 in 2D — points, vectors, transforms, rays — gets a widget.
 
-#### 1. Numbers and vectors
+#### Numbers and vectors
 
 - **Arc.** Why we use `double` (and when `float` is fine), `Vector<N, T>`
   as a uniform abstraction, the SSE3 `Vector3<double>` /
@@ -150,7 +157,7 @@ in 2D — points, vectors, transforms, rays — gets a widget.
 - **New artifacts.** None. Optionally a tiny dot-product widget showing
   cosine for two draggable arrows.
 
-#### 2. Matrices and transforms
+#### Matrices and transforms
 
 - **Arc.** 4×4 homogeneous matrices, the difference between a *point*
   and a *direction* under transformation, the inverse-transpose for
@@ -165,14 +172,14 @@ in 2D — points, vectors, transforms, rays — gets a widget.
   [`include/render/primitives/Instance.h`](../../include/render/primitives/Instance.h).
 - **New artifacts.** None.
 
-#### 3. Rays and geometry
+#### Rays and geometry
 
 - **Arc.** `Ray` as origin + direction + parametric `at(t)`, why we
   parameterize by `t` (the universal currency of ray–object
   intersection), `HitPoint` and `HitPointInterval` as the data flowing
   back from intersection tests, axis-aligned bounding boxes, ranges,
   the `Range<T>` helper for clipping intervals. Lays the groundwork
-  for chapter 7.
+  for Primitives and intersection.
 - **Widgets reused.** `ray_at.js`, `ray_class.js`, `ray_project.js`,
   `bounding_box_class.js`, `bounding_box_include.js`,
   `bounding_box_grown_by.js`, `bounding_box_moved_by.js`,
@@ -186,7 +193,7 @@ in 2D — points, vectors, transforms, rays — gets a widget.
   [`include/core/math/Range.h`](../../include/core/math/Range.h).
 - **New artifacts.** None.
 
-#### 4. Color and buffers
+#### Color and buffers
 
 - **Arc.** `Colord` as four floats, the linear-RGB-vs-sRGB distinction,
   HDR vs LDR, `Buffer<T>` as the memory backing for a 2D image,
@@ -200,13 +207,13 @@ in 2D — points, vectors, transforms, rays — gets a widget.
   [`include/core/color/sse3/`](../../include/core/color/sse3/).
 - **New artifacts.** None.
 
-### Volume II — Ray rendering
+### Ray rendering
 
 The Whitted pipeline as it actually runs in `engine::raytracer::Raytracer`.
 Each chapter ends with a "what this changes in the rendered image" section
 that shows a reference image with and without the feature.
 
-#### 5. The Whitted pipeline
+#### The Whitted pipeline
 
 - **Arc.** A complete tracer in 200 words: cast primary rays, find
   closest hit, shade with material + lights, recurse for reflections /
@@ -220,7 +227,7 @@ that shows a reference image with and without the feature.
   [`src/engine/raytracer/Raytracer.cpp`](../../src/engine/raytracer/Raytracer.cpp).
 - **New artifacts.** Possibly an architecture-flow SVG (static).
 
-#### 6. Cameras
+#### Cameras
 
 - **Arc.** The pinhole as the canonical model, then the family —
   orthographic, spherical, fisheye, equirectangular, tilt-shift,
@@ -237,7 +244,7 @@ that shows a reference image with and without the feature.
 - **Source anchors.** [`include/render/cameras/`](../../include/render/cameras/).
 - **New artifacts.** None.
 
-#### 7. Primitives and intersection
+#### Primitives and intersection
 
 - **Arc.** The primitive interface, then per-shape: sphere (analytic
   quadric), plane, box (slab method), triangle (Möller-Trumbore), disk
@@ -255,7 +262,7 @@ that shows a reference image with and without the feature.
   the discriminant geometry — only if needed; the Möller-Trumbore
   widget already exists and the sphere math is short.
 
-#### 8. Materials and BRDFs
+#### Materials and BRDFs
 
 - **Arc.** What a material is (a `shade()` function over a hit), what a
   BRDF is (the directional reflectance distribution), how Matte / Phong
@@ -276,7 +283,7 @@ that shows a reference image with and without the feature.
   [`include/render/bsdf/BSDF.h`](../../include/render/bsdf/BSDF.h).
 - **New artifacts.** None.
 
-#### 9. Lights and shading
+#### Lights and shading
 
 - **Arc.** Point lights, directional lights, the shadow ray, ambient as
   the cheap GI hack, why no area lights yet (stochastic shadow sampling
@@ -288,14 +295,14 @@ that shows a reference image with and without the feature.
 - **New artifacts.** Maybe a shadow-ray geometry diagram (static SVG)
   showing the umbra/penumbra of a point source.
 
-#### 10. Sampling and anti-aliasing
+#### Sampling and anti-aliasing
 
 - **Arc.** Why one ray per pixel produces aliasing, regular vs jittered
   vs random samplers as the three classical answers, the stratification
   guarantee (pinned by the new
   `JitteredSampler.EachStratumGetsExactlyOneSamplePerSet` unit test),
   multi-sample-per-pixel as a Monte Carlo integral over pixel area.
-  Connects to chapter 6 via the lens sampler reuse.
+  Connects to Cameras via the lens sampler reuse.
 - **Widgets reused.** `sampler_streams.js`.
 - **Images reused.** Sampler doc renders (low-vs-high-spp comparison).
 - **Source anchors.**
@@ -303,7 +310,7 @@ that shows a reference image with and without the feature.
   [`test/unit/render/samplers/JitteredSamplerTest.cpp`](../../test/unit/render/samplers/JitteredSamplerTest.cpp).
 - **New artifacts.** None.
 
-#### 11. Textures
+#### Textures
 
 - **Arc.** `Texture` as a function `(s, t) → Colord`, constant / checker
   / UV-color / image (when it lands), mappings (planar, UV-direct), and
@@ -313,7 +320,7 @@ that shows a reference image with and without the feature.
 - **Source anchors.** [`include/render/textures/`](../../include/render/textures/).
 - **New artifacts.** None.
 
-#### 12. Tone mapping
+#### Tone mapping
 
 - **Arc.** Why HDR exists, the float framebuffer pipeline (post-R1),
   Linear / Reinhard / ACES (Narkowicz fit) as a sweep across compression
@@ -324,9 +331,9 @@ that shows a reference image with and without the feature.
 - **Source anchors.** [`include/render/tonemap/`](../../include/render/tonemap/).
 - **New artifacts.** None.
 
-### Volume III — Scene structure
+### Scene structure
 
-#### 13. View planes
+#### View planes
 
 - **Arc.** What a view plane is, sample iteration order (row-major vs
   tiled vs interlaced vs shuffled), and why shuffled orders matter for
@@ -337,7 +344,7 @@ that shows a reference image with and without the feature.
 - **Source anchors.** [`include/render/viewplanes/`](../../include/render/viewplanes/).
 - **New artifacts.** None.
 
-#### 14. Constructive solid geometry (CSG)
+#### Constructive solid geometry (CSG)
 
 - **Arc.** Hit intervals as the unifying abstraction, union /
   intersection / difference set operations on intervals, Minkowski-sum
@@ -350,7 +357,7 @@ that shows a reference image with and without the feature.
   [`include/render/primitives/`](../../include/render/primitives/).
 - **New artifacts.** None.
 
-#### 15. Spatial acceleration
+#### Spatial acceleration
 
 - **Arc.** Why a flat list of primitives is O(N) per ray, the bounding
   volume hierarchy as the divide-and-conquer answer, the Surface Area
@@ -365,7 +372,7 @@ that shows a reference image with and without the feature.
   [`test/unit/render/primitives/BVHPerformanceTest.cpp`](../../test/unit/render/primitives/BVHPerformanceTest.cpp).
 - **New artifacts.** None.
 
-#### 16. Instances and motion blur
+#### Instances and motion blur
 
 - **Arc.** How `Instance` lets one mesh appear with N transforms (the
   classic wins: trees, asteroid fields), why normals need the
@@ -378,9 +385,9 @@ that shows a reference image with and without the feature.
   [`include/render/primitives/Instance.h`](../../include/render/primitives/Instance.h).
 - **New artifacts.** None.
 
-### Volume IV — Rasterization
+### Rasterization
 
-#### 17. Tessellation
+#### Tessellation
 
 - **Arc.** Why a rasterizer needs triangles where the raytracer needs
   implicit surfaces, the `tessellate(int lod) → Mesh` contract, the
@@ -396,7 +403,7 @@ that shows a reference image with and without the feature.
   every primitive's `tessellate` override.
 - **New artifacts.** None.
 
-#### 18. The rasterization pipeline
+#### The rasterization pipeline
 
 - **Arc.** End-to-end edge-function rasterization (Pineda 1988):
   vertex transform → clip-space culling → rasterize triangle → depth
@@ -412,7 +419,7 @@ that shows a reference image with and without the feature.
   [`src/engine/raster/Rasterizer.cpp`](../../src/engine/raster/Rasterizer.cpp).
 - **New artifacts.** None.
 
-#### 19. Clipping, depth, stencil
+#### Clipping, depth, stencil
 
 - **Arc.** Sutherland-Hodgman in homogeneous clip space (and why), the
   z-buffer as the visibility solver, stencil as the per-pixel mask /
@@ -427,7 +434,7 @@ that shows a reference image with and without the feature.
   [`include/engine/raster/Rasterizer.h`](../../include/engine/raster/Rasterizer.h).
 - **New artifacts.** None.
 
-#### 20. Wireframe rendering
+#### Wireframe rendering
 
 - **Arc.** A second rasterization engine, this time edge-only:
   Bresenham in screen space after the same projection step the filled
@@ -441,7 +448,7 @@ that shows a reference image with and without the feature.
   [`test/functional/engine/wireframe/WireframeTest.cpp`](../../test/functional/engine/wireframe/WireframeTest.cpp).
 - **New artifacts.** None.
 
-#### 21. MSAA and attribute interpolation
+#### MSAA and attribute interpolation
 
 - **Arc.** The single-tile vs N-sample-resolved framebuffer split,
   perspective-correct UV interpolation (Heckbert-Moreton 1/z trick),
@@ -454,12 +461,12 @@ that shows a reference image with and without the feature.
   (the MSAA resolve loop).
 - **New artifacts.** None.
 
-### Volume V — Image processing & computer vision
+### Image processing & computer vision
 
 The new pillar (`docs/roadmap.md` §4.11). Currently small; will grow as
 the §4.11 backlog lands.
 
-#### 22. Image buffers and pixel formats
+#### Image buffers and pixel formats
 
 - **Arc.** `Buffer<T>` revisited as the lingua franca of image
   processing, pixel iteration patterns, the hand-off from rendering
@@ -471,7 +478,7 @@ the §4.11 backlog lands.
   [`test/helpers/Blob.h`](../../test/helpers/Blob.h) (the consumer).
 - **New artifacts.** None.
 
-#### 23. Blob analysis and silhouettes
+#### Blob analysis and silhouettes
 
 - **Arc.** Connected-component flood-fill, what counts as "connected"
   (4 vs 8 neighborhood, color-equivalence), silhouette extraction as
@@ -487,7 +494,7 @@ the §4.11 backlog lands.
   a small example raster, step through BFS flood-fill with a speed
   slider, color components by ID. *(New widget.)*
 
-#### 24. Shape classification
+#### Shape classification
 
 - **Arc.** From silhouette descriptors (radial variance, bounding-box
   aspect ratio) to predicates (`isCircle`, `isRectangle`). The
@@ -501,9 +508,9 @@ the §4.11 backlog lands.
   draggable polygon → live readout of radial variance, BB aspect
   ratio, classifier output. *(New widget.)*
 
-### Volume VI — Tools & I/O (light coverage)
+### Tools & I/O (light coverage)
 
-#### 25. PLY parsing
+#### PLY parsing
 
 - **Arc.** ASCII vs binary PLY, element/property declarations, why
   this is the project's only untrusted-input surface and how the
@@ -515,7 +522,7 @@ the §4.11 backlog lands.
   [`fuzz/`](../../fuzz/).
 - **New artifacts.** None.
 
-#### 26. Tools and the Modeler
+#### Tools and the Modeler
 
 - **Arc.** Tour of `rendercli` (headless), `src/modeler`
   (interactive, full editor surface), reusable scene JSON, and how the
@@ -546,12 +553,12 @@ the §4.11 backlog lands.
 ### Cross-linking
 
 - Plain markdown relative links:
-  `[Vectors](../01-foundations/01-numbers-and-vectors.md#dot-product)`.
+  `[Vectors](../foundations/numbers-and-vectors.md#dot-product)`.
 - Each chapter ends with a **See also** section pointing at sibling
   chapters.
 - Concepts mentioned out-of-order get inline forward references with a
-  short parenthetical: "...applies the *Möller-Trumbore* test ([covered
-  in chapter 7](07-primitives-and-intersection.md#triangle-intersection))".
+  short parenthetical: "...applies the *Möller-Trumbore* test ([covered in
+  Primitives and intersection](../ray-rendering/primitives-and-intersection.md#triangle-moller-trumbore))".
 - Anchor IDs are explicit (`<a id="dot-product"></a>`) for stability —
   a later edit that retitles a heading shouldn't break inbound links.
 
@@ -656,6 +663,9 @@ A Ruby walker over `docs/markdown/` that validates:
 - **Source-anchor freshness.** Every chapter's "Source anchors"
   section lists files that exist; renamed/deleted files surface as
   errors.
+- **Chapter graph consistency.** The top-level Contents chapter order must
+  match the concatenated per-volume `## Chapters` lists, and every chapter file
+  must be reachable from both surfaces exactly once.
 - **Widget references.** Every `<!-- widget: foo -->` comment has a
   matching `scripts/docs/foo.js`.
 - **Image references.** Every `![](docs/images/foo.png)` has an
@@ -722,17 +732,20 @@ Suggested sequencing (1 chapter ≈ 1 PR):
    `docs/markdown/preface.md`, the per-volume `README.md` files —
    empty TOCs the chapters slot into — plus
    `rake docs:textbook:check` and `:source-map`.
-2. **Volume I (chapters 1-4)** — short, high-density, sets the
-   notation. Done before anything that depends on it.
-3. **Volume II (chapters 5-12)** — the canonical Whitted pipeline.
-   Heaviest cross-linking happens here.
-4. **Volume III (chapters 13-16)** — uses Volume II vocabulary.
-5. **Volume IV (chapters 17-21)** — could ship in parallel with
-   III since the rasterizer mostly stands alone after Volume I.
-6. **Volume V (chapters 22-24)** — adds the two new widgets.
-7. **Volume VI (chapters 25-26)** — light coverage; last because
-   they're the lowest-leverage.
-8. **Publish flow.** `rake docs:textbook:html` lands when the
+2. **Foundations** — short, high-density, sets the notation. Done before
+   anything that depends on it.
+3. **Ray rendering** — the canonical Whitted pipeline. Heaviest
+   cross-linking happens here.
+4. **Scene structure** — uses the ray-rendering vocabulary.
+5. **Rasterization** — could ship in parallel with Scene structure since the
+   rasterizer mostly stands alone after Foundations.
+6. **Image processing and computer vision** — adds the two image-analysis
+   widgets.
+7. **Tools and I/O** — light coverage; last because they're the
+   lowest-leverage.
+8. **Render graph and animation** — added after the initial textbook plan to
+   document implemented graph planning and timeline features.
+9. **Publish flow.** `rake docs:textbook:html` lands when the
    reader experience needs the embedded widgets / KaTeX math (and
    not before — keeps the markdown reviewable on GitHub natively
    in the meantime).
@@ -785,8 +798,7 @@ it's loaded into context for every code-touching session.
 
 ### Mechanism 2 — periodic sweep
 
-A scheduled task (cron job, GitHub Action on a `schedule:`, or a
-manual `/loop` invocation) runs `rake docs:textbook:check` *plus* a
+A scheduled task, if added, should run `rake docs:textbook:check` plus a
 broader scan that:
 
 - Lists `include/**/*.h` files that aren't in any chapter's
@@ -805,6 +817,6 @@ sweep doesn't auto-edit the book; it surfaces drift. The
 agent-facing rule from Mechanism 1 stays the primary defence — the
 sweep is the safety net.
 
-The sweep itself is implemented as `rake docs:textbook:audit`,
-emitted as a structured report. Wiring it into a cron job or
-`/loop` is a separate, lightweight follow-up.
+There is no dedicated audit task today. The implemented surfaces are
+`rake docs:textbook:check`, `rake docs:textbook:source-map`, and the wrapper
+`rake docs:textbook`.

@@ -416,9 +416,9 @@ When implementation begins, keep these in sync:
 
 - `CHANGELOG.md` for behavior-affecting pieces.
 - `docs/roadmap.md` §4.7 as milestones complete.
-- `docs/markdown/03-scene-structure/16-instances-and-motion-blur.md` when
+- `docs/markdown/scene-structure/instances-and-motion-blur.md` when
   velocity becomes part of a broader timeline model.
-- `docs/markdown/06-tools-and-io/26-tools-and-modeler.md` when `rendercli` and
+- `docs/markdown/tools-and-io/tools-and-modeler.md` when `rendercli` and
   Modeler gain animation controls.
 - API docs on any new public timeline/keyframe classes.
 - Rendered examples once there is a stable animated fixture; likely commit

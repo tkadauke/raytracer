@@ -547,17 +547,37 @@ namespace :docs do
 
   namespace :textbook do
     TEXTBOOK_ROOT = "docs/markdown".freeze
+    TEXTBOOK_INDEX_PATH = "docs/markdown/README.md".freeze
     TEXTBOOK_SOURCE_MAP_PATH = "docs/markdown/appendix/c-source-map.md".freeze
 
     def textbook_chapter_files
-      # Chapter pages live under volume directories with a numeric prefix.
-      # Volume / appendix READMEs and the preface aren't chapters; they
-      # don't carry source-anchor blocks.
-      Dir.glob("#{TEXTBOOK_ROOT}/[0-9][0-9]-*/[0-9][0-9]-*.md").sort
+      # Chapter pages live under stable volume-slug directories. Volume /
+      # appendix READMEs and the preface aren't chapters; they don't carry
+      # source-anchor blocks.
+      Dir.glob("#{TEXTBOOK_ROOT}/*/*.md")
+        .reject { |path| File.basename(path) == "README.md" || path.include?("/appendix/") }
+        .sort
     end
 
     def textbook_all_pages
       Dir.glob("#{TEXTBOOK_ROOT}/**/*.md").sort
+    end
+
+    def textbook_volume_readme_files
+      Dir.glob("#{TEXTBOOK_ROOT}/*/README.md")
+        .reject { |path| path.include?("/appendix/") }
+        .sort
+    end
+
+    def textbook_repo_relative(path)
+      File.expand_path(path).sub("#{File.expand_path(".")}/", "")
+    end
+
+    def textbook_markdown_link_refs(content)
+      # Match both [text](path) and ![alt](path). Skip URLs and pure anchors.
+      textbook_strip_code(content)
+        .scan(/!?\[[^\]]*\]\(([^)]+)\)/).flatten
+        .reject { |t| t.start_with?("http://", "https://", "mailto:", "#") }
     end
 
     def textbook_chapter_title(file)
@@ -594,10 +614,151 @@ namespace :docs do
     end
 
     def textbook_link_refs(file)
-      # Match both [text](path) and ![alt](path). Skip URLs and pure anchors.
-      textbook_strip_code(File.read(file))
-        .scan(/!?\[[^\]]*\]\(([^)]+)\)/).flatten
-        .reject { |t| t.start_with?("http://", "https://", "mailto:", "#") }
+      textbook_markdown_link_refs(File.read(file))
+    end
+
+    def textbook_section(file, heading)
+      lines = File.read(file).lines
+      start = lines.index { |line| line.match?(/^##\s+#{Regexp.escape(heading)}\s*$/) }
+      return nil unless start
+
+      finish = ((start + 1)...lines.length).find { |i| lines[i].match?(/^##\s+/) } || lines.length
+      lines[(start + 1)...finish].join
+    end
+
+    def textbook_section_link_refs(file, heading)
+      section = textbook_section(file, heading)
+      return [] unless section
+
+      textbook_markdown_link_refs(section)
+    end
+
+    def textbook_chapter_file?(path)
+      expanded = File.expand_path(path)
+      root = File.expand_path(TEXTBOOK_ROOT)
+      expanded.start_with?("#{root}/") &&
+        File.dirname(File.dirname(expanded)) == root &&
+        File.extname(expanded) == ".md" &&
+        File.basename(expanded) != "README.md" &&
+        !expanded.include?("#{root}/appendix/")
+    end
+
+    def textbook_resolved_chapter_links(file, refs)
+      refs.map { |ref| textbook_resolve(file, ref) }
+        .select { |path| textbook_chapter_file?(path) }
+    end
+
+    def textbook_resolved_volume_readme_links(file, refs)
+      root = File.expand_path(TEXTBOOK_ROOT)
+      refs.map { |ref| textbook_resolve(file, ref) }
+        .select do |path|
+          expanded = File.expand_path(path)
+          expanded.start_with?("#{root}/") &&
+            File.basename(expanded) == "README.md" &&
+            File.dirname(expanded) != root &&
+            !expanded.include?("#{root}/appendix/")
+        end
+    end
+
+    def textbook_duplicates(items)
+      counts = Hash.new(0)
+      items.each { |item| counts[item] += 1 }
+      counts.select { |_, count| count > 1 }.keys
+    end
+
+    def textbook_format_paths(paths)
+      paths.map { |path| "`#{textbook_repo_relative(path)}`" }.join(", ")
+    end
+
+    def textbook_validate_chapter_graph(errors)
+      actual_chapters = textbook_chapter_files.map { |path| File.expand_path(path) }
+      filesystem_volume_readmes = textbook_volume_readme_files.map { |path| File.expand_path(path) }
+
+      contents_refs = textbook_section_link_refs(TEXTBOOK_INDEX_PATH, "Contents")
+      if contents_refs.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: missing or empty ## Contents section"
+        return
+      end
+
+      top_level_volume_readmes =
+        textbook_resolved_volume_readme_links(TEXTBOOK_INDEX_PATH, contents_refs)
+      top_level_chapters = textbook_resolved_chapter_links(TEXTBOOK_INDEX_PATH, contents_refs)
+
+      duplicate_volume_readmes = textbook_duplicates(top_level_volume_readmes)
+      unless duplicate_volume_readmes.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: duplicate volume README links: " \
+                  "#{textbook_format_paths(duplicate_volume_readmes)}"
+      end
+
+      missing_volume_readmes = filesystem_volume_readmes - top_level_volume_readmes
+      extra_volume_readmes = top_level_volume_readmes - filesystem_volume_readmes
+      unless missing_volume_readmes.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: volume README(s) not reachable from Contents: " \
+                  "#{textbook_format_paths(missing_volume_readmes)}"
+      end
+      unless extra_volume_readmes.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: Contents links non-volume README(s): " \
+                  "#{textbook_format_paths(extra_volume_readmes)}"
+      end
+
+      volume_chapters = []
+      top_level_volume_readmes.each do |readme|
+        next unless File.exist?(readme)
+
+        refs = textbook_section_link_refs(readme, "Chapters")
+        if refs.empty?
+          errors << "#{textbook_repo_relative(readme)}: missing or empty ## Chapters section"
+          next
+        end
+
+        chapters = textbook_resolved_chapter_links(readme, refs)
+        volume_dir = File.dirname(readme)
+        outside_volume = chapters.reject { |chapter| File.dirname(chapter) == volume_dir }
+        unless outside_volume.empty?
+          errors << "#{textbook_repo_relative(readme)}: ## Chapters links outside its volume: " \
+                    "#{textbook_format_paths(outside_volume)}"
+        end
+        volume_chapters.concat(chapters)
+      end
+
+      duplicate_top_level_chapters = textbook_duplicates(top_level_chapters)
+      duplicate_volume_chapters = textbook_duplicates(volume_chapters)
+      unless duplicate_top_level_chapters.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: duplicate chapter links in Contents: " \
+                  "#{textbook_format_paths(duplicate_top_level_chapters)}"
+      end
+      unless duplicate_volume_chapters.empty?
+        errors << "volume README chapter lists contain duplicates: " \
+                  "#{textbook_format_paths(duplicate_volume_chapters)}"
+      end
+
+      missing_from_top = actual_chapters - top_level_chapters
+      extra_in_top = top_level_chapters - actual_chapters
+      unless missing_from_top.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: chapter(s) not reachable from Contents: " \
+                  "#{textbook_format_paths(missing_from_top)}"
+      end
+      unless extra_in_top.empty?
+        errors << "#{TEXTBOOK_INDEX_PATH}: Contents links non-chapter file(s): " \
+                  "#{textbook_format_paths(extra_in_top)}"
+      end
+
+      missing_from_volumes = actual_chapters - volume_chapters
+      extra_in_volumes = volume_chapters - actual_chapters
+      unless missing_from_volumes.empty?
+        errors << "volume README chapter lists miss chapter(s): " \
+                  "#{textbook_format_paths(missing_from_volumes)}"
+      end
+      unless extra_in_volumes.empty?
+        errors << "volume README chapter lists include non-chapter file(s): " \
+                  "#{textbook_format_paths(extra_in_volumes)}"
+      end
+
+      return if top_level_chapters == volume_chapters
+
+      errors << "#{TEXTBOOK_INDEX_PATH}: chapter order differs from concatenated volume README order\n" \
+                "  Contents: #{textbook_format_paths(top_level_chapters)}\n" \
+                "  Volumes:  #{textbook_format_paths(volume_chapters)}"
     end
 
     # Widgets expected to ship with a future chapter PR. Listed here so the
@@ -623,6 +784,8 @@ namespace :docs do
     desc "Validate textbook links, source anchors, and widget references"
     task :check do
       errors = []
+
+      textbook_validate_chapter_graph(errors)
 
       textbook_all_pages.each do |page|
         textbook_link_refs(page).each do |ref|
@@ -662,7 +825,7 @@ namespace :docs do
       if errors.empty?
         chapters = textbook_chapter_files.length
         pages = textbook_all_pages.length
-        puts "docs:textbook:check OK -- #{pages} pages, #{chapters} chapter source-anchor blocks resolved"
+        puts "docs:textbook:check OK -- #{pages} pages, #{chapters} chapters, chapter graph and source-anchor blocks resolved"
       else
         errors.each { |e| warn e }
         fail "#{errors.length} textbook reference issue(s) -- see above"

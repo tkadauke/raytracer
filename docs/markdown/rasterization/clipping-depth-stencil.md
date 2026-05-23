@@ -1,0 +1,473 @@
+# Clipping, depth, stencil
+
+The rasterizer pipeline from
+[The rasterization pipeline](the-rasterization-pipeline.md) glossed over
+three steps that deserve their own chapter: clipping triangles
+that straddle the visible region, deciding which fragment wins
+when two triangles project to overlapping pixels, and the
+optional **stencil** mask that lets the renderer mark and
+filter pixels through additional per-pixel state. These three
+pieces together are what graphics literature calls the
+"fixed-function pipeline" — the family of configurable per-pixel
+tests that GPU pipelines exposed before programmable shaders
+took over.
+
+By the end of this chapter you should know:
+
+- the **[Sutherland-Hodgman](../appendix/a-glossary.md#s)** polygon-clipping algorithm, and
+  why the rasterizer runs it in homogeneous clip space rather
+  than in screen space,
+- the depth test and the configurable depth functions,
+- the stencil buffer as a per-pixel marker mechanism, and the
+  three-action stencil op state machine,
+- the face-culling, viewport/scissor, and color-output states.
+
+## <a id="why-clip-at-all"></a>Why clip at all
+The rasterizer projects every triangle's vertices to clip space
+in step 1 of the pipeline. After the projection, a triangle
+might be:
+
+- **Wholly inside** the visible region. Project, divide, and
+  rasterize without trimming.
+- **Wholly outside** the visible region (every vertex on the
+  same side of one clip plane). Skip the triangle entirely; no
+  pixels can be inside.
+- **Straddling a clip plane.** Some vertices inside, some
+  outside. The straddling case is what clipping handles.
+
+The straddling case has two practical problems. First, a vertex
+*behind* the camera projects through the perspective divide to
+nonsensical screen coordinates — the divide by $w$ when $w$ is
+zero or negative blows up to infinity or wraps to a wrong
+quadrant. Second, a vertex *outside the viewport* but in front
+of the camera projects to enormous (but finite) coordinates,
+which stretch the rasterizer's bounding-box scan over millions
+of pixels that all happen to be off-screen.
+
+Clipping replaces the offending vertex with the *intersection*
+of the triangle's edges with the clip plane, producing a
+smaller polygon that is wholly inside the visible region.
+
+## <a id="sutherland-hodgman-in-homogeneous-clip-space"></a>Sutherland-Hodgman in homogeneous clip space
+The classical algorithm is **Sutherland-Hodgman polygon
+clipping** (1974). It clips a polygon against one half-space at
+a time: walk the polygon's edges, and for each edge, emit zero,
+one, or two output vertices depending on whether the edge's
+endpoints are inside or outside the clip plane:
+
+| Start | End | Emit |
+|---|---|---|
+| Inside | Inside | End |
+| Inside | Outside | Intersection |
+| Outside | Inside | Intersection, then End |
+| Outside | Outside | Nothing |
+
+Run this against six clip planes (near, far, left, right, top,
+bottom) and the result is the polygon's intersection with the
+viewing frustum. The output may have more vertices than the
+input — a triangle clipped against the corner of the viewport
+can produce a pentagon — but it's always a single convex
+polygon, and the rasterizer fan-triangulates it back into
+triangles.
+
+The crucial design choice is **what space to clip in**. Two
+options exist:
+
+1. **Screen space.** Project every vertex through the
+   perspective divide first, then clip in 2D pixel space
+   against the rectangular viewport. Simple math; broken when
+   any vertex is behind the camera.
+2. **Homogeneous clip space.** Clip in 4D homogeneous
+   coordinates *before* the perspective divide. The clip planes
+   are linear in $(x, y, z, w)$; the perspective divide
+   happens after clipping, when every surviving vertex has
+   $w > 0$.
+
+The codebase uses option 2. The clip planes live in
+[`include/render/HomogeneousClipVolume.h`](../../../include/render/HomogeneousClipVolume.h)
+as the `HomogeneousClipPlane` family — `Near`, `Left`,
+`Right`, `Top`, `Bottom`, `Far` — each defined by a linear inequality
+over $(x, y, z, w)$. The clipping routine walks the polygon's
+edges and tests each vertex's signed distance to the plane:
+positive means inside, negative means outside. When the sign
+changes between consecutive vertices, the routine computes the
+intersection point by linearly interpolating along the edge.
+
+For comparison,
+[`include/core/geometry/Rasterize.h`](../../../include/core/geometry/Rasterize.h)
+also exposes a 2D screen-space teaching helper:
+`core::clipTriangleToRect(...)` clips an already projected triangle
+against a rectangular viewport, and
+`core::fanTriangulateRasterClipPolygon(...)` decomposes the resulting
+convex polygon back into triangles. That helper is the classical
+Sutherland-Hodgman algorithm in its simplest form. The runtime
+rasterizer still uses homogeneous clipping before the perspective
+divide, because screen-space clipping is only safe once every vertex
+has already projected to finite screen coordinates.
+
+The depth planes use the rasterizer's eye-relative depth
+convention. `Rasterizer::nearClipDepth()` defaults to `0.1`.
+`Rasterizer::farClipDepth()` defaults to positive infinity, which
+disables far clipping; setting it to a finite value adds the far
+plane to the same homogeneous clipping step. Pinhole cameras
+measure these depths from the perspective eye. Orthographic
+cameras use camera-space `z`. These are rasterizer visibility
+planes, not raytracer ray interval limits: the raytracer still
+shoots rays according to its camera and primitive intersection
+rules, while the rasterizer clips projected triangles before it
+runs coverage, depth, and stencil tests.
+
+The widget shows the clipping with attributes interpolated
+along the way:
+
+<!-- widget: rasterizer_clip_attributes -->
+
+The 2D rectangle above is the simplest version of the same idea.
+In the real rasterizer, the visible region is a **3D frustum** owned
+by the rendering camera, and it is often easier to understand the
+cut by inspecting that frustum from a separate viewpoint:
+
+<!-- widget: rasterizer_frustum_clipping -->
+
+The interesting detail in the widget is that **all per-vertex
+attributes** — UVs, normals, colors — get interpolated along
+with the position when a clip generates an intersection
+vertex. The intersection's [UV](../appendix/a-glossary.md#u) is the linear blend of the
+edge's two endpoint UVs, with the same blend weight that
+produced the position. The same for normals (re-normalized
+after the blend, since linear-blended normals don't preserve
+unit length).
+
+The codebase precomputes, per vertex, a bitmask of which
+clip planes the vertex is *outside*. A triangle whose three
+vertices share a single "outside" bit means every vertex is
+outside the same clip plane — the triangle gets dropped
+entirely without running the per-edge clipping algorithm. A
+triangle whose vertices' "outside" bits ANDed together is zero
+— meaning some vertices inside, some outside, but no shared
+"outside" — falls into the slow Sutherland-Hodgman path.
+Triangles wholly inside (zero outside-bits everywhere) skip
+the clipping algorithm and rasterize directly.
+
+## <a id="the-depth-test"></a>The depth test
+When two triangles project to overlapping screen-space pixels,
+the renderer needs to pick which one's color the pixel shows.
+The standard mechanism is the **[Z-buffer](../appendix/a-glossary.md#z)**: a buffer the same
+size as the framebuffer, holding one depth value per pixel.
+
+Initially, every pixel of the Z-buffer is set to the
+"farthest possible" value (positive infinity in this codebase).
+When a fragment arrives at a pixel:
+
+1. Compute the fragment's perspective-correct depth from
+   [The rasterization pipeline: The depth test](the-rasterization-pipeline.md#the-depth-test).
+2. Compare against the Z-buffer's current value at that pixel
+   using the configured depth function.
+3. If the comparison passes, the fragment writes both its
+   color *and* its depth value (when depth writes are
+   enabled).
+4. If the comparison fails, the fragment is discarded; the
+   pixel keeps whatever color and depth were there before.
+
+The configurable depth function is one of:
+
+| `DepthFunc` value | Pass when |
+|---|---|
+| `Always` | always (effectively disables the test) |
+| `Never` | never |
+| `Less` | fragment depth $<$ buffer depth |
+| `Lequal` | fragment depth $\leq$ buffer depth |
+| `Greater` | fragment depth $>$ buffer depth |
+| `Gequal` | fragment depth $\geq$ buffer depth |
+| `Equal` | fragment depth $=$ buffer depth |
+| `NotEqual` | fragment depth $\neq$ buffer depth |
+
+The default is `Less` with depth writes enabled — the textbook
+"closest fragment wins" Z-buffer behavior. Other settings are
+useful in specific cases:
+
+- `Lequal` with depth writes off, for a second pass that
+  reads the depth values from the first pass without
+  modifying them (e.g. a "select fragments at the same depth
+  as before" operation).
+- `Greater` for back-face renders that want to write color
+  only where the depth is *behind* the previous render — used
+  by some shadow-volume techniques.
+- `Always` with depth writes on, when the per-pixel order is
+  guaranteed by other means (back-to-front sorting in
+  software).
+
+`Rasterizer::setDepthBias(...)` adds a signed constant offset to the
+fragment depth used for the depth comparison and depth write. Fragment
+shaders still see the original geometric depth. With the default `Less`
+test, positive bias pushes fragments farther away and negative bias pulls
+them forward. This is useful for multi-pass overlays that should sit just
+above or just behind previously written depth without moving the actual
+geometry.
+
+The widget covers these states alongside the cull mode:
+
+<!-- widget: rasterizer_depth_stencil_cull -->
+
+The same pass can expose its resolved per-pixel state through
+`Rasterizer::DiagnosticOutputBuffers`. A caller may attach borrowed
+buffers for depth, normalized surface normal, primitive pointer,
+material pointer, face id, and stencil value. The rasterizer clears
+those same-size buffers at render start and writes them from the
+fragment path that passes the configured stencil and depth tests. The
+buffers are diagnostics rather than part of a general render graph:
+they inspect the current software-raster pass directly and do not
+change how color is shaded. With MSAA enabled, a pixel can have
+several passing subpixel samples; the diagnostic value is the last
+passing sample processed for that pixel, so 1x rendering is the exact
+inspection mode.
+
+## <a id="the-stencil-buffer"></a>The stencil buffer
+The Z-buffer answers *which fragment is closest at this pixel*.
+A second per-pixel buffer, the **stencil buffer**, answers a
+related question: *given some application-defined criterion,
+should this pixel participate in the current draw at all?*
+
+The stencil buffer holds one 8-bit value per pixel.
+Applications use it for tasks the depth buffer can't express:
+
+- **Mirror/reflection compositing**: stencil out the mirror's
+  silhouette, render the reflected scene only inside that
+  stencil region.
+- **Decal rendering**: paint a decal mesh onto a primary
+  surface only where the primary surface itself was drawn.
+- **Stencil-shadow volumes**: count how many shadow boundaries
+  a viewing ray crossed and shade pixels with non-zero count
+  as in shadow.
+
+The stencil API has three knobs:
+
+1. **The stencil function** — a comparison between the
+   fragment's incoming **reference value** and the buffer's
+   current value, with an optional **mask** that selects which
+   bits to compare. Same family of comparators as `DepthFunc`:
+   `Always`, `Never`, `Less`, `Equal`, etc.
+2. **Three actions** — what to do to the stencil buffer in
+   three cases: **stencil-fail** (the stencil function failed),
+   **depth-fail** (stencil passed but depth failed), **pass**
+   (both passed). Each action is a `StencilOp`: `Keep`,
+   `Zero`, `Replace`, `Increment`, `Decrement`, `Invert`.
+3. **A write mask** — which bits of the stencil buffer are
+   actually mutable.
+
+A typical "draw inside the stencil region only" sequence:
+
+1. Render the stencil region itself with `StencilFunc::Always`,
+   `StencilOp::Replace`, reference value 1. The stencil buffer
+   gets 1 wherever the region was rendered.
+2. Render the actual content with `StencilFunc::Equal`,
+   reference 1. Only pixels whose stencil buffer holds 1 pass
+   the test; those are exactly the pixels inside the stencil
+   region.
+
+The codebase exposes the full state via
+`Rasterizer::setStencilFunc(...)` and
+`Rasterizer::setStencilOps(...)`, with the default being
+`StencilFunc::Always` (every fragment passes the stencil test)
+and all three ops set to `Keep` (the buffer is never written).
+The default-disabled state means the stencil pass costs zero
+unless an application opts in.
+
+## <a id="face-culling"></a>Face culling
+Independent of clipping and depth/stencil, the rasterizer can
+**skip back-facing triangles**. A back-facing triangle is one
+whose vertices, projected to screen space, wind clockwise — the
+opposite of the convention this codebase uses for front-facing
+triangles.
+
+The motivation: a closed convex mesh has every back-facing
+triangle hidden behind a front-facing one. Skipping back-facers
+cuts the triangle count roughly in half for closed meshes, with
+no visual change.
+
+The state machine is one enum:
+
+| `CullMode` | What gets rendered |
+|---|---|
+| `Both` (default) | every triangle, both sides |
+| `Back` | front-facing triangles only |
+| `Front` | back-facing triangles only |
+
+The default is `Both` because the codebase ships open meshes
+(planes, disks, single triangles) where culling either side
+would lose visible geometry. Closed-only scenes can switch to
+`Back` for the speedup.
+
+The face culling test uses the projected screen-space winding
+order — the same signed area
+[The rasterization pipeline: The edge-function inside-test](the-rasterization-pipeline.md#the-edge-function-inside-test)
+computes for the inside test. A negative signed area means
+clockwise winding (back-facing in this codebase's
+counter-clockwise convention); a positive signed area means
+counter-clockwise (front-facing). The cull check is one sign
+test before the rasterization-prep work begins.
+
+## <a id="viewport-and-scissor"></a>Viewport and scissor
+The viewport decides where projected clip-space coordinates land in
+the framebuffer. With the default state, normalized device coordinates
+from $(-1, -1)$ to $(1, 1)$ map across the whole render target. Calling
+`Rasterizer::setViewportRect(...)` maps that same clip-space square into
+a smaller framebuffer rectangle instead.
+
+The scissor rectangle is different: it does not change projection. It is
+a framebuffer-space reject test. After a triangle has projected to screen
+space, fragments outside `Rasterizer::scissorRect()` are discarded before
+depth, stencil, shading, blending, and color writes.
+
+Both rectangles are clipped to the framebuffer before drawing. A viewport
+outside the framebuffer, a zero-size viewport, or a zero-size scissor
+rectangle leaves only the already-cleared background.
+
+The images below use the same oversized source rectangle:
+
+| Full framebuffer | Viewport rectangle | Scissor rectangle |
+|---|---|---|
+| ![Full framebuffer viewport](../../images/rasterizer_viewport_full.png) | ![Clip-space mapped into a smaller viewport rectangle](../../images/rasterizer_viewport_rect.png) | ![Full projection clipped by a scissor rectangle](../../images/rasterizer_scissor_rect.png) |
+
+## <a id="color-output"></a>Color output
+After a fragment passes depth and stencil, the rasterizer enters
+the color-output stage. The default behavior is replacement:
+write the shaded RGB value into the framebuffer. Two pieces of
+state can change that write:
+
+- **Color write mask** — one bit each for red, green, and blue.
+  Disabled channels preserve the destination framebuffer value.
+  Depth and stencil updates still happen, so a pass can populate
+  visibility buffers without touching color.
+- **Blend state** — an optional RGB combine between the shaded
+  source color and the current destination color. The codebase
+  supports the standard source/destination factor shape
+  (`source * sourceFactor` combined with
+  `destination * destinationFactor`) plus `Add`, `Subtract`,
+  `ReverseSubtract`, `Min`, and `Max`.
+
+The current framebuffer color type is RGB-only, so alpha is transient
+pass data rather than a stored attachment channel. The built-in
+material path derives fragment alpha from transparent-material opacity
+and texture intensity, then uses it for alpha testing and
+`BlendFactor::SourceAlpha` / `BlendFactor::OneMinusSourceAlpha`.
+Pass-constant alpha remains available through
+`BlendFactor::ConstantAlpha` and
+`BlendFactor::OneMinusConstantAlpha`.
+
+The same source rectangle rendered through five color-output states:
+
+| RGB write mask | Green-only write mask | Constant-alpha blending | Source-alpha blending | Alpha-test reject |
+|---|---|---|---|---|
+| ![RGB write mask](../../images/rasterizer_color_output_rgb.png) | ![Green-only color write mask](../../images/rasterizer_color_output_green_mask.png) | ![Constant-alpha blend over the framebuffer destination](../../images/rasterizer_color_output_constant_alpha.png) | ![Source-alpha blend over the framebuffer destination](../../images/rasterizer_color_output_source_alpha.png) | ![Alpha test rejecting the source fragment](../../images/rasterizer_alpha_test_reject.png) |
+
+<!-- widget: rasterizer_color_output -->
+
+Before the pass runs, each attachment also has load/store state:
+
+- The color attachment is the caller's `Buffer<Colord>`. `Clear`
+  fills it with `backgroundColor()` before drawing; `Load`
+  preserves its existing pixels so blending, write masks, and
+  uncovered pixels see the old framebuffer. `Store` leaves the
+  rendered result in the buffer. `Discard` renders through transient
+  storage and leaves the caller's buffer unchanged.
+- The depth and stencil attachments are optional borrowed buffers
+  supplied through `Rasterizer::AttachmentBuffers`. Without attachments,
+  they are transient pass storage. With matching same-size attachments,
+  `Load` copies their old values into the pass, `Clear` uses
+  `depthClearValue()` or `stencilClearValue()`, `Store` copies the final
+  pass values back, and `Discard` leaves the borrowed buffer unchanged.
+
+This is what makes a software multi-pass effect deterministic. A first
+pass can render only depth or stencil and store that attachment; a later
+pass can load it, use `DepthFunc` or `StencilFunc` to select pixels, and
+then blend or mask color into the framebuffer.
+
+## <a id="the-full-state-machine-default-values"></a>The full state machine, default values
+The configurable state at a glance:
+
+| State | Default | Rasterizer setter |
+|---|---|---|
+| `CullMode` | `Both` | `setCullMode` |
+| Viewport | full framebuffer | `setViewportRect` |
+| Scissor | disabled | `setScissorRect` |
+| Color load/store | `Clear`, `Store` | `setColorLoadOp`, `setColorStoreOp` |
+| `DepthFunc` | `Less` | `setDepthFunc` |
+| Depth bias | `0` | `setDepthBias` |
+| Depth writes | enabled | `setDepthWriteEnabled` |
+| Depth clear value | `+∞` | `setDepthClearValue` |
+| Depth load/store | `Clear`, `Store` | `setDepthLoadOp`, `setDepthStoreOp` |
+| `StencilFunc` | `Always` | `setStencilFunc` |
+| `StencilOp` (3) | all `Keep` | `setStencilOps` |
+| Stencil clear value | `0` | `setStencilClearValue` |
+| Stencil load/store | `Clear`, `Store` | `setStencilLoadOp`, `setStencilStoreOp` |
+| Stencil write mask | `0xFF` | `setStencilWriteMask` |
+| Depth/stencil attachments | none | `setAttachmentBuffers` |
+| Color write mask | RGB enabled | `setColorWriteMask` |
+| Blending | disabled | `setBlendingEnabled` |
+| Blend factors | `One`, `Zero` | `setBlendFactors` |
+| Blend op | `Add` | `setBlendOp` |
+| Blend constant | white, alpha 1 | `setBlendConstant` |
+
+The defaults give back the textbook fixed-function pipeline
+the rasterization-pipeline walkthrough describes: `Less` depth test, depth
+writes on, full-frame viewport, no scissor test, no stencil test,
+no blending, all RGB channels writable, no culling, both sides
+rendered. Applications that want custom behavior set the relevant
+state before calling `render(...)`; the state persists across renders,
+so a single configuration applies to the whole frame.
+
+## <a id="where-this-connects-to-gpu-pipelines"></a>Where this connects to GPU pipelines
+Real-time GPU rasterizers expose essentially the same state
+machine — the Direct3D / OpenGL / Vulkan / Metal depth-stencil
+and color-blend states are the same configuration as the
+codebase's, modulo spelling. The reason is that the state
+machine is the *minimum* configurability needed for the
+graphics-research-vintage techniques that pre-shader pipelines
+exposed: shadow volumes (stencil counting), reflections (stencil
+masking), [CSG](../appendix/a-glossary.md#c) (depth peeling),
+portal rendering (stencil regions), and layered compositing
+(blend state).
+
+## <a id="exercises"></a>Exercises
+1. Predict what happens when a triangle has all three vertices
+   *behind* the camera. Trace the clipping algorithm: what
+   does it produce? What does the rasterizer do with the
+   result?
+2. The Sutherland-Hodgman algorithm clips against one plane
+   at a time, producing a convex polygon. What's the maximum
+   vertex count that a triangle can produce after clipping
+   against the six clip planes (near, far, left, right, top,
+   bottom)? Why?
+3. Construct a stencil-buffer state that renders the *outside*
+   of a stencil region (instead of the inside). Walk through
+   the two-pass sequence: what's the stencil function, the
+   three ops, and the reference value at each pass?
+4. The default `CullMode::Both` renders both sides of every
+   triangle. For a closed mesh, this is wasteful. For an
+   *open* mesh (a plane, a half-cylinder), it's necessary.
+   Write a check that decides at scene build time whether
+   `CullMode::Back` is safe.
+
+## See also
+
+- Volume index: [Rasterization](README.md)
+- Previous:
+  [The rasterization pipeline](the-rasterization-pipeline.md)
+- Next: [Wireframe rendering](wireframe-rendering.md)
+- Camera-side clip-space projection:
+  [The `Camera` interface](../ray-rendering/cameras.md#the-camera-interface)
+- Vertex attributes that get interpolated through the clipper:
+  [Tessellation](tessellation.md)
+- Perspective-correct attribute interpolation in detail:
+  [MSAA and attribute interpolation](msaa-and-attribute-interpolation.md)
+
+## Source anchors
+
+<!-- source-anchors -->
+- `include/core/geometry/Rasterize.h`
+- `include/render/HomogeneousClipVolume.h`
+- `include/engine/raster/Rasterizer.h`
+- `src/engine/raster/Rasterizer.cpp`
+- `src/engine/raster/RasterPass.h`
+<!-- /source-anchors -->

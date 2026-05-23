@@ -75,16 +75,17 @@ The project keeps the two aligned through:
   delete files appearing in a chapter's *Source anchors* list update
   the chapter in the same PR. Same for new public behaviour and new /
   removed widgets.
-- A `rake docs:textbook:check` task that fails CI if any link, anchor,
-  widget reference, or image reference goes stale.
-- A `rake docs:textbook:audit` punch-list scan (run on demand) that
-  surfaces drift the per-PR rule misses — unreferenced headers,
-  orphan widgets, recent commits that touched chapter source files.
+- A `rake docs:textbook:check` task that fails CI if any local link target,
+  widget reference, source anchor, chapter order, or chapter reachability goes
+  stale.
+- A generated source-map appendix, refreshed with
+  `rake docs:textbook:source-map`, that keeps chapter/source relationships
+  visible.
 
 If you find a stale reference, please open an issue or a PR. Drift is
 a bug.
 
 ---
 
-Onward, then. [Volume I — Foundations](01-foundations/README.md)
+Onward, then. [Foundations](foundations/README.md)
 starts with vectors.

@@ -31,89 +31,89 @@ image embedding are documented there too.
 - [Preface](preface.md) — what this book is, how to read it, what to
   expect.
 
-### Volume I — Foundations
+### Foundations
 
 The math and data structures everything else stands on. Read this
 volume linearly; later chapters assume the vocabulary.
 
-- [Volume index](01-foundations/README.md)
-- [1. Numbers and vectors](01-foundations/01-numbers-and-vectors.md)
-- [2. Matrices and transforms](01-foundations/02-matrices-and-transforms.md)
-- [3. Rays and geometry](01-foundations/03-rays-and-geometry.md)
-- [4. Color and buffers](01-foundations/04-color-and-buffers.md)
+- [Volume index](foundations/README.md)
+- [Numbers and vectors](foundations/numbers-and-vectors.md)
+- [Matrices and transforms](foundations/matrices-and-transforms.md)
+- [Rays and geometry](foundations/rays-and-geometry.md)
+- [Color and buffers](foundations/color-and-buffers.md)
 
-### Volume II — Ray rendering
+### Ray rendering
 
 The Whitted pipeline as it actually runs in
-`engine::raytracer::Raytracer`. The longest volume; pin Volume I in
+`engine::raytracer::Raytracer`. The longest volume; pin Foundations in
 your head before starting it.
 
-- [Volume index](02-ray-rendering/README.md)
-- [5. The Whitted pipeline](02-ray-rendering/05-the-whitted-pipeline.md)
-- [6. Cameras](02-ray-rendering/06-cameras.md)
-- [7. Primitives and intersection](02-ray-rendering/07-primitives-and-intersection.md)
-- [8. Materials and BRDFs](02-ray-rendering/08-materials-and-brdfs.md)
-- [9. Lights and shading](02-ray-rendering/09-lights-and-shading.md)
-- [10. Sampling and anti-aliasing](02-ray-rendering/10-sampling-and-anti-aliasing.md)
-- [11. Textures](02-ray-rendering/11-textures.md)
-- [12. Tone mapping](02-ray-rendering/12-tone-mapping.md)
+- [Volume index](ray-rendering/README.md)
+- [The Whitted pipeline](ray-rendering/the-whitted-pipeline.md)
+- [Cameras](ray-rendering/cameras.md)
+- [Primitives and intersection](ray-rendering/primitives-and-intersection.md)
+- [Materials and BRDFs](ray-rendering/materials-and-brdfs.md)
+- [Lights and shading](ray-rendering/lights-and-shading.md)
+- [Sampling and anti-aliasing](ray-rendering/sampling-and-anti-aliasing.md)
+- [Textures](ray-rendering/textures.md)
+- [Tone mapping](ray-rendering/tone-mapping.md)
 
-### Volume III — Scene structure
+### Scene structure
 
 Cross-cutting abstractions that make the renderer fast and the scene
 expressive.
 
-- [Volume index](03-scene-structure/README.md)
-- [13. View planes](03-scene-structure/13-view-planes.md)
-- [14. Constructive solid geometry](03-scene-structure/14-csg.md)
-- [15. Spatial acceleration](03-scene-structure/15-spatial-acceleration.md)
-- [16. Instances and motion blur](03-scene-structure/16-instances-and-motion-blur.md)
+- [Volume index](scene-structure/README.md)
+- [View planes](scene-structure/view-planes.md)
+- [Constructive solid geometry](scene-structure/csg.md)
+- [Spatial acceleration](scene-structure/spatial-acceleration.md)
+- [Instances and motion blur](scene-structure/instances-and-motion-blur.md)
 
-### Volume IV — Rasterization
+### Rasterization
 
 The other rendering family the codebase ships: a software rasterizer
-plus a wireframe engine. Volume IV stands mostly alone after Volume I,
+plus a wireframe engine. Rasterization stands mostly alone after Foundations,
 so it's a viable second-pass read.
 
-- [Volume index](04-rasterization/README.md)
-- [17. Tessellation](04-rasterization/17-tessellation.md)
-- [18. The rasterization pipeline](04-rasterization/18-the-rasterization-pipeline.md)
-- [19. Clipping, depth, stencil](04-rasterization/19-clipping-depth-stencil.md)
-- [20. Wireframe rendering](04-rasterization/20-wireframe-rendering.md)
-- [21. MSAA and attribute interpolation](04-rasterization/21-msaa-and-attribute-interpolation.md)
+- [Volume index](rasterization/README.md)
+- [Tessellation](rasterization/tessellation.md)
+- [The rasterization pipeline](rasterization/the-rasterization-pipeline.md)
+- [Clipping, depth, stencil](rasterization/clipping-depth-stencil.md)
+- [Wireframe rendering](rasterization/wireframe-rendering.md)
+- [MSAA and attribute interpolation](rasterization/msaa-and-attribute-interpolation.md)
 
-### Volume V — Image processing & computer vision
+### Image processing & computer vision
 
-Volume V covers the test-side helpers `Blob`, `Silhouette`, and
+Image processing & computer vision covers the test-side helpers `Blob`, `Silhouette`, and
 `ShapeClassifier`.
 
-- [Volume index](05-image-and-vision/README.md)
-- [22. Image buffers and pixel formats](05-image-and-vision/22-image-buffers-and-pixel-formats.md)
-- [23. Blob analysis and silhouettes](05-image-and-vision/23-blob-analysis-and-silhouettes.md)
-- [24. Shape classification](05-image-and-vision/24-shape-classification.md)
+- [Volume index](image-and-vision/README.md)
+- [Image buffers and pixel formats](image-and-vision/image-buffers-and-pixel-formats.md)
+- [Blob analysis and silhouettes](image-and-vision/blob-analysis-and-silhouettes.md)
+- [Shape classification](image-and-vision/shape-classification.md)
 
-### Volume VI — Tools & I/O
+### Tools & I/O
 
 The supporting cast around the rendering core.
 
-- [Volume index](06-tools-and-io/README.md)
-- [25. PLY parsing](06-tools-and-io/25-ply-parsing.md)
-- [26. Tools and the Modeler](06-tools-and-io/26-tools-and-modeler.md)
+- [Volume index](tools-and-io/README.md)
+- [PLY parsing](tools-and-io/ply-parsing.md)
+- [Tools and the Modeler](tools-and-io/tools-and-modeler.md)
 
-### Volume VII — Render graph
+### Render graph
 
 Pass/resource declarations for inspecting, validating, and exporting a render
 plan before pixels are produced.
 
-- [Volume index](07-render-graph/README.md)
-- [27. Render plans and resources](07-render-graph/27-render-plans-and-resources.md)
+- [Volume index](render-graph/README.md)
+- [Render plans and resources](render-graph/render-plans-and-resources.md)
 
-### Volume VIII — Animation
+### Animation
 
 Frame timelines, typed keyframe tracks, and interpolation policies.
 
-- [Volume index](08-animation/README.md)
-- [28. Timelines and interpolation](08-animation/28-timelines-and-interpolation.md)
+- [Volume index](animation/README.md)
+- [Timelines and interpolation](animation/timelines-and-interpolation.md)
 
 ### Appendix
 
@@ -128,19 +128,18 @@ Frame timelines, typed keyframe tracks, and interpolation policies.
 
 ### Top-to-bottom
 
-Volumes I → II → III → IV → V → VI → VII → VIII, in order. The longest path;
+Foundations → Ray rendering → Scene structure → Rasterization → Image processing and computer vision → Tools and I/O → Render graph → Animation, in order. The longest path;
 works if you have time and want the full picture.
 
 ### "I just want to understand the raytracer"
 
-Volume I, then Volume II in full, then chapters 13–16 from Volume III.
-Skip rasterization and CV. About 16 chapters.
+Foundations, then Ray rendering in full, then Scene structure. Skip
+rasterization and CV.
 
 ### "I just want to understand the rasterizer"
 
-Volume I, then chapter 5 (the Whitted overview, for the engine
-abstraction), then Volume IV in full, then chapter 17 from Volume IV
-revisits Volume I's geometry primitives. About 10 chapters.
+Foundations, then [The Whitted pipeline](ray-rendering/the-whitted-pipeline.md)
+for the engine abstraction, then Rasterization in full.
 
 ### "I want to fix one specific thing"
 
@@ -149,8 +148,10 @@ every header against the chapters that reference it.
 
 ### "I want to understand animation"
 
-Read chapter 16 for the renderer's existing velocity-based motion blur, then
-chapter 28 for frame timelines and keyframe interpolation.
+Read [Instances and motion blur](scene-structure/instances-and-motion-blur.md)
+for the renderer's existing velocity-based motion blur, then
+[Timelines and interpolation](animation/timelines-and-interpolation.md) for
+frame timelines and keyframe interpolation.
 
 ---
 
