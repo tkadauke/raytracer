@@ -98,7 +98,6 @@ namespace {
   using engine::raster::detail::accumulateMSAASample;
   using engine::raster::detail::cascadeBoundsForDepthRange;
   using engine::raster::detail::cascadeDepthRanges;
-  using engine::raster::detail::DepthOnlyFragmentPolicy;
   using engine::raster::detail::DepthState;
   using engine::raster::detail::DepthWritePolicy;
   using engine::raster::detail::DirectionalShadowCamera;
@@ -111,6 +110,7 @@ namespace {
   using engine::raster::detail::PassBuffers;
   using engine::raster::detail::RasterDiagnosticBufferViews;
   using engine::raster::detail::RasterFullBufferView;
+  using engine::raster::detail::rasterizeDepthOnlyTriangleSetWithPolicies;
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
   using engine::raster::detail::rasterizeTileWithPolicies;
   using engine::raster::detail::rasterizeTriangleSetWithPolicies;
@@ -413,8 +413,6 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
       auto depthBuffer = std::make_unique<Buffer<double>>(size, size);
       depthBuffer->clear(std::numeric_limits<double>::infinity());
 
-      Buffer<Colord> scratch(size, size);
-      scratch.clear(Colord::black());
       const render::TilePlan shadowTilePlan = render::TilePlan::forBuffer(size, size, 1);
       RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
                                           cancelled, Rasterizer::CullMode::Both, false);
@@ -422,12 +420,11 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
         collectRasterTriangles(shadowEmitter, shadowTilePlan);
       if (!shadowTriangles.empty()) {
         std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
-        rasterizeTriangleSetWithPolicies(
-          shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled,
-          fullBufferView(scratch), Vector2d(0.0, 0.0), NoStencilPolicy{},
+        rasterizeDepthOnlyTriangleSetWithPolicies(
+          shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled, Vector2d(0.0, 0.0),
+          NoStencilPolicy{},
           DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(*depthBuffer),
-                                                         DepthState{Rasterizer::DepthFunc::Less}},
-          DepthOnlyFragmentPolicy{}, RasterDiagnosticBufferViews{});
+                                                         DepthState{Rasterizer::DepthFunc::Less}});
       }
 
       cascades.push_back(

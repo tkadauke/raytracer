@@ -252,16 +252,6 @@ namespace engine::raster::detail {
     }
   };
 
-  // Shadow-map pass fragment policy. It exists only to satisfy the shared raster
-  // loop's "shade then write color" contract; the useful output of the pass is
-  // the depth policy's z-buffer write.
-  struct DepthOnlyFragmentPolicy {
-    inline Colord shade(const RasterTriangle&, int, int, double, double, double,
-                        const InterpolatedFragment&) const {
-      return Colord::black();
-    }
-  };
-
   template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizePreparedTriangleWithPolicies(const RasterTriangle& triangle,
                                                     const Recti& clipRect, ColorBuffer colorBuffer,
@@ -301,6 +291,38 @@ namespace engine::raster::detail {
       });
   }
 
+  template<class Stencil, class Depth>
+  inline void rasterizeDepthOnlyPreparedTriangleWithPolicies(const RasterTriangle& triangle,
+                                                             const Recti& clipRect,
+                                                             const Vector2d& sampleOffset,
+                                                             Stencil stencil, Depth depth) {
+    const RasterVertex& v0 = triangle.vertices[0];
+    const RasterVertex& v1 = triangle.vertices[1];
+    const RasterVertex& v2 = triangle.vertices[2];
+
+    // Shadow maps and other depth prepasses need coverage, stencil, and depth
+    // state, but do not shade or write color. Keeping that path separate avoids
+    // allocating scratch color buffers just to satisfy the normal color pass.
+    core::rasterizeTriangleSampled(
+      v0.x, v0.y, v1.x, v1.y, v2.x, v2.y, clipRect.left(), clipRect.top(), clipRect.right(),
+      clipRect.bottom(), sampleOffset.x(), sampleOffset.y(),
+      [&](int x, int y, double w0b, double w1b, double w2b) {
+        if (!stencil.pass(x, y)) {
+          stencil.onStencilFail(x, y);
+          return;
+        }
+
+        const InterpolatedFragment fragment(v0, v1, v2, w0b, w1b, w2b);
+        if (!depth.pass(x, y, fragment.depth)) {
+          stencil.onDepthFail(x, y);
+          return;
+        }
+
+        stencil.onPass(x, y);
+        depth.write(x, y, fragment.depth);
+      });
+  }
+
   template<class ColorBuffer, class Stencil, class Depth, class Fragment, class Diagnostics>
   inline void rasterizeTileWithPolicies(const RasterTriangleSet& triangleSet, const Recti& rect,
                                         std::size_t tileIndex, ColorBuffer colorBuffer,
@@ -316,6 +338,22 @@ namespace engine::raster::detail {
       rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rect, colorBuffer,
                                             sampleOffset, stencil, depth, fragmentPolicy,
                                             diagnostics);
+    }
+  }
+
+  template<class Stencil, class Depth>
+  inline void rasterizeDepthOnlyTileWithPolicies(const RasterTriangleSet& triangleSet,
+                                                 const Recti& rect, std::size_t tileIndex,
+                                                 const Vector2d& sampleOffset,
+                                                 const std::atomic<bool>& cancelled,
+                                                 Stencil stencil, Depth depth) {
+    const auto& triangles = triangleSet.triangles();
+    const auto& triangleIndices = triangleSet.tileGrid().triangleIndices(tileIndex);
+    for (const std::size_t triangleIndex : triangleIndices) {
+      if (cancelled.load())
+        return;
+      rasterizeDepthOnlyPreparedTriangleWithPolicies(triangles[triangleIndex], rect, sampleOffset,
+                                                     stencil, depth);
     }
   }
 
@@ -338,6 +376,26 @@ namespace engine::raster::detail {
                                 rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer,
                                                           sampleOffset, cancelled, stencil, depth,
                                                           fragmentPolicy, diagnostics);
+                              });
+  }
+
+  template<class Stencil, class Depth>
+  inline void rasterizeDepthOnlyTriangleSetWithPolicies(
+    const RasterTriangleSet& triangleSet, const render::TilePlan& tilePlan, QThreadPool& threadPool,
+    std::list<std::shared_ptr<engine::TileRenderTask>>& tasks, const std::atomic<bool>& cancelled,
+    const Vector2d& sampleOffset, Stencil stencil, Depth depth) {
+    if (tilePlan.isSingleTile()) {
+      rasterizeDepthOnlyTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, sampleOffset,
+                                         cancelled, stencil, depth);
+      return;
+    }
+
+    engine::dispatchTileTasks(tilePlan, threadPool, tasks,
+                              [&, sampleOffset, stencil, depth](const Recti& rect,
+                                                                 std::size_t tileIndex) {
+                                rasterizeDepthOnlyTileWithPolicies(
+                                  triangleSet, rect, tileIndex, sampleOffset, cancelled, stencil,
+                                  depth);
                               });
   }
 
