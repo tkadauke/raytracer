@@ -346,19 +346,20 @@ state can change that write:
   `destination * destinationFactor`) plus `Add`, `Subtract`,
   `ReverseSubtract`, `Min`, and `Max`.
 
-The current framebuffer color type is RGB-only. There is no
-stored source or destination alpha channel, so alpha-style
-compositing uses the rasterizer's pass-constant alpha through
+The current framebuffer color type is RGB-only, so alpha is transient
+pass data rather than a stored attachment channel. The built-in
+material path derives fragment alpha from transparent-material opacity
+and texture intensity, then uses it for alpha testing and
+`BlendFactor::SourceAlpha` / `BlendFactor::OneMinusSourceAlpha`.
+Pass-constant alpha remains available through
 `BlendFactor::ConstantAlpha` and
-`BlendFactor::OneMinusConstantAlpha`. Material and texture opacity are
-not inputs to this stage today; the only alpha-like input is the pass
-constant alpha.
+`BlendFactor::OneMinusConstantAlpha`.
 
-The same source rectangle rendered through three color-output states:
+The same source rectangle rendered through five color-output states:
 
-| RGB write mask | Green-only write mask | Constant-alpha blending |
-|---|---|---|
-| ![RGB write mask](../../images/rasterizer_color_output_rgb.png) | ![Green-only color write mask](../../images/rasterizer_color_output_green_mask.png) | ![Constant-alpha blend over the framebuffer destination](../../images/rasterizer_color_output_constant_alpha.png) |
+| RGB write mask | Green-only write mask | Constant-alpha blending | Source-alpha blending | Alpha-test reject |
+|---|---|---|---|---|
+| ![RGB write mask](../../images/rasterizer_color_output_rgb.png) | ![Green-only color write mask](../../images/rasterizer_color_output_green_mask.png) | ![Constant-alpha blend over the framebuffer destination](../../images/rasterizer_color_output_constant_alpha.png) | ![Source-alpha blend over the framebuffer destination](../../images/rasterizer_color_output_source_alpha.png) | ![Alpha test rejecting the source fragment](../../images/rasterizer_alpha_test_reject.png) |
 
 <!-- widget: rasterizer_color_output -->
 

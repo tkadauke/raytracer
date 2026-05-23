@@ -93,6 +93,24 @@ module ::Common
               )
   end
 
+  def rasterizer_alpha_output_scene
+    ambient [1.0, 1.0, 1.0]
+    background [0.18, 0.24, 0.34]
+
+    pinhole_camera :position => [0.0, 0.0, -3.4],
+                   :target => [0.0, 0.0, 0.0],
+                   :zoom => 1.55
+
+    rectangle :position => [-1.75, 1.10, 0.0],
+              :leg1 => [3.5, 0.0, 0.0],
+              :leg2 => [0.0, -2.20, 0.0],
+              :material => matte_material(
+                :diffuseTexture => constant_color_texture(:color => [0.50, 0.0, 0.0]),
+                :ambientCoefficient => 1.0,
+                :diffuseCoefficient => 0.0,
+              )
+  end
+
   def rasterizer_viewport_scissor_scene
     ambient [1.0, 1.0, 1.0]
     background [0.035, 0.045, 0.060]
@@ -277,6 +295,20 @@ class_doc(engine: "raster", width: 240, height: 180, blend: true,
   name "rasterizer_color_output_constant_alpha"
 
   rasterizer_color_output_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180, blend: true,
+          blend_src: "source_alpha", blend_dst: "one_minus_source_alpha") do
+  name "rasterizer_color_output_source_alpha"
+
+  rasterizer_alpha_output_scene
+end
+
+class_doc(engine: "raster", width: 240, height: 180,
+          alpha_test: true, alpha_func: "greater", alpha_ref: 0.75) do
+  name "rasterizer_alpha_test_reject"
+
+  rasterizer_alpha_output_scene
 end
 
 class_doc(engine: "raster", width: 240, height: 180) do

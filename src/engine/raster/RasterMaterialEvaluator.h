@@ -42,17 +42,18 @@ namespace engine::raster::detail {
       }
     }
 
-    Colord shade(const RasterTriangle& triangle, int x, int y,
-                 const InterpolatedFragment& fragment) const {
+    RasterFragment shade(const RasterTriangle& triangle, int x, int y,
+                         const InterpolatedFragment& fragment) const {
       return shade(triangle.rasterMaterial, triangle.primitive, fragment.worldPos, fragment.normal,
                    fragment.uv, triangle.uvDx, triangle.uvDy, x, y);
     }
 
-    Colord shade(const RasterMaterial& rasterMaterial, const render::Primitive* primitive,
-                 const Vector3d& worldPos, const Vector3d& normal, const Vector2d& uv,
-                 const Vector2d& uvDx, const Vector2d& uvDy, int x, int y) const {
+    RasterFragment shade(const RasterMaterial& rasterMaterial, const render::Primitive* primitive,
+                         const Vector3d& worldPos, const Vector3d& normal, const Vector2d& uv,
+                         const Vector2d& uvDx, const Vector2d& uvDy, int x, int y) const {
       const Vector3d n = normal.normalized();
       const Colord albedo = rasterMaterial.albedo(primitive, worldPos, n, uv, uvDx, uvDy);
+      const double alpha = rasterMaterial.alpha(primitive, worldPos, n, uv, uvDx, uvDy);
       const bool hasSpecular = rasterMaterial.hasSpecular() && m_camera;
       const Vector3d viewDir = hasSpecular ? (-m_camera->rayForPixel(x, y).direction()).normalized()
                                            : Vector3d::undefined;
@@ -81,7 +82,7 @@ namespace engine::raster::detail {
           }
         }
       }
-      return shaded;
+      return {shaded, alpha};
     }
 
   private:

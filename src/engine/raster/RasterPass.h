@@ -198,6 +198,37 @@ namespace engine::raster::detail {
     }
   };
 
+  struct AlphaTestState {
+    bool enabled;
+    Rasterizer::AlphaFunc func;
+    double reference;
+
+    inline bool pass(double alpha) const {
+      if (!enabled) {
+        return true;
+      }
+      switch (func) {
+      case Rasterizer::AlphaFunc::Never:
+        return false;
+      case Rasterizer::AlphaFunc::Less:
+        return alpha < reference;
+      case Rasterizer::AlphaFunc::Equal:
+        return alpha == reference;
+      case Rasterizer::AlphaFunc::LessEqual:
+        return alpha <= reference;
+      case Rasterizer::AlphaFunc::Greater:
+        return alpha > reference;
+      case Rasterizer::AlphaFunc::GreaterEqual:
+        return alpha >= reference;
+      case Rasterizer::AlphaFunc::NotEqual:
+        return alpha != reference;
+      case Rasterizer::AlphaFunc::Always:
+        return true;
+      }
+      return false;
+    }
+  };
+
   // Null object for disabled stencil. It has the same interface as the real
   // stencil policy, so the inner loop does not branch on "is stencil enabled".
   struct NoStencilPolicy {
@@ -289,9 +320,7 @@ namespace engine::raster::detail {
 
   // Fixed-function color output state. It resolves the shaded source color
   // against the current framebuffer value, then applies the RGB write mask.
-  // There is no alpha channel in `Colord`, so alpha-style blending uses the
-  // pass constant alpha because material/fragment opacity is not represented
-  // in this path.
+  // Alpha is transient per fragment; the framebuffer remains RGB-only.
   struct ColorOutputState {
     std::uint8_t writeMask;
     bool blendEnabled;
@@ -301,7 +330,7 @@ namespace engine::raster::detail {
     Colord constantColor;
     double constantAlpha;
 
-    inline double factor(Rasterizer::BlendFactor blendFactor, const Colord& source,
+    inline double factor(Rasterizer::BlendFactor blendFactor, const RasterFragment& source,
                          const Colord& destination, int channel) const {
       switch (blendFactor) {
       case Rasterizer::BlendFactor::Zero:
@@ -309,9 +338,13 @@ namespace engine::raster::detail {
       case Rasterizer::BlendFactor::One:
         return 1.0;
       case Rasterizer::BlendFactor::SourceColor:
-        return source[channel];
+        return source.color[channel];
       case Rasterizer::BlendFactor::OneMinusSourceColor:
-        return 1.0 - source[channel];
+        return 1.0 - source.color[channel];
+      case Rasterizer::BlendFactor::SourceAlpha:
+        return source.alpha;
+      case Rasterizer::BlendFactor::OneMinusSourceAlpha:
+        return 1.0 - source.alpha;
       case Rasterizer::BlendFactor::DestinationColor:
         return destination[channel];
       case Rasterizer::BlendFactor::OneMinusDestinationColor:
@@ -328,19 +361,20 @@ namespace engine::raster::detail {
       return 1.0;
     }
 
-    inline Colord blend(const Colord& source, const Colord& destination) const {
+    inline Colord blend(const RasterFragment& source, const Colord& destination) const {
       if (!blendEnabled) {
-        return source;
+        return source.color;
       }
 
       Colord result;
       for (int i = 0; i != 3; ++i) {
         if (op == Rasterizer::BlendOp::Min) {
-          result[i] = std::min(source[i], destination[i]);
+          result[i] = std::min(source.color[i], destination[i]);
         } else if (op == Rasterizer::BlendOp::Max) {
-          result[i] = std::max(source[i], destination[i]);
+          result[i] = std::max(source.color[i], destination[i]);
         } else {
-          const double sourceTerm = source[i] * factor(sourceFactor, source, destination, i);
+          const double sourceTerm =
+            source.color[i] * factor(sourceFactor, source, destination, i);
           const double destinationTerm =
             destination[i] * factor(destinationFactor, source, destination, i);
           switch (op) {
@@ -362,7 +396,7 @@ namespace engine::raster::detail {
       return result;
     }
 
-    inline Colord resolve(const Colord& source, const Colord& destination) const {
+    inline Colord resolve(const RasterFragment& source, const Colord& destination) const {
       const Colord blended = blend(source, destination);
       Colord result = destination;
       if (writeMask & Rasterizer::ColorWriteRed) {
@@ -383,7 +417,7 @@ namespace engine::raster::detail {
     BufferView colorBuffer;
     ColorOutputState state;
 
-    inline void write(int x, int y, const Colord& source) const {
+    inline void write(int x, int y, const RasterFragment& source) const {
       const Colord destination = colorBuffer.at(x, y);
       colorBuffer.at(x, y) = state.resolve(source, destination);
     }
@@ -405,8 +439,8 @@ namespace engine::raster::detail {
   struct BuiltInFragmentPolicy {
     MaterialEvaluator materialEvaluator;
 
-    inline Colord shade(const RasterTriangle& triangle, int x, int y, double, double, double,
-                        const InterpolatedFragment& fragment) const {
+    inline RasterFragment shade(const RasterTriangle& triangle, int x, int y, double, double,
+                                double, const InterpolatedFragment& fragment) const {
       return materialEvaluator.shade(triangle, x, y, fragment);
     }
   };
@@ -416,14 +450,15 @@ namespace engine::raster::detail {
   struct ShaderFragmentPolicy {
     const Rasterizer& rasterizer;
 
-    inline Colord shade(const RasterTriangle& triangle, int x, int y, double w0b, double w1b,
-                        double w2b, const InterpolatedFragment& fragment) const {
+    inline RasterFragment shade(const RasterTriangle& triangle, int x, int y, double w0b,
+                                double w1b, double w2b,
+                                const InterpolatedFragment& fragment) const {
       const auto& shader = rasterizer.fragmentShader();
       const Vector3d n = fragment.normal.normalized();
       const Rasterizer::FragmentInput input{
         x, y,           fragment.depth,     Vector3d(w0b, w1b, w2b), fragment.worldPos,
         n, fragment.uv, triangle.primitive, triangle.material.get(), triangle.faceIdx};
-      return shader(input);
+      return {shader(input), 1.0};
     }
   };
 
@@ -432,6 +467,7 @@ namespace engine::raster::detail {
                                                     const Recti& clipRect, ColorBuffer colorBuffer,
                                                     const Vector2d& sampleOffset, Stencil stencil,
                                                     Depth depth, Fragment fragmentPolicy,
+                                                    AlphaTestState alphaTest,
                                                     Diagnostics diagnostics) {
     const RasterVertex& v0 = triangle.vertices[0];
     const RasterVertex& v1 = triangle.vertices[1];
@@ -457,10 +493,15 @@ namespace engine::raster::detail {
           return;
         }
 
+        const double committedDepth = depth.biasedDepth(fragment.depth);
+        const RasterFragment shaded =
+          fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
+        if (!alphaTest.pass(shaded.alpha)) {
+          return;
+        }
+
         stencil.onPass(x, y);
         diagnostics.writeStencil(x, y, stencil.value(x, y));
-        const double committedDepth = depth.biasedDepth(fragment.depth);
-        const Colord shaded = fragmentPolicy.shade(triangle, x, y, w0b, w1b, w2b, fragment);
         depth.write(x, y, fragment.depth);
         colorBuffer.write(x, y, shaded);
         diagnostics.writeFragment(triangle, x, y, fragment, committedDepth);
@@ -505,6 +546,7 @@ namespace engine::raster::detail {
                                         const Recti& clipRect, const Vector2d& sampleOffset,
                                         const std::atomic<bool>& cancelled, Stencil stencil,
                                         Depth depth, Fragment fragmentPolicy,
+                                        AlphaTestState alphaTest,
                                         Diagnostics diagnostics) {
     const Recti rasterRect = intersectRasterRects(rect, clipRect);
     if (rasterRectEmpty(rasterRect))
@@ -516,7 +558,7 @@ namespace engine::raster::detail {
       if (cancelled.load())
         return;
       rasterizePreparedTriangleWithPolicies(triangles[triangleIndex], rasterRect, colorBuffer,
-                                            sampleOffset, stencil, depth, fragmentPolicy,
+                                            sampleOffset, stencil, depth, fragmentPolicy, alphaTest,
                                             diagnostics);
     }
   }
@@ -543,21 +585,21 @@ namespace engine::raster::detail {
     QThreadPool& threadPool, std::list<std::shared_ptr<engine::TileRenderTask>>& tasks,
     const std::atomic<bool>& cancelled, ColorBuffer colorBuffer, const Recti& clipRect,
     const Vector2d& sampleOffset, Stencil stencil, Depth depth, Fragment fragmentPolicy,
-    Diagnostics diagnostics) {
+    AlphaTestState alphaTest, Diagnostics diagnostics) {
     if (tilePlan.isSingleTile()) {
       // Avoid QRunnable overhead for the common single-tile path.
       rasterizeTileWithPolicies(triangleSet, tilePlan.fullRect(), 0, colorBuffer, clipRect,
-                                sampleOffset, cancelled, stencil, depth, fragmentPolicy,
+                                sampleOffset, cancelled, stencil, depth, fragmentPolicy, alphaTest,
                                 diagnostics);
       return;
     }
 
     engine::dispatchTileTasks(tilePlan, threadPool, tasks,
                               [&, sampleOffset, stencil, depth, fragmentPolicy,
-                               diagnostics](const Recti& rect, std::size_t tileIndex) {
+                               alphaTest, diagnostics](const Recti& rect, std::size_t tileIndex) {
                                 rasterizeTileWithPolicies(triangleSet, rect, tileIndex, colorBuffer,
                                                           clipRect, sampleOffset, cancelled,
-                                                          stencil, depth, fragmentPolicy,
+                                                          stencil, depth, fragmentPolicy, alphaTest,
                                                           diagnostics);
                               });
   }

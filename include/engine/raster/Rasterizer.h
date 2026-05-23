@@ -97,9 +97,10 @@ namespace engine::raster {
   * directional-light shadow maps, and tiny vertex/fragment shader
   * hooks are exposed for teaching the fixed-function stages without
   * forcing the default path through the programmable callbacks. The final
-  * color-output stage supports RGB write masks and fixed-function blending;
-  * alpha-style composition is currently pass-constant because `Colord` has no
-  * stored alpha channel. Direct float-buffer renders can also use explicit
+  * color-output stage supports RGB write masks, fixed-function blending, and
+  * alpha testing. `Colord` has no stored alpha channel, so material/texture
+  * alpha is transient fragment state used by alpha test and source-alpha blend
+  * factors. Direct float-buffer renders can also use explicit
   * attachment load/store state: color loads from or clears the caller's render
   * target, while borrowed depth/stencil attachments can be loaded, cleared,
   * stored, or discarded by pass state.
@@ -128,11 +129,14 @@ namespace engine::raster {
   * <script type="text/javascript" src="rasterizer_depth_stencil_cull.js"></script>
   * @endhtmlonly
   *
-  * The color-output widget shows the final pass step: optional blending
-  * combines the shaded source with the framebuffer destination, then the
-  * write mask decides which RGB channels commit. The rendered examples below
-  * show the same source rectangle with all channels enabled, with only green
-  * writes enabled, and with constant-alpha source-over-destination blending.
+  * The color-output widget shows the final pass step: optional alpha testing
+  * can reject a shaded fragment, optional blending combines the shaded source
+  * with the framebuffer destination, then the write mask decides which RGB
+  * channels commit. Source-alpha blending uses material/texture fragment alpha;
+  * constant-alpha blending uses pass state. The rendered examples below show
+  * the same source rectangle with all channels enabled, with only green writes
+  * enabled, with constant-alpha source-over-destination blending, with
+  * source-alpha blending, and with alpha test rejecting the fragment.
   * In the green-mask image, the untouched red/blue destination channels are
   * what make the result dark and muted; in the blend image, the destination
   * still contributes because the pass constant alpha is below 1.
@@ -146,6 +150,8 @@ namespace engine::raster {
   * <td>@image html rasterizer_color_output_rgb.png "RGB write mask"</td>
   * <td>@image html rasterizer_color_output_green_mask.png "green-only write mask"</td>
   * <td>@image html rasterizer_color_output_constant_alpha.png "constant-alpha blending"</td>
+  * <td>@image html rasterizer_color_output_source_alpha.png "source-alpha blending"</td>
+  * <td>@image html rasterizer_alpha_test_reject.png "alpha test reject"</td>
   * </tr></table>
   *
   * Viewport and scissor state are framebuffer-space pass controls. The
@@ -484,6 +490,8 @@ public:
     One,
     SourceColor,
     OneMinusSourceColor,
+    SourceAlpha,
+    OneMinusSourceAlpha,
     DestinationColor,
     OneMinusDestinationColor,
     ConstantColor,
@@ -518,6 +526,17 @@ public:
   enum class AttachmentStoreOp {
     Store,
     Discard
+  };
+
+  enum class AlphaFunc {
+    Never,
+    Less,
+    Equal,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    NotEqual,
+    Always
   };
 
   struct VertexInput {
@@ -975,6 +994,20 @@ public:
     m_stencilPassOp = pass;
   }
 
+  /// Optional fixed-function alpha test. The rasterizer has no stored alpha
+  /// channel, so alpha is a transient fragment value sourced from material and
+  /// texture state before color output. Failing fragments do not write color,
+  /// depth, stencil pass state, or diagnostics.
+  inline bool alphaTestEnabled() const { return m_alphaTestEnabled; }
+  inline void setAlphaTestEnabled(bool enabled) { m_alphaTestEnabled = enabled; }
+
+  inline AlphaFunc alphaFunc() const { return m_alphaFunc; }
+  inline double alphaReference() const { return m_alphaReference; }
+  inline void setAlphaFunc(AlphaFunc func, double reference) {
+    m_alphaFunc = func;
+    m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+  }
+
   /// RGB channel mask applied after shading and blending. A disabled channel
   /// preserves the destination framebuffer value while depth/stencil state
   /// still updates normally. Defaults to all channels enabled.
@@ -985,9 +1018,9 @@ public:
                       (blue ? ColorWriteBlue : 0));
   }
 
-  /// Fixed-function RGB blending applied before the color write mask. The
-  /// current color type has no stored alpha channel; use `ConstantAlpha` /
-  /// `OneMinusConstantAlpha` for pass-level alpha-style compositing.
+  /// Fixed-function RGB blending applied before the color write mask. Source
+  /// alpha factors use the transient material/texture alpha carried by the
+  /// current fragment; constant-alpha factors remain pass-level controls.
   inline bool blendingEnabled() const { return m_blendingEnabled; }
   inline void setBlendingEnabled(bool enabled) { m_blendingEnabled = enabled; }
 
@@ -1096,6 +1129,9 @@ private:
   StencilOp m_stencilFailOp{StencilOp::Keep};
   StencilOp m_stencilDepthFailOp{StencilOp::Keep};
   StencilOp m_stencilPassOp{StencilOp::Keep};
+  bool m_alphaTestEnabled{false};
+  AlphaFunc m_alphaFunc{AlphaFunc::Always};
+  double m_alphaReference{0.0};
   std::uint8_t m_colorWriteMask{ColorWriteAll};
   bool m_blendingEnabled{false};
   BlendFactor m_sourceBlendFactor{BlendFactor::One};

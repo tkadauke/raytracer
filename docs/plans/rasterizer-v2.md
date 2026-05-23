@@ -233,7 +233,7 @@ Define explicit raster-preview behavior for:
   raytracer, while still omitting recursive reflection/refraction;
 - ✅ a reusable raster material preview scene and rendered API/textbook image
   exercise Matte coefficient differences plus broad and tight Phong highlights;
-- alpha test and material/texture-sourced alpha blending;
+- ~~alpha test and material/texture-sourced alpha blending~~ ✅ **Done.** Raster fragments now carry transient alpha from transparent-material opacity and texture intensity through alpha test and source-alpha blend factors;
 - ✅ color write masks and RGB blend state, including rendercli flags plus
   rendered API/textbook examples;
 - ✅ direct UV texture lookup paths for exact `UVColorTexture` and UV-mapped

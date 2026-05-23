@@ -11,6 +11,7 @@
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
@@ -588,6 +589,9 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilFailOp());
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilDepthFailOp());
     EXPECT_EQ(Rasterizer::StencilOp::Keep, engine.stencilPassOp());
+    EXPECT_FALSE(engine.alphaTestEnabled());
+    EXPECT_EQ(Rasterizer::AlphaFunc::Always, engine.alphaFunc());
+    EXPECT_DOUBLE_EQ(0.0, engine.alphaReference());
     EXPECT_EQ(Rasterizer::ColorWriteAll, engine.colorWriteMask());
     EXPECT_FALSE(engine.blendingEnabled());
     EXPECT_EQ(Rasterizer::BlendFactor::One, engine.sourceBlendFactor());
@@ -656,6 +660,8 @@ namespace RasterizerTest {
     engine.setDepthStoreOp(Rasterizer::AttachmentStoreOp::Discard);
     engine.setStencilLoadOp(Rasterizer::AttachmentLoadOp::Load);
     engine.setStencilStoreOp(Rasterizer::AttachmentStoreOp::Discard);
+    engine.setAlphaTestEnabled(true);
+    engine.setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.25);
     Buffer<double> depth(1, 1);
     Buffer<std::uint8_t> stencil(1, 1);
     Rasterizer::DiagnosticOutputBuffers outputs;
@@ -700,6 +706,9 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, clone->depthStoreOp());
     EXPECT_EQ(Rasterizer::AttachmentLoadOp::Load, clone->stencilLoadOp());
     EXPECT_EQ(Rasterizer::AttachmentStoreOp::Discard, clone->stencilStoreOp());
+    EXPECT_TRUE(clone->alphaTestEnabled());
+    EXPECT_EQ(Rasterizer::AlphaFunc::Greater, clone->alphaFunc());
+    EXPECT_DOUBLE_EQ(0.25, clone->alphaReference());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
     EXPECT_EQ(nullptr, clone->attachmentBuffers().depth);
     EXPECT_EQ(nullptr, clone->attachmentBuffers().stencil);
@@ -1298,6 +1307,79 @@ namespace RasterizerTest {
     engine.render(buffer);
 
     expectColorNear(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
+  }
+
+  TEST(Rasterizer, SourceAlphaBlendUsesTextureSourcedAlpha) {
+    auto scene = sceneWithTexturedFrontFacingTriangle(
+      std::make_shared<ConstantColorTexture>(Colord(0.5, 0.0, 0.0)));
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
+    engine.setBlendingEnabled(true);
+    engine.setBlendFactors(Rasterizer::BlendFactor::SourceAlpha,
+                           Rasterizer::BlendFactor::OneMinusSourceAlpha);
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    expectColorNear(Colord(0.35, 0.2, 0.3), buffer[32][32], 1e-12);
+  }
+
+  TEST(Rasterizer, SourceAlphaBlendUsesTransparentMaterialOpacity) {
+    auto material =
+      std::make_shared<TransparentMaterial>(std::make_shared<ConstantColorTexture>(Colord::red()));
+    material->setTransmissionCoefficient(0.75);
+    auto scene = sceneWithMaterialFrontFacingTriangle(material);
+    scene->setAmbient(Colord::white());
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord(0.2, 0.4, 0.6));
+    engine.setBlendingEnabled(true);
+    engine.setBlendFactors(Rasterizer::BlendFactor::SourceAlpha,
+                           Rasterizer::BlendFactor::OneMinusSourceAlpha);
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    expectColorNear(Colord(0.4, 0.3, 0.45), buffer[32][32], 1e-12);
+  }
+
+  TEST(Rasterizer, AlphaTestFailureSkipsColorAndDepthWrites) {
+    auto scene = sceneWithTexturedFrontFacingTriangle(
+      std::make_shared<ConstantColorTexture>(Colord(0.25, 0.0, 0.0)));
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    engine.setAlphaTestEnabled(true);
+    engine.setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.5);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.depth = &depth;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_EQ(Colord::black(), color[32][32]);
+    EXPECT_EQ(engine.depthClearValue(), depth[32][32]);
+  }
+
+  TEST(Rasterizer, AlphaTestPassWritesColorAndDepth) {
+    auto scene = sceneWithTexturedFrontFacingTriangle(
+      std::make_shared<ConstantColorTexture>(Colord(0.75, 0.0, 0.0)));
+    Rasterizer engine(headOnCamera(), scene);
+    engine.setBackgroundColor(Colord::black());
+    engine.setAlphaTestEnabled(true);
+    engine.setAlphaFunc(Rasterizer::AlphaFunc::Greater, 0.5);
+
+    Buffer<Colord> color(64, 64);
+    Buffer<double> depth(64, 64);
+    Rasterizer::AttachmentBuffers attachments;
+    attachments.depth = &depth;
+    engine.setAttachmentBuffers(attachments);
+
+    engine.render(color);
+
+    EXPECT_EQ(Colord(0.75, 0.0, 0.0), color[32][32]);
+    EXPECT_NEAR(10.0, depth[32][32], 1e-9);
   }
 
   TEST(Rasterizer, TiledRenderMatchesSingleTileRenderWithBlendState) {
