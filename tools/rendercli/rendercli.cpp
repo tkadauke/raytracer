@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QImage>
 #include <QJsonDocument>
+#include <QJsonParseError>
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
@@ -135,8 +136,8 @@ namespace {
       *factor = BlendFactor::OneMinusSourceAlpha;
     } else if (normalized == "destinationcolor" || normalized == "dstcolor") {
       *factor = BlendFactor::DestinationColor;
-    } else if (normalized == "oneminusdestinationcolor" ||
-               normalized == "1minusdestinationcolor" || normalized == "1dstcolor") {
+    } else if (normalized == "oneminusdestinationcolor" || normalized == "1minusdestinationcolor" ||
+               normalized == "1dstcolor") {
       *factor = BlendFactor::OneMinusDestinationColor;
     } else if (normalized == "constantcolor" || normalized == "constcolor") {
       *factor = BlendFactor::ConstantColor;
@@ -208,8 +209,7 @@ namespace {
     for (int i = 0; i < 3; ++i) {
       bool ok = false;
       components[i] = parts[i].trimmed().toDouble(&ok);
-      if (!ok || !std::isfinite(components[i]) || components[i] < 0.0 ||
-          components[i] > 1.0) {
+      if (!ok || !std::isfinite(components[i]) || components[i] < 0.0 || components[i] > 1.0) {
         return false;
       }
     }
@@ -323,7 +323,8 @@ namespace {
       } else if (materialType == "TransparentMaterial") {
         warnings.push_back(
           "Rasterizer fallback: TransparentMaterial previews its local Phong base with "
-          "source alpha from transmission; refraction/reflection recursion remains raytracer-only.");
+          "source alpha from transmission; refraction/reflection recursion remains "
+          "raytracer-only.");
       }
     }
     return warnings;
@@ -354,6 +355,8 @@ private:
   int m_maximumRecursionDepth;
   int m_width;
   int m_height;
+  bool m_widthSet;
+  bool m_heightSet;
   QString m_sampler;
   int m_samplesPerPixel;
   int m_threads;
@@ -366,6 +369,7 @@ private:
   bool m_renderGraphOnly;
   QString m_renderGraphFormat;
   QString m_renderGraphOut;
+  QString m_renderGraphIn;
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
@@ -413,6 +417,10 @@ private:
   engine::graph::RenderIntent renderIntent() const;
   int renderGraphSampleCount() const;
   engine::graph::RenderPlan compileRenderGraphPlan() const;
+  engine::graph::RenderPlan loadRenderGraphPlan() const;
+  engine::graph::RenderPlan renderGraphPlan() const;
+  void applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan, int* width,
+                                  int* height) const;
   void validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const;
   void writeRenderGraphPlan(const engine::graph::RenderPlan& plan, const QString& output) const;
   QString renderGraphOutputPath() const;
@@ -424,6 +432,8 @@ Renderer::Renderer()
     : m_maximumRecursionDepth(10),
       m_width(640),
       m_height(480),
+      m_widthSet(false),
+      m_heightSet(false),
       m_sampler("Regular"),
       m_samplesPerPixel(1),
       m_threads(QThread::idealThreadCount()),
@@ -436,6 +446,7 @@ Renderer::Renderer()
       m_renderGraphOnly(false),
       m_renderGraphFormat("text"),
       m_renderGraphOut(),
+      m_renderGraphIn(),
       m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
@@ -483,7 +494,8 @@ Renderer::Renderer()
 std::unique_ptr<Scene> Renderer::loadScene() const {
   auto scene = std::make_unique<Scene>(nullptr);
   if (!scene->load(m_filename))
-    throw std::runtime_error(QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+    throw std::runtime_error(
+      QString("Unable to load input scene: %1").arg(m_filename).toStdString());
   return scene;
 }
 
@@ -508,6 +520,75 @@ engine::graph::RenderPlan Renderer::compileRenderGraphPlan() const {
   engine::graph::RenderGraphCompiler compiler;
   auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount()}, renderIntent());
   return plan.withOverrides(m_renderGraphOverrides);
+}
+
+engine::graph::RenderPlan Renderer::loadRenderGraphPlan() const {
+  QFile file(m_renderGraphIn);
+  if (!file.open(QIODevice::ReadOnly)) {
+    throw std::runtime_error(
+      QString("Unable to read render graph: %1").arg(m_renderGraphIn).toStdString());
+  }
+
+  QJsonParseError parseError;
+  const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
+  if (parseError.error != QJsonParseError::NoError) {
+    throw std::runtime_error(QString("Unable to parse render graph JSON %1: %2")
+                               .arg(m_renderGraphIn, parseError.errorString())
+                               .toStdString());
+  }
+  if (!document.isObject()) {
+    throw std::runtime_error(
+      QString("Render graph JSON must contain an object: %1").arg(m_renderGraphIn).toStdString());
+  }
+
+  return engine::graph::RenderPlan::fromJson(document.object())
+    .withOverrides(m_renderGraphOverrides);
+}
+
+engine::graph::RenderPlan Renderer::renderGraphPlan() const {
+  if (!m_renderGraphIn.isEmpty()) {
+    return loadRenderGraphPlan();
+  }
+  return compileRenderGraphPlan();
+}
+
+void Renderer::applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan, int* width,
+                                          int* height) const {
+  if (m_renderGraphIn.isEmpty()) {
+    return;
+  }
+
+  const engine::graph::RenderResourceDescriptor* output = nullptr;
+  for (const auto& resource : plan.resources()) {
+    if (resource.lifetime == engine::graph::RenderResourceLifetime::Exported &&
+        resource.type == engine::graph::RenderResourceType::Color) {
+      output = &resource;
+      break;
+    }
+  }
+  if (!output) {
+    throw std::runtime_error("Render graph input has no exported color resource");
+  }
+
+  if (m_widthSet && *width != output->width) {
+    throw std::runtime_error(QString("Render graph output width is %1 but --width is %2")
+                               .arg(output->width)
+                               .arg(*width)
+                               .toStdString());
+  }
+  if (m_heightSet && *height != output->height) {
+    throw std::runtime_error(QString("Render graph output height is %1 but --height is %2")
+                               .arg(output->height)
+                               .arg(*height)
+                               .toStdString());
+  }
+
+  if (!m_widthSet) {
+    *width = output->width;
+  }
+  if (!m_heightSet) {
+    *height = output->height;
+  }
 }
 
 void Renderer::validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const {
@@ -564,6 +645,8 @@ QString Renderer::renderGraphOutputPath() const {
 
 std::vector<double> Renderer::renderScene(const Scene& scene, const QString& output) const {
   auto raytracerScene = scene.toRaytracerScene();
+  int outputWidth = m_width;
+  int outputHeight = m_height;
 
   // Engine-agnostic camera setup. Both engines need a camera with a
   // view plane sized to the output buffer; the only engine-specific
@@ -590,16 +673,17 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       rtCamera->viewPlane()->setSampler(sampler());
     }
 
-    graphPlan = compileRenderGraphPlan();
+    graphPlan = renderGraphPlan();
     validateRenderGraphPlan(graphPlan);
+    applyRenderGraphOutputSize(graphPlan, &outputWidth, &outputHeight);
     const QString graphOutput = renderGraphOutputPath();
     if (!graphOutput.isEmpty()) {
       writeRenderGraphPlan(graphPlan, graphOutput);
     }
 
-    auto graph = rtCamera ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera,
-                                                                               raytracerScene)
-                          : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
+    auto graph = rtCamera
+                   ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
+                   : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
     graph->setIntent(renderIntent());
     graph->setPlan(graphPlan);
     engine = graph;
@@ -685,7 +769,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     qWarning("Unknown tonemap %s; falling back to Linear.", qPrintable(m_tonemap));
   }
 
-  Buffer<unsigned int> buffer(m_width, m_height);
+  Buffer<unsigned int> buffer(outputWidth, outputHeight);
   std::vector<double> timings;
   timings.reserve(static_cast<std::size_t>(m_repeat));
   for (int i = 0; i < m_repeat; ++i) {
@@ -719,7 +803,7 @@ void Renderer::render() const {
     scene->evaluateAnimationAtFrame(m_frame);
 
   if (m_renderGraphOnly) {
-    const auto plan = compileRenderGraphPlan();
+    const auto plan = renderGraphPlan();
     validateRenderGraphPlan(plan);
     writeRenderGraphPlan(plan, renderGraphOutputPath());
     return;
@@ -757,8 +841,7 @@ void Renderer::renderAnimation(const Scene& scene) const {
 
     std::cout << "frame " << (frame - startFrame + 1) << "/" << (endFrame - startFrame + 1)
               << " number=" << frame << " fps=" << fps << " output=" << output.toStdString()
-              << " render_ms=" << std::fixed << std::setprecision(3) << timings.front()
-              << '\n';
+              << " render_ms=" << std::fixed << std::setprecision(3) << timings.front() << '\n';
   }
 
   if (m_timing) {
@@ -794,7 +877,7 @@ bool Renderer::hasFramePlaceholder(const QString& pattern, QString* errorMessage
       continue;
 
     while (i < text.size() && (text[i] == '-' || text[i] == '+' || text[i] == ' ' ||
-                              text[i] == '#' || text[i] == '0')) {
+                               text[i] == '#' || text[i] == '0')) {
       ++i;
     }
     while (i < text.size() && std::isdigit(static_cast<unsigned char>(text[i]))) {
@@ -816,14 +899,14 @@ bool Renderer::hasFramePlaceholder(const QString& pattern, QString* errorMessage
       continue;
     }
 
-    *errorMessage =
-      "Animation output must contain exactly one printf-style signed integer placeholder such as %04d";
+    *errorMessage = "Animation output must contain exactly one printf-style signed integer "
+                    "placeholder such as %04d";
     return false;
   }
 
   if (placeholderCount != 1) {
-    *errorMessage =
-      "Animation output must contain exactly one printf-style signed integer placeholder such as %04d";
+    *errorMessage = "Animation output must contain exactly one printf-style signed integer "
+                    "placeholder such as %04d";
     return false;
   }
 
@@ -871,6 +954,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_only", "Compile/export the render graph and skip image rendering"},
      {"render_graph_format", "Render graph export format (text, dot, json)", "format"},
      {"render_graph_out", "Write the compiled render graph to a file", "file"},
+     {"render_graph_in", "Load a JSON render graph plan instead of compiling one", "file"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
      {"disable_pass_kind",
       "Disable render graph pass kind (beauty, shadow, overlay, composite, tonemap, postprocess, "
@@ -886,13 +970,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
      {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa, smaa, taa)", "mode"},
-     {"color_write_mask", "Rasterizer color-write mask (rgb, r, g, b, rg, rb, gb, none)",
-      "mask"},
+     {"color_write_mask", "Rasterizer color-write mask (rgb, r, g, b, rg, rb, gb, none)", "mask"},
      {"blend", "Enable rasterizer fixed-function blending"},
      {"blend_src", "Rasterizer source blend factor", "factor"},
      {"blend_dst", "Rasterizer destination blend factor", "factor"},
-     {"blend_op", "Rasterizer blend operation (add, subtract, reverse_subtract, min, max)",
-      "op"},
+     {"blend_op", "Rasterizer blend operation (add, subtract, reverse_subtract, min, max)", "op"},
      {"blend_constant_color", "Rasterizer blend constant color as r,g,b in 0..1", "color"},
      {"blend_constant_alpha", "Rasterizer blend constant alpha in 0..1", "alpha"},
      {"alpha_test", "Enable rasterizer alpha test"},
@@ -907,8 +989,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_maps", "Enable rasterizer directional-light shadow maps"},
      {"shadow_map_size", "Rasterizer shadow-map resolution", "pixels"},
      {"shadow_cascades", "Rasterizer directional-light shadow cascade count", "count"},
-     {"shadow_cascade_split", "Rasterizer shadow cascade split blend (0=linear, 1=log)",
-      "blend"},
+     {"shadow_cascade_split", "Rasterizer shadow cascade split blend (0=linear, 1=log)", "blend"},
      {"shadow_bias", "Rasterizer shadow-map depth bias", "bias"},
      {"shadow_slope_bias", "Rasterizer slope-scaled shadow-map depth bias", "bias"},
      {"shadow_filter_radius", "Rasterizer shadow filter radius", "radius"},
@@ -925,8 +1006,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   parser.addPositionalArgument("input",
                                QCoreApplication::translate("main", "Input file to render."));
   parser.addPositionalArgument(
-    "output",
-    QCoreApplication::translate("main", "Output image file, or graph file with --render_graph_only."));
+    "output", QCoreApplication::translate(
+                "main", "Output image file, or graph file with --render_graph_only."));
 
   if (!parser.parse(QCoreApplication::arguments())) {
     *errorMessage = parser.errorText();
@@ -946,6 +1027,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Width must be > 0";
       return CommandLineError;
     }
+    m_widthSet = true;
   }
 
   if (parser.isSet("height")) {
@@ -955,6 +1037,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Height must be > 0";
       return CommandLineError;
     }
+    m_heightSet = true;
   }
 
   if (parser.isSet("depth")) {
@@ -1033,6 +1116,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_out")) {
     m_renderGraph = true;
     m_renderGraphOut = parser.value("render_graph_out");
+  }
+
+  if (parser.isSet("render_graph_in")) {
+    m_renderGraph = true;
+    m_renderGraphIn = parser.value("render_graph_in");
   }
 
   if (parser.isSet("disable_pass")) {

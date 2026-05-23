@@ -3,16 +3,18 @@
 #include "engine/graph/RenderPlan.h"
 
 #include <QJsonArray>
+#include <QJsonObject>
 
 #include <algorithm>
+#include <stdexcept>
 #include <string>
 
 namespace RenderPlanTest {
   using namespace engine::graph;
 
-  RenderResourceDescriptor colorResource(const std::string& id,
-                                         RenderResourceLifetime lifetime =
-                                           RenderResourceLifetime::Transient) {
+  RenderResourceDescriptor
+  colorResource(const std::string& id,
+                RenderResourceLifetime lifetime = RenderResourceLifetime::Transient) {
     RenderResourceDescriptor resource;
     resource.id = id;
     resource.name = id;
@@ -37,10 +39,9 @@ namespace RenderPlanTest {
 
   bool hasError(const RenderPlanValidation& validation, RenderPlanValidationError::Code code) {
     const auto& errors = validation.errors();
-    return std::any_of(errors.begin(), errors.end(),
-                       [code](const RenderPlanValidationError& error) {
-                         return error.code == code;
-                       });
+    return std::any_of(
+      errors.begin(), errors.end(),
+      [code](const RenderPlanValidationError& error) { return error.code == code; });
   }
 
   TEST(RenderPlan, ValidatesSimpleProducerConsumerPlan) {
@@ -246,5 +247,57 @@ namespace RenderPlanTest {
     ASSERT_TRUE(json["passes"].isArray());
     EXPECT_EQ(1, json["resources"].toArray().size());
     EXPECT_EQ(1, json["passes"].toArray().size());
+  }
+
+  TEST(RenderPlan, ImportsJsonExportRoundTrip) {
+    RenderPlan plan;
+
+    auto history = colorResource("history_color", RenderResourceLifetime::History);
+    history.name = "History color";
+    history.sampleCount = 4;
+    plan.addResource(history);
+
+    auto main = colorResource("main_color", RenderResourceLifetime::Exported);
+    main.type = RenderResourceType::Normal;
+    main.format = RenderResourceFormat::ScalarDouble;
+    main.domain = RenderResourceDomain::GPU;
+    plan.addResource(main);
+
+    auto node = pass("tonemap", RenderPassKind::Tonemap);
+    node.name = "Tone map";
+    node.executor = RenderExecutorKind::PostProcess;
+    node.features = {"main", "display"};
+    node.reads.push_back({"history_color"});
+    node.writes.push_back({"main_color"});
+    node.sceneView.selector = SceneSelector::objectName("hero");
+    node.disabledBehavior = DisabledBehavior::Passthrough;
+    node.enabled = false;
+    node.hasExternalSideEffects = true;
+    node.canRunConcurrently = false;
+    plan.addPass(node);
+
+    const QJsonObject json = plan.toJson();
+    const RenderPlan imported = RenderPlan::fromJson(json);
+
+    EXPECT_EQ(json, imported.toJson());
+  }
+
+  TEST(RenderPlan, RejectsMalformedJsonImport) {
+    QJsonObject badRoot;
+    badRoot["resources"] = "not an array";
+    badRoot["passes"] = QJsonArray();
+
+    EXPECT_THROW(RenderPlan::fromJson(badRoot), std::runtime_error);
+
+    QJsonObject badEnum;
+    QJsonArray resources;
+    QJsonObject resource;
+    resource["id"] = "main_color";
+    resource["type"] = "not_a_resource_type";
+    resources.append(resource);
+    badEnum["resources"] = resources;
+    badEnum["passes"] = QJsonArray();
+
+    EXPECT_THROW(RenderPlan::fromJson(badEnum), std::runtime_error);
   }
 }

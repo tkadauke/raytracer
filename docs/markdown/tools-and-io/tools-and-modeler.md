@@ -61,11 +61,25 @@ $ rendercli --render_graph_only --render_graph_format dot \
 
 The graph export formats are `text`, `dot`, and `json`. `--render_graph`
 renders through the graph engine instead of a direct engine, and
+`--render_graph_in plan.json` loads a saved JSON plan instead of compiling one.
 `--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
 `--disable_feature` apply graph overrides before validation or rendering.
 Those controls are intentionally graph-level: disabling the required
 `raytrace_beauty` pass, for example, makes validation fail before any image is
-written.
+written. Replaying a saved graph uses the exported color resource dimensions,
+so `--width` and `--height` only need to be supplied when they intentionally
+match the saved plan.
+
+That gives a two-step debugging loop:
+
+```sh
+$ rendercli --render_graph_only --render_graph_format json \
+            scenes/dice.json \
+            dice-graph.json
+$ rendercli --render_graph --render_graph_in dice-graph.json \
+            scenes/dice.json \
+            dice-from-graph.png
+```
 
 ## <a id="src-modeler-the-interactive-editor"></a>`src/modeler` — the interactive editor
 [`src/modeler/`](../../../src/modeler/) builds the `Modeler` executable. It is

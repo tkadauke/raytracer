@@ -12,8 +12,12 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
+set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
+set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
 set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
+set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
+set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
 function(run_rendercli output_variable error_variable result_variable)
   execute_process(
@@ -84,6 +88,33 @@ if(NOT json_stdout MATCHES "\"width\"")
 endif()
 
 run_rendercli(
+  json_file_stdout
+  json_file_stderr
+  json_file_result
+  "${RENDERCLI}" --render_graph_only --render_graph_format json
+  --engine raytracer --width 32 --height 16
+  "${static_scene}" "${json_plan}"
+)
+if(NOT json_file_result EQUAL 0)
+  message(FATAL_ERROR "rendercli JSON graph export to file failed: ${json_file_stderr}")
+endif()
+
+run_rendercli(
+  replay_dot_stdout
+  replay_dot_stderr
+  replay_dot_result
+  "${RENDERCLI}" --render_graph_only --render_graph_in "${json_plan}" --render_graph_format dot
+  "${static_scene}" "${replayed_dot_plan}"
+)
+if(NOT replay_dot_result EQUAL 0)
+  message(FATAL_ERROR "rendercli JSON graph replay as DOT failed: ${replay_dot_stderr}")
+endif()
+file(READ "${replayed_dot_plan}" replayed_dot_graph)
+if(NOT replayed_dot_graph MATCHES "raytrace_beauty")
+  message(FATAL_ERROR "replayed DOT graph did not contain raytrace_beauty: ${replayed_dot_graph}")
+endif()
+
+run_rendercli(
   render_stdout
   render_stderr
   render_result
@@ -95,6 +126,34 @@ if(NOT render_result EQUAL 0)
 endif()
 if(NOT EXISTS "${graph_render}")
   message(FATAL_ERROR "rendercli --render_graph did not create an image")
+endif()
+
+run_rendercli(
+  replay_render_stdout
+  replay_render_stderr
+  replay_render_result
+  "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}"
+  "${static_scene}" "${replayed_render}"
+)
+if(NOT replay_render_result EQUAL 0)
+  message(FATAL_ERROR "rendercli JSON graph replay render failed: ${replay_render_stderr}")
+endif()
+if(NOT EXISTS "${replayed_render}")
+  message(FATAL_ERROR "rendercli --render_graph_in did not create an image")
+endif()
+
+run_rendercli(
+  mismatch_stdout
+  mismatch_stderr
+  mismatch_result
+  "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}" --width 31 --height 16
+  "${static_scene}" "${mismatched_render}"
+)
+if(mismatch_result EQUAL 0)
+  message(FATAL_ERROR "rendercli accepted a render graph output size mismatch")
+endif()
+if(NOT mismatch_stderr MATCHES "Render graph output width is 32")
+  message(FATAL_ERROR "rendercli reported an unexpected graph size mismatch: ${mismatch_stderr}")
 endif()
 
 run_rendercli(

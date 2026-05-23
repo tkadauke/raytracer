@@ -62,6 +62,13 @@ namespace engine::graph {
     std::string toText() const;
     std::string toDot() const;
     QJsonObject toJson() const;
+    /**
+      * Rebuild a plan from the JSON shape emitted by `toJson()`.
+      *
+      * Malformed JSON throws `std::runtime_error`; semantic plan problems such
+      * as missing producers remain the job of `validate()`.
+      */
+    static RenderPlan fromJson(const QJsonObject& object);
 
     RenderPlan withOverrides(const RenderGraphOverrides& overrides) const;
 

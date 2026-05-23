@@ -190,6 +190,15 @@ the same resource is also reported as a cycle.
 save the compiled graph alongside a graph-backed render; without an output file,
 graph-only mode writes the graph to standard output.
 
+JSON exports are also accepted as input through `--render_graph_in`. That makes
+the graph a real intermediate artifact: compile a plan, edit or inspect the
+JSON, then replay the plan as DOT/text or render through it. Disable filters are
+applied after the JSON is loaded, so a saved plan can still be tested with
+`--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
+`--disable_feature`. When a loaded graph is rendered, `rendercli` uses the
+exported color resource dimensions unless `--width` or `--height` explicitly
+request matching values.
+
 A two-pass plan might read textually as:
 
 ```text
