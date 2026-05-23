@@ -60,6 +60,21 @@ void Composite::forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
   }
 }
 
+void Composite::forEachLeafInBounds(const BoundsFilter& boundsFilter,
+                                    std::shared_ptr<render::Material> inheritedMaterial,
+                                    const LeafVisitor& visitor) const {
+  if (!boundsFilter(boundingBox())) {
+    return;
+  }
+
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& primitive : m_primitives) {
+    primitive->forEachLeafInBounds(boundsFilter, effective, visitor);
+  }
+}
+
 BoundingBoxd Composite::calculateBoundingBox() const {
   BoundingBoxd b;
   for (const auto& i : m_primitives)

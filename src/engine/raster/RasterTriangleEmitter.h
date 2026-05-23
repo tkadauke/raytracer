@@ -101,7 +101,7 @@ namespace engine::raster::detail {
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
       std::uint64_t globalFaceIdx = 0;
-      m_scene->forEachLeaf(
+      auto emitLeaf =
         [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
           if (m_cancelled.load())
             return;
@@ -196,7 +196,14 @@ namespace engine::raster::detail {
               }
             }
           }
-        });
+        };
+
+      if (canCullPrimitiveBounds()) {
+        m_scene->forEachLeafInBounds(
+          [&](const BoundingBoxd& bounds) { return !boundsOutsideClipVolume(bounds); }, emitLeaf);
+      } else {
+        m_scene->forEachLeaf(emitLeaf);
+      }
     }
 
   private:
@@ -206,6 +213,10 @@ namespace engine::raster::detail {
 
     bool primitiveBoundsOutsideClipVolume(const render::Primitive* primitive) const {
       const BoundingBoxd& bounds = primitive->boundingBox();
+      return boundsOutsideClipVolume(bounds);
+    }
+
+    bool boundsOutsideClipVolume(const BoundingBoxd& bounds) const {
       if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
         return false;
       }

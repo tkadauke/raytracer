@@ -56,6 +56,7 @@ namespace render {
   public:
     using LeafVisitor =
       std::function<void(const Primitive*, std::shared_ptr<render::Material>)>;
+    using BoundsFilter = std::function<bool(const BoundingBoxd&)>;
 
     inline Primitive()
       : m_material(nullptr)
@@ -141,6 +142,28 @@ namespace render {
       */
     virtual void forEachLeaf(std::shared_ptr<render::Material> inheritedMaterial,
                              const LeafVisitor& visitor) const;
+
+    /**
+      * Visit leaves through a spatially grouped view of this primitive when
+      * one is available. `boundsFilter` is called for bounded groups before
+      * descending into their children; returning false rejects the whole group
+      * before its leaves are flattened or tessellated. Primitives that do not
+      * expose spatial grouping fall back to `forEachLeaf`, preserving the
+      * existing traversal behavior.
+      */
+    inline void forEachLeafInBounds(const BoundsFilter& boundsFilter,
+                                    const LeafVisitor& visitor) const {
+      forEachLeafInBounds(boundsFilter, nullptr, visitor);
+    }
+
+    /**
+      * Recursive worker for `forEachLeafInBounds(boundsFilter, visitor)`.
+      * Composite nodes override this to make their child bounds visible to
+      * rasterizer-style frustum culling without changing ray traversal.
+      */
+    virtual void forEachLeafInBounds(const BoundsFilter& boundsFilter,
+                                     std::shared_ptr<render::Material> inheritedMaterial,
+                                     const LeafVisitor& visitor) const;
 
     /**
       * Support function: returns the point on this primitive that
