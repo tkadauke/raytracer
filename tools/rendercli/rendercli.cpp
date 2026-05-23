@@ -12,6 +12,8 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
+#include "render/materials/ReflectiveMaterial.h"
+#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/SamplerFactory.h"
@@ -32,6 +34,7 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -234,6 +237,34 @@ namespace {
     *rect = Recti(components[0], components[1], components[2], components[3]);
     return true;
   }
+
+  std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
+    std::set<std::string> materialTypes;
+    scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
+      if (!material)
+        return;
+      if (dynamic_cast<const render::TransparentMaterial*>(material.get())) {
+        materialTypes.insert("TransparentMaterial");
+      } else if (dynamic_cast<const render::ReflectiveMaterial*>(material.get())) {
+        materialTypes.insert("ReflectiveMaterial");
+      }
+    });
+
+    std::vector<std::string> warnings;
+    warnings.reserve(materialTypes.size());
+    for (const auto& materialType : materialTypes) {
+      if (materialType == "ReflectiveMaterial") {
+        warnings.push_back(
+          "Rasterizer fallback: ReflectiveMaterial previews only its local Phong base; "
+          "mirror recursion remains raytracer-only.");
+      } else if (materialType == "TransparentMaterial") {
+        warnings.push_back(
+          "Rasterizer fallback: TransparentMaterial previews its local Phong base with "
+          "source alpha from transmission; refraction/reflection recursion remains raytracer-only.");
+      }
+    }
+    return warnings;
+  }
 }
 
 class Renderer {
@@ -401,6 +432,9 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     wireframe->setLod(m_wireframeLod);
     engine = wireframe;
   } else if (m_engine == "raster") {
+    for (const auto& warning : rasterRecursiveMaterialFallbackWarnings(*raytracerScene)) {
+      std::cerr << warning << '\n';
+    }
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
     if (rtCamera)
       raster->setCamera(rtCamera);

@@ -243,8 +243,11 @@ materials remain *visible* (a colored mesh) rather than
 For Phong-family materials, the rasterizer also reads the specular
 color, coefficient, and exponent and evaluates the same local lobe as
 the raytracer. Recursive reflection and refraction remain raytracer-only;
-reflective and transparent materials still render only their local Phong
-base in this path.
+reflective materials preview only their local Phong base, while
+transparent materials preview that same local base with transient source
+alpha computed from `1 - transmissionCoefficient`. `rendercli --engine raster`
+prints a fallback warning when a scene uses either material so this
+non-recursive preview is explicit.
 
 ![Raster material preview: two Matte spheres followed by broad and tight Phong highlights](../../images/rasterizer_material_preview.png)
 
