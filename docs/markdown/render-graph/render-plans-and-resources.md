@@ -505,6 +505,11 @@ Headless renders can export the same trace metadata with
 executed plan, pass statuses, timings, resource preview availability, and
 difference-preview availability.
 
+Preview renders use cloned graph engines on worker threads. The trace recorder
+therefore issues a session token for each render and ignores pass events from
+older sessions once a newer render starts. That keeps a cancelled or retired
+worker from publishing stale snapshots over the trace for the latest preview.
+
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current

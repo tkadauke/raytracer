@@ -7,6 +7,7 @@
 #include <QJsonObject>
 
 #include <chrono>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -19,6 +20,7 @@ class Buffer;
 
 namespace engine::graph {
   class RenderResourceStorage;
+  class RenderGraphExecutionTraceSession;
 
   enum class RenderPassExecutionStatus { Pending, Running, Completed, Failed, Skipped };
 
@@ -133,17 +135,23 @@ namespace engine::graph {
     */
   class RenderGraphExecutionTraceRecorder {
   public:
-    void begin(RenderPlan plan);
-    void finish();
-    void passStarted(const RenderPassNode& pass, const RenderResourceStorage& storage);
-    void passCompleted(const RenderPassNode& pass, const RenderResourceStorage& storage);
-    void passSkipped(const RenderPassNode& pass, const RenderResourceStorage& storage,
+    std::shared_ptr<const RenderGraphExecutionTraceSession> begin(RenderPlan plan);
+    void finish(std::shared_ptr<const RenderGraphExecutionTraceSession> session);
+    void passStarted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
+                     const RenderPassNode& pass, const RenderResourceStorage& storage);
+    void passCompleted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
+                       const RenderPassNode& pass, const RenderResourceStorage& storage);
+    void passSkipped(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
+                     const RenderPassNode& pass, const RenderResourceStorage& storage,
                      std::string message);
-    void passFailed(const RenderPassNode& pass, const RenderResourceStorage& storage,
+    void passFailed(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
+                    const RenderPassNode& pass, const RenderResourceStorage& storage,
                     std::string message);
     std::shared_ptr<const RenderGraphExecutionTrace> lastTrace() const;
 
   private:
+    bool currentSessionMatches(const RenderGraphExecutionTraceSession& session) const;
+
     std::vector<RenderGraphResourceSnapshot>
     snapshotsForReads(const RenderGraphExecutionTrace& trace, const RenderPassNode& pass,
                       const RenderResourceStorage& storage) const;
@@ -158,8 +166,22 @@ namespace engine::graph {
              const std::vector<RenderGraphResourceSnapshot>& outputs) const;
 
     mutable std::mutex m_mutex;
+    std::uint64_t m_nextGeneration{1};
+    std::uint64_t m_currentGeneration{0};
     std::shared_ptr<RenderGraphExecutionTrace> m_current;
     std::shared_ptr<const RenderGraphExecutionTrace> m_last;
+  };
+
+  class RenderGraphExecutionTraceSession {
+  public:
+    std::uint64_t generation() const;
+
+  private:
+    friend class RenderGraphExecutionTraceRecorder;
+
+    explicit RenderGraphExecutionTraceSession(std::uint64_t generation);
+
+    std::uint64_t m_generation;
   };
 
   const char* toString(RenderPassExecutionStatus value);

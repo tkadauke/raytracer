@@ -277,25 +277,33 @@ namespace engine::graph {
     return it == m_passIndexes.end() ? nullptr : &m_passes[it->second];
   }
 
-  void RenderGraphExecutionTraceRecorder::begin(RenderPlan plan) {
+  std::shared_ptr<const RenderGraphExecutionTraceSession>
+  RenderGraphExecutionTraceRecorder::begin(RenderPlan plan) {
     std::lock_guard<std::mutex> lock(m_mutex);
+    const std::uint64_t generation = m_nextGeneration++;
+    m_currentGeneration = generation;
     m_current =
       std::shared_ptr<RenderGraphExecutionTrace>(new RenderGraphExecutionTrace(std::move(plan)));
     m_last = m_current;
+    return std::shared_ptr<const RenderGraphExecutionTraceSession>(
+      new RenderGraphExecutionTraceSession(generation));
   }
 
-  void RenderGraphExecutionTraceRecorder::finish() {
+  void RenderGraphExecutionTraceRecorder::finish(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_current) {
+    if (session && m_current && currentSessionMatches(*session)) {
       m_last = m_current;
       m_current.reset();
+      m_currentGeneration = 0;
     }
   }
 
-  void RenderGraphExecutionTraceRecorder::passStarted(const RenderPassNode& pass,
-                                                      const RenderResourceStorage& storage) {
+  void RenderGraphExecutionTraceRecorder::passStarted(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
+    const RenderResourceStorage& storage) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (!m_current) {
+    if (!session || !m_current || !currentSessionMatches(*session)) {
       return;
     }
 
@@ -313,10 +321,11 @@ namespace engine::graph {
     trace->m_diffs.clear();
   }
 
-  void RenderGraphExecutionTraceRecorder::passCompleted(const RenderPassNode& pass,
-                                                        const RenderResourceStorage& storage) {
+  void RenderGraphExecutionTraceRecorder::passCompleted(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
+    const RenderResourceStorage& storage) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (!m_current) {
+    if (!session || !m_current || !currentSessionMatches(*session)) {
       return;
     }
 
@@ -335,11 +344,11 @@ namespace engine::graph {
     trace->m_diffs = diffsFor(trace->m_inputs, trace->m_outputs);
   }
 
-  void RenderGraphExecutionTraceRecorder::passSkipped(const RenderPassNode& pass,
-                                                      const RenderResourceStorage& storage,
-                                                      std::string message) {
+  void RenderGraphExecutionTraceRecorder::passSkipped(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
+    const RenderResourceStorage& storage, std::string message) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (!m_current) {
+    if (!session || !m_current || !currentSessionMatches(*session)) {
       return;
     }
 
@@ -357,11 +366,11 @@ namespace engine::graph {
     trace->m_diffs = diffsFor(trace->m_inputs, trace->m_outputs);
   }
 
-  void RenderGraphExecutionTraceRecorder::passFailed(const RenderPassNode& pass,
-                                                     const RenderResourceStorage& storage,
-                                                     std::string message) {
+  void RenderGraphExecutionTraceRecorder::passFailed(
+    std::shared_ptr<const RenderGraphExecutionTraceSession> session, const RenderPassNode& pass,
+    const RenderResourceStorage& storage, std::string message) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (!m_current) {
+    if (!session || !m_current || !currentSessionMatches(*session)) {
       return;
     }
 
@@ -391,6 +400,11 @@ namespace engine::graph {
       return std::make_shared<RenderGraphExecutionTrace>(*m_last);
     }
     return nullptr;
+  }
+
+  bool RenderGraphExecutionTraceRecorder::currentSessionMatches(
+    const RenderGraphExecutionTraceSession& session) const {
+    return session.generation() == m_currentGeneration;
   }
 
   std::vector<RenderGraphResourceSnapshot>
@@ -490,5 +504,13 @@ namespace engine::graph {
       return "skipped";
     }
     return "unknown";
+  }
+
+  RenderGraphExecutionTraceSession::RenderGraphExecutionTraceSession(std::uint64_t generation)
+      : m_generation(generation) {
+  }
+
+  std::uint64_t RenderGraphExecutionTraceSession::generation() const {
+    return m_generation;
   }
 }

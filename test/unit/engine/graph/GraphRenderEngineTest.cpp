@@ -5,6 +5,7 @@
 #include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderResourceStorage.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/PointLight.h"
@@ -356,6 +357,46 @@ namespace GraphRenderEngineTest {
     ASSERT_NE(nullptr, tonemap);
     EXPECT_EQ(RenderPassExecutionStatus::Skipped, tonemap->status());
     EXPECT_NE(std::string::npos, tonemap->message().find("display-buffer fast path"));
+  }
+
+  TEST(GraphRenderEngine, IgnoresRetiredExecutionTraceSessionEvents) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 2, 2));
+
+    RenderPassNode pass;
+    pass.id = "beauty";
+    pass.kind = RenderPassKind::Beauty;
+    pass.executor = RenderExecutorKind::Raytracer;
+    pass.writes.push_back({"main_color"});
+    plan.addPass(pass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+    storage.color("main_color").clear(Colord::white());
+
+    RenderGraphExecutionTraceRecorder recorder;
+    auto retired = recorder.begin(plan);
+    recorder.passStarted(retired, plan.passes().front(), storage);
+
+    auto current = recorder.begin(plan);
+    recorder.passCompleted(retired, plan.passes().front(), storage);
+    recorder.finish(retired);
+
+    auto trace = recorder.lastTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* pending = trace->findPass("beauty");
+    ASSERT_NE(nullptr, pending);
+    EXPECT_EQ(RenderPassExecutionStatus::Pending, pending->status());
+
+    recorder.passStarted(current, plan.passes().front(), storage);
+    recorder.passCompleted(current, plan.passes().front(), storage);
+    recorder.finish(current);
+
+    trace = recorder.lastTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* completed = trace->findPass("beauty");
+    ASSERT_NE(nullptr, completed);
+    EXPECT_EQ(RenderPassExecutionStatus::Completed, completed->status());
   }
 
   TEST(GraphRenderEngine, ExecutesCallerProvidedRasterBeautyPlan) {

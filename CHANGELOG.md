@@ -21,6 +21,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Rendercli graph trace export.** `rendercli --render_graph_trace_out` writes
   the last executed graph trace as JSON alongside a graph-backed image render.
   — GPT-5
+- **Render graph trace session safety.** Execution traces now ignore events from
+  retired render workers after a newer graph render has started, preventing
+  stale preview jobs from overwriting the latest trace. — GPT-5
 - **Render graph text dependencies.** Text graph exports now include declared
   pass-to-pass dependencies and the dependency-derived execution order
   separately from pass declaration order, so replayed or hand-authored plans can

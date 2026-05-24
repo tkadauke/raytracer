@@ -247,16 +247,16 @@ namespace engine::graph {
       }
     }
 
-    void markDisplayFastPathSkippedPasses(RenderGraphExecutionTraceRecorder& recorder,
-                                          const RenderPlan& plan,
-                                          const RenderPassNode& executedPass,
-                                          const RenderResourceStorage& storage) {
+    void markDisplayFastPathSkippedPasses(
+      RenderGraphExecutionTraceRecorder& recorder,
+      std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession, const RenderPlan& plan,
+      const RenderPassNode& executedPass, const RenderResourceStorage& storage) {
       for (const RenderPassNode* passNode : plan.executionOrder()) {
         const RenderPassNode& pass = *passNode;
         if (pass.id == executedPass.id) {
           continue;
         }
-        recorder.passSkipped(pass, storage,
+        recorder.passSkipped(traceSession, pass, storage,
                              "display-buffer fast path did not materialize this graph node");
       }
     }
@@ -264,39 +264,42 @@ namespace engine::graph {
     template<class Execute>
     void executeObserved(const GraphRenderEngine& graph,
                          const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
+                         std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
                          const RenderPassNode& pass, const RenderResourceStorage& storage,
                          Execute execute) {
       notifyPassStarted(graph, pass);
-      recorder->passStarted(pass, storage);
+      recorder->passStarted(traceSession, pass, storage);
       try {
         execute();
       } catch (const std::exception& error) {
-        recorder->passFailed(pass, storage, error.what());
+        recorder->passFailed(traceSession, pass, storage, error.what());
         notifyPassFailed(graph, pass, error.what());
         throw;
       } catch (...) {
-        recorder->passFailed(pass, storage, "unknown render graph pass failure");
+        recorder->passFailed(traceSession, pass, storage, "unknown render graph pass failure");
         notifyPassFailed(graph, pass, "unknown render graph pass failure");
         throw;
       }
-      recorder->passCompleted(pass, storage);
+      recorder->passCompleted(traceSession, pass, storage);
       notifyPassFinished(graph, pass);
     }
 
     template<class Execute>
     bool executeObservedBool(const GraphRenderEngine& graph, const RenderPassNode& pass,
                              const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
+                             std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
                              const RenderResourceStorage& storage, Execute execute) {
       bool result = false;
-      executeObserved(graph, recorder, pass, storage, [&] { result = execute(); });
+      executeObserved(graph, recorder, traceSession, pass, storage, [&] { result = execute(); });
       return result;
     }
 
     struct TraceSession {
       std::shared_ptr<RenderGraphExecutionTraceRecorder> recorder;
+      std::shared_ptr<const RenderGraphExecutionTraceSession> session;
 
       ~TraceSession() {
-        recorder->finish();
+        recorder->finish(session);
       }
     };
   }
@@ -406,8 +409,8 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
-    p->executionTraceRecorder->begin(plan);
-    TraceSession traceSession{p->executionTraceRecorder};
+    auto traceSessionToken = p->executionTraceRecorder->begin(plan);
+    TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
@@ -433,7 +436,7 @@ namespace engine::graph {
           disabledMessage = "disabled pass did not execute";
           break;
         }
-        p->executionTraceRecorder->passSkipped(pass, storage, disabledMessage);
+        p->executionTraceRecorder->passSkipped(traceSessionToken, pass, storage, disabledMessage);
         continue;
       }
 
@@ -457,7 +460,7 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, pass, storage,
+      executeObserved(*this, p->executionTraceRecorder, traceSessionToken, pass, storage,
                       [&] { payload->execute(context); });
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
@@ -482,8 +485,8 @@ namespace engine::graph {
       throw std::runtime_error(validationMessage(validation));
     }
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
-    p->executionTraceRecorder->begin(plan);
-    TraceSession traceSession{p->executionTraceRecorder};
+    auto traceSessionToken = p->executionTraceRecorder->begin(plan);
+    TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
 
     const auto displayChain = simpleDisplayChain(plan);
     if (displayChain) {
@@ -508,11 +511,12 @@ namespace engine::graph {
           displayChain->applyTonemap
             ? tonemap()
             : std::static_pointer_cast<render::Tonemap>(std::make_shared<render::LinearTonemap>());
-        if (executeObservedBool(
-              *this, *displayChain->beauty, p->executionTraceRecorder, displayStorage,
-              [&] { return payload->executeDisplay(context, buffer, outputTonemap); })) {
-          markDisplayFastPathSkippedPasses(*p->executionTraceRecorder, plan, *displayChain->beauty,
-                                           displayStorage);
+        if (executeObservedBool(*this, *displayChain->beauty, p->executionTraceRecorder,
+                                traceSessionToken, displayStorage, [&] {
+                                  return payload->executeDisplay(context, buffer, outputTonemap);
+                                })) {
+          markDisplayFastPathSkippedPasses(*p->executionTraceRecorder, traceSessionToken, plan,
+                                           *displayChain->beauty, displayStorage);
           return;
         }
       }
@@ -550,7 +554,7 @@ namespace engine::graph {
           disabledMessage = "disabled pass did not execute";
           break;
         }
-        p->executionTraceRecorder->passSkipped(pass, storage, disabledMessage);
+        p->executionTraceRecorder->passSkipped(traceSessionToken, pass, storage, disabledMessage);
         continue;
       }
 
@@ -569,7 +573,7 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, pass, storage, [&] {
+      executeObserved(*this, p->executionTraceRecorder, traceSessionToken, pass, storage, [&] {
         const bool executedForDisplay =
           pass.kind == RenderPassKind::Beauty && pass.executor == RenderExecutorKind::Raytracer &&
           payload->executeDisplayAndStore(context, buffer, displayTonemap);
