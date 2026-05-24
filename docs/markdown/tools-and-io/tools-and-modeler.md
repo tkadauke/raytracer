@@ -62,6 +62,8 @@ $ rendercli --render_graph_only --render_graph_format dot \
 The graph export formats are `text`, `dot`, and `json`. `--render_graph`
 renders through the graph engine instead of a direct engine, and
 `--render_graph_in plan.json` loads a saved JSON plan instead of compiling one.
+If the scene JSON contains a top-level `renderIntent` block, rendercli uses
+that as the graph compiler's base intent.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view default|beauty|wireframe` overrides the graph intent's

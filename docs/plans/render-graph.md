@@ -222,9 +222,9 @@ This keeps `RenderEngine` as the simple entry point while allowing
 
 ### RenderIntent
 
-`RenderIntent` is the user-facing request. It should be serializable in scene
-JSON so a scene can describe its intended final render, educational views, and
-preview strategies. Rendercli, Modeler, tests, and direct API callers can layer
+`RenderIntent` is the user-facing request. It is serializable in scene JSON so
+a scene can describe its intended final render, educational views, and preview
+strategies. Rendercli, Modeler, tests, and direct API callers can layer
 temporary overrides on top of the scene intent without mutating the scene file.
 
 The effective intent is built in layers:
@@ -1035,9 +1035,9 @@ plan export, a minimal compiler that emits a whole-frame beauty pass, optional
 wireframe overlay pass, and tonemap/export pass, a graph engine facade that can
 execute that serial color chain through Raytracer/Rasterizer/Wireframe plus
 PostProcess tonemapping, a display-buffer fast path for progressive simple
-previews, and the textbook's render-graph volume. Scene-feature expansion,
-arbitrary postprocess/composite execution, scene JSON intent, and real graph
-scheduling remain TODO.
+previews, optional scene JSON render intent, and the textbook's render-graph
+volume. Scene-feature expansion, arbitrary postprocess/composite execution, and
+real graph scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1049,7 +1049,9 @@ Implement the smallest graph that proves the architecture:
    text/DOT/JSON dumps. ✅ Done for the initial declarative graph model.
 3. Add JSON-serializable `RenderIntent`, including default executor, view mode,
    shading profile, camera, and per-selector overrides for the same fields.
-   ✅ Core intent data is defined; scene JSON read/write is TODO.
+   ✅ Done. `RenderIntent::toJson()` / `fromJson(...)` own the scene JSON
+   shape, `world::Scene` persists an optional top-level `renderIntent` block,
+   and rendercli/Modeler layer temporary preview overrides on top.
 4. Add `RenderGraphCompiler` so plans can be compiled, inspected, exported, and
    manipulated without rendering. ✅ Done for the first whole-frame beauty,
    optional wireframe overlay, and tonemap/export compiler; scene-feature
@@ -1075,10 +1077,11 @@ Implement the smallest graph that proves the architecture:
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
    runtime intent overrides, and node-disabling flags. ✅ Partial: rendercli
    can compile/export text, DOT, and JSON plans, render through the graph,
-   load and replay JSON plans, override the compiled default executor/view mode,
-   request the wireframe overlay intent, apply pass id/kind/executor/feature
-   disable filters, and validate the manipulated plan. Selector-specific intent
-   overrides remain TODO.
+   load and replay JSON plans, use scene JSON render intent, override the
+   compiled default executor/view mode, request the wireframe overlay intent,
+   apply pass id/kind/executor/feature disable filters, and validate the
+   manipulated plan. Selector-specific command-line intent overrides remain
+   TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
    the current live-preview plan before preview renders, lists the default

@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Scene render-intent JSON.** `world::Scene` now reads and writes an optional
+  top-level `renderIntent` block backed by `RenderIntent::toJson()` /
+  `RenderIntent::fromJson(...)`; rendercli and Modeler use that saved intent as
+  the base for graph compilation before applying preview or command-line
+  overrides. — GPT-5
 - **Render graph wireframe overlay pass.** `RenderIntent::enableWireframeOverlay`,
   `rendercli --render_graph_wireframe_overlay`, and the Modeler preview menu now
   compile a graph-visible `wireframe_overlay` pass between beauty and tonemap,

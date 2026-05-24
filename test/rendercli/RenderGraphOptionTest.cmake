@@ -12,10 +12,12 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
+set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
+set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
@@ -23,6 +25,22 @@ set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
+
+file(WRITE "${scene_intent_scene}" [=[
+{
+  "id": "{90000000-0000-0000-0000-000000000000}",
+  "name": "Scene Render Intent Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "rasterizer",
+    "defaultViewMode": "beauty",
+    "enableWireframeOverlay": true
+  },
+  "children": []
+}
+]=])
 
 rendercli_run(
   NAME "rendercli exports text render graph"
@@ -87,6 +105,22 @@ rendercli_assert_nonempty("${intent_view_plan}" NAME "graph view override output
 file(READ "${intent_view_plan}" intent_view_graph)
 if(NOT intent_view_graph MATCHES "wireframe_beauty")
   message(FATAL_ERROR "graph view override did not select wireframe_beauty: ${intent_view_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli uses scene render intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --width 32 --height 16
+    "${scene_intent_scene}" "${scene_intent_plan}"
+)
+rendercli_assert_nonempty("${scene_intent_plan}" NAME "scene render intent graph output")
+file(READ "${scene_intent_plan}" scene_intent_graph)
+if(NOT scene_intent_graph MATCHES "raster_beauty")
+  message(FATAL_ERROR "scene render intent did not select raster_beauty: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "wireframe_overlay")
+  message(FATAL_ERROR "scene render intent did not add wireframe_overlay: ${scene_intent_graph}")
 endif()
 
 rendercli_run(

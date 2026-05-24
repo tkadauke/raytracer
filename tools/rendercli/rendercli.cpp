@@ -397,6 +397,7 @@ private:
   bool m_queueSizeSet;
   QString m_tonemap;
   QString m_engine;
+  bool m_engineSet;
   bool m_renderGraph;
   bool m_renderGraphOnly;
   QString m_renderGraphFormat;
@@ -451,11 +452,11 @@ private:
   std::unique_ptr<Scene> loadScene() const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
-  engine::graph::RenderIntent renderIntent() const;
-  int renderGraphSampleCount() const;
-  engine::graph::RenderPlan compileRenderGraphPlan() const;
+  engine::graph::RenderIntent renderIntent(const Scene& scene) const;
+  int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
+  engine::graph::RenderPlan compileRenderGraphPlan(const Scene& scene) const;
   engine::graph::RenderPlan loadRenderGraphPlan() const;
-  engine::graph::RenderPlan renderGraphPlan() const;
+  engine::graph::RenderPlan renderGraphPlan(const Scene& scene) const;
   void applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan, int* width,
                                   int* height) const;
   void validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const;
@@ -479,6 +480,7 @@ Renderer::Renderer()
       m_queueSizeSet(false),
       m_tonemap("Linear"),
       m_engine("raytracer"),
+      m_engineSet(false),
       m_renderGraph(false),
       m_renderGraphOnly(false),
       m_renderGraphFormat("text"),
@@ -541,33 +543,42 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   return scene;
 }
 
-engine::graph::RenderIntent Renderer::renderIntent() const {
-  engine::graph::RenderIntent intent;
+engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
+  engine::graph::RenderIntent intent =
+    scene.hasRenderIntent() ? scene.renderIntent() : engine::graph::RenderIntent();
   if (m_renderGraphExecutorSet) {
     intent.defaultExecutor = m_renderGraphExecutor;
-  } else if (m_engine == "raster") {
+  } else if (m_engineSet && m_engine == "raster") {
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
-  } else if (m_engine == "wireframe") {
+  } else if (m_engineSet && m_engine == "wireframe") {
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
-  } else {
+  } else if (m_engineSet) {
     intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
   }
   if (m_renderGraphViewModeSet) {
     intent.defaultViewMode = m_renderGraphViewMode;
-  } else if (!m_renderGraphExecutorSet && m_engine == "wireframe") {
+  } else if (!m_renderGraphExecutorSet && m_engineSet && m_engine == "wireframe") {
     intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
   }
-  intent.enableWireframeOverlay = m_renderGraphWireframeOverlay;
+  if (m_renderGraphWireframeOverlay) {
+    intent.enableWireframeOverlay = true;
+  }
+  if (m_rasterShadowMaps) {
+    intent.enablePreviewShadows = true;
+  }
   return intent;
 }
 
-int Renderer::renderGraphSampleCount() const {
-  return m_engine == "raster" ? m_rasterMsaaSamples : m_samplesPerPixel;
+int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) const {
+  return intent.defaultExecutor == engine::graph::RenderExecutorPreference::Rasterizer
+           ? m_rasterMsaaSamples
+           : m_samplesPerPixel;
 }
 
-engine::graph::RenderPlan Renderer::compileRenderGraphPlan() const {
+engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) const {
   engine::graph::RenderGraphCompiler compiler;
-  auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount()}, renderIntent());
+  const auto intent = renderIntent(scene);
+  auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
   return plan.withOverrides(m_renderGraphOverrides);
 }
 
@@ -594,11 +605,11 @@ engine::graph::RenderPlan Renderer::loadRenderGraphPlan() const {
     .withOverrides(m_renderGraphOverrides);
 }
 
-engine::graph::RenderPlan Renderer::renderGraphPlan() const {
+engine::graph::RenderPlan Renderer::renderGraphPlan(const Scene& scene) const {
   if (!m_renderGraphIn.isEmpty()) {
     return loadRenderGraphPlan();
   }
-  return compileRenderGraphPlan();
+  return compileRenderGraphPlan(scene);
 }
 
 void Renderer::applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan, int* width,
@@ -722,7 +733,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       rtCamera->viewPlane()->setSampler(sampler());
     }
 
-    graphPlan = renderGraphPlan();
+    graphPlan = renderGraphPlan(scene);
     validateRenderGraphPlan(graphPlan);
     applyRenderGraphOutputSize(graphPlan, &outputWidth, &outputHeight);
     const QString graphOutput = renderGraphOutputPath();
@@ -733,7 +744,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     auto graph = rtCamera
                    ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
                    : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
-    graph->setIntent(renderIntent());
+    graph->setIntent(renderIntent(scene));
     graph->setPlan(graphPlan);
     engine = graph;
   } else if (m_engine == "wireframe") {
@@ -852,7 +863,7 @@ void Renderer::render() const {
     scene->evaluateAnimationAtFrame(m_frame);
 
   if (m_renderGraphOnly) {
-    const auto plan = renderGraphPlan();
+    const auto plan = renderGraphPlan(*scene);
     validateRenderGraphPlan(plan);
     writeRenderGraphPlan(plan, renderGraphOutputPath());
     return;
@@ -1146,6 +1157,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_engine = engine;
+    m_engineSet = true;
   }
 
   if (parser.isSet("render_graph")) {

@@ -1,8 +1,211 @@
 #include "engine/graph/RenderGraphTypes.h"
 
+#include <QJsonArray>
+
+#include <cstddef>
+#include <initializer_list>
+#include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace engine::graph {
+  namespace {
+    QString qstr(const std::string& value) {
+      return QString::fromStdString(value);
+    }
+
+    [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
+      throw std::runtime_error("Invalid render intent JSON at " + path + ": " + message);
+    }
+
+    std::string stringField(const QJsonObject& object, const char* key, const std::string& path,
+                            const std::string& fallback = {}) {
+      const auto value = object.value(key);
+      if (value.isUndefined())
+        return fallback;
+      if (!value.isString())
+        jsonError(path + "." + key, "expected string");
+      return value.toString().toStdString();
+    }
+
+    bool boolField(const QJsonObject& object, const char* key, const std::string& path,
+                   bool fallback) {
+      const auto value = object.value(key);
+      if (value.isUndefined())
+        return fallback;
+      if (!value.isBool())
+        jsonError(path + "." + key, "expected boolean");
+      return value.toBool();
+    }
+
+    template<class T>
+    T enumValue(const std::string& value, std::initializer_list<std::pair<const char*, T>> values,
+                const std::string& path) {
+      for (const auto& [name, parsed] : values) {
+        if (value == name)
+          return parsed;
+      }
+      jsonError(path, "unknown value '" + value + "'");
+    }
+
+    RenderExecutorPreference executorPreferenceFromJson(const std::string& value,
+                                                        const std::string& path) {
+      return enumValue<RenderExecutorPreference>(
+        value,
+        {{"raytracer", RenderExecutorPreference::Raytracer},
+         {"rasterizer", RenderExecutorPreference::Rasterizer},
+         {"wireframe", RenderExecutorPreference::Wireframe}},
+        path);
+    }
+
+    RenderViewMode viewModeFromJson(const std::string& value, const std::string& path) {
+      return enumValue<RenderViewMode>(value,
+                                       {{"default", RenderViewMode::Default},
+                                        {"beauty", RenderViewMode::Beauty},
+                                        {"wireframe", RenderViewMode::Wireframe},
+                                        {"depth", RenderViewMode::Depth},
+                                        {"normal", RenderViewMode::Normal},
+                                        {"object_id", RenderViewMode::ObjectId}},
+                                       path);
+    }
+
+    SceneSelector::Kind selectorKindFromJson(const std::string& value, const std::string& path) {
+      return enumValue<SceneSelector::Kind>(value,
+                                            {{"all", SceneSelector::Kind::All},
+                                             {"object_id", SceneSelector::Kind::ObjectId},
+                                             {"object_name", SceneSelector::Kind::ObjectName},
+                                             {"tag", SceneSelector::Kind::Tag},
+                                             {"layer", SceneSelector::Kind::Layer},
+                                             {"material_role", SceneSelector::Kind::MaterialRole}},
+                                            path);
+    }
+
+    QJsonObject selectorToJson(const SceneSelector& selector) {
+      QJsonObject result;
+      result["kind"] = toString(selector.kind);
+      if (!selector.value.empty())
+        result["value"] = qstr(selector.value);
+      return result;
+    }
+
+    SceneSelector selectorFromJson(const QJsonObject& object, const std::string& path) {
+      return {selectorKindFromJson(stringField(object, "kind", path, "all"), path + ".kind"),
+              stringField(object, "value", path)};
+    }
+
+    QJsonObject shadingProfileToJson(const ShadingProfileRef& profile) {
+      QJsonObject result;
+      result["name"] = qstr(profile.name);
+      if (!profile.parameters.isEmpty())
+        result["parameters"] = profile.parameters;
+      return result;
+    }
+
+    ShadingProfileRef shadingProfileFromJson(const QJsonValue& value, const std::string& path) {
+      ShadingProfileRef profile;
+      if (value.isUndefined())
+        return profile;
+
+      if (value.isString()) {
+        profile.name = value.toString().toStdString();
+        return profile;
+      }
+
+      if (!value.isObject())
+        jsonError(path, "expected string or object");
+
+      const auto object = value.toObject();
+      profile.name = stringField(object, "name", path, "default");
+
+      const auto parameters = object.value("parameters");
+      if (!parameters.isUndefined()) {
+        if (!parameters.isObject())
+          jsonError(path + ".parameters", "expected object");
+        profile.parameters = parameters.toObject();
+      }
+
+      return profile;
+    }
+
+    QJsonObject cameraRefToJson(const RenderCameraRef& camera) {
+      QJsonObject result;
+      if (camera.sceneCameraId)
+        result["sceneCameraId"] = qstr(*camera.sceneCameraId);
+      if (camera.snapshot)
+        result["snapshot"] = camera.snapshot->parameters;
+      return result;
+    }
+
+    RenderCameraRef cameraRefFromJson(const QJsonValue& value, const std::string& path) {
+      if (!value.isObject())
+        jsonError(path, "expected object");
+
+      const auto object = value.toObject();
+      RenderCameraRef camera;
+      const auto sceneCameraId = object.value("sceneCameraId");
+      if (!sceneCameraId.isUndefined()) {
+        if (!sceneCameraId.isString())
+          jsonError(path + ".sceneCameraId", "expected string");
+        camera.sceneCameraId = sceneCameraId.toString().toStdString();
+      }
+
+      const auto snapshot = object.value("snapshot");
+      if (!snapshot.isUndefined()) {
+        if (!snapshot.isObject())
+          jsonError(path + ".snapshot", "expected object");
+        camera.snapshot = CameraSnapshot{snapshot.toObject()};
+      }
+      return camera;
+    }
+
+    QJsonObject viewOverrideToJson(const RenderViewOverride& viewOverride) {
+      QJsonObject result;
+      result["selector"] = selectorToJson(viewOverride.selector);
+      if (viewOverride.executor)
+        result["executor"] = toString(*viewOverride.executor);
+      if (viewOverride.viewMode)
+        result["viewMode"] = toString(*viewOverride.viewMode);
+      if (viewOverride.shadingProfile)
+        result["shadingProfile"] = shadingProfileToJson(*viewOverride.shadingProfile);
+      if (viewOverride.camera)
+        result["camera"] = cameraRefToJson(*viewOverride.camera);
+      return result;
+    }
+
+    RenderViewOverride viewOverrideFromJson(const QJsonObject& object, const std::string& path) {
+      RenderViewOverride viewOverride;
+      const auto selector = object.value("selector");
+      if (!selector.isUndefined()) {
+        if (!selector.isObject())
+          jsonError(path + ".selector", "expected object");
+        viewOverride.selector = selectorFromJson(selector.toObject(), path + ".selector");
+      } else {
+        viewOverride.selector = SceneSelector::all();
+      }
+
+      const auto executor = object.value("executor");
+      if (!executor.isUndefined())
+        viewOverride.executor =
+          executorPreferenceFromJson(stringField(object, "executor", path), path + ".executor");
+
+      const auto viewMode = object.value("viewMode");
+      if (!viewMode.isUndefined())
+        viewOverride.viewMode =
+          viewModeFromJson(stringField(object, "viewMode", path), path + ".viewMode");
+
+      const auto shadingProfile = object.value("shadingProfile");
+      if (!shadingProfile.isUndefined())
+        viewOverride.shadingProfile =
+          shadingProfileFromJson(shadingProfile, path + ".shadingProfile");
+
+      const auto camera = object.value("camera");
+      if (!camera.isUndefined())
+        viewOverride.camera = cameraRefFromJson(camera, path + ".camera");
+
+      return viewOverride;
+    }
+  }
+
   SceneSelector SceneSelector::all() {
     return SceneSelector{Kind::All, ""};
   }
@@ -199,5 +402,66 @@ namespace engine::graph {
       return "material_role";
     }
     return "unknown";
+  }
+
+  QJsonObject RenderIntent::toJson() const {
+    QJsonObject result;
+    result["defaultExecutor"] = toString(defaultExecutor);
+    result["defaultViewMode"] = toString(defaultViewMode);
+    result["defaultShadingProfile"] = shadingProfileToJson(defaultShadingProfile);
+    if (defaultCamera)
+      result["defaultCamera"] = cameraRefToJson(*defaultCamera);
+    result["enableAutomaticFeatures"] = enableAutomaticFeatures;
+    result["enableWireframeOverlay"] = enableWireframeOverlay;
+    result["enablePreviewShadows"] = enablePreviewShadows;
+
+    if (!viewOverrides.empty()) {
+      QJsonArray overrides;
+      for (const auto& viewOverride : viewOverrides)
+        overrides.append(viewOverrideToJson(viewOverride));
+      result["viewOverrides"] = overrides;
+    }
+
+    return result;
+  }
+
+  RenderIntent RenderIntent::fromJson(const QJsonObject& object) {
+    RenderIntent intent;
+    intent.defaultExecutor = executorPreferenceFromJson(
+      stringField(object, "defaultExecutor", "renderIntent", toString(intent.defaultExecutor)),
+      "renderIntent.defaultExecutor");
+    intent.defaultViewMode = viewModeFromJson(
+      stringField(object, "defaultViewMode", "renderIntent", toString(intent.defaultViewMode)),
+      "renderIntent.defaultViewMode");
+    intent.defaultShadingProfile = shadingProfileFromJson(object.value("defaultShadingProfile"),
+                                                          "renderIntent.defaultShadingProfile");
+
+    const auto defaultCamera = object.value("defaultCamera");
+    if (!defaultCamera.isUndefined())
+      intent.defaultCamera = cameraRefFromJson(defaultCamera, "renderIntent.defaultCamera");
+
+    intent.enableAutomaticFeatures =
+      boolField(object, "enableAutomaticFeatures", "renderIntent", intent.enableAutomaticFeatures);
+    intent.enableWireframeOverlay =
+      boolField(object, "enableWireframeOverlay", "renderIntent", intent.enableWireframeOverlay);
+    intent.enablePreviewShadows =
+      boolField(object, "enablePreviewShadows", "renderIntent", intent.enablePreviewShadows);
+
+    const auto overridesValue = object.value("viewOverrides");
+    if (!overridesValue.isUndefined()) {
+      if (!overridesValue.isArray())
+        jsonError("renderIntent.viewOverrides", "expected array");
+
+      const auto overrides = overridesValue.toArray();
+      intent.viewOverrides.reserve(static_cast<std::size_t>(overrides.size()));
+      for (int i = 0; i < overrides.size(); ++i) {
+        if (!overrides.at(i).isObject())
+          jsonError("renderIntent.viewOverrides[" + std::to_string(i) + "]", "expected object");
+        intent.viewOverrides.push_back(viewOverrideFromJson(
+          overrides.at(i).toObject(), "renderIntent.viewOverrides[" + std::to_string(i) + "]"));
+      }
+    }
+
+    return intent;
   }
 }

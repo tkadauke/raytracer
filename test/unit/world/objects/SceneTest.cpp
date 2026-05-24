@@ -13,6 +13,7 @@
 #include "core/Color.h"
 
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -91,6 +92,14 @@ namespace SceneTest {
     EXPECT_EQ(nullptr, scene.animation());
   }
 
+  TEST(Scene, ShouldDefaultToNoExplicitRenderIntent) {
+    Scene scene;
+    EXPECT_FALSE(scene.hasRenderIntent());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Raytracer,
+              scene.renderIntent().defaultExecutor);
+    EXPECT_FALSE(scene.renderIntent().enableWireframeOverlay);
+  }
+
   TEST(Scene, ShouldSetAndGetAmbient) {
     Scene scene;
     scene.setAmbient(Colord(0.1, 0.2, 0.3));
@@ -118,6 +127,26 @@ namespace SceneTest {
     EXPECT_EQ(1, scene.animation()->startFrame());
     EXPECT_EQ(10, scene.animation()->endFrame());
     EXPECT_DOUBLE_EQ(24.0, scene.animation()->fps());
+  }
+
+  TEST(Scene, ShouldSetAndGetRenderIntent) {
+    Scene scene;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+    intent.enableWireframeOverlay = true;
+
+    scene.setRenderIntent(intent);
+
+    EXPECT_TRUE(scene.hasRenderIntent());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Rasterizer,
+              scene.renderIntent().defaultExecutor);
+    EXPECT_TRUE(scene.renderIntent().enableWireframeOverlay);
+
+    scene.clearRenderIntent();
+    EXPECT_FALSE(scene.hasRenderIntent());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Raytracer,
+              scene.renderIntent().defaultExecutor);
   }
 
   TEST(Scene, ShouldAcceptAnyChild) {
@@ -296,6 +325,46 @@ namespace SceneTest {
     QFile::remove(path);
   }
 
+  TEST(Scene, ShouldRoundtripRenderIntentViaSaveLoad) {
+    QTemporaryFile temp;
+    ASSERT_TRUE(temp.open());
+    auto path = temp.fileName();
+    temp.close();
+
+    Scene original;
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+    intent.defaultShadingProfile.name = "toon";
+    intent.enableWireframeOverlay = true;
+    intent.viewOverrides.push_back({engine::graph::SceneSelector::objectName("Rig"),
+                                    engine::graph::RenderExecutorPreference::Wireframe,
+                                    engine::graph::RenderViewMode::Wireframe, std::nullopt,
+                                    std::nullopt});
+    original.setRenderIntent(intent);
+
+    ASSERT_TRUE(original.save(path));
+
+    Scene decoded;
+    ASSERT_TRUE(decoded.load(path));
+    ASSERT_TRUE(decoded.hasRenderIntent());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Rasterizer,
+              decoded.renderIntent().defaultExecutor);
+    EXPECT_EQ(QString("toon"),
+              QString::fromStdString(decoded.renderIntent().defaultShadingProfile.name));
+    EXPECT_TRUE(decoded.renderIntent().enableWireframeOverlay);
+    ASSERT_EQ(1u, decoded.renderIntent().viewOverrides.size());
+    EXPECT_EQ(engine::graph::SceneSelector::Kind::ObjectName,
+              decoded.renderIntent().viewOverrides.front().selector.kind);
+    EXPECT_EQ(QString("Rig"),
+              QString::fromStdString(decoded.renderIntent().viewOverrides.front().selector.value));
+    ASSERT_TRUE(decoded.renderIntent().viewOverrides.front().executor.has_value());
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Wireframe,
+              *decoded.renderIntent().viewOverrides.front().executor);
+
+    QFile::remove(path);
+  }
+
   TEST(Scene, ShouldEvaluateAnimationAtFrame) {
     Scene scene;
     scene.setId("scene-id");
@@ -380,6 +449,20 @@ namespace SceneTest {
       FAIL() << "expected invalid animation block to throw";
     } catch (const std::invalid_argument& error) {
       EXPECT_THAT(error.what(), HasSubstr("scene animation must be an object"));
+    }
+  }
+
+  TEST(Scene, ShouldRejectNonObjectRenderIntentJson) {
+    Scene scene;
+    QJsonObject json;
+    scene.write(json);
+    json["renderIntent"] = true;
+
+    try {
+      scene.read(json);
+      FAIL() << "expected invalid renderIntent block to throw";
+    } catch (const std::invalid_argument& error) {
+      EXPECT_THAT(error.what(), HasSubstr("scene renderIntent must be an object"));
     }
   }
 

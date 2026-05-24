@@ -210,6 +210,19 @@ namespace engine::graph {
     /// Enables low-cost preview shadows for rasterizer-backed preview graphs.
     bool enablePreviewShadows{false};
     std::vector<RenderViewOverride> viewOverrides;
+
+    /**
+      * Serializes this user-facing render intent to the scene JSON shape.
+      */
+    QJsonObject toJson() const;
+
+    /**
+      * Reads user-facing render intent from a scene JSON `renderIntent` object.
+      *
+      * Missing fields keep their `RenderIntent` defaults. Malformed fields
+      * throw `std::runtime_error` with a path to the bad value.
+      */
+    static RenderIntent fromJson(const QJsonObject& object);
   };
 
   /**

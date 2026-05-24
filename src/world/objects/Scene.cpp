@@ -58,8 +58,21 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
 void Scene::read(const QJsonObject& json) {
   auto sceneJson = json;
   sceneJson.remove("animation");
+  sceneJson.remove("renderIntent");
 
   Element::read(sceneJson);
+
+  const auto renderIntentValue = json["renderIntent"];
+  if (renderIntentValue.isUndefined()) {
+    m_renderIntent = engine::graph::RenderIntent();
+    m_hasRenderIntent = false;
+  } else {
+    if (!renderIntentValue.isObject())
+      throw std::invalid_argument("scene renderIntent must be an object");
+
+    m_renderIntent = engine::graph::RenderIntent::fromJson(renderIntentValue.toObject());
+    m_hasRenderIntent = true;
+  }
 
   const auto animationValue = json["animation"];
   if (animationValue.isUndefined()) {
@@ -75,6 +88,10 @@ void Scene::read(const QJsonObject& json) {
 
 void Scene::write(QJsonObject& json) {
   Element::write(json);
+
+  if (m_hasRenderIntent) {
+    json["renderIntent"] = m_renderIntent.toJson();
+  }
 
   if (m_animation) {
     QJsonObject animationObject;
@@ -133,6 +150,24 @@ void Scene::setAnimation(std::unique_ptr<world::Timeline> animation) {
 
 bool Scene::hasAnimation() const {
   return static_cast<bool>(m_animation);
+}
+
+const engine::graph::RenderIntent& Scene::renderIntent() const {
+  return m_renderIntent;
+}
+
+void Scene::setRenderIntent(engine::graph::RenderIntent intent) {
+  m_renderIntent = std::move(intent);
+  m_hasRenderIntent = true;
+}
+
+void Scene::clearRenderIntent() {
+  m_renderIntent = engine::graph::RenderIntent();
+  m_hasRenderIntent = false;
+}
+
+bool Scene::hasRenderIntent() const {
+  return m_hasRenderIntent;
 }
 
 void Scene::evaluateAnimationAtFrame(int frame) {

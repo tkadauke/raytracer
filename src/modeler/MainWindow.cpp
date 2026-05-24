@@ -1237,9 +1237,13 @@ void MainWindow::syncTimelineControls() {
 }
 
 engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
-  engine::graph::RenderIntent intent;
-  intent.enablePreviewShadows = p->display && p->display->rasterizerPreviewShadowsEnabled();
-  intent.enableWireframeOverlay = p->display && p->display->wireframeOverlayEnabled();
+  engine::graph::RenderIntent intent = p->scene && p->scene->hasRenderIntent()
+                                         ? p->scene->renderIntent()
+                                         : engine::graph::RenderIntent();
+  intent.enablePreviewShadows =
+    intent.enablePreviewShadows || (p->display && p->display->rasterizerPreviewShadowsEnabled());
+  intent.enableWireframeOverlay =
+    intent.enableWireframeOverlay || (p->display && p->display->wireframeOverlayEnabled());
 
   if (!p->display)
     return intent;

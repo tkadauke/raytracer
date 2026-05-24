@@ -75,6 +75,16 @@ executor, view mode, shading profile, and camera. The result is a layered
 request: one default frame intent plus targeted overrides for specific parts
 of the scene.
 
+Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
+and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps
+the block optional: scenes without one use the default raytraced beauty intent,
+while scenes with one preserve the requested executor, view mode, shading
+profile, feature toggles, camera reference, and per-selector overrides. Tools
+then layer temporary choices over that saved intent. For example, rendercli uses
+the scene intent as the graph compiler input, but `--render_graph_executor`,
+`--render_graph_view`, and `--render_graph_wireframe_overlay` can still override
+the effective command-line render.
+
 ## <a id="resources-are-descriptors-not-buffers"></a>Resources are descriptors, not buffers
 A render resource is declared with `RenderResourceDescriptor`:
 
