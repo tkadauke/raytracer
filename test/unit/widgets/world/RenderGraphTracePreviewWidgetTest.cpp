@@ -6,6 +6,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RenderResourceStorage.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Scene.h"
@@ -48,6 +49,34 @@ namespace RenderGraphTracePreviewWidgetTest {
     Buffer<unsigned int> buffer(24, 24);
     engine.render(buffer);
     return engine.lastExecutionTrace();
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> metadataOnlyShadowTrace() {
+    RenderPlan plan;
+    RenderResourceDescriptor shadowMap;
+    shadowMap.id = "preview_shadow_map";
+    shadowMap.type = RenderResourceType::ShadowMap;
+    shadowMap.format = RenderResourceFormat::DepthDouble;
+    shadowMap.width = 8;
+    shadowMap.height = 8;
+    plan.addResource(shadowMap);
+
+    RenderPassNode shadowPass;
+    shadowPass.id = "raster_preview_shadows";
+    shadowPass.kind = RenderPassKind::Shadow;
+    shadowPass.executor = RenderExecutorKind::Rasterizer;
+    shadowPass.writes.push_back({"preview_shadow_map"});
+    plan.addPass(shadowPass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+
+    RenderGraphExecutionTraceRecorder recorder;
+    const auto session = recorder.begin(plan);
+    recorder.passStarted(session, plan.passes().front(), storage);
+    recorder.passCompleted(session, plan.passes().front(), storage);
+    recorder.finish(session);
+    return recorder.lastTrace();
   }
 
   bool labelsContain(QWidget* root, const QString& text) {
@@ -115,5 +144,20 @@ namespace RenderGraphTracePreviewWidgetTest {
 
     EXPECT_TRUE(title->text().contains(QStringLiteral("post_aa_color")));
     EXPECT_TRUE(labelsContain(outputs, QStringLiteral("post_aa_color")));
+  }
+
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowMetadataOnlyResourceTrace) {
+    auto trace = metadataOnlyShadowTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showResourceTrace(trace, "preview_shadow_map");
+
+    auto* outputs = widget.findChild<QWidget*>("renderGraphTracePreviewOutputs");
+    ASSERT_NE(nullptr, outputs);
+
+    EXPECT_TRUE(labelsContain(outputs, QStringLiteral("preview_shadow_map")));
+    EXPECT_TRUE(labelsContain(outputs, QStringLiteral("preview is not available")));
+    EXPECT_TRUE(widget.findChildren<QLabel*>("renderGraphTracePreviewImage").empty());
   }
 }
