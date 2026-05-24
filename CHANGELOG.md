@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph-visible raster preview shadow pass.** Raster graph plans with preview
+  shadows now include a `raster_preview_shadows` shadow node and
+  `preview_shadow_map` resource before `raster_beauty`; disabling that node
+  substitutes the default and prevents graph-controlled shadow enablement in
+  the beauty payload. — GPT-5
 - **Graph resource substitution provenance.** Runtime graph resources now record
   whether their current contents came from disabled-pass substitute-default
   behavior or from a normal producer/passthrough, giving later passes a typed

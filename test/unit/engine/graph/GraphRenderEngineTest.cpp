@@ -314,6 +314,27 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(Colord(0.1, 0.2, 0.3), buffer[0][0]);
   }
 
+  TEST(GraphRenderEngine, ExecutesRasterPreviewShadowPassBeforeBeauty) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord(0.1, 0.3, 0.5));
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(compiler.compile({4, 4, 1}, intent));
+
+    Buffer<Colord> buffer(4, 4);
+    engine.render(buffer);
+
+    ASSERT_EQ(3u, engine.lastPlan().passes().size());
+    EXPECT_EQ("raster_preview_shadows", engine.lastPlan().passes()[0].id);
+    EXPECT_EQ("raster_beauty", engine.lastPlan().passes()[1].id);
+    EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
+  }
+
   TEST(GraphRenderEngine, RejectsUnsupportedMultiPassPlans) {
     auto scene = std::make_shared<render::Scene>();
     GraphRenderEngine engine(camera(), scene);

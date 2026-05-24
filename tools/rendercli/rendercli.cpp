@@ -467,7 +467,8 @@ private:
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
   bool usesGraphImagePostProcessAA(const engine::graph::RenderIntent& intent) const;
-  engine::graph::RasterBeautyPassState rasterBeautyPassState(bool includeImagePostProcessAA) const;
+  engine::graph::RasterBeautyPassState rasterBeautyPassState(bool includeImagePostProcessAA,
+                                                             bool includeShadowMapEnable) const;
   engine::graph::WireframePassState wireframePassState() const;
   void addRasterImagePostProcessAAPass(engine::graph::RenderPlan& plan,
                                        const engine::graph::RenderIntent& intent) const;
@@ -599,7 +600,7 @@ bool Renderer::usesGraphImagePostProcessAA(const engine::graph::RenderIntent& in
 }
 
 engine::graph::RasterBeautyPassState
-Renderer::rasterBeautyPassState(bool includeImagePostProcessAA) const {
+Renderer::rasterBeautyPassState(bool includeImagePostProcessAA, bool includeShadowMapEnable) const {
   engine::graph::RasterBeautyPassState state;
   state.geometry().setLod(m_wireframeLod);
   if (m_threadsSet) {
@@ -640,7 +641,9 @@ Renderer::rasterBeautyPassState(bool includeImagePostProcessAA) const {
     state.framebuffer().setScissorRect(m_rasterScissor);
   }
   state.framebuffer().setDepthBias(m_rasterDepthBias);
-  state.shadows().setShadowMapsEnabled(m_rasterShadowMaps);
+  if (includeShadowMapEnable) {
+    state.shadows().setShadowMapsEnabled(m_rasterShadowMaps);
+  }
   state.shadows().setShadowMapSize(m_rasterShadowMapSize);
   state.shadows().setShadowCascadeCount(m_rasterShadowCascadeCount);
   state.shadows().setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
@@ -703,7 +706,8 @@ engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) c
   auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
   wireframePassState().writeToWireframePasses(plan);
   if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
-    rasterBeautyPassState(!usesGraphImagePostProcessAA(intent)).writeToRasterBeautyPasses(plan);
+    rasterBeautyPassState(!usesGraphImagePostProcessAA(intent), !intent.enablePreviewShadows)
+      .writeToRasterBeautyPasses(plan);
     addRasterImagePostProcessAAPass(plan, intent);
   }
   return plan.withOverrides(m_renderGraphOverrides);
@@ -877,7 +881,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
     if (rtCamera)
       raster->setCamera(rtCamera);
-    rasterBeautyPassState(true).applyTo(*raster);
+    rasterBeautyPassState(true, true).applyTo(*raster);
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);

@@ -379,7 +379,14 @@ replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
 under the pass's `parameters` object, making settings such as `--msaa`,
 `--msaa_shading`, `--viewport`, color-output controls, and shadow-map controls
 visible instead of living only in the direct raster engine setup path. The
-image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
+preview shadow request is also visible: when preview shadows are enabled, the
+compiler inserts `raster_preview_shadows` before `raster_beauty` and routes a
+`preview_shadow_map` resource into the beauty pass. The current raster payload
+still builds the concrete CPU shadow maps internally, but disabling the graph
+shadow node substitutes the default resource and prevents graph-controlled
+shadow enablement.
+
+The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 rendercli inserts a `raster_fxaa` or `raster_smaa` postprocess pass that routes
 `beauty_color` through `post_aa_color` before overlay or tonemap. The pass
 stores typed `post_process_aa` parameters, so the exported graph does not rely

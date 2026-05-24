@@ -396,6 +396,9 @@ endif()
 if(NOT raster_state_graph MATCHES "raster_fxaa")
   message(FATAL_ERROR "raster state graph did not contain raster_fxaa pass: ${raster_state_graph}")
 endif()
+if(NOT raster_state_graph MATCHES "raster_preview_shadows")
+  message(FATAL_ERROR "raster state graph did not contain preview shadow pass: ${raster_state_graph}")
+endif()
 if(NOT raster_state_graph MATCHES "post_aa_color")
   message(FATAL_ERROR "raster state graph did not contain post-AA resource: ${raster_state_graph}")
 endif()
@@ -447,6 +450,17 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format text
     --width 32 --height 16 --post_aa fxaa --disable_pass raster_fxaa
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli disables graph-visible raster preview shadow pass"
+  STDOUT_MATCHES
+    "raster_preview_shadows \\[shadow/rasterizer\\] disabled"
+    "raster_beauty \\[beauty/rasterizer\\] enabled"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format text
+    --width 32 --height 16 --shadow_maps --disable_pass raster_preview_shadows
     "${static_scene}"
 )
 

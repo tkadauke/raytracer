@@ -1122,7 +1122,11 @@ path-traced frame.
 ### Raster shadow maps as graph clients
 
 Move raster preview shadows from internal rasterizer-only orchestration into
-graph-level shadow-map resources and passes.
+graph-level shadow-map resources and passes. ✅ **Partial.** Graph-backed
+preview renders now include a `raster_preview_shadows` node and
+`preview_shadow_map` resource that control whether raster beauty enables
+preview shadows; the concrete CPU shadow-map build still lives inside the
+rasterizer payload until shadow-map storage is externalized.
 
 ### Stencil/depth-aware composition
 

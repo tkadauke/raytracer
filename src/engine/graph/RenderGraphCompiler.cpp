@@ -72,6 +72,17 @@ namespace engine::graph {
       color.lifetime = lifetime;
       return color;
     }
+
+    RenderResourceDescriptor previewShadowResource() {
+      RenderResourceDescriptor shadow;
+      shadow.id = "preview_shadow_map";
+      shadow.name = "Raster preview shadow map request";
+      shadow.type = RenderResourceType::ShadowMap;
+      shadow.format = RenderResourceFormat::Unknown;
+      shadow.domain = RenderResourceDomain::CPU;
+      shadow.lifetime = RenderResourceLifetime::Transient;
+      return shadow;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
@@ -84,6 +95,11 @@ namespace engine::graph {
     RenderResourceDescriptor beautyColor =
       colorResource("beauty_color", "Beauty color", target, RenderResourceLifetime::Transient);
     plan.addResource(beautyColor);
+    const bool usesPreviewShadows =
+      executor == RenderExecutorKind::Rasterizer && intent.enablePreviewShadows;
+    if (usesPreviewShadows) {
+      plan.addResource(previewShadowResource());
+    }
 
     std::string tonemapInputResource = "beauty_color";
     if (intent.enableWireframeOverlay) {
@@ -111,6 +127,21 @@ namespace engine::graph {
       RasterBeautyPassState state;
       state.sampling().setMSAASamples(target.sampleCount);
       state.writeTo(beauty);
+    }
+    if (usesPreviewShadows) {
+      RenderPassNode shadows;
+      shadows.id = "raster_preview_shadows";
+      shadows.name = "Raster preview shadows";
+      shadows.kind = RenderPassKind::Shadow;
+      shadows.executor = RenderExecutorKind::Rasterizer;
+      shadows.features = {"main", "preview_shadows", "shadow_maps", "rasterizer"};
+      shadows.writes.push_back({"preview_shadow_map"});
+      shadows.sceneView.selector = SceneSelector::all();
+      shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      shadows.canRunConcurrently = false;
+      plan.addPass(shadows);
+
+      beauty.reads.push_back({"preview_shadow_map"});
     }
     plan.addPass(beauty);
 

@@ -13,6 +13,7 @@
 #include "render/cameras/Camera.h"
 #include "render/tonemap/Tonemap.h"
 
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -53,6 +54,22 @@ namespace engine::graph {
       rasterizer.setShadowBias(0.1);
       rasterizer.setShadowFilterRadius(1);
       rasterizer.setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCF);
+    }
+
+    bool hasFeature(const RenderPassNode& pass, const RenderFeatureKind& feature) {
+      return std::any_of(pass.features.begin(), pass.features.end(),
+                         [&](const RenderFeatureKind& value) { return value == feature; });
+    }
+
+    bool hasRealPreviewShadowInput(const RenderExecutionContext& context) {
+      for (const auto& read : context.pass().reads) {
+        const auto& resource = context.storage().resource(read.resource);
+        if (resource.descriptor().type == RenderResourceType::ShadowMap &&
+            !resource.substituteDefault()) {
+          return true;
+        }
+      }
+      return false;
     }
 
     void prepareEngine(render::RenderEngine& engine, const GraphRenderEngine& graph, bool cancelled,
@@ -122,10 +139,25 @@ namespace engine::graph {
           std::make_shared<::engine::raster::Rasterizer>(std::move(camera), graph.scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
         state.applyTo(*rasterizer);
-        if (graph.intent().enablePreviewShadows && !state.shadows().enabled()) {
-          applyPreviewShadowPolicy(*rasterizer);
+        if (hasRealPreviewShadowInput(context) && !state.shadows().enabled()) {
+          if (state.shadows().empty()) {
+            applyPreviewShadowPolicy(*rasterizer);
+          } else {
+            rasterizer->setShadowMapsEnabled(true);
+          }
         }
         return rasterizer;
+      }
+    };
+
+    class RasterPreviewShadowPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        if (context.storage().descriptor(write.resource).type != RenderResourceType::ShadowMap) {
+          throw passError(pass, "preview shadow pass must write a shadow-map resource");
+        }
       }
     };
 
@@ -270,6 +302,11 @@ namespace engine::graph {
 
     if (pass.kind == RenderPassKind::Tonemap && pass.executor == RenderExecutorKind::PostProcess) {
       return std::make_unique<TonemapPass>();
+    }
+
+    if (pass.kind == RenderPassKind::Shadow && pass.executor == RenderExecutorKind::Rasterizer &&
+        hasFeature(pass, "preview_shadows")) {
+      return std::make_unique<RasterPreviewShadowPass>();
     }
 
     if (pass.kind == RenderPassKind::PostProcess &&

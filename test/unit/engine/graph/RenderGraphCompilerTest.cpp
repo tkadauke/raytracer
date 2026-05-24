@@ -156,4 +156,45 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(DisabledBehavior::Passthrough, plan.passes()[1].disabledBehavior);
     EXPECT_TRUE(plan.validate().valid());
   }
+
+  TEST(RenderGraphCompiler, RasterPreviewShadowsAddGraphShadowPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_EQ("raster_preview_shadows", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::Shadow, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    EXPECT_EQ(DisabledBehavior::SubstituteDefault, plan.passes()[0].disabledBehavior);
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("preview_shadow_map", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("raster_beauty", plan.passes()[1].id);
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    EXPECT_EQ("preview_shadow_map", plan.passes()[1].reads[0].resource);
+    ASSERT_NE(nullptr, plan.findResource("preview_shadow_map"));
+    EXPECT_EQ(RenderResourceType::ShadowMap, plan.findResource("preview_shadow_map")->type);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterPreviewShadowPassCanSubstituteDefaultWhenDisabled) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+
+    RenderGraphOverrides overrides;
+    overrides.disabledPasses.insert("raster_preview_shadows");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent).withOverrides(overrides);
+
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_FALSE(plan.passes()[0].enabled);
+    EXPECT_TRUE(plan.passes()[1].enabled);
+    EXPECT_TRUE(plan.validate().valid());
+  }
 }

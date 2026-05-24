@@ -85,6 +85,9 @@ rather than hiding the filter inside the rasterizer engine, and the pass's
 typed `post_process_aa` parameters select the replayed filter. `--post_aa
 taa` stays on the raster beauty pass until temporal history resources are
 graph resources.
+Raster preview shadows compile as a `raster_preview_shadows` node feeding the
+beauty pass; disabling that node leaves the raster beauty pass running without
+graph-controlled shadows.
 Wireframe graph renders carry `--lod` in typed wireframe pass state, so
 graph-only JSON exports and replayed graph renders preserve the requested
 tessellation density.
