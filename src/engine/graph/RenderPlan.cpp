@@ -98,6 +98,37 @@ namespace engine::graph {
     return m_resources;
   }
 
+  const RenderPassNode* RenderPlan::findPass(const RenderPassId& id) const {
+    const auto it = std::find_if(m_passes.begin(), m_passes.end(),
+                                 [&](const RenderPassNode& pass) { return pass.id == id; });
+    return it == m_passes.end() ? nullptr : &*it;
+  }
+
+  const RenderResourceDescriptor* RenderPlan::findResource(const RenderResourceId& id) const {
+    const auto it =
+      std::find_if(m_resources.begin(), m_resources.end(),
+                   [&](const RenderResourceDescriptor& resource) { return resource.id == id; });
+    return it == m_resources.end() ? nullptr : &*it;
+  }
+
+  const RenderPassNode* RenderPlan::producerOf(const RenderResourceId& resource) const {
+    const auto it = std::find_if(m_passes.begin(), m_passes.end(), [&](const RenderPassNode& pass) {
+      return pass.writesResource(resource);
+    });
+    return it == m_passes.end() ? nullptr : &*it;
+  }
+
+  std::vector<const RenderPassNode*>
+  RenderPlan::consumersOf(const RenderResourceId& resource) const {
+    std::vector<const RenderPassNode*> result;
+    for (const auto& pass : m_passes) {
+      if (pass.readsResource(resource)) {
+        result.push_back(&pass);
+      }
+    }
+    return result;
+  }
+
   void RenderPlan::addResource(RenderResourceDescriptor descriptor) {
     m_resources.push_back(std::move(descriptor));
   }

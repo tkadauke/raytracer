@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **RenderPlan graph queries.** `RenderPlan` now exposes typed lookup helpers
+  for pass ids, resource ids, resource producers, and resource consumers, giving
+  later graph-rewrite code and inspection tools a single plan-owned API for
+  dependency queries. — GPT-5
 - **Typed graph postprocess AA state.** Graph-visible raster FXAA/SMAA passes
   now serialize `post_process_aa` pass parameters at the JSON boundary and
   execute from typed C++ state rather than inferring the filter from a pass id.

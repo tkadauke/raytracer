@@ -163,6 +163,38 @@ namespace RenderPlanTest {
     EXPECT_FALSE(disabled.passes()[3].enabled);
   }
 
+  TEST(RenderPlan, FindsPassResourcesAndResourceEdges) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color"));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
+    EXPECT_EQ(RenderPassKind::Beauty, plan.findPass("raster_beauty")->kind);
+    EXPECT_EQ(nullptr, plan.findPass("missing"));
+
+    ASSERT_NE(nullptr, plan.findResource("display_color"));
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("display_color")->lifetime);
+    EXPECT_EQ(nullptr, plan.findResource("missing"));
+
+    ASSERT_NE(nullptr, plan.producerOf("beauty_color"));
+    EXPECT_EQ("raster_beauty", plan.producerOf("beauty_color")->id);
+    EXPECT_EQ(nullptr, plan.producerOf("history_color"));
+
+    const auto consumers = plan.consumersOf("beauty_color");
+    ASSERT_EQ(1u, consumers.size());
+    EXPECT_EQ("tonemap", consumers.front()->id);
+    EXPECT_TRUE(plan.consumersOf("display_color").empty());
+  }
+
   TEST(RenderPlan, DisabledSubstituteDefaultCanSatisfyConsumer) {
     RenderPlan plan;
     plan.addResource(colorResource("shadow_mask"));

@@ -57,6 +57,11 @@ namespace engine::graph {
     const std::vector<RenderPassNode>& passes() const;
     const std::vector<RenderResourceDescriptor>& resources() const;
 
+    const RenderPassNode* findPass(const RenderPassId& id) const;
+    const RenderResourceDescriptor* findResource(const RenderResourceId& id) const;
+    const RenderPassNode* producerOf(const RenderResourceId& resource) const;
+    std::vector<const RenderPassNode*> consumersOf(const RenderResourceId& resource) const;
+
     void addResource(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
     std::size_t routeResourceThroughPass(const RenderResourceId& sourceResource,

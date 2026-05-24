@@ -144,7 +144,10 @@ struct RenderPassNode {
 The central fields are `reads` and `writes`. A tonemap pass, for example, can
 read `main_color` and write `display_color`. A shadow pass can write
 `shadow_mask`, and a beauty pass can read that mask before writing
-`main_color`.
+`main_color`. `RenderPlan` owns the common dependency queries around those
+edges: callers can look up a pass or resource by id, ask which pass produces a
+resource, and list the passes that consume a resource without duplicating
+linear scans in every inspection or rewrite tool.
 
 `state` carries typed pass-payload state. Generic graph validation still
 reasons about resources and dependencies, while the matching payload owns how
