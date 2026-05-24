@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph wireframe overlay pass.** `RenderIntent::enableWireframeOverlay`,
+  `rendercli --render_graph_wireframe_overlay`, and the Modeler preview menu now
+  compile a graph-visible `wireframe_overlay` pass between beauty and tonemap,
+  with disabled-pass passthrough support for node-toggling education. — GPT-5
 - **Graph-backed Modeler preview.** The central `Modeler` preview now renders through `GraphRenderEngine` using the Render Graph dock's effective plan when that plan validates. Pass checkboxes immediately affect valid preview graphs, `Render → Preview Tonemap` selects the graph tonemap node's operator, and graph LDR output packs after the graph so tonemap is not applied twice. — GPT-5
 - **Render graph default tonemap pass.** `RenderGraphCompiler` now emits a two-pass default graph: the selected whole-frame beauty executor writes a transient `beauty_color` resource, then a `tonemap` postprocess pass writes the exported `main_color` resource. Disabling the tonemap pass uses passthrough validation/execution, giving the Modeler inspector and rendercli a real multi-node graph by default. — GPT-5
 - **Modeler render-graph inspector.** `Modeler` now has a Render Graph dock that compiles the current live-preview graph, lists pass/resource details, and validates per-pass checkbox overrides before preview renders are started. — GPT-5

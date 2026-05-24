@@ -65,7 +65,9 @@ renders through the graph engine instead of a direct engine, and
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view default|beauty|wireframe` overrides the graph intent's
-structural view mode.
+structural view mode. `--render_graph_wireframe_overlay` asks the compiler to
+insert a graph-visible wireframe overlay pass between the beauty pass and the
+tonemap pass.
 `--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
 `--disable_feature` apply graph overrides before validation or rendering.
 Those controls are intentionally graph-level: disabling the required

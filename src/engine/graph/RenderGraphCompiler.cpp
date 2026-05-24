@@ -71,6 +71,23 @@ namespace engine::graph {
       target.sampleCount = std::max(1, target.sampleCount);
       return target;
     }
+
+    RenderResourceDescriptor colorResource(const std::string& id,
+                                           const std::string& name,
+                                           const RenderTargetSpec& target,
+                                           RenderResourceLifetime lifetime) {
+      RenderResourceDescriptor color;
+      color.id = id;
+      color.name = name;
+      color.type = RenderResourceType::Color;
+      color.format = RenderResourceFormat::RGBDouble;
+      color.width = target.width;
+      color.height = target.height;
+      color.sampleCount = target.sampleCount;
+      color.domain = RenderResourceDomain::CPU;
+      color.lifetime = lifetime;
+      return color;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
@@ -80,22 +97,20 @@ namespace engine::graph {
 
     RenderPlan plan;
 
-    RenderResourceDescriptor beautyColor;
-    beautyColor.id = "beauty_color";
-    beautyColor.name = "Beauty color";
-    beautyColor.type = RenderResourceType::Color;
-    beautyColor.format = RenderResourceFormat::RGBDouble;
-    beautyColor.width = target.width;
-    beautyColor.height = target.height;
-    beautyColor.sampleCount = target.sampleCount;
-    beautyColor.domain = RenderResourceDomain::CPU;
-    beautyColor.lifetime = RenderResourceLifetime::Transient;
+    RenderResourceDescriptor beautyColor =
+      colorResource("beauty_color", "Beauty color", target, RenderResourceLifetime::Transient);
     plan.addResource(beautyColor);
 
-    RenderResourceDescriptor mainColor = beautyColor;
-    mainColor.id = "main_color";
-    mainColor.name = "Main color";
-    mainColor.lifetime = RenderResourceLifetime::Exported;
+    std::string tonemapInputResource = "beauty_color";
+    if (intent.enableWireframeOverlay) {
+      RenderResourceDescriptor overlayColor =
+        colorResource("overlay_color", "Overlay color", target, RenderResourceLifetime::Transient);
+      plan.addResource(overlayColor);
+      tonemapInputResource = "overlay_color";
+    }
+
+    RenderResourceDescriptor mainColor =
+      colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
     plan.addResource(mainColor);
 
     RenderPassNode beauty;
@@ -110,13 +125,28 @@ namespace engine::graph {
     beauty.canRunConcurrently = false;
     plan.addPass(beauty);
 
+    if (intent.enableWireframeOverlay) {
+      RenderPassNode overlay;
+      overlay.id = "wireframe_overlay";
+      overlay.name = "Wireframe overlay";
+      overlay.kind = RenderPassKind::Overlay;
+      overlay.executor = RenderExecutorKind::Wireframe;
+      overlay.features = {"main", "overlay", "wireframe"};
+      overlay.reads.push_back({"beauty_color"});
+      overlay.writes.push_back({"overlay_color"});
+      overlay.sceneView.selector = SceneSelector::all();
+      overlay.disabledBehavior = DisabledBehavior::Passthrough;
+      overlay.canRunConcurrently = false;
+      plan.addPass(overlay);
+    }
+
     RenderPassNode tonemap;
     tonemap.id = "tonemap";
     tonemap.name = "Tone map";
     tonemap.kind = RenderPassKind::Tonemap;
     tonemap.executor = RenderExecutorKind::PostProcess;
     tonemap.features = {"main", "tonemap", "postprocess"};
-    tonemap.reads.push_back({"beauty_color"});
+    tonemap.reads.push_back({tonemapInputResource});
     tonemap.writes.push_back({"main_color"});
     tonemap.sceneView.selector = SceneSelector::all();
     tonemap.disabledBehavior = DisabledBehavior::Passthrough;

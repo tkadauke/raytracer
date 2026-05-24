@@ -11,9 +11,10 @@ namespace engine::graph {
     *
     * The current implementation executes the first supported graph slice: an
     * enabled whole-frame beauty pass using the existing raytracer, rasterizer,
-    * or wireframe engine, followed by simple serial color postprocess passes
-    * such as tonemap. It preserves the graph-facing workflow: callers can
-    * compile a plan, inspect or override it, then execute that plan.
+    * or wireframe engine, optional serial color overlays such as the first
+    * wireframe overlay pass, followed by simple color postprocess passes such
+    * as tonemap. It preserves the graph-facing workflow: callers can compile a
+    * plan, inspect or override it, then execute that plan.
     */
   class GraphRenderEngine : public render::RenderEngine {
   public:
@@ -64,9 +65,9 @@ namespace engine::graph {
     /**
       * Executes the current plan into @p buffer.
       *
-      * This first graph execution slice supports enabled beauty passes and
-      * enabled tonemap postprocess passes, with disabled-pass default
-      * substitution and color passthrough. Unsupported pass shapes throw
+      * This first graph execution slice supports enabled beauty passes,
+      * wireframe overlays, and tonemap postprocess passes, with disabled-pass
+      * default substitution and color passthrough. Unsupported pass shapes throw
       * `std::runtime_error` with the validation or execution reason.
       */
     void render(Buffer<Colord>& buffer) override;

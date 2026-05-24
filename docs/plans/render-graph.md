@@ -751,8 +751,8 @@ enableWireframeOverlay = true
 Compiled plan:
 
 ```text
-RaytraceBeautyPass -> main_color, main_depth
-WireframeOverlayPass reads main_color, main_depth -> overlay_color
+RaytraceBeautyPass -> beauty_color
+WireframeOverlayPass reads beauty_color -> overlay_color
 TonemapPass reads overlay_color -> display
 ```
 
@@ -1031,12 +1031,13 @@ Status: started. The initial foundation now lives in `include/engine/graph/`
 and `src/engine/graph/`: render intent, scene selectors, resource descriptors,
 CPU resource storage, pass declarations, virtual pass payloads with per-pass
 execution context, plan validation, graph override disabling, text/DOT/JSON
-plan export, a minimal compiler that emits a whole-frame beauty pass plus a
-tonemap/export pass, a graph engine facade that can execute that serial color
-chain through Raytracer/Rasterizer/Wireframe plus PostProcess tonemapping, a
-display-buffer fast path for progressive simple previews, and the textbook's
-render-graph volume. Scene-feature expansion, arbitrary postprocess/composite
-execution, scene JSON intent, and real graph scheduling remain TODO.
+plan export, a minimal compiler that emits a whole-frame beauty pass, optional
+wireframe overlay pass, and tonemap/export pass, a graph engine facade that can
+execute that serial color chain through Raytracer/Rasterizer/Wireframe plus
+PostProcess tonemapping, a display-buffer fast path for progressive simple
+previews, and the textbook's render-graph volume. Scene-feature expansion,
+arbitrary postprocess/composite execution, scene JSON intent, and real graph
+scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1050,23 +1051,24 @@ Implement the smallest graph that proves the architecture:
    shading profile, camera, and per-selector overrides for the same fields.
    ✅ Core intent data is defined; scene JSON read/write is TODO.
 4. Add `RenderGraphCompiler` so plans can be compiled, inspected, exported, and
-   manipulated without rendering. ✅ Done for the first whole-frame beauty +
-   tonemap/export compiler; scene-feature expansion remains TODO.
+   manipulated without rendering. ✅ Done for the first whole-frame beauty,
+   optional wireframe overlay, and tonemap/export compiler; scene-feature
+   expansion remains TODO.
 5. Add `GraphRenderEngine` that can either compile from intent or execute a
    precompiled plan. ✅ Done for the first execution slice: whole-frame beauty
-   passes backed by Raytracer, Rasterizer, or Wireframe, plus simple serial
-   color-resource chains. Simple beauty plus optional tonemap LDR output uses
-   the wrapped engine's display-buffer render path so interactive previews can
-   update progressively.
+   passes backed by Raytracer, Rasterizer, or Wireframe, the first wireframe
+   overlay pass, plus simple serial color-resource chains. Simple beauty plus
+   optional tonemap LDR output uses the wrapped engine's display-buffer render
+   path so interactive previews can update progressively.
 6. Wrap existing whole-frame engines as pass executors:
    - `RaytraceBeautyPass`;
    - `RasterBeautyPass`;
    - `WireframeOverlayPass`;
    - `TonemapPass` or final copy/tonemap stage.
    ✅ Done for the current supported pass set: whole-frame raytracer,
-   rasterizer, and wireframe beauty passes plus tonemap now execute through
-   virtual payload classes. A true wireframe overlay payload remains for the
-   later overlay/composite slice.
+   rasterizer, and wireframe beauty passes, a non-depth-aware wireframe overlay
+   pass, plus tonemap now execute through virtual payload classes. A
+   depth-aware overlay payload remains for the later depth/composite slice.
 7. Add node disabling with `Passthrough` and `SubstituteDefault` for the first
    supported pass kinds. ✅ Done for disabled default substitution and color
    passthrough in the serial graph engine.
@@ -1074,15 +1076,17 @@ Implement the smallest graph that proves the architecture:
    runtime intent overrides, and node-disabling flags. ✅ Partial: rendercli
    can compile/export text, DOT, and JSON plans, render through the graph,
    load and replay JSON plans, override the compiled default executor/view mode,
-   apply pass id/kind/executor/feature disable filters, and validate the
-   manipulated plan. Selector-specific intent overrides remain TODO.
+   request the wireframe overlay intent, apply pass id/kind/executor/feature
+   disable filters, and validate the manipulated plan. Selector-specific intent
+   overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
    the current live-preview plan before preview renders, lists the default
    beauty + tonemap pass chain and resource details, validates per-pass
    checkbox overrides, and feeds the effective valid plan back into the central
-   graph-backed preview. Grouped toggles, graph export, resource previews, and
-   per-selector intent controls remain TODO.
+   graph-backed preview. The preview menu can request the wireframe overlay
+   intent. Grouped toggles, graph export, resource previews, and per-selector
+   intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

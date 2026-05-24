@@ -93,4 +93,51 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(DisabledBehavior::Passthrough, plan.passes()[1].disabledBehavior);
     EXPECT_TRUE(plan.validate().valid());
   }
+
+  TEST(RenderGraphCompiler, WireframeOverlayIntentAddsOverlayPassBeforeTonemap) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.enableWireframeOverlay = true;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(3u, plan.resources().size());
+    EXPECT_EQ("beauty_color", plan.resources()[0].id);
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.resources()[0].lifetime);
+    EXPECT_EQ("overlay_color", plan.resources()[1].id);
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.resources()[1].lifetime);
+    EXPECT_EQ("main_color", plan.resources()[2].id);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.resources()[2].lifetime);
+
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_EQ("raytrace_beauty", plan.passes()[0].id);
+    EXPECT_EQ("wireframe_overlay", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::Overlay, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::Wireframe, plan.passes()[1].executor);
+    EXPECT_EQ(DisabledBehavior::Passthrough, plan.passes()[1].disabledBehavior);
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("beauty_color", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("overlay_color", plan.passes()[1].writes[0].resource);
+    EXPECT_EQ("tonemap", plan.passes()[2].id);
+    ASSERT_EQ(1u, plan.passes()[2].reads.size());
+    EXPECT_EQ("overlay_color", plan.passes()[2].reads[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, WireframeOverlayPassCanBeDisabledWithPassthrough) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.enableWireframeOverlay = true;
+
+    RenderGraphOverrides overrides;
+    overrides.disabledPasses.insert("wireframe_overlay");
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent).withOverrides(overrides);
+
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_FALSE(plan.passes()[1].enabled);
+    EXPECT_EQ(DisabledBehavior::Passthrough, plan.passes()[1].disabledBehavior);
+    EXPECT_TRUE(plan.validate().valid());
+  }
 }

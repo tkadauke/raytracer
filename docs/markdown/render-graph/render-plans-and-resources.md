@@ -214,10 +214,11 @@ request matching values.
 
 Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_executor` selects the default executor and
-`--render_graph_view` selects the structural view mode. The current compiler
-uses those fields to choose the initial whole-frame beauty executor; selector
-specific overrides will matter once compilation can produce multi-selection
-plans.
+`--render_graph_view` selects the structural view mode. `--render_graph_wireframe_overlay`
+adds an overlay pass between the primary beauty pass and the tonemap pass. The
+current compiler uses those fields to choose the initial whole-frame beauty
+executor and the optional overlay chain; selector-specific overrides will
+matter once compilation can produce multi-selection plans.
 
 The compiler's default plan reads textually as:
 
@@ -239,11 +240,11 @@ to reader passes and from writer passes to resources. The JSON export carries
 the same ids, enum strings, resource dimensions, pass features, reads, writes,
 scene selector, disabled behavior, and scheduling flags.
 
-The first graph-backed render that exists today is deliberately small: a
-whole-frame raytraced beauty pass writes a transient color resource, then a
-tonemap postprocess pass writes the exported color resource. The DOT artifact
-checked into this chapter is the same shape emitted by `rendercli` for
-`scenes/dice.json` when asked to compile, but not render, the graph.
+The smallest graph-backed render is deliberately small: a whole-frame raytraced
+beauty pass writes a transient color resource, then a tonemap postprocess pass
+writes the exported color resource. The DOT artifact checked into this chapter
+is the same shape emitted by `rendercli` for `scenes/dice.json` when asked to
+compile, but not render, the graph.
 
 ![Raytraced beauty render graph](../../images/render_graph_raytrace_beauty.svg)
 
@@ -299,11 +300,12 @@ that concrete CPU buffer. Execution code can also ask for the resource object
 directly through `resource(id)` and use virtual capabilities instead of
 switching on `RenderResourceType`.
 
-## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits beauty and tonemap passes
+## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits beauty, overlay, and tonemap passes
 [`RenderGraphCompiler`](../../../include/engine/graph/RenderGraphCompiler.h)
 turns `RenderIntent` into a concrete `RenderPlan`. The first compiler slice
-targets one whole-frame beauty pass plus one final tonemap pass. It declares
-two CPU color resources:
+targets one whole-frame beauty pass, an optional wireframe overlay pass, and
+one final tonemap pass. Without the overlay it declares two CPU color
+resources:
 
 - `beauty_color`, a transient color resource written by the selected beauty
   executor;
@@ -319,6 +321,14 @@ The second pass is always `tonemap`, with kind `Tonemap` and executor
 `PostProcess`. It reads `beauty_color` and writes `main_color`. Its disabled
 behavior is `Passthrough`, so tools can disable the tonemap node and still
 validate a graph that copies the beauty output into the exported resource.
+
+When `RenderIntent::enableWireframeOverlay` is true, the compiler inserts an
+`overlay_color` resource and a `wireframe_overlay` pass before `tonemap`. The
+overlay pass reads `beauty_color`, writes `overlay_color`, and has
+`DisabledBehavior::Passthrough`, so disabling it leaves the beauty image flowing
+to tonemap unchanged. The current overlay is image-space and not depth-aware:
+it draws tessellated wireframe edges over the shaded image wherever the
+wireframe engine produces an edge pixel.
 
 `RenderTargetSpec` supplies the framebuffer width, height, and sample count for
 both resource descriptors. Compilation does not allocate buffers and does not
@@ -353,11 +363,12 @@ packing clips it.
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current
-intent or execute a caller-provided plan. The compiler emits a beauty pass and
-a tonemap pass, and the engine can execute that small serial color resource
-chain:
+intent or execute a caller-provided plan. The compiler emits a beauty pass, an
+optional wireframe overlay pass, and a tonemap pass, and the engine can execute
+that small serial color resource chain:
 
 - enabled `Beauty` passes backed by `Raytracer`, `Rasterizer`, or `Wireframe`;
+- enabled `Overlay` passes backed by `Wireframe`;
 - enabled `Tonemap` passes backed by the `PostProcess` executor;
 - disabled passes with `SubstituteDefault`, which clear their outputs to a
   meaningful default;

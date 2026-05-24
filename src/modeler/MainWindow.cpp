@@ -169,6 +169,7 @@ struct MainWindow::Private {
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
+  QAction* previewWireframeOverlayAct;
   QAction* previewTonemapLinearAct;
   QAction* previewTonemapReinhardAct;
   QAction* previewTonemapAcesAct;
@@ -432,6 +433,12 @@ void MainWindow::createActions() {
   connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)),
           this, SLOT(setPreviewRasterizerShadows(bool)));
 
+  p->previewWireframeOverlayAct = new QAction(tr("Wireframe &Overlay"), this);
+  p->previewWireframeOverlayAct->setStatusTip(tr("Draw graph-generated wireframe edges over the live shaded preview"));
+  p->previewWireframeOverlayAct->setCheckable(true);
+  connect(p->previewWireframeOverlayAct, SIGNAL(triggered(bool)),
+          this, SLOT(setPreviewWireframeOverlay(bool)));
+
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
   previewGroup->addAction(p->previewWireframeAct);
@@ -582,6 +589,7 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewWireframeAct);
   previewMenu->addAction(p->previewRasterizerAct);
   previewMenu->addSeparator();
+  previewMenu->addAction(p->previewWireframeOverlayAct);
   previewMenu->addAction(p->previewRasterizerShadowsAct);
 
   auto previewTonemapMenu = p->renderMenu->addMenu(tr("Preview &Tonemap"));
@@ -892,6 +900,10 @@ void MainWindow::usePreviewWireframe() {
 
 void MainWindow::setPreviewRasterizerShadows(bool enabled) {
   p->display->setRasterizerPreviewShadowsEnabled(enabled);
+}
+
+void MainWindow::setPreviewWireframeOverlay(bool enabled) {
+  p->display->setWireframeOverlayEnabled(enabled);
 }
 
 void MainWindow::setPreviewTonemapLinear() {
@@ -1227,6 +1239,7 @@ void MainWindow::syncTimelineControls() {
 engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
   engine::graph::RenderIntent intent;
   intent.enablePreviewShadows = p->display && p->display->rasterizerPreviewShadowsEnabled();
+  intent.enableWireframeOverlay = p->display && p->display->wireframeOverlayEnabled();
 
   if (!p->display)
     return intent;

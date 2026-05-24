@@ -406,6 +406,7 @@ private:
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
   engine::graph::RenderViewMode m_renderGraphViewMode;
+  bool m_renderGraphWireframeOverlay;
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
@@ -487,6 +488,7 @@ Renderer::Renderer()
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
       m_renderGraphViewModeSet(false),
       m_renderGraphViewMode(engine::graph::RenderViewMode::Beauty),
+      m_renderGraphWireframeOverlay(false),
       m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
@@ -555,6 +557,7 @@ engine::graph::RenderIntent Renderer::renderIntent() const {
   } else if (!m_renderGraphExecutorSet && m_engine == "wireframe") {
     intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
   }
+  intent.enableWireframeOverlay = m_renderGraphWireframeOverlay;
   return intent;
 }
 
@@ -1004,6 +1007,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view", "Override graph intent view mode (default, beauty, wireframe)", "mode"},
+     {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
      {"disable_pass_kind",
       "Disable render graph pass kind (beauty, shadow, overlay, composite, tonemap, postprocess, "
@@ -1190,6 +1194,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
+  }
+
+  if (parser.isSet("render_graph_wireframe_overlay")) {
+    m_renderGraph = true;
+    m_renderGraphWireframeOverlay = true;
   }
 
   if (parser.isSet("disable_pass")) {

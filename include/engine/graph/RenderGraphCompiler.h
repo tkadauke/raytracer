@@ -20,9 +20,10 @@ namespace engine::graph {
     * Builds a declarative render plan from user-facing render intent.
     *
     * This first compiler slice emits a whole-frame beauty pass backed by one
-    * existing engine executor, followed by a tonemap pass that writes the
-    * exported color resource. Later slices will expand scene features into
-    * shadow, postprocess, composite, AOV, and history-resource passes.
+    * existing engine executor, optionally routes that image through a
+    * wireframe-overlay pass, then emits a tonemap pass that writes the exported
+    * color resource. Later slices will expand scene features into shadow,
+    * postprocess, composite, AOV, and history-resource passes.
     */
   class RenderGraphCompiler {
   public:

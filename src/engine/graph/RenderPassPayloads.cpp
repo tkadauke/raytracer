@@ -36,6 +36,15 @@ namespace engine::graph {
       }
     }
 
+    void copyColorBuffer(const Buffer<Colord>& source, Buffer<Colord>& destination) {
+      requireMatchingSize(source, destination, "color copy");
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          destination[y][x] = source[y][x];
+        }
+      }
+    }
+
     const ResourceRead& onlyRead(const RenderPassNode& pass) {
       if (pass.reads.size() != 1) {
         throw passError(pass, "requires exactly one input resource");
@@ -145,6 +154,49 @@ namespace engine::graph {
     };
 
     /**
+      * Overlay payload that draws wireframe edges over an existing color image.
+      */
+    class WireframeOverlayPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = onlyRead(pass);
+        const auto& write = onlyWrite(pass);
+        requireColorResource(context.storage(), read.resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        const Buffer<Colord>& source = context.storage().color(read.resource);
+        Buffer<Colord>& destination = context.storage().color(write.resource);
+        copyColorBuffer(source, destination);
+
+        Buffer<Colord> overlay(source.width(), source.height());
+        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto wireframe =
+          std::make_shared<::engine::wireframe::Wireframe>(std::move(camera),
+                                                           context.graph().scene());
+        wireframe->setBackgroundColor(Colord::black());
+        wireframe->setEdgeColor(Colord::white());
+        if (context.cancelled()) {
+          wireframe->cancel();
+        } else {
+          wireframe->uncancel();
+        }
+
+        context.setActiveEngine(wireframe);
+        wireframe->render(overlay);
+
+        const Colord clear = Colord::black();
+        for (int y = 0; y != overlay.height(); ++y) {
+          for (int x = 0; x != overlay.width(); ++x) {
+            if (!(overlay[y][x] == clear)) {
+              destination[y][x] = overlay[y][x];
+            }
+          }
+        }
+      }
+    };
+
+    /**
       * Postprocess payload that applies the graph engine's tone mapper.
       */
     class TonemapPass : public RenderPassPayload {
@@ -188,6 +240,11 @@ namespace engine::graph {
     if (pass.kind == RenderPassKind::Tonemap &&
         pass.executor == RenderExecutorKind::PostProcess) {
       return std::make_unique<TonemapPass>();
+    }
+
+    if (pass.kind == RenderPassKind::Overlay &&
+        pass.executor == RenderExecutorKind::Wireframe) {
+      return std::make_unique<WireframeOverlayPass>();
     }
 
     return nullptr;

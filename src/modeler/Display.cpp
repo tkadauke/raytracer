@@ -62,6 +62,16 @@ bool RenderDisplay::rasterizerPreviewShadowsEnabled() const {
   return m_rasterizerPreviewShadowsEnabled;
 }
 
+void RenderDisplay::setWireframeOverlayEnabled(bool enabled) {
+  m_wireframeOverlayEnabled = enabled;
+  emit renderGraphInputsChanged();
+  render();
+}
+
+bool RenderDisplay::wireframeOverlayEnabled() const {
+  return m_wireframeOverlayEnabled;
+}
+
 void RenderDisplay::setScene(Scene* scene) {
   // In-flight preview renders use an engine snapshot, so replacing
   // the control engine's scene does not tear the scene out from

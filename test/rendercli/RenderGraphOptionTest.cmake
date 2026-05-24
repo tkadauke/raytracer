@@ -16,6 +16,7 @@ set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
+set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
 set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
@@ -86,6 +87,25 @@ rendercli_assert_nonempty("${intent_view_plan}" NAME "graph view override output
 file(READ "${intent_view_plan}" intent_view_graph)
 if(NOT intent_view_graph MATCHES "wireframe_beauty")
   message(FATAL_ERROR "graph view override did not select wireframe_beauty: ${intent_view_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph wireframe overlay intent adds overlay pass"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --render_graph_wireframe_overlay --width 32 --height 16
+    "${static_scene}" "${overlay_plan}"
+)
+rendercli_assert_nonempty("${overlay_plan}" NAME "graph wireframe overlay output")
+file(READ "${overlay_plan}" overlay_graph)
+if(NOT overlay_graph MATCHES "wireframe_overlay")
+  message(FATAL_ERROR "graph overlay intent did not add wireframe_overlay: ${overlay_graph}")
+endif()
+if(NOT overlay_graph MATCHES "overlay_color")
+  message(FATAL_ERROR "graph overlay intent did not add overlay_color: ${overlay_graph}")
+endif()
+if(NOT overlay_graph MATCHES "tonemap")
+  message(FATAL_ERROR "graph overlay intent did not retain tonemap: ${overlay_graph}")
 endif()
 
 rendercli_run(

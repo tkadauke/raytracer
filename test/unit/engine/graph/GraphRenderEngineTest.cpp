@@ -5,6 +5,7 @@
 #include "engine/graph/RenderGraphCompiler.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/materials/Material.h"
+#include "render/primitives/Box.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/tonemap/ReinhardTonemap.h"
@@ -76,6 +77,18 @@ namespace GraphRenderEngineTest {
     mutable bool m_secondCallEntered{false};
     mutable bool m_releaseSecondCall{false};
   };
+
+  int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
+    int count = 0;
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        if (buffer[y][x] == color) {
+          ++count;
+        }
+      }
+    }
+    return count;
+  }
 
   TEST(GraphRenderEngine, CompilesAndExecutesDefaultRaytracedBeautyPass) {
     auto scene = std::make_shared<render::Scene>();
@@ -286,6 +299,25 @@ namespace GraphRenderEngineTest {
 
     material->releaseSecondCall();
     renderThread.join();
+  }
+
+  TEST(GraphRenderEngine, ExecutesWireframeOverlayPassOverBeautyColor) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord(0.1, 0.2, 0.3));
+    scene->add(std::make_shared<render::Box>(Vector3d::null, Vector3d(1, 1, 1)));
+
+    RenderIntent intent;
+    intent.enableWireframeOverlay = true;
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(compiler.compile({64, 64, 1}, intent));
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::white()), 0);
+    EXPECT_EQ(Colord(0.1, 0.2, 0.3), buffer[0][0]);
   }
 
   TEST(GraphRenderEngine, RejectsUnsupportedMultiPassPlans) {

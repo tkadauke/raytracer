@@ -93,6 +93,7 @@ private slots:
   void usePreviewWireframe();
   void usePreviewRasterizer();
   void setPreviewRasterizerShadows(bool enabled);
+  void setPreviewWireframeOverlay(bool enabled);
   void setPreviewTonemapLinear();
   void setPreviewTonemapReinhard();
   void setPreviewTonemapAces();

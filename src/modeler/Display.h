@@ -54,6 +54,10 @@ public slots:
   void setRasterizerPreviewShadowsEnabled(bool enabled);
   bool rasterizerPreviewShadowsEnabled() const;
 
+  /// Toggle a graph-level wireframe overlay over the shaded live preview.
+  void setWireframeOverlayEnabled(bool enabled);
+  bool wireframeOverlayEnabled() const;
+
   /// Installs the latest graph intent that produced the preview plan.
   void setRenderGraphIntent(const engine::graph::RenderIntent& intent);
 
@@ -70,4 +74,5 @@ private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
+  bool m_wireframeOverlayEnabled{false};
 };

@@ -203,8 +203,11 @@ namespace engine::graph {
     RenderViewMode defaultViewMode{RenderViewMode::Beauty};
     ShadingProfileRef defaultShadingProfile;
     std::optional<RenderCameraRef> defaultCamera;
+    /// Allows the compiler to add feature-derived passes automatically.
     bool enableAutomaticFeatures{true};
+    /// Adds a graph-visible wireframe overlay pass over the primary beauty image.
     bool enableWireframeOverlay{false};
+    /// Enables low-cost preview shadows for rasterizer-backed preview graphs.
     bool enablePreviewShadows{false};
     std::vector<RenderViewOverride> viewOverrides;
   };
