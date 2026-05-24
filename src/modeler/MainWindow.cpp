@@ -218,6 +218,11 @@ MainWindow::MainWindow()
           &RenderGraphInspectorWidget::passExecutionFinished);
   connect(p->display, &RenderDisplay::renderGraphPassFailed, p->renderGraphInspectorWidget,
           &RenderGraphInspectorWidget::passExecutionFailed);
+  connect(p->display, &RenderWidget::finished, this, [this] {
+    if (p->renderGraphInspectorWidget && p->display) {
+      p->renderGraphInspectorWidget->setExecutionTrace(p->display->lastRenderGraphExecutionTrace());
+    }
+  });
   connect(p->display, &RenderWidget::renderFailed, this, [this](const QString& message) {
     statusBar()->showMessage(tr("Preview render failed: %1").arg(message));
   });

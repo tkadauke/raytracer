@@ -9,6 +9,10 @@
 
 class QTreeWidgetItem;
 
+namespace engine::graph {
+  class RenderGraphExecutionTrace;
+}
+
 /**
   * Compact Qt inspector for a compiled render graph plan.
   *
@@ -49,6 +53,11 @@ public:
     */
   bool effectivePlanValid() const;
 
+  /**
+    * Replaces the completed execution trace used by the Trace tab.
+    */
+  void setExecutionTrace(std::shared_ptr<const engine::graph::RenderGraphExecutionTrace> trace);
+
 public slots:
   /**
     * Clears live execution styling from the graph view.
@@ -78,6 +87,7 @@ signals:
 
 private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);
+  void passSelectionChanged();
 
 private:
   bool eventFilter(QObject* watched, QEvent* event) override;
@@ -87,7 +97,9 @@ private:
   void rebuildPasses();
   void rebuildDependencies();
   void rebuildResources();
+  void rebuildTrace();
   void updateValidationStatus();
+  void selectPass(const engine::graph::RenderPassId& passId);
   void setPassEnabledOverride(const engine::graph::RenderPassId& passId, bool enabled);
 
   struct Private;

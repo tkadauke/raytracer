@@ -1,5 +1,8 @@
 #include "widgets/world/RenderGraphInspectorWidget.h"
 
+#include "core/Buffer.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
+
 #include <QBrush>
 #include <QEvent>
 #include <QFont>
@@ -9,11 +12,15 @@
 #include <QGraphicsSimpleTextItem>
 #include <QGraphicsView>
 #include <QHeaderView>
+#include <QImage>
 #include <QLabel>
+#include <QLayoutItem>
 #include <QPainter>
 #include <QPen>
+#include <QPixmap>
 #include <QPointF>
 #include <QRectF>
+#include <QScrollArea>
 #include <QStringList>
 #include <QTabWidget>
 #include <QTreeWidget>
@@ -229,11 +236,89 @@ namespace {
       item = item->parentItem();
     return item;
   }
+
+  QImage colorPreviewImage(const Buffer<Colord>& buffer) {
+    QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        image.setPixel(x, y, qRgb(buffer[y][x].rInt(), buffer[y][x].gInt(), buffer[y][x].bInt()));
+      }
+    }
+    return image;
+  }
+
+  QString snapshotTitle(const RenderGraphResourceSnapshot& snapshot) {
+    const auto& descriptor = snapshot.descriptor();
+    return QStringLiteral("%1 (%2, %3x%4)")
+      .arg(qstr(snapshot.resourceId()))
+      .arg(toString(descriptor.type))
+      .arg(descriptor.width)
+      .arg(descriptor.height);
+  }
+
+  void clearLayout(QLayout* layout) {
+    while (QLayoutItem* item = layout->takeAt(0)) {
+      delete item->widget();
+      delete item;
+    }
+  }
+
+  QLabel* addText(QVBoxLayout& layout, const QString& text, bool bold = false) {
+    auto* label = new QLabel(text);
+    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    if (bold) {
+      QFont font = label->font();
+      font.setBold(true);
+      label->setFont(font);
+    }
+    layout.addWidget(label);
+    return label;
+  }
+
+  void addImage(QVBoxLayout& layout, const Buffer<Colord>& buffer) {
+    auto* image = new QLabel();
+    image->setObjectName("renderGraphTraceImage");
+    image->setPixmap(QPixmap::fromImage(colorPreviewImage(buffer)));
+    image->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    layout.addWidget(image);
+  }
+
+  void addSnapshot(QVBoxLayout& layout, const RenderGraphResourceSnapshot& snapshot) {
+    addText(layout, snapshotTitle(snapshot), true);
+    if (snapshot.hasColorPreview()) {
+      addImage(layout, snapshot.colorPreview());
+    } else {
+      addText(layout, dashIfEmpty(qstr(snapshot.unavailableReason())));
+    }
+  }
+
+  void addDiff(QVBoxLayout& layout, const RenderGraphResourceDiff& diff) {
+    addText(layout,
+            qstr(diff.inputResourceId()) + QStringLiteral(" -> ") + qstr(diff.outputResourceId()),
+            true);
+    if (!diff.hasPreview()) {
+      addText(layout, dashIfEmpty(qstr(diff.unavailableReason())));
+      return;
+    }
+
+    addText(layout, QStringLiteral("Boosted difference"));
+    addImage(layout, diff.boostedPreview());
+    addText(layout, QStringLiteral("Absolute difference"));
+    addImage(layout, diff.absolutePreview());
+  }
+
+  void addMetadataRow(QTreeWidget& metadata, const QString& field, const QString& value) {
+    auto* item = new QTreeWidgetItem(&metadata);
+    item->setText(0, field);
+    item->setText(1, dashIfEmpty(value));
+  }
 }
 
 struct RenderGraphInspectorWidget::Private {
   RenderPlan plan;
   RenderGraphOverrides overrides;
+  std::shared_ptr<const RenderGraphExecutionTrace> executionTrace;
+  RenderPassId selectedPassId;
   std::map<RenderPassId, PassExecutionState> executionStates;
   std::map<RenderPassId, QString> executionMessages;
   QGraphicsView* graph{nullptr};
@@ -241,6 +326,15 @@ struct RenderGraphInspectorWidget::Private {
   QTreeWidget* passes{nullptr};
   QTreeWidget* dependencies{nullptr};
   QTreeWidget* resources{nullptr};
+  QLabel* traceTitle{nullptr};
+  QTabWidget* traceTabs{nullptr};
+  QWidget* traceInputs{nullptr};
+  QWidget* traceOutputs{nullptr};
+  QWidget* traceDiffs{nullptr};
+  QVBoxLayout* traceInputsLayout{nullptr};
+  QVBoxLayout* traceOutputsLayout{nullptr};
+  QVBoxLayout* traceDiffsLayout{nullptr};
+  QTreeWidget* traceMetadata{nullptr};
   QLabel* validationStatus{nullptr};
   bool updating{false};
 };
@@ -275,6 +369,7 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->passes->header()->setStretchLastSection(true);
   connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,
           SLOT(passItemChanged(QTreeWidgetItem*, int)));
+  connect(p->passes, SIGNAL(itemSelectionChanged()), this, SLOT(passSelectionChanged()));
 
   p->dependencies = new QTreeWidget(tabs);
   p->dependencies->setObjectName("renderGraphDependencies");
@@ -293,15 +388,63 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->resources->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->resources->header()->setStretchLastSection(true);
 
+  auto trace = new QWidget(tabs);
+  auto traceLayout = new QVBoxLayout(trace);
+  p->traceTitle = new QLabel(trace);
+  p->traceTitle->setObjectName("renderGraphTraceTitle");
+  p->traceTitle->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  p->traceTabs = new QTabWidget(trace);
+  p->traceTabs->setObjectName("renderGraphTraceTabs");
+
+  auto makeTraceScroll = [trace](const char* objectName, QVBoxLayout** contentLayout) {
+    auto* area = new QScrollArea(trace);
+    area->setWidgetResizable(true);
+    auto* content = new QWidget(area);
+    content->setObjectName(objectName);
+    auto* itemLayout = new QVBoxLayout(content);
+    itemLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    content->setLayout(itemLayout);
+    area->setWidget(content);
+    *contentLayout = itemLayout;
+    return area;
+  };
+
+  QScrollArea* traceInputsArea = makeTraceScroll("renderGraphTraceInputs", &p->traceInputsLayout);
+  QScrollArea* traceOutputsArea =
+    makeTraceScroll("renderGraphTraceOutputs", &p->traceOutputsLayout);
+  QScrollArea* traceDiffsArea =
+    makeTraceScroll("renderGraphTraceDifferences", &p->traceDiffsLayout);
+  p->traceInputs = traceInputsArea->widget();
+  p->traceOutputs = traceOutputsArea->widget();
+  p->traceDiffs = traceDiffsArea->widget();
+
+  p->traceMetadata = new QTreeWidget(trace);
+  p->traceMetadata->setObjectName("renderGraphTraceMetadata");
+  p->traceMetadata->setRootIsDecorated(false);
+  p->traceMetadata->setAlternatingRowColors(true);
+  p->traceMetadata->setHeaderLabels({tr("Field"), tr("Value")});
+  p->traceMetadata->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+  p->traceMetadata->header()->setStretchLastSection(true);
+
+  p->traceTabs->addTab(traceInputsArea, tr("Input"));
+  p->traceTabs->addTab(traceOutputsArea, tr("Output"));
+  p->traceTabs->addTab(traceDiffsArea, tr("Difference"));
+  p->traceTabs->addTab(p->traceMetadata, tr("Metadata"));
+  traceLayout->addWidget(p->traceTitle);
+  traceLayout->addWidget(p->traceTabs, 1);
+  trace->setLayout(traceLayout);
+
   tabs->addTab(p->graph, tr("Graph"));
   tabs->addTab(p->passes, tr("Passes"));
   tabs->addTab(p->dependencies, tr("Dependencies"));
   tabs->addTab(p->resources, tr("Resources"));
+  tabs->addTab(trace, tr("Trace"));
 
   layout->addWidget(p->validationStatus);
   layout->addWidget(tabs, 1);
   setLayout(layout);
 
+  rebuildTrace();
   updateValidationStatus();
 }
 
@@ -313,10 +456,14 @@ QSize RenderGraphInspectorWidget::sizeHint() const {
 
 void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->plan = plan;
+  p->executionTrace.reset();
   p->executionStates.clear();
   p->executionMessages.clear();
 
   const auto ids = passIds(p->plan);
+  if (ids.find(p->selectedPassId) == ids.end()) {
+    p->selectedPassId = p->plan.passes().empty() ? RenderPassId() : p->plan.passes().front().id;
+  }
   for (auto it = p->overrides.disabledPasses.begin(); it != p->overrides.disabledPasses.end();) {
     if (ids.find(*it) == ids.end()) {
       it = p->overrides.disabledPasses.erase(it);
@@ -340,13 +487,26 @@ bool RenderGraphInspectorWidget::effectivePlanValid() const {
   return effectivePlan().validate().valid();
 }
 
+void RenderGraphInspectorWidget::setExecutionTrace(
+  std::shared_ptr<const RenderGraphExecutionTrace> trace) {
+  p->executionTrace = std::move(trace);
+  if (p->executionTrace && !p->executionTrace->findPass(p->selectedPassId)) {
+    p->selectedPassId = p->executionTrace->passes().empty()
+                          ? RenderPassId()
+                          : p->executionTrace->passes().front().passId();
+  }
+  rebuildTrace();
+}
+
 void RenderGraphInspectorWidget::clearExecutionState() {
-  if (p->executionStates.empty() && p->executionMessages.empty())
+  if (p->executionStates.empty() && p->executionMessages.empty() && !p->executionTrace)
     return;
 
+  p->executionTrace.reset();
   p->executionStates.clear();
   p->executionMessages.clear();
   rebuildGraph();
+  rebuildTrace();
 }
 
 void RenderGraphInspectorWidget::passExecutionStarted(const QString& passId) {
@@ -376,7 +536,23 @@ void RenderGraphInspectorWidget::passItemChanged(QTreeWidgetItem* item, int colu
   setPassEnabledOverride(passId, item->checkState(0) == Qt::Checked);
 }
 
+void RenderGraphInspectorWidget::passSelectionChanged() {
+  if (p->updating || !p->passes->currentItem())
+    return;
+
+  selectPass(p->passes->currentItem()->data(0, Qt::UserRole).toString().toStdString());
+}
+
 bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
+  if (watched == p->graphScene && event->type() == QEvent::GraphicsSceneMousePress) {
+    auto* mouseEvent = static_cast<QGraphicsSceneMouseEvent*>(event);
+    QGraphicsItem* item =
+      graphNodeItem(p->graphScene->itemAt(mouseEvent->scenePos(), QTransform()));
+    if (item && item->data(GraphItemKindRole).toString() == QStringLiteral("pass")) {
+      selectPass(item->data(GraphItemIdRole).toString().toStdString());
+    }
+  }
+
   if (watched == p->graphScene && event->type() == QEvent::GraphicsSceneMouseDoubleClick) {
     auto* mouseEvent = static_cast<QGraphicsSceneMouseEvent*>(event);
     QGraphicsItem* item =
@@ -398,10 +574,26 @@ void RenderGraphInspectorWidget::rebuildAllViews() {
   rebuildPasses();
   rebuildDependencies();
   rebuildResources();
+  rebuildTrace();
   updateValidationStatus();
 }
 
+void RenderGraphInspectorWidget::selectPass(const RenderPassId& passId) {
+  if (p->selectedPassId == passId) {
+    rebuildTrace();
+    return;
+  }
+
+  p->selectedPassId = passId;
+  for (QGraphicsItem* item : p->graphScene->items()) {
+    if (!item->parentItem() && item->data(GraphItemKindRole).toString() == QStringLiteral("pass"))
+      item->setSelected(item->data(GraphItemIdRole).toString().toStdString() == passId);
+  }
+  rebuildTrace();
+}
+
 void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& passId, bool enabled) {
+  p->executionTrace.reset();
   p->executionStates.clear();
   p->executionMessages.clear();
   if (enabled) {
@@ -486,7 +678,7 @@ void RenderGraphInspectorWidget::rebuildGraph() {
       pen = QPen(QColor(170, 60, 60));
       brush = QBrush(QColor(248, 226, 226));
     }
-    pen.setWidthF(1.5);
+    pen.setWidthF(pass.id == p->selectedPassId ? 2.5 : 1.5);
     if (!pass.enabled)
       pen.setStyle(Qt::DashLine);
 
@@ -497,6 +689,8 @@ void RenderGraphInspectorWidget::rebuildGraph() {
        pass.enabled ? tr("enabled") : tr("disabled")},
       pen, brush);
     item->setData(GraphItemExecutionStateRole, executionStateName(executionState));
+    if (pass.id == p->selectedPassId)
+      item->setSelected(true);
     const auto messageIt = p->executionMessages.find(pass.id);
     item->setToolTip(messageIt == p->executionMessages.end()
                        ? tr("Double-click to enable or disable this pass")
@@ -527,6 +721,8 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setText(5, resourceReads(pass.reads));
     item->setText(6, resourceWrites(pass.writes));
     item->setText(7, toString(pass.disabledBehavior));
+    if (pass.id == p->selectedPassId)
+      item->setSelected(true);
   }
 
   p->passes->resizeColumnToContents(0);
@@ -559,6 +755,88 @@ void RenderGraphInspectorWidget::rebuildResources() {
     item->setText(5, toString(resource.domain));
     item->setText(6, toString(resource.lifetime));
     item->setText(7, sizeText(resource));
+  }
+}
+
+void RenderGraphInspectorWidget::rebuildTrace() {
+  clearLayout(p->traceInputsLayout);
+  clearLayout(p->traceOutputsLayout);
+  clearLayout(p->traceDiffsLayout);
+  p->traceMetadata->clear();
+
+  if (p->selectedPassId.empty()) {
+    p->traceTitle->setText(tr("No pass selected"));
+    addText(*p->traceInputsLayout, tr("No pass selected"));
+    addText(*p->traceOutputsLayout, tr("No pass selected"));
+    addText(*p->traceDiffsLayout, tr("No pass selected"));
+    addMetadataRow(*p->traceMetadata, tr("Pass"), tr("No pass selected"));
+    return;
+  }
+
+  p->traceTitle->setText(tr("Selected pass: %1").arg(qstr(p->selectedPassId)));
+  if (!p->executionTrace) {
+    addText(*p->traceInputsLayout, tr("No execution trace for this pass"));
+    addText(*p->traceOutputsLayout, tr("No execution trace for this pass"));
+    addText(*p->traceDiffsLayout, tr("No execution trace for this pass"));
+    addMetadataRow(*p->traceMetadata, tr("Pass"), qstr(p->selectedPassId));
+    addMetadataRow(*p->traceMetadata, tr("Trace"), tr("not available"));
+    return;
+  }
+
+  const RenderPassTrace* trace = p->executionTrace->findPass(p->selectedPassId);
+  if (!trace) {
+    addText(*p->traceInputsLayout, tr("No execution trace for this pass"));
+    addText(*p->traceOutputsLayout, tr("No execution trace for this pass"));
+    addText(*p->traceDiffsLayout, tr("No execution trace for this pass"));
+    addMetadataRow(*p->traceMetadata, tr("Pass"), qstr(p->selectedPassId));
+    addMetadataRow(*p->traceMetadata, tr("Trace"), tr("not available"));
+    return;
+  }
+
+  p->traceTitle->setText(
+    tr("Selected pass: %1 (%2)").arg(qstr(trace->passId())).arg(toString(trace->status())));
+
+  if (trace->inputs().empty()) {
+    addText(*p->traceInputsLayout, tr("No input resources"));
+  } else {
+    for (const auto& input : trace->inputs())
+      addSnapshot(*p->traceInputsLayout, input);
+  }
+
+  if (trace->outputs().empty()) {
+    addText(*p->traceOutputsLayout, tr("No output resources"));
+  } else {
+    for (const auto& output : trace->outputs())
+      addSnapshot(*p->traceOutputsLayout, output);
+  }
+
+  if (trace->diffs().empty()) {
+    addText(*p->traceDiffsLayout, tr("No color difference for this pass"));
+  } else {
+    for (const auto& diff : trace->diffs())
+      addDiff(*p->traceDiffsLayout, diff);
+  }
+
+  p->traceInputsLayout->addStretch(1);
+  p->traceOutputsLayout->addStretch(1);
+  p->traceDiffsLayout->addStretch(1);
+
+  addMetadataRow(*p->traceMetadata, tr("Pass"), qstr(trace->passId()));
+  addMetadataRow(*p->traceMetadata, tr("Status"), toString(trace->status()));
+  addMetadataRow(*p->traceMetadata, tr("Elapsed"),
+                 tr("%1 ms").arg(trace->elapsed().count() / 1000000.0, 0, 'f', 3));
+  addMetadataRow(*p->traceMetadata, tr("Message"), qstr(trace->message()));
+  for (const auto& input : trace->inputs()) {
+    addMetadataRow(*p->traceMetadata, tr("Input"),
+                   input.hasColorPreview() ? qstr(input.resourceId())
+                                           : qstr(input.resourceId()) + QStringLiteral(": ") +
+                                               qstr(input.unavailableReason()));
+  }
+  for (const auto& output : trace->outputs()) {
+    addMetadataRow(*p->traceMetadata, tr("Output"),
+                   output.hasColorPreview() ? qstr(output.resourceId())
+                                            : qstr(output.resourceId()) + QStringLiteral(": ") +
+                                                qstr(output.unavailableReason()));
   }
 }
 

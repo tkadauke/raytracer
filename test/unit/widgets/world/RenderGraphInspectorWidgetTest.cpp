@@ -3,6 +3,15 @@
 
 #include "widgets/world/RenderGraphInspectorWidget.h"
 
+#include "core/Buffer.h"
+#include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
+#include "render/cameras/PinholeCamera.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
 
@@ -13,6 +22,7 @@
 #include <QGraphicsView>
 #include <QLabel>
 #include <QTreeWidget>
+#include <QWidget>
 
 namespace RenderGraphInspectorWidgetTest {
   using namespace engine::graph;
@@ -109,6 +119,55 @@ namespace RenderGraphInspectorWidgetTest {
     plan.addPass(tonemap);
 
     return plan;
+  }
+
+  std::shared_ptr<render::Camera> camera() {
+    return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+  }
+
+  std::shared_ptr<render::Scene> highContrastScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
+    sphere->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    scene->add(sphere);
+    return scene;
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> postProcessTrace() {
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
+  bool labelsContain(QWidget* root, const QString& text) {
+    for (QLabel* label : root->findChildren<QLabel*>()) {
+      if (label->text().contains(text)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void selectPass(RenderGraphInspectorWidget& widget, const QString& passId) {
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    ASSERT_NE(nullptr, passes);
+    for (int row = 0; row != passes->topLevelItemCount(); ++row) {
+      QTreeWidgetItem* item = passes->topLevelItem(row);
+      if (item->text(2) == passId) {
+        passes->setCurrentItem(item);
+        return;
+      }
+    }
+    FAIL() << "missing pass row " << passId.toStdString();
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldInitialize) {
@@ -276,6 +335,80 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, failed);
     EXPECT_EQ(QString("failed"), failed->data(2).toString());
     EXPECT_THAT(failed->toolTip().toStdString(), ::testing::HasSubstr("boom"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowExecutionTraceForSelectedPass) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+    selectPass(widget, QStringLiteral("post_fxaa"));
+
+    auto* title = widget.findChild<QLabel*>("renderGraphTraceTitle");
+    auto* inputs = widget.findChild<QWidget*>("renderGraphTraceInputs");
+    auto* outputs = widget.findChild<QWidget*>("renderGraphTraceOutputs");
+    auto* diffs = widget.findChild<QWidget*>("renderGraphTraceDifferences");
+    auto* metadata = widget.findChild<QTreeWidget*>("renderGraphTraceMetadata");
+    ASSERT_NE(nullptr, title);
+    ASSERT_NE(nullptr, inputs);
+    ASSERT_NE(nullptr, outputs);
+    ASSERT_NE(nullptr, diffs);
+    ASSERT_NE(nullptr, metadata);
+
+    EXPECT_THAT(title->text().toStdString(), ::testing::HasSubstr("post_fxaa"));
+    EXPECT_TRUE(labelsContain(inputs, QStringLiteral("beauty_color")));
+    EXPECT_TRUE(labelsContain(outputs, QStringLiteral("post_aa_color")));
+    EXPECT_TRUE(labelsContain(diffs, QStringLiteral("Boosted difference")));
+
+    ASSERT_GE(metadata->topLevelItemCount(), 2);
+    EXPECT_EQ(QString("Pass"), metadata->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("post_fxaa"), metadata->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("Status"), metadata->topLevelItem(1)->text(0));
+    EXPECT_EQ(QString("completed"), metadata->topLevelItem(1)->text(1));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldSelectTracePassFromGraphNode) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+    QGraphicsItem* postAA = graphItem(graph->scene(), "pass", "post_fxaa");
+    ASSERT_NE(nullptr, postAA);
+
+    QGraphicsSceneMouseEvent event(QEvent::GraphicsSceneMousePress);
+    event.setScenePos(postAA->sceneBoundingRect().center());
+    QApplication::sendEvent(graph->scene(), &event);
+
+    auto* title = widget.findChild<QLabel*>("renderGraphTraceTitle");
+    ASSERT_NE(nullptr, title);
+    EXPECT_THAT(title->text().toStdString(), ::testing::HasSubstr("post_fxaa"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldClearStaleExecutionTraceOnRenderStart) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+    selectPass(widget, QStringLiteral("post_fxaa"));
+
+    widget.clearExecutionState();
+
+    auto* title = widget.findChild<QLabel*>("renderGraphTraceTitle");
+    auto* inputs = widget.findChild<QWidget*>("renderGraphTraceInputs");
+    ASSERT_NE(nullptr, title);
+    ASSERT_NE(nullptr, inputs);
+    EXPECT_THAT(title->text().toStdString(), ::testing::HasSubstr("post_fxaa"));
+    EXPECT_TRUE(labelsContain(inputs, QStringLiteral("No execution trace")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {

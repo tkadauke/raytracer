@@ -495,6 +495,12 @@ that were fused into that direct display path. Non-color resources such as the
 current preview shadow-map request are recorded as metadata-only until the graph
 has a specialized resource viewer for them.
 
+The Modeler dock exposes this through its Trace tab. Select a pass in the graph
+or in the pass table after a render finishes, and the tab shows that pass's
+input previews, output previews, difference previews, and metadata from the last
+trace. A new render clears the old trace while live execution highlighting takes
+over, so stale snapshots are not presented as the current render's data.
+
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current

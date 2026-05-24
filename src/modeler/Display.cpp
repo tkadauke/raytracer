@@ -161,6 +161,11 @@ void RenderDisplay::notifyRenderGraphPassFailed(const QString& passId, const QSt
   emit renderGraphPassFailed(passId, message);
 }
 
+std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
+RenderDisplay::lastRenderGraphExecutionTrace() const {
+  return m_graphEngine ? m_graphEngine->lastExecutionTrace() : nullptr;
+}
+
 void RenderDisplay::setRenderGraphIntent(const engine::graph::RenderIntent& intent) {
   if (m_graphEngine)
     m_graphEngine->setIntent(intent);

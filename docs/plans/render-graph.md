@@ -1337,8 +1337,10 @@ metadata-only until custom viewers exist.
 status, elapsed time, CPU color input/output preview snapshots, and absolute plus
 boosted difference previews for simple one-input/one-output color passes.
 `GraphRenderEngine` shares the recorder with render clones, so worker-thread
-preview renders publish the completed trace back to the original engine.
-Modeler node-selection UI for inspecting those snapshots remains TODO.
+preview renders publish the completed trace back to the original engine. The
+Modeler Render Graph dock now exposes those snapshots in a Trace tab for the
+selected pass. Stale-trace detection across scene edits, resize, and graph
+recompile remains TODO.
 
 ### Live graph execution highlighting
 

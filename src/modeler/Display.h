@@ -20,6 +20,7 @@ namespace engine::raytracer {
 namespace engine::graph {
   class GraphRenderEngine;
   class RenderGraphExecutionObserver;
+  class RenderGraphExecutionTrace;
   class RenderPlan;
   enum class RenderPostProcessAA;
   struct RenderIntent;
@@ -47,6 +48,8 @@ public:
   void notifyRenderGraphPassStarted(const QString& passId);
   void notifyRenderGraphPassFinished(const QString& passId);
   void notifyRenderGraphPassFailed(const QString& passId, const QString& message);
+  std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
+  lastRenderGraphExecutionTrace() const;
 
   /// Engine kinds supported by the modeling preview. The render
   /// dialog has its own selector — this one only affects the
