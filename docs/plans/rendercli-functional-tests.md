@@ -18,10 +18,10 @@ Those tests cover important new paths: `--frame`, `--animation`,
 disable filters, graph intent overrides, the default graph render path, and the
 `--direct_engine` bypass. They also pin graph-backed raster state export,
 dependency-ordered graph JSON replay, graph-visible FXAA/SMAA postprocess pass
-insertion, and the current TAA-in-raster-state fallback. They do not yet cover
-the full base renderer command surface, most raster-specific flags, all parse
-failures, or output-image invariants beyond "file exists" and a few
-"frames differ" checks.
+insertion, executed graph trace JSON export, and the current TAA-in-raster-state
+fallback. They do not yet cover the full base renderer command surface, most
+raster-specific flags, all parse failures, or output-image invariants beyond
+"file exists" and a few "frames differ" checks.
 
 ## Principles
 
@@ -291,6 +291,9 @@ Keep current coverage, then add:
   `RenderGraphOptionTest.cmake`.
 - `--render_graph_out` while rendering writes both image and graph; ✅ covered
   for a graph-backed raster render in `RenderGraphOptionTest.cmake`.
+- `--render_graph_trace_out` while rendering writes both image and executed
+  trace JSON; ✅ covered for a graph-backed raytracer FXAA render in
+  `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` with no output writes graph to stdout; ✅ covered for
   JSON graph output in `RenderGraphOptionTest.cmake`.
 - malformed JSON in `--render_graph_in`; ✅ covered in
@@ -302,6 +305,8 @@ Keep current coverage, then add:
   graph-only export in `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` combined with `--repeat` is rejected; ✅ covered in
   `RenderGraphOptionTest.cmake`.
+- `--render_graph_only` combined with `--render_graph_trace_out` is rejected;
+  ✅ covered in `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` combined with animation is rejected; ✅ covered in
   `RenderGraphOptionTest.cmake`.
 - graph replay with matching explicit width/height succeeds; ✅ covered in

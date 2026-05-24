@@ -500,6 +500,10 @@ or in the pass table after a render finishes, and the tab shows that pass's
 input previews, output previews, difference previews, and metadata from the last
 trace. A new render clears the old trace while live execution highlighting takes
 over, so stale snapshots are not presented as the current render's data.
+Headless renders can export the same trace metadata with
+`rendercli --render_graph_trace_out trace.json`; this writes JSON for the
+executed plan, pass statuses, timings, resource preview availability, and
+difference-preview availability.
 
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a

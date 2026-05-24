@@ -12,6 +12,7 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/WireframePassState.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
@@ -414,6 +415,7 @@ private:
   QString m_renderGraphFormat;
   QString m_renderGraphOut;
   QString m_renderGraphIn;
+  QString m_renderGraphTraceOut;
   bool m_renderGraphExecutorSet;
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
@@ -479,6 +481,8 @@ private:
                                   int* height) const;
   void validateRenderGraphPlan(const engine::graph::RenderPlan& plan) const;
   void writeRenderGraphPlan(const engine::graph::RenderPlan& plan, const QString& output) const;
+  void writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTrace& trace,
+                             const QString& output) const;
   QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
   static bool hasFramePlaceholder(const QString& pattern, QString* errorMessage);
@@ -505,6 +509,7 @@ Renderer::Renderer()
       m_renderGraphFormat("text"),
       m_renderGraphOut(),
       m_renderGraphIn(),
+      m_renderGraphTraceOut(),
       m_renderGraphExecutorSet(false),
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
       m_renderGraphViewModeSet(false),
@@ -808,6 +813,21 @@ void Renderer::writeRenderGraphPlan(const engine::graph::RenderPlan& plan,
   }
 }
 
+void Renderer::writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTrace& trace,
+                                     const QString& output) const {
+  QFile file(output);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    throw std::runtime_error(
+      QString("Unable to write render graph trace: %1").arg(output).toStdString());
+  }
+
+  const QByteArray bytes = QJsonDocument(trace.toJson()).toJson(QJsonDocument::Indented);
+  if (file.write(bytes) != bytes.size()) {
+    throw std::runtime_error(
+      QString("Unable to write render graph trace: %1").arg(output).toStdString());
+  }
+}
+
 QString Renderer::renderGraphOutputPath() const {
   if (!m_renderGraphOut.isEmpty()) {
     return m_renderGraphOut;
@@ -836,6 +856,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   }
 
   std::shared_ptr<render::RenderEngine> engine;
+  std::shared_ptr<engine::graph::GraphRenderEngine> graphEngine;
   engine::graph::RenderPlan graphPlan;
 
   if (m_renderGraph) {
@@ -856,12 +877,12 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
       writeRenderGraphPlan(graphPlan, graphOutput);
     }
 
-    auto graph = rtCamera
-                   ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
-                   : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
-    graph->setIntent(renderIntent(scene));
-    graph->setPlan(graphPlan);
-    engine = graph;
+    graphEngine = rtCamera
+                    ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
+                    : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
+    graphEngine->setIntent(renderIntent(scene));
+    graphEngine->setPlan(graphPlan);
+    engine = graphEngine;
   } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
     if (rtCamera)
@@ -911,6 +932,17 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
 
   if (m_timing || m_repeat > 1) {
     printTimings(timings);
+  }
+
+  if (!m_renderGraphTraceOut.isEmpty()) {
+    if (!graphEngine) {
+      throw std::runtime_error("--render_graph_trace_out requires graph rendering");
+    }
+    auto trace = graphEngine->lastExecutionTrace();
+    if (!trace) {
+      throw std::runtime_error("Render graph trace was not recorded");
+    }
+    writeRenderGraphTrace(*trace, m_renderGraphTraceOut);
   }
 
   QImage image = bufferToImage(buffer);
@@ -1087,6 +1119,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_format", "Render graph export format (text, dot, json)", "format"},
      {"render_graph_out", "Write the compiled render graph to a file", "file"},
      {"render_graph_in", "Load a JSON render graph plan instead of compiling one", "file"},
+     {"render_graph_trace_out", "Write the executed render graph trace to a JSON file", "file"},
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view", "Override graph intent view mode (default, beauty, wireframe)", "mode"},
@@ -1263,6 +1296,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_in")) {
     m_renderGraph = true;
     m_renderGraphIn = parser.value("render_graph_in");
+  }
+
+  if (parser.isSet("render_graph_trace_out")) {
+    m_renderGraph = true;
+    m_renderGraphTraceOut = parser.value("render_graph_trace_out");
   }
 
   if (parser.isSet("render_graph_executor")) {
@@ -1620,17 +1658,28 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && !m_renderGraphTraceOut.isEmpty()) {
+    *errorMessage = "Cannot combine --animation with --render_graph_trace_out";
+    return CommandLineError;
+  }
+
   if (m_renderGraphOnly && m_repeat > 1) {
     *errorMessage = "Cannot combine --render_graph_only with --repeat";
     return CommandLineError;
   }
 
-  if (m_directEngine && (parser.isSet("render_graph") || m_renderGraphOnly ||
-                         parser.isSet("render_graph_format") || !m_renderGraphOut.isEmpty() ||
-                         !m_renderGraphIn.isEmpty() || parser.isSet("render_graph_executor") ||
-                         parser.isSet("render_graph_view") || m_renderGraphWireframeOverlay ||
-                         parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
-                         parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
+  if (m_renderGraphOnly && !m_renderGraphTraceOut.isEmpty()) {
+    *errorMessage = "Cannot combine --render_graph_only with --render_graph_trace_out";
+    return CommandLineError;
+  }
+
+  if (m_directEngine &&
+      (parser.isSet("render_graph") || m_renderGraphOnly || parser.isSet("render_graph_format") ||
+       !m_renderGraphOut.isEmpty() || !m_renderGraphIn.isEmpty() ||
+       !m_renderGraphTraceOut.isEmpty() || parser.isSet("render_graph_executor") ||
+       parser.isSet("render_graph_view") || m_renderGraphWireframeOverlay ||
+       parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
+       parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

@@ -100,6 +100,12 @@ written. Replaying a saved graph uses the exported color resource dimensions,
 so `--width` and `--height` only need to be supplied when they intentionally
 match the saved plan.
 
+`--render_graph_trace_out trace.json` writes the last executed graph trace as
+JSON while rendering an image. The trace includes the executed plan, each pass's
+status and elapsed time, supported input/output resource preview metadata, and
+available difference-preview metadata. Graph-only mode cannot write a trace
+because no graph execution happened.
+
 That gives a two-step debugging loop:
 
 ```sh

@@ -18,6 +18,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Modeler render graph trace inspection.** The Render Graph dock now has a
   Trace tab that follows the selected graph pass and shows the last render's
   supported input, output, difference, and metadata snapshots. — GPT-5
+- **Rendercli graph trace export.** `rendercli --render_graph_trace_out` writes
+  the last executed graph trace as JSON alongside a graph-backed image render.
+  — GPT-5
 - **Render graph text dependencies.** Text graph exports now include declared
   pass-to-pass dependencies and the dependency-derived execution order
   separately from pass declaration order, so replayed or hand-authored plans can

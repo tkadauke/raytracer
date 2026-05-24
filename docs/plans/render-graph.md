@@ -1339,8 +1339,9 @@ boosted difference previews for simple one-input/one-output color passes.
 `GraphRenderEngine` shares the recorder with render clones, so worker-thread
 preview renders publish the completed trace back to the original engine. The
 Modeler Render Graph dock now exposes those snapshots in a Trace tab for the
-selected pass. Stale-trace detection across scene edits, resize, and graph
-recompile remains TODO.
+selected pass, and rendercli can write the executed trace metadata to JSON with
+`--render_graph_trace_out`. Stale-trace detection across scene edits, resize,
+and graph recompile remains TODO.
 
 ### Live graph execution highlighting
 

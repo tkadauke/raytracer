@@ -31,6 +31,8 @@ set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
 set(default_graph_render "${TEST_OUTPUT_DIR}/default-graph-render.png")
 set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
+set(graph_trace "${TEST_OUTPUT_DIR}/graph-trace.json")
+set(graph_trace_render "${TEST_OUTPUT_DIR}/graph-trace-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
@@ -439,6 +441,32 @@ rendercli_run(
 rendercli_assert_nonempty("${graph_render}" NAME "rendercli default graph image")
 
 rendercli_run(
+  NAME "rendercli writes execution trace while rendering through graph"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --width 32 --height 16 --post_aa fxaa
+    --render_graph_trace_out "${graph_trace}"
+    "${static_scene}" "${graph_trace_render}"
+)
+rendercli_assert_nonempty("${graph_trace_render}" NAME "rendercli graph trace image")
+rendercli_assert_nonempty("${graph_trace}" NAME "rendercli graph trace JSON")
+file(READ "${graph_trace}" graph_trace_json)
+if(NOT graph_trace_json MATCHES "\"id\": \"post_fxaa\"")
+  message(FATAL_ERROR "graph trace did not contain post_fxaa pass: ${graph_trace_json}")
+endif()
+if(NOT graph_trace_json MATCHES "\"status\": \"completed\"")
+  message(FATAL_ERROR "graph trace did not contain completed pass status: ${graph_trace_json}")
+endif()
+if(NOT graph_trace_json MATCHES "\"inputs\"")
+  message(FATAL_ERROR "graph trace did not contain inputs: ${graph_trace_json}")
+endif()
+if(NOT graph_trace_json MATCHES "\"outputs\"")
+  message(FATAL_ERROR "graph trace did not contain outputs: ${graph_trace_json}")
+endif()
+if(NOT graph_trace_json MATCHES "\"diffs\"")
+  message(FATAL_ERROR "graph trace did not contain diffs: ${graph_trace_json}")
+endif()
+
+rendercli_run(
   NAME "rendercli writes raster pass state while rendering through graph"
   COMMAND
     "${RENDERCLI}" --engine raster --render_graph_format json
@@ -661,6 +689,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "Cannot combine --render_graph_only with --repeat"
   COMMAND
     "${RENDERCLI}" --render_graph_only --repeat 2
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects graph-only with trace output"
+  STDERR_MATCHES "Cannot combine --render_graph_only with --render_graph_trace_out"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_trace_out "${graph_trace}"
     "${static_scene}" "${invalid_plan}"
 )
 

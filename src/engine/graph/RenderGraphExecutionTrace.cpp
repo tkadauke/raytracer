@@ -3,6 +3,8 @@
 #include "core/Buffer.h"
 #include "engine/graph/RenderResourceStorage.h"
 
+#include <QJsonArray>
+
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -103,6 +105,23 @@ namespace engine::graph {
     return m_unavailableReason;
   }
 
+  QJsonObject RenderGraphResourceSnapshot::toJson() const {
+    QJsonObject object;
+    object["resource"] = QString::fromStdString(m_resourceId);
+    object["type"] = toString(m_descriptor.type);
+    object["format"] = toString(m_descriptor.format);
+    object["width"] = m_descriptor.width;
+    object["height"] = m_descriptor.height;
+    object["previewAvailable"] = hasColorPreview();
+    if (m_colorPreview) {
+      object["previewWidth"] = m_colorPreview->width();
+      object["previewHeight"] = m_colorPreview->height();
+    } else {
+      object["unavailableReason"] = QString::fromStdString(m_unavailableReason);
+    }
+    return object;
+  }
+
   RenderGraphResourceDiff::RenderGraphResourceDiff(
     RenderResourceId inputResourceId, RenderResourceId outputResourceId,
     std::shared_ptr<const Buffer<Colord>> absolutePreview,
@@ -144,6 +163,22 @@ namespace engine::graph {
     return m_unavailableReason;
   }
 
+  QJsonObject RenderGraphResourceDiff::toJson() const {
+    QJsonObject object;
+    object["inputResource"] = QString::fromStdString(m_inputResourceId);
+    object["outputResource"] = QString::fromStdString(m_outputResourceId);
+    object["previewAvailable"] = hasPreview();
+    if (m_absolutePreview && m_boostedPreview) {
+      object["previewWidth"] = m_absolutePreview->width();
+      object["previewHeight"] = m_absolutePreview->height();
+      object["boostedPreviewWidth"] = m_boostedPreview->width();
+      object["boostedPreviewHeight"] = m_boostedPreview->height();
+    } else {
+      object["unavailableReason"] = QString::fromStdString(m_unavailableReason);
+    }
+    return object;
+  }
+
   RenderPassTrace::RenderPassTrace(RenderPassId passId)
       : m_passId(std::move(passId)) {
   }
@@ -176,6 +211,33 @@ namespace engine::graph {
     return m_message;
   }
 
+  QJsonObject RenderPassTrace::toJson() const {
+    QJsonArray inputs;
+    for (const auto& input : m_inputs) {
+      inputs.push_back(input.toJson());
+    }
+
+    QJsonArray outputs;
+    for (const auto& output : m_outputs) {
+      outputs.push_back(output.toJson());
+    }
+
+    QJsonArray diffs;
+    for (const auto& diff : m_diffs) {
+      diffs.push_back(diff.toJson());
+    }
+
+    QJsonObject object;
+    object["id"] = QString::fromStdString(m_passId);
+    object["status"] = toString(m_status);
+    object["elapsedMs"] = m_elapsed.count() / 1000000.0;
+    object["message"] = QString::fromStdString(m_message);
+    object["inputs"] = inputs;
+    object["outputs"] = outputs;
+    object["diffs"] = diffs;
+    return object;
+  }
+
   RenderGraphExecutionTrace::RenderGraphExecutionTrace(RenderPlan plan)
       : m_plan(std::move(plan)) {
     m_passes.reserve(m_plan.passes().size());
@@ -196,6 +258,18 @@ namespace engine::graph {
   const RenderPassTrace* RenderGraphExecutionTrace::findPass(const RenderPassId& id) const {
     const auto it = m_passIndexes.find(id);
     return it == m_passIndexes.end() ? nullptr : &m_passes[it->second];
+  }
+
+  QJsonObject RenderGraphExecutionTrace::toJson() const {
+    QJsonArray passes;
+    for (const auto& pass : m_passes) {
+      passes.push_back(pass.toJson());
+    }
+
+    QJsonObject object;
+    object["plan"] = m_plan.toJson();
+    object["passes"] = passes;
+    return object;
   }
 
   RenderPassTrace* RenderGraphExecutionTrace::findMutablePass(const RenderPassId& id) {

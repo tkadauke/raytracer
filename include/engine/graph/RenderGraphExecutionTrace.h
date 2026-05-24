@@ -4,6 +4,8 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderPlan.h"
 
+#include <QJsonObject>
+
 #include <chrono>
 #include <map>
 #include <memory>
@@ -38,6 +40,7 @@ namespace engine::graph {
     bool hasColorPreview() const;
     const Buffer<Colord>& colorPreview() const;
     const std::string& unavailableReason() const;
+    QJsonObject toJson() const;
 
   private:
     RenderResourceId m_resourceId;
@@ -64,6 +67,7 @@ namespace engine::graph {
     const Buffer<Colord>& absolutePreview() const;
     const Buffer<Colord>& boostedPreview() const;
     const std::string& unavailableReason() const;
+    QJsonObject toJson() const;
 
   private:
     RenderResourceId m_inputResourceId;
@@ -85,6 +89,7 @@ namespace engine::graph {
     const std::vector<RenderGraphResourceDiff>& diffs() const;
     std::chrono::nanoseconds elapsed() const;
     const std::string& message() const;
+    QJsonObject toJson() const;
 
   private:
     friend class RenderGraphExecutionTrace;
@@ -110,6 +115,7 @@ namespace engine::graph {
     const RenderPlan& plan() const;
     const std::vector<RenderPassTrace>& passes() const;
     const RenderPassTrace* findPass(const RenderPassId& id) const;
+    QJsonObject toJson() const;
 
   private:
     friend class RenderGraphExecutionTraceRecorder;
