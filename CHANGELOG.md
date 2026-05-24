@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph text execution order.** Text graph exports now include the
+  dependency-derived execution order separately from pass declaration order, so
+  replayed or hand-authored plans can show how the serial graph executor will
+  run them. — GPT-5
 - **Render graph DOT disabled styling.** DOT graph exports now draw disabled
   pass nodes with dashed gray styling so graph diagrams show effective
   overrides without needing a separate text dump. — GPT-5

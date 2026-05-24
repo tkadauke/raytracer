@@ -282,6 +282,9 @@ RenderPlan
 Resources:
 - beauty_color (color, rgb_double, cpu, transient, 640x360, samples=1)
 - main_color (color, rgb_double, cpu, exported, 640x360, samples=1)
+Execution order:
+- raster_beauty
+- tonemap
 Passes:
 - raster_beauty [beauty/rasterizer] enabled
   features: main beauty rasterizer
@@ -291,6 +294,10 @@ Passes:
   reads: beauty_color
   writes: main_color
 ```
+
+The `Passes` section preserves declaration order from the compiled or imported
+plan. `Execution order` is derived from resource edges and is the order used by
+the current serial executor.
 
 The DOT export uses resource nodes and pass nodes, with arrows from resources
 to reader passes and from writer passes to resources. Disabled pass nodes are

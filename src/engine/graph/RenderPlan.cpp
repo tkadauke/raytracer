@@ -469,6 +469,11 @@ namespace engine::graph {
           << ", samples=" << resource.sampleCount << ")\n";
     }
 
+    out << "Execution order:\n";
+    for (const RenderPassNode* pass : executionOrder()) {
+      out << "- " << pass->id << "\n";
+    }
+
     out << "Passes:\n";
     for (const auto& pass : m_passes) {
       out << "- " << pass.id << " [" << toString(pass.kind) << "/" << toString(pass.executor)

@@ -37,6 +37,7 @@ set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
 set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
+set(out_of_order_text_plan "${TEST_OUTPUT_DIR}/graph-out-of-order.txt")
 set(out_of_order_render "${TEST_OUTPUT_DIR}/graph-out-of-order-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
@@ -584,6 +585,22 @@ rendercli_run(
     "${static_scene}" "${replayed_render}"
 )
 rendercli_assert_nonempty("${replayed_render}" NAME "rendercli --render_graph_in image")
+
+rendercli_run(
+  NAME "rendercli text export shows dependency execution order"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${out_of_order_graph}"
+    --render_graph_format text
+    "${static_scene}" "${out_of_order_text_plan}"
+)
+rendercli_assert_nonempty("${out_of_order_text_plan}" NAME "out-of-order text graph replay")
+file(READ "${out_of_order_text_plan}" out_of_order_text_graph)
+string(FIND "${out_of_order_text_graph}"
+       "Execution order:\n- raytrace_beauty\n- tonemap\nPasses:\n- tonemap"
+       out_of_order_execution_position)
+if(out_of_order_execution_position EQUAL -1)
+  message(FATAL_ERROR "text graph export did not show dependency execution order: ${out_of_order_text_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli renders out-of-order replayed JSON graph"

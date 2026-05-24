@@ -154,6 +154,10 @@ namespace RenderPlanTest {
     ASSERT_EQ(2u, order.size());
     EXPECT_EQ("beauty", order[0]->id);
     EXPECT_EQ("tonemap", order[1]->id);
+
+    const std::string text = plan.toText();
+    EXPECT_NE(std::string::npos, text.find("Execution order:\n- beauty\n- tonemap\nPasses:"));
+    EXPECT_NE(std::string::npos, text.find("Passes:\n- tonemap"));
   }
 
   TEST(RenderPlan, ExecutionOrderIncludesDisabledPassthroughEdges) {
@@ -401,6 +405,7 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, text.find("main_color"));
     EXPECT_NE(std::string::npos, text.find("main"));
     EXPECT_NE(std::string::npos, text.find("features: beauty"));
+    EXPECT_NE(std::string::npos, text.find("Execution order"));
 
     const std::string dot = plan.toDot();
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));
