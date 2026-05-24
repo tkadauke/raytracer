@@ -596,7 +596,7 @@ rendercli_run(
 rendercli_assert_nonempty("${out_of_order_text_plan}" NAME "out-of-order text graph replay")
 file(READ "${out_of_order_text_plan}" out_of_order_text_graph)
 string(FIND "${out_of_order_text_graph}"
-       "Execution order:\n- raytrace_beauty\n- tonemap\nPasses:\n- tonemap"
+       "Execution order:\n- raytrace_beauty\n- tonemap\nDependencies:\n- raytrace_beauty -> tonemap via beauty_color\nPasses:\n- tonemap"
        out_of_order_execution_position)
 if(out_of_order_execution_position EQUAL -1)
   message(FATAL_ERROR "text graph export did not show dependency execution order: ${out_of_order_text_graph}")

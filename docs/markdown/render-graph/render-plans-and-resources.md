@@ -287,6 +287,8 @@ Resources:
 Execution order:
 - raster_beauty
 - tonemap
+Dependencies:
+- raster_beauty -> tonemap via beauty_color
 Passes:
 - raster_beauty [beauty/rasterizer] enabled
   features: main beauty rasterizer
@@ -298,7 +300,8 @@ Passes:
 ```
 
 The `Passes` section preserves declaration order from the compiled or imported
-plan. `Execution order` is derived from resource edges and is the order used by
+plan. `Dependencies` lists pass-to-pass edges through named resources.
+`Execution order` is derived from those resource edges and is the order used by
 the current serial executor.
 
 The DOT export uses resource nodes and pass nodes, with arrows from resources

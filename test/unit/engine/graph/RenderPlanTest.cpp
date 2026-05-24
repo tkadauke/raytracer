@@ -156,7 +156,9 @@ namespace RenderPlanTest {
     EXPECT_EQ("tonemap", order[1]->id);
 
     const std::string text = plan.toText();
-    EXPECT_NE(std::string::npos, text.find("Execution order:\n- beauty\n- tonemap\nPasses:"));
+    EXPECT_NE(std::string::npos, text.find("Execution order:\n- beauty\n- tonemap\n"));
+    EXPECT_NE(std::string::npos,
+              text.find("Dependencies:\n- beauty -> tonemap via beauty_color\n"));
     EXPECT_NE(std::string::npos, text.find("Passes:\n- tonemap"));
   }
 
@@ -418,6 +420,7 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, text.find("main"));
     EXPECT_NE(std::string::npos, text.find("features: beauty"));
     EXPECT_NE(std::string::npos, text.find("Execution order"));
+    EXPECT_NE(std::string::npos, text.find("Dependencies"));
 
     const std::string dot = plan.toDot();
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));

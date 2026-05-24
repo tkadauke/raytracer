@@ -504,6 +504,12 @@ namespace engine::graph {
       out << "- " << pass->id << "\n";
     }
 
+    out << "Dependencies:\n";
+    for (const RenderPassDependency& dependency : dependencies()) {
+      out << "- " << dependency.producer->id << " -> " << dependency.consumer->id << " via "
+          << dependency.resource << "\n";
+    }
+
     out << "Passes:\n";
     for (const auto& pass : m_passes) {
       out << "- " << pass.id << " [" << toString(pass.kind) << "/" << toString(pass.executor)
