@@ -398,6 +398,29 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("completed"), metadata->topLevelItem(1)->text(1));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldIgnoreExecutionTraceForDifferentEffectivePlan) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+    RenderGraphCompiler compiler;
+    const RenderPlan resizedPlan = compiler.compile({32, 24, 1}, intent);
+    ASSERT_FALSE(trace->matchesPlan(resizedPlan));
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(resizedPlan);
+    widget.setExecutionTrace(trace);
+    selectPass(widget, QStringLiteral("post_fxaa"));
+
+    auto* title = widget.findChild<QLabel*>("renderGraphTraceTitle");
+    auto* inputs = widget.findChild<QWidget*>("renderGraphTraceInputs");
+    ASSERT_NE(nullptr, title);
+    ASSERT_NE(nullptr, inputs);
+    EXPECT_THAT(title->text().toStdString(), ::testing::HasSubstr("post_fxaa"));
+    EXPECT_TRUE(labelsContain(inputs, QStringLiteral("No execution trace")));
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldSelectTracePassFromGraphNode) {
     auto trace = postProcessTrace();
     ASSERT_TRUE(trace);

@@ -244,6 +244,10 @@ namespace engine::graph {
     return it == m_passIndexes.end() ? nullptr : &m_passes[it->second];
   }
 
+  bool RenderGraphExecutionTrace::matchesPlan(const RenderPlan& plan) const {
+    return m_plan.executionEquivalentTo(plan);
+  }
+
   QJsonObject RenderGraphExecutionTrace::toJson() const {
     QJsonArray passes;
     for (const auto& pass : m_passes) {

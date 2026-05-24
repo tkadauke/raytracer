@@ -1109,7 +1109,11 @@ image preview is available.
 The trace must be tied to a specific executed plan. If the user changes graph
 overrides, recompiles, resizes the target, or changes the scene after a render,
 Modeler should mark the last trace as stale rather than showing old snapshots as
-if they belonged to the new graph.
+if they belonged to the new graph. The first compatibility check should compare
+the effective execution plan: resources, pass ids, read/write edges, enabled
+state, disabled behavior, scene/camera selection, and typed pass state. Scene
+content changes that recompile to the same plan still need a scene revision or
+render-input fingerprint.
 
 Preview rendering uses cloned render engines on worker threads, so the trace
 cannot live only on a short-lived clone. Use a shared, thread-safe
@@ -1342,8 +1346,10 @@ with render clones, so worker-thread preview renders can publish the completed
 trace back to the original engine when the Modeler inspector enables tracing.
 rendercli enables the same trace capture only for `--render_graph_trace_out`.
 The shared recorder uses per-render sessions so a retired worker cannot
-overwrite the latest trace after a newer render starts. Semantic stale-trace
-detection across scene edits, resize, and graph recompile remains TODO.
+overwrite the latest trace after a newer render starts. The Modeler accepts a
+completed trace only when its executed plan matches the current effective plan,
+covering stale traces from resize, graph overrides, and compiled pass-state
+changes. Scene content changes that leave the plan unchanged remain TODO.
 
 ### Live graph execution highlighting
 

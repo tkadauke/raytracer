@@ -157,6 +157,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   execution traces by default; the Modeler graph inspector enables tracing for
   preview inspection, and rendercli enables it only when
   `--render_graph_trace_out` is requested. — GPT-5
+- **Render graph stale-trace filtering.** Modeler now ignores completed graph
+  traces whose executed plan no longer matches the inspector's effective plan,
+  preventing old snapshots from attaching to matching pass ids after resize,
+  graph override, or pass-state changes. — GPT-5
 - **Render graph dependent culling.** Applying graph overrides to a
   `CullDependents` pass now disables downstream consumers transitively before
   validation, so graph inspection can show the effective culled subgraph instead

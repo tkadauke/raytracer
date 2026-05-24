@@ -500,6 +500,9 @@ bool RenderGraphInspectorWidget::effectivePlanValid() const {
 
 void RenderGraphInspectorWidget::setExecutionTrace(
   std::shared_ptr<const RenderGraphExecutionTrace> trace) {
+  if (trace && !trace->matchesPlan(effectivePlan())) {
+    trace.reset();
+  }
   p->executionTrace = std::move(trace);
   if (p->executionTrace && p->selectedResourceId.empty() &&
       !p->executionTrace->findPass(p->selectedPassId)) {

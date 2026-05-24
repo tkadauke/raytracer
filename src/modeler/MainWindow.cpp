@@ -151,6 +151,15 @@ namespace {
   void addRow(PropertyRows& rows, const QString& name, const QString& value) {
     rows.push_back({name, dashIfEmpty(value)});
   }
+
+  std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
+  traceForPlan(const engine::graph::RenderPlan& plan,
+               std::shared_ptr<const engine::graph::RenderGraphExecutionTrace> trace) {
+    if (trace && trace->matchesPlan(plan)) {
+      return trace;
+    }
+    return nullptr;
+  }
 }
 
 struct MainWindow::Private {
@@ -1327,7 +1336,8 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Concurrent"), pass->canRunConcurrently ? tr("true") : tr("false"));
   addRow(rows, tr("State"), passStateText(*pass));
 
-  const auto trace = p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr;
+  const auto trace =
+    traceForPlan(plan, p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr);
   const auto* passTrace = trace ? trace->findPass(pass->id) : nullptr;
   if (!passTrace) {
     addRow(rows, tr("Trace"), tr("not available"));
@@ -1350,8 +1360,7 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
 
   p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph pass"), rows);
   if (activateTracePreview && p->graphTracePreviewWidget && p->centralTabs) {
-    p->graphTracePreviewWidget->showPassTrace(
-      p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr, pass->id);
+    p->graphTracePreviewWidget->showPassTrace(trace, pass->id);
     p->centralTabs->setCurrentWidget(p->graphTracePreviewWidget);
   }
 }
@@ -1381,7 +1390,8 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
   addRow(rows, tr("Producer"), producerText(plan, resource->id));
   addRow(rows, tr("Consumers"), consumerText(plan, resource->id));
 
-  const auto trace = p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr;
+  const auto trace =
+    traceForPlan(plan, p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr);
   bool hasSnapshot = false;
   if (trace) {
     for (const auto& passTrace : trace->passes()) {

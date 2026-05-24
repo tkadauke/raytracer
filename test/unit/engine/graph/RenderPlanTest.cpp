@@ -41,6 +41,37 @@ namespace RenderPlanTest {
     return node;
   }
 
+  RenderPlan executionEquivalencePlan(
+    int width = 640, bool postEnabled = true,
+    std::shared_ptr<const RenderPassState> state = std::make_shared<FxaaPostProcessAAState>(),
+    const std::string& nameSuffix = "") {
+    RenderPlan plan;
+    auto beautyColor = colorResource("beauty_color");
+    beautyColor.width = width;
+    beautyColor.name += nameSuffix;
+    plan.addResource(beautyColor);
+    auto mainColor = colorResource("main_color", RenderResourceLifetime::Exported);
+    mainColor.width = width;
+    mainColor.name += nameSuffix;
+    plan.addResource(mainColor);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.name += nameSuffix;
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    auto post = pass("post_fxaa", RenderPassKind::PostProcess);
+    post.name += nameSuffix;
+    post.features = {"post_aa", "fxaa"};
+    post.reads.push_back({"beauty_color"});
+    post.writes.push_back({"main_color"});
+    post.state = std::move(state);
+    post.enabled = postEnabled;
+    post.disabledBehavior = DisabledBehavior::Passthrough;
+    plan.addPass(post);
+    return plan;
+  }
+
   bool hasError(const RenderPlanValidation& validation, RenderPlanValidationError::Code code) {
     const auto& errors = validation.errors();
     return std::any_of(
@@ -261,6 +292,17 @@ namespace RenderPlanTest {
     EXPECT_EQ("raster_beauty", dependencies.front().producer->id);
     EXPECT_EQ("tonemap", dependencies.front().consumer->id);
     EXPECT_EQ("beauty_color", dependencies.front().resource);
+  }
+
+  TEST(RenderPlan, ComparesExecutionEquivalentPlans) {
+    const RenderPlan plan = executionEquivalencePlan();
+
+    EXPECT_TRUE(plan.executionEquivalentTo(
+      executionEquivalencePlan(640, true, std::make_shared<FxaaPostProcessAAState>(), " renamed")));
+    EXPECT_FALSE(plan.executionEquivalentTo(executionEquivalencePlan(800)));
+    EXPECT_FALSE(plan.executionEquivalentTo(executionEquivalencePlan(640, false)));
+    EXPECT_FALSE(plan.executionEquivalentTo(
+      executionEquivalencePlan(640, true, std::make_shared<SmaaPostProcessAAState>())));
   }
 
   TEST(RenderPlan, DisabledSubstituteDefaultCanSatisfyConsumer) {

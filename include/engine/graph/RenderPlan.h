@@ -74,6 +74,16 @@ namespace engine::graph {
     std::vector<RenderPassDependency> dependencies() const;
     std::vector<const RenderPassNode*> executionOrder() const;
 
+    /**
+      * @returns true when @p other describes the same executable graph shape
+      * and pass state.
+      *
+      * Human-readable names are ignored. Resource descriptors, pass ids,
+      * read/write edges, enabled state, disabled behavior, scene/camera
+      * selection, and typed pass state must match.
+      */
+    bool executionEquivalentTo(const RenderPlan& other) const;
+
     void addResource(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
     /**

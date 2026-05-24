@@ -51,6 +51,65 @@ namespace engine::graph {
              a.height == b.height && a.sampleCount == b.sampleCount && a.domain == b.domain;
     }
 
+    bool sameResourceDescriptor(const RenderResourceDescriptor& a,
+                                const RenderResourceDescriptor& b) {
+      return a.id == b.id && a.type == b.type && a.format == b.format && a.width == b.width &&
+             a.height == b.height && a.sampleCount == b.sampleCount && a.domain == b.domain &&
+             a.lifetime == b.lifetime;
+    }
+
+    bool sameReads(const std::vector<ResourceRead>& a, const std::vector<ResourceRead>& b) {
+      return a.size() == b.size() &&
+             std::equal(a.begin(), a.end(), b.begin(), [](const auto& left, const auto& right) {
+               return left.resource == right.resource;
+             });
+    }
+
+    bool sameWrites(const std::vector<ResourceWrite>& a, const std::vector<ResourceWrite>& b) {
+      return a.size() == b.size() &&
+             std::equal(a.begin(), a.end(), b.begin(), [](const auto& left, const auto& right) {
+               return left.resource == right.resource;
+             });
+    }
+
+    bool sameCameraRef(const std::optional<RenderCameraRef>& a,
+                       const std::optional<RenderCameraRef>& b) {
+      if (a.has_value() != b.has_value()) {
+        return false;
+      }
+      if (!a) {
+        return true;
+      }
+      return a->sceneCameraId == b->sceneCameraId &&
+             a->snapshot.has_value() == b->snapshot.has_value() &&
+             (!a->snapshot || a->snapshot->parameters == b->snapshot->parameters);
+    }
+
+    bool sameSceneView(const SceneView& a, const SceneView& b) {
+      return a.selector.kind == b.selector.kind && a.selector.value == b.selector.value &&
+             sameCameraRef(a.camera, b.camera);
+    }
+
+    bool samePassState(const std::shared_ptr<const RenderPassState>& a,
+                       const std::shared_ptr<const RenderPassState>& b) {
+      if (a.get() == b.get()) {
+        return true;
+      }
+      if (!a || !b) {
+        return false;
+      }
+      return a->toJson() == b->toJson();
+    }
+
+    bool samePassNode(const RenderPassNode& a, const RenderPassNode& b) {
+      return a.id == b.id && a.kind == b.kind && a.executor == b.executor &&
+             a.features == b.features && sameReads(a.reads, b.reads) &&
+             sameWrites(a.writes, b.writes) && sameSceneView(a.sceneView, b.sceneView) &&
+             samePassState(a.state, b.state) && a.disabledBehavior == b.disabledBehavior &&
+             a.enabled == b.enabled && a.hasExternalSideEffects == b.hasExternalSideEffects &&
+             a.canRunConcurrently == b.canRunConcurrently;
+    }
+
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid render plan JSON at " + path + ": " + message);
     }
@@ -232,6 +291,14 @@ namespace engine::graph {
     }
 
     return result;
+  }
+
+  bool RenderPlan::executionEquivalentTo(const RenderPlan& other) const {
+    return m_resources.size() == other.m_resources.size() &&
+           std::equal(m_resources.begin(), m_resources.end(), other.m_resources.begin(),
+                      sameResourceDescriptor) &&
+           m_passes.size() == other.m_passes.size() &&
+           std::equal(m_passes.begin(), m_passes.end(), other.m_passes.begin(), samePassNode);
   }
 
   void RenderPlan::addResource(RenderResourceDescriptor descriptor) {
