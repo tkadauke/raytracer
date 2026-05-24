@@ -4,8 +4,8 @@
 
 namespace UnionTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(UnionTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; not implemented.

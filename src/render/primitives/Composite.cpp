@@ -12,14 +12,15 @@ using namespace render;
 Composite::~Composite() {
 }
 
-const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                      render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
 
   const Primitive* hit = nullptr;
   double minDistance = numeric_limits<double>::infinity();
-  
+
   for (const auto& i : m_primitives) {
     HitPointInterval candidate;
     auto primitive = i->intersect(ray, candidate, state);
@@ -33,7 +34,7 @@ const Primitive* Composite::intersect(const Rayd& ray, HitPointInterval& hitPoin
       }
     }
   }
-  
+
   return hit;
 }
 
@@ -46,7 +47,7 @@ bool Composite::intersects(const Rayd& ray, render::State& state) const {
     if (i->intersects(ray, state))
       return true;
   }
-  
+
   return false;
 }
 

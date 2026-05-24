@@ -62,7 +62,8 @@ namespace render {
     /// argument order is swapped: `(hitPoint, out, in)` here calls
     /// `calculate(hitPoint, in, out)` — vestigial; prefer the
     /// named methods.
-    inline Colord operator()(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const {
+    inline Colord operator()(const HitPoint& hitPoint, const Vector3d& out,
+                             const Vector3d& in) const {
       return calculate(hitPoint, in, out);
     }
 
@@ -74,7 +75,8 @@ namespace render {
       * Default returns black; override in concrete diffuse /
       * specular BRDFs.
       */
-    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const;
+    virtual Colord calculate(const HitPoint& hitPoint, const Vector3d& out,
+                             const Vector3d& in) const;
 
     /**
       * Total hemispherical reflectance — the integral of `calculate`
@@ -112,7 +114,8 @@ namespace render {
     /// finite-value BRDFs (Lambertian, GlossySpecular) don't yet
     /// provide an importance-sampling density. Specular subclasses
     /// override to set `pdf = 1` (delta).
-    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf) const override {
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo,
+                  double& pdf) const override {
       pdf = 0.0;
       return sample(hitPoint, wi, wo);
     }

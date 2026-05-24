@@ -21,7 +21,7 @@
 class Torus : public Surface {
   Q_OBJECT
   Q_PROPERTY(double sweptRadius READ sweptRadius WRITE setSweptRadius)
-  Q_PROPERTY(double tubeRadius  READ tubeRadius  WRITE setTubeRadius)
+  Q_PROPERTY(double tubeRadius READ tubeRadius WRITE setTubeRadius)
 
 public:
   /**

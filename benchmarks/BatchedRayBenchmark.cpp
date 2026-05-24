@@ -26,10 +26,8 @@ namespace {
   using namespace render;
 
   Rayd toRayd(const Rayf& ray) {
-    return Rayd(
-      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
-    );
+    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
   }
 
   std::vector<Ray4> packetize(const std::vector<Rayf>& rays) {
@@ -111,7 +109,8 @@ namespace {
   }
 
   template<typename Primitive, typename RayGenerator>
-  void bm_primitive_scalar(benchmark::State& state, const Primitive& primitive, RayGenerator generateRays) {
+  void bm_primitive_scalar(benchmark::State& state, const Primitive& primitive,
+                           RayGenerator generateRays) {
     const auto rays = generateRays(static_cast<int>(state.range(0)));
     for (auto _ : state) {
       int hits = 0;
@@ -129,7 +128,8 @@ namespace {
   }
 
   template<typename Primitive, typename RayGenerator>
-  void bm_primitive_packet(benchmark::State& state, const Primitive& primitive, RayGenerator generateRays) {
+  void bm_primitive_packet(benchmark::State& state, const Primitive& primitive,
+                           RayGenerator generateRays) {
     const auto rays = generateRays(static_cast<int>(state.range(0)));
     const auto packets = packetize(rays);
     for (auto _ : state) {
@@ -154,11 +154,15 @@ namespace {
   }
 
   void bm_triangle_scalar(benchmark::State& state) {
-    bm_primitive_scalar(state, Triangle(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0)), generateTriangleRays);
+    bm_primitive_scalar(state,
+                        Triangle(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0)),
+                        generateTriangleRays);
   }
 
   void bm_triangle_packet(benchmark::State& state) {
-    bm_primitive_packet(state, Triangle(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0)), generateTriangleRays);
+    bm_primitive_packet(state,
+                        Triangle(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0)),
+                        generateTriangleRays);
   }
 
   void bm_plane_scalar(benchmark::State& state) {

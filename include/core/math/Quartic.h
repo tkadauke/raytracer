@@ -23,8 +23,11 @@ public:
     * the polynomial \f$ax^4 + bx^3 + cx^2 + dx + e\f$.
     */
   inline explicit Quartic(T a, T b, T c, T d, T e)
-    : m_a(a), m_b(b), m_c(c), m_d(d), m_e(e)
-  {
+      : m_a(a),
+        m_b(b),
+        m_c(c),
+        m_d(d),
+        m_e(e) {
   }
 
   /**
@@ -74,16 +77,17 @@ int Quartic<T>::solve() {
   T normD = m_e / m_a;
 
   T normASquared = normA * normA;
-  T p = -3.0/8 * normASquared + normB;
-  T q = 1.0/8 * normASquared * normA - 0.5 * normA * normB + normC;
-  T r = -3.0/256 * normASquared * normASquared + 1.0/16 * normASquared * normB - 0.25 * normA * normC + normD;
+  T p = -3.0 / 8 * normASquared + normB;
+  T q = 1.0 / 8 * normASquared * normA - 0.5 * normA * normB + normC;
+  T r = -3.0 / 256 * normASquared * normASquared + 1.0 / 16 * normASquared * normB -
+        0.25 * normA * normC + normD;
 
   int numberOfResults = 0;
   if (isAlmostZero(r)) {
     Cubic<T> cubic(1, 0, p, q);
     numberOfResults = cubic.solveInto(m_result);
   } else {
-    Cubic<T> cubic(1, -0.5 * p, -r, 0.5 * r * p - 1.0/8 * q * q);
+    Cubic<T> cubic(1, -0.5 * p, -r, 0.5 * r * p - 1.0 / 8 * q * q);
     cubic.solveInto(m_result);
 
     T z = m_result[0];
@@ -102,10 +106,12 @@ int Quartic<T>::solve() {
     T uTol = eps * (T(1) + std::abs(z * z) + std::abs(r));
     T vTol = eps * (T(1) + std::abs(2 * z) + std::abs(p));
 
-    if (u < -uTol) return 0;
+    if (u < -uTol)
+      return 0;
     u = u <= T(0) ? T(0) : std::sqrt(u);
 
-    if (v < -vTol) return 0;
+    if (v < -vTol)
+      return 0;
     v = v <= T(0) ? T(0) : std::sqrt(v);
 
     Quadric<T> first(1, q < 0 ? -v : v, z - u);
@@ -134,8 +140,8 @@ int Quartic<T>::solveStable() {
 
 template<class T>
 bool Quartic<T>::shouldUseStableSolver() const {
-  T maxCoefficient = std::max({std::abs(m_a), std::abs(m_b), std::abs(m_c),
-                               std::abs(m_d), std::abs(m_e)});
+  T maxCoefficient =
+    std::max({std::abs(m_a), std::abs(m_b), std::abs(m_c), std::abs(m_d), std::abs(m_e)});
   if (maxCoefficient == T(0) ||
       std::abs(m_a) <= std::numeric_limits<T>::epsilon() * maxCoefficient) {
     return true;

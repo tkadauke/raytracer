@@ -101,7 +101,7 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   // displaced origin lives on a disc of radius apertureRadius oriented
   // along the camera's local x/y plane.
   Vector3d right = Matrix3d(matrix()) * Vector3d(1, 0, 0);
-  Vector3d up    = Matrix3d(matrix()) * Vector3d(0, 1, 0);
+  Vector3d up = Matrix3d(matrix()) * Vector3d(0, 1, 0);
   Vector3d lensOffset = (right * lensU + up * lensV) * m_apertureRadius;
   Vector3d lensOrigin = eyeOrigin + lensOffset;
 
@@ -128,7 +128,7 @@ void ThinLensCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {
   // the same scene with the same UI-displayed settings.
   if (viewPlane()->sampler()->numSamples() <= 1) {
     auto jittered = std::make_shared<render::JitteredSampler>();
-    jittered->setup(16, 83);  // 16 spp; 83 sets — same set count rendercli uses
+    jittered->setup(16, 83); // 16 spp; 83 sets — same set count rendercli uses
     viewPlane()->setSampler(jittered);
   }
 }

@@ -4,15 +4,14 @@
 using namespace std;
 
 PlyProperty::PlyProperty(istream& is)
-  : m_list(false)
-{
+    : m_list(false) {
   parse(is);
 }
 
 void PlyProperty::parse(istream& is) {
   string type;
   is >> type;
-  
+
   if (type == "list") {
     string countType;
     is >> countType >> type;
@@ -20,7 +19,7 @@ void PlyProperty::parse(istream& is) {
     m_list = true;
   }
   m_elementType = mapType(type);
-  
+
   is >> m_name;
 }
 

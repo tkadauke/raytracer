@@ -41,10 +41,18 @@ namespace testing {
   public:
     explicit Silhouette(std::vector<Pixel> points);
 
-    int sampleCount() const { return static_cast<int>(m_points.size()); }
-    Pixel centroid() const { return m_centroid; }
-    Recti boundingBox() const { return m_bbox; }
-    const std::vector<Pixel>& points() const { return m_points; }
+    int sampleCount() const {
+      return static_cast<int>(m_points.size());
+    }
+    Pixel centroid() const {
+      return m_centroid;
+    }
+    Recti boundingBox() const {
+      return m_bbox;
+    }
+    const std::vector<Pixel>& points() const {
+      return m_points;
+    }
 
     /// Bounding-box height divided by width.
     double aspectRatio() const;

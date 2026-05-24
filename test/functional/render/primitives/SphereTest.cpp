@@ -2,15 +2,15 @@
 
 namespace SphereTest {
   using namespace ::testing;
-  
+
   class SphereTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(SphereTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a centered sphere");
     when("i look at the origin");
     then("i should see the sphere");
   }
-  
+
   TEST_F(SphereTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
     given("a displaced sphere");
     when("i look at the origin");

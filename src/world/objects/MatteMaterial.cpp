@@ -5,18 +5,16 @@
 #include "render/materials/MatteMaterial.h"
 
 MatteMaterial::MatteMaterial(Element* parent)
-  : Material(parent),
-    m_diffuseTexture(nullptr),
-    m_normalTexture(nullptr),
-    m_ambientCoefficient(1),
-    m_diffuseCoefficient(1)
-{
+    : Material(parent),
+      m_diffuseTexture(nullptr),
+      m_normalTexture(nullptr),
+      m_ambientCoefficient(1),
+      m_diffuseCoefficient(1) {
 }
 
 std::shared_ptr<render::Material> MatteMaterial::toRaytracerMaterial() const {
-  auto material = make_named<render::MatteMaterial>(
-    textureOrDefault(diffuseTexture())->toRaytracerTexture()
-  );
+  auto material =
+    make_named<render::MatteMaterial>(textureOrDefault(diffuseTexture())->toRaytracerTexture());
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   if (normalTexture()) {

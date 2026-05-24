@@ -39,8 +39,7 @@ namespace engine::graph {
       * Clears this resource to the value used when a disabled pass substitutes
       * a default output. Non-buffer descriptors ignore the request.
       */
-    virtual void clearSubstituteDefault(RenderPassKind passKind,
-                                        const Colord& beautyDefaultColor);
+    virtual void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor);
 
     virtual Buffer<Colord>& color();
     virtual const Buffer<Colord>& color() const;
@@ -78,8 +77,7 @@ namespace engine::graph {
 
     bool hasBuffer() const override;
     bool colorBacked() const override;
-    void clearSubstituteDefault(RenderPassKind passKind,
-                                const Colord& beautyDefaultColor) override;
+    void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
     Buffer<Colord>& color() override;
     const Buffer<Colord>& color() const override;
 
@@ -95,8 +93,7 @@ namespace engine::graph {
     explicit DepthRenderResource(RenderResourceDescriptor descriptor);
 
     bool hasBuffer() const override;
-    void clearSubstituteDefault(RenderPassKind passKind,
-                                const Colord& beautyDefaultColor) override;
+    void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
     Buffer<double>& depth() override;
     const Buffer<double>& depth() const override;
 
@@ -112,8 +109,7 @@ namespace engine::graph {
     explicit StencilRenderResource(RenderResourceDescriptor descriptor);
 
     bool hasBuffer() const override;
-    void clearSubstituteDefault(RenderPassKind passKind,
-                                const Colord& beautyDefaultColor) override;
+    void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
     Buffer<std::uint8_t>& stencil() override;
     const Buffer<std::uint8_t>& stencil() const override;
 
@@ -129,8 +125,7 @@ namespace engine::graph {
     explicit ObjectIdRenderResource(RenderResourceDescriptor descriptor);
 
     bool hasBuffer() const override;
-    void clearSubstituteDefault(RenderPassKind passKind,
-                                const Colord& beautyDefaultColor) override;
+    void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
     Buffer<std::uint32_t>& objectId() override;
     const Buffer<std::uint32_t>& objectId() const override;
 

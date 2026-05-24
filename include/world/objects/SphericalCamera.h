@@ -14,7 +14,7 @@ class SphericalCamera : public Camera {
   Q_OBJECT
   Q_PROPERTY(Angled horizontalFieldOfView READ horizontalFieldOfView WRITE setHorizontalFieldOfView)
   Q_PROPERTY(Angled verticalFieldOfView READ verticalFieldOfView WRITE setVerticalFieldOfView)
-  
+
 public:
   /**
     * Constructs a default spherical camera with a horizontal field of view of
@@ -22,14 +22,14 @@ public:
     * origin.
     */
   explicit SphericalCamera(Element* parent = nullptr);
-  
+
   /**
     * @returns the horizontal field of view of the camera.
     */
   inline const Angled& horizontalFieldOfView() const {
     return m_horizontalFieldOfView;
   }
-  
+
   /**
     * Sets the horizontal field of view of the camera.
     * 
@@ -44,14 +44,14 @@ public:
   inline void setHorizontalFieldOfView(Angled fov) {
     m_horizontalFieldOfView = fov;
   }
-  
+
   /**
     * @returns the vertical field of view of the camera.
     */
   inline const Angled& verticalFieldOfView() const {
     return m_verticalFieldOfView;
   }
-  
+
   /**
     * Sets the vertical field of view of the camera.
     * 
@@ -66,9 +66,9 @@ public:
   inline void setVerticalFieldOfView(Angled fov) {
     m_verticalFieldOfView = fov;
   }
-  
+
   virtual std::shared_ptr<render::Camera> toRaytracer() const;
-  
+
 private:
   Angled m_horizontalFieldOfView;
   Angled m_verticalFieldOfView;

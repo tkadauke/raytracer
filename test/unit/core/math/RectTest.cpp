@@ -7,17 +7,14 @@ using namespace std;
 
 namespace RectTest {
   using namespace ::testing;
-  
-  template<class T>
-  class RectTest : public ::testing::Test {
-  };
 
-  typedef ::testing::Types<
-    int, float, double
-  > RectTypes;
+  template<class T>
+  class RectTest : public ::testing::Test {};
+
+  typedef ::testing::Types<int, float, double> RectTypes;
 
   TYPED_TEST_SUITE(RectTest, RectTypes);
-  
+
   TYPED_TEST(RectTest, ShouldInitialize) {
     Rect<TypeParam> rect;
     ASSERT_EQ(0, rect.x());
@@ -33,7 +30,7 @@ namespace RectTest {
     ASSERT_EQ(8, rect.width());
     ASSERT_EQ(6, rect.height());
   }
-  
+
   TYPED_TEST(RectTest, ShouldInitializeWithValues) {
     Rect<TypeParam> rect(2, 3, 8, 6);
     ASSERT_EQ(2, rect.x());
@@ -41,17 +38,17 @@ namespace RectTest {
     ASSERT_EQ(8, rect.width());
     ASSERT_EQ(6, rect.height());
   }
-  
+
   TYPED_TEST(RectTest, ShouldCalculateRightEnd) {
     Rect<TypeParam> rect(2, 3, 8, 6);
     ASSERT_EQ(10, rect.right());
   }
-  
+
   TYPED_TEST(RectTest, ShouldCalculateBottomEnd) {
     Rect<TypeParam> rect(2, 3, 8, 6);
     ASSERT_EQ(9, rect.bottom());
   }
-  
+
   TYPED_TEST(RectTest, ShouldStreamToString) {
     Rect<TypeParam> rect(2, 3, 8, 6);
     ostringstream str;

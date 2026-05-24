@@ -49,13 +49,10 @@ namespace render {
     */
   class Material : public render::Object {
   public:
-    enum class Sidedness {
-      Front,
-      Back,
-      TwoSided
-    };
+    enum class Sidedness { Front, Back, TwoSided };
 
-    virtual ~Material() {}
+    virtual ~Material() {
+    }
 
     inline Sidedness sidedness() const {
       return m_sidedness;
@@ -84,7 +81,8 @@ namespace render {
       * emits "TIR" / "Tracing reflection" / "Tracing transmission"
       * events here.
       */
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
 
   private:
     Sidedness m_sidedness{Sidedness::TwoSided};

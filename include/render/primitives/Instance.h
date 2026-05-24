@@ -54,11 +54,11 @@ namespace render {
       * the instance behaves exactly like the wrapped primitive.
       */
     inline explicit Instance(std::shared_ptr<Primitive> primitive)
-      : m_primitive(primitive),
-        m_velocity(Vector3d::null)
-    {
+        : m_primitive(primitive),
+          m_velocity(Vector3d::null) {
     }
-    virtual ~Instance() { }
+    virtual ~Instance() {
+    }
 
     /**
       * Transforms `ray` into the wrapped primitive's local space,
@@ -68,7 +68,8 @@ namespace render {
       * composites), not the instance itself, so material lookups
       * find the right surface.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
 
     /// Boolean variant — same transform-and-delegate pattern.
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
@@ -119,7 +120,9 @@ namespace render {
     void setVelocity(const Vector3d& velocity);
 
     /// @returns the configured velocity. Zero means no motion blur.
-    inline const Vector3d& velocity() const { return m_velocity; }
+    inline const Vector3d& velocity() const {
+      return m_velocity;
+    }
 
     /// Support function — transforms `direction` into local space,
     /// queries the wrapped primitive, transforms the result back.

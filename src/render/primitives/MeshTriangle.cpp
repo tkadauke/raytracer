@@ -40,13 +40,16 @@ RayPacketIntersection4 MeshTriangle::intersectPacket(const Ray4& rays, render::S
 
   const __m128 a = _mm_set1_ps(static_cast<float>(v0.x() - v1.x()));
   const __m128 b = _mm_set1_ps(static_cast<float>(v0.x() - v2.x()));
-  const __m128 d = _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.x())), _mm_load_ps(rays.originX.data()));
+  const __m128 d =
+    _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.x())), _mm_load_ps(rays.originX.data()));
   const __m128 e = _mm_set1_ps(static_cast<float>(v0.y() - v1.y()));
   const __m128 f = _mm_set1_ps(static_cast<float>(v0.y() - v2.y()));
-  const __m128 h = _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.y())), _mm_load_ps(rays.originY.data()));
+  const __m128 h =
+    _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.y())), _mm_load_ps(rays.originY.data()));
   const __m128 i = _mm_set1_ps(static_cast<float>(v0.z() - v1.z()));
   const __m128 j = _mm_set1_ps(static_cast<float>(v0.z() - v2.z()));
-  const __m128 l = _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.z())), _mm_load_ps(rays.originZ.data()));
+  const __m128 l =
+    _mm_sub_ps(_mm_set1_ps(static_cast<float>(v0.z())), _mm_load_ps(rays.originZ.data()));
   const __m128 c = _mm_load_ps(rays.directionX.data());
   const __m128 g = _mm_load_ps(rays.directionY.data());
   const __m128 k = _mm_load_ps(rays.directionZ.data());
@@ -57,23 +60,16 @@ RayPacketIntersection4 MeshTriangle::intersectPacket(const Ray4& rays, render::S
   const __m128 q = _mm_sub_ps(_mm_mul_ps(g, i), _mm_mul_ps(e, k));
   const __m128 r = _mm_sub_ps(_mm_mul_ps(e, l), _mm_mul_ps(h, i));
   const __m128 s = _mm_sub_ps(_mm_mul_ps(e, j), _mm_mul_ps(f, i));
-  const __m128 invDenom = _mm_div_ps(
-    _mm_set1_ps(1.0f),
-    _mm_add_ps(_mm_add_ps(_mm_mul_ps(a, mm), _mm_mul_ps(b, q)), _mm_mul_ps(c, s))
-  );
+  const __m128 invDenom =
+    _mm_div_ps(_mm_set1_ps(1.0f),
+               _mm_add_ps(_mm_add_ps(_mm_mul_ps(a, mm), _mm_mul_ps(b, q)), _mm_mul_ps(c, s)));
 
   const __m128 beta = _mm_mul_ps(
-    _mm_sub_ps(_mm_sub_ps(_mm_mul_ps(d, mm), _mm_mul_ps(b, n)), _mm_mul_ps(c, p)),
-    invDenom
-  );
+    _mm_sub_ps(_mm_sub_ps(_mm_mul_ps(d, mm), _mm_mul_ps(b, n)), _mm_mul_ps(c, p)), invDenom);
   const __m128 gamma = _mm_mul_ps(
-    _mm_add_ps(_mm_add_ps(_mm_mul_ps(a, n), _mm_mul_ps(d, q)), _mm_mul_ps(c, r)),
-    invDenom
-  );
+    _mm_add_ps(_mm_add_ps(_mm_mul_ps(a, n), _mm_mul_ps(d, q)), _mm_mul_ps(c, r)), invDenom);
   const __m128 t = _mm_mul_ps(
-    _mm_add_ps(_mm_sub_ps(_mm_mul_ps(a, p), _mm_mul_ps(b, r)), _mm_mul_ps(d, s)),
-    invDenom
-  );
+    _mm_add_ps(_mm_sub_ps(_mm_mul_ps(a, p), _mm_mul_ps(b, r)), _mm_mul_ps(d, s)), invDenom);
 
   const __m128 zero = _mm_setzero_ps();
   const __m128 one = _mm_set1_ps(1.0f);

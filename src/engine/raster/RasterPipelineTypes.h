@@ -182,8 +182,7 @@ namespace engine::raster::detail {
   };
 
   inline void projectRasterPoints(const std::array<RasterPoint2d, 3>& points, double axisX,
-                                  double axisY, double& minProjection,
-                                  double& maxProjection) {
+                                  double axisY, double& minProjection, double& maxProjection) {
     minProjection = maxProjection = points[0].x * axisX + points[0].y * axisY;
     for (std::size_t i = 1; i != points.size(); ++i) {
       const double projection = points[i].x * axisX + points[i].y * axisY;
@@ -192,12 +191,11 @@ namespace engine::raster::detail {
     }
   }
 
-  inline void projectRasterRect(double left, double top, double right, double bottom,
-                                double axisX, double axisY, double& minProjection,
-                                double& maxProjection) {
-    const std::array<RasterPoint2d, 4> corners{
-      RasterPoint2d{left, top}, RasterPoint2d{right, top}, RasterPoint2d{right, bottom},
-      RasterPoint2d{left, bottom}};
+  inline void projectRasterRect(double left, double top, double right, double bottom, double axisX,
+                                double axisY, double& minProjection, double& maxProjection) {
+    const std::array<RasterPoint2d, 4> corners{RasterPoint2d{left, top}, RasterPoint2d{right, top},
+                                               RasterPoint2d{right, bottom},
+                                               RasterPoint2d{left, bottom}};
     minProjection = maxProjection = corners[0].x * axisX + corners[0].y * axisY;
     for (std::size_t i = 1; i != corners.size(); ++i) {
       const double projection = corners[i].x * axisX + corners[i].y * axisY;
@@ -327,8 +325,7 @@ namespace engine::raster::detail {
     }
 
     std::size_t addBounds(int rawMinX, int rawMaxX, int rawMinY, int rawMaxY,
-                          const std::array<RasterPoint2d, 3>& triangle,
-                          std::size_t triangleIndex) {
+                          const std::array<RasterPoint2d, 3>& triangle, std::size_t triangleIndex) {
       if (rawMaxX < 0 || rawMaxY < 0 || rawMinX >= m_plan.width() || rawMinY >= m_plan.height()) {
         return 0;
       }

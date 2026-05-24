@@ -31,7 +31,7 @@ Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, doub
   Vector3d eyeOrigin = matrix() * Vector4d(0, 0, -distance());
   Vector3d pixelPoint = viewPlane()->pixelAt(x, y);
   Vector3d right = Matrix3d(matrix()) * Vector3d(1, 0, 0);
-  Vector3d up    = Matrix3d(matrix()) * Vector3d(0, 1, 0);
+  Vector3d up = Matrix3d(matrix()) * Vector3d(0, 1, 0);
   Vector3d shiftedPixel = pixelPoint + right * m_shift.x() + up * m_shift.y();
   Vector3d pinholeDir = (shiftedPixel - eyeOrigin).normalized();
 

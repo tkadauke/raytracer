@@ -13,21 +13,21 @@
 class FishEyeCamera : public Camera {
   Q_OBJECT
   Q_PROPERTY(Angled fieldOfView READ fieldOfView WRITE setFieldOfView)
-  
+
 public:
   /**
     * Creates a default fish eye camera with a 120 degree field of view,
     * looking at the origin.
     */
   explicit FishEyeCamera(Element* parent = nullptr);
-  
+
   /**
     * @returns the camera's field of view.
     */
   inline const Angled& fieldOfView() const {
     return m_fieldOfView;
   }
-  
+
   /**
     * Sets the field of view of the camera.
     * 
@@ -42,9 +42,9 @@ public:
   inline void setFieldOfView(const Angled& fieldOfView) {
     m_fieldOfView = fieldOfView;
   }
-  
+
   virtual std::shared_ptr<render::Camera> toRaytracer() const;
-  
+
 private:
   Angled m_fieldOfView;
 };

@@ -19,7 +19,7 @@
   *                        (e.g. 4 for HitPointInterval) eliminates per-call
   *                        heap allocations on the hot path.
   */
-template <typename T, std::size_t InlineCapacity>
+template<typename T, std::size_t InlineCapacity>
 class SmallVector {
   static_assert(std::is_trivially_copyable<T>::value,
                 "SmallVector<T,N> requires a trivially-copyable element type");
@@ -28,32 +28,42 @@ class SmallVector {
   static_assert(InlineCapacity > 0, "InlineCapacity must be > 0");
 
 public:
-  using value_type             = T;
-  using size_type              = std::size_t;
-  using iterator               = T*;
-  using const_iterator         = const T*;
-  using reverse_iterator       = std::reverse_iterator<iterator>;
+  using value_type = T;
+  using size_type = std::size_t;
+  using iterator = T*;
+  using const_iterator = const T*;
+  using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
   // ---- construction / destruction ----------------------------------------
 
-  SmallVector() noexcept : m_size(0), m_heap(nullptr), m_heapCap(0) {}
+  SmallVector() noexcept
+      : m_size(0),
+        m_heap(nullptr),
+        m_heapCap(0) {
+  }
 
-  SmallVector(const SmallVector& o) : m_size(o.m_size), m_heap(nullptr), m_heapCap(0) {
+  SmallVector(const SmallVector& o)
+      : m_size(o.m_size),
+        m_heap(nullptr),
+        m_heapCap(0) {
     if (o.m_heap) {
       m_heapCap = o.m_heapCap;
-      m_heap    = allocate(m_heapCap);
+      m_heap = allocate(m_heapCap);
       std::memcpy(m_heap, o.m_heap, m_size * sizeof(T));
     } else {
       std::memcpy(m_inline, o.m_inline, m_size * sizeof(T));
     }
   }
 
-  SmallVector(SmallVector&& o) noexcept : m_size(o.m_size), m_heap(nullptr), m_heapCap(0) {
+  SmallVector(SmallVector&& o) noexcept
+      : m_size(o.m_size),
+        m_heap(nullptr),
+        m_heapCap(0) {
     if (o.m_heap) {
-      m_heap    = o.m_heap;
+      m_heap = o.m_heap;
       m_heapCap = o.m_heapCap;
-      o.m_heap    = nullptr;
+      o.m_heap = nullptr;
       o.m_heapCap = 0;
     } else {
       std::memcpy(m_inline, o.m_inline, m_size * sizeof(T));
@@ -62,12 +72,13 @@ public:
   }
 
   SmallVector& operator=(const SmallVector& o) {
-    if (this == &o) return *this;
+    if (this == &o)
+      return *this;
     freeHeap();
     m_size = o.m_size;
     if (o.m_heap) {
       m_heapCap = o.m_heapCap;
-      m_heap    = allocate(m_heapCap);
+      m_heap = allocate(m_heapCap);
       std::memcpy(m_heap, o.m_heap, m_size * sizeof(T));
     } else {
       std::memcpy(m_inline, o.m_inline, m_size * sizeof(T));
@@ -76,13 +87,14 @@ public:
   }
 
   SmallVector& operator=(SmallVector&& o) noexcept {
-    if (this == &o) return *this;
+    if (this == &o)
+      return *this;
     freeHeap();
     m_size = o.m_size;
     if (o.m_heap) {
-      m_heap    = o.m_heap;
+      m_heap = o.m_heap;
       m_heapCap = o.m_heapCap;
-      o.m_heap    = nullptr;
+      o.m_heap = nullptr;
       o.m_heapCap = 0;
     } else {
       std::memcpy(m_inline, o.m_inline, m_size * sizeof(T));
@@ -91,7 +103,9 @@ public:
     return *this;
   }
 
-  ~SmallVector() { freeHeap(); }
+  ~SmallVector() {
+    freeHeap();
+  }
 
   // ---- modifiers ---------------------------------------------------------
 
@@ -112,35 +126,65 @@ public:
 
   // ---- queries -----------------------------------------------------------
 
-  bool        empty() const noexcept { return m_size == 0; }
-  std::size_t size()  const noexcept { return m_size; }
+  bool empty() const noexcept {
+    return m_size == 0;
+  }
+  std::size_t size() const noexcept {
+    return m_size;
+  }
 
   /** True when all elements live in the inline buffer (no heap allocation). */
-  bool usingInlineStorage() const noexcept { return m_heap == nullptr; }
+  bool usingInlineStorage() const noexcept {
+    return m_heap == nullptr;
+  }
 
   // ---- iteration ---------------------------------------------------------
 
-  iterator               begin()  noexcept { return data(); }
-  iterator               end()    noexcept { return data() + m_size; }
-  const_iterator         begin()  const noexcept { return data(); }
-  const_iterator         end()    const noexcept { return data() + m_size; }
-  reverse_iterator       rbegin() noexcept { return reverse_iterator(end()); }
-  reverse_iterator       rend()   noexcept { return reverse_iterator(begin()); }
-  const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
-  const_reverse_iterator rend()   const noexcept { return const_reverse_iterator(begin()); }
+  iterator begin() noexcept {
+    return data();
+  }
+  iterator end() noexcept {
+    return data() + m_size;
+  }
+  const_iterator begin() const noexcept {
+    return data();
+  }
+  const_iterator end() const noexcept {
+    return data() + m_size;
+  }
+  reverse_iterator rbegin() noexcept {
+    return reverse_iterator(end());
+  }
+  reverse_iterator rend() noexcept {
+    return reverse_iterator(begin());
+  }
+  const_reverse_iterator rbegin() const noexcept {
+    return const_reverse_iterator(end());
+  }
+  const_reverse_iterator rend() const noexcept {
+    return const_reverse_iterator(begin());
+  }
 
 private:
   // Inline storage: raw bytes, properly aligned for T.
   alignas(T) unsigned char m_inline[InlineCapacity * sizeof(T)];
   std::size_t m_size;
-  T*          m_heap;
+  T* m_heap;
   std::size_t m_heapCap;
 
-  T*       inlineData()       noexcept { return reinterpret_cast<T*>(m_inline); }
-  const T* inlineData() const noexcept { return reinterpret_cast<const T*>(m_inline); }
+  T* inlineData() noexcept {
+    return reinterpret_cast<T*>(m_inline);
+  }
+  const T* inlineData() const noexcept {
+    return reinterpret_cast<const T*>(m_inline);
+  }
 
-  T*       data()       noexcept { return m_heap ? m_heap : inlineData(); }
-  const T* data() const noexcept { return m_heap ? m_heap : inlineData(); }
+  T* data() noexcept {
+    return m_heap ? m_heap : inlineData();
+  }
+  const T* data() const noexcept {
+    return m_heap ? m_heap : inlineData();
+  }
 
   static T* allocate(std::size_t n) {
     return static_cast<T*>(::operator new(n * sizeof(T)));
@@ -149,7 +193,7 @@ private:
   void freeHeap() noexcept {
     if (m_heap) {
       ::operator delete(m_heap);
-      m_heap    = nullptr;
+      m_heap = nullptr;
       m_heapCap = 0;
     }
   }
@@ -158,7 +202,7 @@ private:
     std::size_t newCap = InlineCapacity * 2;
     T* buf = allocate(newCap);
     std::memcpy(buf, inlineData(), m_size * sizeof(T));
-    m_heap    = buf;
+    m_heap = buf;
     m_heapCap = newCap;
   }
 
@@ -167,7 +211,7 @@ private:
     T* buf = allocate(newCap);
     std::memcpy(buf, m_heap, m_size * sizeof(T));
     ::operator delete(m_heap);
-    m_heap    = buf;
+    m_heap = buf;
     m_heapCap = newCap;
   }
 };

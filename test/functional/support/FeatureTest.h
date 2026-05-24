@@ -45,25 +45,23 @@ namespace testing {
     */
   template<class Derived>
   class FeatureTest : public ::testing::Test {
-    enum {
-      STATE_INITIAL = 0,
-      STATE_GIVEN = 1,
-      STATE_WHEN = 2,
-      STATE_THEN = 3
-    };
+    enum { STATE_INITIAL = 0, STATE_GIVEN = 1, STATE_WHEN = 2, STATE_THEN = 3 };
 
   protected:
-    inline virtual void beforeGiven() {}
-    inline virtual void beforeWhen() {}
-    inline virtual void beforeThen() {}
+    inline virtual void beforeGiven() {
+    }
+    inline virtual void beforeWhen() {
+    }
+    inline virtual void beforeThen() {
+    }
 
   public:
     inline FeatureTest()
-      : m_state(STATE_INITIAL)
-    {
+        : m_state(STATE_INITIAL) {
     }
 
-    inline virtual ~FeatureTest() {}
+    inline virtual ~FeatureTest() {
+    }
 
     /// A registered step. Subclasses are emitted by the GIVEN /
     /// WHEN / THEN macros — don't subclass directly.
@@ -124,8 +122,7 @@ namespace testing {
       std::vector<PatternStep> thens;
     };
 
-    inline void invoke(const char* phase,
-                       const std::vector<PatternStep>& steps,
+    inline void invoke(const char* phase, const std::vector<PatternStep>& steps,
                        const std::string& input) {
       const PatternStep* matched = nullptr;
       std::smatch matchResult;
@@ -143,8 +140,8 @@ namespace testing {
       if (count == 0) {
         GTEST_FAIL() << phase << " step not registered: '" << input << "'";
       } else if (count > 1) {
-        GTEST_FAIL() << phase << " step ambiguous: '" << input
-                     << "' matches " << count << " registered patterns";
+        GTEST_FAIL() << phase << " step ambiguous: '" << input << "' matches " << count
+                     << " registered patterns";
       } else {
         matched->step->call(static_cast<Derived*>(this), matchResult);
       }

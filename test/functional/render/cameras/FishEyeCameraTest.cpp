@@ -2,15 +2,15 @@
 
 namespace FishEyeCameraTest {
   using namespace ::testing;
-  
+
   struct FishEyeCameraTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(FishEyeCameraTest, ShouldHaveBlackRingAroundImage) {
     given("a fish-eye camera");
     when("i look at the origin");
     then("i should see a black ring around the image");
   }
-  
+
   TEST_F(FishEyeCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a fish-eye camera");
     given("a centered sphere");
@@ -19,7 +19,7 @@ namespace FishEyeCameraTest {
     // so we just assert visibility rather than shape recognition.
     then("i should see something");
   }
-  
+
   TEST_F(FishEyeCameraTest, ShouldNotBeVisibileOutsideOfView) {
     given("a fish-eye camera");
     given("a displaced sphere");
@@ -33,7 +33,7 @@ namespace FishEyeCameraTest {
     when("i look away from the origin");
     then("i should not see the sphere");
   }
-  
+
   TEST_F(FishEyeCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfPlace) {
     given("a fish-eye camera");
     given("a displaced sphere");
@@ -41,7 +41,7 @@ namespace FishEyeCameraTest {
     when("i set the fish-eye camera's field of view to 360 degrees");
     then("i should see something");
   }
-  
+
   TEST_F(FishEyeCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfDirection) {
     given("a fish-eye camera");
     given("a centered sphere");

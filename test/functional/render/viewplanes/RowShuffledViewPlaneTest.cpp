@@ -5,10 +5,6 @@
 namespace RowShuffledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    RowShuffled,
-    AbstractViewPlaneTest,
-    RowShuffledViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(RowShuffled, AbstractViewPlaneTest, RowShuffledViewPlane);
 }

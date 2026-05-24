@@ -19,8 +19,7 @@ namespace engine::graph {
   class GraphRenderEngine : public render::RenderEngine {
   public:
     explicit GraphRenderEngine(std::shared_ptr<render::Scene> scene);
-    GraphRenderEngine(std::shared_ptr<render::Camera> camera,
-                      std::shared_ptr<render::Scene> scene);
+    GraphRenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
     ~GraphRenderEngine() override;
 
     using RenderEngine::render;

@@ -11,7 +11,9 @@
 using namespace std;
 using namespace render;
 
-Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
+Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                                  const Rayd& ray, const HitPoint& hitPoint,
+                                  render::State& state) const {
   Vector3d out = -ray.direction();
   Vector3d in;
   Colord reflectedColor = m_reflectiveBRDF.sample(hitPoint, out, in);
@@ -28,15 +30,19 @@ Colord TransparentMaterial::shade(const render::RayCaster* raycaster, const rend
     Colord transmittedColor = m_specularBTDF.sample(hitPoint, out, trans);
     Rayd transmitted(hitPoint.point(), trans);
 
-    state.withThroughput(state.throughput * reflectedColor.max() * fabs(hitPoint.normal() * in), [&] {
-      state.recordEvent(this, "TransparentMaterial: Tracing reflection");
-      color += reflectedColor * raycaster->rayColor(reflected.epsilonShifted(), state) * fabs(hitPoint.normal() * in);
-    });
+    state.withThroughput(
+      state.throughput * reflectedColor.max() * fabs(hitPoint.normal() * in), [&] {
+        state.recordEvent(this, "TransparentMaterial: Tracing reflection");
+        color += reflectedColor * raycaster->rayColor(reflected.epsilonShifted(), state) *
+                 fabs(hitPoint.normal() * in);
+      });
 
-    state.withThroughput(state.throughput * transmittedColor.max() * fabs(hitPoint.normal() * trans), [&] {
-      state.recordEvent(this, "TransparentMaterial: Tracing transmission");
-      color += transmittedColor * raycaster->rayColor(transmitted.epsilonShifted(), state) * fabs(hitPoint.normal() * trans);
-    });
+    state.withThroughput(
+      state.throughput * transmittedColor.max() * fabs(hitPoint.normal() * trans), [&] {
+        state.recordEvent(this, "TransparentMaterial: Tracing transmission");
+        color += transmittedColor * raycaster->rayColor(transmitted.epsilonShifted(), state) *
+                 fabs(hitPoint.normal() * trans);
+      });
   }
 
   return color;

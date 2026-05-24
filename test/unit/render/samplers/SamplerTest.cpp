@@ -83,7 +83,7 @@ namespace SamplerTest {
 
   TEST(SamplerStream, DefaultStreamReturnsSamplesFromCorrectSet) {
     IndexedSampler sampler;
-    sampler.setup(4, 8);  // 4 samples per set, 8 sets
+    sampler.setup(4, 8); // 4 samples per set, 8 sets
 
     // With pixelHash=0, dim=0, the lookup is set 0 → samples are
     // (0/100, 0), (1/100, 0), (2/100, 0), (3/100, 0).
@@ -140,9 +140,9 @@ namespace SamplerTest {
     sampler.setup(4, 8);
 
     auto stream = sampler.stream(0, 0);
-    stream->next2D();             // dim 0
-    stream->next1D();             // dim 1
-    auto third = stream->next2D();// dim 2 → set 2 → sample[0] = 2/100
+    stream->next2D();              // dim 0
+    stream->next1D();              // dim 1
+    auto third = stream->next2D(); // dim 2 → set 2 → sample[0] = 2/100
     ASSERT_DOUBLE_EQ(2.0 / 100.0, third.x());
   }
 }

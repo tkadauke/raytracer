@@ -106,102 +106,102 @@ namespace engine::raster::detail {
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
       std::uint64_t globalFaceIdx = 0;
-      auto emitLeaf =
-        [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
+      auto emitLeaf = [&](const render::Primitive* primitive,
+                          std::shared_ptr<render::Material> material) {
+        if (m_cancelled.load())
+          return;
+
+        if (canCullPrimitiveBounds() && primitiveBoundsOutsideClipVolume(primitive)) {
+          return;
+        }
+
+        auto mesh = primitive->tessellate(m_lod);
+        if (!mesh)
+          return;
+
+        const auto& vertices = mesh->vertices();
+        const auto& faces = mesh->faces();
+        const auto& viewPlane = *m_camera->viewPlane();
+        const RasterMaterialSource materialSource = RasterMaterialSource::from(material);
+
+        // Project each mesh vertex once per primitive. Faces then
+        // reuse clip/screen data while fan-triangulating polygons.
+        std::vector<ProjectedVertex> projected(vertices.size());
+        for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
+          const auto& vertex = vertices[vi];
+          const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
+          const std::uint8_t outCode = m_clipVolume.outCode(clip);
+          projected[vi] = {
+            clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
+            outCode};
+        }
+
+        for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
           if (m_cancelled.load())
             return;
 
-          if (canCullPrimitiveBounds() && primitiveBoundsOutsideClipVolume(primitive)) {
-            return;
-          }
+          const auto& face = faces[fi];
+          if (face.size() < 3)
+            continue;
 
-          auto mesh = primitive->tessellate(m_lod);
-          if (!mesh)
-            return;
+          for (std::size_t i = 1; i + 1 < face.size(); ++i) {
+            const ProjectedVertex& p0 = projected[face[0]];
+            const ProjectedVertex& p1 = projected[face[i]];
+            const ProjectedVertex& p2 = projected[face[i + 1]];
+            // Cohen-Sutherland-style bit tests: a shared outside bit rejects
+            // the triangle before invoking the polygon clipper.
+            if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
+              continue;
+            }
 
-          const auto& vertices = mesh->vertices();
-          const auto& faces = mesh->faces();
-          const auto& viewPlane = *m_camera->viewPlane();
-          const RasterMaterialSource materialSource = RasterMaterialSource::from(material);
+            const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
+            if (outCodeOr == 0) {
+              ClipVert v0{vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv,
+                          p0.clip, p0.screen};
+              ClipVert v1{vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv,
+                          p1.clip, p1.screen};
+              ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
+                          vertices[face[i + 1]].uv, p2.clip, p2.screen};
 
-          // Project each mesh vertex once per primitive. Faces then
-          // reuse clip/screen data while fan-triangulating polygons.
-          std::vector<ProjectedVertex> projected(vertices.size());
-          for (std::size_t vi = 0; vi < vertices.size(); ++vi) {
-            const auto& vertex = vertices[vi];
-            const Vector4d clip = m_camera->projectPointToClipSpace(vertex.point);
-            const std::uint8_t outCode = m_clipVolume.outCode(clip);
-            projected[vi] = {
-              clip, outCode == 0 ? viewPlane.screenFromClipUnchecked(clip) : Vector3d::undefined,
-              outCode};
-          }
+              emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
+                                   callback);
+              continue;
+            }
 
-          for (std::size_t fi = 0; fi < faces.size(); ++fi, ++globalFaceIdx) {
-            if (m_cancelled.load())
-              return;
+            // Sutherland-Hodgman homogeneous clipping. The camera gives us
+            // un-divided clip coordinates, so the same polygon clipper
+            // handles the near plane and viewport edges before perspective
+            // divide can create enormous screen coordinates.
+            const std::array<ClipVert, 3> input = {{
+              {vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv, p0.clip,
+               p0.screen},
+              {vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv, p1.clip,
+               p1.screen},
+              {vertices[face[i + 1]].point, vertices[face[i + 1]].normal, vertices[face[i + 1]].uv,
+               p2.clip, p2.screen},
+            }};
 
-            const auto& face = faces[fi];
-            if (face.size() < 3)
+            ClipPolygon clipped;
+            const std::size_t clippedCount = clipTriangleToView(m_clipVolume, input, clipped);
+            if (clippedCount < 3)
               continue;
 
-            for (std::size_t i = 1; i + 1 < face.size(); ++i) {
-              const ProjectedVertex& p0 = projected[face[0]];
-              const ProjectedVertex& p1 = projected[face[i]];
-              const ProjectedVertex& p2 = projected[face[i + 1]];
-              // Cohen-Sutherland-style bit tests: a shared outside bit rejects
-              // the triangle before invoking the polygon clipper.
-              if ((p0.outCode & p1.outCode & p2.outCode) != 0) {
+            for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
+              ClipVert v0 = clipped[0];
+              ClipVert v1 = clipped[t];
+              ClipVert v2 = clipped[t + 1];
+
+              if (!v0.ensureScreen(viewPlane) || !v1.ensureScreen(viewPlane) ||
+                  !v2.ensureScreen(viewPlane)) {
                 continue;
               }
 
-              const std::uint8_t outCodeOr = p0.outCode | p1.outCode | p2.outCode;
-              if (outCodeOr == 0) {
-                ClipVert v0{vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv,
-                            p0.clip, p0.screen};
-                ClipVert v1{vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv,
-                            p1.clip, p1.screen};
-                ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                            vertices[face[i + 1]].uv, p2.clip, p2.screen};
-
-                emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
-                                     callback);
-                continue;
-              }
-
-              // Sutherland-Hodgman homogeneous clipping. The camera gives us
-              // un-divided clip coordinates, so the same polygon clipper
-              // handles the near plane and viewport edges before perspective
-              // divide can create enormous screen coordinates.
-              const std::array<ClipVert, 3> input = {{
-                {vertices[face[0]].point, vertices[face[0]].normal, vertices[face[0]].uv, p0.clip,
-                 p0.screen},
-                {vertices[face[i]].point, vertices[face[i]].normal, vertices[face[i]].uv, p1.clip,
-                 p1.screen},
-                {vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
-                 vertices[face[i + 1]].uv, p2.clip, p2.screen},
-              }};
-
-              ClipPolygon clipped;
-              const std::size_t clippedCount = clipTriangleToView(m_clipVolume, input, clipped);
-              if (clippedCount < 3)
-                continue;
-
-              for (std::size_t t = 1; t + 1 < clippedCount; ++t) {
-                ClipVert v0 = clipped[0];
-                ClipVert v1 = clipped[t];
-                ClipVert v2 = clipped[t + 1];
-
-                if (!v0.ensureScreen(viewPlane) || !v1.ensureScreen(viewPlane) ||
-                    !v2.ensureScreen(viewPlane)) {
-                  continue;
-                }
-
-                emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
-                                     callback);
-              }
+              emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
+                                   callback);
             }
           }
-        };
+        }
+      };
 
       if (canCullPrimitiveBounds()) {
         m_scene->forEachLeafInBounds(
@@ -292,8 +292,8 @@ namespace engine::raster::detail {
       return true;
     }
 
-    static void uvGradients(const RasterVertex& r0, const RasterVertex& r1,
-                            const RasterVertex& r2, Vector2d& uvDx, Vector2d& uvDy) {
+    static void uvGradients(const RasterVertex& r0, const RasterVertex& r1, const RasterVertex& r2,
+                            Vector2d& uvDx, Vector2d& uvDy) {
       const double x10 = r1.x - r0.x;
       const double y10 = r1.y - r0.y;
       const double x20 = r2.x - r0.x;
@@ -349,15 +349,8 @@ namespace engine::raster::detail {
       Vector2d uvDy;
       uvGradients(r0, r1, r2, uvDx, uvDy);
       RasterTangentFrame frame = tangentFrame(r0, r1, r2);
-      out = RasterTriangle{
-        {{r0, r1, r2}},
-        primitive,
-        material,
-        materialSource.forFace(faceIdx),
-        frame,
-        uvDx,
-        uvDy,
-        faceIdx};
+      out = RasterTriangle{{{r0, r1, r2}}, primitive, material, materialSource.forFace(faceIdx),
+                           frame,          uvDx,      uvDy,     faceIdx};
       return true;
     }
 

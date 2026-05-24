@@ -10,7 +10,9 @@ Q_DECLARE_METATYPE(Vector3d);
 
 namespace VectorParameterWidgetTest {
   struct MetaTypeRegistrar {
-    MetaTypeRegistrar() { qRegisterMetaType<Vector3d>(); }
+    MetaTypeRegistrar() {
+      qRegisterMetaType<Vector3d>();
+    }
   };
   static const MetaTypeRegistrar s_registrar;
 

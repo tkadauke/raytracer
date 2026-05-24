@@ -7,12 +7,10 @@ Texture* Texture::defaultTexture() {
     result = new ConstantColorTexture;
     result->setColor(Colord::black());
   }
-  
+
   return result;
 }
 
 Texture::Texture(Element* parent)
-  : Element(parent)
-{
+    : Element(parent) {
 }
-

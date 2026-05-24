@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Commit-time clang-format hook.** The repository now includes a tracked
+  `.githooks/pre-commit` hook that formats staged C/C++ files before each
+  commit, and the pre-commit clang-format configuration now runs in normal fix
+  mode against the formatted baseline. — GPT-5
 - **Scene render-intent JSON.** `world::Scene` now reads and writes an optional
   top-level `renderIntent` block backed by `RenderIntent::toJson()` /
   `RenderIntent::fromJson(...)`; rendercli and Modeler use that saved intent as

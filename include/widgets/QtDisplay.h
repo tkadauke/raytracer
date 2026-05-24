@@ -13,7 +13,7 @@ class QtDisplay : public RenderWidget {
 public:
   explicit QtDisplay(QWidget* parent, std::shared_ptr<render::RenderEngine> engine);
   ~QtDisplay();
-  
+
   void setInteractive(bool interactive);
   bool interactive() const;
 
@@ -23,14 +23,14 @@ public:
   /// until the current frame completes.
   void setCancelRenderOnInteraction(bool cancel);
   bool cancelRenderOnInteraction() const;
-  
+
   virtual void mouseMoveEvent(QMouseEvent* event);
   virtual void mousePressEvent(QMouseEvent* event);
   virtual void wheelEvent(QWheelEvent* event);
   virtual void resizeEvent(QResizeEvent* event);
 
   virtual void render();
-  
+
   void setDistance(double distance);
 
   /// Reset the interactive orbit camera to a concrete world-space

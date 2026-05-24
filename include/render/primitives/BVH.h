@@ -60,7 +60,8 @@ namespace render {
       * the whole tree, with `hitPoints` populated by every primitive
       * that intersected (matches `Composite`'s contract).
       */
-    const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                               render::State& state) const override;
 
     /**
       * Boolean shadow-ray variant — same descent but short-circuits
@@ -107,8 +108,12 @@ namespace render {
       * primitive-intersection work per leaf hit. Default 4 matches
       * the PBRT recommendation.
       */
-    inline void setLeafSize(int n) { m_leafSize = n; }
-    inline int leafSize() const { return m_leafSize; }
+    inline void setLeafSize(int n) {
+      m_leafSize = n;
+    }
+    inline int leafSize() const {
+      return m_leafSize;
+    }
 
   private:
     struct Node {
@@ -117,28 +122,26 @@ namespace render {
       std::unique_ptr<Node> right;
       std::vector<std::shared_ptr<Primitive>> primitives;
 
-      inline bool isLeaf() const { return !left && !right; }
+      inline bool isLeaf() const {
+        return !left && !right;
+      }
     };
 
     std::unique_ptr<Node> m_root;
     int m_leafSize{4};
 
     std::unique_ptr<Node> build(std::vector<std::shared_ptr<Primitive>> prims) const;
-    const Primitive* intersectNode(const Node* node, const Rayd& ray,
-                                    HitPointInterval& hitPoints, render::State& state) const;
+    const Primitive* intersectNode(const Node* node, const Rayd& ray, HitPointInterval& hitPoints,
+                                   render::State& state) const;
     bool intersectsNode(const Node* node, const Rayd& ray, render::State& state) const;
 
-    void intersectPacketNode(const Node* node, const Ray4& rays,
-                              uint16_t activeMask,
-                              std::array<float, Ray4::lanes>& tMin,
-                              uint16_t& hitMask,
-                              render::State& state) const;
+    void intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activeMask,
+                             std::array<float, Ray4::lanes>& tMin, uint16_t& hitMask,
+                             render::State& state) const;
 #ifdef __AVX__
-    void intersectPacketNode(const Node* node, const Ray8& rays,
-                              uint16_t activeMask,
-                              std::array<float, Ray8::lanes>& tMin,
-                              uint16_t& hitMask,
-                              render::State& state) const;
+    void intersectPacketNode(const Node* node, const Ray8& rays, uint16_t activeMask,
+                             std::array<float, Ray8::lanes>& tMin, uint16_t& hitMask,
+                             render::State& state) const;
 #endif
   };
 }

@@ -8,16 +8,15 @@ namespace render {
   class MeshTriangle : public Primitive {
   public:
     inline explicit MeshTriangle(const Mesh* mesh, int index0, int index1, int index2)
-      : Primitive(),
-        m_mesh(mesh),
-        m_index0(index0),
-        m_index1(index1),
-        m_index2(index2)
-    {
+        : Primitive(),
+          m_mesh(mesh),
+          m_index0(index0),
+          m_index1(index1),
+          m_index2(index2) {
     }
 
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
-    
+
   protected:
     virtual BoundingBoxd calculateBoundingBox() const override;
 

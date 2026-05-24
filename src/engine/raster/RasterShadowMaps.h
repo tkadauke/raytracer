@@ -402,9 +402,8 @@ namespace engine::raster::detail {
   // Split the camera-depth interval into cascade ranges. `splitLambda` controls
   // the linear/logarithmic blend: 0 preserves the old uniform split, 1 is fully
   // logarithmic, and the default 0.5 gives practical near-depth emphasis.
-  inline std::vector<std::pair<double, double>> cascadeDepthRanges(double minDepth, double maxDepth,
-                                                                   int cascadeCount,
-                                                                   double splitLambda) {
+  inline std::vector<std::pair<double, double>>
+  cascadeDepthRanges(double minDepth, double maxDepth, int cascadeCount, double splitLambda) {
     cascadeCount = std::max(1, cascadeCount);
     std::vector<std::pair<double, double>> ranges;
     ranges.reserve(static_cast<std::size_t>(cascadeCount));
@@ -439,8 +438,8 @@ namespace engine::raster::detail {
   // This lets cascade bounds include sliced faces rather than only original box
   // corners that happen to fall inside the depth range.
   inline void includeDepthPlaneIntersection(std::vector<Vector3d>& points, const Vector3d& a,
-                                            double depthA,
-                                            const Vector3d& b, double depthB, double splitDepth) {
+                                            double depthA, const Vector3d& b, double depthB,
+                                            double splitDepth) {
     if (!std::isfinite(depthA) || !std::isfinite(depthB) || depthA == depthB)
       return;
 
@@ -456,9 +455,9 @@ namespace engine::raster::detail {
   // Collect the scene-bounds points that define one camera-depth cascade. The
   // point set includes original AABB corners inside the depth interval and the
   // edge/split-plane intersections where the interval cuts through the AABB.
-  inline std::vector<Vector3d> cascadePointsForDepthRange(
-    const std::array<Vector3d, 8>& corners, const render::Camera& camera, double minDepth,
-    double maxDepth) {
+  inline std::vector<Vector3d> cascadePointsForDepthRange(const std::array<Vector3d, 8>& corners,
+                                                          const render::Camera& camera,
+                                                          double minDepth, double maxDepth) {
     std::array<double, 8> depths{};
     for (std::size_t i = 0; i != corners.size(); ++i) {
       depths[i] = camera.eyeRelativeDepth(corners[i]);

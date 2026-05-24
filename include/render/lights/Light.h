@@ -38,9 +38,11 @@ namespace render {
     */
   class Light : public render::Object {
   public:
-    inline Light() {}
+    inline Light() {
+    }
 
-    inline virtual ~Light() {}
+    inline virtual ~Light() {
+    }
 
     /**
       * @returns the unit vector from `point` toward the light. For

@@ -2,9 +2,9 @@
 
 namespace SphericalCameraTest {
   using namespace ::testing;
-  
+
   struct SphericalCameraTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(SphericalCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a spherical camera");
     given("a centered sphere");
@@ -13,7 +13,7 @@ namespace SphericalCameraTest {
     // so we just assert visibility rather than shape recognition.
     then("i should see something");
   }
-  
+
   TEST_F(SphericalCameraTest, ShouldNotBeVisibileOutsideOfView) {
     given("a spherical camera");
     given("a displaced sphere");
@@ -27,7 +27,7 @@ namespace SphericalCameraTest {
     when("i look away from the origin");
     then("i should not see the sphere");
   }
-  
+
   TEST_F(SphericalCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfPlace) {
     given("a spherical camera");
     given("a displaced sphere");
@@ -37,7 +37,7 @@ namespace SphericalCameraTest {
     // so we just assert visibility rather than shape recognition.
     then("i should see something");
   }
-  
+
   TEST_F(SphericalCameraTest, ShouldSeeAllObjectsWithMaximumFieldOfViewRegardlessOfDirection) {
     given("a spherical camera");
     given("a centered sphere");

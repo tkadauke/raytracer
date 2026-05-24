@@ -19,9 +19,9 @@
 namespace TransparentMaterialTest {
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
 
   TEST(TransparentMaterial, ShouldInitialize) {
@@ -199,11 +199,11 @@ using namespace render;
     scene->setBackground(Colord::black());
 
     auto material = std::make_shared<TransparentMaterial>(
-        std::make_shared<ConstantColorTexture>(Colord(0.7, 0.2, 0.1)));
+      std::make_shared<ConstantColorTexture>(Colord(0.7, 0.2, 0.1)));
     material->setRefractionIndex(1.5);
 
     auto rt = std::make_shared<Raytracer>(scene);
-    rt->setMaximumRecursionDepth(1);  // forces the reflected ray to truncate.
+    rt->setMaximumRecursionDepth(1); // forces the reflected ray to truncate.
 
     // Outward normal +y; ray exiting glass at 60° from normal — past the
     // ~41.8° critical angle for IOR 1.5, so TIR triggers.

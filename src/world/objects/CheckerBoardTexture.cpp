@@ -20,13 +20,12 @@ namespace {
 }
 
 CheckerBoardTexture::CheckerBoardTexture(Element* parent)
-  : Texture(parent),
-    m_brightTexture(nullptr),
-    m_darkTexture(nullptr),
-    m_mapping("planar"),
-    m_uScale(1.0),
-    m_vScale(1.0)
-{
+    : Texture(parent),
+      m_brightTexture(nullptr),
+      m_darkTexture(nullptr),
+      m_mapping("planar"),
+      m_uScale(1.0),
+      m_vScale(1.0) {
 }
 
 std::shared_ptr<render::Texturec> CheckerBoardTexture::toRaytracerTexture() const {
@@ -38,10 +37,9 @@ std::shared_ptr<render::Texturec> CheckerBoardTexture::toRaytracerTexture() cons
       ? static_cast<render::TextureMapping2D*>(new render::UVMapping2D(uScale, vScale))
       : static_cast<render::TextureMapping2D*>(new render::PlanarMapping2D);
   return make_named<render::CheckerBoardTexture>(
-    mapping,
-    textureOrDefault(brightTexture())->toRaytracerTexture(),
-    textureOrDefault(darkTexture())->toRaytracerTexture()
-  );
+    mapping, textureOrDefault(brightTexture())->toRaytracerTexture(),
+    textureOrDefault(darkTexture())->toRaytracerTexture());
 }
 
-static bool dummy = ElementFactory::self().registerClass<CheckerBoardTexture>("CheckerBoardTexture");
+static bool dummy =
+  ElementFactory::self().registerClass<CheckerBoardTexture>("CheckerBoardTexture");

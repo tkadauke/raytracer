@@ -10,11 +10,11 @@ using namespace std;
 
 namespace HitPointTest {
   static render::Box* box = new render::Box(Vector3d::null, Vector3d::one);
-  
+
   TEST(HitPoint, ShouldInitialize) {
     HitPoint point;
   }
-  
+
   TEST(HitPoint, ShouldInitializeWithValues) {
     HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
     ASSERT_EQ(box, point.primitive());
@@ -28,7 +28,7 @@ namespace HitPointTest {
     HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.25, 0.75));
     ASSERT_EQ(Vector2d(0.25, 0.75), point.uv());
   }
-  
+
   TEST(HitPoint, ShouldAssign) {
     HitPoint point;
     point = HitPoint(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
@@ -37,25 +37,25 @@ namespace HitPointTest {
     ASSERT_EQ(Vector3d(1, 0, 0), point.point());
     ASSERT_EQ(Vector3d(0, 1, 0), point.normal());
   }
-  
+
   TEST(HitPoint, ShouldSetPrimitive) {
     HitPoint point;
     point.setPrimitive(box);
     ASSERT_EQ(box, point.primitive());
   }
-  
+
   TEST(HitPoint, ShouldSetDistance) {
     HitPoint point;
     point.setDistance(4);
     ASSERT_EQ(4, point.distance());
   }
-  
+
   TEST(HitPoint, ShouldSetPoint) {
     HitPoint point;
     point.setPoint(Vector3d(1, 0, 0));
     ASSERT_EQ(Vector3d(1, 0, 0), point.point());
   }
-  
+
   TEST(HitPoint, ShouldSetNormal) {
     HitPoint point;
     point.setNormal(Vector3d(0, 1, 0));
@@ -67,37 +67,37 @@ namespace HitPointTest {
     point.setUV(Vector2d(0.25, 0.75));
     ASSERT_EQ(Vector2d(0.25, 0.75), point.uv());
   }
-  
+
   TEST(HitPoint, ShouldCompareSameHitPointForEquality) {
     HitPoint point;
     ASSERT_TRUE(point == point);
   }
-  
+
   TEST(HitPoint, ShouldCompareEqualHitPointsForEquality) {
     HitPoint point1(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
-             point2(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
+      point2(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0));
     ASSERT_TRUE(point1 == point2);
   }
-  
+
   TEST(HitPoint, ShouldCompareUnequalHitPointsForEquality) {
     HitPoint point1(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
-             point2(box, 4, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
+      point2(box, 4, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
     ASSERT_FALSE(point1 == point2);
   }
 
   TEST(HitPoint, ShouldCompareUVsForEquality) {
     HitPoint point1(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.25, 0.75)),
-             point2(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.5, 0.75));
+      point2(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.5, 0.75));
     ASSERT_FALSE(point1 == point2);
   }
-  
+
   TEST(HitPoint, ShouldCompareHitPointsByDistance) {
     HitPoint point1(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
-             point2(box, 4, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
+      point2(box, 4, Vector3d(0, 1, 0), Vector3d(0, 1, 0));
     ASSERT_TRUE(point1 < point2);
     ASSERT_FALSE(point2 < point1);
   }
-  
+
   TEST(HitPoint, ShouldProvideUndefinedHitPoint) {
     HitPoint point = HitPoint::undefined();
     ASSERT_EQ(nullptr, point.primitive());
@@ -106,20 +106,20 @@ namespace HitPointTest {
     ASSERT_TRUE(point.normal().isUndefined());
     ASSERT_TRUE(point.uv().isUndefined());
   }
-  
+
   TEST(HitPoint, ShouldReturnTrueIfHitPointIsUndefined) {
     HitPoint point = HitPoint::undefined();
     ASSERT_TRUE(point.isUndefined());
   }
-  
+
   TEST(HitPoint, ShouldReturnFalseIfHitPointIsNotUndefined) {
     HitPoint point;
     ASSERT_FALSE(point.isUndefined());
   }
-  
+
   TEST(HitPoint, ShouldReturnHitPointWithSwappedNormal) {
     HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0)),
-             expected(box, 3, Vector3d(1, 0, 0), Vector3d(0, -1, 0));
+      expected(box, 3, Vector3d(1, 0, 0), Vector3d(0, -1, 0));
     ASSERT_TRUE(expected == point.swappedNormal());
   }
 
@@ -127,7 +127,7 @@ namespace HitPointTest {
     HitPoint point(box, 3, Vector3d(1, 0, 0), Vector3d(0, 1, 0), Vector2d(0.25, 0.75));
     ASSERT_EQ(point.uv(), point.swappedNormal().uv());
   }
-  
+
   TEST(HitPoint, ShouldTransformHitpointWithPointMatrix) {
     Vector4d point(1, 0, 0);
     Vector3d normal(0, 1, 0);
@@ -162,14 +162,14 @@ namespace HitPointTest {
     HitPoint transformed = hp.transform(pointMatrix, Matrix3d());
     ASSERT_EQ(hp.uv(), transformed.uv());
   }
-  
+
   TEST(HitPoint, ShouldStreamHitPointToString) {
     Vector3d point(1, 0, 0), normal(0, 1, 0);
     HitPoint hp(box, 3, point, normal);
-    
+
     ostringstream str;
     str << hp;
-    
+
     ASSERT_EQ("((1, 0, 0, 1) (0, 1, 0), 3)", str.str());
   }
 }

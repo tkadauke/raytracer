@@ -4,9 +4,8 @@
 #include "render/cameras/OrthographicCamera.h"
 
 OrthographicCamera::OrthographicCamera(Element* parent)
-  : Camera(parent),
-    m_zoom(1)
-{
+    : Camera(parent),
+      m_zoom(1) {
 }
 
 std::shared_ptr<render::Camera> OrthographicCamera::toRaytracer() const {
@@ -16,4 +15,3 @@ std::shared_ptr<render::Camera> OrthographicCamera::toRaytracer() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<OrthographicCamera>("OrthographicCamera");
-

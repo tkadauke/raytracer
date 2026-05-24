@@ -10,14 +10,13 @@ struct ThinLensCameraParameterWidget::Private {
 };
 
 ThinLensCameraParameterWidget::ThinLensCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : CameraParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
-  connect(p->ui.distanceInput,        SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
-  connect(p->ui.zoomInput,            SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
-  connect(p->ui.apertureRadiusInput,  SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
-  connect(p->ui.focalDistanceInput,   SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
+  connect(p->ui.distanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
+  connect(p->ui.zoomInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
+  connect(p->ui.apertureRadiusInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
+  connect(p->ui.focalDistanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
 }
 
 ThinLensCameraParameterWidget::~ThinLensCameraParameterWidget() {
@@ -56,4 +55,6 @@ void ThinLensCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> came
   }
 }
 
-static bool dummy = CameraParameterWidgetFactory::self().registerClass<ThinLensCameraParameterWidget>("ThinLensCamera");
+static bool dummy =
+  CameraParameterWidgetFactory::self().registerClass<ThinLensCameraParameterWidget>(
+    "ThinLensCamera");

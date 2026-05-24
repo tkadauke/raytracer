@@ -28,8 +28,7 @@ namespace FeatureTestSelfTestNs {
     bool sawCentered{false};
   };
 
-  class FeatureTestAmbiguityTest : public ::testing::FeatureTest<FeatureTestAmbiguityTest> {
-  };
+  class FeatureTestAmbiguityTest : public ::testing::FeatureTest<FeatureTestAmbiguityTest> {};
 
   // Capture a fatal failure raised inside `fn` and return its
   // message. `EXPECT_FATAL_FAILURE` wraps the statement in a static
@@ -39,11 +38,11 @@ namespace FeatureTestSelfTestNs {
     ::testing::TestPartResultArray failures;
     {
       ::testing::ScopedFakeTestPartResultReporter reporter(
-        ::testing::ScopedFakeTestPartResultReporter::INTERCEPT_ONLY_CURRENT_THREAD,
-        &failures);
+        ::testing::ScopedFakeTestPartResultReporter::INTERCEPT_ONLY_CURRENT_THREAD, &failures);
       fn();
     }
-    if (failures.size() == 0) return "<no failure>";
+    if (failures.size() == 0)
+      return "<no failure>";
     const auto& first = failures.GetTestPartResult(0);
     if (first.type() != ::testing::TestPartResult::kFatalFailure) {
       return std::string("<non-fatal: ") + first.message() + ">";
@@ -78,8 +77,10 @@ GIVEN(FeatureTestSelfTest, "a centered sphere") {
 // test — kept on `FeatureTestAmbiguityTest`'s own registry so the
 // `(.*)` wildcard doesn't accidentally match unrelated steps in the
 // other fixture.
-GIVEN(FeatureTestAmbiguityTest, "duplicated trigger") {}
-GIVEN(FeatureTestAmbiguityTest, "(.*) trigger") {}
+GIVEN(FeatureTestAmbiguityTest, "duplicated trigger") {
+}
+GIVEN(FeatureTestAmbiguityTest, "(.*) trigger") {
+}
 
 namespace FeatureTestSelfTestNs {
   TEST_F(FeatureTestSelfTest, RegexCaptureExposesGroupAsMatch) {
@@ -99,34 +100,22 @@ namespace FeatureTestSelfTestNs {
   }
 
   TEST_F(FeatureTestSelfTest, MissingGivenIsHardFailure) {
-    auto msg = captureFatalFailure([this] {
-      given("definitely not a registered step");
-    });
-    EXPECT_NE(std::string::npos, msg.find("given step not registered"))
-      << "actual: " << msg;
+    auto msg = captureFatalFailure([this] { given("definitely not a registered step"); });
+    EXPECT_NE(std::string::npos, msg.find("given step not registered")) << "actual: " << msg;
   }
 
   TEST_F(FeatureTestSelfTest, MissingWhenIsHardFailure) {
-    auto msg = captureFatalFailure([this] {
-      when("definitely not a registered step");
-    });
-    EXPECT_NE(std::string::npos, msg.find("when step not registered"))
-      << "actual: " << msg;
+    auto msg = captureFatalFailure([this] { when("definitely not a registered step"); });
+    EXPECT_NE(std::string::npos, msg.find("when step not registered")) << "actual: " << msg;
   }
 
   TEST_F(FeatureTestSelfTest, MissingThenIsHardFailure) {
-    auto msg = captureFatalFailure([this] {
-      then("definitely not a registered step");
-    });
-    EXPECT_NE(std::string::npos, msg.find("then step not registered"))
-      << "actual: " << msg;
+    auto msg = captureFatalFailure([this] { then("definitely not a registered step"); });
+    EXPECT_NE(std::string::npos, msg.find("then step not registered")) << "actual: " << msg;
   }
 
   TEST_F(FeatureTestAmbiguityTest, AmbiguousStepIsHardFailure) {
-    auto msg = captureFatalFailure([this] {
-      given("duplicated trigger");
-    });
-    EXPECT_NE(std::string::npos, msg.find("given step ambiguous"))
-      << "actual: " << msg;
+    auto msg = captureFatalFailure([this] { given("duplicated trigger"); });
+    EXPECT_NE(std::string::npos, msg.find("given step ambiguous")) << "actual: " << msg;
   }
 }

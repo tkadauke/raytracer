@@ -19,10 +19,9 @@ public:
     * @endcode
     */
   inline explicit ScopeExit(const std::function<void()>& func)
-    : m_func(func)
-  {
+      : m_func(func) {
   }
-  
+
   /**
     * Destructor. Executes the lambda function given in the constructor.
     */

@@ -11,16 +11,9 @@
 namespace render {
   class TextureMapping2D;
 
-  enum class ImageTextureFilter {
-    Nearest,
-    Bilinear,
-    Mipmap
-  };
+  enum class ImageTextureFilter { Nearest, Bilinear, Mipmap };
 
-  enum class ImageTextureWrap {
-    Clamp,
-    Repeat
-  };
+  enum class ImageTextureWrap { Clamp, Repeat };
 
   /**
     * Image-backed color texture with explicit CPU filtering.
@@ -48,10 +41,10 @@ namespace render {
                  ImageTextureWrap wrap = ImageTextureWrap::Repeat);
     virtual ~ImageTexture();
 
-    static std::shared_ptr<ImageTexture> fromFile(
-      TextureMapping2D* mapping, const std::string& path,
-      ImageTextureFilter filter = ImageTextureFilter::Nearest,
-      ImageTextureWrap wrap = ImageTextureWrap::Repeat);
+    static std::shared_ptr<ImageTexture>
+    fromFile(TextureMapping2D* mapping, const std::string& path,
+             ImageTextureFilter filter = ImageTextureFilter::Nearest,
+             ImageTextureWrap wrap = ImageTextureWrap::Repeat);
 
     int width(int level = 0) const;
     int height(int level = 0) const;

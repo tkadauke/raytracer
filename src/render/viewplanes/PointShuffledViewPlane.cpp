@@ -25,9 +25,8 @@ namespace {
   };
 
   PointShuffleIterator::PointShuffleIterator(const ViewPlane* plane, const Recti& rect)
-    : IteratorBase(plane, rect),
-      m_pointIndex(0)
-  {
+      : IteratorBase(plane, rect),
+        m_pointIndex(0) {
     for (int i = 0; i != rect.height(); ++i) {
       for (int j = 0; j != rect.width(); ++j)
         m_pointIndices.push_back(make_pair(i, j));
@@ -51,4 +50,5 @@ ViewPlane::Iterator PointShuffledViewPlane::begin(const Recti& rect) const {
   return Iterator(new PointShuffleIterator(this, rect));
 }
 
-static bool dummy = ViewPlaneFactory::self().registerClass<PointShuffledViewPlane>("PointShuffledViewPlane");
+static bool dummy =
+  ViewPlaneFactory::self().registerClass<PointShuffledViewPlane>("PointShuffledViewPlane");

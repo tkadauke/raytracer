@@ -20,7 +20,7 @@ namespace render {
 
 namespace engine::raster {
 
-/**
+  /**
   * @brief `RenderEngine` that projects every mesh face's triangles
   *        to screen space, depth-tests them through a Z-buffer, and
   *        direct-shades each pixel from interpolated vertex normals
@@ -492,139 +492,87 @@ namespace engine::raster {
   * @see Wireframe — the cheaper sibling that draws only edges; the
   *      same projection + tessellation pipeline drives both.
   */
-class Rasterizer : public render::RenderEngine {
-public:
-  enum class CullMode {
-    Both,
-    Back,
-    Front
-  };
+  class Rasterizer : public render::RenderEngine {
+  public:
+    enum class CullMode { Both, Back, Front };
 
-  enum class DepthFunc {
-    Never,
-    Less,
-    Equal,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    NotEqual,
-    Always
-  };
+    enum class DepthFunc { Never, Less, Equal, LessEqual, Greater, GreaterEqual, NotEqual, Always };
 
-  enum class StencilFunc {
-    Never,
-    Less,
-    Equal,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    NotEqual,
-    Always
-  };
+    enum class StencilFunc {
+      Never,
+      Less,
+      Equal,
+      LessEqual,
+      Greater,
+      GreaterEqual,
+      NotEqual,
+      Always
+    };
 
-  enum class StencilOp {
-    Keep,
-    Zero,
-    Replace,
-    IncrementClamp,
-    DecrementClamp,
-    Invert
-  };
+    enum class StencilOp { Keep, Zero, Replace, IncrementClamp, DecrementClamp, Invert };
 
-  enum class BlendFactor {
-    Zero,
-    One,
-    SourceColor,
-    OneMinusSourceColor,
-    SourceAlpha,
-    OneMinusSourceAlpha,
-    DestinationColor,
-    OneMinusDestinationColor,
-    ConstantColor,
-    OneMinusConstantColor,
-    ConstantAlpha,
-    OneMinusConstantAlpha
-  };
+    enum class BlendFactor {
+      Zero,
+      One,
+      SourceColor,
+      OneMinusSourceColor,
+      SourceAlpha,
+      OneMinusSourceAlpha,
+      DestinationColor,
+      OneMinusDestinationColor,
+      ConstantColor,
+      OneMinusConstantColor,
+      ConstantAlpha,
+      OneMinusConstantAlpha
+    };
 
-  enum class BlendOp {
-    Add,
-    Subtract,
-    ReverseSubtract,
-    Min,
-    Max
-  };
+    enum class BlendOp { Add, Subtract, ReverseSubtract, Min, Max };
 
-  enum class PostProcessAA {
-    None,
-    FXAA,
-    SMAA,
-    TAA
-  };
+    enum class PostProcessAA { None, FXAA, SMAA, TAA };
 
-  enum class MSAAShadingMode {
-    PerSample,
-    PerFragment
-  };
+    enum class MSAAShadingMode { PerSample, PerFragment };
 
-  enum class ShadowFilterMode {
-    PCF,
-    PCSS
-  };
+    enum class ShadowFilterMode { PCF, PCSS };
 
-  enum class AttachmentLoadOp {
-    Clear,
-    Load
-  };
+    enum class AttachmentLoadOp { Clear, Load };
 
-  enum class AttachmentStoreOp {
-    Store,
-    Discard
-  };
+    enum class AttachmentStoreOp { Store, Discard };
 
-  enum class AlphaFunc {
-    Never,
-    Less,
-    Equal,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    NotEqual,
-    Always
-  };
+    enum class AlphaFunc { Never, Less, Equal, LessEqual, Greater, GreaterEqual, NotEqual, Always };
 
-  struct VertexInput {
-    Vector3d worldPosition;
-    Vector3d normal;
-    Vector2d uv;
-    Vector4d clipPosition;
-    Vector3d screenPosition;
-    const render::Primitive* primitive;
-    const render::Material* material;
-    std::uint64_t faceIdx;
-  };
+    struct VertexInput {
+      Vector3d worldPosition;
+      Vector3d normal;
+      Vector2d uv;
+      Vector4d clipPosition;
+      Vector3d screenPosition;
+      const render::Primitive* primitive;
+      const render::Material* material;
+      std::uint64_t faceIdx;
+    };
 
-  struct VertexOutput {
-    Vector3d worldPosition;
-    Vector3d normal;
-    Vector2d uv;
-    Vector4d clipPosition;
-    Vector3d screenPosition;
-  };
+    struct VertexOutput {
+      Vector3d worldPosition;
+      Vector3d normal;
+      Vector2d uv;
+      Vector4d clipPosition;
+      Vector3d screenPosition;
+    };
 
-  struct FragmentInput {
-    int x;
-    int y;
-    double depth;
-    Vector3d barycentric;
-    Vector3d worldPosition;
-    Vector3d normal;
-    Vector2d uv;
-    const render::Primitive* primitive;
-    const render::Material* material;
-    std::uint64_t faceIdx;
-  };
+    struct FragmentInput {
+      int x;
+      int y;
+      double depth;
+      Vector3d barycentric;
+      Vector3d worldPosition;
+      Vector3d normal;
+      Vector2d uv;
+      const render::Primitive* primitive;
+      const render::Material* material;
+      std::uint64_t faceIdx;
+    };
 
-  /**
+    /**
     * Optional pass outputs populated during `render(Buffer<Colord>&)`.
     *
     * These buffers are borrowed; callers own allocation and lifetime.
@@ -649,16 +597,16 @@ public:
     * it actually renders, or wait for the broader render-pass resource
     * contract.
     */
-  struct DiagnosticOutputBuffers {
-    Buffer<double>* depth = nullptr;
-    Buffer<Vector3d>* normal = nullptr;
-    Buffer<const render::Primitive*>* primitive = nullptr;
-    Buffer<const render::Material*>* material = nullptr;
-    Buffer<std::uint64_t>* face = nullptr;
-    Buffer<std::uint8_t>* stencil = nullptr;
-  };
+    struct DiagnosticOutputBuffers {
+      Buffer<double>* depth = nullptr;
+      Buffer<Vector3d>* normal = nullptr;
+      Buffer<const render::Primitive*>* primitive = nullptr;
+      Buffer<const render::Material*>* material = nullptr;
+      Buffer<std::uint64_t>* face = nullptr;
+      Buffer<std::uint8_t>* stencil = nullptr;
+    };
 
-  /**
+    /**
     * Optional depth/stencil attachments used by `render(Buffer<Colord>&)`.
     *
     * Color is supplied by the render target argument. Depth and stencil are
@@ -672,125 +620,146 @@ public:
     * attachments are single-sample resources; MSAA renders keep their existing
     * independent per-sample transient depth/stencil buffers.
     */
-  struct AttachmentBuffers {
-    Buffer<double>* depth = nullptr;
-    Buffer<std::uint8_t>* stencil = nullptr;
-  };
+    struct AttachmentBuffers {
+      Buffer<double>* depth = nullptr;
+      Buffer<std::uint8_t>* stencil = nullptr;
+    };
 
-  using VertexShader = std::function<VertexOutput(const VertexInput&)>;
-  using FragmentShader = std::function<Colord(const FragmentInput&)>;
+    using VertexShader = std::function<VertexOutput(const VertexInput&)>;
+    using FragmentShader = std::function<Colord(const FragmentInput&)>;
 
-  static constexpr std::uint8_t ColorWriteRed = 0x1;
-  static constexpr std::uint8_t ColorWriteGreen = 0x2;
-  static constexpr std::uint8_t ColorWriteBlue = 0x4;
-  static constexpr std::uint8_t ColorWriteAll =
-    ColorWriteRed | ColorWriteGreen | ColorWriteBlue;
+    static constexpr std::uint8_t ColorWriteRed = 0x1;
+    static constexpr std::uint8_t ColorWriteGreen = 0x2;
+    static constexpr std::uint8_t ColorWriteBlue = 0x4;
+    static constexpr std::uint8_t ColorWriteAll = ColorWriteRed | ColorWriteGreen | ColorWriteBlue;
 
-  explicit Rasterizer(std::shared_ptr<render::Scene> scene);
-  Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
+    explicit Rasterizer(std::shared_ptr<render::Scene> scene);
+    Rasterizer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
-  ~Rasterizer() override;
+    ~Rasterizer() override;
 
-  using RenderEngine::render;
-  std::shared_ptr<render::RenderEngine> cloneForRender() const override;
-  void render(Buffer<unsigned int>& buffer) override;
-  void render(Buffer<Colord>& buffer) override;
-  void cancel() override;
-  void uncancel() override;
-  std::list<Recti> activeTiles() const override;
+    using RenderEngine::render;
+    std::shared_ptr<render::RenderEngine> cloneForRender() const override;
+    void render(Buffer<unsigned int>& buffer) override;
+    void render(Buffer<Colord>& buffer) override;
+    void cancel() override;
+    void uncancel() override;
+    std::list<Recti> activeTiles() const override;
 
-  /// Level of detail forwarded to `Primitive::tessellate(lod)`.
-  /// Higher values produce denser triangulation (a UV sphere at
-  /// `lod=0` has 128 quads = 256 triangles; `lod=2` has 2048 quads).
-  inline int lod() const { return m_lod; }
-  inline void setLod(int lod) { m_lod = lod; }
+    /// Level of detail forwarded to `Primitive::tessellate(lod)`.
+    /// Higher values produce denser triangulation (a UV sphere at
+    /// `lod=0` has 128 quads = 256 triangles; `lod=2` has 2048 quads).
+    inline int lod() const {
+      return m_lod;
+    }
+    inline void setLod(int lod) {
+      m_lod = lod;
+    }
 
-  /// Sets the worker-thread count for tile rasterization. Defaults
-  /// to `QThread::idealThreadCount()`.
-  void setMaximumThreads(int threads);
+    /// Sets the worker-thread count for tile rasterization. Defaults
+    /// to `QThread::idealThreadCount()`.
+    void setMaximumThreads(int threads);
 
-  /// Returns the configured queue size. In automatic mode this is the
-  /// candidate tiled queue size; the actual per-frame choice is exposed
-  /// through `lastResolvedQueueSize()` after rendering.
-  int queueSize() const;
+    /// Returns the configured queue size. In automatic mode this is the
+    /// candidate tiled queue size; the actual per-frame choice is exposed
+    /// through `lastResolvedQueueSize()` after rendering.
+    int queueSize() const;
 
-  /// Returns true when the queue size is an explicit caller override.
-  bool hasExplicitQueueSize() const;
+    /// Returns true when the queue size is an explicit caller override.
+    bool hasExplicitQueueSize() const;
 
-  /// Returns the queue size used by the most recent render. Automatic
-  /// policy renders update this to either 1 or the selected tiled queue
-  /// size; explicit queue-size renders update it to the explicit value.
-  int lastResolvedQueueSize() const;
+    /// Returns the queue size used by the most recent render. Automatic
+    /// policy renders update this to either 1 or the selected tiled queue
+    /// size; explicit queue-size renders update it to the explicit value.
+    int lastResolvedQueueSize() const;
 
-  /// Sets the number of tiles dispatched per render and disables the
-  /// scene-aware automatic policy. Values above 1 enable the tiled
-  /// `QThreadPool` path; `1` forces the single-tile path.
-  void setQueueSize(int queue);
+    /// Sets the number of tiles dispatched per render and disables the
+    /// scene-aware automatic policy. Values above 1 enable the tiled
+    /// `QThreadPool` path; `1` forces the single-tile path.
+    void setQueueSize(int queue);
 
-  /// Re-enables scene-aware automatic queue-size selection.
-  void setAutomaticQueueSize();
+    /// Re-enables scene-aware automatic queue-size selection.
+    void setAutomaticQueueSize();
 
-  /// Number of fixed subpixel MSAA samples per pixel. Defaults to 1
-  /// (disabled). Values are rounded up to the supported 1/2/4/8
-  /// sample counts.
-  inline int msaaSamples() const { return m_msaaSamples; }
-  void setMSAASamples(int samples);
+    /// Number of fixed subpixel MSAA samples per pixel. Defaults to 1
+    /// (disabled). Values are rounded up to the supported 1/2/4/8
+    /// sample counts.
+    inline int msaaSamples() const {
+      return m_msaaSamples;
+    }
+    void setMSAASamples(int samples);
 
-  /// Fragment shading policy used when `msaaSamples() > 1`.
-  /// `PerSample` runs the fragment path for every covered sample.
-  /// `PerFragment` keeps coverage/depth/stencil per sample but reuses
-  /// the first passing shaded color for the same triangle/pixel across
-  /// the remaining samples. Defaults to `PerSample`.
-  inline MSAAShadingMode msaaShadingMode() const { return m_msaaShadingMode; }
-  inline void setMSAAShadingMode(MSAAShadingMode mode) { m_msaaShadingMode = mode; }
+    /// Fragment shading policy used when `msaaSamples() > 1`.
+    /// `PerSample` runs the fragment path for every covered sample.
+    /// `PerFragment` keeps coverage/depth/stencil per sample but reuses
+    /// the first passing shaded color for the same triangle/pixel across
+    /// the remaining samples. Defaults to `PerSample`.
+    inline MSAAShadingMode msaaShadingMode() const {
+      return m_msaaShadingMode;
+    }
+    inline void setMSAAShadingMode(MSAAShadingMode mode) {
+      m_msaaShadingMode = mode;
+    }
 
-  /// Near clip depth in the rasterizer's eye-relative depth units.
-  /// Defaults to 0.1. Pinhole cameras measure this from the
-  /// perspective eye; orthographic cameras measure camera-space z.
-  /// Triangles straddling this depth are clipped before perspective
-  /// divide, rather than dropped wholesale.
-  inline double nearClipDepth() const { return m_nearClipDepth; }
-  void setNearClipDepth(double depth);
+    /// Near clip depth in the rasterizer's eye-relative depth units.
+    /// Defaults to 0.1. Pinhole cameras measure this from the
+    /// perspective eye; orthographic cameras measure camera-space z.
+    /// Triangles straddling this depth are clipped before perspective
+    /// divide, rather than dropped wholesale.
+    inline double nearClipDepth() const {
+      return m_nearClipDepth;
+    }
+    void setNearClipDepth(double depth);
 
-  /// Far clip depth in the same eye-relative units as `nearClipDepth()`.
-  /// Defaults to positive infinity, which disables far-plane clipping.
-  /// Finite values clip geometry whose raster depth is greater than
-  /// this value.
-  inline double farClipDepth() const { return m_farClipDepth; }
-  void setFarClipDepth(double depth);
-  inline void clearFarClipDepth() { setFarClipDepth(std::numeric_limits<double>::infinity()); }
+    /// Far clip depth in the same eye-relative units as `nearClipDepth()`.
+    /// Defaults to positive infinity, which disables far-plane clipping.
+    /// Finite values clip geometry whose raster depth is greater than
+    /// this value.
+    inline double farClipDepth() const {
+      return m_farClipDepth;
+    }
+    void setFarClipDepth(double depth);
+    inline void clearFarClipDepth() {
+      setFarClipDepth(std::numeric_limits<double>::infinity());
+    }
 
-  /// Image-space anti-aliasing pass applied after the rasterizer has
-  /// produced its float framebuffer. Defaults to `None`. FXAA and SMAA are
-  /// cheap postprocess edge filters; unlike MSAA, they do not need extra
-  /// coverage or depth samples, so they are useful for fast previews. TAA
-  /// jitters successive raster frames and blends them through a depth-validated
-  /// history buffer.
-  inline PostProcessAA postProcessAA() const { return m_postProcessAA; }
-  void setPostProcessAA(PostProcessAA aa);
+    /// Image-space anti-aliasing pass applied after the rasterizer has
+    /// produced its float framebuffer. Defaults to `None`. FXAA and SMAA are
+    /// cheap postprocess edge filters; unlike MSAA, they do not need extra
+    /// coverage or depth samples, so they are useful for fast previews. TAA
+    /// jitters successive raster frames and blends them through a depth-validated
+    /// history buffer.
+    inline PostProcessAA postProcessAA() const {
+      return m_postProcessAA;
+    }
+    void setPostProcessAA(PostProcessAA aa);
 
-  /// Invalidates temporal anti-aliasing history before the next render. Call
-  /// this after camera cuts or scene discontinuities when reusing a Rasterizer
-  /// instance across frames.
-  void invalidateTemporalHistory();
+    /// Invalidates temporal anti-aliasing history before the next render. Call
+    /// this after camera cuts or scene discontinuities when reusing a Rasterizer
+    /// instance across frames.
+    void invalidateTemporalHistory();
 
-  /// Returns true once TAA has a same-size previous frame available.
-  bool temporalHistoryValid() const;
+    /// Returns true once TAA has a same-size previous frame available.
+    bool temporalHistoryValid() const;
 
-  /// Returns the number of TAA frames accepted into the current history.
-  int temporalFrameIndex() const;
+    /// Returns the number of TAA frames accepted into the current history.
+    int temporalFrameIndex() const;
 
-  /// Weight assigned to the current frame during TAA accumulation. Defaults to
-  /// 0.1 and is clamped to [0, 1].
-  inline double temporalCurrentFrameWeight() const { return m_temporalCurrentFrameWeight; }
-  inline void setTemporalCurrentFrameWeight(double weight) {
-    m_temporalCurrentFrameWeight = std::isfinite(weight) ? std::clamp(weight, 0.0, 1.0) : 0.1;
-  }
+    /// Weight assigned to the current frame during TAA accumulation. Defaults to
+    /// 0.1 and is clamped to [0, 1].
+    inline double temporalCurrentFrameWeight() const {
+      return m_temporalCurrentFrameWeight;
+    }
+    inline void setTemporalCurrentFrameWeight(double weight) {
+      m_temporalCurrentFrameWeight = std::isfinite(weight) ? std::clamp(weight, 0.0, 1.0) : 0.1;
+    }
 
-  /// Returns whether rasterized directional-light shadow maps are enabled.
-  inline bool shadowMapsEnabled() const { return m_shadowMapsEnabled; }
+    /// Returns whether rasterized directional-light shadow maps are enabled.
+    inline bool shadowMapsEnabled() const {
+      return m_shadowMapsEnabled;
+    }
 
-  /**
+    /**
     * Enables rasterized directional-light shadow maps for the built-in
     * material fragment path. Custom fragment shaders are responsible for their
     * own visibility model and bypass this feature.
@@ -803,12 +772,16 @@ public:
     * <td>@image html rasterizer_shadow_maps_on.png "enabled"</td>
     * </tr></table>
     */
-  inline void setShadowMapsEnabled(bool enabled) { m_shadowMapsEnabled = enabled; }
+    inline void setShadowMapsEnabled(bool enabled) {
+      m_shadowMapsEnabled = enabled;
+    }
 
-  /// Returns the square resolution used for each generated shadow map.
-  inline int shadowMapSize() const { return m_shadowMapSize; }
+    /// Returns the square resolution used for each generated shadow map.
+    inline int shadowMapSize() const {
+      return m_shadowMapSize;
+    }
 
-  /**
+    /**
     * Sets the square resolution used for each generated directional-light
     * shadow map. Defaults to 256 and is clamped to at least 1.
     *
@@ -820,13 +793,15 @@ public:
     * <td>@image html rasterizer_shadow_map_size_512.png "512x512"</td>
     * </tr></table>
     */
-  void setShadowMapSize(int size);
+    void setShadowMapSize(int size);
 
-  /// Returns how many camera-depth slices each directional light gets.
-  /// The default is 1, which is the original single shadow-map behavior.
-  inline int shadowCascadeCount() const { return m_shadowCascadeCount; }
+    /// Returns how many camera-depth slices each directional light gets.
+    /// The default is 1, which is the original single shadow-map behavior.
+    inline int shadowCascadeCount() const {
+      return m_shadowCascadeCount;
+    }
 
-  /**
+    /**
     * Sets the number of cascaded shadow maps per directional light.
     * Values are clamped to the range [1, 4]. Counts above 1 split the
     * scene bounds by camera view depth and build one tighter light-space
@@ -839,15 +814,17 @@ public:
     * <td>@image html rasterizer_shadow_cascades_4.png "4 cascades"</td>
     * </tr></table>
     */
-  inline void setShadowCascadeCount(int count) {
-    m_shadowCascadeCount = std::clamp(count, 1, 4);
-  }
+    inline void setShadowCascadeCount(int count) {
+      m_shadowCascadeCount = std::clamp(count, 1, 4);
+    }
 
-  /// Returns the practical split blend used for directional shadow cascades.
-  /// 0 is linear, 1 is logarithmic, and the default is 0.5.
-  inline double shadowCascadeSplitLambda() const { return m_shadowCascadeSplitLambda; }
+    /// Returns the practical split blend used for directional shadow cascades.
+    /// 0 is linear, 1 is logarithmic, and the default is 0.5.
+    inline double shadowCascadeSplitLambda() const {
+      return m_shadowCascadeSplitLambda;
+    }
 
-  /**
+    /**
     * Sets the linear/logarithmic blend for camera-depth cascade splits.
     *
     * Values are clamped to [0, 1]. A value of 0 preserves uniform linear
@@ -861,15 +838,17 @@ public:
     * <td>@image html rasterizer_shadow_cascade_split_1_00.png "1.00"</td>
     * </tr></table>
     */
-  inline void setShadowCascadeSplitLambda(double lambda) {
-    m_shadowCascadeSplitLambda = std::isfinite(lambda) ? std::clamp(lambda, 0.0, 1.0) : 0.0;
-  }
+    inline void setShadowCascadeSplitLambda(double lambda) {
+      m_shadowCascadeSplitLambda = std::isfinite(lambda) ? std::clamp(lambda, 0.0, 1.0) : 0.0;
+    }
 
-  /// Returns the constant light-space depth bias used by the shadow-map
-  /// comparison.
-  inline double shadowBias() const { return m_shadowBias; }
+    /// Returns the constant light-space depth bias used by the shadow-map
+    /// comparison.
+    inline double shadowBias() const {
+      return m_shadowBias;
+    }
 
-  /**
+    /**
     * Sets the constant light-space depth bias added during the shadow-map
     * comparison to avoid self-shadowing from small interpolation differences.
     * Use `setShadowSlopeBias()` for additional angle-dependent tolerance on
@@ -883,14 +862,18 @@ public:
     * <td>@image html rasterizer_shadow_bias_1_500.png "1.500"</td>
     * </tr></table>
     */
-  inline void setShadowBias(double bias) { m_shadowBias = std::max(0.0, bias); }
+    inline void setShadowBias(double bias) {
+      m_shadowBias = std::max(0.0, bias);
+    }
 
-  /// Returns the slope-scaled shadow-map bias coefficient. The coefficient is
-  /// multiplied by the receiver's clamped light-space slope and added to
-  /// `shadowBias()` for each shadow comparison.
-  inline double shadowSlopeBias() const { return m_shadowSlopeBias; }
+    /// Returns the slope-scaled shadow-map bias coefficient. The coefficient is
+    /// multiplied by the receiver's clamped light-space slope and added to
+    /// `shadowBias()` for each shadow comparison.
+    inline double shadowSlopeBias() const {
+      return m_shadowSlopeBias;
+    }
 
-  /**
+    /**
     * Sets the slope-scaled shadow-map bias coefficient.
     *
     * Slope bias adds little extra tolerance on surfaces facing the light and
@@ -905,13 +888,17 @@ public:
     * <td>@image html rasterizer_shadow_slope_bias_0_200.png "0.200"</td>
     * </tr></table>
     */
-  inline void setShadowSlopeBias(double bias) { m_shadowSlopeBias = std::max(0.0, bias); }
+    inline void setShadowSlopeBias(double bias) {
+      m_shadowSlopeBias = std::max(0.0, bias);
+    }
 
-  /// Returns the maximum filter radius in shadow-map texels. Radius 0 is a
-  /// hard nearest-texel shadow comparison; radius 1 is a 3x3 kernel, etc.
-  inline int shadowFilterRadius() const { return m_shadowFilterRadius; }
+    /// Returns the maximum filter radius in shadow-map texels. Radius 0 is a
+    /// hard nearest-texel shadow comparison; radius 1 is a 3x3 kernel, etc.
+    inline int shadowFilterRadius() const {
+      return m_shadowFilterRadius;
+    }
 
-  /**
+    /**
     * Sets the percentage-closer filtering radius in shadow-map texels.
     * The value is clamped to at least 0. Filtering averages neighboring
     * depth-test results and therefore softens shadow-map texel edges; it is
@@ -925,14 +912,18 @@ public:
     * <td>@image html rasterizer_shadow_filter_radius_4.png "4"</td>
     * </tr></table>
     */
-  inline void setShadowFilterRadius(int radius) { m_shadowFilterRadius = std::max(0, radius); }
+    inline void setShadowFilterRadius(int radius) {
+      m_shadowFilterRadius = std::max(0, radius);
+    }
 
-  /// Returns the active shadow-map filter. PCF uses the configured
-  /// radius directly; PCSS searches blockers first and derives a
-  /// receiver-local penumbra radius, clamped by `shadowFilterRadius()`.
-  inline ShadowFilterMode shadowFilterMode() const { return m_shadowFilterMode; }
+    /// Returns the active shadow-map filter. PCF uses the configured
+    /// radius directly; PCSS searches blockers first and derives a
+    /// receiver-local penumbra radius, clamped by `shadowFilterRadius()`.
+    inline ShadowFilterMode shadowFilterMode() const {
+      return m_shadowFilterMode;
+    }
 
-  /**
+    /**
     * Sets the shadow-map filter mode. PCF keeps one fixed percentage-closer
     * kernel. PCSS performs a blocker search over the configured radius, then
     * uses a smaller or larger PCF kernel based on receiver-vs-blocker depth.
@@ -942,307 +933,437 @@ public:
     * <td>@image html rasterizer_shadow_filter_mode_pcss.png "PCSS"</td>
     * </tr></table>
     */
-  inline void setShadowFilterMode(ShadowFilterMode mode) { m_shadowFilterMode = mode; }
+    inline void setShadowFilterMode(ShadowFilterMode mode) {
+      m_shadowFilterMode = mode;
+    }
 
-  /// Face-culling mode used after near-plane clipping and before
-  /// triangle rasterization. Without an explicit override, material
-  /// sidedness chooses the default: front-sided materials cull back
-  /// faces, back-sided materials cull front faces, and two-sided
-  /// materials keep both. Calling `setCullMode` overrides those
-  /// material defaults for the whole pass.
-  inline CullMode cullMode() const { return m_cullMode; }
-  inline bool hasCullModeOverride() const { return m_hasCullModeOverride; }
-  inline void setCullMode(CullMode mode) {
-    m_cullMode = mode;
-    m_hasCullModeOverride = true;
-  }
-  inline void clearCullModeOverride() { m_hasCullModeOverride = false; }
+    /// Face-culling mode used after near-plane clipping and before
+    /// triangle rasterization. Without an explicit override, material
+    /// sidedness chooses the default: front-sided materials cull back
+    /// faces, back-sided materials cull front faces, and two-sided
+    /// materials keep both. Calling `setCullMode` overrides those
+    /// material defaults for the whole pass.
+    inline CullMode cullMode() const {
+      return m_cullMode;
+    }
+    inline bool hasCullModeOverride() const {
+      return m_hasCullModeOverride;
+    }
+    inline void setCullMode(CullMode mode) {
+      m_cullMode = mode;
+      m_hasCullModeOverride = true;
+    }
+    inline void clearCullModeOverride() {
+      m_hasCullModeOverride = false;
+    }
 
-  /// Returns whether the rasterizer maps clip-space coordinates into an
-  /// explicit framebuffer viewport. Disabled means the full render buffer is
-  /// the viewport.
-  inline bool viewportEnabled() const { return m_viewportEnabled; }
+    /// Returns whether the rasterizer maps clip-space coordinates into an
+    /// explicit framebuffer viewport. Disabled means the full render buffer is
+    /// the viewport.
+    inline bool viewportEnabled() const {
+      return m_viewportEnabled;
+    }
 
-  /// Returns the configured viewport rectangle. The value may extend beyond the
-  /// framebuffer; rendering intersects it with the target buffer before drawing.
-  inline const Recti& viewportRect() const { return m_viewportRect; }
+    /// Returns the configured viewport rectangle. The value may extend beyond the
+    /// framebuffer; rendering intersects it with the target buffer before drawing.
+    inline const Recti& viewportRect() const {
+      return m_viewportRect;
+    }
 
-  /// Enables an explicit framebuffer viewport. Homogeneous clip coordinates in
-  /// the canonical [-1, 1] range map into this rectangle instead of the full
-  /// render buffer. Negative widths and heights are clamped to zero.
-  void setViewportRect(const Recti& rect);
-  inline void setViewportRect(int x, int y, int width, int height) {
-    setViewportRect(Recti(x, y, width, height));
-  }
+    /// Enables an explicit framebuffer viewport. Homogeneous clip coordinates in
+    /// the canonical [-1, 1] range map into this rectangle instead of the full
+    /// render buffer. Negative widths and heights are clamped to zero.
+    void setViewportRect(const Recti& rect);
+    inline void setViewportRect(int x, int y, int width, int height) {
+      setViewportRect(Recti(x, y, width, height));
+    }
 
-  /// Disables the explicit viewport and returns to full-frame projection.
-  void clearViewportRect();
+    /// Disables the explicit viewport and returns to full-frame projection.
+    void clearViewportRect();
 
-  /// Returns whether the framebuffer scissor test is active.
-  inline bool scissorTestEnabled() const { return m_scissorTestEnabled; }
+    /// Returns whether the framebuffer scissor test is active.
+    inline bool scissorTestEnabled() const {
+      return m_scissorTestEnabled;
+    }
 
-  /// Enables or disables the scissor test while preserving the configured
-  /// scissor rectangle.
-  inline void setScissorTestEnabled(bool enabled) { m_scissorTestEnabled = enabled; }
+    /// Enables or disables the scissor test while preserving the configured
+    /// scissor rectangle.
+    inline void setScissorTestEnabled(bool enabled) {
+      m_scissorTestEnabled = enabled;
+    }
 
-  /// Returns the configured scissor rectangle. The value may extend beyond the
-  /// framebuffer; rendering intersects it with the target buffer before drawing.
-  inline const Recti& scissorRect() const { return m_scissorRect; }
+    /// Returns the configured scissor rectangle. The value may extend beyond the
+    /// framebuffer; rendering intersects it with the target buffer before drawing.
+    inline const Recti& scissorRect() const {
+      return m_scissorRect;
+    }
 
-  /// Sets and enables the framebuffer scissor rectangle. Fragments outside this
-  /// rectangle are discarded after projection but before depth/stencil and color
-  /// output. Negative widths and heights are clamped to zero.
-  void setScissorRect(const Recti& rect);
-  inline void setScissorRect(int x, int y, int width, int height) {
-    setScissorRect(Recti(x, y, width, height));
-  }
+    /// Sets and enables the framebuffer scissor rectangle. Fragments outside this
+    /// rectangle are discarded after projection but before depth/stencil and color
+    /// output. Negative widths and heights are clamped to zero.
+    void setScissorRect(const Recti& rect);
+    inline void setScissorRect(int x, int y, int width, int height) {
+      setScissorRect(Recti(x, y, width, height));
+    }
 
-  /// Disables the scissor test and clears its rectangle.
-  void clearScissorRect();
+    /// Disables the scissor test and clears its rectangle.
+    void clearScissorRect();
 
-  /// Color attachment load operation. `Clear` fills the target with
-  /// `backgroundColor()` before drawing; `Load` preserves the caller's existing
-  /// `Buffer<Colord>` contents. Defaults to `Clear`.
-  inline AttachmentLoadOp colorLoadOp() const { return m_colorLoadOp; }
-  inline void setColorLoadOp(AttachmentLoadOp op) { m_colorLoadOp = op; }
+    /// Color attachment load operation. `Clear` fills the target with
+    /// `backgroundColor()` before drawing; `Load` preserves the caller's existing
+    /// `Buffer<Colord>` contents. Defaults to `Clear`.
+    inline AttachmentLoadOp colorLoadOp() const {
+      return m_colorLoadOp;
+    }
+    inline void setColorLoadOp(AttachmentLoadOp op) {
+      m_colorLoadOp = op;
+    }
 
-  /// Color attachment store operation. `Store` leaves rendered color in the
-  /// target buffer; `Discard` renders through transient storage and leaves the
-  /// caller's color buffer unchanged. Defaults to `Store`.
-  inline AttachmentStoreOp colorStoreOp() const { return m_colorStoreOp; }
-  inline void setColorStoreOp(AttachmentStoreOp op) { m_colorStoreOp = op; }
+    /// Color attachment store operation. `Store` leaves rendered color in the
+    /// target buffer; `Discard` renders through transient storage and leaves the
+    /// caller's color buffer unchanged. Defaults to `Store`.
+    inline AttachmentStoreOp colorStoreOp() const {
+      return m_colorStoreOp;
+    }
+    inline void setColorStoreOp(AttachmentStoreOp op) {
+      m_colorStoreOp = op;
+    }
 
-  /// Depth comparison applied after coverage and stencil tests.
-  /// Defaults to `Less`, matching the original Z-buffer path.
-  inline DepthFunc depthFunc() const { return m_depthFunc; }
-  inline void setDepthFunc(DepthFunc func) { m_depthFunc = func; }
+    /// Depth comparison applied after coverage and stencil tests.
+    /// Defaults to `Less`, matching the original Z-buffer path.
+    inline DepthFunc depthFunc() const {
+      return m_depthFunc;
+    }
+    inline void setDepthFunc(DepthFunc func) {
+      m_depthFunc = func;
+    }
 
-  /// Signed constant offset added to fragment depth before depth test/write.
-  /// Defaults to 0. Positive values push fragments farther away for the default
-  /// `DepthFunc::Less` test; negative values pull them forward. Fragment
-  /// shaders still receive the un-biased geometric depth.
-  inline double depthBias() const { return m_depthBias; }
-  inline void setDepthBias(double bias) { m_depthBias = std::isfinite(bias) ? bias : 0.0; }
+    /// Signed constant offset added to fragment depth before depth test/write.
+    /// Defaults to 0. Positive values push fragments farther away for the default
+    /// `DepthFunc::Less` test; negative values pull them forward. Fragment
+    /// shaders still receive the un-biased geometric depth.
+    inline double depthBias() const {
+      return m_depthBias;
+    }
+    inline void setDepthBias(double bias) {
+      m_depthBias = std::isfinite(bias) ? bias : 0.0;
+    }
 
-  /// Initial value for the per-render depth buffer. Defaults to
-  /// positive infinity so `DepthFunc::Less` accepts the first
-  /// visible fragment at each pixel.
-  inline double depthClearValue() const { return m_depthClearValue; }
-  inline void setDepthClearValue(double value) { m_depthClearValue = value; }
+    /// Initial value for the per-render depth buffer. Defaults to
+    /// positive infinity so `DepthFunc::Less` accepts the first
+    /// visible fragment at each pixel.
+    inline double depthClearValue() const {
+      return m_depthClearValue;
+    }
+    inline void setDepthClearValue(double value) {
+      m_depthClearValue = value;
+    }
 
-  /// Depth attachment load operation. `Clear` initializes depth from
-  /// `depthClearValue()`. `Load` copies a matching attached depth buffer into
-  /// the pass; without a valid depth attachment it falls back to `Clear`.
-  /// Defaults to `Clear`.
-  inline AttachmentLoadOp depthLoadOp() const { return m_depthLoadOp; }
-  inline void setDepthLoadOp(AttachmentLoadOp op) { m_depthLoadOp = op; }
+    /// Depth attachment load operation. `Clear` initializes depth from
+    /// `depthClearValue()`. `Load` copies a matching attached depth buffer into
+    /// the pass; without a valid depth attachment it falls back to `Clear`.
+    /// Defaults to `Clear`.
+    inline AttachmentLoadOp depthLoadOp() const {
+      return m_depthLoadOp;
+    }
+    inline void setDepthLoadOp(AttachmentLoadOp op) {
+      m_depthLoadOp = op;
+    }
 
-  /// Depth attachment store operation. `Store` copies the final pass depth into
-  /// a matching attached depth buffer. `Discard` leaves the attached buffer
-  /// unchanged. Defaults to `Store`.
-  inline AttachmentStoreOp depthStoreOp() const { return m_depthStoreOp; }
-  inline void setDepthStoreOp(AttachmentStoreOp op) { m_depthStoreOp = op; }
+    /// Depth attachment store operation. `Store` copies the final pass depth into
+    /// a matching attached depth buffer. `Discard` leaves the attached buffer
+    /// unchanged. Defaults to `Store`.
+    inline AttachmentStoreOp depthStoreOp() const {
+      return m_depthStoreOp;
+    }
+    inline void setDepthStoreOp(AttachmentStoreOp op) {
+      m_depthStoreOp = op;
+    }
 
-  /// Controls whether passing fragments update the depth buffer.
-  /// Defaults to true. Disabling writes keeps depth testing active
-  /// but makes later geometry compare against the old depth value.
-  inline bool depthWriteEnabled() const { return m_depthWriteEnabled; }
-  inline void setDepthWriteEnabled(bool enabled) { m_depthWriteEnabled = enabled; }
+    /// Controls whether passing fragments update the depth buffer.
+    /// Defaults to true. Disabling writes keeps depth testing active
+    /// but makes later geometry compare against the old depth value.
+    inline bool depthWriteEnabled() const {
+      return m_depthWriteEnabled;
+    }
+    inline void setDepthWriteEnabled(bool enabled) {
+      m_depthWriteEnabled = enabled;
+    }
 
-  /// Optional 8-bit stencil test. Disabled by default; when enabled,
-  /// the reference and stored stencil values are compared after
-  /// applying `stencilMask`.
-  inline bool stencilTestEnabled() const { return m_stencilTestEnabled; }
-  inline void setStencilTestEnabled(bool enabled) { m_stencilTestEnabled = enabled; }
+    /// Optional 8-bit stencil test. Disabled by default; when enabled,
+    /// the reference and stored stencil values are compared after
+    /// applying `stencilMask`.
+    inline bool stencilTestEnabled() const {
+      return m_stencilTestEnabled;
+    }
+    inline void setStencilTestEnabled(bool enabled) {
+      m_stencilTestEnabled = enabled;
+    }
 
-  inline StencilFunc stencilFunc() const { return m_stencilFunc; }
-  inline std::uint8_t stencilReference() const { return m_stencilReference; }
-  inline std::uint8_t stencilMask() const { return m_stencilMask; }
-  inline void setStencilFunc(StencilFunc func, std::uint8_t reference, std::uint8_t mask = 0xFF) {
-    m_stencilFunc = func;
-    m_stencilReference = reference;
-    m_stencilMask = mask;
-  }
+    inline StencilFunc stencilFunc() const {
+      return m_stencilFunc;
+    }
+    inline std::uint8_t stencilReference() const {
+      return m_stencilReference;
+    }
+    inline std::uint8_t stencilMask() const {
+      return m_stencilMask;
+    }
+    inline void setStencilFunc(StencilFunc func, std::uint8_t reference, std::uint8_t mask = 0xFF) {
+      m_stencilFunc = func;
+      m_stencilReference = reference;
+      m_stencilMask = mask;
+    }
 
-  inline std::uint8_t stencilClearValue() const { return m_stencilClearValue; }
-  inline void setStencilClearValue(std::uint8_t value) { m_stencilClearValue = value; }
+    inline std::uint8_t stencilClearValue() const {
+      return m_stencilClearValue;
+    }
+    inline void setStencilClearValue(std::uint8_t value) {
+      m_stencilClearValue = value;
+    }
 
-  /// Stencil attachment load operation. `Clear` initializes stencil from
-  /// `stencilClearValue()`. `Load` copies a matching attached stencil buffer
-  /// into the pass; without a valid stencil attachment it falls back to `Clear`.
-  /// Defaults to `Clear`.
-  inline AttachmentLoadOp stencilLoadOp() const { return m_stencilLoadOp; }
-  inline void setStencilLoadOp(AttachmentLoadOp op) { m_stencilLoadOp = op; }
+    /// Stencil attachment load operation. `Clear` initializes stencil from
+    /// `stencilClearValue()`. `Load` copies a matching attached stencil buffer
+    /// into the pass; without a valid stencil attachment it falls back to `Clear`.
+    /// Defaults to `Clear`.
+    inline AttachmentLoadOp stencilLoadOp() const {
+      return m_stencilLoadOp;
+    }
+    inline void setStencilLoadOp(AttachmentLoadOp op) {
+      m_stencilLoadOp = op;
+    }
 
-  /// Stencil attachment store operation. `Store` copies final pass stencil into
-  /// a matching attached stencil buffer. `Discard` leaves the attached buffer
-  /// unchanged. Defaults to `Store`.
-  inline AttachmentStoreOp stencilStoreOp() const { return m_stencilStoreOp; }
-  inline void setStencilStoreOp(AttachmentStoreOp op) { m_stencilStoreOp = op; }
+    /// Stencil attachment store operation. `Store` copies final pass stencil into
+    /// a matching attached stencil buffer. `Discard` leaves the attached buffer
+    /// unchanged. Defaults to `Store`.
+    inline AttachmentStoreOp stencilStoreOp() const {
+      return m_stencilStoreOp;
+    }
+    inline void setStencilStoreOp(AttachmentStoreOp op) {
+      m_stencilStoreOp = op;
+    }
 
-  inline std::uint8_t stencilWriteMask() const { return m_stencilWriteMask; }
-  inline void setStencilWriteMask(std::uint8_t mask) { m_stencilWriteMask = mask; }
+    inline std::uint8_t stencilWriteMask() const {
+      return m_stencilWriteMask;
+    }
+    inline void setStencilWriteMask(std::uint8_t mask) {
+      m_stencilWriteMask = mask;
+    }
 
-  inline StencilOp stencilFailOp() const { return m_stencilFailOp; }
-  inline StencilOp stencilDepthFailOp() const { return m_stencilDepthFailOp; }
-  inline StencilOp stencilPassOp() const { return m_stencilPassOp; }
-  inline void setStencilOps(StencilOp stencilFail, StencilOp depthFail, StencilOp pass) {
-    m_stencilFailOp = stencilFail;
-    m_stencilDepthFailOp = depthFail;
-    m_stencilPassOp = pass;
-  }
+    inline StencilOp stencilFailOp() const {
+      return m_stencilFailOp;
+    }
+    inline StencilOp stencilDepthFailOp() const {
+      return m_stencilDepthFailOp;
+    }
+    inline StencilOp stencilPassOp() const {
+      return m_stencilPassOp;
+    }
+    inline void setStencilOps(StencilOp stencilFail, StencilOp depthFail, StencilOp pass) {
+      m_stencilFailOp = stencilFail;
+      m_stencilDepthFailOp = depthFail;
+      m_stencilPassOp = pass;
+    }
 
-  /// Optional fixed-function alpha test. The rasterizer has no stored alpha
-  /// channel, so alpha is a transient fragment value sourced from material and
-  /// texture state before color output. Failing fragments do not write color,
-  /// depth, stencil pass state, or diagnostics.
-  inline bool alphaTestEnabled() const { return m_alphaTestEnabled; }
-  inline void setAlphaTestEnabled(bool enabled) { m_alphaTestEnabled = enabled; }
+    /// Optional fixed-function alpha test. The rasterizer has no stored alpha
+    /// channel, so alpha is a transient fragment value sourced from material and
+    /// texture state before color output. Failing fragments do not write color,
+    /// depth, stencil pass state, or diagnostics.
+    inline bool alphaTestEnabled() const {
+      return m_alphaTestEnabled;
+    }
+    inline void setAlphaTestEnabled(bool enabled) {
+      m_alphaTestEnabled = enabled;
+    }
 
-  inline AlphaFunc alphaFunc() const { return m_alphaFunc; }
-  inline double alphaReference() const { return m_alphaReference; }
-  inline void setAlphaFunc(AlphaFunc func, double reference) {
-    m_alphaFunc = func;
-    m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
-  }
+    inline AlphaFunc alphaFunc() const {
+      return m_alphaFunc;
+    }
+    inline double alphaReference() const {
+      return m_alphaReference;
+    }
+    inline void setAlphaFunc(AlphaFunc func, double reference) {
+      m_alphaFunc = func;
+      m_alphaReference = std::isfinite(reference) ? std::clamp(reference, 0.0, 1.0) : 0.0;
+    }
 
-  /// RGB channel mask applied after shading and blending. A disabled channel
-  /// preserves the destination framebuffer value while depth/stencil state
-  /// still updates normally. Defaults to all channels enabled.
-  inline std::uint8_t colorWriteMask() const { return m_colorWriteMask; }
-  inline void setColorWriteMask(std::uint8_t mask) { m_colorWriteMask = mask & ColorWriteAll; }
-  inline void setColorWriteMask(bool red, bool green, bool blue) {
-    setColorWriteMask((red ? ColorWriteRed : 0) | (green ? ColorWriteGreen : 0) |
-                      (blue ? ColorWriteBlue : 0));
-  }
+    /// RGB channel mask applied after shading and blending. A disabled channel
+    /// preserves the destination framebuffer value while depth/stencil state
+    /// still updates normally. Defaults to all channels enabled.
+    inline std::uint8_t colorWriteMask() const {
+      return m_colorWriteMask;
+    }
+    inline void setColorWriteMask(std::uint8_t mask) {
+      m_colorWriteMask = mask & ColorWriteAll;
+    }
+    inline void setColorWriteMask(bool red, bool green, bool blue) {
+      setColorWriteMask((red ? ColorWriteRed : 0) | (green ? ColorWriteGreen : 0) |
+                        (blue ? ColorWriteBlue : 0));
+    }
 
-  /// Fixed-function RGB blending applied before the color write mask. Source
-  /// alpha factors use the transient material/texture alpha carried by the
-  /// current fragment; constant-alpha factors remain pass-level controls.
-  inline bool blendingEnabled() const { return m_blendingEnabled; }
-  inline void setBlendingEnabled(bool enabled) { m_blendingEnabled = enabled; }
+    /// Fixed-function RGB blending applied before the color write mask. Source
+    /// alpha factors use the transient material/texture alpha carried by the
+    /// current fragment; constant-alpha factors remain pass-level controls.
+    inline bool blendingEnabled() const {
+      return m_blendingEnabled;
+    }
+    inline void setBlendingEnabled(bool enabled) {
+      m_blendingEnabled = enabled;
+    }
 
-  inline BlendFactor sourceBlendFactor() const { return m_sourceBlendFactor; }
-  inline BlendFactor destinationBlendFactor() const { return m_destinationBlendFactor; }
-  inline void setBlendFactors(BlendFactor source, BlendFactor destination) {
-    m_sourceBlendFactor = source;
-    m_destinationBlendFactor = destination;
-  }
+    inline BlendFactor sourceBlendFactor() const {
+      return m_sourceBlendFactor;
+    }
+    inline BlendFactor destinationBlendFactor() const {
+      return m_destinationBlendFactor;
+    }
+    inline void setBlendFactors(BlendFactor source, BlendFactor destination) {
+      m_sourceBlendFactor = source;
+      m_destinationBlendFactor = destination;
+    }
 
-  inline BlendOp blendOp() const { return m_blendOp; }
-  inline void setBlendOp(BlendOp op) { m_blendOp = op; }
+    inline BlendOp blendOp() const {
+      return m_blendOp;
+    }
+    inline void setBlendOp(BlendOp op) {
+      m_blendOp = op;
+    }
 
-  inline const Colord& blendConstantColor() const { return m_blendConstantColor; }
-  inline double blendConstantAlpha() const { return m_blendConstantAlpha; }
-  inline void setBlendConstantColor(const Colord& color) { m_blendConstantColor = color; }
-  inline void setBlendConstantAlpha(double alpha) {
-    m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
-  }
-  inline void setBlendConstant(const Colord& color, double alpha) {
-    setBlendConstantColor(color);
-    setBlendConstantAlpha(alpha);
-  }
+    inline const Colord& blendConstantColor() const {
+      return m_blendConstantColor;
+    }
+    inline double blendConstantAlpha() const {
+      return m_blendConstantAlpha;
+    }
+    inline void setBlendConstantColor(const Colord& color) {
+      m_blendConstantColor = color;
+    }
+    inline void setBlendConstantAlpha(double alpha) {
+      m_blendConstantAlpha = std::isfinite(alpha) ? std::clamp(alpha, 0.0, 1.0) : 1.0;
+    }
+    inline void setBlendConstant(const Colord& color, double alpha) {
+      setBlendConstantColor(color);
+      setBlendConstantAlpha(alpha);
+    }
 
-  /// Optional programmable vertex stage over already-projected mesh
-  /// attributes. Return an adjusted `VertexOutput`, or leave unset
-  /// for the built-in pass-through stage.
-  inline const VertexShader& vertexShader() const { return m_vertexShader; }
-  inline void setVertexShader(VertexShader shader) { m_vertexShader = std::move(shader); }
-  inline void clearVertexShader() { m_vertexShader = VertexShader(); }
+    /// Optional programmable vertex stage over already-projected mesh
+    /// attributes. Return an adjusted `VertexOutput`, or leave unset
+    /// for the built-in pass-through stage.
+    inline const VertexShader& vertexShader() const {
+      return m_vertexShader;
+    }
+    inline void setVertexShader(VertexShader shader) {
+      m_vertexShader = std::move(shader);
+    }
+    inline void clearVertexShader() {
+      m_vertexShader = VertexShader();
+    }
 
-  /// Optional fragment stage over the perspective-correct interpolated
-  /// attributes. Leave unset for the built-in material fragment shading path.
-  inline const FragmentShader& fragmentShader() const { return m_fragmentShader; }
-  inline void setFragmentShader(FragmentShader shader) { m_fragmentShader = std::move(shader); }
-  inline void clearFragmentShader() { m_fragmentShader = FragmentShader(); }
+    /// Optional fragment stage over the perspective-correct interpolated
+    /// attributes. Leave unset for the built-in material fragment shading path.
+    inline const FragmentShader& fragmentShader() const {
+      return m_fragmentShader;
+    }
+    inline void setFragmentShader(FragmentShader shader) {
+      m_fragmentShader = std::move(shader);
+    }
+    inline void clearFragmentShader() {
+      m_fragmentShader = FragmentShader();
+    }
 
-  /// Returns the borrowed diagnostic buffers written by direct renders.
-  inline const DiagnosticOutputBuffers& diagnosticOutputBuffers() const {
-    return m_diagnosticOutputBuffers;
-  }
+    /// Returns the borrowed diagnostic buffers written by direct renders.
+    inline const DiagnosticOutputBuffers& diagnosticOutputBuffers() const {
+      return m_diagnosticOutputBuffers;
+    }
 
-  /// Attaches borrowed diagnostic buffers. Buffers must outlive the render.
-  inline void setDiagnosticOutputBuffers(DiagnosticOutputBuffers buffers) {
-    m_diagnosticOutputBuffers = buffers;
-  }
+    /// Attaches borrowed diagnostic buffers. Buffers must outlive the render.
+    inline void setDiagnosticOutputBuffers(DiagnosticOutputBuffers buffers) {
+      m_diagnosticOutputBuffers = buffers;
+    }
 
-  /// Stops writing diagnostic pass outputs.
-  inline void clearDiagnosticOutputBuffers() {
-    m_diagnosticOutputBuffers = DiagnosticOutputBuffers();
-  }
+    /// Stops writing diagnostic pass outputs.
+    inline void clearDiagnosticOutputBuffers() {
+      m_diagnosticOutputBuffers = DiagnosticOutputBuffers();
+    }
 
-  /// Returns the borrowed depth/stencil attachments used by direct renders.
-  inline const AttachmentBuffers& attachmentBuffers() const { return m_attachmentBuffers; }
+    /// Returns the borrowed depth/stencil attachments used by direct renders.
+    inline const AttachmentBuffers& attachmentBuffers() const {
+      return m_attachmentBuffers;
+    }
 
-  /// Attaches borrowed depth/stencil buffers. Buffers must outlive the render.
-  inline void setAttachmentBuffers(AttachmentBuffers buffers) { m_attachmentBuffers = buffers; }
+    /// Attaches borrowed depth/stencil buffers. Buffers must outlive the render.
+    inline void setAttachmentBuffers(AttachmentBuffers buffers) {
+      m_attachmentBuffers = buffers;
+    }
 
-  /// Stops loading from or storing to borrowed depth/stencil attachments.
-  inline void clearAttachmentBuffers() { m_attachmentBuffers = AttachmentBuffers(); }
+    /// Stops loading from or storing to borrowed depth/stencil attachments.
+    inline void clearAttachmentBuffers() {
+      m_attachmentBuffers = AttachmentBuffers();
+    }
 
-  // `backgroundColor()`, `setBackgroundColor`, `clearBackgroundColor`,
-  // and `hasBackgroundColorOverride` are inherited from `render::RenderEngine`.
-  // The Rasterizer uses the default fallback: when no override is set,
-  // the framebuffer is cleared to the scene's `background()`.
+    // `backgroundColor()`, `setBackgroundColor`, `clearBackgroundColor`,
+    // and `hasBackgroundColorOverride` are inherited from `render::RenderEngine`.
+    // The Rasterizer uses the default fallback: when no override is set,
+    // the framebuffer is cleared to the scene's `background()`.
 
-private:
-  struct Private;
-  std::unique_ptr<Private> p;
-  std::atomic<bool> m_cancelled{false};
-  int m_lod{0};
-  int m_msaaSamples{1};
-  MSAAShadingMode m_msaaShadingMode{MSAAShadingMode::PerSample};
-  double m_nearClipDepth{0.1};
-  double m_farClipDepth{std::numeric_limits<double>::infinity()};
-  PostProcessAA m_postProcessAA{PostProcessAA::None};
-  double m_temporalCurrentFrameWeight{0.1};
-  bool m_shadowMapsEnabled{false};
-  int m_shadowMapSize{256};
-  int m_shadowCascadeCount{1};
-  double m_shadowCascadeSplitLambda{0.5};
-  double m_shadowBias{1e-3};
-  double m_shadowSlopeBias{0.0};
-  int m_shadowFilterRadius{0};
-  ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
-  CullMode m_cullMode{CullMode::Both};
-  bool m_hasCullModeOverride{false};
-  bool m_viewportEnabled{false};
-  Recti m_viewportRect;
-  bool m_scissorTestEnabled{false};
-  Recti m_scissorRect;
-  AttachmentLoadOp m_colorLoadOp{AttachmentLoadOp::Clear};
-  AttachmentStoreOp m_colorStoreOp{AttachmentStoreOp::Store};
-  DepthFunc m_depthFunc{DepthFunc::Less};
-  double m_depthBias{0.0};
-  double m_depthClearValue{std::numeric_limits<double>::infinity()};
-  AttachmentLoadOp m_depthLoadOp{AttachmentLoadOp::Clear};
-  AttachmentStoreOp m_depthStoreOp{AttachmentStoreOp::Store};
-  bool m_depthWriteEnabled{true};
-  bool m_stencilTestEnabled{false};
-  StencilFunc m_stencilFunc{StencilFunc::Always};
-  std::uint8_t m_stencilReference{0};
-  std::uint8_t m_stencilMask{0xFF};
-  std::uint8_t m_stencilClearValue{0};
-  AttachmentLoadOp m_stencilLoadOp{AttachmentLoadOp::Clear};
-  AttachmentStoreOp m_stencilStoreOp{AttachmentStoreOp::Store};
-  std::uint8_t m_stencilWriteMask{0xFF};
-  StencilOp m_stencilFailOp{StencilOp::Keep};
-  StencilOp m_stencilDepthFailOp{StencilOp::Keep};
-  StencilOp m_stencilPassOp{StencilOp::Keep};
-  bool m_alphaTestEnabled{false};
-  AlphaFunc m_alphaFunc{AlphaFunc::Always};
-  double m_alphaReference{0.0};
-  std::uint8_t m_colorWriteMask{ColorWriteAll};
-  bool m_blendingEnabled{false};
-  BlendFactor m_sourceBlendFactor{BlendFactor::One};
-  BlendFactor m_destinationBlendFactor{BlendFactor::Zero};
-  BlendOp m_blendOp{BlendOp::Add};
-  Colord m_blendConstantColor{Colord::white()};
-  double m_blendConstantAlpha{1.0};
-  VertexShader m_vertexShader;
-  FragmentShader m_fragmentShader;
-  DiagnosticOutputBuffers m_diagnosticOutputBuffers;
-  AttachmentBuffers m_attachmentBuffers;
-};
+  private:
+    struct Private;
+    std::unique_ptr<Private> p;
+    std::atomic<bool> m_cancelled{false};
+    int m_lod{0};
+    int m_msaaSamples{1};
+    MSAAShadingMode m_msaaShadingMode{MSAAShadingMode::PerSample};
+    double m_nearClipDepth{0.1};
+    double m_farClipDepth{std::numeric_limits<double>::infinity()};
+    PostProcessAA m_postProcessAA{PostProcessAA::None};
+    double m_temporalCurrentFrameWeight{0.1};
+    bool m_shadowMapsEnabled{false};
+    int m_shadowMapSize{256};
+    int m_shadowCascadeCount{1};
+    double m_shadowCascadeSplitLambda{0.5};
+    double m_shadowBias{1e-3};
+    double m_shadowSlopeBias{0.0};
+    int m_shadowFilterRadius{0};
+    ShadowFilterMode m_shadowFilterMode{ShadowFilterMode::PCF};
+    CullMode m_cullMode{CullMode::Both};
+    bool m_hasCullModeOverride{false};
+    bool m_viewportEnabled{false};
+    Recti m_viewportRect;
+    bool m_scissorTestEnabled{false};
+    Recti m_scissorRect;
+    AttachmentLoadOp m_colorLoadOp{AttachmentLoadOp::Clear};
+    AttachmentStoreOp m_colorStoreOp{AttachmentStoreOp::Store};
+    DepthFunc m_depthFunc{DepthFunc::Less};
+    double m_depthBias{0.0};
+    double m_depthClearValue{std::numeric_limits<double>::infinity()};
+    AttachmentLoadOp m_depthLoadOp{AttachmentLoadOp::Clear};
+    AttachmentStoreOp m_depthStoreOp{AttachmentStoreOp::Store};
+    bool m_depthWriteEnabled{true};
+    bool m_stencilTestEnabled{false};
+    StencilFunc m_stencilFunc{StencilFunc::Always};
+    std::uint8_t m_stencilReference{0};
+    std::uint8_t m_stencilMask{0xFF};
+    std::uint8_t m_stencilClearValue{0};
+    AttachmentLoadOp m_stencilLoadOp{AttachmentLoadOp::Clear};
+    AttachmentStoreOp m_stencilStoreOp{AttachmentStoreOp::Store};
+    std::uint8_t m_stencilWriteMask{0xFF};
+    StencilOp m_stencilFailOp{StencilOp::Keep};
+    StencilOp m_stencilDepthFailOp{StencilOp::Keep};
+    StencilOp m_stencilPassOp{StencilOp::Keep};
+    bool m_alphaTestEnabled{false};
+    AlphaFunc m_alphaFunc{AlphaFunc::Always};
+    double m_alphaReference{0.0};
+    std::uint8_t m_colorWriteMask{ColorWriteAll};
+    bool m_blendingEnabled{false};
+    BlendFactor m_sourceBlendFactor{BlendFactor::One};
+    BlendFactor m_destinationBlendFactor{BlendFactor::Zero};
+    BlendOp m_blendOp{BlendOp::Add};
+    Colord m_blendConstantColor{Colord::white()};
+    double m_blendConstantAlpha{1.0};
+    VertexShader m_vertexShader;
+    FragmentShader m_fragmentShader;
+    DiagnosticOutputBuffers m_diagnosticOutputBuffers;
+    AttachmentBuffers m_attachmentBuffers;
+  };
 
-}  // namespace engine::raster
+} // namespace engine::raster

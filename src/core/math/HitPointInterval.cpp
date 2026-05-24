@@ -2,7 +2,7 @@
 
 HitPointInterval HitPointInterval::operator|(const HitPointInterval& other) const {
   HitPointInterval result;
-  
+
   int depth = 0;
   HitPoints::const_iterator first = m_hitPoints.begin(), second = other.points().begin();
   while (first != m_hitPoints.end() || second != other.points().end()) {
@@ -12,7 +12,7 @@ HitPointInterval HitPointInterval::operator|(const HitPointInterval& other) cons
     } else {
       useFirst = first != m_hitPoints.end();
     }
-    
+
     if (useFirst) {
       if (first->in) {
         if (depth == 0)
@@ -37,13 +37,13 @@ HitPointInterval HitPointInterval::operator|(const HitPointInterval& other) cons
       ++second;
     }
   }
-  
+
   return result;
 }
 
 HitPointInterval HitPointInterval::operator&(const HitPointInterval& other) const {
   HitPointInterval result;
-  
+
   bool inFirst = false, inSecond = false;
   HitPoints::const_iterator first = m_hitPoints.begin(), second = other.points().begin();
   while (first != m_hitPoints.end() && second != other.points().end()) {
@@ -71,13 +71,13 @@ HitPointInterval HitPointInterval::operator&(const HitPointInterval& other) cons
       ++second;
     }
   }
-  
+
   return result;
 }
 
 HitPointInterval HitPointInterval::operator-(const HitPointInterval& other) const {
   HitPointInterval result;
-  
+
   bool inFirst = false, inSecond = false;
   HitPoints::const_iterator first = m_hitPoints.begin(), second = other.points().begin();
   while (first != m_hitPoints.end() || second != other.points().end()) {
@@ -87,7 +87,7 @@ HitPointInterval HitPointInterval::operator-(const HitPointInterval& other) cons
     } else {
       useFirst = first != m_hitPoints.end();
     }
-    
+
     if (useFirst) {
       if (first->in) {
         if (!inSecond)
@@ -112,13 +112,13 @@ HitPointInterval HitPointInterval::operator-(const HitPointInterval& other) cons
       ++second;
     }
   }
-  
+
   return result;
 }
 
 HitPointInterval HitPointInterval::operator+(const HitPointInterval& other) const {
   HitPointInterval result;
-  
+
   HitPoints::const_iterator first = m_hitPoints.begin(), second = other.points().begin();
   while (first != m_hitPoints.end() || second != other.points().end()) {
     bool useFirst;
@@ -127,7 +127,7 @@ HitPointInterval HitPointInterval::operator+(const HitPointInterval& other) cons
     } else {
       useFirst = first != m_hitPoints.end();
     }
-    
+
     if (useFirst) {
       result.add(*first);
       ++first;
@@ -136,7 +136,7 @@ HitPointInterval HitPointInterval::operator+(const HitPointInterval& other) cons
       ++second;
     }
   }
-  
+
   return result;
 }
 

@@ -205,11 +205,9 @@ namespace RasterizerTest {
 
   static std::shared_ptr<Scene> sceneWithLargeScreenTriangles() {
     auto scene = std::make_shared<Scene>(Colord::black());
-    scene->add(std::make_shared<Triangle>(Vector3d(-4.0, -3.0, 0.0),
-                                          Vector3d(4.0, -3.0, 0.0),
+    scene->add(std::make_shared<Triangle>(Vector3d(-4.0, -3.0, 0.0), Vector3d(4.0, -3.0, 0.0),
                                           Vector3d(-4.0, 3.0, 0.0)));
-    scene->add(std::make_shared<Triangle>(Vector3d(4.0, -3.0, 0.0),
-                                          Vector3d(4.0, 3.0, 0.0),
+    scene->add(std::make_shared<Triangle>(Vector3d(4.0, -3.0, 0.0), Vector3d(4.0, 3.0, 0.0),
                                           Vector3d(-4.0, 3.0, 0.0)));
     return scene;
   }
@@ -601,8 +599,7 @@ namespace RasterizerTest {
     auto scene = std::make_shared<Scene>(Colord::white());
     auto group = std::make_shared<CountingComposite>(&flattenCalls);
     group->add(std::make_shared<CountingPrimitive>(
-      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
-      &tessellateCalls));
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
     scene->add(group);
     Rasterizer engine(headOnCamera(), scene);
     Buffer<Colord> buffer(32, 32);
@@ -619,8 +616,7 @@ namespace RasterizerTest {
     auto scene = std::make_shared<NonSpatialScene>();
     auto group = std::make_shared<CountingComposite>(&flattenCalls);
     group->add(std::make_shared<CountingPrimitive>(
-      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)),
-      &tessellateCalls));
+      BoundingBoxd(Vector3d(1000.0, -1.0, 0.0), Vector3d(1001.0, 1.0, 1.0)), &tessellateCalls));
     scene->add(group);
     Rasterizer engine(headOnCamera(), scene);
     Buffer<Colord> buffer(32, 32);
@@ -1679,8 +1675,7 @@ namespace RasterizerTest {
     Rasterizer forcedTiled(headOnCamera(), sceneWithLargeScreenTriangles());
     forcedTiled.setMaximumThreads(4);
     forcedTiled.setQueueSize(4);
-    forcedTiled.setFragmentShader(
-      [](const Rasterizer::FragmentInput&) { return Colord::white(); });
+    forcedTiled.setFragmentShader([](const Rasterizer::FragmentInput&) { return Colord::white(); });
     Buffer<Colord> tiledBuffer(128, 128);
 
     forcedTiled.render(tiledBuffer);
@@ -1792,9 +1787,8 @@ namespace RasterizerTest {
 
   TEST(RasterTexture, DirectImageTextureUsesScaledUVMapping) {
     auto image = std::make_shared<render::ImageTexture>(
-      new render::UVMapping2D(2.0, 1.0), 2, 1,
-      std::vector<Colord>{Colord::red(), Colord::green()}, render::ImageTextureFilter::Nearest,
-      render::ImageTextureWrap::Repeat);
+      new render::UVMapping2D(2.0, 1.0), 2, 1, std::vector<Colord>{Colord::red(), Colord::green()},
+      render::ImageTextureFilter::Nearest, render::ImageTextureWrap::Repeat);
     const auto texture = engine::raster::detail::RasterTexture::from(image);
 
     const Colord color =
@@ -1810,14 +1804,14 @@ namespace RasterizerTest {
         pixels.push_back(((x + y) % 2 == 0) ? Colord::black() : Colord::white());
       }
     }
-    auto image = std::make_shared<render::ImageTexture>(
-      new render::UVMapping2D, 4, 4, pixels, render::ImageTextureFilter::Mipmap,
-      render::ImageTextureWrap::Repeat);
+    auto image = std::make_shared<render::ImageTexture>(new render::UVMapping2D, 4, 4, pixels,
+                                                        render::ImageTextureFilter::Mipmap,
+                                                        render::ImageTextureWrap::Repeat);
     const auto texture = engine::raster::detail::RasterTexture::from(image);
 
-    const Colord color = texture.evaluate(nullptr, Vector3d::null, Vector3d::up(),
-                                          Vector2d(0.3, 0.7), Vector2d(1.0, 0.0),
-                                          Vector2d(0.0, 0.0));
+    const Colord color =
+      texture.evaluate(nullptr, Vector3d::null, Vector3d::up(), Vector2d(0.3, 0.7),
+                       Vector2d(1.0, 0.0), Vector2d(0.0, 0.0));
 
     EXPECT_NEAR(0.5, color.r(), 1e-9);
     EXPECT_NEAR(0.5, color.g(), 1e-9);
@@ -1825,16 +1819,14 @@ namespace RasterizerTest {
   }
 
   TEST(RasterMaterial, NormalMapTransformsFromTangentSpaceToWorldSpace) {
-    const auto normalMap =
-      engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
+    const auto normalMap = engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
     const auto material = engine::raster::detail::RasterMaterial::constant(
       Colord::white(), 0.0, 1.0, 1.0, Colord::black(), 0.0, 16.0, normalMap, true);
-    const engine::raster::detail::RasterTangentFrame frame{
-      Vector3d::right(), Vector3d::up(), true};
+    const engine::raster::detail::RasterTangentFrame frame{Vector3d::right(), Vector3d::up(), true};
 
-    const Vector3d mapped = material.lightingNormal(
-      nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null, Vector2d::null,
-      Vector2d::null, frame);
+    const Vector3d mapped =
+      material.lightingNormal(nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null,
+                              Vector2d::null, Vector2d::null, frame);
 
     const Vector3d expected = Vector3d(1.0, 0.0, 1.0).normalized();
     EXPECT_NEAR(expected.x(), mapped.x(), 1e-9);
@@ -1865,30 +1857,31 @@ namespace RasterizerTest {
   }
 
   TEST(RasterMaterialSource, TransparentMaterialSelectsAlphaPhongFallback) {
-    const auto material =
-      std::make_shared<TransparentMaterial>(std::make_shared<ConstantColorTexture>(Colord::white()));
+    const auto material = std::make_shared<TransparentMaterial>(
+      std::make_shared<ConstantColorTexture>(Colord::white()));
     material->setTransmissionCoefficient(0.75);
     const auto source = engine::raster::detail::RasterMaterialSource::from(material);
     const auto rasterMaterial = source.forFace(0);
 
     EXPECT_TRUE(source.usesRecursiveFallback());
-    EXPECT_EQ(engine::raster::detail::RasterMaterialSource::RecursiveFallback::TransparentAlphaPhong,
-              source.recursiveFallback());
+    EXPECT_EQ(
+      engine::raster::detail::RasterMaterialSource::RecursiveFallback::TransparentAlphaPhong,
+      source.recursiveFallback());
     EXPECT_STREQ("transparent-alpha-phong", source.recursiveFallbackName());
-    EXPECT_NEAR(0.25, rasterMaterial.alpha(nullptr, Vector3d::null, Vector3d::forward(),
-                                           Vector2d::null, Vector2d::null, Vector2d::null),
+    EXPECT_NEAR(0.25,
+                rasterMaterial.alpha(nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null,
+                                     Vector2d::null, Vector2d::null),
                 1e-9);
   }
 
   TEST(RasterMaterial, NormalMapFallsBackToGeometricNormalWithoutTangentFrame) {
-    const auto normalMap =
-      engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
+    const auto normalMap = engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
     const auto material = engine::raster::detail::RasterMaterial::constant(
       Colord::white(), 0.0, 1.0, 1.0, Colord::black(), 0.0, 16.0, normalMap, true);
 
-    const Vector3d mapped = material.lightingNormal(
-      nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null, Vector2d::null,
-      Vector2d::null, engine::raster::detail::RasterTangentFrame{});
+    const Vector3d mapped = material.lightingNormal(nullptr, Vector3d::null, Vector3d::forward(),
+                                                    Vector2d::null, Vector2d::null, Vector2d::null,
+                                                    engine::raster::detail::RasterTangentFrame{});
 
     EXPECT_EQ(Vector3d::forward(), mapped);
   }
@@ -1896,19 +1889,17 @@ namespace RasterizerTest {
   TEST(Rasterizer, BuiltInMaterialUsesNormalMappedLightingNormal) {
     auto scene = std::make_shared<Scene>(Colord::black());
     scene->setAmbient(Colord::black());
-    scene->addLight(std::make_shared<DirectionalLight>(
-      Vector3d(1.0, 0.0, 1.0).normalized(), Colord::white()));
+    scene->addLight(
+      std::make_shared<DirectionalLight>(Vector3d(1.0, 0.0, 1.0).normalized(), Colord::white()));
     engine::raster::detail::MaterialEvaluator evaluator(scene.get(), nullptr, nullptr);
-    const auto normalMap =
-      engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
+    const auto normalMap = engine::raster::detail::RasterTexture::constant(Colord(1.0, 0.5, 1.0));
     const auto material = engine::raster::detail::RasterMaterial::constant(
       Colord::white(), 0.0, 1.0, 1.0, Colord::black(), 0.0, 16.0, normalMap, true);
-    const engine::raster::detail::RasterTangentFrame frame{
-      Vector3d::right(), Vector3d::up(), true};
+    const engine::raster::detail::RasterTangentFrame frame{Vector3d::right(), Vector3d::up(), true};
 
-    const auto shaded = evaluator.shade(material, nullptr, Vector3d::null, Vector3d::forward(),
-                                        Vector2d::null, Vector2d::null, Vector2d::null, frame, 0,
-                                        0);
+    const auto shaded =
+      evaluator.shade(material, nullptr, Vector3d::null, Vector3d::forward(), Vector2d::null,
+                      Vector2d::null, Vector2d::null, frame, 0, 0);
 
     EXPECT_NEAR(1.0, shaded.color.r(), 1e-9);
     EXPECT_NEAR(1.0, shaded.color.g(), 1e-9);

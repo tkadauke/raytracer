@@ -12,20 +12,18 @@ public:
     * uninitialized.
     */
   inline MemoizedValue()
-    : m_initialized(false)
-  {
+      : m_initialized(false) {
   }
-  
+
   /**
     * Value constructor. Initializes the value with the given @p value and sets
     * the object state to initialized.
     */
   inline explicit MemoizedValue(const T& value)
-    : m_initialized(true),
-      m_value(value)
-  {
+      : m_initialized(true),
+        m_value(value) {
   }
-  
+
   /**
     * @returns true if the object is uninitialized, false otherwise. This makes
     *   it easy to guard against uninitialized values.
@@ -41,7 +39,7 @@ public:
   inline bool operator!() const {
     return !m_initialized;
   }
-  
+
   /**
     * Value conversion operator. This allows a MemoizedValue<T> instance to be
     * used where a T instance is expected.
@@ -56,14 +54,14 @@ public:
   inline operator const T&() const {
     return m_value;
   }
-  
+
   /**
     * @returns true if the value is initialized, false otherwise.
     */
   inline bool isInitialized() const {
     return m_initialized;
   }
-  
+
   /**
     * Gets the value out of the MemoizedValue container.
     * 
@@ -77,7 +75,7 @@ public:
   inline const T& value() const {
     return m_value;
   }
-  
+
   /**
     * Gets the value out of the MemoizedValue container.
     * 
@@ -91,7 +89,7 @@ public:
   inline T& value() {
     return m_value;
   }
-  
+
   /**
     * Sets the memoized value to @p value. This method can be called multiple
     * times.
@@ -103,14 +101,14 @@ public:
     m_initialized = true;
     return value;
   }
-  
+
   /**
     * Resets the initialized indicator, but leaves the value alone.
     */
   inline void reset() {
     m_initialized = false;
   }
-  
+
 private:
   bool m_initialized;
   T m_value;

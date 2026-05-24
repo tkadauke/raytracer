@@ -10,19 +10,19 @@ using namespace core::math::interpolation;
 
 namespace {
 
-void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
-  EXPECT_NEAR(expected.x(), actual.x(), epsilon);
-  EXPECT_NEAR(expected.y(), actual.y(), epsilon);
-  EXPECT_NEAR(expected.z(), actual.z(), epsilon);
-}
+  void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
+    EXPECT_NEAR(expected.x(), actual.x(), epsilon);
+    EXPECT_NEAR(expected.y(), actual.y(), epsilon);
+    EXPECT_NEAR(expected.z(), actual.z(), epsilon);
+  }
 
-void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
-  EXPECT_NEAR(expected.r(), actual.r(), epsilon);
-  EXPECT_NEAR(expected.g(), actual.g(), epsilon);
-  EXPECT_NEAR(expected.b(), actual.b(), epsilon);
-}
+  void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
+    EXPECT_NEAR(expected.r(), actual.r(), epsilon);
+    EXPECT_NEAR(expected.g(), actual.g(), epsilon);
+    EXPECT_NEAR(expected.b(), actual.b(), epsilon);
+  }
 
-}  // namespace
+} // namespace
 
 TEST(InterpolationModesTest, ParsesSupportedNames) {
   EXPECT_EQ(InterpolationMode::Step, InterpolationModes::fromName("step"));
@@ -48,15 +48,15 @@ TEST(LinearInterpolatorTest, InterpolatesScalarValues) {
 }
 
 TEST(LinearInterpolatorTest, InterpolatesVectorValues) {
-  const auto actual = LinearInterpolator<Vector3d>::interpolate(Vector3d(0, 10, 20),
-                                                                Vector3d(10, 20, 40), 0.25);
+  const auto actual =
+    LinearInterpolator<Vector3d>::interpolate(Vector3d(0, 10, 20), Vector3d(10, 20, 40), 0.25);
 
   expectVectorNear(Vector3d(2.5, 12.5, 25), actual, 1e-12);
 }
 
 TEST(LinearInterpolatorTest, InterpolatesColorValues) {
-  const auto actual = LinearInterpolator<Colord>::interpolate(Colord(0.0, 0.2, 0.4),
-                                                              Colord(1.0, 0.4, 0.8), 0.25);
+  const auto actual =
+    LinearInterpolator<Colord>::interpolate(Colord(0.0, 0.2, 0.4), Colord(1.0, 0.4, 0.8), 0.25);
 
   expectColorNear(Colord(0.25, 0.25, 0.5), actual, 1e-12);
 }
@@ -69,11 +69,14 @@ TEST(SmoothStepInterpolatorTest, RemapsInterpolationWeight) {
 
 TEST(InterpolatorTest, DispatchesInterpolationMode) {
   EXPECT_DOUBLE_EQ(0.0, Interpolator<double>::interpolate(InterpolationMode::Step, 0.0, 10.0, 0.5));
-  EXPECT_DOUBLE_EQ(5.0, Interpolator<double>::interpolate(InterpolationMode::Linear, 0.0, 10.0, 0.5));
-  EXPECT_DOUBLE_EQ(5.0, Interpolator<double>::interpolate(InterpolationMode::SmoothStep, 0.0, 10.0, 0.5));
+  EXPECT_DOUBLE_EQ(5.0,
+                   Interpolator<double>::interpolate(InterpolationMode::Linear, 0.0, 10.0, 0.5));
+  EXPECT_DOUBLE_EQ(
+    5.0, Interpolator<double>::interpolate(InterpolationMode::SmoothStep, 0.0, 10.0, 0.5));
 }
 
 TEST(InterpolatorTest, NonLinearModesRequireInterpolatableValues) {
-  EXPECT_THROW(Interpolator<std::string>::interpolate(InterpolationMode::Linear, "open", "closed", 0.5),
-               std::logic_error);
+  EXPECT_THROW(
+    Interpolator<std::string>::interpolate(InterpolationMode::Linear, "open", "closed", 0.5),
+    std::logic_error);
 }

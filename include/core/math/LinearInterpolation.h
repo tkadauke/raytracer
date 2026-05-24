@@ -24,7 +24,7 @@ public:
     inline int current() const {
       return m_current;
     }
-    
+
     /**
       * Advances this iterator, modyfying it inplace.
       * 
@@ -34,7 +34,7 @@ public:
       m_current++;
       return *this;
     }
-    
+
     /**
       * Advances this iterator, modifying it inplace. This method will create
       * a copy of the iterator which is returned. If you don't need that copy,
@@ -47,7 +47,7 @@ public:
       m_current++;
       return tmp;
     }
-    
+
     /**
       * @returns true if this iterator is equal to @p other, false otherwise. To
       *   determine equality, the current step number as well as the begin of
@@ -56,53 +56,51 @@ public:
     inline bool operator==(const Iterator& other) const {
       return m_begin == other.m_begin && m_step == other.m_step && m_current == other.m_current;
     }
-    
+
     /**
       * @returns the current value of the linear interpolation.
       */
     inline T operator*() const {
       return m_begin + m_step * m_current;
     }
-  
+
   private:
     friend class LinearInterpolation;
-    
+
     inline explicit Iterator(const T& begin, const T& end, int steps, int current = 0)
-      : m_begin(begin),
-        m_current(current)
-    {
+        : m_begin(begin),
+          m_current(current) {
       m_step = (end - begin) / steps;
     }
-    
+
     T m_begin, m_step;
     int m_current;
   };
-  
+
   /**
     * Constructor. Creates a linear interpolation between @p begin and @p end,
     * using the specified number of @p steps.
     */
   inline explicit LinearInterpolation(const T& begin, const T& end, int steps)
-    : m_begin(begin),
-      m_end(end),
-      m_steps(steps)
-  {
+      : m_begin(begin),
+        m_end(end),
+        m_steps(steps) {
   }
-  
+
   /**
     * @returns an iterator pointing to the beginning of the interval.
     */
   inline Iterator begin() const {
     return Iterator(m_begin, m_end, m_steps, 0);
   }
-  
+
   /**
     * @returns an iterator pointing past the end of the interval.
     */
   inline Iterator end() const {
     return Iterator(m_begin, m_end, m_steps, m_steps);
   }
-  
+
 private:
   T m_begin, m_end;
   int m_steps;

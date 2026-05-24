@@ -9,7 +9,8 @@
 using namespace std;
 using namespace render;
 
-const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                     render::State& state) const {
   // Static fast path — no motion blur math when velocity is zero.
   // Most instances in any given scene fall through here, so the
   // branch keeps the cost of the new feature to one comparison per
@@ -35,10 +36,8 @@ const Primitive* Instance::intersect(const Rayd& ray, HitPointInterval& hitPoint
   // build a `pointMatrix_at_t = pointMatrix + translate(velocity *
   // timeSample)` to map the resulting hit points back to world.
   Vector3d shift = m_velocity * state.timeSample;
-  Rayd localRay(
-    Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
-    m_directionMatrix * ray.direction()
-  );
+  Rayd localRay(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
+                m_directionMatrix * ray.direction());
 
   const Primitive* result = m_primitive->intersect(localRay, hitPoints, state);
   if (result) {
@@ -61,10 +60,8 @@ bool Instance::intersects(const Rayd& ray, render::State& state) const {
     return m_primitive->intersects(instancedRay(ray), state);
   }
   Vector3d shift = m_velocity * state.timeSample;
-  Rayd localRay(
-    Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
-    m_directionMatrix * ray.direction()
-  );
+  Rayd localRay(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()) - shift)),
+                m_directionMatrix * ray.direction());
   return m_primitive->intersects(localRay, state);
 }
 

@@ -33,14 +33,7 @@ namespace engine::graph {
     * Specific looks such as toon or clay shading are named shading profiles,
     * not enum values here. This enum stays limited to structural view modes.
     */
-  enum class RenderViewMode {
-    Default,
-    Beauty,
-    Wireframe,
-    Depth,
-    Normal,
-    ObjectId
-  };
+  enum class RenderViewMode { Default, Beauty, Wireframe, Depth, Normal, ObjectId };
 
   /**
     * Concrete executor required by a compiled render pass.
@@ -73,12 +66,7 @@ namespace engine::graph {
   /**
     * How a compiled pass behaves when a user disables it before execution.
     */
-  enum class DisabledBehavior {
-    Error,
-    CullDependents,
-    SubstituteDefault,
-    Passthrough
-  };
+  enum class DisabledBehavior { Error, CullDependents, SubstituteDefault, Passthrough };
 
   /**
     * Type of data stored behind a render resource handle.
@@ -107,46 +95,23 @@ namespace engine::graph {
     * Where a resource physically lives. CPU is the only implemented domain for
     * the first graph slice; GPU keeps the descriptor model future-proof.
     */
-  enum class RenderResourceDomain {
-    CPU,
-    GPU
-  };
+  enum class RenderResourceDomain { CPU, GPU };
 
   /**
     * Lifetime class used by validation and future resource allocation.
     */
-  enum class RenderResourceLifetime {
-    Transient,
-    Imported,
-    Exported,
-    History,
-    PersistentCache
-  };
+  enum class RenderResourceLifetime { Transient, Imported, Exported, History, PersistentCache };
 
   /**
     * Minimal format description for the first CPU-backed graph resources.
     */
-  enum class RenderResourceFormat {
-    Unknown,
-    RGBDouble,
-    DepthDouble,
-    UInt8,
-    UInt32,
-    ScalarDouble
-  };
+  enum class RenderResourceFormat { Unknown, RGBDouble, DepthDouble, UInt8, UInt32, ScalarDouble };
 
   /**
     * Stable selector for applying render intent to part of the editable scene.
     */
   struct SceneSelector {
-    enum class Kind {
-      All,
-      ObjectId,
-      ObjectName,
-      Tag,
-      Layer,
-      MaterialRole
-    };
+    enum class Kind { All, ObjectId, ObjectName, Tag, Layer, MaterialRole };
 
     Kind kind{Kind::All};
     std::string value;
@@ -159,8 +124,7 @@ namespace engine::graph {
     static SceneSelector materialRole(std::string role);
 
     QJsonObject toJson() const;
-    static SceneSelector fromJson(const QJsonObject& object,
-                                  std::string path = "sceneSelector");
+    static SceneSelector fromJson(const QJsonObject& object, std::string path = "sceneSelector");
   };
 
   /**
@@ -171,8 +135,7 @@ namespace engine::graph {
     QJsonObject parameters;
 
     QJsonObject toJson() const;
-    static ShadingProfileRef fromJson(const QJsonValue& value,
-                                      std::string path = "shadingProfile");
+    static ShadingProfileRef fromJson(const QJsonValue& value, std::string path = "shadingProfile");
   };
 
   /**
@@ -192,8 +155,7 @@ namespace engine::graph {
     std::optional<CameraSnapshot> snapshot;
 
     QJsonObject toJson() const;
-    static RenderCameraRef fromJson(const QJsonValue& value,
-                                    std::string path = "camera");
+    static RenderCameraRef fromJson(const QJsonValue& value, std::string path = "camera");
   };
 
   /**
@@ -326,8 +288,7 @@ namespace engine::graph {
     const ResourceRead& singleRead() const;
     const ResourceWrite& singleWrite() const;
     QJsonObject toJson() const;
-    static RenderPassNode fromJson(const QJsonObject& object,
-                                   std::string path = "pass");
+    static RenderPassNode fromJson(const QJsonObject& object, std::string path = "pass");
   };
 
   const char* toString(RenderExecutorPreference value);

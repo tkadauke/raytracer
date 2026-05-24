@@ -22,7 +22,7 @@
 namespace RaytracerTest {
   using namespace ::testing;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
 
   // Tests for the orchestration class itself (issue #20). render() is not
   // exercised here because it spins up a QThreadPool; that path is covered
@@ -35,8 +35,8 @@ using namespace render;
     // material — the simplest "primitive that shades to a known colour".
     std::shared_ptr<Sphere> whiteSphere(double radius) {
       auto sphere = std::make_shared<Sphere>(Vector3d::null, radius);
-      sphere->setMaterial(std::make_shared<MatteMaterial>(
-        std::make_shared<ConstantColorTexture>(Colord::white())));
+      sphere->setMaterial(
+        std::make_shared<MatteMaterial>(std::make_shared<ConstantColorTexture>(Colord::white())));
       return sphere;
     }
 
@@ -48,8 +48,7 @@ using namespace render;
     std::shared_ptr<NiceMock<MockPrimitive>> makeAlwaysHit(double distance = 1.0) {
       auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
       BoundingBoxd bbox(Vector3d(-100, -100, -100), Vector3d(100, 100, 100));
-      HitPoint hit(primitive.get(), distance,
-                   Vector4d(0, 0, distance, 1), Vector3d(0, 0, -1));
+      HitPoint hit(primitive.get(), distance, Vector4d(0, 0, distance, 1), Vector3d(0, 0, -1));
       ON_CALL(*primitive, calculateBoundingBox()).WillByDefault(Return(bbox));
       ON_CALL(*primitive, intersect(_, _, _))
         .WillByDefault(DoAll(AddHitPoint(hit), Return(primitive.get())));
@@ -71,7 +70,7 @@ using namespace render;
   }
 
   TEST(Raytracer, ShouldExposeAndUpdateScene) {
-    auto first  = std::make_shared<Scene>(Colord::black());
+    auto first = std::make_shared<Scene>(Colord::black());
     auto second = std::make_shared<Scene>(Colord::white());
     Raytracer raytracer(first);
     ASSERT_EQ(first, raytracer.scene());
@@ -86,7 +85,7 @@ using namespace render;
     Raytracer raytracer(scene);
 
     State state;
-    Rayd ray(Vector3d(0, 0, -10), Vector3d(0, 1, 0));  // straight up, hits nothing
+    Rayd ray(Vector3d(0, 0, -10), Vector3d(0, 1, 0)); // straight up, hits nothing
     auto colour = raytracer.rayColor(ray, state);
 
     ASSERT_COLOR_NEAR(Colord(0.25, 0.5, 0.75), colour, 0.001);
@@ -193,7 +192,7 @@ using namespace render;
 
     Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
     State state;
-    state.recursionDepth = 4;  // recurseIn() will make it 5, hitting the limit.
+    state.recursionDepth = 4; // recurseIn() will make it 5, hitting the limit.
     ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
   }
 
@@ -214,7 +213,7 @@ using namespace render;
     scene->add(whiteSphere(1.0));
     Raytracer raytracer(scene);
 
-    Rayd ray(Vector3d(0, 0, -5), Vector3d(0, 1, 0));  // misses
+    Rayd ray(Vector3d(0, 0, -5), Vector3d(0, 1, 0)); // misses
     auto hit = raytracer.primitiveForRay(ray);
 
     ASSERT_EQ(nullptr, hit);
@@ -240,11 +239,11 @@ using namespace render;
     // scene background without intersecting the scene.
     auto scene = std::make_shared<Scene>();
     scene->setBackground(Colord(0.3, 0.6, 0.9));
-    scene->add(makeAlwaysHit());  // would shade if reached
+    scene->add(makeAlwaysHit()); // would shade if reached
     Raytracer raytracer(scene);
 
     State state;
-    state.throughput = 1e-5;  // below RAYTRACER_THROUGHPUT_CUTOFF (1e-4)
+    state.throughput = 1e-5; // below RAYTRACER_THROUGHPUT_CUTOFF (1e-4)
     Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
     ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
     // Only one rayColor entry (depth goes to 1) — no recursion was triggered.
@@ -263,8 +262,8 @@ using namespace render;
     raytracer.setMaximumRecursionDepth(10);
 
     State state;
-    state.recursionDepth = 8;  // 2 levels from the hard limit
-    state.throughput = 1e-5;   // below RAYTRACER_THROUGHPUT_CUTOFF
+    state.recursionDepth = 8; // 2 levels from the hard limit
+    state.throughput = 1e-5;  // below RAYTRACER_THROUGHPUT_CUTOFF
     Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
 
     ASSERT_EQ(scene->background(), raytracer.rayColor(ray, state));
@@ -285,10 +284,10 @@ using namespace render;
     Rayd ray(Vector3d(0, 0, -5), Vector3d(0, 0, 1));
 
     State state1;
-    auto color1 = raytracer.rayColor(ray, state1);  // default throughput = 1.0
+    auto color1 = raytracer.rayColor(ray, state1); // default throughput = 1.0
 
     State state2;
-    state2.throughput = 0.5;  // above cutoff, should not affect matte shading
+    state2.throughput = 0.5; // above cutoff, should not affect matte shading
     auto color2 = raytracer.rayColor(ray, state2);
 
     ASSERT_COLOR_NEAR(color1, color2, 1e-9);

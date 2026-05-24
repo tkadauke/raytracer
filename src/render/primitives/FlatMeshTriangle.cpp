@@ -7,22 +7,28 @@
 
 using namespace render;
 
-void FlatMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material) {
+void FlatMeshTriangle::build(const Mesh* mesh, Composite* composite,
+                             std::shared_ptr<render::Material> material) {
   for (const auto& triangle : *mesh) {
-    auto primitive = std::make_shared<FlatMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
+    auto primitive =
+      std::make_shared<FlatMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
     primitive->setMaterial(material);
     composite->add(primitive);
   }
 }
 
-const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* FlatMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                             render::State& state) const {
   Vector3d v0(m_mesh->vertices()[m_index0].point);
   Vector3d v1(m_mesh->vertices()[m_index1].point);
   Vector3d v2(m_mesh->vertices()[m_index2].point);
 
-  double a = v0.x() - v1.x(), b = v0.x() - v2.x(), c = ray.direction().x(), d = v0.x() - ray.origin().x();
-  double e = v0.y() - v1.y(), f = v0.y() - v2.y(), g = ray.direction().y(), h = v0.y() - ray.origin().y();
-  double i = v0.z() - v1.z(), j = v0.z() - v2.z(), k = ray.direction().z(), l = v0.z() - ray.origin().z();
+  double a = v0.x() - v1.x(), b = v0.x() - v2.x(), c = ray.direction().x(),
+         d = v0.x() - ray.origin().x();
+  double e = v0.y() - v1.y(), f = v0.y() - v2.y(), g = ray.direction().y(),
+         h = v0.y() - ray.origin().y();
+  double i = v0.z() - v1.z(), j = v0.z() - v2.z(), k = ray.direction().z(),
+         l = v0.z() - ray.origin().z();
 
   double m = f * k - g * j, n = h * k - g * l, p = f * l - h * j;
   double q = g * i - e * k, r = e * l - h * i, s = e * j - f * i;

@@ -12,8 +12,7 @@ GIVEN(EngineFeatureTest, "a fish-eye camera") {
 
 WHEN(EngineFeatureTest, "i set the fish-eye camera's field of view to ([\\d.]+) degrees") {
   double degrees = std::stod(match[1]);
-  static_cast<FishEyeCamera*>(test->camera().get())
-    ->setFieldOfView(Angled::fromDegrees(degrees));
+  static_cast<FishEyeCamera*>(test->camera().get())->setFieldOfView(Angled::fromDegrees(degrees));
 }
 
 THEN(EngineFeatureTest, "i should see a black ring around the image") {

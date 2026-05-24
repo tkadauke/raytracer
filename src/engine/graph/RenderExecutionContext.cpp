@@ -8,8 +8,7 @@
 namespace engine::graph {
   RenderExecutionContext::RenderExecutionContext(const RenderPassNode& pass,
                                                  RenderResourceStorage& storage,
-                                                 const GraphRenderEngine& graph,
-                                                 bool cancelled,
+                                                 const GraphRenderEngine& graph, bool cancelled,
                                                  ActiveEngineSetter activeEngineSetter)
       : m_pass(pass),
         m_storage(storage),

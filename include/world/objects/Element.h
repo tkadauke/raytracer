@@ -100,7 +100,7 @@ public:
   virtual void joinParent();
 
 protected:
-  template<class T, class ... Args>
+  template<class T, class... Args>
   inline std::shared_ptr<T> make_named(Args&&... args) const {
     auto result = std::make_shared<T>(args...);
     result->setName(name().toStdString());

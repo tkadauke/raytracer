@@ -6,8 +6,8 @@
 
 namespace SphereTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   const double kEps = 1e-10;
 
@@ -42,8 +42,7 @@ using namespace render;
   // Lod 1 must produce more vertices than lod 0 (resolution increases)
   TEST(SphereTessellate, Lod1HasMoreVerticesThanLod0) {
     Sphere sphere(Vector3d(), 1.0);
-    EXPECT_GT(sphere.tessellate(1)->vertices().size(),
-              sphere.tessellate(0)->vertices().size());
+    EXPECT_GT(sphere.tessellate(1)->vertices().size(), sphere.tessellate(0)->vertices().size());
   }
 
   TEST(SphereTessellate, AllVerticesAtRadius) {

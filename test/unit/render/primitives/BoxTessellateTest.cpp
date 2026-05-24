@@ -6,8 +6,8 @@
 
 namespace BoxTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(BoxTessellate, ProducesNonEmptyMesh) {
     Box box(Vector3d::null, Vector3d(1, 1, 1));
@@ -49,13 +49,11 @@ using namespace render;
     auto mesh = box.tessellate();
     for (const auto& v : mesh->vertices()) {
       const double tol = 1e-9;
-      bool onSurface =
-        std::abs(std::abs(v.point.x()) - 1.0) < tol ||
-        std::abs(std::abs(v.point.y()) - 1.0) < tol ||
-        std::abs(std::abs(v.point.z()) - 1.0) < tol;
-      EXPECT_TRUE(onSurface) << "vertex (" << v.point.x() << ", "
-                             << v.point.y() << ", " << v.point.z()
-                             << ") is not on the box surface";
+      bool onSurface = std::abs(std::abs(v.point.x()) - 1.0) < tol ||
+                       std::abs(std::abs(v.point.y()) - 1.0) < tol ||
+                       std::abs(std::abs(v.point.z()) - 1.0) < tol;
+      EXPECT_TRUE(onSurface) << "vertex (" << v.point.x() << ", " << v.point.y() << ", "
+                             << v.point.z() << ") is not on the box surface";
     }
   }
 
@@ -68,10 +66,8 @@ using namespace render;
     for (const auto& v : mesh->vertices()) {
       EXPECT_NEAR(1.0, v.normal.length(), 1e-9);
       // Exactly one component is ±1, the other two are 0.
-      int nonzero =
-        (std::abs(v.normal.x()) > 0.5 ? 1 : 0) +
-        (std::abs(v.normal.y()) > 0.5 ? 1 : 0) +
-        (std::abs(v.normal.z()) > 0.5 ? 1 : 0);
+      int nonzero = (std::abs(v.normal.x()) > 0.5 ? 1 : 0) +
+                    (std::abs(v.normal.y()) > 0.5 ? 1 : 0) + (std::abs(v.normal.z()) > 0.5 ? 1 : 0);
       EXPECT_EQ(1, nonzero);
     }
   }
@@ -81,20 +77,27 @@ using namespace render;
     // cover ±X, ±Y, ±Z exactly once each.
     Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
-    int count[6] = {0, 0, 0, 0, 0, 0};  // +X, -X, +Y, -Y, +Z, -Z
+    int count[6] = {0, 0, 0, 0, 0, 0}; // +X, -X, +Y, -Y, +Z, -Z
     for (const auto& face : mesh->faces()) {
       // All 4 vertices in a face share a normal. Sample the first.
       const Vector3d& n = mesh->vertices()[face[0]].normal;
-      if      (n.x() >  0.5) count[0]++;
-      else if (n.x() < -0.5) count[1]++;
-      else if (n.y() >  0.5) count[2]++;
-      else if (n.y() < -0.5) count[3]++;
-      else if (n.z() >  0.5) count[4]++;
-      else if (n.z() < -0.5) count[5]++;
+      if (n.x() > 0.5)
+        count[0]++;
+      else if (n.x() < -0.5)
+        count[1]++;
+      else if (n.y() > 0.5)
+        count[2]++;
+      else if (n.y() < -0.5)
+        count[3]++;
+      else if (n.z() > 0.5)
+        count[4]++;
+      else if (n.z() < -0.5)
+        count[5]++;
     }
     for (int i = 0; i < 6; i++) {
       EXPECT_EQ(1, count[i]) << "expected exactly one face with outward "
-                                "axis " << i;
+                                "axis "
+                             << i;
     }
   }
 
@@ -113,13 +116,19 @@ using namespace render;
       bool corners[4] = {false, false, false, false};
       for (int idx : face) {
         const Vector2d& uv = mesh->vertices()[idx].uv;
-        if      (uv.x() == 0 && uv.y() == 0) corners[0] = true;
-        else if (uv.x() == 1 && uv.y() == 0) corners[1] = true;
-        else if (uv.x() == 1 && uv.y() == 1) corners[2] = true;
-        else if (uv.x() == 0 && uv.y() == 1) corners[3] = true;
-        else FAIL() << "unexpected UV (" << uv.x() << ", " << uv.y() << ")";
+        if (uv.x() == 0 && uv.y() == 0)
+          corners[0] = true;
+        else if (uv.x() == 1 && uv.y() == 0)
+          corners[1] = true;
+        else if (uv.x() == 1 && uv.y() == 1)
+          corners[2] = true;
+        else if (uv.x() == 0 && uv.y() == 1)
+          corners[3] = true;
+        else
+          FAIL() << "unexpected UV (" << uv.x() << ", " << uv.y() << ")";
       }
-      for (bool c : corners) EXPECT_TRUE(c);
+      for (bool c : corners)
+        EXPECT_TRUE(c);
     }
   }
 
@@ -138,7 +147,8 @@ using namespace render;
     Box box(Vector3d::null, Vector3d(1, 1, 1));
     auto mesh = box.tessellate();
     int count = 0;
-    for (auto it = mesh->begin(); it != mesh->end(); ++it) ++count;
+    for (auto it = mesh->begin(); it != mesh->end(); ++it)
+      ++count;
     EXPECT_EQ(12, count);
   }
 
@@ -150,11 +160,9 @@ using namespace render;
     auto mesh = box.tessellate();
     Vector3d minV(1e9, 1e9, 1e9), maxV(-1e9, -1e9, -1e9);
     for (const auto& v : mesh->vertices()) {
-      minV = Vector3d(std::min(minV.x(), v.point.x()),
-                      std::min(minV.y(), v.point.y()),
+      minV = Vector3d(std::min(minV.x(), v.point.x()), std::min(minV.y(), v.point.y()),
                       std::min(minV.z(), v.point.z()));
-      maxV = Vector3d(std::max(maxV.x(), v.point.x()),
-                      std::max(maxV.y(), v.point.y()),
+      maxV = Vector3d(std::max(maxV.x(), v.point.x()), std::max(maxV.y(), v.point.y()),
                       std::max(maxV.z(), v.point.z()));
     }
     EXPECT_EQ(Vector3d(4, 4, 4), minV);

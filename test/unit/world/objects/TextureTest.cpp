@@ -57,8 +57,7 @@ namespace TextureTest {
   TEST(ConstantColorTexture, ShouldProduceRaytracerConstantColorTexture) {
     ConstantColorTexture texture;
     texture.setColor(Colord(0.1, 0.2, 0.3));
-    auto rt = std::dynamic_pointer_cast<render::ConstantColorTexture>(
-      texture.toRaytracerTexture());
+    auto rt = std::dynamic_pointer_cast<render::ConstantColorTexture>(texture.toRaytracerTexture());
     ASSERT_NE(nullptr, rt);
     EXPECT_EQ(Colord(0.1, 0.2, 0.3), rt->color());
   }
@@ -148,8 +147,7 @@ namespace TextureTest {
 
   TEST(CheckerBoardTexture, ShouldProduceRaytracerCheckerBoardTexture) {
     CheckerBoardTexture texture;
-    auto rt = std::dynamic_pointer_cast<render::CheckerBoardTexture>(
-      texture.toRaytracerTexture());
+    auto rt = std::dynamic_pointer_cast<render::CheckerBoardTexture>(texture.toRaytracerTexture());
     ASSERT_NE(nullptr, rt);
     // Both sub-textures fall through textureOrDefault → the default
     // ConstantColorTexture, so brightTexture/darkTexture on the raytracer
@@ -172,11 +170,9 @@ namespace TextureTest {
 
     auto rt = texture.toRaytracerTexture();
 
-    EXPECT_EQ(
-      Colord::black(),
-      rt->evaluate(
-        Rayd::undefined,
-        HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.3, 0.0))));
+    EXPECT_EQ(Colord::black(),
+              rt->evaluate(Rayd::undefined, HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(),
+                                                     Vector2d(0.3, 0.0))));
   }
 
   // ---------- ImageTexture --------------------------------------------------
@@ -229,13 +225,10 @@ namespace TextureTest {
 
   TEST(UVColorTexture, ShouldProduceRaytracerUVColorTexture) {
     UVColorTexture texture;
-    auto rt = std::dynamic_pointer_cast<render::UVColorTexture>(
-      texture.toRaytracerTexture());
+    auto rt = std::dynamic_pointer_cast<render::UVColorTexture>(texture.toRaytracerTexture());
     ASSERT_NE(nullptr, rt);
-    EXPECT_EQ(
-      Colord(0.25, 0.75, 0.0),
-      rt->evaluate(
-        Rayd::undefined,
-        HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(), Vector2d(0.25, 0.75))));
+    EXPECT_EQ(Colord(0.25, 0.75, 0.0),
+              rt->evaluate(Rayd::undefined, HitPoint(nullptr, 0, Vector3d::null, Vector3d::up(),
+                                                     Vector2d(0.25, 0.75))));
   }
 }

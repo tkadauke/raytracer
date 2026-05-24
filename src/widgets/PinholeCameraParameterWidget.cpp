@@ -10,9 +10,8 @@ struct PinholeCameraParameterWidget::Private {
 };
 
 PinholeCameraParameterWidget::PinholeCameraParameterWidget(QWidget* parent)
-  : CameraParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : CameraParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   connect(p->ui.distanceInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
   connect(p->ui.zoomInput, SIGNAL(valueChanged(double)), this, SLOT(parameterChanged()));
@@ -41,5 +40,5 @@ void PinholeCameraParameterWidget::applyTo(std::shared_ptr<render::Camera> camer
   }
 }
 
-static bool dummy = CameraParameterWidgetFactory::self().registerClass<PinholeCameraParameterWidget>("PinholeCamera");
-
+static bool dummy =
+  CameraParameterWidgetFactory::self().registerClass<PinholeCameraParameterWidget>("PinholeCamera");

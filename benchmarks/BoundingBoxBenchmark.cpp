@@ -15,147 +15,153 @@
 
 namespace {
 
-template<typename T>
-std::vector<Rayd> generateRays(int count, T extent) {
-  std::mt19937 rng(42);
-  std::uniform_real_distribution<double> origin(-double(extent) * 2, double(extent) * 2);
-  std::uniform_real_distribution<double> direction(-1.0, 1.0);
+  template<typename T>
+  std::vector<Rayd> generateRays(int count, T extent) {
+    std::mt19937 rng(42);
+    std::uniform_real_distribution<double> origin(-double(extent) * 2, double(extent) * 2);
+    std::uniform_real_distribution<double> direction(-1.0, 1.0);
 
-  std::vector<Rayd> rays;
-  rays.reserve(count);
-  for (int i = 0; i < count; ++i) {
-    Vector4d o(origin(rng), origin(rng), origin(rng), 1.0);
-    Vector3d d(direction(rng), direction(rng), direction(rng));
-    if (d.length() < 1e-6) d = Vector3d(1, 0, 0);
-    rays.emplace_back(o, d.normalized());
-  }
-  return rays;
-}
-
-template<typename T>
-void bm_intersects(benchmark::State& state) {
-  BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  const auto rays = generateRays<T>(256, T(2));
-  for (auto _ : state) {
-    int hits = 0;
-    for (const auto& ray : rays) {
-      if (box.intersects(ray)) ++hits;
+    std::vector<Rayd> rays;
+    rays.reserve(count);
+    for (int i = 0; i < count; ++i) {
+      Vector4d o(origin(rng), origin(rng), origin(rng), 1.0);
+      Vector3d d(direction(rng), direction(rng), direction(rng));
+      if (d.length() < 1e-6)
+        d = Vector3d(1, 0, 0);
+      rays.emplace_back(o, d.normalized());
     }
-    benchmark::DoNotOptimize(hits);
-    benchmark::ClobberMemory();
+    return rays;
   }
-  state.SetItemsProcessed(state.iterations() * rays.size());
-}
 
-// 10k-ray batch — the primary gate for the Phase 1.2 SIMD target (≥3×).
-// Larger than L1 D-cache so it exercises the out-of-order engine under
-// realistic memory pressure.
-template<typename T>
-void bm_intersects_batch(benchmark::State& state) {
-  BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  const auto rays = generateRays<T>(10000, T(2));
-  for (auto _ : state) {
-    int hits = 0;
-    for (const auto& ray : rays) {
-      if (box.intersects(ray)) ++hits;
+  template<typename T>
+  void bm_intersects(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    const auto rays = generateRays<T>(256, T(2));
+    for (auto _ : state) {
+      int hits = 0;
+      for (const auto& ray : rays) {
+        if (box.intersects(ray))
+          ++hits;
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
     }
-    benchmark::DoNotOptimize(hits);
-    benchmark::ClobberMemory();
+    state.SetItemsProcessed(state.iterations() * rays.size());
   }
-  state.SetItemsProcessed(state.iterations() * rays.size());
-}
 
-// Batch variant for the new intersect(Ray, Range&) overload that returns
-// the [t_enter, t_exit] interval — lets BVH avoid recomputing entry times.
-template<typename T>
-void bm_intersect_interval(benchmark::State& state) {
-  BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  const auto rays = generateRays<T>(10000, T(2));
-  for (auto _ : state) {
-    int hits = 0;
-    for (const auto& ray : rays) {
-      Range<T> interval(T(0), T(0));
-      if (box.intersect(ray, interval)) ++hits;
-      benchmark::DoNotOptimize(interval);
+  // 10k-ray batch — the primary gate for the Phase 1.2 SIMD target (≥3×).
+  // Larger than L1 D-cache so it exercises the out-of-order engine under
+  // realistic memory pressure.
+  template<typename T>
+  void bm_intersects_batch(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    const auto rays = generateRays<T>(10000, T(2));
+    for (auto _ : state) {
+      int hits = 0;
+      for (const auto& ray : rays) {
+        if (box.intersects(ray))
+          ++hits;
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
     }
-    benchmark::DoNotOptimize(hits);
-    benchmark::ClobberMemory();
+    state.SetItemsProcessed(state.iterations() * rays.size());
   }
-  state.SetItemsProcessed(state.iterations() * rays.size());
-}
 
-template<typename T>
-void bm_contains_point(benchmark::State& state) {
-  BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  std::vector<Vector3<T>> points;
-  std::mt19937 rng(7);
-  std::uniform_real_distribution<double> u(-2.0, 2.0);
-  for (int i = 0; i < 256; ++i) {
-    points.emplace_back(T(u(rng)), T(u(rng)), T(u(rng)));
-  }
-  for (auto _ : state) {
-    int hits = 0;
-    for (const auto& p : points) {
-      if (box.contains(p)) ++hits;
+  // Batch variant for the new intersect(Ray, Range&) overload that returns
+  // the [t_enter, t_exit] interval — lets BVH avoid recomputing entry times.
+  template<typename T>
+  void bm_intersect_interval(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    const auto rays = generateRays<T>(10000, T(2));
+    for (auto _ : state) {
+      int hits = 0;
+      for (const auto& ray : rays) {
+        Range<T> interval(T(0), T(0));
+        if (box.intersect(ray, interval))
+          ++hits;
+        benchmark::DoNotOptimize(interval);
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
     }
-    benchmark::DoNotOptimize(hits);
-    benchmark::ClobberMemory();
+    state.SetItemsProcessed(state.iterations() * rays.size());
   }
-  state.SetItemsProcessed(state.iterations() * points.size());
-}
 
-template<typename T>
-void bm_union(benchmark::State& state) {
-  BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  BoundingBox<T> b(Vector3<T>(0, 0, 0), Vector3<T>(2, 2, 2));
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
-    auto r = a | b;
-    benchmark::DoNotOptimize(r);
+  template<typename T>
+  void bm_contains_point(benchmark::State& state) {
+    BoundingBox<T> box(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    std::vector<Vector3<T>> points;
+    std::mt19937 rng(7);
+    std::uniform_real_distribution<double> u(-2.0, 2.0);
+    for (int i = 0; i < 256; ++i) {
+      points.emplace_back(T(u(rng)), T(u(rng)), T(u(rng)));
+    }
+    for (auto _ : state) {
+      int hits = 0;
+      for (const auto& p : points) {
+        if (box.contains(p))
+          ++hits;
+      }
+      benchmark::DoNotOptimize(hits);
+      benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(state.iterations() * points.size());
   }
-}
 
-template<typename T>
-void bm_intersection(benchmark::State& state) {
-  BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  BoundingBox<T> b(Vector3<T>(0, 0, 0), Vector3<T>(2, 2, 2));
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(a);
-    benchmark::DoNotOptimize(b);
-    auto r = a & b;
-    benchmark::DoNotOptimize(r);
+  template<typename T>
+  void bm_union(benchmark::State& state) {
+    BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    BoundingBox<T> b(Vector3<T>(0, 0, 0), Vector3<T>(2, 2, 2));
+    for (auto _ : state) {
+      benchmark::DoNotOptimize(a);
+      benchmark::DoNotOptimize(b);
+      auto r = a | b;
+      benchmark::DoNotOptimize(r);
+    }
   }
-}
 
-template<typename T>
-void bm_volume(benchmark::State& state) {
-  BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
-  for (auto _ : state) {
-    benchmark::DoNotOptimize(a);
-    auto r = a.volume();
-    benchmark::DoNotOptimize(r);
+  template<typename T>
+  void bm_intersection(benchmark::State& state) {
+    BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    BoundingBox<T> b(Vector3<T>(0, 0, 0), Vector3<T>(2, 2, 2));
+    for (auto _ : state) {
+      benchmark::DoNotOptimize(a);
+      benchmark::DoNotOptimize(b);
+      auto r = a & b;
+      benchmark::DoNotOptimize(r);
+    }
   }
-}
 
-template<typename T>
-void bm_include_point(benchmark::State& state) {
-  std::vector<Vector3<T>> points;
-  std::mt19937 rng(11);
-  std::uniform_real_distribution<double> u(-1.0, 1.0);
-  for (int i = 0; i < 256; ++i) {
-    points.emplace_back(T(u(rng)), T(u(rng)), T(u(rng)));
+  template<typename T>
+  void bm_volume(benchmark::State& state) {
+    BoundingBox<T> a(Vector3<T>(-1, -1, -1), Vector3<T>(1, 1, 1));
+    for (auto _ : state) {
+      benchmark::DoNotOptimize(a);
+      auto r = a.volume();
+      benchmark::DoNotOptimize(r);
+    }
   }
-  for (auto _ : state) {
-    BoundingBox<T> box;
-    for (const auto& p : points) box.include(p);
-    benchmark::DoNotOptimize(box);
-    benchmark::ClobberMemory();
-  }
-  state.SetItemsProcessed(state.iterations() * points.size());
-}
 
-}  // namespace
+  template<typename T>
+  void bm_include_point(benchmark::State& state) {
+    std::vector<Vector3<T>> points;
+    std::mt19937 rng(11);
+    std::uniform_real_distribution<double> u(-1.0, 1.0);
+    for (int i = 0; i < 256; ++i) {
+      points.emplace_back(T(u(rng)), T(u(rng)), T(u(rng)));
+    }
+    for (auto _ : state) {
+      BoundingBox<T> box;
+      for (const auto& p : points)
+        box.include(p);
+      benchmark::DoNotOptimize(box);
+      benchmark::ClobberMemory();
+    }
+    state.SetItemsProcessed(state.iterations() * points.size());
+  }
+
+} // namespace
 
 BENCHMARK(bm_intersects<float>);
 BENCHMARK(bm_intersects<double>);

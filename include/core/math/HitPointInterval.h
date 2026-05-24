@@ -32,46 +32,45 @@ public:
       * @param i describes whether or not the point is entering an object.
       */
     inline explicit HitPointWrapper(const HitPoint& p, bool i)
-      : point(p),
-        in(i)
-    {
+        : point(p),
+          in(i) {
     }
-    
+
     /**
       * Wrapper around the HitPoint::operator<().
       */
     inline bool operator<(const HitPointWrapper& other) const {
       return point.distance() < other.point.distance();
     }
-    
+
     /**
       * The point.
       */
     HitPoint point;
-    
+
     /**
       * True if this is an entering HitPoint, false otherwise.
       */
     bool in;
   };
-  
+
   typedef SmallVector<HitPointWrapper, 4> HitPoints;
-  
+
   /**
     * Default constructor. Constructs an empty HitPointInterval.
     */
   inline HitPointInterval() = default;
-  
+
   /**
     * Copy constructor. Creates this HitPointInterval as a copy of @p orig.
     */
   inline HitPointInterval(const HitPointInterval& orig) = default;
-  
+
   /**
     * Assignment operator. Assigns @p orig to this.
     */
   HitPointInterval& operator=(const HitPointInterval& orig) = default;
-  
+
   /**
     * Constructs a HitPointInterval with a single interval described by begin
     * and end.
@@ -79,29 +78,28 @@ public:
   inline explicit HitPointInterval(const HitPoint& begin, const HitPoint& end) {
     add(begin, end);
   }
-  
+
   /**
     * Move constructor. Moves the internal data from @p orig.
     */
   inline HitPointInterval(HitPointInterval&& orig)
-    : m_hitPoints(std::move(orig.m_hitPoints))
-  {
+      : m_hitPoints(std::move(orig.m_hitPoints)) {
   }
-  
+
   /**
     * Adds an entering HitPoint to the interval.
     */
   inline void addIn(const HitPoint& hitPoint) {
     add(hitPoint, true);
   }
-  
+
   /**
     * Adds an exiting HitPoint to the interval.
     */
   inline void addOut(const HitPoint& hitPoint) {
     add(hitPoint, false);
   }
-  
+
   /**
     * Adds a HitPoint to this interval.
     * 
@@ -110,7 +108,7 @@ public:
   inline void add(const HitPoint& hitPoint, bool in) {
     m_hitPoints.push_back(HitPointWrapper(hitPoint, in));
   }
-  
+
   /**
     * Adds a zero-width interval that starts and ends with hitPoint.
     */
@@ -125,39 +123,39 @@ public:
     addIn(first);
     addOut(second);
   }
-  
+
   /**
     * Adds an already wrapped hitpoint to this interval.
     */
   inline void add(const HitPointWrapper& hpw) {
     m_hitPoints.push_back(hpw);
   }
-  
+
   /**
     * @returns all points describing all of the intervals.
     */
   inline const HitPoints& points() const {
     return m_hitPoints;
   }
-  
+
   /**
     * @returns true if the HitPointInterval is empty, false otherwise.
     */
   inline bool empty() const {
     return m_hitPoints.empty();
   }
-  
+
   /**
     * @returns a new interval that is the union of this interval and other.
     */
   HitPointInterval operator|(const HitPointInterval& other) const;
-  
+
   /**
     * @returns a new interval that is the intersection of this interval and
     *   other.
     */
   HitPointInterval operator&(const HitPointInterval& other) const;
-  
+
   /**
     * @returns a new interval that is the difference between this interval and
     *   other.
@@ -184,14 +182,15 @@ public:
     * @returns a new HitPointInterval with all points transformed with
     * pointMatrix, and all normals transformed with normalMatrix.
     */
-  inline HitPointInterval transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
+  inline HitPointInterval transform(const Matrix4d& pointMatrix,
+                                    const Matrix3d& normalMatrix) const {
     HitPointInterval result;
     for (const auto& i : m_hitPoints) {
       result.add(i.point.transform(pointMatrix, normalMatrix), i.in);
     }
     return result;
   }
-  
+
   /**
     * Sets the primitive in all hit points in this interval to prim.
     */
@@ -200,7 +199,7 @@ public:
       i.point.setPrimitive(prim);
     }
   }
-  
+
   /**
     * @returns the HitPoint in this interval with the smallest distance value.
     */
@@ -209,7 +208,7 @@ public:
       return HitPoint::undefined();
     return m_hitPoints.begin()->point;
   }
-  
+
   /**
     * @returns the HitPoint in this interval with the smallest distance value
     *   that is positive.
@@ -222,7 +221,7 @@ public:
     }
     return HitPoint::undefined();
   }
-  
+
   /**
     * @returns the HitPoint in this interval with the largest distance value.
     */
@@ -231,7 +230,7 @@ public:
       return HitPoint::undefined();
     return (m_hitPoints.end() - 1)->point;
   }
-  
+
 private:
   HitPoints m_hitPoints;
 };

@@ -3,11 +3,10 @@
 #include "render/primitives/Triangle.h"
 
 Triangle::Triangle(Element* parent)
-  : Surface(parent),
-    m_vertexA(1, 0, 0),
-    m_vertexB(-1, 0, 0),
-    m_vertexC(0, -1, 0)
-{
+    : Surface(parent),
+      m_vertexA(1, 0, 0),
+      m_vertexB(-1, 0, 0),
+      m_vertexC(0, -1, 0) {
 }
 
 std::shared_ptr<render::Primitive> Triangle::toRaytracerPrimitive() const {

@@ -12,6 +12,7 @@
 template<>
 class Vector4<float> : public Vector<4, float, __m128, Vector4<float>> {
   typedef float CellsType[4];
+
 public:
   static const int Dim = 4;
 
@@ -94,10 +95,9 @@ public:
 
   [[nodiscard]] inline float operator*(const Vector4<float>& other) const noexcept {
     __m128 v = _mm_mul_ps(m_vector[0], other.m_vector[0]);
-    return _mm_cvtss_f32(v)
-         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1,1,1,1)))
-         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2,2,2,2)))
-         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(3,3,3,3)));
+    return _mm_cvtss_f32(v) + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1))) +
+           _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2))) +
+           _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(3, 3, 3, 3)));
   }
 
   [[nodiscard]] inline Vector4<float> operator*(const float& factor) const noexcept {
@@ -131,29 +131,17 @@ private:
 
 inline const Vector4<float> Vector4<float>::null{0.0f, 0.0f, 0.0f, 1.0f};
 inline const Vector4<float> Vector4<float>::epsilon{
-  std::numeric_limits<float>::epsilon(),
-  std::numeric_limits<float>::epsilon(),
-  std::numeric_limits<float>::epsilon(),
-  std::numeric_limits<float>::epsilon()
-};
+  std::numeric_limits<float>::epsilon(), std::numeric_limits<float>::epsilon(),
+  std::numeric_limits<float>::epsilon(), std::numeric_limits<float>::epsilon()};
 inline const Vector4<float> Vector4<float>::undefined{
-  std::numeric_limits<float>::quiet_NaN(),
-  std::numeric_limits<float>::quiet_NaN(),
-  std::numeric_limits<float>::quiet_NaN(),
-  std::numeric_limits<float>::quiet_NaN()
-};
+  std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(),
+  std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN()};
 inline const Vector4<float> Vector4<float>::minusInfinity{
-  -std::numeric_limits<float>::infinity(),
-  -std::numeric_limits<float>::infinity(),
-  -std::numeric_limits<float>::infinity(),
-  -std::numeric_limits<float>::infinity()
-};
+  -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(),
+  -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
 inline const Vector4<float> Vector4<float>::plusInfinity{
-  std::numeric_limits<float>::infinity(),
-  std::numeric_limits<float>::infinity(),
-  std::numeric_limits<float>::infinity(),
-  std::numeric_limits<float>::infinity()
-};
+  std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(),
+  std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop

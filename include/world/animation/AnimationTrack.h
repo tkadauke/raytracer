@@ -13,34 +13,34 @@ class Element;
 
 namespace world {
 
-/**
+  /**
   * One serialized keyframe on a world animation track.
   *
   * Values stay in JSON form until evaluation, because the target property's
   * `Q_PROPERTY` type determines how the value should be decoded.
   */
-struct AnimationKeyframe {
-  /**
+  struct AnimationKeyframe {
+    /**
     * Exact integer frame where @p value is keyed.
     */
-  int frame;
+    int frame;
 
-  /**
+    /**
     * Serialized key value.
     */
-  QJsonValue value;
-};
+    QJsonValue value;
+  };
 
-/**
+  /**
   * Animation track targeting one direct `Q_PROPERTY` on one world element.
   *
   * The target is addressed by stable element id and a direct property name.
   * Nested property paths are intentionally not accepted by this first world
   * timeline layer.
   */
-class AnimationTrack {
-public:
-  /**
+  class AnimationTrack {
+  public:
+    /**
     * Creates a world animation track.
     *
     * @param targetId id of the world element whose property is animated.
@@ -50,45 +50,43 @@ public:
     * @throws std::invalid_argument if the target, property, or keyframes are
     *   invalid.
     */
-  AnimationTrack(QString targetId,
-                 QString propertyName,
-                 std::vector<AnimationKeyframe> keyframes,
-                 core::math::interpolation::InterpolationMode interpolationMode =
-                   core::math::interpolation::InterpolationMode::Linear);
+    AnimationTrack(QString targetId, QString propertyName, std::vector<AnimationKeyframe> keyframes,
+                   core::math::interpolation::InterpolationMode interpolationMode =
+                     core::math::interpolation::InterpolationMode::Linear);
 
-  /**
+    /**
     * Reads a track from its scene-file JSON representation.
     *
     * @throws std::invalid_argument if required fields are missing or invalid.
     */
-  static AnimationTrack read(const QJsonObject& json);
+    static AnimationTrack read(const QJsonObject& json);
 
-  /**
+    /**
     * Writes the track to its scene-file JSON representation.
     */
-  void write(QJsonObject& json) const;
+    void write(QJsonObject& json) const;
 
-  /**
+    /**
     * @returns the target element id.
     */
-  [[nodiscard]] const QString& targetId() const noexcept;
+    [[nodiscard]] const QString& targetId() const noexcept;
 
-  /**
+    /**
     * @returns the direct target property name.
     */
-  [[nodiscard]] const QString& propertyName() const noexcept;
+    [[nodiscard]] const QString& propertyName() const noexcept;
 
-  /**
+    /**
     * @returns the interpolation mode used between keyframes.
     */
-  [[nodiscard]] core::math::interpolation::InterpolationMode interpolationMode() const noexcept;
+    [[nodiscard]] core::math::interpolation::InterpolationMode interpolationMode() const noexcept;
 
-  /**
+    /**
     * @returns sorted keyframes owned by the track.
     */
-  [[nodiscard]] const std::vector<AnimationKeyframe>& keyframes() const noexcept;
+    [[nodiscard]] const std::vector<AnimationKeyframe>& keyframes() const noexcept;
 
-  /**
+    /**
     * Samples this track for @p target at @p frame.
     *
     * The target property's `Q_PROPERTY` type selects the supported value
@@ -98,22 +96,22 @@ public:
     * @throws std::runtime_error if the property is missing, unsupported, or
     *   cannot be sampled with this track's interpolation mode.
     */
-  [[nodiscard]] QVariant sample(const Element& target, int frame) const;
+    [[nodiscard]] QVariant sample(const Element& target, int frame) const;
 
-  /**
+    /**
     * Finds the target element under @p root, samples the track, and writes the
     * sampled value back to the target property.
     *
     * @throws std::runtime_error if the target cannot be found or the sampled
     *   value cannot be applied.
     */
-  void apply(Element& root, int frame) const;
+    void apply(Element& root, int frame) const;
 
-private:
-  QString m_targetId;
-  QString m_propertyName;
-  std::vector<AnimationKeyframe> m_keyframes;
-  core::math::interpolation::InterpolationMode m_interpolationMode;
-};
+  private:
+    QString m_targetId;
+    QString m_propertyName;
+    std::vector<AnimationKeyframe> m_keyframes;
+    core::math::interpolation::InterpolationMode m_interpolationMode;
+  };
 
-}  // namespace world
+} // namespace world

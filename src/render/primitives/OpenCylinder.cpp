@@ -10,7 +10,8 @@
 using namespace std;
 using namespace render;
 
-const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                         render::State& state) const {
   double ox = ray.origin().x();
   double oz = ray.origin().z();
   double dx = ray.direction().x();
@@ -28,8 +29,7 @@ const Primitive* OpenCylinder::intersect(const Rayd& ray, HitPointInterval& hitP
     return nullptr;
   } else {
     Range<double> yRange(-m_halfHeight, m_halfHeight);
-    Vector3d point1 = ray.at(t[0]),
-             point2 = ray.at(t[1]);
+    Vector3d point1 = ray.at(t[0]), point2 = ray.at(t[1]);
 
     if (yRange.contains(point1.y())) {
       Vector3d normal(point1.x() * m_invRadius, 0.0, point1.z() * m_invRadius);
@@ -91,10 +91,8 @@ bool OpenCylinder::intersects(const Rayd& ray, render::State& state) const {
 }
 
 BoundingBoxd OpenCylinder::calculateBoundingBox() const {
-  return BoundingBoxd(
-    Vector3d(-m_radius, -m_halfHeight, -m_radius),
-    Vector3d( m_radius,  m_halfHeight,  m_radius)
-  );
+  return BoundingBoxd(Vector3d(-m_radius, -m_halfHeight, -m_radius),
+                      Vector3d(m_radius, m_halfHeight, m_radius));
 }
 
 Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
@@ -103,11 +101,8 @@ Vector3d OpenCylinder::farthestPoint(const Vector3d& direction) const {
     planar.normalize();
   }
 
-  return Vector3d(
-    planar.x() * m_radius,
-    direction.y() < 0.0 ? -m_halfHeight : m_halfHeight,
-    planar.z() * m_radius
-  );
+  return Vector3d(planar.x() * m_radius, direction.y() < 0.0 ? -m_halfHeight : m_halfHeight,
+                  planar.z() * m_radius);
 }
 
 std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {
@@ -125,16 +120,16 @@ std::shared_ptr<Mesh> OpenCylinder::tessellate(int lod) const {
     Vector3d normal(c, 0.0, s);
     // bottom ring (v = 0), then top ring (v = 1) — interleaved: 2*i = bottom, 2*i+1 = top
     mesh->addVertex(Vector3d(m_radius * c, -m_halfHeight, m_radius * s), normal, Vector2d(u, 0.0));
-    mesh->addVertex(Vector3d(m_radius * c,  m_halfHeight, m_radius * s), normal, Vector2d(u, 1.0));
+    mesh->addVertex(Vector3d(m_radius * c, m_halfHeight, m_radius * s), normal, Vector2d(u, 1.0));
   }
 
   // Quads: each column i connects bottom[i]/top[i] to
   // bottom[i+1]/top[i+1]. Corners are listed CCW when viewed from
   // outside so face winding matches the radial vertex normals.
   for (int i = 0; i < segments; ++i) {
-    int bl = 2 * i;          // bottom left
-    int tl = 2 * i + 1;     // top left
-    int br = 2 * (i + 1);   // bottom right
+    int bl = 2 * i;           // bottom left
+    int tl = 2 * i + 1;       // top left
+    int br = 2 * (i + 1);     // bottom right
     int tr = 2 * (i + 1) + 1; // top right
     mesh->addFace({bl, tl, tr, br});
   }

@@ -19,13 +19,13 @@ namespace IntegerDecompositionTest {
     ASSERT_EQ(1, d.first());
     ASSERT_EQ(11, d.second());
   }
-  
+
   TEST(IntegerDecomposition, ShouldDecomposeSquare) {
     IntegerDecomposition d(16);
     ASSERT_EQ(4, d.first());
     ASSERT_EQ(4, d.second());
   }
-  
+
   TEST(IntegerDecomposition, ShouldDecomposeNumber) {
     IntegerDecomposition d(24);
     ASSERT_EQ(4, d.first());

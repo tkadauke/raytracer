@@ -104,7 +104,7 @@ public:
 
 protected:
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
-  virtual bool event(QEvent *e);
+  virtual bool event(QEvent* e);
 
   inline bool engineReady() const {
     return m_engine != nullptr;

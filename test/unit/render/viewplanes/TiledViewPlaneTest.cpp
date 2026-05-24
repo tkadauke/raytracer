@@ -6,19 +6,15 @@ namespace TiledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
   using namespace render;
-  
+
   TEST(TiledViewPlane, ShouldInitialize) {
     render::TiledViewPlane plane;
     ASSERT_EQ(0, plane.width());
     ASSERT_EQ(0, plane.height());
   }
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    Tiled,
-    AbstractViewPlaneIteratorTest,
-    TiledViewPlane
-  );
-  
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(Tiled, AbstractViewPlaneIteratorTest, TiledViewPlane);
+
   namespace Iterator {
     TEST(TiledViewPlane_Iterator, ShouldReturnTrueWhenTwoBeginIteratorsAreCompared) {
       render::TiledViewPlane plane;

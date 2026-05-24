@@ -16,12 +16,12 @@ namespace render {
   class Torus : public Primitive {
   public:
     inline explicit Torus(double sweptRadius, double tubeRadius)
-      : m_sweptRadius(sweptRadius),
-        m_tubeRadius(tubeRadius)
-    {
+        : m_sweptRadius(sweptRadius),
+          m_tubeRadius(tubeRadius) {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
 
     /**
       * Mesh approximation. The torus is aligned with its hole along

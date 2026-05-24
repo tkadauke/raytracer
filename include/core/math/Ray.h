@@ -36,9 +36,8 @@ public:
     * is \f$d\f$.
     */
   inline explicit Ray(const Vector4<T>& origin, const Vector3<T>& direction)
-    : m_origin(origin),
-      m_direction(direction)
-  {
+      : m_origin(origin),
+        m_direction(direction) {
   }
 
   /**
@@ -128,25 +127,23 @@ public:
   [[nodiscard]] inline T distanceTo(const Vector3<T>& point) const {
     return (point - project(point)).length();
   }
-  
+
 private:
   Vector4<T> m_origin;
   Vector3<T> m_direction;
 };
 
-template<> inline const float  Ray<float>::epsilon  = 0.0001f;
-template<> inline const double Ray<double>::epsilon = 0.0000001;
+template<>
+inline const float Ray<float>::epsilon = 0.0001f;
+template<>
+inline const double Ray<double>::epsilon = 0.0000001;
 
 template<class T>
 inline const Ray<T> Ray<T>::undefined{
-  Vector4<T>(std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN()),
-  Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN())
-};
+  Vector4<T>(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN()),
+  Vector3<T>(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN())};
 
 /**
   * Serializes ray to the given std::ostream.

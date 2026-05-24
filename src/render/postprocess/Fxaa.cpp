@@ -71,11 +71,9 @@ void render::postprocess::applyFxaa(Buffer<Colord>& buffer) {
         (sampleBilinear(source, x + dirX * (1.0 / 3.0 - 0.5), y + dirY * (1.0 / 3.0 - 0.5)) +
          sampleBilinear(source, x + dirX * (2.0 / 3.0 - 0.5), y + dirY * (2.0 / 3.0 - 0.5))) *
         0.5;
-      const Colord rgbB =
-        rgbA * 0.5 +
-        (sampleBilinear(source, x + dirX * -0.5, y + dirY * -0.5) +
-         sampleBilinear(source, x + dirX * 0.5, y + dirY * 0.5)) *
-          0.25;
+      const Colord rgbB = rgbA * 0.5 + (sampleBilinear(source, x + dirX * -0.5, y + dirY * -0.5) +
+                                        sampleBilinear(source, x + dirX * 0.5, y + dirY * 0.5)) *
+                                         0.25;
       const double lumaB = luma(rgbB);
       buffer[y][x] = (lumaB < minLuma || lumaB > maxLuma) ? rgbA : rgbB;
     }

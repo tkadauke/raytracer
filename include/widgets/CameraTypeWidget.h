@@ -8,11 +8,11 @@
 
 class CameraTypeWidget : public QWidget {
   Q_OBJECT
-  
+
 public:
   explicit CameraTypeWidget(QWidget* parent = nullptr);
   ~CameraTypeWidget();
-  
+
   std::string type() const;
 
 signals:

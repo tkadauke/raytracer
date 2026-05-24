@@ -15,7 +15,7 @@ namespace IntegerFactorizationTest {
     ASSERT_EQ(13, IntegerFactorization(13).factors().front());
     ASSERT_EQ(17, IntegerFactorization(17).factors().front());
   }
-  
+
   TEST(IntegerFactorization, ShouldFactorizeNumbers) {
     ASSERT_EQ(4u, IntegerFactorization(16).factors().size());
     ASSERT_EQ(4u, IntegerFactorization(24).factors().size());

@@ -14,7 +14,7 @@ GIVEN(EngineFeatureTest, "a centered minkowski sum with two boxes") {
   hull->add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.25, 0.25, 0.25)));
   hull->add(std::make_shared<Box>(Vector3d(0, 0, 0), Vector3d(0.25, 0.25, 0.25)));
   hull->setMaterial(test->redDiffuse());
-  
+
   test->add(hull);
 }
 

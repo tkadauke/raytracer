@@ -8,13 +8,13 @@ class AbstractParameterWidget;
 
 class PropertyEditorWidget : public QWidget {
   Q_OBJECT
-  
+
 public:
   explicit PropertyEditorWidget(Element* root, QWidget* parent = nullptr);
   ~PropertyEditorWidget();
-  
+
   void setRoot(Element* root);
-  
+
   virtual QSize sizeHint() const;
 
 signals:
@@ -31,7 +31,7 @@ private:
   void addParameterWidgets();
   void addParametersForClass(const QMetaObject* klass);
   void clearParameterWidgets();
-  
+
   void addParameter(const QString& name);
 
   struct Private;

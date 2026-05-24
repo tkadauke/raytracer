@@ -5,10 +5,9 @@
 #include "render/materials/TransparentMaterial.h"
 
 TransparentMaterial::TransparentMaterial(Element* parent)
-  : PhongMaterial(parent),
-    m_transmissionCoefficient(1),
-    m_refractionIndex(1)
-{
+    : PhongMaterial(parent),
+      m_transmissionCoefficient(1),
+      m_refractionIndex(1) {
 }
 
 std::shared_ptr<render::Material> TransparentMaterial::toRaytracerMaterial() const {
@@ -28,4 +27,5 @@ std::shared_ptr<render::Material> TransparentMaterial::toRaytracerMaterial() con
   return material;
 }
 
-static bool dummy = ElementFactory::self().registerClass<TransparentMaterial>("TransparentMaterial");
+static bool dummy =
+  ElementFactory::self().registerClass<TransparentMaterial>("TransparentMaterial");

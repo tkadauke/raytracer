@@ -7,13 +7,14 @@
 
 using namespace render;
 
-const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
 
   bool firstElement = true;
-  
+
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
     if (i->intersect(ray, candidate, state)) {
@@ -27,7 +28,7 @@ const Primitive* Difference::intersect(const Rayd& ray, HitPointInterval& hitPoi
     }
     firstElement = false;
   }
-  
+
   auto hitPoint = hitPoints.minWithPositiveDistance();
   if (hitPoint.isUndefined()) {
     return nullptr;

@@ -88,7 +88,11 @@ namespace render {
     */
   class NullSampleStream : public SampleStream {
   public:
-    Vector2d next2D() override { return Vector2d(0.5, 0.5); }
-    double next1D() override { return 0.5; }
+    Vector2d next2D() override {
+      return Vector2d(0.5, 0.5);
+    }
+    double next1D() override {
+      return 0.5;
+    }
   };
 }

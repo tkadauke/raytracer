@@ -10,8 +10,8 @@
 
 namespace InstanceTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   static constexpr double kEps = 1e-9;
 
@@ -40,14 +40,12 @@ using namespace render;
 
     ASSERT_EQ(original->vertices().size(), transformed->vertices().size());
     for (std::size_t i = 0; i < original->vertices().size(); ++i) {
-      EXPECT_NEAR(original->vertices()[i].point.x() + 10.0,
-                  transformed->vertices()[i].point.x(), kEps)
+      EXPECT_NEAR(original->vertices()[i].point.x() + 10.0, transformed->vertices()[i].point.x(),
+                  kEps)
         << "vertex " << i << " x";
-      EXPECT_NEAR(original->vertices()[i].point.y(),
-                  transformed->vertices()[i].point.y(), kEps)
+      EXPECT_NEAR(original->vertices()[i].point.y(), transformed->vertices()[i].point.y(), kEps)
         << "vertex " << i << " y";
-      EXPECT_NEAR(original->vertices()[i].point.z(),
-                  transformed->vertices()[i].point.z(), kEps)
+      EXPECT_NEAR(original->vertices()[i].point.z(), transformed->vertices()[i].point.z(), kEps)
         << "vertex " << i << " z";
     }
   }
@@ -91,8 +89,8 @@ using namespace render;
     for (std::size_t i = 0; i < orig->vertices().size(); ++i) {
       const auto& p = orig->vertices()[i].point;
       const auto& q = throughScene->vertices()[i].point;
-      EXPECT_NEAR( p.z(), q.x(), 1e-9) << "vertex " << i << " x via scene";
-      EXPECT_NEAR( p.y(), q.y(), 1e-9) << "vertex " << i << " y via scene";
+      EXPECT_NEAR(p.z(), q.x(), 1e-9) << "vertex " << i << " x via scene";
+      EXPECT_NEAR(p.y(), q.y(), 1e-9) << "vertex " << i << " y via scene";
       EXPECT_NEAR(-p.x(), q.z(), 1e-9) << "vertex " << i << " z via scene";
     }
   }
@@ -112,8 +110,8 @@ using namespace render;
     for (std::size_t i = 0; i < orig->vertices().size(); ++i) {
       const auto& p = orig->vertices()[i].point;
       const auto& q = rotated->vertices()[i].point;
-      EXPECT_NEAR( p.z(), q.x(), 1e-9) << "vertex " << i << " x";
-      EXPECT_NEAR( p.y(), q.y(), 1e-9) << "vertex " << i << " y";
+      EXPECT_NEAR(p.z(), q.x(), 1e-9) << "vertex " << i << " x";
+      EXPECT_NEAR(p.y(), q.y(), 1e-9) << "vertex " << i << " y";
       EXPECT_NEAR(-p.x(), q.z(), 1e-9) << "vertex " << i << " z";
     }
   }
@@ -138,10 +136,8 @@ using namespace render;
     auto transformed = instance.tessellate(0);
 
     for (std::size_t i = 0; i < original->vertices().size(); ++i) {
-      EXPECT_NEAR(original->vertices()[i].uv.x(),
-                  transformed->vertices()[i].uv.x(), kEps);
-      EXPECT_NEAR(original->vertices()[i].uv.y(),
-                  transformed->vertices()[i].uv.y(), kEps);
+      EXPECT_NEAR(original->vertices()[i].uv.x(), transformed->vertices()[i].uv.x(), kEps);
+      EXPECT_NEAR(original->vertices()[i].uv.y(), transformed->vertices()[i].uv.y(), kEps);
     }
   }
 }

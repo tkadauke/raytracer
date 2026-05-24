@@ -18,14 +18,30 @@ struct SortedResult {
   std::array<T, N> values{};
   std::size_t count = 0;
 
-  std::size_t size() const { return count; }
-  bool empty() const { return count == 0; }
-  const T& operator[](std::size_t i) const { return values[i]; }
-  T& operator[](std::size_t i) { return values[i]; }
-  const T* begin() const { return values.data(); }
-  const T* end() const { return values.data() + count; }
-  T* begin() { return values.data(); }
-  T* end() { return values.data() + count; }
+  std::size_t size() const {
+    return count;
+  }
+  bool empty() const {
+    return count == 0;
+  }
+  const T& operator[](std::size_t i) const {
+    return values[i];
+  }
+  T& operator[](std::size_t i) {
+    return values[i];
+  }
+  const T* begin() const {
+    return values.data();
+  }
+  const T* end() const {
+    return values.data() + count;
+  }
+  T* begin() {
+    return values.data();
+  }
+  T* end() {
+    return values.data() + count;
+  }
 };
 
 /**
@@ -90,12 +106,12 @@ public:
     // a false-positive -Warray-bounds for the fixed-size array.  The access is
     // dead code for N <= 16; suppress the diagnostic locally.
 #if defined(__GNUC__) && !defined(__clang__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 #endif
     std::sort(res.begin(), res.end());
 #if defined(__GNUC__) && !defined(__clang__)
-#  pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
     return res;
   }

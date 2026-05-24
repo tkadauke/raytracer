@@ -12,18 +12,18 @@ Q_DECLARE_METATYPE(Texture*);
 
 struct ReferenceParameterWidget::Private {
   Ui::ReferenceParameterWidget ui;
-  
+
   QString baseClassName;
   Element* root;
 };
 
-ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName, Element* root, QWidget* parent)
-  : AbstractParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName, Element* root,
+                                                   QWidget* parent)
+    : AbstractParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->baseClassName = baseClassName;
   p->root = root;
-  
+
   p->ui.setupUi(this);
   connect(p->ui.comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
 
@@ -65,7 +65,7 @@ QVariant ReferenceParameterWidget::makeVariant(Element* e) {
   } else if (p->baseClassName == "Texture") {
     return QVariant::fromValue<Texture*>(static_cast<Texture*>(e));
   } else {
-    throw Exception(("Unknown reference type " + p->baseClassName).toStdString(), __FILE__, __LINE__);
+    throw Exception(("Unknown reference type " + p->baseClassName).toStdString(), __FILE__,
+                    __LINE__);
   }
 }
-

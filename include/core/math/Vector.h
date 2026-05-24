@@ -57,35 +57,32 @@ private:
   static const int StorageCellCount = (Dimensions * sizeof(T) - 1) / StorageCellTypeSize + 1;
 
   typedef StorageCellType StorageType[StorageCellCount];
-  
+
   typedef Vector<Dimensions, T, StorageCellType, Derived> ThisType;
-    
+
 public:
   /**
     * Corrdinate type. Usually a floating point type like float or double.
     */
   typedef T Coordinate;
-  
+
   /**
     * Number of dimensions of this vector type.
     */
   static const int Dim = Dimensions;
-  
+
   /**
     * Type for arguments and return types of many operators defined in this
     * class. If the Derived template parameter is omitted, then this is
     * equivalent to Vector. Otherwise, it is equivalent to Derived.
     */
-  using VectorType = std::conditional_t<
-    std::is_same_v<Derived, void>,
-    ThisType,
-    Derived
-  >;
+  using VectorType = std::conditional_t<std::is_same_v<Derived, void>, ThisType, Derived>;
 
   /**
     * Constructs a null vector \f$(0,\ldots,0)\f$.
     */
-  inline constexpr Vector() : m_coordinates{} {
+  inline constexpr Vector()
+      : m_coordinates{} {
   }
 
   /**
@@ -97,7 +94,8 @@ public:
     * Constructs a vector component wise from the given array. The array's size
     * must be exactly the same as the dimensions of the vector.
     */
-  inline constexpr explicit Vector(const CellsType& cells) : m_coordinates{} {
+  inline constexpr explicit Vector(const CellsType& cells)
+      : m_coordinates{} {
     for (int i = 0; i != Dimensions; ++i) {
       m_coordinates[i] = cells[i];
     }
@@ -111,10 +109,10 @@ public:
     * constructors that take priority when called on the derived type.
     */
   template<class... Args,
-           typename = std::enable_if_t<
-             sizeof...(Args) == static_cast<std::size_t>(Dimensions) &&
-             (std::is_convertible_v<Args, T> && ...)>>
-  inline constexpr explicit Vector(Args&&... args) : m_coordinates{} {
+           typename = std::enable_if_t<sizeof...(Args) == static_cast<std::size_t>(Dimensions) &&
+                                       (std::is_convertible_v<Args, T> && ...)>>
+  inline constexpr explicit Vector(Args&&... args)
+      : m_coordinates{} {
     T values[] = {static_cast<T>(std::forward<Args>(args))...};
     for (int i = 0; i != Dimensions; ++i)
       m_coordinates[i] = values[i];
@@ -126,7 +124,8 @@ public:
     * be initialized with zeroes.
     */
   template<int D, class C, class S, class V>
-  inline constexpr Vector(const Vector<D, C, S, V>& source) : m_coordinates{} {
+  inline constexpr Vector(const Vector<D, C, S, V>& source)
+      : m_coordinates{} {
     for (int i = 0; i != Dimensions; ++i) {
       if (i >= D)
         m_coordinates[i] = T();
@@ -167,7 +166,7 @@ public:
   [[nodiscard]] inline constexpr const T& operator[](int dim) const noexcept {
     return m_coordinates[dim];
   }
-  
+
   /**
     * @returns the sum of the vectors \f$v+u = (v_1+u_1,\ldots,v_n+u_n)\f$, for
     *   where this vector is \f$v\f$ and other is \f$u\f$.
@@ -199,7 +198,7 @@ public:
   [[nodiscard]] inline constexpr VectorType operator-() const noexcept {
     VectorType result;
     for (int i = 0; i != Dimensions; ++i) {
-      result.setCoordinate(i, - coordinate(i));
+      result.setCoordinate(i, -coordinate(i));
     }
     return result;
   }
@@ -522,7 +521,8 @@ public:
     * @returns the linear interpolation between this vector and other at
     *   parameter \f$t\f$, i.e. \f$v + t(u - v) = (1-t)v + tu\f$.
     */
-  [[nodiscard]] inline constexpr VectorType lerp(const VectorType& other, const T& t) const noexcept {
+  [[nodiscard]] inline constexpr VectorType lerp(const VectorType& other,
+                                                 const T& t) const noexcept {
     return derived() + (other - derived()) * t;
   }
 
@@ -588,7 +588,8 @@ protected:
   * @returns os.
   */
 template<int Dimensions, class T, class StorageCellType, class Derived>
-std::ostream& operator<<(std::ostream& os, const Vector<Dimensions, T, StorageCellType, Derived>& vector) {
+std::ostream& operator<<(std::ostream& os,
+                         const Vector<Dimensions, T, StorageCellType, Derived>& vector) {
   os << "(";
   for (int i = 0; i != Dimensions; ++i) {
     os << vector[i];
@@ -633,9 +634,10 @@ operator*(const T& factor, const Vector<Dimensions, T, StorageCellType, Derived>
 template<class T>
 class Vector2 : public Vector<2, T, T, Vector2<T>> {
   typedef Vector<2, T, T, Vector2<T>> Base;
+
 public:
   using Base::setCoordinate;
-  
+
   /**
     * The null vector \f$(0,0)\f$.
     */
@@ -666,8 +668,7 @@ public:
     * Constructs a null vector \f$(0,0)\f$.
     */
   inline constexpr Vector2()
-    : Base()
-  {
+      : Base() {
   }
 
   /**
@@ -684,8 +685,7 @@ public:
     */
   template<int D, class C, class S, class V>
   inline constexpr Vector2(const Vector<D, C, S, V>& source)
-    : Base(source)
-  {
+      : Base(source) {
   }
 
   /**
@@ -750,9 +750,10 @@ public:
 template<class T>
 class Vector3 : public Vector<3, T, T, Vector3<T>> {
   typedef Vector<3, T, T, Vector3<T>> Base;
+
 public:
   using Base::setCoordinate;
-  
+
   /**
     * The null vector \f$(0,0,0)\f$.
     */
@@ -811,8 +812,7 @@ public:
     * Default constructor. Constructs the null vector \f$(0,0,0)\f$.
     */
   inline constexpr Vector3()
-    : Base()
-  {
+      : Base() {
   }
 
   /**
@@ -832,8 +832,7 @@ public:
     */
   template<int D, class C, class S, class V>
   inline constexpr Vector3(const Vector<D, C, S, V>& source)
-    : Base(source)
-  {
+      : Base(source) {
   }
 
   /**
@@ -886,8 +885,7 @@ public:
     *   and other is \f$v\f$.
     */
   [[nodiscard]] inline constexpr Vector3<T> crossProduct(const Vector3<T>& other) const noexcept {
-    return Vector3<T>(y() * other.z() - z() * other.y(),
-                      z() * other.x() - x() * other.z(),
+    return Vector3<T>(y() * other.z() - z() * other.y(), z() * other.x() - x() * other.z(),
                       x() * other.y() - y() * other.x());
   }
 
@@ -938,9 +936,10 @@ public:
 template<class T>
 class Vector4 : public Vector<4, T, T, Vector4<T>> {
   typedef Vector<4, T, T, Vector4<T>> Base;
+
 public:
   using Base::setCoordinate;
-  
+
   /**
     * The null vector \f$(0,0,0,1)\f$, which notably contains a \f$1\f$
     *   for the \f$w\f$ component.
@@ -972,8 +971,7 @@ public:
     * Constructs the null vector, but sets the \f$w\f$ component to \f$1\f$.
     */
   inline constexpr Vector4()
-    : Base()
-  {
+      : Base() {
     setCoordinate(3, T(1));
   }
 
@@ -995,8 +993,7 @@ public:
     */
   template<int D, class C, class S, class V>
   inline constexpr Vector4(const Vector<D, C, S, V>& source)
-    : Base(source)
-  {
+      : Base(source) {
     if (D != 4)
       setCoordinate(3, T(1));
   }
@@ -1091,10 +1088,8 @@ template<class T>
 inline constexpr Vector2<T> Vector2<T>::null{T(0), T(0)};
 
 template<class T>
-inline constexpr Vector2<T> Vector2<T>::undefined{
-  std::numeric_limits<T>::quiet_NaN(),
-  std::numeric_limits<T>::quiet_NaN()
-};
+inline constexpr Vector2<T> Vector2<T>::undefined{std::numeric_limits<T>::quiet_NaN(),
+                                                  std::numeric_limits<T>::quiet_NaN()};
 
 template<class T>
 inline constexpr Vector3<T> Vector3<T>::null{T(0), T(0), T(0)};
@@ -1103,67 +1098,47 @@ template<class T>
 inline constexpr Vector3<T> Vector3<T>::one{T(1), T(1), T(1)};
 
 template<class T>
-inline constexpr Vector3<T> Vector3<T>::epsilon{
-  std::numeric_limits<T>::epsilon(),
-  std::numeric_limits<T>::epsilon(),
-  std::numeric_limits<T>::epsilon()
-};
+inline constexpr Vector3<T> Vector3<T>::epsilon{std::numeric_limits<T>::epsilon(),
+                                                std::numeric_limits<T>::epsilon(),
+                                                std::numeric_limits<T>::epsilon()};
 
 template<class T>
-inline constexpr Vector3<T> Vector3<T>::undefined{
-  std::numeric_limits<T>::quiet_NaN(),
-  std::numeric_limits<T>::quiet_NaN(),
-  std::numeric_limits<T>::quiet_NaN()
-};
+inline constexpr Vector3<T> Vector3<T>::undefined{std::numeric_limits<T>::quiet_NaN(),
+                                                  std::numeric_limits<T>::quiet_NaN(),
+                                                  std::numeric_limits<T>::quiet_NaN()};
 
 template<class T>
-inline constexpr Vector3<T> Vector3<T>::minusInfinity{
-  -std::numeric_limits<T>::infinity(),
-  -std::numeric_limits<T>::infinity(),
-  -std::numeric_limits<T>::infinity()
-};
+inline constexpr Vector3<T> Vector3<T>::minusInfinity{-std::numeric_limits<T>::infinity(),
+                                                      -std::numeric_limits<T>::infinity(),
+                                                      -std::numeric_limits<T>::infinity()};
 
 template<class T>
-inline constexpr Vector3<T> Vector3<T>::plusInfinity{
-  std::numeric_limits<T>::infinity(),
-  std::numeric_limits<T>::infinity(),
-  std::numeric_limits<T>::infinity()
-};
+inline constexpr Vector3<T> Vector3<T>::plusInfinity{std::numeric_limits<T>::infinity(),
+                                                     std::numeric_limits<T>::infinity(),
+                                                     std::numeric_limits<T>::infinity()};
 
 template<class T>
 inline constexpr Vector4<T> Vector4<T>::null{T(0), T(0), T(0), T(1)};
 
 template<class T>
 inline constexpr Vector4<T> Vector4<T>::epsilon{
-  std::numeric_limits<T>::epsilon(),
-  std::numeric_limits<T>::epsilon(),
-  std::numeric_limits<T>::epsilon(),
-  std::numeric_limits<T>::epsilon()
-};
+  std::numeric_limits<T>::epsilon(), std::numeric_limits<T>::epsilon(),
+  std::numeric_limits<T>::epsilon(), std::numeric_limits<T>::epsilon()};
 
 template<class T>
 inline constexpr Vector4<T> Vector4<T>::undefined{
-  std::numeric_limits<T>::quiet_NaN(),
-  std::numeric_limits<T>::quiet_NaN(),
-  std::numeric_limits<T>::quiet_NaN(),
-  std::numeric_limits<T>::quiet_NaN()
-};
+  std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN(),
+  std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN()};
 
 template<class T>
 inline constexpr Vector4<T> Vector4<T>::minusInfinity{
-  -std::numeric_limits<T>::infinity(),
-  -std::numeric_limits<T>::infinity(),
-  -std::numeric_limits<T>::infinity(),
-  -std::numeric_limits<T>::infinity()
-};
+  -std::numeric_limits<T>::infinity(), -std::numeric_limits<T>::infinity(),
+  -std::numeric_limits<T>::infinity(), -std::numeric_limits<T>::infinity()};
 
 template<class T>
 inline constexpr Vector4<T> Vector4<T>::plusInfinity{
-  std::numeric_limits<T>::infinity(),
-  std::numeric_limits<T>::infinity(),
-  std::numeric_limits<T>::infinity(),
-  std::numeric_limits<T>::infinity()
-};
+  std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity(),
+  std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity()};
 
 // __m128/__m128d carry an alignment attribute that is silently dropped when
 // used as a template argument.  The drop is harmless (the union's storage
@@ -1223,34 +1198,49 @@ typedef Vector4<double> Vector4d;
 // SSE3-specialized paths.
 // ---------------------------------------------------------------------------
 
-namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
   template<class T>
   struct tuple_size<Vector2<T>> : integral_constant<size_t, 2> {};
 
   template<size_t I, class T>
-  struct tuple_element<I, Vector2<T>> { using type = T; };
+  struct tuple_element<I, Vector2<T>> {
+    using type = T;
+  };
 
   template<class T>
   struct tuple_size<Vector3<T>> : integral_constant<size_t, 3> {};
 
   template<size_t I, class T>
-  struct tuple_element<I, Vector3<T>> { using type = T; };
+  struct tuple_element<I, Vector3<T>> {
+    using type = T;
+  };
 
   template<class T>
   struct tuple_size<Vector4<T>> : integral_constant<size_t, 4> {};
 
   template<size_t I, class T>
-  struct tuple_element<I, Vector4<T>> { using type = T; };
+  struct tuple_element<I, Vector4<T>> {
+    using type = T;
+  };
 }
 
 template<size_t I, class T>
-[[nodiscard]] inline constexpr T get(const Vector2<T>& v) noexcept { static_assert(I < 2u, "Vector2 index out of range"); return v.coordinate(static_cast<int>(I)); }
+[[nodiscard]] inline constexpr T get(const Vector2<T>& v) noexcept {
+  static_assert(I < 2u, "Vector2 index out of range");
+  return v.coordinate(static_cast<int>(I));
+}
 
 template<size_t I, class T>
-[[nodiscard]] inline constexpr T get(const Vector3<T>& v) noexcept { static_assert(I < 3u, "Vector3 index out of range"); return v.coordinate(static_cast<int>(I)); }
+[[nodiscard]] inline constexpr T get(const Vector3<T>& v) noexcept {
+  static_assert(I < 3u, "Vector3 index out of range");
+  return v.coordinate(static_cast<int>(I));
+}
 
 template<size_t I, class T>
-[[nodiscard]] inline constexpr T get(const Vector4<T>& v) noexcept { static_assert(I < 4u, "Vector4 index out of range"); return v.coordinate(static_cast<int>(I)); }
+[[nodiscard]] inline constexpr T get(const Vector4<T>& v) noexcept {
+  static_assert(I < 4u, "Vector4 index out of range");
+  return v.coordinate(static_cast<int>(I));
+}
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -1259,7 +1249,7 @@ template<size_t I, class T>
 // ---------------------------------------------------------------------------
 // std::hash specializations — enables unordered_map/unordered_set keys.
 // ---------------------------------------------------------------------------
-namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 
   template<int Dimensions, class T, class StorageCellType, class Derived>
   struct hash<Vector<Dimensions, T, StorageCellType, Derived>> {
@@ -1307,20 +1297,24 @@ namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 // std::formatter specializations (C++20). Fallback: the operator<< above.
 // ---------------------------------------------------------------------------
 #if defined(__cplusplus) && __cplusplus >= 202002L
-#  if __has_include(<format>)
-#    include <format>
-#  endif
+#if __has_include(<format>)
+#include <format>
+#endif
 #endif
 
 #ifdef __cpp_lib_format
 
 template<int Dimensions, class T, class StorageCellType, class Derived>
-struct std::formatter<Vector<Dimensions, T, StorageCellType, Derived>> {  // NOLINT(cert-dcl58-cpp)
-  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
-  auto format(const Vector<Dimensions, T, StorageCellType, Derived>& v, std::format_context& ctx) const {
+struct std::formatter<Vector<Dimensions, T, StorageCellType, Derived>> { // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const {
+    return ctx.begin();
+  }
+  auto format(const Vector<Dimensions, T, StorageCellType, Derived>& v,
+              std::format_context& ctx) const {
     auto out = std::format_to(ctx.out(), "(");
     for (int i = 0; i < Dimensions; ++i) {
-      if (i > 0) out = std::format_to(out, ", ");
+      if (i > 0)
+        out = std::format_to(out, ", ");
       out = std::format_to(out, "{}", v.coordinate(i));
     }
     return std::format_to(out, ")");
@@ -1328,27 +1322,35 @@ struct std::formatter<Vector<Dimensions, T, StorageCellType, Derived>> {  // NOL
 };
 
 template<class T>
-struct std::formatter<Vector2<T>> {  // NOLINT(cert-dcl58-cpp)
-  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+struct std::formatter<Vector2<T>> { // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const {
+    return ctx.begin();
+  }
   auto format(const Vector2<T>& v, std::format_context& ctx) const {
     return std::format_to(ctx.out(), "({}, {})", v.coordinate(0), v.coordinate(1));
   }
 };
 
 template<class T>
-struct std::formatter<Vector3<T>> {  // NOLINT(cert-dcl58-cpp)
-  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+struct std::formatter<Vector3<T>> { // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const {
+    return ctx.begin();
+  }
   auto format(const Vector3<T>& v, std::format_context& ctx) const {
-    return std::format_to(ctx.out(), "({}, {}, {})", v.coordinate(0), v.coordinate(1), v.coordinate(2));
+    return std::format_to(ctx.out(), "({}, {}, {})", v.coordinate(0), v.coordinate(1),
+                          v.coordinate(2));
   }
 };
 
 template<class T>
-struct std::formatter<Vector4<T>> {  // NOLINT(cert-dcl58-cpp)
-  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+struct std::formatter<Vector4<T>> { // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const {
+    return ctx.begin();
+  }
   auto format(const Vector4<T>& v, std::format_context& ctx) const {
-    return std::format_to(ctx.out(), "({}, {}, {}, {})", v.coordinate(0), v.coordinate(1), v.coordinate(2), v.coordinate(3));
+    return std::format_to(ctx.out(), "({}, {}, {}, {})", v.coordinate(0), v.coordinate(1),
+                          v.coordinate(2), v.coordinate(3));
   }
 };
 
-#endif  // __cpp_lib_format
+#endif // __cpp_lib_format

@@ -22,10 +22,9 @@ namespace {
   };
 
   PointInterlaceIterator::PointInterlaceIterator(const ViewPlane* plane, const Recti& rect)
-    : IteratorBase(plane, rect),
-      m_evenRow(false),
-      m_initialSize(initialSize())
-  {
+      : IteratorBase(plane, rect),
+        m_evenRow(false),
+        m_initialSize(initialSize()) {
     m_pixelSize = m_initialSize;
   }
 
@@ -65,4 +64,5 @@ ViewPlane::Iterator PointInterlacedViewPlane::begin(const Recti& rect) const {
   return Iterator(new PointInterlaceIterator(this, rect));
 }
 
-static bool dummy = ViewPlaneFactory::self().registerClass<PointInterlacedViewPlane>("PointInterlacedViewPlane");
+static bool dummy =
+  ViewPlaneFactory::self().registerClass<PointInterlacedViewPlane>("PointInterlacedViewPlane");

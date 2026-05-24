@@ -8,24 +8,24 @@
 namespace PinholeCameraParameterWidgetTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-  
+  using namespace render;
+
   class PinholeCameraParameterWidgetTest : public GuiTest {};
-  
+
   TEST_F(PinholeCameraParameterWidgetTest, ShouldInitialize) {
     PinholeCameraParameterWidget widget;
   }
-  
+
   TEST_F(PinholeCameraParameterWidgetTest, ShouldReturnDistance) {
     PinholeCameraParameterWidget widget;
     ASSERT_EQ(5, widget.distance());
   }
-  
+
   TEST_F(PinholeCameraParameterWidgetTest, ShouldReturnZoom) {
     PinholeCameraParameterWidget widget;
     ASSERT_EQ(1.0, widget.zoom());
   }
-  
+
   TEST_F(PinholeCameraParameterWidgetTest, ShouldEmitChange) {
     PinholeCameraParameterWidget widget;
     Signal sig;
@@ -35,7 +35,7 @@ using namespace render;
     sig.call();
     ASSERT_TRUE(slot.called());
   }
-  
+
   TEST_F(PinholeCameraParameterWidgetTest, ShouldApplyToPinholeCamera) {
     PinholeCameraParameterWidget widget;
     auto camera = std::make_shared<PinholeCamera>();

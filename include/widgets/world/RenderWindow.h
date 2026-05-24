@@ -22,7 +22,7 @@ public:
 
   virtual QSize sizeHint() const;
   virtual void timerEvent(QTimerEvent*);
-  
+
   bool isBusy() const;
 
 public slots:

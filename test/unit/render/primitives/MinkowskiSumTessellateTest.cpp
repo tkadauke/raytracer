@@ -4,8 +4,8 @@
 
 namespace MinkowskiSumTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(MinkowskiSumTessellate, ShouldReturnEmptyMesh) {
     // CSG mesh booleans are not implemented; not implemented.

@@ -17,8 +17,7 @@ public:
     *   int. Also, it is more intuitive to specify "1 in 1000" vs. "0.001".
     */
   inline explicit Sampler(int invSampleRate)
-    : m_invSampleRate(invSampleRate)
-  {
+      : m_invSampleRate(invSampleRate) {
   }
 
   /**
@@ -28,7 +27,7 @@ public:
   inline bool coinFlip() const {
     return random(m_invSampleRate) == 0;
   }
-  
+
   /**
     * Executes func, if coinFlip() returns true, otherwise does nothing.
     */

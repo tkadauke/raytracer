@@ -21,8 +21,7 @@ namespace BVHTest {
     for (int x = 0; x < sideLength; ++x) {
       for (int y = 0; y < sideLength; ++y) {
         for (int z = 0; z < sideLength; ++z) {
-          bvh->add(std::make_shared<Sphere>(
-            Vector3d(x * spacing, y * spacing, z * spacing), 0.5));
+          bvh->add(std::make_shared<Sphere>(Vector3d(x * spacing, y * spacing, z * spacing), 0.5));
         }
       }
     }
@@ -58,7 +57,7 @@ namespace BVHTest {
   TEST(BVH, ReturnsClosestHitAcrossMultiplePrimitives) {
     BVH bvh;
     auto near = std::make_shared<Sphere>(Vector3d(0, 0, -2), 0.5);
-    auto far  = std::make_shared<Sphere>(Vector3d(0, 0,  2), 0.5);
+    auto far = std::make_shared<Sphere>(Vector3d(0, 0, 2), 0.5);
     bvh.add(near);
     bvh.add(far);
     bvh.setup();
@@ -73,7 +72,7 @@ namespace BVHTest {
   }
 
   TEST(BVH, MissAcrossManyPrimitives) {
-    auto bvh = gridSpheres(4);  // 64 spheres on a 4×4×4 grid
+    auto bvh = gridSpheres(4); // 64 spheres on a 4×4×4 grid
 
     // Ray well off the grid in the +y direction.
     Rayd ray(Vector3d(0, 1000, 0), Vector3d(1, 0, 0));
@@ -95,8 +94,7 @@ namespace BVHTest {
     for (int x = 0; x < kSpheres; ++x) {
       for (int y = 0; y < kSpheres; ++y) {
         for (int z = 0; z < kSpheres; ++z) {
-          linear.add(std::make_shared<Sphere>(
-            Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
+          linear.add(std::make_shared<Sphere>(Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
         }
       }
     }
@@ -110,7 +108,8 @@ namespace BVHTest {
     for (int i = 0; i < 100; ++i) {
       Vector3d origin(coord(rng), coord(rng), coord(rng));
       Vector3d direction(dir(rng), dir(rng), dir(rng));
-      if (direction.length() < 1e-6) continue;
+      if (direction.length() < 1e-6)
+        continue;
       direction = direction.normalized();
       Rayd ray(origin, direction);
 
@@ -129,7 +128,8 @@ namespace BVHTest {
         if (hBvh && hLin) {
           const double tBvh = pBvh.minWithPositiveDistance().distance();
           const double tLin = pLin.minWithPositiveDistance().distance();
-          if (std::abs(tBvh - tLin) < 1e-6) ++matches;
+          if (std::abs(tBvh - tLin) < 1e-6)
+            ++matches;
         } else {
           ++matches;
         }
@@ -207,14 +207,14 @@ namespace BVHTest {
     // Build a 4×4×4 grid of spheres and verify that intersectPacket(Ray4)
     // returns the same hit/miss result per lane as four scalar intersect
     // calls for the same rays.
-    auto bvh = gridSpheres(4);  // 64 spheres
+    auto bvh = gridSpheres(4); // 64 spheres
 
     // Four rays aimed through the grid at known spheres.
     const std::array<Rayd, 4> testRays = {
-      Rayd(Vector3d(-10, 0, 0), Vector3d(1, 0, 0)),   // hits x=0 sphere row
-      Rayd(Vector3d(-10, 2, 0), Vector3d(1, 0, 0)),   // hits x=0,y=1 row
-      Rayd(Vector3d(0, 1000, 0), Vector3d(1, 0, 0)),  // misses (y=1000)
-      Rayd(Vector3d(-10, 0, 2), Vector3d(1, 0, 0)),   // hits x=0,z=1 row
+      Rayd(Vector3d(-10, 0, 0), Vector3d(1, 0, 0)),  // hits x=0 sphere row
+      Rayd(Vector3d(-10, 2, 0), Vector3d(1, 0, 0)),  // hits x=0,y=1 row
+      Rayd(Vector3d(0, 1000, 0), Vector3d(1, 0, 0)), // misses (y=1000)
+      Rayd(Vector3d(-10, 0, 2), Vector3d(1, 0, 0)),  // hits x=0,z=1 row
     };
 
     Ray4 packet(testRays);
@@ -226,8 +226,7 @@ namespace BVHTest {
       HitPointInterval hp;
       const bool scalarHit = (bvh->intersect(testRays[i], hp, scalarState) != nullptr);
       EXPECT_EQ(scalarHit, result.hit(i))
-        << "Lane " << i << ": packet hit=" << result.hit(i)
-        << " scalar hit=" << scalarHit;
+        << "Lane " << i << ": packet hit=" << result.hit(i) << " scalar hit=" << scalarHit;
     }
   }
 
@@ -269,10 +268,10 @@ namespace BVHTest {
     // No setup() call — should fall back to base class scalar loop.
 
     const std::array<Rayd, 4> testRays = {
-      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)),  // hits
-      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)),  // misses (x=5, sphere at origin)
-      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)),  // hits
-      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)),  // misses
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)), // hits
+      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)), // misses (x=5, sphere at origin)
+      Rayd(Vector3d(0, 0, -10), Vector3d(0, 0, 1)), // hits
+      Rayd(Vector3d(5, 0, -10), Vector3d(0, 0, 1)), // misses
     };
     Ray4 packet(testRays);
     State state;

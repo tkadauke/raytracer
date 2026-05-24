@@ -7,8 +7,8 @@
 
 namespace PerfectTransmitterTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   // Construct a hit point at the origin with the given outward normal. The
   // primitive pointer is irrelevant for these tests; PerfectTransmitter only
@@ -37,7 +37,7 @@ using namespace render;
 
   TEST(PerfectTransmitter, ShouldStoreRefractionIndex) {
     PerfectTransmitter btdf;
-    btdf.setRefractionIndex(1.5);  // typical glass.
+    btdf.setRefractionIndex(1.5); // typical glass.
     ASSERT_EQ(1.5, btdf.refractionIndex());
   }
 
@@ -57,7 +57,7 @@ using namespace render;
     // 60° from normal — well past the ~41.8° critical angle.
     const double angle = 60.0 * M_PI / 180.0;
     Vector3d normal(0, 1, 0);
-    Vector3d direction(std::sin(angle), std::cos(angle), 0);  // outward + tilted.
+    Vector3d direction(std::sin(angle), std::cos(angle), 0); // outward + tilted.
     Rayd ray(Vector3d(0, -1, 0), direction);
     HitPoint hit = hitPointWithNormal(normal);
 
@@ -97,7 +97,7 @@ using namespace render;
     PerfectTransmitter btdf;
     btdf.setRefractionIndex(1.5);
 
-    Vector3d normal(0, 1, 0);  // outward (toward air) at the entry surface.
+    Vector3d normal(0, 1, 0); // outward (toward air) at the entry surface.
     HitPoint hit = hitPointWithNormal(normal);
 
     // Ray heading inward at a steep glancing angle (80° from normal) —
@@ -115,7 +115,7 @@ using namespace render;
 
     Vector3d normal(0, 1, 0);
     HitPoint hit = hitPointWithNormal(normal);
-    Vector3d out(0, 1, 0);  // straight along normal.
+    Vector3d out(0, 1, 0); // straight along normal.
     Vector3d transmitted;
     btdf.sample(hit, out, transmitted);
 
@@ -138,7 +138,7 @@ using namespace render;
     const double angleIn = 45.0 * M_PI / 180.0;
     Vector3d normal(0, 1, 0);
     HitPoint hit = hitPointWithNormal(normal);
-    Vector3d out(std::sin(angleIn), std::cos(angleIn), 0);  // pointing outward + tilted.
+    Vector3d out(std::sin(angleIn), std::cos(angleIn), 0); // pointing outward + tilted.
 
     Vector3d transmitted;
     btdf.sample(hit, out, transmitted);

@@ -4,15 +4,12 @@
 #include "render/primitives/Composite.h"
 
 Transformable::Transformable(Element* parent)
-  : Element(parent),
-    m_scale(Vector3d::one)
-{
+    : Element(parent),
+      m_scale(Vector3d::one) {
 }
 
 Matrix4d Transformable::localTransform() const {
-  return Matrix4d::translate(position()) *
-         Matrix3d::rotate(rotation()) *
-         Matrix3d::scale(scale());
+  return Matrix4d::translate(position()) * Matrix3d::rotate(rotation()) * Matrix3d::scale(scale());
 }
 
 Matrix4d Transformable::globalTransform() const {
@@ -36,19 +33,19 @@ bool Transformable::canHaveChild(Element* child) const {
 void Transformable::leaveParent() {
   if (isGenerated())
     return;
-  
+
   setMatrix(globalTransform());
 }
 
 void Transformable::joinParent() {
   if (isGenerated())
     return;
-  
+
   Matrix4d matrix;
   if (Transformable* p = dynamic_cast<Transformable*>(parent())) {
     matrix = p->globalTransform().inverted();
   }
-  
+
   setMatrix(matrix * localTransform());
 }
 
@@ -61,4 +58,3 @@ void Transformable::moveBy(const Vector3d& vector, bool global) {
   }
   setPosition(position() + offset);
 }
-

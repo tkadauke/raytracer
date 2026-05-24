@@ -25,11 +25,10 @@ namespace {
   class DefaultSampleStream : public SampleStream {
   public:
     DefaultSampleStream(const Sampler* sampler, int sampleIndex, std::uint64_t pixelHash)
-      : m_sampler(sampler),
-        m_sampleIndex(sampleIndex),
-        m_pixelHash(pixelHash),
-        m_dim(0)
-    {
+        : m_sampler(sampler),
+          m_sampleIndex(sampleIndex),
+          m_pixelHash(pixelHash),
+          m_dim(0) {
     }
 
     Vector2d next2D() override {

@@ -13,9 +13,9 @@
 namespace ThinLensCameraTest {
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
 
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
@@ -90,8 +90,8 @@ using namespace render;
     ThinLensCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     camera.setApertureRadius(0.5);
 
-    Rayd a = camera.rayForPixelWithLens(0, 0, 0.0, 0.0);   // lens centre
-    Rayd b = camera.rayForPixelWithLens(0, 0, 1.0, 0.0);   // edge of disc
+    Rayd a = camera.rayForPixelWithLens(0, 0, 0.0, 0.0); // lens centre
+    Rayd b = camera.rayForPixelWithLens(0, 0, 1.0, 0.0); // edge of disc
     EXPECT_GT((a.origin() - b.origin()).length(), 0.1);
   }
 
@@ -119,12 +119,12 @@ using namespace render;
     };
 
     Vector3d centre = hitFocalPlane(0.0, 0.0);
-    Vector3d edgeR  = hitFocalPlane(1.0, 0.0);
-    Vector3d edgeT  = hitFocalPlane(0.0, 1.0);
+    Vector3d edgeR = hitFocalPlane(1.0, 0.0);
+    Vector3d edgeT = hitFocalPlane(0.0, 1.0);
     Vector3d edgeRT = hitFocalPlane(0.7, 0.7);
 
-    ASSERT_VECTOR_NEAR(centre, edgeR,  1e-9);
-    ASSERT_VECTOR_NEAR(centre, edgeT,  1e-9);
+    ASSERT_VECTOR_NEAR(centre, edgeR, 1e-9);
+    ASSERT_VECTOR_NEAR(centre, edgeT, 1e-9);
     ASSERT_VECTOR_NEAR(centre, edgeRT, 1e-9);
   }
 

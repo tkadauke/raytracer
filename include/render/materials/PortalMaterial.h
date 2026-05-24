@@ -27,18 +27,19 @@ namespace render {
   class PortalMaterial : public Material {
   public:
     inline explicit PortalMaterial(const Matrix4d& transformation, const Colord& filter)
-      : m_filterColor(filter)
-    {
+        : m_filterColor(filter) {
       setMatrix(transformation);
     }
 
     void setMatrix(const Matrix4d& matrix);
 
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
 
   private:
     inline Rayd transformedRay(const Rayd& ray) const {
-      return Rayd(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()))), m_directionMatrix * ray.direction());
+      return Rayd(Vector4d(m_originMatrix.transformPoint(Vector3d(ray.origin()))),
+                  m_directionMatrix * ray.direction());
     }
 
     Matrix4d m_originMatrix;

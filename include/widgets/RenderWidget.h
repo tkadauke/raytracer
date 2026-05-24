@@ -80,7 +80,7 @@ public:
 
   /// Triggered on the in-render-progress timer; publishes according
   /// to `displayMode()`, then calls `update()`.
-  virtual void timerEvent(QTimerEvent *event);
+  virtual void timerEvent(QTimerEvent* event);
 
   /**
     * Kick off a render. Starts the worker thread through either an

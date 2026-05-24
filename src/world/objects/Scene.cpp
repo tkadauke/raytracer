@@ -15,11 +15,10 @@
 #include <utility>
 
 Scene::Scene(Element* parent)
-  : Element(parent),
-    m_changed(false),
-    m_ambient(Colord(0.4, 0.4, 0.4)),
-    m_background(Colord(0.4, 0.8, 1))
-{
+    : Element(parent),
+      m_changed(false),
+      m_ambient(Colord(0.4, 0.4, 0.4)),
+      m_background(Colord(0.4, 0.8, 1)) {
   setName("New Scene");
 }
 

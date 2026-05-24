@@ -26,10 +26,8 @@ namespace GraphRenderEngineTest {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
   }
 
-  RenderResourceDescriptor colorResource(const std::string& id,
-                                         RenderResourceLifetime lifetime,
-                                         int width = 2,
-                                         int height = 2) {
+  RenderResourceDescriptor colorResource(const std::string& id, RenderResourceLifetime lifetime,
+                                         int width = 2, int height = 2) {
     RenderResourceDescriptor color;
     color.id = id;
     color.type = RenderResourceType::Color;
@@ -42,10 +40,7 @@ namespace GraphRenderEngineTest {
 
   class BlockingMaterial : public render::Material {
   public:
-    Colord shade(const render::RayCaster*,
-                 const render::Scene&,
-                 const Rayd&,
-                 const HitPoint&,
+    Colord shade(const render::RayCaster*, const render::Scene&, const Rayd&, const HitPoint&,
                  render::State&) const override {
       std::unique_lock<std::mutex> lock(m_mutex);
       ++m_calls;
@@ -291,8 +286,7 @@ namespace GraphRenderEngineTest {
     buffer.clear(0);
 
     std::thread renderThread([&] { engine.render(buffer); });
-    const bool renderBlockedOnSecondPixel =
-      material->waitForSecondCall(std::chrono::seconds(2));
+    const bool renderBlockedOnSecondPixel = material->waitForSecondCall(std::chrono::seconds(2));
 
     EXPECT_TRUE(renderBlockedOnSecondPixel);
     EXPECT_EQ(Colord(0.25, 0.5, 0.75).rgb(), buffer[0][0]);

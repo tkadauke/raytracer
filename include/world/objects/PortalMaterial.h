@@ -79,11 +79,9 @@ public:
     * clamped away from zero so the transform remains invertible.
     */
   inline void setScale(const Vector3d& scale) {
-    m_scale = Vector3d(
-      std::max(std::abs(scale.x()), 0.000001),
-      std::max(std::abs(scale.y()), 0.000001),
-      std::max(std::abs(scale.z()), 0.000001)
-    );
+    m_scale =
+      Vector3d(std::max(std::abs(scale.x()), 0.000001), std::max(std::abs(scale.y()), 0.000001),
+               std::max(std::abs(scale.z()), 0.000001));
   }
 
   /**

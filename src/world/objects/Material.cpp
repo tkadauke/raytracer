@@ -8,11 +8,9 @@ Material* Material::defaultMaterial() {
   return &result;
 }
 
-
 Material::Material(Element* parent)
-  : Element(parent),
-    m_sidedness(Sidedness::TwoSided)
-{
+    : Element(parent),
+      m_sidedness(Sidedness::TwoSided) {
 }
 
 void Material::setSidedness(Sidedness sidedness) {

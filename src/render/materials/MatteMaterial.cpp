@@ -35,8 +35,8 @@ Colord MatteMaterial::shade(const render::RayCaster*, const render::Scene& scene
       state.shadowMiss(this, "MatteMaterial");
       double normalDotIn = hitPoint.normal() * in;
       if (normalDotIn > 0.0)
-        color += diffuseBRDF(hitPoint, Vector3d::null, Vector3d::null) * light->radiance() *
-                 normalDotIn;
+        color +=
+          diffuseBRDF(hitPoint, Vector3d::null, Vector3d::null) * light->radiance() * normalDotIn;
     }
   }
 

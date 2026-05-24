@@ -10,20 +10,20 @@
 class CSGSurface : public Surface {
   Q_OBJECT
   Q_PROPERTY(bool active READ active WRITE setActive)
-  
+
 public:
   /**
     * Default constructor.
     */
   explicit CSGSurface(Element* parent = nullptr);
-  
+
   /**
     * @returns true if the CSG operation is active, false otherwise.
     */
   inline bool active() const {
     return m_active;
   }
-  
+
   /**
     * Activates or deactivates the CSG operation. If the CSG operation is
     * inactive, this class effectively behaves like a simple composite, which
@@ -35,7 +35,7 @@ public:
   inline void setActive(bool active) {
     m_active = active;
   }
-  
+
 private:
   bool m_active;
 };

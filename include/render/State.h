@@ -47,17 +47,16 @@ namespace render {
   class State {
   public:
     inline State()
-      : traceEvents(false),
-        numRays(0),
-        recursionDepth(0),
-        maxRecursionDepth(0),
-        intersectionHits(0),
-        intersectionMisses(0),
-        shadowIntersectionHits(0),
-        shadowIntersectionMisses(0),
-        timeSample(0.0),
-        throughput(1.0)
-    {
+        : traceEvents(false),
+          numRays(0),
+          recursionDepth(0),
+          maxRecursionDepth(0),
+          intersectionHits(0),
+          intersectionMisses(0),
+          shadowIntersectionHits(0),
+          shadowIntersectionMisses(0),
+          timeSample(0.0),
+          throughput(1.0) {
     }
 
     /**

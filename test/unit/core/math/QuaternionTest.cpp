@@ -8,8 +8,7 @@ namespace QuaternionTest {
   using namespace std;
 
   template<class T>
-  class QuaternionTest : public ::testing::Test {
-  };
+  class QuaternionTest : public ::testing::Test {};
 
   typedef ::testing::Types<float, double> QuaternionTypes;
 
@@ -41,7 +40,7 @@ namespace QuaternionTest {
   }
 
   TYPED_TEST(QuaternionTest, ShouldInitializeFromScalarAndCArray) {
-    TypeParam elements[3] = { 1, 2, 3 };
+    TypeParam elements[3] = {1, 2, 3};
     Quaternion<TypeParam> quaternion(4, elements);
     ASSERT_EQ(4, quaternion.w());
     ASSERT_EQ(1, quaternion.x());
@@ -143,7 +142,9 @@ namespace QuaternionTest {
 
   TYPED_TEST(QuaternionTest, ShouldSatisfyQTimesConjugateEqualsIdentityForUnitQuaternion) {
     // q * q* == identity for any unit quaternion
-    Quaternion<TypeParam> q = Quaternion<TypeParam>(TypeParam(0.707), TypeParam(0.707), TypeParam(0), TypeParam(0)).normalized();
+    Quaternion<TypeParam> q =
+      Quaternion<TypeParam>(TypeParam(0.707), TypeParam(0.707), TypeParam(0), TypeParam(0))
+        .normalized();
     Quaternion<TypeParam> result = q * q.conjugate();
     ASSERT_NEAR(1, result.w(), 0.001);
     ASSERT_NEAR(0, result.x(), 0.001);
@@ -152,7 +153,8 @@ namespace QuaternionTest {
   }
 
   TYPED_TEST(QuaternionTest, ShouldReturnInverse) {
-    Quaternion<TypeParam> q = Quaternion<TypeParam>(TypeParam(0.5), TypeParam(0.5), TypeParam(0.5), TypeParam(0.5));
+    Quaternion<TypeParam> q =
+      Quaternion<TypeParam>(TypeParam(0.5), TypeParam(0.5), TypeParam(0.5), TypeParam(0.5));
     Quaternion<TypeParam> result = q * q.inverse();
     ASSERT_NEAR(1, result.w(), 0.001);
     ASSERT_NEAR(0, result.x(), 0.001);
@@ -174,7 +176,8 @@ namespace QuaternionTest {
     TypeParam angle = TypeParam(M_PI) / TypeParam(2);
     Vector3<TypeParam> axis(TypeParam(0), TypeParam(0), TypeParam(1));
     Quaternion<TypeParam> q = Quaternion<TypeParam>::fromAxisAngle(axis, angle);
-    Vector3<TypeParam> result = q.rotate(Vector3<TypeParam>(TypeParam(1), TypeParam(0), TypeParam(0)));
+    Vector3<TypeParam> result =
+      q.rotate(Vector3<TypeParam>(TypeParam(1), TypeParam(0), TypeParam(0)));
     ASSERT_NEAR(0, result.x(), 0.001);
     ASSERT_NEAR(1, result.y(), 0.001);
     ASSERT_NEAR(0, result.z(), 0.001);
@@ -194,15 +197,17 @@ namespace QuaternionTest {
 
   TYPED_TEST(QuaternionTest, ShouldBuildFromAxisAngleProducingUnitQuaternion) {
     TypeParam angle = TypeParam(M_PI) / TypeParam(3);
-    Vector3<TypeParam> axis = Vector3<TypeParam>(TypeParam(1), TypeParam(1), TypeParam(0)).normalized();
+    Vector3<TypeParam> axis =
+      Vector3<TypeParam>(TypeParam(1), TypeParam(1), TypeParam(0)).normalized();
     Quaternion<TypeParam> q = Quaternion<TypeParam>::fromAxisAngle(axis, angle);
     ASSERT_NEAR(1, q.length(), 0.001);
   }
 
   TYPED_TEST(QuaternionTest, ShouldBuildFromEulerAnglesMatchingAxisAngleAroundX) {
     TypeParam angle = TypeParam(M_PI) / TypeParam(2);
-    Quaternion<TypeParam> from_euler = Quaternion<TypeParam>::fromEulerAngles(angle, TypeParam(0), TypeParam(0));
-    Quaternion<TypeParam> from_axis  = Quaternion<TypeParam>::fromAxisAngle(
+    Quaternion<TypeParam> from_euler =
+      Quaternion<TypeParam>::fromEulerAngles(angle, TypeParam(0), TypeParam(0));
+    Quaternion<TypeParam> from_axis = Quaternion<TypeParam>::fromAxisAngle(
       Vector3<TypeParam>(TypeParam(1), TypeParam(0), TypeParam(0)), angle);
     ASSERT_NEAR(from_axis.w(), from_euler.w(), 0.001);
     ASSERT_NEAR(from_axis.x(), from_euler.x(), 0.001);
@@ -212,8 +217,9 @@ namespace QuaternionTest {
 
   TYPED_TEST(QuaternionTest, ShouldBuildFromEulerAnglesMatchingAxisAngleAroundZ) {
     TypeParam angle = TypeParam(M_PI) / TypeParam(2);
-    Quaternion<TypeParam> from_euler = Quaternion<TypeParam>::fromEulerAngles(TypeParam(0), TypeParam(0), angle);
-    Quaternion<TypeParam> from_axis  = Quaternion<TypeParam>::fromAxisAngle(
+    Quaternion<TypeParam> from_euler =
+      Quaternion<TypeParam>::fromEulerAngles(TypeParam(0), TypeParam(0), angle);
+    Quaternion<TypeParam> from_axis = Quaternion<TypeParam>::fromAxisAngle(
       Vector3<TypeParam>(TypeParam(0), TypeParam(0), TypeParam(1)), angle);
     ASSERT_NEAR(from_axis.w(), from_euler.w(), 0.001);
     ASSERT_NEAR(from_axis.x(), from_euler.x(), 0.001);
@@ -287,18 +293,17 @@ namespace QuaternionTest {
 
   TYPED_TEST(QuaternionTest, ShouldRoundTripQuaternionThroughMatrix3) {
     TypeParam angle = TypeParam(M_PI) / TypeParam(3);
-    Vector3<TypeParam> axis = Vector3<TypeParam>(TypeParam(1), TypeParam(2), TypeParam(3)).normalized();
+    Vector3<TypeParam> axis =
+      Vector3<TypeParam>(TypeParam(1), TypeParam(2), TypeParam(3)).normalized();
     Quaternion<TypeParam> q = Quaternion<TypeParam>::fromAxisAngle(axis, angle);
     Quaternion<TypeParam> q2 = q.toMatrix3().rotationQuaternion();
     // Either q2 == q or q2 == -q (both represent the same rotation)
-    bool same     = std::abs(q.w() - q2.w()) < TypeParam(0.001) &&
-                    std::abs(q.x() - q2.x()) < TypeParam(0.001) &&
-                    std::abs(q.y() - q2.y()) < TypeParam(0.001) &&
-                    std::abs(q.z() - q2.z()) < TypeParam(0.001);
-    bool opposite = std::abs(q.w() + q2.w()) < TypeParam(0.001) &&
-                    std::abs(q.x() + q2.x()) < TypeParam(0.001) &&
-                    std::abs(q.y() + q2.y()) < TypeParam(0.001) &&
-                    std::abs(q.z() + q2.z()) < TypeParam(0.001);
+    bool same =
+      std::abs(q.w() - q2.w()) < TypeParam(0.001) && std::abs(q.x() - q2.x()) < TypeParam(0.001) &&
+      std::abs(q.y() - q2.y()) < TypeParam(0.001) && std::abs(q.z() - q2.z()) < TypeParam(0.001);
+    bool opposite =
+      std::abs(q.w() + q2.w()) < TypeParam(0.001) && std::abs(q.x() + q2.x()) < TypeParam(0.001) &&
+      std::abs(q.y() + q2.y()) < TypeParam(0.001) && std::abs(q.z() + q2.z()) < TypeParam(0.001);
     ASSERT_TRUE(same || opposite);
   }
 

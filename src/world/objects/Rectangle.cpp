@@ -3,10 +3,9 @@
 #include "render/primitives/Rectangle.h"
 
 Rectangle::Rectangle(Element* parent)
-  : Surface(parent),
-    m_leg1(1, 0, 0),
-    m_leg2(0, 0, 1)
-{
+    : Surface(parent),
+      m_leg1(1, 0, 0),
+      m_leg2(0, 0, 1) {
 }
 
 std::shared_ptr<render::Primitive> Rectangle::toRaytracerPrimitive() const {

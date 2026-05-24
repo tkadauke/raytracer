@@ -10,7 +10,7 @@
 class ConstantColorTexture : public Texture {
   Q_OBJECT
   Q_PROPERTY(Colord color READ color WRITE setColor)
-  
+
 public:
   /**
     * Default constructor. Creates a black texture.
@@ -23,7 +23,7 @@ public:
   inline const Colord& color() const {
     return m_color;
   }
-  
+
   /**
     * Sets the texture's color.
     * 
@@ -40,7 +40,7 @@ public:
   inline void setColor(const Colord& color) {
     m_color = color;
   }
-  
+
   virtual std::shared_ptr<render::Texturec> toRaytracerTexture() const;
 
 private:

@@ -17,9 +17,12 @@ namespace RenderExecutionContextTest {
         : RenderEngine(std::shared_ptr<render::Scene>()) {
     }
 
-    void render(Buffer<Colord>&) override {}
-    void cancel() override {}
-    void uncancel() override {}
+    void render(Buffer<Colord>&) override {
+    }
+    void cancel() override {
+    }
+    void uncancel() override {
+    }
   };
 
   RenderResourceDescriptor colorResource() {

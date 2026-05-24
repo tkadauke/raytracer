@@ -57,11 +57,11 @@ namespace SceneTest {
   static const MetaTypeRegistrar s_registrar;
 
   QJsonValue vectorValue(double x, double y, double z) {
-    return QJsonValue(QJsonArray({ x, y, z }));
+    return QJsonValue(QJsonArray({x, y, z}));
   }
 
   QJsonValue colorValue(double r, double g, double b) {
-    return QJsonValue(QJsonArray({ r, g, b }));
+    return QJsonValue(QJsonArray({r, g, b}));
   }
 
   TEST(Scene, ShouldDefaultToCannedNewSceneName) {
@@ -291,18 +291,12 @@ namespace SceneTest {
     camera->setId("camera-id");
     original.addChild(camera);
     original.setAnimation(std::make_unique<world::Timeline>(
-      1,
-      10,
-      24.0,
-      std::vector<world::AnimationTrack>({
-        world::AnimationTrack(
-          "camera-id",
-          "position",
-          {
-            { 1, vectorValue(0.0, 0.0, 0.0) },
-            { 10, vectorValue(9.0, 0.0, 0.0) },
-          })
-      })));
+      1, 10, 24.0,
+      std::vector<world::AnimationTrack>({world::AnimationTrack("camera-id", "position",
+                                                                {
+                                                                  {1, vectorValue(0.0, 0.0, 0.0)},
+                                                                  {10, vectorValue(9.0, 0.0, 0.0)},
+                                                                })})));
 
     ASSERT_TRUE(original.save(path));
 
@@ -370,18 +364,12 @@ namespace SceneTest {
     scene.setId("scene-id");
     scene.setBackground(Colord(0.0, 0.0, 0.0));
     scene.setAnimation(std::make_unique<world::Timeline>(
-      1,
-      11,
-      24.0,
-      std::vector<world::AnimationTrack>({
-        world::AnimationTrack(
-          "scene-id",
-          "background",
-          {
-            { 1, colorValue(0.0, 0.0, 0.0) },
-            { 11, colorValue(1.0, 0.5, 0.0) },
-          })
-      })));
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({world::AnimationTrack("scene-id", "background",
+                                                                {
+                                                                  {1, colorValue(0.0, 0.0, 0.0)},
+                                                                  {11, colorValue(1.0, 0.5, 0.0)},
+                                                                })})));
 
     scene.evaluateAnimationAtFrame(6);
 
@@ -417,18 +405,12 @@ namespace SceneTest {
     camera->setPosition(Vector3d(0.0, 0.0, 0.0));
     scene.addChild(camera);
     scene.setAnimation(std::make_unique<world::Timeline>(
-      1,
-      11,
-      24.0,
-      std::vector<world::AnimationTrack>({
-        world::AnimationTrack(
-          "camera-id",
-          "position",
-          {
-            { 1, vectorValue(0.0, 0.0, 0.0) },
-            { 11, vectorValue(10.0, 0.0, 0.0) },
-          })
-      })));
+      1, 11, 24.0,
+      std::vector<world::AnimationTrack>({world::AnimationTrack("camera-id", "position",
+                                                                {
+                                                                  {1, vectorValue(0.0, 0.0, 0.0)},
+                                                                  {11, vectorValue(10.0, 0.0, 0.0)},
+                                                                })})));
 
     const auto evaluated = scene.evaluatedAtFrame(6);
 

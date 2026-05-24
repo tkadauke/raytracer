@@ -2,16 +2,16 @@
 
 namespace PinholeCameraTest {
   using namespace ::testing;
-  
+
   struct PinholeCameraTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(PinholeCameraTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a pinhole camera");
     given("a centered sphere");
     when("i look at the origin");
     then("i should see the sphere");
   }
-  
+
   TEST_F(PinholeCameraTest, ShouldNotBeVisibileOutsideOfView) {
     given("a pinhole camera");
     given("a displaced sphere");
@@ -25,7 +25,7 @@ namespace PinholeCameraTest {
     when("i look away from the origin");
     then("i should not see the sphere");
   }
-  
+
   TEST_F(PinholeCameraTest, ShouldShrinkSizeOfObjectWithLargerDistance) {
     given("a pinhole camera");
     given("a centered sphere");
@@ -34,7 +34,7 @@ namespace PinholeCameraTest {
     when("i go far away from the origin");
     then("i should see the sphere with size smaller than S");
   }
-  
+
   TEST_F(PinholeCameraTest, ShouldShrinkObjectWithSmallerViewPlaneDistance) {
     given("a pinhole camera");
     given("a centered sphere");
@@ -53,7 +53,7 @@ namespace PinholeCameraTest {
     when("i zoom by a factor of 2");
     then("i should see the sphere with size larger than S");
   }
-  
+
   TEST_F(PinholeCameraTest, ShouldShrinkSizeOfObjectWhenZoomingOut) {
     given("a pinhole camera");
     given("a centered sphere");

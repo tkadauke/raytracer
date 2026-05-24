@@ -5,13 +5,13 @@
 
 class FishEyeCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit FishEyeCameraParameterWidget(QWidget* parent = nullptr);
   ~FishEyeCameraParameterWidget();
-  
+
   int fieldOfView() const;
-  
+
   virtual void applyTo(std::shared_ptr<render::Camera> camera);
 
 signals:

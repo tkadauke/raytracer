@@ -21,9 +21,9 @@ GIVEN(EngineFeatureTest, "a torus rotated ([\\d.]+) degrees around the ([xyz]) a
   std::string axis = match[2];
   auto torus = std::make_shared<Torus>(1, 0.5);
   auto instance = std::make_shared<Instance>(torus);
-  Matrix3d m = (axis == "x") ? Matrix3d::rotateX(Angled::fromDegrees(degrees))
-             : (axis == "y") ? Matrix3d::rotateY(Angled::fromDegrees(degrees))
-                             : Matrix3d::rotateZ(Angled::fromDegrees(degrees));
+  Matrix3d m = (axis == "x")   ? Matrix3d::rotateX(Angled::fromDegrees(degrees))
+               : (axis == "y") ? Matrix3d::rotateY(Angled::fromDegrees(degrees))
+                               : Matrix3d::rotateZ(Angled::fromDegrees(degrees));
   instance->setMatrix(m);
   instance->setMaterial(test->redDiffuse());
   test->add(instance);

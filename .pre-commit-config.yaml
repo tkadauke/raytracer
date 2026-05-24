@@ -10,14 +10,9 @@
 #
 #   pre-commit run --all-files
 #
-# clang-format runs in *check-only* mode (`--dry-run --Werror`) intentionally.
-# The codebase predates the .clang-format config and currently has ~5,300
-# style violations; auto-formatting on commit would silently bundle hundreds
-# of unrelated reformat lines into every PR. The check-only hook fails the
-# commit, prints the diff, and lets the author decide whether to run
-# `clang-format -i <files>` themselves. Once a bulk reformat lands and the
-# CI lint job is flipped from advisory to required, swap the args back to
-# the auto-fix default.
+# clang-format runs in normal fix mode. The repository has a committed
+# clang-format baseline, so per-commit formatting should only touch files being
+# changed in that commit.
 
 minimum_pre_commit_version: '3.5.0'
 
@@ -42,5 +37,3 @@ repos:
     hooks:
       - id: clang-format
         types_or: [c++, c]
-        args: ['--dry-run', '--Werror']
-        # No --fix; see preamble for the rationale.

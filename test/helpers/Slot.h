@@ -8,10 +8,10 @@ class Slot : public QObject {
 public:
   Slot();
   bool called();
-  
+
 public slots:
   void receive();
-  
+
 private:
   bool m_called;
 };

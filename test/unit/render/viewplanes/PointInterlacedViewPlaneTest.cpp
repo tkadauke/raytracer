@@ -6,7 +6,7 @@ namespace PointInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace render;
   using namespace render;
-  
+
   TEST(PointInterlacedViewPlane, ShouldInitialize) {
     render::PointInterlacedViewPlane plane;
     ASSERT_EQ(0, plane.width());
@@ -21,10 +21,7 @@ namespace PointInterlacedViewPlaneTest {
 
     EXPECT_EQ(64, iterator.pixelSize());
   }
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    PointInterlaced,
-    AbstractViewPlaneIteratorTest,
-    PointInterlacedViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(PointInterlaced, AbstractViewPlaneIteratorTest,
+                                 PointInterlacedViewPlane);
 }

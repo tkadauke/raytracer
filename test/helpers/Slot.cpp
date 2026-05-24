@@ -1,8 +1,7 @@
 #include "test/helpers/Slot.h"
 
 Slot::Slot()
-  : m_called(false)
-{
+    : m_called(false) {
 }
 
 void Slot::receive() {
@@ -12,4 +11,3 @@ void Slot::receive() {
 bool Slot::called() {
   return m_called;
 }
-

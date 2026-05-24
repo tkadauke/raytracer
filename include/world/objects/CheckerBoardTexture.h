@@ -23,7 +23,7 @@ class CheckerBoardTexture : public Texture {
   Q_PROPERTY(QString mapping READ mapping WRITE setMapping)
   Q_PROPERTY(double uScale READ uScale WRITE setUScale)
   Q_PROPERTY(double vScale READ vScale WRITE setVScale)
-  
+
 public:
   /**
     * Default constructor. Creates a checker board texture with no brigth and
@@ -37,7 +37,7 @@ public:
   inline Texture* brightTexture() const {
     return m_brightTexture;
   }
-  
+
   /**
     * Sets the checker board's texture for the bright fields.
     * 
@@ -58,7 +58,7 @@ public:
       m_brightTexture = texture;
     }
   }
-  
+
   /**
     * @returns the checker board's dark texture.
     */
@@ -114,7 +114,7 @@ public:
   inline void setVScale(double scale) {
     m_vScale = scale;
   }
-  
+
   virtual std::shared_ptr<render::Texturec> toRaytracerTexture() const;
 
 private:

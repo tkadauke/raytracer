@@ -5,13 +5,13 @@
 
 class BoolParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit BoolParameterWidget(QWidget* parent = nullptr);
   ~BoolParameterWidget();
-  
+
   virtual void setParameterName(const QString& name);
-  
+
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
 

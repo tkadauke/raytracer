@@ -8,15 +8,16 @@ namespace FactoryTest {
   using namespace ::testing;
 
   struct Shape {
-    inline virtual ~Shape() {}
+    inline virtual ~Shape() {
+    }
   };
   struct Rectangle : public Shape {};
   struct Circle : public Shape {};
-  
+
   TEST(Factory, ShouldInitialize) {
     Factory<Shape> f;
   }
-  
+
   TEST(Factory, ShouldCreateObjectBasedOnIdentifier) {
     Factory<Shape> f;
     f.registerClass<Rectangle>("Rectangle");
@@ -34,7 +35,7 @@ namespace FactoryTest {
     auto shape = f.create("Foobar");
     ASSERT_EQ(nullptr, shape);
   }
-  
+
   TEST(Factory, ShouldReturnIdentifiersSorted) {
     Factory<Shape> f;
     f.registerClass<Rectangle>("Rectangle");

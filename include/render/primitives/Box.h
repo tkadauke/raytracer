@@ -27,12 +27,12 @@ namespace render {
   class Box : public Primitive {
   public:
     inline explicit Box(const Vector3d& center, const Vector3d& edge)
-      : m_center(center),
-        m_edge(edge)
-    {
+        : m_center(center),
+          m_edge(edge) {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
 

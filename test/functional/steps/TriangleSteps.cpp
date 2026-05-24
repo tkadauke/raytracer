@@ -7,13 +7,15 @@ using namespace testing;
 using namespace render;
 
 GIVEN(EngineFeatureTest, "a centered triangle") {
-  auto triangle = std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0));
+  auto triangle =
+    std::make_shared<Triangle>(Vector3d(-1, -1, 0), Vector3d(-1, 1, 0), Vector3d(1, -1, 0));
   triangle->setMaterial(test->redDiffuse());
   test->add(triangle);
 }
 
 GIVEN(EngineFeatureTest, "a displaced triangle") {
-  auto triangle = std::make_shared<Triangle>(Vector3d(-1, 20, 0), Vector3d(-1, 21, 0), Vector3d(1, 20, 0));
+  auto triangle =
+    std::make_shared<Triangle>(Vector3d(-1, 20, 0), Vector3d(-1, 21, 0), Vector3d(1, 20, 0));
   triangle->setMaterial(test->redDiffuse());
   test->add(triangle);
 }

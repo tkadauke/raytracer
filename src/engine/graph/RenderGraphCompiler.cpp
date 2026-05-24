@@ -56,8 +56,7 @@ namespace engine::graph {
       return target;
     }
 
-    RenderResourceDescriptor colorResource(const std::string& id,
-                                           const std::string& name,
+    RenderResourceDescriptor colorResource(const std::string& id, const std::string& name,
                                            const RenderTargetSpec& target,
                                            RenderResourceLifetime lifetime) {
       RenderResourceDescriptor color;

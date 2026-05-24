@@ -10,12 +10,12 @@
   */
 class ConvexHull : public CSGSurface {
   Q_OBJECT
-  
+
 public:
   /**
     * Default constructor. Creates an empty convex hull.
     */
   explicit ConvexHull(Element* parent = nullptr);
-  
+
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 };

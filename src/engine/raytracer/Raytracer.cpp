@@ -28,11 +28,10 @@ using namespace engine::raytracer;
 
 struct Raytracer::Private {
   inline Private()
-    : threadPool(std::make_unique<QThreadPool>()),
-      queueSize(QThread::idealThreadCount()),
-      maximumRecursionDepth(10),
-      showProgressIndicators(false)
-  {
+      : threadPool(std::make_unique<QThreadPool>()),
+        queueSize(QThread::idealThreadCount()),
+        maximumRecursionDepth(10),
+        showProgressIndicators(false) {
   }
 
   std::unique_ptr<QThreadPool> threadPool;
@@ -43,25 +42,20 @@ struct Raytracer::Private {
 };
 
 Raytracer::Raytracer(std::shared_ptr<render::Scene> scene)
-  : RenderEngine(std::move(scene)),
-    p(std::make_unique<Private>())
-{
+    : RenderEngine(std::move(scene)),
+      p(std::make_unique<Private>()) {
 }
 
 Raytracer::Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
-  : RenderEngine(std::move(camera), std::move(scene)),
-    p(std::make_unique<Private>())
-{
+    : RenderEngine(std::move(camera), std::move(scene)),
+      p(std::make_unique<Private>()) {
 }
 
 Raytracer::~Raytracer() {
 }
 
 std::shared_ptr<render::RenderEngine> Raytracer::cloneForRender() const {
-  auto result = std::make_shared<Raytracer>(
-    m_camera ? m_camera->clone() : nullptr,
-    m_scene
-  );
+  auto result = std::make_shared<Raytracer>(m_camera ? m_camera->clone() : nullptr, m_scene);
   result->setTonemap(tonemap());
   result->setMaximumRecursionDepth(p->maximumRecursionDepth);
   result->setMaximumThreads(p->threadPool->maxThreadCount());

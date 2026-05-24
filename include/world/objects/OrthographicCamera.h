@@ -16,7 +16,7 @@
 class OrthographicCamera : public Camera {
   Q_OBJECT
   Q_PROPERTY(double zoom READ zoom WRITE setZoom)
-  
+
 public:
   /**
     * Constructs a default orthographic camera with a zoom factor of 1,
@@ -30,7 +30,7 @@ public:
   inline double zoom() const {
     return m_zoom;
   }
-  
+
   /**
     * Sets zoom of the camera.
     * 

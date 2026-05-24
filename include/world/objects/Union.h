@@ -11,12 +11,12 @@
   */
 class Union : public CSGSurface {
   Q_OBJECT
-  
+
 public:
   /**
     * Default constructor. Creates an empty union.
     */
   explicit Union(Element* parent = nullptr);
-  
+
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 };

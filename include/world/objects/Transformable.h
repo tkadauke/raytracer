@@ -21,20 +21,20 @@ class Transformable : public Element {
   Q_PROPERTY(Vector3d position READ position WRITE setPosition)
   Q_PROPERTY(Vector3d rotation READ rotation WRITE setRotation)
   Q_PROPERTY(Vector3d scale READ scale WRITE setScale)
-  
+
 public:
   /**
     * Default constructor.
     */
   explicit Transformable(Element* parent = nullptr);
-  
+
   /**
     * @returns the object's position vector.
     */
   inline const Vector3d& position() const {
     return m_position;
   }
-  
+
   /**
     * Sets the object's position.
     * 
@@ -49,7 +49,7 @@ public:
   inline void setPosition(const Vector3d& position) {
     m_position = position;
   }
-  
+
   /**
     * @returns the object's rotation vector, containing the three Euler angles,
     * which describe this object's orientation. The Euler angles are in radians.
@@ -57,7 +57,7 @@ public:
   inline const Vector3d& rotation() const {
     return m_rotation;
   }
-  
+
   /**
     * Sets the object's rotation vector, which is a vector of Euler angles in
     * radians.
@@ -73,7 +73,7 @@ public:
   inline void setRotation(const Vector3d& rotation) {
     m_rotation = rotation;
   }
-  
+
   /**
     * @returns the object's scale vector, containing the scale factors along the
     * x, y, and z axes.
@@ -81,7 +81,7 @@ public:
   inline const Vector3d& scale() const {
     return m_scale;
   }
-  
+
   /**
     * Sets the scale vector for the x, y, and z axes.
     * 
@@ -94,13 +94,11 @@ public:
     * </tr></table>
     */
   inline void setScale(const Vector3d& scale) {
-    m_scale = Vector3d(
-      std::max(std::abs(scale.x()), 0.000001),
-      std::max(std::abs(scale.y()), 0.000001),
-      std::max(std::abs(scale.z()), 0.000001)
-    );
+    m_scale =
+      Vector3d(std::max(std::abs(scale.x()), 0.000001), std::max(std::abs(scale.y()), 0.000001),
+               std::max(std::abs(scale.z()), 0.000001));
   }
-  
+
   /**
     * Extracts the position, rotation and scale vectors from matrix.
     */
@@ -111,7 +109,7 @@ public:
     * scale vectors.
     */
   Matrix4d localTransform() const;
-  
+
   /**
     * @returns the global transformation matrix by recursively multiplying the
     * local transformation matrix with this object's parent's global
@@ -119,20 +117,20 @@ public:
     * world coordinate space.
     */
   Matrix4d globalTransform() const;
-  
+
   virtual bool canHaveChild(Element* child) const;
-  
+
   /**
     * Moves the object by vector. If global is true, the object is moved
     * relative to world coordinates. If it is false, it is moved relative to
     * local coordinates.
     */
   void moveBy(const Vector3d& vector, bool global = false);
-  
+
 protected:
   virtual void leaveParent();
   virtual void joinParent();
-  
+
 private:
   Vector3d m_position;
   Vector3d m_rotation;

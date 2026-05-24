@@ -15,7 +15,6 @@ public:
     * respectively.
     */
   inline explicit DivisionByZeroException(const std::string& file, int line)
-    : Exception("Division by zero", file, line)
-  {
+      : Exception("Division by zero", file, line) {
   }
 };

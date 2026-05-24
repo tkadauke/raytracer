@@ -6,7 +6,7 @@
 
 namespace engine::wireframe {
 
-/**
+  /**
   * @brief `RenderEngine` that draws every mesh face's edges as
   *        rasterized lines on the framebuffer.
   *
@@ -59,50 +59,60 @@ namespace engine::wireframe {
   * checks before each face. Exits gracefully — partial edges remain
   * on screen, but no in-progress edge is left half-drawn.
   */
-class Wireframe : public render::RenderEngine {
-public:
-  explicit Wireframe(std::shared_ptr<render::Scene> scene);
-  Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
+  class Wireframe : public render::RenderEngine {
+  public:
+    explicit Wireframe(std::shared_ptr<render::Scene> scene);
+    Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
-  ~Wireframe() override;
+    ~Wireframe() override;
 
-  using RenderEngine::render;
-  std::shared_ptr<render::RenderEngine> cloneForRender() const override;
-  void render(Buffer<Colord>& buffer) override;
-  void cancel() override;
-  void uncancel() override;
+    using RenderEngine::render;
+    std::shared_ptr<render::RenderEngine> cloneForRender() const override;
+    void render(Buffer<Colord>& buffer) override;
+    void cancel() override;
+    void uncancel() override;
 
-  /// Level of detail forwarded to `Primitive::tessellate(lod)`.
-  /// Higher values produce denser wireframes (a UV sphere at `lod=0`
-  /// has 128 quads; `lod=2` has 2048).
-  inline int lod() const { return m_lod; }
-  inline void setLod(int lod) { m_lod = lod; }
+    /// Level of detail forwarded to `Primitive::tessellate(lod)`.
+    /// Higher values produce denser wireframes (a UV sphere at `lod=0`
+    /// has 128 quads; `lod=2` has 2048).
+    inline int lod() const {
+      return m_lod;
+    }
+    inline void setLod(int lod) {
+      m_lod = lod;
+    }
 
-  /// Colour drawn for every rasterized edge pixel. Defaults to
-  /// pure white (`Colord::white()`).
-  inline const Colord& edgeColor() const { return m_edgeColor; }
-  inline void setEdgeColor(const Colord& color) { m_edgeColor = color; }
+    /// Colour drawn for every rasterized edge pixel. Defaults to
+    /// pure white (`Colord::white()`).
+    inline const Colord& edgeColor() const {
+      return m_edgeColor;
+    }
+    inline void setEdgeColor(const Colord& color) {
+      m_edgeColor = color;
+    }
 
-  /// Colour the framebuffer is cleared to before edges are drawn.
-  /// Defaults to pure black — the Wireframe overrides the
-  /// `RenderEngine` default (which would fall back to the scene's
-  /// `background()`) so the canonical lines-on-black look survives
-  /// even when the scene carries a colourful background. Call
-  /// `setBackgroundColor` to install an explicit override or copy
-  /// the scene's background back in.
-  Colord backgroundColor() const override;
+    /// Colour the framebuffer is cleared to before edges are drawn.
+    /// Defaults to pure black — the Wireframe overrides the
+    /// `RenderEngine` default (which would fall back to the scene's
+    /// `background()`) so the canonical lines-on-black look survives
+    /// even when the scene carries a colourful background. Call
+    /// `setBackgroundColor` to install an explicit override or copy
+    /// the scene's background back in.
+    Colord backgroundColor() const override;
 
-  /// Eye-relative near clip depth. Edges with both endpoints closer
-  /// than this value are skipped; edges that cross the depth are
-  /// shortened to the near plane before projection. Defaults to 0.1.
-  inline double nearClipDepth() const { return m_nearClipDepth; }
-  void setNearClipDepth(double depth);
+    /// Eye-relative near clip depth. Edges with both endpoints closer
+    /// than this value are skipped; edges that cross the depth are
+    /// shortened to the near plane before projection. Defaults to 0.1.
+    inline double nearClipDepth() const {
+      return m_nearClipDepth;
+    }
+    void setNearClipDepth(double depth);
 
-private:
-  std::atomic<bool> m_cancelled{false};
-  int m_lod{0};
-  Colord m_edgeColor{Colord::white()};
-  double m_nearClipDepth{0.1};
-};
+  private:
+    std::atomic<bool> m_cancelled{false};
+    int m_lod{0};
+    Colord m_edgeColor{Colord::white()};
+    double m_nearClipDepth{0.1};
+  };
 
-}  // namespace engine::wireframe
+} // namespace engine::wireframe

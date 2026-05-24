@@ -3,4 +3,3 @@
 void Signal::call() {
   emit send();
 }
-

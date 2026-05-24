@@ -16,20 +16,20 @@
 class Sphere : public Surface {
   Q_OBJECT
   Q_PROPERTY(double radius READ radius WRITE setRadius)
-  
+
 public:
   /**
     * Default constructor. Creates a sphere with radius 1 around the origin.
     */
   explicit Sphere(Element* parent = nullptr);
-  
+
   /**
     * @returns the radius of the sphere.
     */
   inline double radius() const {
     return m_radius;
   }
-  
+
   /**
     * Sets the radius of the sphere. The radius will be converted to its
     * absolute value. A component of 0 will be replaced with \f$\epsilon\f$.
@@ -47,7 +47,7 @@ public:
   }
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
-  
+
 private:
   double m_radius;
 };

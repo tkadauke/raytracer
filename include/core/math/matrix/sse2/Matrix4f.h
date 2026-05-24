@@ -26,22 +26,17 @@ Matrix4<float>::operator*(const Matrix4<float>& b) const noexcept {
   Matrix4<float> result;
   for (int r = 0; r < 4; ++r) {
     const __m128 a = _mm_loadu_ps((*this)[r]);
-    const __m128 row = _mm_add_ps(
-      _mm_add_ps(
-        _mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(0,0,0,0)), b0),
-        _mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(1,1,1,1)), b1)
-      ),
-      _mm_add_ps(
-        _mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(2,2,2,2)), b2),
-        _mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(3,3,3,3)), b3)
-      )
-    );
+    const __m128 row =
+      _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(0, 0, 0, 0)), b0),
+                            _mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(1, 1, 1, 1)), b1)),
+                 _mm_add_ps(_mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(2, 2, 2, 2)), b2),
+                            _mm_mul_ps(_mm_shuffle_ps(a, a, _MM_SHUFFLE(3, 3, 3, 3)), b3)));
     _mm_storeu_ps(&result[r][0], row);
   }
   return result;
 }
 
-#endif  // __SSE__
+#endif // __SSE__
 
 #ifdef __SSE3__
 
@@ -66,14 +61,10 @@ template<>
 Matrix4<float>::operator*(const Vector4<float>& vec) const noexcept {
   const __m128 v = _mm_loadu_ps(&vec[0]);
 
-  const __m128 t01 = _mm_hadd_ps(
-    _mm_mul_ps(_mm_loadu_ps((*this)[0]), v),
-    _mm_mul_ps(_mm_loadu_ps((*this)[1]), v)
-  );
-  const __m128 t23 = _mm_hadd_ps(
-    _mm_mul_ps(_mm_loadu_ps((*this)[2]), v),
-    _mm_mul_ps(_mm_loadu_ps((*this)[3]), v)
-  );
+  const __m128 t01 =
+    _mm_hadd_ps(_mm_mul_ps(_mm_loadu_ps((*this)[0]), v), _mm_mul_ps(_mm_loadu_ps((*this)[1]), v));
+  const __m128 t23 =
+    _mm_hadd_ps(_mm_mul_ps(_mm_loadu_ps((*this)[2]), v), _mm_mul_ps(_mm_loadu_ps((*this)[3]), v));
   const __m128 result = _mm_hadd_ps(t01, t23);
 
   alignas(16) float r[4];
@@ -81,4 +72,4 @@ Matrix4<float>::operator*(const Vector4<float>& vec) const noexcept {
   return Vector4<float>(r[0], r[1], r[2], r[3]);
 }
 
-#endif  // __SSE3__
+#endif // __SSE3__

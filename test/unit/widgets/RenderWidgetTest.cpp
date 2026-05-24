@@ -24,9 +24,8 @@ namespace RenderWidgetTest {
   class SolidColorEngine : public render::RenderEngine {
   public:
     explicit SolidColorEngine(unsigned int color)
-      : render::RenderEngine(std::shared_ptr<render::Scene>()),
-        color(color)
-    {
+        : render::RenderEngine(std::shared_ptr<render::Scene>()),
+          color(color) {
     }
 
     void render(Buffer<Colord>&) override {
@@ -54,8 +53,7 @@ namespace RenderWidgetTest {
   class BlockingEngine : public render::RenderEngine {
   public:
     BlockingEngine()
-      : render::RenderEngine(std::shared_ptr<render::Scene>())
-    {
+        : render::RenderEngine(std::shared_ptr<render::Scene>()) {
     }
 
     void render(Buffer<Colord>&) override {
@@ -92,16 +90,14 @@ namespace RenderWidgetTest {
   class CloneableBlockingEngine : public render::RenderEngine {
   public:
     CloneableBlockingEngine()
-      : render::RenderEngine(std::shared_ptr<render::Scene>()),
-        state(std::make_shared<CloneState>())
-    {
+        : render::RenderEngine(std::shared_ptr<render::Scene>()),
+          state(std::make_shared<CloneState>()) {
     }
 
     explicit CloneableBlockingEngine(std::shared_ptr<CloneState> state)
-      : render::RenderEngine(std::shared_ptr<render::Scene>()),
-        state(std::move(state)),
-        gate(std::make_shared<CloneGate>())
-    {
+        : render::RenderEngine(std::shared_ptr<render::Scene>()),
+          state(std::move(state)),
+          gate(std::make_shared<CloneGate>()) {
     }
 
     std::shared_ptr<render::RenderEngine> cloneForRender() const override {
@@ -239,9 +235,7 @@ namespace RenderWidgetTest {
     widget.setDisplayMode(RenderWidget::DisplayMode::PeriodicUpdate);
 
     int finishedCount = 0;
-    QObject::connect(&widget, &RenderWidget::finished, [&finishedCount]() {
-      ++finishedCount;
-    });
+    QObject::connect(&widget, &RenderWidget::finished, [&finishedCount]() { ++finishedCount; });
 
     widget.render();
     ASSERT_TRUE(first->entered.tryAcquire(1, 5000));
@@ -264,9 +258,7 @@ namespace RenderWidgetTest {
     widget.setBufferSize(QSize(2, 2));
 
     int finishedCount = 0;
-    QObject::connect(&widget, &RenderWidget::finished, [&finishedCount]() {
-      ++finishedCount;
-    });
+    QObject::connect(&widget, &RenderWidget::finished, [&finishedCount]() { ++finishedCount; });
 
     widget.render();
     ASSERT_EQ(1u, engine->state->gates.size());
@@ -285,9 +277,7 @@ namespace RenderWidgetTest {
 
     engine->state->gates[1]->release.release();
     ASSERT_TRUE(engine->state->gates[1]->finished.tryAcquire(1, 5000));
-    EXPECT_TRUE(processEventsUntil([&finishedCount]() {
-      return finishedCount == 1;
-    }));
+    EXPECT_TRUE(processEventsUntil([&finishedCount]() { return finishedCount == 1; }));
   }
 
   TEST_F(RenderWidgetTest, ShouldNotStartUnlimitedReplacementRendersWhileRetiredSnapshotDrains) {

@@ -18,20 +18,19 @@ Q_DECLARE_METATYPE(Vector3d)
 
 namespace {
 
-bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) {
-  return actual == qt5Name || actual == qt6Name;
-}
+  bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) {
+    return actual == qt5Name || actual == qt6Name;
+  }
 
-}  // namespace
+} // namespace
 
 struct PropertyEditorWidget::Private {
   inline Private()
-    : root(nullptr),
-      element(nullptr),
-      verticalLayout(nullptr)
-  {
+      : root(nullptr),
+        element(nullptr),
+        verticalLayout(nullptr) {
   }
-  
+
   Element* root;
   Element* element;
   QVBoxLayout* verticalLayout;
@@ -39,8 +38,8 @@ struct PropertyEditorWidget::Private {
 };
 
 PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
-  : QWidget(parent), p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
   p->root = root;
 }
 
@@ -68,7 +67,7 @@ void PropertyEditorWidget::setRoot(Element* root) {
 
 void PropertyEditorWidget::setElement(Element* element) {
   p->element = element;
-  
+
   clearParameterWidgets();
   if (p->element) {
     addParameterWidgets();
@@ -79,7 +78,7 @@ void PropertyEditorWidget::update() {
   for (const auto& widget : p->parameterWidgets) {
     const QString& parameterName = widget->parameterName();
     auto prop = p->element->property(parameterName.toStdString().c_str());
-    
+
     widget->setValue(prop);
   }
 }
@@ -141,7 +140,7 @@ void PropertyEditorWidget::addParameter(const QString& name) {
     widget->setElement(p->element);
     widget->setParameterName(name);
     widget->setValue(value);
-    
+
     addParameterWidget(widget);
   }
 }
@@ -150,15 +149,16 @@ void PropertyEditorWidget::addParameterWidget(AbstractParameterWidget* widget) {
   p->parameterWidgets << widget;
   p->verticalLayout->addWidget(widget);
   widget->setElement(p->element);
-  
-  connect(widget, SIGNAL(changed(const QString&, const QVariant&)), this, SLOT(elementChanged(const QString&, const QVariant&)));
+
+  connect(widget, SIGNAL(changed(const QString&, const QVariant&)), this,
+          SLOT(elementChanged(const QString&, const QVariant&)));
 }
 
 void PropertyEditorWidget::clearParameterWidgets() {
   for (const auto& widget : p->parameterWidgets) {
     delete widget;
   }
-  
+
   p->parameterWidgets.clear();
 }
 

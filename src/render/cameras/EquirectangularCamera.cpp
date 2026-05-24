@@ -21,7 +21,7 @@ Vector3d EquirectangularCamera::direction(double x, double y) const {
   //   x = width   → lon = +π   (right edge,   behind camera; image wraps)
   //   y = 0       → lat = +π/2 (top edge,     north pole = "up" direction)
   //   y = height  → lat = -π/2 (bottom edge,  south pole = "down" direction)
-  double lon = (2.0 * x / viewPlane()->width()  - 1.0) * PI;
+  double lon = (2.0 * x / viewPlane()->width() - 1.0) * PI;
   double lat = (1.0 - 2.0 * y / viewPlane()->height()) * (PI / 2.0);
 
   // Standard sphere-to-cartesian, with one twist for this codebase's
@@ -43,4 +43,5 @@ Rayd EquirectangularCamera::rayForPixel(double x, double y, render::SampleStream
   return Rayd(position, direction(x, y));
 }
 
-static bool dummy = CameraFactory::self().registerClass<EquirectangularCamera>("EquirectangularCamera");
+static bool dummy =
+  CameraFactory::self().registerClass<EquirectangularCamera>("EquirectangularCamera");

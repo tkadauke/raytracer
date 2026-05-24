@@ -26,15 +26,15 @@ namespace render {
       *   shading for every ray hitting the cylinder.
       */
     inline explicit OpenCylinder(double radius, double height)
-      : m_radius(radius),
-        m_halfHeight(height / 2.0),
-        m_invRadius(radius == 0.0 ? 0.0 : 1.0 / radius)
-    {
+        : m_radius(radius),
+          m_halfHeight(height / 2.0),
+          m_invRadius(radius == 0.0 ? 0.0 : 1.0 / radius) {
       if (radius == 0.0)
         throw DivisionByZeroException(__FILE__, __LINE__);
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
@@ -71,7 +71,7 @@ namespace render {
   private:
     double m_radius;
     double m_halfHeight;
-    
+
     double m_invRadius;
   };
 }

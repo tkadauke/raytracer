@@ -5,10 +5,6 @@
 namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    RowInterlaced,
-    AbstractViewPlaneTest,
-    RowInterlacedViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(RowInterlaced, AbstractViewPlaneTest, RowInterlacedViewPlane);
 }

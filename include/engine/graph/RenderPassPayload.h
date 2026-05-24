@@ -45,8 +45,7 @@ namespace engine::graph {
       * wrapped engines such as the raytracer can keep publishing progressive
       * LDR pixels while the frame is still rendering.
       */
-    virtual bool executeDisplay(RenderExecutionContext&,
-                                Buffer<unsigned int>&,
+    virtual bool executeDisplay(RenderExecutionContext&, Buffer<unsigned int>&,
                                 std::shared_ptr<render::Tonemap>) {
       return false;
     }

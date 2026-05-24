@@ -5,20 +5,18 @@
 
 struct AbstractParameterWidget::Private {
   Private()
-    : element(nullptr),
-      lastValue()
-  {
+      : element(nullptr),
+        lastValue() {
   }
-  
+
   Element* element;
   QString parameterName;
   QVariant lastValue;
 };
 
 AbstractParameterWidget::AbstractParameterWidget(QWidget* parent)
-  : QWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
 }
 
 AbstractParameterWidget::~AbstractParameterWidget() {
@@ -44,4 +42,3 @@ const QString& AbstractParameterWidget::parameterName() const {
 void AbstractParameterWidget::setParameterName(const QString& name) {
   p->parameterName = name;
 }
-

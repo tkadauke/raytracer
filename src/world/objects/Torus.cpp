@@ -3,10 +3,9 @@
 #include "render/primitives/Torus.h"
 
 Torus::Torus(Element* parent)
-  : Surface(parent),
-    m_sweptRadius(2),
-    m_tubeRadius(1)
-{
+    : Surface(parent),
+      m_sweptRadius(2),
+      m_tubeRadius(1) {
 }
 
 std::shared_ptr<render::Primitive> Torus::toRaytracerPrimitive() const {

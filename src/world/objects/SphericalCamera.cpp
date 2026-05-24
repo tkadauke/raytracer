@@ -4,21 +4,15 @@
 #include "render/cameras/SphericalCamera.h"
 
 SphericalCamera::SphericalCamera(Element* parent)
-  : Camera(parent),
-    m_horizontalFieldOfView(180_degrees),
-    m_verticalFieldOfView(120_degrees)
-{
+    : Camera(parent),
+      m_horizontalFieldOfView(180_degrees),
+      m_verticalFieldOfView(120_degrees) {
 }
 
 std::shared_ptr<render::Camera> SphericalCamera::toRaytracer() const {
   auto camera = make_named<render::SphericalCamera>(position(), target());
-  camera->setFieldOfView(
-    horizontalFieldOfView(),
-    verticalFieldOfView()
-  );
+  camera->setFieldOfView(horizontalFieldOfView(), verticalFieldOfView());
   return camera;
 }
 
 static bool dummy = ElementFactory::self().registerClass<SphericalCamera>("SphericalCamera");
-
-

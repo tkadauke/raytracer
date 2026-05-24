@@ -7,8 +7,8 @@
 namespace GridTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   // Convenience: wire a MockPrimitive's bounding box and (optionally) its
   // intersect/intersects expectations with sensible NiceMock-friendly defaults.
@@ -53,12 +53,9 @@ using namespace render;
     grid.add(p);
     grid.setup();
 
-    EXPECT_CALL(*p, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(p.get(), 9.0, Vector3d(0, 0, -1), Vector3d(0, 0, -1))),
-        Return(p.get())
-      )
-    );
+    EXPECT_CALL(*p, intersect(_, _, _))
+      .WillOnce(DoAll(AddHitPoint(HitPoint(p.get(), 9.0, Vector3d(0, 0, -1), Vector3d(0, 0, -1))),
+                      Return(p.get())));
 
     Rayd ray(Vector3d(0, 0, -10), Vector3d(0, 0, 1));
     State state;
@@ -119,12 +116,10 @@ using namespace render;
     grid.add(p);
     grid.setup();
 
-    EXPECT_CALL(*p, intersect(_, _, _)).WillRepeatedly(
-      DoAll(
-        AddHitPoint(HitPoint(p.get(), 1.0, Vector3d(1, 0, 0), Vector3d(1, 0, 0))),
-        Return(p.get())
-      )
-    );
+    EXPECT_CALL(*p, intersect(_, _, _))
+      .WillRepeatedly(
+        DoAll(AddHitPoint(HitPoint(p.get(), 1.0, Vector3d(1, 0, 0), Vector3d(1, 0, 0))),
+              Return(p.get())));
 
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
     State state;
@@ -141,12 +136,9 @@ using namespace render;
     grid.add(p);
     grid.setup();
 
-    EXPECT_CALL(*p, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(p.get(), 9.0, Vector3d(0, -1, 0), Vector3d(0, -1, 0))),
-        Return(p.get())
-      )
-    );
+    EXPECT_CALL(*p, intersect(_, _, _))
+      .WillOnce(DoAll(AddHitPoint(HitPoint(p.get(), 9.0, Vector3d(0, -1, 0), Vector3d(0, -1, 0))),
+                      Return(p.get())));
 
     Rayd ray(Vector3d(0, -10, 0), Vector3d(0, 1, 0));
     State state;
@@ -160,7 +152,7 @@ using namespace render;
     // primitive's intersect to miss so the DDA has to advance.
     Grid grid;
     auto front = primitiveAt(BoundingBoxd(Vector3d(-5, -1, -1), Vector3d(-3, 1, 1)));
-    auto back  = primitiveAt(BoundingBoxd(Vector3d( 3, -1, -1), Vector3d( 5, 1, 1)));
+    auto back = primitiveAt(BoundingBoxd(Vector3d(3, -1, -1), Vector3d(5, 1, 1)));
     grid.add(front);
     grid.add(back);
     grid.setup();
@@ -168,12 +160,10 @@ using namespace render;
     EXPECT_CALL(*front, intersect(_, _, _))
       .Times(AnyNumber())
       .WillRepeatedly(Return(static_cast<render::Primitive*>(nullptr)));
-    EXPECT_CALL(*back, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(back.get(), 8.0, Vector3d(-1, 0, 0), Vector3d(-1, 0, 0))),
-        Return(back.get())
-      )
-    );
+    EXPECT_CALL(*back, intersect(_, _, _))
+      .WillOnce(
+        DoAll(AddHitPoint(HitPoint(back.get(), 8.0, Vector3d(-1, 0, 0), Vector3d(-1, 0, 0))),
+              Return(back.get())));
 
     Rayd ray(Vector3d(-10, 0, 0), Vector3d(1, 0, 0));
     State state;
@@ -195,12 +185,9 @@ using namespace render;
     EXPECT_CALL(*a, intersect(_, _, _))
       .Times(AnyNumber())
       .WillRepeatedly(Return(static_cast<render::Primitive*>(nullptr)));
-    EXPECT_CALL(*b, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(b.get(), 9.5, Vector3d(0, 0, -0.5), Vector3d(0, 0, -1))),
-        Return(b.get())
-      )
-    );
+    EXPECT_CALL(*b, intersect(_, _, _))
+      .WillOnce(DoAll(AddHitPoint(HitPoint(b.get(), 9.5, Vector3d(0, 0, -0.5), Vector3d(0, 0, -1))),
+                      Return(b.get())));
 
     Rayd ray(Vector3d(0, 0, -10), Vector3d(0, 0, 1));
     State state;
@@ -216,12 +203,9 @@ using namespace render;
     grid.add(p);
     grid.setup();
 
-    EXPECT_CALL(*p, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(p.get(), 9.0, Vector3d(0, 0, 1), Vector3d(0, 0, 1))),
-        Return(p.get())
-      )
-    );
+    EXPECT_CALL(*p, intersect(_, _, _))
+      .WillOnce(DoAll(AddHitPoint(HitPoint(p.get(), 9.0, Vector3d(0, 0, 1), Vector3d(0, 0, 1))),
+                      Return(p.get())));
 
     Rayd ray(Vector3d(0, 0, 10), Vector3d(0, 0, -1));
     State state;
@@ -233,7 +217,7 @@ using namespace render;
     // A primitive that reports an empty bbox shouldn't break setup — Grid::
     // setup has an explicit early-continue on empty/undefined bboxes.
     Grid grid;
-    auto real  = primitiveAt(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)));
+    auto real = primitiveAt(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1)));
     auto empty = std::make_shared<NiceMock<MockPrimitive>>();
     ON_CALL(*empty, calculateBoundingBox()).WillByDefault(Return(BoundingBoxd()));
     grid.add(real);

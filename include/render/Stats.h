@@ -55,15 +55,14 @@ namespace render {
       void dumpJson(std::ostream& out) const;
     };
 
-#define RAYTRACER_STATS_INC(field)                                             \
-  ::render::stats::Counters::instance().field.fetch_add(                    \
-      1, std::memory_order_relaxed)
+#define RAYTRACER_STATS_INC(field)                                                                 \
+  ::render::stats::Counters::instance().field.fetch_add(1, std::memory_order_relaxed)
 
-#else  // !RAYTRACER_ENABLE_STATS
+#else // !RAYTRACER_ENABLE_STATS
 
 #define RAYTRACER_STATS_INC(field) ((void)0)
 
-#endif  // RAYTRACER_ENABLE_STATS
+#endif // RAYTRACER_ENABLE_STATS
 
-  }  // namespace stats
-}  // namespace render
+  } // namespace stats
+} // namespace render

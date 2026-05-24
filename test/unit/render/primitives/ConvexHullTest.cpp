@@ -6,9 +6,9 @@
 namespace ConvexHullTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-using namespace render;
-  
+  using namespace render;
+  using namespace render;
+
   TEST(ConvexHull, ShouldReturnFarthestPoint) {
     auto hull = std::make_shared<ConvexHull>();
 
@@ -19,7 +19,7 @@ using namespace render;
     auto mock2 = std::make_shared<NiceMock<MockPrimitive>>();
     EXPECT_CALL(*mock2, farthestPoint(_)).WillOnce(Return(Vector3d(2, 0, 0)));
     hull->add(mock2);
-    
+
     ASSERT_EQ(Vector3d(2, 0, 0), hull->farthestPoint(Vector3d::right()));
   }
 }

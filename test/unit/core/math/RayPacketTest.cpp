@@ -6,12 +6,10 @@
 namespace RayPacketTest {
 
   TEST(Ray4, ShouldConstructFromFourRaysAndExtractLanes) {
-    const std::array<Rayf, 4> rays{
-      Rayf(Vector3f(1, 2, 3), Vector3f(4, 5, 6)),
-      Rayf(Vector3f(7, 8, 9), Vector3f(10, 11, 12)),
-      Rayf(Vector3f(13, 14, 15), Vector3f(16, 17, 18)),
-      Rayf(Vector3f(19, 20, 21), Vector3f(22, 23, 24))
-    };
+    const std::array<Rayf, 4> rays{Rayf(Vector3f(1, 2, 3), Vector3f(4, 5, 6)),
+                                   Rayf(Vector3f(7, 8, 9), Vector3f(10, 11, 12)),
+                                   Rayf(Vector3f(13, 14, 15), Vector3f(16, 17, 18)),
+                                   Rayf(Vector3f(19, 20, 21), Vector3f(22, 23, 24))};
 
     const Ray4 packet(rays);
 
@@ -25,16 +23,14 @@ namespace RayPacketTest {
   }
 
   TEST(Ray8, ShouldConstructFromEightRaysAndExtractLanes) {
-    std::array<Rayf, 8> rays{
-      Rayf(Vector3f(1, 2, 3), Vector3f(4, 5, 6)),
-      Rayf(Vector3f(7, 8, 9), Vector3f(10, 11, 12)),
-      Rayf(Vector3f(13, 14, 15), Vector3f(16, 17, 18)),
-      Rayf(Vector3f(19, 20, 21), Vector3f(22, 23, 24)),
-      Rayf(Vector3f(25, 26, 27), Vector3f(28, 29, 30)),
-      Rayf(Vector3f(31, 32, 33), Vector3f(34, 35, 36)),
-      Rayf(Vector3f(37, 38, 39), Vector3f(40, 41, 42)),
-      Rayf(Vector3f(43, 44, 45), Vector3f(46, 47, 48))
-    };
+    std::array<Rayf, 8> rays{Rayf(Vector3f(1, 2, 3), Vector3f(4, 5, 6)),
+                             Rayf(Vector3f(7, 8, 9), Vector3f(10, 11, 12)),
+                             Rayf(Vector3f(13, 14, 15), Vector3f(16, 17, 18)),
+                             Rayf(Vector3f(19, 20, 21), Vector3f(22, 23, 24)),
+                             Rayf(Vector3f(25, 26, 27), Vector3f(28, 29, 30)),
+                             Rayf(Vector3f(31, 32, 33), Vector3f(34, 35, 36)),
+                             Rayf(Vector3f(37, 38, 39), Vector3f(40, 41, 42)),
+                             Rayf(Vector3f(43, 44, 45), Vector3f(46, 47, 48))};
 
     const Ray8 packet(rays);
 
@@ -59,4 +55,3 @@ namespace RayPacketTest {
     ASSERT_EQ(3.5f, result.tFar[2]);
   }
 }
-

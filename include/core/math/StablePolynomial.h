@@ -35,8 +35,8 @@ namespace stable_polynomial_detail {
   template<class Real>
   inline Real valueTolerance(Real scale, Real x) {
     Real magnitude = std::max(Real(1), std::abs(x));
-    return std::numeric_limits<Real>::epsilon() * Real(4096) * scale *
-           magnitude * magnitude * magnitude * magnitude;
+    return std::numeric_limits<Real>::epsilon() * Real(4096) * scale * magnitude * magnitude *
+           magnitude * magnitude;
   }
 
   template<class Real>
@@ -50,8 +50,8 @@ namespace stable_polynomial_detail {
       return;
     }
 
-    Real tolerance = std::numeric_limits<Real>::epsilon() * Real(1024) *
-                     std::max(Real(1), std::abs(root));
+    Real tolerance =
+      std::numeric_limits<Real>::epsilon() * Real(1024) * std::max(Real(1), std::abs(root));
     for (std::size_t i = 0; i < roots.count; ++i) {
       if (std::abs(roots.values[i] - root) <= tolerance) {
         roots.values[i] = (roots.values[i] + root) / Real(2);
@@ -62,8 +62,8 @@ namespace stable_polynomial_detail {
   }
 
   template<class Real>
-  inline Real bisectQuarticRoot(Real a, Real b, Real c, Real d, Real e,
-                                Real left, Real right, Real fLeft) {
+  inline Real bisectQuarticRoot(Real a, Real b, Real c, Real d, Real e, Real left, Real right,
+                                Real fLeft) {
     for (int i = 0; i < 128; ++i) {
       Real mid = (left + right) / Real(2);
       Real fMid = evalQuartic(a, b, c, d, e, mid);
@@ -113,9 +113,8 @@ public:
   }
 
 private:
-  static SortedResult<long double, 4> solveQuarticReal(long double a, long double b,
-                                                       long double c, long double d,
-                                                       long double e) {
+  static SortedResult<long double, 4> solveQuarticReal(long double a, long double b, long double c,
+                                                       long double d, long double e) {
     using Real = long double;
     using namespace stable_polynomial_detail;
 
@@ -135,8 +134,8 @@ private:
     }
 
     Real invA = Real(1) / std::abs(a);
-    Real bound = Real(1) + std::max({std::abs(b) * invA, std::abs(c) * invA,
-                                     std::abs(d) * invA, std::abs(e) * invA});
+    Real bound = Real(1) + std::max({std::abs(b) * invA, std::abs(c) * invA, std::abs(d) * invA,
+                                     std::abs(e) * invA});
 
     std::array<Real, 6> points{};
     std::size_t count = 0;

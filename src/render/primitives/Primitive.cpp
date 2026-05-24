@@ -12,13 +12,13 @@ using namespace render;
 
 namespace {
   template<typename Packet, typename Result>
-  Result intersectPacketScalarFallback(const Primitive& primitive, const Packet& rays, render::State& state) {
+  Result intersectPacketScalarFallback(const Primitive& primitive, const Packet& rays,
+                                       render::State& state) {
     Result result;
     for (std::size_t lane = 0; lane != Packet::lanes; ++lane) {
       HitPointInterval hitPoints;
       if (primitive.intersect(rays.rayd(lane), hitPoints, state)) {
-        result.setHit(lane,
-                      static_cast<float>(hitPoints.min().distance()),
+        result.setHit(lane, static_cast<float>(hitPoints.min().distance()),
                       static_cast<float>(hitPoints.max().distance()));
       }
     }
@@ -75,7 +75,8 @@ std::shared_ptr<Mesh> Primitive::tessellate(int) const {
 // The implementation of this method is borrowed from
 // https://github.com/DanielChappuis/reactphysics3d
 bool Primitive::convexIntersect(const Rayd& ray, HitPointInterval& hitPoints) const {
-  const double squaredMachineEpsilon = std::numeric_limits<double>::epsilon() * std::numeric_limits<double>::epsilon();
+  const double squaredMachineEpsilon =
+    std::numeric_limits<double>::epsilon() * std::numeric_limits<double>::epsilon();
   const double epsilon = 0.0000001;
 
   // If the points of the segment are two close, return no hit

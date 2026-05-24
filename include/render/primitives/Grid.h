@@ -45,10 +45,9 @@ namespace render {
   class Grid : public Composite {
   public:
     inline Grid()
-      : m_numX(0),
-        m_numY(0),
-        m_numZ(0)
-    {
+        : m_numX(0),
+          m_numY(0),
+          m_numZ(0) {
     }
 
     /**
@@ -58,7 +57,8 @@ namespace render {
       * the closest hit. Returns the hit child, with `hitPoints`
       * populated by the children that actually intersected.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
 
     /**
       * Boolean shadow-ray variant — same DDA traversal but

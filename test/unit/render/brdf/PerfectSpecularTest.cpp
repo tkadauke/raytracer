@@ -5,14 +5,14 @@
 
 namespace PerfectSpecularTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(PerfectSpecular, ShouldInitialize) {
     PerfectSpecular specular;
     ASSERT_EQ(1, specular.reflectionCoefficient());
   }
-  
+
   TEST(PerfectSpecular, ShouldSetReflectionColor) {
     PerfectSpecular specular;
     specular.setReflectionColor(Colord(1, 0, 0));
@@ -33,13 +33,13 @@ using namespace render;
 
   TEST(PerfectSpecular, ShouldHaveBlackReflectance) {
     PerfectSpecular specular;
-    
+
     ASSERT_EQ(Colord::black(), specular.reflectance(HitPoint::undefined(), Vector3d::null));
   }
 
   TEST(PerfectSpecular, ShouldBeBlack) {
     PerfectSpecular specular;
-    
+
     ASSERT_EQ(Colord::black(), specular(HitPoint::undefined(), Vector3d::null, Vector3d::null));
   }
 }

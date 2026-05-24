@@ -7,12 +7,12 @@ namespace render {
   class Plane : public Primitive {
   public:
     inline explicit Plane(const Vector3d& normal, double distance)
-      : m_normal(normal),
-        m_distance(distance)
-    {
+        : m_normal(normal),
+          m_distance(distance) {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
 

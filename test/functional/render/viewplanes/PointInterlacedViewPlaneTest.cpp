@@ -5,10 +5,6 @@
 namespace PointInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    PointInterlaced,
-    AbstractViewPlaneTest,
-    PointInterlacedViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(PointInterlaced, AbstractViewPlaneTest, PointInterlacedViewPlane);
 }

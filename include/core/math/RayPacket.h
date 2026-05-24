@@ -47,17 +47,13 @@ public:
   }
 
   [[nodiscard]] Rayf ray(std::size_t lane) const {
-    return Rayf(
-      Vector3f(originX[lane], originY[lane], originZ[lane]),
-      Vector3f(directionX[lane], directionY[lane], directionZ[lane])
-    );
+    return Rayf(Vector3f(originX[lane], originY[lane], originZ[lane]),
+                Vector3f(directionX[lane], directionY[lane], directionZ[lane]));
   }
 
   [[nodiscard]] Rayd rayd(std::size_t lane) const {
-    return Rayd(
-      Vector3d(originX[lane], originY[lane], originZ[lane]),
-      Vector3d(directionX[lane], directionY[lane], directionZ[lane])
-    );
+    return Rayd(Vector3d(originX[lane], originY[lane], originZ[lane]),
+                Vector3d(directionX[lane], directionY[lane], directionZ[lane]));
   }
 
   alignas(Alignment) LaneArray originX{};
@@ -97,4 +93,3 @@ using Ray4 = RayPacket<4, 16>;
 using Ray8 = RayPacket<8, 32>;
 using RayPacketIntersection4 = RayPacketIntersection<4, 16>;
 using RayPacketIntersection8 = RayPacketIntersection<8, 32>;
-

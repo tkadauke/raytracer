@@ -6,9 +6,8 @@ struct IntParameterWidget::Private {
 };
 
 IntParameterWidget::IntParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : AbstractParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   connect(p->ui.intEdit, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
 }
@@ -30,4 +29,3 @@ void IntParameterWidget::setValue(const QVariant& value) {
     return;
   p->ui.intEdit->setValue(value.toInt());
 }
-

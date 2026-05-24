@@ -5,8 +5,7 @@
 
 namespace engine::graph {
   namespace {
-    Colord colorDefault(const RenderResourceDescriptor& descriptor,
-                        RenderPassKind passKind,
+    Colord colorDefault(const RenderResourceDescriptor& descriptor, RenderPassKind passKind,
                         const Colord& beautyDefaultColor) {
       if (descriptor.type == RenderResourceType::ShadowMask) {
         return Colord::white();
@@ -98,8 +97,8 @@ namespace engine::graph {
   }
 
   std::out_of_range RenderResource::missingBuffer(const char* typeName) const {
-    return std::out_of_range("render resource '" + descriptor().id +
-                             "' has no CPU " + typeName + " buffer");
+    return std::out_of_range("render resource '" + descriptor().id + "' has no CPU " + typeName +
+                             " buffer");
   }
 
   ColorRenderResource::ColorRenderResource(RenderResourceDescriptor descriptor)

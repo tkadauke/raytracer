@@ -39,13 +39,13 @@ class Color : public InequalityOperator<Color<T>> {
 
 public:
   typedef T Component;
-  
+
   static const Color<T>& black();
   static const Color<T>& white();
   static const Color<T>& red();
   static const Color<T>& green();
   static const Color<T>& blue();
-  
+
   /**
     * Default constructor. Initializes all components with 0, which means the
     * color will be black.
@@ -64,7 +64,7 @@ public:
       m_components[i] = cells[i];
     }
   }
-  
+
   /**
     * Constructs a color from the component values @p r, @p g, and @p b.
     */
@@ -81,7 +81,7 @@ public:
   inline static Color<T> fromRGB(unsigned int r, unsigned int g, unsigned int b) {
     return Color(T(r) / T(255), T(g) / T(255), T(b) / T(255));
   }
-  
+
   /**
     * Creates a color from CMYK values (Cyan, Magenta, Yellow, and blacK). The
     * conversion works as follows:
@@ -96,13 +96,9 @@ public:
     * @see http://www.rapidtables.com/convert/color/cmyk-to-rgb.htm
     */
   inline static Color<T> fromCMYK(const T& c, const T& m, const T& y, const T& k) {
-    return Color(
-      (T(1) - c) * (T(1) - k),
-      (T(1) - m) * (T(1) - k),
-      (T(1) - y) * (T(1) - k)
-    );
+    return Color((T(1) - c) * (T(1) - k), (T(1) - m) * (T(1) - k), (T(1) - y) * (T(1) - k));
   }
-  
+
   /**
     * Creates a color from HSV values (Hue, Saturation, and Value). The formula
     * to convert from HSV to RGB is fairly complex.
@@ -113,19 +109,19 @@ public:
     auto c = v * s;
     auto x = c * (T(1) - std::abs((int(h) / 60) % 2 - 1));
     auto m = v - c;
-    
+
     if (h < 60) {
-      return Color(c + m, x + m,     m);
+      return Color(c + m, x + m, m);
     } else if (60 <= h && h < 120) {
-      return Color(x + m, c + m,     m);
+      return Color(x + m, c + m, m);
     } else if (120 <= h && h < 180) {
-      return Color(    m, c + m, x + m);
+      return Color(m, c + m, x + m);
     } else if (180 <= h && h < 240) {
-      return Color(    m, x + m, c + m);
+      return Color(m, x + m, c + m);
     } else if (240 <= h && h < 300) {
-      return Color(x + m,     m, c + m);
+      return Color(x + m, m, c + m);
     } else {
-      return Color(c + m,     m, x + m);
+      return Color(c + m, m, x + m);
     }
   }
 
@@ -135,14 +131,14 @@ public:
   inline const T& component(int index) const {
     return m_components[index];
   }
-  
+
   /**
     * Sets the component at @p index to @p value. The index must be 0, 1, or 2.
     */
   inline void setComponent(int index, const T& value) {
     m_components[index] = value;
   }
-  
+
   /**
     * Non-const index operator, allowing to mutate the color.
     * 
@@ -152,7 +148,7 @@ public:
   inline T& operator[](int index) {
     return m_components[index];
   }
-  
+
   /**
     * Const index operator.
     * 
@@ -162,7 +158,7 @@ public:
   inline const T& operator[](int index) const {
     return m_components[index];
   }
-  
+
   /**
     * @returns the internally stored red component as a const reference. The
     *   value is in the range \f$[0, 1]\f$.
@@ -170,7 +166,7 @@ public:
   inline const T& r() const {
     return component(0);
   }
-  
+
   /**
     * @returns the internally stored green component as a const reference. The
     *   value is in the range \f$[0, 1]\f$.
@@ -178,7 +174,7 @@ public:
   inline const T& g() const {
     return component(1);
   }
-  
+
   /**
     * @returns the internally stored blue component as a const reference. The
     *   value is in the range \f$[0, 1]\f$.
@@ -186,7 +182,7 @@ public:
   inline const T& b() const {
     return component(2);
   }
-  
+
   /**
     * @returns this color's black key color from the CMYK color space. This is
     *   calculated from the r(), g(), and b() colors: \f$k = 1-max(r, g, b)\f$.
@@ -194,7 +190,7 @@ public:
   inline T k() const {
     return T(1) - max();
   }
-  
+
   /**
     * @returns this color's cyan color from the CMYK color space. This is
     *   calculated from the r() component and the black key color:
@@ -207,7 +203,7 @@ public:
       return 0;
     return (w - r()) / w;
   }
-  
+
   /**
     * @returns this color's magenta color from the CMYK color space. This is
     *   calculated from the g() component and the black key color:
@@ -220,7 +216,7 @@ public:
       return 0;
     return (w - g()) / w;
   }
-  
+
   /**
     * @returns this color's yellow color from the CMYK color space. This is
     *   calculated from the b() component and the black key color:
@@ -233,7 +229,7 @@ public:
       return 0;
     return (w - b()) / w;
   }
-  
+
   /**
     * @returns this color's hue from the HSV color space. The calculation is
     *   fairly complex.
@@ -243,7 +239,7 @@ public:
   inline unsigned int h() const {
     auto cmax = max();
     auto delta = cmax - min();
-    
+
     int result;
     if (delta == 0) {
       return 0;
@@ -258,7 +254,7 @@ public:
     // and add 720, even though it's unlikely that more than 360 is needed.
     return unsigned(result + 720) % 360;
   }
-  
+
   /**
     * @returns this color's saturation from the HSV color space. The calculation
     *   is fairly complex.
@@ -268,14 +264,14 @@ public:
   inline T s() const {
     auto cmax = max();
     auto delta = cmax - min();
-    
+
     if (cmax == 0) {
       return 0;
     } else {
       return delta / cmax;
     }
   }
-  
+
   /**
     * @returns this color's value from the HSV color space. This is the simplest
     *   part of the conversion between RGB and HSV: it's just the largest color
@@ -286,21 +282,21 @@ public:
   inline T v() const {
     return max();
   }
-  
+
   /**
     * @returns the color component that is the largest.
     */
   inline T max() const {
     return std::max(r(), std::max(g(), b()));
   }
-  
+
   /**
     * @returns the color component that is the smallest.
     */
   inline T min() const {
     return std::min(r(), std::min(g(), b()));
   }
-    
+
   /**
     * @returns a color that is the sum between this color and @p other. The sum
     *   is calculated component-wise.
@@ -360,7 +356,7 @@ public:
     }
     return result;
   }
-  
+
   /**
     * @returns a color that is this color multiplied by @p intensity, which is
     *   another color. This is done by multiplying the colors component-wise.
@@ -372,7 +368,7 @@ public:
     }
     return result;
   }
-  
+
   /**
     * @returns true if this color is equal to @p other. This is determined by
     *   comparing each component.
@@ -392,7 +388,7 @@ public:
   inline unsigned char rInt() const {
     return std::min(unsigned(r() * 255), 255u);
   }
-  
+
   /**
     * @returns the green value of this color as an integer, i.e. the internally
     *   stored color multiplied by 255. This value is clipped to \f$[0,255]\f$.
@@ -400,7 +396,7 @@ public:
   inline unsigned char gInt() const {
     return std::min(unsigned(g() * 255), 255u);
   }
-  
+
   /**
     * @returns the blue value of this color as an integer, i.e. the internally
     *   stored color multiplied by 255. This value is clipped to \f$[0,255]\f$.
@@ -408,17 +404,15 @@ public:
   inline unsigned char bInt() const {
     return std::min(unsigned(b() * 255), 255u);
   }
-  
+
   /**
     * @returns the color as an unsigned integer combied RGB value. The result is
     *   a 4 byte long integer, which is has this form: \f$0 r g b\f$.
     */
   inline unsigned int rgb() const {
-    return rInt() << 16 |
-           gInt() << 8 |
-           bInt();
+    return rInt() << 16 | gInt() << 8 | bInt();
   }
-  
+
 private:
   T m_components[3];
 };

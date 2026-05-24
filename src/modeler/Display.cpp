@@ -25,8 +25,7 @@
 using namespace std;
 
 RenderDisplay::RenderDisplay(QWidget* parent)
-  : QtDisplay(parent, std::make_shared<engine::graph::GraphRenderEngine>(nullptr))
-{
+    : QtDisplay(parent, std::make_shared<engine::graph::GraphRenderEngine>(nullptr)) {
   m_graphEngine = std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(m_engine);
   m_raytracerEngine = std::make_shared<engine::raytracer::Raytracer>(nullptr);
   applyPreviewPolicy(EngineKind::Raytracer);

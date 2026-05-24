@@ -42,10 +42,8 @@ namespace {
   }
 
   Rayd toRayd(const Rayf& ray) {
-    return Rayd(
-      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
-    );
+    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
   }
 
   int countBits(std::uint16_t mask) {

@@ -9,7 +9,9 @@ Q_DECLARE_METATYPE(Angled);
 
 namespace AngleParameterWidgetTest {
   struct MetaTypeRegistrar {
-    MetaTypeRegistrar() { qRegisterMetaType<Angled>(); }
+    MetaTypeRegistrar() {
+      qRegisterMetaType<Angled>();
+    }
   };
   static const MetaTypeRegistrar s_registrar;
 

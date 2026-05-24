@@ -7,11 +7,10 @@
 
 using namespace render;
 
-static int mod3[] = { 0, 1, 2, 0, 1, 2 };
+static int mod3[] = {0, 1, 2, 0, 1, 2};
 
 SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2)
-  : MeshTriangle(mesh, index0, index1, index2)
-{
+    : MeshTriangle(mesh, index0, index1, index2) {
   const Vector3d& A = m_mesh->vertices()[m_index0].point;
   const Vector3d& B = m_mesh->vertices()[m_index1].point;
   const Vector3d& C = m_mesh->vertices()[m_index2].point;
@@ -47,15 +46,18 @@ SmoothMeshTriangle::SmoothMeshTriangle(const Mesh* mesh, int index0, int index1,
   cnv = -c[u] * reci;
 }
 
-void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material) {
+void SmoothMeshTriangle::build(const Mesh* mesh, Composite* composite,
+                               std::shared_ptr<render::Material> material) {
   for (const auto& triangle : *mesh) {
-    auto primitive = std::make_shared<SmoothMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
+    auto primitive =
+      std::make_shared<SmoothMeshTriangle>(mesh, triangle[0], triangle[1], triangle[2]);
     primitive->setMaterial(material);
     composite->add(primitive);
   }
 }
 
-const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* SmoothMeshTriangle::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                               render::State& state) const {
   int ku = mod3[k + 1];
   int kv = mod3[k + 2];
 
@@ -139,10 +141,8 @@ std::shared_ptr<Mesh> SmoothMeshTriangle::tessellate(int) const {
 }
 
 Vector3d SmoothMeshTriangle::interpolateNormal(float beta, float gamma) const {
-  Vector3d normal(
-    m_mesh->vertices()[m_index0].normal * (1 - beta - gamma) +
-    m_mesh->vertices()[m_index1].normal * beta +
-    m_mesh->vertices()[m_index2].normal * gamma
-  );
+  Vector3d normal(m_mesh->vertices()[m_index0].normal * (1 - beta - gamma) +
+                  m_mesh->vertices()[m_index1].normal * beta +
+                  m_mesh->vertices()[m_index2].normal * gamma);
   return normal.normalized();
 }

@@ -8,19 +8,19 @@
 namespace FishEyeCameraParameterWidgetTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-  
+  using namespace render;
+
   class FishEyeCameraParameterWidgetTest : public GuiTest {};
-  
+
   TEST_F(FishEyeCameraParameterWidgetTest, ShouldInitialize) {
     FishEyeCameraParameterWidget widget;
   }
-  
+
   TEST_F(FishEyeCameraParameterWidgetTest, ShouldReturnFieldOfView) {
     FishEyeCameraParameterWidget widget;
     ASSERT_EQ(45, widget.fieldOfView());
   }
-  
+
   TEST_F(FishEyeCameraParameterWidgetTest, ShouldEmitChange) {
     FishEyeCameraParameterWidget widget;
     Signal sig;
@@ -30,7 +30,7 @@ using namespace render;
     sig.call();
     ASSERT_TRUE(slot.called());
   }
-  
+
   TEST_F(FishEyeCameraParameterWidgetTest, ShouldApplyToFisheyeCamera) {
     FishEyeCameraParameterWidget widget;
     auto camera = std::make_shared<FishEyeCamera>();

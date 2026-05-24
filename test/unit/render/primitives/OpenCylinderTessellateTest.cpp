@@ -6,8 +6,8 @@
 
 namespace OpenCylinderTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   static constexpr double kEps = 1e-9;
 
@@ -65,7 +65,7 @@ using namespace render;
   }
 
   TEST(OpenCylinderTessellate, ShouldHaveBottomVerticesAtMinusHalfHeight) {
-    OpenCylinder cyl(1.0, 4.0);  // halfHeight = 2.0
+    OpenCylinder cyl(1.0, 4.0); // halfHeight = 2.0
     auto mesh = cyl.tessellate(0);
     const auto& verts = mesh->vertices();
     // Interleaved layout: even indices = bottom (v=0), odd = top (v=1)
@@ -76,7 +76,7 @@ using namespace render;
   }
 
   TEST(OpenCylinderTessellate, ShouldHaveTopVerticesAtPlusHalfHeight) {
-    OpenCylinder cyl(1.0, 4.0);  // halfHeight = 2.0
+    OpenCylinder cyl(1.0, 4.0); // halfHeight = 2.0
     auto mesh = cyl.tessellate(0);
     const auto& verts = mesh->vertices();
     for (std::size_t i = 1; i < verts.size(); i += 2) {

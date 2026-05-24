@@ -5,7 +5,8 @@
 
 using namespace render;
 
-const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                            render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     state.miss(this, "ConvexOperation, bounding box miss");
     return nullptr;
@@ -21,10 +22,8 @@ const Primitive* ConvexOperation::intersect(const Rayd& ray, HitPointInterval& h
     HitPointInterval opposite;
     // If we double the hit distance and take the longest possible length in
     // the bounding box, we should be beyond the other side of the object
-    Rayd oppositeRay(
-      ray.at(hitPoints.min().distance() * 2.0 + boundingBox().size().length()),
-      -ray.direction()
-    );
+    Rayd oppositeRay(ray.at(hitPoints.min().distance() * 2.0 + boundingBox().size().length()),
+                     -ray.direction());
 
     // fire!
     convexIntersect(oppositeRay, opposite);

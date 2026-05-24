@@ -40,7 +40,8 @@ namespace render {
     using Primitive::forEachLeaf;
     using Primitive::forEachLeafInBounds;
 
-    inline Composite() {}
+    inline Composite() {
+    }
 
     ~Composite();
 

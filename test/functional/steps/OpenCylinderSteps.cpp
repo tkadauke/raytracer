@@ -28,9 +28,9 @@ GIVEN(EngineFeatureTest, "an open cylinder rotated ([\\d.]+) degrees around the 
   auto cylinder = std::make_shared<OpenCylinder>(1, 2);
   cylinder->setMaterial(test->redDiffuse());
   auto instance = std::make_shared<Instance>(cylinder);
-  Matrix3d m = (axis == "x") ? Matrix3d::rotateX(Angled::fromDegrees(degrees))
-             : (axis == "y") ? Matrix3d::rotateY(Angled::fromDegrees(degrees))
-                             : Matrix3d::rotateZ(Angled::fromDegrees(degrees));
+  Matrix3d m = (axis == "x")   ? Matrix3d::rotateX(Angled::fromDegrees(degrees))
+               : (axis == "y") ? Matrix3d::rotateY(Angled::fromDegrees(degrees))
+                               : Matrix3d::rotateZ(Angled::fromDegrees(degrees));
   instance->setMatrix(m);
   test->add(instance);
 }

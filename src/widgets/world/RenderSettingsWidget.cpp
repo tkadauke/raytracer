@@ -10,9 +10,8 @@ struct RenderSettingsWidget::Private {
 };
 
 RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
-  : QWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
 
   auto ids = render::SamplerFactory::self().identifiers();
@@ -34,7 +33,8 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
 
   connect(p->ui.renderButton, SIGNAL(clicked()), this, SLOT(render()));
   connect(p->ui.stopButton, SIGNAL(clicked()), this, SLOT(stop()));
-  connect(p->ui.engineType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(engineChanged()));
+  connect(p->ui.engineType, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(engineChanged()));
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
 
   // Initial visibility: defaults to Raytracer, so hide the wireframe-
@@ -216,12 +216,10 @@ void RenderSettingsWidget::setBusy(bool busy) {
 
 void RenderSettingsWidget::setElapsedTime(int milliseconds) {
   int seconds = milliseconds / 1000;
-  p->ui.timeLabel->setText(
-    QString("Elapsed time: %1:%2:%3")
-      .arg(seconds / 3600)
-      .arg((seconds % 3600) / 60, 2, 10, QLatin1Char('0'))
-      .arg(seconds % 60, 2, 10, QLatin1Char('0'))
-  );
+  p->ui.timeLabel->setText(QString("Elapsed time: %1:%2:%3")
+                             .arg(seconds / 3600)
+                             .arg((seconds % 3600) / 60, 2, 10, QLatin1Char('0'))
+                             .arg(seconds % 60, 2, 10, QLatin1Char('0')));
 }
 
 void RenderSettingsWidget::render() {

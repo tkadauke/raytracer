@@ -30,15 +30,15 @@ namespace render {
   class Triangle : public Primitive {
   public:
     inline explicit Triangle(const Vector3d& a, const Vector3d& b, const Vector3d& c)
-      : Primitive(),
-        m_point0(a),
-        m_point1(b),
-        m_point2(c)
-    {
+        : Primitive(),
+          m_point0(a),
+          m_point1(b),
+          m_point2(c) {
       m_normal = computeNormal();
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
 
     /**

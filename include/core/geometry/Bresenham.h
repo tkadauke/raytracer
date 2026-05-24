@@ -5,7 +5,7 @@
 
 namespace core {
 
-/**
+  /**
   * Bresenham's all-octants integer line rasterizer.
   *
   * Calls `plot(x, y)` for each pixel along the line from `(x0, y0)`
@@ -30,42 +30,42 @@ namespace core {
   *
   * @tparam PlotFn callable with signature `void(int x, int y)`.
   */
-template <typename PlotFn>
-inline void drawLine(int x0, int y0, int x1, int y1, PlotFn&& plot) {
-  int dx = std::abs(x1 - x0);
-  int dy = std::abs(y1 - y0);
-  int sx = (x0 < x1) ? 1 : -1;
-  int sy = (y0 < y1) ? 1 : -1;
+  template<typename PlotFn>
+  inline void drawLine(int x0, int y0, int x1, int y1, PlotFn&& plot) {
+    int dx = std::abs(x1 - x0);
+    int dy = std::abs(y1 - y0);
+    int sx = (x0 < x1) ? 1 : -1;
+    int sy = (y0 < y1) ? 1 : -1;
 
-  int x = x0;
-  int y = y0;
+    int x = x0;
+    int y = y0;
 
-  if (dx >= dy) {
-    // X is the major axis. Step one pixel in x per iteration; step
-    // in y only when the accumulated error crosses zero.
-    int err = 2 * dy - dx;
-    for (int i = 0; i <= dx; ++i) {
-      plot(x, y);
-      if (err > 0) {
-        y += sy;
-        err -= 2 * dx;
-      }
-      err += 2 * dy;
-      x += sx;
-    }
-  } else {
-    // Y is the major axis — symmetric case.
-    int err = 2 * dx - dy;
-    for (int i = 0; i <= dy; ++i) {
-      plot(x, y);
-      if (err > 0) {
+    if (dx >= dy) {
+      // X is the major axis. Step one pixel in x per iteration; step
+      // in y only when the accumulated error crosses zero.
+      int err = 2 * dy - dx;
+      for (int i = 0; i <= dx; ++i) {
+        plot(x, y);
+        if (err > 0) {
+          y += sy;
+          err -= 2 * dx;
+        }
+        err += 2 * dy;
         x += sx;
-        err -= 2 * dy;
       }
-      err += 2 * dx;
-      y += sy;
+    } else {
+      // Y is the major axis — symmetric case.
+      int err = 2 * dx - dy;
+      for (int i = 0; i <= dy; ++i) {
+        plot(x, y);
+        if (err > 0) {
+          x += sx;
+          err -= 2 * dy;
+        }
+        err += 2 * dx;
+        y += sy;
+      }
     }
   }
-}
 
-}  // namespace core
+} // namespace core

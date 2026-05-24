@@ -103,7 +103,8 @@ namespace RenderSettingsWidgetTest {
     ASSERT_NE(nullptr, engineType);
     ASSERT_NE(nullptr, displayMode);
 
-    for (const QString& engine : {QString("Raytracer"), QString("Wireframe"), QString("Rasterizer")}) {
+    for (const QString& engine :
+         {QString("Raytracer"), QString("Wireframe"), QString("Rasterizer")}) {
       engineType->setCurrentText(engine);
       EXPECT_FALSE(displayMode->isHidden()) << engine.toStdString();
     }

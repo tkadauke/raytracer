@@ -10,12 +10,12 @@
   */
 class MinkowskiSum : public CSGSurface {
   Q_OBJECT
-  
+
 public:
   /**
     * Default constructor. Creates an empty Minkowski sum.
     */
   explicit MinkowskiSum(Element* parent = nullptr);
-  
+
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 };

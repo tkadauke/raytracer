@@ -12,9 +12,8 @@ struct ViewPlaneTypeWidget::Private {
 };
 
 ViewPlaneTypeWidget::ViewPlaneTypeWidget(QWidget* parent)
-  : QWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   list<string> types = render::ViewPlaneFactory::self().identifiers();
   for (const auto& type : types) {
@@ -33,4 +32,3 @@ string ViewPlaneTypeWidget::type() const {
 void ViewPlaneTypeWidget::typeChanged() {
   emit changed();
 }
-

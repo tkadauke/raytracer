@@ -10,12 +10,11 @@
 #include "render/materials/MatteMaterial.h"
 
 Ring::Ring(Element* parent)
-  : Surface(parent),
-    m_innerRadius(0.5),
-    m_outerRadius(1),
-    m_height(2),
-    m_bevelRadius(0)
-{
+    : Surface(parent),
+      m_innerRadius(0.5),
+      m_outerRadius(1),
+      m_height(2),
+      m_bevelRadius(0) {
 }
 
 std::shared_ptr<render::Primitive> Ring::toRaytracerPrimitive() const {
@@ -27,10 +26,9 @@ std::shared_ptr<render::Primitive> Ring::toRaytracerPrimitive() const {
     auto result = make_named<render::Union>();
     result->add(ring(m_outerRadius, m_innerRadius, m_height - 2.0 * br));
 
-    for (int sign : { -1, 1 }) {
-      auto instance = make_named<render::Instance>(
-        make_named<render::Torus>(m_outerRadius - br, br)
-      );
+    for (int sign : {-1, 1}) {
+      auto instance =
+        make_named<render::Instance>(make_named<render::Torus>(m_outerRadius - br, br));
       instance->setMatrix(Matrix4d::translate(0, sign * ((m_height / 2.0) - br), 0));
       result->add(instance);
     }
@@ -40,11 +38,9 @@ std::shared_ptr<render::Primitive> Ring::toRaytracerPrimitive() const {
     result->add(ring(m_outerRadius, m_innerRadius, m_height - 2.0 * br));
     result->add(ring(m_outerRadius - br, m_innerRadius + br, m_height));
 
-    for (int sign : { -1, 1 }) {
-      for (double radius : { m_outerRadius - br, m_innerRadius + br }) {
-        auto instance = make_named<render::Instance>(
-          make_named<render::Torus>(radius, br)
-        );
+    for (int sign : {-1, 1}) {
+      for (double radius : {m_outerRadius - br, m_innerRadius + br}) {
+        auto instance = make_named<render::Instance>(make_named<render::Torus>(radius, br));
         instance->setMatrix(Matrix4d::translate(0, sign * ((m_height / 2.0) - br), 0));
         result->add(instance);
       }
@@ -58,15 +54,15 @@ std::shared_ptr<render::Primitive> Ring::closedCylinder(double radius, double he
   auto result = make_named<render::ClosedSolidUnion>();
 
   result->add(make_named<render::OpenCylinder>(radius, height));
-  for (int sign : { -1, 1 }) {
-    result->add(make_named<render::Disk>(
-      Vector3d(0, sign * height/2.0, 0), Vector3d::up() * sign, radius
-    ));
+  for (int sign : {-1, 1}) {
+    result->add(
+      make_named<render::Disk>(Vector3d(0, sign * height / 2.0, 0), Vector3d::up() * sign, radius));
   }
   return result;
 }
 
-std::shared_ptr<render::Primitive> Ring::ring(double outerRadius, double innerRadius, double height) const {
+std::shared_ptr<render::Primitive> Ring::ring(double outerRadius, double innerRadius,
+                                              double height) const {
   if (isAlmostZero(innerRadius)) {
     return closedCylinder(outerRadius, height);
   } else {
@@ -80,4 +76,3 @@ std::shared_ptr<render::Primitive> Ring::ring(double outerRadius, double innerRa
 }
 
 static bool dummy = ElementFactory::self().registerClass<Ring>("Ring");
-

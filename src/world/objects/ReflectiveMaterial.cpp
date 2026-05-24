@@ -5,16 +5,14 @@
 #include "render/materials/ReflectiveMaterial.h"
 
 ReflectiveMaterial::ReflectiveMaterial(Element* parent)
-  : PhongMaterial(parent),
-    m_reflectionColor(Colord::white()),
-    m_reflectionCoefficient(0.5)
-{
+    : PhongMaterial(parent),
+      m_reflectionColor(Colord::white()),
+      m_reflectionCoefficient(0.5) {
 }
 
 std::shared_ptr<render::Material> ReflectiveMaterial::toRaytracerMaterial() const {
   auto material = make_named<render::ReflectiveMaterial>(
-    textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor()
-  );
+    textureOrDefault(diffuseTexture())->toRaytracerTexture(), specularColor());
   material->setAmbientCoefficient(ambientCoefficient());
   material->setDiffuseCoefficient(diffuseCoefficient());
   material->setExponent(exponent());

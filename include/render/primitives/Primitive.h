@@ -54,15 +54,14 @@ namespace render {
     */
   class Primitive : public render::Object {
   public:
-    using LeafVisitor =
-      std::function<void(const Primitive*, std::shared_ptr<render::Material>)>;
+    using LeafVisitor = std::function<void(const Primitive*, std::shared_ptr<render::Material>)>;
     using BoundsFilter = std::function<bool(const BoundingBoxd&)>;
 
     inline Primitive()
-      : m_material(nullptr)
-    {
+        : m_material(nullptr) {
     }
-    virtual ~Primitive() {}
+    virtual ~Primitive() {
+    }
 
     /**
       * Test `ray` against the primitive and append every entry/exit
@@ -76,7 +75,8 @@ namespace render {
       * be non-empty in that case if a wrapping composite has
       * partial information from siblings.
       */
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const = 0;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const = 0;
 
     /**
       * Packet intersection entry points for SIMD/block traversal.

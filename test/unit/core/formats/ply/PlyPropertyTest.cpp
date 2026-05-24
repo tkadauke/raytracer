@@ -12,7 +12,7 @@ namespace PlyPropertyTest {
     ASSERT_FALSE(property.isList());
     ASSERT_EQ(PlyProperty::INT32, property.elementType());
   }
-  
+
   TEST(PlyProperty, ShouldConstructWithListType) {
     PlyProperty property(PlyProperty::UINT8, PlyProperty::INT32, "vertex_index");
     ASSERT_EQ("vertex_index", property.name());
@@ -20,7 +20,7 @@ namespace PlyPropertyTest {
     ASSERT_EQ(PlyProperty::UINT8, property.countType());
     ASSERT_EQ(PlyProperty::INT32, property.elementType());
   }
-  
+
   TEST(PlyProperty, ShouldParseSimpleType) {
     istringstream stream("int32 x");
     PlyProperty property(stream);
@@ -28,7 +28,7 @@ namespace PlyPropertyTest {
     ASSERT_FALSE(property.isList());
     ASSERT_EQ(PlyProperty::INT32, property.elementType());
   }
-  
+
   TEST(PlyProperty, ShouldParseListType) {
     istringstream stream("list uint8 int32 vertex_index");
     PlyProperty property(stream);
@@ -37,7 +37,7 @@ namespace PlyPropertyTest {
     ASSERT_EQ(PlyProperty::UINT8, property.countType());
     ASSERT_EQ(PlyProperty::INT32, property.elementType());
   }
-  
+
   TEST(PlyProperty, ShouldParseInt8Type) {
     istringstream stream("int8 x");
     PlyProperty property(stream);
@@ -55,7 +55,7 @@ namespace PlyPropertyTest {
     PlyProperty property(stream);
     ASSERT_EQ(PlyProperty::INT32, property.elementType());
   }
-  
+
   TEST(PlyProperty, ShouldParseUint8Type) {
     istringstream stream("uint8 x");
     PlyProperty property(stream);

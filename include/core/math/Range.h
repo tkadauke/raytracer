@@ -16,9 +16,8 @@ public:
     * Creates a new range between begin and end.
     */
   inline constexpr explicit Range(const T& begin, const T& end)
-    : m_begin(begin),
-      m_end(end)
-  {
+      : m_begin(begin),
+        m_end(end) {
   }
 
   /**
@@ -54,7 +53,7 @@ public:
       return value;
     }
   }
-  
+
   /**
     * @returns a random number from within the Range.
     */
@@ -74,9 +73,7 @@ private:
   */
 template<class T>
 std::ostream& operator<<(std::ostream& os, const Range<T>& range) {
-  os << '['
-     << range.begin() << ", " << range.end()
-     << ']';
+  os << '[' << range.begin() << ", " << range.end() << ']';
 
   return os;
 }

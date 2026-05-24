@@ -62,8 +62,7 @@ namespace TonemapMonotonicityTest {
   GIVEN(EngineFeatureTest,
         "a bright white point light at \\(([\\-\\d.]+), ([\\-\\d.]+), ([\\-\\d.]+)\\)") {
     test->scene()->addLight(std::make_shared<PointLight>(
-      Vector3d(std::stod(match[1]), std::stod(match[2]), std::stod(match[3])),
-      Colord(5, 5, 5)));
+      Vector3d(std::stod(match[1]), std::stod(match[2]), std::stod(match[3])), Colord(5, 5, 5)));
   }
 
   WHEN(EngineFeatureTest, "i select the (Linear|ACES|Reinhard) tonemap") {
@@ -77,9 +76,9 @@ namespace TonemapMonotonicityTest {
     ASSERT_NE(nullptr, tm);
     const std::string name = match[1];
     tm->recordedMax[name] = tm->maxChannel();
-    EXPECT_EQ(255u, tm->recordedMax[name])
-      << name << " pass-through must expose an over-1.0 HDR pixel "
-                 "by clamping to the 8-bit display maximum.";
+    EXPECT_EQ(255u, tm->recordedMax[name]) << name
+                                           << " pass-through must expose an over-1.0 HDR pixel "
+                                              "by clamping to the 8-bit display maximum.";
   }
 
   THEN(EngineFeatureTest,
@@ -103,8 +102,7 @@ namespace TonemapMonotonicityTest {
     const std::string name = match[1];
     tm->recordedMax[name] = tm->maxChannel();
     EXPECT_GT(tm->recordedMax[name], 0u) << "scene must render at least one non-black pixel.";
-    EXPECT_LT(tm->recordedMax[name], 255u)
-      << name << " must compress this HDR scene below 255.";
+    EXPECT_LT(tm->recordedMax[name], 255u) << name << " must compress this HDR scene below 255.";
   }
 
   // Three stacked white point lights make the unmapped surface

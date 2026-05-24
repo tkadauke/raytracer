@@ -25,10 +25,8 @@ namespace engine::graph {
   public:
     using ActiveEngineSetter = std::function<void(std::shared_ptr<render::RenderEngine>)>;
 
-    RenderExecutionContext(const RenderPassNode& pass,
-                           RenderResourceStorage& storage,
-                           const GraphRenderEngine& graph,
-                           bool cancelled,
+    RenderExecutionContext(const RenderPassNode& pass, RenderResourceStorage& storage,
+                           const GraphRenderEngine& graph, bool cancelled,
                            ActiveEngineSetter activeEngineSetter);
 
     /**

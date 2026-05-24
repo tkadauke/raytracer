@@ -24,11 +24,19 @@ class Rectangle : public Surface {
 public:
   explicit Rectangle(Element* parent = nullptr);
 
-  inline const Vector3d& leg1() const { return m_leg1; }
-  inline const Vector3d& leg2() const { return m_leg2; }
+  inline const Vector3d& leg1() const {
+    return m_leg1;
+  }
+  inline const Vector3d& leg2() const {
+    return m_leg2;
+  }
 
-  inline void setLeg1(const Vector3d& v) { m_leg1 = v; }
-  inline void setLeg2(const Vector3d& v) { m_leg2 = v; }
+  inline void setLeg1(const Vector3d& v) {
+    m_leg1 = v;
+  }
+  inline void setLeg2(const Vector3d& v) {
+    m_leg2 = v;
+  }
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 

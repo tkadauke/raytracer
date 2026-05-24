@@ -2,9 +2,9 @@
 
 namespace ConvexHullTest {
   using namespace ::testing;
-  
+
   class ConvexHullTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(ConvexHullTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a centered convex hull with two boxes side by side");
     when("i look at the origin");
@@ -13,7 +13,7 @@ namespace ConvexHullTest {
     // than shape recognition.
     then("i should see something");
   }
-  
+
   TEST_F(ConvexHullTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
     given("a displaced convex hull with two boxes side by side");
     when("i look at the origin");

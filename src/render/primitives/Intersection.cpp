@@ -7,7 +7,8 @@
 
 using namespace render;
 
-const Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                         render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -24,7 +25,7 @@ const Primitive* Intersection::intersect(const Rayd& ray, HitPointInterval& hitP
       numHits++;
     }
   }
-  
+
   if (numHits != primitives().size() || hitPoints.empty()) {
     return nullptr;
   } else {
@@ -46,7 +47,7 @@ bool Intersection::intersects(const Rayd& ray, render::State& state) const {
     if (!i->intersects(ray, state))
       return false;
   }
-  
+
   return true;
 }
 

@@ -66,7 +66,8 @@ namespace {
   // Count set bits in a 16-bit mask.
   int countBits(std::uint16_t mask) {
     int n = 0;
-    for (; mask; mask &= static_cast<std::uint16_t>(mask - 1u)) ++n;
+    for (; mask; mask &= static_cast<std::uint16_t>(mask - 1u))
+      ++n;
     return n;
   }
 
@@ -80,11 +81,8 @@ namespace {
 
   struct CoherentGroup {
     std::array<Rayd, 4> rays{
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward())
-    };
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward())};
   };
 
   std::vector<CoherentGroup> generateCoherentGroups(int numGroups) {
@@ -130,11 +128,8 @@ namespace {
 
   struct IncoherentGroup {
     std::array<Rayd, 4> rays{
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward())
-    };
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward())};
   };
 
   std::vector<IncoherentGroup> generateIncoherentGroups(int numGroups) {
@@ -150,7 +145,8 @@ namespace {
       for (int i = 0; i < 4; ++i) {
         Vector3d o(origDist(rng), origDist(rng), origDist(rng));
         Vector3d d(dirDist(rng), dirDist(rng), dirDist(rng));
-        if (d.length() < 1e-6) d = Vector3d(1, 0, 0);
+        if (d.length() < 1e-6)
+          d = Vector3d(1, 0, 0);
         group.rays[i] = Rayd(o, d.normalized());
       }
       groups.push_back(group);
@@ -173,7 +169,8 @@ namespace {
         for (const auto& ray : group.rays) {
           State traceState;
           HitPointInterval hp;
-          if (bvh->intersect(ray, hp, traceState)) ++hits;
+          if (bvh->intersect(ray, hp, traceState))
+            ++hits;
           benchmark::DoNotOptimize(hp);
         }
       }
@@ -210,7 +207,8 @@ namespace {
         for (const auto& ray : group.rays) {
           State traceState;
           HitPointInterval hp;
-          if (bvh->intersect(ray, hp, traceState)) ++hits;
+          if (bvh->intersect(ray, hp, traceState))
+            ++hits;
           benchmark::DoNotOptimize(hp);
         }
       }
@@ -251,7 +249,8 @@ namespace {
         for (const auto& ray : group.rays) {
           State traceState;
           HitPointInterval hp;
-          if (bvh->intersect(ray, hp, traceState)) ++hits;
+          if (bvh->intersect(ray, hp, traceState))
+            ++hits;
           benchmark::DoNotOptimize(hp);
         }
       }
@@ -282,15 +281,10 @@ namespace {
 
   struct CoherentGroup8 {
     std::array<Rayd, 8> rays{
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward()),
-      Rayd(Vector3d::null, Vector3d::forward())
-    };
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward()),
+      Rayd(Vector3d::null, Vector3d::forward()), Rayd(Vector3d::null, Vector3d::forward())};
   };
 
   std::vector<CoherentGroup8> generateCoherentGroups8(int numGroups) {
@@ -340,7 +334,8 @@ namespace {
         for (const auto& ray : group.rays) {
           State traceState;
           HitPointInterval hp;
-          if (bvh->intersect(ray, hp, traceState)) ++hits;
+          if (bvh->intersect(ray, hp, traceState))
+            ++hits;
           benchmark::DoNotOptimize(hp);
         }
       }
@@ -365,9 +360,9 @@ namespace {
     }
     benchState.SetItemsProcessed(benchState.iterations() * groups.size() * 8);
   }
-#endif  // __AVX__
+#endif // __AVX__
 
-}  // namespace
+} // namespace
 
 BENCHMARK(bm_bvh_scalar_coherent);
 BENCHMARK(bm_bvh_packet4_coherent);

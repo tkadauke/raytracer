@@ -57,8 +57,7 @@ namespace {
   }
 
   std::shared_ptr<render::PinholeCamera> cameraForBenchmark() {
-    auto camera =
-      std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
+    auto camera = std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d::null);
     camera->setDistance(5.0);
     camera->setZoom(1.0);
     return camera;
@@ -153,8 +152,7 @@ namespace {
       ++diagnostics.triangles;
       const double area = projectedBoundsArea(triangle);
       diagnostics.projectedBoundsPixels += area;
-      diagnostics.maxProjectedBoundsPixels =
-        std::max(diagnostics.maxProjectedBoundsPixels, area);
+      diagnostics.maxProjectedBoundsPixels = std::max(diagnostics.maxProjectedBoundsPixels, area);
       triangleSet.add(triangle);
     });
 

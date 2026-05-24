@@ -14,10 +14,7 @@ namespace ImageTextureTest {
   }
 
   std::vector<Colord> quadPixels() {
-    return {
-      Colord::red(), Colord::green(),
-      Colord::blue(), Colord::white()
-    };
+    return {Colord::red(), Colord::green(), Colord::blue(), Colord::white()};
   }
 
   TEST(ImageTexture, NearestSamplesContainingTexel) {
@@ -74,8 +71,8 @@ namespace ImageTextureTest {
   }
 
   TEST(ImageTexture, EvaluateUsesConfiguredMapping) {
-    ImageTexture texture(new UVMapping2D(2.0, 1.0), 2, 2, quadPixels(),
-                         ImageTextureFilter::Nearest, ImageTextureWrap::Repeat);
+    ImageTexture texture(new UVMapping2D(2.0, 1.0), 2, 2, quadPixels(), ImageTextureFilter::Nearest,
+                         ImageTextureWrap::Repeat);
     const HitPoint hit(nullptr, 0.0, Vector4d::null, Vector3d::null, Vector2d(0.6, 0.1));
 
     EXPECT_EQ(Colord::red(), texture.evaluate(Rayd::undefined, hit));

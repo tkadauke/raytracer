@@ -12,9 +12,9 @@
 namespace EquirectangularCameraTest {
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
 
   // EquirectangularCamera::rayForPixel divides by viewPlane()->width()

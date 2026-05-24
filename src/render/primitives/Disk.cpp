@@ -8,7 +8,8 @@
 
 using namespace render;
 
-const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Disk::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                 render::State& state) const {
   double t = (m_center - ray.origin()) * m_normal / (ray.direction() * m_normal);
 
   Vector4d hitPoint = ray.at(t);

@@ -12,9 +12,9 @@
 namespace ReflectiveMaterialTest {
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
 
   TEST(ReflectiveMaterial, ShouldInitialize) {

@@ -52,8 +52,7 @@ namespace PortalMaterialTest {
     PortalMaterial material;
     Material* base = &material;
 
-    auto rt = std::dynamic_pointer_cast<render::PortalMaterial>(
-      base->toRaytracerMaterial());
+    auto rt = std::dynamic_pointer_cast<render::PortalMaterial>(base->toRaytracerMaterial());
 
     EXPECT_NE(nullptr, rt);
   }

@@ -11,12 +11,12 @@
   */
 class Intersection : public CSGSurface {
   Q_OBJECT
-  
+
 public:
   /**
     * Default constructor. Creates an empty intersection.
     */
   explicit Intersection(Element* parent = nullptr);
-  
+
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 };

@@ -16,13 +16,21 @@ namespace AbstractParameterWidgetTest {
     Q_OBJECT
   public:
     explicit TestParameterWidget(QWidget* parent = nullptr)
-      : AbstractParameterWidget(parent), m_value() {}
-    const QVariant value() const override { return m_value; }
-    void setValue(const QVariant& v) override { m_value = v; }
+        : AbstractParameterWidget(parent),
+          m_value() {
+    }
+    const QVariant value() const override {
+      return m_value;
+    }
+    void setValue(const QVariant& v) override {
+      m_value = v;
+    }
 
     // Public hook to fire parameterChanged() from outside; the slot is
     // protected on the base, but visible to the subclass.
-    void simulateInput() { parameterChanged(); }
+    void simulateInput() {
+      parameterChanged();
+    }
 
   private:
     QVariant m_value;
@@ -51,10 +59,8 @@ namespace AbstractParameterWidgetTest {
     widget.setValue(QVariant::fromValue(0.75));
 
     Slot slot;
-    QObject::connect(
-      &widget, SIGNAL(changed(const QString&, const QVariant&)),
-      &slot, SLOT(receive())
-    );
+    QObject::connect(&widget, SIGNAL(changed(const QString&, const QVariant&)), &slot,
+                     SLOT(receive()));
     widget.simulateInput();
 
     EXPECT_TRUE(slot.called());

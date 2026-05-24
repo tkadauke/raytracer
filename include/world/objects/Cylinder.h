@@ -27,20 +27,20 @@ class Cylinder : public Surface {
   Q_PROPERTY(double radius READ radius WRITE setRadius)
   Q_PROPERTY(double height READ height WRITE setHeight)
   Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius)
-  
+
 public:
   /**
     * Default constructor. Creates a cylinder with radius 1 around the origin.
     */
   explicit Cylinder(Element* parent = nullptr);
-  
+
   /**
     * @returns the radius of the cylinder.
     */
   inline double radius() const {
     return m_radius;
   }
-  
+
   /**
     * Sets the radius of the cylinder. The radius will be converted to its
     * absolute value. A radius of 0 will be replaced with \f$\epsilon\f$.
@@ -86,7 +86,7 @@ public:
   inline double bevelRadius() const {
     return m_bevelRadius;
   }
-  
+
   /**
     * Sets the bevel radius of the cylinder. If the radius is 0, the cylinder
     * will be a simple cylinder primitive with perfectly sharp edges. If the
@@ -105,7 +105,7 @@ public:
   }
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
-  
+
 private:
   double m_radius;
   double m_height;

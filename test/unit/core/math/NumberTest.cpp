@@ -3,8 +3,7 @@
 
 namespace NumberTest {
   template<class T>
-  class NumberTest : public ::testing::Test {
-  };
+  class NumberTest : public ::testing::Test {};
 
   typedef ::testing::Types<float, double> NumberTypes;
 

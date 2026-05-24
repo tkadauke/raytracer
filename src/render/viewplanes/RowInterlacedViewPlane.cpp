@@ -16,15 +16,14 @@ namespace {
 
   private:
     int initialJump() const;
-  
+
     int m_rowJump, m_offset;
   };
 
   RowInterlaceIterator::RowInterlaceIterator(const ViewPlane* plane, const Recti& rect)
-    : IteratorBase(plane, rect),
-      m_rowJump(initialJump()),
-      m_offset(0)
-  {
+      : IteratorBase(plane, rect),
+        m_rowJump(initialJump()),
+        m_offset(0) {
   }
 
   void RowInterlaceIterator::advance() {
@@ -57,4 +56,5 @@ ViewPlane::Iterator RowInterlacedViewPlane::begin(const Recti& rect) const {
   return Iterator(new RowInterlaceIterator(this, rect));
 }
 
-static bool dummy = ViewPlaneFactory::self().registerClass<RowInterlacedViewPlane>("RowInterlacedViewPlane");
+static bool dummy =
+  ViewPlaneFactory::self().registerClass<RowInterlacedViewPlane>("RowInterlacedViewPlane");

@@ -28,10 +28,12 @@ namespace render {
   public:
     explicit SmoothMeshTriangle(const Mesh* mesh, int index0, int index1, int index2);
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
 
-    static void build(const Mesh* mesh, Composite* composite, std::shared_ptr<render::Material> material);
+    static void build(const Mesh* mesh, Composite* composite,
+                      std::shared_ptr<render::Material> material);
 
     /**
       * Returns a single-triangle Mesh with vertex positions and UVs copied from

@@ -6,9 +6,8 @@ struct BoolParameterWidget::Private {
 };
 
 BoolParameterWidget::BoolParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : AbstractParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   connect(p->ui.checkBox, SIGNAL(clicked()), this, SLOT(parameterChanged()));
 }
@@ -28,4 +27,3 @@ const QVariant BoolParameterWidget::value() const {
 void BoolParameterWidget::setValue(const QVariant& value) {
   p->ui.checkBox->setCheckState(value.toBool() ? Qt::Checked : Qt::Unchecked);
 }
-

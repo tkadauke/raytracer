@@ -12,9 +12,8 @@ struct CameraTypeWidget::Private {
 };
 
 CameraTypeWidget::CameraTypeWidget(QWidget* parent)
-  : QWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   list<string> types = render::CameraFactory::self().identifiers();
   for (const auto& type : types) {
@@ -33,4 +32,3 @@ string CameraTypeWidget::type() const {
 void CameraTypeWidget::typeChanged() {
   emit changed();
 }
-

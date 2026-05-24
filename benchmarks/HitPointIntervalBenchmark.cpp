@@ -14,86 +14,84 @@
 
 namespace {
 
-HitPoint makeHitPoint(double distance) {
-  return HitPoint(nullptr, distance,
-                  Vector4d(distance, 0, 0, 1),
-                  Vector3d(0, 1, 0));
-}
+  HitPoint makeHitPoint(double distance) {
+    return HitPoint(nullptr, distance, Vector4d(distance, 0, 0, 1), Vector3d(0, 1, 0));
+  }
 
-template <int N>
-void bm_push_n(benchmark::State& state) {
-  for (auto _ : state) {
+  template<int N>
+  void bm_push_n(benchmark::State& state) {
+    for (auto _ : state) {
+      HitPointInterval interval;
+      for (int i = 0; i < N; ++i) {
+        // alternating in/out matches CSG-shaped intervals.
+        interval.add(makeHitPoint(double(i + 1)), (i & 1) == 0);
+      }
+      benchmark::DoNotOptimize(interval);
+      benchmark::ClobberMemory();
+    }
+  }
+
+  // "Single hit then query" — the dominant primitive case. Constructor,
+  // one push, one min() read, destruction.
+  void bm_single_hit_cycle(benchmark::State& state) {
+    for (auto _ : state) {
+      HitPointInterval interval;
+      interval.addIn(makeHitPoint(1.5));
+      interval.addOut(makeHitPoint(2.5));
+      auto mn = interval.min();
+      benchmark::DoNotOptimize(mn);
+      benchmark::ClobberMemory();
+    }
+  }
+
+  // Merge of two intervals via operator| — CSG union path.
+  void bm_merge_union(benchmark::State& state) {
+    HitPointInterval a;
+    a.addIn(makeHitPoint(1.0));
+    a.addOut(makeHitPoint(2.0));
+    HitPointInterval b;
+    b.addIn(makeHitPoint(1.5));
+    b.addOut(makeHitPoint(2.5));
+    for (auto _ : state) {
+      auto r = a | b;
+      benchmark::DoNotOptimize(r);
+      benchmark::ClobberMemory();
+    }
+  }
+
+  // Merge via operator& — CSG intersection path.
+  void bm_merge_intersect(benchmark::State& state) {
+    HitPointInterval a;
+    a.addIn(makeHitPoint(1.0));
+    a.addOut(makeHitPoint(2.0));
+    HitPointInterval b;
+    b.addIn(makeHitPoint(1.5));
+    b.addOut(makeHitPoint(2.5));
+    for (auto _ : state) {
+      auto r = a & b;
+      benchmark::DoNotOptimize(r);
+      benchmark::ClobberMemory();
+    }
+  }
+
+  // Iterate through an N-hit interval. After the SBO refactor we want this
+  // to stay flat — the points are now stored inline, but iteration cost
+  // should be roughly equivalent.
+  void bm_iterate(benchmark::State& state) {
     HitPointInterval interval;
-    for (int i = 0; i < N; ++i) {
-      // alternating in/out matches CSG-shaped intervals.
+    for (int i = 0; i < 8; ++i) {
       interval.add(makeHitPoint(double(i + 1)), (i & 1) == 0);
     }
-    benchmark::DoNotOptimize(interval);
-    benchmark::ClobberMemory();
-  }
-}
-
-// "Single hit then query" — the dominant primitive case. Constructor,
-// one push, one min() read, destruction.
-void bm_single_hit_cycle(benchmark::State& state) {
-  for (auto _ : state) {
-    HitPointInterval interval;
-    interval.addIn(makeHitPoint(1.5));
-    interval.addOut(makeHitPoint(2.5));
-    auto mn = interval.min();
-    benchmark::DoNotOptimize(mn);
-    benchmark::ClobberMemory();
-  }
-}
-
-// Merge of two intervals via operator| — CSG union path.
-void bm_merge_union(benchmark::State& state) {
-  HitPointInterval a;
-  a.addIn(makeHitPoint(1.0));
-  a.addOut(makeHitPoint(2.0));
-  HitPointInterval b;
-  b.addIn(makeHitPoint(1.5));
-  b.addOut(makeHitPoint(2.5));
-  for (auto _ : state) {
-    auto r = a | b;
-    benchmark::DoNotOptimize(r);
-    benchmark::ClobberMemory();
-  }
-}
-
-// Merge via operator& — CSG intersection path.
-void bm_merge_intersect(benchmark::State& state) {
-  HitPointInterval a;
-  a.addIn(makeHitPoint(1.0));
-  a.addOut(makeHitPoint(2.0));
-  HitPointInterval b;
-  b.addIn(makeHitPoint(1.5));
-  b.addOut(makeHitPoint(2.5));
-  for (auto _ : state) {
-    auto r = a & b;
-    benchmark::DoNotOptimize(r);
-    benchmark::ClobberMemory();
-  }
-}
-
-// Iterate through an N-hit interval. After the SBO refactor we want this
-// to stay flat — the points are now stored inline, but iteration cost
-// should be roughly equivalent.
-void bm_iterate(benchmark::State& state) {
-  HitPointInterval interval;
-  for (int i = 0; i < 8; ++i) {
-    interval.add(makeHitPoint(double(i + 1)), (i & 1) == 0);
-  }
-  for (auto _ : state) {
-    double acc = 0;
-    for (const auto& hp : interval.points()) {
-      acc += hp.point.distance();
+    for (auto _ : state) {
+      double acc = 0;
+      for (const auto& hp : interval.points()) {
+        acc += hp.point.distance();
+      }
+      benchmark::DoNotOptimize(acc);
     }
-    benchmark::DoNotOptimize(acc);
   }
-}
 
-}  // namespace
+} // namespace
 
 BENCHMARK(bm_push_n<1>);
 BENCHMARK(bm_push_n<2>);

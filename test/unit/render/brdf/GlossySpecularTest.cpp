@@ -6,16 +6,16 @@
 
 namespace GlossySpecularTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   static Box* box = new Box(Vector3d::null, Vector3d::one);
-  
+
   TEST(GlossySpecular, ShouldInitialize) {
     GlossySpecular glossy;
     ASSERT_EQ(1, glossy.specularCoefficient());
   }
-  
+
   TEST(GlossySpecular, ShouldSetSpecularColor) {
     GlossySpecular glossy;
     glossy.setSpecularColor(Colord(1, 0, 0));
@@ -42,7 +42,7 @@ using namespace render;
 
   TEST(GlossySpecular, ShouldHaveBlackReflectance) {
     GlossySpecular glossy;
-    
+
     ASSERT_EQ(Colord::black(), glossy.reflectance(HitPoint::undefined(), Vector3d::null));
   }
 
@@ -50,19 +50,19 @@ using namespace render;
     GlossySpecular glossy;
     glossy.setSpecularColor(Colord(1, 0, 0));
     glossy.setExponent(128);
-    
+
     HitPoint point(box, 1, Vector4d::null, Vector3d::up());
-    
-    ASSERT_EQ(Colord::black(), glossy(point, - Vector3d::up(), Vector3d::up()));
+
+    ASSERT_EQ(Colord::black(), glossy(point, -Vector3d::up(), Vector3d::up()));
   }
 
   TEST(GlossySpecular, ShouldBeBrightInsideLobe) {
     GlossySpecular glossy;
     glossy.setSpecularColor(Colord(1, 0, 0));
     glossy.setExponent(128);
-    
+
     HitPoint point(box, 1, Vector4d::null, Vector3d::up());
-    
-    ASSERT_EQ(Colord(1, 0, 0), glossy(point, Vector3d::forward(), - Vector3d::forward()));
+
+    ASSERT_EQ(Colord(1, 0, 0), glossy(point, Vector3d::forward(), -Vector3d::forward()));
   }
 }

@@ -3,7 +3,7 @@
 
 namespace StateTest {
   using namespace ::testing;
-using namespace render;
+  using namespace render;
 
   TEST(State, ShouldInitialize) {
     State state;

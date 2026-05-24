@@ -5,8 +5,8 @@
 
 namespace RectangleTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(RectangleTessellate, ShouldHave4VerticesAnd2Faces) {
     Rectangle rect(Vector3d(), Vector3d(1, 0, 0), Vector3d(0, 1, 0));
@@ -44,10 +44,10 @@ using namespace render;
     Rectangle rect(corner, leg1, leg2);
     auto mesh = rect.tessellate(0);
     ASSERT_EQ(4u, mesh->vertices().size());
-    EXPECT_EQ(corner,               mesh->vertices()[0].point);
-    EXPECT_EQ(corner + leg1,        mesh->vertices()[1].point);
+    EXPECT_EQ(corner, mesh->vertices()[0].point);
+    EXPECT_EQ(corner + leg1, mesh->vertices()[1].point);
     EXPECT_EQ(corner + leg1 + leg2, mesh->vertices()[2].point);
-    EXPECT_EQ(corner + leg2,        mesh->vertices()[3].point);
+    EXPECT_EQ(corner + leg2, mesh->vertices()[3].point);
   }
 
   TEST(RectangleTessellate, ShouldHaveUVsAtCorners) {

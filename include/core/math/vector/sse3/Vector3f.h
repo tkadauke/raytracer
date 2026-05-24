@@ -12,6 +12,7 @@
 template<>
 class Vector3<float> : public Vector<3, float, __m128, Vector3<float>> {
   typedef float CellsType[3];
+
 public:
   static const int Dim = 3;
 
@@ -90,9 +91,8 @@ public:
 
   [[nodiscard]] inline float operator*(const Vector3<float>& other) const noexcept {
     __m128 v = _mm_mul_ps(m_vector[0], other.m_vector[0]);
-    return _mm_cvtss_f32(v)
-         + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1,1,1,1)))
-         + _mm_cvtss_f32(_mm_movehl_ps(v, v));
+    return _mm_cvtss_f32(v) + _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1))) +
+           _mm_cvtss_f32(_mm_movehl_ps(v, v));
   }
 
   [[nodiscard]] inline Vector3<float> operator*(const float& factor) const noexcept {
@@ -100,14 +100,12 @@ public:
   }
 
   [[nodiscard]] inline Vector3<float> crossProduct(const Vector3<float>& other) const noexcept {
-    return Vector3<float>(y() * other.z() - z() * other.y(),
-                          z() * other.x() - x() * other.z(),
+    return Vector3<float>(y() * other.z() - z() * other.y(), z() * other.x() - x() * other.z(),
                           x() * other.y() - y() * other.x());
   }
 
   [[nodiscard]] inline Vector3<float> operator^(const Vector3<float>& other) const noexcept {
-    return Vector3<float>(y() * other.z() - z() * other.y(),
-                          z() * other.x() - x() * other.z(),
+    return Vector3<float>(y() * other.z() - z() * other.y(), z() * other.x() - x() * other.z(),
                           x() * other.y() - y() * other.x());
   }
 
@@ -134,26 +132,18 @@ private:
 
 inline const Vector3<float> Vector3<float>::null{0.0f, 0.0f, 0.0f};
 inline const Vector3<float> Vector3<float>::one{1.0f, 1.0f, 1.0f};
-inline const Vector3<float> Vector3<float>::epsilon{
-  std::numeric_limits<float>::epsilon(),
-  std::numeric_limits<float>::epsilon(),
-  std::numeric_limits<float>::epsilon()
-};
-inline const Vector3<float> Vector3<float>::undefined{
-  std::numeric_limits<float>::quiet_NaN(),
-  std::numeric_limits<float>::quiet_NaN(),
-  std::numeric_limits<float>::quiet_NaN()
-};
-inline const Vector3<float> Vector3<float>::minusInfinity{
-  -std::numeric_limits<float>::infinity(),
-  -std::numeric_limits<float>::infinity(),
-  -std::numeric_limits<float>::infinity()
-};
-inline const Vector3<float> Vector3<float>::plusInfinity{
-  std::numeric_limits<float>::infinity(),
-  std::numeric_limits<float>::infinity(),
-  std::numeric_limits<float>::infinity()
-};
+inline const Vector3<float> Vector3<float>::epsilon{std::numeric_limits<float>::epsilon(),
+                                                    std::numeric_limits<float>::epsilon(),
+                                                    std::numeric_limits<float>::epsilon()};
+inline const Vector3<float> Vector3<float>::undefined{std::numeric_limits<float>::quiet_NaN(),
+                                                      std::numeric_limits<float>::quiet_NaN(),
+                                                      std::numeric_limits<float>::quiet_NaN()};
+inline const Vector3<float> Vector3<float>::minusInfinity{-std::numeric_limits<float>::infinity(),
+                                                          -std::numeric_limits<float>::infinity(),
+                                                          -std::numeric_limits<float>::infinity()};
+inline const Vector3<float> Vector3<float>::plusInfinity{std::numeric_limits<float>::infinity(),
+                                                         std::numeric_limits<float>::infinity(),
+                                                         std::numeric_limits<float>::infinity()};
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop

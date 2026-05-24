@@ -5,8 +5,8 @@
 
 namespace LambertianTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(Lambertian, ShouldInitialize) {
     Lambertian lambertian;
@@ -18,13 +18,13 @@ using namespace render;
     ASSERT_EQ(Colord(0, 1, 0), lambertian.diffuseColor());
     ASSERT_EQ(0.2, lambertian.reflectionCoefficient());
   }
-  
+
   TEST(Lambertian, ShouldSetDiffuseColor) {
     Lambertian lambertian;
     lambertian.setDiffuseColor(Colord(1, 0, 0));
     ASSERT_EQ(Colord(1, 0, 0), lambertian.diffuseColor());
   }
-  
+
   TEST(Lambertian, ShouldSetReflectionCoefficient) {
     Lambertian lambertian;
     lambertian.setReflectionCoefficient(0.2);
@@ -36,11 +36,11 @@ using namespace render;
     lambertian.setReflectionCoefficient(12);
     ASSERT_EQ(1, lambertian.reflectionCoefficient());
   }
-  
+
   TEST(Lambertian, ShouldBeIndependentOfRayDirection) {
     Lambertian lambertian;
     lambertian.setDiffuseColor(Colord(1, 0, 0));
-    
+
     ASSERT_EQ(Colord(1, 0, 0), lambertian.reflectance(HitPoint::undefined(), Vector3d::null));
   }
 }

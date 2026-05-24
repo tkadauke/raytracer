@@ -41,11 +41,7 @@ namespace render {
   class AcesTonemap : public Tonemap {
   public:
     inline Colord apply(const Colord& hdr) const override {
-      return Colord(
-        applyChannel(hdr.r()),
-        applyChannel(hdr.g()),
-        applyChannel(hdr.b())
-      );
+      return Colord(applyChannel(hdr.r()), applyChannel(hdr.g()), applyChannel(hdr.b()));
     }
 
   private:

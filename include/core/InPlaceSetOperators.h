@@ -19,7 +19,7 @@ public:
     derived() = derived() | other;
     return derived();
   }
-  
+
   /**
     * Replaces this object with the set intersection of this and @p other.
     * 

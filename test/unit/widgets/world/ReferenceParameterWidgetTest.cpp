@@ -11,7 +11,9 @@ Q_DECLARE_METATYPE(Material*);
 
 namespace ReferenceParameterWidgetTest {
   struct MetaTypeRegistrar {
-    MetaTypeRegistrar() { qRegisterMetaType<Material*>(); }
+    MetaTypeRegistrar() {
+      qRegisterMetaType<Material*>();
+    }
   };
   static const MetaTypeRegistrar s_registrar;
 
@@ -53,9 +55,6 @@ namespace ReferenceParameterWidgetTest {
     // The project's Exception type doesn't derive from std::exception —
     // it's a standalone class with its own backtrace machinery. Catch by
     // its actual type.
-    EXPECT_THROW(
-      ReferenceParameterWidget widget("Bogus", &root),
-      Exception
-    );
+    EXPECT_THROW(ReferenceParameterWidget widget("Bogus", &root), Exception);
   }
 }

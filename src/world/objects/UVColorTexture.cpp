@@ -3,8 +3,7 @@
 #include "render/textures/UVColorTexture.h"
 
 UVColorTexture::UVColorTexture(Element* parent)
-  : Texture(parent)
-{
+    : Texture(parent) {
 }
 
 std::shared_ptr<render::Texturec> UVColorTexture::toRaytracerTexture() const {

@@ -70,11 +70,11 @@ namespace render {
   class BSDF {
   public:
     enum Flags {
-      None         = 0,
-      Diffuse      = 1 << 0,
-      Glossy       = 1 << 1,
-      Specular     = 1 << 2,
-      Reflection   = 1 << 3,
+      None = 0,
+      Diffuse = 1 << 0,
+      Glossy = 1 << 1,
+      Specular = 1 << 2,
+      Reflection = 1 << 3,
       Transmission = 1 << 4,
     };
 
@@ -87,7 +87,8 @@ namespace render {
     /// Importance-sample an outgoing direction. Writes the chosen
     /// `wo` and the pdf of drawing it into the out-params; returns
     /// the BSDF value at that draw. Delta lobes set `pdf = 1`.
-    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf) const = 0;
+    virtual Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo,
+                          double& pdf) const = 0;
 
     /// Density that `sample(wi)` would have produced `wo`. 0 for
     /// delta lobes.
@@ -100,12 +101,24 @@ namespace render {
     virtual Colord reflectance(const HitPoint& hitPoint, const Vector3d& wi) const;
 
     /// Bitfield of `Flags` classifying the lobe. Default `None`.
-    virtual int flags() const { return None; }
+    virtual int flags() const {
+      return None;
+    }
 
-    inline bool isSpecular() const { return (flags() & Specular) != 0; }
-    inline bool isDiffuse() const { return (flags() & Diffuse) != 0; }
-    inline bool isGlossy() const { return (flags() & Glossy) != 0; }
-    inline bool isReflection() const { return (flags() & Reflection) != 0; }
-    inline bool isTransmission() const { return (flags() & Transmission) != 0; }
+    inline bool isSpecular() const {
+      return (flags() & Specular) != 0;
+    }
+    inline bool isDiffuse() const {
+      return (flags() & Diffuse) != 0;
+    }
+    inline bool isGlossy() const {
+      return (flags() & Glossy) != 0;
+    }
+    inline bool isReflection() const {
+      return (flags() & Reflection) != 0;
+    }
+    inline bool isTransmission() const {
+      return (flags() & Transmission) != 0;
+    }
   };
 }

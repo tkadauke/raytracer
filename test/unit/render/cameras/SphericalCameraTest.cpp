@@ -10,41 +10,41 @@ namespace SphericalCameraTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-  
+
   TEST(SphericalCamera, ShouldConstructWithoutParameters) {
     SphericalCamera camera;
     ASSERT_NEAR(180, camera.horizontalFieldOfView().degrees(), 0.001);
     ASSERT_NEAR(120, camera.verticalFieldOfView().degrees(), 0.001);
   }
-  
+
   TEST(SphericalCamera, ShouldConstructWithParameters) {
     SphericalCamera camera(Vector3d(0, 0, 1), Vector3d::null);
     ASSERT_NEAR(180, camera.horizontalFieldOfView().degrees(), 0.001);
     ASSERT_NEAR(120, camera.verticalFieldOfView().degrees(), 0.001);
   }
-  
+
   TEST(SphericalCamera, ShouldConstructWithFieldOfViews) {
     SphericalCamera camera(200_degrees, 90_degrees);
     ASSERT_NEAR(200, camera.horizontalFieldOfView().degrees(), 0.001);
     ASSERT_NEAR(90, camera.verticalFieldOfView().degrees(), 0.001);
   }
-  
+
   TEST(SphericalCamera, ShouldSetHorizontalFieldOfView) {
     SphericalCamera camera;
     camera.setHorizontalFieldOfView(200_degrees);
     ASSERT_NEAR(200, camera.horizontalFieldOfView().degrees(), 0.001);
   }
-  
+
   TEST(SphericalCamera, ShouldSetVerticalFieldOfView) {
     SphericalCamera camera;
     camera.setVerticalFieldOfView(140_degrees);
     ASSERT_NEAR(140, camera.verticalFieldOfView().degrees(), 0.001);
   }
-  
+
   TEST(SphericalCamera, ShouldRender) {
     auto camera = std::make_shared<SphericalCamera>(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
@@ -53,14 +53,14 @@ using namespace render;
     raytracer->render(buffer);
     ASSERT_EQ(Colord::white(), buffer[0][0]);
   }
-  
+
   TEST(SphericalCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
     SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_TRUE(ray.direction().isUndefined());
   }
-  
+
   TEST(SphericalCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
     SphericalCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));

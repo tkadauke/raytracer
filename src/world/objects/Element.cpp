@@ -21,9 +21,8 @@ Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
 
 Element::Element(Element* parent)
-  : QObject(parent),
-    m_generated(false)
-{
+    : QObject(parent),
+      m_generated(false) {
   m_id = QUuid::createUuid().toString();
 }
 
@@ -69,14 +68,19 @@ void Element::read(const QJsonObject& json) {
     if (!value.isUndefined()) {
       if (type == "Vector3<double>") {
         auto array = value.toArray();
-        setProperty(propertyNameCStr, QVariant::fromValue(Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+        setProperty(propertyNameCStr,
+                    QVariant::fromValue(
+                      Vector3d(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
       } else if (type == "Angle<double>") {
         auto angle = value.toDouble();
         setProperty(propertyNameCStr, QVariant::fromValue(Angled::fromRadians(angle)));
       } else if (type == "Color<double>") {
         auto array = value.toArray();
-        setProperty(propertyNameCStr, QVariant::fromValue(Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
-      } else if (propertyName != "id" && (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
+        setProperty(propertyNameCStr,
+                    QVariant::fromValue(
+                      Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+      } else if (propertyName != "id" &&
+                 (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
         // JSON `null` is a valid way to say "this reference is
         // intentionally unset" — `world::Surface` writes its
         // `material` as `null` when no material is attached. Skip
@@ -154,12 +158,12 @@ void Element::writeProperty(const QString& name, QJsonObject& json) {
 
   if (type == "Vector3<double>") {
     auto vector = prop.value<Vector3d>();
-    json[name] = QJsonArray({ vector.x(), vector.y(), vector.z() });
+    json[name] = QJsonArray({vector.x(), vector.y(), vector.z()});
   } else if (type == "Angle<double>") {
     json[name] = prop.value<Angled>().radians();
   } else if (type == "Color<double>") {
     auto color = prop.value<Colord>();
-    json[name] = QJsonArray({ color.r(), color.g(), color.b() });
+    json[name] = QJsonArray({color.r(), color.g(), color.b()});
   } else if (type == "QString") {
     json[name] = prop.toString();
   } else if (type == "int") {
@@ -189,7 +193,8 @@ void Element::resolveReferences(const QMap<QString, Element*>& elements) {
     } else if (qobject_cast<Texture*>(value)) {
       variant = QVariant::fromValue<Texture*>(static_cast<Texture*>(value));
     } else {
-      std::cout << "Unable to resolve reference " << ref.first.toStdString() << ": " << ref.second.toStdString() << std::endl;
+      std::cout << "Unable to resolve reference " << ref.first.toStdString() << ": "
+                << ref.second.toStdString() << std::endl;
     }
     setProperty(ref.first.toStdString().c_str(), variant);
   }
@@ -256,4 +261,3 @@ void Element::moveChild(int from, int to) {
     m_childElements.move(from, to);
   }
 }
-

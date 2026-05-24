@@ -37,8 +37,8 @@ namespace engine::raster::detail {
       m_lights.reserve(static_cast<std::size_t>(m_scene->lights().size()));
       for (const auto& light : m_scene->lights()) {
         const render::Light* lightPtr = light.get();
-        m_lights.push_back({lightPtr, lightPtr->radiance(),
-                            shadowMaps ? shadowMaps->forLight(lightPtr) : nullptr});
+        m_lights.push_back(
+          {lightPtr, lightPtr->radiance(), shadowMaps ? shadowMaps->forLight(lightPtr) : nullptr});
       }
     }
 
@@ -53,13 +53,13 @@ namespace engine::raster::detail {
                          const Vector2d& uvDx, const Vector2d& uvDy,
                          const RasterTangentFrame& tangentFrame, int x, int y) const {
       const Vector3d baseNormal = normal.normalized();
-      const Vector3d n =
-        rasterMaterial.lightingNormal(primitive, worldPos, baseNormal, uv, uvDx, uvDy, tangentFrame);
+      const Vector3d n = rasterMaterial.lightingNormal(primitive, worldPos, baseNormal, uv, uvDx,
+                                                       uvDy, tangentFrame);
       const Colord albedo = rasterMaterial.albedo(primitive, worldPos, baseNormal, uv, uvDx, uvDy);
       const double alpha = rasterMaterial.alpha(primitive, worldPos, baseNormal, uv, uvDx, uvDy);
       const bool hasSpecular = rasterMaterial.hasSpecular() && m_camera;
-      const Vector3d viewDir = hasSpecular ? (-m_camera->rayForPixel(x, y).direction()).normalized()
-                                           : Vector3d::undefined;
+      const Vector3d viewDir =
+        hasSpecular ? (-m_camera->rayForPixel(x, y).direction()).normalized() : Vector3d::undefined;
 
       // Raster shadow maps only mask direct material light. Ambient remains
       // visible because it models light not explained by the direct-light pass.

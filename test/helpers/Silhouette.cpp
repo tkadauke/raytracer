@@ -5,9 +5,9 @@
 
 namespace testing {
   Silhouette::Silhouette(std::vector<Pixel> points)
-    : m_points(std::move(points))
-  {
-    if (m_points.empty()) return;
+      : m_points(std::move(points)) {
+    if (m_points.empty())
+      return;
 
     int minX = m_points.front().x, maxX = minX;
     int minY = m_points.front().y, maxY = minY;
@@ -26,12 +26,14 @@ namespace testing {
   }
 
   double Silhouette::aspectRatio() const {
-    if (m_bbox.width() == 0) return 0.0;
+    if (m_bbox.width() == 0)
+      return 0.0;
     return static_cast<double>(m_bbox.height()) / m_bbox.width();
   }
 
   double Silhouette::radialVariance() const {
-    if (m_points.empty()) return 0.0;
+    if (m_points.empty())
+      return 0.0;
     const double cx = m_centroid.x;
     const double cy = m_centroid.y;
 
@@ -42,7 +44,8 @@ namespace testing {
       sumD += std::sqrt(dx * dx + dy * dy);
     }
     const double mean = sumD / m_points.size();
-    if (mean == 0.0) return 0.0;
+    if (mean == 0.0)
+      return 0.0;
 
     double sumSq = 0.0;
     for (const auto& p : m_points) {
@@ -65,13 +68,15 @@ namespace testing {
       int leftmost = -1, rightmost = -1;
       for (int x = 0; x < w; ++x) {
         if (buffer[y][x] == target) {
-          if (leftmost == -1) leftmost = x;
+          if (leftmost == -1)
+            leftmost = x;
           rightmost = x;
         }
       }
       if (leftmost >= 0) {
         points.push_back({leftmost, y});
-        if (rightmost != leftmost) points.push_back({rightmost, y});
+        if (rightmost != leftmost)
+          points.push_back({rightmost, y});
       }
     }
 
@@ -83,13 +88,15 @@ namespace testing {
       int topmost = -1, bottommost = -1;
       for (int y = 0; y < h; ++y) {
         if (buffer[y][x] == target) {
-          if (topmost == -1) topmost = y;
+          if (topmost == -1)
+            topmost = y;
           bottommost = y;
         }
       }
       if (topmost >= 0) {
         points.push_back({x, topmost});
-        if (bottommost != topmost) points.push_back({x, bottommost});
+        if (bottommost != topmost)
+          points.push_back({x, bottommost});
       }
     }
 

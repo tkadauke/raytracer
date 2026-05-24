@@ -5,28 +5,25 @@ using namespace render;
 #include "render/tonemap/LinearTonemap.h"
 #include "core/Buffer.h"
 
-
 struct RenderEngine::Private {
   inline Private()
-    : tonemap(std::make_shared<render::LinearTonemap>())
-  {
+      : tonemap(std::make_shared<render::LinearTonemap>()) {
   }
 
   std::shared_ptr<render::Tonemap> tonemap;
 };
 
 RenderEngine::RenderEngine(std::shared_ptr<render::Scene> scene)
-  : m_camera(std::make_shared<render::PinholeCamera>()),
-    m_scene(std::move(scene)),
-    p(std::make_unique<Private>())
-{
+    : m_camera(std::make_shared<render::PinholeCamera>()),
+      m_scene(std::move(scene)),
+      p(std::make_unique<Private>()) {
 }
 
-RenderEngine::RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
-  : m_camera(std::move(camera)),
-    m_scene(std::move(scene)),
-    p(std::make_unique<Private>())
-{
+RenderEngine::RenderEngine(std::shared_ptr<render::Camera> camera,
+                           std::shared_ptr<render::Scene> scene)
+    : m_camera(std::move(camera)),
+      m_scene(std::move(scene)),
+      p(std::make_unique<Private>()) {
 }
 
 RenderEngine::~RenderEngine() {
@@ -72,8 +69,10 @@ std::list<Recti> RenderEngine::completedTiles() const {
 }
 
 Colord RenderEngine::backgroundColor() const {
-  if (m_backgroundColorOverride) return *m_backgroundColorOverride;
-  if (m_scene) return m_scene->background();
+  if (m_backgroundColorOverride)
+    return *m_backgroundColorOverride;
+  if (m_scene)
+    return m_scene->background();
   return Colord::black();
 }
 

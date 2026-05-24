@@ -45,48 +45,46 @@ namespace render {
       * specular color.
       */
     inline PhongMaterial()
-      : MatteMaterial()
-    {
+        : MatteMaterial() {
       setSpecularColor(Colord::white());
     }
-    
+
     /**
       * Constructs a Phong material with diffuseTexture and a white specular
       * color.
       */
     inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
-      : MatteMaterial(diffuseTexture)
-    {
+        : MatteMaterial(diffuseTexture) {
       setSpecularColor(Colord::white());
     }
-    
+
     /**
       * Constructs a Phong material with diffuseTexture and specularColor.
       */
-    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular)
-      : MatteMaterial(diffuseTexture)
-    {
+    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture,
+                                  const Colord& specular)
+        : MatteMaterial(diffuseTexture) {
       setSpecularColor(specular);
     }
-    
+
     /**
       * Constructs a Phong material with diffuseTexture and specularColor and
       * the given Phong exponent.
       */
-    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture, const Colord& specular, double exponent)
-      : MatteMaterial(diffuseTexture)
-    {
+    inline explicit PhongMaterial(std::shared_ptr<render::Texturec> diffuseTexture,
+                                  const Colord& specular, double exponent)
+        : MatteMaterial(diffuseTexture) {
       setSpecularColor(specular);
       setExponent(exponent);
     }
-    
+
     /**
       * @returns the material's specular color.
       */
     inline const Colord& specularColor() const {
       return m_specularBRDF.specularColor();
     }
-    
+
     /**
       * Sets the material's specular color.
       * 
@@ -103,14 +101,14 @@ namespace render {
     inline void setSpecularColor(const Colord& color) {
       m_specularBRDF.setSpecularColor(color);
     }
-    
+
     /**
       * @returns the material's specular reflection coefficient.
       */
     inline double specularCoefficient() const {
       return m_specularBRDF.specularCoefficient();
     }
-  
+
     /**
       * Sets the specular reflection coefficient.
       * 
@@ -125,14 +123,14 @@ namespace render {
     inline void setSpecularCoefficient(double coeff) {
       m_specularBRDF.setSpecularCoefficient(coeff);
     }
-    
+
     /**
       * @returns the material's lobe exponent.
       */
     inline double exponent() const {
       return m_specularBRDF.exponent();
     }
-    
+
     /**
       * Sets the specular lobe exponent.
       * 
@@ -147,8 +145,9 @@ namespace render {
     inline void setExponent(double exponent) {
       m_specularBRDF.setExponent(exponent);
     }
-    
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
 
   private:
     render::GlossySpecular m_specularBRDF;

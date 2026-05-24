@@ -5,11 +5,11 @@
 
 class DoubleParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit DoubleParameterWidget(QWidget* parent = nullptr);
   ~DoubleParameterWidget();
-  
+
   virtual void setParameterName(const QString& name);
 
   virtual const QVariant value() const;

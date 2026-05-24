@@ -5,10 +5,6 @@
 namespace PointShuffledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    PointShuffled,
-    AbstractViewPlaneTest,
-    PointShuffledViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(PointShuffled, AbstractViewPlaneTest, PointShuffledViewPlane);
 }

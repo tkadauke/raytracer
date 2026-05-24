@@ -4,9 +4,8 @@
 #include "render/materials/MatteMaterial.h"
 
 Sphere::Sphere(Element* parent)
-  : Surface(parent),
-    m_radius(1)
-{
+    : Surface(parent),
+      m_radius(1) {
 }
 
 std::shared_ptr<render::Primitive> Sphere::toRaytracerPrimitive() const {
@@ -14,4 +13,3 @@ std::shared_ptr<render::Primitive> Sphere::toRaytracerPrimitive() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<Sphere>("Sphere");
-

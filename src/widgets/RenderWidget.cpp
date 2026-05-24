@@ -21,9 +21,8 @@ namespace {
   public:
     inline RenderThread(std::shared_ptr<render::RenderEngine> e,
                         std::shared_ptr<Buffer<unsigned int>> b)
-      : engine(std::move(e)),
-        buffer(std::move(b))
-    {
+        : engine(std::move(e)),
+          buffer(std::move(b)) {
     }
 
     inline virtual void run() {
@@ -39,15 +38,12 @@ namespace {
   };
 
   struct RenderJob {
-    RenderJob(std::uint64_t generation,
-              std::shared_ptr<render::RenderEngine> engine,
-              std::shared_ptr<Buffer<unsigned int>> buffer,
-              bool isolated)
-      : generation(generation),
-        thread(new RenderThread(std::move(engine), std::move(buffer))),
-        discardFinishedFrame(false),
-        isolated(isolated)
-    {
+    RenderJob(std::uint64_t generation, std::shared_ptr<render::RenderEngine> engine,
+              std::shared_ptr<Buffer<unsigned int>> buffer, bool isolated)
+        : generation(generation),
+          thread(new RenderThread(std::move(engine), std::move(buffer))),
+          discardFinishedFrame(false),
+          isolated(isolated) {
     }
 
     ~RenderJob() {
@@ -63,15 +59,14 @@ namespace {
 
 struct RenderWidget::Private {
   inline Private()
-    : timer(0),
-      showProgressIndicators(false),
-      displayMode(DisplayMode::PeriodicUpdate),
-      clearBackBufferOnRenderStart(true),
-      progressUpdateIntervalMs(0),
-      renderGeneration(0),
-      aspectMode(render::AspectMode::FitWidth),
-      aspectRatio(0.0)
-  {
+      : timer(0),
+        showProgressIndicators(false),
+        displayMode(DisplayMode::PeriodicUpdate),
+        clearBackBufferOnRenderStart(true),
+        progressUpdateIntervalMs(0),
+        renderGeneration(0),
+        aspectMode(render::AspectMode::FitWidth),
+        aspectRatio(0.0) {
   }
 
   std::unique_ptr<RenderJob> activeJob;
@@ -89,10 +84,9 @@ struct RenderWidget::Private {
 };
 
 RenderWidget::RenderWidget(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
-  : QWidget(parent),
-    m_engine(std::move(engine)),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      m_engine(std::move(engine)),
+      p(std::make_unique<Private>()) {
   setBufferSize(QSize(0, 0));
 }
 
@@ -157,8 +151,8 @@ void RenderWidget::render() {
     m_engine->camera()->setAspectRatio(p->aspectRatio);
   }
 
-  if (p->activeJob && p->activeJob->thread->isRunning() && p->activeJob->isolated
-      && !p->retiredJobs.empty()) {
+  if (p->activeJob && p->activeJob->thread->isRunning() && p->activeJob->isolated &&
+      !p->retiredJobs.empty()) {
     // Backpressure before cloning: the next snapshot would allocate a
     // fresh engine, buffer, and worker while an older cancellation is
     // still draining. Cancel the active frame and let the caller
@@ -206,15 +200,13 @@ void RenderWidget::render() {
 
   const std::uint64_t generation = ++p->renderGeneration;
   p->activeJob = std::make_unique<RenderJob>(generation, renderEngine, buffer, isolatedRender);
-  connect(p->activeJob->thread, &QThread::finished, this, [this, generation]() {
-    renderThreadDone(generation);
-  });
+  connect(p->activeJob->thread, &QThread::finished, this,
+          [this, generation]() { renderThreadDone(generation); });
   p->activeJob->thread->start();
 
   if (p->displayMode != DisplayMode::DoubleBuffer || p->showProgressIndicators) {
-    const int interval = p->progressUpdateIntervalMs > 0
-      ? p->progressUpdateIntervalMs
-      : std::max(16, p->bufferSize.width() / 10);
+    const int interval = p->progressUpdateIntervalMs > 0 ? p->progressUpdateIntervalMs
+                                                         : std::max(16, p->bufferSize.width() / 10);
     p->timer = startTimer(interval);
   }
 }
@@ -364,8 +356,7 @@ render::RenderEngine* RenderWidget::activeRenderEngine() const {
 
 void RenderWidget::copyFrontImageTo(Buffer<unsigned int>& buffer) const {
   for (int y = 0; y < buffer.height(); ++y) {
-    std::memcpy(buffer[y], p->frontImage.constScanLine(y),
-                sizeof(unsigned int) * buffer.width());
+    std::memcpy(buffer[y], p->frontImage.constScanLine(y), sizeof(unsigned int) * buffer.width());
   }
 }
 
@@ -436,19 +427,14 @@ void RenderWidget::markTilesInProgress(QImage& image) const {
 }
 
 QRgb RenderWidget::progressTint(QRgb color) const {
-  return qRgb(
-    std::min(255, qRed(color) + 64),
-    qGreen(color) * 0.75,
-    qBlue(color) * 0.75
-  );
+  return qRgb(std::min(255, qRed(color) + 64), qGreen(color) * 0.75, qBlue(color) * 0.75);
 }
 
 void RenderWidget::renderThreadDone(std::uint64_t generation) {
   if (!p->activeJob || generation != p->activeJob->generation) {
-    auto retired = std::find_if(p->retiredJobs.begin(), p->retiredJobs.end(),
-                                [generation](const auto& job) {
-                                  return job->generation == generation;
-                                });
+    auto retired =
+      std::find_if(p->retiredJobs.begin(), p->retiredJobs.end(),
+                   [generation](const auto& job) { return job->generation == generation; });
     if (retired != p->retiredJobs.end()) {
       disconnect((*retired)->thread, nullptr, this, nullptr);
       p->retiredJobs.erase(retired);

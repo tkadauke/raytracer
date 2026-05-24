@@ -4,9 +4,8 @@
 #include "render/cameras/FishEyeCamera.h"
 
 FishEyeCamera::FishEyeCamera(Element* parent)
-  : Camera(parent),
-    m_fieldOfView(180_degrees)
-{
+    : Camera(parent),
+      m_fieldOfView(180_degrees) {
 }
 
 std::shared_ptr<render::Camera> FishEyeCamera::toRaytracer() const {
@@ -16,4 +15,3 @@ std::shared_ptr<render::Camera> FishEyeCamera::toRaytracer() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<FishEyeCamera>("FishEyeCamera");
-

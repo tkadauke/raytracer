@@ -47,7 +47,9 @@ public:
     * @returns the focal-plane tilt angle. Zero is "perpendicular
     * focal plane" (parent ThinLens behaviour).
     */
-  inline const Angled& tilt() const { return m_tilt; }
+  inline const Angled& tilt() const {
+    return m_tilt;
+  }
 
   /**
     * Sets the focal-plane tilt angle. Rotates the focal plane around
@@ -62,13 +64,17 @@ public:
     * <td>@image html tilt_shift_camera_tilt_45.png "tilt=45° — extreme"</td>
     * </tr></table>
     */
-  inline void setTilt(const Angled& angle) { m_tilt = angle; }
+  inline void setTilt(const Angled& angle) {
+    m_tilt = angle;
+  }
 
   /// @returns the X component of the lens shift (camera-local
   /// right basis). Split from a single Vector2d into two scalar
   /// Q_PROPERTYs purely for property-editor plumbing — the world
   /// layer doesn't yet have a Vector2d parameter widget.
-  inline double shiftX() const { return m_shiftX; }
+  inline double shiftX() const {
+    return m_shiftX;
+  }
 
   /**
     * Sets the X component of the lens shift. Slides the principal
@@ -80,15 +86,21 @@ public:
     * Independent of `tilt`. Doesn't affect depth of field; only the
     * apparent framing.
     */
-  inline void setShiftX(double value) { m_shiftX = value; }
+  inline void setShiftX(double value) {
+    m_shiftX = value;
+  }
 
   /// @returns the Y component of the lens shift (camera-local
   /// up basis).
-  inline double shiftY() const { return m_shiftY; }
+  inline double shiftY() const {
+    return m_shiftY;
+  }
 
   /// Sets the Y component of the lens shift. See `setShiftX` for
   /// the geometry.
-  inline void setShiftY(double value) { m_shiftY = value; }
+  inline void setShiftY(double value) {
+    m_shiftY = value;
+  }
 
   /**
     * Convert this editable camera into the runtime

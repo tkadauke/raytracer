@@ -99,18 +99,19 @@ namespace {
 
 namespace {
   using engine::raster::detail::accumulateMSAASample;
-  using engine::raster::detail::cascadePointsForDepthRange;
+  using engine::raster::detail::AlphaTestState;
   using engine::raster::detail::cascadeDepthRanges;
+  using engine::raster::detail::cascadePointsForDepthRange;
   using engine::raster::detail::colorOutputPolicy;
+  using engine::raster::detail::copyRasterBuffer;
   using engine::raster::detail::DepthState;
   using engine::raster::detail::DepthWritePolicy;
   using engine::raster::detail::DirectionalShadowCamera;
-  using engine::raster::detail::AlphaTestState;
   using engine::raster::detail::DirectionalShadowCascade;
   using engine::raster::detail::directionalShadowFitForPoints;
   using engine::raster::detail::DirectionalShadowMap;
-  using engine::raster::detail::copyRasterBuffer;
   using engine::raster::detail::fullBufferView;
+  using engine::raster::detail::intersectRasterRects;
   using engine::raster::detail::MSAAFragmentShadeCache;
   using engine::raster::detail::MSAASamplePattern;
   using engine::raster::detail::MSAATileScratch;
@@ -123,7 +124,6 @@ namespace {
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
   using engine::raster::detail::rasterizeTileWithPolicies;
   using engine::raster::detail::rasterizeTriangleSetWithPolicies;
-  using engine::raster::detail::intersectRasterRects;
   using engine::raster::detail::rasterRectEmpty;
   using engine::raster::detail::RasterTileBufferView;
   using engine::raster::detail::RasterTriangle;
@@ -132,10 +132,10 @@ namespace {
   using engine::raster::detail::resolveMSAA;
   using engine::raster::detail::ShadowMaps;
   using engine::raster::detail::stabilizeDirectionalShadowCenter;
-  using engine::raster::detail::tileBufferView;
   using engine::raster::detail::TemporalJitter;
   using engine::raster::detail::TemporalResetCondition;
   using engine::raster::detail::TemporalResourceContract;
+  using engine::raster::detail::tileBufferView;
   using engine::raster::detail::validateTemporalResourceContract;
   using engine::raster::detail::viewDepthRange;
   using engine::raster::detail::withMSAAFragmentShadingPolicy;
@@ -222,8 +222,8 @@ namespace {
   }
 
   Recti effectiveRasterClipRect(const Rasterizer& rasterizer, const Recti& framebufferRect) {
-    Recti result = intersectRasterRects(framebufferRect,
-                                        configuredViewportRect(rasterizer, framebufferRect));
+    Recti result =
+      intersectRasterRects(framebufferRect, configuredViewportRect(rasterizer, framebufferRect));
     if (rasterizer.scissorTestEnabled()) {
       result = intersectRasterRects(result, rasterizer.scissorRect());
     }
@@ -435,8 +435,8 @@ struct Rasterizer::Private {
                                         const render::TilePlan& candidateTilePlan,
                                         const RasterTriangleEmitter& triangleEmitter,
                                         const ShadowMaps& shadowMaps, const Recti& renderClip,
-                                        const std::atomic<bool>& cancelled,
-                                        Buffer<Colord>& buffer, const Vector2d& sampleOffset);
+                                        const std::atomic<bool>& cancelled, Buffer<Colord>& buffer,
+                                        const Vector2d& sampleOffset);
 
   void renderMSAAFrame(const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
                        const render::TilePlan& tilePlan, const MSAASamplePattern& pattern,
@@ -787,9 +787,9 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
   const auto corners = bounds.vertices();
   const auto [minViewDepth, maxViewDepth] =
     viewDepthRange(*camera, corners, rasterizer.nearClipDepth(), rasterizer.farClipDepth());
-  const auto cascadeDepths = cascadeDepthRanges(
-    minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount(),
-    rasterizer.shadowCascadeSplitLambda());
+  const auto cascadeDepths =
+    cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount(),
+                       rasterizer.shadowCascadeSplitLambda());
 
   for (const auto& light : scene->lights()) {
     if (cancelled.load())
@@ -812,8 +812,8 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
         cascadePoints =
           cascadePointsForDepthRange(corners, *camera, cascadeMinDepth, cascadeMaxDepth);
       }
-      const auto shadowFit = directionalShadowFitForPoints(
-        cascadePoints, directional->direction(), rasterizer.nearClipDepth(), size);
+      const auto shadowFit = directionalShadowFitForPoints(cascadePoints, directional->direction(),
+                                                           rasterizer.nearClipDepth(), size);
       auto shadowCamera = std::make_shared<DirectionalShadowCamera>(shadowFit);
       shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
       shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
@@ -945,16 +945,16 @@ void Rasterizer::Private::renderTriangleListPass(
   if (rasterRectEmpty(clipRect))
     return;
 
-  withPreparedTrianglePolicies(
-    scene.get(), rasterizer, shadowMaps, depthView, stencilView,
-    [&](auto stencil, auto depth, auto fragmentPolicy) {
-      for (const auto& triangle : triangles) {
-        if (cancelled.load())
-          return;
-        rasterizePreparedTriangleWithPolicies(triangle, clipRect, colorView, sampleOffset, stencil,
-                                              depth, fragmentPolicy, alphaTest, diagnostics);
-      }
-    });
+  withPreparedTrianglePolicies(scene.get(), rasterizer, shadowMaps, depthView, stencilView,
+                               [&](auto stencil, auto depth, auto fragmentPolicy) {
+                                 for (const auto& triangle : triangles) {
+                                   if (cancelled.load())
+                                     return;
+                                   rasterizePreparedTriangleWithPolicies(
+                                     triangle, clipRect, colorView, sampleOffset, stencil, depth,
+                                     fragmentPolicy, alphaTest, diagnostics);
+                                 }
+                               });
 
   if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
     copyRasterBuffer(*depthCapture, passBuffers.depth());
@@ -967,11 +967,10 @@ void Rasterizer::Private::renderSingleSampleFrame(
   const ShadowMaps& shadowMaps, const Recti& renderClip, const std::atomic<bool>& cancelled,
   Buffer<Colord>& buffer, const Vector2d& sampleOffset) {
   if (tilePlan.isSingleTile()) {
-    renderTriangleStreamPass(rasterizer, scene, triangleEmitter, tilePlan, shadowMaps, renderClip,
-                             cancelled, buffer, sampleOffset,
-                             rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
-                               ? currentDepth.get()
-                               : nullptr);
+    renderTriangleStreamPass(
+      rasterizer, scene, triangleEmitter, tilePlan, shadowMaps, renderClip, cancelled, buffer,
+      sampleOffset,
+      rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
     return;
   }
 
@@ -979,12 +978,10 @@ void Rasterizer::Private::renderSingleSampleFrame(
   if (cancelled.load() || triangleSet.empty())
     return;
 
-  renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, cancelled,
-                        buffer, sampleOffset, true,
-                        nullptr,
-                        rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
-                          ? currentDepth.get()
-                          : nullptr);
+  renderTriangleSetPass(
+    rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip, cancelled, buffer,
+    sampleOffset, true, nullptr,
+    rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
 }
 
 void Rasterizer::Private::renderAutomaticSingleSampleFrame(
@@ -1001,22 +998,20 @@ void Rasterizer::Private::renderAutomaticSingleSampleFrame(
                                   static_cast<int>(candidateTilePlan.size()),
                                   threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
     lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
-    renderTriangleSetPass(rasterizer, scene, candidateSet, candidateTilePlan, shadowMaps,
-                          renderClip, cancelled, buffer, sampleOffset, true, nullptr,
-                          rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
-                            ? currentDepth.get()
-                            : nullptr);
+    renderTriangleSetPass(
+      rasterizer, scene, candidateSet, candidateTilePlan, shadowMaps, renderClip, cancelled, buffer,
+      sampleOffset, true, nullptr,
+      rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
     return;
   }
 
   const render::TilePlan singleTilePlan =
     render::TilePlan::forBuffer(candidateTilePlan.width(), candidateTilePlan.height(), 1);
   lastResolvedQueueSize = 1;
-  renderTriangleListPass(rasterizer, scene, candidateSet.triangles(), singleTilePlan, shadowMaps,
-                         renderClip, cancelled, buffer, sampleOffset,
-                         rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA
-                           ? currentDepth.get()
-                           : nullptr);
+  renderTriangleListPass(
+    rasterizer, scene, candidateSet.triangles(), singleTilePlan, shadowMaps, renderClip, cancelled,
+    buffer, sampleOffset,
+    rasterizer.postProcessAA() == Rasterizer::PostProcessAA::TAA ? currentDepth.get() : nullptr);
 }
 
 void Rasterizer::Private::renderMSAAFrame(
@@ -1057,12 +1052,11 @@ void Rasterizer::Private::renderAutomaticMSAAFrame(
                                   threadPool->maxThreadCount(), rasterizer.msaaSamples())) {
     lastResolvedQueueSize = static_cast<int>(candidateTilePlan.size());
     prepareMSAATileScratch(rasterizer, candidateTilePlan);
-    engine::dispatchTileTasks(candidateTilePlan, *threadPool, tasks,
-                              [&](const Recti& rect, std::size_t tileIndex) {
-                                renderMSAATile(rasterizer, scene, candidateSet, shadowMaps,
-                                               renderClip, pattern, rect, tileIndex, cancelled,
-                                               buffer);
-                              });
+    engine::dispatchTileTasks(
+      candidateTilePlan, *threadPool, tasks, [&](const Recti& rect, std::size_t tileIndex) {
+        renderMSAATile(rasterizer, scene, candidateSet, shadowMaps, renderClip, pattern, rect,
+                       tileIndex, cancelled, buffer);
+      });
     return;
   }
 
@@ -1291,8 +1285,7 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   }
   const TemporalResetCondition resetCondition =
     useTemporalAA ? temporalResetCondition(width, height) : TemporalResetCondition::None;
-  const int jitterFrame =
-    resetCondition == TemporalResetCondition::None ? temporalFrameIndex : 0;
+  const int jitterFrame = resetCondition == TemporalResetCondition::None ? temporalFrameIndex : 0;
   const TemporalJitter currentJitter =
     useTemporalAA ? temporalJitterForFrame(jitterFrame) : TemporalJitter();
   const Vector2d sampleOffset(currentJitter.x, currentJitter.y);
@@ -1327,15 +1320,15 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
     applyTemporalAA(rasterizer, buffer, currentJitter);
   } else {
     switch (rasterizer.postProcessAA()) {
-      case Rasterizer::PostProcessAA::None:
-      case Rasterizer::PostProcessAA::TAA:
-        break;
-      case Rasterizer::PostProcessAA::FXAA:
-        render::postprocess::applyFxaa(buffer);
-        break;
-      case Rasterizer::PostProcessAA::SMAA:
-        render::postprocess::applySmaa(buffer);
-        break;
+    case Rasterizer::PostProcessAA::None:
+    case Rasterizer::PostProcessAA::TAA:
+      break;
+    case Rasterizer::PostProcessAA::FXAA:
+      render::postprocess::applyFxaa(buffer);
+      break;
+    case Rasterizer::PostProcessAA::SMAA:
+      render::postprocess::applySmaa(buffer);
+      break;
     }
   }
 }

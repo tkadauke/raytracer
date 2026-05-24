@@ -14,19 +14,19 @@ using namespace core::math::interpolation;
 
 namespace {
 
-void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
-  EXPECT_NEAR(expected.x(), actual.x(), epsilon);
-  EXPECT_NEAR(expected.y(), actual.y(), epsilon);
-  EXPECT_NEAR(expected.z(), actual.z(), epsilon);
-}
+  void expectVectorNear(const Vector3d& expected, const Vector3d& actual, double epsilon) {
+    EXPECT_NEAR(expected.x(), actual.x(), epsilon);
+    EXPECT_NEAR(expected.y(), actual.y(), epsilon);
+    EXPECT_NEAR(expected.z(), actual.z(), epsilon);
+  }
 
-void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
-  EXPECT_NEAR(expected.r(), actual.r(), epsilon);
-  EXPECT_NEAR(expected.g(), actual.g(), epsilon);
-  EXPECT_NEAR(expected.b(), actual.b(), epsilon);
-}
+  void expectColorNear(const Colord& expected, const Colord& actual, double epsilon) {
+    EXPECT_NEAR(expected.r(), actual.r(), epsilon);
+    EXPECT_NEAR(expected.g(), actual.g(), epsilon);
+    EXPECT_NEAR(expected.b(), actual.b(), epsilon);
+  }
 
-}  // namespace
+} // namespace
 
 TEST(TimelineTest, RejectsInvalidFrameRange) {
   EXPECT_THROW(Timeline(10, 9, 24.0), std::invalid_argument);

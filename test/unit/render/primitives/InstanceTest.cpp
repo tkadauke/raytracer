@@ -7,49 +7,47 @@
 namespace InstanceTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-using namespace render;
-  
+  using namespace render;
+  using namespace render;
+
   TEST(Instance, ShouldReturnChildPrimitiveIfTransformedRayIntersects) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d(1, 0, 0))),
-        Return(primitive.get())
-      )
-    );
-    
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d(1, 0, 0))),
+                      Return(primitive.get())));
+
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto result = instance.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(primitive.get(), result);
   }
-  
+
   TEST(Instance, ShouldNotReturnAnyPrimitiveIfThereIsNoIntersection) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
-    EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(static_cast<render::Primitive*>(nullptr)));
-    
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(Return(static_cast<render::Primitive*>(nullptr)));
+
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto result = instance.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(nullptr, result);
   }
-  
+
   TEST(Instance, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_, _)).WillOnce(Return(true));
-    
+
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     ASSERT_TRUE(instance.intersects(ray, state));
   }
@@ -58,28 +56,29 @@ using namespace render;
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     EXPECT_CALL(*primitive, intersects(_, _)).WillOnce(Return(false));
-    
+
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     ASSERT_FALSE(instance.intersects(ray, state));
   }
-  
+
   TEST(Instance, ShouldReturnFarthestPoint) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     instance.setMatrix(Matrix3d::scale(2));
     EXPECT_CALL(*primitive, farthestPoint(_)).WillOnce(Return(Vector3d(1, 1, 1)));
-    
+
     Vector3d expected(2, 2, 2);
     ASSERT_EQ(expected, instance.farthestPoint(Vector3d::one));
   }
-  
+
   TEST(Instance, ShouldReturnBoundingBox) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
     Instance instance(primitive);
     instance.setMatrix(Matrix3d::scale(2));
-    EXPECT_CALL(*primitive, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*primitive, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
 
     BoundingBoxd expected(Vector3d(-2, -2, -2), Vector3d(2, 2, 2));
     ASSERT_EQ(expected, instance.boundingBox());
@@ -107,12 +106,12 @@ using namespace render;
     Instance instance(primitive);
     instance.setMatrix(Matrix4d());
     instance.setVelocity(Vector3d(5, 0, 0));
-    EXPECT_CALL(*primitive, calculateBoundingBox()).WillOnce(
-      Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
+    EXPECT_CALL(*primitive, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d(-1, -1, -1), Vector3d(1, 1, 1))));
 
     BoundingBoxd bbox = instance.boundingBox();
     ASSERT_EQ(Vector3d(-1, -1, -1), bbox.min());
-    ASSERT_EQ(Vector3d( 6,  1,  1), bbox.max());
+    ASSERT_EQ(Vector3d(6, 1, 1), bbox.max());
   }
 
   TEST(Instance, ShouldShiftRayByVelocityTimesTimeSampleAtIntersect) {
@@ -130,8 +129,7 @@ using namespace render;
 
     Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
     EXPECT_CALL(*primitive, intersect(_, _, _))
-      .WillOnce(DoAll(SaveArg<0>(&capturedRay),
-                      Return(static_cast<render::Primitive*>(nullptr))));
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
 
     Rayd worldRay(Vector4d(5, 0, 0, 1), Vector3d(0, 0, 1));
     State state;
@@ -156,12 +154,11 @@ using namespace render;
 
     Rayd capturedRay(Vector4d(0, 0, 0, 1), Vector3d(0, 0, 1));
     EXPECT_CALL(*primitive, intersect(_, _, _))
-      .WillOnce(DoAll(SaveArg<0>(&capturedRay),
-                      Return(static_cast<render::Primitive*>(nullptr))));
+      .WillOnce(DoAll(SaveArg<0>(&capturedRay), Return(static_cast<render::Primitive*>(nullptr))));
 
     Rayd worldRay(Vector4d(5, 0, 0, 1), Vector3d(0, 0, 1));
     State state;
-    state.timeSample = 0.5;  // ignored on static path
+    state.timeSample = 0.5; // ignored on static path
     HitPointInterval hitPoints;
     instance.intersect(worldRay, hitPoints, state);
 

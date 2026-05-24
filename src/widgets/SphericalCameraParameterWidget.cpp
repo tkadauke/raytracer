@@ -22,8 +22,10 @@ SphericalCameraParameterWidget::SphericalCameraParameterWidget(QWidget* parent)
           [this](int v) { p->ui.horizontalFieldOfViewLabel->setNum(v); });
   connect(p->ui.verticalFieldOfViewSlider, &QSlider::valueChanged, this,
           [this](int v) { p->ui.verticalFieldOfViewLabel->setNum(v); });
-  connect(p->ui.horizontalFieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
-  connect(p->ui.verticalFieldOfViewSlider, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
+  connect(p->ui.horizontalFieldOfViewSlider, SIGNAL(valueChanged(int)), this,
+          SLOT(parameterChanged()));
+  connect(p->ui.verticalFieldOfViewSlider, SIGNAL(valueChanged(int)), this,
+          SLOT(parameterChanged()));
 }
 
 SphericalCameraParameterWidget::~SphericalCameraParameterWidget() {

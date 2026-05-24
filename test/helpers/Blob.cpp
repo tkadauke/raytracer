@@ -6,9 +6,9 @@
 
 namespace testing {
   Blob::Blob(std::vector<Pixel> pixels, int bufferWidth, int bufferHeight)
-    : m_pixels(std::move(pixels))
-  {
-    if (m_pixels.empty()) return;
+      : m_pixels(std::move(pixels)) {
+    if (m_pixels.empty())
+      return;
 
     // Bounding box + centroid in a single pass.
     int minX = m_pixels.front().x, maxX = minX;
@@ -52,19 +52,22 @@ namespace testing {
   }
 
   double Blob::circularity() const {
-    if (perimeter() == 0) return 0.0;
+    if (perimeter() == 0)
+      return 0.0;
     const double a = area();
     const double p = perimeter();
     return 4.0 * M_PI * a / (p * p);
   }
 
   double Blob::aspectRatio() const {
-    if (m_bbox.width() == 0) return 0.0;
+    if (m_bbox.width() == 0)
+      return 0.0;
     return static_cast<double>(m_bbox.height()) / m_bbox.width();
   }
 
   double Blob::radialVariance() const {
-    if (m_boundary.empty()) return 0.0;
+    if (m_boundary.empty())
+      return 0.0;
     const double cx = m_centroid.x;
     const double cy = m_centroid.y;
 
@@ -75,7 +78,8 @@ namespace testing {
       sumD += std::sqrt(dx * dx + dy * dy);
     }
     const double mean = sumD / m_boundary.size();
-    if (mean == 0.0) return 0.0;
+    if (mean == 0.0)
+      return 0.0;
 
     double sumSq = 0.0;
     for (const auto& p : m_boundary) {
@@ -89,7 +93,8 @@ namespace testing {
 
   double Blob::extent() const {
     const int bboxArea = m_bbox.width() * m_bbox.height();
-    if (bboxArea == 0) return 0.0;
+    if (bboxArea == 0)
+      return 0.0;
     return static_cast<double>(area()) / bboxArea;
   }
 
@@ -106,7 +111,8 @@ namespace testing {
     for (int y = 0; y < h; ++y) {
       for (int x = 0; x < w; ++x) {
         const size_t idx = static_cast<size_t>(y) * w + x;
-        if (visited[idx] || buffer[y][x] != target) continue;
+        if (visited[idx] || buffer[y][x] != target)
+          continue;
 
         // BFS flood-fill from this seed.
         std::vector<Pixel> pixels;
@@ -122,9 +128,11 @@ namespace testing {
           for (int k = 0; k < 4; ++k) {
             const int nx = p.x + dx[k];
             const int ny = p.y + dy[k];
-            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h)
+              continue;
             const size_t nIdx = static_cast<size_t>(ny) * w + nx;
-            if (visited[nIdx] || buffer[ny][nx] != target) continue;
+            if (visited[nIdx] || buffer[ny][nx] != target)
+              continue;
             visited[nIdx] = true;
             queue.push({nx, ny});
           }
@@ -139,9 +147,10 @@ namespace testing {
 
   std::optional<Blob> findLargestBlob(const Buffer<unsigned int>& buffer, const Colord& color) {
     auto blobs = findAllBlobs(buffer, color);
-    if (blobs.empty()) return std::nullopt;
+    if (blobs.empty())
+      return std::nullopt;
     auto it = std::max_element(blobs.begin(), blobs.end(),
-      [](const Blob& a, const Blob& b) { return a.area() < b.area(); });
+                               [](const Blob& a, const Blob& b) { return a.area() < b.area(); });
     return std::move(*it);
   }
 }

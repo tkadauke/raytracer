@@ -4,10 +4,9 @@
 #include "render/cameras/PinholeCamera.h"
 
 PinholeCamera::PinholeCamera(Element* parent)
-  : Camera(parent),
-    m_distance(5),
-    m_zoom(1)
-{
+    : Camera(parent),
+      m_distance(5),
+      m_zoom(1) {
 }
 
 std::shared_ptr<render::Camera> PinholeCamera::toRaytracer() const {
@@ -18,4 +17,3 @@ std::shared_ptr<render::Camera> PinholeCamera::toRaytracer() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<PinholeCamera>("PinholeCamera");
-

@@ -7,14 +7,14 @@
 #include "render/primitives/Grid.h"
 
 Surface::Surface(Element* parent)
-  : Transformable(parent),
-    m_material(nullptr),
-    m_visible(true),
-    m_velocity(Vector3d::null)
-{
+    : Transformable(parent),
+      m_material(nullptr),
+      m_visible(true),
+      m_velocity(Vector3d::null) {
 }
 
-std::shared_ptr<render::Primitive> Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
+std::shared_ptr<render::Primitive>
+Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
   auto result = std::make_shared<render::Instance>(primitive);
   result->setMatrix(localTransform());
   result->setVelocity(m_velocity);
@@ -26,18 +26,18 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) co
   if (!primitive) {
     return primitive;
   }
-  
+
   if (material()) {
     primitive->setMaterial(material()->toRaytracerMaterial());
   }
-  
+
   if (childElements().size() > 0) {
     auto composite = std::dynamic_pointer_cast<render::Composite>(primitive);
     if (!composite) {
       composite = std::make_shared<render::Composite>();
       composite->add(primitive);
     }
-    
+
     for (const auto& child : childElements()) {
       if (Surface* surface = qobject_cast<Surface*>(child)) {
         if (surface->visible())
@@ -47,7 +47,7 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) co
           scene->addLight(light->toRaytracer());
       }
     }
-    
+
     if (auto grid = std::dynamic_pointer_cast<render::Grid>(composite)) {
       grid->setup();
     }
@@ -59,7 +59,5 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) co
 }
 
 bool Surface::canHaveChild(Element* child) const {
-  return dynamic_cast<Surface*>(child) != nullptr ||
-         dynamic_cast<Light*>(child) != nullptr;
+  return dynamic_cast<Surface*>(child) != nullptr || dynamic_cast<Light*>(child) != nullptr;
 }
-

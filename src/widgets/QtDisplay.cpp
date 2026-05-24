@@ -12,16 +12,15 @@ using namespace render;
 
 struct QtDisplay::Private {
   Private()
-    : interactive(true),
-      cancelRenderOnInteraction(true),
-      renderAfterCurrentFrame(false),
-      xAngle(0),
-      yAngle(0),
-      distance(1),
-      target(Vector3d::zero)
-  {
+      : interactive(true),
+        cancelRenderOnInteraction(true),
+        renderAfterCurrentFrame(false),
+        xAngle(0),
+        yAngle(0),
+        distance(1),
+        target(Vector3d::zero) {
   }
-  
+
   bool interactive;
   bool cancelRenderOnInteraction;
   bool renderAfterCurrentFrame;
@@ -31,15 +30,12 @@ struct QtDisplay::Private {
 };
 
 QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<render::RenderEngine> engine)
-  : RenderWidget(parent, std::move(engine)),
-    p(std::make_unique<Private>())
-{
+    : RenderWidget(parent, std::move(engine)),
+      p(std::make_unique<Private>()) {
   resize(400, 300);
   setBufferSize(size());
   connect(this, &RenderWidget::finished, this, [this] {
-    QTimer::singleShot(0, this, [this] {
-      renderAfterCurrentFrameIfRequested();
-    });
+    QTimer::singleShot(0, this, [this] { renderAfterCurrentFrameIfRequested(); });
   });
 }
 
@@ -80,16 +76,16 @@ void QtDisplay::mouseMoveEvent(QMouseEvent* event) {
     return;
   }
   QPoint delta = event->pos() - p->dragPosition;
-  
+
   p->xAngle -= delta.y() * 0.01;
   if (p->xAngle < -1)
     p->xAngle = -1;
   if (p->xAngle > 1)
     p->xAngle = 1;
   p->yAngle += delta.x() * 0.01;
-  
+
   render();
-  
+
   p->dragPosition = event->pos();
 }
 
@@ -121,12 +117,10 @@ void QtDisplay::render() {
   p->renderAfterCurrentFrame = false;
   if (interactive()) {
     m_engine->camera()->setTarget(p->target);
-    m_engine->camera()->setPosition(
-      p->target +
-      Matrix3d::rotateY(Angled::fromRadians(p->yAngle)) *
-      Matrix3d::rotateX(Angled::fromRadians(p->xAngle)) *
-      Vector3d(0, 0, -p->distance)
-    );
+    m_engine->camera()->setPosition(p->target +
+                                    Matrix3d::rotateY(Angled::fromRadians(p->yAngle)) *
+                                      Matrix3d::rotateX(Angled::fromRadians(p->xAngle)) *
+                                      Vector3d(0, 0, -p->distance));
   }
 
   RenderWidget::render();

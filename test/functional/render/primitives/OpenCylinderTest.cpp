@@ -2,9 +2,9 @@
 
 namespace OpenCylinderTest {
   using namespace ::testing;
-  
+
   class OpenCylinderTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(OpenCylinderTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a centered open cylinder");
     when("i look at the origin");
@@ -12,7 +12,7 @@ namespace OpenCylinderTest {
     // rectangular silhouette — visibility check only.
     then("i should see something");
   }
-  
+
   TEST_F(OpenCylinderTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
     given("a displaced open cylinder");
     when("i look at the origin");

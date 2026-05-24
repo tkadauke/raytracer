@@ -54,9 +54,8 @@ namespace render {
       * color and a white background color.
       */
     inline Scene()
-      : m_ambient(Colord::white()),
-        m_background(Colord::white())
-    {
+        : m_ambient(Colord::white()),
+          m_background(Colord::white()) {
     }
 
     /**
@@ -64,9 +63,8 @@ namespace render {
       * background color.
       */
     inline explicit Scene(const Colord& ambient)
-      : m_ambient(ambient),
-        m_background(Colord::white())
-    {
+        : m_ambient(ambient),
+          m_background(Colord::white()) {
     }
 
     /**

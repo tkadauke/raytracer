@@ -34,13 +34,14 @@ namespace {
 }
 #endif
 
-const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                   render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersect);
-  const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
-  
+  const Vector3d &o = ray.origin() - m_origin, d = ray.direction();
+
   double od = o * d, dd = d * d;
   double discriminant = od * od - dd * (o * o - m_radius * m_radius);
-  
+
   if (discriminant < 0) {
     state.miss(this, "Sphere, ray miss");
     return nullptr;
@@ -48,15 +49,12 @@ const Primitive* Sphere::intersect(const Rayd& ray, HitPointInterval& hitPoints,
     double discriminantRoot = sqrt(discriminant);
     double t1 = (-od - discriminantRoot) / dd;
     double t2 = (-od + discriminantRoot) / dd;
-    
-    Vector3d hitPoint1 = ray.at(t1),
-             hitPoint2 = ray.at(t2);
-    
-    hitPoints.add(
-      HitPoint(this, t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
-      HitPoint(this, t2, hitPoint2, (hitPoint2 - m_origin) / m_radius)
-    );
-    
+
+    Vector3d hitPoint1 = ray.at(t1), hitPoint2 = ray.at(t2);
+
+    hitPoints.add(HitPoint(this, t1, hitPoint1, (hitPoint1 - m_origin) / m_radius),
+                  HitPoint(this, t2, hitPoint2, (hitPoint2 - m_origin) / m_radius));
+
     if (t1 <= 0 && t2 <= 0) {
       state.miss(this, "Sphere, behind ray");
       return nullptr;
@@ -76,18 +74,25 @@ RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& 
   RAYTRACER_STATS_INC(raySphereIntersect);
   RayPacketIntersection4 result;
 
-  const __m128 ox = _mm_sub_ps(_mm_load_ps(rays.originX.data()), _mm_set1_ps(static_cast<float>(m_origin.x())));
-  const __m128 oy = _mm_sub_ps(_mm_load_ps(rays.originY.data()), _mm_set1_ps(static_cast<float>(m_origin.y())));
-  const __m128 oz = _mm_sub_ps(_mm_load_ps(rays.originZ.data()), _mm_set1_ps(static_cast<float>(m_origin.z())));
+  const __m128 ox =
+    _mm_sub_ps(_mm_load_ps(rays.originX.data()), _mm_set1_ps(static_cast<float>(m_origin.x())));
+  const __m128 oy =
+    _mm_sub_ps(_mm_load_ps(rays.originY.data()), _mm_set1_ps(static_cast<float>(m_origin.y())));
+  const __m128 oz =
+    _mm_sub_ps(_mm_load_ps(rays.originZ.data()), _mm_set1_ps(static_cast<float>(m_origin.z())));
   const __m128 dx = _mm_load_ps(rays.directionX.data());
   const __m128 dy = _mm_load_ps(rays.directionY.data());
   const __m128 dz = _mm_load_ps(rays.directionZ.data());
 
-  const __m128 od = _mm_add_ps(_mm_add_ps(_mm_mul_ps(ox, dx), _mm_mul_ps(oy, dy)), _mm_mul_ps(oz, dz));
-  const __m128 dd = _mm_add_ps(_mm_add_ps(_mm_mul_ps(dx, dx), _mm_mul_ps(dy, dy)), _mm_mul_ps(dz, dz));
-  const __m128 oo = _mm_add_ps(_mm_add_ps(_mm_mul_ps(ox, ox), _mm_mul_ps(oy, oy)), _mm_mul_ps(oz, oz));
+  const __m128 od =
+    _mm_add_ps(_mm_add_ps(_mm_mul_ps(ox, dx), _mm_mul_ps(oy, dy)), _mm_mul_ps(oz, dz));
+  const __m128 dd =
+    _mm_add_ps(_mm_add_ps(_mm_mul_ps(dx, dx), _mm_mul_ps(dy, dy)), _mm_mul_ps(dz, dz));
+  const __m128 oo =
+    _mm_add_ps(_mm_add_ps(_mm_mul_ps(ox, ox), _mm_mul_ps(oy, oy)), _mm_mul_ps(oz, oz));
   const __m128 radius2 = _mm_set1_ps(static_cast<float>(m_radius * m_radius));
-  const __m128 discriminant = _mm_sub_ps(_mm_mul_ps(od, od), _mm_mul_ps(dd, _mm_sub_ps(oo, radius2)));
+  const __m128 discriminant =
+    _mm_sub_ps(_mm_mul_ps(od, od), _mm_mul_ps(dd, _mm_sub_ps(oo, radius2)));
   const __m128 zero = _mm_setzero_ps();
   const __m128 positiveDiscriminant = _mm_cmpgt_ps(discriminant, zero);
   const __m128 root = _mm_sqrt_ps(discriminant);
@@ -121,11 +126,11 @@ RayPacketIntersection4 Sphere::intersectPacket(const Ray4& rays, render::State& 
 
 bool Sphere::intersects(const Rayd& ray, render::State& state) const {
   RAYTRACER_STATS_INC(raySphereIntersects);
-  const Vector3d& o = ray.origin() - m_origin, d = ray.direction();
-  
+  const Vector3d &o = ray.origin() - m_origin, d = ray.direction();
+
   double od = o * d, dd = d * d;
   double discriminant = od * od - dd * (o * o - m_radius * m_radius);
-  
+
   if (discriminant < 0) {
     state.shadowMiss(this, "Sphere, ray miss");
     return false;
@@ -137,18 +142,18 @@ bool Sphere::intersects(const Rayd& ray, render::State& state) const {
       state.shadowMiss(this, "Sphere, behind ray");
       return false;
     }
-    
+
     state.shadowHit(this, "Sphere");
     return true;
   }
-  
+
   state.shadowMiss(this, "Sphere, ray miss");
   return false;
 }
 
 shared_ptr<Mesh> Sphere::tessellate(int lod) const {
-  const int lonSegs = 16 << lod;   // 16, 32, 64, …
-  const int latBands = 8 << lod;   // 8, 16, 32, …
+  const int lonSegs = 16 << lod; // 16, 32, 64, …
+  const int latBands = 8 << lod; // 8, 16, 32, …
 
   auto mesh = make_shared<Mesh>();
 
@@ -156,13 +161,13 @@ shared_ptr<Mesh> Sphere::tessellate(int lod) const {
   // same 3D point but carry distinct u-values — avoids a UV pinch at the poles
   // without needing special-case fan triangles.
   for (int lat = 0; lat <= latBands; ++lat) {
-    double theta = -PI / 2.0 + lat * PI / latBands;  // [-π/2, π/2]
+    double theta = -PI / 2.0 + lat * PI / latBands; // [-π/2, π/2]
     double cosTheta = std::cos(theta);
     double sinTheta = std::sin(theta);
-    double v = static_cast<double>(lat) / latBands;  // [0, 1] south→north
+    double v = static_cast<double>(lat) / latBands; // [0, 1] south→north
 
     for (int lon = 0; lon <= lonSegs; ++lon) {
-      double phi = lon * TAU / lonSegs;              // [0, 2π]
+      double phi = lon * TAU / lonSegs; // [0, 2π]
       double cosPhi = std::cos(phi);
       double sinPhi = std::sin(phi);
       double u = static_cast<double>(lon) / lonSegs; // [0, 1] around
@@ -178,9 +183,9 @@ shared_ptr<Mesh> Sphere::tessellate(int lod) const {
   // culling agrees with the outward radial vertex normals.
   for (int lat = 0; lat < latBands; ++lat) {
     for (int lon = 0; lon < lonSegs; ++lon) {
-      int row     = lat       * (lonSegs + 1);
+      int row = lat * (lonSegs + 1);
       int nextRow = (lat + 1) * (lonSegs + 1);
-      mesh->addFace({ row + lon, nextRow + lon, nextRow + lon + 1, row + lon + 1 });
+      mesh->addFace({row + lon, nextRow + lon, nextRow + lon + 1, row + lon + 1});
     }
   }
 

@@ -61,7 +61,8 @@ namespace engine::raster::detail {
   }
 
   inline TemporalResourceValidation
-  validateTemporalResourceContract(const TemporalResourceContract& contract, int width, int height) {
+  validateTemporalResourceContract(const TemporalResourceContract& contract, int width,
+                                   int height) {
     TemporalResourceValidation result;
 
     if (width <= 0 || height <= 0) {

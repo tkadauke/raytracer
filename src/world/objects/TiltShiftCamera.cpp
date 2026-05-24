@@ -4,11 +4,10 @@
 #include "render/cameras/TiltShiftCamera.h"
 
 TiltShiftCamera::TiltShiftCamera(Element* parent)
-  : ThinLensCamera(parent),
-    m_tilt(0_degrees),
-    m_shiftX(0),
-    m_shiftY(0)
-{
+    : ThinLensCamera(parent),
+      m_tilt(0_degrees),
+      m_shiftX(0),
+      m_shiftY(0) {
 }
 
 std::shared_ptr<render::Camera> TiltShiftCamera::toRaytracer() const {

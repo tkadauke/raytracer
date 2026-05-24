@@ -8,10 +8,12 @@
 
 using namespace render;
 
-Colord ReflectiveMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const {
+Colord ReflectiveMaterial::shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                                 const Rayd& ray, const HitPoint& hitPoint,
+                                 render::State& state) const {
   auto color = PhongMaterial::shade(raycaster, scene, ray, hitPoint, state);
 
-  Vector3d out = - ray.direction();
+  Vector3d out = -ray.direction();
   Vector3d in;
   Colord refl = m_reflectiveBRDF.sample(hitPoint, out, in);
   Rayd reflected(hitPoint.point(), in);

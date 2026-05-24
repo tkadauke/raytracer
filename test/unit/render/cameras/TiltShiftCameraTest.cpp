@@ -9,9 +9,9 @@
 namespace TiltShiftCameraTest {
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
 
   TEST(TiltShiftCamera, ShouldDefaultToZeroTiltAndShift) {
@@ -40,7 +40,7 @@ using namespace render;
   TEST(TiltShiftCamera, ShouldSetAndGetShift) {
     TiltShiftCamera camera;
     camera.setShift(Vector2d(0.3, -0.2));
-    EXPECT_DOUBLE_EQ( 0.3, camera.shift().x());
+    EXPECT_DOUBLE_EQ(0.3, camera.shift().x());
     EXPECT_DOUBLE_EQ(-0.2, camera.shift().y());
   }
 
@@ -98,8 +98,8 @@ using namespace render;
     };
 
     Vector3d centre = pickPointFar(0.0, 0.0);
-    Vector3d edgeR  = pickPointFar(1.0, 0.0);
-    Vector3d edgeU  = pickPointFar(0.0, 1.0);
+    Vector3d edgeR = pickPointFar(1.0, 0.0);
+    Vector3d edgeU = pickPointFar(0.0, 1.0);
 
     ASSERT_VECTOR_NEAR(centre, edgeR, 1e-9);
     ASSERT_VECTOR_NEAR(centre, edgeU, 1e-9);

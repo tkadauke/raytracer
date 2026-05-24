@@ -21,15 +21,13 @@ namespace engine::graph {
     }
 
     void requireColorResource(const RenderResourceStorage& storage,
-                              const RenderResourceId& resource,
-                              const RenderPassNode& pass) {
+                              const RenderResourceId& resource, const RenderPassNode& pass) {
       if (!storage.resource(resource).colorBacked()) {
         throw passError(pass, "resource '" + resource + "' is not color-backed");
       }
     }
 
-    void requireMatchingSize(const Buffer<Colord>& source,
-                             const Buffer<Colord>& destination,
+    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
       if (source.width() != destination.width() || source.height() != destination.height()) {
         throw std::runtime_error(action + " requires matching color buffer dimensions");
@@ -54,9 +52,7 @@ namespace engine::graph {
       rasterizer.setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCF);
     }
 
-    void prepareEngine(render::RenderEngine& engine,
-                       const GraphRenderEngine& graph,
-                       bool cancelled,
+    void prepareEngine(render::RenderEngine& engine, const GraphRenderEngine& graph, bool cancelled,
                        std::shared_ptr<render::Tonemap> tonemap) {
       engine.setTonemap(std::move(tonemap));
       if (graph.hasBackgroundColorOverride()) {
@@ -83,8 +79,7 @@ namespace engine::graph {
         engine->render(context.storage().color(write.resource));
       }
 
-      bool executeDisplay(RenderExecutionContext& context,
-                          Buffer<unsigned int>& buffer,
+      bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
                           std::shared_ptr<render::Tonemap> tonemap) override {
         auto engine = createEngine(context.graph());
         prepareEngine(*engine, context.graph(), context.cancelled(), std::move(tonemap));
@@ -157,9 +152,8 @@ namespace engine::graph {
 
         Buffer<Colord> overlay(source.width(), source.height());
         auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
-        auto wireframe =
-          std::make_shared<::engine::wireframe::Wireframe>(std::move(camera),
-                                                           context.graph().scene());
+        auto wireframe = std::make_shared<::engine::wireframe::Wireframe>(std::move(camera),
+                                                                          context.graph().scene());
         wireframe->setBackgroundColor(Colord::black());
         wireframe->setEdgeColor(Colord::white());
         if (context.cancelled()) {
@@ -223,13 +217,11 @@ namespace engine::graph {
       }
     }
 
-    if (pass.kind == RenderPassKind::Tonemap &&
-        pass.executor == RenderExecutorKind::PostProcess) {
+    if (pass.kind == RenderPassKind::Tonemap && pass.executor == RenderExecutorKind::PostProcess) {
       return std::make_unique<TonemapPass>();
     }
 
-    if (pass.kind == RenderPassKind::Overlay &&
-        pass.executor == RenderExecutorKind::Wireframe) {
+    if (pass.kind == RenderPassKind::Overlay && pass.executor == RenderExecutorKind::Wireframe) {
       return std::make_unique<WireframeOverlayPass>();
     }
 

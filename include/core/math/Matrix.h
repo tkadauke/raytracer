@@ -46,7 +46,7 @@ template<int Dimensions, class T, class VectorType = Vector<Dimensions, T>, clas
 class Matrix {
   typedef T RowType[Dimensions];
   typedef RowType CellsType[Dimensions];
-  
+
   typedef Matrix<Dimensions, T, VectorType, Derived> ThisType;
 
 public:
@@ -55,17 +55,13 @@ public:
     * class. If the Derived template parameter is omitted, then this is
     * equivalent to Matrix. Otherwise, it is equivalent to Derived.
     */
-  using MatrixType = std::conditional_t<
-    std::is_same_v<Derived, void>,
-    ThisType,
-    Derived
-  >;
-  
+  using MatrixType = std::conditional_t<std::is_same_v<Derived, void>, ThisType, Derived>;
+
   /**
     * Vector type for Matrix-Vector calculations.
     */
   typedef VectorType Vector;
-  
+
   /**
     * Constructs the identity matrix of size Dim:
     * 
@@ -397,11 +393,8 @@ public:
     * @returns the best coordinate-axis basis vector orthogonalized against
     * the first basisColumns columns of this matrix.
     */
-  [[nodiscard]] inline Vector orthogonalizedBasisVector(
-    int basisColumns,
-    int preferredColumn,
-    T tolerance
-  ) const {
+  [[nodiscard]] inline Vector orthogonalizedBasisVector(int basisColumns, int preferredColumn,
+                                                        T tolerance) const {
     Vector best = Vector::zero;
     T bestSquaredLength = T(-1);
 
@@ -557,11 +550,8 @@ namespace matrix_decomposition {
 }
 
 template<int Dimensions, class T, class VectorType, class Derived>
-matrix_decomposition::LU<
-  Dimensions,
-  T,
-  VectorType,
-  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+matrix_decomposition::LU<Dimensions, T, VectorType,
+                         typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
 Matrix<Dimensions, T, VectorType, Derived>::luDecomposition() const noexcept {
   using Result = matrix_decomposition::LU<Dimensions, T, VectorType, MatrixType>;
 
@@ -571,9 +561,7 @@ Matrix<Dimensions, T, VectorType, Derived>::luDecomposition() const noexcept {
     result.pivot[i] = i;
   }
 
-  const T tolerance = std::numeric_limits<T>::epsilon() *
-                      std::max(T(1), norm1()) *
-                      T(Dimensions);
+  const T tolerance = std::numeric_limits<T>::epsilon() * std::max(T(1), norm1()) * T(Dimensions);
 
   for (int col = 0; col != Dimensions; ++col) {
     int pivotRow = col;
@@ -609,11 +597,8 @@ Matrix<Dimensions, T, VectorType, Derived>::luDecomposition() const noexcept {
 }
 
 template<int Dimensions, class T, class VectorType, class Derived>
-matrix_decomposition::QR<
-  Dimensions,
-  T,
-  VectorType,
-  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+matrix_decomposition::QR<Dimensions, T, VectorType,
+                         typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
 Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
   using Result = matrix_decomposition::QR<Dimensions, T, VectorType, MatrixType>;
 
@@ -621,9 +606,7 @@ Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
   result.q = MatrixType::zero;
   result.r = MatrixType::zero;
 
-  const T tolerance = std::numeric_limits<T>::epsilon() *
-                      std::max(T(1), norm1()) *
-                      T(64);
+  const T tolerance = std::numeric_limits<T>::epsilon() * std::max(T(1), norm1()) * T(64);
 
   for (int col = 0; col != Dimensions; ++col) {
     VectorType v = this->col(col);
@@ -638,11 +621,7 @@ Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
 
     T length = v.length();
     if (length <= tolerance) {
-      v = result.q.orthogonalizedBasisVector(
-        col,
-        col,
-        tolerance
-      );
+      v = result.q.orthogonalizedBasisVector(col, col, tolerance);
       length = v.length();
     }
 
@@ -660,19 +639,14 @@ Matrix<Dimensions, T, VectorType, Derived>::qrDecomposition() const {
 }
 
 template<int Dimensions, class T, class VectorType, class Derived>
-matrix_decomposition::SVD<
-  Dimensions,
-  T,
-  VectorType,
-  typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
+matrix_decomposition::SVD<Dimensions, T, VectorType,
+                          typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType>
 Matrix<Dimensions, T, VectorType, Derived>::svdDecomposition() const {
   using Result = matrix_decomposition::SVD<Dimensions, T, VectorType, MatrixType>;
 
   MatrixType columns(static_cast<const MatrixType&>(*this));
   MatrixType v;
-  const T tolerance = std::numeric_limits<T>::epsilon() *
-                      std::max(T(1), norm1()) *
-                      T(64);
+  const T tolerance = std::numeric_limits<T>::epsilon() * std::max(T(1), norm1()) * T(64);
 
   for (int sweep = 0; sweep != 32; ++sweep) {
     bool changed = false;
@@ -743,11 +717,7 @@ Matrix<Dimensions, T, VectorType, Derived>::svdDecomposition() const {
     }
 
     if (uCol.length() <= tolerance) {
-      uCol = result.u.orthogonalizedBasisVector(
-        outCol,
-        outCol,
-        tolerance
-      );
+      uCol = result.u.orthogonalizedBasisVector(outCol, outCol, tolerance);
     }
 
     result.u.setCol(outCol, uCol.normalizedOrZero(tolerance));
@@ -769,7 +739,8 @@ Matrix<Dimensions, T, VectorType, Derived>::svdDecomposition() const {
   * @returns os.
   */
 template<int Dimensions, class T, class VectorType, class Derived>
-std::ostream& operator<<(std::ostream& os, const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
+std::ostream& operator<<(std::ostream& os,
+                         const Matrix<Dimensions, T, VectorType, Derived>& matrix) {
   for (int row = 0; row != Dimensions; ++row) {
     for (int col = 0; col != Dimensions; ++col) {
       os << matrix[row][col] << ' ';
@@ -803,10 +774,11 @@ std::ostream& operator<<(std::ostream& os, const Matrix<Dimensions, T, VectorTyp
 template<class T>
 class Matrix2 : public Matrix<2, T, Vector2<T>, Matrix2<T>> {
   typedef Matrix<2, T, Vector2<T>, Matrix2<T>> Base;
+
 public:
   using Base::cell;
   using Base::setCell;
-  
+
   /**
     * Default constructor. Constructs the identity matrix
     * 
@@ -816,8 +788,7 @@ public:
     * \end{array}\right)\f]
     */
   inline constexpr Matrix2()
-    : Base()
-  {
+      : Base() {
   }
 
   /**
@@ -828,17 +799,17 @@ public:
     */
   template<int D, class V, class M>
   inline constexpr Matrix2(const Matrix<D, T, V, M>& source)
-    : Base(source)
-  {
+      : Base(source) {
   }
 
   /**
     * Component-wise constructor for a Matrix2.
     */
-  inline constexpr Matrix2(const T& c00, const T& c01,
-                            const T& c10, const T& c11) {
-    setCell(0, 0, c00); setCell(0, 1, c01);
-    setCell(1, 0, c10); setCell(1, 1, c11);
+  inline constexpr Matrix2(const T& c00, const T& c01, const T& c10, const T& c11) {
+    setCell(0, 0, c00);
+    setCell(0, 1, c01);
+    setCell(1, 0, c10);
+    setCell(1, 1, c11);
   }
 
   /**
@@ -862,8 +833,7 @@ public:
   template<class A>
   [[nodiscard]] inline static Matrix2<T> rotate(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
-    return Matrix2<T>(cos, -sin,
-                      sin, cos);
+    return Matrix2<T>(cos, -sin, sin, cos);
   }
 
   /**
@@ -888,26 +858,25 @@ public:
     * @returns a matrix that represents a scaling of factor.
     */
   [[nodiscard]] inline static constexpr Matrix2<T> scale(const T& factor) noexcept {
-    return Matrix2<T>(factor, 0,
-                      0,      factor);
+    return Matrix2<T>(factor, 0, 0, factor);
   }
 
   /**
     * @returns a matrix that represents a horizontal scaling of xFactor, and
     *   vertical scaling of yFactor.
     */
-  [[nodiscard]] inline static constexpr Matrix2<T> scale(const T& xFactor, const T& yFactor) noexcept {
-    return Matrix2<T>(xFactor, 0,
-                      0,       yFactor);
+  [[nodiscard]] inline static constexpr Matrix2<T> scale(const T& xFactor,
+                                                         const T& yFactor) noexcept {
+    return Matrix2<T>(xFactor, 0, 0, yFactor);
   }
 
   /**
     * @returns a matrix that represents a horizontal sharing of xShear, and
     *   vertical sharing of yShear.
     */
-  [[nodiscard]] inline static constexpr Matrix2<T> shear(const T& xShear, const T& yShear) noexcept {
-    return Matrix2<T>(1,      xShear,
-                      yShear, 1);
+  [[nodiscard]] inline static constexpr Matrix2<T> shear(const T& xShear,
+                                                         const T& yShear) noexcept {
+    return Matrix2<T>(1, xShear, yShear, 1);
   }
 
   /**
@@ -923,12 +892,12 @@ public:
     */
   [[nodiscard]] inline static Matrix2<T> reflect(const T& x, const T& y) noexcept {
     T len = std::sqrt(x * x + y * y);
-    T divider = len*len;
+    T divider = len * len;
 
     T coordProduct = (2 * x * y) / divider;
 
-    return Matrix2<T>((x*x - y*y) / divider, coordProduct,
-                      coordProduct,          (y*y - x*x) / divider);
+    return Matrix2<T>((x * x - y * y) / divider, coordProduct, coordProduct,
+                      (y * y - x * x) / divider);
   }
 
   /**
@@ -944,14 +913,13 @@ public:
     */
   [[nodiscard]] inline static Matrix2<T> project(const T& x, const T& y) noexcept {
     T len = std::sqrt(x * x + y * y);
-    T divider = len*len;
+    T divider = len * len;
 
     T coordProduct = (x * y) / divider;
 
-    return Matrix2<T>((x * x) / divider, coordProduct,
-                      coordProduct,      (y * y) / divider);
+    return Matrix2<T>((x * x) / divider, coordProduct, coordProduct, (y * y) / divider);
   }
-  
+
   /**
     * @returns the identity matrix.
     */
@@ -1062,11 +1030,12 @@ const Vector2<T>& Matrix2<T>::yUnit() {
 template<class T>
 class Matrix3 : public Matrix<3, T, Vector3<T>, Matrix3<T>> {
   typedef Matrix<3, T, Vector3<T>, Matrix3<T>> Base;
+
 public:
   using Base::cell;
-  using Base::setCell;
   using Base::col;
-  
+  using Base::setCell;
+
   /**
     * Default constructor. Constructs the identity matrix
     * 
@@ -1077,8 +1046,7 @@ public:
     * \end{array}\right)\f]
     */
   inline constexpr Matrix3()
-    : Base()
-  {
+      : Base() {
   }
 
   /**
@@ -1089,19 +1057,23 @@ public:
     */
   template<int D, class V, class M>
   inline constexpr Matrix3(const Matrix<D, T, V, M>& source)
-    : Base(source)
-  {
+      : Base(source) {
   }
 
   /**
     * Component-wise constructor for a Matrix3.
     */
-  inline constexpr Matrix3(const T& c00, const T& c01, const T& c02,
-                            const T& c10, const T& c11, const T& c12,
-                            const T& c20, const T& c21, const T& c22) {
-    setCell(0, 0, c00); setCell(0, 1, c01); setCell(0, 2, c02);
-    setCell(1, 0, c10); setCell(1, 1, c11); setCell(1, 2, c12);
-    setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22);
+  inline constexpr Matrix3(const T& c00, const T& c01, const T& c02, const T& c10, const T& c11,
+                           const T& c12, const T& c20, const T& c21, const T& c22) {
+    setCell(0, 0, c00);
+    setCell(0, 1, c01);
+    setCell(0, 2, c02);
+    setCell(1, 0, c10);
+    setCell(1, 1, c11);
+    setCell(1, 2, c12);
+    setCell(2, 0, c20);
+    setCell(2, 1, c21);
+    setCell(2, 2, c22);
   }
 
   /**
@@ -1110,9 +1082,7 @@ public:
   template<class A>
   [[nodiscard]] inline static Matrix3<T> rotateX(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
-    return Matrix3<T>(T(1), T(), T(),
-                      T(),  cos, -sin,
-                      T(),  sin, cos);
+    return Matrix3<T>(T(1), T(), T(), T(), cos, -sin, T(), sin, cos);
   }
 
   /**
@@ -1121,9 +1091,7 @@ public:
   template<class A>
   [[nodiscard]] inline static Matrix3<T> rotateY(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
-    return Matrix3<T>(cos,  T(),  sin,
-                      T(),  T(1), T(),
-                      -sin, T(),  cos);
+    return Matrix3<T>(cos, T(), sin, T(), T(1), T(), -sin, T(), cos);
   }
 
   /**
@@ -1132,9 +1100,7 @@ public:
   template<class A>
   [[nodiscard]] inline static Matrix3<T> rotateZ(const A& angle) noexcept {
     T sin = std::sin(angle.radians()), cos = std::cos(angle.radians());
-    return Matrix3<T>(cos, -sin, T(),
-                      sin, cos,  T(),
-                      T(), T(),  T(1));
+    return Matrix3<T>(cos, -sin, T(), sin, cos, T(), T(), T(), T(1));
   }
 
   /**
@@ -1142,11 +1108,8 @@ public:
     *   given in the angles Vector3.
     */
   [[nodiscard]] inline static Matrix3<T> rotate(const Vector3<T>& angles) noexcept {
-    return rotate(
-      Angle<T>::fromRadians(angles.x()),
-      Angle<T>::fromRadians(angles.y()),
-      Angle<T>::fromRadians(angles.z())
-    );
+    return rotate(Angle<T>::fromRadians(angles.x()), Angle<T>::fromRadians(angles.y()),
+                  Angle<T>::fromRadians(angles.z()));
   }
 
   /**
@@ -1162,19 +1125,16 @@ public:
     * @returns a matrix that represents a scaling of factor.
     */
   [[nodiscard]] inline static constexpr Matrix3<T> scale(const T& factor) noexcept {
-    return Matrix3<T>(factor, T(),    T(),
-                      T(),    factor, T(),
-                      T(),    T(),    factor);
+    return Matrix3<T>(factor, T(), T(), T(), factor, T(), T(), T(), factor);
   }
 
   /**
     * @returns a matrix that represents a scaling of the x axis with xFactor,
     *   the y axis with yFactor, and the z axis with zFactor.
     */
-  [[nodiscard]] inline static constexpr Matrix3<T> scale(const T& xFactor, const T& yFactor, const T& zFactor) noexcept {
-    return Matrix3<T>(xFactor, T(),     T(),
-                      T(),     yFactor, T(),
-                      T(),     T(),     zFactor);
+  [[nodiscard]] inline static constexpr Matrix3<T> scale(const T& xFactor, const T& yFactor,
+                                                         const T& zFactor) noexcept {
+    return Matrix3<T>(xFactor, T(), T(), T(), yFactor, T(), T(), T(), zFactor);
   }
 
   /**
@@ -1182,9 +1142,7 @@ public:
     *   components of the factor Vector3.
     */
   [[nodiscard]] inline static constexpr Matrix3<T> scale(const Vector3<T>& factor) noexcept {
-    return Matrix3<T>(factor[0], T(),       T(),
-                      T(),       factor[1], T(),
-                      T(),       T(),       factor[2]);
+    return Matrix3<T>(factor[0], T(), T(), T(), factor[1], T(), T(), T(), factor[2]);
   }
 
   /**
@@ -1192,11 +1150,7 @@ public:
     *   method assumes that the matrix was generated as a TRS matrix.
     */
   [[nodiscard]] inline Vector3<T> scaleVector() const noexcept {
-    return Vector3<T>(
-      col(0).length(),
-      col(1).length(),
-      col(2).length()
-    );
+    return Vector3<T>(col(0).length(), col(1).length(), col(2).length());
   }
 
   /**
@@ -1213,8 +1167,7 @@ public:
     T t1 = std::atan2(cell(2, 1), cell(2, 2));
     T c2 = std::sqrt(cell(0, 0) * cell(0, 0) + cell(1, 0) * cell(1, 0));
     T t2 = std::atan2(-cell(2, 0), c2);
-    T s1 = std::sin(t1),
-      c1 = std::cos(t1);
+    T s1 = std::sin(t1), c1 = std::cos(t1);
     T t3 = std::atan2(s1 * cell(0, 2) - c1 * cell(0, 1), c1 * cell(1, 1) - s1 * cell(1, 2));
 
     return Vector3<T>(t1, t2, t3);
@@ -1239,11 +1192,11 @@ Quaternion<T> Matrix3<T>::rotationQuaternion() const {
   double x = std::sqrt(std::max(T(0), T(1 + m00 - m11 - m22))) / 2;
   double y = std::sqrt(std::max(T(0), T(1 - m00 + m11 - m22))) / 2;
   double z = std::sqrt(std::max(T(0), T(1 - m00 - m11 + m22))) / 2;
-  
+
   x = std::copysign(x, T(x * (m21 - m12)));
   y = std::copysign(y, T(y * (m02 - m20)));
   z = std::copysign(z, T(z * (m10 - m01)));
-  
+
   return Quaternion<T>(w, x, y, z).normalized();
 }
 
@@ -1269,10 +1222,11 @@ Quaternion<T> Matrix3<T>::rotationQuaternion() const {
 template<class T>
 class Matrix4 : public Matrix<4, T, Vector4<T>, Matrix4<T>> {
   typedef Matrix<4, T, Vector4<T>, Matrix4<T>> Base;
+
 public:
   using Base::cell;
-  using Base::setCell;
   using Base::col;
+  using Base::setCell;
   // Re-introduce all base operator* overloads (scalar multiply, etc.) so
   // the two explicit declarations below don't hide them via name hiding.
   using Base::operator*;
@@ -1306,8 +1260,7 @@ public:
     * \end{array}\right)\f]
     */
   inline constexpr Matrix4()
-    : Base()
-  {
+      : Base() {
   }
 
   /**
@@ -1318,21 +1271,32 @@ public:
     */
   template<int D, class V, class M>
   inline constexpr Matrix4(const Matrix<D, T, V, M>& source)
-    : Base(source)
-  {
+      : Base(source) {
   }
 
   /**
     * Component-wise constructor for a Matrix4.
     */
-  inline constexpr Matrix4(const T& c00, const T& c01, const T& c02, const T& c03,
-                            const T& c10, const T& c11, const T& c12, const T& c13,
-                            const T& c20, const T& c21, const T& c22, const T& c23,
-                            const T& c30, const T& c31, const T& c32, const T& c33) {
-    setCell(0, 0, c00); setCell(0, 1, c01); setCell(0, 2, c02); setCell(0, 3, c03);
-    setCell(1, 0, c10); setCell(1, 1, c11); setCell(1, 2, c12); setCell(1, 3, c13);
-    setCell(2, 0, c20); setCell(2, 1, c21); setCell(2, 2, c22); setCell(2, 3, c23);
-    setCell(3, 0, c30); setCell(3, 1, c31); setCell(3, 2, c32); setCell(3, 3, c33);
+  inline constexpr Matrix4(const T& c00, const T& c01, const T& c02, const T& c03, const T& c10,
+                           const T& c11, const T& c12, const T& c13, const T& c20, const T& c21,
+                           const T& c22, const T& c23, const T& c30, const T& c31, const T& c32,
+                           const T& c33) {
+    setCell(0, 0, c00);
+    setCell(0, 1, c01);
+    setCell(0, 2, c02);
+    setCell(0, 3, c03);
+    setCell(1, 0, c10);
+    setCell(1, 1, c11);
+    setCell(1, 2, c12);
+    setCell(1, 3, c13);
+    setCell(2, 0, c20);
+    setCell(2, 1, c21);
+    setCell(2, 2, c22);
+    setCell(2, 3, c23);
+    setCell(3, 0, c30);
+    setCell(3, 1, c31);
+    setCell(3, 2, c32);
+    setCell(3, 3, c33);
   }
 
   /**
@@ -1345,11 +1309,24 @@ public:
     *   0   & 0   & 0   & 1 \\
     * \end{array}\right)\f]
     */
-  inline constexpr Matrix4(const Vector3<T>& xAxis, const Vector3<T>& yAxis, const Vector3<T>& zAxis) {
-    setCell(0, 0, xAxis[0]); setCell(0, 1, xAxis[1]); setCell(0, 2, xAxis[2]); setCell(0, 3, T());
-    setCell(1, 0, yAxis[0]); setCell(1, 1, yAxis[1]); setCell(1, 2, yAxis[2]); setCell(1, 3, T());
-    setCell(2, 0, zAxis[0]); setCell(2, 1, zAxis[1]); setCell(2, 2, zAxis[2]); setCell(2, 3, T());
-    setCell(3, 0, T());      setCell(3, 1, T());      setCell(3, 2, T());      setCell(3, 3, T(1));
+  inline constexpr Matrix4(const Vector3<T>& xAxis, const Vector3<T>& yAxis,
+                           const Vector3<T>& zAxis) {
+    setCell(0, 0, xAxis[0]);
+    setCell(0, 1, xAxis[1]);
+    setCell(0, 2, xAxis[2]);
+    setCell(0, 3, T());
+    setCell(1, 0, yAxis[0]);
+    setCell(1, 1, yAxis[1]);
+    setCell(1, 2, yAxis[2]);
+    setCell(1, 3, T());
+    setCell(2, 0, zAxis[0]);
+    setCell(2, 1, zAxis[1]);
+    setCell(2, 2, zAxis[2]);
+    setCell(2, 3, T());
+    setCell(3, 0, T());
+    setCell(3, 1, T());
+    setCell(3, 2, T());
+    setCell(3, 3, T(1));
   }
 
   /**
@@ -1369,7 +1346,7 @@ public:
     * @returns the determinant \f$|M|\f$ of this matrix \f$M\f$.
     */
   [[nodiscard]] T determinant() const noexcept;
-  
+
   /**
     * @returns the translation matrix for position \f$p\f$:
     * 
@@ -1395,12 +1372,7 @@ public:
     * \end{array}\right)\f]
     */
   [[nodiscard]] inline static constexpr Matrix4<T> translate(T x, T y, T z) noexcept {
-    return Matrix4<T>(
-      1, 0, 0, x,
-      0, 1, 0, y,
-      0, 0, 1, z,
-      0, 0, 0, 1
-    );
+    return Matrix4<T>(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z, 0, 0, 0, 1);
   }
 
   /**
@@ -1426,11 +1398,9 @@ public:
     * Precondition: row 3 is (0,0,0,1). Results are undefined otherwise.
     */
   inline Vector3<T> transformPoint(const Vector3<T>& p) const {
-    return Vector3<T>(
-      cell(0,0)*p.x() + cell(0,1)*p.y() + cell(0,2)*p.z() + cell(0,3),
-      cell(1,0)*p.x() + cell(1,1)*p.y() + cell(1,2)*p.z() + cell(1,3),
-      cell(2,0)*p.x() + cell(2,1)*p.y() + cell(2,2)*p.z() + cell(2,3)
-    );
+    return Vector3<T>(cell(0, 0) * p.x() + cell(0, 1) * p.y() + cell(0, 2) * p.z() + cell(0, 3),
+                      cell(1, 0) * p.x() + cell(1, 1) * p.y() + cell(1, 2) * p.z() + cell(1, 3),
+                      cell(2, 0) * p.x() + cell(2, 1) * p.y() + cell(2, 2) * p.z() + cell(2, 3));
   }
 
   /**
@@ -1442,11 +1412,9 @@ public:
     * Precondition: row 3 is (0,0,0,1). Results are undefined otherwise.
     */
   inline Vector3<T> transformDirection(const Vector3<T>& d) const {
-    return Vector3<T>(
-      cell(0,0)*d.x() + cell(0,1)*d.y() + cell(0,2)*d.z(),
-      cell(1,0)*d.x() + cell(1,1)*d.y() + cell(1,2)*d.z(),
-      cell(2,0)*d.x() + cell(2,1)*d.y() + cell(2,2)*d.z()
-    );
+    return Vector3<T>(cell(0, 0) * d.x() + cell(0, 1) * d.y() + cell(0, 2) * d.z(),
+                      cell(1, 0) * d.x() + cell(1, 1) * d.y() + cell(1, 2) * d.z(),
+                      cell(2, 0) * d.x() + cell(2, 1) * d.y() + cell(2, 2) * d.z());
   }
 
   /**
@@ -1463,16 +1431,13 @@ public:
     *   Degenerates when eye == target or when up is parallel to the
     *   eye-to-target direction (gimbal lock); callers must avoid these cases.
     */
-  [[nodiscard]] inline static Matrix4<T> lookAt(const Vector3<T>& eye, const Vector3<T>& target, const Vector3<T>& up) {
+  [[nodiscard]] inline static Matrix4<T> lookAt(const Vector3<T>& eye, const Vector3<T>& target,
+                                                const Vector3<T>& up) {
     auto zAxis = (target - eye).normalized();
     auto xAxis = (up ^ zAxis).normalized();
     auto yAxis = xAxis ^ -zAxis;
-    return Matrix4<T>(
-      xAxis[0], yAxis[0], zAxis[0], eye[0],
-      xAxis[1], yAxis[1], zAxis[1], eye[1],
-      xAxis[2], yAxis[2], zAxis[2], eye[2],
-      T(),      T(),      T(),      T(1)
-    );
+    return Matrix4<T>(xAxis[0], yAxis[0], zAxis[0], eye[0], xAxis[1], yAxis[1], zAxis[1], eye[1],
+                      xAxis[2], yAxis[2], zAxis[2], eye[2], T(), T(), T(), T(1));
   }
 
   /**
@@ -1486,15 +1451,13 @@ public:
     *   @param farPlane   positive far-plane distance (farPlane > nearPlane)
     */
   template<class A>
-  [[nodiscard]] inline static Matrix4<T> perspective(const A& fovY, T aspect, T nearPlane, T farPlane) noexcept {
+  [[nodiscard]] inline static Matrix4<T> perspective(const A& fovY, T aspect, T nearPlane,
+                                                     T farPlane) noexcept {
     T f = T(1) / std::tan(fovY.radians() / T(2));
     T inv_range = T(1) / (farPlane - nearPlane);
-    return Matrix4<T>(
-      f / aspect, T(),  T(),                                T(),
-      T(),        f,    T(),                                T(),
-      T(),        T(),  (farPlane + nearPlane) * inv_range,  T(-2) * farPlane * nearPlane * inv_range,
-      T(),        T(),  T(1),                               T()
-    );
+    return Matrix4<T>(f / aspect, T(), T(), T(), T(), f, T(), T(), T(), T(),
+                      (farPlane + nearPlane) * inv_range, T(-2) * farPlane * nearPlane * inv_range,
+                      T(), T(), T(1), T());
   }
 
   /**
@@ -1502,16 +1465,14 @@ public:
     *   [left, right] × [bottom, top] × [nearPlane, farPlane] to NDC [-1, 1]³.
     *   No perspective divide; w = 1.
     */
-  [[nodiscard]] inline static constexpr Matrix4<T> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane) noexcept {
+  [[nodiscard]] inline static constexpr Matrix4<T> orthographic(T left, T right, T bottom, T top,
+                                                                T nearPlane, T farPlane) noexcept {
     T inv_rl = T(1) / (right - left);
     T inv_tb = T(1) / (top - bottom);
     T inv_fn = T(1) / (farPlane - nearPlane);
-    return Matrix4<T>(
-      T(2) * inv_rl, T(),           T(),           -(right + left) * inv_rl,
-      T(),           T(2) * inv_tb, T(),           -(top + bottom) * inv_tb,
-      T(),           T(),           T(2) * inv_fn, -(farPlane + nearPlane) * inv_fn,
-      T(),           T(),           T(),            T(1)
-    );
+    return Matrix4<T>(T(2) * inv_rl, T(), T(), -(right + left) * inv_rl, T(), T(2) * inv_tb, T(),
+                      -(top + bottom) * inv_tb, T(), T(), T(2) * inv_fn,
+                      -(farPlane + nearPlane) * inv_fn, T(), T(), T(), T(1));
   }
 
   /**
@@ -1521,16 +1482,15 @@ public:
     *   bottom = -top. z_ndc = -1 at nearPlane, +1 at farPlane after dividing
     *   by w (= z_eye).
     */
-  [[nodiscard]] inline static constexpr Matrix4<T> frustum(T left, T right, T bottom, T top, T nearPlane, T farPlane) noexcept {
+  [[nodiscard]] inline static constexpr Matrix4<T> frustum(T left, T right, T bottom, T top,
+                                                           T nearPlane, T farPlane) noexcept {
     T inv_rl = T(1) / (right - left);
     T inv_tb = T(1) / (top - bottom);
     T inv_fn = T(1) / (farPlane - nearPlane);
-    return Matrix4<T>(
-      T(2) * nearPlane * inv_rl, T(),                      -(right + left) * inv_rl,        T(),
-      T(),                       T(2) * nearPlane * inv_tb, -(top + bottom) * inv_tb,        T(),
-      T(),                       T(),                        (farPlane + nearPlane) * inv_fn, T(-2) * farPlane * nearPlane * inv_fn,
-      T(),                       T(),                        T(1),                            T()
-    );
+    return Matrix4<T>(T(2) * nearPlane * inv_rl, T(), -(right + left) * inv_rl, T(), T(),
+                      T(2) * nearPlane * inv_tb, -(top + bottom) * inv_tb, T(), T(), T(),
+                      (farPlane + nearPlane) * inv_fn, T(-2) * farPlane * nearPlane * inv_fn, T(),
+                      T(), T(1), T());
   }
 };
 
@@ -1544,16 +1504,14 @@ Matrix4<T> Matrix4<T>::inverted() const {
   // the correct singular-matrix check for the full 4×4.
   // When det(D)==0 the block-inverse is inapplicable; fall back to cofactors.
 
-  const T a00 = cell(0,0), a01 = cell(0,1), a10 = cell(1,0), a11 = cell(1,1);
-  const T b00 = cell(0,2), b01 = cell(0,3), b10 = cell(1,2), b11 = cell(1,3);
-  const T c00 = cell(2,0), c01 = cell(2,1), c10 = cell(3,0), c11 = cell(3,1);
-  const T d00 = cell(2,2), d01 = cell(2,3), d10 = cell(3,2), d11 = cell(3,3);
+  const T a00 = cell(0, 0), a01 = cell(0, 1), a10 = cell(1, 0), a11 = cell(1, 1);
+  const T b00 = cell(0, 2), b01 = cell(0, 3), b10 = cell(1, 2), b11 = cell(1, 3);
+  const T c00 = cell(2, 0), c01 = cell(2, 1), c10 = cell(3, 0), c11 = cell(3, 1);
+  const T d00 = cell(2, 2), d01 = cell(2, 3), d10 = cell(3, 2), d11 = cell(3, 3);
 
   // D^{-1} (bottom-right 2×2 block)
   const T det_d = d00 * d11 - d01 * d10;
-  const T d_scale = std::max(
-    {std::abs(d00), std::abs(d01), std::abs(d10), std::abs(d11), T(1)}
-  );
+  const T d_scale = std::max({std::abs(d00), std::abs(d01), std::abs(d10), std::abs(d11), T(1)});
   const T near_singular_d = std::numeric_limits<T>::epsilon() * d_scale * d_scale * T(16);
   if (std::abs(det_d) <= near_singular_d) {
     // D is singular — fall back to adjugate / determinant (cofactor expansion).
@@ -1562,72 +1520,134 @@ Matrix4<T> Matrix4<T>::inverted() const {
       throw DivisionByZeroException(__FILE__, __LINE__);
     const T inv_det = T(1) / det;
     return Matrix4<T>(
-      (cell(1,2)*cell(2,3)*cell(3,1)-cell(1,3)*cell(2,2)*cell(3,1)+cell(1,3)*cell(2,1)*cell(3,2)-cell(1,1)*cell(2,3)*cell(3,2)-cell(1,2)*cell(2,1)*cell(3,3)+cell(1,1)*cell(2,2)*cell(3,3))*inv_det,
-      (cell(0,3)*cell(2,2)*cell(3,1)-cell(0,2)*cell(2,3)*cell(3,1)-cell(0,3)*cell(2,1)*cell(3,2)+cell(0,1)*cell(2,3)*cell(3,2)+cell(0,2)*cell(2,1)*cell(3,3)-cell(0,1)*cell(2,2)*cell(3,3))*inv_det,
-      (cell(0,2)*cell(1,3)*cell(3,1)-cell(0,3)*cell(1,2)*cell(3,1)+cell(0,3)*cell(1,1)*cell(3,2)-cell(0,1)*cell(1,3)*cell(3,2)-cell(0,2)*cell(1,1)*cell(3,3)+cell(0,1)*cell(1,2)*cell(3,3))*inv_det,
-      (cell(0,3)*cell(1,2)*cell(2,1)-cell(0,2)*cell(1,3)*cell(2,1)-cell(0,3)*cell(1,1)*cell(2,2)+cell(0,1)*cell(1,3)*cell(2,2)+cell(0,2)*cell(1,1)*cell(2,3)-cell(0,1)*cell(1,2)*cell(2,3))*inv_det,
-      (cell(1,3)*cell(2,2)*cell(3,0)-cell(1,2)*cell(2,3)*cell(3,0)-cell(1,3)*cell(2,0)*cell(3,2)+cell(1,0)*cell(2,3)*cell(3,2)+cell(1,2)*cell(2,0)*cell(3,3)-cell(1,0)*cell(2,2)*cell(3,3))*inv_det,
-      (cell(0,2)*cell(2,3)*cell(3,0)-cell(0,3)*cell(2,2)*cell(3,0)+cell(0,3)*cell(2,0)*cell(3,2)-cell(0,0)*cell(2,3)*cell(3,2)-cell(0,2)*cell(2,0)*cell(3,3)+cell(0,0)*cell(2,2)*cell(3,3))*inv_det,
-      (cell(0,3)*cell(1,2)*cell(3,0)-cell(0,2)*cell(1,3)*cell(3,0)-cell(0,3)*cell(1,0)*cell(3,2)+cell(0,0)*cell(1,3)*cell(3,2)+cell(0,2)*cell(1,0)*cell(3,3)-cell(0,0)*cell(1,2)*cell(3,3))*inv_det,
-      (cell(0,2)*cell(1,3)*cell(2,0)-cell(0,3)*cell(1,2)*cell(2,0)+cell(0,3)*cell(1,0)*cell(2,2)-cell(0,0)*cell(1,3)*cell(2,2)-cell(0,2)*cell(1,0)*cell(2,3)+cell(0,0)*cell(1,2)*cell(2,3))*inv_det,
-      (cell(1,1)*cell(2,3)*cell(3,0)-cell(1,3)*cell(2,1)*cell(3,0)+cell(1,3)*cell(2,0)*cell(3,1)-cell(1,0)*cell(2,3)*cell(3,1)-cell(1,1)*cell(2,0)*cell(3,3)+cell(1,0)*cell(2,1)*cell(3,3))*inv_det,
-      (cell(0,3)*cell(2,1)*cell(3,0)-cell(0,1)*cell(2,3)*cell(3,0)-cell(0,3)*cell(2,0)*cell(3,1)+cell(0,0)*cell(2,3)*cell(3,1)+cell(0,1)*cell(2,0)*cell(3,3)-cell(0,0)*cell(2,1)*cell(3,3))*inv_det,
-      (cell(0,1)*cell(1,3)*cell(3,0)-cell(0,3)*cell(1,1)*cell(3,0)+cell(0,3)*cell(1,0)*cell(3,1)-cell(0,0)*cell(1,3)*cell(3,1)-cell(0,1)*cell(1,0)*cell(3,3)+cell(0,0)*cell(1,1)*cell(3,3))*inv_det,
-      (cell(0,3)*cell(1,1)*cell(2,0)-cell(0,1)*cell(1,3)*cell(2,0)-cell(0,3)*cell(1,0)*cell(2,1)+cell(0,0)*cell(1,3)*cell(2,1)+cell(0,1)*cell(1,0)*cell(2,3)-cell(0,0)*cell(1,1)*cell(2,3))*inv_det,
-      (cell(1,2)*cell(2,1)*cell(3,0)-cell(1,1)*cell(2,2)*cell(3,0)-cell(1,2)*cell(2,0)*cell(3,1)+cell(1,0)*cell(2,2)*cell(3,1)+cell(1,1)*cell(2,0)*cell(3,2)-cell(1,0)*cell(2,1)*cell(3,2))*inv_det,
-      (cell(0,1)*cell(2,2)*cell(3,0)-cell(0,2)*cell(2,1)*cell(3,0)+cell(0,2)*cell(2,0)*cell(3,1)-cell(0,0)*cell(2,2)*cell(3,1)-cell(0,1)*cell(2,0)*cell(3,2)+cell(0,0)*cell(2,1)*cell(3,2))*inv_det,
-      (cell(0,2)*cell(1,1)*cell(3,0)-cell(0,1)*cell(1,2)*cell(3,0)-cell(0,2)*cell(1,0)*cell(3,1)+cell(0,0)*cell(1,2)*cell(3,1)+cell(0,1)*cell(1,0)*cell(3,2)-cell(0,0)*cell(1,1)*cell(3,2))*inv_det,
-      (cell(0,1)*cell(1,2)*cell(2,0)-cell(0,2)*cell(1,1)*cell(2,0)+cell(0,2)*cell(1,0)*cell(2,1)-cell(0,0)*cell(1,2)*cell(2,1)-cell(0,1)*cell(1,0)*cell(2,2)+cell(0,0)*cell(1,1)*cell(2,2))*inv_det
-    );
+      (cell(1, 2) * cell(2, 3) * cell(3, 1) - cell(1, 3) * cell(2, 2) * cell(3, 1) +
+       cell(1, 3) * cell(2, 1) * cell(3, 2) - cell(1, 1) * cell(2, 3) * cell(3, 2) -
+       cell(1, 2) * cell(2, 1) * cell(3, 3) + cell(1, 1) * cell(2, 2) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 3) * cell(2, 2) * cell(3, 1) - cell(0, 2) * cell(2, 3) * cell(3, 1) -
+       cell(0, 3) * cell(2, 1) * cell(3, 2) + cell(0, 1) * cell(2, 3) * cell(3, 2) +
+       cell(0, 2) * cell(2, 1) * cell(3, 3) - cell(0, 1) * cell(2, 2) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 2) * cell(1, 3) * cell(3, 1) - cell(0, 3) * cell(1, 2) * cell(3, 1) +
+       cell(0, 3) * cell(1, 1) * cell(3, 2) - cell(0, 1) * cell(1, 3) * cell(3, 2) -
+       cell(0, 2) * cell(1, 1) * cell(3, 3) + cell(0, 1) * cell(1, 2) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 3) * cell(1, 2) * cell(2, 1) - cell(0, 2) * cell(1, 3) * cell(2, 1) -
+       cell(0, 3) * cell(1, 1) * cell(2, 2) + cell(0, 1) * cell(1, 3) * cell(2, 2) +
+       cell(0, 2) * cell(1, 1) * cell(2, 3) - cell(0, 1) * cell(1, 2) * cell(2, 3)) *
+        inv_det,
+      (cell(1, 3) * cell(2, 2) * cell(3, 0) - cell(1, 2) * cell(2, 3) * cell(3, 0) -
+       cell(1, 3) * cell(2, 0) * cell(3, 2) + cell(1, 0) * cell(2, 3) * cell(3, 2) +
+       cell(1, 2) * cell(2, 0) * cell(3, 3) - cell(1, 0) * cell(2, 2) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 2) * cell(2, 3) * cell(3, 0) - cell(0, 3) * cell(2, 2) * cell(3, 0) +
+       cell(0, 3) * cell(2, 0) * cell(3, 2) - cell(0, 0) * cell(2, 3) * cell(3, 2) -
+       cell(0, 2) * cell(2, 0) * cell(3, 3) + cell(0, 0) * cell(2, 2) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 3) * cell(1, 2) * cell(3, 0) - cell(0, 2) * cell(1, 3) * cell(3, 0) -
+       cell(0, 3) * cell(1, 0) * cell(3, 2) + cell(0, 0) * cell(1, 3) * cell(3, 2) +
+       cell(0, 2) * cell(1, 0) * cell(3, 3) - cell(0, 0) * cell(1, 2) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 2) * cell(1, 3) * cell(2, 0) - cell(0, 3) * cell(1, 2) * cell(2, 0) +
+       cell(0, 3) * cell(1, 0) * cell(2, 2) - cell(0, 0) * cell(1, 3) * cell(2, 2) -
+       cell(0, 2) * cell(1, 0) * cell(2, 3) + cell(0, 0) * cell(1, 2) * cell(2, 3)) *
+        inv_det,
+      (cell(1, 1) * cell(2, 3) * cell(3, 0) - cell(1, 3) * cell(2, 1) * cell(3, 0) +
+       cell(1, 3) * cell(2, 0) * cell(3, 1) - cell(1, 0) * cell(2, 3) * cell(3, 1) -
+       cell(1, 1) * cell(2, 0) * cell(3, 3) + cell(1, 0) * cell(2, 1) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 3) * cell(2, 1) * cell(3, 0) - cell(0, 1) * cell(2, 3) * cell(3, 0) -
+       cell(0, 3) * cell(2, 0) * cell(3, 1) + cell(0, 0) * cell(2, 3) * cell(3, 1) +
+       cell(0, 1) * cell(2, 0) * cell(3, 3) - cell(0, 0) * cell(2, 1) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 1) * cell(1, 3) * cell(3, 0) - cell(0, 3) * cell(1, 1) * cell(3, 0) +
+       cell(0, 3) * cell(1, 0) * cell(3, 1) - cell(0, 0) * cell(1, 3) * cell(3, 1) -
+       cell(0, 1) * cell(1, 0) * cell(3, 3) + cell(0, 0) * cell(1, 1) * cell(3, 3)) *
+        inv_det,
+      (cell(0, 3) * cell(1, 1) * cell(2, 0) - cell(0, 1) * cell(1, 3) * cell(2, 0) -
+       cell(0, 3) * cell(1, 0) * cell(2, 1) + cell(0, 0) * cell(1, 3) * cell(2, 1) +
+       cell(0, 1) * cell(1, 0) * cell(2, 3) - cell(0, 0) * cell(1, 1) * cell(2, 3)) *
+        inv_det,
+      (cell(1, 2) * cell(2, 1) * cell(3, 0) - cell(1, 1) * cell(2, 2) * cell(3, 0) -
+       cell(1, 2) * cell(2, 0) * cell(3, 1) + cell(1, 0) * cell(2, 2) * cell(3, 1) +
+       cell(1, 1) * cell(2, 0) * cell(3, 2) - cell(1, 0) * cell(2, 1) * cell(3, 2)) *
+        inv_det,
+      (cell(0, 1) * cell(2, 2) * cell(3, 0) - cell(0, 2) * cell(2, 1) * cell(3, 0) +
+       cell(0, 2) * cell(2, 0) * cell(3, 1) - cell(0, 0) * cell(2, 2) * cell(3, 1) -
+       cell(0, 1) * cell(2, 0) * cell(3, 2) + cell(0, 0) * cell(2, 1) * cell(3, 2)) *
+        inv_det,
+      (cell(0, 2) * cell(1, 1) * cell(3, 0) - cell(0, 1) * cell(1, 2) * cell(3, 0) -
+       cell(0, 2) * cell(1, 0) * cell(3, 1) + cell(0, 0) * cell(1, 2) * cell(3, 1) +
+       cell(0, 1) * cell(1, 0) * cell(3, 2) - cell(0, 0) * cell(1, 1) * cell(3, 2)) *
+        inv_det,
+      (cell(0, 1) * cell(1, 2) * cell(2, 0) - cell(0, 2) * cell(1, 1) * cell(2, 0) +
+       cell(0, 2) * cell(1, 0) * cell(2, 1) - cell(0, 0) * cell(1, 2) * cell(2, 1) -
+       cell(0, 1) * cell(1, 0) * cell(2, 2) + cell(0, 0) * cell(1, 1) * cell(2, 2)) *
+        inv_det);
   }
 
   const T inv_det_d = T(1) / det_d;
-  const T di00 =  d11 * inv_det_d, di01 = -d01 * inv_det_d;
-  const T di10 = -d10 * inv_det_d, di11 =  d00 * inv_det_d;
+  const T di00 = d11 * inv_det_d, di01 = -d01 * inv_det_d;
+  const T di10 = -d10 * inv_det_d, di11 = d00 * inv_det_d;
 
   // X = B·D^{-1}
-  const T x00 = b00*di00 + b01*di10, x01 = b00*di01 + b01*di11;
-  const T x10 = b10*di00 + b11*di10, x11 = b10*di01 + b11*di11;
+  const T x00 = b00 * di00 + b01 * di10, x01 = b00 * di01 + b01 * di11;
+  const T x10 = b10 * di00 + b11 * di10, x11 = b10 * di01 + b11 * di11;
 
   // S = A - X·C  (Schur complement)
-  const T s00 = a00 - (x00*c00 + x01*c10), s01 = a01 - (x00*c01 + x01*c11);
-  const T s10 = a10 - (x10*c00 + x11*c10), s11 = a11 - (x10*c01 + x11*c11);
+  const T s00 = a00 - (x00 * c00 + x01 * c10), s01 = a01 - (x00 * c01 + x01 * c11);
+  const T s10 = a10 - (x10 * c00 + x11 * c10), s11 = a11 - (x10 * c01 + x11 * c11);
 
   // S^{-1}
   const T det_s = s00 * s11 - s01 * s10;
   if (det_s == T())
     throw DivisionByZeroException(__FILE__, __LINE__);
   const T inv_det_s = T(1) / det_s;
-  const T si00 =  s11 * inv_det_s, si01 = -s01 * inv_det_s;
-  const T si10 = -s10 * inv_det_s, si11 =  s00 * inv_det_s;
+  const T si00 = s11 * inv_det_s, si01 = -s01 * inv_det_s;
+  const T si10 = -s10 * inv_det_s, si11 = s00 * inv_det_s;
 
   // Top-right block: -S^{-1}·X = -S^{-1}·B·D^{-1}
-  const T tr00 = -(si00*x00 + si01*x10), tr01 = -(si00*x01 + si01*x11);
-  const T tr10 = -(si10*x00 + si11*x10), tr11 = -(si10*x01 + si11*x11);
+  const T tr00 = -(si00 * x00 + si01 * x10), tr01 = -(si00 * x01 + si01 * x11);
+  const T tr10 = -(si10 * x00 + si11 * x10), tr11 = -(si10 * x01 + si11 * x11);
 
   // Q = D^{-1}·C·S^{-1}  (via Y = D^{-1}·C first)
-  const T y00 = di00*c00 + di01*c10, y01 = di00*c01 + di01*c11;
-  const T y10 = di10*c00 + di11*c10, y11 = di10*c01 + di11*c11;
-  const T q00 = y00*si00 + y01*si10, q01 = y00*si01 + y01*si11;
-  const T q10 = y10*si00 + y11*si10, q11 = y10*si01 + y11*si11;
+  const T y00 = di00 * c00 + di01 * c10, y01 = di00 * c01 + di01 * c11;
+  const T y10 = di10 * c00 + di11 * c10, y11 = di10 * c01 + di11 * c11;
+  const T q00 = y00 * si00 + y01 * si10, q01 = y00 * si01 + y01 * si11;
+  const T q10 = y10 * si00 + y11 * si10, q11 = y10 * si01 + y11 * si11;
 
   // Bottom-left: -Q;  Bottom-right: D^{-1} + Q·X
-  return Matrix4<T>(
-    si00, si01, tr00, tr01,
-    si10, si11, tr10, tr11,
-    -q00, -q01, di00 + q00*x00 + q01*x10, di01 + q00*x01 + q01*x11,
-    -q10, -q11, di10 + q10*x00 + q11*x10, di11 + q10*x01 + q11*x11
-  );
+  return Matrix4<T>(si00, si01, tr00, tr01, si10, si11, tr10, tr11, -q00, -q01,
+                    di00 + q00 * x00 + q01 * x10, di01 + q00 * x01 + q01 * x11, -q10, -q11,
+                    di10 + q10 * x00 + q11 * x10, di11 + q10 * x01 + q11 * x11);
 }
 
 template<class T>
 T Matrix4<T>::determinant() const noexcept {
-  return cell(0, 3) * cell(1, 2) * cell(2, 1) * cell(3, 0)-cell(0, 2) * cell(1, 3) * cell(2, 1) * cell(3, 0)-cell(0, 3) * cell(1, 1) * cell(2, 2) * cell(3, 0)+cell(0, 1) * cell(1, 3) * cell(2, 2) * cell(3, 0) +
-         cell(0, 2) * cell(1, 1) * cell(2, 3) * cell(3, 0)-cell(0, 1) * cell(1, 2) * cell(2, 3) * cell(3, 0)-cell(0, 3) * cell(1, 2) * cell(2, 0) * cell(3, 1)+cell(0, 2) * cell(1, 3) * cell(2, 0) * cell(3, 1) +
-         cell(0, 3) * cell(1, 0) * cell(2, 2) * cell(3, 1)-cell(0, 0) * cell(1, 3) * cell(2, 2) * cell(3, 1)-cell(0, 2) * cell(1, 0) * cell(2, 3) * cell(3, 1)+cell(0, 0) * cell(1, 2) * cell(2, 3) * cell(3, 1) +
-         cell(0, 3) * cell(1, 1) * cell(2, 0) * cell(3, 2)-cell(0, 1) * cell(1, 3) * cell(2, 0) * cell(3, 2)-cell(0, 3) * cell(1, 0) * cell(2, 1) * cell(3, 2)+cell(0, 0) * cell(1, 3) * cell(2, 1) * cell(3, 2) +
-         cell(0, 1) * cell(1, 0) * cell(2, 3) * cell(3, 2)-cell(0, 0) * cell(1, 1) * cell(2, 3) * cell(3, 2)-cell(0, 2) * cell(1, 1) * cell(2, 0) * cell(3, 3)+cell(0, 1) * cell(1, 2) * cell(2, 0) * cell(3, 3) +
-         cell(0, 2) * cell(1, 0) * cell(2, 1) * cell(3, 3)-cell(0, 0) * cell(1, 2) * cell(2, 1) * cell(3, 3)-cell(0, 1) * cell(1, 0) * cell(2, 2) * cell(3, 3)+cell(0, 0) * cell(1, 1) * cell(2, 2) * cell(3, 3);
+  return cell(0, 3) * cell(1, 2) * cell(2, 1) * cell(3, 0) -
+         cell(0, 2) * cell(1, 3) * cell(2, 1) * cell(3, 0) -
+         cell(0, 3) * cell(1, 1) * cell(2, 2) * cell(3, 0) +
+         cell(0, 1) * cell(1, 3) * cell(2, 2) * cell(3, 0) +
+         cell(0, 2) * cell(1, 1) * cell(2, 3) * cell(3, 0) -
+         cell(0, 1) * cell(1, 2) * cell(2, 3) * cell(3, 0) -
+         cell(0, 3) * cell(1, 2) * cell(2, 0) * cell(3, 1) +
+         cell(0, 2) * cell(1, 3) * cell(2, 0) * cell(3, 1) +
+         cell(0, 3) * cell(1, 0) * cell(2, 2) * cell(3, 1) -
+         cell(0, 0) * cell(1, 3) * cell(2, 2) * cell(3, 1) -
+         cell(0, 2) * cell(1, 0) * cell(2, 3) * cell(3, 1) +
+         cell(0, 0) * cell(1, 2) * cell(2, 3) * cell(3, 1) +
+         cell(0, 3) * cell(1, 1) * cell(2, 0) * cell(3, 2) -
+         cell(0, 1) * cell(1, 3) * cell(2, 0) * cell(3, 2) -
+         cell(0, 3) * cell(1, 0) * cell(2, 1) * cell(3, 2) +
+         cell(0, 0) * cell(1, 3) * cell(2, 1) * cell(3, 2) +
+         cell(0, 1) * cell(1, 0) * cell(2, 3) * cell(3, 2) -
+         cell(0, 0) * cell(1, 1) * cell(2, 3) * cell(3, 2) -
+         cell(0, 2) * cell(1, 1) * cell(2, 0) * cell(3, 3) +
+         cell(0, 1) * cell(1, 2) * cell(2, 0) * cell(3, 3) +
+         cell(0, 2) * cell(1, 0) * cell(2, 1) * cell(3, 3) -
+         cell(0, 0) * cell(1, 2) * cell(2, 1) * cell(3, 3) -
+         cell(0, 1) * cell(1, 0) * cell(2, 2) * cell(3, 3) +
+         cell(0, 0) * cell(1, 1) * cell(2, 2) * cell(3, 3);
 }
 
 template<class T>
@@ -1712,7 +1732,7 @@ inline const typename Matrix<Dimensions, T, VectorType, Derived>::MatrixType
 // ---------------------------------------------------------------------------
 // std::hash specializations — enables unordered_map/unordered_set keys.
 // ---------------------------------------------------------------------------
-namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 
   template<int Dimensions, class T, class VectorType, class Derived>
   struct hash<Matrix<Dimensions, T, VectorType, Derived>> {
@@ -1754,13 +1774,16 @@ namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 #ifdef __cpp_lib_format
 
 template<int Dimensions, class T, class VectorType, class Derived>
-struct std::formatter<Matrix<Dimensions, T, VectorType, Derived>> {  // NOLINT(cert-dcl58-cpp)
-  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+struct std::formatter<Matrix<Dimensions, T, VectorType, Derived>> { // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const {
+    return ctx.begin();
+  }
   auto format(const Matrix<Dimensions, T, VectorType, Derived>& m, std::format_context& ctx) const {
     auto out = ctx.out();
     for (int row = 0; row < Dimensions; ++row) {
       for (int col = 0; col < Dimensions; ++col) {
-        if (col > 0) out = std::format_to(out, " ");
+        if (col > 0)
+          out = std::format_to(out, " ");
         out = std::format_to(out, "{}", m[row][col]);
       }
       out = std::format_to(out, "\n");
@@ -1770,12 +1793,15 @@ struct std::formatter<Matrix<Dimensions, T, VectorType, Derived>> {  // NOLINT(c
 };
 
 template<class T>
-struct std::formatter<Matrix2<T>> : std::formatter<Matrix<2, T, Vector2<T>, Matrix2<T>>> {};  // NOLINT(cert-dcl58-cpp)
+struct std::formatter<Matrix2<T>> : std::formatter<Matrix<2, T, Vector2<T>, Matrix2<T>>> {
+}; // NOLINT(cert-dcl58-cpp)
 
 template<class T>
-struct std::formatter<Matrix3<T>> : std::formatter<Matrix<3, T, Vector3<T>, Matrix3<T>>> {};  // NOLINT(cert-dcl58-cpp)
+struct std::formatter<Matrix3<T>> : std::formatter<Matrix<3, T, Vector3<T>, Matrix3<T>>> {
+}; // NOLINT(cert-dcl58-cpp)
 
 template<class T>
-struct std::formatter<Matrix4<T>> : std::formatter<Matrix<4, T, Vector4<T>, Matrix4<T>>> {};  // NOLINT(cert-dcl58-cpp)
+struct std::formatter<Matrix4<T>> : std::formatter<Matrix<4, T, Vector4<T>, Matrix4<T>>> {
+}; // NOLINT(cert-dcl58-cpp)
 
-#endif  // __cpp_lib_format
+#endif // __cpp_lib_format

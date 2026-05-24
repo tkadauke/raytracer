@@ -10,7 +10,7 @@ class QApplication;
 class ImageViewerWidget : public QWidget {
 public:
   ImageViewerWidget(const Buffer<unsigned int>& buffer);
-  
+
   virtual void paintEvent(QPaintEvent*);
 
 private:
@@ -20,9 +20,9 @@ private:
 class ImageViewer {
 public:
   ImageViewer(const Buffer<unsigned int>& buffer);
-  
+
   void show() const;
-  
+
 private:
   QApplication* m_application;
   ImageViewerWidget* m_widget;

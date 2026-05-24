@@ -12,18 +12,14 @@ namespace BresenhamTest {
   // Helper: collect every pixel `drawLine` plots into a set.
   static PixelSet plotted(int x0, int y0, int x1, int y1) {
     PixelSet pixels;
-    core::drawLine(x0, y0, x1, y1, [&](int x, int y) {
-      pixels.emplace(x, y);
-    });
+    core::drawLine(x0, y0, x1, y1, [&](int x, int y) { pixels.emplace(x, y); });
     return pixels;
   }
 
   // Helper: collect every pixel into a vector to check ordering.
   static std::vector<std::pair<int, int>> plottedInOrder(int x0, int y0, int x1, int y1) {
     std::vector<std::pair<int, int>> pixels;
-    core::drawLine(x0, y0, x1, y1, [&](int x, int y) {
-      pixels.emplace_back(x, y);
-    });
+    core::drawLine(x0, y0, x1, y1, [&](int x, int y) { pixels.emplace_back(x, y); });
     return pixels;
   }
 
@@ -90,15 +86,15 @@ namespace BresenhamTest {
     // combination of dx, dy and the major-axis swap) should produce
     // a line that includes both endpoints.
     const int positions[][4] = {
-      { 0,  0,  7,  3}, { 0,  0, -7,  3}, { 0,  0,  7, -3}, { 0,  0, -7, -3},
-      { 0,  0,  3,  7}, { 0,  0, -3,  7}, { 0,  0,  3, -7}, { 0,  0, -3, -7},
+      {0, 0, 7, 3}, {0, 0, -7, 3}, {0, 0, 7, -3}, {0, 0, -7, -3},
+      {0, 0, 3, 7}, {0, 0, -3, 7}, {0, 0, 3, -7}, {0, 0, -3, -7},
     };
     for (const auto& p : positions) {
       auto pixels = plotted(p[0], p[1], p[2], p[3]);
-      EXPECT_TRUE(pixels.count({p[0], p[1]})) << "missing start for "
-        << p[0] << "," << p[1] << " -> " << p[2] << "," << p[3];
-      EXPECT_TRUE(pixels.count({p[2], p[3]})) << "missing end for "
-        << p[0] << "," << p[1] << " -> " << p[2] << "," << p[3];
+      EXPECT_TRUE(pixels.count({p[0], p[1]}))
+        << "missing start for " << p[0] << "," << p[1] << " -> " << p[2] << "," << p[3];
+      EXPECT_TRUE(pixels.count({p[2], p[3]}))
+        << "missing end for " << p[0] << "," << p[1] << " -> " << p[2] << "," << p[3];
     }
   }
 

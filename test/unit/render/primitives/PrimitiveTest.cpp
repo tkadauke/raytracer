@@ -9,29 +9,28 @@
 
 namespace PrimitiveTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
   using namespace testing;
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsObject) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
-    ON_CALL(*primitive, intersects(_, _)).WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultIntersects));
-    EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(
-      DoAll(
-        AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d(1, 0, 0))),
-        Return(primitive.get())
-      )
-    );
-    
+    ON_CALL(*primitive, intersects(_, _))
+      .WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultIntersects));
+    EXPECT_CALL(*primitive, intersect(_, _, _))
+      .WillOnce(DoAll(AddHitPoint(HitPoint(primitive.get(), 1.0, Vector3d(), Vector3d(1, 0, 0))),
+                      Return(primitive.get())));
+
     State state;
     ASSERT_TRUE(primitive->intersects(Rayd(Vector3d::null, Vector3d::one), state));
   }
 
   TEST(Primitive, ShouldReturnTrueForIntersectsIfIntersectReturnsNoObject) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
-    ON_CALL(*primitive, intersects(_, _)).WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultIntersects));
+    ON_CALL(*primitive, intersects(_, _))
+      .WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultIntersects));
     EXPECT_CALL(*primitive, intersect(_, _, _)).WillOnce(Return(nullptr));
-    
+
     State state;
     ASSERT_FALSE(primitive->intersects(Rayd(Vector3d::null, Vector3d::one), state));
   }
@@ -41,21 +40,13 @@ using namespace render;
     EXPECT_CALL(*primitive, intersect(_, _, _))
       .Times(4)
       .WillRepeatedly(
-        DoAll(
-          AddHitPoints(
-            HitPoint(primitive.get(), 1.0, Vector3d(0, 0, 1), Vector3d(0, 0, -1)),
-            HitPoint(primitive.get(), 3.0, Vector3d(0, 0, 3), Vector3d(0, 0, 1))
-          ),
-          Return(primitive.get())
-        )
-      );
+        DoAll(AddHitPoints(HitPoint(primitive.get(), 1.0, Vector3d(0, 0, 1), Vector3d(0, 0, -1)),
+                           HitPoint(primitive.get(), 3.0, Vector3d(0, 0, 3), Vector3d(0, 0, 1))),
+              Return(primitive.get())));
 
     const Ray4 rays(std::array<Rayf, 4>{
-      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)),
-      Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
-      Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)),
-      Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))
-    });
+      Rayf(Vector3f(0, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(1, 0, 0), Vector3f(0, 0, 1)),
+      Rayf(Vector3f(2, 0, 0), Vector3f(0, 0, 1)), Rayf(Vector3f(3, 0, 0), Vector3f(0, 0, 1))});
 
     State state;
     const auto result = primitive->Primitive::intersectPacket(rays, state);
@@ -64,11 +55,12 @@ using namespace render;
     ASSERT_EQ(1.0f, result.tNear[0]);
     ASSERT_EQ(3.0f, result.tFar[3]);
   }
-  
+
   TEST(Primitive, ShouldReturnFarthestPoint) {
     auto primitive = std::make_shared<NiceMock<MockPrimitive>>();
-    ON_CALL(*primitive, farthestPoint(_)).WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultFarthestPoint));
-    
+    ON_CALL(*primitive, farthestPoint(_))
+      .WillByDefault(Invoke(primitive.get(), &NiceMock<MockPrimitive>::defaultFarthestPoint));
+
     ASSERT_TRUE(primitive->farthestPoint(Vector3d::up()).isUndefined());
   }
 

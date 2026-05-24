@@ -12,6 +12,7 @@
 template<>
 class Vector4<double> : public Vector<4, double, __m128d, Vector4<double>> {
   typedef double CellsType[4];
+
 public:
   static const int Dim = 4;
 
@@ -85,41 +86,30 @@ public:
   }
 
   [[nodiscard]] inline Vector4<double> operator+(const Vector4<double>& other) const noexcept {
-    return Vector4<double>(
-      _mm_add_pd(m_vector[0], other.m_vector[0]),
-      _mm_add_pd(m_vector[1], other.m_vector[1])
-    );
+    return Vector4<double>(_mm_add_pd(m_vector[0], other.m_vector[0]),
+                           _mm_add_pd(m_vector[1], other.m_vector[1]));
   }
 
   [[nodiscard]] inline Vector4<double> operator-(const Vector4<double>& other) const noexcept {
-    return Vector4<double>(
-      _mm_sub_pd(m_vector[0], other.m_vector[0]),
-      _mm_sub_pd(m_vector[1], other.m_vector[1])
-    );
+    return Vector4<double>(_mm_sub_pd(m_vector[0], other.m_vector[0]),
+                           _mm_sub_pd(m_vector[1], other.m_vector[1]));
   }
 
   [[nodiscard]] inline Vector4<double> operator-() const noexcept {
-    return Vector4<double>(
-      _mm_sub_pd(_mm_setzero_pd(), m_vector[0]),
-      _mm_sub_pd(_mm_setzero_pd(), m_vector[1])
-    );
+    return Vector4<double>(_mm_sub_pd(_mm_setzero_pd(), m_vector[0]),
+                           _mm_sub_pd(_mm_setzero_pd(), m_vector[1]));
   }
 
   [[nodiscard]] inline double operator*(const Vector4<double>& other) const noexcept {
     __m128d first = _mm_mul_pd(m_vector[0], other.m_vector[0]);
     __m128d second = _mm_mul_pd(m_vector[1], other.m_vector[1]);
-    return _mm_cvtsd_f64(first)
-         + _mm_cvtsd_f64(_mm_unpackhi_pd(first, first))
-         + _mm_cvtsd_f64(second)
-         + _mm_cvtsd_f64(_mm_unpackhi_pd(second, second));
+    return _mm_cvtsd_f64(first) + _mm_cvtsd_f64(_mm_unpackhi_pd(first, first)) +
+           _mm_cvtsd_f64(second) + _mm_cvtsd_f64(_mm_unpackhi_pd(second, second));
   }
 
   [[nodiscard]] inline Vector4<double> operator*(const double& factor) const noexcept {
     __m128d f = _mm_set1_pd(factor);
-    return Vector4<double>(
-      _mm_mul_pd(m_vector[0], f),
-      _mm_mul_pd(m_vector[1], f)
-    );
+    return Vector4<double>(_mm_mul_pd(m_vector[0], f), _mm_mul_pd(m_vector[1], f));
   }
 
   inline Vector4<double>& operator+=(const Vector4<double>& other) noexcept {
@@ -154,29 +144,17 @@ private:
 
 inline const Vector4<double> Vector4<double>::null{0.0, 0.0, 0.0, 1.0};
 inline const Vector4<double> Vector4<double>::epsilon{
-  std::numeric_limits<double>::epsilon(),
-  std::numeric_limits<double>::epsilon(),
-  std::numeric_limits<double>::epsilon(),
-  std::numeric_limits<double>::epsilon()
-};
+  std::numeric_limits<double>::epsilon(), std::numeric_limits<double>::epsilon(),
+  std::numeric_limits<double>::epsilon(), std::numeric_limits<double>::epsilon()};
 inline const Vector4<double> Vector4<double>::undefined{
-  std::numeric_limits<double>::quiet_NaN(),
-  std::numeric_limits<double>::quiet_NaN(),
-  std::numeric_limits<double>::quiet_NaN(),
-  std::numeric_limits<double>::quiet_NaN()
-};
+  std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(),
+  std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()};
 inline const Vector4<double> Vector4<double>::minusInfinity{
-  -std::numeric_limits<double>::infinity(),
-  -std::numeric_limits<double>::infinity(),
-  -std::numeric_limits<double>::infinity(),
-  -std::numeric_limits<double>::infinity()
-};
+  -std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(),
+  -std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()};
 inline const Vector4<double> Vector4<double>::plusInfinity{
-  std::numeric_limits<double>::infinity(),
-  std::numeric_limits<double>::infinity(),
-  std::numeric_limits<double>::infinity(),
-  std::numeric_limits<double>::infinity()
-};
+  std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(),
+  std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()};
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop

@@ -30,19 +30,15 @@ Matrix4<double>::operator*(const Matrix4<double>& b) const noexcept {
     const __m128d a_lo = _mm_loadu_pd((*this)[r]);
     const __m128d a_hi = _mm_loadu_pd((*this)[r] + 2);
 
-    const __m128d a0 = _mm_unpacklo_pd(a_lo, a_lo);  // [A[r][0], A[r][0]]
-    const __m128d a1 = _mm_unpackhi_pd(a_lo, a_lo);  // [A[r][1], A[r][1]]
-    const __m128d a2 = _mm_unpacklo_pd(a_hi, a_hi);  // [A[r][2], A[r][2]]
-    const __m128d a3 = _mm_unpackhi_pd(a_hi, a_hi);  // [A[r][3], A[r][3]]
+    const __m128d a0 = _mm_unpacklo_pd(a_lo, a_lo); // [A[r][0], A[r][0]]
+    const __m128d a1 = _mm_unpackhi_pd(a_lo, a_lo); // [A[r][1], A[r][1]]
+    const __m128d a2 = _mm_unpacklo_pd(a_hi, a_hi); // [A[r][2], A[r][2]]
+    const __m128d a3 = _mm_unpackhi_pd(a_hi, a_hi); // [A[r][3], A[r][3]]
 
-    const __m128d res_lo = _mm_add_pd(
-      _mm_add_pd(_mm_mul_pd(a0, b0_lo), _mm_mul_pd(a1, b1_lo)),
-      _mm_add_pd(_mm_mul_pd(a2, b2_lo), _mm_mul_pd(a3, b3_lo))
-    );
-    const __m128d res_hi = _mm_add_pd(
-      _mm_add_pd(_mm_mul_pd(a0, b0_hi), _mm_mul_pd(a1, b1_hi)),
-      _mm_add_pd(_mm_mul_pd(a2, b2_hi), _mm_mul_pd(a3, b3_hi))
-    );
+    const __m128d res_lo = _mm_add_pd(_mm_add_pd(_mm_mul_pd(a0, b0_lo), _mm_mul_pd(a1, b1_lo)),
+                                      _mm_add_pd(_mm_mul_pd(a2, b2_lo), _mm_mul_pd(a3, b3_lo)));
+    const __m128d res_hi = _mm_add_pd(_mm_add_pd(_mm_mul_pd(a0, b0_hi), _mm_mul_pd(a1, b1_hi)),
+                                      _mm_add_pd(_mm_mul_pd(a2, b2_hi), _mm_mul_pd(a3, b3_hi)));
 
     _mm_storeu_pd(&result[r][0], res_lo);
     _mm_storeu_pd(&result[r][2], res_hi);
@@ -50,7 +46,7 @@ Matrix4<double>::operator*(const Matrix4<double>& b) const noexcept {
   return result;
 }
 
-#endif  // __SSE2__
+#endif // __SSE2__
 
 #ifdef __SSE3__
 
@@ -72,18 +68,16 @@ Matrix4<double>::operator*(const Matrix4<double>& b) const noexcept {
 template<>
 [[nodiscard]] inline Vector4<double>
 Matrix4<double>::operator*(const Vector4<double>& vec) const noexcept {
-  const __m128d v_lo = _mm_loadu_pd(&vec[0]);  // [v[0], v[1]]
-  const __m128d v_hi = _mm_loadu_pd(&vec[2]);  // [v[2], v[3]]
+  const __m128d v_lo = _mm_loadu_pd(&vec[0]); // [v[0], v[1]]
+  const __m128d v_hi = _mm_loadu_pd(&vec[2]); // [v[2], v[3]]
 
   double r[4];
   for (int row = 0; row < 4; ++row) {
-    const __m128d t = _mm_hadd_pd(
-      _mm_mul_pd(_mm_loadu_pd((*this)[row]),     v_lo),
-      _mm_mul_pd(_mm_loadu_pd((*this)[row] + 2), v_hi)
-    );
+    const __m128d t = _mm_hadd_pd(_mm_mul_pd(_mm_loadu_pd((*this)[row]), v_lo),
+                                  _mm_mul_pd(_mm_loadu_pd((*this)[row] + 2), v_hi));
     r[row] = _mm_cvtsd_f64(t) + _mm_cvtsd_f64(_mm_unpackhi_pd(t, t));
   }
   return Vector4<double>(r[0], r[1], r[2], r[3]);
 }
 
-#endif  // __SSE3__
+#endif // __SSE3__

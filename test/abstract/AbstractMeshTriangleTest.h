@@ -11,10 +11,8 @@ namespace testing {
   using namespace render;
 
   inline Rayd toRayd(const Rayf& ray) {
-    return Rayd(
-      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
-    );
+    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
   }
 
   template<class MT>
@@ -24,20 +22,20 @@ namespace testing {
       mesh.addVertex(Vector3d(-1, 1, 0), Vector3d(0, 0, 1));
       mesh.addVertex(Vector3d(1, -1, 0), Vector3d(0, 0, 1));
     }
-    
+
     Mesh mesh;
   };
-  
+
   TYPED_TEST_SUITE_P(AbstractMeshTriangleTest);
 
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldInitializeWithValues) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
   }
-  
+
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldIntersectWithRay) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints, state);
@@ -48,29 +46,29 @@ namespace testing {
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
-  
+
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldNotIntersectWithMissingRay) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 4, -1), Vector3d(0, 0, 1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
-  
+
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldNotIntersectIfPointIsBehindRayOrigin) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = triangle.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
@@ -79,12 +77,10 @@ namespace testing {
 
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldIntersectRay4PacketLikeScalarRays) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
-    const std::array<Rayf, 4> rayArray{
-      Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, 1)),
-      Rayf(Vector3f(0, 4, -1), Vector3f(0, 0, 1)),
-      Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, -1)),
-      Rayf(Vector3f(-0.5f, -0.5f, -1), Vector3f(0, 0, 1))
-    };
+    const std::array<Rayf, 4> rayArray{Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, 1)),
+                                       Rayf(Vector3f(0, 4, -1), Vector3f(0, 0, 1)),
+                                       Rayf(Vector3f(0, 0, -1), Vector3f(0, 0, -1)),
+                                       Rayf(Vector3f(-0.5f, -0.5f, -1), Vector3f(0, 0, 1))};
 
     State packetState;
     const auto result = triangle.intersectPacket(Ray4(rayArray), packetState);
@@ -101,33 +97,29 @@ namespace testing {
     ASSERT_EQ(2, packetState.intersectionHits);
     ASSERT_EQ(2, packetState.intersectionMisses);
   }
-  
+
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, 1));
-    
+
     State state;
     ASSERT_TRUE(triangle.intersects(ray, state));
   }
-  
+
   TYPED_TEST_P(AbstractMeshTriangleTest, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     TypeParam triangle(&this->mesh, 0, 1, 2);
     Rayd ray(Vector3d(0, 0, -1), Vector3d(0, 0, -1));
-    
+
     State state;
     ASSERT_FALSE(triangle.intersects(ray, state));
   }
-  
-  REGISTER_TYPED_TEST_SUITE_P(
-    AbstractMeshTriangleTest,
-    ShouldInitializeWithValues,
-    ShouldIntersectWithRay,
-    ShouldNotIntersectWithMissingRay,
-    ShouldNotIntersectIfPointIsBehindRayOrigin,
-    ShouldIntersectRay4PacketLikeScalarRays,
-    ShouldReturnTrueForIntersectsIfThereIsAIntersection,
-    ShouldReturnFalseForIntersectsIfThereIsNoIntersection
-  );
+
+  REGISTER_TYPED_TEST_SUITE_P(AbstractMeshTriangleTest, ShouldInitializeWithValues,
+                              ShouldIntersectWithRay, ShouldNotIntersectWithMissingRay,
+                              ShouldNotIntersectIfPointIsBehindRayOrigin,
+                              ShouldIntersectRay4PacketLikeScalarRays,
+                              ShouldReturnTrueForIntersectsIfThereIsAIntersection,
+                              ShouldReturnFalseForIntersectsIfThereIsNoIntersection);
 }
 
 #endif

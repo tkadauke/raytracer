@@ -18,7 +18,7 @@ GIVEN(EngineFeatureTest, "a centered cube mesh") {
   auto mesh = new Mesh;
   PlyFile file(stream, *mesh);
   mesh->computeNormals();
-  
+
   FlatMeshTriangle::build(mesh, test->scene(), test->redDiffuse());
 }
 
@@ -29,10 +29,10 @@ GIVEN(EngineFeatureTest, "a displaced cube mesh") {
   mesh->computeNormals();
   auto composite = std::make_shared<Composite>();
   FlatMeshTriangle::build(mesh, composite.get(), test->redDiffuse());
-  
+
   auto instance = std::make_shared<Instance>(composite);
   instance->setMatrix(Matrix4d::translate(Vector3d(0, 20, 0)));
-  
+
   test->add(instance);
 }
 

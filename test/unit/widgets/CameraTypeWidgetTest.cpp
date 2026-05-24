@@ -21,10 +21,7 @@ namespace CameraTypeWidgetTest {
     // doesn't churn this test.
     CameraTypeWidget widget;
     auto identifiers = render::CameraFactory::self().identifiers();
-    EXPECT_NE(
-      std::find(identifiers.begin(), identifiers.end(), widget.type()),
-      identifiers.end()
-    );
+    EXPECT_NE(std::find(identifiers.begin(), identifiers.end(), widget.type()), identifiers.end());
   }
 
   TEST_F(CameraTypeWidgetTest, ShouldEmitChangedOnTypeChange) {

@@ -50,19 +50,31 @@ namespace testing {
     explicit Blob(std::vector<Pixel> pixels, int bufferWidth, int bufferHeight);
 
     /// Total pixel count in the blob (interior + boundary).
-    int area() const { return static_cast<int>(m_pixels.size()); }
+    int area() const {
+      return static_cast<int>(m_pixels.size());
+    }
 
     /// Boundary pixel count — perimeter in pixel units.
-    int perimeter() const { return static_cast<int>(m_boundary.size()); }
+    int perimeter() const {
+      return static_cast<int>(m_boundary.size());
+    }
 
     /// Pixel-mass-weighted centroid (rounded to nearest pixel).
-    Pixel centroid() const { return m_centroid; }
+    Pixel centroid() const {
+      return m_centroid;
+    }
 
     /// Axis-aligned bounding box, tight to the blob extents.
-    Recti boundingBox() const { return m_bbox; }
+    Recti boundingBox() const {
+      return m_bbox;
+    }
 
-    const std::vector<Pixel>& pixels() const { return m_pixels; }
-    const std::vector<Pixel>& boundary() const { return m_boundary; }
+    const std::vector<Pixel>& pixels() const {
+      return m_pixels;
+    }
+    const std::vector<Pixel>& boundary() const {
+      return m_boundary;
+    }
 
     /**
       * @brief Polsby-Popper compactness measure.

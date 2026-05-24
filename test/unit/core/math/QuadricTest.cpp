@@ -5,8 +5,7 @@
 
 namespace QuadricTest {
   template<class T>
-  class QuadricTest : public ::testing::Test {
-  };
+  class QuadricTest : public ::testing::Test {};
 
   typedef ::testing::Types<float, double> QuadricTypes;
 

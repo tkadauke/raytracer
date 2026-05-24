@@ -21,9 +21,7 @@ namespace TonemapTest {
     // LinearTonemap is a pass-through — the only clamping happens
     // downstream in `.rgb()`. This test pins that contract.
     LinearTonemap t;
-    ASSERT_COLOR_NEAR(Colord(2.5, 4.0, 100.0),
-                      t.apply(Colord(2.5, 4.0, 100.0)),
-                      1e-12);
+    ASSERT_COLOR_NEAR(Colord(2.5, 4.0, 100.0), t.apply(Colord(2.5, 4.0, 100.0)), 1e-12);
   }
 
   // ---- ReinhardTonemap ----
@@ -37,9 +35,7 @@ namespace TonemapTest {
     // Closed-form: c / (1 + c) at c = 1.0 → 0.5. Pin so anyone
     // changing the formula gets a loud failure.
     ReinhardTonemap t;
-    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.5),
-                      t.apply(Colord(1.0, 1.0, 1.0)),
-                      1e-12);
+    ASSERT_COLOR_NEAR(Colord(0.5, 0.5, 0.5), t.apply(Colord(1.0, 1.0, 1.0)), 1e-12);
   }
 
   TEST(ReinhardTonemap, BoundsArbitrarilyBrightHDRInputsBelowOne) {
@@ -50,7 +46,7 @@ namespace TonemapTest {
     EXPECT_LT(out.r(), 1.0);
     EXPECT_LT(out.g(), 1.0);
     EXPECT_LT(out.b(), 1.0);
-    EXPECT_GT(out.r(), 0.99);  // clearly close to but below the limit.
+    EXPECT_GT(out.r(), 0.99); // clearly close to but below the limit.
   }
 
   TEST(ReinhardTonemap, AppliesPerChannel) {

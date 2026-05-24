@@ -23,11 +23,10 @@ namespace render {
   class PerfectTransmitter : public BTDF {
   public:
     inline PerfectTransmitter()
-      : m_transmissionCoefficient(1),
-        m_refractionIndex(16)
-    {
+        : m_transmissionCoefficient(1),
+          m_refractionIndex(16) {
     }
-    
+
     Colord sample(const HitPoint& hitPoint, const Vector3d& out, Vector3d& in) const override;
     bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const override;
 
@@ -36,27 +35,28 @@ namespace render {
     /// `sample(hp, out, in)` above. Note: this does NOT branch on
     /// TIR; that decision lives in `TransparentMaterial::shade`,
     /// which inspects `totalInternalReflection` first.
-    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo, double& pdf) const override {
+    Colord sample(const HitPoint& hitPoint, const Vector3d& wi, Vector3d& wo,
+                  double& pdf) const override {
       pdf = 1.0;
       return sample(hitPoint, wi, wo);
     }
-    
+
     inline double transmissionCoefficient() const {
       return m_transmissionCoefficient;
     }
-    
+
     inline void setTransmissionCoefficient(double coeff) {
       m_transmissionCoefficient = Ranged(0, 1).clamp(coeff);
     }
-    
+
     inline double refractionIndex() const {
       return m_refractionIndex;
     }
-    
+
     inline void setRefractionIndex(double refractionIndex) {
       m_refractionIndex = refractionIndex;
     }
-    
+
   private:
     double m_transmissionCoefficient;
     double m_refractionIndex;

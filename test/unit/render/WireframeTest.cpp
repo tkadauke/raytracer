@@ -12,8 +12,8 @@
 #include <memory>
 
 namespace WireframeTest {
-using namespace render;
-using namespace engine::wireframe;
+  using namespace render;
+  using namespace engine::wireframe;
 
   class NearPlaneTrianglePrimitive : public Primitive {
   public:
@@ -42,7 +42,8 @@ using namespace engine::wireframe;
     int count = 0;
     for (int y = 0; y < buffer.height(); ++y)
       for (int x = 0; x < buffer.width(); ++x)
-        if (buffer[y][x] == color) ++count;
+        if (buffer[y][x] == color)
+          ++count;
     return count;
   }
 
@@ -89,8 +90,8 @@ using namespace engine::wireframe;
     int white = countPixels(buffer, Colord::white());
     int black = countPixels(buffer, Colord::black());
     EXPECT_GT(white, 0);
-    EXPECT_GT(black, white);  // most pixels still background
-    EXPECT_EQ(128 * 128, white + black);  // every pixel is one or the other
+    EXPECT_GT(black, white);             // most pixels still background
+    EXPECT_EQ(128 * 128, white + black); // every pixel is one or the other
   }
 
   TEST(Wireframe, BackgroundColorIsConfigurable) {

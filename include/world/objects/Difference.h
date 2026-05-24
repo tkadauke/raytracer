@@ -11,12 +11,12 @@
   */
 class Difference : public CSGSurface {
   Q_OBJECT
-  
+
 public:
   /**
     * Default constructor. Creates an empty difference.
     */
   explicit Difference(Element* parent = nullptr);
-  
+
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 };

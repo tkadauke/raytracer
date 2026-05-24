@@ -81,8 +81,7 @@ namespace RenderGraphInspectorWidgetTest {
 
     const auto overrides = widget.overrides();
     EXPECT_TRUE(slot.called());
-    EXPECT_NE(overrides.disabledPasses.end(),
-              overrides.disabledPasses.find("raytrace_beauty"));
+    EXPECT_NE(overrides.disabledPasses.end(), overrides.disabledPasses.find("raytrace_beauty"));
     EXPECT_FALSE(widget.effectivePlanValid());
   }
 

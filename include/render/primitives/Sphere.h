@@ -38,12 +38,12 @@ namespace render {
   class Sphere : public Primitive {
   public:
     inline explicit Sphere(const Vector3d& origin, double radius)
-      : m_origin(origin),
-        m_radius(radius)
-    {
+        : m_origin(origin),
+          m_radius(radius) {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     RayPacketIntersection4 intersectPacket(const Ray4& rays, render::State& state) const override;
     virtual bool intersects(const Rayd& ray, render::State& state) const override;
 

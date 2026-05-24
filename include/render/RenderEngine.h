@@ -71,7 +71,8 @@ namespace render {
   class RenderEngine : public std::enable_shared_from_this<RenderEngine> {
   public:
     explicit RenderEngine(std::shared_ptr<render::Scene> scene);
-    explicit RenderEngine(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
+    explicit RenderEngine(std::shared_ptr<render::Camera> camera,
+                          std::shared_ptr<render::Scene> scene);
 
     virtual ~RenderEngine();
 

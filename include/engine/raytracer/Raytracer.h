@@ -76,7 +76,8 @@ namespace engine::raytracer {
       * constructor set it to; callers who care about pixel size /
       * sampler / interlacing should configure it themselves.
       */
-    explicit Raytracer(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
+    explicit Raytracer(std::shared_ptr<render::Camera> camera,
+                       std::shared_ptr<render::Scene> scene);
 
     virtual ~Raytracer();
 

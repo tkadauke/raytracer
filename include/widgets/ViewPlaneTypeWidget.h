@@ -8,11 +8,11 @@
 
 class ViewPlaneTypeWidget : public QWidget {
   Q_OBJECT
-  
+
 public:
   explicit ViewPlaneTypeWidget(QWidget* parent = nullptr);
   ~ViewPlaneTypeWidget();
-  
+
   std::string type() const;
 
 signals:

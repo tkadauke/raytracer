@@ -3,18 +3,18 @@
 #include <assert.h>
 
 GJKSimplex::GJKSimplex()
-  : m_pointsLengthSquare(),
-    m_maxLengthSquare(0),
-    m_det(),
-    m_normSquare(),
-    m_bitsCurrentGJKSimplex(0),
-    m_lastFound(0),
-    m_lastFoundBit(0),
-    m_allBits(0)
-{
+    : m_pointsLengthSquare(),
+      m_maxLengthSquare(0),
+      m_det(),
+      m_normSquare(),
+      m_bitsCurrentGJKSimplex(0),
+      m_lastFound(0),
+      m_lastFoundBit(0),
+      m_allBits(0) {
 }
 
-void GJKSimplex::addPoint(const Vector3d& point, const Vector3d& suppPointA, const Vector3d& suppPointB) {
+void GJKSimplex::addPoint(const Vector3d& point, const Vector3d& suppPointA,
+                          const Vector3d& suppPointB) {
   assert(!isFull());
 
   m_lastFound = 0;
@@ -36,10 +36,10 @@ void GJKSimplex::addPoint(const Vector3d& point, const Vector3d& suppPointA, con
 
   // Update the cached values
   updateCache();
-    
+
   // Compute the cached determinant values
   computeDeterminants();
-    
+
   // Add the support points of objects A and B
   m_suppPointsA[m_lastFound] = suppPointA;
   m_suppPointsB[m_lastFound] = suppPointB;
@@ -50,7 +50,7 @@ bool GJKSimplex::isPointInGJKSimplex(const Vector3d& point) const {
   Bits bit;
 
   // For each four possible points in the simplex
-  for (i=0, bit = 0x1; i<4; i++, bit <<= 1) {
+  for (i = 0, bit = 0x1; i < 4; i++, bit <<= 1) {
     // Check if the current point is in the simplex
     if (overlap(m_allBits, bit) && point == m_points[i])
       return true;
@@ -64,7 +64,7 @@ void GJKSimplex::updateCache() {
   Bits bit;
 
   // For each of the four possible points of the simplex
-  for (i=0, bit = 0x1; i<4; i++, bit <<= 1) {
+  for (i = 0, bit = 0x1; i < 4; i++, bit <<= 1) {
     // If the current points is in the simplex
     if (overlap(m_bitsCurrentGJKSimplex, bit)) {
       // Compute the distance between two points in the possible simplex set
@@ -88,7 +88,7 @@ void GJKSimplex::computeDeterminants() {
     Bits bitI;
 
     // For each possible four points in the simplex set
-    for (i=0, bitI = 0x1; i<4; i++, bitI <<= 1) {
+    for (i = 0, bitI = 0x1; i < 4; i++, bitI <<= 1) {
       // If the current point is in the simplex
       if (overlap(m_bitsCurrentGJKSimplex, bitI)) {
         Bits bit2 = bitI | m_lastFoundBit;
@@ -99,27 +99,24 @@ void GJKSimplex::computeDeterminants() {
         int j;
         Bits bitJ;
 
-        for (j=0, bitJ = 0x1; j<i; j++, bitJ <<= 1) {
+        for (j = 0, bitJ = 0x1; j < i; j++, bitJ <<= 1) {
           if (overlap(m_bitsCurrentGJKSimplex, bitJ)) {
             int k;
             Bits bit3 = bitJ | bit2;
 
             k = m_normSquare[i][j] < m_normSquare[m_lastFound][j] ? i : m_lastFound;
             m_det[bit3][j] = m_det[bit2][i] * m_diffLength[k][j] * m_points[i] +
-                             m_det[bit2][m_lastFound] *
-                             m_diffLength[k][j] * m_points[m_lastFound];
+                             m_det[bit2][m_lastFound] * m_diffLength[k][j] * m_points[m_lastFound];
 
             k = m_normSquare[j][i] < m_normSquare[m_lastFound][i] ? j : m_lastFound;
-            m_det[bit3][i] = m_det[bitJ | m_lastFoundBit][j] *
-                             m_diffLength[k][i] * m_points[j] +
-                             m_det[bitJ | m_lastFoundBit][m_lastFound] *
-                             m_diffLength[k][i] * m_points[m_lastFound];
+            m_det[bit3][i] = m_det[bitJ | m_lastFoundBit][j] * m_diffLength[k][i] * m_points[j] +
+                             m_det[bitJ | m_lastFoundBit][m_lastFound] * m_diffLength[k][i] *
+                               m_points[m_lastFound];
 
             k = m_normSquare[i][m_lastFound] < m_normSquare[j][m_lastFound] ? i : j;
-            m_det[bit3][m_lastFound] = m_det[bitJ | bitI][j] *
-                                       m_diffLength[k][m_lastFound] * m_points[j] +
-                                       m_det[bitJ | bitI][i] *
-                                       m_diffLength[k][m_lastFound] * m_points[i];
+            m_det[bit3][m_lastFound] =
+              m_det[bitJ | bitI][j] * m_diffLength[k][m_lastFound] * m_points[j] +
+              m_det[bitJ | bitI][i] * m_diffLength[k][m_lastFound] * m_points[i];
           }
         }
       }
@@ -128,30 +125,30 @@ void GJKSimplex::computeDeterminants() {
     if (m_allBits == 0xf) {
       int k;
 
-      k = m_normSquare[1][0] < m_normSquare[2][0] ?
-         (m_normSquare[1][0] < m_normSquare[3][0] ? 1 : 3) :
-         (m_normSquare[2][0] < m_normSquare[3][0] ? 2 : 3);
+      k = m_normSquare[1][0] < m_normSquare[2][0]
+            ? (m_normSquare[1][0] < m_normSquare[3][0] ? 1 : 3)
+            : (m_normSquare[2][0] < m_normSquare[3][0] ? 2 : 3);
       m_det[0xf][0] = m_det[0xe][1] * m_diffLength[k][0] * m_points[1] +
                       m_det[0xe][2] * m_diffLength[k][0] * m_points[2] +
                       m_det[0xe][3] * m_diffLength[k][0] * m_points[3];
 
-      k = m_normSquare[0][1] < m_normSquare[2][1] ?
-         (m_normSquare[0][1] < m_normSquare[3][1] ? 0 : 3) :
-         (m_normSquare[2][1] < m_normSquare[3][1] ? 2 : 3);
+      k = m_normSquare[0][1] < m_normSquare[2][1]
+            ? (m_normSquare[0][1] < m_normSquare[3][1] ? 0 : 3)
+            : (m_normSquare[2][1] < m_normSquare[3][1] ? 2 : 3);
       m_det[0xf][1] = m_det[0xd][0] * m_diffLength[k][1] * m_points[0] +
                       m_det[0xd][2] * m_diffLength[k][1] * m_points[2] +
                       m_det[0xd][3] * m_diffLength[k][1] * m_points[3];
 
-      k = m_normSquare[0][2] < m_normSquare[1][2] ?
-         (m_normSquare[0][2] < m_normSquare[3][2] ? 0 : 3) :
-         (m_normSquare[1][2] < m_normSquare[3][2] ? 1 : 3);
+      k = m_normSquare[0][2] < m_normSquare[1][2]
+            ? (m_normSquare[0][2] < m_normSquare[3][2] ? 0 : 3)
+            : (m_normSquare[1][2] < m_normSquare[3][2] ? 1 : 3);
       m_det[0xf][2] = m_det[0xb][0] * m_diffLength[k][2] * m_points[0] +
                       m_det[0xb][1] * m_diffLength[k][2] * m_points[1] +
                       m_det[0xb][3] * m_diffLength[k][2] * m_points[3];
 
-      k = m_normSquare[0][3] < m_normSquare[1][3] ?
-         (m_normSquare[0][3] < m_normSquare[2][3] ? 0 : 2) :
-         (m_normSquare[1][3] < m_normSquare[2][3] ? 1 : 2);
+      k = m_normSquare[0][3] < m_normSquare[1][3]
+            ? (m_normSquare[0][3] < m_normSquare[2][3] ? 0 : 2)
+            : (m_normSquare[1][3] < m_normSquare[2][3] ? 1 : 2);
       m_det[0xf][3] = m_det[0x7][0] * m_diffLength[k][3] * m_points[0] +
                       m_det[0x7][1] * m_diffLength[k][3] * m_points[1] +
                       m_det[0x7][2] * m_diffLength[k][3] * m_points[2];
@@ -164,7 +161,7 @@ bool GJKSimplex::isValidSubset(Bits subset) const {
   Bits bit;
 
   // For each four point in the possible simplex set
-  for (i=0, bit=0x1; i<4; i++, bit <<= 1) {
+  for (i = 0, bit = 0x1; i < 4; i++, bit <<= 1) {
     if (overlap(m_allBits, bit)) {
       // If the current point is in the subset
       if (overlap(subset, bit)) {
@@ -194,7 +191,7 @@ void GJKSimplex::computeClosestPointsOfAandB(Vector3d& pA, Vector3d& pB) const {
   Bits bit;
 
   // For each four points in the possible simplex set
-  for (i=0, bit=0x1; i<4; i++, bit <<= 1) {
+  for (i = 0, bit = 0x1; i < 4; i++, bit <<= 1) {
     // If the current point is part of the simplex
     if (overlap(m_bitsCurrentGJKSimplex, bit)) {
       deltaX += m_det[m_bitsCurrentGJKSimplex][i];
@@ -213,7 +210,7 @@ bool GJKSimplex::computeClosestPoint(Vector3d& v) {
   Bits subset;
 
   // For each possible simplex set
-  for (subset=m_bitsCurrentGJKSimplex; subset != 0; subset--) {
+  for (subset = m_bitsCurrentGJKSimplex; subset != 0; subset--) {
     // If the simplex is a subset of the current simplex and is valid for the Johnson's
     // algorithm test
     if (isSubset(subset, m_bitsCurrentGJKSimplex) && isValidSubset(subset | m_lastFoundBit)) {
@@ -250,7 +247,7 @@ Vector3d GJKSimplex::computeClosestPointForSubset(Bits subset) {
   Bits bit;
 
   // For each four point in the possible simplex set
-  for (i=0, bit=0x1; i<4; i++, bit <<= 1) {
+  for (i = 0, bit = 0x1; i < 4; i++, bit <<= 1) {
     // If the current point is in the subset
     if (overlap(subset, bit)) {
       // deltaX = sum of all det[subset][i]

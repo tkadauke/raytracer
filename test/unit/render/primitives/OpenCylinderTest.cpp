@@ -8,8 +8,8 @@
 
 namespace OpenCylinderTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(OpenCylinder, ShouldInitializeWithValues) {
     OpenCylinder cylinder(1, 2);
@@ -18,11 +18,11 @@ using namespace render;
   TEST(OpenCylinder, ShouldThrowDivisionByZeroExceptionWhenConstructedWithZeroRadius) {
     ASSERT_THROW(OpenCylinder(0, 2), DivisionByZeroException);
   }
-  
+
   TEST(OpenCylinder, ShouldIntersectWithRayInXDirection) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(-2, 0, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
@@ -33,11 +33,11 @@ using namespace render;
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldNotIntersectWithRayInYDirection) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(0, -2, 0), Vector3d(0, 1, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
@@ -47,11 +47,11 @@ using namespace render;
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldIntersectWithRayInZDirection) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(0, 0, -2), Vector3d(0, 0, 1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
@@ -62,11 +62,11 @@ using namespace render;
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldIntersectIfRayIsTangentToPrimitive) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(0, 1, -2), Vector3d(0, 0, 1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
@@ -77,39 +77,39 @@ using namespace render;
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldNotIntersectWithMissingRay) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(0, 0, -3), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldNotIntersectIfOpenCylinderIsBehindRayOrigin) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(0, 0, 2), Vector3d(0, 0, 1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.minWithPositiveDistance().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldReportBothHitpointsWhenRayOriginIsInsideOpenCylinder) {
     OpenCylinder cylinder(1, 2);
     Rayd ray(Vector3d(0, 0, 0), Vector3d(0, 0, 1));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = cylinder.intersect(ray, hitPoints, state);
@@ -125,16 +125,16 @@ using namespace render;
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
-  
+
   TEST(OpenCylinder, ShouldReturnFarthestPoint) {
     OpenCylinder cylinder(1, 2);
     auto direction = Vector3d(1, 0.1, 1).normalized();
     auto expected = Vector3d(1, 0, 1).normalized();
     expected.setY(1);
-    
+
     ASSERT_VECTOR_NEAR(expected, cylinder.farthestPoint(direction), 0.001);
   }
-  
+
   TEST(OpenCylinder, ShouldReturnBoundingBox) {
     OpenCylinder cylinder(1, 2);
     BoundingBoxd bbox = cylinder.boundingBox();

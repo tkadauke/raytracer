@@ -17,11 +17,7 @@ class Material : public Element {
   Q_PROPERTY(QString sidedness READ sidednessName WRITE setSidednessName)
 
 public:
-  enum class Sidedness {
-    Front,
-    Back,
-    TwoSided
-  };
+  enum class Sidedness { Front, Back, TwoSided };
 
   /**
     * Returns the default material, which is a black matte material.

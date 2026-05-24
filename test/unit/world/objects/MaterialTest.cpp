@@ -94,8 +94,7 @@ namespace MaterialTest {
     m.setNormalTexture(&tex);
     Material* base = &m;
 
-    auto rt = std::dynamic_pointer_cast<render::MatteMaterial>(
-      base->toRaytracerMaterial());
+    auto rt = std::dynamic_pointer_cast<render::MatteMaterial>(base->toRaytracerMaterial());
 
     ASSERT_NE(nullptr, rt);
     EXPECT_NE(nullptr, rt->normalTexture());
@@ -104,8 +103,7 @@ namespace MaterialTest {
   TEST(MatteMaterial, ShouldProduceRaytracerMatteMaterial) {
     MatteMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<render::MatteMaterial>(
-      base->toRaytracerMaterial());
+    auto rt = std::dynamic_pointer_cast<render::MatteMaterial>(base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
 
@@ -152,8 +150,7 @@ namespace MaterialTest {
   TEST(PhongMaterial, ShouldProduceRaytracerPhongMaterial) {
     PhongMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<render::PhongMaterial>(
-      base->toRaytracerMaterial());
+    auto rt = std::dynamic_pointer_cast<render::PhongMaterial>(base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
 
@@ -184,8 +181,7 @@ namespace MaterialTest {
   TEST(ReflectiveMaterial, ShouldProduceRaytracerReflectiveMaterial) {
     ReflectiveMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<render::ReflectiveMaterial>(
-      base->toRaytracerMaterial());
+    auto rt = std::dynamic_pointer_cast<render::ReflectiveMaterial>(base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
 
@@ -230,8 +226,7 @@ namespace MaterialTest {
   TEST(TransparentMaterial, ShouldProduceRaytracerTransparentMaterial) {
     TransparentMaterial m;
     Material* base = &m;
-    auto rt = std::dynamic_pointer_cast<render::TransparentMaterial>(
-      base->toRaytracerMaterial());
+    auto rt = std::dynamic_pointer_cast<render::TransparentMaterial>(base->toRaytracerMaterial());
     EXPECT_NE(nullptr, rt);
   }
 }

@@ -4,8 +4,7 @@
 #include "render/primitives/ConvexHull.h"
 
 MinkowskiSum::MinkowskiSum(Element* parent)
-  : CSGSurface(parent)
-{
+    : CSGSurface(parent) {
 }
 
 std::shared_ptr<render::Primitive> MinkowskiSum::toRaytracerPrimitive() const {
@@ -21,4 +20,3 @@ std::shared_ptr<render::Primitive> MinkowskiSum::toRaytracerPrimitive() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<MinkowskiSum>("MinkowskiSum");
-

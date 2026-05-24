@@ -16,8 +16,7 @@ namespace engine::graph {
       return QString::fromStdString(value);
     }
 
-    [[noreturn]] void jsonError(const std::string& path,
-                                const std::string& message) {
+    [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid render graph JSON at " + path + ": " + message);
     }
 
@@ -125,8 +124,7 @@ namespace engine::graph {
         path);
     }
 
-    RenderResourceDomain resourceDomainFromJson(const std::string& value,
-                                                const std::string& path) {
+    RenderResourceDomain resourceDomainFromJson(const std::string& value, const std::string& path) {
       return enumValue<RenderResourceDomain>(
         value, {{"cpu", RenderResourceDomain::CPU}, {"gpu", RenderResourceDomain::GPU}}, path);
     }
@@ -198,8 +196,7 @@ namespace engine::graph {
       return array;
     }
 
-    std::vector<RenderFeatureKind> featureArrayFromJson(const QJsonObject& object,
-                                                        const char* key,
+    std::vector<RenderFeatureKind> featureArrayFromJson(const QJsonObject& object, const char* key,
                                                         const std::string& path) {
       std::vector<RenderFeatureKind> result;
       const auto value = object.value(key);
@@ -609,9 +606,8 @@ namespace engine::graph {
     intent.defaultViewMode = viewModeFromJson(
       stringField(object, "defaultViewMode", "renderIntent", toString(intent.defaultViewMode)),
       "renderIntent.defaultViewMode");
-    intent.defaultShadingProfile =
-      ShadingProfileRef::fromJson(object.value("defaultShadingProfile"),
-                                  "renderIntent.defaultShadingProfile");
+    intent.defaultShadingProfile = ShadingProfileRef::fromJson(
+      object.value("defaultShadingProfile"), "renderIntent.defaultShadingProfile");
 
     const auto defaultCamera = object.value("defaultCamera");
     if (!defaultCamera.isUndefined())
@@ -689,15 +685,15 @@ namespace engine::graph {
     resource.name = stringField(object, "name", path);
     resource.type =
       resourceTypeFromJson(stringField(object, "type", path, "color"), path + ".type");
-    resource.format = resourceFormatFromJson(stringField(object, "format", path, "unknown"),
-                                             path + ".format");
+    resource.format =
+      resourceFormatFromJson(stringField(object, "format", path, "unknown"), path + ".format");
     resource.width = intField(object, "width", path, 0);
     resource.height = intField(object, "height", path, 0);
     resource.sampleCount = intField(object, "sampleCount", path, 1);
     resource.domain =
       resourceDomainFromJson(stringField(object, "domain", path, "cpu"), path + ".domain");
-    resource.lifetime = resourceLifetimeFromJson(
-      stringField(object, "lifetime", path, "transient"), path + ".lifetime");
+    resource.lifetime = resourceLifetimeFromJson(stringField(object, "lifetime", path, "transient"),
+                                                 path + ".lifetime");
     return resource;
   }
 
@@ -752,9 +748,8 @@ namespace engine::graph {
     pass.id = stringField(object, "id", path);
     pass.name = stringField(object, "name", path);
     pass.kind = passKindFromJson(stringField(object, "kind", path, "custom"), path + ".kind");
-    pass.executor =
-      executorKindFromJson(stringField(object, "executor", path, "postprocess"),
-                           path + ".executor");
+    pass.executor = executorKindFromJson(stringField(object, "executor", path, "postprocess"),
+                                         path + ".executor");
     pass.features = featureArrayFromJson(object, "features", path);
     pass.reads = readsFromJson(object, "reads", path);
     pass.writes = writesFromJson(object, "writes", path);
@@ -763,15 +758,14 @@ namespace engine::graph {
     if (!selector.isUndefined()) {
       if (!selector.isObject())
         jsonError(path + ".sceneSelector", "expected object");
-      pass.sceneView.selector = SceneSelector::fromJson(selector.toObject(),
-                                                        path + ".sceneSelector");
+      pass.sceneView.selector =
+        SceneSelector::fromJson(selector.toObject(), path + ".sceneSelector");
     } else {
       pass.sceneView.selector = SceneSelector::all();
     }
 
-    pass.disabledBehavior =
-      disabledBehaviorFromJson(stringField(object, "disabledBehavior", path, "error"),
-                               path + ".disabledBehavior");
+    pass.disabledBehavior = disabledBehaviorFromJson(
+      stringField(object, "disabledBehavior", path, "error"), path + ".disabledBehavior");
     pass.enabled = boolField(object, "enabled", path, true);
     pass.hasExternalSideEffects = boolField(object, "hasExternalSideEffects", path, false);
     pass.canRunConcurrently = boolField(object, "canRunConcurrently", path, true);

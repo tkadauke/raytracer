@@ -22,7 +22,8 @@ namespace engine::graph {
     return it != m_resources.end() && it->second->hasBuffer();
   }
 
-  const RenderResourceDescriptor& RenderResourceStorage::descriptor(const RenderResourceId& id) const {
+  const RenderResourceDescriptor&
+  RenderResourceStorage::descriptor(const RenderResourceId& id) const {
     return resource(id).descriptor();
   }
 

@@ -2,15 +2,15 @@
 
 namespace MeshTest {
   using namespace ::testing;
-  
+
   class MeshTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(MeshTest, ShouldBeVisibileInFrontOfTheCamera) {
     given("a centered cube mesh");
     when("i look at the origin");
     then("i should see the mesh");
   }
-  
+
   TEST_F(MeshTest, ShouldNotBeVisibileOutsideOfViewFrustum) {
     given("a displaced cube mesh");
     when("i look at the origin");

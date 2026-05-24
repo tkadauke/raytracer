@@ -4,12 +4,11 @@
 #include "render/cameras/ThinLensCamera.h"
 
 ThinLensCamera::ThinLensCamera(Element* parent)
-  : Camera(parent),
-    m_distance(5),
-    m_zoom(1),
-    m_apertureRadius(0.1),
-    m_focalDistance(5)
-{
+    : Camera(parent),
+      m_distance(5),
+      m_zoom(1),
+      m_apertureRadius(0.1),
+      m_focalDistance(5) {
 }
 
 std::shared_ptr<render::Camera> ThinLensCamera::toRaytracer() const {

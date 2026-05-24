@@ -18,12 +18,20 @@ namespace ElementTest {
     Q_PROPERTY(QString tag READ tag WRITE setTag)
 
   public:
-    explicit TestElement(Element* parent = nullptr) : Element(parent) {}
+    explicit TestElement(Element* parent = nullptr)
+        : Element(parent) {
+    }
 
-    inline const QString& tag() const { return m_tag; }
-    inline void setTag(const QString& tag) { m_tag = tag; }
+    inline const QString& tag() const {
+      return m_tag;
+    }
+    inline void setTag(const QString& tag) {
+      m_tag = tag;
+    }
 
-    inline bool canHaveChild(Element*) const override { return true; }
+    inline bool canHaveChild(Element*) const override {
+      return true;
+    }
 
   private:
     QString m_tag;
@@ -36,7 +44,7 @@ namespace ElementTest {
   // classes ("ElementTest::TestElement"), so the round-trip type lookup
   // resolves to the same Creator that wrote the JSON in the first place.
   static const bool s_registered =
-      ElementFactory::self().registerClass<TestElement>("ElementTest::TestElement");
+    ElementFactory::self().registerClass<TestElement>("ElementTest::TestElement");
 
   TEST(Element, ShouldInitializeWithoutParent) {
     Element element;

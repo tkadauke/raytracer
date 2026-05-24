@@ -36,8 +36,7 @@ namespace {
     for (int x = 0; x < side; ++x) {
       for (int y = 0; y < side; ++y) {
         for (int z = 0; z < side; ++z) {
-          container->add(std::make_shared<Sphere>(
-            Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
+          container->add(std::make_shared<Sphere>(Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
         }
       }
     }
@@ -57,7 +56,8 @@ namespace {
     for (int i = 0; i < count; ++i) {
       Vector3d o(origin(rng), origin(rng), origin(rng));
       Vector3d d(direction(rng), direction(rng), direction(rng));
-      if (d.length() < 1e-6) d = Vector3d(1, 0, 0);
+      if (d.length() < 1e-6)
+        d = Vector3d(1, 0, 0);
       rays.emplace_back(o, d.normalized());
     }
     return rays;
@@ -121,13 +121,13 @@ namespace {
 
 // 3-, 5-, 8-, 12-side cubes → 27, 125, 512, 1728 spheres.
 BENCHMARK(bm_intersect<Composite>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
-BENCHMARK(bm_intersect<Grid>)     ->Arg(3)->Arg(5)->Arg(8)->Arg(12);
-BENCHMARK(bm_intersect<BVH>)      ->Arg(3)->Arg(5)->Arg(8)->Arg(12);
+BENCHMARK(bm_intersect<Grid>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
+BENCHMARK(bm_intersect<BVH>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
 
 BENCHMARK(bm_shadowRay<Composite>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
-BENCHMARK(bm_shadowRay<Grid>)     ->Arg(3)->Arg(5)->Arg(8)->Arg(12);
-BENCHMARK(bm_shadowRay<BVH>)      ->Arg(3)->Arg(5)->Arg(8)->Arg(12);
+BENCHMARK(bm_shadowRay<Grid>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
+BENCHMARK(bm_shadowRay<BVH>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
 
 BENCHMARK(bm_build<Composite>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
-BENCHMARK(bm_build<Grid>)     ->Arg(3)->Arg(5)->Arg(8)->Arg(12);
-BENCHMARK(bm_build<BVH>)      ->Arg(3)->Arg(5)->Arg(8)->Arg(12);
+BENCHMARK(bm_build<Grid>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);
+BENCHMARK(bm_build<BVH>)->Arg(3)->Arg(5)->Arg(8)->Arg(12);

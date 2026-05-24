@@ -9,36 +9,43 @@ namespace LinearInterpolationTest {
   template<class T>
   struct LinearInterpolationTest : public ::testing::Test {
     LinearInterpolationTest()
-      : begin(1), end(2) {}
+        : begin(1),
+          end(2) {
+    }
     T begin, end;
   };
 
   template<class T>
   struct LinearInterpolationTest<Vector2<T>> : public ::testing::Test {
     LinearInterpolationTest()
-      : begin(1, 0), end(2, 1) {}
+        : begin(1, 0),
+          end(2, 1) {
+    }
     Vector2<T> begin, end;
   };
 
   template<class T>
   struct LinearInterpolationTest<Vector3<T>> : public ::testing::Test {
     LinearInterpolationTest()
-      : begin(1, 0, 0), end(2, 1, 0) {}
+        : begin(1, 0, 0),
+          end(2, 1, 0) {
+    }
     Vector3<T> begin, end;
   };
 
   template<class T>
   struct LinearInterpolationTest<Vector4<T>> : public ::testing::Test {
     LinearInterpolationTest()
-      : begin(1, 0, 0), end(2, 1, 0) {}
+        : begin(1, 0, 0),
+          end(2, 1, 0) {
+    }
     Vector4<T> begin, end;
   };
 
-  typedef ::testing::Types<
-    Vector2<float>, Vector3<float>, Vector4<float>, float,
-    Vector2<double>, Vector3<double>, Vector4<double>, double
-  > LinearInterpolationTypes;
-  
+  typedef ::testing::Types<Vector2<float>, Vector3<float>, Vector4<float>, float, Vector2<double>,
+                           Vector3<double>, Vector4<double>, double>
+    LinearInterpolationTypes;
+
   TYPED_TEST_SUITE(LinearInterpolationTest, LinearInterpolationTypes);
 
   TYPED_TEST(LinearInterpolationTest, ShouldReturnFirstVectorAsBeginIterator) {
@@ -85,7 +92,7 @@ namespace LinearInterpolationTest {
 
     ASSERT_TRUE(interpolation.begin() != interpolation.end());
   }
-  
+
   TYPED_TEST(LinearInterpolationTest, ShouldReturnFalseWhenComparingIncompatibleIterators) {
     LinearInterpolation<TypeParam> interpolation1(this->begin, this->end, 10);
     LinearInterpolation<TypeParam> interpolation2(this->begin, this->end, 5);
@@ -93,7 +100,8 @@ namespace LinearInterpolationTest {
     ASSERT_TRUE(interpolation1.begin() != interpolation2.begin());
   }
 
-  TYPED_TEST(LinearInterpolationTest, ShouldYieldEveryInterpolatedVectorWhenIteratingFromBeginToEnd) {
+  TYPED_TEST(LinearInterpolationTest,
+             ShouldYieldEveryInterpolatedVectorWhenIteratingFromBeginToEnd) {
     LinearInterpolation<TypeParam> interpolation(this->begin, this->end, 10);
 
     std::list<TypeParam> results;
@@ -104,31 +112,31 @@ namespace LinearInterpolationTest {
 
     ASSERT_EQ(10u, results.size());
   }
-  
+
   TEST(LinearInterpolation, ShouldPreIncrementIterator) {
     Vector3f begin(1, 0, 0), end(2, 1, 0), expected(1.1, 0.1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
-  
+
     auto iter = interpolation.begin();
     ++iter;
-  
+
     ASSERT_VECTOR_NEAR(expected, *iter, 0.0001);
   }
 
   TEST(LinearInterpolation, ShouldPostIncrementIterator) {
     Vector3f begin(1, 0, 0), end(2, 1, 0), expected(1.1, 0.1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
-  
+
     auto iter = interpolation.begin();
     iter++;
-  
+
     ASSERT_VECTOR_NEAR(expected, *iter, 0.0001);
   }
-  
+
   TEST(LinearInterpolation, ShouldReturnCurrentStep) {
     Vector3f begin(1, 0, 0), end(2, 1, 0);
     LinearInterpolation<Vector3f> interpolation(begin, end, 10);
-  
+
     auto iter = interpolation.begin();
     ASSERT_EQ(0, iter.current());
     ++iter;

@@ -54,9 +54,8 @@ namespace engine {
         if (rect.width() <= 0 || rect.height() <= 0)
           continue;
         const std::size_t tileIndex = tilePlan.index(row, col);
-        auto task = std::make_shared<TileRenderTask>(rect, [&, rect, tileIndex] {
-          work(rect, tileIndex);
-        });
+        auto task =
+          std::make_shared<TileRenderTask>(rect, [&, rect, tileIndex] { work(rect, tileIndex); });
 
         tasks.push_back(task);
         threadPool.start(task.get());

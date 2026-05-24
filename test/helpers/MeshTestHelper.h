@@ -20,7 +20,8 @@ namespace testing {
         for (std::size_t i = 1; i + 1 < face.size(); ++i) {
           faceNormal += (vertices[face[i]].point - p0) ^ (vertices[face[i + 1]].point - p0);
         }
-        if (faceNormal.length() == 0.0) continue;
+        if (faceNormal.length() == 0.0)
+          continue;
 
         Vector3d averageVertexNormal = Vector3d::null;
         for (int index : face) {
@@ -34,7 +35,7 @@ namespace testing {
   }
 }
 
-#define EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(mesh) \
+#define EXPECT_MESH_FACES_WOUND_WITH_VERTEX_NORMALS(mesh)                                          \
   ::testing::internal::expectMeshFacesWoundWithVertexNormals(mesh)
 
 #endif

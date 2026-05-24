@@ -5,8 +5,8 @@
 
 namespace TriangleTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(TriangleTessellate, ShouldHave3VerticesAnd1Face) {
     Triangle tri(Vector3d(0, 0, 0), Vector3d(1, 0, 0), Vector3d(0, 1, 0));

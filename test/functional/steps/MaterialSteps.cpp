@@ -13,11 +13,16 @@ using namespace render;
 
 namespace {
   Colord namedColor(const std::string& name) {
-    if (name == "red") return Colord(1, 0, 0);
-    if (name == "green") return Colord(0, 1, 0);
-    if (name == "blue") return Colord(0, 0, 1);
-    if (name == "white") return Colord(1, 1, 1);
-    if (name == "black") return Colord(0, 0, 0);
+    if (name == "red")
+      return Colord(1, 0, 0);
+    if (name == "green")
+      return Colord(0, 1, 0);
+    if (name == "blue")
+      return Colord(0, 0, 1);
+    if (name == "white")
+      return Colord(1, 1, 1);
+    if (name == "black")
+      return Colord(0, 0, 0);
     return Colord(1, 0, 0);
   }
 
@@ -34,7 +39,8 @@ namespace {
         const unsigned int r = (rgb >> 16) & 0xff;
         const unsigned int g = (rgb >> 8) & 0xff;
         const unsigned int b = rgb & 0xff;
-        if (r > 0x20 && g > 0x20 && b > 0x20) return true;
+        if (r > 0x20 && g > 0x20 && b > 0x20)
+          return true;
       }
     }
     return false;
@@ -100,7 +106,9 @@ THEN(EngineFeatureTest, "i should see a dim red sphere") {
 
 THEN(EngineFeatureTest, "i should see a (red|green|blue) sphere") {
   ASSERT_TRUE(test->colorPresent(namedColor(match[1])));
-  if (match[1] != "red") { ASSERT_FALSE(test->colorPresent(Colord(1, 0, 0))); }
+  if (match[1] != "red") {
+    ASSERT_FALSE(test->colorPresent(Colord(1, 0, 0)));
+  }
 }
 
 THEN(EngineFeatureTest, "i should see a specular highlight") {

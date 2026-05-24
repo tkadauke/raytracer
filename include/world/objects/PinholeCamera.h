@@ -17,21 +17,21 @@ class PinholeCamera : public Camera {
   Q_OBJECT
   Q_PROPERTY(double distance READ distance WRITE setDistance)
   Q_PROPERTY(double zoom READ zoom WRITE setZoom)
-  
+
 public:
   /**
     * Constructs a default pinhole camera with a zoom factor of 1 and an
     * eye-viewplane distance of 5, looking at the origin
     */
   explicit PinholeCamera(Element* parent = nullptr);
-  
+
   /**
     * @returns the distance between the eye and the viewplane. Defaults to 5.
     */
   inline double distance() const {
     return m_distance;
   }
-  
+
   /**
     * Sets the distance between the eye and the viewplane. A lower distance
     * results in a higher field of view.
@@ -47,14 +47,14 @@ public:
   inline void setDistance(double distance) {
     m_distance = distance;
   }
-  
+
   /**
     * @returns the zoom of the camera. Defaults to 1.
     */
   inline double zoom() const {
     return m_zoom;
   }
-  
+
   /**
     * Sets the zoom of the camera.
     * 
@@ -75,7 +75,7 @@ public:
   }
 
   virtual std::shared_ptr<render::Camera> toRaytracer() const;
-  
+
 private:
   double m_distance;
   double m_zoom;

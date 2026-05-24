@@ -189,26 +189,23 @@ namespace engine::raster::detail {
           m_specularExponent(16.0) {
     }
 
-    static RasterMaterial constant(const Colord& albedo, double ambientCoefficient = 1.0,
-                                   double diffuseCoefficient = 1.0, double materialAlpha = 1.0,
-                                   const Colord& specularColor = Colord::black(),
-                                   double specularCoefficient = 0.0,
-                                   double specularExponent = 16.0,
-                                   const RasterTexture& normalMap =
-                                     RasterTexture::constant(Colord(0.5, 0.5, 1.0)),
-                                   bool hasNormalMap = false) {
+    static RasterMaterial
+    constant(const Colord& albedo, double ambientCoefficient = 1.0, double diffuseCoefficient = 1.0,
+             double materialAlpha = 1.0, const Colord& specularColor = Colord::black(),
+             double specularCoefficient = 0.0, double specularExponent = 16.0,
+             const RasterTexture& normalMap = RasterTexture::constant(Colord(0.5, 0.5, 1.0)),
+             bool hasNormalMap = false) {
       return RasterMaterial(RasterTexture::constant(albedo), ambientCoefficient, diffuseCoefficient,
                             materialAlpha, specularColor, specularCoefficient, specularExponent,
                             normalMap, hasNormalMap);
     }
 
-    static RasterMaterial texture(const RasterTexture& texture, double ambientCoefficient,
-                                  double diffuseCoefficient, double materialAlpha,
-                                  const Colord& specularColor, double specularCoefficient,
-                                  double specularExponent,
-                                  const RasterTexture& normalMap =
-                                    RasterTexture::constant(Colord(0.5, 0.5, 1.0)),
-                                  bool hasNormalMap = false) {
+    static RasterMaterial
+    texture(const RasterTexture& texture, double ambientCoefficient, double diffuseCoefficient,
+            double materialAlpha, const Colord& specularColor, double specularCoefficient,
+            double specularExponent,
+            const RasterTexture& normalMap = RasterTexture::constant(Colord(0.5, 0.5, 1.0)),
+            bool hasNormalMap = false) {
       return RasterMaterial(texture, ambientCoefficient, diffuseCoefficient, materialAlpha,
                             specularColor, specularCoefficient, specularExponent, normalMap,
                             hasNormalMap);
@@ -216,14 +213,12 @@ namespace engine::raster::detail {
 
     static RasterMaterial texture(std::shared_ptr<render::Texturec> texture,
                                   double ambientCoefficient, double diffuseCoefficient,
-                                  double materialAlpha,
-                                  const Colord& specularColor, double specularCoefficient,
-                                  double specularExponent,
+                                  double materialAlpha, const Colord& specularColor,
+                                  double specularCoefficient, double specularExponent,
                                   std::shared_ptr<render::Texturec> normalMap = nullptr) {
       return RasterMaterial(RasterTexture::from(std::move(texture)), ambientCoefficient,
                             diffuseCoefficient, materialAlpha, specularColor, specularCoefficient,
-                            specularExponent, RasterTexture::from(normalMap),
-                            normalMap != nullptr);
+                            specularExponent, RasterTexture::from(normalMap), normalMap != nullptr);
     }
 
     Colord albedo(const render::Primitive* primitive, const Vector3d& worldPos,
@@ -244,16 +239,15 @@ namespace engine::raster::detail {
     }
 
     Vector3d lightingNormal(const render::Primitive* primitive, const Vector3d& worldPos,
-                            const Vector3d& normal, const Vector2d& uv,
-                            const Vector2d& uvDx, const Vector2d& uvDy,
-                            const RasterTangentFrame& tangentFrame) const {
+                            const Vector3d& normal, const Vector2d& uv, const Vector2d& uvDx,
+                            const Vector2d& uvDy, const RasterTangentFrame& tangentFrame) const {
       const Vector3d n = normal.normalized();
       if (!m_hasNormalMap || !tangentFrame.available) {
         return n;
       }
 
-      Vector3d tangent = (tangentFrame.tangent - n * (tangentFrame.tangent * n))
-                           .normalizedOrZero(1e-12);
+      Vector3d tangent =
+        (tangentFrame.tangent - n * (tangentFrame.tangent * n)).normalizedOrZero(1e-12);
       Vector3d bitangent = (tangentFrame.bitangent - n * (tangentFrame.bitangent * n) -
                             tangent * (tangentFrame.bitangent * tangent))
                              .normalizedOrZero(1e-12);
@@ -328,11 +322,7 @@ namespace engine::raster::detail {
   // expensive material/type checks stay out of the fragment loop.
   class RasterMaterialSource {
   public:
-    enum class RecursiveFallback {
-      None,
-      ReflectiveLocalPhong,
-      TransparentAlphaPhong
-    };
+    enum class RecursiveFallback { None, ReflectiveLocalPhong, TransparentAlphaPhong };
 
     static RasterMaterialSource from(const std::shared_ptr<render::Material>& material) {
       const auto sidedness =
@@ -350,8 +340,7 @@ namespace engine::raster::detail {
       const render::Texturec* texturePtr = texture.get();
       if (typeid(*texturePtr) == typeid(render::ConstantColorTexture)) {
         const auto* constant = static_cast<const render::ConstantColorTexture*>(texturePtr);
-        return constantAlbedo(constant->color(), *matte, phong.get(), sidedness,
-                              recursiveFallback);
+        return constantAlbedo(constant->color(), *matte, phong.get(), sidedness, recursiveFallback);
       }
 
       return textured(RasterTexture::from(std::move(texture)), *matte, phong.get(), sidedness,
@@ -444,33 +433,30 @@ namespace engine::raster::detail {
                       recursiveFallback);
     }
 
-    static RasterMaterialSource material(Kind kind, const Colord& albedo,
-                                         const RasterTexture& texture,
-                                         const render::MatteMaterial& matte,
-                                         const render::PhongMaterial* phong,
-                                         render::Material::Sidedness sidedness,
-                                         RecursiveFallback recursiveFallback) {
+    static RasterMaterialSource
+    material(Kind kind, const Colord& albedo, const RasterTexture& texture,
+             const render::MatteMaterial& matte, const render::PhongMaterial* phong,
+             render::Material::Sidedness sidedness, RecursiveFallback recursiveFallback) {
       const Colord specularColor = phong ? phong->specularColor() : Colord::black();
       const double specularCoefficient = phong ? phong->specularCoefficient() : 0.0;
       const double specularExponent = phong ? phong->exponent() : 16.0;
       const auto* transparent = dynamic_cast<const render::TransparentMaterial*>(&matte);
       const double materialAlpha = transparent ? 1.0 - transparent->transmissionCoefficient() : 1.0;
       const auto normalTexture = matte.normalTexture();
-      return RasterMaterialSource(kind, albedo, texture, sidedness, recursiveFallback,
-                                  matte.ambientCoefficient(), matte.diffuseCoefficient(),
-                                  materialAlpha, specularColor, specularCoefficient, specularExponent,
-                                  RasterTexture::from(normalTexture), normalTexture != nullptr);
+      return RasterMaterialSource(
+        kind, albedo, texture, sidedness, recursiveFallback, matte.ambientCoefficient(),
+        matte.diffuseCoefficient(), materialAlpha, specularColor, specularCoefficient,
+        specularExponent, RasterTexture::from(normalTexture), normalTexture != nullptr);
     }
 
     RasterMaterialSource(Kind kind, const Colord& albedo, const RasterTexture& texture,
                          render::Material::Sidedness sidedness,
                          RecursiveFallback recursiveFallback = RecursiveFallback::None,
                          double ambientCoefficient = 1.0, double diffuseCoefficient = 1.0,
-                         double materialAlpha = 1.0,
-                         const Colord& specularColor = Colord::black(),
+                         double materialAlpha = 1.0, const Colord& specularColor = Colord::black(),
                          double specularCoefficient = 0.0, double specularExponent = 16.0,
-                         const RasterTexture& normalMap =
-                           RasterTexture::constant(Colord(0.5, 0.5, 1.0)),
+                         const RasterTexture& normalMap = RasterTexture::constant(Colord(0.5, 0.5,
+                                                                                         1.0)),
                          bool hasNormalMap = false)
         : m_kind(kind),
           m_albedo(albedo),

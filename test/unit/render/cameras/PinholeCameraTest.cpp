@@ -9,35 +9,35 @@ namespace PinholeCameraTest {
   using namespace ::testing;
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-  
+
   TEST(PinholeCamera, ShouldConstructWithoutParameters) {
     PinholeCamera camera;
     ASSERT_EQ(5, camera.distance());
     ASSERT_EQ(1, camera.zoom());
   }
-  
+
   TEST(PinholeCamera, ShouldConstructWithParameters) {
     PinholeCamera camera(Vector3d(0, 0, 1), Vector3d::null);
     ASSERT_EQ(5, camera.distance());
     ASSERT_EQ(1, camera.zoom());
   }
-  
+
   TEST(PinholeCamera, ShouldSetDistance) {
     PinholeCamera camera;
     camera.setDistance(20);
     ASSERT_EQ(20, camera.distance());
   }
-  
+
   TEST(PinholeCamera, ShouldSetZoom) {
     PinholeCamera camera;
     camera.setZoom(2);
     ASSERT_EQ(2, camera.zoom());
   }
-  
+
   TEST(PinholeCamera, ShouldRender) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
@@ -71,7 +71,7 @@ using namespace render;
     // alpha + RGB). The `rgb()` packing produces this fixed value.
     EXPECT_EQ(Colord::white().rgb(), buffer[0][0]);
   }
-  
+
   TEST(PinholeCamera, ShouldSetViewplanePixelSize) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto scene = std::make_shared<Scene>(Colord::white());
@@ -82,14 +82,14 @@ using namespace render;
     camera.render(raytracer, buffer);
     ASSERT_EQ(0.5, camera.viewPlane()->pixelSize());
   }
-  
+
   TEST(PinholeCamera, ShouldGetRayForPixelWithUninitializedViewPlane) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     Rayd ray = camera.rayForPixel(0, 0);
     ASSERT_EQ(Vector3d(0, 0, -6), ray.origin());
     ASSERT_EQ(Vector3d(0, 0, 1), ray.direction());
   }
-  
+
   TEST(PinholeCamera, ShouldGetRayForPixelWithInitializedViewPlane) {
     PinholeCamera camera(Vector3d(0, 0, -1), Vector3d::null);
     auto raytracer = std::make_shared<Raytracer>(std::make_shared<Scene>(Colord::white()));
@@ -146,8 +146,7 @@ using namespace render;
     // point back to a pixel. Should match the original pixel modulo
     // floating-point drift.
     const std::pair<double, double> samples[] = {
-      {50.0, 50.0}, {100.0, 75.0}, {25.0, 120.0}, {175.0, 30.0}
-    };
+      {50.0, 50.0}, {100.0, 75.0}, {25.0, 120.0}, {175.0, 30.0}};
     for (const auto& [x, y] : samples) {
       Rayd ray = camera.rayForPixel(x, y);
       Vector3d worldPoint = ray.at(20.0);
@@ -171,8 +170,7 @@ using namespace render;
     initViewPlane(camera, 320, 240);
 
     const std::pair<double, double> samples[] = {
-      {160.0, 120.0}, {64.0, 60.0}, {256.0, 180.0}, {80.0, 200.0}
-    };
+      {160.0, 120.0}, {64.0, 60.0}, {256.0, 180.0}, {80.0, 200.0}};
     for (const auto& [x, y] : samples) {
       Rayd ray = camera.rayForPixel(x, y);
       Vector3d worldPoint = ray.at(15.0);

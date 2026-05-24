@@ -18,9 +18,8 @@ namespace {
   };
 
   RowShuffleIterator::RowShuffleIterator(const ViewPlane* plane, const Recti& rect)
-    : IteratorBase(plane, rect),
-      m_rowIndex(0)
-  {
+      : IteratorBase(plane, rect),
+        m_rowIndex(0) {
     for (int i = 0; i != rect.height(); ++i)
       m_rowIndices.push_back(i);
     ::random_shuffle(m_rowIndices.begin(), m_rowIndices.end());
@@ -44,4 +43,5 @@ ViewPlane::Iterator RowShuffledViewPlane::begin(const Recti& rect) const {
   return Iterator(new RowShuffleIterator(this, rect));
 }
 
-static bool dummy = ViewPlaneFactory::self().registerClass<RowShuffledViewPlane>("RowShuffledViewPlane");
+static bool dummy =
+  ViewPlaneFactory::self().registerClass<RowShuffledViewPlane>("RowShuffledViewPlane");

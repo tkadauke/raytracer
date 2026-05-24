@@ -81,15 +81,14 @@
 
 struct MainWindow::Private {
   inline Private()
-    : timelineDockWidget(nullptr),
-      timelineFrameSlider(nullptr),
-      timelineFrameSpinBox(nullptr),
-      timelineSummaryLabel(nullptr),
-      renderGraphDockWidget(nullptr),
-      renderGraphInspectorWidget(nullptr),
-      currentFrame(0),
-      currentElement(nullptr)
-  {
+      : timelineDockWidget(nullptr),
+        timelineFrameSlider(nullptr),
+        timelineFrameSpinBox(nullptr),
+        timelineSummaryLabel(nullptr),
+        renderGraphDockWidget(nullptr),
+        renderGraphInspectorWidget(nullptr),
+        currentFrame(0),
+        currentElement(nullptr) {
   }
 
   QString fileName;
@@ -192,8 +191,8 @@ struct MainWindow::Private {
 MainWindow::~MainWindow() = default;
 
 MainWindow::MainWindow()
-  : QMainWindow(), p(std::make_unique<Private>())
-{
+    : QMainWindow(),
+      p(std::make_unique<Private>()) {
   p->scene = new ::Scene(nullptr);
 
   p->display = new RenderDisplay(this);
@@ -208,8 +207,8 @@ MainWindow::MainWindow()
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
   connect(p->display, SIGNAL(renderGraphInputsChanged()), this, SLOT(updateRenderGraphInspector()));
-  connect(p->renderGraphInspectorWidget, SIGNAL(overridesChanged()),
-          this, SLOT(renderGraphOverridesChanged()));
+  connect(p->renderGraphInspectorWidget, SIGNAL(overridesChanged()), this,
+          SLOT(renderGraphOverridesChanged()));
 
   createActions();
   createMenus();
@@ -303,7 +302,8 @@ void MainWindow::createActions() {
 
   p->addConstantColorTextureAct = new QAction(tr("Constant Color"), this);
   p->addConstantColorTextureAct->setStatusTip(tr("Add a constant color texture to the scene"));
-  connect(p->addConstantColorTextureAct, SIGNAL(triggered()), this, SLOT(addConstantColorTexture()));
+  connect(p->addConstantColorTextureAct, SIGNAL(triggered()), this,
+          SLOT(addConstantColorTexture()));
 
   p->addCheckerBoardTextureAct = new QAction(tr("Checker Board"), this);
   p->addCheckerBoardTextureAct->setStatusTip(tr("Add a checker board texture to the scene"));
@@ -334,63 +334,58 @@ void MainWindow::createActions() {
   connect(p->addSphericalCameraAct, SIGNAL(triggered()), this, SLOT(addSphericalCamera()));
 
   p->addThinLensCameraAct = new QAction(tr("Thin Lens Camera (DOF)"), this);
-  p->addThinLensCameraAct->setStatusTip(tr("Add a thin-lens camera with depth-of-field to the scene"));
+  p->addThinLensCameraAct->setStatusTip(
+    tr("Add a thin-lens camera with depth-of-field to the scene"));
   connect(p->addThinLensCameraAct, SIGNAL(triggered()), this, SLOT(addThinLensCamera()));
 
   p->addTiltShiftCameraAct = new QAction(tr("Tilt-Shift Camera"), this);
-  p->addTiltShiftCameraAct->setStatusTip(tr("Add a tilt-shift / Scheimpflug camera (DOF + tilted focal plane) to the scene"));
+  p->addTiltShiftCameraAct->setStatusTip(
+    tr("Add a tilt-shift / Scheimpflug camera (DOF + tilted focal plane) to the scene"));
   connect(p->addTiltShiftCameraAct, SIGNAL(triggered()), this, SLOT(addTiltShiftCamera()));
 
   p->addEquirectangularCameraAct = new QAction(tr("Equirectangular Camera (360°)"), this);
-  p->addEquirectangularCameraAct->setStatusTip(tr("Add a full-sphere panorama camera to the scene (render at 2:1 aspect)"));
-  connect(p->addEquirectangularCameraAct, SIGNAL(triggered()), this, SLOT(addEquirectangularCamera()));
+  p->addEquirectangularCameraAct->setStatusTip(
+    tr("Add a full-sphere panorama camera to the scene (render at 2:1 aspect)"));
+  connect(p->addEquirectangularCameraAct, SIGNAL(triggered()), this,
+          SLOT(addEquirectangularCamera()));
 
   p->moveForwardsAlongXAct = new QAction(tr("Move forwards along X axis"), this);
   p->moveForwardsAlongXAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::META | Qt::Key_Up),
-    QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Up)
-  });
+    QKeySequence(Qt::META | Qt::Key_Up), QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Up)});
   p->moveForwardsAlongXAct->setStatusTip(tr("Moves the current element forwards along the X axis"));
   connect(p->moveForwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongX()));
 
   p->moveBackwardsAlongXAct = new QAction(tr("Move backwards along X axis"), this);
   p->moveBackwardsAlongXAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::META | Qt::Key_Down),
-    QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Down)
-  });
-  p->moveBackwardsAlongXAct->setStatusTip(tr("Moves the current element backwards along the X axis"));
+    QKeySequence(Qt::META | Qt::Key_Down), QKeySequence(Qt::SHIFT | Qt::META | Qt::Key_Down)});
+  p->moveBackwardsAlongXAct->setStatusTip(
+    tr("Moves the current element backwards along the X axis"));
   connect(p->moveBackwardsAlongXAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongX()));
 
   p->moveForwardsAlongYAct = new QAction(tr("Move forwards along Y axis"), this);
   p->moveForwardsAlongYAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::ALT | Qt::Key_Up),
-    QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Up)
-  });
+    QKeySequence(Qt::ALT | Qt::Key_Up), QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Up)});
   p->moveForwardsAlongYAct->setStatusTip(tr("Moves the current element forwards along the Y axis"));
   connect(p->moveForwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongY()));
 
   p->moveBackwardsAlongYAct = new QAction(tr("Move backwards along Y axis"), this);
   p->moveBackwardsAlongYAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::ALT | Qt::Key_Down),
-    QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Down)
-  });
-  p->moveBackwardsAlongYAct->setStatusTip(tr("Moves the current element backwards along the Y axis"));
+    QKeySequence(Qt::ALT | Qt::Key_Down), QKeySequence(Qt::SHIFT | Qt::ALT | Qt::Key_Down)});
+  p->moveBackwardsAlongYAct->setStatusTip(
+    tr("Moves the current element backwards along the Y axis"));
   connect(p->moveBackwardsAlongYAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongY()));
 
   p->moveForwardsAlongZAct = new QAction(tr("Move forwards along Z axis"), this);
   p->moveForwardsAlongZAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::CTRL | Qt::Key_Up),
-    QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Up)
-  });
+    QKeySequence(Qt::CTRL | Qt::Key_Up), QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Up)});
   p->moveForwardsAlongZAct->setStatusTip(tr("Moves the current element forwards along the Z axis"));
   connect(p->moveForwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveForwardsAlongZ()));
 
   p->moveBackwardsAlongZAct = new QAction(tr("Move backwards along Z axis"), this);
   p->moveBackwardsAlongZAct->setShortcuts(QList<QKeySequence>{
-    QKeySequence(Qt::CTRL | Qt::Key_Down),
-    QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Down)
-  });
-  p->moveBackwardsAlongZAct->setStatusTip(tr("Moves the current element backwards along the Z axis"));
+    QKeySequence(Qt::CTRL | Qt::Key_Down), QKeySequence(Qt::SHIFT | Qt::CTRL | Qt::Key_Down)});
+  p->moveBackwardsAlongZAct->setStatusTip(
+    tr("Moves the current element backwards along the Z axis"));
   connect(p->moveBackwardsAlongZAct, SIGNAL(triggered()), this, SLOT(moveBackwardsAlongZ()));
 
   p->aboutAct = new QAction(tr("&About"), this);
@@ -418,26 +413,31 @@ void MainWindow::createActions() {
   connect(p->previewRaytracerAct, SIGNAL(triggered()), this, SLOT(usePreviewRaytracer()));
 
   p->previewWireframeAct = new QAction(tr("&Wireframe"), this);
-  p->previewWireframeAct->setStatusTip(tr("Show the modeling preview as a wireframe (faster, geometry-only)"));
+  p->previewWireframeAct->setStatusTip(
+    tr("Show the modeling preview as a wireframe (faster, geometry-only)"));
   p->previewWireframeAct->setCheckable(true);
   connect(p->previewWireframeAct, SIGNAL(triggered()), this, SLOT(usePreviewWireframe()));
 
   p->previewRasterizerAct = new QAction(tr("Ras&terizer"), this);
-  p->previewRasterizerAct->setStatusTip(tr("Show the modeling preview as a software-rasterized render (filled triangles, Lambertian shading, no recursion)"));
+  p->previewRasterizerAct->setStatusTip(
+    tr("Show the modeling preview as a software-rasterized render (filled triangles, Lambertian "
+       "shading, no recursion)"));
   p->previewRasterizerAct->setCheckable(true);
   connect(p->previewRasterizerAct, SIGNAL(triggered()), this, SLOT(usePreviewRasterizer()));
 
   p->previewRasterizerShadowsAct = new QAction(tr("Rasterizer Preview &Shadows"), this);
-  p->previewRasterizerShadowsAct->setStatusTip(tr("Enable directional shadow maps in the live rasterizer preview"));
+  p->previewRasterizerShadowsAct->setStatusTip(
+    tr("Enable directional shadow maps in the live rasterizer preview"));
   p->previewRasterizerShadowsAct->setCheckable(true);
-  connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)),
-          this, SLOT(setPreviewRasterizerShadows(bool)));
+  connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)), this,
+          SLOT(setPreviewRasterizerShadows(bool)));
 
   p->previewWireframeOverlayAct = new QAction(tr("Wireframe &Overlay"), this);
-  p->previewWireframeOverlayAct->setStatusTip(tr("Draw graph-generated wireframe edges over the live shaded preview"));
+  p->previewWireframeOverlayAct->setStatusTip(
+    tr("Draw graph-generated wireframe edges over the live shaded preview"));
   p->previewWireframeOverlayAct->setCheckable(true);
-  connect(p->previewWireframeOverlayAct, SIGNAL(triggered(bool)),
-          this, SLOT(setPreviewWireframeOverlay(bool)));
+  connect(p->previewWireframeOverlayAct, SIGNAL(triggered(bool)), this,
+          SLOT(setPreviewWireframeOverlay(bool)));
 
   auto previewGroup = new QActionGroup(this);
   previewGroup->addAction(p->previewRaytracerAct);
@@ -448,20 +448,18 @@ void MainWindow::createActions() {
   p->previewTonemapLinearAct->setStatusTip(tr("Use the linear preview tonemap"));
   p->previewTonemapLinearAct->setCheckable(true);
   p->previewTonemapLinearAct->setChecked(true);
-  connect(p->previewTonemapLinearAct, SIGNAL(triggered()),
-          this, SLOT(setPreviewTonemapLinear()));
+  connect(p->previewTonemapLinearAct, SIGNAL(triggered()), this, SLOT(setPreviewTonemapLinear()));
 
   p->previewTonemapReinhardAct = new QAction(tr("&Reinhard"), this);
   p->previewTonemapReinhardAct->setStatusTip(tr("Use the Reinhard preview tonemap"));
   p->previewTonemapReinhardAct->setCheckable(true);
-  connect(p->previewTonemapReinhardAct, SIGNAL(triggered()),
-          this, SLOT(setPreviewTonemapReinhard()));
+  connect(p->previewTonemapReinhardAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewTonemapReinhard()));
 
   p->previewTonemapAcesAct = new QAction(tr("&ACES"), this);
   p->previewTonemapAcesAct->setStatusTip(tr("Use the ACES preview tonemap"));
   p->previewTonemapAcesAct->setCheckable(true);
-  connect(p->previewTonemapAcesAct, SIGNAL(triggered()),
-          this, SLOT(setPreviewTonemapAces()));
+  connect(p->previewTonemapAcesAct, SIGNAL(triggered()), this, SLOT(setPreviewTonemapAces()));
 
   auto previewTonemapGroup = new QActionGroup(this);
   previewTonemapGroup->addAction(p->previewTonemapLinearAct);
@@ -474,18 +472,21 @@ void MainWindow::createActions() {
   connect(p->aspectStretchAct, SIGNAL(triggered()), this, SLOT(setAspectStretch()));
 
   p->aspectFitWidthAct = new QAction(tr("Fit &Width"), this);
-  p->aspectFitWidthAct->setStatusTip(tr("Horizontal FOV constant, vertical derived from window (square pixels, no distortion)"));
+  p->aspectFitWidthAct->setStatusTip(
+    tr("Horizontal FOV constant, vertical derived from window (square pixels, no distortion)"));
   p->aspectFitWidthAct->setCheckable(true);
   p->aspectFitWidthAct->setChecked(true);
   connect(p->aspectFitWidthAct, SIGNAL(triggered()), this, SLOT(setAspectFitWidth()));
 
   p->aspectFitHeightAct = new QAction(tr("Fit &Height"), this);
-  p->aspectFitHeightAct->setStatusTip(tr("Vertical FOV constant, horizontal derived from window (square pixels, no distortion)"));
+  p->aspectFitHeightAct->setStatusTip(
+    tr("Vertical FOV constant, horizontal derived from window (square pixels, no distortion)"));
   p->aspectFitHeightAct->setCheckable(true);
   connect(p->aspectFitHeightAct, SIGNAL(triggered()), this, SLOT(setAspectFitHeight()));
 
   p->aspectFitExactAct = new QAction(tr("Fit &Exact (letterbox)"), this);
-  p->aspectFitExactAct->setStatusTip(tr("Fixed intrinsic aspect ratio with black bars for the remainder"));
+  p->aspectFitExactAct->setStatusTip(
+    tr("Fixed intrinsic aspect ratio with black bars for the remainder"));
   p->aspectFitExactAct->setCheckable(true);
   connect(p->aspectFitExactAct, SIGNAL(triggered()), this, SLOT(setAspectFitExact()));
 
@@ -514,9 +515,8 @@ void MainWindow::createActions() {
   p->helpAct->setStatusTip(tr("Go to the Github page"));
   connect(p->helpAct, SIGNAL(triggered()), this, SLOT(help()));
 
-  auto modifyingActions = {
-    p->newAct, p->openAct, p->saveAct, p->saveAsAct, p->addBoxAct, p->deleteElementAct
-  };
+  auto modifyingActions = {p->newAct,    p->openAct,   p->saveAct,
+                           p->saveAsAct, p->addBoxAct, p->deleteElementAct};
 
   for (auto& act : modifyingActions) {
     connect(act, SIGNAL(triggered()), this, SLOT(updateWindowModified()));
@@ -620,24 +620,22 @@ void MainWindow::createMenus() {
 bool MainWindow::maybeSave() {
   if (p->scene->changed()) {
     auto response = QMessageBox::question(
-      this,
-      tr("Save changes?"),
+      this, tr("Save changes?"),
       tr("There are unsaved changes to this document. Would you like to save them?"),
-      QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save
-    );
+      QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
 
     switch (response) {
-      case QMessageBox::Save: {
-        saveFile();
-        return true;
-      }
-      case QMessageBox::Discard: {
-        p->scene->setChanged(false);
-        return true;
-      }
-      default: {
-        return false;
-      }
+    case QMessageBox::Save: {
+      saveFile();
+      return true;
+    }
+    case QMessageBox::Discard: {
+      p->scene->setChanged(false);
+      return true;
+    }
+    default: {
+      return false;
+    }
     }
   }
 
@@ -671,8 +669,8 @@ void MainWindow::newFile() {
 }
 
 void MainWindow::openFile() {
-  QString fileName = QFileDialog::getOpenFileName(
-    this, tr("Open File"), QString(), tr("Scenes (*.json)"));
+  QString fileName =
+    QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Scenes (*.json)"));
 
   if (!fileName.isNull() && maybeSave()) {
     if (p->scene)
@@ -702,8 +700,8 @@ void MainWindow::saveFile() {
 }
 
 void MainWindow::saveFileAs() {
-  QString fileName = QFileDialog::getSaveFileName(
-    this, tr("Save File"), p->fileName, tr("Scenes (*.json)"));
+  QString fileName =
+    QFileDialog::getSaveFileName(this, tr("Save File"), p->fileName, tr("Scenes (*.json)"));
 
   if (!fileName.isNull()) {
     p->fileName = fileName;
@@ -714,9 +712,8 @@ void MainWindow::saveFileAs() {
 template<class T>
 void MainWindow::add() {
   auto element = new T(nullptr);
-  element->setName(QString("%1 %2")
-    .arg(element->metaObject()->className())
-    .arg(p->scene->childElements().size()));
+  element->setName(
+    QString("%1 %2").arg(element->metaObject()->className()).arg(p->scene->childElements().size()));
 
   p->elementModel->addElement(p->currentIndex, element);
   elementChanged(element);
@@ -978,8 +975,7 @@ void MainWindow::setAspectRatio21x9() {
 }
 
 void MainWindow::about() {
-  QMessageBox::about(this, tr("About"),
-          tr("This is the Modeler for the Raytracer library."));
+  QMessageBox::about(this, tr("About"), tr("This is the Modeler for the Raytracer library."));
 }
 
 void MainWindow::help() {
@@ -989,10 +985,7 @@ void MainWindow::help() {
 QDockWidget* MainWindow::createPropertyEditor() {
   p->propertyEditorWidget = new PropertyEditorWidget(p->scene, this);
 
-  connect(
-    p->propertyEditorWidget, SIGNAL(changed(Element*)),
-    this, SLOT(elementChanged(Element*))
-  );
+  connect(p->propertyEditorWidget, SIGNAL(changed(Element*)), this, SLOT(elementChanged(Element*)));
 
   auto dockWidget = new QDockWidget("Properties", this);
   dockWidget->setWidget(p->propertyEditorWidget);
@@ -1010,15 +1003,11 @@ QDockWidget* MainWindow::createElementSelector() {
   auto itemSelectionModel = new QItemSelectionModel(p->elementModel);
   elementTree->setSelectionModel(itemSelectionModel);
 
-  connect(
-    itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)),
-    this, SLOT(elementSelected(const QModelIndex&, const QModelIndex&))
-  );
+  connect(itemSelectionModel, SIGNAL(currentChanged(const QModelIndex&, const QModelIndex&)), this,
+          SLOT(elementSelected(const QModelIndex&, const QModelIndex&)));
 
-  connect(
-    p->elementModel, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
-    this, SLOT(reorder())
-  );
+  connect(p->elementModel, SIGNAL(rowsMoved(const QModelIndex&, int, int, const QModelIndex&, int)),
+          this, SLOT(reorder()));
 
   auto dockWidget = new QDockWidget("Elements", this);
   dockWidget->setWidget(elementTree);
@@ -1124,11 +1113,8 @@ void MainWindow::updateRenderGraphInspector() {
   const QSize target = p->display->bufferSize();
   const auto intent = previewRenderIntent();
   engine::graph::RenderGraphCompiler compiler;
-  const engine::graph::RenderTargetSpec targetSpec{
-    std::max(1, target.width()),
-    std::max(1, target.height()),
-    1
-  };
+  const engine::graph::RenderTargetSpec targetSpec{std::max(1, target.width()),
+                                                   std::max(1, target.height()), 1};
   p->display->setRenderGraphIntent(intent);
   p->renderGraphInspectorWidget->setPlan(compiler.compile(targetSpec, intent));
   applyRenderGraphPreviewPlan();
@@ -1226,11 +1212,10 @@ void MainWindow::syncTimelineControls() {
   }
 
   if (hasAnimation) {
-    p->timelineSummaryLabel->setText(
-      tr("%1-%2, %3 fps")
-        .arg(timeline->startFrame())
-        .arg(timeline->endFrame())
-        .arg(timeline->fps()));
+    p->timelineSummaryLabel->setText(tr("%1-%2, %3 fps")
+                                       .arg(timeline->startFrame())
+                                       .arg(timeline->endFrame())
+                                       .arg(timeline->fps()));
   } else {
     p->timelineSummaryLabel->setText(tr("No animation"));
   }

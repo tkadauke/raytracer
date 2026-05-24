@@ -10,9 +10,9 @@ using namespace std;
 
 // This is for exceptions thrown in our own code
 void Exception::getBacktrace() {
-  void *array[200];
+  void* array[200];
   size_t size;
-  char **strings;
+  char** strings;
   size_t i;
 
   size = backtrace(array, 200);
@@ -33,15 +33,15 @@ void Exception::printBacktrace() const {
 // This is for printing a backtrace on a fatal signal.
 class Trap {
   typedef void (*Handler)(int);
+
 public:
-  Trap(int sig, Handler handler)
-  {
+  Trap(int sig, Handler handler) {
     signal(sig, handler);
   }
 };
 
 void printBacktrace() {
-  void *array[200];
+  void* array[200];
   size_t size;
 
   size = backtrace(array, 200);

@@ -6,16 +6,13 @@ namespace RowInterlacedViewPlaneTest {
   using namespace ::testing;
   using namespace render;
   using namespace render;
-  
+
   TEST(RowInterlacedViewPlane, ShouldInitialize) {
     RowInterlacedViewPlane plane;
     ASSERT_EQ(0, plane.width());
     ASSERT_EQ(0, plane.height());
   }
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    RowInterlaced,
-    AbstractViewPlaneIteratorTest,
-    RowInterlacedViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(RowInterlaced, AbstractViewPlaneIteratorTest,
+                                 RowInterlacedViewPlane);
 }

@@ -17,7 +17,7 @@ class Box : public Surface {
   Q_OBJECT
   Q_PROPERTY(Vector3d size READ size WRITE setSize)
   Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius)
-  
+
 public:
   /**
     * Default constructor. Creates a box with size (1, 1, 1) around the origin.
@@ -32,7 +32,7 @@ public:
   inline const Vector3d& size() const {
     return m_size;
   }
-  
+
   /**
     * Sets the size of the box. All three components will be converted to their
     * absolute value. A component of 0 will be replaced with \f$\epsilon\f$.
@@ -46,23 +46,21 @@ public:
     * </tr></table>
     */
   inline void setSize(const Vector3d& size) {
-    m_size = Vector3d(
-      std::max(std::abs(size.x()), 0.000001),
-      std::max(std::abs(size.y()), 0.000001),
-      std::max(std::abs(size.z()), 0.000001)
-    );
+    m_size =
+      Vector3d(std::max(std::abs(size.x()), 0.000001), std::max(std::abs(size.y()), 0.000001),
+               std::max(std::abs(size.z()), 0.000001));
     // recalculate bevel radius, in case the size shrunk so far that the
     // previous radius is too big
     setBevelRadius(bevelRadius());
   }
-  
+
   /**
     * @returns the bevel radius.
     */
   inline double bevelRadius() const {
     return m_bevelRadius;
   }
-  
+
   /**
     * Sets the bevel radius of the box. If the radius is 0, the box will be a
     * simple box primitive with perfectly sharp edges. If the radius is greater

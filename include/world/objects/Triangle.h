@@ -23,13 +23,25 @@ class Triangle : public Surface {
 public:
   explicit Triangle(Element* parent = nullptr);
 
-  inline const Vector3d& vertexA() const { return m_vertexA; }
-  inline const Vector3d& vertexB() const { return m_vertexB; }
-  inline const Vector3d& vertexC() const { return m_vertexC; }
+  inline const Vector3d& vertexA() const {
+    return m_vertexA;
+  }
+  inline const Vector3d& vertexB() const {
+    return m_vertexB;
+  }
+  inline const Vector3d& vertexC() const {
+    return m_vertexC;
+  }
 
-  inline void setVertexA(const Vector3d& v) { m_vertexA = v; }
-  inline void setVertexB(const Vector3d& v) { m_vertexB = v; }
-  inline void setVertexC(const Vector3d& v) { m_vertexC = v; }
+  inline void setVertexA(const Vector3d& v) {
+    m_vertexA = v;
+  }
+  inline void setVertexB(const Vector3d& v) {
+    m_vertexB = v;
+  }
+  inline void setVertexC(const Vector3d& v) {
+    m_vertexC = v;
+  }
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
 

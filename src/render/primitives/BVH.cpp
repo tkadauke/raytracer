@@ -16,7 +16,8 @@ namespace {
   // each child's AABB times the number of primitives in it; the best
   // split minimises that sum.
   double surfaceArea(const BoundingBoxd& b) {
-    if (!b.isValid()) return 0.0;
+    if (!b.isValid())
+      return 0.0;
     const auto d = b.max() - b.min();
     return 2.0 * (d.x() * d.y() + d.y() * d.z() + d.z() * d.x());
   }
@@ -34,10 +35,13 @@ namespace {
   // partition primitives; SAH would pick this on its own most of the
   // time, but axis-first short-circuiting saves the per-axis sort.
   int longestAxis(const BoundingBoxd& centroidBox) {
-    if (!centroidBox.isValid()) return 0;
+    if (!centroidBox.isValid())
+      return 0;
     const auto d = centroidBox.max() - centroidBox.min();
-    if (d.x() >= d.y() && d.x() >= d.z()) return 0;
-    if (d.y() >= d.z()) return 1;
+    if (d.x() >= d.y() && d.x() >= d.z())
+      return 0;
+    if (d.y() >= d.z())
+      return 1;
     return 2;
   }
 }
@@ -84,9 +88,9 @@ std::unique_ptr<BVH::Node> BVH::build(std::vector<std::shared_ptr<Primitive>> pr
   // the primitives being ordered so that a "split at index i" means
   // "everything below i goes left, everything from i goes right".
   std::sort(prims.begin(), prims.end(),
-    [axis](const std::shared_ptr<Primitive>& a, const std::shared_ptr<Primitive>& b) {
-      return centroidOf(*a)[axis] < centroidOf(*b)[axis];
-    });
+            [axis](const std::shared_ptr<Primitive>& a, const std::shared_ptr<Primitive>& b) {
+              return centroidOf(*a)[axis] < centroidOf(*b)[axis];
+            });
 
   // Surface Area Heuristic sweep: try every N-1 split position; for
   // each compute SAH cost = SA(left)·N_left + SA(right)·N_right.
@@ -108,8 +112,8 @@ std::unique_ptr<BVH::Node> BVH::build(std::vector<std::shared_ptr<Primitive>> pr
   BoundingBoxd leftAccum;
   for (int i = 0; i < n - 1; ++i) {
     leftAccum.include(prims[i]->boundingBox());
-    const double cost = surfaceArea(leftAccum) * (i + 1)
-                      + surfaceArea(rightAccum[i + 1]) * (n - i - 1);
+    const double cost =
+      surfaceArea(leftAccum) * (i + 1) + surfaceArea(rightAccum[i + 1]) * (n - i - 1);
     if (cost < bestCost) {
       bestCost = cost;
       bestSplit = i;
@@ -136,7 +140,8 @@ std::unique_ptr<BVH::Node> BVH::build(std::vector<std::shared_ptr<Primitive>> pr
   return node;
 }
 
-const Primitive* BVH::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* BVH::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                render::State& state) const {
   if (!m_root) {
     // Fallback: if the user forgot to call setup(), the linear-scan
     // base implementation still produces correct results.
@@ -152,9 +157,10 @@ bool BVH::intersects(const Rayd& ray, render::State& state) const {
   return intersectsNode(m_root.get(), ray, state);
 }
 
-const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray,
-                                     HitPointInterval& hitPoints, render::State& state) const {
-  if (!node || !node->bbox.intersects(ray)) return nullptr;
+const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray, HitPointInterval& hitPoints,
+                                    render::State& state) const {
+  if (!node || !node->bbox.intersects(ray))
+    return nullptr;
 
   if (node->isLeaf()) {
     const Primitive* hit = nullptr;
@@ -202,17 +208,19 @@ const Primitive* BVH::intersectNode(const Node* node, const Rayd& ray,
 }
 
 bool BVH::intersectsNode(const Node* node, const Rayd& ray, render::State& state) const {
-  if (!node || !node->bbox.intersects(ray)) return false;
+  if (!node || !node->bbox.intersects(ray))
+    return false;
 
   if (node->isLeaf()) {
     for (const auto& p : node->primitives) {
-      if (p->intersects(ray, state)) return true;
+      if (p->intersects(ray, state))
+        return true;
     }
     return false;
   }
 
-  return intersectsNode(node->left.get(), ray, state)
-      || intersectsNode(node->right.get(), ray, state);
+  return intersectsNode(node->left.get(), ray, state) ||
+         intersectsNode(node->right.get(), ray, state);
 }
 
 RayPacketIntersection4 BVH::intersectPacket(const Ray4& rays, render::State& state) const {
@@ -233,12 +241,11 @@ RayPacketIntersection4 BVH::intersectPacket(const Ray4& rays, render::State& sta
   return result;
 }
 
-void BVH::intersectPacketNode(const Node* node, const Ray4& rays,
-                               uint16_t activeMask,
-                               std::array<float, Ray4::lanes>& tMin,
-                               uint16_t& hitMask,
-                               render::State& state) const {
-  if (!node || activeMask == 0) return;
+void BVH::intersectPacketNode(const Node* node, const Ray4& rays, uint16_t activeMask,
+                              std::array<float, Ray4::lanes>& tMin, uint16_t& hitMask,
+                              render::State& state) const {
+  if (!node || activeMask == 0)
+    return;
 
   // Test each active-mask lane against this node's AABB. Lanes that miss
   // are excluded from the descending mask, pruning the subtree for those
@@ -254,7 +261,8 @@ void BVH::intersectPacketNode(const Node* node, const Ray4& rays,
     }
   }
 #endif
-  if (!nodeMask) return;
+  if (!nodeMask)
+    return;
 
   if (node->isLeaf()) {
     for (const auto& prim : node->primitives) {
@@ -297,12 +305,11 @@ RayPacketIntersection8 BVH::intersectPacket(const Ray8& rays, render::State& sta
   return result;
 }
 
-void BVH::intersectPacketNode(const Node* node, const Ray8& rays,
-                               uint16_t activeMask,
-                               std::array<float, Ray8::lanes>& tMin,
-                               uint16_t& hitMask,
-                               render::State& state) const {
-  if (!node || activeMask == 0) return;
+void BVH::intersectPacketNode(const Node* node, const Ray8& rays, uint16_t activeMask,
+                              std::array<float, Ray8::lanes>& tMin, uint16_t& hitMask,
+                              render::State& state) const {
+  if (!node || activeMask == 0)
+    return;
 
   uint16_t nodeMask = 0;
   for (std::size_t i = 0; i < Ray8::lanes; ++i) {
@@ -310,7 +317,8 @@ void BVH::intersectPacketNode(const Node* node, const Ray8& rays,
       nodeMask |= static_cast<uint16_t>(1u << i);
     }
   }
-  if (!nodeMask) return;
+  if (!nodeMask)
+    return;
 
   if (node->isLeaf()) {
     for (const auto& prim : node->primitives) {
@@ -331,4 +339,4 @@ void BVH::intersectPacketNode(const Node* node, const Ray8& rays,
   intersectPacketNode(node->left.get(), rays, nodeMask, tMin, hitMask, state);
   intersectPacketNode(node->right.get(), rays, nodeMask, tMin, hitMask, state);
 }
-#endif  // __AVX__
+#endif // __AVX__

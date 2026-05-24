@@ -32,23 +32,20 @@ namespace engine::graph {
     }
 
     void requireColorResource(const RenderResourceStorage& storage,
-                              const RenderResourceId& resource,
-                              const RenderPassNode& pass) {
+                              const RenderResourceId& resource, const RenderPassNode& pass) {
       if (!storage.resource(resource).colorBacked()) {
         throw passError(pass, "resource '" + resource + "' is not color-backed");
       }
     }
 
-    void requireMatchingSize(const Buffer<Colord>& source,
-                             const Buffer<Colord>& destination,
+    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
       if (source.width() != destination.width() || source.height() != destination.height()) {
         throw std::runtime_error(action + " requires matching color buffer dimensions");
       }
     }
 
-    void requireMatchingSize(const Buffer<Colord>& source,
-                             const Buffer<unsigned int>& destination,
+    void requireMatchingSize(const Buffer<Colord>& source, const Buffer<unsigned int>& destination,
                              const std::string& action) {
       if (source.width() != destination.width() || source.height() != destination.height()) {
         throw std::runtime_error(action + " requires matching color buffer dimensions");
@@ -81,8 +78,7 @@ namespace engine::graph {
       camera->setTarget(Vector3d::null);
     }
 
-    void substituteDefaultOutput(const RenderPassNode& pass,
-                                 RenderResourceStorage& storage,
+    void substituteDefaultOutput(const RenderPassNode& pass, RenderResourceStorage& storage,
                                  const GraphRenderEngine& graph) {
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).clearSubstituteDefault(pass.kind, graph.backgroundColor());
@@ -209,8 +205,8 @@ namespace engine::graph {
   GraphRenderEngine::~GraphRenderEngine() = default;
 
   std::shared_ptr<render::RenderEngine> GraphRenderEngine::cloneForRender() const {
-    auto result = std::make_shared<GraphRenderEngine>(m_camera ? m_camera->clone() : nullptr,
-                                                      m_scene);
+    auto result =
+      std::make_shared<GraphRenderEngine>(m_camera ? m_camera->clone() : nullptr, m_scene);
     result->setTonemap(tonemap());
     if (hasBackgroundColorOverride()) {
       result->setBackgroundColor(backgroundColor());
@@ -257,8 +253,8 @@ namespace engine::graph {
       return;
     }
 
-    RenderPlan plan = p->explicitPlan ? *p->explicitPlan
-                                      : compilePlan({buffer.width(), buffer.height(), 1});
+    RenderPlan plan =
+      p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
     p->lastPlan = plan;
 
     const auto validation = plan.validate();
@@ -288,8 +284,8 @@ namespace engine::graph {
       auto payload = RenderPassPayload::createBuiltin(pass);
       if (!payload) {
         throw std::runtime_error("GraphRenderEngine cannot execute enabled pass '" + pass.id +
-                                 "' with kind '" + toString(pass.kind) +
-                                 "' and executor '" + toString(pass.executor) + "'");
+                                 "' with kind '" + toString(pass.kind) + "' and executor '" +
+                                 toString(pass.executor) + "'");
       }
 
       auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {
@@ -300,7 +296,9 @@ namespace engine::graph {
       RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine);
       struct ActiveEngineReset {
         RenderExecutionContext& context;
-        ~ActiveEngineReset() { context.clearActiveEngine(); }
+        ~ActiveEngineReset() {
+          context.clearActiveEngine();
+        }
       } reset{context};
 
       payload->execute(context);
@@ -315,8 +313,8 @@ namespace engine::graph {
       return;
     }
 
-    RenderPlan plan = p->explicitPlan ? *p->explicitPlan
-                                      : compilePlan({buffer.width(), buffer.height(), 1});
+    RenderPlan plan =
+      p->explicitPlan ? *p->explicitPlan : compilePlan({buffer.width(), buffer.height(), 1});
     p->lastPlan = plan;
 
     const auto validation = plan.validate();
@@ -339,12 +337,15 @@ namespace engine::graph {
                                        p->cancelled.load(), setActiveEngine);
         struct ActiveEngineReset {
           RenderExecutionContext& context;
-          ~ActiveEngineReset() { context.clearActiveEngine(); }
+          ~ActiveEngineReset() {
+            context.clearActiveEngine();
+          }
         } reset{context};
 
-        auto outputTonemap = displayChain->applyTonemap
-          ? tonemap()
-          : std::static_pointer_cast<render::Tonemap>(std::make_shared<render::LinearTonemap>());
+        auto outputTonemap =
+          displayChain->applyTonemap
+            ? tonemap()
+            : std::static_pointer_cast<render::Tonemap>(std::make_shared<render::LinearTonemap>());
         if (payload->executeDisplay(context, buffer, outputTonemap)) {
           return;
         }

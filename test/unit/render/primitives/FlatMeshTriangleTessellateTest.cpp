@@ -4,8 +4,8 @@
 
 namespace FlatMeshTriangleTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   // Mesh vertices have normals pointing in +Y; FlatMeshTriangle averages them
   // to get its face normal, which is also +Y.

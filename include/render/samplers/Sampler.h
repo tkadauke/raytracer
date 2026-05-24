@@ -53,11 +53,11 @@ namespace render {
   class Sampler {
   public:
     inline Sampler()
-      : m_numSamples(0),
-        m_numSets(0)
-    {
+        : m_numSamples(0),
+          m_numSets(0) {
     }
-    inline virtual ~Sampler() {}
+    inline virtual ~Sampler() {
+    }
 
     void setup(int numSamples, int numSets);
 

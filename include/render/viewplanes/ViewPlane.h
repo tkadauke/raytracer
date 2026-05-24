@@ -105,7 +105,8 @@ namespace render {
       explicit IteratorBase(const ViewPlane* plane, const Recti& rect);
       /// End iterator: positioned past the last pixel of `rect`.
       explicit IteratorBase(const ViewPlane* plane, const Recti& rect, bool end);
-      virtual ~IteratorBase() {}
+      virtual ~IteratorBase() {
+      }
 
       /// @returns the 3D world-space point on the view plane for
       /// the current pixel, computed via `ViewPlane::pixelAt`.

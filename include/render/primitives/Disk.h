@@ -17,15 +17,15 @@ namespace render {
   class Disk : public Primitive {
   public:
     inline explicit Disk(const Vector3d& center, const Vector3d& normal, double radius)
-      : Primitive(),
-        m_center(center),
-        m_normal(normal),
-        m_radius(radius),
-        m_squaredRadius(radius * radius)
-    {
+        : Primitive(),
+          m_center(center),
+          m_normal(normal),
+          m_radius(radius),
+          m_squaredRadius(radius * radius) {
     }
 
-    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const override;
+    virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                       render::State& state) const override;
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**

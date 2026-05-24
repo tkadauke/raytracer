@@ -18,7 +18,7 @@ public:
       return false;
     return !(derived() == other);
   }
-  
+
 private:
   inline const Derived& derived() const {
     return static_cast<const Derived&>(*this);

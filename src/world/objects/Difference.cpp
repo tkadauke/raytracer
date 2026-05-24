@@ -3,8 +3,7 @@
 #include "render/primitives/Difference.h"
 
 Difference::Difference(Element* parent)
-  : CSGSurface(parent)
-{
+    : CSGSurface(parent) {
 }
 
 std::shared_ptr<render::Primitive> Difference::toRaytracerPrimitive() const {
@@ -20,4 +19,3 @@ std::shared_ptr<render::Primitive> Difference::toRaytracerPrimitive() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<Difference>("Difference");
-

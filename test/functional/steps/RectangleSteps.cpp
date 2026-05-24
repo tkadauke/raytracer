@@ -8,13 +8,15 @@ using namespace testing;
 using namespace render;
 
 GIVEN(EngineFeatureTest, "a centered rectangle") {
-  auto rectangle = std::make_shared<Rectangle>(Vector3d(-1, -1, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));
+  auto rectangle =
+    std::make_shared<Rectangle>(Vector3d(-1, -1, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));
   rectangle->setMaterial(test->redDiffuse());
   test->add(rectangle);
 }
 
 GIVEN(EngineFeatureTest, "a displaced rectangle") {
-  auto rectangle = std::make_shared<Rectangle>(Vector3d(-1, 20, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));
+  auto rectangle =
+    std::make_shared<Rectangle>(Vector3d(-1, 20, 0), Vector3d(2, 0, 0), Vector3d(0, 2, 0));
   rectangle->setMaterial(test->redDiffuse());
   test->add(rectangle);
 }

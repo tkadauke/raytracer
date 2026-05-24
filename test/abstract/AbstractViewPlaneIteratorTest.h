@@ -11,7 +11,7 @@ namespace testing {
       quarterRect = Recti(0, 0, 4, 3);
       plane.setup(Matrix4d(), fullRect);
     }
-  
+
     VP plane;
     Recti fullRect;
     Recti quarterRect;
@@ -27,48 +27,48 @@ namespace testing {
 
   TYPED_TEST_P(AbstractViewPlaneIteratorTest, ShouldEndUpInLastRowAfterIterating) {
     typename TypeParam::Iterator iterator = this->plane.begin(this->fullRect);
-    for (; iterator != this->plane.end(this->fullRect); ++iterator) {}
+    for (; iterator != this->plane.end(this->fullRect); ++iterator) {
+    }
     ASSERT_EQ(this->plane.height(), iterator.row());
   }
 
   TYPED_TEST_P(AbstractViewPlaneIteratorTest, ShouldEndUpInColumnZeroAfterIterating) {
     typename TypeParam::Iterator iterator = this->plane.begin(this->fullRect);
-    for (; iterator != this->plane.end(this->fullRect); ++iterator) {}
+    for (; iterator != this->plane.end(this->fullRect); ++iterator) {
+    }
     ASSERT_EQ(0, iterator.column());
   }
 
   TYPED_TEST_P(AbstractViewPlaneIteratorTest, ShouldIterateThroughPixels) {
     int count = 0;
-    for (typename TypeParam::Iterator iterator = this->plane.begin(this->fullRect); iterator != this->plane.end(this->fullRect); ++iterator) {
+    for (typename TypeParam::Iterator iterator = this->plane.begin(this->fullRect);
+         iterator != this->plane.end(this->fullRect); ++iterator) {
       ++count;
     }
-    ASSERT_EQ(8*6, count);
+    ASSERT_EQ(8 * 6, count);
   }
-  
+
   TYPED_TEST_P(AbstractViewPlaneIteratorTest, ShouldIterateThroughRect) {
     int count = 0;
-    for (typename TypeParam::Iterator iterator = this->plane.begin(this->quarterRect); iterator != this->plane.end(this->quarterRect); ++iterator) {
+    for (typename TypeParam::Iterator iterator = this->plane.begin(this->quarterRect);
+         iterator != this->plane.end(this->quarterRect); ++iterator) {
       ++count;
     }
-    ASSERT_EQ(3*4, count);
+    ASSERT_EQ(3 * 4, count);
   }
 
   TYPED_TEST_P(AbstractViewPlaneIteratorTest, ShouldPointAtEndIteratorAfterIterating) {
     typename TypeParam::Iterator iterator = this->plane.begin(this->fullRect);
-    for (; iterator != this->plane.end(this->fullRect); ++iterator) {}
+    for (; iterator != this->plane.end(this->fullRect); ++iterator) {
+    }
     ASSERT_EQ(this->plane.end(this->fullRect).row(), iterator.row());
     ASSERT_EQ(this->plane.end(this->fullRect).column(), iterator.column());
   }
 
-  REGISTER_TYPED_TEST_SUITE_P(
-    AbstractViewPlaneIteratorTest,
-    ShouldAdvance,
-    ShouldEndUpInLastRowAfterIterating,
-    ShouldEndUpInColumnZeroAfterIterating,
-    ShouldIterateThroughPixels,
-    ShouldIterateThroughRect,
-    ShouldPointAtEndIteratorAfterIterating
-  );
+  REGISTER_TYPED_TEST_SUITE_P(AbstractViewPlaneIteratorTest, ShouldAdvance,
+                              ShouldEndUpInLastRowAfterIterating,
+                              ShouldEndUpInColumnZeroAfterIterating, ShouldIterateThroughPixels,
+                              ShouldIterateThroughRect, ShouldPointAtEndIteratorAfterIterating);
 }
 
 #endif

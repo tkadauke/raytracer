@@ -13,17 +13,15 @@
 using namespace render;
 
 Camera::Camera()
-  : m_cancelled(false),
-    m_showProgressIndicators(false),
-    m_aspectMode(render::AspectMode::Stretch),
-    m_aspectRatio(0.0),
-    m_viewPlane(std::make_shared<render::PointInterlacedViewPlane>())
-{
+    : m_cancelled(false),
+      m_showProgressIndicators(false),
+      m_aspectMode(render::AspectMode::Stretch),
+      m_aspectRatio(0.0),
+      m_viewPlane(std::make_shared<render::PointInterlacedViewPlane>()) {
 }
 
 Camera::Camera(const Vector3d& position, const Vector3d& target)
-  : Camera()
-{
+    : Camera() {
   m_position = position;
   m_target = target;
 }
@@ -85,7 +83,8 @@ Vector3d Camera::projectPointWithDepth(const Vector3d& worldPoint) const {
   // Cameras without a closed-form inverse return undefined, which
   // propagates through here.
   Vector2d screen = projectPoint(worldPoint);
-  if (screen.isUndefined()) return Vector3d::undefined;
+  if (screen.isUndefined())
+    return Vector3d::undefined;
   return Vector3d(screen.x(), screen.y(), 0.0);
 }
 
@@ -119,7 +118,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
   render(raycaster, buffer, Recti(0, 0, buffer.width(), buffer.height()));
 }
 
-void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer, const Recti& rect) const {
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& buffer,
+                    const Recti& rect) const {
   if (isCancelled())
     return;
 
@@ -130,11 +130,12 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
   Recti actualRect = rect;
   if (plane->aspectMode() == render::AspectMode::FitExact) {
     const Recti& inner = plane->innerRect();
-    int left   = std::max(rect.left(),   inner.left());
-    int top    = std::max(rect.top(),    inner.top());
-    int right  = std::min(rect.right(),  inner.right());
+    int left = std::max(rect.left(), inner.left());
+    int top = std::max(rect.top(), inner.top());
+    int right = std::min(rect.right(), inner.right());
     int bottom = std::min(rect.bottom(), inner.bottom());
-    if (left >= right || top >= bottom) return;
+    if (left >= right || top >= bottom)
+      return;
     actualRect = Recti(left, top, right - left, bottom - top);
   }
 
@@ -142,7 +143,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
   const int samplesPerPixel = sampler->numSamples();
   const double sampleScale = 1.0 / samplesPerPixel;
 
-  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect); pixel != end; ++pixel) {
+  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
+       pixel != end; ++pixel) {
     if (isCancelled())
       break;
 
@@ -160,9 +162,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
     // with identical lens / time / ... dimensions for the same
     // sampleIndex. The constants are coprime odd-ish — the exact
     // values don't matter, only that they decorrelate the grid.
-    const std::uint64_t pixelHash =
-      static_cast<std::uint64_t>(pixel.column()) * 73856093ull
-      ^ static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+    const std::uint64_t pixelHash = static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
+                                    static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
@@ -208,7 +209,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>
   }
 }
 
-void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, const Colord& color) const {
+void Camera::plot(Buffer<Colord>& buffer, const Recti& rect,
+                  const render::ViewPlane::Iterator& pixel, const Colord& color) const {
   int size = pixel.pixelSize();
   if (size == 1) {
     buffer[pixel.row()][pixel.column()] = color;
@@ -219,7 +221,8 @@ void Camera::plot(Buffer<Colord>& buffer, const Recti& rect, const render::ViewP
   }
 }
 
-void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect, const render::ViewPlane::Iterator& pixel, unsigned int rgb) const {
+void Camera::plotRGB(Buffer<unsigned int>& buffer, const Recti& rect,
+                     const render::ViewPlane::Iterator& pixel, unsigned int rgb) const {
   int size = pixel.pixelSize();
   if (size == 1) {
     buffer[pixel.row()][pixel.column()] = rgb;
@@ -242,11 +245,12 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
   Recti actualRect = rect;
   if (plane->aspectMode() == render::AspectMode::FitExact) {
     const Recti& inner = plane->innerRect();
-    int left   = std::max(rect.left(),   inner.left());
-    int top    = std::max(rect.top(),    inner.top());
-    int right  = std::min(rect.right(),  inner.right());
+    int left = std::max(rect.left(), inner.left());
+    int top = std::max(rect.top(), inner.top());
+    int right = std::min(rect.right(), inner.right());
     int bottom = std::min(rect.bottom(), inner.bottom());
-    if (left >= right || top >= bottom) return;
+    if (left >= right || top >= bottom)
+      return;
     actualRect = Recti(left, top, right - left, bottom - top);
   }
 
@@ -260,7 +264,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
   // duplication here is the price of progressive display — see
   // `Camera::render(Buffer<Colord>&, ...)` for the documented
   // sample-stream contract that the two paths share.
-  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect); pixel != end; ++pixel) {
+  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
+       pixel != end; ++pixel) {
     if (isCancelled())
       break;
 
@@ -271,9 +276,8 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       plotRGB(buffer, actualRect, pixel, 0xffff0000);
     }
 
-    const std::uint64_t pixelHash =
-      static_cast<std::uint64_t>(pixel.column()) * 73856093ull
-      ^ static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+    const std::uint64_t pixelHash = static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
+                                    static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
 
     Colord pixelColor;
     for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {

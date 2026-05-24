@@ -28,7 +28,7 @@ namespace TiltShiftCameraWorldTest {
     TiltShiftCamera camera;
     camera.setShiftX(0.3);
     camera.setShiftY(-0.2);
-    EXPECT_DOUBLE_EQ( 0.3, camera.shiftX());
+    EXPECT_DOUBLE_EQ(0.3, camera.shiftX());
     EXPECT_DOUBLE_EQ(-0.2, camera.shiftY());
   }
 
@@ -41,13 +41,13 @@ namespace TiltShiftCameraWorldTest {
     auto rt = std::dynamic_pointer_cast<render::TiltShiftCamera>(camera.toRaytracer());
     ASSERT_NE(nullptr, rt);
     // Inherited ThinLens parameters propagate.
-    EXPECT_DOUBLE_EQ(camera.distance(),       rt->distance());
-    EXPECT_DOUBLE_EQ(camera.zoom(),           rt->zoom());
+    EXPECT_DOUBLE_EQ(camera.distance(), rt->distance());
+    EXPECT_DOUBLE_EQ(camera.zoom(), rt->zoom());
     EXPECT_DOUBLE_EQ(camera.apertureRadius(), rt->apertureRadius());
-    EXPECT_DOUBLE_EQ(camera.focalDistance(),  rt->focalDistance());
+    EXPECT_DOUBLE_EQ(camera.focalDistance(), rt->focalDistance());
     // Tilt-shift parameters propagate.
     EXPECT_DOUBLE_EQ(camera.tilt().radians(), rt->tilt().radians());
-    EXPECT_DOUBLE_EQ(camera.shiftX(),         rt->shift().x());
-    EXPECT_DOUBLE_EQ(camera.shiftY(),         rt->shift().y());
+    EXPECT_DOUBLE_EQ(camera.shiftX(), rt->shift().x());
+    EXPECT_DOUBLE_EQ(camera.shiftY(), rt->shift().y());
   }
 }

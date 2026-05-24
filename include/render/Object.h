@@ -25,8 +25,10 @@ namespace render {
     */
   class Object {
   public:
-    inline Object() {}
-    virtual ~Object() {}
+    inline Object() {
+    }
+    virtual ~Object() {
+    }
 
     /// Set this object's display name. Used only by the trace
     /// machinery; safe to leave unset for objects you don't expect

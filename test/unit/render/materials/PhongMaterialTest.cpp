@@ -13,9 +13,9 @@
 namespace PhongMaterialTest {
   using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
-using namespace render;
+  using namespace render;
   using namespace engine::raytracer;
 
   TEST(PhongMaterial, ShouldInitialize) {
@@ -84,8 +84,7 @@ using namespace render;
     f.material.setSpecularCoefficient(1.0);
     // Light directly overhead. With viewer also directly overhead, R = N
     // and R·V = 1, so pow(1, exp) = 1 regardless of exponent — peak.
-    f.scene->addLight(std::make_shared<DirectionalLight>(
-      Vector3d(0, 1, 0), Colord(1, 1, 1)));
+    f.scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord(1, 1, 1)));
 
     auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
@@ -105,16 +104,16 @@ using namespace render;
     // Same overhead light, but now the viewer is at 45° from the surface
     // normal. R = (0, 1, 0); V = (sin 45°, cos 45°, 0); R·V = cos 45° ≈
     // 0.707; specular = 0.707^16 ≈ 0.0048 per channel — small but non-zero.
-    constexpr double s = 0.7071067811865476;  // sin/cos 45°
+    constexpr double s = 0.7071067811865476; // sin/cos 45°
     f.ray = Rayd(Vector3d(5, 5, 0), Vector3d(-s, -s, 0));
-    f.scene->addLight(std::make_shared<DirectionalLight>(
-      Vector3d(0, 1, 0), Colord(1, 1, 1)));
+    f.scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord(1, 1, 1)));
 
     auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 
-    constexpr double expected = 0.7071067811865476;  // cos 45°
+    constexpr double expected = 0.7071067811865476; // cos 45°
     double pow16 = 1.0;
-    for (int i = 0; i < 16; ++i) pow16 *= expected;
+    for (int i = 0; i < 16; ++i)
+      pow16 *= expected;
     ASSERT_COLOR_NEAR(Colord(pow16, pow16, pow16), colour, 0.001);
   }
 
@@ -125,8 +124,7 @@ using namespace render;
     f.material.setDiffuseCoefficient(1.0);
     f.material.setSpecularColor(Colord::white());
     f.material.setSpecularCoefficient(0.5);
-    f.scene->addLight(std::make_shared<DirectionalLight>(
-      Vector3d(0, 1, 0), Colord(1, 1, 1)));
+    f.scene->addLight(std::make_shared<DirectionalLight>(Vector3d(0, 1, 0), Colord(1, 1, 1)));
 
     auto colour = f.material.shade(f.raytracer.get(), *f.scene, f.ray, f.hitPoint, f.state);
 

@@ -45,10 +45,8 @@
   * @tparam T The coordinate type.
   */
 template<class T>
-class BoundingBox
-  : public InPlaceSetOperators<BoundingBox<T>>,
-    public InequalityOperator<BoundingBox<T>>
-{
+class BoundingBox : public InPlaceSetOperators<BoundingBox<T>>,
+                    public InequalityOperator<BoundingBox<T>> {
 public:
   /**
     * The "undefined" bounding box.
@@ -64,9 +62,8 @@ public:
     * Default constructor. Creates an infinitely large bounding box.
     */
   inline BoundingBox()
-    : m_min(Vector3<T>::plusInfinity),
-      m_max(Vector3<T>::minusInfinity)
-  { 
+      : m_min(Vector3<T>::plusInfinity),
+        m_max(Vector3<T>::minusInfinity) {
   }
 
   /**
@@ -78,20 +75,17 @@ public:
     * @see isValid().
     */
   inline explicit BoundingBox(const Vector3<T>& min, const Vector3<T>& max)
-    : m_min(min),
-      m_max(max)
-  {
+      : m_min(min),
+        m_max(max) {
   }
-  
+
   /**
     * @returns true if the bounding box is valid, false otherwise. A bounding
     *   box is only valid if all components of min() are smaller than or equal
     *   to their corresponding component of max().
     */
   [[nodiscard]] inline bool isValid() const noexcept {
-    return min().x() <= max().x() &&
-           min().y() <= max().y() &&
-           min().z() <= max().z();
+    return min().x() <= max().x() && min().y() <= max().y() && min().z() <= max().z();
   }
 
   /**
@@ -183,7 +177,7 @@ public:
       return true;
     return min() == other.min() && max() == other.max();
   }
-  
+
   /**
     * Calculates the union of this bounding box and @p other. The union is by
     * definition at least as big as either one of the operands. The following
@@ -201,7 +195,7 @@ public:
     result.include(other);
     return result;
   }
-  
+
   /**
     * Calculates the intersection of this bounding box and @p other. The
     * intersection is usually smaller than either one of the operands. The
@@ -220,23 +214,15 @@ public:
     const T oMinX = other.min().x(), oMinY = other.min().y(), oMinZ = other.min().z();
     const T maxX = max().x(), maxY = max().y(), maxZ = max().z();
     const T oMaxX = other.max().x(), oMaxY = other.max().y(), oMaxZ = other.max().z();
-    BoundingBox result(
-      Vector3<T>(
-        minX > oMinX ? minX : oMinX,
-        minY > oMinY ? minY : oMinY,
-        minZ > oMinZ ? minZ : oMinZ
-      ),
-      Vector3<T>(
-        maxX < oMaxX ? maxX : oMaxX,
-        maxY < oMaxY ? maxY : oMaxY,
-        maxZ < oMaxZ ? maxZ : oMaxZ
-      )
-    );
+    BoundingBox result(Vector3<T>(minX > oMinX ? minX : oMinX, minY > oMinY ? minY : oMinY,
+                                  minZ > oMinZ ? minZ : oMinZ),
+                       Vector3<T>(maxX < oMaxX ? maxX : oMaxX, maxY < oMaxY ? maxY : oMaxY,
+                                  maxZ < oMaxZ ? maxZ : oMaxZ));
     if (!result.isValid())
       return BoundingBox::undefined;
     return result;
   }
-  
+
   /**
     * This function expands this bounding box, so that @p point will be inside
     * this box. The bounding box object is changed in place. The following
@@ -256,7 +242,7 @@ public:
         m_max[i] = point[i];
     }
   }
-  
+
   /**
     * This function expands the bounding box, so that every point of @p box will
     * be inside this bounding box.
@@ -265,7 +251,7 @@ public:
     include(box.min());
     include(box.max());
   }
-  
+
   /**
     * @returns true if and only if @p point is inside the box, false otherwise.
     */
@@ -276,7 +262,7 @@ public:
     }
     return true;
   }
-  
+
   /**
     * Alias for movedBy().
     */
@@ -291,7 +277,7 @@ public:
   [[nodiscard]] inline BoundingBox<T> operator+(const BoundingBox<T>& bbox) const noexcept {
     return BoundingBox<T>(min() + bbox.min(), max() + bbox.max());
   }
-  
+
   /**
     * @returns a bounding box that is grown by @p vec in each direction. The
     *   resulting bounding box's size is the original size plus two times
@@ -339,14 +325,14 @@ public:
     * @returns the 8 corner vertices of the bounding box.
     */
   [[nodiscard]] std::array<Vector3<T>, 8> vertices() const;
-  
+
   /**
     * Adds the 8 corner vertices of the bounding box to the given generic
     * @p container.
     */
   template<class Container>
   void getVertices(Container& container) const;
-  
+
   /**
     * @returns true, if and only if @p ray intersects with the bounding box.
     * Because the bounding box is likely to differ from the object contained
@@ -384,23 +370,17 @@ private:
 
 template<class T>
 inline const BoundingBox<T> BoundingBox<T>::undefined{
-  Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN(),
+  Vector3<T>(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN(),
              std::numeric_limits<T>::quiet_NaN()),
-  Vector3<T>(std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN(),
-             std::numeric_limits<T>::quiet_NaN())
-};
+  Vector3<T>(std::numeric_limits<T>::quiet_NaN(), std::numeric_limits<T>::quiet_NaN(),
+             std::numeric_limits<T>::quiet_NaN())};
 
 template<class T>
 inline const BoundingBox<T> BoundingBox<T>::infinity{
-  Vector3<T>(-std::numeric_limits<T>::infinity(),
-             -std::numeric_limits<T>::infinity(),
+  Vector3<T>(-std::numeric_limits<T>::infinity(), -std::numeric_limits<T>::infinity(),
              -std::numeric_limits<T>::infinity()),
-  Vector3<T>(std::numeric_limits<T>::infinity(),
-             std::numeric_limits<T>::infinity(),
-             std::numeric_limits<T>::infinity())
-};
+  Vector3<T>(std::numeric_limits<T>::infinity(), std::numeric_limits<T>::infinity(),
+             std::numeric_limits<T>::infinity())};
 
 template<class T>
 template<class Container>
@@ -505,8 +485,8 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
   const __m128 maxY = _mm_set1_ps(static_cast<float>(m_max.y()));
   const __m128 maxZ = _mm_set1_ps(static_cast<float>(m_max.z()));
 
-  const int zeroDirectionMask = _mm_movemask_ps(_mm_or_ps(_mm_or_ps(_mm_cmpeq_ps(dx, zero), _mm_cmpeq_ps(dy, zero)),
-                                                          _mm_cmpeq_ps(dz, zero)));
+  const int zeroDirectionMask = _mm_movemask_ps(
+    _mm_or_ps(_mm_or_ps(_mm_cmpeq_ps(dx, zero), _mm_cmpeq_ps(dy, zero)), _mm_cmpeq_ps(dz, zero)));
   if (zeroDirectionMask == 0) {
     const __m128 one = _mm_set1_ps(1.0f);
     const __m128 invDx = _mm_div_ps(one, dx);
@@ -518,8 +498,10 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
     const __m128 t2y = _mm_mul_ps(_mm_sub_ps(maxY, oy), invDy);
     const __m128 t1z = _mm_mul_ps(_mm_sub_ps(minZ, oz), invDz);
     const __m128 t2z = _mm_mul_ps(_mm_sub_ps(maxZ, oz), invDz);
-    const __m128 enter = _mm_max_ps(_mm_max_ps(_mm_min_ps(t1x, t2x), _mm_min_ps(t1y, t2y)), _mm_min_ps(t1z, t2z));
-    const __m128 exit = _mm_min_ps(_mm_min_ps(_mm_max_ps(t1x, t2x), _mm_max_ps(t1y, t2y)), _mm_max_ps(t1z, t2z));
+    const __m128 enter =
+      _mm_max_ps(_mm_max_ps(_mm_min_ps(t1x, t2x), _mm_min_ps(t1y, t2y)), _mm_min_ps(t1z, t2z));
+    const __m128 exit =
+      _mm_min_ps(_mm_min_ps(_mm_max_ps(t1x, t2x), _mm_max_ps(t1y, t2y)), _mm_max_ps(t1z, t2z));
     return _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero));
   }
 
@@ -527,13 +509,8 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
   const __m128 negInfinity = _mm_set1_ps(-std::numeric_limits<float>::infinity());
   const __m128 posInfinity = _mm_set1_ps(std::numeric_limits<float>::infinity());
 
-  auto axis = [&](const Ray4::LaneArray& origins,
-                  const Ray4::LaneArray& directions,
-                  float minValue,
-                  float maxValue,
-                  __m128& enter,
-                  __m128& exit,
-                  __m128& valid) {
+  auto axis = [&](const Ray4::LaneArray& origins, const Ray4::LaneArray& directions, float minValue,
+                  float maxValue, __m128& enter, __m128& exit, __m128& valid) {
     const __m128 o = _mm_load_ps(origins.data());
     const __m128 d = _mm_load_ps(directions.data());
     const __m128 minv = _mm_set1_ps(minValue);
@@ -548,21 +525,23 @@ __m128 BoundingBox<T>::intersects4(const Ray4& rays) const {
 
     enter = _mm_max_ps(enter, bounding_box_detail::select_ps(parallel, negInfinity, axisEnter));
     exit = _mm_min_ps(exit, bounding_box_detail::select_ps(parallel, posInfinity, axisExit));
-    valid = _mm_and_ps(valid, _mm_or_ps(_mm_andnot_ps(parallel, _mm_cmpeq_ps(d, d)),
-                                       _mm_and_ps(parallel, inside)));
+    valid = _mm_and_ps(
+      valid, _mm_or_ps(_mm_andnot_ps(parallel, _mm_cmpeq_ps(d, d)), _mm_and_ps(parallel, inside)));
   };
 
   __m128 enter = negInfinity;
   __m128 exit = posInfinity;
   __m128 valid = _mm_cmpeq_ps(zero, zero);
-  axis(rays.originX, rays.directionX, static_cast<float>(m_min.x()), static_cast<float>(m_max.x()), enter, exit, valid);
-  axis(rays.originY, rays.directionY, static_cast<float>(m_min.y()), static_cast<float>(m_max.y()), enter, exit, valid);
-  axis(rays.originZ, rays.directionZ, static_cast<float>(m_min.z()), static_cast<float>(m_max.z()), enter, exit, valid);
+  axis(rays.originX, rays.directionX, static_cast<float>(m_min.x()), static_cast<float>(m_max.x()),
+       enter, exit, valid);
+  axis(rays.originY, rays.directionY, static_cast<float>(m_min.y()), static_cast<float>(m_max.y()),
+       enter, exit, valid);
+  axis(rays.originZ, rays.directionZ, static_cast<float>(m_min.z()), static_cast<float>(m_max.z()),
+       enter, exit, valid);
 
   return _mm_and_ps(valid, _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero)));
 }
 #endif
-
 
 // ── SSE2 double specialization ───────────────────────────────────────────────
 // Processes X and Y axes together in one __m128d pair; Z is scalar.
@@ -639,8 +618,7 @@ inline bool BoundingBox<double>::intersect(const Rayd& ray, Range<double>& inter
   interval = Range<double>(t_enter, t_exit);
   return t_enter <= t_exit && t_exit >= 0.0;
 }
-#endif  // __SSE2__
-
+#endif // __SSE2__
 
 /**
   * Outputs the given bounding box to the given std::ostream.
@@ -665,7 +643,7 @@ typedef BoundingBox<double> BoundingBoxd;
 // ---------------------------------------------------------------------------
 // std::hash specialization — enables unordered_map/unordered_set keys.
 // ---------------------------------------------------------------------------
-namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
+namespace std { // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 
   template<class T>
   struct hash<BoundingBox<T>> {
@@ -683,11 +661,13 @@ namespace std {  // NOLINT(cert-dcl58-cpp) — extending std for UDTs is allowed
 #ifdef __cpp_lib_format
 
 template<class T>
-struct std::formatter<BoundingBox<T>> {  // NOLINT(cert-dcl58-cpp)
-  constexpr auto parse(std::format_parse_context& ctx) const { return ctx.begin(); }
+struct std::formatter<BoundingBox<T>> { // NOLINT(cert-dcl58-cpp)
+  constexpr auto parse(std::format_parse_context& ctx) const {
+    return ctx.begin();
+  }
   auto format(const BoundingBox<T>& b, std::format_context& ctx) const {
     return std::format_to(ctx.out(), "{}-{}", b.min(), b.max());
   }
 };
 
-#endif  // __cpp_lib_format
+#endif // __cpp_lib_format

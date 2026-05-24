@@ -17,8 +17,10 @@ public:
     * polynomial \f$ax^3 + bx^2 + cx + d\f$.
     */
   inline explicit Cubic(T a, T b, T c, T d)
-    : m_a(a), m_b(b), m_c(c), m_d(d)
-  {
+      : m_a(a),
+        m_b(b),
+        m_c(c),
+        m_d(d) {
   }
 
   /**
@@ -42,8 +44,8 @@ int Cubic<T>::solve() {
   T normC = m_d / m_a;
 
   T normASquared = normA * normA;
-  T p = 1.0/3 * (- 1.0/3 * normASquared + normB);
-  T q = 1.0/2 * (2.0/27 * normA * normASquared - 1.0/3 * normA * normB + normC);
+  T p = 1.0 / 3 * (-1.0 / 3 * normASquared + normB);
+  T q = 1.0 / 2 * (2.0 / 27 * normA * normASquared - 1.0 / 3 * normA * normB + normC);
 
   T pCube = p * p * p;
   T determinant = q * q + pCube;
@@ -56,27 +58,27 @@ int Cubic<T>::solve() {
     } else {
       T cubeRoot = std::cbrt(-q);
       m_result[0] = 2 * cubeRoot;
-      m_result[1] = - cubeRoot;
+      m_result[1] = -cubeRoot;
       numberOfResults = 2;
     }
   } else if (determinant < 0) {
-    T phi = 1.0/3 * std::acos(-q / std::sqrt(-pCube));
+    T phi = 1.0 / 3 * std::acos(-q / std::sqrt(-pCube));
     T t = 2 * std::sqrt(-p);
 
-    m_result[0] =  t * std::cos(phi);
+    m_result[0] = t * std::cos(phi);
     m_result[1] = -t * std::cos(phi + M_PI / 3);
     m_result[2] = -t * std::cos(phi - M_PI / 3);
     numberOfResults = 3;
   } else {
     T determinantRoot = std::sqrt(determinant);
     T u = std::cbrt(determinantRoot - q);
-    T v = - std::cbrt(determinantRoot + q);
+    T v = -std::cbrt(determinantRoot + q);
 
     m_result[0] = u + v;
     numberOfResults = 1;
   }
 
-  T sub = 1.0/3 * normA;
+  T sub = 1.0 / 3 * normA;
 
   for (int i = 0; i < numberOfResults; ++i)
     m_result[i] -= sub;

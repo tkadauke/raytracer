@@ -20,7 +20,8 @@ class Factory {
 
   class BaseCreator {
   public:
-    inline virtual ~BaseCreator() {}
+    inline virtual ~BaseCreator() {
+    }
     virtual Base* create() const = 0;
   };
 

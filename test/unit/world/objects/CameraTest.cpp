@@ -65,8 +65,7 @@ namespace CameraTest {
 
   TEST(PinholeCamera, ShouldProduceRaytracerPinholeCamera) {
     PinholeCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::PinholeCamera>(
-      camera.toRaytracer()));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::PinholeCamera>(camera.toRaytracer()));
   }
 
   // ---------- OrthographicCamera --------------------------------------------
@@ -84,16 +83,14 @@ namespace CameraTest {
 
   TEST(OrthographicCamera, ShouldProduceRaytracerOrthographicCamera) {
     OrthographicCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::OrthographicCamera>(
-      camera.toRaytracer()));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::OrthographicCamera>(camera.toRaytracer()));
   }
 
   // ---------- SphericalCamera -----------------------------------------------
 
   TEST(SphericalCamera, ShouldDefaultToWideHorizontalFieldOfView) {
     SphericalCamera camera;
-    EXPECT_DOUBLE_EQ((180_degrees).radians(),
-                     camera.horizontalFieldOfView().radians());
+    EXPECT_DOUBLE_EQ((180_degrees).radians(), camera.horizontalFieldOfView().radians());
   }
 
   TEST(SphericalCamera, ShouldDefaultToNarrowerVerticalFieldOfView) {
@@ -101,44 +98,37 @@ namespace CameraTest {
     // settings used by every existing example. Pin both so an "isotropic"
     // change is deliberate.
     SphericalCamera camera;
-    EXPECT_DOUBLE_EQ((120_degrees).radians(),
-                     camera.verticalFieldOfView().radians());
+    EXPECT_DOUBLE_EQ((120_degrees).radians(), camera.verticalFieldOfView().radians());
   }
 
   TEST(SphericalCamera, ShouldSetAndGetFieldOfView) {
     SphericalCamera camera;
     camera.setHorizontalFieldOfView(90_degrees);
     camera.setVerticalFieldOfView(60_degrees);
-    EXPECT_DOUBLE_EQ((90_degrees).radians(),
-                     camera.horizontalFieldOfView().radians());
-    EXPECT_DOUBLE_EQ((60_degrees).radians(),
-                     camera.verticalFieldOfView().radians());
+    EXPECT_DOUBLE_EQ((90_degrees).radians(), camera.horizontalFieldOfView().radians());
+    EXPECT_DOUBLE_EQ((60_degrees).radians(), camera.verticalFieldOfView().radians());
   }
 
   TEST(SphericalCamera, ShouldProduceRaytracerSphericalCamera) {
     SphericalCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::SphericalCamera>(
-      camera.toRaytracer()));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::SphericalCamera>(camera.toRaytracer()));
   }
 
   // ---------- FishEyeCamera -------------------------------------------------
 
   TEST(FishEyeCamera, ShouldDefaultToFullHemisphereFieldOfView) {
     FishEyeCamera camera;
-    EXPECT_DOUBLE_EQ((180_degrees).radians(),
-                     camera.fieldOfView().radians());
+    EXPECT_DOUBLE_EQ((180_degrees).radians(), camera.fieldOfView().radians());
   }
 
   TEST(FishEyeCamera, ShouldSetAndGetFieldOfView) {
     FishEyeCamera camera;
     camera.setFieldOfView(270_degrees);
-    EXPECT_DOUBLE_EQ((270_degrees).radians(),
-                     camera.fieldOfView().radians());
+    EXPECT_DOUBLE_EQ((270_degrees).radians(), camera.fieldOfView().radians());
   }
 
   TEST(FishEyeCamera, ShouldProduceRaytracerFishEyeCamera) {
     FishEyeCamera camera;
-    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::FishEyeCamera>(
-      camera.toRaytracer()));
+    EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::FishEyeCamera>(camera.toRaytracer()));
   }
 }

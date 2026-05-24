@@ -12,10 +12,9 @@ public:
     * Constructs the IntegerFactorization object for number.
     */
   inline explicit IntegerFactorization(int number)
-    : m_number(number)
-  {
+      : m_number(number) {
   }
-  
+
   /**
     * @returns a vector with all the primes that make up the number.
     */

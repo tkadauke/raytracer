@@ -5,7 +5,8 @@
 
 using namespace render;
 
-const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                             render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
@@ -15,7 +16,7 @@ const Primitive* ClosedSolidUnion::intersect(const Rayd& ray, HitPointInterval& 
     i->intersect(ray, candidate, state);
     // Add hitpoints regardless of the result above. We also want to know about
     // objects that we have hit behind the origin, so we can correctly build
-    // complex CSG models. This is especially important 
+    // complex CSG models. This is especially important
     hitPoints = hitPoints + candidate;
   }
   hitPoints = hitPoints.merged();

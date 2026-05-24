@@ -6,8 +6,8 @@
 
 namespace ConstantColorTextureTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   TEST(ConstantColorTexture, ShouldInitialize) {
     ConstantColorTexture texture;
@@ -18,7 +18,7 @@ using namespace render;
     ConstantColorTexture texture(Colord(1, 0, 0));
     ASSERT_EQ(Colord(1, 0, 0), texture.color());
   }
-  
+
   TEST(ConstantColorTexture, ShouldBeIndependentOfPointOrRayDirection) {
     ConstantColorTexture texture(Colord(1, 0, 0));
     ASSERT_EQ(Colord(1, 0, 0), texture.evaluate(Rayd::undefined, HitPoint::undefined()));

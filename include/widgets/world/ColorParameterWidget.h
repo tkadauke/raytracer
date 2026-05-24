@@ -6,7 +6,7 @@
 
 class ColorParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit ColorParameterWidget(QWidget* parent = nullptr);
   ~ColorParameterWidget();
@@ -15,7 +15,7 @@ public:
 
   virtual const QVariant value() const;
   virtual void setValue(const QVariant& value);
-  
+
 protected slots:
   void selectorClicked();
 

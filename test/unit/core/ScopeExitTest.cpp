@@ -9,7 +9,7 @@ namespace ScopeExitTest {
       ScopeExit sx([&] { i = 42; });
       ASSERT_EQ(0, i);
     }
-    
+
     ASSERT_EQ(42, i);
   }
 
@@ -19,7 +19,7 @@ namespace ScopeExitTest {
       ScopeExit sx1([&] { i += 4; });
       ScopeExit sx2([&] { i /= 2; });
     }
-    
+
     ASSERT_EQ((2 / 2) + 4, i);
   }
 }

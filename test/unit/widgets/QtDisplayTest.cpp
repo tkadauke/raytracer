@@ -18,8 +18,7 @@ namespace QtDisplayTest {
   class BlockingEngine : public render::RenderEngine {
   public:
     BlockingEngine()
-      : render::RenderEngine(std::shared_ptr<render::Scene>())
-    {
+        : render::RenderEngine(std::shared_ptr<render::Scene>()) {
     }
 
     void render(Buffer<Colord>&) override {

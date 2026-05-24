@@ -19,7 +19,7 @@ namespace TimelineTest {
   using ::testing::HasSubstr;
 
   QJsonValue vectorValue(double x, double y, double z) {
-    return QJsonValue(QJsonArray({ x, y, z }));
+    return QJsonValue(QJsonArray({x, y, z}));
   }
 
   QJsonObject keyJson(int frame, const QJsonValue& value) {
@@ -29,9 +29,7 @@ namespace TimelineTest {
     return json;
   }
 
-  QJsonObject trackJson(const QString& target,
-                        const QString& property,
-                        const QJsonArray& keys,
+  QJsonObject trackJson(const QString& target, const QString& property, const QJsonArray& keys,
                         const QString& interpolation = "linear") {
     QJsonObject json;
     json["target"] = target;
@@ -50,7 +48,8 @@ namespace TimelineTest {
     return json;
   }
 
-  void expectInvalidArgumentWithSubstring(const std::function<void()>& action, const std::string& message) {
+  void expectInvalidArgumentWithSubstring(const std::function<void()>& action,
+                                          const std::string& message) {
     try {
       action();
       FAIL() << "expected std::invalid_argument";
@@ -60,15 +59,12 @@ namespace TimelineTest {
   }
 
   TEST(Timeline, ReadsAndWritesSerializedTimelineJson) {
-    const auto timeline = world::Timeline::read(timelineJson(QJsonArray({
-      trackJson(
-        "camera-id",
-        "position",
-        QJsonArray({
-          keyJson(1, vectorValue(0.0, 0.0, 0.0)),
-          keyJson(10, vectorValue(10.0, 0.0, 0.0)),
-        }))
-    })));
+    const auto timeline = world::Timeline::read(
+      timelineJson(QJsonArray({trackJson("camera-id", "position",
+                                         QJsonArray({
+                                           keyJson(1, vectorValue(0.0, 0.0, 0.0)),
+                                           keyJson(10, vectorValue(10.0, 0.0, 0.0)),
+                                         }))})));
 
     EXPECT_EQ(1, timeline.startFrame());
     EXPECT_EQ(10, timeline.endFrame());
@@ -86,45 +82,57 @@ namespace TimelineTest {
   }
 
   TEST(Timeline, RejectsMalformedSerializedTimelineJson) {
-    expectInvalidArgumentWithSubstring([] {
-      QJsonObject json = timelineJson(QJsonArray());
-      json["startFrame"] = 1.25;
-      world::Timeline::read(json);
-    }, "startFrame");
+    expectInvalidArgumentWithSubstring(
+      [] {
+        QJsonObject json = timelineJson(QJsonArray());
+        json["startFrame"] = 1.25;
+        world::Timeline::read(json);
+      },
+      "startFrame");
 
-    expectInvalidArgumentWithSubstring([] {
-      QJsonObject json = timelineJson(QJsonArray());
-      json["endFrame"] = "10";
-      world::Timeline::read(json);
-    }, "endFrame");
+    expectInvalidArgumentWithSubstring(
+      [] {
+        QJsonObject json = timelineJson(QJsonArray());
+        json["endFrame"] = "10";
+        world::Timeline::read(json);
+      },
+      "endFrame");
 
-    expectInvalidArgumentWithSubstring([] {
-      QJsonObject json = timelineJson(QJsonArray());
-      json["fps"] = "24";
-      world::Timeline::read(json);
-    }, "fps");
+    expectInvalidArgumentWithSubstring(
+      [] {
+        QJsonObject json = timelineJson(QJsonArray());
+        json["fps"] = "24";
+        world::Timeline::read(json);
+      },
+      "fps");
 
-    expectInvalidArgumentWithSubstring([] {
-      QJsonObject json = timelineJson(QJsonArray());
-      json["endFrame"] = 0;
-      world::Timeline::read(json);
-    }, "end frame");
+    expectInvalidArgumentWithSubstring(
+      [] {
+        QJsonObject json = timelineJson(QJsonArray());
+        json["endFrame"] = 0;
+        world::Timeline::read(json);
+      },
+      "end frame");
 
-    expectInvalidArgumentWithSubstring([] {
-      QJsonObject json = timelineJson(QJsonArray());
-      json["fps"] = 0.0;
-      world::Timeline::read(json);
-    }, "fps");
+    expectInvalidArgumentWithSubstring(
+      [] {
+        QJsonObject json = timelineJson(QJsonArray());
+        json["fps"] = 0.0;
+        world::Timeline::read(json);
+      },
+      "fps");
 
-    expectInvalidArgumentWithSubstring([] {
-      QJsonObject json = timelineJson(QJsonArray());
-      json["tracks"] = "not-array";
-      world::Timeline::read(json);
-    }, "tracks");
+    expectInvalidArgumentWithSubstring(
+      [] {
+        QJsonObject json = timelineJson(QJsonArray());
+        json["tracks"] = "not-array";
+        world::Timeline::read(json);
+      },
+      "tracks");
 
-    expectInvalidArgumentWithSubstring([] {
-      world::Timeline::read(timelineJson(QJsonArray({ QJsonValue(4.0) })));
-    }, "tracks must be objects");
+    expectInvalidArgumentWithSubstring(
+      [] { world::Timeline::read(timelineJson(QJsonArray({QJsonValue(4.0)}))); },
+      "tracks must be objects");
   }
 
   TEST(Timeline, AppliesAllTracksToScene) {
@@ -133,26 +141,19 @@ namespace TimelineTest {
     camera->setId("camera-id");
     scene.addChild(camera);
 
-    const world::Timeline timeline(
-      1,
-      11,
-      24.0,
-      std::vector<world::AnimationTrack>({
-        world::AnimationTrack(
-          "camera-id",
-          "position",
-          {
-            { 1, vectorValue(0.0, 0.0, 0.0) },
-            { 11, vectorValue(10.0, 0.0, 0.0) },
-          }),
-        world::AnimationTrack(
-          "camera-id",
-          "target",
-          {
-            { 1, vectorValue(0.0, 0.0, -1.0) },
-            { 11, vectorValue(0.0, 0.0, -11.0) },
-          }),
-      }));
+    const world::Timeline timeline(1, 11, 24.0,
+                                   std::vector<world::AnimationTrack>({
+                                     world::AnimationTrack("camera-id", "position",
+                                                           {
+                                                             {1, vectorValue(0.0, 0.0, 0.0)},
+                                                             {11, vectorValue(10.0, 0.0, 0.0)},
+                                                           }),
+                                     world::AnimationTrack("camera-id", "target",
+                                                           {
+                                                             {1, vectorValue(0.0, 0.0, -1.0)},
+                                                             {11, vectorValue(0.0, 0.0, -11.0)},
+                                                           }),
+                                   }));
 
     timeline.apply(scene, 6);
 

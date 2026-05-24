@@ -5,11 +5,12 @@
 
 class ReferenceParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
-  
+
 public:
-  explicit ReferenceParameterWidget(const QString& baseClassName, Element* root, QWidget* parent = nullptr);
+  explicit ReferenceParameterWidget(const QString& baseClassName, Element* root,
+                                    QWidget* parent = nullptr);
   ~ReferenceParameterWidget();
-  
+
   virtual void setParameterName(const QString& name);
 
   virtual const QVariant value() const;
@@ -20,7 +21,7 @@ protected:
 
 private:
   QVariant makeVariant(Element* e);
-  
+
   struct Private;
   std::unique_ptr<Private> p;
 };

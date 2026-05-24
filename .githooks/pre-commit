@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+if ! command -v clang-format >/dev/null 2>&1; then
+  echo "clang-format is required before committing C/C++ changes." >&2
+  exit 1
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACMR -- \
+  '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp')
+
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+for file in $files; do
+  if [ ! -f "$file" ]; then
+    continue
+  fi
+
+  if ! git diff --quiet -- "$file"; then
+    echo "Refusing to clang-format partially staged file: $file" >&2
+    echo "Stage or stash unstaged edits in that file before committing." >&2
+    exit 1
+  fi
+done
+
+for file in $files; do
+  if [ ! -f "$file" ]; then
+    continue
+  fi
+
+  clang-format -i "$file"
+  git add "$file"
+done

@@ -3,8 +3,7 @@
 #include "render/lights/PointLight.h"
 
 PointLight::PointLight(Element* parent)
-  : Light(parent)
-{
+    : Light(parent) {
 }
 
 std::shared_ptr<render::Light> PointLight::toRaytracer() const {
@@ -12,4 +11,3 @@ std::shared_ptr<render::Light> PointLight::toRaytracer() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<PointLight>("PointLight");
-

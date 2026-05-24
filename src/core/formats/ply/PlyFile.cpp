@@ -22,11 +22,11 @@ void PlyFile::readHeader(istream& is) {
     auto moreToCome = bool(getline(is, line));
     if (!moreToCome)
       break;
-    
+
     istringstream ls(line);
     string token;
     ls >> token;
-    
+
     if (token == "comment" || token == "ply" || token == "") {
       continue;
     } else if (token == "format") {
@@ -44,7 +44,6 @@ void PlyFile::readHeader(istream& is) {
 }
 
 void PlyFile::parseFormat(istream&) {
-  
 }
 
 void PlyFile::parseElement(istream& is) {
@@ -81,7 +80,8 @@ void PlyFile::read(istream& is, Mesh& mesh) {
       } else if (element.name() == "face") {
         Mesh::Face face;
         for (const auto& property : element.properties()) {
-          if ((property.name() == "vertex_index" || property.name() == "vertex_indices") && property.isList()) {
+          if ((property.name() == "vertex_index" || property.name() == "vertex_indices") &&
+              property.isList()) {
             int count;
             is >> count;
             for (int i = 0; i != count; ++i) {

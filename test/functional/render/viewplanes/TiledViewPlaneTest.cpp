@@ -5,10 +5,6 @@
 namespace TiledViewPlaneTest {
   using namespace ::testing;
   using namespace render;
-  
-  INSTANTIATE_TYPED_TEST_SUITE_P(
-    Tiled,
-    AbstractViewPlaneTest,
-    TiledViewPlane
-  );
+
+  INSTANTIATE_TYPED_TEST_SUITE_P(Tiled, AbstractViewPlaneTest, TiledViewPlane);
 }

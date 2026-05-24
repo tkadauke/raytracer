@@ -62,9 +62,8 @@ struct RenderGraphInspectorWidget::Private {
 };
 
 RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
-  : QWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
   auto layout = new QVBoxLayout(this);
 
   p->validationStatus = new QLabel(this);
@@ -76,32 +75,19 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->passes->setObjectName("renderGraphPasses");
   p->passes->setRootIsDecorated(false);
   p->passes->setAlternatingRowColors(true);
-  p->passes->setHeaderLabels({
-    tr("Enabled"),
-    tr("Pass"),
-    tr("Kind"),
-    tr("Executor"),
-    tr("Reads"),
-    tr("Writes"),
-    tr("Disabled behavior")
-  });
+  p->passes->setHeaderLabels({tr("Enabled"), tr("Pass"), tr("Kind"), tr("Executor"), tr("Reads"),
+                              tr("Writes"), tr("Disabled behavior")});
   p->passes->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->passes->header()->setStretchLastSection(true);
-  connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)),
-          this, SLOT(passItemChanged(QTreeWidgetItem*, int)));
+  connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,
+          SLOT(passItemChanged(QTreeWidgetItem*, int)));
 
   p->resources = new QTreeWidget(tabs);
   p->resources->setObjectName("renderGraphResources");
   p->resources->setRootIsDecorated(false);
   p->resources->setAlternatingRowColors(true);
-  p->resources->setHeaderLabels({
-    tr("Resource"),
-    tr("Type"),
-    tr("Format"),
-    tr("Domain"),
-    tr("Lifetime"),
-    tr("Size")
-  });
+  p->resources->setHeaderLabels(
+    {tr("Resource"), tr("Type"), tr("Format"), tr("Domain"), tr("Lifetime"), tr("Size")});
   p->resources->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->resources->header()->setStretchLastSection(true);
 
@@ -125,8 +111,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->plan = plan;
 
   const auto ids = passIds(p->plan);
-  for (auto it = p->overrides.disabledPasses.begin();
-       it != p->overrides.disabledPasses.end();) {
+  for (auto it = p->overrides.disabledPasses.begin(); it != p->overrides.disabledPasses.end();) {
     if (ids.find(*it) == ids.end()) {
       it = p->overrides.disabledPasses.erase(it);
     } else {
@@ -206,14 +191,12 @@ void RenderGraphInspectorWidget::updateValidationStatus() {
   const RenderPlan plan = effectivePlan();
   const auto validation = plan.validate();
   if (validation.valid()) {
-    p->validationStatus->setText(
-      tr("Valid plan: %1 pass(es), %2 resource(s)")
-        .arg(static_cast<qulonglong>(plan.passes().size()))
-        .arg(static_cast<qulonglong>(plan.resources().size())));
+    p->validationStatus->setText(tr("Valid plan: %1 pass(es), %2 resource(s)")
+                                   .arg(static_cast<qulonglong>(plan.passes().size()))
+                                   .arg(static_cast<qulonglong>(plan.resources().size())));
     return;
   }
 
   const auto& first = validation.errors().front();
-  p->validationStatus->setText(
-    tr("Invalid plan: %1").arg(QString::fromStdString(first.message)));
+  p->validationStatus->setText(tr("Invalid plan: %1").arg(QString::fromStdString(first.message)));
 }

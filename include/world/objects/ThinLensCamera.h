@@ -50,7 +50,9 @@ public:
   /**
     * @returns the eye-to-viewplane distance. Defaults to 5.
     */
-  inline double distance() const { return m_distance; }
+  inline double distance() const {
+    return m_distance;
+  }
 
   /**
     * Sets the distance between the eye and the viewplane. A lower distance
@@ -58,24 +60,32 @@ public:
     * field is controlled separately via `setApertureRadius` and
     * `setFocalDistance`.
     */
-  inline void setDistance(double d) { m_distance = d; }
+  inline void setDistance(double d) {
+    m_distance = d;
+  }
 
   /**
     * @returns the viewplane magnification factor. Defaults to 1.
     */
-  inline double zoom() const { return m_zoom; }
+  inline double zoom() const {
+    return m_zoom;
+  }
 
   /**
     * Sets the zoom of the camera. Setter coerces zero or negative values
     * to 1 (the math is undefined at zero zoom).
     */
-  inline void setZoom(double z) { m_zoom = z <= 0 ? 1 : z; }
+  inline void setZoom(double z) {
+    m_zoom = z <= 0 ? 1 : z;
+  }
 
   /**
     * @returns the lens aperture radius in scene units. Larger →
     * shallower depth of field. Defaults to 0.1.
     */
-  inline double apertureRadius() const { return m_apertureRadius; }
+  inline double apertureRadius() const {
+    return m_apertureRadius;
+  }
 
   /**
     * Sets the aperture radius. The setter coerces negative values to 0
@@ -89,13 +99,17 @@ public:
     * <td>@image html thin_lens_camera_dof_aperture_0.8.png "apertureRadius=0.8 (heavy bokeh)"</td>
     * </tr></table>
     */
-  inline void setApertureRadius(double r) { m_apertureRadius = r < 0 ? 0 : r; }
+  inline void setApertureRadius(double r) {
+    m_apertureRadius = r < 0 ? 0 : r;
+  }
 
   /**
     * @returns the focal distance — how far in front of the lens the
     * in-focus plane sits, in scene units. Defaults to 5.
     */
-  inline double focalDistance() const { return m_focalDistance; }
+  inline double focalDistance() const {
+    return m_focalDistance;
+  }
 
   /**
     * Sets the focal distance. Setter ignores non-positive values rather
@@ -111,7 +125,9 @@ public:
     * <td>@image html thin_lens_camera_dof_focal_10.5.png "focalDistance=10.5 (back sphere sharp)"</td>
     * </tr></table>
     */
-  inline void setFocalDistance(double d) { m_focalDistance = d > 0 ? d : m_focalDistance; }
+  inline void setFocalDistance(double d) {
+    m_focalDistance = d > 0 ? d : m_focalDistance;
+  }
 
   /**
     * Convert this editable camera into the runtime `render::ThinLensCamera`

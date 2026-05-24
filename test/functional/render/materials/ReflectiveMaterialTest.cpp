@@ -2,15 +2,15 @@
 
 namespace ReflectiveMaterialTest {
   using namespace ::testing;
-  
+
   struct ReflectiveMaterialTest : public RaytracerFeatureTest {};
-  
+
   TEST_F(ReflectiveMaterialTest, ShouldNotBeVisibleIfPerfectlyReflective) {
     given("a perfectly reflective box");
     when("i look at the origin");
     then("i should see nothing");
   }
-  
+
   TEST_F(ReflectiveMaterialTest, ShouldReflectByDefault) {
     given("a perfectly reflective box");
     given("a sphere behind the camera");

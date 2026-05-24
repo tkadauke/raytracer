@@ -7,7 +7,7 @@ class Signal : public QObject {
   Q_OBJECT
 public:
   void call();
-  
+
 signals:
   void send();
 };

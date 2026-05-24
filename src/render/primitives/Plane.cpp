@@ -31,9 +31,10 @@ namespace {
 }
 #endif
 
-const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Plane::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                  render::State& state) const {
   double t = calculateIntersectionDistance(ray);
-  
+
   if (t > 0) {
     hitPoints.add(HitPoint(this, t, ray.at(t), m_normal));
     state.hit(this, "Plane");
@@ -60,13 +61,15 @@ RayPacketIntersection4 Plane::intersectPacket(const Ray4& rays, render::State& s
   const __m128 dx = _mm_load_ps(rays.directionX.data());
   const __m128 dy = _mm_load_ps(rays.directionY.data());
   const __m128 dz = _mm_load_ps(rays.directionZ.data());
-  const __m128 angle = _mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, dx), _mm_mul_ps(ny, dy)), _mm_mul_ps(nz, dz));
+  const __m128 angle =
+    _mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, dx), _mm_mul_ps(ny, dy)), _mm_mul_ps(nz, dz));
   const __m128 numerator = _mm_sub_ps(
     _mm_setzero_ps(),
-    _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, ox), _mm_mul_ps(ny, oy)), _mm_mul_ps(nz, oz)), distance)
-  );
+    _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(nx, ox), _mm_mul_ps(ny, oy)), _mm_mul_ps(nz, oz)),
+               distance));
   const __m128 t = _mm_div_ps(numerator, angle);
-  const __m128 hit = _mm_and_ps(_mm_cmpneq_ps(angle, _mm_setzero_ps()), _mm_cmpgt_ps(t, _mm_setzero_ps()));
+  const __m128 hit =
+    _mm_and_ps(_mm_cmpneq_ps(angle, _mm_setzero_ps()), _mm_cmpgt_ps(t, _mm_setzero_ps()));
 
   alignas(16) float distances[4];
   _mm_store_ps(distances, t);
@@ -89,23 +92,24 @@ bool Plane::intersects(const Rayd& ray, render::State& state) const {
     state.shadowHit(this, "Plane");
     return true;
   }
-  
+
   state.shadowMiss(this, "Plane");
   return false;
 }
 
 double Plane::calculateIntersectionDistance(const Rayd& ray) const {
-  const Vector3d& o = ray.origin(), d = ray.direction();
-  
+  const Vector3d &o = ray.origin(), d = ray.direction();
+
   double angle = m_normal * d;
   if (angle == 0)
     return false;
-  
+
   return -(m_normal * o + m_distance) / angle;
 }
 
 std::shared_ptr<Mesh> Plane::tessellate(int) const {
-  qWarning() << "Plane is infinite; tessellate() returns empty mesh — clip to a finite region first.";
+  qWarning()
+    << "Plane is infinite; tessellate() returns empty mesh — clip to a finite region first.";
   return std::make_shared<Mesh>();
 }
 

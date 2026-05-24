@@ -5,8 +5,7 @@
 
 namespace CubicTest {
   template<class T>
-  class CubicTest : public ::testing::Test {
-  };
+  class CubicTest : public ::testing::Test {};
 
   typedef ::testing::Types<float, double> CubicTypes;
 

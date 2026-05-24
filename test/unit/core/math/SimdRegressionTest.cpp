@@ -34,8 +34,10 @@ namespace SimdRegressionTest {
     // / Color<T> SSE3 specialisations and always use the underlying
     // template's scalar implementation, regardless of whether __SSE__ is
     // defined. They are the "expected" side of every comparison below.
-    template<class T> using GenericVector3 = Vector<3, T, T, void>;
-    template<class T> using GenericVector4 = Vector<4, T, T, void>;
+    template<class T>
+    using GenericVector3 = Vector<3, T, T, void>;
+    template<class T>
+    using GenericVector4 = Vector<4, T, T, void>;
 
     [[maybe_unused]] constexpr double kTol = 1e-6;
   }
@@ -44,8 +46,8 @@ namespace SimdRegressionTest {
 
   // Vector3<float> — SSE3 specialisation gated on __SSE__.
   TEST(SimdRegression, Vector3fAddMatchesGeneric) {
-    Vector3<float>  s(1.5f, -2.0f, 3.5f);
-    Vector3<float>  t(0.25f, 4.0f, -1.5f);
+    Vector3<float> s(1.5f, -2.0f, 3.5f);
+    Vector3<float> t(0.25f, 4.0f, -1.5f);
     GenericVector3<float> g_s(1.5f, -2.0f, 3.5f);
     GenericVector3<float> g_t(0.25f, 4.0f, -1.5f);
     auto sse = s + t;
@@ -93,7 +95,7 @@ namespace SimdRegressionTest {
   }
 
   TEST(SimdRegression, Vector3fLengthMatchesGeneric) {
-    Vector3<float> s(3.0f, 4.0f, 12.0f);   // Pythagorean: |.| = 13
+    Vector3<float> s(3.0f, 4.0f, 12.0f); // Pythagorean: |.| = 13
     GenericVector3<float> g_s(3.0f, 4.0f, 12.0f);
     ASSERT_NEAR(g_s.length(), s.length(), kTol);
   }
@@ -101,8 +103,7 @@ namespace SimdRegressionTest {
   // Vector4<float> — SSE3 specialisation gated on __SSE__.
   TEST(SimdRegression, Vector4fAddMatchesGeneric) {
     Vector4<float> s(1.5f, -2.0f, 3.5f, 0.5f), t(0.25f, 4.0f, -1.5f, 0.25f);
-    GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 0.5f),
-                          g_t(0.25f, 4.0f, -1.5f, 0.25f);
+    GenericVector4<float> g_s(1.5f, -2.0f, 3.5f, 0.5f), g_t(0.25f, 4.0f, -1.5f, 0.25f);
     auto sse = s + t;
     auto gen = g_s + g_t;
     for (int i = 0; i < 4; ++i)
@@ -119,7 +120,7 @@ namespace SimdRegressionTest {
       ASSERT_NEAR(gen[i], sse[i], kTol);
   }
 
-#endif  // __SSE__
+#endif // __SSE__
 
 #ifdef __SSE3__
 
@@ -154,15 +155,14 @@ namespace SimdRegressionTest {
   // Vector4<double> — SSE3 specialisation gated on __SSE3__.
   TEST(SimdRegression, Vector4dAddMatchesGeneric) {
     Vector4<double> s(1.5, -2.0, 3.5, 0.5), t(0.25, 4.0, -1.5, 0.25);
-    GenericVector4<double> g_s(1.5, -2.0, 3.5, 0.5),
-                           g_t(0.25, 4.0, -1.5, 0.25);
+    GenericVector4<double> g_s(1.5, -2.0, 3.5, 0.5), g_t(0.25, 4.0, -1.5, 0.25);
     auto sse = s + t;
     auto gen = g_s + g_t;
     for (int i = 0; i < 4; ++i)
       ASSERT_NEAR(gen[i], sse[i], kTol);
   }
 
-#endif  // __SSE3__
+#endif // __SSE3__
 
 #ifdef __SSE__
 
@@ -188,7 +188,7 @@ namespace SimdRegressionTest {
     ASSERT_COLOR_NEAR(Color<float>(0.2f, 0.3f, 0.4f), product, 1e-6f);
   }
 
-#endif  // __SSE__
+#endif // __SSE__
 
 #ifdef __SSE3__
 
@@ -205,7 +205,7 @@ namespace SimdRegressionTest {
     ASSERT_COLOR_NEAR(Color<double>(0.2, 0.3, 0.4), product, 1e-9);
   }
 
-#endif  // __SSE3__
+#endif // __SSE3__
 
   // A single sanity-check test that always builds (regardless of __SSE__),
   // so this TU has at least one test on every platform — keeps CTest from

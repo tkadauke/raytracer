@@ -332,8 +332,7 @@ namespace engine::graph {
       if (!resourceArray.at(i).isObject())
         jsonError(path, "expected object");
 
-      result.addResource(
-        RenderResourceDescriptor::fromJson(resourceArray.at(i).toObject(), path));
+      result.addResource(RenderResourceDescriptor::fromJson(resourceArray.at(i).toObject(), path));
     }
 
     const auto passArray = arrayField(object, "passes", "$");

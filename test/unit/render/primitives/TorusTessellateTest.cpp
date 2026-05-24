@@ -6,8 +6,8 @@
 
 namespace TorusTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   const double kEps = 1e-10;
 
@@ -42,8 +42,7 @@ using namespace render;
   // Lod 1 must produce more vertices than lod 0 (resolution increases)
   TEST(TorusTessellate, Lod1HasMoreVerticesThanLod0) {
     Torus torus(2.0, 0.5);
-    EXPECT_GT(torus.tessellate(1)->vertices().size(),
-              torus.tessellate(0)->vertices().size());
+    EXPECT_GT(torus.tessellate(1)->vertices().size(), torus.tessellate(0)->vertices().size());
   }
 
   // Every vertex must lie between (R-r) and (R+r) from the y-axis (XZ-plane
@@ -53,8 +52,7 @@ using namespace render;
     Torus torus(R, r);
     auto mesh = torus.tessellate(0);
     for (const auto& v : mesh->vertices()) {
-      double distFromAxis = std::sqrt(v.point.x() * v.point.x() +
-                                     v.point.z() * v.point.z());
+      double distFromAxis = std::sqrt(v.point.x() * v.point.x() + v.point.z() * v.point.z());
       EXPECT_GE(distFromAxis, R - r - kEps);
       EXPECT_LE(distFromAxis, R + r + kEps);
     }

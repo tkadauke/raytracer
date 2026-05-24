@@ -5,11 +5,11 @@
 
 class PinholeCameraParameterWidget : public CameraParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit PinholeCameraParameterWidget(QWidget* parent = nullptr);
   ~PinholeCameraParameterWidget();
-  
+
   double distance() const;
   double zoom() const;
 

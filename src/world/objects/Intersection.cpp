@@ -3,8 +3,7 @@
 #include "render/primitives/Intersection.h"
 
 Intersection::Intersection(Element* parent)
-  : CSGSurface(parent)
-{
+    : CSGSurface(parent) {
 }
 
 std::shared_ptr<render::Primitive> Intersection::toRaytracerPrimitive() const {
@@ -20,4 +19,3 @@ std::shared_ptr<render::Primitive> Intersection::toRaytracerPrimitive() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<Intersection>("Intersection");
-

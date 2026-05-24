@@ -10,14 +10,13 @@ struct ColorParameterWidget::Private {
 };
 
 ColorParameterWidget::ColorParameterWidget(QWidget* parent)
-  : AbstractParameterWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : AbstractParameterWidget(parent),
+      p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
   connect(p->ui.rEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
   connect(p->ui.gEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
   connect(p->ui.bEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
-  
+
   connect(p->ui.selectorButton, SIGNAL(clicked()), this, SLOT(selectorClicked()));
 }
 
@@ -25,17 +24,14 @@ ColorParameterWidget::~ColorParameterWidget() {
 }
 
 Colord ColorParameterWidget::color() const {
-  return Colord(
-    p->ui.rEdit->text().toDouble(),
-    p->ui.gEdit->text().toDouble(),
-    p->ui.bEdit->text().toDouble()
-  );
+  return Colord(p->ui.rEdit->text().toDouble(), p->ui.gEdit->text().toDouble(),
+                p->ui.bEdit->text().toDouble());
 }
 
 void ColorParameterWidget::setColor(const Colord& color) {
   if (p->ui.rEdit->hasFocus() || p->ui.gEdit->hasFocus() || p->ui.bEdit->hasFocus())
     return;
-  
+
   p->ui.rEdit->setText(QString::number(color.r()));
   p->ui.gEdit->setText(QString::number(color.g()));
   p->ui.bEdit->setText(QString::number(color.b()));
@@ -67,4 +63,3 @@ const QVariant ColorParameterWidget::value() const {
 void ColorParameterWidget::setValue(const QVariant& value) {
   setColor(value.value<Colord>());
 }
-

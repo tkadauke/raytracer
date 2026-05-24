@@ -25,8 +25,8 @@ struct Vec3dSSE3 {
   using Coordinate = double;
 
   union {
-    double   m_coordinates[3];
-    __m128d  m_vector[2];
+    double m_coordinates[3];
+    __m128d m_vector[2];
   };
 
   Vec3dSSE3() {
@@ -42,9 +42,15 @@ struct Vec3dSSE3 {
     m_vector[1] = v1;
   }
 
-  double x() const { return m_coordinates[0]; }
-  double y() const { return m_coordinates[1]; }
-  double z() const { return m_coordinates[2]; }
+  double x() const {
+    return m_coordinates[0];
+  }
+  double y() const {
+    return m_coordinates[1];
+  }
+  double z() const {
+    return m_coordinates[2];
+  }
 
   Vec3dSSE3 operator+(const Vec3dSSE3& o) const {
     return Vec3dSSE3(_mm_add_pd(m_vector[0], o.m_vector[0]),
@@ -60,21 +66,29 @@ struct Vec3dSSE3 {
   }
   double operator*(const Vec3dSSE3& o) const {
     // Type-punning (this is UB in C++17, but faithfully reproduced for baseline)
-    typedef union { __m128d vec; double coord[2]; } Half;
+    typedef union {
+      __m128d vec;
+      double coord[2];
+    } Half;
     Half first, second;
-    first.vec  = _mm_mul_pd(m_vector[0], o.m_vector[0]);
+    first.vec = _mm_mul_pd(m_vector[0], o.m_vector[0]);
     second.vec = _mm_mul_sd(m_vector[1], o.m_vector[1]);
     return first.coord[0] + first.coord[1] + second.coord[0];
   }
   // Cross product falls back to scalar in the original
   Vec3dSSE3 crossProduct(const Vec3dSSE3& o) const {
-    return Vec3dSSE3(y() * o.z() - z() * o.y(),
-                     z() * o.x() - x() * o.z(),
+    return Vec3dSSE3(y() * o.z() - z() * o.y(), z() * o.x() - x() * o.z(),
                      x() * o.y() - y() * o.x());
   }
-  double squaredLength() const { return (*this) * (*this); }
-  double length()        const { return std::sqrt(squaredLength()); }
-  Vec3dSSE3 normalized() const { return (*this) * (1.0 / length()); }
+  double squaredLength() const {
+    return (*this) * (*this);
+  }
+  double length() const {
+    return std::sqrt(squaredLength());
+  }
+  Vec3dSSE3 normalized() const {
+    return (*this) * (1.0 / length());
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -86,8 +100,8 @@ struct Vec3dFixedSSE3 {
   using Coordinate = double;
 
   union {
-    double   m_coordinates[3];
-    __m128d  m_vector[2];
+    double m_coordinates[3];
+    __m128d m_vector[2];
   };
 
   Vec3dFixedSSE3() {
@@ -103,9 +117,15 @@ struct Vec3dFixedSSE3 {
     m_vector[1] = v1;
   }
 
-  double x() const { return m_coordinates[0]; }
-  double y() const { return m_coordinates[1]; }
-  double z() const { return m_coordinates[2]; }
+  double x() const {
+    return m_coordinates[0];
+  }
+  double y() const {
+    return m_coordinates[1];
+  }
+  double z() const {
+    return m_coordinates[2];
+  }
 
   Vec3dFixedSSE3 operator+(const Vec3dFixedSSE3& o) const {
     return Vec3dFixedSSE3(_mm_add_pd(m_vector[0], o.m_vector[0]),
@@ -130,13 +150,18 @@ struct Vec3dFixedSSE3 {
     return _mm_cvtsd_f64(h);
   }
   Vec3dFixedSSE3 crossProduct(const Vec3dFixedSSE3& o) const {
-    return Vec3dFixedSSE3(y() * o.z() - z() * o.y(),
-                          z() * o.x() - x() * o.z(),
+    return Vec3dFixedSSE3(y() * o.z() - z() * o.y(), z() * o.x() - x() * o.z(),
                           x() * o.y() - y() * o.x());
   }
-  double squaredLength() const { return (*this) * (*this); }
-  double length()        const { return std::sqrt(squaredLength()); }
-  Vec3dFixedSSE3 normalized() const { return (*this) * (1.0 / length()); }
+  double squaredLength() const {
+    return (*this) * (*this);
+  }
+  double length() const {
+    return std::sqrt(squaredLength());
+  }
+  Vec3dFixedSSE3 normalized() const {
+    return (*this) * (1.0 / length());
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -148,41 +173,60 @@ struct Vec3dScalar {
 
   double m_c[3];
 
-  Vec3dScalar() : m_c{0, 0, 0} {}
-  Vec3dScalar(double x, double y, double z) : m_c{x, y, z} {}
+  Vec3dScalar()
+      : m_c{0, 0, 0} {
+  }
+  Vec3dScalar(double x, double y, double z)
+      : m_c{x, y, z} {
+  }
 
-  double x() const { return m_c[0]; }
-  double y() const { return m_c[1]; }
-  double z() const { return m_c[2]; }
+  double x() const {
+    return m_c[0];
+  }
+  double y() const {
+    return m_c[1];
+  }
+  double z() const {
+    return m_c[2];
+  }
 
   Vec3dScalar operator+(const Vec3dScalar& o) const {
     Vec3dScalar r;
-    for (int i = 0; i < 3; ++i) r.m_c[i] = m_c[i] + o.m_c[i];
+    for (int i = 0; i < 3; ++i)
+      r.m_c[i] = m_c[i] + o.m_c[i];
     return r;
   }
   Vec3dScalar operator-(const Vec3dScalar& o) const {
     Vec3dScalar r;
-    for (int i = 0; i < 3; ++i) r.m_c[i] = m_c[i] - o.m_c[i];
+    for (int i = 0; i < 3; ++i)
+      r.m_c[i] = m_c[i] - o.m_c[i];
     return r;
   }
   Vec3dScalar operator*(double f) const {
     Vec3dScalar r;
-    for (int i = 0; i < 3; ++i) r.m_c[i] = m_c[i] * f;
+    for (int i = 0; i < 3; ++i)
+      r.m_c[i] = m_c[i] * f;
     return r;
   }
   double operator*(const Vec3dScalar& o) const {
     double s = 0;
-    for (int i = 0; i < 3; ++i) s += m_c[i] * o.m_c[i];
+    for (int i = 0; i < 3; ++i)
+      s += m_c[i] * o.m_c[i];
     return s;
   }
   Vec3dScalar crossProduct(const Vec3dScalar& o) const {
-    return Vec3dScalar(m_c[1] * o.m_c[2] - m_c[2] * o.m_c[1],
-                       m_c[2] * o.m_c[0] - m_c[0] * o.m_c[2],
+    return Vec3dScalar(m_c[1] * o.m_c[2] - m_c[2] * o.m_c[1], m_c[2] * o.m_c[0] - m_c[0] * o.m_c[2],
                        m_c[0] * o.m_c[1] - m_c[1] * o.m_c[0]);
   }
-  double squaredLength() const { return (*this) * (*this); }
-  double length()        const { return std::sqrt(squaredLength()); }
-  Vec3dScalar normalized() const { return (*this) * (1.0 / length()); }
+  double squaredLength() const {
+    return (*this) * (*this);
+  }
+  double length() const {
+    return std::sqrt(squaredLength());
+  }
+  Vec3dScalar normalized() const {
+    return (*this) * (1.0 / length());
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -194,15 +238,22 @@ struct Vec3dAVX2 {
 
   __m256d v;
 
-  Vec3dAVX2() : v(_mm256_setzero_pd()) {}
+  Vec3dAVX2()
+      : v(_mm256_setzero_pd()) {
+  }
   Vec3dAVX2(double x, double y, double z)
-    : v(_mm256_set_pd(0.0, z, y, x)) {}
-  explicit Vec3dAVX2(__m256d r) : v(r) {}
+      : v(_mm256_set_pd(0.0, z, y, x)) {
+  }
+  explicit Vec3dAVX2(__m256d r)
+      : v(r) {
+  }
 
-  double x() const { return _mm256_cvtsd_f64(v); }
+  double x() const {
+    return _mm256_cvtsd_f64(v);
+  }
   double y() const {
-    return _mm_cvtsd_f64(_mm256_extractf128_pd(
-      _mm256_permute4x64_pd(v, _MM_SHUFFLE(1, 1, 1, 1)), 0));
+    return _mm_cvtsd_f64(
+      _mm256_extractf128_pd(_mm256_permute4x64_pd(v, _MM_SHUFFLE(1, 1, 1, 1)), 0));
   }
   double z() const {
     return _mm_cvtsd_f64(_mm256_extractf128_pd(v, 1));
@@ -220,23 +271,28 @@ struct Vec3dAVX2 {
   double operator*(const Vec3dAVX2& o) const {
     __m256d mul = _mm256_mul_pd(v, o.v);
     // hadd pairs within each 128-bit lane: [x*ox+y*oy, x*ox+y*oy, z*oz+0, z*oz+0]
-    __m256d h   = _mm256_hadd_pd(mul, mul);
-    __m128d lo  = _mm256_castpd256_pd128(h);
-    __m128d hi  = _mm256_extractf128_pd(h, 1);
+    __m256d h = _mm256_hadd_pd(mul, mul);
+    __m128d lo = _mm256_castpd256_pd128(h);
+    __m128d hi = _mm256_extractf128_pd(h, 1);
     return _mm_cvtsd_f64(_mm_add_sd(lo, hi));
   }
   Vec3dAVX2 crossProduct(const Vec3dAVX2& o) const {
     // a×b = (ay*bz - az*by, az*bx - ax*bz, ax*by - ay*bx, 0)
-    __m256d a1 = _mm256_permute4x64_pd(v,   _MM_SHUFFLE(3, 0, 2, 1)); // ay,az,ax,0
+    __m256d a1 = _mm256_permute4x64_pd(v, _MM_SHUFFLE(3, 0, 2, 1));   // ay,az,ax,0
     __m256d b1 = _mm256_permute4x64_pd(o.v, _MM_SHUFFLE(3, 1, 0, 2)); // bz,bx,by,0
-    __m256d a2 = _mm256_permute4x64_pd(v,   _MM_SHUFFLE(3, 1, 0, 2)); // az,ax,ay,0
+    __m256d a2 = _mm256_permute4x64_pd(v, _MM_SHUFFLE(3, 1, 0, 2));   // az,ax,ay,0
     __m256d b2 = _mm256_permute4x64_pd(o.v, _MM_SHUFFLE(3, 0, 2, 1)); // by,bz,bx,0
-    return Vec3dAVX2(_mm256_sub_pd(_mm256_mul_pd(a1, b1),
-                                   _mm256_mul_pd(a2, b2)));
+    return Vec3dAVX2(_mm256_sub_pd(_mm256_mul_pd(a1, b1), _mm256_mul_pd(a2, b2)));
   }
-  double squaredLength() const { return (*this) * (*this); }
-  double length()        const { return std::sqrt(squaredLength()); }
-  Vec3dAVX2 normalized() const { return (*this) * (1.0 / length()); }
+  double squaredLength() const {
+    return (*this) * (*this);
+  }
+  double length() const {
+    return std::sqrt(squaredLength());
+  }
+  Vec3dAVX2 normalized() const {
+    return (*this) * (1.0 / length());
+  }
 };
 #endif // __AVX2__
 
@@ -342,23 +398,17 @@ double bench_reflect() {
 
 template<typename Vec>
 void print_row(const char* name) {
-  printf("  %-18s %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f\n",
-         name,
-         bench_dot<Vec>(),
-         bench_add<Vec>(),
-         bench_scalar_mul<Vec>(),
-         bench_cross<Vec>(),
-         bench_normalize<Vec>(),
-         bench_reflect<Vec>());
+  printf("  %-18s %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f\n", name, bench_dot<Vec>(), bench_add<Vec>(),
+         bench_scalar_mul<Vec>(), bench_cross<Vec>(), bench_normalize<Vec>(), bench_reflect<Vec>());
 }
 
 int main() {
   printf("Phase 2.3 benchmark — Vector3<double> specialization options\n");
   printf("All times in ns/op. Lower is better.\n\n");
-  printf("  %-18s %8s %8s %8s %8s %8s %8s\n",
-         "Implementation", "dot", "add", "s*mul", "cross", "norm", "reflect");
-  printf("  %-18s %8s %8s %8s %8s %8s %8s\n",
-         "------------------", "--------", "--------", "--------", "--------", "--------", "--------");
+  printf("  %-18s %8s %8s %8s %8s %8s %8s\n", "Implementation", "dot", "add", "s*mul", "cross",
+         "norm", "reflect");
+  printf("  %-18s %8s %8s %8s %8s %8s %8s\n", "------------------", "--------", "--------",
+         "--------", "--------", "--------", "--------");
 
   print_row<Vec3dSSE3>("baseline-sse3");
   print_row<Vec3dFixedSSE3>("option-C-fixed-sse3");

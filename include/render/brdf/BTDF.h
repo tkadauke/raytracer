@@ -44,6 +44,8 @@ namespace render {
       */
     virtual bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint) const = 0;
 
-    int flags() const override { return BSDF::Specular | BSDF::Transmission; }
+    int flags() const override {
+      return BSDF::Specular | BSDF::Transmission;
+    }
   };
 }

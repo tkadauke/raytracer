@@ -17,26 +17,28 @@ namespace testing {
 namespace ConvexOperationTest {
   using namespace ::testing;
   using namespace render;
-using namespace render;
-using namespace render;
-  
+  using namespace render;
+  using namespace render;
+
   TEST(ConvexOperation, ShouldReturnSelfForConvexOperation) {
     MockConvexOperation i;
     auto primitive1 = std::make_shared<NiceMock<MockPrimitive>>();
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd( Vector3d::one, Vector3d::one)));
-    
+    EXPECT_CALL(*primitive1, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d::one, Vector3d::one)));
+
     Rayd ray(Vector3d(-5, 0, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto result = i.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(Vector3d(-2, 0, 0), hitPoints.min().point());
-    ASSERT_EQ(Vector3d( 2, 0, 0), hitPoints.max().point());
+    ASSERT_EQ(Vector3d(2, 0, 0), hitPoints.max().point());
     ASSERT_EQ(&i, result);
   }
 
@@ -47,13 +49,13 @@ using namespace render;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined));
-    
+
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto result = i.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(nullptr, result);
   }
 
@@ -63,11 +65,13 @@ using namespace render;
     auto primitive2 = std::make_shared<NiceMock<MockPrimitive>>();
     i.add(primitive1);
     i.add(primitive2);
-    EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
-    EXPECT_CALL(*primitive2, calculateBoundingBox()).WillOnce(Return(BoundingBoxd( Vector3d::one, Vector3d::one)));
-    
+    EXPECT_CALL(*primitive1, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(-Vector3d::one, Vector3d::one)));
+    EXPECT_CALL(*primitive2, calculateBoundingBox())
+      .WillOnce(Return(BoundingBoxd(Vector3d::one, Vector3d::one)));
+
     Rayd ray(Vector3d(-5, 0, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     ASSERT_TRUE(i.intersects(ray, state));
   }
@@ -79,9 +83,9 @@ using namespace render;
     i.add(primitive1);
     i.add(primitive2);
     EXPECT_CALL(*primitive1, calculateBoundingBox()).WillOnce(Return(BoundingBoxd::undefined));
-    
+
     Rayd ray(Vector3d(0, 0, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     ASSERT_FALSE(i.intersects(ray, state));
   }

@@ -24,11 +24,10 @@ using namespace engine::raytracer;
 
 struct RenderWindow::Private {
   inline Private()
-    : renderWidget(nullptr),
-      settingsWidget(nullptr),
-      busy(false),
-      timer(0)
-  {
+      : renderWidget(nullptr),
+        settingsWidget(nullptr),
+        busy(false),
+        timer(0) {
   }
 
   RenderWidget* renderWidget;
@@ -47,9 +46,8 @@ struct RenderWindow::Private {
 };
 
 RenderWindow::RenderWindow(QWidget* parent)
-  : QWidget(parent),
-    p(std::make_unique<Private>())
-{
+    : QWidget(parent),
+      p(std::make_unique<Private>()) {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
   p->wireframe = std::make_shared<engine::wireframe::Wireframe>(nullptr);
   p->rasterizer = std::make_shared<engine::raster::Rasterizer>(nullptr);
@@ -123,10 +121,9 @@ void RenderWindow::render() {
     } else if (postAA == "TAA") {
       postProcessAA = engine::raster::Rasterizer::PostProcessAA::TAA;
     }
-    p->rasterizer->setMSAAShadingMode(
-      p->settingsWidget->msaaShadingMode() == "Per fragment"
-        ? engine::raster::Rasterizer::MSAAShadingMode::PerFragment
-        : engine::raster::Rasterizer::MSAAShadingMode::PerSample);
+    p->rasterizer->setMSAAShadingMode(p->settingsWidget->msaaShadingMode() == "Per fragment"
+                                        ? engine::raster::Rasterizer::MSAAShadingMode::PerFragment
+                                        : engine::raster::Rasterizer::MSAAShadingMode::PerSample);
     p->rasterizer->setPostProcessAA(postProcessAA);
     p->rasterizer->setShadowMapsEnabled(p->settingsWidget->shadowMapsEnabled());
     p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
@@ -135,10 +132,9 @@ void RenderWindow::render() {
     p->rasterizer->setShadowBias(p->settingsWidget->shadowBias());
     p->rasterizer->setShadowSlopeBias(p->settingsWidget->shadowSlopeBias());
     p->rasterizer->setShadowFilterRadius(p->settingsWidget->shadowFilterRadius());
-    p->rasterizer->setShadowFilterMode(
-      p->settingsWidget->shadowFilterMode() == "PCSS"
-        ? engine::raster::Rasterizer::ShadowFilterMode::PCSS
-        : engine::raster::Rasterizer::ShadowFilterMode::PCF);
+    p->rasterizer->setShadowFilterMode(p->settingsWidget->shadowFilterMode() == "PCSS"
+                                         ? engine::raster::Rasterizer::ShadowFilterMode::PCSS
+                                         : engine::raster::Rasterizer::ShadowFilterMode::PCF);
     p->rasterizer->setMaximumThreads(p->settingsWidget->renderThreads());
     engine = p->rasterizer;
   } else {
@@ -192,11 +188,8 @@ void RenderWindow::setScene(::Scene* scene) {
     rtCamera = camera->toRaytracer();
   } else {
     rtCamera = p->raytracer->camera();
-    rtCamera->setPosition(
-      Matrix3d::rotateY(-25_degrees) *
-      Matrix3d::rotateX(-25_degrees) *
-      Vector3d(0, 0, -5)
-    );
+    rtCamera->setPosition(Matrix3d::rotateY(-25_degrees) * Matrix3d::rotateX(-25_degrees) *
+                          Vector3d(0, 0, -5));
   }
   p->raytracer->setCamera(rtCamera);
   p->wireframe->setCamera(rtCamera);

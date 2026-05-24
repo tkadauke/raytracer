@@ -13,18 +13,17 @@ public:
     * @param number the integer to decompose.
     */
   inline explicit IntegerDecomposition(int number)
-    : m_number(number)
-  {
+      : m_number(number) {
     decompose();
   }
-  
+
   /**
     * @returns the first factor.
     */
   inline int first() const {
     return m_first;
   }
-  
+
   /**
     * @returns the second factor.
     */
@@ -34,7 +33,7 @@ public:
 
 private:
   void decompose();
-  
+
   int m_number;
   int m_first, m_second;
 };

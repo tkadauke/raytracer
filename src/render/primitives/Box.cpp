@@ -37,7 +37,8 @@ namespace {
 }
 #endif
 
-const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                render::State& state) const {
   int parallel = 0;
   bool found = false;
   Vector3d d = m_center - ray.origin();
@@ -82,15 +83,13 @@ const Primitive* Box::intersect(const Rayd& ray, HitPointInterval& hitPoints, re
   if (parallel)
     for (int i = 0; i < 3; ++i)
       if (parallel & (1 << i))
-        if (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] || fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i]) {
+        if (fabs(d[i] - t1 * ray.direction()[i]) > m_edge[i] ||
+            fabs(d[i] - t2 * ray.direction()[i]) > m_edge[i]) {
           state.miss(this, "Box, ray parallel");
           return nullptr;
         }
 
-  hitPoints.add(
-    HitPoint(this, t1, ray.at(t1), normal1),
-    HitPoint(this, t2, ray.at(t2), normal2)
-  );
+  hitPoints.add(HitPoint(this, t1, ray.at(t1), normal1), HitPoint(this, t2, ray.at(t2), normal2));
 
   if (t1 < 0 && t2 < 0) {
     state.miss(this, "Box, behind ray");
@@ -114,13 +113,8 @@ RayPacketIntersection4 Box::intersectPacket(const Ray4& rays, render::State& sta
   const Vector3d min = m_center - m_edge;
   const Vector3d max = m_center + m_edge;
 
-  auto axis = [&](const Ray4::LaneArray& origins,
-                  const Ray4::LaneArray& directions,
-                  float minValue,
-                  float maxValue,
-                  __m128& enter,
-                  __m128& exit,
-                  __m128& valid) {
+  auto axis = [&](const Ray4::LaneArray& origins, const Ray4::LaneArray& directions, float minValue,
+                  float maxValue, __m128& enter, __m128& exit, __m128& valid) {
     const __m128 o = _mm_load_ps(origins.data());
     const __m128 d = _mm_load_ps(directions.data());
     const __m128 minv = _mm_set1_ps(minValue);
@@ -132,18 +126,22 @@ RayPacketIntersection4 Box::intersectPacket(const Ray4& rays, render::State& sta
     const __m128 t2 = _mm_mul_ps(_mm_sub_ps(maxv, o), invD);
     enter = _mm_max_ps(enter, select_ps(parallel, negInfinity, _mm_min_ps(t1, t2)));
     exit = _mm_min_ps(exit, select_ps(parallel, posInfinity, _mm_max_ps(t1, t2)));
-    valid = _mm_and_ps(valid, _mm_or_ps(_mm_andnot_ps(parallel, _mm_cmpeq_ps(d, d)),
-                                       _mm_and_ps(parallel, inside)));
+    valid = _mm_and_ps(
+      valid, _mm_or_ps(_mm_andnot_ps(parallel, _mm_cmpeq_ps(d, d)), _mm_and_ps(parallel, inside)));
   };
 
   __m128 enter = negInfinity;
   __m128 exit = posInfinity;
   __m128 valid = _mm_cmpeq_ps(zero, zero);
-  axis(rays.originX, rays.directionX, static_cast<float>(min.x()), static_cast<float>(max.x()), enter, exit, valid);
-  axis(rays.originY, rays.directionY, static_cast<float>(min.y()), static_cast<float>(max.y()), enter, exit, valid);
-  axis(rays.originZ, rays.directionZ, static_cast<float>(min.z()), static_cast<float>(max.z()), enter, exit, valid);
+  axis(rays.originX, rays.directionX, static_cast<float>(min.x()), static_cast<float>(max.x()),
+       enter, exit, valid);
+  axis(rays.originY, rays.directionY, static_cast<float>(min.y()), static_cast<float>(max.y()),
+       enter, exit, valid);
+  axis(rays.originZ, rays.directionZ, static_cast<float>(min.z()), static_cast<float>(max.z()),
+       enter, exit, valid);
 
-  const __m128 hit = _mm_and_ps(valid, _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero)));
+  const __m128 hit =
+    _mm_and_ps(valid, _mm_and_ps(_mm_cmple_ps(enter, exit), _mm_cmpge_ps(exit, zero)));
   alignas(16) float nearDistances[4];
   alignas(16) float farDistances[4];
   _mm_store_ps(nearDistances, enter);
@@ -172,11 +170,9 @@ BoundingBoxd Box::calculateBoundingBox() const {
 }
 
 Vector3d Box::farthestPoint(const Vector3d& direction) const {
-  return m_center + Vector3d(
-    direction.x() < 0.0 ? -m_edge.x() : m_edge.x(),
-    direction.y() < 0.0 ? -m_edge.y() : m_edge.y(),
-    direction.z() < 0.0 ? -m_edge.z() : m_edge.z()
-  );
+  return m_center + Vector3d(direction.x() < 0.0 ? -m_edge.x() : m_edge.x(),
+                             direction.y() < 0.0 ? -m_edge.y() : m_edge.y(),
+                             direction.z() < 0.0 ? -m_edge.z() : m_edge.z());
 }
 
 std::shared_ptr<Mesh> Box::tessellate(int) const {
@@ -187,7 +183,7 @@ std::shared_ptr<Mesh> Box::tessellate(int) const {
   auto mesh = std::make_shared<Mesh>();
 
   const double cx = m_center.x(), cy = m_center.y(), cz = m_center.z();
-  const double ex = m_edge.x(),   ey = m_edge.y(),   ez = m_edge.z();
+  const double ex = m_edge.x(), ey = m_edge.y(), ez = m_edge.z();
 
   // Helper: add four vertices for one face plus the quad face index.
   // `addQuad` picks UVs per corner so each face's texture spans
@@ -195,8 +191,7 @@ std::shared_ptr<Mesh> Box::tessellate(int) const {
   // along the second. Face winding goes CCW when viewed from
   // outside the box — adopting the OpenGL / glTF convention so a
   // future rasterizer can back-face-cull on the standard sign.
-  auto addQuad = [&](const Vector3d& normal,
-                     const Vector3d& v0, const Vector3d& v1,
+  auto addQuad = [&](const Vector3d& normal, const Vector3d& v0, const Vector3d& v1,
                      const Vector3d& v2, const Vector3d& v3) {
     int base = static_cast<int>(mesh->vertices().size());
     mesh->addVertex(v0, normal, Vector2d(0, 0));
@@ -226,24 +221,24 @@ std::shared_ptr<Mesh> Box::tessellate(int) const {
 
   // +X face — outward normal (+1, 0, 0). Viewed from +X looking
   // toward -X: +Y is to the right (in math), +Z is up.
-  addQuad(Vector3d( 1,  0,  0), p100, p110, p111, p101);
+  addQuad(Vector3d(1, 0, 0), p100, p110, p111, p101);
   // -X face — outward (-1, 0, 0). Viewed from -X looking toward +X:
   // +Z is to the right, +Y is up.
-  addQuad(Vector3d(-1,  0,  0), p000, p001, p011, p010);
+  addQuad(Vector3d(-1, 0, 0), p000, p001, p011, p010);
 
   // +Y face — outward (0, +1, 0). World convention: +Y is "down."
   // Viewed from +Y: +X to the right, +Z up.
-  addQuad(Vector3d( 0,  1,  0), p010, p011, p111, p110);
+  addQuad(Vector3d(0, 1, 0), p010, p011, p111, p110);
   // -Y face — outward (0, -1, 0). Viewed from -Y: +Z to the right,
   // +X up.
-  addQuad(Vector3d( 0, -1,  0), p000, p100, p101, p001);
+  addQuad(Vector3d(0, -1, 0), p000, p100, p101, p001);
 
   // +Z face — outward (0, 0, +1). Viewed from +Z: +X to the right,
   // +Y up.
-  addQuad(Vector3d( 0,  0,  1), p001, p101, p111, p011);
+  addQuad(Vector3d(0, 0, 1), p001, p101, p111, p011);
   // -Z face — outward (0, 0, -1). Viewed from -Z: +X to the left,
   // +Y up.
-  addQuad(Vector3d( 0,  0, -1), p010, p110, p100, p000);
+  addQuad(Vector3d(0, 0, -1), p010, p110, p100, p000);
 
   return mesh;
 }

@@ -16,10 +16,7 @@ namespace ViewPlaneTypeWidgetTest {
   TEST_F(ViewPlaneTypeWidgetTest, ShouldReturnRegisteredViewPlaneType) {
     ViewPlaneTypeWidget widget;
     auto identifiers = render::ViewPlaneFactory::self().identifiers();
-    EXPECT_NE(
-      std::find(identifiers.begin(), identifiers.end(), widget.type()),
-      identifiers.end()
-    );
+    EXPECT_NE(std::find(identifiers.begin(), identifiers.end(), widget.type()), identifiers.end());
   }
 
   TEST_F(ViewPlaneTypeWidgetTest, ShouldEmitChangedOnTypeChange) {

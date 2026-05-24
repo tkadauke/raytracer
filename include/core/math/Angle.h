@@ -39,7 +39,7 @@ public:
     * Default constructor. Constructs a zero angle.
     */
   inline Angle() = default;
-  
+
   /**
     * Copy constructor. Accepts other Angle object.
     */
@@ -51,7 +51,7 @@ public:
     * copy constructor.
     */
   inline Angle& operator=(const Angle&) = default;
-  
+
   /**
     * Constructs an angle from @p degrees. Internally, the angle is stored in
     * radians, with \f$r = d \times \frac{2\pi}{360}\f$, where \f$d\f$ is
@@ -68,7 +68,7 @@ public:
   inline static Angle<T> fromDegrees(const T& degrees) {
     return Angle<T>(degrees * 0.01745329251996);
   }
-  
+
   /**
     * Constructs an angle from @p arcMinutes. An arc minute is
     * \f$\frac{1}{60}\f$ of a degree.
@@ -76,7 +76,7 @@ public:
   inline static Angle<T> fromArcMinutes(const T& arcMinutes) {
     return fromDegrees(arcMinutes / 60.0);
   }
-  
+
   /**
     * Constructs an angle from @p arcSeconds. An arc second is
     * \f$\frac{1}{3600}\f$ of a degree.
@@ -84,7 +84,7 @@ public:
   inline static Angle<T> fromArcSeconds(const T& arcSeconds) {
     return fromArcMinutes(arcSeconds / 60.0);
   }
-  
+
   /**
     * Constructs an angle from @p hexacontades. A hexacontade is
     * \f$\frac{1}{60}\f$ of a turn.
@@ -92,7 +92,7 @@ public:
   inline static Angle<T> fromHexacontades(const T& hexacontades) {
     return fromTurns(hexacontades / 60.0);
   }
-  
+
   /**
     * Constructs an angle from @p binDegrees. A binary degree is
     * \f$\frac{1}{256}\f$ of a turn. Although the resolution is a bit lower,
@@ -101,7 +101,7 @@ public:
   inline static Angle<T> fromBinaryDegrees(const T& binDegrees) {
     return fromTurns(binDegrees / 256.0);
   }
-  
+
   /**
     * Constructs an angle from @p radians. The following interactive figure
     * shows the angle in radians. Use the angle slider to change the angle.
@@ -115,7 +115,7 @@ public:
   inline static Angle<T> fromRadians(const T& radians) {
     return Angle<T>(radians);
   }
-  
+
   /**
     * Constructs an angle from @p grads. A grad is \f$\frac{1}{400}\f$ of a
     * turn.
@@ -123,7 +123,7 @@ public:
   inline static Angle<T> fromGrads(const T& grads) {
     return fromTurns(grads / 400.0);
   }
-  
+
   /**
     * Constructs an angle from @p turns. Internally, the angle is stored in
     * radians, with \f$r = t \times 2\pi\f$, where \f$t\f$ is @p turns (the
@@ -140,7 +140,7 @@ public:
   inline static Angle<T> fromTurns(const T& turns) {
     return Angle<T>(turns * TAU);
   }
-  
+
   /**
     * Constructs an angle from @p quadrants. A quadrant is \f$\frac{1}{4}\f$ of
     * a turn.
@@ -148,7 +148,7 @@ public:
   inline static Angle<T> fromQuadrants(const T& quadrants) {
     return fromTurns(quadrants / 4.0);
   }
-  
+
   /**
     * Constructs an angle from @p sextants. A sextant is \f$\frac{1}{4}\f$ of a
     * turn.
@@ -156,7 +156,7 @@ public:
   inline static Angle<T> fromSextants(const T& sextants) {
     return fromTurns(sextants / 6.0);
   }
-  
+
   /**
     * Constructs an angle from @p oClock. Internally, the angle is stored in
     * radians, with \f$r = \frac{o \times 2\pi}{12}\f$, where \f$o\f$ is
@@ -173,7 +173,7 @@ public:
   inline static Angle<T> fromClock(const T& oClock) {
     return Angle<T>(oClock * 0.5235987755982988730771);
   }
-  
+
   /**
     * Constructs an angle from @p hours. An hour is \f$\frac{1}{24}\f$ of a
     * turn.
@@ -181,7 +181,7 @@ public:
   inline static Angle<T> fromHours(const T& hours) {
     return fromTurns(hours / 24.0);
   }
-  
+
   /**
     * Constructs an angle from @p compassPoints. A compass point is
     * \f$\frac{1}{32}\f$ of a turn.
@@ -189,7 +189,7 @@ public:
   inline static Angle<T> fromCompassPoints(const T& compassPoints) {
     return fromTurns(compassPoints / 32.0);
   }
-  
+
   /**
     * @returns the angle in degrees, \f$d = r \times \frac{360}{2\pi}\f$, where
     *   \f$d\f$ is the angle in degrees and \f$r\f$ is the angle in radians.
@@ -197,49 +197,49 @@ public:
   inline T degrees() const {
     return m_radians * 57.29577951308233;
   }
-  
+
   /**
     * @returns the angle in arc minutes, which is degrees() times 60.
     */
   inline T arcMinutes() const {
     return degrees() * 60.0;
   }
-  
+
   /**
     * @returns the angle in arc seconds, which is degrees() times 3600.
     */
   inline T arcSeconds() const {
     return arcMinutes() * 60.0;
   }
-  
+
   /**
     * @returns the angle in hexacontades, which is turns() times 60.
     */
   inline T hexacontades() const {
     return turns() * 60.0;
   }
-  
+
   /**
     * @returns the angle in binary degrees, which is turns() times 256.
     */
   inline T binaryDegrees() const {
     return turns() * 256.0;
   }
-  
+
   /**
     * @returns the angle in radians.
     */
   inline T radians() const {
     return m_radians;
   }
-  
+
   /**
     * @returns the angle in grads, which is turns() times 400.
     */
   inline T grads() const {
     return turns() * 400.0;
   }
-  
+
   /**
     * @returns the angle in turns, \f$t = \frac{r}{2\pi}\f$, where \f$t\f$ is
     *   the angle in turns and \f$r\f$ is the angle in radians.
@@ -247,21 +247,21 @@ public:
   inline T turns() const {
     return m_radians * invTAU;
   }
-  
+
   /**
     * @returns the angle in quadrants, which is turns() times 4.
     */
   inline T quadrants() const {
     return turns() * 4.0;
   }
-  
+
   /**
     * @returns the angle in sextants, which is turns() times 6.
     */
   inline T sextants() const {
     return turns() * 6.0;
   }
-  
+
   /**
     * @returns the angle in hours on the clock, \f$o = \frac{12r}{2\pi}\f$,
     *   where \f$o\f$ is the angle in hours on the clock and \f$r\f$ is the
@@ -270,21 +270,21 @@ public:
   inline T oclock() const {
     return m_radians * 1.909859317102744029227;
   }
-  
+
   /**
     * @returns the angle in hours, which is turns() times 24.
     */
   inline T hours() const {
     return turns() * 24.0;
   }
-  
+
   /**
     * @returns the angle in compass points, which is turns() times 32.
     */
   inline T compassPoints() const {
     return turns() * 32.0;
   }
-  
+
   /**
     * @returns an angle that is the addition between this angle and the @p other
     *   angle.
@@ -292,7 +292,7 @@ public:
   inline Angle<T> operator+(const Angle<T>& other) const {
     return Angle<T>(m_radians + other.radians());
   }
-  
+
   /**
     * @returns an angle that is the subtraction between this angle and the
     *   @p other angle.
@@ -300,14 +300,14 @@ public:
   inline Angle<T> operator-(const Angle<T>& other) const {
     return Angle<T>(m_radians - other.radians());
   }
-  
+
   /**
     * @returns the negative of this angle.
     */
   inline Angle<T> operator-() const {
     return Angle<T>(-m_radians);
   }
-  
+
   /**
     * @returns an angle that is the multiplication between this angle and the
     *   @p other value.
@@ -316,7 +316,7 @@ public:
   inline Angle<T> operator*(const F& other) const {
     return Angle<T>(m_radians * other);
   }
-  
+
   /**
     * @returns an angle that is the division between this angle and the @p other
     *   value.
@@ -336,10 +336,9 @@ public:
 
 private:
   inline explicit Angle(const T& radians)
-    : m_radians(radians)
-  {
+      : m_radians(radians) {
   }
-  
+
   T m_radians;
 };
 
@@ -371,7 +370,6 @@ typedef Angle<float> Anglef;
   * Shortcut for a double-precision Angle.
   */
 typedef Angle<double> Angled;
-
 
 /**
   * Constant float angle of one degree. Use it with the multiplication operator
@@ -433,7 +431,7 @@ const Anglef BinaryDegreef = Anglef::fromBinaryDegrees(1);
   */
 const Anglef Radianf = Anglef::fromRadians(1);
 
- /**
+/**
   * Constant float angle of one grad. Use it with the multiplication operator
   * as a shortcut to Anglef::fromGrads().
   * 
@@ -640,7 +638,7 @@ const Angled CompassPointd = Angled::fromCompassPoints(1);
   * 
   * @see Angle<double>::fromDegrees().
   */
-inline Angled operator "" _degrees(long double value) {
+inline Angled operator"" _degrees(long double value) {
   return Angled::fromDegrees(value);
 }
 
@@ -651,7 +649,7 @@ inline Angled operator "" _degrees(long double value) {
   * 
   * @see Angle<double>::fromArcMinutes().
   */
-inline Angled operator "" _arc_minutes(long double value) {
+inline Angled operator"" _arc_minutes(long double value) {
   return Angled::fromArcMinutes(value);
 }
 
@@ -662,7 +660,7 @@ inline Angled operator "" _arc_minutes(long double value) {
   * 
   * @see Angle<double>::fromArcSeconds().
   */
-inline Angled operator "" _arc_seconds(long double value) {
+inline Angled operator"" _arc_seconds(long double value) {
   return Angled::fromArcSeconds(value);
 }
 
@@ -673,7 +671,7 @@ inline Angled operator "" _arc_seconds(long double value) {
   * 
   * @see Angle<double>::fromHexacontades().
   */
-inline Angled operator "" _hexacontades(long double value) {
+inline Angled operator"" _hexacontades(long double value) {
   return Angled::fromHexacontades(value);
 }
 
@@ -684,7 +682,7 @@ inline Angled operator "" _hexacontades(long double value) {
   * 
   * @see Angle<double>::fromBinaryDegrees().
   */
-inline Angled operator "" _binary_degrees(long double value) {
+inline Angled operator"" _binary_degrees(long double value) {
   return Angled::fromBinaryDegrees(value);
 }
 
@@ -695,7 +693,7 @@ inline Angled operator "" _binary_degrees(long double value) {
   * 
   * @returns an Angle<double> with the degrees from the literal.
   */
-inline Angled operator "" _degrees(unsigned long long int value) {
+inline Angled operator"" _degrees(unsigned long long int value) {
   return Angled::fromDegrees(value);
 }
 
@@ -706,7 +704,7 @@ inline Angled operator "" _degrees(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the arc minutes from the literal.
   */
-inline Angled operator "" _arc_minutes(unsigned long long int value) {
+inline Angled operator"" _arc_minutes(unsigned long long int value) {
   return Angled::fromArcMinutes(value);
 }
 
@@ -717,7 +715,7 @@ inline Angled operator "" _arc_minutes(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the arc seconds from the literal.
   */
-inline Angled operator "" _arc_seconds(unsigned long long int value) {
+inline Angled operator"" _arc_seconds(unsigned long long int value) {
   return Angled::fromArcSeconds(value);
 }
 
@@ -728,7 +726,7 @@ inline Angled operator "" _arc_seconds(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the degrees from the literal.
   */
-inline Angled operator "" _hexacontades(unsigned long long int value) {
+inline Angled operator"" _hexacontades(unsigned long long int value) {
   return Angled::fromHexacontades(value);
 }
 
@@ -739,7 +737,7 @@ inline Angled operator "" _hexacontades(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the degrees from the literal.
   */
-inline Angled operator "" _binary_degrees(unsigned long long int value) {
+inline Angled operator"" _binary_degrees(unsigned long long int value) {
   return Angled::fromBinaryDegrees(value);
 }
 
@@ -750,7 +748,7 @@ inline Angled operator "" _binary_degrees(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the radians from the literal.
   */
-inline Angled operator "" _radians(long double value) {
+inline Angled operator"" _radians(long double value) {
   return Angled::fromRadians(value);
 }
 
@@ -761,7 +759,7 @@ inline Angled operator "" _radians(long double value) {
   * 
   * @returns an Angle<double> with the grads from the literal.
   */
-inline Angled operator "" _grads(long double value) {
+inline Angled operator"" _grads(long double value) {
   return Angled::fromGrads(value);
 }
 
@@ -772,7 +770,7 @@ inline Angled operator "" _grads(long double value) {
   * 
   * @returns an Angle<double> with the radians from the literal.
   */
-inline Angled operator "" _radians(unsigned long long int value) {
+inline Angled operator"" _radians(unsigned long long int value) {
   return Angled::fromRadians(value);
 }
 
@@ -783,7 +781,7 @@ inline Angled operator "" _radians(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the grads from the literal.
   */
-inline Angled operator "" _grads(unsigned long long int value) {
+inline Angled operator"" _grads(unsigned long long int value) {
   return Angled::fromGrads(value);
 }
 
@@ -794,7 +792,7 @@ inline Angled operator "" _grads(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the turns from the literal.
   */
-inline Angled operator "" _turns(long double value) {
+inline Angled operator"" _turns(long double value) {
   return Angled::fromTurns(value);
 }
 /**
@@ -805,7 +803,7 @@ inline Angled operator "" _turns(long double value) {
   * @returns an Angle<double> with the quadrants from the literal.
   */
 
-inline Angled operator "" _quadrants(long double value) {
+inline Angled operator"" _quadrants(long double value) {
   return Angled::fromQuadrants(value);
 }
 
@@ -816,7 +814,7 @@ inline Angled operator "" _quadrants(long double value) {
   * 
   * @returns an Angle<double> with the turns from the literal.
   */
-inline Angled operator "" _sextants(long double value) {
+inline Angled operator"" _sextants(long double value) {
   return Angled::fromSextants(value);
 }
 
@@ -827,7 +825,7 @@ inline Angled operator "" _sextants(long double value) {
   * 
   * @returns an Angle<double> with the turns from the literal.
   */
-inline Angled operator "" _turns(unsigned long long int value) {
+inline Angled operator"" _turns(unsigned long long int value) {
   return Angled::fromTurns(value);
 }
 
@@ -838,7 +836,7 @@ inline Angled operator "" _turns(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the quadrants from the literal.
   */
-inline Angled operator "" _quadrants(unsigned long long int value) {
+inline Angled operator"" _quadrants(unsigned long long int value) {
   return Angled::fromQuadrants(value);
 }
 
@@ -849,7 +847,7 @@ inline Angled operator "" _quadrants(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the sextants from the literal.
   */
-inline Angled operator "" _sextants(unsigned long long int value) {
+inline Angled operator"" _sextants(unsigned long long int value) {
   return Angled::fromSextants(value);
 }
 
@@ -860,7 +858,7 @@ inline Angled operator "" _sextants(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the hours from the literal.
   */
-inline Angled operator "" _oclock(long double value) {
+inline Angled operator"" _oclock(long double value) {
   return Angled::fromClock(value);
 }
 
@@ -871,7 +869,7 @@ inline Angled operator "" _oclock(long double value) {
   * 
   * @returns an Angle<double> with the hours literal.
   */
-inline Angled operator "" _hours(long double value) {
+inline Angled operator"" _hours(long double value) {
   return Angled::fromHours(value);
 }
 
@@ -882,7 +880,7 @@ inline Angled operator "" _hours(long double value) {
   * 
   * @returns an Angle<double> with the compass points from the literal.
   */
-inline Angled operator "" _compass_points(long double value) {
+inline Angled operator"" _compass_points(long double value) {
   return Angled::fromCompassPoints(value);
 }
 
@@ -893,7 +891,7 @@ inline Angled operator "" _compass_points(long double value) {
   * 
   * @returns an Angle<double> with the hours from the literal.
   */
-inline Angled operator "" _oclock(unsigned long long int value) {
+inline Angled operator"" _oclock(unsigned long long int value) {
   return Angled::fromClock(value);
 }
 
@@ -904,7 +902,7 @@ inline Angled operator "" _oclock(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the hours from the literal.
   */
-inline Angled operator "" _hours(unsigned long long int value) {
+inline Angled operator"" _hours(unsigned long long int value) {
   return Angled::fromHours(value);
 }
 
@@ -915,6 +913,6 @@ inline Angled operator "" _hours(unsigned long long int value) {
   * 
   * @returns an Angle<double> with the compass points from the literal.
   */
-inline Angled operator "" _compass_points(unsigned long long int value) {
+inline Angled operator"" _compass_points(unsigned long long int value) {
   return Angled::fromCompassPoints(value);
 }

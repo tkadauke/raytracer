@@ -31,11 +31,8 @@ namespace render {
   class ReinhardTonemap : public Tonemap {
   public:
     inline Colord apply(const Colord& hdr) const override {
-      return Colord(
-        hdr.r() / (1.0 + hdr.r()),
-        hdr.g() / (1.0 + hdr.g()),
-        hdr.b() / (1.0 + hdr.b())
-      );
+      return Colord(hdr.r() / (1.0 + hdr.r()), hdr.g() / (1.0 + hdr.g()),
+                    hdr.b() / (1.0 + hdr.b()));
     }
   };
 }

@@ -27,13 +27,8 @@ namespace {
   // (numerical edge cases, shadow-ray semantics, axis-aligned ray handling)
   // happens in one place.
   template<typename Visitor>
-  bool traverseGrid(
-    const Rayd& ray,
-    const BoundingBoxd& bbox,
-    int numX, int numY, int numZ,
-    const std::vector<std::shared_ptr<Primitive>>& cells,
-    Visitor visit
-  ) {
+  bool traverseGrid(const Rayd& ray, const BoundingBoxd& bbox, int numX, int numY, int numZ,
+                    const std::vector<std::shared_ptr<Primitive>>& cells, Visitor visit) {
     double ox = ray.origin().x();
     double oy = ray.origin().y();
     double oz = ray.origin().z();
@@ -52,31 +47,48 @@ namespace {
     double tx_max, ty_max, tz_max;
 
     double a = 1.0 / dx;
-    if (a >= 0) { tx_min = (x0 - ox) * a; tx_max = (x1 - ox) * a; }
-    else        { tx_min = (x1 - ox) * a; tx_max = (x0 - ox) * a; }
+    if (a >= 0) {
+      tx_min = (x0 - ox) * a;
+      tx_max = (x1 - ox) * a;
+    } else {
+      tx_min = (x1 - ox) * a;
+      tx_max = (x0 - ox) * a;
+    }
 
     double b = 1.0 / dy;
-    if (b >= 0) { ty_min = (y0 - oy) * b; ty_max = (y1 - oy) * b; }
-    else        { ty_min = (y1 - oy) * b; ty_max = (y0 - oy) * b; }
+    if (b >= 0) {
+      ty_min = (y0 - oy) * b;
+      ty_max = (y1 - oy) * b;
+    } else {
+      ty_min = (y1 - oy) * b;
+      ty_max = (y0 - oy) * b;
+    }
 
     double c = 1.0 / dz;
-    if (c >= 0) { tz_min = (z0 - oz) * c; tz_max = (z1 - oz) * c; }
-    else        { tz_min = (z1 - oz) * c; tz_max = (z0 - oz) * c; }
+    if (c >= 0) {
+      tz_min = (z0 - oz) * c;
+      tz_max = (z1 - oz) * c;
+    } else {
+      tz_min = (z1 - oz) * c;
+      tz_max = (z0 - oz) * c;
+    }
 
     double t0 = tx_min > ty_min ? tx_min : ty_min;
-    if (tz_min > t0) t0 = tz_min;
+    if (tz_min > t0)
+      t0 = tz_min;
 
     double t1 = tx_max < ty_max ? tx_max : ty_max;
-    if (tz_max < t1) t1 = tz_max;
+    if (tz_max < t1)
+      t1 = tz_max;
 
-    if (t0 > t1) return false;
+    if (t0 > t1)
+      return false;
 
     Vector3d gridSize = bbox.max() - bbox.min();
 
     int x, y, z;
-    Vector3d relativeOrigin = bbox.contains(ray.origin())
-      ? ray.origin() - bbox.min()
-      : ray.at(t0) - bbox.min();
+    Vector3d relativeOrigin =
+      bbox.contains(ray.origin()) ? ray.origin() - bbox.min() : ray.at(t0) - bbox.min();
     x = clamp(relativeOrigin.x() * numX / gridSize.x(), 0, numX - 1);
     y = clamp(relativeOrigin.y() * numY / gridSize.y(), 0, numY - 1);
     z = clamp(relativeOrigin.z() * numZ / gridSize.z(), 0, numZ - 1);
@@ -89,17 +101,50 @@ namespace {
     int ix_step, iy_step, iz_step;
     int ix_stop, iy_stop, iz_stop;
 
-    if (dx > 0) { tx_next = tx_min + (x + 1) * dtx;        ix_step = +1; ix_stop = numX; }
-    else        { tx_next = tx_min + (numX - x) * dtx;     ix_step = -1; ix_stop = -1;   }
-    if (dx == 0.0) { tx_next = numeric_limits<double>::max(); ix_step = -1; ix_stop = -1; }
+    if (dx > 0) {
+      tx_next = tx_min + (x + 1) * dtx;
+      ix_step = +1;
+      ix_stop = numX;
+    } else {
+      tx_next = tx_min + (numX - x) * dtx;
+      ix_step = -1;
+      ix_stop = -1;
+    }
+    if (dx == 0.0) {
+      tx_next = numeric_limits<double>::max();
+      ix_step = -1;
+      ix_stop = -1;
+    }
 
-    if (dy > 0) { ty_next = ty_min + (y + 1) * dty;        iy_step = +1; iy_stop = numY; }
-    else        { ty_next = ty_min + (numY - y) * dty;     iy_step = -1; iy_stop = -1;   }
-    if (dy == 0.0) { ty_next = numeric_limits<double>::max(); iy_step = -1; iy_stop = -1; }
+    if (dy > 0) {
+      ty_next = ty_min + (y + 1) * dty;
+      iy_step = +1;
+      iy_stop = numY;
+    } else {
+      ty_next = ty_min + (numY - y) * dty;
+      iy_step = -1;
+      iy_stop = -1;
+    }
+    if (dy == 0.0) {
+      ty_next = numeric_limits<double>::max();
+      iy_step = -1;
+      iy_stop = -1;
+    }
 
-    if (dz > 0) { tz_next = tz_min + (z + 1) * dtz;        iz_step = +1; iz_stop = numZ; }
-    else        { tz_next = tz_min + (numZ - z) * dtz;     iz_step = -1; iz_stop = -1;   }
-    if (dz == 0.0) { tz_next = numeric_limits<double>::max(); iz_step = -1; iz_stop = -1; }
+    if (dz > 0) {
+      tz_next = tz_min + (z + 1) * dtz;
+      iz_step = +1;
+      iz_stop = numZ;
+    } else {
+      tz_next = tz_min + (numZ - z) * dtz;
+      iz_step = -1;
+      iz_stop = -1;
+    }
+    if (dz == 0.0) {
+      tz_next = numeric_limits<double>::max();
+      iz_step = -1;
+      iz_stop = -1;
+    }
 
     while (true) {
       RAYTRACER_STATS_INC(gridTraversalSteps);
@@ -116,16 +161,25 @@ namespace {
 
       if (tx_next < ty_next && tx_next < tz_next) {
         currentTNext = tx_next;
-        axisNext = &tx_next; axisDelta = dtx;
-        axisVar  = &x;       axisStep  = ix_step; axisStop = ix_stop;
+        axisNext = &tx_next;
+        axisDelta = dtx;
+        axisVar = &x;
+        axisStep = ix_step;
+        axisStop = ix_stop;
       } else if (ty_next < tz_next) {
         currentTNext = ty_next;
-        axisNext = &ty_next; axisDelta = dty;
-        axisVar  = &y;       axisStep  = iy_step; axisStop = iy_stop;
+        axisNext = &ty_next;
+        axisDelta = dty;
+        axisVar = &y;
+        axisStep = iy_step;
+        axisStop = iy_stop;
       } else {
         currentTNext = tz_next;
-        axisNext = &tz_next; axisDelta = dtz;
-        axisVar  = &z;       axisStep  = iz_step; axisStop = iz_stop;
+        axisNext = &tz_next;
+        axisDelta = dtz;
+        axisVar = &z;
+        axisStep = iz_step;
+        axisStop = iz_stop;
       }
 
       if (cell && visit(cell.get(), currentTNext)) {
@@ -133,13 +187,15 @@ namespace {
       }
 
       *axisNext += axisDelta;
-      *axisVar  += axisStep;
-      if (*axisVar == axisStop) return false;
+      *axisVar += axisStep;
+      if (*axisVar == axisStop)
+        return false;
     }
   }
 }
 
-const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                 render::State& state) const {
   if (m_boundingBox.isInfinite()) {
     return nullptr;
   }
@@ -148,16 +204,16 @@ const Primitive* Grid::intersect(const Rayd& ray, HitPointInterval& hitPoints, r
 
   const Primitive* hit = nullptr;
   traverseGrid(ray, m_boundingBox, m_numX, m_numY, m_numZ, m_cells,
-    [&](const Primitive* cell, double tNext) {
-      HitPointInterval candidate;
-      const Primitive* primitive = cell->intersect(ray, candidate, state);
-      if (candidate.minWithPositiveDistance().distance() - Rayd::epsilon < tNext) {
-        hitPoints = candidate;
-        hit = primitive;
-        return true;
-      }
-      return false;
-    });
+               [&](const Primitive* cell, double tNext) {
+                 HitPointInterval candidate;
+                 const Primitive* primitive = cell->intersect(ray, candidate, state);
+                 if (candidate.minWithPositiveDistance().distance() - Rayd::epsilon < tNext) {
+                   hitPoints = candidate;
+                   hit = primitive;
+                   return true;
+                 }
+                 return false;
+               });
   return hit;
 }
 
@@ -166,10 +222,9 @@ bool Grid::intersects(const Rayd& ray, render::State& state) const {
     return false;
   }
 
-  return traverseGrid(ray, m_boundingBox, m_numX, m_numY, m_numZ, m_cells,
-    [&](const Primitive* cell, double /*tNext*/) {
-      return cell->intersects(ray, state);
-    });
+  return traverseGrid(
+    ray, m_boundingBox, m_numX, m_numY, m_numZ, m_cells,
+    [&](const Primitive* cell, double /*tNext*/) { return cell->intersects(ray, state); });
 }
 
 void Grid::setup() {
@@ -203,14 +258,13 @@ void Grid::setup() {
   // Effective extent — replace degenerate axes with `maxAxis` so the
   // characteristic-cell-size cube root doesn't collapse. The
   // degenerate axes still get one cell below; this only affects `s`.
-  auto eff = [&](double v) {
-    return v < degenerateThreshold ? maxAxis : v;
-  };
-  double s = std::cbrt(eff(gridSize.x()) * eff(gridSize.y()) * eff(gridSize.z())
-                       / primitives().size());
+  auto eff = [&](double v) { return v < degenerateThreshold ? maxAxis : v; };
+  double s =
+    std::cbrt(eff(gridSize.x()) * eff(gridSize.y()) * eff(gridSize.z()) / primitives().size());
 
   auto cellCount = [&](double size) -> int {
-    if (size < degenerateThreshold) return 1;
+    if (size < degenerateThreshold)
+      return 1;
     return static_cast<int>(kGridDensityMultiplier * size / s) + 1;
   };
   m_numX = cellCount(gridSize.x());
@@ -239,7 +293,8 @@ void Grid::setup() {
     // primitive lives in cell 0 — short-circuit before dividing by
     // a near-zero gridSize, which would otherwise produce NaN.
     auto cellIndex = [](double rel, int numCells, double size) -> int {
-      if (numCells <= 1) return 0;
+      if (numCells <= 1)
+        return 0;
       return static_cast<int>(clamp(rel * numCells / size, 0.0f, float(numCells - 1)));
     };
     int xmin = cellIndex(relativeMin.x(), m_numX, gridSize.x());

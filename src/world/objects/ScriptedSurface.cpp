@@ -45,17 +45,37 @@ class ScriptElementRegistry : public QObject {
 
 public:
   explicit ScriptElementRegistry(QJSEngine* engine, QObject* parent = nullptr)
-    : QObject(parent), m_engine(engine) {}
+      : QObject(parent),
+        m_engine(engine) {
+  }
 
-  Q_INVOKABLE QJSValue createBox(QJSValue p)          { return createElement<Box>(p); }
-  Q_INVOKABLE QJSValue createSphere(QJSValue p)       { return createElement<Sphere>(p); }
-  Q_INVOKABLE QJSValue createCylinder(QJSValue p)     { return createElement<Cylinder>(p); }
-  Q_INVOKABLE QJSValue createRing(QJSValue p)         { return createElement<Ring>(p); }
-  Q_INVOKABLE QJSValue createUnion(QJSValue p)        { return createElement<Union>(p); }
-  Q_INVOKABLE QJSValue createIntersection(QJSValue p) { return createElement<Intersection>(p); }
-  Q_INVOKABLE QJSValue createDifference(QJSValue p)   { return createElement<Difference>(p); }
-  Q_INVOKABLE QJSValue createMinkowskiSum(QJSValue p) { return createElement<MinkowskiSum>(p); }
-  Q_INVOKABLE QJSValue createConvexHull(QJSValue p)   { return createElement<ConvexHull>(p); }
+  Q_INVOKABLE QJSValue createBox(QJSValue p) {
+    return createElement<Box>(p);
+  }
+  Q_INVOKABLE QJSValue createSphere(QJSValue p) {
+    return createElement<Sphere>(p);
+  }
+  Q_INVOKABLE QJSValue createCylinder(QJSValue p) {
+    return createElement<Cylinder>(p);
+  }
+  Q_INVOKABLE QJSValue createRing(QJSValue p) {
+    return createElement<Ring>(p);
+  }
+  Q_INVOKABLE QJSValue createUnion(QJSValue p) {
+    return createElement<Union>(p);
+  }
+  Q_INVOKABLE QJSValue createIntersection(QJSValue p) {
+    return createElement<Intersection>(p);
+  }
+  Q_INVOKABLE QJSValue createDifference(QJSValue p) {
+    return createElement<Difference>(p);
+  }
+  Q_INVOKABLE QJSValue createMinkowskiSum(QJSValue p) {
+    return createElement<MinkowskiSum>(p);
+  }
+  Q_INVOKABLE QJSValue createConvexHull(QJSValue p) {
+    return createElement<ConvexHull>(p);
+  }
 
   Q_INVOKABLE QJSValue createVector3(double x, double y, double z) {
     return m_engine->toScriptValue(Vector3d(x, y, z));
@@ -63,10 +83,9 @@ public:
 };
 
 ScriptedSurface::ScriptedSurface(Element* parent)
-  : Surface(parent),
-    m_engine(nullptr),
-    m_blockDynamicPropertyEvent(false)
-{
+    : Surface(parent),
+      m_engine(nullptr),
+      m_blockDynamicPropertyEvent(false) {
 }
 
 void ScriptedSurface::setupEngine() {
@@ -79,18 +98,16 @@ void ScriptedSurface::setupEngine() {
 
   // Inject JS constructor wrappers so scripts can keep using "new Box(parent)"
   // and "new Vector3(x, y, z)" unchanged.
-  m_engine->evaluate(
-    "function Box(p)          { return __reg__.createBox(p); }\n"
-    "function Sphere(p)       { return __reg__.createSphere(p); }\n"
-    "function Cylinder(p)     { return __reg__.createCylinder(p); }\n"
-    "function Ring(p)         { return __reg__.createRing(p); }\n"
-    "function Union(p)        { return __reg__.createUnion(p); }\n"
-    "function Intersection(p) { return __reg__.createIntersection(p); }\n"
-    "function Difference(p)   { return __reg__.createDifference(p); }\n"
-    "function MinkowskiSum(p) { return __reg__.createMinkowskiSum(p); }\n"
-    "function ConvexHull(p)   { return __reg__.createConvexHull(p); }\n"
-    "function Vector3(x,y,z)  { return __reg__.createVector3(x,y,z); }\n"
-  );
+  m_engine->evaluate("function Box(p)          { return __reg__.createBox(p); }\n"
+                     "function Sphere(p)       { return __reg__.createSphere(p); }\n"
+                     "function Cylinder(p)     { return __reg__.createCylinder(p); }\n"
+                     "function Ring(p)         { return __reg__.createRing(p); }\n"
+                     "function Union(p)        { return __reg__.createUnion(p); }\n"
+                     "function Intersection(p) { return __reg__.createIntersection(p); }\n"
+                     "function Difference(p)   { return __reg__.createDifference(p); }\n"
+                     "function MinkowskiSum(p) { return __reg__.createMinkowskiSum(p); }\n"
+                     "function ConvexHull(p)   { return __reg__.createConvexHull(p); }\n"
+                     "function Vector3(x,y,z)  { return __reg__.createVector3(x,y,z); }\n");
 }
 
 void ScriptedSurface::setScriptName(const QString& name) {
@@ -186,8 +203,8 @@ bool ScriptedSurface::functionDefined(QJSValue obj, const QString& function) con
 }
 
 void ScriptedSurface::handleError(const QJSValue& error) {
-  std::cout << "Uncaught exception in script " << m_scriptName.toStdString()
-            << ": " << error.toString().toStdString() << std::endl;
+  std::cout << "Uncaught exception in script " << m_scriptName.toStdString() << ": "
+            << error.toString().toStdString() << std::endl;
 
   QJSValue stack = error.property("stack");
   if (stack.isString()) {
@@ -195,7 +212,7 @@ void ScriptedSurface::handleError(const QJSValue& error) {
   }
 }
 
-bool ScriptedSurface::event(QEvent *e) {
+bool ScriptedSurface::event(QEvent* e) {
   if (!m_blockDynamicPropertyEvent && e->type() == QEvent::DynamicPropertyChange) {
     if (engineReady()) {
       auto pe = static_cast<QDynamicPropertyChangeEvent*>(e);

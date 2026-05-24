@@ -14,19 +14,15 @@ namespace testing {
 
     template<class T>
     // Helper function for implementing ASSERT_VECTOR_NEAR.
-    AssertionResult ColorNearPredFormat(
-      const char* expr1,
-      const char* expr2,
-      const char* abs_error_expr,
-      const Color<T>& val1,
-      const Color<T>& val2,
-      double abs_error
-    ) {
-      if (colorNear(val1, val2, T(abs_error))) return AssertionSuccess();
+    AssertionResult ColorNearPredFormat(const char* expr1, const char* expr2,
+                                        const char* abs_error_expr, const Color<T>& val1,
+                                        const Color<T>& val2, double abs_error) {
+      if (colorNear(val1, val2, T(abs_error)))
+        return AssertionSuccess();
 
       Message msg;
-      msg << "The difference between colors " << expr1 << " and " << expr2
-          << " exceeds " << abs_error_expr << ", where\n"
+      msg << "The difference between colors " << expr1 << " and " << expr2 << " exceeds "
+          << abs_error_expr << ", where\n"
           << expr1 << " evaluates to " << val1 << ",\n"
           << expr2 << " evaluates to " << val2 << ", and\n"
           << abs_error_expr << " evaluates to " << abs_error << ".";
@@ -35,7 +31,7 @@ namespace testing {
   }
 }
 
-#define ASSERT_COLOR_NEAR(val1, val2, abs_error) \
+#define ASSERT_COLOR_NEAR(val1, val2, abs_error)                                                   \
   ASSERT_PRED_FORMAT3(::testing::internal::ColorNearPredFormat, val1, val2, abs_error)
 
 #endif

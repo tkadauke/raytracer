@@ -10,13 +10,13 @@
   */
 class Texture : public Element {
   Q_OBJECT
-  
+
 public:
   /**
     * @returns the default texture, which is a black constant color texture.
     */
   static Texture* defaultTexture();
-  
+
   /**
     * Default constructor.
     */

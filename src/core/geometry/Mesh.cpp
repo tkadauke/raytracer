@@ -9,7 +9,7 @@ void Mesh::computeNormals(bool flip) {
     Vector3d v0 = m_vertices[face[face.size() - 1]].point - m_vertices[face[0]].point;
     Vector3d v1 = m_vertices[face[1]].point - m_vertices[face[0]].point;
     Vector3d v = (v0 ^ v1);
-    
+
     if (v.length() > 0) {
       v.normalize();
 

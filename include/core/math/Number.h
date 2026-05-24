@@ -10,19 +10,19 @@
 namespace detail {
   struct PCG32State {
     uint64_t state = 0x853c49e6748fea9bULL;
-    uint64_t inc   = 0xda3e39cb94b95bdbULL;
+    uint64_t inc = 0xda3e39cb94b95bdbULL;
 
     uint32_t next() noexcept {
       uint64_t old = state;
       state = old * 6364136223846793005ULL + inc;
-      uint32_t xs  = uint32_t(((old >> 18u) ^ old) >> 27u);
+      uint32_t xs = uint32_t(((old >> 18u) ^ old) >> 27u);
       uint32_t rot = uint32_t(old >> 59u);
       return (xs >> rot) | (xs << ((-rot) & 31u));
     }
 
     void reseed(uint64_t initstate, uint64_t initseq = 1u) noexcept {
       state = 0u;
-      inc   = (initseq << 1u) | 1u;
+      inc = (initseq << 1u) | 1u;
       next();
       state += initstate;
       next();
@@ -46,7 +46,8 @@ inline void seed(uint64_t s) noexcept {
   * @returns true if @p what is within @p epsilon of @p value, false otherwise.
   */
 template<class T>
-inline bool isAlmost(const T& what, const T& value, const T& epsilon = std::numeric_limits<T>::epsilon() * 10.0) {
+inline bool isAlmost(const T& what, const T& value,
+                     const T& epsilon = std::numeric_limits<T>::epsilon() * 10.0) {
   return what - epsilon <= value && value <= what + epsilon;
 }
 
@@ -54,7 +55,8 @@ inline bool isAlmost(const T& what, const T& value, const T& epsilon = std::nume
   * @returns true if @p what is within @p epsilon of 0, false otherwise.
   */
 template<class T>
-inline bool isAlmostZero(const T& value, const T& epsilon = std::numeric_limits<T>::epsilon() * 10.0) {
+inline bool isAlmostZero(const T& value,
+                         const T& epsilon = std::numeric_limits<T>::epsilon() * 10.0) {
   return isAlmost(T(0), value, epsilon);
 }
 

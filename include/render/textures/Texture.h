@@ -11,8 +11,9 @@ namespace render {
   template<class T>
   class Texture : public render::Object {
   public:
-    inline virtual ~Texture() {}
-    
+    inline virtual ~Texture() {
+    }
+
     virtual T evaluate(const Rayd& ray, const HitPoint& hitPoint) const = 0;
   };
 

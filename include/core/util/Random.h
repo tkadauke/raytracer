@@ -22,12 +22,11 @@
  * shuffling, switch to `std::shuffle` with a URBG locally.
  */
 template<class RandomIt>
-void random_shuffle(RandomIt first, RandomIt last)
-{
-    typename std::iterator_traits<RandomIt>::difference_type i, n;
-    n = last - first;
-    for (i = n-1; i > 0; --i) {
-        using std::swap;
-        swap(first[i], first[::random(int(i+1))]);
-    }
+void random_shuffle(RandomIt first, RandomIt last) {
+  typename std::iterator_traits<RandomIt>::difference_type i, n;
+  n = last - first;
+  for (i = n - 1; i > 0; --i) {
+    using std::swap;
+    swap(first[i], first[::random(int(i + 1))]);
+  }
 }

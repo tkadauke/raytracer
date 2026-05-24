@@ -14,8 +14,7 @@
 #include "render/cameras/PinholeCamera.h"
 
 PreviewDisplayWidget::PreviewDisplayWidget(QWidget* parent)
-  : QtDisplay(parent, std::make_shared<engine::raytracer::Raytracer>(nullptr))
-{
+    : QtDisplay(parent, std::make_shared<engine::raytracer::Raytracer>(nullptr)) {
 }
 
 PreviewDisplayWidget::~PreviewDisplayWidget() {
@@ -26,9 +25,7 @@ QSize PreviewDisplayWidget::sizeHint() const {
 }
 
 void PreviewDisplayWidget::clear() {
-  updateScene([&]() {
-    m_engine->setScene(nullptr);
-  });
+  updateScene([&]() { m_engine->setScene(nullptr); });
 }
 
 void PreviewDisplayWidget::setMaterial(Material* material, Scene* s) {
@@ -59,7 +56,8 @@ void PreviewDisplayWidget::updateScene(const std::function<void()>& setup) {
   render();
 }
 
-std::shared_ptr<render::Scene> PreviewDisplayWidget::sphereOnPlane(Material* material, Scene* s) const {
+std::shared_ptr<render::Scene> PreviewDisplayWidget::sphereOnPlane(Material* material,
+                                                                   Scene* s) const {
   auto mat = material->toRaytracerMaterial();
   auto scene = std::make_shared<render::Scene>();
 
@@ -69,13 +67,10 @@ std::shared_ptr<render::Scene> PreviewDisplayWidget::sphereOnPlane(Material* mat
   auto sphere = std::make_shared<render::Sphere>(Vector3d(0, 0, 0), 2);
   sphere->setMaterial(mat);
 
-  auto planeMaterial = std::make_shared<render::MatteMaterial>(
-    std::make_shared<render::CheckerBoardTexture>(
-      new render::PlanarMapping2D,
-      std::make_shared<render::ConstantColorTexture>(Colord::black()),
-      std::make_shared<render::ConstantColorTexture>(Colord::white())
-    )
-  );
+  auto planeMaterial =
+    std::make_shared<render::MatteMaterial>(std::make_shared<render::CheckerBoardTexture>(
+      new render::PlanarMapping2D, std::make_shared<render::ConstantColorTexture>(Colord::black()),
+      std::make_shared<render::ConstantColorTexture>(Colord::white())));
 
   auto plane = std::make_shared<render::Plane>(Vector3d(0, -1, 0), 2);
   plane->setMaterial(planeMaterial);
@@ -83,9 +78,9 @@ std::shared_ptr<render::Scene> PreviewDisplayWidget::sphereOnPlane(Material* mat
   scene->add(sphere);
   scene->add(plane);
 
-  auto light = std::make_shared<render::DirectionalLight>(Vector3d(-0.5, -1, -0.5), Colord(1, 1, 1));
+  auto light =
+    std::make_shared<render::DirectionalLight>(Vector3d(-0.5, -1, -0.5), Colord(1, 1, 1));
   scene->addLight(light);
 
   return scene;
 }
-

@@ -15,20 +15,20 @@ class Ring : public Surface {
   Q_PROPERTY(double innerRadius READ innerRadius WRITE setInnerRadius)
   Q_PROPERTY(double height READ height WRITE setHeight)
   Q_PROPERTY(double bevelRadius READ bevelRadius WRITE setBevelRadius)
-  
+
 public:
   /**
     * Default constructor. Creates a ring with radius 1 around the origin.
     */
   explicit Ring(Element* parent = nullptr);
-  
+
   /**
     * @returns the outer radius of the ring.
     */
   inline double outerRadius() const {
     return m_outerRadius;
   }
-  
+
   /**
     * Sets the outer radius of the ring. The radius will be converted to its
     * absolute value. A radius of 0 will be replaced with \f$\epsilon\f$. If the
@@ -44,10 +44,8 @@ public:
     * </tr></table>
     */
   inline void setOuterRadius(double radius) {
-    m_outerRadius = std::max(
-      std::max(std::abs(radius), std::numeric_limits<double>::epsilon()),
-      innerRadius() + std::numeric_limits<double>::epsilon()
-    );
+    m_outerRadius = std::max(std::max(std::abs(radius), std::numeric_limits<double>::epsilon()),
+                             innerRadius() + std::numeric_limits<double>::epsilon());
   }
 
   /**
@@ -72,10 +70,8 @@ public:
     * </tr></table>
     */
   inline void setInnerRadius(double radius) {
-    m_innerRadius = std::min(
-      std::max(std::abs(radius), std::numeric_limits<double>::epsilon()),
-      outerRadius() - std::numeric_limits<double>::epsilon()
-    );
+    m_innerRadius = std::min(std::max(std::abs(radius), std::numeric_limits<double>::epsilon()),
+                             outerRadius() - std::numeric_limits<double>::epsilon());
   }
 
   /**
@@ -107,7 +103,7 @@ public:
   inline double bevelRadius() const {
     return std::min(std::min((m_outerRadius - m_innerRadius) / 2.0, m_height / 2.0), m_bevelRadius);
   }
-  
+
   /**
     * Sets the bevel radius of the ring. If the radius is 0, the ring will be a
     * simple ring primitive with perfectly sharp edges. If the radius is greater
@@ -126,11 +122,12 @@ public:
   }
 
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const;
-  
+
 private:
   std::shared_ptr<render::Primitive> closedCylinder(double radius, double height) const;
-  std::shared_ptr<render::Primitive> ring(double outerRadius, double innerRadius, double height) const;
-  
+  std::shared_ptr<render::Primitive> ring(double outerRadius, double innerRadius,
+                                          double height) const;
+
   double m_innerRadius;
   double m_outerRadius;
   double m_height;

@@ -14,7 +14,9 @@ namespace ColorParameterWidgetTest {
   // QVariant::fromValue / value<Colord>; register once for this test TU.
   // The static-bool init mirrors how SceneTest handles the same situation.
   struct MetaTypeRegistrar {
-    MetaTypeRegistrar() { qRegisterMetaType<Colord>(); }
+    MetaTypeRegistrar() {
+      qRegisterMetaType<Colord>();
+    }
   };
   static const MetaTypeRegistrar s_registrar;
 

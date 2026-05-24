@@ -7,18 +7,19 @@
 
 using namespace render;
 
-const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints, render::State& state) const {
+const Primitive* Union::intersect(const Rayd& ray, HitPointInterval& hitPoints,
+                                  render::State& state) const {
   if (!boundingBoxIntersects(ray)) {
     return nullptr;
   }
-  
+
   for (const auto& i : primitives()) {
     HitPointInterval candidate;
     if (i->intersect(ray, candidate, state)) {
       hitPoints = hitPoints | candidate;
     }
   }
-  
+
   auto hitPoint = hitPoints.minWithPositiveDistance();
   if (hitPoint.isUndefined()) {
     return nullptr;

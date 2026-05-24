@@ -3,8 +3,7 @@
 #include "render/primitives/Union.h"
 
 Union::Union(Element* parent)
-  : CSGSurface(parent)
-{
+    : CSGSurface(parent) {
 }
 
 std::shared_ptr<render::Primitive> Union::toRaytracerPrimitive() const {
@@ -20,4 +19,3 @@ std::shared_ptr<render::Primitive> Union::toRaytracerPrimitive() const {
 }
 
 static bool dummy = ElementFactory::self().registerClass<Union>("Union");
-

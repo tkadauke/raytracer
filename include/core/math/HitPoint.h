@@ -40,49 +40,48 @@ public:
     * Holds the "undefined" HitPoint.
     */
   static const HitPoint& undefined();
-  
+
   /**
     * Default constructor. Constructs the null HitPoint.
     */
   inline HitPoint()
-    : m_primitive(nullptr),
-      m_distance(0)
-  {
+      : m_primitive(nullptr),
+        m_distance(0) {
   }
-  
+
   /**
     * Constructs a HitPoint on @p primitive from the specified @p distance,
     * @p point, and @p normal.
     */
-  inline explicit HitPoint(const render::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal)
-    : m_primitive(primitive),
-      m_distance(distance),
-      m_point(point),
-      m_normal(normal),
-      m_uv(Vector2d::null)
-  {
+  inline explicit HitPoint(const render::Primitive* primitive, double distance,
+                           const Vector4d& point, const Vector3d& normal)
+      : m_primitive(primitive),
+        m_distance(distance),
+        m_point(point),
+        m_normal(normal),
+        m_uv(Vector2d::null) {
   }
 
   /**
     * Constructs a HitPoint on @p primitive from the specified @p distance,
     * @p point, @p normal, and texture coordinates.
     */
-  inline explicit HitPoint(const render::Primitive* primitive, double distance, const Vector4d& point, const Vector3d& normal, const Vector2d& uv)
-    : m_primitive(primitive),
-      m_distance(distance),
-      m_point(point),
-      m_normal(normal),
-      m_uv(uv)
-  {
+  inline explicit HitPoint(const render::Primitive* primitive, double distance,
+                           const Vector4d& point, const Vector3d& normal, const Vector2d& uv)
+      : m_primitive(primitive),
+        m_distance(distance),
+        m_point(point),
+        m_normal(normal),
+        m_uv(uv) {
   }
-  
+
   /**
     * @returns the primitive that contains this HitPoint.
     */
   inline const render::Primitive* primitive() const {
     return m_primitive;
   }
-  
+
   /**
     * Sets the @p primitive for this HitPoint.
     */
@@ -96,14 +95,14 @@ public:
   inline double distance() const {
     return m_distance;
   }
-  
+
   /**
     * Sets the ray @p distance for this HitPoint.
     */
   inline void setDistance(double distance) {
     m_distance = distance;
   }
-  
+
   /**
     * @returns true if this HitPoint's distance is smaller than @p other's
     *   distance, false otherwise.
@@ -111,28 +110,28 @@ public:
   inline bool operator<(const HitPoint& other) const {
     return distance() < other.distance();
   }
-  
+
   /**
     * @returns the HitPoint's intersection point.
     */
   inline const Vector4d& point() const {
     return m_point;
   }
-  
+
   /**
     * Sets the HitPoint's intersection @p point.
     */
   inline void setPoint(const Vector4d& point) {
     m_point = point;
   }
-  
+
   /**
     * @returns the normal vector at the intersection point.
     */
   inline const Vector3d& normal() const {
     return m_normal;
   }
-  
+
   /**
     * Sets HitPoint's @p normal vector.
     */
@@ -153,23 +152,24 @@ public:
   inline void setUV(const Vector2d& uv) {
     m_uv = uv;
   }
-  
+
   /**
     * @returns a copy of this HitPoint with the normal swapped.
     */
   inline HitPoint swappedNormal() const {
     return HitPoint(m_primitive, m_distance, m_point, -m_normal, m_uv);
   }
-  
+
   /**
     * @returns a copy of this HitPoint, with the intersection point transformed
     *   with @p pointMatrix, and the normal transformed with @p normalMatrix.
     *   The resulting normal is then normalized.
     */
   inline HitPoint transform(const Matrix4d& pointMatrix, const Matrix3d& normalMatrix) const {
-    return HitPoint(m_primitive, m_distance, pointMatrix * m_point, (normalMatrix * m_normal).normalized(), m_uv);
+    return HitPoint(m_primitive, m_distance, pointMatrix * m_point,
+                    (normalMatrix * m_normal).normalized(), m_uv);
   }
-  
+
   /**
     * @returns true if this HitPoint's distance, point and normal are equal to
     *   @p other's, false otherwise.
@@ -177,21 +177,19 @@ public:
   inline bool operator==(const HitPoint& other) const {
     if (&other == this)
       return true;
-    return m_primitive == other.primitive() &&
-           m_distance == other.distance() &&
-           m_point == other.point() &&
-           m_normal == other.normal() &&
-           m_uv == other.uv();
+    return m_primitive == other.primitive() && m_distance == other.distance() &&
+           m_point == other.point() && m_normal == other.normal() && m_uv == other.uv();
   }
-  
+
   /**
     * @returns true if this HitPoint's distance is NaN, or either the point or
     *   normal is undefined.
     */
   inline bool isUndefined() const {
-    return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined() || m_uv.isUndefined();
+    return std::isnan(m_distance) || m_point.isUndefined() || m_normal.isUndefined() ||
+           m_uv.isUndefined();
   }
-  
+
 private:
   const render::Primitive* m_primitive;
   double m_distance;

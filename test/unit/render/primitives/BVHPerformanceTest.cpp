@@ -51,8 +51,7 @@ namespace BVHPerformanceTest {
     for (int x = 0; x < side; ++x) {
       for (int y = 0; y < side; ++y) {
         for (int z = 0; z < side; ++z) {
-          container->add(std::make_shared<Sphere>(
-            Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
+          container->add(std::make_shared<Sphere>(Vector3d(x * 2.0, y * 2.0, z * 2.0), 0.5));
         }
       }
     }
@@ -75,7 +74,8 @@ namespace BVHPerformanceTest {
     for (int i = 0; i < count; ++i) {
       Vector3d o(origin(rng), origin(rng), origin(rng));
       Vector3d d(direction(rng), direction(rng), direction(rng));
-      if (d.length() < 1e-6) d = Vector3d(1, 0, 0);
+      if (d.length() < 1e-6)
+        d = Vector3d(1, 0, 0);
       rays.emplace_back(o, d.normalized());
     }
     return rays;
@@ -127,12 +127,12 @@ namespace BVHPerformanceTest {
   // the floor (stricter perf contract — celebrate) or in a separate
   // PR that explains why the floor is dropping (regression
   // accepted).
-  constexpr double kMinIntersectRatioVsComposite = 5.0;   // observed ≈37×
-  constexpr double kMinShadowRatioVsComposite    = 10.0;  // observed ≈113×
-  constexpr double kMinShadowRatioVsGrid         = 1.5;   // observed ≈4.5×
+  constexpr double kMinIntersectRatioVsComposite = 5.0; // observed ≈37×
+  constexpr double kMinShadowRatioVsComposite = 10.0;   // observed ≈113×
+  constexpr double kMinShadowRatioVsGrid = 1.5;         // observed ≈4.5×
 
   TEST(BVHPerformance, IntersectIsAtLeast5xFasterThanComposite) {
-    constexpr int kSide = 8;  // 512 primitives
+    constexpr int kSide = 8; // 512 primitives
     const auto rays = generateRays(256, kSide);
 
     const auto bvh = timeIntersect<BVH>(kSide, rays);
@@ -146,7 +146,7 @@ namespace BVHPerformanceTest {
   }
 
   TEST(BVHPerformance, ShadowRayIsAtLeast10xFasterThanComposite) {
-    constexpr int kSide = 8;  // 512 primitives
+    constexpr int kSide = 8; // 512 primitives
     const auto rays = generateRays(256, kSide);
 
     const auto bvh = timeShadowRay<BVH>(kSide, rays);

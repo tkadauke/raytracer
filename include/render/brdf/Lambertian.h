@@ -21,37 +21,38 @@ namespace render {
   class Lambertian : public BRDF {
   public:
     inline Lambertian()
-      : m_reflectionCoefficient(1)
-    {
+        : m_reflectionCoefficient(1) {
     }
-    
+
     inline explicit Lambertian(const Colord& color, double coeff)
-      : m_diffuseColor(color),
-        m_reflectionCoefficient(coeff)
-    {
+        : m_diffuseColor(color),
+          m_reflectionCoefficient(coeff) {
     }
-    
-    Colord calculate(const HitPoint& hitPoint, const Vector3d& out, const Vector3d& in) const override;
+
+    Colord calculate(const HitPoint& hitPoint, const Vector3d& out,
+                     const Vector3d& in) const override;
     Colord reflectance(const HitPoint& hitPoint, const Vector3d& out) const override;
 
-    int flags() const override { return BSDF::Diffuse | BSDF::Reflection; }
-    
+    int flags() const override {
+      return BSDF::Diffuse | BSDF::Reflection;
+    }
+
     inline const Colord& diffuseColor() const {
       return m_diffuseColor;
     }
-    
+
     inline void setDiffuseColor(const Colord& color) {
       m_diffuseColor = color;
     }
-    
+
     inline double reflectionCoefficient() const {
       return m_reflectionCoefficient;
     }
-    
+
     inline void setReflectionCoefficient(double coeff) {
       m_reflectionCoefficient = Ranged(0, 1).clamp(coeff);
     }
-    
+
   private:
     Colord m_diffuseColor;
     double m_reflectionCoefficient;

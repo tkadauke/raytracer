@@ -9,6 +9,6 @@
 
 using namespace render;
 
-static bool linearDummy   = TonemapFactory::self().registerClass<LinearTonemap>("Linear");
+static bool linearDummy = TonemapFactory::self().registerClass<LinearTonemap>("Linear");
 static bool reinhardDummy = TonemapFactory::self().registerClass<ReinhardTonemap>("Reinhard");
-static bool acesDummy     = TonemapFactory::self().registerClass<AcesTonemap>("ACES");
+static bool acesDummy = TonemapFactory::self().registerClass<AcesTonemap>("ACES");

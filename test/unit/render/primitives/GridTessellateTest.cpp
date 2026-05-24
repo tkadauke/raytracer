@@ -6,8 +6,8 @@
 
 namespace GridTessellateTest {
   using namespace render;
-using namespace render;
-using namespace render;
+  using namespace render;
+  using namespace render;
 
   // Grid inherits tessellate() from Composite and provides no override —
   // this is intentional: the acceleration structure cells are implementation

@@ -5,11 +5,11 @@
 
 class AngleParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit AngleParameterWidget(QWidget* parent = nullptr);
   ~AngleParameterWidget();
-  
+
   virtual void setParameterName(const QString& name);
 
   virtual const QVariant value() const;
@@ -20,7 +20,7 @@ private slots:
 
 private:
   QString type() const;
-  
+
   struct Private;
   std::unique_ptr<Private> p;
 };

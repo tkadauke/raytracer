@@ -29,8 +29,7 @@ namespace testing {
     /// Construct a classifier that operates on `targetColor` pixels.
     /// Default red.
     inline explicit ShapeClassifier(const Colord& targetColor = Colord(1, 0, 0))
-      : m_targetColor(targetColor)
-    {
+        : m_targetColor(targetColor) {
     }
 
     /**

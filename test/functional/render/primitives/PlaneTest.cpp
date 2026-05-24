@@ -16,7 +16,7 @@ namespace PlaneTest {
     when("i look away from the origin");
     then("i should not see the plane");
   }
-  
+
   TEST_F(PlaneTest, ShouldBeOfInfiniteSize) {
     given("a centered plane");
     when("i look at the origin");

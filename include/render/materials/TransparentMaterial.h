@@ -60,8 +60,7 @@ namespace render {
       * refraction index of 1.
       */
     inline TransparentMaterial()
-      : PhongMaterial()
-    {
+        : PhongMaterial() {
       setRefractionIndex(1);
       setTransmissionCoefficient(1);
     }
@@ -71,8 +70,7 @@ namespace render {
       * index of 1.
       */
     inline explicit TransparentMaterial(std::shared_ptr<render::Texturec> diffuseTexture)
-      : PhongMaterial(diffuseTexture)
-    {
+        : PhongMaterial(diffuseTexture) {
       setRefractionIndex(1);
     }
 
@@ -168,10 +166,12 @@ namespace render {
       m_specularBTDF.setRefractionIndex(index);
     }
 
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
 
   private:
-    Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex, double innerRefractionIndex);
+    Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex,
+                     double innerRefractionIndex);
     bool totalInternalReflection(const Rayd& ray, const HitPoint& hitPoint);
 
     render::PerfectSpecular m_reflectiveBRDF;

@@ -13,22 +13,17 @@
 using namespace engine::wireframe;
 
 Wireframe::Wireframe(std::shared_ptr<render::Scene> scene)
-  : RenderEngine(std::move(scene))
-{
+    : RenderEngine(std::move(scene)) {
 }
 
 Wireframe::Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene)
-  : RenderEngine(std::move(camera), std::move(scene))
-{
+    : RenderEngine(std::move(camera), std::move(scene)) {
 }
 
 Wireframe::~Wireframe() = default;
 
 std::shared_ptr<render::RenderEngine> Wireframe::cloneForRender() const {
-  auto result = std::make_shared<Wireframe>(
-    m_camera ? m_camera->clone() : nullptr,
-    m_scene
-  );
+  auto result = std::make_shared<Wireframe>(m_camera ? m_camera->clone() : nullptr, m_scene);
   result->setTonemap(tonemap());
   result->setLod(m_lod);
   result->setEdgeColor(m_edgeColor);
@@ -63,9 +58,7 @@ void Wireframe::setNearClipDepth(double depth) {
 }
 
 namespace {
-  bool clipEdgeToNearPlane(const render::Camera& camera,
-                           Vector3d& worldA,
-                           Vector3d& worldB,
+  bool clipEdgeToNearPlane(const render::Camera& camera, Vector3d& worldA, Vector3d& worldB,
                            double nearClipDepth) {
     const double depthA = camera.eyeRelativeDepth(worldA);
     const double depthB = camera.eyeRelativeDepth(worldB);
@@ -95,12 +88,8 @@ namespace {
   // Project a single edge from world space to screen space and rasterize it
   // into `buffer`. Edges that cross the near plane are shortened before
   // projection so close camera moves do not drop otherwise-visible lines.
-  void rasterizeEdge(Buffer<Colord>& buffer,
-                     const render::Camera& camera,
-                     const Vector3d& worldA,
-                     const Vector3d& worldB,
-                     const Colord& color,
-                     double nearClipDepth) {
+  void rasterizeEdge(Buffer<Colord>& buffer, const render::Camera& camera, const Vector3d& worldA,
+                     const Vector3d& worldB, const Colord& color, double nearClipDepth) {
     Vector3d clippedA = worldA;
     Vector3d clippedB = worldB;
     if (!clipEdgeToNearPlane(camera, clippedA, clippedB, nearClipDepth)) {
@@ -109,7 +98,8 @@ namespace {
 
     Vector2d a = camera.projectPoint(clippedA);
     Vector2d b = camera.projectPoint(clippedB);
-    if (a.isUndefined() || b.isUndefined()) return;
+    if (a.isUndefined() || b.isUndefined())
+      return;
 
     int x0 = static_cast<int>(std::lround(a.x()));
     int y0 = static_cast<int>(std::lround(a.y()));
@@ -125,7 +115,7 @@ namespace {
       }
     });
   }
-}  // namespace
+} // namespace
 
 void Wireframe::render(Buffer<Colord>& buffer) {
   // Note: this function does NOT reset the cancellation flag — the
@@ -141,7 +131,8 @@ void Wireframe::render(Buffer<Colord>& buffer) {
     for (int x = 0; x < buffer.width(); ++x)
       buffer[y][x] = bg;
 
-  if (!m_scene || !m_camera) return;
+  if (!m_scene || !m_camera)
+    return;
 
   // The same view-plane setup the raytracer engine performs — the
   // camera projection math depends on `topLeft` / `right` / `down`
@@ -149,7 +140,8 @@ void Wireframe::render(Buffer<Colord>& buffer) {
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
 
   auto mesh = m_scene->tessellate(m_lod);
-  if (!mesh) return;
+  if (!mesh)
+    return;
 
   // Walk every face, rasterize every edge. Adjacent faces share
   // edges and we'll redraw shared edges twice — fine for V1, since
@@ -158,7 +150,8 @@ void Wireframe::render(Buffer<Colord>& buffer) {
   // 8192 quads = 32k edges, of which ~half are shared).
   const auto& vertices = mesh->vertices();
   for (const auto& face : mesh->faces()) {
-    if (m_cancelled.load()) return;
+    if (m_cancelled.load())
+      return;
 
     const std::size_t n = face.size();
     for (std::size_t i = 0; i < n; ++i) {

@@ -10,12 +10,12 @@
 namespace testing {
   class MockPrimitive : public render::Primitive, public MockDestructor {
   public:
-    MOCK_METHOD(const Primitive*, intersect,
-                (const Rayd&, HitPointInterval&, render::State&), (const, override));
+    MOCK_METHOD(const Primitive*, intersect, (const Rayd&, HitPointInterval&, render::State&),
+                (const, override));
     MOCK_METHOD(bool, intersects, (const Rayd&, render::State&), (const, override));
     MOCK_METHOD(Vector3d, farthestPoint, (const Vector3d&), (const, override));
     MOCK_METHOD(BoundingBoxd, calculateBoundingBox, (), (const, override));
-    
+
     inline bool defaultIntersects(const Rayd& ray, render::State& state) const {
       return Primitive::intersects(ray, state);
     }

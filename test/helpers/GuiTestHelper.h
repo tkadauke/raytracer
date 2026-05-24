@@ -11,11 +11,11 @@ namespace testing {
       char** argv = nullptr;
       m_application = new QApplication(argc, argv);
     }
-    
+
     inline virtual void TearDown() {
       delete m_application;
     }
-    
+
   private:
     QApplication* m_application;
   };

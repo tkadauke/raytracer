@@ -9,20 +9,18 @@ namespace PlaneTest {
   using namespace render;
 
   Rayd toRayd(const Rayf& ray) {
-    return Rayd(
-      Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
-      Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z())
-    );
+    return Rayd(Vector3d(ray.origin().x(), ray.origin().y(), ray.origin().z()),
+                Vector3d(ray.direction().x(), ray.direction().y(), ray.direction().z()));
   }
 
   TEST(Plane, ShouldInitializeWithValues) {
     Plane plane(Vector3d(0, 1, 0), 0);
   }
-  
+
   TEST(Plane, ShouldIntersectWithRay) {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, 1, 0), Vector3d(0, -1, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = plane.intersect(ray, hitPoints, state);
@@ -33,29 +31,29 @@ namespace PlaneTest {
     ASSERT_EQ(1, state.intersectionHits);
     ASSERT_EQ(0, state.intersectionMisses);
   }
-  
+
   TEST(Plane, ShouldNotIntersectWithParallelRay) {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, 1, 0), Vector3d(1, 0, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = plane.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
     ASSERT_EQ(1, state.intersectionMisses);
   }
-  
+
   TEST(Plane, ShouldNotIntersectIfPointIsBehindRayOrigin) {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, -1, 0), Vector3d(0, -1, 0));
-    
+
     State state;
     HitPointInterval hitPoints;
     auto primitive = plane.intersect(ray, hitPoints, state);
-    
+
     ASSERT_EQ(0, primitive);
     ASSERT_TRUE(hitPoints.min().isUndefined());
     ASSERT_EQ(0, state.intersectionHits);
@@ -65,11 +63,8 @@ namespace PlaneTest {
   TEST(Plane, ShouldIntersectRay4PacketLikeScalarRays) {
     Plane plane(Vector3d(0, 1, 0), 0);
     const std::array<Rayf, 4> rayArray{
-      Rayf(Vector3f(0, 1, 0), Vector3f(0, -1, 0)),
-      Rayf(Vector3f(0, 1, 0), Vector3f(1, 0, 0)),
-      Rayf(Vector3f(0, -1, 0), Vector3f(0, -1, 0)),
-      Rayf(Vector3f(0, 2, 0), Vector3f(0, -2, 0))
-    };
+      Rayf(Vector3f(0, 1, 0), Vector3f(0, -1, 0)), Rayf(Vector3f(0, 1, 0), Vector3f(1, 0, 0)),
+      Rayf(Vector3f(0, -1, 0), Vector3f(0, -1, 0)), Rayf(Vector3f(0, 2, 0), Vector3f(0, -2, 0))};
 
     State packetState;
     const auto result = plane.intersectPacket(Ray4(rayArray), packetState);
@@ -86,23 +81,23 @@ namespace PlaneTest {
     ASSERT_EQ(2, packetState.intersectionHits);
     ASSERT_EQ(2, packetState.intersectionMisses);
   }
-  
+
   TEST(Plane, ShouldReturnTrueForIntersectsIfThereIsAIntersection) {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, 1, 0), Vector3d(0, -1, 0));
-    
+
     State state;
     ASSERT_TRUE(plane.intersects(ray, state));
   }
-  
+
   TEST(Plane, ShouldReturnFalseForIntersectsIfThereIsNoIntersection) {
     Plane plane(Vector3d(0, 1, 0), 0);
     Rayd ray(Vector3d(0, -1, 0), Vector3d(0, -1, 0));
-    
+
     State state;
     ASSERT_FALSE(plane.intersects(ray, state));
   }
-  
+
   TEST(Plane, ShouldReturnBoundingBox) {
     // TODO
   }

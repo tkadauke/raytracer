@@ -5,11 +5,11 @@
 
 class IntParameterWidget : public AbstractParameterWidget {
   Q_OBJECT
-  
+
 public:
   explicit IntParameterWidget(QWidget* parent = nullptr);
   ~IntParameterWidget();
-  
+
   virtual void setParameterName(const QString& name);
 
   virtual const QVariant value() const;

@@ -18,20 +18,20 @@ class Camera : public Element {
   Q_OBJECT
   Q_PROPERTY(Vector3d position READ position WRITE setPosition)
   Q_PROPERTY(Vector3d target READ target WRITE setTarget)
-  
+
 public:
   /**
     * Constructor.
     */
   explicit Camera(Element* parent = nullptr);
-  
+
   /**
     * @returns the position of the camera.
     */
   inline const Vector3d& position() const {
     return m_position;
   }
-  
+
   /**
     * Sets the position of the camera.
     * 
@@ -46,14 +46,14 @@ public:
   inline void setPosition(const Vector3d& position) {
     m_position = position;
   }
-  
+
   /**
     * @returns the target of the camera, i.e. the point the camera looks at.
     */
   inline const Vector3d& target() const {
     return m_target;
   }
-  
+
   /**
     * Sets the target point of the camera.
     * 
@@ -68,9 +68,9 @@ public:
   inline void setTarget(const Vector3d& target) {
     m_target = target;
   }
-  
+
   virtual std::shared_ptr<render::Camera> toRaytracer() const = 0;
-  
+
 private:
   Vector3d m_position;
   Vector3d m_target;

@@ -108,8 +108,7 @@ Colord ImageTexture::sampleLevel(double u, double v, double level) const {
   return lerpColor(sampleBilinear(lower, u, v), sampleBilinear(upper, u, v), t);
 }
 
-double ImageTexture::mipLevelForDerivatives(const Vector2d& duvdx,
-                                            const Vector2d& duvdy) const {
+double ImageTexture::mipLevelForDerivatives(const Vector2d& duvdx, const Vector2d& duvdy) const {
   const double w = static_cast<double>(width());
   const double h = static_cast<double>(height());
   const double dx = std::sqrt(std::pow(duvdx.x() * w, 2.0) + std::pow(duvdx.y() * h, 2.0));
@@ -157,8 +156,10 @@ const char* ImageTexture::wrapToString(ImageTextureWrap wrap) {
 
 Colord ImageTexture::sampleNearest(int level, double u, double v) const {
   const Level& image = m_levels[level];
-  const int x = wrapCoord(static_cast<int>(std::floor(normalizedCoord(u) * image.width)), image.width);
-  const int y = wrapCoord(static_cast<int>(std::floor(normalizedCoord(v) * image.height)), image.height);
+  const int x =
+    wrapCoord(static_cast<int>(std::floor(normalizedCoord(u) * image.width)), image.width);
+  const int y =
+    wrapCoord(static_cast<int>(std::floor(normalizedCoord(v) * image.height)), image.height);
   return image.pixels[texelIndex(level, x, y)];
 }
 
@@ -171,13 +172,15 @@ Colord ImageTexture::sampleBilinear(int level, double u, double v) const {
   const double tx = x - x0;
   const double ty = y - y0;
 
-  const Colord c00 = image.pixels[texelIndex(level, wrapCoord(x0, image.width), wrapCoord(y0, image.height))];
+  const Colord c00 =
+    image.pixels[texelIndex(level, wrapCoord(x0, image.width), wrapCoord(y0, image.height))];
   const Colord c10 =
     image.pixels[texelIndex(level, wrapCoord(x0 + 1, image.width), wrapCoord(y0, image.height))];
   const Colord c01 =
     image.pixels[texelIndex(level, wrapCoord(x0, image.width), wrapCoord(y0 + 1, image.height))];
-  const Colord c11 = image.pixels[texelIndex(level, wrapCoord(x0 + 1, image.width),
-                                             wrapCoord(y0 + 1, image.height))];
+  const Colord c11 =
+    image
+      .pixels[texelIndex(level, wrapCoord(x0 + 1, image.width), wrapCoord(y0 + 1, image.height))];
 
   return lerpColor(lerpColor(c00, c10, tx), lerpColor(c01, c11, tx), ty);
 }

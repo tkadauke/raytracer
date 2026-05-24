@@ -17,8 +17,9 @@ public:
     * polynomial \f$ax^2 + bx + c\f$.
     */
   inline explicit Quadric(T a, T b, T c)
-    : m_a(a), m_b(b), m_c(c)
-  {
+      : m_a(a),
+        m_b(b),
+        m_c(c) {
   }
 
   /**
@@ -58,7 +59,7 @@ int Quadric<T>::solve() {
   T determinant = m_b * m_b - 4 * m_a * m_c;
 
   if (isAlmostZero(determinant)) {
-    m_result[0] = - m_b / (2 * m_a);
+    m_result[0] = -m_b / (2 * m_a);
     return 1;
   } else if (determinant > 0) {
     T determinantRoot = std::sqrt(determinant);

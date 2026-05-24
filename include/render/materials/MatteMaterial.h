@@ -45,12 +45,11 @@ namespace render {
       * diffuse coefficients of 1.
       */
     inline MatteMaterial()
-      : Material(),
-        m_diffuseTexture(nullptr),
-        m_normalTexture(nullptr),
-        m_ambientCoefficient(1),
-        m_diffuseCoefficient(1)
-    {
+        : Material(),
+          m_diffuseTexture(nullptr),
+          m_normalTexture(nullptr),
+          m_ambientCoefficient(1),
+          m_diffuseCoefficient(1) {
     }
 
     /**
@@ -58,12 +57,11 @@ namespace render {
       * and diffuse coefficients of 1.
       */
     inline explicit MatteMaterial(std::shared_ptr<render::Texturec> texture)
-      : Material(),
-        m_diffuseTexture(texture),
-        m_normalTexture(nullptr),
-        m_ambientCoefficient(1),
-        m_diffuseCoefficient(1)
-    {
+        : Material(),
+          m_diffuseTexture(texture),
+          m_normalTexture(nullptr),
+          m_ambientCoefficient(1),
+          m_diffuseCoefficient(1) {
     }
 
     /**
@@ -112,14 +110,14 @@ namespace render {
     inline void setNormalTexture(std::shared_ptr<render::Texturec> texture) {
       m_normalTexture = texture;
     }
-    
+
     /**
       * @returns the ambient light coefficient.
       */
     inline double ambientCoefficient() const {
       return m_ambientCoefficient;
     }
-  
+
     /**
       * Sets the ambient light coefficient.
       * 
@@ -134,14 +132,14 @@ namespace render {
     inline void setAmbientCoefficient(double coeff) {
       m_ambientCoefficient = coeff;
     }
-    
+
     /**
       * @returns the diffuse light coefficient.
       */
     inline double diffuseCoefficient() const {
       return m_diffuseCoefficient;
     }
-  
+
     /**
       * Sets the diffuse light coefficient.
       * 
@@ -156,8 +154,9 @@ namespace render {
     inline void setDiffuseCoefficient(double coeff) {
       m_diffuseCoefficient = coeff;
     }
-    
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+
+    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
+                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
 
   private:
     std::shared_ptr<render::Texturec> m_diffuseTexture;
