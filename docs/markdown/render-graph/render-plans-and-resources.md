@@ -499,12 +499,13 @@ simple one-input/one-output color pass such as FXAA, SMAA, or tonemap, the trace
 adds both an absolute RGB difference preview and a boosted preview that makes
 subtle changes easier to see.
 
-Some graph paths deliberately do not materialize every resource. The packed RGB
-display fast path, for example, lets the preview render publish pixels while a
-beauty pass is still running; it records unavailable color snapshots for nodes
-that were fused into that direct display path. Non-color resources such as the
-current preview shadow-map request are recorded as metadata-only until the graph
-has a specialized resource viewer for them.
+Some graph resources deliberately remain metadata-only. Non-color resources
+such as the current preview shadow-map request are recorded without image
+snapshots until the graph has a specialized resource viewer for them. Color
+resources in the preview path are still materialized for inspection; raytraced
+beauty passes write both the HDR graph resource and the packed display buffer
+so the UI can show progressive pixels during rendering and trace snapshots
+afterward.
 
 The Modeler exposes this through graph selection. Select a pass in the graph or
 in the pass table after a render finishes, and the inspector follows that pass;

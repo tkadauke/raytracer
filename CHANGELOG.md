@@ -165,6 +165,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Render graph trace materialization.** LDR graph preview renders now keep
+  color resources materialized for execution traces instead of fusing the
+  default beauty/tonemap chain into a packed-display-only path, so the Modeler
+  Graph Trace preview can inspect input and output images after a render.
+  — GPT-5
 - **Modeler invalid graph-node toggles.** Disabling a required Render Graph
   node in the Modeler inspector now pauses live preview rendering instead of
   starting an invalid graph on the worker thread, and render-thread exceptions

@@ -15,7 +15,6 @@
 #include <atomic>
 #include <cstdint>
 #include <mutex>
-#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -114,80 +113,6 @@ namespace engine::graph {
       }
     }
 
-    const RenderPassNode* singleBeautyPass(const RenderPlan& plan) {
-      const RenderPassNode* beauty = nullptr;
-      for (const auto& pass : plan.passes()) {
-        if (!pass.enabled || pass.kind != RenderPassKind::Beauty) {
-          continue;
-        }
-        if (beauty) {
-          return nullptr;
-        }
-        beauty = &pass;
-      }
-      return beauty;
-    }
-
-    struct SimpleDisplayChain {
-      const RenderPassNode* beauty;
-      bool applyTonemap;
-    };
-
-    std::optional<SimpleDisplayChain> simpleDisplayChain(const RenderPlan& plan) {
-      const auto& output = plan.exportedColorResource();
-      const RenderPassNode* beauty = singleBeautyPass(plan);
-      if (!beauty || beauty->writes.size() != 1) {
-        return std::nullopt;
-      }
-
-      const RenderResourceId beautyColor = beauty->writes.front().resource;
-      const RenderPassNode* tonemap = nullptr;
-      for (const auto& pass : plan.passes()) {
-        if (&pass == beauty) {
-          continue;
-        }
-
-        if (pass.enabled) {
-          if (pass.kind != RenderPassKind::Tonemap ||
-              pass.executor != RenderExecutorKind::PostProcess || tonemap ||
-              pass.reads.size() != 1 || pass.writes.size() != 1 ||
-              !pass.readsResource(beautyColor) || !pass.writesResource(output.id)) {
-            return std::nullopt;
-          }
-          tonemap = &pass;
-          continue;
-        }
-
-        if (pass.kind == RenderPassKind::Tonemap &&
-            pass.disabledBehavior == DisabledBehavior::Passthrough &&
-            pass.readsResource(beautyColor) && pass.writesResource(output.id)) {
-          continue;
-        }
-
-        if (!pass.writes.empty() || !pass.reads.empty()) {
-          return std::nullopt;
-        }
-      }
-
-      if (tonemap) {
-        return SimpleDisplayChain{beauty, true};
-      }
-
-      if (beautyColor == output.id) {
-        return SimpleDisplayChain{beauty, false};
-      }
-
-      for (const auto& pass : plan.passes()) {
-        if (!pass.enabled && pass.kind == RenderPassKind::Tonemap &&
-            pass.disabledBehavior == DisabledBehavior::Passthrough &&
-            pass.readsResource(beautyColor) && pass.writesResource(output.id)) {
-          return SimpleDisplayChain{beauty, false};
-        }
-      }
-
-      return std::nullopt;
-    }
-
     bool planAppliesTonemap(const RenderPlan& plan) {
       return std::any_of(plan.passes().begin(), plan.passes().end(), [](const auto& pass) {
         return pass.enabled && pass.kind == RenderPassKind::Tonemap &&
@@ -256,20 +181,6 @@ namespace engine::graph {
       }
     }
 
-    void markDisplayFastPathSkippedPasses(
-      RenderGraphExecutionTraceRecorder& recorder,
-      std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession, const RenderPlan& plan,
-      const RenderPassNode& executedPass, const RenderResourceStorage& storage) {
-      for (const RenderPassNode* passNode : plan.executionOrder()) {
-        const RenderPassNode& pass = *passNode;
-        if (pass.id == executedPass.id) {
-          continue;
-        }
-        recorder.passSkipped(traceSession, pass, storage,
-                             "display-buffer fast path did not materialize this graph node");
-      }
-    }
-
     template<class Execute>
     void executeObserved(const GraphRenderEngine& graph,
                          const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
@@ -292,16 +203,6 @@ namespace engine::graph {
       }
       recorder->passCompleted(traceSession, pass, storage);
       notifyPassFinished(graph, pass, traceSession->generation());
-    }
-
-    template<class Execute>
-    bool executeObservedBool(const GraphRenderEngine& graph, const RenderPassNode& pass,
-                             const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
-                             std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
-                             const RenderResourceStorage& storage, Execute execute) {
-      bool result = false;
-      executeObserved(graph, recorder, traceSession, pass, storage, [&] { result = execute(); });
-      return result;
     }
 
     struct TraceSession {
@@ -499,40 +400,6 @@ namespace engine::graph {
     auto traceSessionToken = p->executionTraceRecorder->begin(plan);
     TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
     notifyRenderStarted(*this, traceSessionToken->generation());
-
-    const auto displayChain = simpleDisplayChain(plan);
-    if (displayChain) {
-      auto payload = RenderPassPayload::createBuiltin(*displayChain->beauty);
-      if (payload) {
-        auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {
-          std::lock_guard<std::mutex> lock(p->activeEngineMutex);
-          p->activeEngine = std::move(engine);
-        };
-
-        RenderResourceStorage displayStorage;
-        RenderExecutionContext context(*displayChain->beauty, displayStorage, *this,
-                                       p->cancelled.load(), setActiveEngine);
-        struct ActiveEngineReset {
-          RenderExecutionContext& context;
-          ~ActiveEngineReset() {
-            context.clearActiveEngine();
-          }
-        } reset{context};
-
-        auto outputTonemap =
-          displayChain->applyTonemap
-            ? tonemap()
-            : std::static_pointer_cast<render::Tonemap>(std::make_shared<render::LinearTonemap>());
-        if (executeObservedBool(*this, *displayChain->beauty, p->executionTraceRecorder,
-                                traceSessionToken, displayStorage, [&] {
-                                  return payload->executeDisplay(context, buffer, outputTonemap);
-                                })) {
-          markDisplayFastPathSkippedPasses(*p->executionTraceRecorder, traceSessionToken, plan,
-                                           *displayChain->beauty, displayStorage);
-          return;
-        }
-      }
-    }
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());

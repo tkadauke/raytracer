@@ -333,7 +333,8 @@ namespace GraphRenderEngineTest {
     Buffer<unsigned int> buffer(8, 8);
     clone->render(buffer);
 
-    const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty"};
+    const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty",
+                                               "start:tonemap", "finish:tonemap"};
     EXPECT_EQ(expected, observer->events);
   }
 
@@ -391,7 +392,7 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(RenderPassExecutionStatus::Completed, postAA->status());
   }
 
-  TEST(GraphRenderEngine, MarksSimpleDisplayFastPathSnapshotsUnavailable) {
+  TEST(GraphRenderEngine, MaterializesDefaultLdrTraceSnapshots) {
     GraphRenderEngine engine(camera(), highContrastScene());
 
     Buffer<unsigned int> buffer(8, 8);
@@ -404,13 +405,16 @@ namespace GraphRenderEngineTest {
     ASSERT_NE(nullptr, beauty);
     EXPECT_EQ(RenderPassExecutionStatus::Completed, beauty->status());
     ASSERT_EQ(1u, beauty->outputs().size());
-    EXPECT_FALSE(beauty->outputs()[0].hasColorPreview());
-    EXPECT_NE(std::string::npos, beauty->outputs()[0].unavailableReason().find("not materialized"));
+    EXPECT_TRUE(beauty->outputs()[0].hasColorPreview());
+    EXPECT_EQ("beauty_color", beauty->outputs()[0].resourceId());
 
     const RenderPassTrace* tonemap = trace->findPass("tonemap");
     ASSERT_NE(nullptr, tonemap);
-    EXPECT_EQ(RenderPassExecutionStatus::Skipped, tonemap->status());
-    EXPECT_NE(std::string::npos, tonemap->message().find("display-buffer fast path"));
+    EXPECT_EQ(RenderPassExecutionStatus::Completed, tonemap->status());
+    ASSERT_EQ(1u, tonemap->inputs().size());
+    ASSERT_EQ(1u, tonemap->outputs().size());
+    EXPECT_TRUE(tonemap->inputs()[0].hasColorPreview());
+    EXPECT_TRUE(tonemap->outputs()[0].hasColorPreview());
   }
 
   TEST(GraphRenderEngine, IgnoresRetiredExecutionTraceSessionEvents) {
