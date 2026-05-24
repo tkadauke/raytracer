@@ -131,6 +131,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler graph node spacing.** The Render Graph dock now leaves a full
+  resource lane between pass ranks, preventing resource nodes such as
+  `beauty_color` from being hidden under adjacent pass boxes. — GPT-5
 - **Raster preview shadows for unmapped lights.** Rasterizer shadow-enabled
   graph renders now trace direct-light visibility for lights that do not have a
   directional shadow-map resource, so point-lit Modeler previews and render

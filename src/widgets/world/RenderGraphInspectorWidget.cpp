@@ -36,7 +36,7 @@ namespace {
   constexpr double PassHeight = 74.0;
   constexpr double ResourceWidth = 150.0;
   constexpr double ResourceHeight = 44.0;
-  constexpr double ColumnGap = 270.0;
+  constexpr double ColumnGap = PassWidth + ResourceWidth + 120.0;
   constexpr double RowGap = 120.0;
   constexpr double OriginX = 40.0;
   constexpr double OriginY = 44.0;

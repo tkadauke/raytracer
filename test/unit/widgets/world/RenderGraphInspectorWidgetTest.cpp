@@ -165,6 +165,23 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "beauty_color"));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldPlaceResourceBetweenConnectedPassNodes) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    QGraphicsItem* beauty = graphItem(graph->scene(), "pass", "raytrace_beauty");
+    QGraphicsItem* resource = graphItem(graph->scene(), "resource", "beauty_color");
+    QGraphicsItem* tonemap = graphItem(graph->scene(), "pass", "tonemap");
+    ASSERT_NE(nullptr, beauty);
+    ASSERT_NE(nullptr, resource);
+    ASSERT_NE(nullptr, tonemap);
+
+    EXPECT_GT(resource->sceneBoundingRect().left(), beauty->sceneBoundingRect().right());
+    EXPECT_LT(resource->sceneBoundingRect().right(), tonemap->sceneBoundingRect().left());
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldTogglePassFromGraphNode) {
     RenderGraphInspectorWidget widget;
     Slot slot;
