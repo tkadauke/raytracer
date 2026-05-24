@@ -107,8 +107,10 @@ RenderDisplay::RenderDisplay(QWidget* parent)
       m_previewPostProcessAA(engine::graph::RenderPostProcessAA::None) {
   m_graphEngine = std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(m_engine);
   m_graphExecutionObserver = std::make_shared<ModelerRenderGraphExecutionObserver>(this);
-  if (m_graphEngine)
+  if (m_graphEngine) {
     m_graphEngine->setExecutionObserver(m_graphExecutionObserver);
+    m_graphEngine->setExecutionTraceEnabled(true);
+  }
   m_raytracerEngine = std::make_shared<engine::raytracer::Raytracer>(nullptr);
   applyPreviewPolicy(EngineKind::Raytracer);
 }

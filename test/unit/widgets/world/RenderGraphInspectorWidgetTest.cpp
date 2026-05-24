@@ -146,6 +146,7 @@ namespace RenderGraphInspectorWidgetTest {
 
     RenderGraphCompiler compiler;
     GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({24, 24, 1}, intent));
 
     Buffer<unsigned int> buffer(24, 24);

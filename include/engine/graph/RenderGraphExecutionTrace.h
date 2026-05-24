@@ -137,6 +137,7 @@ namespace engine::graph {
   public:
     std::shared_ptr<const RenderGraphExecutionTraceSession> begin(RenderPlan plan);
     void finish(std::shared_ptr<const RenderGraphExecutionTraceSession> session);
+    void clear();
     void passStarted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,
                      const RenderPassNode& pass, const RenderResourceStorage& storage);
     void passCompleted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,

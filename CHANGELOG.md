@@ -19,8 +19,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Modeler graph trace preview.** Selecting a render graph pass or inspectable
   color resource now opens a large central Graph Trace preview with input,
   output, and difference tabs for the last graph execution. — GPT-5
-- **Render graph execution traces.** `GraphRenderEngine` now records the last
-  executed plan's pass status, timing, CPU color input/output previews, and
+- **Render graph execution traces.** `GraphRenderEngine` can now record the
+  last executed plan's pass status, timing, CPU color input/output previews, and
   simple color difference previews so inspection tools can explain what each
   graph node read and wrote. — GPT-5
 - **Modeler render graph trace inspection.** The Render Graph dock now has a
@@ -148,9 +148,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   pass has been executing for roughly 500 ms before showing live running state,
   so camera movement, frame scrubbing, and resize-triggered preview renders no
   longer flicker through short pass updates. — GPT-5
-- **Modeler graph trace preview sizing.** Trace images in the central Graph
-  Trace preview are now scaled up for inspection while the stored trace
-  snapshots remain bounded. — GPT-5
+- **Modeler graph trace preview sizing.** Small trace images in the central
+  Graph Trace preview are now scaled up for inspection. — GPT-5
+- **Full-resolution render graph trace snapshots.** Color snapshots recorded in
+  execution traces now preserve the full graph resource resolution instead of
+  being downsampled. — GPT-5
+- **Opt-in render graph trace capture.** `GraphRenderEngine` no longer records
+  execution traces by default; the Modeler graph inspector enables tracing for
+  preview inspection, and rendercli enables it only when
+  `--render_graph_trace_out` is requested. — GPT-5
 - **Render graph dependent culling.** Applying graph overrides to a
   `CullDependents` pass now disables downstream consumers transitively before
   validation, so graph inspection can show the effective culled subgraph instead

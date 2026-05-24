@@ -1088,9 +1088,10 @@ The first trace implementation should support image-like CPU color resources:
 
 - capture color inputs before a pass executes and color outputs after it
   executes;
-- store UI-friendly preview snapshots, preferably downscaled, so large renders
-  do not keep several full-resolution copies in memory by default;
-- optionally retain full-resolution snapshots behind a debug/export setting;
+- keep trace capture opt-in so ordinary graph renders, rendercli runs, and
+  future render-farm/movie renders do not retain per-pass artifacts by default;
+- store full-resolution color snapshots when tracing is enabled, so inspection
+  views do not downsample and then scale images back up;
 - compute a difference image for simple one-input/one-output color passes with
   matching dimensions;
 - provide both absolute RGB difference and a boosted or heatmap visualization
@@ -1334,16 +1335,15 @@ color resources; shadow maps and other specialized resources can remain
 metadata-only until custom viewers exist.
 
 ✅ **Partial.** `RenderGraphExecutionTrace` now records the executed plan, pass
-status, elapsed time, CPU color input/output preview snapshots, and absolute plus
-boosted difference previews for simple one-input/one-output color passes.
-`GraphRenderEngine` shares the recorder with render clones, so worker-thread
-preview renders publish the completed trace back to the original engine. The
-Modeler Render Graph dock now exposes those snapshots in a Trace tab for the
-selected pass, and rendercli can write the executed trace metadata to JSON with
-`--render_graph_trace_out`. The shared recorder uses per-render sessions so a
-retired worker cannot overwrite the latest trace after a newer render starts.
-Semantic stale-trace detection across scene edits, resize, and graph recompile
-remains TODO.
+status, elapsed time, full-resolution CPU color input/output snapshots, and
+absolute plus boosted difference previews for simple one-input/one-output color
+passes. `GraphRenderEngine` makes trace capture opt-in and shares the recorder
+with render clones, so worker-thread preview renders can publish the completed
+trace back to the original engine when the Modeler inspector enables tracing.
+rendercli enables the same trace capture only for `--render_graph_trace_out`.
+The shared recorder uses per-render sessions so a retired worker cannot
+overwrite the latest trace after a newer render starts. Semantic stale-trace
+detection across scene edits, resize, and graph recompile remains TODO.
 
 ### Live graph execution highlighting
 

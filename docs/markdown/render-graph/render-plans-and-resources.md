@@ -488,16 +488,20 @@ generation; when the user moves the camera or changes graph settings, the
 Modeler ignores events from older workers after the replacement render has been
 requested.
 
-Graph execution also records a post-render trace through
+Graph execution can also record an opt-in post-render trace through
 [`RenderGraphExecutionTrace`](../../../include/engine/graph/RenderGraphExecutionTrace.h).
 The trace is a result of one concrete execution, not part of the declarative
 plan. It stores each pass's status, elapsed time, supported input snapshots,
 supported output snapshots, and difference previews. The first supported
-snapshots are CPU color resources, stored as bounded-size previews so inspection
-tools do not retain several full-resolution render buffers by default. For a
-simple one-input/one-output color pass such as FXAA, SMAA, or tonemap, the trace
-adds both an absolute RGB difference preview and a boosted preview that makes
-subtle changes easier to see.
+snapshots are CPU color resources, stored at the graph resource's full
+resolution so the trace view can inspect the actual rendered image. Because
+those full-resolution snapshots can retain several render buffers per frame,
+normal graph renders do not capture traces by default. The Modeler preview
+enables tracing for graph inspection, and rendercli enables it only when
+`--render_graph_trace_out` is requested. For a simple one-input/one-output color
+pass such as FXAA, SMAA, or tonemap, the trace adds both an absolute RGB
+difference preview and a boosted preview that makes subtle changes easier to
+see.
 
 Some graph resources deliberately remain metadata-only. Non-color resources
 such as the current preview shadow-map request are recorded without image

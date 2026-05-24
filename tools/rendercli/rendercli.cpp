@@ -882,6 +882,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
                     : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
     graphEngine->setIntent(renderIntent(scene));
     graphEngine->setPlan(graphPlan);
+    graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty());
     engine = graphEngine;
   } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);

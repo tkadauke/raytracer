@@ -12,30 +12,14 @@
 
 namespace engine::graph {
   namespace {
-    constexpr int maxPreviewDimension = 256;
     constexpr double boostedDiffScale = 8.0;
 
-    int previewDimension(int sourceWidth, int sourceHeight, bool width) {
-      const double scale = std::max(sourceWidth / double(maxPreviewDimension),
-                                    sourceHeight / double(maxPreviewDimension));
-      if (scale <= 1.0) {
-        return width ? sourceWidth : sourceHeight;
-      }
-
-      const int sourceDimension = width ? sourceWidth : sourceHeight;
-      return std::max(1, static_cast<int>(std::lround(sourceDimension / scale)));
-    }
-
     std::shared_ptr<const Buffer<Colord>> colorPreviewFor(const Buffer<Colord>& source) {
-      const int width = previewDimension(source.width(), source.height(), true);
-      const int height = previewDimension(source.width(), source.height(), false);
-      auto result = std::make_shared<Buffer<Colord>>(width, height);
+      auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
 
-      for (int y = 0; y != height; ++y) {
-        const int sourceY = std::min(source.height() - 1, y * source.height() / height);
-        for (int x = 0; x != width; ++x) {
-          const int sourceX = std::min(source.width() - 1, x * source.width() / width);
-          (*result)[y][x] = source[sourceY][sourceX];
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          (*result)[y][x] = source[y][x];
         }
       }
       return result;
@@ -297,6 +281,13 @@ namespace engine::graph {
       m_current.reset();
       m_currentGeneration = 0;
     }
+  }
+
+  void RenderGraphExecutionTraceRecorder::clear() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_current.reset();
+    m_last.reset();
+    m_currentGeneration = 0;
   }
 
   void RenderGraphExecutionTraceRecorder::passStarted(

@@ -338,12 +338,23 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(expected, observer->events);
   }
 
+  TEST(GraphRenderEngine, DoesNotRecordExecutionTraceByDefault) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+
+    EXPECT_FALSE(engine.executionTraceEnabled());
+    EXPECT_EQ(nullptr, engine.lastExecutionTrace());
+  }
+
   TEST(GraphRenderEngine, RecordsColorSnapshotsInExecutionTrace) {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;
 
     RenderGraphCompiler compiler;
     GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
     engine.setPlan(compiler.compile({64, 64, 1}, intent));
 
     Buffer<unsigned int> buffer(64, 64);
@@ -379,6 +390,7 @@ namespace GraphRenderEngineTest {
 
     GraphRenderEngine engine(camera(), highContrastScene());
     engine.setIntent(intent);
+    engine.setExecutionTraceEnabled(true);
 
     auto clone = engine.cloneForRender();
     Buffer<unsigned int> buffer(32, 32);
@@ -394,6 +406,7 @@ namespace GraphRenderEngineTest {
 
   TEST(GraphRenderEngine, MaterializesDefaultLdrTraceSnapshots) {
     GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
 
     Buffer<unsigned int> buffer(8, 8);
     engine.render(buffer);
@@ -415,6 +428,19 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1u, tonemap->outputs().size());
     EXPECT_TRUE(tonemap->inputs()[0].hasColorPreview());
     EXPECT_TRUE(tonemap->outputs()[0].hasColorPreview());
+  }
+
+  TEST(GraphRenderEngine, DisablingExecutionTraceClearsLastTrace) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+    ASSERT_TRUE(engine.lastExecutionTrace());
+
+    engine.setExecutionTraceEnabled(false);
+
+    EXPECT_EQ(nullptr, engine.lastExecutionTrace());
   }
 
   TEST(GraphRenderEngine, IgnoresRetiredExecutionTraceSessionEvents) {
@@ -455,6 +481,37 @@ namespace GraphRenderEngineTest {
     const RenderPassTrace* completed = trace->findPass("beauty");
     ASSERT_NE(nullptr, completed);
     EXPECT_EQ(RenderPassExecutionStatus::Completed, completed->status());
+  }
+
+  TEST(GraphRenderEngine, KeepsFullResolutionColorTracePreviews) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 1200, 300));
+
+    RenderPassNode pass;
+    pass.id = "beauty";
+    pass.kind = RenderPassKind::Beauty;
+    pass.executor = RenderExecutorKind::Raytracer;
+    pass.writes.push_back({"main_color"});
+    plan.addPass(pass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+    storage.color("main_color").clear(Colord::white());
+
+    RenderGraphExecutionTraceRecorder recorder;
+    auto session = recorder.begin(plan);
+    recorder.passStarted(session, plan.passes().front(), storage);
+    recorder.passCompleted(session, plan.passes().front(), storage);
+    recorder.finish(session);
+
+    auto trace = recorder.lastTrace();
+    ASSERT_TRUE(trace);
+    const RenderPassTrace* completed = trace->findPass("beauty");
+    ASSERT_NE(nullptr, completed);
+    ASSERT_EQ(1u, completed->outputs().size());
+    ASSERT_TRUE(completed->outputs()[0].hasColorPreview());
+    EXPECT_EQ(1200, completed->outputs()[0].colorPreview().width());
+    EXPECT_EQ(300, completed->outputs()[0].colorPreview().height());
   }
 
   TEST(GraphRenderEngine, ExecutesCallerProvidedRasterBeautyPlan) {

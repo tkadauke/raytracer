@@ -87,11 +87,26 @@ namespace engine::graph {
     /**
       * @returns a snapshot of the most recent graph execution trace, if any.
       *
-      * Cloned render engines publish into the same trace recorder as their
-      * source engine, so UI callers can inspect the render worker's completed
-      * graph after preview rendering finishes.
+      * Trace capture is opt-in because it can retain full-resolution color
+      * snapshots for every supported pass resource. Cloned render engines
+      * publish into the same trace recorder as their source engine when trace
+      * capture is enabled, so UI callers can inspect the render worker's
+      * completed graph after preview rendering finishes.
       */
     std::shared_ptr<const RenderGraphExecutionTrace> lastExecutionTrace() const;
+
+    /**
+      * Enables or disables per-pass execution trace capture.
+      *
+      * Live execution observer events are independent of this flag and are
+      * still emitted for graph renders that do not retain trace artifacts.
+      */
+    void setExecutionTraceEnabled(bool enabled);
+
+    /**
+      * @returns true when graph renders retain per-pass execution traces.
+      */
+    bool executionTraceEnabled() const;
 
     /**
       * Executes the current plan into @p buffer.

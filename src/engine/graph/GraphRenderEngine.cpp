@@ -185,32 +185,57 @@ namespace engine::graph {
     void executeObserved(const GraphRenderEngine& graph,
                          const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
                          std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
-                         const RenderPassNode& pass, const RenderResourceStorage& storage,
-                         Execute execute) {
-      notifyPassStarted(graph, pass, traceSession->generation());
-      recorder->passStarted(traceSession, pass, storage);
+                         std::uint64_t renderGeneration, const RenderPassNode& pass,
+                         const RenderResourceStorage& storage, Execute execute) {
+      notifyPassStarted(graph, pass, renderGeneration);
+      if (recorder && traceSession) {
+        recorder->passStarted(traceSession, pass, storage);
+      }
       try {
         execute();
       } catch (const std::exception& error) {
-        recorder->passFailed(traceSession, pass, storage, error.what());
-        notifyPassFailed(graph, pass, error.what(), traceSession->generation());
+        if (recorder && traceSession) {
+          recorder->passFailed(traceSession, pass, storage, error.what());
+        }
+        notifyPassFailed(graph, pass, error.what(), renderGeneration);
         throw;
       } catch (...) {
-        recorder->passFailed(traceSession, pass, storage, "unknown render graph pass failure");
-        notifyPassFailed(graph, pass, "unknown render graph pass failure",
-                         traceSession->generation());
+        if (recorder && traceSession) {
+          recorder->passFailed(traceSession, pass, storage, "unknown render graph pass failure");
+        }
+        notifyPassFailed(graph, pass, "unknown render graph pass failure", renderGeneration);
         throw;
       }
-      recorder->passCompleted(traceSession, pass, storage);
-      notifyPassFinished(graph, pass, traceSession->generation());
+      if (recorder && traceSession) {
+        recorder->passCompleted(traceSession, pass, storage);
+      }
+      notifyPassFinished(graph, pass, renderGeneration);
     }
 
     struct TraceSession {
+      TraceSession() = default;
+      TraceSession(std::shared_ptr<RenderGraphExecutionTraceRecorder> traceRecorder,
+                   std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession)
+          : recorder(std::move(traceRecorder)),
+            session(std::move(traceSession)) {
+      }
+
+      TraceSession(const TraceSession&) = delete;
+      TraceSession& operator=(const TraceSession&) = delete;
+      TraceSession(TraceSession&&) noexcept = default;
+      TraceSession& operator=(TraceSession&&) noexcept = default;
+
       std::shared_ptr<RenderGraphExecutionTraceRecorder> recorder;
       std::shared_ptr<const RenderGraphExecutionTraceSession> session;
 
       ~TraceSession() {
-        recorder->finish(session);
+        if (recorder && session) {
+          recorder->finish(session);
+        }
+      }
+
+      explicit operator bool() const {
+        return recorder && session;
       }
     };
   }
@@ -223,9 +248,24 @@ namespace engine::graph {
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
     std::shared_ptr<RenderGraphExecutionTraceRecorder> executionTraceRecorder{
       std::make_shared<RenderGraphExecutionTraceRecorder>()};
+    std::shared_ptr<std::atomic<std::uint64_t>> nextExecutionGeneration{
+      std::make_shared<std::atomic<std::uint64_t>>(1)};
+    std::atomic<bool> executionTraceEnabled{false};
     std::atomic<bool> cancelled{false};
     mutable std::mutex activeEngineMutex;
     mutable std::mutex executionObserverMutex;
+
+    std::uint64_t claimExecutionGeneration() const {
+      return nextExecutionGeneration->fetch_add(1);
+    }
+
+    TraceSession beginTraceIfEnabled(const RenderPlan& plan) const {
+      if (!executionTraceEnabled.load()) {
+        executionTraceRecorder->clear();
+        return {};
+      }
+      return TraceSession(executionTraceRecorder, executionTraceRecorder->begin(plan));
+    }
   };
 
   GraphRenderEngine::GraphRenderEngine(std::shared_ptr<render::Scene> scene)
@@ -254,7 +294,9 @@ namespace engine::graph {
       result->setPlan(*p->explicitPlan);
     }
     result->setExecutionObserver(executionObserver());
+    result->setExecutionTraceEnabled(executionTraceEnabled());
     result->p->executionTraceRecorder = p->executionTraceRecorder;
+    result->p->nextExecutionGeneration = p->nextExecutionGeneration;
     return result;
   }
 
@@ -306,6 +348,17 @@ namespace engine::graph {
     return p->executionTraceRecorder->lastTrace();
   }
 
+  void GraphRenderEngine::setExecutionTraceEnabled(bool enabled) {
+    p->executionTraceEnabled.store(enabled);
+    if (!enabled) {
+      p->executionTraceRecorder->clear();
+    }
+  }
+
+  bool GraphRenderEngine::executionTraceEnabled() const {
+    return p->executionTraceEnabled.load();
+  }
+
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {
     if (buffer.width() <= 0 || buffer.height() <= 0 || !m_scene || !m_camera) {
       buffer.clear();
@@ -320,9 +373,9 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
-    auto traceSessionToken = p->executionTraceRecorder->begin(plan);
-    TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
-    notifyRenderStarted(*this, traceSessionToken->generation());
+    const std::uint64_t renderGeneration = p->claimExecutionGeneration();
+    TraceSession traceSession = p->beginTraceIfEnabled(plan);
+    notifyRenderStarted(*this, renderGeneration);
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
@@ -348,7 +401,10 @@ namespace engine::graph {
           disabledMessage = "disabled pass did not execute";
           break;
         }
-        p->executionTraceRecorder->passSkipped(traceSessionToken, pass, storage, disabledMessage);
+        if (traceSession) {
+          p->executionTraceRecorder->passSkipped(traceSession.session, pass, storage,
+                                                 disabledMessage);
+        }
         continue;
       }
 
@@ -372,8 +428,8 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, traceSessionToken, pass, storage,
-                      [&] { payload->execute(context); });
+      executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
+                      pass, storage, [&] { payload->execute(context); });
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
       }
@@ -397,9 +453,9 @@ namespace engine::graph {
       throw std::runtime_error(validationMessage(validation));
     }
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
-    auto traceSessionToken = p->executionTraceRecorder->begin(plan);
-    TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
-    notifyRenderStarted(*this, traceSessionToken->generation());
+    const std::uint64_t renderGeneration = p->claimExecutionGeneration();
+    TraceSession traceSession = p->beginTraceIfEnabled(plan);
+    notifyRenderStarted(*this, renderGeneration);
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
@@ -433,7 +489,10 @@ namespace engine::graph {
           disabledMessage = "disabled pass did not execute";
           break;
         }
-        p->executionTraceRecorder->passSkipped(traceSessionToken, pass, storage, disabledMessage);
+        if (traceSession) {
+          p->executionTraceRecorder->passSkipped(traceSession.session, pass, storage,
+                                                 disabledMessage);
+        }
         continue;
       }
 
@@ -452,14 +511,16 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, p->executionTraceRecorder, traceSessionToken, pass, storage, [&] {
-        const bool executedForDisplay =
-          pass.kind == RenderPassKind::Beauty && pass.executor == RenderExecutorKind::Raytracer &&
-          payload->executeDisplayAndStore(context, buffer, displayTonemap);
-        if (!executedForDisplay) {
-          payload->execute(context);
-        }
-      });
+      executeObserved(*this, p->executionTraceRecorder, traceSession.session, renderGeneration,
+                      pass, storage, [&] {
+                        const bool executedForDisplay =
+                          pass.kind == RenderPassKind::Beauty &&
+                          pass.executor == RenderExecutorKind::Raytracer &&
+                          payload->executeDisplayAndStore(context, buffer, displayTonemap);
+                        if (!executedForDisplay) {
+                          payload->execute(context);
+                        }
+                      });
 
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
