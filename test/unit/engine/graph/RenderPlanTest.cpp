@@ -261,6 +261,41 @@ namespace RenderPlanTest {
     EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::DisabledDependency));
   }
 
+  TEST(RenderPlan, CullDependentsOverrideDisablesTransitiveConsumers) {
+    RenderPlan plan;
+    plan.addResource(colorResource("shadow_map"));
+    plan.addResource(colorResource("beauty_color"));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    auto shadow = pass("shadow", RenderPassKind::Shadow);
+    shadow.writes.push_back({"shadow_map"});
+    shadow.disabledBehavior = DisabledBehavior::CullDependents;
+    plan.addPass(shadow);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.reads.push_back({"shadow_map"});
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    RenderGraphOverrides overrides;
+    overrides.disabledPasses.insert("shadow");
+
+    const RenderPlan disabled = plan.withOverrides(overrides);
+
+    ASSERT_EQ(3u, disabled.passes().size());
+    EXPECT_FALSE(disabled.passes()[0].enabled);
+    EXPECT_FALSE(disabled.passes()[1].enabled);
+    EXPECT_EQ(DisabledBehavior::CullDependents, disabled.passes()[1].disabledBehavior);
+    EXPECT_FALSE(disabled.passes()[2].enabled);
+    EXPECT_EQ(DisabledBehavior::CullDependents, disabled.passes()[2].disabledBehavior);
+    EXPECT_TRUE(disabled.validate().valid());
+  }
+
   TEST(RenderPlan, ExportsTextDotAndJson) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color"));

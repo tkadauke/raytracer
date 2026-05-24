@@ -168,6 +168,11 @@ The node also carries a `DisabledBehavior` value:
   a default output.
 - `Passthrough` records pass-through disable intent for the node.
 
+When overrides disable a `CullDependents` pass, `RenderPlan::withOverrides`
+also disables every pass that consumes its outputs, then repeats that operation
+for consumers of the newly disabled passes. The resulting effective plan is
+what rendercli and the Modeler inspector validate and display.
+
 Validation gives producer semantics to `SubstituteDefault`: a disabled producer
 with that behavior can still satisfy consumers. A disabled producer with any
 other behavior triggers `DisabledDependency` when another enabled pass reads

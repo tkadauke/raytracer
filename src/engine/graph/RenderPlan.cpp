@@ -245,6 +245,10 @@ namespace engine::graph {
 
     std::map<RenderPassId, std::set<RenderPassId>> dependencies;
     for (const auto& pass : m_passes) {
+      if (!pass.enabled && pass.disabledBehavior != DisabledBehavior::Passthrough) {
+        continue;
+      }
+
       for (const auto& read : pass.reads) {
         const auto resourceIt = resources.find(read.resource);
         if (resourceIt == resources.end()) {
@@ -446,6 +450,36 @@ namespace engine::graph {
         pass.enabled = false;
       }
     }
+
+    std::set<RenderPassId> culledPasses;
+    for (const auto& pass : result.m_passes) {
+      if (!pass.enabled && pass.disabledBehavior == DisabledBehavior::CullDependents) {
+        culledPasses.insert(pass.id);
+      }
+    }
+
+    bool changed = true;
+    while (changed) {
+      changed = false;
+      for (auto& pass : result.m_passes) {
+        if (!pass.enabled) {
+          continue;
+        }
+
+        const bool readsCulledProducer =
+          std::any_of(pass.reads.begin(), pass.reads.end(), [&](const ResourceRead& read) {
+            const RenderPassNode* producer = result.producerOf(read.resource);
+            return producer && contains(culledPasses, producer->id);
+          });
+        if (readsCulledProducer) {
+          pass.enabled = false;
+          pass.disabledBehavior = DisabledBehavior::CullDependents;
+          culledPasses.insert(pass.id);
+          changed = true;
+        }
+      }
+    }
+
     return result;
   }
 }

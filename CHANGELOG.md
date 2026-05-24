@@ -82,6 +82,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph dependent culling.** Applying graph overrides to a
+  `CullDependents` pass now disables downstream consumers transitively before
+  validation, so graph inspection can show the effective culled subgraph instead
+  of reporting the first disabled dependency as an error. — GPT-5
 - **rendercli graph default.** `rendercli` now renders through the compiled
   render graph by default, keeps `--render_graph` as an explicit spelling of the
   default path, and adds `--direct_engine` / `--no_render_graph` for focused
