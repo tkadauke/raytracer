@@ -131,6 +131,26 @@ namespace RenderPlanTest {
     EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::Cycle));
   }
 
+  TEST(RenderPlan, ReportsConsumerBeforeProducerInSerialPlan) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color"));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    const auto validation = plan.validate();
+
+    ASSERT_FALSE(validation.valid());
+    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::OutOfOrderDependency));
+  }
+
   TEST(RenderPlan, AppliesDisableOverridesByPassKindExecutorFeatureAndId) {
     RenderPlan plan;
     auto beauty = pass("beauty");

@@ -109,6 +109,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Render graph serial-order validation.** `RenderPlan::validate()` now
+  rejects serial plans where a pass reads a resource before its producer appears
+  in the pass list, catching malformed replayed JSON before the graph engine
+  executes an uninitialized resource. — GPT-5
 - **Render graph passthrough validation.** Disabled `Passthrough` passes now
   validate that they have one input and shape-compatible outputs before
   execution, turning malformed graph JSON into an inspection-time validation

@@ -79,6 +79,8 @@ namespace engine::graph {
       return "invalid_pass_io";
     case RenderPlanValidationError::Code::InvalidResourceShape:
       return "invalid_resource_shape";
+    case RenderPlanValidationError::Code::OutOfOrderDependency:
+      return "out_of_order_dependency";
     case RenderPlanValidationError::Code::Cycle:
       return "cycle";
     }
@@ -195,6 +197,7 @@ namespace engine::graph {
     RenderPlanValidation result;
     std::map<RenderResourceId, const RenderResourceDescriptor*> resources;
     std::map<RenderPassId, const RenderPassNode*> passes;
+    std::map<RenderPassId, std::size_t> passOrder;
     std::map<RenderResourceId, const RenderPassNode*> producers;
 
     for (const auto& resource : m_resources) {
@@ -216,7 +219,8 @@ namespace engine::graph {
       }
     }
 
-    for (const auto& pass : m_passes) {
+    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
+      const auto& pass = m_passes[passIndex];
       if (pass.id.empty()) {
         result.add(
           {RenderPlanValidationError::Code::EmptyPassId, "pass id must not be empty", "", ""});
@@ -227,6 +231,7 @@ namespace engine::graph {
         result.add({RenderPlanValidationError::Code::DuplicatePassId,
                     "duplicate pass id '" + pass.id + "'", pass.id, ""});
       }
+      passOrder.emplace(pass.id, passIndex);
 
       if (!pass.enabled && pass.disabledBehavior == DisabledBehavior::Error) {
         result.add({RenderPlanValidationError::Code::DisabledRequiredPass,
@@ -314,6 +319,16 @@ namespace engine::graph {
                         "' from disabled pass '" + producer->id + "'",
                       pass.id, read.resource});
           continue;
+        }
+
+        const auto producerOrder = passOrder.find(producer->id);
+        const auto consumerOrder = passOrder.find(pass.id);
+        if (producer->id != pass.id && producerOrder != passOrder.end() &&
+            consumerOrder != passOrder.end() && producerOrder->second >= consumerOrder->second) {
+          result.add({RenderPlanValidationError::Code::OutOfOrderDependency,
+                      "pass '" + pass.id + "' reads resource '" + read.resource +
+                        "' before producer pass '" + producer->id + "' runs",
+                      pass.id, read.resource});
         }
 
         if (producer->id != pass.id && producer->enabled && pass.enabled) {

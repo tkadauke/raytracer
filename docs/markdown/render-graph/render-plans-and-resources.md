@@ -181,6 +181,11 @@ its output. `Passthrough` is validated more strictly because the disabled pass
 still runs a copy operation: it must have one input and at least one
 shape-compatible output.
 
+The current executor is serial, so the plan list is also validated as execution
+order. A consumer pass must appear after the pass that produces each resource it
+reads. Future graph scheduling can relax that storage order, but replayed JSON
+for the current engine must already be topologically ordered.
+
 The pass declaration is separate from execution code. Executor-specific work
 lives behind
 [`RenderPassPayload`](../../../include/engine/graph/RenderPassPayload.h), whose
