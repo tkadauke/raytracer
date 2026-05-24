@@ -117,6 +117,11 @@ namespace engine::graph {
     const RenderPlan& plan() const;
     const std::vector<RenderPassTrace>& passes() const;
     const RenderPassTrace* findPass(const RenderPassId& id) const;
+    std::vector<const RenderGraphResourceSnapshot*>
+    inputSnapshotsForResource(const RenderResourceId& id) const;
+    std::vector<const RenderGraphResourceSnapshot*>
+    outputSnapshotsForResource(const RenderResourceId& id) const;
+    std::vector<const RenderGraphResourceDiff*> diffsForResource(const RenderResourceId& id) const;
     bool matchesPlan(const RenderPlan& plan) const;
     QJsonObject toJson() const;
 

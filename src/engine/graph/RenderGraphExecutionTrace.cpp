@@ -244,6 +244,45 @@ namespace engine::graph {
     return it == m_passIndexes.end() ? nullptr : &m_passes[it->second];
   }
 
+  std::vector<const RenderGraphResourceSnapshot*>
+  RenderGraphExecutionTrace::inputSnapshotsForResource(const RenderResourceId& id) const {
+    std::vector<const RenderGraphResourceSnapshot*> result;
+    for (const auto& pass : m_passes) {
+      for (const auto& input : pass.inputs()) {
+        if (input.resourceId() == id) {
+          result.push_back(&input);
+        }
+      }
+    }
+    return result;
+  }
+
+  std::vector<const RenderGraphResourceSnapshot*>
+  RenderGraphExecutionTrace::outputSnapshotsForResource(const RenderResourceId& id) const {
+    std::vector<const RenderGraphResourceSnapshot*> result;
+    for (const auto& pass : m_passes) {
+      for (const auto& output : pass.outputs()) {
+        if (output.resourceId() == id) {
+          result.push_back(&output);
+        }
+      }
+    }
+    return result;
+  }
+
+  std::vector<const RenderGraphResourceDiff*>
+  RenderGraphExecutionTrace::diffsForResource(const RenderResourceId& id) const {
+    std::vector<const RenderGraphResourceDiff*> result;
+    for (const auto& pass : m_passes) {
+      for (const auto& diff : pass.diffs()) {
+        if (diff.inputResourceId() == id || diff.outputResourceId() == id) {
+          result.push_back(&diff);
+        }
+      }
+    }
+    return result;
+  }
+
   bool RenderGraphExecutionTrace::matchesPlan(const RenderPlan& plan) const {
     return m_plan.executionEquivalentTo(plan);
   }

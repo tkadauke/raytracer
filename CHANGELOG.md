@@ -23,9 +23,6 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   last executed plan's pass status, timing, CPU color input/output previews, and
   simple color difference previews so inspection tools can explain what each
   graph node read and wrote. — GPT-5
-- **Modeler render graph trace inspection.** The Render Graph dock now has a
-  Trace tab that follows the selected graph pass and shows the last render's
-  supported input, output, difference, and metadata snapshots. — GPT-5
 - **Rendercli graph trace export.** `rendercli --render_graph_trace_out` writes
   the last executed graph trace as JSON alongside a graph-backed image render.
   — GPT-5
@@ -150,6 +147,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   longer flicker through short pass updates. — GPT-5
 - **Modeler graph trace preview sizing.** Small trace images in the central
   Graph Trace preview are now scaled up for inspection. — GPT-5
+- **Modeler graph trace placement.** The central Graph Trace preview is now the
+  only trace image UI; the Render Graph dock no longer has a separate Trace tab.
+  — GPT-5
 - **Full-resolution render graph trace snapshots.** Color snapshots recorded in
   execution traces now preserve the full graph resource resolution instead of
   being downsampled. — GPT-5

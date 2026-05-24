@@ -1392,17 +1392,8 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
 
   const auto trace =
     traceForPlan(plan, p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr);
-  bool hasSnapshot = false;
-  if (trace) {
-    for (const auto& passTrace : trace->passes()) {
-      const auto matches = [&](const engine::graph::RenderGraphResourceSnapshot& snapshot) {
-        return snapshot.resourceId() == resource->id;
-      };
-      hasSnapshot = hasSnapshot ||
-                    std::any_of(passTrace.inputs().begin(), passTrace.inputs().end(), matches) ||
-                    std::any_of(passTrace.outputs().begin(), passTrace.outputs().end(), matches);
-    }
-  }
+  const bool hasSnapshot = trace && (!trace->inputSnapshotsForResource(resource->id).empty() ||
+                                     !trace->outputSnapshotsForResource(resource->id).empty());
   addRow(rows, tr("Trace snapshot"), hasSnapshot ? tr("available") : tr("not available"));
 
   p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph resource"), rows);

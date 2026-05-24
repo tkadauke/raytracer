@@ -1349,7 +1349,9 @@ The shared recorder uses per-render sessions so a retired worker cannot
 overwrite the latest trace after a newer render starts. The Modeler accepts a
 completed trace only when its executed plan matches the current effective plan,
 covering stale traces from resize, graph overrides, and compiled pass-state
-changes. Scene content changes that leave the plan unchanged remain TODO.
+changes. Trace-owned resource lookup helpers feed the central trace preview for
+resource-node selections. Scene content changes that leave the plan unchanged
+remain TODO.
 
 ### Live graph execution highlighting
 

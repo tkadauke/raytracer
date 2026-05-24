@@ -54,7 +54,7 @@ public:
   bool effectivePlanValid() const;
 
   /**
-    * Replaces the completed execution trace used by the Trace tab.
+    * Notifies the inspector that a completed execution trace is available.
     */
   void setExecutionTrace(std::shared_ptr<const engine::graph::RenderGraphExecutionTrace> trace);
 
@@ -102,7 +102,6 @@ private:
   void rebuildGraph();
   void rebuildPasses();
   void rebuildResources();
-  void rebuildTrace();
   void updateValidationStatus();
   void selectPass(const engine::graph::RenderPassId& passId);
   void selectResource(const engine::graph::RenderResourceId& resourceId);

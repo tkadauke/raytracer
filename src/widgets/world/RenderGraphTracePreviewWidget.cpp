@@ -215,35 +215,22 @@ void RenderGraphTracePreviewWidget::showResourceTrace(
     return;
   }
 
-  int inputCount = 0;
-  int outputCount = 0;
-  int diffCount = 0;
-  for (const auto& passTrace : trace->passes()) {
-    for (const auto& input : passTrace.inputs()) {
-      if (input.resourceId() == resourceId) {
-        addSnapshot(*p->inputsLayout, input);
-        ++inputCount;
-      }
-    }
-    for (const auto& output : passTrace.outputs()) {
-      if (output.resourceId() == resourceId) {
-        addSnapshot(*p->outputsLayout, output);
-        ++outputCount;
-      }
-    }
-    for (const auto& diff : passTrace.diffs()) {
-      if (diff.inputResourceId() == resourceId || diff.outputResourceId() == resourceId) {
-        addDiff(*p->diffsLayout, diff);
-        ++diffCount;
-      }
-    }
-  }
+  const auto inputs = trace->inputSnapshotsForResource(resourceId);
+  const auto outputs = trace->outputSnapshotsForResource(resourceId);
+  const auto diffs = trace->diffsForResource(resourceId);
 
-  if (inputCount == 0)
+  for (const auto* input : inputs)
+    addSnapshot(*p->inputsLayout, *input);
+  for (const auto* output : outputs)
+    addSnapshot(*p->outputsLayout, *output);
+  for (const auto* diff : diffs)
+    addDiff(*p->diffsLayout, *diff);
+
+  if (inputs.empty())
     addText(*p->inputsLayout, tr("No input snapshots for this resource"));
-  if (outputCount == 0)
+  if (outputs.empty())
     addText(*p->outputsLayout, tr("No output snapshots for this resource"));
-  if (diffCount == 0)
+  if (diffs.empty())
     addText(*p->diffsLayout, tr("No difference preview for this resource"));
 
   p->inputsLayout->addStretch(1);

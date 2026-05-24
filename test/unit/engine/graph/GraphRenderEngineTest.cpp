@@ -382,6 +382,17 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("post_aa_color", postAA->diffs()[0].outputResourceId());
     EXPECT_GT(countNonBlackPixels(postAA->diffs()[0].boostedPreview()), 0);
     EXPECT_GT(postAA->elapsed().count(), 0);
+
+    const auto inputs = trace->inputSnapshotsForResource("beauty_color");
+    const auto outputs = trace->outputSnapshotsForResource("post_aa_color");
+    const auto diffs = trace->diffsForResource("post_aa_color");
+    ASSERT_EQ(1u, inputs.size());
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_EQ(2u, diffs.size());
+    EXPECT_EQ("beauty_color", inputs.front()->resourceId());
+    EXPECT_EQ("post_aa_color", outputs.front()->resourceId());
+    EXPECT_EQ("post_aa_color", diffs.front()->outputResourceId());
+    EXPECT_EQ("post_aa_color", diffs.back()->inputResourceId());
   }
 
   TEST(GraphRenderEngine, SharesExecutionTraceRecorderWithRenderClone) {
