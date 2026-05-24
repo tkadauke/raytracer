@@ -1,7 +1,10 @@
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 
 #include <algorithm>
+#include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace engine::graph {
@@ -83,6 +86,53 @@ namespace engine::graph {
       shadow.lifetime = RenderResourceLifetime::Transient;
       return shadow;
     }
+
+    std::string postProcessAAPassId(RenderPostProcessAA aa) {
+      switch (aa) {
+      case RenderPostProcessAA::FXAA:
+        return "raster_fxaa";
+      case RenderPostProcessAA::SMAA:
+        return "raster_smaa";
+      case RenderPostProcessAA::None:
+      case RenderPostProcessAA::TAA:
+        break;
+      }
+      return "raster_post_aa";
+    }
+
+    std::string postProcessAAPassName(RenderPostProcessAA aa) {
+      switch (aa) {
+      case RenderPostProcessAA::FXAA:
+        return "Raster FXAA";
+      case RenderPostProcessAA::SMAA:
+        return "Raster SMAA";
+      case RenderPostProcessAA::None:
+      case RenderPostProcessAA::TAA:
+        break;
+      }
+      return "Raster post-process AA";
+    }
+
+    std::shared_ptr<const RenderPassState> postProcessAAState(RenderPostProcessAA aa) {
+      switch (aa) {
+      case RenderPostProcessAA::FXAA:
+        return std::make_shared<FxaaPostProcessAAState>();
+      case RenderPostProcessAA::SMAA:
+        return std::make_shared<SmaaPostProcessAAState>();
+      case RenderPostProcessAA::None:
+      case RenderPostProcessAA::TAA:
+        break;
+      }
+      return nullptr;
+    }
+
+    RenderResourceId tonemapInputResource(const RenderPlan& plan) {
+      const auto* tonemap = plan.findPass("tonemap");
+      if (!tonemap) {
+        throw std::runtime_error("compiled render graph is missing tonemap pass");
+      }
+      return tonemap->singleRead().resource;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
@@ -97,21 +147,6 @@ namespace engine::graph {
     plan.addResource(beautyColor);
     const bool usesPreviewShadows =
       executor == RenderExecutorKind::Rasterizer && intent.enablePreviewShadows;
-    if (usesPreviewShadows) {
-      plan.addResource(previewShadowResource());
-    }
-
-    std::string tonemapInputResource = "beauty_color";
-    if (intent.enableWireframeOverlay) {
-      RenderResourceDescriptor overlayColor =
-        colorResource("overlay_color", "Overlay color", target, RenderResourceLifetime::Transient);
-      plan.addResource(overlayColor);
-      tonemapInputResource = "overlay_color";
-    }
-
-    RenderResourceDescriptor mainColor =
-      colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-    plan.addResource(mainColor);
 
     RenderPassNode beauty;
     beauty.id = beautyPassId(executor);
@@ -128,37 +163,7 @@ namespace engine::graph {
       state.sampling().setMSAASamples(target.sampleCount);
       state.writeTo(beauty);
     }
-    if (usesPreviewShadows) {
-      RenderPassNode shadows;
-      shadows.id = "raster_preview_shadows";
-      shadows.name = "Raster preview shadows";
-      shadows.kind = RenderPassKind::Shadow;
-      shadows.executor = RenderExecutorKind::Rasterizer;
-      shadows.features = {"main", "preview_shadows", "shadow_maps", "rasterizer"};
-      shadows.writes.push_back({"preview_shadow_map"});
-      shadows.sceneView.selector = SceneSelector::all();
-      shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      shadows.canRunConcurrently = false;
-      plan.addPass(shadows);
-
-      beauty.reads.push_back({"preview_shadow_map"});
-    }
     plan.addPass(beauty);
-
-    if (intent.enableWireframeOverlay) {
-      RenderPassNode overlay;
-      overlay.id = "wireframe_overlay";
-      overlay.name = "Wireframe overlay";
-      overlay.kind = RenderPassKind::Overlay;
-      overlay.executor = RenderExecutorKind::Wireframe;
-      overlay.features = {"main", "overlay", "wireframe"};
-      overlay.reads.push_back({"beauty_color"});
-      overlay.writes.push_back({"overlay_color"});
-      overlay.sceneView.selector = SceneSelector::all();
-      overlay.disabledBehavior = DisabledBehavior::Passthrough;
-      overlay.canRunConcurrently = false;
-      plan.addPass(overlay);
-    }
 
     RenderPassNode tonemap;
     tonemap.id = "tonemap";
@@ -166,12 +171,67 @@ namespace engine::graph {
     tonemap.kind = RenderPassKind::Tonemap;
     tonemap.executor = RenderExecutorKind::PostProcess;
     tonemap.features = {"main", "tonemap", "postprocess"};
-    tonemap.reads.push_back({tonemapInputResource});
+    tonemap.reads.push_back({"beauty_color"});
     tonemap.writes.push_back({"main_color"});
     tonemap.sceneView.selector = SceneSelector::all();
     tonemap.disabledBehavior = DisabledBehavior::Passthrough;
     tonemap.canRunConcurrently = false;
     plan.addPass(tonemap);
+
+    if (usesPreviewShadows) {
+      RenderPassNode shadows;
+      shadows.id = "raster_preview_shadows";
+      shadows.name = "Raster preview shadows";
+      shadows.kind = RenderPassKind::Shadow;
+      shadows.executor = RenderExecutorKind::Rasterizer;
+      shadows.features = {"main", "preview_shadows", "shadow_maps", "rasterizer"};
+      shadows.sceneView.selector = SceneSelector::all();
+      shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      shadows.canRunConcurrently = false;
+      plan.connectProducerToConsumer(shadows, previewShadowResource(), beauty.id);
+    }
+
+    if (intent.usesGraphImagePostProcessAA()) {
+      const RenderResourceId inputResource = tonemapInputResource(plan);
+      RenderResourceDescriptor postAAColor = colorResource(
+        "post_aa_color", "Postprocess AA color", target, RenderResourceLifetime::Transient);
+      RenderPassNode postAA;
+      postAA.id = postProcessAAPassId(intent.postProcessAA);
+      postAA.name = postProcessAAPassName(intent.postProcessAA);
+      postAA.kind = RenderPassKind::PostProcess;
+      postAA.executor = RenderExecutorKind::PostProcess;
+      postAA.features = {"main", "postprocess", "post_aa", "rasterizer",
+                         toString(intent.postProcessAA)};
+      postAA.reads.push_back({inputResource});
+      postAA.writes.push_back({postAAColor.id});
+      postAA.sceneView.selector = SceneSelector::all();
+      postAA.state = postProcessAAState(intent.postProcessAA);
+      postAA.disabledBehavior = DisabledBehavior::Passthrough;
+      postAA.canRunConcurrently = false;
+      plan.routeResourceThroughPass(inputResource, postAAColor, postAA);
+    }
+
+    if (intent.enableWireframeOverlay) {
+      const RenderResourceId inputResource = tonemapInputResource(plan);
+      RenderResourceDescriptor overlayColor =
+        colorResource("overlay_color", "Overlay color", target, RenderResourceLifetime::Transient);
+      RenderPassNode overlay;
+      overlay.id = "wireframe_overlay";
+      overlay.name = "Wireframe overlay";
+      overlay.kind = RenderPassKind::Overlay;
+      overlay.executor = RenderExecutorKind::Wireframe;
+      overlay.features = {"main", "overlay", "wireframe"};
+      overlay.reads.push_back({inputResource});
+      overlay.writes.push_back({overlayColor.id});
+      overlay.sceneView.selector = SceneSelector::all();
+      overlay.disabledBehavior = DisabledBehavior::Passthrough;
+      overlay.canRunConcurrently = false;
+      plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
+    }
+
+    RenderResourceDescriptor mainColor =
+      colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+    plan.addResource(mainColor);
 
     return plan;
   }

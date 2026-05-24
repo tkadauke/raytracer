@@ -87,6 +87,15 @@ namespace engine::graph {
                                        path);
     }
 
+    RenderPostProcessAA postProcessAAFromJson(const std::string& value, const std::string& path) {
+      return enumValue<RenderPostProcessAA>(value,
+                                            {{"none", RenderPostProcessAA::None},
+                                             {"fxaa", RenderPostProcessAA::FXAA},
+                                             {"smaa", RenderPostProcessAA::SMAA},
+                                             {"taa", RenderPostProcessAA::TAA}},
+                                            path);
+    }
+
     SceneSelector::Kind selectorKindFromJson(const std::string& value, const std::string& path) {
       return enumValue<SceneSelector::Kind>(value,
                                             {{"all", SceneSelector::Kind::All},
@@ -435,6 +444,20 @@ namespace engine::graph {
     return "unknown";
   }
 
+  const char* toString(RenderPostProcessAA value) {
+    switch (value) {
+    case RenderPostProcessAA::None:
+      return "none";
+    case RenderPostProcessAA::FXAA:
+      return "fxaa";
+    case RenderPostProcessAA::SMAA:
+      return "smaa";
+    case RenderPostProcessAA::TAA:
+      return "taa";
+    }
+    return "unknown";
+  }
+
   const char* toString(RenderExecutorKind value) {
     switch (value) {
     case RenderExecutorKind::Raytracer:
@@ -589,6 +612,7 @@ namespace engine::graph {
     result["enableAutomaticFeatures"] = enableAutomaticFeatures;
     result["enableWireframeOverlay"] = enableWireframeOverlay;
     result["enablePreviewShadows"] = enablePreviewShadows;
+    result["postProcessAA"] = toString(postProcessAA);
 
     if (!viewOverrides.empty()) {
       QJsonArray overrides;
@@ -621,6 +645,9 @@ namespace engine::graph {
       boolField(object, "enableWireframeOverlay", "renderIntent", intent.enableWireframeOverlay);
     intent.enablePreviewShadows =
       boolField(object, "enablePreviewShadows", "renderIntent", intent.enablePreviewShadows);
+    intent.postProcessAA = postProcessAAFromJson(
+      stringField(object, "postProcessAA", "renderIntent", toString(intent.postProcessAA)),
+      "renderIntent.postProcessAA");
 
     const auto overridesValue = object.value("viewOverrides");
     if (!overridesValue.isUndefined()) {
@@ -654,6 +681,12 @@ namespace engine::graph {
       return RenderExecutorKind::Wireframe;
     }
     return RenderExecutorKind::Raytracer;
+  }
+
+  bool RenderIntent::usesGraphImagePostProcessAA() const {
+    return defaultExecutorKind() == RenderExecutorKind::Rasterizer &&
+           (postProcessAA == RenderPostProcessAA::FXAA ||
+            postProcessAA == RenderPostProcessAA::SMAA);
   }
 
   bool RenderResourceDescriptor::hasImageShape() const {

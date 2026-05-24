@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderGraphCompiler.h"
+
+#include <string>
 
 namespace RenderGraphCompilerTest {
   using namespace engine::graph;
@@ -195,6 +198,71 @@ namespace RenderGraphCompilerTest {
     ASSERT_EQ(3u, plan.passes().size());
     EXPECT_FALSE(plan.passes()[0].enabled);
     EXPECT_TRUE(plan.passes()[1].enabled);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterFxaaIntentAddsGraphPostProcessPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(3u, plan.resources().size());
+    EXPECT_EQ("beauty_color", plan.resources()[0].id);
+    EXPECT_EQ("post_aa_color", plan.resources()[1].id);
+    EXPECT_EQ("main_color", plan.resources()[2].id);
+
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_EQ("raster_beauty", plan.passes()[0].id);
+    EXPECT_EQ("raster_fxaa", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::PostProcess, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("beauty_color", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("post_aa_color", plan.passes()[1].writes[0].resource);
+    ASSERT_NE(nullptr, PostProcessAAState::fromPass(plan.passes()[1]));
+    EXPECT_EQ("fxaa", std::string(PostProcessAAState::fromPass(plan.passes()[1])->modeName()));
+    EXPECT_EQ("post_aa_color", plan.passes()[2].reads[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterSmaaIntentFeedsOverlayBeforeTonemap) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.postProcessAA = RenderPostProcessAA::SMAA;
+    intent.enableWireframeOverlay = true;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(4u, plan.passes().size());
+    EXPECT_EQ("raster_beauty", plan.passes()[0].id);
+    EXPECT_EQ("raster_smaa", plan.passes()[1].id);
+    EXPECT_EQ("wireframe_overlay", plan.passes()[2].id);
+    EXPECT_EQ("tonemap", plan.passes()[3].id);
+    ASSERT_EQ(1u, plan.passes()[2].reads.size());
+    EXPECT_EQ("post_aa_color", plan.passes()[2].reads[0].resource);
+    ASSERT_EQ(1u, plan.passes()[3].reads.size());
+    EXPECT_EQ("overlay_color", plan.passes()[3].reads[0].resource);
+    ASSERT_NE(nullptr, PostProcessAAState::fromPass(plan.passes()[1]));
+    EXPECT_EQ("smaa", std::string(PostProcessAAState::fromPass(plan.passes()[1])->modeName()));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterTaaIntentDoesNotAddImagePostProcessPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.postProcessAA = RenderPostProcessAA::TAA;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("raster_beauty", plan.passes()[0].id);
+    EXPECT_EQ("tonemap", plan.passes()[1].id);
     EXPECT_TRUE(plan.validate().valid());
   }
 }

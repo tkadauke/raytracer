@@ -18,6 +18,7 @@ namespace engine::raytracer {
 namespace engine::graph {
   class GraphRenderEngine;
   class RenderPlan;
+  enum class RenderPostProcessAA;
   struct RenderIntent;
 }
 
@@ -54,6 +55,10 @@ public slots:
   void setRasterizerPreviewShadowsEnabled(bool enabled);
   bool rasterizerPreviewShadowsEnabled() const;
 
+  /// Select image-space anti-aliasing for the live Rasterizer preview graph.
+  void setRasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa);
+  engine::graph::RenderPostProcessAA rasterizerPreviewPostProcessAA() const;
+
   /// Toggle a graph-level wireframe overlay over the shaded live preview.
   void setWireframeOverlayEnabled(bool enabled);
   bool wireframeOverlayEnabled() const;
@@ -74,5 +79,6 @@ private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
+  engine::graph::RenderPostProcessAA m_rasterizerPreviewPostProcessAA;
   bool m_wireframeOverlayEnabled{false};
 };

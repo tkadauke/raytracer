@@ -52,6 +52,12 @@ namespace engine::graph {
     bool hasExplicitPlan() const;
 
     /**
+      * @returns the caller-provided plan when one is installed, or `nullptr`
+      * when rendering will compile from `intent()`.
+      */
+    const RenderPlan* explicitPlan() const;
+
+    /**
       * Compiles a plan for @p target from the current render intent.
       */
     RenderPlan compilePlan(const RenderTargetSpec& target) const;

@@ -239,6 +239,10 @@ namespace engine::graph {
     return p->explicitPlan.has_value();
   }
 
+  const RenderPlan* GraphRenderEngine::explicitPlan() const {
+    return p->explicitPlan ? &*p->explicitPlan : nullptr;
+  }
+
   RenderPlan GraphRenderEngine::compilePlan(const RenderTargetSpec& target) const {
     RenderGraphCompiler compiler;
     return compiler.compile(target, p->intent);

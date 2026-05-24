@@ -282,6 +282,7 @@ struct RenderIntent {
   bool enableAutomaticFeatures = true;
   bool enableWireframeOverlay = false;
   bool enablePreviewShadows = false;
+  RenderPostProcessAA postProcessAA = RenderPostProcessAA::None;
   std::vector<RenderViewOverride> viewOverrides;
   std::vector<RenderAOV> requestedAOVs;
   RenderGraphOverrides overrides;
@@ -330,6 +331,12 @@ public:
   std::string toDot() const;
   QJsonObject toJson() const;
 
+  void connectProducerToConsumer(RenderPassNode producer,
+                                 RenderResourceDescriptor resource,
+                                 RenderPassId consumerPassId);
+  std::size_t routeResourceThroughPass(RenderResourceId sourceResource,
+                                       RenderResourceDescriptor routedResource,
+                                       RenderPassNode pass);
   RenderPlan withOverrides(RenderGraphOverrides overrides) const;
 };
 ```
@@ -341,7 +348,9 @@ be able to reference specific nodes.
 Plan manipulation should operate on the compiled plan without requiring a render
 to happen. Disabling a node, switching a pass to a fallback view mode, or
 changing a node's enabled state should be reflected in validation and
-visualization before execution.
+visualization before execution. Producer/consumer rewrites belong on
+`RenderPlan`, so compiler code can connect passes through resource edges rather
+than hand-maintaining dependency reads and writes around serial list insertion.
 
 ### RenderPassNode
 
@@ -539,11 +548,11 @@ lifetimes, and node disabling.
 
 As the graph grows, postprocess stages that currently live inside individual
 engines should migrate into explicit nodes. ~~Rasterizer FXAA/SMAA~~ ✅ **Done.**
-Graph-backed rendercli now inserts `raster_fxaa` / `raster_smaa` postprocess
-nodes with typed `post_process_aa` state between raster beauty and
-overlay/tonemap while direct-engine rendering keeps the old setting for
-compatibility. TAA remains deferred until graph-owned history, depth, and
-jitter resources exist.
+`RenderIntent::postProcessAA` now compiles raster FXAA/SMAA into
+`raster_fxaa` / `raster_smaa` postprocess nodes with typed
+`post_process_aa` state between raster beauty and overlay/tonemap; rendercli
+and the Modeler preview both use that shared compiler path. TAA remains
+deferred until graph-owned history, depth, and jitter resources exist.
 
 ### Rasterizer passes
 

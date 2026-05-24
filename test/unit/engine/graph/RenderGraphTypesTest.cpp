@@ -21,6 +21,7 @@ namespace RenderGraphTypesTest {
     intent.enableAutomaticFeatures = false;
     intent.enableWireframeOverlay = true;
     intent.enablePreviewShadows = true;
+    intent.postProcessAA = RenderPostProcessAA::SMAA;
     intent.viewOverrides.push_back({SceneSelector::tag("debug"),
                                     RenderExecutorPreference::Wireframe, RenderViewMode::Wireframe,
                                     std::nullopt, std::nullopt});
@@ -32,6 +33,7 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(json["enableAutomaticFeatures"].toBool());
     EXPECT_TRUE(json["enableWireframeOverlay"].toBool());
     EXPECT_TRUE(json["enablePreviewShadows"].toBool());
+    EXPECT_EQ("smaa", json["postProcessAA"].toString().toStdString());
 
     const auto profile = json["defaultShadingProfile"].toObject();
     EXPECT_EQ("toon", profile["name"].toString().toStdString());
@@ -68,6 +70,7 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("toon", intent.defaultShadingProfile.name);
     EXPECT_TRUE(intent.enableAutomaticFeatures);
     EXPECT_FALSE(intent.enableWireframeOverlay);
+    EXPECT_EQ(RenderPostProcessAA::None, intent.postProcessAA);
     ASSERT_EQ(1u, intent.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::ObjectName, intent.viewOverrides.front().selector.kind);
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);
@@ -78,6 +81,24 @@ namespace RenderGraphTypesTest {
   TEST(RenderIntent, RejectsUnknownExecutorName) {
     QJsonObject json;
     json["defaultExecutor"] = "path_tracer";
+
+    EXPECT_THROW(RenderIntent::fromJson(json), std::runtime_error);
+  }
+
+  TEST(RenderIntent, ReadsPostProcessAAFromSceneJson) {
+    QJsonObject json;
+    json["defaultExecutor"] = "rasterizer";
+    json["postProcessAA"] = "fxaa";
+
+    const RenderIntent intent = RenderIntent::fromJson(json);
+
+    EXPECT_EQ(RenderPostProcessAA::FXAA, intent.postProcessAA);
+    EXPECT_TRUE(intent.usesGraphImagePostProcessAA());
+  }
+
+  TEST(RenderIntent, RejectsUnknownPostProcessAA) {
+    QJsonObject json;
+    json["postProcessAA"] = "mlaa";
 
     EXPECT_THROW(RenderIntent::fromJson(json), std::runtime_error);
   }

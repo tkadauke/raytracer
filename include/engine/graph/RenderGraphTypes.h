@@ -39,6 +39,15 @@ namespace engine::graph {
   enum class RenderViewMode { Default, Beauty, Wireframe, Depth, Normal, ObjectId };
 
   /**
+    * User-facing raster post-process anti-aliasing request.
+    *
+    * FXAA and SMAA are image-space filters that can be represented as graph
+    * postprocess passes today. TAA remains a raster beauty-pass setting until
+    * the graph owns history, depth, and jitter resources.
+    */
+  enum class RenderPostProcessAA { None, FXAA, SMAA, TAA };
+
+  /**
     * Concrete executor required by a compiled render pass.
     */
   enum class RenderExecutorKind {
@@ -191,6 +200,8 @@ namespace engine::graph {
     bool enableWireframeOverlay{false};
     /// Enables low-cost preview shadows for rasterizer-backed preview graphs.
     bool enablePreviewShadows{false};
+    /// Requests raster post-process anti-aliasing for graph compilation.
+    RenderPostProcessAA postProcessAA{RenderPostProcessAA::None};
     std::vector<RenderViewOverride> viewOverrides;
 
     /**
@@ -210,6 +221,12 @@ namespace engine::graph {
       * Resolves the default compiled executor requested by this intent.
       */
     RenderExecutorKind defaultExecutorKind() const;
+
+    /**
+      * @returns true when this intent should compile image-space AA as a graph
+      * postprocess pass instead of hiding it inside `raster_beauty` state.
+      */
+    bool usesGraphImagePostProcessAA() const;
   };
 
   /**
@@ -297,6 +314,7 @@ namespace engine::graph {
 
   const char* toString(RenderExecutorPreference value);
   const char* toString(RenderViewMode value);
+  const char* toString(RenderPostProcessAA value);
   const char* toString(RenderExecutorKind value);
   const char* toString(RenderPassKind value);
   const char* toString(DisabledBehavior value);

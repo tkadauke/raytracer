@@ -8,6 +8,7 @@
 #include "Display.h"
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderPlan.h"
+#include "engine/graph/RenderGraphTypes.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/primitives/Primitive.h"
@@ -25,7 +26,8 @@
 using namespace std;
 
 RenderDisplay::RenderDisplay(QWidget* parent)
-    : QtDisplay(parent, std::make_shared<engine::graph::GraphRenderEngine>(nullptr)) {
+    : QtDisplay(parent, std::make_shared<engine::graph::GraphRenderEngine>(nullptr)),
+      m_rasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA::None) {
   m_graphEngine = std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(m_engine);
   m_raytracerEngine = std::make_shared<engine::raytracer::Raytracer>(nullptr);
   applyPreviewPolicy(EngineKind::Raytracer);
@@ -59,6 +61,17 @@ void RenderDisplay::setRasterizerPreviewShadowsEnabled(bool enabled) {
 
 bool RenderDisplay::rasterizerPreviewShadowsEnabled() const {
   return m_rasterizerPreviewShadowsEnabled;
+}
+
+void RenderDisplay::setRasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa) {
+  m_rasterizerPreviewPostProcessAA = aa;
+  emit renderGraphInputsChanged();
+  if (m_engineKind == EngineKind::Rasterizer)
+    render();
+}
+
+engine::graph::RenderPostProcessAA RenderDisplay::rasterizerPreviewPostProcessAA() const {
+  return m_rasterizerPreviewPostProcessAA;
 }
 
 void RenderDisplay::setWireframeOverlayEnabled(bool enabled) {

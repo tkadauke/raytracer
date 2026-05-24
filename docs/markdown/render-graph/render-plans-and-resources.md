@@ -79,11 +79,12 @@ Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps
 the block optional: scenes without one use the default raytraced beauty intent,
 while scenes with one preserve the requested executor, view mode, shading
-profile, feature toggles, camera reference, and per-selector overrides. Tools
-then layer temporary choices over that saved intent. For example, rendercli uses
-the scene intent as the graph compiler input, but `--render_graph_executor`,
-`--render_graph_view`, and `--render_graph_wireframe_overlay` can still override
-the effective command-line render.
+profile, feature toggles, raster postprocess AA request, camera reference, and
+per-selector overrides. Tools then layer temporary choices over that saved
+intent. For example, rendercli uses the scene intent as the graph compiler
+input, but `--render_graph_executor`, `--render_graph_view`,
+`--render_graph_wireframe_overlay`, and `--post_aa` can still override the
+effective command-line render.
 
 ## <a id="resources-are-descriptors-not-buffers"></a>Resources are descriptors, not buffers
 A render resource is declared with `RenderResourceDescriptor`:
@@ -148,6 +149,14 @@ read `main_color` and write `display_color`. A shadow pass can write
 edges: callers can look up a pass or resource by id, ask which pass produces a
 resource, and list the passes that consume a resource without duplicating
 linear scans in every inspection or rewrite tool.
+
+Plan construction uses the same resource-edge model. `RenderPlan` can connect a
+producer pass to an existing consumer through a newly declared resource, and it
+can route an existing resource through an inserted filter pass while redirecting
+later consumers to the filter output. The compiler uses those plan-owned
+operations for optional shadow, postprocess AA, and overlay passes, so
+dependencies are authored as graph edges rather than as loose pass-list
+append operations.
 
 `state` carries typed pass-payload state. Generic graph validation still
 reasons about resources and dependencies, while the matching payload owns how
@@ -399,12 +408,13 @@ shadow node substitutes the default resource and prevents graph-controlled
 shadow enablement.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
-rendercli inserts a `raster_fxaa` or `raster_smaa` postprocess pass that routes
-`beauty_color` through `post_aa_color` before overlay or tonemap. The pass
-stores typed `post_process_aa` parameters, so the exported graph does not rely
-on the pass id to know which filter to run. `--post_aa taa` remains on the
-raster beauty state for now because temporal AA needs rasterizer history,
-depth, and jitter resources that are not yet graph-owned.
+`RenderIntent::postProcessAA` asks the compiler to insert a `raster_fxaa` or
+`raster_smaa` postprocess pass that routes `beauty_color` through
+`post_aa_color` before overlay or tonemap. The pass stores typed
+`post_process_aa` parameters, so the exported graph does not rely on the pass
+id to know which filter to run. `--post_aa taa` remains on the raster beauty
+state for now because temporal AA needs rasterizer history, depth, and jitter
+resources that are not yet graph-owned.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's

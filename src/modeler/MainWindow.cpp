@@ -168,6 +168,9 @@ struct MainWindow::Private {
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
+  QAction* previewRasterizerPostAANoneAct;
+  QAction* previewRasterizerPostAAFxaaAct;
+  QAction* previewRasterizerPostAASmaaAct;
   QAction* previewWireframeOverlayAct;
   QAction* previewTonemapLinearAct;
   QAction* previewTonemapReinhardAct;
@@ -432,6 +435,33 @@ void MainWindow::createActions() {
   connect(p->previewRasterizerShadowsAct, SIGNAL(triggered(bool)), this,
           SLOT(setPreviewRasterizerShadows(bool)));
 
+  p->previewRasterizerPostAANoneAct = new QAction(tr("&None"), this);
+  p->previewRasterizerPostAANoneAct->setStatusTip(
+    tr("Disable image-space anti-aliasing in the live rasterizer preview"));
+  p->previewRasterizerPostAANoneAct->setCheckable(true);
+  p->previewRasterizerPostAANoneAct->setChecked(true);
+  connect(p->previewRasterizerPostAANoneAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewRasterizerPostAANone()));
+
+  p->previewRasterizerPostAAFxaaAct = new QAction(tr("&FXAA"), this);
+  p->previewRasterizerPostAAFxaaAct->setStatusTip(
+    tr("Add a graph-visible FXAA pass to the live rasterizer preview"));
+  p->previewRasterizerPostAAFxaaAct->setCheckable(true);
+  connect(p->previewRasterizerPostAAFxaaAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewRasterizerPostAAFxaa()));
+
+  p->previewRasterizerPostAASmaaAct = new QAction(tr("&SMAA"), this);
+  p->previewRasterizerPostAASmaaAct->setStatusTip(
+    tr("Add a graph-visible SMAA pass to the live rasterizer preview"));
+  p->previewRasterizerPostAASmaaAct->setCheckable(true);
+  connect(p->previewRasterizerPostAASmaaAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewRasterizerPostAASmaa()));
+
+  auto previewRasterizerPostAAGroup = new QActionGroup(this);
+  previewRasterizerPostAAGroup->addAction(p->previewRasterizerPostAANoneAct);
+  previewRasterizerPostAAGroup->addAction(p->previewRasterizerPostAAFxaaAct);
+  previewRasterizerPostAAGroup->addAction(p->previewRasterizerPostAASmaaAct);
+
   p->previewWireframeOverlayAct = new QAction(tr("Wireframe &Overlay"), this);
   p->previewWireframeOverlayAct->setStatusTip(
     tr("Draw graph-generated wireframe edges over the live shaded preview"));
@@ -591,6 +621,10 @@ void MainWindow::createMenus() {
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewWireframeOverlayAct);
   previewMenu->addAction(p->previewRasterizerShadowsAct);
+  auto previewPostAAMenu = previewMenu->addMenu(tr("Rasterizer Preview Post &AA"));
+  previewPostAAMenu->addAction(p->previewRasterizerPostAANoneAct);
+  previewPostAAMenu->addAction(p->previewRasterizerPostAAFxaaAct);
+  previewPostAAMenu->addAction(p->previewRasterizerPostAASmaaAct);
 
   auto previewTonemapMenu = p->renderMenu->addMenu(tr("Preview &Tonemap"));
   previewTonemapMenu->addAction(p->previewTonemapLinearAct);
@@ -896,7 +930,27 @@ void MainWindow::usePreviewWireframe() {
 }
 
 void MainWindow::setPreviewRasterizerShadows(bool enabled) {
+  if (enabled) {
+    p->previewRasterizerAct->setChecked(true);
+    p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
+  }
   p->display->setRasterizerPreviewShadowsEnabled(enabled);
+}
+
+void MainWindow::setPreviewRasterizerPostAANone() {
+  p->display->setRasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA::None);
+}
+
+void MainWindow::setPreviewRasterizerPostAAFxaa() {
+  p->previewRasterizerAct->setChecked(true);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
+  p->display->setRasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA::FXAA);
+}
+
+void MainWindow::setPreviewRasterizerPostAASmaa() {
+  p->previewRasterizerAct->setChecked(true);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
+  p->display->setRasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA::SMAA);
 }
 
 void MainWindow::setPreviewWireframeOverlay(bool enabled) {
@@ -1227,6 +1281,10 @@ engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
                                          : engine::graph::RenderIntent();
   intent.enablePreviewShadows =
     intent.enablePreviewShadows || (p->display && p->display->rasterizerPreviewShadowsEnabled());
+  if (p->display &&
+      p->display->rasterizerPreviewPostProcessAA() != engine::graph::RenderPostProcessAA::None) {
+    intent.postProcessAA = p->display->rasterizerPreviewPostProcessAA();
+  }
   intent.enableWireframeOverlay =
     intent.enableWireframeOverlay || (p->display && p->display->wireframeOverlayEnabled());
 

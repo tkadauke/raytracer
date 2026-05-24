@@ -46,7 +46,8 @@ file(WRITE "${scene_intent_scene}" [=[
   "renderIntent": {
     "defaultExecutor": "rasterizer",
     "defaultViewMode": "beauty",
-    "enableWireframeOverlay": true
+    "enableWireframeOverlay": true,
+    "postProcessAA": "smaa"
   },
   "children": []
 }
@@ -246,6 +247,9 @@ if(NOT scene_intent_graph MATCHES "raster_beauty")
 endif()
 if(NOT scene_intent_graph MATCHES "wireframe_overlay")
   message(FATAL_ERROR "scene render intent did not add wireframe_overlay: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "raster_smaa")
+  message(FATAL_ERROR "scene render intent did not add raster_smaa: ${scene_intent_graph}")
 endif()
 
 rendercli_run(

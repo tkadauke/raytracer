@@ -5,9 +5,11 @@
 #include "engine/graph/RenderGraphCompiler.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/materials/Material.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
 
@@ -83,6 +85,43 @@ namespace GraphRenderEngineTest {
       }
     }
     return count;
+  }
+
+  int countDifferingPixels(const Buffer<unsigned int>& first, const Buffer<unsigned int>& second) {
+    int count = 0;
+    for (int y = 0; y != first.height(); ++y) {
+      for (int x = 0; x != first.width(); ++x) {
+        if (first[y][x] != second[y][x]) {
+          ++count;
+        }
+      }
+    }
+    return count;
+  }
+
+  std::shared_ptr<render::Material> matte(const Colord& color) {
+    return std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(color));
+  }
+
+  std::shared_ptr<render::Scene> highContrastRasterScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
+    sphere->setMaterial(matte(Colord::white()));
+    scene->add(sphere);
+    return scene;
+  }
+
+  void renderRasterGraph(RenderPostProcessAA postAA, Buffer<unsigned int>& buffer) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.postProcessAA = postAA;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastRasterScene());
+    engine.setPlan(compiler.compile({64, 64, 1}, intent));
+    engine.render(buffer);
   }
 
   TEST(GraphRenderEngine, CompilesAndExecutesDefaultRaytracedBeautyPass) {
@@ -333,6 +372,24 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("raster_preview_shadows", engine.lastPlan().passes()[0].id);
     EXPECT_EQ("raster_beauty", engine.lastPlan().passes()[1].id);
     EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, ExecutesRasterFxaaPostProcessPassInLdrRender) {
+    Buffer<unsigned int> aliased(64, 64);
+    Buffer<unsigned int> filtered(64, 64);
+    renderRasterGraph(RenderPostProcessAA::None, aliased);
+    renderRasterGraph(RenderPostProcessAA::FXAA, filtered);
+
+    EXPECT_GT(countDifferingPixels(aliased, filtered), 0);
+  }
+
+  TEST(GraphRenderEngine, ExecutesRasterSmaaPostProcessPassInLdrRender) {
+    Buffer<unsigned int> aliased(64, 64);
+    Buffer<unsigned int> filtered(64, 64);
+    renderRasterGraph(RenderPostProcessAA::None, aliased);
+    renderRasterGraph(RenderPostProcessAA::SMAA, filtered);
+
+    EXPECT_GT(countDifferingPixels(aliased, filtered), 0);
   }
 
   TEST(GraphRenderEngine, RejectsUnsupportedMultiPassPlans) {

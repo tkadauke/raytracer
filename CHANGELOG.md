@@ -34,6 +34,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   for pass ids, resource ids, resource producers, and resource consumers, giving
   later graph-rewrite code and inspection tools a single plan-owned API for
   dependency queries. — GPT-5
+- **RenderPlan edge construction.** `RenderPlan` now exposes plan-owned helpers
+  for connecting producer passes to consumers and routing resources through
+  inserted passes, so compiler code can build graph edges without open-coded
+  pass-list surgery. — GPT-5
 - **Typed graph postprocess AA state.** Graph-visible raster FXAA/SMAA passes
   now serialize `post_process_aa` pass parameters at the JSON boundary and
   execute from typed C++ state rather than inferring the filter from a pass id.
@@ -115,6 +119,17 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler raster AA graph wiring.** Rasterizer preview FXAA/SMAA now compile
+  through shared `RenderIntent::postProcessAA` graph nodes, and the Modeler
+  raster render dialog now renders through the same graph path so post-AA and
+  shadow-map settings are not hidden in a separate direct-engine setup.
+  Choosing a rasterizer-only preview AA or shadow option now switches the live
+  preview to Rasterizer before recompiling the graph, so the Render Graph dock
+  immediately shows the requested nodes. — GPT-5
+- **SMAA preview visibility.** The CPU SMAA approximation now detects diagonal
+  edge axes in addition to horizontal and vertical edges and uses a stronger
+  edge blend, making the Modeler raster preview visibly change when SMAA is
+  selected. — GPT-5
 - **Render graph serial-order validation.** `RenderPlan::validate()` now
   rejects serial plans where a pass reads a resource before its producer appears
   in the pass list, catching malformed replayed JSON before the graph engine

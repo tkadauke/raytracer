@@ -12,9 +12,9 @@ namespace render::postprocess {
     * This CPU approximation keeps the same data contract as FXAA: it reads only
     * the completed color buffer and writes a filtered result back in place. It
     * follows the first SMAA stages at preview scale by detecting luminance
-    * discontinuities, estimating whether the edge is mainly horizontal or
-    * vertical, and blending the two sides of that edge without rerunning
-    * geometry coverage.
+    * discontinuities, estimating the strongest horizontal, vertical, or
+    * diagonal edge axis, and blending the two sides of that edge without
+    * rerunning geometry coverage.
     */
   void applySmaa(Buffer<Colord>& buffer);
 }

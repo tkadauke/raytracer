@@ -3,6 +3,9 @@
 
 #include "widgets/RenderWidget.h"
 
+#include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RasterPassState.h"
+#include "engine/graph/RenderGraphCompiler.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
@@ -38,7 +41,75 @@ struct RenderWindow::Private {
   // scene + camera ready to take over on the next "Render" click.
   std::shared_ptr<engine::raytracer::Raytracer> raytracer;
   std::shared_ptr<engine::wireframe::Wireframe> wireframe;
-  std::shared_ptr<engine::raster::Rasterizer> rasterizer;
+  std::shared_ptr<engine::graph::GraphRenderEngine> rasterGraph;
+
+  engine::graph::RenderPostProcessAA postProcessAA() const {
+    const QString postAA = settingsWidget->postProcessAA();
+    if (postAA == "FXAA") {
+      return engine::graph::RenderPostProcessAA::FXAA;
+    }
+    if (postAA == "SMAA") {
+      return engine::graph::RenderPostProcessAA::SMAA;
+    }
+    if (postAA == "TAA") {
+      return engine::graph::RenderPostProcessAA::TAA;
+    }
+    return engine::graph::RenderPostProcessAA::None;
+  }
+
+  engine::graph::RenderIntent rasterIntent() const {
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
+    intent.enablePreviewShadows = settingsWidget->shadowMapsEnabled();
+    intent.postProcessAA = postProcessAA();
+    return intent;
+  }
+
+  engine::graph::RasterBeautyPassState rasterBeautyPassState(engine::graph::RenderPostProcessAA aa,
+                                                             bool includeImagePostProcessAA,
+                                                             bool includeShadowMapEnable) const {
+    engine::graph::RasterBeautyPassState state;
+    state.geometry().setLod(settingsWidget->lod());
+    state.sampling().setMSAASamples(settingsWidget->msaaSamples());
+    if (settingsWidget->msaaShadingMode() == "Per fragment") {
+      state.sampling().setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
+    }
+    if (includeImagePostProcessAA && aa == engine::graph::RenderPostProcessAA::FXAA) {
+      state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
+    } else if (includeImagePostProcessAA && aa == engine::graph::RenderPostProcessAA::SMAA) {
+      state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::SMAA);
+    } else if (aa == engine::graph::RenderPostProcessAA::TAA) {
+      state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::TAA);
+    }
+
+    state.execution().setMaximumThreads(settingsWidget->renderThreads());
+    if (includeShadowMapEnable) {
+      state.shadows().setShadowMapsEnabled(settingsWidget->shadowMapsEnabled());
+    }
+    state.shadows().setShadowMapSize(settingsWidget->shadowMapSize());
+    state.shadows().setShadowCascadeCount(settingsWidget->shadowCascadeCount());
+    state.shadows().setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
+    state.shadows().setShadowBias(settingsWidget->shadowBias());
+    state.shadows().setShadowSlopeBias(settingsWidget->shadowSlopeBias());
+    state.shadows().setShadowFilterRadius(settingsWidget->shadowFilterRadius());
+    if (settingsWidget->shadowFilterMode() == "PCSS") {
+      state.shadows().setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+    }
+    return state;
+  }
+
+  engine::graph::RenderPlan rasterPlan() const {
+    const QSize resolution = settingsWidget->resolution();
+    const auto intent = rasterIntent();
+    engine::graph::RenderGraphCompiler compiler;
+    auto plan = compiler.compile(
+      {resolution.width(), resolution.height(), settingsWidget->msaaSamples()}, intent);
+    rasterBeautyPassState(intent.postProcessAA, !intent.usesGraphImagePostProcessAA(),
+                          !intent.enablePreviewShadows)
+      .writeToRasterBeautyPasses(plan);
+    return plan;
+  }
 
   bool busy;
   int timer;
@@ -50,7 +121,7 @@ RenderWindow::RenderWindow(QWidget* parent)
       p(std::make_unique<Private>()) {
   p->raytracer = std::make_shared<Raytracer>(nullptr);
   p->wireframe = std::make_shared<engine::wireframe::Wireframe>(nullptr);
-  p->rasterizer = std::make_shared<engine::raster::Rasterizer>(nullptr);
+  p->rasterGraph = std::make_shared<engine::graph::GraphRenderEngine>(nullptr);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
@@ -107,36 +178,12 @@ void RenderWindow::render() {
     p->wireframe->setLod(p->settingsWidget->lod());
     engine = p->wireframe;
   } else if (p->settingsWidget->engine() == "Rasterizer") {
-    p->rasterizer->setCamera(p->raytracer->camera());
-    p->rasterizer->setScene(p->raytracer->scene());
-    p->rasterizer->setLod(p->settingsWidget->lod());
-    p->rasterizer->setMSAASamples(p->settingsWidget->msaaSamples());
-    const QString postAA = p->settingsWidget->postProcessAA();
-    engine::raster::Rasterizer::PostProcessAA postProcessAA =
-      engine::raster::Rasterizer::PostProcessAA::None;
-    if (postAA == "FXAA") {
-      postProcessAA = engine::raster::Rasterizer::PostProcessAA::FXAA;
-    } else if (postAA == "SMAA") {
-      postProcessAA = engine::raster::Rasterizer::PostProcessAA::SMAA;
-    } else if (postAA == "TAA") {
-      postProcessAA = engine::raster::Rasterizer::PostProcessAA::TAA;
-    }
-    p->rasterizer->setMSAAShadingMode(p->settingsWidget->msaaShadingMode() == "Per fragment"
-                                        ? engine::raster::Rasterizer::MSAAShadingMode::PerFragment
-                                        : engine::raster::Rasterizer::MSAAShadingMode::PerSample);
-    p->rasterizer->setPostProcessAA(postProcessAA);
-    p->rasterizer->setShadowMapsEnabled(p->settingsWidget->shadowMapsEnabled());
-    p->rasterizer->setShadowMapSize(p->settingsWidget->shadowMapSize());
-    p->rasterizer->setShadowCascadeCount(p->settingsWidget->shadowCascadeCount());
-    p->rasterizer->setShadowCascadeSplitLambda(p->settingsWidget->shadowCascadeSplitLambda());
-    p->rasterizer->setShadowBias(p->settingsWidget->shadowBias());
-    p->rasterizer->setShadowSlopeBias(p->settingsWidget->shadowSlopeBias());
-    p->rasterizer->setShadowFilterRadius(p->settingsWidget->shadowFilterRadius());
-    p->rasterizer->setShadowFilterMode(p->settingsWidget->shadowFilterMode() == "PCSS"
-                                         ? engine::raster::Rasterizer::ShadowFilterMode::PCSS
-                                         : engine::raster::Rasterizer::ShadowFilterMode::PCF);
-    p->rasterizer->setMaximumThreads(p->settingsWidget->renderThreads());
-    engine = p->rasterizer;
+    const auto intent = p->rasterIntent();
+    p->rasterGraph->setCamera(p->raytracer->camera());
+    p->rasterGraph->setScene(p->raytracer->scene());
+    p->rasterGraph->setIntent(intent);
+    p->rasterGraph->setPlan(p->rasterPlan());
+    engine = p->rasterGraph;
   } else {
     auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
     auto sampler = render::SamplerFactory::self().createShared(samplerClass);
@@ -180,7 +227,7 @@ void RenderWindow::setScene(::Scene* scene) {
 
   p->raytracer->setScene(raytracerScene);
   p->wireframe->setScene(raytracerScene);
-  p->rasterizer->setScene(raytracerScene);
+  p->rasterGraph->setScene(raytracerScene);
 
   auto camera = scene->activeCamera();
   std::shared_ptr<render::Camera> rtCamera;
@@ -193,5 +240,5 @@ void RenderWindow::setScene(::Scene* scene) {
   }
   p->raytracer->setCamera(rtCamera);
   p->wireframe->setCamera(rtCamera);
-  p->rasterizer->setCamera(rtCamera);
+  p->rasterGraph->setCamera(rtCamera);
 }

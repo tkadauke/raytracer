@@ -66,6 +66,17 @@ namespace engine::graph {
 
     void addResource(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
+    /**
+      * Adds @p resource as the edge produced by @p producer and consumed by
+      * the existing pass @p consumerPassId.
+      *
+      * The producer is inserted before the consumer in the current serial
+      * execution order. The resource edge is the dependency: this method adds
+      * the producer's write and the consumer's read when they are not already
+      * present.
+      */
+    void connectProducerToConsumer(RenderPassNode producer, RenderResourceDescriptor resource,
+                                   const RenderPassId& consumerPassId);
     std::size_t routeResourceThroughPass(const RenderResourceId& sourceResource,
                                          RenderResourceDescriptor routedResource,
                                          RenderPassNode pass);

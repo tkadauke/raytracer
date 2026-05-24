@@ -6,6 +6,17 @@
 #include <cmath>
 
 namespace {
+  struct EdgeAxis {
+    int negativeDx;
+    int negativeDy;
+    int positiveDx;
+    int positiveDy;
+    int spanNegativeDx;
+    int spanNegativeDy;
+    int spanPositiveDx;
+    int spanPositiveDy;
+  };
+
   double luma(const Colord& color) {
     return color.r() * 0.299 + color.g() * 0.587 + color.b() * 0.114;
   }
@@ -16,7 +27,7 @@ namespace {
     return buffer[y][x];
   }
 
-  double edgeSpan(const Buffer<Colord>& source, int x, int y, bool verticalEdge,
+  double edgeSpan(const Buffer<Colord>& source, int x, int y, const EdgeAxis& axis,
                   double centerLuma) {
     constexpr int maxSearchSteps = 8;
     constexpr double searchThreshold = 1.0 / 16.0;
@@ -24,20 +35,42 @@ namespace {
     int negativeSteps = 0;
     int positiveSteps = 0;
     for (int step = 1; step <= maxSearchSteps; ++step) {
-      const int sx = verticalEdge ? x : x - step;
-      const int sy = verticalEdge ? y - step : y;
+      const int sx = x + axis.spanNegativeDx * step;
+      const int sy = y + axis.spanNegativeDy * step;
       if (std::abs(luma(sampleClamped(source, sx, sy)) - centerLuma) < searchThreshold)
         break;
       negativeSteps = step;
     }
     for (int step = 1; step <= maxSearchSteps; ++step) {
-      const int sx = verticalEdge ? x : x + step;
-      const int sy = verticalEdge ? y + step : y;
+      const int sx = x + axis.spanPositiveDx * step;
+      const int sy = y + axis.spanPositiveDy * step;
       if (std::abs(luma(sampleClamped(source, sx, sy)) - centerLuma) < searchThreshold)
         break;
       positiveSteps = step;
     }
     return static_cast<double>(negativeSteps + positiveSteps + 1);
+  }
+
+  const EdgeAxis& strongestEdgeAxis(const Buffer<Colord>& source, int x, int y) {
+    static const EdgeAxis axes[] = {
+      {-1, 0, 1, 0, 0, -1, 0, 1},
+      {0, -1, 0, 1, -1, 0, 1, 0},
+      {-1, -1, 1, 1, 1, -1, -1, 1},
+      {1, -1, -1, 1, -1, -1, 1, 1},
+    };
+
+    const EdgeAxis* best = &axes[0];
+    double bestContrast = -1.0;
+    for (const auto& axis : axes) {
+      const double negative = luma(sampleClamped(source, x + axis.negativeDx, y + axis.negativeDy));
+      const double positive = luma(sampleClamped(source, x + axis.positiveDx, y + axis.positiveDy));
+      const double contrast = std::abs(negative - positive);
+      if (contrast > bestContrast) {
+        best = &axis;
+        bestContrast = contrast;
+      }
+    }
+    return *best;
   }
 }
 
@@ -55,29 +88,25 @@ void render::postprocess::applySmaa(Buffer<Colord>& buffer) {
   }
 
   constexpr double edgeThreshold = 0.08;
-  constexpr double maxBlend = 0.55;
+  constexpr double maxBlend = 0.65;
 
   for (int y = 1; y < height - 1; ++y) {
     for (int x = 1; x < width - 1; ++x) {
       const double center = luma(source[y][x]);
-      const double left = luma(source[y][x - 1]);
-      const double right = luma(source[y][x + 1]);
-      const double up = luma(source[y - 1][x]);
-      const double down = luma(source[y + 1][x]);
 
-      const double horizontalDelta = std::max(std::abs(center - left), std::abs(center - right));
-      const double verticalDelta = std::max(std::abs(center - up), std::abs(center - down));
-      const double edgeDelta = std::max(horizontalDelta, verticalDelta);
+      const EdgeAxis& axis = strongestEdgeAxis(source, x, y);
+      const Colord negativeSide = sampleClamped(source, x + axis.negativeDx, y + axis.negativeDy);
+      const Colord positiveSide = sampleClamped(source, x + axis.positiveDx, y + axis.positiveDy);
+      const double negative = luma(negativeSide);
+      const double positive = luma(positiveSide);
+      const double edgeDelta = std::max(std::abs(center - negative), std::abs(center - positive));
       if (edgeDelta < edgeThreshold)
         continue;
 
-      const bool verticalEdge = horizontalDelta >= verticalDelta;
-      const Colord negativeSide = verticalEdge ? source[y][x - 1] : source[y - 1][x];
-      const Colord positiveSide = verticalEdge ? source[y][x + 1] : source[y + 1][x];
       const Colord crossEdgeAverage = (negativeSide + positiveSide) * 0.5;
 
-      const double span = edgeSpan(source, x, y, verticalEdge, center);
-      const double blend = std::clamp(edgeDelta * (0.35 + span / 32.0), 0.0, maxBlend);
+      const double span = edgeSpan(source, x, y, axis, center);
+      const double blend = std::clamp(edgeDelta * (0.45 + span / 24.0), 0.0, maxBlend);
       buffer[y][x] = source[y][x] * (1.0 - blend) + crossEdgeAverage * blend;
     }
   }

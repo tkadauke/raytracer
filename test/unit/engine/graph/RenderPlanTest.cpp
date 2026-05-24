@@ -466,6 +466,46 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, ConnectsProducerToExistingConsumerWithResourceEdge) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
+    beauty.executor = RenderExecutorKind::Rasterizer;
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"main_color"});
+    plan.addPass(tonemap);
+
+    RenderResourceDescriptor shadowMap;
+    shadowMap.id = "preview_shadow_map";
+    shadowMap.name = "Preview shadow map";
+    shadowMap.type = RenderResourceType::ShadowMap;
+    shadowMap.lifetime = RenderResourceLifetime::Transient;
+
+    auto shadows = pass("raster_preview_shadows", RenderPassKind::Shadow);
+    shadows.executor = RenderExecutorKind::Rasterizer;
+
+    plan.connectProducerToConsumer(shadows, shadowMap, "raster_beauty");
+
+    ASSERT_EQ(3u, plan.resources().size());
+    EXPECT_EQ("preview_shadow_map", plan.resources()[2].id);
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_EQ("raster_preview_shadows", plan.passes()[0].id);
+    EXPECT_EQ("raster_beauty", plan.passes()[1].id);
+    EXPECT_EQ("tonemap", plan.passes()[2].id);
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("preview_shadow_map", plan.passes()[0].writes[0].resource);
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    EXPECT_EQ("preview_shadow_map", plan.passes()[1].reads[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderPlan, RoundTripsPostProcessAAState) {
     RenderPlan plan;
     plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient));

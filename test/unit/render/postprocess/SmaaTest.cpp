@@ -44,6 +44,21 @@ namespace SmaaTest {
     EXPECT_GT(countIntermediatePixels(buffer), 0);
   }
 
+  TEST(Smaa, ShouldSoftenHighContrastDiagonalEdge) {
+    Buffer<Colord> buffer(8, 8);
+    for (int y = 0; y < buffer.height(); ++y) {
+      for (int x = 0; x < buffer.width(); ++x) {
+        buffer[y][x] = x > y ? Colord::white() : Colord::black();
+      }
+    }
+
+    ASSERT_EQ(0, countIntermediatePixels(buffer));
+
+    render::postprocess::applySmaa(buffer);
+
+    EXPECT_GT(countIntermediatePixels(buffer), 0);
+  }
+
   TEST(Smaa, ShouldLeaveTinyBuffersUnchanged) {
     Buffer<Colord> buffer(2, 2);
     buffer.clear(Colord::black());

@@ -146,6 +146,28 @@ namespace engine::graph {
     m_passes.push_back(std::move(pass));
   }
 
+  void RenderPlan::connectProducerToConsumer(RenderPassNode producer,
+                                             RenderResourceDescriptor resource,
+                                             const RenderPassId& consumerPassId) {
+    auto consumer = std::find_if(m_passes.begin(), m_passes.end(), [&](const RenderPassNode& pass) {
+      return pass.id == consumerPassId;
+    });
+    if (consumer == m_passes.end()) {
+      throw std::runtime_error("cannot connect producer '" + producer.id + "' to missing pass '" +
+                               consumerPassId + "'");
+    }
+
+    if (!producer.writesResource(resource.id)) {
+      producer.writes.push_back({resource.id});
+    }
+    if (!consumer->readsResource(resource.id)) {
+      consumer->reads.push_back({resource.id});
+    }
+
+    m_resources.push_back(std::move(resource));
+    m_passes.insert(consumer, std::move(producer));
+  }
+
   std::size_t RenderPlan::routeResourceThroughPass(const RenderResourceId& sourceResource,
                                                    RenderResourceDescriptor routedResource,
                                                    RenderPassNode pass) {
