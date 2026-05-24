@@ -1,4 +1,4 @@
-#include "RenderPassPayloads.h"
+#include "engine/graph/RenderPassPayload.h"
 
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
@@ -45,20 +45,6 @@ namespace engine::graph {
       }
     }
 
-    const ResourceRead& onlyRead(const RenderPassNode& pass) {
-      if (pass.reads.size() != 1) {
-        throw passError(pass, "requires exactly one input resource");
-      }
-      return pass.reads.front();
-    }
-
-    const ResourceWrite& onlyWrite(const RenderPassNode& pass) {
-      if (pass.writes.size() != 1) {
-        throw passError(pass, "requires exactly one output resource");
-      }
-      return pass.writes.front();
-    }
-
     void applyPreviewShadowPolicy(::engine::raster::Rasterizer& rasterizer) {
       rasterizer.setShadowMapsEnabled(true);
       rasterizer.setShadowMapSize(256);
@@ -88,7 +74,7 @@ namespace engine::graph {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
-        const auto& write = onlyWrite(pass);
+        const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
         auto engine = createEngine(context.graph());
@@ -160,8 +146,8 @@ namespace engine::graph {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
-        const auto& read = onlyRead(pass);
-        const auto& write = onlyWrite(pass);
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), read.resource, pass);
         requireColorResource(context.storage(), write.resource, pass);
 
@@ -203,8 +189,8 @@ namespace engine::graph {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
-        const auto& read = onlyRead(pass);
-        const auto& write = onlyWrite(pass);
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), read.resource, pass);
         requireColorResource(context.storage(), write.resource, pass);
 
@@ -222,7 +208,7 @@ namespace engine::graph {
     };
   }
 
-  std::unique_ptr<RenderPassPayload> makeBuiltinPassPayload(const RenderPassNode& pass) {
+  std::unique_ptr<RenderPassPayload> RenderPassPayload::createBuiltin(const RenderPassNode& pass) {
     if (pass.kind == RenderPassKind::Beauty) {
       switch (pass.executor) {
       case RenderExecutorKind::Raytracer:

@@ -1,43 +1,11 @@
 #include "engine/graph/RenderResourceStorage.h"
 
 namespace engine::graph {
-  namespace {
-    bool hasImageShape(const RenderResourceDescriptor& descriptor) {
-      return descriptor.width > 0 && descriptor.height > 0;
-    }
-
-    std::unique_ptr<RenderResource> makeResource(const RenderResourceDescriptor& descriptor) {
-      if (descriptor.domain != RenderResourceDomain::CPU || !hasImageShape(descriptor)) {
-        return std::make_unique<DescriptorOnlyRenderResource>(descriptor);
-      }
-
-      switch (descriptor.type) {
-      case RenderResourceType::Color:
-      case RenderResourceType::Normal:
-      case RenderResourceType::WorldPosition:
-      case RenderResourceType::MotionVector:
-      case RenderResourceType::ShadowMask:
-      case RenderResourceType::CustomTexture:
-        return std::make_unique<ColorRenderResource>(descriptor);
-      case RenderResourceType::Depth:
-      case RenderResourceType::ShadowMap:
-        return std::make_unique<DepthRenderResource>(descriptor);
-      case RenderResourceType::Stencil:
-        return std::make_unique<StencilRenderResource>(descriptor);
-      case RenderResourceType::ObjectId:
-      case RenderResourceType::MaterialId:
-        return std::make_unique<ObjectIdRenderResource>(descriptor);
-      }
-
-      return std::make_unique<DescriptorOnlyRenderResource>(descriptor);
-    }
-  }
-
   void RenderResourceStorage::allocate(const std::vector<RenderResourceDescriptor>& descriptors) {
     clear();
 
     for (const auto& descriptor : descriptors) {
-      m_resources[descriptor.id] = makeResource(descriptor);
+      m_resources[descriptor.id] = RenderResource::create(descriptor);
     }
   }
 

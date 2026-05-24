@@ -1,9 +1,9 @@
 #include "engine/graph/GraphRenderEngine.h"
 
 #include "core/Buffer.h"
+#include "engine/graph/RenderPassPayload.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
-#include "RenderPassPayloads.h"
 #include "render/cameras/Camera.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
@@ -73,13 +73,6 @@ namespace engine::graph {
       }
     }
 
-    const ResourceRead& onlyRead(const RenderPassNode& pass) {
-      if (pass.reads.size() != 1) {
-        throw passError(pass, "requires exactly one input resource");
-      }
-      return pass.reads.front();
-    }
-
     void pointDefaultCameraAtOrigin(const std::shared_ptr<render::Camera>& camera) {
       if (!camera) {
         return;
@@ -97,7 +90,7 @@ namespace engine::graph {
     }
 
     void passthroughColorOutput(const RenderPassNode& pass, RenderResourceStorage& storage) {
-      const auto& read = onlyRead(pass);
+      const auto& read = pass.singleRead();
       requireColorResource(storage, read.resource, pass);
       const Buffer<Colord>& source = storage.color(read.resource);
 
@@ -108,26 +101,6 @@ namespace engine::graph {
           copyColorBuffer(source, destination);
         }
       }
-    }
-
-    const RenderResourceDescriptor& outputColorResource(const RenderPlan& plan) {
-      for (const auto& resource : plan.resources()) {
-        if (resource.lifetime == RenderResourceLifetime::Exported &&
-            resource.type == RenderResourceType::Color) {
-          return resource;
-        }
-      }
-      throw std::runtime_error("render plan has no exported color resource");
-    }
-
-    bool writesResource(const RenderPassNode& pass, const RenderResourceId& resource) {
-      return std::any_of(pass.writes.begin(), pass.writes.end(),
-                         [&](const ResourceWrite& write) { return write.resource == resource; });
-    }
-
-    bool readsResource(const RenderPassNode& pass, const RenderResourceId& resource) {
-      return std::any_of(pass.reads.begin(), pass.reads.end(),
-                         [&](const ResourceRead& read) { return read.resource == resource; });
     }
 
     const RenderPassNode* singleBeautyPass(const RenderPlan& plan) {
@@ -150,7 +123,7 @@ namespace engine::graph {
     };
 
     std::optional<SimpleDisplayChain> simpleDisplayChain(const RenderPlan& plan) {
-      const auto& output = outputColorResource(plan);
+      const auto& output = plan.exportedColorResource();
       const RenderPassNode* beauty = singleBeautyPass(plan);
       if (!beauty || beauty->writes.size() != 1) {
         return std::nullopt;
@@ -167,7 +140,7 @@ namespace engine::graph {
           if (pass.kind != RenderPassKind::Tonemap ||
               pass.executor != RenderExecutorKind::PostProcess || tonemap ||
               pass.reads.size() != 1 || pass.writes.size() != 1 ||
-              !readsResource(pass, beautyColor) || !writesResource(pass, output.id)) {
+              !pass.readsResource(beautyColor) || !pass.writesResource(output.id)) {
             return std::nullopt;
           }
           tonemap = &pass;
@@ -176,7 +149,7 @@ namespace engine::graph {
 
         if (pass.kind == RenderPassKind::Tonemap &&
             pass.disabledBehavior == DisabledBehavior::Passthrough &&
-            readsResource(pass, beautyColor) && writesResource(pass, output.id)) {
+            pass.readsResource(beautyColor) && pass.writesResource(output.id)) {
           continue;
         }
 
@@ -196,7 +169,7 @@ namespace engine::graph {
       for (const auto& pass : plan.passes()) {
         if (!pass.enabled && pass.kind == RenderPassKind::Tonemap &&
             pass.disabledBehavior == DisabledBehavior::Passthrough &&
-            readsResource(pass, beautyColor) && writesResource(pass, output.id)) {
+            pass.readsResource(beautyColor) && pass.writesResource(output.id)) {
           return SimpleDisplayChain{beauty, false};
         }
       }
@@ -205,7 +178,7 @@ namespace engine::graph {
     }
 
     void requireMatchingOutputSize(const RenderPlan& plan, int width, int height) {
-      const auto& output = outputColorResource(plan);
+      const auto& output = plan.exportedColorResource();
       if (output.width != width || output.height != height) {
         throw std::runtime_error("color pack requires matching color buffer dimensions");
       }
@@ -312,7 +285,7 @@ namespace engine::graph {
         continue;
       }
 
-      auto payload = makeBuiltinPassPayload(pass);
+      auto payload = RenderPassPayload::createBuiltin(pass);
       if (!payload) {
         throw std::runtime_error("GraphRenderEngine cannot execute enabled pass '" + pass.id +
                                  "' with kind '" + toString(pass.kind) +
@@ -333,7 +306,7 @@ namespace engine::graph {
       payload->execute(context);
     }
 
-    copyColorBuffer(storage.color(outputColorResource(plan).id), buffer);
+    copyColorBuffer(storage.color(plan.exportedColorResource().id), buffer);
   }
 
   void GraphRenderEngine::render(Buffer<unsigned int>& buffer) {
@@ -354,7 +327,7 @@ namespace engine::graph {
 
     const auto displayChain = simpleDisplayChain(plan);
     if (displayChain) {
-      auto payload = makeBuiltinPassPayload(*displayChain->beauty);
+      auto payload = RenderPassPayload::createBuiltin(*displayChain->beauty);
       if (payload) {
         auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {
           std::lock_guard<std::mutex> lock(p->activeEngineMutex);

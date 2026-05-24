@@ -62,6 +62,7 @@ namespace engine::graph {
     std::string toText() const;
     std::string toDot() const;
     QJsonObject toJson() const;
+    const RenderResourceDescriptor& exportedColorResource() const;
     /**
       * Rebuild a plan from the JSON shape emitted by `toJson()`.
       *

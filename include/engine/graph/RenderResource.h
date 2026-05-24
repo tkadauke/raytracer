@@ -5,6 +5,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 
 #include <cstdint>
+#include <memory>
 #include <stdexcept>
 
 namespace engine::graph {
@@ -19,6 +20,8 @@ namespace engine::graph {
   public:
     explicit RenderResource(RenderResourceDescriptor descriptor);
     virtual ~RenderResource();
+
+    static std::unique_ptr<RenderResource> create(RenderResourceDescriptor descriptor);
 
     const RenderResourceDescriptor& descriptor() const;
 

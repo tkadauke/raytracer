@@ -3,9 +3,7 @@
 #include <QJsonArray>
 
 #include <algorithm>
-#include <cmath>
 #include <functional>
-#include <initializer_list>
 #include <map>
 #include <set>
 #include <sstream>
@@ -14,10 +12,6 @@
 
 namespace engine::graph {
   namespace {
-    QString qstr(const std::string& value) {
-      return QString::fromStdString(value);
-    }
-
     std::string dotEscape(const std::string& value) {
       std::string result;
       result.reserve(value.size());
@@ -40,46 +34,6 @@ namespace engine::graph {
         [&](const RenderFeatureKind& feature) { return contains(features, feature); });
     }
 
-    bool isExternallyAvailable(RenderResourceLifetime lifetime) {
-      return lifetime == RenderResourceLifetime::Imported ||
-             lifetime == RenderResourceLifetime::History ||
-             lifetime == RenderResourceLifetime::PersistentCache;
-    }
-
-    bool passProducesWhenDisabled(const RenderPassNode& pass) {
-      return pass.disabledBehavior == DisabledBehavior::SubstituteDefault ||
-             pass.disabledBehavior == DisabledBehavior::Passthrough;
-    }
-
-    QJsonArray stringArray(const std::vector<RenderFeatureKind>& values) {
-      QJsonArray array;
-      for (const auto& value : values)
-        array.append(qstr(value));
-      return array;
-    }
-
-    QJsonArray readArray(const std::vector<ResourceRead>& reads) {
-      QJsonArray array;
-      for (const auto& read : reads)
-        array.append(qstr(read.resource));
-      return array;
-    }
-
-    QJsonArray writeArray(const std::vector<ResourceWrite>& writes) {
-      QJsonArray array;
-      for (const auto& write : writes)
-        array.append(qstr(write.resource));
-      return array;
-    }
-
-    QJsonObject selectorJson(const SceneSelector& selector) {
-      QJsonObject result;
-      result["kind"] = toString(selector.kind);
-      if (!selector.value.empty())
-        result["value"] = qstr(selector.value);
-      return result;
-    }
-
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid render plan JSON at " + path + ": " + message);
     }
@@ -89,211 +43,6 @@ namespace engine::graph {
       if (!value.isArray())
         jsonError(path + "." + key, "expected array");
       return value.toArray();
-    }
-
-    std::string stringField(const QJsonObject& object, const char* key, const std::string& path,
-                            const std::string& fallback = {}) {
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return fallback;
-      if (!value.isString())
-        jsonError(path + "." + key, "expected string");
-      return value.toString().toStdString();
-    }
-
-    int intField(const QJsonObject& object, const char* key, const std::string& path,
-                 int fallback) {
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return fallback;
-      if (!value.isDouble())
-        jsonError(path + "." + key, "expected integer");
-
-      const double number = value.toDouble();
-      if (!std::isfinite(number) || std::floor(number) != number)
-        jsonError(path + "." + key, "expected integer");
-      return static_cast<int>(number);
-    }
-
-    bool boolField(const QJsonObject& object, const char* key, const std::string& path,
-                   bool fallback) {
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return fallback;
-      if (!value.isBool())
-        jsonError(path + "." + key, "expected boolean");
-      return value.toBool();
-    }
-
-    template<class T>
-    T enumValue(const std::string& value, std::initializer_list<std::pair<const char*, T>> values,
-                const std::string& path) {
-      for (const auto& [name, parsed] : values) {
-        if (value == name)
-          return parsed;
-      }
-      jsonError(path, "unknown value '" + value + "'");
-    }
-
-    RenderResourceType resourceTypeFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderResourceType>(value,
-                                           {{"color", RenderResourceType::Color},
-                                            {"depth", RenderResourceType::Depth},
-                                            {"stencil", RenderResourceType::Stencil},
-                                            {"object_id", RenderResourceType::ObjectId},
-                                            {"material_id", RenderResourceType::MaterialId},
-                                            {"normal", RenderResourceType::Normal},
-                                            {"world_position", RenderResourceType::WorldPosition},
-                                            {"motion_vector", RenderResourceType::MotionVector},
-                                            {"shadow_map", RenderResourceType::ShadowMap},
-                                            {"shadow_mask", RenderResourceType::ShadowMask},
-                                            {"custom_texture", RenderResourceType::CustomTexture}},
-                                           path);
-    }
-
-    RenderResourceFormat resourceFormatFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderResourceFormat>(
-        value,
-        {{"unknown", RenderResourceFormat::Unknown},
-         {"rgb_double", RenderResourceFormat::RGBDouble},
-         {"depth_double", RenderResourceFormat::DepthDouble},
-         {"uint8", RenderResourceFormat::UInt8},
-         {"uint32", RenderResourceFormat::UInt32},
-         {"scalar_double", RenderResourceFormat::ScalarDouble}},
-        path);
-    }
-
-    RenderResourceDomain resourceDomainFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderResourceDomain>(
-        value, {{"cpu", RenderResourceDomain::CPU}, {"gpu", RenderResourceDomain::GPU}}, path);
-    }
-
-    RenderResourceLifetime resourceLifetimeFromJson(const std::string& value,
-                                                    const std::string& path) {
-      return enumValue<RenderResourceLifetime>(
-        value,
-        {{"transient", RenderResourceLifetime::Transient},
-         {"imported", RenderResourceLifetime::Imported},
-         {"exported", RenderResourceLifetime::Exported},
-         {"history", RenderResourceLifetime::History},
-         {"persistent_cache", RenderResourceLifetime::PersistentCache}},
-        path);
-    }
-
-    RenderPassKind passKindFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderPassKind>(value,
-                                       {{"beauty", RenderPassKind::Beauty},
-                                        {"shadow", RenderPassKind::Shadow},
-                                        {"overlay", RenderPassKind::Overlay},
-                                        {"composite", RenderPassKind::Composite},
-                                        {"tonemap", RenderPassKind::Tonemap},
-                                        {"postprocess", RenderPassKind::PostProcess},
-                                        {"aov", RenderPassKind::AOV},
-                                        {"debug", RenderPassKind::Debug},
-                                        {"custom", RenderPassKind::Custom}},
-                                       path);
-    }
-
-    RenderExecutorKind executorKindFromJson(const std::string& value, const std::string& path) {
-      return enumValue<RenderExecutorKind>(value,
-                                           {{"raytracer", RenderExecutorKind::Raytracer},
-                                            {"rasterizer", RenderExecutorKind::Rasterizer},
-                                            {"wireframe", RenderExecutorKind::Wireframe},
-                                            {"composite", RenderExecutorKind::Composite},
-                                            {"postprocess", RenderExecutorKind::PostProcess}},
-                                           path);
-    }
-
-    DisabledBehavior disabledBehaviorFromJson(const std::string& value, const std::string& path) {
-      return enumValue<DisabledBehavior>(
-        value,
-        {{"error", DisabledBehavior::Error},
-         {"cull_dependents", DisabledBehavior::CullDependents},
-         {"substitute_default", DisabledBehavior::SubstituteDefault},
-         {"passthrough", DisabledBehavior::Passthrough}},
-        path);
-    }
-
-    SceneSelector::Kind selectorKindFromJson(const std::string& value, const std::string& path) {
-      return enumValue<SceneSelector::Kind>(value,
-                                            {{"all", SceneSelector::Kind::All},
-                                             {"object_id", SceneSelector::Kind::ObjectId},
-                                             {"object_name", SceneSelector::Kind::ObjectName},
-                                             {"tag", SceneSelector::Kind::Tag},
-                                             {"layer", SceneSelector::Kind::Layer},
-                                             {"material_role", SceneSelector::Kind::MaterialRole}},
-                                            path);
-    }
-
-    std::vector<RenderFeatureKind> featureArrayFromJson(const QJsonObject& object, const char* key,
-                                                        const std::string& path) {
-      std::vector<RenderFeatureKind> result;
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return result;
-      if (!value.isArray())
-        jsonError(path + "." + key, "expected array");
-
-      const auto array = value.toArray();
-      result.reserve(static_cast<std::size_t>(array.size()));
-      for (int i = 0; i < array.size(); ++i) {
-        if (!array.at(i).isString())
-          jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
-        result.push_back(array.at(i).toString().toStdString());
-      }
-      return result;
-    }
-
-    std::vector<ResourceRead> readsFromJson(const QJsonObject& object, const char* key,
-                                            const std::string& path) {
-      std::vector<ResourceRead> result;
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return result;
-      if (!value.isArray())
-        jsonError(path + "." + key, "expected array");
-
-      const auto array = value.toArray();
-      result.reserve(static_cast<std::size_t>(array.size()));
-      for (int i = 0; i < array.size(); ++i) {
-        if (!array.at(i).isString())
-          jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
-        result.push_back({array.at(i).toString().toStdString()});
-      }
-      return result;
-    }
-
-    std::vector<ResourceWrite> writesFromJson(const QJsonObject& object, const char* key,
-                                              const std::string& path) {
-      std::vector<ResourceWrite> result;
-      const auto value = object.value(key);
-      if (value.isUndefined())
-        return result;
-      if (!value.isArray())
-        jsonError(path + "." + key, "expected array");
-
-      const auto array = value.toArray();
-      result.reserve(static_cast<std::size_t>(array.size()));
-      for (int i = 0; i < array.size(); ++i) {
-        if (!array.at(i).isString())
-          jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
-        result.push_back({array.at(i).toString().toStdString()});
-      }
-      return result;
-    }
-
-    SceneSelector selectorFromJson(const QJsonObject& object, const std::string& path) {
-      const auto selector = object.value("sceneSelector");
-      if (selector.isUndefined())
-        return SceneSelector::all();
-      if (!selector.isObject())
-        jsonError(path + ".sceneSelector", "expected object");
-
-      const auto selectorObject = selector.toObject();
-      return {
-        selectorKindFromJson(stringField(selectorObject, "kind", path + ".sceneSelector", "all"),
-                             path + ".sceneSelector.kind"),
-        stringField(selectorObject, "value", path + ".sceneSelector")};
     }
   }
 
@@ -425,7 +174,7 @@ namespace engine::graph {
 
         const auto producerIt = producers.find(read.resource);
         if (producerIt == producers.end()) {
-          if (!isExternallyAvailable(resourceIt->second->lifetime)) {
+          if (!resourceIt->second->externallyAvailable()) {
             result.add({RenderPlanValidationError::Code::MissingProducer,
                         "resource '" + read.resource + "' is read but has no producer", pass.id,
                         read.resource});
@@ -434,7 +183,7 @@ namespace engine::graph {
         }
 
         const RenderPassNode* producer = producerIt->second;
-        if (!producer->enabled && !passProducesWhenDisabled(*producer)) {
+        if (!producer->enabled && !producer->producesWhenDisabled()) {
           result.add({RenderPlanValidationError::Code::DisabledDependency,
                       "pass '" + pass.id + "' reads resource '" + read.resource +
                         "' from disabled pass '" + producer->id + "'",
@@ -550,41 +299,28 @@ namespace engine::graph {
   QJsonObject RenderPlan::toJson() const {
     QJsonArray resourceArray;
     for (const auto& resource : m_resources) {
-      QJsonObject object;
-      object["id"] = qstr(resource.id);
-      object["name"] = qstr(resource.name);
-      object["type"] = toString(resource.type);
-      object["format"] = toString(resource.format);
-      object["width"] = resource.width;
-      object["height"] = resource.height;
-      object["sampleCount"] = resource.sampleCount;
-      object["domain"] = toString(resource.domain);
-      object["lifetime"] = toString(resource.lifetime);
-      resourceArray.append(object);
+      resourceArray.append(resource.toJson());
     }
 
     QJsonArray passArray;
     for (const auto& pass : m_passes) {
-      QJsonObject object;
-      object["id"] = qstr(pass.id);
-      object["name"] = qstr(pass.name);
-      object["kind"] = toString(pass.kind);
-      object["executor"] = toString(pass.executor);
-      object["features"] = stringArray(pass.features);
-      object["reads"] = readArray(pass.reads);
-      object["writes"] = writeArray(pass.writes);
-      object["sceneSelector"] = selectorJson(pass.sceneView.selector);
-      object["disabledBehavior"] = toString(pass.disabledBehavior);
-      object["enabled"] = pass.enabled;
-      object["hasExternalSideEffects"] = pass.hasExternalSideEffects;
-      object["canRunConcurrently"] = pass.canRunConcurrently;
-      passArray.append(object);
+      passArray.append(pass.toJson());
     }
 
     QJsonObject result;
     result["resources"] = resourceArray;
     result["passes"] = passArray;
     return result;
+  }
+
+  const RenderResourceDescriptor& RenderPlan::exportedColorResource() const {
+    for (const auto& resource : m_resources) {
+      if (resource.lifetime == RenderResourceLifetime::Exported &&
+          resource.type == RenderResourceType::Color) {
+        return resource;
+      }
+    }
+    throw std::runtime_error("render plan has no exported color resource");
   }
 
   RenderPlan RenderPlan::fromJson(const QJsonObject& object) {
@@ -596,22 +332,8 @@ namespace engine::graph {
       if (!resourceArray.at(i).isObject())
         jsonError(path, "expected object");
 
-      const auto resourceObject = resourceArray.at(i).toObject();
-      RenderResourceDescriptor resource;
-      resource.id = stringField(resourceObject, "id", path);
-      resource.name = stringField(resourceObject, "name", path);
-      resource.type =
-        resourceTypeFromJson(stringField(resourceObject, "type", path, "color"), path + ".type");
-      resource.format = resourceFormatFromJson(
-        stringField(resourceObject, "format", path, "unknown"), path + ".format");
-      resource.width = intField(resourceObject, "width", path, 0);
-      resource.height = intField(resourceObject, "height", path, 0);
-      resource.sampleCount = intField(resourceObject, "sampleCount", path, 1);
-      resource.domain = resourceDomainFromJson(stringField(resourceObject, "domain", path, "cpu"),
-                                               path + ".domain");
-      resource.lifetime = resourceLifetimeFromJson(
-        stringField(resourceObject, "lifetime", path, "transient"), path + ".lifetime");
-      result.addResource(std::move(resource));
+      result.addResource(
+        RenderResourceDescriptor::fromJson(resourceArray.at(i).toObject(), path));
     }
 
     const auto passArray = arrayField(object, "passes", "$");
@@ -620,23 +342,7 @@ namespace engine::graph {
       if (!passArray.at(i).isObject())
         jsonError(path, "expected object");
 
-      const auto passObject = passArray.at(i).toObject();
-      RenderPassNode pass;
-      pass.id = stringField(passObject, "id", path);
-      pass.name = stringField(passObject, "name", path);
-      pass.kind = passKindFromJson(stringField(passObject, "kind", path, "custom"), path + ".kind");
-      pass.executor = executorKindFromJson(stringField(passObject, "executor", path, "postprocess"),
-                                           path + ".executor");
-      pass.features = featureArrayFromJson(passObject, "features", path);
-      pass.reads = readsFromJson(passObject, "reads", path);
-      pass.writes = writesFromJson(passObject, "writes", path);
-      pass.sceneView.selector = selectorFromJson(passObject, path);
-      pass.disabledBehavior = disabledBehaviorFromJson(
-        stringField(passObject, "disabledBehavior", path, "error"), path + ".disabledBehavior");
-      pass.enabled = boolField(passObject, "enabled", path, true);
-      pass.hasExternalSideEffects = boolField(passObject, "hasExternalSideEffects", path, false);
-      pass.canRunConcurrently = boolField(passObject, "canRunConcurrently", path, true);
-      result.addPass(std::move(pass));
+      result.addPass(RenderPassNode::fromJson(passArray.at(i).toObject(), path));
     }
 
     return result;

@@ -4,6 +4,7 @@
 
 namespace engine::graph {
   class RenderExecutionContext;
+  struct RenderPassNode;
 }
 
 template<class T>
@@ -25,6 +26,11 @@ namespace engine::graph {
   class RenderPassPayload {
   public:
     virtual ~RenderPassPayload() = default;
+
+    /**
+      * Creates the built-in payload for a supported compiled pass.
+      */
+    static std::unique_ptr<RenderPassPayload> createBuiltin(const RenderPassNode& pass);
 
     /**
       * Executes the pass against the resources and frame state in @p context.

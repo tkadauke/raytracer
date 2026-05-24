@@ -471,7 +471,6 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/engine/graph/RenderPassPayloads.cpp`
-- `src/engine/graph/RenderPassPayloads.h`
 - `src/engine/graph/RenderPlan.cpp`
 - `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`

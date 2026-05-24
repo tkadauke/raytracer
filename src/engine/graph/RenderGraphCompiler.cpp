@@ -5,22 +5,6 @@
 
 namespace engine::graph {
   namespace {
-    RenderExecutorKind executorFor(const RenderIntent& intent) {
-      if (intent.defaultViewMode == RenderViewMode::Wireframe) {
-        return RenderExecutorKind::Wireframe;
-      }
-
-      switch (intent.defaultExecutor) {
-      case RenderExecutorPreference::Raytracer:
-        return RenderExecutorKind::Raytracer;
-      case RenderExecutorPreference::Rasterizer:
-        return RenderExecutorKind::Rasterizer;
-      case RenderExecutorPreference::Wireframe:
-        return RenderExecutorKind::Wireframe;
-      }
-      return RenderExecutorKind::Raytracer;
-    }
-
     std::string beautyPassId(RenderExecutorKind executor) {
       switch (executor) {
       case RenderExecutorKind::Raytracer:
@@ -93,7 +77,7 @@ namespace engine::graph {
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
                                           const RenderIntent& intent) const {
     const RenderTargetSpec target = normalizedTarget(rawTarget);
-    const RenderExecutorKind executor = executorFor(intent);
+    const RenderExecutorKind executor = intent.defaultExecutorKind();
 
     RenderPlan plan;
 

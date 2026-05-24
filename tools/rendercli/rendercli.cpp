@@ -618,36 +618,26 @@ void Renderer::applyRenderGraphOutputSize(const engine::graph::RenderPlan& plan,
     return;
   }
 
-  const engine::graph::RenderResourceDescriptor* output = nullptr;
-  for (const auto& resource : plan.resources()) {
-    if (resource.lifetime == engine::graph::RenderResourceLifetime::Exported &&
-        resource.type == engine::graph::RenderResourceType::Color) {
-      output = &resource;
-      break;
-    }
-  }
-  if (!output) {
-    throw std::runtime_error("Render graph input has no exported color resource");
-  }
+  const auto& output = plan.exportedColorResource();
 
-  if (m_widthSet && *width != output->width) {
+  if (m_widthSet && *width != output.width) {
     throw std::runtime_error(QString("Render graph output width is %1 but --width is %2")
-                               .arg(output->width)
+                               .arg(output.width)
                                .arg(*width)
                                .toStdString());
   }
-  if (m_heightSet && *height != output->height) {
+  if (m_heightSet && *height != output.height) {
     throw std::runtime_error(QString("Render graph output height is %1 but --height is %2")
-                               .arg(output->height)
+                               .arg(output.height)
                                .arg(*height)
                                .toStdString());
   }
 
   if (!m_widthSet) {
-    *width = output->width;
+    *width = output.width;
   }
   if (!m_heightSet) {
-    *height = output->height;
+    *height = output.height;
   }
 }
 

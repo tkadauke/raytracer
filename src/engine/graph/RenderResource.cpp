@@ -24,6 +24,32 @@ namespace engine::graph {
 
   RenderResource::~RenderResource() = default;
 
+  std::unique_ptr<RenderResource> RenderResource::create(RenderResourceDescriptor descriptor) {
+    if (descriptor.domain != RenderResourceDomain::CPU || !descriptor.hasImageShape()) {
+      return std::make_unique<DescriptorOnlyRenderResource>(std::move(descriptor));
+    }
+
+    switch (descriptor.type) {
+    case RenderResourceType::Color:
+    case RenderResourceType::Normal:
+    case RenderResourceType::WorldPosition:
+    case RenderResourceType::MotionVector:
+    case RenderResourceType::ShadowMask:
+    case RenderResourceType::CustomTexture:
+      return std::make_unique<ColorRenderResource>(std::move(descriptor));
+    case RenderResourceType::Depth:
+    case RenderResourceType::ShadowMap:
+      return std::make_unique<DepthRenderResource>(std::move(descriptor));
+    case RenderResourceType::Stencil:
+      return std::make_unique<StencilRenderResource>(std::move(descriptor));
+    case RenderResourceType::ObjectId:
+    case RenderResourceType::MaterialId:
+      return std::make_unique<ObjectIdRenderResource>(std::move(descriptor));
+    }
+
+    return std::make_unique<DescriptorOnlyRenderResource>(std::move(descriptor));
+  }
+
   const RenderResourceDescriptor& RenderResource::descriptor() const {
     return m_descriptor;
   }

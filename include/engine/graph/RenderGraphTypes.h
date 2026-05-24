@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QJsonObject>
+#include <QJsonValue>
 
 #include <optional>
 #include <set>
@@ -156,6 +157,10 @@ namespace engine::graph {
     static SceneSelector tag(std::string tagName);
     static SceneSelector layer(std::string layerName);
     static SceneSelector materialRole(std::string role);
+
+    QJsonObject toJson() const;
+    static SceneSelector fromJson(const QJsonObject& object,
+                                  std::string path = "sceneSelector");
   };
 
   /**
@@ -164,6 +169,10 @@ namespace engine::graph {
   struct ShadingProfileRef {
     std::string name{"default"};
     QJsonObject parameters;
+
+    QJsonObject toJson() const;
+    static ShadingProfileRef fromJson(const QJsonValue& value,
+                                      std::string path = "shadingProfile");
   };
 
   /**
@@ -181,6 +190,10 @@ namespace engine::graph {
   struct RenderCameraRef {
     std::optional<std::string> sceneCameraId;
     std::optional<CameraSnapshot> snapshot;
+
+    QJsonObject toJson() const;
+    static RenderCameraRef fromJson(const QJsonValue& value,
+                                    std::string path = "camera");
   };
 
   /**
@@ -192,6 +205,10 @@ namespace engine::graph {
     std::optional<RenderViewMode> viewMode;
     std::optional<ShadingProfileRef> shadingProfile;
     std::optional<RenderCameraRef> camera;
+
+    QJsonObject toJson() const;
+    static RenderViewOverride fromJson(const QJsonObject& object,
+                                       std::string path = "viewOverride");
   };
 
   /**
@@ -223,6 +240,11 @@ namespace engine::graph {
       * throw `std::runtime_error` with a path to the bad value.
       */
     static RenderIntent fromJson(const QJsonObject& object);
+
+    /**
+      * Resolves the default compiled executor requested by this intent.
+      */
+    RenderExecutorKind defaultExecutorKind() const;
   };
 
   /**
@@ -249,6 +271,12 @@ namespace engine::graph {
     int sampleCount{1};
     RenderResourceDomain domain{RenderResourceDomain::CPU};
     RenderResourceLifetime lifetime{RenderResourceLifetime::Transient};
+
+    bool hasImageShape() const;
+    bool externallyAvailable() const;
+    QJsonObject toJson() const;
+    static RenderResourceDescriptor fromJson(const QJsonObject& object,
+                                             std::string path = "resource");
   };
 
   /**
@@ -291,6 +319,15 @@ namespace engine::graph {
     bool enabled{true};
     bool hasExternalSideEffects{false};
     bool canRunConcurrently{true};
+
+    bool readsResource(const RenderResourceId& resource) const;
+    bool writesResource(const RenderResourceId& resource) const;
+    bool producesWhenDisabled() const;
+    const ResourceRead& singleRead() const;
+    const ResourceWrite& singleWrite() const;
+    QJsonObject toJson() const;
+    static RenderPassNode fromJson(const QJsonObject& object,
+                                   std::string path = "pass");
   };
 
   const char* toString(RenderExecutorPreference value);

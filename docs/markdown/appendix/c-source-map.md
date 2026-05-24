@@ -140,7 +140,6 @@
 | `src/engine/graph/RenderGraphCompiler.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderGraphTypes.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderPassPayloads.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `src/engine/graph/RenderPassPayloads.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderPlan.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResource.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResourceStorage.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
