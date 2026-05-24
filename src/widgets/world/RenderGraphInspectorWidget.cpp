@@ -56,6 +56,7 @@ struct RenderGraphInspectorWidget::Private {
   RenderPlan plan;
   RenderGraphOverrides overrides;
   QTreeWidget* passes{nullptr};
+  QTreeWidget* dependencies{nullptr};
   QTreeWidget* resources{nullptr};
   QLabel* validationStatus{nullptr};
   bool updating{false};
@@ -82,6 +83,14 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,
           SLOT(passItemChanged(QTreeWidgetItem*, int)));
 
+  p->dependencies = new QTreeWidget(tabs);
+  p->dependencies->setObjectName("renderGraphDependencies");
+  p->dependencies->setRootIsDecorated(false);
+  p->dependencies->setAlternatingRowColors(true);
+  p->dependencies->setHeaderLabels({tr("Producer"), tr("Resource"), tr("Consumer")});
+  p->dependencies->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+  p->dependencies->header()->setStretchLastSection(true);
+
   p->resources = new QTreeWidget(tabs);
   p->resources->setObjectName("renderGraphResources");
   p->resources->setRootIsDecorated(false);
@@ -92,6 +101,7 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->resources->header()->setStretchLastSection(true);
 
   tabs->addTab(p->passes, tr("Passes"));
+  tabs->addTab(p->dependencies, tr("Dependencies"));
   tabs->addTab(p->resources, tr("Resources"));
 
   layout->addWidget(p->validationStatus);
@@ -120,6 +130,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   }
 
   rebuildPasses();
+  rebuildDependencies();
   rebuildResources();
   updateValidationStatus();
 }
@@ -171,6 +182,18 @@ void RenderGraphInspectorWidget::rebuildPasses() {
 
   p->passes->resizeColumnToContents(0);
   p->updating = false;
+}
+
+void RenderGraphInspectorWidget::rebuildDependencies() {
+  p->dependencies->clear();
+
+  const RenderPlan plan = effectivePlan();
+  for (const auto& dependency : plan.dependencies()) {
+    auto item = new QTreeWidgetItem(p->dependencies);
+    item->setText(0, qstr(dependency.producer->id));
+    item->setText(1, qstr(dependency.resource));
+    item->setText(2, qstr(dependency.consumer->id));
+  }
 }
 
 void RenderGraphInspectorWidget::rebuildResources() {

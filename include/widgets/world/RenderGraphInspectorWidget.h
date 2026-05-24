@@ -59,6 +59,7 @@ private slots:
 
 private:
   void rebuildPasses();
+  void rebuildDependencies();
   void rebuildResources();
   void updateValidationStatus();
 

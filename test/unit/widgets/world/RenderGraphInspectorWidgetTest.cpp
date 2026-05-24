@@ -40,6 +40,53 @@ namespace RenderGraphInspectorWidgetTest {
     return plan;
   }
 
+  RenderPlan twoPassPlan() {
+    RenderPlan plan;
+
+    RenderResourceDescriptor beauty;
+    beauty.id = "beauty_color";
+    beauty.name = "Beauty color";
+    beauty.type = RenderResourceType::Color;
+    beauty.format = RenderResourceFormat::RGBDouble;
+    beauty.width = 320;
+    beauty.height = 180;
+    beauty.sampleCount = 1;
+    beauty.lifetime = RenderResourceLifetime::Transient;
+    plan.addResource(beauty);
+
+    RenderResourceDescriptor display;
+    display.id = "display_color";
+    display.name = "Display color";
+    display.type = RenderResourceType::Color;
+    display.format = RenderResourceFormat::RGBDouble;
+    display.width = 320;
+    display.height = 180;
+    display.sampleCount = 1;
+    display.lifetime = RenderResourceLifetime::Exported;
+    plan.addResource(display);
+
+    RenderPassNode pass;
+    pass.id = "raytrace_beauty";
+    pass.name = "Raytraced beauty";
+    pass.kind = RenderPassKind::Beauty;
+    pass.executor = RenderExecutorKind::Raytracer;
+    pass.writes.push_back({"beauty_color"});
+    pass.disabledBehavior = DisabledBehavior::Error;
+    plan.addPass(pass);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.name = "Tone map";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"display_color"});
+    tonemap.disabledBehavior = DisabledBehavior::Passthrough;
+    plan.addPass(tonemap);
+
+    return plan;
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldInitialize) {
     RenderGraphInspectorWidget widget;
   }
@@ -49,9 +96,11 @@ namespace RenderGraphInspectorWidgetTest {
     widget.setPlan(simplePlan());
 
     auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    auto* dependencies = widget.findChild<QTreeWidget*>("renderGraphDependencies");
     auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
     auto* status = widget.findChild<QLabel*>("renderGraphValidationStatus");
     ASSERT_NE(nullptr, passes);
+    ASSERT_NE(nullptr, dependencies);
     ASSERT_NE(nullptr, resources);
     ASSERT_NE(nullptr, status);
 
@@ -61,10 +110,24 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(3));
     EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(5));
 
+    EXPECT_EQ(0, dependencies->topLevelItemCount());
+
     ASSERT_EQ(1, resources->topLevelItemCount());
     EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("color"), resources->topLevelItem(0)->text(1));
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowDependencyRows) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* dependencies = widget.findChild<QTreeWidget*>("renderGraphDependencies");
+    ASSERT_NE(nullptr, dependencies);
+    ASSERT_EQ(1, dependencies->topLevelItemCount());
+    EXPECT_EQ(QString("raytrace_beauty"), dependencies->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("beauty_color"), dependencies->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("tonemap"), dependencies->topLevelItem(0)->text(2));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {
