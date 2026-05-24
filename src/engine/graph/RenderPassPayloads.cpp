@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
@@ -9,8 +10,6 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
-#include "render/postprocess/Fxaa.h"
-#include "render/postprocess/Smaa.h"
 #include "render/tonemap/Tonemap.h"
 
 #include <stdexcept>
@@ -208,18 +207,19 @@ namespace engine::graph {
       virtual void apply(Buffer<Colord>& buffer) const = 0;
     };
 
-    class FxaaPass : public ColorFilterPass {
-    private:
-      void apply(Buffer<Colord>& buffer) const override {
-        render::postprocess::applyFxaa(buffer);
+    class PostProcessAAPass : public ColorFilterPass {
+    public:
+      explicit PostProcessAAPass(std::shared_ptr<const PostProcessAAState> state)
+          : m_state(std::move(state)) {
       }
-    };
 
-    class SmaaPass : public ColorFilterPass {
     private:
       void apply(Buffer<Colord>& buffer) const override {
-        render::postprocess::applySmaa(buffer);
+        m_state->apply(buffer);
       }
+
+    private:
+      std::shared_ptr<const PostProcessAAState> m_state;
     };
 
     /**
@@ -269,12 +269,8 @@ namespace engine::graph {
 
     if (pass.kind == RenderPassKind::PostProcess &&
         pass.executor == RenderExecutorKind::PostProcess) {
-      if (pass.id == "raster_fxaa") {
-        return std::make_unique<FxaaPass>();
-      }
-      if (pass.id == "raster_smaa") {
-        return std::make_unique<SmaaPass>();
-      }
+      if (auto state = PostProcessAAState::fromPass(pass))
+        return std::make_unique<PostProcessAAPass>(std::move(state));
     }
 
     if (pass.kind == RenderPassKind::Overlay && pass.executor == RenderExecutorKind::Wireframe) {

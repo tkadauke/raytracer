@@ -81,9 +81,10 @@ insert a graph-visible wireframe overlay pass between the beauty pass and the
 tonemap pass.
 For raster graph renders, `--post_aa fxaa` and `--post_aa smaa` are also
 graph-visible: rendercli inserts a postprocess pass after `raster_beauty`
-rather than hiding the filter inside the rasterizer engine. `--post_aa taa`
-stays on the raster beauty pass until temporal history resources are graph
-resources.
+rather than hiding the filter inside the rasterizer engine, and the pass's
+typed `post_process_aa` parameters select the replayed filter. `--post_aa
+taa` stays on the raster beauty pass until temporal history resources are
+graph resources.
 `--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
 `--disable_feature` apply graph overrides before validation or rendering.
 Those controls are intentionally graph-level: disabling the required

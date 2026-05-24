@@ -1,5 +1,6 @@
 #include "engine/graph/RenderPassState.h"
 
+#include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderGraphTypes.h"
 
@@ -15,6 +16,10 @@ namespace engine::graph {
 
     if (kind == RenderPassKind::Beauty && executor == RenderExecutorKind::Rasterizer) {
       return std::make_shared<RasterBeautyPassState>(RasterBeautyPassState::fromJson(object, path));
+    }
+
+    if (kind == RenderPassKind::PostProcess && executor == RenderExecutorKind::PostProcess) {
+      return PostProcessAAState::fromJson(object, path);
     }
 
     throw std::runtime_error("Invalid render graph JSON at " + path +

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderPlan.h"
 
@@ -322,6 +323,33 @@ namespace RenderPlanTest {
     ASSERT_EQ(1u, plan.passes()[2].reads.size());
     EXPECT_EQ("post_aa_color", plan.passes()[2].reads[0].resource);
     EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderPlan, RoundTripsPostProcessAAState) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("post_aa_color", RenderResourceLifetime::Exported));
+
+    auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
+    beauty.executor = RenderExecutorKind::Rasterizer;
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    auto fxaa = pass("raster_fxaa", RenderPassKind::PostProcess);
+    fxaa.executor = RenderExecutorKind::PostProcess;
+    fxaa.features = {"post_aa", "fxaa"};
+    fxaa.reads.push_back({"beauty_color"});
+    fxaa.writes.push_back({"post_aa_color"});
+    fxaa.state = std::make_shared<FxaaPostProcessAAState>();
+    plan.addPass(fxaa);
+
+    const RenderPlan imported = RenderPlan::fromJson(plan.toJson());
+
+    ASSERT_EQ(2u, imported.passes().size());
+    const auto state = PostProcessAAState::fromPass(imported.passes()[1]);
+    ASSERT_NE(nullptr, state);
+    EXPECT_EQ("fxaa", std::string(state->modeName()));
+    EXPECT_EQ(plan.toJson(), imported.toJson());
   }
 
   TEST(RenderPlan, RejectsMalformedJsonImport) {

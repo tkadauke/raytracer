@@ -152,7 +152,9 @@ those settings configure the executor. JSON import/export serializes this
 typed state through a pass's `parameters` object, but graph execution does not
 carry an uninterpreted JSON object. Raster beauty passes use focused state
 objects for sampling, framebuffer, geometry, execution, and shadow-map
-controls.
+controls. Image-space anti-aliasing postprocess passes use a typed
+`post_process_aa` state object so replayed JSON chooses FXAA or SMAA before
+execution reaches the payload.
 
 The node also carries a `DisabledBehavior` value:
 
@@ -363,9 +365,11 @@ under the pass's `parameters` object, making settings such as `--msaa`,
 visible instead of living only in the direct raster engine setup path. The
 image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 rendercli inserts a `raster_fxaa` or `raster_smaa` postprocess pass that routes
-`beauty_color` through `post_aa_color` before overlay or tonemap. `--post_aa
-taa` remains on the raster beauty state for now because temporal AA needs
-rasterizer history, depth, and jitter resources that are not yet graph-owned.
+`beauty_color` through `post_aa_color` before overlay or tonemap. The pass
+stores typed `post_process_aa` parameters, so the exported graph does not rely
+on the pass id to know which filter to run. `--post_aa taa` remains on the
+raster beauty state for now because temporal AA needs rasterizer history,
+depth, and jitter resources that are not yet graph-owned.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's
@@ -484,6 +488,9 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderExecutionContext.h`
 - `include/engine/graph/RenderPlan.h`
 - `include/engine/graph/RenderPassPayload.h`
+- `include/engine/graph/RenderPassState.h`
+- `include/engine/graph/PostProcessPassState.h`
+- `include/engine/graph/RasterPassState.h`
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
@@ -494,6 +501,9 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/engine/graph/RenderPassPayloads.cpp`
+- `src/engine/graph/RenderPassState.cpp`
+- `src/engine/graph/PostProcessPassState.cpp`
+- `src/engine/graph/RasterPassState.cpp`
 - `src/engine/graph/RenderPlan.cpp`
 - `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`
@@ -501,6 +511,8 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `test/unit/engine/graph/RenderGraphCompilerTest.cpp`
 - `test/unit/engine/graph/RenderExecutionContextTest.cpp`
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
+- `test/unit/engine/graph/PostProcessPassStateTest.cpp`
+- `test/unit/engine/graph/RasterPassStateTest.cpp`
 - `test/unit/engine/graph/RenderPlanTest.cpp`
 - `test/unit/engine/graph/RenderResourceStorageTest.cpp`
 - `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp`

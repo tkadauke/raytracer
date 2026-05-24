@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Typed graph postprocess AA state.** Graph-visible raster FXAA/SMAA passes
+  now serialize `post_process_aa` pass parameters at the JSON boundary and
+  execute from typed C++ state rather than inferring the filter from a pass id.
+  — GPT-5
 - **Graph-visible raster image AA passes.** Graph-backed rendercli raster
   renders now compile `--post_aa fxaa` and `--post_aa smaa` into explicit
   `raster_fxaa` / `raster_smaa` postprocess passes between raster beauty and

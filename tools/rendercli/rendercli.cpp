@@ -11,6 +11,7 @@
 #include "world/objects/Texture.h"
 
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
@@ -679,6 +680,11 @@ void Renderer::addRasterImagePostProcessAAPass(engine::graph::RenderPlan& plan,
   pass.sceneView.selector = engine::graph::SceneSelector::all();
   pass.disabledBehavior = engine::graph::DisabledBehavior::Passthrough;
   pass.canRunConcurrently = false;
+  if (mode == "fxaa") {
+    pass.state = std::make_shared<engine::graph::FxaaPostProcessAAState>();
+  } else {
+    pass.state = std::make_shared<engine::graph::SmaaPostProcessAAState>();
+  }
 
   plan.routeResourceThroughPass("beauty_color", std::move(output), std::move(pass));
 }
