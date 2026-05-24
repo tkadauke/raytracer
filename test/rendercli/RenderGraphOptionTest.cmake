@@ -392,15 +392,43 @@ endif()
 if(NOT raster_state_graph MATCHES "per_fragment")
   message(FATAL_ERROR "raster state graph did not contain MSAA shading mode: ${raster_state_graph}")
 endif()
-if(NOT raster_state_graph MATCHES "postProcessAA")
-  message(FATAL_ERROR "raster state graph did not contain postProcessAA: ${raster_state_graph}")
+if(NOT raster_state_graph MATCHES "raster_fxaa")
+  message(FATAL_ERROR "raster state graph did not contain raster_fxaa pass: ${raster_state_graph}")
 endif()
-if(NOT raster_state_graph MATCHES "fxaa")
-  message(FATAL_ERROR "raster state graph did not contain FXAA setting: ${raster_state_graph}")
+if(NOT raster_state_graph MATCHES "post_aa_color")
+  message(FATAL_ERROR "raster state graph did not contain post-AA resource: ${raster_state_graph}")
+endif()
+if(raster_state_graph MATCHES "postProcessAA")
+  message(FATAL_ERROR "FXAA should be graph-visible, not hidden in raster state: ${raster_state_graph}")
 endif()
 if(NOT raster_state_graph MATCHES "mapSize")
   message(FATAL_ERROR "raster state graph did not contain shadow state: ${raster_state_graph}")
 endif()
+
+set(raster_taa_plan "${TEST_OUTPUT_DIR}/raster_taa_plan.json")
+rendercli_run(
+  NAME "rendercli keeps raster TAA in beauty pass state"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format json
+    --width 32 --height 16 --post_aa taa
+    "${static_scene}" "${raster_taa_plan}"
+)
+file(READ "${raster_taa_plan}" raster_taa_graph)
+if(NOT raster_taa_graph MATCHES "postProcessAA")
+  message(FATAL_ERROR "raster TAA graph did not contain postProcessAA state: ${raster_taa_graph}")
+endif()
+if(NOT raster_taa_graph MATCHES "taa")
+  message(FATAL_ERROR "raster TAA graph did not contain TAA setting: ${raster_taa_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli disables graph-visible raster FXAA pass"
+  STDOUT_MATCHES "raster_fxaa \\[postprocess/postprocess\\] disabled"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format text
+    --width 32 --height 16 --post_aa fxaa --disable_pass raster_fxaa
+    "${static_scene}"
+)
 
 rendercli_run(
   NAME "rendercli default render honors scene render intent"

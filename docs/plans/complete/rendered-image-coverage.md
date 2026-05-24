@@ -78,9 +78,12 @@ or classified as non-gaps.
 - `FishEyeCamera`, `SphericalCamera`, and `EquirectangularCamera` are
   raytracer-only. That is expected until they implement a forward
   projection suitable for Rasterizer or Wireframe.
-- `ThinLensCamera` and `TiltShiftCamera` are raytracer-only. That is
-  expected today because they do not implement the Rasterizer or
-  Wireframe forward projection APIs.
+- `ThinLensCamera` and `TiltShiftCamera` now expose an equivalent
+  pinhole forward projection for Rasterizer and Wireframe previews.
+  Their aperture blur and focal-plane effects remain raytracer-only
+  because mesh projection has one vertex position, not per-sample
+  lens rays to average; tilt/shift-specific preview support remains
+  deferred, so Rasterizer and Wireframe use plain pinhole framing.
 
 ### Non-gaps
 

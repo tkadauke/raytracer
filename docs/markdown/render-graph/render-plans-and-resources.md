@@ -359,9 +359,13 @@ When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
 replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
 under the pass's `parameters` object, making settings such as `--msaa`,
-`--msaa_shading`, `--post_aa`, `--viewport`, color-output controls, and
-shadow-map controls visible instead of living only in the direct raster engine
-setup path.
+`--msaa_shading`, `--viewport`, color-output controls, and shadow-map controls
+visible instead of living only in the direct raster engine setup path. The
+image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
+rendercli inserts a `raster_fxaa` or `raster_smaa` postprocess pass that routes
+`beauty_color` through `post_aa_color` before overlay or tonemap. `--post_aa
+taa` remains on the raster beauty state for now because temporal AA needs
+rasterizer history, depth, and jitter resources that are not yet graph-owned.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's

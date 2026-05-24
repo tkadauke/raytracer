@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <map>
 #include <set>
 #include <sstream>
@@ -103,6 +104,41 @@ namespace engine::graph {
 
   void RenderPlan::addPass(RenderPassNode pass) {
     m_passes.push_back(std::move(pass));
+  }
+
+  std::size_t RenderPlan::routeResourceThroughPass(const RenderResourceId& sourceResource,
+                                                   RenderResourceDescriptor routedResource,
+                                                   RenderPassNode pass) {
+    if (!pass.readsResource(sourceResource)) {
+      throw std::runtime_error("inserted pass '" + pass.id + "' must read resource '" +
+                               sourceResource + "'");
+    }
+    if (!pass.writesResource(routedResource.id)) {
+      throw std::runtime_error("inserted pass '" + pass.id + "' must write resource '" +
+                               routedResource.id + "'");
+    }
+
+    auto writer = std::find_if(m_passes.begin(), m_passes.end(), [&](const RenderPassNode& node) {
+      return node.writesResource(sourceResource);
+    });
+    if (writer == m_passes.end()) {
+      throw std::runtime_error("cannot route resource '" + sourceResource +
+                               "' because no pass writes it");
+    }
+
+    m_resources.push_back(std::move(routedResource));
+    const auto inserted = m_passes.insert(std::next(writer), std::move(pass));
+
+    std::size_t redirected = 0;
+    for (auto node = std::next(inserted); node != m_passes.end(); ++node) {
+      for (auto& read : node->reads) {
+        if (read.resource == sourceResource) {
+          read.resource = m_resources.back().id;
+          ++redirected;
+        }
+      }
+    }
+    return redirected;
   }
 
   std::size_t RenderPlan::setPassState(RenderPassKind kind, RenderExecutorKind executor,

@@ -11,6 +11,7 @@
 #include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/cameras/ThinLensCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
@@ -529,6 +530,18 @@ namespace RasterizerTest {
     // produces a small silhouette disk (≈π·8² = 200 pixels). The
     // claim is "the interior is filled" — much larger than what an
     // outline-only renderer would produce for the same projection.
+    EXPECT_GT(filled, 150);
+  }
+
+  TEST(Rasterizer, ThinLensCameraFallsBackToPinholeProjection) {
+    auto cam = std::make_shared<ThinLensCamera>(Vector3d(2, 2, -5), Vector3d::null);
+    cam->setApertureRadius(0.8);
+    cam->setFocalDistance(2.0);
+    Rasterizer engine(cam, sceneWithSphere());
+    Buffer<Colord> buffer(128, 128);
+    engine.render(buffer);
+
+    const int filled = countNonBackground(buffer, Colord::black());
     EXPECT_GT(filled, 150);
   }
 

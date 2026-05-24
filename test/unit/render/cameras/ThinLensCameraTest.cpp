@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "render/cameras/PinholeCamera.h"
 #include "render/cameras/ThinLensCamera.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/primitives/Scene.h"
@@ -17,6 +18,10 @@ namespace ThinLensCameraTest {
   using namespace engine::raytracer;
   using namespace render;
   using namespace engine::raytracer;
+
+  static void initViewPlane(Camera& camera, int width = 100, int height = 100) {
+    camera.viewPlane()->setup(camera.matrix(), Recti(0, 0, width, height));
+  }
 
   TEST(ThinLensCamera, ShouldDefaultToCannedValues) {
     ThinLensCamera camera;
@@ -126,6 +131,28 @@ namespace ThinLensCameraTest {
     ASSERT_VECTOR_NEAR(centre, edgeR, 1e-9);
     ASSERT_VECTOR_NEAR(centre, edgeT, 1e-9);
     ASSERT_VECTOR_NEAR(centre, edgeRT, 1e-9);
+  }
+
+  TEST(ThinLensCamera, ProjectPointUsesEquivalentPinholeProjection) {
+    ThinLensCamera camera(Vector3d(0.5, -0.25, -4.0), Vector3d(0.0, 0.0, 1.0));
+    camera.setDistance(4.0);
+    camera.setZoom(1.25);
+    camera.setApertureRadius(0.7);
+    camera.setFocalDistance(2.5);
+    initViewPlane(camera, 160, 90);
+
+    PinholeCamera pinhole(camera.position(), camera.target());
+    pinhole.setDistance(camera.distance());
+    pinhole.setZoom(camera.zoom());
+    initViewPlane(pinhole, 160, 90);
+
+    const Vector3d point(1.0, -0.5, 3.0);
+    ASSERT_VECTOR_NEAR(pinhole.projectPoint(point), camera.projectPoint(point), 1e-9);
+    ASSERT_VECTOR_NEAR(pinhole.projectPointWithDepth(point), camera.projectPointWithDepth(point),
+                       1e-9);
+    ASSERT_VECTOR_NEAR(pinhole.projectPointToClipSpace(point),
+                       camera.projectPointToClipSpace(point), 1e-9);
+    EXPECT_NEAR(pinhole.eyeRelativeDepth(point), camera.eyeRelativeDepth(point), 1e-9);
   }
 
   TEST(ThinLensCamera, ShouldRender) {

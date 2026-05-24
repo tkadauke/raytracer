@@ -41,10 +41,11 @@ namespace engine::wireframe {
   * </tr></table>
   *
   * Cameras supported: any subclass that overrides
-  * `Camera::projectPoint` (currently `PinholeCamera` and inheritors
-  * `ThinLensCamera` / `TiltShiftCamera`). Cameras without a
-  * closed-form inverse (e.g. `FishEyeCamera`) silently produce an
-  * empty / degenerate render — `projectPoint` returns undefined for
+  * `Camera::projectPoint` (currently `PinholeCamera`,
+  * `OrthographicCamera`, and the pinhole-compatible forward projection
+  * fallback exposed by `ThinLensCamera` / `TiltShiftCamera`). Cameras
+  * without a closed-form inverse (e.g. `FishEyeCamera`) silently produce
+  * an empty / degenerate render — `projectPoint` returns undefined for
   * every point, so every edge is dropped.
   *
   * Threading: V1 renders on the calling thread. Edge counts for

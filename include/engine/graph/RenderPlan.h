@@ -59,6 +59,9 @@ namespace engine::graph {
 
     void addResource(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
+    std::size_t routeResourceThroughPass(const RenderResourceId& sourceResource,
+                                         RenderResourceDescriptor routedResource,
+                                         RenderPassNode pass);
     std::size_t setPassState(RenderPassKind kind, RenderExecutorKind executor,
                              std::shared_ptr<const RenderPassState> state);
 

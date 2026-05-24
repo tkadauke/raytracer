@@ -471,11 +471,13 @@ namespace engine::raster {
   * projected scene statistics match the measured cases where tiling helps.
   *
   * Cameras supported: any subclass that overrides
-  * `Camera::projectPointToClipSpace` (currently `PinholeCamera`
-  * and `OrthographicCamera`). Cameras without a closed-form clip
-  * projection (`FishEyeCamera`, `SphericalCamera`,
-  * `EquirectangularCamera`, `ThinLensCamera`, `TiltShiftCamera`)
-  * silently produce empty / degenerate renders.
+  * `Camera::projectPointToClipSpace` (currently `PinholeCamera`,
+  * `OrthographicCamera`, and the pinhole-compatible forward projection
+  * fallback exposed by `ThinLensCamera` / `TiltShiftCamera`). Cameras
+  * without a closed-form clip projection (`FishEyeCamera`,
+  * `SphericalCamera`, `EquirectangularCamera`) silently produce empty /
+  * degenerate renders. Depth-of-field and tilt-shift optical effects remain
+  * raytracer-only; raster previews use the equivalent pinhole framing.
   *
   * Threading: by default the rasterizer measures the frame's emitted
   * projected triangles and chooses between one tile and a queued tile

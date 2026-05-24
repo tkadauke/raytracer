@@ -42,6 +42,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -463,7 +464,10 @@ private:
   void renderAnimation(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
-  engine::graph::RasterBeautyPassState rasterBeautyPassState() const;
+  bool usesGraphImagePostProcessAA(const engine::graph::RenderIntent& intent) const;
+  engine::graph::RasterBeautyPassState rasterBeautyPassState(bool includeImagePostProcessAA) const;
+  void addRasterImagePostProcessAAPass(engine::graph::RenderPlan& plan,
+                                       const engine::graph::RenderIntent& intent) const;
   engine::graph::RenderPlan compileRenderGraphPlan(const Scene& scene) const;
   engine::graph::RenderPlan loadRenderGraphPlan() const;
   engine::graph::RenderPlan renderGraphPlan(const Scene& scene) const;
@@ -586,7 +590,13 @@ int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) 
            : m_samplesPerPixel;
 }
 
-engine::graph::RasterBeautyPassState Renderer::rasterBeautyPassState() const {
+bool Renderer::usesGraphImagePostProcessAA(const engine::graph::RenderIntent& intent) const {
+  return intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer &&
+         (m_rasterPostProcessAA == "fxaa" || m_rasterPostProcessAA == "smaa");
+}
+
+engine::graph::RasterBeautyPassState
+Renderer::rasterBeautyPassState(bool includeImagePostProcessAA) const {
   engine::graph::RasterBeautyPassState state;
   state.geometry().setLod(m_wireframeLod);
   if (m_threadsSet) {
@@ -605,9 +615,9 @@ engine::graph::RasterBeautyPassState Renderer::rasterBeautyPassState() const {
   if (m_rasterMsaaShadingMode == "per_fragment") {
     state.sampling().setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
   }
-  if (m_rasterPostProcessAA == "fxaa") {
+  if (includeImagePostProcessAA && m_rasterPostProcessAA == "fxaa") {
     state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
-  } else if (m_rasterPostProcessAA == "smaa") {
+  } else if (includeImagePostProcessAA && m_rasterPostProcessAA == "smaa") {
     state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::SMAA);
   } else if (m_rasterPostProcessAA == "taa") {
     state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::TAA);
@@ -640,12 +650,46 @@ engine::graph::RasterBeautyPassState Renderer::rasterBeautyPassState() const {
   return state;
 }
 
+void Renderer::addRasterImagePostProcessAAPass(engine::graph::RenderPlan& plan,
+                                               const engine::graph::RenderIntent& intent) const {
+  if (!usesGraphImagePostProcessAA(intent)) {
+    return;
+  }
+
+  const std::string mode = m_rasterPostProcessAA.toStdString();
+  engine::graph::RenderResourceDescriptor output;
+  output.id = "post_aa_color";
+  output.name = "Postprocess AA color";
+  output.type = engine::graph::RenderResourceType::Color;
+  output.format = engine::graph::RenderResourceFormat::RGBDouble;
+  output.width = m_width;
+  output.height = m_height;
+  output.sampleCount = renderGraphSampleCount(intent);
+  output.domain = engine::graph::RenderResourceDomain::CPU;
+  output.lifetime = engine::graph::RenderResourceLifetime::Transient;
+
+  engine::graph::RenderPassNode pass;
+  pass.id = mode == "fxaa" ? "raster_fxaa" : "raster_smaa";
+  pass.name = mode == "fxaa" ? "Raster FXAA" : "Raster SMAA";
+  pass.kind = engine::graph::RenderPassKind::PostProcess;
+  pass.executor = engine::graph::RenderExecutorKind::PostProcess;
+  pass.features = {"main", "postprocess", "post_aa", "rasterizer", mode};
+  pass.reads.push_back({"beauty_color"});
+  pass.writes.push_back({output.id});
+  pass.sceneView.selector = engine::graph::SceneSelector::all();
+  pass.disabledBehavior = engine::graph::DisabledBehavior::Passthrough;
+  pass.canRunConcurrently = false;
+
+  plan.routeResourceThroughPass("beauty_color", std::move(output), std::move(pass));
+}
+
 engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) const {
   engine::graph::RenderGraphCompiler compiler;
   const auto intent = renderIntent(scene);
   auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
   if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
-    rasterBeautyPassState().writeToRasterBeautyPasses(plan);
+    rasterBeautyPassState(!usesGraphImagePostProcessAA(intent)).writeToRasterBeautyPasses(plan);
+    addRasterImagePostProcessAAPass(plan, intent);
   }
   return plan.withOverrides(m_renderGraphOverrides);
 }
@@ -818,7 +862,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
     if (rtCamera)
       raster->setCamera(rtCamera);
-    rasterBeautyPassState().applyTo(*raster);
+    rasterBeautyPassState(true).applyTo(*raster);
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);

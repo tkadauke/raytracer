@@ -238,6 +238,14 @@ when the caller leaves the factory default in place. The
 GUI-supplied sampler is respected if the caller has explicitly
 configured one.
 
+Rasterizer and Wireframe previews cannot average per-sample lens
+rays, so `ThinLensCamera` also exposes an equivalent pinhole
+forward projection. Those engines use the same position, target,
+distance, zoom, and view plane to frame the scene, but they ignore
+aperture and focal distance. The result is a usable mesh preview
+instead of an empty image; the raytracer remains the engine that
+shows depth of field.
+
 The depth-of-field invariant is pinned by
 [`ThinLensCameraTest.FocalPlaneContractSharpVsBlurred`](../../../test/functional/render/cameras/ThinLensCameraTest.cpp):
 a sphere placed exactly at the focal distance renders with a crisp
@@ -300,6 +308,12 @@ The doc-render sweep with `tilt` from 0° to 45° shows the
 miniature effect intensifying. At `tilt = 0°` the camera is
 literally a `ThinLensCamera`; at extreme tilt angles, only a
 ribbon of the image stays sharp.
+
+For mesh-based previews, `TiltShiftCamera` inherits the same
+pinhole projection fallback from `ThinLensCamera`. Rasterizer and
+Wireframe renders therefore show scene geometry with ordinary
+pinhole framing; the tilt, shift, and focal-plane blur are visible
+only in raytraced output.
 
 ## <a id="picking-a-camera"></a>Picking a camera
 For most scenes the pinhole is the right answer. It is what

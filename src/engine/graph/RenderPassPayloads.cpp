@@ -9,6 +9,8 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
+#include "render/postprocess/Fxaa.h"
+#include "render/postprocess/Smaa.h"
 #include "render/tonemap/Tonemap.h"
 
 #include <stdexcept>
@@ -183,6 +185,44 @@ namespace engine::graph {
     };
 
     /**
+      * Image-space color filter pass. The current graph storage model gives
+      * postprocess passes distinct read/write resources, so filters copy their
+      * input first and then apply their in-place implementation to the output.
+      */
+    class ColorFilterPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), read.resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        const Buffer<Colord>& source = context.storage().color(read.resource);
+        Buffer<Colord>& destination = context.storage().color(write.resource);
+        copyColorBuffer(source, destination);
+        apply(destination);
+      }
+
+    private:
+      virtual void apply(Buffer<Colord>& buffer) const = 0;
+    };
+
+    class FxaaPass : public ColorFilterPass {
+    private:
+      void apply(Buffer<Colord>& buffer) const override {
+        render::postprocess::applyFxaa(buffer);
+      }
+    };
+
+    class SmaaPass : public ColorFilterPass {
+    private:
+      void apply(Buffer<Colord>& buffer) const override {
+        render::postprocess::applySmaa(buffer);
+      }
+    };
+
+    /**
       * Postprocess payload that applies the graph engine's tone mapper.
       */
     class TonemapPass : public RenderPassPayload {
@@ -225,6 +265,16 @@ namespace engine::graph {
 
     if (pass.kind == RenderPassKind::Tonemap && pass.executor == RenderExecutorKind::PostProcess) {
       return std::make_unique<TonemapPass>();
+    }
+
+    if (pass.kind == RenderPassKind::PostProcess &&
+        pass.executor == RenderExecutorKind::PostProcess) {
+      if (pass.id == "raster_fxaa") {
+        return std::make_unique<FxaaPass>();
+      }
+      if (pass.id == "raster_smaa") {
+        return std::make_unique<SmaaPass>();
+      }
     }
 
     if (pass.kind == RenderPassKind::Overlay && pass.executor == RenderExecutorKind::Wireframe) {

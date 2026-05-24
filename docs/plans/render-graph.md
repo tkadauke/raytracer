@@ -538,10 +538,11 @@ typed resources, `PostProcess` / `Composite` executors, imported/history
 lifetimes, and node disabling.
 
 As the graph grows, postprocess stages that currently live inside individual
-engines should migrate into explicit nodes. Rasterizer FXAA/SMAA/TAA are the
-clearest examples: keep the old engine setting only long enough to preserve
-compatibility, then compile those settings into graph pass nodes so rendercli,
-Modeler, and educational graph toggles all see the same operation.
+engines should migrate into explicit nodes. ~~Rasterizer FXAA/SMAA~~ ✅ **Done.**
+Graph-backed rendercli now inserts `raster_fxaa` / `raster_smaa` postprocess
+nodes between raster beauty and overlay/tonemap while direct-engine rendering
+keeps the old setting for compatibility. TAA remains deferred until graph-owned
+history, depth, and jitter resources exist.
 
 ### Rasterizer passes
 

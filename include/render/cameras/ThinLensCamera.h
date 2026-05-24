@@ -151,6 +151,20 @@ namespace render {
     std::shared_ptr<Camera> clone() const override;
 
     /**
+      * Forward projection for mesh-based engines. A finite-aperture
+      * camera does not have a single inverse ray-to-pixel mapping, so
+      * this deliberately uses the equivalent pinhole projection:
+      * same position, target, distance, zoom, and view plane, but no
+      * aperture or focal-plane blur. Rasterizer and Wireframe previews
+      * therefore frame the scene instead of rendering empty output;
+      * depth-of-field remains a raytracer effect.
+      */
+    Vector2d projectPoint(const Vector3d& worldPoint) const override;
+    Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override;
+    Vector4d projectPointToClipSpace(const Vector3d& worldPoint) const override;
+    double eyeRelativeDepth(const Vector3d& worldPoint) const override;
+
+    /**
       * Generate a primary ray for pixel `(x, y)` with an explicit
       * lens-disc sample at `(lensU, lensV)` ∈ unit disc.
       *

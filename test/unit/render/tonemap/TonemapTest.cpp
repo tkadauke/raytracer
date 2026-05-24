@@ -7,6 +7,8 @@
 
 #include "test/helpers/ColorTestHelper.h"
 
+#include <limits>
+
 namespace TonemapTest {
   using namespace render;
 
@@ -78,6 +80,20 @@ namespace TonemapTest {
     EXPECT_LE(out.g(), 1.0);
     EXPECT_LE(out.b(), 1.0);
     EXPECT_GE(out.r(), 0.0);
+  }
+
+  TEST(AcesTonemap, TreatsNegativeChannelsAsBlack) {
+    AcesTonemap t;
+
+    ASSERT_COLOR_NEAR(Colord::black(), t.apply(Colord(-0.2, -10.0, -1000.0)), 1e-12);
+  }
+
+  TEST(AcesTonemap, HandlesNonFiniteChannels) {
+    AcesTonemap t;
+    const double infinity = std::numeric_limits<double>::infinity();
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    ASSERT_COLOR_NEAR(Colord(1.0, 0.0, 0.0), t.apply(Colord(infinity, -infinity, nan)), 1e-12);
   }
 
   TEST(AcesTonemap, ProducesPunchierMidtonesThanReinhard) {

@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph-visible raster image AA passes.** Graph-backed rendercli raster
+  renders now compile `--post_aa fxaa` and `--post_aa smaa` into explicit
+  `raster_fxaa` / `raster_smaa` postprocess passes between raster beauty and
+  overlay/tonemap, while `--post_aa taa` remains on raster beauty until
+  temporal history resources are graph-owned. — GPT-5
 - **Graph-visible raster pass state.** Raster-backed graph renders now compile
   rendercli raster controls into typed `raster_beauty` pass state and serialize
   that state at the JSON boundary, covering MSAA, MSAA shading, post-process
@@ -79,6 +84,14 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **ACES tonemap invalid-channel handling.** `AcesTonemap` now maps negative
+  and NaN HDR channels to black and positive infinity to white before applying
+  the polynomial fit, preventing invalid radiance from turning Modeler previews
+  into flat gray/white frames. — GPT-5
+- **Rasterizer DOF camera fallback.** `ThinLensCamera` and `TiltShiftCamera`
+  now expose pinhole-compatible forward projection, so Rasterizer and Wireframe
+  previews render scene geometry for DOF scenes instead of producing empty
+  output. Raytraced depth-of-field and tilt-shift effects are unchanged. — GPT-5
 - **Modeler graph preview updates progressively again.** Simple graph-backed
   LDR previews now use the wrapped beauty engine's display-buffer render path
   when the effective graph is a beauty pass plus optional tonemap pass, so the

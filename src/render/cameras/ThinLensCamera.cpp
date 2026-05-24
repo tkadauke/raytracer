@@ -1,5 +1,6 @@
 #include "render/cameras/CameraFactory.h"
 #include "render/cameras/ThinLensCamera.h"
+#include "PinholeProjection.h"
 #include "core/math/Ray.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/samplers/JitteredSampler.h"
@@ -106,6 +107,22 @@ Rayd ThinLensCamera::rayForPixelWithLens(double x, double y, double lensU, doubl
   Vector3d lensOrigin = eyeOrigin + lensOffset;
 
   return Rayd(lensOrigin, (focalPoint - lensOrigin).normalized());
+}
+
+Vector2d ThinLensCamera::projectPoint(const Vector3d& worldPoint) const {
+  return detail::PinholeProjection(*this, m_distance).projectPoint(worldPoint);
+}
+
+Vector3d ThinLensCamera::projectPointWithDepth(const Vector3d& worldPoint) const {
+  return detail::PinholeProjection(*this, m_distance).projectPointWithDepth(worldPoint);
+}
+
+Vector4d ThinLensCamera::projectPointToClipSpace(const Vector3d& worldPoint) const {
+  return detail::PinholeProjection(*this, m_distance).projectPointToClipSpace(worldPoint);
+}
+
+double ThinLensCamera::eyeRelativeDepth(const Vector3d& worldPoint) const {
+  return detail::PinholeProjection(*this, m_distance).eyeRelativeDepth(worldPoint);
 }
 
 void ThinLensCamera::setViewPlane(std::shared_ptr<render::ViewPlane> plane) {

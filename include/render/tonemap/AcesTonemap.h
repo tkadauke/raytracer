@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 
 #include "render/tonemap/Tonemap.h"
 
@@ -46,6 +47,13 @@ namespace render {
 
   private:
     static inline double applyChannel(double x) {
+      if (!std::isfinite(x)) {
+        return x > 0.0 ? 1.0 : 0.0;
+      }
+      if (x <= 0.0) {
+        return 0.0;
+      }
+
       constexpr double a = 2.51;
       constexpr double b = 0.03;
       constexpr double c = 2.43;
