@@ -2,6 +2,7 @@
 
 #include "engine/graph/RenderGraphTypes.h"
 
+#include <cstdint>
 #include <string>
 
 namespace engine::graph {
@@ -15,8 +16,23 @@ namespace engine::graph {
   public:
     virtual ~RenderGraphExecutionObserver() = default;
 
+    virtual void renderStarted(std::uint64_t) {
+    }
+
     virtual void passStarted(const RenderPassId& passId) = 0;
     virtual void passFinished(const RenderPassId& passId) = 0;
     virtual void passFailed(const RenderPassId& passId, const std::string& message) = 0;
+
+    virtual void passStarted(const RenderPassId& passId, std::uint64_t) {
+      passStarted(passId);
+    }
+
+    virtual void passFinished(const RenderPassId& passId, std::uint64_t) {
+      passFinished(passId);
+    }
+
+    virtual void passFailed(const RenderPassId& passId, const std::string& message, std::uint64_t) {
+      passFailed(passId, message);
+    }
   };
 }

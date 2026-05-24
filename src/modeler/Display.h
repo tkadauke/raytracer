@@ -2,6 +2,8 @@
 
 #include "widgets/QtDisplay.h"
 
+#include <cstdint>
+
 #include <QString>
 
 class Scene;
@@ -45,9 +47,11 @@ public:
   ~RenderDisplay();
 
   void setScene(Scene* scene);
-  void notifyRenderGraphPassStarted(const QString& passId);
-  void notifyRenderGraphPassFinished(const QString& passId);
-  void notifyRenderGraphPassFailed(const QString& passId, const QString& message);
+  void notifyRenderGraphExecutionStarted(std::uint64_t generation);
+  void notifyRenderGraphPassStarted(const QString& passId, std::uint64_t generation);
+  void notifyRenderGraphPassFinished(const QString& passId, std::uint64_t generation);
+  void notifyRenderGraphPassFailed(const QString& passId, const QString& message,
+                                   std::uint64_t generation);
   std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
   lastRenderGraphExecutionTrace() const;
 
@@ -102,4 +106,6 @@ private:
   engine::graph::RenderPostProcessAA m_previewPostProcessAA;
   bool m_wireframeOverlayEnabled{false};
   bool m_renderGraphPreviewEnabled{true};
+  bool m_waitingForGraphExecutionStart{false};
+  std::uint64_t m_graphExecutionGeneration{0};
 };

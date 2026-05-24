@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <mutex>
 #include <optional>
 #include <sstream>
@@ -228,22 +229,30 @@ namespace engine::graph {
       }
     }
 
-    void notifyPassStarted(const GraphRenderEngine& graph, const RenderPassNode& pass) {
+    void notifyRenderStarted(const GraphRenderEngine& graph, std::uint64_t generation) {
       if (auto observer = graph.executionObserver()) {
-        observer->passStarted(pass.id);
+        observer->renderStarted(generation);
       }
     }
 
-    void notifyPassFinished(const GraphRenderEngine& graph, const RenderPassNode& pass) {
+    void notifyPassStarted(const GraphRenderEngine& graph, const RenderPassNode& pass,
+                           std::uint64_t generation) {
       if (auto observer = graph.executionObserver()) {
-        observer->passFinished(pass.id);
+        observer->passStarted(pass.id, generation);
+      }
+    }
+
+    void notifyPassFinished(const GraphRenderEngine& graph, const RenderPassNode& pass,
+                            std::uint64_t generation) {
+      if (auto observer = graph.executionObserver()) {
+        observer->passFinished(pass.id, generation);
       }
     }
 
     void notifyPassFailed(const GraphRenderEngine& graph, const RenderPassNode& pass,
-                          const std::string& message) {
+                          const std::string& message, std::uint64_t generation) {
       if (auto observer = graph.executionObserver()) {
-        observer->passFailed(pass.id, message);
+        observer->passFailed(pass.id, message, generation);
       }
     }
 
@@ -267,21 +276,22 @@ namespace engine::graph {
                          std::shared_ptr<const RenderGraphExecutionTraceSession> traceSession,
                          const RenderPassNode& pass, const RenderResourceStorage& storage,
                          Execute execute) {
-      notifyPassStarted(graph, pass);
+      notifyPassStarted(graph, pass, traceSession->generation());
       recorder->passStarted(traceSession, pass, storage);
       try {
         execute();
       } catch (const std::exception& error) {
         recorder->passFailed(traceSession, pass, storage, error.what());
-        notifyPassFailed(graph, pass, error.what());
+        notifyPassFailed(graph, pass, error.what(), traceSession->generation());
         throw;
       } catch (...) {
         recorder->passFailed(traceSession, pass, storage, "unknown render graph pass failure");
-        notifyPassFailed(graph, pass, "unknown render graph pass failure");
+        notifyPassFailed(graph, pass, "unknown render graph pass failure",
+                         traceSession->generation());
         throw;
       }
       recorder->passCompleted(traceSession, pass, storage);
-      notifyPassFinished(graph, pass);
+      notifyPassFinished(graph, pass, traceSession->generation());
     }
 
     template<class Execute>
@@ -411,6 +421,7 @@ namespace engine::graph {
     }
     auto traceSessionToken = p->executionTraceRecorder->begin(plan);
     TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
+    notifyRenderStarted(*this, traceSessionToken->generation());
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
@@ -487,6 +498,7 @@ namespace engine::graph {
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
     auto traceSessionToken = p->executionTraceRecorder->begin(plan);
     TraceSession traceSession{p->executionTraceRecorder, traceSessionToken};
+    notifyRenderStarted(*this, traceSessionToken->generation());
 
     const auto displayChain = simpleDisplayChain(plan);
     if (displayChain) {

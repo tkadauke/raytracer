@@ -35,15 +35,34 @@ namespace {
         : m_display(display) {
     }
 
+    void renderStarted(std::uint64_t generation) override {
+      invoke([generation](RenderDisplay& display) {
+        display.notifyRenderGraphExecutionStarted(generation);
+      });
+    }
+
     void passStarted(const engine::graph::RenderPassId& passId) override {
       invoke([passId](RenderDisplay& display) {
-        display.notifyRenderGraphPassStarted(QString::fromStdString(passId));
+        display.notifyRenderGraphPassStarted(QString::fromStdString(passId), 0);
+      });
+    }
+
+    void passStarted(const engine::graph::RenderPassId& passId, std::uint64_t generation) override {
+      invoke([passId, generation](RenderDisplay& display) {
+        display.notifyRenderGraphPassStarted(QString::fromStdString(passId), generation);
       });
     }
 
     void passFinished(const engine::graph::RenderPassId& passId) override {
       invoke([passId](RenderDisplay& display) {
-        display.notifyRenderGraphPassFinished(QString::fromStdString(passId));
+        display.notifyRenderGraphPassFinished(QString::fromStdString(passId), 0);
+      });
+    }
+
+    void passFinished(const engine::graph::RenderPassId& passId,
+                      std::uint64_t generation) override {
+      invoke([passId, generation](RenderDisplay& display) {
+        display.notifyRenderGraphPassFinished(QString::fromStdString(passId), generation);
       });
     }
 
@@ -51,7 +70,15 @@ namespace {
                     const std::string& message) override {
       invoke([passId, message](RenderDisplay& display) {
         display.notifyRenderGraphPassFailed(QString::fromStdString(passId),
-                                            QString::fromStdString(message));
+                                            QString::fromStdString(message), 0);
+      });
+    }
+
+    void passFailed(const engine::graph::RenderPassId& passId, const std::string& message,
+                    std::uint64_t generation) override {
+      invoke([passId, message, generation](RenderDisplay& display) {
+        display.notifyRenderGraphPassFailed(QString::fromStdString(passId),
+                                            QString::fromStdString(message), generation);
       });
     }
 
@@ -149,15 +176,34 @@ void RenderDisplay::setScene(Scene* scene) {
   render();
 }
 
-void RenderDisplay::notifyRenderGraphPassStarted(const QString& passId) {
+void RenderDisplay::notifyRenderGraphExecutionStarted(std::uint64_t generation) {
+  m_graphExecutionGeneration = generation;
+  m_waitingForGraphExecutionStart = false;
+  emit renderGraphExecutionStarted();
+}
+
+void RenderDisplay::notifyRenderGraphPassStarted(const QString& passId, std::uint64_t generation) {
+  if (m_waitingForGraphExecutionStart ||
+      (generation != 0 && generation != m_graphExecutionGeneration)) {
+    return;
+  }
   emit renderGraphPassStarted(passId);
 }
 
-void RenderDisplay::notifyRenderGraphPassFinished(const QString& passId) {
+void RenderDisplay::notifyRenderGraphPassFinished(const QString& passId, std::uint64_t generation) {
+  if (m_waitingForGraphExecutionStart ||
+      (generation != 0 && generation != m_graphExecutionGeneration)) {
+    return;
+  }
   emit renderGraphPassFinished(passId);
 }
 
-void RenderDisplay::notifyRenderGraphPassFailed(const QString& passId, const QString& message) {
+void RenderDisplay::notifyRenderGraphPassFailed(const QString& passId, const QString& message,
+                                                std::uint64_t generation) {
+  if (m_waitingForGraphExecutionStart ||
+      (generation != 0 && generation != m_graphExecutionGeneration)) {
+    return;
+  }
   emit renderGraphPassFailed(passId, message);
 }
 
@@ -200,6 +246,7 @@ void RenderDisplay::render() {
   if (!m_renderGraphPreviewEnabled)
     return;
 
+  m_waitingForGraphExecutionStart = true;
   emit renderGraphExecutionStarted();
   QtDisplay::render();
 }

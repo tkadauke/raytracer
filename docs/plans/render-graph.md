@@ -1352,7 +1352,9 @@ Modeler graph view can highlight the node or nodes currently running during
 long renders. Keep the model as a set of active pass ids so the UI survives the
 future parallel scheduler. ✅ **Done.** `GraphRenderEngine` exposes a live
 execution observer copied into render snapshots, and the Modeler Render Graph
-dock highlights running/completed/failed pass nodes during preview renders.
+dock highlights running/completed/failed pass nodes during preview renders. Live
+events carry render generations so retired preview workers do not update the
+graph after a replacement render starts.
 
 ### Stencil/depth-aware composition
 

@@ -24,6 +24,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph trace session safety.** Execution traces now ignore events from
   retired render workers after a newer graph render has started, preventing
   stale preview jobs from overwriting the latest trace. — GPT-5
+- **Render graph live-event generations.** Live graph execution observer events
+  now carry a render generation so the Modeler preview ignores pass updates from
+  retired workers once a newer render has been requested. — GPT-5
 - **Render graph text dependencies.** Text graph exports now include declared
   pass-to-pass dependencies and the dependency-derived execution order
   separately from pass declaration order, so replayed or hand-authored plans can

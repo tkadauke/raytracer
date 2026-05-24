@@ -21,6 +21,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -102,6 +103,36 @@ namespace GraphRenderEngineTest {
     }
 
     std::vector<std::string> events;
+  };
+
+  class GenerationRecordingObserver : public RecordingObserver {
+  public:
+    using RecordingObserver::passFailed;
+    using RecordingObserver::passFinished;
+    using RecordingObserver::passStarted;
+
+    void renderStarted(std::uint64_t generation) override {
+      generations.push_back(generation);
+      events.push_back("render:" + std::to_string(generation));
+    }
+
+    void passStarted(const RenderPassId& passId, std::uint64_t generation) override {
+      generations.push_back(generation);
+      events.push_back("start:" + passId + ":" + std::to_string(generation));
+    }
+
+    void passFinished(const RenderPassId& passId, std::uint64_t generation) override {
+      generations.push_back(generation);
+      events.push_back("finish:" + passId + ":" + std::to_string(generation));
+    }
+
+    void passFailed(const RenderPassId& passId, const std::string& message,
+                    std::uint64_t generation) override {
+      generations.push_back(generation);
+      events.push_back("fail:" + passId + ":" + message + ":" + std::to_string(generation));
+    }
+
+    std::vector<std::uint64_t> generations;
   };
 
   int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
@@ -268,6 +299,29 @@ namespace GraphRenderEngineTest {
                                                "start:post_fxaa",       "finish:post_fxaa",
                                                "start:tonemap",         "finish:tonemap"};
     EXPECT_EQ(expected, observer->events);
+  }
+
+  TEST(GraphRenderEngine, TagsObserverEventsWithRenderGeneration) {
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(compiler.compile({16, 16, 1}, intent));
+    auto observer = std::make_shared<GenerationRecordingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    ASSERT_FALSE(observer->generations.empty());
+    const std::uint64_t generation = observer->generations.front();
+    EXPECT_GT(generation, 0u);
+    for (std::uint64_t value : observer->generations) {
+      EXPECT_EQ(generation, value);
+    }
+    ASSERT_FALSE(observer->events.empty());
+    EXPECT_EQ("render:" + std::to_string(generation), observer->events.front());
   }
 
   TEST(GraphRenderEngine, CopiesExecutionObserverToRenderClone) {
