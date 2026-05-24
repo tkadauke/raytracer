@@ -307,6 +307,8 @@ Keep current coverage, then add:
   `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` combined with `--render_graph_trace_out` is rejected;
   ✅ covered in `RenderGraphOptionTest.cmake`.
+- `--animation` combined with `--render_graph_trace_out` is rejected; ✅
+  covered in `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` combined with animation is rejected; ✅ covered in
   `RenderGraphOptionTest.cmake`.
 - graph replay with matching explicit width/height succeeds; ✅ covered in

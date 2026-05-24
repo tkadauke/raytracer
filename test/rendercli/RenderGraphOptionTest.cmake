@@ -707,6 +707,14 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects animation with graph trace output"
+  STDERR_MATCHES "Cannot combine --animation with --render_graph_trace_out"
+  COMMAND
+    "${RENDERCLI}" --animation --render_graph_trace_out "${graph_trace}"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects graph-only with animation"
   STDERR_MATCHES "Cannot combine --animation with --render_graph_only"
   COMMAND
