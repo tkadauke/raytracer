@@ -1025,9 +1025,10 @@ Status: started. The initial foundation now lives in `include/engine/graph/`
 and `src/engine/graph/`: render intent, scene selectors, resource descriptors,
 CPU resource storage, pass declarations, virtual pass payloads, plan validation,
 graph override disabling, text/DOT/JSON plan export, a minimal compiler that
-emits one whole-frame beauty pass, a graph engine facade that can execute that
-single pass through Raytracer/Rasterizer/Wireframe, and the textbook's
-render-graph volume. Multi-pass compilation, arbitrary postprocess/composite
+emits a whole-frame beauty pass plus a tonemap/export pass, a graph engine
+facade that can execute that serial color chain through
+Raytracer/Rasterizer/Wireframe plus PostProcess tonemapping, and the textbook's
+render-graph volume. Scene-feature expansion, arbitrary postprocess/composite
 execution, scene JSON intent, and real graph scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
@@ -1042,8 +1043,8 @@ Implement the smallest graph that proves the architecture:
    shading profile, camera, and per-selector overrides for the same fields.
    ✅ Core intent data is defined; scene JSON read/write is TODO.
 4. Add `RenderGraphCompiler` so plans can be compiled, inspected, exported, and
-   manipulated without rendering. ✅ Done for the first whole-frame beauty
-   pass compiler; scene-feature expansion remains TODO.
+   manipulated without rendering. ✅ Done for the first whole-frame beauty +
+   tonemap/export compiler; scene-feature expansion remains TODO.
 5. Add `GraphRenderEngine` that can either compile from intent or execute a
    precompiled plan. ✅ Done for the first execution slice: whole-frame beauty
    passes backed by Raytracer, Rasterizer, or Wireframe, plus simple serial
@@ -1067,10 +1068,10 @@ Implement the smallest graph that proves the architecture:
    manipulated plan. Selector-specific intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
-   the current live-preview plan before preview renders, lists pass/resource
-   details, and validates per-pass checkbox overrides. Graph-backed Modeler
-   rendering, grouped toggles, graph export, resource previews, and
-   per-selector intent controls remain TODO.
+   the current live-preview plan before preview renders, lists the default
+   beauty + tonemap pass chain and resource details, and validates per-pass
+   checkbox overrides. Graph-backed Modeler rendering, grouped toggles, graph
+   export, resource previews, and per-selector intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

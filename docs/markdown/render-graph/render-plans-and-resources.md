@@ -206,19 +206,19 @@ uses those fields to choose the initial whole-frame beauty executor; selector
 specific overrides will matter once compilation can produce multi-selection
 plans.
 
-A two-pass plan might read textually as:
+The compiler's default plan reads textually as:
 
 ```text
 RenderPlan
 Resources:
-- main_color (color, rgb_double, cpu, transient, 640x360, samples=1)
-- display_color (color, rgb_double, cpu, exported, 640x360, samples=1)
+- beauty_color (color, rgb_double, cpu, transient, 640x360, samples=1)
+- main_color (color, rgb_double, cpu, exported, 640x360, samples=1)
 Passes:
-- main [beauty/rasterizer] enabled
-  writes: main_color
+- raster_beauty [beauty/rasterizer] enabled
+  writes: beauty_color
 - tonemap [tonemap/postprocess] enabled
-  reads: main_color
-  writes: display_color
+  reads: beauty_color
+  writes: main_color
 ```
 
 The DOT export uses resource nodes and pass nodes, with arrows from resources
@@ -227,8 +227,9 @@ the same ids, enum strings, resource dimensions, pass features, reads, writes,
 scene selector, disabled behavior, and scheduling flags.
 
 The first graph-backed render that exists today is deliberately small: a
-whole-frame raytraced beauty pass writes the exported color resource. The DOT
-artifact checked into this chapter is the same shape emitted by `rendercli` for
+whole-frame raytraced beauty pass writes a transient color resource, then a
+tonemap postprocess pass writes the exported color resource. The DOT artifact
+checked into this chapter is the same shape emitted by `rendercli` for
 `scenes/dice.json` when asked to compile, but not render, the graph.
 
 ![Raytraced beauty render graph](../../images/render_graph_raytrace_beauty.svg)
@@ -285,18 +286,29 @@ that concrete CPU buffer. Execution code can also ask for the resource object
 directly through `resource(id)` and use virtual capabilities instead of
 switching on `RenderResourceType`.
 
-## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits a beauty pass
+## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits beauty and tonemap passes
 [`RenderGraphCompiler`](../../../include/engine/graph/RenderGraphCompiler.h)
 turns `RenderIntent` into a concrete `RenderPlan`. The first compiler slice
-targets one whole-frame beauty pass. It declares one exported CPU color
-resource named `main_color`, then adds one pass that writes it:
+targets one whole-frame beauty pass plus one final tonemap pass. It declares
+two CPU color resources:
+
+- `beauty_color`, a transient color resource written by the selected beauty
+  executor;
+- `main_color`, the exported color resource written by the tonemap pass.
+
+The first pass id depends on the selected executor:
 
 - `raytrace_beauty` for the default raytracer executor,
 - `raster_beauty` when the intent prefers the rasterizer,
 - `wireframe_beauty` when the intent requests a wireframe view.
 
+The second pass is always `tonemap`, with kind `Tonemap` and executor
+`PostProcess`. It reads `beauty_color` and writes `main_color`. Its disabled
+behavior is `Passthrough`, so tools can disable the tonemap node and still
+validate a graph that copies the beauty output into the exported resource.
+
 `RenderTargetSpec` supplies the framebuffer width, height, and sample count for
-the resource descriptor. Compilation does not allocate buffers and does not
+both resource descriptors. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting plans in Modeler
@@ -318,9 +330,9 @@ therefore reports an invalid plan because that pass has
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current
-intent or execute a caller-provided plan. The compiler still emits only one
-whole-frame beauty pass, but the engine can execute a small serial color
-resource chain:
+intent or execute a caller-provided plan. The compiler emits a beauty pass and
+a tonemap pass, and the engine can execute that small serial color resource
+chain:
 
 - enabled `Beauty` passes backed by `Raytracer`, `Rasterizer`, or `Wireframe`;
 - enabled `Tonemap` passes backed by the `PostProcess` executor;

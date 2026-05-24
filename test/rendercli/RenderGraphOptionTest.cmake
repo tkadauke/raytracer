@@ -51,6 +51,12 @@ endif()
 if(NOT text_graph MATCHES "main_color")
   message(FATAL_ERROR "text graph export did not contain main_color: ${text_graph}")
 endif()
+if(NOT text_graph MATCHES "beauty_color")
+  message(FATAL_ERROR "text graph export did not contain beauty_color: ${text_graph}")
+endif()
+if(NOT text_graph MATCHES "tonemap")
+  message(FATAL_ERROR "text graph export did not contain tonemap: ${text_graph}")
+endif()
 
 run_rendercli(
   dot_stdout
@@ -118,6 +124,9 @@ endif()
 if(NOT json_stdout MATCHES "raster_beauty")
   message(FATAL_ERROR "JSON graph stdout did not contain raster_beauty: ${json_stdout}")
 endif()
+if(NOT json_stdout MATCHES "tonemap")
+  message(FATAL_ERROR "JSON graph stdout did not contain tonemap: ${json_stdout}")
+endif()
 if(NOT json_stdout MATCHES "\"width\"")
   message(FATAL_ERROR "JSON graph stdout did not contain resource dimensions: ${json_stdout}")
 endif()
@@ -175,6 +184,21 @@ if(NOT replay_render_result EQUAL 0)
 endif()
 if(NOT EXISTS "${replayed_render}")
   message(FATAL_ERROR "rendercli --render_graph_in did not create an image")
+endif()
+
+run_rendercli(
+  disabled_tonemap_stdout
+  disabled_tonemap_stderr
+  disabled_tonemap_result
+  "${RENDERCLI}" --render_graph_only --render_graph_format text --disable_pass tonemap
+  --width 32 --height 16
+  "${static_scene}"
+)
+if(NOT disabled_tonemap_result EQUAL 0)
+  message(FATAL_ERROR "rendercli rejected disabled optional tonemap pass: ${disabled_tonemap_stderr}")
+endif()
+if(NOT disabled_tonemap_stdout MATCHES "tonemap \\[tonemap/postprocess\\] disabled")
+  message(FATAL_ERROR "disabled tonemap graph did not show disabled tonemap pass: ${disabled_tonemap_stdout}")
 endif()
 
 run_rendercli(

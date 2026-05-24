@@ -80,17 +80,23 @@ namespace engine::graph {
 
     RenderPlan plan;
 
-    RenderResourceDescriptor color;
-    color.id = "main_color";
-    color.name = "Main color";
-    color.type = RenderResourceType::Color;
-    color.format = RenderResourceFormat::RGBDouble;
-    color.width = target.width;
-    color.height = target.height;
-    color.sampleCount = target.sampleCount;
-    color.domain = RenderResourceDomain::CPU;
-    color.lifetime = RenderResourceLifetime::Exported;
-    plan.addResource(color);
+    RenderResourceDescriptor beautyColor;
+    beautyColor.id = "beauty_color";
+    beautyColor.name = "Beauty color";
+    beautyColor.type = RenderResourceType::Color;
+    beautyColor.format = RenderResourceFormat::RGBDouble;
+    beautyColor.width = target.width;
+    beautyColor.height = target.height;
+    beautyColor.sampleCount = target.sampleCount;
+    beautyColor.domain = RenderResourceDomain::CPU;
+    beautyColor.lifetime = RenderResourceLifetime::Transient;
+    plan.addResource(beautyColor);
+
+    RenderResourceDescriptor mainColor = beautyColor;
+    mainColor.id = "main_color";
+    mainColor.name = "Main color";
+    mainColor.lifetime = RenderResourceLifetime::Exported;
+    plan.addResource(mainColor);
 
     RenderPassNode beauty;
     beauty.id = beautyPassId(executor);
@@ -98,11 +104,24 @@ namespace engine::graph {
     beauty.kind = RenderPassKind::Beauty;
     beauty.executor = executor;
     beauty.features = {"main", "beauty", executorFeature(executor)};
-    beauty.writes.push_back({"main_color"});
+    beauty.writes.push_back({"beauty_color"});
     beauty.sceneView.selector = SceneSelector::all();
     beauty.disabledBehavior = DisabledBehavior::Error;
     beauty.canRunConcurrently = false;
     plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.name = "Tone map";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.features = {"main", "tonemap", "postprocess"};
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"main_color"});
+    tonemap.sceneView.selector = SceneSelector::all();
+    tonemap.disabledBehavior = DisabledBehavior::Passthrough;
+    tonemap.canRunConcurrently = false;
+    plan.addPass(tonemap);
 
     return plan;
   }

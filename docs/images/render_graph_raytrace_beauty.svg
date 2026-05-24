@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="260" viewBox="0 0 760 260" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="300" viewBox="0 0 980 300" role="img" aria-labelledby="title desc">
   <title id="title">Raytraced beauty render graph</title>
-  <desc id="desc">A render graph with one raytraced beauty pass writing the main color resource.</desc>
+  <desc id="desc">A render graph with a raytraced beauty pass writing a transient color resource, followed by a tonemap pass writing the exported main color resource.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#222222"/>
@@ -10,18 +10,32 @@
     </filter>
   </defs>
 
-  <rect x="1" y="1" width="758" height="258" rx="8" fill="#ffffff" stroke="#d8d8d8"/>
+  <rect x="1" y="1" width="978" height="298" rx="8" fill="#ffffff" stroke="#d8d8d8"/>
   <text x="48" y="48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24" font-weight="700" fill="#202020">compiled render plan</text>
-  <text x="48" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" fill="#555555">The first graph-backed render is a single beauty pass that produces the exported color image.</text>
+  <text x="48" y="78" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" fill="#555555">The default graph renders beauty into a transient color resource, then tonemaps into the exported output.</text>
 
-  <ellipse cx="232" cy="148" rx="142" ry="54" fill="#e8f1fb" stroke="#2276d2" stroke-width="3" filter="url(#shadow)"/>
-  <text x="232" y="137" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#202020">Raytraced beauty</text>
-  <text x="232" y="164" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" text-anchor="middle" fill="#3f5f82">beauty / raytracer</text>
+  <ellipse cx="188" cy="166" rx="132" ry="54" fill="#e8f1fb" stroke="#2276d2" stroke-width="3" filter="url(#shadow)"/>
+  <text x="188" y="155" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#202020">Raytraced beauty</text>
+  <text x="188" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" text-anchor="middle" fill="#3f5f82">beauty / raytracer</text>
 
-  <line x1="377" y1="148" x2="510" y2="148" stroke="#222222" stroke-width="3" marker-end="url(#arrow)"/>
-  <text x="444" y="132" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" text-anchor="middle" fill="#555555">writes</text>
+  <line x1="323" y1="166" x2="394" y2="166" stroke="#222222" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="360" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" text-anchor="middle" fill="#555555">writes</text>
 
-  <rect x="530" y="106" width="164" height="84" rx="4" fill="#edf7ef" stroke="#2c8b45" stroke-width="3" filter="url(#shadow)"/>
-  <text x="612" y="141" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#202020">main_color</text>
-  <text x="612" y="166" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" text-anchor="middle" fill="#3e6c48">color resource</text>
+  <rect x="414" y="124" width="164" height="84" rx="4" fill="#fff4df" stroke="#d58a1f" stroke-width="3" filter="url(#shadow)"/>
+  <text x="496" y="159" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#202020">beauty_color</text>
+  <text x="496" y="184" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" text-anchor="middle" fill="#7a571f">transient color</text>
+
+  <line x1="580" y1="166" x2="650" y2="166" stroke="#222222" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="616" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" text-anchor="middle" fill="#555555">reads</text>
+
+  <ellipse cx="742" cy="166" rx="92" ry="48" fill="#f4eafa" stroke="#9c3cc7" stroke-width="3" filter="url(#shadow)"/>
+  <text x="742" y="156" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700" text-anchor="middle" fill="#202020">Tone map</text>
+  <text x="742" y="181" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="15" text-anchor="middle" fill="#6d3c84">tonemap / postprocess</text>
+
+  <line x1="837" y1="166" x2="846" y2="166" stroke="#222222" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="864" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" text-anchor="middle" fill="#555555">writes</text>
+
+  <rect x="852" y="124" width="104" height="84" rx="4" fill="#edf7ef" stroke="#2c8b45" stroke-width="3" filter="url(#shadow)"/>
+  <text x="904" y="159" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="17" font-weight="700" text-anchor="middle" fill="#202020">main_color</text>
+  <text x="904" y="184" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="14" text-anchor="middle" fill="#3e6c48">exported color</text>
 </svg>

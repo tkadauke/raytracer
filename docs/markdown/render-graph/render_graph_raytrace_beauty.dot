@@ -1,6 +1,10 @@
 digraph RenderPlan {
   rankdir=LR;
+  "resource:beauty_color" [shape=box,label="beauty_color\ncolor"];
   "resource:main_color" [shape=box,label="main_color\ncolor"];
   "pass:raytrace_beauty" [shape=ellipse,label="Raytraced beauty\nbeauty/raytracer"];
-  "pass:raytrace_beauty" -> "resource:main_color";
+  "pass:raytrace_beauty" -> "resource:beauty_color";
+  "pass:tonemap" [shape=ellipse,label="Tone map\ntonemap/postprocess"];
+  "resource:beauty_color" -> "pass:tonemap";
+  "pass:tonemap" -> "resource:main_color";
 }

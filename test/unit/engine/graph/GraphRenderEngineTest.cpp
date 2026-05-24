@@ -45,8 +45,10 @@ namespace GraphRenderEngineTest {
       }
     }
 
-    ASSERT_EQ(1u, engine.lastPlan().passes().size());
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
     EXPECT_EQ(RenderExecutorKind::Raytracer, engine.lastPlan().passes()[0].executor);
+    EXPECT_EQ(RenderPassKind::Tonemap, engine.lastPlan().passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, engine.lastPlan().passes()[1].executor);
   }
 
   TEST(GraphRenderEngine, ExecutesCallerProvidedRasterBeautyPlan) {
@@ -64,8 +66,9 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
 
     EXPECT_TRUE(engine.hasExplicitPlan());
-    ASSERT_EQ(1u, engine.lastPlan().passes().size());
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
     EXPECT_EQ(RenderExecutorKind::Rasterizer, engine.lastPlan().passes()[0].executor);
+    EXPECT_EQ(RenderPassKind::Tonemap, engine.lastPlan().passes()[1].kind);
     EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
   }
 

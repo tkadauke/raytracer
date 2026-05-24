@@ -32,7 +32,7 @@ by editing this file.
   compositing, postprocessing, or diagnostic AOV visualization.
   In the render graph, a `RenderPassKind::Beauty` pass produces
   the primary color image.
-  [Render plans and resources: The first compiler emits a beauty pass](../render-graph/render-plans-and-resources.md#the-first-compiler-emits-a-beauty-pass).
+  [Render plans and resources: The first compiler emits beauty and tonemap passes](../render-graph/render-plans-and-resources.md#the-first-compiler-emits-a-beauty-pass).
 - **Barycentric coordinates** — three-tuple $(w_0, w_1, w_2)$
   with $\sum w_i = 1$, parameterizing points inside a
   triangle as a weighted average of its vertices.
