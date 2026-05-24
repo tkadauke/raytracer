@@ -293,7 +293,7 @@ Keep current coverage, then add:
   for a graph-backed raster render in `RenderGraphOptionTest.cmake`.
 - `--render_graph_trace_out` while rendering writes both image and executed
   trace JSON; ✅ covered for a graph-backed raytracer FXAA render in
-  `RenderGraphOptionTest.cmake`.
+  `RenderGraphOptionTest.cmake`, including full-resolution preview dimensions.
 - `--render_graph_only` with no output writes graph to stdout; ✅ covered for
   JSON graph output in `RenderGraphOptionTest.cmake`.
 - malformed JSON in `--render_graph_in`; ✅ covered in

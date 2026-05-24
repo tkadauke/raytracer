@@ -465,6 +465,12 @@ endif()
 if(NOT graph_trace_json MATCHES "\"diffs\"")
   message(FATAL_ERROR "graph trace did not contain diffs: ${graph_trace_json}")
 endif()
+if(NOT graph_trace_json MATCHES "\"previewWidth\": 32")
+  message(FATAL_ERROR "graph trace did not contain full-width previews: ${graph_trace_json}")
+endif()
+if(NOT graph_trace_json MATCHES "\"previewHeight\": 16")
+  message(FATAL_ERROR "graph trace did not contain full-height previews: ${graph_trace_json}")
+endif()
 
 rendercli_run(
   NAME "rendercli writes raster pass state while rendering through graph"
