@@ -443,8 +443,8 @@ size into a `RenderPlan`, then shows the result as three tables:
   written resources, and disabled behavior;
 - the Dependencies table lists producer pass, resource, and consumer pass for
   each declared pass-to-pass edge;
-- the Resources table lists each resource id, type, format, domain, lifetime,
-  dimensions, and sample count.
+- the Resources table lists each resource id, producer, consumers, type, format,
+  domain, lifetime, dimensions, and sample count.
 
 The checkbox in each pass row builds a `RenderGraphOverrides` value for that
 pass id. The dock applies those overrides to the compiled plan and runs

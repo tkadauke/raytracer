@@ -37,6 +37,18 @@ namespace {
     return dashIfEmpty(values.join(", "));
   }
 
+  QString resourceProducer(const RenderPlan& plan, const RenderResourceId& resource) {
+    const RenderPassNode* producer = plan.producerOf(resource);
+    return producer ? qstr(producer->id) : QStringLiteral("-");
+  }
+
+  QString resourceConsumers(const RenderPlan& plan, const RenderResourceId& resource) {
+    QStringList values;
+    for (const RenderPassNode* consumer : plan.consumersOf(resource))
+      values << qstr(consumer->id);
+    return dashIfEmpty(values.join(", "));
+  }
+
   QString sizeText(const RenderResourceDescriptor& resource) {
     return QStringLiteral("%1x%2, %3 sample(s)")
       .arg(resource.width)
@@ -95,8 +107,8 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->resources->setObjectName("renderGraphResources");
   p->resources->setRootIsDecorated(false);
   p->resources->setAlternatingRowColors(true);
-  p->resources->setHeaderLabels(
-    {tr("Resource"), tr("Type"), tr("Format"), tr("Domain"), tr("Lifetime"), tr("Size")});
+  p->resources->setHeaderLabels({tr("Resource"), tr("Producer"), tr("Consumers"), tr("Type"),
+                                 tr("Format"), tr("Domain"), tr("Lifetime"), tr("Size")});
   p->resources->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->resources->header()->setStretchLastSection(true);
 
@@ -199,14 +211,17 @@ void RenderGraphInspectorWidget::rebuildDependencies() {
 void RenderGraphInspectorWidget::rebuildResources() {
   p->resources->clear();
 
-  for (const auto& resource : p->plan.resources()) {
+  const RenderPlan plan = effectivePlan();
+  for (const auto& resource : plan.resources()) {
     auto item = new QTreeWidgetItem(p->resources);
     item->setText(0, qstr(resource.id));
-    item->setText(1, toString(resource.type));
-    item->setText(2, toString(resource.format));
-    item->setText(3, toString(resource.domain));
-    item->setText(4, toString(resource.lifetime));
-    item->setText(5, sizeText(resource));
+    item->setText(1, resourceProducer(plan, resource.id));
+    item->setText(2, resourceConsumers(plan, resource.id));
+    item->setText(3, toString(resource.type));
+    item->setText(4, toString(resource.format));
+    item->setText(5, toString(resource.domain));
+    item->setText(6, toString(resource.lifetime));
+    item->setText(7, sizeText(resource));
   }
 }
 

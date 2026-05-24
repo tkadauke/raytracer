@@ -114,7 +114,9 @@ namespace RenderGraphInspectorWidgetTest {
 
     ASSERT_EQ(1, resources->topLevelItemCount());
     EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->text(0));
-    EXPECT_EQ(QString("color"), resources->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("raytrace_beauty"), resources->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("-"), resources->topLevelItem(0)->text(2));
+    EXPECT_EQ(QString("color"), resources->topLevelItem(0)->text(3));
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
   }
 
@@ -128,6 +130,13 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("raytrace_beauty"), dependencies->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("beauty_color"), dependencies->topLevelItem(0)->text(1));
     EXPECT_EQ(QString("tonemap"), dependencies->topLevelItem(0)->text(2));
+
+    auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
+    ASSERT_NE(nullptr, resources);
+    ASSERT_EQ(2, resources->topLevelItemCount());
+    EXPECT_EQ(QString("beauty_color"), resources->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("raytrace_beauty"), resources->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("tonemap"), resources->topLevelItem(0)->text(2));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {
