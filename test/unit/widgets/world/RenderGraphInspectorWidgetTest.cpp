@@ -207,6 +207,29 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(Qt::Unchecked, passes->topLevelItem(1)->checkState(0));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldMarkRequiredGraphNodeToggleInvalid) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+    QGraphicsItem* beauty = graphItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, beauty);
+
+    QGraphicsSceneMouseEvent event(QEvent::GraphicsSceneMouseDoubleClick);
+    event.setScenePos(beauty->sceneBoundingRect().center());
+    QApplication::sendEvent(graph->scene(), &event);
+
+    const auto overrides = widget.overrides();
+    EXPECT_NE(overrides.disabledPasses.end(), overrides.disabledPasses.find("raytrace_beauty"));
+    EXPECT_FALSE(widget.effectivePlanValid());
+
+    auto* status = widget.findChild<QLabel*>("renderGraphValidationStatus");
+    ASSERT_NE(nullptr, status);
+    EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Invalid plan"));
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {
     RenderGraphInspectorWidget widget;
     Slot slot;

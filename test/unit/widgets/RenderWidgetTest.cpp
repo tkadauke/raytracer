@@ -15,6 +15,7 @@
 #include <QThread>
 
 #include <atomic>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -73,6 +74,26 @@ namespace RenderWidgetTest {
 
     QSemaphore entered;
     QSemaphore release;
+  };
+
+  class ThrowingEngine : public render::RenderEngine {
+  public:
+    ThrowingEngine()
+        : render::RenderEngine(std::shared_ptr<render::Scene>()) {
+    }
+
+    void render(Buffer<Colord>&) override {
+    }
+
+    void render(Buffer<unsigned int>&) override {
+      throw std::runtime_error("render graph is invalid");
+    }
+
+    void cancel() override {
+    }
+
+    void uncancel() override {
+    }
   };
 
   struct CloneGate {
@@ -301,6 +322,27 @@ namespace RenderWidgetTest {
 
     engine->state->gates[0]->release.release();
     engine->state->gates[1]->release.release();
+  }
+
+  TEST_F(RenderWidgetTest, ShouldEmitFailureInsteadOfCrashingWhenRenderThreadThrows) {
+    auto engine = std::make_shared<ThrowingEngine>();
+    RenderWidget widget(nullptr, engine);
+    widget.setBufferSize(QSize(2, 2));
+
+    int failedCount = 0;
+    int finishedCount = 0;
+    QString failureMessage;
+    QObject::connect(&widget, &RenderWidget::renderFailed, [&](const QString& message) {
+      ++failedCount;
+      failureMessage = message;
+    });
+    QObject::connect(&widget, &RenderWidget::finished, [&finishedCount]() { ++finishedCount; });
+
+    widget.render();
+
+    EXPECT_TRUE(processEventsUntil([&failedCount]() { return failedCount == 1; }));
+    EXPECT_EQ(0, finishedCount);
+    EXPECT_NE(std::string::npos, failureMessage.toStdString().find("render graph is invalid"));
   }
 
   TEST_F(RenderWidgetTest, ShouldAcceptStopBeforeRender) {

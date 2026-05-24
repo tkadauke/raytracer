@@ -69,8 +69,14 @@ public slots:
   /// Installs the effective graph plan that the live preview should render.
   void setRenderGraphPlan(const engine::graph::RenderPlan& plan);
 
+  /// Enables or suspends live preview rendering while graph overrides are valid.
+  void setRenderGraphPreviewEnabled(bool enabled);
+  bool renderGraphPreviewEnabled() const;
+
   /// Sets the tonemap used by the preview graph's tonemap node.
   void setPreviewTonemap(std::shared_ptr<render::Tonemap> tonemap);
+
+  void render() override;
 
 private:
   void applyPreviewPolicy(EngineKind kind);
@@ -81,4 +87,5 @@ private:
   bool m_rasterizerPreviewShadowsEnabled{false};
   engine::graph::RenderPostProcessAA m_previewPostProcessAA;
   bool m_wireframeOverlayEnabled{false};
+  bool m_renderGraphPreviewEnabled{true};
 };

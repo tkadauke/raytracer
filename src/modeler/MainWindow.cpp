@@ -210,6 +210,9 @@ MainWindow::MainWindow()
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
   connect(p->display, SIGNAL(renderGraphInputsChanged()), this, SLOT(updateRenderGraphInspector()));
+  connect(p->display, &RenderWidget::renderFailed, this, [this](const QString& message) {
+    statusBar()->showMessage(tr("Preview render failed: %1").arg(message));
+  });
   connect(p->renderGraphInspectorWidget, SIGNAL(overridesChanged()), this,
           SLOT(renderGraphOverridesChanged()));
 
@@ -1206,10 +1209,18 @@ bool MainWindow::applyRenderGraphPreviewPlan() {
   if (!p->renderGraphInspectorWidget || !p->display)
     return false;
 
-  if (!p->renderGraphInspectorWidget->effectivePlanValid())
+  const auto plan = p->renderGraphInspectorWidget->effectivePlan();
+  const auto validation = plan.validate();
+  if (!validation.valid()) {
+    const auto& first = validation.errors().front();
+    p->display->setRenderGraphPreviewEnabled(false);
+    statusBar()->showMessage(
+      tr("Render graph preview paused: %1").arg(QString::fromStdString(first.message)));
     return false;
+  }
 
-  p->display->setRenderGraphPlan(p->renderGraphInspectorWidget->effectivePlan());
+  p->display->setRenderGraphPlan(plan);
+  statusBar()->clearMessage();
   return true;
 }
 

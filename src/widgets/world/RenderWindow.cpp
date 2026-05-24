@@ -156,6 +156,8 @@ RenderWindow::RenderWindow(QWidget* parent)
   connect(p->settingsWidget, SIGNAL(stopClicked()), this, SLOT(stop()));
 
   connect(p->renderWidget, SIGNAL(finished()), this, SLOT(finished()));
+  connect(p->renderWidget, &RenderWidget::renderFailed, this,
+          [this](const QString&) { finished(); });
 }
 
 // Defined here so the unique_ptr<Private> deleter sees the complete Private

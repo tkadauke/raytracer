@@ -102,13 +102,35 @@ void RenderDisplay::setRenderGraphIntent(const engine::graph::RenderIntent& inte
 }
 
 void RenderDisplay::setRenderGraphPlan(const engine::graph::RenderPlan& plan) {
-  if (m_graphEngine)
+  if (m_graphEngine) {
     m_graphEngine->setPlan(plan);
+  }
+  setRenderGraphPreviewEnabled(true);
+}
+
+void RenderDisplay::setRenderGraphPreviewEnabled(bool enabled) {
+  if (m_renderGraphPreviewEnabled == enabled)
+    return;
+
+  m_renderGraphPreviewEnabled = enabled;
+  if (!enabled)
+    stop();
+}
+
+bool RenderDisplay::renderGraphPreviewEnabled() const {
+  return m_renderGraphPreviewEnabled;
 }
 
 void RenderDisplay::setPreviewTonemap(std::shared_ptr<render::Tonemap> tonemap) {
   m_engine->setTonemap(std::move(tonemap));
   render();
+}
+
+void RenderDisplay::render() {
+  if (!m_renderGraphPreviewEnabled)
+    return;
+
+  QtDisplay::render();
 }
 
 void RenderDisplay::resizeEvent(QResizeEvent*) {

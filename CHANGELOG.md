@@ -131,6 +131,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler invalid graph-node toggles.** Disabling a required Render Graph
+  node in the Modeler inspector now pauses live preview rendering instead of
+  starting an invalid graph on the worker thread, and render-thread exceptions
+  are reported through `RenderWidget` instead of aborting the process. — GPT-5
 - **Modeler graph node spacing.** The Render Graph dock now leaves a full
   resource lane between pass ranks, preventing resource nodes such as
   `beauty_color` from being hidden under adjacent pass boxes. — GPT-5

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <memory>
 
+#include <QString>
 #include <QWidget>
 
 class QImage;
@@ -176,6 +177,10 @@ signals:
   /// frame was considered for publication. Retired stale jobs do not
   /// emit this signal when they eventually finish.
   void finished();
+
+  /// Emitted when the active render thread catches an exception from
+  /// the engine. No frame is published for the failed render.
+  void renderFailed(const QString& message);
 
 public slots:
   /// Cancel all known render jobs and wait for their worker threads

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <exception>
 #include <cstring>
 #include <list>
 #include <utility>
@@ -25,8 +26,12 @@ namespace {
           buffer(std::move(b)) {
     }
 
-    inline virtual void run() {
-      engine->render(*buffer);
+    inline void run() override {
+      try {
+        engine->render(*buffer);
+      } catch (...) {
+        failure = std::current_exception();
+      }
     }
 
     inline void cancel() {
@@ -35,7 +40,22 @@ namespace {
 
     std::shared_ptr<render::RenderEngine> engine;
     std::shared_ptr<Buffer<unsigned int>> buffer;
+    std::exception_ptr failure;
   };
+
+  QString failureMessage(const std::exception_ptr& failure) {
+    if (!failure) {
+      return QString();
+    }
+
+    try {
+      std::rethrow_exception(failure);
+    } catch (const std::exception& error) {
+      return QString::fromLocal8Bit(error.what());
+    } catch (...) {
+      return QStringLiteral("unknown render-thread exception");
+    }
+  }
 
   struct RenderJob {
     RenderJob(std::uint64_t generation, std::shared_ptr<render::RenderEngine> engine,
@@ -103,6 +123,9 @@ RenderWidget::~RenderWidget() {
 }
 
 void RenderWidget::stop() {
+  if (p->activeJob && !p->activeJob->thread->isRunning() && p->activeJob->thread->failure) {
+    p->activeJob->discardFinishedFrame = true;
+  }
   if (p->activeJob && !p->activeJob->discardFinishedFrame) {
     publishProgressUpdate();
   }
@@ -113,6 +136,9 @@ void RenderWidget::stop() {
     p->activeJob->thread->wait();
   }
 
+  if (p->activeJob && p->activeJob->thread->failure) {
+    p->activeJob->discardFinishedFrame = true;
+  }
   if (p->activeJob && !wasRunning && !p->activeJob->discardFinishedFrame) {
     publishFullBackBuffer();
   } else if (p->activeJob && !p->activeJob->discardFinishedFrame) {
@@ -294,6 +320,9 @@ void RenderWidget::clearInactiveActiveRender() {
   if (!p->activeJob || p->activeJob->thread->isRunning())
     return;
 
+  if (p->activeJob->thread->failure) {
+    p->activeJob->discardFinishedFrame = true;
+  }
   if (!p->activeJob->discardFinishedFrame) {
     publishFullBackBuffer();
   }
@@ -439,6 +468,18 @@ void RenderWidget::renderThreadDone(std::uint64_t generation) {
       disconnect((*retired)->thread, nullptr, this, nullptr);
       p->retiredJobs.erase(retired);
     }
+    return;
+  }
+
+  if (p->activeJob->thread->failure) {
+    const QString message = failureMessage(p->activeJob->thread->failure);
+    p->activeJob->discardFinishedFrame = true;
+    if (p->timer != 0) {
+      killTimer(p->timer);
+      p->timer = 0;
+    }
+    update();
+    emit renderFailed(message);
     return;
   }
 
