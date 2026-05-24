@@ -57,6 +57,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler graph preview updates progressively again.** Simple graph-backed
+  LDR previews now use the wrapped beauty engine's display-buffer render path
+  when the effective graph is a beauty pass plus optional tonemap pass, so the
+  preview widget can publish partial pixels while the frame is still rendering
+  instead of waiting for final graph composition. — GPT-5
 - **Modeler graph preview startup crash.** `QtDisplay` now initializes its backing buffer after its default widget resize, and the Modeler graph preview compiles plans against that backing-buffer size, preventing graph color-resource copies from aborting on startup due to stale dimensions. — GPT-5
 - **Textbook image assets now publish with the static HTML build.** `rake docs:textbook:html` copies `docs/images` into `docs/html/textbook/images`, so rendered PNGs and graph SVG artifacts resolve when the textbook is served locally. — GPT-5
 - **Wireframe now clips edges crossing the near plane instead of dropping them.** `Wireframe::nearClipDepth()` defaults to `0.1`; edges with one endpoint behind that depth are shortened before projection, while edges fully behind it are skipped. — GPT-5

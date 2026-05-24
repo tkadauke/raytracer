@@ -155,6 +155,19 @@ lives behind
 interface is a virtual `execute(RenderExecutionContext&)` method. The node
 describes the graph; the payload performs the pass.
 
+`RenderExecutionContext` supplies the payload with the current node, frame-local
+resource storage, the owning graph engine's render settings, cancellation
+state, and the active child-engine hook used for progress reporting. The
+built-in payloads currently cover whole-frame raytracer, rasterizer, and
+wireframe beauty passes plus the tonemap postprocess pass.
+
+Payloads may also expose a display-buffer fast path. When the effective graph
+is just a whole-frame beauty pass followed by an optional tonemap pass, the
+graph engine can ask the beauty payload to render directly into the packed RGB
+display buffer. That preserves progressive preview behavior: a GUI polling the
+display buffer sees pixels as the wrapped engine finishes them, while the graph
+still keeps the declarative beauty-to-tonemap plan visible to the user.
+
 ## <a id="validation-catches-graph-mistakes"></a>Validation catches graph mistakes
 `RenderPlan::validate()` walks the resource list and pass list and returns a
 `RenderPlanValidation`. Each issue is a `RenderPlanValidationError` with a
@@ -356,6 +369,13 @@ copies the first exported color resource into the caller's output buffer.
 `lastPlan()` remains available after rendering, so tools can render and then
 inspect the exact graph shape that produced the image.
 
+For packed RGB output, the graph engine uses the payload display fast path when
+the plan is the default beauty-to-tonemap chain or the same chain with tonemap
+disabled as a passthrough. That path lets `Raytracer`, `Rasterizer`, and
+`Wireframe` publish directly into the display buffer during the render. More
+complex plans still execute into graph resources first and pack the exported
+color after the graph completes.
+
 Composite passes, arbitrary postprocess effects, graph scheduling, and history
 resources are not executed by this first slice.
 
@@ -417,6 +437,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 <!-- source-anchors -->
 - `include/engine/graph/RenderGraphTypes.h`
 - `include/engine/graph/RenderGraphCompiler.h`
+- `include/engine/graph/RenderExecutionContext.h`
 - `include/engine/graph/RenderPlan.h`
 - `include/engine/graph/RenderPassPayload.h`
 - `include/engine/graph/RenderResource.h`
@@ -424,14 +445,18 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/GraphRenderEngine.h`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
 - `src/modeler/`
+- `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
+- `src/engine/graph/RenderPassPayloads.cpp`
+- `src/engine/graph/RenderPassPayloads.h`
 - `src/engine/graph/RenderPlan.cpp`
 - `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`
 - `src/widgets/world/RenderGraphInspectorWidget.cpp`
 - `test/unit/engine/graph/RenderGraphCompilerTest.cpp`
+- `test/unit/engine/graph/RenderExecutionContextTest.cpp`
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
 - `test/unit/engine/graph/RenderPlanTest.cpp`
 - `test/unit/engine/graph/RenderResourceStorageTest.cpp`
