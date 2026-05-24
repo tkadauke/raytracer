@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph text features.** `RenderPlan::toText()` now lists each pass's
+  feature tags, making rendercli graph dumps show the exact tags affected by
+  `--disable_feature`. — GPT-5
 - **Graph-visible raster preview shadow pass.** Raster graph plans with preview
   shadows now include a `raster_preview_shadows` shadow node and
   `preview_shadow_map` resource before `raster_beauty`; disabling that node

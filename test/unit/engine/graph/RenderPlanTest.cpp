@@ -364,6 +364,7 @@ namespace RenderPlanTest {
     const std::string text = plan.toText();
     EXPECT_NE(std::string::npos, text.find("main_color"));
     EXPECT_NE(std::string::npos, text.find("main"));
+    EXPECT_NE(std::string::npos, text.find("features: beauty"));
 
     const std::string dot = plan.toDot();
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));

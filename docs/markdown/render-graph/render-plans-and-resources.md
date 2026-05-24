@@ -235,6 +235,10 @@ the same resource is also reported as a cycle.
 - `toDot()` produces a Graphviz DOT graph.
 - `toJson()` produces a structured `QJsonObject`.
 
+Text dumps include pass feature tags as well as reads and writes, so the same
+terminal output that shows a pass id also shows the tags affected by
+feature-level disable controls.
+
 `rendercli` renders through the graph by default and exposes the same formats
 through `--render_graph_only` and `--render_graph_format text|dot|json`. With
 `--render_graph_out`, the CLI can save the compiled graph alongside a render;
@@ -267,8 +271,10 @@ Resources:
 - main_color (color, rgb_double, cpu, exported, 640x360, samples=1)
 Passes:
 - raster_beauty [beauty/rasterizer] enabled
+  features: main beauty rasterizer
   writes: beauty_color
 - tonemap [tonemap/postprocess] enabled
+  features: main tonemap postprocess
   reads: beauty_color
   writes: main_color
 ```

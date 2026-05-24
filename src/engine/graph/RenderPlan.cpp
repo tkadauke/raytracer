@@ -389,6 +389,12 @@ namespace engine::graph {
     for (const auto& pass : m_passes) {
       out << "- " << pass.id << " [" << toString(pass.kind) << "/" << toString(pass.executor)
           << "] " << (pass.enabled ? "enabled" : "disabled") << "\n";
+      if (!pass.features.empty()) {
+        out << "  features:";
+        for (const auto& feature : pass.features)
+          out << " " << feature;
+        out << "\n";
+      }
       if (!pass.reads.empty()) {
         out << "  reads:";
         for (const auto& read : pass.reads)
