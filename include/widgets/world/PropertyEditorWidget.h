@@ -1,6 +1,9 @@
 #pragma once
 #include <memory>
 
+#include <QPair>
+#include <QString>
+#include <QVector>
 #include <QWidget>
 
 class Element;
@@ -14,6 +17,7 @@ public:
   ~PropertyEditorWidget();
 
   void setRoot(Element* root);
+  void setReadOnlyProperties(const QString& title, const QVector<QPair<QString, QString>>& rows);
 
   virtual QSize sizeHint() const;
 
@@ -31,6 +35,7 @@ private:
   void addParameterWidgets();
   void addParametersForClass(const QMetaObject* klass);
   void clearParameterWidgets();
+  void clearReadOnlyWidgets();
 
   void addParameter(const QString& name);
 

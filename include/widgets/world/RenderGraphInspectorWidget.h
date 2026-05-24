@@ -84,10 +84,13 @@ signals:
     * Emitted after a pass checkbox changes the stored overrides.
     */
   void overridesChanged();
+  void passSelected(const QString& passId);
+  void resourceSelected(const QString& resourceId);
 
 private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);
   void passSelectionChanged();
+  void resourceSelectionChanged();
 
 private:
   bool eventFilter(QObject* watched, QEvent* event) override;
@@ -95,11 +98,11 @@ private:
   void rebuildAllViews();
   void rebuildGraph();
   void rebuildPasses();
-  void rebuildDependencies();
   void rebuildResources();
   void rebuildTrace();
   void updateValidationStatus();
   void selectPass(const engine::graph::RenderPassId& passId);
+  void selectResource(const engine::graph::RenderResourceId& resourceId);
   void setPassEnabledOverride(const engine::graph::RenderPassId& passId, bool enabled);
 
   struct Private;

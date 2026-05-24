@@ -180,14 +180,13 @@ namespace RenderGraphInspectorWidgetTest {
 
     auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
-    auto* dependencies = widget.findChild<QTreeWidget*>("renderGraphDependencies");
     auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
     auto* status = widget.findChild<QLabel*>("renderGraphValidationStatus");
     ASSERT_NE(nullptr, passes);
     ASSERT_NE(nullptr, graph);
-    ASSERT_NE(nullptr, dependencies);
     ASSERT_NE(nullptr, resources);
     ASSERT_NE(nullptr, status);
+    EXPECT_EQ(nullptr, widget.findChild<QTreeWidget*>("renderGraphDependencies"));
 
     ASSERT_EQ(1, passes->topLevelItemCount());
     EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(1));
@@ -200,8 +199,6 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "main_color"));
 
-    EXPECT_EQ(0, dependencies->topLevelItemCount());
-
     ASSERT_EQ(1, resources->topLevelItemCount());
     EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("raytrace_beauty"), resources->topLevelItem(0)->text(1));
@@ -210,18 +207,13 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
   }
 
-  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowDependencyRows) {
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowResourceEdgeRows) {
     RenderGraphInspectorWidget widget;
     widget.setPlan(twoPassPlan());
 
-    auto* dependencies = widget.findChild<QTreeWidget*>("renderGraphDependencies");
     auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
-    ASSERT_NE(nullptr, dependencies);
     ASSERT_NE(nullptr, graph);
-    ASSERT_EQ(1, dependencies->topLevelItemCount());
-    EXPECT_EQ(QString("raytrace_beauty"), dependencies->topLevelItem(0)->text(0));
-    EXPECT_EQ(QString("beauty_color"), dependencies->topLevelItem(0)->text(1));
-    EXPECT_EQ(QString("tonemap"), dependencies->topLevelItem(0)->text(2));
+    EXPECT_EQ(nullptr, widget.findChild<QTreeWidget*>("renderGraphDependencies"));
 
     auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
     ASSERT_NE(nullptr, resources);
@@ -392,6 +384,46 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_THAT(title->text().toStdString(), ::testing::HasSubstr("post_fxaa"));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitPassSelectedFromGraphNode) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+    QString selectedPass;
+    QObject::connect(&widget, &RenderGraphInspectorWidget::passSelected,
+                     [&](const QString& passId) { selectedPass = passId; });
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+    QGraphicsItem* tonemap = graphItem(graph->scene(), "pass", "tonemap");
+    ASSERT_NE(nullptr, tonemap);
+
+    QGraphicsSceneMouseEvent event(QEvent::GraphicsSceneMousePress);
+    event.setScenePos(tonemap->sceneBoundingRect().center());
+    QApplication::sendEvent(graph->scene(), &event);
+
+    EXPECT_EQ(QString("tonemap"), selectedPass);
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitResourceSelectedFromGraphNode) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+    QString selectedResource;
+    QObject::connect(&widget, &RenderGraphInspectorWidget::resourceSelected,
+                     [&](const QString& resourceId) { selectedResource = resourceId; });
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+    QGraphicsItem* resource = graphItem(graph->scene(), "resource", "beauty_color");
+    ASSERT_NE(nullptr, resource);
+
+    QGraphicsSceneMouseEvent event(QEvent::GraphicsSceneMousePress);
+    event.setScenePos(resource->sceneBoundingRect().center());
+    QApplication::sendEvent(graph->scene(), &event);
+
+    EXPECT_EQ(QString("beauty_color"), selectedResource);
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldClearStaleExecutionTraceOnRenderStart) {
     auto trace = postProcessTrace();
     ASSERT_TRUE(trace);
@@ -409,6 +441,23 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, inputs);
     EXPECT_THAT(title->text().toStdString(), ::testing::HasSubstr("post_fxaa"));
     EXPECT_TRUE(labelsContain(inputs, QStringLiteral("No execution trace")));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldReemitSelectionWhenTraceChanges) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    selectPass(widget, QStringLiteral("post_fxaa"));
+
+    QString selectedPass;
+    QObject::connect(&widget, &RenderGraphInspectorWidget::passSelected,
+                     [&](const QString& passId) { selectedPass = passId; });
+
+    widget.setExecutionTrace(trace);
+
+    EXPECT_EQ(QString("post_fxaa"), selectedPass);
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {

@@ -40,6 +40,8 @@ private slots:
   void updatePreviewWidget();
   void updateRenderGraphInspector();
   void renderGraphOverridesChanged();
+  void renderGraphPassSelected(const QString& passId);
+  void renderGraphResourceSelected(const QString& resourceId);
   void setCurrentFrame(int frame);
 
   void newFile();

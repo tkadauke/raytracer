@@ -154,11 +154,14 @@ Preview Tonemap` selects the operator used by the graph's tonemap node.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview
-renders begin. Its Passes tab shows each compiled pass id, kind, executor, and
-resource edges. Its Resources tab shows each declared resource's type, format,
-domain, lifetime, and dimensions. Unchecking a pass adds a graph override and
-the dock validates the manipulated plan immediately. When the manipulated plan
-is still valid, the central preview renders through that effective plan.
+renders begin. The Graph tab is the primary view: it shows pass nodes,
+resource nodes, and dependency edges, supports double-click pass toggles, and
+drives the property editor when a pass or resource is selected. Its Passes tab
+shows each compiled pass id, kind, executor, and resource edges. Its Resources
+tab shows each declared resource's type, format, domain, lifetime, and
+dimensions. Unchecking a pass adds a graph override and the dock validates the
+manipulated plan immediately. When the manipulated plan is still valid, the
+central preview renders through that effective plan.
 
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog

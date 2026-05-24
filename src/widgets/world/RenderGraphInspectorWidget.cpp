@@ -319,12 +319,12 @@ struct RenderGraphInspectorWidget::Private {
   RenderGraphOverrides overrides;
   std::shared_ptr<const RenderGraphExecutionTrace> executionTrace;
   RenderPassId selectedPassId;
+  RenderResourceId selectedResourceId;
   std::map<RenderPassId, PassExecutionState> executionStates;
   std::map<RenderPassId, QString> executionMessages;
   QGraphicsView* graph{nullptr};
   QGraphicsScene* graphScene{nullptr};
   QTreeWidget* passes{nullptr};
-  QTreeWidget* dependencies{nullptr};
   QTreeWidget* resources{nullptr};
   QLabel* traceTitle{nullptr};
   QTabWidget* traceTabs{nullptr};
@@ -371,14 +371,6 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
           SLOT(passItemChanged(QTreeWidgetItem*, int)));
   connect(p->passes, SIGNAL(itemSelectionChanged()), this, SLOT(passSelectionChanged()));
 
-  p->dependencies = new QTreeWidget(tabs);
-  p->dependencies->setObjectName("renderGraphDependencies");
-  p->dependencies->setRootIsDecorated(false);
-  p->dependencies->setAlternatingRowColors(true);
-  p->dependencies->setHeaderLabels({tr("Producer"), tr("Resource"), tr("Consumer")});
-  p->dependencies->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
-  p->dependencies->header()->setStretchLastSection(true);
-
   p->resources = new QTreeWidget(tabs);
   p->resources->setObjectName("renderGraphResources");
   p->resources->setRootIsDecorated(false);
@@ -387,6 +379,7 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
                                  tr("Format"), tr("Domain"), tr("Lifetime"), tr("Size")});
   p->resources->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->resources->header()->setStretchLastSection(true);
+  connect(p->resources, SIGNAL(itemSelectionChanged()), this, SLOT(resourceSelectionChanged()));
 
   auto trace = new QWidget(tabs);
   auto traceLayout = new QVBoxLayout(trace);
@@ -436,7 +429,6 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
 
   tabs->addTab(p->graph, tr("Graph"));
   tabs->addTab(p->passes, tr("Passes"));
-  tabs->addTab(p->dependencies, tr("Dependencies"));
   tabs->addTab(p->resources, tr("Resources"));
   tabs->addTab(trace, tr("Trace"));
 
@@ -464,6 +456,8 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   if (ids.find(p->selectedPassId) == ids.end()) {
     p->selectedPassId = p->plan.passes().empty() ? RenderPassId() : p->plan.passes().front().id;
   }
+  if (p->plan.findResource(p->selectedResourceId) == nullptr)
+    p->selectedResourceId.clear();
   for (auto it = p->overrides.disabledPasses.begin(); it != p->overrides.disabledPasses.end();) {
     if (ids.find(*it) == ids.end()) {
       it = p->overrides.disabledPasses.erase(it);
@@ -490,12 +484,18 @@ bool RenderGraphInspectorWidget::effectivePlanValid() const {
 void RenderGraphInspectorWidget::setExecutionTrace(
   std::shared_ptr<const RenderGraphExecutionTrace> trace) {
   p->executionTrace = std::move(trace);
-  if (p->executionTrace && !p->executionTrace->findPass(p->selectedPassId)) {
+  if (p->executionTrace && p->selectedResourceId.empty() &&
+      !p->executionTrace->findPass(p->selectedPassId)) {
     p->selectedPassId = p->executionTrace->passes().empty()
                           ? RenderPassId()
                           : p->executionTrace->passes().front().passId();
   }
   rebuildTrace();
+  if (!p->selectedResourceId.empty()) {
+    emit resourceSelected(qstr(p->selectedResourceId));
+  } else if (!p->selectedPassId.empty()) {
+    emit passSelected(qstr(p->selectedPassId));
+  }
 }
 
 void RenderGraphInspectorWidget::clearExecutionState() {
@@ -507,6 +507,11 @@ void RenderGraphInspectorWidget::clearExecutionState() {
   p->executionMessages.clear();
   rebuildGraph();
   rebuildTrace();
+  if (!p->selectedResourceId.empty()) {
+    emit resourceSelected(qstr(p->selectedResourceId));
+  } else if (!p->selectedPassId.empty()) {
+    emit passSelected(qstr(p->selectedPassId));
+  }
 }
 
 void RenderGraphInspectorWidget::passExecutionStarted(const QString& passId) {
@@ -543,6 +548,13 @@ void RenderGraphInspectorWidget::passSelectionChanged() {
   selectPass(p->passes->currentItem()->data(0, Qt::UserRole).toString().toStdString());
 }
 
+void RenderGraphInspectorWidget::resourceSelectionChanged() {
+  if (p->updating || !p->resources->currentItem())
+    return;
+
+  selectResource(p->resources->currentItem()->data(0, Qt::UserRole).toString().toStdString());
+}
+
 bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
   if (watched == p->graphScene && event->type() == QEvent::GraphicsSceneMousePress) {
     auto* mouseEvent = static_cast<QGraphicsSceneMouseEvent*>(event);
@@ -550,6 +562,8 @@ bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
       graphNodeItem(p->graphScene->itemAt(mouseEvent->scenePos(), QTransform()));
     if (item && item->data(GraphItemKindRole).toString() == QStringLiteral("pass")) {
       selectPass(item->data(GraphItemIdRole).toString().toStdString());
+    } else if (item && item->data(GraphItemKindRole).toString() == QStringLiteral("resource")) {
+      selectResource(item->data(GraphItemIdRole).toString().toStdString());
     }
   }
 
@@ -572,24 +586,60 @@ bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
 void RenderGraphInspectorWidget::rebuildAllViews() {
   rebuildGraph();
   rebuildPasses();
-  rebuildDependencies();
   rebuildResources();
   rebuildTrace();
   updateValidationStatus();
 }
 
 void RenderGraphInspectorWidget::selectPass(const RenderPassId& passId) {
+  p->selectedResourceId.clear();
   if (p->selectedPassId == passId) {
+    rebuildGraph();
     rebuildTrace();
+    emit passSelected(qstr(passId));
     return;
   }
 
   p->selectedPassId = passId;
   for (QGraphicsItem* item : p->graphScene->items()) {
-    if (!item->parentItem() && item->data(GraphItemKindRole).toString() == QStringLiteral("pass"))
-      item->setSelected(item->data(GraphItemIdRole).toString().toStdString() == passId);
+    if (!item->parentItem()) {
+      const QString kind = item->data(GraphItemKindRole).toString();
+      item->setSelected(kind == QStringLiteral("pass") &&
+                        item->data(GraphItemIdRole).toString().toStdString() == passId);
+    }
   }
+  p->updating = true;
+  for (int row = 0; row != p->passes->topLevelItemCount(); ++row) {
+    QTreeWidgetItem* item = p->passes->topLevelItem(row);
+    item->setSelected(item->data(0, Qt::UserRole).toString().toStdString() == passId);
+  }
+  p->resources->clearSelection();
+  p->updating = false;
+  rebuildGraph();
   rebuildTrace();
+  emit passSelected(qstr(passId));
+}
+
+void RenderGraphInspectorWidget::selectResource(const RenderResourceId& resourceId) {
+  p->selectedPassId.clear();
+  p->selectedResourceId = resourceId;
+  for (QGraphicsItem* item : p->graphScene->items()) {
+    if (!item->parentItem()) {
+      const QString kind = item->data(GraphItemKindRole).toString();
+      item->setSelected(kind == QStringLiteral("resource") &&
+                        item->data(GraphItemIdRole).toString().toStdString() == resourceId);
+    }
+  }
+  p->updating = true;
+  p->passes->clearSelection();
+  for (int row = 0; row != p->resources->topLevelItemCount(); ++row) {
+    QTreeWidgetItem* item = p->resources->topLevelItem(row);
+    item->setSelected(item->data(0, Qt::UserRole).toString().toStdString() == resourceId);
+  }
+  p->updating = false;
+  rebuildGraph();
+  rebuildTrace();
+  emit resourceSelected(qstr(resourceId));
 }
 
 void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& passId, bool enabled) {
@@ -650,10 +700,13 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (location == resourceLocations.end())
       continue;
 
-    addNode(*p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
-            QStringLiteral("resource"), qstr(resource.id),
-            {qstr(resource.id), qstr(toString(resource.type))}, QPen(QColor(80, 95, 110)),
-            QBrush(QColor(235, 241, 246)));
+    QPen resourcePen(QColor(80, 95, 110));
+    resourcePen.setWidthF(resource.id == p->selectedResourceId ? 2.5 : 1.2);
+    addNode(
+      *p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
+      QStringLiteral("resource"), qstr(resource.id),
+      {qstr(resource.id), qstr(toString(resource.type))}, resourcePen,
+      QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)));
   }
 
   for (const auto& pass : plan.passes()) {
@@ -729,24 +782,14 @@ void RenderGraphInspectorWidget::rebuildPasses() {
   p->updating = false;
 }
 
-void RenderGraphInspectorWidget::rebuildDependencies() {
-  p->dependencies->clear();
-
-  const RenderPlan plan = effectivePlan();
-  for (const auto& dependency : plan.dependencies()) {
-    auto item = new QTreeWidgetItem(p->dependencies);
-    item->setText(0, qstr(dependency.producer->id));
-    item->setText(1, qstr(dependency.resource));
-    item->setText(2, qstr(dependency.consumer->id));
-  }
-}
-
 void RenderGraphInspectorWidget::rebuildResources() {
+  p->updating = true;
   p->resources->clear();
 
   const RenderPlan plan = effectivePlan();
   for (const auto& resource : plan.resources()) {
     auto item = new QTreeWidgetItem(p->resources);
+    item->setData(0, Qt::UserRole, qstr(resource.id));
     item->setText(0, qstr(resource.id));
     item->setText(1, resourceProducer(plan, resource.id));
     item->setText(2, resourceConsumers(plan, resource.id));
@@ -755,7 +798,10 @@ void RenderGraphInspectorWidget::rebuildResources() {
     item->setText(5, toString(resource.domain));
     item->setText(6, toString(resource.lifetime));
     item->setText(7, sizeText(resource));
+    if (resource.id == p->selectedResourceId)
+      item->setSelected(true);
   }
+  p->updating = false;
 }
 
 void RenderGraphInspectorWidget::rebuildTrace() {

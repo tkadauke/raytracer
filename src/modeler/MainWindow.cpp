@@ -14,6 +14,7 @@
 
 #include <QAction>
 #include <QActionGroup>
+#include <QJsonDocument>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -22,6 +23,7 @@
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStringList>
 #include <QStatusBar>
 
 #include <algorithm>
@@ -31,6 +33,8 @@
 #include "MainWindow.h"
 #include "Display.h"
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RenderPassState.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/tonemap/TonemapFactory.h"
 #include "render/viewplanes/ViewPlane.h"
@@ -78,6 +82,74 @@
 #include "world/objects/ThinLensCamera.h"
 #include "world/objects/TiltShiftCamera.h"
 #include "world/objects/EquirectangularCamera.h"
+
+namespace {
+  using PropertyRows = QVector<QPair<QString, QString>>;
+
+  QString qstr(const std::string& value) {
+    return QString::fromStdString(value);
+  }
+
+  QString dashIfEmpty(const QString& value) {
+    return value.isEmpty() ? QStringLiteral("-") : value;
+  }
+
+  QString resourceReadsText(const std::vector<engine::graph::ResourceRead>& reads) {
+    QStringList values;
+    for (const auto& read : reads)
+      values << qstr(read.resource);
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
+  QString resourceWritesText(const std::vector<engine::graph::ResourceWrite>& writes) {
+    QStringList values;
+    for (const auto& write : writes)
+      values << qstr(write.resource);
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
+  QString featureText(const std::vector<engine::graph::RenderFeatureKind>& features) {
+    QStringList values;
+    for (const auto& feature : features)
+      values << qstr(feature);
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
+  QString producerText(const engine::graph::RenderPlan& plan,
+                       const engine::graph::RenderResourceId& resource) {
+    const auto* producer = plan.producerOf(resource);
+    return producer ? qstr(producer->id) : QStringLiteral("-");
+  }
+
+  QString consumerText(const engine::graph::RenderPlan& plan,
+                       const engine::graph::RenderResourceId& resource) {
+    QStringList values;
+    for (const auto* consumer : plan.consumersOf(resource))
+      values << qstr(consumer->id);
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
+  QString resourceSizeText(const engine::graph::RenderResourceDescriptor& resource) {
+    return QStringLiteral("%1x%2, %3 sample(s)")
+      .arg(resource.width)
+      .arg(resource.height)
+      .arg(resource.sampleCount);
+  }
+
+  QString passStateText(const engine::graph::RenderPassNode& pass) {
+    if (!pass.state)
+      return QStringLiteral("-");
+
+    const QJsonObject state = pass.state->toJson();
+    if (state.isEmpty())
+      return QStringLiteral("-");
+    return QString::fromUtf8(QJsonDocument(state).toJson(QJsonDocument::Compact));
+  }
+
+  void addRow(PropertyRows& rows, const QString& name, const QString& value) {
+    rows.push_back({name, dashIfEmpty(value)});
+  }
+}
 
 struct MainWindow::Private {
   inline Private()
@@ -228,6 +300,10 @@ MainWindow::MainWindow()
   });
   connect(p->renderGraphInspectorWidget, SIGNAL(overridesChanged()), this,
           SLOT(renderGraphOverridesChanged()));
+  connect(p->renderGraphInspectorWidget, SIGNAL(passSelected(QString)), this,
+          SLOT(renderGraphPassSelected(QString)));
+  connect(p->renderGraphInspectorWidget, SIGNAL(resourceSelected(QString)), this,
+          SLOT(renderGraphResourceSelected(QString)));
 
   createActions();
   createMenus();
@@ -1184,6 +1260,99 @@ void MainWindow::updateRenderGraphInspector() {
 void MainWindow::renderGraphOverridesChanged() {
   if (applyRenderGraphPreviewPlan())
     p->display->render();
+}
+
+void MainWindow::renderGraphPassSelected(const QString& passId) {
+  if (!p->renderGraphInspectorWidget)
+    return;
+
+  const auto plan = p->renderGraphInspectorWidget->effectivePlan();
+  const auto* pass = plan.findPass(passId.toStdString());
+  PropertyRows rows;
+  if (!pass) {
+    addRow(rows, tr("Pass"), passId);
+    addRow(rows, tr("Status"), tr("not found"));
+    p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph pass"), rows);
+    return;
+  }
+
+  addRow(rows, tr("Pass"), qstr(pass->id));
+  addRow(rows, tr("Name"), qstr(pass->name));
+  addRow(rows, tr("Kind"), engine::graph::toString(pass->kind));
+  addRow(rows, tr("Executor"), engine::graph::toString(pass->executor));
+  addRow(rows, tr("Enabled"), pass->enabled ? tr("true") : tr("false"));
+  addRow(rows, tr("Disabled behavior"), engine::graph::toString(pass->disabledBehavior));
+  addRow(rows, tr("Features"), featureText(pass->features));
+  addRow(rows, tr("Reads"), resourceReadsText(pass->reads));
+  addRow(rows, tr("Writes"), resourceWritesText(pass->writes));
+  addRow(rows, tr("External side effects"),
+         pass->hasExternalSideEffects ? tr("true") : tr("false"));
+  addRow(rows, tr("Concurrent"), pass->canRunConcurrently ? tr("true") : tr("false"));
+  addRow(rows, tr("State"), passStateText(*pass));
+
+  const auto trace = p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr;
+  const auto* passTrace = trace ? trace->findPass(pass->id) : nullptr;
+  if (!passTrace) {
+    addRow(rows, tr("Trace"), tr("not available"));
+  } else {
+    addRow(rows, tr("Trace status"), engine::graph::toString(passTrace->status()));
+    addRow(rows, tr("Trace elapsed"),
+           tr("%1 ms").arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 3));
+    addRow(rows, tr("Trace message"), qstr(passTrace->message()));
+
+    QStringList inputs;
+    for (const auto& input : passTrace->inputs())
+      inputs << qstr(input.resourceId());
+    addRow(rows, tr("Trace inputs"), dashIfEmpty(inputs.join(QStringLiteral(", "))));
+
+    QStringList outputs;
+    for (const auto& output : passTrace->outputs())
+      outputs << qstr(output.resourceId());
+    addRow(rows, tr("Trace outputs"), dashIfEmpty(outputs.join(QStringLiteral(", "))));
+  }
+
+  p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph pass"), rows);
+}
+
+void MainWindow::renderGraphResourceSelected(const QString& resourceId) {
+  if (!p->renderGraphInspectorWidget)
+    return;
+
+  const auto plan = p->renderGraphInspectorWidget->effectivePlan();
+  const auto* resource = plan.findResource(resourceId.toStdString());
+  PropertyRows rows;
+  if (!resource) {
+    addRow(rows, tr("Resource"), resourceId);
+    addRow(rows, tr("Status"), tr("not found"));
+    p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph resource"), rows);
+    return;
+  }
+
+  addRow(rows, tr("Resource"), qstr(resource->id));
+  addRow(rows, tr("Name"), qstr(resource->name));
+  addRow(rows, tr("Type"), engine::graph::toString(resource->type));
+  addRow(rows, tr("Format"), engine::graph::toString(resource->format));
+  addRow(rows, tr("Domain"), engine::graph::toString(resource->domain));
+  addRow(rows, tr("Lifetime"), engine::graph::toString(resource->lifetime));
+  addRow(rows, tr("Size"), resourceSizeText(*resource));
+  addRow(rows, tr("Producer"), producerText(plan, resource->id));
+  addRow(rows, tr("Consumers"), consumerText(plan, resource->id));
+
+  const auto trace = p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr;
+  bool hasSnapshot = false;
+  if (trace) {
+    for (const auto& passTrace : trace->passes()) {
+      const auto matches = [&](const engine::graph::RenderGraphResourceSnapshot& snapshot) {
+        return snapshot.resourceId() == resource->id;
+      };
+      hasSnapshot = hasSnapshot ||
+                    std::any_of(passTrace.inputs().begin(), passTrace.inputs().end(), matches) ||
+                    std::any_of(passTrace.outputs().begin(), passTrace.outputs().end(), matches);
+    }
+  }
+  addRow(rows, tr("Trace snapshot"), hasSnapshot ? tr("available") : tr("not available"));
+
+  p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph resource"), rows);
 }
 
 void MainWindow::setCurrentFrame(int frame) {

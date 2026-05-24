@@ -438,17 +438,19 @@ graph-owned.
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's
 graph-only dump. The dock compiles the current live-preview intent and target
 size into a `RenderPlan`, then shows the result as a left-to-right graph plus
-three tables:
+two supporting tables:
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
   user double-click pass nodes to enable or disable them;
+- selecting a pass or resource node makes that graph object the active
+  property-editor target; pass selections show pass state plus trace metadata,
+  while resource selections show the resource descriptor, producer, consumers,
+  and trace availability;
 - while the preview is rendering, the Graph tab highlights pass nodes as they
   start, finish, or fail execution;
 - the Passes table lists each pass id, pass kind, executor, read resources,
   written resources, and disabled behavior;
-- the Dependencies table lists producer pass, resource, and consumer pass for
-  each declared pass-to-pass edge;
 - the Resources table lists each resource id, producer, consumers, type, format,
   domain, lifetime, dimensions, and sample count.
 
@@ -497,11 +499,12 @@ that were fused into that direct display path. Non-color resources such as the
 current preview shadow-map request are recorded as metadata-only until the graph
 has a specialized resource viewer for them.
 
-The Modeler dock exposes this through its Trace tab. Select a pass in the graph
-or in the pass table after a render finishes, and the tab shows that pass's
-input previews, output previews, difference previews, and metadata from the last
-trace. A new render clears the old trace while live execution highlighting takes
-over, so stale snapshots are not presented as the current render's data.
+The Modeler dock exposes this through graph selection. Select a pass in the
+graph or in the pass table after a render finishes, and the inspector follows
+that pass; metadata is shown in the property editor and supported previews are
+available for inspection. A new render clears the old trace while live execution
+highlighting takes over, so stale snapshots are not presented as the current
+render's data.
 Headless renders can export the same trace metadata with
 `rendercli --render_graph_trace_out trace.json`; this writes JSON for the
 executed plan, pass statuses, timings, resource preview availability, and

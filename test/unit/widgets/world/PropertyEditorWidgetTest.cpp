@@ -10,6 +10,9 @@
 
 #include "test/helpers/GuiTestHelper.h"
 
+#include <QLabel>
+#include <QTreeWidget>
+
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
 Q_DECLARE_METATYPE(Colord);
@@ -101,5 +104,20 @@ namespace PropertyEditorWidgetTest {
     ASSERT_NE(nullptr, target);
     EXPECT_TRUE(position->isEnabled());
     EXPECT_TRUE(target->isEnabled());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldShowReadOnlyProperties) {
+    Scene root;
+    PropertyEditorWidget editor(&root);
+    editor.setReadOnlyProperties("Render graph pass", {{"Pass", "tonemap"}, {"Trace", "done"}});
+
+    auto* title = editor.findChild<QLabel*>("propertyEditorReadOnlyTitle");
+    auto* rows = editor.findChild<QTreeWidget*>("propertyEditorReadOnlyProperties");
+    ASSERT_NE(nullptr, title);
+    ASSERT_NE(nullptr, rows);
+    EXPECT_EQ(QString("Render graph pass"), title->text());
+    ASSERT_EQ(2, rows->topLevelItemCount());
+    EXPECT_EQ(QString("Pass"), rows->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("tonemap"), rows->topLevelItem(0)->text(1));
   }
 }

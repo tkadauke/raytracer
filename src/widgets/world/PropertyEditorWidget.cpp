@@ -11,8 +11,13 @@
 #include "widgets/world/BoolParameterWidget.h"
 #include "widgets/world/ReferenceParameterWidget.h"
 
+#include <QFont>
+#include <QHeaderView>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QMetaProperty>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
 
 Q_DECLARE_METATYPE(Vector3d)
 
@@ -35,6 +40,7 @@ struct PropertyEditorWidget::Private {
   Element* element;
   QVBoxLayout* verticalLayout;
   QList<AbstractParameterWidget*> parameterWidgets;
+  QList<QWidget*> readOnlyWidgets;
 };
 
 PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
@@ -45,6 +51,7 @@ PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
 
 PropertyEditorWidget::~PropertyEditorWidget() {
   clearParameterWidgets();
+  clearReadOnlyWidgets();
 }
 
 void PropertyEditorWidget::initLayout() {
@@ -65,10 +72,45 @@ void PropertyEditorWidget::setRoot(Element* root) {
   setElement(nullptr);
 }
 
+void PropertyEditorWidget::setReadOnlyProperties(const QString& title,
+                                                 const QVector<QPair<QString, QString>>& rows) {
+  p->element = nullptr;
+
+  clearParameterWidgets();
+  clearReadOnlyWidgets();
+  initLayout();
+
+  auto* titleLabel = new QLabel(title, this);
+  titleLabel->setObjectName("propertyEditorReadOnlyTitle");
+  titleLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  QFont font = titleLabel->font();
+  font.setBold(true);
+  titleLabel->setFont(font);
+
+  auto* tree = new QTreeWidget(this);
+  tree->setObjectName("propertyEditorReadOnlyProperties");
+  tree->setRootIsDecorated(false);
+  tree->setAlternatingRowColors(true);
+  tree->setHeaderLabels({tr("Property"), tr("Value")});
+  tree->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+  tree->header()->setStretchLastSection(true);
+
+  for (const auto& row : rows) {
+    auto* item = new QTreeWidgetItem(tree);
+    item->setText(0, row.first);
+    item->setText(1, row.second.isEmpty() ? QStringLiteral("-") : row.second);
+  }
+
+  p->readOnlyWidgets << titleLabel << tree;
+  p->verticalLayout->addWidget(titleLabel);
+  p->verticalLayout->addWidget(tree, 1);
+}
+
 void PropertyEditorWidget::setElement(Element* element) {
   p->element = element;
 
   clearParameterWidgets();
+  clearReadOnlyWidgets();
   if (p->element) {
     addParameterWidgets();
   }
@@ -160,6 +202,14 @@ void PropertyEditorWidget::clearParameterWidgets() {
   }
 
   p->parameterWidgets.clear();
+}
+
+void PropertyEditorWidget::clearReadOnlyWidgets() {
+  for (auto* widget : p->readOnlyWidgets) {
+    delete widget;
+  }
+
+  p->readOnlyWidgets.clear();
 }
 
 void PropertyEditorWidget::elementChanged(const QString& propertyName, const QVariant& value) {
