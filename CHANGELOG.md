@@ -39,9 +39,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   later graph-rewrite code and inspection tools a single plan-owned API for
   dependency queries. — GPT-5
 - **RenderPlan edge construction.** `RenderPlan` now exposes plan-owned helpers
-  for connecting producer passes to consumers and routing resources through
-  inserted passes, so compiler code can build graph edges without open-coded
-  pass-list surgery. — GPT-5
+  for adding resource producers, connecting producer passes to consumers, and
+  routing resources through inserted passes, so compiler code can build graph
+  edges without open-coded pass-list surgery. — GPT-5
 - **Typed graph postprocess AA state.** Graph-visible FXAA/SMAA passes
   now serialize `post_process_aa` pass parameters at the JSON boundary and
   execute from typed C++ state rather than inferring the filter from a pass id.

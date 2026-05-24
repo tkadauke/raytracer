@@ -348,9 +348,10 @@ be able to reference specific nodes.
 Plan manipulation should operate on the compiled plan without requiring a render
 to happen. Disabling a node, switching a pass to a fallback view mode, or
 changing a node's enabled state should be reflected in validation and
-visualization before execution. Producer/consumer rewrites belong on
-`RenderPlan`, so compiler code can connect passes through resource edges rather
-than hand-maintaining dependency reads and writes around serial list insertion.
+visualization before execution. Producer/resource construction and
+producer/consumer rewrites belong on `RenderPlan`, so compiler code can connect
+passes through resource edges rather than hand-maintaining dependency reads and
+writes around serial list insertion.
 
 ### RenderPassNode
 

@@ -144,7 +144,6 @@ namespace engine::graph {
 
     RenderResourceDescriptor beautyColor =
       colorResource("beauty_color", "Beauty color", target, RenderResourceLifetime::Transient);
-    plan.addResource(beautyColor);
     const bool usesPreviewShadows =
       executor == RenderExecutorKind::Rasterizer && intent.enablePreviewShadows;
 
@@ -154,7 +153,6 @@ namespace engine::graph {
     beauty.kind = RenderPassKind::Beauty;
     beauty.executor = executor;
     beauty.features = {"main", "beauty", executorFeature(executor)};
-    beauty.writes.push_back({"beauty_color"});
     beauty.sceneView.selector = SceneSelector::all();
     beauty.disabledBehavior = DisabledBehavior::Error;
     beauty.canRunConcurrently = false;
@@ -163,7 +161,7 @@ namespace engine::graph {
       state.sampling().setMSAASamples(target.sampleCount);
       state.writeTo(beauty);
     }
-    plan.addPass(beauty);
+    plan.addResourceProducer(beauty, beautyColor);
 
     RenderPassNode tonemap;
     tonemap.id = "tonemap";
@@ -176,7 +174,9 @@ namespace engine::graph {
     tonemap.sceneView.selector = SceneSelector::all();
     tonemap.disabledBehavior = DisabledBehavior::Passthrough;
     tonemap.canRunConcurrently = false;
-    plan.addPass(tonemap);
+    RenderResourceDescriptor mainColor =
+      colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+    plan.routeResourceThroughPass("beauty_color", mainColor, tonemap);
 
     if (usesPreviewShadows) {
       RenderPassNode shadows;
@@ -229,10 +229,6 @@ namespace engine::graph {
       overlay.canRunConcurrently = false;
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
     }
-
-    RenderResourceDescriptor mainColor =
-      colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-    plan.addResource(mainColor);
 
     return plan;
   }

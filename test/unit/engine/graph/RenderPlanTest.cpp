@@ -472,6 +472,23 @@ namespace RenderPlanTest {
     EXPECT_EQ(json, imported.toJson());
   }
 
+  TEST(RenderPlan, AddsResourceProducerWithWriteEdge) {
+    RenderPlan plan;
+    auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
+    beauty.executor = RenderExecutorKind::Rasterizer;
+
+    plan.addResourceProducer(beauty,
+                             colorResource("beauty_color", RenderResourceLifetime::Exported));
+
+    ASSERT_EQ(1u, plan.resources().size());
+    EXPECT_EQ("beauty_color", plan.resources()[0].id);
+    ASSERT_EQ(1u, plan.passes().size());
+    EXPECT_EQ("raster_beauty", plan.passes()[0].id);
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("beauty_color", plan.passes()[0].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderPlan, RoutesResourceThroughInsertedPass) {
     RenderPlan plan;
     plan.addResource(colorResource("beauty_color", RenderResourceLifetime::Transient));

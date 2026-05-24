@@ -126,12 +126,12 @@ namespace RenderGraphCompilerTest {
     const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
 
     ASSERT_EQ(3u, plan.resources().size());
-    EXPECT_EQ("beauty_color", plan.resources()[0].id);
-    EXPECT_EQ(RenderResourceLifetime::Transient, plan.resources()[0].lifetime);
-    EXPECT_EQ("overlay_color", plan.resources()[1].id);
-    EXPECT_EQ(RenderResourceLifetime::Transient, plan.resources()[1].lifetime);
-    EXPECT_EQ("main_color", plan.resources()[2].id);
-    EXPECT_EQ(RenderResourceLifetime::Exported, plan.resources()[2].lifetime);
+    ASSERT_NE(nullptr, plan.findResource("beauty_color"));
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.findResource("beauty_color")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("overlay_color"));
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.findResource("overlay_color")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
 
     ASSERT_EQ(3u, plan.passes().size());
     EXPECT_EQ("raytrace_beauty", plan.passes()[0].id);
@@ -216,9 +216,9 @@ namespace RenderGraphCompilerTest {
     const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
 
     ASSERT_EQ(3u, plan.resources().size());
-    EXPECT_EQ("beauty_color", plan.resources()[0].id);
-    EXPECT_EQ("post_aa_color", plan.resources()[1].id);
-    EXPECT_EQ("main_color", plan.resources()[2].id);
+    EXPECT_NE(nullptr, plan.findResource("beauty_color"));
+    EXPECT_NE(nullptr, plan.findResource("post_aa_color"));
+    EXPECT_NE(nullptr, plan.findResource("main_color"));
 
     ASSERT_EQ(3u, plan.passes().size());
     EXPECT_EQ("raytrace_beauty", plan.passes()[0].id);

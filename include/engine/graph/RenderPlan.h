@@ -67,6 +67,13 @@ namespace engine::graph {
     void addResource(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
     /**
+      * Adds @p resource and @p producer as the pass that writes it.
+      *
+      * If the pass does not already declare the write edge, this method adds
+      * it before storing the pass.
+      */
+    void addResourceProducer(RenderPassNode producer, RenderResourceDescriptor resource);
+    /**
       * Adds @p resource as the edge produced by @p producer and consumed by
       * the existing pass @p consumerPassId.
       *
