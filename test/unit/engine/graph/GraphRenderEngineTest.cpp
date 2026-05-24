@@ -298,6 +298,39 @@ namespace GraphRenderEngineTest {
     ASSERT_COLOR_NEAR(Colord(2.0 / 3.0, 4.0 / 5.0, 0.5 / 1.5), buffer[0][0], 1e-12);
   }
 
+  TEST(GraphRenderEngine, ExecutesOutOfOrderPlanByResourceDependencies) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord(2.0, 4.0, 0.5));
+
+    RenderPlan plan;
+    plan.addResource(colorResource("hdr_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"hdr_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.writes.push_back({"hdr_color"});
+    plan.addPass(beauty);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    ASSERT_COLOR_NEAR(Colord(2.0 / 3.0, 4.0 / 5.0, 0.5 / 1.5), buffer[0][0], 1e-12);
+  }
+
   TEST(GraphRenderEngine, DisabledTonemapPassCanPassthroughColorResource) {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord(2.0, 4.0, 0.5));

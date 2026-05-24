@@ -75,7 +75,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph intent overrides.** `rendercli --render_graph_executor` and `--render_graph_view` now override the default graph intent executor/view mode before compilation, making graph inspection independent of the direct `--engine` shortcut. — GPT-5
 - **Render graph JSON replay.** `RenderPlan::fromJson(...)` can rebuild plans from the JSON emitted by `toJson()`, and `rendercli --render_graph_in plan.json` can validate, re-export, or render through a saved graph with the usual disable filters applied after loading; graph replay infers the output image size from the exported color resource unless matching `--width` / `--height` overrides are supplied. — GPT-5
 - **Rendercli render-graph inspection.** `rendercli` can now compile/export graph plans in text, DOT, or JSON form, render through `GraphRenderEngine`, and apply graph disable filters by pass id, pass kind, executor, or feature before validation. — GPT-5
-- **Graph disabled-pass execution.** `GraphRenderEngine` now executes simple serial color-resource plans with enabled tonemap passes plus disabled-pass `SubstituteDefault` and color `Passthrough` behavior, backed by a runtime `RenderResource` hierarchy for resource capabilities. — GPT-5
+- **Graph disabled-pass execution.** `GraphRenderEngine` now executes simple color-resource plans with enabled tonemap passes plus disabled-pass `SubstituteDefault` and color `Passthrough` behavior, backed by a runtime `RenderResource` hierarchy for resource capabilities. — GPT-5
 - **Graph-backed beauty rendering.** `RenderGraphCompiler` now emits the first executable whole-frame beauty plan and `GraphRenderEngine` can compile or accept that plan, validate it, execute exactly one enabled Raytracer/Rasterizer/Wireframe beauty pass, and expose the last plan for inspection. — GPT-5
 - **Raster recursive-material fallback diagnostics.** Reflective materials now advertise a raster fallback of local Phong only, transparent materials advertise local Phong plus transmission-derived source alpha, and `rendercli --engine raster` warns when recursive reflection/refraction has been dropped from the preview. — GPT-5
 - **Rasterizer scene-aware tiling default.** Rasterizer queue sizing now defaults to an automatic policy that uses projected triangle count, projected bounds, tile-list duplication, framebuffer size, worker count, and MSAA samples to choose tiled rendering only for measured win cases; explicit `setQueueSize(...)` and `rendercli --queue_size` still force the caller's choice. Closes rasterizer-v2 §7 / Epic #167. — GPT-5
@@ -138,10 +138,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   edge axes in addition to horizontal and vertical edges and uses a stronger
   edge blend, making the Modeler raster preview visibly change when SMAA is
   selected. — GPT-5
-- **Render graph serial-order validation.** `RenderPlan::validate()` now
-  rejects serial plans where a pass reads a resource before its producer appears
-  in the pass list, catching malformed replayed JSON before the graph engine
-  executes an uninitialized resource. — GPT-5
+- **Render graph dependency execution.** `GraphRenderEngine` now executes valid
+  plans in resource dependency order instead of pass declaration order, so
+  replayed JSON can describe graph edges without hand-sorting the pass list
+  while validation still catches missing, disabled, duplicate, and cyclic
+  dependencies. — GPT-5
 - **Render graph passthrough validation.** Disabled `Passthrough` passes now
   validate that they have one input and shape-compatible outputs before
   execution, turning malformed graph JSON into an inspection-time validation

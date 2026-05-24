@@ -11,10 +11,11 @@ namespace engine::graph {
     *
     * The current implementation executes the first supported graph slice: an
     * enabled whole-frame beauty pass using the existing raytracer, rasterizer,
-    * or wireframe engine, optional serial color overlays such as the first
-    * wireframe overlay pass, followed by simple color postprocess passes such
-    * as tonemap. It preserves the graph-facing workflow: callers can compile a
-    * plan, inspect or override it, then execute that plan.
+    * or wireframe engine, optional color overlays such as the first wireframe
+    * overlay pass, followed by simple color postprocess passes such as tonemap.
+    * Passes execute serially in dependency order. It preserves the graph-facing
+    * workflow: callers can compile a plan, inspect or override it, then execute
+    * that plan.
     */
   class GraphRenderEngine : public render::RenderEngine {
   public:

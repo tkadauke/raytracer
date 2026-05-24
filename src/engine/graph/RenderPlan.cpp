@@ -38,6 +38,14 @@ namespace engine::graph {
         [&](const RenderFeatureKind& feature) { return contains(features, feature); });
     }
 
+    bool passReadsWhenExecuted(const RenderPassNode& pass) {
+      return pass.enabled || pass.disabledBehavior == DisabledBehavior::Passthrough;
+    }
+
+    bool passProducesWhenExecuted(const RenderPassNode& pass) {
+      return pass.enabled || pass.producesWhenDisabled();
+    }
+
     bool sameResourceShape(const RenderResourceDescriptor& a, const RenderResourceDescriptor& b) {
       return a.type == b.type && a.format == b.format && a.width == b.width &&
              a.height == b.height && a.sampleCount == b.sampleCount && a.domain == b.domain;
@@ -79,8 +87,6 @@ namespace engine::graph {
       return "invalid_pass_io";
     case RenderPlanValidationError::Code::InvalidResourceShape:
       return "invalid_resource_shape";
-    case RenderPlanValidationError::Code::OutOfOrderDependency:
-      return "out_of_order_dependency";
     case RenderPlanValidationError::Code::Cycle:
       return "cycle";
     }
@@ -135,6 +141,75 @@ namespace engine::graph {
         result.push_back(&pass);
       }
     }
+    return result;
+  }
+
+  std::vector<const RenderPassNode*> RenderPlan::executionOrder() const {
+    std::vector<const RenderPassNode*> result;
+    result.reserve(m_passes.size());
+
+    std::map<RenderResourceId, std::size_t> producerByResource;
+    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
+      for (const auto& write : m_passes[passIndex].writes) {
+        producerByResource.emplace(write.resource, passIndex);
+      }
+    }
+
+    std::vector<std::set<std::size_t>> dependents(m_passes.size());
+    std::vector<std::size_t> dependencyCounts(m_passes.size(), 0);
+    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
+      const RenderPassNode& pass = m_passes[passIndex];
+      if (!passReadsWhenExecuted(pass)) {
+        continue;
+      }
+
+      for (const auto& read : pass.reads) {
+        const auto producerIt = producerByResource.find(read.resource);
+        if (producerIt == producerByResource.end()) {
+          continue;
+        }
+
+        const std::size_t producerIndex = producerIt->second;
+        if (producerIndex == passIndex || !passProducesWhenExecuted(m_passes[producerIndex])) {
+          continue;
+        }
+
+        if (dependents[producerIndex].insert(passIndex).second) {
+          ++dependencyCounts[passIndex];
+        }
+      }
+    }
+
+    std::vector<std::size_t> ready;
+    ready.reserve(m_passes.size());
+    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
+      if (dependencyCounts[passIndex] == 0) {
+        ready.push_back(passIndex);
+      }
+    }
+
+    std::vector<bool> emitted(m_passes.size(), false);
+    while (!ready.empty()) {
+      const auto next = std::min_element(ready.begin(), ready.end());
+      const std::size_t passIndex = *next;
+      ready.erase(next);
+
+      emitted[passIndex] = true;
+      result.push_back(&m_passes[passIndex]);
+      for (const std::size_t dependent : dependents[passIndex]) {
+        --dependencyCounts[dependent];
+        if (dependencyCounts[dependent] == 0) {
+          ready.push_back(dependent);
+        }
+      }
+    }
+
+    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
+      if (!emitted[passIndex]) {
+        result.push_back(&m_passes[passIndex]);
+      }
+    }
+
     return result;
   }
 
@@ -219,7 +294,6 @@ namespace engine::graph {
     RenderPlanValidation result;
     std::map<RenderResourceId, const RenderResourceDescriptor*> resources;
     std::map<RenderPassId, const RenderPassNode*> passes;
-    std::map<RenderPassId, std::size_t> passOrder;
     std::map<RenderResourceId, const RenderPassNode*> producers;
 
     for (const auto& resource : m_resources) {
@@ -241,8 +315,7 @@ namespace engine::graph {
       }
     }
 
-    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
-      const auto& pass = m_passes[passIndex];
+    for (const auto& pass : m_passes) {
       if (pass.id.empty()) {
         result.add(
           {RenderPlanValidationError::Code::EmptyPassId, "pass id must not be empty", "", ""});
@@ -253,7 +326,6 @@ namespace engine::graph {
         result.add({RenderPlanValidationError::Code::DuplicatePassId,
                     "duplicate pass id '" + pass.id + "'", pass.id, ""});
       }
-      passOrder.emplace(pass.id, passIndex);
 
       if (!pass.enabled && pass.disabledBehavior == DisabledBehavior::Error) {
         result.add({RenderPlanValidationError::Code::DisabledRequiredPass,
@@ -311,7 +383,7 @@ namespace engine::graph {
 
     std::map<RenderPassId, std::set<RenderPassId>> dependencies;
     for (const auto& pass : m_passes) {
-      if (!pass.enabled && pass.disabledBehavior != DisabledBehavior::Passthrough) {
+      if (!passReadsWhenExecuted(pass)) {
         continue;
       }
 
@@ -343,17 +415,7 @@ namespace engine::graph {
           continue;
         }
 
-        const auto producerOrder = passOrder.find(producer->id);
-        const auto consumerOrder = passOrder.find(pass.id);
-        if (producer->id != pass.id && producerOrder != passOrder.end() &&
-            consumerOrder != passOrder.end() && producerOrder->second >= consumerOrder->second) {
-          result.add({RenderPlanValidationError::Code::OutOfOrderDependency,
-                      "pass '" + pass.id + "' reads resource '" + read.resource +
-                        "' before producer pass '" + producer->id + "' runs",
-                      pass.id, read.resource});
-        }
-
-        if (producer->id != pass.id && producer->enabled && pass.enabled) {
+        if (producer->id != pass.id && passProducesWhenExecuted(*producer)) {
           dependencies[producer->id].insert(pass.id);
         } else if (producer->id == pass.id) {
           result.add({RenderPlanValidationError::Code::Cycle,

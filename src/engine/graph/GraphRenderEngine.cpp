@@ -315,7 +315,9 @@ namespace engine::graph {
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
 
-    for (const auto& pass : plan.passes()) {
+    const auto executionOrder = plan.executionOrder();
+    for (const RenderPassNode* passNode : executionOrder) {
+      const RenderPassNode& pass = *passNode;
       if (!pass.enabled) {
         switch (pass.disabledBehavior) {
         case DisabledBehavior::SubstituteDefault:
@@ -414,7 +416,9 @@ namespace engine::graph {
       p->activeEngine = std::move(engine);
     };
 
-    for (const auto& pass : plan.passes()) {
+    const auto executionOrder = plan.executionOrder();
+    for (const RenderPassNode* passNode : executionOrder) {
+      const RenderPassNode& pass = *passNode;
       if (!pass.enabled) {
         switch (pass.disabledBehavior) {
         case DisabledBehavior::SubstituteDefault:

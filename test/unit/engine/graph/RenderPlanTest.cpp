@@ -131,7 +131,7 @@ namespace RenderPlanTest {
     EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::Cycle));
   }
 
-  TEST(RenderPlan, ReportsConsumerBeforeProducerInSerialPlan) {
+  TEST(RenderPlan, OrdersConsumerAfterProducerFromResourceEdges) {
     RenderPlan plan;
     plan.addResource(colorResource("beauty_color"));
     plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
@@ -145,10 +145,46 @@ namespace RenderPlanTest {
     beauty.writes.push_back({"beauty_color"});
     plan.addPass(beauty);
 
-    const auto validation = plan.validate();
+    EXPECT_TRUE(plan.validate().valid());
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("tonemap", plan.passes()[0].id);
+    EXPECT_EQ("beauty", plan.passes()[1].id);
 
-    ASSERT_FALSE(validation.valid());
-    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::OutOfOrderDependency));
+    const auto order = plan.executionOrder();
+    ASSERT_EQ(2u, order.size());
+    EXPECT_EQ("beauty", order[0]->id);
+    EXPECT_EQ("tonemap", order[1]->id);
+  }
+
+  TEST(RenderPlan, ExecutionOrderIncludesDisabledPassthroughEdges) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color"));
+    plan.addResource(colorResource("post_color"));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    auto final = pass("final", RenderPassKind::PostProcess);
+    final.reads.push_back({"post_color"});
+    final.writes.push_back({"display_color"});
+    plan.addPass(final);
+
+    auto post = pass("post", RenderPassKind::PostProcess);
+    post.reads.push_back({"beauty_color"});
+    post.writes.push_back({"post_color"});
+    post.disabledBehavior = DisabledBehavior::Passthrough;
+    post.enabled = false;
+    plan.addPass(post);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    EXPECT_TRUE(plan.validate().valid());
+
+    const auto order = plan.executionOrder();
+    ASSERT_EQ(3u, order.size());
+    EXPECT_EQ("beauty", order[0]->id);
+    EXPECT_EQ("post", order[1]->id);
+    EXPECT_EQ("final", order[2]->id);
   }
 
   TEST(RenderPlan, AppliesDisableOverridesByPassKindExecutorFeatureAndId) {

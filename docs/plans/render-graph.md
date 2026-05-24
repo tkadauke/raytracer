@@ -390,9 +390,9 @@ struct RenderPassNode {
 };
 ```
 
-The first implementation can execute pass nodes serially. The declaration must
-still be strong enough for a later scheduler to run independent nodes in
-parallel.
+The first implementation can execute pass nodes serially in resource dependency
+order. The declaration must still be strong enough for a later scheduler to run
+independent nodes in parallel.
 
 ### Pass payloads
 
@@ -1053,14 +1053,14 @@ CPU resource storage, pass declarations, virtual pass payloads with per-pass
 execution context, plan validation, graph override disabling, text/DOT/JSON
 plan export, a minimal compiler that emits a whole-frame beauty pass, optional
 wireframe overlay pass, and tonemap/export pass, a graph engine facade that can
-execute that serial color chain through Raytracer/Rasterizer/Wireframe plus
+execute that dependency-ordered color chain through Raytracer/Rasterizer/Wireframe plus
 PostProcess tonemapping, graph-visible typed pass state for replaying raster
 beauty-pass controls, a display-buffer fast path for progressive simple previews,
 dual HDR/display raytracer beauty output for progressive previews with
 postprocess passes, typed raster preview shadow-pass state, optional scene JSON
 render intent, and the textbook's render-graph volume.
 Scene-feature expansion, arbitrary postprocess/composite execution, and real
-graph scheduling remain TODO.
+parallel graph scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1082,7 +1082,7 @@ Implement the smallest graph that proves the architecture:
 5. Add `GraphRenderEngine` that can either compile from intent or execute a
    precompiled plan. ✅ Done for the first execution slice: whole-frame beauty
    passes backed by Raytracer, Rasterizer, or Wireframe, the first wireframe
-   overlay pass, plus simple serial color-resource chains. Simple beauty plus
+   overlay pass, plus simple dependency-ordered color-resource chains. Simple beauty plus
    optional tonemap LDR output uses the wrapped engine's display-buffer render
    path, and raytracer beauty can write HDR graph color plus packed display
    pixels in one pass so postprocess graphs keep progressive preview updates.
@@ -1097,7 +1097,7 @@ Implement the smallest graph that proves the architecture:
    depth-aware overlay payload remains for the later depth/composite slice.
 7. Add node disabling with `Passthrough` and `SubstituteDefault` for the first
    supported pass kinds. ✅ Done for disabled default substitution and color
-   passthrough in the serial graph engine.
+   passthrough in the dependency-ordered graph engine.
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
    runtime intent overrides, and node-disabling flags. ✅ Partial: rendercli
    can compile/export text, DOT, and JSON plans, render through the graph by
@@ -1163,8 +1163,8 @@ Add `depth`, `normal`, `world_position`, `object_id`, `material_id`, and
 
 ### Parallel scheduler
 
-Replace serial graph execution with dependency-ready scheduling. Keep executor
-concurrency limits explicit.
+Replace single-threaded dependency execution with parallel dependency-ready
+scheduling. Keep executor concurrency limits explicit.
 
 ### History resources
 

@@ -190,10 +190,12 @@ its output. `Passthrough` is validated more strictly because the disabled pass
 still runs a copy operation: it must have one input and at least one
 shape-compatible output.
 
-The current executor is serial, so the plan list is also validated as execution
-order. A consumer pass must appear after the pass that produces each resource it
-reads. Future graph scheduling can relax that storage order, but replayed JSON
-for the current engine must already be topologically ordered.
+The current executor is serial, but it is not list-driven. Before execution,
+`GraphRenderEngine` asks the plan for a dependency order derived from resource
+producer/consumer edges. A replayed JSON plan can declare `tonemap` before
+`beauty`, for example, as long as `beauty` writes the resource that `tonemap`
+reads. Validation still catches missing producers, disabled producers that
+cannot substitute output, duplicate writers, and dependency cycles.
 
 The pass declaration is separate from execution code. Executor-specific work
 lives behind
@@ -451,7 +453,7 @@ packing clips it.
 `RenderEngine` facade over the graph path. It can compile from its current
 intent or execute a caller-provided plan. The compiler emits a beauty pass, an
 optional wireframe overlay pass, and a tonemap pass, and the engine can execute
-that small serial color resource chain:
+that small dependency-ordered color resource chain:
 
 - enabled `Beauty` passes backed by `Raytracer`, `Rasterizer`, or `Wireframe`;
 - enabled `Overlay` passes backed by `Wireframe`;
@@ -473,8 +475,8 @@ disabled as a passthrough. That path lets `Raytracer`, `Rasterizer`, and
 complex plans still execute into graph resources first and pack the exported
 color after the graph completes.
 
-Composite passes, arbitrary postprocess effects, graph scheduling, and history
-resources are not executed by this first slice.
+Composite passes, parallel scheduling, arbitrary history-dependent postprocess
+effects, and history resources are not executed by this first slice.
 
 ## <a id="a-small-plan-by-hand"></a>A small plan by hand
 The unit tests build plans directly. A simple producer-consumer graph looks
