@@ -61,6 +61,14 @@ namespace engine::graph {
     m_substituteDefault = false;
   }
 
+  void RenderResource::setState(std::shared_ptr<const RenderPassState> state) {
+    m_state = std::move(state);
+  }
+
+  std::shared_ptr<const RenderPassState> RenderResource::state() const {
+    return m_state;
+  }
+
   bool RenderResource::hasBuffer() const {
     return false;
   }
@@ -71,6 +79,7 @@ namespace engine::graph {
 
   void RenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
     m_substituteDefault = true;
+    m_state.reset();
   }
 
   Buffer<Colord>& RenderResource::color() {

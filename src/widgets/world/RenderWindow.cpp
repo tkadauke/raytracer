@@ -86,7 +86,22 @@ struct RenderWindow::Private {
     state.execution().setMaximumThreads(settingsWidget->renderThreads());
     if (includeShadowMapEnable) {
       state.shadows().setShadowMapsEnabled(settingsWidget->shadowMapsEnabled());
+      state.shadows().setShadowMapSize(settingsWidget->shadowMapSize());
+      state.shadows().setShadowCascadeCount(settingsWidget->shadowCascadeCount());
+      state.shadows().setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
+      state.shadows().setShadowBias(settingsWidget->shadowBias());
+      state.shadows().setShadowSlopeBias(settingsWidget->shadowSlopeBias());
+      state.shadows().setShadowFilterRadius(settingsWidget->shadowFilterRadius());
+      if (settingsWidget->shadowFilterMode() == "PCSS") {
+        state.shadows().setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+      }
     }
+    return state;
+  }
+
+  engine::graph::RasterShadowPassState rasterShadowPassState() const {
+    engine::graph::RasterShadowPassState state;
+    state.shadows().setShadowMapsEnabled(true);
     state.shadows().setShadowMapSize(settingsWidget->shadowMapSize());
     state.shadows().setShadowCascadeCount(settingsWidget->shadowCascadeCount());
     state.shadows().setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
@@ -108,6 +123,9 @@ struct RenderWindow::Private {
     rasterBeautyPassState(intent.postProcessAA, !intent.usesGraphImagePostProcessAA(),
                           !intent.enablePreviewShadows)
       .writeToRasterBeautyPasses(plan);
+    if (intent.enablePreviewShadows) {
+      rasterShadowPassState().writeToRasterShadowPasses(plan);
+    }
     return plan;
   }
 

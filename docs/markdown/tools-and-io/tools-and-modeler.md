@@ -30,9 +30,10 @@ executor (`raytracer` / `raster` / `wireframe`), while a scene-level
 intent. `--direct_engine` bypasses the graph and renders with the selected
 engine directly; that mode is useful for focused engine debugging and for
 low-level knobs that are not yet represented as graph pass state. Rasterizer
-controls such as MSAA, post-process AA, viewport/scissor state, color-output
-state, and shadow-map settings are compiled into typed raster beauty pass state
-and serialized when graph JSON is exported.
+controls such as MSAA, post-process AA, viewport/scissor state, and
+color-output state are compiled into typed raster beauty pass state, while
+preview shadow-map settings live on the graph shadow pass. Both are serialized
+when graph JSON is exported.
 
 The flags cover output size, sampler choice, samples-per-pixel, recursion
 depth, tonemap operator, and per-engine knobs such as [LOD](../appendix/a-glossary.md#l),
@@ -85,7 +86,8 @@ pass rather than hiding the filter inside one engine, and the pass's typed
 `post_process_aa` parameters select the replayed filter. `--post_aa taa` stays
 on the raster beauty pass until temporal history resources are graph resources.
 Raster preview shadows compile as a `raster_preview_shadows` node feeding the
-beauty pass; disabling that node leaves the raster beauty pass running without
+beauty pass. Its typed `shadows` parameters carry map size, cascades, bias, and
+filtering; disabling that node leaves the raster beauty pass running without
 graph-controlled shadows.
 Wireframe graph renders carry `--lod` in typed wireframe pass state, so
 graph-only JSON exports and replayed graph renders preserve the requested

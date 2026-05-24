@@ -9,6 +9,8 @@
 #include <stdexcept>
 
 namespace engine::graph {
+  class RenderPassState;
+
   /**
     * Runtime resource allocated from a `RenderResourceDescriptor`.
     *
@@ -36,6 +38,16 @@ namespace engine::graph {
       * disabled passthrough copy.
       */
     void markProduced();
+
+    /**
+      * Attaches producer metadata to this runtime resource.
+      *
+      * The descriptor remains the serializable shape of the resource; this
+      * optional typed state lets a pass publish execution settings alongside a
+      * transient request resource for downstream consumers in the same frame.
+      */
+    void setState(std::shared_ptr<const RenderPassState> state);
+    std::shared_ptr<const RenderPassState> state() const;
 
     /**
       * @returns true when this resource owns a concrete CPU buffer.
@@ -70,6 +82,7 @@ namespace engine::graph {
 
     RenderResourceDescriptor m_descriptor;
     bool m_substituteDefault{false};
+    std::shared_ptr<const RenderPassState> m_state;
   };
 
   /**

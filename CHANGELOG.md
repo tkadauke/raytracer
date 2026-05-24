@@ -47,11 +47,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `post_smaa` postprocess passes between beauty and overlay/tonemap for
   raytracer, wireframe, and rasterizer executors, while `--post_aa taa` remains
   on raster beauty until temporal history resources are graph-owned. — GPT-5
+- **Typed graph raster shadow pass state.** The graph-visible
+  `raster_preview_shadows` node now serializes and replays raster shadow-map
+  settings on the shadow pass itself, and graph execution passes that typed
+  request through the runtime shadow resource to `raster_beauty`. — GPT-5
 - **Graph-visible raster pass state.** Raster-backed graph renders now compile
   rendercli raster controls into typed `raster_beauty` pass state and serialize
   that state at the JSON boundary, covering MSAA, MSAA shading, post-process
   AA, culling, queue/thread controls, viewport/scissor, fixed-function color
-  output, alpha test, depth bias, and shadow-map settings. — GPT-5
+  output, alpha test, depth bias, and direct raster shadow-map settings. — GPT-5
 - **Commit-time clang-format hook.** The repository now includes a tracked
   `.githooks/pre-commit` hook that formats staged C/C++ files before each
   commit, and the pre-commit clang-format configuration now runs in normal fix

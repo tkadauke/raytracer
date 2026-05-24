@@ -791,6 +791,81 @@ namespace engine::graph {
     return m_enabled;
   }
 
+  RasterShadowPassState RasterShadowPassState::fromJson(const QJsonObject& object,
+                                                        const std::string& path) {
+    rejectUnknownFields(object, path, {"shadows"});
+
+    RasterShadowPassState state;
+    if (hasField(object, "shadows"))
+      state.m_shadows =
+        RasterShadowState::fromJson(objectField(object, "shadows", path), path + ".shadows");
+    return state;
+  }
+
+  RasterShadowPassState RasterShadowPassState::previewDefaults() {
+    RasterShadowPassState state;
+    state.m_shadows.setShadowMapsEnabled(true);
+    state.m_shadows.setShadowMapSize(256);
+    state.m_shadows.setShadowCascadeCount(4);
+    state.m_shadows.setShadowBias(0.1);
+    state.m_shadows.setShadowFilterRadius(1);
+    state.m_shadows.setShadowFilterMode(Rasterizer::ShadowFilterMode::PCF);
+    return state;
+  }
+
+  const RasterShadowPassState* RasterShadowPassState::fromPass(const RenderPassNode& pass) {
+    if (!pass.state)
+      return nullptr;
+
+    const auto* state = dynamic_cast<const RasterShadowPassState*>(pass.state.get());
+    if (!state) {
+      throw std::runtime_error("pass '" + pass.id + "' does not carry raster shadow state");
+    }
+    return state;
+  }
+
+  RasterShadowPassState RasterShadowPassState::valueFromPass(const RenderPassNode& pass) {
+    const auto* state = fromPass(pass);
+    return state ? *state : RasterShadowPassState::previewDefaults();
+  }
+
+  QJsonObject RasterShadowPassState::toJson() const {
+    QJsonObject object;
+    if (!m_shadows.empty()) {
+      object["shadows"] = m_shadows.toJson();
+    }
+    return object;
+  }
+
+  bool RasterShadowPassState::empty() const {
+    return toJson().isEmpty();
+  }
+
+  void RasterShadowPassState::applyTo(Rasterizer& rasterizer) const {
+    m_shadows.applyTo(rasterizer);
+  }
+
+  void RasterShadowPassState::writeTo(RenderPassNode& pass) const {
+    if (empty()) {
+      pass.state.reset();
+    } else {
+      pass.state = std::make_shared<RasterShadowPassState>(*this);
+    }
+  }
+
+  std::size_t RasterShadowPassState::writeToRasterShadowPasses(RenderPlan& plan) const {
+    return plan.setPassState(RenderPassKind::Shadow, RenderExecutorKind::Rasterizer,
+                             empty() ? nullptr : std::make_shared<RasterShadowPassState>(*this));
+  }
+
+  RasterShadowState& RasterShadowPassState::shadows() {
+    return m_shadows;
+  }
+
+  const RasterShadowState& RasterShadowPassState::shadows() const {
+    return m_shadows;
+  }
+
   RasterBeautyPassState RasterBeautyPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
     rejectUnknownFields(object, path,

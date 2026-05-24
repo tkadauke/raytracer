@@ -178,6 +178,8 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(RenderPassKind::Shadow, plan.passes()[0].kind);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
     EXPECT_EQ(DisabledBehavior::SubstituteDefault, plan.passes()[0].disabledBehavior);
+    ASSERT_NE(nullptr, RasterShadowPassState::fromPass(plan.passes()[0]));
+    EXPECT_TRUE(RasterShadowPassState::fromPass(plan.passes()[0])->shadows().enabled());
     ASSERT_EQ(1u, plan.passes()[0].writes.size());
     EXPECT_EQ("preview_shadow_map", plan.passes()[0].writes[0].resource);
 

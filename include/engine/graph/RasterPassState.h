@@ -162,6 +162,38 @@ namespace engine::graph {
   };
 
   /**
+    * Typed state for graph shadow-map request passes.
+    *
+    * The first CPU graph slice still lets the rasterizer build directional
+    * shadow maps internally, but this pass state makes the request and preview
+    * policy visible on the shadow node instead of hiding it in the beauty
+    * payload.
+    */
+  class RasterShadowPassState : public RenderPassState {
+  public:
+    using Rasterizer = engine::raster::Rasterizer;
+
+    static RasterShadowPassState fromJson(const QJsonObject& object,
+                                          const std::string& path = "parameters");
+    static RasterShadowPassState previewDefaults();
+    static const RasterShadowPassState* fromPass(const RenderPassNode& pass);
+    static RasterShadowPassState valueFromPass(const RenderPassNode& pass);
+
+    QJsonObject toJson() const override;
+    bool empty() const;
+    void applyTo(Rasterizer& rasterizer) const;
+
+    void writeTo(RenderPassNode& pass) const;
+    std::size_t writeToRasterShadowPasses(RenderPlan& plan) const;
+
+    RasterShadowState& shadows();
+    const RasterShadowState& shadows() const;
+
+  private:
+    RasterShadowState m_shadows;
+  };
+
+  /**
     * Typed state for the built-in raster beauty graph pass.
     */
   class RasterBeautyPassState : public RenderPassState {

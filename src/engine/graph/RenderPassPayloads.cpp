@@ -47,29 +47,30 @@ namespace engine::graph {
       }
     }
 
-    void applyPreviewShadowPolicy(::engine::raster::Rasterizer& rasterizer) {
-      rasterizer.setShadowMapsEnabled(true);
-      rasterizer.setShadowMapSize(256);
-      rasterizer.setShadowCascadeCount(4);
-      rasterizer.setShadowBias(0.1);
-      rasterizer.setShadowFilterRadius(1);
-      rasterizer.setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCF);
-    }
-
     bool hasFeature(const RenderPassNode& pass, const RenderFeatureKind& feature) {
       return std::any_of(pass.features.begin(), pass.features.end(),
                          [&](const RenderFeatureKind& value) { return value == feature; });
     }
 
-    bool hasRealPreviewShadowInput(const RenderExecutionContext& context) {
+    void applyRasterShadowInputs(const RenderExecutionContext& context,
+                                 const RasterBeautyPassState& beautyState,
+                                 ::engine::raster::Rasterizer& rasterizer) {
       for (const auto& read : context.pass().reads) {
         const auto& resource = context.storage().resource(read.resource);
-        if (resource.descriptor().type == RenderResourceType::ShadowMap &&
-            !resource.substituteDefault()) {
-          return true;
+        if (resource.descriptor().type != RenderResourceType::ShadowMap ||
+            resource.substituteDefault()) {
+          continue;
+        }
+
+        if (auto state = std::dynamic_pointer_cast<const RasterShadowPassState>(resource.state())) {
+          state->applyTo(rasterizer);
+        } else if (!beautyState.shadows().empty()) {
+          beautyState.shadows().applyTo(rasterizer);
+          rasterizer.setShadowMapsEnabled(true);
+        } else {
+          RasterShadowPassState::previewDefaults().applyTo(rasterizer);
         }
       }
-      return false;
     }
 
     void prepareEngine(render::RenderEngine& engine, const GraphRenderEngine& graph, bool cancelled,
@@ -154,13 +155,7 @@ namespace engine::graph {
           std::make_shared<::engine::raster::Rasterizer>(std::move(camera), graph.scene());
         const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
         state.applyTo(*rasterizer);
-        if (hasRealPreviewShadowInput(context) && !state.shadows().enabled()) {
-          if (state.shadows().empty()) {
-            applyPreviewShadowPolicy(*rasterizer);
-          } else {
-            rasterizer->setShadowMapsEnabled(true);
-          }
-        }
+        applyRasterShadowInputs(context, state, *rasterizer);
         return rasterizer;
       }
     };
@@ -173,6 +168,10 @@ namespace engine::graph {
         if (context.storage().descriptor(write.resource).type != RenderResourceType::ShadowMap) {
           throw passError(pass, "preview shadow pass must write a shadow-map resource");
         }
+        context.storage()
+          .resource(write.resource)
+          .setState(
+            std::make_shared<RasterShadowPassState>(RasterShadowPassState::valueFromPass(pass)));
       }
     };
 

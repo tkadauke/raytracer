@@ -19,6 +19,10 @@ namespace engine::graph {
       return std::make_shared<RasterBeautyPassState>(RasterBeautyPassState::fromJson(object, path));
     }
 
+    if (kind == RenderPassKind::Shadow && executor == RenderExecutorKind::Rasterizer) {
+      return std::make_shared<RasterShadowPassState>(RasterShadowPassState::fromJson(object, path));
+    }
+
     if (kind == RenderPassKind::PostProcess && executor == RenderExecutorKind::PostProcess) {
       return PostProcessAAState::fromJson(object, path);
     }

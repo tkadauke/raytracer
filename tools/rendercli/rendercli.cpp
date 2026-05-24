@@ -470,6 +470,7 @@ private:
   engine::graph::RasterBeautyPassState
   rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA,
                         bool includeImagePostProcessAA, bool includeShadowMapEnable) const;
+  engine::graph::RasterShadowPassState rasterShadowPassState() const;
   engine::graph::WireframePassState wireframePassState() const;
   engine::graph::RenderPlan compileRenderGraphPlan(const Scene& scene) const;
   engine::graph::RenderPlan loadRenderGraphPlan() const;
@@ -656,7 +657,22 @@ Renderer::rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA
   state.framebuffer().setDepthBias(m_rasterDepthBias);
   if (includeShadowMapEnable) {
     state.shadows().setShadowMapsEnabled(m_rasterShadowMaps);
+    state.shadows().setShadowMapSize(m_rasterShadowMapSize);
+    state.shadows().setShadowCascadeCount(m_rasterShadowCascadeCount);
+    state.shadows().setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
+    state.shadows().setShadowBias(m_rasterShadowBias);
+    state.shadows().setShadowSlopeBias(m_rasterShadowSlopeBias);
+    state.shadows().setShadowFilterRadius(m_rasterShadowFilterRadius);
+    if (m_rasterShadowFilterMode == "pcss") {
+      state.shadows().setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+    }
   }
+  return state;
+}
+
+engine::graph::RasterShadowPassState Renderer::rasterShadowPassState() const {
+  engine::graph::RasterShadowPassState state;
+  state.shadows().setShadowMapsEnabled(true);
   state.shadows().setShadowMapSize(m_rasterShadowMapSize);
   state.shadows().setShadowCascadeCount(m_rasterShadowCascadeCount);
   state.shadows().setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
@@ -684,6 +700,9 @@ engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) c
     rasterBeautyPassState(intent.postProcessAA, !intent.usesGraphImagePostProcessAA(),
                           !intent.enablePreviewShadows)
       .writeToRasterBeautyPasses(plan);
+    if (intent.enablePreviewShadows) {
+      rasterShadowPassState().writeToRasterShadowPasses(plan);
+    }
   }
   return plan.withOverrides(m_renderGraphOverrides);
 }

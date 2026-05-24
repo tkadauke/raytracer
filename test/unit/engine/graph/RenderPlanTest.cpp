@@ -533,6 +533,31 @@ namespace RenderPlanTest {
     EXPECT_EQ(plan.toJson(), imported.toJson());
   }
 
+  TEST(RenderPlan, RoundTripsRasterShadowPassState) {
+    RenderPlan plan;
+    RenderResourceDescriptor shadowMap;
+    shadowMap.id = "preview_shadow_map";
+    shadowMap.name = "Preview shadow map";
+    shadowMap.type = RenderResourceType::ShadowMap;
+    shadowMap.lifetime = RenderResourceLifetime::Transient;
+    plan.addResource(shadowMap);
+
+    auto shadow = pass("raster_preview_shadows", RenderPassKind::Shadow);
+    shadow.executor = RenderExecutorKind::Rasterizer;
+    shadow.writes.push_back({"preview_shadow_map"});
+    shadow.state =
+      std::make_shared<RasterShadowPassState>(RasterShadowPassState::previewDefaults());
+    plan.addPass(shadow);
+
+    const RenderPlan imported = RenderPlan::fromJson(plan.toJson());
+
+    ASSERT_EQ(1u, imported.passes().size());
+    const auto state = RasterShadowPassState::fromPass(imported.passes()[0]);
+    ASSERT_NE(nullptr, state);
+    EXPECT_TRUE(state->shadows().enabled());
+    EXPECT_EQ(plan.toJson(), imported.toJson());
+  }
+
   TEST(RenderPlan, RejectsMalformedJsonImport) {
     QJsonObject badRoot;
     badRoot["resources"] = "not an array";

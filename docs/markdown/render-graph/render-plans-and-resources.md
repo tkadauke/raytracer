@@ -400,10 +400,11 @@ When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and
 replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
 under the pass's `parameters` object, making settings such as `--msaa`,
-`--msaa_shading`, `--viewport`, color-output controls, and shadow-map controls
-visible instead of living only in the direct raster engine setup path. The
-preview shadow request is also visible: when preview shadows are enabled, the
-compiler inserts `raster_preview_shadows` before `raster_beauty` and routes a
+`--msaa_shading`, `--viewport`, and color-output controls visible instead of
+living only in the direct raster engine setup path. The preview shadow request
+is also visible: when preview shadows are enabled, the compiler inserts
+`raster_preview_shadows` before `raster_beauty`, stores the shadow-map settings
+on that shadow node's typed `parameters.shadows` state, and routes a
 `preview_shadow_map` resource into the beauty pass. The current raster payload
 still builds the concrete CPU shadow maps internally, but disabling the graph
 shadow node substitutes the default resource and prevents graph-controlled

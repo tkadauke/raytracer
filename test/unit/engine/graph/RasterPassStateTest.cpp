@@ -10,6 +10,66 @@ namespace RasterPassStateTest {
   using namespace engine::graph;
   using Rasterizer = engine::raster::Rasterizer;
 
+  TEST(RasterShadowPassState, SerializesPreviewDefaults) {
+    const RasterShadowPassState state = RasterShadowPassState::previewDefaults();
+
+    const QJsonObject json = state.toJson();
+    const QJsonObject shadows = json.value("shadows").toObject();
+
+    EXPECT_TRUE(shadows.value("enabled").toBool());
+    EXPECT_EQ(4, shadows.value("cascadeCount").toInt());
+    EXPECT_EQ(0.1, shadows.value("bias").toDouble());
+    EXPECT_EQ(1, shadows.value("filterRadius").toInt());
+  }
+
+  TEST(RasterShadowPassState, AppliesImportedStateToRasterizer) {
+    QJsonObject shadows;
+    shadows["enabled"] = true;
+    shadows["mapSize"] = 128;
+    shadows["cascadeCount"] = 2;
+    shadows["cascadeSplitLambda"] = 0.25;
+    shadows["bias"] = 0.05;
+    shadows["slopeBias"] = 0.02;
+    shadows["filterRadius"] = 3;
+    shadows["filterMode"] = "pcss";
+    QJsonObject json;
+    json["shadows"] = shadows;
+
+    Rasterizer rasterizer(nullptr);
+    RasterShadowPassState::fromJson(json).applyTo(rasterizer);
+
+    EXPECT_TRUE(rasterizer.shadowMapsEnabled());
+    EXPECT_EQ(128, rasterizer.shadowMapSize());
+    EXPECT_EQ(2, rasterizer.shadowCascadeCount());
+    EXPECT_EQ(0.25, rasterizer.shadowCascadeSplitLambda());
+    EXPECT_EQ(0.05, rasterizer.shadowBias());
+    EXPECT_EQ(0.02, rasterizer.shadowSlopeBias());
+    EXPECT_EQ(3, rasterizer.shadowFilterRadius());
+    EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, rasterizer.shadowFilterMode());
+  }
+
+  TEST(RasterShadowPassState, WritesOnlyToRasterShadowPasses) {
+    RenderPlan plan;
+    RenderPassNode shadow;
+    shadow.id = "raster_preview_shadows";
+    shadow.kind = RenderPassKind::Shadow;
+    shadow.executor = RenderExecutorKind::Rasterizer;
+    plan.addPass(shadow);
+
+    RenderPassNode beauty;
+    beauty.id = "raster_beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Rasterizer;
+    plan.addPass(beauty);
+
+    RasterShadowPassState state = RasterShadowPassState::previewDefaults();
+
+    EXPECT_EQ(1u, state.writeToRasterShadowPasses(plan));
+    ASSERT_NE(nullptr, plan.passes()[0].state);
+    EXPECT_TRUE(RasterShadowPassState::fromPass(plan.passes()[0])->shadows().enabled());
+    EXPECT_EQ(nullptr, plan.passes()[1].state);
+  }
+
   TEST(RasterBeautyPassState, SerializesFocusedSubstates) {
     RasterBeautyPassState state;
     state.sampling().setMSAASamples(4);

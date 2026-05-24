@@ -186,6 +186,7 @@ namespace engine::graph {
       shadows.executor = RenderExecutorKind::Rasterizer;
       shadows.features = {"main", "preview_shadows", "shadow_maps", "rasterizer"};
       shadows.sceneView.selector = SceneSelector::all();
+      RasterShadowPassState::previewDefaults().writeTo(shadows);
       shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
       shadows.canRunConcurrently = false;
       plan.connectProducerToConsumer(shadows, previewShadowResource(), beauty.id);

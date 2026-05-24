@@ -555,6 +555,13 @@ graphs; rendercli and the Modeler preview both use that shared compiler path.
 TAA remains deferred until graph-owned history, depth, and jitter resources
 exist.
 
+Raster preview shadow requests now also carry typed pass state: ✅ **Done.**
+`raster_preview_shadows` serializes `parameters.shadows`, execution publishes
+that state on the `preview_shadow_map` resource, and `raster_beauty` consumes it
+when the shadow node is enabled. The rasterizer still owns the concrete CPU
+shadow-map build internally; splitting real directional/cascade depth passes
+remains future raster graph work.
+
 ### Rasterizer passes
 
 Raster rendering is where graph-based decomposition is most immediately useful:
@@ -1050,8 +1057,8 @@ execute that serial color chain through Raytracer/Rasterizer/Wireframe plus
 PostProcess tonemapping, graph-visible typed pass state for replaying raster
 beauty-pass controls, a display-buffer fast path for progressive simple previews,
 dual HDR/display raytracer beauty output for progressive previews with
-postprocess passes, optional scene JSON render intent, and the textbook's
-render-graph volume.
+postprocess passes, typed raster preview shadow-pass state, optional scene JSON
+render intent, and the textbook's render-graph volume.
 Scene-feature expansion, arbitrary postprocess/composite execution, and real
 graph scheduling remain TODO.
 
