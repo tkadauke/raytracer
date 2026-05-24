@@ -1333,6 +1333,13 @@ let the user select a graph node after rendering and inspect `Input`, `Output`,
 color resources; shadow maps and other specialized resources can remain
 metadata-only until custom viewers exist.
 
+✅ **Partial.** `RenderGraphExecutionTrace` now records the executed plan, pass
+status, elapsed time, CPU color input/output preview snapshots, and absolute plus
+boosted difference previews for simple one-input/one-output color passes.
+`GraphRenderEngine` shares the recorder with render clones, so worker-thread
+preview renders publish the completed trace back to the original engine.
+Modeler node-selection UI for inspecting those snapshots remains TODO.
+
 ### Live graph execution highlighting
 
 Expose pass-start/pass-finish/pass-fail events from graph execution so the

@@ -7,6 +7,7 @@
 
 namespace engine::graph {
   class RenderGraphExecutionObserver;
+  class RenderGraphExecutionTrace;
 
   /**
     * RenderEngine facade that renders through a compiled render graph.
@@ -82,6 +83,15 @@ namespace engine::graph {
       * @returns the currently installed execution observer, if any.
       */
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver() const;
+
+    /**
+      * @returns a snapshot of the most recent graph execution trace, if any.
+      *
+      * Cloned render engines publish into the same trace recorder as their
+      * source engine, so UI callers can inspect the render worker's completed
+      * graph after preview rendering finishes.
+      */
+    std::shared_ptr<const RenderGraphExecutionTrace> lastExecutionTrace() const;
 
     /**
       * Executes the current plan into @p buffer.

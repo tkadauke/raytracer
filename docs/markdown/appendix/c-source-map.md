@@ -44,6 +44,7 @@
 | `include/engine/graph/RenderExecutionContext.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphCompiler.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphExecutionObserver.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderGraphExecutionTrace.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphTypes.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassPayload.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassState.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -145,6 +146,7 @@
 | `src/engine/graph/RasterPassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderExecutionContext.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderGraphCompiler.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `src/engine/graph/RenderGraphExecutionTrace.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderGraphTypes.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderPassPayloads.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderPassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |

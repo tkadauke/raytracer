@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph execution traces.** `GraphRenderEngine` now records the last
+  executed plan's pass status, timing, CPU color input/output previews, and
+  simple color difference previews so inspection tools can explain what each
+  graph node read and wrote. — GPT-5
 - **Render graph text dependencies.** Text graph exports now include declared
   pass-to-pass dependencies and the dependency-derived execution order
   separately from pass declaration order, so replayed or hand-authored plans can

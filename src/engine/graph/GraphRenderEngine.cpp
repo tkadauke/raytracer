@@ -4,6 +4,7 @@
 #include "engine/graph/RenderPassPayload.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "render/cameras/Camera.h"
 #include "render/primitives/Scene.h"
@@ -246,29 +247,58 @@ namespace engine::graph {
       }
     }
 
+    void markDisplayFastPathSkippedPasses(RenderGraphExecutionTraceRecorder& recorder,
+                                          const RenderPlan& plan,
+                                          const RenderPassNode& executedPass,
+                                          const RenderResourceStorage& storage) {
+      for (const RenderPassNode* passNode : plan.executionOrder()) {
+        const RenderPassNode& pass = *passNode;
+        if (pass.id == executedPass.id) {
+          continue;
+        }
+        recorder.passSkipped(pass, storage,
+                             "display-buffer fast path did not materialize this graph node");
+      }
+    }
+
     template<class Execute>
-    void executeObserved(const GraphRenderEngine& graph, const RenderPassNode& pass,
+    void executeObserved(const GraphRenderEngine& graph,
+                         const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
+                         const RenderPassNode& pass, const RenderResourceStorage& storage,
                          Execute execute) {
       notifyPassStarted(graph, pass);
+      recorder->passStarted(pass, storage);
       try {
         execute();
       } catch (const std::exception& error) {
+        recorder->passFailed(pass, storage, error.what());
         notifyPassFailed(graph, pass, error.what());
         throw;
       } catch (...) {
+        recorder->passFailed(pass, storage, "unknown render graph pass failure");
         notifyPassFailed(graph, pass, "unknown render graph pass failure");
         throw;
       }
+      recorder->passCompleted(pass, storage);
       notifyPassFinished(graph, pass);
     }
 
     template<class Execute>
     bool executeObservedBool(const GraphRenderEngine& graph, const RenderPassNode& pass,
-                             Execute execute) {
+                             const std::shared_ptr<RenderGraphExecutionTraceRecorder>& recorder,
+                             const RenderResourceStorage& storage, Execute execute) {
       bool result = false;
-      executeObserved(graph, pass, [&] { result = execute(); });
+      executeObserved(graph, recorder, pass, storage, [&] { result = execute(); });
       return result;
     }
+
+    struct TraceSession {
+      std::shared_ptr<RenderGraphExecutionTraceRecorder> recorder;
+
+      ~TraceSession() {
+        recorder->finish();
+      }
+    };
   }
 
   struct GraphRenderEngine::Private {
@@ -277,6 +307,8 @@ namespace engine::graph {
     RenderPlan lastPlan;
     std::shared_ptr<render::RenderEngine> activeEngine;
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
+    std::shared_ptr<RenderGraphExecutionTraceRecorder> executionTraceRecorder{
+      std::make_shared<RenderGraphExecutionTraceRecorder>()};
     std::atomic<bool> cancelled{false};
     mutable std::mutex activeEngineMutex;
     mutable std::mutex executionObserverMutex;
@@ -308,6 +340,7 @@ namespace engine::graph {
       result->setPlan(*p->explicitPlan);
     }
     result->setExecutionObserver(executionObserver());
+    result->p->executionTraceRecorder = p->executionTraceRecorder;
     return result;
   }
 
@@ -355,6 +388,10 @@ namespace engine::graph {
     return p->executionObserver;
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> GraphRenderEngine::lastExecutionTrace() const {
+    return p->executionTraceRecorder->lastTrace();
+  }
+
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {
     if (buffer.width() <= 0 || buffer.height() <= 0 || !m_scene || !m_camera) {
       buffer.clear();
@@ -369,6 +406,8 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
+    p->executionTraceRecorder->begin(plan);
+    TraceSession traceSession{p->executionTraceRecorder};
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
@@ -377,17 +416,24 @@ namespace engine::graph {
     for (const RenderPassNode* passNode : executionOrder) {
       const RenderPassNode& pass = *passNode;
       if (!pass.enabled) {
+        std::string disabledMessage;
         switch (pass.disabledBehavior) {
         case DisabledBehavior::SubstituteDefault:
           substituteDefaultOutput(pass, storage, *this);
+          disabledMessage = "disabled pass substituted default output";
           break;
         case DisabledBehavior::Passthrough:
           passthroughColorOutput(pass, storage);
+          disabledMessage = "disabled pass passed color through";
           break;
         case DisabledBehavior::CullDependents:
+          disabledMessage = "disabled pass culled dependents";
+          break;
         case DisabledBehavior::Error:
+          disabledMessage = "disabled pass did not execute";
           break;
         }
+        p->executionTraceRecorder->passSkipped(pass, storage, disabledMessage);
         continue;
       }
 
@@ -411,7 +457,8 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, pass, [&] { payload->execute(context); });
+      executeObserved(*this, p->executionTraceRecorder, pass, storage,
+                      [&] { payload->execute(context); });
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
       }
@@ -435,6 +482,8 @@ namespace engine::graph {
       throw std::runtime_error(validationMessage(validation));
     }
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
+    p->executionTraceRecorder->begin(plan);
+    TraceSession traceSession{p->executionTraceRecorder};
 
     const auto displayChain = simpleDisplayChain(plan);
     if (displayChain) {
@@ -459,9 +508,11 @@ namespace engine::graph {
           displayChain->applyTonemap
             ? tonemap()
             : std::static_pointer_cast<render::Tonemap>(std::make_shared<render::LinearTonemap>());
-        if (executeObservedBool(*this, *displayChain->beauty, [&] {
-              return payload->executeDisplay(context, buffer, outputTonemap);
-            })) {
+        if (executeObservedBool(
+              *this, *displayChain->beauty, p->executionTraceRecorder, displayStorage,
+              [&] { return payload->executeDisplay(context, buffer, outputTonemap); })) {
+          markDisplayFastPathSkippedPasses(*p->executionTraceRecorder, plan, *displayChain->beauty,
+                                           displayStorage);
           return;
         }
       }
@@ -480,19 +531,26 @@ namespace engine::graph {
     for (const RenderPassNode* passNode : executionOrder) {
       const RenderPassNode& pass = *passNode;
       if (!pass.enabled) {
+        std::string disabledMessage;
         switch (pass.disabledBehavior) {
         case DisabledBehavior::SubstituteDefault:
           substituteDefaultOutput(pass, storage, *this);
           publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+          disabledMessage = "disabled pass substituted default output";
           break;
         case DisabledBehavior::Passthrough:
           passthroughColorOutput(pass, storage);
           publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+          disabledMessage = "disabled pass passed color through";
           break;
         case DisabledBehavior::CullDependents:
+          disabledMessage = "disabled pass culled dependents";
+          break;
         case DisabledBehavior::Error:
+          disabledMessage = "disabled pass did not execute";
           break;
         }
+        p->executionTraceRecorder->passSkipped(pass, storage, disabledMessage);
         continue;
       }
 
@@ -511,7 +569,7 @@ namespace engine::graph {
         }
       } reset{context};
 
-      executeObserved(*this, pass, [&] {
+      executeObserved(*this, p->executionTraceRecorder, pass, storage, [&] {
         const bool executedForDisplay =
           pass.kind == RenderPassKind::Beauty && pass.executor == RenderExecutorKind::Raytracer &&
           payload->executeDisplayAndStore(context, buffer, displayTonemap);

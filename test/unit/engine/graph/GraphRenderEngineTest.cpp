@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
@@ -119,6 +120,18 @@ namespace GraphRenderEngineTest {
     for (int y = 0; y != first.height(); ++y) {
       for (int x = 0; x != first.width(); ++x) {
         if (first[y][x] != second[y][x]) {
+          ++count;
+        }
+      }
+    }
+    return count;
+  }
+
+  int countNonBlackPixels(const Buffer<Colord>& buffer) {
+    int count = 0;
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        if (!(buffer[y][x] == Colord::black())) {
           ++count;
         }
       }
@@ -267,6 +280,82 @@ namespace GraphRenderEngineTest {
 
     const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty"};
     EXPECT_EQ(expected, observer->events);
+  }
+
+  TEST(GraphRenderEngine, RecordsColorSnapshotsInExecutionTrace) {
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(compiler.compile({64, 64, 1}, intent));
+
+    Buffer<unsigned int> buffer(64, 64);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    EXPECT_EQ(engine.lastPlan().passes().size(), trace->passes().size());
+
+    const RenderPassTrace* postAA = trace->findPass("post_fxaa");
+    ASSERT_NE(nullptr, postAA);
+    EXPECT_EQ(RenderPassExecutionStatus::Completed, postAA->status());
+    ASSERT_EQ(1u, postAA->inputs().size());
+    ASSERT_EQ(1u, postAA->outputs().size());
+    EXPECT_EQ("beauty_color", postAA->inputs()[0].resourceId());
+    EXPECT_EQ("post_aa_color", postAA->outputs()[0].resourceId());
+    ASSERT_TRUE(postAA->inputs()[0].hasColorPreview());
+    ASSERT_TRUE(postAA->outputs()[0].hasColorPreview());
+    EXPECT_EQ(64, postAA->inputs()[0].colorPreview().width());
+    EXPECT_EQ(64, postAA->outputs()[0].colorPreview().height());
+
+    ASSERT_EQ(1u, postAA->diffs().size());
+    ASSERT_TRUE(postAA->diffs()[0].hasPreview());
+    EXPECT_EQ("beauty_color", postAA->diffs()[0].inputResourceId());
+    EXPECT_EQ("post_aa_color", postAA->diffs()[0].outputResourceId());
+    EXPECT_GT(countNonBlackPixels(postAA->diffs()[0].boostedPreview()), 0);
+    EXPECT_GT(postAA->elapsed().count(), 0);
+  }
+
+  TEST(GraphRenderEngine, SharesExecutionTraceRecorderWithRenderClone) {
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setIntent(intent);
+
+    auto clone = engine.cloneForRender();
+    Buffer<unsigned int> buffer(32, 32);
+    clone->render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    EXPECT_NE(nullptr, trace->findPass("raytrace_beauty"));
+    const RenderPassTrace* postAA = trace->findPass("post_fxaa");
+    ASSERT_NE(nullptr, postAA);
+    EXPECT_EQ(RenderPassExecutionStatus::Completed, postAA->status());
+  }
+
+  TEST(GraphRenderEngine, MarksSimpleDisplayFastPathSnapshotsUnavailable) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+
+    Buffer<unsigned int> buffer(8, 8);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+
+    const RenderPassTrace* beauty = trace->findPass("raytrace_beauty");
+    ASSERT_NE(nullptr, beauty);
+    EXPECT_EQ(RenderPassExecutionStatus::Completed, beauty->status());
+    ASSERT_EQ(1u, beauty->outputs().size());
+    EXPECT_FALSE(beauty->outputs()[0].hasColorPreview());
+    EXPECT_NE(std::string::npos, beauty->outputs()[0].unavailableReason().find("not materialized"));
+
+    const RenderPassTrace* tonemap = trace->findPass("tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    EXPECT_EQ(RenderPassExecutionStatus::Skipped, tonemap->status());
+    EXPECT_NE(std::string::npos, tonemap->message().find("display-buffer fast path"));
   }
 
   TEST(GraphRenderEngine, ExecutesCallerProvidedRasterBeautyPlan) {

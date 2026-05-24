@@ -477,6 +477,24 @@ the frame is still in progress. The observer model stores a set of active pass
 ids rather than a single current pass, which keeps the UI contract ready for
 future parallel graph scheduling.
 
+Graph execution also records a post-render trace through
+[`RenderGraphExecutionTrace`](../../../include/engine/graph/RenderGraphExecutionTrace.h).
+The trace is a result of one concrete execution, not part of the declarative
+plan. It stores each pass's status, elapsed time, supported input snapshots,
+supported output snapshots, and difference previews. The first supported
+snapshots are CPU color resources, stored as bounded-size previews so inspection
+tools do not retain several full-resolution render buffers by default. For a
+simple one-input/one-output color pass such as FXAA, SMAA, or tonemap, the trace
+adds both an absolute RGB difference preview and a boosted preview that makes
+subtle changes easier to see.
+
+Some graph paths deliberately do not materialize every resource. The packed RGB
+display fast path, for example, lets the preview render publish pixels while a
+beauty pass is still running; it records unavailable color snapshots for nodes
+that were fused into that direct display path. Non-color resources such as the
+current preview shadow-map request are recorded as metadata-only until the graph
+has a specialized resource viewer for them.
+
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
 `RenderEngine` facade over the graph path. It can compile from its current
@@ -566,6 +584,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderGraphTypes.h`
 - `include/engine/graph/RenderGraphCompiler.h`
 - `include/engine/graph/RenderGraphExecutionObserver.h`
+- `include/engine/graph/RenderGraphExecutionTrace.h`
 - `include/engine/graph/RenderExecutionContext.h`
 - `include/engine/graph/RenderPlan.h`
 - `include/engine/graph/RenderPassPayload.h`
@@ -580,6 +599,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`
+- `src/engine/graph/RenderGraphExecutionTrace.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`
 - `src/engine/graph/RenderPassPayloads.cpp`
