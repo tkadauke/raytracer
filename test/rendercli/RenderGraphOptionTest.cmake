@@ -32,6 +32,7 @@ set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
+set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
@@ -406,6 +407,22 @@ if(raster_state_graph MATCHES "postProcessAA")
 endif()
 if(NOT raster_state_graph MATCHES "mapSize")
   message(FATAL_ERROR "raster state graph did not contain shadow state: ${raster_state_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli writes wireframe pass state while rendering through graph"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --render_graph_only --render_graph_format json
+    --width 32 --height 16 --lod 2
+    "${static_scene}" "${wireframe_state_plan}"
+)
+rendercli_assert_nonempty("${wireframe_state_plan}" NAME "graph wireframe state plan")
+file(READ "${wireframe_state_plan}" wireframe_state_graph)
+if(NOT wireframe_state_graph MATCHES "wireframe_beauty")
+  message(FATAL_ERROR "wireframe state graph did not contain wireframe_beauty: ${wireframe_state_graph}")
+endif()
+if(NOT wireframe_state_graph MATCHES "\"lod\"")
+  message(FATAL_ERROR "wireframe state graph did not contain lod state: ${wireframe_state_graph}")
 endif()
 
 set(raster_taa_plan "${TEST_OUTPUT_DIR}/raster_taa_plan.json")

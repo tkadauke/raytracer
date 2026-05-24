@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph-visible wireframe pass state.** Wireframe beauty and overlay graph
+  passes now carry typed pass state, and graph-backed rendercli replays
+  `--lod` through that state instead of only applying it in direct wireframe
+  engine mode. — GPT-5
 - **RenderPlan graph queries.** `RenderPlan` now exposes typed lookup helpers
   for pass ids, resource ids, resource producers, and resource consumers, giving
   later graph-rewrite code and inspection tools a single plan-owned API for

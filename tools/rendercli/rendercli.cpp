@@ -13,6 +13,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/WireframePassState.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
@@ -467,6 +468,7 @@ private:
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
   bool usesGraphImagePostProcessAA(const engine::graph::RenderIntent& intent) const;
   engine::graph::RasterBeautyPassState rasterBeautyPassState(bool includeImagePostProcessAA) const;
+  engine::graph::WireframePassState wireframePassState() const;
   void addRasterImagePostProcessAAPass(engine::graph::RenderPlan& plan,
                                        const engine::graph::RenderIntent& intent) const;
   engine::graph::RenderPlan compileRenderGraphPlan(const Scene& scene) const;
@@ -651,6 +653,12 @@ Renderer::rasterBeautyPassState(bool includeImagePostProcessAA) const {
   return state;
 }
 
+engine::graph::WireframePassState Renderer::wireframePassState() const {
+  engine::graph::WireframePassState state;
+  state.setLod(m_wireframeLod);
+  return state;
+}
+
 void Renderer::addRasterImagePostProcessAAPass(engine::graph::RenderPlan& plan,
                                                const engine::graph::RenderIntent& intent) const {
   if (!usesGraphImagePostProcessAA(intent)) {
@@ -693,6 +701,7 @@ engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) c
   engine::graph::RenderGraphCompiler compiler;
   const auto intent = renderIntent(scene);
   auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
+  wireframePassState().writeToWireframePasses(plan);
   if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
     rasterBeautyPassState(!usesGraphImagePostProcessAA(intent)).writeToRasterBeautyPasses(plan);
     addRasterImagePostProcessAAPass(plan, intent);

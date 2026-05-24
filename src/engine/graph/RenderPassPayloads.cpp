@@ -6,6 +6,7 @@
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/graph/WireframePassState.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
@@ -137,7 +138,10 @@ namespace engine::graph {
       createEngine(const RenderExecutionContext& context) const override {
         const auto& graph = context.graph();
         auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
-        return std::make_shared<::engine::wireframe::Wireframe>(std::move(camera), graph.scene());
+        auto wireframe =
+          std::make_shared<::engine::wireframe::Wireframe>(std::move(camera), graph.scene());
+        WireframePassState::valueFromPass(context.pass()).applyTo(*wireframe);
+        return wireframe;
       }
     };
 
@@ -161,6 +165,7 @@ namespace engine::graph {
         auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
         auto wireframe = std::make_shared<::engine::wireframe::Wireframe>(std::move(camera),
                                                                           context.graph().scene());
+        WireframePassState::valueFromPass(pass).applyTo(*wireframe);
         wireframe->setBackgroundColor(Colord::black());
         wireframe->setEdgeColor(Colord::white());
         if (context.cancelled()) {

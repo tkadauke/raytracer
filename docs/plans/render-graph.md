@@ -1085,8 +1085,9 @@ Implement the smallest graph that proves the architecture:
    plans, use scene JSON render intent, override the compiled default
    executor/view mode, request the wireframe overlay intent, apply pass
    id/kind/executor/feature disable filters, serialize graph-backed raster
-   beauty pass state for MSAA/post-AA/fixed-function/shadow controls, and
-   validate the manipulated plan.
+   beauty pass state for MSAA/post-AA/fixed-function/shadow controls,
+   serialize graph-backed wireframe pass state for LOD, and validate the
+   manipulated plan.
    Selector-specific command-line intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles

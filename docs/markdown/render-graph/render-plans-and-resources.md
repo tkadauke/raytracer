@@ -155,9 +155,10 @@ those settings configure the executor. JSON import/export serializes this
 typed state through a pass's `parameters` object, but graph execution does not
 carry an uninterpreted JSON object. Raster beauty passes use focused state
 objects for sampling, framebuffer, geometry, execution, and shadow-map
-controls. Image-space anti-aliasing postprocess passes use a typed
-`post_process_aa` state object so replayed JSON chooses FXAA or SMAA before
-execution reaches the payload.
+controls. Wireframe beauty and overlay passes carry their own typed state for
+wireframe-specific controls such as LOD. Image-space anti-aliasing postprocess
+passes use a typed `post_process_aa` state object so replayed JSON chooses FXAA
+or SMAA before execution reaches the payload.
 
 The node also carries a `DisabledBehavior` value:
 
@@ -361,7 +362,9 @@ overlay pass reads `beauty_color`, writes `overlay_color`, and has
 `DisabledBehavior::Passthrough`, so disabling it leaves the beauty image flowing
 to tonemap unchanged. The current overlay is image-space and not depth-aware:
 it draws tessellated wireframe edges over the shaded image wherever the
-wireframe engine produces an edge pixel.
+wireframe engine produces an edge pixel. Graph-backed rendercli serializes
+`--lod` into wireframe pass state, so exported or replayed overlay plans keep
+the same tessellation density as direct wireframe renders.
 
 `RenderTargetSpec` supplies the framebuffer width, height, and sample count for
 both resource descriptors. Compilation does not allocate buffers and does not
@@ -501,6 +504,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderPassState.h`
 - `include/engine/graph/PostProcessPassState.h`
 - `include/engine/graph/RasterPassState.h`
+- `include/engine/graph/WireframePassState.h`
 - `include/engine/graph/RenderResource.h`
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
@@ -514,6 +518,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderPassState.cpp`
 - `src/engine/graph/PostProcessPassState.cpp`
 - `src/engine/graph/RasterPassState.cpp`
+- `src/engine/graph/WireframePassState.cpp`
 - `src/engine/graph/RenderPlan.cpp`
 - `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`
@@ -523,6 +528,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
 - `test/unit/engine/graph/PostProcessPassStateTest.cpp`
 - `test/unit/engine/graph/RasterPassStateTest.cpp`
+- `test/unit/engine/graph/WireframePassStateTest.cpp`
 - `test/unit/engine/graph/RenderPlanTest.cpp`
 - `test/unit/engine/graph/RenderResourceStorageTest.cpp`
 - `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp`
