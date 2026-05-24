@@ -88,6 +88,18 @@ namespace RenderGraphTracePreviewWidgetTest {
     EXPECT_TRUE(labelsContain(diffs, QStringLiteral("Boosted difference")));
   }
 
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldScaleTraceImagesForInspection) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showPassTrace(trace, "post_fxaa");
+
+    auto images = widget.findChildren<QLabel*>("renderGraphTracePreviewImage");
+    ASSERT_FALSE(images.empty());
+    EXPECT_GE(images.front()->pixmap().width(), 640);
+  }
+
   TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowResourceTracePreviews) {
     auto trace = postProcessTrace();
     ASSERT_TRUE(trace);

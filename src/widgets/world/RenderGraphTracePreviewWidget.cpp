@@ -15,6 +15,8 @@
 using namespace engine::graph;
 
 namespace {
+  constexpr int MinimumPreviewWidth = 640;
+
   QString qstr(const std::string& value) {
     return QString::fromStdString(value);
   }
@@ -31,6 +33,14 @@ namespace {
       }
     }
     return image;
+  }
+
+  QPixmap scaledPreviewPixmap(const Buffer<Colord>& buffer) {
+    QPixmap pixmap = QPixmap::fromImage(colorPreviewImage(buffer));
+    if (pixmap.width() >= MinimumPreviewWidth)
+      return pixmap;
+
+    return pixmap.scaledToWidth(MinimumPreviewWidth, Qt::FastTransformation);
   }
 
   QString snapshotTitle(const RenderGraphResourceSnapshot& snapshot) {
@@ -64,7 +74,7 @@ namespace {
   void addImage(QVBoxLayout& layout, const Buffer<Colord>& buffer) {
     auto* image = new QLabel();
     image->setObjectName("renderGraphTracePreviewImage");
-    image->setPixmap(QPixmap::fromImage(colorPreviewImage(buffer)));
+    image->setPixmap(scaledPreviewPixmap(buffer));
     image->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     layout.addWidget(image);
   }
