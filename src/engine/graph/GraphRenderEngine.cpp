@@ -6,6 +6,7 @@
 #include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "core/math/BoundingBox.h"
 #include "render/cameras/Camera.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
@@ -14,9 +15,11 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <iomanip>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
+#include <typeinfo>
 #include <utility>
 
 namespace engine::graph {
@@ -89,6 +92,70 @@ namespace engine::graph {
       }
       camera->setPosition(Vector3d(0, 0, -5));
       camera->setTarget(Vector3d::null);
+    }
+
+    void writeColorFingerprint(std::ostream& out, const char* name, const Colord& color) {
+      out << name << '=' << color.r() << ',' << color.g() << ',' << color.b() << ';';
+    }
+
+    void writeVectorFingerprint(std::ostream& out, const char* name, const Vector3d& vector) {
+      out << name << '=' << vector.x() << ',' << vector.y() << ',' << vector.z() << ';';
+    }
+
+    void writeBoundingBoxFingerprint(std::ostream& out, const BoundingBoxd& bounds) {
+      out << "bounds.valid=" << bounds.isValid() << ';'
+          << "bounds.undefined=" << bounds.isUndefined() << ';'
+          << "bounds.infinite=" << bounds.isInfinite() << ';';
+      if (bounds.isValid() && !bounds.isUndefined() && !bounds.isInfinite()) {
+        writeVectorFingerprint(out, "bounds.min", bounds.min());
+        writeVectorFingerprint(out, "bounds.max", bounds.max());
+      }
+    }
+
+    template<class T>
+    const char* dynamicTypeName(const T& value) {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
+#endif
+      const char* result = typeid(value).name();
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+      return result;
+    }
+
+    std::string renderInputFingerprintFor(const GraphRenderEngine& graph) {
+      std::ostringstream out;
+      out << std::setprecision(17);
+
+      if (auto camera = graph.camera()) {
+        out << "camera.type=" << dynamicTypeName(*camera) << ';'
+            << "camera.aspectMode=" << static_cast<int>(camera->aspectMode()) << ';'
+            << "camera.aspectRatio=" << camera->aspectRatio() << ';';
+        writeVectorFingerprint(out, "camera.position", camera->position());
+        writeVectorFingerprint(out, "camera.target", camera->target());
+      } else {
+        out << "camera=null;";
+      }
+
+      if (auto scene = graph.scene()) {
+        out << "scene.ptr=" << scene.get() << ';' << "scene.lights=" << scene->lights().size()
+            << ';';
+        writeColorFingerprint(out, "scene.ambient", scene->ambient());
+        writeColorFingerprint(out, "scene.background", scene->background());
+        writeBoundingBoxFingerprint(out, scene->boundingBox());
+      } else {
+        out << "scene=null;";
+      }
+
+      writeColorFingerprint(out, "engine.background", graph.backgroundColor());
+      if (auto tonemap = graph.tonemap()) {
+        out << "tonemap.type=" << dynamicTypeName(*tonemap) << ';';
+      } else {
+        out << "tonemap=null;";
+      }
+      return out.str();
     }
 
     void substituteDefaultOutput(const RenderPassNode& pass, RenderResourceStorage& storage,
@@ -260,11 +327,17 @@ namespace engine::graph {
     }
 
     TraceSession beginTraceIfEnabled(const RenderPlan& plan) const {
+      return beginTraceIfEnabled(plan, std::string());
+    }
+
+    TraceSession beginTraceIfEnabled(const RenderPlan& plan,
+                                     const std::string& inputFingerprint) const {
       if (!executionTraceEnabled.load()) {
         executionTraceRecorder->clear();
         return {};
       }
-      return TraceSession(executionTraceRecorder, executionTraceRecorder->begin(plan));
+      return TraceSession(executionTraceRecorder,
+                          executionTraceRecorder->begin(plan, inputFingerprint));
     }
   };
 
@@ -348,6 +421,15 @@ namespace engine::graph {
     return p->executionTraceRecorder->lastTrace();
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace>
+  GraphRenderEngine::lastExecutionTraceForPlan(const RenderPlan& plan) const {
+    auto trace = lastExecutionTrace();
+    if (trace && trace->matchesPlanAndInputs(plan, executionInputFingerprint())) {
+      return trace;
+    }
+    return nullptr;
+  }
+
   void GraphRenderEngine::setExecutionTraceEnabled(bool enabled) {
     p->executionTraceEnabled.store(enabled);
     if (!enabled) {
@@ -357,6 +439,10 @@ namespace engine::graph {
 
   bool GraphRenderEngine::executionTraceEnabled() const {
     return p->executionTraceEnabled.load();
+  }
+
+  std::string GraphRenderEngine::executionInputFingerprint() const {
+    return renderInputFingerprintFor(*this);
   }
 
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {
@@ -374,7 +460,7 @@ namespace engine::graph {
       throw std::runtime_error(validationMessage(validation));
     }
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
-    TraceSession traceSession = p->beginTraceIfEnabled(plan);
+    TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
     notifyRenderStarted(*this, renderGeneration);
 
     RenderResourceStorage storage;
@@ -454,7 +540,7 @@ namespace engine::graph {
     }
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
-    TraceSession traceSession = p->beginTraceIfEnabled(plan);
+    TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
     notifyRenderStarted(*this, renderGeneration);
 
     RenderResourceStorage storage;

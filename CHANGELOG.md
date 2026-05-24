@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph trace input freshness.** Execution traces now carry a
+  render-input fingerprint, and the Modeler only shows a completed trace when
+  both the graph plan and current preview inputs still match, avoiding stale
+  per-node images after camera, scene, background, or tonemap changes. — GPT-5
 - **Modeler graph-node property inspection.** Selecting a render graph pass or
   resource node now makes that node the active read-only Properties target, with
   pass settings, resource descriptors, and available trace metadata surfaced

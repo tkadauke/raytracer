@@ -518,13 +518,14 @@ difference previews open in the central Graph Trace preview tab. Selecting a
 resource node opens that resource's matching trace snapshots when they are
 color-backed. A new render clears the old trace while live execution
 highlighting takes over. Completed traces are accepted only when their executed
-plan still matches the inspector's current effective plan, so changing the
-target size, graph overrides, or compiled pass state does not leave stale
-snapshots attached to matching pass ids.
+plan and render-input fingerprint still match the inspector's current effective
+plan and preview inputs. Changing the target size, graph overrides, compiled
+pass state, camera pose, scene instance, background, or tonemap selection does
+not leave stale snapshots attached to matching pass ids.
 Headless renders can export the same trace metadata with
 `rendercli --render_graph_trace_out trace.json`; this writes JSON for the
-executed plan, pass statuses, timings, resource preview availability, and
-difference-preview availability.
+executed plan, input fingerprint, pass statuses, timings, resource preview
+availability, and difference-preview availability.
 
 Preview renders use cloned graph engines on worker threads. The trace recorder
 therefore issues a session token for each render and ignores pass events from

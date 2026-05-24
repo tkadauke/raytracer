@@ -54,6 +54,8 @@ public:
                                    std::uint64_t generation);
   std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
   lastRenderGraphExecutionTrace() const;
+  std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
+  lastRenderGraphExecutionTraceForPlan(const engine::graph::RenderPlan& plan) const;
 
   /// Engine kinds supported by the modeling preview. The render
   /// dialog has its own selector — this one only affects the

@@ -1112,8 +1112,11 @@ Modeler should mark the last trace as stale rather than showing old snapshots as
 if they belonged to the new graph. The first compatibility check should compare
 the effective execution plan: resources, pass ids, read/write edges, enabled
 state, disabled behavior, scene/camera selection, and typed pass state. Scene
-content changes that recompile to the same plan still need a scene revision or
-render-input fingerprint.
+content changes that recompile to the same plan are now covered by a
+conservative render-input fingerprint on the trace: camera pose/aspect, runtime
+scene identity and coarse scene shape, background, and tonemap selection. Later
+cache work can refine this into stable per-object and per-light revision
+domains.
 
 Preview rendering uses cloned render engines on worker threads, so the trace
 cannot live only on a short-lived clone. Use a shared, thread-safe
@@ -1347,9 +1350,10 @@ trace back to the original engine when the Modeler inspector enables tracing.
 rendercli enables the same trace capture only for `--render_graph_trace_out`.
 The shared recorder uses per-render sessions so a retired worker cannot
 overwrite the latest trace after a newer render starts. The Modeler accepts a
-completed trace only when its executed plan matches the current effective plan,
-covering stale traces from resize, graph overrides, and compiled pass-state
-changes. Trace-owned resource lookup helpers feed the central trace preview for
+completed trace only when its executed plan and render-input fingerprint match
+the current effective plan, covering stale traces from resize, graph overrides,
+compiled pass-state changes, camera edits, scene swaps, and tonemap changes.
+Trace-owned resource lookup helpers feed the central trace preview for
 resource-node selections. Scene content changes that leave the plan unchanged
 remain TODO.
 

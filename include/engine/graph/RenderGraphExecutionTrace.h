@@ -116,6 +116,7 @@ namespace engine::graph {
   public:
     const RenderPlan& plan() const;
     const std::vector<RenderPassTrace>& passes() const;
+    const std::string& inputFingerprint() const;
     const RenderPassTrace* findPass(const RenderPassId& id) const;
     std::vector<const RenderGraphResourceSnapshot*>
     inputSnapshotsForResource(const RenderResourceId& id) const;
@@ -123,15 +124,17 @@ namespace engine::graph {
     outputSnapshotsForResource(const RenderResourceId& id) const;
     std::vector<const RenderGraphResourceDiff*> diffsForResource(const RenderResourceId& id) const;
     bool matchesPlan(const RenderPlan& plan) const;
+    bool matchesPlanAndInputs(const RenderPlan& plan, const std::string& inputFingerprint) const;
     QJsonObject toJson() const;
 
   private:
     friend class RenderGraphExecutionTraceRecorder;
 
-    explicit RenderGraphExecutionTrace(RenderPlan plan);
+    RenderGraphExecutionTrace(RenderPlan plan, std::string inputFingerprint);
     RenderPassTrace* findMutablePass(const RenderPassId& id);
 
     RenderPlan m_plan;
+    std::string m_inputFingerprint;
     std::vector<RenderPassTrace> m_passes;
     std::map<RenderPassId, std::size_t> m_passIndexes;
   };
@@ -141,7 +144,8 @@ namespace engine::graph {
     */
   class RenderGraphExecutionTraceRecorder {
   public:
-    std::shared_ptr<const RenderGraphExecutionTraceSession> begin(RenderPlan plan);
+    std::shared_ptr<const RenderGraphExecutionTraceSession>
+    begin(RenderPlan plan, std::string inputFingerprint = {});
     void finish(std::shared_ptr<const RenderGraphExecutionTraceSession> session);
     void clear();
     void passStarted(std::shared_ptr<const RenderGraphExecutionTraceSession> session,

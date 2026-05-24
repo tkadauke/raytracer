@@ -395,6 +395,28 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("post_aa_color", diffs.back()->inputResourceId());
   }
 
+  TEST(GraphRenderEngine, RejectsExecutionTraceAfterInputChange) {
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({16, 16, 1}, RenderIntent()));
+
+    Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    const RenderPlan plan = engine.lastPlan();
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    EXPECT_FALSE(trace->inputFingerprint().empty());
+    EXPECT_TRUE(trace->matchesPlanAndInputs(plan, engine.executionInputFingerprint()));
+    EXPECT_TRUE(engine.lastExecutionTraceForPlan(plan));
+
+    engine.camera()->setPosition(Vector3d(1.0, 0.0, -5.0));
+
+    EXPECT_FALSE(trace->matchesPlanAndInputs(plan, engine.executionInputFingerprint()));
+    EXPECT_EQ(nullptr, engine.lastExecutionTraceForPlan(plan));
+  }
+
   TEST(GraphRenderEngine, SharesExecutionTraceRecorderWithRenderClone) {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;

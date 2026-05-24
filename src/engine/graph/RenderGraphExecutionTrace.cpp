@@ -222,8 +222,10 @@ namespace engine::graph {
     return object;
   }
 
-  RenderGraphExecutionTrace::RenderGraphExecutionTrace(RenderPlan plan)
-      : m_plan(std::move(plan)) {
+  RenderGraphExecutionTrace::RenderGraphExecutionTrace(RenderPlan plan,
+                                                       std::string inputFingerprint)
+      : m_plan(std::move(plan)),
+        m_inputFingerprint(std::move(inputFingerprint)) {
     m_passes.reserve(m_plan.passes().size());
     for (const auto& pass : m_plan.passes()) {
       m_passIndexes.emplace(pass.id, m_passes.size());
@@ -237,6 +239,10 @@ namespace engine::graph {
 
   const std::vector<RenderPassTrace>& RenderGraphExecutionTrace::passes() const {
     return m_passes;
+  }
+
+  const std::string& RenderGraphExecutionTrace::inputFingerprint() const {
+    return m_inputFingerprint;
   }
 
   const RenderPassTrace* RenderGraphExecutionTrace::findPass(const RenderPassId& id) const {
@@ -287,6 +293,11 @@ namespace engine::graph {
     return m_plan.executionEquivalentTo(plan);
   }
 
+  bool RenderGraphExecutionTrace::matchesPlanAndInputs(const RenderPlan& plan,
+                                                       const std::string& inputFingerprint) const {
+    return matchesPlan(plan) && m_inputFingerprint == inputFingerprint;
+  }
+
   QJsonObject RenderGraphExecutionTrace::toJson() const {
     QJsonArray passes;
     for (const auto& pass : m_passes) {
@@ -295,6 +306,7 @@ namespace engine::graph {
 
     QJsonObject object;
     object["plan"] = m_plan.toJson();
+    object["inputFingerprint"] = QString::fromStdString(m_inputFingerprint);
     object["passes"] = passes;
     return object;
   }
@@ -305,12 +317,12 @@ namespace engine::graph {
   }
 
   std::shared_ptr<const RenderGraphExecutionTraceSession>
-  RenderGraphExecutionTraceRecorder::begin(RenderPlan plan) {
+  RenderGraphExecutionTraceRecorder::begin(RenderPlan plan, std::string inputFingerprint) {
     std::lock_guard<std::mutex> lock(m_mutex);
     const std::uint64_t generation = m_nextGeneration++;
     m_currentGeneration = generation;
-    m_current =
-      std::shared_ptr<RenderGraphExecutionTrace>(new RenderGraphExecutionTrace(std::move(plan)));
+    m_current = std::shared_ptr<RenderGraphExecutionTrace>(
+      new RenderGraphExecutionTrace(std::move(plan), std::move(inputFingerprint)));
     m_last = m_current;
     return std::shared_ptr<const RenderGraphExecutionTraceSession>(
       new RenderGraphExecutionTraceSession(generation));

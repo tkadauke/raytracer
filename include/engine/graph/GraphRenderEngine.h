@@ -4,6 +4,7 @@
 #include "render/RenderEngine.h"
 
 #include <memory>
+#include <string>
 
 namespace engine::graph {
   class RenderGraphExecutionObserver;
@@ -96,6 +97,13 @@ namespace engine::graph {
     std::shared_ptr<const RenderGraphExecutionTrace> lastExecutionTrace() const;
 
     /**
+      * @returns the most recent execution trace only when it still matches
+      * both @p plan and the engine's current render inputs.
+      */
+    std::shared_ptr<const RenderGraphExecutionTrace>
+    lastExecutionTraceForPlan(const RenderPlan& plan) const;
+
+    /**
       * Enables or disables per-pass execution trace capture.
       *
       * Live execution observer events are independent of this flag and are
@@ -107,6 +115,12 @@ namespace engine::graph {
       * @returns true when graph renders retain per-pass execution traces.
       */
     bool executionTraceEnabled() const;
+
+    /**
+      * @returns a conservative fingerprint for the current scene, camera, and
+      * display transform inputs used to reject stale inspection traces.
+      */
+    std::string executionInputFingerprint() const;
 
     /**
       * Executes the current plan into @p buffer.

@@ -214,6 +214,11 @@ RenderDisplay::lastRenderGraphExecutionTrace() const {
   return m_graphEngine ? m_graphEngine->lastExecutionTrace() : nullptr;
 }
 
+std::shared_ptr<const engine::graph::RenderGraphExecutionTrace>
+RenderDisplay::lastRenderGraphExecutionTraceForPlan(const engine::graph::RenderPlan& plan) const {
+  return m_graphEngine ? m_graphEngine->lastExecutionTraceForPlan(plan) : nullptr;
+}
+
 void RenderDisplay::setRenderGraphIntent(const engine::graph::RenderIntent& intent) {
   if (m_graphEngine)
     m_graphEngine->setIntent(intent);
