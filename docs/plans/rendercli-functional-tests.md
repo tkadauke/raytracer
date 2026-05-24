@@ -277,24 +277,34 @@ Existing file: `test/rendercli/RenderGraphOptionTest.cmake`
 
 Keep current coverage, then add:
 
-- invalid `--render_graph_format`;
-- invalid `--render_graph_executor`;
-- invalid `--render_graph_view`;
-- invalid `--disable_pass_kind`;
-- invalid `--disable_executor`;
-- comma-separated and repeated disable filters in one command;
+- invalid `--render_graph_format`; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
+- invalid `--render_graph_executor`; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
+- invalid `--render_graph_view`; ✅ covered in `RenderGraphOptionTest.cmake`.
+- invalid `--disable_pass_kind`; ✅ covered in `RenderGraphOptionTest.cmake`.
+- invalid `--disable_executor`; ✅ covered in `RenderGraphOptionTest.cmake`.
+- comma-separated and repeated disable filters in one command; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
 - `--render_graph_out` while rendering writes both image and graph; ✅ covered
   for a graph-backed raster render in `RenderGraphOptionTest.cmake`.
-- `--render_graph_only` with no output writes graph to stdout;
-- malformed JSON in `--render_graph_in`;
-- JSON root not an object;
-- valid JSON plan with semantic validation failure reports graph validation;
+- `--render_graph_only` with no output writes graph to stdout; ✅ covered for
+  JSON graph output in `RenderGraphOptionTest.cmake`.
+- malformed JSON in `--render_graph_in`; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
+- JSON root not an object; ✅ covered in `RenderGraphOptionTest.cmake`.
+- valid JSON plan with semantic validation failure reports graph validation; ✅
+  covered with duplicate writers in `RenderGraphOptionTest.cmake`.
 - `--direct_engine` combined with graph controls is rejected; ✅ covered for
   graph-only export in `RenderGraphOptionTest.cmake`.
-- `--render_graph_only` combined with `--repeat` is rejected;
-- `--render_graph_only` combined with animation is rejected;
-- graph replay with matching explicit width/height succeeds;
-- graph replay with mismatched explicit width/height fails.
+- `--render_graph_only` combined with `--repeat` is rejected; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
+- `--render_graph_only` combined with animation is rejected; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
+- graph replay with matching explicit width/height succeeds; ✅ covered in
+  `RenderGraphOptionTest.cmake`.
+- graph replay with mismatched explicit width/height fails. ✅ covered in
+  `RenderGraphOptionTest.cmake`.
 
 ### Cross-option validation
 

@@ -14,6 +14,9 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
+set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
+set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
+set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
@@ -22,6 +25,7 @@ set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
+set(replayed_matching_render "${TEST_OUTPUT_DIR}/graph-replayed-matching-render.png")
 set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
 set(default_graph_render "${TEST_OUTPUT_DIR}/default-graph-render.png")
 set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
@@ -109,6 +113,54 @@ file(WRITE "${default_graph_scene}" [=[
       "radius": 1.0,
       "type": "Sphere",
       "children": []
+    }
+  ]
+}
+]=])
+
+file(WRITE "${malformed_graph_json}" "{ not valid json")
+file(WRITE "${json_root_graph}" "[]")
+file(WRITE "${semantic_invalid_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "first_writer",
+      "name": "First writer",
+      "kind": "beauty",
+      "executor": "raytracer",
+      "features": ["main"],
+      "reads": [],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "second_writer",
+      "name": "Second writer",
+      "kind": "beauty",
+      "executor": "wireframe",
+      "features": ["debug"],
+      "reads": [],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
     }
   ]
 }
@@ -235,6 +287,46 @@ rendercli_run(
 )
 rendercli_assert_nonempty("${json_plan}" NAME "JSON render graph output file")
 
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid render graph format"
+  STDERR_MATCHES "Render graph format must be"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format yaml
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid render graph executor"
+  STDERR_MATCHES "Render graph executor must be"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_executor pathtracer
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid render graph view"
+  STDERR_MATCHES "Render graph view mode must be"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view depth
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid disabled pass kind"
+  STDERR_MATCHES "Render graph pass kind is not recognized"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --disable_pass_kind not_a_kind
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid disabled executor"
+  STDERR_MATCHES "Render graph executor is not recognized"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --disable_executor gpu
+    "${static_scene}" "${invalid_plan}"
+)
+
 rendercli_run(
   NAME "rendercli replays JSON render graph as DOT"
   COMMAND
@@ -246,6 +338,30 @@ file(READ "${replayed_dot_plan}" replayed_dot_graph)
 if(NOT replayed_dot_graph MATCHES "raytrace_beauty")
   message(FATAL_ERROR "replayed DOT graph did not contain raytrace_beauty: ${replayed_dot_graph}")
 endif()
+
+rendercli_expect_failure(
+  NAME "rendercli rejects malformed JSON render graph"
+  STDERR_MATCHES "Unable to parse render graph JSON"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${malformed_graph_json}"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects non-object JSON render graph"
+  STDERR_MATCHES "Render graph JSON must contain an object"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${json_root_graph}"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects semantically invalid JSON render graph"
+  STDERR_MATCHES "duplicate_writer"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${semantic_invalid_graph}"
+    "${static_scene}" "${invalid_plan}"
+)
 
 rendercli_run(
   NAME "rendercli renders through default graph"
@@ -313,10 +429,31 @@ rendercli_run(
 rendercli_assert_nonempty("${replayed_render}" NAME "rendercli --render_graph_in image")
 
 rendercli_run(
+  NAME "rendercli renders through replayed JSON graph with matching explicit size"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}" --width 32 --height 16
+    "${static_scene}" "${replayed_matching_render}"
+)
+rendercli_assert_nonempty("${replayed_matching_render}" NAME "matching explicit graph replay image")
+
+rendercli_run(
   NAME "rendercli disables optional tonemap pass"
   STDOUT_MATCHES "tonemap \\[tonemap/postprocess\\] disabled"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format text --disable_pass tonemap
+    --width 32 --height 16
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli accepts comma-separated and repeated graph disable filters"
+  STDOUT_MATCHES
+    "wireframe_overlay \\[overlay/wireframe\\] disabled"
+    "tonemap \\[tonemap/postprocess\\] disabled"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --render_graph_wireframe_overlay
+    --disable_pass wireframe_overlay,tonemap --disable_pass tonemap
     --width 32 --height 16
     "${static_scene}"
 )
@@ -334,6 +471,22 @@ rendercli_expect_failure(
   STDERR_MATCHES "Cannot combine --direct_engine with render graph options"
   COMMAND
     "${RENDERCLI}" --direct_engine --render_graph_only --render_graph_format text
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects graph-only with repeat"
+  STDERR_MATCHES "Cannot combine --render_graph_only with --repeat"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --repeat 2
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects graph-only with animation"
+  STDERR_MATCHES "Cannot combine --animation with --render_graph_only"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --animation
     "${static_scene}" "${invalid_plan}"
 )
 
