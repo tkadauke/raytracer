@@ -16,6 +16,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   pass settings, resource descriptors, and available trace metadata surfaced
   from the graph view; the redundant Dependencies tab was removed because the
   graph already shows those edges. — GPT-5
+- **Modeler graph trace preview.** Selecting a render graph pass or inspectable
+  color resource now opens a large central Graph Trace preview with input,
+  output, and difference tabs for the last graph execution. — GPT-5
 - **Render graph execution traces.** `GraphRenderEngine` now records the last
   executed plan's pass status, timing, CPU color input/output previews, and
   simple color difference previews so inspection tools can explain what each

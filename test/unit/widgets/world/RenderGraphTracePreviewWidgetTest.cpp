@@ -1,0 +1,106 @@
+#include <gtest/gtest.h>
+
+#include "widgets/world/RenderGraphTracePreviewWidget.h"
+
+#include "core/Buffer.h"
+#include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderGraphExecutionTrace.h"
+#include "render/cameras/PinholeCamera.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/primitives/Scene.h"
+#include "render/primitives/Sphere.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "test/helpers/GuiTestHelper.h"
+
+#include <QLabel>
+#include <QTabWidget>
+#include <QWidget>
+
+namespace RenderGraphTracePreviewWidgetTest {
+  using namespace engine::graph;
+
+  class RenderGraphTracePreviewWidgetTest : public ::testing::GuiTest {};
+
+  std::shared_ptr<render::Camera> camera() {
+    return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+  }
+
+  std::shared_ptr<render::Scene> highContrastScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord::black());
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
+    sphere->setMaterial(std::make_shared<render::MatteMaterial>(
+      std::make_shared<render::ConstantColorTexture>(Colord::white())));
+    scene->add(sphere);
+    return scene;
+  }
+
+  std::shared_ptr<const RenderGraphExecutionTrace> postProcessTrace() {
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(compiler.compile({24, 24, 1}, intent));
+
+    Buffer<unsigned int> buffer(24, 24);
+    engine.render(buffer);
+    return engine.lastExecutionTrace();
+  }
+
+  bool labelsContain(QWidget* root, const QString& text) {
+    for (QLabel* label : root->findChildren<QLabel*>()) {
+      if (label->text().contains(text)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldInitialize) {
+    RenderGraphTracePreviewWidget widget;
+
+    auto* tabs = widget.findChild<QTabWidget*>("renderGraphTracePreviewTabs");
+    ASSERT_NE(nullptr, tabs);
+    EXPECT_EQ(3, tabs->count());
+  }
+
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowPassTracePreviews) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showPassTrace(trace, "post_fxaa");
+
+    auto* title = widget.findChild<QLabel*>("renderGraphTracePreviewTitle");
+    auto* inputs = widget.findChild<QWidget*>("renderGraphTracePreviewInputs");
+    auto* outputs = widget.findChild<QWidget*>("renderGraphTracePreviewOutputs");
+    auto* diffs = widget.findChild<QWidget*>("renderGraphTracePreviewDifferences");
+    ASSERT_NE(nullptr, title);
+    ASSERT_NE(nullptr, inputs);
+    ASSERT_NE(nullptr, outputs);
+    ASSERT_NE(nullptr, diffs);
+
+    EXPECT_TRUE(title->text().contains(QStringLiteral("post_fxaa")));
+    EXPECT_TRUE(labelsContain(inputs, QStringLiteral("beauty_color")));
+    EXPECT_TRUE(labelsContain(outputs, QStringLiteral("post_aa_color")));
+    EXPECT_TRUE(labelsContain(diffs, QStringLiteral("Boosted difference")));
+  }
+
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowResourceTracePreviews) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showResourceTrace(trace, "post_aa_color");
+
+    auto* title = widget.findChild<QLabel*>("renderGraphTracePreviewTitle");
+    auto* outputs = widget.findChild<QWidget*>("renderGraphTracePreviewOutputs");
+    ASSERT_NE(nullptr, title);
+    ASSERT_NE(nullptr, outputs);
+
+    EXPECT_TRUE(title->text().contains(QStringLiteral("post_aa_color")));
+    EXPECT_TRUE(labelsContain(outputs, QStringLiteral("post_aa_color")));
+  }
+}

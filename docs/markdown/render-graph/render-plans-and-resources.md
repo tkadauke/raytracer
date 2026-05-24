@@ -447,6 +447,10 @@ two supporting tables:
   property-editor target; pass selections show pass state plus trace metadata,
   while resource selections show the resource descriptor, producer, consumers,
   and trace availability;
+- selecting a graph node also opens the central Graph Trace preview. Pass nodes
+  show the last render's input, output, and difference previews in large tabs;
+  resource nodes show the matching resource snapshots when the trace contains
+  an inspectable image;
 - while the preview is rendering, the Graph tab highlights pass nodes as they
   start, finish, or fail execution;
 - the Passes table lists each pass id, pass kind, executor, read resources,
@@ -499,10 +503,12 @@ that were fused into that direct display path. Non-color resources such as the
 current preview shadow-map request are recorded as metadata-only until the graph
 has a specialized resource viewer for them.
 
-The Modeler dock exposes this through graph selection. Select a pass in the
-graph or in the pass table after a render finishes, and the inspector follows
-that pass; metadata is shown in the property editor and supported previews are
-available for inspection. A new render clears the old trace while live execution
+The Modeler exposes this through graph selection. Select a pass in the graph or
+in the pass table after a render finishes, and the inspector follows that pass;
+metadata is shown in the property editor while supported input, output, and
+difference previews open in the central Graph Trace preview tab. Selecting a
+resource node opens that resource's matching trace snapshots when they are
+color-backed. A new render clears the old trace while live execution
 highlighting takes over, so stale snapshots are not presented as the current
 render's data.
 Headless renders can export the same trace metadata with
@@ -616,6 +622,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
+- `include/widgets/world/RenderGraphTracePreviewWidget.h`
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`
@@ -631,6 +638,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderResource.cpp`
 - `src/engine/graph/RenderResourceStorage.cpp`
 - `src/widgets/world/RenderGraphInspectorWidget.cpp`
+- `src/widgets/world/RenderGraphTracePreviewWidget.cpp`
 - `test/unit/engine/graph/RenderGraphCompilerTest.cpp`
 - `test/unit/engine/graph/RenderExecutionContextTest.cpp`
 - `test/unit/engine/graph/GraphRenderEngineTest.cpp`
@@ -640,6 +648,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `test/unit/engine/graph/RenderPlanTest.cpp`
 - `test/unit/engine/graph/RenderResourceStorageTest.cpp`
 - `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp`
+- `test/unit/widgets/world/RenderGraphTracePreviewWidgetTest.cpp`
 - `tools/rendercli/rendercli.cpp`
 - `test/rendercli/RenderGraphOptionTest.cmake`
 <!-- /source-anchors -->

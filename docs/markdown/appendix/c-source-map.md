@@ -133,6 +133,7 @@
 | `include/render/viewplanes/ViewPlane.h` | [View planes](../scene-structure/view-planes.md) |
 | `include/render/viewplanes/ViewPlaneFactory.h` | [View planes](../scene-structure/view-planes.md) |
 | `include/widgets/world/RenderGraphInspectorWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `include/widgets/world/RenderGraphTracePreviewWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
@@ -163,6 +164,7 @@
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [Cameras](../ray-rendering/cameras.md) |
 | `test/functional/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
@@ -195,6 +197,7 @@
 | `test/unit/render/samplers/JitteredSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/render/samplers/RandomSamplerTest.cpp` | [Sampling and anti-aliasing](../ray-rendering/sampling-and-anti-aliasing.md) |
 | `test/unit/widgets/world/RenderGraphInspectorWidgetTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `test/unit/widgets/world/RenderGraphTracePreviewWidgetTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |

@@ -42,6 +42,8 @@ private slots:
   void renderGraphOverridesChanged();
   void renderGraphPassSelected(const QString& passId);
   void renderGraphResourceSelected(const QString& resourceId);
+  void renderGraphPassTraceChanged(const QString& passId);
+  void renderGraphResourceTraceChanged(const QString& resourceId);
   void setCurrentFrame(int frame);
 
   void newFile();
@@ -132,6 +134,8 @@ private:
 
   void redraw();
   bool applyRenderGraphPreviewPlan();
+  void showRenderGraphPassDetails(const QString& passId, bool activateTracePreview);
+  void showRenderGraphResourceDetails(const QString& resourceId, bool activateTracePreview);
   void setPreviewTonemap(const std::string& name);
   void resetTimelineFrame();
   void syncTimelineControls();

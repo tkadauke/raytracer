@@ -443,7 +443,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(labelsContain(inputs, QStringLiteral("No execution trace")));
   }
 
-  TEST_F(RenderGraphInspectorWidgetTest, ShouldReemitSelectionWhenTraceChanges) {
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitSelectionTraceChangedWhenTraceChanges) {
     auto trace = postProcessTrace();
     ASSERT_TRUE(trace);
 
@@ -452,7 +452,7 @@ namespace RenderGraphInspectorWidgetTest {
     selectPass(widget, QStringLiteral("post_fxaa"));
 
     QString selectedPass;
-    QObject::connect(&widget, &RenderGraphInspectorWidget::passSelected,
+    QObject::connect(&widget, &RenderGraphInspectorWidget::selectedPassTraceChanged,
                      [&](const QString& passId) { selectedPass = passId; });
 
     widget.setExecutionTrace(trace);

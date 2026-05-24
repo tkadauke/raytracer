@@ -25,6 +25,7 @@
 #include <QSpinBox>
 #include <QStringList>
 #include <QStatusBar>
+#include <QTabWidget>
 
 #include <algorithm>
 #include <exception>
@@ -47,6 +48,7 @@
 #include "widgets/world/PropertyEditorWidget.h"
 #include "widgets/world/PreviewDisplayWidget.h"
 #include "widgets/world/RenderGraphInspectorWidget.h"
+#include "widgets/world/RenderGraphTracePreviewWidget.h"
 #include "widgets/world/SceneModel.h"
 #include "widgets/world/RenderWindow.h"
 
@@ -166,6 +168,8 @@ struct MainWindow::Private {
   QString fileName;
 
   RenderDisplay* display;
+  QTabWidget* centralTabs;
+  RenderGraphTracePreviewWidget* graphTracePreviewWidget;
   PreviewDisplayWidget* materialDisplay;
   PropertyEditorWidget* propertyEditorWidget;
   SceneModel* elementModel;
@@ -271,7 +275,12 @@ MainWindow::MainWindow()
   p->scene = new ::Scene(nullptr);
 
   p->display = new RenderDisplay(this);
-  setCentralWidget(p->display);
+  p->graphTracePreviewWidget = new RenderGraphTracePreviewWidget(this);
+  p->centralTabs = new QTabWidget(this);
+  p->centralTabs->setObjectName("modelerCentralPreviewTabs");
+  p->centralTabs->addTab(p->display, tr("Preview"));
+  p->centralTabs->addTab(p->graphTracePreviewWidget, tr("Graph Trace"));
+  setCentralWidget(p->centralTabs);
 
   addDockWidget(Qt::LeftDockWidgetArea, createElementSelector());
   addDockWidget(Qt::RightDockWidgetArea, createPropertyEditor());
@@ -284,6 +293,10 @@ MainWindow::MainWindow()
   connect(p->display, SIGNAL(renderGraphInputsChanged()), this, SLOT(updateRenderGraphInspector()));
   connect(p->display, &RenderDisplay::renderGraphExecutionStarted, p->renderGraphInspectorWidget,
           &RenderGraphInspectorWidget::clearExecutionState);
+  connect(p->display, &RenderDisplay::renderGraphExecutionStarted, this, [this] {
+    if (p->centralTabs && p->display)
+      p->centralTabs->setCurrentWidget(p->display);
+  });
   connect(p->display, &RenderDisplay::renderGraphPassStarted, p->renderGraphInspectorWidget,
           &RenderGraphInspectorWidget::passExecutionStarted);
   connect(p->display, &RenderDisplay::renderGraphPassFinished, p->renderGraphInspectorWidget,
@@ -304,6 +317,10 @@ MainWindow::MainWindow()
           SLOT(renderGraphPassSelected(QString)));
   connect(p->renderGraphInspectorWidget, SIGNAL(resourceSelected(QString)), this,
           SLOT(renderGraphResourceSelected(QString)));
+  connect(p->renderGraphInspectorWidget, SIGNAL(selectedPassTraceChanged(QString)), this,
+          SLOT(renderGraphPassTraceChanged(QString)));
+  connect(p->renderGraphInspectorWidget, SIGNAL(selectedResourceTraceChanged(QString)), this,
+          SLOT(renderGraphResourceTraceChanged(QString)));
 
   createActions();
   createMenus();
@@ -1224,6 +1241,8 @@ void MainWindow::elementSelected(const QModelIndex& current, const QModelIndex&)
   if (element) {
     p->propertyEditorWidget->setElement(element);
   }
+  if (p->centralTabs && p->display)
+    p->centralTabs->setCurrentWidget(p->display);
   emit selectionChanged(element);
 }
 
@@ -1263,6 +1282,24 @@ void MainWindow::renderGraphOverridesChanged() {
 }
 
 void MainWindow::renderGraphPassSelected(const QString& passId) {
+  showRenderGraphPassDetails(passId, true);
+}
+
+void MainWindow::renderGraphResourceSelected(const QString& resourceId) {
+  showRenderGraphResourceDetails(resourceId, true);
+}
+
+void MainWindow::renderGraphPassTraceChanged(const QString& passId) {
+  showRenderGraphPassDetails(passId, p->centralTabs && p->centralTabs->currentWidget() ==
+                                                         p->graphTracePreviewWidget);
+}
+
+void MainWindow::renderGraphResourceTraceChanged(const QString& resourceId) {
+  showRenderGraphResourceDetails(resourceId, p->centralTabs && p->centralTabs->currentWidget() ==
+                                                                 p->graphTracePreviewWidget);
+}
+
+void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activateTracePreview) {
   if (!p->renderGraphInspectorWidget)
     return;
 
@@ -1312,9 +1349,15 @@ void MainWindow::renderGraphPassSelected(const QString& passId) {
   }
 
   p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph pass"), rows);
+  if (activateTracePreview && p->graphTracePreviewWidget && p->centralTabs) {
+    p->graphTracePreviewWidget->showPassTrace(
+      p->display ? p->display->lastRenderGraphExecutionTrace() : nullptr, pass->id);
+    p->centralTabs->setCurrentWidget(p->graphTracePreviewWidget);
+  }
 }
 
-void MainWindow::renderGraphResourceSelected(const QString& resourceId) {
+void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
+                                                bool activateTracePreview) {
   if (!p->renderGraphInspectorWidget)
     return;
 
@@ -1353,6 +1396,10 @@ void MainWindow::renderGraphResourceSelected(const QString& resourceId) {
   addRow(rows, tr("Trace snapshot"), hasSnapshot ? tr("available") : tr("not available"));
 
   p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph resource"), rows);
+  if (activateTracePreview && p->graphTracePreviewWidget && p->centralTabs) {
+    p->graphTracePreviewWidget->showResourceTrace(trace, resource->id);
+    p->centralTabs->setCurrentWidget(p->graphTracePreviewWidget);
+  }
 }
 
 void MainWindow::setCurrentFrame(int frame) {

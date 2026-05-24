@@ -320,6 +320,7 @@ struct RenderGraphInspectorWidget::Private {
   std::shared_ptr<const RenderGraphExecutionTrace> executionTrace;
   RenderPassId selectedPassId;
   RenderResourceId selectedResourceId;
+  bool hasSelection{false};
   std::map<RenderPassId, PassExecutionState> executionStates;
   std::map<RenderPassId, QString> executionMessages;
   QGraphicsView* graph{nullptr};
@@ -454,10 +455,15 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
 
   const auto ids = passIds(p->plan);
   if (ids.find(p->selectedPassId) == ids.end()) {
+    if (p->hasSelection && p->selectedResourceId.empty())
+      p->hasSelection = false;
     p->selectedPassId = p->plan.passes().empty() ? RenderPassId() : p->plan.passes().front().id;
   }
-  if (p->plan.findResource(p->selectedResourceId) == nullptr)
+  if (p->plan.findResource(p->selectedResourceId) == nullptr) {
+    if (p->hasSelection && !p->selectedResourceId.empty())
+      p->hasSelection = false;
     p->selectedResourceId.clear();
+  }
   for (auto it = p->overrides.disabledPasses.begin(); it != p->overrides.disabledPasses.end();) {
     if (ids.find(*it) == ids.end()) {
       it = p->overrides.disabledPasses.erase(it);
@@ -491,10 +497,10 @@ void RenderGraphInspectorWidget::setExecutionTrace(
                           : p->executionTrace->passes().front().passId();
   }
   rebuildTrace();
-  if (!p->selectedResourceId.empty()) {
-    emit resourceSelected(qstr(p->selectedResourceId));
-  } else if (!p->selectedPassId.empty()) {
-    emit passSelected(qstr(p->selectedPassId));
+  if (p->hasSelection && !p->selectedResourceId.empty()) {
+    emit selectedResourceTraceChanged(qstr(p->selectedResourceId));
+  } else if (p->hasSelection && !p->selectedPassId.empty()) {
+    emit selectedPassTraceChanged(qstr(p->selectedPassId));
   }
 }
 
@@ -507,11 +513,6 @@ void RenderGraphInspectorWidget::clearExecutionState() {
   p->executionMessages.clear();
   rebuildGraph();
   rebuildTrace();
-  if (!p->selectedResourceId.empty()) {
-    emit resourceSelected(qstr(p->selectedResourceId));
-  } else if (!p->selectedPassId.empty()) {
-    emit passSelected(qstr(p->selectedPassId));
-  }
 }
 
 void RenderGraphInspectorWidget::passExecutionStarted(const QString& passId) {
@@ -592,6 +593,7 @@ void RenderGraphInspectorWidget::rebuildAllViews() {
 }
 
 void RenderGraphInspectorWidget::selectPass(const RenderPassId& passId) {
+  p->hasSelection = true;
   p->selectedResourceId.clear();
   if (p->selectedPassId == passId) {
     rebuildGraph();
@@ -621,6 +623,7 @@ void RenderGraphInspectorWidget::selectPass(const RenderPassId& passId) {
 }
 
 void RenderGraphInspectorWidget::selectResource(const RenderResourceId& resourceId) {
+  p->hasSelection = true;
   p->selectedPassId.clear();
   p->selectedResourceId = resourceId;
   for (QGraphicsItem* item : p->graphScene->items()) {

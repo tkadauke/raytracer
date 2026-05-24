@@ -86,6 +86,8 @@ signals:
   void overridesChanged();
   void passSelected(const QString& passId);
   void resourceSelected(const QString& resourceId);
+  void selectedPassTraceChanged(const QString& passId);
+  void selectedResourceTraceChanged(const QString& resourceId);
 
 private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);

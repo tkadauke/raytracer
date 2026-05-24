@@ -161,7 +161,9 @@ shows each compiled pass id, kind, executor, and resource edges. Its Resources
 tab shows each declared resource's type, format, domain, lifetime, and
 dimensions. Unchecking a pass adds a graph override and the dock validates the
 manipulated plan immediately. When the manipulated plan is still valid, the
-central preview renders through that effective plan.
+central preview renders through that effective plan. After a render, selecting
+a pass or inspectable color resource in the graph opens the central Graph Trace
+preview tab with input, output, and difference images from the last execution.
 
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog
@@ -237,6 +239,8 @@ scene-structure, and rasterization chapters cover.
 - `test/rendercli/RenderGraphOptionTest.cmake`
 - `src/modeler/`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
+- `include/widgets/world/RenderGraphTracePreviewWidget.h`
 - `src/widgets/world/RenderGraphInspectorWidget.cpp`
+- `src/widgets/world/RenderGraphTracePreviewWidget.cpp`
 - `scenes/`
 <!-- /source-anchors -->
