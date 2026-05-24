@@ -239,6 +239,42 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, ReportsInvalidDisabledPassthroughIO) {
+    RenderPlan missingRead;
+    auto noInput = pass("post", RenderPassKind::PostProcess);
+    noInput.disabledBehavior = DisabledBehavior::Passthrough;
+    noInput.enabled = false;
+    missingRead.addPass(noInput);
+
+    const auto missingReadValidation = missingRead.validate();
+
+    ASSERT_FALSE(missingReadValidation.valid());
+    EXPECT_TRUE(hasError(missingReadValidation, RenderPlanValidationError::Code::InvalidPassIO));
+
+    RenderPlan mismatchedShape;
+    mismatchedShape.addResource(colorResource("main_color"));
+    auto display = colorResource("display_color", RenderResourceLifetime::Exported);
+    display.width = 320;
+    mismatchedShape.addResource(display);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"main_color"});
+    mismatchedShape.addPass(beauty);
+
+    auto post = pass("post", RenderPassKind::PostProcess);
+    post.reads.push_back({"main_color"});
+    post.writes.push_back({"display_color"});
+    post.disabledBehavior = DisabledBehavior::Passthrough;
+    post.enabled = false;
+    mismatchedShape.addPass(post);
+
+    const auto mismatchedValidation = mismatchedShape.validate();
+
+    ASSERT_FALSE(mismatchedValidation.valid());
+    EXPECT_TRUE(
+      hasError(mismatchedValidation, RenderPlanValidationError::Code::InvalidResourceShape));
+  }
+
   TEST(RenderPlan, DisabledCullDependencyDoesNotSatisfyConsumer) {
     RenderPlan plan;
     plan.addResource(colorResource("shadow_mask"));

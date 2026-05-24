@@ -24,6 +24,7 @@ namespace engine::graph {
       MissingProducer,
       DisabledDependency,
       DisabledRequiredPass,
+      InvalidPassIO,
       InvalidResourceShape,
       Cycle
     };

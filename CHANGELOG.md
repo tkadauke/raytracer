@@ -96,6 +96,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Render graph passthrough validation.** Disabled `Passthrough` passes now
+  validate that they have one input and shape-compatible outputs before
+  execution, turning malformed graph JSON into an inspection-time validation
+  error instead of a render-time exception. — GPT-5
 - **ACES tonemap invalid-channel handling.** `AcesTonemap` now maps negative
   and NaN HDR channels to black and positive infinity to white before applying
   the polynomial fit, preventing invalid radiance from turning Modeler previews

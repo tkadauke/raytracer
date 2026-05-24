@@ -38,6 +38,11 @@ namespace engine::graph {
         [&](const RenderFeatureKind& feature) { return contains(features, feature); });
     }
 
+    bool sameResourceShape(const RenderResourceDescriptor& a, const RenderResourceDescriptor& b) {
+      return a.type == b.type && a.format == b.format && a.width == b.width &&
+             a.height == b.height && a.sampleCount == b.sampleCount && a.domain == b.domain;
+    }
+
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid render plan JSON at " + path + ": " + message);
     }
@@ -70,6 +75,8 @@ namespace engine::graph {
       return "disabled_dependency";
     case RenderPlanValidationError::Code::DisabledRequiredPass:
       return "disabled_required_pass";
+    case RenderPlanValidationError::Code::InvalidPassIO:
+      return "invalid_pass_io";
     case RenderPlanValidationError::Code::InvalidResourceShape:
       return "invalid_resource_shape";
     case RenderPlanValidationError::Code::Cycle:
@@ -239,6 +246,38 @@ namespace engine::graph {
           result.add({RenderPlanValidationError::Code::DuplicateWriter,
                       "resource '" + write.resource + "' has multiple writers", pass.id,
                       write.resource});
+        }
+      }
+    }
+
+    for (const auto& pass : m_passes) {
+      if (pass.enabled || pass.disabledBehavior != DisabledBehavior::Passthrough) {
+        continue;
+      }
+
+      if (pass.reads.size() != 1 || pass.writes.empty()) {
+        result.add({RenderPlanValidationError::Code::InvalidPassIO,
+                    "disabled passthrough pass '" + pass.id +
+                      "' requires exactly one input and at least one output",
+                    pass.id, ""});
+        continue;
+      }
+
+      const auto readResource = resources.find(pass.reads.front().resource);
+      if (readResource == resources.end()) {
+        continue;
+      }
+
+      for (const auto& write : pass.writes) {
+        const auto writeResource = resources.find(write.resource);
+        if (writeResource == resources.end()) {
+          continue;
+        }
+        if (!sameResourceShape(*readResource->second, *writeResource->second)) {
+          result.add({RenderPlanValidationError::Code::InvalidResourceShape,
+                      "disabled passthrough pass '" + pass.id +
+                        "' requires matching input and output resource shapes",
+                      pass.id, write.resource});
         }
       }
     }

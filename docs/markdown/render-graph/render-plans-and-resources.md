@@ -176,7 +176,9 @@ what rendercli and the Modeler inspector validate and display.
 Validation gives producer semantics to `SubstituteDefault`: a disabled producer
 with that behavior can still satisfy consumers. A disabled producer with any
 other behavior triggers `DisabledDependency` when another enabled pass reads
-its output.
+its output. `Passthrough` is validated more strictly because the disabled pass
+still runs a copy operation: it must have one input and at least one
+shape-compatible output.
 
 The pass declaration is separate from execution code. Executor-specific work
 lives behind
