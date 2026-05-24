@@ -153,11 +153,11 @@ The current direct engines should remain valid public APIs:
 They are useful for focused tests, simple callers, benchmarking, and teaching
 single-engine behavior.
 
-Long term, the normal render path should go through the graph because that is
-where AOVs, feature expansion, overlays, render-to-texture surfaces, and
-educational inspection live. Direct engines remain available when the caller
-explicitly asks for them, such as rendercli's "only use raytracer" mode or a
-focused unit test.
+The normal render path goes through the graph because that is where AOVs,
+feature expansion, overlays, render-to-texture surfaces, and educational
+inspection live. Direct engines remain available when the caller explicitly
+asks for them, such as rendercli's `--direct_engine` mode or a focused unit
+test.
 
 Graph-backed rendering should be able to produce the same output as a direct
 engine when the compiled plan contains only one beauty pass plus final output.
@@ -1076,12 +1076,12 @@ Implement the smallest graph that proves the architecture:
    passthrough in the serial graph engine.
 8. Add rendercli graph inspection, graph-only compilation, graph JSON input,
    runtime intent overrides, and node-disabling flags. ✅ Partial: rendercli
-   can compile/export text, DOT, and JSON plans, render through the graph,
-   load and replay JSON plans, use scene JSON render intent, override the
-   compiled default executor/view mode, request the wireframe overlay intent,
-   apply pass id/kind/executor/feature disable filters, and validate the
-   manipulated plan. Selector-specific command-line intent overrides remain
-   TODO.
+   can compile/export text, DOT, and JSON plans, render through the graph by
+   default, bypass the graph with `--direct_engine`, load and replay JSON
+   plans, use scene JSON render intent, override the compiled default
+   executor/view mode, request the wireframe overlay intent, apply pass
+   id/kind/executor/feature disable filters, and validate the manipulated plan.
+   Selector-specific command-line intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
    the current live-preview plan before preview renders, lists the default

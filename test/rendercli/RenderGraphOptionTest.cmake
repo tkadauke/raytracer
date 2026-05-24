@@ -13,6 +13,7 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
+set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
@@ -22,6 +23,8 @@ set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
 set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
+set(default_graph_render "${TEST_OUTPUT_DIR}/default-graph-render.png")
+set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
@@ -39,6 +42,73 @@ file(WRITE "${scene_intent_scene}" [=[
     "enableWireframeOverlay": true
   },
   "children": []
+}
+]=])
+
+file(WRITE "${default_graph_scene}" [=[
+{
+  "id": "{91000000-0000-0000-0000-000000000000}",
+  "name": "Default Graph Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "raytracer",
+    "defaultViewMode": "wireframe"
+  },
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -3.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.4,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "red",
+      "name": "Red",
+      "color": [1.0, 0.0, 0.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "matte",
+      "name": "Matte",
+      "diffuseTexture": "red",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "direction": [-0.5, -1.0, -0.5],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "sphere",
+      "name": "Sphere",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "matte",
+      "radius": 1.0,
+      "type": "Sphere",
+      "children": []
+    }
+  ]
 }
 ]=])
 
@@ -176,12 +246,30 @@ if(NOT replayed_dot_graph MATCHES "raytrace_beauty")
 endif()
 
 rendercli_run(
-  NAME "rendercli renders through compiled graph"
+  NAME "rendercli renders through default graph"
   COMMAND
-    "${RENDERCLI}" --render_graph --engine wireframe --width 32 --height 16
+    "${RENDERCLI}" --engine wireframe --width 32 --height 16
     "${static_scene}" "${graph_render}"
 )
-rendercli_assert_nonempty("${graph_render}" NAME "rendercli --render_graph image")
+rendercli_assert_nonempty("${graph_render}" NAME "rendercli default graph image")
+
+rendercli_run(
+  NAME "rendercli default render honors scene render intent"
+  COMMAND
+    "${RENDERCLI}" --width 48 --height 32
+    "${default_graph_scene}" "${default_graph_render}"
+)
+rendercli_assert_nonempty("${default_graph_render}" NAME "rendercli default graph intent output")
+
+rendercli_run(
+  NAME "rendercli direct engine bypasses scene render intent"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 48 --height 32
+    "${default_graph_scene}" "${direct_engine_render}"
+)
+rendercli_assert_nonempty("${direct_engine_render}" NAME "rendercli direct engine output")
+rendercli_assert_files_differ("${default_graph_render}" "${direct_engine_render}"
+                              NAME "default graph output differs from direct engine output")
 
 rendercli_run(
   NAME "rendercli renders through replayed JSON graph"
@@ -206,6 +294,14 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}" --width 31 --height 16
     "${static_scene}" "${mismatched_render}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects direct engine with graph controls"
+  STDERR_MATCHES "Cannot combine --direct_engine with render graph options"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --render_graph_only --render_graph_format text
+    "${static_scene}" "${invalid_plan}"
 )
 
 rendercli_expect_failure(

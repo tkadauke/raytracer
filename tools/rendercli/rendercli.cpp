@@ -361,6 +361,13 @@ namespace {
     }
     return warnings;
   }
+
+  bool usesRasterizer(const engine::graph::RenderPlan& plan) {
+    return std::any_of(
+      plan.passes().begin(), plan.passes().end(), [](const engine::graph::RenderPassNode& pass) {
+        return pass.enabled && pass.executor == engine::graph::RenderExecutorKind::Rasterizer;
+      });
+  }
 }
 
 class Renderer {
@@ -399,6 +406,7 @@ private:
   QString m_engine;
   bool m_engineSet;
   bool m_renderGraph;
+  bool m_directEngine;
   bool m_renderGraphOnly;
   QString m_renderGraphFormat;
   QString m_renderGraphOut;
@@ -481,7 +489,8 @@ Renderer::Renderer()
       m_tonemap("Linear"),
       m_engine("raytracer"),
       m_engineSet(false),
-      m_renderGraph(false),
+      m_renderGraph(true),
+      m_directEngine(false),
       m_renderGraphOnly(false),
       m_renderGraphFormat("text"),
       m_renderGraphOut(),
@@ -714,17 +723,17 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   engine::graph::RenderPlan graphPlan;
 
   if (m_renderGraph) {
-    if (m_engine == "raster") {
-      for (const auto& warning : rasterRecursiveMaterialFallbackWarnings(*raytracerScene)) {
-        std::cerr << warning << '\n';
-      }
-    }
     if (rtCamera) {
       rtCamera->viewPlane()->setSampler(sampler());
     }
 
     graphPlan = renderGraphPlan(scene);
     validateRenderGraphPlan(graphPlan);
+    if (usesRasterizer(graphPlan)) {
+      for (const auto& warning : rasterRecursiveMaterialFallbackWarnings(*raytracerScene)) {
+        std::cerr << warning << '\n';
+      }
+    }
     applyRenderGraphOutputSize(graphPlan, &outputWidth, &outputHeight);
     const QString graphOutput = renderGraphOutputPath();
     if (!graphOutput.isEmpty()) {
@@ -1000,7 +1009,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "queue_size"},
      {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
      {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
-     {"render_graph", "Render through the compiled render graph instead of the direct engine"},
+     {"render_graph", "Render through the compiled render graph; this is the default"},
+     {{"direct_engine", "no_render_graph"},
+      "Bypass the render graph and render with the selected engine directly"},
      {"render_graph_only", "Compile/export the render graph and skip image rendering"},
      {"render_graph_format", "Render graph export format (text, dot, json)", "format"},
      {"render_graph_out", "Write the compiled render graph to a file", "file"},
@@ -1152,6 +1163,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("render_graph")) {
     m_renderGraph = true;
+  }
+
+  if (parser.isSet("direct_engine")) {
+    m_renderGraph = false;
+    m_directEngine = true;
   }
 
   if (parser.isSet("render_graph_only")) {
@@ -1534,6 +1550,16 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (m_renderGraphOnly && m_repeat > 1) {
     *errorMessage = "Cannot combine --render_graph_only with --repeat";
+    return CommandLineError;
+  }
+
+  if (m_directEngine && (parser.isSet("render_graph") || m_renderGraphOnly ||
+                         parser.isSet("render_graph_format") || !m_renderGraphOut.isEmpty() ||
+                         !m_renderGraphIn.isEmpty() || parser.isSet("render_graph_executor") ||
+                         parser.isSet("render_graph_view") || m_renderGraphWireframeOverlay ||
+                         parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
+                         parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
+    *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }
 

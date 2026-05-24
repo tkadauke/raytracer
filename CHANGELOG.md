@@ -64,6 +64,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **rendercli graph default.** `rendercli` now renders through the compiled
+  render graph by default, keeps `--render_graph` as an explicit spelling of the
+  default path, and adds `--direct_engine` / `--no_render_graph` for focused
+  single-engine debugging. — GPT-5
 - **Rasterizer tiled MSAA scratch reuse.** Queued MSAA rasterization now keeps tile-indexed color, depth, accumulation, and stencil scratch buffers across frames, reuses the full-frame MSAA sample buffer across samples, and writes packed RGB output by tile when the rendered frame used multiple tiles. — GPT-5
 - **Rasterizer tile binning now rejects projected-triangle tiles outside coverage.** Large triangles spanning many tile bounds are queued only for tiles whose expanded tile rectangle can intersect the triangle, reducing repeated empty raster work while preserving tiled/MSAA output. — GPT-5
 - **Rasterizer scene traversal now uses grouped bounds for frustum culling.** `Primitive::forEachLeafInBounds(...)` lets composite scenes reject off-frustum groups before leaf flattening and tessellation, while primitives without grouped traversal keep the existing leaf-walk behavior. — GPT-5

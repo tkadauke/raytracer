@@ -13,8 +13,8 @@ By the end of this chapter you should know:
 ## <a id="rendercli-the-headless-renderer"></a>`rendercli` — the headless renderer
 [`tools/rendercli/`](../../../tools/rendercli/) is a command-line front end.
 It reads a JSON scene file, builds the scene graph through the
-[`world::`](../../../include/world/) wrapper layer, configures a render engine
-from command-line flags, runs one render, and writes a PNG to disk.
+[`world::`](../../../include/world/) wrapper layer, compiles a render graph from
+the scene and command-line intent, runs the graph, and writes a PNG to disk.
 
 The typical invocation:
 
@@ -24,10 +24,16 @@ $ rendercli --engine raytracer --width 1920 --height 1080 \
             dice.png
 ```
 
-The flags cover engine choice (`raytracer` / `raster` / `wireframe`), output
-size, sampler choice, samples-per-pixel, recursion depth, tonemap operator,
-and per-engine knobs such as [LOD](../appendix/a-glossary.md#l), [MSAA](../appendix/a-glossary.md#m),
-queue size, and thread count.
+The default path is graph-backed. The `--engine` flag sets the graph's preferred
+executor (`raytracer` / `raster` / `wireframe`), while a scene-level
+`renderIntent` can also choose the executor, structural view mode, and overlay
+intent. `--direct_engine` bypasses the graph and renders with the selected
+engine directly; that mode is useful for focused engine debugging and for
+low-level knobs that are not yet represented as graph pass state.
+
+The flags cover output size, sampler choice, samples-per-pixel, recursion
+depth, tonemap operator, and per-engine knobs such as [LOD](../appendix/a-glossary.md#l),
+[MSAA](../appendix/a-glossary.md#m), queue size, and thread count.
 
 If the scene has a top-level `animation` block, `--frame N` evaluates the
 world scene at frame `N` before the runtime render scene and active camera are
@@ -59,8 +65,8 @@ $ rendercli --render_graph_only --render_graph_format dot \
             dice-graph.dot
 ```
 
-The graph export formats are `text`, `dot`, and `json`. `--render_graph`
-renders through the graph engine instead of a direct engine, and
+The graph export formats are `text`, `dot`, and `json`. `--render_graph` is
+accepted as an explicit spelling of the default graph-backed render path, and
 `--render_graph_in plan.json` loads a saved JSON plan instead of compiling one.
 If the scene JSON contains a top-level `renderIntent` block, rendercli uses
 that as the graph compiler's base intent.
@@ -84,7 +90,7 @@ That gives a two-step debugging loop:
 $ rendercli --render_graph_only --render_graph_format json \
             scenes/dice.json \
             dice-graph.json
-$ rendercli --render_graph --render_graph_in dice-graph.json \
+$ rendercli --render_graph_in dice-graph.json \
             scenes/dice.json \
             dice-from-graph.png
 ```

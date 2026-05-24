@@ -76,7 +76,7 @@ module ::Common
   end
 
   def rasterizer_normal_map_scene(mapped)
-    options(engine: "raster", lod: 0)
+    options(engine: "raster", direct_engine: true, lod: 0)
     ambient [0.04, 0.04, 0.04]
     background [0.035, 0.04, 0.05]
 
@@ -256,7 +256,7 @@ module ::Common
   end
 end
 
-class_doc(engine: "raster", width: 320, height: 240) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240) do
   name "rasterizer_engine"
 
   sunlight
@@ -264,19 +264,19 @@ class_doc(engine: "raster", width: 320, height: 240) do
   sphere
 end
 
-class_doc(engine: "raster", width: 320, height: 180) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180) do
   name "rasterizer_normal_map_flat"
 
   rasterizer_normal_map_scene(false)
 end
 
-class_doc(engine: "raster", width: 320, height: 180) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180) do
   name "rasterizer_normal_map_mapped"
 
   rasterizer_normal_map_scene(true)
 end
 
-property_doc(engine: "raster") do |i|
+property_doc(engine: "raster", direct_engine: true) do |i|
   name "rasterizer_engine_lod_#{i - 1}"
 
   options(lod: i - 1)
@@ -285,7 +285,7 @@ property_doc(engine: "raster") do |i|
   sphere
 end
 
-class_doc(engine: "raster", width: 320, height: 240) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240) do
   name "rasterizer_uv_albedo"
 
   ambient [1, 1, 1]
@@ -297,7 +297,7 @@ class_doc(engine: "raster", width: 320, height: 240) do
             :material => matte_material(:diffuseTexture => uv_color_texture)
 end
 
-class_doc(engine: "raster", width: 320, height: 240) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240) do
   name "rasterizer_uv_checker"
 
   options(lod: 3)
@@ -317,25 +317,25 @@ class_doc(engine: "raster", width: 320, height: 240) do
       )
 end
 
-class_doc(engine: "raster", width: 480, height: 240) do
+class_doc(engine: "raster", direct_engine: true, width: 480, height: 240) do
   name "rasterizer_material_preview"
 
   rasterizer_material_preview_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180) do
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180) do
   name "rasterizer_color_output_rgb"
 
   rasterizer_color_output_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180, color_write_mask: "g") do
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180, color_write_mask: "g") do
   name "rasterizer_color_output_green_mask"
 
   rasterizer_color_output_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180, blend: true,
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180, blend: true,
           blend_src: "constant_alpha", blend_dst: "one_minus_constant_alpha",
           blend_constant_alpha: 0.45) do
   name "rasterizer_color_output_constant_alpha"
@@ -343,39 +343,39 @@ class_doc(engine: "raster", width: 240, height: 180, blend: true,
   rasterizer_color_output_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180, blend: true,
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180, blend: true,
           blend_src: "source_alpha", blend_dst: "one_minus_source_alpha") do
   name "rasterizer_color_output_source_alpha"
 
   rasterizer_alpha_output_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180,
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180,
           alpha_test: true, alpha_func: "greater", alpha_ref: 0.75) do
   name "rasterizer_alpha_test_reject"
 
   rasterizer_alpha_output_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180) do
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180) do
   name "rasterizer_viewport_full"
 
   rasterizer_viewport_scissor_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180, viewport: "48,36,144,108") do
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180, viewport: "48,36,144,108") do
   name "rasterizer_viewport_rect"
 
   rasterizer_viewport_scissor_scene
 end
 
-class_doc(engine: "raster", width: 240, height: 180, scissor: "72,54,96,72") do
+class_doc(engine: "raster", direct_engine: true, width: 240, height: 180, scissor: "72,54,96,72") do
   name "rasterizer_scissor_rect"
 
   rasterizer_viewport_scissor_scene
 end
 
-class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180, msaa: 1) do
   name "rasterizer_msaa_1x"
 
   ambient [1, 1, 1]
@@ -387,7 +387,7 @@ class_doc(engine: "raster", width: 320, height: 180, msaa: 1) do
            :material => matte_material(:diffuseTexture => white)
 end
 
-class_doc(engine: "raster", width: 320, height: 180, msaa: 1, post_aa: "fxaa") do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180, msaa: 1, post_aa: "fxaa") do
   name "rasterizer_post_aa_fxaa"
 
   ambient [1, 1, 1]
@@ -399,7 +399,7 @@ class_doc(engine: "raster", width: 320, height: 180, msaa: 1, post_aa: "fxaa") d
            :material => matte_material(:diffuseTexture => white)
 end
 
-class_doc(engine: "raster", width: 320, height: 180, msaa: 1, post_aa: "smaa") do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180, msaa: 1, post_aa: "smaa") do
   name "rasterizer_post_aa_smaa"
 
   ambient [1, 1, 1]
@@ -411,7 +411,7 @@ class_doc(engine: "raster", width: 320, height: 180, msaa: 1, post_aa: "smaa") d
            :material => matte_material(:diffuseTexture => white)
 end
 
-class_doc(engine: "raster", width: 320, height: 180, msaa: 1, post_aa: "taa", repeat: 8) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180, msaa: 1, post_aa: "taa", repeat: 8) do
   name "rasterizer_post_aa_taa"
 
   ambient [1, 1, 1]
@@ -423,13 +423,13 @@ class_doc(engine: "raster", width: 320, height: 180, msaa: 1, post_aa: "taa", re
            :material => matte_material(:diffuseTexture => white)
 end
 
-class_doc(engine: "raster", width: 320, height: 240) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240) do
   name "rasterizer_shadow_maps_off"
 
   rasterizer_shadow_scene
 end
 
-class_doc(engine: "raster", width: 320, height: 240,
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240,
           shadow_maps: true, shadow_map_size: 256, shadow_bias: 0.18) do
   name "rasterizer_shadow_maps_on"
 
@@ -437,7 +437,7 @@ class_doc(engine: "raster", width: 320, height: 240,
 end
 
 shadow_map_sizes = [32, 64, 128, 256, 512]
-property_doc(5, engine: "raster", shadow_maps: true) do |i|
+property_doc(5, engine: "raster", direct_engine: true, shadow_maps: true) do |i|
   size = shadow_map_sizes[i - 1]
   name "rasterizer_shadow_map_size_#{size}"
 
@@ -447,7 +447,7 @@ end
 
 shadow_cascade_counts = [1, 2, 4]
 shadow_cascade_counts.each do |count|
-  class_doc(engine: "raster", width: 320, height: 240,
+  class_doc(engine: "raster", direct_engine: true, width: 320, height: 240,
             shadow_maps: true, shadow_map_size: 64, shadow_bias: 0.35,
             shadow_cascades: count, shadow_cascade_split: 0.5) do
     name "rasterizer_shadow_cascades_#{count}"
@@ -462,7 +462,7 @@ shadow_cascade_splits = [
   ["1_00", 1.0],
 ]
 shadow_cascade_splits.each do |label, split|
-  class_doc(engine: "raster", width: 320, height: 240,
+  class_doc(engine: "raster", direct_engine: true, width: 320, height: 240,
             shadow_maps: true, shadow_map_size: 64, shadow_bias: 0.35,
             shadow_cascades: 4, shadow_cascade_split: split) do
     name "rasterizer_shadow_cascade_split_#{label}"
@@ -478,7 +478,7 @@ shadow_biases = [
   ["0_250", 0.250],
   ["1_500", 1.500],
 ]
-property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256) do |i|
+property_doc(5, engine: "raster", direct_engine: true, shadow_maps: true, shadow_map_size: 256) do |i|
   label, bias = shadow_biases[i - 1]
   name "rasterizer_shadow_bias_#{label}"
 
@@ -493,7 +493,7 @@ shadow_slope_biases = [
   ["0_050", 0.050],
   ["0_200", 0.200],
 ]
-property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256,
+property_doc(5, engine: "raster", direct_engine: true, shadow_maps: true, shadow_map_size: 256,
                 shadow_bias: 0.03) do |i|
   label, bias = shadow_slope_biases[i - 1]
   name "rasterizer_shadow_slope_bias_#{label}"
@@ -503,7 +503,7 @@ property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 256,
 end
 
 shadow_filter_radii = [0, 1, 2, 3, 4]
-property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 128, shadow_bias: 0.25) do |i|
+property_doc(5, engine: "raster", direct_engine: true, shadow_maps: true, shadow_map_size: 128, shadow_bias: 0.25) do |i|
   radius = shadow_filter_radii[i - 1]
   name "rasterizer_shadow_filter_radius_#{radius}"
 
@@ -511,7 +511,7 @@ property_doc(5, engine: "raster", shadow_maps: true, shadow_map_size: 128, shado
   rasterizer_shadow_scene
 end
 
-class_doc(engine: "raster", width: 320, height: 240, shadow_maps: true,
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240, shadow_maps: true,
           shadow_map_size: 128, shadow_bias: 0.25, shadow_filter_radius: 4,
           shadow_filter: "pcf") do
   name "rasterizer_shadow_filter_mode_pcf"
@@ -519,7 +519,7 @@ class_doc(engine: "raster", width: 320, height: 240, shadow_maps: true,
   rasterizer_shadow_scene
 end
 
-class_doc(engine: "raster", width: 320, height: 240, shadow_maps: true,
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 240, shadow_maps: true,
           shadow_map_size: 128, shadow_bias: 0.25, shadow_filter_radius: 4,
           shadow_filter: "pcss") do
   name "rasterizer_shadow_filter_mode_pcss"
@@ -527,7 +527,7 @@ class_doc(engine: "raster", width: 320, height: 240, shadow_maps: true,
   rasterizer_shadow_scene
 end
 
-class_doc(engine: "raster", width: 320, height: 180, msaa: 4) do
+class_doc(engine: "raster", direct_engine: true, width: 320, height: 180, msaa: 4) do
   name "rasterizer_msaa_4x"
 
   ambient [1, 1, 1]

@@ -208,10 +208,11 @@ the same resource is also reported as a cycle.
 - `toDot()` produces a Graphviz DOT graph.
 - `toJson()` produces a structured `QJsonObject`.
 
-`rendercli` exposes the same formats through `--render_graph_only` and
-`--render_graph_format text|dot|json`. With `--render_graph_out`, the CLI can
-save the compiled graph alongside a graph-backed render; without an output file,
-graph-only mode writes the graph to standard output.
+`rendercli` renders through the graph by default and exposes the same formats
+through `--render_graph_only` and `--render_graph_format text|dot|json`. With
+`--render_graph_out`, the CLI can save the compiled graph alongside a render;
+without an output file, graph-only mode writes the graph to standard output.
+`--direct_engine` bypasses this layer for focused single-engine debugging.
 
 JSON exports are also accepted as input through `--render_graph_in`. That makes
 the graph a real intermediate artifact: compile a plan, edit or inspect the

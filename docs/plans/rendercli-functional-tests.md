@@ -15,10 +15,10 @@
 
 Those tests cover important new paths: `--frame`, `--animation`,
 `--render_graph_only`, graph text/DOT/JSON export, graph JSON replay, graph
-disable filters, and graph intent overrides. They do not yet cover the full
-base renderer command surface, most raster-specific flags, all parse failures,
-or output-image invariants beyond "file exists" and a few "frames differ"
-checks.
+disable filters, graph intent overrides, the default graph render path, and the
+`--direct_engine` bypass. They do not yet cover the full base renderer command
+surface, most raster-specific flags, all parse failures, or output-image
+invariants beyond "file exists" and a few "frames differ" checks.
 
 ## Principles
 
@@ -288,6 +288,8 @@ Keep current coverage, then add:
 - malformed JSON in `--render_graph_in`;
 - JSON root not an object;
 - valid JSON plan with semantic validation failure reports graph validation;
+- `--direct_engine` combined with graph controls is rejected; ✅ covered for
+  graph-only export in `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` combined with `--repeat` is rejected;
 - `--render_graph_only` combined with animation is rejected;
 - graph replay with matching explicit width/height succeeds;
