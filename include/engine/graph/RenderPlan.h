@@ -49,6 +49,15 @@ namespace engine::graph {
   };
 
   /**
+    * One pass-to-pass dependency implied by a resource edge.
+    */
+  struct RenderPassDependency {
+    const RenderPassNode* producer;
+    const RenderPassNode* consumer;
+    RenderResourceId resource;
+  };
+
+  /**
     * Compiled render graph: resource descriptors plus pass declarations joined
     * by explicit read/write edges. It can be validated, exported, inspected,
     * modified with graph overrides, and later executed by `GraphRenderEngine`.
@@ -62,6 +71,7 @@ namespace engine::graph {
     const RenderResourceDescriptor* findResource(const RenderResourceId& id) const;
     const RenderPassNode* producerOf(const RenderResourceId& resource) const;
     std::vector<const RenderPassNode*> consumersOf(const RenderResourceId& resource) const;
+    std::vector<RenderPassDependency> dependencies() const;
     std::vector<const RenderPassNode*> executionOrder() const;
 
     void addResource(RenderResourceDescriptor descriptor);

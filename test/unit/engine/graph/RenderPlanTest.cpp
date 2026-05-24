@@ -253,6 +253,12 @@ namespace RenderPlanTest {
     ASSERT_EQ(1u, consumers.size());
     EXPECT_EQ("tonemap", consumers.front()->id);
     EXPECT_TRUE(plan.consumersOf("display_color").empty());
+
+    const auto dependencies = plan.dependencies();
+    ASSERT_EQ(1u, dependencies.size());
+    EXPECT_EQ("raster_beauty", dependencies.front().producer->id);
+    EXPECT_EQ("tonemap", dependencies.front().consumer->id);
+    EXPECT_EQ("beauty_color", dependencies.front().resource);
   }
 
   TEST(RenderPlan, DisabledSubstituteDefaultCanSatisfyConsumer) {

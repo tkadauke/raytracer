@@ -144,39 +144,59 @@ namespace engine::graph {
     return result;
   }
 
-  std::vector<const RenderPassNode*> RenderPlan::executionOrder() const {
-    std::vector<const RenderPassNode*> result;
-    result.reserve(m_passes.size());
-
-    std::map<RenderResourceId, std::size_t> producerByResource;
-    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
-      for (const auto& write : m_passes[passIndex].writes) {
-        producerByResource.emplace(write.resource, passIndex);
+  std::vector<RenderPassDependency> RenderPlan::dependencies() const {
+    std::map<RenderResourceId, const RenderPassNode*> producerByResource;
+    for (const auto& pass : m_passes) {
+      for (const auto& write : pass.writes) {
+        producerByResource.emplace(write.resource, &pass);
       }
     }
 
-    std::vector<std::set<std::size_t>> dependents(m_passes.size());
-    std::vector<std::size_t> dependencyCounts(m_passes.size(), 0);
-    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
-      const RenderPassNode& pass = m_passes[passIndex];
-      if (!passReadsWhenExecuted(pass)) {
+    std::vector<RenderPassDependency> result;
+    for (const auto& consumer : m_passes) {
+      if (!passReadsWhenExecuted(consumer)) {
         continue;
       }
 
-      for (const auto& read : pass.reads) {
+      for (const auto& read : consumer.reads) {
         const auto producerIt = producerByResource.find(read.resource);
         if (producerIt == producerByResource.end()) {
           continue;
         }
 
-        const std::size_t producerIndex = producerIt->second;
-        if (producerIndex == passIndex || !passProducesWhenExecuted(m_passes[producerIndex])) {
+        const RenderPassNode* producer = producerIt->second;
+        if (producer == &consumer || !passProducesWhenExecuted(*producer)) {
           continue;
         }
 
-        if (dependents[producerIndex].insert(passIndex).second) {
-          ++dependencyCounts[passIndex];
-        }
+        result.push_back({producer, &consumer, read.resource});
+      }
+    }
+    return result;
+  }
+
+  std::vector<const RenderPassNode*> RenderPlan::executionOrder() const {
+    std::vector<const RenderPassNode*> result;
+    result.reserve(m_passes.size());
+
+    std::map<const RenderPassNode*, std::size_t> passIndexes;
+    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
+      passIndexes.emplace(&m_passes[passIndex], passIndex);
+    }
+
+    std::vector<std::set<std::size_t>> dependents(m_passes.size());
+    std::vector<std::size_t> dependencyCounts(m_passes.size(), 0);
+    for (const RenderPassDependency& dependency : dependencies()) {
+      const auto producerIt = passIndexes.find(dependency.producer);
+      const auto consumerIt = passIndexes.find(dependency.consumer);
+      if (producerIt == passIndexes.end() || consumerIt == passIndexes.end()) {
+        continue;
+      }
+
+      const std::size_t producerIndex = producerIt->second;
+      const std::size_t consumerIndex = consumerIt->second;
+      if (dependents[producerIndex].insert(consumerIndex).second) {
+        ++dependencyCounts[consumerIndex];
       }
     }
 
