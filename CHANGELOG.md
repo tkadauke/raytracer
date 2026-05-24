@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph DOT disabled styling.** DOT graph exports now draw disabled
+  pass nodes with dashed gray styling so graph diagrams show effective
+  overrides without needing a separate text dump. — GPT-5
 - **Render graph text features.** `RenderPlan::toText()` now lists each pass's
   feature tags, making rendercli graph dumps show the exact tags affected by
   `--disable_feature`. — GPT-5

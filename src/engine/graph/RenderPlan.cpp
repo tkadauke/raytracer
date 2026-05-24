@@ -433,7 +433,11 @@ namespace engine::graph {
       out << "  \"pass:" << dotEscape(pass.id) << "\""
           << " [shape=ellipse,label=\"" << dotEscape(pass.name.empty() ? pass.id : pass.name)
           << "\\n"
-          << toString(pass.kind) << "/" << toString(pass.executor) << "\"];\n";
+          << toString(pass.kind) << "/" << toString(pass.executor) << "\"";
+      if (!pass.enabled) {
+        out << ",style=dashed,color=gray50,fontcolor=gray50";
+      }
+      out << "];\n";
 
       for (const auto& read : pass.reads) {
         out << "  \"resource:" << dotEscape(read.resource) << "\" -> "

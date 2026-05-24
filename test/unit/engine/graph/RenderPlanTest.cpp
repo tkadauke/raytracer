@@ -377,6 +377,23 @@ namespace RenderPlanTest {
     EXPECT_EQ(1, json["passes"].toArray().size());
   }
 
+  TEST(RenderPlan, DotStylesDisabledPasses) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color"));
+
+    auto main = pass("main");
+    main.writes.push_back({"main_color"});
+    main.enabled = false;
+    main.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    plan.addPass(main);
+
+    const std::string dot = plan.toDot();
+
+    EXPECT_NE(std::string::npos, dot.find("pass:main"));
+    EXPECT_NE(std::string::npos, dot.find("style=dashed"));
+    EXPECT_NE(std::string::npos, dot.find("color=gray50"));
+  }
+
   TEST(RenderPlan, ImportsJsonExportRoundTrip) {
     RenderPlan plan;
 

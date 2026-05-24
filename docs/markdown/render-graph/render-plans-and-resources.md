@@ -280,10 +280,11 @@ Passes:
 ```
 
 The DOT export uses resource nodes and pass nodes, with arrows from resources
-to reader passes and from writer passes to resources. The JSON export carries
-the same ids, enum strings, resource dimensions, pass features, reads, writes,
-scene selector, typed pass state serialized as `parameters`, disabled behavior,
-and scheduling flags.
+to reader passes and from writer passes to resources. Disabled pass nodes are
+dashed and gray so graph diagrams show effective overrides directly. The JSON
+export carries the same ids, enum strings, resource dimensions, pass features,
+reads, writes, scene selector, typed pass state serialized as `parameters`,
+disabled behavior, and scheduling flags.
 
 The smallest graph-backed render is deliberately small: a whole-frame raytraced
 beauty pass writes a transient color resource, then a tonemap postprocess pass
