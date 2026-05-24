@@ -16,9 +16,13 @@
 # behavior reads clearly side-by-side: Reinhard darker overall,
 # ACES bluer in the sky and punchier in the spheres' midtones.
 
-# All three renders use the same sampler + spp so the only thing
-# changing between them is the tonemap.
-TONEMAP_RENDER_OPTIONS = { :sampler => "Regular", :samples_per_pixel => 1 }
+# All three renders use the same graph, sampler, and spp so the only
+# thing changing between them is the tonemap.
+TONEMAP_RENDER_OPTIONS = {
+  :render_graph => true,
+  :sampler => "Regular",
+  :samples_per_pixel => 1
+}
 
 %w[Linear Reinhard ACES].each do |tonemap|
   filename = "tonemap_#{tonemap.downcase}"
