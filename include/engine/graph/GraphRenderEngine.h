@@ -71,6 +71,17 @@ namespace engine::graph {
       */
     void render(Buffer<Colord>& buffer) override;
 
+    /**
+      * Executes the current plan and packs the exported color resource directly
+      * to display RGB.
+      *
+      * Unlike the base `RenderEngine` implementation, this does not run the
+      * engine's tonemap a second time. The graph's tonemap node is the display
+      * transform; disabling that node should expose the pre-tonemap graph
+      * resource before ordinary 8-bit packing clamps it.
+      */
+    void render(Buffer<unsigned int>& buffer) override;
+
     void cancel() override;
     void uncancel() override;
     std::list<Recti> activeTiles() const override;

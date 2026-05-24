@@ -105,21 +105,24 @@ chain reflects the responsibilities:
 
 - `RenderWidget` owns the framebuffer pair and render-job lifecycle.
 - `QtDisplay` adds mouse-drag camera control.
-- `src/modeler/Display.cpp` adds scene-camera timeline poses, engine
-  selection, rasterizer-preview shadow policy, and the Ctrl-click ray-state
+- `src/modeler/Display.cpp` adds scene-camera timeline poses, preview intent
+  selection, rasterizer-preview shadow toggling, and the Ctrl-click ray-state
   probe.
 
-The editor can swap the live preview between Raytracer, Rasterizer, and
-[Wireframe](../appendix/a-glossary.md#w). On a kind switch it updates the new
-engine to share the scene and camera with the previous one, so the preview
-keeps looking at the same thing across the swap.
+The editor can swap the live preview intent between Raytracer, Rasterizer, and
+[Wireframe](../appendix/a-glossary.md#w). The preview itself is graph-backed:
+the selected kind becomes the default executor in the compiled render graph,
+while the scene and camera stay shared so the preview keeps looking at the same
+thing across the swap. `Render -> Preview Tonemap` selects the operator used by
+the graph's tonemap node.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview
 renders begin. Its Passes tab shows each compiled pass id, kind, executor, and
 resource edges. Its Resources tab shows each declared resource's type, format,
 domain, lifetime, and dimensions. Unchecking a pass adds a graph override and
-the dock validates the manipulated plan immediately.
+the dock validates the manipulated plan immediately. When the manipulated plan
+is still valid, the central preview renders through that effective plan.
 
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog

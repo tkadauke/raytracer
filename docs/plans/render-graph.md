@@ -281,7 +281,7 @@ struct RenderIntent {
   std::optional<RenderCameraRef> defaultCamera;
   bool enableAutomaticFeatures = true;
   bool enableWireframeOverlay = false;
-  bool enablePreviewShadows = true;
+  bool enablePreviewShadows = false;
   std::vector<RenderViewOverride> viewOverrides;
   std::vector<RenderAOV> requestedAOVs;
   RenderGraphOverrides overrides;
@@ -535,6 +535,12 @@ Cross-check: these passes require image resources, history resources, imported
 view settings, and simple pass chaining. The current plan covers this through
 typed resources, `PostProcess` / `Composite` executors, imported/history
 lifetimes, and node disabling.
+
+As the graph grows, postprocess stages that currently live inside individual
+engines should migrate into explicit nodes. Rasterizer FXAA/SMAA/TAA are the
+clearest examples: keep the old engine setting only long enough to preserve
+compatibility, then compile those settings into graph pass nodes so rendercli,
+Modeler, and educational graph toggles all see the same operation.
 
 ### Rasterizer passes
 
@@ -1069,9 +1075,10 @@ Implement the smallest graph that proves the architecture:
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
    the current live-preview plan before preview renders, lists the default
-   beauty + tonemap pass chain and resource details, and validates per-pass
-   checkbox overrides. Graph-backed Modeler rendering, grouped toggles, graph
-   export, resource previews, and per-selector intent controls remain TODO.
+   beauty + tonemap pass chain and resource details, validates per-pass
+   checkbox overrides, and feeds the effective valid plan back into the central
+   graph-backed preview. Grouped toggles, graph export, resource previews, and
+   per-selector intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

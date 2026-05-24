@@ -113,6 +113,9 @@ public:
     */
   void setBufferSize(const QSize& size);
 
+  /// @returns the framebuffer size used for the next render job.
+  QSize bufferSize() const;
+
   /// Toggle the red overlay drawn over still-rendering tiles.
   /// Useful for interactive previews; turn off for end-of-render
   /// screenshots where the overlay would pollute the result.

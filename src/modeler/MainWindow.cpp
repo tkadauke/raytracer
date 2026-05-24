@@ -26,11 +26,13 @@
 
 #include <algorithm>
 #include <exception>
+#include <utility>
 
 #include "MainWindow.h"
 #include "Display.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/raytracer/Raytracer.h"
+#include "render/tonemap/TonemapFactory.h"
 #include "render/viewplanes/ViewPlane.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
@@ -167,6 +169,9 @@ struct MainWindow::Private {
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
   QAction* previewRasterizerShadowsAct;
+  QAction* previewTonemapLinearAct;
+  QAction* previewTonemapReinhardAct;
+  QAction* previewTonemapAcesAct;
 
   QAction* aspectStretchAct;
   QAction* aspectFitWidthAct;
@@ -202,6 +207,8 @@ MainWindow::MainWindow()
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
   connect(p->display, SIGNAL(renderGraphInputsChanged()), this, SLOT(updateRenderGraphInspector()));
+  connect(p->renderGraphInspectorWidget, SIGNAL(overridesChanged()),
+          this, SLOT(renderGraphOverridesChanged()));
 
   createActions();
   createMenus();
@@ -430,6 +437,30 @@ void MainWindow::createActions() {
   previewGroup->addAction(p->previewWireframeAct);
   previewGroup->addAction(p->previewRasterizerAct);
 
+  p->previewTonemapLinearAct = new QAction(tr("&Linear"), this);
+  p->previewTonemapLinearAct->setStatusTip(tr("Use the linear preview tonemap"));
+  p->previewTonemapLinearAct->setCheckable(true);
+  p->previewTonemapLinearAct->setChecked(true);
+  connect(p->previewTonemapLinearAct, SIGNAL(triggered()),
+          this, SLOT(setPreviewTonemapLinear()));
+
+  p->previewTonemapReinhardAct = new QAction(tr("&Reinhard"), this);
+  p->previewTonemapReinhardAct->setStatusTip(tr("Use the Reinhard preview tonemap"));
+  p->previewTonemapReinhardAct->setCheckable(true);
+  connect(p->previewTonemapReinhardAct, SIGNAL(triggered()),
+          this, SLOT(setPreviewTonemapReinhard()));
+
+  p->previewTonemapAcesAct = new QAction(tr("&ACES"), this);
+  p->previewTonemapAcesAct->setStatusTip(tr("Use the ACES preview tonemap"));
+  p->previewTonemapAcesAct->setCheckable(true);
+  connect(p->previewTonemapAcesAct, SIGNAL(triggered()),
+          this, SLOT(setPreviewTonemapAces()));
+
+  auto previewTonemapGroup = new QActionGroup(this);
+  previewTonemapGroup->addAction(p->previewTonemapLinearAct);
+  previewTonemapGroup->addAction(p->previewTonemapReinhardAct);
+  previewTonemapGroup->addAction(p->previewTonemapAcesAct);
+
   p->aspectStretchAct = new QAction(tr("&Stretch"), this);
   p->aspectStretchAct->setStatusTip(tr("Fill both axes independently (may distort geometry)"));
   p->aspectStretchAct->setCheckable(true);
@@ -552,6 +583,11 @@ void MainWindow::createMenus() {
   previewMenu->addAction(p->previewRasterizerAct);
   previewMenu->addSeparator();
   previewMenu->addAction(p->previewRasterizerShadowsAct);
+
+  auto previewTonemapMenu = p->renderMenu->addMenu(tr("Preview &Tonemap"));
+  previewTonemapMenu->addAction(p->previewTonemapLinearAct);
+  previewTonemapMenu->addAction(p->previewTonemapReinhardAct);
+  previewTonemapMenu->addAction(p->previewTonemapAcesAct);
 
   p->renderMenu->addSeparator();
   auto aspectModeMenu = p->renderMenu->addMenu(tr("&Aspect Mode"));
@@ -858,6 +894,18 @@ void MainWindow::setPreviewRasterizerShadows(bool enabled) {
   p->display->setRasterizerPreviewShadowsEnabled(enabled);
 }
 
+void MainWindow::setPreviewTonemapLinear() {
+  setPreviewTonemap("Linear");
+}
+
+void MainWindow::setPreviewTonemapReinhard() {
+  setPreviewTonemap("Reinhard");
+}
+
+void MainWindow::setPreviewTonemapAces() {
+  setPreviewTonemap("ACES");
+}
+
 void MainWindow::setAspectStretch() {
   p->display->setAspectMode(render::AspectMode::Stretch);
   p->aspectRatioMenu->setEnabled(false);
@@ -1061,14 +1109,22 @@ void MainWindow::updateRenderGraphInspector() {
   if (!p->renderGraphInspectorWidget || !p->display)
     return;
 
-  const QSize target = p->display->size();
+  const QSize target = p->display->bufferSize();
+  const auto intent = previewRenderIntent();
   engine::graph::RenderGraphCompiler compiler;
   const engine::graph::RenderTargetSpec targetSpec{
     std::max(1, target.width()),
     std::max(1, target.height()),
     1
   };
-  p->renderGraphInspectorWidget->setPlan(compiler.compile(targetSpec, previewRenderIntent()));
+  p->display->setRenderGraphIntent(intent);
+  p->renderGraphInspectorWidget->setPlan(compiler.compile(targetSpec, intent));
+  applyRenderGraphPreviewPlan();
+}
+
+void MainWindow::renderGraphOverridesChanged() {
+  if (applyRenderGraphPreviewPlan())
+    p->display->render();
 }
 
 void MainWindow::setCurrentFrame(int frame) {
@@ -1101,6 +1157,28 @@ void MainWindow::redraw() {
     statusBar()->showMessage(tr("Animation preview failed: %1").arg(error.what()));
     p->display->setScene(p->scene);
   }
+}
+
+bool MainWindow::applyRenderGraphPreviewPlan() {
+  if (!p->renderGraphInspectorWidget || !p->display)
+    return false;
+
+  if (!p->renderGraphInspectorWidget->effectivePlanValid())
+    return false;
+
+  p->display->setRenderGraphPlan(p->renderGraphInspectorWidget->effectivePlan());
+  return true;
+}
+
+void MainWindow::setPreviewTonemap(const std::string& name) {
+  auto tonemap = render::TonemapFactory::self().createShared(name);
+  if (!tonemap) {
+    statusBar()->showMessage(
+      tr("Preview tonemap is not registered: %1").arg(QString::fromStdString(name)));
+    return;
+  }
+
+  p->display->setPreviewTonemap(std::move(tonemap));
 }
 
 void MainWindow::resetTimelineFrame() {

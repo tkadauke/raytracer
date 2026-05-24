@@ -48,6 +48,12 @@ namespace QtDisplayTest {
     QtDisplay display(nullptr, rt);
   }
 
+  TEST_F(QtDisplayTest, ShouldInitializeBufferAtDefaultWidgetSize) {
+    auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
+    QtDisplay display(nullptr, rt);
+    EXPECT_EQ(display.size(), display.bufferSize());
+  }
+
   TEST_F(QtDisplayTest, ShouldDefaultToInteractive) {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
     QtDisplay display(nullptr, rt);

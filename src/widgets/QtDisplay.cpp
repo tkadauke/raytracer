@@ -34,8 +34,8 @@ QtDisplay::QtDisplay(QWidget* parent, std::shared_ptr<render::RenderEngine> engi
   : RenderWidget(parent, std::move(engine)),
     p(std::make_unique<Private>())
 {
-  setBufferSize(size());
   resize(400, 300);
+  setBufferSize(size());
   connect(this, &RenderWidget::finished, this, [this] {
     QTimer::singleShot(0, this, [this] {
       renderAfterCurrentFrameIfRequested();

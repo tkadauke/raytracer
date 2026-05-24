@@ -165,6 +165,7 @@ namespace RenderWidgetTest {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(nullptr);
     RenderWidget widget(nullptr, rt);
     widget.setBufferSize(QSize(100, 50));
+    EXPECT_EQ(QSize(100, 50), widget.bufferSize());
   }
 
   TEST_F(RenderWidgetTest, ShouldAcceptSetShowProgressIndicators) {

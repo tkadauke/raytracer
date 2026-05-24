@@ -225,6 +225,10 @@ void RenderWidget::setBufferSize(const QSize& size) {
   p->frontImage.fill(Qt::black);
 }
 
+QSize RenderWidget::bufferSize() const {
+  return p->bufferSize;
+}
+
 void RenderWidget::setShowProgressIndicators(bool show) {
   p->showProgressIndicators = show;
 }

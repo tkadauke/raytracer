@@ -4,6 +4,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include <QMainWindow>
 #include <memory>
+#include <string>
 
 class QDockWidget;
 
@@ -38,6 +39,7 @@ private slots:
   void updateWindowModified();
   void updatePreviewWidget();
   void updateRenderGraphInspector();
+  void renderGraphOverridesChanged();
   void setCurrentFrame(int frame);
 
   void newFile();
@@ -91,6 +93,9 @@ private slots:
   void usePreviewWireframe();
   void usePreviewRasterizer();
   void setPreviewRasterizerShadows(bool enabled);
+  void setPreviewTonemapLinear();
+  void setPreviewTonemapReinhard();
+  void setPreviewTonemapAces();
 
   void setAspectStretch();
   void setAspectFitWidth();
@@ -120,6 +125,8 @@ private:
   bool maybeSave();
 
   void redraw();
+  bool applyRenderGraphPreviewPlan();
+  void setPreviewTonemap(const std::string& name);
   void resetTimelineFrame();
   void syncTimelineControls();
   engine::graph::RenderIntent previewRenderIntent() const;

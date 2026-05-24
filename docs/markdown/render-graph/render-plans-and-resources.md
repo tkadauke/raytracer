@@ -311,7 +311,7 @@ validate a graph that copies the beauty output into the exported resource.
 both resource descriptors. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
 
-## <a id="inspecting-plans-in-modeler"></a>Inspecting plans in Modeler
+## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's
 graph-only dump. The dock compiles the current live-preview intent and target
 size into a `RenderPlan`, then shows the result as two tables:
@@ -326,6 +326,16 @@ pass id. The dock applies those overrides to the compiled plan and runs
 `RenderPlan::validate()` immediately. Disabling the first required beauty pass
 therefore reports an invalid plan because that pass has
 `DisabledBehavior::Error`.
+
+When the effective plan is valid, the central preview renders through
+`GraphRenderEngine` with that plan. Disabling `tonemap` is therefore not only a
+table change: the graph copies `beauty_color` into `main_color` with the
+pass-through disabled behavior, and the preview packs that graph output
+directly to RGB. With the default Linear tonemap this often looks identical.
+Choose `Render -> Preview Tonemap -> Reinhard` or `ACES` and use a bright HDR
+scene to see the node boundary: enabled `tonemap` compresses highlights, while
+disabled `tonemap` exposes the unclamped beauty resource until final RGB
+packing clips it.
 
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
@@ -413,6 +423,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderResourceStorage.h`
 - `include/engine/graph/GraphRenderEngine.h`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
+- `src/modeler/`
 - `src/engine/graph/RenderGraphCompiler.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`

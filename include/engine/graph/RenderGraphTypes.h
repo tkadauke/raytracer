@@ -205,7 +205,7 @@ namespace engine::graph {
     std::optional<RenderCameraRef> defaultCamera;
     bool enableAutomaticFeatures{true};
     bool enableWireframeOverlay{false};
-    bool enablePreviewShadows{true};
+    bool enablePreviewShadows{false};
     std::vector<RenderViewOverride> viewOverrides;
   };
 

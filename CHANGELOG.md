@@ -11,8 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph-backed Modeler preview.** The central `Modeler` preview now renders through `GraphRenderEngine` using the Render Graph dock's effective plan when that plan validates. Pass checkboxes immediately affect valid preview graphs, `Render → Preview Tonemap` selects the graph tonemap node's operator, and graph LDR output packs after the graph so tonemap is not applied twice. — GPT-5
 - **Render graph default tonemap pass.** `RenderGraphCompiler` now emits a two-pass default graph: the selected whole-frame beauty executor writes a transient `beauty_color` resource, then a `tonemap` postprocess pass writes the exported `main_color` resource. Disabling the tonemap pass uses passthrough validation/execution, giving the Modeler inspector and rendercli a real multi-node graph by default. — GPT-5
-- **Modeler render-graph inspector.** `Modeler` now has a Render Graph dock that compiles the current live-preview graph, lists pass/resource details, and validates per-pass checkbox overrides before preview renders are started. The first slice is inspect-only; the live preview still uses the selected direct engine. — GPT-5
+- **Modeler render-graph inspector.** `Modeler` now has a Render Graph dock that compiles the current live-preview graph, lists pass/resource details, and validates per-pass checkbox overrides before preview renders are started. — GPT-5
 - **Render graph intent overrides.** `rendercli --render_graph_executor` and `--render_graph_view` now override the default graph intent executor/view mode before compilation, making graph inspection independent of the direct `--engine` shortcut. — GPT-5
 - **Render graph JSON replay.** `RenderPlan::fromJson(...)` can rebuild plans from the JSON emitted by `toJson()`, and `rendercli --render_graph_in plan.json` can validate, re-export, or render through a saved graph with the usual disable filters applied after loading; graph replay infers the output image size from the exported color resource unless matching `--width` / `--height` overrides are supplied. — GPT-5
 - **Rendercli render-graph inspection.** `rendercli` can now compile/export graph plans in text, DOT, or JSON form, render through `GraphRenderEngine`, and apply graph disable filters by pass id, pass kind, executor, or feature before validation. — GPT-5
@@ -56,6 +57,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Modeler graph preview startup crash.** `QtDisplay` now initializes its backing buffer after its default widget resize, and the Modeler graph preview compiles plans against that backing-buffer size, preventing graph color-resource copies from aborting on startup due to stale dimensions. — GPT-5
 - **Textbook image assets now publish with the static HTML build.** `rake docs:textbook:html` copies `docs/images` into `docs/html/textbook/images`, so rendered PNGs and graph SVG artifacts resolve when the textbook is served locally. — GPT-5
 - **Wireframe now clips edges crossing the near plane instead of dropping them.** `Wireframe::nearClipDepth()` defaults to `0.1`; edges with one endpoint behind that depth are shortened before projection, while edges fully behind it are skipped. — GPT-5
 - **Rasterizer coverage now preserves subpixel projected vertex positions.** Projected screen coordinates remain fractional until fixed-point edge setup, reducing whole-pixel edge jumps during small camera or object motion while keeping tiled and MSAA paths consistent. — GPT-5

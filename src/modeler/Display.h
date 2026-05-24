@@ -8,18 +8,17 @@ class QResizeEvent;
 
 namespace render {
   class Camera;
-}
-
-namespace engine::wireframe {
-  class Wireframe;
-}
-
-namespace engine::raster {
-  class Rasterizer;
+  class Tonemap;
 }
 
 namespace engine::raytracer {
   class Raytracer;
+}
+
+namespace engine::graph {
+  class GraphRenderEngine;
+  class RenderPlan;
+  struct RenderIntent;
 }
 
 class RenderDisplay : public QtDisplay {
@@ -55,13 +54,20 @@ public slots:
   void setRasterizerPreviewShadowsEnabled(bool enabled);
   bool rasterizerPreviewShadowsEnabled() const;
 
+  /// Installs the latest graph intent that produced the preview plan.
+  void setRenderGraphIntent(const engine::graph::RenderIntent& intent);
+
+  /// Installs the effective graph plan that the live preview should render.
+  void setRenderGraphPlan(const engine::graph::RenderPlan& plan);
+
+  /// Sets the tonemap used by the preview graph's tonemap node.
+  void setPreviewTonemap(std::shared_ptr<render::Tonemap> tonemap);
+
 private:
   void applyPreviewPolicy(EngineKind kind);
-  void applyRasterizerPreviewPolicy();
 
+  std::shared_ptr<engine::graph::GraphRenderEngine> m_graphEngine;
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
-  std::shared_ptr<engine::wireframe::Wireframe> m_wireframeEngine;
-  std::shared_ptr<engine::raster::Rasterizer> m_rasterizerEngine;
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
 };

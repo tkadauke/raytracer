@@ -47,11 +47,28 @@ namespace engine::graph {
       }
     }
 
+    void requireMatchingSize(const Buffer<Colord>& source,
+                             const Buffer<unsigned int>& destination,
+                             const std::string& action) {
+      if (source.width() != destination.width() || source.height() != destination.height()) {
+        throw std::runtime_error(action + " requires matching color buffer dimensions");
+      }
+    }
+
     void copyColorBuffer(const Buffer<Colord>& source, Buffer<Colord>& destination) {
       requireMatchingSize(source, destination, "color copy");
       for (int y = 0; y != source.height(); ++y) {
         for (int x = 0; x != source.width(); ++x) {
           destination[y][x] = source[y][x];
+        }
+      }
+    }
+
+    void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination) {
+      requireMatchingSize(source, destination, "color pack");
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          destination[y][x] = source[y][x].rgb();
         }
       }
     }
@@ -78,6 +95,15 @@ namespace engine::graph {
       camera->setTarget(Vector3d::null);
     }
 
+    void applyPreviewShadowPolicy(::engine::raster::Rasterizer& rasterizer) {
+      rasterizer.setShadowMapsEnabled(true);
+      rasterizer.setShadowMapSize(256);
+      rasterizer.setShadowCascadeCount(4);
+      rasterizer.setShadowBias(0.1);
+      rasterizer.setShadowFilterRadius(1);
+      rasterizer.setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCF);
+    }
+
     std::shared_ptr<render::RenderEngine>
     makeBeautyEngine(RenderExecutorKind executor, const GraphRenderEngine& graph) {
       auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
@@ -89,7 +115,14 @@ namespace engine::graph {
         engine = std::make_shared<::engine::raytracer::Raytracer>(std::move(camera), scene);
         break;
       case RenderExecutorKind::Rasterizer:
-        engine = std::make_shared<::engine::raster::Rasterizer>(std::move(camera), scene);
+        {
+          auto rasterizer =
+            std::make_shared<::engine::raster::Rasterizer>(std::move(camera), scene);
+          if (graph.intent().enablePreviewShadows) {
+            applyPreviewShadowPolicy(*rasterizer);
+          }
+          engine = rasterizer;
+        }
         break;
       case RenderExecutorKind::Wireframe:
         engine = std::make_shared<::engine::wireframe::Wireframe>(std::move(camera), scene);
@@ -103,7 +136,6 @@ namespace engine::graph {
         throw std::runtime_error("unsupported beauty executor");
       }
 
-      engine->setTonemap(graph.tonemap());
       if (graph.hasBackgroundColorOverride()) {
         engine->setBackgroundColor(graph.backgroundColor());
       }
@@ -303,6 +335,12 @@ namespace engine::graph {
     }
 
     copyColorBuffer(storage.color(outputColorResource(plan).id), buffer);
+  }
+
+  void GraphRenderEngine::render(Buffer<unsigned int>& buffer) {
+    Buffer<Colord> graphOutput(buffer.width(), buffer.height());
+    render(graphOutput);
+    packColorBuffer(graphOutput, buffer);
   }
 
   void GraphRenderEngine::cancel() {

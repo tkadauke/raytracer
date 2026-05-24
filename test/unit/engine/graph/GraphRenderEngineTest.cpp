@@ -166,6 +166,39 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(scene->background(), buffer[0][0]);
   }
 
+  TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord(2.0, 4.0, 0.5));
+
+    RenderPlan plan;
+    plan.addResource(colorResource("hdr_color", RenderResourceLifetime::Transient));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.writes.push_back({"hdr_color"});
+    plan.addPass(beauty);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"hdr_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
+    engine.setPlan(plan);
+
+    Buffer<unsigned int> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(2.0 / 3.0, 4.0 / 5.0, 0.5 / 1.5).rgb(), buffer[0][0]);
+  }
+
   TEST(GraphRenderEngine, RejectsUnsupportedMultiPassPlans) {
     auto scene = std::make_shared<render::Scene>();
     GraphRenderEngine engine(camera(), scene);
