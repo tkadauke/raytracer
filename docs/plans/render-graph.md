@@ -1145,8 +1145,10 @@ Move raster preview shadows from internal rasterizer-only orchestration into
 graph-level shadow-map resources and passes. ✅ **Partial.** Graph-backed
 preview renders now include a `raster_preview_shadows` node and
 `preview_shadow_map` resource that control whether raster beauty enables
-preview shadows; the concrete CPU shadow-map build still lives inside the
-rasterizer payload until shadow-map storage is externalized.
+preview shadows. Directional lights still build concrete CPU shadow maps inside
+the rasterizer payload until shadow-map storage is externalized; lights without
+a directional map use a rasterizer visibility fallback so the graph shadow
+toggle still affects point-lit previews.
 
 ### Stencil/depth-aware composition
 

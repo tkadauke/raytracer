@@ -4,10 +4,12 @@
 #include "RasterShadowMaps.h"
 
 #include "core/Color.h"
+#include "core/math/Ray.h"
 #include "core/math/Vector.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
+#include "render/State.h"
 
 #include <algorithm>
 #include <cmath>
@@ -22,12 +24,14 @@ namespace engine::raster::detail {
     const render::Light* light;
     Colord radiance;
     const DirectionalShadowMap* shadowMap;
+    bool traceVisibility;
   };
 
   // Built-in material shader for the fixed-function raster path. It handles the
   // direct-lighting subset the rasterizer can preview: Matte ambient/diffuse
   // terms and Phong-style specular highlights, optionally masked by the frame's
-  // directional shadow maps.
+  // directional shadow maps or by a per-light visibility fallback when a light
+  // has no shadow-map resource.
   class MaterialEvaluator {
   public:
     explicit MaterialEvaluator(const render::Scene* scene, const ShadowMaps* shadowMaps,
@@ -37,8 +41,10 @@ namespace engine::raster::detail {
       m_lights.reserve(static_cast<std::size_t>(m_scene->lights().size()));
       for (const auto& light : m_scene->lights()) {
         const render::Light* lightPtr = light.get();
-        m_lights.push_back(
-          {lightPtr, lightPtr->radiance(), shadowMaps ? shadowMaps->forLight(lightPtr) : nullptr});
+        const DirectionalShadowMap* shadowMap =
+          shadowMaps ? shadowMaps->forLight(lightPtr) : nullptr;
+        m_lights.push_back({lightPtr, lightPtr->radiance(), shadowMap,
+                            shadowMaps != nullptr && shadowMap == nullptr});
       }
     }
 
@@ -68,8 +74,7 @@ namespace engine::raster::detail {
         const Vector3d lightDir = light.light->direction(worldPos);
         const double nDotL = std::max(0.0, n * lightDir);
         if (nDotL > 0.0) {
-          const double visibility =
-            light.shadowMap ? light.shadowMap->visibility(worldPos, n, lightDir) : 1.0;
+          const double visibility = visibilityFor(light, worldPos, n, lightDir);
           if (visibility > 0.0) {
             Colord direct = albedo * rasterMaterial.diffuseCoefficient() * light.radiance * nDotL;
             if (hasSpecular) {
@@ -89,6 +94,19 @@ namespace engine::raster::detail {
     }
 
   private:
+    double visibilityFor(const PreparedRasterLight& light, const Vector3d& worldPos,
+                         const Vector3d& normal, const Vector3d& lightDir) const {
+      if (light.shadowMap) {
+        return light.shadowMap->visibility(worldPos, normal, lightDir);
+      }
+      if (!light.traceVisibility) {
+        return 1.0;
+      }
+
+      render::State state;
+      return m_scene->intersects(Rayd(worldPos, lightDir).epsilonShifted(), state) ? 0.0 : 1.0;
+    }
+
     const render::Scene* m_scene;
     const render::Camera* m_camera;
     std::vector<PreparedRasterLight> m_lights;

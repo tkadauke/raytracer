@@ -123,6 +123,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Raster preview shadows for unmapped lights.** Rasterizer shadow-enabled
+  graph renders now trace direct-light visibility for lights that do not have a
+  directional shadow-map resource, so point-lit Modeler previews and render
+  dialog outputs no longer stay fully lit when shadows are enabled. — GPT-5
 - **Modeler AA graph wiring.** Preview FXAA/SMAA now compile through shared
   `RenderIntent::postProcessAA` graph nodes for every live preview executor,
   and the Modeler raster render dialog now renders through the same graph path

@@ -664,8 +664,9 @@ namespace engine::raster::detail {
       } else {
         withPreparedTriangleDepthPolicy(
           rasterizer, zBuffer, stencil,
-          BuiltInFragmentPolicy{MaterialEvaluator(scene, shadowMaps.empty() ? nullptr : &shadowMaps,
-                                                  rasterizer.camera().get())},
+          BuiltInFragmentPolicy{
+            MaterialEvaluator(scene, rasterizer.shadowMapsEnabled() ? &shadowMaps : nullptr,
+                              rasterizer.camera().get())},
           render);
       }
     } else if (useFragmentShader) {
@@ -674,8 +675,9 @@ namespace engine::raster::detail {
     } else {
       withPreparedTriangleDepthPolicy(
         rasterizer, zBuffer, NoStencilPolicy{},
-        BuiltInFragmentPolicy{MaterialEvaluator(scene, shadowMaps.empty() ? nullptr : &shadowMaps,
-                                                rasterizer.camera().get())},
+        BuiltInFragmentPolicy{
+          MaterialEvaluator(scene, rasterizer.shadowMapsEnabled() ? &shadowMaps : nullptr,
+                            rasterizer.camera().get())},
         render);
     }
   }

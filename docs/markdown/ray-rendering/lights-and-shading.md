@@ -223,11 +223,11 @@ tests), shadows are properly black; when it's nonzero, shadows
 get the cheap fill.
 
 ## <a id="shadow-maps-for-the-rasterizer"></a>Shadow maps for the rasterizer
-The shadow ray from [The shadow ray](#the-shadow-ray) is the raytracer's mechanism. The
-rasterizer cannot use it: rasterization runs over screen-space
-triangles, with no ray-cast primitive available at fragment
-shading time. Its alternative is the **shadow map**, an
-opt-in feature on
+The shadow ray from [The shadow ray](#the-shadow-ray) is the
+raytracer's mechanism. The rasterizer's fast path avoids that
+per-fragment ray query: rasterization runs over screen-space
+triangles, so its scalable direct-light shadow alternative is the
+**shadow map**, an opt-in feature on
 [`engine::raster::Rasterizer`](../../../include/engine/raster/Rasterizer.h).
 
 The algorithm is a two-pass render. The first pass renders the
@@ -305,8 +305,15 @@ appear:
 The default state ships shadow maps **disabled**, both
 because they multiply raster work and because not every scene
 benefits — a scene with only ambient lighting has nothing to
-cast shadows. Application code that wants shadows turns them
-on per-light through the rasterizer's setter API.
+cast shadows. Application code that wants shadows turns them on
+through the rasterizer's setter API.
+
+Directional lights use the shadow-map path described above. When
+shadows are enabled but a light has no directional shadow-map
+resource, the rasterizer falls back to a boolean scene-visibility
+query for that light. That keeps point-light scenes visually
+shadowed in the software preview while point/spot shadow-map
+resources remain future graph work.
 
 ## <a id="what-this-chapter-does-not-cover"></a>What this chapter does *not* cover
 Two important light-related topics are out of scope until

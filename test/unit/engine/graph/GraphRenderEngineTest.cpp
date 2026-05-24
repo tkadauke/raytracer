@@ -4,9 +4,12 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/lights/DirectionalLight.h"
+#include "render/lights/PointLight.h"
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -26,6 +29,11 @@ namespace GraphRenderEngineTest {
 
   std::shared_ptr<render::Camera> camera() {
     return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+  }
+
+  std::shared_ptr<render::Camera> shadowReceiverCamera() {
+    return std::make_shared<render::PinholeCamera>(Vector3d(0.0, 0.0, -5.0),
+                                                   Vector3d(0.0, 0.0, 0.5));
   }
 
   RenderResourceDescriptor colorResource(const std::string& id, RenderResourceLifetime lifetime,
@@ -111,6 +119,71 @@ namespace GraphRenderEngineTest {
     sphere->setMaterial(matte(Colord::white()));
     scene->add(sphere);
     return scene;
+  }
+
+  std::shared_ptr<render::Scene> directionalShadowScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setAmbient(Colord(0.1, 0.1, 0.1));
+    scene->setBackground(Colord::black());
+
+    auto wall = std::make_shared<render::Rectangle>(
+      Vector3d(-2.0, -2.0, 1.0), Vector3d(0.0, 4.0, 0.0), Vector3d(4.0, 0.0, 0.0));
+    wall->setMaterial(matte(Colord::white()));
+    scene->add(wall);
+
+    auto caster =
+      std::make_shared<render::Box>(Vector3d(0.0, 0.0, 0.0), Vector3d(0.35, 0.35, 0.35));
+    caster->setMaterial(matte(Colord::white()));
+    scene->add(caster);
+
+    scene->addLight(
+      std::make_shared<render::DirectionalLight>(Vector3d(-0.5, 0.2, -1.0), Colord::white()));
+    return scene;
+  }
+
+  std::shared_ptr<render::Scene> pointShadowScene() {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setAmbient(Colord(0.1, 0.1, 0.1));
+    scene->setBackground(Colord::black());
+
+    auto wall = std::make_shared<render::Rectangle>(
+      Vector3d(-2.0, -2.0, 1.0), Vector3d(0.0, 4.0, 0.0), Vector3d(4.0, 0.0, 0.0));
+    wall->setMaterial(matte(Colord::white()));
+    scene->add(wall);
+
+    auto caster =
+      std::make_shared<render::Box>(Vector3d(0.0, 0.0, 0.0), Vector3d(0.35, 0.35, 0.35));
+    caster->setMaterial(matte(Colord::white()));
+    scene->add(caster);
+
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(-0.6, 0.0, -1.0), Colord::white()));
+    return scene;
+  }
+
+  unsigned int colorAtWorldPoint(const Buffer<unsigned int>& buffer,
+                                 const std::shared_ptr<render::Camera>& camera,
+                                 const Vector3d& point) {
+    const Vector2d screen = camera->projectPoint(point);
+    EXPECT_TRUE(screen.isDefined()) << "world point should project into the camera view";
+    if (screen.isUndefined()) {
+      return 0;
+    }
+
+    const int x = static_cast<int>(std::lround(screen.x()));
+    const int y = static_cast<int>(std::lround(screen.y()));
+    EXPECT_GE(x, 0);
+    EXPECT_LT(x, buffer.width());
+    EXPECT_GE(y, 0);
+    EXPECT_LT(y, buffer.height());
+    if (x < 0 || x >= buffer.width() || y < 0 || y >= buffer.height()) {
+      return 0;
+    }
+    return buffer[y][x];
+  }
+
+  unsigned int red(unsigned int color) {
+    return (color >> 16) & 0xff;
   }
 
   void renderGraph(RenderExecutorPreference executor, RenderPostProcessAA postAA,
@@ -426,6 +499,70 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("raster_preview_shadows", engine.lastPlan().passes()[0].id);
     EXPECT_EQ("raster_beauty", engine.lastPlan().passes()[1].id);
     EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, LdrRasterPreviewShadowPassDarkensOccludedReceiver) {
+    auto cam = shadowReceiverCamera();
+    auto scene = directionalShadowScene();
+
+    RenderIntent directIntent;
+    directIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    RenderIntent shadowIntent = directIntent;
+    shadowIntent.enablePreviewShadows = true;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine direct(cam, scene);
+    direct.setPlan(compiler.compile({96, 96, 1}, directIntent));
+    GraphRenderEngine shadowed(cam, scene);
+    shadowed.setPlan(compiler.compile({96, 96, 1}, shadowIntent));
+
+    Buffer<unsigned int> directBuffer(96, 96);
+    Buffer<unsigned int> shadowBuffer(96, 96);
+    direct.render(directBuffer);
+    shadowed.render(shadowBuffer);
+    cam->viewPlane()->setup(cam->matrix(), Recti(96, 96));
+
+    const unsigned int directOccluded =
+      colorAtWorldPoint(directBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const unsigned int shadowedOccluded =
+      colorAtWorldPoint(shadowBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const unsigned int shadowedLit = colorAtWorldPoint(shadowBuffer, cam, Vector3d(-1.2, 0.0, 1.0));
+
+    EXPECT_GT(red(directOccluded), red(shadowedOccluded) + 100u);
+    EXPECT_GT(red(shadowedLit), red(shadowedOccluded) + 100u);
+    EXPECT_LT(red(shadowedOccluded), 90u);
+  }
+
+  TEST(GraphRenderEngine, LdrRasterPreviewShadowsTraceLightsWithoutShadowMaps) {
+    auto cam = shadowReceiverCamera();
+    auto scene = pointShadowScene();
+
+    RenderIntent directIntent;
+    directIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    RenderIntent shadowIntent = directIntent;
+    shadowIntent.enablePreviewShadows = true;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine direct(cam, scene);
+    direct.setPlan(compiler.compile({96, 96, 1}, directIntent));
+    GraphRenderEngine shadowed(cam, scene);
+    shadowed.setPlan(compiler.compile({96, 96, 1}, shadowIntent));
+
+    Buffer<unsigned int> directBuffer(96, 96);
+    Buffer<unsigned int> shadowBuffer(96, 96);
+    direct.render(directBuffer);
+    shadowed.render(shadowBuffer);
+    cam->viewPlane()->setup(cam->matrix(), Recti(96, 96));
+
+    const unsigned int directOccluded =
+      colorAtWorldPoint(directBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const unsigned int shadowedOccluded =
+      colorAtWorldPoint(shadowBuffer, cam, Vector3d(0.6, 0.0, 1.0));
+    const unsigned int shadowedLit = colorAtWorldPoint(shadowBuffer, cam, Vector3d(-1.2, 0.0, 1.0));
+
+    EXPECT_GT(red(directOccluded), red(shadowedOccluded) + 100u);
+    EXPECT_GT(red(shadowedLit), red(shadowedOccluded) + 100u);
+    EXPECT_LT(red(shadowedOccluded), 90u);
   }
 
   TEST(GraphRenderEngine, ExecutesRasterFxaaPostProcessPassInLdrRender) {
