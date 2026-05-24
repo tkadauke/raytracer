@@ -437,8 +437,12 @@ graph-owned.
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's
 graph-only dump. The dock compiles the current live-preview intent and target
-size into a `RenderPlan`, then shows the result as three tables:
+size into a `RenderPlan`, then shows the result as a left-to-right graph plus
+three tables:
 
+- the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
+  vertically, shows resources between producer and consumer passes, and lets the
+  user double-click pass nodes to enable or disable them;
 - the Passes table lists each pass id, pass kind, executor, read resources,
   written resources, and disabled behavior;
 - the Dependencies table lists producer pass, resource, and consumer pass for

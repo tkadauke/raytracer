@@ -58,10 +58,15 @@ private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);
 
 private:
+  bool eventFilter(QObject* watched, QEvent* event) override;
+
+  void rebuildAllViews();
+  void rebuildGraph();
   void rebuildPasses();
   void rebuildDependencies();
   void rebuildResources();
   void updateValidationStatus();
+  void setPassEnabledOverride(const engine::graph::RenderPassId& passId, bool enabled);
 
   struct Private;
   std::unique_ptr<Private> p;

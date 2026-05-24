@@ -6,6 +6,11 @@
 #include "test/helpers/GuiTestHelper.h"
 #include "test/helpers/Slot.h"
 
+#include <QApplication>
+#include <QGraphicsItem>
+#include <QGraphicsScene>
+#include <QGraphicsSceneMouseEvent>
+#include <QGraphicsView>
 #include <QLabel>
 #include <QTreeWidget>
 
@@ -13,6 +18,15 @@ namespace RenderGraphInspectorWidgetTest {
   using namespace engine::graph;
 
   class RenderGraphInspectorWidgetTest : public ::testing::GuiTest {};
+
+  QGraphicsItem* graphItem(QGraphicsScene* scene, const QString& kind, const QString& id) {
+    for (QGraphicsItem* item : scene->items()) {
+      if (item->data(0).toString() == kind && item->data(1).toString() == id) {
+        return item;
+      }
+    }
+    return nullptr;
+  }
 
   RenderPlan simplePlan() {
     RenderPlan plan;
@@ -96,19 +110,26 @@ namespace RenderGraphInspectorWidgetTest {
     widget.setPlan(simplePlan());
 
     auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
     auto* dependencies = widget.findChild<QTreeWidget*>("renderGraphDependencies");
     auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
     auto* status = widget.findChild<QLabel*>("renderGraphValidationStatus");
     ASSERT_NE(nullptr, passes);
+    ASSERT_NE(nullptr, graph);
     ASSERT_NE(nullptr, dependencies);
     ASSERT_NE(nullptr, resources);
     ASSERT_NE(nullptr, status);
 
     ASSERT_EQ(1, passes->topLevelItemCount());
-    EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->text(1));
-    EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(2));
-    EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(3));
-    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(5));
+    EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->text(2));
+    EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(3));
+    EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(4));
+    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(6));
+
+    ASSERT_NE(nullptr, graph->scene());
+    EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
+    EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "main_color"));
 
     EXPECT_EQ(0, dependencies->topLevelItemCount());
 
@@ -125,7 +146,9 @@ namespace RenderGraphInspectorWidgetTest {
     widget.setPlan(twoPassPlan());
 
     auto* dependencies = widget.findChild<QTreeWidget*>("renderGraphDependencies");
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
     ASSERT_NE(nullptr, dependencies);
+    ASSERT_NE(nullptr, graph);
     ASSERT_EQ(1, dependencies->topLevelItemCount());
     EXPECT_EQ(QString("raytrace_beauty"), dependencies->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("beauty_color"), dependencies->topLevelItem(0)->text(1));
@@ -137,6 +160,34 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("beauty_color"), resources->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("raytrace_beauty"), resources->topLevelItem(0)->text(1));
     EXPECT_EQ(QString("tonemap"), resources->topLevelItem(0)->text(2));
+    EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
+    EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "tonemap"));
+    EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "beauty_color"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldTogglePassFromGraphNode) {
+    RenderGraphInspectorWidget widget;
+    Slot slot;
+    QObject::connect(&widget, SIGNAL(overridesChanged()), &slot, SLOT(receive()));
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+    QGraphicsItem* tonemap = graphItem(graph->scene(), "pass", "tonemap");
+    ASSERT_NE(nullptr, tonemap);
+
+    QGraphicsSceneMouseEvent event(QEvent::GraphicsSceneMouseDoubleClick);
+    event.setScenePos(tonemap->sceneBoundingRect().center());
+    QApplication::sendEvent(graph->scene(), &event);
+
+    const auto overrides = widget.overrides();
+    EXPECT_TRUE(slot.called());
+    EXPECT_NE(overrides.disabledPasses.end(), overrides.disabledPasses.find("tonemap"));
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    ASSERT_NE(nullptr, passes);
+    ASSERT_EQ(2, passes->topLevelItemCount());
+    EXPECT_EQ(Qt::Unchecked, passes->topLevelItem(1)->checkState(0));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {
