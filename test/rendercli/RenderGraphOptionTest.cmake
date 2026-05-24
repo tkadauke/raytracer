@@ -17,6 +17,7 @@ set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
+set(out_of_order_graph "${TEST_OUTPUT_DIR}/out-of-order-graph.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
@@ -36,6 +37,7 @@ set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
 set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
+set(out_of_order_render "${TEST_OUTPUT_DIR}/graph-out-of-order-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
@@ -161,6 +163,63 @@ file(WRITE "${semantic_invalid_graph}" [=[
       "features": ["debug"],
       "reads": [],
       "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${out_of_order_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "beauty_color",
+      "name": "Beauty color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "tonemap",
+      "name": "Tone map",
+      "kind": "tonemap",
+      "executor": "postprocess",
+      "features": ["main", "tonemap", "postprocess"],
+      "reads": ["beauty_color"],
+      "writes": ["main_color"],
+      "disabledBehavior": "passthrough",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "raytrace_beauty",
+      "name": "Raytraced beauty",
+      "kind": "beauty",
+      "executor": "raytracer",
+      "features": ["main", "beauty", "raytracer"],
+      "reads": [],
+      "writes": ["beauty_color"],
       "disabledBehavior": "error",
       "enabled": true,
       "hasExternalSideEffects": false,
@@ -525,6 +584,14 @@ rendercli_run(
     "${static_scene}" "${replayed_render}"
 )
 rendercli_assert_nonempty("${replayed_render}" NAME "rendercli --render_graph_in image")
+
+rendercli_run(
+  NAME "rendercli renders out-of-order replayed JSON graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${out_of_order_graph}"
+    "${static_scene}" "${out_of_order_render}"
+)
+rendercli_assert_nonempty("${out_of_order_render}" NAME "out-of-order graph replay image")
 
 rendercli_run(
   NAME "rendercli renders through replayed JSON graph with matching explicit size"

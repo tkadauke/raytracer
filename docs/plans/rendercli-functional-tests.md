@@ -17,10 +17,11 @@ Those tests cover important new paths: `--frame`, `--animation`,
 `--render_graph_only`, graph text/DOT/JSON export, graph JSON replay, graph
 disable filters, graph intent overrides, the default graph render path, and the
 `--direct_engine` bypass. They also pin graph-backed raster state export,
-including graph-visible FXAA/SMAA postprocess pass insertion and the current
-TAA-in-raster-state fallback. They do not yet cover the full base renderer
-command surface, most raster-specific flags, all parse failures, or output-image
-invariants beyond "file exists" and a few "frames differ" checks.
+dependency-ordered graph JSON replay, graph-visible FXAA/SMAA postprocess pass
+insertion, and the current TAA-in-raster-state fallback. They do not yet cover
+the full base renderer command surface, most raster-specific flags, all parse
+failures, or output-image invariants beyond "file exists" and a few
+"frames differ" checks.
 
 ## Principles
 
