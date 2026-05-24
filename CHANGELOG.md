@@ -80,6 +80,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   view with double-click pass toggles, lists pass/resource/dependency details
   including resource producers and consumers, and validates per-pass checkbox
   overrides before preview renders are started. — GPT-5
+- **Modeler render-graph execution highlights.** `GraphRenderEngine` now emits
+  live pass start/finish/failure events, and the Modeler Render Graph dock uses
+  them to highlight graph nodes while preview renders are executing. — GPT-5
 - **Render graph intent overrides.** `rendercli --render_graph_executor` and `--render_graph_view` now override the default graph intent executor/view mode before compilation, making graph inspection independent of the direct `--engine` shortcut. — GPT-5
 - **Render graph JSON replay.** `RenderPlan::fromJson(...)` can rebuild plans from the JSON emitted by `toJson()`, and `rendercli --render_graph_in plan.json` can validate, re-export, or render through a saved graph with the usual disable filters applied after loading; graph replay infers the output image size from the exported color resource unless matching `--width` / `--height` overrides are supplied. — GPT-5
 - **Rendercli render-graph inspection.** `rendercli` can now compile/export graph plans in text, DOT, or JSON form, render through `GraphRenderEngine`, and apply graph disable filters by pass id, pass kind, executor, or feature before validation. — GPT-5

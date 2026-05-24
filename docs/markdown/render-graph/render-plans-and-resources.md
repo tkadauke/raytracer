@@ -443,6 +443,8 @@ three tables:
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
   user double-click pass nodes to enable or disable them;
+- while the preview is rendering, the Graph tab highlights pass nodes as they
+  start, finish, or fail execution;
 - the Passes table lists each pass id, pass kind, executor, read resources,
   written resources, and disabled behavior;
 - the Dependencies table lists producer pass, resource, and consumer pass for
@@ -465,6 +467,15 @@ Choose `Render -> Preview Tonemap -> Reinhard` or `ACES` and use a bright HDR
 scene to see the node boundary: enabled `tonemap` compresses highlights, while
 disabled `tonemap` exposes the unclamped beauty resource until final RGB
 packing clips it.
+
+Live node highlighting uses
+[`RenderGraphExecutionObserver`](../../../include/engine/graph/RenderGraphExecutionObserver.h).
+`GraphRenderEngine` sends pass start, finish, and failure events from the render
+worker. The Modeler preview bridges those events back to the Qt thread and
+updates the Graph tab, so a long raytraced beauty pass can be identified while
+the frame is still in progress. The observer model stores a set of active pass
+ids rather than a single current pass, which keeps the UI contract ready for
+future parallel graph scheduling.
 
 ## <a id="the-first-graph-engine-executes-one-pass"></a>The first graph engine executes simple plans
 [`GraphRenderEngine`](../../../include/engine/graph/GraphRenderEngine.h) is a
@@ -554,6 +565,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 <!-- source-anchors -->
 - `include/engine/graph/RenderGraphTypes.h`
 - `include/engine/graph/RenderGraphCompiler.h`
+- `include/engine/graph/RenderGraphExecutionObserver.h`
 - `include/engine/graph/RenderExecutionContext.h`
 - `include/engine/graph/RenderPlan.h`
 - `include/engine/graph/RenderPassPayload.h`

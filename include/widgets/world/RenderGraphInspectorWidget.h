@@ -2,6 +2,7 @@
 
 #include "engine/graph/RenderPlan.h"
 
+#include <QString>
 #include <QWidget>
 
 #include <memory>
@@ -47,6 +48,27 @@ public:
     * @returns true when `effectivePlan().validate()` has no errors.
     */
   bool effectivePlanValid() const;
+
+public slots:
+  /**
+    * Clears live execution styling from the graph view.
+    */
+  void clearExecutionState();
+
+  /**
+    * Marks @p passId as currently executing.
+    */
+  void passExecutionStarted(const QString& passId);
+
+  /**
+    * Marks @p passId as completed for the current render.
+    */
+  void passExecutionFinished(const QString& passId);
+
+  /**
+    * Marks @p passId as failed for the current render.
+    */
+  void passExecutionFailed(const QString& passId, const QString& message);
 
 signals:
   /**

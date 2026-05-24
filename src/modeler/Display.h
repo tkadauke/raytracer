@@ -2,6 +2,8 @@
 
 #include "widgets/QtDisplay.h"
 
+#include <QString>
+
 class Scene;
 class Element;
 class QResizeEvent;
@@ -17,6 +19,7 @@ namespace engine::raytracer {
 
 namespace engine::graph {
   class GraphRenderEngine;
+  class RenderGraphExecutionObserver;
   class RenderPlan;
   enum class RenderPostProcessAA;
   struct RenderIntent;
@@ -27,6 +30,10 @@ class RenderDisplay : public QtDisplay {
 
 signals:
   void renderGraphInputsChanged();
+  void renderGraphExecutionStarted();
+  void renderGraphPassStarted(const QString& passId);
+  void renderGraphPassFinished(const QString& passId);
+  void renderGraphPassFailed(const QString& passId, const QString& message);
 
 protected:
   void resizeEvent(QResizeEvent* event) override;
@@ -37,6 +44,9 @@ public:
   ~RenderDisplay();
 
   void setScene(Scene* scene);
+  void notifyRenderGraphPassStarted(const QString& passId);
+  void notifyRenderGraphPassFinished(const QString& passId);
+  void notifyRenderGraphPassFailed(const QString& passId, const QString& message);
 
   /// Engine kinds supported by the modeling preview. The render
   /// dialog has its own selector — this one only affects the
@@ -82,6 +92,7 @@ private:
   void applyPreviewPolicy(EngineKind kind);
 
   std::shared_ptr<engine::graph::GraphRenderEngine> m_graphEngine;
+  std::shared_ptr<engine::graph::RenderGraphExecutionObserver> m_graphExecutionObserver;
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};

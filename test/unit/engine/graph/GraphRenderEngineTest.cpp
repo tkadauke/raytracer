@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
@@ -23,6 +24,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace GraphRenderEngineTest {
   using namespace engine::graph;
@@ -81,6 +83,23 @@ namespace GraphRenderEngineTest {
     mutable int m_calls{0};
     mutable bool m_secondCallEntered{false};
     mutable bool m_releaseSecondCall{false};
+  };
+
+  class RecordingObserver : public RenderGraphExecutionObserver {
+  public:
+    void passStarted(const RenderPassId& passId) override {
+      events.push_back("start:" + passId);
+    }
+
+    void passFinished(const RenderPassId& passId) override {
+      events.push_back("finish:" + passId);
+    }
+
+    void passFailed(const RenderPassId& passId, const std::string& message) override {
+      events.push_back("fail:" + passId + ":" + message);
+    }
+
+    std::vector<std::string> events;
   };
 
   int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
@@ -216,6 +235,38 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(RenderExecutorKind::Raytracer, engine.lastPlan().passes()[0].executor);
     EXPECT_EQ(RenderPassKind::Tonemap, engine.lastPlan().passes()[1].kind);
     EXPECT_EQ(RenderExecutorKind::PostProcess, engine.lastPlan().passes()[1].executor);
+  }
+
+  TEST(GraphRenderEngine, NotifiesObserverAroundLdrPassExecution) {
+    RenderIntent intent;
+    intent.postProcessAA = RenderPostProcessAA::FXAA;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setPlan(compiler.compile({16, 16, 1}, intent));
+    auto observer = std::make_shared<RecordingObserver>();
+    engine.setExecutionObserver(observer);
+
+    Buffer<unsigned int> buffer(16, 16);
+    engine.render(buffer);
+
+    const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty",
+                                               "start:post_fxaa",       "finish:post_fxaa",
+                                               "start:tonemap",         "finish:tonemap"};
+    EXPECT_EQ(expected, observer->events);
+  }
+
+  TEST(GraphRenderEngine, CopiesExecutionObserverToRenderClone) {
+    GraphRenderEngine engine(camera(), highContrastScene());
+    auto observer = std::make_shared<RecordingObserver>();
+    engine.setExecutionObserver(observer);
+
+    auto clone = engine.cloneForRender();
+    Buffer<unsigned int> buffer(8, 8);
+    clone->render(buffer);
+
+    const std::vector<std::string> expected = {"start:raytrace_beauty", "finish:raytrace_beauty"};
+    EXPECT_EQ(expected, observer->events);
   }
 
   TEST(GraphRenderEngine, ExecutesCallerProvidedRasterBeautyPlan) {

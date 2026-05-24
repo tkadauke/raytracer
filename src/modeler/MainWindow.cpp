@@ -210,6 +210,14 @@ MainWindow::MainWindow()
   connect(this, SIGNAL(selectionChanged(Element*)), this, SLOT(updatePreviewWidget()));
   connect(this, SIGNAL(currentElementChanged()), this, SLOT(updatePreviewWidget()));
   connect(p->display, SIGNAL(renderGraphInputsChanged()), this, SLOT(updateRenderGraphInspector()));
+  connect(p->display, &RenderDisplay::renderGraphExecutionStarted, p->renderGraphInspectorWidget,
+          &RenderGraphInspectorWidget::clearExecutionState);
+  connect(p->display, &RenderDisplay::renderGraphPassStarted, p->renderGraphInspectorWidget,
+          &RenderGraphInspectorWidget::passExecutionStarted);
+  connect(p->display, &RenderDisplay::renderGraphPassFinished, p->renderGraphInspectorWidget,
+          &RenderGraphInspectorWidget::passExecutionFinished);
+  connect(p->display, &RenderDisplay::renderGraphPassFailed, p->renderGraphInspectorWidget,
+          &RenderGraphInspectorWidget::passExecutionFailed);
   connect(p->display, &RenderWidget::renderFailed, this, [this](const QString& message) {
     statusBar()->showMessage(tr("Preview render failed: %1").arg(message));
   });

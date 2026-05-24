@@ -6,6 +6,8 @@
 #include <memory>
 
 namespace engine::graph {
+  class RenderGraphExecutionObserver;
+
   /**
     * RenderEngine facade that renders through a compiled render graph.
     *
@@ -67,6 +69,19 @@ namespace engine::graph {
       * @returns the most recently compiled or executed plan.
       */
     const RenderPlan& lastPlan() const;
+
+    /**
+      * Installs an observer for live pass execution events.
+      *
+      * The observer is copied into `cloneForRender()` snapshots so UI callers
+      * can watch the render worker execute the cloned graph engine.
+      */
+    void setExecutionObserver(std::shared_ptr<RenderGraphExecutionObserver> observer);
+
+    /**
+      * @returns the currently installed execution observer, if any.
+      */
+    std::shared_ptr<RenderGraphExecutionObserver> executionObserver() const;
 
     /**
       * Executes the current plan into @p buffer.

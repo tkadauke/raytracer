@@ -1,12 +1,15 @@
 #include <QVBoxLayout>
 #include <QSpacerItem>
 
+#include <QMetaObject>
 #include <QMouseEvent>
+#include <QPointer>
 
 #include <utility>
 
 #include "Display.h"
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderPlan.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/raytracer/Raytracer.h"
@@ -25,10 +28,60 @@
 
 using namespace std;
 
+namespace {
+  class ModelerRenderGraphExecutionObserver : public engine::graph::RenderGraphExecutionObserver {
+  public:
+    explicit ModelerRenderGraphExecutionObserver(RenderDisplay* display)
+        : m_display(display) {
+    }
+
+    void passStarted(const engine::graph::RenderPassId& passId) override {
+      invoke([passId](RenderDisplay& display) {
+        display.notifyRenderGraphPassStarted(QString::fromStdString(passId));
+      });
+    }
+
+    void passFinished(const engine::graph::RenderPassId& passId) override {
+      invoke([passId](RenderDisplay& display) {
+        display.notifyRenderGraphPassFinished(QString::fromStdString(passId));
+      });
+    }
+
+    void passFailed(const engine::graph::RenderPassId& passId,
+                    const std::string& message) override {
+      invoke([passId, message](RenderDisplay& display) {
+        display.notifyRenderGraphPassFailed(QString::fromStdString(passId),
+                                            QString::fromStdString(message));
+      });
+    }
+
+  private:
+    template<class Callback>
+    void invoke(Callback callback) {
+      QPointer<RenderDisplay> display = m_display;
+      if (!display)
+        return;
+
+      QMetaObject::invokeMethod(
+        display,
+        [display, callback] {
+          if (display)
+            callback(*display);
+        },
+        Qt::QueuedConnection);
+    }
+
+    QPointer<RenderDisplay> m_display;
+  };
+}
+
 RenderDisplay::RenderDisplay(QWidget* parent)
     : QtDisplay(parent, std::make_shared<engine::graph::GraphRenderEngine>(nullptr)),
       m_previewPostProcessAA(engine::graph::RenderPostProcessAA::None) {
   m_graphEngine = std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(m_engine);
+  m_graphExecutionObserver = std::make_shared<ModelerRenderGraphExecutionObserver>(this);
+  if (m_graphEngine)
+    m_graphEngine->setExecutionObserver(m_graphExecutionObserver);
   m_raytracerEngine = std::make_shared<engine::raytracer::Raytracer>(nullptr);
   applyPreviewPolicy(EngineKind::Raytracer);
 }
@@ -96,6 +149,18 @@ void RenderDisplay::setScene(Scene* scene) {
   render();
 }
 
+void RenderDisplay::notifyRenderGraphPassStarted(const QString& passId) {
+  emit renderGraphPassStarted(passId);
+}
+
+void RenderDisplay::notifyRenderGraphPassFinished(const QString& passId) {
+  emit renderGraphPassFinished(passId);
+}
+
+void RenderDisplay::notifyRenderGraphPassFailed(const QString& passId, const QString& message) {
+  emit renderGraphPassFailed(passId, message);
+}
+
 void RenderDisplay::setRenderGraphIntent(const engine::graph::RenderIntent& intent) {
   if (m_graphEngine)
     m_graphEngine->setIntent(intent);
@@ -130,6 +195,7 @@ void RenderDisplay::render() {
   if (!m_renderGraphPreviewEnabled)
     return;
 
+  emit renderGraphExecutionStarted();
   QtDisplay::render();
 }
 

@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "engine/graph/RenderPassPayload.h"
 #include "engine/graph/RenderExecutionContext.h"
+#include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "render/cameras/Camera.h"
 #include "render/primitives/Scene.h"
@@ -225,6 +226,49 @@ namespace engine::graph {
         throw std::runtime_error("color pack requires matching color buffer dimensions");
       }
     }
+
+    void notifyPassStarted(const GraphRenderEngine& graph, const RenderPassNode& pass) {
+      if (auto observer = graph.executionObserver()) {
+        observer->passStarted(pass.id);
+      }
+    }
+
+    void notifyPassFinished(const GraphRenderEngine& graph, const RenderPassNode& pass) {
+      if (auto observer = graph.executionObserver()) {
+        observer->passFinished(pass.id);
+      }
+    }
+
+    void notifyPassFailed(const GraphRenderEngine& graph, const RenderPassNode& pass,
+                          const std::string& message) {
+      if (auto observer = graph.executionObserver()) {
+        observer->passFailed(pass.id, message);
+      }
+    }
+
+    template<class Execute>
+    void executeObserved(const GraphRenderEngine& graph, const RenderPassNode& pass,
+                         Execute execute) {
+      notifyPassStarted(graph, pass);
+      try {
+        execute();
+      } catch (const std::exception& error) {
+        notifyPassFailed(graph, pass, error.what());
+        throw;
+      } catch (...) {
+        notifyPassFailed(graph, pass, "unknown render graph pass failure");
+        throw;
+      }
+      notifyPassFinished(graph, pass);
+    }
+
+    template<class Execute>
+    bool executeObservedBool(const GraphRenderEngine& graph, const RenderPassNode& pass,
+                             Execute execute) {
+      bool result = false;
+      executeObserved(graph, pass, [&] { result = execute(); });
+      return result;
+    }
   }
 
   struct GraphRenderEngine::Private {
@@ -232,8 +276,10 @@ namespace engine::graph {
     std::optional<RenderPlan> explicitPlan;
     RenderPlan lastPlan;
     std::shared_ptr<render::RenderEngine> activeEngine;
+    std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
     std::atomic<bool> cancelled{false};
     mutable std::mutex activeEngineMutex;
+    mutable std::mutex executionObserverMutex;
   };
 
   GraphRenderEngine::GraphRenderEngine(std::shared_ptr<render::Scene> scene)
@@ -261,6 +307,7 @@ namespace engine::graph {
     if (p->explicitPlan) {
       result->setPlan(*p->explicitPlan);
     }
+    result->setExecutionObserver(executionObserver());
     return result;
   }
 
@@ -295,6 +342,17 @@ namespace engine::graph {
 
   const RenderPlan& GraphRenderEngine::lastPlan() const {
     return p->lastPlan;
+  }
+
+  void
+  GraphRenderEngine::setExecutionObserver(std::shared_ptr<RenderGraphExecutionObserver> observer) {
+    std::lock_guard<std::mutex> lock(p->executionObserverMutex);
+    p->executionObserver = std::move(observer);
+  }
+
+  std::shared_ptr<RenderGraphExecutionObserver> GraphRenderEngine::executionObserver() const {
+    std::lock_guard<std::mutex> lock(p->executionObserverMutex);
+    return p->executionObserver;
   }
 
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {
@@ -353,7 +411,7 @@ namespace engine::graph {
         }
       } reset{context};
 
-      payload->execute(context);
+      executeObserved(*this, pass, [&] { payload->execute(context); });
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();
       }
@@ -401,7 +459,9 @@ namespace engine::graph {
           displayChain->applyTonemap
             ? tonemap()
             : std::static_pointer_cast<render::Tonemap>(std::make_shared<render::LinearTonemap>());
-        if (payload->executeDisplay(context, buffer, outputTonemap)) {
+        if (executeObservedBool(*this, *displayChain->beauty, [&] {
+              return payload->executeDisplay(context, buffer, outputTonemap);
+            })) {
           return;
         }
       }
@@ -451,12 +511,14 @@ namespace engine::graph {
         }
       } reset{context};
 
-      const bool executedForDisplay =
-        pass.kind == RenderPassKind::Beauty && pass.executor == RenderExecutorKind::Raytracer &&
-        payload->executeDisplayAndStore(context, buffer, displayTonemap);
-      if (!executedForDisplay) {
-        payload->execute(context);
-      }
+      executeObserved(*this, pass, [&] {
+        const bool executedForDisplay =
+          pass.kind == RenderPassKind::Beauty && pass.executor == RenderExecutorKind::Raytracer &&
+          payload->executeDisplayAndStore(context, buffer, displayTonemap);
+        if (!executedForDisplay) {
+          payload->execute(context);
+        }
+      });
 
       for (const auto& write : pass.writes) {
         storage.resource(write.resource).markProduced();

@@ -28,6 +28,16 @@ namespace RenderGraphInspectorWidgetTest {
     return nullptr;
   }
 
+  QGraphicsItem* graphNodeItem(QGraphicsScene* scene, const QString& kind, const QString& id) {
+    for (QGraphicsItem* item : scene->items()) {
+      if (!item->parentItem() && item->data(0).toString() == kind &&
+          item->data(1).toString() == id) {
+        return item;
+      }
+    }
+    return nullptr;
+  }
+
   RenderPlan simplePlan() {
     RenderPlan plan;
 
@@ -228,6 +238,44 @@ namespace RenderGraphInspectorWidgetTest {
     auto* status = widget.findChild<QLabel*>("renderGraphValidationStatus");
     ASSERT_NE(nullptr, status);
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Invalid plan"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowLiveExecutionStateOnGraphNodes) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+
+    widget.passExecutionStarted(QStringLiteral("raytrace_beauty"));
+    QGraphicsItem* running = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, running);
+    EXPECT_EQ(QString("running"), running->data(2).toString());
+
+    widget.passExecutionFinished(QStringLiteral("raytrace_beauty"));
+    QGraphicsItem* completed = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, completed);
+    EXPECT_EQ(QString("completed"), completed->data(2).toString());
+
+    widget.clearExecutionState();
+    QGraphicsItem* idle = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, idle);
+    EXPECT_EQ(QString("idle"), idle->data(2).toString());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowFailedExecutionStateOnGraphNodes) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+
+    widget.passExecutionFailed(QStringLiteral("tonemap"), QStringLiteral("boom"));
+
+    QGraphicsItem* failed = graphNodeItem(graph->scene(), "pass", "tonemap");
+    ASSERT_NE(nullptr, failed);
+    EXPECT_EQ(QString("failed"), failed->data(2).toString());
+    EXPECT_THAT(failed->toolTip().toStdString(), ::testing::HasSubstr("boom"));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassThroughCheckboxOverride) {

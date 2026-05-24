@@ -1275,9 +1275,10 @@ Implement the smallest graph that proves the architecture:
    checkbox overrides, and feeds the effective valid plan back into the central
    graph-backed preview. The preview menu can request the wireframe overlay
    intent. The Graph tab renders a left-to-right graph view with selectable
-   nodes and double-click pass toggles. Grouped toggles, graph export,
-   post-render input/output/difference inspection, live executing-node
-   highlights, resource previews, and per-selector intent controls remain TODO.
+   nodes and double-click pass toggles, and preview renders highlight the
+   currently executing graph node. Grouped toggles, graph export, post-render
+   input/output/difference inspection, resource previews, and per-selector
+   intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 
@@ -1337,7 +1338,9 @@ metadata-only until custom viewers exist.
 Expose pass-start/pass-finish/pass-fail events from graph execution so the
 Modeler graph view can highlight the node or nodes currently running during
 long renders. Keep the model as a set of active pass ids so the UI survives the
-future parallel scheduler.
+future parallel scheduler. ✅ **Done.** `GraphRenderEngine` exposes a live
+execution observer copied into render snapshots, and the Modeler Render Graph
+dock highlights running/completed/failed pass nodes during preview renders.
 
 ### Stencil/depth-aware composition
 

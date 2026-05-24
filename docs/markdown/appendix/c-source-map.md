@@ -43,6 +43,7 @@
 | `include/engine/graph/RasterPassState.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderExecutionContext.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphCompiler.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderGraphExecutionObserver.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderGraphTypes.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassPayload.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderPassState.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |

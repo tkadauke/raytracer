@@ -32,6 +32,7 @@ using namespace engine::graph;
 namespace {
   constexpr int GraphItemKindRole = 0;
   constexpr int GraphItemIdRole = 1;
+  constexpr int GraphItemExecutionStateRole = 2;
   constexpr double PassWidth = 190.0;
   constexpr double PassHeight = 74.0;
   constexpr double ResourceWidth = 150.0;
@@ -47,6 +48,22 @@ namespace {
 
   QString dashIfEmpty(const QString& value) {
     return value.isEmpty() ? QStringLiteral("-") : value;
+  }
+
+  enum class PassExecutionState { Idle, Running, Completed, Failed };
+
+  QString executionStateName(PassExecutionState state) {
+    switch (state) {
+    case PassExecutionState::Idle:
+      return QStringLiteral("idle");
+    case PassExecutionState::Running:
+      return QStringLiteral("running");
+    case PassExecutionState::Completed:
+      return QStringLiteral("completed");
+    case PassExecutionState::Failed:
+      return QStringLiteral("failed");
+    }
+    return QStringLiteral("idle");
   }
 
   QString resourceReads(const std::vector<ResourceRead>& reads) {
@@ -217,6 +234,8 @@ namespace {
 struct RenderGraphInspectorWidget::Private {
   RenderPlan plan;
   RenderGraphOverrides overrides;
+  std::map<RenderPassId, PassExecutionState> executionStates;
+  std::map<RenderPassId, QString> executionMessages;
   QGraphicsView* graph{nullptr};
   QGraphicsScene* graphScene{nullptr};
   QTreeWidget* passes{nullptr};
@@ -294,6 +313,8 @@ QSize RenderGraphInspectorWidget::sizeHint() const {
 
 void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->plan = plan;
+  p->executionStates.clear();
+  p->executionMessages.clear();
 
   const auto ids = passIds(p->plan);
   for (auto it = p->overrides.disabledPasses.begin(); it != p->overrides.disabledPasses.end();) {
@@ -317,6 +338,34 @@ RenderPlan RenderGraphInspectorWidget::effectivePlan() const {
 
 bool RenderGraphInspectorWidget::effectivePlanValid() const {
   return effectivePlan().validate().valid();
+}
+
+void RenderGraphInspectorWidget::clearExecutionState() {
+  if (p->executionStates.empty() && p->executionMessages.empty())
+    return;
+
+  p->executionStates.clear();
+  p->executionMessages.clear();
+  rebuildGraph();
+}
+
+void RenderGraphInspectorWidget::passExecutionStarted(const QString& passId) {
+  p->executionStates[passId.toStdString()] = PassExecutionState::Running;
+  p->executionMessages.erase(passId.toStdString());
+  rebuildGraph();
+}
+
+void RenderGraphInspectorWidget::passExecutionFinished(const QString& passId) {
+  p->executionStates[passId.toStdString()] = PassExecutionState::Completed;
+  p->executionMessages.erase(passId.toStdString());
+  rebuildGraph();
+}
+
+void RenderGraphInspectorWidget::passExecutionFailed(const QString& passId,
+                                                     const QString& message) {
+  p->executionStates[passId.toStdString()] = PassExecutionState::Failed;
+  p->executionMessages[passId.toStdString()] = message;
+  rebuildGraph();
 }
 
 void RenderGraphInspectorWidget::passItemChanged(QTreeWidgetItem* item, int column) {
@@ -353,6 +402,8 @@ void RenderGraphInspectorWidget::rebuildAllViews() {
 }
 
 void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& passId, bool enabled) {
+  p->executionStates.clear();
+  p->executionMessages.clear();
   if (enabled) {
     p->overrides.disabledPasses.erase(passId);
   } else {
@@ -418,18 +469,38 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (location == passLocations.end())
       continue;
 
+    PassExecutionState executionState = PassExecutionState::Idle;
+    const auto executionStateIt = p->executionStates.find(pass.id);
+    if (executionStateIt != p->executionStates.end())
+      executionState = executionStateIt->second;
+
     QPen pen(pass.enabled ? QColor(35, 75, 115) : QColor(130, 130, 130));
+    QBrush brush(pass.enabled ? QColor(222, 235, 248) : QColor(235, 235, 235));
+    if (pass.enabled && executionState == PassExecutionState::Running) {
+      pen = QPen(QColor(180, 125, 20));
+      brush = QBrush(QColor(255, 244, 204));
+    } else if (pass.enabled && executionState == PassExecutionState::Completed) {
+      pen = QPen(QColor(50, 120, 80));
+      brush = QBrush(QColor(224, 242, 232));
+    } else if (executionState == PassExecutionState::Failed) {
+      pen = QPen(QColor(170, 60, 60));
+      brush = QBrush(QColor(248, 226, 226));
+    }
     pen.setWidthF(1.5);
     if (!pass.enabled)
       pen.setStyle(Qt::DashLine);
 
-    addNode(*p->graphScene, QRectF(location->second, QSizeF(PassWidth, PassHeight)),
-            QStringLiteral("pass"), qstr(pass.id),
-            {qstr(pass.id),
-             qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
-             pass.enabled ? tr("enabled") : tr("disabled")},
-            pen, QBrush(pass.enabled ? QColor(222, 235, 248) : QColor(235, 235, 235)))
-      ->setToolTip(tr("Double-click to enable or disable this pass"));
+    QGraphicsRectItem* item = addNode(
+      *p->graphScene, QRectF(location->second, QSizeF(PassWidth, PassHeight)),
+      QStringLiteral("pass"), qstr(pass.id),
+      {qstr(pass.id), qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
+       pass.enabled ? tr("enabled") : tr("disabled")},
+      pen, brush);
+    item->setData(GraphItemExecutionStateRole, executionStateName(executionState));
+    const auto messageIt = p->executionMessages.find(pass.id);
+    item->setToolTip(messageIt == p->executionMessages.end()
+                       ? tr("Double-click to enable or disable this pass")
+                       : messageIt->second);
   }
 
   const QRectF bounds = p->graphScene->itemsBoundingRect().adjusted(-40.0, -40.0, 40.0, 40.0);
