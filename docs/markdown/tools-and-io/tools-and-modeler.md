@@ -29,7 +29,10 @@ executor (`raytracer` / `raster` / `wireframe`), while a scene-level
 `renderIntent` can also choose the executor, structural view mode, and overlay
 intent. `--direct_engine` bypasses the graph and renders with the selected
 engine directly; that mode is useful for focused engine debugging and for
-low-level knobs that are not yet represented as graph pass state.
+low-level knobs that are not yet represented as graph pass state. Rasterizer
+controls such as MSAA, post-process AA, viewport/scissor state, color-output
+state, and shadow-map settings are compiled into typed raster beauty pass state
+and serialized when graph JSON is exported.
 
 The flags cover output size, sampler choice, samples-per-pixel, recursion
 depth, tonemap operator, and per-engine knobs such as [LOD](../appendix/a-glossary.md#l),

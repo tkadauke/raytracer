@@ -133,6 +133,7 @@ struct RenderPassNode {
   std::vector<ResourceRead> reads;
   std::vector<ResourceWrite> writes;
   SceneView sceneView;
+  std::shared_ptr<const RenderPassState> state;
   DisabledBehavior disabledBehavior{DisabledBehavior::Error};
   bool enabled{true};
   bool hasExternalSideEffects{false};
@@ -144,6 +145,14 @@ The central fields are `reads` and `writes`. A tonemap pass, for example, can
 read `main_color` and write `display_color`. A shadow pass can write
 `shadow_mask`, and a beauty pass can read that mask before writing
 `main_color`.
+
+`state` carries typed pass-payload state. Generic graph validation still
+reasons about resources and dependencies, while the matching payload owns how
+those settings configure the executor. JSON import/export serializes this
+typed state through a pass's `parameters` object, but graph execution does not
+carry an uninterpreted JSON object. Raster beauty passes use focused state
+objects for sampling, framebuffer, geometry, execution, and shadow-map
+controls.
 
 The node also carries a `DisabledBehavior` value:
 
@@ -249,7 +258,8 @@ Passes:
 The DOT export uses resource nodes and pass nodes, with arrows from resources
 to reader passes and from writer passes to resources. The JSON export carries
 the same ids, enum strings, resource dimensions, pass features, reads, writes,
-scene selector, disabled behavior, and scheduling flags.
+scene selector, typed pass state serialized as `parameters`, disabled behavior,
+and scheduling flags.
 
 The smallest graph-backed render is deliberately small: a whole-frame raytraced
 beauty pass writes a transient color resource, then a tonemap postprocess pass
@@ -344,6 +354,14 @@ wireframe engine produces an edge pixel.
 `RenderTargetSpec` supplies the framebuffer width, height, and sample count for
 both resource descriptors. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
+
+When the selected beauty executor is the rasterizer, graph-backed rendercli
+raster controls are compiled into the raster beauty pass's typed state and
+replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
+under the pass's `parameters` object, making settings such as `--msaa`,
+`--msaa_shading`, `--post_aa`, `--viewport`, color-output controls, and
+shadow-map controls visible instead of living only in the direct raster engine
+setup path.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's

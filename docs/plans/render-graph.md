@@ -369,10 +369,11 @@ struct RenderPassNode {
   std::string name;
   RenderPassKind kind;
   RenderExecutorKind executor;
+  std::vector<RenderFeatureKind> features;
   std::vector<ResourceRead> reads;
   std::vector<ResourceWrite> writes;
   SceneView sceneView;
-  std::shared_ptr<render::Camera> camera;
+  std::shared_ptr<const RenderPassState> state;
   DisabledBehavior disabledBehavior;
   bool enabled = true;
   bool hasExternalSideEffects = false;
@@ -1034,10 +1035,11 @@ execution context, plan validation, graph override disabling, text/DOT/JSON
 plan export, a minimal compiler that emits a whole-frame beauty pass, optional
 wireframe overlay pass, and tonemap/export pass, a graph engine facade that can
 execute that serial color chain through Raytracer/Rasterizer/Wireframe plus
-PostProcess tonemapping, a display-buffer fast path for progressive simple
-previews, optional scene JSON render intent, and the textbook's render-graph
-volume. Scene-feature expansion, arbitrary postprocess/composite execution, and
-real graph scheduling remain TODO.
+PostProcess tonemapping, graph-visible typed pass state for replaying raster
+beauty-pass controls, a display-buffer fast path for progressive simple previews,
+optional scene JSON render intent, and the textbook's render-graph volume.
+Scene-feature expansion, arbitrary postprocess/composite execution, and real
+graph scheduling remain TODO.
 
 Implement the smallest graph that proves the architecture:
 
@@ -1080,7 +1082,9 @@ Implement the smallest graph that proves the architecture:
    default, bypass the graph with `--direct_engine`, load and replay JSON
    plans, use scene JSON render intent, override the compiled default
    executor/view mode, request the wireframe overlay intent, apply pass
-   id/kind/executor/feature disable filters, and validate the manipulated plan.
+   id/kind/executor/feature disable filters, serialize graph-backed raster
+   beauty pass state for MSAA/post-AA/fixed-function/shadow controls, and
+   validate the manipulated plan.
    Selector-specific command-line intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles

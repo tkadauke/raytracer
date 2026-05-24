@@ -11,6 +11,7 @@
 #include "world/objects/Texture.h"
 
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RasterPassState.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
 #include "engine/raytracer/Raytracer.h"
@@ -462,6 +463,7 @@ private:
   void renderAnimation(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
+  engine::graph::RasterBeautyPassState rasterBeautyPassState() const;
   engine::graph::RenderPlan compileRenderGraphPlan(const Scene& scene) const;
   engine::graph::RenderPlan loadRenderGraphPlan() const;
   engine::graph::RenderPlan renderGraphPlan(const Scene& scene) const;
@@ -579,15 +581,72 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
 }
 
 int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) const {
-  return intent.defaultExecutor == engine::graph::RenderExecutorPreference::Rasterizer
+  return intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer
            ? m_rasterMsaaSamples
            : m_samplesPerPixel;
+}
+
+engine::graph::RasterBeautyPassState Renderer::rasterBeautyPassState() const {
+  engine::graph::RasterBeautyPassState state;
+  state.geometry().setLod(m_wireframeLod);
+  if (m_threadsSet) {
+    state.execution().setMaximumThreads(m_threads);
+  }
+  if (m_queueSizeSet) {
+    state.execution().setQueueSize(m_queueSize);
+  }
+  if (m_rasterCullMode == "back") {
+    state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Back);
+  } else if (m_rasterCullMode == "front") {
+    state.geometry().setCullMode(engine::raster::Rasterizer::CullMode::Front);
+  }
+
+  state.sampling().setMSAASamples(m_rasterMsaaSamples);
+  if (m_rasterMsaaShadingMode == "per_fragment") {
+    state.sampling().setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
+  }
+  if (m_rasterPostProcessAA == "fxaa") {
+    state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
+  } else if (m_rasterPostProcessAA == "smaa") {
+    state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::SMAA);
+  } else if (m_rasterPostProcessAA == "taa") {
+    state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::TAA);
+  }
+
+  state.framebuffer().setColorWriteMask(m_rasterColorWriteMask);
+  state.framebuffer().setBlendingEnabled(m_rasterBlending);
+  state.framebuffer().setBlendFactors(m_rasterBlendSourceFactor, m_rasterBlendDestinationFactor);
+  state.framebuffer().setBlendOp(m_rasterBlendOp);
+  state.framebuffer().setBlendConstant(m_rasterBlendConstantColor, m_rasterBlendConstantAlpha);
+  state.framebuffer().setAlphaTestEnabled(m_rasterAlphaTest);
+  state.framebuffer().setAlphaFunc(m_rasterAlphaFunc, m_rasterAlphaReference);
+  if (m_rasterViewportSet) {
+    state.framebuffer().setViewportRect(m_rasterViewport);
+  }
+  if (m_rasterScissorSet) {
+    state.framebuffer().setScissorRect(m_rasterScissor);
+  }
+  state.framebuffer().setDepthBias(m_rasterDepthBias);
+  state.shadows().setShadowMapsEnabled(m_rasterShadowMaps);
+  state.shadows().setShadowMapSize(m_rasterShadowMapSize);
+  state.shadows().setShadowCascadeCount(m_rasterShadowCascadeCount);
+  state.shadows().setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
+  state.shadows().setShadowBias(m_rasterShadowBias);
+  state.shadows().setShadowSlopeBias(m_rasterShadowSlopeBias);
+  state.shadows().setShadowFilterRadius(m_rasterShadowFilterRadius);
+  if (m_rasterShadowFilterMode == "pcss") {
+    state.shadows().setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+  }
+  return state;
 }
 
 engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) const {
   engine::graph::RenderGraphCompiler compiler;
   const auto intent = renderIntent(scene);
   auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
+  if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
+    rasterBeautyPassState().writeToRasterBeautyPasses(plan);
+  }
   return plan.withOverrides(m_renderGraphOverrides);
 }
 
@@ -759,52 +818,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     auto raster = std::make_shared<engine::raster::Rasterizer>(raytracerScene);
     if (rtCamera)
       raster->setCamera(rtCamera);
-    raster->setLod(m_wireframeLod); // shares the LOD knob with Wireframe
-    if (m_rasterCullMode == "back") {
-      raster->setCullMode(engine::raster::Rasterizer::CullMode::Back);
-    } else if (m_rasterCullMode == "front") {
-      raster->setCullMode(engine::raster::Rasterizer::CullMode::Front);
-    }
-    if (m_threadsSet)
-      raster->setMaximumThreads(m_threads);
-    if (m_queueSizeSet) {
-      raster->setQueueSize(m_queueSize);
-    }
-    raster->setMSAASamples(m_rasterMsaaSamples);
-    if (m_rasterMsaaShadingMode == "per_fragment") {
-      raster->setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
-    }
-    if (m_rasterPostProcessAA == "fxaa") {
-      raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
-    } else if (m_rasterPostProcessAA == "smaa") {
-      raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::SMAA);
-    } else if (m_rasterPostProcessAA == "taa") {
-      raster->setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::TAA);
-    }
-    raster->setColorWriteMask(m_rasterColorWriteMask);
-    raster->setBlendingEnabled(m_rasterBlending);
-    raster->setBlendFactors(m_rasterBlendSourceFactor, m_rasterBlendDestinationFactor);
-    raster->setBlendOp(m_rasterBlendOp);
-    raster->setBlendConstant(m_rasterBlendConstantColor, m_rasterBlendConstantAlpha);
-    raster->setAlphaTestEnabled(m_rasterAlphaTest);
-    raster->setAlphaFunc(m_rasterAlphaFunc, m_rasterAlphaReference);
-    if (m_rasterViewportSet) {
-      raster->setViewportRect(m_rasterViewport);
-    }
-    if (m_rasterScissorSet) {
-      raster->setScissorRect(m_rasterScissor);
-    }
-    raster->setDepthBias(m_rasterDepthBias);
-    raster->setShadowMapsEnabled(m_rasterShadowMaps);
-    raster->setShadowMapSize(m_rasterShadowMapSize);
-    raster->setShadowCascadeCount(m_rasterShadowCascadeCount);
-    raster->setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
-    raster->setShadowBias(m_rasterShadowBias);
-    raster->setShadowSlopeBias(m_rasterShadowSlopeBias);
-    raster->setShadowFilterRadius(m_rasterShadowFilterRadius);
-    if (m_rasterShadowFilterMode == "pcss") {
-      raster->setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
-    }
+    rasterBeautyPassState().applyTo(*raster);
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);

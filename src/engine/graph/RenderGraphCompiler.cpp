@@ -1,4 +1,5 @@
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RasterPassState.h"
 
 #include <algorithm>
 #include <string>
@@ -106,6 +107,11 @@ namespace engine::graph {
     beauty.sceneView.selector = SceneSelector::all();
     beauty.disabledBehavior = DisabledBehavior::Error;
     beauty.canRunConcurrently = false;
+    if (executor == RenderExecutorKind::Rasterizer && target.sampleCount != 1) {
+      RasterBeautyPassState state;
+      state.sampling().setMSAASamples(target.sampleCount);
+      state.writeTo(beauty);
+    }
     plan.addPass(beauty);
 
     if (intent.enableWireframeOverlay) {

@@ -1,16 +1,19 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderPlan.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
 
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
 namespace RenderPlanTest {
   using namespace engine::graph;
+  using Rasterizer = engine::raster::Rasterizer;
 
   RenderResourceDescriptor
   colorResource(const std::string& id,
@@ -263,9 +266,9 @@ namespace RenderPlanTest {
     main.domain = RenderResourceDomain::GPU;
     plan.addResource(main);
 
-    auto node = pass("tonemap", RenderPassKind::Tonemap);
-    node.name = "Tone map";
-    node.executor = RenderExecutorKind::PostProcess;
+    auto node = pass("raster_beauty", RenderPassKind::Beauty);
+    node.name = "Raster beauty";
+    node.executor = RenderExecutorKind::Rasterizer;
     node.features = {"main", "display"};
     node.reads.push_back({"history_color"});
     node.writes.push_back({"main_color"});
@@ -274,6 +277,10 @@ namespace RenderPlanTest {
     node.enabled = false;
     node.hasExternalSideEffects = true;
     node.canRunConcurrently = false;
+    auto state = std::make_shared<RasterBeautyPassState>();
+    state->sampling().setPostProcessAA(Rasterizer::PostProcessAA::FXAA);
+    state->sampling().setMSAASamples(4);
+    node.state = state;
     plan.addPass(node);
 
     const QJsonObject json = plan.toJson();

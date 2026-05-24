@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderGraphCompiler.h"
 
 namespace RenderGraphCompilerTest {
@@ -77,6 +78,21 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(1, plan.resources()[0].sampleCount);
     EXPECT_EQ(1, plan.resources()[1].sampleCount);
     EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RasterTargetSampleCountBecomesRasterPassState) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+
+    const RenderPlan plan = compiler.compile({64, 64, 4}, intent);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("raster_beauty", plan.passes()[0].id);
+    ASSERT_NE(nullptr, plan.passes()[0].state);
+    EXPECT_EQ(4, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
+    EXPECT_EQ(4, plan.resources()[0].sampleCount);
+    EXPECT_EQ(4, plan.resources()[1].sampleCount);
   }
 
   TEST(RenderGraphCompiler, TonemapPassCanBeDisabledWithPassthrough) {

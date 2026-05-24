@@ -26,6 +26,8 @@ set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
 set(default_graph_render "${TEST_OUTPUT_DIR}/default-graph-render.png")
 set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
+set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
+set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
@@ -252,6 +254,37 @@ rendercli_run(
     "${static_scene}" "${graph_render}"
 )
 rendercli_assert_nonempty("${graph_render}" NAME "rendercli default graph image")
+
+rendercli_run(
+  NAME "rendercli writes raster pass state while rendering through graph"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_format json
+    --render_graph_out "${raster_state_plan}"
+    --width 32 --height 16 --msaa 4 --msaa_shading per_fragment --post_aa fxaa
+    --shadow_maps --shadow_map_size 64 --shadow_bias 0.2
+    "${static_scene}" "${raster_state_render}"
+)
+rendercli_assert_nonempty("${raster_state_render}" NAME "graph raster state render")
+rendercli_assert_nonempty("${raster_state_plan}" NAME "graph raster state plan")
+file(READ "${raster_state_plan}" raster_state_graph)
+if(NOT raster_state_graph MATCHES "raster_beauty")
+  message(FATAL_ERROR "raster state graph did not contain raster_beauty: ${raster_state_graph}")
+endif()
+if(NOT raster_state_graph MATCHES "msaaSamples")
+  message(FATAL_ERROR "raster state graph did not contain msaaSamples: ${raster_state_graph}")
+endif()
+if(NOT raster_state_graph MATCHES "per_fragment")
+  message(FATAL_ERROR "raster state graph did not contain MSAA shading mode: ${raster_state_graph}")
+endif()
+if(NOT raster_state_graph MATCHES "postProcessAA")
+  message(FATAL_ERROR "raster state graph did not contain postProcessAA: ${raster_state_graph}")
+endif()
+if(NOT raster_state_graph MATCHES "fxaa")
+  message(FATAL_ERROR "raster state graph did not contain FXAA setting: ${raster_state_graph}")
+endif()
+if(NOT raster_state_graph MATCHES "mapSize")
+  message(FATAL_ERROR "raster state graph did not contain shadow state: ${raster_state_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli default render honors scene render intent"

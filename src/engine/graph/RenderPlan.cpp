@@ -1,6 +1,9 @@
 #include "engine/graph/RenderPlan.h"
 
+#include "engine/graph/RenderPassState.h"
+
 #include <QJsonArray>
+#include <QJsonDocument>
 
 #include <algorithm>
 #include <functional>
@@ -100,6 +103,18 @@ namespace engine::graph {
 
   void RenderPlan::addPass(RenderPassNode pass) {
     m_passes.push_back(std::move(pass));
+  }
+
+  std::size_t RenderPlan::setPassState(RenderPassKind kind, RenderExecutorKind executor,
+                                       std::shared_ptr<const RenderPassState> state) {
+    std::size_t updated = 0;
+    for (auto& pass : m_passes) {
+      if (pass.kind == kind && pass.executor == executor) {
+        pass.state = state;
+        ++updated;
+      }
+    }
+    return updated;
   }
 
   RenderPlanValidation RenderPlan::validate() const {
@@ -260,6 +275,13 @@ namespace engine::graph {
         for (const auto& write : pass.writes)
           out << " " << write.resource;
         out << "\n";
+      }
+      if (pass.state) {
+        const QJsonObject serializedState = pass.state->toJson();
+        if (serializedState.isEmpty())
+          continue;
+        out << "  parameters: "
+            << QJsonDocument(serializedState).toJson(QJsonDocument::Compact).toStdString() << "\n";
       }
     }
     return out.str();

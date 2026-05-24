@@ -283,7 +283,8 @@ Keep current coverage, then add:
 - invalid `--disable_pass_kind`;
 - invalid `--disable_executor`;
 - comma-separated and repeated disable filters in one command;
-- `--render_graph_out` while rendering writes both image and graph;
+- `--render_graph_out` while rendering writes both image and graph; ✅ covered
+  for a graph-backed raster render in `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` with no output writes graph to stdout;
 - malformed JSON in `--render_graph_in`;
 - JSON root not an object;

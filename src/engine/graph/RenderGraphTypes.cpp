@@ -1,5 +1,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 
+#include "engine/graph/RenderPassState.h"
+
 #include <QJsonArray>
 
 #include <algorithm>
@@ -736,6 +738,12 @@ namespace engine::graph {
     object["reads"] = readArray(reads);
     object["writes"] = writeArray(writes);
     object["sceneSelector"] = sceneView.selector.toJson();
+    if (state) {
+      const QJsonObject serializedState = state->toJson();
+      if (!serializedState.isEmpty()) {
+        object["parameters"] = serializedState;
+      }
+    }
     object["disabledBehavior"] = toString(disabledBehavior);
     object["enabled"] = enabled;
     object["hasExternalSideEffects"] = hasExternalSideEffects;
@@ -753,6 +761,14 @@ namespace engine::graph {
     pass.features = featureArrayFromJson(object, "features", path);
     pass.reads = readsFromJson(object, "reads", path);
     pass.writes = writesFromJson(object, "writes", path);
+
+    const auto parameters = object.value("parameters");
+    if (!parameters.isUndefined()) {
+      if (!parameters.isObject())
+        jsonError(path + ".parameters", "expected object");
+      pass.state = RenderPassState::fromJson(pass.kind, pass.executor, parameters.toObject(),
+                                             path + ".parameters");
+    }
 
     const auto selector = object.value("sceneSelector");
     if (!selector.isUndefined()) {

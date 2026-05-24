@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/raster/Rasterizer.h"
@@ -73,7 +74,7 @@ namespace engine::graph {
         const auto& write = pass.singleWrite();
         requireColorResource(context.storage(), write.resource, pass);
 
-        auto engine = createEngine(context.graph());
+        auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), context.graph().tonemap());
         context.setActiveEngine(engine);
         engine->render(context.storage().color(write.resource));
@@ -81,7 +82,7 @@ namespace engine::graph {
 
       bool executeDisplay(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
                           std::shared_ptr<render::Tonemap> tonemap) override {
-        auto engine = createEngine(context.graph());
+        auto engine = createEngine(context);
         prepareEngine(*engine, context.graph(), context.cancelled(), std::move(tonemap));
         context.setActiveEngine(engine);
         engine->render(buffer);
@@ -90,7 +91,7 @@ namespace engine::graph {
 
     private:
       virtual std::shared_ptr<render::RenderEngine>
-      createEngine(const GraphRenderEngine& graph) const = 0;
+      createEngine(const RenderExecutionContext& context) const = 0;
     };
 
     /**
@@ -99,7 +100,8 @@ namespace engine::graph {
     class RaytraceBeautyPass : public BeautyPassPayload {
     private:
       std::shared_ptr<render::RenderEngine>
-      createEngine(const GraphRenderEngine& graph) const override {
+      createEngine(const RenderExecutionContext& context) const override {
+        const auto& graph = context.graph();
         auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
         return std::make_shared<::engine::raytracer::Raytracer>(std::move(camera), graph.scene());
       }
@@ -111,11 +113,14 @@ namespace engine::graph {
     class RasterBeautyPass : public BeautyPassPayload {
     private:
       std::shared_ptr<render::RenderEngine>
-      createEngine(const GraphRenderEngine& graph) const override {
+      createEngine(const RenderExecutionContext& context) const override {
+        const auto& graph = context.graph();
         auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
         auto rasterizer =
           std::make_shared<::engine::raster::Rasterizer>(std::move(camera), graph.scene());
-        if (graph.intent().enablePreviewShadows) {
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(context.pass());
+        state.applyTo(*rasterizer);
+        if (graph.intent().enablePreviewShadows && !state.shadows().enabled()) {
           applyPreviewShadowPolicy(*rasterizer);
         }
         return rasterizer;
@@ -128,7 +133,8 @@ namespace engine::graph {
     class WireframeBeautyPass : public BeautyPassPayload {
     private:
       std::shared_ptr<render::RenderEngine>
-      createEngine(const GraphRenderEngine& graph) const override {
+      createEngine(const RenderExecutionContext& context) const override {
+        const auto& graph = context.graph();
         auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
         return std::make_shared<::engine::wireframe::Wireframe>(std::move(camera), graph.scene());
       }

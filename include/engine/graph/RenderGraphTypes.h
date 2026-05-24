@@ -3,12 +3,15 @@
 #include <QJsonObject>
 #include <QJsonValue>
 
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 namespace engine::graph {
+  class RenderPassState;
+
   using RenderPassId = std::string;
   using RenderResourceId = std::string;
   using RenderFeatureKind = std::string;
@@ -277,6 +280,7 @@ namespace engine::graph {
     std::vector<ResourceRead> reads;
     std::vector<ResourceWrite> writes;
     SceneView sceneView;
+    std::shared_ptr<const RenderPassState> state;
     DisabledBehavior disabledBehavior{DisabledBehavior::Error};
     bool enabled{true};
     bool hasExternalSideEffects{false};

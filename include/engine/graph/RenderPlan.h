@@ -4,6 +4,8 @@
 
 #include <QJsonObject>
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -57,6 +59,8 @@ namespace engine::graph {
 
     void addResource(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
+    std::size_t setPassState(RenderPassKind kind, RenderExecutorKind executor,
+                             std::shared_ptr<const RenderPassState> state);
 
     RenderPlanValidation validate() const;
     std::string toText() const;
