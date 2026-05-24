@@ -1086,7 +1086,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"cull", "Rasterizer face culling mode (both, back, front)", "mode"},
      {"msaa", "Rasterizer MSAA samples (1, 2, 4, or 8)", "samples"},
      {"msaa_shading", "Rasterizer MSAA shading mode (per_sample, per_fragment)", "mode"},
-     {"post_aa", "Rasterizer post-process anti-aliasing (none, fxaa, smaa, taa)", "mode"},
+     {"post_aa", "Post-process anti-aliasing (none, fxaa, smaa; taa is rasterizer-only)", "mode"},
      {"color_write_mask", "Rasterizer color-write mask (rgb, r, g, b, rg, rb, gb, none)", "mask"},
      {"blend", "Enable rasterizer fixed-function blending"},
      {"blend_src", "Rasterizer source blend factor", "factor"},

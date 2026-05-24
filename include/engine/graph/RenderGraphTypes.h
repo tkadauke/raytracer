@@ -39,11 +39,12 @@ namespace engine::graph {
   enum class RenderViewMode { Default, Beauty, Wireframe, Depth, Normal, ObjectId };
 
   /**
-    * User-facing raster post-process anti-aliasing request.
+    * User-facing image-space post-process anti-aliasing request.
     *
     * FXAA and SMAA are image-space filters that can be represented as graph
-    * postprocess passes today. TAA remains a raster beauty-pass setting until
-    * the graph owns history, depth, and jitter resources.
+    * postprocess passes after any color-producing beauty executor. TAA remains
+    * a raster beauty-pass setting until the graph owns history, depth, and
+    * jitter resources.
     */
   enum class RenderPostProcessAA { None, FXAA, SMAA, TAA };
 
@@ -224,7 +225,7 @@ namespace engine::graph {
 
     /**
       * @returns true when this intent should compile image-space AA as a graph
-      * postprocess pass instead of hiding it inside `raster_beauty` state.
+      * postprocess pass.
       */
     bool usesGraphImagePostProcessAA() const;
   };

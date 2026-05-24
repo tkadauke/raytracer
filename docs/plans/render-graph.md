@@ -547,12 +547,13 @@ typed resources, `PostProcess` / `Composite` executors, imported/history
 lifetimes, and node disabling.
 
 As the graph grows, postprocess stages that currently live inside individual
-engines should migrate into explicit nodes. ~~Rasterizer FXAA/SMAA~~ ✅ **Done.**
-`RenderIntent::postProcessAA` now compiles raster FXAA/SMAA into
-`raster_fxaa` / `raster_smaa` postprocess nodes with typed
-`post_process_aa` state between raster beauty and overlay/tonemap; rendercli
-and the Modeler preview both use that shared compiler path. TAA remains
-deferred until graph-owned history, depth, and jitter resources exist.
+engines should migrate into explicit nodes. ~~Image-space FXAA/SMAA~~ ✅
+**Done.** `RenderIntent::postProcessAA` now compiles FXAA/SMAA into
+`post_fxaa` / `post_smaa` postprocess nodes with typed `post_process_aa` state
+between beauty and overlay/tonemap for raytracer, wireframe, and rasterizer
+graphs; rendercli and the Modeler preview both use that shared compiler path.
+TAA remains deferred until graph-owned history, depth, and jitter resources
+exist.
 
 ### Rasterizer passes
 
@@ -1048,7 +1049,9 @@ wireframe overlay pass, and tonemap/export pass, a graph engine facade that can
 execute that serial color chain through Raytracer/Rasterizer/Wireframe plus
 PostProcess tonemapping, graph-visible typed pass state for replaying raster
 beauty-pass controls, a display-buffer fast path for progressive simple previews,
-optional scene JSON render intent, and the textbook's render-graph volume.
+dual HDR/display raytracer beauty output for progressive previews with
+postprocess passes, optional scene JSON render intent, and the textbook's
+render-graph volume.
 Scene-feature expansion, arbitrary postprocess/composite execution, and real
 graph scheduling remain TODO.
 
@@ -1074,7 +1077,8 @@ Implement the smallest graph that proves the architecture:
    passes backed by Raytracer, Rasterizer, or Wireframe, the first wireframe
    overlay pass, plus simple serial color-resource chains. Simple beauty plus
    optional tonemap LDR output uses the wrapped engine's display-buffer render
-   path so interactive previews can update progressively.
+   path, and raytracer beauty can write HDR graph color plus packed display
+   pixels in one pass so postprocess graphs keep progressive preview updates.
 6. Wrap existing whole-frame engines as pass executors:
    - `RaytraceBeautyPass`;
    - `RasterBeautyPass`;

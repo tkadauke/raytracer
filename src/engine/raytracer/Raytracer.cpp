@@ -22,6 +22,7 @@
 #include <QThreadPool>
 
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 using namespace engine::raytracer;
@@ -132,6 +133,45 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
                             [self, camera, bufferPtr, tonemapOp](const Recti& rect, std::size_t) {
                               camera->render(self, *bufferPtr, tonemapOp, rect);
                             });
+
+#ifdef RAYTRACER_ENABLE_STATS
+  ::render::stats::Counters::instance().dumpJson(std::cerr);
+#endif
+}
+
+void Raytracer::render(Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
+                       std::shared_ptr<render::Tonemap> displayTonemap) {
+  if (hdrBuffer.width() != displayBuffer.width() || hdrBuffer.height() != displayBuffer.height()) {
+    throw std::runtime_error("raytracer dual-output render requires matching buffer dimensions");
+  }
+
+  if (!m_scene) {
+    hdrBuffer.clear();
+    displayBuffer.clear();
+    return;
+  }
+
+  p->tasks.clear();
+
+#ifdef RAYTRACER_ENABLE_STATS
+  ::render::stats::Counters::instance().reset();
+#endif
+
+  m_camera->viewPlane()->setup(m_camera->matrix(), hdrBuffer.rect());
+  m_camera->setShowProgressIndicators(p->showProgressIndicators);
+
+  auto self = std::static_pointer_cast<Raytracer>(shared_from_this());
+  auto camera = m_camera;
+  Buffer<Colord>* hdrBufferPtr = &hdrBuffer;
+  Buffer<unsigned int>* displayBufferPtr = &displayBuffer;
+
+  const render::TilePlan tilePlan =
+    render::TilePlan::forBuffer(hdrBuffer.width(), hdrBuffer.height(), p->queueSize);
+  engine::dispatchTileTasks(
+    tilePlan, *p->threadPool, p->tasks,
+    [self, camera, hdrBufferPtr, displayBufferPtr, displayTonemap](const Recti& rect, std::size_t) {
+      camera->render(self, *hdrBufferPtr, *displayBufferPtr, displayTonemap, rect);
+    });
 
 #ifdef RAYTRACER_ENABLE_STATS
   ::render::stats::Counters::instance().dumpJson(std::cerr);

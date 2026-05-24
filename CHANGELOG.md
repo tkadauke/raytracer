@@ -38,15 +38,15 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   for connecting producer passes to consumers and routing resources through
   inserted passes, so compiler code can build graph edges without open-coded
   pass-list surgery. — GPT-5
-- **Typed graph postprocess AA state.** Graph-visible raster FXAA/SMAA passes
+- **Typed graph postprocess AA state.** Graph-visible FXAA/SMAA passes
   now serialize `post_process_aa` pass parameters at the JSON boundary and
   execute from typed C++ state rather than inferring the filter from a pass id.
   — GPT-5
-- **Graph-visible raster image AA passes.** Graph-backed rendercli raster
-  renders now compile `--post_aa fxaa` and `--post_aa smaa` into explicit
-  `raster_fxaa` / `raster_smaa` postprocess passes between raster beauty and
-  overlay/tonemap, while `--post_aa taa` remains on raster beauty until
-  temporal history resources are graph-owned. — GPT-5
+- **Graph-visible image AA passes.** Graph-backed renders now compile
+  `--post_aa fxaa` and `--post_aa smaa` into explicit `post_fxaa` /
+  `post_smaa` postprocess passes between beauty and overlay/tonemap for
+  raytracer, wireframe, and rasterizer executors, while `--post_aa taa` remains
+  on raster beauty until temporal history resources are graph-owned. — GPT-5
 - **Graph-visible raster pass state.** Raster-backed graph renders now compile
   rendercli raster controls into typed `raster_beauty` pass state and serialize
   that state at the JSON boundary, covering MSAA, MSAA shading, post-process
@@ -119,13 +119,13 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
-- **Modeler raster AA graph wiring.** Rasterizer preview FXAA/SMAA now compile
-  through shared `RenderIntent::postProcessAA` graph nodes, and the Modeler
-  raster render dialog now renders through the same graph path so post-AA and
-  shadow-map settings are not hidden in a separate direct-engine setup.
-  Choosing a rasterizer-only preview AA or shadow option now switches the live
-  preview to Rasterizer before recompiling the graph, so the Render Graph dock
-  immediately shows the requested nodes. — GPT-5
+- **Modeler AA graph wiring.** Preview FXAA/SMAA now compile through shared
+  `RenderIntent::postProcessAA` graph nodes for every live preview executor,
+  and the Modeler raster render dialog now renders through the same graph path
+  so post-AA and shadow-map settings are not hidden in a separate direct-engine
+  setup. Choosing rasterizer preview shadows still switches the live preview to
+  Rasterizer before recompiling the graph, so the Render Graph dock immediately
+  shows the requested shadow node. — GPT-5
 - **SMAA preview visibility.** The CPU SMAA approximation now detects diagonal
   edge axes in addition to horizontal and vertical edges and uses a stronger
   edge blend, making the Modeler raster preview visibly change when SMAA is
@@ -151,6 +151,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   when the effective graph is a beauty pass plus optional tonemap pass, so the
   preview widget can publish partial pixels while the frame is still rendering
   instead of waiting for final graph composition. — GPT-5
+- **Postprocess graph previews keep raytracer progress.** Graph-backed LDR
+  previews with downstream postprocess passes now render raytracer beauty into
+  the HDR graph resource and packed display buffer in one tile pass, so
+  FXAA/SMAA no longer make the Modeler preview wait for the whole raytraced
+  frame before showing partial output. — GPT-5
 - **Modeler graph preview startup crash.** `QtDisplay` now initializes its backing buffer after its default widget resize, and the Modeler graph preview compiles plans against that backing-buffer size, preventing graph color-resource copies from aborting on startup due to stale dimensions. — GPT-5
 - **Textbook image assets now publish with the static HTML build.** `rake docs:textbook:html` copies `docs/images` into `docs/html/textbook/images`, so rendered PNGs and graph SVG artifacts resolve when the textbook is served locally. — GPT-5
 - **Wireframe now clips edges crossing the near plane instead of dropping them.** `Wireframe::nearClipDepth()` defaults to `0.1`; edges with one endpoint behind that depth are shortened before projection, while edges fully behind it are skipped. — GPT-5

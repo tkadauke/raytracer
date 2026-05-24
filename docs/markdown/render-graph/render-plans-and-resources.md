@@ -205,14 +205,16 @@ describes the graph; the payload performs the pass.
 resource storage, the owning graph engine's render settings, cancellation
 state, and the active child-engine hook used for progress reporting. The
 built-in payloads currently cover whole-frame raytracer, rasterizer, and
-wireframe beauty passes plus the tonemap postprocess pass.
+wireframe beauty passes plus tonemap and image anti-aliasing postprocess
+passes.
 
 Payloads may also expose a display-buffer fast path. When the effective graph
-is just a whole-frame beauty pass followed by an optional tonemap pass, the
-graph engine can ask the beauty payload to render directly into the packed RGB
-display buffer. That preserves progressive preview behavior: a GUI polling the
-display buffer sees pixels as the wrapped engine finishes them, while the graph
-still keeps the declarative beauty-to-tonemap plan visible to the user.
+is a whole-frame raytracer beauty pass followed by downstream color passes, the
+graph engine can ask the beauty payload to render into both the HDR graph
+resource and the packed RGB display buffer. That preserves progressive preview
+behavior: a GUI polling the display buffer sees pixels as the raytracer finishes
+tiles, and later postprocess passes publish their filtered output without
+hiding the declarative graph from the user.
 
 ## <a id="validation-catches-graph-mistakes"></a>Validation catches graph mistakes
 `RenderPlan::validate()` walks the resource list and pass list and returns a
@@ -408,13 +410,14 @@ shadow node substitutes the default resource and prevents graph-controlled
 shadow enablement.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
-`RenderIntent::postProcessAA` asks the compiler to insert a `raster_fxaa` or
-`raster_smaa` postprocess pass that routes `beauty_color` through
-`post_aa_color` before overlay or tonemap. The pass stores typed
-`post_process_aa` parameters, so the exported graph does not rely on the pass
-id to know which filter to run. `--post_aa taa` remains on the raster beauty
-state for now because temporal AA needs rasterizer history, depth, and jitter
-resources that are not yet graph-owned.
+`RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or
+`post_smaa` postprocess pass that routes `beauty_color` through
+`post_aa_color` before overlay or tonemap for raytracer, wireframe, and
+rasterizer beauty passes. The pass stores typed `post_process_aa` parameters,
+so the exported graph does not rely on the pass id to know which filter to run.
+`--post_aa taa` remains on the raster beauty state for now because temporal AA
+needs rasterizer history, depth, and jitter resources that are not yet
+graph-owned.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's

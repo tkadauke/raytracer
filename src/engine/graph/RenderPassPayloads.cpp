@@ -117,6 +117,21 @@ namespace engine::graph {
       * Whole-frame beauty payload backed by the Whitted raytracer.
       */
     class RaytraceBeautyPass : public BeautyPassPayload {
+    public:
+      bool executeDisplayAndStore(RenderExecutionContext& context, Buffer<unsigned int>& buffer,
+                                  std::shared_ptr<render::Tonemap> tonemap) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        auto raytracer =
+          std::static_pointer_cast<::engine::raytracer::Raytracer>(createEngine(context));
+        prepareEngine(*raytracer, context.graph(), context.cancelled(), std::move(tonemap));
+        context.setActiveEngine(raytracer);
+        raytracer->render(context.storage().color(write.resource), buffer, raytracer->tonemap());
+        return true;
+      }
+
     private:
       std::shared_ptr<render::RenderEngine>
       createEngine(const RenderExecutionContext& context) const override {

@@ -90,27 +90,27 @@ namespace engine::graph {
     std::string postProcessAAPassId(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
-        return "raster_fxaa";
+        return "post_fxaa";
       case RenderPostProcessAA::SMAA:
-        return "raster_smaa";
+        return "post_smaa";
       case RenderPostProcessAA::None:
       case RenderPostProcessAA::TAA:
         break;
       }
-      return "raster_post_aa";
+      return "post_aa";
     }
 
     std::string postProcessAAPassName(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
-        return "Raster FXAA";
+        return "FXAA";
       case RenderPostProcessAA::SMAA:
-        return "Raster SMAA";
+        return "SMAA";
       case RenderPostProcessAA::None:
       case RenderPostProcessAA::TAA:
         break;
       }
-      return "Raster post-process AA";
+      return "Post-process AA";
     }
 
     std::shared_ptr<const RenderPassState> postProcessAAState(RenderPostProcessAA aa) {
@@ -200,7 +200,7 @@ namespace engine::graph {
       postAA.name = postProcessAAPassName(intent.postProcessAA);
       postAA.kind = RenderPassKind::PostProcess;
       postAA.executor = RenderExecutorKind::PostProcess;
-      postAA.features = {"main", "postprocess", "post_aa", "rasterizer",
+      postAA.features = {"main", "postprocess", "post_aa", executorFeature(executor),
                          toString(intent.postProcessAA)};
       postAA.reads.push_back({inputResource});
       postAA.writes.push_back({postAAColor.id});

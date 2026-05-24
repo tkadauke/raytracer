@@ -55,9 +55,9 @@ public slots:
   void setRasterizerPreviewShadowsEnabled(bool enabled);
   bool rasterizerPreviewShadowsEnabled() const;
 
-  /// Select image-space anti-aliasing for the live Rasterizer preview graph.
-  void setRasterizerPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa);
-  engine::graph::RenderPostProcessAA rasterizerPreviewPostProcessAA() const;
+  /// Select image-space anti-aliasing for the live preview graph.
+  void setPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa);
+  engine::graph::RenderPostProcessAA previewPostProcessAA() const;
 
   /// Toggle a graph-level wireframe overlay over the shaded live preview.
   void setWireframeOverlayEnabled(bool enabled);
@@ -79,6 +79,6 @@ private:
   std::shared_ptr<engine::raytracer::Raytracer> m_raytracerEngine;
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
-  engine::graph::RenderPostProcessAA m_rasterizerPreviewPostProcessAA;
+  engine::graph::RenderPostProcessAA m_previewPostProcessAA;
   bool m_wireframeOverlayEnabled{false};
 };

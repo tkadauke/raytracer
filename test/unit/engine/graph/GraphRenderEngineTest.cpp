@@ -104,7 +104,7 @@ namespace GraphRenderEngineTest {
       std::make_shared<render::ConstantColorTexture>(color));
   }
 
-  std::shared_ptr<render::Scene> highContrastRasterScene() {
+  std::shared_ptr<render::Scene> highContrastScene() {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord::black());
     auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 1.25);
@@ -113,13 +113,14 @@ namespace GraphRenderEngineTest {
     return scene;
   }
 
-  void renderRasterGraph(RenderPostProcessAA postAA, Buffer<unsigned int>& buffer) {
+  void renderGraph(RenderExecutorPreference executor, RenderPostProcessAA postAA,
+                   Buffer<unsigned int>& buffer) {
     RenderIntent intent;
-    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultExecutor = executor;
     intent.postProcessAA = postAA;
 
     RenderGraphCompiler compiler;
-    GraphRenderEngine engine(camera(), highContrastRasterScene());
+    GraphRenderEngine engine(camera(), highContrastScene());
     engine.setPlan(compiler.compile({64, 64, 1}, intent));
     engine.render(buffer);
   }
@@ -334,6 +335,59 @@ namespace GraphRenderEngineTest {
     renderThread.join();
   }
 
+  TEST(GraphRenderEngine, LdrRenderPublishesDisplayPixelsBeforePostProcessGraphCompletes) {
+    auto scene = std::make_shared<render::Scene>();
+    auto material = std::make_shared<BlockingMaterial>();
+    auto sphere = std::make_shared<render::Sphere>(Vector3d::null, 100.0);
+    sphere->setMaterial(material);
+    scene->add(sphere);
+
+    RenderPlan plan;
+    plan.addResource(colorResource("hdr_color", RenderResourceLifetime::Transient, 1, 2));
+    plan.addResource(colorResource("post_aa_color", RenderResourceLifetime::Transient, 1, 2));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported, 1, 2));
+
+    RenderPassNode beauty;
+    beauty.id = "beauty";
+    beauty.kind = RenderPassKind::Beauty;
+    beauty.executor = RenderExecutorKind::Raytracer;
+    beauty.writes.push_back({"hdr_color"});
+    plan.addPass(beauty);
+
+    RenderPassNode postAA;
+    postAA.id = "post_fxaa";
+    postAA.kind = RenderPassKind::PostProcess;
+    postAA.executor = RenderExecutorKind::PostProcess;
+    postAA.features.push_back("post_aa");
+    postAA.features.push_back("fxaa");
+    postAA.reads.push_back({"hdr_color"});
+    postAA.writes.push_back({"post_aa_color"});
+    plan.addPass(postAA);
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"post_aa_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+
+    Buffer<unsigned int> buffer(1, 2);
+    buffer.clear(0);
+
+    std::thread renderThread([&] { engine.render(buffer); });
+    const bool renderBlockedOnSecondPixel = material->waitForSecondCall(std::chrono::seconds(2));
+
+    EXPECT_TRUE(renderBlockedOnSecondPixel);
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75).rgb(), buffer[0][0]);
+
+    material->releaseSecondCall();
+    renderThread.join();
+  }
+
   TEST(GraphRenderEngine, ExecutesWireframeOverlayPassOverBeautyColor) {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord(0.1, 0.2, 0.3));
@@ -377,17 +431,25 @@ namespace GraphRenderEngineTest {
   TEST(GraphRenderEngine, ExecutesRasterFxaaPostProcessPassInLdrRender) {
     Buffer<unsigned int> aliased(64, 64);
     Buffer<unsigned int> filtered(64, 64);
-    renderRasterGraph(RenderPostProcessAA::None, aliased);
-    renderRasterGraph(RenderPostProcessAA::FXAA, filtered);
+    renderGraph(RenderExecutorPreference::Rasterizer, RenderPostProcessAA::None, aliased);
+    renderGraph(RenderExecutorPreference::Rasterizer, RenderPostProcessAA::FXAA, filtered);
 
     EXPECT_GT(countDifferingPixels(aliased, filtered), 0);
   }
 
-  TEST(GraphRenderEngine, ExecutesRasterSmaaPostProcessPassInLdrRender) {
+  TEST(GraphRenderEngine, ExecutesRaytracedSmaaPostProcessPassInLdrRender) {
     Buffer<unsigned int> aliased(64, 64);
     Buffer<unsigned int> filtered(64, 64);
-    renderRasterGraph(RenderPostProcessAA::None, aliased);
-    renderRasterGraph(RenderPostProcessAA::SMAA, filtered);
+    renderGraph(RenderExecutorPreference::Raytracer, RenderPostProcessAA::None, aliased);
+    renderGraph(RenderExecutorPreference::Raytracer, RenderPostProcessAA::SMAA, filtered);
+    EXPECT_GT(countDifferingPixels(aliased, filtered), 0);
+  }
+
+  TEST(GraphRenderEngine, ExecutesWireframeSmaaPostProcessPassInLdrRender) {
+    Buffer<unsigned int> aliased(64, 64);
+    Buffer<unsigned int> filtered(64, 64);
+    renderGraph(RenderExecutorPreference::Wireframe, RenderPostProcessAA::None, aliased);
+    renderGraph(RenderExecutorPreference::Wireframe, RenderPostProcessAA::SMAA, filtered);
 
     EXPECT_GT(countDifferingPixels(aliased, filtered), 0);
   }

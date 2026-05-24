@@ -33,6 +33,8 @@ set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
+set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
+set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
@@ -248,8 +250,8 @@ endif()
 if(NOT scene_intent_graph MATCHES "wireframe_overlay")
   message(FATAL_ERROR "scene render intent did not add wireframe_overlay: ${scene_intent_graph}")
 endif()
-if(NOT scene_intent_graph MATCHES "raster_smaa")
-  message(FATAL_ERROR "scene render intent did not add raster_smaa: ${scene_intent_graph}")
+if(NOT scene_intent_graph MATCHES "post_smaa")
+  message(FATAL_ERROR "scene render intent did not add post_smaa: ${scene_intent_graph}")
 endif()
 
 rendercli_run(
@@ -397,8 +399,8 @@ endif()
 if(NOT raster_state_graph MATCHES "per_fragment")
   message(FATAL_ERROR "raster state graph did not contain MSAA shading mode: ${raster_state_graph}")
 endif()
-if(NOT raster_state_graph MATCHES "raster_fxaa")
-  message(FATAL_ERROR "raster state graph did not contain raster_fxaa pass: ${raster_state_graph}")
+if(NOT raster_state_graph MATCHES "post_fxaa")
+  message(FATAL_ERROR "raster state graph did not contain post_fxaa pass: ${raster_state_graph}")
 endif()
 if(NOT raster_state_graph MATCHES "raster_preview_shadows")
   message(FATAL_ERROR "raster state graph did not contain preview shadow pass: ${raster_state_graph}")
@@ -432,6 +434,36 @@ if(NOT wireframe_state_graph MATCHES "\"lod\"")
   message(FATAL_ERROR "wireframe state graph did not contain lod state: ${wireframe_state_graph}")
 endif()
 
+rendercli_run(
+  NAME "rendercli compiles raytracer FXAA as graph postprocess"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --render_graph_only --render_graph_format text
+    --width 32 --height 16 --post_aa fxaa
+    "${static_scene}" "${raytracer_post_aa_plan}"
+)
+file(READ "${raytracer_post_aa_plan}" raytracer_post_aa_graph)
+if(NOT raytracer_post_aa_graph MATCHES "raytrace_beauty")
+  message(FATAL_ERROR "raytracer post-AA graph did not contain raytrace_beauty: ${raytracer_post_aa_graph}")
+endif()
+if(NOT raytracer_post_aa_graph MATCHES "post_fxaa")
+  message(FATAL_ERROR "raytracer post-AA graph did not contain post_fxaa: ${raytracer_post_aa_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli compiles wireframe SMAA as graph postprocess"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --render_graph_only --render_graph_format text
+    --width 32 --height 16 --post_aa smaa
+    "${static_scene}" "${wireframe_post_aa_plan}"
+)
+file(READ "${wireframe_post_aa_plan}" wireframe_post_aa_graph)
+if(NOT wireframe_post_aa_graph MATCHES "wireframe_beauty")
+  message(FATAL_ERROR "wireframe post-AA graph did not contain wireframe_beauty: ${wireframe_post_aa_graph}")
+endif()
+if(NOT wireframe_post_aa_graph MATCHES "post_smaa")
+  message(FATAL_ERROR "wireframe post-AA graph did not contain post_smaa: ${wireframe_post_aa_graph}")
+endif()
+
 set(raster_taa_plan "${TEST_OUTPUT_DIR}/raster_taa_plan.json")
 rendercli_run(
   NAME "rendercli keeps raster TAA in beauty pass state"
@@ -449,11 +481,11 @@ if(NOT raster_taa_graph MATCHES "taa")
 endif()
 
 rendercli_run(
-  NAME "rendercli disables graph-visible raster FXAA pass"
-  STDOUT_MATCHES "raster_fxaa \\[postprocess/postprocess\\] disabled"
+  NAME "rendercli disables graph-visible FXAA pass"
+  STDOUT_MATCHES "post_fxaa \\[postprocess/postprocess\\] disabled"
   COMMAND
     "${RENDERCLI}" --engine raster --render_graph_only --render_graph_format text
-    --width 32 --height 16 --post_aa fxaa --disable_pass raster_fxaa
+    --width 32 --height 16 --post_aa fxaa --disable_pass post_fxaa
     "${static_scene}"
 )
 

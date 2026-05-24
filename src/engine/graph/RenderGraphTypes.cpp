@@ -684,9 +684,7 @@ namespace engine::graph {
   }
 
   bool RenderIntent::usesGraphImagePostProcessAA() const {
-    return defaultExecutorKind() == RenderExecutorKind::Rasterizer &&
-           (postProcessAA == RenderPostProcessAA::FXAA ||
-            postProcessAA == RenderPostProcessAA::SMAA);
+    return postProcessAA == RenderPostProcessAA::FXAA || postProcessAA == RenderPostProcessAA::SMAA;
   }
 
   bool RenderResourceDescriptor::hasImageShape() const {

@@ -448,7 +448,7 @@ namespace RenderPlanTest {
     plan.addPass(tonemap);
 
     auto filtered = colorResource("post_aa_color", RenderResourceLifetime::Transient);
-    auto fxaa = pass("raster_fxaa", RenderPassKind::PostProcess);
+    auto fxaa = pass("post_fxaa", RenderPassKind::PostProcess);
     fxaa.executor = RenderExecutorKind::PostProcess;
     fxaa.reads.push_back({"beauty_color"});
     fxaa.writes.push_back({"post_aa_color"});
@@ -459,7 +459,7 @@ namespace RenderPlanTest {
     EXPECT_EQ("post_aa_color", plan.resources()[2].id);
     ASSERT_EQ(3u, plan.passes().size());
     EXPECT_EQ("raster_beauty", plan.passes()[0].id);
-    EXPECT_EQ("raster_fxaa", plan.passes()[1].id);
+    EXPECT_EQ("post_fxaa", plan.passes()[1].id);
     EXPECT_EQ("tonemap", plan.passes()[2].id);
     ASSERT_EQ(1u, plan.passes()[2].reads.size());
     EXPECT_EQ("post_aa_color", plan.passes()[2].reads[0].resource);
@@ -516,7 +516,7 @@ namespace RenderPlanTest {
     beauty.writes.push_back({"beauty_color"});
     plan.addPass(beauty);
 
-    auto fxaa = pass("raster_fxaa", RenderPassKind::PostProcess);
+    auto fxaa = pass("post_fxaa", RenderPassKind::PostProcess);
     fxaa.executor = RenderExecutorKind::PostProcess;
     fxaa.features = {"post_aa", "fxaa"};
     fxaa.reads.push_back({"beauty_color"});

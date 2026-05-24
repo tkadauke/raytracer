@@ -79,12 +79,11 @@ overrides the graph intent's default executor, and
 structural view mode. `--render_graph_wireframe_overlay` asks the compiler to
 insert a graph-visible wireframe overlay pass between the beauty pass and the
 tonemap pass.
-For raster graph renders, `--post_aa fxaa` and `--post_aa smaa` are also
-graph-visible: the shared compiler inserts a postprocess pass after
-`raster_beauty` rather than hiding the filter inside the rasterizer engine, and
-the pass's typed `post_process_aa` parameters select the replayed filter.
-`--post_aa taa` stays on the raster beauty pass until temporal history
-resources are graph resources.
+For graph renders, `--post_aa fxaa` and `--post_aa smaa` are also
+graph-visible: the shared compiler inserts a postprocess pass after the beauty
+pass rather than hiding the filter inside one engine, and the pass's typed
+`post_process_aa` parameters select the replayed filter. `--post_aa taa` stays
+on the raster beauty pass until temporal history resources are graph resources.
 Raster preview shadows compile as a `raster_preview_shadows` node feeding the
 beauty pass; disabling that node leaves the raster beauty pass running without
 graph-controlled shadows.
@@ -138,13 +137,12 @@ The editor can swap the live preview intent between Raytracer, Rasterizer, and
 [Wireframe](../appendix/a-glossary.md#w). The preview itself is graph-backed:
 the selected kind becomes the default executor in the compiled render graph,
 while the scene and camera stay shared so the preview keeps looking at the same
-thing across the swap. Rasterizer preview shadows and rasterizer preview
-FXAA/SMAA are graph-visible preview options, so enabling them adds pass nodes
-to the same Render Graph dock used by the preview. Choosing one of those
-rasterizer-only preview options also switches the live preview to Rasterizer
-before recompiling the graph, so the dock reflects the selected option
-immediately. `Render -> Preview Tonemap` selects the operator used by the
-graph's tonemap node.
+thing across the swap. Rasterizer preview shadows and preview FXAA/SMAA are
+graph-visible preview options, so enabling them adds pass nodes to the same
+Render Graph dock used by the preview. FXAA/SMAA apply to the selected preview
+executor; rasterizer preview shadows switch the live preview to Rasterizer
+before recompiling because the shadow pass is raster-specific. `Render ->
+Preview Tonemap` selects the operator used by the graph's tonemap node.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview

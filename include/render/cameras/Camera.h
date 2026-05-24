@@ -151,6 +151,16 @@ namespace render {
                         std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect) const;
 
     /**
+      * Render one tile into both an HDR graph resource and a packed-RGB display
+      * buffer. This preserves the progressive-display property of the LDR path
+      * while still keeping the HDR color data needed by downstream graph passes
+      * such as FXAA/SMAA.
+      */
+    virtual void render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
+                        Buffer<unsigned int>& displayBuffer,
+                        std::shared_ptr<render::Tonemap> tonemap, const Rect<int>& rect) const;
+
+    /**
       * Generate a primary ray for pixel `(x, y)`.
       *
       * The `stream` argument supplies stratified Monte-Carlo samples

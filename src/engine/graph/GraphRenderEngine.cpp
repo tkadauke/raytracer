@@ -7,6 +7,7 @@
 #include "render/cameras/Camera.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
+#include "render/tonemap/Tonemap.h"
 
 #include <algorithm>
 #include <atomic>
@@ -66,6 +67,16 @@ namespace engine::graph {
       for (int y = 0; y != source.height(); ++y) {
         for (int x = 0; x != source.width(); ++x) {
           destination[y][x] = source[y][x].rgb();
+        }
+      }
+    }
+
+    void packColorBuffer(const Buffer<Colord>& source, Buffer<unsigned int>& destination,
+                         const std::shared_ptr<render::Tonemap>& tonemap) {
+      requireMatchingSize(source, destination, "color pack");
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          destination[y][x] = (tonemap ? tonemap->apply(source[y][x]) : source[y][x]).rgb();
         }
       }
     }
@@ -172,6 +183,40 @@ namespace engine::graph {
       }
 
       return std::nullopt;
+    }
+
+    bool planAppliesTonemap(const RenderPlan& plan) {
+      return std::any_of(plan.passes().begin(), plan.passes().end(), [](const auto& pass) {
+        return pass.enabled && pass.kind == RenderPassKind::Tonemap &&
+               pass.executor == RenderExecutorKind::PostProcess;
+      });
+    }
+
+    std::shared_ptr<render::Tonemap> displayTonemapForPlan(const RenderPlan& plan,
+                                                           const GraphRenderEngine& graph) {
+      if (planAppliesTonemap(plan)) {
+        return graph.tonemap();
+      }
+      return std::make_shared<render::LinearTonemap>();
+    }
+
+    void publishWritesForDisplay(const RenderPassNode& pass, const RenderPlan& plan,
+                                 RenderResourceStorage& storage, Buffer<unsigned int>& display,
+                                 const std::shared_ptr<render::Tonemap>& displayTonemap) {
+      const auto& output = plan.exportedColorResource();
+      for (const auto& write : pass.writes) {
+        RenderResource& resource = storage.resource(write.resource);
+        if (!resource.colorBacked()) {
+          continue;
+        }
+
+        const Buffer<Colord>& source = resource.color();
+        if (write.resource == output.id) {
+          packColorBuffer(source, display);
+        } else if (pass.kind != RenderPassKind::Tonemap) {
+          packColorBuffer(source, display, displayTonemap);
+        }
+      }
     }
 
     void requireMatchingOutputSize(const RenderPlan& plan, int width, int height) {
@@ -360,25 +405,62 @@ namespace engine::graph {
       }
     }
 
-    Buffer<Colord> graphOutput(buffer.width(), buffer.height());
-    const bool hadExplicitPlan = p->explicitPlan.has_value();
-    RenderPlan previousPlan = hadExplicitPlan ? *p->explicitPlan : RenderPlan();
-    setPlan(plan);
-    struct ExplicitPlanReset {
-      GraphRenderEngine& engine;
-      bool hadExplicitPlan;
-      RenderPlan previousPlan;
-      ~ExplicitPlanReset() {
-        if (hadExplicitPlan) {
-          engine.setPlan(std::move(previousPlan));
-        } else {
-          engine.clearPlan();
-        }
-      }
-    } reset{*this, hadExplicitPlan, std::move(previousPlan)};
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+    const auto displayTonemap = displayTonemapForPlan(plan, *this);
 
-    render(graphOutput);
-    packColorBuffer(graphOutput, buffer);
+    auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {
+      std::lock_guard<std::mutex> lock(p->activeEngineMutex);
+      p->activeEngine = std::move(engine);
+    };
+
+    for (const auto& pass : plan.passes()) {
+      if (!pass.enabled) {
+        switch (pass.disabledBehavior) {
+        case DisabledBehavior::SubstituteDefault:
+          substituteDefaultOutput(pass, storage, *this);
+          publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+          break;
+        case DisabledBehavior::Passthrough:
+          passthroughColorOutput(pass, storage);
+          publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+          break;
+        case DisabledBehavior::CullDependents:
+        case DisabledBehavior::Error:
+          break;
+        }
+        continue;
+      }
+
+      auto payload = RenderPassPayload::createBuiltin(pass);
+      if (!payload) {
+        throw std::runtime_error("GraphRenderEngine cannot execute enabled pass '" + pass.id +
+                                 "' with kind '" + toString(pass.kind) + "' and executor '" +
+                                 toString(pass.executor) + "'");
+      }
+
+      RenderExecutionContext context(pass, storage, *this, p->cancelled.load(), setActiveEngine);
+      struct ActiveEngineReset {
+        RenderExecutionContext& context;
+        ~ActiveEngineReset() {
+          context.clearActiveEngine();
+        }
+      } reset{context};
+
+      const bool executedForDisplay =
+        pass.kind == RenderPassKind::Beauty && pass.executor == RenderExecutorKind::Raytracer &&
+        payload->executeDisplayAndStore(context, buffer, displayTonemap);
+      if (!executedForDisplay) {
+        payload->execute(context);
+      }
+
+      for (const auto& write : pass.writes) {
+        storage.resource(write.resource).markProduced();
+      }
+      publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
+    }
+
+    packColorBuffer(storage.color(plan.exportedColorResource().id), buffer);
   }
 
   void GraphRenderEngine::cancel() {

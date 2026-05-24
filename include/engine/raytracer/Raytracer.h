@@ -103,6 +103,15 @@ namespace engine::raytracer {
     virtual void render(Buffer<unsigned int>& buffer) override;
 
     /**
+      * Tile-and-thread render that writes the same ray-traced pixels to both an
+      * HDR accumulator and a packed-RGB display buffer. Render-graph preview
+      * uses this when downstream color passes still need HDR input, but the UI
+      * should continue seeing progressive raytracer output while tiles finish.
+      */
+    void render(Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
+                std::shared_ptr<render::Tonemap> displayTonemap);
+
+    /**
       * Single-ray geometry probe. Returns the `Primitive*` the ray
       * hits first, or `nullptr` if the ray misses everything. Does
       * not shade the hit, so it's cheap enough for interactive

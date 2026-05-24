@@ -309,3 +309,74 @@ void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<unsigne
       break;
   }
 }
+
+void Camera::render(std::shared_ptr<render::RayCaster> raycaster, Buffer<Colord>& hdrBuffer,
+                    Buffer<unsigned int>& displayBuffer, std::shared_ptr<render::Tonemap> tonemap,
+                    const Recti& rect) const {
+  if (isCancelled())
+    return;
+
+  auto plane = viewPlane();
+
+  // FitExact: bar area stays at the buffers' cleared value (black).
+  // Only render pixels inside the inner rect.
+  Recti actualRect = rect;
+  if (plane->aspectMode() == render::AspectMode::FitExact) {
+    const Recti& inner = plane->innerRect();
+    int left = std::max(rect.left(), inner.left());
+    int top = std::max(rect.top(), inner.top());
+    int right = std::min(rect.right(), inner.right());
+    int bottom = std::min(rect.bottom(), inner.bottom());
+    if (left >= right || top >= bottom)
+      return;
+    actualRect = Recti(left, top, right - left, bottom - top);
+  }
+
+  auto sampler = plane->sampler();
+  const int samplesPerPixel = sampler->numSamples();
+  const double sampleScale = 1.0 / samplesPerPixel;
+
+  for (render::ViewPlane::Iterator pixel = plane->begin(actualRect), end = plane->end(actualRect);
+       pixel != end; ++pixel) {
+    if (isCancelled())
+      break;
+
+    if (m_showProgressIndicators) {
+      plot(hdrBuffer, actualRect, pixel, Colord(1, 0, 0));
+      plotRGB(displayBuffer, actualRect, pixel, 0xffff0000);
+    }
+
+    const std::uint64_t pixelHash = static_cast<std::uint64_t>(pixel.column()) * 73856093ull ^
+                                    static_cast<std::uint64_t>(pixel.row()) * 19349663ull;
+
+    Colord pixelColor;
+    for (int sampleIndex = 0; sampleIndex != samplesPerPixel; ++sampleIndex) {
+      if (isCancelled())
+        break;
+
+      auto stream = sampler->stream(sampleIndex, pixelHash);
+
+      Vector2d subPixel = stream->next2D();
+      Vector2d xy = pixel.pixel() + subPixel;
+      double timeSample = stream->next1D();
+
+      Rayd ray = rayForPixel(xy.x(), xy.y(), *stream);
+      if (ray.direction().isDefined()) {
+        render::State state;
+        state.timeSample = timeSample;
+        pixelColor += raycaster->rayColor(ray, state);
+      }
+    }
+
+    if (isCancelled())
+      break;
+
+    Colord averaged = pixelColor * sampleScale;
+    plot(hdrBuffer, actualRect, pixel, averaged);
+    unsigned int rgb = (tonemap ? tonemap->apply(averaged) : averaged).rgb();
+    plotRGB(displayBuffer, actualRect, pixel, rgb);
+
+    if (isCancelled())
+      break;
+  }
+}

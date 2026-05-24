@@ -87,11 +87,11 @@ namespace RenderGraphTypesTest {
 
   TEST(RenderIntent, ReadsPostProcessAAFromSceneJson) {
     QJsonObject json;
-    json["defaultExecutor"] = "rasterizer";
     json["postProcessAA"] = "fxaa";
 
     const RenderIntent intent = RenderIntent::fromJson(json);
 
+    EXPECT_EQ(RenderExecutorKind::Raytracer, intent.defaultExecutorKind());
     EXPECT_EQ(RenderPostProcessAA::FXAA, intent.postProcessAA);
     EXPECT_TRUE(intent.usesGraphImagePostProcessAA());
   }

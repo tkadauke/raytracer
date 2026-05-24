@@ -64,7 +64,7 @@ namespace RenderWindowTest {
       std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(renderWidget->renderEngine());
     ASSERT_NE(nullptr, graph);
     ASSERT_NE(nullptr, graph->explicitPlan());
-    EXPECT_NE(nullptr, graph->explicitPlan()->findPass("raster_fxaa"));
+    EXPECT_NE(nullptr, graph->explicitPlan()->findPass("post_fxaa"));
 
     window.stop();
   }

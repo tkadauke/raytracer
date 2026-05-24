@@ -49,5 +49,17 @@ namespace engine::graph {
                                 std::shared_ptr<render::Tonemap>) {
       return false;
     }
+
+    /**
+      * Optional display-buffer path that also writes the pass's graph resources.
+      *
+      * Beauty payloads can use this when the graph has downstream passes that
+      * need HDR color data, while an interactive LDR render still needs partial
+      * display pixels before the full graph completes.
+      */
+    virtual bool executeDisplayAndStore(RenderExecutionContext&, Buffer<unsigned int>&,
+                                        std::shared_ptr<render::Tonemap>) {
+      return false;
+    }
   };
 }
