@@ -36,8 +36,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   engine mode. — GPT-5
 - **RenderPlan graph queries.** `RenderPlan` now exposes typed lookup helpers
   for pass ids, resource ids, resource producers, resource consumers, and
-  pass-to-pass dependencies, giving later graph-rewrite code and inspection
-  tools a single plan-owned API for dependency queries. — GPT-5
+  declared pass-to-pass dependencies, giving later graph-rewrite code and
+  inspection tools a single plan-owned API for dependency queries. — GPT-5
 - **RenderPlan edge construction.** `RenderPlan` now exposes plan-owned helpers
   for adding resource producers, connecting producer passes to consumers, and
   routing resources through inserted passes, so compiler code can build graph

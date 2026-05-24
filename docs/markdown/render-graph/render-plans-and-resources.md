@@ -196,7 +196,7 @@ producer/consumer edges. A replayed JSON plan can declare `tonemap` before
 `beauty`, for example, as long as `beauty` writes the resource that `tonemap`
 reads. Validation still catches missing producers, disabled producers that
 cannot substitute output, duplicate writers, and dependency cycles.
-Tools can inspect those same pass-to-pass edges through
+Tools can inspect declared pass-to-pass edges through
 `RenderPlan::dependencies()`.
 
 The pass declaration is separate from execution code. Executor-specific work

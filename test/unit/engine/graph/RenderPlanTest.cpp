@@ -361,6 +361,12 @@ namespace RenderPlanTest {
 
     ASSERT_FALSE(validation.valid());
     EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::DisabledDependency));
+
+    const auto dependencies = plan.dependencies();
+    ASSERT_EQ(1u, dependencies.size());
+    EXPECT_EQ("shadow", dependencies.front().producer->id);
+    EXPECT_EQ("main", dependencies.front().consumer->id);
+    EXPECT_EQ("shadow_mask", dependencies.front().resource);
   }
 
   TEST(RenderPlan, CullDependentsOverrideDisablesTransitiveConsumers) {

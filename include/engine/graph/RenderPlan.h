@@ -49,7 +49,7 @@ namespace engine::graph {
   };
 
   /**
-    * One pass-to-pass dependency implied by a resource edge.
+    * One declared pass-to-pass dependency implied by a resource edge.
     */
   struct RenderPassDependency {
     const RenderPassNode* producer;

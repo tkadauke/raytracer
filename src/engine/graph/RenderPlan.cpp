@@ -154,10 +154,6 @@ namespace engine::graph {
 
     std::vector<RenderPassDependency> result;
     for (const auto& consumer : m_passes) {
-      if (!passReadsWhenExecuted(consumer)) {
-        continue;
-      }
-
       for (const auto& read : consumer.reads) {
         const auto producerIt = producerByResource.find(read.resource);
         if (producerIt == producerByResource.end()) {
@@ -165,7 +161,7 @@ namespace engine::graph {
         }
 
         const RenderPassNode* producer = producerIt->second;
-        if (producer == &consumer || !passProducesWhenExecuted(*producer)) {
+        if (producer == &consumer) {
           continue;
         }
 
@@ -187,6 +183,11 @@ namespace engine::graph {
     std::vector<std::set<std::size_t>> dependents(m_passes.size());
     std::vector<std::size_t> dependencyCounts(m_passes.size(), 0);
     for (const RenderPassDependency& dependency : dependencies()) {
+      if (!passReadsWhenExecuted(*dependency.consumer) ||
+          !passProducesWhenExecuted(*dependency.producer)) {
+        continue;
+      }
+
       const auto producerIt = passIndexes.find(dependency.producer);
       const auto consumerIt = passIndexes.find(dependency.consumer);
       if (producerIt == passIndexes.end() || consumerIt == passIndexes.end()) {
