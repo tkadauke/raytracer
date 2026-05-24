@@ -53,6 +53,14 @@ namespace engine::graph {
     return m_descriptor;
   }
 
+  bool RenderResource::substituteDefault() const {
+    return m_substituteDefault;
+  }
+
+  void RenderResource::markProduced() {
+    m_substituteDefault = false;
+  }
+
   bool RenderResource::hasBuffer() const {
     return false;
   }
@@ -62,6 +70,7 @@ namespace engine::graph {
   }
 
   void RenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
+    m_substituteDefault = true;
   }
 
   Buffer<Colord>& RenderResource::color() {
@@ -116,6 +125,7 @@ namespace engine::graph {
 
   void ColorRenderResource::clearSubstituteDefault(RenderPassKind passKind,
                                                    const Colord& beautyDefaultColor) {
+    RenderResource::clearSubstituteDefault(passKind, beautyDefaultColor);
     m_buffer.clear(colorDefault(descriptor(), passKind, beautyDefaultColor));
   }
 
@@ -136,7 +146,9 @@ namespace engine::graph {
     return true;
   }
 
-  void DepthRenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
+  void DepthRenderResource::clearSubstituteDefault(RenderPassKind passKind,
+                                                   const Colord& beautyDefaultColor) {
+    RenderResource::clearSubstituteDefault(passKind, beautyDefaultColor);
     m_buffer.clear(std::numeric_limits<double>::infinity());
   }
 
@@ -157,7 +169,9 @@ namespace engine::graph {
     return true;
   }
 
-  void StencilRenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
+  void StencilRenderResource::clearSubstituteDefault(RenderPassKind passKind,
+                                                     const Colord& beautyDefaultColor) {
+    RenderResource::clearSubstituteDefault(passKind, beautyDefaultColor);
     m_buffer.clear(0);
   }
 
@@ -178,7 +192,9 @@ namespace engine::graph {
     return true;
   }
 
-  void ObjectIdRenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
+  void ObjectIdRenderResource::clearSubstituteDefault(RenderPassKind passKind,
+                                                      const Colord& beautyDefaultColor) {
+    RenderResource::clearSubstituteDefault(passKind, beautyDefaultColor);
     m_buffer.clear(0);
   }
 

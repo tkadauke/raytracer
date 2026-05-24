@@ -332,7 +332,10 @@ Descriptors with `RenderResourceDomain::GPU` are still recorded, but
 `std::out_of_range` when the id is missing or when the descriptor does not have
 that concrete CPU buffer. Execution code can also ask for the resource object
 directly through `resource(id)` and use virtual capabilities instead of
-switching on `RenderResourceType`.
+switching on `RenderResourceType`. A runtime resource also records whether its
+current contents came from `SubstituteDefault`; passes can therefore
+distinguish a real upstream product from a graph-supplied default without
+parsing the plan again.
 
 ## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits beauty, overlay, and tonemap passes
 [`RenderGraphCompiler`](../../../include/engine/graph/RenderGraphCompiler.h)

@@ -96,6 +96,7 @@ namespace engine::graph {
         if (&source != &destination) {
           copyColorBuffer(source, destination);
         }
+        storage.resource(write.resource).markProduced();
       }
     }
 
@@ -302,6 +303,9 @@ namespace engine::graph {
       } reset{context};
 
       payload->execute(context);
+      for (const auto& write : pass.writes) {
+        storage.resource(write.resource).markProduced();
+      }
     }
 
     copyColorBuffer(storage.color(plan.exportedColorResource().id), buffer);

@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph resource substitution provenance.** Runtime graph resources now record
+  whether their current contents came from disabled-pass substitute-default
+  behavior or from a normal producer/passthrough, giving later passes a typed
+  way to distinguish real graph inputs from defaults. — GPT-5
 - **Graph-visible wireframe pass state.** Wireframe beauty and overlay graph
   passes now carry typed pass state, and graph-backed rendercli replays
   `--lod` through that state instead of only applying it in direct wireframe

@@ -62,6 +62,24 @@ namespace RenderResourceStorageTest {
     EXPECT_THROW(storage.descriptor("missing"), std::out_of_range);
   }
 
+  TEST(RenderResourceStorage, TracksSubstituteDefaultContents) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("color", RenderResourceType::Color),
+    });
+
+    EXPECT_FALSE(storage.resource("color").substituteDefault());
+
+    storage.resource("color").clearSubstituteDefault(RenderPassKind::Beauty, Colord(0.1, 0.2, 0.3));
+
+    EXPECT_TRUE(storage.resource("color").substituteDefault());
+    EXPECT_EQ(Colord(0.1, 0.2, 0.3), storage.color("color")[0][0]);
+
+    storage.resource("color").markProduced();
+
+    EXPECT_FALSE(storage.resource("color").substituteDefault());
+  }
+
   TEST(RenderResourceStorage, ClearDropsDescriptorsAndBuffers) {
     RenderResourceStorage storage;
     storage.allocate({

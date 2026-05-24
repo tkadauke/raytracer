@@ -26,6 +26,18 @@ namespace engine::graph {
     const RenderResourceDescriptor& descriptor() const;
 
     /**
+      * @returns true when the current contents were written by disabled-pass
+      * substitute-default behavior instead of a normal producer.
+      */
+    bool substituteDefault() const;
+
+    /**
+      * Marks this resource as written by a normal enabled producer or by a
+      * disabled passthrough copy.
+      */
+    void markProduced();
+
+    /**
       * @returns true when this resource owns a concrete CPU buffer.
       */
     virtual bool hasBuffer() const;
@@ -57,6 +69,7 @@ namespace engine::graph {
     std::out_of_range missingBuffer(const char* typeName) const;
 
     RenderResourceDescriptor m_descriptor;
+    bool m_substituteDefault{false};
   };
 
   /**
