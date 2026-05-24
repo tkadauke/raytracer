@@ -144,6 +144,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph live highlighting.** The graph view now waits until a
+  pass has been executing for roughly 500 ms before showing live running state,
+  so camera movement, frame scrubbing, and resize-triggered preview renders no
+  longer flicker through short pass updates. — GPT-5
 - **Render graph dependent culling.** Applying graph overrides to a
   `CullDependents` pass now disables downstream consumers transitively before
   validation, so graph inspection can show the effective culled subgraph instead

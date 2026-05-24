@@ -16,6 +16,8 @@
 #include "test/helpers/Slot.h"
 
 #include <QApplication>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QGraphicsItem>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
@@ -23,6 +25,9 @@
 #include <QLabel>
 #include <QTreeWidget>
 #include <QWidget>
+
+#include <chrono>
+#include <thread>
 
 namespace RenderGraphInspectorWidgetTest {
   using namespace engine::graph;
@@ -155,6 +160,16 @@ namespace RenderGraphInspectorWidgetTest {
       }
     }
     return false;
+  }
+
+  void processEventsFor(int milliseconds) {
+    QElapsedTimer timer;
+    timer.start();
+    while (timer.elapsed() < milliseconds) {
+      QApplication::processEvents(QEventLoop::AllEvents, 20);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    QApplication::processEvents(QEventLoop::AllEvents, 20);
   }
 
   void selectPass(RenderGraphInspectorWidget& widget, const QString& passId) {
@@ -291,7 +306,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Invalid plan"));
   }
 
-  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowLiveExecutionStateOnGraphNodes) {
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldDelayLiveExecutionStateOnGraphNodes) {
     RenderGraphInspectorWidget widget;
     widget.setPlan(twoPassPlan());
 
@@ -299,6 +314,11 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, graph);
 
     widget.passExecutionStarted(QStringLiteral("raytrace_beauty"));
+    QGraphicsItem* immediate = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, immediate);
+    EXPECT_EQ(QString("idle"), immediate->data(2).toString());
+
+    processEventsFor(560);
     QGraphicsItem* running = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
     ASSERT_NE(nullptr, running);
     EXPECT_EQ(QString("running"), running->data(2).toString());
@@ -309,6 +329,22 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("completed"), completed->data(2).toString());
 
     widget.clearExecutionState();
+    QGraphicsItem* idle = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, idle);
+    EXPECT_EQ(QString("idle"), idle->data(2).toString());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldSuppressShortLiveExecutionStateOnGraphNodes) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+
+    widget.passExecutionStarted(QStringLiteral("raytrace_beauty"));
+    widget.passExecutionFinished(QStringLiteral("raytrace_beauty"));
+    processEventsFor(560);
+
     QGraphicsItem* idle = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
     ASSERT_NE(nullptr, idle);
     EXPECT_EQ(QString("idle"), idle->data(2).toString());

@@ -23,11 +23,13 @@
 #include <QScrollArea>
 #include <QStringList>
 #include <QTabWidget>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <chrono>
 #include <map>
 #include <numeric>
 #include <set>
@@ -48,6 +50,7 @@ namespace {
   constexpr double RowGap = 120.0;
   constexpr double OriginX = 40.0;
   constexpr double OriginY = 44.0;
+  constexpr auto LiveExecutionDelay = std::chrono::milliseconds(500);
 
   QString qstr(const std::string& value) {
     return QString::fromStdString(value);
@@ -321,8 +324,10 @@ struct RenderGraphInspectorWidget::Private {
   RenderPassId selectedPassId;
   RenderResourceId selectedResourceId;
   bool hasSelection{false};
+  std::map<RenderPassId, std::chrono::steady_clock::time_point> pendingExecutionStarts;
   std::map<RenderPassId, PassExecutionState> executionStates;
   std::map<RenderPassId, QString> executionMessages;
+  QTimer* liveExecutionTimer{nullptr};
   QGraphicsView* graph{nullptr};
   QGraphicsScene* graphScene{nullptr};
   QTreeWidget* passes{nullptr};
@@ -344,6 +349,10 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
     : QWidget(parent),
       p(std::make_unique<Private>()) {
   auto layout = new QVBoxLayout(this);
+
+  p->liveExecutionTimer = new QTimer(this);
+  p->liveExecutionTimer->setInterval(50);
+  connect(p->liveExecutionTimer, SIGNAL(timeout()), this, SLOT(promotePendingExecutionStates()));
 
   p->validationStatus = new QLabel(this);
   p->validationStatus->setObjectName("renderGraphValidationStatus");
@@ -450,6 +459,8 @@ QSize RenderGraphInspectorWidget::sizeHint() const {
 void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->plan = plan;
   p->executionTrace.reset();
+  p->liveExecutionTimer->stop();
+  p->pendingExecutionStarts.clear();
   p->executionStates.clear();
   p->executionMessages.clear();
 
@@ -505,10 +516,13 @@ void RenderGraphInspectorWidget::setExecutionTrace(
 }
 
 void RenderGraphInspectorWidget::clearExecutionState() {
-  if (p->executionStates.empty() && p->executionMessages.empty() && !p->executionTrace)
+  if (p->pendingExecutionStarts.empty() && p->executionStates.empty() &&
+      p->executionMessages.empty() && !p->executionTrace)
     return;
 
   p->executionTrace.reset();
+  p->liveExecutionTimer->stop();
+  p->pendingExecutionStarts.clear();
   p->executionStates.clear();
   p->executionMessages.clear();
   rebuildGraph();
@@ -516,21 +530,34 @@ void RenderGraphInspectorWidget::clearExecutionState() {
 }
 
 void RenderGraphInspectorWidget::passExecutionStarted(const QString& passId) {
-  p->executionStates[passId.toStdString()] = PassExecutionState::Running;
-  p->executionMessages.erase(passId.toStdString());
-  rebuildGraph();
+  const RenderPassId id = passId.toStdString();
+  p->pendingExecutionStarts[id] = std::chrono::steady_clock::now();
+  p->executionMessages.erase(id);
+  if (!p->liveExecutionTimer->isActive())
+    p->liveExecutionTimer->start();
 }
 
 void RenderGraphInspectorWidget::passExecutionFinished(const QString& passId) {
-  p->executionStates[passId.toStdString()] = PassExecutionState::Completed;
-  p->executionMessages.erase(passId.toStdString());
+  const RenderPassId id = passId.toStdString();
+  if (p->pendingExecutionStarts.erase(id) != 0) {
+    if (p->pendingExecutionStarts.empty())
+      p->liveExecutionTimer->stop();
+    return;
+  }
+
+  p->executionStates[id] = PassExecutionState::Completed;
+  p->executionMessages.erase(id);
   rebuildGraph();
 }
 
 void RenderGraphInspectorWidget::passExecutionFailed(const QString& passId,
                                                      const QString& message) {
-  p->executionStates[passId.toStdString()] = PassExecutionState::Failed;
-  p->executionMessages[passId.toStdString()] = message;
+  const RenderPassId id = passId.toStdString();
+  p->pendingExecutionStarts.erase(id);
+  if (p->pendingExecutionStarts.empty())
+    p->liveExecutionTimer->stop();
+  p->executionStates[id] = PassExecutionState::Failed;
+  p->executionMessages[id] = message;
   rebuildGraph();
 }
 
@@ -554,6 +581,26 @@ void RenderGraphInspectorWidget::resourceSelectionChanged() {
     return;
 
   selectResource(p->resources->currentItem()->data(0, Qt::UserRole).toString().toStdString());
+}
+
+void RenderGraphInspectorWidget::promotePendingExecutionStates() {
+  const auto now = std::chrono::steady_clock::now();
+  bool changed = false;
+  for (auto it = p->pendingExecutionStarts.begin(); it != p->pendingExecutionStarts.end();) {
+    if (now - it->second < LiveExecutionDelay) {
+      ++it;
+      continue;
+    }
+
+    p->executionStates[it->first] = PassExecutionState::Running;
+    it = p->pendingExecutionStarts.erase(it);
+    changed = true;
+  }
+
+  if (p->pendingExecutionStarts.empty())
+    p->liveExecutionTimer->stop();
+  if (changed)
+    rebuildGraph();
 }
 
 bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
@@ -647,6 +694,8 @@ void RenderGraphInspectorWidget::selectResource(const RenderResourceId& resource
 
 void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& passId, bool enabled) {
   p->executionTrace.reset();
+  p->liveExecutionTimer->stop();
+  p->pendingExecutionStarts.clear();
   p->executionStates.clear();
   p->executionMessages.clear();
   if (enabled) {

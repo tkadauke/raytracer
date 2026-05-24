@@ -93,6 +93,7 @@ private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);
   void passSelectionChanged();
   void resourceSelectionChanged();
+  void promotePendingExecutionStates();
 
 private:
   bool eventFilter(QObject* watched, QEvent* event) override;

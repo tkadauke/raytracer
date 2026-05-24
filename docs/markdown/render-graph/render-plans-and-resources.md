@@ -478,12 +478,15 @@ Live node highlighting uses
 [`RenderGraphExecutionObserver`](../../../include/engine/graph/RenderGraphExecutionObserver.h).
 `GraphRenderEngine` sends pass start, finish, and failure events from the render
 worker. The Modeler preview bridges those events back to the Qt thread and
-updates the Graph tab, so a long raytraced beauty pass can be identified while
-the frame is still in progress. The observer model stores a set of active pass
-ids rather than a single current pass, which keeps the UI contract ready for
-future parallel graph scheduling. Each live event carries a render generation;
-when the user moves the camera or changes graph settings, the Modeler ignores
-events from older workers after the replacement render has been requested.
+updates the Graph tab only after a pass has been active for about half a
+second. Fast preview renders therefore leave the graph layout frozen instead of
+flashing through several states, while a long raytraced beauty pass can still be
+identified while the frame is in progress. The observer model stores a set of
+active pass ids rather than a single current pass, which keeps the UI contract
+ready for future parallel graph scheduling. Each live event carries a render
+generation; when the user moves the camera or changes graph settings, the
+Modeler ignores events from older workers after the replacement render has been
+requested.
 
 Graph execution also records a post-render trace through
 [`RenderGraphExecutionTrace`](../../../include/engine/graph/RenderGraphExecutionTrace.h).
