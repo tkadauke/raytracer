@@ -6,6 +6,8 @@ if(NOT DEFINED TEST_OUTPUT_DIR)
   message(FATAL_ERROR "TEST_OUTPUT_DIR is required")
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/RendercliTestHelpers.cmake")
+
 file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
@@ -21,29 +23,14 @@ set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 
-function(run_rendercli output_variable error_variable result_variable)
-  execute_process(
-    COMMAND ${ARGN}
-    RESULT_VARIABLE result
-    OUTPUT_VARIABLE stdout
-    ERROR_VARIABLE stderr
-  )
-  set(${output_variable} "${stdout}" PARENT_SCOPE)
-  set(${error_variable} "${stderr}" PARENT_SCOPE)
-  set(${result_variable} "${result}" PARENT_SCOPE)
-endfunction()
-
-run_rendercli(
-  text_stdout
-  text_stderr
-  text_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format text
-  --engine raytracer --width 32 --height 16
-  "${static_scene}" "${text_plan}"
+rendercli_run(
+  NAME "rendercli exports text render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --engine raytracer --width 32 --height 16
+    "${static_scene}" "${text_plan}"
 )
-if(NOT text_result EQUAL 0)
-  message(FATAL_ERROR "rendercli text graph export failed: ${text_stderr}")
-endif()
+rendercli_assert_nonempty("${text_plan}" NAME "text render graph output")
 file(READ "${text_plan}" text_graph)
 if(NOT text_graph MATCHES "raytrace_beauty")
   message(FATAL_ERROR "text graph export did not contain raytrace_beauty: ${text_graph}")
@@ -58,17 +45,14 @@ if(NOT text_graph MATCHES "tonemap")
   message(FATAL_ERROR "text graph export did not contain tonemap: ${text_graph}")
 endif()
 
-run_rendercli(
-  dot_stdout
-  dot_stderr
-  dot_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format dot
-  --engine wireframe --width 32 --height 16
-  "${static_scene}" "${dot_plan}"
+rendercli_run(
+  NAME "rendercli exports DOT render graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format dot
+    --engine wireframe --width 32 --height 16
+    "${static_scene}" "${dot_plan}"
 )
-if(NOT dot_result EQUAL 0)
-  message(FATAL_ERROR "rendercli DOT graph export failed: ${dot_stderr}")
-endif()
+rendercli_assert_nonempty("${dot_plan}" NAME "DOT render graph output")
 file(READ "${dot_plan}" dot_graph)
 if(NOT dot_graph MATCHES "digraph RenderPlan")
   message(FATAL_ERROR "DOT graph export did not contain a graph declaration: ${dot_graph}")
@@ -77,154 +61,103 @@ if(NOT dot_graph MATCHES "wireframe_beauty")
   message(FATAL_ERROR "DOT graph export did not contain wireframe_beauty: ${dot_graph}")
 endif()
 
-run_rendercli(
-  intent_stdout
-  intent_stderr
-  intent_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format text
-  --engine raytracer --render_graph_executor rasterizer --width 32 --height 16
-  "${static_scene}" "${intent_plan}"
+rendercli_run(
+  NAME "rendercli graph executor override selects rasterizer"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --engine raytracer --render_graph_executor rasterizer --width 32 --height 16
+    "${static_scene}" "${intent_plan}"
 )
-if(NOT intent_result EQUAL 0)
-  message(FATAL_ERROR "rendercli graph executor override failed: ${intent_stderr}")
-endif()
+rendercli_assert_nonempty("${intent_plan}" NAME "graph executor override output")
 file(READ "${intent_plan}" intent_graph)
 if(NOT intent_graph MATCHES "raster_beauty")
   message(FATAL_ERROR "graph executor override did not select raster_beauty: ${intent_graph}")
 endif()
 
-run_rendercli(
-  intent_view_stdout
-  intent_view_stderr
-  intent_view_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format text
-  --engine raytracer --render_graph_executor raytracer --render_graph_view wireframe
-  --width 32 --height 16
-  "${static_scene}" "${intent_view_plan}"
+rendercli_run(
+  NAME "rendercli graph view override selects wireframe"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --engine raytracer --render_graph_executor raytracer --render_graph_view wireframe
+    --width 32 --height 16
+    "${static_scene}" "${intent_view_plan}"
 )
-if(NOT intent_view_result EQUAL 0)
-  message(FATAL_ERROR "rendercli graph view override failed: ${intent_view_stderr}")
-endif()
+rendercli_assert_nonempty("${intent_view_plan}" NAME "graph view override output")
 file(READ "${intent_view_plan}" intent_view_graph)
 if(NOT intent_view_graph MATCHES "wireframe_beauty")
   message(FATAL_ERROR "graph view override did not select wireframe_beauty: ${intent_view_graph}")
 endif()
 
-run_rendercli(
-  json_stdout
-  json_stderr
-  json_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format json
-  --engine raster --width 20 --height 10
-  "${static_scene}"
+rendercli_run(
+  NAME "rendercli exports JSON render graph to stdout"
+  STDOUT_MATCHES
+    "raster_beauty"
+    "tonemap"
+    "\"width\""
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine raster --width 20 --height 10
+    "${static_scene}"
 )
-if(NOT json_result EQUAL 0)
-  message(FATAL_ERROR "rendercli JSON graph export to stdout failed: ${json_stderr}")
-endif()
-if(NOT json_stdout MATCHES "raster_beauty")
-  message(FATAL_ERROR "JSON graph stdout did not contain raster_beauty: ${json_stdout}")
-endif()
-if(NOT json_stdout MATCHES "tonemap")
-  message(FATAL_ERROR "JSON graph stdout did not contain tonemap: ${json_stdout}")
-endif()
-if(NOT json_stdout MATCHES "\"width\"")
-  message(FATAL_ERROR "JSON graph stdout did not contain resource dimensions: ${json_stdout}")
-endif()
 
-run_rendercli(
-  json_file_stdout
-  json_file_stderr
-  json_file_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format json
-  --engine raytracer --width 32 --height 16
-  "${static_scene}" "${json_plan}"
+rendercli_run(
+  NAME "rendercli exports JSON render graph to file"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --engine raytracer --width 32 --height 16
+    "${static_scene}" "${json_plan}"
 )
-if(NOT json_file_result EQUAL 0)
-  message(FATAL_ERROR "rendercli JSON graph export to file failed: ${json_file_stderr}")
-endif()
+rendercli_assert_nonempty("${json_plan}" NAME "JSON render graph output file")
 
-run_rendercli(
-  replay_dot_stdout
-  replay_dot_stderr
-  replay_dot_result
-  "${RENDERCLI}" --render_graph_only --render_graph_in "${json_plan}" --render_graph_format dot
-  "${static_scene}" "${replayed_dot_plan}"
+rendercli_run(
+  NAME "rendercli replays JSON render graph as DOT"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${json_plan}" --render_graph_format dot
+    "${static_scene}" "${replayed_dot_plan}"
 )
-if(NOT replay_dot_result EQUAL 0)
-  message(FATAL_ERROR "rendercli JSON graph replay as DOT failed: ${replay_dot_stderr}")
-endif()
+rendercli_assert_nonempty("${replayed_dot_plan}" NAME "replayed DOT render graph output")
 file(READ "${replayed_dot_plan}" replayed_dot_graph)
 if(NOT replayed_dot_graph MATCHES "raytrace_beauty")
   message(FATAL_ERROR "replayed DOT graph did not contain raytrace_beauty: ${replayed_dot_graph}")
 endif()
 
-run_rendercli(
-  render_stdout
-  render_stderr
-  render_result
-  "${RENDERCLI}" --render_graph --engine wireframe --width 32 --height 16
-  "${static_scene}" "${graph_render}"
+rendercli_run(
+  NAME "rendercli renders through compiled graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph --engine wireframe --width 32 --height 16
+    "${static_scene}" "${graph_render}"
 )
-if(NOT render_result EQUAL 0)
-  message(FATAL_ERROR "rendercli graph render failed: ${render_stderr}")
-endif()
-if(NOT EXISTS "${graph_render}")
-  message(FATAL_ERROR "rendercli --render_graph did not create an image")
-endif()
+rendercli_assert_nonempty("${graph_render}" NAME "rendercli --render_graph image")
 
-run_rendercli(
-  replay_render_stdout
-  replay_render_stderr
-  replay_render_result
-  "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}"
-  "${static_scene}" "${replayed_render}"
+rendercli_run(
+  NAME "rendercli renders through replayed JSON graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}"
+    "${static_scene}" "${replayed_render}"
 )
-if(NOT replay_render_result EQUAL 0)
-  message(FATAL_ERROR "rendercli JSON graph replay render failed: ${replay_render_stderr}")
-endif()
-if(NOT EXISTS "${replayed_render}")
-  message(FATAL_ERROR "rendercli --render_graph_in did not create an image")
-endif()
+rendercli_assert_nonempty("${replayed_render}" NAME "rendercli --render_graph_in image")
 
-run_rendercli(
-  disabled_tonemap_stdout
-  disabled_tonemap_stderr
-  disabled_tonemap_result
-  "${RENDERCLI}" --render_graph_only --render_graph_format text --disable_pass tonemap
-  --width 32 --height 16
-  "${static_scene}"
+rendercli_run(
+  NAME "rendercli disables optional tonemap pass"
+  STDOUT_MATCHES "tonemap \\[tonemap/postprocess\\] disabled"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text --disable_pass tonemap
+    --width 32 --height 16
+    "${static_scene}"
 )
-if(NOT disabled_tonemap_result EQUAL 0)
-  message(FATAL_ERROR "rendercli rejected disabled optional tonemap pass: ${disabled_tonemap_stderr}")
-endif()
-if(NOT disabled_tonemap_stdout MATCHES "tonemap \\[tonemap/postprocess\\] disabled")
-  message(FATAL_ERROR "disabled tonemap graph did not show disabled tonemap pass: ${disabled_tonemap_stdout}")
-endif()
 
-run_rendercli(
-  mismatch_stdout
-  mismatch_stderr
-  mismatch_result
-  "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}" --width 31 --height 16
-  "${static_scene}" "${mismatched_render}"
+rendercli_expect_failure(
+  NAME "rendercli rejects render graph output size mismatch"
+  STDERR_MATCHES "Render graph output width is 32"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}" --width 31 --height 16
+    "${static_scene}" "${mismatched_render}"
 )
-if(mismatch_result EQUAL 0)
-  message(FATAL_ERROR "rendercli accepted a render graph output size mismatch")
-endif()
-if(NOT mismatch_stderr MATCHES "Render graph output width is 32")
-  message(FATAL_ERROR "rendercli reported an unexpected graph size mismatch: ${mismatch_stderr}")
-endif()
 
-run_rendercli(
-  invalid_stdout
-  invalid_stderr
-  invalid_result
-  "${RENDERCLI}" --render_graph_only --disable_pass raytrace_beauty
-  "${static_scene}" "${invalid_plan}"
+rendercli_expect_failure(
+  NAME "rendercli rejects disabled required graph pass"
+  STDERR_MATCHES "disabled_required_pass"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --disable_pass raytrace_beauty
+    "${static_scene}" "${invalid_plan}"
 )
-if(invalid_result EQUAL 0)
-  message(FATAL_ERROR "rendercli accepted a disabled required graph pass")
-endif()
-if(NOT invalid_stderr MATCHES "disabled_required_pass")
-  message(FATAL_ERROR "rendercli reported an unexpected disabled-pass error: ${invalid_stderr}")
-endif()
