@@ -509,6 +509,64 @@ quality level, or frame, create it before graph compilation. If data is produced
 because a render pass needs it, has renderer-specific fidelity, or must be
 invalidated with frame/view/quality changes, model it as a graph resource.
 
+### Persistent graph artifacts and invalidation
+
+Some graph resources are expensive to rebuild and should be reusable across
+frames. Shadow maps are the first useful example, but the same model should
+also cover future reflection probes, irradiance caches, photon maps,
+path-guiding data, acceleration data, generated terrain LOD tiles, and
+denoiser/history feature buffers.
+
+Transient frame resources and persistent artifacts should remain distinct:
+
+- `RenderResourceStorage` owns the resources used by one graph execution.
+- `RenderGraphArtifactCache` should live beside `GraphRenderEngine` and survive
+  across frames and cloned preview render snapshots.
+- `RenderResourceLifetime::PersistentCache` marks a resource as cacheable, but
+  cache reuse still depends on the resource descriptor, producer pass state, and
+  an invalidation fingerprint.
+- Cached artifacts should be immutable once published so an old preview render
+  can safely keep using an artifact while a newer render replaces it.
+
+The cache key should be typed, not a loose JSON string. A cache entry needs at
+least:
+
+- producing pass id and resource id;
+- resource descriptor shape, domain, and type;
+- serialized or typed pass state relevant to the artifact;
+- target/camera/executor settings that affect the artifact;
+- scene dependency fingerprints for the objects, lights, materials, and
+  transforms the producer pass actually reads.
+
+Initial invalidation can be conservative. For shadow maps, it is acceptable for
+the first cache slice to invalidate on any scene, camera, target, LOD, culling,
+or shadow-setting change. Later slices should refine this into domains such as
+`geometry`, `transform`, `light`, `camera`, and `material`. Modeler currently
+has a coarse scene `changed` flag, so fine-grained invalidation will require
+stable scene/object revision counters or fingerprints.
+
+Shadow maps need one architectural change before caching is meaningful. The
+current `raster_preview_shadows` graph node publishes shadow-map request state,
+but `Rasterizer` still builds the concrete directional/cascade depth maps
+inside raster beauty execution. To cache shadow maps:
+
+1. extract the raster shadow-map builder from `Rasterizer` into a graph-usable
+   service or payload helper;
+2. introduce a typed `ShadowMapArtifact` resource that owns directional light
+   cascades, depth buffers, and sampling/filter metadata;
+3. make the graph shadow pass produce that artifact;
+4. make `raster_beauty` consume the artifact instead of triggering an internal
+   shadow build;
+5. add cache hit/miss metadata so rendercli and Modeler can explain whether a
+   shadow-map node reused or rebuilt its artifact.
+
+One nuance: the current cascaded directional shadow maps are view-camera
+dependent because cascade fitting uses the main camera's visible depth range.
+If the desired behavior is "do not invalidate when the camera moves, only when
+the light or occluders move," the shadow-map fitting strategy must change to a
+more stable light-space cache, or the cache must tolerate camera movement by
+reusing only compatible cascades.
+
 ## Pass taxonomy and stress-test examples
 
 Most examples in this section are out of scope for the first render-graph
@@ -987,6 +1045,10 @@ The Modeler render view should grow a graph inspector:
 - pass details: executor, reads, writes, scene view, camera, disabled behavior;
 - resource details: type, size, format, producer, consumers;
 - click a resource to preview it where possible;
+- after a render, select a node to inspect supported input snapshots, output
+  snapshots, and difference images from the last execution trace;
+- while a render is running, highlight currently executing nodes in the graph
+  view;
 - validate the manipulated graph before rendering;
 - export graph as DOT/JSON/text.
 
@@ -994,6 +1056,102 @@ The UI should not require deep backend mutation. It should pass graph overrides
 to the planner or manipulate a compiled plan, then re-render. This supports the
 educational workflow where a user compiles the graph, disables or changes nodes,
 and only then executes the frame.
+
+### Execution traces and per-node resource inspection
+
+After a render, Modeler should be able to inspect what each graph node read,
+wrote, and changed. This should be modeled as an execution trace rather than as
+state on `RenderPlan`: the plan is the declarative graph, while a trace is the
+result of one concrete execution.
+
+Add a trace model, tentatively:
+
+```cpp
+class RenderGraphExecutionTrace {
+public:
+  const std::vector<RenderPassTrace>& passes() const;
+  const RenderPassTrace* findPass(RenderPassId id) const;
+};
+
+struct RenderPassTrace {
+  RenderPassId passId;
+  RenderPassExecutionStatus status;
+  std::vector<RenderResourceSnapshot> inputs;
+  std::vector<RenderResourceSnapshot> outputs;
+  std::vector<RenderResourceDiff> diffs;
+  std::chrono::nanoseconds elapsed;
+  std::string message;
+};
+```
+
+The first trace implementation should support image-like CPU color resources:
+
+- capture color inputs before a pass executes and color outputs after it
+  executes;
+- store UI-friendly preview snapshots, preferably downscaled, so large renders
+  do not keep several full-resolution copies in memory by default;
+- optionally retain full-resolution snapshots behind a debug/export setting;
+- compute a difference image for simple one-input/one-output color passes with
+  matching dimensions;
+- provide both absolute RGB difference and a boosted or heatmap visualization
+  for subtle filters such as FXAA/SMAA;
+- mark non-image resources such as shadow maps, depth, stencil, object id,
+  motion vectors, and future cache artifacts as "metadata only" until a
+  specialized viewer exists.
+
+Shadow maps can be skipped for the first inspection UI. Later, a shadow-map
+viewer can show depth as normalized grayscale, cascade coverage, texel snapping,
+and per-light metadata. Until then, shadow resources should still appear in the
+node details with descriptor, producer/consumer, cache status, and reason why no
+image preview is available.
+
+The trace must be tied to a specific executed plan. If the user changes graph
+overrides, recompiles, resizes the target, or changes the scene after a render,
+Modeler should mark the last trace as stale rather than showing old snapshots as
+if they belonged to the new graph.
+
+Preview rendering uses cloned render engines on worker threads, so the trace
+cannot live only on a short-lived clone. Use a shared, thread-safe
+`RenderGraphExecutionRecorder` or similar sink that cloned `GraphRenderEngine`
+instances can write to, then publish the completed trace back to the UI thread
+when the render finishes.
+
+### Live execution state
+
+Long-running renders should make the graph view show which node or nodes are
+currently executing. This is separate from final trace inspection: it is a live
+event stream used while the worker thread is still rendering.
+
+Add an execution observer, tentatively:
+
+```cpp
+class RenderGraphExecutionObserver {
+public:
+  virtual void passStarted(RenderPassId id) = 0;
+  virtual void passFinished(RenderPassId id) = 0;
+  virtual void passFailed(RenderPassId id, std::string message) = 0;
+};
+```
+
+The observer should use a set of running pass ids, not a single current node.
+The first executor is mostly serial, but the UI and trace model should already
+handle future parallel passes.
+
+Modeler graph-view states:
+
+- idle: normal node styling;
+- running: highlighted outline/fill while the pass is executing;
+- completed in the current render: optional muted success styling;
+- skipped/disabled: disabled styling;
+- failed: error styling with the pass failure message.
+
+The inspector should clear live state on render start, cancellation, plan
+changes, and failed renders. Updates from worker threads must be delivered to
+Qt through queued UI-thread calls.
+
+The same observer stream should feed future timing/profiling data and the
+`RenderGraphExecutionTrace`, so avoid a UI-specific callback name such as
+"highlight node."
 
 ## Parallel execution contract
 
@@ -1116,8 +1274,10 @@ Implement the smallest graph that proves the architecture:
    beauty + tonemap pass chain and resource details, validates per-pass
    checkbox overrides, and feeds the effective valid plan back into the central
    graph-backed preview. The preview menu can request the wireframe overlay
-   intent. Grouped toggles, graph export, resource previews, and per-selector
-   intent controls remain TODO.
+   intent. The Graph tab renders a left-to-right graph view with selectable
+   nodes and double-click pass toggles. Grouped toggles, graph export,
+   post-render input/output/difference inspection, live executing-node
+   highlights, resource previews, and per-selector intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 
@@ -1150,6 +1310,34 @@ preview shadows. Directional lights still build concrete CPU shadow maps inside
 the rasterizer payload until shadow-map storage is externalized; lights without
 a directional map use a rasterizer visibility fallback so the graph shadow
 toggle still affects point-lit previews.
+
+### Persistent artifact cache
+
+Add a graph-owned cache for `PersistentCache` resources. Start with shadow-map
+artifacts once concrete shadow maps are externalized from `Rasterizer`, then
+extend the same cache to reflection probes, irradiance caches, photon maps,
+path-guiding data, terrain/volume intermediates, and acceleration data.
+
+The first implementation may use conservative invalidation. A later refinement
+should add scene/object revision domains so postprocess or tonemap changes do
+not invalidate shadow maps, and so light/occluder changes can be distinguished
+from unrelated scene edits.
+
+### Execution trace and resource inspection
+
+Record a per-render execution trace containing pass status, timings, supported
+input/output resource snapshots, and per-pass difference images. Modeler should
+let the user select a graph node after rendering and inspect `Input`, `Output`,
+`Difference`, and `Metadata` tabs. The first supported snapshots should be CPU
+color resources; shadow maps and other specialized resources can remain
+metadata-only until custom viewers exist.
+
+### Live graph execution highlighting
+
+Expose pass-start/pass-finish/pass-fail events from graph execution so the
+Modeler graph view can highlight the node or nodes currently running during
+long renders. Keep the model as a set of active pass ids so the UI survives the
+future parallel scheduler.
 
 ### Stencil/depth-aware composition
 
