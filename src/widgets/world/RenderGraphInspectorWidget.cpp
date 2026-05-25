@@ -64,205 +64,6 @@ namespace {
   }
 
   enum class PassExecutionState { Idle, Running, Completed, Failed };
-
-  QString executionStateName(PassExecutionState state) {
-    switch (state) {
-    case PassExecutionState::Idle:
-      return QStringLiteral("idle");
-    case PassExecutionState::Running:
-      return QStringLiteral("running");
-    case PassExecutionState::Completed:
-      return QStringLiteral("completed");
-    case PassExecutionState::Failed:
-      return QStringLiteral("failed");
-    }
-    return QStringLiteral("idle");
-  }
-
-  QString passTraceLine(const RenderGraphExecutionTrace* trace, const RenderPassNode& pass) {
-    if (!trace)
-      return QString();
-
-    const auto* passTrace = trace->findPass(pass.id);
-    if (!passTrace)
-      return QString();
-
-    return QStringLiteral("%1, %2 ms")
-      .arg(toString(passTrace->status()))
-      .arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 2);
-  }
-
-  const RenderGraphResourceSnapshot*
-  firstSnapshotForResource(const RenderGraphExecutionTrace* trace,
-                           const RenderResourceId& resourceId) {
-    if (!trace)
-      return nullptr;
-
-    const auto outputs = trace->outputSnapshotsForResource(resourceId);
-    if (!outputs.empty())
-      return outputs.front();
-
-    const auto inputs = trace->inputSnapshotsForResource(resourceId);
-    return inputs.empty() ? nullptr : inputs.front();
-  }
-
-  QString resourceTraceLine(const RenderGraphExecutionTrace* trace,
-                            const RenderResourceDescriptor& resource) {
-    const auto* snapshot = firstSnapshotForResource(trace, resource.id);
-    if (!snapshot)
-      return QString();
-
-    if (snapshot->cacheMetadata().cacheable()) {
-      return QStringLiteral("cache: %1").arg(toString(snapshot->cacheMetadata().status()));
-    }
-    if (snapshot->hasColorPreview())
-      return QStringLiteral("trace: color");
-    if (snapshot->hasDepthPreview())
-      return QStringLiteral("trace: depth");
-    return QStringLiteral("trace: metadata");
-  }
-
-  QString sceneSelectorText(const SceneSelector& selector) {
-    return qstr(selector.displayText());
-  }
-
-  QString cameraText(const std::optional<RenderCameraRef>& camera) {
-    if (!camera)
-      return QStringLiteral("-");
-
-    return qstr(camera->displayText());
-  }
-
-  QString shadingProfileText(const std::optional<ShadingProfileRef>& shadingProfile) {
-    if (!shadingProfile)
-      return QStringLiteral("-");
-
-    return qstr(shadingProfile->displayText());
-  }
-
-  QStringList passSceneViewLines(const RenderPassNode& pass) {
-    QStringList parts;
-    if (!pass.sceneView.selector.selectsWholeFrame()) {
-      parts << QStringLiteral("selector %1").arg(sceneSelectorText(pass.sceneView.selector));
-    }
-    if (pass.sceneView.camera) {
-      parts << QStringLiteral("camera %1").arg(cameraText(pass.sceneView.camera));
-    }
-    if (pass.sceneView.shadingProfile) {
-      parts << QStringLiteral("shading %1").arg(shadingProfileText(pass.sceneView.shadingProfile));
-    }
-    return parts;
-  }
-
-  QString sizeText(const RenderResourceDescriptor& resource) {
-    return QStringLiteral("%1x%2, %3 sample(s)")
-      .arg(resource.width)
-      .arg(resource.height)
-      .arg(resource.sampleCount);
-  }
-
-  std::map<RenderPassId, QPointF> passPositions(const RenderPlan& plan) {
-    std::map<RenderPassId, QPointF> result;
-
-    const auto stages = plan.executionStages();
-    for (std::size_t stageIndex = 0; stageIndex != stages.size(); ++stageIndex) {
-      for (std::size_t row = 0; row != stages[stageIndex].size(); ++row) {
-        const RenderPassNode* pass = stages[stageIndex][row];
-        result[pass->id] = QPointF(OriginX + stageIndex * ColumnGap, OriginY + row * RowGap);
-      }
-    }
-
-    return result;
-  }
-
-  QPointF passCenter(const QPointF& topLeft) {
-    return topLeft + QPointF(PassWidth / 2.0, PassHeight / 2.0);
-  }
-
-  QPointF resourcePosition(const RenderPlan& plan, const RenderResourceDescriptor& resource,
-                           const std::map<RenderPassId, QPointF>& passes, int fallbackRow) {
-    const RenderPassNode* producer = plan.producerOf(resource.id);
-    const auto consumers = plan.consumersOf(resource.id);
-
-    std::vector<QPointF> anchors;
-    if (producer) {
-      const auto producerPosition = passes.find(producer->id);
-      if (producerPosition != passes.end())
-        anchors.push_back(passCenter(producerPosition->second));
-    }
-    for (const RenderPassNode* consumer : consumers) {
-      const auto consumerPosition = passes.find(consumer->id);
-      if (consumerPosition != passes.end())
-        anchors.push_back(passCenter(consumerPosition->second));
-    }
-
-    if (anchors.empty()) {
-      return QPointF(OriginX, OriginY + fallbackRow * RowGap);
-    }
-
-    const double averageX =
-      std::accumulate(anchors.begin(), anchors.end(), 0.0,
-                      [](double value, const QPointF& point) { return value + point.x(); }) /
-      anchors.size();
-    const double averageY =
-      std::accumulate(anchors.begin(), anchors.end(), 0.0,
-                      [](double value, const QPointF& point) { return value + point.y(); }) /
-      anchors.size();
-
-    if (producer && consumers.empty()) {
-      return QPointF(averageX + PassWidth / 2.0 + 40.0, averageY - ResourceHeight / 2.0);
-    }
-    if (!producer && !consumers.empty()) {
-      return QPointF(averageX - PassWidth / 2.0 - ResourceWidth - 40.0,
-                     averageY - ResourceHeight / 2.0);
-    }
-
-    return QPointF(averageX - ResourceWidth / 2.0, averageY - ResourceHeight / 2.0);
-  }
-
-  QGraphicsRectItem* addNode(QGraphicsScene& scene, const QRectF& rect, const QString& kind,
-                             const QString& id, const QStringList& lines, const QPen& pen,
-                             const QBrush& brush) {
-    auto* item = scene.addRect(rect, pen, brush);
-    item->setData(GraphItemKindRole, kind);
-    item->setData(GraphItemIdRole, id);
-    item->setFlag(QGraphicsItem::ItemIsSelectable);
-
-    double y = rect.top() + 9.0;
-    for (int i = 0; i != lines.size(); ++i) {
-      QFont font;
-      if (i == 0)
-        font.setBold(true);
-      font.setPointSize(i == 0 ? 9 : 8);
-      QFontMetrics metrics(font);
-      const QString elided = metrics.elidedText(
-        lines[i], Qt::ElideRight, static_cast<int>(rect.width() - 2.0 * NodeTextInset));
-      auto* text = scene.addSimpleText(elided);
-      text->setParentItem(item);
-      text->setData(GraphItemKindRole, kind);
-      text->setData(GraphItemIdRole, id);
-      text->setFont(font);
-      text->setToolTip(lines[i]);
-      text->setPos(rect.left() + NodeTextInset, y);
-      y += text->boundingRect().height() + 2.0;
-    }
-
-    return item;
-  }
-
-  void addEdge(QGraphicsScene& scene, const QPointF& from, const QPointF& to) {
-    QPen pen(QColor(90, 100, 110));
-    pen.setWidthF(1.4);
-    auto* line = scene.addLine(from.x(), from.y(), to.x(), to.y(), pen);
-    line->setZValue(-10.0);
-  }
-
-  QGraphicsItem* graphNodeItem(QGraphicsItem* item) {
-    while (item && item->data(GraphItemKindRole).toString().isEmpty())
-      item = item->parentItem();
-    return item;
-  }
-
 }
 
 struct RenderGraphInspectorWidget::Private {
@@ -292,6 +93,16 @@ struct RenderGraphInspectorWidget::Private {
   QString displayName(const RenderResourceDescriptor& resource) const;
   QString displayResourceName(const RenderPlan& plan, const RenderResourceId& resourceId) const;
   QString graphEnumText(const char* value) const;
+  QString executionStateName(PassExecutionState state) const;
+  QString passTraceLine(const RenderPassNode& pass) const;
+  const RenderGraphResourceSnapshot*
+  firstSnapshotForResource(const RenderResourceId& resourceId) const;
+  QString resourceTraceLine(const RenderResourceDescriptor& resource) const;
+  QString sceneSelectorText(const SceneSelector& selector) const;
+  QString cameraText(const std::optional<RenderCameraRef>& camera) const;
+  QString shadingProfileText(const std::optional<ShadingProfileRef>& shadingProfile) const;
+  QStringList passSceneViewLines(const RenderPassNode& pass) const;
+  QString sizeText(const RenderResourceDescriptor& resource) const;
   QString resourceReads(const RenderPlan& plan, const std::vector<ResourceRead>& reads) const;
   QString resourceWrites(const RenderPlan& plan, const std::vector<ResourceWrite>& writes) const;
   QString dependencySummary(const RenderPlan& plan,
@@ -301,6 +112,15 @@ struct RenderGraphInspectorWidget::Private {
   QString resourceProducer(const RenderPlan& plan, const RenderResourceId& resource) const;
   QString resourceConsumers(const RenderPlan& plan, const RenderResourceId& resource) const;
   QString resourceTooltip(const RenderPlan& plan, const RenderResourceDescriptor& resource) const;
+  std::map<RenderPassId, QPointF> passPositions(const RenderPlan& plan) const;
+  QPointF passCenter(const QPointF& topLeft) const;
+  QPointF resourcePosition(const RenderPlan& plan, const RenderResourceDescriptor& resource,
+                           const std::map<RenderPassId, QPointF>& passes, int fallbackRow) const;
+  QGraphicsRectItem* addNode(QGraphicsScene& scene, const QRectF& rect, const QString& kind,
+                             const QString& id, const QStringList& lines, const QPen& pen,
+                             const QBrush& brush) const;
+  void addEdge(QGraphicsScene& scene, const QPointF& from, const QPointF& to) const;
+  QGraphicsItem* graphNodeItem(QGraphicsItem* item) const;
 };
 
 QString RenderGraphInspectorWidget::Private::humanizeIdentifier(QString value) const {
@@ -333,6 +153,106 @@ RenderGraphInspectorWidget::Private::displayResourceName(const RenderPlan& plan,
 
 QString RenderGraphInspectorWidget::Private::graphEnumText(const char* value) const {
   return humanizeIdentifier(QString::fromLatin1(value));
+}
+
+QString RenderGraphInspectorWidget::Private::executionStateName(PassExecutionState state) const {
+  switch (state) {
+  case PassExecutionState::Idle:
+    return QStringLiteral("idle");
+  case PassExecutionState::Running:
+    return QStringLiteral("running");
+  case PassExecutionState::Completed:
+    return QStringLiteral("completed");
+  case PassExecutionState::Failed:
+    return QStringLiteral("failed");
+  }
+  return QStringLiteral("idle");
+}
+
+QString RenderGraphInspectorWidget::Private::passTraceLine(const RenderPassNode& pass) const {
+  if (!trace)
+    return QString();
+
+  const auto* passTrace = trace->findPass(pass.id);
+  if (!passTrace)
+    return QString();
+
+  return QStringLiteral("%1, %2 ms")
+    .arg(toString(passTrace->status()))
+    .arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 2);
+}
+
+const RenderGraphResourceSnapshot* RenderGraphInspectorWidget::Private::firstSnapshotForResource(
+  const RenderResourceId& resourceId) const {
+  if (!trace)
+    return nullptr;
+
+  const auto outputs = trace->outputSnapshotsForResource(resourceId);
+  if (!outputs.empty())
+    return outputs.front();
+
+  const auto inputs = trace->inputSnapshotsForResource(resourceId);
+  return inputs.empty() ? nullptr : inputs.front();
+}
+
+QString RenderGraphInspectorWidget::Private::resourceTraceLine(
+  const RenderResourceDescriptor& resource) const {
+  const auto* snapshot = firstSnapshotForResource(resource.id);
+  if (!snapshot)
+    return QString();
+
+  if (snapshot->cacheMetadata().cacheable()) {
+    return QStringLiteral("cache: %1").arg(toString(snapshot->cacheMetadata().status()));
+  }
+  if (snapshot->hasColorPreview())
+    return QStringLiteral("trace: color");
+  if (snapshot->hasDepthPreview())
+    return QStringLiteral("trace: depth");
+  return QStringLiteral("trace: metadata");
+}
+
+QString
+RenderGraphInspectorWidget::Private::sceneSelectorText(const SceneSelector& selector) const {
+  return qstr(selector.displayText());
+}
+
+QString RenderGraphInspectorWidget::Private::cameraText(
+  const std::optional<RenderCameraRef>& camera) const {
+  if (!camera)
+    return QStringLiteral("-");
+
+  return qstr(camera->displayText());
+}
+
+QString RenderGraphInspectorWidget::Private::shadingProfileText(
+  const std::optional<ShadingProfileRef>& shadingProfile) const {
+  if (!shadingProfile)
+    return QStringLiteral("-");
+
+  return qstr(shadingProfile->displayText());
+}
+
+QStringList
+RenderGraphInspectorWidget::Private::passSceneViewLines(const RenderPassNode& pass) const {
+  QStringList parts;
+  if (!pass.sceneView.selector.selectsWholeFrame()) {
+    parts << QStringLiteral("selector %1").arg(sceneSelectorText(pass.sceneView.selector));
+  }
+  if (pass.sceneView.camera) {
+    parts << QStringLiteral("camera %1").arg(cameraText(pass.sceneView.camera));
+  }
+  if (pass.sceneView.shadingProfile) {
+    parts << QStringLiteral("shading %1").arg(shadingProfileText(pass.sceneView.shadingProfile));
+  }
+  return parts;
+}
+
+QString
+RenderGraphInspectorWidget::Private::sizeText(const RenderResourceDescriptor& resource) const {
+  return QStringLiteral("%1x%2, %3 sample(s)")
+    .arg(resource.width)
+    .arg(resource.height)
+    .arg(resource.sampleCount);
 }
 
 QString
@@ -412,6 +332,111 @@ QString RenderGraphInspectorWidget::Private::resourceTooltip(
     .arg(toString(resource.format))
     .arg(toString(resource.lifetime))
     .arg(sizeText(resource));
+}
+
+std::map<RenderPassId, QPointF>
+RenderGraphInspectorWidget::Private::passPositions(const RenderPlan& plan) const {
+  std::map<RenderPassId, QPointF> result;
+
+  const auto stages = plan.executionStages();
+  for (std::size_t stageIndex = 0; stageIndex != stages.size(); ++stageIndex) {
+    for (std::size_t row = 0; row != stages[stageIndex].size(); ++row) {
+      const RenderPassNode* pass = stages[stageIndex][row];
+      result[pass->id] = QPointF(OriginX + stageIndex * ColumnGap, OriginY + row * RowGap);
+    }
+  }
+
+  return result;
+}
+
+QPointF RenderGraphInspectorWidget::Private::passCenter(const QPointF& topLeft) const {
+  return topLeft + QPointF(PassWidth / 2.0, PassHeight / 2.0);
+}
+
+QPointF RenderGraphInspectorWidget::Private::resourcePosition(
+  const RenderPlan& plan, const RenderResourceDescriptor& resource,
+  const std::map<RenderPassId, QPointF>& passes, int fallbackRow) const {
+  const RenderPassNode* producer = plan.producerOf(resource.id);
+  const auto consumers = plan.consumersOf(resource.id);
+
+  std::vector<QPointF> anchors;
+  if (producer) {
+    const auto producerPosition = passes.find(producer->id);
+    if (producerPosition != passes.end())
+      anchors.push_back(passCenter(producerPosition->second));
+  }
+  for (const RenderPassNode* consumer : consumers) {
+    const auto consumerPosition = passes.find(consumer->id);
+    if (consumerPosition != passes.end())
+      anchors.push_back(passCenter(consumerPosition->second));
+  }
+
+  if (anchors.empty()) {
+    return QPointF(OriginX, OriginY + fallbackRow * RowGap);
+  }
+
+  const double averageX =
+    std::accumulate(anchors.begin(), anchors.end(), 0.0,
+                    [](double value, const QPointF& point) { return value + point.x(); }) /
+    anchors.size();
+  const double averageY =
+    std::accumulate(anchors.begin(), anchors.end(), 0.0,
+                    [](double value, const QPointF& point) { return value + point.y(); }) /
+    anchors.size();
+
+  if (producer && consumers.empty()) {
+    return QPointF(averageX + PassWidth / 2.0 + 40.0, averageY - ResourceHeight / 2.0);
+  }
+  if (!producer && !consumers.empty()) {
+    return QPointF(averageX - PassWidth / 2.0 - ResourceWidth - 40.0,
+                   averageY - ResourceHeight / 2.0);
+  }
+
+  return QPointF(averageX - ResourceWidth / 2.0, averageY - ResourceHeight / 2.0);
+}
+
+QGraphicsRectItem* RenderGraphInspectorWidget::Private::addNode(
+  QGraphicsScene& scene, const QRectF& rect, const QString& kind, const QString& id,
+  const QStringList& lines, const QPen& pen, const QBrush& brush) const {
+  auto* item = scene.addRect(rect, pen, brush);
+  item->setData(GraphItemKindRole, kind);
+  item->setData(GraphItemIdRole, id);
+  item->setFlag(QGraphicsItem::ItemIsSelectable);
+
+  double y = rect.top() + 9.0;
+  for (int i = 0; i != lines.size(); ++i) {
+    QFont font;
+    if (i == 0)
+      font.setBold(true);
+    font.setPointSize(i == 0 ? 9 : 8);
+    QFontMetrics metrics(font);
+    const QString elided = metrics.elidedText(lines[i], Qt::ElideRight,
+                                              static_cast<int>(rect.width() - 2.0 * NodeTextInset));
+    auto* text = scene.addSimpleText(elided);
+    text->setParentItem(item);
+    text->setData(GraphItemKindRole, kind);
+    text->setData(GraphItemIdRole, id);
+    text->setFont(font);
+    text->setToolTip(lines[i]);
+    text->setPos(rect.left() + NodeTextInset, y);
+    y += text->boundingRect().height() + 2.0;
+  }
+
+  return item;
+}
+
+void RenderGraphInspectorWidget::Private::addEdge(QGraphicsScene& scene, const QPointF& from,
+                                                  const QPointF& to) const {
+  QPen pen(QColor(90, 100, 110));
+  pen.setWidthF(1.4);
+  auto* line = scene.addLine(from.x(), from.y(), to.x(), to.y(), pen);
+  line->setZValue(-10.0);
+}
+
+QGraphicsItem* RenderGraphInspectorWidget::Private::graphNodeItem(QGraphicsItem* item) const {
+  while (item && item->data(GraphItemKindRole).toString().isEmpty())
+    item = item->parentItem();
+  return item;
 }
 
 RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
@@ -736,7 +761,7 @@ bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
   if (watched == p->graphScene && event->type() == QEvent::GraphicsSceneMousePress) {
     auto* mouseEvent = static_cast<QGraphicsSceneMouseEvent*>(event);
     QGraphicsItem* item =
-      graphNodeItem(p->graphScene->itemAt(mouseEvent->scenePos(), QTransform()));
+      p->graphNodeItem(p->graphScene->itemAt(mouseEvent->scenePos(), QTransform()));
     if (item && item->data(GraphItemKindRole).toString() == QStringLiteral("pass")) {
       selectPass(item->data(GraphItemIdRole).toString().toStdString());
     } else if (item && item->data(GraphItemKindRole).toString() == QStringLiteral("resource")) {
@@ -747,7 +772,7 @@ bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
   if (watched == p->graphScene && event->type() == QEvent::GraphicsSceneMouseDoubleClick) {
     auto* mouseEvent = static_cast<QGraphicsSceneMouseEvent*>(event);
     QGraphicsItem* item =
-      graphNodeItem(p->graphScene->itemAt(mouseEvent->scenePos(), QTransform()));
+      p->graphNodeItem(p->graphScene->itemAt(mouseEvent->scenePos(), QTransform()));
     if (item && item->data(GraphItemKindRole).toString() == QStringLiteral("pass")) {
       const RenderPassId passId = item->data(GraphItemIdRole).toString().toStdString();
       const RenderPlan plan = effectivePlan();
@@ -841,13 +866,13 @@ void RenderGraphInspectorWidget::rebuildGraph() {
   const RenderPlan plan = effectivePlan();
   const RenderGraphExecutionTrace* trace =
     p->trace && p->trace->matchesPlan(plan) ? p->trace.get() : nullptr;
-  const auto passLocations = passPositions(plan);
+  const auto passLocations = p->passPositions(plan);
   std::map<RenderResourceId, QPointF> resourceLocations;
 
   for (std::size_t index = 0; index != plan.resources().size(); ++index) {
     const auto& resource = plan.resources()[index];
     resourceLocations.emplace(
-      resource.id, resourcePosition(plan, resource, passLocations, static_cast<int>(index)));
+      resource.id, p->resourcePosition(plan, resource, passLocations, static_cast<int>(index)));
   }
 
   for (const auto& resource : plan.resources()) {
@@ -863,15 +888,16 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (producer) {
       const auto producerIt = passLocations.find(producer->id);
       if (producerIt != passLocations.end()) {
-        addEdge(*p->graphScene, producerIt->second + QPointF(PassWidth, PassHeight / 2.0),
-                resourceLeft);
+        p->addEdge(*p->graphScene, producerIt->second + QPointF(PassWidth, PassHeight / 2.0),
+                   resourceLeft);
       }
     }
 
     for (const RenderPassNode* consumer : plan.consumersOf(resource.id)) {
       const auto consumerIt = passLocations.find(consumer->id);
       if (consumerIt != passLocations.end()) {
-        addEdge(*p->graphScene, resourceRight, consumerIt->second + QPointF(0.0, PassHeight / 2.0));
+        p->addEdge(*p->graphScene, resourceRight,
+                   consumerIt->second + QPointF(0.0, PassHeight / 2.0));
       }
     }
   }
@@ -886,14 +912,14 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     QStringList lines{p->displayName(resource),
                       p->graphEnumText(toString(resource.type)) + QStringLiteral("/") +
                         p->graphEnumText(toString(resource.format)),
-                      p->graphEnumText(toString(resource.lifetime)), sizeText(resource)};
-    const QString traceLine = resourceTraceLine(trace, resource);
+                      p->graphEnumText(toString(resource.lifetime)), p->sizeText(resource)};
+    const QString traceLine = trace ? p->resourceTraceLine(resource) : QString();
     if (!traceLine.isEmpty())
       lines << traceLine;
-    addNode(
-      *p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
-      QStringLiteral("resource"), qstr(resource.id), lines, resourcePen,
-      QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)))
+    p->addNode(
+       *p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
+       QStringLiteral("resource"), qstr(resource.id), lines, resourcePen,
+       QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)))
       ->setToolTip(p->resourceTooltip(plan, resource));
   }
 
@@ -927,19 +953,19 @@ void RenderGraphInspectorWidget::rebuildGraph() {
                       p->graphEnumText(toString(pass.kind)) + QStringLiteral("/") +
                         p->graphEnumText(toString(pass.executor)),
                       pass.enabled ? tr("enabled") : tr("disabled")};
-    lines << passSceneViewLines(pass);
+    lines << p->passSceneViewLines(pass);
     const auto stage = plan.executionStageNumber(pass.id);
     const auto order = plan.executionOrderNumber(pass.id);
     if (stage && order) {
       lines << tr("stage %1, order %2").arg(*stage).arg(*order);
     }
-    const QString traceLine = passTraceLine(trace, pass);
+    const QString traceLine = trace ? p->passTraceLine(pass) : QString();
     if (!traceLine.isEmpty())
       lines << traceLine;
     QGraphicsRectItem* item =
-      addNode(*p->graphScene, QRectF(location->second, QSizeF(PassWidth, PassHeight)),
-              QStringLiteral("pass"), qstr(pass.id), lines, pen, brush);
-    item->setData(GraphItemExecutionStateRole, executionStateName(executionState));
+      p->addNode(*p->graphScene, QRectF(location->second, QSizeF(PassWidth, PassHeight)),
+                 QStringLiteral("pass"), qstr(pass.id), lines, pen, brush);
+    item->setData(GraphItemExecutionStateRole, p->executionStateName(executionState));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
     const auto messageIt = p->executionMessages.find(pass.id);
@@ -969,9 +995,9 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setToolTip(3, qstr(pass.id));
     item->setText(4, toString(pass.kind));
     item->setText(5, toString(pass.executor));
-    item->setText(6, sceneSelectorText(pass.sceneView.selector));
-    item->setText(7, cameraText(pass.sceneView.camera));
-    item->setText(8, shadingProfileText(pass.sceneView.shadingProfile));
+    item->setText(6, p->sceneSelectorText(pass.sceneView.selector));
+    item->setText(7, p->cameraText(pass.sceneView.camera));
+    item->setText(8, p->shadingProfileText(pass.sceneView.shadingProfile));
     item->setText(9, p->resourceReads(plan, pass.reads));
     item->setText(10, p->resourceWrites(plan, pass.writes));
     item->setText(11, toString(pass.disabledBehavior));
@@ -1042,7 +1068,7 @@ void RenderGraphInspectorWidget::rebuildResources() {
     item->setText(4, toString(resource.format));
     item->setText(5, toString(resource.domain));
     item->setText(6, toString(resource.lifetime));
-    item->setText(7, sizeText(resource));
+    item->setText(7, p->sizeText(resource));
     if (resource.id == p->selectedResourceId)
       item->setSelected(true);
   }
