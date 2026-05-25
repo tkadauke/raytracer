@@ -194,6 +194,18 @@ namespace engine::graph {
     return m_message;
   }
 
+  bool RenderGraphCacheMetadata::cacheable() const {
+    return m_status != RenderGraphCacheStatus::NotCacheable;
+  }
+
+  bool RenderGraphCacheMetadata::usedCachedArtifact() const {
+    return m_status == RenderGraphCacheStatus::Hit;
+  }
+
+  bool RenderGraphCacheMetadata::storedCachedArtifact() const {
+    return m_status == RenderGraphCacheStatus::Stored;
+  }
+
   QJsonObject RenderGraphCacheMetadata::toJson() const {
     QJsonObject object;
     object["status"] = toString(m_status);
