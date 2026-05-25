@@ -513,6 +513,10 @@ graph-only dump. The dock compiles the current live-preview intent and target
 size into a `RenderPlan`, then shows the result as a left-to-right graph plus
 supporting tables:
 
+Pass nodes summarize non-default scene selector, camera, and shading-profile
+intent directly in the graph, and the pass table/property editor keep the same
+details available for copyable inspection.
+
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
   user double-click pass nodes to enable or disable them. Hovering a node
