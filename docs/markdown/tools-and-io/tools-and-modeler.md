@@ -176,7 +176,9 @@ drives the property editor when a pass or resource is selected. Its Passes tab
 shows each compiled pass id, execution order, execution stage, kind, executor,
 and resource edges. Its Resources
 tab shows each declared resource's type, format, domain, lifetime, and
-dimensions. Unchecking a pass adds a graph override and the dock validates the
+dimensions. Selecting a pass also shows its execution stage and order in the
+property editor alongside pass state, resource edges, and trace metadata.
+Unchecking a pass adds a graph override and the dock validates the
 manipulated plan immediately. When the manipulated plan is still valid, the
 central preview renders through that effective plan. After a render, selecting
 a pass or inspectable color/depth resource in the graph opens the central Graph

@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -219,6 +220,10 @@ namespace {
     if (state.isEmpty())
       return QStringLiteral("-");
     return QString::fromUtf8(QJsonDocument(state).toJson(QJsonDocument::Compact));
+  }
+
+  QString optionalNumberText(const std::optional<int>& value) {
+    return value ? QString::number(*value) : QStringLiteral("-");
   }
 
   const engine::graph::RenderGraphResourceSnapshot*
@@ -1516,6 +1521,8 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Kind"), engine::graph::toString(pass->kind));
   addRow(rows, tr("Executor"), engine::graph::toString(pass->executor));
   addRow(rows, tr("Enabled"), pass->enabled ? tr("true") : tr("false"));
+  addRow(rows, tr("Execution stage"), optionalNumberText(plan.executionStageNumber(pass->id)));
+  addRow(rows, tr("Execution order"), optionalNumberText(plan.executionOrderNumber(pass->id)));
   addRow(rows, tr("Disabled behavior"), engine::graph::toString(pass->disabledBehavior));
   addRow(rows, tr("Features"), featureText(pass->features));
   addRow(rows, tr("Reads"), resourceReadsText(pass->reads));
