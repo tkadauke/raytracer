@@ -171,6 +171,16 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(ShadingProfileParameterValue(5.0), *intent.defaultShadingProfile.parameter("levels"));
   }
 
+  TEST(RenderIntent, RejectsNonAOVExportRequests) {
+    RenderIntent intent;
+
+    EXPECT_THROW(intent.requestExportedAOV(RenderViewMode::Beauty), std::runtime_error);
+
+    QJsonObject json;
+    json["exportedAOVs"] = QJsonArray{"beauty"};
+    EXPECT_THROW(RenderIntent::fromJson(json), std::runtime_error);
+  }
+
   TEST(RenderIntent, RejectsUnknownExecutorName) {
     QJsonObject json;
     json["defaultExecutor"] = "path_tracer";
