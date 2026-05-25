@@ -132,6 +132,7 @@ namespace render {
       */
     Rayd rayForPixelWithLens(double x, double y, double lensU, double lensV) const override;
     std::shared_ptr<Camera> clone() const override;
+    const char* fingerprintType() const override;
 
     /// @returns the focal-plane tilt angle. Zero means
     /// perpendicular to the forward axis (parent ThinLens

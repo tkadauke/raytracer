@@ -6,7 +6,7 @@
 
 #include "core/Buffer.h"
 #include "render/TilePlan.h"
-#include "render/lights/DirectionalLight.h"
+#include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
 #include "render/viewplanes/ViewPlane.h"
 
@@ -51,8 +51,8 @@ namespace engine::raster::detail {
         break;
       }
 
-      auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light);
-      if (!directional) {
+      const auto lightDirection = light ? light->directionalShadowMapDirection() : std::nullopt;
+      if (!lightDirection) {
         continue;
       }
 
@@ -63,7 +63,7 @@ namespace engine::raster::detail {
           break;
         }
 
-        cascades.push_back(buildCascade(*directional, corners, cascadeDepths, cascadeMinDepth,
+        cascades.push_back(buildCascade(*lightDirection, corners, cascadeDepths, cascadeMinDepth,
                                         cascadeMaxDepth, size, size));
       }
 
@@ -101,15 +101,15 @@ namespace engine::raster::detail {
         return false;
       }
 
-      auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light);
-      if (!directional) {
+      const auto lightDirection = light ? light->directionalShadowMapDirection() : std::nullopt;
+      if (!lightDirection) {
         continue;
       }
 
       const auto& [cascadeMinDepth, cascadeMaxDepth] = cascadeDepths.front();
       const auto points = cascadePoints(corners, cascadeDepths, cascadeMinDepth, cascadeMaxDepth);
       auto shadowCamera =
-        cameraFor(*directional, points, depthBuffer.width(), depthBuffer.height());
+        cameraFor(*lightDirection, points, depthBuffer.width(), depthBuffer.height());
       renderDepth(shadowCamera, depthBuffer);
       return true;
     }
@@ -145,11 +145,11 @@ namespace engine::raster::detail {
   }
 
   DirectionalShadowCascade RasterShadowMapBuilder::buildCascade(
-    const render::DirectionalLight& light, const std::array<Vector3d, 8>& corners,
+    const Vector3d& lightDirection, const std::array<Vector3d, 8>& corners,
     const std::vector<std::pair<double, double>>& cascadeDepths, double cascadeMinDepth,
     double cascadeMaxDepth, int width, int height) const {
     const auto points = cascadePoints(corners, cascadeDepths, cascadeMinDepth, cascadeMaxDepth);
-    auto shadowCamera = cameraFor(light, points, width, height);
+    auto shadowCamera = cameraFor(lightDirection, points, width, height);
     auto depthBuffer = std::make_unique<Buffer<double>>(width, height);
     depthBuffer->clear(std::numeric_limits<double>::infinity());
     renderDepth(shadowCamera, *depthBuffer);
@@ -157,12 +157,12 @@ namespace engine::raster::detail {
   }
 
   std::shared_ptr<DirectionalShadowCamera>
-  RasterShadowMapBuilder::cameraFor(const render::DirectionalLight& light,
+  RasterShadowMapBuilder::cameraFor(const Vector3d& lightDirection,
                                     const std::vector<Vector3d>& points, int width,
                                     int height) const {
     const int fitSize = std::max(1, std::min(width, height));
-    const auto shadowFit = directionalShadowFitForPoints(points, light.direction(),
-                                                         m_rasterizer.nearClipDepth(), fitSize);
+    const auto shadowFit =
+      directionalShadowFitForPoints(points, lightDirection, m_rasterizer.nearClipDepth(), fitSize);
     auto shadowCamera = std::make_shared<DirectionalShadowCamera>(shadowFit);
     shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
     shadowCamera->viewPlane()->setup(Matrix4d(), Recti(width, height));

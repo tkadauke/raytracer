@@ -12,6 +12,10 @@ std::shared_ptr<Camera> OrthographicCamera::clone() const {
   return result;
 }
 
+const char* OrthographicCamera::fingerprintType() const {
+  return "OrthographicCamera";
+}
+
 Rayd OrthographicCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d direction = Matrix3d(matrix()) * Vector3d::forward();
   Vector3d pixel = viewPlane()->pixelAt(x, y);

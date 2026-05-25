@@ -808,7 +808,7 @@ namespace engine::graph {
     if (!pass.state)
       return nullptr;
 
-    const auto* state = dynamic_cast<const RasterShadowPassState*>(pass.state.get());
+    const auto* state = pass.state->asRasterShadowPassState();
     if (!state) {
       throw std::runtime_error("pass '" + pass.id + "' does not carry raster shadow state");
     }
@@ -818,6 +818,10 @@ namespace engine::graph {
   RasterShadowPassState RasterShadowPassState::valueFromPass(const RenderPassNode& pass) {
     const auto* state = fromPass(pass);
     return state ? *state : RasterShadowPassState::previewDefaults();
+  }
+
+  const RasterShadowPassState* RasterShadowPassState::asRasterShadowPassState() const {
+    return this;
   }
 
   QJsonObject RasterShadowPassState::toJson() const {
@@ -900,7 +904,7 @@ namespace engine::graph {
     if (!pass.state)
       return nullptr;
 
-    const auto* state = dynamic_cast<const RasterBeautyPassState*>(pass.state.get());
+    const auto* state = pass.state->asRasterBeautyPassState();
     if (!state) {
       throw std::runtime_error("pass '" + pass.id + "' does not carry raster beauty state");
     }
@@ -910,6 +914,10 @@ namespace engine::graph {
   RasterBeautyPassState RasterBeautyPassState::valueFromPass(const RenderPassNode& pass) {
     const auto* state = fromPass(pass);
     return state ? *state : RasterBeautyPassState();
+  }
+
+  const RasterBeautyPassState* RasterBeautyPassState::asRasterBeautyPassState() const {
+    return this;
   }
 
   QJsonObject RasterBeautyPassState::toJson() const {

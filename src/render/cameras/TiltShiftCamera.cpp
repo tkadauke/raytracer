@@ -19,6 +19,10 @@ std::shared_ptr<Camera> TiltShiftCamera::clone() const {
   return result;
 }
 
+const char* TiltShiftCamera::fingerprintType() const {
+  return "TiltShiftCamera";
+}
+
 Rayd TiltShiftCamera::rayForPixelWithLens(double x, double y, double lensU, double lensV) const {
   // Pinhole reference ray, with optional lateral shift baked into
   // the principal direction. Conceptually, `setShift({sx, sy})`

@@ -90,6 +90,10 @@ namespace engine::raster::detail {
     return result;
   }
 
+  const char* DirectionalShadowCamera::fingerprintType() const {
+    return "DirectionalShadowCamera";
+  }
+
   Vector3d DirectionalShadowCamera::projectPointWithDepth(const Vector3d& worldPoint) const {
     const Vector3d cameraPoint = toCameraSpace(worldPoint);
     if (cameraPoint.z() < 0.0)

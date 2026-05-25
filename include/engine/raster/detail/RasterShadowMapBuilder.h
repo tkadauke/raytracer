@@ -15,7 +15,6 @@ class QThreadPool;
 
 namespace render {
   class Camera;
-  class DirectionalLight;
   class Scene;
   class TilePlan;
 }
@@ -50,11 +49,11 @@ namespace engine::raster::detail {
                                         double cascadeMinDepth, double cascadeMaxDepth) const;
 
     DirectionalShadowCascade
-    buildCascade(const render::DirectionalLight& light, const std::array<Vector3d, 8>& corners,
+    buildCascade(const Vector3d& lightDirection, const std::array<Vector3d, 8>& corners,
                  const std::vector<std::pair<double, double>>& cascadeDepths,
                  double cascadeMinDepth, double cascadeMaxDepth, int width, int height) const;
 
-    std::shared_ptr<DirectionalShadowCamera> cameraFor(const render::DirectionalLight& light,
+    std::shared_ptr<DirectionalShadowCamera> cameraFor(const Vector3d& lightDirection,
                                                        const std::vector<Vector3d>& points,
                                                        int width, int height) const;
 

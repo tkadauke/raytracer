@@ -19,8 +19,7 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/wireframe/Wireframe.h"
-#include "render/materials/ReflectiveMaterial.h"
-#include "render/materials/TransparentMaterial.h"
+#include "render/materials/Material.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
 #include "render/samplers/SamplerFactory.h"
@@ -402,32 +401,16 @@ namespace {
   }
 
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
-    std::set<std::string> materialTypes;
+    std::set<std::string> warnings;
     scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
       if (!material)
         return;
-      if (dynamic_cast<const render::TransparentMaterial*>(material.get())) {
-        materialTypes.insert("TransparentMaterial");
-      } else if (dynamic_cast<const render::ReflectiveMaterial*>(material.get())) {
-        materialTypes.insert("ReflectiveMaterial");
+      if (const char* warning = material->rasterRecursiveFallbackWarning()) {
+        warnings.insert(warning);
       }
     });
 
-    std::vector<std::string> warnings;
-    warnings.reserve(materialTypes.size());
-    for (const auto& materialType : materialTypes) {
-      if (materialType == "ReflectiveMaterial") {
-        warnings.push_back(
-          "Rasterizer fallback: ReflectiveMaterial previews only its local Phong base; "
-          "mirror recursion remains raytracer-only.");
-      } else if (materialType == "TransparentMaterial") {
-        warnings.push_back(
-          "Rasterizer fallback: TransparentMaterial previews its local Phong base with "
-          "source alpha from transmission; refraction/reflection recursion remains "
-          "raytracer-only.");
-      }
-    }
-    return warnings;
+    return {warnings.begin(), warnings.end()};
   }
 
   bool usesRasterizer(const engine::graph::RenderPlan& plan) {

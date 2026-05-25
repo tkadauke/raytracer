@@ -76,5 +76,8 @@ namespace render {
       * by construction so the final `.rgb()` clamp is a no-op.
       */
     virtual Colord apply(const Colord& hdr) const = 0;
+
+    /// Stable type name for deterministic fingerprints and diagnostics.
+    virtual const char* fingerprintType() const = 0;
   };
 }

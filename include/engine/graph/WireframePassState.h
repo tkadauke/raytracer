@@ -25,6 +25,7 @@ namespace engine::graph {
     static const WireframePassState* fromPass(const RenderPassNode& pass);
     static WireframePassState valueFromPass(const RenderPassNode& pass);
 
+    const WireframePassState* asWireframePassState() const override;
     QJsonObject toJson() const override;
     bool empty() const;
     void applyTo(Wireframe& wireframe) const;

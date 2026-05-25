@@ -17,6 +17,10 @@ std::shared_ptr<Camera> SphericalCamera::clone() const {
   return result;
 }
 
+const char* SphericalCamera::fingerprintType() const {
+  return "SphericalCamera";
+}
+
 Vector3d SphericalCamera::direction(double x, double y) const {
   Vector2d point(2.0 / viewPlane()->width() * x + 1.0, 2.0 / viewPlane()->height() * y - 1.0);
 

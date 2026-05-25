@@ -125,8 +125,11 @@ namespace engine::graph {
 
   std::shared_ptr<const PostProcessAAState>
   PostProcessAAState::fromPass(const RenderPassNode& pass) {
-    if (auto state = std::dynamic_pointer_cast<const PostProcessAAState>(pass.state))
-      return state;
+    if (pass.state) {
+      if (auto* state = pass.state->asPostProcessAAState()) {
+        return std::shared_ptr<const PostProcessAAState>(pass.state, state);
+      }
+    }
 
     if (hasFeature(pass, "post_aa") && hasFeature(pass, "fxaa"))
       return std::make_shared<FxaaPostProcessAAState>();
@@ -134,6 +137,10 @@ namespace engine::graph {
       return std::make_shared<SmaaPostProcessAAState>();
 
     return nullptr;
+  }
+
+  const PostProcessAAState* PostProcessAAState::asPostProcessAAState() const {
+    return this;
   }
 
   QJsonObject PostProcessAAState::toJson() const {

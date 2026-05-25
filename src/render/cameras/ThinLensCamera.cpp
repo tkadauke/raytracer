@@ -47,6 +47,10 @@ std::shared_ptr<Camera> ThinLensCamera::clone() const {
   return result;
 }
 
+const char* ThinLensCamera::fingerprintType() const {
+  return "ThinLensCamera";
+}
+
 Rayd ThinLensCamera::rayForPixel(double x, double y, ::render::SampleStream& stream) const {
   // Pull the lens-disc sample from the stream's next 2D dimension.
   // The renderer has already consumed dimension 0 for sub-pixel

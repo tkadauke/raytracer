@@ -63,10 +63,19 @@ namespace RenderGraphArtifactCacheTest {
     source[1][0] = 0.75;
 
     Buffer<double> restored(2, 2);
-    artifact.copyTo(restored);
+    EXPECT_TRUE(artifact.copyDepthTo(restored));
 
     EXPECT_EQ(0.25, restored[1][0]);
     EXPECT_EQ("depth artifact", artifact.description());
+  }
+
+  TEST(RenderGraphArtifactCache, BaseArtifactDoesNotExposeDepthCopy) {
+    const auto key =
+      RenderGraphCacheKey::forPassOutput(pass("producer"), colorResource("color"), "inputs");
+    RenderGraphCachedArtifact artifact(key);
+
+    Buffer<double> restored(2, 2);
+    EXPECT_FALSE(artifact.copyDepthTo(restored));
   }
 
   TEST(RenderGraphArtifactCache, SeparatesInputFingerprintsAndPassState) {

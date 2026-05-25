@@ -4,8 +4,6 @@
 #include "core/math/Ray.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/materials/PhongMaterial.h"
-#include "render/materials/ReflectiveMaterial.h"
-#include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Primitive.h"
 #include "render/textures/CheckerBoardTexture.h"
 #include "render/textures/ConstantColorTexture.h"
@@ -350,13 +348,7 @@ namespace engine::raster::detail {
 
   RasterMaterialSource::RecursiveFallback
   RasterMaterialSource::recursiveFallbackFor(const render::Material* material) {
-    if (dynamic_cast<const render::TransparentMaterial*>(material)) {
-      return RecursiveFallback::TransparentAlphaPhong;
-    }
-    if (dynamic_cast<const render::ReflectiveMaterial*>(material)) {
-      return RecursiveFallback::ReflectiveLocalPhong;
-    }
-    return RecursiveFallback::None;
+    return material ? material->rasterRecursiveFallback() : RecursiveFallback::None;
   }
 
   RasterMaterialSource RasterMaterialSource::faceColor(render::Material::Sidedness sidedness,
@@ -393,8 +385,7 @@ namespace engine::raster::detail {
     const Colord specularColor = phong ? phong->specularColor() : Colord::black();
     const double specularCoefficient = phong ? phong->specularCoefficient() : 0.0;
     const double specularExponent = phong ? phong->exponent() : 16.0;
-    const auto* transparent = dynamic_cast<const render::TransparentMaterial*>(&matte);
-    const double materialAlpha = transparent ? 1.0 - transparent->transmissionCoefficient() : 1.0;
+    const double materialAlpha = matte.rasterPreviewAlpha();
     const auto normalTexture = matte.normalTexture();
     return RasterMaterialSource(kind, albedo, texture, sidedness, recursiveFallback,
                                 matte.ambientCoefficient(), matte.diffuseCoefficient(),
