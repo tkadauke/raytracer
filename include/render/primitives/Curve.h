@@ -1,7 +1,10 @@
 #pragma once
 
+#include "core/geometry/AttributeColorMap.h"
 #include "core/geometry/Polyline.h"
 #include "render/primitives/Primitive.h"
+
+#include <optional>
 
 namespace render {
   /**
@@ -38,6 +41,19 @@ namespace render {
       return m_mode;
     }
 
+    inline void setSegmentColorMap(const core::AttributeColorMap& colorMap) {
+      m_segmentColorMap = colorMap;
+    }
+
+    inline void clearSegmentColorMap() {
+      m_segmentColorMap.reset();
+    }
+
+    [[nodiscard]] inline const std::optional<core::AttributeColorMap>& segmentColorMap() const
+      noexcept {
+      return m_segmentColorMap;
+    }
+
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;
 
@@ -57,5 +73,6 @@ namespace render {
     core::Polyline m_polyline;
     double m_width;
     TessellationMode m_mode;
+    std::optional<core::AttributeColorMap> m_segmentColorMap;
   };
 }

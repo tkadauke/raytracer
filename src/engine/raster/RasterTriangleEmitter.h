@@ -144,6 +144,10 @@ namespace engine::raster::detail {
           if (face.size() < 3)
             continue;
 
+          const auto faceColor = mesh->faceColor(fi);
+          const RasterMaterialSource faceMaterialSource =
+            faceColor ? materialSource.withColorOverride(*faceColor) : materialSource;
+
           for (std::size_t i = 1; i + 1 < face.size(); ++i) {
             const ProjectedVertex& p0 = projected[face[0]];
             const ProjectedVertex& p1 = projected[face[i]];
@@ -163,8 +167,8 @@ namespace engine::raster::detail {
               ClipVert v2{vertices[face[i + 1]].point, vertices[face[i + 1]].normal,
                           vertices[face[i + 1]].uv, p2.clip, p2.screen};
 
-              emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
-                                   callback);
+              emitPreparedTriangle(primitive, material, faceMaterialSource, globalFaceIdx, v0, v1,
+                                   v2, callback);
               continue;
             }
 
@@ -196,8 +200,8 @@ namespace engine::raster::detail {
                 continue;
               }
 
-              emitPreparedTriangle(primitive, material, materialSource, globalFaceIdx, v0, v1, v2,
-                                   callback);
+              emitPreparedTriangle(primitive, material, faceMaterialSource, globalFaceIdx, v0, v1,
+                                   v2, callback);
             }
           }
         }

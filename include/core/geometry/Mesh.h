@@ -1,7 +1,9 @@
 #pragma once
 
 #include "core/math/Vector.h"
+#include "core/Color.h"
 #include "core/Exception.h"
+#include <optional>
 #include <vector>
 #include <array>
 #include <string>
@@ -187,6 +189,17 @@ public:
         "Invalid mesh face. Trying to add a mesh face with < 3 vertices", __FILE__, __LINE__);
     }
     m_faces.push_back(face);
+    m_faceColors.push_back(std::nullopt);
+  }
+
+  /**
+    * Adds the given @p face with a display color override. Renderers that
+    * understand mesh face colors can use this instead of the primitive's
+    * material; other consumers can ignore it and still receive valid geometry.
+    */
+  inline void addFace(const Face& face, const Colord& color) {
+    addFace(face);
+    m_faceColors.back() = color;
   }
 
   /**
@@ -201,6 +214,14 @@ public:
     */
   inline const std::vector<Face>& faces() const {
     return m_faces;
+  }
+
+  [[nodiscard]] inline const std::vector<std::optional<Colord>>& faceColors() const {
+    return m_faceColors;
+  }
+
+  [[nodiscard]] inline std::optional<Colord> faceColor(std::size_t faceIndex) const {
+    return m_faceColors.at(faceIndex);
   }
 
   /**
@@ -222,4 +243,5 @@ public:
 private:
   std::vector<Vertex> m_vertices;
   std::vector<Face> m_faces;
+  std::vector<std::optional<Colord>> m_faceColors;
 };
