@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph dependency properties.** Selecting a pass node now
+  shows its incoming and outgoing dependency edges in the property editor.
+  — GPT-5
 - **Modeler render graph pass properties.** Selecting a pass node now shows its
   execution stage and serial order in the property editor. — GPT-5
 - **Modeler render graph resource tooltips.** Resource nodes in the Render Graph

@@ -114,6 +114,17 @@ namespace {
     return dashIfEmpty(values.join(QStringLiteral(", ")));
   }
 
+  QString dependencyText(const std::vector<engine::graph::RenderPassDependency>& dependencies) {
+    QStringList values;
+    for (const auto& dependency : dependencies) {
+      values << QStringLiteral("%1 -> %2 via %3")
+                  .arg(qstr(dependency.producer->id))
+                  .arg(qstr(dependency.consumer->id))
+                  .arg(qstr(dependency.resource));
+    }
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
   QString featureText(const std::vector<engine::graph::RenderFeatureKind>& features) {
     QStringList values;
     for (const auto& feature : features)
@@ -1527,6 +1538,8 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Features"), featureText(pass->features));
   addRow(rows, tr("Reads"), resourceReadsText(pass->reads));
   addRow(rows, tr("Writes"), resourceWritesText(pass->writes));
+  addRow(rows, tr("Incoming dependencies"), dependencyText(plan.dependenciesInto(pass->id)));
+  addRow(rows, tr("Outgoing dependencies"), dependencyText(plan.dependenciesOutOf(pass->id)));
   addRow(rows, tr("External side effects"),
          pass->hasExternalSideEffects ? tr("true") : tr("false"));
   addRow(rows, tr("Concurrent"), pass->canRunConcurrently ? tr("true") : tr("false"));
