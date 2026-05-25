@@ -83,7 +83,9 @@ overrides the graph intent's structural view mode. `--render_graph_camera
 camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
 records the requested camera intent for inspection and future alternate-camera
-execution. The depth, normal, object-id, material-id, and world-position views
+execution. `--render_graph_shading_profile name` overrides the default named
+shading profile and records it on synthesized scene-rendering passes. The
+depth, normal, object-id, material-id, and world-position views
 compile graph-visible AOV passes and visualization passes that write the final
 color image. When the selected graph executor is the rasterizer, those AOV
 passes use rasterizer diagnostic buffers, so they reflect tessellated raster
@@ -185,9 +187,9 @@ scene selector, camera reference, shading profile, and resource edges. Its
 Resources tab shows each declared resource's type, format, domain, lifetime, and
 dimensions. Selecting a pass also shows its execution stage, order, incoming
 dependencies, and outgoing dependencies in the property editor alongside pass
-state, scene view, shading profile, resource edges, and trace metadata. Hovering
-a pass or resource node summarizes its scene-view intent and declared graph edges without
-leaving the graph view.
+state, scene view, shading profile, resource edges, and trace metadata.
+Hovering a pass or resource node summarizes its scene-view intent and declared
+graph edges without leaving the graph view.
 Unchecking a pass adds a graph override and the dock validates the
 manipulated plan immediately. When the manipulated plan is still valid, the
 central preview renders through that effective plan. After a render, selecting

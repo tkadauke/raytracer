@@ -33,6 +33,7 @@ set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.json")
 set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(active_camera_plan "${TEST_OUTPUT_DIR}/graph-active-camera.json")
 set(camera_override_plan "${TEST_OUTPUT_DIR}/graph-camera-override.json")
+set(shading_profile_override_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.json")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(curve_overlay_plan "${TEST_OUTPUT_DIR}/graph-curve-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
@@ -414,6 +415,23 @@ rendercli_assert_nonempty("${camera_override_plan}" NAME "camera override graph 
 file(READ "${camera_override_plan}" camera_override_graph)
 if(NOT camera_override_graph MATCHES "\"sceneCameraId\": \"command-camera\"")
   message(FATAL_ERROR "graph camera override did not carry command-camera: ${camera_override_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph shading profile override selects scene profile intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --render_graph_shading_profile clay
+    --width 32 --height 16
+    "${static_scene}" "${shading_profile_override_plan}"
+)
+rendercli_assert_nonempty("${shading_profile_override_plan}" NAME "shading profile override graph output")
+file(READ "${shading_profile_override_plan}" shading_profile_override_graph)
+if(NOT shading_profile_override_graph MATCHES "\"sceneShadingProfile\"")
+  message(FATAL_ERROR "graph shading profile override did not write sceneShadingProfile: ${shading_profile_override_graph}")
+endif()
+if(NOT shading_profile_override_graph MATCHES "\"name\": \"clay\"")
+  message(FATAL_ERROR "graph shading profile override did not carry clay: ${shading_profile_override_graph}")
 endif()
 
 rendercli_run(
