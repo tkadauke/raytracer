@@ -375,6 +375,14 @@ namespace engine::raster::detail {
       return RasterMaterial::constant(fallbackFaceColor(faceIdx));
     }
 
+    RasterMaterialSource withColorOverride(const Colord& albedo) const {
+      return RasterMaterialSource(Kind::Constant, albedo, RasterTexture::constant(Colord::black()),
+                                  m_sidedness, m_recursiveFallback, m_ambientCoefficient,
+                                  m_diffuseCoefficient, m_materialAlpha, m_specularColor,
+                                  m_specularCoefficient, m_specularExponent, m_normalMap,
+                                  m_hasNormalMap);
+    }
+
     RecursiveFallback recursiveFallback() const {
       return m_recursiveFallback;
     }
