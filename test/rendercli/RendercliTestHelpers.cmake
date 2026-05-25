@@ -169,6 +169,152 @@ function(rendercli_assert_nonempty path)
   endif()
 endfunction()
 
+function(_rendercli_probe_image path output_variable)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image probe")
+  endif()
+  if(NOT DEFINED RENDERCLI_IMAGE_PROBE)
+    _rendercli_fail("${name}" "RENDERCLI_IMAGE_PROBE is required for image assertions" "" "" "" "")
+  endif()
+
+  rendercli_assert_exists("${path}" NAME "${name}")
+  execute_process(
+    COMMAND "${RENDERCLI_IMAGE_PROBE}" "${path}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE stdout
+    ERROR_VARIABLE stderr
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+  )
+  _rendercli_command_text(command_text "${RENDERCLI_IMAGE_PROBE}" "${path}")
+  if(NOT result STREQUAL "0")
+    _rendercli_fail("${name}" "image probe failed" "${command_text}" "${result}" "${stdout}" "${stderr}")
+  endif()
+  if(NOT stdout MATCHES "^width=([0-9]+) height=([0-9]+) nonzero_pixels=([0-9]+) hash=([0-9a-f]+)$")
+    _rendercli_fail("${name}" "image probe printed an unexpected format" "${command_text}"
+                    "${result}" "${stdout}" "${stderr}")
+  endif()
+
+  set(${output_variable} "${stdout}" PARENT_SCOPE)
+endfunction()
+
+function(_rendercli_probe_value probe_output key output_variable)
+  if(NOT probe_output MATCHES "(^| )${key}=([^ ]+)")
+    _rendercli_fail("image probe" "probe output did not contain ${key}: ${probe_output}" "" "" "" "")
+  endif()
+  set(${output_variable} "${CMAKE_MATCH_2}" PARENT_SCOPE)
+endfunction()
+
+function(rendercli_probe_image path)
+  set(one_value_args NAME OUTPUT_VARIABLE WIDTH_VARIABLE HEIGHT_VARIABLE NONZERO_PIXELS_VARIABLE HASH_VARIABLE)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR "rendercli_probe_image received unexpected arguments: ${ARG_UNPARSED_ARGUMENTS}")
+  endif()
+
+  _rendercli_probe_image("${path}" probe_output NAME "${ARG_NAME}")
+  _rendercli_probe_value("${probe_output}" "width" width)
+  _rendercli_probe_value("${probe_output}" "height" height)
+  _rendercli_probe_value("${probe_output}" "nonzero_pixels" nonzero_pixels)
+  _rendercli_probe_value("${probe_output}" "hash" hash)
+
+  if(NOT ARG_OUTPUT_VARIABLE STREQUAL "")
+    set(${ARG_OUTPUT_VARIABLE} "${probe_output}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_WIDTH_VARIABLE STREQUAL "")
+    set(${ARG_WIDTH_VARIABLE} "${width}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_HEIGHT_VARIABLE STREQUAL "")
+    set(${ARG_HEIGHT_VARIABLE} "${height}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_NONZERO_PIXELS_VARIABLE STREQUAL "")
+    set(${ARG_NONZERO_PIXELS_VARIABLE} "${nonzero_pixels}" PARENT_SCOPE)
+  endif()
+  if(NOT ARG_HASH_VARIABLE STREQUAL "")
+    set(${ARG_HASH_VARIABLE} "${hash}" PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(rendercli_assert_image_dimensions path expected_width expected_height)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image dimensions")
+  endif()
+
+  rendercli_probe_image("${path}" NAME "${name}" WIDTH_VARIABLE width HEIGHT_VARIABLE height
+                        OUTPUT_VARIABLE probe_output)
+  if(NOT width STREQUAL "${expected_width}" OR NOT height STREQUAL "${expected_height}")
+    _rendercli_fail("${name}"
+                    "expected ${expected_width}x${expected_height}, got ${width}x${height}: ${path}"
+                    "" "" "${probe_output}" "")
+  endif()
+endfunction()
+
+function(rendercli_assert_image_nonempty path)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image has nonzero pixels")
+  endif()
+
+  rendercli_probe_image("${path}" NAME "${name}" NONZERO_PIXELS_VARIABLE nonzero_pixels
+                        OUTPUT_VARIABLE probe_output)
+  if(nonzero_pixels EQUAL 0)
+    _rendercli_fail("${name}" "expected image to contain at least one nonzero RGB pixel: ${path}"
+                    "" "" "${probe_output}" "")
+  endif()
+endfunction()
+
+function(_rendercli_image_hash path output_variable name)
+  rendercli_probe_image("${path}" NAME "${name}" HASH_VARIABLE hash)
+  set(${output_variable} "${hash}" PARENT_SCOPE)
+endfunction()
+
+function(rendercli_assert_image_hash_equals expected_path actual_path)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image hashes match")
+  endif()
+
+  _rendercli_image_hash("${expected_path}" expected_hash "${name}")
+  _rendercli_image_hash("${actual_path}" actual_hash "${name}")
+  if(NOT expected_hash STREQUAL actual_hash)
+    _rendercli_fail("${name}"
+                    "expected image hashes to match: ${expected_path}=${expected_hash}, ${actual_path}=${actual_hash}"
+                    "" "" "" "")
+  endif()
+endfunction()
+
+function(rendercli_assert_image_hash_differs expected_path actual_path)
+  set(one_value_args NAME)
+  cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})
+  if(ARG_NAME)
+    set(name "${ARG_NAME}")
+  else()
+    set(name "image hashes differ")
+  endif()
+
+  _rendercli_image_hash("${expected_path}" expected_hash "${name}")
+  _rendercli_image_hash("${actual_path}" actual_hash "${name}")
+  if(expected_hash STREQUAL actual_hash)
+    _rendercli_fail("${name}"
+                    "expected image hashes to differ, but both were ${expected_hash}: ${expected_path}, ${actual_path}"
+                    "" "" "" "")
+  endif()
+endfunction()
+
 function(rendercli_assert_files_differ expected_path actual_path)
   set(one_value_args NAME)
   cmake_parse_arguments(ARG "" "${one_value_args}" "" ${ARGN})

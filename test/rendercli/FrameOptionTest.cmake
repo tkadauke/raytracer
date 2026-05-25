@@ -32,7 +32,10 @@ rendercli_run(
     "${RENDERCLI}" --engine wireframe --width 32 --height 32 --frame 5
     "${static_scene}" "${static_frame}"
 )
-rendercli_assert_nonempty("${static_frame}" NAME "rendercli --frame static scene output")
+rendercli_assert_image_dimensions("${static_frame}" 32 32
+                                  NAME "rendercli --frame static scene dimensions")
+rendercli_assert_image_nonempty("${static_frame}"
+                                NAME "rendercli --frame static scene pixels")
 
 rendercli_run(
   NAME "rendercli --frame 1 renders animated scene"
@@ -47,8 +50,12 @@ rendercli_run(
     "${RENDERCLI}" --engine wireframe --width 64 --height 64 --frame 48
     "${animated_scene}" "${frame_48}"
 )
-rendercli_assert_files_differ("${frame_1}" "${frame_48}"
-                              NAME "animated frame renders differ")
+rendercli_assert_image_dimensions("${frame_1}" 64 64
+                                  NAME "rendercli --frame 1 dimensions")
+rendercli_assert_image_dimensions("${frame_48}" 64 64
+                                  NAME "rendercli --frame 48 dimensions")
+rendercli_assert_image_hash_differs("${frame_1}" "${frame_48}"
+                                    NAME "animated frame renders differ")
 
 set(animated_catalog
   animated_camera_pan.json
@@ -67,8 +74,10 @@ foreach(scene_name IN LISTS animated_catalog)
         "${RENDERCLI}" --engine raster --width 48 --height 32 --frame "${frame}"
         "${PROJECT_SOURCE_DIR}/scenes/${scene_name}" "${catalog_frame}"
     )
-    rendercli_assert_nonempty("${catalog_frame}"
-                              NAME "rendercli --frame ${frame} output for ${scene_name}")
+    rendercli_assert_image_dimensions("${catalog_frame}" 48 32
+                                      NAME "rendercli --frame ${frame} dimensions for ${scene_name}")
+    rendercli_assert_image_nonempty("${catalog_frame}"
+                                    NAME "rendercli --frame ${frame} pixels for ${scene_name}")
   endforeach()
 endforeach()
 
@@ -90,8 +99,10 @@ rendercli_run(
     "${animated_scene}" "${sequence_pattern}"
 )
 foreach(frame 0002 0003 0004)
-  rendercli_assert_nonempty("${sequence_dir}/frame_${frame}.png"
-                            NAME "rendercli --animation frame_${frame}.png")
+  rendercli_assert_image_dimensions("${sequence_dir}/frame_${frame}.png" 64 64
+                                    NAME "rendercli --animation frame_${frame}.png dimensions")
+  rendercli_assert_image_nonempty("${sequence_dir}/frame_${frame}.png"
+                                  NAME "rendercli --animation frame_${frame}.png pixels")
 endforeach()
 rendercli_assert_not_exists("${sequence_dir}/frame_0001.png"
                             NAME "rendercli --animation honors --frame_start")

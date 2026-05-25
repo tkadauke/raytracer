@@ -54,11 +54,18 @@ add_test(NAME unit_tests       COMMAND unit_tests)
 add_test(NAME functional_tests COMMAND functional_tests)
 
 if(TARGET rendercli)
+  add_executable(rendercli_image_probe rendercli/rendercli_image_probe.cpp)
+  set_target_properties(rendercli_image_probe PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/rendercli"
+  )
+  target_link_libraries(rendercli_image_probe PRIVATE Qt6::Gui)
+
   add_test(
     NAME rendercli_animation
     COMMAND
       ${CMAKE_COMMAND}
       -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
       -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
       -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-frame
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake
@@ -68,6 +75,7 @@ if(TARGET rendercli)
     COMMAND
       ${CMAKE_COMMAND}
       -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
       -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
       -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-render-graph
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RenderGraphOptionTest.cmake
