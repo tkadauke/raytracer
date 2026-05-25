@@ -17,6 +17,24 @@ namespace core {
     * Segment i connects point i to point i + 1. The segment metadata vector is
     * maintained in lockstep with that derived segment count, so empty and
     * single-point polylines always expose zero segments.
+    *
+    * `Polyline` is the core data shape for imported paths: G-code toolpaths,
+    * molecular bonds or backbones, simulation trajectories, GPS routes, and
+    * other sampled curves can all be represented as ordered 3D points plus
+    * typed attributes. Whole-path metadata is inherited from `core::Curve`;
+    * use per-segment attributes for values that should affect rendering one
+    * span at a time, such as:
+    *
+    *  - scalar values (`double` or `int`) for feed rate, temperature, speed,
+    *    height, time, residue index, or confidence;
+    *  - categorical values (`std::string`, `bool`, or `int`) for travel/cut
+    *    moves, molecule chain labels, transport mode, route class, or phase;
+    *  - vector values (`Vector3d`) for importer-specific coordinates or
+    *    directions that later processing wants to preserve.
+    *
+    * Rendering is handled by `render::Curve`: zero-width polylines can be
+    * drawn as overlay center lines, and finite-width polylines can be
+    * tessellated into ribbons or tubes for mesh-consuming engines.
     */
   class Polyline : public Curve {
   public:
