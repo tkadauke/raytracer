@@ -562,12 +562,19 @@ namespace RenderPlanTest {
     const std::string dot = plan.toDot();
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));
     EXPECT_NE(std::string::npos, dot.find("resource:main_color"));
+    EXPECT_NE(std::string::npos, dot.find("execution_stage_1"));
 
     const QJsonObject json = plan.toJson();
     ASSERT_TRUE(json["resources"].isArray());
     ASSERT_TRUE(json["passes"].isArray());
+    ASSERT_TRUE(json["executionStages"].isArray());
     EXPECT_EQ(1, json["resources"].toArray().size());
     EXPECT_EQ(1, json["passes"].toArray().size());
+    ASSERT_EQ(1, json["executionStages"].toArray().size());
+    const auto stage = json["executionStages"].toArray().at(0).toObject();
+    EXPECT_EQ(1, stage["index"].toInt());
+    ASSERT_TRUE(stage["passes"].isArray());
+    EXPECT_EQ("main", stage["passes"].toArray().at(0).toString().toStdString());
   }
 
   TEST(RenderPlan, DotStylesDisabledPasses) {

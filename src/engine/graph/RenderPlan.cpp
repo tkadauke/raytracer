@@ -132,6 +132,14 @@ namespace engine::graph {
       return value.toArray();
     }
 
+    QJsonArray passIdArray(const std::vector<const RenderPassNode*>& passes) {
+      QJsonArray result;
+      for (const RenderPassNode* pass : passes) {
+        result.append(QString::fromStdString(pass->id));
+      }
+      return result;
+    }
+
     std::vector<std::vector<std::size_t>>
     executionStageIndexes(const std::vector<RenderPassNode>& passes,
                           const std::vector<RenderPassDependency>& dependencies) {
@@ -736,6 +744,15 @@ namespace engine::graph {
       }
     }
 
+    int stageNumber = 1;
+    for (const auto& stage : executionStages()) {
+      out << "  { rank=same; ";
+      for (const RenderPassNode* pass : stage) {
+        out << "\"pass:" << dotEscape(pass->id) << "\"; ";
+      }
+      out << "} // execution_stage_" << stageNumber++ << "\n";
+    }
+
     out << "}\n";
     return out.str();
   }
@@ -751,9 +768,19 @@ namespace engine::graph {
       passArray.append(pass.toJson());
     }
 
+    QJsonArray stageArray;
+    int stageNumber = 1;
+    for (const auto& stage : executionStages()) {
+      QJsonObject stageObject;
+      stageObject["index"] = stageNumber++;
+      stageObject["passes"] = passIdArray(stage);
+      stageArray.append(stageObject);
+    }
+
     QJsonObject result;
     result["resources"] = resourceArray;
     result["passes"] = passArray;
+    result["executionStages"] = stageArray;
     return result;
   }
 

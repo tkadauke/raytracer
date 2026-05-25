@@ -12,8 +12,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Added
 
 - **Render graph execution stages.** `RenderPlan` now exposes dependency-ready
-  execution stages, text exports list those stages, and the Modeler graph view
-  uses them for its left-to-right layout of independent branches. — GPT-5
+  execution stages, text/JSON/DOT exports surface those stages, and the Modeler
+  graph view uses them for its left-to-right layout of independent branches.
+  — GPT-5
 - **Modeler preview AOV views.** The Modeler Preview menu can now switch the
   live graph preview between beauty, depth, normal, object-id, material-id, and
   world-position views so the Render Graph dock shows the corresponding AOV

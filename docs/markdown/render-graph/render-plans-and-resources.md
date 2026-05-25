@@ -255,9 +255,10 @@ the same resource is also reported as a cycle.
 
 The same dependency walk exposes execution stages: each stage is the set of
 passes whose producer dependencies are already satisfied by earlier stages.
-The current `GraphRenderEngine` still executes serially, but text exports and
-the Modeler graph layout use these stages to make independent AOV or cache
-branches appear as parallel candidates rather than a misleading list.
+The current `GraphRenderEngine` still executes serially, but text and JSON
+exports plus the Modeler graph layout use these stages to make independent AOV
+or cache branches appear as parallel candidates rather than a misleading list.
+DOT exports also group pass nodes by execution stage with rank hints.
 
 ## <a id="exports-make-the-plan-inspectable"></a>Exports make the plan inspectable
 `RenderPlan` has three export surfaces:
