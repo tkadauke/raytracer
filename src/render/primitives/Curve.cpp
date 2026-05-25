@@ -74,6 +74,17 @@ const Primitive* Curve::intersect(const Rayd&, HitPointInterval&, render::State&
   return nullptr;
 }
 
+void Curve::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {
+  for (const auto segment : m_polyline) {
+    if (!isUsableSegment(segment.start, segment.end))
+      continue;
+
+    const auto color = m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes)
+                                         : std::optional<Colord>();
+    visitor(segment.start, segment.end, color);
+  }
+}
+
 std::shared_ptr<Mesh> Curve::tessellate(int lod) const {
   auto mesh = std::make_shared<Mesh>();
   if (m_width <= 0.0 || m_polyline.segmentCount() == 0)

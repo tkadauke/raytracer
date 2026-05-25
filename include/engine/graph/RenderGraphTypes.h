@@ -220,6 +220,8 @@ namespace engine::graph {
     bool enableAutomaticFeatures{true};
     /// Adds a graph-visible wireframe overlay pass over the primary beauty image.
     bool enableWireframeOverlay{false};
+    /// Adds a graph-visible curve center-line overlay pass over the primary image.
+    bool enableCurveOverlay{false};
     /// Enables low-cost preview shadows for rasterizer-backed preview graphs.
     bool enablePreviewShadows{false};
     /// Requests raster post-process anti-aliasing for graph compilation.

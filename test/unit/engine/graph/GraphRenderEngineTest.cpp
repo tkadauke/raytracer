@@ -13,6 +13,7 @@
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -1156,6 +1157,28 @@ namespace GraphRenderEngineTest {
 
     RenderIntent intent;
     intent.enableWireframeOverlay = true;
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(compiler.compile({64, 64, 1}, intent));
+
+    Buffer<Colord> buffer(64, 64);
+    engine.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::white()), 0);
+    EXPECT_EQ(Colord(0.1, 0.2, 0.3), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, ExecutesCurveOverlayPassOverBeautyColor) {
+    auto scene = std::make_shared<render::Scene>();
+    scene->setBackground(Colord(0.1, 0.2, 0.3));
+    scene->add(std::make_shared<render::Curve>(
+      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
+                      Vector3d(1.0, -0.5, 0.0)}),
+      0.0, render::Curve::TessellationMode::Ribbon));
+
+    RenderIntent intent;
+    intent.enableCurveOverlay = true;
     RenderGraphCompiler compiler;
 
     GraphRenderEngine engine(camera(), scene);
