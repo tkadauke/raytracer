@@ -9,6 +9,8 @@
 #include <QGraphicsSimpleTextItem>
 #include <QGraphicsView>
 #include <QHeaderView>
+#include <QHBoxLayout>
+#include <QJsonDocument>
 #include <QLabel>
 #include <QPainter>
 #include <QPen>
@@ -17,6 +19,7 @@
 #include <QStringList>
 #include <QTabWidget>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
@@ -247,6 +250,9 @@ struct RenderGraphInspectorWidget::Private {
   QTimer* liveExecutionTimer{nullptr};
   QGraphicsView* graph{nullptr};
   QGraphicsScene* graphScene{nullptr};
+  QToolButton* exportText{nullptr};
+  QToolButton* exportDot{nullptr};
+  QToolButton* exportJson{nullptr};
   QTreeWidget* passes{nullptr};
   QTreeWidget* resources{nullptr};
   QLabel* validationStatus{nullptr};
@@ -264,6 +270,30 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
 
   p->validationStatus = new QLabel(this);
   p->validationStatus->setObjectName("renderGraphValidationStatus");
+
+  auto header = new QHBoxLayout();
+  header->addWidget(p->validationStatus, 1);
+
+  p->exportText = new QToolButton(this);
+  p->exportText->setObjectName("renderGraphExportText");
+  p->exportText->setText(tr("Text"));
+  p->exportText->setToolTip(tr("Export the effective render graph as text"));
+  connect(p->exportText, SIGNAL(clicked()), this, SLOT(exportTextGraph()));
+  header->addWidget(p->exportText);
+
+  p->exportDot = new QToolButton(this);
+  p->exportDot->setObjectName("renderGraphExportDot");
+  p->exportDot->setText(tr("DOT"));
+  p->exportDot->setToolTip(tr("Export the effective render graph as DOT"));
+  connect(p->exportDot, SIGNAL(clicked()), this, SLOT(exportDotGraph()));
+  header->addWidget(p->exportDot);
+
+  p->exportJson = new QToolButton(this);
+  p->exportJson->setObjectName("renderGraphExportJson");
+  p->exportJson->setText(tr("JSON"));
+  p->exportJson->setToolTip(tr("Export the effective render graph as JSON"));
+  connect(p->exportJson, SIGNAL(clicked()), this, SLOT(exportJsonGraph()));
+  header->addWidget(p->exportJson);
 
   auto tabs = new QTabWidget(this);
 
@@ -303,7 +333,7 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   tabs->addTab(p->passes, tr("Passes"));
   tabs->addTab(p->resources, tr("Resources"));
 
-  layout->addWidget(p->validationStatus);
+  layout->addLayout(header);
   layout->addWidget(tabs, 1);
   setLayout(layout);
 
@@ -450,6 +480,22 @@ void RenderGraphInspectorWidget::promotePendingExecutionStates() {
     p->liveExecutionTimer->stop();
   if (changed)
     rebuildGraph();
+}
+
+void RenderGraphInspectorWidget::exportTextGraph() {
+  emit graphExportRequested(QStringLiteral("text"),
+                            QByteArray::fromStdString(effectivePlan().toText()));
+}
+
+void RenderGraphInspectorWidget::exportDotGraph() {
+  emit graphExportRequested(QStringLiteral("dot"),
+                            QByteArray::fromStdString(effectivePlan().toDot()));
+}
+
+void RenderGraphInspectorWidget::exportJsonGraph() {
+  emit graphExportRequested(
+    QStringLiteral("json"),
+    QJsonDocument(effectivePlan().toJson()).toJson(QJsonDocument::Indented));
 }
 
 bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {

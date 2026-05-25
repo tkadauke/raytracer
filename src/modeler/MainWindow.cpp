@@ -19,6 +19,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QDesktopServices>
+#include <QFile>
 #include <QFileDialog>
 #include <QSignalBlocker>
 #include <QSlider>
@@ -336,6 +337,8 @@ MainWindow::MainWindow()
           SLOT(renderGraphPassTraceChanged(QString)));
   connect(p->renderGraphInspectorWidget, SIGNAL(selectedResourceTraceChanged(QString)), this,
           SLOT(renderGraphResourceTraceChanged(QString)));
+  connect(p->renderGraphInspectorWidget, SIGNAL(graphExportRequested(QString, QByteArray)), this,
+          SLOT(exportRenderGraph(QString, QByteArray)));
 
   createActions();
   createMenus();
@@ -1312,6 +1315,36 @@ void MainWindow::renderGraphPassTraceChanged(const QString& passId) {
 void MainWindow::renderGraphResourceTraceChanged(const QString& resourceId) {
   showRenderGraphResourceDetails(resourceId, p->centralTabs && p->centralTabs->currentWidget() ==
                                                                  p->graphTracePreviewWidget);
+}
+
+void MainWindow::exportRenderGraph(const QString& format, const QByteArray& data) {
+  QString extension = QStringLiteral("txt");
+  QString filter = tr("Text files (*.txt)");
+  if (format == QStringLiteral("dot")) {
+    extension = QStringLiteral("dot");
+    filter = tr("DOT files (*.dot)");
+  } else if (format == QStringLiteral("json")) {
+    extension = QStringLiteral("json");
+    filter = tr("JSON files (*.json)");
+  }
+
+  const QString fileName = QFileDialog::getSaveFileName(
+    this, tr("Export Render Graph"), QStringLiteral("render-graph.%1").arg(extension), filter);
+  if (fileName.isNull())
+    return;
+
+  QFile file(fileName);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    QMessageBox::warning(this, tr("Export Render Graph"), tr("Could not write %1").arg(fileName));
+    return;
+  }
+
+  if (file.write(data) != data.size()) {
+    QMessageBox::warning(this, tr("Export Render Graph"), tr("Could not write %1").arg(fileName));
+    return;
+  }
+
+  statusBar()->showMessage(tr("Render graph exported to %1").arg(fileName));
 }
 
 void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activateTracePreview) {

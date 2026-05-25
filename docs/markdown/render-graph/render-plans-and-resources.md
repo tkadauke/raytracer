@@ -451,6 +451,7 @@ two supporting tables:
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
   user double-click pass nodes to enable or disable them;
+- the export buttons write the current effective plan as text, DOT, or JSON;
 - selecting a pass or resource node makes that graph object the active
   property-editor target; pass selections show pass state plus trace metadata,
   while resource selections show the resource descriptor, producer, consumers,

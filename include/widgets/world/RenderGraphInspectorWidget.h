@@ -2,6 +2,7 @@
 
 #include "engine/graph/RenderPlan.h"
 
+#include <QByteArray>
 #include <QString>
 #include <QWidget>
 
@@ -88,12 +89,16 @@ signals:
   void resourceSelected(const QString& resourceId);
   void selectedPassTraceChanged(const QString& passId);
   void selectedResourceTraceChanged(const QString& resourceId);
+  void graphExportRequested(const QString& format, const QByteArray& data);
 
 private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);
   void passSelectionChanged();
   void resourceSelectionChanged();
   void promotePendingExecutionStates();
+  void exportTextGraph();
+  void exportDotGraph();
+  void exportJsonGraph();
 
 private:
   bool eventFilter(QObject* watched, QEvent* event) override;

@@ -23,6 +23,7 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsView>
 #include <QLabel>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QWidget>
 
@@ -381,6 +382,27 @@ namespace RenderGraphInspectorWidgetTest {
     }
     EXPECT_EQ(nullptr, widget.findChild<QWidget*>("renderGraphTraceInputs"));
     EXPECT_EQ(nullptr, widget.findChild<QTreeWidget*>("renderGraphTraceMetadata"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitGraphExportData) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(twoPassPlan());
+
+    QString format;
+    QByteArray data;
+    QObject::connect(&widget, &RenderGraphInspectorWidget::graphExportRequested,
+                     [&](const QString& emittedFormat, const QByteArray& emittedData) {
+                       format = emittedFormat;
+                       data = emittedData;
+                     });
+
+    auto* json = widget.findChild<QToolButton*>("renderGraphExportJson");
+    ASSERT_NE(nullptr, json);
+    json->click();
+
+    EXPECT_EQ(QStringLiteral("json"), format);
+    EXPECT_TRUE(data.contains("\"passes\""));
+    EXPECT_TRUE(data.contains("raytrace_beauty"));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitPassSelectedFromGraphNode) {

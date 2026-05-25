@@ -1291,10 +1291,10 @@ Implement the smallest graph that proves the architecture:
    checkbox overrides, and feeds the effective valid plan back into the central
    graph-backed preview. The preview menu can request the wireframe overlay
    intent. The Graph tab renders a left-to-right graph view with selectable
-   nodes and double-click pass toggles, and preview renders highlight the
-   currently executing graph node. Grouped toggles, graph export, post-render
-   input/output/difference inspection, resource previews, and per-selector
-   intent controls remain TODO.
+   nodes and double-click pass toggles, preview renders highlight the currently
+   executing graph node, post-render traces expose pass/resource previews, and
+   the dock exports the effective graph as text, DOT, or JSON. Grouped toggles
+   and per-selector intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

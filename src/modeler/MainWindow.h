@@ -2,6 +2,7 @@
 
 #include "core/math/Vector.h"
 #include "engine/graph/RenderGraphTypes.h"
+#include <QByteArray>
 #include <QMainWindow>
 #include <memory>
 #include <string>
@@ -44,6 +45,7 @@ private slots:
   void renderGraphResourceSelected(const QString& resourceId);
   void renderGraphPassTraceChanged(const QString& passId);
   void renderGraphResourceTraceChanged(const QString& resourceId);
+  void exportRenderGraph(const QString& format, const QByteArray& data);
   void setCurrentFrame(int frame);
 
   void newFile();

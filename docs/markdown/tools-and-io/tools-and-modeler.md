@@ -171,6 +171,8 @@ execution when that trace still matches the current plan and preview inputs.
 Resource selections also show trace cache status in the property editor.
 For graph-visible raster preview shadows, that status distinguishes a rebuilt
 depth artifact from one restored from the graph artifact cache.
+The dock can also export the effective plan as text, DOT, or JSON for the same
+inspection/replay workflows as rendercli.
 
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog
