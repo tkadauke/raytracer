@@ -103,6 +103,32 @@ namespace RenderResourceStorageTest {
     EXPECT_THROW(storage.bindColor("history_color", external), std::runtime_error);
   }
 
+  TEST(RenderResourceStorage, BindsExternalDepthBuffer) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_depth", RenderResourceType::Depth),
+    });
+
+    Buffer<double> external(4, 3);
+    external.clear(0.75);
+
+    storage.bindDepth("history_depth", external);
+
+    EXPECT_EQ(0.75, storage.depth("history_depth")[1][2]);
+    EXPECT_FALSE(storage.resource("history_depth").substituteDefault());
+  }
+
+  TEST(RenderResourceStorage, RejectsMismatchedExternalDepthBufferShape) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_depth", RenderResourceType::Depth),
+    });
+
+    Buffer<double> external(2, 3);
+
+    EXPECT_THROW(storage.bindDepth("history_depth", external), std::runtime_error);
+  }
+
   TEST(RenderResourceStorage, TracksSubstituteDefaultContents) {
     RenderResourceStorage storage;
     storage.allocate({
