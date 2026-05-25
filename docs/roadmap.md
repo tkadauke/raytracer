@@ -242,15 +242,15 @@ Beyond the existing `Raytracer`, factor in (in suggested order):
   - ~~**Material-sidedness follow-up** — connect material intent to the rasterizer's default cull mode instead of relying only on caller configuration.~~ ✅ **Done.** Front-sided materials default to backface culling, back-sided materials default to frontface culling, and two-sided materials keep both faces unless the caller sets an explicit cull mode.
   - **Texture/material input expansion** — ~~expand the material input path toward image textures, tangent frames, normal maps, and MIP-mapping~~ ✅ **Done.** Raster material evaluation now supports direct image-texture sampling with nearest/bilinear/mipmapped filtering, UV-gradient mip selection, and tangent-space normal maps derived from triangle UVs. Still TODO: bump/displacement, anisotropic filtering, cross-engine shading-normal slots, and material-graph inputs shared with the ray/path tracers.
   - ~~**Tile-parallel performance follow-up** — decide whether the engine needs an automatic tiling heuristic, coarser per-tile work, tile-local depth/color storage with a final stitch, a GPU path, or a scene where shading cost dwarfs tessellation/binning/task/cache overhead.~~ ✅ **Done for the CPU default policy.** Benchmarks now expose projected triangle count, projected bounds, tile-list duplication, framebuffer size, worker count, queue size, and MSAA samples; the default rasterizer uses those signals to select tiled rendering only for measured win cases while preserving explicit `setQueueSize(...)` / `rendercli --queue_size` overrides. Future work remains under broader performance/GPU planning.
-  - **Rasterizer anti-aliasing follow-up** — MSAA now exists for coverage/depth and resolve. ~~Next, decide whether to add centroid/per-fragment shading for cheaper MSAA previews~~ ✅ **Done.** `MSAAShadingMode::PerFragment` caches the first passing shaded color per triangle/pixel while leaving coverage/depth/stencil per sample. Next, move into the shared sample-pattern/filter API, post-process AA, TAA, alpha-to-coverage, and conservative rasterization from §4.1.b.
+  - **Rasterizer anti-aliasing follow-up** — MSAA now exists for coverage/depth and resolve. ~~Next, decide whether to add centroid/per-fragment shading for cheaper MSAA previews~~ ✅ **Done.** `MSAAShadingMode::PerFragment` caches the first passing shaded color per triangle/pixel while leaving coverage/depth/stencil per sample. Next, move into the shared sample-pattern/filter API, post-process AA, TAA, alpha-to-coverage, and conservative rasterization from §4.1.c.
   - **Frustum-culling integration** — ~~feed the rasterizer from a frustum-cull-friendly view of the current composite scene rather than traversing every tessellated mesh every frame~~ ✅ **Done.** `Primitive::forEachLeafInBounds(...)` lets the rasterizer reject bounded composite groups before leaf flattening and tessellation. A future §R7 `SpatialIndex` can replace the composite-backed view with a real acceleration tree.
   - **Rendered-doc engine parity backlog** — keep class-level rendered docs honest about which engines can support each scene. Remaining deferred coverage is explicit: `Ring`, `Union`, `Intersection`, `Difference`, `MinkowskiSum`, `ConvexHull`, and the CSG-heavy `ScriptedSurface` scenes stay raytracer-only until mesh booleans / useful scripted tessellation exist; `FishEyeCamera`, `SphericalCamera`, and `EquirectangularCamera` stay raytracer-only until they expose forward projection APIs for Rasterizer and Wireframe; ~~`ThinLensCamera` and `TiltShiftCamera` stay raytracer-only until they expose forward projection APIs for Rasterizer and Wireframe~~ ✅ **Done.** They now expose pinhole-compatible projection fallback for Rasterizer and Wireframe previews while DOF/tilt effects remain raytracer-only; material docs skip Wireframe because it ignores material shading.
   - **Rasterized shadows** — ~~add a shadow-map renderer on top of the depth/stencil path: directional-light shadow maps first~~ ✅ **Done.** `Rasterizer` now has opt-in directional-light shadow maps with `rendercli`, Modeler render-dialog controls, a Modeler live-preview shadow toggle, PCF/PCSS filtering, slope-scaled bias, practical cascade split blending, light-space cascade fitting, texel-grid-stabilized 1-4 cascades, rendered comparison sweeps, an interactive light-depth-map widget, and an interactive cascade-split widget. Cascade split diagnostics stay in the docs/widget surface until Modeler has a broader debug-overlay or multi-view framework.
   - **Planar reflections and portals** — classic stencil/pass-graph use case: mark a mirror/portal surface, render a reflected or redirected view only through that mask, clip against the portal/mirror plane, then composite. This gives raster/GPU previews good parity for flat mirrors, water planes, polished floors, and portal screens without pretending arbitrary recursive reflection is a raster strength.
 - **OpenGL viewport.** Real-time editor view. Tessellated meshes feed VBOs; GLSL shaders mirror the material library for live preview parity. Also unlocks gizmo rendering.
 - **WebGL / WebGPU preview.** The same scene rendered in a browser, served alongside the GitHub Pages docs. WebGL first (broadest support, simpler), WebGPU as a follow-up. Static-scene preview is the v1 target; web preview of *animations* (timeline scrubbing in the browser) is a stretch goal that lands after §4.7. This engine doubles as the canvas for the §4.0 interactive diagrams — the rendering engine and the explainer engine are the same code path.
-- **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile. ~~SoA ray packets (`Ray4`/`Ray8`) and a first batched sphere intersection kernel for CPU packet traversal.~~ ✅ **Done.** Added aligned packet transport, primitive packet entry points with scalar fallback, and an SSE `Sphere::intersectPacket(Ray4)` proof kernel for Epic #141 / Phase 4.1; block-batched BVH traversal remains a follow-up.
-- **GPU backends, eventually.** Vulkan compute, OptiX, or Metal. Templated math primitives port reasonably to CUDA. Massive undertaking; not a near-term priority.
+- **Path tracer.** Monte Carlo integrator over the same scene graph. Multiple Importance Sampling between BSDF sampling and light sampling. Stratified or Sobol QMC sampling. Adaptive sampling per tile. The implementation should explicitly compare **megakernel**, **wavefront/queue-based**, and **material-sorted** architectures: a simple megakernel is the clearest CPU baseline, while wavefront queues expose GPU divergence, occupancy, compaction, and BSDF/light sorting tradeoffs. ~~SoA ray packets (`Ray4`/`Ray8`) and a first batched sphere intersection kernel for CPU packet traversal.~~ ✅ **Done.** Added aligned packet transport, primitive packet entry points with scalar fallback, and an SSE `Sphere::intersectPacket(Ray4)` proof kernel for Epic #141 / Phase 4.1; block-batched BVH traversal remains a follow-up.
+- **GPU backends, eventually.** Vulkan compute, OptiX, or Metal. Templated math primitives port reasonably to CUDA. Massive undertaking; not a near-term priority. When this graduates from aspiration to plan, include mesh/task shaders, bindless resource models, shader-language targets (GLSL/HLSL/WGSL/SPIR-V), and CPU/GPU residency rules for out-of-core scenes rather than treating "GPU" as only a faster execution device.
 
 The "all engines over one scene" property is itself the pedagogical payoff — being able to render a single test scene through wireframe, software raster, OpenGL, WebGL, raytracer, and path tracer side-by-side teaches more about the rendering equation than any single engine ever could.
 
@@ -302,7 +302,19 @@ Implementation order:
 
 This pass graph is the bridge between renderer parity and composability. It lets the rasterizer and future GPU rasterizer preview the parts they can approximate, while still delegating specific expensive or truth-critical work to raytracing/path tracing.
 
-#### 4.1.b Anti-aliasing and raster quality
+#### 4.1.b Renderer architecture patterns
+
+Engine implementations should be compared as algorithms in their own right, not hidden behind a single `render()` call:
+
+- **Megakernel path tracing** — one straightforward recursive/iterative kernel owns most path state; best for readability and CPU-first pedagogy, worst for GPU divergence.
+- **Wavefront path tracing** — queues for ray generation, intersections, material evaluation, shadow rays, medium sampling, and compaction; teaches GPU scheduling, occupancy, and data-oriented transport.
+- **Material/light sorted queues** — batch shading work by BSDF, texture set, or light to improve coherence; useful on both CPU SIMD and GPU.
+- **Tiled, scanline, packet, and streaming execution** — contrast image-space decomposition with ray/path queues and ray packets.
+- **Out-of-core rendering** — scene, texture, and acceleration-structure streaming for data sets larger than memory; important once OpenVDB, USD, film-resolution textures, and large meshes enter the roadmap.
+
+These are implementation strategies, not user-facing engines, so they belong under the same `RenderEngine` / render-graph umbrella as PathTracer, Rasterizer, and future GPU backends.
+
+#### 4.1.c Anti-aliasing and raster quality
 
 Anti-aliasing should be a cross-engine feature rather than a one-off rasterizer trick. The shared API is "sample pattern + reconstruction filter + resolve", with each backend choosing the parts it can implement:
 
@@ -314,7 +326,7 @@ Anti-aliasing should be a cross-engine feature rather than a one-off rasterizer 
 - **Transparency edge cases** — alpha-to-coverage, stochastic alpha, and stochastic transparency so foliage, hair, sprites, and partially transparent surfaces have an AA story.
 - **Conservative rasterization** — useful for voxelization, visibility masks, and procedural geometry; implement as its own rasterizer mode rather than folding it into ordinary MSAA.
 
-#### 4.1.c Interactive display buffers
+#### 4.1.d Interactive display buffers
 
 `RenderWidget` / Modeler currently expose progress by letting worker threads mutate a display buffer that the UI thread periodically copies into a `QImage`. That is simple and useful, but it mixes "render target" and "paintable snapshot" in one object. The long-term display pipeline should be explicit:
 
@@ -334,10 +346,12 @@ Easy wins that fill obvious gaps:
 
 - Cylinder, cone, capsule (cylinder with hemispherical caps).
 - Heightfield / terrain.
-- Signed Distance Field primitive base, with sphere-tracing intersector. Opens up procedural geometry: mandelbulbs, gyroids, fractal terrain.
+- Signed Distance Field primitive base, with sphere-tracing / distance-field ray marching intersectors. Opens up procedural geometry: mandelbulbs, gyroids, smooth-blend CSG, metaballs / blobby implicit surfaces, neural or scripted SDFs, and fractal terrain.
 - Bezier patches / NURBS — for the "all variants" pedagogy, though niche in modern pipelines.
 - Subdivision surfaces (Catmull-Clark, Loop, Doo-Sabin) — depends on `Mesh` infrastructure.
 - Particles / billboards — for sprites or fast vegetation.
+- Curve primitives — Bezier/B-spline/NURBS curves rendered as ribbons, tubes, or true curve intersections; this is the geometry side of hair/fur and stroke rendering, separate from hair shading or physics.
+- Point clouds / surfels — direct point rendering, EWA splatting, and conversion paths into meshes, SDFs, or Gaussian splats.
 
 Once tessellation lands (R4), the geometry engine can also do:
 
@@ -400,8 +414,8 @@ Layered upgrade path, but the destination is the full list:
 - **Car paint / metallic flakes** — base + flake + clearcoat model; a good stress test for layered BSDFs and material presets.
 - **Sheen / fabric BRDFs** (Charlie / ASM cloth).
 - **Hair / fur** (Marschner, Chiang).
-- **Subsurface scattering** — random-walk SSS in PT, Christensen-Burley for fast preview, BSSRDF for the textbook completeness; skin/jade/milk/wax tests.
-- **Volumetric participating media** (homogeneous + heterogeneous) — fog, smoke, clouds; Henyey-Greenstein and Mie phase functions.
+- **Subsurface scattering** — random-walk SSS in PT, Christensen-Burley for fast preview, dipole / multipole diffusion, and BSSRDF for textbook completeness; skin/jade/milk/wax tests.
+- **Volumetric participating media** (homogeneous + heterogeneous) — fog, smoke, clouds; Henyey-Greenstein and Mie phase functions. Treat the transport algorithms as first-class: ray marching for the teaching baseline, distance sampling for homogeneous media, delta / Woodcock tracking, ratio and residual-ratio tracking, null-collision estimators, spectral/decomposition tracking, transmittance estimators, and acceleration structures for heterogeneous grids.
 - **NPR shaders.** Toon/cel, Gooch (warm/cool), hatching, contour/silhouette extraction, halftone, Kuwahara. NPR is its own family — not "make the PBR pipeline look stylised" but a parallel pipeline with its own shading-normal logic.
 - **Spectral rendering** — replace RGB with wavelength sampling for correct dispersion, fluorescence, and (eventually) polarization. Big architectural change; lives at the end of this pillar.
 
@@ -455,7 +469,18 @@ Every renderer writes more than a beauty pass. AOVs are first-class outputs of t
 - Roughness, metallic, emission.
 - Sample variance (for adaptive sampling and denoise).
 
-#### 4.3.e Material library (separate from material types)
+#### 4.3.e Volumetric transport details
+
+Volumetrics are large enough to deserve an implementation plan adjacent to the BSDF work rather than a single material bullet. The minimum educational ladder:
+
+- **Homogeneous media** — analytic transmittance, exponential free-flight sampling, single scattering, and a constant-density fog scene.
+- **Heterogeneous media** — ray marching baseline, majorant grids, delta / Woodcock tracking, ratio tracking, residual-ratio tracking, and null-collision estimators compared on the same density fields.
+- **Phase functions** — isotropic, Henyey-Greenstein, Rayleigh, Mie, and artist-facing approximations for clouds/smoke.
+- **Grid acceleration** — dense grids first, then sparse/OpenVDB-style trees, brick maps, macro-cell majorants, and octree/BVH integration from §R7.
+- **Volume light transport** — next-event estimation inside media, equiangular sampling near lights, volumetric MIS, photon beams / beam radiance estimates, and volumetric photon mapping as the historical comparison.
+- **Authoring and diagnostics** — transfer-function previews, density/majorant overlays, step-count AOVs, transmittance visualizers, and rendered comparisons of bias/variance tradeoffs.
+
+#### 4.3.f Material library (separate from material types)
 
 A bundled catalog of preset materials calibrated against measured data (MERL BRDF database, Disney measured materials, Filament reference values). Gold, copper, jade, glass, rubber, brushed steel, marble, skin, pearl, silk, etc.
 
@@ -496,8 +521,9 @@ All cameras share a `Camera::generateRay(sample) → Ray` API; lens-based camera
 - **Volumetric lights / god rays** — emerge naturally from §4.3's volumetrics; called out so they aren't forgotten.
 - **IES profiles** — real-world photometric data for architectural lighting.
 - **Portal lights** — sampling helper for indirect daylight through windows.
+- **Many-light sampling systems** — light trees, alias tables, RIS / reservoir sampling, Lightcuts, virtual point lights / instant radiosity, ReGIR, and RTXDI-style direct-light reservoirs. These are the bridge between a few hand-authored lights and production scenes with thousands or millions of emitters.
 
-All require a `Light::sample(shadingPoint) → (wi, pdf, Le)` API for proper integration in MC integrators, plus a `Light::pdf(wi)` for MIS and `Light::power()` for light-tree construction.
+All require a `Light::sample(shadingPoint) → (wi, pdf, Le)` API for proper integration in MC integrators, plus a `Light::pdf(wi)` for MIS and `Light::power()` / bounded-emission metadata for light-tree construction and many-light sampling.
 
 ### 4.5 File I/O
 

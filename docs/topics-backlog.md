@@ -18,8 +18,10 @@ Currently scattered across §4.1 path-tracer mentions of MIS / stratified / Sobo
 - **Russian roulette and splitting.** Path termination heuristics; efficiency-optimized RR; weight windows.
 - **Path guiding.** Müller's "Practical Path Guiding" (PPG) with on-line-learned spatial mixture models. Neural path guiding (Müller 2019). Vorba et al. spatial directional mixtures.
 - **ReSTIR family.** Reservoir spatiotemporal importance resampling for direct (ReSTIR DI), global (ReSTIR GI), and full PT (ReSTIR PT). Biggest sampling breakthrough of the last several years; CPU-implementable.
-- **Manifold sampling.** Manifold next-event estimation for caustics; manifold exploration MLT.
+- **Manifold sampling.** Manifold next-event estimation (MNEE) for caustics; manifold exploration MLT.
 - **Vertex connection and merging (VCM / UPS).** Hybrid PT/photon mapping with proper MIS weighting.
+- **Progressive photon mapping variants.** SPPM, PPM, and vertex merging as historically important caustic baselines.
+- **Many-light sampling.** Lightcuts, light trees, alias tables, RIS, ReGIR, RTXDI, and reservoir-based direct-light sampling.
 
 ## B. Color science
 
@@ -41,6 +43,8 @@ Path tracing is in roadmap §4.1; the broader GI catalog is mostly absent.
 
 - **Radiosity.** Form factors (analytic, hemicube, ray-traced). Hierarchical radiosity (Hanrahan et al. 1991). Progressive shooting. Pure-Lambertian baseline; classical and pedagogically essential.
 - **Voxel cone tracing (VXGI).** Voxelize the scene, cone-trace from each shaded pixel.
+- **Lumen-style hybrid GI.** Screen traces + signed-distance-field / mesh-card traces + radiance caches; valuable as a modern real-time GI case study even if not a direct implementation target.
+- **Neural / probe radiance caches.** Neural radiance cache variants, surfel/probe caches, and temporal cache update policies.
 - **Light propagation volumes (LPV).** Spherical-harmonic per-cell radiance grids; iterative propagation.
 - **Screen-space GI (SSGI).** SSDO, SSIL, GTAO-as-GI variants.
 - **Pre-computed radiance transfer (PRT).** Spherical-harmonic transfer matrices for static geometry; live for dynamic relighting.
@@ -55,6 +59,7 @@ Implicit in the raytracer/PT today; the rasterized-shadow catalog is absent.
 - **Cascaded Shadow Maps (CSM).** Frustum-fitted cascade selection; stable cascade math; light-space cascade biasing.
 - **Shadow volumes.** Stencil-based hard shadows; "Carmack's reverse" depth-fail.
 - **Ray-traced shadow denoising.** Spatiotemporal blur, A-SVGF for soft shadow reconstruction.
+- **Virtual shadow maps.** Page/tile-based high-resolution shadow maps for large scenes; useful alongside Nanite-style virtualized geometry.
 - **Hybrid.** Irregular Z-buffer, deep shadow maps for hair/volumetric, dual-paraboloid/cubemap shadows for omnis.
 
 ## E. Differentiable & inverse rendering
@@ -93,7 +98,7 @@ Beyond §4.6.j scripted parametric and §4.3.b procedural textures.
 
 NeRF / 3DGS in §4.10 only scratches it.
 
-- **Neural denoising as a topic.** Train an OIDN-like denoiser; understand the loss functions, the AOV inputs, the training data pipeline.
+- **Neural denoising as a topic.** Train an OIDN-like denoiser; understand the loss functions, the AOV inputs, the training data pipeline. Compare against Intel OIDN, OptiX denoiser, and A-SVGF-style temporal reconstruction.
 - **Neural radiosity.** MLP per-surface representation of indirect light.
 - **Neural texture compression (NTC).** Per-asset neural decoders for ultra-compressed textures.
 - **Neural shading.** Learned BRDF approximations; learned shading models for stylized rendering.
@@ -137,15 +142,17 @@ Hosek-Wilkie is in §4.4.b; the surrounding work isn't.
 
 ## L. Anti-aliasing catalog
 
-The implementation sequence has been promoted to roadmap §4.1.a; keep this catalog here for variants that have not been pulled into active work yet.
+The implementation sequence has been promoted to roadmap §4.1.c; keep this catalog here for variants that have not been pulled into active work yet.
 
 - **Stochastic supersampling.** N samples per pixel, jittered/blue-noise distributions, reconstruction filter (see M).
 - **MSAA.** Multi-sample anti-aliasing in a rasterizer; per-fragment vs per-sample shading.
 - **Temporal AA family.** TAA (jittered camera + history reprojection), TAAU (temporal upsampling), DLAA, FXAA, SMAA (T1x/T2x/4x).
+- **Temporal super-resolution and frame generation.** DLSS / FSR / XeSS-style upscalers, optical-flow frame interpolation, and the motion-vector/history-buffer contracts they require.
 - **Morphological AA.** MLAA, SMAA-as-morphological.
 - **Conservative rasterization.** For voxelization and procedural geometry.
 - **Alpha-to-coverage.** Decoupling shading from coverage for foliage and hair.
 - **Stochastic transparency.** Hashed/stochastic alpha for unsorted transparency.
+- **Order-independent transparency (OIT).** Depth peeling, weighted blended OIT, per-pixel linked lists / A-buffer, and moment-based transparency.
 
 ## M. Reconstruction filters
 
@@ -230,6 +237,7 @@ OpenVDB read in §4.5; the rest:
 - **Iso-surface extraction.** Marching cubes (already mentioned), surface nets, dual contouring, dual marching cubes.
 - **Volume sculpt mode.** UI for editing voxel-grid representations directly (paint density, paint vector field, paint emission).
 - **Sparse volumes.** OpenVDB-style spatially sparse grid math; topology-aware operations.
+- **Volume-rendering estimators.** Delta / Woodcock tracking, ratio tracking, residual-ratio tracking, null-collision estimators, decomposition/spectral tracking, majorant-grid construction, equiangular sampling near lights, photon beams, and volumetric photon mapping.
 
 ## U. Image-processing fundamentals
 
@@ -276,6 +284,38 @@ Pillars of that future system:
 **Adjacent items already in the roadmap.** Worth coordinating with these so this doesn't fork:
 - `roadmap.md` §3.4 — Google Benchmark suite for SSE3 hot paths. Counters and benchmarks are complements, not competitors.
 - `roadmap.md` §3.7 — current perf-counter section; this backlog entry is the long-tail vision, that section is the seed.
+
+
+## W. Renderer architecture and production engine references
+
+Roadmap §4.1 names the project engines; this backlog keeps the wider implementation patterns and industry comparators from disappearing.
+
+- **Megakernel vs wavefront path tracing.** Compare simple monolithic transport against queue-based ray generation / intersection / shading / shadow / medium stages; document GPU divergence, compaction, occupancy, and CPU cache tradeoffs.
+- **Sorted and batched shading.** Material-sorted queues, texture-set batching, light-sorted next-event work, and packet/SIMD traversal beyond the first `Ray4` / `Ray8` kernels.
+- **Out-of-core rendering.** Geometry, texture, volume, and acceleration-structure paging; cache eviction; progressive refinement while data streams in.
+- **Production renderer case studies.** PBRT, Mitsuba, Cycles, RenderMan, Arnold, V-Ray, OSPRay, Embree, Hydra/Storm, and USD render delegates. The goal is not compatibility with all of them — it is to understand which architectural choices each one made and why.
+- **REYES / micropolygon pipeline.** Dicing, shading grids, displacement-heavy rendering, motion blur, and why RenderMan's historical architecture still matters pedagogically.
+- **Modern real-time engine case studies.** Nanite-style virtualized geometry, Lumen-style GI, virtual shadow maps, mesh/task shaders, bindless resources, shader permutations, and GPU-driven culling.
+- **Shader-language targets.** GLSL, HLSL, WGSL, SPIR-V, Metal Shading Language, OSL, and MaterialX as authoring/interop surfaces.
+
+## X. Implicit, point, and curve rendering
+
+Some pieces live in roadmap §4.2, but the broader field is worth tracking explicitly.
+
+- **Signed-distance-field rendering.** Sphere tracing, distance-field ray marching, smooth-min CSG, SDF fractals, procedural SDF authoring, and neural SDFs.
+- **Blobby implicit surfaces.** Metaballs, soft objects, convolution surfaces, and field composition operators.
+- **Point-based rendering.** Point clouds, surfels, EWA splatting, visibility splatting, point-set surfaces, and conversion to/from meshes or Gaussian splats.
+- **Curve and hair geometry.** Bezier/B-spline curve primitives, ribbons/tubes, true ray-curve intersections, hair acceleration structures, and raster/GPU curve rendering.
+- **Adaptive meshing.** Marching tetrahedra, dual contouring variants, adaptive octree extraction, and out-of-core meshing for large fields.
+
+## Y. Texture filtering, ray differentials, and procedural detail
+
+The roadmap has texture sources and MIP-mapping; this is the deeper sampling story.
+
+- **Ray differentials.** Footprint propagation through reflection/refraction, texture LOD for ray/path tracing, glossy footprints, and camera/lens differential initialization.
+- **Anisotropic texture filtering.** Elliptical weighted average (EWA), ripmaps, summed-area tables, and practical approximation tradeoffs.
+- **Procedural detail families.** Worley/Voronoi, Perlin/simplex, fBm, wavelet noise, Gabor noise, sparse convolution noise, texture bombing, and domain warping.
+- **Relief-style mapping.** Parallax mapping, steep parallax, parallax occlusion, relief mapping, and when they should yield to true displacement.
 
 ---
 
