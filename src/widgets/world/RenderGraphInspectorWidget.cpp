@@ -44,11 +44,11 @@ namespace {
   constexpr int GroupScopeRole = Qt::UserRole;
   constexpr int GroupValueRole = Qt::UserRole + 1;
   constexpr double PassWidth = 190.0;
-  constexpr double PassHeight = 88.0;
+  constexpr double PassHeight = 104.0;
   constexpr double ResourceWidth = 150.0;
   constexpr double ResourceHeight = 58.0;
   constexpr double ColumnGap = PassWidth + ResourceWidth + 120.0;
-  constexpr double RowGap = 120.0;
+  constexpr double RowGap = 136.0;
   constexpr double OriginX = 40.0;
   constexpr double OriginY = 44.0;
   constexpr auto LiveExecutionDelay = std::chrono::milliseconds(500);
@@ -150,6 +150,20 @@ namespace {
       return QStringLiteral("-");
 
     return qstr(shadingProfile->displayText());
+  }
+
+  QString passSceneViewSummary(const RenderPassNode& pass) {
+    QStringList parts;
+    if (!pass.sceneView.selector.selectsWholeFrame()) {
+      parts << QStringLiteral("selector %1").arg(sceneSelectorText(pass.sceneView.selector));
+    }
+    if (pass.sceneView.camera) {
+      parts << QStringLiteral("camera %1").arg(cameraText(pass.sceneView.camera));
+    }
+    if (pass.sceneView.shadingProfile) {
+      parts << QStringLiteral("shading %1").arg(shadingProfileText(pass.sceneView.shadingProfile));
+    }
+    return parts.join(QStringLiteral(", "));
   }
 
   QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {
@@ -876,6 +890,10 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     QStringList lines{qstr(pass.id),
                       qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
                       pass.enabled ? tr("enabled") : tr("disabled")};
+    const QString sceneViewSummary = passSceneViewSummary(pass);
+    if (!sceneViewSummary.isEmpty()) {
+      lines << sceneViewSummary;
+    }
     const auto stage = plan.executionStageNumber(pass.id);
     const auto order = plan.executionOrderNumber(pass.id);
     if (stage && order) {

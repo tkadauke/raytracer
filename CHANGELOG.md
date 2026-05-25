@@ -241,6 +241,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph scene-view node labels.** Pass nodes in the Render
+  Graph dock now show non-default scene selector, camera, and shading-profile
+  intent directly in the graph view. — GPT-5
 - **Render graph shading-profile parameters.** `ShadingProfileRef` now stores
   parsed scalar parameter values instead of retaining raw `QJsonObject`
   parameters past the JSON import boundary. — GPT-5
