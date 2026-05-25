@@ -815,6 +815,24 @@ namespace engine::graph {
     enablePreviewShadows = enabled;
   }
 
+  void RenderIntent::applyWholeFrameOverride(const RenderViewOverride& viewOverride) {
+    if (!viewOverride.appliesToWholeFrame()) {
+      return;
+    }
+    if (viewOverride.executor) {
+      setDefaultExecutor(*viewOverride.executor);
+    }
+    if (viewOverride.viewMode) {
+      setDefaultViewMode(*viewOverride.viewMode);
+    }
+    if (viewOverride.shadingProfile) {
+      setDefaultShadingProfile(*viewOverride.shadingProfile);
+    }
+    if (viewOverride.camera) {
+      setDefaultCamera(*viewOverride.camera);
+    }
+  }
+
   RenderIntent RenderIntent::fromJson(const QJsonObject& object) {
     RenderIntent intent;
     intent.defaultExecutor = executorPreferenceFromJson(
@@ -872,22 +890,7 @@ namespace engine::graph {
     result.viewOverrides = selectorSpecificOverrides();
 
     for (const auto& viewOverride : viewOverrides) {
-      if (!viewOverride.appliesToWholeFrame()) {
-        continue;
-      }
-
-      if (viewOverride.executor) {
-        result.defaultExecutor = *viewOverride.executor;
-      }
-      if (viewOverride.viewMode) {
-        result.defaultViewMode = *viewOverride.viewMode;
-      }
-      if (viewOverride.shadingProfile) {
-        result.defaultShadingProfile = *viewOverride.shadingProfile;
-      }
-      if (viewOverride.camera) {
-        result.defaultCamera = *viewOverride.camera;
-      }
+      result.applyWholeFrameOverride(viewOverride);
     }
 
     return result;

@@ -242,6 +242,12 @@ namespace RenderGraphTypesTest {
     tagOverride.executor = RenderExecutorPreference::Wireframe;
     intent.viewOverrides.push_back(tagOverride);
 
+    RenderIntent directlyApplied;
+    directlyApplied.applyWholeFrameOverride(wholeFrame);
+    directlyApplied.applyWholeFrameOverride(tagOverride);
+    EXPECT_EQ(RenderExecutorPreference::Rasterizer, directlyApplied.defaultExecutor);
+    EXPECT_EQ(RenderViewMode::Depth, directlyApplied.defaultViewMode);
+
     const RenderIntent effective = intent.withWholeFrameOverridesApplied();
 
     EXPECT_TRUE(wholeFrame.appliesToWholeFrame());
