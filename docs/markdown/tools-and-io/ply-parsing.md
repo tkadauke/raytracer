@@ -242,8 +242,9 @@ Additional file-format topics are queued under
 - **STL.** The stereo-lithography format used by 3D printers.
   Triangle-only, no UVs or normals. Trivial to implement.
 - **LDraw.** The LEGO part-library format. The codebase now has
-  a command-record parser for `.dat` and `.ldr` files, but not
-  referenced-file resolution or scene conversion.
+  a command-record parser for `.dat` and `.ldr` files plus inline
+  type 3/4 polygon conversion to renderable mesh primitives, but not
+  referenced-file resolution or MPD scene conversion.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
@@ -258,8 +259,9 @@ Cover the `.dat` / `.ldr` line parser in
 [`LDrawParser.cpp`](../../../src/core/formats/ldraw/LDrawParser.cpp)
 and the `LDConfig.ldr` color/material lookup in
 [`LDrawColorTable.cpp`](../../../src/core/formats/ldraw/LDrawColorTable.cpp)
-once it grows from command records into referenced-file
-resolution and scene or mesh conversion.
+alongside the inline polygon compiler in
+[`LDrawGeometryCompiler.cpp`](../../../src/core/formats/ldraw/LDrawGeometryCompiler.cpp).
+The next missing pieces are referenced-file resolution and MPD scene assembly.
 
 ## <a id="exercises"></a>Exercises
 1. Predict what happens when a PLY file declares
@@ -297,6 +299,9 @@ resolution and scene or mesh conversion.
 - `src/core/formats/ply/PlyFile.cpp`
 - `src/core/formats/ply/PlyElement.cpp`
 - `src/core/formats/ply/PlyProperty.cpp`
+- `src/core/formats/ldraw/LDrawParser.cpp`
+- `src/core/formats/ldraw/LDrawColorTable.cpp`
+- `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`
 - `test/unit/core/formats/ply/PlyFileTest.cpp`
 - `fuzz/`
 <!-- /source-anchors -->
