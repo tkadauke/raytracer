@@ -22,6 +22,7 @@ set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
+set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
 set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
@@ -378,9 +379,29 @@ rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph view"
   STDERR_MATCHES "Render graph view mode must be"
   COMMAND
-    "${RENDERCLI}" --render_graph_only --render_graph_view depth
+    "${RENDERCLI}" --render_graph_only --render_graph_view normal
     "${static_scene}" "${invalid_plan}"
 )
+
+rendercli_run(
+  NAME "rendercli exports depth AOV render graph"
+  STDOUT_MATCHES
+    "depth_aov"
+    "visualize_depth_aov"
+    "main_color"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view depth
+    --width 32 --height 24
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli renders depth AOV view through graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_view depth --width 32 --height 24
+    "${static_scene}" "${depth_view_render}"
+)
+rendercli_assert_nonempty("${depth_view_render}" NAME "depth AOV graph render output")
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid disabled pass kind"

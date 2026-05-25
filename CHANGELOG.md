@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph depth AOV view.** `--render_graph_view depth` now compiles a
+  graph-visible `depth_aov` resource and `visualize_depth_aov` pass, letting
+  rendercli and graph inspection tools render and inspect primary depth through
+  the graph. — GPT-5
 - **Modeler render graph grouped toggles.** The Render Graph dock now has a
   Groups tab for disabling all passes of a present kind, executor, or feature
   through the same effective-plan override path as individual pass toggles.

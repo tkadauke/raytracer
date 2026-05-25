@@ -1,6 +1,7 @@
 #include "engine/graph/RenderPassPayload.h"
 
 #include "core/Buffer.h"
+#include "core/math/HitPointInterval.h"
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
@@ -12,9 +13,15 @@
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/Camera.h"
+#include "render/primitives/Scene.h"
+#include "render/samplers/SampleStream.h"
+#include "render/State.h"
 #include "render/tonemap/Tonemap.h"
+#include "render/viewplanes/ViewPlane.h"
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -32,6 +39,13 @@ namespace engine::graph {
       }
     }
 
+    void requireDepthResource(const RenderResourceStorage& storage,
+                              const RenderResourceId& resource, const RenderPassNode& pass) {
+      if (!storage.resource(resource).depthBacked()) {
+        throw passError(pass, "resource '" + resource + "' is not depth-backed");
+      }
+    }
+
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
       if (source.width() != destination.width() || source.height() != destination.height()) {
@@ -46,6 +60,29 @@ namespace engine::graph {
           destination[y][x] = source[y][x];
         }
       }
+    }
+
+    void requireMatchingSize(const Buffer<double>& source, const Buffer<Colord>& destination,
+                             const std::string& action) {
+      if (source.width() != destination.width() || source.height() != destination.height()) {
+        throw std::runtime_error(action + " requires matching depth/color buffer dimensions");
+      }
+    }
+
+    bool hasFiniteDepthRange(const Buffer<double>& buffer, double* minDepth, double* maxDepth) {
+      *minDepth = std::numeric_limits<double>::infinity();
+      *maxDepth = -std::numeric_limits<double>::infinity();
+      for (int y = 0; y != buffer.height(); ++y) {
+        for (int x = 0; x != buffer.width(); ++x) {
+          const double depth = buffer[y][x];
+          if (!std::isfinite(depth)) {
+            continue;
+          }
+          *minDepth = std::min(*minDepth, depth);
+          *maxDepth = std::max(*maxDepth, depth);
+        }
+      }
+      return std::isfinite(*minDepth) && std::isfinite(*maxDepth);
     }
 
     bool hasFeature(const RenderPassNode& pass, const RenderFeatureKind& feature) {
@@ -239,6 +276,93 @@ namespace engine::graph {
       }
     };
 
+    class DepthAOVPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireDepthResource(context.storage(), write.resource, pass);
+
+        Buffer<double>& depth = context.storage().depth(write.resource);
+        depth.clear(std::numeric_limits<double>::infinity());
+
+        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto scene = context.graph().scene();
+        if (!camera || !scene) {
+          return;
+        }
+
+        auto plane = camera->viewPlane();
+        if (!plane) {
+          return;
+        }
+        plane->setup(camera->matrix(), depth.rect());
+
+        Recti renderRect = depth.rect();
+        if (plane->aspectMode() == render::AspectMode::FitExact) {
+          renderRect = plane->innerRect();
+        }
+
+        render::NullSampleStream stream;
+        for (int y = renderRect.top(); y < renderRect.bottom(); ++y) {
+          if (context.cancelled()) {
+            return;
+          }
+          for (int x = renderRect.left(); x < renderRect.right(); ++x) {
+            Rayd ray = camera->rayForPixel(static_cast<double>(x) + 0.5,
+                                           static_cast<double>(y) + 0.5, stream);
+            if (!ray.direction().isDefined()) {
+              continue;
+            }
+
+            HitPointInterval hits;
+            render::State state;
+            if (scene->intersect(ray, hits, state)) {
+              const HitPoint hit = hits.minWithPositiveDistance();
+              if (!hit.isUndefined()) {
+                depth[y][x] = hit.distance();
+              }
+            }
+          }
+        }
+      }
+    };
+
+    class DepthVisualizationPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
+        requireDepthResource(context.storage(), read.resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        const Buffer<double>& depth = context.storage().depth(read.resource);
+        Buffer<Colord>& color = context.storage().color(write.resource);
+        requireMatchingSize(depth, color, "depth visualization");
+
+        double minDepth = 0.0;
+        double maxDepth = 0.0;
+        if (!hasFiniteDepthRange(depth, &minDepth, &maxDepth)) {
+          color.clear(Colord::black());
+          return;
+        }
+
+        const double range = std::max(maxDepth - minDepth, 1e-9);
+        for (int y = 0; y != depth.height(); ++y) {
+          for (int x = 0; x != depth.width(); ++x) {
+            const double value = depth[y][x];
+            if (!std::isfinite(value)) {
+              color[y][x] = Colord::black();
+              continue;
+            }
+            const double normalized = 1.0 - std::clamp((value - minDepth) / range, 0.0, 1.0);
+            color[y][x] = Colord(normalized, normalized, normalized);
+          }
+        }
+      }
+    };
+
     /**
       * Whole-frame beauty payload backed by the wireframe renderer.
       */
@@ -385,6 +509,15 @@ namespace engine::graph {
     if (pass.kind == RenderPassKind::Shadow && pass.executor == RenderExecutorKind::Rasterizer &&
         hasFeature(pass, "preview_shadows")) {
       return std::make_unique<RasterPreviewShadowPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "depth") &&
+        hasFeature(pass, "visualization")) {
+      return std::make_unique<DepthVisualizationPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "depth")) {
+      return std::make_unique<DepthAOVPass>();
     }
 
     if (pass.kind == RenderPassKind::PostProcess &&

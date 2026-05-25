@@ -1281,8 +1281,8 @@ Implement the smallest graph that proves the architecture:
    executor/view mode, request the wireframe overlay intent, apply pass
    id/kind/executor/feature disable filters, serialize graph-backed raster
    beauty pass state for MSAA/post-AA/fixed-function/shadow controls,
-   serialize graph-backed wireframe pass state for LOD, and validate the
-   manipulated plan.
+   serialize graph-backed wireframe pass state for LOD, compile a graph-visible
+   depth AOV view, and validate the manipulated plan.
    Selector-specific command-line intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
@@ -1396,7 +1396,11 @@ composite passes.
 ### AOV exports
 
 Add `depth`, `normal`, `world_position`, `object_id`, `material_id`, and
-`motion_vector` resources as graph-visible outputs.
+`motion_vector` resources as graph-visible outputs. ✅ **Partial.** The default
+view mode can now compile a graph-visible `depth_aov` resource and
+`visualize_depth_aov` postprocess pass, and rendercli accepts
+`--render_graph_view depth`. Normal, world-position, object/material-id, motion
+vector, and multi-AOV export files remain TODO.
 
 ### Parallel scheduler
 

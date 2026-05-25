@@ -90,6 +90,22 @@ namespace engine::graph {
       return shadow;
     }
 
+    RenderResourceDescriptor depthResource(const std::string& id, const std::string& name,
+                                           const RenderTargetSpec& target,
+                                           RenderResourceLifetime lifetime) {
+      RenderResourceDescriptor depth;
+      depth.id = id;
+      depth.name = name;
+      depth.type = RenderResourceType::Depth;
+      depth.format = RenderResourceFormat::DepthDouble;
+      depth.width = target.width;
+      depth.height = target.height;
+      depth.sampleCount = 1;
+      depth.domain = RenderResourceDomain::CPU;
+      depth.lifetime = lifetime;
+      return depth;
+    }
+
     std::string postProcessAAPassId(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
@@ -136,12 +152,49 @@ namespace engine::graph {
       }
       return tonemap->singleRead().resource;
     }
+
+    RenderPlan depthAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
+      RenderPlan plan;
+
+      RenderPassNode depth;
+      depth.id = "depth_aov";
+      depth.name = "Depth AOV";
+      depth.kind = RenderPassKind::AOV;
+      depth.executor = executor;
+      depth.features = {"main", "aov", "depth", executorFeature(executor)};
+      depth.sceneView.selector = SceneSelector::all();
+      depth.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      depth.canRunConcurrently = false;
+      plan.addResourceProducer(
+        depth, depthResource("depth_aov", "Depth AOV", target, RenderResourceLifetime::Transient));
+
+      RenderPassNode visualize;
+      visualize.id = "visualize_depth_aov";
+      visualize.name = "Visualize depth AOV";
+      visualize.kind = RenderPassKind::AOV;
+      visualize.executor = RenderExecutorKind::PostProcess;
+      visualize.features = {"main", "aov", "depth", "visualization", "postprocess"};
+      visualize.reads.push_back({"depth_aov"});
+      visualize.writes.push_back({"main_color"});
+      visualize.sceneView.selector = SceneSelector::all();
+      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      visualize.canRunConcurrently = false;
+      RenderResourceDescriptor mainColor =
+        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+      plan.routeResourceThroughPass("depth_aov", mainColor, visualize);
+
+      return plan;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
                                           const RenderIntent& intent) const {
     const RenderTargetSpec target = normalizedTarget(rawTarget);
     const RenderExecutorKind executor = intent.defaultExecutorKind();
+
+    if (intent.defaultViewMode == RenderViewMode::Depth) {
+      return depthAOVPlan(target, executor);
+    }
 
     RenderPlan plan;
 

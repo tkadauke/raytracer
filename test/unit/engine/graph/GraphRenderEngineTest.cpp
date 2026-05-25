@@ -175,6 +175,18 @@ namespace GraphRenderEngineTest {
     return count;
   }
 
+  int countNonBlackPixels(const Buffer<unsigned int>& buffer) {
+    int count = 0;
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        if ((buffer[y][x] & 0x00ffffff) != 0) {
+          ++count;
+        }
+      }
+    }
+    return count;
+  }
+
   int countFiniteDepths(const Buffer<double>& buffer) {
     int count = 0;
     for (int y = 0; y != buffer.height(); ++y) {
@@ -295,6 +307,31 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(RenderExecutorKind::Raytracer, engine.lastPlan().passes()[0].executor);
     EXPECT_EQ(RenderPassKind::Tonemap, engine.lastPlan().passes()[1].kind);
     EXPECT_EQ(RenderExecutorKind::PostProcess, engine.lastPlan().passes()[1].executor);
+  }
+
+  TEST(GraphRenderEngine, ExecutesDepthAOVViewAndRecordsDepthTrace) {
+    RenderIntent intent;
+    intent.defaultViewMode = RenderViewMode::Depth;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
+    EXPECT_EQ("depth_aov", engine.lastPlan().passes()[0].id);
+    EXPECT_EQ("visualize_depth_aov", engine.lastPlan().passes()[1].id);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("depth_aov");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasDepthPreview());
+    EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
   }
 
   TEST(GraphRenderEngine, NotifiesObserverAroundLdrPassExecution) {

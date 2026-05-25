@@ -76,10 +76,12 @@ If the scene JSON contains a top-level `renderIntent` block, rendercli uses
 that as the graph compiler's base intent.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
-`--render_graph_view default|beauty|wireframe` overrides the graph intent's
-structural view mode. `--render_graph_wireframe_overlay` asks the compiler to
-insert a graph-visible wireframe overlay pass between the beauty pass and the
-tonemap pass.
+`--render_graph_view default|beauty|wireframe|depth` overrides the graph
+intent's structural view mode. The depth view compiles a graph-visible
+`depth_aov` pass and a `visualize_depth_aov` pass that writes the final color
+image. `--render_graph_wireframe_overlay` asks the compiler to insert a
+graph-visible wireframe overlay pass between the beauty pass and the tonemap
+pass.
 For graph renders, `--post_aa fxaa` and `--post_aa smaa` are also
 graph-visible: the shared compiler inserts a postprocess pass after the beauty
 pass rather than hiding the filter inside one engine, and the pass's typed

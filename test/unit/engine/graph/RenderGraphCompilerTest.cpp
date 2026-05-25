@@ -76,6 +76,44 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("tonemap", plan.passes()[1].id);
   }
 
+  TEST(RenderGraphCompiler, DepthViewModeCompilesDepthAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Depth;
+
+    const RenderPlan plan = compiler.compile({64, 32, 4}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("depth_aov"));
+    EXPECT_EQ(RenderResourceType::Depth, plan.findResource("depth_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::DepthDouble, plan.findResource("depth_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.findResource("depth_aov")->lifetime);
+    EXPECT_EQ(1, plan.findResource("depth_aov")->sampleCount);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("main_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("depth_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "depth"));
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("depth_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_depth_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("depth_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_EQ(nullptr, plan.findPass("tonemap"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
