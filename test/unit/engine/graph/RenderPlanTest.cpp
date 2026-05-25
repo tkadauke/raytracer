@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -368,13 +369,23 @@ namespace RenderPlanTest {
     plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
 
     auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
+    beauty.features = {"main", "rasterizer"};
     beauty.writes.push_back({"beauty_color"});
     plan.addPass(beauty);
 
     auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.features = {"display"};
     tonemap.reads.push_back({"beauty_color"});
     tonemap.writes.push_back({"display_color"});
     plan.addPass(tonemap);
+
+    EXPECT_EQ(std::set<RenderPassId>({"raster_beauty", "tonemap"}), plan.passIds());
+    EXPECT_EQ(std::set<RenderPassKind>({RenderPassKind::Beauty, RenderPassKind::Tonemap}),
+              plan.passKinds());
+    EXPECT_EQ(std::set<RenderExecutorKind>(
+                {RenderExecutorKind::Rasterizer, RenderExecutorKind::PostProcess}),
+              plan.passExecutors());
+    EXPECT_EQ(std::set<RenderFeatureKind>({"display", "main", "rasterizer"}), plan.passFeatures());
 
     ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
     EXPECT_EQ(RenderPassKind::Beauty, plan.findPass("raster_beauty")->kind);

@@ -227,36 +227,6 @@ namespace {
       .arg(sizeText(resource));
   }
 
-  std::set<RenderPassId> passIds(const RenderPlan& plan) {
-    std::set<RenderPassId> ids;
-    for (const auto& pass : plan.passes())
-      ids.insert(pass.id);
-    return ids;
-  }
-
-  std::set<RenderPassKind> passKinds(const RenderPlan& plan) {
-    std::set<RenderPassKind> values;
-    for (const auto& pass : plan.passes())
-      values.insert(pass.kind);
-    return values;
-  }
-
-  std::set<RenderExecutorKind> passExecutors(const RenderPlan& plan) {
-    std::set<RenderExecutorKind> values;
-    for (const auto& pass : plan.passes())
-      values.insert(pass.executor);
-    return values;
-  }
-
-  std::set<RenderFeatureKind> passFeatures(const RenderPlan& plan) {
-    std::set<RenderFeatureKind> values;
-    for (const auto& pass : plan.passes()) {
-      for (const auto& feature : pass.features)
-        values.insert(feature);
-    }
-    return values;
-  }
-
   std::map<RenderPassId, QPointF> passPositions(const RenderPlan& plan) {
     std::map<RenderPassId, QPointF> result;
 
@@ -492,7 +462,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->executionStates.clear();
   p->executionMessages.clear();
 
-  const auto ids = passIds(p->plan);
+  const auto ids = p->plan.passIds();
   if (ids.find(p->selectedPassId) == ids.end()) {
     if (p->hasSelection && p->selectedResourceId.empty())
       p->hasSelection = false;
@@ -510,7 +480,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
       ++it;
     }
   }
-  const auto kinds = passKinds(p->plan);
+  const auto kinds = p->plan.passKinds();
   for (auto it = p->overrides.disabledPassKinds.begin();
        it != p->overrides.disabledPassKinds.end();) {
     if (kinds.find(*it) == kinds.end()) {
@@ -519,7 +489,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
       ++it;
     }
   }
-  const auto executors = passExecutors(p->plan);
+  const auto executors = p->plan.passExecutors();
   for (auto it = p->overrides.disabledExecutors.begin();
        it != p->overrides.disabledExecutors.end();) {
     if (executors.find(*it) == executors.end()) {
@@ -528,7 +498,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
       ++it;
     }
   }
-  const auto features = passFeatures(p->plan);
+  const auto features = p->plan.passFeatures();
   for (auto it = p->overrides.disabledFeatures.begin();
        it != p->overrides.disabledFeatures.end();) {
     if (features.find(*it) == features.end()) {
@@ -957,7 +927,7 @@ void RenderGraphInspectorWidget::rebuildGroups() {
 
   const RenderPlan plan = effectivePlan();
 
-  for (const auto kind : passKinds(plan)) {
+  for (const auto kind : plan.passKinds()) {
     auto item = new QTreeWidgetItem(p->groups);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
     item->setCheckState(0, p->overrides.disabledPassKinds.count(kind) == 0 ? Qt::Checked
@@ -968,7 +938,7 @@ void RenderGraphInspectorWidget::rebuildGroups() {
     item->setText(2, toString(kind));
   }
 
-  for (const auto executor : passExecutors(plan)) {
+  for (const auto executor : plan.passExecutors()) {
     auto item = new QTreeWidgetItem(p->groups);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
     item->setCheckState(0, p->overrides.disabledExecutors.count(executor) == 0 ? Qt::Checked
@@ -979,7 +949,7 @@ void RenderGraphInspectorWidget::rebuildGroups() {
     item->setText(2, toString(executor));
   }
 
-  for (const auto& feature : passFeatures(plan)) {
+  for (const auto& feature : plan.passFeatures()) {
     auto item = new QTreeWidgetItem(p->groups);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
     item->setCheckState(0, p->overrides.disabledFeatures.count(feature) == 0 ? Qt::Checked
