@@ -8,6 +8,7 @@
 #include "src/engine/raster/RasterMaterialEvaluator.h"
 #include "src/engine/raster/RasterMSAA.h"
 #include "src/engine/raster/RasterPipelineTypes.h"
+#include "src/engine/raster/RasterShadowMapBuilder.h"
 #include "src/engine/raster/RasterShadowMaps.h"
 #include "render/cameras/OrthographicCamera.h"
 #include "render/cameras/PinholeCamera.h"
@@ -30,6 +31,9 @@
 #include "render/textures/UVColorTexture.h"
 #include "render/textures/mappings/UVMapping2D.h"
 
+#include <QThreadPool>
+
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -475,6 +479,17 @@ namespace RasterizerTest {
     for (int y = 0; y < hardShadow.height(); ++y) {
       for (int x = 0; x < hardShadow.width(); ++x) {
         if (hardShadow[y][x].r() > filteredShadow[y][x].r() + 0.03)
+          ++count;
+      }
+    }
+    return count;
+  }
+
+  static int countFiniteDepthSamples(const Buffer<double>& depth) {
+    int count = 0;
+    for (int y = 0; y < depth.height(); ++y) {
+      for (int x = 0; x < depth.width(); ++x) {
+        if (std::isfinite(depth[y][x]))
           ++count;
       }
     }
@@ -1350,6 +1365,50 @@ namespace RasterizerTest {
       EXPECT_LE(std::abs(clip.y()), 1.0);
       EXPECT_GE(clip.z(), 0.1);
     }
+  }
+
+  TEST(Rasterizer, ShadowMapBuilderBuildsDirectionalShadowMaps) {
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.5));
+    auto scene = sceneWithDirectionalShadowCaster();
+    Rasterizer engine(cam, scene);
+    engine.setShadowMapsEnabled(true);
+    engine.setShadowMapSize(64);
+    engine.setShadowBias(0.1);
+    QThreadPool threadPool;
+    threadPool.setMaxThreadCount(1);
+    std::atomic<bool> cancelled(false);
+
+    const auto shadowMaps =
+      engine::raster::detail::RasterShadowMapBuilder(engine, scene, cam, threadPool, cancelled)
+        .build();
+
+    ASSERT_FALSE(shadowMaps.empty());
+    ASSERT_FALSE(scene->lights().empty());
+    const auto* shadowMap = shadowMaps.forLight(scene->lights().front().get());
+    ASSERT_NE(nullptr, shadowMap);
+    EXPECT_LT(shadowMap->visibility(Vector3d(0.6, 0.0, 1.0), Vector3d(0.0, 0.0, -1.0),
+                                    Vector3d(-0.5, 0.2, -1.0)),
+              1.0);
+  }
+
+  TEST(Rasterizer, ShadowMapBuilderRendersFirstDirectionalDepthPreview) {
+    auto cam = std::make_shared<PinholeCamera>(Vector3d(0.0, 0.0, -5.0), Vector3d(0.0, 0.0, 0.5));
+    auto scene = sceneWithDirectionalShadowCaster();
+    Rasterizer engine(cam, scene);
+    engine.setShadowMapsEnabled(true);
+    engine.setShadowMapSize(64);
+    engine.setShadowBias(0.1);
+    QThreadPool threadPool;
+    threadPool.setMaxThreadCount(1);
+    std::atomic<bool> cancelled(false);
+    Buffer<double> depth(64, 64);
+
+    const bool rendered =
+      engine::raster::detail::RasterShadowMapBuilder(engine, scene, cam, threadPool, cancelled)
+        .renderFirstDirectionalDepth(depth);
+
+    EXPECT_TRUE(rendered);
+    EXPECT_GT(countFiniteDepthSamples(depth), 0);
   }
 
   TEST(Rasterizer, ClipDepthsClampToValidRange) {

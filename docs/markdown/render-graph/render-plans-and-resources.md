@@ -504,10 +504,12 @@ preview shadow request is also visible: when preview shadows are enabled, the
 compiler inserts
 `raster_preview_shadows` before `raster_beauty`, stores the shadow-map settings
 on that shadow node's typed `parameters.shadows` state, and routes a
-`preview_shadow_map` resource into the beauty pass. The current raster payload
-still builds the concrete CPU shadow maps internally, but disabling the graph
-shadow node substitutes the default resource and prevents graph-controlled
-shadow enablement.
+`preview_shadow_map` resource into the beauty pass. Concrete CPU shadow-map
+construction now lives in the raster module's shadow-map builder, so the direct
+rasterizer and graph-visible preview-depth path share the same cascade fitting
+and depth rendering code. The beauty pass still asks the rasterizer to build the
+full collection during beauty execution, but disabling the graph shadow node
+substitutes the default resource and prevents graph-controlled shadow enablement.
 
 The image-space `--post_aa fxaa` and `--post_aa smaa` modes are graph nodes:
 `RenderIntent::postProcessAA` asks the compiler to insert a `post_fxaa` or
@@ -615,9 +617,9 @@ shadow resource is the first concrete example: the shadow pass stores a
 first-cascade directional-light depth artifact when it has to rebuild the map,
 and restores that depth artifact on a later render when the descriptor, pass
 state, camera, scene, and light fingerprint still match. The raster beauty pass
-still builds its full internal shadow-map collection separately, so this cache
-currently explains and accelerates the inspectable graph artifact rather than
-changing the shaded pixels.
+still builds its full shadow-map collection during beauty execution, so this
+cache currently explains and accelerates the inspectable graph artifact rather
+than changing the shaded pixels.
 Trace JSON includes the cache status string plus cacheable/hit/stored boolean
 flags so tools can filter cache lifecycle events without reinterpreting status
 names.

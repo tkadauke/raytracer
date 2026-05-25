@@ -107,8 +107,10 @@ pass rather than hiding the filter inside one engine, and the pass's typed
 on the raster beauty pass until temporal history resources are graph resources.
 Raster preview shadows compile as a `raster_preview_shadows` node feeding the
 beauty pass. Its typed `shadows` parameters carry map size, cascades, bias, and
-filtering; disabling that node leaves the raster beauty pass running without
-graph-controlled shadows.
+filtering. The preview-depth artifact and direct raster shadow path share the
+raster shadow-map builder, while beauty shading still builds the full collection
+during raster beauty execution. Disabling that node leaves the raster beauty
+pass running without graph-controlled shadows.
 Wireframe graph renders carry `--lod` in typed wireframe pass state, so
 graph-only JSON exports and replayed graph renders preserve the requested
 tessellation density.
