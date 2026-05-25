@@ -130,7 +130,9 @@ or displayed without allocating every image it mentions.
 
 Resource domains are `CPU` and `GPU`. `CPU` resources can be allocated by
 `RenderResourceStorage`; `GPU` resources are descriptors without CPU buffers in
-that storage object. Resource lifetimes are:
+that storage object. Current executors are CPU-backed, so validation rejects a
+pass that reads or writes a `GPU` resource until a GPU-capable executor is
+introduced. Resource lifetimes are:
 
 - `Transient` -- produced inside the plan and consumed by other passes.
 - `Imported` -- available before the plan starts.
@@ -267,6 +269,7 @@ Validation checks:
 - multiple passes writing the same resource,
 - reads of transient/exported resources that have no producer,
 - exported resources that have no declared producer,
+- passes reading or writing resources in a domain their executor cannot handle,
 - disabled required passes,
 - reads from disabled producers that do not substitute a default output,
 - negative dimensions or non-positive sample counts,

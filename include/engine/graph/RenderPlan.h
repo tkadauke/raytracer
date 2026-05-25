@@ -29,6 +29,7 @@ namespace engine::graph {
       DisabledRequiredPass,
       InvalidPassIO,
       InvalidResourceShape,
+      ResourceDomainMismatch,
       Cycle
     };
 

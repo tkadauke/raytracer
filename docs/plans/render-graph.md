@@ -1228,7 +1228,9 @@ Plan validation should catch:
 - multiple writers to the same resource without an explicit resolve/composite;
 - read/write cycles;
 - resource dimension or sample-count mismatches;
-- executor/resource-domain mismatch;
+- executor/resource-domain mismatch; ✅ **Done.** Current CPU-backed pass nodes
+  reject `GPU` resources during plan validation until GPU-capable executors
+  exist.
 - pass disabled with no valid default or dependent-culling path;
 - imported resource not provided;
 - exported resource not produced; ✅ **Done.** Plan validation now rejects
