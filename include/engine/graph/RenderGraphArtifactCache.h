@@ -93,6 +93,8 @@ namespace engine::graph {
     std::shared_ptr<const RenderGraphCachedArtifact> find(const RenderGraphCacheKey& key) const;
     bool contains(const RenderGraphCacheKey& key) const;
     void erase(const RenderGraphCacheKey& key);
+    std::size_t eraseProducerOutputs(const RenderPassId& producerPassId);
+    std::size_t eraseResource(const RenderResourceId& resourceId);
     void clear();
     std::size_t size() const;
 
