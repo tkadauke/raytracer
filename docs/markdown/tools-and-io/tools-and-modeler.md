@@ -281,6 +281,9 @@ opens with the rasterizer preview and Stencil Composite view selected from its
 saved render intent. The compiler synthesizes raster beauty, wireframe beauty,
 stencil AOV, composite, tonemap, and exported stencil-preview nodes; the scene
 does not name those nodes directly.
+When a scene's render intent is ahead of the current compiler, Modeler reports
+the graph compile error in the Render Graph dock and pauses the live preview
+instead of drawing from a stale plan.
 
 The Modeler does not bake scene catalogs into C++; it opens JSON scene files
 directly. New reusable demos should be added as scene files unless they need a

@@ -295,6 +295,25 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
   }
 
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowCompileErrorState) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(simplePlan());
+
+    widget.setError(QStringLiteral("selector-specific render intent"));
+
+    auto* passes = widget.findChild<QTreeWidget*>("renderGraphPasses");
+    auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
+    auto* status = widget.findChild<QLabel*>("renderGraphValidationStatus");
+    ASSERT_NE(nullptr, passes);
+    ASSERT_NE(nullptr, resources);
+    ASSERT_NE(nullptr, status);
+    EXPECT_EQ(0, passes->topLevelItemCount());
+    EXPECT_EQ(0, resources->topLevelItemCount());
+    EXPECT_FALSE(widget.effectivePlanValid());
+    EXPECT_TRUE(status->text().contains("Graph compile failed"));
+    EXPECT_TRUE(status->text().contains("selector-specific render intent"));
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassesByGroupOverride) {
     RenderGraphInspectorWidget widget;
     Slot slot;

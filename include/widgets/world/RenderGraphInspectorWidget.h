@@ -40,6 +40,11 @@ public:
   void setPlan(const engine::graph::RenderPlan& plan);
 
   /**
+    * Shows a graph compilation error when no plan could be produced.
+    */
+  void setError(const QString& message);
+
+  /**
     * @returns the graph overrides represented by the current pass checkboxes.
     */
   engine::graph::RenderGraphOverrides overrides() const;

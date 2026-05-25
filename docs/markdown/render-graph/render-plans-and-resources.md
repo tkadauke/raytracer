@@ -633,6 +633,10 @@ pass id. The dock applies those overrides to the compiled plan and runs
 `RenderPlan::validate()` immediately. Disabling the first required beauty pass
 therefore reports an invalid plan because that pass has
 `DisabledBehavior::Error`.
+If intent cannot be compiled at all, for example because it contains
+selector-specific overrides before scene partitioning exists, the dock shows
+the compile error and the live preview is paused instead of reusing a stale
+plan.
 
 When the effective plan is valid, the central preview renders through
 `GraphRenderEngine` with that plan. Disabling `tonemap` is therefore not only a

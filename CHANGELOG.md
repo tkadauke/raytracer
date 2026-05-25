@@ -535,6 +535,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   applies cumulative step visibility before styling, so previous-step groups
   remain visible as ghosts instead of being filtered out by the active-step
   selection. — GPT-5
+- **Modeler render graph compile errors.** The Render Graph dock now shows
+  graph compilation failures and pauses the preview instead of letting
+  unsupported render intent, such as selector-specific overrides, escape the
+  preview refresh path. — GPT-5
 - **Modeler graph preview scene switching.** Opening a scene without saved
   render intent now resets Modeler preview controls to the default graph intent,
   preventing stale view modes such as stencil composite from leaking from the

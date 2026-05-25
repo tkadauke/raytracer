@@ -71,6 +71,7 @@ struct RenderGraphInspectorWidget::Private {
   RenderPlan plan;
   RenderGraphOverrides overrides;
   std::shared_ptr<const RenderGraphExecutionTrace> trace;
+  QString compileError;
   RenderPassId selectedPassId;
   RenderResourceId selectedResourceId;
   bool hasSelection{false};
@@ -544,6 +545,7 @@ QSize RenderGraphInspectorWidget::sizeHint() const {
 
 void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->plan = plan;
+  p->compileError.clear();
   if (p->trace && !p->trace->matchesPlan(effectivePlan()))
     p->trace.reset();
   p->liveExecutionTimer->stop();
@@ -600,6 +602,21 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   rebuildAllViews();
 }
 
+void RenderGraphInspectorWidget::setError(const QString& message) {
+  p->plan = RenderPlan();
+  p->compileError = message;
+  p->trace.reset();
+  p->liveExecutionTimer->stop();
+  p->pendingExecutionStarts.clear();
+  p->executionStates.clear();
+  p->executionMessages.clear();
+  p->selectedPassId.clear();
+  p->selectedResourceId.clear();
+  p->hasSelection = false;
+  p->overrides = RenderGraphOverrides();
+  rebuildAllViews();
+}
+
 RenderGraphOverrides RenderGraphInspectorWidget::overrides() const {
   return p->overrides;
 }
@@ -609,6 +626,8 @@ RenderPlan RenderGraphInspectorWidget::effectivePlan() const {
 }
 
 bool RenderGraphInspectorWidget::effectivePlanValid() const {
+  if (!p->compileError.isEmpty())
+    return false;
   return effectivePlan().validate().valid();
 }
 
@@ -1089,6 +1108,11 @@ void RenderGraphInspectorWidget::rebuildResources() {
 }
 
 void RenderGraphInspectorWidget::updateValidationStatus() {
+  if (!p->compileError.isEmpty()) {
+    p->validationStatus->setText(tr("Graph compile failed: %1").arg(p->compileError));
+    return;
+  }
+
   const RenderPlan plan = effectivePlan();
   const auto validation = plan.validate();
   if (validation.valid()) {

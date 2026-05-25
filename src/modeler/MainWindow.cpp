@@ -1630,7 +1630,15 @@ void MainWindow::updateRenderGraphInspector() {
   if (analysisScene) {
     request.setSceneAnalysis(analysisScene->renderGraphAnalysis());
   }
-  p->renderGraphInspectorWidget->setPlan(request.compile(targetSpec));
+  try {
+    p->renderGraphInspectorWidget->setPlan(request.compile(targetSpec));
+  } catch (const std::exception& error) {
+    const QString message = QString::fromUtf8(error.what());
+    p->renderGraphInspectorWidget->setError(message);
+    p->display->setRenderGraphPreviewEnabled(false);
+    statusBar()->showMessage(tr("Render graph compile failed: %1").arg(message));
+    return;
+  }
   applyRenderGraphPreviewPlan();
 }
 
