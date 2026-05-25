@@ -398,6 +398,8 @@ namespace engine::graph {
     bool hasExternalSideEffects{false};
     bool canRunConcurrently{true};
 
+    void addRead(RenderResourceId resource);
+    void addWrite(RenderResourceId resource);
     bool readsResource(const RenderResourceId& resource) const;
     bool writesResource(const RenderResourceId& resource) const;
     bool producesWhenDisabled() const;

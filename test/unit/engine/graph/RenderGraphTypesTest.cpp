@@ -261,4 +261,20 @@ namespace RenderGraphTypesTest {
 
     EXPECT_THROW(RenderIntent::fromJson(json), std::runtime_error);
   }
+
+  TEST(RenderPassNode, OwnsReadAndWriteEdgeMutation) {
+    RenderPassNode pass;
+
+    pass.addRead("beauty_color");
+    pass.addRead("beauty_color");
+    pass.addWrite("main_color");
+    pass.addWrite("main_color");
+
+    ASSERT_EQ(1u, pass.reads.size());
+    EXPECT_EQ("beauty_color", pass.reads.front().resource);
+    ASSERT_EQ(1u, pass.writes.size());
+    EXPECT_EQ("main_color", pass.writes.front().resource);
+    EXPECT_TRUE(pass.readsResource("beauty_color"));
+    EXPECT_TRUE(pass.writesResource("main_color"));
+  }
 }
