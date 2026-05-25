@@ -164,6 +164,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph trace summaries.** After a traced preview render, graph
+  nodes now show pass execution status/timing and resource preview/cache status
+  directly in the graph view. — GPT-5
 - **Render graph shadow cache invalidation.** Raster preview shadow depth cache
   keys now use a pass-specific scene/camera/light fingerprint, so display-only
   changes such as tonemap swaps do not invalidate cached shadow artifacts.

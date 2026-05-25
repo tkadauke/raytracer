@@ -460,6 +460,8 @@ two supporting tables:
   show the last render's input, output, and difference previews in large tabs;
   resource nodes show the matching resource snapshots when the trace contains
   an inspectable image;
+- after a traced render, graph nodes summarize pass status/timing and resource
+  preview/cache status in place;
 - while the preview is rendering, the Graph tab highlights pass nodes as they
   start, finish, or fail execution;
 - the Passes table lists each pass id, pass kind, executor, read resources,

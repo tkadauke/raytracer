@@ -1,5 +1,7 @@
 #include "widgets/world/RenderGraphInspectorWidget.h"
 
+#include "engine/graph/RenderGraphExecutionTrace.h"
+
 #include <QBrush>
 #include <QEvent>
 #include <QFont>
@@ -39,9 +41,9 @@ namespace {
   constexpr int GraphItemIdRole = 1;
   constexpr int GraphItemExecutionStateRole = 2;
   constexpr double PassWidth = 190.0;
-  constexpr double PassHeight = 74.0;
+  constexpr double PassHeight = 88.0;
   constexpr double ResourceWidth = 150.0;
-  constexpr double ResourceHeight = 44.0;
+  constexpr double ResourceHeight = 58.0;
   constexpr double ColumnGap = PassWidth + ResourceWidth + 120.0;
   constexpr double RowGap = 120.0;
   constexpr double OriginX = 40.0;
@@ -70,6 +72,49 @@ namespace {
       return QStringLiteral("failed");
     }
     return QStringLiteral("idle");
+  }
+
+  QString passTraceLine(const RenderGraphExecutionTrace* trace, const RenderPassNode& pass) {
+    if (!trace)
+      return QString();
+
+    const auto* passTrace = trace->findPass(pass.id);
+    if (!passTrace)
+      return QString();
+
+    return QStringLiteral("%1, %2 ms")
+      .arg(toString(passTrace->status()))
+      .arg(passTrace->elapsed().count() / 1000000.0, 0, 'f', 2);
+  }
+
+  const RenderGraphResourceSnapshot*
+  firstSnapshotForResource(const RenderGraphExecutionTrace* trace,
+                           const RenderResourceId& resourceId) {
+    if (!trace)
+      return nullptr;
+
+    const auto outputs = trace->outputSnapshotsForResource(resourceId);
+    if (!outputs.empty())
+      return outputs.front();
+
+    const auto inputs = trace->inputSnapshotsForResource(resourceId);
+    return inputs.empty() ? nullptr : inputs.front();
+  }
+
+  QString resourceTraceLine(const RenderGraphExecutionTrace* trace,
+                            const RenderResourceDescriptor& resource) {
+    const auto* snapshot = firstSnapshotForResource(trace, resource.id);
+    if (!snapshot)
+      return QString();
+
+    if (snapshot->cacheMetadata().status() != RenderGraphCacheStatus::NotCacheable) {
+      return QStringLiteral("cache: %1").arg(toString(snapshot->cacheMetadata().status()));
+    }
+    if (snapshot->hasColorPreview())
+      return QStringLiteral("trace: color");
+    if (snapshot->hasDepthPreview())
+      return QStringLiteral("trace: depth");
+    return QStringLiteral("trace: metadata");
   }
 
   QString resourceReads(const std::vector<ResourceRead>& reads) {
@@ -241,6 +286,7 @@ namespace {
 struct RenderGraphInspectorWidget::Private {
   RenderPlan plan;
   RenderGraphOverrides overrides;
+  std::shared_ptr<const RenderGraphExecutionTrace> trace;
   RenderPassId selectedPassId;
   RenderResourceId selectedResourceId;
   bool hasSelection{false};
@@ -348,6 +394,8 @@ QSize RenderGraphInspectorWidget::sizeHint() const {
 
 void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   p->plan = plan;
+  if (p->trace && !p->trace->matchesPlan(effectivePlan()))
+    p->trace.reset();
   p->liveExecutionTimer->stop();
   p->pendingExecutionStarts.clear();
   p->executionStates.clear();
@@ -388,7 +436,10 @@ bool RenderGraphInspectorWidget::effectivePlanValid() const {
 }
 
 void RenderGraphInspectorWidget::setExecutionTrace(
-  std::shared_ptr<const RenderGraphExecutionTrace>) {
+  std::shared_ptr<const RenderGraphExecutionTrace> trace) {
+  p->trace = trace && trace->matchesPlan(effectivePlan()) ? std::move(trace) : nullptr;
+  rebuildGraph();
+
   if (p->hasSelection && !p->selectedResourceId.empty()) {
     emit selectedResourceTraceChanged(qstr(p->selectedResourceId));
   } else if (p->hasSelection && !p->selectedPassId.empty()) {
@@ -593,6 +644,8 @@ void RenderGraphInspectorWidget::setPassEnabledOverride(const RenderPassId& pass
   } else {
     p->overrides.disabledPasses.insert(passId);
   }
+  if (p->trace && !p->trace->matchesPlan(effectivePlan()))
+    p->trace.reset();
 
   rebuildAllViews();
   emit overridesChanged();
@@ -602,6 +655,8 @@ void RenderGraphInspectorWidget::rebuildGraph() {
   p->graphScene->clear();
 
   const RenderPlan plan = effectivePlan();
+  const RenderGraphExecutionTrace* trace =
+    p->trace && p->trace->matchesPlan(plan) ? p->trace.get() : nullptr;
   const auto passLocations = passPositions(plan);
   std::map<RenderResourceId, QPointF> resourceLocations;
 
@@ -644,10 +699,13 @@ void RenderGraphInspectorWidget::rebuildGraph() {
 
     QPen resourcePen(QColor(80, 95, 110));
     resourcePen.setWidthF(resource.id == p->selectedResourceId ? 2.5 : 1.2);
+    QStringList lines{qstr(resource.id), qstr(toString(resource.type))};
+    const QString traceLine = resourceTraceLine(trace, resource);
+    if (!traceLine.isEmpty())
+      lines << traceLine;
     addNode(
       *p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
-      QStringLiteral("resource"), qstr(resource.id),
-      {qstr(resource.id), qstr(toString(resource.type))}, resourcePen,
+      QStringLiteral("resource"), qstr(resource.id), lines, resourcePen,
       QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)));
   }
 
@@ -677,12 +735,15 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (!pass.enabled)
       pen.setStyle(Qt::DashLine);
 
-    QGraphicsRectItem* item = addNode(
-      *p->graphScene, QRectF(location->second, QSizeF(PassWidth, PassHeight)),
-      QStringLiteral("pass"), qstr(pass.id),
-      {qstr(pass.id), qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
-       pass.enabled ? tr("enabled") : tr("disabled")},
-      pen, brush);
+    QStringList lines{qstr(pass.id),
+                      qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
+                      pass.enabled ? tr("enabled") : tr("disabled")};
+    const QString traceLine = passTraceLine(trace, pass);
+    if (!traceLine.isEmpty())
+      lines << traceLine;
+    QGraphicsRectItem* item =
+      addNode(*p->graphScene, QRectF(location->second, QSizeF(PassWidth, PassHeight)),
+              QStringLiteral("pass"), qstr(pass.id), lines, pen, brush);
     item->setData(GraphItemExecutionStateRole, executionStateName(executionState));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);

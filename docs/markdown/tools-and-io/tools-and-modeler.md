@@ -168,6 +168,8 @@ central preview renders through that effective plan. After a render, selecting
 a pass or inspectable color/depth resource in the graph opens the central Graph
 Trace preview tab with input, output, and difference images from the last
 execution when that trace still matches the current plan and preview inputs.
+The graph nodes themselves summarize pass status/timing and resource
+preview/cache status from that same trace.
 Resource selections also show trace cache status in the property editor.
 For graph-visible raster preview shadows, that status distinguishes a rebuilt
 depth artifact from one restored from the graph artifact cache.

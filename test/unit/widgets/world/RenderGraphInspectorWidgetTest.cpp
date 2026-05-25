@@ -21,6 +21,7 @@
 #include <QGraphicsItem>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
+#include <QGraphicsSimpleTextItem>
 #include <QGraphicsView>
 #include <QLabel>
 #include <QToolButton>
@@ -52,6 +53,18 @@ namespace RenderGraphInspectorWidgetTest {
       }
     }
     return nullptr;
+  }
+
+  bool nodeTextContains(QGraphicsItem* node, const QString& text) {
+    if (!node)
+      return false;
+
+    for (QGraphicsItem* child : node->childItems()) {
+      auto* label = dynamic_cast<QGraphicsSimpleTextItem*>(child);
+      if (label && label->text().contains(text))
+        return true;
+    }
+    return false;
   }
 
   RenderPlan simplePlan() {
@@ -403,6 +416,27 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QStringLiteral("json"), format);
     EXPECT_TRUE(data.contains("\"passes\""));
     EXPECT_TRUE(data.contains("raytrace_beauty"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldShowTraceSummaryOnGraphNodes) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(trace->plan());
+    widget.setExecutionTrace(trace);
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    QGraphicsItem* pass = graphNodeItem(graph->scene(), "pass", "post_fxaa");
+    QGraphicsItem* resource = graphNodeItem(graph->scene(), "resource", "post_aa_color");
+    ASSERT_NE(nullptr, pass);
+    ASSERT_NE(nullptr, resource);
+
+    EXPECT_TRUE(nodeTextContains(pass, QStringLiteral("completed")));
+    EXPECT_TRUE(nodeTextContains(resource, QStringLiteral("trace: color")));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldEmitPassSelectedFromGraphNode) {
