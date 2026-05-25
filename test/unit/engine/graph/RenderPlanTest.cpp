@@ -685,6 +685,50 @@ namespace RenderPlanTest {
     EXPECT_EQ(json, imported.toJson());
   }
 
+  TEST(RenderPlan, ImportsJsonRecomputesExecutionStages) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color"));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"main_color"});
+    plan.addPass(tonemap);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    QJsonObject json = plan.toJson();
+    QJsonObject staleStage;
+    staleStage["index"] = 99;
+    QJsonArray stalePasses;
+    stalePasses.append("tonemap");
+    stalePasses.append("beauty");
+    staleStage["passes"] = stalePasses;
+    QJsonArray staleStages;
+    staleStages.append(staleStage);
+    json["executionStages"] = staleStages;
+
+    const RenderPlan imported = RenderPlan::fromJson(json);
+
+    const auto stages = imported.executionStages();
+    ASSERT_EQ(2u, stages.size());
+    ASSERT_EQ(1u, stages[0].size());
+    ASSERT_EQ(1u, stages[1].size());
+    EXPECT_EQ("beauty", stages[0][0]->id);
+    EXPECT_EQ("tonemap", stages[1][0]->id);
+
+    const auto exportedStages = imported.toJson()["executionStages"].toArray();
+    ASSERT_EQ(2, exportedStages.size());
+    EXPECT_EQ(1, exportedStages.at(0).toObject()["index"].toInt());
+    EXPECT_EQ("beauty",
+              exportedStages.at(0).toObject()["passes"].toArray().at(0).toString().toStdString());
+    EXPECT_EQ(2, exportedStages.at(1).toObject()["index"].toInt());
+    EXPECT_EQ("tonemap",
+              exportedStages.at(1).toObject()["passes"].toArray().at(0).toString().toStdString());
+  }
+
   TEST(RenderPlan, AddsResourceProducerWithWriteEdge) {
     RenderPlan plan;
     auto beauty = pass("raster_beauty", RenderPassKind::Beauty);
