@@ -317,6 +317,24 @@ The roadmap has texture sources and MIP-mapping; this is the deeper sampling sto
 - **Procedural detail families.** Worley/Voronoi, Perlin/simplex, fBm, wavelet noise, Gabor noise, sparse convolution noise, texture bombing, and domain warping.
 - **Relief-style mapping.** Parallax mapping, steep parallax, parallax occlusion, relief mapping, and when they should yield to true displacement.
 
+## Z. Historical visibility and hidden-surface algorithms
+
+The renderer already has ray tracing, wireframe, z-buffer rasterization, and modern render-graph visibility passes elsewhere. This section keeps the older visibility algorithms explicit so the project can teach how the field arrived there.
+
+- **Painter's algorithm and depth sorting.** Object-level and polygon-level sorting, cyclic-overlap failure cases, and splitting polygons to make the ordering valid.
+- **Back-face culling lineage.** Object-space normal tests, view-dependent winding, two-sided materials, and why culling is a visibility optimization rather than a hidden-surface solution.
+- **Z-buffer and W-buffer history.** Precision distribution, reversed-Z, logarithmic depth, depth fighting, and why hardware settled on depth buffering.
+- **Scanline hidden-surface algorithms.** Active edge / active polygon tables, Watkins-style scanline visibility, span coherence, and comparisons with full-frame z-buffering.
+- **Area subdivision.** Warnock's algorithm: recursively subdivide screen regions until visibility is trivial; useful as the historical bridge between image-space subdivision and later hierarchical methods.
+- **BSP-tree visibility.** Painter-order traversal from binary space partitioning, polygon splitting costs, and why BSPs dominated early indoor engines.
+- **Roberts / Appel hidden-line removal.** Classic line-drawing visibility for wireframe output; pairs naturally with the existing WireframeEngine V2 hidden-line backlog.
+- **Floating-horizon algorithms.** Heightfield/terrain visibility from horizon envelopes; narrow but beautifully teachable.
+- **Ray casting before recursive ray tracing.** Primary-ray visibility as a hidden-surface algorithm, distinct from Whitted reflection/refraction and modern path tracing.
+- **Beam, cone, and pencil tracing.** Frustum-shaped visibility queries for antialiasing, soft shadows, and portal traversal; historically important even where modern implementations choose packets or path differentials instead.
+- **Portal, cell, and PVS visibility.** Sector/portal traversal, potentially visible sets, antiportals, and offline visibility preprocessing for indoor scenes.
+- **Occlusion culling family.** Hierarchical Z / Hi-Z, hierarchical occlusion maps, hardware occlusion queries, coherent hierarchical culling (CHC), software occlusion buffers, and Umbra-style production systems.
+- **Visibility in constructive geometry.** BSP/CSG classification, silhouette extraction, and robust depth ordering for boolean-derived surfaces.
+
 ---
 
 *End of backlog. Items graduate to the roadmap when picked up.*
