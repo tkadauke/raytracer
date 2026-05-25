@@ -502,9 +502,7 @@ namespace engine::graph {
   }
 
   void RenderPlan::addResourceProducer(RenderPassNode producer, RenderResourceDescriptor resource) {
-    if (!producer.writesResource(resource.id)) {
-      producer.writes.push_back({resource.id});
-    }
+    producer.addWrite(resource.id);
 
     m_resources.push_back(std::move(resource));
     m_passes.push_back(std::move(producer));
@@ -521,12 +519,8 @@ namespace engine::graph {
                                consumerPassId + "'");
     }
 
-    if (!producer.writesResource(resource.id)) {
-      producer.writes.push_back({resource.id});
-    }
-    if (!consumer->readsResource(resource.id)) {
-      consumer->reads.push_back({resource.id});
-    }
+    producer.addWrite(resource.id);
+    consumer->addRead(resource.id);
 
     m_resources.push_back(std::move(resource));
     m_passes.insert(consumer, std::move(producer));
