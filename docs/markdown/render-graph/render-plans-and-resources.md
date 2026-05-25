@@ -119,7 +119,8 @@ that storage object. Resource lifetimes are:
 
 Validation treats imported, history, and persistent-cache resources as
 externally available. A transient or exported resource that is read must have a
-producer in the plan.
+producer in the plan, and every exported resource must be produced even when no
+other pass reads it.
 
 Persistent cache resources have a separate execution-time home:
 [`RenderGraphArtifactCache`](../../../include/engine/graph/RenderGraphArtifactCache.h).
@@ -241,6 +242,7 @@ Validation checks:
 - reads or writes of unknown resources,
 - multiple passes writing the same resource,
 - reads of transient/exported resources that have no producer,
+- exported resources that are not produced by a pass that can still write,
 - disabled required passes,
 - reads from disabled producers that do not substitute a default output,
 - negative dimensions or non-positive sample counts,

@@ -232,6 +232,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Render graph exported-resource validation.** Plans now reject exported
+  resources that have no producer, or whose producer was disabled without a
+  substitute/passthrough output, so malformed graph-only plans fail before
+  execution. — GPT-5
 - **Raster graph AOV geometry.** Rasterizer-backed graph AOVs for depth,
   normal, object-id, material-id, and world-position now use rasterizer
   diagnostic buffers, so they match tessellated raster geometry and raster pass

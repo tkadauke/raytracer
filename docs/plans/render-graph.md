@@ -1216,7 +1216,9 @@ Plan validation should catch:
 - executor/resource-domain mismatch;
 - pass disabled with no valid default or dependent-culling path;
 - imported resource not provided;
-- exported resource not produced;
+- exported resource not produced; ✅ **Done.** Plan validation now rejects
+  exported resources with no producer, or with a disabled producer that cannot
+  publish a substitute/default output.
 - mirror/portal/screen recursion over the configured limit.
 
 Validation errors should be human-readable because the graph is a teaching

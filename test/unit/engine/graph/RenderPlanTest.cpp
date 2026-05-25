@@ -139,6 +139,32 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, ReportsUnproducedExportedResource) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    const auto validation = plan.validate();
+
+    ASSERT_FALSE(validation.valid());
+    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::UnproducedExport));
+  }
+
+  TEST(RenderPlan, ReportsExportedResourceProducedByDisabledCullPass) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    auto main = pass("main");
+    main.writes.push_back({"main_color"});
+    main.disabledBehavior = DisabledBehavior::CullDependents;
+    main.enabled = false;
+    plan.addPass(main);
+
+    const auto validation = plan.validate();
+
+    ASSERT_FALSE(validation.valid());
+    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::UnproducedExport));
+  }
+
   TEST(RenderPlan, ReportsDuplicateWriters) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color"));

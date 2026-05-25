@@ -142,6 +142,7 @@ namespace engine::graph {
               {RenderPlanValidationError::Code::UnknownResource, "unknown_resource"},
               {RenderPlanValidationError::Code::DuplicateWriter, "duplicate_writer"},
               {RenderPlanValidationError::Code::MissingProducer, "missing_producer"},
+              {RenderPlanValidationError::Code::UnproducedExport, "unproduced_export"},
               {RenderPlanValidationError::Code::DisabledDependency, "disabled_dependency"},
               {RenderPlanValidationError::Code::DisabledRequiredPass, "disabled_required_pass"},
               {RenderPlanValidationError::Code::InvalidPassIO, "invalid_pass_io"},
@@ -511,6 +512,27 @@ namespace engine::graph {
                         "' requires matching input and output resource shapes",
                       pass.id, write.resource});
         }
+      }
+    }
+
+    for (const auto& resource : m_resources) {
+      if (resource.lifetime != RenderResourceLifetime::Exported) {
+        continue;
+      }
+
+      const auto producerIt = producers.find(resource.id);
+      if (producerIt == producers.end()) {
+        result.add({RenderPlanValidationError::Code::UnproducedExport,
+                    "exported resource '" + resource.id + "' has no producer", "", resource.id});
+        continue;
+      }
+
+      const RenderPassNode* producer = producerIt->second;
+      if (!producer->enabled && !producer->producesWhenDisabled()) {
+        result.add({RenderPlanValidationError::Code::UnproducedExport,
+                    "exported resource '" + resource.id + "' is produced by disabled pass '" +
+                      producer->id + "'",
+                    producer->id, resource.id});
       }
     }
 

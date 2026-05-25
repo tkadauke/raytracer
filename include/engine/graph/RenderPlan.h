@@ -22,6 +22,7 @@ namespace engine::graph {
       UnknownResource,
       DuplicateWriter,
       MissingProducer,
+      UnproducedExport,
       DisabledDependency,
       DisabledRequiredPass,
       InvalidPassIO,
