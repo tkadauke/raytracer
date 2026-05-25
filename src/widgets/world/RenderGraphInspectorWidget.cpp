@@ -152,6 +152,15 @@ namespace {
       .arg(resource.sampleCount);
   }
 
+  QString resourceTooltip(const RenderPlan& plan, const RenderResourceDescriptor& resource) {
+    return QStringLiteral("Producer: %1\nConsumers: %2\nFormat: %3\nLifetime: %4\nSize: %5")
+      .arg(resourceProducer(plan, resource.id))
+      .arg(resourceConsumers(plan, resource.id))
+      .arg(toString(resource.format))
+      .arg(toString(resource.lifetime))
+      .arg(sizeText(resource));
+  }
+
   std::set<RenderPassId> passIds(const RenderPlan& plan) {
     std::set<RenderPassId> ids;
     for (const auto& pass : plan.passes())
@@ -783,7 +792,8 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     addNode(
       *p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
       QStringLiteral("resource"), qstr(resource.id), lines, resourcePen,
-      QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)));
+      QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)))
+      ->setToolTip(resourceTooltip(plan, resource));
   }
 
   for (const auto& pass : plan.passes()) {
