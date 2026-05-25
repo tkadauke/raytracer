@@ -674,13 +674,13 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
     intent.setDefaultShadingProfileParameter(key, value);
   }
   if (m_renderGraphWireframeOverlay) {
-    intent.enableWireframeOverlay = true;
+    intent.setWireframeOverlayEnabled(true);
   }
   if (m_renderGraphCurveOverlay) {
     intent.enableCurveOverlay = true;
   }
   if (m_rasterShadowMaps) {
-    intent.enablePreviewShadows = true;
+    intent.setPreviewShadowsEnabled(true);
   }
   if (m_rasterPostProcessAASet) {
     intent.setPostProcessAA(commandLinePostProcessAA());
