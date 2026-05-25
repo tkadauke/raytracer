@@ -410,6 +410,38 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, CurveOverlayIntentAddsOverlayPassBeforeTonemap) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.enableCurveOverlay = true;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(3u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("beauty_color"));
+    ASSERT_NE(nullptr, plan.findResource("curve_overlay_color"));
+    EXPECT_EQ(RenderResourceLifetime::Transient,
+              plan.findResource("curve_overlay_color")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+
+    ASSERT_EQ(3u, plan.passes().size());
+    EXPECT_EQ("raytrace_beauty", plan.passes()[0].id);
+    EXPECT_EQ("curve_overlay", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::Overlay, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::Wireframe, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "curve_overlay"));
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "curve"));
+    EXPECT_EQ(DisabledBehavior::Passthrough, plan.passes()[1].disabledBehavior);
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("beauty_color", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("curve_overlay_color", plan.passes()[1].writes[0].resource);
+    EXPECT_EQ("tonemap", plan.passes()[2].id);
+    ASSERT_EQ(1u, plan.passes()[2].reads.size());
+    EXPECT_EQ("curve_overlay_color", plan.passes()[2].reads[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, RasterPreviewShadowsAddGraphShadowPass) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

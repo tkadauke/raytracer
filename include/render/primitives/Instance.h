@@ -129,6 +129,12 @@ namespace render {
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;
 
     /**
+      * Emits overlay curve segments from the wrapped primitive after applying
+      * this instance's point transform to each endpoint.
+      */
+    void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
+
+    /**
       * Tessellates the wrapped primitive and applies the instance
       * transform to every vertex: points by the point matrix, normals
       * by the inverse-transpose normal matrix (then re-normalised so
