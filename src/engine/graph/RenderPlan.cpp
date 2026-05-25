@@ -277,6 +277,40 @@ namespace engine::graph {
     return it == m_resources.end() ? nullptr : &*it;
   }
 
+  std::set<RenderPassId> RenderPlan::passIds() const {
+    std::set<RenderPassId> result;
+    for (const auto& pass : m_passes) {
+      result.insert(pass.id);
+    }
+    return result;
+  }
+
+  std::set<RenderPassKind> RenderPlan::passKinds() const {
+    std::set<RenderPassKind> result;
+    for (const auto& pass : m_passes) {
+      result.insert(pass.kind);
+    }
+    return result;
+  }
+
+  std::set<RenderExecutorKind> RenderPlan::passExecutors() const {
+    std::set<RenderExecutorKind> result;
+    for (const auto& pass : m_passes) {
+      result.insert(pass.executor);
+    }
+    return result;
+  }
+
+  std::set<RenderFeatureKind> RenderPlan::passFeatures() const {
+    std::set<RenderFeatureKind> result;
+    for (const auto& pass : m_passes) {
+      for (const auto& feature : pass.features) {
+        result.insert(feature);
+      }
+    }
+    return result;
+  }
+
   const RenderPassNode* RenderPlan::producerOf(const RenderResourceId& resource) const {
     const auto it = std::find_if(m_passes.begin(), m_passes.end(), [&](const RenderPassNode& pass) {
       return pass.writesResource(resource);
