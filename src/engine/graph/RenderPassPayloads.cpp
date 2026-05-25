@@ -787,10 +787,7 @@ namespace engine::graph {
       }
     };
 
-    /**
-      * Overlay payload that draws wireframe edges over an existing color image.
-      */
-    class WireframeOverlayPass : public RenderPassPayload {
+    class WireframeOverlayPassBase : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
@@ -808,6 +805,7 @@ namespace engine::graph {
         auto wireframe = std::make_shared<::engine::wireframe::Wireframe>(std::move(camera),
                                                                           context.graph().scene());
         WireframePassState::valueFromPass(pass).applyTo(*wireframe);
+        configure(*wireframe);
         wireframe->setBackgroundColor(Colord::black());
         wireframe->setEdgeColor(Colord::white());
         if (context.cancelled()) {
@@ -827,6 +825,31 @@ namespace engine::graph {
             }
           }
         }
+      }
+
+    private:
+      virtual void configure(::engine::wireframe::Wireframe& wireframe) const = 0;
+    };
+
+    /**
+      * Overlay payload that draws tessellated wireframe edges over an existing
+      * color image.
+      */
+    class WireframeOverlayPass : public WireframeOverlayPassBase {
+    private:
+      void configure(::engine::wireframe::Wireframe& wireframe) const override {
+        wireframe.setGeometryMode(::engine::wireframe::Wireframe::GeometryMode::TessellatedEdges);
+      }
+    };
+
+    /**
+      * Overlay payload that draws semantic curve center lines without
+      * tessellating them into physical ribbons or tubes.
+      */
+    class CurveOverlayPass : public WireframeOverlayPassBase {
+    private:
+      void configure(::engine::wireframe::Wireframe& wireframe) const override {
+        wireframe.setGeometryMode(::engine::wireframe::Wireframe::GeometryMode::CurveOverlay);
       }
     };
 
@@ -962,6 +985,19 @@ namespace engine::graph {
       }
     };
 
+    class WireframeOverlayPayloadFactory : public BuiltinPassPayloadFactory {
+    public:
+      bool matches(const RenderPassNode& pass) const override {
+        return pass.kind == RenderPassKind::Overlay &&
+               pass.executor == RenderExecutorKind::Wireframe &&
+               !hasFeature(pass, "curve_overlay");
+      }
+
+      std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {
+        return std::make_unique<WireframeOverlayPass>();
+      }
+    };
+
     const std::vector<const BuiltinPassPayloadFactory*>& builtinPayloadFactories() {
       static const ExactPassPayloadFactory<RaytraceBeautyPass> raytraceBeauty(
         RenderPassKind::Beauty, RenderExecutorKind::Raytracer);
@@ -1015,8 +1051,9 @@ namespace engine::graph {
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"world_position"});
       static const PostProcessAAPayloadFactory postProcessAA;
-      static const ExactPassPayloadFactory<WireframeOverlayPass> wireframeOverlay(
-        RenderPassKind::Overlay, RenderExecutorKind::Wireframe);
+      static const WireframeOverlayPayloadFactory wireframeOverlay;
+      static const FeaturePassPayloadFactory<CurveOverlayPass> curveOverlay(
+        RenderPassKind::Overlay, RenderExecutorKind::Wireframe, {"curve_overlay"});
       static const std::vector<const BuiltinPassPayloadFactory*> result = {
         &raytraceBeauty,
         &rasterBeauty,
@@ -1045,6 +1082,7 @@ namespace engine::graph {
         &worldPositionAOVWireframe,
         &postProcessAA,
         &wireframeOverlay,
+        &curveOverlay,
       };
       return result;
     }

@@ -57,6 +57,8 @@ namespace render {
     virtual const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                        render::State& state) const override;
 
+    void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
+
     /**
       * Tessellates non-zero-length segments into visible faces.
       *

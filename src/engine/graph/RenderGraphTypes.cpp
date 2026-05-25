@@ -596,6 +596,7 @@ namespace engine::graph {
       result["defaultCamera"] = defaultCamera->toJson();
     result["enableAutomaticFeatures"] = enableAutomaticFeatures;
     result["enableWireframeOverlay"] = enableWireframeOverlay;
+    result["enableCurveOverlay"] = enableCurveOverlay;
     result["enablePreviewShadows"] = enablePreviewShadows;
     result["postProcessAA"] = toString(postProcessAA);
     if (!exportedAOVs.empty()) {
@@ -631,6 +632,8 @@ namespace engine::graph {
       boolField(object, "enableAutomaticFeatures", "renderIntent", intent.enableAutomaticFeatures);
     intent.enableWireframeOverlay =
       boolField(object, "enableWireframeOverlay", "renderIntent", intent.enableWireframeOverlay);
+    intent.enableCurveOverlay =
+      boolField(object, "enableCurveOverlay", "renderIntent", intent.enableCurveOverlay);
     intent.enablePreviewShadows =
       boolField(object, "enablePreviewShadows", "renderIntent", intent.enablePreviewShadows);
     intent.postProcessAA = postProcessAAFromJson(

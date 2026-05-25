@@ -62,6 +62,11 @@ namespace engine::wireframe {
   */
   class Wireframe : public render::RenderEngine {
   public:
+    enum class GeometryMode {
+      TessellatedEdges,
+      CurveOverlay
+    };
+
     explicit Wireframe(std::shared_ptr<render::Scene> scene);
     Wireframe(std::shared_ptr<render::Camera> camera, std::shared_ptr<render::Scene> scene);
 
@@ -92,6 +97,15 @@ namespace engine::wireframe {
       m_edgeColor = color;
     }
 
+    /// Selects whether rendering walks tessellated mesh edges or semantic
+    /// curve center lines. Curve overlay mode does not require curve width.
+    inline GeometryMode geometryMode() const {
+      return m_geometryMode;
+    }
+    inline void setGeometryMode(GeometryMode mode) {
+      m_geometryMode = mode;
+    }
+
     /// Colour the framebuffer is cleared to before edges are drawn.
     /// Defaults to pure black — the Wireframe overrides the
     /// `RenderEngine` default (which would fall back to the scene's
@@ -114,6 +128,7 @@ namespace engine::wireframe {
     int m_lod{0};
     Colord m_edgeColor{Colord::white()};
     double m_nearClipDepth{0.1};
+    GeometryMode m_geometryMode{GeometryMode::TessellatedEdges};
   };
 
 } // namespace engine::wireframe

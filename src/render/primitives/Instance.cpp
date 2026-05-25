@@ -114,6 +114,13 @@ Vector3d Instance::farthestPoint(const Vector3d& direction) const {
   return m_pointMatrix.transformPoint(m_primitive->farthestPoint(m_directionMatrix * direction));
 }
 
+void Instance::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {
+  m_primitive->forEachCurveOverlaySegment(
+    [&](const Vector3d& start, const Vector3d& end, const std::optional<Colord>& color) {
+      visitor(m_pointMatrix.transformPoint(start), m_pointMatrix.transformPoint(end), color);
+    });
+}
+
 std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
   // Only the t=0 configuration is captured; a time-aware engine would need
   // per-frame meshes to handle motion blur correctly.

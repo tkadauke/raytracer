@@ -260,7 +260,25 @@ namespace engine::graph {
       overlay.name = "Wireframe overlay";
       overlay.kind = RenderPassKind::Overlay;
       overlay.executor = RenderExecutorKind::Wireframe;
-      overlay.features = {"main", "overlay", "wireframe"};
+      overlay.features = {"main", "overlay", "wireframe", "wireframe_overlay"};
+      overlay.reads.push_back({inputResource});
+      overlay.writes.push_back({overlayColor.id});
+      overlay.sceneView = frameIntent.defaultSceneView();
+      overlay.disabledBehavior = DisabledBehavior::Passthrough;
+      overlay.canRunConcurrently = false;
+      plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
+    }
+
+    if (frameIntent.enableCurveOverlay) {
+      const RenderResourceId inputResource = tonemapInputResource(plan);
+      RenderResourceDescriptor overlayColor = colorResource(
+        "curve_overlay_color", "Curve overlay color", target, RenderResourceLifetime::Transient);
+      RenderPassNode overlay;
+      overlay.id = "curve_overlay";
+      overlay.name = "Curve overlay";
+      overlay.kind = RenderPassKind::Overlay;
+      overlay.executor = RenderExecutorKind::Wireframe;
+      overlay.features = {"main", "overlay", "curve", "curve_overlay", "wireframe"};
       overlay.reads.push_back({inputResource});
       overlay.writes.push_back({overlayColor.id});
       overlay.sceneView = frameIntent.defaultSceneView();

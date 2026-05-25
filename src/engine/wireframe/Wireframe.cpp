@@ -9,6 +9,7 @@
 #include "render/viewplanes/ViewPlane.h"
 
 #include <cmath>
+#include <optional>
 
 using namespace engine::wireframe;
 
@@ -28,6 +29,7 @@ std::shared_ptr<render::RenderEngine> Wireframe::cloneForRender() const {
   result->setLod(m_lod);
   result->setEdgeColor(m_edgeColor);
   result->setNearClipDepth(m_nearClipDepth);
+  result->setGeometryMode(m_geometryMode);
   if (hasBackgroundColorOverride()) {
     result->setBackgroundColor(backgroundColor());
   }
@@ -138,6 +140,17 @@ void Wireframe::render(Buffer<Colord>& buffer) {
   // camera projection math depends on `topLeft` / `right` / `down`
   // basis vectors that `setupVectors` populates.
   m_camera->viewPlane()->setup(m_camera->matrix(), buffer.rect());
+
+  if (m_geometryMode == GeometryMode::CurveOverlay) {
+    m_scene->forEachCurveOverlaySegment(
+      [&](const Vector3d& start, const Vector3d& end, const std::optional<Colord>& color) {
+        if (m_cancelled.load())
+          return;
+        rasterizeEdge(buffer, *m_camera, start, end, color ? *color : m_edgeColor,
+                      m_nearClipDepth);
+      });
+    return;
+  }
 
   auto mesh = m_scene->tessellate(m_lod);
   if (!mesh)
