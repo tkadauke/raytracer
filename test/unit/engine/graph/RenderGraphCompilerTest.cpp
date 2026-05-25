@@ -14,6 +14,24 @@ namespace RenderGraphCompilerTest {
     return std::find(pass.features.begin(), pass.features.end(), feature) != pass.features.end();
   }
 
+  TEST(RenderTargetSpec, BuildsNormalizedColorResourceDescriptors) {
+    const RenderTargetSpec raw{320, 180, 0};
+    const RenderTargetSpec target = raw.normalized();
+    const RenderResourceDescriptor resource =
+      target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
+
+    EXPECT_EQ(1, target.sampleCount);
+    EXPECT_EQ("main_color", resource.id);
+    EXPECT_EQ("Main color", resource.name);
+    EXPECT_EQ(RenderResourceType::Color, resource.type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble, resource.format);
+    EXPECT_EQ(320, resource.width);
+    EXPECT_EQ(180, resource.height);
+    EXPECT_EQ(1, resource.sampleCount);
+    EXPECT_EQ(RenderResourceDomain::CPU, resource.domain);
+    EXPECT_EQ(RenderResourceLifetime::Exported, resource.lifetime);
+  }
+
   TEST(RenderGraphCompiler, CompilesDefaultRaytracedBeautyPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

@@ -2,6 +2,8 @@
 
 #include "engine/graph/RenderPlan.h"
 
+#include <string>
+
 namespace engine::graph {
   /**
     * Dimensions and sampling shape of the image a render plan targets.
@@ -14,6 +16,10 @@ namespace engine::graph {
     int width{0};
     int height{0};
     int sampleCount{1};
+
+    RenderTargetSpec normalized() const;
+    RenderResourceDescriptor colorResource(RenderResourceId id, std::string name,
+                                           RenderResourceLifetime lifetime) const;
   };
 
   /**
