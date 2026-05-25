@@ -531,6 +531,7 @@ private:
   QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
   static bool hasFramePlaceholder(const QString& pattern, QString* errorMessage);
+  static bool isKnownSampler(const QString& sampler);
 };
 
 Renderer::Renderer()
@@ -1166,6 +1167,12 @@ bool Renderer::hasFramePlaceholder(const QString& pattern, QString* errorMessage
   return true;
 }
 
+bool Renderer::isKnownSampler(const QString& sampler) {
+  const std::string samplerClass = sampler.toStdString() + "Sampler";
+  const auto identifiers = render::SamplerFactory::self().identifiers();
+  return std::find(identifiers.begin(), identifiers.end(), samplerClass) != identifiers.end();
+}
+
 std::shared_ptr<render::Sampler> Renderer::sampler() const {
   auto samplerClass = m_sampler.toStdString() + "Sampler";
   auto sampler = render::SamplerFactory::self().createShared(samplerClass);
@@ -1329,6 +1336,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("sampler")) {
     m_sampler = parser.value("sampler");
+    if (!isKnownSampler(m_sampler)) {
+      *errorMessage = "Sampler must be 'Regular', 'Random', or 'Jittered'";
+      return CommandLineError;
+    }
   }
 
   if (parser.isSet("samples_per_pixel")) {
