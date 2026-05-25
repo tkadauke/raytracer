@@ -332,6 +332,20 @@ The renderer already has ray tracing, wireframe, z-buffer rasterization, and mod
 - **Occlusion culling family.** Hierarchical Z / Hi-Z, hierarchical occlusion maps, hardware occlusion queries, coherent hierarchical culling (CHC), software occlusion buffers, and Umbra-style production systems.
 - **Visibility in constructive geometry.** BSP/CSG classification, silhouette extraction, and robust depth ordering for boolean-derived surfaces.
 
+## AA. Natural phenomena rendering
+
+Hair and cloth have their own shading/simulation entries; this section covers the environmental phenomena that need both rendering models and, eventually, simulation inputs. These should cross-link to §4.3 volumetrics/materials, §4.9 postprocessing, §4.10 physics, and §K atmosphere when they graduate.
+
+- **Water surfaces.** Fresnel reflection/refraction, absorption by depth, caustics, procedural and simulated waves, ocean spectra (Phillips, JONSWAP/Tessendorf FFT), ripples, wakes, foam, spray, bubbles, wet surfaces, underwater light attenuation, and screen-space/raytraced reflection fallbacks for previews.
+- **Fog, mist, and aerial haze.** Height fog, layered fog banks, ground mist, distance-based aerial perspective, anisotropic scattering, multiple-scattering approximations, shadowed fog shafts, and artist-friendly density/noise controls.
+- **Smoke and dust plumes.** Procedural and simulated density fields, turbulent noise, vorticity-shaped silhouettes, soot absorption, self-shadowing, sparse-volume storage, and compositing-friendly density/emission AOVs.
+- **Clouds.** Procedural density fields, weather maps, erosion/detail noise, cumulus/stratus/cirrus presets, silver lining, cloud shadows, ambient sky coupling, and fast multiple-scattering approximations for previews.
+- **Fire and flames.** Emissive participating media, blackbody temperature-to-color ramps, flame tongues, soot/smoke coupling, sparks/embers, heat haze/refraction, combustion-simulation inputs, and tone-mapping stress tests for extreme luminance.
+- **Rain, snow, and ice.** Falling precipitation, streak/splat rendering, accumulation, melt/dry transitions, translucent ice with bubbles/cracks, subsurface snow scattering, glints, and wet-material blending.
+- **Sand, dust, and particulate weather.** Suspended particles, sandstorms, footprints/trails, wind-driven transport, erosion/deposition visuals, and interaction with volumetric lighting.
+- **Lava and magma.** Emissive cracks, blackbody cooling, crust formation, displacement/flow fields, smoke/steam coupling, and high-dynamic-range bloom/tonemap behavior.
+- **Authoring presets and diagnostics.** Canonical scenes for each phenomenon, density/temperature/velocity overlays, AOVs for extinction/scattering/emission, and side-by-side comparisons of fake raster preview, ray-marched volume, and path-traced reference.
+
 ---
 
 *End of backlog. Items graduate to the roadmap when picked up.*
