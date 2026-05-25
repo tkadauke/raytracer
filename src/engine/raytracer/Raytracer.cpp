@@ -16,7 +16,7 @@
 #include "render/tonemap/Tonemap.h"
 #include "core/ScopeExit.h"
 
-#include "../TileRenderTask.h"
+#include "engine/TileRenderTask.h"
 
 #include <QThread>
 #include <QThreadPool>

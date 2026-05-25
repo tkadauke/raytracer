@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RasterShadowMaps.h"
+#include "engine/raster/detail/RasterShadowMaps.h"
 
 #include <array>
 #include <atomic>

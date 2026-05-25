@@ -1,11 +1,11 @@
 #include "engine/raster/Rasterizer.h"
 
-#include "RasterMSAA.h"
-#include "RasterPass.h"
-#include "RasterPipelineTypes.h"
-#include "RasterShadowMapBuilder.h"
-#include "RasterTemporalResources.h"
-#include "RasterTriangleEmitter.h"
+#include "engine/raster/detail/RasterMSAA.h"
+#include "engine/raster/detail/RasterPass.h"
+#include "engine/raster/detail/RasterPipelineTypes.h"
+#include "engine/raster/detail/RasterShadowMapBuilder.h"
+#include "engine/raster/detail/RasterTemporalResources.h"
+#include "engine/raster/detail/RasterTriangleEmitter.h"
 
 #include "core/Buffer.h"
 #include "core/math/Vector.h"
@@ -18,7 +18,7 @@
 #include "render/tonemap/Tonemap.h"
 #include "render/viewplanes/ViewPlane.h"
 
-#include "../TileRenderTask.h"
+#include "engine/TileRenderTask.h"
 
 #include <QThread>
 #include <QThreadPool>
