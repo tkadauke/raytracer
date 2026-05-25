@@ -1,0 +1,19 @@
+{
+  "kind": "polyline",
+  "name": "plain_zigzag",
+  "attributes": {
+    "source": "fixture",
+    "domain": "route"
+  },
+  "points": [
+    [-1.2, -0.6, 0.0],
+    [-0.4, 0.4, 0.0],
+    [0.4, -0.1, 0.0],
+    [1.2, 0.6, 0.0]
+  ],
+  "segments": [
+    {"attributes": {}},
+    {"attributes": {}},
+    {"attributes": {}}
+  ]
+}
