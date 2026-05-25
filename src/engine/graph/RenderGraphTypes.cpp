@@ -7,7 +7,10 @@
 #include <QJsonArray>
 
 #include <algorithm>
+#include <cerrno>
+#include <cctype>
 #include <cstddef>
+#include <cstdlib>
 #include <cmath>
 #include <initializer_list>
 #include <iomanip>
@@ -45,6 +48,12 @@ namespace engine::graph {
       if (!value.isBool())
         jsonError(path + "." + key, "expected boolean");
       return value.toBool();
+    }
+
+    std::string lowercase(std::string value) {
+      std::transform(value.begin(), value.end(), value.begin(),
+                     [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+      return value;
     }
 
     int intField(const QJsonObject& object, const char* key, const std::string& path,
@@ -414,6 +423,23 @@ namespace engine::graph {
 
   bool ShadingProfileParameterValue::operator!=(const ShadingProfileParameterValue& other) const {
     return !(*this == other);
+  }
+
+  ShadingProfileParameterValue ShadingProfileParameterValue::fromText(std::string text) {
+    const std::string normalized = lowercase(text);
+    if (normalized == "true")
+      return ShadingProfileParameterValue(true);
+    if (normalized == "false")
+      return ShadingProfileParameterValue(false);
+
+    char* end = nullptr;
+    errno = 0;
+    const double number = std::strtod(text.c_str(), &end);
+    if (end != text.c_str() && *end == '\0' && errno != ERANGE && std::isfinite(number)) {
+      return ShadingProfileParameterValue(number);
+    }
+
+    return ShadingProfileParameterValue(std::move(text));
   }
 
   ShadingProfileParameterValue ShadingProfileParameterValue::fromJson(const QJsonValue& value,
