@@ -200,6 +200,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph pass tooltips.** Pass nodes in the Render Graph dock
+  now summarize reads, writes, and dependency edges on hover. — GPT-5
 - **Render graph DOT exports.** Pass labels in DOT exports now include computed
   execution stage and serial order metadata. — GPT-5
 - **Render graph text exports.** Per-pass text export details now include the

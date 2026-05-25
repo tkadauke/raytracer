@@ -244,9 +244,12 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(7));
 
     ASSERT_NE(nullptr, graph->scene());
-    EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
-    EXPECT_TRUE(
-      nodeTextContains(graphNodeItem(graph->scene(), "pass", "raytrace_beauty"), "stage 1"));
+    auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, passNode);
+    EXPECT_TRUE(nodeTextContains(passNode, "stage 1"));
+    EXPECT_TRUE(passNode->toolTip().contains("Reads: -"));
+    EXPECT_TRUE(passNode->toolTip().contains("Writes: main_color"));
+    EXPECT_TRUE(passNode->toolTip().contains("Incoming dependencies: -"));
     auto* resourceNode = graphNodeItem(graph->scene(), "resource", "main_color");
     ASSERT_NE(nullptr, resourceNode);
     EXPECT_TRUE(nodeTextContains(resourceNode, "rgb_double"));

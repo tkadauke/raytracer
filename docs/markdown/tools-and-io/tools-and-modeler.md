@@ -178,7 +178,8 @@ and resource edges. Its Resources
 tab shows each declared resource's type, format, domain, lifetime, and
 dimensions. Selecting a pass also shows its execution stage, order, incoming
 dependencies, and outgoing dependencies in the property editor alongside pass
-state, resource edges, and trace metadata.
+state, resource edges, and trace metadata. Hovering a pass or resource node
+summarizes its declared graph edges without leaving the graph view.
 Unchecking a pass adds a graph override and the dock validates the
 manipulated plan immediately. When the manipulated plan is still valid, the
 central preview renders through that effective plan. After a render, selecting

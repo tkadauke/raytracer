@@ -133,6 +133,33 @@ namespace {
     return dashIfEmpty(values.join(", "));
   }
 
+  QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {
+    QStringList values;
+    for (const auto& dependency : dependencies) {
+      values << QStringLiteral("%1 -> %2 via %3")
+                  .arg(qstr(dependency.producer->id))
+                  .arg(qstr(dependency.consumer->id))
+                  .arg(qstr(dependency.resource));
+    }
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
+  QString passTooltip(const RenderPlan& plan, const RenderPassNode& pass,
+                      const QString& executionMessage) {
+    QStringList lines;
+    if (!executionMessage.isEmpty()) {
+      lines << executionMessage;
+    }
+    lines << QStringLiteral("Double-click to enable or disable this pass");
+    lines << QStringLiteral("Reads: %1").arg(resourceReads(pass.reads));
+    lines << QStringLiteral("Writes: %1").arg(resourceWrites(pass.writes));
+    lines << QStringLiteral("Incoming dependencies: %1")
+               .arg(dependencySummary(plan.dependenciesInto(pass.id)));
+    lines << QStringLiteral("Outgoing dependencies: %1")
+               .arg(dependencySummary(plan.dependenciesOutOf(pass.id)));
+    return lines.join(QStringLiteral("\n"));
+  }
+
   QString resourceProducer(const RenderPlan& plan, const RenderResourceId& resource) {
     const RenderPassNode* producer = plan.producerOf(resource);
     return producer ? qstr(producer->id) : QStringLiteral("-");
@@ -840,9 +867,8 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
     const auto messageIt = p->executionMessages.find(pass.id);
-    item->setToolTip(messageIt == p->executionMessages.end()
-                       ? tr("Double-click to enable or disable this pass")
-                       : messageIt->second);
+    item->setToolTip(passTooltip(
+      plan, pass, messageIt == p->executionMessages.end() ? QString() : messageIt->second));
   }
 
   const QRectF bounds = p->graphScene->itemsBoundingRect().adjusted(-40.0, -40.0, 40.0, 40.0);
