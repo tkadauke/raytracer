@@ -139,16 +139,22 @@ namespace engine::graph {
       return Colord(values[0], values[1], values[2]);
     }
 
-    const char* toString(Rasterizer::CullMode mode) {
-      switch (mode) {
-      case Rasterizer::CullMode::Both:
-        return "both";
-      case Rasterizer::CullMode::Back:
-        return "back";
-      case Rasterizer::CullMode::Front:
-        return "front";
+    template<class T>
+    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
+                         const char* fallback) {
+      for (const auto& [parsed, name] : values) {
+        if (value == parsed)
+          return name;
       }
-      return "both";
+      return fallback;
+    }
+
+    const char* toString(Rasterizer::CullMode mode) {
+      return enumName<Rasterizer::CullMode>(mode,
+                                            {{Rasterizer::CullMode::Both, "both"},
+                                             {Rasterizer::CullMode::Back, "back"},
+                                             {Rasterizer::CullMode::Front, "front"}},
+                                            "both");
     }
 
     Rasterizer::CullMode cullModeFromString(const std::string& value, const std::string& path) {
@@ -162,13 +168,11 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::MSAAShadingMode mode) {
-      switch (mode) {
-      case Rasterizer::MSAAShadingMode::PerSample:
-        return "per_sample";
-      case Rasterizer::MSAAShadingMode::PerFragment:
-        return "per_fragment";
-      }
-      return "per_sample";
+      return enumName<Rasterizer::MSAAShadingMode>(
+        mode,
+        {{Rasterizer::MSAAShadingMode::PerSample, "per_sample"},
+         {Rasterizer::MSAAShadingMode::PerFragment, "per_fragment"}},
+        "per_sample");
     }
 
     Rasterizer::MSAAShadingMode msaaShadingModeFromString(const std::string& value,
@@ -181,17 +185,12 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::PostProcessAA aa) {
-      switch (aa) {
-      case Rasterizer::PostProcessAA::None:
-        return "none";
-      case Rasterizer::PostProcessAA::FXAA:
-        return "fxaa";
-      case Rasterizer::PostProcessAA::SMAA:
-        return "smaa";
-      case Rasterizer::PostProcessAA::TAA:
-        return "taa";
-      }
-      return "none";
+      return enumName<Rasterizer::PostProcessAA>(aa,
+                                                 {{Rasterizer::PostProcessAA::None, "none"},
+                                                  {Rasterizer::PostProcessAA::FXAA, "fxaa"},
+                                                  {Rasterizer::PostProcessAA::SMAA, "smaa"},
+                                                  {Rasterizer::PostProcessAA::TAA, "taa"}},
+                                                 "none");
     }
 
     Rasterizer::PostProcessAA postProcessAAFromString(const std::string& value,
@@ -208,33 +207,21 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::BlendFactor factor) {
-      switch (factor) {
-      case Rasterizer::BlendFactor::Zero:
-        return "zero";
-      case Rasterizer::BlendFactor::One:
-        return "one";
-      case Rasterizer::BlendFactor::SourceColor:
-        return "source_color";
-      case Rasterizer::BlendFactor::OneMinusSourceColor:
-        return "one_minus_source_color";
-      case Rasterizer::BlendFactor::SourceAlpha:
-        return "source_alpha";
-      case Rasterizer::BlendFactor::OneMinusSourceAlpha:
-        return "one_minus_source_alpha";
-      case Rasterizer::BlendFactor::DestinationColor:
-        return "destination_color";
-      case Rasterizer::BlendFactor::OneMinusDestinationColor:
-        return "one_minus_destination_color";
-      case Rasterizer::BlendFactor::ConstantColor:
-        return "constant_color";
-      case Rasterizer::BlendFactor::OneMinusConstantColor:
-        return "one_minus_constant_color";
-      case Rasterizer::BlendFactor::ConstantAlpha:
-        return "constant_alpha";
-      case Rasterizer::BlendFactor::OneMinusConstantAlpha:
-        return "one_minus_constant_alpha";
-      }
-      return "one";
+      return enumName<Rasterizer::BlendFactor>(
+        factor,
+        {{Rasterizer::BlendFactor::Zero, "zero"},
+         {Rasterizer::BlendFactor::One, "one"},
+         {Rasterizer::BlendFactor::SourceColor, "source_color"},
+         {Rasterizer::BlendFactor::OneMinusSourceColor, "one_minus_source_color"},
+         {Rasterizer::BlendFactor::SourceAlpha, "source_alpha"},
+         {Rasterizer::BlendFactor::OneMinusSourceAlpha, "one_minus_source_alpha"},
+         {Rasterizer::BlendFactor::DestinationColor, "destination_color"},
+         {Rasterizer::BlendFactor::OneMinusDestinationColor, "one_minus_destination_color"},
+         {Rasterizer::BlendFactor::ConstantColor, "constant_color"},
+         {Rasterizer::BlendFactor::OneMinusConstantColor, "one_minus_constant_color"},
+         {Rasterizer::BlendFactor::ConstantAlpha, "constant_alpha"},
+         {Rasterizer::BlendFactor::OneMinusConstantAlpha, "one_minus_constant_alpha"}},
+        "one");
     }
 
     Rasterizer::BlendFactor blendFactorFromString(const std::string& value,
@@ -267,19 +254,14 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::BlendOp op) {
-      switch (op) {
-      case Rasterizer::BlendOp::Add:
-        return "add";
-      case Rasterizer::BlendOp::Subtract:
-        return "subtract";
-      case Rasterizer::BlendOp::ReverseSubtract:
-        return "reverse_subtract";
-      case Rasterizer::BlendOp::Min:
-        return "min";
-      case Rasterizer::BlendOp::Max:
-        return "max";
-      }
-      return "add";
+      return enumName<Rasterizer::BlendOp>(
+        op,
+        {{Rasterizer::BlendOp::Add, "add"},
+         {Rasterizer::BlendOp::Subtract, "subtract"},
+         {Rasterizer::BlendOp::ReverseSubtract, "reverse_subtract"},
+         {Rasterizer::BlendOp::Min, "min"},
+         {Rasterizer::BlendOp::Max, "max"}},
+        "add");
     }
 
     Rasterizer::BlendOp blendOpFromString(const std::string& value, const std::string& path) {
@@ -297,25 +279,17 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::AlphaFunc func) {
-      switch (func) {
-      case Rasterizer::AlphaFunc::Never:
-        return "never";
-      case Rasterizer::AlphaFunc::Less:
-        return "less";
-      case Rasterizer::AlphaFunc::Equal:
-        return "equal";
-      case Rasterizer::AlphaFunc::LessEqual:
-        return "less_equal";
-      case Rasterizer::AlphaFunc::Greater:
-        return "greater";
-      case Rasterizer::AlphaFunc::GreaterEqual:
-        return "greater_equal";
-      case Rasterizer::AlphaFunc::NotEqual:
-        return "not_equal";
-      case Rasterizer::AlphaFunc::Always:
-        return "always";
-      }
-      return "always";
+      return enumName<Rasterizer::AlphaFunc>(
+        func,
+        {{Rasterizer::AlphaFunc::Never, "never"},
+         {Rasterizer::AlphaFunc::Less, "less"},
+         {Rasterizer::AlphaFunc::Equal, "equal"},
+         {Rasterizer::AlphaFunc::LessEqual, "less_equal"},
+         {Rasterizer::AlphaFunc::Greater, "greater"},
+         {Rasterizer::AlphaFunc::GreaterEqual, "greater_equal"},
+         {Rasterizer::AlphaFunc::NotEqual, "not_equal"},
+         {Rasterizer::AlphaFunc::Always, "always"}},
+        "always");
     }
 
     Rasterizer::AlphaFunc alphaFuncFromString(const std::string& value, const std::string& path) {
@@ -339,13 +313,10 @@ namespace engine::graph {
     }
 
     const char* toString(Rasterizer::ShadowFilterMode mode) {
-      switch (mode) {
-      case Rasterizer::ShadowFilterMode::PCF:
-        return "pcf";
-      case Rasterizer::ShadowFilterMode::PCSS:
-        return "pcss";
-      }
-      return "pcf";
+      return enumName<Rasterizer::ShadowFilterMode>(
+        mode,
+        {{Rasterizer::ShadowFilterMode::PCF, "pcf"}, {Rasterizer::ShadowFilterMode::PCSS, "pcss"}},
+        "pcf");
     }
 
     Rasterizer::ShadowFilterMode shadowFilterModeFromString(const std::string& value,

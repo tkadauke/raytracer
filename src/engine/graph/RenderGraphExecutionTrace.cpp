@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 #include <limits>
 #include <stdexcept>
 #include <utility>
@@ -14,6 +15,16 @@
 namespace engine::graph {
   namespace {
     constexpr double boostedDiffScale = 8.0;
+
+    template<class T>
+    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
+                         const char* fallback = "unknown") {
+      for (const auto& [parsed, name] : values) {
+        if (value == parsed)
+          return name;
+      }
+      return fallback;
+    }
 
     std::shared_ptr<const Buffer<Colord>> colorPreviewFor(const Buffer<Colord>& source) {
       auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
@@ -716,37 +727,22 @@ namespace engine::graph {
   }
 
   const char* toString(RenderPassExecutionStatus value) {
-    switch (value) {
-    case RenderPassExecutionStatus::Pending:
-      return "pending";
-    case RenderPassExecutionStatus::Running:
-      return "running";
-    case RenderPassExecutionStatus::Completed:
-      return "completed";
-    case RenderPassExecutionStatus::Failed:
-      return "failed";
-    case RenderPassExecutionStatus::Skipped:
-      return "skipped";
-    }
-    return "unknown";
+    return enumName<RenderPassExecutionStatus>(value,
+                                               {{RenderPassExecutionStatus::Pending, "pending"},
+                                                {RenderPassExecutionStatus::Running, "running"},
+                                                {RenderPassExecutionStatus::Completed, "completed"},
+                                                {RenderPassExecutionStatus::Failed, "failed"},
+                                                {RenderPassExecutionStatus::Skipped, "skipped"}});
   }
 
   const char* toString(RenderGraphCacheStatus value) {
-    switch (value) {
-    case RenderGraphCacheStatus::NotCacheable:
-      return "not_cacheable";
-    case RenderGraphCacheStatus::Uncached:
-      return "uncached";
-    case RenderGraphCacheStatus::Hit:
-      return "hit";
-    case RenderGraphCacheStatus::Miss:
-      return "miss";
-    case RenderGraphCacheStatus::Stored:
-      return "stored";
-    case RenderGraphCacheStatus::Invalidated:
-      return "invalidated";
-    }
-    return "unknown";
+    return enumName<RenderGraphCacheStatus>(
+      value, {{RenderGraphCacheStatus::NotCacheable, "not_cacheable"},
+              {RenderGraphCacheStatus::Uncached, "uncached"},
+              {RenderGraphCacheStatus::Hit, "hit"},
+              {RenderGraphCacheStatus::Miss, "miss"},
+              {RenderGraphCacheStatus::Stored, "stored"},
+              {RenderGraphCacheStatus::Invalidated, "invalidated"}});
   }
 
   RenderGraphExecutionTraceSession::RenderGraphExecutionTraceSession(std::uint64_t generation)

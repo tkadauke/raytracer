@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <initializer_list>
 #include <iterator>
 #include <map>
 #include <set>
@@ -30,6 +31,16 @@ namespace engine::graph {
     template<class T>
     bool contains(const std::set<T>& values, const T& value) {
       return values.find(value) != values.end();
+    }
+
+    template<class T>
+    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
+                         const char* fallback = "unknown") {
+      for (const auto& [parsed, name] : values) {
+        if (value == parsed)
+          return name;
+      }
+      return fallback;
     }
 
     bool hasFeature(const RenderPassNode& pass, const std::set<RenderFeatureKind>& features) {
@@ -123,33 +134,19 @@ namespace engine::graph {
   }
 
   const char* toString(RenderPlanValidationError::Code value) {
-    switch (value) {
-    case RenderPlanValidationError::Code::EmptyPassId:
-      return "empty_pass_id";
-    case RenderPlanValidationError::Code::DuplicatePassId:
-      return "duplicate_pass_id";
-    case RenderPlanValidationError::Code::EmptyResourceId:
-      return "empty_resource_id";
-    case RenderPlanValidationError::Code::DuplicateResourceId:
-      return "duplicate_resource_id";
-    case RenderPlanValidationError::Code::UnknownResource:
-      return "unknown_resource";
-    case RenderPlanValidationError::Code::DuplicateWriter:
-      return "duplicate_writer";
-    case RenderPlanValidationError::Code::MissingProducer:
-      return "missing_producer";
-    case RenderPlanValidationError::Code::DisabledDependency:
-      return "disabled_dependency";
-    case RenderPlanValidationError::Code::DisabledRequiredPass:
-      return "disabled_required_pass";
-    case RenderPlanValidationError::Code::InvalidPassIO:
-      return "invalid_pass_io";
-    case RenderPlanValidationError::Code::InvalidResourceShape:
-      return "invalid_resource_shape";
-    case RenderPlanValidationError::Code::Cycle:
-      return "cycle";
-    }
-    return "unknown";
+    return enumName<RenderPlanValidationError::Code>(
+      value, {{RenderPlanValidationError::Code::EmptyPassId, "empty_pass_id"},
+              {RenderPlanValidationError::Code::DuplicatePassId, "duplicate_pass_id"},
+              {RenderPlanValidationError::Code::EmptyResourceId, "empty_resource_id"},
+              {RenderPlanValidationError::Code::DuplicateResourceId, "duplicate_resource_id"},
+              {RenderPlanValidationError::Code::UnknownResource, "unknown_resource"},
+              {RenderPlanValidationError::Code::DuplicateWriter, "duplicate_writer"},
+              {RenderPlanValidationError::Code::MissingProducer, "missing_producer"},
+              {RenderPlanValidationError::Code::DisabledDependency, "disabled_dependency"},
+              {RenderPlanValidationError::Code::DisabledRequiredPass, "disabled_required_pass"},
+              {RenderPlanValidationError::Code::InvalidPassIO, "invalid_pass_io"},
+              {RenderPlanValidationError::Code::InvalidResourceShape, "invalid_resource_shape"},
+              {RenderPlanValidationError::Code::Cycle, "cycle"}});
   }
 
   bool RenderPlanValidation::valid() const {
