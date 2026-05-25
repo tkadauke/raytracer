@@ -1297,8 +1297,10 @@ Implement the smallest graph that proves the architecture:
    nodes and double-click pass toggles, preview renders highlight the currently
    executing graph node, post-render traces expose pass/resource previews, and
    the dock exports the effective graph as text, DOT, or JSON. The Groups tab
-   can disable all passes matching a present kind, executor, or feature.
-   Per-selector intent controls remain TODO.
+   can disable all passes matching a present kind, executor, or feature. The
+   Preview View menu can compile the live preview as beauty, depth, normal,
+   object-id, material-id, or world-position AOV graphs. Per-selector intent
+   controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

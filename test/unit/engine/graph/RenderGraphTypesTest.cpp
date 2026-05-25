@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderGraphTypes.h"
 
 #include <QJsonArray>
@@ -103,6 +104,18 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(RenderExecutorKind::Raytracer, intent.defaultExecutorKind());
     EXPECT_EQ(RenderPostProcessAA::FXAA, intent.postProcessAA);
     EXPECT_TRUE(intent.usesGraphImagePostProcessAA());
+  }
+
+  TEST(RenderExecutorDefinition, DescribesCompiledBeautyPasses) {
+    const auto& raytracer = renderExecutorDefinition(RenderExecutorPreference::Raytracer);
+    EXPECT_EQ(RenderExecutorKind::Raytracer, raytracer.kind());
+    EXPECT_EQ("raytracer", raytracer.feature());
+    EXPECT_EQ("raytrace_beauty", raytracer.beautyPassId());
+
+    const auto& rasterizer = *renderExecutorDefinition(RenderExecutorKind::Rasterizer);
+    EXPECT_EQ(RenderExecutorPreference::Rasterizer, rasterizer.preference());
+    EXPECT_EQ("rasterizer", rasterizer.feature());
+    EXPECT_EQ("Raster beauty", rasterizer.beautyPassName());
   }
 
   TEST(RenderIntent, RejectsUnknownPostProcessAA) {

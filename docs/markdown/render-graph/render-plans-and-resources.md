@@ -296,6 +296,13 @@ Those objects provide the feature name, resource id, display label, and resource
 descriptor for each supported AOV, so planner code can ask an AOV what it needs
 instead of switching on the view-mode enum.
 
+Executor and image-AA graph vocabulary follows the same pattern:
+[`RenderExecutorDefinition`](../../../include/engine/graph/RenderExecutor.h)
+objects provide executor-specific beauty pass ids, labels, and feature tags,
+while `PostProcessAADefinition` objects provide graph pass ids, feature tags,
+and typed pass state for supported FXAA/SMAA passes. The compiler uses those
+definition objects instead of central type switches for built-in graph behavior.
+
 The compiler's default plan reads textually as:
 
 ```text

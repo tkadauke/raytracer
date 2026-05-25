@@ -25,6 +25,7 @@ namespace engine::graph {
   class RenderGraphExecutionTrace;
   class RenderPlan;
   enum class RenderPostProcessAA;
+  enum class RenderViewMode;
   struct RenderIntent;
 }
 
@@ -78,6 +79,10 @@ public slots:
   void setPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa);
   engine::graph::RenderPostProcessAA previewPostProcessAA() const;
 
+  /// Select the structural graph view used by the live preview.
+  void setPreviewViewMode(engine::graph::RenderViewMode viewMode);
+  engine::graph::RenderViewMode previewViewMode() const;
+
   /// Toggle a graph-level wireframe overlay over the shaded live preview.
   void setWireframeOverlayEnabled(bool enabled);
   bool wireframeOverlayEnabled() const;
@@ -106,6 +111,7 @@ private:
   EngineKind m_engineKind{EngineKind::Raytracer};
   bool m_rasterizerPreviewShadowsEnabled{false};
   engine::graph::RenderPostProcessAA m_previewPostProcessAA;
+  engine::graph::RenderViewMode m_previewViewMode;
   bool m_wireframeOverlayEnabled{false};
   bool m_renderGraphPreviewEnabled{true};
   bool m_waitingForGraphExecutionStart{false};

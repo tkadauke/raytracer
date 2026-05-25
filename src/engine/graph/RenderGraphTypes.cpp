@@ -1,5 +1,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 
+#include "engine/graph/PostProcessPassState.h"
+#include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
 
 #include <QJsonArray>
@@ -64,6 +66,16 @@ namespace engine::graph {
           return parsed;
       }
       jsonError(path, "unknown value '" + value + "'");
+    }
+
+    template<class T>
+    const char* enumName(T value, std::initializer_list<std::pair<T, const char*>> values,
+                         const char* fallback = "unknown") {
+      for (const auto& [parsed, name] : values) {
+        if (value == parsed)
+          return name;
+      }
+      return fallback;
     }
 
     RenderExecutorPreference executorPreferenceFromJson(const std::string& value,
@@ -444,195 +456,105 @@ namespace engine::graph {
   }
 
   const char* toString(RenderExecutorPreference value) {
-    switch (value) {
-    case RenderExecutorPreference::Raytracer:
-      return "raytracer";
-    case RenderExecutorPreference::Rasterizer:
-      return "rasterizer";
-    case RenderExecutorPreference::Wireframe:
-      return "wireframe";
-    }
-    return "unknown";
+    return enumName<RenderExecutorPreference>(value,
+                                              {{RenderExecutorPreference::Raytracer, "raytracer"},
+                                               {RenderExecutorPreference::Rasterizer, "rasterizer"},
+                                               {RenderExecutorPreference::Wireframe, "wireframe"}});
   }
 
   const char* toString(RenderViewMode value) {
-    switch (value) {
-    case RenderViewMode::Default:
-      return "default";
-    case RenderViewMode::Beauty:
-      return "beauty";
-    case RenderViewMode::Wireframe:
-      return "wireframe";
-    case RenderViewMode::Depth:
-      return "depth";
-    case RenderViewMode::Normal:
-      return "normal";
-    case RenderViewMode::ObjectId:
-      return "object_id";
-    case RenderViewMode::MaterialId:
-      return "material_id";
-    case RenderViewMode::WorldPosition:
-      return "world_position";
-    }
-    return "unknown";
+    return enumName<RenderViewMode>(value, {{RenderViewMode::Default, "default"},
+                                            {RenderViewMode::Beauty, "beauty"},
+                                            {RenderViewMode::Wireframe, "wireframe"},
+                                            {RenderViewMode::Depth, "depth"},
+                                            {RenderViewMode::Normal, "normal"},
+                                            {RenderViewMode::ObjectId, "object_id"},
+                                            {RenderViewMode::MaterialId, "material_id"},
+                                            {RenderViewMode::WorldPosition, "world_position"}});
   }
 
   const char* toString(RenderPostProcessAA value) {
-    switch (value) {
-    case RenderPostProcessAA::None:
-      return "none";
-    case RenderPostProcessAA::FXAA:
-      return "fxaa";
-    case RenderPostProcessAA::SMAA:
-      return "smaa";
-    case RenderPostProcessAA::TAA:
-      return "taa";
-    }
-    return "unknown";
+    return enumName<RenderPostProcessAA>(value, {{RenderPostProcessAA::None, "none"},
+                                                 {RenderPostProcessAA::FXAA, "fxaa"},
+                                                 {RenderPostProcessAA::SMAA, "smaa"},
+                                                 {RenderPostProcessAA::TAA, "taa"}});
   }
 
   const char* toString(RenderExecutorKind value) {
-    switch (value) {
-    case RenderExecutorKind::Raytracer:
-      return "raytracer";
-    case RenderExecutorKind::Rasterizer:
-      return "rasterizer";
-    case RenderExecutorKind::Wireframe:
-      return "wireframe";
-    case RenderExecutorKind::Composite:
-      return "composite";
-    case RenderExecutorKind::PostProcess:
-      return "postprocess";
-    }
-    return "unknown";
+    return enumName<RenderExecutorKind>(value, {{RenderExecutorKind::Raytracer, "raytracer"},
+                                                {RenderExecutorKind::Rasterizer, "rasterizer"},
+                                                {RenderExecutorKind::Wireframe, "wireframe"},
+                                                {RenderExecutorKind::Composite, "composite"},
+                                                {RenderExecutorKind::PostProcess, "postprocess"}});
   }
 
   const char* toString(RenderPassKind value) {
-    switch (value) {
-    case RenderPassKind::Beauty:
-      return "beauty";
-    case RenderPassKind::Shadow:
-      return "shadow";
-    case RenderPassKind::Overlay:
-      return "overlay";
-    case RenderPassKind::Composite:
-      return "composite";
-    case RenderPassKind::Tonemap:
-      return "tonemap";
-    case RenderPassKind::PostProcess:
-      return "postprocess";
-    case RenderPassKind::AOV:
-      return "aov";
-    case RenderPassKind::Debug:
-      return "debug";
-    case RenderPassKind::Custom:
-      return "custom";
-    }
-    return "unknown";
+    return enumName<RenderPassKind>(value, {{RenderPassKind::Beauty, "beauty"},
+                                            {RenderPassKind::Shadow, "shadow"},
+                                            {RenderPassKind::Overlay, "overlay"},
+                                            {RenderPassKind::Composite, "composite"},
+                                            {RenderPassKind::Tonemap, "tonemap"},
+                                            {RenderPassKind::PostProcess, "postprocess"},
+                                            {RenderPassKind::AOV, "aov"},
+                                            {RenderPassKind::Debug, "debug"},
+                                            {RenderPassKind::Custom, "custom"}});
   }
 
   const char* toString(DisabledBehavior value) {
-    switch (value) {
-    case DisabledBehavior::Error:
-      return "error";
-    case DisabledBehavior::CullDependents:
-      return "cull_dependents";
-    case DisabledBehavior::SubstituteDefault:
-      return "substitute_default";
-    case DisabledBehavior::Passthrough:
-      return "passthrough";
-    }
-    return "unknown";
+    return enumName<DisabledBehavior>(value,
+                                      {{DisabledBehavior::Error, "error"},
+                                       {DisabledBehavior::CullDependents, "cull_dependents"},
+                                       {DisabledBehavior::SubstituteDefault, "substitute_default"},
+                                       {DisabledBehavior::Passthrough, "passthrough"}});
   }
 
   const char* toString(RenderResourceType value) {
-    switch (value) {
-    case RenderResourceType::Color:
-      return "color";
-    case RenderResourceType::Depth:
-      return "depth";
-    case RenderResourceType::Stencil:
-      return "stencil";
-    case RenderResourceType::ObjectId:
-      return "object_id";
-    case RenderResourceType::MaterialId:
-      return "material_id";
-    case RenderResourceType::Normal:
-      return "normal";
-    case RenderResourceType::WorldPosition:
-      return "world_position";
-    case RenderResourceType::MotionVector:
-      return "motion_vector";
-    case RenderResourceType::ShadowMap:
-      return "shadow_map";
-    case RenderResourceType::ShadowMask:
-      return "shadow_mask";
-    case RenderResourceType::CustomTexture:
-      return "custom_texture";
-    }
-    return "unknown";
+    return enumName<RenderResourceType>(value,
+                                        {{RenderResourceType::Color, "color"},
+                                         {RenderResourceType::Depth, "depth"},
+                                         {RenderResourceType::Stencil, "stencil"},
+                                         {RenderResourceType::ObjectId, "object_id"},
+                                         {RenderResourceType::MaterialId, "material_id"},
+                                         {RenderResourceType::Normal, "normal"},
+                                         {RenderResourceType::WorldPosition, "world_position"},
+                                         {RenderResourceType::MotionVector, "motion_vector"},
+                                         {RenderResourceType::ShadowMap, "shadow_map"},
+                                         {RenderResourceType::ShadowMask, "shadow_mask"},
+                                         {RenderResourceType::CustomTexture, "custom_texture"}});
   }
 
   const char* toString(RenderResourceDomain value) {
-    switch (value) {
-    case RenderResourceDomain::CPU:
-      return "cpu";
-    case RenderResourceDomain::GPU:
-      return "gpu";
-    }
-    return "unknown";
+    return enumName<RenderResourceDomain>(
+      value, {{RenderResourceDomain::CPU, "cpu"}, {RenderResourceDomain::GPU, "gpu"}});
   }
 
   const char* toString(RenderResourceLifetime value) {
-    switch (value) {
-    case RenderResourceLifetime::Transient:
-      return "transient";
-    case RenderResourceLifetime::Imported:
-      return "imported";
-    case RenderResourceLifetime::Exported:
-      return "exported";
-    case RenderResourceLifetime::History:
-      return "history";
-    case RenderResourceLifetime::PersistentCache:
-      return "persistent_cache";
-    }
-    return "unknown";
+    return enumName<RenderResourceLifetime>(
+      value, {{RenderResourceLifetime::Transient, "transient"},
+              {RenderResourceLifetime::Imported, "imported"},
+              {RenderResourceLifetime::Exported, "exported"},
+              {RenderResourceLifetime::History, "history"},
+              {RenderResourceLifetime::PersistentCache, "persistent_cache"}});
   }
 
   const char* toString(RenderResourceFormat value) {
-    switch (value) {
-    case RenderResourceFormat::Unknown:
-      return "unknown";
-    case RenderResourceFormat::RGBDouble:
-      return "rgb_double";
-    case RenderResourceFormat::DepthDouble:
-      return "depth_double";
-    case RenderResourceFormat::UInt8:
-      return "uint8";
-    case RenderResourceFormat::UInt32:
-      return "uint32";
-    case RenderResourceFormat::ScalarDouble:
-      return "scalar_double";
-    }
-    return "unknown";
+    return enumName<RenderResourceFormat>(value,
+                                          {{RenderResourceFormat::Unknown, "unknown"},
+                                           {RenderResourceFormat::RGBDouble, "rgb_double"},
+                                           {RenderResourceFormat::DepthDouble, "depth_double"},
+                                           {RenderResourceFormat::UInt8, "uint8"},
+                                           {RenderResourceFormat::UInt32, "uint32"},
+                                           {RenderResourceFormat::ScalarDouble, "scalar_double"}});
   }
 
   const char* toString(SceneSelector::Kind value) {
-    switch (value) {
-    case SceneSelector::Kind::All:
-      return "all";
-    case SceneSelector::Kind::ObjectId:
-      return "object_id";
-    case SceneSelector::Kind::ObjectName:
-      return "object_name";
-    case SceneSelector::Kind::Tag:
-      return "tag";
-    case SceneSelector::Kind::Layer:
-      return "layer";
-    case SceneSelector::Kind::MaterialRole:
-      return "material_role";
-    }
-    return "unknown";
+    return enumName<SceneSelector::Kind>(value,
+                                         {{SceneSelector::Kind::All, "all"},
+                                          {SceneSelector::Kind::ObjectId, "object_id"},
+                                          {SceneSelector::Kind::ObjectName, "object_name"},
+                                          {SceneSelector::Kind::Tag, "tag"},
+                                          {SceneSelector::Kind::Layer, "layer"},
+                                          {SceneSelector::Kind::MaterialRole, "material_role"}});
   }
 
   QJsonObject RenderIntent::toJson() const {
@@ -709,19 +631,11 @@ namespace engine::graph {
       return RenderExecutorKind::Wireframe;
     }
 
-    switch (defaultExecutor) {
-    case RenderExecutorPreference::Raytracer:
-      return RenderExecutorKind::Raytracer;
-    case RenderExecutorPreference::Rasterizer:
-      return RenderExecutorKind::Rasterizer;
-    case RenderExecutorPreference::Wireframe:
-      return RenderExecutorKind::Wireframe;
-    }
-    return RenderExecutorKind::Raytracer;
+    return renderExecutorDefinition(defaultExecutor).kind();
   }
 
   bool RenderIntent::usesGraphImagePostProcessAA() const {
-    return postProcessAA == RenderPostProcessAA::FXAA || postProcessAA == RenderPostProcessAA::SMAA;
+    return postProcessAADefinition(postProcessAA) != nullptr;
   }
 
   bool RenderResourceDescriptor::hasImageShape() const {

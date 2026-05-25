@@ -48,6 +48,18 @@ namespace PostProcessPassStateTest {
     EXPECT_EQ("fxaa", std::string(state->modeName()));
   }
 
+  TEST(PostProcessAADefinition, CreatesGraphPassStateForSupportedModes) {
+    const auto* fxaa = postProcessAADefinition(RenderPostProcessAA::FXAA);
+    ASSERT_NE(nullptr, fxaa);
+    EXPECT_EQ("post_fxaa", std::string(fxaa->passId()));
+    EXPECT_EQ("FXAA", std::string(fxaa->passName()));
+    EXPECT_EQ("fxaa", std::string(fxaa->feature()));
+    EXPECT_EQ("fxaa", std::string(fxaa->createState()->modeName()));
+
+    EXPECT_EQ(nullptr, postProcessAADefinition(RenderPostProcessAA::None));
+    EXPECT_EQ(nullptr, postProcessAADefinition(RenderPostProcessAA::TAA));
+  }
+
   TEST(PostProcessAAState, RejectsUnknownJsonMode) {
     QJsonObject json;
     json["type"] = "post_process_aa";

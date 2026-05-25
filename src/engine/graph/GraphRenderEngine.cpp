@@ -24,6 +24,7 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 namespace engine::graph {
   namespace {
@@ -222,6 +223,122 @@ namespace engine::graph {
         }
         storage.resource(write.resource).markProduced();
       }
+    }
+
+    class DisabledPassHandler {
+    public:
+      virtual ~DisabledPassHandler() = default;
+
+      virtual DisabledBehavior behavior() const = 0;
+      virtual void apply(const RenderPassNode& pass, RenderResourceStorage& storage,
+                         const GraphRenderEngine& graph) const = 0;
+      virtual std::string message() const = 0;
+      virtual bool publishesWrites() const {
+        return false;
+      }
+
+      bool matches(DisabledBehavior disabledBehavior) const {
+        return behavior() == disabledBehavior;
+      }
+    };
+
+    class SubstituteDefaultDisabledPassHandler : public DisabledPassHandler {
+    public:
+      DisabledBehavior behavior() const override {
+        return DisabledBehavior::SubstituteDefault;
+      }
+
+      void apply(const RenderPassNode& pass, RenderResourceStorage& storage,
+                 const GraphRenderEngine& graph) const override {
+        substituteDefaultOutput(pass, storage, graph);
+      }
+
+      std::string message() const override {
+        return "disabled pass substituted default output";
+      }
+
+      bool publishesWrites() const override {
+        return true;
+      }
+    };
+
+    class PassthroughDisabledPassHandler : public DisabledPassHandler {
+    public:
+      DisabledBehavior behavior() const override {
+        return DisabledBehavior::Passthrough;
+      }
+
+      void apply(const RenderPassNode& pass, RenderResourceStorage& storage,
+                 const GraphRenderEngine&) const override {
+        passthroughColorOutput(pass, storage);
+      }
+
+      std::string message() const override {
+        return "disabled pass passed color through";
+      }
+
+      bool publishesWrites() const override {
+        return true;
+      }
+    };
+
+    class CullDependentsDisabledPassHandler : public DisabledPassHandler {
+    public:
+      DisabledBehavior behavior() const override {
+        return DisabledBehavior::CullDependents;
+      }
+
+      void apply(const RenderPassNode&, RenderResourceStorage&,
+                 const GraphRenderEngine&) const override {
+      }
+
+      std::string message() const override {
+        return "disabled pass culled dependents";
+      }
+    };
+
+    class ErrorDisabledPassHandler : public DisabledPassHandler {
+    public:
+      DisabledBehavior behavior() const override {
+        return DisabledBehavior::Error;
+      }
+
+      void apply(const RenderPassNode&, RenderResourceStorage&,
+                 const GraphRenderEngine&) const override {
+      }
+
+      std::string message() const override {
+        return "disabled pass did not execute";
+      }
+    };
+
+    const std::vector<const DisabledPassHandler*>& disabledPassHandlers() {
+      static const SubstituteDefaultDisabledPassHandler substituteDefault;
+      static const PassthroughDisabledPassHandler passthrough;
+      static const CullDependentsDisabledPassHandler cullDependents;
+      static const ErrorDisabledPassHandler error;
+      static const std::vector<const DisabledPassHandler*> result = {
+        &substituteDefault, &passthrough, &cullDependents, &error};
+      return result;
+    }
+
+    const DisabledPassHandler& disabledPassHandler(DisabledBehavior disabledBehavior) {
+      const auto& all = disabledPassHandlers();
+      const auto it = std::find_if(all.begin(), all.end(), [&](const auto* handler) {
+        return handler->matches(disabledBehavior);
+      });
+      if (it == all.end()) {
+        throw std::runtime_error("unsupported disabled render graph pass behavior");
+      }
+      return **it;
+    }
+
+    const DisabledPassHandler& applyDisabledPass(const RenderPassNode& pass,
+                                                 RenderResourceStorage& storage,
+                                                 const GraphRenderEngine& graph) {
+      const DisabledPassHandler& handler = disabledPassHandler(pass.disabledBehavior);
+      handler.apply(pass, storage, graph);
+      return handler;
     }
 
     bool planAppliesTonemap(const RenderPlan& plan) {
@@ -532,26 +649,10 @@ namespace engine::graph {
     for (const RenderPassNode* passNode : executionOrder) {
       const RenderPassNode& pass = *passNode;
       if (!pass.enabled) {
-        std::string disabledMessage;
-        switch (pass.disabledBehavior) {
-        case DisabledBehavior::SubstituteDefault:
-          substituteDefaultOutput(pass, storage, *this);
-          disabledMessage = "disabled pass substituted default output";
-          break;
-        case DisabledBehavior::Passthrough:
-          passthroughColorOutput(pass, storage);
-          disabledMessage = "disabled pass passed color through";
-          break;
-        case DisabledBehavior::CullDependents:
-          disabledMessage = "disabled pass culled dependents";
-          break;
-        case DisabledBehavior::Error:
-          disabledMessage = "disabled pass did not execute";
-          break;
-        }
+        const DisabledPassHandler& handler = applyDisabledPass(pass, storage, *this);
         if (traceSession) {
           p->executionTraceRecorder->passSkipped(traceSession.session, pass, storage,
-                                                 disabledMessage);
+                                                 handler.message());
         }
         continue;
       }
@@ -618,28 +719,13 @@ namespace engine::graph {
     for (const RenderPassNode* passNode : executionOrder) {
       const RenderPassNode& pass = *passNode;
       if (!pass.enabled) {
-        std::string disabledMessage;
-        switch (pass.disabledBehavior) {
-        case DisabledBehavior::SubstituteDefault:
-          substituteDefaultOutput(pass, storage, *this);
+        const DisabledPassHandler& handler = applyDisabledPass(pass, storage, *this);
+        if (handler.publishesWrites()) {
           publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
-          disabledMessage = "disabled pass substituted default output";
-          break;
-        case DisabledBehavior::Passthrough:
-          passthroughColorOutput(pass, storage);
-          publishWritesForDisplay(pass, plan, storage, buffer, displayTonemap);
-          disabledMessage = "disabled pass passed color through";
-          break;
-        case DisabledBehavior::CullDependents:
-          disabledMessage = "disabled pass culled dependents";
-          break;
-        case DisabledBehavior::Error:
-          disabledMessage = "disabled pass did not execute";
-          break;
         }
         if (traceSession) {
           p->executionTraceRecorder->passSkipped(traceSession.session, pass, storage,
-                                                 disabledMessage);
+                                                 handler.message());
         }
         continue;
       }

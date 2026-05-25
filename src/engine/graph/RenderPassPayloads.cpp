@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace engine::graph {
   namespace {
@@ -726,85 +727,168 @@ namespace engine::graph {
         }
       }
     };
+
+    class BuiltinPassPayloadFactory {
+    public:
+      virtual ~BuiltinPassPayloadFactory() = default;
+
+      virtual bool matches(const RenderPassNode& pass) const = 0;
+      virtual std::unique_ptr<RenderPassPayload> create(const RenderPassNode& pass) const = 0;
+    };
+
+    template<class Payload>
+    class ExactPassPayloadFactory : public BuiltinPassPayloadFactory {
+    public:
+      ExactPassPayloadFactory(RenderPassKind kind, RenderExecutorKind executor)
+          : m_kind(kind),
+            m_executor(executor) {
+      }
+
+      bool matches(const RenderPassNode& pass) const override {
+        return pass.kind == m_kind && pass.executor == m_executor;
+      }
+
+      std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {
+        return std::make_unique<Payload>();
+      }
+
+    private:
+      RenderPassKind m_kind;
+      RenderExecutorKind m_executor;
+    };
+
+    template<class Payload>
+    class FeaturePassPayloadFactory : public BuiltinPassPayloadFactory {
+    public:
+      FeaturePassPayloadFactory(RenderPassKind kind, RenderExecutorKind executor,
+                                std::vector<RenderFeatureKind> requiredFeatures)
+          : m_kind(kind),
+            m_executor(executor),
+            m_requiredFeatures(std::move(requiredFeatures)) {
+      }
+
+      bool matches(const RenderPassNode& pass) const override {
+        return pass.kind == m_kind && pass.executor == m_executor &&
+               std::all_of(m_requiredFeatures.begin(), m_requiredFeatures.end(),
+                           [&](const auto& feature) { return hasFeature(pass, feature); });
+      }
+
+      std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {
+        return std::make_unique<Payload>();
+      }
+
+    private:
+      RenderPassKind m_kind;
+      RenderExecutorKind m_executor;
+      std::vector<RenderFeatureKind> m_requiredFeatures;
+    };
+
+    class PostProcessAAPayloadFactory : public BuiltinPassPayloadFactory {
+    public:
+      bool matches(const RenderPassNode& pass) const override {
+        return pass.kind == RenderPassKind::PostProcess &&
+               pass.executor == RenderExecutorKind::PostProcess &&
+               PostProcessAAState::fromPass(pass) != nullptr;
+      }
+
+      std::unique_ptr<RenderPassPayload> create(const RenderPassNode& pass) const override {
+        return std::make_unique<PostProcessAAPass>(PostProcessAAState::fromPass(pass));
+      }
+    };
+
+    const std::vector<const BuiltinPassPayloadFactory*>& builtinPayloadFactories() {
+      static const ExactPassPayloadFactory<RaytraceBeautyPass> raytraceBeauty(
+        RenderPassKind::Beauty, RenderExecutorKind::Raytracer);
+      static const ExactPassPayloadFactory<RasterBeautyPass> rasterBeauty(
+        RenderPassKind::Beauty, RenderExecutorKind::Rasterizer);
+      static const ExactPassPayloadFactory<WireframeBeautyPass> wireframeBeauty(
+        RenderPassKind::Beauty, RenderExecutorKind::Wireframe);
+      static const ExactPassPayloadFactory<TonemapPass> tonemap(RenderPassKind::Tonemap,
+                                                                RenderExecutorKind::PostProcess);
+      static const FeaturePassPayloadFactory<RasterPreviewShadowPass> rasterPreviewShadows(
+        RenderPassKind::Shadow, RenderExecutorKind::Rasterizer, {"preview_shadows"});
+      static const FeaturePassPayloadFactory<DepthVisualizationPass> depthVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"depth", "visualization"});
+      static const FeaturePassPayloadFactory<DepthAOVPass> depthAOV(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"depth"});
+      static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVRasterizer(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"depth"});
+      static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVWireframe(
+        RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"depth"});
+      static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVRaytracer(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"normal"});
+      static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVRasterizer(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"normal"});
+      static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVWireframe(
+        RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"normal"});
+      static const FeaturePassPayloadFactory<ColorCopyPass> normalVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"normal", "visualization"});
+      static const FeaturePassPayloadFactory<ObjectIdVisualizationPass> objectIdVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"object_id", "visualization"});
+      static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVRaytracer(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"object_id"});
+      static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVRasterizer(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"object_id"});
+      static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVWireframe(
+        RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"object_id"});
+      static const FeaturePassPayloadFactory<ObjectIdVisualizationPass> materialIdVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"material_id", "visualization"});
+      static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVRaytracer(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"material_id"});
+      static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVRasterizer(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"material_id"});
+      static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVWireframe(
+        RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"material_id"});
+      static const FeaturePassPayloadFactory<WorldPositionVisualizationPass>
+        worldPositionVisualization(RenderPassKind::AOV, RenderExecutorKind::PostProcess,
+                                   {"world_position", "visualization"});
+      static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVRaytracer(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"world_position"});
+      static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVRasterizer(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"world_position"});
+      static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWireframe(
+        RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"world_position"});
+      static const PostProcessAAPayloadFactory postProcessAA;
+      static const ExactPassPayloadFactory<WireframeOverlayPass> wireframeOverlay(
+        RenderPassKind::Overlay, RenderExecutorKind::Wireframe);
+      static const std::vector<const BuiltinPassPayloadFactory*> result = {
+        &raytraceBeauty,
+        &rasterBeauty,
+        &wireframeBeauty,
+        &tonemap,
+        &rasterPreviewShadows,
+        &depthVisualization,
+        &depthAOV,
+        &depthAOVRasterizer,
+        &depthAOVWireframe,
+        &normalVisualization,
+        &normalAOVRaytracer,
+        &normalAOVRasterizer,
+        &normalAOVWireframe,
+        &objectIdVisualization,
+        &objectIdAOVRaytracer,
+        &objectIdAOVRasterizer,
+        &objectIdAOVWireframe,
+        &materialIdVisualization,
+        &materialIdAOVRaytracer,
+        &materialIdAOVRasterizer,
+        &materialIdAOVWireframe,
+        &worldPositionVisualization,
+        &worldPositionAOVRaytracer,
+        &worldPositionAOVRasterizer,
+        &worldPositionAOVWireframe,
+        &postProcessAA,
+        &wireframeOverlay,
+      };
+      return result;
+    }
   }
 
   std::unique_ptr<RenderPassPayload> RenderPassPayload::createBuiltin(const RenderPassNode& pass) {
-    if (pass.kind == RenderPassKind::Beauty) {
-      switch (pass.executor) {
-      case RenderExecutorKind::Raytracer:
-        return std::make_unique<RaytraceBeautyPass>();
-      case RenderExecutorKind::Rasterizer:
-        return std::make_unique<RasterBeautyPass>();
-      case RenderExecutorKind::Wireframe:
-        return std::make_unique<WireframeBeautyPass>();
-      case RenderExecutorKind::Composite:
-      case RenderExecutorKind::PostProcess:
-        break;
+    for (const auto* factory : builtinPayloadFactories()) {
+      if (factory->matches(pass)) {
+        return factory->create(pass);
       }
-    }
-
-    if (pass.kind == RenderPassKind::Tonemap && pass.executor == RenderExecutorKind::PostProcess) {
-      return std::make_unique<TonemapPass>();
-    }
-
-    if (pass.kind == RenderPassKind::Shadow && pass.executor == RenderExecutorKind::Rasterizer &&
-        hasFeature(pass, "preview_shadows")) {
-      return std::make_unique<RasterPreviewShadowPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "depth") &&
-        hasFeature(pass, "visualization")) {
-      return std::make_unique<DepthVisualizationPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "depth")) {
-      return std::make_unique<DepthAOVPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "normal") &&
-        hasFeature(pass, "visualization")) {
-      return std::make_unique<ColorCopyPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "normal")) {
-      return std::make_unique<NormalAOVPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "object_id") &&
-        hasFeature(pass, "visualization")) {
-      return std::make_unique<ObjectIdVisualizationPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "object_id")) {
-      return std::make_unique<ObjectIdAOVPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "material_id") &&
-        hasFeature(pass, "visualization")) {
-      return std::make_unique<ObjectIdVisualizationPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "material_id")) {
-      return std::make_unique<MaterialIdAOVPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "world_position") &&
-        hasFeature(pass, "visualization")) {
-      return std::make_unique<WorldPositionVisualizationPass>();
-    }
-
-    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "world_position")) {
-      return std::make_unique<WorldPositionAOVPass>();
-    }
-
-    if (pass.kind == RenderPassKind::PostProcess &&
-        pass.executor == RenderExecutorKind::PostProcess) {
-      if (auto state = PostProcessAAState::fromPass(pass))
-        return std::make_unique<PostProcessAAPass>(std::move(state));
-    }
-
-    if (pass.kind == RenderPassKind::Overlay && pass.executor == RenderExecutorKind::Wireframe) {
-      return std::make_unique<WireframeOverlayPass>();
     }
 
     return nullptr;

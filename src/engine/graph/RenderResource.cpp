@@ -1,7 +1,9 @@
 #include "engine/graph/RenderResource.h"
 
+#include <algorithm>
 #include <limits>
 #include <utility>
+#include <vector>
 
 namespace engine::graph {
   namespace {
@@ -14,6 +16,49 @@ namespace engine::graph {
         return beautyDefaultColor;
       }
       return Colord::black();
+    }
+
+    class RenderResourceFactory {
+    public:
+      virtual ~RenderResourceFactory() = default;
+
+      virtual bool matches(const RenderResourceDescriptor& descriptor) const = 0;
+      virtual std::unique_ptr<RenderResource> create(RenderResourceDescriptor descriptor) const = 0;
+    };
+
+    template<class Resource>
+    class ResourceTypeFactory : public RenderResourceFactory {
+    public:
+      explicit ResourceTypeFactory(std::vector<RenderResourceType> types)
+          : m_types(std::move(types)) {
+      }
+
+      bool matches(const RenderResourceDescriptor& descriptor) const override {
+        return std::find(m_types.begin(), m_types.end(), descriptor.type) != m_types.end();
+      }
+
+      std::unique_ptr<RenderResource> create(RenderResourceDescriptor descriptor) const override {
+        return std::make_unique<Resource>(std::move(descriptor));
+      }
+
+    private:
+      std::vector<RenderResourceType> m_types;
+    };
+
+    const std::vector<const RenderResourceFactory*>& resourceFactories() {
+      static const ResourceTypeFactory<ColorRenderResource> color(
+        {RenderResourceType::Color, RenderResourceType::Normal, RenderResourceType::WorldPosition,
+         RenderResourceType::MotionVector, RenderResourceType::ShadowMask,
+         RenderResourceType::CustomTexture});
+      static const ResourceTypeFactory<DepthRenderResource> depth(
+        {RenderResourceType::Depth, RenderResourceType::ShadowMap});
+      static const ResourceTypeFactory<StencilRenderResource> stencil(
+        {RenderResourceType::Stencil});
+      static const ResourceTypeFactory<ObjectIdRenderResource> objectId(
+        {RenderResourceType::ObjectId, RenderResourceType::MaterialId});
+      static const std::vector<const RenderResourceFactory*> result = {&color, &depth, &stencil,
+                                                                       &objectId};
+      return result;
     }
   }
 
@@ -28,22 +73,10 @@ namespace engine::graph {
       return std::make_unique<DescriptorOnlyRenderResource>(std::move(descriptor));
     }
 
-    switch (descriptor.type) {
-    case RenderResourceType::Color:
-    case RenderResourceType::Normal:
-    case RenderResourceType::WorldPosition:
-    case RenderResourceType::MotionVector:
-    case RenderResourceType::ShadowMask:
-    case RenderResourceType::CustomTexture:
-      return std::make_unique<ColorRenderResource>(std::move(descriptor));
-    case RenderResourceType::Depth:
-    case RenderResourceType::ShadowMap:
-      return std::make_unique<DepthRenderResource>(std::move(descriptor));
-    case RenderResourceType::Stencil:
-      return std::make_unique<StencilRenderResource>(std::move(descriptor));
-    case RenderResourceType::ObjectId:
-    case RenderResourceType::MaterialId:
-      return std::make_unique<ObjectIdRenderResource>(std::move(descriptor));
+    for (const auto* factory : resourceFactories()) {
+      if (factory->matches(descriptor)) {
+        return factory->create(std::move(descriptor));
+      }
     }
 
     return std::make_unique<DescriptorOnlyRenderResource>(std::move(descriptor));

@@ -104,7 +104,8 @@ namespace {
 
 RenderDisplay::RenderDisplay(QWidget* parent)
     : QtDisplay(parent, std::make_shared<engine::graph::GraphRenderEngine>(nullptr)),
-      m_previewPostProcessAA(engine::graph::RenderPostProcessAA::None) {
+      m_previewPostProcessAA(engine::graph::RenderPostProcessAA::None),
+      m_previewViewMode(engine::graph::RenderViewMode::Beauty) {
   m_graphEngine = std::dynamic_pointer_cast<engine::graph::GraphRenderEngine>(m_engine);
   m_graphExecutionObserver = std::make_shared<ModelerRenderGraphExecutionObserver>(this);
   if (m_graphEngine) {
@@ -153,6 +154,16 @@ void RenderDisplay::setPreviewPostProcessAA(engine::graph::RenderPostProcessAA a
 
 engine::graph::RenderPostProcessAA RenderDisplay::previewPostProcessAA() const {
   return m_previewPostProcessAA;
+}
+
+void RenderDisplay::setPreviewViewMode(engine::graph::RenderViewMode viewMode) {
+  m_previewViewMode = viewMode;
+  emit renderGraphInputsChanged();
+  render();
+}
+
+engine::graph::RenderViewMode RenderDisplay::previewViewMode() const {
+  return m_previewViewMode;
 }
 
 void RenderDisplay::setWireframeOverlayEnabled(bool enabled) {

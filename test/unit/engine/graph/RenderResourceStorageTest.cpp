@@ -37,6 +37,21 @@ namespace RenderResourceStorageTest {
     EXPECT_EQ(4, storage.objectId("object_id").width());
   }
 
+  TEST(RenderResourceStorage, AllocatesAovFamiliesToExpectedCpuBuffers) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("normal", RenderResourceType::Normal),
+      resource("world_position", RenderResourceType::WorldPosition),
+      resource("material_id", RenderResourceType::MaterialId),
+      resource("shadow_map", RenderResourceType::ShadowMap),
+    });
+
+    EXPECT_TRUE(storage.resource("normal").colorBacked());
+    EXPECT_TRUE(storage.resource("world_position").colorBacked());
+    EXPECT_TRUE(storage.resource("material_id").objectIdBacked());
+    EXPECT_TRUE(storage.resource("shadow_map").depthBacked());
+  }
+
   TEST(RenderResourceStorage, KeepsDescriptorForGpuResourceWithoutCpuBuffer) {
     auto descriptor = resource("gpu_color", RenderResourceType::Color);
     descriptor.domain = RenderResourceDomain::GPU;

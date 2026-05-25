@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Modeler preview AOV views.** The Modeler Preview menu can now switch the
+  live graph preview between beauty, depth, normal, object-id, material-id, and
+  world-position views so the Render Graph dock shows the corresponding AOV
+  nodes during interactive preview. — GPT-5
 - **Graph multi-AOV output files.** Render intents can request exported AOV side
   branches and rendercli can write repeated `--render_graph_aov_out view=file`
   preview images without enabling traces for ordinary graph renders. — GPT-5

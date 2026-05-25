@@ -102,6 +102,12 @@ private slots:
   void setPreviewPostAANone();
   void setPreviewPostAAFxaa();
   void setPreviewPostAASmaa();
+  void setPreviewViewBeauty();
+  void setPreviewViewDepth();
+  void setPreviewViewNormal();
+  void setPreviewViewObjectId();
+  void setPreviewViewMaterialId();
+  void setPreviewViewWorldPosition();
   void setPreviewWireframeOverlay(bool enabled);
   void setPreviewTonemapLinear();
   void setPreviewTonemapReinhard();

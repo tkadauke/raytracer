@@ -158,7 +158,10 @@ graph-visible preview options, so enabling them adds pass nodes to the same
 Render Graph dock used by the preview. FXAA/SMAA apply to the selected preview
 executor; rasterizer preview shadows switch the live preview to Rasterizer
 before recompiling because the shadow pass is raster-specific. `Render ->
-Preview Tonemap` selects the operator used by the graph's tonemap node.
+Preview View` can also switch the live graph preview from beauty to depth,
+normal, object-id, material-id, or world-position AOVs; the graph recompiles to
+show the corresponding AOV producer and visualization nodes. `Render -> Preview
+Tonemap` selects the operator used by the graph's tonemap node.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview

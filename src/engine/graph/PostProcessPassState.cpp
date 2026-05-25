@@ -8,6 +8,7 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 namespace engine::graph {
   namespace {
@@ -45,6 +46,70 @@ namespace engine::graph {
         return std::make_shared<SmaaPostProcessAAState>();
       stateError(path, "expected fxaa or smaa");
     }
+
+    class FxaaPostProcessAADefinition : public PostProcessAADefinition {
+    public:
+      RenderPostProcessAA mode() const override {
+        return RenderPostProcessAA::FXAA;
+      }
+
+      const char* passId() const override {
+        return "post_fxaa";
+      }
+
+      const char* passName() const override {
+        return "FXAA";
+      }
+
+      const char* feature() const override {
+        return "fxaa";
+      }
+
+      std::shared_ptr<const PostProcessAAState> createState() const override {
+        return std::make_shared<FxaaPostProcessAAState>();
+      }
+    };
+
+    class SmaaPostProcessAADefinition : public PostProcessAADefinition {
+    public:
+      RenderPostProcessAA mode() const override {
+        return RenderPostProcessAA::SMAA;
+      }
+
+      const char* passId() const override {
+        return "post_smaa";
+      }
+
+      const char* passName() const override {
+        return "SMAA";
+      }
+
+      const char* feature() const override {
+        return "smaa";
+      }
+
+      std::shared_ptr<const PostProcessAAState> createState() const override {
+        return std::make_shared<SmaaPostProcessAAState>();
+      }
+    };
+
+    const std::vector<const PostProcessAADefinition*>& definitions() {
+      static const FxaaPostProcessAADefinition fxaa;
+      static const SmaaPostProcessAADefinition smaa;
+      static const std::vector<const PostProcessAADefinition*> result = {&fxaa, &smaa};
+      return result;
+    }
+  }
+
+  bool PostProcessAADefinition::matches(RenderPostProcessAA aa) const {
+    return mode() == aa;
+  }
+
+  const PostProcessAADefinition* postProcessAADefinition(RenderPostProcessAA aa) {
+    const auto& all = definitions();
+    const auto it = std::find_if(all.begin(), all.end(),
+                                 [&](const auto* definition) { return definition->matches(aa); });
+    return it == all.end() ? nullptr : *it;
   }
 
   std::shared_ptr<const PostProcessAAState> PostProcessAAState::fromJson(const QJsonObject& object,

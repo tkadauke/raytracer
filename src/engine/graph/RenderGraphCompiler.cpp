@@ -1,5 +1,6 @@
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderAOV.h"
+#include "engine/graph/RenderExecutor.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 
@@ -11,52 +12,6 @@
 
 namespace engine::graph {
   namespace {
-    std::string beautyPassId(RenderExecutorKind executor) {
-      switch (executor) {
-      case RenderExecutorKind::Raytracer:
-        return "raytrace_beauty";
-      case RenderExecutorKind::Rasterizer:
-        return "raster_beauty";
-      case RenderExecutorKind::Wireframe:
-        return "wireframe_beauty";
-      case RenderExecutorKind::Composite:
-      case RenderExecutorKind::PostProcess:
-        break;
-      }
-      return "beauty";
-    }
-
-    std::string beautyPassName(RenderExecutorKind executor) {
-      switch (executor) {
-      case RenderExecutorKind::Raytracer:
-        return "Raytraced beauty";
-      case RenderExecutorKind::Rasterizer:
-        return "Raster beauty";
-      case RenderExecutorKind::Wireframe:
-        return "Wireframe beauty";
-      case RenderExecutorKind::Composite:
-      case RenderExecutorKind::PostProcess:
-        break;
-      }
-      return "Beauty";
-    }
-
-    RenderFeatureKind executorFeature(RenderExecutorKind executor) {
-      switch (executor) {
-      case RenderExecutorKind::Raytracer:
-        return "raytracer";
-      case RenderExecutorKind::Rasterizer:
-        return "rasterizer";
-      case RenderExecutorKind::Wireframe:
-        return "wireframe";
-      case RenderExecutorKind::Composite:
-        return "composite";
-      case RenderExecutorKind::PostProcess:
-        return "postprocess";
-      }
-      return "unknown";
-    }
-
     RenderTargetSpec normalizedTarget(RenderTargetSpec target) {
       target.sampleCount = std::max(1, target.sampleCount);
       return target;
@@ -92,45 +47,6 @@ namespace engine::graph {
       return shadow;
     }
 
-    std::string postProcessAAPassId(RenderPostProcessAA aa) {
-      switch (aa) {
-      case RenderPostProcessAA::FXAA:
-        return "post_fxaa";
-      case RenderPostProcessAA::SMAA:
-        return "post_smaa";
-      case RenderPostProcessAA::None:
-      case RenderPostProcessAA::TAA:
-        break;
-      }
-      return "post_aa";
-    }
-
-    std::string postProcessAAPassName(RenderPostProcessAA aa) {
-      switch (aa) {
-      case RenderPostProcessAA::FXAA:
-        return "FXAA";
-      case RenderPostProcessAA::SMAA:
-        return "SMAA";
-      case RenderPostProcessAA::None:
-      case RenderPostProcessAA::TAA:
-        break;
-      }
-      return "Post-process AA";
-    }
-
-    std::shared_ptr<const RenderPassState> postProcessAAState(RenderPostProcessAA aa) {
-      switch (aa) {
-      case RenderPostProcessAA::FXAA:
-        return std::make_shared<FxaaPostProcessAAState>();
-      case RenderPostProcessAA::SMAA:
-        return std::make_shared<SmaaPostProcessAAState>();
-      case RenderPostProcessAA::None:
-      case RenderPostProcessAA::TAA:
-        break;
-      }
-      return nullptr;
-    }
-
     RenderResourceId tonemapInputResource(const RenderPlan& plan) {
       const auto* tonemap = plan.findPass("tonemap");
       if (!tonemap) {
@@ -141,15 +57,19 @@ namespace engine::graph {
 
     RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
                                    bool mainPass) {
+      const auto* executorDefinition = renderExecutorDefinition(executor);
+      if (!executorDefinition) {
+        throw std::runtime_error("executor cannot produce AOV pass");
+      }
       RenderPassNode pass;
       pass.id = aov.resourceId();
       pass.name = aov.title() + " AOV";
       pass.kind = RenderPassKind::AOV;
       pass.executor = executor;
       pass.features = mainPass ? std::vector<RenderFeatureKind>{"main", "aov", aov.feature(),
-                                                                executorFeature(executor)}
+                                                                executorDefinition->feature()}
                                : std::vector<RenderFeatureKind>{"aov", "export", aov.feature(),
-                                                                executorFeature(executor)};
+                                                                executorDefinition->feature()};
       pass.sceneView.selector = SceneSelector::all();
       pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
       pass.canRunConcurrently = false;
@@ -231,6 +151,10 @@ namespace engine::graph {
                                           const RenderIntent& intent) const {
     const RenderTargetSpec target = normalizedTarget(rawTarget);
     const RenderExecutorKind executor = intent.defaultExecutorKind();
+    const auto* executorDefinition = renderExecutorDefinition(executor);
+    if (!executorDefinition) {
+      throw std::runtime_error("default render executor cannot produce a beauty pass");
+    }
 
     if (const auto* aov = renderAOVDefinition(intent.defaultViewMode)) {
       RenderPlan plan = aovViewPlan(target, executor, *aov);
@@ -246,11 +170,11 @@ namespace engine::graph {
       executor == RenderExecutorKind::Rasterizer && intent.enablePreviewShadows;
 
     RenderPassNode beauty;
-    beauty.id = beautyPassId(executor);
-    beauty.name = beautyPassName(executor);
+    beauty.id = executorDefinition->beautyPassId();
+    beauty.name = executorDefinition->beautyPassName();
     beauty.kind = RenderPassKind::Beauty;
     beauty.executor = executor;
-    beauty.features = {"main", "beauty", executorFeature(executor)};
+    beauty.features = {"main", "beauty", executorDefinition->feature()};
     beauty.sceneView.selector = SceneSelector::all();
     beauty.disabledBehavior = DisabledBehavior::Error;
     beauty.canRunConcurrently = false;
@@ -291,20 +215,25 @@ namespace engine::graph {
     }
 
     if (intent.usesGraphImagePostProcessAA()) {
+      const auto* postAADefinition = postProcessAADefinition(intent.postProcessAA);
+      if (!postAADefinition) {
+        throw std::runtime_error(
+          "requested post-process AA mode cannot be compiled as a graph pass");
+      }
       const RenderResourceId inputResource = tonemapInputResource(plan);
       RenderResourceDescriptor postAAColor = colorResource(
         "post_aa_color", "Postprocess AA color", target, RenderResourceLifetime::Transient);
       RenderPassNode postAA;
-      postAA.id = postProcessAAPassId(intent.postProcessAA);
-      postAA.name = postProcessAAPassName(intent.postProcessAA);
+      postAA.id = postAADefinition->passId();
+      postAA.name = postAADefinition->passName();
       postAA.kind = RenderPassKind::PostProcess;
       postAA.executor = RenderExecutorKind::PostProcess;
-      postAA.features = {"main", "postprocess", "post_aa", executorFeature(executor),
-                         toString(intent.postProcessAA)};
+      postAA.features = {"main", "postprocess", "post_aa", executorDefinition->feature(),
+                         postAADefinition->feature()};
       postAA.reads.push_back({inputResource});
       postAA.writes.push_back({postAAColor.id});
       postAA.sceneView.selector = SceneSelector::all();
-      postAA.state = postProcessAAState(intent.postProcessAA);
+      postAA.state = postAADefinition->createState();
       postAA.disabledBehavior = DisabledBehavior::Passthrough;
       postAA.canRunConcurrently = false;
       plan.routeResourceThroughPass(inputResource, postAAColor, postAA);

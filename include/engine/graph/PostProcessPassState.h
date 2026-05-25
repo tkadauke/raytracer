@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "engine/graph/RenderPassState.h"
+#include "engine/graph/RenderGraphTypes.h"
 
 #include <QJsonObject>
 
@@ -13,6 +14,26 @@ class Buffer;
 
 namespace engine::graph {
   struct RenderPassNode;
+
+  class PostProcessAAState;
+
+  /**
+    * Graph-pass definition for an image-space anti-aliasing filter.
+    */
+  class PostProcessAADefinition {
+  public:
+    virtual ~PostProcessAADefinition() = default;
+
+    virtual RenderPostProcessAA mode() const = 0;
+    virtual const char* passId() const = 0;
+    virtual const char* passName() const = 0;
+    virtual const char* feature() const = 0;
+    virtual std::shared_ptr<const PostProcessAAState> createState() const = 0;
+
+    bool matches(RenderPostProcessAA aa) const;
+  };
+
+  const PostProcessAADefinition* postProcessAADefinition(RenderPostProcessAA aa);
 
   /**
     * Typed state for image-space anti-aliasing postprocess graph passes.

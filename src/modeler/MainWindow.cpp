@@ -30,7 +30,9 @@
 
 #include <algorithm>
 #include <exception>
+#include <stdexcept>
 #include <utility>
+#include <vector>
 
 #include "MainWindow.h"
 #include "Display.h"
@@ -116,6 +118,76 @@ namespace {
     for (const auto& feature : features)
       values << qstr(feature);
     return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
+  class PreviewEngineIntentDefinition {
+  public:
+    virtual ~PreviewEngineIntentDefinition() = default;
+
+    virtual bool matches(RenderDisplay::EngineKind kind) const = 0;
+    virtual void apply(engine::graph::RenderIntent& intent,
+                       engine::graph::RenderViewMode previewViewMode) const = 0;
+  };
+
+  class RaytracerPreviewIntentDefinition : public PreviewEngineIntentDefinition {
+  public:
+    bool matches(RenderDisplay::EngineKind kind) const override {
+      return kind == RenderDisplay::EngineKind::Raytracer;
+    }
+
+    void apply(engine::graph::RenderIntent& intent,
+               engine::graph::RenderViewMode previewViewMode) const override {
+      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+      intent.defaultViewMode = previewViewMode;
+    }
+  };
+
+  class RasterizerPreviewIntentDefinition : public PreviewEngineIntentDefinition {
+  public:
+    bool matches(RenderDisplay::EngineKind kind) const override {
+      return kind == RenderDisplay::EngineKind::Rasterizer;
+    }
+
+    void apply(engine::graph::RenderIntent& intent,
+               engine::graph::RenderViewMode previewViewMode) const override {
+      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+      intent.defaultViewMode = previewViewMode;
+    }
+  };
+
+  class WireframePreviewIntentDefinition : public PreviewEngineIntentDefinition {
+  public:
+    bool matches(RenderDisplay::EngineKind kind) const override {
+      return kind == RenderDisplay::EngineKind::Wireframe;
+    }
+
+    void apply(engine::graph::RenderIntent& intent,
+               engine::graph::RenderViewMode previewViewMode) const override {
+      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
+      intent.defaultViewMode = previewViewMode == engine::graph::RenderViewMode::Beauty
+                                 ? engine::graph::RenderViewMode::Wireframe
+                                 : previewViewMode;
+    }
+  };
+
+  const std::vector<const PreviewEngineIntentDefinition*>& previewEngineIntentDefinitions() {
+    static const RaytracerPreviewIntentDefinition raytracer;
+    static const RasterizerPreviewIntentDefinition rasterizer;
+    static const WireframePreviewIntentDefinition wireframe;
+    static const std::vector<const PreviewEngineIntentDefinition*> result = {
+      &raytracer, &rasterizer, &wireframe};
+    return result;
+  }
+
+  const PreviewEngineIntentDefinition&
+  previewEngineIntentDefinition(RenderDisplay::EngineKind kind) {
+    const auto& all = previewEngineIntentDefinitions();
+    const auto it = std::find_if(all.begin(), all.end(),
+                                 [&](const auto* definition) { return definition->matches(kind); });
+    if (it == all.end()) {
+      throw std::runtime_error("unsupported preview engine kind");
+    }
+    return **it;
   }
 
   QString producerText(const engine::graph::RenderPlan& plan,
@@ -263,6 +335,12 @@ struct MainWindow::Private {
   QAction* previewPostAANoneAct;
   QAction* previewPostAAFxaaAct;
   QAction* previewPostAASmaaAct;
+  QAction* previewViewBeautyAct;
+  QAction* previewViewDepthAct;
+  QAction* previewViewNormalAct;
+  QAction* previewViewObjectIdAct;
+  QAction* previewViewMaterialIdAct;
+  QAction* previewViewWorldPositionAct;
   QAction* previewWireframeOverlayAct;
   QAction* previewTonemapLinearAct;
   QAction* previewTonemapReinhardAct;
@@ -584,6 +662,46 @@ void MainWindow::createActions() {
   previewPostAAGroup->addAction(p->previewPostAAFxaaAct);
   previewPostAAGroup->addAction(p->previewPostAASmaaAct);
 
+  p->previewViewBeautyAct = new QAction(tr("&Beauty"), this);
+  p->previewViewBeautyAct->setStatusTip(tr("Show the live preview beauty view"));
+  p->previewViewBeautyAct->setCheckable(true);
+  p->previewViewBeautyAct->setChecked(true);
+  connect(p->previewViewBeautyAct, SIGNAL(triggered()), this, SLOT(setPreviewViewBeauty()));
+
+  p->previewViewDepthAct = new QAction(tr("&Depth"), this);
+  p->previewViewDepthAct->setStatusTip(tr("Show the live preview depth AOV"));
+  p->previewViewDepthAct->setCheckable(true);
+  connect(p->previewViewDepthAct, SIGNAL(triggered()), this, SLOT(setPreviewViewDepth()));
+
+  p->previewViewNormalAct = new QAction(tr("&Normal"), this);
+  p->previewViewNormalAct->setStatusTip(tr("Show the live preview normal AOV"));
+  p->previewViewNormalAct->setCheckable(true);
+  connect(p->previewViewNormalAct, SIGNAL(triggered()), this, SLOT(setPreviewViewNormal()));
+
+  p->previewViewObjectIdAct = new QAction(tr("&Object ID"), this);
+  p->previewViewObjectIdAct->setStatusTip(tr("Show the live preview object-id AOV"));
+  p->previewViewObjectIdAct->setCheckable(true);
+  connect(p->previewViewObjectIdAct, SIGNAL(triggered()), this, SLOT(setPreviewViewObjectId()));
+
+  p->previewViewMaterialIdAct = new QAction(tr("&Material ID"), this);
+  p->previewViewMaterialIdAct->setStatusTip(tr("Show the live preview material-id AOV"));
+  p->previewViewMaterialIdAct->setCheckable(true);
+  connect(p->previewViewMaterialIdAct, SIGNAL(triggered()), this, SLOT(setPreviewViewMaterialId()));
+
+  p->previewViewWorldPositionAct = new QAction(tr("&World Position"), this);
+  p->previewViewWorldPositionAct->setStatusTip(tr("Show the live preview world-position AOV"));
+  p->previewViewWorldPositionAct->setCheckable(true);
+  connect(p->previewViewWorldPositionAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewWorldPosition()));
+
+  auto previewViewGroup = new QActionGroup(this);
+  previewViewGroup->addAction(p->previewViewBeautyAct);
+  previewViewGroup->addAction(p->previewViewDepthAct);
+  previewViewGroup->addAction(p->previewViewNormalAct);
+  previewViewGroup->addAction(p->previewViewObjectIdAct);
+  previewViewGroup->addAction(p->previewViewMaterialIdAct);
+  previewViewGroup->addAction(p->previewViewWorldPositionAct);
+
   p->previewWireframeOverlayAct = new QAction(tr("Wireframe &Overlay"), this);
   p->previewWireframeOverlayAct->setStatusTip(
     tr("Draw graph-generated wireframe edges over the live shaded preview"));
@@ -747,6 +865,14 @@ void MainWindow::createMenus() {
   previewPostAAMenu->addAction(p->previewPostAANoneAct);
   previewPostAAMenu->addAction(p->previewPostAAFxaaAct);
   previewPostAAMenu->addAction(p->previewPostAASmaaAct);
+
+  auto previewViewMenu = previewMenu->addMenu(tr("Preview &View"));
+  previewViewMenu->addAction(p->previewViewBeautyAct);
+  previewViewMenu->addAction(p->previewViewDepthAct);
+  previewViewMenu->addAction(p->previewViewNormalAct);
+  previewViewMenu->addAction(p->previewViewObjectIdAct);
+  previewViewMenu->addAction(p->previewViewMaterialIdAct);
+  previewViewMenu->addAction(p->previewViewWorldPositionAct);
 
   auto previewTonemapMenu = p->renderMenu->addMenu(tr("Preview &Tonemap"));
   previewTonemapMenu->addAction(p->previewTonemapLinearAct);
@@ -1069,6 +1195,30 @@ void MainWindow::setPreviewPostAAFxaa() {
 
 void MainWindow::setPreviewPostAASmaa() {
   p->display->setPreviewPostProcessAA(engine::graph::RenderPostProcessAA::SMAA);
+}
+
+void MainWindow::setPreviewViewBeauty() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::Beauty);
+}
+
+void MainWindow::setPreviewViewDepth() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::Depth);
+}
+
+void MainWindow::setPreviewViewNormal() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::Normal);
+}
+
+void MainWindow::setPreviewViewObjectId() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::ObjectId);
+}
+
+void MainWindow::setPreviewViewMaterialId() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::MaterialId);
+}
+
+void MainWindow::setPreviewViewWorldPosition() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::WorldPosition);
 }
 
 void MainWindow::setPreviewWireframeOverlay(bool enabled) {
@@ -1568,20 +1718,9 @@ engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
   if (!p->display)
     return intent;
 
-  switch (p->display->engineKind()) {
-  case RenderDisplay::EngineKind::Raytracer:
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
-    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
-    break;
-  case RenderDisplay::EngineKind::Rasterizer:
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
-    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
-    break;
-  case RenderDisplay::EngineKind::Wireframe:
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
-    intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
-    break;
-  }
+  const engine::graph::RenderViewMode previewViewMode = p->display->previewViewMode();
+
+  previewEngineIntentDefinition(p->display->engineKind()).apply(intent, previewViewMode);
 
   return intent;
 }
