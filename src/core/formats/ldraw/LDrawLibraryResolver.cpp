@@ -130,8 +130,9 @@ LDrawLibraryResolver::DocumentPtr LDrawLibraryResolver::loadWithSubfiles(const f
   return loadWithSubfiles(path, stack);
 }
 
-LDrawLibraryResolver::DocumentPtr LDrawLibraryResolver::resolve(const LDrawDocument& currentDocument,
-                                                                const string& filename) {
+LDrawLibraryResolver::DocumentPtr
+LDrawLibraryResolver::resolve(const LDrawResolvedDocument& currentDocument,
+                              const string& filename) {
   return loadMutable(resolvePath(currentDocument.path, filename));
 }
 
@@ -172,7 +173,7 @@ LDrawLibraryResolver::MutableDocumentPtr LDrawLibraryResolver::loadMutable(const
     throwResolverError(message.str());
   }
 
-  auto document = make_shared<LDrawDocument>();
+  auto document = make_shared<LDrawResolvedDocument>();
   document->path = normalized;
   document->commands = LDrawParser().parse(input);
   m_cache.emplace(key, document);

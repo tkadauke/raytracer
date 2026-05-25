@@ -10,7 +10,7 @@
 
 class LDrawLibraryResolver {
 public:
-  using DocumentPtr = std::shared_ptr<const LDrawDocument>;
+  using DocumentPtr = std::shared_ptr<const LDrawResolvedDocument>;
 
   explicit LDrawLibraryResolver(std::filesystem::path libraryRoot = {});
 
@@ -19,7 +19,7 @@ public:
 
   DocumentPtr load(const std::filesystem::path& path);
   DocumentPtr loadWithSubfiles(const std::filesystem::path& path);
-  DocumentPtr resolve(const LDrawDocument& currentDocument, const std::string& filename);
+  DocumentPtr resolve(const LDrawResolvedDocument& currentDocument, const std::string& filename);
 
   [[nodiscard]] std::vector<std::filesystem::path> searchRoots(
     const std::filesystem::path& currentFile) const;
@@ -27,7 +27,7 @@ public:
   void clearCache();
 
 private:
-  using MutableDocumentPtr = std::shared_ptr<LDrawDocument>;
+  using MutableDocumentPtr = std::shared_ptr<LDrawResolvedDocument>;
 
   MutableDocumentPtr loadMutable(const std::filesystem::path& path);
   MutableDocumentPtr loadWithSubfiles(const std::filesystem::path& path,
