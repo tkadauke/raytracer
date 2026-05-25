@@ -5,6 +5,7 @@
 #include "engine/wireframe/Wireframe.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -92,6 +93,20 @@ namespace WireframeTest {
     EXPECT_GT(white, 0);
     EXPECT_GT(black, white);             // most pixels still background
     EXPECT_EQ(128 * 128, white + black); // every pixel is one or the other
+  }
+
+  TEST(Wireframe, SceneWithCurveRibbonProducesEdgePixels) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->add(std::make_shared<Curve>(
+      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
+                      Vector3d(1.0, -0.5, 0.0)}),
+      0.25, Curve::TessellationMode::Ribbon));
+    Wireframe engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::white()), 0);
   }
 
   TEST(Wireframe, BackgroundColorIsConfigurable) {
