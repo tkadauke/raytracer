@@ -1232,7 +1232,9 @@ Plan validation should catch:
   reject `GPU` resources during plan validation until GPU-capable executors
   exist.
 - pass disabled with no valid default or dependent-culling path;
-- imported resource not provided;
+- imported resource not provided; ✅ **Done for execution.** `GraphRenderEngine`
+  now rejects unbound imported/history inputs until an explicit external
+  resource binding API exists.
 - exported resource not produced; ✅ **Done.** Plan validation now rejects
   exported resources with no declared producer.
 - mirror/portal/screen recursion over the configured limit.

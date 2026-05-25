@@ -138,6 +138,7 @@ namespace RenderPlanTest {
     plan.addPass(temporal);
 
     EXPECT_TRUE(plan.validate().valid());
+    EXPECT_EQ(std::vector<RenderResourceId>({"history_color"}), plan.externalInputResourceIds());
   }
 
   TEST(RenderPlan, ReportsExecutorResourceDomainMismatch) {
