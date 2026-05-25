@@ -43,6 +43,7 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -463,6 +464,7 @@ private:
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
   engine::graph::RenderViewMode m_renderGraphViewMode;
+  QString m_renderGraphCamera;
   bool m_renderGraphWireframeOverlay;
   bool m_renderGraphCurveOverlay;
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
@@ -562,6 +564,7 @@ Renderer::Renderer()
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
       m_renderGraphViewModeSet(false),
       m_renderGraphViewMode(engine::graph::RenderViewMode::Beauty),
+      m_renderGraphCamera(),
       m_renderGraphWireframeOverlay(false),
       m_renderGraphCurveOverlay(false),
       m_renderGraphOverrides(),
@@ -632,6 +635,10 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
     intent.defaultViewMode = m_renderGraphViewMode;
   } else if (!m_renderGraphExecutorSet && m_engineSet && m_engine == "wireframe") {
     intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
+  }
+  if (!m_renderGraphCamera.isEmpty()) {
+    intent.defaultCamera =
+      engine::graph::RenderCameraRef{m_renderGraphCamera.toStdString(), std::nullopt};
   }
   if (m_renderGraphWireframeOverlay) {
     intent.enableWireframeOverlay = true;
@@ -1244,6 +1251,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Override graph intent view mode (default, beauty, wireframe, depth, normal, object_id, "
       "material_id, world_position)",
       "mode"},
+     {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"render_graph_curve_overlay", "Add a curve center-line overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
@@ -1460,6 +1468,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
+  }
+
+  if (parser.isSet("render_graph_camera")) {
+    m_renderGraph = true;
+    m_renderGraphCamera = parser.value("render_graph_camera").trimmed();
+    if (m_renderGraphCamera.isEmpty()) {
+      *errorMessage = "Render graph camera id must not be empty";
+      return CommandLineError;
+    }
   }
 
   if (parser.isSet("render_graph_wireframe_overlay")) {
@@ -1832,7 +1849,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        !m_renderGraphOut.isEmpty() || !m_renderGraphIn.isEmpty() ||
        !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
        parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
-       m_renderGraphWireframeOverlay || m_renderGraphCurveOverlay ||
+       parser.isSet("render_graph_camera") || m_renderGraphWireframeOverlay ||
+       m_renderGraphCurveOverlay ||
        parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
        parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
