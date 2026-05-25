@@ -233,7 +233,7 @@ imperfect interpretation (the parser's flexibility around
 unrecognized properties).
 
 ## <a id="what-this-chapter-does-not-cover"></a>What this chapter does *not* cover
-Three additional file-format topics are queued under
+Additional file-format topics are queued under
 `docs/topics-backlog.md`:
 
 - **OBJ.** The Wavefront OBJ format. Older and less
@@ -241,21 +241,17 @@ Three additional file-format topics are queued under
   third-party tools. Not yet implemented.
 - **STL.** The stereo-lithography format used by 3D printers.
   Triangle-only, no UVs or normals. Trivial to implement.
+- **LDraw.** The LEGO part-library format. The codebase now has
+  a command-record parser for `.dat` and `.ldr` files, but not
+  referenced-file resolution or scene conversion.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
   implement.
 
-All three are reasonable additions; none ship today. PLY is
-the established format for academic-graphics meshes (which is
-what most of the test fixtures use), so it gets pride of
-place.
-
-## TODO: chapter LDraw parsing
-Cover the `.dat` / `.ldr` line parser in
-[`LDrawParser.cpp`](../../../src/core/formats/ldraw/LDrawParser.cpp)
-once it grows from command records into referenced-file
-resolution and scene or mesh conversion.
+These are reasonable additions, but PLY remains the established
+format for academic-graphics meshes (which is what most of the
+test fixtures use), so it gets pride of place.
 
 ## <a id="exercises"></a>Exercises
 1. Predict what happens when a PLY file declares
