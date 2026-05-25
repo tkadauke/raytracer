@@ -1,0 +1,75 @@
+{
+  "id": "{80000000-0000-0000-0000-000000000000}",
+  "name": "Raster Shadow Caster",
+  "ambient": [0.10, 0.10, 0.10],
+  "background": [0.0, 0.0, 0.0],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{80000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, 0.0, -5.0],
+      "target": [0.0, 0.0, 0.5],
+      "distance": 5.0,
+      "zoom": 1.0,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{80000000-0000-0000-0000-000000000002}",
+      "name": "KeyLight",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "direction": [-0.5, 0.2, -1.0],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{80000000-0000-0000-0000-000000000010}",
+      "name": "WhiteTexture",
+      "color": [1.0, 1.0, 1.0],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{80000000-0000-0000-0000-000000000020}",
+      "name": "DiffuseWhite",
+      "diffuseTexture": "{80000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.10,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{80000000-0000-0000-0000-000000000030}",
+      "name": "BackWall",
+      "position": [-2.0, -2.0, 1.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{80000000-0000-0000-0000-000000000020}",
+      "leg1": [0.0, 4.0, 0.0],
+      "leg2": [4.0, 0.0, 0.0],
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Rectangle",
+      "children": []
+    },
+    {
+      "id": "{80000000-0000-0000-0000-000000000040}",
+      "name": "ShadowCaster",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{80000000-0000-0000-0000-000000000020}",
+      "size": [0.35, 0.35, 0.35],
+      "bevelRadius": 0.0,
+      "type": "Box",
+      "children": []
+    }
+  ]
+}
