@@ -38,6 +38,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph external integer-id inputs.** `GraphRenderEngine` can now bind
   imported or history CPU object-id/material-id resources for explicit plans.
   — GPT-5
+- **Recursive LDraw subfile references.** `LDrawGeometryCompiler` now resolves
+  type-1 subfiles through an `LDrawFileResolver`, applies LDraw affine
+  transforms through runtime instances, preserves color-16 inheritance with
+  direct child color overrides, and guards recursive imports with cache-backed
+  cycle and depth checks for #210. — GPT-5
 - **Inline LDraw mesh compilation.** `LDrawGeometryCompiler` now converts
   parsed type 3 triangles and type 4 quads into renderable `MeshPrimitive`
   geometry with LDraw color-table material assignment for #210. — GPT-5

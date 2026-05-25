@@ -243,8 +243,10 @@ Additional file-format topics are queued under
   Triangle-only, no UVs or normals. Trivial to implement.
 - **LDraw.** The LEGO part-library format. The codebase now has
   a command-record parser for `.dat` and `.ldr` files plus inline
-  type 3/4 polygon conversion to renderable mesh primitives, but not
-  referenced-file resolution or MPD scene conversion.
+  type 3/4 polygon conversion to renderable mesh primitives. Type-1
+  referenced files resolve through a file resolver and are instanced
+  with LDraw affine transforms and color inheritance, while MPD scene
+  conversion remains future work.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
@@ -259,9 +261,11 @@ Cover the `.dat` / `.ldr` line parser in
 [`LDrawParser.cpp`](../../../src/core/formats/ldraw/LDrawParser.cpp)
 and the `LDConfig.ldr` color/material lookup in
 [`LDrawColorTable.cpp`](../../../src/core/formats/ldraw/LDrawColorTable.cpp)
-alongside the inline polygon compiler in
-[`LDrawGeometryCompiler.cpp`](../../../src/core/formats/ldraw/LDrawGeometryCompiler.cpp).
-The next missing pieces are referenced-file resolution and MPD scene assembly.
+alongside the inline polygon/subfile compiler in
+[`LDrawGeometryCompiler.cpp`](../../../src/core/formats/ldraw/LDrawGeometryCompiler.cpp)
+and resolver abstraction in
+[`LDrawFileResolver.cpp`](../../../src/core/formats/ldraw/LDrawFileResolver.cpp).
+The next missing piece is MPD scene assembly.
 
 ## <a id="exercises"></a>Exercises
 1. Predict what happens when a PLY file declares
@@ -301,6 +305,7 @@ The next missing pieces are referenced-file resolution and MPD scene assembly.
 - `src/core/formats/ply/PlyProperty.cpp`
 - `src/core/formats/ldraw/LDrawParser.cpp`
 - `src/core/formats/ldraw/LDrawColorTable.cpp`
+- `src/core/formats/ldraw/LDrawFileResolver.cpp`
 - `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`
 - `test/unit/core/formats/ply/PlyFileTest.cpp`
 - `fuzz/`
