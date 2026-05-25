@@ -85,6 +85,10 @@ namespace engine::graph {
     return false;
   }
 
+  bool RenderResource::depthBacked() const {
+    return false;
+  }
+
   void RenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
     m_substituteDefault = true;
     m_state.reset();
@@ -160,6 +164,10 @@ namespace engine::graph {
   }
 
   bool DepthRenderResource::hasBuffer() const {
+    return true;
+  }
+
+  bool DepthRenderResource::depthBacked() const {
     return true;
   }
 

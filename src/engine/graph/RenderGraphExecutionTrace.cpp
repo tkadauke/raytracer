@@ -569,8 +569,7 @@ namespace engine::graph {
     }
 
     const auto& resource = storage.resource(resourceId);
-    if (resource.descriptor().type == RenderResourceType::Depth ||
-        resource.descriptor().type == RenderResourceType::ShadowMap) {
+    if (resource.depthBacked()) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr,
                                          depthPreviewFor(resource.depth()), "",
                                          cacheMetadataFor(resource));

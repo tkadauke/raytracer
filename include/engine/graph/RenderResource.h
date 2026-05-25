@@ -68,6 +68,11 @@ namespace engine::graph {
     virtual bool colorBacked() const;
 
     /**
+      * @returns true when this resource can be accessed as `Buffer<double>`.
+      */
+    virtual bool depthBacked() const;
+
+    /**
       * Clears this resource to the value used when a disabled pass substitutes
       * a default output. Non-buffer descriptors ignore the request.
       */
@@ -129,6 +134,7 @@ namespace engine::graph {
 
     bool hasBuffer() const override;
     void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
+    bool depthBacked() const override;
     Buffer<double>& depth() override;
     const Buffer<double>& depth() const override;
 

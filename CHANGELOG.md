@@ -209,6 +209,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Metadata-only graph trace resources.** Execution traces now ask runtime graph
+  resources whether a CPU depth buffer exists before capturing a depth preview,
+  so GPU/metadata-only shadow resources stay inspectable instead of throwing
+  during Modeler Graph Trace preview updates. — GPT-5
 - **Render graph trace materialization.** LDR graph preview renders now keep
   color resources materialized for execution traces instead of fusing the
   default beauty/tonemap chain into a packed-display-only path, so the Modeler
