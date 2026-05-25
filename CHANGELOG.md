@@ -37,6 +37,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Core polyline geometry model.** `core::Polyline` now stores ordered 3D
   points, per-curve typed metadata, per-segment typed metadata, segment
   iteration, and bounding-box computation for path-like geometry. — GPT-5
+- **rendercli graph shading-profile override.**
+  `rendercli --render_graph_shading_profile <name>` now overrides the default
+  graph intent shading profile before compilation, so exported scene-rendering
+  passes show the requested profile in their `SceneView`. — GPT-5
 - **rendercli graph camera override.** `rendercli --render_graph_camera <id>`
   now overrides the render intent's default scene-camera reference in compiled
   graph plans. — GPT-5
