@@ -65,6 +65,30 @@ namespace RenderGraphRequestTest {
     EXPECT_EQ(RenderViewMode::Beauty, resolved.defaultViewMode);
   }
 
+  TEST(RenderGraphRequest, AddsViewOverridesToResolvedIntent) {
+    RenderGraphRequest request;
+    RenderViewOverride wholeFrame;
+    wholeFrame.selector = SceneSelector::all();
+    wholeFrame.executor = RenderExecutorPreference::Rasterizer;
+
+    RenderViewOverride tagged;
+    tagged.selector = SceneSelector::tag("debug");
+    tagged.viewMode = RenderViewMode::Wireframe;
+
+    request.addViewOverride(wholeFrame).addViewOverride(tagged);
+
+    const RenderIntent resolved = request.resolvedIntent();
+
+    ASSERT_EQ(2u, resolved.viewOverrides.size());
+    EXPECT_EQ(SceneSelector::Kind::All, resolved.viewOverrides[0].selector.kind);
+    ASSERT_TRUE(resolved.viewOverrides[0].executor.has_value());
+    EXPECT_EQ(RenderExecutorPreference::Rasterizer, *resolved.viewOverrides[0].executor);
+    EXPECT_EQ(SceneSelector::Kind::Tag, resolved.viewOverrides[1].selector.kind);
+    EXPECT_EQ("debug", resolved.viewOverrides[1].selector.value);
+    ASSERT_TRUE(resolved.viewOverrides[1].viewMode.has_value());
+    EXPECT_EQ(RenderViewMode::Wireframe, *resolved.viewOverrides[1].viewMode);
+  }
+
   TEST(RenderGraphRequest, CompileUsesResolvedIntent) {
     RenderGraphRequest request;
     request.setExecutorOverride(RenderExecutorPreference::Rasterizer)

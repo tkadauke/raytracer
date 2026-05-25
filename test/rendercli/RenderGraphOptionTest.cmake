@@ -33,6 +33,7 @@ set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
+set(intent_view_override_plan "${TEST_OUTPUT_DIR}/graph-intent-view-override.txt")
 set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
 set(raster_depth_view_render "${TEST_OUTPUT_DIR}/graph-raster-depth-view.png")
 set(raster_depth_view_plan "${TEST_OUTPUT_DIR}/graph-raster-depth-view.json")
@@ -798,6 +799,30 @@ if(NOT intent_view_graph MATCHES "wireframe_beauty")
 endif()
 
 rendercli_run(
+  NAME "rendercli graph view override intent selects whole frame"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --render_graph_view_override "all,executor=wireframe,view=wireframe,camera=camera 2,shading_profile=toon,parameter:levels=3"
+    --width 32 --height 16
+    "${static_scene}" "${intent_view_override_plan}"
+)
+rendercli_assert_nonempty("${intent_view_override_plan}"
+                          NAME "graph view override intent output")
+file(READ "${intent_view_override_plan}" intent_view_override_graph)
+if(NOT intent_view_override_graph MATCHES "wireframe_beauty")
+  message(FATAL_ERROR
+    "graph view override intent did not select wireframe_beauty: ${intent_view_override_graph}")
+endif()
+if(NOT intent_view_override_graph MATCHES "camera=camera 2")
+  message(FATAL_ERROR
+    "graph view override intent did not carry camera metadata: ${intent_view_override_graph}")
+endif()
+if(NOT intent_view_override_graph MATCHES "shading=toon\\(levels=3")
+  message(FATAL_ERROR
+    "graph view override intent did not carry shading metadata: ${intent_view_override_graph}")
+endif()
+
+rendercli_run(
   NAME "rendercli uses scene render intent"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
@@ -1020,6 +1045,22 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects malformed render graph view override"
+  STDERR_MATCHES "Render graph view override must use selector,key=value syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view_override "tag:debug"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid render graph view override selector"
+  STDERR_MATCHES "Render graph view override selector must use"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view_override "unknown:debug,view=wireframe"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects scene intent non-AOV export"
   STDERR_MATCHES "renderIntent.exportedAOVs"
   COMMAND
@@ -1033,6 +1074,14 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     "${selector_specific_intent_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unsupported selector-specific CLI intent"
+  STDERR_MATCHES "selector-specific render intent.*tag: debug"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view_override "tag:debug,view=wireframe"
+    "${static_scene}" "${invalid_plan}"
 )
 
 rendercli_run(

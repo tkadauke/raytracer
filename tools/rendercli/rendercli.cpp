@@ -381,6 +381,140 @@ namespace {
     int lastStep = 0;
   };
 
+  struct RenderGraphViewOverrideInput {
+    engine::graph::RenderViewOverride viewOverride;
+
+    bool parse(const QString& value, QString* errorMessage) {
+      const QStringList parts = value.split(',', Qt::KeepEmptyParts);
+      if (parts.size() < 2) {
+        *errorMessage = "Render graph view override must use selector,key=value syntax";
+        return false;
+      }
+
+      if (!parseSelector(parts.front().trimmed(), errorMessage)) {
+        return false;
+      }
+
+      bool hasField = false;
+      for (int i = 1; i != parts.size(); ++i) {
+        const QString field = parts.at(i).trimmed();
+        if (field.isEmpty()) {
+          *errorMessage = "Render graph view override fields must not be empty";
+          return false;
+        }
+        if (!parseField(field, errorMessage)) {
+          return false;
+        }
+        hasField = true;
+      }
+
+      if (!hasField) {
+        *errorMessage = "Render graph view override must set at least one field";
+        return false;
+      }
+      return true;
+    }
+
+  private:
+    bool parseSelector(const QString& text, QString* errorMessage) {
+      const int separator = text.indexOf(':');
+      const QString kind = separator < 0 ? text.trimmed() : text.left(separator).trimmed();
+      const QString value = separator < 0 ? QString() : text.mid(separator + 1).trimmed();
+      const QString normalizedKind = normalizedRasterOption(kind);
+
+      if (normalizedKind == "all") {
+        if (!value.isEmpty()) {
+          *errorMessage = "Render graph view override selector 'all' takes no value";
+          return false;
+        }
+        viewOverride.selector = engine::graph::SceneSelector::all();
+      } else if (value.isEmpty()) {
+        *errorMessage = "Render graph view override selector must use all, object_id:value, "
+                        "object_name:value, tag:value, layer:value, or material_role:value";
+        return false;
+      } else if (normalizedKind == "objectid") {
+        viewOverride.selector = engine::graph::SceneSelector::objectId(value.toStdString());
+      } else if (normalizedKind == "objectname") {
+        viewOverride.selector = engine::graph::SceneSelector::objectName(value.toStdString());
+      } else if (normalizedKind == "tag") {
+        viewOverride.selector = engine::graph::SceneSelector::tag(value.toStdString());
+      } else if (normalizedKind == "layer") {
+        viewOverride.selector = engine::graph::SceneSelector::layer(value.toStdString());
+      } else if (normalizedKind == "materialrole") {
+        viewOverride.selector = engine::graph::SceneSelector::materialRole(value.toStdString());
+      } else {
+        *errorMessage = "Render graph view override selector must use all, object_id:value, "
+                        "object_name:value, tag:value, layer:value, or material_role:value";
+        return false;
+      }
+      return true;
+    }
+
+    bool parseField(const QString& text, QString* errorMessage) {
+      const int separator = text.indexOf('=');
+      if (separator <= 0 || separator == text.size() - 1) {
+        *errorMessage = "Render graph view override fields must use key=value syntax";
+        return false;
+      }
+
+      const QString key = text.left(separator).trimmed();
+      const QString rawValue = text.mid(separator + 1).trimmed();
+      if (key.isEmpty() || rawValue.isEmpty()) {
+        *errorMessage = "Render graph view override field key and value must not be empty";
+        return false;
+      }
+
+      const QString normalizedKey = normalizedRasterOption(key);
+      if (normalizedKey == "executor") {
+        engine::graph::RenderExecutorPreference executor;
+        if (!parseRenderExecutorPreference(rawValue, &executor)) {
+          *errorMessage =
+            "Render graph view override executor must be 'raytracer', 'rasterizer', or "
+            "'wireframe'";
+          return false;
+        }
+        viewOverride.executor = executor;
+      } else if (normalizedKey == "view" || normalizedKey == "viewmode") {
+        engine::graph::RenderViewMode viewMode;
+        if (!parseImplementedRenderViewMode(rawValue, &viewMode)) {
+          *errorMessage =
+            "Render graph view override view must be 'default', 'beauty', 'wireframe', "
+            "'depth', 'stencil', 'stencil_composite', 'normal', 'object_id', "
+            "'material_id', or 'world_position'";
+          return false;
+        }
+        viewOverride.viewMode = viewMode;
+      } else if (normalizedKey == "camera") {
+        viewOverride.camera = engine::graph::RenderCameraRef{rawValue.toStdString(), std::nullopt};
+      } else if (normalizedKey == "shadingprofile" || normalizedKey == "profile") {
+        engine::graph::ShadingProfileRef profile =
+          viewOverride.shadingProfile.value_or(engine::graph::ShadingProfileRef{});
+        profile.name = rawValue.toStdString();
+        viewOverride.shadingProfile = std::move(profile);
+      } else if (normalizedKey.startsWith("parameter") ||
+                 normalizedKey.startsWith("shadingparameter")) {
+        const int parameterSeparator = key.indexOf(':');
+        if (parameterSeparator <= 0 || parameterSeparator == key.size() - 1) {
+          *errorMessage =
+            "Render graph view override shading parameters must use parameter:name=value";
+          return false;
+        }
+        engine::graph::ShadingProfileRef profile =
+          viewOverride.shadingProfile.value_or(engine::graph::ShadingProfileRef{});
+        profile.setParameter(
+          key.mid(parameterSeparator + 1).trimmed().toStdString(),
+          engine::graph::ShadingProfileParameterValue::fromText(rawValue.toStdString()));
+        viewOverride.shadingProfile = std::move(profile);
+      } else {
+        *errorMessage =
+          "Render graph view override field must be executor, view, camera, shading_profile, "
+          "or parameter:name";
+        return false;
+      }
+      return true;
+    }
+  };
+
   struct RenderGraphImageInput {
     std::string resourceId;
     QString input;
@@ -731,6 +865,7 @@ private:
   QString m_renderGraphIn;
   QString m_renderGraphTraceOut;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
+  std::vector<RenderGraphViewOverrideInput> m_renderGraphViewOverrides;
   std::vector<RenderGraphImageInput> m_renderGraphColorInputs;
   std::vector<RenderGraphImageInput> m_renderGraphDepthInputs;
   std::vector<RenderGraphImageInput> m_renderGraphStencilInputs;
@@ -1083,6 +1218,9 @@ engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scen
   }
   for (const auto& aovOutput : m_renderGraphAOVOutputs) {
     request.requestExportedAOV(aovOutput.viewMode);
+  }
+  for (const auto& overrideInput : m_renderGraphViewOverrides) {
+    request.addViewOverride(overrideInput.viewOverride);
   }
   return request;
 }
@@ -1908,6 +2046,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
      {"render_graph_shading_parameter",
       "Set a default graph shading profile parameter; may be repeated with key=value", "key=value"},
+     {"render_graph_view_override",
+      "Add a render-intent view override as selector,key=value; selectors include all, "
+      "tag:value, object_name:value, object_id:value, layer:value, and material_role:value",
+      "selector,key=value"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"render_graph_curve_overlay", "Add a curve center-line overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
@@ -2195,6 +2337,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
         return CommandLineError;
       }
       m_renderGraphAOVOutputs.push_back(output);
+    }
+  }
+
+  if (parser.isSet("render_graph_view_override")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_view_override")) {
+      RenderGraphViewOverrideInput input;
+      if (!input.parse(value, errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphViewOverrides.push_back(input);
     }
   }
 
@@ -2731,11 +2884,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       (parser.isSet("render_graph") || m_renderGraphOnly || parser.isSet("render_graph_format") ||
        !m_renderGraphOut.isEmpty() || !m_renderGraphIn.isEmpty() ||
        !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
-       !m_renderGraphColorInputs.empty() || !m_renderGraphDepthInputs.empty() ||
-       !m_renderGraphStencilInputs.empty() || !m_renderGraphObjectIdInputs.empty() ||
-       !m_renderGraphMaterialIdInputs.empty() || parser.isSet("render_graph_executor") ||
-       parser.isSet("render_graph_view") || parser.isSet("render_graph_camera") ||
-       parser.isSet("render_graph_shading_profile") ||
+       !m_renderGraphViewOverrides.empty() || !m_renderGraphColorInputs.empty() ||
+       !m_renderGraphDepthInputs.empty() || !m_renderGraphStencilInputs.empty() ||
+       !m_renderGraphObjectIdInputs.empty() || !m_renderGraphMaterialIdInputs.empty() ||
+       parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
+       parser.isSet("render_graph_camera") || parser.isSet("render_graph_shading_profile") ||
        parser.isSet("render_graph_shading_parameter") || m_renderGraphWireframeOverlay ||
        m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||

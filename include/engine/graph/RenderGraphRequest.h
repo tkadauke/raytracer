@@ -50,6 +50,7 @@ namespace engine::graph {
     RenderGraphRequest& setPreviewShadowsOverride(bool enabled);
     RenderGraphRequest& clearPreviewShadowsOverride();
     RenderGraphRequest& requestExportedAOV(RenderViewMode viewMode);
+    RenderGraphRequest& addViewOverride(RenderViewOverride viewOverride);
 
     RenderIntent resolvedIntent() const;
     RenderPlan compile(const RenderTargetSpec& target) const;
@@ -69,5 +70,6 @@ namespace engine::graph {
     std::optional<bool> m_curveOverlayOverride;
     std::optional<bool> m_previewShadowsOverride;
     std::vector<RenderViewMode> m_exportedAOVs;
+    std::vector<RenderViewOverride> m_viewOverrides;
   };
 }

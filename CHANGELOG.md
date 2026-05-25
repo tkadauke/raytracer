@@ -101,6 +101,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **rendercli graph view overrides.** `rendercli --render_graph_view_override`
+  can now append high-level `RenderViewOverride` intent records from the
+  command line, with whole-frame overrides applied by the current compiler and
+  selector-specific overrides rejected clearly until scene partitioning is
+  implemented. — GPT-5
 - **rendercli graph depth/id external inputs.** Explicit graph replay can now
   bind imported or history depth, object-id, and material-id resources from
   image files with `--render_graph_depth_in`, `--render_graph_object_id_in`,

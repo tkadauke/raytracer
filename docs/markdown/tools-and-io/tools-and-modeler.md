@@ -105,7 +105,13 @@ records the requested camera intent for inspection and future alternate-camera
 execution. `--render_graph_shading_profile name` overrides the default named
 shading profile, and repeated `--render_graph_shading_parameter key=value`
 options attach scalar profile parameters. The compiler records that profile
-intent on synthesized scene-rendering passes. The
+intent on synthesized scene-rendering passes.
+`--render_graph_view_override selector,key=value` adds one high-level view
+override to the request. `all,executor=rasterizer,view=depth` is equivalent to
+changing the default frame intent; selector-specific values such as
+`tag:debug,view=wireframe` are accepted as render intent but currently fail
+compilation until the graph compiler can split and composite selected scene
+subsets. The
 depth, stencil, normal, object-id, material-id, and world-position views
 compile graph-visible AOV passes and visualization passes that write the final
 color image. When the selected graph executor is the rasterizer, those AOV

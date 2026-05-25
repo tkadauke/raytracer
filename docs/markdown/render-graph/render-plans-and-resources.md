@@ -350,19 +350,22 @@ Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_camera` selects the default scene camera reference, and
 `--render_graph_shading_profile` selects the default named shading profile.
 Repeated `--render_graph_shading_parameter key=value` options attach parsed
-bool, number, or string parameters to that profile. The
-`depth`, `stencil`, `normal`, `object_id`, `material_id`, and `world_position` views
-compile real resource-producing AOV nodes followed by visualization passes, so
-the exported plan and the Modeler inspector can show AOVs as graph resources
-rather than hiding them inside a direct engine. The `stencil_composite` view
-mode is also synthesized from intent: it compiles raster beauty, wireframe
-beauty, stencil AOV, composite, and tonemap passes without requiring the scene
-to name any graph nodes. `--render_graph_aov_out view=file` requests
+bool, number, or string parameters to that profile.
+`--render_graph_view_override selector,key=value` appends a high-level
+`RenderViewOverride` to the request; `all,executor=rasterizer,view=depth`
+applies to today's whole-frame compiler, while selector-specific values such as
+`tag:debug,view=wireframe` are preserved in intent and rejected clearly until
+scene-partitioning planners exist. The `depth`, `stencil`, `normal`,
+`object_id`, `material_id`, and `world_position` views compile real
+resource-producing AOV nodes followed by visualization passes, so the exported
+plan and the Modeler inspector can show AOVs as graph resources rather than
+hiding them inside a direct engine. The `stencil_composite` view mode is also
+synthesized from intent: it compiles raster beauty, wireframe beauty, stencil
+AOV, composite, and tonemap passes without requiring the scene to name any graph
+nodes. `--render_graph_aov_out view=file` requests
 additional AOV side branches, such as a beauty render that also writes depth
 and normal preview images. `--render_graph_wireframe_overlay` adds an overlay
 pass between the primary beauty pass and the tonemap pass.
-Selector-specific overrides will matter once compilation can produce
-multi-selection plans.
 
 Raytracer AOV payloads use primary intersections against the analytic scene.
 Rasterizer AOV payloads instead attach diagnostic output buffers or synthesize

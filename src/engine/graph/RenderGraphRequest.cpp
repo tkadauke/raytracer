@@ -143,6 +143,11 @@ namespace engine::graph {
     return *this;
   }
 
+  RenderGraphRequest& RenderGraphRequest::addViewOverride(RenderViewOverride viewOverride) {
+    m_viewOverrides.push_back(std::move(viewOverride));
+    return *this;
+  }
+
   RenderIntent RenderGraphRequest::resolvedIntent() const {
     RenderIntent intent = m_baseIntent;
 
@@ -183,6 +188,8 @@ namespace engine::graph {
     for (const auto viewMode : m_exportedAOVs) {
       intent.requestExportedAOV(viewMode);
     }
+    intent.viewOverrides.insert(intent.viewOverrides.end(), m_viewOverrides.begin(),
+                                m_viewOverrides.end());
     return intent;
   }
 
