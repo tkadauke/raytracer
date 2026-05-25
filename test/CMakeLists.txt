@@ -90,6 +90,26 @@ if(TARGET rendercli)
       -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-raster
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOptionTest.cmake
   )
+  add_test(
+    NAME rendercli_raytracer
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-raytracer
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RaytracerOptionTest.cmake
+  )
+  add_test(
+    NAME rendercli_wireframe
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-wireframe
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/WireframeOptionTest.cmake
+  )
 endif()
 
 # Functional tests load fixtures from the source tree at runtime.
