@@ -13,7 +13,17 @@ namespace core {
     *
     * Curves are intentionally non-polymorphic data models. Concrete curve
     * types such as Polyline own their geometry while this base class provides
-    * a common, typed attribute map for whole-curve metadata.
+    * a common, typed attribute map for whole-curve metadata. Importers for
+    * G-code, molecules, trajectories, road routes, GPS traces, or similar
+    * path-like data should store data that applies to the entire path here:
+    * source file names, route IDs, chain IDs, units, timestamps, visibility
+    * flags, and any other metadata that is not tied to one segment.
+    *
+    * Segment-varying data belongs on the concrete curve type. For polylines,
+    * use `Polyline::setSegmentAttribute()` so renderers can color individual
+    * spans by scalar values such as feed rate or categorical labels such as
+    * route type. `render::Curve` can consume those segment attributes through
+    * `AttributeColorMap` when producing ribbon, tube, or overlay output.
     */
   class Curve {
   public:
