@@ -251,6 +251,12 @@ the established format for academic-graphics meshes (which is
 what most of the test fixtures use), so it gets pride of
 place.
 
+## TODO: chapter LDraw parsing
+Cover the `.dat` / `.ldr` line parser in
+[`LDrawParser.cpp`](../../../src/core/formats/ldraw/LDrawParser.cpp)
+once it grows from command records into referenced-file
+resolution and scene or mesh conversion.
+
 ## <a id="exercises"></a>Exercises
 1. Predict what happens when a PLY file declares
    `element vertex 100` but has only 50 vertex records in the

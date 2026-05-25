@@ -16,6 +16,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   geometry to runtime composites without abusing inactive CSG surfaces. — GPT-5
 - **RenderPlan pass dependency queries.** `RenderPlan` now exposes incoming and
   outgoing dependency-edge lookups for a selected pass. — GPT-5
+- **Core LDraw parser.** `core/formats/ldraw` now parses `.dat` and `.ldr`
+  text lines into typed records for LDraw line types 0 through 5, preserving
+  type-1 trailing filenames and reporting malformed numeric fields with
+  line-numbered `LDrawParseError`s. — GPT-5
 - **Render graph execution stages.** `RenderPlan` now exposes dependency-ready
   execution stages, text/JSON/DOT exports surface those stages, and the Modeler
   graph view uses them for its left-to-right layout of independent branches.
