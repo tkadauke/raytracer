@@ -169,6 +169,15 @@ bool Scene::hasRenderIntent() const {
   return m_hasRenderIntent;
 }
 
+engine::graph::RenderIntent Scene::renderIntentWithActiveCameraDefault() const {
+  engine::graph::RenderIntent intent =
+    hasRenderIntent() ? renderIntent() : engine::graph::RenderIntent();
+  if (!intent.defaultCamera) {
+    intent.defaultCamera = activeRenderCameraRef();
+  }
+  return intent;
+}
+
 void Scene::evaluateAnimationAtFrame(int frame) {
   if (m_animation)
     m_animation->apply(*this, frame);

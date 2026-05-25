@@ -184,6 +184,24 @@ namespace SceneTest {
     EXPECT_EQ("shot-camera", *cameraRef->sceneCameraId);
   }
 
+  TEST(Scene, ShouldApplyActiveCameraToRenderIntentWhenMissingCamera) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("shot-camera");
+    scene.addChild(camera);
+
+    engine::graph::RenderIntent intent;
+    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    scene.setRenderIntent(intent);
+
+    const auto effectiveIntent = scene.renderIntentWithActiveCameraDefault();
+
+    EXPECT_EQ(engine::graph::RenderExecutorPreference::Rasterizer, effectiveIntent.defaultExecutor);
+    ASSERT_TRUE(effectiveIntent.defaultCamera.has_value());
+    ASSERT_TRUE(effectiveIntent.defaultCamera->sceneCameraId.has_value());
+    EXPECT_EQ("shot-camera", *effectiveIntent.defaultCamera->sceneCameraId);
+  }
+
   TEST(Scene, ShouldReturnLastCameraAsActiveWhenMultiple) {
     // activeCamera() walks all children and keeps the last camera it sees,
     // so the most-recently-added camera wins. Documenting that here so a

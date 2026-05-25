@@ -93,6 +93,12 @@ public:
     * @returns true if the scene JSON owns an explicit `renderIntent` block.
     */
   bool hasRenderIntent() const;
+  /**
+    * @returns the saved render intent, or the default intent when none is saved,
+    *   with the active scene camera installed as the default graph camera when
+    *   the intent does not already name one.
+    */
+  engine::graph::RenderIntent renderIntentWithActiveCameraDefault() const;
 
   /**
     * Applies the scene's animation timeline at @p frame.
