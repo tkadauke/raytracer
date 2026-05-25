@@ -383,6 +383,11 @@ namespace {
     QString input;
   };
 
+  struct RenderGraphStencilInput {
+    std::string resourceId;
+    QString input;
+  };
+
   bool parseRenderGraphResourcePath(const QString& value, const char* optionName,
                                     std::string* resourceId, QString* path, QString* errorMessage) {
     const int separator = value.indexOf('=');
@@ -429,6 +434,12 @@ namespace {
   bool parseRenderGraphColorInput(const QString& value, RenderGraphColorInput* input,
                                   QString* errorMessage) {
     return parseRenderGraphResourcePath(value, "--render_graph_color_in", &input->resourceId,
+                                        &input->input, errorMessage);
+  }
+
+  bool parseRenderGraphStencilInput(const QString& value, RenderGraphStencilInput* input,
+                                    QString* errorMessage) {
+    return parseRenderGraphResourcePath(value, "--render_graph_stencil_in", &input->resourceId,
                                         &input->input, errorMessage);
   }
 
@@ -736,6 +747,7 @@ private:
   QString m_renderGraphTraceOut;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
   std::vector<RenderGraphColorInput> m_renderGraphColorInputs;
+  std::vector<RenderGraphStencilInput> m_renderGraphStencilInputs;
   bool m_renderGraphExecutorSet;
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
@@ -818,6 +830,8 @@ private:
                                   const engine::graph::RenderIntent& intent) const;
   std::shared_ptr<Buffer<Colord>>
   loadRenderGraphColorInput(const RenderGraphColorInput& input) const;
+  std::shared_ptr<Buffer<std::uint8_t>>
+  loadRenderGraphStencilInput(const RenderGraphStencilInput& input) const;
   void bindRenderGraphExternalInputs(engine::graph::GraphRenderEngine& graphEngine) const;
   QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
@@ -1354,9 +1368,32 @@ Renderer::loadRenderGraphColorInput(const RenderGraphColorInput& input) const {
   return buffer;
 }
 
+std::shared_ptr<Buffer<std::uint8_t>>
+Renderer::loadRenderGraphStencilInput(const RenderGraphStencilInput& input) const {
+  QImage image(input.input);
+  if (image.isNull()) {
+    throw std::runtime_error(
+      QString("Unable to read render graph stencil input '%1' for resource '%2'")
+        .arg(input.input, QString::fromStdString(input.resourceId))
+        .toStdString());
+  }
+
+  const QImage rgb = image.convertToFormat(QImage::Format_RGB32);
+  auto buffer = std::make_shared<Buffer<std::uint8_t>>(rgb.width(), rgb.height());
+  for (int y = 0; y != rgb.height(); ++y) {
+    for (int x = 0; x != rgb.width(); ++x) {
+      (*buffer)[y][x] = static_cast<std::uint8_t>(qGray(rgb.pixel(x, y)));
+    }
+  }
+  return buffer;
+}
+
 void Renderer::bindRenderGraphExternalInputs(engine::graph::GraphRenderEngine& graphEngine) const {
   for (const auto& input : m_renderGraphColorInputs) {
     graphEngine.setExternalColorResource(input.resourceId, loadRenderGraphColorInput(input));
+  }
+  for (const auto& input : m_renderGraphStencilInputs) {
+    graphEngine.setExternalStencilResource(input.resourceId, loadRenderGraphStencilInput(input));
   }
 }
 
@@ -1789,6 +1826,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_color_in",
       "Bind an imported/history graph color resource from an image file as resource=file",
       "resource=file"},
+     {"render_graph_stencil_in",
+      "Bind an imported/history graph stencil resource from an image file as resource=file",
+      "resource=file"},
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view",
@@ -2097,6 +2137,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
         return CommandLineError;
       }
       m_renderGraphColorInputs.push_back(input);
+    }
+  }
+
+  if (parser.isSet("render_graph_stencil_in")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_stencil_in")) {
+      RenderGraphStencilInput input;
+      if (!parseRenderGraphStencilInput(value, &input, errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphStencilInputs.push_back(input);
     }
   }
 

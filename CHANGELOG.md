@@ -101,9 +101,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
-- **rendercli graph color inputs.** `rendercli --render_graph_color_in
-  resource=file` now binds imported or history graph color resources from image
-  files before replaying explicit graph JSON. — GPT-5
+- **rendercli graph external image inputs.** `rendercli --render_graph_color_in
+  resource=file` and `--render_graph_stencil_in resource=file` now bind imported
+  or history graph color and stencil resources from image files before replaying
+  explicit graph JSON. — GPT-5
 - **Graph stencil AOV view.** Render intent can now request a `stencil` AOV:
   rendercli, Modeler preview, graph JSON, execution traces, and side-output AOV
   exports synthesize and visualize graph-visible stencil masks, with rasterizer

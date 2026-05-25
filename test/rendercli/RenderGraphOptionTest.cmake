@@ -20,6 +20,7 @@ set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
 set(external_input_graph "${TEST_OUTPUT_DIR}/external-input-graph.json")
+set(stencil_input_graph "${TEST_OUTPUT_DIR}/stencil-input-graph.json")
 set(depth_composite_graph "${TEST_OUTPUT_DIR}/depth-composite-graph.json")
 set(out_of_order_graph "${TEST_OUTPUT_DIR}/out-of-order-graph.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
@@ -72,6 +73,7 @@ set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 set(external_color_input "${TEST_OUTPUT_DIR}/graph-external-color-input.png")
 set(external_input_render "${TEST_OUTPUT_DIR}/graph-external-input-render.png")
 set(external_input_bound_render "${TEST_OUTPUT_DIR}/graph-external-input-bound-render.png")
+set(stencil_input_bound_render "${TEST_OUTPUT_DIR}/graph-stencil-input-bound-render.png")
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
@@ -283,6 +285,98 @@ file(WRITE "${external_input_graph}" [=[
       "reads": ["history_color"],
       "writes": ["main_color"],
       "disabledBehavior": "passthrough",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${stencil_input_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "base_color",
+      "name": "Base color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "foreground_color",
+      "name": "Foreground color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "stencil_mask",
+      "name": "Stencil mask",
+      "type": "stencil",
+      "format": "uint8",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "history"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "raytrace_beauty",
+      "name": "Raytraced beauty",
+      "kind": "beauty",
+      "executor": "raytracer",
+      "features": ["main", "beauty", "raytracer"],
+      "reads": [],
+      "writes": ["base_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "wireframe_beauty",
+      "name": "Wireframe beauty",
+      "kind": "beauty",
+      "executor": "wireframe",
+      "features": ["foreground", "beauty", "wireframe"],
+      "reads": [],
+      "writes": ["foreground_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "stencil_composite",
+      "name": "Stencil composite",
+      "kind": "composite",
+      "executor": "composite",
+      "features": ["stencil_composite"],
+      "reads": ["base_color", "foreground_color", "stencil_mask"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
       "enabled": true,
       "hasExternalSideEffects": false,
       "canRunConcurrently": false
@@ -988,6 +1082,14 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects malformed graph stencil input"
+  STDERR_MATCHES "--render_graph_stencil_in must use resource=file syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_stencil_in stencil_mask
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects invalid disabled pass kind"
   STDERR_MATCHES "Render graph pass kind is not recognized"
   COMMAND
@@ -1085,6 +1187,18 @@ rendercli_assert_image_dimensions("${external_input_bound_render}" 32 16
                                   NAME "bound external input render dimensions")
 rendercli_assert_image_nonempty("${external_input_bound_render}"
                                 NAME "bound external input render pixels")
+
+rendercli_run(
+  NAME "rendercli binds imported stencil graph inputs"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${stencil_input_graph}"
+    --render_graph_stencil_in "stencil_mask=${external_color_input}"
+    "${static_scene}" "${stencil_input_bound_render}"
+)
+rendercli_assert_image_dimensions("${stencil_input_bound_render}" 32 16
+                                  NAME "bound stencil input render dimensions")
+rendercli_assert_image_nonempty("${stencil_input_bound_render}"
+                                NAME "bound stencil input render pixels")
 
 rendercli_run(
   NAME "rendercli executes depth-aware composite graph"

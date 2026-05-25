@@ -1246,9 +1246,10 @@ Plan validation should catch:
 - imported resource not provided; ✅ **Done for CPU color/depth/stencil/id
   inputs.** `GraphRenderEngine` now accepts bound imported/history color, depth,
   stencil, and integer-id resources and rejects unbound or unsupported external
-  inputs before execution. rendercli can bind imported/history color resources
-  from image files with `--render_graph_color_in resource=file`; CLI binding for
-  depth, stencil, and integer-id inputs remains TODO.
+  inputs before execution. rendercli can bind imported/history color and stencil
+  resources from image files with `--render_graph_color_in resource=file` and
+  `--render_graph_stencil_in resource=file`; CLI binding for depth and
+  integer-id inputs remains TODO.
 - exported resource not produced; ✅ **Done.** Plan validation now rejects
   exported resources with no declared producer.
 - mirror/portal/screen recursion over the configured limit.
@@ -1460,8 +1461,9 @@ view=file` options. Rasterizer-backed depth, stencil, normal, object-id,
 material-id, and world-position AOV payloads now use rasterizer diagnostic
 buffers or a raster stencil-marking pass, so they reflect tessellated raster
 geometry and raster pass state instead of analytic primary-ray intersections.
-rendercli can also provide imported/history color resources to replayed graph
-JSON with `--render_graph_color_in resource=file`.
+rendercli can also provide imported/history color and stencil resources to
+replayed graph JSON with `--render_graph_color_in resource=file` and
+`--render_graph_stencil_in resource=file`.
 Motion vector resources remain TODO until graph history and previous-frame
 inputs exist.
 
