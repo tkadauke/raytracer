@@ -1,6 +1,7 @@
 #include "world/objects/Scene.h"
 #include "world/objects/Surface.h"
 #include "world/objects/Camera.h"
+#include "world/objects/Group.h"
 #include "world/objects/Light.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Grid.h"
@@ -39,6 +40,13 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
     } else if (auto light = dynamic_cast<Light*>(child)) {
       if (light->visible()) {
         result->addLight(light->toRaytracer());
+      }
+    } else if (auto group = dynamic_cast<Group*>(child)) {
+      if (group->visible()) {
+        auto primitive = group->toRaytracer(result.get());
+        if (primitive && !primitive->boundingBox().isInfinite()) {
+          grid->add(primitive);
+        }
       }
     }
   }
