@@ -350,6 +350,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **rendercli unknown samplers.** `rendercli --sampler` now rejects unknown
   sampler names with a command-line error instead of dereferencing a missing
   factory result during rendering. — GPT-5
+- **Render graph shading parameter parsing.** `ShadingProfileParameterValue::fromText(...)`
+  now trims surrounding whitespace before parsing bool and numeric values. — GPT-5
 - **Render graph exported-AOV validation.** `RenderIntent` now rejects
   non-AOV view modes in `exportedAOVs` at the intent boundary instead of
   allowing invalid scene JSON to fail later during graph compilation. — GPT-5
