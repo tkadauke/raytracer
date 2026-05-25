@@ -18,6 +18,7 @@
 #include "render/materials/ReflectiveMaterial.h"
 #include "render/materials/TransparentMaterial.h"
 #include "render/primitives/Box.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Rectangle.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -169,6 +170,15 @@ namespace RasterizerTest {
   static std::shared_ptr<Scene> sceneWithSphere() {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->add(std::make_shared<Sphere>(Vector3d::null, 1));
+    return scene;
+  }
+
+  static std::shared_ptr<Scene> sceneWithCurveTube() {
+    auto scene = std::make_shared<Scene>(Colord::white());
+    scene->add(std::make_shared<Curve>(
+      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
+                      Vector3d(1.0, -0.5, 0.0)}),
+      0.35, Curve::TessellationMode::Tube));
     return scene;
   }
 
@@ -531,6 +541,15 @@ namespace RasterizerTest {
     // claim is "the interior is filled" — much larger than what an
     // outline-only renderer would produce for the same projection.
     EXPECT_GT(filled, 150);
+  }
+
+  TEST(Rasterizer, SceneWithCurveTubeFillsSomePixels) {
+    Rasterizer engine(headOnCamera(), sceneWithCurveTube());
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
   }
 
   TEST(Rasterizer, ThinLensCameraFallsBackToPinholeProjection) {

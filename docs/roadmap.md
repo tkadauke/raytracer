@@ -350,7 +350,7 @@ Easy wins that fill obvious gaps:
 - Bezier patches / NURBS — for the "all variants" pedagogy, though niche in modern pipelines.
 - Subdivision surfaces (Catmull-Clark, Loop, Doo-Sabin) — depends on `Mesh` infrastructure.
 - Particles / billboards — for sprites or fast vegetation.
-- Curve primitives — Bezier/B-spline/NURBS curves rendered as ribbons, tubes, or true curve intersections; this is the geometry side of hair/fur and stroke rendering, separate from hair shading or physics.
+- Curve primitives — ~~polyline curves rendered as ribbons or tubes for mesh-consuming engines~~ ✅ **Done.** Runtime `render::Curve` tessellates `core::Polyline` paths into ribbon/tube meshes for raster and wireframe render paths. Bezier/B-spline/NURBS curves and true curve intersections remain TODO; this is the geometry side of hair/fur and stroke rendering, separate from hair shading or physics.
 - Point clouds / surfels — direct point rendering, EWA splatting, and conversion paths into meshes, SDFs, or Gaussian splats.
 
 Once tessellation lands (R4), the geometry engine can also do:
