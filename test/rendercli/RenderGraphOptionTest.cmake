@@ -34,6 +34,7 @@ set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(active_camera_plan "${TEST_OUTPUT_DIR}/graph-active-camera.json")
 set(camera_override_plan "${TEST_OUTPUT_DIR}/graph-camera-override.json")
 set(shading_profile_override_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.json")
+set(shading_profile_override_text_plan "${TEST_OUTPUT_DIR}/graph-shading-profile-override.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(curve_overlay_plan "${TEST_OUTPUT_DIR}/graph-curve-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
@@ -447,6 +448,21 @@ if(NOT shading_profile_override_graph MATCHES "\"enabled\": true")
 endif()
 if(NOT shading_profile_override_graph MATCHES "\"ramp\": \"warm\"")
   message(FATAL_ERROR "graph shading profile override did not carry string parameter: ${shading_profile_override_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli text graph shows shading profile parameters"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --render_graph_shading_profile clay
+    --render_graph_shading_parameter levels=4
+    --width 32 --height 16
+    "${static_scene}" "${shading_profile_override_text_plan}"
+)
+rendercli_assert_nonempty("${shading_profile_override_text_plan}" NAME "shading profile text graph output")
+file(READ "${shading_profile_override_text_plan}" shading_profile_override_text_graph)
+if(NOT shading_profile_override_text_graph MATCHES "shading=clay\\(levels=4\\)")
+  message(FATAL_ERROR "text graph did not show shading profile parameters: ${shading_profile_override_text_graph}")
 endif()
 
 rendercli_run(
