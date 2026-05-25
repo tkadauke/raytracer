@@ -9,7 +9,12 @@
 #include <mutex>
 #include <string>
 
+namespace engine::raster {
+  class Rasterizer;
+}
+
 namespace engine::graph {
+
   /**
     * Typed cache key for graph-produced persistent artifacts.
     *
@@ -61,6 +66,8 @@ namespace engine::graph {
     const RenderResourceDescriptor& descriptor() const;
     const std::string& description() const;
     virtual bool copyDepthTo(Buffer<double>& destination) const;
+    virtual bool copyRasterShadowMapPreviewTo(Buffer<double>& destination) const;
+    virtual bool applyRasterShadowMapsTo(engine::raster::Rasterizer& rasterizer) const;
 
   private:
     RenderGraphCacheKey m_key;

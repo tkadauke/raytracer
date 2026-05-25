@@ -4,6 +4,7 @@
 
 #include <array>
 #include <atomic>
+#include <cstddef>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -36,6 +37,9 @@ namespace engine::raster::detail {
 
     ShadowMaps build() const;
     bool renderFirstDirectionalDepth(Buffer<double>& depthBuffer) const;
+
+    static void resetDepthPassCountForTests();
+    static std::size_t depthPassCountForTests();
 
   private:
     bool canBuild() const;

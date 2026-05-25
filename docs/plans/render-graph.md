@@ -564,24 +564,29 @@ or shadow-setting change. Later slices should refine this into domains such as
 has a coarse scene `changed` flag, so fine-grained invalidation will require
 stable scene/object revision counters or fingerprints.
 
-Shadow maps need several remaining architectural changes before caching affects
-the beauty image. The current `raster_preview_shadows` graph node publishes
-shadow-map request state and now caches an inspectable first directional-light
-cascade depth artifact. The concrete raster shadow-map construction has been
-extracted into a graph-usable `RasterShadowMapBuilder`, but `raster_beauty`
-still asks the rasterizer to build its own full directional/cascade collection
-during beauty execution. To finish shadow-map caching:
+Shadow maps now have a graph-owned artifact path. The current
+`raster_preview_shadows` graph node publishes shadow-map request state, builds
+the full directional/cascade collection through `RasterShadowMapBuilder`, stores
+that collection as an immutable artifact, and exposes the first cascade as an
+inspectable depth preview. `raster_beauty` consumes the artifact when present,
+so cache hits skip the shadow-map build that used to be hidden inside beauty
+execution. The completed architectural slice was:
 
 1. ~~extract the raster shadow-map builder from `Rasterizer` into a graph-usable
    service or payload helper~~ ✅ **Done.** `RasterShadowMapBuilder` now owns
    full directional/cascade map construction and first-cascade depth previews;
-2. introduce a typed `ShadowMapArtifact` resource that owns directional light
-   cascades, depth buffers, and sampling/filter metadata;
-3. make the graph shadow pass produce the full artifact collection;
-4. make `raster_beauty` consume the artifact instead of triggering an internal
-   shadow build;
-5. extend cache hit/miss metadata from the current trace-visible first-cascade
-   artifact to the full beauty-consumed shadow-map collection.
+2. ~~introduce a typed `ShadowMapArtifact` resource that owns directional light
+   cascades, depth buffers, and sampling/filter metadata~~ ✅ **Done.**
+   `RasterShadowMapArtifact` owns the full raster shadow-map collection and a
+   depth preview;
+3. ~~make the graph shadow pass produce the full artifact collection~~ ✅
+   **Done.** `raster_preview_shadows` materializes and caches the collection;
+4. ~~make `raster_beauty` consume the artifact instead of triggering an
+   internal shadow build~~ ✅ **Done.** The rasterizer accepts graph-supplied
+   external shadow maps for beauty shading;
+5. ~~extend cache hit/miss metadata from the current trace-visible first-cascade
+   artifact to the full beauty-consumed shadow-map collection~~ ✅ **Done.**
+   Cache status now describes the full artifact consumed by raster beauty.
 
 One nuance: the current cascaded directional shadow maps are view-camera
 dependent because cascade fitting uses the main camera's visible depth range.
@@ -639,10 +644,10 @@ exist.
 
 Raster preview shadow requests now also carry typed pass state: ✅ **Done.**
 `raster_preview_shadows` serializes `parameters.shadows`, execution publishes
-that state on the `preview_shadow_map` resource, and `raster_beauty` consumes it
-when the shadow node is enabled. The rasterizer still owns the concrete CPU
-shadow-map build internally; splitting real directional/cascade depth passes
-remains future raster graph work.
+that state on the `preview_shadow_map` resource, materializes the full
+directional/cascade shadow-map artifact, and `raster_beauty` consumes it when
+the shadow node is enabled. Splitting individual directional/cascade depth
+passes remains future raster graph work.
 
 ### Rasterizer passes
 
@@ -1352,16 +1357,13 @@ path-traced frame.
 ### Raster shadow maps as graph clients
 
 Move raster preview shadows from internal rasterizer-only orchestration into
-graph-level shadow-map resources and passes. ✅ **Partial.** Graph-backed
-preview renders now include a `raster_preview_shadows` node and
-`preview_shadow_map` resource that control whether raster beauty enables
-preview shadows. The shadow node now also materializes a graph-visible CPU
-depth preview for the first directional-light cascade so traces can inspect the
-shadow-map artifact directly. Concrete shadow-map construction now lives in the
-raster module's `RasterShadowMapBuilder`, which is the handoff point for future
-graph-owned full shadow artifacts. Raster beauty still builds and consumes its
-full internal shadow-map collection until graph-owned shadow artifacts are wired
-into the beauty payload; lights without a directional map use a rasterizer
+graph-level shadow-map resources and passes. ✅ **Done.** Graph-backed preview
+renders include a `raster_preview_shadows` node and `preview_shadow_map`
+resource that control whether raster beauty enables preview shadows. The shadow
+node materializes a graph-visible CPU depth preview for the first
+directional-light cascade and owns the full raster shadow-map collection as a
+typed artifact. Raster beauty consumes that artifact instead of triggering its
+own internal shadow build; lights without a directional map use a rasterizer
 visibility fallback so the graph shadow toggle still affects point-lit previews.
 
 ### Persistent artifact cache
@@ -1372,9 +1374,10 @@ extend the same cache to reflection probes, irradiance caches, photon maps,
 path-guiding data, terrain/volume intermediates, and acceleration data. ✅
 **Partial.** `RenderGraphArtifactCache` now provides the clone-shared,
 thread-safe cache container and typed cache keys; the raster shadow node now
-stores and reuses an inspectable first-cascade depth artifact with trace-visible
-hit/stored metadata, but raster beauty still needs to consume cached full
-shadow-map artifacts before cache hits can affect pixels.
+stores and reuses a full directional shadow-map artifact with trace-visible
+hit/stored metadata, and raster beauty consumes cache hits directly. Remaining
+cache clients include reflection probes, irradiance caches, photon maps,
+path-guiding data, terrain/volume intermediates, and acceleration data.
 
 The first implementation may use conservative invalidation. ✅ **Partial.**
 Raster preview shadow artifacts now use a pass-specific cache fingerprint, so
