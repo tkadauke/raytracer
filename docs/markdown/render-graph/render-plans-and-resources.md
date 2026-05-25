@@ -74,6 +74,10 @@ model to Qt widgets or JSON parsing.
 executor, view mode, shading profile, and camera. The result is a layered
 request: one default frame intent plus targeted overrides for specific parts
 of the scene.
+Whole-frame overrides whose selector is `all` are applied to the default frame
+intent before compilation. More specific selector overrides remain intent for
+future scene-partitioning planners; users still describe what they want, and
+the compiler remains responsible for synthesizing pass nodes.
 
 Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps

@@ -106,6 +106,39 @@ namespace RenderGraphTypesTest {
     EXPECT_TRUE(intent.usesGraphImagePostProcessAA());
   }
 
+  TEST(RenderIntent, AppliesWholeFrameViewOverridesToDefaults) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = RenderViewMode::Beauty;
+    intent.defaultShadingProfile.name = "default";
+
+    RenderViewOverride wholeFrame;
+    wholeFrame.selector = SceneSelector::all();
+    wholeFrame.executor = RenderExecutorPreference::Rasterizer;
+    wholeFrame.viewMode = RenderViewMode::Depth;
+    wholeFrame.shadingProfile = ShadingProfileRef{"clay", {}};
+    wholeFrame.camera = RenderCameraRef{"inspection-camera", std::nullopt};
+    intent.viewOverrides.push_back(wholeFrame);
+
+    RenderViewOverride tagOverride;
+    tagOverride.selector = SceneSelector::tag("debug");
+    tagOverride.executor = RenderExecutorPreference::Wireframe;
+    intent.viewOverrides.push_back(tagOverride);
+
+    const RenderIntent effective = intent.withWholeFrameOverridesApplied();
+
+    EXPECT_TRUE(wholeFrame.appliesToWholeFrame());
+    EXPECT_FALSE(tagOverride.appliesToWholeFrame());
+    EXPECT_EQ(RenderExecutorPreference::Rasterizer, effective.defaultExecutor);
+    EXPECT_EQ(RenderViewMode::Depth, effective.defaultViewMode);
+    EXPECT_EQ("clay", effective.defaultShadingProfile.name);
+    ASSERT_TRUE(effective.defaultCamera.has_value());
+    ASSERT_TRUE(effective.defaultCamera->sceneCameraId.has_value());
+    EXPECT_EQ("inspection-camera", *effective.defaultCamera->sceneCameraId);
+    ASSERT_EQ(1u, effective.viewOverrides.size());
+    EXPECT_EQ(SceneSelector::Kind::Tag, effective.viewOverrides.front().selector.kind);
+  }
+
   TEST(RenderExecutorDefinition, DescribesCompiledBeautyPasses) {
     const auto& raytracer = renderExecutorDefinition(RenderExecutorPreference::Raytracer);
     EXPECT_EQ(RenderExecutorKind::Raytracer, raytracer.kind());

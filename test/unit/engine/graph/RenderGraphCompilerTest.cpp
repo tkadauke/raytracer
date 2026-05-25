@@ -297,6 +297,26 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, AppliesWholeFrameViewOverrideBeforeSynthesizingNodes) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+
+    RenderViewOverride override;
+    override.selector = SceneSelector::all();
+    override.executor = RenderExecutorPreference::Rasterizer;
+    override.viewMode = RenderViewMode::Depth;
+    intent.viewOverrides.push_back(override);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("depth_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    EXPECT_EQ("visualize_depth_aov", plan.passes()[1].id);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

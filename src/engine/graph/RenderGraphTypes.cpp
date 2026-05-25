@@ -330,6 +330,10 @@ namespace engine::graph {
     return SceneSelector{Kind::MaterialRole, std::move(role)};
   }
 
+  bool SceneSelector::selectsWholeFrame() const {
+    return kind == Kind::All;
+  }
+
   QJsonObject SceneSelector::toJson() const {
     QJsonObject result;
     result["kind"] = toString(kind);
@@ -453,6 +457,10 @@ namespace engine::graph {
       viewOverride.camera = RenderCameraRef::fromJson(camera, path + ".camera");
 
     return viewOverride;
+  }
+
+  bool RenderViewOverride::appliesToWholeFrame() const {
+    return selector.selectsWholeFrame();
   }
 
   const char* toString(RenderExecutorPreference value) {
@@ -624,6 +632,34 @@ namespace engine::graph {
     }
 
     return intent;
+  }
+
+  RenderIntent RenderIntent::withWholeFrameOverridesApplied() const {
+    RenderIntent result = *this;
+    result.viewOverrides.clear();
+    result.viewOverrides.reserve(viewOverrides.size());
+
+    for (const auto& viewOverride : viewOverrides) {
+      if (!viewOverride.appliesToWholeFrame()) {
+        result.viewOverrides.push_back(viewOverride);
+        continue;
+      }
+
+      if (viewOverride.executor) {
+        result.defaultExecutor = *viewOverride.executor;
+      }
+      if (viewOverride.viewMode) {
+        result.defaultViewMode = *viewOverride.viewMode;
+      }
+      if (viewOverride.shadingProfile) {
+        result.defaultShadingProfile = *viewOverride.shadingProfile;
+      }
+      if (viewOverride.camera) {
+        result.defaultCamera = *viewOverride.camera;
+      }
+    }
+
+    return result;
   }
 
   RenderExecutorKind RenderIntent::defaultExecutorKind() const {

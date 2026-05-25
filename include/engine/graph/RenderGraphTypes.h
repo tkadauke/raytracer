@@ -145,6 +145,7 @@ namespace engine::graph {
     static SceneSelector layer(std::string layerName);
     static SceneSelector materialRole(std::string role);
 
+    bool selectsWholeFrame() const;
     QJsonObject toJson() const;
     static SceneSelector fromJson(const QJsonObject& object, std::string path = "sceneSelector");
   };
@@ -190,6 +191,7 @@ namespace engine::graph {
     std::optional<ShadingProfileRef> shadingProfile;
     std::optional<RenderCameraRef> camera;
 
+    bool appliesToWholeFrame() const;
     QJsonObject toJson() const;
     static RenderViewOverride fromJson(const QJsonObject& object,
                                        std::string path = "viewOverride");
@@ -228,6 +230,15 @@ namespace engine::graph {
       * throw `std::runtime_error` with a path to the bad value.
       */
     static RenderIntent fromJson(const QJsonObject& object);
+
+    /**
+      * Applies whole-frame view overrides to the default intent fields.
+      *
+      * The first compiler slices can only synthesize whole-frame graphs.
+      * Selector-specific overrides remain in `viewOverrides` for later
+      * scene-partitioning planners.
+      */
+    RenderIntent withWholeFrameOverridesApplied() const;
 
     /**
       * Resolves the default compiled executor requested by this intent.

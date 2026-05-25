@@ -164,15 +164,16 @@ namespace engine::graph {
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
                                           const RenderIntent& intent) const {
     const RenderTargetSpec target = normalizedTarget(rawTarget);
-    const RenderExecutorKind executor = intent.defaultExecutorKind();
+    const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
+    const RenderExecutorKind executor = frameIntent.defaultExecutorKind();
     const auto* executorDefinition = renderExecutorDefinition(executor);
     if (!executorDefinition) {
       throw std::runtime_error("default render executor cannot produce a beauty pass");
     }
 
-    if (const auto* aov = renderAOVDefinition(intent.defaultViewMode)) {
+    if (const auto* aov = renderAOVDefinition(frameIntent.defaultViewMode)) {
       RenderPlan plan = aovViewPlan(target, executor, *aov);
-      addAuxiliaryAOVExports(plan, target, executor, intent);
+      addAuxiliaryAOVExports(plan, target, executor, frameIntent);
       return plan;
     }
 
@@ -181,7 +182,7 @@ namespace engine::graph {
     RenderResourceDescriptor beautyColor =
       colorResource("beauty_color", "Beauty color", target, RenderResourceLifetime::Transient);
     const bool usesPreviewShadows =
-      executor == RenderExecutorKind::Rasterizer && intent.enablePreviewShadows;
+      executor == RenderExecutorKind::Rasterizer && frameIntent.enablePreviewShadows;
 
     RenderPassNode beauty;
     beauty.id = executorDefinition->beautyPassId();
@@ -224,8 +225,8 @@ namespace engine::graph {
       plan.connectProducerToConsumer(shadows, previewShadowResource(), beauty.id);
     }
 
-    if (intent.usesGraphImagePostProcessAA()) {
-      const auto* postAADefinition = postProcessAADefinition(intent.postProcessAA);
+    if (frameIntent.usesGraphImagePostProcessAA()) {
+      const auto* postAADefinition = postProcessAADefinition(frameIntent.postProcessAA);
       if (!postAADefinition) {
         throw std::runtime_error(
           "requested post-process AA mode cannot be compiled as a graph pass");
@@ -249,7 +250,7 @@ namespace engine::graph {
       plan.routeResourceThroughPass(inputResource, postAAColor, postAA);
     }
 
-    if (intent.enableWireframeOverlay) {
+    if (frameIntent.enableWireframeOverlay) {
       const RenderResourceId inputResource = tonemapInputResource(plan);
       RenderResourceDescriptor overlayColor =
         colorResource("overlay_color", "Overlay color", target, RenderResourceLifetime::Transient);
@@ -267,7 +268,7 @@ namespace engine::graph {
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
     }
 
-    addAuxiliaryAOVExports(plan, target, executor, intent);
+    addAuxiliaryAOVExports(plan, target, executor, frameIntent);
 
     return plan;
   }

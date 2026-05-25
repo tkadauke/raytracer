@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render intent whole-frame overrides.** The render graph compiler now applies
+  `selector: all` view overrides to the frame intent before synthesizing graph
+  nodes, keeping graph topology compiler-owned. — GPT-5
 - **Render graph DOT exports.** Resource labels in DOT exports now include the
   resource format and lifetime. — GPT-5
 - **Modeler graph trace empty states.** Resource trace previews now distinguish

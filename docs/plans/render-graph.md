@@ -294,6 +294,10 @@ struct RenderIntent {
 The exact API can evolve, but it should stay high-level. It should not require
 the caller to manually describe "stencil first, then reflected camera, then
 composite" for a planar mirror.
+Whole-frame (`selector: all`) overrides are applied to the default frame intent
+before the compiler synthesizes nodes. More specific selector overrides remain
+intent for later scene-partitioning planners; users should not author pass
+nodes directly as the normal API.
 
 The important requirement is that intent can express both:
 
@@ -1444,7 +1448,6 @@ These need review before implementation:
 - What selector syntax should rendercli use for object ids, names, tags, layers,
   material roles, and subtrees?
 - Should graph node ids be human-readable stable paths, numeric ids, or both?
-- How should Modeler present automatic nodes versus user-requested nodes?
 - Should disabled-node overrides be persisted in the scene, the view settings,
   or only the current render session?
 - How editable should exported graph JSON be before we risk treating it as a
@@ -1459,6 +1462,10 @@ Resolved decisions:
   overrides layered on top for previews, education, and one-off renders.
 - Named shading profiles, not fixed enum values like `Cartoon`, represent
   specific looks such as toon shading.
+- Users author render intent, not graph topology. All normal render graph nodes
+  are synthesized by the compiler from scene intent, preview/tool intent, and
+  automatic feature expansion. Exported/replayed graph JSON and node disabling
+  remain debugging and teaching surfaces, not the primary scene-authoring API.
 
 ## Documentation and testing expectations
 
