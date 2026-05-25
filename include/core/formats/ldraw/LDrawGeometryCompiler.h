@@ -41,11 +41,13 @@ private:
 
   [[nodiscard]] std::shared_ptr<render::Composite>
   compileCommands(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
-                  const LDrawColorContext& context, CompileState& state) const;
+                  const LDrawColorContext& context, CompileState& state,
+                  bool inheritedInverted) const;
 
   [[nodiscard]] std::shared_ptr<render::Composite>
   compileSubfile(const LDrawSubfileReference& reference, const LDrawColorTable& colors,
-                 const LDrawColorContext& context, CompileState& state) const;
+                 const LDrawColorContext& context, CompileState& state,
+                 bool inheritedInverted) const;
 
   [[nodiscard]] static std::string colorContextKey(const LDrawColorContext& context);
 

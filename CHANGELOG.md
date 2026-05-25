@@ -47,6 +47,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   MPD blocks into named virtual files, and `LDrawGeometryCompiler` resolves
   MPD-local type-1 submodel references before external LDraw library roots for
   #210. — GPT-5
+- **LDraw BFC winding import.** `LDrawGeometryCompiler` now honors `0 BFC`
+  `CERTIFY`, `NOCERTIFY`, `CW`, `CCW`, `CLIP`, `NOCLIP`, and `INVERTNEXT`
+  meta commands so certified clipped polygons produce front-sided materials,
+  uncertified or no-clip polygons remain two-sided, and inverted subfile
+  references reverse imported face winding and normals for #210. — GPT-5
 - **Recursive LDraw subfile references.** `LDrawGeometryCompiler` now resolves
   type-1 subfiles through an `LDrawFileResolver`, applies LDraw affine
   transforms through runtime instances, preserves color-16 inheritance with
