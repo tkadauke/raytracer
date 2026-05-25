@@ -649,18 +649,18 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
   engine::graph::RenderIntent intent = scene.renderIntentWithActiveCameraDefault();
   if (m_renderGraphExecutorSet) {
-    intent.defaultExecutor = m_renderGraphExecutor;
+    intent.setDefaultExecutor(m_renderGraphExecutor);
   } else if (m_engineSet && m_engine == "raster") {
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+    intent.setDefaultExecutor(engine::graph::RenderExecutorPreference::Rasterizer);
   } else if (m_engineSet && m_engine == "wireframe") {
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
+    intent.setDefaultExecutor(engine::graph::RenderExecutorPreference::Wireframe);
   } else if (m_engineSet) {
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+    intent.setDefaultExecutor(engine::graph::RenderExecutorPreference::Raytracer);
   }
   if (m_renderGraphViewModeSet) {
-    intent.defaultViewMode = m_renderGraphViewMode;
+    intent.setDefaultViewMode(m_renderGraphViewMode);
   } else if (!m_renderGraphExecutorSet && m_engineSet && m_engine == "wireframe") {
-    intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
+    intent.setDefaultViewMode(engine::graph::RenderViewMode::Wireframe);
   }
   if (!m_renderGraphCamera.isEmpty()) {
     intent.setDefaultCamera(
@@ -683,7 +683,7 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
     intent.enablePreviewShadows = true;
   }
   if (m_rasterPostProcessAASet) {
-    intent.postProcessAA = commandLinePostProcessAA();
+    intent.setPostProcessAA(commandLinePostProcessAA());
   }
   for (const auto& aovOutput : m_renderGraphAOVOutputs) {
     intent.requestExportedAOV(aovOutput.viewMode);
