@@ -21,8 +21,13 @@ set(sequence_dir "${TEST_OUTPUT_DIR}/sequence")
 set(sequence_pattern "${sequence_dir}/frame_%04d.png")
 set(missing_placeholder_pattern "${sequence_dir}/frame.png")
 set(unsigned_placeholder_pattern "${sequence_dir}/frame_%04u.png")
+set(integer_placeholder_pattern "${sequence_dir}/integer_%d.png")
+set(i_placeholder_pattern "${sequence_dir}/i_%04i.png")
+set(multiple_placeholder_pattern "${sequence_dir}/multiple_%04d_%04i.png")
+set(incomplete_placeholder_pattern "${sequence_dir}/incomplete_%")
 set(invalid_range_pattern "${sequence_dir}/invalid_%04d.png")
 set(static_animation_pattern "${sequence_dir}/static_%04d.png")
+set(graph_output_plan "${sequence_dir}/animation-graph.json")
 
 file(MAKE_DIRECTORY "${sequence_dir}")
 
@@ -90,6 +95,70 @@ rendercli_expect_failure(
 )
 rendercli_assert_not_exists("${invalid_frame}" NAME "invalid --frame output")
 
+rendercli_expect_failure(
+  NAME "rendercli rejects non-integer --frame_start"
+  STDERR_MATCHES "Frame start must be an integer"
+  COMMAND
+    "${RENDERCLI}" --animation --frame_start early
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects non-integer --frame_end"
+  STDERR_MATCHES "Frame end must be an integer"
+  COMMAND
+    "${RENDERCLI}" --animation --frame_end late
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects non-positive --fps"
+  STDERR_MATCHES "FPS must be a positive number"
+  COMMAND
+    "${RENDERCLI}" --animation --fps 0
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects non-numeric --fps"
+  STDERR_MATCHES "FPS must be a positive number"
+  COMMAND
+    "${RENDERCLI}" --animation --fps fast
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects --animation with --frame"
+  STDERR_MATCHES "Cannot combine --animation with --frame"
+  COMMAND
+    "${RENDERCLI}" --animation --frame 1
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects --animation with --repeat"
+  STDERR_MATCHES "Cannot combine --animation with --repeat"
+  COMMAND
+    "${RENDERCLI}" --animation --repeat 2
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects --animation with graph-only export"
+  STDERR_MATCHES "Cannot combine --animation with --render_graph_only"
+  COMMAND
+    "${RENDERCLI}" --animation --render_graph_only
+    "${animated_scene}" "${sequence_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects --animation with graph output"
+  STDERR_MATCHES "Cannot combine --animation with --render_graph_out"
+  COMMAND
+    "${RENDERCLI}" --animation --render_graph_out "${graph_output_plan}"
+    "${animated_scene}" "${sequence_pattern}"
+)
+
 rendercli_run(
   NAME "rendercli --animation renders selected frame range"
   STDOUT_MATCHES "frame 1/3 number=2"
@@ -109,6 +178,28 @@ rendercli_assert_not_exists("${sequence_dir}/frame_0001.png"
 rendercli_assert_not_exists("${sequence_dir}/frame_0005.png"
                             NAME "rendercli --animation honors --frame_end")
 
+rendercli_run(
+  NAME "rendercli --animation accepts percent d placeholder"
+  STDOUT_MATCHES "frame 1/1 number=2"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    --frame_start 2 --frame_end 2
+    "${animated_scene}" "${integer_placeholder_pattern}"
+)
+rendercli_assert_image_dimensions("${sequence_dir}/integer_2.png" 16 16
+                                  NAME "rendercli --animation %d dimensions")
+
+rendercli_run(
+  NAME "rendercli --animation accepts percent i placeholder"
+  STDOUT_MATCHES "frame 1/1 number=3"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    --frame_start 3 --frame_end 3
+    "${animated_scene}" "${i_placeholder_pattern}"
+)
+rendercli_assert_image_dimensions("${sequence_dir}/i_0003.png" 16 16
+                                  NAME "rendercli --animation %04i dimensions")
+
 rendercli_expect_failure(
   NAME "rendercli --animation rejects missing frame placeholder"
   STDERR_MATCHES "printf-style signed integer placeholder"
@@ -123,6 +214,22 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
     "${animated_scene}" "${unsigned_placeholder_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli --animation rejects multiple frame placeholders"
+  STDERR_MATCHES "exactly one printf-style signed integer placeholder"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    "${animated_scene}" "${multiple_placeholder_pattern}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli --animation rejects incomplete frame placeholder"
+  STDERR_MATCHES "incomplete printf placeholder"
+  COMMAND
+    "${RENDERCLI}" --engine wireframe --width 16 --height 16 --animation
+    "${animated_scene}" "${incomplete_placeholder_pattern}"
 )
 
 rendercli_expect_failure(
