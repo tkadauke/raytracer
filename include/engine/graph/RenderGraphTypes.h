@@ -459,6 +459,7 @@ namespace engine::graph {
     void addWrite(RenderResourceId resource);
     bool readsResource(const RenderResourceId& resource) const;
     bool writesResource(const RenderResourceId& resource) const;
+    bool supportsResourceDomain(RenderResourceDomain domain) const;
     bool producesWhenDisabled() const;
     const ResourceRead& singleRead() const;
     const ResourceWrite& singleWrite() const;
