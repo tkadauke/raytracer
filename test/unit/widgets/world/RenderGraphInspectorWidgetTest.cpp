@@ -248,6 +248,10 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(
       nodeTextContains(graphNodeItem(graph->scene(), "pass", "raytrace_beauty"), "stage 1"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "main_color"));
+    EXPECT_TRUE(
+      nodeTextContains(graphNodeItem(graph->scene(), "resource", "main_color"), "rgb_double"));
+    EXPECT_TRUE(
+      nodeTextContains(graphNodeItem(graph->scene(), "resource", "main_color"), "exported"));
 
     ASSERT_EQ(1, resources->topLevelItemCount());
     EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->text(0));

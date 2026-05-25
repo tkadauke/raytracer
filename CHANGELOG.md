@@ -198,6 +198,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph resource labels.** Resource nodes in the Render Graph
+  dock now show format, lifetime, and size directly in the graph view.
+  — GPT-5
 - **Modeler render graph node labels.** Pass nodes in the Render Graph dock now
   show their execution stage and serial order directly in the graph view.
   — GPT-5

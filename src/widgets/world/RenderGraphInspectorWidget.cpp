@@ -773,7 +773,10 @@ void RenderGraphInspectorWidget::rebuildGraph() {
 
     QPen resourcePen(QColor(80, 95, 110));
     resourcePen.setWidthF(resource.id == p->selectedResourceId ? 2.5 : 1.2);
-    QStringList lines{qstr(resource.id), qstr(toString(resource.type))};
+    QStringList lines{qstr(resource.id),
+                      qstr(toString(resource.type)) + QStringLiteral("/") +
+                        toString(resource.format),
+                      qstr(toString(resource.lifetime)), sizeText(resource)};
     const QString traceLine = resourceTraceLine(trace, resource);
     if (!traceLine.isEmpty())
       lines << traceLine;
