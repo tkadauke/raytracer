@@ -422,6 +422,9 @@ rendercli_run(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     --render_graph_shading_profile clay
+    --render_graph_shading_parameter levels=4
+    --render_graph_shading_parameter enabled=true
+    --render_graph_shading_parameter ramp=warm
     --width 32 --height 16
     "${static_scene}" "${shading_profile_override_plan}"
 )
@@ -432,6 +435,18 @@ if(NOT shading_profile_override_graph MATCHES "\"sceneShadingProfile\"")
 endif()
 if(NOT shading_profile_override_graph MATCHES "\"name\": \"clay\"")
   message(FATAL_ERROR "graph shading profile override did not carry clay: ${shading_profile_override_graph}")
+endif()
+if(NOT shading_profile_override_graph MATCHES "\"parameters\"")
+  message(FATAL_ERROR "graph shading profile override did not write parameters: ${shading_profile_override_graph}")
+endif()
+if(NOT shading_profile_override_graph MATCHES "\"levels\": 4")
+  message(FATAL_ERROR "graph shading profile override did not carry numeric parameter: ${shading_profile_override_graph}")
+endif()
+if(NOT shading_profile_override_graph MATCHES "\"enabled\": true")
+  message(FATAL_ERROR "graph shading profile override did not carry bool parameter: ${shading_profile_override_graph}")
+endif()
+if(NOT shading_profile_override_graph MATCHES "\"ramp\": \"warm\"")
+  message(FATAL_ERROR "graph shading profile override did not carry string parameter: ${shading_profile_override_graph}")
 endif()
 
 rendercli_run(
@@ -518,6 +533,14 @@ rendercli_expect_failure(
   STDERR_MATCHES "Render graph view mode must be"
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_view motion_vector
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid render graph shading parameter"
+  STDERR_MATCHES "Render graph shading parameter must use key=value syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_shading_parameter levels
     "${static_scene}" "${invalid_plan}"
 )
 

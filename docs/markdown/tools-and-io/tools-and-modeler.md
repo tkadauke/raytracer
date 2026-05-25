@@ -84,7 +84,9 @@ camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
 records the requested camera intent for inspection and future alternate-camera
 execution. `--render_graph_shading_profile name` overrides the default named
-shading profile and records it on synthesized scene-rendering passes. The
+shading profile, and repeated `--render_graph_shading_parameter key=value`
+options attach scalar profile parameters. The compiler records that profile
+intent on synthesized scene-rendering passes. The
 depth, normal, object-id, material-id, and world-position views
 compile graph-visible AOV passes and visualization passes that write the final
 color image. When the selected graph executor is the rasterizer, those AOV
