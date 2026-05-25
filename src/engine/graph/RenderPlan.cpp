@@ -364,6 +364,19 @@ namespace engine::graph {
     return result;
   }
 
+  std::optional<int> RenderPlan::executionStageNumber(const RenderPassId& id) const {
+    int stageNumber = 1;
+    for (const auto& stage : executionStages()) {
+      for (const RenderPassNode* pass : stage) {
+        if (pass->id == id) {
+          return stageNumber;
+        }
+      }
+      ++stageNumber;
+    }
+    return std::nullopt;
+  }
+
   bool RenderPlan::executionEquivalentTo(const RenderPlan& other) const {
     return m_resources.size() == other.m_resources.size() &&
            std::equal(m_resources.begin(), m_resources.end(), other.m_resources.begin(),

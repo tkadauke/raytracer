@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -76,6 +77,7 @@ namespace engine::graph {
                           const RenderResourceId& destination) const;
     std::vector<RenderPassDependency> dependencies() const;
     std::vector<std::vector<const RenderPassNode*>> executionStages() const;
+    std::optional<int> executionStageNumber(const RenderPassId& id) const;
     std::vector<const RenderPassNode*> executionOrder() const;
 
     /**

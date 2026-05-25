@@ -253,6 +253,10 @@ namespace RenderPlanTest {
     EXPECT_EQ("depth_aov", stages[0][2]->id);
     ASSERT_EQ(1u, stages[1].size());
     EXPECT_EQ("tonemap", stages[1][0]->id);
+    EXPECT_EQ(1, plan.executionStageNumber("beauty"));
+    EXPECT_EQ(1, plan.executionStageNumber("normal_aov"));
+    EXPECT_EQ(2, plan.executionStageNumber("tonemap"));
+    EXPECT_FALSE(plan.executionStageNumber("missing"));
 
     const std::string text = plan.toText();
     EXPECT_NE(std::string::npos,
