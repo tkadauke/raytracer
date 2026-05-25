@@ -18,6 +18,14 @@ namespace render {
   * group geometry is converted into a render::Composite wrapped in this group's
   * transform; lights are registered with the runtime scene using their global
   * transform.
+  *
+  * Scene JSON may use either `"Group"` or `"Collection"` as the element type.
+  * Both names create this class; `Collection` is an importer-friendly alias for
+  * formats and tools that use collection terminology for hierarchy-only nodes.
+  *
+  * Groups are authoring hierarchy, not render layers or AOVs. Their `visible`
+  * flag decides whether descendant scene objects are converted for rendering;
+  * it does not create a separate output pass, mask, or render-graph resource.
   */
 class Group : public Transformable {
   Q_OBJECT
@@ -25,7 +33,7 @@ class Group : public Transformable {
 
 public:
   /**
-    * Default constructor.
+    * Creates a visible, empty group with no importer metadata.
     */
   explicit Group(Element* parent = nullptr);
 
@@ -40,6 +48,10 @@ public:
 
   /**
     * Sets the group's visibility property.
+    *
+    * Hiding a group suppresses every descendant surface, light, and nested
+    * group during scene conversion. Showing it only re-enables the group node
+    * itself; descendants still apply their own `visible` flags.
     */
   inline void setVisible(bool visible) {
     m_visible = visible;
@@ -68,6 +80,10 @@ public:
 
   /**
     * Replaces importer/inspection metadata attached to this group.
+    *
+    * Metadata is intentionally opaque to the renderer. Importers can store
+    * source object IDs, layer names, collection names, category tags, or other
+    * structured JSON here without changing runtime primitive generation.
     */
   inline void setMetadata(const QJsonObject& metadata) {
     m_metadata = metadata;
@@ -94,6 +110,9 @@ public:
 
   /**
     * Reads this group from scene JSON, including optional metadata.
+    *
+    * The `metadata` member must be a JSON object when present. Unknown metadata
+    * keys and value types are preserved as-is.
     */
   void read(const QJsonObject& json) override;
 
@@ -107,6 +126,12 @@ public:
     * Hidden groups return null and do not register descendant lights.
     */
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
+
+  /**
+    * @returns true for surfaces, lights, and other groups. Groups reject
+    *   materials, textures, cameras, and other authoring objects because those
+    *   belong at scene scope or on a specific surface.
+    */
   virtual bool canHaveChild(Element* child) const;
 
 private:

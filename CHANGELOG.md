@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Group/Collection documentation and fixtures.** Group source docs and the
+  scene-structure textbook now describe hierarchy-only collections, visibility,
+  metadata, and the distinction from render layers/AOVs; a reusable nested
+  group fixture covers importer-facing transform and visibility behavior. —
+  GPT-5
 - **Curve/path documentation and fixtures.** Public curve docs and the
   tessellation textbook now describe polyline data, ribbon/tube tessellation,
   curve overlays, and attribute-color rendering; reusable plain and attributed

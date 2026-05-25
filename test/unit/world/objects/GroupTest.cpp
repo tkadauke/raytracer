@@ -435,6 +435,36 @@ namespace GroupTest {
     EXPECT_EQ(1u, visible->lights().size());
   }
 
+  TEST(Scene, ShouldLoadNestedGroupTransformVisibilityFixture) {
+    Scene scene;
+    ASSERT_TRUE(scene.load("test/fixtures/groups/nested_transforms_visibility.json"));
+
+    auto* rootCollection =
+      dynamic_cast<Group*>(scene.findById("{90000000-0000-0000-0000-000000000100}"));
+    ASSERT_NE(nullptr, rootCollection);
+    EXPECT_EQ(QString("fixture"), rootCollection->metadataValue("sourceFormat").toString());
+    EXPECT_EQ(QString("authoring-hierarchy"),
+              rootCollection->metadataValue("layerName").toString());
+    EXPECT_TRUE(rootCollection->visible());
+
+    auto* visibleSubassembly =
+      dynamic_cast<Group*>(scene.findById("{90000000-0000-0000-0000-000000000110}"));
+    ASSERT_NE(nullptr, visibleSubassembly);
+    EXPECT_EQ(1, visibleSubassembly->metadataValue("stepIndex").toInt());
+
+    auto* hiddenSubassembly =
+      dynamic_cast<Group*>(scene.findById("{90000000-0000-0000-0000-000000000120}"));
+    ASSERT_NE(nullptr, hiddenSubassembly);
+    EXPECT_FALSE(hiddenSubassembly->visible());
+
+    auto rt = scene.toRaytracerScene();
+    EXPECT_EQ(1, countLeaves(*rt));
+    EXPECT_EQ(1u, rt->lights().size());
+    ASSERT_EQ(1u, rt->primitives().size());
+    EXPECT_EQ(Vector3d(2.0, 0.375, -0.25), rt->primitives()[0]->boundingBox().min());
+    EXPECT_EQ(Vector3d(3.0, 0.625, 0.25), rt->primitives()[0]->boundingBox().max());
+  }
+
   TEST(Scene, HiddenNestedGroupRendersAsBackgroundInRaytracerRasterizerAndWireframe) {
     auto rt = sceneWithNestedGroup(true, false, true)->toRaytracerScene();
 

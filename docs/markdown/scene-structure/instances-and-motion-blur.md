@@ -68,6 +68,34 @@ inspection tools. Fields such as `sourceFormat`, `sourceId`,
 editable group and round-trip through scene files, but they are not
 copied into runtime primitives and do not change rendering.
 
+Scene files may call the same object either `Group` or `Collection`.
+Both names instantiate [`Group`](../../../include/world/objects/Group.h).
+The alias exists because import formats and DCC tools often use
+"collection", "assembly", "node", or "layer" for hierarchy-only
+containers. Once loaded, all of those names mean the same thing in this
+codebase: an editable transform and visibility parent.
+
+That makes groups different from **render layers**, **render graph
+groups**, and **AOVs**. A render layer or AOV is an output concern: it
+asks the render graph to produce or suppress a pass, a buffer, or a
+view such as depth, normal, material-id, or object-id. A scene group is
+input hierarchy: it decides which authoring objects exist in the
+runtime scene and where their local coordinates land. Hiding a group
+does not create a mask output, and assigning metadata such as
+`layerName` does not request an AOV. Importers should preserve that
+metadata for inspection while still using `visible` as the only group
+rendering switch.
+
+The reusable fixture
+[`nested_transforms_visibility.json`](../../../test/fixtures/groups/nested_transforms_visibility.json)
+captures the intended importer shape. It contains a top-level
+`Collection`, a visible nested `Group`, a hidden nested `Group`, a
+hidden child surface inside the visible branch, metadata on the group
+nodes, and transforms that compose into one visible runtime sphere.
+Future format importers can compare against it when verifying that
+source assemblies and collections survive scene JSON loading without
+being confused with render-output layers.
+
 ## <a id="the-transform-contract"></a>The transform contract
 The contract `Instance` enforces: the wrapped primitive's
 geometry is defined in *local space*, and the `setMatrix` call
