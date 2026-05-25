@@ -32,7 +32,7 @@ namespace WireframePassStateTest {
     const auto state = RenderPassState::fromJson(RenderPassKind::Beauty,
                                                  RenderExecutorKind::Wireframe, json, "parameters");
 
-    const auto* wireframeState = dynamic_cast<const WireframePassState*>(state.get());
+    const auto* wireframeState = state->asWireframePassState();
     ASSERT_NE(nullptr, wireframeState);
 
     engine::wireframe::Wireframe wireframe(nullptr);

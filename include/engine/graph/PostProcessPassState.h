@@ -44,6 +44,7 @@ namespace engine::graph {
     fromJson(const QJsonObject& object, const std::string& path = "parameters");
     static std::shared_ptr<const PostProcessAAState> fromPass(const RenderPassNode& pass);
 
+    const PostProcessAAState* asPostProcessAAState() const override;
     QJsonObject toJson() const override;
 
     virtual const char* modeName() const = 0;

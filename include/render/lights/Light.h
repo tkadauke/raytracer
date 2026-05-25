@@ -5,6 +5,10 @@
 
 #include "render/Object.h"
 
+#include <iosfwd>
+#include <optional>
+#include <string>
+
 namespace render {
   /**
     * @brief Abstract base for scene light sources.
@@ -65,5 +69,33 @@ namespace render {
       * runtime light only carries one Colord.
       */
     virtual Colord radiance() const = 0;
+
+    /**
+      * Stable type name used by deterministic fingerprints. Unlike RTTI names,
+      * this is controlled by the concrete light class and remains stable across
+      * compilers.
+      */
+    virtual const char* fingerprintType() const = 0;
+
+    /**
+      * Writes the light-specific state that can influence a render. The render
+      * graph cache uses this through the Light hierarchy instead of switching on
+      * concrete light types.
+      */
+    virtual void writeFingerprint(std::ostream& out, const std::string& prefix) const;
+
+    /**
+      * @returns the light direction used by a cascaded directional shadow-map
+      * builder when this light can be represented that way, or `std::nullopt`
+      * for light types that need another shadow-map shape.
+      */
+    virtual std::optional<Vector3d> directionalShadowMapDirection() const;
+
+  protected:
+    void writeCommonFingerprint(std::ostream& out, const std::string& prefix) const;
+    static void writeFingerprintColor(std::ostream& out, const std::string& name,
+                                      const Colord& color);
+    static void writeFingerprintVector(std::ostream& out, const std::string& name,
+                                       const Vector3d& vector);
   };
 }

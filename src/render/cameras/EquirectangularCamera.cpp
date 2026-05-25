@@ -15,6 +15,10 @@ std::shared_ptr<Camera> EquirectangularCamera::clone() const {
   return result;
 }
 
+const char* EquirectangularCamera::fingerprintType() const {
+  return "EquirectangularCamera";
+}
+
 Vector3d EquirectangularCamera::direction(double x, double y) const {
   // Map pixel (x, y) → (lon, lat) in the canonical equirectangular layout:
   //   x = 0       → lon = -π   (left edge,    behind camera)

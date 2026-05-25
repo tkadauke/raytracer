@@ -68,6 +68,19 @@ namespace TransparentMaterialTest {
     ASSERT_EQ(0.5, material.reflectionCoefficient());
   }
 
+  TEST(TransparentMaterial, ShouldDescribeRasterRecursiveFallback) {
+    TransparentMaterial material;
+    material.setTransmissionCoefficient(0.25);
+
+    ASSERT_EQ(Material::RasterRecursiveFallback::TransparentAlphaPhong,
+              material.rasterRecursiveFallback());
+    ASSERT_EQ(0.75, material.rasterPreviewAlpha());
+    ASSERT_STREQ("Rasterizer fallback: TransparentMaterial previews its local Phong base with "
+                 "source alpha from transmission; refraction/reflection recursion remains "
+                 "raytracer-only.",
+                 material.rasterRecursiveFallbackWarning());
+  }
+
   // ---- shading-behaviour tests ---------------------------------------------
   //
   // TransparentMaterial::shade has two branches:

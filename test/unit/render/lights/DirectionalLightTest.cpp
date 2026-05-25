@@ -32,4 +32,12 @@ namespace DirectionalLightTest {
     DirectionalLight light(Vector3d(-0.5, -1, -0.5), Colord::white());
     ASSERT_EQ(Colord::white(), light.radiance());
   }
+
+  TEST(DirectionalLight, ShouldProvideDirectionalShadowMapDirection) {
+    const Vector3d dir = Vector3d(-0.5, -1, -0.5).normalized();
+    DirectionalLight light(dir, Colord::white());
+
+    ASSERT_TRUE(light.directionalShadowMapDirection().has_value());
+    ASSERT_EQ(dir, *light.directionalShadowMapDirection());
+  }
 }

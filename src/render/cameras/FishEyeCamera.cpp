@@ -15,6 +15,10 @@ std::shared_ptr<Camera> FishEyeCamera::clone() const {
   return result;
 }
 
+const char* FishEyeCamera::fingerprintType() const {
+  return "FishEyeCamera";
+}
+
 Vector3d FishEyeCamera::direction(double x, double y) const {
   Vector2d point(2.0 / viewPlane()->width() * x - 1.0, 2.0 / viewPlane()->height() * y - 1.0);
   double r2 = point * point;

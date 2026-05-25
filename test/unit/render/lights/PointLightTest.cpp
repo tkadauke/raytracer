@@ -30,4 +30,9 @@ namespace PointLightTest {
     PointLight light(Vector3d(1, 0, 0), Colord::white());
     ASSERT_EQ(Colord::white(), light.radiance());
   }
+
+  TEST(PointLight, ShouldNotProvideDirectionalShadowMapDirection) {
+    PointLight light(Vector3d(1, 0, 0), Colord::white());
+    ASSERT_FALSE(light.directionalShadowMapDirection().has_value());
+  }
 }

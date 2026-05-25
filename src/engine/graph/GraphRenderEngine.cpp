@@ -9,8 +9,7 @@
 #include "engine/graph/RenderResourceStorage.h"
 #include "core/math/BoundingBox.h"
 #include "render/cameras/Camera.h"
-#include "render/lights/DirectionalLight.h"
-#include "render/lights/PointLight.h"
+#include "render/lights/Light.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
 #include "render/tonemap/Tonemap.h"
@@ -22,7 +21,6 @@
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
-#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -207,19 +205,6 @@ namespace engine::graph {
       }
     }
 
-    template<class T>
-    const char* dynamicTypeName(const T& value) {
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wpotentially-evaluated-expression"
-#endif
-      const char* result = typeid(value).name();
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-      return result;
-    }
-
     void writeLightFingerprint(std::ostream& out, const std::shared_ptr<render::Light>& light,
                                std::size_t index) {
       const std::string prefix = "light[" + std::to_string(index) + "].";
@@ -228,21 +213,12 @@ namespace engine::graph {
         return;
       }
 
-      out << prefix << "type=" << dynamicTypeName(*light) << ';';
-      writeColorFingerprint(out, (prefix + "radiance").c_str(), light->radiance());
-      if (auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light)) {
-        writeVectorFingerprint(out, (prefix + "direction").c_str(), directional->direction());
-      } else if (auto point = std::dynamic_pointer_cast<render::PointLight>(light)) {
-        writeVectorFingerprint(out, (prefix + "position").c_str(), point->position());
-      } else {
-        writeVectorFingerprint(out, (prefix + "directionAtOrigin").c_str(),
-                               light->direction(Vector3d::null));
-      }
+      light->writeFingerprint(out, prefix);
     }
 
     void writeCameraFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
       if (auto camera = graph.camera()) {
-        out << "camera.type=" << dynamicTypeName(*camera) << ';'
+        out << "camera.type=" << camera->fingerprintType() << ';'
             << "camera.aspectMode=" << static_cast<int>(camera->aspectMode()) << ';'
             << "camera.aspectRatio=" << camera->aspectRatio() << ';';
         writeVectorFingerprint(out, "camera.position", camera->position());
@@ -271,7 +247,7 @@ namespace engine::graph {
     void writeDisplayFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
       writeColorFingerprint(out, "engine.background", graph.backgroundColor());
       if (auto tonemap = graph.tonemap()) {
-        out << "tonemap.type=" << dynamicTypeName(*tonemap) << ';';
+        out << "tonemap.type=" << tonemap->fingerprintType() << ';';
       } else {
         out << "tonemap=null;";
       }

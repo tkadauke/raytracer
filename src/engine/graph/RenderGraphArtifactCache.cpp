@@ -94,6 +94,10 @@ namespace engine::graph {
     return m_description;
   }
 
+  bool RenderGraphCachedArtifact::copyDepthTo(Buffer<double>&) const {
+    return false;
+  }
+
   RenderGraphDepthArtifact::RenderGraphDepthArtifact(RenderGraphCacheKey key,
                                                      const Buffer<double>& depth,
                                                      std::string description)
@@ -110,7 +114,7 @@ namespace engine::graph {
     return m_depth;
   }
 
-  void RenderGraphDepthArtifact::copyTo(Buffer<double>& destination) const {
+  bool RenderGraphDepthArtifact::copyDepthTo(Buffer<double>& destination) const {
     if (destination.width() != m_depth.width() || destination.height() != m_depth.height()) {
       throw std::runtime_error("cached depth artifact copy requires matching buffer dimensions");
     }
@@ -120,6 +124,7 @@ namespace engine::graph {
         destination[y][x] = m_depth[y][x];
       }
     }
+    return true;
   }
 
   void RenderGraphArtifactCache::store(std::shared_ptr<const RenderGraphCachedArtifact> artifact) {

@@ -14,6 +14,10 @@ std::shared_ptr<Camera> PinholeCamera::clone() const {
   return result;
 }
 
+const char* PinholeCamera::fingerprintType() const {
+  return "PinholeCamera";
+}
+
 Rayd PinholeCamera::rayForPixel(double x, double y, render::SampleStream&) const {
   Vector3d position = matrix() * Vector4d(0, 0, -m_distance);
   Vector3d pixel = viewPlane()->pixelAt(x, y);

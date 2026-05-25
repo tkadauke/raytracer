@@ -20,5 +20,9 @@ namespace render {
     inline Colord apply(const Colord& hdr) const override {
       return hdr;
     }
+
+    inline const char* fingerprintType() const override {
+      return "LinearTonemap";
+    }
   };
 }
