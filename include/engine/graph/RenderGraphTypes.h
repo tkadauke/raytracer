@@ -3,10 +3,12 @@
 #include <QJsonObject>
 #include <QJsonValue>
 
+#include <map>
 #include <memory>
 #include <optional>
 #include <set>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace engine::graph {
@@ -152,11 +154,39 @@ namespace engine::graph {
   };
 
   /**
+    * Parsed scalar parameter for a named shading profile.
+    */
+  class ShadingProfileParameterValue {
+  public:
+    using Value = std::variant<bool, double, std::string>;
+
+    ShadingProfileParameterValue();
+    explicit ShadingProfileParameterValue(bool value);
+    explicit ShadingProfileParameterValue(double value);
+    explicit ShadingProfileParameterValue(std::string value);
+
+    const Value& value() const;
+    QJsonValue toJson() const;
+    std::string displayText() const;
+
+    bool operator==(const ShadingProfileParameterValue& other) const;
+    bool operator!=(const ShadingProfileParameterValue& other) const;
+
+    static ShadingProfileParameterValue fromJson(const QJsonValue& value,
+                                                 std::string path = "profileParameter");
+
+  private:
+    Value m_value;
+  };
+
+  using ShadingProfileParameters = std::map<std::string, ShadingProfileParameterValue>;
+
+  /**
     * Named shading profile such as "default", "toon", "clay", or "xray".
     */
   struct ShadingProfileRef {
     std::string name{"default"};
-    QJsonObject parameters;
+    ShadingProfileParameters parameters;
 
     bool isDefault() const;
     std::string displayText() const;
