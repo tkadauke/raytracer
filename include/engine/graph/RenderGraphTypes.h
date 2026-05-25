@@ -416,6 +416,7 @@ namespace engine::graph {
 
     bool hasImageShape() const;
     bool externallyAvailable() const;
+    bool requiresExternalBinding() const;
     QJsonObject toJson() const;
     static RenderResourceDescriptor fromJson(const QJsonObject& object,
                                              std::string path = "resource");

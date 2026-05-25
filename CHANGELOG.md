@@ -350,6 +350,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Render graph external inputs.** Graph execution now rejects plans that read
+  imported or history resources without an external binding API instead of
+  allocating empty placeholders for those inputs. — GPT-5
 - **Render graph resource-domain validation.** Plan validation now rejects
   current CPU-backed passes that read or write GPU-domain resources, making
   replayed future-domain graph JSON fail before execution. — GPT-5
