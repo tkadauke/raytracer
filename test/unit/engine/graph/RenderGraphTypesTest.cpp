@@ -29,6 +29,16 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("shot-camera, snapshot", sceneCamera.displayText());
   }
 
+  TEST(ShadingProfileRef, FormatsDisplayTextAndDetectsDefaultProfile) {
+    ShadingProfileRef profile;
+    EXPECT_TRUE(profile.isDefault());
+    EXPECT_EQ("default", profile.displayText());
+
+    profile.name = "toon";
+    EXPECT_FALSE(profile.isDefault());
+    EXPECT_EQ("toon", profile.displayText());
+  }
+
   TEST(RenderIntent, SerializesToSceneJsonShape) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
@@ -158,6 +168,8 @@ namespace RenderGraphTypesTest {
     ASSERT_TRUE(effective.defaultSceneView().camera.has_value());
     ASSERT_TRUE(effective.defaultSceneView().camera->sceneCameraId.has_value());
     EXPECT_EQ("inspection-camera", *effective.defaultSceneView().camera->sceneCameraId);
+    ASSERT_TRUE(effective.defaultSceneView().shadingProfile.has_value());
+    EXPECT_EQ("clay", effective.defaultSceneView().shadingProfile->name);
     ASSERT_EQ(1u, effective.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::Tag, effective.viewOverrides.front().selector.kind);
   }
