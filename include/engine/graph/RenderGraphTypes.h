@@ -36,7 +36,7 @@ namespace engine::graph {
     * Specific looks such as toon or clay shading are named shading profiles,
     * not enum values here. This enum stays limited to structural view modes.
     */
-  enum class RenderViewMode { Default, Beauty, Wireframe, Depth, Normal, ObjectId };
+  enum class RenderViewMode { Default, Beauty, Wireframe, Depth, Normal, ObjectId, MaterialId };
 
   /**
     * User-facing image-space post-process anti-aliasing request.

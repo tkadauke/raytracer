@@ -138,6 +138,22 @@ namespace engine::graph {
       return objectId;
     }
 
+    RenderResourceDescriptor materialIdResource(const std::string& id, const std::string& name,
+                                                const RenderTargetSpec& target,
+                                                RenderResourceLifetime lifetime) {
+      RenderResourceDescriptor materialId;
+      materialId.id = id;
+      materialId.name = name;
+      materialId.type = RenderResourceType::MaterialId;
+      materialId.format = RenderResourceFormat::UInt32;
+      materialId.width = target.width;
+      materialId.height = target.height;
+      materialId.sampleCount = 1;
+      materialId.domain = RenderResourceDomain::CPU;
+      materialId.lifetime = lifetime;
+      return materialId;
+    }
+
     std::string postProcessAAPassId(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
@@ -283,6 +299,40 @@ namespace engine::graph {
 
       return plan;
     }
+
+    RenderPlan materialIdAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
+      RenderPlan plan;
+
+      RenderPassNode materialId;
+      materialId.id = "material_id_aov";
+      materialId.name = "Material ID AOV";
+      materialId.kind = RenderPassKind::AOV;
+      materialId.executor = executor;
+      materialId.features = {"main", "aov", "material_id", executorFeature(executor)};
+      materialId.sceneView.selector = SceneSelector::all();
+      materialId.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      materialId.canRunConcurrently = false;
+      plan.addResourceProducer(materialId,
+                               materialIdResource("material_id_aov", "Material ID AOV", target,
+                                                  RenderResourceLifetime::Transient));
+
+      RenderPassNode visualize;
+      visualize.id = "visualize_material_id_aov";
+      visualize.name = "Visualize material ID AOV";
+      visualize.kind = RenderPassKind::AOV;
+      visualize.executor = RenderExecutorKind::PostProcess;
+      visualize.features = {"main", "aov", "material_id", "visualization", "postprocess"};
+      visualize.reads.push_back({"material_id_aov"});
+      visualize.writes.push_back({"main_color"});
+      visualize.sceneView.selector = SceneSelector::all();
+      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      visualize.canRunConcurrently = false;
+      RenderResourceDescriptor mainColor =
+        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+      plan.routeResourceThroughPass("material_id_aov", mainColor, visualize);
+
+      return plan;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
@@ -298,6 +348,9 @@ namespace engine::graph {
     }
     if (intent.defaultViewMode == RenderViewMode::ObjectId) {
       return objectIdAOVPlan(target, executor);
+    }
+    if (intent.defaultViewMode == RenderViewMode::MaterialId) {
+      return materialIdAOVPlan(target, executor);
     }
 
     RenderPlan plan;

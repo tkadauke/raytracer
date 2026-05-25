@@ -25,6 +25,7 @@ set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
 set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
 set(normal_view_render "${TEST_OUTPUT_DIR}/graph-normal-view.png")
 set(object_id_view_render "${TEST_OUTPUT_DIR}/graph-object-id-view.png")
+set(material_id_view_render "${TEST_OUTPUT_DIR}/graph-material-id-view.png")
 set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
@@ -381,7 +382,7 @@ rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph view"
   STDERR_MATCHES "Render graph view mode must be"
   COMMAND
-    "${RENDERCLI}" --render_graph_only --render_graph_view material_id
+    "${RENDERCLI}" --render_graph_only --render_graph_view world_position
     "${static_scene}" "${invalid_plan}"
 )
 
@@ -444,6 +445,26 @@ rendercli_run(
     "${static_scene}" "${object_id_view_render}"
 )
 rendercli_assert_nonempty("${object_id_view_render}" NAME "object ID AOV graph render output")
+
+rendercli_run(
+  NAME "rendercli exports material ID AOV render graph"
+  STDOUT_MATCHES
+    "material_id_aov"
+    "visualize_material_id_aov"
+    "main_color"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view material_id
+    --width 32 --height 24
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli renders material ID AOV view through graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_view material_id --width 32 --height 24
+    "${static_scene}" "${material_id_view_render}"
+)
+rendercli_assert_nonempty("${material_id_view_render}" NAME "material ID AOV graph render output")
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid disabled pass kind"

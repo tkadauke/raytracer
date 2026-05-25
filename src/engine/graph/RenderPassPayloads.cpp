@@ -411,6 +411,40 @@ namespace engine::graph {
       std::map<const render::Primitive*, std::uint32_t> m_objectIds;
     };
 
+    class MaterialIdAOVPass : public PrimaryIntersectionAOVPass {
+    private:
+      void clearOutput(RenderExecutionContext& context, const RenderResourceId& resource) override {
+        requireObjectIdResource(context.storage(), resource, context.pass());
+        context.storage().objectId(resource).clear(0);
+
+        m_materialIdsByPrimitive.clear();
+        std::map<const render::Material*, std::uint32_t> idsByMaterial;
+        std::uint32_t nextId = 1;
+        if (auto scene = context.graph().scene()) {
+          scene->forEachLeaf(
+            [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
+              if (!primitive || !material) {
+                return;
+              }
+              const auto [idIt, inserted] = idsByMaterial.emplace(material.get(), nextId);
+              if (inserted) {
+                ++nextId;
+              }
+              m_materialIdsByPrimitive[primitive] = idIt->second;
+            });
+        }
+      }
+
+      void writeHit(RenderExecutionContext& context, const RenderResourceId& resource, int x, int y,
+                    const HitPoint& hit) override {
+        const auto it = m_materialIdsByPrimitive.find(hit.primitive());
+        context.storage().objectId(resource)[y][x] =
+          it == m_materialIdsByPrimitive.end() ? 0 : it->second;
+      }
+
+      std::map<const render::Primitive*, std::uint32_t> m_materialIdsByPrimitive;
+    };
+
     class DepthVisualizationPass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -656,6 +690,15 @@ namespace engine::graph {
 
     if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "object_id")) {
       return std::make_unique<ObjectIdAOVPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "material_id") &&
+        hasFeature(pass, "visualization")) {
+      return std::make_unique<ObjectIdVisualizationPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "material_id")) {
+      return std::make_unique<MaterialIdAOVPass>();
     }
 
     if (pass.kind == RenderPassKind::PostProcess &&

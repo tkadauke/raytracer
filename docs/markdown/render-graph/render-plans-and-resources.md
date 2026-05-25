@@ -280,12 +280,12 @@ request matching values.
 Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_executor` selects the default executor and
 `--render_graph_view` selects the structural view mode. The `depth`, `normal`,
-and `object_id` views compile real resource-producing AOV nodes followed by
-visualization passes, so the exported plan and the Modeler inspector can show
-AOVs as graph resources rather than hiding them inside a direct engine.
-`--render_graph_wireframe_overlay` adds an overlay pass between the primary
-beauty pass and the tonemap pass. Selector-specific overrides will matter once
-compilation can produce multi-selection plans.
+`object_id`, and `material_id` views compile real resource-producing AOV nodes
+followed by visualization passes, so the exported plan and the Modeler
+inspector can show AOVs as graph resources rather than hiding them inside a
+direct engine. `--render_graph_wireframe_overlay` adds an overlay pass between
+the primary beauty pass and the tonemap pass. Selector-specific overrides will
+matter once compilation can produce multi-selection plans.
 
 The compiler's default plan reads textually as:
 

@@ -83,7 +83,8 @@ namespace engine::graph {
                                         {"wireframe", RenderViewMode::Wireframe},
                                         {"depth", RenderViewMode::Depth},
                                         {"normal", RenderViewMode::Normal},
-                                        {"object_id", RenderViewMode::ObjectId}},
+                                        {"object_id", RenderViewMode::ObjectId},
+                                        {"material_id", RenderViewMode::MaterialId}},
                                        path);
     }
 
@@ -440,6 +441,8 @@ namespace engine::graph {
       return "normal";
     case RenderViewMode::ObjectId:
       return "object_id";
+    case RenderViewMode::MaterialId:
+      return "material_id";
     }
     return "unknown";
   }

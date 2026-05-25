@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph material-id AOV view.** `--render_graph_view material_id` now compiles
+  a graph-visible `material_id_aov` resource and visualization pass, using the
+  same trace-inspectable integer-id path as object-id AOVs. — GPT-5
 - **Graph object-id AOV view.** `--render_graph_view object_id` now compiles a
   graph-visible `object_id_aov` resource and visualization pass, and execution
   traces colorize object-id resources for inspection. — GPT-5
