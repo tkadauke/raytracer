@@ -287,6 +287,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **rendercli unknown samplers.** `rendercli --sampler` now rejects unknown
+  sampler names with a command-line error instead of dereferencing a missing
+  factory result during rendering. — GPT-5
 - **rendercli whole-frame graph overrides.** `rendercli` now applies
   scene-authored `selector: all` render-intent overrides before choosing graph
   sampling and executor-specific pass state, so raster MSAA/shadow/postprocess
