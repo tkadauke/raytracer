@@ -605,6 +605,9 @@ state, camera, scene, and light fingerprint still match. The raster beauty pass
 still builds its full internal shadow-map collection separately, so this cache
 currently explains and accelerates the inspectable graph artifact rather than
 changing the shaded pixels.
+Trace JSON includes the cache status string plus cacheable/hit/stored boolean
+flags so tools can filter cache lifecycle events without reinterpreting status
+names.
 The shadow cache key is pass-specific: tonemap and other display-only choices
 are part of trace freshness, but they are not part of the shadow artifact's
 reuse key.
