@@ -1,0 +1,139 @@
+{
+  "resources": [
+    {
+      "id": "base_color",
+      "name": "Base color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 480,
+      "height": 270,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "foreground_color",
+      "name": "Foreground wireframe color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 480,
+      "height": 270,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "stencil_mask",
+      "name": "Raster stencil mask",
+      "type": "stencil",
+      "format": "uint8",
+      "width": 480,
+      "height": 270,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "composited_color",
+      "name": "Stencil-composited color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 480,
+      "height": 270,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 480,
+      "height": 270,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "raster_beauty",
+      "name": "Raster base beauty",
+      "kind": "beauty",
+      "executor": "rasterizer",
+      "features": ["base", "beauty", "rasterizer"],
+      "reads": [],
+      "writes": ["base_color"],
+      "parameters": {
+        "geometry": {
+          "lod": 4
+        }
+      },
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "wireframe_beauty",
+      "name": "Wireframe foreground",
+      "kind": "beauty",
+      "executor": "wireframe",
+      "features": ["foreground", "beauty", "wireframe"],
+      "reads": [],
+      "writes": ["foreground_color"],
+      "parameters": {
+        "lod": 4
+      },
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "stencil_aov",
+      "name": "Raster stencil mask",
+      "kind": "aov",
+      "executor": "rasterizer",
+      "features": ["mask", "stencil", "rasterizer"],
+      "reads": [],
+      "writes": ["stencil_mask"],
+      "parameters": {
+        "geometry": {
+          "lod": 4
+        }
+      },
+      "disabledBehavior": "substitute_default",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "stencil_composite",
+      "name": "Stencil composite",
+      "kind": "composite",
+      "executor": "composite",
+      "features": ["stencil_composite"],
+      "reads": ["base_color", "foreground_color", "stencil_mask"],
+      "writes": ["composited_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "tonemap",
+      "name": "Tone map",
+      "kind": "tonemap",
+      "executor": "postprocess",
+      "features": ["main", "tonemap", "postprocess"],
+      "reads": ["composited_color"],
+      "writes": ["main_color"],
+      "disabledBehavior": "passthrough",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}

@@ -12,6 +12,7 @@
 | Source file | Chapters |
 |---|---|
 | `fuzz/` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `graphs/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/core/Buffer.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |
 | `include/core/Color.h` | [Color and buffers](../foundations/color-and-buffers.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md) |
 | `include/core/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |

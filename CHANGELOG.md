@@ -101,6 +101,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Render graph stencil-composite demo plan.**
+  `graphs/render_graph_stencil_composite_demo.json` materializes a raster
+  stencil buffer and feeds it into a graph composite pass, with docs rendering a
+  concrete stencil-masked wireframe-over-raster example. — GPT-5
 - **Render graph Modeler demo scene.** `scenes/render_graph_aov_demo.json`
   opens directly in Modeler with a saved rasterizer graph intent, SMAA
   postprocess node, and stencil AOV side branch for graph-inspection demos. —

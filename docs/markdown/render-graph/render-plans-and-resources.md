@@ -359,6 +359,15 @@ in Modeler to inspect the same saved render intent as an interactive graph:
 | --- | --- |
 | ![Graph-backed raster beauty render of a torus, sphere, and box](../../images/render_graph_raster_beauty.png) | ![Graph-produced stencil AOV showing the same object coverage as a grayscale mask](../../images/render_graph_raster_stencil_aov.png) |
 
+The reusable graph plan
+[`graphs/render_graph_stencil_composite_demo.json`](../../../graphs/render_graph_stencil_composite_demo.json)
+uses that raster stencil resource as a real composite input. It renders the
+same scene twice, once as shaded raster color and once as wireframe color, then
+uses the rasterized stencil mask to replace only object-covered pixels with the
+wireframe foreground:
+
+![Stencil-composited render: raster beauty outside the stencil mask, wireframe foreground inside it](../../images/render_graph_stencil_composite.png)
+
 The AOV vocabulary is owned by
 [`RenderAOVDefinition`](../../../include/engine/graph/RenderAOV.h) objects.
 Those objects provide the feature name, resource id, display label, and resource
@@ -767,6 +776,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 ## Source anchors
 
 <!-- source-anchors -->
+- `graphs/render_graph_stencil_composite_demo.json`
 - `include/engine/graph/RenderGraphTypes.h`
 - `include/engine/graph/RenderGraphCompiler.h`
 - `include/engine/graph/RenderGraphExecutionObserver.h`
