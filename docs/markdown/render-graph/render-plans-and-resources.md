@@ -488,16 +488,19 @@ graph-owned.
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's
 graph-only dump. The dock compiles the current live-preview intent and target
 size into a `RenderPlan`, then shows the result as a left-to-right graph plus
-two supporting tables:
+supporting tables:
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
-  user double-click pass nodes to enable or disable them;
+  user double-click pass nodes to enable or disable them. Hovering a node
+  summarizes the declared pass/resource edges without switching away from the
+  graph;
 - the export buttons write the current effective plan as text, DOT, or JSON;
 - selecting a pass or resource node makes that graph object the active
-  property-editor target; pass selections show pass state plus trace metadata,
-  while resource selections show the resource descriptor, producer, consumers,
-  and trace availability;
+  property-editor target; pass selections show schedule position, dependency
+  edges, pass state, and trace metadata, while resource selections show the
+  resource descriptor, producer, consumers, trace availability, and cache
+  status;
 - selecting a graph node also opens the central Graph Trace preview. Pass nodes
   show the last render's input, output, and difference previews in large tabs;
   resource nodes show the matching resource snapshots when the trace contains
@@ -506,8 +509,8 @@ two supporting tables:
   preview/cache status in place;
 - while the preview is rendering, the Graph tab highlights pass nodes as they
   start, finish, or fail execution;
-- the Passes table lists each pass id, pass kind, executor, read resources,
-  written resources, and disabled behavior;
+- the Passes table lists each pass id, execution order, execution stage, pass
+  kind, executor, read resources, written resources, and disabled behavior;
 - the Groups table disables every pass matching a present kind, executor, or
   feature tag;
 - the Resources table lists each resource id, producer, consumers, type, format,
