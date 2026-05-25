@@ -95,6 +95,20 @@ namespace RenderGraphInspectorWidgetTest {
     return plan;
   }
 
+  RenderPlan longLabelPlan() {
+    RenderPlan plan = simplePlan();
+    RenderPassNode pass = plan.passes().front();
+    pass.sceneView.camera =
+      RenderCameraRef{"preview-camera-with-a-very-long-readable-identifier", std::nullopt};
+    pass.sceneView.shadingProfile =
+      ShadingProfileRef{"technical-illustration-profile-with-long-name", {}};
+
+    RenderPlan replacement;
+    replacement.addResource(plan.resources().front());
+    replacement.addPass(pass);
+    return replacement;
+  }
+
   RenderPlan twoPassPlan() {
     RenderPlan plan;
 
@@ -584,6 +598,26 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(slot.called());
     EXPECT_NE(overrides.disabledPasses.end(), overrides.disabledPasses.find("raytrace_beauty"));
     EXPECT_FALSE(widget.effectivePlanValid());
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldKeepGraphNodeLabelsInsideNodeBounds) {
+    RenderGraphInspectorWidget widget;
+    widget.setPlan(longLabelPlan());
+
+    auto* graph = widget.findChild<QGraphicsView*>("renderGraphView");
+    ASSERT_NE(nullptr, graph);
+    ASSERT_NE(nullptr, graph->scene());
+
+    auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
+    ASSERT_NE(nullptr, passNode);
+
+    const QRectF nodeRect = passNode->boundingRect();
+    for (QGraphicsItem* child : passNode->childItems()) {
+      auto* label = dynamic_cast<QGraphicsSimpleTextItem*>(child);
+      if (!label)
+        continue;
+      EXPECT_LE(label->pos().x() + label->boundingRect().width(), nodeRect.right());
+    }
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldDropOverridesForMissingPassesOnNewPlan) {

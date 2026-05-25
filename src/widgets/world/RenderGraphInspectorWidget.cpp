@@ -5,6 +5,7 @@
 #include <QBrush>
 #include <QEvent>
 #include <QFont>
+#include <QFontMetrics>
 #include <QGraphicsItem>
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
@@ -51,6 +52,7 @@ namespace {
   constexpr double RowGap = 136.0;
   constexpr double OriginX = 40.0;
   constexpr double OriginY = 44.0;
+  constexpr double NodeTextInset = 10.0;
   constexpr auto LiveExecutionDelay = std::chrono::milliseconds(500);
 
   QString qstr(const std::string& value) {
@@ -152,7 +154,7 @@ namespace {
     return qstr(shadingProfile->displayText());
   }
 
-  QString passSceneViewSummary(const RenderPassNode& pass) {
+  QStringList passSceneViewLines(const RenderPassNode& pass) {
     QStringList parts;
     if (!pass.sceneView.selector.selectsWholeFrame()) {
       parts << QStringLiteral("selector %1").arg(sceneSelectorText(pass.sceneView.selector));
@@ -163,7 +165,7 @@ namespace {
     if (pass.sceneView.shadingProfile) {
       parts << QStringLiteral("shading %1").arg(shadingProfileText(pass.sceneView.shadingProfile));
     }
-    return parts.join(QStringLiteral(", "));
+    return parts;
   }
 
   QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {
@@ -324,16 +326,20 @@ namespace {
 
     double y = rect.top() + 9.0;
     for (int i = 0; i != lines.size(); ++i) {
-      auto* text = scene.addSimpleText(lines[i]);
-      text->setParentItem(item);
-      text->setData(GraphItemKindRole, kind);
-      text->setData(GraphItemIdRole, id);
-      QFont font = text->font();
+      QFont font;
       if (i == 0)
         font.setBold(true);
       font.setPointSize(i == 0 ? 9 : 8);
+      QFontMetrics metrics(font);
+      const QString elided = metrics.elidedText(
+        lines[i], Qt::ElideRight, static_cast<int>(rect.width() - 2.0 * NodeTextInset));
+      auto* text = scene.addSimpleText(elided);
+      text->setParentItem(item);
+      text->setData(GraphItemKindRole, kind);
+      text->setData(GraphItemIdRole, id);
       text->setFont(font);
-      text->setPos(rect.left() + 10.0, y);
+      text->setToolTip(lines[i]);
+      text->setPos(rect.left() + NodeTextInset, y);
       y += text->boundingRect().height() + 2.0;
     }
 
@@ -890,10 +896,7 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     QStringList lines{qstr(pass.id),
                       qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
                       pass.enabled ? tr("enabled") : tr("disabled")};
-    const QString sceneViewSummary = passSceneViewSummary(pass);
-    if (!sceneViewSummary.isEmpty()) {
-      lines << sceneViewSummary;
-    }
+    lines << passSceneViewLines(pass);
     const auto stage = plan.executionStageNumber(pass.id);
     const auto order = plan.executionOrderNumber(pass.id);
     if (stage && order) {
