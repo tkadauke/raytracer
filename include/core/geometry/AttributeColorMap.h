@@ -18,10 +18,23 @@ namespace core {
   /**
     * Deterministic color mapping for curve attributes.
     *
-    * Importers can use scalar maps for ordered values such as feed rate or
-    * temperature, and categorical maps for labels such as route type or phase.
-    * A missing or incompatible attribute returns `std::nullopt`, leaving the
-    * caller's default material/color in place.
+    * Importers can use scalar maps for ordered values such as feed rate,
+    * temperature, height, residue index, elapsed time, or vehicle speed, and
+    * categorical maps for labels such as route type, molecule chain, toolpath
+    * phase, or travel mode. A missing or incompatible attribute returns
+    * `std::nullopt`, leaving the caller's default material/color in place.
+    *
+    * In scalar mode, numeric `int` and `double` values are normalized from the
+    * configured minimum/maximum range, clamped to `[0, 1]`, and interpolated
+    * between the low and high colors. In categorical mode, explicitly
+    * configured category colors win; otherwise the stable built-in palette is
+    * selected by deterministic hash so repeated labels receive repeated
+    * colors across runs.
+    *
+    * `render::Curve` applies this map to segment attributes. Ribbon mode writes
+    * one face color per segment, tube mode writes the same segment color to
+    * every generated tube side, and curve-overlay mode passes the mapped color
+    * along with the semantic center-line segment.
     */
   class AttributeColorMap {
   public:

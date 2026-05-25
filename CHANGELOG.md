@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Curve/path documentation and fixtures.** Public curve docs and the
+  tessellation textbook now describe polyline data, ribbon/tube tessellation,
+  curve overlays, and attribute-color rendering; reusable plain and attributed
+  curve fixtures plus render smoke tests cover downstream importer paths. —
+  GPT-5
 - **Curve overlay rendering mode.** `render::Curve` can now emit semantic
   center-line overlay segments independently of physical tessellation, and
   `rendercli --render_graph_curve_overlay` draws them as thin graph-visible

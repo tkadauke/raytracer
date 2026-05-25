@@ -1,0 +1,42 @@
+{
+  "kind": "polyline",
+  "name": "attributed_toolpath",
+  "attributes": {
+    "source": "fixture",
+    "domain": "gcode",
+    "units": "mm"
+  },
+  "points": [
+    [-1.4, -0.7, 0.0],
+    [-0.6, -0.2, 0.0],
+    [0.0, 0.55, 0.0],
+    [0.75, 0.15, 0.0],
+    [1.35, 0.65, 0.0]
+  ],
+  "segments": [
+    {
+      "attributes": {
+        "move_type": "travel",
+        "feed_rate": 3000.0
+      }
+    },
+    {
+      "attributes": {
+        "move_type": "print",
+        "feed_rate": 1200.0
+      }
+    },
+    {
+      "attributes": {
+        "move_type": "print",
+        "feed_rate": 900.0
+      }
+    },
+    {
+      "attributes": {
+        "move_type": "retract",
+        "feed_rate": 1800.0
+      }
+    }
+  ]
+}
