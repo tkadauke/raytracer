@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/HitPointInterval.h"
+#include "core/util/BufferUtils.h"
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
@@ -57,23 +58,14 @@ namespace engine::graph {
 
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
-      if (source.width() != destination.width() || source.height() != destination.height()) {
+      if (!core::util::bufferDimensionsEqual(source, destination)) {
         throw std::runtime_error(action + " requires matching color buffer dimensions");
-      }
-    }
-
-    void copyColorBuffer(const Buffer<Colord>& source, Buffer<Colord>& destination) {
-      requireMatchingSize(source, destination, "color copy");
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          destination[y][x] = source[y][x];
-        }
       }
     }
 
     void requireMatchingSize(const Buffer<double>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
-      if (source.width() != destination.width() || source.height() != destination.height()) {
+      if (!core::util::bufferDimensionsEqual(source, destination)) {
         throw std::runtime_error(action + " requires matching depth/color buffer dimensions");
       }
     }
@@ -714,7 +706,7 @@ namespace engine::graph {
 
         const Buffer<std::uint32_t>& objectIds = context.storage().objectId(read.resource);
         Buffer<Colord>& color = context.storage().color(write.resource);
-        if (objectIds.width() != color.width() || objectIds.height() != color.height()) {
+        if (!core::util::bufferDimensionsEqual(objectIds, color)) {
           throw passError(pass, "object-id visualization requires matching buffer dimensions");
         }
 
@@ -766,8 +758,10 @@ namespace engine::graph {
         requireColorResource(context.storage(), read.resource, pass);
         requireColorResource(context.storage(), write.resource, pass);
 
-        copyColorBuffer(context.storage().color(read.resource),
-                        context.storage().color(write.resource));
+        const Buffer<Colord>& source = context.storage().color(read.resource);
+        Buffer<Colord>& destination = context.storage().color(write.resource);
+        requireMatchingSize(source, destination, "color copy");
+        core::util::copyBuffer(destination, source);
       }
     };
 
@@ -798,7 +792,8 @@ namespace engine::graph {
 
         const Buffer<Colord>& source = context.storage().color(read.resource);
         Buffer<Colord>& destination = context.storage().color(write.resource);
-        copyColorBuffer(source, destination);
+        requireMatchingSize(source, destination, "color copy");
+        core::util::copyBuffer(destination, source);
 
         Buffer<Colord> overlay(source.width(), source.height());
         auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
@@ -869,7 +864,8 @@ namespace engine::graph {
 
         const Buffer<Colord>& source = context.storage().color(read.resource);
         Buffer<Colord>& destination = context.storage().color(write.resource);
-        copyColorBuffer(source, destination);
+        requireMatchingSize(source, destination, "color copy");
+        core::util::copyBuffer(destination, source);
         apply(destination);
       }
 

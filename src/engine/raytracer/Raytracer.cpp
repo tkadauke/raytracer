@@ -1,6 +1,7 @@
 #include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/Stats.h"
+#include "core/util/BufferUtils.h"
 #include "core/math/Constants.h"
 #include "core/math/Vector.h"
 #include "core/math/Ray.h"
@@ -141,7 +142,7 @@ void Raytracer::render(Buffer<unsigned int>& buffer) {
 
 void Raytracer::render(Buffer<Colord>& hdrBuffer, Buffer<unsigned int>& displayBuffer,
                        std::shared_ptr<render::Tonemap> displayTonemap) {
-  if (hdrBuffer.width() != displayBuffer.width() || hdrBuffer.height() != displayBuffer.height()) {
+  if (!core::util::bufferDimensionsEqual(hdrBuffer, displayBuffer)) {
     throw std::runtime_error("raytracer dual-output render requires matching buffer dimensions");
   }
 

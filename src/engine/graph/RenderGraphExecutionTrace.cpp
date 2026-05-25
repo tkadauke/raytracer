@@ -1,6 +1,7 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 
 #include "core/Buffer.h"
+#include "core/util/BufferUtils.h"
 #include "engine/graph/RenderResourceStorage.h"
 
 #include <QJsonArray>
@@ -28,23 +29,13 @@ namespace engine::graph {
 
     std::shared_ptr<const Buffer<Colord>> colorPreviewFor(const Buffer<Colord>& source) {
       auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
-
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          (*result)[y][x] = source[y][x];
-        }
-      }
+      core::util::copyBuffer(*result, source);
       return result;
     }
 
     std::shared_ptr<const Buffer<double>> depthPreviewFor(const Buffer<double>& source) {
       auto result = std::make_shared<Buffer<double>>(source.width(), source.height());
-
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          (*result)[y][x] = source[y][x];
-        }
-      }
+      core::util::copyBuffer(*result, source);
       return result;
     }
 

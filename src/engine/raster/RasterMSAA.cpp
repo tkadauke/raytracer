@@ -1,5 +1,7 @@
 #include "engine/raster/detail/RasterMSAA.h"
 
+#include "core/util/BufferUtils.h"
+
 #include <atomic>
 
 namespace engine::raster::detail {
@@ -64,9 +66,9 @@ namespace engine::raster::detail {
 
   void MSAATileScratch::prepare(const Rasterizer& rasterizer, const Recti& rect) {
     m_rect = rect;
-    if (!msaaScratchBufferMatches(m_accumulated, rect.width(), rect.height()) ||
-        !msaaScratchBufferMatches(m_sampleColor, rect.width(), rect.height()) ||
-        !msaaScratchBufferMatches(m_depth, rect.width(), rect.height())) {
+    if (!core::util::bufferDimensionsMatch(m_accumulated, rect.width(), rect.height()) ||
+        !core::util::bufferDimensionsMatch(m_sampleColor, rect.width(), rect.height()) ||
+        !core::util::bufferDimensionsMatch(m_depth, rect.width(), rect.height())) {
       m_accumulated = std::make_unique<Buffer<Colord>>(rect.width(), rect.height());
       m_sampleColor = std::make_unique<Buffer<Colord>>(rect.width(), rect.height());
       m_depth = std::make_unique<Buffer<double>>(rect.width(), rect.height());
@@ -75,7 +77,7 @@ namespace engine::raster::detail {
     m_accumulated->clear(Colord::black());
 
     if (rasterizer.stencilTestEnabled()) {
-      if (!msaaScratchBufferMatches(m_stencil, rect.width(), rect.height())) {
+      if (!core::util::bufferDimensionsMatch(m_stencil, rect.width(), rect.height())) {
         m_stencil = std::make_unique<Buffer<std::uint8_t>>(rect.width(), rect.height());
         msaaTileScratchAllocationCounter().fetch_add(1, std::memory_order_acq_rel);
       }
