@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Modeler render graph grouped toggles.** The Render Graph dock now has a
+  Groups tab for disabling all passes of a present kind, executor, or feature
+  through the same effective-plan override path as individual pass toggles.
+  — GPT-5
 - **Modeler render graph export.** The Render Graph dock can now export the
   effective graph as text, DOT, or JSON through the Modeler save-file flow.
   — GPT-5

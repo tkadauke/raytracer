@@ -93,6 +93,7 @@ signals:
 
 private slots:
   void passItemChanged(QTreeWidgetItem* item, int column);
+  void groupItemChanged(QTreeWidgetItem* item, int column);
   void passSelectionChanged();
   void resourceSelectionChanged();
   void promotePendingExecutionStates();
@@ -106,6 +107,7 @@ private:
   void rebuildAllViews();
   void rebuildGraph();
   void rebuildPasses();
+  void rebuildGroups();
   void rebuildResources();
   void updateValidationStatus();
   void selectPass(const engine::graph::RenderPassId& passId);

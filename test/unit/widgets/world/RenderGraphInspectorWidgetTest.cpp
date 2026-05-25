@@ -204,6 +204,19 @@ namespace RenderGraphInspectorWidgetTest {
     FAIL() << "missing resource row " << resourceId.toStdString();
   }
 
+  QTreeWidgetItem* groupItem(RenderGraphInspectorWidget& widget, const QString& scope,
+                             const QString& value) {
+    auto* groups = widget.findChild<QTreeWidget*>("renderGraphGroups");
+    if (!groups)
+      return nullptr;
+    for (int row = 0; row != groups->topLevelItemCount(); ++row) {
+      QTreeWidgetItem* item = groups->topLevelItem(row);
+      if (item->text(1) == scope && item->text(2) == value)
+        return item;
+    }
+    return nullptr;
+  }
+
   TEST_F(RenderGraphInspectorWidgetTest, ShouldInitialize) {
     RenderGraphInspectorWidget widget;
   }
@@ -239,6 +252,27 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("-"), resources->topLevelItem(0)->text(2));
     EXPECT_EQ(QString("color"), resources->topLevelItem(0)->text(3));
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
+  }
+
+  TEST_F(RenderGraphInspectorWidgetTest, ShouldDisablePassesByGroupOverride) {
+    RenderGraphInspectorWidget widget;
+    Slot slot;
+    QObject::connect(&widget, SIGNAL(overridesChanged()), &slot, SLOT(receive()));
+    widget.setPlan(twoPassPlan());
+
+    QTreeWidgetItem* tonemapKind =
+      groupItem(widget, QStringLiteral("Kind"), QStringLiteral("tonemap"));
+    ASSERT_NE(nullptr, tonemapKind);
+    tonemapKind->setCheckState(0, Qt::Unchecked);
+
+    const RenderPlan effective = widget.effectivePlan();
+    const auto* tonemap = effective.findPass("tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    EXPECT_FALSE(tonemap->enabled);
+    EXPECT_TRUE(slot.called());
+
+    const auto overrides = widget.overrides();
+    EXPECT_TRUE(overrides.disabledPassKinds.count(RenderPassKind::Tonemap));
   }
 
   TEST_F(RenderGraphInspectorWidgetTest, ShouldShowResourceEdgeRows) {

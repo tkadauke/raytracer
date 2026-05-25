@@ -1293,8 +1293,9 @@ Implement the smallest graph that proves the architecture:
    intent. The Graph tab renders a left-to-right graph view with selectable
    nodes and double-click pass toggles, preview renders highlight the currently
    executing graph node, post-render traces expose pass/resource previews, and
-   the dock exports the effective graph as text, DOT, or JSON. Grouped toggles
-   and per-selector intent controls remain TODO.
+   the dock exports the effective graph as text, DOT, or JSON. The Groups tab
+   can disable all passes matching a present kind, executor, or feature.
+   Per-selector intent controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
 

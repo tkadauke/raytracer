@@ -466,6 +466,8 @@ two supporting tables:
   start, finish, or fail execution;
 - the Passes table lists each pass id, pass kind, executor, read resources,
   written resources, and disabled behavior;
+- the Groups table disables every pass matching a present kind, executor, or
+  feature tag;
 - the Resources table lists each resource id, producer, consumers, type, format,
   domain, lifetime, dimensions, and sample count.
 

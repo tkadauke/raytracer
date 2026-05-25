@@ -40,6 +40,8 @@ namespace {
   constexpr int GraphItemKindRole = 0;
   constexpr int GraphItemIdRole = 1;
   constexpr int GraphItemExecutionStateRole = 2;
+  constexpr int GroupScopeRole = Qt::UserRole;
+  constexpr int GroupValueRole = Qt::UserRole + 1;
   constexpr double PassWidth = 190.0;
   constexpr double PassHeight = 88.0;
   constexpr double ResourceWidth = 150.0;
@@ -155,6 +157,29 @@ namespace {
     for (const auto& pass : plan.passes())
       ids.insert(pass.id);
     return ids;
+  }
+
+  std::set<RenderPassKind> passKinds(const RenderPlan& plan) {
+    std::set<RenderPassKind> values;
+    for (const auto& pass : plan.passes())
+      values.insert(pass.kind);
+    return values;
+  }
+
+  std::set<RenderExecutorKind> passExecutors(const RenderPlan& plan) {
+    std::set<RenderExecutorKind> values;
+    for (const auto& pass : plan.passes())
+      values.insert(pass.executor);
+    return values;
+  }
+
+  std::set<RenderFeatureKind> passFeatures(const RenderPlan& plan) {
+    std::set<RenderFeatureKind> values;
+    for (const auto& pass : plan.passes()) {
+      for (const auto& feature : pass.features)
+        values.insert(feature);
+    }
+    return values;
   }
 
   std::map<RenderPassId, int> executionOrderByPassId(const RenderPlan& plan) {
@@ -300,6 +325,7 @@ struct RenderGraphInspectorWidget::Private {
   QToolButton* exportDot{nullptr};
   QToolButton* exportJson{nullptr};
   QTreeWidget* passes{nullptr};
+  QTreeWidget* groups{nullptr};
   QTreeWidget* resources{nullptr};
   QLabel* validationStatus{nullptr};
   bool updating{false};
@@ -365,6 +391,16 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
           SLOT(passItemChanged(QTreeWidgetItem*, int)));
   connect(p->passes, SIGNAL(itemSelectionChanged()), this, SLOT(passSelectionChanged()));
 
+  p->groups = new QTreeWidget(tabs);
+  p->groups->setObjectName("renderGraphGroups");
+  p->groups->setRootIsDecorated(false);
+  p->groups->setAlternatingRowColors(true);
+  p->groups->setHeaderLabels({tr("Enabled"), tr("Scope"), tr("Value")});
+  p->groups->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+  p->groups->header()->setStretchLastSection(true);
+  connect(p->groups, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,
+          SLOT(groupItemChanged(QTreeWidgetItem*, int)));
+
   p->resources = new QTreeWidget(tabs);
   p->resources->setObjectName("renderGraphResources");
   p->resources->setRootIsDecorated(false);
@@ -377,6 +413,7 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
 
   tabs->addTab(p->graph, tr("Graph"));
   tabs->addTab(p->passes, tr("Passes"));
+  tabs->addTab(p->groups, tr("Groups"));
   tabs->addTab(p->resources, tr("Resources"));
 
   layout->addLayout(header);
@@ -415,6 +452,33 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
   for (auto it = p->overrides.disabledPasses.begin(); it != p->overrides.disabledPasses.end();) {
     if (ids.find(*it) == ids.end()) {
       it = p->overrides.disabledPasses.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  const auto kinds = passKinds(p->plan);
+  for (auto it = p->overrides.disabledPassKinds.begin();
+       it != p->overrides.disabledPassKinds.end();) {
+    if (kinds.find(*it) == kinds.end()) {
+      it = p->overrides.disabledPassKinds.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  const auto executors = passExecutors(p->plan);
+  for (auto it = p->overrides.disabledExecutors.begin();
+       it != p->overrides.disabledExecutors.end();) {
+    if (executors.find(*it) == executors.end()) {
+      it = p->overrides.disabledExecutors.erase(it);
+    } else {
+      ++it;
+    }
+  }
+  const auto features = passFeatures(p->plan);
+  for (auto it = p->overrides.disabledFeatures.begin();
+       it != p->overrides.disabledFeatures.end();) {
+    if (features.find(*it) == features.end()) {
+      it = p->overrides.disabledFeatures.erase(it);
     } else {
       ++it;
     }
@@ -499,6 +563,41 @@ void RenderGraphInspectorWidget::passItemChanged(QTreeWidgetItem* item, int colu
   setPassEnabledOverride(passId, item->checkState(0) == Qt::Checked);
 }
 
+void RenderGraphInspectorWidget::groupItemChanged(QTreeWidgetItem* item, int column) {
+  if (p->updating || column != 0 || !item)
+    return;
+
+  const QString scope = item->data(0, GroupScopeRole).toString();
+  const bool enabled = item->checkState(0) == Qt::Checked;
+  if (scope == QStringLiteral("kind")) {
+    const auto value = static_cast<RenderPassKind>(item->data(0, GroupValueRole).toInt());
+    if (enabled) {
+      p->overrides.disabledPassKinds.erase(value);
+    } else {
+      p->overrides.disabledPassKinds.insert(value);
+    }
+  } else if (scope == QStringLiteral("executor")) {
+    const auto value = static_cast<RenderExecutorKind>(item->data(0, GroupValueRole).toInt());
+    if (enabled) {
+      p->overrides.disabledExecutors.erase(value);
+    } else {
+      p->overrides.disabledExecutors.insert(value);
+    }
+  } else if (scope == QStringLiteral("feature")) {
+    const auto value = item->data(0, GroupValueRole).toString().toStdString();
+    if (enabled) {
+      p->overrides.disabledFeatures.erase(value);
+    } else {
+      p->overrides.disabledFeatures.insert(value);
+    }
+  }
+
+  if (p->trace && !p->trace->matchesPlan(effectivePlan()))
+    p->trace.reset();
+  rebuildAllViews();
+  emit overridesChanged();
+}
+
 void RenderGraphInspectorWidget::passSelectionChanged() {
   if (p->updating || !p->passes->currentItem())
     return;
@@ -580,6 +679,7 @@ bool RenderGraphInspectorWidget::eventFilter(QObject* watched, QEvent* event) {
 void RenderGraphInspectorWidget::rebuildAllViews() {
   rebuildGraph();
   rebuildPasses();
+  rebuildGroups();
   rebuildResources();
   updateValidationStatus();
 }
@@ -782,6 +882,49 @@ void RenderGraphInspectorWidget::rebuildPasses() {
   }
 
   p->passes->resizeColumnToContents(0);
+  p->updating = false;
+}
+
+void RenderGraphInspectorWidget::rebuildGroups() {
+  p->updating = true;
+  p->groups->clear();
+
+  const RenderPlan plan = effectivePlan();
+
+  for (const auto kind : passKinds(plan)) {
+    auto item = new QTreeWidgetItem(p->groups);
+    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+    item->setCheckState(0, p->overrides.disabledPassKinds.count(kind) == 0 ? Qt::Checked
+                                                                           : Qt::Unchecked);
+    item->setData(0, GroupScopeRole, QStringLiteral("kind"));
+    item->setData(0, GroupValueRole, static_cast<int>(kind));
+    item->setText(1, tr("Kind"));
+    item->setText(2, toString(kind));
+  }
+
+  for (const auto executor : passExecutors(plan)) {
+    auto item = new QTreeWidgetItem(p->groups);
+    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+    item->setCheckState(0, p->overrides.disabledExecutors.count(executor) == 0 ? Qt::Checked
+                                                                               : Qt::Unchecked);
+    item->setData(0, GroupScopeRole, QStringLiteral("executor"));
+    item->setData(0, GroupValueRole, static_cast<int>(executor));
+    item->setText(1, tr("Executor"));
+    item->setText(2, toString(executor));
+  }
+
+  for (const auto& feature : passFeatures(plan)) {
+    auto item = new QTreeWidgetItem(p->groups);
+    item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+    item->setCheckState(0, p->overrides.disabledFeatures.count(feature) == 0 ? Qt::Checked
+                                                                             : Qt::Unchecked);
+    item->setData(0, GroupScopeRole, QStringLiteral("feature"));
+    item->setData(0, GroupValueRole, qstr(feature));
+    item->setText(1, tr("Feature"));
+    item->setText(2, qstr(feature));
+  }
+
+  p->groups->resizeColumnToContents(0);
   p->updating = false;
 }
 
