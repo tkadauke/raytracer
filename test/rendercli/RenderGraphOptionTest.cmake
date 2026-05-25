@@ -69,6 +69,7 @@ file(WRITE "${scene_intent_scene}" [=[
   "renderIntent": {
     "defaultExecutor": "raytracer",
     "defaultViewMode": "beauty",
+    "defaultShadingProfile": "toon",
     "enableWireframeOverlay": true,
     "postProcessAA": "smaa",
     "viewOverrides": [
@@ -358,6 +359,12 @@ if(NOT scene_intent_graph MATCHES "post_smaa")
 endif()
 if(NOT scene_intent_graph MATCHES "\"sceneCameraId\": \"inspection-camera\"")
   message(FATAL_ERROR "scene render intent did not carry the override camera: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "\"sceneShadingProfile\"")
+  message(FATAL_ERROR "scene render intent did not carry the shading profile: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "\"name\": \"toon\"")
+  message(FATAL_ERROR "scene render intent did not carry the toon shading profile: ${scene_intent_graph}")
 endif()
 if(NOT scene_intent_graph MATCHES "\"sampleCount\": 4")
   message(FATAL_ERROR "whole-frame scene override did not select raster MSAA resources: ${scene_intent_graph}")
