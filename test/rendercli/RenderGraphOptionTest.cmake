@@ -14,6 +14,7 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
+set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
@@ -150,6 +151,20 @@ file(WRITE "${default_graph_scene}" [=[
       "children": []
     }
   ]
+}
+]=])
+
+file(WRITE "${invalid_exported_aov_scene}" [=[
+{
+  "id": "{92000000-0000-0000-0000-000000000000}",
+  "name": "Invalid Exported AOV Intent Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "exportedAOVs": ["beauty"]
+  },
+  "children": []
 }
 ]=])
 
@@ -558,6 +573,14 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_shading_parameter levels
     "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects scene intent non-AOV export"
+  STDERR_MATCHES "renderIntent.exportedAOVs"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    "${invalid_exported_aov_scene}" "${invalid_plan}"
 )
 
 rendercli_run(
