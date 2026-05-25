@@ -258,10 +258,11 @@ the same resource is also reported as a cycle.
 
 The same dependency walk exposes execution stages: each stage is the set of
 passes whose producer dependencies are already satisfied by earlier stages.
-The current `GraphRenderEngine` still executes serially, but text and JSON
-exports plus the Modeler graph layout use these stages to make independent AOV
-or cache branches appear as parallel candidates rather than a misleading list.
-DOT exports also group pass nodes by execution stage with rank hints.
+The current `GraphRenderEngine` still executes serially, but text, DOT, and
+JSON exports plus the Modeler graph layout use these stages to make independent
+AOV or cache branches appear as parallel candidates rather than a misleading
+list. DOT exports also group pass nodes by execution stage with rank hints and
+include stage/order labels on each pass.
 Code that needs to annotate individual pass rows can ask the plan for a pass's
 stage number directly instead of duplicating the stage walk.
 

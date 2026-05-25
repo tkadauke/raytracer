@@ -586,6 +586,7 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));
     EXPECT_NE(std::string::npos, dot.find("resource:main_color"));
     EXPECT_NE(std::string::npos, dot.find("execution_stage_1"));
+    EXPECT_NE(std::string::npos, dot.find("stage 1, order 1"));
 
     const QJsonObject json = plan.toJson();
     ASSERT_TRUE(json["resources"].isArray());

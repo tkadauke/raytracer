@@ -774,10 +774,16 @@ namespace engine::graph {
     }
 
     for (const auto& pass : m_passes) {
+      const auto stage = executionStageNumber(pass.id);
+      const auto order = executionOrderNumber(pass.id);
       out << "  \"pass:" << dotEscape(pass.id) << "\""
           << " [shape=ellipse,label=\"" << dotEscape(pass.name.empty() ? pass.id : pass.name)
           << "\\n"
-          << toString(pass.kind) << "/" << toString(pass.executor) << "\"";
+          << toString(pass.kind) << "/" << toString(pass.executor);
+      if (stage && order) {
+        out << "\\nstage " << *stage << ", order " << *order;
+      }
+      out << "\"";
       if (!pass.enabled) {
         out << ",style=dashed,color=gray50,fontcolor=gray50";
       }

@@ -200,6 +200,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph DOT exports.** Pass labels in DOT exports now include computed
+  execution stage and serial order metadata. — GPT-5
 - **Render graph text exports.** Per-pass text export details now include the
   computed execution stage and serial order. — GPT-5
 - **Modeler render graph dependency properties.** Selecting a pass node now
