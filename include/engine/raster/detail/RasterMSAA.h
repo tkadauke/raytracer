@@ -25,11 +25,6 @@ namespace engine::raster::detail {
   void resetMSAATileScratchAllocationCount();
   std::size_t msaaTileScratchAllocationCount();
 
-  template<class T>
-  bool msaaScratchBufferMatches(const std::unique_ptr<Buffer<T>>& buffer, int width, int height) {
-    return buffer && buffer->width() == width && buffer->height() == height;
-  }
-
   struct MSAAFragmentShadeKey {
     const RasterTriangle* triangle;
     int x;

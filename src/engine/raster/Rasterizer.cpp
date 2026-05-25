@@ -9,6 +9,7 @@
 
 #include "core/Buffer.h"
 #include "core/math/Vector.h"
+#include "core/util/BufferUtils.h"
 #include "render/TilePlan.h"
 #include "render/cameras/Camera.h"
 #include "render/lights/Light.h"
@@ -100,14 +101,12 @@ namespace {
   using engine::raster::detail::accumulateMSAASample;
   using engine::raster::detail::AlphaTestState;
   using engine::raster::detail::colorOutputPolicy;
-  using engine::raster::detail::copyRasterBuffer;
   using engine::raster::detail::fullBufferView;
   using engine::raster::detail::intersectRasterRects;
   using engine::raster::detail::MSAAFragmentShadeCache;
   using engine::raster::detail::MSAASamplePattern;
   using engine::raster::detail::MSAATileScratch;
   using engine::raster::detail::PassBuffers;
-  using engine::raster::detail::rasterBufferMatches;
   using engine::raster::detail::RasterDiagnosticBufferViews;
   using engine::raster::detail::RasterFullBufferView;
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
@@ -130,13 +129,8 @@ namespace {
   using engine::raster::detail::withPreparedTrianglePolicies;
 
   template<class T>
-  bool bufferMatches(const Buffer<T>* buffer, int width, int height) {
-    return rasterBufferMatches(buffer, width, height);
-  }
-
-  template<class T>
   RasterFullBufferView<T> diagnosticView(Buffer<T>* buffer, int width, int height) {
-    if (!bufferMatches(buffer, width, height))
+    if (!core::util::bufferDimensionsMatch(buffer, width, height))
       return RasterFullBufferView<T>();
     return fullBufferView(*buffer);
   }
@@ -154,7 +148,7 @@ namespace {
 
   template<class T>
   void clearDiagnosticBuffer(Buffer<T>* buffer, int width, int height, const T& value) {
-    if (bufferMatches(buffer, width, height)) {
+    if (core::util::bufferDimensionsMatch(buffer, width, height)) {
       buffer->clear(value);
     }
   }
@@ -176,7 +170,7 @@ namespace {
                            const Buffer<Colord>& source) {
     if (rasterizer.colorLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
       if (&target != &source) {
-        copyRasterBuffer(target, source);
+        core::util::copyBuffer(target, source);
       }
     } else {
       target.clear(rasterizer.backgroundColor());
@@ -366,7 +360,7 @@ namespace {
   }
 
   void copyDepthHistory(Buffer<double>& target, const Buffer<double>& source) {
-    copyRasterBuffer(target, source);
+    core::util::copyBuffer(target, source);
   }
 
   void writeTonemappedTile(Buffer<unsigned int>& target, const Buffer<Colord>& source,
@@ -792,8 +786,9 @@ void Rasterizer::Private::renderTriangleSetPass(
         });
     });
 
-  if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
-    copyRasterBuffer(*depthCapture, passBuffers.depth());
+  if (depthCapture &&
+      core::util::bufferDimensionsMatch(depthCapture, tilePlan.width(), tilePlan.height())) {
+    core::util::copyBuffer(*depthCapture, passBuffers.depth());
   }
 }
 
@@ -832,8 +827,9 @@ void Rasterizer::Private::renderTriangleStreamPass(
       });
     });
 
-  if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
-    copyRasterBuffer(*depthCapture, passBuffers.depth());
+  if (depthCapture &&
+      core::util::bufferDimensionsMatch(depthCapture, tilePlan.width(), tilePlan.height())) {
+    core::util::copyBuffer(*depthCapture, passBuffers.depth());
   }
 }
 
@@ -869,8 +865,9 @@ void Rasterizer::Private::renderTriangleListPass(
                                  }
                                });
 
-  if (depthCapture && bufferMatches(depthCapture, tilePlan.width(), tilePlan.height())) {
-    copyRasterBuffer(*depthCapture, passBuffers.depth());
+  if (depthCapture &&
+      core::util::bufferDimensionsMatch(depthCapture, tilePlan.width(), tilePlan.height())) {
+    core::util::copyBuffer(*depthCapture, passBuffers.depth());
   }
 }
 
@@ -991,7 +988,7 @@ void Rasterizer::Private::renderMSAAFullFrame(
   const ShadowMaps& shadowMaps, const Recti& renderClip, const MSAASamplePattern& pattern,
   const std::atomic<bool>& cancelled, Buffer<Colord>& buffer) {
   Buffer<Colord> loadedColor(tilePlan.width(), tilePlan.height());
-  copyRasterBuffer(loadedColor, buffer);
+  core::util::copyBuffer(loadedColor, buffer);
   buffer.clear(Colord::black());
   MSAAFragmentShadeCache shadeCache;
   MSAAFragmentShadeCache* shadeCachePtr =
@@ -1002,7 +999,7 @@ void Rasterizer::Private::renderMSAAFullFrame(
     if (cancelled.load())
       return;
 
-    copyRasterBuffer(sampleBuffer, loadedColor);
+    core::util::copyBuffer(sampleBuffer, loadedColor);
 
     renderTriangleSetPass(rasterizer, scene, triangleSet, tilePlan, shadowMaps, renderClip,
                           cancelled, sampleBuffer, pattern.offsets[sampleIndex], false,
@@ -1078,7 +1075,7 @@ void Rasterizer::Private::renderMSAATile(const Rasterizer& rasterizer,
 }
 
 void Rasterizer::Private::prepareTemporalResources(int width, int height) {
-  if (!bufferMatches(historyColor.get(), width, height)) {
+  if (!core::util::bufferDimensionsMatch(historyColor.get(), width, height)) {
     historyColor = std::make_unique<Buffer<Colord>>(width, height);
     nextHistoryColor = std::make_unique<Buffer<Colord>>(width, height);
     historyDepth = std::make_unique<Buffer<double>>(width, height);
@@ -1091,13 +1088,13 @@ void Rasterizer::Private::prepareTemporalResources(int width, int height) {
     return;
   }
 
-  if (!bufferMatches(nextHistoryColor.get(), width, height))
+  if (!core::util::bufferDimensionsMatch(nextHistoryColor.get(), width, height))
     nextHistoryColor = std::make_unique<Buffer<Colord>>(width, height);
-  if (!bufferMatches(historyDepth.get(), width, height))
+  if (!core::util::bufferDimensionsMatch(historyDepth.get(), width, height))
     historyDepth = std::make_unique<Buffer<double>>(width, height);
-  if (!bufferMatches(currentDepth.get(), width, height))
+  if (!core::util::bufferDimensionsMatch(currentDepth.get(), width, height))
     currentDepth = std::make_unique<Buffer<double>>(width, height);
-  if (!bufferMatches(motionVectors.get(), width, height))
+  if (!core::util::bufferDimensionsMatch(motionVectors.get(), width, height))
     motionVectors = std::make_unique<Buffer<Vector2d>>(width, height);
 }
 
@@ -1123,8 +1120,8 @@ void Rasterizer::Private::prepareMSAATileScratch(const Rasterizer& rasterizer,
 }
 
 TemporalResetCondition Rasterizer::Private::temporalResetCondition(int width, int height) const {
-  if (!bufferMatches(historyColor.get(), width, height) ||
-      !bufferMatches(historyDepth.get(), width, height)) {
+  if (!core::util::bufferDimensionsMatch(historyColor.get(), width, height) ||
+      !core::util::bufferDimensionsMatch(historyDepth.get(), width, height)) {
     return TemporalResetCondition::ResourceResize;
   }
   if (pendingTemporalReset != TemporalResetCondition::None) {
@@ -1161,7 +1158,7 @@ void Rasterizer::Private::applyTemporalAA(const Rasterizer& rasterizer, Buffer<C
   contract.resetCondition = resetCondition;
 
   applyTemporalAccumulation(contract, buffer, rasterizer.temporalCurrentFrameWeight());
-  copyRasterBuffer(*historyColor, *nextHistoryColor);
+  core::util::copyBuffer(*historyColor, *nextHistoryColor);
   copyDepthHistory(*historyDepth, *currentDepth);
   previousJitter = currentJitter;
   temporalHistoryValid = true;
