@@ -64,6 +64,7 @@
 #include "world/objects/Ring.h"
 #include "world/objects/Torus.h"
 #include "world/objects/ScriptedSurface.h"
+#include "world/objects/Group.h"
 
 #include "world/objects/Intersection.h"
 #include "world/objects/Union.h"
@@ -328,6 +329,7 @@ struct MainWindow::Private {
   QAction* addRingAct;
   QAction* addTorusAct;
   QAction* addScriptAct;
+  QAction* addGroupAct;
 
   QAction* addIntersectionAct;
   QAction* addUnionAct;
@@ -507,6 +509,10 @@ void MainWindow::createActions() {
   p->addScriptAct = new QAction(tr("Script"), this);
   p->addScriptAct->setStatusTip(tr("Add a Script to the scene"));
   connect(p->addScriptAct, SIGNAL(triggered()), this, SLOT(addScript()));
+
+  p->addGroupAct = new QAction(tr("Group"), this);
+  p->addGroupAct->setStatusTip(tr("Add a Group to organize scene elements"));
+  connect(p->addGroupAct, SIGNAL(triggered()), this, SLOT(addGroup()));
 
   p->addIntersectionAct = new QAction(tr("Intersection"), this);
   p->addIntersectionAct->setStatusTip(tr("Add an intersection to the scene"));
@@ -845,6 +851,9 @@ void MainWindow::createMenus() {
   addPrimitive->addAction(p->addTorusAct);
   addPrimitive->addAction(p->addScriptAct);
 
+  auto addSceneElement = p->editMenu->addMenu(tr("Add Scene Element"));
+  addSceneElement->addAction(p->addGroupAct);
+
   auto addComposite = p->editMenu->addMenu(tr("Add Composite"));
   addComposite->addAction(p->addIntersectionAct);
   addComposite->addAction(p->addUnionAct);
@@ -1059,6 +1068,10 @@ void MainWindow::addTorus() {
 
 void MainWindow::addScript() {
   add<ScriptedSurface>();
+}
+
+void MainWindow::addGroup() {
+  add<Group>();
 }
 
 void MainWindow::addIntersection() {

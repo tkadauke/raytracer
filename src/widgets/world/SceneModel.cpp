@@ -5,6 +5,18 @@
 #include <QIODevice>
 #include <QDataStream>
 
+namespace {
+
+bool isDescendantOf(Element* candidate, Element* ancestor) {
+  for (auto* current = candidate; current; current = current->parent()) {
+    if (current == ancestor)
+      return true;
+  }
+  return false;
+}
+
+} // namespace
+
 SceneModel::SceneModel(Element* root, QObject* parent)
     : QAbstractItemModel(parent) {
   setElement(root);
@@ -141,6 +153,9 @@ bool SceneModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int 
   if (!data || action == Qt::IgnoreAction)
     return false;
 
+  if (action != Qt::MoveAction)
+    return false;
+
   QByteArray encodedData = data->data("application/modeler.element.list");
   Element* element = reinterpret_cast<Element*>(encodedData.toULongLong());
   if (!element)
@@ -159,22 +174,42 @@ bool SceneModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int 
     row = parentElement->childElements().size();
 
   Element* sourceParentElement = element->parent();
+  if (!sourceParentElement || !parentElement->canHaveChild(element))
+    return false;
+
   QModelIndex sourceParent = createIndex(sourceParentElement->row(), 0, sourceParentElement);
-  moveRow(sourceParent, element->row(), destinationParentIndex, row);
-  return true;
+  return moveRow(sourceParent, element->row(), destinationParentIndex, row);
 }
 
 bool SceneModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int count,
                           const QModelIndex& destinationParent, int destinationChild) {
+  if (count != 1)
+    return false;
+
   Element* sourceParentElement = static_cast<Element*>(sourceParent.internalPointer());
   Element* destinationParentElement = static_cast<Element*>(destinationParent.internalPointer());
+  if (!sourceParentElement || !destinationParentElement)
+    return false;
+
+  if (sourceRow < 0 || sourceRow >= sourceParentElement->childElements().size())
+    return false;
+
+  if (destinationChild < 0 || destinationChild > destinationParentElement->childElements().size())
+    return false;
+
   Element* childElement = sourceParentElement->childElements()[sourceRow];
 
   if (childElement == sourceParentElement || childElement == destinationParentElement)
     return false;
 
+  if (isDescendantOf(destinationParentElement, childElement))
+    return false;
+
+  if (!destinationParentElement->canHaveChild(childElement))
+    return false;
+
   if (sourceParentElement == destinationParentElement) {
-    if (destinationChild == sourceRow && (destinationChild - 1) == sourceRow) {
+    if (destinationChild == sourceRow || destinationChild == sourceRow + 1) {
       return false;
     } else {
       beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent,
@@ -184,17 +219,12 @@ bool SceneModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int co
       return true;
     }
   } else {
-    if (destinationParentElement->canHaveChild(childElement)) {
-      beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent,
-                    destinationChild);
-      destinationParentElement->insertChild(destinationChild, childElement);
-      endMoveRows();
-      return true;
-    } else {
-      return false;
-    }
+    beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent,
+                  destinationChild);
+    destinationParentElement->insertChild(destinationChild, childElement);
+    endMoveRows();
+    return true;
   }
-  return false;
 }
 
 void SceneModel::deleteElement(const QModelIndex& index) {
