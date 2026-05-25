@@ -62,6 +62,12 @@ wireframe engines all see the same filtered scene. If the group is
 visible, it does not force its children visible: each child surface,
 light, or nested group still applies its own `visible` flag.
 
+Groups can also carry optional JSON metadata for importers and
+inspection tools. Fields such as `sourceFormat`, `sourceId`,
+`stepIndex`, `layerIndex`, `chainId`, and `category` stay on the
+editable group and round-trip through scene files, but they are not
+copied into runtime primitives and do not change rendering.
+
 ## <a id="the-transform-contract"></a>The transform contract
 The contract `Instance` enforces: the wrapped primitive's
 geometry is defined in *local space*, and the `setMatrix` call

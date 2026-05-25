@@ -1,6 +1,9 @@
 #pragma once
 #include <memory>
 
+#include <QJsonObject>
+#include <QJsonValue>
+
 #include "world/objects/Transformable.h"
 
 namespace render {
@@ -57,6 +60,49 @@ public:
   }
 
   /**
+    * @returns importer/inspection metadata attached to this group.
+    */
+  inline const QJsonObject& metadata() const {
+    return m_metadata;
+  }
+
+  /**
+    * Replaces importer/inspection metadata attached to this group.
+    */
+  inline void setMetadata(const QJsonObject& metadata) {
+    m_metadata = metadata;
+  }
+
+  /**
+    * @returns the metadata value for @p key, or undefined when absent.
+    */
+  inline QJsonValue metadataValue(const QString& key) const {
+    return m_metadata.value(key);
+  }
+
+  /**
+    * Sets a single metadata value. Passing an undefined value removes @p key.
+    */
+  void setMetadataValue(const QString& key, const QJsonValue& value);
+
+  /**
+    * Removes all metadata from this group.
+    */
+  inline void clearMetadata() {
+    m_metadata = QJsonObject();
+  }
+
+  /**
+    * Reads this group from scene JSON, including optional metadata.
+    */
+  void read(const QJsonObject& json) override;
+
+  /**
+    * Writes this group to scene JSON, omitting metadata when it is empty.
+    */
+  void write(QJsonObject& json) override;
+
+  /**
     * Converts visible child geometry into a transformed runtime composite.
     * Hidden groups return null and do not register descendant lights.
     */
@@ -68,4 +114,5 @@ private:
   applyTransform(std::shared_ptr<render::Primitive> primitive) const;
 
   bool m_visible;
+  QJsonObject m_metadata;
 };

@@ -46,8 +46,8 @@ public:
 
   int row() const;
 
-  void read(const QJsonObject& json);
-  void write(QJsonObject& json);
+  virtual void read(const QJsonObject& json);
+  virtual void write(QJsonObject& json);
 
   Element* findById(const QString& id);
 
