@@ -55,6 +55,13 @@ lights use the same parent transform chain when they convert to
 runtime lights. That gives the editor a real grouping object instead
 of relying on inactive CSG surfaces as stand-ins.
 
+Group visibility is inherited during that conversion. If a group is
+hidden, none of its descendant surfaces, lights, or nested groups are
+registered in the runtime `Scene`; the raytracer, rasterizer, and
+wireframe engines all see the same filtered scene. If the group is
+visible, it does not force its children visible: each child surface,
+light, or nested group still applies its own `visible` flag.
+
 ## <a id="the-transform-contract"></a>The transform contract
 The contract `Instance` enforces: the wrapped primitive's
 geometry is defined in *local space*, and the `setMatrix` call

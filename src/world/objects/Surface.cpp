@@ -23,6 +23,9 @@ Surface::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
 }
 
 std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) const {
+  if (!visible())
+    return nullptr;
+
   auto primitive = toRaytracerPrimitive();
   if (!primitive) {
     return primitive;
@@ -41,14 +44,13 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) co
 
     for (const auto& child : childElements()) {
       if (Surface* surface = qobject_cast<Surface*>(child)) {
-        if (surface->visible())
-          composite->add(surface->toRaytracer(scene));
+        auto primitive = surface->toRaytracer(scene);
+        if (primitive)
+          composite->add(primitive);
       } else if (Group* group = qobject_cast<Group*>(child)) {
-        if (group->visible()) {
-          auto primitive = group->toRaytracer(scene);
-          if (primitive)
-            composite->add(primitive);
-        }
+        auto primitive = group->toRaytracer(scene);
+        if (primitive)
+          composite->add(primitive);
       } else if (Light* light = qobject_cast<Light*>(child)) {
         if (light->visible())
           scene->addLight(light->toRaytracer());

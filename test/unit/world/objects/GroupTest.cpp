@@ -2,15 +2,92 @@
 
 #include "world/objects/Element.h"
 #include "world/objects/ElementFactory.h"
+#include "world/objects/ConstantColorTexture.h"
 #include "world/objects/Group.h"
+#include "world/objects/MatteMaterial.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
+#include "core/Buffer.h"
+#include "engine/raster/Rasterizer.h"
+#include "engine/raytracer/Raytracer.h"
+#include "engine/wireframe/Wireframe.h"
+#include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 
+#include <memory>
+
 namespace GroupTest {
+  namespace {
+    int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
+      int count = 0;
+      for (int y = 0; y < buffer.height(); ++y) {
+        for (int x = 0; x < buffer.width(); ++x) {
+          if (buffer[y][x] == color)
+            ++count;
+        }
+      }
+      return count;
+    }
+
+    int countNonBackground(const Buffer<Colord>& buffer, const Colord& background) {
+      return buffer.width() * buffer.height() - countPixels(buffer, background);
+    }
+
+    int countLeaves(const render::Scene& scene) {
+      int count = 0;
+      scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material>) {
+        ++count;
+      });
+      return count;
+    }
+
+    std::shared_ptr<render::PinholeCamera> camera() {
+      return std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    }
+
+    std::unique_ptr<Scene>
+    sceneWithNestedGroup(bool outerVisible, bool innerVisible, bool sphereVisible) {
+      auto scene = std::make_unique<Scene>();
+      scene->setAmbient(Colord::white());
+      scene->setBackground(Colord::black());
+
+      auto* material = new MatteMaterial;
+      auto* texture = new ConstantColorTexture;
+      texture->setColor(Colord::white());
+      material->setDiffuseTexture(texture);
+      scene->addChild(material);
+      scene->addChild(texture);
+
+      auto* outer = new Group;
+      outer->setVisible(outerVisible);
+      scene->addChild(outer);
+
+      auto* inner = new Group;
+      inner->setVisible(innerVisible);
+      outer->addChild(inner);
+
+      auto* sphere = new Sphere;
+      sphere->setVisible(sphereVisible);
+      sphere->setMaterial(material);
+      inner->addChild(sphere);
+
+      inner->addChild(new PointLight);
+
+      return scene;
+    }
+
+    template<class Engine>
+    int renderedNonBackgroundPixels(const std::shared_ptr<render::Scene>& scene) {
+      auto engine = std::make_shared<Engine>(camera(), scene);
+      Buffer<Colord> buffer(64, 64);
+      engine->render(buffer);
+      return countNonBackground(buffer, Colord::black());
+    }
+  }
+
   TEST(Group, ShouldDefaultToVisible) {
     Group group;
     EXPECT_TRUE(group.visible());
@@ -168,6 +245,50 @@ namespace GroupTest {
     EXPECT_EQ(0u, scene.lights().size());
   }
 
+  TEST(Group, ShouldPreserveHiddenDescendantSurfaceWhenGroupIsVisible) {
+    Group group;
+
+    auto* childGroup = new Group;
+    group.addChild(childGroup);
+
+    auto* sphere = new Sphere;
+    sphere->hide();
+    childGroup->addChild(sphere);
+    childGroup->addChild(new PointLight);
+
+    render::Scene scene;
+    EXPECT_EQ(nullptr, group.toRaytracer(&scene));
+    EXPECT_EQ(1u, scene.lights().size());
+  }
+
+  TEST(Group, ShouldSuppressNestedDescendantSurfacesAndLightsWhenAncestorGroupIsInvisible) {
+    Group group;
+    group.hide();
+
+    auto* childGroup = new Group;
+    group.addChild(childGroup);
+    childGroup->addChild(new Sphere);
+    childGroup->addChild(new PointLight);
+
+    render::Scene scene;
+    EXPECT_EQ(nullptr, group.toRaytracer(&scene));
+    EXPECT_EQ(0u, scene.lights().size());
+  }
+
+  TEST(Group, ShouldSuppressNestedDescendantSurfacesAndLightsWhenNestedGroupIsInvisible) {
+    Group group;
+
+    auto* childGroup = new Group;
+    childGroup->hide();
+    group.addChild(childGroup);
+    childGroup->addChild(new Sphere);
+    childGroup->addChild(new PointLight);
+
+    render::Scene scene;
+    EXPECT_EQ(nullptr, group.toRaytracer(&scene));
+    EXPECT_EQ(0u, scene.lights().size());
+  }
+
   TEST(Scene, ShouldIncludeVisibleTopLevelGroupGeometry) {
     Scene scene;
 
@@ -193,5 +314,39 @@ namespace GroupTest {
 
     EXPECT_EQ(0u, rt->primitives().size());
     EXPECT_EQ(0u, rt->lights().size());
+  }
+
+  TEST(Scene, ShouldComposeNestedGroupVisibilityInRaytracerSceneConversion) {
+    auto hiddenOuter = sceneWithNestedGroup(false, true, true)->toRaytracerScene();
+    EXPECT_EQ(0, countLeaves(*hiddenOuter));
+    EXPECT_EQ(0u, hiddenOuter->lights().size());
+
+    auto hiddenInner = sceneWithNestedGroup(true, false, true)->toRaytracerScene();
+    EXPECT_EQ(0, countLeaves(*hiddenInner));
+    EXPECT_EQ(0u, hiddenInner->lights().size());
+
+    auto hiddenSurface = sceneWithNestedGroup(true, true, false)->toRaytracerScene();
+    EXPECT_EQ(0, countLeaves(*hiddenSurface));
+    EXPECT_EQ(1u, hiddenSurface->lights().size());
+
+    auto visible = sceneWithNestedGroup(true, true, true)->toRaytracerScene();
+    EXPECT_EQ(1, countLeaves(*visible));
+    EXPECT_EQ(1u, visible->lights().size());
+  }
+
+  TEST(Scene, HiddenNestedGroupRendersAsBackgroundInRaytracerRasterizerAndWireframe) {
+    auto rt = sceneWithNestedGroup(true, false, true)->toRaytracerScene();
+
+    EXPECT_EQ(0, renderedNonBackgroundPixels<engine::raytracer::Raytracer>(rt));
+    EXPECT_EQ(0, renderedNonBackgroundPixels<engine::raster::Rasterizer>(rt));
+    EXPECT_EQ(0, renderedNonBackgroundPixels<engine::wireframe::Wireframe>(rt));
+  }
+
+  TEST(Scene, VisibleNestedGroupRendersGeometryInRaytracerRasterizerAndWireframe) {
+    auto rt = sceneWithNestedGroup(true, true, true)->toRaytracerScene();
+
+    EXPECT_GT(renderedNonBackgroundPixels<engine::raytracer::Raytracer>(rt), 0);
+    EXPECT_GT(renderedNonBackgroundPixels<engine::raster::Rasterizer>(rt), 0);
+    EXPECT_GT(renderedNonBackgroundPixels<engine::wireframe::Wireframe>(rt), 0);
   }
 }

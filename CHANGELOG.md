@@ -407,6 +407,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph exported-AOV validation.** `RenderIntent` now rejects
   non-AOV view modes in `exportedAOVs` at the intent boundary instead of
   allowing invalid scene JSON to fail later during graph compilation. — GPT-5
+- **Group-aware render visibility.** Hidden world-scene groups now suppress all
+  descendant surfaces, lights, and nested groups during runtime scene
+  conversion, while visible groups preserve child visibility flags consistently
+  across raytracer, rasterizer, and wireframe renders. — GPT-5
 - **rendercli whole-frame graph overrides.** `rendercli` now applies
   scene-authored `selector: all` render-intent overrides before choosing graph
   sampling and executor-specific pass state, so raster MSAA/shadow/postprocess
