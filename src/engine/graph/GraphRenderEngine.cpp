@@ -37,6 +37,21 @@ namespace engine::graph {
       return out.str();
     }
 
+    void requireExternalInputsBound(const RenderPlan& plan) {
+      const auto externalInputs = plan.externalInputResourceIds();
+      if (externalInputs.empty()) {
+        return;
+      }
+
+      std::ostringstream out;
+      out << "render plan requires external resource '" << externalInputs.front() << "'";
+      if (externalInputs.size() > 1) {
+        out << " and " << (externalInputs.size() - 1) << " more";
+      }
+      out << ", but GraphRenderEngine has no external resource binding API yet";
+      throw std::runtime_error(out.str());
+    }
+
     std::runtime_error passError(const RenderPassNode& pass, const std::string& message) {
       return std::runtime_error("pass '" + pass.id + "': " + message);
     }
@@ -638,6 +653,7 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
+    requireExternalInputsBound(plan);
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
     TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
     notifyRenderStarted(*this, renderGeneration);
@@ -701,6 +717,7 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
+    requireExternalInputsBound(plan);
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
     TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
