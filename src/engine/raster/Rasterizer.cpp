@@ -3,7 +3,7 @@
 #include "RasterMSAA.h"
 #include "RasterPass.h"
 #include "RasterPipelineTypes.h"
-#include "RasterShadowMaps.h"
+#include "RasterShadowMapBuilder.h"
 #include "RasterTemporalResources.h"
 #include "RasterTriangleEmitter.h"
 
@@ -11,7 +11,6 @@
 #include "core/math/Vector.h"
 #include "render/TilePlan.h"
 #include "render/cameras/Camera.h"
-#include "render/lights/DirectionalLight.h"
 #include "render/lights/Light.h"
 #include "render/postprocess/Fxaa.h"
 #include "render/postprocess/Smaa.h"
@@ -100,44 +99,33 @@ namespace {
 namespace {
   using engine::raster::detail::accumulateMSAASample;
   using engine::raster::detail::AlphaTestState;
-  using engine::raster::detail::cascadeDepthRanges;
-  using engine::raster::detail::cascadePointsForDepthRange;
   using engine::raster::detail::colorOutputPolicy;
   using engine::raster::detail::copyRasterBuffer;
-  using engine::raster::detail::DepthState;
-  using engine::raster::detail::DepthWritePolicy;
-  using engine::raster::detail::DirectionalShadowCamera;
-  using engine::raster::detail::DirectionalShadowCascade;
-  using engine::raster::detail::directionalShadowFitForPoints;
-  using engine::raster::detail::DirectionalShadowMap;
   using engine::raster::detail::fullBufferView;
   using engine::raster::detail::intersectRasterRects;
   using engine::raster::detail::MSAAFragmentShadeCache;
   using engine::raster::detail::MSAASamplePattern;
   using engine::raster::detail::MSAATileScratch;
-  using engine::raster::detail::NoStencilPolicy;
   using engine::raster::detail::PassBuffers;
   using engine::raster::detail::rasterBufferMatches;
   using engine::raster::detail::RasterDiagnosticBufferViews;
   using engine::raster::detail::RasterFullBufferView;
-  using engine::raster::detail::rasterizeDepthOnlyTriangleSetWithPolicies;
   using engine::raster::detail::rasterizePreparedTriangleWithPolicies;
   using engine::raster::detail::rasterizeTileWithPolicies;
   using engine::raster::detail::rasterizeTriangleSetWithPolicies;
   using engine::raster::detail::rasterRectEmpty;
+  using engine::raster::detail::RasterShadowMapBuilder;
   using engine::raster::detail::RasterTileBufferView;
   using engine::raster::detail::RasterTriangle;
   using engine::raster::detail::RasterTriangleEmitter;
   using engine::raster::detail::RasterTriangleSet;
   using engine::raster::detail::resolveMSAA;
   using engine::raster::detail::ShadowMaps;
-  using engine::raster::detail::stabilizeDirectionalShadowCenter;
   using engine::raster::detail::TemporalJitter;
   using engine::raster::detail::TemporalResetCondition;
   using engine::raster::detail::TemporalResourceContract;
   using engine::raster::detail::tileBufferView;
   using engine::raster::detail::validateTemporalResourceContract;
-  using engine::raster::detail::viewDepthRange;
   using engine::raster::detail::withMSAAFragmentShadingPolicy;
   using engine::raster::detail::withPreparedTrianglePolicies;
 
@@ -490,16 +478,6 @@ struct Rasterizer::Private {
                               Buffer<Colord>& buffer, const Vector2d& sampleOffset,
                               Buffer<double>* depthCapture = nullptr);
 
-  ShadowMaps buildShadowMaps(const Rasterizer& rasterizer,
-                             const std::shared_ptr<render::Scene>& scene,
-                             const std::shared_ptr<render::Camera>& camera,
-                             const std::atomic<bool>& cancelled);
-  bool renderFirstDirectionalShadowMap(const Rasterizer& rasterizer,
-                                       const std::shared_ptr<render::Scene>& scene,
-                                       const std::shared_ptr<render::Camera>& camera,
-                                       const std::atomic<bool>& cancelled,
-                                       Buffer<double>& depthBuffer);
-
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
                                                   const render::TilePlan& tilePlan);
   static RasterTriangleSet triangleSetForPlan(const std::vector<RasterTriangle>& triangles,
@@ -686,7 +664,8 @@ void Rasterizer::setShadowMapSize(int size) {
 bool Rasterizer::renderFirstDirectionalShadowMap(Buffer<double>& depthBuffer) {
   if (!m_scene || !m_camera)
     return false;
-  return p->renderFirstDirectionalShadowMap(*this, m_scene, m_camera, m_cancelled, depthBuffer);
+  return RasterShadowMapBuilder(*this, m_scene, m_camera, *p->threadPool, m_cancelled)
+    .renderFirstDirectionalDepth(depthBuffer);
 }
 
 void Rasterizer::setPostProcessAA(PostProcessAA aa) {
@@ -782,152 +761,6 @@ Rasterizer::Private::triangleSetForPlan(const std::vector<RasterTriangle>& trian
     triangleSet.add(triangle);
   }
   return triangleSet;
-}
-
-ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
-                                                const std::shared_ptr<render::Scene>& scene,
-                                                const std::shared_ptr<render::Camera>& camera,
-                                                const std::atomic<bool>& cancelled) {
-  ShadowMaps shadowMaps;
-  if (!rasterizer.shadowMapsEnabled() || rasterizer.fragmentShader() || !camera || cancelled.load())
-    return shadowMaps;
-
-  const BoundingBoxd bounds = scene->boundingBox();
-  if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite())
-    return shadowMaps;
-
-  const int size = rasterizer.shadowMapSize();
-  const auto corners = bounds.vertices();
-  const auto [minViewDepth, maxViewDepth] =
-    viewDepthRange(*camera, corners, rasterizer.nearClipDepth(), rasterizer.farClipDepth());
-  const auto cascadeDepths =
-    cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount(),
-                       rasterizer.shadowCascadeSplitLambda());
-
-  for (const auto& light : scene->lights()) {
-    if (cancelled.load())
-      break;
-
-    auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light);
-    if (!directional)
-      continue;
-
-    std::vector<DirectionalShadowCascade> cascades;
-    cascades.reserve(cascadeDepths.size());
-    for (const auto& [cascadeMinDepth, cascadeMaxDepth] : cascadeDepths) {
-      if (cancelled.load())
-        break;
-
-      std::vector<Vector3d> cascadePoints;
-      if (cascadeDepths.size() == 1) {
-        cascadePoints.assign(corners.begin(), corners.end());
-      } else {
-        cascadePoints =
-          cascadePointsForDepthRange(corners, *camera, cascadeMinDepth, cascadeMaxDepth);
-      }
-      const auto shadowFit = directionalShadowFitForPoints(cascadePoints, directional->direction(),
-                                                           rasterizer.nearClipDepth(), size);
-      auto shadowCamera = std::make_shared<DirectionalShadowCamera>(shadowFit);
-      shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
-      shadowCamera->viewPlane()->setup(Matrix4d(), Recti(size, size));
-
-      auto depthBuffer = std::make_unique<Buffer<double>>(size, size);
-      depthBuffer->clear(std::numeric_limits<double>::infinity());
-
-      const render::TilePlan shadowTilePlan = render::TilePlan::forBuffer(size, size, 1);
-      RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
-                                          cancelled, Rasterizer::CullMode::Both, true, false);
-      const RasterTriangleSet shadowTriangles =
-        collectRasterTriangles(shadowEmitter, shadowTilePlan);
-      if (!shadowTriangles.empty()) {
-        std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
-        rasterizeDepthOnlyTriangleSetWithPolicies(
-          shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled, Vector2d(0.0, 0.0),
-          NoStencilPolicy{},
-          DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(*depthBuffer),
-                                                         DepthState{Rasterizer::DepthFunc::Less}});
-      }
-
-      cascades.push_back(
-        {std::move(shadowCamera), std::move(depthBuffer), cascadeMinDepth, cascadeMaxDepth});
-    }
-
-    if (!cascades.empty()) {
-      shadowMaps.add(DirectionalShadowMap(light.get(), camera.get(), std::move(cascades),
-                                          rasterizer.shadowBias(), rasterizer.shadowSlopeBias(),
-                                          rasterizer.shadowFilterRadius(),
-                                          rasterizer.shadowFilterMode()));
-    }
-  }
-
-  return shadowMaps;
-}
-
-bool Rasterizer::Private::renderFirstDirectionalShadowMap(
-  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
-  const std::shared_ptr<render::Camera>& camera, const std::atomic<bool>& cancelled,
-  Buffer<double>& depthBuffer) {
-  depthBuffer.clear(std::numeric_limits<double>::infinity());
-
-  if (depthBuffer.width() <= 0 || depthBuffer.height() <= 0 || !rasterizer.shadowMapsEnabled() ||
-      rasterizer.fragmentShader() || !camera || cancelled.load()) {
-    return false;
-  }
-
-  const BoundingBoxd bounds = scene->boundingBox();
-  if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite())
-    return false;
-
-  const auto corners = bounds.vertices();
-  const auto [minViewDepth, maxViewDepth] =
-    viewDepthRange(*camera, corners, rasterizer.nearClipDepth(), rasterizer.farClipDepth());
-  const auto cascadeDepths =
-    cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount(),
-                       rasterizer.shadowCascadeSplitLambda());
-  if (cascadeDepths.empty())
-    return false;
-
-  for (const auto& light : scene->lights()) {
-    if (cancelled.load())
-      return false;
-
-    auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light);
-    if (!directional)
-      continue;
-
-    const auto [cascadeMinDepth, cascadeMaxDepth] = cascadeDepths.front();
-    std::vector<Vector3d> cascadePoints;
-    if (cascadeDepths.size() == 1) {
-      cascadePoints.assign(corners.begin(), corners.end());
-    } else {
-      cascadePoints =
-        cascadePointsForDepthRange(corners, *camera, cascadeMinDepth, cascadeMaxDepth);
-    }
-
-    const int size = std::max(1, std::min(depthBuffer.width(), depthBuffer.height()));
-    const auto shadowFit = directionalShadowFitForPoints(cascadePoints, directional->direction(),
-                                                         rasterizer.nearClipDepth(), size);
-    auto shadowCamera = std::make_shared<DirectionalShadowCamera>(shadowFit);
-    shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
-    shadowCamera->viewPlane()->setup(Matrix4d(), Recti(depthBuffer.width(), depthBuffer.height()));
-
-    const render::TilePlan shadowTilePlan =
-      render::TilePlan::forBuffer(depthBuffer.width(), depthBuffer.height(), 1);
-    RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
-                                        cancelled, Rasterizer::CullMode::Both, true, false);
-    const RasterTriangleSet shadowTriangles = collectRasterTriangles(shadowEmitter, shadowTilePlan);
-    if (!shadowTriangles.empty()) {
-      std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
-      rasterizeDepthOnlyTriangleSetWithPolicies(
-        shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled, Vector2d(0.0, 0.0),
-        NoStencilPolicy{},
-        DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(depthBuffer),
-                                                       DepthState{Rasterizer::DepthFunc::Less}});
-    }
-    return true;
-  }
-
-  return false;
 }
 
 void Rasterizer::Private::renderTriangleSetPass(
@@ -1375,7 +1208,8 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                               cancelled, rasterizer.cullMode(),
                                               rasterizer.hasCullModeOverride(), true);
-  const ShadowMaps shadowMaps = buildShadowMaps(rasterizer, scene, camera, cancelled);
+  const ShadowMaps shadowMaps =
+    RasterShadowMapBuilder(rasterizer, scene, camera, *threadPool, cancelled).build();
   if (automaticQueueSize && pattern.count > 1) {
     renderAutomaticMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps,
                              renderClip, cancelled, buffer);
