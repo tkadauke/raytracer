@@ -323,14 +323,21 @@ Test file: `test/rendercli/CrossOptionValidationTest.cmake`
 
 Coverage:
 
-- static scene with `--frame` succeeds;
-- static scene with `--animation` fails;
-- `--animation --frame` fails;
-- `--animation --repeat` fails;
-- `--animation --render_graph_only` fails;
-- `--animation --render_graph_out` fails;
-- raster-only flags passed with non-raster engines either remain accepted and
-  inert or become rejected. Pick the intended policy and pin it.
+- ~~static scene with `--frame` succeeds~~; ✅ **Done.** Covered by
+  `rendercli_cross_options`.
+- ~~static scene with `--animation` fails~~; ✅ **Done.** Covered by
+  `rendercli_cross_options`.
+- ~~`--animation --frame` fails~~; ✅ **Done.** Covered by
+  `rendercli_cross_options`.
+- ~~`--animation --repeat` fails~~; ✅ **Done.** Covered by
+  `rendercli_cross_options`.
+- ~~`--animation --render_graph_only` fails~~; ✅ **Done.** Covered by
+  `rendercli_cross_options`.
+- ~~`--animation --render_graph_out` fails~~; ✅ **Done.** Covered by
+  `rendercli_cross_options`.
+- ~~raster-only flags passed with non-raster engines either remain accepted and
+  inert or become rejected. Pick the intended policy and pin it~~. ✅ **Done.**
+  Direct raytracer and wireframe accept raster-only flags as inert.
 
 ## Fixtures
 
@@ -365,11 +372,13 @@ Use `scenes/` only for reusable demos.
 6. Add raster base option tests.
 7. Add raster output-state tests.
 8. Add raster shadow tests.
-9. Add cross-option policy tests.
-10. Add a maintenance check that every `parser.addOptions(...)` long option in
+9. ~~Add cross-option policy tests.~~ ✅ **Done.** Added
+   `rendercli_cross_options`.
+10. ~~Add a maintenance check that every `parser.addOptions(...)` long option in
     `tools/rendercli/rendercli.cpp` is mentioned in this plan or a rendercli
     CMake test. This can start as a script that reports missing options and
-    later become a CTest failure.
+    later become a CTest failure.~~ ✅ **Done.** Added
+    `rendercli_option_coverage_audit` with an explicit allowlist.
 
 ## Done criteria
 
