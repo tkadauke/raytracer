@@ -32,6 +32,7 @@ set(world_position_view_render "${TEST_OUTPUT_DIR}/graph-world-position-view.png
 set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.json")
 set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(active_camera_plan "${TEST_OUTPUT_DIR}/graph-active-camera.json")
+set(camera_override_plan "${TEST_OUTPUT_DIR}/graph-camera-override.json")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(curve_overlay_plan "${TEST_OUTPUT_DIR}/graph-curve-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
@@ -392,6 +393,20 @@ rendercli_assert_nonempty("${active_camera_plan}" NAME "active camera graph outp
 file(READ "${active_camera_plan}" active_camera_graph)
 if(NOT active_camera_graph MATCHES "\"sceneCameraId\": \"2\"")
   message(FATAL_ERROR "graph output did not carry the active scene camera: ${active_camera_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph camera override selects scene camera intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --render_graph_camera command-camera
+    --width 32 --height 16
+    "${static_scene}" "${camera_override_plan}"
+)
+rendercli_assert_nonempty("${camera_override_plan}" NAME "camera override graph output")
+file(READ "${camera_override_plan}" camera_override_graph)
+if(NOT camera_override_graph MATCHES "\"sceneCameraId\": \"command-camera\"")
+  message(FATAL_ERROR "graph camera override did not carry command-camera: ${camera_override_graph}")
 endif()
 
 rendercli_run(
