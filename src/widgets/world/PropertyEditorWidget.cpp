@@ -1,5 +1,6 @@
 #include "widgets/world/PropertyEditorWidget.h"
 #include "world/objects/Element.h"
+#include "world/objects/Group.h"
 #include "widgets/world/AbstractParameterWidget.h"
 
 #include "widgets/world/VectorParameterWidget.h"
@@ -13,6 +14,8 @@
 
 #include <QFont>
 #include <QHeaderView>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QMetaProperty>
@@ -25,6 +28,16 @@ namespace {
 
   bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) {
     return actual == qt5Name || actual == qt6Name;
+  }
+
+  QString metadataValueText(const QJsonValue& value) {
+    if (value.isUndefined())
+      return QStringLiteral("-");
+
+    QJsonArray wrapper;
+    wrapper.append(value);
+    auto text = QString::fromUtf8(QJsonDocument(wrapper).toJson(QJsonDocument::Compact));
+    return text.mid(1, text.size() - 2);
   }
 
 } // namespace
@@ -131,6 +144,31 @@ void PropertyEditorWidget::addParameterWidgets() {
 
   for (const auto& name : p->element->dynamicPropertyNames()) {
     addParameter(name);
+  }
+
+  if (auto* group = qobject_cast<Group*>(p->element)) {
+    auto* tree = new QTreeWidget(this);
+    tree->setObjectName("propertyEditorGroupMetadata");
+    tree->setRootIsDecorated(false);
+    tree->setAlternatingRowColors(true);
+    tree->setHeaderLabels({tr("Metadata"), tr("Value")});
+    tree->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    tree->header()->setStretchLastSection(true);
+
+    const auto metadata = group->metadata();
+    if (metadata.isEmpty()) {
+      auto* item = new QTreeWidgetItem(tree);
+      item->setText(0, tr("metadata"));
+      item->setText(1, QStringLiteral("-"));
+    } else {
+      for (auto i = metadata.begin(); i != metadata.end(); ++i) {
+        auto* item = new QTreeWidgetItem(tree);
+        item->setText(0, i.key());
+        item->setText(1, metadataValueText(i.value()));
+      }
+    }
+    p->readOnlyWidgets << tree;
+    p->verticalLayout->addWidget(tree);
   }
 
   p->verticalLayout->addStretch();

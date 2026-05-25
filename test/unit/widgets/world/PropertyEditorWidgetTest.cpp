@@ -4,6 +4,7 @@
 #include "widgets/world/AbstractParameterWidget.h"
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
+#include "world/objects/Group.h"
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
@@ -119,5 +120,25 @@ namespace PropertyEditorWidgetTest {
     ASSERT_EQ(2, rows->topLevelItemCount());
     EXPECT_EQ(QString("Pass"), rows->topLevelItem(0)->text(0));
     EXPECT_EQ(QString("tonemap"), rows->topLevelItem(0)->text(1));
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldShowGroupPropertiesAndMetadata) {
+    Scene root;
+    auto* group = new Group;
+    group->setMetadataValue("source", QString("import"));
+    root.addChild(group);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(group);
+
+    EXPECT_NE(nullptr, parameterWidget(editor, "name"));
+    EXPECT_NE(nullptr, parameterWidget(editor, "position"));
+    EXPECT_NE(nullptr, parameterWidget(editor, "visible"));
+
+    auto* metadata = editor.findChild<QTreeWidget*>("propertyEditorGroupMetadata");
+    ASSERT_NE(nullptr, metadata);
+    ASSERT_EQ(1, metadata->topLevelItemCount());
+    EXPECT_EQ(QString("source"), metadata->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("\"import\""), metadata->topLevelItem(0)->text(1));
   }
 }

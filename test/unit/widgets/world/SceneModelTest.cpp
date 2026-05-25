@@ -3,6 +3,10 @@
 #include "widgets/world/SceneModel.h"
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
+#include "world/objects/Group.h"
+#include "world/objects/Sphere.h"
+#include "world/objects/MatteMaterial.h"
+#include "core/math/Vector.h"
 
 #include "test/helpers/GuiTestHelper.h"
 
@@ -112,5 +116,90 @@ namespace SceneModelTest {
     model.setElement(scene2);
     auto root = model.index(0, 0, QModelIndex());
     EXPECT_EQ(scene2, static_cast<Element*>(root.internalPointer()));
+  }
+
+  TEST_F(SceneModelTest, ShouldMoveSurfaceIntoGroup) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    auto* sphere = new Sphere;
+    scene->addChild(group);
+    scene->addChild(sphere);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto groupIndex = model.index(0, 0, root);
+
+    EXPECT_TRUE(model.moveRow(root, 1, groupIndex, 0));
+    EXPECT_EQ(group, sphere->parent());
+    EXPECT_EQ(sphere, group->childElements().first());
+  }
+
+  TEST_F(SceneModelTest, ShouldRejectMoveIntoGroupWhenChildTypeIsNotAllowed) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    auto* material = new MatteMaterial;
+    scene->addChild(group);
+    scene->addChild(material);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto groupIndex = model.index(0, 0, root);
+
+    EXPECT_FALSE(model.moveRow(root, 1, groupIndex, 0));
+    EXPECT_EQ(scene, material->parent());
+    EXPECT_TRUE(group->childElements().isEmpty());
+  }
+
+  TEST_F(SceneModelTest, ShouldMoveChildOutOfGroupToScene) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    auto* sphere = new Sphere;
+    scene->addChild(group);
+    group->addChild(sphere);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto groupIndex = model.index(0, 0, root);
+
+    EXPECT_TRUE(model.moveRow(groupIndex, 0, root, 1));
+    EXPECT_EQ(scene, sphere->parent());
+    EXPECT_EQ(sphere, scene->childElements().last());
+  }
+
+  TEST_F(SceneModelTest, ShouldRejectMovingGroupIntoItsDescendant) {
+    auto* scene = new Scene;
+    auto* parentGroup = new Group;
+    auto* childGroup = new Group;
+    scene->addChild(parentGroup);
+    parentGroup->addChild(childGroup);
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto parentGroupIndex = model.index(0, 0, root);
+    auto childGroupIndex = model.index(0, 0, parentGroupIndex);
+
+    EXPECT_FALSE(model.moveRow(root, 0, childGroupIndex, 0));
+    EXPECT_EQ(scene, parentGroup->parent());
+    EXPECT_EQ(parentGroup, childGroup->parent());
+  }
+
+  TEST_F(SceneModelTest, ShouldPreserveGlobalTransformWhenReparentingIntoGroup) {
+    auto* scene = new Scene;
+    auto* group = new Group;
+    auto* sphere = new Sphere;
+    group->setPosition(Vector3d(10, 0, 0));
+    sphere->setPosition(Vector3d(2, 0, 0));
+    scene->addChild(group);
+    scene->addChild(sphere);
+
+    const auto before = sphere->globalTransform();
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto groupIndex = model.index(0, 0, root);
+
+    ASSERT_TRUE(model.moveRow(root, 1, groupIndex, 0));
+    EXPECT_EQ(before, sphere->globalTransform());
+    EXPECT_EQ(Vector3d(-8, 0, 0), sphere->position());
   }
 }

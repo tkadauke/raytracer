@@ -59,6 +59,7 @@ private slots:
   void addRing();
   void addTorus();
   void addScript();
+  void addGroup();
 
   void addIntersection();
   void addUnion();
