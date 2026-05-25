@@ -21,6 +21,20 @@ namespace engine::graph {
     return *this;
   }
 
+  const RenderSceneAnalysis& RenderGraphRequest::sceneAnalysis() const {
+    return m_sceneAnalysis;
+  }
+
+  RenderGraphRequest& RenderGraphRequest::setSceneAnalysis(RenderSceneAnalysis analysis) {
+    m_sceneAnalysis = std::move(analysis);
+    return *this;
+  }
+
+  RenderGraphRequest& RenderGraphRequest::clearSceneAnalysis() {
+    m_sceneAnalysis = RenderSceneAnalysis::unknownScene();
+    return *this;
+  }
+
   RenderGraphRequest& RenderGraphRequest::setExecutorOverride(RenderExecutorPreference executor) {
     m_executorOverride = executor;
     return *this;
@@ -174,6 +188,6 @@ namespace engine::graph {
 
   RenderPlan RenderGraphRequest::compile(const RenderTargetSpec& target) const {
     RenderGraphCompiler compiler;
-    return compiler.compile(target, resolvedIntent());
+    return compiler.compile(target, resolvedIntent(), m_sceneAnalysis);
   }
 }

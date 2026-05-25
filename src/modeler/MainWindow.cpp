@@ -1613,8 +1613,23 @@ void MainWindow::updateRenderGraphInspector() {
   const engine::graph::RenderTargetSpec targetSpec{std::max(1, target.width()),
                                                    std::max(1, target.height()), 1};
   p->display->setRenderGraphIntent(intent);
-  p->renderGraphInspectorWidget->setPlan(
-    engine::graph::RenderGraphRequest(intent).compile(targetSpec));
+  engine::graph::RenderGraphRequest request(intent);
+  std::unique_ptr<Scene> evaluatedScene;
+  const Scene* analysisScene = p->scene;
+  if (p->scene) {
+    try {
+      evaluatedScene = evaluatedSceneForCurrentFrame();
+      if (evaluatedScene) {
+        analysisScene = evaluatedScene.get();
+      }
+    } catch (const std::exception&) {
+      return;
+    }
+  }
+  if (analysisScene) {
+    request.setSceneAnalysis(analysisScene->renderGraphAnalysis());
+  }
+  p->renderGraphInspectorWidget->setPlan(request.compile(targetSpec));
   applyRenderGraphPreviewPlan();
 }
 

@@ -100,6 +100,16 @@ directly authoring low-level pass nodes or mutating the scene's durable intent.
 When no default camera is named, tools derive a scene-camera reference from the
 active editable-scene camera so the compiled graph still explains which camera
 feeds scene-rendering passes.
+The compiler also receives scene-derived analysis through
+`RenderSceneAnalysis`. Intent says what result the user wants; analysis says
+what the current scene snapshot contains. `world::Scene::renderGraphAnalysis()`
+collects those facts through the element hierarchy, such as visible surfaces
+and lights, before the scene is converted into the runtime `render::Scene`.
+That keeps graph synthesis scene-aware without asking users to author graph
+nodes directly. For example, a raster preview-shadow intent only compiles a
+`raster_preview_shadows` node when the analyzed scene has visible geometry and
+lights; direct compiler callers that do not provide analysis keep conservative
+feature expansion.
 For example, rendercli uses the scene intent as the graph compiler input, but
 `--render_graph_executor`, `--render_graph_view`, `--render_graph_aov_out`,
 `--render_graph_wireframe_overlay`, and `--post_aa` can still override the
@@ -541,8 +551,8 @@ stencil AOV is a graph-synthesized coverage mask: raytracer and wireframe
 executors mark primary-hit pixels, while the rasterizer path runs a dedicated
 single-sample stencil-marking pass that writes an 8-bit graph stencil resource
 and visualizes it as grayscale. The
-preview shadow request is also visible: when preview shadows are enabled, the
-compiler inserts
+preview shadow request is also visible: when preview shadows are enabled and
+scene analysis reports visible geometry plus lights, the compiler inserts
 `raster_preview_shadows` before `raster_beauty`, stores the shadow-map settings
 on that shadow node's typed `parameters.shadows` state, and routes a
 `preview_shadow_map` resource into the beauty pass. Concrete CPU shadow-map
@@ -788,6 +798,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/RenderGraphTypes.h`
 - `include/engine/graph/RenderGraphCompiler.h`
 - `include/engine/graph/RenderGraphRequest.h`
+- `include/engine/graph/RenderSceneAnalysis.h`
 - `include/engine/graph/RenderGraphExecutionObserver.h`
 - `include/engine/graph/RenderGraphExecutionTrace.h`
 - `include/engine/graph/RenderExecutionContext.h`
@@ -808,6 +819,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`
 - `src/engine/graph/RenderGraphRequest.cpp`
+- `src/engine/graph/RenderSceneAnalysis.cpp`
 - `src/engine/graph/RenderGraphExecutionTrace.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`

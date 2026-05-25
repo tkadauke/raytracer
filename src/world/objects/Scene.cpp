@@ -246,6 +246,12 @@ engine::graph::RenderIntent Scene::renderIntentWithActiveCameraDefault() const {
   return intent;
 }
 
+engine::graph::RenderSceneAnalysis Scene::renderGraphAnalysis() const {
+  engine::graph::RenderSceneAnalysis analysis;
+  contributeToRenderGraphAnalysis(analysis);
+  return analysis;
+}
+
 void Scene::evaluateAnimationAtFrame(int frame) {
   if (m_animation)
     m_animation->apply(*this, frame);

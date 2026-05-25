@@ -1,6 +1,7 @@
 #include "core/math/Vector.h"
 #include "core/math/Angle.h"
 #include "core/Color.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 #include "world/objects/Element.h"
 
 #include "world/objects/Material.h"
@@ -249,6 +250,12 @@ Element* Element::findById(const QString& id) {
 
 bool Element::canHaveChild(Element*) const {
   return false;
+}
+
+void Element::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const {
+  for (const auto& child : childElements()) {
+    child->contributeToRenderGraphAnalysis(analysis);
+  }
 }
 
 void Element::insertChild(int index, Element* child) {

@@ -239,8 +239,14 @@ namespace engine::graph {
     return plan;
   }
 
-  RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
+  RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& target,
                                           const RenderIntent& intent) const {
+    return compile(target, intent, RenderSceneAnalysis::unknownScene());
+  }
+
+  RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
+                                          const RenderIntent& intent,
+                                          const RenderSceneAnalysis& sceneAnalysis) const {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
@@ -266,7 +272,7 @@ namespace engine::graph {
     RenderResourceDescriptor beautyColor =
       target.colorResource("beauty_color", "Beauty color", RenderResourceLifetime::Transient);
     const bool usesPreviewShadows =
-      executor == RenderExecutorKind::Rasterizer && frameIntent.enablePreviewShadows;
+      sceneAnalysis.shouldCompileRasterPreviewShadows(executor, frameIntent);
 
     RenderPassNode beauty = beautyPass(executor, frameIntent.defaultSceneView(), target);
     plan.addResourceProducer(beauty, beautyColor);

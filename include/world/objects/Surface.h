@@ -123,7 +123,8 @@ public:
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
                                                 const StepPlaybackStyle& style) const;
-  virtual bool canHaveChild(Element* child) const;
+  void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
+  bool canHaveChild(Element* child) const override;
 
 protected:
   virtual std::shared_ptr<render::Primitive> toRaytracerPrimitive() const = 0;

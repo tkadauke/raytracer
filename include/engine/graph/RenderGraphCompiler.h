@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/graph/RenderPlan.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 
 #include <string>
 #include <vector>
@@ -35,12 +36,22 @@ namespace engine::graph {
   class RenderGraphCompiler {
   public:
     /**
-      * Compiles the minimal graph for @p target and @p intent.
+      * Compiles the graph for @p target and @p intent when scene facts are not
+      * available. Unknown scene facts preserve conservative feature expansion.
       *
       * The returned plan can be inspected, exported, disabled through
       * `RenderGraphOverrides`, or handed to `GraphRenderEngine` for execution.
       */
     RenderPlan compile(const RenderTargetSpec& target, const RenderIntent& intent) const;
+
+    /**
+      * Compiles the graph for @p target, @p intent, and @p sceneAnalysis.
+      *
+      * The returned plan can be inspected, exported, disabled through
+      * `RenderGraphOverrides`, or handed to `GraphRenderEngine` for execution.
+      */
+    RenderPlan compile(const RenderTargetSpec& target, const RenderIntent& intent,
+                       const RenderSceneAnalysis& sceneAnalysis) const;
 
   private:
     RenderPassNode beautyPass(RenderExecutorKind executor, const SceneView& sceneView,

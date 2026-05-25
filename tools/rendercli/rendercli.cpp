@@ -1060,6 +1060,7 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
 
 engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scene) const {
   engine::graph::RenderGraphRequest request(scene.renderIntentWithActiveCameraDefault());
+  request.setSceneAnalysis(scene.renderGraphAnalysis());
   if (m_renderGraphExecutorSet) {
     request.setExecutorOverride(m_renderGraphExecutor);
   } else if (const auto executor = engineExecutorPreference()) {
@@ -1466,6 +1467,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
                     ? std::make_shared<engine::graph::GraphRenderEngine>(rtCamera, raytracerScene)
                     : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
     graphEngine->setIntent(renderIntent(scene));
+    graphEngine->setSceneAnalysis(scene.renderGraphAnalysis());
     graphEngine->setPlan(graphPlan);
     bindRenderGraphExternalInputs(*graphEngine);
     graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||

@@ -101,6 +101,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Render graph scene analysis.** `world::Scene` now feeds
+  `RenderSceneAnalysis` into shared graph compilation, giving the compiler
+  scene-derived facts such as visible geometry and lights before it synthesizes
+  feature nodes; raster preview shadow nodes are skipped when the analyzed scene
+  cannot use them. — GPT-5
 - **Shared render graph request resolution.** rendercli and Modeler preview now
   layer scene intent and temporary graph overrides through
   `RenderGraphRequest`, and the raster render dialog uses the same compilation

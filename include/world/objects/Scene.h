@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "engine/graph/RenderGraphTypes.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 #include "world/objects/Element.h"
 #include "world/animation/Timeline.h"
 #include "core/Color.h"
@@ -121,6 +122,11 @@ public:
     *   the intent does not already name one.
     */
   engine::graph::RenderIntent renderIntentWithActiveCameraDefault() const;
+
+  /**
+    * @returns scene-derived facts used by the render graph compiler.
+    */
+  engine::graph::RenderSceneAnalysis renderGraphAnalysis() const;
 
   /**
     * Applies the scene's animation timeline at @p frame.

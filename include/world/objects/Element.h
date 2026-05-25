@@ -5,6 +5,10 @@
 #include <QJsonValue>
 #include <QObject>
 
+namespace engine::graph {
+  class RenderSceneAnalysis;
+}
+
 class Element : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString id READ id WRITE setId)
@@ -134,6 +138,15 @@ public:
   void moveChild(int from, int to);
 
   void unlink(Element* root);
+
+  /**
+    * Adds this element's render-graph-relevant scene facts to @p analysis.
+    *
+    * The default implementation delegates to child elements. Concrete scene
+    * object types add their own facts, such as visible surfaces or lights,
+    * before recursing when their visibility permits it.
+    */
+  virtual void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const;
 
   virtual void leaveParent();
   virtual void joinParent();

@@ -1031,6 +1031,27 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
   }
 
+  TEST(GraphRenderEngine, CompilePlanUsesSceneAnalysisAndClonesIt) {
+    auto scene = std::make_shared<render::Scene>();
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    RenderSceneAnalysis analysis;
+    analysis.recordVisibleSurface();
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setIntent(intent);
+    engine.setSceneAnalysis(analysis);
+
+    const RenderPlan plan = engine.compilePlan({4, 4, 1});
+    EXPECT_EQ(nullptr, plan.findPass("raster_preview_shadows"));
+
+    auto clone = std::dynamic_pointer_cast<GraphRenderEngine>(engine.cloneForRender());
+    ASSERT_NE(nullptr, clone);
+    const RenderPlan clonePlan = clone->compilePlan({4, 4, 1});
+    EXPECT_EQ(nullptr, clonePlan.findPass("raster_preview_shadows"));
+  }
+
   TEST(GraphRenderEngine, DisabledBeautyPassCanSubstituteDefaultOutput) {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord(0.25, 0.5, 0.75));

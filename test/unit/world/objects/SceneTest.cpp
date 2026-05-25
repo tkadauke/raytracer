@@ -3,6 +3,9 @@
 
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
+#include "world/objects/PointLight.h"
+#include "world/objects/Group.h"
+#include "world/objects/Sphere.h"
 #include "world/objects/Material.h"
 #include "world/objects/Texture.h"
 #include "world/animation/AnimationTrack.h"
@@ -200,6 +203,52 @@ namespace SceneTest {
     ASSERT_TRUE(effectiveIntent.defaultCamera.has_value());
     ASSERT_TRUE(effectiveIntent.defaultCamera->sceneCameraId.has_value());
     EXPECT_EQ("shot-camera", *effectiveIntent.defaultCamera->sceneCameraId);
+  }
+
+  TEST(Scene, ShouldAnalyzeVisibleRenderGraphSceneFeatures) {
+    Scene scene;
+    scene.addChild(new Sphere);
+    scene.addChild(new PointLight);
+
+    const auto analysis = scene.renderGraphAnalysis();
+
+    EXPECT_TRUE(analysis.hasKnownVisibleSurfaceCount());
+    EXPECT_TRUE(analysis.hasKnownVisibleLightCount());
+    EXPECT_EQ(1u, analysis.visibleSurfaceCount());
+    EXPECT_EQ(1u, analysis.visibleLightCount());
+    EXPECT_TRUE(analysis.hasVisibleSurfaces());
+    EXPECT_TRUE(analysis.hasVisibleLights());
+  }
+
+  TEST(Scene, ShouldIgnoreHiddenElementsInRenderGraphAnalysis) {
+    Scene scene;
+    auto* hiddenSphere = new Sphere;
+    hiddenSphere->hide();
+    scene.addChild(hiddenSphere);
+    auto* hiddenLight = new PointLight;
+    hiddenLight->hide();
+    scene.addChild(hiddenLight);
+
+    const auto analysis = scene.renderGraphAnalysis();
+
+    EXPECT_EQ(0u, analysis.visibleSurfaceCount());
+    EXPECT_EQ(0u, analysis.visibleLightCount());
+    EXPECT_FALSE(analysis.hasVisibleSurfaces());
+    EXPECT_FALSE(analysis.hasVisibleLights());
+  }
+
+  TEST(Scene, ShouldRespectHiddenGroupsInRenderGraphAnalysis) {
+    Scene scene;
+    auto* group = new Group;
+    group->hide();
+    group->addChild(new Sphere);
+    group->addChild(new PointLight);
+    scene.addChild(group);
+
+    const auto analysis = scene.renderGraphAnalysis();
+
+    EXPECT_EQ(0u, analysis.visibleSurfaceCount());
+    EXPECT_EQ(0u, analysis.visibleLightCount());
   }
 
   TEST(Scene, ShouldReturnLastCameraAsActiveWhenMultiple) {

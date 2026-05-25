@@ -4,7 +4,9 @@
 #include "engine/graph/RasterPassState.h"
 #include "widgets/RenderWidget.h"
 #include "widgets/world/RenderWindow.h"
+#include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
+#include "world/objects/Sphere.h"
 
 #include "test/helpers/GuiTestHelper.h"
 
@@ -77,6 +79,8 @@ namespace RenderWindowTest {
   TEST_F(RenderWindowTest, ShouldCompileRasterShadowsIntoRenderGraph) {
     RenderWindow window;
     Scene scene;
+    scene.addChild(new Sphere);
+    scene.addChild(new PointLight);
     window.setScene(&scene);
 
     auto* engineType = window.findChild<QComboBox*>("engineType");

@@ -102,6 +102,7 @@ public:
   }
 
   virtual std::shared_ptr<render::Light> toRaytracer() const = 0;
+  void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
 
 private:
   bool m_visible;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 
 #include <optional>
 #include <string>
@@ -22,6 +23,9 @@ namespace engine::graph {
 
     const RenderIntent& baseIntent() const;
     RenderGraphRequest& setBaseIntent(RenderIntent intent);
+    const RenderSceneAnalysis& sceneAnalysis() const;
+    RenderGraphRequest& setSceneAnalysis(RenderSceneAnalysis analysis);
+    RenderGraphRequest& clearSceneAnalysis();
 
     RenderGraphRequest& setExecutorOverride(RenderExecutorPreference executor);
     RenderGraphRequest& clearExecutorOverride();
@@ -52,6 +56,7 @@ namespace engine::graph {
 
   private:
     RenderIntent m_baseIntent;
+    RenderSceneAnalysis m_sceneAnalysis{RenderSceneAnalysis::unknownScene()};
     std::optional<RenderExecutorPreference> m_executorOverride;
     std::optional<RenderExecutorPreference> m_executorShortcut;
     bool m_wireframeExecutorSelectsWireframeView{true};

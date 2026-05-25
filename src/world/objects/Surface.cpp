@@ -3,6 +3,7 @@
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
 #include "world/objects/StepVisibilityEvaluator.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Scene.h"
@@ -76,4 +77,12 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene,
 bool Surface::canHaveChild(Element* child) const {
   return dynamic_cast<Surface*>(child) != nullptr || dynamic_cast<Light*>(child) != nullptr ||
          dynamic_cast<Group*>(child) != nullptr;
+}
+
+void Surface::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const {
+  if (!visible()) {
+    return;
+  }
+  analysis.recordVisibleSurface();
+  Element::contributeToRenderGraphAnalysis(analysis);
 }

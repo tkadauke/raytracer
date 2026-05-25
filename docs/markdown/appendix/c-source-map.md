@@ -62,6 +62,7 @@
 | `include/engine/graph/RenderPlan.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderResource.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/RenderResourceStorage.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `include/engine/graph/RenderSceneAnalysis.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/WireframePassState.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/raster/Rasterizer.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raster/detail/RasterMaterial.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
@@ -185,6 +186,7 @@
 | `src/engine/graph/RenderPlan.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResource.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResourceStorage.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
+| `src/engine/graph/RenderSceneAnalysis.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/WireframePassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/raster/Rasterizer.cpp` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `src/engine/raytracer/Raytracer.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |

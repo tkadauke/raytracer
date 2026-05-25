@@ -42,6 +42,8 @@ struct RenderWindow::Private {
   std::shared_ptr<engine::raytracer::Raytracer> raytracer;
   std::shared_ptr<engine::wireframe::Wireframe> wireframe;
   std::shared_ptr<engine::graph::GraphRenderEngine> rasterGraph;
+  engine::graph::RenderSceneAnalysis sceneAnalysis{
+    engine::graph::RenderSceneAnalysis::unknownScene()};
 
   engine::graph::RenderPostProcessAA postProcessAA() const {
     const QString postAA = settingsWidget->postProcessAA();
@@ -117,8 +119,10 @@ struct RenderWindow::Private {
   engine::graph::RenderPlan rasterPlan() const {
     const QSize resolution = settingsWidget->resolution();
     const auto intent = rasterIntent();
-    auto plan = engine::graph::RenderGraphRequest(intent).compile(
-      {resolution.width(), resolution.height(), settingsWidget->msaaSamples()});
+    engine::graph::RenderGraphRequest request(intent);
+    request.setSceneAnalysis(sceneAnalysis);
+    auto plan =
+      request.compile({resolution.width(), resolution.height(), settingsWidget->msaaSamples()});
     const engine::graph::RasterBeautyPassState rasterState = rasterBeautyPassState(
       intent.postProcessAA, !intent.usesGraphImagePostProcessAA(), !intent.enablePreviewShadows);
     rasterState.writeToRasterBeautyPasses(plan);
@@ -244,10 +248,12 @@ void RenderWindow::finished() {
 
 void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
+  p->sceneAnalysis = scene->renderGraphAnalysis();
 
   p->raytracer->setScene(raytracerScene);
   p->wireframe->setScene(raytracerScene);
   p->rasterGraph->setScene(raytracerScene);
+  p->rasterGraph->setSceneAnalysis(p->sceneAnalysis);
 
   auto camera = scene->activeCamera();
   std::shared_ptr<render::Camera> rtCamera;

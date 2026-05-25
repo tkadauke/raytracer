@@ -554,6 +554,7 @@ namespace engine::graph {
 
   struct GraphRenderEngine::Private {
     RenderIntent intent;
+    RenderSceneAnalysis sceneAnalysis{RenderSceneAnalysis::unknownScene()};
     std::optional<RenderPlan> explicitPlan;
     RenderPlan lastPlan;
     ExternalResourceBindings externalResources;
@@ -611,6 +612,7 @@ namespace engine::graph {
       result->setBackgroundColor(backgroundColor());
     }
     result->setIntent(p->intent);
+    result->setSceneAnalysis(p->sceneAnalysis);
     if (p->explicitPlan) {
       result->setPlan(*p->explicitPlan);
     }
@@ -629,6 +631,18 @@ namespace engine::graph {
 
   const RenderIntent& GraphRenderEngine::intent() const {
     return p->intent;
+  }
+
+  void GraphRenderEngine::setSceneAnalysis(RenderSceneAnalysis analysis) {
+    p->sceneAnalysis = std::move(analysis);
+  }
+
+  void GraphRenderEngine::clearSceneAnalysis() {
+    p->sceneAnalysis = RenderSceneAnalysis::unknownScene();
+  }
+
+  const RenderSceneAnalysis& GraphRenderEngine::sceneAnalysis() const {
+    return p->sceneAnalysis;
   }
 
   void GraphRenderEngine::setPlan(RenderPlan plan) {
@@ -701,7 +715,7 @@ namespace engine::graph {
 
   RenderPlan GraphRenderEngine::compilePlan(const RenderTargetSpec& target) const {
     RenderGraphCompiler compiler;
-    return compiler.compile(target, p->intent);
+    return compiler.compile(target, p->intent, p->sceneAnalysis);
   }
 
   const RenderPlan& GraphRenderEngine::lastPlan() const {

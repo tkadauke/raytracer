@@ -43,6 +43,21 @@ namespace engine::graph {
     const RenderIntent& intent() const;
 
     /**
+      * Replaces scene-derived facts used when compiling from intent.
+      */
+    void setSceneAnalysis(RenderSceneAnalysis analysis);
+
+    /**
+      * Clears scene-derived facts so compilation assumes an unknown scene.
+      */
+    void clearSceneAnalysis();
+
+    /**
+      * @returns the scene-derived facts used when compiling from intent.
+      */
+    const RenderSceneAnalysis& sceneAnalysis() const;
+
+    /**
       * Installs a caller-compiled plan. Rendering uses this plan until
       * `clearPlan()` is called.
       */

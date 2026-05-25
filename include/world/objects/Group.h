@@ -176,13 +176,14 @@ public:
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
                                                 const StepPlaybackStyle& style) const;
+  void contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const override;
 
   /**
     * @returns true for surfaces, lights, and other groups. Groups reject
     *   materials, textures, cameras, and other authoring objects because those
     *   belong at scene scope or on a specific surface.
     */
-  virtual bool canHaveChild(Element* child) const;
+  bool canHaveChild(Element* child) const override;
 
 private:
   std::shared_ptr<render::Primitive>

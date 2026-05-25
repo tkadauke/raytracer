@@ -3,6 +3,7 @@
 #include "world/objects/Light.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Surface.h"
+#include "engine/graph/RenderSceneAnalysis.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "render/primitives/Composite.h"
@@ -179,6 +180,13 @@ std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene,
 bool Group::canHaveChild(Element* child) const {
   return dynamic_cast<Surface*>(child) != nullptr || dynamic_cast<Light*>(child) != nullptr ||
          dynamic_cast<Group*>(child) != nullptr;
+}
+
+void Group::contributeToRenderGraphAnalysis(engine::graph::RenderSceneAnalysis& analysis) const {
+  if (!visible()) {
+    return;
+  }
+  Element::contributeToRenderGraphAnalysis(analysis);
 }
 
 static bool dummy = ElementFactory::self().registerClass<Group>("Group") &&

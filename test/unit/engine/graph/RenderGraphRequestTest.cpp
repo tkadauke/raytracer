@@ -75,4 +75,20 @@ namespace RenderGraphRequestTest {
     ASSERT_NE(nullptr, plan.findPass("stencil_aov"));
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.findPass("stencil_aov")->executor);
   }
+
+  TEST(RenderGraphRequest, CompileUsesSceneAnalysis) {
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+
+    RenderSceneAnalysis analysis;
+    analysis.recordVisibleSurface();
+
+    RenderGraphRequest request(intent);
+    request.setSceneAnalysis(analysis);
+
+    const RenderPlan plan = request.compile({16, 8, 1});
+
+    EXPECT_EQ(nullptr, plan.findPass("raster_preview_shadows"));
+  }
 }

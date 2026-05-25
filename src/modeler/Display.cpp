@@ -201,6 +201,9 @@ void RenderDisplay::setScene(Scene* scene, const StepPlaybackStyle& playbackStyl
   // the control engine's scene does not tear the scene out from
   // under the worker that is finishing the previous frame.
   m_engine->setScene(scene->toRaytracerScene(playbackStyle));
+  if (m_graphEngine) {
+    m_graphEngine->setSceneAnalysis(scene->renderGraphAnalysis());
+  }
   if (auto* camera = scene->activeCamera()) {
     m_engine->setCamera(camera->toRaytracer());
     setInteractiveCameraPose(camera->position(), camera->target());

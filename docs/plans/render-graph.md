@@ -234,11 +234,16 @@ The effective intent is built in layers:
 scene JSON RenderIntent
   -> application defaults
   -> RenderGraphRequest overrides from rendercli / Modeler / API
+  + RenderSceneAnalysis from the current scene snapshot
   -> compiled RenderPlan
 ```
 
 This lets Modeler render a lower-fidelity realtime-ish preview of the final
 image while preserving the final render description in the scene.
+`RenderSceneAnalysis` is the scene-content side of compilation: intent says
+what the user wants, while analysis records facts such as visible surfaces and
+lights so feature planners can decide whether requested nodes like preview
+shadow maps are meaningful for this scene.
 
 ```cpp
 enum class RenderExecutorPreference {
@@ -1515,9 +1520,10 @@ Resolved decisions:
 - Named shading profiles, not fixed enum values like `Cartoon`, represent
   specific looks such as toon shading.
 - Users author render intent, not graph topology. All normal render graph nodes
-  are synthesized by the compiler from scene intent, preview/tool intent, and
-  automatic feature expansion. Exported/replayed graph JSON and node disabling
-  remain debugging and teaching surfaces, not the primary scene-authoring API.
+  are synthesized by the compiler from scene intent, scene analysis,
+  preview/tool intent, and automatic feature expansion. Exported/replayed graph
+  JSON and node disabling remain debugging and teaching surfaces, not the
+  primary scene-authoring API.
 
 ## Documentation and testing expectations
 

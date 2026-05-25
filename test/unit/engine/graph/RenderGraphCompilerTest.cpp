@@ -628,6 +628,24 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, SceneAnalysisCanSuppressUnneededRasterPreviewShadowPass) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    RenderSceneAnalysis analysis;
+    analysis.recordVisibleSurface();
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent, analysis);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("raster_beauty", plan.passes()[0].id);
+    EXPECT_EQ("tonemap", plan.passes()[1].id);
+    EXPECT_EQ(nullptr, plan.findPass("raster_preview_shadows"));
+    EXPECT_EQ(nullptr, plan.findResource("preview_shadow_map"));
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, RasterPreviewShadowPassCanSubstituteDefaultWhenDisabled) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
