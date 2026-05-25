@@ -751,14 +751,16 @@ engine::graph::WireframePassState Renderer::wireframePassState() const {
 engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) const {
   engine::graph::RenderGraphCompiler compiler;
   const auto intent = renderIntent(scene);
-  auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
+  const auto frameIntent = intent.withWholeFrameOverridesApplied();
+  auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(frameIntent)}, intent);
   wireframePassState().writeToWireframePasses(plan);
-  if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
-    const engine::graph::RasterBeautyPassState rasterState = rasterBeautyPassState(
-      intent.postProcessAA, !intent.usesGraphImagePostProcessAA(), !intent.enablePreviewShadows);
+  if (frameIntent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
+    const engine::graph::RasterBeautyPassState rasterState =
+      rasterBeautyPassState(frameIntent.postProcessAA, !frameIntent.usesGraphImagePostProcessAA(),
+                            !frameIntent.enablePreviewShadows);
     rasterState.writeToRasterBeautyPasses(plan);
     rasterState.writeToRasterAOVPasses(plan);
-    if (intent.enablePreviewShadows) {
+    if (frameIntent.enablePreviewShadows) {
       rasterShadowPassState().writeToRasterShadowPasses(plan);
     }
   }

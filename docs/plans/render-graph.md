@@ -298,6 +298,9 @@ Whole-frame (`selector: all`) overrides are applied to the default frame intent
 before the compiler synthesizes nodes. More specific selector overrides remain
 intent for later scene-partitioning planners; users should not author pass
 nodes directly as the normal API.
+Render tools that attach executor-specific pass state should use this effective
+frame intent too, so a scene-authored whole-frame raster override receives the
+same raster MSAA, shadow, and postprocess state as an explicit raster default.
 The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera

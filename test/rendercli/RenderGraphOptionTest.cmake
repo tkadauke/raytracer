@@ -63,10 +63,17 @@ file(WRITE "${scene_intent_scene}" [=[
   "background": [0.4, 0.8, 1.0],
   "type": "Scene",
   "renderIntent": {
-    "defaultExecutor": "rasterizer",
+    "defaultExecutor": "raytracer",
     "defaultViewMode": "beauty",
     "enableWireframeOverlay": true,
-    "postProcessAA": "smaa"
+    "postProcessAA": "smaa",
+    "viewOverrides": [
+      {
+        "selector": {"kind": "all"},
+        "executor": "rasterizer",
+        "camera": {"sceneCameraId": "inspection-camera"}
+      }
+    ]
   },
   "children": []
 }
@@ -324,8 +331,8 @@ endif()
 rendercli_run(
   NAME "rendercli uses scene render intent"
   COMMAND
-    "${RENDERCLI}" --render_graph_only --render_graph_format text
-    --width 32 --height 16
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    --width 32 --height 16 --msaa 4 --msaa_shading per_fragment
     "${scene_intent_scene}" "${scene_intent_plan}"
 )
 rendercli_assert_nonempty("${scene_intent_plan}" NAME "scene render intent graph output")
@@ -333,11 +340,26 @@ file(READ "${scene_intent_plan}" scene_intent_graph)
 if(NOT scene_intent_graph MATCHES "raster_beauty")
   message(FATAL_ERROR "scene render intent did not select raster_beauty: ${scene_intent_graph}")
 endif()
+if(scene_intent_graph MATCHES "raytrace_beauty")
+  message(FATAL_ERROR "whole-frame scene override should replace raytrace_beauty: ${scene_intent_graph}")
+endif()
 if(NOT scene_intent_graph MATCHES "wireframe_overlay")
   message(FATAL_ERROR "scene render intent did not add wireframe_overlay: ${scene_intent_graph}")
 endif()
 if(NOT scene_intent_graph MATCHES "post_smaa")
   message(FATAL_ERROR "scene render intent did not add post_smaa: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "\"sceneCameraId\": \"inspection-camera\"")
+  message(FATAL_ERROR "scene render intent did not carry the override camera: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "\"sampleCount\": 4")
+  message(FATAL_ERROR "whole-frame scene override did not select raster MSAA resources: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "msaaSamples")
+  message(FATAL_ERROR "whole-frame scene override did not write raster pass state: ${scene_intent_graph}")
+endif()
+if(NOT scene_intent_graph MATCHES "per_fragment")
+  message(FATAL_ERROR "whole-frame scene override did not write raster MSAA shading state: ${scene_intent_graph}")
 endif()
 
 rendercli_run(

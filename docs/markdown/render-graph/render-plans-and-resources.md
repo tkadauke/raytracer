@@ -92,6 +92,9 @@ choices over that saved intent. For example, rendercli uses the scene intent as
 the graph compiler input, but `--render_graph_executor`, `--render_graph_view`,
 `--render_graph_aov_out`, `--render_graph_wireframe_overlay`, and `--post_aa`
 can still override the effective command-line render.
+Because whole-frame overrides become the effective frame intent before pass
+synthesis, tool-level state such as raster MSAA and preview shadow settings is
+attached to the synthesized raster passes after those overrides are applied.
 
 ## <a id="resources-are-descriptors-not-buffers"></a>Resources are descriptors, not buffers
 A render resource is declared with `RenderResourceDescriptor`:

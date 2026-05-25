@@ -277,6 +277,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **rendercli whole-frame graph overrides.** `rendercli` now applies
+  scene-authored `selector: all` render-intent overrides before choosing graph
+  sampling and executor-specific pass state, so raster MSAA/shadow/postprocess
+  settings are preserved when a scene override switches the synthesized graph
+  to rasterizer. — GPT-5
 - **Render graph exported-resource validation.** Plans now reject exported
   resources that have no declared producer, so malformed graph-only plans fail
   before execution. — GPT-5
