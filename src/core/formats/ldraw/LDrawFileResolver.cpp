@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <istream>
 #include <memory>
@@ -51,6 +52,26 @@ unique_ptr<istream> LDrawFilesystemResolver::open(const string& filename) const 
 }
 
 string LDrawFilesystemResolver::cacheKey(const string& filename) const {
+  namespace fs = std::filesystem;
+
+  auto keyForExistingPath = [](const fs::path& path) -> string {
+    std::error_code error;
+    const auto canonical = fs::weakly_canonical(path, error);
+    return normalizedFilename(error ? path.lexically_normal().string() : canonical.string());
+  };
+
+  fs::path direct(filename);
+  std::error_code error;
+  if (fs::exists(direct, error))
+    return keyForExistingPath(direct);
+
+  for (const auto& directory : m_searchDirectories) {
+    fs::path candidate = fs::path(directory) / filename;
+    error.clear();
+    if (fs::exists(candidate, error))
+      return keyForExistingPath(candidate);
+  }
+
   return normalizedFilename(filename);
 }
 

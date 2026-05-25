@@ -16,6 +16,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   metadata, and the distinction from render layers/AOVs; a reusable nested
   group fixture covers importer-facing transform and visibility behavior. —
   GPT-5
+- **LDraw compiled part reuse.** `LDrawGeometryCompiler` now exposes cache
+  counters and reuses compiled subfile geometry across repeated type-1
+  references with matching resolved file, color context, and winding state,
+  while instances preserve per-reference transforms, bounds, and materials for
+  #210. — GPT-5
 - **Curve/path documentation and fixtures.** Public curve docs and the
   tessellation textbook now describe polyline data, ribbon/tube tessellation,
   curve overlays, and attribute-color rendering; reusable plain and attributed

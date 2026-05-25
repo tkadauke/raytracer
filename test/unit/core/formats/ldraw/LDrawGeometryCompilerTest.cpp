@@ -12,12 +12,14 @@
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Composite.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
 #include "test/helpers/ColorTestHelper.h"
 
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -324,6 +326,78 @@ namespace LDrawGeometryCompilerTest {
 
     EXPECT_EQ(1, resolver->openCalls);
     ASSERT_EQ(2u, geometry->primitives().size());
+  }
+
+  TEST(LDrawGeometryCompiler, RepeatedFixtureReferencesReuseCompiledPartInstances) {
+    auto resolver = make_shared<LDrawFilesystemResolver>(
+      vector<string>{"test/fixtures/ldraw/repeated"});
+    ifstream input("test/fixtures/ldraw/repeated/root.ldr");
+    LDrawGeometryCompiler compiler(resolver);
+
+    auto geometry = compiler.compile(input, colorTable());
+    auto stats = compiler.cacheStats();
+
+    EXPECT_EQ(1u, stats.parsedSubfileMisses);
+    EXPECT_EQ(1u, stats.compiledSubfileMisses);
+    EXPECT_EQ(5u, stats.compiledSubfileHits);
+    ASSERT_EQ(6u, geometry->primitives().size());
+
+    shared_ptr<Primitive> sharedPart;
+    for (const auto& primitive : geometry->primitives()) {
+      auto instance = dynamic_pointer_cast<Instance>(primitive);
+      ASSERT_NE(nullptr, instance);
+      if (!sharedPart)
+        sharedPart = instance->primitive();
+      EXPECT_EQ(sharedPart, instance->primitive());
+    }
+
+    const auto& bbox = geometry->boundingBox();
+    EXPECT_NEAR(0.0, bbox.min().x(), 1e-9);
+    EXPECT_NEAR(0.0, bbox.min().y(), 1e-9);
+    EXPECT_NEAR(0.0, bbox.min().z(), 1e-9);
+    EXPECT_NEAR(11.0, bbox.max().x(), 1e-9);
+    EXPECT_NEAR(1.0, bbox.max().y(), 1e-9);
+    EXPECT_NEAR(0.0, bbox.max().z(), 1e-9);
+  }
+
+  TEST(LDrawGeometryCompiler, CacheKeySeparatesInheritedColorContexts) {
+    auto resolver = make_shared<MemoryResolver>(map<string, string>{
+      {"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
+    istringstream input(
+      "1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+      "1 2 2 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+      "1 1 4 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
+    LDrawGeometryCompiler compiler(resolver);
+
+    auto geometry = compiler.compile(input, colorTable());
+    auto first = dynamic_pointer_cast<Instance>(geometry->primitives().front());
+    auto secondIt = next(geometry->primitives().begin());
+    auto second = dynamic_pointer_cast<Instance>(*secondIt);
+    auto third = dynamic_pointer_cast<Instance>(geometry->primitives().back());
+
+    ASSERT_NE(nullptr, first);
+    ASSERT_NE(nullptr, second);
+    ASSERT_NE(nullptr, third);
+    EXPECT_NE(first->primitive(), second->primitive());
+    EXPECT_EQ(first->primitive(), third->primitive());
+
+    auto stats = compiler.cacheStats();
+    EXPECT_EQ(1u, stats.compiledSubfileHits);
+    EXPECT_EQ(2u, stats.compiledSubfileMisses);
+    EXPECT_EQ(1u, stats.parsedSubfileMisses);
+
+    State state;
+    HitPointInterval hitPoints;
+    const Primitive* blueHit = geometry->intersect(
+      Rayd(Vector4d(0.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
+    ASSERT_NE(nullptr, blueHit);
+    ASSERT_COLOR_NEAR(Colord::fromRGB(0, 85, 191), diffuseColor(blueHit->material()), 0.001);
+
+    hitPoints = HitPointInterval();
+    const Primitive* greenHit = geometry->intersect(
+      Rayd(Vector4d(2.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
+    ASSERT_NE(nullptr, greenHit);
+    ASSERT_COLOR_NEAR(Colord::fromRGB(35, 120, 65), diffuseColor(greenHit->material()), 0.001);
   }
 
   TEST(LDrawGeometryCompiler, DetectsRecursiveSubfileCycles) {
