@@ -54,6 +54,20 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(profile.parameters, decoded.parameters);
   }
 
+  TEST(ShadingProfileRef, OwnsParameterMutationAndLookup) {
+    ShadingProfileRef profile;
+
+    EXPECT_EQ(nullptr, profile.parameter("levels"));
+    profile.setParameter("levels", ShadingProfileParameterValue(3.0));
+    profile.setParameter("enabled", ShadingProfileParameterValue(true));
+    profile.setParameter("levels", ShadingProfileParameterValue(4.0));
+
+    ASSERT_NE(nullptr, profile.parameter("levels"));
+    EXPECT_EQ(ShadingProfileParameterValue(4.0), *profile.parameter("levels"));
+    ASSERT_NE(nullptr, profile.parameter("enabled"));
+    EXPECT_EQ(ShadingProfileParameterValue(true), *profile.parameter("enabled"));
+  }
+
   TEST(ShadingProfileParameterValue, ParsesTextScalars) {
     EXPECT_EQ(ShadingProfileParameterValue(true), ShadingProfileParameterValue::fromText("true"));
     EXPECT_EQ(ShadingProfileParameterValue(false), ShadingProfileParameterValue::fromText("FALSE"));
@@ -139,6 +153,22 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);
     ASSERT_TRUE(intent.viewOverrides.front().executor.has_value());
     EXPECT_EQ(RenderExecutorPreference::Wireframe, *intent.viewOverrides.front().executor);
+  }
+
+  TEST(RenderIntent, OwnsAOVAndShadingProfileIntentMutation) {
+    RenderIntent intent;
+
+    EXPECT_FALSE(intent.exportsAOV(RenderViewMode::Depth));
+    intent.requestExportedAOV(RenderViewMode::Depth);
+    intent.requestExportedAOV(RenderViewMode::Depth);
+    intent.requestExportedAOV(RenderViewMode::Normal);
+    ASSERT_EQ(2u, intent.exportedAOVs.size());
+    EXPECT_TRUE(intent.exportsAOV(RenderViewMode::Depth));
+    EXPECT_TRUE(intent.exportsAOV(RenderViewMode::Normal));
+
+    intent.setDefaultShadingProfileParameter("levels", ShadingProfileParameterValue(5.0));
+    ASSERT_NE(nullptr, intent.defaultShadingProfile.parameter("levels"));
+    EXPECT_EQ(ShadingProfileParameterValue(5.0), *intent.defaultShadingProfile.parameter("levels"));
   }
 
   TEST(RenderIntent, RejectsUnknownExecutorName) {

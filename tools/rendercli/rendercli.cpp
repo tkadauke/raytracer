@@ -671,7 +671,7 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
       engine::graph::ShadingProfileRef{m_renderGraphShadingProfile.toStdString(), {}};
   }
   for (const auto& [key, value] : m_renderGraphShadingProfileParameters) {
-    intent.defaultShadingProfile.parameters.insert_or_assign(key, value);
+    intent.setDefaultShadingProfileParameter(key, value);
   }
   if (m_renderGraphWireframeOverlay) {
     intent.enableWireframeOverlay = true;
@@ -686,10 +686,7 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
     intent.postProcessAA = commandLinePostProcessAA();
   }
   for (const auto& aovOutput : m_renderGraphAOVOutputs) {
-    if (std::find(intent.exportedAOVs.begin(), intent.exportedAOVs.end(), aovOutput.viewMode) ==
-        intent.exportedAOVs.end()) {
-      intent.exportedAOVs.push_back(aovOutput.viewMode);
-    }
+    intent.requestExportedAOV(aovOutput.viewMode);
   }
   return intent;
 }

@@ -489,6 +489,15 @@ namespace engine::graph {
     return out.str();
   }
 
+  void ShadingProfileRef::setParameter(std::string key, ShadingProfileParameterValue value) {
+    parameters.insert_or_assign(std::move(key), std::move(value));
+  }
+
+  const ShadingProfileParameterValue* ShadingProfileRef::parameter(const std::string& key) const {
+    const auto it = parameters.find(key);
+    return it == parameters.end() ? nullptr : &it->second;
+  }
+
   ShadingProfileRef ShadingProfileRef::fromJson(const QJsonValue& value, std::string path) {
     ShadingProfileRef profile;
     if (value.isUndefined())
@@ -742,6 +751,21 @@ namespace engine::graph {
     }
 
     return result;
+  }
+
+  void RenderIntent::requestExportedAOV(RenderViewMode viewMode) {
+    if (!exportsAOV(viewMode)) {
+      exportedAOVs.push_back(viewMode);
+    }
+  }
+
+  bool RenderIntent::exportsAOV(RenderViewMode viewMode) const {
+    return std::find(exportedAOVs.begin(), exportedAOVs.end(), viewMode) != exportedAOVs.end();
+  }
+
+  void RenderIntent::setDefaultShadingProfileParameter(std::string key,
+                                                       ShadingProfileParameterValue value) {
+    defaultShadingProfile.setParameter(std::move(key), std::move(value));
   }
 
   RenderIntent RenderIntent::fromJson(const QJsonObject& object) {
