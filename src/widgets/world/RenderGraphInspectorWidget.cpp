@@ -112,7 +112,7 @@ namespace {
     if (!snapshot)
       return QString();
 
-    if (snapshot->cacheMetadata().status() != RenderGraphCacheStatus::NotCacheable) {
+    if (snapshot->cacheMetadata().cacheable()) {
       return QStringLiteral("cache: %1").arg(toString(snapshot->cacheMetadata().status()));
     }
     if (snapshot->hasColorPreview())
