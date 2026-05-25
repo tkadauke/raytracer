@@ -828,6 +828,9 @@ endif()
 if(NOT graph_trace_json MATCHES "\"status\": \"not_cacheable\"")
   message(FATAL_ERROR "graph trace did not contain not-cacheable resource status: ${graph_trace_json}")
 endif()
+if(NOT graph_trace_json MATCHES "\"cacheable\": false")
+  message(FATAL_ERROR "graph trace did not contain non-cacheable flag: ${graph_trace_json}")
+endif()
 
 rendercli_run(
   NAME "rendercli writes raster shadow depth trace"
@@ -850,6 +853,12 @@ if(NOT raster_shadow_trace_json MATCHES "\"previewKind\": \"depth\"")
 endif()
 if(NOT raster_shadow_trace_json MATCHES "\"status\": \"stored\"")
   message(FATAL_ERROR "raster shadow trace did not contain stored cache status: ${raster_shadow_trace_json}")
+endif()
+if(NOT raster_shadow_trace_json MATCHES "\"cacheable\": true")
+  message(FATAL_ERROR "raster shadow trace did not contain cacheable flag: ${raster_shadow_trace_json}")
+endif()
+if(NOT raster_shadow_trace_json MATCHES "\"storedCachedArtifact\": true")
+  message(FATAL_ERROR "raster shadow trace did not contain stored cache flag: ${raster_shadow_trace_json}")
 endif()
 
 rendercli_run(
