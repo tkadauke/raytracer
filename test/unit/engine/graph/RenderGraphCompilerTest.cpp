@@ -306,6 +306,7 @@ namespace RenderGraphCompilerTest {
     override.selector = SceneSelector::all();
     override.executor = RenderExecutorPreference::Rasterizer;
     override.viewMode = RenderViewMode::Depth;
+    override.camera = RenderCameraRef{"inspection-camera", std::nullopt};
     intent.viewOverrides.push_back(override);
 
     const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
@@ -313,6 +314,9 @@ namespace RenderGraphCompilerTest {
     ASSERT_EQ(2u, plan.passes().size());
     EXPECT_EQ("depth_aov", plan.passes()[0].id);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    ASSERT_TRUE(plan.passes()[0].sceneView.camera.has_value());
+    ASSERT_TRUE(plan.passes()[0].sceneView.camera->sceneCameraId.has_value());
+    EXPECT_EQ("inspection-camera", *plan.passes()[0].sceneView.camera->sceneCameraId);
     EXPECT_EQ("visualize_depth_aov", plan.passes()[1].id);
     EXPECT_TRUE(plan.validate().valid());
   }

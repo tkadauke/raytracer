@@ -135,6 +135,9 @@ namespace RenderGraphTypesTest {
     ASSERT_TRUE(effective.defaultCamera.has_value());
     ASSERT_TRUE(effective.defaultCamera->sceneCameraId.has_value());
     EXPECT_EQ("inspection-camera", *effective.defaultCamera->sceneCameraId);
+    ASSERT_TRUE(effective.defaultSceneView().camera.has_value());
+    ASSERT_TRUE(effective.defaultSceneView().camera->sceneCameraId.has_value());
+    EXPECT_EQ("inspection-camera", *effective.defaultSceneView().camera->sceneCameraId);
     ASSERT_EQ(1u, effective.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::Tag, effective.viewOverrides.front().selector.kind);
   }

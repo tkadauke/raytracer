@@ -662,6 +662,13 @@ namespace engine::graph {
     return result;
   }
 
+  SceneView RenderIntent::defaultSceneView() const {
+    SceneView view;
+    view.selector = SceneSelector::all();
+    view.camera = defaultCamera;
+    return view;
+  }
+
   RenderExecutorKind RenderIntent::defaultExecutorKind() const {
     if (defaultViewMode == RenderViewMode::Wireframe) {
       return RenderExecutorKind::Wireframe;
@@ -756,6 +763,9 @@ namespace engine::graph {
     object["reads"] = readArray(reads);
     object["writes"] = writeArray(writes);
     object["sceneSelector"] = sceneView.selector.toJson();
+    if (sceneView.camera) {
+      object["sceneCamera"] = sceneView.camera->toJson();
+    }
     if (state) {
       const QJsonObject serializedState = state->toJson();
       if (!serializedState.isEmpty()) {
@@ -796,6 +806,11 @@ namespace engine::graph {
         SceneSelector::fromJson(selector.toObject(), path + ".sceneSelector");
     } else {
       pass.sceneView.selector = SceneSelector::all();
+    }
+
+    const auto camera = object.value("sceneCamera");
+    if (!camera.isUndefined()) {
+      pass.sceneView.camera = RenderCameraRef::fromJson(camera, path + ".sceneCamera");
     }
 
     pass.disabledBehavior = disabledBehaviorFromJson(

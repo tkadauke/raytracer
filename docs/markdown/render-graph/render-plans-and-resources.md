@@ -78,6 +78,9 @@ Whole-frame overrides whose selector is `all` are applied to the default frame
 intent before compilation. More specific selector overrides remain intent for
 future scene-partitioning planners; users still describe what they want, and
 the compiler remains responsible for synthesizing pass nodes.
+When the effective frame intent names a default camera, synthesized
+scene-rendering passes carry that camera reference in their `SceneView` and in
+exported plan JSON.
 
 Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps

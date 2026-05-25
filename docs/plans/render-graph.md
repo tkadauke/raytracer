@@ -298,6 +298,10 @@ Whole-frame (`selector: all`) overrides are applied to the default frame intent
 before the compiler synthesizes nodes. More specific selector overrides remain
 intent for later scene-partitioning planners; users should not author pass
 nodes directly as the normal API.
+The effective default camera is carried on synthesized scene-rendering pass
+`SceneView` records and serialized in exported plan JSON, even though current
+executors still render with the engine's active camera until alternate-camera
+execution is wired in.
 
 The important requirement is that intent can express both:
 

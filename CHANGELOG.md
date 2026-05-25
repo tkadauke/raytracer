@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph pass camera intent.** Synthesized scene-rendering passes now
+  carry the effective default camera reference in their `SceneView`, and plan
+  JSON preserves that reference. — GPT-5
 - **Render intent whole-frame overrides.** The render graph compiler now applies
   `selector: all` view overrides to the frame intent before synthesizing graph
   nodes, keeping graph topology compiler-owned. — GPT-5

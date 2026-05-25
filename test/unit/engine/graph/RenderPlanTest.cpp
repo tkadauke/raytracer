@@ -671,6 +671,7 @@ namespace RenderPlanTest {
     node.reads.push_back({"history_color"});
     node.writes.push_back({"main_color"});
     node.sceneView.selector = SceneSelector::objectName("hero");
+    node.sceneView.camera = RenderCameraRef{"shot-camera", std::nullopt};
     node.disabledBehavior = DisabledBehavior::Passthrough;
     node.enabled = false;
     node.hasExternalSideEffects = true;
@@ -684,6 +685,14 @@ namespace RenderPlanTest {
     const QJsonObject json = plan.toJson();
     const RenderPlan imported = RenderPlan::fromJson(json);
 
+    ASSERT_TRUE(json["passes"].toArray().at(0).toObject()["sceneCamera"].isObject());
+    EXPECT_EQ("shot-camera", json["passes"]
+                               .toArray()
+                               .at(0)
+                               .toObject()["sceneCamera"]
+                               .toObject()["sceneCameraId"]
+                               .toString()
+                               .toStdString());
     EXPECT_EQ(json, imported.toJson());
   }
 

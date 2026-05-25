@@ -182,6 +182,14 @@ namespace engine::graph {
   };
 
   /**
+    * Scene subset and camera override for a compiled pass.
+    */
+  struct SceneView {
+    SceneSelector selector{SceneSelector::all()};
+    std::optional<RenderCameraRef> camera;
+  };
+
+  /**
     * Per-selector override layered on top of the scene's default render intent.
     */
   struct RenderViewOverride {
@@ -237,8 +245,14 @@ namespace engine::graph {
       * The first compiler slices can only synthesize whole-frame graphs.
       * Selector-specific overrides remain in `viewOverrides` for later
       * scene-partitioning planners.
-      */
+    */
     RenderIntent withWholeFrameOverridesApplied() const;
+
+    /**
+      * Builds the default scene view carried by synthesized scene-rendering
+      * passes.
+      */
+    SceneView defaultSceneView() const;
 
     /**
       * Resolves the default compiled executor requested by this intent.
@@ -296,14 +310,6 @@ namespace engine::graph {
     */
   struct ResourceWrite {
     RenderResourceId resource;
-  };
-
-  /**
-    * Scene subset and camera override for a compiled pass.
-    */
-  struct SceneView {
-    SceneSelector selector{SceneSelector::all()};
-    std::optional<RenderCameraRef> camera;
   };
 
   /**
