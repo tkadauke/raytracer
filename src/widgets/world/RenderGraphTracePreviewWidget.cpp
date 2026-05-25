@@ -267,7 +267,7 @@ void RenderGraphTracePreviewWidget::showResourceTrace(
     return;
   }
 
-  if (!trace->plan().findResource(resourceId)) {
+  if (!trace->plan().hasResource(resourceId)) {
     addText(*p->inputsLayout, tr("Resource is not declared by this execution trace"));
     addText(*p->outputsLayout, tr("Resource is not declared by this execution trace"));
     addText(*p->diffsLayout, tr("Resource is not declared by this execution trace"));
