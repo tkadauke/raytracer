@@ -79,12 +79,15 @@ scene-rendering passes with the active scene camera id.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view default|beauty|wireframe|depth|normal|object_id|material_id|world_position`
-overrides the graph intent's structural view mode. The depth, normal,
-object-id, material-id, and world-position views compile graph-visible AOV
-passes and visualization passes that write the final color image. When the
-selected graph executor is the rasterizer, those AOV passes use rasterizer
-diagnostic buffers, so they reflect tessellated raster geometry and raster pass
-state rather than analytic primary-ray intersections.
+overrides the graph intent's structural view mode. `--render_graph_camera
+camera_id` overrides the intent's default scene-camera reference; current
+executors still render with the active runtime camera, but the compiled graph
+records the requested camera intent for inspection and future alternate-camera
+execution. The depth, normal, object-id, material-id, and world-position views
+compile graph-visible AOV passes and visualization passes that write the final
+color image. When the selected graph executor is the rasterizer, those AOV
+passes use rasterizer diagnostic buffers, so they reflect tessellated raster
+geometry and raster pass state rather than analytic primary-ray intersections.
 `--render_graph_aov_out depth=depth.png` writes an additional graph AOV preview
 image while preserving the main render output; repeat the option for multiple
 AOV files such as `normal=normal.png` or `world_position=positions.png`.
