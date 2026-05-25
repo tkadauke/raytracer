@@ -87,6 +87,31 @@ namespace RenderGraphArtifactCacheTest {
     EXPECT_NE(nullptr, cache.find(fxaaKey));
   }
 
+  TEST(RenderGraphArtifactCache, ErasesArtifactsByProducerOrResource) {
+    const auto fxaaColor =
+      RenderGraphCacheKey::forPassOutput(pass("post_fxaa"), colorResource("post_color"), "a");
+    const auto fxaaPreview =
+      RenderGraphCacheKey::forPassOutput(pass("post_fxaa"), colorResource("preview_color"), "a");
+    const auto tonemapColor =
+      RenderGraphCacheKey::forPassOutput(pass("tonemap"), colorResource("post_color"), "a");
+
+    RenderGraphArtifactCache cache;
+    cache.store(std::make_shared<RenderGraphCachedArtifact>(fxaaColor));
+    cache.store(std::make_shared<RenderGraphCachedArtifact>(fxaaPreview));
+    cache.store(std::make_shared<RenderGraphCachedArtifact>(tonemapColor));
+
+    EXPECT_EQ(2u, cache.eraseProducerOutputs("post_fxaa"));
+    EXPECT_FALSE(cache.contains(fxaaColor));
+    EXPECT_FALSE(cache.contains(fxaaPreview));
+    EXPECT_TRUE(cache.contains(tonemapColor));
+
+    cache.store(std::make_shared<RenderGraphCachedArtifact>(fxaaColor));
+    EXPECT_EQ(2u, cache.eraseResource("post_color"));
+    EXPECT_FALSE(cache.contains(fxaaColor));
+    EXPECT_FALSE(cache.contains(tonemapColor));
+    EXPECT_EQ(0u, cache.eraseResource("missing"));
+  }
+
   TEST(RenderGraphArtifactCache, GraphRenderEngineClonesShareCache) {
     auto scene = std::make_shared<render::Scene>();
     auto camera = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
