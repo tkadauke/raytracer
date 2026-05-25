@@ -549,7 +549,11 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   color definitions and maps them to renderer materials for #210.
   ~~Inline type 3/4 polygon conversion to renderable mesh geometry.~~ ✅
   **Done.** `LDrawGeometryCompiler` builds lit `MeshPrimitive` geometry with
-  command-color material assignment for #210; MPD scene assembly remains TODO.
+  command-color material assignment for #210.
+  ~~Referenced-file resolution for type-1 subfile references with transform and
+  color inheritance.~~ ✅ **Done.** `LDrawGeometryCompiler` resolves cached
+  subfiles through `LDrawFileResolver` and instances them with LDraw affine
+  transforms for #210; MPD scene assembly remains TODO.
 - **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI
