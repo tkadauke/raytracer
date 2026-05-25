@@ -72,6 +72,14 @@ namespace engine::graph {
     Buffer<double>& depth(const RenderResourceId& id);
     const Buffer<double>& depth(const RenderResourceId& id) const;
 
+    /**
+      * Copies an externally supplied depth buffer into @p id.
+      *
+      * The destination resource must exist, be depth-backed, and have the same
+      * image dimensions as @p source.
+      */
+    void bindDepth(const RenderResourceId& id, const Buffer<double>& source);
+
     Buffer<std::uint8_t>& stencil(const RenderResourceId& id);
     const Buffer<std::uint8_t>& stencil(const RenderResourceId& id) const;
 

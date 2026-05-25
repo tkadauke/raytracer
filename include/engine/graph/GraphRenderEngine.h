@@ -73,6 +73,15 @@ namespace engine::graph {
                                   std::shared_ptr<const Buffer<Colord>> buffer);
 
     /**
+      * Binds a CPU depth buffer for an imported or history graph resource.
+      *
+      * The buffer is copied into execution storage at render time. It must stay
+      * alive while this engine or render clones may execute plans that read it.
+      */
+    void setExternalDepthResource(RenderResourceId id,
+                                  std::shared_ptr<const Buffer<double>> buffer);
+
+    /**
       * Removes one previously bound external resource.
       */
     void clearExternalResource(const RenderResourceId& id);

@@ -144,9 +144,10 @@ Validation treats imported, history, and persistent-cache resources as
 externally available. A transient or exported resource that is read must have a
 producer in the plan, and every exported resource must have a declared producer
 even when no other pass reads it. Imported and history resources are still
-execution inputs: `GraphRenderEngine::setExternalColorResource(...)` can bind
-CPU color inputs for the current execution slice, and the engine rejects plans
-that read unbound or unsupported external inputs.
+execution inputs: `GraphRenderEngine::setExternalColorResource(...)` and
+`setExternalDepthResource(...)` can bind CPU color/depth inputs for the current
+execution slice, and the engine rejects plans that read unbound or unsupported
+external inputs.
 
 Persistent cache resources have a separate execution-time home:
 [`RenderGraphArtifactCache`](../../../include/engine/graph/RenderGraphArtifactCache.h).
