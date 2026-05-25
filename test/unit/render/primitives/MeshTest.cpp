@@ -44,6 +44,16 @@ namespace MeshTest {
     this->mesh.addFace(makeStdVector(2, 1, 0));
     auto after = this->mesh.faces().size();
     ASSERT_EQ(1u, after - before);
+    ASSERT_EQ(this->mesh.faces().size(), this->mesh.faceColors().size());
+    EXPECT_FALSE(this->mesh.faceColor(after - 1).has_value());
+  }
+
+  TEST_F(MeshTest, ShouldAddFaceColorOverride) {
+    this->mesh.addFace(makeStdVector(2, 1, 0), Colord::red());
+
+    ASSERT_EQ(this->mesh.faces().size(), this->mesh.faceColors().size());
+    ASSERT_TRUE(this->mesh.faceColor(1).has_value());
+    EXPECT_EQ(Colord::red(), *this->mesh.faceColor(1));
   }
 
   TEST_F(MeshTest, ShouldThrowExceptionIfFaceHasLessThanThreeVertices) {

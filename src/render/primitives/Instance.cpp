@@ -128,8 +128,13 @@ std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
     result->addVertex(point, normal, v.uv);
   }
 
-  for (const auto& face : childMesh->faces())
-    result->addFace(face);
+  for (std::size_t i = 0; i != childMesh->faces().size(); ++i) {
+    const auto color = childMesh->faceColor(i);
+    if (color)
+      result->addFace(childMesh->faces()[i], *color);
+    else
+      result->addFace(childMesh->faces()[i]);
+  }
 
   return result;
 }

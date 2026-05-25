@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Curve segment attribute color mapping.** `core::AttributeColorMap` maps
+  scalar and categorical curve segment attributes to deterministic colors, and
+  `render::Curve` writes those colors as mesh face overrides while missing
+  attributes continue to use the curve's default material/color. — GPT-5
 - **Runtime curve primitive tessellation.** `render::Curve` now wraps
   `core::Polyline` paths and tessellates finite-width curves into ribbon or
   tube meshes for raster, wireframe, and other mesh-consuming render paths,

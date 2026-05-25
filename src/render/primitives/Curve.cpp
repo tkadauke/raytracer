@@ -25,7 +25,7 @@ namespace {
   }
 
   void addRibbonSegment(Mesh& mesh, const Vector3d& start, const Vector3d& end, double halfWidth,
-                        double v0, double v1) {
+                        double v0, double v1, const std::optional<Colord>& color) {
     const Vector3d direction = (end - start).normalized();
     const Vector3d side = perpendicularTo(direction) * halfWidth;
     const Vector3d normal = (direction ^ side).normalized();
@@ -35,11 +35,14 @@ namespace {
     mesh.addVertex(end - side, normal, Vector2d(0, v1));
     mesh.addVertex(end + side, normal, Vector2d(1, v1));
     mesh.addVertex(start + side, normal, Vector2d(1, v0));
-    mesh.addFace({base, base + 1, base + 2, base + 3});
+    if (color)
+      mesh.addFace({base, base + 1, base + 2, base + 3}, *color);
+    else
+      mesh.addFace({base, base + 1, base + 2, base + 3});
   }
 
   void addTubeSegment(Mesh& mesh, const Vector3d& start, const Vector3d& end, double radius,
-                      int sides, double v0, double v1) {
+                      int sides, double v0, double v1, const std::optional<Colord>& color) {
     const Vector3d direction = (end - start).normalized();
     const Vector3d u = perpendicularTo(direction);
     const Vector3d v = direction ^ u;
@@ -58,7 +61,10 @@ namespace {
 
     for (int i = 0; i != sides; ++i) {
       const int next = (i + 1) % sides;
-      mesh.addFace({base + i, base + next, base + sides + next, base + sides + i});
+      if (color)
+        mesh.addFace({base + i, base + next, base + sides + next, base + sides + i}, *color);
+      else
+        mesh.addFace({base + i, base + next, base + sides + next, base + sides + i});
     }
   }
 }
@@ -86,10 +92,12 @@ std::shared_ptr<Mesh> Curve::tessellate(int lod) const {
     const double length = (end - start).length();
     const double v0 = traveled;
     const double v1 = traveled + length;
+    const auto color = m_segmentColorMap ? m_segmentColorMap->colorFor(segment.attributes)
+                                         : std::optional<Colord>();
     if (m_mode == TessellationMode::Tube)
-      addTubeSegment(*mesh, start, end, halfWidth, tubeSides, v0, v1);
+      addTubeSegment(*mesh, start, end, halfWidth, tubeSides, v0, v1, color);
     else
-      addRibbonSegment(*mesh, start, end, halfWidth, v0, v1);
+      addRibbonSegment(*mesh, start, end, halfWidth, v0, v1, color);
     traveled = v1;
   }
 
