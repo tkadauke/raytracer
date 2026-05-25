@@ -191,6 +191,8 @@ namespace engine::graph {
 
     bool isDefault() const;
     std::string displayText() const;
+    void setParameter(std::string key, ShadingProfileParameterValue value);
+    const ShadingProfileParameterValue* parameter(const std::string& key) const;
     QJsonObject toJson() const;
     static ShadingProfileRef fromJson(const QJsonValue& value, std::string path = "shadingProfile");
   };
@@ -268,6 +270,21 @@ namespace engine::graph {
       * Serializes this user-facing render intent to the scene JSON shape.
       */
     QJsonObject toJson() const;
+
+    /**
+      * Adds an exported AOV request when it is not already present.
+      */
+    void requestExportedAOV(RenderViewMode viewMode);
+
+    /**
+      * @returns true when @p viewMode is already requested as an exported AOV.
+      */
+    bool exportsAOV(RenderViewMode viewMode) const;
+
+    /**
+      * Sets a scalar parameter on the default named shading profile.
+      */
+    void setDefaultShadingProfileParameter(std::string key, ShadingProfileParameterValue value);
 
     /**
       * Reads user-facing render intent from a scene JSON `renderIntent` object.
