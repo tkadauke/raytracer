@@ -812,6 +812,11 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     QStringList lines{qstr(pass.id),
                       qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
                       pass.enabled ? tr("enabled") : tr("disabled")};
+    const auto stage = plan.executionStageNumber(pass.id);
+    const auto order = plan.executionOrderNumber(pass.id);
+    if (stage && order) {
+      lines << tr("stage %1, order %2").arg(*stage).arg(*order);
+    }
     const QString traceLine = passTraceLine(trace, pass);
     if (!traceLine.isEmpty())
       lines << traceLine;

@@ -245,6 +245,8 @@ namespace RenderGraphInspectorWidgetTest {
 
     ASSERT_NE(nullptr, graph->scene());
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
+    EXPECT_TRUE(
+      nodeTextContains(graphNodeItem(graph->scene(), "pass", "raytrace_beauty"), "stage 1"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "main_color"));
 
     ASSERT_EQ(1, resources->topLevelItemCount());

@@ -198,6 +198,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph node labels.** Pass nodes in the Render Graph dock now
+  show their execution stage and serial order directly in the graph view.
+  — GPT-5
 - **Modeler render graph pass stages.** The Render Graph dock's Passes tab now
   shows each pass's dependency-ready execution stage separately from its serial
   execution order. — GPT-5
