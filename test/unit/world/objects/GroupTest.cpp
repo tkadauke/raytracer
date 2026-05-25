@@ -18,6 +18,8 @@
 #include "render/primitives/Scene.h"
 
 #include <memory>
+#include <QJsonArray>
+#include <QJsonObject>
 
 namespace GroupTest {
   namespace {
@@ -111,6 +113,105 @@ namespace GroupTest {
     group.hide();
     group.show();
     EXPECT_TRUE(group.visible());
+  }
+
+  TEST(Group, ShouldHaveNoMetadataByDefault) {
+    Group group;
+    EXPECT_TRUE(group.metadata().isEmpty());
+
+    QJsonObject json;
+    group.write(json);
+
+    EXPECT_FALSE(json.contains("metadata"));
+  }
+
+  TEST(Group, ShouldSetAndGetMetadataValues) {
+    Group group;
+    group.setMetadataValue("sourceFormat", "gltf");
+    group.setMetadataValue("stepIndex", 3);
+    group.setMetadataValue("category", QJsonArray{"chain", "link"});
+
+    EXPECT_EQ(QString("gltf"), group.metadataValue("sourceFormat").toString());
+    EXPECT_EQ(3, group.metadataValue("stepIndex").toInt());
+    EXPECT_EQ(2, group.metadataValue("category").toArray().size());
+
+    group.setMetadataValue("category", QJsonValue::Undefined);
+    EXPECT_TRUE(group.metadataValue("category").isUndefined());
+  }
+
+  TEST(Group, ShouldRoundtripImporterMetadataThroughJson) {
+    Group original;
+    original.setMetadata(QJsonObject{
+      {"sourceFormat", "step"},
+      {"sourceId", "assembly/body/42"},
+      {"stepIndex", 12},
+      {"layerIndex", 4},
+      {"chainId", "chain-A"},
+      {"category", "fastener"},
+      {"selected", true},
+      {"tags", QJsonArray{"imported", "visible"}},
+    });
+
+    QJsonObject json;
+    original.write(json);
+
+    Group decoded;
+    decoded.read(json);
+
+    EXPECT_EQ(QString("step"), decoded.metadataValue("sourceFormat").toString());
+    EXPECT_EQ(QString("assembly/body/42"), decoded.metadataValue("sourceId").toString());
+    EXPECT_EQ(12, decoded.metadataValue("stepIndex").toInt());
+    EXPECT_EQ(4, decoded.metadataValue("layerIndex").toInt());
+    EXPECT_EQ(QString("chain-A"), decoded.metadataValue("chainId").toString());
+    EXPECT_EQ(QString("fastener"), decoded.metadataValue("category").toString());
+    EXPECT_TRUE(decoded.metadataValue("selected").toBool());
+    EXPECT_EQ(QString("visible"), decoded.metadataValue("tags").toArray()[1].toString());
+  }
+
+  TEST(Group, ShouldPreserveUnknownMetadataTypesThroughSceneJson) {
+    Scene original;
+    auto* group = new Group;
+    group->setMetadata(QJsonObject{
+      {"unknownNumber", 1.25},
+      {"unknownBoolean", false},
+      {"unknownArray", QJsonArray{1, "two", true}},
+      {"unknownObject", QJsonObject{{"nested", "value"}}},
+    });
+    original.addChild(group);
+
+    QJsonObject json;
+    original.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+
+    QJsonObject savedAgain;
+    decoded.write(savedAgain);
+
+    const auto savedMetadata =
+      savedAgain["children"].toArray()[0].toObject()["metadata"].toObject();
+    EXPECT_TRUE(savedMetadata["unknownNumber"].isDouble());
+    EXPECT_DOUBLE_EQ(1.25, savedMetadata["unknownNumber"].toDouble());
+    EXPECT_TRUE(savedMetadata["unknownBoolean"].isBool());
+    EXPECT_FALSE(savedMetadata["unknownBoolean"].toBool());
+    ASSERT_TRUE(savedMetadata["unknownArray"].isArray());
+    EXPECT_EQ(QString("two"), savedMetadata["unknownArray"].toArray()[1].toString());
+    ASSERT_TRUE(savedMetadata["unknownObject"].isObject());
+    EXPECT_EQ(QString("value"),
+              savedMetadata["unknownObject"].toObject()["nested"].toString());
+  }
+
+  TEST(Group, ShouldKeepMetadataOutOfRendering) {
+    Group group;
+    group.addChild(new Sphere);
+    group.setMetadataValue("sourceFormat", "step");
+
+    render::Scene scene;
+    auto primitive = group.toRaytracer(&scene);
+    ASSERT_NE(nullptr, primitive);
+    EXPECT_EQ(Vector3d(-1, -1, -1), primitive->boundingBox().min());
+    EXPECT_EQ(Vector3d(1, 1, 1), primitive->boundingBox().max());
+    EXPECT_EQ(0u, scene.lights().size());
   }
 
   TEST(Group, ShouldAllowSurfaceLightAndGroupChildren) {

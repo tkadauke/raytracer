@@ -40,13 +40,13 @@ public:
     * Reads this scene from its JSON representation, including the optional
     * top-level `animation` block.
     */
-  void read(const QJsonObject& json);
+  void read(const QJsonObject& json) override;
 
   /**
     * Writes this scene to its JSON representation, including the optional
     * top-level `animation` block.
     */
-  void write(QJsonObject& json);
+  void write(QJsonObject& json) override;
 
   /**
     * Saves the scene into a file specified by filename.
