@@ -126,6 +126,14 @@ namespace {
     return qstr(camera->displayText());
   }
 
+  QString
+  shadingProfileText(const std::optional<engine::graph::ShadingProfileRef>& shadingProfile) {
+    if (!shadingProfile)
+      return QStringLiteral("-");
+
+    return qstr(shadingProfile->displayText());
+  }
+
   QString dependencyText(const std::vector<engine::graph::RenderPassDependency>& dependencies) {
     QStringList values;
     for (const auto& dependency : dependencies) {
@@ -1548,6 +1556,7 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Execution order"), optionalNumberText(plan.executionOrderNumber(pass->id)));
   addRow(rows, tr("Scene selector"), sceneSelectorText(pass->sceneView.selector));
   addRow(rows, tr("Scene camera"), cameraText(pass->sceneView.camera));
+  addRow(rows, tr("Shading profile"), shadingProfileText(pass->sceneView.shadingProfile));
   addRow(rows, tr("Disabled behavior"), engine::graph::toString(pass->disabledBehavior));
   addRow(rows, tr("Features"), featureText(pass->features));
   addRow(rows, tr("Reads"), resourceReadsText(pass->reads));

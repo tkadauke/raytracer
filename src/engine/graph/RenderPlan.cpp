@@ -96,9 +96,21 @@ namespace engine::graph {
              (!a->snapshot || a->snapshot->parameters == b->snapshot->parameters);
     }
 
+    bool sameShadingProfile(const std::optional<ShadingProfileRef>& a,
+                            const std::optional<ShadingProfileRef>& b) {
+      if (a.has_value() != b.has_value()) {
+        return false;
+      }
+      if (!a) {
+        return true;
+      }
+      return a->name == b->name && a->parameters == b->parameters;
+    }
+
     bool sameSceneView(const SceneView& a, const SceneView& b) {
       return a.selector.kind == b.selector.kind && a.selector.value == b.selector.value &&
-             sameCameraRef(a.camera, b.camera);
+             sameCameraRef(a.camera, b.camera) &&
+             sameShadingProfile(a.shadingProfile, b.shadingProfile);
     }
 
     bool samePassState(const std::shared_ptr<const RenderPassState>& a,
@@ -122,7 +134,8 @@ namespace engine::graph {
     }
 
     bool hasNonDefaultSceneView(const SceneView& sceneView) {
-      return !sceneView.selector.selectsWholeFrame() || sceneView.camera.has_value();
+      return !sceneView.selector.selectsWholeFrame() || sceneView.camera.has_value() ||
+             sceneView.shadingProfile.has_value();
     }
 
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
@@ -739,6 +752,8 @@ namespace engine::graph {
       }
       out << "  scene: selector=" << pass.sceneView.selector.displayText()
           << ", camera=" << (pass.sceneView.camera ? pass.sceneView.camera->displayText() : "-")
+          << ", shading="
+          << (pass.sceneView.shadingProfile ? pass.sceneView.shadingProfile->displayText() : "-")
           << "\n";
       if (!pass.features.empty()) {
         out << "  features:";
@@ -795,6 +810,9 @@ namespace engine::graph {
         out << "\\nselector " << dotEscape(pass.sceneView.selector.displayText());
         if (pass.sceneView.camera) {
           out << "\\ncamera " << dotEscape(pass.sceneView.camera->displayText());
+        }
+        if (pass.sceneView.shadingProfile) {
+          out << "\\nshading " << dotEscape(pass.sceneView.shadingProfile->displayText());
         }
       }
       out << "\"";

@@ -1063,7 +1063,8 @@ The Modeler render view should grow a graph inspector:
 - global controls for default executor, view mode, shading profile, and camera;
 - per-selection controls for executor, view-mode, shading-profile, and camera
   overrides;
-- pass details: executor, reads, writes, scene view, camera, disabled behavior;
+- pass details: executor, reads, writes, scene view, camera, shading profile,
+  disabled behavior;
 - resource details: type, size, format, producer, consumers;
 - click a resource to preview it where possible;
 - after a render, select a node to inspect supported input snapshots, output
