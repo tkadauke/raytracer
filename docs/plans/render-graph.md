@@ -260,7 +260,7 @@ enum class RenderViewMode {
 
 struct ShadingProfileRef {
   std::string name;
-  QJsonObject parameters;
+  ShadingProfileParameters parameters;
 };
 
 struct RenderCameraRef {

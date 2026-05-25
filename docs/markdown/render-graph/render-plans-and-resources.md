@@ -80,10 +80,12 @@ future scene-partitioning planners; users still describe what they want, and
 the compiler remains responsible for synthesizing pass nodes.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
-`SceneView` and in exported plan JSON. Text and DOT plan exports also show
-scene selector, camera, and shading-profile details when those details affect a
-pass, so command-line inspections expose the same scene-view intent that the
-Modeler graph inspector shows in its pass details.
+`SceneView` and in exported plan JSON. Shading-profile parameters are parsed
+into scalar graph values at the JSON boundary, so compiled intent is no longer
+holding raw JSON for that field. Text and DOT plan exports also show scene
+selector, camera, and shading-profile details when those details affect a pass,
+so command-line inspections expose the same scene-view intent that the Modeler
+graph inspector shows in its pass details.
 
 Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps
