@@ -778,6 +778,14 @@ namespace engine::graph {
     return std::find(exportedAOVs.begin(), exportedAOVs.end(), viewMode) != exportedAOVs.end();
   }
 
+  void RenderIntent::setDefaultExecutor(RenderExecutorPreference executor) {
+    defaultExecutor = executor;
+  }
+
+  void RenderIntent::setDefaultViewMode(RenderViewMode viewMode) {
+    defaultViewMode = viewMode;
+  }
+
   void RenderIntent::setDefaultCamera(RenderCameraRef camera) {
     defaultCamera = std::move(camera);
   }
@@ -789,6 +797,10 @@ namespace engine::graph {
   void RenderIntent::setDefaultShadingProfileParameter(std::string key,
                                                        ShadingProfileParameterValue value) {
     defaultShadingProfile.setParameter(std::move(key), std::move(value));
+  }
+
+  void RenderIntent::setPostProcessAA(RenderPostProcessAA aa) {
+    postProcessAA = aa;
   }
 
   RenderIntent RenderIntent::fromJson(const QJsonObject& object) {
