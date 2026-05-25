@@ -101,6 +101,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Render graph Modeler demo scene.** `scenes/render_graph_aov_demo.json`
+  opens directly in Modeler with a saved rasterizer graph intent, SMAA
+  postprocess node, and stencil AOV side branch for graph-inspection demos. —
+  GPT-5
 - **rendercli graph external image inputs.** `rendercli --render_graph_color_in
   resource=file` and `--render_graph_stencil_in resource=file` now bind imported
   or history graph color and stencil resources from image files before replaying

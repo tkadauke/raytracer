@@ -254,8 +254,14 @@ ordinary world-scene files, so both `rendercli` and `Modeler` load the same
 data. The current checked-in scenes cover camera demos, depth of field,
 animation frame evaluation, camera panning, light sweeps, material fades,
 motion-blur velocity sweeps, visibility-step timelines, transparent materials,
-reflections, raster material previews, and small geometry fixtures used by
-tests.
+reflections, raster material previews, a render-graph AOV demo, and small
+geometry fixtures used by tests.
+
+[`scenes/render_graph_aov_demo.json`](../../../scenes/render_graph_aov_demo.json)
+is a focused Modeler graph-inspection scene. Its saved render intent asks for a
+rasterizer beauty preview, an SMAA postprocess pass, and a stencil AOV side
+branch, so opening the Render Graph dock immediately shows both the main color
+chain and an auxiliary resource branch.
 
 The Modeler does not bake scene catalogs into C++; it opens JSON scene files
 directly. New reusable demos should be added as scene files unless they need a

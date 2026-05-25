@@ -12,6 +12,7 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
+set(graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_aov_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
@@ -75,6 +76,7 @@ set(external_input_render "${TEST_OUTPUT_DIR}/graph-external-input-render.png")
 set(external_input_bound_render "${TEST_OUTPUT_DIR}/graph-external-input-bound-render.png")
 set(stencil_input_bound_render "${TEST_OUTPUT_DIR}/graph-stencil-input-bound-render.png")
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
+set(graph_demo_render "${TEST_OUTPUT_DIR}/graph-demo-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
 {
@@ -1220,6 +1222,29 @@ rendercli_run(
 rendercli_assert_image_dimensions("${graph_render}" 32 16
                                   NAME "rendercli default graph image dimensions")
 rendercli_assert_image_nonempty("${graph_render}" NAME "rendercli default graph image pixels")
+
+rendercli_run(
+  NAME "rendercli compiles reusable render graph demo scene"
+  STDOUT_MATCHES
+    "raster_beauty \\[beauty/rasterizer\\] enabled"
+    "post_smaa \\[postprocess/postprocess\\] enabled"
+    "stencil_aov \\[aov/rasterizer\\] enabled"
+    "visualize_stencil_aov \\[aov/postprocess\\] enabled"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --width 32 --height 18
+    "${graph_demo_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli renders reusable render graph demo scene"
+  COMMAND
+    "${RENDERCLI}" --width 32 --height 18
+    "${graph_demo_scene}" "${graph_demo_render}"
+)
+rendercli_assert_image_dimensions("${graph_demo_render}" 32 18
+                                  NAME "render graph demo scene dimensions")
+rendercli_assert_image_nonempty("${graph_demo_render}" NAME "render graph demo scene pixels")
 
 rendercli_run(
   NAME "rendercli writes execution trace while rendering through graph"

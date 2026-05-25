@@ -351,7 +351,9 @@ positions come from the same tessellated fragments, clipping, sampling, and
 pass state as the raster beauty path.
 
 The same raster scene rendered as beauty and as the graph stencil AOV makes the
-resource boundary concrete:
+resource boundary concrete. Open
+[`scenes/render_graph_aov_demo.json`](../../../scenes/render_graph_aov_demo.json)
+in Modeler to inspect the same saved render intent as an interactive graph:
 
 | Graph raster beauty | Graph stencil AOV |
 | --- | --- |
@@ -781,6 +783,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/engine/graph/GraphRenderEngine.h`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
 - `include/widgets/world/RenderGraphTracePreviewWidget.h`
+- `scenes/render_graph_aov_demo.json`
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`
