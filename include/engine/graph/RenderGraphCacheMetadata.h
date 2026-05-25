@@ -17,6 +17,9 @@ namespace engine::graph {
 
     RenderGraphCacheStatus status() const;
     const std::string& message() const;
+    bool cacheable() const;
+    bool usedCachedArtifact() const;
+    bool storedCachedArtifact() const;
     QJsonObject toJson() const;
 
   private:

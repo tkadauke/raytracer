@@ -3,6 +3,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
+#include "engine/graph/RenderGraphCacheMetadata.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Scene.h"
 
@@ -110,6 +111,23 @@ namespace RenderGraphArtifactCacheTest {
     EXPECT_FALSE(cache.contains(fxaaColor));
     EXPECT_FALSE(cache.contains(tonemapColor));
     EXPECT_EQ(0u, cache.eraseResource("missing"));
+  }
+
+  TEST(RenderGraphCacheMetadata, ClassifiesCacheLifecycleStatus) {
+    const RenderGraphCacheMetadata notCacheable;
+    EXPECT_FALSE(notCacheable.cacheable());
+    EXPECT_FALSE(notCacheable.usedCachedArtifact());
+    EXPECT_FALSE(notCacheable.storedCachedArtifact());
+
+    const RenderGraphCacheMetadata hit(RenderGraphCacheStatus::Hit, "restored");
+    EXPECT_TRUE(hit.cacheable());
+    EXPECT_TRUE(hit.usedCachedArtifact());
+    EXPECT_FALSE(hit.storedCachedArtifact());
+
+    const RenderGraphCacheMetadata stored(RenderGraphCacheStatus::Stored, "stored");
+    EXPECT_TRUE(stored.cacheable());
+    EXPECT_FALSE(stored.usedCachedArtifact());
+    EXPECT_TRUE(stored.storedCachedArtifact());
   }
 
   TEST(RenderGraphArtifactCache, GraphRenderEngineClonesShareCache) {
