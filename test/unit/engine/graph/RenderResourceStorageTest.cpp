@@ -77,6 +77,32 @@ namespace RenderResourceStorageTest {
     EXPECT_THROW(storage.descriptor("missing"), std::out_of_range);
   }
 
+  TEST(RenderResourceStorage, BindsExternalColorBuffer) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_color", RenderResourceType::Color),
+    });
+
+    Buffer<Colord> external(4, 3);
+    external.clear(Colord(0.25, 0.5, 0.75));
+
+    storage.bindColor("history_color", external);
+
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), storage.color("history_color")[1][2]);
+    EXPECT_FALSE(storage.resource("history_color").substituteDefault());
+  }
+
+  TEST(RenderResourceStorage, RejectsMismatchedExternalColorBufferShape) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_color", RenderResourceType::Color),
+    });
+
+    Buffer<Colord> external(2, 3);
+
+    EXPECT_THROW(storage.bindColor("history_color", external), std::runtime_error);
+  }
+
   TEST(RenderResourceStorage, TracksSubstituteDefaultContents) {
     RenderResourceStorage storage;
     storage.allocate({

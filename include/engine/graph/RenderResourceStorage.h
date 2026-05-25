@@ -61,6 +61,14 @@ namespace engine::graph {
     Buffer<Colord>& color(const RenderResourceId& id);
     const Buffer<Colord>& color(const RenderResourceId& id) const;
 
+    /**
+      * Copies an externally supplied color buffer into @p id.
+      *
+      * The destination resource must exist, be color-backed, and have the same
+      * image dimensions as @p source.
+      */
+    void bindColor(const RenderResourceId& id, const Buffer<Colord>& source);
+
     Buffer<double>& depth(const RenderResourceId& id);
     const Buffer<double>& depth(const RenderResourceId& id) const;
 

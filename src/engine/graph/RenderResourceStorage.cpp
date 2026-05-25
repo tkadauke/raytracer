@@ -49,6 +49,25 @@ namespace engine::graph {
     return resource(id).color();
   }
 
+  void RenderResourceStorage::bindColor(const RenderResourceId& id, const Buffer<Colord>& source) {
+    RenderResource& destinationResource = resource(id);
+    if (!destinationResource.colorBacked()) {
+      throw std::out_of_range("render resource '" + id + "' is not color-backed");
+    }
+
+    Buffer<Colord>& destination = destinationResource.color();
+    if (source.width() != destination.width() || source.height() != destination.height()) {
+      throw std::runtime_error("external color resource '" + id + "' has mismatched dimensions");
+    }
+
+    for (int y = 0; y != source.height(); ++y) {
+      for (int x = 0; x != source.width(); ++x) {
+        destination[y][x] = source[y][x];
+      }
+    }
+    destinationResource.markProduced();
+  }
+
   Buffer<double>& RenderResourceStorage::depth(const RenderResourceId& id) {
     return resource(id).depth();
   }
