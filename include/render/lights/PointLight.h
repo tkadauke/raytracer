@@ -20,8 +20,10 @@ namespace render {
       return m_color;
     }
 
-    virtual Vector3d direction(const Vector3d& point) const;
-    virtual Colord radiance() const;
+    Vector3d direction(const Vector3d& point) const override;
+    Colord radiance() const override;
+    const char* fingerprintType() const override;
+    void writeFingerprint(std::ostream& out, const std::string& prefix) const override;
 
   private:
     Vector3d m_position;

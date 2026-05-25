@@ -166,8 +166,22 @@ namespace render {
       m_specularBTDF.setRefractionIndex(index);
     }
 
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
-                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+    Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
+                 const HitPoint& hitPoint, render::State& state) const override;
+
+    RasterRecursiveFallback rasterRecursiveFallback() const override {
+      return RasterRecursiveFallback::TransparentAlphaPhong;
+    }
+
+    double rasterPreviewAlpha() const override {
+      return 1.0 - transmissionCoefficient();
+    }
+
+    const char* rasterRecursiveFallbackWarning() const override {
+      return "Rasterizer fallback: TransparentMaterial previews its local Phong base with "
+             "source alpha from transmission; refraction/reflection recursion remains "
+             "raytracer-only.";
+    }
 
   private:
     Vector3d refract(const Vector3d& direction, const Vector3d& normal, double outerRefractionIndex,

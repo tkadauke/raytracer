@@ -60,6 +60,7 @@ namespace engine::graph {
     const RenderGraphCacheKey& key() const;
     const RenderResourceDescriptor& descriptor() const;
     const std::string& description() const;
+    virtual bool copyDepthTo(Buffer<double>& destination) const;
 
   private:
     RenderGraphCacheKey m_key;
@@ -75,7 +76,7 @@ namespace engine::graph {
                              std::string description = {});
 
     const Buffer<double>& depth() const;
-    void copyTo(Buffer<double>& destination) const;
+    bool copyDepthTo(Buffer<double>& destination) const override;
 
   private:
     Buffer<double> m_depth;

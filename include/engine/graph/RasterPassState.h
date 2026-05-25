@@ -181,6 +181,7 @@ namespace engine::graph {
     static const RasterShadowPassState* fromPass(const RenderPassNode& pass);
     static RasterShadowPassState valueFromPass(const RenderPassNode& pass);
 
+    const RasterShadowPassState* asRasterShadowPassState() const override;
     QJsonObject toJson() const override;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;
@@ -207,6 +208,7 @@ namespace engine::graph {
     static const RasterBeautyPassState* fromPass(const RenderPassNode& pass);
     static RasterBeautyPassState valueFromPass(const RenderPassNode& pass);
 
+    const RasterBeautyPassState* asRasterBeautyPassState() const override;
     QJsonObject toJson() const override;
     bool empty() const;
     void applyTo(Rasterizer& rasterizer) const;

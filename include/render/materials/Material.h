@@ -50,6 +50,7 @@ namespace render {
   class Material : public render::Object {
   public:
     enum class Sidedness { Front, Back, TwoSided };
+    enum class RasterRecursiveFallback { None, ReflectiveLocalPhong, TransparentAlphaPhong };
 
     virtual ~Material() {
     }
@@ -83,6 +84,18 @@ namespace render {
       */
     virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
                          const Rayd& ray, const HitPoint& hitPoint, render::State& state) const = 0;
+
+    virtual RasterRecursiveFallback rasterRecursiveFallback() const {
+      return RasterRecursiveFallback::None;
+    }
+
+    virtual double rasterPreviewAlpha() const {
+      return 1.0;
+    }
+
+    virtual const char* rasterRecursiveFallbackWarning() const {
+      return nullptr;
+    }
 
   private:
     Sidedness m_sidedness{Sidedness::TwoSided};

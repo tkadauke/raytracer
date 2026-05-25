@@ -9,3 +9,12 @@ Vector3d PointLight::direction(const Vector3d& point) const {
 Colord PointLight::radiance() const {
   return color();
 }
+
+const char* PointLight::fingerprintType() const {
+  return "PointLight";
+}
+
+void PointLight::writeFingerprint(std::ostream& out, const std::string& prefix) const {
+  writeCommonFingerprint(out, prefix);
+  writeFingerprintVector(out, prefix + "position", position());
+}

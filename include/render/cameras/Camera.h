@@ -32,6 +32,9 @@ namespace render {
     /// with the interactive camera being moved by the UI.
     virtual std::shared_ptr<Camera> clone() const = 0;
 
+    /// Stable type name for deterministic fingerprints and diagnostics.
+    virtual const char* fingerprintType() const = 0;
+
     inline void setPosition(const Vector3d& position) {
       m_matrix.reset();
       m_inverseMatrix.reset();

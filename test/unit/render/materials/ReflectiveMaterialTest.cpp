@@ -46,6 +46,16 @@ namespace ReflectiveMaterialTest {
     ASSERT_EQ(0.4, material.reflectionCoefficient());
   }
 
+  TEST(ReflectiveMaterial, ShouldDescribeRasterRecursiveFallback) {
+    ReflectiveMaterial material;
+    ASSERT_EQ(Material::RasterRecursiveFallback::ReflectiveLocalPhong,
+              material.rasterRecursiveFallback());
+    ASSERT_EQ(1.0, material.rasterPreviewAlpha());
+    ASSERT_STREQ("Rasterizer fallback: ReflectiveMaterial previews only its local Phong base; "
+                 "mirror recursion remains raytracer-only.",
+                 material.rasterRecursiveFallbackWarning());
+  }
+
   // ---- shading-behaviour tests ---------------------------------------------
   //
   // ReflectiveMaterial::shade is PhongMaterial::shade plus a recursive call:

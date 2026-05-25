@@ -6,8 +6,12 @@
 #include <string>
 
 namespace engine::graph {
+  class PostProcessAAState;
+  class RasterBeautyPassState;
+  class RasterShadowPassState;
   enum class RenderExecutorKind;
   enum class RenderPassKind;
+  class WireframePassState;
 
   /**
     * Typed payload state attached to a compiled render pass.
@@ -33,5 +37,10 @@ namespace engine::graph {
       * Serializes this typed state for `RenderPlan::toJson()`.
       */
     virtual QJsonObject toJson() const = 0;
+
+    virtual const RasterBeautyPassState* asRasterBeautyPassState() const;
+    virtual const RasterShadowPassState* asRasterShadowPassState() const;
+    virtual const WireframePassState* asWireframePassState() const;
+    virtual const PostProcessAAState* asPostProcessAAState() const;
   };
 }

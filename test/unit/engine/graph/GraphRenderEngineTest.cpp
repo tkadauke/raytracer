@@ -640,6 +640,23 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(nullptr, engine.lastExecutionTrace());
   }
 
+  TEST(GraphRenderEngine, ExecutionInputFingerprintUsesStableTypeNames) {
+    auto scene = directionalShadowScene();
+    scene->addLight(
+      std::make_shared<render::PointLight>(Vector3d(1.0, 2.0, -3.0), Colord(0.25, 0.5, 0.75)));
+    GraphRenderEngine engine(camera(), scene);
+    engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
+
+    const std::string fingerprint = engine.executionInputFingerprint();
+
+    EXPECT_NE(std::string::npos, fingerprint.find("camera.type=PinholeCamera;"));
+    EXPECT_NE(std::string::npos, fingerprint.find("tonemap.type=ReinhardTonemap;"));
+    EXPECT_NE(std::string::npos, fingerprint.find("light[0].type=DirectionalLight;"));
+    EXPECT_NE(std::string::npos, fingerprint.find("light[0].direction="));
+    EXPECT_NE(std::string::npos, fingerprint.find("light[1].type=PointLight;"));
+    EXPECT_NE(std::string::npos, fingerprint.find("light[1].position=1,2,-3;"));
+  }
+
   TEST(GraphRenderEngine, RecordsColorSnapshotsInExecutionTrace) {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;

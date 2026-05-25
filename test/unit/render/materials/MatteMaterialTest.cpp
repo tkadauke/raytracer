@@ -58,6 +58,13 @@ namespace MatteMaterialTest {
     ASSERT_EQ(0.6, material.diffuseCoefficient());
   }
 
+  TEST(MatteMaterial, ShouldHaveNoRasterRecursiveFallback) {
+    MatteMaterial material;
+    ASSERT_EQ(Material::RasterRecursiveFallback::None, material.rasterRecursiveFallback());
+    ASSERT_EQ(1.0, material.rasterPreviewAlpha());
+    ASSERT_EQ(nullptr, material.rasterRecursiveFallbackWarning());
+  }
+
   // ---- shading-behaviour tests ---------------------------------------------
   //
   // MatteMaterial::shade computes
