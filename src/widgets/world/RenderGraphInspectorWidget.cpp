@@ -122,20 +122,6 @@ namespace {
     return QStringLiteral("trace: metadata");
   }
 
-  QString resourceReads(const std::vector<ResourceRead>& reads) {
-    QStringList values;
-    for (const auto& read : reads)
-      values << qstr(read.resource);
-    return dashIfEmpty(values.join(", "));
-  }
-
-  QString resourceWrites(const std::vector<ResourceWrite>& writes) {
-    QStringList values;
-    for (const auto& write : writes)
-      values << qstr(write.resource);
-    return dashIfEmpty(values.join(", "));
-  }
-
   QString sceneSelectorText(const SceneSelector& selector) {
     return qstr(selector.displayText());
   }
@@ -168,63 +154,11 @@ namespace {
     return parts;
   }
 
-  QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {
-    QStringList values;
-    for (const auto& dependency : dependencies) {
-      values << QStringLiteral("%1 -> %2 via %3")
-                  .arg(qstr(dependency.producer->id))
-                  .arg(qstr(dependency.consumer->id))
-                  .arg(qstr(dependency.resource));
-    }
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
-  }
-
-  QString passTooltip(const RenderPlan& plan, const RenderPassNode& pass,
-                      const QString& executionMessage) {
-    QStringList lines;
-    if (!executionMessage.isEmpty()) {
-      lines << executionMessage;
-    }
-    lines << QStringLiteral("Double-click to enable or disable this pass");
-    lines << QStringLiteral("Scene selector: %1").arg(sceneSelectorText(pass.sceneView.selector));
-    lines << QStringLiteral("Scene camera: %1").arg(cameraText(pass.sceneView.camera));
-    lines << QStringLiteral("Shading profile: %1")
-               .arg(shadingProfileText(pass.sceneView.shadingProfile));
-    lines << QStringLiteral("Reads: %1").arg(resourceReads(pass.reads));
-    lines << QStringLiteral("Writes: %1").arg(resourceWrites(pass.writes));
-    lines << QStringLiteral("Incoming dependencies: %1")
-               .arg(dependencySummary(plan.dependenciesInto(pass.id)));
-    lines << QStringLiteral("Outgoing dependencies: %1")
-               .arg(dependencySummary(plan.dependenciesOutOf(pass.id)));
-    return lines.join(QStringLiteral("\n"));
-  }
-
-  QString resourceProducer(const RenderPlan& plan, const RenderResourceId& resource) {
-    const RenderPassNode* producer = plan.producerOf(resource);
-    return producer ? qstr(producer->id) : QStringLiteral("-");
-  }
-
-  QString resourceConsumers(const RenderPlan& plan, const RenderResourceId& resource) {
-    QStringList values;
-    for (const RenderPassNode* consumer : plan.consumersOf(resource))
-      values << qstr(consumer->id);
-    return dashIfEmpty(values.join(", "));
-  }
-
   QString sizeText(const RenderResourceDescriptor& resource) {
     return QStringLiteral("%1x%2, %3 sample(s)")
       .arg(resource.width)
       .arg(resource.height)
       .arg(resource.sampleCount);
-  }
-
-  QString resourceTooltip(const RenderPlan& plan, const RenderResourceDescriptor& resource) {
-    return QStringLiteral("Producer: %1\nConsumers: %2\nFormat: %3\nLifetime: %4\nSize: %5")
-      .arg(resourceProducer(plan, resource.id))
-      .arg(resourceConsumers(plan, resource.id))
-      .arg(toString(resource.format))
-      .arg(toString(resource.lifetime))
-      .arg(sizeText(resource));
   }
 
   std::map<RenderPassId, QPointF> passPositions(const RenderPlan& plan) {
@@ -352,7 +286,133 @@ struct RenderGraphInspectorWidget::Private {
   QTreeWidget* resources{nullptr};
   QLabel* validationStatus{nullptr};
   bool updating{false};
+
+  QString humanizeIdentifier(QString value) const;
+  QString displayName(const RenderPassNode& pass) const;
+  QString displayName(const RenderResourceDescriptor& resource) const;
+  QString displayResourceName(const RenderPlan& plan, const RenderResourceId& resourceId) const;
+  QString graphEnumText(const char* value) const;
+  QString resourceReads(const RenderPlan& plan, const std::vector<ResourceRead>& reads) const;
+  QString resourceWrites(const RenderPlan& plan, const std::vector<ResourceWrite>& writes) const;
+  QString dependencySummary(const RenderPlan& plan,
+                            const std::vector<RenderPassDependency>& dependencies) const;
+  QString passTooltip(const RenderPlan& plan, const RenderPassNode& pass,
+                      const QString& executionMessage) const;
+  QString resourceProducer(const RenderPlan& plan, const RenderResourceId& resource) const;
+  QString resourceConsumers(const RenderPlan& plan, const RenderResourceId& resource) const;
+  QString resourceTooltip(const RenderPlan& plan, const RenderResourceDescriptor& resource) const;
 };
+
+QString RenderGraphInspectorWidget::Private::humanizeIdentifier(QString value) const {
+  value.replace(QLatin1Char('_'), QLatin1Char(' '));
+  value.replace(QLatin1Char('-'), QLatin1Char(' '));
+  value = value.simplified();
+  for (int i = 0; i != value.size(); ++i) {
+    if (i == 0 || value[i - 1].isSpace()) {
+      value[i] = value[i].toUpper();
+    }
+  }
+  return value;
+}
+
+QString RenderGraphInspectorWidget::Private::displayName(const RenderPassNode& pass) const {
+  return pass.name.empty() ? humanizeIdentifier(qstr(pass.id)) : qstr(pass.name);
+}
+
+QString
+RenderGraphInspectorWidget::Private::displayName(const RenderResourceDescriptor& resource) const {
+  return resource.name.empty() ? humanizeIdentifier(qstr(resource.id)) : qstr(resource.name);
+}
+
+QString
+RenderGraphInspectorWidget::Private::displayResourceName(const RenderPlan& plan,
+                                                         const RenderResourceId& resourceId) const {
+  const RenderResourceDescriptor* resource = plan.findResource(resourceId);
+  return resource ? displayName(*resource) : humanizeIdentifier(qstr(resourceId));
+}
+
+QString RenderGraphInspectorWidget::Private::graphEnumText(const char* value) const {
+  return humanizeIdentifier(QString::fromLatin1(value));
+}
+
+QString
+RenderGraphInspectorWidget::Private::resourceReads(const RenderPlan& plan,
+                                                   const std::vector<ResourceRead>& reads) const {
+  QStringList values;
+  for (const auto& read : reads)
+    values << displayResourceName(plan, read.resource);
+  return dashIfEmpty(values.join(", "));
+}
+
+QString RenderGraphInspectorWidget::Private::resourceWrites(
+  const RenderPlan& plan, const std::vector<ResourceWrite>& writes) const {
+  QStringList values;
+  for (const auto& write : writes)
+    values << displayResourceName(plan, write.resource);
+  return dashIfEmpty(values.join(", "));
+}
+
+QString RenderGraphInspectorWidget::Private::dependencySummary(
+  const RenderPlan& plan, const std::vector<RenderPassDependency>& dependencies) const {
+  QStringList values;
+  for (const auto& dependency : dependencies) {
+    values << QStringLiteral("%1 -> %2 via %3")
+                .arg(displayName(*dependency.producer))
+                .arg(displayName(*dependency.consumer))
+                .arg(displayResourceName(plan, dependency.resource));
+  }
+  return dashIfEmpty(values.join(QStringLiteral(", ")));
+}
+
+QString RenderGraphInspectorWidget::Private::passTooltip(const RenderPlan& plan,
+                                                         const RenderPassNode& pass,
+                                                         const QString& executionMessage) const {
+  QStringList lines;
+  if (!executionMessage.isEmpty()) {
+    lines << executionMessage;
+  }
+  lines << QStringLiteral("Double-click to enable or disable this pass");
+  lines << QStringLiteral("Scene selector: %1").arg(sceneSelectorText(pass.sceneView.selector));
+  lines << QStringLiteral("Scene camera: %1").arg(cameraText(pass.sceneView.camera));
+  lines
+    << QStringLiteral("Shading profile: %1").arg(shadingProfileText(pass.sceneView.shadingProfile));
+  lines << QStringLiteral("Pass ID: %1").arg(qstr(pass.id));
+  lines << QStringLiteral("Reads: %1").arg(resourceReads(plan, pass.reads));
+  lines << QStringLiteral("Writes: %1").arg(resourceWrites(plan, pass.writes));
+  lines << QStringLiteral("Incoming dependencies: %1")
+             .arg(dependencySummary(plan, plan.dependenciesInto(pass.id)));
+  lines << QStringLiteral("Outgoing dependencies: %1")
+             .arg(dependencySummary(plan, plan.dependenciesOutOf(pass.id)));
+  return lines.join(QStringLiteral("\n"));
+}
+
+QString
+RenderGraphInspectorWidget::Private::resourceProducer(const RenderPlan& plan,
+                                                      const RenderResourceId& resource) const {
+  const RenderPassNode* producer = plan.producerOf(resource);
+  return producer ? displayName(*producer) : QStringLiteral("-");
+}
+
+QString
+RenderGraphInspectorWidget::Private::resourceConsumers(const RenderPlan& plan,
+                                                       const RenderResourceId& resource) const {
+  QStringList values;
+  for (const RenderPassNode* consumer : plan.consumersOf(resource))
+    values << displayName(*consumer);
+  return dashIfEmpty(values.join(", "));
+}
+
+QString RenderGraphInspectorWidget::Private::resourceTooltip(
+  const RenderPlan& plan, const RenderResourceDescriptor& resource) const {
+  return QStringLiteral("Resource ID: %1\nProducer: %2\nConsumers: %3\nFormat: %4\nLifetime: "
+                        "%5\nSize: %6")
+    .arg(qstr(resource.id))
+    .arg(resourceProducer(plan, resource.id))
+    .arg(resourceConsumers(plan, resource.id))
+    .arg(toString(resource.format))
+    .arg(toString(resource.lifetime))
+    .arg(sizeText(resource));
+}
 
 RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
     : QWidget(parent),
@@ -823,10 +883,10 @@ void RenderGraphInspectorWidget::rebuildGraph() {
 
     QPen resourcePen(QColor(80, 95, 110));
     resourcePen.setWidthF(resource.id == p->selectedResourceId ? 2.5 : 1.2);
-    QStringList lines{qstr(resource.id),
-                      qstr(toString(resource.type)) + QStringLiteral("/") +
-                        toString(resource.format),
-                      qstr(toString(resource.lifetime)), sizeText(resource)};
+    QStringList lines{p->displayName(resource),
+                      p->graphEnumText(toString(resource.type)) + QStringLiteral("/") +
+                        p->graphEnumText(toString(resource.format)),
+                      p->graphEnumText(toString(resource.lifetime)), sizeText(resource)};
     const QString traceLine = resourceTraceLine(trace, resource);
     if (!traceLine.isEmpty())
       lines << traceLine;
@@ -834,7 +894,7 @@ void RenderGraphInspectorWidget::rebuildGraph() {
       *p->graphScene, QRectF(location->second, QSizeF(ResourceWidth, ResourceHeight)),
       QStringLiteral("resource"), qstr(resource.id), lines, resourcePen,
       QBrush(resource.id == p->selectedResourceId ? QColor(226, 237, 247) : QColor(235, 241, 246)))
-      ->setToolTip(resourceTooltip(plan, resource));
+      ->setToolTip(p->resourceTooltip(plan, resource));
   }
 
   for (const auto& pass : plan.passes()) {
@@ -863,8 +923,9 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (!pass.enabled)
       pen.setStyle(Qt::DashLine);
 
-    QStringList lines{qstr(pass.id),
-                      qstr(toString(pass.kind)) + QStringLiteral("/") + toString(pass.executor),
+    QStringList lines{p->displayName(pass),
+                      p->graphEnumText(toString(pass.kind)) + QStringLiteral("/") +
+                        p->graphEnumText(toString(pass.executor)),
                       pass.enabled ? tr("enabled") : tr("disabled")};
     lines << passSceneViewLines(pass);
     const auto stage = plan.executionStageNumber(pass.id);
@@ -882,7 +943,7 @@ void RenderGraphInspectorWidget::rebuildGraph() {
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
     const auto messageIt = p->executionMessages.find(pass.id);
-    item->setToolTip(passTooltip(
+    item->setToolTip(p->passTooltip(
       plan, pass, messageIt == p->executionMessages.end() ? QString() : messageIt->second));
   }
 
@@ -904,14 +965,15 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setText(1, order ? QString::number(*order) : QStringLiteral("-"));
     const auto stage = plan.executionStageNumber(pass.id);
     item->setText(2, stage ? QString::number(*stage) : QStringLiteral("-"));
-    item->setText(3, qstr(pass.id));
+    item->setText(3, p->displayName(pass));
+    item->setToolTip(3, qstr(pass.id));
     item->setText(4, toString(pass.kind));
     item->setText(5, toString(pass.executor));
     item->setText(6, sceneSelectorText(pass.sceneView.selector));
     item->setText(7, cameraText(pass.sceneView.camera));
     item->setText(8, shadingProfileText(pass.sceneView.shadingProfile));
-    item->setText(9, resourceReads(pass.reads));
-    item->setText(10, resourceWrites(pass.writes));
+    item->setText(9, p->resourceReads(plan, pass.reads));
+    item->setText(10, p->resourceWrites(plan, pass.writes));
     item->setText(11, toString(pass.disabledBehavior));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
@@ -972,9 +1034,10 @@ void RenderGraphInspectorWidget::rebuildResources() {
   for (const auto& resource : plan.resources()) {
     auto item = new QTreeWidgetItem(p->resources);
     item->setData(0, Qt::UserRole, qstr(resource.id));
-    item->setText(0, qstr(resource.id));
-    item->setText(1, resourceProducer(plan, resource.id));
-    item->setText(2, resourceConsumers(plan, resource.id));
+    item->setText(0, p->displayName(resource));
+    item->setToolTip(0, qstr(resource.id));
+    item->setText(1, p->resourceProducer(plan, resource.id));
+    item->setText(2, p->resourceConsumers(plan, resource.id));
     item->setText(3, toString(resource.type));
     item->setText(4, toString(resource.format));
     item->setText(5, toString(resource.domain));

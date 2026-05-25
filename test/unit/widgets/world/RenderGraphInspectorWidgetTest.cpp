@@ -199,7 +199,7 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, passes);
     for (int row = 0; row != passes->topLevelItemCount(); ++row) {
       QTreeWidgetItem* item = passes->topLevelItem(row);
-      if (item->text(3) == passId) {
+      if (item->data(0, Qt::UserRole).toString() == passId) {
         passes->setCurrentItem(item);
         return;
       }
@@ -212,7 +212,7 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, resources);
     for (int row = 0; row != resources->topLevelItemCount(); ++row) {
       QTreeWidgetItem* item = resources->topLevelItem(row);
-      if (item->text(0) == resourceId) {
+      if (item->data(0, Qt::UserRole).toString() == resourceId) {
         resources->setCurrentItem(item);
         return;
       }
@@ -254,36 +254,42 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_EQ(1, passes->topLevelItemCount());
     EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(1));
     EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(2));
-    EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->text(3));
+    EXPECT_EQ(QString("Raytraced beauty"), passes->topLevelItem(0)->text(3));
+    EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->toolTip(3));
     EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(4));
     EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(5));
     EXPECT_EQ(QString("all"), passes->topLevelItem(0)->text(6));
     EXPECT_EQ(QString("preview-camera"), passes->topLevelItem(0)->text(7));
     EXPECT_EQ(QString("clay"), passes->topLevelItem(0)->text(8));
-    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(10));
+    EXPECT_EQ(QString("Main color"), passes->topLevelItem(0)->text(10));
 
     ASSERT_NE(nullptr, graph->scene());
     auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
     ASSERT_NE(nullptr, passNode);
+    EXPECT_TRUE(nodeTextContains(passNode, "Raytraced beauty"));
     EXPECT_TRUE(nodeTextContains(passNode, "camera preview-camera"));
     EXPECT_TRUE(nodeTextContains(passNode, "shading clay"));
     EXPECT_TRUE(nodeTextContains(passNode, "stage 1"));
     EXPECT_TRUE(passNode->toolTip().contains("Scene selector: all"));
     EXPECT_TRUE(passNode->toolTip().contains("Scene camera: preview-camera"));
     EXPECT_TRUE(passNode->toolTip().contains("Shading profile: clay"));
+    EXPECT_TRUE(passNode->toolTip().contains("Pass ID: raytrace_beauty"));
     EXPECT_TRUE(passNode->toolTip().contains("Reads: -"));
-    EXPECT_TRUE(passNode->toolTip().contains("Writes: main_color"));
+    EXPECT_TRUE(passNode->toolTip().contains("Writes: Main color"));
     EXPECT_TRUE(passNode->toolTip().contains("Incoming dependencies: -"));
     auto* resourceNode = graphNodeItem(graph->scene(), "resource", "main_color");
     ASSERT_NE(nullptr, resourceNode);
-    EXPECT_TRUE(nodeTextContains(resourceNode, "rgb_double"));
-    EXPECT_TRUE(nodeTextContains(resourceNode, "exported"));
-    EXPECT_TRUE(resourceNode->toolTip().contains("Producer: raytrace_beauty"));
+    EXPECT_TRUE(nodeTextContains(resourceNode, "Main color"));
+    EXPECT_TRUE(nodeTextContains(resourceNode, "Rgb Double"));
+    EXPECT_TRUE(nodeTextContains(resourceNode, "Exported"));
+    EXPECT_TRUE(resourceNode->toolTip().contains("Resource ID: main_color"));
+    EXPECT_TRUE(resourceNode->toolTip().contains("Producer: Raytraced beauty"));
     EXPECT_TRUE(resourceNode->toolTip().contains("Consumers: -"));
 
     ASSERT_EQ(1, resources->topLevelItemCount());
-    EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->text(0));
-    EXPECT_EQ(QString("raytrace_beauty"), resources->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("Main color"), resources->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("main_color"), resources->topLevelItem(0)->toolTip(0));
+    EXPECT_EQ(QString("Raytraced beauty"), resources->topLevelItem(0)->text(1));
     EXPECT_EQ(QString("-"), resources->topLevelItem(0)->text(2));
     EXPECT_EQ(QString("color"), resources->topLevelItem(0)->text(3));
     EXPECT_THAT(status->text().toStdString(), ::testing::HasSubstr("Valid plan"));
@@ -321,9 +327,9 @@ namespace RenderGraphInspectorWidgetTest {
     auto* resources = widget.findChild<QTreeWidget*>("renderGraphResources");
     ASSERT_NE(nullptr, resources);
     ASSERT_EQ(2, resources->topLevelItemCount());
-    EXPECT_EQ(QString("beauty_color"), resources->topLevelItem(0)->text(0));
-    EXPECT_EQ(QString("raytrace_beauty"), resources->topLevelItem(0)->text(1));
-    EXPECT_EQ(QString("tonemap"), resources->topLevelItem(0)->text(2));
+    EXPECT_EQ(QString("Beauty color"), resources->topLevelItem(0)->text(0));
+    EXPECT_EQ(QString("Raytraced beauty"), resources->topLevelItem(0)->text(1));
+    EXPECT_EQ(QString("Tone map"), resources->topLevelItem(0)->text(2));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "tonemap"));
     EXPECT_NE(nullptr, graphItem(graph->scene(), "resource", "beauty_color"));
