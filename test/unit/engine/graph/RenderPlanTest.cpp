@@ -503,6 +503,36 @@ namespace RenderPlanTest {
       hasError(mismatchedValidation, RenderPlanValidationError::Code::InvalidResourceShape));
   }
 
+  TEST(RenderPlan, ReportsInvalidDisabledPassthroughMultiOutputShape) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color"));
+    plan.addResource(colorResource("matching_color", RenderResourceLifetime::Exported));
+    auto mismatched = colorResource("mismatched_color", RenderResourceLifetime::Exported);
+    mismatched.height = 128;
+    plan.addResource(mismatched);
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"main_color"});
+    plan.addPass(beauty);
+
+    auto post = pass("post", RenderPassKind::PostProcess);
+    post.reads.push_back({"main_color"});
+    post.writes.push_back({"matching_color"});
+    post.writes.push_back({"mismatched_color"});
+    post.disabledBehavior = DisabledBehavior::Passthrough;
+    post.enabled = false;
+    plan.addPass(post);
+
+    const auto validation = plan.validate();
+
+    ASSERT_FALSE(validation.valid());
+    const auto& errors = validation.errors();
+    EXPECT_TRUE(std::any_of(errors.begin(), errors.end(), [](const auto& error) {
+      return error.code == RenderPlanValidationError::Code::InvalidResourceShape &&
+             error.resourceId == "mismatched_color";
+    }));
+  }
+
   TEST(RenderPlan, DisabledCullDependencyDoesNotSatisfyConsumer) {
     RenderPlan plan;
     plan.addResource(colorResource("shadow_mask"));
