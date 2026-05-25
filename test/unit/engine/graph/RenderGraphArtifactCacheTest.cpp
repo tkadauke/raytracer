@@ -1,0 +1,85 @@
+#include <gtest/gtest.h>
+
+#include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/PostProcessPassState.h"
+#include "engine/graph/RenderGraphArtifactCache.h"
+#include "render/cameras/PinholeCamera.h"
+#include "render/primitives/Scene.h"
+
+namespace RenderGraphArtifactCacheTest {
+  using namespace engine::graph;
+
+  RenderResourceDescriptor colorResource(const std::string& id) {
+    RenderResourceDescriptor descriptor;
+    descriptor.id = id;
+    descriptor.name = "Color";
+    descriptor.type = RenderResourceType::Color;
+    descriptor.format = RenderResourceFormat::RGBDouble;
+    descriptor.width = 16;
+    descriptor.height = 8;
+    descriptor.sampleCount = 1;
+    descriptor.domain = RenderResourceDomain::CPU;
+    descriptor.lifetime = RenderResourceLifetime::PersistentCache;
+    return descriptor;
+  }
+
+  RenderPassNode pass(const std::string& id) {
+    RenderPassNode node;
+    node.id = id;
+    node.kind = RenderPassKind::PostProcess;
+    node.executor = RenderExecutorKind::PostProcess;
+    return node;
+  }
+
+  TEST(RenderGraphArtifactCache, StoresAndFindsArtifactsByTypedKey) {
+    const RenderPassNode producer = pass("post_fxaa");
+    const auto descriptor = colorResource("cached_color");
+    const auto key = RenderGraphCacheKey::forPassOutput(producer, descriptor, "inputs:a");
+
+    RenderGraphArtifactCache cache;
+    auto artifact = std::make_shared<RenderGraphCachedArtifact>(key, "cached color artifact");
+    cache.store(artifact);
+
+    EXPECT_EQ(1u, cache.size());
+    EXPECT_TRUE(cache.contains(key));
+    ASSERT_EQ(artifact, cache.find(key));
+    EXPECT_EQ("cached_color", cache.find(key)->descriptor().id);
+    EXPECT_EQ("cached color artifact", cache.find(key)->description());
+  }
+
+  TEST(RenderGraphArtifactCache, SeparatesInputFingerprintsAndPassState) {
+    RenderPassNode producer = pass("post_aa");
+    const auto descriptor = colorResource("cached_color");
+
+    const auto baseKey = RenderGraphCacheKey::forPassOutput(producer, descriptor, "inputs:a");
+    producer.state = std::make_shared<FxaaPostProcessAAState>();
+    const auto fxaaKey = RenderGraphCacheKey::forPassOutput(producer, descriptor, "inputs:a");
+    const auto movedCameraKey =
+      RenderGraphCacheKey::forPassOutput(producer, descriptor, "inputs:b");
+
+    EXPECT_FALSE(baseKey == fxaaKey);
+    EXPECT_FALSE(fxaaKey == movedCameraKey);
+
+    RenderGraphArtifactCache cache;
+    cache.store(std::make_shared<RenderGraphCachedArtifact>(fxaaKey));
+
+    EXPECT_EQ(nullptr, cache.find(baseKey));
+    EXPECT_EQ(nullptr, cache.find(movedCameraKey));
+    EXPECT_NE(nullptr, cache.find(fxaaKey));
+  }
+
+  TEST(RenderGraphArtifactCache, GraphRenderEngineClonesShareCache) {
+    auto scene = std::make_shared<render::Scene>();
+    auto camera = std::make_shared<render::PinholeCamera>(Vector3d(0, 0, -5), Vector3d::null);
+    GraphRenderEngine engine(camera, scene);
+    auto clone = std::dynamic_pointer_cast<GraphRenderEngine>(engine.cloneForRender());
+    ASSERT_TRUE(clone);
+
+    const auto key = RenderGraphCacheKey::forPassOutput(
+      pass("producer"), colorResource("cached_color"), engine.executionInputFingerprint());
+    engine.artifactCache()->store(std::make_shared<RenderGraphCachedArtifact>(key));
+
+    EXPECT_EQ(1u, clone->artifactCache()->size());
+    EXPECT_NE(nullptr, clone->artifactCache()->find(key));
+  }
+}

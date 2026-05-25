@@ -520,8 +520,11 @@ denoiser/history feature buffers.
 Transient frame resources and persistent artifacts should remain distinct:
 
 - `RenderResourceStorage` owns the resources used by one graph execution.
-- `RenderGraphArtifactCache` should live beside `GraphRenderEngine` and survive
-  across frames and cloned preview render snapshots.
+- `RenderGraphArtifactCache` lives beside `GraphRenderEngine` and survives
+  across frames and cloned preview render snapshots. ✅ **Done.** The first
+  cache slice provides clone-shared storage for immutable
+  `RenderGraphCachedArtifact` instances keyed by producer pass, resource
+  descriptor, typed pass-state fingerprint, and render-input fingerprint.
 - `RenderResourceLifetime::PersistentCache` marks a resource as cacheable, but
   cache reuse still depends on the resource descriptor, producer pass state, and
   an invalidation fingerprint.
@@ -1325,7 +1328,10 @@ toggle still affects point-lit previews.
 Add a graph-owned cache for `PersistentCache` resources. Start with shadow-map
 artifacts once concrete shadow maps are externalized from `Rasterizer`, then
 extend the same cache to reflection probes, irradiance caches, photon maps,
-path-guiding data, terrain/volume intermediates, and acceleration data.
+path-guiding data, terrain/volume intermediates, and acceleration data. ✅
+**Partial.** `RenderGraphArtifactCache` now provides the clone-shared,
+thread-safe cache container and typed cache keys; shadow-map depth artifacts
+still need to move out of the rasterizer before cache hits can affect pixels.
 
 The first implementation may use conservative invalidation. A later refinement
 should add scene/object revision domains so postprocess or tonemap changes do

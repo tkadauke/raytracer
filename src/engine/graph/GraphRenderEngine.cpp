@@ -1,6 +1,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 
 #include "core/Buffer.h"
+#include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderPassPayload.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
@@ -315,6 +316,8 @@ namespace engine::graph {
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
     std::shared_ptr<RenderGraphExecutionTraceRecorder> executionTraceRecorder{
       std::make_shared<RenderGraphExecutionTraceRecorder>()};
+    std::shared_ptr<RenderGraphArtifactCache> artifactCache{
+      std::make_shared<RenderGraphArtifactCache>()};
     std::shared_ptr<std::atomic<std::uint64_t>> nextExecutionGeneration{
       std::make_shared<std::atomic<std::uint64_t>>(1)};
     std::atomic<bool> executionTraceEnabled{false};
@@ -369,6 +372,7 @@ namespace engine::graph {
     result->setExecutionObserver(executionObserver());
     result->setExecutionTraceEnabled(executionTraceEnabled());
     result->p->executionTraceRecorder = p->executionTraceRecorder;
+    result->p->artifactCache = p->artifactCache;
     result->p->nextExecutionGeneration = p->nextExecutionGeneration;
     return result;
   }
@@ -443,6 +447,10 @@ namespace engine::graph {
 
   std::string GraphRenderEngine::executionInputFingerprint() const {
     return renderInputFingerprintFor(*this);
+  }
+
+  std::shared_ptr<RenderGraphArtifactCache> GraphRenderEngine::artifactCache() const {
+    return p->artifactCache;
   }
 
   void GraphRenderEngine::render(Buffer<Colord>& buffer) {

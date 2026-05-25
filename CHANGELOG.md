@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph artifact cache.** `GraphRenderEngine` now owns a clone-shared
+  `RenderGraphArtifactCache` with typed cache keys for immutable persistent
+  artifacts, establishing the cache surface needed for future shadow-map and
+  probe reuse. — GPT-5
 - **Render graph trace input freshness.** Execution traces now carry a
   render-input fingerprint, and the Modeler only shows a completed trace when
   both the graph plan and current preview inputs still match, avoiding stale

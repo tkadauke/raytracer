@@ -121,6 +121,14 @@ Validation treats imported, history, and persistent-cache resources as
 externally available. A transient or exported resource that is read must have a
 producer in the plan.
 
+Persistent cache resources have a separate execution-time home:
+[`RenderGraphArtifactCache`](../../../include/engine/graph/RenderGraphArtifactCache.h).
+Graph engines and their render-thread clones share one cache instance. Entries
+are immutable artifacts addressed by a typed key: producer pass id, resource
+descriptor, pass-state fingerprint, and render-input fingerprint. The cache is
+ready for shadow maps, reflection probes, and similar resources once those
+artifacts are represented outside the direct engines.
+
 ## <a id="pass-nodes-declare-reads-and-writes"></a>Pass nodes declare reads and writes
 `RenderPassNode` is the declarative node in the graph:
 

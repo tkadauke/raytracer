@@ -7,6 +7,7 @@
 #include <string>
 
 namespace engine::graph {
+  class RenderGraphArtifactCache;
   class RenderGraphExecutionObserver;
   class RenderGraphExecutionTrace;
 
@@ -121,6 +122,12 @@ namespace engine::graph {
       * display transform inputs used to reject stale inspection traces.
       */
     std::string executionInputFingerprint() const;
+
+    /**
+      * @returns the artifact cache shared by this graph engine and render
+      * clones created from it.
+      */
+    std::shared_ptr<RenderGraphArtifactCache> artifactCache() const;
 
     /**
       * Executes the current plan into @p buffer.
