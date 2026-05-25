@@ -317,7 +317,9 @@ Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_executor` selects the default executor and
 `--render_graph_view` selects the structural view mode,
 `--render_graph_camera` selects the default scene camera reference, and
-`--render_graph_shading_profile` selects the default named shading profile. The
+`--render_graph_shading_profile` selects the default named shading profile.
+Repeated `--render_graph_shading_parameter key=value` options attach parsed
+bool, number, or string parameters to that profile. The
 `depth`, `normal`, `object_id`, `material_id`, and `world_position` views
 compile real resource-producing AOV nodes followed by visualization passes, so
 the exported plan and the Modeler inspector can show AOVs as graph resources
