@@ -85,6 +85,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph live-event generations.** Live graph execution observer events
   now carry a render generation so the Modeler preview ignores pass updates from
   retired workers once a newer render has been requested. — GPT-5
+- **Rendercli image probe assertions.** Rendercli CMake tests now use a
+  Qt-backed image probe to assert decoded dimensions, nonzero RGB pixels, and
+  stable raw-pixel hashes without comparing PNG bytes. — GPT-5
 - **Render graph text dependencies.** Text graph exports now include declared
   pass-to-pass dependencies and the dependency-derived execution order
   separately from pass declaration order, so replayed or hand-authored plans can

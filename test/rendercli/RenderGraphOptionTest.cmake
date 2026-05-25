@@ -596,7 +596,9 @@ rendercli_run(
     "${RENDERCLI}" --engine wireframe --width 32 --height 16
     "${static_scene}" "${graph_render}"
 )
-rendercli_assert_nonempty("${graph_render}" NAME "rendercli default graph image")
+rendercli_assert_image_dimensions("${graph_render}" 32 16
+                                  NAME "rendercli default graph image dimensions")
+rendercli_assert_image_nonempty("${graph_render}" NAME "rendercli default graph image pixels")
 
 rendercli_run(
   NAME "rendercli writes execution trace while rendering through graph"
@@ -668,7 +670,9 @@ rendercli_run(
     --shadow_maps --shadow_map_size 64 --shadow_bias 0.2
     "${static_scene}" "${raster_state_render}"
 )
-rendercli_assert_nonempty("${raster_state_render}" NAME "graph raster state render")
+rendercli_assert_image_dimensions("${raster_state_render}" 32 16
+                                  NAME "graph raster state render dimensions")
+rendercli_assert_image_nonempty("${raster_state_render}" NAME "graph raster state render pixels")
 rendercli_assert_nonempty("${raster_state_plan}" NAME "graph raster state plan")
 file(READ "${raster_state_plan}" raster_state_graph)
 if(NOT raster_state_graph MATCHES "raster_beauty")
@@ -787,7 +791,10 @@ rendercli_run(
     "${RENDERCLI}" --width 48 --height 32
     "${default_graph_scene}" "${default_graph_render}"
 )
-rendercli_assert_nonempty("${default_graph_render}" NAME "rendercli default graph intent output")
+rendercli_assert_image_dimensions("${default_graph_render}" 48 32
+                                  NAME "rendercli default graph intent dimensions")
+rendercli_assert_image_nonempty("${default_graph_render}"
+                                NAME "rendercli default graph intent pixels")
 
 rendercli_run(
   NAME "rendercli direct engine bypasses scene render intent"
@@ -795,9 +802,11 @@ rendercli_run(
     "${RENDERCLI}" --direct_engine --engine raytracer --width 48 --height 32
     "${default_graph_scene}" "${direct_engine_render}"
 )
-rendercli_assert_nonempty("${direct_engine_render}" NAME "rendercli direct engine output")
-rendercli_assert_files_differ("${default_graph_render}" "${direct_engine_render}"
-                              NAME "default graph output differs from direct engine output")
+rendercli_assert_image_dimensions("${direct_engine_render}" 48 32
+                                  NAME "rendercli direct engine dimensions")
+rendercli_assert_image_nonempty("${direct_engine_render}" NAME "rendercli direct engine pixels")
+rendercli_assert_image_hash_differs("${default_graph_render}" "${direct_engine_render}"
+                                    NAME "default graph output differs from direct engine output")
 
 rendercli_run(
   NAME "rendercli renders through replayed JSON graph"
@@ -805,7 +814,9 @@ rendercli_run(
     "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}"
     "${static_scene}" "${replayed_render}"
 )
-rendercli_assert_nonempty("${replayed_render}" NAME "rendercli --render_graph_in image")
+rendercli_assert_image_dimensions("${replayed_render}" 32 16
+                                  NAME "rendercli --render_graph_in dimensions")
+rendercli_assert_image_nonempty("${replayed_render}" NAME "rendercli --render_graph_in pixels")
 
 rendercli_run(
   NAME "rendercli text export shows dependency execution order"
@@ -829,7 +840,9 @@ rendercli_run(
     "${RENDERCLI}" --render_graph --render_graph_in "${out_of_order_graph}"
     "${static_scene}" "${out_of_order_render}"
 )
-rendercli_assert_nonempty("${out_of_order_render}" NAME "out-of-order graph replay image")
+rendercli_assert_image_dimensions("${out_of_order_render}" 32 16
+                                  NAME "out-of-order graph replay dimensions")
+rendercli_assert_image_nonempty("${out_of_order_render}" NAME "out-of-order graph replay pixels")
 
 rendercli_run(
   NAME "rendercli renders through replayed JSON graph with matching explicit size"
@@ -837,7 +850,12 @@ rendercli_run(
     "${RENDERCLI}" --render_graph --render_graph_in "${json_plan}" --width 32 --height 16
     "${static_scene}" "${replayed_matching_render}"
 )
-rendercli_assert_nonempty("${replayed_matching_render}" NAME "matching explicit graph replay image")
+rendercli_assert_image_dimensions("${replayed_matching_render}" 32 16
+                                  NAME "matching explicit graph replay dimensions")
+rendercli_assert_image_nonempty("${replayed_matching_render}"
+                                NAME "matching explicit graph replay pixels")
+rendercli_assert_image_hash_equals("${replayed_render}" "${replayed_matching_render}"
+                                   NAME "implicit and explicit graph replay output match")
 
 rendercli_run(
   NAME "rendercli disables optional tonemap pass"
