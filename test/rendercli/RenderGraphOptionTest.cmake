@@ -73,6 +73,7 @@ set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
 set(raytracer_post_aa_plan "${TEST_OUTPUT_DIR}/raytracer-post-aa-graph.txt")
 set(wireframe_post_aa_plan "${TEST_OUTPUT_DIR}/wireframe-post-aa-graph.txt")
+set(scene_post_aa_none_plan "${TEST_OUTPUT_DIR}/scene-post-aa-none-graph.txt")
 set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(out_of_order_text_plan "${TEST_OUTPUT_DIR}/graph-out-of-order.txt")
 set(out_of_order_render "${TEST_OUTPUT_DIR}/graph-out-of-order-render.png")
@@ -1461,6 +1462,19 @@ if(NOT raytracer_post_aa_graph MATCHES "raytrace_beauty")
 endif()
 if(NOT raytracer_post_aa_graph MATCHES "post_fxaa")
   message(FATAL_ERROR "raytracer post-AA graph did not contain post_fxaa: ${raytracer_post_aa_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli post AA none overrides scene graph intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --width 32 --height 16 --post_aa none
+    "${scene_intent_scene}" "${scene_post_aa_none_plan}"
+)
+file(READ "${scene_post_aa_none_plan}" scene_post_aa_none_graph)
+if(scene_post_aa_none_graph MATCHES "post_smaa|post_fxaa|post_aa_color")
+  message(FATAL_ERROR
+          "scene post-AA none graph still contained image post-AA pass: ${scene_post_aa_none_graph}")
 endif()
 
 rendercli_run(

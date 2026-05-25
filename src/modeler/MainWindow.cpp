@@ -41,8 +41,8 @@
 
 #include "MainWindow.h"
 #include "Display.h"
-#include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RenderGraphRequest.h"
 #include "engine/graph/RenderPassState.h"
 #include "engine/raytracer/Raytracer.h"
 #include "render/tonemap/TonemapFactory.h"
@@ -170,7 +170,7 @@ namespace {
     virtual ~PreviewEngineIntentDefinition() = default;
 
     virtual bool matches(RenderDisplay::EngineKind kind) const = 0;
-    virtual void apply(engine::graph::RenderIntent& intent,
+    virtual void apply(engine::graph::RenderGraphRequest& request,
                        engine::graph::RenderViewMode previewViewMode) const = 0;
   };
 
@@ -180,10 +180,10 @@ namespace {
       return kind == RenderDisplay::EngineKind::Raytracer;
     }
 
-    void apply(engine::graph::RenderIntent& intent,
+    void apply(engine::graph::RenderGraphRequest& request,
                engine::graph::RenderViewMode previewViewMode) const override {
-      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
-      intent.defaultViewMode = previewViewMode;
+      request.setExecutorOverride(engine::graph::RenderExecutorPreference::Raytracer)
+        .setViewModeOverride(previewViewMode);
     }
   };
 
@@ -193,10 +193,10 @@ namespace {
       return kind == RenderDisplay::EngineKind::Rasterizer;
     }
 
-    void apply(engine::graph::RenderIntent& intent,
+    void apply(engine::graph::RenderGraphRequest& request,
                engine::graph::RenderViewMode previewViewMode) const override {
-      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
-      intent.defaultViewMode = previewViewMode;
+      request.setExecutorOverride(engine::graph::RenderExecutorPreference::Rasterizer)
+        .setViewModeOverride(previewViewMode);
     }
   };
 
@@ -206,12 +206,12 @@ namespace {
       return kind == RenderDisplay::EngineKind::Wireframe;
     }
 
-    void apply(engine::graph::RenderIntent& intent,
+    void apply(engine::graph::RenderGraphRequest& request,
                engine::graph::RenderViewMode previewViewMode) const override {
-      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
-      intent.defaultViewMode = previewViewMode == engine::graph::RenderViewMode::Beauty
-                                 ? engine::graph::RenderViewMode::Wireframe
-                                 : previewViewMode;
+      request.setExecutorOverride(engine::graph::RenderExecutorPreference::Wireframe)
+        .setViewModeOverride(previewViewMode == engine::graph::RenderViewMode::Beauty
+                               ? engine::graph::RenderViewMode::Wireframe
+                               : previewViewMode);
     }
   };
 
@@ -1610,11 +1610,11 @@ void MainWindow::updateRenderGraphInspector() {
 
   const QSize target = p->display->bufferSize();
   const auto intent = previewRenderIntent();
-  engine::graph::RenderGraphCompiler compiler;
   const engine::graph::RenderTargetSpec targetSpec{std::max(1, target.width()),
                                                    std::max(1, target.height()), 1};
   p->display->setRenderGraphIntent(intent);
-  p->renderGraphInspectorWidget->setPlan(compiler.compile(targetSpec, intent));
+  p->renderGraphInspectorWidget->setPlan(
+    engine::graph::RenderGraphRequest(intent).compile(targetSpec));
   applyRenderGraphPreviewPlan();
 }
 
@@ -2019,25 +2019,21 @@ void MainWindow::syncPlaybackControls() {
 }
 
 engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
-  engine::graph::RenderIntent intent =
-    p->scene ? p->scene->renderIntentWithActiveCameraDefault() : engine::graph::RenderIntent();
-  intent.enablePreviewShadows =
-    intent.enablePreviewShadows || (p->display && p->display->rasterizerPreviewShadowsEnabled());
-  if (p->display &&
-      p->display->previewPostProcessAA() != engine::graph::RenderPostProcessAA::None) {
-    intent.postProcessAA = p->display->previewPostProcessAA();
-  }
-  intent.enableWireframeOverlay =
-    intent.enableWireframeOverlay || (p->display && p->display->wireframeOverlayEnabled());
+  engine::graph::RenderGraphRequest request(
+    p->scene ? p->scene->renderIntentWithActiveCameraDefault() : engine::graph::RenderIntent());
 
   if (!p->display)
-    return intent;
+    return request.resolvedIntent();
+
+  request.setPreviewShadowsOverride(p->display->rasterizerPreviewShadowsEnabled())
+    .setPostProcessAAOverride(p->display->previewPostProcessAA())
+    .setWireframeOverlayOverride(p->display->wireframeOverlayEnabled());
 
   const engine::graph::RenderViewMode previewViewMode = p->display->previewViewMode();
 
-  previewEngineIntentDefinition(p->display->engineKind()).apply(intent, previewViewMode);
+  previewEngineIntentDefinition(p->display->engineKind()).apply(request, previewViewMode);
 
-  return intent;
+  return request.resolvedIntent();
 }
 
 std::unique_ptr<Scene> MainWindow::evaluatedSceneForCurrentFrame() const {

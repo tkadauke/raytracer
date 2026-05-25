@@ -21,6 +21,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
+#include "engine/graph/RenderGraphRequest.h"
 #include "engine/graph/WireframePassState.h"
 #include "render/lights/PointLight.h"
 #include "render/RenderEngine.h"
@@ -811,6 +812,8 @@ private:
   void renderStepSequence(const Scene& scene) const;
   void validateStepSelection(const Scene& scene, const StepVisibilitySelection& selection) const;
   std::vector<int> sequenceSteps(const Scene& scene) const;
+  std::optional<engine::graph::RenderExecutorPreference> engineExecutorPreference() const;
+  engine::graph::RenderGraphRequest renderGraphRequest(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
   engine::graph::RenderPostProcessAA commandLinePostProcessAA() const;
@@ -1039,48 +1042,59 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
 }
 
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
-  engine::graph::RenderIntent intent = scene.renderIntentWithActiveCameraDefault();
+  return renderGraphRequest(scene).resolvedIntent();
+}
+
+std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorPreference() const {
+  if (!m_engineSet) {
+    return std::nullopt;
+  }
+  if (m_engine == "raster") {
+    return engine::graph::RenderExecutorPreference::Rasterizer;
+  }
+  if (m_engine == "wireframe") {
+    return engine::graph::RenderExecutorPreference::Wireframe;
+  }
+  return engine::graph::RenderExecutorPreference::Raytracer;
+}
+
+engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scene) const {
+  engine::graph::RenderGraphRequest request(scene.renderIntentWithActiveCameraDefault());
   if (m_renderGraphExecutorSet) {
-    intent.setDefaultExecutor(m_renderGraphExecutor);
-  } else if (m_engineSet && m_engine == "raster") {
-    intent.setDefaultExecutor(engine::graph::RenderExecutorPreference::Rasterizer);
-  } else if (m_engineSet && m_engine == "wireframe") {
-    intent.setDefaultExecutor(engine::graph::RenderExecutorPreference::Wireframe);
-  } else if (m_engineSet) {
-    intent.setDefaultExecutor(engine::graph::RenderExecutorPreference::Raytracer);
+    request.setExecutorOverride(m_renderGraphExecutor);
+  } else if (const auto executor = engineExecutorPreference()) {
+    request.setExecutorShortcut(*executor);
   }
   if (m_renderGraphViewModeSet) {
-    intent.setDefaultViewMode(m_renderGraphViewMode);
-  } else if (!m_renderGraphExecutorSet && m_engineSet && m_engine == "wireframe") {
-    intent.setDefaultViewMode(engine::graph::RenderViewMode::Wireframe);
+    request.setViewModeOverride(m_renderGraphViewMode);
   }
   if (!m_renderGraphCamera.isEmpty()) {
-    intent.setDefaultCamera(
+    request.setCameraOverride(
       engine::graph::RenderCameraRef{m_renderGraphCamera.toStdString(), std::nullopt});
   }
   if (!m_renderGraphShadingProfile.isEmpty()) {
-    intent.setDefaultShadingProfile(
+    request.setShadingProfileOverride(
       engine::graph::ShadingProfileRef{m_renderGraphShadingProfile.toStdString(), {}});
   }
   for (const auto& [key, value] : m_renderGraphShadingProfileParameters) {
-    intent.setDefaultShadingProfileParameter(key, value);
+    request.setShadingProfileParameterOverride(key, value);
   }
   if (m_renderGraphWireframeOverlay) {
-    intent.setWireframeOverlayEnabled(true);
+    request.setWireframeOverlayOverride(true);
   }
   if (m_renderGraphCurveOverlay) {
-    intent.enableCurveOverlay = true;
+    request.setCurveOverlayOverride(true);
   }
   if (m_rasterShadowMaps) {
-    intent.setPreviewShadowsEnabled(true);
+    request.setPreviewShadowsOverride(true);
   }
   if (m_rasterPostProcessAASet) {
-    intent.setPostProcessAA(commandLinePostProcessAA());
+    request.setPostProcessAAOverride(commandLinePostProcessAA());
   }
   for (const auto& aovOutput : m_renderGraphAOVOutputs) {
-    intent.requestExportedAOV(aovOutput.viewMode);
+    request.requestExportedAOV(aovOutput.viewMode);
   }
-  return intent;
+  return request;
 }
 
 int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) const {
@@ -1183,10 +1197,10 @@ engine::graph::WireframePassState Renderer::wireframePassState() const {
 }
 
 engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) const {
-  engine::graph::RenderGraphCompiler compiler;
-  const auto intent = renderIntent(scene);
+  const auto request = renderGraphRequest(scene);
+  const auto intent = request.resolvedIntent();
   const auto frameIntent = intent.withWholeFrameOverridesApplied();
-  auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(frameIntent)}, intent);
+  auto plan = request.compile({m_width, m_height, renderGraphSampleCount(frameIntent)});
   wireframePassState().writeToWireframePasses(plan);
   if (frameIntent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
     const engine::graph::RasterBeautyPassState rasterState =

@@ -95,14 +95,19 @@ the block optional: scenes without one use the default raytraced beauty intent,
 while scenes with one preserve the requested executor, view mode, shading
 profile, feature toggles, raster postprocess AA request, requested exported
 AOVs, camera reference, and per-selector overrides. Tools then layer temporary
-choices over that saved intent through `RenderIntent` mutation methods instead
-of directly authoring low-level pass nodes. When no default camera is named,
-tools derive a scene-camera reference from the active editable-scene camera so
-the compiled graph still explains which camera feeds scene-rendering passes.
+choices over that saved intent through `RenderGraphRequest` instead of
+directly authoring low-level pass nodes or mutating the scene's durable intent.
+When no default camera is named, tools derive a scene-camera reference from the
+active editable-scene camera so the compiled graph still explains which camera
+feeds scene-rendering passes.
 For example, rendercli uses the scene intent as the graph compiler input, but
 `--render_graph_executor`, `--render_graph_view`, `--render_graph_aov_out`,
 `--render_graph_wireframe_overlay`, and `--post_aa` can still override the
 effective command-line render.
+The Modeler preview uses the same request resolver for its engine menu, view
+menu, postprocess AA selector, shadow toggle, and overlay toggle, so selecting
+"None" for AA or clearing a preview feature is a real front-end override rather
+than a separate Modeler-only interpretation of scene intent.
 Because whole-frame overrides become the effective frame intent before pass
 synthesis, tool-level state such as raster MSAA and preview shadow settings is
 attached to the synthesized raster passes after those overrides are applied.
@@ -784,6 +789,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `graphs/render_graph_stencil_composite_demo.json`
 - `include/engine/graph/RenderGraphTypes.h`
 - `include/engine/graph/RenderGraphCompiler.h`
+- `include/engine/graph/RenderGraphRequest.h`
 - `include/engine/graph/RenderGraphExecutionObserver.h`
 - `include/engine/graph/RenderGraphExecutionTrace.h`
 - `include/engine/graph/RenderExecutionContext.h`
@@ -803,6 +809,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`
+- `src/engine/graph/RenderGraphRequest.cpp`
 - `src/engine/graph/RenderGraphExecutionTrace.cpp`
 - `src/engine/graph/RenderGraphTypes.cpp`
 - `src/engine/graph/GraphRenderEngine.cpp`

@@ -101,6 +101,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Shared render graph request resolution.** rendercli and Modeler preview now
+  layer scene intent and temporary graph overrides through
+  `RenderGraphRequest`, and the raster render dialog uses the same compilation
+  entry point, reducing CLI/UI divergence and letting Modeler preview controls
+  explicitly clear scene-requested AA, shadows, and overlays. — GPT-5
 - **Render graph stencil-composite view mode.** Render intent and
   `rendercli --render_graph_view stencil_composite` now synthesize raster
   beauty, wireframe foreground, raster stencil AOV, stencil composite, tonemap,

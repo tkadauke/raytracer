@@ -5,7 +5,7 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
-#include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderGraphRequest.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
@@ -117,9 +117,8 @@ struct RenderWindow::Private {
   engine::graph::RenderPlan rasterPlan() const {
     const QSize resolution = settingsWidget->resolution();
     const auto intent = rasterIntent();
-    engine::graph::RenderGraphCompiler compiler;
-    auto plan = compiler.compile(
-      {resolution.width(), resolution.height(), settingsWidget->msaaSamples()}, intent);
+    auto plan = engine::graph::RenderGraphRequest(intent).compile(
+      {resolution.width(), resolution.height(), settingsWidget->msaaSamples()});
     const engine::graph::RasterBeautyPassState rasterState = rasterBeautyPassState(
       intent.postProcessAA, !intent.usesGraphImagePostProcessAA(), !intent.enablePreviewShadows);
     rasterState.writeToRasterBeautyPasses(plan);

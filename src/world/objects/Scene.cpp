@@ -81,7 +81,9 @@ void Scene::read(const QJsonObject& json) {
     throw std::invalid_argument("scene JSON root type must be Scene");
   }
   if (type.isUndefined() && looksLikeRenderGraphPlan(json)) {
-    throw std::invalid_argument("render graph plans are not scene files");
+    throw std::invalid_argument(
+      "render graph plan JSON cannot be opened as a scene; open a scene JSON in Modeler or use "
+      "rendercli --render_graph_in to replay the graph plan");
   }
 
   auto sceneJson = json;

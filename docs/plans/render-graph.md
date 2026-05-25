@@ -224,15 +224,16 @@ This keeps `RenderEngine` as the simple entry point while allowing
 
 `RenderIntent` is the user-facing request. It is serializable in scene JSON so
 a scene can describe its intended final render, educational views, and preview
-strategies. Rendercli, Modeler, tests, and direct API callers can layer
-temporary overrides on top of the scene intent without mutating the scene file.
+strategies. `RenderGraphRequest` is the shared front-end resolver that
+rendercli, Modeler, tests, and direct API callers use to layer temporary
+overrides on top of the scene intent without mutating the scene file.
 
 The effective intent is built in layers:
 
 ```text
 scene JSON RenderIntent
   -> application defaults
-  -> rendercli / Modeler / API overrides
+  -> RenderGraphRequest overrides from rendercli / Modeler / API
   -> compiled RenderPlan
 ```
 

@@ -283,7 +283,8 @@ namespace SceneTest {
       scene.read(json);
       FAIL() << "expected render graph plan JSON to throw";
     } catch (const std::invalid_argument& error) {
-      EXPECT_THAT(error.what(), HasSubstr("render graph plans are not scene files"));
+      EXPECT_THAT(error.what(), HasSubstr("render graph plan JSON cannot be opened as a scene"));
+      EXPECT_THAT(error.what(), HasSubstr("rendercli --render_graph_in"));
     }
   }
 

@@ -85,7 +85,10 @@ The graph export formats are `text`, `dot`, and `json`. `--render_graph` is
 accepted as an explicit spelling of the default graph-backed render path, and
 `--render_graph_in plan.json` loads a saved JSON plan instead of compiling one.
 If the scene JSON contains a top-level `renderIntent` block, rendercli uses
-that as the graph compiler's base intent.
+that as the graph compiler's base intent. Command-line graph options are
+layered through the same `RenderGraphRequest` resolver that the Modeler preview
+uses, so engine, view, AA, shadow, overlay, camera, shading, and AOV choices
+share one interpretation before plan compilation.
 If that intent does not name a default camera, rendercli annotates compiled
 scene-rendering passes with the active scene camera id.
 Selector-specific scene intent is preserved by scene JSON, but graph
@@ -195,11 +198,13 @@ the selected kind becomes the default executor in the compiled render graph,
 while the scene and camera stay shared so the preview keeps looking at the same
 thing across the swap. Rasterizer preview shadows and preview FXAA/SMAA are
 graph-visible preview options, so enabling them adds pass nodes to the same
-Render Graph dock used by the preview. FXAA/SMAA apply to the selected preview
-executor; rasterizer preview shadows switch the live preview to Rasterizer
-before recompiling because the shadow pass is raster-specific. When the scene
-intent does not name a default camera, Modeler annotates scene-rendering passes
-with the active scene camera id from the editable scene. `Render -> Preview
+Render Graph dock used by the preview, and clearing them removes those request
+overrides without rewriting the scene file. FXAA/SMAA apply to the selected
+preview executor; rasterizer preview shadows switch the live preview to
+Rasterizer before recompiling because the shadow pass is raster-specific. When
+the scene intent does not name a default camera, Modeler annotates
+scene-rendering passes with the active scene camera id from the editable scene.
+`Render -> Preview
 View` can also switch the live graph preview from beauty to depth, stencil,
 normal, object-id, material-id, or world-position AOVs; the graph recompiles to
 show the corresponding AOV producer and visualization nodes. Raster preview
@@ -327,6 +332,7 @@ scene-structure, and rasterization chapters cover.
 - `tools/rendercli/`
 - `test/rendercli/StepOptionTest.cmake`
 - `test/rendercli/RenderGraphOptionTest.cmake`
+- `include/engine/graph/RenderGraphRequest.h`
 - `src/modeler/`
 - `include/widgets/world/RenderGraphInspectorWidget.h`
 - `include/widgets/world/RenderGraphTracePreviewWidget.h`
