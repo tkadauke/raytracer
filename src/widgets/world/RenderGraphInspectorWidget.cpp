@@ -468,7 +468,7 @@ void RenderGraphInspectorWidget::setPlan(const RenderPlan& plan) {
       p->hasSelection = false;
     p->selectedPassId = p->plan.passes().empty() ? RenderPassId() : p->plan.passes().front().id;
   }
-  if (p->plan.findResource(p->selectedResourceId) == nullptr) {
+  if (!p->plan.hasResource(p->selectedResourceId)) {
     if (p->hasSelection && !p->selectedResourceId.empty())
       p->hasSelection = false;
     p->selectedResourceId.clear();

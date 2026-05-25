@@ -380,6 +380,7 @@ namespace RenderPlanTest {
     plan.addPass(tonemap);
 
     EXPECT_EQ(std::set<RenderPassId>({"raster_beauty", "tonemap"}), plan.passIds());
+    EXPECT_EQ(std::set<RenderResourceId>({"beauty_color", "display_color"}), plan.resourceIds());
     EXPECT_EQ(std::set<RenderPassKind>({RenderPassKind::Beauty, RenderPassKind::Tonemap}),
               plan.passKinds());
     EXPECT_EQ(std::set<RenderExecutorKind>(
@@ -388,10 +389,14 @@ namespace RenderPlanTest {
     EXPECT_EQ(std::set<RenderFeatureKind>({"display", "main", "rasterizer"}), plan.passFeatures());
 
     ASSERT_NE(nullptr, plan.findPass("raster_beauty"));
+    EXPECT_TRUE(plan.hasPass("raster_beauty"));
+    EXPECT_FALSE(plan.hasPass("missing"));
     EXPECT_EQ(RenderPassKind::Beauty, plan.findPass("raster_beauty")->kind);
     EXPECT_EQ(nullptr, plan.findPass("missing"));
 
     ASSERT_NE(nullptr, plan.findResource("display_color"));
+    EXPECT_TRUE(plan.hasResource("display_color"));
+    EXPECT_FALSE(plan.hasResource("missing"));
     EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("display_color")->lifetime);
     EXPECT_EQ(nullptr, plan.findResource("missing"));
 
