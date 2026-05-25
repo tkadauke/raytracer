@@ -2,6 +2,7 @@
 
 #include "core/Buffer.h"
 #include "engine/graph/GraphRenderEngine.h"
+#include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderGraphExecutionObserver.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphCompiler.h"
@@ -519,6 +520,36 @@ namespace GraphRenderEngineTest {
               outputs.front()->toJson().value("cache").toObject().value("status").toString());
   }
 
+  TEST(GraphRenderEngine, RecordsExplicitCacheMetadataInResourceSnapshots) {
+    RenderPlan plan;
+    plan.addResource(colorResource("cache_color", RenderResourceLifetime::PersistentCache, 2, 2));
+
+    RenderPassNode pass;
+    pass.id = "cacheable";
+    pass.kind = RenderPassKind::PostProcess;
+    pass.executor = RenderExecutorKind::PostProcess;
+    pass.writes.push_back({"cache_color"});
+    plan.addPass(pass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+    storage.resource("cache_color")
+      .setCacheMetadata({RenderGraphCacheStatus::Hit, "restored from test cache"});
+
+    RenderGraphExecutionTraceRecorder recorder;
+    const auto session = recorder.begin(plan, "inputs");
+    recorder.passStarted(session, plan.passes().front(), storage);
+    recorder.passCompleted(session, plan.passes().front(), storage);
+    recorder.finish(session);
+
+    auto trace = recorder.lastTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("cache_color");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ("restored from test cache", outputs.front()->cacheMetadata().message());
+  }
+
   TEST(GraphRenderEngine, IgnoresRetiredExecutionTraceSessionEvents) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported, 2, 2));
@@ -929,7 +960,44 @@ namespace GraphRenderEngineTest {
     ASSERT_TRUE(outputs.front()->hasDepthPreview());
     EXPECT_EQ(256, outputs.front()->depthPreview().width());
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
-    EXPECT_EQ(RenderGraphCacheStatus::Uncached, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
+  }
+
+  TEST(GraphRenderEngine, RasterPreviewShadowPassReusesDepthArtifactCache) {
+    auto cam = shadowReceiverCamera();
+    auto scene = directionalShadowScene();
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(cam, scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({48, 48, 1}, intent));
+
+    Buffer<unsigned int> buffer(48, 48);
+    engine.render(buffer);
+    EXPECT_EQ(1u, engine.artifactCache()->size());
+
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("preview_shadow_map");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
+    EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
+
+    cam->setPosition(Vector3d(0.25, 0.0, -5.0));
+    engine.render(buffer);
+
+    trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto movedOutputs = trace->outputSnapshotsForResource("preview_shadow_map");
+    ASSERT_EQ(1u, movedOutputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Stored, movedOutputs.front()->cacheMetadata().status());
+    EXPECT_EQ(2u, engine.artifactCache()->size());
   }
 
   TEST(GraphRenderEngine, LdrRasterPreviewShadowPassDarkensOccludedReceiver) {

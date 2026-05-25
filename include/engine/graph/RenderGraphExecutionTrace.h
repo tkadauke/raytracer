@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Color.h"
+#include "engine/graph/RenderGraphCacheMetadata.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/RenderPlan.h"
 
@@ -23,24 +24,6 @@ namespace engine::graph {
   class RenderGraphExecutionTraceSession;
 
   enum class RenderPassExecutionStatus { Pending, Running, Completed, Failed, Skipped };
-  enum class RenderGraphCacheStatus { NotCacheable, Uncached, Hit, Miss, Stored, Invalidated };
-
-  /**
-    * Cache provenance for one resource snapshot in an execution trace.
-    */
-  class RenderGraphCacheMetadata {
-  public:
-    RenderGraphCacheMetadata(RenderGraphCacheStatus status = RenderGraphCacheStatus::NotCacheable,
-                             std::string message = {});
-
-    RenderGraphCacheStatus status() const;
-    const std::string& message() const;
-    QJsonObject toJson() const;
-
-  private:
-    RenderGraphCacheStatus m_status;
-    std::string m_message;
-  };
 
   /**
     * Snapshot of one render resource as captured during graph execution.
@@ -221,5 +204,4 @@ namespace engine::graph {
   };
 
   const char* toString(RenderPassExecutionStatus value);
-  const char* toString(RenderGraphCacheStatus value);
 }

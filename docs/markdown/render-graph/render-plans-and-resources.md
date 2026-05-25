@@ -518,6 +518,15 @@ are materialized for inspection; raytraced beauty passes write both the HDR
 graph resource and the packed display buffer so the UI can show progressive
 pixels during rendering and trace snapshots afterward.
 
+Persistent resources can also report their cache provenance. The raster preview
+shadow resource is the first concrete example: the shadow pass stores a
+first-cascade directional-light depth artifact when it has to rebuild the map,
+and restores that depth artifact on a later render when the descriptor, pass
+state, camera, scene, and light fingerprint still match. The raster beauty pass
+still builds its full internal shadow-map collection separately, so this cache
+currently explains and accelerates the inspectable graph artifact rather than
+changing the shaded pixels.
+
 The Modeler exposes this through graph selection. Select a pass in the graph or
 in the pass table after a render finishes, and the inspector follows that pass;
 metadata is shown in the property editor while supported input, output, and

@@ -4,6 +4,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
 #include "engine/graph/WireframePassState.h"
@@ -165,14 +166,23 @@ namespace engine::graph {
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
-        if (context.storage().descriptor(write.resource).type != RenderResourceType::ShadowMap) {
+        const auto& descriptor = context.storage().descriptor(write.resource);
+        RenderResource& resource = context.storage().resource(write.resource);
+        if (descriptor.type != RenderResourceType::ShadowMap) {
           throw passError(pass, "preview shadow pass must write a shadow-map resource");
         }
         auto state =
           std::make_shared<RasterShadowPassState>(RasterShadowPassState::valueFromPass(pass));
-        context.storage().resource(write.resource).setState(state);
+        resource.setState(state);
 
         if (!context.storage().hasBuffer(write.resource)) {
+          return;
+        }
+
+        const bool cacheable = descriptor.lifetime == RenderResourceLifetime::PersistentCache;
+        const RenderGraphCacheKey cacheKey = RenderGraphCacheKey::forPassOutput(
+          pass, descriptor, context.graph().executionInputFingerprint());
+        if (cacheable && restoreFromCache(context, write.resource, cacheKey)) {
           return;
         }
 
@@ -186,7 +196,46 @@ namespace engine::graph {
           rasterizer->uncancel();
         }
         context.setActiveEngine(rasterizer);
-        rasterizer->renderFirstDirectionalShadowMap(context.storage().depth(write.resource));
+        Buffer<double>& depth = context.storage().depth(write.resource);
+        if (rasterizer->renderFirstDirectionalShadowMap(depth)) {
+          if (cacheable) {
+            context.graph().artifactCache()->store(std::make_shared<RenderGraphDepthArtifact>(
+              cacheKey, depth, "raster preview directional shadow depth map"));
+            resource.setCacheMetadata(
+              {RenderGraphCacheStatus::Stored,
+               "cache miss; stored raster preview directional shadow depth artifact"});
+          }
+        } else if (cacheable) {
+          resource.setCacheMetadata(
+            {RenderGraphCacheStatus::Uncached,
+             "raster preview shadow pass did not materialize a cacheable depth artifact"});
+        }
+      }
+
+    private:
+      bool restoreFromCache(RenderExecutionContext& context, const RenderResourceId& resourceId,
+                            const RenderGraphCacheKey& cacheKey) const {
+        auto artifact = context.graph().artifactCache()->find(cacheKey);
+        if (!artifact) {
+          return false;
+        }
+
+        auto depthArtifact = std::dynamic_pointer_cast<const RenderGraphDepthArtifact>(artifact);
+        if (!depthArtifact) {
+          context.storage()
+            .resource(resourceId)
+            .setCacheMetadata({RenderGraphCacheStatus::Invalidated,
+                               "cached artifact type did not match the shadow-map depth resource"});
+          return false;
+        }
+
+        depthArtifact->copyTo(context.storage().depth(resourceId));
+        context.storage()
+          .resource(resourceId)
+          .setCacheMetadata(
+            {RenderGraphCacheStatus::Hit,
+             "restored raster preview directional shadow depth artifact from cache"});
+        return true;
       }
     };
 

@@ -2,10 +2,12 @@
 
 #include "core/Buffer.h"
 #include "core/Color.h"
+#include "engine/graph/RenderGraphCacheMetadata.h"
 #include "engine/graph/RenderGraphTypes.h"
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 
 namespace engine::graph {
@@ -50,6 +52,12 @@ namespace engine::graph {
     std::shared_ptr<const RenderPassState> state() const;
 
     /**
+      * Attaches cache provenance for the resource's current contents.
+      */
+    void setCacheMetadata(RenderGraphCacheMetadata metadata);
+    const std::optional<RenderGraphCacheMetadata>& cacheMetadata() const;
+
+    /**
       * @returns true when this resource owns a concrete CPU buffer.
       */
     virtual bool hasBuffer() const;
@@ -83,6 +91,7 @@ namespace engine::graph {
     RenderResourceDescriptor m_descriptor;
     bool m_substituteDefault{false};
     std::shared_ptr<const RenderPassState> m_state;
+    std::optional<RenderGraphCacheMetadata> m_cacheMetadata;
   };
 
   /**

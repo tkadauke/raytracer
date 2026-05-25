@@ -169,6 +169,8 @@ a pass or inspectable color/depth resource in the graph opens the central Graph
 Trace preview tab with input, output, and difference images from the last
 execution when that trace still matches the current plan and preview inputs.
 Resource selections also show trace cache status in the property editor.
+For graph-visible raster preview shadows, that status distinguishes a rebuilt
+depth artifact from one restored from the graph artifact cache.
 
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog

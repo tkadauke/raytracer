@@ -9,6 +9,8 @@
 #include "engine/graph/RenderResourceStorage.h"
 #include "core/math/BoundingBox.h"
 #include "render/cameras/Camera.h"
+#include "render/lights/DirectionalLight.h"
+#include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
 #include "render/tonemap/LinearTonemap.h"
 #include "render/tonemap/Tonemap.h"
@@ -126,6 +128,26 @@ namespace engine::graph {
       return result;
     }
 
+    void writeLightFingerprint(std::ostream& out, const std::shared_ptr<render::Light>& light,
+                               std::size_t index) {
+      const std::string prefix = "light[" + std::to_string(index) + "].";
+      if (!light) {
+        out << prefix << "null=true;";
+        return;
+      }
+
+      out << prefix << "type=" << dynamicTypeName(*light) << ';';
+      writeColorFingerprint(out, (prefix + "radiance").c_str(), light->radiance());
+      if (auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light)) {
+        writeVectorFingerprint(out, (prefix + "direction").c_str(), directional->direction());
+      } else if (auto point = std::dynamic_pointer_cast<render::PointLight>(light)) {
+        writeVectorFingerprint(out, (prefix + "position").c_str(), point->position());
+      } else {
+        writeVectorFingerprint(out, (prefix + "directionAtOrigin").c_str(),
+                               light->direction(Vector3d::null));
+      }
+    }
+
     std::string renderInputFingerprintFor(const GraphRenderEngine& graph) {
       std::ostringstream out;
       out << std::setprecision(17);
@@ -146,6 +168,10 @@ namespace engine::graph {
         writeColorFingerprint(out, "scene.ambient", scene->ambient());
         writeColorFingerprint(out, "scene.background", scene->background());
         writeBoundingBoxFingerprint(out, scene->boundingBox());
+        std::size_t lightIndex = 0;
+        for (const auto& light : scene->lights()) {
+          writeLightFingerprint(out, light, lightIndex++);
+        }
       } else {
         out << "scene=null;";
       }

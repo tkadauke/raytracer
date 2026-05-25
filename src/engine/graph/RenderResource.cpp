@@ -69,6 +69,14 @@ namespace engine::graph {
     return m_state;
   }
 
+  void RenderResource::setCacheMetadata(RenderGraphCacheMetadata metadata) {
+    m_cacheMetadata = std::move(metadata);
+  }
+
+  const std::optional<RenderGraphCacheMetadata>& RenderResource::cacheMetadata() const {
+    return m_cacheMetadata;
+  }
+
   bool RenderResource::hasBuffer() const {
     return false;
   }

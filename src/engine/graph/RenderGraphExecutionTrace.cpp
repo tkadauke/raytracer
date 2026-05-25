@@ -78,6 +78,13 @@ namespace engine::graph {
         RenderGraphCacheStatus::Uncached,
         "persistent cache resource was materialized without a cached artifact payload");
     }
+
+    RenderGraphCacheMetadata cacheMetadataFor(const RenderResource& resource) {
+      if (resource.cacheMetadata()) {
+        return *resource.cacheMetadata();
+      }
+      return cacheMetadataFor(resource.descriptor());
+    }
   }
 
   RenderGraphCacheMetadata::RenderGraphCacheMetadata(RenderGraphCacheStatus status,
@@ -566,18 +573,18 @@ namespace engine::graph {
         resource.descriptor().type == RenderResourceType::ShadowMap) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr,
                                          depthPreviewFor(resource.depth()), "",
-                                         cacheMetadataFor(resource.descriptor()));
+                                         cacheMetadataFor(resource));
     }
 
     if (!resource.colorBacked()) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr, nullptr,
                                          metadataOnlyReason(resource.descriptor()),
-                                         cacheMetadataFor(resource.descriptor()));
+                                         cacheMetadataFor(resource));
     }
 
     return RenderGraphResourceSnapshot(resourceId, resource.descriptor(),
                                        colorPreviewFor(resource.color()), nullptr, "",
-                                       cacheMetadataFor(resource.descriptor()));
+                                       cacheMetadataFor(resource));
   }
 
   std::vector<RenderGraphResourceDiff> RenderGraphExecutionTraceRecorder::diffsFor(

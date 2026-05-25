@@ -6,6 +6,8 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Scene.h"
 
+#include <limits>
+
 namespace RenderGraphArtifactCacheTest {
   using namespace engine::graph;
 
@@ -45,6 +47,23 @@ namespace RenderGraphArtifactCacheTest {
     ASSERT_EQ(artifact, cache.find(key));
     EXPECT_EQ("cached_color", cache.find(key)->descriptor().id);
     EXPECT_EQ("cached color artifact", cache.find(key)->description());
+  }
+
+  TEST(RenderGraphArtifactCache, DepthArtifactOwnsImmutableBufferCopy) {
+    Buffer<double> source(2, 2);
+    source.clear(std::numeric_limits<double>::infinity());
+    source[1][0] = 0.25;
+
+    const auto key =
+      RenderGraphCacheKey::forPassOutput(pass("shadow"), colorResource("depth"), "inputs");
+    RenderGraphDepthArtifact artifact(key, source, "depth artifact");
+    source[1][0] = 0.75;
+
+    Buffer<double> restored(2, 2);
+    artifact.copyTo(restored);
+
+    EXPECT_EQ(0.25, restored[1][0]);
+    EXPECT_EQ("depth artifact", artifact.description());
   }
 
   TEST(RenderGraphArtifactCache, SeparatesInputFingerprintsAndPassState) {

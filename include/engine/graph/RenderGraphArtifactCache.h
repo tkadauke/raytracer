@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Buffer.h"
 #include "engine/graph/RenderGraphTypes.h"
 
 #include <cstddef>
@@ -63,6 +64,21 @@ namespace engine::graph {
   private:
     RenderGraphCacheKey m_key;
     std::string m_description;
+  };
+
+  /**
+    * Immutable cached CPU depth image.
+    */
+  class RenderGraphDepthArtifact : public RenderGraphCachedArtifact {
+  public:
+    RenderGraphDepthArtifact(RenderGraphCacheKey key, const Buffer<double>& depth,
+                             std::string description = {});
+
+    const Buffer<double>& depth() const;
+    void copyTo(Buffer<double>& destination) const;
+
+  private:
+    Buffer<double> m_depth;
   };
 
   /**

@@ -548,20 +548,22 @@ or shadow-setting change. Later slices should refine this into domains such as
 has a coarse scene `changed` flag, so fine-grained invalidation will require
 stable scene/object revision counters or fingerprints.
 
-Shadow maps need one architectural change before caching is meaningful. The
-current `raster_preview_shadows` graph node publishes shadow-map request state,
-but `Rasterizer` still builds the concrete directional/cascade depth maps
-inside raster beauty execution. To cache shadow maps:
+Shadow maps need one remaining architectural change before caching affects the
+beauty image. The current `raster_preview_shadows` graph node publishes
+shadow-map request state and now caches an inspectable first directional-light
+cascade depth artifact, but `Rasterizer` still builds the full concrete
+directional/cascade depth-map collection inside raster beauty execution. To
+finish shadow-map caching:
 
 1. extract the raster shadow-map builder from `Rasterizer` into a graph-usable
    service or payload helper;
 2. introduce a typed `ShadowMapArtifact` resource that owns directional light
    cascades, depth buffers, and sampling/filter metadata;
-3. make the graph shadow pass produce that artifact;
+3. make the graph shadow pass produce the full artifact collection;
 4. make `raster_beauty` consume the artifact instead of triggering an internal
    shadow build;
-5. add cache hit/miss metadata so rendercli and Modeler can explain whether a
-   shadow-map node reused or rebuilt its artifact.
+5. extend cache hit/miss metadata from the current trace-visible first-cascade
+   artifact to the full beauty-consumed shadow-map collection.
 
 One nuance: the current cascaded directional shadow maps are view-camera
 dependent because cascade fitting uses the main camera's visible depth range.
@@ -1336,8 +1338,9 @@ extend the same cache to reflection probes, irradiance caches, photon maps,
 path-guiding data, terrain/volume intermediates, and acceleration data. ✅
 **Partial.** `RenderGraphArtifactCache` now provides the clone-shared,
 thread-safe cache container and typed cache keys; the raster shadow node now
-publishes an inspectable depth artifact, but raster beauty still needs to
-consume cached shadow artifacts before cache hits can affect pixels.
+stores and reuses an inspectable first-cascade depth artifact with trace-visible
+hit/stored metadata, but raster beauty still needs to consume cached full
+shadow-map artifacts before cache hits can affect pixels.
 
 The first implementation may use conservative invalidation. A later refinement
 should add scene/object revision domains so postprocess or tonemap changes do
