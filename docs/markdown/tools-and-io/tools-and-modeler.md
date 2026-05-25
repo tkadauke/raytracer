@@ -80,6 +80,9 @@ overrides the graph intent's default executor, and
 overrides the graph intent's structural view mode. The depth, normal,
 object-id, material-id, and world-position views compile graph-visible AOV
 passes and visualization passes that write the final color image.
+`--render_graph_aov_out depth=depth.png` writes an additional graph AOV preview
+image while preserving the main render output; repeat the option for multiple
+AOV files such as `normal=normal.png` or `world_position=positions.png`.
 `--render_graph_wireframe_overlay` asks the compiler to insert a graph-visible
 wireframe overlay pass between the beauty pass and the tonemap pass.
 For graph renders, `--post_aa fxaa` and `--post_aa smaa` are also

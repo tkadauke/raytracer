@@ -253,7 +253,9 @@ enum class RenderViewMode {
   Wireframe,
   Depth,
   Normal,
-  ObjectId
+  ObjectId,
+  MaterialId,
+  WorldPosition
 };
 
 struct ShadingProfileRef {
@@ -283,8 +285,8 @@ struct RenderIntent {
   bool enableWireframeOverlay = false;
   bool enablePreviewShadows = false;
   RenderPostProcessAA postProcessAA = RenderPostProcessAA::None;
+  std::vector<RenderViewMode> exportedAOVs;
   std::vector<RenderViewOverride> viewOverrides;
-  std::vector<RenderAOV> requestedAOVs;
   RenderGraphOverrides overrides;
 };
 ```
@@ -1403,7 +1405,11 @@ view mode can now compile graph-visible `depth_aov`, `normal_aov`,
 visualization passes, and rendercli accepts `--render_graph_view depth`,
 `--render_graph_view normal`, `--render_graph_view object_id`,
 `--render_graph_view material_id`, and `--render_graph_view world_position`.
-Motion vector and multi-AOV export files remain TODO.
+Render intents now carry an `exportedAOVs` list, the compiler adds requested
+AOV side branches through `RenderAOVDefinition` objects, and rendercli writes
+multiple opt-in AOV preview files with repeated `--render_graph_aov_out
+view=file` options. Motion vector resources remain TODO until graph history
+and previous-frame inputs exist.
 
 ### Parallel scheduler
 

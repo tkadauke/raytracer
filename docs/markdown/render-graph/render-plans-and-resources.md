@@ -79,12 +79,12 @@ Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps
 the block optional: scenes without one use the default raytraced beauty intent,
 while scenes with one preserve the requested executor, view mode, shading
-profile, feature toggles, raster postprocess AA request, camera reference, and
-per-selector overrides. Tools then layer temporary choices over that saved
-intent. For example, rendercli uses the scene intent as the graph compiler
-input, but `--render_graph_executor`, `--render_graph_view`,
-`--render_graph_wireframe_overlay`, and `--post_aa` can still override the
-effective command-line render.
+profile, feature toggles, raster postprocess AA request, requested exported
+AOVs, camera reference, and per-selector overrides. Tools then layer temporary
+choices over that saved intent. For example, rendercli uses the scene intent as
+the graph compiler input, but `--render_graph_executor`, `--render_graph_view`,
+`--render_graph_aov_out`, `--render_graph_wireframe_overlay`, and `--post_aa`
+can still override the effective command-line render.
 
 ## <a id="resources-are-descriptors-not-buffers"></a>Resources are descriptors, not buffers
 A render resource is declared with `RenderResourceDescriptor`:
@@ -283,10 +283,18 @@ Before compilation, `rendercli` can also override the default graph intent:
 `object_id`, `material_id`, and `world_position` views compile real
 resource-producing AOV nodes followed by visualization passes, so the exported
 plan and the Modeler inspector can show AOVs as graph resources rather than
-hiding them inside a direct engine. `--render_graph_wireframe_overlay` adds an
-overlay pass between the primary beauty pass and the tonemap pass.
+hiding them inside a direct engine. `--render_graph_aov_out view=file` requests
+additional AOV side branches, such as a beauty render that also writes depth
+and normal preview images. `--render_graph_wireframe_overlay` adds an overlay
+pass between the primary beauty pass and the tonemap pass.
 Selector-specific overrides will matter once compilation can produce
 multi-selection plans.
+
+The AOV vocabulary is owned by
+[`RenderAOVDefinition`](../../../include/engine/graph/RenderAOV.h) objects.
+Those objects provide the feature name, resource id, display label, and resource
+descriptor for each supported AOV, so planner code can ask an AOV what it needs
+instead of switching on the view-mode enum.
 
 The compiler's default plan reads textually as:
 

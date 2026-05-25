@@ -258,6 +258,43 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, AddsRequestedAOVExportsAsSideBranches) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal, RenderViewMode::Depth};
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_NE(nullptr, plan.findResource("depth_aov"));
+    EXPECT_EQ(RenderResourceType::Depth, plan.findResource("depth_aov")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("depth_aov")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("depth_aov_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("depth_aov_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("depth_aov_color")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("normal_aov"));
+    EXPECT_EQ(RenderResourceType::Normal, plan.findResource("normal_aov")->type);
+    ASSERT_NE(nullptr, plan.findResource("normal_aov_color"));
+
+    const auto* depthPass = plan.findPass("depth_aov");
+    ASSERT_NE(nullptr, depthPass);
+    EXPECT_TRUE(hasFeature(*depthPass, "export"));
+    EXPECT_EQ(RenderExecutorKind::Raytracer, depthPass->executor);
+    ASSERT_EQ(1u, depthPass->writes.size());
+    EXPECT_EQ("depth_aov", depthPass->writes.front().resource);
+
+    const auto* visualizeDepth = plan.findPass("visualize_depth_aov");
+    ASSERT_NE(nullptr, visualizeDepth);
+    EXPECT_TRUE(hasFeature(*visualizeDepth, "visualization"));
+    ASSERT_EQ(1u, visualizeDepth->reads.size());
+    ASSERT_EQ(1u, visualizeDepth->writes.size());
+    EXPECT_EQ("depth_aov", visualizeDepth->reads.front().resource);
+    EXPECT_EQ("depth_aov_color", visualizeDepth->writes.front().resource);
+
+    ASSERT_EQ(1u, plan.consumersOf("depth_aov").size());
+    EXPECT_EQ("visualize_depth_aov", plan.consumersOf("depth_aov").front()->id);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

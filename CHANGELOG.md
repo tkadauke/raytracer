@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph multi-AOV output files.** Render intents can request exported AOV side
+  branches and rendercli can write repeated `--render_graph_aov_out view=file`
+  preview images without enabling traces for ordinary graph renders. — GPT-5
 - **Graph world-position AOV view.** `--render_graph_view world_position` now
   compiles a graph-visible `world_position_aov` resource containing raw world
   coordinates plus a normalized visualization pass for display. — GPT-5

@@ -244,6 +244,10 @@ namespace engine::graph {
                                  const std::shared_ptr<render::Tonemap>& displayTonemap) {
       const auto& output = plan.exportedColorResource();
       for (const auto& write : pass.writes) {
+        if (!plan.resourceCanReach(write.resource, output.id)) {
+          continue;
+        }
+
         RenderResource& resource = storage.resource(write.resource);
         if (!resource.colorBacked()) {
           continue;

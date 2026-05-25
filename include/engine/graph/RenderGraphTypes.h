@@ -212,6 +212,8 @@ namespace engine::graph {
     bool enablePreviewShadows{false};
     /// Requests raster post-process anti-aliasing for graph compilation.
     RenderPostProcessAA postProcessAA{RenderPostProcessAA::None};
+    /// Additional graph-visible AOVs requested as side outputs.
+    std::vector<RenderViewMode> exportedAOVs;
     std::vector<RenderViewOverride> viewOverrides;
 
     /**

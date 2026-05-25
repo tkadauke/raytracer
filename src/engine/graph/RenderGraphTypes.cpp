@@ -195,6 +195,13 @@ namespace engine::graph {
       return array;
     }
 
+    QJsonArray viewModeArray(const std::vector<RenderViewMode>& values) {
+      QJsonArray array;
+      for (const auto& value : values)
+        array.append(toString(value));
+      return array;
+    }
+
     QJsonArray readArray(const std::vector<ResourceRead>& reads) {
       QJsonArray array;
       for (const auto& read : reads)
@@ -224,6 +231,26 @@ namespace engine::graph {
         if (!array.at(i).isString())
           jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
         result.push_back(array.at(i).toString().toStdString());
+      }
+      return result;
+    }
+
+    std::vector<RenderViewMode> viewModeArrayFromJson(const QJsonObject& object, const char* key,
+                                                      const std::string& path) {
+      std::vector<RenderViewMode> result;
+      const auto value = object.value(key);
+      if (value.isUndefined())
+        return result;
+      if (!value.isArray())
+        jsonError(path + "." + key, "expected array");
+
+      const auto array = value.toArray();
+      result.reserve(static_cast<std::size_t>(array.size()));
+      for (int i = 0; i < array.size(); ++i) {
+        if (!array.at(i).isString())
+          jsonError(path + "." + key + "[" + std::to_string(i) + "]", "expected string");
+        result.push_back(viewModeFromJson(array.at(i).toString().toStdString(),
+                                          path + "." + key + "[" + std::to_string(i) + "]"));
       }
       return result;
     }
@@ -619,6 +646,9 @@ namespace engine::graph {
     result["enableWireframeOverlay"] = enableWireframeOverlay;
     result["enablePreviewShadows"] = enablePreviewShadows;
     result["postProcessAA"] = toString(postProcessAA);
+    if (!exportedAOVs.empty()) {
+      result["exportedAOVs"] = viewModeArray(exportedAOVs);
+    }
 
     if (!viewOverrides.empty()) {
       QJsonArray overrides;
@@ -654,6 +684,7 @@ namespace engine::graph {
     intent.postProcessAA = postProcessAAFromJson(
       stringField(object, "postProcessAA", "renderIntent", toString(intent.postProcessAA)),
       "renderIntent.postProcessAA");
+    intent.exportedAOVs = viewModeArrayFromJson(object, "exportedAOVs", "renderIntent");
 
     const auto overridesValue = object.value("viewOverrides");
     if (!overridesValue.isUndefined()) {

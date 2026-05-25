@@ -1,9 +1,11 @@
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/RenderAOV.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
 
 #include <algorithm>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -90,86 +92,6 @@ namespace engine::graph {
       return shadow;
     }
 
-    RenderResourceDescriptor depthResource(const std::string& id, const std::string& name,
-                                           const RenderTargetSpec& target,
-                                           RenderResourceLifetime lifetime) {
-      RenderResourceDescriptor depth;
-      depth.id = id;
-      depth.name = name;
-      depth.type = RenderResourceType::Depth;
-      depth.format = RenderResourceFormat::DepthDouble;
-      depth.width = target.width;
-      depth.height = target.height;
-      depth.sampleCount = 1;
-      depth.domain = RenderResourceDomain::CPU;
-      depth.lifetime = lifetime;
-      return depth;
-    }
-
-    RenderResourceDescriptor normalResource(const std::string& id, const std::string& name,
-                                            const RenderTargetSpec& target,
-                                            RenderResourceLifetime lifetime) {
-      RenderResourceDescriptor normal;
-      normal.id = id;
-      normal.name = name;
-      normal.type = RenderResourceType::Normal;
-      normal.format = RenderResourceFormat::RGBDouble;
-      normal.width = target.width;
-      normal.height = target.height;
-      normal.sampleCount = 1;
-      normal.domain = RenderResourceDomain::CPU;
-      normal.lifetime = lifetime;
-      return normal;
-    }
-
-    RenderResourceDescriptor objectIdResource(const std::string& id, const std::string& name,
-                                              const RenderTargetSpec& target,
-                                              RenderResourceLifetime lifetime) {
-      RenderResourceDescriptor objectId;
-      objectId.id = id;
-      objectId.name = name;
-      objectId.type = RenderResourceType::ObjectId;
-      objectId.format = RenderResourceFormat::UInt32;
-      objectId.width = target.width;
-      objectId.height = target.height;
-      objectId.sampleCount = 1;
-      objectId.domain = RenderResourceDomain::CPU;
-      objectId.lifetime = lifetime;
-      return objectId;
-    }
-
-    RenderResourceDescriptor materialIdResource(const std::string& id, const std::string& name,
-                                                const RenderTargetSpec& target,
-                                                RenderResourceLifetime lifetime) {
-      RenderResourceDescriptor materialId;
-      materialId.id = id;
-      materialId.name = name;
-      materialId.type = RenderResourceType::MaterialId;
-      materialId.format = RenderResourceFormat::UInt32;
-      materialId.width = target.width;
-      materialId.height = target.height;
-      materialId.sampleCount = 1;
-      materialId.domain = RenderResourceDomain::CPU;
-      materialId.lifetime = lifetime;
-      return materialId;
-    }
-
-    RenderResourceDescriptor worldPositionResource(const std::string& id, const std::string& name,
-                                                   const RenderTargetSpec& target,
-                                                   RenderResourceLifetime lifetime) {
-      RenderResourceDescriptor worldPosition;
-      worldPosition.id = id;
-      worldPosition.name = name;
-      worldPosition.type = RenderResourceType::WorldPosition;
-      worldPosition.format = RenderResourceFormat::RGBDouble;
-      worldPosition.width = target.width;
-      worldPosition.height = target.height;
-      worldPosition.sampleCount = 1;
-      worldPosition.domain = RenderResourceDomain::CPU;
-      worldPosition.lifetime = lifetime;
-      return worldPosition;
-    }
-
     std::string postProcessAAPassId(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
@@ -217,171 +139,91 @@ namespace engine::graph {
       return tonemap->singleRead().resource;
     }
 
-    RenderPlan depthAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
+    RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
+                                   bool mainPass) {
+      RenderPassNode pass;
+      pass.id = aov.resourceId();
+      pass.name = aov.title() + " AOV";
+      pass.kind = RenderPassKind::AOV;
+      pass.executor = executor;
+      pass.features = mainPass ? std::vector<RenderFeatureKind>{"main", "aov", aov.feature(),
+                                                                executorFeature(executor)}
+                               : std::vector<RenderFeatureKind>{"aov", "export", aov.feature(),
+                                                                executorFeature(executor)};
+      pass.sceneView.selector = SceneSelector::all();
+      pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      pass.canRunConcurrently = false;
+      return pass;
+    }
+
+    RenderPassNode aovVisualizationPass(const RenderAOVDefinition& aov,
+                                        const RenderResourceId& inputResource,
+                                        const RenderResourceId& outputResource, bool mainPass) {
+      RenderPassNode pass;
+      pass.id = "visualize_" + aov.resourceId();
+      pass.name = "Visualize " + aov.title() + " AOV";
+      pass.kind = RenderPassKind::AOV;
+      pass.executor = RenderExecutorKind::PostProcess;
+      pass.features = mainPass ? std::vector<RenderFeatureKind>{"main", "aov", aov.feature(),
+                                                                "visualization", "postprocess"}
+                               : std::vector<RenderFeatureKind>{"aov", "export", aov.feature(),
+                                                                "visualization", "postprocess"};
+      pass.reads.push_back({inputResource});
+      pass.writes.push_back({outputResource});
+      pass.sceneView.selector = SceneSelector::all();
+      pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      pass.canRunConcurrently = false;
+      return pass;
+    }
+
+    RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
+                           const RenderAOVDefinition& aov) {
       RenderPlan plan;
 
-      RenderPassNode depth;
-      depth.id = "depth_aov";
-      depth.name = "Depth AOV";
-      depth.kind = RenderPassKind::AOV;
-      depth.executor = executor;
-      depth.features = {"main", "aov", "depth", executorFeature(executor)};
-      depth.sceneView.selector = SceneSelector::all();
-      depth.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      depth.canRunConcurrently = false;
-      plan.addResourceProducer(
-        depth, depthResource("depth_aov", "Depth AOV", target, RenderResourceLifetime::Transient));
+      const RenderResourceId aovId = aov.resourceId();
+      plan.addResourceProducer(aovProducerPass(aov, executor, true),
+                               aov.resourceDescriptor(target, RenderResourceLifetime::Transient));
 
-      RenderPassNode visualize;
-      visualize.id = "visualize_depth_aov";
-      visualize.name = "Visualize depth AOV";
-      visualize.kind = RenderPassKind::AOV;
-      visualize.executor = RenderExecutorKind::PostProcess;
-      visualize.features = {"main", "aov", "depth", "visualization", "postprocess"};
-      visualize.reads.push_back({"depth_aov"});
-      visualize.writes.push_back({"main_color"});
-      visualize.sceneView.selector = SceneSelector::all();
-      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      visualize.canRunConcurrently = false;
       RenderResourceDescriptor mainColor =
         colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-      plan.routeResourceThroughPass("depth_aov", mainColor, visualize);
-
+      plan.routeResourceThroughPass(aovId, mainColor,
+                                    aovVisualizationPass(aov, aovId, mainColor.id, true));
       return plan;
     }
 
-    RenderPlan normalAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
-      RenderPlan plan;
+    void addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
+                               RenderExecutorKind executor, RenderViewMode viewMode,
+                               RenderViewMode defaultViewMode) {
+      const auto* aov = renderAOVDefinition(viewMode);
+      if (!aov) {
+        throw std::runtime_error("view mode '" + std::string(toString(viewMode)) +
+                                 "' is not an AOV export");
+      }
 
-      RenderPassNode normal;
-      normal.id = "normal_aov";
-      normal.name = "Normal AOV";
-      normal.kind = RenderPassKind::AOV;
-      normal.executor = executor;
-      normal.features = {"main", "aov", "normal", executorFeature(executor)};
-      normal.sceneView.selector = SceneSelector::all();
-      normal.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      normal.canRunConcurrently = false;
-      plan.addResourceProducer(normal, normalResource("normal_aov", "Normal AOV", target,
-                                                      RenderResourceLifetime::Transient));
+      if (viewMode == defaultViewMode || plan.findResource(aov->resourceId()) ||
+          plan.findResource(aov->previewColorResourceId())) {
+        return;
+      }
 
-      RenderPassNode visualize;
-      visualize.id = "visualize_normal_aov";
-      visualize.name = "Visualize normal AOV";
-      visualize.kind = RenderPassKind::AOV;
-      visualize.executor = RenderExecutorKind::PostProcess;
-      visualize.features = {"main", "aov", "normal", "visualization", "postprocess"};
-      visualize.reads.push_back({"normal_aov"});
-      visualize.writes.push_back({"main_color"});
-      visualize.sceneView.selector = SceneSelector::all();
-      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      visualize.canRunConcurrently = false;
-      RenderResourceDescriptor mainColor =
-        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-      plan.routeResourceThroughPass("normal_aov", mainColor, visualize);
-
-      return plan;
+      const RenderResourceId aovId = aov->resourceId();
+      const RenderResourceId previewId = aov->previewColorResourceId();
+      plan.addResourceProducer(aovProducerPass(*aov, executor, false),
+                               aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
+      plan.routeResourceThroughPass(aovId,
+                                    colorResource(previewId, aov->title() + " AOV preview", target,
+                                                  RenderResourceLifetime::Exported),
+                                    aovVisualizationPass(*aov, aovId, previewId, false));
     }
 
-    RenderPlan objectIdAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
-      RenderPlan plan;
-
-      RenderPassNode objectId;
-      objectId.id = "object_id_aov";
-      objectId.name = "Object ID AOV";
-      objectId.kind = RenderPassKind::AOV;
-      objectId.executor = executor;
-      objectId.features = {"main", "aov", "object_id", executorFeature(executor)};
-      objectId.sceneView.selector = SceneSelector::all();
-      objectId.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      objectId.canRunConcurrently = false;
-      plan.addResourceProducer(objectId, objectIdResource("object_id_aov", "Object ID AOV", target,
-                                                          RenderResourceLifetime::Transient));
-
-      RenderPassNode visualize;
-      visualize.id = "visualize_object_id_aov";
-      visualize.name = "Visualize object ID AOV";
-      visualize.kind = RenderPassKind::AOV;
-      visualize.executor = RenderExecutorKind::PostProcess;
-      visualize.features = {"main", "aov", "object_id", "visualization", "postprocess"};
-      visualize.reads.push_back({"object_id_aov"});
-      visualize.writes.push_back({"main_color"});
-      visualize.sceneView.selector = SceneSelector::all();
-      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      visualize.canRunConcurrently = false;
-      RenderResourceDescriptor mainColor =
-        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-      plan.routeResourceThroughPass("object_id_aov", mainColor, visualize);
-
-      return plan;
-    }
-
-    RenderPlan materialIdAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
-      RenderPlan plan;
-
-      RenderPassNode materialId;
-      materialId.id = "material_id_aov";
-      materialId.name = "Material ID AOV";
-      materialId.kind = RenderPassKind::AOV;
-      materialId.executor = executor;
-      materialId.features = {"main", "aov", "material_id", executorFeature(executor)};
-      materialId.sceneView.selector = SceneSelector::all();
-      materialId.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      materialId.canRunConcurrently = false;
-      plan.addResourceProducer(materialId,
-                               materialIdResource("material_id_aov", "Material ID AOV", target,
-                                                  RenderResourceLifetime::Transient));
-
-      RenderPassNode visualize;
-      visualize.id = "visualize_material_id_aov";
-      visualize.name = "Visualize material ID AOV";
-      visualize.kind = RenderPassKind::AOV;
-      visualize.executor = RenderExecutorKind::PostProcess;
-      visualize.features = {"main", "aov", "material_id", "visualization", "postprocess"};
-      visualize.reads.push_back({"material_id_aov"});
-      visualize.writes.push_back({"main_color"});
-      visualize.sceneView.selector = SceneSelector::all();
-      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      visualize.canRunConcurrently = false;
-      RenderResourceDescriptor mainColor =
-        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-      plan.routeResourceThroughPass("material_id_aov", mainColor, visualize);
-
-      return plan;
-    }
-
-    RenderPlan worldPositionAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
-      RenderPlan plan;
-
-      RenderPassNode worldPosition;
-      worldPosition.id = "world_position_aov";
-      worldPosition.name = "World position AOV";
-      worldPosition.kind = RenderPassKind::AOV;
-      worldPosition.executor = executor;
-      worldPosition.features = {"main", "aov", "world_position", executorFeature(executor)};
-      worldPosition.sceneView.selector = SceneSelector::all();
-      worldPosition.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      worldPosition.canRunConcurrently = false;
-      plan.addResourceProducer(worldPosition,
-                               worldPositionResource("world_position_aov", "World position AOV",
-                                                     target, RenderResourceLifetime::Transient));
-
-      RenderPassNode visualize;
-      visualize.id = "visualize_world_position_aov";
-      visualize.name = "Visualize world position AOV";
-      visualize.kind = RenderPassKind::AOV;
-      visualize.executor = RenderExecutorKind::PostProcess;
-      visualize.features = {"main", "aov", "world_position", "visualization", "postprocess"};
-      visualize.reads.push_back({"world_position_aov"});
-      visualize.writes.push_back({"main_color"});
-      visualize.sceneView.selector = SceneSelector::all();
-      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
-      visualize.canRunConcurrently = false;
-      RenderResourceDescriptor mainColor =
-        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
-      plan.routeResourceThroughPass("world_position_aov", mainColor, visualize);
-
-      return plan;
+    void addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
+                                RenderExecutorKind executor, const RenderIntent& intent) {
+      std::set<RenderViewMode> seen;
+      for (RenderViewMode viewMode : intent.exportedAOVs) {
+        if (!seen.insert(viewMode).second) {
+          continue;
+        }
+        addAuxiliaryAOVExport(plan, target, executor, viewMode, intent.defaultViewMode);
+      }
     }
   }
 
@@ -390,20 +232,10 @@ namespace engine::graph {
     const RenderTargetSpec target = normalizedTarget(rawTarget);
     const RenderExecutorKind executor = intent.defaultExecutorKind();
 
-    if (intent.defaultViewMode == RenderViewMode::Depth) {
-      return depthAOVPlan(target, executor);
-    }
-    if (intent.defaultViewMode == RenderViewMode::Normal) {
-      return normalAOVPlan(target, executor);
-    }
-    if (intent.defaultViewMode == RenderViewMode::ObjectId) {
-      return objectIdAOVPlan(target, executor);
-    }
-    if (intent.defaultViewMode == RenderViewMode::MaterialId) {
-      return materialIdAOVPlan(target, executor);
-    }
-    if (intent.defaultViewMode == RenderViewMode::WorldPosition) {
-      return worldPositionAOVPlan(target, executor);
+    if (const auto* aov = renderAOVDefinition(intent.defaultViewMode)) {
+      RenderPlan plan = aovViewPlan(target, executor, *aov);
+      addAuxiliaryAOVExports(plan, target, executor, intent);
+      return plan;
     }
 
     RenderPlan plan;
@@ -495,6 +327,8 @@ namespace engine::graph {
       overlay.canRunConcurrently = false;
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
     }
+
+    addAuxiliaryAOVExports(plan, target, executor, intent);
 
     return plan;
   }

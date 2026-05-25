@@ -38,6 +38,9 @@ set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(graph_trace "${TEST_OUTPUT_DIR}/graph-trace.json")
 set(graph_trace_render "${TEST_OUTPUT_DIR}/graph-trace-render.png")
+set(graph_aov_render "${TEST_OUTPUT_DIR}/graph-aov-render.png")
+set(graph_aov_depth "${TEST_OUTPUT_DIR}/graph-aov-depth.png")
+set(graph_aov_normal "${TEST_OUTPUT_DIR}/graph-aov-normal.png")
 set(raster_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadow-trace.json")
 set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
@@ -487,6 +490,33 @@ rendercli_run(
 )
 rendercli_assert_nonempty("${world_position_view_render}"
                           NAME "world position AOV graph render output")
+
+rendercli_run(
+  NAME "rendercli writes multiple graph AOV output images"
+  COMMAND
+    "${RENDERCLI}" --render_graph_aov_out "depth=${graph_aov_depth}"
+    --render_graph_aov_out "normal=${graph_aov_normal}" --width 32 --height 24
+    "${static_scene}" "${graph_aov_render}"
+)
+rendercli_assert_nonempty("${graph_aov_render}" NAME "multi AOV graph main render output")
+rendercli_assert_nonempty("${graph_aov_depth}" NAME "multi AOV graph depth output")
+rendercli_assert_nonempty("${graph_aov_normal}" NAME "multi AOV graph normal output")
+
+rendercli_expect_failure(
+  NAME "rendercli rejects invalid graph AOV output view"
+  STDERR_MATCHES "Render graph AOV output view must be"
+  COMMAND
+    "${RENDERCLI}" --render_graph_aov_out "beauty=${invalid_plan}"
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects graph-only AOV output"
+  STDERR_MATCHES "Cannot combine --render_graph_only with --render_graph_aov_out"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_aov_out "depth=${invalid_plan}"
+    "${static_scene}" "${invalid_plan}"
+)
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid disabled pass kind"

@@ -29,6 +29,8 @@
 
 #include "core/Buffer.h"
 
+#include "engine/graph/RenderAOV.h"
+
 #include <QThread>
 
 #include <algorithm>
@@ -347,6 +349,35 @@ namespace {
     return true;
   }
 
+  struct RenderGraphAOVOutput {
+    engine::graph::RenderViewMode viewMode;
+    QString output;
+  };
+
+  bool parseRenderGraphAOVOutput(const QString& value, RenderGraphAOVOutput* output,
+                                 QString* errorMessage) {
+    const int separator = value.indexOf('=');
+    if (separator <= 0 || separator == value.size() - 1) {
+      *errorMessage =
+        "Render graph AOV output must use view=file syntax with view 'depth', 'normal', "
+        "'object_id', 'material_id', or 'world_position'";
+      return false;
+    }
+
+    const auto* aov = engine::graph::renderAOVDefinitionForName(
+      normalizedRasterOption(value.left(separator)).toStdString());
+    if (!aov) {
+      *errorMessage =
+        "Render graph AOV output view must be 'depth', 'normal', 'object_id', 'material_id', "
+        "or 'world_position'";
+      return false;
+    }
+
+    output->viewMode = aov->viewMode();
+    output->output = value.mid(separator + 1);
+    return true;
+  }
+
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
     std::set<std::string> materialTypes;
     scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
@@ -398,6 +429,7 @@ public:
   CommandLineParseResult parseCommandLine(QString* errorMessage);
   std::shared_ptr<render::Sampler> sampler() const;
   QImage bufferToImage(const Buffer<unsigned int>& buffer) const;
+  QImage colorBufferToImage(const Buffer<Colord>& buffer) const;
 
   QCommandLineParser parser;
 
@@ -426,6 +458,7 @@ private:
   QString m_renderGraphOut;
   QString m_renderGraphIn;
   QString m_renderGraphTraceOut;
+  std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
   bool m_renderGraphExecutorSet;
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
@@ -493,6 +526,8 @@ private:
   void writeRenderGraphPlan(const engine::graph::RenderPlan& plan, const QString& output) const;
   void writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTrace& trace,
                              const QString& output) const;
+  void writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
+                                  const engine::graph::RenderIntent& intent) const;
   QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
   static bool hasFramePlaceholder(const QString& pattern, QString* errorMessage);
@@ -520,6 +555,7 @@ Renderer::Renderer()
       m_renderGraphOut(),
       m_renderGraphIn(),
       m_renderGraphTraceOut(),
+      m_renderGraphAOVOutputs(),
       m_renderGraphExecutorSet(false),
       m_renderGraphExecutor(engine::graph::RenderExecutorPreference::Raytracer),
       m_renderGraphViewModeSet(false),
@@ -603,6 +639,12 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
   }
   if (m_rasterPostProcessAASet) {
     intent.postProcessAA = commandLinePostProcessAA();
+  }
+  for (const auto& aovOutput : m_renderGraphAOVOutputs) {
+    if (std::find(intent.exportedAOVs.begin(), intent.exportedAOVs.end(), aovOutput.viewMode) ==
+        intent.exportedAOVs.end()) {
+      intent.exportedAOVs.push_back(aovOutput.viewMode);
+    }
   }
   return intent;
 }
@@ -838,6 +880,36 @@ void Renderer::writeRenderGraphTrace(const engine::graph::RenderGraphExecutionTr
   }
 }
 
+void Renderer::writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
+                                          const engine::graph::RenderIntent& intent) const {
+  for (const auto& aovOutput : m_renderGraphAOVOutputs) {
+    const auto* aov = engine::graph::renderAOVDefinition(aovOutput.viewMode);
+    if (!aov) {
+      throw std::runtime_error("Render graph AOV output view is not supported");
+    }
+    const std::string resourceId =
+      aovOutput.viewMode == intent.defaultViewMode ? "main_color" : aov->previewColorResourceId();
+    const auto snapshots = trace.outputSnapshotsForResource(resourceId);
+    if (snapshots.empty()) {
+      throw std::runtime_error("Render graph AOV output resource '" + resourceId +
+                               "' was not written");
+    }
+
+    const auto* snapshot = snapshots.back();
+    if (!snapshot->hasColorPreview()) {
+      throw std::runtime_error("Render graph AOV output resource '" + resourceId +
+                               "' has no color preview");
+    }
+
+    const QImage image = colorBufferToImage(snapshot->colorPreview());
+    if (!image.save(aovOutput.output)) {
+      throw std::runtime_error(QString("Unable to write render graph AOV output image: %1")
+                                 .arg(aovOutput.output)
+                                 .toStdString());
+    }
+  }
+}
+
 QString Renderer::renderGraphOutputPath() const {
   if (!m_renderGraphOut.isEmpty()) {
     return m_renderGraphOut;
@@ -892,7 +964,8 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
                     : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
     graphEngine->setIntent(renderIntent(scene));
     graphEngine->setPlan(graphPlan);
-    graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty());
+    graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||
+                                          !m_renderGraphAOVOutputs.empty());
     engine = graphEngine;
   } else if (m_engine == "wireframe") {
     auto wireframe = std::make_shared<engine::wireframe::Wireframe>(raytracerScene);
@@ -945,15 +1018,20 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     printTimings(timings);
   }
 
-  if (!m_renderGraphTraceOut.isEmpty()) {
+  if (!m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty()) {
     if (!graphEngine) {
-      throw std::runtime_error("--render_graph_trace_out requires graph rendering");
+      throw std::runtime_error("render graph execution outputs require graph rendering");
     }
     auto trace = graphEngine->lastExecutionTrace();
     if (!trace) {
       throw std::runtime_error("Render graph trace was not recorded");
     }
-    writeRenderGraphTrace(*trace, m_renderGraphTraceOut);
+    if (!m_renderGraphTraceOut.isEmpty()) {
+      writeRenderGraphTrace(*trace, m_renderGraphTraceOut);
+    }
+    if (!m_renderGraphAOVOutputs.empty()) {
+      writeRenderGraphAOVOutputs(*trace, renderIntent(scene));
+    }
   }
 
   QImage image = bufferToImage(buffer);
@@ -1106,6 +1184,18 @@ QImage Renderer::bufferToImage(const Buffer<unsigned int>& buffer) const {
   return image;
 }
 
+QImage Renderer::colorBufferToImage(const Buffer<Colord>& buffer) const {
+  QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
+
+  for (int i = 0; i != buffer.width(); ++i) {
+    for (int j = 0; j != buffer.height(); ++j) {
+      image.setPixel(i, j, buffer[j][i].rgb());
+    }
+  }
+
+  return image;
+}
+
 Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessage) {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
@@ -1131,6 +1221,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_out", "Write the compiled render graph to a file", "file"},
      {"render_graph_in", "Load a JSON render graph plan instead of compiling one", "file"},
      {"render_graph_trace_out", "Write the executed render graph trace to a JSON file", "file"},
+     {"render_graph_aov_out",
+      "Write an executed graph AOV preview image; repeat with view=file for multiple AOVs",
+      "view=file"},
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view",
@@ -1315,6 +1408,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_trace_out")) {
     m_renderGraph = true;
     m_renderGraphTraceOut = parser.value("render_graph_trace_out");
+  }
+
+  if (parser.isSet("render_graph_aov_out")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_aov_out")) {
+      RenderGraphAOVOutput output;
+      if (!parseRenderGraphAOVOutput(value, &output, errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphAOVOutputs.push_back(output);
+    }
   }
 
   if (parser.isSet("render_graph_executor")) {
@@ -1679,6 +1783,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && !m_renderGraphAOVOutputs.empty()) {
+    *errorMessage = "Cannot combine --animation with --render_graph_aov_out";
+    return CommandLineError;
+  }
+
   if (m_renderGraphOnly && m_repeat > 1) {
     *errorMessage = "Cannot combine --render_graph_only with --repeat";
     return CommandLineError;
@@ -1689,13 +1798,19 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_renderGraphOnly && !m_renderGraphAOVOutputs.empty()) {
+    *errorMessage = "Cannot combine --render_graph_only with --render_graph_aov_out";
+    return CommandLineError;
+  }
+
   if (m_directEngine &&
       (parser.isSet("render_graph") || m_renderGraphOnly || parser.isSet("render_graph_format") ||
        !m_renderGraphOut.isEmpty() || !m_renderGraphIn.isEmpty() ||
-       !m_renderGraphTraceOut.isEmpty() || parser.isSet("render_graph_executor") ||
-       parser.isSet("render_graph_view") || m_renderGraphWireframeOverlay ||
-       parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
-       parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
+       !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
+       parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
+       m_renderGraphWireframeOverlay || parser.isSet("disable_pass") ||
+       parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
+       parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

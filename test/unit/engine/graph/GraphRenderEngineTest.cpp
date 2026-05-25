@@ -434,6 +434,35 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, ExecutesRequestedAOVSideOutputsWhenTraceIsEnabled) {
+    RenderIntent intent;
+    intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal};
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    ASSERT_NE(nullptr, engine.lastPlan().findResource("depth_aov_color"));
+    ASSERT_NE(nullptr, engine.lastPlan().findResource("normal_aov_color"));
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto depthOutputs = trace->outputSnapshotsForResource("depth_aov_color");
+    ASSERT_EQ(1u, depthOutputs.size());
+    ASSERT_TRUE(depthOutputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(depthOutputs.front()->colorPreview()), 0);
+
+    const auto normalOutputs = trace->outputSnapshotsForResource("normal_aov_color");
+    ASSERT_EQ(1u, normalOutputs.size());
+    ASSERT_TRUE(normalOutputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(normalOutputs.front()->colorPreview()), 0);
+  }
+
   TEST(GraphRenderEngine, NotifiesObserverAroundLdrPassExecution) {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;

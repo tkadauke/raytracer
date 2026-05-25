@@ -203,6 +203,35 @@ namespace engine::graph {
     return result;
   }
 
+  bool RenderPlan::resourceCanReach(const RenderResourceId& source,
+                                    const RenderResourceId& destination) const {
+    std::vector<RenderResourceId> pending{source};
+    std::set<RenderResourceId> visitedResources;
+    std::set<RenderPassId> visitedPasses;
+
+    while (!pending.empty()) {
+      const RenderResourceId current = pending.back();
+      pending.pop_back();
+      if (current == destination) {
+        return true;
+      }
+      if (!visitedResources.insert(current).second) {
+        continue;
+      }
+
+      for (const RenderPassNode* consumer : consumersOf(current)) {
+        if (!consumer || !visitedPasses.insert(consumer->id).second) {
+          continue;
+        }
+        for (const auto& write : consumer->writes) {
+          pending.push_back(write.resource);
+        }
+      }
+    }
+
+    return false;
+  }
+
   std::vector<RenderPassDependency> RenderPlan::dependencies() const {
     std::map<RenderResourceId, const RenderPassNode*> producerByResource;
     for (const auto& pass : m_passes) {

@@ -240,6 +240,35 @@ namespace RenderPlanTest {
     EXPECT_EQ("final", order[2]->id);
   }
 
+  TEST(RenderPlan, ReportsWhetherAResourceCanReachAnotherResourceThroughPassEdges) {
+    RenderPlan plan;
+    plan.addResource(colorResource("source"));
+    plan.addResource(colorResource("mid"));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+    plan.addResource(colorResource("side_color", RenderResourceLifetime::Exported));
+
+    auto first = pass("first", RenderPassKind::PostProcess);
+    first.reads.push_back({"source"});
+    first.writes.push_back({"mid"});
+    plan.addPass(first);
+
+    auto second = pass("second", RenderPassKind::PostProcess);
+    second.reads.push_back({"mid"});
+    second.writes.push_back({"main_color"});
+    plan.addPass(second);
+
+    auto side = pass("side", RenderPassKind::PostProcess);
+    side.reads.push_back({"source"});
+    side.writes.push_back({"side_color"});
+    plan.addPass(side);
+
+    EXPECT_TRUE(plan.resourceCanReach("source", "main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("mid", "main_color"));
+    EXPECT_TRUE(plan.resourceCanReach("source", "side_color"));
+    EXPECT_FALSE(plan.resourceCanReach("side_color", "main_color"));
+    EXPECT_FALSE(plan.resourceCanReach("main_color", "source"));
+  }
+
   TEST(RenderPlan, AppliesDisableOverridesByPassKindExecutorFeatureAndId) {
     RenderPlan plan;
     auto beauty = pass("beauty");
