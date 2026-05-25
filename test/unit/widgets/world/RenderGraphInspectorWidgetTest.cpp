@@ -250,6 +250,8 @@ namespace RenderGraphInspectorWidgetTest {
     auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
     ASSERT_NE(nullptr, passNode);
     EXPECT_TRUE(nodeTextContains(passNode, "stage 1"));
+    EXPECT_TRUE(passNode->toolTip().contains("Scene selector: all"));
+    EXPECT_TRUE(passNode->toolTip().contains("Scene camera: preview-camera"));
     EXPECT_TRUE(passNode->toolTip().contains("Reads: -"));
     EXPECT_TRUE(passNode->toolTip().contains("Writes: main_color"));
     EXPECT_TRUE(passNode->toolTip().contains("Incoming dependencies: -"));
