@@ -9,30 +9,10 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace engine::graph {
   namespace {
-    RenderTargetSpec normalizedTarget(RenderTargetSpec target) {
-      target.sampleCount = std::max(1, target.sampleCount);
-      return target;
-    }
-
-    RenderResourceDescriptor colorResource(const std::string& id, const std::string& name,
-                                           const RenderTargetSpec& target,
-                                           RenderResourceLifetime lifetime) {
-      RenderResourceDescriptor color;
-      color.id = id;
-      color.name = name;
-      color.type = RenderResourceType::Color;
-      color.format = RenderResourceFormat::RGBDouble;
-      color.width = target.width;
-      color.height = target.height;
-      color.sampleCount = target.sampleCount;
-      color.domain = RenderResourceDomain::CPU;
-      color.lifetime = lifetime;
-      return color;
-    }
-
     RenderResourceDescriptor previewShadowResource() {
       RenderResourceDescriptor shadow;
       shadow.id = "preview_shadow_map";
@@ -117,7 +97,7 @@ namespace engine::graph {
                                aov.resourceDescriptor(target, RenderResourceLifetime::Transient));
 
       RenderResourceDescriptor mainColor =
-        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+        target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
       plan.routeResourceThroughPass(aovId, mainColor,
                                     aovVisualizationPass(aov, aovId, mainColor.id, true));
       return plan;
@@ -144,8 +124,8 @@ namespace engine::graph {
       plan.addResourceProducer(std::move(producer),
                                aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
       plan.routeResourceThroughPass(aovId,
-                                    colorResource(previewId, aov->title() + " AOV preview", target,
-                                                  RenderResourceLifetime::Exported),
+                                    target.colorResource(previewId, aov->title() + " AOV preview",
+                                                         RenderResourceLifetime::Exported),
                                     aovVisualizationPass(*aov, aovId, previewId, false));
     }
 
@@ -162,9 +142,30 @@ namespace engine::graph {
     }
   }
 
+  RenderTargetSpec RenderTargetSpec::normalized() const {
+    RenderTargetSpec result = *this;
+    result.sampleCount = std::max(1, result.sampleCount);
+    return result;
+  }
+
+  RenderResourceDescriptor RenderTargetSpec::colorResource(RenderResourceId id, std::string name,
+                                                           RenderResourceLifetime lifetime) const {
+    RenderResourceDescriptor color;
+    color.id = std::move(id);
+    color.name = std::move(name);
+    color.type = RenderResourceType::Color;
+    color.format = RenderResourceFormat::RGBDouble;
+    color.width = width;
+    color.height = height;
+    color.sampleCount = sampleCount;
+    color.domain = RenderResourceDomain::CPU;
+    color.lifetime = lifetime;
+    return color;
+  }
+
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
                                           const RenderIntent& intent) const {
-    const RenderTargetSpec target = normalizedTarget(rawTarget);
+    const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     const RenderExecutorKind executor = frameIntent.defaultExecutorKind();
     const auto* executorDefinition = renderExecutorDefinition(executor);
@@ -181,7 +182,7 @@ namespace engine::graph {
     RenderPlan plan;
 
     RenderResourceDescriptor beautyColor =
-      colorResource("beauty_color", "Beauty color", target, RenderResourceLifetime::Transient);
+      target.colorResource("beauty_color", "Beauty color", RenderResourceLifetime::Transient);
     const bool usesPreviewShadows =
       executor == RenderExecutorKind::Rasterizer && frameIntent.enablePreviewShadows;
 
@@ -209,7 +210,7 @@ namespace engine::graph {
     tonemap.disabledBehavior = DisabledBehavior::Passthrough;
     tonemap.canRunConcurrently = false;
     RenderResourceDescriptor mainColor =
-      colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+      target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
     plan.routeResourceThroughPass("beauty_color", mainColor, tonemap);
 
     if (usesPreviewShadows) {
@@ -233,8 +234,8 @@ namespace engine::graph {
           "requested post-process AA mode cannot be compiled as a graph pass");
       }
       const RenderResourceId inputResource = tonemapInputResource(plan);
-      RenderResourceDescriptor postAAColor = colorResource(
-        "post_aa_color", "Postprocess AA color", target, RenderResourceLifetime::Transient);
+      RenderResourceDescriptor postAAColor = target.colorResource(
+        "post_aa_color", "Postprocess AA color", RenderResourceLifetime::Transient);
       RenderPassNode postAA;
       postAA.id = postAADefinition->passId();
       postAA.name = postAADefinition->passName();
@@ -254,7 +255,7 @@ namespace engine::graph {
     if (frameIntent.enableWireframeOverlay) {
       const RenderResourceId inputResource = tonemapInputResource(plan);
       RenderResourceDescriptor overlayColor =
-        colorResource("overlay_color", "Overlay color", target, RenderResourceLifetime::Transient);
+        target.colorResource("overlay_color", "Overlay color", RenderResourceLifetime::Transient);
       RenderPassNode overlay;
       overlay.id = "wireframe_overlay";
       overlay.name = "Wireframe overlay";
