@@ -406,8 +406,8 @@ all engines, look for differences" grows.
 - `include/core/geometry/Rasterize.h`
 - `include/engine/raster/Rasterizer.h`
 - `src/engine/raster/Rasterizer.cpp`
-- `src/engine/raster/RasterMaterial.h`
-- `src/engine/raster/RasterTriangleEmitter.h`
+- `include/engine/raster/detail/RasterMaterial.h`
+- `include/engine/raster/detail/RasterTriangleEmitter.h`
 - `include/render/HomogeneousClipVolume.h`
 - `include/render/TilePlan.h`
 <!-- /source-anchors -->

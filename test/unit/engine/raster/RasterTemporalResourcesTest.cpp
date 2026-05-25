@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "core/Buffer.h"
-#include "src/engine/raster/RasterTemporalResources.h"
+#include "engine/raster/detail/RasterTemporalResources.h"
 
 #include <limits>
 
