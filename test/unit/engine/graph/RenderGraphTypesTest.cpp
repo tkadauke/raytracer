@@ -187,6 +187,12 @@ namespace RenderGraphTypesTest {
 
     intent.setPostProcessAA(RenderPostProcessAA::FXAA);
     EXPECT_EQ(RenderPostProcessAA::FXAA, intent.postProcessAA);
+    intent.setAutomaticFeaturesEnabled(false);
+    EXPECT_FALSE(intent.enableAutomaticFeatures);
+    intent.setWireframeOverlayEnabled(true);
+    EXPECT_TRUE(intent.enableWireframeOverlay);
+    intent.setPreviewShadowsEnabled(true);
+    EXPECT_TRUE(intent.enablePreviewShadows);
   }
 
   TEST(RenderIntent, RejectsNonAOVExportRequests) {

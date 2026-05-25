@@ -313,6 +313,21 @@ namespace engine::graph {
     void setPostProcessAA(RenderPostProcessAA aa);
 
     /**
+      * Enables or disables automatic compiler feature expansion.
+      */
+    void setAutomaticFeaturesEnabled(bool enabled);
+
+    /**
+      * Enables or disables a graph-visible wireframe overlay pass.
+      */
+    void setWireframeOverlayEnabled(bool enabled);
+
+    /**
+      * Enables or disables raster preview shadow pass synthesis.
+      */
+    void setPreviewShadowsEnabled(bool enabled);
+
+    /**
       * Reads user-facing render intent from a scene JSON `renderIntent` object.
       *
       * Missing fields keep their `RenderIntent` defaults. Malformed fields
