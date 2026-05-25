@@ -150,6 +150,24 @@ if(TARGET rendercli)
       -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-raster-output-state
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOutputStateOptionTest.cmake
   )
+  add_test(
+    NAME rendercli_cross_options
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-cross-options
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/CrossOptionValidationTest.cmake
+  )
+  add_test(
+    NAME rendercli_option_coverage_audit
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI_SOURCE=${PROJECT_SOURCE_DIR}/tools/rendercli/rendercli.cpp
+      "-DRENDERCLI_TEST_FILES=${CMAKE_CURRENT_SOURCE_DIR}/rendercli/BasicOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/ValidationOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RenderGraphOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RaytracerOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/WireframeOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterShadowOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOutputStateOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/CrossOptionValidationTest.cmake"
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/OptionCoverageAudit.cmake
+  )
 endif()
 
 # Functional tests load fixtures from the source tree at runtime.
