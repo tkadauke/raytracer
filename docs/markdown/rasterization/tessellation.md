@@ -209,6 +209,29 @@ torus. The raytracer's quartic root finding doesn't apply to a
 rasterizer; the rasterizer wants triangles, and `tessellate` is
 how it gets them.
 
+## <a id="curves-ribbons-and-tubes"></a>Curves: ribbons and tubes
+`render::Curve` makes ordered polyline paths visible to mesh
+renderers. Its input is a [`core::Polyline`](../../../include/core/geometry/Polyline.h):
+a list of 3D points where each adjacent pair forms one segment.
+The world scene wrapper, [`Curve`](../../../include/world/objects/Curve.h),
+stores those points in scene JSON as nested `[x, y, z]` arrays
+plus display options for width and tessellation mode, then
+converts them into the runtime primitive.
+
+The runtime primitive has two tessellation modes. **Ribbon** mode
+builds one quad per non-zero-length segment, useful for flat
+stroke-like paths. **Tube** mode builds a small ring around each
+segment endpoint and connects neighboring rings with quads, so
+the curve has visible thickness from any view direction. The
+`lod` parameter doubles the tube ring resolution from the base
+eight-sided tube; ribbon mode ignores it because each segment is
+already a single quad.
+
+Zero-width curves and zero-length segments produce no faces. That
+keeps imported path data robust: duplicate points can survive a
+JSON round-trip without creating degenerate polygons in the
+rasterizer or wireframe path.
+
 ## <a id="the-trivial-primitives"></a>The trivial primitives
 A few primitives have one-line tessellations:
 
@@ -326,7 +349,9 @@ faceting is most visible because there's no shading to hide it.
 
 <!-- source-anchors -->
 - `include/core/geometry/Mesh.h`
+- `include/core/geometry/Polyline.h`
 - `include/render/primitives/Primitive.h`
+- `include/render/primitives/Curve.h`
 - `include/render/primitives/Sphere.h`
 - `include/render/primitives/Disk.h`
 - `include/render/primitives/OpenCylinder.h`
@@ -336,4 +361,5 @@ faceting is most visible because there's no shading to hide it.
 - `include/render/primitives/Rectangle.h`
 - `include/render/primitives/Composite.h`
 - `include/render/primitives/Instance.h`
+- `include/world/objects/Curve.h`
 <!-- /source-anchors -->

@@ -19,6 +19,7 @@
 | `include/core/color/sse3/` | [Color and buffers](../foundations/color-and-buffers.md) |
 | `include/core/geometry/Bresenham.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/core/geometry/Mesh.h` | [Tessellation](../rasterization/tessellation.md) |
+| `include/core/geometry/Polyline.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Rasterize.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/core/math/BoundingBox.h` | [Rays and geometry](../foundations/rays-and-geometry.md)<br>[Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `include/core/math/Constants.h` | [Numbers and vectors](../foundations/numbers-and-vectors.md) |
@@ -91,6 +92,7 @@
 | `include/render/primitives/Composite.h` | [Tessellation](../rasterization/tessellation.md)<br>[Constructive solid geometry](../scene-structure/csg.md) |
 | `include/render/primitives/ConvexHull.h` | [Constructive solid geometry](../scene-structure/csg.md) |
 | `include/render/primitives/ConvexOperation.h` | [Constructive solid geometry](../scene-structure/csg.md) |
+| `include/render/primitives/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/render/primitives/Difference.h` | [Constructive solid geometry](../scene-structure/csg.md) |
 | `include/render/primitives/Disk.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/FlatMeshTriangle.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
@@ -136,6 +138,7 @@
 | `include/widgets/world/RenderGraphTracePreviewWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `include/world/objects/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md) |
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |

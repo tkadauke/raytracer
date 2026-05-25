@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QJsonArray>
+#include <QVariantList>
 #include <QUuid>
 #include <iostream>
 
@@ -79,6 +80,8 @@ void Element::read(const QJsonObject& json) {
         setProperty(propertyNameCStr,
                     QVariant::fromValue(
                       Colord(array[0].toDouble(), array[1].toDouble(), array[2].toDouble())));
+      } else if (type == "QVariantList" || type == "QList<QVariant>") {
+        setProperty(propertyNameCStr, value.toArray().toVariantList());
       } else if (propertyName != "id" &&
                  (type.endsWith("*") || !QUuid(value.toString()).isNull())) {
         // JSON `null` is a valid way to say "this reference is
@@ -164,6 +167,8 @@ void Element::writeProperty(const QString& name, QJsonObject& json) {
   } else if (type == "Color<double>") {
     auto color = prop.value<Colord>();
     json[name] = QJsonArray({color.r(), color.g(), color.b()});
+  } else if (type == "QVariantList" || type == "QList<QVariant>") {
+    json[name] = QJsonArray::fromVariantList(prop.toList());
   } else if (type == "QString") {
     json[name] = prop.toString();
   } else if (type == "int") {

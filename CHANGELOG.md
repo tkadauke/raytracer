@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **World curve objects.** Scene JSON can now store generic `Curve` objects
+  with ordered points, width, and ribbon/tube display mode; curves can live in
+  groups and convert to the runtime curve primitive. — GPT-5
 - **Runtime curve primitive tessellation.** `render::Curve` now wraps
   `core::Polyline` paths and tessellates finite-width curves into ribbon or
   tube meshes for raster, wireframe, and other mesh-consuming render paths,
