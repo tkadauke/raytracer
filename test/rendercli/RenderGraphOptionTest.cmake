@@ -471,6 +471,12 @@ endif()
 if(NOT graph_trace_json MATCHES "\"previewHeight\": 16")
   message(FATAL_ERROR "graph trace did not contain full-height previews: ${graph_trace_json}")
 endif()
+if(NOT graph_trace_json MATCHES "\"cache\"")
+  message(FATAL_ERROR "graph trace did not contain cache metadata: ${graph_trace_json}")
+endif()
+if(NOT graph_trace_json MATCHES "\"status\": \"not_cacheable\"")
+  message(FATAL_ERROR "graph trace did not contain not-cacheable resource status: ${graph_trace_json}")
+endif()
 
 rendercli_run(
   NAME "rendercli writes raster pass state while rendering through graph"

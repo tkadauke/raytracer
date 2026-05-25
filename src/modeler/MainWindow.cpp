@@ -148,6 +148,20 @@ namespace {
     return QString::fromUtf8(QJsonDocument(state).toJson(QJsonDocument::Compact));
   }
 
+  const engine::graph::RenderGraphResourceSnapshot*
+  cacheSnapshotForResource(const engine::graph::RenderGraphExecutionTrace* trace,
+                           const engine::graph::RenderResourceId& resource) {
+    if (!trace)
+      return nullptr;
+
+    const auto outputs = trace->outputSnapshotsForResource(resource);
+    if (!outputs.empty())
+      return outputs.back();
+
+    const auto inputs = trace->inputSnapshotsForResource(resource);
+    return inputs.empty() ? nullptr : inputs.back();
+  }
+
   void addRow(PropertyRows& rows, const QString& name, const QString& value) {
     rows.push_back({name, dashIfEmpty(value)});
   }
@@ -1385,6 +1399,14 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
   const bool hasSnapshot = trace && (!trace->inputSnapshotsForResource(resource->id).empty() ||
                                      !trace->outputSnapshotsForResource(resource->id).empty());
   addRow(rows, tr("Trace snapshot"), hasSnapshot ? tr("available") : tr("not available"));
+  const auto* cacheSnapshot = cacheSnapshotForResource(trace.get(), resource->id);
+  if (cacheSnapshot) {
+    addRow(rows, tr("Cache status"),
+           engine::graph::toString(cacheSnapshot->cacheMetadata().status()));
+    addRow(rows, tr("Cache detail"), qstr(cacheSnapshot->cacheMetadata().message()));
+  } else {
+    addRow(rows, tr("Cache status"), tr("not available"));
+  }
 
   p->propertyEditorWidget->setReadOnlyProperties(tr("Render graph resource"), rows);
   if (activateTracePreview && p->graphTracePreviewWidget && p->centralTabs) {

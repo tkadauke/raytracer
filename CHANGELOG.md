@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph trace cache metadata.** Execution trace resource snapshots now
+  report cache status in JSON and in the Modeler resource property view, so
+  graph tooling can distinguish ordinary non-cacheable resources from
+  persistent-cache resources that were not served by an artifact. — GPT-5
 - **Render graph artifact cache.** `GraphRenderEngine` now owns a clone-shared
   `RenderGraphArtifactCache` with typed cache keys for immutable persistent
   artifacts, establishing the cache surface needed for future shadow-map and

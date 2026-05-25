@@ -19,6 +19,8 @@
 #include "render/tonemap/ReinhardTonemap.h"
 #include "test/helpers/ColorTestHelper.h"
 
+#include <QString>
+
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -474,6 +476,35 @@ namespace GraphRenderEngineTest {
     engine.setExecutionTraceEnabled(false);
 
     EXPECT_EQ(nullptr, engine.lastExecutionTrace());
+  }
+
+  TEST(GraphRenderEngine, RecordsCacheMetadataInResourceSnapshots) {
+    RenderPlan plan;
+    plan.addResource(colorResource("cache_color", RenderResourceLifetime::PersistentCache, 2, 2));
+
+    RenderPassNode pass;
+    pass.id = "cacheable";
+    pass.kind = RenderPassKind::PostProcess;
+    pass.executor = RenderExecutorKind::PostProcess;
+    pass.writes.push_back({"cache_color"});
+    plan.addPass(pass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+
+    RenderGraphExecutionTraceRecorder recorder;
+    const auto session = recorder.begin(plan, "inputs");
+    recorder.passStarted(session, plan.passes().front(), storage);
+    recorder.passCompleted(session, plan.passes().front(), storage);
+    recorder.finish(session);
+
+    auto trace = recorder.lastTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("cache_color");
+    ASSERT_EQ(1u, outputs.size());
+    EXPECT_EQ(RenderGraphCacheStatus::Uncached, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ(QStringLiteral("uncached"),
+              outputs.front()->toJson().value("cache").toObject().value("status").toString());
   }
 
   TEST(GraphRenderEngine, IgnoresRetiredExecutionTraceSessionEvents) {

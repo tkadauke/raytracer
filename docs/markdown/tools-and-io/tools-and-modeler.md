@@ -103,10 +103,11 @@ match the saved plan.
 `--render_graph_trace_out trace.json` writes the last executed graph trace as
 JSON while rendering an image. The trace includes the executed plan, each pass's
 status and elapsed time, the render-input fingerprint, supported input/output
-resource preview metadata, and available difference-preview metadata. Trace
-capture is opt-in; ordinary graph renders skip those diagnostic artifacts,
-while this flag enables them for the render that is being exported. Graph-only
-mode cannot write a trace because no graph execution happened.
+resource preview metadata, cache status metadata, and available
+difference-preview metadata. Trace capture is opt-in; ordinary graph renders
+skip those diagnostic artifacts, while this flag enables them for the render
+that is being exported. Graph-only mode cannot write a trace because no graph
+execution happened.
 
 That gives a two-step debugging loop:
 
@@ -166,7 +167,8 @@ manipulated plan immediately. When the manipulated plan is still valid, the
 central preview renders through that effective plan. After a render, selecting
 a pass or inspectable color resource in the graph opens the central Graph Trace
 preview tab with input, output, and difference images from the last execution
-when that trace still matches the current plan and preview inputs.
+when that trace still matches the current plan and preview inputs. Resource
+selections also show trace cache status in the property editor.
 
 Scenes with a top-level `animation` block enable the Timeline dock. Its slider
 and spinbox choose the current frame. The central preview and render dialog

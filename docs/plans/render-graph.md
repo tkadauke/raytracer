@@ -1102,6 +1102,9 @@ The first trace implementation should support image-like CPU color resources:
 - mark non-image resources such as shadow maps, depth, stencil, object id,
   motion vectors, and future cache artifacts as "metadata only" until a
   specialized viewer exists.
+- attach cache metadata to resource snapshots so tools can distinguish
+  non-cacheable resources from persistent-cache resources that were not served
+  by a concrete cached artifact.
 
 Shadow maps can be skipped for the first inspection UI. Later, a shadow-map
 viewer can show depth as normalized grayscale, cascade coverage, texel snapping,
@@ -1360,8 +1363,10 @@ completed trace only when its executed plan and render-input fingerprint match
 the current effective plan, covering stale traces from resize, graph overrides,
 compiled pass-state changes, camera edits, scene swaps, and tonemap changes.
 Trace-owned resource lookup helpers feed the central trace preview for
-resource-node selections. Scene content changes that leave the plan unchanged
-remain TODO.
+resource-node selections. Resource snapshots also carry cache metadata;
+rendercli trace JSON and the Modeler resource property editor show whether a
+snapshot was not cacheable or was a persistent-cache resource that executed
+without artifact reuse.
 
 ### Live graph execution highlighting
 

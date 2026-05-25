@@ -500,9 +500,9 @@ Graph execution can also record an opt-in post-render trace through
 [`RenderGraphExecutionTrace`](../../../include/engine/graph/RenderGraphExecutionTrace.h).
 The trace is a result of one concrete execution, not part of the declarative
 plan. It stores each pass's status, elapsed time, supported input snapshots,
-supported output snapshots, and difference previews. The first supported
-snapshots are CPU color resources, stored at the graph resource's full
-resolution so the trace view can inspect the actual rendered image. Because
+supported output snapshots, cache metadata, and difference previews. The first
+supported snapshots are CPU color resources, stored at the graph resource's
+full resolution so the trace view can inspect the actual rendered image. Because
 those full-resolution snapshots can retain several render buffers per frame,
 normal graph renders do not capture traces by default. The Modeler preview
 enables tracing for graph inspection, and rendercli enables it only when
@@ -524,7 +524,8 @@ in the pass table after a render finishes, and the inspector follows that pass;
 metadata is shown in the property editor while supported input, output, and
 difference previews open in the central Graph Trace preview tab. Selecting a
 resource node opens that resource's matching trace snapshots when they are
-color-backed. A new render clears the old trace while live execution
+color-backed, and the property editor shows cache status from the matching
+snapshot. A new render clears the old trace while live execution
 highlighting takes over. Completed traces are accepted only when their executed
 plan and render-input fingerprint still match the inspector's current effective
 plan and preview inputs. Changing the target size, graph overrides, compiled

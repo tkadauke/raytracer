@@ -55,15 +55,50 @@ namespace engine::graph {
       return std::string("preview is not available for ") + toString(descriptor.type) +
              " resources";
     }
+
+    RenderGraphCacheMetadata cacheMetadataFor(const RenderResourceDescriptor& descriptor) {
+      if (descriptor.lifetime != RenderResourceLifetime::PersistentCache) {
+        return RenderGraphCacheMetadata(RenderGraphCacheStatus::NotCacheable,
+                                        std::string("resource lifetime is ") +
+                                          toString(descriptor.lifetime));
+      }
+
+      return RenderGraphCacheMetadata(
+        RenderGraphCacheStatus::Uncached,
+        "persistent cache resource was materialized without a cached artifact payload");
+    }
+  }
+
+  RenderGraphCacheMetadata::RenderGraphCacheMetadata(RenderGraphCacheStatus status,
+                                                     std::string message)
+      : m_status(status),
+        m_message(std::move(message)) {
+  }
+
+  RenderGraphCacheStatus RenderGraphCacheMetadata::status() const {
+    return m_status;
+  }
+
+  const std::string& RenderGraphCacheMetadata::message() const {
+    return m_message;
+  }
+
+  QJsonObject RenderGraphCacheMetadata::toJson() const {
+    QJsonObject object;
+    object["status"] = toString(m_status);
+    object["message"] = QString::fromStdString(m_message);
+    return object;
   }
 
   RenderGraphResourceSnapshot::RenderGraphResourceSnapshot(
     RenderResourceId resourceId, RenderResourceDescriptor descriptor,
-    std::shared_ptr<const Buffer<Colord>> colorPreview, std::string unavailableReason)
+    std::shared_ptr<const Buffer<Colord>> colorPreview, std::string unavailableReason,
+    RenderGraphCacheMetadata cacheMetadata)
       : m_resourceId(std::move(resourceId)),
         m_descriptor(std::move(descriptor)),
         m_colorPreview(std::move(colorPreview)),
-        m_unavailableReason(std::move(unavailableReason)) {
+        m_unavailableReason(std::move(unavailableReason)),
+        m_cacheMetadata(std::move(cacheMetadata)) {
   }
 
   const RenderResourceId& RenderGraphResourceSnapshot::resourceId() const {
@@ -89,6 +124,10 @@ namespace engine::graph {
     return m_unavailableReason;
   }
 
+  const RenderGraphCacheMetadata& RenderGraphResourceSnapshot::cacheMetadata() const {
+    return m_cacheMetadata;
+  }
+
   QJsonObject RenderGraphResourceSnapshot::toJson() const {
     QJsonObject object;
     object["resource"] = QString::fromStdString(m_resourceId);
@@ -97,6 +136,7 @@ namespace engine::graph {
     object["width"] = m_descriptor.width;
     object["height"] = m_descriptor.height;
     object["previewAvailable"] = hasColorPreview();
+    object["cache"] = m_cacheMetadata.toJson();
     if (m_colorPreview) {
       object["previewWidth"] = m_colorPreview->width();
       object["previewHeight"] = m_colorPreview->height();
@@ -488,17 +528,20 @@ namespace engine::graph {
 
     if (!storage.contains(resourceId)) {
       return RenderGraphResourceSnapshot(resourceId, descriptor, nullptr,
-                                         "resource was not materialized by this execution path");
+                                         "resource was not materialized by this execution path",
+                                         cacheMetadataFor(descriptor));
     }
 
     const auto& resource = storage.resource(resourceId);
     if (!resource.colorBacked()) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr,
-                                         metadataOnlyReason(resource.descriptor()));
+                                         metadataOnlyReason(resource.descriptor()),
+                                         cacheMetadataFor(resource.descriptor()));
     }
 
     return RenderGraphResourceSnapshot(resourceId, resource.descriptor(),
-                                       colorPreviewFor(resource.color()), "");
+                                       colorPreviewFor(resource.color()), "",
+                                       cacheMetadataFor(resource.descriptor()));
   }
 
   std::vector<RenderGraphResourceDiff> RenderGraphExecutionTraceRecorder::diffsFor(
@@ -548,6 +591,24 @@ namespace engine::graph {
       return "failed";
     case RenderPassExecutionStatus::Skipped:
       return "skipped";
+    }
+    return "unknown";
+  }
+
+  const char* toString(RenderGraphCacheStatus value) {
+    switch (value) {
+    case RenderGraphCacheStatus::NotCacheable:
+      return "not_cacheable";
+    case RenderGraphCacheStatus::Uncached:
+      return "uncached";
+    case RenderGraphCacheStatus::Hit:
+      return "hit";
+    case RenderGraphCacheStatus::Miss:
+      return "miss";
+    case RenderGraphCacheStatus::Stored:
+      return "stored";
+    case RenderGraphCacheStatus::Invalidated:
+      return "invalidated";
     }
     return "unknown";
   }

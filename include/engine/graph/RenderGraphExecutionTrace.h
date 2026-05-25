@@ -23,6 +23,24 @@ namespace engine::graph {
   class RenderGraphExecutionTraceSession;
 
   enum class RenderPassExecutionStatus { Pending, Running, Completed, Failed, Skipped };
+  enum class RenderGraphCacheStatus { NotCacheable, Uncached, Hit, Miss, Stored, Invalidated };
+
+  /**
+    * Cache provenance for one resource snapshot in an execution trace.
+    */
+  class RenderGraphCacheMetadata {
+  public:
+    RenderGraphCacheMetadata(RenderGraphCacheStatus status = RenderGraphCacheStatus::NotCacheable,
+                             std::string message = {});
+
+    RenderGraphCacheStatus status() const;
+    const std::string& message() const;
+    QJsonObject toJson() const;
+
+  private:
+    RenderGraphCacheStatus m_status;
+    std::string m_message;
+  };
 
   /**
     * Snapshot of one render resource as captured during graph execution.
@@ -35,13 +53,15 @@ namespace engine::graph {
   public:
     RenderGraphResourceSnapshot(RenderResourceId resourceId, RenderResourceDescriptor descriptor,
                                 std::shared_ptr<const Buffer<Colord>> colorPreview,
-                                std::string unavailableReason);
+                                std::string unavailableReason,
+                                RenderGraphCacheMetadata cacheMetadata);
 
     const RenderResourceId& resourceId() const;
     const RenderResourceDescriptor& descriptor() const;
     bool hasColorPreview() const;
     const Buffer<Colord>& colorPreview() const;
     const std::string& unavailableReason() const;
+    const RenderGraphCacheMetadata& cacheMetadata() const;
     QJsonObject toJson() const;
 
   private:
@@ -49,6 +69,7 @@ namespace engine::graph {
     RenderResourceDescriptor m_descriptor;
     std::shared_ptr<const Buffer<Colord>> m_colorPreview;
     std::string m_unavailableReason;
+    RenderGraphCacheMetadata m_cacheMetadata;
   };
 
   /**
@@ -196,4 +217,5 @@ namespace engine::graph {
   };
 
   const char* toString(RenderPassExecutionStatus value);
+  const char* toString(RenderGraphCacheStatus value);
 }
