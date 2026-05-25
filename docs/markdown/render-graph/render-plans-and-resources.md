@@ -330,7 +330,7 @@ Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_shading_profile` selects the default named shading profile.
 Repeated `--render_graph_shading_parameter key=value` options attach parsed
 bool, number, or string parameters to that profile. The
-`depth`, `normal`, `object_id`, `material_id`, and `world_position` views
+`depth`, `stencil`, `normal`, `object_id`, `material_id`, and `world_position` views
 compile real resource-producing AOV nodes followed by visualization passes, so
 the exported plan and the Modeler inspector can show AOVs as graph resources
 rather than hiding them inside a direct engine. `--render_graph_aov_out view=file` requests
@@ -341,10 +341,10 @@ Selector-specific overrides will matter once compilation can produce
 multi-selection plans.
 
 Raytracer AOV payloads use primary intersections against the analytic scene.
-Rasterizer AOV payloads instead attach diagnostic output buffers to the
-rasterizer, so depth, normals, ids, and world positions come from the same
-tessellated fragments, clipping, sampling, and pass state as the raster beauty
-path.
+Rasterizer AOV payloads instead attach diagnostic output buffers or synthesize
+a raster stencil-marking pass, so depth, stencil masks, normals, ids, and world
+positions come from the same tessellated fragments, clipping, sampling, and
+pass state as the raster beauty path.
 
 The AOV vocabulary is owned by
 [`RenderAOVDefinition`](../../../include/engine/graph/RenderAOV.h) objects.
@@ -506,6 +506,10 @@ under the pass's `parameters` object, making settings such as `--msaa`,
 living only in the direct raster engine setup path. Raster AOV producer passes
 use the same state object, so `--render_graph_view depth` and exported raster
 AOV side branches see the requested tessellation and sampling settings. The
+stencil AOV is a graph-synthesized coverage mask: raytracer and wireframe
+executors mark primary-hit pixels, while the rasterizer path runs a dedicated
+single-sample stencil-marking pass that writes an 8-bit graph stencil resource
+and visualizes it as grayscale. The
 preview shadow request is also visible: when preview shadows are enabled, the
 compiler inserts
 `raster_preview_shadows` before `raster_beauty`, stores the shadow-map settings

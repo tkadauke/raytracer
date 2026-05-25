@@ -78,7 +78,9 @@ namespace engine::graph {
 
       const RenderResourceId aovId = aov.resourceId();
       RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true);
-      applyTargetSamplingToRasterPass(producer, target);
+      if (aov.usesRasterTargetSampling()) {
+        applyTargetSamplingToRasterPass(producer, target);
+      }
       plan.addResourceProducer(std::move(producer),
                                aov.resourceDescriptor(target, RenderResourceLifetime::Transient));
 
@@ -106,7 +108,9 @@ namespace engine::graph {
       const RenderResourceId aovId = aov->resourceId();
       const RenderResourceId previewId = aov->previewColorResourceId();
       RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false);
-      applyTargetSamplingToRasterPass(producer, target);
+      if (aov->usesRasterTargetSampling()) {
+        applyTargetSamplingToRasterPass(producer, target);
+      }
       plan.addResourceProducer(std::move(producer),
                                aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
       plan.routeResourceThroughPass(aovId,

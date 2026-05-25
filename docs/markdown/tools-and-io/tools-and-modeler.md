@@ -93,7 +93,7 @@ compilation currently rejects it until the compiler can synthesize real
 scene-partitioning and composition passes.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
-`--render_graph_view default|beauty|wireframe|depth|normal|object_id|material_id|world_position`
+`--render_graph_view default|beauty|wireframe|depth|stencil|normal|object_id|material_id|world_position`
 overrides the graph intent's structural view mode. `--render_graph_camera
 camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
@@ -102,14 +102,15 @@ execution. `--render_graph_shading_profile name` overrides the default named
 shading profile, and repeated `--render_graph_shading_parameter key=value`
 options attach scalar profile parameters. The compiler records that profile
 intent on synthesized scene-rendering passes. The
-depth, normal, object-id, material-id, and world-position views
+depth, stencil, normal, object-id, material-id, and world-position views
 compile graph-visible AOV passes and visualization passes that write the final
 color image. When the selected graph executor is the rasterizer, those AOV
 passes use rasterizer diagnostic buffers, so they reflect tessellated raster
 geometry and raster pass state rather than analytic primary-ray intersections.
 `--render_graph_aov_out depth=depth.png` writes an additional graph AOV preview
 image while preserving the main render output; repeat the option for multiple
-AOV files such as `normal=normal.png` or `world_position=positions.png`.
+AOV files such as `stencil=mask.png`, `normal=normal.png`, or
+`world_position=positions.png`.
 `--render_graph_wireframe_overlay` asks the compiler to insert a graph-visible
 wireframe overlay pass between the beauty pass and the tonemap pass.
 For graph renders, `--post_aa fxaa` and `--post_aa smaa` are also
@@ -192,11 +193,11 @@ executor; rasterizer preview shadows switch the live preview to Rasterizer
 before recompiling because the shadow pass is raster-specific. When the scene
 intent does not name a default camera, Modeler annotates scene-rendering passes
 with the active scene camera id from the editable scene. `Render -> Preview
-View` can also switch the live graph preview from beauty to depth, normal,
-object-id, material-id, or world-position AOVs; the graph recompiles to show the
-corresponding AOV producer and visualization nodes. Raster preview AOVs are
-backed by rasterizer diagnostics, so their images match raster tessellation,
-sampling, and clipping. `Render -> Preview
+View` can also switch the live graph preview from beauty to depth, stencil,
+normal, object-id, material-id, or world-position AOVs; the graph recompiles to
+show the corresponding AOV producer and visualization nodes. Raster preview
+AOVs are backed by rasterizer diagnostics or a raster stencil-marking pass, so
+their images match raster tessellation, sampling, and clipping. `Render -> Preview
 Tonemap` selects the operator used by the graph's tonemap node.
 
 The Render Graph dock compiles the current preview intent into a

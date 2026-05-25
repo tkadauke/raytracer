@@ -135,6 +135,44 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, StencilViewModeCompilesStencilAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Stencil;
+
+    const RenderPlan plan = compiler.compile({64, 32, 4}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("stencil_aov"));
+    EXPECT_EQ(RenderResourceType::Stencil, plan.findResource("stencil_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::UInt8, plan.findResource("stencil_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.findResource("stencil_aov")->lifetime);
+    EXPECT_EQ(1, plan.findResource("stencil_aov")->sampleCount);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("main_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("stencil_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    EXPECT_EQ(nullptr, plan.passes()[0].state);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "stencil"));
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("stencil_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_stencil_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("stencil_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalViewModeCompilesNormalAOVPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
@@ -282,7 +320,8 @@ namespace RenderGraphCompilerTest {
   TEST(RenderGraphCompiler, AddsRequestedAOVExportsAsSideBranches) {
     RenderGraphCompiler compiler;
     RenderIntent intent;
-    intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal, RenderViewMode::Depth};
+    intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Stencil, RenderViewMode::Normal,
+                           RenderViewMode::Depth};
 
     const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
 
@@ -295,6 +334,9 @@ namespace RenderGraphCompilerTest {
     ASSERT_NE(nullptr, plan.findResource("normal_aov"));
     EXPECT_EQ(RenderResourceType::Normal, plan.findResource("normal_aov")->type);
     ASSERT_NE(nullptr, plan.findResource("normal_aov_color"));
+    ASSERT_NE(nullptr, plan.findResource("stencil_aov"));
+    EXPECT_EQ(RenderResourceType::Stencil, plan.findResource("stencil_aov")->type);
+    ASSERT_NE(nullptr, plan.findResource("stencil_aov_color"));
 
     const auto* depthPass = plan.findPass("depth_aov");
     ASSERT_NE(nullptr, depthPass);

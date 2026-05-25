@@ -343,6 +343,8 @@ namespace {
       *viewMode = RenderViewMode::Wireframe;
     } else if (normalized == "depth") {
       *viewMode = RenderViewMode::Depth;
+    } else if (normalized == "stencil") {
+      *viewMode = RenderViewMode::Stencil;
     } else if (normalized == "normal") {
       *viewMode = RenderViewMode::Normal;
     } else if (normalized == "objectid") {
@@ -381,8 +383,8 @@ namespace {
     const int separator = value.indexOf('=');
     if (separator <= 0 || separator == value.size() - 1) {
       *errorMessage =
-        "Render graph AOV output must use view=file syntax with view 'depth', 'normal', "
-        "'object_id', 'material_id', or 'world_position'";
+        "Render graph AOV output must use view=file syntax with view 'depth', 'stencil', "
+        "'normal', 'object_id', 'material_id', or 'world_position'";
       return false;
     }
 
@@ -390,8 +392,8 @@ namespace {
       normalizedRasterOption(value.left(separator)).toStdString());
     if (!aov) {
       *errorMessage =
-        "Render graph AOV output view must be 'depth', 'normal', 'object_id', 'material_id', "
-        "or 'world_position'";
+        "Render graph AOV output view must be 'depth', 'stencil', 'normal', 'object_id', "
+        "'material_id', or 'world_position'";
       return false;
     }
 
@@ -1723,8 +1725,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view",
-      "Override graph intent view mode (default, beauty, wireframe, depth, normal, object_id, "
-      "material_id, world_position)",
+      "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
+      "object_id, material_id, world_position)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -2035,8 +2037,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     if (!parseImplementedRenderViewMode(parser.value("render_graph_view"),
                                         &m_renderGraphViewMode)) {
       *errorMessage =
-        "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'normal', "
-        "'object_id', 'material_id', or 'world_position'";
+        "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
+        "'normal', 'object_id', 'material_id', or 'world_position'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;
@@ -2501,9 +2503,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
        parser.isSet("render_graph_camera") || parser.isSet("render_graph_shading_profile") ||
        parser.isSet("render_graph_shading_parameter") || m_renderGraphWireframeOverlay ||
-       m_renderGraphCurveOverlay ||
-       parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
-       parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
+       m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
+       parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
+       parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }

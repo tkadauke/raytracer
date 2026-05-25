@@ -434,6 +434,7 @@ struct MainWindow::Private {
   QAction* previewPostAASmaaAct;
   QAction* previewViewBeautyAct;
   QAction* previewViewDepthAct;
+  QAction* previewViewStencilAct;
   QAction* previewViewNormalAct;
   QAction* previewViewObjectIdAct;
   QAction* previewViewMaterialIdAct;
@@ -775,6 +776,11 @@ void MainWindow::createActions() {
   p->previewViewDepthAct->setCheckable(true);
   connect(p->previewViewDepthAct, SIGNAL(triggered()), this, SLOT(setPreviewViewDepth()));
 
+  p->previewViewStencilAct = new QAction(tr("&Stencil"), this);
+  p->previewViewStencilAct->setStatusTip(tr("Show the live preview stencil AOV"));
+  p->previewViewStencilAct->setCheckable(true);
+  connect(p->previewViewStencilAct, SIGNAL(triggered()), this, SLOT(setPreviewViewStencil()));
+
   p->previewViewNormalAct = new QAction(tr("&Normal"), this);
   p->previewViewNormalAct->setStatusTip(tr("Show the live preview normal AOV"));
   p->previewViewNormalAct->setCheckable(true);
@@ -799,6 +805,7 @@ void MainWindow::createActions() {
   auto previewViewGroup = new QActionGroup(this);
   previewViewGroup->addAction(p->previewViewBeautyAct);
   previewViewGroup->addAction(p->previewViewDepthAct);
+  previewViewGroup->addAction(p->previewViewStencilAct);
   previewViewGroup->addAction(p->previewViewNormalAct);
   previewViewGroup->addAction(p->previewViewObjectIdAct);
   previewViewGroup->addAction(p->previewViewMaterialIdAct);
@@ -974,6 +981,7 @@ void MainWindow::createMenus() {
   auto previewViewMenu = previewMenu->addMenu(tr("Preview &View"));
   previewViewMenu->addAction(p->previewViewBeautyAct);
   previewViewMenu->addAction(p->previewViewDepthAct);
+  previewViewMenu->addAction(p->previewViewStencilAct);
   previewViewMenu->addAction(p->previewViewNormalAct);
   previewViewMenu->addAction(p->previewViewObjectIdAct);
   previewViewMenu->addAction(p->previewViewMaterialIdAct);
@@ -1314,6 +1322,10 @@ void MainWindow::setPreviewViewBeauty() {
 
 void MainWindow::setPreviewViewDepth() {
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::Depth);
+}
+
+void MainWindow::setPreviewViewStencil() {
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::Stencil);
 }
 
 void MainWindow::setPreviewViewNormal() {

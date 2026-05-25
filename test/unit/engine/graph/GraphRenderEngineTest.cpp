@@ -386,6 +386,31 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, ExecutesStencilAOVViewAndRecordsColorTrace) {
+    RenderIntent intent;
+    intent.defaultViewMode = RenderViewMode::Stencil;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
+    EXPECT_EQ("stencil_aov", engine.lastPlan().passes()[0].id);
+    EXPECT_EQ("visualize_stencil_aov", engine.lastPlan().passes()[1].id);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("stencil_aov");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+  }
+
   TEST(GraphRenderEngine, ExecutesNormalAOVViewAndRecordsColorTrace) {
     RenderIntent intent;
     intent.defaultViewMode = RenderViewMode::Normal;
@@ -556,6 +581,28 @@ namespace GraphRenderEngineTest {
       ASSERT_TRUE(outputs.front()->hasColorPreview());
       EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
     }
+  }
+
+  TEST(GraphRenderEngine, RasterStencilAOVMarksVisibleFragments) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.defaultViewMode = RenderViewMode::Stencil;
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 4}, intent));
+
+    Buffer<unsigned int> output(32, 32);
+    engine.render(output);
+
+    ASSERT_EQ(RenderExecutorKind::Rasterizer, engine.lastPlan().passes()[0].executor);
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("stencil_aov");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
   }
 
   TEST(GraphRenderEngine, ExecutesRequestedAOVSideOutputsWhenTraceIsEnabled) {

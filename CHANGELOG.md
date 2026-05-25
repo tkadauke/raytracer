@@ -101,6 +101,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Graph stencil AOV view.** Render intent can now request a `stencil` AOV:
+  rendercli, Modeler preview, graph JSON, execution traces, and side-output AOV
+  exports synthesize and visualize graph-visible stencil masks, with rasterizer
+  plans using tessellated raster geometry through a stencil-marking payload. —
+  GPT-5
 - **Depth/stencil graph composite pass.** Built-in `Composite` executor passes
   tagged with `depth_composite` or `stencil_composite` now combine base and
   foreground color resources through graph-visible depth and stencil resources,

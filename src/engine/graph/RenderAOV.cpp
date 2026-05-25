@@ -16,12 +16,14 @@ namespace engine::graph {
     class BasicRenderAOVDefinition : public RenderAOVDefinition {
     public:
       BasicRenderAOVDefinition(RenderViewMode viewMode, std::string feature, std::string title,
-                               RenderResourceType resourceType, RenderResourceFormat resourceFormat)
+                               RenderResourceType resourceType, RenderResourceFormat resourceFormat,
+                               bool usesRasterTargetSampling = true)
           : m_viewMode(viewMode),
             m_feature(std::move(feature)),
             m_title(std::move(title)),
             m_resourceType(resourceType),
-            m_resourceFormat(resourceFormat) {
+            m_resourceFormat(resourceFormat),
+            m_usesRasterTargetSampling(usesRasterTargetSampling) {
       }
 
       RenderViewMode viewMode() const override {
@@ -44,18 +46,26 @@ namespace engine::graph {
         return m_resourceFormat;
       }
 
+      bool usesRasterTargetSampling() const override {
+        return m_usesRasterTargetSampling;
+      }
+
     private:
       RenderViewMode m_viewMode;
       std::string m_feature;
       std::string m_title;
       RenderResourceType m_resourceType;
       RenderResourceFormat m_resourceFormat;
+      bool m_usesRasterTargetSampling;
     };
 
     const std::vector<const RenderAOVDefinition*>& definitions() {
       static const BasicRenderAOVDefinition depth(RenderViewMode::Depth, "depth", "Depth",
                                                   RenderResourceType::Depth,
                                                   RenderResourceFormat::DepthDouble);
+      static const BasicRenderAOVDefinition stencil(RenderViewMode::Stencil, "stencil", "Stencil",
+                                                    RenderResourceType::Stencil,
+                                                    RenderResourceFormat::UInt8, false);
       static const BasicRenderAOVDefinition normal(RenderViewMode::Normal, "normal", "Normal",
                                                    RenderResourceType::Normal,
                                                    RenderResourceFormat::RGBDouble);
@@ -68,8 +78,8 @@ namespace engine::graph {
       static const BasicRenderAOVDefinition worldPosition(
         RenderViewMode::WorldPosition, "world_position", "World position",
         RenderResourceType::WorldPosition, RenderResourceFormat::RGBDouble);
-      static const std::vector<const RenderAOVDefinition*> result = {&depth, &normal, &objectId,
-                                                                     &materialId, &worldPosition};
+      static const std::vector<const RenderAOVDefinition*> result = {
+        &depth, &stencil, &normal, &objectId, &materialId, &worldPosition};
       return result;
     }
   }

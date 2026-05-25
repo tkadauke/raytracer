@@ -29,6 +29,9 @@ set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
 set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
 set(raster_depth_view_render "${TEST_OUTPUT_DIR}/graph-raster-depth-view.png")
 set(raster_depth_view_plan "${TEST_OUTPUT_DIR}/graph-raster-depth-view.json")
+set(stencil_view_render "${TEST_OUTPUT_DIR}/graph-stencil-view.png")
+set(raster_stencil_view_render "${TEST_OUTPUT_DIR}/graph-raster-stencil-view.png")
+set(raster_stencil_view_plan "${TEST_OUTPUT_DIR}/graph-raster-stencil-view.json")
 set(normal_view_render "${TEST_OUTPUT_DIR}/graph-normal-view.png")
 set(object_id_view_render "${TEST_OUTPUT_DIR}/graph-object-id-view.png")
 set(material_id_view_render "${TEST_OUTPUT_DIR}/graph-material-id-view.png")
@@ -53,6 +56,7 @@ set(graph_trace "${TEST_OUTPUT_DIR}/graph-trace.json")
 set(graph_trace_render "${TEST_OUTPUT_DIR}/graph-trace-render.png")
 set(graph_aov_render "${TEST_OUTPUT_DIR}/graph-aov-render.png")
 set(graph_aov_depth "${TEST_OUTPUT_DIR}/graph-aov-depth.png")
+set(graph_aov_stencil "${TEST_OUTPUT_DIR}/graph-aov-stencil.png")
 set(graph_aov_normal "${TEST_OUTPUT_DIR}/graph-aov-normal.png")
 set(raster_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadow-trace.json")
 set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.png")
@@ -828,6 +832,42 @@ if(NOT raster_depth_view_graph MATCHES "msaaSamples")
 endif()
 
 rendercli_run(
+  NAME "rendercli exports stencil AOV render graph"
+  STDOUT_MATCHES
+    "stencil_aov"
+    "visualize_stencil_aov"
+    "main_color"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view stencil
+    --width 32 --height 24
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli renders stencil AOV view through graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_view stencil --width 32 --height 24
+    "${static_scene}" "${stencil_view_render}"
+)
+rendercli_assert_nonempty("${stencil_view_render}" NAME "stencil AOV graph render output")
+
+rendercli_run(
+  NAME "rendercli renders raster stencil AOV view through graph"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_view stencil --render_graph_format json
+    --render_graph_out "${raster_stencil_view_plan}"
+    --width 32 --height 24 --msaa 4 --msaa_shading per_fragment
+    "${static_scene}" "${raster_stencil_view_render}"
+)
+rendercli_assert_nonempty("${raster_stencil_view_render}"
+                          NAME "raster stencil AOV graph render output")
+rendercli_assert_nonempty("${raster_stencil_view_plan}" NAME "raster stencil AOV graph plan")
+file(READ "${raster_stencil_view_plan}" raster_stencil_view_graph)
+if(NOT raster_stencil_view_graph MATCHES "stencil_aov")
+  message(FATAL_ERROR "raster stencil AOV graph did not contain stencil_aov: ${raster_stencil_view_graph}")
+endif()
+
+rendercli_run(
   NAME "rendercli exports normal AOV render graph"
   STDOUT_MATCHES
     "normal_aov"
@@ -912,11 +952,13 @@ rendercli_run(
   NAME "rendercli writes multiple graph AOV output images"
   COMMAND
     "${RENDERCLI}" --render_graph_aov_out "depth=${graph_aov_depth}"
+    --render_graph_aov_out "stencil=${graph_aov_stencil}"
     --render_graph_aov_out "normal=${graph_aov_normal}" --width 32 --height 24
     "${static_scene}" "${graph_aov_render}"
 )
 rendercli_assert_nonempty("${graph_aov_render}" NAME "multi AOV graph main render output")
 rendercli_assert_nonempty("${graph_aov_depth}" NAME "multi AOV graph depth output")
+rendercli_assert_nonempty("${graph_aov_stencil}" NAME "multi AOV graph stencil output")
 rendercli_assert_nonempty("${graph_aov_normal}" NAME "multi AOV graph normal output")
 
 rendercli_expect_failure(

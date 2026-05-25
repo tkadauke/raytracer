@@ -106,6 +106,7 @@ private slots:
   void setPreviewPostAASmaa();
   void setPreviewViewBeauty();
   void setPreviewViewDepth();
+  void setPreviewViewStencil();
   void setPreviewViewNormal();
   void setPreviewViewObjectId();
   void setPreviewViewMaterialId();

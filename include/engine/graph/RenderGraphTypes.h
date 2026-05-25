@@ -43,6 +43,7 @@ namespace engine::graph {
     Beauty,
     Wireframe,
     Depth,
+    Stencil,
     Normal,
     ObjectId,
     MaterialId,

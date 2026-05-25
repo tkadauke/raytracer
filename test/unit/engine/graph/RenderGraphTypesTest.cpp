@@ -137,7 +137,7 @@ namespace RenderGraphTypesTest {
     viewOverride["selector"] = selector;
     viewOverride["executor"] = "wireframe";
     json["viewOverrides"] = QJsonArray{viewOverride};
-    json["exportedAOVs"] = QJsonArray{"depth", "world_position"};
+    json["exportedAOVs"] = QJsonArray{"depth", "stencil", "world_position"};
 
     const RenderIntent intent = RenderIntent::fromJson(json);
 
@@ -148,9 +148,10 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(intent.enableWireframeOverlay);
     EXPECT_FALSE(intent.enableCurveOverlay);
     EXPECT_EQ(RenderPostProcessAA::None, intent.postProcessAA);
-    ASSERT_EQ(2u, intent.exportedAOVs.size());
+    ASSERT_EQ(3u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
-    EXPECT_EQ(RenderViewMode::WorldPosition, intent.exportedAOVs[1]);
+    EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);
+    EXPECT_EQ(RenderViewMode::WorldPosition, intent.exportedAOVs[2]);
     ASSERT_EQ(1u, intent.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::ObjectName, intent.viewOverrides.front().selector.kind);
     EXPECT_EQ("Monitor", intent.viewOverrides.front().selector.value);

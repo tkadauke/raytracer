@@ -1116,7 +1116,8 @@ struct RenderPassTrace {
 };
 ```
 
-The first trace implementation should support image-like CPU color resources:
+The first trace implementation should support inspectable image-like CPU
+resources:
 
 - capture color inputs before a pass executes and color outputs after it
   executes;
@@ -1128,9 +1129,9 @@ The first trace implementation should support image-like CPU color resources:
   matching dimensions;
 - provide both absolute RGB difference and a boosted or heatmap visualization
   for subtle filters such as FXAA/SMAA;
-- mark non-image resources such as shadow maps, depth, stencil, object id,
-  motion vectors, and future cache artifacts as "metadata only" until a
-  specialized viewer exists.
+- preview color, depth, stencil, and integer-id resources, and mark non-image
+  resources such as shadow maps, motion vectors, and future cache artifacts as
+  "metadata only" until a specialized viewer exists.
 - attach cache metadata to resource snapshots so tools can distinguish
   non-cacheable resources from persistent-cache resources that were not served
   by a concrete cached artifact.
@@ -1242,10 +1243,10 @@ Plan validation should catch:
   reject `GPU` resources during plan validation until GPU-capable executors
   exist.
 - pass disabled with no valid default or dependent-culling path;
-- imported resource not provided; ✅ **Done for CPU color/depth/id inputs.**
-  `GraphRenderEngine` now accepts bound imported/history color, depth, and
-  integer-id resources and rejects unbound or unsupported external inputs before
-  execution.
+- imported resource not provided; ✅ **Done for CPU color/depth/stencil/id
+  inputs.** `GraphRenderEngine` now accepts bound imported/history color, depth,
+  stencil, and integer-id resources and rejects unbound or unsupported external
+  inputs before execution.
 - exported resource not produced; ✅ **Done.** Plan validation now rejects
   exported resources with no declared producer.
 - mirror/portal/screen recursion over the configured limit.
@@ -1316,7 +1317,7 @@ Implement the smallest graph that proves the architecture:
    filters, serialize graph-backed raster
    beauty pass state for MSAA/post-AA/fixed-function/shadow controls,
    serialize graph-backed wireframe pass state for LOD, compile graph-visible
-   depth, normal, object-id, material-id, and world-position AOV views, and
+   depth, stencil, normal, object-id, material-id, and world-position AOV views, and
    validate the manipulated plan.
    Selector-specific command-line intent overrides remain TODO, and
    scene-authored selector-specific intent now fails compilation clearly instead
@@ -1332,8 +1333,8 @@ Implement the smallest graph that proves the architecture:
    executing graph node, post-render traces expose pass/resource previews, and
    the dock exports the effective graph as text, DOT, or JSON. The Groups tab
    can disable all passes matching a present kind, executor, or feature. The
-   Preview View menu can compile the live preview as beauty, depth, normal,
-   object-id, material-id, or world-position AOV graphs. Per-selector intent
+   Preview View menu can compile the live preview as beauty, depth, stencil,
+   normal, object-id, material-id, or world-position AOV graphs. Per-selector intent
    controls remain TODO.
 10. Ship one hybrid demo: raytraced room containing a rasterized or wireframe
    render-texture screen.
@@ -1393,12 +1394,12 @@ light/occluder changes can be distinguished from unrelated scene edits.
 Record a per-render execution trace containing pass status, timings, supported
 input/output resource snapshots, and per-pass difference images. Modeler should
 let the user select a graph node after rendering and inspect `Input`, `Output`,
-`Difference`, and `Metadata` tabs. The first supported snapshots should be CPU
-color resources; shadow maps and other specialized resources can remain
-metadata-only until custom viewers exist.
+`Difference`, and `Metadata` tabs. CPU color, depth, stencil, and integer-id
+snapshots should be previewable; shadow maps and other specialized resources
+can remain metadata-only until custom viewers exist.
 
 ✅ **Partial.** `RenderGraphExecutionTrace` now records the executed plan, pass
-status, elapsed time, full-resolution CPU color input/output snapshots, and
+status, elapsed time, full-resolution CPU color/depth/stencil/id snapshots, and
 absolute plus boosted difference previews for simple one-input/one-output color
 passes. `GraphRenderEngine` makes trace capture opt-in and shares the recorder
 with render clones, so worker-thread preview renders can publish the completed
@@ -1435,26 +1436,30 @@ stencil resources, and `GraphRenderEngine` can now execute built-in
 depth/stencil composite passes. A composite pass reads base color, foreground
 color, an optional base/foreground depth pair, and an optional stencil mask,
 then writes a color output using nearest finite foreground depth and nonzero
-stencil coverage. Portal/mirror pass synthesis, alternate-camera rendering, and
-generated stencil masks remain TODO.
+stencil coverage. Stencil AOV view mode also synthesizes graph-visible stencil
+masks for primary-hit coverage, including a single-sample raster
+stencil-marking payload that uses tessellated raster geometry. Portal/mirror pass synthesis,
+alternate-camera rendering, and selector-derived stencil masks remain TODO.
 
 ### AOV exports
 
-Add `depth`, `normal`, `world_position`, `object_id`, `material_id`, and
-`motion_vector` resources as graph-visible outputs. ✅ **Partial.** The default
-view mode can now compile graph-visible `depth_aov`, `normal_aov`,
-`object_id_aov`, `material_id_aov`, and `world_position_aov` resources with
-visualization passes, and rendercli accepts `--render_graph_view depth`,
+Add `depth`, `stencil`, `normal`, `world_position`, `object_id`,
+`material_id`, and `motion_vector` resources as graph-visible outputs. ✅
+**Partial.** The default view mode can now compile graph-visible `depth_aov`,
+`stencil_aov`, `normal_aov`, `object_id_aov`, `material_id_aov`, and
+`world_position_aov` resources with visualization passes, and rendercli accepts
+`--render_graph_view depth`, `--render_graph_view stencil`,
 `--render_graph_view normal`, `--render_graph_view object_id`,
 `--render_graph_view material_id`, and `--render_graph_view world_position`.
 Render intents now carry an `exportedAOVs` list, the compiler adds requested
 AOV side branches through `RenderAOVDefinition` objects, and rendercli writes
 multiple opt-in AOV preview files with repeated `--render_graph_aov_out
-view=file` options. Rasterizer-backed depth, normal, object-id, material-id,
-and world-position AOV payloads now use rasterizer diagnostic buffers, so they
-reflect tessellated raster geometry and raster pass state instead of analytic
-primary-ray intersections. Motion vector resources remain TODO until graph
-history and previous-frame inputs exist.
+view=file` options. Rasterizer-backed depth, stencil, normal, object-id,
+material-id, and world-position AOV payloads now use rasterizer diagnostic
+buffers or a raster stencil-marking pass, so they reflect tessellated raster
+geometry and raster pass state instead of analytic primary-ray intersections.
+Motion vector resources remain TODO until graph history and previous-frame
+inputs exist.
 
 ### Parallel scheduler
 

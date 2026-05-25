@@ -28,9 +28,9 @@ namespace engine::graph {
   /**
     * Snapshot of one render resource as captured during graph execution.
     *
-    * The first trace implementation stores color previews for CPU color
-    * resources. Other resource types remain metadata-only until they have
-    * specialized viewers.
+    * Trace snapshots store inspectable previews for CPU color, depth, stencil,
+    * and integer-id resources. Other resource types remain metadata-only until
+    * they have specialized viewers.
     */
   class RenderGraphResourceSnapshot {
   public:

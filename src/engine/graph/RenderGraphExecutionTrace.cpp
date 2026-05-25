@@ -39,6 +39,18 @@ namespace engine::graph {
       return result;
     }
 
+    std::shared_ptr<const Buffer<Colord>> stencilPreviewFor(const Buffer<std::uint8_t>& source) {
+      auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
+
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          const double value = static_cast<double>(source[y][x]) / 255.0;
+          (*result)[y][x] = Colord(value, value, value);
+        }
+      }
+      return result;
+    }
+
     Colord colorForObjectId(std::uint32_t id) {
       if (id == 0) {
         return Colord::black();
@@ -679,6 +691,12 @@ namespace engine::graph {
     if (resource.depthBacked()) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr,
                                          depthPreviewFor(resource.depth()), "",
+                                         cacheMetadataFor(resource));
+    }
+
+    if (resource.stencilBacked()) {
+      return RenderGraphResourceSnapshot(resourceId, resource.descriptor(),
+                                         stencilPreviewFor(resource.stencil()), nullptr, "",
                                          cacheMetadataFor(resource));
     }
 

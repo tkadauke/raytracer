@@ -448,6 +448,19 @@ namespace engine::graph {
       }
     };
 
+    class StencilAOVPass : public PrimaryIntersectionAOVPass {
+    private:
+      void clearOutput(RenderExecutionContext& context, const RenderResourceId& resource) override {
+        requireStencilResource(context.storage(), resource, context.pass());
+        context.storage().stencil(resource).clear(0);
+      }
+
+      void writeHit(RenderExecutionContext& context, const RenderResourceId& resource, int x, int y,
+                    const HitPoint&) override {
+        context.storage().stencil(resource)[y][x] = 0xff;
+      }
+    };
+
     class NormalAOVPass : public PrimaryIntersectionAOVPass {
     private:
       void clearOutput(RenderExecutionContext& context, const RenderResourceId& resource) override {
@@ -581,6 +594,43 @@ namespace engine::graph {
       }
     };
 
+    class RasterStencilAOVPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireStencilResource(context.storage(), write.resource, pass);
+
+        Buffer<std::uint8_t>& stencil = context.storage().stencil(write.resource);
+        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
+                                                                         context.graph().scene());
+        RasterBeautyPassState::valueFromPass(pass).applyTo(*rasterizer);
+        rasterizer->setMSAASamples(1);
+        rasterizer->setPostProcessAA(::engine::raster::Rasterizer::PostProcessAA::None);
+        rasterizer->setColorWriteMask(0);
+        rasterizer->setColorStoreOp(::engine::raster::Rasterizer::AttachmentStoreOp::Discard);
+        rasterizer->setStencilTestEnabled(true);
+        rasterizer->setStencilFunc(::engine::raster::Rasterizer::StencilFunc::Always, 0xff);
+        rasterizer->setStencilClearValue(0);
+        rasterizer->setStencilLoadOp(::engine::raster::Rasterizer::AttachmentLoadOp::Clear);
+        rasterizer->setStencilStoreOp(::engine::raster::Rasterizer::AttachmentStoreOp::Store);
+        rasterizer->setStencilWriteMask(0xff);
+        rasterizer->setStencilOps(::engine::raster::Rasterizer::StencilOp::Keep,
+                                  ::engine::raster::Rasterizer::StencilOp::Keep,
+                                  ::engine::raster::Rasterizer::StencilOp::Replace);
+
+        ::engine::raster::Rasterizer::AttachmentBuffers attachments;
+        attachments.stencil = &stencil;
+        rasterizer->setAttachmentBuffers(attachments);
+
+        Buffer<Colord> scratch(stencil.width(), stencil.height());
+        prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(rasterizer);
+        rasterizer->render(scratch);
+      }
+    };
+
     class RasterNormalAOVPass : public RasterDiagnosticAOVPass {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -706,6 +756,30 @@ namespace engine::graph {
             }
             const double normalized = 1.0 - std::clamp((value - minDepth) / range, 0.0, 1.0);
             color[y][x] = Colord(normalized, normalized, normalized);
+          }
+        }
+      }
+    };
+
+    class StencilVisualizationPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
+        requireStencilResource(context.storage(), read.resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        const Buffer<std::uint8_t>& stencil = context.storage().stencil(read.resource);
+        Buffer<Colord>& color = context.storage().color(write.resource);
+        if (!core::util::bufferDimensionsEqual(stencil, color)) {
+          throw passError(pass, "stencil visualization requires matching buffer dimensions");
+        }
+
+        for (int y = 0; y != stencil.height(); ++y) {
+          for (int x = 0; x != stencil.width(); ++x) {
+            const double value = static_cast<double>(stencil[y][x]) / 255.0;
+            color[y][x] = Colord(value, value, value);
           }
         }
       }
@@ -1162,6 +1236,14 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"depth"});
       static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"depth"});
+      static const FeaturePassPayloadFactory<StencilVisualizationPass> stencilVisualization(
+        RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"stencil", "visualization"});
+      static const FeaturePassPayloadFactory<StencilAOVPass> stencilAOVRaytracer(
+        RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"stencil"});
+      static const FeaturePassPayloadFactory<RasterStencilAOVPass> stencilAOVRasterizer(
+        RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"stencil"});
+      static const FeaturePassPayloadFactory<StencilAOVPass> stencilAOVWireframe(
+        RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"stencil"});
       static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"normal"});
       static const FeaturePassPayloadFactory<RasterNormalAOVPass> normalAOVRasterizer(
@@ -1210,6 +1292,10 @@ namespace engine::graph {
         &depthAOV,
         &depthAOVRasterizer,
         &depthAOVWireframe,
+        &stencilVisualization,
+        &stencilAOVRaytracer,
+        &stencilAOVRasterizer,
+        &stencilAOVWireframe,
         &normalVisualization,
         &normalAOVRaytracer,
         &normalAOVRasterizer,
