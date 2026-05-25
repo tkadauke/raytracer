@@ -84,6 +84,7 @@ namespace render {
     void forEachLeafInBounds(const BoundsFilter& boundsFilter,
                              std::shared_ptr<render::Material> inheritedMaterial,
                              const LeafVisitor& visitor) const override;
+    void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
 
     /**
       * Tessellate every child and concatenate the resulting meshes

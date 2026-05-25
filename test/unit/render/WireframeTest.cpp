@@ -6,6 +6,7 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Box.h"
 #include "render/primitives/Curve.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Sphere.h"
@@ -102,6 +103,53 @@ namespace WireframeTest {
                       Vector3d(1.0, -0.5, 0.0)}),
       0.25, Curve::TessellationMode::Ribbon));
     Wireframe engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::white()), 0);
+  }
+
+  TEST(Wireframe, CurveOverlayModeDrawsZeroWidthCurve) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->add(std::make_shared<Curve>(
+      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
+                      Vector3d(1.0, -0.5, 0.0)}),
+      0.0, Curve::TessellationMode::Ribbon));
+    Wireframe engine(headOnCamera(), scene);
+    engine.setGeometryMode(Wireframe::GeometryMode::CurveOverlay);
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::white()), 0);
+  }
+
+  TEST(Wireframe, TessellatedModeDoesNotDrawZeroWidthCurve) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    scene->add(std::make_shared<Curve>(
+      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(1.0, 0.5, 0.0)}), 0.0,
+      Curve::TessellationMode::Ribbon));
+    Wireframe engine(headOnCamera(), scene);
+    Buffer<Colord> buffer(128, 128);
+
+    engine.render(buffer);
+
+    EXPECT_EQ(0, countPixels(buffer, Colord::white()));
+  }
+
+  TEST(Wireframe, CurveOverlayModeAppliesInstanceTransform) {
+    auto scene = std::make_shared<Scene>(Colord::black());
+    auto curve = std::make_shared<Curve>(
+      core::Polyline({Vector3d(-0.5, -0.5, 0.0), Vector3d(0.5, -0.5, 0.0)}), 0.0,
+      Curve::TessellationMode::Ribbon);
+    auto instance = std::make_shared<Instance>(curve);
+    Matrix4d matrix;
+    matrix.setCell(1, 3, 1.0);
+    instance->setMatrix(matrix);
+    scene->add(instance);
+    Wireframe engine(headOnCamera(), scene);
+    engine.setGeometryMode(Wireframe::GeometryMode::CurveOverlay);
     Buffer<Colord> buffer(128, 128);
 
     engine.render(buffer);
