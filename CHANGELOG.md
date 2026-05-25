@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Structured LDraw import diagnostics.** LDraw resolving and geometry
+  compilation can now collect machine-checkable warnings/errors for missing
+  subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
+  sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
 - **Group/Collection documentation and fixtures.** Group source docs and the
   scene-structure textbook now describe hierarchy-only collections, visibility,
   metadata, and the distinction from render layers/AOVs; a reusable nested

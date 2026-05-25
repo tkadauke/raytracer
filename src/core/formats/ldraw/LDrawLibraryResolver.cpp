@@ -136,6 +136,28 @@ LDrawLibraryResolver::resolve(const LDrawResolvedDocument& currentDocument,
   return loadMutable(resolvePath(currentDocument.path, filename));
 }
 
+LDrawLibraryResolver::DocumentPtr LDrawLibraryResolver::resolve(
+  const LDrawResolvedDocument& currentDocument,
+  const string& filename,
+  LDrawDiagnostics& diagnostics,
+  int lineNumber) {
+  try {
+    return resolve(currentDocument, filename);
+  } catch (const LDrawParseError&) {
+    LDrawDiagnostic diagnostic;
+    diagnostic.severity = LDrawDiagnosticSeverity::Error;
+    diagnostic.code = LDrawDiagnosticCode::MissingSubfile;
+    diagnostic.file = currentDocument.path.string();
+    diagnostic.lineNumber = lineNumber;
+    diagnostic.message = "unable to resolve LDraw subfile";
+    diagnostic.reference = filename;
+    for (const auto& root : searchRoots(currentDocument.path))
+      diagnostic.searchedRoots.push_back(root.string());
+    diagnostics.add(std::move(diagnostic));
+    throw;
+  }
+}
+
 vector<fs::path> LDrawLibraryResolver::searchRoots(const fs::path& currentFile) const {
   vector<fs::path> roots;
   if (!currentFile.empty())

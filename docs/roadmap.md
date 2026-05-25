@@ -565,6 +565,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   identity, inherited color context, and winding inversion, then wraps repeated
   references in `render::Instance`; repeated-brick fixture tests pin cache hits,
   shared geometry, bounds, and inherited-material behavior for #210.
+  ~~Structured import diagnostics for missing parts, unsupported commands,
+  skipped geometry, color fallbacks, BFC treatment, and fatal parse failures.~~
+  ✅ **Done.** `LDrawDiagnostics` gives parser/resolver/compiler paths
+  machine-checkable warnings and errors for #210.
 - **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI

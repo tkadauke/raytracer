@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/formats/ldraw/LDrawDocument.h"
+#include "core/formats/ldraw/LDrawDiagnostic.h"
 
 #include <filesystem>
 #include <memory>
@@ -20,6 +21,8 @@ public:
   DocumentPtr load(const std::filesystem::path& path);
   DocumentPtr loadWithSubfiles(const std::filesystem::path& path);
   DocumentPtr resolve(const LDrawResolvedDocument& currentDocument, const std::string& filename);
+  DocumentPtr resolve(const LDrawResolvedDocument& currentDocument, const std::string& filename,
+                      LDrawDiagnostics& diagnostics, int lineNumber = 0);
 
   [[nodiscard]] std::vector<std::filesystem::path> searchRoots(
     const std::filesystem::path& currentFile) const;

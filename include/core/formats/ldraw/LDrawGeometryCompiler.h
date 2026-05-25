@@ -35,9 +35,16 @@ public:
   [[nodiscard]] std::shared_ptr<render::Composite>
   compile(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
           const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] std::shared_ptr<render::Composite>
+  compile(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
+          LDrawDiagnostics& diagnostics,
+          const LDrawColorContext& context = LDrawColorContext()) const;
 
   [[nodiscard]] std::shared_ptr<render::Composite>
   compile(std::istream& input, const LDrawColorTable& colors,
+          const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] std::shared_ptr<render::Composite>
+  compile(std::istream& input, const LDrawColorTable& colors, LDrawDiagnostics& diagnostics,
           const LDrawColorContext& context = LDrawColorContext()) const;
 
   [[nodiscard]] CacheStats cacheStats() const;
@@ -47,6 +54,8 @@ private:
   struct CompileState {
     int depth = 0;
     std::unordered_set<std::string> activeFiles;
+    std::string currentFile;
+    LDrawDiagnostics* diagnostics = nullptr;
   };
 
   [[nodiscard]] std::shared_ptr<render::Composite>

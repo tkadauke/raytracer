@@ -7,6 +7,7 @@
 #include "world/objects/Element.h"
 #include "world/animation/Timeline.h"
 #include "core/Color.h"
+#include "core/formats/ldraw/LDrawDiagnostic.h"
 
 class Camera;
 
@@ -59,6 +60,15 @@ public:
     * create children for the child objects in the file.
     */
   bool load(const QString& filename);
+
+  /**
+    * Diagnostics captured while importing external scene data. JSON scene
+    * loading currently leaves this empty; LDraw import paths can attach
+    * machine-checkable warnings and errors here for Modeler/rendercli.
+    */
+  [[nodiscard]] const std::vector<LDrawDiagnostic>& importDiagnostics() const;
+  void setImportDiagnostics(std::vector<LDrawDiagnostic> diagnostics);
+  void clearImportDiagnostics();
 
   /**
     * @returns the scene's animation timeline, or `nullptr` when the scene is
@@ -204,4 +214,5 @@ private:
   std::unique_ptr<world::Timeline> m_animation;
   engine::graph::RenderIntent m_renderIntent;
   bool m_hasRenderIntent{false};
+  std::vector<LDrawDiagnostic> m_importDiagnostics;
 };

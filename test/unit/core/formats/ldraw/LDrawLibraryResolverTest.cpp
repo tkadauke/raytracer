@@ -175,4 +175,30 @@ namespace LDrawLibraryResolverTest {
       ASSERT_NE(string::npos, error.message().find((tree.root() / "ldraw" / "models").string()));
     }
   }
+
+  TEST(LDrawLibraryResolver, ShouldCollectStructuredMissingFileDiagnostic) {
+    TempTree tree;
+    const fs::path model = tree.write("models/model.ldr", "0 Model\n");
+
+    LDrawLibraryResolver resolver(tree.root() / "ldraw");
+    const auto document = resolver.load(model);
+    LDrawDiagnostics diagnostics;
+
+    EXPECT_THROW(resolver.resolve(*document, "missing.dat", diagnostics, 12), LDrawParseError);
+
+    ASSERT_EQ(1u, diagnostics.entries().size());
+    const auto& diagnostic = diagnostics.entries().front();
+    EXPECT_EQ(LDrawDiagnosticSeverity::Error, diagnostic.severity);
+    EXPECT_EQ(LDrawDiagnosticCode::MissingSubfile, diagnostic.code);
+    EXPECT_EQ(model.string(), diagnostic.file);
+    EXPECT_EQ(12, diagnostic.lineNumber);
+    EXPECT_EQ("missing.dat", diagnostic.reference);
+    ASSERT_EQ(6u, diagnostic.searchedRoots.size());
+    EXPECT_EQ((tree.root() / "models").string(), diagnostic.searchedRoots[0]);
+    EXPECT_EQ((tree.root() / "ldraw" / "parts").string(), diagnostic.searchedRoots[1]);
+    EXPECT_EQ((tree.root() / "ldraw" / "parts" / "s").string(), diagnostic.searchedRoots[2]);
+    EXPECT_EQ((tree.root() / "ldraw" / "p").string(), diagnostic.searchedRoots[3]);
+    EXPECT_EQ((tree.root() / "ldraw" / "p" / "48").string(), diagnostic.searchedRoots[4]);
+    EXPECT_EQ((tree.root() / "ldraw" / "models").string(), diagnostic.searchedRoots[5]);
+  }
 }

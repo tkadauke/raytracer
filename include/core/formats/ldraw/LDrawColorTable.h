@@ -2,6 +2,7 @@
 
 #include "core/Color.h"
 #include "core/formats/ldraw/LDrawCommand.h"
+#include "core/formats/ldraw/LDrawDiagnostic.h"
 
 #include <istream>
 #include <memory>
@@ -70,8 +71,14 @@ public:
 
   [[nodiscard]] LDrawColorReference resolveReference(int code, const LDrawColorContext& context) const;
   [[nodiscard]] Colord colorForCode(int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] Colord colorForCode(int code, const LDrawColorContext& context,
+                                    LDrawDiagnostics* diagnostics, const std::string& file,
+                                    int lineNumber) const;
   [[nodiscard]] std::shared_ptr<render::Material> materialForCode(
     int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] std::shared_ptr<render::Material> materialForCode(
+    int code, const LDrawColorContext& context, LDrawDiagnostics* diagnostics,
+    const std::string& file, int lineNumber) const;
   [[nodiscard]] LDrawColorContext contextForSubfile(int colorCode,
                                                     const LDrawColorContext& parent) const;
 
