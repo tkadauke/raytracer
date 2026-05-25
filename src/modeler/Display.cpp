@@ -121,6 +121,9 @@ RenderDisplay::~RenderDisplay() {
 }
 
 void RenderDisplay::setEngineKind(EngineKind kind) {
+  if (m_engineKind == kind)
+    return;
+
   m_engineKind = kind;
 
   // Stop any in-flight render before the graph is recompiled for a different
@@ -137,6 +140,9 @@ RenderDisplay::EngineKind RenderDisplay::engineKind() const {
 }
 
 void RenderDisplay::setRasterizerPreviewShadowsEnabled(bool enabled) {
+  if (m_rasterizerPreviewShadowsEnabled == enabled)
+    return;
+
   m_rasterizerPreviewShadowsEnabled = enabled;
   emit renderGraphInputsChanged();
   if (m_engineKind == EngineKind::Rasterizer)
@@ -148,6 +154,9 @@ bool RenderDisplay::rasterizerPreviewShadowsEnabled() const {
 }
 
 void RenderDisplay::setPreviewPostProcessAA(engine::graph::RenderPostProcessAA aa) {
+  if (m_previewPostProcessAA == aa)
+    return;
+
   m_previewPostProcessAA = aa;
   emit renderGraphInputsChanged();
   render();
@@ -158,6 +167,9 @@ engine::graph::RenderPostProcessAA RenderDisplay::previewPostProcessAA() const {
 }
 
 void RenderDisplay::setPreviewViewMode(engine::graph::RenderViewMode viewMode) {
+  if (m_previewViewMode == viewMode)
+    return;
+
   m_previewViewMode = viewMode;
   emit renderGraphInputsChanged();
   render();
@@ -168,6 +180,9 @@ engine::graph::RenderViewMode RenderDisplay::previewViewMode() const {
 }
 
 void RenderDisplay::setWireframeOverlayEnabled(bool enabled) {
+  if (m_wireframeOverlayEnabled == enabled)
+    return;
+
   m_wireframeOverlayEnabled = enabled;
   emit renderGraphInputsChanged();
   render();

@@ -173,6 +173,75 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, StencilCompositeViewModeCompilesHybridPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = RenderViewMode::StencilComposite;
+    intent.exportedAOVs = {RenderViewMode::Stencil};
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_NE(nullptr, plan.findResource("base_color"));
+    ASSERT_NE(nullptr, plan.findResource("foreground_color"));
+    ASSERT_NE(nullptr, plan.findResource("stencil_aov"));
+    ASSERT_NE(nullptr, plan.findResource("composited_color"));
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    ASSERT_NE(nullptr, plan.findResource("stencil_aov_color"));
+    EXPECT_EQ(RenderResourceType::Stencil, plan.findResource("stencil_aov")->type);
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.findResource("stencil_aov")->lifetime);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    const auto* raster = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, raster);
+    EXPECT_EQ(RenderPassKind::Beauty, raster->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, raster->executor);
+    EXPECT_TRUE(hasFeature(*raster, "stencil_composite_base"));
+    ASSERT_EQ(1u, raster->writes.size());
+    EXPECT_EQ("base_color", raster->writes.front().resource);
+
+    const auto* wireframe = plan.findPass("wireframe_beauty");
+    ASSERT_NE(nullptr, wireframe);
+    EXPECT_EQ(RenderExecutorKind::Wireframe, wireframe->executor);
+    EXPECT_TRUE(hasFeature(*wireframe, "stencil_composite_foreground"));
+    ASSERT_EQ(1u, wireframe->writes.size());
+    EXPECT_EQ("foreground_color", wireframe->writes.front().resource);
+
+    const auto* stencil = plan.findPass("stencil_aov");
+    ASSERT_NE(nullptr, stencil);
+    EXPECT_EQ(RenderPassKind::AOV, stencil->kind);
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, stencil->executor);
+    ASSERT_EQ(1u, stencil->writes.size());
+    EXPECT_EQ("stencil_aov", stencil->writes.front().resource);
+
+    const auto* composite = plan.findPass("stencil_composite");
+    ASSERT_NE(nullptr, composite);
+    EXPECT_EQ(RenderPassKind::Composite, composite->kind);
+    EXPECT_EQ(RenderExecutorKind::Composite, composite->executor);
+    EXPECT_TRUE(hasFeature(*composite, "stencil_composite"));
+    ASSERT_EQ(3u, composite->reads.size());
+    EXPECT_EQ("base_color", composite->reads[0].resource);
+    EXPECT_EQ("foreground_color", composite->reads[1].resource);
+    EXPECT_EQ("stencil_aov", composite->reads[2].resource);
+    ASSERT_EQ(1u, composite->writes.size());
+    EXPECT_EQ("composited_color", composite->writes.front().resource);
+
+    const auto* visualizeStencil = plan.findPass("visualize_stencil_aov");
+    ASSERT_NE(nullptr, visualizeStencil);
+    EXPECT_EQ(RenderPassKind::AOV, visualizeStencil->kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, visualizeStencil->executor);
+    ASSERT_EQ(1u, visualizeStencil->reads.size());
+    EXPECT_EQ("stencil_aov", visualizeStencil->reads.front().resource);
+    ASSERT_EQ(1u, visualizeStencil->writes.size());
+    EXPECT_EQ("stencil_aov_color", visualizeStencil->writes.front().resource);
+
+    const auto* tonemap = plan.findPass("tonemap");
+    ASSERT_NE(nullptr, tonemap);
+    ASSERT_EQ(1u, tonemap->reads.size());
+    EXPECT_EQ("composited_color", tonemap->reads.front().resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalViewModeCompilesNormalAOVPlan) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

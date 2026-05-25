@@ -605,6 +605,41 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, StencilCompositeViewExecutesSynthesizedHybridPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = RenderViewMode::StencilComposite;
+    intent.exportedAOVs = {RenderViewMode::Stencil};
+
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> output(32, 32);
+    engine.render(output);
+
+    EXPECT_GT(countNonBlackPixels(output), 0);
+    ASSERT_NE(nullptr, engine.lastPlan().findPass("stencil_composite"));
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+
+    const auto stencilOutputs = trace->outputSnapshotsForResource("stencil_aov");
+    ASSERT_EQ(1u, stencilOutputs.size());
+    ASSERT_TRUE(stencilOutputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(stencilOutputs.front()->colorPreview()), 0);
+
+    const auto compositeOutputs = trace->outputSnapshotsForResource("composited_color");
+    ASSERT_EQ(1u, compositeOutputs.size());
+    ASSERT_TRUE(compositeOutputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(compositeOutputs.front()->colorPreview()), 0);
+
+    const auto stencilPreviewOutputs = trace->outputSnapshotsForResource("stencil_aov_color");
+    ASSERT_EQ(1u, stencilPreviewOutputs.size());
+    ASSERT_TRUE(stencilPreviewOutputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(stencilPreviewOutputs.front()->colorPreview()), 0);
+  }
+
   TEST(GraphRenderEngine, ExecutesRequestedAOVSideOutputsWhenTraceIsEnabled) {
     RenderIntent intent;
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal};

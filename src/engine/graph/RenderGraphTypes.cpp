@@ -117,6 +117,7 @@ namespace engine::graph {
                                         {"wireframe", RenderViewMode::Wireframe},
                                         {"depth", RenderViewMode::Depth},
                                         {"stencil", RenderViewMode::Stencil},
+                                        {"stencil_composite", RenderViewMode::StencilComposite},
                                         {"normal", RenderViewMode::Normal},
                                         {"object_id", RenderViewMode::ObjectId},
                                         {"material_id", RenderViewMode::MaterialId},
@@ -650,6 +651,7 @@ namespace engine::graph {
                                             {RenderViewMode::Wireframe, "wireframe"},
                                             {RenderViewMode::Depth, "depth"},
                                             {RenderViewMode::Stencil, "stencil"},
+                                            {RenderViewMode::StencilComposite, "stencil_composite"},
                                             {RenderViewMode::Normal, "normal"},
                                             {RenderViewMode::ObjectId, "object_id"},
                                             {RenderViewMode::MaterialId, "material_id"},
@@ -944,6 +946,9 @@ namespace engine::graph {
   RenderExecutorKind RenderIntent::defaultExecutorKind() const {
     if (defaultViewMode == RenderViewMode::Wireframe) {
       return RenderExecutorKind::Wireframe;
+    }
+    if (defaultViewMode == RenderViewMode::StencilComposite) {
+      return RenderExecutorKind::Rasterizer;
     }
 
     return renderExecutorDefinition(defaultExecutor).kind();

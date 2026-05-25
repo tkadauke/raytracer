@@ -13,6 +13,8 @@ file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_aov_demo.json")
+set(stencil_composite_demo_scene
+    "${PROJECT_SOURCE_DIR}/scenes/render_graph_stencil_composite_demo.json")
 set(stencil_composite_demo_graph
     "${PROJECT_SOURCE_DIR}/graphs/render_graph_stencil_composite_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
@@ -36,6 +38,8 @@ set(raster_depth_view_plan "${TEST_OUTPUT_DIR}/graph-raster-depth-view.json")
 set(stencil_view_render "${TEST_OUTPUT_DIR}/graph-stencil-view.png")
 set(raster_stencil_view_render "${TEST_OUTPUT_DIR}/graph-raster-stencil-view.png")
 set(raster_stencil_view_plan "${TEST_OUTPUT_DIR}/graph-raster-stencil-view.json")
+set(stencil_composite_view_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-view.png")
+set(stencil_composite_view_plan "${TEST_OUTPUT_DIR}/graph-stencil-composite-view.json")
 set(normal_view_render "${TEST_OUTPUT_DIR}/graph-normal-view.png")
 set(object_id_view_render "${TEST_OUTPUT_DIR}/graph-object-id-view.png")
 set(material_id_view_render "${TEST_OUTPUT_DIR}/graph-material-id-view.png")
@@ -80,6 +84,7 @@ set(stencil_input_bound_render "${TEST_OUTPUT_DIR}/graph-stencil-input-bound-ren
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 set(graph_demo_render "${TEST_OUTPUT_DIR}/graph-demo-render.png")
 set(stencil_composite_demo_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-demo-render.png")
+set(stencil_composite_scene_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-scene-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
 {
@@ -967,6 +972,48 @@ file(READ "${raster_stencil_view_plan}" raster_stencil_view_graph)
 if(NOT raster_stencil_view_graph MATCHES "stencil_aov")
   message(FATAL_ERROR "raster stencil AOV graph did not contain stencil_aov: ${raster_stencil_view_graph}")
 endif()
+
+rendercli_run(
+  NAME "rendercli exports stencil composite view render graph"
+  STDOUT_MATCHES
+    "raster_beauty"
+    "wireframe_beauty"
+    "stencil_aov"
+    "stencil_composite"
+    "tonemap"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_view stencil_composite
+    --width 32 --height 24
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli renders stencil composite view through graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_view stencil_composite --render_graph_aov_out
+    "stencil=${graph_aov_stencil}" --render_graph_format json
+    --render_graph_out "${stencil_composite_view_plan}"
+    --width 32 --height 24
+    "${static_scene}" "${stencil_composite_view_render}"
+)
+rendercli_assert_nonempty("${stencil_composite_view_render}"
+                          NAME "stencil composite graph render output")
+rendercli_assert_nonempty("${stencil_composite_view_plan}"
+                          NAME "stencil composite graph plan")
+file(READ "${stencil_composite_view_plan}" stencil_composite_view_graph)
+if(NOT stencil_composite_view_graph MATCHES "stencil_aov_color")
+  message(FATAL_ERROR
+          "stencil composite graph did not contain exported stencil preview: ${stencil_composite_view_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli renders stencil composite scene intent"
+  COMMAND
+    "${RENDERCLI}" --width 64 --height 36
+    "${stencil_composite_demo_scene}" "${stencil_composite_scene_render}"
+)
+rendercli_assert_nonempty("${stencil_composite_scene_render}"
+                          NAME "stencil composite scene render output")
 
 rendercli_run(
   NAME "rendercli exports normal AOV render graph"

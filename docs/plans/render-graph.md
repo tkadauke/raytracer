@@ -1441,8 +1441,12 @@ color, an optional base/foreground depth pair, and an optional stencil mask,
 then writes a color output using nearest finite foreground depth and nonzero
 stencil coverage. Stencil AOV view mode also synthesizes graph-visible stencil
 masks for primary-hit coverage, including a single-sample raster
-stencil-marking payload that uses tessellated raster geometry. Portal/mirror pass synthesis,
-alternate-camera rendering, and selector-derived stencil masks remain TODO.
+stencil-marking payload that uses tessellated raster geometry. The compiler can
+also synthesize a `stencil_composite` structural view that renders raster
+beauty, wireframe foreground, a raster stencil AOV, a stencil composite pass,
+and tonemap from scene intent, and the Modeler ships with a loadable scene for
+that path. Portal/mirror pass synthesis, alternate-camera rendering, and
+selector-derived stencil masks remain TODO.
 
 ### AOV exports
 
@@ -1452,8 +1456,9 @@ Add `depth`, `stencil`, `normal`, `world_position`, `object_id`,
 `stencil_aov`, `normal_aov`, `object_id_aov`, `material_id_aov`, and
 `world_position_aov` resources with visualization passes, and rendercli accepts
 `--render_graph_view depth`, `--render_graph_view stencil`,
-`--render_graph_view normal`, `--render_graph_view object_id`,
-`--render_graph_view material_id`, and `--render_graph_view world_position`.
+`--render_graph_view stencil_composite`, `--render_graph_view normal`,
+`--render_graph_view object_id`, `--render_graph_view material_id`, and
+`--render_graph_view world_position`.
 Render intents now carry an `exportedAOVs` list, the compiler adds requested
 AOV side branches through `RenderAOVDefinition` objects, and rendercli writes
 multiple opt-in AOV preview files with repeated `--render_graph_aov_out

@@ -159,6 +159,17 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(RenderExecutorPreference::Wireframe, *intent.viewOverrides.front().executor);
   }
 
+  TEST(RenderIntent, ReadsStencilCompositeViewMode) {
+    QJsonObject json;
+    json["defaultViewMode"] = "stencil_composite";
+
+    const RenderIntent intent = RenderIntent::fromJson(json);
+
+    EXPECT_EQ(RenderViewMode::StencilComposite, intent.defaultViewMode);
+    EXPECT_EQ("stencil_composite", std::string(toString(intent.defaultViewMode)));
+    EXPECT_EQ(RenderExecutorKind::Rasterizer, intent.defaultExecutorKind());
+  }
+
   TEST(RenderIntent, OwnsAOVAndShadingProfileIntentMutation) {
     RenderIntent intent;
 

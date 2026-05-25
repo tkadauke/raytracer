@@ -100,23 +100,23 @@ namespace engine::graph {
                                  "' is not an AOV export");
       }
 
-      if (viewMode == defaultViewMode || plan.findResource(aov->resourceId()) ||
-          plan.findResource(aov->previewColorResourceId())) {
+      if (viewMode == defaultViewMode || plan.findResource(aov->previewColorResourceId())) {
         return;
       }
 
       const RenderResourceId aovId = aov->resourceId();
       const RenderResourceId previewId = aov->previewColorResourceId();
-      RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false);
-      if (aov->usesRasterTargetSampling()) {
-        applyTargetSamplingToRasterPass(producer, target);
+      if (!plan.findResource(aovId)) {
+        RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false);
+        if (aov->usesRasterTargetSampling()) {
+          applyTargetSamplingToRasterPass(producer, target);
+        }
+        plan.addResourceProducer(std::move(producer),
+                                 aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
       }
-      plan.addResourceProducer(std::move(producer),
-                               aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
-      plan.routeResourceThroughPass(aovId,
-                                    target.colorResource(previewId, aov->title() + " AOV preview",
-                                                         RenderResourceLifetime::Exported),
-                                    aovVisualizationPass(*aov, aovId, previewId, false));
+      plan.addResource(target.colorResource(previewId, aov->title() + " AOV preview",
+                                            RenderResourceLifetime::Exported));
+      plan.addPass(aovVisualizationPass(*aov, aovId, previewId, false));
     }
 
     void addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
@@ -153,11 +153,102 @@ namespace engine::graph {
     return color;
   }
 
+  RenderPassNode
+  RenderGraphCompiler::beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
+                                  const RenderTargetSpec& target,
+                                  std::vector<RenderFeatureKind> extraFeatures) const {
+    const auto* executorDefinition = renderExecutorDefinition(executor);
+    if (!executorDefinition) {
+      throw std::runtime_error("render executor cannot produce a beauty pass");
+    }
+
+    RenderPassNode pass;
+    pass.id = executorDefinition->beautyPassId();
+    pass.name = executorDefinition->beautyPassName();
+    pass.kind = RenderPassKind::Beauty;
+    pass.executor = executor;
+    pass.features = {"main", "beauty", executorDefinition->feature()};
+    pass.features.insert(pass.features.end(), extraFeatures.begin(), extraFeatures.end());
+    pass.sceneView = sceneView;
+    pass.disabledBehavior = DisabledBehavior::Error;
+    pass.canRunConcurrently = false;
+    applyTargetSamplingToRasterPass(pass, target);
+    return pass;
+  }
+
+  RenderPassNode RenderGraphCompiler::tonemapPass(RenderResourceId inputResource,
+                                                  RenderResourceId outputResource) const {
+    RenderPassNode pass;
+    pass.id = "tonemap";
+    pass.name = "Tone map";
+    pass.kind = RenderPassKind::Tonemap;
+    pass.executor = RenderExecutorKind::PostProcess;
+    pass.features = {"main", "tonemap", "postprocess"};
+    pass.addRead(std::move(inputResource));
+    pass.addWrite(std::move(outputResource));
+    pass.sceneView.selector = SceneSelector::all();
+    pass.disabledBehavior = DisabledBehavior::Passthrough;
+    pass.canRunConcurrently = false;
+    return pass;
+  }
+
+  RenderPlan RenderGraphCompiler::compileStencilCompositeView(const RenderTargetSpec& target,
+                                                              const RenderIntent& intent) const {
+    const SceneView sceneView = intent.defaultSceneView();
+    RenderPlan plan;
+
+    plan.addResourceProducer(
+      beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, {"stencil_composite_base"}),
+      target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient));
+    plan.addResourceProducer(beautyPass(RenderExecutorKind::Wireframe, sceneView, target,
+                                        {"stencil_composite_foreground"}),
+                             target.colorResource("foreground_color", "Foreground color",
+                                                  RenderResourceLifetime::Transient));
+
+    const auto* stencilAOV = renderAOVDefinition(RenderViewMode::Stencil);
+    if (!stencilAOV) {
+      throw std::runtime_error("stencil composite view requires a stencil AOV definition");
+    }
+    plan.addResourceProducer(
+      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true),
+      stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient));
+
+    RenderPassNode composite;
+    composite.id = "stencil_composite";
+    composite.name = "Stencil composite";
+    composite.kind = RenderPassKind::Composite;
+    composite.executor = RenderExecutorKind::Composite;
+    composite.features = {"main", "composite", "stencil_composite"};
+    composite.addRead("base_color");
+    composite.addRead("foreground_color");
+    composite.addRead(stencilAOV->resourceId());
+    composite.addWrite("composited_color");
+    composite.sceneView.selector = SceneSelector::all();
+    composite.disabledBehavior = DisabledBehavior::SubstituteDefault;
+    composite.canRunConcurrently = false;
+    plan.addResource(target.colorResource("composited_color", "Composited color",
+                                          RenderResourceLifetime::Transient));
+    plan.addPass(composite);
+
+    plan.routeResourceThroughPass(
+      "composited_color",
+      target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported),
+      tonemapPass("composited_color", "main_color"));
+
+    addAuxiliaryAOVExports(plan, target, RenderExecutorKind::Rasterizer, intent);
+    return plan;
+  }
+
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
                                           const RenderIntent& intent) const {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
     frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
+
+    if (frameIntent.defaultViewMode == RenderViewMode::StencilComposite) {
+      return compileStencilCompositeView(target, frameIntent);
+    }
+
     const RenderExecutorKind executor = frameIntent.defaultExecutorKind();
     const auto* executorDefinition = renderExecutorDefinition(executor);
     if (!executorDefinition) {
@@ -177,32 +268,13 @@ namespace engine::graph {
     const bool usesPreviewShadows =
       executor == RenderExecutorKind::Rasterizer && frameIntent.enablePreviewShadows;
 
-    RenderPassNode beauty;
-    beauty.id = executorDefinition->beautyPassId();
-    beauty.name = executorDefinition->beautyPassName();
-    beauty.kind = RenderPassKind::Beauty;
-    beauty.executor = executor;
-    beauty.features = {"main", "beauty", executorDefinition->feature()};
-    beauty.sceneView = frameIntent.defaultSceneView();
-    beauty.disabledBehavior = DisabledBehavior::Error;
-    beauty.canRunConcurrently = false;
-    applyTargetSamplingToRasterPass(beauty, target);
+    RenderPassNode beauty = beautyPass(executor, frameIntent.defaultSceneView(), target);
     plan.addResourceProducer(beauty, beautyColor);
 
-    RenderPassNode tonemap;
-    tonemap.id = "tonemap";
-    tonemap.name = "Tone map";
-    tonemap.kind = RenderPassKind::Tonemap;
-    tonemap.executor = RenderExecutorKind::PostProcess;
-    tonemap.features = {"main", "tonemap", "postprocess"};
-    tonemap.addRead("beauty_color");
-    tonemap.addWrite("main_color");
-    tonemap.sceneView.selector = SceneSelector::all();
-    tonemap.disabledBehavior = DisabledBehavior::Passthrough;
-    tonemap.canRunConcurrently = false;
     RenderResourceDescriptor mainColor =
       target.colorResource("main_color", "Main color", RenderResourceLifetime::Exported);
-    plan.routeResourceThroughPass("beauty_color", mainColor, tonemap);
+    plan.routeResourceThroughPass("beauty_color", mainColor,
+                                  tonemapPass("beauty_color", "main_color"));
 
     if (usesPreviewShadows) {
       RenderPassNode shadows;

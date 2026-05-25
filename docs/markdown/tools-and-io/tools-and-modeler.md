@@ -93,7 +93,8 @@ compilation currently rejects it until the compiler can synthesize real
 scene-partitioning and composition passes.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
-`--render_graph_view default|beauty|wireframe|depth|stencil|normal|object_id|material_id|world_position`
+`--render_graph_view
+default|beauty|wireframe|depth|stencil|stencil_composite|normal|object_id|material_id|world_position`
 overrides the graph intent's structural view mode. `--render_graph_camera
 camera_id` overrides the intent's default scene-camera reference; current
 executors still render with the active runtime camera, but the compiled graph
@@ -257,14 +258,19 @@ ordinary world-scene files, so both `rendercli` and `Modeler` load the same
 data. The current checked-in scenes cover camera demos, depth of field,
 animation frame evaluation, camera panning, light sweeps, material fades,
 motion-blur velocity sweeps, visibility-step timelines, transparent materials,
-reflections, raster material previews, a render-graph AOV demo, and small
-geometry fixtures used by tests.
+reflections, raster material previews, render-graph AOV and stencil-composite
+demos, and small geometry fixtures used by tests.
 
 [`scenes/render_graph_aov_demo.json`](../../../scenes/render_graph_aov_demo.json)
 is a focused Modeler graph-inspection scene. Its saved render intent asks for a
 rasterizer beauty preview, an SMAA postprocess pass, and a stencil AOV side
 branch, so opening the Render Graph dock immediately shows both the main color
 chain and an auxiliary resource branch.
+[`scenes/render_graph_stencil_composite_demo.json`](../../../scenes/render_graph_stencil_composite_demo.json)
+opens with the rasterizer preview and Stencil Composite view selected from its
+saved render intent. The compiler synthesizes raster beauty, wireframe beauty,
+stencil AOV, composite, tonemap, and exported stencil-preview nodes; the scene
+does not name those nodes directly.
 
 The Modeler does not bake scene catalogs into C++; it opens JSON scene files
 directly. New reusable demos should be added as scene files unless they need a

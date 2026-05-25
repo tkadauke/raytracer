@@ -3,6 +3,7 @@
 #include "engine/graph/RenderPlan.h"
 
 #include <string>
+#include <vector>
 
 namespace engine::graph {
   /**
@@ -40,5 +41,14 @@ namespace engine::graph {
       * `RenderGraphOverrides`, or handed to `GraphRenderEngine` for execution.
       */
     RenderPlan compile(const RenderTargetSpec& target, const RenderIntent& intent) const;
+
+  private:
+    RenderPassNode beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
+                              const RenderTargetSpec& target,
+                              std::vector<RenderFeatureKind> extraFeatures = {}) const;
+    RenderPassNode tonemapPass(RenderResourceId inputResource,
+                               RenderResourceId outputResource) const;
+    RenderPlan compileStencilCompositeView(const RenderTargetSpec& target,
+                                           const RenderIntent& intent) const;
   };
 }

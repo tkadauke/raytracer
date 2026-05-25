@@ -1,0 +1,142 @@
+{
+  "id": "{62000000-0000-0000-0000-000000000000}",
+  "name": "Render Graph Stencil Composite Demo",
+  "ambient": [0.34, 0.34, 0.36],
+  "background": [0.10, 0.13, 0.16],
+  "type": "Scene",
+  "renderIntent": {
+    "defaultExecutor": "rasterizer",
+    "defaultViewMode": "stencil_composite",
+    "defaultShadingProfile": {
+      "name": "default"
+    },
+    "defaultCamera": {
+      "sceneCameraId": "{62000000-0000-0000-0000-000000000001}"
+    },
+    "enableAutomaticFeatures": true,
+    "enableWireframeOverlay": false,
+    "enableCurveOverlay": false,
+    "enablePreviewShadows": false,
+    "postProcessAA": "none",
+    "exportedAOVs": ["stencil"]
+  },
+  "children": [
+    {
+      "id": "{62000000-0000-0000-0000-000000000001}",
+      "name": "Graph Demo Camera",
+      "position": [0.0, 0.0, -5.2],
+      "target": [0.0, 0.0, 0.05],
+      "distance": 5.0,
+      "zoom": 1.95,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000002}",
+      "name": "Graph Demo Key Light",
+      "position": [0.0, -2.8, -4.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 0.96, 0.86],
+      "intensity": 2.0,
+      "type": "PointLight",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000010}",
+      "name": "Graph Demo Red",
+      "color": [0.88, 0.18, 0.12],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000011}",
+      "name": "Graph Demo Green",
+      "color": [0.12, 0.62, 0.32],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000012}",
+      "name": "Graph Demo Blue",
+      "color": [0.18, 0.36, 0.86],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000020}",
+      "name": "Graph Demo Torus Material",
+      "diffuseTexture": "{62000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.36,
+      "diffuseCoefficient": 0.72,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 0.75,
+      "exponent": 32.0,
+      "type": "PhongMaterial",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000021}",
+      "name": "Graph Demo Sphere Material",
+      "diffuseTexture": "{62000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 0.34,
+      "diffuseCoefficient": 0.95,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000022}",
+      "name": "Graph Demo Box Material",
+      "diffuseTexture": "{62000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 0.36,
+      "diffuseCoefficient": 0.72,
+      "specularColor": [1.0, 1.0, 1.0],
+      "specularCoefficient": 0.45,
+      "exponent": 18.0,
+      "type": "PhongMaterial",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000030}",
+      "name": "Stencil Ring",
+      "position": [-1.32, 0.0, 0.10],
+      "rotation": [0.42, -0.38, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{62000000-0000-0000-0000-000000000020}",
+      "sweptRadius": 0.50,
+      "tubeRadius": 0.15,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Torus",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000031}",
+      "name": "Stencil Sphere",
+      "position": [0.0, 0.02, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{62000000-0000-0000-0000-000000000021}",
+      "radius": 0.50,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Sphere",
+      "children": []
+    },
+    {
+      "id": "{62000000-0000-0000-0000-000000000032}",
+      "name": "Stencil Box",
+      "position": [1.25, 0.03, 0.08],
+      "rotation": [0.15, 0.48, -0.08],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": "{62000000-0000-0000-0000-000000000022}",
+      "size": [0.66, 0.82, 0.66],
+      "bevelRadius": 0.0,
+      "velocity": [0.0, 0.0, 0.0],
+      "type": "Box",
+      "children": []
+    }
+  ]
+}

@@ -337,7 +337,10 @@ bool, number, or string parameters to that profile. The
 `depth`, `stencil`, `normal`, `object_id`, `material_id`, and `world_position` views
 compile real resource-producing AOV nodes followed by visualization passes, so
 the exported plan and the Modeler inspector can show AOVs as graph resources
-rather than hiding them inside a direct engine. `--render_graph_aov_out view=file` requests
+rather than hiding them inside a direct engine. The `stencil_composite` view
+mode is also synthesized from intent: it compiles raster beauty, wireframe
+beauty, stencil AOV, composite, and tonemap passes without requiring the scene
+to name any graph nodes. `--render_graph_aov_out view=file` requests
 additional AOV side branches, such as a beauty render that also writes depth
 and normal preview images. `--render_graph_wireframe_overlay` adds an overlay
 pass between the primary beauty pass and the tonemap pass.
@@ -361,10 +364,12 @@ in Modeler to inspect the same saved render intent as an interactive graph:
 
 The reusable graph plan
 [`graphs/render_graph_stencil_composite_demo.json`](../../../graphs/render_graph_stencil_composite_demo.json)
-uses that raster stencil resource as a real composite input. It renders the
-same scene twice, once as shaded raster color and once as wireframe color, then
-uses the rasterized stencil mask to replace only object-covered pixels with the
-wireframe foreground:
+mirrors the compiler-synthesized `stencil_composite` view as replayable graph
+JSON. A Modeler-openable scene for the same intent lives at
+[`scenes/render_graph_stencil_composite_demo.json`](../../../scenes/render_graph_stencil_composite_demo.json).
+Both forms render the same scene twice, once as shaded raster color and once as
+wireframe color, then use the rasterized stencil mask to replace only
+object-covered pixels with the wireframe foreground:
 
 ![Stencil-composited render: raster beauty outside the stencil mask, wireframe foreground inside it](../../images/render_graph_stencil_composite.png)
 
@@ -794,6 +799,7 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 - `include/widgets/world/RenderGraphInspectorWidget.h`
 - `include/widgets/world/RenderGraphTracePreviewWidget.h`
 - `scenes/render_graph_aov_demo.json`
+- `scenes/render_graph_stencil_composite_demo.json`
 - `src/modeler/`
 - `src/engine/graph/RenderExecutionContext.cpp`
 - `src/engine/graph/RenderGraphCompiler.cpp`

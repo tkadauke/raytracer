@@ -345,6 +345,8 @@ namespace {
       *viewMode = RenderViewMode::Depth;
     } else if (normalized == "stencil") {
       *viewMode = RenderViewMode::Stencil;
+    } else if (normalized == "stencilcomposite") {
+      *viewMode = RenderViewMode::StencilComposite;
     } else if (normalized == "normal") {
       *viewMode = RenderViewMode::Normal;
     } else if (normalized == "objectid") {
@@ -1833,7 +1835,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "executor"},
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, stencil, normal, "
-      "object_id, material_id, world_position)",
+      "stencil_composite, object_id, material_id, world_position)",
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
@@ -2167,7 +2169,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
                                         &m_renderGraphViewMode)) {
       *errorMessage =
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'stencil', "
-        "'normal', 'object_id', 'material_id', or 'world_position'";
+        "'stencil_composite', 'normal', 'object_id', 'material_id', or 'world_position'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;

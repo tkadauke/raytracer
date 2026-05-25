@@ -44,6 +44,7 @@ namespace engine::graph {
     Wireframe,
     Depth,
     Stencil,
+    StencilComposite,
     Normal,
     ObjectId,
     MaterialId,

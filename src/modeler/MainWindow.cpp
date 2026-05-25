@@ -32,6 +32,7 @@
 #include <cmath>
 #include <exception>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <set>
 #include <stdexcept>
@@ -435,6 +436,7 @@ struct MainWindow::Private {
   QAction* previewViewBeautyAct;
   QAction* previewViewDepthAct;
   QAction* previewViewStencilAct;
+  QAction* previewViewStencilCompositeAct;
   QAction* previewViewNormalAct;
   QAction* previewViewObjectIdAct;
   QAction* previewViewMaterialIdAct;
@@ -781,6 +783,13 @@ void MainWindow::createActions() {
   p->previewViewStencilAct->setCheckable(true);
   connect(p->previewViewStencilAct, SIGNAL(triggered()), this, SLOT(setPreviewViewStencil()));
 
+  p->previewViewStencilCompositeAct = new QAction(tr("Stencil &Composite"), this);
+  p->previewViewStencilCompositeAct->setStatusTip(
+    tr("Show the live preview stencil-composited raster and wireframe view"));
+  p->previewViewStencilCompositeAct->setCheckable(true);
+  connect(p->previewViewStencilCompositeAct, SIGNAL(triggered()), this,
+          SLOT(setPreviewViewStencilComposite()));
+
   p->previewViewNormalAct = new QAction(tr("&Normal"), this);
   p->previewViewNormalAct->setStatusTip(tr("Show the live preview normal AOV"));
   p->previewViewNormalAct->setCheckable(true);
@@ -806,6 +815,7 @@ void MainWindow::createActions() {
   previewViewGroup->addAction(p->previewViewBeautyAct);
   previewViewGroup->addAction(p->previewViewDepthAct);
   previewViewGroup->addAction(p->previewViewStencilAct);
+  previewViewGroup->addAction(p->previewViewStencilCompositeAct);
   previewViewGroup->addAction(p->previewViewNormalAct);
   previewViewGroup->addAction(p->previewViewObjectIdAct);
   previewViewGroup->addAction(p->previewViewMaterialIdAct);
@@ -982,6 +992,7 @@ void MainWindow::createMenus() {
   previewViewMenu->addAction(p->previewViewBeautyAct);
   previewViewMenu->addAction(p->previewViewDepthAct);
   previewViewMenu->addAction(p->previewViewStencilAct);
+  previewViewMenu->addAction(p->previewViewStencilCompositeAct);
   previewViewMenu->addAction(p->previewViewNormalAct);
   previewViewMenu->addAction(p->previewViewObjectIdAct);
   previewViewMenu->addAction(p->previewViewMaterialIdAct);
@@ -1069,6 +1080,18 @@ void MainWindow::openFile() {
     QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Scenes (*.json)"));
 
   if (!fileName.isNull() && maybeSave()) {
+    auto loadedScene = std::make_unique<::Scene>(nullptr);
+    try {
+      if (!loadedScene->load(fileName)) {
+        QMessageBox::warning(this, tr("Open File"), tr("Could not load %1").arg(fileName));
+        return;
+      }
+    } catch (const std::exception& error) {
+      QMessageBox::warning(this, tr("Open File"),
+                           tr("Could not load %1: %2").arg(fileName, error.what()));
+      return;
+    }
+
     if (p->scene)
       delete p->scene;
 
@@ -1076,11 +1099,11 @@ void MainWindow::openFile() {
     p->currentElement = nullptr;
     emit selectionChanged(nullptr);
 
-    p->scene = new ::Scene(nullptr);
-    p->scene->load(fileName);
+    p->scene = loadedScene.release();
     p->fileName = fileName;
     p->propertyEditorWidget->setRoot(p->scene);
     p->elementModel->setElement(p->scene);
+    applySceneRenderIntentToPreviewControls();
 
     resetTimelineFrame();
     resetPlaybackIndex();
@@ -1326,6 +1349,12 @@ void MainWindow::setPreviewViewDepth() {
 
 void MainWindow::setPreviewViewStencil() {
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::Stencil);
+}
+
+void MainWindow::setPreviewViewStencilComposite() {
+  p->previewRasterizerAct->setChecked(true);
+  p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
+  p->display->setPreviewViewMode(engine::graph::RenderViewMode::StencilComposite);
 }
 
 void MainWindow::setPreviewViewNormal() {
@@ -1825,6 +1854,81 @@ void MainWindow::setPreviewTonemap(const std::string& name) {
   }
 
   p->display->setPreviewTonemap(std::move(tonemap));
+}
+
+void MainWindow::applySceneRenderIntentToPreviewControls() {
+  if (!p->scene || !p->scene->hasRenderIntent() || !p->display)
+    return;
+
+  const auto& intent = p->scene->renderIntent();
+  struct EngineChoice {
+    engine::graph::RenderExecutorPreference preference;
+    RenderDisplay::EngineKind kind;
+    QAction* action;
+  };
+  const std::vector<EngineChoice> engines = {
+    {engine::graph::RenderExecutorPreference::Raytracer, RenderDisplay::EngineKind::Raytracer,
+     p->previewRaytracerAct},
+    {engine::graph::RenderExecutorPreference::Rasterizer, RenderDisplay::EngineKind::Rasterizer,
+     p->previewRasterizerAct},
+    {engine::graph::RenderExecutorPreference::Wireframe, RenderDisplay::EngineKind::Wireframe,
+     p->previewWireframeAct},
+  };
+  const auto engine = std::find_if(engines.begin(), engines.end(), [&](const EngineChoice& choice) {
+    return choice.preference == intent.defaultExecutor;
+  });
+  if (engine != engines.end()) {
+    engine->action->setChecked(true);
+    p->display->setEngineKind(engine->kind);
+  }
+
+  struct ViewChoice {
+    engine::graph::RenderViewMode viewMode;
+    QAction* action;
+  };
+  const std::vector<ViewChoice> views = {
+    {engine::graph::RenderViewMode::Default, p->previewViewBeautyAct},
+    {engine::graph::RenderViewMode::Beauty, p->previewViewBeautyAct},
+    {engine::graph::RenderViewMode::Depth, p->previewViewDepthAct},
+    {engine::graph::RenderViewMode::Stencil, p->previewViewStencilAct},
+    {engine::graph::RenderViewMode::StencilComposite, p->previewViewStencilCompositeAct},
+    {engine::graph::RenderViewMode::Normal, p->previewViewNormalAct},
+    {engine::graph::RenderViewMode::ObjectId, p->previewViewObjectIdAct},
+    {engine::graph::RenderViewMode::MaterialId, p->previewViewMaterialIdAct},
+    {engine::graph::RenderViewMode::WorldPosition, p->previewViewWorldPositionAct},
+  };
+  const auto view = std::find_if(views.begin(), views.end(), [&](const ViewChoice& choice) {
+    return choice.viewMode == intent.defaultViewMode;
+  });
+  if (view != views.end()) {
+    view->action->setChecked(true);
+    const auto viewMode = intent.defaultViewMode == engine::graph::RenderViewMode::Default
+                            ? engine::graph::RenderViewMode::Beauty
+                            : intent.defaultViewMode;
+    p->display->setPreviewViewMode(viewMode);
+  }
+
+  struct PostAAChoice {
+    engine::graph::RenderPostProcessAA mode;
+    QAction* action;
+  };
+  const std::vector<PostAAChoice> aaModes = {
+    {engine::graph::RenderPostProcessAA::None, p->previewPostAANoneAct},
+    {engine::graph::RenderPostProcessAA::FXAA, p->previewPostAAFxaaAct},
+    {engine::graph::RenderPostProcessAA::SMAA, p->previewPostAASmaaAct},
+  };
+  const auto aaMode = std::find_if(aaModes.begin(), aaModes.end(), [&](const PostAAChoice& choice) {
+    return choice.mode == intent.postProcessAA;
+  });
+  if (aaMode != aaModes.end()) {
+    aaMode->action->setChecked(true);
+    p->display->setPreviewPostProcessAA(aaMode->mode);
+  }
+
+  p->previewRasterizerShadowsAct->setChecked(intent.enablePreviewShadows);
+  p->display->setRasterizerPreviewShadowsEnabled(intent.enablePreviewShadows);
+  p->previewWireframeOverlayAct->setChecked(intent.enableWireframeOverlay);
+  p->display->setWireframeOverlayEnabled(intent.enableWireframeOverlay);
 }
 
 void MainWindow::resetTimelineFrame() {

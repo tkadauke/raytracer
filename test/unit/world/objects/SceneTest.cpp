@@ -262,6 +262,31 @@ namespace SceneTest {
     EXPECT_FALSE(scene.load(path));
   }
 
+  TEST(Scene, ShouldFailLoadOnNonObjectJson) {
+    QTemporaryFile temp;
+    ASSERT_TRUE(temp.open());
+    auto path = temp.fileName();
+    ASSERT_EQ(temp.write("[]"), 2);
+    temp.close();
+
+    Scene scene;
+    EXPECT_FALSE(scene.load(path));
+  }
+
+  TEST(Scene, ShouldRejectRenderGraphPlanJson) {
+    Scene scene;
+    QJsonObject json;
+    json["resources"] = QJsonArray{};
+    json["passes"] = QJsonArray{};
+
+    try {
+      scene.read(json);
+      FAIL() << "expected render graph plan JSON to throw";
+    } catch (const std::invalid_argument& error) {
+      EXPECT_THAT(error.what(), HasSubstr("render graph plans are not scene files"));
+    }
+  }
+
   TEST(Scene, ShouldFailSaveOnUnwritablePath) {
     Scene scene;
     // / is non-writable on all reasonable test environments (and the

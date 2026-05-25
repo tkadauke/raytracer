@@ -22,6 +22,12 @@
 #include <stdexcept>
 #include <utility>
 
+namespace {
+  bool looksLikeRenderGraphPlan(const QJsonObject& json) {
+    return json["resources"].isArray() && json["passes"].isArray();
+  }
+}
+
 Scene::Scene(Element* parent)
     : Element(parent),
       m_changed(false),
@@ -70,6 +76,14 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& 
 }
 
 void Scene::read(const QJsonObject& json) {
+  const auto type = json["type"];
+  if (type.isString() && type.toString() != QStringLiteral("Scene")) {
+    throw std::invalid_argument("scene JSON root type must be Scene");
+  }
+  if (type.isUndefined() && looksLikeRenderGraphPlan(json)) {
+    throw std::invalid_argument("render graph plans are not scene files");
+  }
+
   auto sceneJson = json;
   sceneJson.remove("animation");
   sceneJson.remove("imports");
@@ -150,7 +164,12 @@ bool Scene::load(const QString& filename, const QString& ldrawLibraryRootOverrid
 
   QByteArray data = file.readAll();
 
-  QJsonDocument loadDoc(QJsonDocument::fromJson(data));
+  QJsonParseError error;
+  QJsonDocument loadDoc(QJsonDocument::fromJson(data, &error));
+  if (error.error != QJsonParseError::NoError || !loadDoc.isObject()) {
+    qWarning("Couldn't parse scene file.");
+    return false;
+  }
 
   try {
     setProperty("_sourceFile", filename);

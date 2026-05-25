@@ -101,6 +101,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Render graph stencil-composite view mode.** Render intent and
+  `rendercli --render_graph_view stencil_composite` now synthesize raster
+  beauty, wireframe foreground, raster stencil AOV, stencil composite, tonemap,
+  and exported stencil-preview nodes; Modeler can select the view from the
+  Preview menu and ships with `scenes/render_graph_stencil_composite_demo.json`.
+  — GPT-5
 - **Render graph stencil-composite demo plan.**
   `graphs/render_graph_stencil_composite_demo.json` materializes a raster
   stencil buffer and feeds it into a graph composite pass, with docs rendering a

@@ -107,6 +107,7 @@ private slots:
   void setPreviewViewBeauty();
   void setPreviewViewDepth();
   void setPreviewViewStencil();
+  void setPreviewViewStencilComposite();
   void setPreviewViewNormal();
   void setPreviewViewObjectId();
   void setPreviewViewMaterialId();
@@ -148,6 +149,7 @@ private:
   void showRenderGraphPassDetails(const QString& passId, bool activateTracePreview);
   void showRenderGraphResourceDetails(const QString& resourceId, bool activateTracePreview);
   void setPreviewTonemap(const std::string& name);
+  void applySceneRenderIntentToPreviewControls();
   void resetTimelineFrame();
   void syncTimelineControls();
   void resetPlaybackIndex();

@@ -69,8 +69,7 @@ class_doc(**GRAPH_DOC_OPTIONS, :render_graph_view => "stencil") do
   render_graph_aov_scene
 end
 
-class_doc(**GRAPH_DOC_OPTIONS,
-          :render_graph_in => "graphs/render_graph_stencil_composite_demo.json") do
+class_doc(**GRAPH_DOC_OPTIONS, :render_graph_view => "stencil_composite") do
   name "render_graph_stencil_composite"
   render_graph_aov_scene
 end
