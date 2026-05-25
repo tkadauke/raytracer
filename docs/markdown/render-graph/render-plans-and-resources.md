@@ -350,6 +350,13 @@ a raster stencil-marking pass, so depth, stencil masks, normals, ids, and world
 positions come from the same tessellated fragments, clipping, sampling, and
 pass state as the raster beauty path.
 
+The same raster scene rendered as beauty and as the graph stencil AOV makes the
+resource boundary concrete:
+
+| Graph raster beauty | Graph stencil AOV |
+| --- | --- |
+| ![Graph-backed raster beauty render of a torus, sphere, and box](../../images/render_graph_raster_beauty.png) | ![Graph-produced stencil AOV showing the same object coverage as a grayscale mask](../../images/render_graph_raster_stencil_aov.png) |
+
 The AOV vocabulary is owned by
 [`RenderAOVDefinition`](../../../include/engine/graph/RenderAOV.h) objects.
 Those objects provide the feature name, resource id, display label, and resource
