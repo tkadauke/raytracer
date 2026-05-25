@@ -64,8 +64,8 @@ namespace engine::graph {
                                                                 "visualization", "postprocess"}
                                : std::vector<RenderFeatureKind>{"aov", "export", aov.feature(),
                                                                 "visualization", "postprocess"};
-      pass.reads.push_back({inputResource});
-      pass.writes.push_back({outputResource});
+      pass.addRead(inputResource);
+      pass.addWrite(outputResource);
       pass.sceneView.selector = SceneSelector::all();
       pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
       pass.canRunConcurrently = false;
@@ -190,8 +190,8 @@ namespace engine::graph {
     tonemap.kind = RenderPassKind::Tonemap;
     tonemap.executor = RenderExecutorKind::PostProcess;
     tonemap.features = {"main", "tonemap", "postprocess"};
-    tonemap.reads.push_back({"beauty_color"});
-    tonemap.writes.push_back({"main_color"});
+    tonemap.addRead("beauty_color");
+    tonemap.addWrite("main_color");
     tonemap.sceneView.selector = SceneSelector::all();
     tonemap.disabledBehavior = DisabledBehavior::Passthrough;
     tonemap.canRunConcurrently = false;
@@ -233,8 +233,8 @@ namespace engine::graph {
       postAA.executor = RenderExecutorKind::PostProcess;
       postAA.features = {"main", "postprocess", "post_aa", executorDefinition->feature(),
                          postAADefinition->feature()};
-      postAA.reads.push_back({inputResource});
-      postAA.writes.push_back({postAAColor.id});
+      postAA.addRead(inputResource);
+      postAA.addWrite(postAAColor.id);
       postAA.sceneView.selector = SceneSelector::all();
       postAA.state = postAADefinition->createState();
       postAA.disabledBehavior = DisabledBehavior::Passthrough;
@@ -252,8 +252,8 @@ namespace engine::graph {
       overlay.kind = RenderPassKind::Overlay;
       overlay.executor = RenderExecutorKind::Wireframe;
       overlay.features = {"main", "overlay", "wireframe", "wireframe_overlay"};
-      overlay.reads.push_back({inputResource});
-      overlay.writes.push_back({overlayColor.id});
+      overlay.addRead(inputResource);
+      overlay.addWrite(overlayColor.id);
       overlay.sceneView = frameIntent.defaultSceneView();
       overlay.disabledBehavior = DisabledBehavior::Passthrough;
       overlay.canRunConcurrently = false;
@@ -262,16 +262,16 @@ namespace engine::graph {
 
     if (frameIntent.enableCurveOverlay) {
       const RenderResourceId inputResource = tonemapInputResource(plan);
-      RenderResourceDescriptor overlayColor = colorResource(
-        "curve_overlay_color", "Curve overlay color", target, RenderResourceLifetime::Transient);
+      RenderResourceDescriptor overlayColor = target.colorResource(
+        "curve_overlay_color", "Curve overlay color", RenderResourceLifetime::Transient);
       RenderPassNode overlay;
       overlay.id = "curve_overlay";
       overlay.name = "Curve overlay";
       overlay.kind = RenderPassKind::Overlay;
       overlay.executor = RenderExecutorKind::Wireframe;
       overlay.features = {"main", "overlay", "curve", "curve_overlay", "wireframe"};
-      overlay.reads.push_back({inputResource});
-      overlay.writes.push_back({overlayColor.id});
+      overlay.addRead(inputResource);
+      overlay.addWrite(overlayColor.id);
       overlay.sceneView = frameIntent.defaultSceneView();
       overlay.disabledBehavior = DisabledBehavior::Passthrough;
       overlay.canRunConcurrently = false;
