@@ -57,6 +57,15 @@ namespace engine::graph {
       return value;
     }
 
+    std::string trim(std::string value) {
+      const auto first = std::find_if_not(value.begin(), value.end(),
+                                          [](unsigned char ch) { return std::isspace(ch); });
+      const auto last = std::find_if_not(value.rbegin(), value.rend(), [](unsigned char ch) {
+                          return std::isspace(ch);
+                        }).base();
+      return first < last ? std::string(first, last) : std::string();
+    }
+
     int intField(const QJsonObject& object, const char* key, const std::string& path,
                  int fallback) {
       const auto value = object.value(key);
@@ -427,6 +436,7 @@ namespace engine::graph {
   }
 
   ShadingProfileParameterValue ShadingProfileParameterValue::fromText(std::string text) {
+    text = trim(std::move(text));
     const std::string normalized = lowercase(text);
     if (normalized == "true")
       return ShadingProfileParameterValue(true);
