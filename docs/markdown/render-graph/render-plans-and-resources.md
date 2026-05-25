@@ -525,9 +525,11 @@ graph-only dump. The dock compiles the current live-preview intent and target
 size into a `RenderPlan`, then shows the result as a left-to-right graph plus
 supporting tables:
 
-Pass nodes summarize non-default scene selector, camera, and shading-profile
-intent directly in the graph, and the pass table/property editor keep the same
-details available for copyable inspection.
+Pass and resource nodes use human-readable display names in the graph while
+keeping stable ids in tooltips and exported plans. Pass nodes also summarize
+non-default scene selector, camera, and shading-profile intent directly in the
+graph, and the pass table/property editor keep the same details available for
+copyable inspection.
 
 - the Graph tab lays pass nodes out by dependency rank, stacks parallel steps
   vertically, shows resources between producer and consumer passes, and lets the
@@ -548,12 +550,13 @@ details available for copyable inspection.
   preview/cache status in place;
 - while the preview is rendering, the Graph tab highlights pass nodes as they
   start, finish, or fail execution;
-- the Passes table lists each pass id, execution order, execution stage, pass
-  kind, executor, read resources, written resources, and disabled behavior;
+- the Passes table lists each pass display name, execution order, execution
+  stage, pass kind, executor, read resources, written resources, and disabled
+  behavior;
 - the Groups table disables every pass matching a present kind, executor, or
   feature tag;
-- the Resources table lists each resource id, producer, consumers, type, format,
-  domain, lifetime, dimensions, and sample count.
+- the Resources table lists each resource display name, producer, consumers,
+  type, format, domain, lifetime, dimensions, and sample count.
 
 The checkbox in each pass row builds a `RenderGraphOverrides` value for that
 pass id. The dock applies those overrides to the compiled plan and runs
