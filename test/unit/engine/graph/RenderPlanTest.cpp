@@ -140,6 +140,34 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, ReportsExecutorResourceDomainMismatch) {
+    RenderPlan plan;
+    auto gpuInput = colorResource("gpu_input", RenderResourceLifetime::Imported);
+    gpuInput.domain = RenderResourceDomain::GPU;
+    plan.addResource(gpuInput);
+    auto gpuOutput = colorResource("gpu_output", RenderResourceLifetime::Transient);
+    gpuOutput.domain = RenderResourceDomain::GPU;
+    plan.addResource(gpuOutput);
+
+    auto post = pass("post", RenderPassKind::PostProcess);
+    post.reads.push_back({"gpu_input"});
+    post.writes.push_back({"gpu_output"});
+    plan.addPass(post);
+
+    const auto validation = plan.validate();
+
+    ASSERT_FALSE(validation.valid());
+    const auto& errors = validation.errors();
+    EXPECT_TRUE(std::any_of(errors.begin(), errors.end(), [](const auto& error) {
+      return error.code == RenderPlanValidationError::Code::ResourceDomainMismatch &&
+             error.passId == "post" && error.resourceId == "gpu_input";
+    }));
+    EXPECT_TRUE(std::any_of(errors.begin(), errors.end(), [](const auto& error) {
+      return error.code == RenderPlanValidationError::Code::ResourceDomainMismatch &&
+             error.passId == "post" && error.resourceId == "gpu_output";
+    }));
+  }
+
   TEST(RenderPlan, ReportsUnproducedExportedResource) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
