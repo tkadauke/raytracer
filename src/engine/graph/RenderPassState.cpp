@@ -5,9 +5,74 @@
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/WireframePassState.h"
 
+#include <algorithm>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace engine::graph {
+  namespace {
+    class RenderPassStateJsonFactory {
+    public:
+      RenderPassStateJsonFactory(std::vector<RenderPassKind> kinds, RenderExecutorKind executor)
+          : m_kinds(std::move(kinds)),
+            m_executor(executor) {
+      }
+
+      virtual ~RenderPassStateJsonFactory() = default;
+
+      bool matches(RenderPassKind kind, RenderExecutorKind executor) const {
+        return executor == m_executor &&
+               std::find(m_kinds.begin(), m_kinds.end(), kind) != m_kinds.end();
+      }
+
+      virtual std::shared_ptr<const RenderPassState> create(const QJsonObject& object,
+                                                            const std::string& path) const = 0;
+
+    private:
+      std::vector<RenderPassKind> m_kinds;
+      RenderExecutorKind m_executor;
+    };
+
+    template<class State>
+    class TypedRenderPassStateJsonFactory : public RenderPassStateJsonFactory {
+    public:
+      using RenderPassStateJsonFactory::RenderPassStateJsonFactory;
+
+      std::shared_ptr<const RenderPassState> create(const QJsonObject& object,
+                                                    const std::string& path) const override {
+        return std::make_shared<State>(State::fromJson(object, path));
+      }
+    };
+
+    class PostProcessAAStateJsonFactory : public RenderPassStateJsonFactory {
+    public:
+      PostProcessAAStateJsonFactory()
+          : RenderPassStateJsonFactory({RenderPassKind::PostProcess},
+                                       RenderExecutorKind::PostProcess) {
+      }
+
+      std::shared_ptr<const RenderPassState> create(const QJsonObject& object,
+                                                    const std::string& path) const override {
+        return PostProcessAAState::fromJson(object, path);
+      }
+    };
+
+    const std::vector<const RenderPassStateJsonFactory*>& passStateJsonFactories() {
+      static const TypedRenderPassStateJsonFactory<RasterBeautyPassState> rasterBeauty(
+        {RenderPassKind::Beauty, RenderPassKind::AOV}, RenderExecutorKind::Rasterizer);
+      static const TypedRenderPassStateJsonFactory<RasterShadowPassState> rasterShadow(
+        {RenderPassKind::Shadow}, RenderExecutorKind::Rasterizer);
+      static const PostProcessAAStateJsonFactory postProcessAA;
+      static const TypedRenderPassStateJsonFactory<WireframePassState> wireframe(
+        {RenderPassKind::Beauty, RenderPassKind::Overlay}, RenderExecutorKind::Wireframe);
+
+      static const std::vector<const RenderPassStateJsonFactory*> result = {
+        &rasterBeauty, &rasterShadow, &postProcessAA, &wireframe};
+      return result;
+    }
+  }
+
   std::shared_ptr<const RenderPassState> RenderPassState::fromJson(RenderPassKind kind,
                                                                    RenderExecutorKind executor,
                                                                    const QJsonObject& object,
@@ -15,22 +80,10 @@ namespace engine::graph {
     if (object.isEmpty())
       return nullptr;
 
-    if ((kind == RenderPassKind::Beauty || kind == RenderPassKind::AOV) &&
-        executor == RenderExecutorKind::Rasterizer) {
-      return std::make_shared<RasterBeautyPassState>(RasterBeautyPassState::fromJson(object, path));
-    }
-
-    if (kind == RenderPassKind::Shadow && executor == RenderExecutorKind::Rasterizer) {
-      return std::make_shared<RasterShadowPassState>(RasterShadowPassState::fromJson(object, path));
-    }
-
-    if (kind == RenderPassKind::PostProcess && executor == RenderExecutorKind::PostProcess) {
-      return PostProcessAAState::fromJson(object, path);
-    }
-
-    if ((kind == RenderPassKind::Beauty || kind == RenderPassKind::Overlay) &&
-        executor == RenderExecutorKind::Wireframe) {
-      return std::make_shared<WireframePassState>(WireframePassState::fromJson(object, path));
+    for (const auto* factory : passStateJsonFactories()) {
+      if (factory->matches(kind, executor)) {
+        return factory->create(object, path);
+      }
     }
 
     throw std::runtime_error("Invalid render graph JSON at " + path +
