@@ -934,7 +934,7 @@ if(NOT graph_trace_json MATCHES "\"cacheable\": false")
 endif()
 
 rendercli_run(
-  NAME "rendercli writes raster shadow depth trace"
+  NAME "rendercli writes raster shadow artifact trace"
   COMMAND
     "${RENDERCLI}" --engine raster --shadow_maps --width 32 --height 16
     --render_graph_trace_out "${raster_shadow_trace}"

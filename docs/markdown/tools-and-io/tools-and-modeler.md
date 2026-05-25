@@ -107,10 +107,10 @@ pass rather than hiding the filter inside one engine, and the pass's typed
 on the raster beauty pass until temporal history resources are graph resources.
 Raster preview shadows compile as a `raster_preview_shadows` node feeding the
 beauty pass. Its typed `shadows` parameters carry map size, cascades, bias, and
-filtering. The preview-depth artifact and direct raster shadow path share the
-raster shadow-map builder, while beauty shading still builds the full collection
-during raster beauty execution. Disabling that node leaves the raster beauty
-pass running without graph-controlled shadows.
+filtering. The shadow node builds the full directional/cascade collection
+through the raster shadow-map builder, publishes a first-cascade depth preview
+for inspection, and passes the full artifact to raster beauty. Disabling that
+node leaves the raster beauty pass running without graph-controlled shadows.
 Wireframe graph renders carry `--lod` in typed wireframe pass state, so
 graph-only JSON exports and replayed graph renders preserve the requested
 tessellation density.
@@ -216,7 +216,7 @@ The Groups tab applies the same override system to every pass matching a
 present pass kind, executor, or feature tag.
 Resource selections also show trace cache status in the property editor.
 For graph-visible raster preview shadows, that status distinguishes a rebuilt
-depth artifact from one restored from the graph artifact cache.
+full shadow-map artifact from one restored from the graph artifact cache.
 The dock can also export the effective plan as text, DOT, or JSON for the same
 inspection/replay workflows as rendercli.
 

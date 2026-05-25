@@ -2,13 +2,16 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/PostProcessPassState.h"
+#include "engine/graph/RasterShadowMapArtifact.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderGraphCacheMetadata.h"
+#include "engine/raster/detail/RasterShadowMaps.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Scene.h"
 
 #include <QJsonObject>
 
+#include <cmath>
 #include <limits>
 
 namespace RenderGraphArtifactCacheTest {
@@ -76,6 +79,21 @@ namespace RenderGraphArtifactCacheTest {
 
     Buffer<double> restored(2, 2);
     EXPECT_FALSE(artifact.copyDepthTo(restored));
+  }
+
+  TEST(RenderGraphArtifactCache, RasterShadowArtifactOwnsShadowMapsAndDepthPreview) {
+    const auto key = RenderGraphCacheKey::forPassOutput(pass("raster_preview_shadows"),
+                                                        colorResource("shadow"), "inputs");
+    auto shadowMaps = std::make_shared<engine::raster::detail::ShadowMaps>();
+
+    RasterShadowMapArtifact artifact(key, shadowMaps, 2, 3, "shadow-map artifact");
+    Buffer<double> restored(2, 3);
+
+    EXPECT_EQ(shadowMaps, artifact.shadowMaps());
+    EXPECT_TRUE(artifact.copyDepthTo(restored));
+    EXPECT_TRUE(artifact.copyRasterShadowMapPreviewTo(restored));
+    EXPECT_EQ("shadow-map artifact", artifact.description());
+    EXPECT_FALSE(std::isfinite(restored[0][0]));
   }
 
   TEST(RenderGraphArtifactCache, SeparatesInputFingerprintsAndPassState) {
