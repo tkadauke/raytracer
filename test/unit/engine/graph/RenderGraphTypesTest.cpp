@@ -224,6 +224,10 @@ namespace RenderGraphTypesTest {
 
     EXPECT_TRUE(wholeFrame.appliesToWholeFrame());
     EXPECT_FALSE(tagOverride.appliesToWholeFrame());
+    EXPECT_TRUE(intent.hasSelectorSpecificOverrides());
+    const auto selectorSpecific = intent.selectorSpecificOverrides();
+    ASSERT_EQ(1u, selectorSpecific.size());
+    EXPECT_EQ(SceneSelector::Kind::Tag, selectorSpecific.front().selector.kind);
     EXPECT_EQ(RenderExecutorPreference::Rasterizer, effective.defaultExecutor);
     EXPECT_EQ(RenderViewMode::Depth, effective.defaultViewMode);
     EXPECT_EQ("clay", effective.defaultShadingProfile.name);
