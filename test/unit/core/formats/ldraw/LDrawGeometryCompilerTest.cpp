@@ -4,6 +4,7 @@
 #include "core/Exception.h"
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawGeometryCompiler.h"
+#include "core/formats/ldraw/LDrawParseError.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "engine/raytracer/Raytracer.h"
@@ -416,5 +417,91 @@ namespace LDrawGeometryCompilerTest {
     istringstream input("1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
 
     EXPECT_THROW(LDrawGeometryCompiler(resolver, 1).compile(input, colorTable()), Exception);
+  }
+
+  TEST(LDrawGeometryCompiler, ReportsSkippedGeometryAndUnsupportedCommands) {
+    istringstream input(
+      "0 !TEXMAP START PLANAR 0 0 0 1 0 0 0 1 0 texture.png\n"
+      "2 24 0 0 0 1 0 0\n"
+      "5 24 0 0 0 1 0 0 0 1 0 1 1 0\n"
+      "9 unsupported command\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
+
+    EXPECT_TRUE(geometry->primitives().empty());
+    ASSERT_EQ(4u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticCode::UnsupportedMetaCommand, diagnostics.entries()[0].code);
+    EXPECT_EQ("<input>", diagnostics.entries()[0].file);
+    EXPECT_EQ(1, diagnostics.entries()[0].lineNumber);
+    EXPECT_EQ(LDrawDiagnosticCode::SkippedGeometry, diagnostics.entries()[1].code);
+    EXPECT_EQ(2, diagnostics.entries()[1].lineNumber);
+    EXPECT_EQ(LDrawDiagnosticCode::SkippedGeometry, diagnostics.entries()[2].code);
+    EXPECT_EQ(3, diagnostics.entries()[2].lineNumber);
+    EXPECT_EQ(LDrawDiagnosticCode::UnsupportedLineType, diagnostics.entries()[3].code);
+    EXPECT_EQ(4, diagnostics.entries()[3].lineNumber);
+  }
+
+  TEST(LDrawGeometryCompiler, ReportsColorFallbacksAndBfcTwoSidedTreatment) {
+    istringstream input(
+      "0 BFC NOCERTIFY\n"
+      "3 999 0 0 0 0 1 0 1 0 0\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
+
+    auto primitive = onlyMeshPrimitive(geometry);
+    EXPECT_EQ(Material::Sidedness::TwoSided, primitive->material()->sidedness());
+    ASSERT_EQ(2u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticCode::ColorFallback, diagnostics.entries()[0].code);
+    EXPECT_NE(string::npos, diagnostics.entries()[0].message.find("999"));
+    EXPECT_EQ(LDrawDiagnosticCode::BfcAmbiguity, diagnostics.entries()[1].code);
+    EXPECT_NE(string::npos, diagnostics.entries()[1].message.find("two-sided"));
+  }
+
+  TEST(LDrawGeometryCompiler, ReportsBfcFallbackWinding) {
+    istringstream input(
+      "0 BFC CERTIFY CW\n"
+      "3 4 0 0 0 0 1 0 1 0 0\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
+
+    auto primitive = onlyMeshPrimitive(geometry);
+    EXPECT_EQ((Mesh::Face{0, 2, 1}), primitive->mesh()->faces()[0]);
+    ASSERT_EQ(1u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticCode::BfcAmbiguity, diagnostics.entries()[0].code);
+    EXPECT_NE(string::npos, diagnostics.entries()[0].message.find("winding was reversed"));
+  }
+
+  TEST(LDrawGeometryCompiler, ReportsMissingSubfileWithReferenceAndSearchRoots) {
+    auto resolver = make_shared<LDrawFilesystemResolver>(
+      vector<string>{"test/fixtures/ldraw/nested", "test/fixtures/ldraw/missing"});
+    istringstream input("1 16 0 0 0 1 0 0 0 1 0 0 0 1 missing.dat\n");
+    LDrawDiagnostics diagnostics;
+
+    EXPECT_THROW(LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics),
+                 Exception);
+
+    ASSERT_EQ(1u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticSeverity::Error, diagnostics.entries()[0].severity);
+    EXPECT_EQ(LDrawDiagnosticCode::MissingSubfile, diagnostics.entries()[0].code);
+    EXPECT_EQ("missing.dat", diagnostics.entries()[0].reference);
+    EXPECT_EQ((vector<string>{".", "test/fixtures/ldraw/nested",
+                              "test/fixtures/ldraw/missing"}),
+              diagnostics.entries()[0].searchedRoots);
+  }
+
+  TEST(LDrawGeometryCompiler, ReportsFatalParseDiagnostics) {
+    istringstream input("3 0x02notrgb 0 0 0 0 1 0 1 0 0\n");
+    LDrawDiagnostics diagnostics;
+
+    EXPECT_THROW(LDrawGeometryCompiler().compile(input, colorTable(), diagnostics),
+                 LDrawParseError);
+
+    ASSERT_EQ(1u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticSeverity::Error, diagnostics.entries()[0].severity);
+    EXPECT_EQ(LDrawDiagnosticCode::DirectColorParseFailure, diagnostics.entries()[0].code);
+    EXPECT_EQ(1, diagnostics.entries()[0].lineNumber);
   }
 }

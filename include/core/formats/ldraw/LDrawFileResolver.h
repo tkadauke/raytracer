@@ -15,6 +15,7 @@ public:
   [[nodiscard]] virtual std::unique_ptr<std::istream> open(const std::string& filename) const = 0;
 
   [[nodiscard]] virtual std::string cacheKey(const std::string& filename) const;
+  [[nodiscard]] virtual std::vector<std::string> searchRoots(const std::string& filename) const;
 
 protected:
   [[nodiscard]] static std::string normalizedFilename(std::string filename);
@@ -28,6 +29,7 @@ public:
 
   [[nodiscard]] std::unique_ptr<std::istream> open(const std::string& filename) const override;
   [[nodiscard]] std::string cacheKey(const std::string& filename) const override;
+  [[nodiscard]] std::vector<std::string> searchRoots(const std::string& filename) const override;
 
 private:
   std::vector<std::string> m_searchDirectories;

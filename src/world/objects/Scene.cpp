@@ -123,6 +123,7 @@ bool Scene::save(const QString& filename) {
 }
 
 bool Scene::load(const QString& filename) {
+  clearImportDiagnostics();
   QFile file(filename);
 
   if (!file.open(QIODevice::ReadOnly)) {
@@ -141,6 +142,18 @@ bool Scene::load(const QString& filename) {
   resolveReferences(references);
 
   return true;
+}
+
+const std::vector<LDrawDiagnostic>& Scene::importDiagnostics() const {
+  return m_importDiagnostics;
+}
+
+void Scene::setImportDiagnostics(std::vector<LDrawDiagnostic> diagnostics) {
+  m_importDiagnostics = std::move(diagnostics);
+}
+
+void Scene::clearImportDiagnostics() {
+  m_importDiagnostics.clear();
 }
 
 const world::Timeline* Scene::animation() const {

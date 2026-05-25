@@ -193,6 +193,12 @@ LDrawColorReference LDrawColorTable::resolveReference(int code, const LDrawColor
 }
 
 Colord LDrawColorTable::colorForCode(int code, const LDrawColorContext& context) const {
+  return colorForCode(code, context, nullptr, {}, 0);
+}
+
+Colord LDrawColorTable::colorForCode(int code, const LDrawColorContext& context,
+                                     LDrawDiagnostics* diagnostics, const string& file,
+                                     int lineNumber) const {
   const auto reference = resolveReference(code, context);
   if (reference.kind == LDrawColorReferenceKind::DirectRgb)
     return reference.color;
@@ -200,11 +206,24 @@ Colord LDrawColorTable::colorForCode(int code, const LDrawColorContext& context)
   if (const auto* definition = find(reference.code))
     return definition->value;
 
+  if (diagnostics) {
+    ostringstream message;
+    message << "color code " << reference.code << " is not defined; using neutral gray";
+    diagnostics->warning(LDrawDiagnosticCode::ColorFallback, file, lineNumber, message.str());
+  }
   return Colord::fromRGB(128, 128, 128);
 }
 
 shared_ptr<render::Material> LDrawColorTable::materialForCode(int code,
                                                               const LDrawColorContext& context) const {
+  return materialForCode(code, context, nullptr, {}, 0);
+}
+
+shared_ptr<render::Material> LDrawColorTable::materialForCode(int code,
+                                                              const LDrawColorContext& context,
+                                                              LDrawDiagnostics* diagnostics,
+                                                              const string& file,
+                                                              int lineNumber) const {
   const auto reference = resolveReference(code, context);
   if (reference.kind == LDrawColorReferenceKind::DirectRgb)
     return materialForColor(reference.color);
@@ -212,6 +231,11 @@ shared_ptr<render::Material> LDrawColorTable::materialForCode(int code,
   if (const auto* definition = find(reference.code))
     return materialForDefinition(*definition);
 
+  if (diagnostics) {
+    ostringstream message;
+    message << "color code " << reference.code << " is not defined; using neutral gray";
+    diagnostics->warning(LDrawDiagnosticCode::ColorFallback, file, lineNumber, message.str());
+  }
   return materialForColor(Colord::fromRGB(128, 128, 128));
 }
 

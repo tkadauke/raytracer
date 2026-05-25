@@ -626,6 +626,8 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   if (!scene->load(m_filename))
     throw std::runtime_error(
       QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+  for (const auto& diagnostic : scene->importDiagnostics())
+    std::cerr << diagnostic.toString() << '\n';
   return scene;
 }
 

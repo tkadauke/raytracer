@@ -16,6 +16,10 @@ string LDrawFileResolver::cacheKey(const string& filename) const {
   return normalizedFilename(filename);
 }
 
+vector<string> LDrawFileResolver::searchRoots(const string&) const {
+  return {};
+}
+
 string LDrawFileResolver::normalizedFilename(string filename) {
   replace(filename.begin(), filename.end(), '\\', '/');
   transform(filename.begin(), filename.end(), filename.begin(), [](unsigned char c) {
@@ -73,6 +77,14 @@ string LDrawFilesystemResolver::cacheKey(const string& filename) const {
   }
 
   return normalizedFilename(filename);
+}
+
+vector<string> LDrawFilesystemResolver::searchRoots(const string&) const {
+  vector<string> roots;
+  roots.push_back(".");
+  for (const auto& directory : m_searchDirectories)
+    roots.push_back(directory);
+  return roots;
 }
 
 LDrawMpdFileResolver::LDrawMpdFileResolver(const LDrawDocument& document,

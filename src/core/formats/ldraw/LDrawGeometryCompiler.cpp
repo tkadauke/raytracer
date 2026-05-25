@@ -1,6 +1,7 @@
 #include "core/formats/ldraw/LDrawGeometryCompiler.h"
 
 #include "core/Exception.h"
+#include "core/formats/ldraw/LDrawParseError.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Matrix.h"
 #include "render/materials/Material.h"
@@ -31,12 +32,23 @@ namespace {
   std::shared_ptr<render::Material> materialForPolygon(const LDrawColorTable& colors,
                                                        int color,
                                                        const LDrawColorContext& context,
-                                                       const BfcState& bfc) {
-    auto material = colors.materialForCode(color, context);
-    if (bfc.certified && bfc.clip)
+                                                       const BfcState& bfc,
+                                                       LDrawDiagnostics* diagnostics,
+                                                       const string& file,
+                                                       int lineNumber) {
+    auto material = colors.materialForCode(color, context, diagnostics, file, lineNumber);
+    if (bfc.certified && bfc.clip) {
       material->setSidedness(render::Material::Sidedness::Front);
-    else
+    } else {
       material->setSidedness(render::Material::Sidedness::TwoSided);
+      if (diagnostics) {
+        diagnostics->warning(
+          LDrawDiagnosticCode::BfcAmbiguity, file, lineNumber,
+          bfc.certified
+            ? "BFC NOCLIP polygon is treated as two-sided geometry"
+            : "BFC uncertified polygon is treated as two-sided geometry");
+      }
+    }
     return material;
   }
 
@@ -44,16 +56,25 @@ namespace {
                                                             const LDrawColorTable& colors,
                                                             const LDrawColorContext& context,
                                                             const BfcState& bfc,
-                                                            bool inheritedInverted) {
+                                                            bool inheritedInverted,
+                                                            LDrawDiagnostics* diagnostics,
+                                                            const string& file) {
     Mesh mesh;
     for (const auto& point : triangle.points)
       mesh.addVertex(point, Vector3d::null);
-    mesh.addFace({0, 1, 2}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
+    const bool reverse = shouldReverseFace(bfc.counterClockwise, inheritedInverted);
+    mesh.addFace({0, 1, 2}, reverse);
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
                                                         render::MeshPrimitive::NormalMode::Flat);
-    primitive->setMaterial(materialForPolygon(colors, triangle.color, context, bfc));
+    primitive->setMaterial(
+      materialForPolygon(colors, triangle.color, context, bfc, diagnostics, file,
+                         triangle.lineNumber));
+    if (reverse && diagnostics) {
+      diagnostics->warning(LDrawDiagnosticCode::BfcAmbiguity, file, triangle.lineNumber,
+                           "BFC winding was reversed before compiling this triangle");
+    }
     return primitive;
   }
 
@@ -61,16 +82,24 @@ namespace {
                                                         const LDrawColorTable& colors,
                                                         const LDrawColorContext& context,
                                                         const BfcState& bfc,
-                                                        bool inheritedInverted) {
+                                                        bool inheritedInverted,
+                                                        LDrawDiagnostics* diagnostics,
+                                                        const string& file) {
     Mesh mesh;
     for (const auto& point : quad.points)
       mesh.addVertex(point, Vector3d::null);
-    mesh.addFace({0, 1, 2, 3}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
+    const bool reverse = shouldReverseFace(bfc.counterClockwise, inheritedInverted);
+    mesh.addFace({0, 1, 2, 3}, reverse);
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
                                                         render::MeshPrimitive::NormalMode::Flat);
-    primitive->setMaterial(materialForPolygon(colors, quad.color, context, bfc));
+    primitive->setMaterial(
+      materialForPolygon(colors, quad.color, context, bfc, diagnostics, file, quad.lineNumber));
+    if (reverse && diagnostics) {
+      diagnostics->warning(LDrawDiagnosticCode::BfcAmbiguity, file, quad.lineNumber,
+                           "BFC winding was reversed before compiling this quad");
+    }
     return primitive;
   }
 
@@ -139,6 +168,16 @@ LDrawGeometryCompiler::compile(const LDrawParser::Commands& commands, const LDra
 }
 
 shared_ptr<render::Composite>
+LDrawGeometryCompiler::compile(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
+                               LDrawDiagnostics& diagnostics,
+                               const LDrawColorContext& context) const {
+  CompileState state;
+  state.currentFile = "<input>";
+  state.diagnostics = &diagnostics;
+  return compileCommands(commands, colors, context, state, false);
+}
+
+shared_ptr<render::Composite>
 LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
                                        const LDrawColorTable& colors,
                                        const LDrawColorContext& context,
@@ -150,10 +189,12 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
   for (const auto& command : commands) {
     if (holds_alternative<LDrawTriangle>(command)) {
       result->add(meshPrimitiveForTriangle(get<LDrawTriangle>(command), colors, context, bfc,
-                                           inheritedInverted));
+                                           inheritedInverted, state.diagnostics,
+                                           state.currentFile));
     } else if (holds_alternative<LDrawQuad>(command)) {
       result->add(
-        meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc, inheritedInverted));
+        meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc, inheritedInverted,
+                             state.diagnostics, state.currentFile));
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
       const auto& reference = get<LDrawSubfileReference>(command);
       const bool subfileInverted =
@@ -165,7 +206,35 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
       result->add(instance);
       bfc.invertNext = false;
     } else if (holds_alternative<LDrawMetaCommand>(command)) {
-      applyBfcMeta(get<LDrawMetaCommand>(command), bfc);
+      const auto& meta = get<LDrawMetaCommand>(command);
+      const bool wasBfc = meta.keyword == "BFC";
+      applyBfcMeta(meta, bfc);
+      if (!meta.isComment() && !wasBfc && meta.keyword != "!COLOUR" && state.diagnostics) {
+        state.diagnostics->warning(
+          LDrawDiagnosticCode::UnsupportedMetaCommand, state.currentFile, meta.lineNumber,
+          "unsupported meta command '" + meta.keyword + "' was ignored");
+      }
+    } else if (holds_alternative<LDrawEdgeLine>(command)) {
+      const auto& edge = get<LDrawEdgeLine>(command);
+      if (state.diagnostics) {
+        state.diagnostics->warning(LDrawDiagnosticCode::SkippedGeometry, state.currentFile,
+                                   edge.lineNumber,
+                                   "type 2 edge line was skipped by the geometry compiler");
+      }
+    } else if (holds_alternative<LDrawOptionalLine>(command)) {
+      const auto& optional = get<LDrawOptionalLine>(command);
+      if (state.diagnostics) {
+        state.diagnostics->warning(LDrawDiagnosticCode::SkippedGeometry, state.currentFile,
+                                   optional.lineNumber,
+                                   "type 5 optional line was skipped by the geometry compiler");
+      }
+    } else if (holds_alternative<LDrawUnknownCommand>(command)) {
+      const auto& unknown = get<LDrawUnknownCommand>(command);
+      if (state.diagnostics) {
+        state.diagnostics->warning(
+          LDrawDiagnosticCode::UnsupportedLineType, state.currentFile, unknown.lineNumber,
+          "unsupported line type '" + unknown.lineType + "' was ignored");
+      }
     }
   }
 
@@ -179,17 +248,39 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
                                       CompileState& state,
                                       bool inheritedInverted) const {
   if (!m_resolver) {
+    if (state.diagnostics) {
+      LDrawDiagnostic diagnostic;
+      diagnostic.severity = LDrawDiagnosticSeverity::Error;
+      diagnostic.code = LDrawDiagnosticCode::MissingSubfile;
+      diagnostic.file = state.currentFile;
+      diagnostic.lineNumber = reference.lineNumber;
+      diagnostic.message = "subfile reference requires an LDrawFileResolver";
+      diagnostic.reference = reference.filename;
+      state.diagnostics->add(std::move(diagnostic));
+    }
     throw Exception("LDraw subfile reference requires an LDrawFileResolver: " + reference.filename,
                     __FILE__, __LINE__);
   }
 
   if (state.depth >= m_recursionLimit) {
+    if (state.diagnostics) {
+      state.diagnostics->error(LDrawDiagnosticCode::MissingSubfile, state.currentFile,
+                               reference.lineNumber,
+                               "subfile recursion limit exceeded while resolving '" +
+                                 reference.filename + "'");
+    }
     throw Exception("LDraw subfile recursion limit exceeded while resolving: " + reference.filename,
                     __FILE__, __LINE__);
   }
 
   const string fileKey = m_resolver->cacheKey(reference.filename);
   if (state.activeFiles.find(fileKey) != state.activeFiles.end()) {
+    if (state.diagnostics) {
+      state.diagnostics->error(LDrawDiagnosticCode::MissingSubfile, state.currentFile,
+                               reference.lineNumber,
+                               "subfile cycle detected while resolving '" + reference.filename +
+                                 "'");
+    }
     throw Exception("LDraw subfile cycle detected while resolving: " + reference.filename,
                     __FILE__, __LINE__);
   }
@@ -208,6 +299,17 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
     ++m_cacheStats.parsedSubfileMisses;
     auto input = m_resolver->open(reference.filename);
     if (!input) {
+      if (state.diagnostics) {
+        LDrawDiagnostic diagnostic;
+        diagnostic.severity = LDrawDiagnosticSeverity::Error;
+        diagnostic.code = LDrawDiagnosticCode::MissingSubfile;
+        diagnostic.file = state.currentFile;
+        diagnostic.lineNumber = reference.lineNumber;
+        diagnostic.message = "resolver could not open subfile";
+        diagnostic.reference = reference.filename;
+        diagnostic.searchedRoots = m_resolver->searchRoots(reference.filename);
+        state.diagnostics->add(std::move(diagnostic));
+      }
       throw Exception("LDraw resolver could not open subfile: " + reference.filename,
                       __FILE__, __LINE__);
     }
@@ -216,7 +318,10 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
 
   state.activeFiles.insert(fileKey);
   ++state.depth;
+  const string previousFile = state.currentFile;
+  state.currentFile = reference.filename;
   auto result = compileCommands(parsed->second, colors, context, state, inheritedInverted);
+  state.currentFile = previousFile;
   --state.depth;
   state.activeFiles.erase(fileKey);
 
@@ -234,6 +339,22 @@ shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
   auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
   LDrawGeometryCompiler compiler(resolver, m_recursionLimit);
   return compiler.compile(document.mainFile().commands, colors, context);
+}
+
+shared_ptr<render::Composite>
+LDrawGeometryCompiler::compile(istream& input, const LDrawColorTable& colors,
+                               LDrawDiagnostics& diagnostics,
+                               const LDrawColorContext& context) const {
+  try {
+    return compile(LDrawParser().parse(input), colors, diagnostics, context);
+  } catch (const LDrawParseError& error) {
+    const LDrawDiagnosticCode code =
+      error.message().find("invalid integer for color") != string::npos
+        ? LDrawDiagnosticCode::DirectColorParseFailure
+        : LDrawDiagnosticCode::FatalParseError;
+    diagnostics.error(code, "<input>", error.sourceLineNumber(), error.message());
+    throw;
+  }
 }
 
 string LDrawGeometryCompiler::colorContextKey(const LDrawColorContext& context) {
