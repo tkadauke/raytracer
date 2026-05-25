@@ -163,6 +163,8 @@ namespace {
       lines << executionMessage;
     }
     lines << QStringLiteral("Double-click to enable or disable this pass");
+    lines << QStringLiteral("Scene selector: %1").arg(sceneSelectorText(pass.sceneView.selector));
+    lines << QStringLiteral("Scene camera: %1").arg(cameraText(pass.sceneView.camera));
     lines << QStringLiteral("Reads: %1").arg(resourceReads(pass.reads));
     lines << QStringLiteral("Writes: %1").arg(resourceWrites(pass.writes));
     lines << QStringLiteral("Incoming dependencies: %1")
