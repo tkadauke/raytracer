@@ -10,8 +10,11 @@
 #include <cstddef>
 #include <cmath>
 #include <initializer_list>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 namespace engine::graph {
@@ -355,20 +358,109 @@ namespace engine::graph {
             stringField(object, "value", path)};
   }
 
+  ShadingProfileParameterValue::ShadingProfileParameterValue()
+      : m_value(std::string()) {
+  }
+
+  ShadingProfileParameterValue::ShadingProfileParameterValue(bool value)
+      : m_value(value) {
+  }
+
+  ShadingProfileParameterValue::ShadingProfileParameterValue(double value)
+      : m_value(value) {
+  }
+
+  ShadingProfileParameterValue::ShadingProfileParameterValue(std::string value)
+      : m_value(std::move(value)) {
+  }
+
+  const ShadingProfileParameterValue::Value& ShadingProfileParameterValue::value() const {
+    return m_value;
+  }
+
+  QJsonValue ShadingProfileParameterValue::toJson() const {
+    return std::visit(
+      [](const auto& value) -> QJsonValue {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          return qstr(value);
+        } else {
+          return value;
+        }
+      },
+      m_value);
+  }
+
+  std::string ShadingProfileParameterValue::displayText() const {
+    return std::visit(
+      [](const auto& value) -> std::string {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          return value;
+        } else if constexpr (std::is_same_v<T, bool>) {
+          return value ? "true" : "false";
+        } else {
+          std::ostringstream out;
+          out << std::setprecision(12) << value;
+          return out.str();
+        }
+      },
+      m_value);
+  }
+
+  bool ShadingProfileParameterValue::operator==(const ShadingProfileParameterValue& other) const {
+    return m_value == other.m_value;
+  }
+
+  bool ShadingProfileParameterValue::operator!=(const ShadingProfileParameterValue& other) const {
+    return !(*this == other);
+  }
+
+  ShadingProfileParameterValue ShadingProfileParameterValue::fromJson(const QJsonValue& value,
+                                                                      std::string path) {
+    if (value.isBool())
+      return ShadingProfileParameterValue(value.toBool());
+    if (value.isDouble())
+      return ShadingProfileParameterValue(value.toDouble());
+    if (value.isString())
+      return ShadingProfileParameterValue(value.toString().toStdString());
+    jsonError(path, "expected bool, number, or string");
+  }
+
   QJsonObject ShadingProfileRef::toJson() const {
     QJsonObject result;
     result["name"] = qstr(name);
-    if (!parameters.isEmpty())
-      result["parameters"] = parameters;
+    if (!parameters.empty()) {
+      QJsonObject parameterObject;
+      for (const auto& [key, value] : parameters) {
+        parameterObject[qstr(key)] = value.toJson();
+      }
+      result["parameters"] = parameterObject;
+    }
     return result;
   }
 
   bool ShadingProfileRef::isDefault() const {
-    return name == "default" && parameters.isEmpty();
+    return name == "default" && parameters.empty();
   }
 
   std::string ShadingProfileRef::displayText() const {
-    return name;
+    if (parameters.empty()) {
+      return name;
+    }
+
+    std::ostringstream out;
+    out << name << "(";
+    bool first = true;
+    for (const auto& [key, value] : parameters) {
+      if (!first) {
+        out << ", ";
+      }
+      first = false;
+      out << key << "=" << value.displayText();
+    }
+    out << ")";
+    return out.str();
   }
 
   ShadingProfileRef ShadingProfileRef::fromJson(const QJsonValue& value, std::string path) {
@@ -391,7 +483,12 @@ namespace engine::graph {
     if (!parameters.isUndefined()) {
       if (!parameters.isObject())
         jsonError(path + ".parameters", "expected object");
-      profile.parameters = parameters.toObject();
+      const auto parameterObject = parameters.toObject();
+      for (auto it = parameterObject.begin(); it != parameterObject.end(); ++it) {
+        profile.parameters.emplace(it.key().toStdString(),
+                                   ShadingProfileParameterValue::fromJson(
+                                     it.value(), path + ".parameters." + it.key().toStdString()));
+      }
     }
 
     return profile;

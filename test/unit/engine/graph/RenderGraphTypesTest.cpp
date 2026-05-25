@@ -37,6 +37,21 @@ namespace RenderGraphTypesTest {
     profile.name = "toon";
     EXPECT_FALSE(profile.isDefault());
     EXPECT_EQ("toon", profile.displayText());
+
+    profile.parameters.emplace("enabled", ShadingProfileParameterValue(true));
+    profile.parameters.emplace("levels", ShadingProfileParameterValue(4.0));
+    profile.parameters.emplace("ramp", ShadingProfileParameterValue(std::string("warm")));
+    EXPECT_EQ("toon(enabled=true, levels=4, ramp=warm)", profile.displayText());
+
+    const QJsonObject json = profile.toJson();
+    const auto parameters = json["parameters"].toObject();
+    EXPECT_TRUE(parameters["enabled"].toBool());
+    EXPECT_EQ(4, parameters["levels"].toInt());
+    EXPECT_EQ("warm", parameters["ramp"].toString().toStdString());
+
+    const auto decoded = ShadingProfileRef::fromJson(json);
+    EXPECT_EQ(profile.name, decoded.name);
+    EXPECT_EQ(profile.parameters, decoded.parameters);
   }
 
   TEST(RenderIntent, SerializesToSceneJsonShape) {
@@ -44,7 +59,7 @@ namespace RenderGraphTypesTest {
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
     intent.defaultViewMode = RenderViewMode::Depth;
     intent.defaultShadingProfile.name = "toon";
-    intent.defaultShadingProfile.parameters["levels"] = 4;
+    intent.defaultShadingProfile.parameters.emplace("levels", ShadingProfileParameterValue(4.0));
     intent.defaultCamera = RenderCameraRef{"camera-a", std::nullopt};
     intent.enableAutomaticFeatures = false;
     intent.enableWireframeOverlay = true;

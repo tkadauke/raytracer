@@ -241,6 +241,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph shading-profile parameters.** `ShadingProfileRef` now stores
+  parsed scalar parameter values instead of retaining raw `QJsonObject`
+  parameters past the JSON import boundary. — GPT-5
 - **Render graph shading-profile scene views.** Synthesized scene-rendering
   passes now carry non-default shading profile intent in their `SceneView`, and
   text, DOT, JSON, rendercli functional checks, and Modeler pass details expose
