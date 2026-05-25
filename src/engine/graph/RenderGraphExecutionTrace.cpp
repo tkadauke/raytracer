@@ -210,6 +210,9 @@ namespace engine::graph {
     QJsonObject object;
     object["status"] = toString(m_status);
     object["message"] = QString::fromStdString(m_message);
+    object["cacheable"] = cacheable();
+    object["usedCachedArtifact"] = usedCachedArtifact();
+    object["storedCachedArtifact"] = storedCachedArtifact();
     return object;
   }
 
