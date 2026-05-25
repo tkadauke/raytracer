@@ -1022,6 +1022,36 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(scene->background(), buffer[0][0]);
   }
 
+  TEST(GraphRenderEngine, RejectsUnboundExternalInputResources) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(colorResource("history_color", RenderResourceLifetime::Imported));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"history_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+    ASSERT_TRUE(plan.validate().valid());
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+
+    Buffer<Colord> buffer(2, 2);
+    try {
+      engine.render(buffer);
+      FAIL() << "Expected unbound external graph input rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("external resource 'history_color'"));
+      EXPECT_NE(std::string::npos, message.find("no external resource binding API"));
+    }
+  }
+
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord(2.0, 4.0, 0.5));

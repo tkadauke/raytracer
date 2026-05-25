@@ -961,6 +961,11 @@ namespace engine::graph {
            lifetime == RenderResourceLifetime::PersistentCache;
   }
 
+  bool RenderResourceDescriptor::requiresExternalBinding() const {
+    return lifetime == RenderResourceLifetime::Imported ||
+           lifetime == RenderResourceLifetime::History;
+  }
+
   QJsonObject RenderResourceDescriptor::toJson() const {
     QJsonObject object;
     object["id"] = qstr(id);

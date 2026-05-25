@@ -346,6 +346,39 @@ namespace engine::graph {
     return result;
   }
 
+  std::vector<RenderResourceId> RenderPlan::externalInputResourceIds() const {
+    std::map<RenderResourceId, const RenderResourceDescriptor*> resources;
+    for (const auto& resource : m_resources) {
+      resources.emplace(resource.id, &resource);
+    }
+
+    std::set<RenderResourceId> producedResources;
+    for (const auto& pass : m_passes) {
+      for (const auto& write : pass.writes) {
+        producedResources.insert(write.resource);
+      }
+    }
+
+    std::set<RenderResourceId> result;
+    for (const auto& pass : m_passes) {
+      if (!passReadsWhenExecuted(pass)) {
+        continue;
+      }
+      for (const auto& read : pass.reads) {
+        const auto resourceIt = resources.find(read.resource);
+        if (resourceIt == resources.end()) {
+          continue;
+        }
+        if (resourceIt->second->requiresExternalBinding() &&
+            producedResources.find(read.resource) == producedResources.end()) {
+          result.insert(read.resource);
+        }
+      }
+    }
+
+    return {result.begin(), result.end()};
+  }
+
   bool RenderPlan::resourceCanReach(const RenderResourceId& source,
                                     const RenderResourceId& destination) const {
     std::vector<RenderResourceId> pending{source};
