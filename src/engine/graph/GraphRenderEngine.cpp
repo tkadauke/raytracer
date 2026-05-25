@@ -40,10 +40,12 @@ namespace engine::graph {
     struct ExternalResourceBindings {
       std::map<RenderResourceId, std::shared_ptr<const Buffer<Colord>>> colorResources;
       std::map<RenderResourceId, std::shared_ptr<const Buffer<double>>> depthResources;
+      std::map<RenderResourceId, std::shared_ptr<const Buffer<std::uint32_t>>> objectIdResources;
 
       bool contains(const RenderResourceId& id) const {
         return colorResources.find(id) != colorResources.end() ||
-               depthResources.find(id) != depthResources.end();
+               depthResources.find(id) != depthResources.end() ||
+               objectIdResources.find(id) != objectIdResources.end();
       }
 
       void bind(RenderResourceStorage& storage, const RenderResourceId& id) const {
@@ -56,27 +58,43 @@ namespace engine::graph {
         const auto depthIt = depthResources.find(id);
         if (depthIt != depthResources.end() && depthIt->second) {
           storage.bindDepth(id, *depthIt->second);
+          return;
+        }
+
+        const auto objectIdIt = objectIdResources.find(id);
+        if (objectIdIt != objectIdResources.end() && objectIdIt->second) {
+          storage.bindObjectId(id, *objectIdIt->second);
         }
       }
 
       void setColor(RenderResourceId id, std::shared_ptr<const Buffer<Colord>> buffer) {
         depthResources.erase(id);
+        objectIdResources.erase(id);
         colorResources[std::move(id)] = std::move(buffer);
       }
 
       void setDepth(RenderResourceId id, std::shared_ptr<const Buffer<double>> buffer) {
         colorResources.erase(id);
+        objectIdResources.erase(id);
         depthResources[std::move(id)] = std::move(buffer);
+      }
+
+      void setObjectId(RenderResourceId id, std::shared_ptr<const Buffer<std::uint32_t>> buffer) {
+        colorResources.erase(id);
+        depthResources.erase(id);
+        objectIdResources[std::move(id)] = std::move(buffer);
       }
 
       void clear(const RenderResourceId& id) {
         colorResources.erase(id);
         depthResources.erase(id);
+        objectIdResources.erase(id);
       }
 
       void clear() {
         colorResources.clear();
         depthResources.clear();
+        objectIdResources.clear();
       }
     };
 
@@ -660,6 +678,17 @@ namespace engine::graph {
       throw std::runtime_error("external depth resource '" + id + "' must not be null");
     }
     p->externalResources.setDepth(std::move(id), std::move(buffer));
+  }
+
+  void GraphRenderEngine::setExternalObjectIdResource(
+    RenderResourceId id, std::shared_ptr<const Buffer<std::uint32_t>> buffer) {
+    if (id.empty()) {
+      throw std::runtime_error("external object-id resource id must not be empty");
+    }
+    if (!buffer) {
+      throw std::runtime_error("external object-id resource '" + id + "' must not be null");
+    }
+    p->externalResources.setObjectId(std::move(id), std::move(buffer));
   }
 
   void GraphRenderEngine::clearExternalResource(const RenderResourceId& id) {

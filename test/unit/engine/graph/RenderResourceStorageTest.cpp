@@ -129,6 +129,32 @@ namespace RenderResourceStorageTest {
     EXPECT_THROW(storage.bindDepth("history_depth", external), std::runtime_error);
   }
 
+  TEST(RenderResourceStorage, BindsExternalObjectIdBuffer) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_object_id", RenderResourceType::ObjectId),
+    });
+
+    Buffer<std::uint32_t> external(4, 3);
+    external.clear(42);
+
+    storage.bindObjectId("history_object_id", external);
+
+    EXPECT_EQ(42u, storage.objectId("history_object_id")[1][2]);
+    EXPECT_FALSE(storage.resource("history_object_id").substituteDefault());
+  }
+
+  TEST(RenderResourceStorage, RejectsMismatchedExternalObjectIdBufferShape) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_object_id", RenderResourceType::ObjectId),
+    });
+
+    Buffer<std::uint32_t> external(2, 3);
+
+    EXPECT_THROW(storage.bindObjectId("history_object_id", external), std::runtime_error);
+  }
+
   TEST(RenderResourceStorage, TracksSubstituteDefaultContents) {
     RenderResourceStorage storage;
     storage.allocate({

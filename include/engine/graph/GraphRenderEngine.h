@@ -3,6 +3,7 @@
 #include "engine/graph/RenderGraphCompiler.h"
 #include "render/RenderEngine.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -80,6 +81,16 @@ namespace engine::graph {
       */
     void setExternalDepthResource(RenderResourceId id,
                                   std::shared_ptr<const Buffer<double>> buffer);
+
+    /**
+      * Binds a CPU integer-id buffer for an imported or history graph resource.
+      *
+      * The buffer is copied into execution storage at render time. It must stay
+      * alive while this engine or render clones may execute plans that read it.
+      * Material-id graph resources use the same backing type.
+      */
+    void setExternalObjectIdResource(RenderResourceId id,
+                                     std::shared_ptr<const Buffer<std::uint32_t>> buffer);
 
     /**
       * Removes one previously bound external resource.

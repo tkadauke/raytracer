@@ -70,6 +70,18 @@ namespace GraphRenderEngineTest {
     return depth;
   }
 
+  RenderResourceDescriptor objectIdResource(const std::string& id, RenderResourceLifetime lifetime,
+                                            int width = 2, int height = 2) {
+    RenderResourceDescriptor objectId;
+    objectId.id = id;
+    objectId.type = RenderResourceType::ObjectId;
+    objectId.format = RenderResourceFormat::UInt32;
+    objectId.width = width;
+    objectId.height = height;
+    objectId.lifetime = lifetime;
+    return objectId;
+  }
+
   class BlockingMaterial : public render::Material {
   public:
     Colord shade(const render::RayCaster*, const render::Scene&, const Rayd&, const HitPoint&,
@@ -1126,6 +1138,38 @@ namespace GraphRenderEngineTest {
 
     EXPECT_EQ(Colord(1.0, 1.0, 1.0), buffer[0][0]);
     EXPECT_EQ(Colord::black(), buffer[0][1]);
+  }
+
+  TEST(GraphRenderEngine, RendersBoundExternalObjectIdInputResources) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(objectIdResource("history_object_id", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode visualizeObjectId;
+    visualizeObjectId.id = "visualize_object_id";
+    visualizeObjectId.kind = RenderPassKind::AOV;
+    visualizeObjectId.executor = RenderExecutorKind::PostProcess;
+    visualizeObjectId.features = {"object_id", "visualization"};
+    visualizeObjectId.reads.push_back({"history_object_id"});
+    visualizeObjectId.writes.push_back({"display_color"});
+    plan.addPass(visualizeObjectId);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto objectIds = std::make_shared<Buffer<std::uint32_t>>(2, 2);
+    objectIds->clear(0);
+    (*objectIds)[0][1] = 7;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalObjectIdResource("history_object_id", objectIds);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord::black(), buffer[0][0]);
+    EXPECT_FALSE(buffer[0][1] == Colord::black());
   }
 
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {
