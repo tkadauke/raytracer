@@ -1,0 +1,58 @@
+#include "world/objects/ElementFactory.h"
+#include "world/objects/Group.h"
+#include "world/objects/Light.h"
+#include "world/objects/Surface.h"
+#include "render/primitives/Composite.h"
+#include "render/primitives/Instance.h"
+#include "render/primitives/Scene.h"
+
+Group::Group(Element* parent)
+    : Transformable(parent),
+      m_visible(true) {
+}
+
+std::shared_ptr<render::Primitive>
+Group::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
+  auto result = std::make_shared<render::Instance>(primitive);
+  result->setMatrix(localTransform());
+  return result;
+}
+
+std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene) const {
+  if (!visible())
+    return nullptr;
+
+  auto composite = make_named<render::Composite>();
+
+  for (const auto& child : childElements()) {
+    if (auto surface = qobject_cast<Surface*>(child)) {
+      if (surface->visible()) {
+        auto primitive = surface->toRaytracer(scene);
+        if (primitive)
+          composite->add(primitive);
+      }
+    } else if (auto group = qobject_cast<Group*>(child)) {
+      if (group->visible()) {
+        auto primitive = group->toRaytracer(scene);
+        if (primitive)
+          composite->add(primitive);
+      }
+    } else if (auto light = qobject_cast<Light*>(child)) {
+      if (light->visible())
+        scene->addLight(light->toRaytracer());
+    }
+  }
+
+  if (composite->primitives().empty())
+    return nullptr;
+
+  return applyTransform(composite);
+}
+
+bool Group::canHaveChild(Element* child) const {
+  return dynamic_cast<Surface*>(child) != nullptr || dynamic_cast<Light*>(child) != nullptr ||
+         dynamic_cast<Group*>(child) != nullptr;
+}
+
+static bool dummy = ElementFactory::self().registerClass<Group>("Group") &&
+                    ElementFactory::self().registerClass<Group>("Collection");

@@ -46,6 +46,15 @@ instance carries only the 4×4 transform that places it. Two
 spheres at different positions are two `Instance`s wrapping the
 same `Sphere`, with two different `setMatrix` calls.
 
+The editable scene graph uses the same runtime mechanism for
+organizational transforms. A world-side
+[`Group`](../../../include/world/objects/Group.h) has no shape of
+its own: it gathers child surfaces and nested groups into a
+`Composite`, wraps that composite in an `Instance`, and lets child
+lights use the same parent transform chain when they convert to
+runtime lights. That gives the editor a real grouping object instead
+of relying on inactive CSG surfaces as stand-ins.
+
 ## <a id="the-transform-contract"></a>The transform contract
 The contract `Instance` enforces: the wrapped primitive's
 geometry is defined in *local space*, and the `setMatrix` call
@@ -239,5 +248,6 @@ thin-lens, the lens-disc sample) from non-correlated streams.
 
 <!-- source-anchors -->
 - `include/render/primitives/Instance.h`
+- `include/world/objects/Group.h`
 - `include/core/math/Matrix.h`
 <!-- /source-anchors -->
