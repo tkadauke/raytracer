@@ -147,6 +147,9 @@
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `src/core/formats/ldraw/LDrawColorTable.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/core/formats/ldraw/LDrawGeometryCompiler.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/core/formats/ldraw/LDrawParser.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyElement.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
