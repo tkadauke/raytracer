@@ -16,9 +16,14 @@ namespace LDrawLibraryResolverTest {
     TempTree()
         : m_root(fs::temp_directory_path() /
                  fs::path(string("raytracer-ldraw-resolver-") +
-                          to_string(::testing::UnitTest::GetInstance()->random_seed()) +
-                          "-" + to_string(++s_nextId))) {
+                          to_string(::testing::UnitTest::GetInstance()->random_seed()) + "-" +
+                          to_string(++s_nextId))) {
       fs::create_directories(m_root);
+      std::error_code error;
+      const fs::path canonical = fs::weakly_canonical(m_root, error);
+      if (!error) {
+        m_root = canonical;
+      }
     }
 
     ~TempTree() {
@@ -57,8 +62,7 @@ namespace LDrawLibraryResolverTest {
 
   TEST(LDrawLibraryResolver, ShouldFindDirectRelativeReferencesBesideModelFile) {
     TempTree tree;
-    const fs::path model = tree.write("models/car.ldr",
-                                      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 wheel.dat\n");
+    const fs::path model = tree.write("models/car.ldr", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 wheel.dat\n");
     tree.write("models/wheel.dat", "0 Wheel beside model\n");
 
     LDrawLibraryResolver resolver;
@@ -83,10 +87,14 @@ namespace LDrawLibraryResolverTest {
     const auto document = resolver.load(model);
 
     EXPECT_EQ((library / "parts" / "brick.dat"), resolver.resolve(*document, "brick.dat")->path);
-    EXPECT_EQ((library / "parts" / "s" / "inside.dat"), resolver.resolve(*document, "inside.dat")->path);
-    EXPECT_EQ((library / "p" / "primitive.dat"), resolver.resolve(*document, "primitive.dat")->path);
-    EXPECT_EQ((library / "p" / "48" / "highres.dat"), resolver.resolve(*document, "highres.dat")->path);
-    EXPECT_EQ((library / "models" / "vehicle.ldr"), resolver.resolve(*document, "vehicle.ldr")->path);
+    EXPECT_EQ((library / "parts" / "s" / "inside.dat"),
+              resolver.resolve(*document, "inside.dat")->path);
+    EXPECT_EQ((library / "p" / "primitive.dat"),
+              resolver.resolve(*document, "primitive.dat")->path);
+    EXPECT_EQ((library / "p" / "48" / "highres.dat"),
+              resolver.resolve(*document, "highres.dat")->path);
+    EXPECT_EQ((library / "models" / "vehicle.ldr"),
+              resolver.resolve(*document, "vehicle.ldr")->path);
   }
 
   TEST(LDrawLibraryResolver, ShouldResolveReferencesCaseInsensitively) {
@@ -117,11 +125,9 @@ namespace LDrawLibraryResolverTest {
 
   TEST(LDrawLibraryResolver, ShouldRecursivelyLoadSubfilesIntoCache) {
     TempTree tree;
-    const fs::path model = tree.write("model.ldr",
-                                      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n"
-                                      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n");
-    tree.write("ldraw/parts/3001.dat",
-               "1 16 0 0 0 1 0 0 0 1 0 0 0 1 stud.dat\n");
+    const fs::path model = tree.write("model.ldr", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n"
+                                                   "1 16 0 0 0 1 0 0 0 1 0 0 0 1 3001.dat\n");
+    tree.write("ldraw/parts/3001.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 stud.dat\n");
     tree.write("ldraw/p/stud.dat", "0 Stud\n");
 
     LDrawLibraryResolver resolver(tree.root() / "ldraw");
@@ -132,12 +138,9 @@ namespace LDrawLibraryResolverTest {
 
   TEST(LDrawLibraryResolver, ShouldDetectRecursiveSubfileCycles) {
     TempTree tree;
-    const fs::path model = tree.write("model.ldr",
-                                      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
-    tree.write("ldraw/parts/a.dat",
-               "1 16 0 0 0 1 0 0 0 1 0 0 0 1 b.dat\n");
-    tree.write("ldraw/parts/b.dat",
-               "1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
+    const fs::path model = tree.write("model.ldr", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
+    tree.write("ldraw/parts/a.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 b.dat\n");
+    tree.write("ldraw/parts/b.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
 
     LDrawLibraryResolver resolver(tree.root() / "ldraw");
 
@@ -165,7 +168,8 @@ namespace LDrawLibraryResolverTest {
       ASSERT_NE(string::npos, error.message().find("missing.dat"));
       ASSERT_NE(string::npos, error.message().find((tree.root() / "models").string()));
       ASSERT_NE(string::npos, error.message().find((tree.root() / "ldraw" / "parts").string()));
-      ASSERT_NE(string::npos, error.message().find((tree.root() / "ldraw" / "parts" / "s").string()));
+      ASSERT_NE(string::npos,
+                error.message().find((tree.root() / "ldraw" / "parts" / "s").string()));
       ASSERT_NE(string::npos, error.message().find((tree.root() / "ldraw" / "p").string()));
       ASSERT_NE(string::npos, error.message().find((tree.root() / "ldraw" / "p" / "48").string()));
       ASSERT_NE(string::npos, error.message().find((tree.root() / "ldraw" / "models").string()));

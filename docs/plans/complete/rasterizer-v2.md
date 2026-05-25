@@ -91,19 +91,20 @@ unit and becomes testable only through full-frame output.
 ### 1. Split raster internals into focused implementation units
 
 Status: completed. The shared raster vocabulary now lives in
-`src/engine/raster/RasterPipelineTypes.h`, and the scene-walk / projection /
-clipping / culling front end now lives in
-`src/engine/raster/RasterTriangleEmitter.h`. Directional shadow-map cameras,
-cascades, filtering, and visibility queries now live in
-`src/engine/raster/RasterShadowMaps.h`. Raster material adaptation and the
-built-in Lambertian evaluator now live in `src/engine/raster/RasterMaterial.h`
-and `src/engine/raster/RasterMaterialEvaluator.h`. Pass-owned buffers,
+`include/engine/raster/detail/RasterPipelineTypes.h`, and the scene-walk /
+projection / clipping / culling front end now lives in
+`include/engine/raster/detail/RasterTriangleEmitter.h`. Directional shadow-map
+cameras, cascades, filtering, and visibility queries now live in
+`include/engine/raster/detail/RasterShadowMaps.h`. Raster material adaptation
+and the built-in Lambertian evaluator now live in
+`include/engine/raster/detail/RasterMaterial.h` and
+`include/engine/raster/detail/RasterMaterialEvaluator.h`. Pass-owned buffers,
 depth/stencil state and policies, fragment policies, and tile/full-frame draw
-helpers now live in `src/engine/raster/RasterPass.h`. MSAA sample patterns,
-tile scratch storage, accumulation, and resolve helpers now live in
-`src/engine/raster/RasterMSAA.h`. `Rasterizer.cpp` owns the high-level frame
-flow, shadow-map depth-pass construction, and decisions about which pass helper
-to run.
+helpers now live in `include/engine/raster/detail/RasterPass.h`. MSAA sample
+patterns, tile scratch storage, accumulation, and resolve helpers now live in
+`include/engine/raster/detail/RasterMSAA.h`. `Rasterizer.cpp` owns the
+high-level frame flow, shadow-map depth-pass construction, and decisions about
+which pass helper to run.
 
 Extract internal files without changing public behavior:
 
@@ -396,7 +397,7 @@ The existing systems that need to expose or preserve this state are:
   copied through `cloneForRender()`.
 
 The small validation scaffold in
-`src/engine/raster/RasterTemporalResources.h` deliberately checks only the
+`include/engine/raster/detail/RasterTemporalResources.h` deliberately checks only the
 implementation-neutral contract: required buffers are present, match the render
 target size, jitter values are finite, and reset conditions block accumulation
 without making the resources incomplete. It does not choose ownership,

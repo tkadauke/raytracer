@@ -1,7 +1,7 @@
-#include "RasterShadowMapBuilder.h"
+#include "engine/raster/detail/RasterShadowMapBuilder.h"
 
-#include "RasterPass.h"
-#include "RasterTriangleEmitter.h"
+#include "engine/raster/detail/RasterPass.h"
+#include "engine/raster/detail/RasterTriangleEmitter.h"
 #include "engine/raster/Rasterizer.h"
 
 #include "core/Buffer.h"
@@ -10,7 +10,7 @@
 #include "render/primitives/Scene.h"
 #include "render/viewplanes/ViewPlane.h"
 
-#include "../TileRenderTask.h"
+#include "engine/TileRenderTask.h"
 
 #include <algorithm>
 #include <list>
