@@ -237,6 +237,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph pass hover details.** Pass-node tooltips in the
+  Modeler Render Graph view now include scene selector and camera intent
+  alongside dependency summaries. — GPT-5
 - **Render graph DOT scene-view details.** DOT render-plan exports now include
   pass selector and camera labels when a pass has non-default scene-view intent.
   — GPT-5
