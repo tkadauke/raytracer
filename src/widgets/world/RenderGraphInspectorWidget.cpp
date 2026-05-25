@@ -30,6 +30,7 @@
 #include <chrono>
 #include <map>
 #include <numeric>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -131,6 +132,25 @@ namespace {
     for (const auto& write : writes)
       values << qstr(write.resource);
     return dashIfEmpty(values.join(", "));
+  }
+
+  QString sceneSelectorText(const SceneSelector& selector) {
+    const QString kind = toString(selector.kind);
+    if (selector.value.empty())
+      return kind;
+    return kind + QStringLiteral(": ") + qstr(selector.value);
+  }
+
+  QString cameraText(const std::optional<RenderCameraRef>& camera) {
+    if (!camera)
+      return QStringLiteral("-");
+
+    QStringList values;
+    if (camera->sceneCameraId)
+      values << qstr(*camera->sceneCameraId);
+    if (camera->snapshot)
+      values << QStringLiteral("snapshot");
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
   }
 
   QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {
@@ -394,7 +414,8 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->passes->setRootIsDecorated(false);
   p->passes->setAlternatingRowColors(true);
   p->passes->setHeaderLabels({tr("Enabled"), tr("Order"), tr("Stage"), tr("Pass"), tr("Kind"),
-                              tr("Executor"), tr("Reads"), tr("Writes"), tr("Disabled behavior")});
+                              tr("Executor"), tr("Selector"), tr("Camera"), tr("Reads"),
+                              tr("Writes"), tr("Disabled behavior")});
   p->passes->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->passes->header()->setStretchLastSection(true);
   connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,
@@ -892,9 +913,11 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setText(3, qstr(pass.id));
     item->setText(4, toString(pass.kind));
     item->setText(5, toString(pass.executor));
-    item->setText(6, resourceReads(pass.reads));
-    item->setText(7, resourceWrites(pass.writes));
-    item->setText(8, toString(pass.disabledBehavior));
+    item->setText(6, sceneSelectorText(pass.sceneView.selector));
+    item->setText(7, cameraText(pass.sceneView.camera));
+    item->setText(8, resourceReads(pass.reads));
+    item->setText(9, resourceWrites(pass.writes));
+    item->setText(10, toString(pass.disabledBehavior));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
   }

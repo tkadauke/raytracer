@@ -87,6 +87,7 @@ namespace RenderGraphInspectorWidgetTest {
     pass.kind = RenderPassKind::Beauty;
     pass.executor = RenderExecutorKind::Raytracer;
     pass.writes.push_back({"main_color"});
+    pass.sceneView.camera = RenderCameraRef{"preview-camera", std::nullopt};
     pass.disabledBehavior = DisabledBehavior::Error;
     plan.addPass(pass);
 
@@ -241,7 +242,9 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->text(3));
     EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(4));
     EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(5));
-    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(7));
+    EXPECT_EQ(QString("all"), passes->topLevelItem(0)->text(6));
+    EXPECT_EQ(QString("preview-camera"), passes->topLevelItem(0)->text(7));
+    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(9));
 
     ASSERT_NE(nullptr, graph->scene());
     auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");

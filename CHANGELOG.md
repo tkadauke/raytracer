@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph scene views.** The Render Graph dock now shows each
+  pass's scene selector and camera reference in the Passes table and selected
+  pass property details. — GPT-5
 - **Render graph pass camera intent.** Synthesized scene-rendering passes now
   carry the effective default camera reference in their `SceneView`, and plan
   JSON preserves that reference. — GPT-5

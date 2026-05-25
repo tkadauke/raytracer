@@ -114,6 +114,25 @@ namespace {
     return dashIfEmpty(values.join(QStringLiteral(", ")));
   }
 
+  QString sceneSelectorText(const engine::graph::SceneSelector& selector) {
+    const QString kind = engine::graph::toString(selector.kind);
+    if (selector.value.empty())
+      return kind;
+    return kind + QStringLiteral(": ") + qstr(selector.value);
+  }
+
+  QString cameraText(const std::optional<engine::graph::RenderCameraRef>& camera) {
+    if (!camera)
+      return QStringLiteral("-");
+
+    QStringList values;
+    if (camera->sceneCameraId)
+      values << qstr(*camera->sceneCameraId);
+    if (camera->snapshot)
+      values << QStringLiteral("snapshot");
+    return dashIfEmpty(values.join(QStringLiteral(", ")));
+  }
+
   QString dependencyText(const std::vector<engine::graph::RenderPassDependency>& dependencies) {
     QStringList values;
     for (const auto& dependency : dependencies) {
@@ -1534,6 +1553,8 @@ void MainWindow::showRenderGraphPassDetails(const QString& passId, bool activate
   addRow(rows, tr("Enabled"), pass->enabled ? tr("true") : tr("false"));
   addRow(rows, tr("Execution stage"), optionalNumberText(plan.executionStageNumber(pass->id)));
   addRow(rows, tr("Execution order"), optionalNumberText(plan.executionOrderNumber(pass->id)));
+  addRow(rows, tr("Scene selector"), sceneSelectorText(pass->sceneView.selector));
+  addRow(rows, tr("Scene camera"), cameraText(pass->sceneView.camera));
   addRow(rows, tr("Disabled behavior"), engine::graph::toString(pass->disabledBehavior));
   addRow(rows, tr("Features"), featureText(pass->features));
   addRow(rows, tr("Reads"), resourceReadsText(pass->reads));

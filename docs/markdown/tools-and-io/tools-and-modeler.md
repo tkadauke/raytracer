@@ -174,12 +174,13 @@ renders begin. The Graph tab is the primary view: it shows pass nodes,
 resource nodes, and dependency edges, supports double-click pass toggles, and
 drives the property editor when a pass or resource is selected. Its Passes tab
 shows each compiled pass id, execution order, execution stage, kind, executor,
-and resource edges. Its Resources
+scene selector, camera reference, and resource edges. Its Resources
 tab shows each declared resource's type, format, domain, lifetime, and
 dimensions. Selecting a pass also shows its execution stage, order, incoming
 dependencies, and outgoing dependencies in the property editor alongside pass
-state, resource edges, and trace metadata. Hovering a pass or resource node
-summarizes its declared graph edges without leaving the graph view.
+state, scene view, resource edges, and trace metadata. Hovering a pass or
+resource node summarizes its declared graph edges without leaving the graph
+view.
 Unchecking a pass adds a graph override and the dock validates the
 manipulated plan immediately. When the manipulated plan is still valid, the
 central preview renders through that effective plan. After a render, selecting
