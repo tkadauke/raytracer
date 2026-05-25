@@ -161,6 +161,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph shadow cache invalidation.** Raster preview shadow depth cache
+  keys now use a pass-specific scene/camera/light fingerprint, so display-only
+  changes such as tonemap swaps do not invalidate cached shadow artifacts.
+  — GPT-5
 - **Modeler render graph live highlighting.** The graph view now waits until a
   pass has been executing for roughly 500 ms before showing live running state,
   so camera movement, frame scrubbing, and resize-triggered preview renders no

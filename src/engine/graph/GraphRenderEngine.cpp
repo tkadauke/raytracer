@@ -148,10 +148,7 @@ namespace engine::graph {
       }
     }
 
-    std::string renderInputFingerprintFor(const GraphRenderEngine& graph) {
-      std::ostringstream out;
-      out << std::setprecision(17);
-
+    void writeCameraFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
       if (auto camera = graph.camera()) {
         out << "camera.type=" << dynamicTypeName(*camera) << ';'
             << "camera.aspectMode=" << static_cast<int>(camera->aspectMode()) << ';'
@@ -161,7 +158,9 @@ namespace engine::graph {
       } else {
         out << "camera=null;";
       }
+    }
 
+    void writeSceneFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
       if (auto scene = graph.scene()) {
         out << "scene.ptr=" << scene.get() << ';' << "scene.lights=" << scene->lights().size()
             << ';';
@@ -175,13 +174,31 @@ namespace engine::graph {
       } else {
         out << "scene=null;";
       }
+    }
 
+    void writeDisplayFingerprint(std::ostream& out, const GraphRenderEngine& graph) {
       writeColorFingerprint(out, "engine.background", graph.backgroundColor());
       if (auto tonemap = graph.tonemap()) {
         out << "tonemap.type=" << dynamicTypeName(*tonemap) << ';';
       } else {
         out << "tonemap=null;";
       }
+    }
+
+    std::string renderInputFingerprintFor(const GraphRenderEngine& graph) {
+      std::ostringstream out;
+      out << std::setprecision(17);
+      writeCameraFingerprint(out, graph);
+      writeSceneFingerprint(out, graph);
+      writeDisplayFingerprint(out, graph);
+      return out.str();
+    }
+
+    std::string shadowCacheInputFingerprintFor(const GraphRenderEngine& graph) {
+      std::ostringstream out;
+      out << std::setprecision(17);
+      writeCameraFingerprint(out, graph);
+      writeSceneFingerprint(out, graph);
       return out.str();
     }
 
@@ -473,6 +490,13 @@ namespace engine::graph {
 
   std::string GraphRenderEngine::executionInputFingerprint() const {
     return renderInputFingerprintFor(*this);
+  }
+
+  std::string GraphRenderEngine::cacheInputFingerprintForPass(const RenderPassNode& pass) const {
+    if (pass.kind == RenderPassKind::Shadow && pass.executor == RenderExecutorKind::Rasterizer) {
+      return shadowCacheInputFingerprintFor(*this);
+    }
+    return executionInputFingerprint();
   }
 
   std::shared_ptr<RenderGraphArtifactCache> GraphRenderEngine::artifactCache() const {

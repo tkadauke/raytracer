@@ -526,6 +526,9 @@ state, camera, scene, and light fingerprint still match. The raster beauty pass
 still builds its full internal shadow-map collection separately, so this cache
 currently explains and accelerates the inspectable graph artifact rather than
 changing the shaded pixels.
+The shadow cache key is pass-specific: tonemap and other display-only choices
+are part of trace freshness, but they are not part of the shadow artifact's
+reuse key.
 
 The Modeler exposes this through graph selection. Select a pass in the graph or
 in the pass table after a render finishes, and the inspector follows that pass;

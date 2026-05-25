@@ -124,6 +124,12 @@ namespace engine::graph {
     std::string executionInputFingerprint() const;
 
     /**
+      * @returns the render-input fingerprint a persistent artifact produced by
+      * @p pass should use for cache reuse.
+      */
+    std::string cacheInputFingerprintForPass(const RenderPassNode& pass) const;
+
+    /**
       * @returns the artifact cache shared by this graph engine and render
       * clones created from it.
       */

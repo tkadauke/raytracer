@@ -1342,10 +1342,11 @@ stores and reuses an inspectable first-cascade depth artifact with trace-visible
 hit/stored metadata, but raster beauty still needs to consume cached full
 shadow-map artifacts before cache hits can affect pixels.
 
-The first implementation may use conservative invalidation. A later refinement
-should add scene/object revision domains so postprocess or tonemap changes do
-not invalidate shadow maps, and so light/occluder changes can be distinguished
-from unrelated scene edits.
+The first implementation may use conservative invalidation. ✅ **Partial.**
+Raster preview shadow artifacts now use a pass-specific cache fingerprint, so
+display-only changes such as tonemap swaps do not invalidate the cached depth
+artifact. A later refinement should add scene/object revision domains so
+light/occluder changes can be distinguished from unrelated scene edits.
 
 ### Execution trace and resource inspection
 

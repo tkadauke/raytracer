@@ -980,6 +980,7 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
     EXPECT_EQ(1u, engine.artifactCache()->size());
 
+    engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.render(buffer);
 
     auto trace = engine.lastExecutionTrace();
@@ -988,6 +989,7 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1u, outputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
+    EXPECT_EQ(1u, engine.artifactCache()->size());
 
     cam->setPosition(Vector3d(0.25, 0.0, -5.0));
     engine.render(buffer);

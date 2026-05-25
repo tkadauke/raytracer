@@ -181,7 +181,7 @@ namespace engine::graph {
 
         const bool cacheable = descriptor.lifetime == RenderResourceLifetime::PersistentCache;
         const RenderGraphCacheKey cacheKey = RenderGraphCacheKey::forPassOutput(
-          pass, descriptor, context.graph().executionInputFingerprint());
+          pass, descriptor, context.graph().cacheInputFingerprintForPass(pass));
         if (cacheable && restoreFromCache(context, write.resource, cacheKey)) {
           return;
         }
