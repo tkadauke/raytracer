@@ -101,6 +101,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Render graph engine options.** `RenderIntent` now carries typed raytracer,
+  rasterizer, and wireframe engine options, rendercli and the Modeler raster
+  render dialog compile those options into graph pass state, and subview
+  intents can inherit or override global engine options. — GPT-5
 - **rendercli graph view overrides.** `rendercli --render_graph_view_override`
   can now append high-level `RenderViewOverride` intent records from the
   command line, with whole-frame overrides applied by the current compiler and

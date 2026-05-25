@@ -598,6 +598,10 @@ namespace engine::graph {
       result["shadingProfile"] = shadingProfile->toJson();
     if (camera)
       result["camera"] = camera->toJson();
+    if (inheritEngineOptions)
+      result["inheritEngineOptions"] = *inheritEngineOptions;
+    if (!engineOptions.empty())
+      result["engineOptions"] = engineOptions.toJson();
     return result;
   }
 
@@ -631,11 +635,68 @@ namespace engine::graph {
     if (!camera.isUndefined())
       viewOverride.camera = RenderCameraRef::fromJson(camera, path + ".camera");
 
+    const auto inheritEngineOptions = object.value("inheritEngineOptions");
+    if (!inheritEngineOptions.isUndefined()) {
+      if (!inheritEngineOptions.isBool())
+        jsonError(path + ".inheritEngineOptions", "expected boolean");
+      viewOverride.inheritEngineOptions = inheritEngineOptions.toBool();
+    }
+
+    const auto engineOptions = object.value("engineOptions");
+    if (!engineOptions.isUndefined()) {
+      if (!engineOptions.isObject())
+        jsonError(path + ".engineOptions", "expected object");
+      viewOverride.engineOptions =
+        RenderEngineOptions::fromJson(engineOptions.toObject(), path + ".engineOptions");
+    }
+
     return viewOverride;
   }
 
   bool RenderViewOverride::appliesToWholeFrame() const {
     return selector.selectsWholeFrame();
+  }
+
+  RenderEngineOptions
+  RenderSubviewIntent::resolvedEngineOptions(const RenderEngineOptions& globalOptions) const {
+    return view.inheritEngineOptions.value_or(true) ? globalOptions.mergedWith(view.engineOptions)
+                                                    : view.engineOptions;
+  }
+
+  QJsonObject RenderSubviewIntent::toJson() const {
+    QJsonObject result;
+    result["name"] = qstr(name);
+    result["view"] = view.toJson();
+    return result;
+  }
+
+  RenderSubviewIntent RenderSubviewIntent::fromJson(const QJsonObject& object, std::string path) {
+    RenderSubviewIntent subview;
+    subview.name = stringField(object, "name", path);
+
+    const auto view = object.value("view");
+    if (!view.isUndefined()) {
+      if (!view.isObject())
+        jsonError(path + ".view", "expected object");
+      subview.view = RenderViewOverride::fromJson(view.toObject(), path + ".view");
+    }
+
+    const auto inheritEngineOptions = object.value("inheritEngineOptions");
+    if (!inheritEngineOptions.isUndefined()) {
+      if (!inheritEngineOptions.isBool())
+        jsonError(path + ".inheritEngineOptions", "expected boolean");
+      subview.view.inheritEngineOptions = inheritEngineOptions.toBool();
+    }
+
+    const auto engineOptions = object.value("engineOptions");
+    if (!engineOptions.isUndefined()) {
+      if (!engineOptions.isObject())
+        jsonError(path + ".engineOptions", "expected object");
+      subview.view.engineOptions =
+        RenderEngineOptions::fromJson(engineOptions.toObject(), path + ".engineOptions");
+    }
+
+    return subview;
   }
 
   const char* toString(RenderExecutorPreference value) {
@@ -754,6 +815,9 @@ namespace engine::graph {
     result["enableCurveOverlay"] = enableCurveOverlay;
     result["enablePreviewShadows"] = enablePreviewShadows;
     result["postProcessAA"] = toString(postProcessAA);
+    if (!engineOptions.empty()) {
+      result["engineOptions"] = engineOptions.toJson();
+    }
     if (!exportedAOVs.empty()) {
       result["exportedAOVs"] = viewModeArray(exportedAOVs);
     }
@@ -763,6 +827,13 @@ namespace engine::graph {
       for (const auto& viewOverride : viewOverrides)
         overrides.append(viewOverride.toJson());
       result["viewOverrides"] = overrides;
+    }
+
+    if (!subviews.empty()) {
+      QJsonArray subviewArray;
+      for (const auto& subview : subviews)
+        subviewArray.append(subview.toJson());
+      result["subviews"] = subviewArray;
     }
 
     return result;
@@ -835,6 +906,11 @@ namespace engine::graph {
     if (viewOverride.camera) {
       setDefaultCamera(*viewOverride.camera);
     }
+    if (!viewOverride.engineOptions.empty()) {
+      engineOptions = viewOverride.inheritEngineOptions.value_or(true)
+                        ? engineOptions.mergedWith(viewOverride.engineOptions)
+                        : viewOverride.engineOptions;
+    }
   }
 
   RenderIntent RenderIntent::fromJson(const QJsonObject& object) {
@@ -863,6 +939,15 @@ namespace engine::graph {
     intent.postProcessAA = postProcessAAFromJson(
       stringField(object, "postProcessAA", "renderIntent", toString(intent.postProcessAA)),
       "renderIntent.postProcessAA");
+
+    const auto engineOptions = object.value("engineOptions");
+    if (!engineOptions.isUndefined()) {
+      if (!engineOptions.isObject())
+        jsonError("renderIntent.engineOptions", "expected object");
+      intent.engineOptions =
+        RenderEngineOptions::fromJson(engineOptions.toObject(), "renderIntent.engineOptions");
+    }
+
     for (RenderViewMode viewMode : viewModeArrayFromJson(object, "exportedAOVs", "renderIntent")) {
       try {
         intent.requestExportedAOV(viewMode);
@@ -883,6 +968,21 @@ namespace engine::graph {
           jsonError("renderIntent.viewOverrides[" + std::to_string(i) + "]", "expected object");
         intent.viewOverrides.push_back(RenderViewOverride::fromJson(
           overrides.at(i).toObject(), "renderIntent.viewOverrides[" + std::to_string(i) + "]"));
+      }
+    }
+
+    const auto subviewsValue = object.value("subviews");
+    if (!subviewsValue.isUndefined()) {
+      if (!subviewsValue.isArray())
+        jsonError("renderIntent.subviews", "expected array");
+
+      const auto subviews = subviewsValue.toArray();
+      intent.subviews.reserve(static_cast<std::size_t>(subviews.size()));
+      for (int i = 0; i < subviews.size(); ++i) {
+        if (!subviews.at(i).isObject())
+          jsonError("renderIntent.subviews[" + std::to_string(i) + "]", "expected object");
+        intent.subviews.push_back(RenderSubviewIntent::fromJson(
+          subviews.at(i).toObject(), "renderIntent.subviews[" + std::to_string(i) + "]"));
       }
     }
 
@@ -956,6 +1056,16 @@ namespace engine::graph {
 
   bool RenderIntent::usesGraphImagePostProcessAA() const {
     return postProcessAADefinition(postProcessAA) != nullptr;
+  }
+
+  int RenderIntent::targetSampleCountHint(int fallback) const {
+    std::optional<int> hint;
+    if (defaultExecutorKind() == RenderExecutorKind::Rasterizer) {
+      hint = engineOptions.rasterizer().msaaSamples();
+    } else if (defaultExecutorKind() == RenderExecutorKind::Raytracer) {
+      hint = engineOptions.raytracer().samplesPerPixel();
+    }
+    return std::max(1, hint.value_or(fallback));
   }
 
   bool RenderResourceDescriptor::hasImageShape() const {

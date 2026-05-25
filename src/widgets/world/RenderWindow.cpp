@@ -4,9 +4,7 @@
 #include "widgets/RenderWidget.h"
 
 #include "engine/graph/GraphRenderEngine.h"
-#include "engine/graph/RasterPassState.h"
 #include "engine/graph/RenderGraphRequest.h"
-#include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
 #include "engine/wireframe/Wireframe.h"
 #include "render/lights/PointLight.h"
@@ -65,55 +63,25 @@ struct RenderWindow::Private {
     intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
     intent.enablePreviewShadows = settingsWidget->shadowMapsEnabled();
     intent.postProcessAA = postProcessAA();
-    return intent;
-  }
-
-  engine::graph::RasterBeautyPassState rasterBeautyPassState(engine::graph::RenderPostProcessAA aa,
-                                                             bool includeImagePostProcessAA,
-                                                             bool includeShadowMapEnable) const {
-    engine::graph::RasterBeautyPassState state;
-    state.geometry().setLod(settingsWidget->lod());
-    state.sampling().setMSAASamples(settingsWidget->msaaSamples());
+    auto& options = intent.engineOptions.rasterizer();
+    options.setLod(settingsWidget->lod());
+    options.setMSAASamples(settingsWidget->msaaSamples());
     if (settingsWidget->msaaShadingMode() == "Per fragment") {
-      state.sampling().setMSAAShadingMode(engine::raster::Rasterizer::MSAAShadingMode::PerFragment);
+      options.setMSAAShadingMode("per_fragment");
     }
-    if (includeImagePostProcessAA && aa == engine::graph::RenderPostProcessAA::FXAA) {
-      state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::FXAA);
-    } else if (includeImagePostProcessAA && aa == engine::graph::RenderPostProcessAA::SMAA) {
-      state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::SMAA);
-    } else if (aa == engine::graph::RenderPostProcessAA::TAA) {
-      state.sampling().setPostProcessAA(engine::raster::Rasterizer::PostProcessAA::TAA);
-    }
-
-    state.execution().setMaximumThreads(settingsWidget->renderThreads());
-    if (includeShadowMapEnable) {
-      state.shadows().setShadowMapsEnabled(settingsWidget->shadowMapsEnabled());
-      state.shadows().setShadowMapSize(settingsWidget->shadowMapSize());
-      state.shadows().setShadowCascadeCount(settingsWidget->shadowCascadeCount());
-      state.shadows().setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
-      state.shadows().setShadowBias(settingsWidget->shadowBias());
-      state.shadows().setShadowSlopeBias(settingsWidget->shadowSlopeBias());
-      state.shadows().setShadowFilterRadius(settingsWidget->shadowFilterRadius());
+    options.setMaximumThreads(settingsWidget->renderThreads());
+    if (settingsWidget->shadowMapsEnabled()) {
+      options.setShadowMapSize(settingsWidget->shadowMapSize());
+      options.setShadowCascadeCount(settingsWidget->shadowCascadeCount());
+      options.setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
+      options.setShadowBias(settingsWidget->shadowBias());
+      options.setShadowSlopeBias(settingsWidget->shadowSlopeBias());
+      options.setShadowFilterRadius(settingsWidget->shadowFilterRadius());
       if (settingsWidget->shadowFilterMode() == "PCSS") {
-        state.shadows().setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
+        options.setShadowFilterMode("pcss");
       }
     }
-    return state;
-  }
-
-  engine::graph::RasterShadowPassState rasterShadowPassState() const {
-    engine::graph::RasterShadowPassState state;
-    state.shadows().setShadowMapsEnabled(true);
-    state.shadows().setShadowMapSize(settingsWidget->shadowMapSize());
-    state.shadows().setShadowCascadeCount(settingsWidget->shadowCascadeCount());
-    state.shadows().setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
-    state.shadows().setShadowBias(settingsWidget->shadowBias());
-    state.shadows().setShadowSlopeBias(settingsWidget->shadowSlopeBias());
-    state.shadows().setShadowFilterRadius(settingsWidget->shadowFilterRadius());
-    if (settingsWidget->shadowFilterMode() == "PCSS") {
-      state.shadows().setShadowFilterMode(engine::raster::Rasterizer::ShadowFilterMode::PCSS);
-    }
-    return state;
+    return intent;
   }
 
   engine::graph::RenderPlan rasterPlan() const {
@@ -121,16 +89,8 @@ struct RenderWindow::Private {
     const auto intent = rasterIntent();
     engine::graph::RenderGraphRequest request(intent);
     request.setSceneAnalysis(sceneAnalysis);
-    auto plan =
-      request.compile({resolution.width(), resolution.height(), settingsWidget->msaaSamples()});
-    const engine::graph::RasterBeautyPassState rasterState = rasterBeautyPassState(
-      intent.postProcessAA, !intent.usesGraphImagePostProcessAA(), !intent.enablePreviewShadows);
-    rasterState.writeToRasterBeautyPasses(plan);
-    rasterState.writeToRasterAOVPasses(plan);
-    if (intent.enablePreviewShadows) {
-      rasterShadowPassState().writeToRasterShadowPasses(plan);
-    }
-    return plan;
+    return request.compile(
+      {resolution.width(), resolution.height(), settingsWidget->msaaSamples()});
   }
 
   bool busy;

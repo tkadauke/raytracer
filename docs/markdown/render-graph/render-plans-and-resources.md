@@ -71,15 +71,24 @@ That gives the graph layer a stable way to say "all objects", "this object",
 model to Qt widgets or JSON parsing.
 
 `RenderViewOverride` combines a selector with optional replacements for
-executor, view mode, shading profile, and camera. The result is a layered
-request: one default frame intent plus targeted overrides for specific parts
-of the scene.
+executor, view mode, shading profile, camera, and engine options. The result is
+a layered request: one default frame intent plus targeted overrides for
+specific parts of the scene.
 Whole-frame overrides whose selector is `all` are applied to the default frame
 intent before compilation. More specific selector overrides remain intent for
 future scene-partitioning planners; current graph compilation rejects them with
 a clear error instead of silently rendering only the default frame intent. Users
 still describe what they want, and the compiler remains responsible for
 synthesizing pass nodes.
+Advanced controls such as raytracer sampler, samples per pixel, recursion
+depth, raster MSAA, raster LOD, raster shadow-map quality, and wireframe LOD
+live in typed `RenderEngineOptions` fields on the intent. The compiler resolves
+those options into typed pass state on synthesized nodes; rendercli and the
+raster render dialog no longer compile a plan and then patch pass parameters in
+a separate front-end step. Future render-to-texture subviews can either inherit
+the global engine options or carry their own override block, so low-resolution
+probes and high-quality final views can share one intent model without users
+requesting graph nodes directly.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
 `SceneView` and in exported plan JSON. Shading-profile parameters are parsed
@@ -93,10 +102,11 @@ Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps
 the block optional: scenes without one use the default raytraced beauty intent,
 while scenes with one preserve the requested executor, view mode, shading
-profile, feature toggles, raster postprocess AA request, requested exported
-AOVs, camera reference, and per-selector overrides. Tools then layer temporary
-choices over that saved intent through `RenderGraphRequest` instead of
-directly authoring low-level pass nodes or mutating the scene's durable intent.
+profile, feature toggles, raster postprocess AA request, engine options,
+requested exported AOVs, camera reference, subview intents, and per-selector
+overrides. Tools then layer temporary choices over that saved intent through
+`RenderGraphRequest` instead of directly authoring low-level pass nodes or
+mutating the scene's durable intent.
 When no default camera is named, tools derive a scene-camera reference from the
 active editable-scene camera so the compiled graph still explains which camera
 feeds scene-rendering passes.
@@ -546,6 +556,13 @@ the same tessellation density as direct wireframe renders.
 `RenderTargetSpec` supplies the framebuffer width, height, and sample count for
 both resource descriptors. Compilation does not allocate buffers and does not
 render; it only produces the inspectable plan.
+
+When the selected beauty executor is the raytracer, typed raytracer options on
+the effective intent become `RaytracerBeautyPassState` on `raytrace_beauty`.
+That state can configure the sampler, samples per pixel, view-plane type,
+recursion depth, worker thread count, and queue size before the payload renders.
+Those choices therefore appear in graph JSON and replay with the plan instead
+of being hidden in rendercli camera setup.
 
 When the selected beauty executor is the rasterizer, graph-backed rendercli
 raster controls are compiled into the raster beauty pass's typed state and

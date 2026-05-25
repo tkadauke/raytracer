@@ -2,6 +2,7 @@
 
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphTypes.h"
 #include "engine/graph/WireframePassState.h"
 
@@ -63,12 +64,14 @@ namespace engine::graph {
         {RenderPassKind::Beauty, RenderPassKind::AOV}, RenderExecutorKind::Rasterizer);
       static const TypedRenderPassStateJsonFactory<RasterShadowPassState> rasterShadow(
         {RenderPassKind::Shadow}, RenderExecutorKind::Rasterizer);
+      static const TypedRenderPassStateJsonFactory<RaytracerBeautyPassState> raytracerBeauty(
+        {RenderPassKind::Beauty}, RenderExecutorKind::Raytracer);
       static const PostProcessAAStateJsonFactory postProcessAA;
       static const TypedRenderPassStateJsonFactory<WireframePassState> wireframe(
         {RenderPassKind::Beauty, RenderPassKind::Overlay}, RenderExecutorKind::Wireframe);
 
       static const std::vector<const RenderPassStateJsonFactory*> result = {
-        &rasterBeauty, &rasterShadow, &postProcessAA, &wireframe};
+        &rasterBeauty, &rasterShadow, &raytracerBeauty, &postProcessAA, &wireframe};
       return result;
     }
   }
@@ -96,6 +99,10 @@ namespace engine::graph {
   }
 
   const RasterShadowPassState* RenderPassState::asRasterShadowPassState() const {
+    return nullptr;
+  }
+
+  const RaytracerBeautyPassState* RenderPassState::asRaytracerBeautyPassState() const {
     return nullptr;
   }
 

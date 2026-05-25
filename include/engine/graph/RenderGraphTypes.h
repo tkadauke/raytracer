@@ -1,5 +1,7 @@
 #pragma once
 
+#include "engine/graph/RenderEngineOptions.h"
+
 #include <QJsonObject>
 #include <QJsonValue>
 
@@ -238,11 +240,26 @@ namespace engine::graph {
     std::optional<RenderViewMode> viewMode;
     std::optional<ShadingProfileRef> shadingProfile;
     std::optional<RenderCameraRef> camera;
+    std::optional<bool> inheritEngineOptions;
+    RenderEngineOptions engineOptions;
 
     bool appliesToWholeFrame() const;
     QJsonObject toJson() const;
     static RenderViewOverride fromJson(const QJsonObject& object,
                                        std::string path = "viewOverride");
+  };
+
+  /**
+    * Named secondary view intent for future render-to-texture and similar
+    * subview graph synthesis.
+    */
+  struct RenderSubviewIntent {
+    std::string name;
+    RenderViewOverride view;
+
+    RenderEngineOptions resolvedEngineOptions(const RenderEngineOptions& globalOptions) const;
+    QJsonObject toJson() const;
+    static RenderSubviewIntent fromJson(const QJsonObject& object, std::string path = "subview");
   };
 
   /**
@@ -264,9 +281,12 @@ namespace engine::graph {
     bool enablePreviewShadows{false};
     /// Requests raster post-process anti-aliasing for graph compilation.
     RenderPostProcessAA postProcessAA{RenderPostProcessAA::None};
+    /// Advanced per-engine controls interpreted by the graph compiler.
+    RenderEngineOptions engineOptions;
     /// Additional graph-visible AOVs requested as side outputs.
     std::vector<RenderViewMode> exportedAOVs;
     std::vector<RenderViewOverride> viewOverrides;
+    std::vector<RenderSubviewIntent> subviews;
 
     /**
       * Serializes this user-facing render intent to the scene JSON shape.
@@ -389,6 +409,11 @@ namespace engine::graph {
       * postprocess pass.
       */
     bool usesGraphImagePostProcessAA() const;
+
+    /**
+      * Best-effort sample-count hint for target resource descriptors.
+      */
+    int targetSampleCountHint(int fallback = 1) const;
   };
 
   /**

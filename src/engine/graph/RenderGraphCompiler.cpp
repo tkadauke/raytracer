@@ -3,6 +3,8 @@
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RaytracerPassState.h"
+#include "engine/graph/WireframePassState.h"
 
 #include <algorithm>
 #include <memory>
@@ -21,18 +23,23 @@ namespace engine::graph {
       return tonemap->singleRead().resource;
     }
 
-    void applyTargetSamplingToRasterPass(RenderPassNode& pass, const RenderTargetSpec& target) {
-      if (pass.executor != RenderExecutorKind::Rasterizer || target.sampleCount == 1) {
-        return;
+    void applyEngineOptionsToPass(RenderPassNode& pass, int rasterTargetSampleCount,
+                                  const RenderIntent& intent) {
+      if (pass.executor == RenderExecutorKind::Raytracer && pass.kind == RenderPassKind::Beauty) {
+        intent.engineOptions.raytracer().beautyPassState().writeTo(pass);
+      } else if (pass.executor == RenderExecutorKind::Rasterizer) {
+        intent.engineOptions.rasterizer()
+          .beautyPassState(rasterTargetSampleCount, intent.postProcessAA,
+                           !intent.usesGraphImagePostProcessAA(), false)
+          .writeTo(pass);
+      } else if (pass.executor == RenderExecutorKind::Wireframe) {
+        intent.engineOptions.wireframe().passState().writeTo(pass);
       }
-
-      RasterBeautyPassState state;
-      state.sampling().setMSAASamples(target.sampleCount);
-      state.writeTo(pass);
     }
 
     RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
-                                   const SceneView& sceneView, bool mainPass) {
+                                   const SceneView& sceneView, bool mainPass,
+                                   const RenderTargetSpec& target, const RenderIntent& intent) {
       const auto* executorDefinition = renderExecutorDefinition(executor);
       if (!executorDefinition) {
         throw std::runtime_error("executor cannot produce AOV pass");
@@ -49,6 +56,8 @@ namespace engine::graph {
       pass.sceneView = sceneView;
       pass.disabledBehavior = DisabledBehavior::SubstituteDefault;
       pass.canRunConcurrently = false;
+      applyEngineOptionsToPass(pass, aov.usesRasterTargetSampling() ? target.sampleCount : 1,
+                               intent);
       return pass;
     }
 
@@ -73,14 +82,12 @@ namespace engine::graph {
     }
 
     RenderPlan aovViewPlan(const RenderTargetSpec& target, RenderExecutorKind executor,
-                           const RenderAOVDefinition& aov, const SceneView& sceneView) {
+                           const RenderAOVDefinition& aov, const SceneView& sceneView,
+                           const RenderIntent& intent) {
       RenderPlan plan;
 
       const RenderResourceId aovId = aov.resourceId();
-      RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true);
-      if (aov.usesRasterTargetSampling()) {
-        applyTargetSamplingToRasterPass(producer, target);
-      }
+      RenderPassNode producer = aovProducerPass(aov, executor, sceneView, true, target, intent);
       plan.addResourceProducer(std::move(producer),
                                aov.resourceDescriptor(target, RenderResourceLifetime::Transient));
 
@@ -93,7 +100,8 @@ namespace engine::graph {
 
     void addAuxiliaryAOVExport(RenderPlan& plan, const RenderTargetSpec& target,
                                RenderExecutorKind executor, RenderViewMode viewMode,
-                               RenderViewMode defaultViewMode, const SceneView& sceneView) {
+                               RenderViewMode defaultViewMode, const SceneView& sceneView,
+                               const RenderIntent& intent) {
       const auto* aov = renderAOVDefinition(viewMode);
       if (!aov) {
         throw std::runtime_error("view mode '" + std::string(toString(viewMode)) +
@@ -107,10 +115,7 @@ namespace engine::graph {
       const RenderResourceId aovId = aov->resourceId();
       const RenderResourceId previewId = aov->previewColorResourceId();
       if (!plan.findResource(aovId)) {
-        RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false);
-        if (aov->usesRasterTargetSampling()) {
-          applyTargetSamplingToRasterPass(producer, target);
-        }
+        RenderPassNode producer = aovProducerPass(*aov, executor, sceneView, false, target, intent);
         plan.addResourceProducer(std::move(producer),
                                  aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
       }
@@ -127,7 +132,8 @@ namespace engine::graph {
         if (!seen.insert(viewMode).second) {
           continue;
         }
-        addAuxiliaryAOVExport(plan, target, executor, viewMode, intent.defaultViewMode, sceneView);
+        addAuxiliaryAOVExport(plan, target, executor, viewMode, intent.defaultViewMode, sceneView,
+                              intent);
       }
     }
   }
@@ -155,7 +161,7 @@ namespace engine::graph {
 
   RenderPassNode
   RenderGraphCompiler::beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
-                                  const RenderTargetSpec& target,
+                                  const RenderTargetSpec& target, const RenderIntent& intent,
                                   std::vector<RenderFeatureKind> extraFeatures) const {
     const auto* executorDefinition = renderExecutorDefinition(executor);
     if (!executorDefinition) {
@@ -172,7 +178,7 @@ namespace engine::graph {
     pass.sceneView = sceneView;
     pass.disabledBehavior = DisabledBehavior::Error;
     pass.canRunConcurrently = false;
-    applyTargetSamplingToRasterPass(pass, target);
+    applyEngineOptionsToPass(pass, target.sampleCount, intent);
     return pass;
   }
 
@@ -198,9 +204,10 @@ namespace engine::graph {
     RenderPlan plan;
 
     plan.addResourceProducer(
-      beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, {"stencil_composite_base"}),
+      beautyPass(RenderExecutorKind::Rasterizer, sceneView, target, intent,
+                 {"stencil_composite_base"}),
       target.colorResource("base_color", "Base color", RenderResourceLifetime::Transient));
-    plan.addResourceProducer(beautyPass(RenderExecutorKind::Wireframe, sceneView, target,
+    plan.addResourceProducer(beautyPass(RenderExecutorKind::Wireframe, sceneView, target, intent,
                                         {"stencil_composite_foreground"}),
                              target.colorResource("foreground_color", "Foreground color",
                                                   RenderResourceLifetime::Transient));
@@ -210,7 +217,7 @@ namespace engine::graph {
       throw std::runtime_error("stencil composite view requires a stencil AOV definition");
     }
     plan.addResourceProducer(
-      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true),
+      aovProducerPass(*stencilAOV, RenderExecutorKind::Rasterizer, sceneView, true, target, intent),
       stencilAOV->resourceDescriptor(target, RenderResourceLifetime::Transient));
 
     RenderPassNode composite;
@@ -262,7 +269,8 @@ namespace engine::graph {
     }
 
     if (const auto* aov = renderAOVDefinition(frameIntent.defaultViewMode)) {
-      RenderPlan plan = aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView());
+      RenderPlan plan =
+        aovViewPlan(target, executor, *aov, frameIntent.defaultSceneView(), frameIntent);
       addAuxiliaryAOVExports(plan, target, executor, frameIntent);
       return plan;
     }
@@ -274,7 +282,8 @@ namespace engine::graph {
     const bool usesPreviewShadows =
       sceneAnalysis.shouldCompileRasterPreviewShadows(executor, frameIntent);
 
-    RenderPassNode beauty = beautyPass(executor, frameIntent.defaultSceneView(), target);
+    RenderPassNode beauty =
+      beautyPass(executor, frameIntent.defaultSceneView(), target, frameIntent);
     plan.addResourceProducer(beauty, beautyColor);
 
     RenderResourceDescriptor mainColor =
@@ -290,7 +299,8 @@ namespace engine::graph {
       shadows.executor = RenderExecutorKind::Rasterizer;
       shadows.features = {"main", "preview_shadows", "shadow_maps", "rasterizer"};
       shadows.sceneView = frameIntent.defaultSceneView();
-      const RasterShadowPassState shadowState = RasterShadowPassState::previewDefaults();
+      const RasterShadowPassState shadowState =
+        frameIntent.engineOptions.rasterizer().shadowPassState();
       shadowState.writeTo(shadows);
       shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
       shadows.canRunConcurrently = false;
@@ -338,6 +348,7 @@ namespace engine::graph {
       overlay.addRead(inputResource);
       overlay.addWrite(overlayColor.id);
       overlay.sceneView = frameIntent.defaultSceneView();
+      frameIntent.engineOptions.wireframe().passState().writeTo(overlay);
       overlay.disabledBehavior = DisabledBehavior::Passthrough;
       overlay.canRunConcurrently = false;
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);
@@ -356,6 +367,7 @@ namespace engine::graph {
       overlay.addRead(inputResource);
       overlay.addWrite(overlayColor.id);
       overlay.sceneView = frameIntent.defaultSceneView();
+      frameIntent.engineOptions.wireframe().passState().writeTo(overlay);
       overlay.disabledBehavior = DisabledBehavior::Passthrough;
       overlay.canRunConcurrently = false;
       plan.routeResourceThroughPass(inputResource, overlayColor, overlay);

@@ -55,7 +55,7 @@ namespace engine::graph {
 
   private:
     RenderPassNode beautyPass(RenderExecutorKind executor, const SceneView& sceneView,
-                              const RenderTargetSpec& target,
+                              const RenderTargetSpec& target, const RenderIntent& intent,
                               std::vector<RenderFeatureKind> extraFeatures = {}) const;
     RenderPassNode tonemapPass(RenderResourceId inputResource,
                                RenderResourceId outputResource) const;

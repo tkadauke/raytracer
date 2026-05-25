@@ -2,7 +2,9 @@
 
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphCompiler.h"
+#include "engine/graph/WireframePassState.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -501,6 +503,81 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ(4, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
     EXPECT_EQ(4, plan.resources()[0].sampleCount);
     EXPECT_EQ(4, plan.resources()[1].sampleCount);
+  }
+
+  TEST(RenderGraphCompiler, RaytracerOptionsBecomeBeautyPassState) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.engineOptions.raytracer().setSampler("Jittered");
+    intent.engineOptions.raytracer().setSamplesPerPixel(9);
+    intent.engineOptions.raytracer().setViewPlane("TiledViewPlane");
+    intent.engineOptions.raytracer().setMaximumRecursionDepth(6);
+
+    const RenderPlan plan = compiler.compile({64, 64, intent.targetSampleCountHint()}, intent);
+
+    const auto* pass = plan.findPass("raytrace_beauty");
+    ASSERT_NE(nullptr, pass);
+    const auto* state = RaytracerBeautyPassState::fromPass(*pass);
+    ASSERT_NE(nullptr, state);
+    ASSERT_TRUE(state->sampler().has_value());
+    ASSERT_TRUE(state->samplesPerPixel().has_value());
+    ASSERT_TRUE(state->viewPlane().has_value());
+    ASSERT_TRUE(state->maximumRecursionDepth().has_value());
+    EXPECT_EQ("Jittered", *state->sampler());
+    EXPECT_EQ(9, *state->samplesPerPixel());
+    EXPECT_EQ("TiledViewPlane", *state->viewPlane());
+    EXPECT_EQ(6, *state->maximumRecursionDepth());
+    EXPECT_EQ(9, plan.findResource("beauty_color")->sampleCount);
+  }
+
+  TEST(RenderGraphCompiler, RasterizerOptionsBecomeBeautyAndShadowPassState) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    intent.engineOptions.rasterizer().setLod(3);
+    intent.engineOptions.rasterizer().setMSAASamples(4);
+    intent.engineOptions.rasterizer().setMSAAShadingMode("per_fragment");
+    intent.engineOptions.rasterizer().setShadowMapSize(128);
+    intent.engineOptions.rasterizer().setShadowBias(0.05);
+
+    const RenderPlan plan = compiler.compile({64, 64, intent.targetSampleCountHint()}, intent);
+
+    const auto* beauty = plan.findPass("raster_beauty");
+    ASSERT_NE(nullptr, beauty);
+    const auto* beautyState = RasterBeautyPassState::fromPass(*beauty);
+    ASSERT_NE(nullptr, beautyState);
+    EXPECT_EQ(4, beautyState->sampling().msaaSamples());
+
+    const auto* shadow = plan.findPass("raster_preview_shadows");
+    ASSERT_NE(nullptr, shadow);
+    const auto* shadowState = RasterShadowPassState::fromPass(*shadow);
+    ASSERT_NE(nullptr, shadowState);
+    EXPECT_EQ(128, shadowState->shadows().mapSize());
+    ASSERT_NE(nullptr, plan.findResource("preview_shadow_map"));
+    EXPECT_EQ(128, plan.findResource("preview_shadow_map")->width);
+  }
+
+  TEST(RenderGraphCompiler, WireframeOptionsBecomeBeautyAndOverlayPassState) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Wireframe;
+    intent.enableWireframeOverlay = true;
+    intent.engineOptions.wireframe().setLod(2);
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    const auto* beauty = plan.findPass("wireframe_beauty");
+    ASSERT_NE(nullptr, beauty);
+    const auto* beautyState = WireframePassState::fromPass(*beauty);
+    ASSERT_NE(nullptr, beautyState);
+    EXPECT_EQ(2, beautyState->lod());
+
+    const auto* overlay = plan.findPass("wireframe_overlay");
+    ASSERT_NE(nullptr, overlay);
+    const auto* overlayState = WireframePassState::fromPass(*overlay);
+    ASSERT_NE(nullptr, overlayState);
+    EXPECT_EQ(2, overlayState->lod());
   }
 
   TEST(RenderGraphCompiler, TonemapPassCanBeDisabledWithPassthrough) {

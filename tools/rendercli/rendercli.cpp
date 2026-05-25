@@ -20,6 +20,7 @@
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RenderEngineOptions.h"
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphRequest.h"
 #include "engine/graph/WireframePassState.h"
@@ -48,6 +49,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <iomanip>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <numeric>
@@ -212,6 +214,60 @@ namespace {
       return false;
     }
     return true;
+  }
+
+  template<class T>
+  std::string rasterEnumName(T value, std::initializer_list<std::pair<T, const char*>> names,
+                             const char* fallback) {
+    for (const auto& [candidate, name] : names) {
+      if (value == candidate)
+        return name;
+    }
+    return fallback;
+  }
+
+  std::string blendFactorName(engine::raster::Rasterizer::BlendFactor factor) {
+    using BlendFactor = engine::raster::Rasterizer::BlendFactor;
+    return rasterEnumName<BlendFactor>(
+      factor,
+      {{BlendFactor::Zero, "zero"},
+       {BlendFactor::One, "one"},
+       {BlendFactor::SourceColor, "source_color"},
+       {BlendFactor::OneMinusSourceColor, "one_minus_source_color"},
+       {BlendFactor::SourceAlpha, "source_alpha"},
+       {BlendFactor::OneMinusSourceAlpha, "one_minus_source_alpha"},
+       {BlendFactor::DestinationColor, "destination_color"},
+       {BlendFactor::OneMinusDestinationColor, "one_minus_destination_color"},
+       {BlendFactor::ConstantColor, "constant_color"},
+       {BlendFactor::OneMinusConstantColor, "one_minus_constant_color"},
+       {BlendFactor::ConstantAlpha, "constant_alpha"},
+       {BlendFactor::OneMinusConstantAlpha, "one_minus_constant_alpha"}},
+      "one");
+  }
+
+  std::string blendOpName(engine::raster::Rasterizer::BlendOp op) {
+    using BlendOp = engine::raster::Rasterizer::BlendOp;
+    return rasterEnumName<BlendOp>(op,
+                                   {{BlendOp::Add, "add"},
+                                    {BlendOp::Subtract, "subtract"},
+                                    {BlendOp::ReverseSubtract, "reverse_subtract"},
+                                    {BlendOp::Min, "min"},
+                                    {BlendOp::Max, "max"}},
+                                   "add");
+  }
+
+  std::string alphaFuncName(engine::raster::Rasterizer::AlphaFunc func) {
+    using AlphaFunc = engine::raster::Rasterizer::AlphaFunc;
+    return rasterEnumName<AlphaFunc>(func,
+                                     {{AlphaFunc::Never, "never"},
+                                      {AlphaFunc::Less, "less"},
+                                      {AlphaFunc::Equal, "equal"},
+                                      {AlphaFunc::LessEqual, "less_equal"},
+                                      {AlphaFunc::Greater, "greater"},
+                                      {AlphaFunc::GreaterEqual, "greater_equal"},
+                                      {AlphaFunc::NotEqual, "not_equal"},
+                                      {AlphaFunc::Always, "always"}},
+                                     "always");
   }
 
   bool parseColorTriplet(const QString& value, Colord* color) {
@@ -842,12 +898,15 @@ private:
   QString m_ldrawMissingPartPolicy;
 
   int m_maximumRecursionDepth;
+  bool m_maximumRecursionDepthSet;
   int m_width;
   int m_height;
   bool m_widthSet;
   bool m_heightSet;
   QString m_sampler;
+  bool m_samplerSet;
   int m_samplesPerPixel;
+  bool m_samplesPerPixelSet;
   int m_threads;
   int m_queueSize;
   bool m_threadsSet;
@@ -936,6 +995,7 @@ private:
   engine::graph::RenderGraphRequest renderGraphRequest(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
+  engine::graph::RenderEngineOptions commandLineEngineOptions() const;
   engine::graph::RenderPostProcessAA commandLinePostProcessAA() const;
   engine::graph::RasterBeautyPassState
   rasterBeautyPassState(engine::graph::RenderPostProcessAA postProcessAA,
@@ -979,12 +1039,15 @@ Renderer::Renderer()
       m_ldrawMaxRecursion(64),
       m_ldrawMissingPartPolicy("error"),
       m_maximumRecursionDepth(10),
+      m_maximumRecursionDepthSet(false),
       m_width(640),
       m_height(480),
       m_widthSet(false),
       m_heightSet(false),
       m_sampler("Regular"),
+      m_samplerSet(false),
       m_samplesPerPixel(1),
+      m_samplesPerPixelSet(false),
       m_threads(QThread::idealThreadCount()),
       m_queueSize(m_width * m_height * m_samplesPerPixel / 1024),
       m_threadsSet(false),
@@ -1183,7 +1246,9 @@ std::optional<engine::graph::RenderExecutorPreference> Renderer::engineExecutorP
 }
 
 engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scene) const {
-  engine::graph::RenderGraphRequest request(scene.renderIntentWithActiveCameraDefault());
+  engine::graph::RenderIntent baseIntent = scene.renderIntentWithActiveCameraDefault();
+  baseIntent.engineOptions = baseIntent.engineOptions.mergedWith(commandLineEngineOptions());
+  engine::graph::RenderGraphRequest request(baseIntent);
   request.setSceneAnalysis(scene.renderGraphAnalysis());
   if (m_renderGraphExecutorSet) {
     request.setExecutorOverride(m_renderGraphExecutor);
@@ -1226,9 +1291,76 @@ engine::graph::RenderGraphRequest Renderer::renderGraphRequest(const Scene& scen
 }
 
 int Renderer::renderGraphSampleCount(const engine::graph::RenderIntent& intent) const {
-  return intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer
-           ? m_rasterMsaaSamples
-           : m_samplesPerPixel;
+  return intent.targetSampleCountHint(intent.defaultExecutorKind() ==
+                                          engine::graph::RenderExecutorKind::Rasterizer
+                                        ? m_rasterMsaaSamples
+                                        : m_samplesPerPixel);
+}
+
+engine::graph::RenderEngineOptions Renderer::commandLineEngineOptions() const {
+  engine::graph::RenderEngineOptions options;
+
+  if (m_maximumRecursionDepthSet)
+    options.raytracer().setMaximumRecursionDepth(m_maximumRecursionDepth);
+  if (m_samplerSet)
+    options.raytracer().setSampler(m_sampler.toStdString());
+  if (m_samplesPerPixelSet)
+    options.raytracer().setSamplesPerPixel(m_samplesPerPixel);
+  if (m_threadsSet) {
+    options.raytracer().setMaximumThreads(m_threads);
+    options.rasterizer().setMaximumThreads(m_threads);
+  }
+  if (m_queueSizeSet) {
+    options.raytracer().setQueueSize(m_queueSize);
+    options.rasterizer().setQueueSize(m_queueSize);
+  }
+
+  if (m_wireframeLod != 0) {
+    options.wireframe().setLod(m_wireframeLod);
+    options.rasterizer().setLod(m_wireframeLod);
+  }
+  if (m_rasterCullMode != "both")
+    options.rasterizer().setCullMode(m_rasterCullMode.toStdString());
+  if (m_rasterMsaaSamples != 1)
+    options.rasterizer().setMSAASamples(m_rasterMsaaSamples);
+  if (m_rasterMsaaShadingMode != "per_sample")
+    options.rasterizer().setMSAAShadingMode(m_rasterMsaaShadingMode.toStdString());
+  if (m_rasterColorWriteMask != engine::raster::Rasterizer::ColorWriteAll)
+    options.rasterizer().setColorWriteMask(m_rasterColorWriteMask);
+  if (m_rasterBlending)
+    options.rasterizer().setBlendingEnabled(true);
+  if (m_rasterBlendSourceFactor != engine::raster::Rasterizer::BlendFactor::One ||
+      m_rasterBlendDestinationFactor != engine::raster::Rasterizer::BlendFactor::Zero) {
+    options.rasterizer().setBlendFactors(blendFactorName(m_rasterBlendSourceFactor),
+                                         blendFactorName(m_rasterBlendDestinationFactor));
+  }
+  if (m_rasterBlendOp != engine::raster::Rasterizer::BlendOp::Add)
+    options.rasterizer().setBlendOp(blendOpName(m_rasterBlendOp));
+  if (!(m_rasterBlendConstantColor == Colord::white()) || m_rasterBlendConstantAlpha != 1.0)
+    options.rasterizer().setBlendConstant(m_rasterBlendConstantColor, m_rasterBlendConstantAlpha);
+  if (m_rasterAlphaTest)
+    options.rasterizer().setAlphaTestEnabled(true);
+  if (m_rasterAlphaFunc != engine::raster::Rasterizer::AlphaFunc::Always ||
+      m_rasterAlphaReference != 0.0) {
+    options.rasterizer().setAlphaFunc(alphaFuncName(m_rasterAlphaFunc), m_rasterAlphaReference);
+  }
+  if (m_rasterViewportSet)
+    options.rasterizer().setViewportRect(m_rasterViewport);
+  if (m_rasterScissorSet)
+    options.rasterizer().setScissorRect(m_rasterScissor);
+  if (m_rasterDepthBias != 0.0)
+    options.rasterizer().setDepthBias(m_rasterDepthBias);
+  if (m_rasterShadowMaps) {
+    options.rasterizer().setShadowMapSize(m_rasterShadowMapSize);
+    options.rasterizer().setShadowCascadeCount(m_rasterShadowCascadeCount);
+    options.rasterizer().setShadowCascadeSplitLambda(m_rasterShadowCascadeSplitLambda);
+    options.rasterizer().setShadowBias(m_rasterShadowBias);
+    options.rasterizer().setShadowSlopeBias(m_rasterShadowSlopeBias);
+    options.rasterizer().setShadowFilterRadius(m_rasterShadowFilterRadius);
+    options.rasterizer().setShadowFilterMode(m_rasterShadowFilterMode.toStdString());
+  }
+
+  return options;
 }
 
 engine::graph::RenderPostProcessAA Renderer::commandLinePostProcessAA() const {
@@ -1329,17 +1461,6 @@ engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) c
   const auto intent = request.resolvedIntent();
   const auto frameIntent = intent.withWholeFrameOverridesApplied();
   auto plan = request.compile({m_width, m_height, renderGraphSampleCount(frameIntent)});
-  wireframePassState().writeToWireframePasses(plan);
-  if (frameIntent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
-    const engine::graph::RasterBeautyPassState rasterState =
-      rasterBeautyPassState(frameIntent.postProcessAA, !frameIntent.usesGraphImagePostProcessAA(),
-                            !frameIntent.enablePreviewShadows);
-    rasterState.writeToRasterBeautyPasses(plan);
-    rasterState.writeToRasterAOVPasses(plan);
-    if (frameIntent.enablePreviewShadows) {
-      rasterShadowPassState().writeToRasterShadowPasses(plan);
-    }
-  }
   return plan.withOverrides(m_renderGraphOverrides);
 }
 
@@ -1626,10 +1747,6 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
   engine::graph::RenderPlan graphPlan;
 
   if (m_renderGraph) {
-    if (rtCamera) {
-      rtCamera->viewPlane()->setSampler(sampler());
-    }
-
     graphPlan = renderGraphPlan(scene);
     validateRenderGraphPlan(graphPlan);
     if (usesRasterizer(graphPlan)) {
@@ -2150,6 +2267,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Depth must be > 0";
       return CommandLineError;
     }
+    m_maximumRecursionDepthSet = true;
   }
 
   if (parser.isSet("ldraw_library_root")) {
@@ -2228,6 +2346,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Sampler must be 'Regular', 'Random', or 'Jittered'";
       return CommandLineError;
     }
+    m_samplerSet = true;
   }
 
   if (parser.isSet("samples_per_pixel")) {
@@ -2237,6 +2356,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Samples per pixel must be > 0";
       return CommandLineError;
     }
+    m_samplesPerPixelSet = true;
   }
 
   if (parser.isSet("threads")) {

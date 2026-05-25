@@ -280,6 +280,13 @@ struct RenderViewOverride {
   std::optional<RenderViewMode> viewMode;
   std::optional<ShadingProfileRef> shadingProfile;
   std::optional<RenderCameraRef> camera;
+  std::optional<bool> inheritEngineOptions;
+  RenderEngineOptions engineOptions;
+};
+
+struct RenderSubviewIntent {
+  std::string name;
+  RenderViewOverride view;
 };
 
 struct RenderIntent {
@@ -291,9 +298,10 @@ struct RenderIntent {
   bool enableWireframeOverlay = false;
   bool enablePreviewShadows = false;
   RenderPostProcessAA postProcessAA = RenderPostProcessAA::None;
+  RenderEngineOptions engineOptions;
   std::vector<RenderViewMode> exportedAOVs;
   std::vector<RenderViewOverride> viewOverrides;
-  RenderGraphOverrides overrides;
+  std::vector<RenderSubviewIntent> subviews;
 };
 ```
 
@@ -307,6 +315,14 @@ nodes directly as the normal API.
 Render tools that attach executor-specific pass state should use this effective
 frame intent too, so a scene-authored whole-frame raster override receives the
 same raster MSAA, shadow, and postprocess state as an explicit raster default.
+Engine-specific advanced controls are intent, not node requests: raytracer
+sampler/samples/view-plane/recursion settings, raster sampling/framebuffer/
+shadow settings, and wireframe LOD are stored as typed `RenderEngineOptions`.
+The compiler resolves those options into typed payload state on the nodes it
+synthesizes. Subviews use the same view-override option fields to inherit the
+global engine options or provide their own override block, which keeps future
+render-to-texture quality controls in the same model without asking users to
+directly author graph nodes.
 The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera

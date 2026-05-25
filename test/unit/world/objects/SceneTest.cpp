@@ -503,10 +503,11 @@ namespace SceneTest {
     intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
     intent.defaultShadingProfile.name = "toon";
     intent.enableWireframeOverlay = true;
-    intent.viewOverrides.push_back({engine::graph::SceneSelector::objectName("Rig"),
-                                    engine::graph::RenderExecutorPreference::Wireframe,
-                                    engine::graph::RenderViewMode::Wireframe, std::nullopt,
-                                    std::nullopt});
+    engine::graph::RenderViewOverride override;
+    override.selector = engine::graph::SceneSelector::objectName("Rig");
+    override.executor = engine::graph::RenderExecutorPreference::Wireframe;
+    override.viewMode = engine::graph::RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(override);
     original.setRenderIntent(intent);
 
     ASSERT_TRUE(original.save(path));

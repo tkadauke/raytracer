@@ -7,6 +7,7 @@
 #include "engine/graph/PostProcessPassState.h"
 #include "engine/graph/RasterShadowMapArtifact.h"
 #include "engine/graph/RasterPassState.h"
+#include "engine/graph/RaytracerPassState.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderExecutionContext.h"
 #include "engine/graph/RenderResourceStorage.h"
@@ -277,7 +278,10 @@ namespace engine::graph {
       createEngine(const RenderExecutionContext& context) const override {
         const auto& graph = context.graph();
         auto camera = graph.camera() ? graph.camera()->clone() : nullptr;
-        return std::make_shared<::engine::raytracer::Raytracer>(std::move(camera), graph.scene());
+        auto raytracer =
+          std::make_shared<::engine::raytracer::Raytracer>(std::move(camera), graph.scene());
+        RaytracerBeautyPassState::valueFromPass(context.pass()).applyTo(*raytracer);
+        return raytracer;
       }
     };
 

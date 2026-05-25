@@ -1669,6 +1669,29 @@ if(NOT wireframe_state_graph MATCHES "\"lod\"")
   message(FATAL_ERROR "wireframe state graph did not contain lod state: ${wireframe_state_graph}")
 endif()
 
+set(raytracer_state_plan "${TEST_OUTPUT_DIR}/raytracer_state_plan.json")
+rendercli_run(
+  NAME "rendercli writes raytracer pass state through graph intent"
+  COMMAND
+    "${RENDERCLI}" --engine raytracer --render_graph_only --render_graph_format json
+    --width 32 --height 16 --sampler Jittered --samples_per_pixel 9 --depth 6
+    "${static_scene}" "${raytracer_state_plan}"
+)
+rendercli_assert_nonempty("${raytracer_state_plan}" NAME "graph raytracer state plan")
+file(READ "${raytracer_state_plan}" raytracer_state_graph)
+if(NOT raytracer_state_graph MATCHES "raytrace_beauty")
+  message(FATAL_ERROR "raytracer state graph did not contain raytrace_beauty: ${raytracer_state_graph}")
+endif()
+if(NOT raytracer_state_graph MATCHES "samplesPerPixel")
+  message(FATAL_ERROR "raytracer state graph did not contain samplesPerPixel: ${raytracer_state_graph}")
+endif()
+if(NOT raytracer_state_graph MATCHES "Jittered")
+  message(FATAL_ERROR "raytracer state graph did not contain sampler: ${raytracer_state_graph}")
+endif()
+if(NOT raytracer_state_graph MATCHES "maxRecursionDepth")
+  message(FATAL_ERROR "raytracer state graph did not contain recursion depth: ${raytracer_state_graph}")
+endif()
+
 rendercli_run(
   NAME "rendercli compiles raytracer FXAA as graph postprocess"
   COMMAND

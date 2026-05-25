@@ -91,10 +91,17 @@ namespace RenderGraphTypesTest {
     intent.enableCurveOverlay = true;
     intent.enablePreviewShadows = true;
     intent.postProcessAA = RenderPostProcessAA::SMAA;
+    intent.engineOptions.raytracer().setSampler("Jittered");
+    intent.engineOptions.raytracer().setSamplesPerPixel(8);
+    intent.engineOptions.rasterizer().setMSAASamples(4);
+    intent.engineOptions.rasterizer().setShadowMapSize(128);
+    intent.engineOptions.wireframe().setLod(2);
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal};
-    intent.viewOverrides.push_back({SceneSelector::tag("debug"),
-                                    RenderExecutorPreference::Wireframe, RenderViewMode::Wireframe,
-                                    std::nullopt, std::nullopt});
+    RenderViewOverride override;
+    override.selector = SceneSelector::tag("debug");
+    override.executor = RenderExecutorPreference::Wireframe;
+    override.viewMode = RenderViewMode::Wireframe;
+    intent.viewOverrides.push_back(override);
 
     const QJsonObject json = intent.toJson();
 
@@ -105,6 +112,18 @@ namespace RenderGraphTypesTest {
     EXPECT_TRUE(json["enableCurveOverlay"].toBool());
     EXPECT_TRUE(json["enablePreviewShadows"].toBool());
     EXPECT_EQ("smaa", json["postProcessAA"].toString().toStdString());
+    const auto engineOptions = json["engineOptions"].toObject();
+    EXPECT_EQ("Jittered", engineOptions["raytracer"]
+                            .toObject()["sampling"]
+                            .toObject()["sampler"]
+                            .toString()
+                            .toStdString());
+    EXPECT_EQ(
+      8, engineOptions["raytracer"].toObject()["sampling"].toObject()["samplesPerPixel"].toInt());
+    EXPECT_EQ(4,
+              engineOptions["rasterizer"].toObject()["sampling"].toObject()["msaaSamples"].toInt());
+    EXPECT_EQ(128, engineOptions["rasterizer"].toObject()["shadows"].toObject()["mapSize"].toInt());
+    EXPECT_EQ(2, engineOptions["wireframe"].toObject()["lod"].toInt());
     const auto exportedAOVs = json["exportedAOVs"].toArray();
     ASSERT_EQ(2, exportedAOVs.size());
     EXPECT_EQ("depth", exportedAOVs.at(0).toString().toStdString());
@@ -129,6 +148,18 @@ namespace RenderGraphTypesTest {
     QJsonObject json;
     json["defaultExecutor"] = "rasterizer";
     json["defaultShadingProfile"] = "toon";
+    QJsonObject raytracerSampling;
+    raytracerSampling["samplesPerPixel"] = 12;
+    QJsonObject raytracerOptions;
+    raytracerOptions["sampling"] = raytracerSampling;
+    QJsonObject rasterSampling;
+    rasterSampling["msaaSamples"] = 4;
+    QJsonObject rasterizerOptions;
+    rasterizerOptions["sampling"] = rasterSampling;
+    QJsonObject engineOptions;
+    engineOptions["raytracer"] = raytracerOptions;
+    engineOptions["rasterizer"] = rasterizerOptions;
+    json["engineOptions"] = engineOptions;
 
     QJsonObject selector;
     selector["kind"] = "object_name";
@@ -148,6 +179,10 @@ namespace RenderGraphTypesTest {
     EXPECT_FALSE(intent.enableWireframeOverlay);
     EXPECT_FALSE(intent.enableCurveOverlay);
     EXPECT_EQ(RenderPostProcessAA::None, intent.postProcessAA);
+    ASSERT_TRUE(intent.engineOptions.raytracer().samplesPerPixel().has_value());
+    EXPECT_EQ(12, *intent.engineOptions.raytracer().samplesPerPixel());
+    ASSERT_TRUE(intent.engineOptions.rasterizer().msaaSamples().has_value());
+    EXPECT_EQ(4, *intent.engineOptions.rasterizer().msaaSamples());
     ASSERT_EQ(3u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);
     EXPECT_EQ(RenderViewMode::Stencil, intent.exportedAOVs[1]);
@@ -248,6 +283,7 @@ namespace RenderGraphTypesTest {
     wholeFrame.viewMode = RenderViewMode::Depth;
     wholeFrame.shadingProfile = ShadingProfileRef{"clay", {}};
     wholeFrame.camera = RenderCameraRef{"inspection-camera", std::nullopt};
+    wholeFrame.engineOptions.rasterizer().setMSAASamples(8);
     intent.viewOverrides.push_back(wholeFrame);
 
     RenderViewOverride tagOverride;
@@ -280,6 +316,8 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("inspection-camera", *effective.defaultSceneView().camera->sceneCameraId);
     ASSERT_TRUE(effective.defaultSceneView().shadingProfile.has_value());
     EXPECT_EQ("clay", effective.defaultSceneView().shadingProfile->name);
+    ASSERT_TRUE(effective.engineOptions.rasterizer().msaaSamples().has_value());
+    EXPECT_EQ(8, *effective.engineOptions.rasterizer().msaaSamples());
     ASSERT_EQ(1u, effective.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::Tag, effective.viewOverrides.front().selector.kind);
   }
@@ -300,6 +338,44 @@ namespace RenderGraphTypesTest {
       EXPECT_NE(std::string::npos, message.find("test compiler"));
       EXPECT_NE(std::string::npos, message.find("object_name: Monitor"));
     }
+  }
+
+  TEST(RenderSubviewIntent, ResolvesInheritedAndIndependentEngineOptions) {
+    RenderEngineOptions global;
+    global.raytracer().setSamplesPerPixel(8);
+    global.rasterizer().setMSAASamples(4);
+
+    RenderSubviewIntent inherited;
+    inherited.name = "reflection_probe";
+    inherited.view.engineOptions.rasterizer().setMSAASamples(1);
+
+    const RenderEngineOptions inheritedOptions = inherited.resolvedEngineOptions(global);
+    ASSERT_TRUE(inheritedOptions.raytracer().samplesPerPixel().has_value());
+    ASSERT_TRUE(inheritedOptions.rasterizer().msaaSamples().has_value());
+    EXPECT_EQ(8, *inheritedOptions.raytracer().samplesPerPixel());
+    EXPECT_EQ(1, *inheritedOptions.rasterizer().msaaSamples());
+
+    RenderSubviewIntent independent = inherited;
+    independent.view.inheritEngineOptions = false;
+
+    const RenderEngineOptions independentOptions = independent.resolvedEngineOptions(global);
+    EXPECT_FALSE(independentOptions.raytracer().samplesPerPixel().has_value());
+    ASSERT_TRUE(independentOptions.rasterizer().msaaSamples().has_value());
+    EXPECT_EQ(1, *independentOptions.rasterizer().msaaSamples());
+  }
+
+  TEST(RenderIntent, SampleCountHintUsesDefaultExecutorOptionsFirst) {
+    RenderIntent intent;
+    intent.engineOptions.raytracer().setSamplesPerPixel(8);
+    intent.engineOptions.rasterizer().setMSAASamples(4);
+
+    EXPECT_EQ(8, intent.targetSampleCountHint(1));
+
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    EXPECT_EQ(4, intent.targetSampleCountHint(1));
+
+    intent.defaultExecutor = RenderExecutorPreference::Wireframe;
+    EXPECT_EQ(1, intent.targetSampleCountHint(1));
   }
 
   TEST(RenderExecutorDefinition, DescribesCompiledBeautyPasses) {
