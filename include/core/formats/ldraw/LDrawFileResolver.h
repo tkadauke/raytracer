@@ -1,6 +1,9 @@
 #pragma once
 
+#include "core/formats/ldraw/LDrawParser.h"
+
 #include <iosfwd>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -28,4 +31,17 @@ public:
 
 private:
   std::vector<std::string> m_searchDirectories;
+};
+
+class LDrawMpdFileResolver : public LDrawFileResolver {
+public:
+  explicit LDrawMpdFileResolver(const LDrawDocument& document,
+                                std::shared_ptr<const LDrawFileResolver> fallback = nullptr);
+
+  [[nodiscard]] std::unique_ptr<std::istream> open(const std::string& filename) const override;
+  [[nodiscard]] std::string cacheKey(const std::string& filename) const override;
+
+private:
+  std::map<std::string, std::string> m_files;
+  std::shared_ptr<const LDrawFileResolver> m_fallback;
 };

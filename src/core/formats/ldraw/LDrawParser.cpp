@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <limits>
 #include <sstream>
+#include <utility>
 
 using namespace std;
 
@@ -21,6 +22,13 @@ namespace {
     while (end > 0 && (value[end - 1] == ' ' || value[end - 1] == '\t' || value[end - 1] == '\r'))
       --end;
     return value.substr(0, end);
+  }
+
+  string trim(const string& value) {
+    size_t begin = 0;
+    while (begin < value.size() && (value[begin] == ' ' || value[begin] == '\t' || value[begin] == '\r'))
+      ++begin;
+    return trimRight(value.substr(begin));
   }
 
   vector<Token> tokenize(const string& line) {
@@ -96,6 +104,16 @@ namespace {
       ++cursor;
     return trimRight(line.substr(cursor));
   }
+
+  bool isMetaKeyword(const LDrawCommand& command, const string& keyword) {
+    if (!holds_alternative<LDrawMetaCommand>(command))
+      return false;
+    return get<LDrawMetaCommand>(command).keyword == keyword;
+  }
+
+  string fileNameFromMeta(const LDrawMetaCommand& command) {
+    return trim(command.text.substr(command.keyword.size()));
+  }
 }
 
 LDrawParser::Commands LDrawParser::parse(istream& input) const {
@@ -107,6 +125,62 @@ LDrawParser::Commands LDrawParser::parse(istream& input) const {
     ++lineNumber;
   }
   return commands;
+}
+
+bool LDrawDocument::isMultipart() const {
+  return files.size() > 1 || (!files.empty() && !files.front().filename.empty());
+}
+
+const LDrawDocumentFile& LDrawDocument::mainFile() const {
+  return files.front();
+}
+
+LDrawDocument LDrawParser::parseDocument(istream& input) const {
+  vector<pair<LDrawCommand, string>> parsedLines;
+  bool hasFileBlocks = false;
+  string line;
+  int lineNumber = 1;
+  while (getline(input, line)) {
+    auto command = parseLine(line, lineNumber);
+    if (isMetaKeyword(command, "FILE"))
+      hasFileBlocks = true;
+    parsedLines.emplace_back(std::move(command), line + "\n");
+    ++lineNumber;
+  }
+
+  LDrawDocument document;
+  if (!hasFileBlocks) {
+    LDrawDocumentFile file;
+    for (const auto& parsedLine : parsedLines) {
+      file.commands.push_back(parsedLine.first);
+      file.sourceText += parsedLine.second;
+    }
+    document.files.push_back(std::move(file));
+    return document;
+  }
+
+  LDrawDocumentFile* currentFile = nullptr;
+  for (const auto& parsedLine : parsedLines) {
+    const auto& command = parsedLine.first;
+    if (isMetaKeyword(command, "FILE")) {
+      const auto& meta = get<LDrawMetaCommand>(command);
+      document.files.push_back(LDrawDocumentFile{fileNameFromMeta(meta), {}, {}});
+      currentFile = &document.files.back();
+      continue;
+    }
+
+    if (isMetaKeyword(command, "NOFILE")) {
+      currentFile = nullptr;
+      continue;
+    }
+
+    if (currentFile) {
+      currentFile->commands.push_back(command);
+      currentFile->sourceText += parsedLine.second;
+    }
+  }
+
+  return document;
 }
 
 LDrawCommand LDrawParser::parseLine(const string& line, int lineNumber) const {

@@ -38,6 +38,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph external integer-id inputs.** `GraphRenderEngine` can now bind
   imported or history CPU object-id/material-id resources for explicit plans.
   — GPT-5
+- **LDraw MPD submodels.** `LDrawParser` now splits `0 FILE` / `0 NOFILE`
+  MPD blocks into named virtual files, and `LDrawGeometryCompiler` resolves
+  MPD-local type-1 submodel references before external LDraw library roots for
+  #210. — GPT-5
 - **Recursive LDraw subfile references.** `LDrawGeometryCompiler` now resolves
   type-1 subfiles through an `LDrawFileResolver`, applies LDraw affine
   transforms through runtime instances, preserves color-16 inheritance with

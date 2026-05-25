@@ -153,7 +153,13 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
 shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
                                                              const LDrawColorTable& colors,
                                                              const LDrawColorContext& context) const {
-  return compile(LDrawParser().parse(input), colors, context);
+  const auto document = LDrawParser().parseDocument(input);
+  if (!document.isMultipart())
+    return compile(document.mainFile().commands, colors, context);
+
+  auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
+  LDrawGeometryCompiler compiler(resolver, m_recursionLimit);
+  return compiler.compile(document.mainFile().commands, colors, context);
 }
 
 string LDrawGeometryCompiler::colorContextKey(const LDrawColorContext& context) {

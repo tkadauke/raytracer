@@ -121,6 +121,45 @@ namespace LDrawParserTest {
     ASSERT_TRUE(holds_alternative<LDrawEdgeLine>(commands[1]));
   }
 
+  TEST(LDrawParser, ShouldSplitMpdInputIntoNamedFileBlocks) {
+    istringstream stream(
+      "0 FILE main.ldr\n"
+      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 sub.dat\n"
+      "0 FILE sub.dat\n"
+      "3 4 0 0 0 1 0 0 0 1 0\n");
+
+    const auto document = LDrawParser().parseDocument(stream);
+
+    ASSERT_TRUE(document.isMultipart());
+    ASSERT_EQ(2u, document.files.size());
+    EXPECT_EQ("main.ldr", document.mainFile().filename);
+    ASSERT_EQ(1u, document.mainFile().commands.size());
+    EXPECT_TRUE(holds_alternative<LDrawSubfileReference>(document.mainFile().commands[0]));
+    EXPECT_EQ("sub.dat", document.files[1].filename);
+    ASSERT_EQ(1u, document.files[1].commands.size());
+    EXPECT_TRUE(holds_alternative<LDrawTriangle>(document.files[1].commands[0]));
+  }
+
+  TEST(LDrawParser, ShouldCloseMpdBlocksAtNofileUntilNextFile) {
+    istringstream stream(
+      "0 FILE main.ldr\n"
+      "2 24 0 0 0 1 0 0\n"
+      "0 NOFILE\n"
+      "3 4 0 0 0 1 0 0 0 1 0\n"
+      "0 FILE sub.dat\n"
+      "4 4 0 0 0 1 0 0 1 1 0 0 1 0\n"
+      "0 NOFILE\n"
+      "5 24 0 0 0 1 0 0 0 1 0 1 1 0\n");
+
+    const auto document = LDrawParser().parseDocument(stream);
+
+    ASSERT_EQ(2u, document.files.size());
+    ASSERT_EQ(1u, document.files[0].commands.size());
+    EXPECT_TRUE(holds_alternative<LDrawEdgeLine>(document.files[0].commands[0]));
+    ASSERT_EQ(1u, document.files[1].commands.size());
+    EXPECT_TRUE(holds_alternative<LDrawQuad>(document.files[1].commands[0]));
+  }
+
   TEST(LDrawParser, ShouldThrowLDrawParseErrorForInvalidTypeOneNumber) {
     try {
       LDrawParser().parseLine("1 16 0 nope 0 1 0 0 0 1 0 0 0 1 part.dat", 42);
