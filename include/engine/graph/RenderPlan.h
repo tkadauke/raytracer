@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -71,6 +72,10 @@ namespace engine::graph {
 
     const RenderPassNode* findPass(const RenderPassId& id) const;
     const RenderResourceDescriptor* findResource(const RenderResourceId& id) const;
+    std::set<RenderPassId> passIds() const;
+    std::set<RenderPassKind> passKinds() const;
+    std::set<RenderExecutorKind> passExecutors() const;
+    std::set<RenderFeatureKind> passFeatures() const;
     const RenderPassNode* producerOf(const RenderResourceId& resource) const;
     std::vector<const RenderPassNode*> consumersOf(const RenderResourceId& resource) const;
     bool resourceCanReach(const RenderResourceId& source,
