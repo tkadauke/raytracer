@@ -200,6 +200,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph active camera intent.** `world::Scene` now exposes the active
+  camera as a render-graph camera reference, and rendercli/Modeler use it when
+  scene intent does not name a default camera so compiled passes identify the
+  scene camera they render through. — GPT-5
 - **Render graph text scene-view details.** Text render-plan exports now show
   each pass's scene selector and camera reference, using the same graph-type
   display formatting as the Modeler inspector. — GPT-5

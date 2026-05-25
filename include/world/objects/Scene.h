@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include "engine/graph/RenderGraphTypes.h"
 #include "world/objects/Element.h"
@@ -177,6 +178,11 @@ public:
     * @returns the scene's active camera.
     */
   Camera* activeCamera() const;
+  /**
+    * @returns a render-graph camera reference for the active scene camera, or
+    *   an empty optional when the scene has no identifiable active camera.
+    */
+  std::optional<engine::graph::RenderCameraRef> activeRenderCameraRef() const;
   virtual bool canHaveChild(Element* child) const;
 
 private:

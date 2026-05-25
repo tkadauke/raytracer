@@ -74,6 +74,8 @@ accepted as an explicit spelling of the default graph-backed render path, and
 `--render_graph_in plan.json` loads a saved JSON plan instead of compiling one.
 If the scene JSON contains a top-level `renderIntent` block, rendercli uses
 that as the graph compiler's base intent.
+If that intent does not name a default camera, rendercli annotates compiled
+scene-rendering passes with the active scene camera id.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view default|beauty|wireframe|depth|normal|object_id|material_id|world_position`
@@ -160,11 +162,13 @@ thing across the swap. Rasterizer preview shadows and preview FXAA/SMAA are
 graph-visible preview options, so enabling them adds pass nodes to the same
 Render Graph dock used by the preview. FXAA/SMAA apply to the selected preview
 executor; rasterizer preview shadows switch the live preview to Rasterizer
-before recompiling because the shadow pass is raster-specific. `Render ->
-Preview View` can also switch the live graph preview from beauty to depth,
-normal, object-id, material-id, or world-position AOVs; the graph recompiles to
-show the corresponding AOV producer and visualization nodes. Raster preview AOVs
-are backed by rasterizer diagnostics, so their images match raster tessellation,
+before recompiling because the shadow pass is raster-specific. When the scene
+intent does not name a default camera, Modeler annotates scene-rendering passes
+with the active scene camera id from the editable scene. `Render -> Preview
+View` can also switch the live graph preview from beauty to depth, normal,
+object-id, material-id, or world-position AOVs; the graph recompiles to show the
+corresponding AOV producer and visualization nodes. Raster preview AOVs are
+backed by rasterizer diagnostics, so their images match raster tessellation,
 sampling, and clipping. `Render -> Preview
 Tonemap` selects the operator used by the graph's tonemap node.
 

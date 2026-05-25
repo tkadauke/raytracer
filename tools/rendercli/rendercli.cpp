@@ -617,6 +617,9 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
   engine::graph::RenderIntent intent =
     scene.hasRenderIntent() ? scene.renderIntent() : engine::graph::RenderIntent();
+  if (!intent.defaultCamera) {
+    intent.defaultCamera = scene.activeRenderCameraRef();
+  }
   if (m_renderGraphExecutorSet) {
     intent.defaultExecutor = m_renderGraphExecutor;
   } else if (m_engineSet && m_engine == "raster") {

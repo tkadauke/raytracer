@@ -305,6 +305,9 @@ The effective default camera is carried on synthesized scene-rendering pass
 `SceneView` records and serialized in exported plan JSON, even though current
 executors still render with the engine's active camera until alternate-camera
 execution is wired in.
+Tools derive that default camera from the active editable-scene camera when the
+scene intent does not name one explicitly, so graph inspection can still report
+the camera used by ordinary scene renders.
 
 The important requirement is that intent can express both:
 

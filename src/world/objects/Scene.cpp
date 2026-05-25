@@ -199,6 +199,14 @@ Camera* Scene::activeCamera() const {
   return camera;
 }
 
+std::optional<engine::graph::RenderCameraRef> Scene::activeRenderCameraRef() const {
+  const Camera* camera = activeCamera();
+  if (!camera || camera->id().isEmpty())
+    return std::nullopt;
+
+  return engine::graph::RenderCameraRef{camera->id().toStdString(), std::nullopt};
+}
+
 void Scene::findReferences(Element* root, QMap<QString, Element*>& references) {
   references[root->id()] = root;
 

@@ -57,6 +57,7 @@
 #include "widgets/world/RenderWindow.h"
 
 #include "world/objects/Scene.h"
+#include "world/objects/Camera.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Box.h"
 #include "world/objects/Cylinder.h"
@@ -1739,6 +1740,9 @@ engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
   engine::graph::RenderIntent intent = p->scene && p->scene->hasRenderIntent()
                                          ? p->scene->renderIntent()
                                          : engine::graph::RenderIntent();
+  if (!intent.defaultCamera && p->scene) {
+    intent.defaultCamera = p->scene->activeRenderCameraRef();
+  }
   intent.enablePreviewShadows =
     intent.enablePreviewShadows || (p->display && p->display->rasterizerPreviewShadowsEnabled());
   if (p->display &&

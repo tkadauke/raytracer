@@ -171,6 +171,19 @@ namespace SceneTest {
     EXPECT_EQ(camera, scene.activeCamera());
   }
 
+  TEST(Scene, ShouldReturnActiveCameraRenderGraphReference) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    camera->setId("shot-camera");
+    scene.addChild(camera);
+
+    const auto cameraRef = scene.activeRenderCameraRef();
+
+    ASSERT_TRUE(cameraRef.has_value());
+    ASSERT_TRUE(cameraRef->sceneCameraId.has_value());
+    EXPECT_EQ("shot-camera", *cameraRef->sceneCameraId);
+  }
+
   TEST(Scene, ShouldReturnLastCameraAsActiveWhenMultiple) {
     // activeCamera() walks all children and keeps the last camera it sees,
     // so the most-recently-added camera wins. Documenting that here so a
