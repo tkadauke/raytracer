@@ -56,6 +56,9 @@
 | `include/engine/graph/RenderResourceStorage.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/graph/WireframePassState.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `include/engine/raster/Rasterizer.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/engine/raster/detail/RasterMaterial.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
+| `include/engine/raster/detail/RasterPass.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md) |
+| `include/engine/raster/detail/RasterTriangleEmitter.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/engine/raytracer/Raytracer.h` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `include/engine/wireframe/Wireframe.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/render/HomogeneousClipVolume.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
@@ -160,9 +163,6 @@
 | `src/engine/graph/RenderResource.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RenderResourceStorage.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/WireframePassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
-| `src/engine/raster/RasterMaterial.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
-| `src/engine/raster/RasterPass.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md) |
-| `src/engine/raster/RasterTriangleEmitter.h` | [The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `src/engine/raster/Rasterizer.cpp` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `src/engine/raytracer/Raytracer.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/engine/wireframe/Wireframe.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |

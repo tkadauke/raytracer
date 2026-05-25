@@ -469,5 +469,5 @@ portal rendering (stencil regions), and layered compositing
 - `include/render/HomogeneousClipVolume.h`
 - `include/engine/raster/Rasterizer.h`
 - `src/engine/raster/Rasterizer.cpp`
-- `src/engine/raster/RasterPass.h`
+- `include/engine/raster/detail/RasterPass.h`
 <!-- /source-anchors -->
