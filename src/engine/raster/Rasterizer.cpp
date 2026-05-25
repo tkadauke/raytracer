@@ -492,6 +492,11 @@ struct Rasterizer::Private {
                              const std::shared_ptr<render::Scene>& scene,
                              const std::shared_ptr<render::Camera>& camera,
                              const std::atomic<bool>& cancelled);
+  bool renderFirstDirectionalShadowMap(const Rasterizer& rasterizer,
+                                       const std::shared_ptr<render::Scene>& scene,
+                                       const std::shared_ptr<render::Camera>& camera,
+                                       const std::atomic<bool>& cancelled,
+                                       Buffer<double>& depthBuffer);
 
   static RasterTriangleSet collectRasterTriangles(const RasterTriangleEmitter& triangleEmitter,
                                                   const render::TilePlan& tilePlan);
@@ -676,6 +681,12 @@ void Rasterizer::setShadowMapSize(int size) {
   m_shadowMapSize = std::max(1, size);
 }
 
+bool Rasterizer::renderFirstDirectionalShadowMap(Buffer<double>& depthBuffer) {
+  if (!m_scene || !m_camera)
+    return false;
+  return p->renderFirstDirectionalShadowMap(*this, m_scene, m_camera, m_cancelled, depthBuffer);
+}
+
 void Rasterizer::setPostProcessAA(PostProcessAA aa) {
   if (m_postProcessAA != aa) {
     m_postProcessAA = aa;
@@ -848,6 +859,73 @@ ShadowMaps Rasterizer::Private::buildShadowMaps(const Rasterizer& rasterizer,
   }
 
   return shadowMaps;
+}
+
+bool Rasterizer::Private::renderFirstDirectionalShadowMap(
+  const Rasterizer& rasterizer, const std::shared_ptr<render::Scene>& scene,
+  const std::shared_ptr<render::Camera>& camera, const std::atomic<bool>& cancelled,
+  Buffer<double>& depthBuffer) {
+  depthBuffer.clear(std::numeric_limits<double>::infinity());
+
+  if (depthBuffer.width() <= 0 || depthBuffer.height() <= 0 || !rasterizer.shadowMapsEnabled() ||
+      rasterizer.fragmentShader() || !camera || cancelled.load()) {
+    return false;
+  }
+
+  const BoundingBoxd bounds = scene->boundingBox();
+  if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite())
+    return false;
+
+  const auto corners = bounds.vertices();
+  const auto [minViewDepth, maxViewDepth] =
+    viewDepthRange(*camera, corners, rasterizer.nearClipDepth(), rasterizer.farClipDepth());
+  const auto cascadeDepths =
+    cascadeDepthRanges(minViewDepth, maxViewDepth, rasterizer.shadowCascadeCount(),
+                       rasterizer.shadowCascadeSplitLambda());
+  if (cascadeDepths.empty())
+    return false;
+
+  for (const auto& light : scene->lights()) {
+    if (cancelled.load())
+      return false;
+
+    auto directional = std::dynamic_pointer_cast<render::DirectionalLight>(light);
+    if (!directional)
+      continue;
+
+    const auto [cascadeMinDepth, cascadeMaxDepth] = cascadeDepths.front();
+    std::vector<Vector3d> cascadePoints;
+    if (cascadeDepths.size() == 1) {
+      cascadePoints.assign(corners.begin(), corners.end());
+    } else {
+      cascadePoints =
+        cascadePointsForDepthRange(corners, *camera, cascadeMinDepth, cascadeMaxDepth);
+    }
+
+    const int size = std::max(1, std::min(depthBuffer.width(), depthBuffer.height()));
+    const auto shadowFit = directionalShadowFitForPoints(cascadePoints, directional->direction(),
+                                                         rasterizer.nearClipDepth(), size);
+    auto shadowCamera = std::make_shared<DirectionalShadowCamera>(shadowFit);
+    shadowCamera->setViewPlane(std::make_shared<render::ViewPlane>());
+    shadowCamera->viewPlane()->setup(Matrix4d(), Recti(depthBuffer.width(), depthBuffer.height()));
+
+    const render::TilePlan shadowTilePlan =
+      render::TilePlan::forBuffer(depthBuffer.width(), depthBuffer.height(), 1);
+    RasterTriangleEmitter shadowEmitter(scene.get(), shadowCamera, rasterizer.lod(), rasterizer,
+                                        cancelled, Rasterizer::CullMode::Both, true, false);
+    const RasterTriangleSet shadowTriangles = collectRasterTriangles(shadowEmitter, shadowTilePlan);
+    if (!shadowTriangles.empty()) {
+      std::list<std::shared_ptr<engine::TileRenderTask>> shadowTasks;
+      rasterizeDepthOnlyTriangleSetWithPolicies(
+        shadowTriangles, shadowTilePlan, *threadPool, shadowTasks, cancelled, Vector2d(0.0, 0.0),
+        NoStencilPolicy{},
+        DepthWritePolicy<RasterFullBufferView<double>>{fullBufferView(depthBuffer),
+                                                       DepthState{Rasterizer::DepthFunc::Less}});
+    }
+    return true;
+  }
+
+  return false;
 }
 
 void Rasterizer::Private::renderTriangleSetPass(

@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph-visible raster shadow depth traces.** Raster preview shadow passes now
+  materialize the first directional-light cascade as a CPU depth resource, and
+  the Modeler Graph Trace preview renders depth snapshots as grayscale images
+  instead of treating shadow maps as metadata-only resources. — GPT-5
 - **Render graph trace cache metadata.** Execution trace resource snapshots now
   report cache status in JSON and in the Modeler resource property view, so
   graph tooling can distinguish ordinary non-cacheable resources from

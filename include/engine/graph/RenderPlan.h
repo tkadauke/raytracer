@@ -85,6 +85,7 @@ namespace engine::graph {
     bool executionEquivalentTo(const RenderPlan& other) const;
 
     void addResource(RenderResourceDescriptor descriptor);
+    std::size_t setResourceDescriptor(RenderResourceDescriptor descriptor);
     void addPass(RenderPassNode pass);
     /**
       * Adds @p resource and @p producer as the pass that writes it.

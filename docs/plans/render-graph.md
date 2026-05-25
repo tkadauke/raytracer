@@ -1321,10 +1321,12 @@ Move raster preview shadows from internal rasterizer-only orchestration into
 graph-level shadow-map resources and passes. ✅ **Partial.** Graph-backed
 preview renders now include a `raster_preview_shadows` node and
 `preview_shadow_map` resource that control whether raster beauty enables
-preview shadows. Directional lights still build concrete CPU shadow maps inside
-the rasterizer payload until shadow-map storage is externalized; lights without
-a directional map use a rasterizer visibility fallback so the graph shadow
-toggle still affects point-lit previews.
+preview shadows. The shadow node now also materializes a graph-visible CPU
+depth preview for the first directional-light cascade so traces can inspect the
+shadow-map artifact directly. Raster beauty still builds and consumes its full
+internal shadow-map collection until graph-owned shadow artifacts are wired into
+the beauty payload; lights without a directional map use a rasterizer
+visibility fallback so the graph shadow toggle still affects point-lit previews.
 
 ### Persistent artifact cache
 
@@ -1333,8 +1335,9 @@ artifacts once concrete shadow maps are externalized from `Rasterizer`, then
 extend the same cache to reflection probes, irradiance caches, photon maps,
 path-guiding data, terrain/volume intermediates, and acceleration data. ✅
 **Partial.** `RenderGraphArtifactCache` now provides the clone-shared,
-thread-safe cache container and typed cache keys; shadow-map depth artifacts
-still need to move out of the rasterizer before cache hits can affect pixels.
+thread-safe cache container and typed cache keys; the raster shadow node now
+publishes an inspectable depth artifact, but raster beauty still needs to
+consume cached shadow artifacts before cache hits can affect pixels.
 
 The first implementation may use conservative invalidation. A later refinement
 should add scene/object revision domains so postprocess or tonemap changes do

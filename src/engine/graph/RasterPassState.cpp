@@ -791,6 +791,10 @@ namespace engine::graph {
     return m_enabled;
   }
 
+  int RasterShadowState::mapSize() const {
+    return m_mapSize;
+  }
+
   RasterShadowPassState RasterShadowPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
     rejectUnknownFields(object, path, {"shadows"});
@@ -854,8 +858,31 @@ namespace engine::graph {
   }
 
   std::size_t RasterShadowPassState::writeToRasterShadowPasses(RenderPlan& plan) const {
-    return plan.setPassState(RenderPassKind::Shadow, RenderExecutorKind::Rasterizer,
-                             empty() ? nullptr : std::make_shared<RasterShadowPassState>(*this));
+    const std::size_t changed =
+      plan.setPassState(RenderPassKind::Shadow, RenderExecutorKind::Rasterizer,
+                        empty() ? nullptr : std::make_shared<RasterShadowPassState>(*this));
+
+    for (const auto& pass : plan.passes()) {
+      if (pass.kind != RenderPassKind::Shadow || pass.executor != RenderExecutorKind::Rasterizer)
+        continue;
+
+      for (const auto& write : pass.writes) {
+        const auto* resource = plan.findResource(write.resource);
+        if (!resource || resource->type != RenderResourceType::ShadowMap)
+          continue;
+
+        RenderResourceDescriptor descriptor = *resource;
+        descriptor.format = RenderResourceFormat::DepthDouble;
+        descriptor.width = m_shadows.mapSize();
+        descriptor.height = m_shadows.mapSize();
+        descriptor.sampleCount = 1;
+        descriptor.domain = RenderResourceDomain::CPU;
+        descriptor.lifetime = RenderResourceLifetime::PersistentCache;
+        plan.setResourceDescriptor(std::move(descriptor));
+      }
+    }
+
+    return changed;
   }
 
   RasterShadowState& RasterShadowPassState::shadows() {

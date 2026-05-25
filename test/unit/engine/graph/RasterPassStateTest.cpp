@@ -54,6 +54,11 @@ namespace RasterPassStateTest {
     shadow.id = "raster_preview_shadows";
     shadow.kind = RenderPassKind::Shadow;
     shadow.executor = RenderExecutorKind::Rasterizer;
+    shadow.writes.push_back({"preview_shadow_map"});
+    RenderResourceDescriptor shadowMap;
+    shadowMap.id = "preview_shadow_map";
+    shadowMap.type = RenderResourceType::ShadowMap;
+    plan.addResource(shadowMap);
     plan.addPass(shadow);
 
     RenderPassNode beauty;
@@ -63,11 +68,18 @@ namespace RasterPassStateTest {
     plan.addPass(beauty);
 
     RasterShadowPassState state = RasterShadowPassState::previewDefaults();
+    state.shadows().setShadowMapSize(128);
 
     EXPECT_EQ(1u, state.writeToRasterShadowPasses(plan));
     ASSERT_NE(nullptr, plan.passes()[0].state);
     EXPECT_TRUE(RasterShadowPassState::fromPass(plan.passes()[0])->shadows().enabled());
     EXPECT_EQ(nullptr, plan.passes()[1].state);
+    ASSERT_NE(nullptr, plan.findResource("preview_shadow_map"));
+    EXPECT_EQ(128, plan.findResource("preview_shadow_map")->width);
+    EXPECT_EQ(128, plan.findResource("preview_shadow_map")->height);
+    EXPECT_EQ(RenderResourceFormat::DepthDouble, plan.findResource("preview_shadow_map")->format);
+    EXPECT_EQ(RenderResourceLifetime::PersistentCache,
+              plan.findResource("preview_shadow_map")->lifetime);
   }
 
   TEST(RasterBeautyPassState, SerializesFocusedSubstates) {

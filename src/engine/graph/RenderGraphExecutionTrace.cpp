@@ -25,6 +25,17 @@ namespace engine::graph {
       return result;
     }
 
+    std::shared_ptr<const Buffer<double>> depthPreviewFor(const Buffer<double>& source) {
+      auto result = std::make_shared<Buffer<double>>(source.width(), source.height());
+
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          (*result)[y][x] = source[y][x];
+        }
+      }
+      return result;
+    }
+
     Colord absoluteDifference(const Colord& first, const Colord& second) {
       return Colord(std::abs(first.r() - second.r()), std::abs(first.g() - second.g()),
                     std::abs(first.b() - second.b()));
@@ -92,11 +103,13 @@ namespace engine::graph {
 
   RenderGraphResourceSnapshot::RenderGraphResourceSnapshot(
     RenderResourceId resourceId, RenderResourceDescriptor descriptor,
-    std::shared_ptr<const Buffer<Colord>> colorPreview, std::string unavailableReason,
+    std::shared_ptr<const Buffer<Colord>> colorPreview,
+    std::shared_ptr<const Buffer<double>> depthPreview, std::string unavailableReason,
     RenderGraphCacheMetadata cacheMetadata)
       : m_resourceId(std::move(resourceId)),
         m_descriptor(std::move(descriptor)),
         m_colorPreview(std::move(colorPreview)),
+        m_depthPreview(std::move(depthPreview)),
         m_unavailableReason(std::move(unavailableReason)),
         m_cacheMetadata(std::move(cacheMetadata)) {
   }
@@ -120,6 +133,17 @@ namespace engine::graph {
     return *m_colorPreview;
   }
 
+  bool RenderGraphResourceSnapshot::hasDepthPreview() const {
+    return static_cast<bool>(m_depthPreview);
+  }
+
+  const Buffer<double>& RenderGraphResourceSnapshot::depthPreview() const {
+    if (!m_depthPreview) {
+      throw std::logic_error("render graph resource snapshot has no depth preview");
+    }
+    return *m_depthPreview;
+  }
+
   const std::string& RenderGraphResourceSnapshot::unavailableReason() const {
     return m_unavailableReason;
   }
@@ -135,11 +159,16 @@ namespace engine::graph {
     object["format"] = toString(m_descriptor.format);
     object["width"] = m_descriptor.width;
     object["height"] = m_descriptor.height;
-    object["previewAvailable"] = hasColorPreview();
+    object["previewAvailable"] = hasColorPreview() || hasDepthPreview();
     object["cache"] = m_cacheMetadata.toJson();
     if (m_colorPreview) {
+      object["previewKind"] = "color";
       object["previewWidth"] = m_colorPreview->width();
       object["previewHeight"] = m_colorPreview->height();
+    } else if (m_depthPreview) {
+      object["previewKind"] = "depth";
+      object["previewWidth"] = m_depthPreview->width();
+      object["previewHeight"] = m_depthPreview->height();
     } else {
       object["unavailableReason"] = QString::fromStdString(m_unavailableReason);
     }
@@ -527,20 +556,27 @@ namespace engine::graph {
     }
 
     if (!storage.contains(resourceId)) {
-      return RenderGraphResourceSnapshot(resourceId, descriptor, nullptr,
+      return RenderGraphResourceSnapshot(resourceId, descriptor, nullptr, nullptr,
                                          "resource was not materialized by this execution path",
                                          cacheMetadataFor(descriptor));
     }
 
     const auto& resource = storage.resource(resourceId);
-    if (!resource.colorBacked()) {
+    if (resource.descriptor().type == RenderResourceType::Depth ||
+        resource.descriptor().type == RenderResourceType::ShadowMap) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr,
+                                         depthPreviewFor(resource.depth()), "",
+                                         cacheMetadataFor(resource.descriptor()));
+    }
+
+    if (!resource.colorBacked()) {
+      return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr, nullptr,
                                          metadataOnlyReason(resource.descriptor()),
                                          cacheMetadataFor(resource.descriptor()));
     }
 
     return RenderGraphResourceSnapshot(resourceId, resource.descriptor(),
-                                       colorPreviewFor(resource.color()), "",
+                                       colorPreviewFor(resource.color()), nullptr, "",
                                        cacheMetadataFor(resource.descriptor()));
   }
 

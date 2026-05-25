@@ -96,6 +96,22 @@ namespace RenderPlanTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderPlan, UpdatesResourceDescriptorById) {
+    RenderPlan plan;
+    plan.addResource(colorResource("main_color"));
+
+    auto updated = colorResource("main_color", RenderResourceLifetime::PersistentCache);
+    updated.width = 128;
+    updated.height = 64;
+
+    EXPECT_EQ(1u, plan.setResourceDescriptor(updated));
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(128, plan.findResource("main_color")->width);
+    EXPECT_EQ(64, plan.findResource("main_color")->height);
+    EXPECT_EQ(RenderResourceLifetime::PersistentCache, plan.findResource("main_color")->lifetime);
+    EXPECT_EQ(0u, plan.setResourceDescriptor(colorResource("missing")));
+  }
+
   TEST(RenderPlan, ReportsMissingProducerForTransientRead) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color"));

@@ -797,6 +797,17 @@ namespace engine::raster {
     */
     void setShadowMapSize(int size);
 
+    /**
+    * Renders the first directional-light shadow-map cascade into @p depthBuffer.
+    *
+    * This exposes the rasterizer's depth-map build as a graph-visible artifact
+    * path. The normal beauty render still builds its full internal shadow-map
+    * collection until graph-owned shadow artifacts can be consumed directly.
+    *
+    * @returns true when a directional-light shadow pass was materialized.
+    */
+    bool renderFirstDirectionalShadowMap(Buffer<double>& depthBuffer);
+
     /// Returns how many camera-depth slices each directional light gets.
     /// The default is 1, which is the original single shadow-map behavior.
     inline int shadowCascadeCount() const {

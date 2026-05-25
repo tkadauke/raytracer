@@ -12,6 +12,10 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 using namespace engine::graph;
 
 namespace {
@@ -35,8 +39,46 @@ namespace {
     return image;
   }
 
+  QImage depthPreviewImage(const Buffer<double>& buffer) {
+    double minDepth = std::numeric_limits<double>::infinity();
+    double maxDepth = -std::numeric_limits<double>::infinity();
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        const double depth = buffer[y][x];
+        if (!std::isfinite(depth))
+          continue;
+        minDepth = std::min(minDepth, depth);
+        maxDepth = std::max(maxDepth, depth);
+      }
+    }
+
+    QImage image(buffer.width(), buffer.height(), QImage::Format_RGB32);
+    const bool hasFiniteDepth = std::isfinite(minDepth) && std::isfinite(maxDepth);
+    const double range = hasFiniteDepth ? std::max(maxDepth - minDepth, 1e-9) : 1.0;
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        const double depth = buffer[y][x];
+        int gray = 0;
+        if (std::isfinite(depth)) {
+          const double normalized = 1.0 - std::clamp((depth - minDepth) / range, 0.0, 1.0);
+          gray = static_cast<int>(std::round(normalized * 255.0));
+        }
+        image.setPixel(x, y, qRgb(gray, gray, gray));
+      }
+    }
+    return image;
+  }
+
   QPixmap scaledPreviewPixmap(const Buffer<Colord>& buffer) {
     QPixmap pixmap = QPixmap::fromImage(colorPreviewImage(buffer));
+    if (pixmap.width() >= MinimumPreviewWidth)
+      return pixmap;
+
+    return pixmap.scaledToWidth(MinimumPreviewWidth, Qt::FastTransformation);
+  }
+
+  QPixmap scaledDepthPreviewPixmap(const Buffer<double>& buffer) {
+    QPixmap pixmap = QPixmap::fromImage(depthPreviewImage(buffer));
     if (pixmap.width() >= MinimumPreviewWidth)
       return pixmap;
 
@@ -79,10 +121,20 @@ namespace {
     layout.addWidget(image);
   }
 
+  void addDepthImage(QVBoxLayout& layout, const Buffer<double>& buffer) {
+    auto* image = new QLabel();
+    image->setObjectName("renderGraphTracePreviewImage");
+    image->setPixmap(scaledDepthPreviewPixmap(buffer));
+    image->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    layout.addWidget(image);
+  }
+
   void addSnapshot(QVBoxLayout& layout, const RenderGraphResourceSnapshot& snapshot) {
     addText(layout, snapshotTitle(snapshot), true);
     if (snapshot.hasColorPreview()) {
       addImage(layout, snapshot.colorPreview());
+    } else if (snapshot.hasDepthPreview()) {
+      addDepthImage(layout, snapshot.depthPreview());
     } else {
       addText(layout, dashIfEmpty(qstr(snapshot.unavailableReason())));
     }

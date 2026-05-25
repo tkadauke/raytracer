@@ -187,7 +187,12 @@ namespace RenderGraphCompilerTest {
     ASSERT_EQ(1u, plan.passes()[1].reads.size());
     EXPECT_EQ("preview_shadow_map", plan.passes()[1].reads[0].resource);
     ASSERT_NE(nullptr, plan.findResource("preview_shadow_map"));
-    EXPECT_EQ(RenderResourceType::ShadowMap, plan.findResource("preview_shadow_map")->type);
+    const auto* shadowMap = plan.findResource("preview_shadow_map");
+    EXPECT_EQ(RenderResourceType::ShadowMap, shadowMap->type);
+    EXPECT_EQ(RenderResourceFormat::DepthDouble, shadowMap->format);
+    EXPECT_EQ(256, shadowMap->width);
+    EXPECT_EQ(256, shadowMap->height);
+    EXPECT_EQ(RenderResourceLifetime::PersistentCache, shadowMap->lifetime);
     EXPECT_TRUE(plan.validate().valid());
   }
 

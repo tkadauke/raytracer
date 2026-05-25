@@ -53,6 +53,7 @@ namespace engine::graph {
   public:
     RenderGraphResourceSnapshot(RenderResourceId resourceId, RenderResourceDescriptor descriptor,
                                 std::shared_ptr<const Buffer<Colord>> colorPreview,
+                                std::shared_ptr<const Buffer<double>> depthPreview,
                                 std::string unavailableReason,
                                 RenderGraphCacheMetadata cacheMetadata);
 
@@ -60,6 +61,8 @@ namespace engine::graph {
     const RenderResourceDescriptor& descriptor() const;
     bool hasColorPreview() const;
     const Buffer<Colord>& colorPreview() const;
+    bool hasDepthPreview() const;
+    const Buffer<double>& depthPreview() const;
     const std::string& unavailableReason() const;
     const RenderGraphCacheMetadata& cacheMetadata() const;
     QJsonObject toJson() const;
@@ -68,6 +71,7 @@ namespace engine::graph {
     RenderResourceId m_resourceId;
     RenderResourceDescriptor m_descriptor;
     std::shared_ptr<const Buffer<Colord>> m_colorPreview;
+    std::shared_ptr<const Buffer<double>> m_depthPreview;
     std::string m_unavailableReason;
     RenderGraphCacheMetadata m_cacheMetadata;
   };

@@ -22,6 +22,7 @@
 #include <QString>
 
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <memory>
@@ -168,6 +169,17 @@ namespace GraphRenderEngineTest {
         if (!(buffer[y][x] == Colord::black())) {
           ++count;
         }
+      }
+    }
+    return count;
+  }
+
+  int countFiniteDepths(const Buffer<double>& buffer) {
+    int count = 0;
+    for (int y = 0; y != buffer.height(); ++y) {
+      for (int x = 0; x != buffer.width(); ++x) {
+        if (std::isfinite(buffer[y][x]))
+          ++count;
       }
     }
     return count;
@@ -892,6 +904,32 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ("raster_preview_shadows", engine.lastPlan().passes()[0].id);
     EXPECT_EQ("raster_beauty", engine.lastPlan().passes()[1].id);
     EXPECT_EQ(Colord(0.1, 0.3, 0.5), buffer[0][0]);
+  }
+
+  TEST(GraphRenderEngine, RasterPreviewShadowPassMaterializesDepthTrace) {
+    auto cam = shadowReceiverCamera();
+    auto scene = directionalShadowScene();
+
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    intent.enablePreviewShadows = true;
+    RenderGraphCompiler compiler;
+
+    GraphRenderEngine engine(cam, scene);
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({48, 48, 1}, intent));
+
+    Buffer<unsigned int> buffer(48, 48);
+    engine.render(buffer);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("preview_shadow_map");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasDepthPreview());
+    EXPECT_EQ(256, outputs.front()->depthPreview().width());
+    EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
+    EXPECT_EQ(RenderGraphCacheStatus::Uncached, outputs.front()->cacheMetadata().status());
   }
 
   TEST(GraphRenderEngine, LdrRasterPreviewShadowPassDarkensOccludedReceiver) {

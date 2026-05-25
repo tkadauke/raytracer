@@ -149,6 +149,7 @@ namespace engine::graph {
     void setShadowFilterMode(Rasterizer::ShadowFilterMode mode);
 
     bool enabled() const;
+    int mapSize() const;
 
   private:
     bool m_enabled{false};

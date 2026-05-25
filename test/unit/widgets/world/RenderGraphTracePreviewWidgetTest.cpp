@@ -51,6 +51,36 @@ namespace RenderGraphTracePreviewWidgetTest {
     return engine.lastExecutionTrace();
   }
 
+  std::shared_ptr<const RenderGraphExecutionTrace> shadowMapTrace() {
+    RenderPlan plan;
+    RenderResourceDescriptor shadowMap;
+    shadowMap.id = "preview_shadow_map";
+    shadowMap.type = RenderResourceType::ShadowMap;
+    shadowMap.format = RenderResourceFormat::DepthDouble;
+    shadowMap.width = 8;
+    shadowMap.height = 8;
+    plan.addResource(shadowMap);
+
+    RenderPassNode shadowPass;
+    shadowPass.id = "raster_preview_shadows";
+    shadowPass.kind = RenderPassKind::Shadow;
+    shadowPass.executor = RenderExecutorKind::Rasterizer;
+    shadowPass.writes.push_back({"preview_shadow_map"});
+    plan.addPass(shadowPass);
+
+    RenderResourceStorage storage;
+    storage.allocate(plan.resources());
+    storage.depth("preview_shadow_map").clear(4.0);
+    storage.depth("preview_shadow_map")[3][4] = 1.0;
+
+    RenderGraphExecutionTraceRecorder recorder;
+    const auto session = recorder.begin(plan);
+    recorder.passStarted(session, plan.passes().front(), storage);
+    recorder.passCompleted(session, plan.passes().front(), storage);
+    recorder.finish(session);
+    return recorder.lastTrace();
+  }
+
   std::shared_ptr<const RenderGraphExecutionTrace> metadataOnlyShadowTrace() {
     RenderPlan plan;
     RenderResourceDescriptor shadowMap;
@@ -59,6 +89,7 @@ namespace RenderGraphTracePreviewWidgetTest {
     shadowMap.format = RenderResourceFormat::DepthDouble;
     shadowMap.width = 8;
     shadowMap.height = 8;
+    shadowMap.domain = RenderResourceDomain::GPU;
     plan.addResource(shadowMap);
 
     RenderPassNode shadowPass;
@@ -144,6 +175,21 @@ namespace RenderGraphTracePreviewWidgetTest {
 
     EXPECT_TRUE(title->text().contains(QStringLiteral("post_aa_color")));
     EXPECT_TRUE(labelsContain(outputs, QStringLiteral("post_aa_color")));
+  }
+
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowDepthResourceTrace) {
+    auto trace = shadowMapTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showResourceTrace(trace, "preview_shadow_map");
+
+    auto* outputs = widget.findChild<QWidget*>("renderGraphTracePreviewOutputs");
+    ASSERT_NE(nullptr, outputs);
+
+    EXPECT_TRUE(labelsContain(outputs, QStringLiteral("preview_shadow_map")));
+    EXPECT_FALSE(labelsContain(outputs, QStringLiteral("preview is not available")));
+    EXPECT_FALSE(widget.findChildren<QLabel*>("renderGraphTracePreviewImage").empty());
   }
 
   TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowMetadataOnlyResourceTrace) {

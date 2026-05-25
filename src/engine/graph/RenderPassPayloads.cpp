@@ -168,10 +168,25 @@ namespace engine::graph {
         if (context.storage().descriptor(write.resource).type != RenderResourceType::ShadowMap) {
           throw passError(pass, "preview shadow pass must write a shadow-map resource");
         }
-        context.storage()
-          .resource(write.resource)
-          .setState(
-            std::make_shared<RasterShadowPassState>(RasterShadowPassState::valueFromPass(pass)));
+        auto state =
+          std::make_shared<RasterShadowPassState>(RasterShadowPassState::valueFromPass(pass));
+        context.storage().resource(write.resource).setState(state);
+
+        if (!context.storage().hasBuffer(write.resource)) {
+          return;
+        }
+
+        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
+                                                                         context.graph().scene());
+        state->applyTo(*rasterizer);
+        if (context.cancelled()) {
+          rasterizer->cancel();
+        } else {
+          rasterizer->uncancel();
+        }
+        context.setActiveEngine(rasterizer);
+        rasterizer->renderFirstDirectionalShadowMap(context.storage().depth(write.resource));
       }
     };
 

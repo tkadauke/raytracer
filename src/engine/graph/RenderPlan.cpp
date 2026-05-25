@@ -305,6 +305,16 @@ namespace engine::graph {
     m_resources.push_back(std::move(descriptor));
   }
 
+  std::size_t RenderPlan::setResourceDescriptor(RenderResourceDescriptor descriptor) {
+    for (auto& resource : m_resources) {
+      if (resource.id == descriptor.id) {
+        resource = std::move(descriptor);
+        return 1;
+      }
+    }
+    return 0;
+  }
+
   void RenderPlan::addPass(RenderPassNode pass) {
     m_passes.push_back(std::move(pass));
   }

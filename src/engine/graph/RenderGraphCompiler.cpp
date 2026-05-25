@@ -79,11 +79,14 @@ namespace engine::graph {
     RenderResourceDescriptor previewShadowResource() {
       RenderResourceDescriptor shadow;
       shadow.id = "preview_shadow_map";
-      shadow.name = "Raster preview shadow map request";
+      shadow.name = "Raster preview shadow map";
       shadow.type = RenderResourceType::ShadowMap;
-      shadow.format = RenderResourceFormat::Unknown;
+      shadow.format = RenderResourceFormat::DepthDouble;
+      shadow.width = 256;
+      shadow.height = 256;
+      shadow.sampleCount = 1;
       shadow.domain = RenderResourceDomain::CPU;
-      shadow.lifetime = RenderResourceLifetime::Transient;
+      shadow.lifetime = RenderResourceLifetime::PersistentCache;
       return shadow;
     }
 
