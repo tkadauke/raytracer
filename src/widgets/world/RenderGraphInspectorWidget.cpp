@@ -145,6 +145,13 @@ namespace {
     return qstr(camera->displayText());
   }
 
+  QString shadingProfileText(const std::optional<ShadingProfileRef>& shadingProfile) {
+    if (!shadingProfile)
+      return QStringLiteral("-");
+
+    return qstr(shadingProfile->displayText());
+  }
+
   QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {
     QStringList values;
     for (const auto& dependency : dependencies) {
@@ -165,6 +172,8 @@ namespace {
     lines << QStringLiteral("Double-click to enable or disable this pass");
     lines << QStringLiteral("Scene selector: %1").arg(sceneSelectorText(pass.sceneView.selector));
     lines << QStringLiteral("Scene camera: %1").arg(cameraText(pass.sceneView.camera));
+    lines << QStringLiteral("Shading profile: %1")
+               .arg(shadingProfileText(pass.sceneView.shadingProfile));
     lines << QStringLiteral("Reads: %1").arg(resourceReads(pass.reads));
     lines << QStringLiteral("Writes: %1").arg(resourceWrites(pass.writes));
     lines << QStringLiteral("Incoming dependencies: %1")
@@ -408,8 +417,8 @@ RenderGraphInspectorWidget::RenderGraphInspectorWidget(QWidget* parent)
   p->passes->setRootIsDecorated(false);
   p->passes->setAlternatingRowColors(true);
   p->passes->setHeaderLabels({tr("Enabled"), tr("Order"), tr("Stage"), tr("Pass"), tr("Kind"),
-                              tr("Executor"), tr("Selector"), tr("Camera"), tr("Reads"),
-                              tr("Writes"), tr("Disabled behavior")});
+                              tr("Executor"), tr("Selector"), tr("Camera"), tr("Shading"),
+                              tr("Reads"), tr("Writes"), tr("Disabled behavior")});
   p->passes->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   p->passes->header()->setStretchLastSection(true);
   connect(p->passes, SIGNAL(itemChanged(QTreeWidgetItem*, int)), this,
@@ -909,9 +918,10 @@ void RenderGraphInspectorWidget::rebuildPasses() {
     item->setText(5, toString(pass.executor));
     item->setText(6, sceneSelectorText(pass.sceneView.selector));
     item->setText(7, cameraText(pass.sceneView.camera));
-    item->setText(8, resourceReads(pass.reads));
-    item->setText(9, resourceWrites(pass.writes));
-    item->setText(10, toString(pass.disabledBehavior));
+    item->setText(8, shadingProfileText(pass.sceneView.shadingProfile));
+    item->setText(9, resourceReads(pass.reads));
+    item->setText(10, resourceWrites(pass.writes));
+    item->setText(11, toString(pass.disabledBehavior));
     if (pass.id == p->selectedPassId)
       item->setSelected(true);
   }

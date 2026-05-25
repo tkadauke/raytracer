@@ -158,6 +158,8 @@ namespace engine::graph {
     std::string name{"default"};
     QJsonObject parameters;
 
+    bool isDefault() const;
+    std::string displayText() const;
     QJsonObject toJson() const;
     static ShadingProfileRef fromJson(const QJsonValue& value, std::string path = "shadingProfile");
   };
@@ -184,11 +186,12 @@ namespace engine::graph {
   };
 
   /**
-    * Scene subset and camera override for a compiled pass.
+    * Scene subset plus view-side overrides for a compiled pass.
     */
   struct SceneView {
     SceneSelector selector{SceneSelector::all()};
     std::optional<RenderCameraRef> camera;
+    std::optional<ShadingProfileRef> shadingProfile;
   };
 
   /**

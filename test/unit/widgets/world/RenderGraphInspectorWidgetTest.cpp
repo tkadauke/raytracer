@@ -244,7 +244,8 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(5));
     EXPECT_EQ(QString("all"), passes->topLevelItem(0)->text(6));
     EXPECT_EQ(QString("preview-camera"), passes->topLevelItem(0)->text(7));
-    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(9));
+    EXPECT_EQ(QString("-"), passes->topLevelItem(0)->text(8));
+    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(10));
 
     ASSERT_NE(nullptr, graph->scene());
     auto* passNode = graphNodeItem(graph->scene(), "pass", "raytrace_beauty");
@@ -252,6 +253,7 @@ namespace RenderGraphInspectorWidgetTest {
     EXPECT_TRUE(nodeTextContains(passNode, "stage 1"));
     EXPECT_TRUE(passNode->toolTip().contains("Scene selector: all"));
     EXPECT_TRUE(passNode->toolTip().contains("Scene camera: preview-camera"));
+    EXPECT_TRUE(passNode->toolTip().contains("Shading profile: -"));
     EXPECT_TRUE(passNode->toolTip().contains("Reads: -"));
     EXPECT_TRUE(passNode->toolTip().contains("Writes: main_color"));
     EXPECT_TRUE(passNode->toolTip().contains("Incoming dependencies: -"));

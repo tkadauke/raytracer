@@ -306,6 +306,7 @@ namespace RenderGraphCompilerTest {
     override.selector = SceneSelector::all();
     override.executor = RenderExecutorPreference::Rasterizer;
     override.viewMode = RenderViewMode::Depth;
+    override.shadingProfile = ShadingProfileRef{"clay", {}};
     override.camera = RenderCameraRef{"inspection-camera", std::nullopt};
     intent.viewOverrides.push_back(override);
 
@@ -317,6 +318,8 @@ namespace RenderGraphCompilerTest {
     ASSERT_TRUE(plan.passes()[0].sceneView.camera.has_value());
     ASSERT_TRUE(plan.passes()[0].sceneView.camera->sceneCameraId.has_value());
     EXPECT_EQ("inspection-camera", *plan.passes()[0].sceneView.camera->sceneCameraId);
+    ASSERT_TRUE(plan.passes()[0].sceneView.shadingProfile.has_value());
+    EXPECT_EQ("clay", plan.passes()[0].sceneView.shadingProfile->name);
     EXPECT_EQ("visualize_depth_aov", plan.passes()[1].id);
     EXPECT_TRUE(plan.validate().valid());
   }

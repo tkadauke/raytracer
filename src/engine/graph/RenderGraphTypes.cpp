@@ -363,6 +363,14 @@ namespace engine::graph {
     return result;
   }
 
+  bool ShadingProfileRef::isDefault() const {
+    return name == "default" && parameters.isEmpty();
+  }
+
+  std::string ShadingProfileRef::displayText() const {
+    return name;
+  }
+
   ShadingProfileRef ShadingProfileRef::fromJson(const QJsonValue& value, std::string path) {
     ShadingProfileRef profile;
     if (value.isUndefined())
@@ -691,6 +699,9 @@ namespace engine::graph {
     SceneView view;
     view.selector = SceneSelector::all();
     view.camera = defaultCamera;
+    if (!defaultShadingProfile.isDefault()) {
+      view.shadingProfile = defaultShadingProfile;
+    }
     return view;
   }
 
@@ -791,6 +802,9 @@ namespace engine::graph {
     if (sceneView.camera) {
       object["sceneCamera"] = sceneView.camera->toJson();
     }
+    if (sceneView.shadingProfile) {
+      object["sceneShadingProfile"] = sceneView.shadingProfile->toJson();
+    }
     if (state) {
       const QJsonObject serializedState = state->toJson();
       if (!serializedState.isEmpty()) {
@@ -836,6 +850,12 @@ namespace engine::graph {
     const auto camera = object.value("sceneCamera");
     if (!camera.isUndefined()) {
       pass.sceneView.camera = RenderCameraRef::fromJson(camera, path + ".sceneCamera");
+    }
+
+    const auto shadingProfile = object.value("sceneShadingProfile");
+    if (!shadingProfile.isUndefined()) {
+      pass.sceneView.shadingProfile =
+        ShadingProfileRef::fromJson(shadingProfile, path + ".sceneShadingProfile");
     }
 
     pass.disabledBehavior = disabledBehaviorFromJson(
