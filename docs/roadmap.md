@@ -556,6 +556,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   transforms for #210. ~~MPD scene assembly with `0 FILE` / `0 NOFILE`
   virtual submodels.~~ ✅ **Done.** MPD-local files are parsed as named blocks
   and resolved before external library roots for #210.
+  ~~BFC winding, clipping sidedness, and inverted subfile references.~~ ✅
+  **Done.** `LDrawGeometryCompiler` tracks BFC certification, winding, clipping,
+  and `INVERTNEXT` state so imported mesh winding, normals, and raster material
+  sidedness follow certified LDraw geometry for #210.
 - **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI

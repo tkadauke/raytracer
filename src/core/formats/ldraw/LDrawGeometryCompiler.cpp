@@ -3,10 +3,12 @@
 #include "core/Exception.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Matrix.h"
+#include "render/materials/Material.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -16,33 +18,66 @@
 using namespace std;
 
 namespace {
+  struct BfcState {
+    bool certified = false;
+    bool counterClockwise = true;
+    bool clip = true;
+    bool invertNext = false;
+  };
+
+  bool shouldReverseFace(bool counterClockwise, bool inheritedInverted) {
+    return !counterClockwise != inheritedInverted;
+  }
+
+  void addFace(Mesh& mesh, Mesh::Face face, bool reverse) {
+    if (reverse)
+      std::reverse(face.begin() + 1, face.end());
+    mesh.addFace(face);
+  }
+
+  std::shared_ptr<render::Material> materialForPolygon(const LDrawColorTable& colors,
+                                                       int color,
+                                                       const LDrawColorContext& context,
+                                                       const BfcState& bfc) {
+    auto material = colors.materialForCode(color, context);
+    if (bfc.certified && bfc.clip)
+      material->setSidedness(render::Material::Sidedness::Front);
+    else
+      material->setSidedness(render::Material::Sidedness::TwoSided);
+    return material;
+  }
+
   shared_ptr<render::MeshPrimitive> meshPrimitiveForTriangle(const LDrawTriangle& triangle,
                                                             const LDrawColorTable& colors,
-                                                            const LDrawColorContext& context) {
+                                                            const LDrawColorContext& context,
+                                                            const BfcState& bfc,
+                                                            bool inheritedInverted) {
     Mesh mesh;
     for (const auto& point : triangle.points)
       mesh.addVertex(point, Vector3d::null);
-    mesh.addFace({0, 1, 2});
+    addFace(mesh, {0, 1, 2}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
                                                         render::MeshPrimitive::NormalMode::Flat);
-    primitive->setMaterial(colors.materialForCode(triangle.color, context));
+    primitive->setMaterial(materialForPolygon(colors, triangle.color, context, bfc));
     return primitive;
   }
 
   shared_ptr<render::MeshPrimitive> meshPrimitiveForQuad(const LDrawQuad& quad,
                                                         const LDrawColorTable& colors,
-                                                        const LDrawColorContext& context) {
+                                                        const LDrawColorContext& context,
+                                                        const BfcState& bfc,
+                                                        bool inheritedInverted) {
     Mesh mesh;
     for (const auto& point : quad.points)
       mesh.addVertex(point, Vector3d::null);
-    mesh.addFace({0, 1, 2, 3});
+    addFace(mesh, {0, 1, 2, 3}, shouldReverseFace(bfc.counterClockwise, inheritedInverted));
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
                                                         render::MeshPrimitive::NormalMode::Flat);
-    primitive->setMaterial(colors.materialForCode(quad.color, context));
+    primitive->setMaterial(materialForPolygon(colors, quad.color, context, bfc));
     return primitive;
   }
 
@@ -52,6 +87,36 @@ namespace {
                     m[3], m[4], m[5], reference.translation.y(),
                     m[6], m[7], m[8], reference.translation.z(),
                     0.0, 0.0, 0.0, 1.0);
+  }
+
+  double determinantForSubfileReference(const LDrawSubfileReference& reference) {
+    const auto& m = reference.matrix;
+    return m[0] * (m[4] * m[8] - m[5] * m[7]) -
+           m[1] * (m[3] * m[8] - m[5] * m[6]) +
+           m[2] * (m[3] * m[7] - m[4] * m[6]);
+  }
+
+  void applyBfcMeta(const LDrawMetaCommand& command, BfcState& bfc) {
+    if (command.keyword != "BFC")
+      return;
+
+    for (const auto& argument : command.arguments) {
+      if (argument == "CERTIFY") {
+        bfc.certified = true;
+      } else if (argument == "NOCERTIFY") {
+        bfc.certified = false;
+      } else if (argument == "CCW") {
+        bfc.counterClockwise = true;
+      } else if (argument == "CW") {
+        bfc.counterClockwise = false;
+      } else if (argument == "CLIP") {
+        bfc.clip = true;
+      } else if (argument == "NOCLIP") {
+        bfc.clip = false;
+      } else if (argument == "INVERTNEXT") {
+        bfc.invertNext = true;
+      }
+    }
   }
 
   string colorReferenceKey(const LDrawColorReference& reference) {
@@ -77,27 +142,37 @@ shared_ptr<render::Composite>
 LDrawGeometryCompiler::compile(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
                                const LDrawColorContext& context) const {
   CompileState state;
-  return compileCommands(commands, colors, context, state);
+  return compileCommands(commands, colors, context, state, false);
 }
 
 shared_ptr<render::Composite>
 LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
                                        const LDrawColorTable& colors,
                                        const LDrawColorContext& context,
-                                       CompileState& state) const {
+                                       CompileState& state,
+                                       bool inheritedInverted) const {
   auto result = make_shared<render::Composite>();
+  BfcState bfc;
 
   for (const auto& command : commands) {
     if (holds_alternative<LDrawTriangle>(command)) {
-      result->add(meshPrimitiveForTriangle(get<LDrawTriangle>(command), colors, context));
+      result->add(meshPrimitiveForTriangle(get<LDrawTriangle>(command), colors, context, bfc,
+                                           inheritedInverted));
     } else if (holds_alternative<LDrawQuad>(command)) {
-      result->add(meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context));
+      result->add(
+        meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc, inheritedInverted));
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
       const auto& reference = get<LDrawSubfileReference>(command);
+      const bool subfileInverted =
+        (inheritedInverted != bfc.invertNext) != (determinantForSubfileReference(reference) < 0.0);
       auto instance = make_shared<render::Instance>(
-        compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context), state));
+        compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context), state,
+                       subfileInverted));
       instance->setMatrix(transformForSubfileReference(reference));
       result->add(instance);
+      bfc.invertNext = false;
+    } else if (holds_alternative<LDrawMetaCommand>(command)) {
+      applyBfcMeta(get<LDrawMetaCommand>(command), bfc);
     }
   }
 
@@ -108,7 +183,8 @@ shared_ptr<render::Composite>
 LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
                                       const LDrawColorTable& colors,
                                       const LDrawColorContext& context,
-                                      CompileState& state) const {
+                                      CompileState& state,
+                                      bool inheritedInverted) const {
   if (!m_resolver) {
     throw Exception("LDraw subfile reference requires an LDrawFileResolver: " + reference.filename,
                     __FILE__, __LINE__);
@@ -125,7 +201,8 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
                     __FILE__, __LINE__);
   }
 
-  const string compiledKey = fileKey + "|" + colorContextKey(context);
+  const string compiledKey =
+    fileKey + "|" + colorContextKey(context) + "|" + (inheritedInverted ? "inverted" : "normal");
   auto compiled = m_compiledSubfiles.find(compiledKey);
   if (compiled != m_compiledSubfiles.end())
     return compiled->second;
@@ -142,7 +219,7 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
 
   state.activeFiles.insert(fileKey);
   ++state.depth;
-  auto result = compileCommands(parsed->second, colors, context, state);
+  auto result = compileCommands(parsed->second, colors, context, state, inheritedInverted);
   --state.depth;
   state.activeFiles.erase(fileKey);
 

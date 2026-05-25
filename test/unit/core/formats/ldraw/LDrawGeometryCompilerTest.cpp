@@ -9,6 +9,7 @@
 #include "engine/raytracer/Raytracer.h"
 #include "render/State.h"
 #include "render/cameras/PinholeCamera.h"
+#include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/MeshPrimitive.h"
@@ -30,8 +31,10 @@ namespace LDrawGeometryCompilerTest {
   LDrawColorTable colorTable() {
     LDrawColorTable table;
     table.add(table.parseColourRecord("0 !COLOUR Bright_Red CODE 4 VALUE #C91A09 EDGE #333333", 1));
-    table.add(table.parseColourRecord("0 !COLOUR Bright_Blue CODE 1 VALUE #0055BF EDGE #333333", 2));
-    table.add(table.parseColourRecord("0 !COLOUR Bright_Green CODE 2 VALUE #237841 EDGE #333333", 3));
+    table.add(
+      table.parseColourRecord("0 !COLOUR Bright_Blue CODE 1 VALUE #0055BF EDGE #333333", 2));
+    table.add(
+      table.parseColourRecord("0 !COLOUR Bright_Green CODE 2 VALUE #237841 EDGE #333333", 3));
     return table;
   }
 
@@ -77,6 +80,20 @@ namespace LDrawGeometryCompilerTest {
     auto primitive = dynamic_pointer_cast<MeshPrimitive>(composite->primitives().front());
     EXPECT_NE(nullptr, primitive);
     return primitive;
+  }
+
+  Vector3d faceNormal(const Mesh& mesh, const Mesh::Face& face) {
+    const Vector3d v0 =
+      mesh.vertices()[face[face.size() - 1]].point - mesh.vertices()[face[0]].point;
+    const Vector3d v1 = mesh.vertices()[face[1]].point - mesh.vertices()[face[0]].point;
+    return (v0 ^ v1).normalized();
+  }
+
+  void expectFirstFaceNormal(const shared_ptr<Mesh>& mesh, const Vector3d& expected) {
+    ASSERT_EQ(1u, mesh->faces().size());
+    EXPECT_EQ(expected, faceNormal(*mesh, mesh->faces()[0]));
+    for (const auto& vertex : mesh->vertices())
+      EXPECT_EQ(expected, vertex.normal);
   }
 
   TEST(LDrawGeometryCompiler, TypeThreeTriangleProducesOneMeshTriangleWithPoints) {
@@ -136,6 +153,50 @@ namespace LDrawGeometryCompilerTest {
     for (const auto& vertex : primitive->mesh()->vertices()) {
       EXPECT_EQ(Vector3d(0, 0, 1), vertex.normal);
     }
+  }
+
+  TEST(LDrawGeometryCompiler, BfcCertifyCcwKeepsLDrawFaceOrderAndFrontSidedMaterial) {
+    istringstream input(
+      "0 BFC CERTIFY CCW\n"
+      "3 4 0 0 0 0 1 0 1 0 0\n");
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
+    auto primitive = onlyMeshPrimitive(geometry);
+
+    EXPECT_EQ((Mesh::Face{0, 1, 2}), primitive->mesh()->faces()[0]);
+    expectFirstFaceNormal(primitive->tessellate(), Vector3d(0, 0, 1));
+    EXPECT_EQ(Material::Sidedness::Front, primitive->material()->sidedness());
+  }
+
+  TEST(LDrawGeometryCompiler, BfcCertifyCwReversesFaceOrderAndNormals) {
+    istringstream input(
+      "0 BFC CERTIFY CW\n"
+      "3 4 0 0 0 0 1 0 1 0 0\n");
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
+    auto primitive = onlyMeshPrimitive(geometry);
+
+    EXPECT_EQ((Mesh::Face{0, 2, 1}), primitive->mesh()->faces()[0]);
+    expectFirstFaceNormal(primitive->tessellate(), Vector3d(0, 0, -1));
+    EXPECT_EQ(Material::Sidedness::Front, primitive->material()->sidedness());
+  }
+
+  TEST(LDrawGeometryCompiler, BfcNoClipAndNoCertifyKeepTwoSidedMaterials) {
+    istringstream input(
+      "0 BFC CERTIFY CCW NOCLIP\n"
+      "3 4 0 0 0 0 1 0 1 0 0\n"
+      "0 BFC NOCERTIFY CLIP\n"
+      "3 1 2 0 0 2 1 0 3 0 0\n");
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
+
+    ASSERT_EQ(2u, geometry->primitives().size());
+    auto first = dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().front());
+    auto second = dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().back());
+    ASSERT_NE(nullptr, first);
+    ASSERT_NE(nullptr, second);
+    EXPECT_EQ(Material::Sidedness::TwoSided, first->material()->sidedness());
+    EXPECT_EQ(Material::Sidedness::TwoSided, second->material()->sidedness());
   }
 
   TEST(LDrawGeometryCompiler, InlineGeometryRendersThroughRaytracer) {
@@ -229,6 +290,27 @@ namespace LDrawGeometryCompilerTest {
       Rayd(Vector4d(2.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
     ASSERT_NE(nullptr, directHit);
     ASSERT_COLOR_NEAR(Colord::fromRGB(201, 26, 9), diffuseColor(directHit->material()), 0.001);
+  }
+
+  TEST(LDrawGeometryCompiler, BfcInvertNextInvertsOnlyTheNextTypeOneSubfile) {
+    auto resolver = make_shared<MemoryResolver>(map<string, string>{
+      {"child.dat",
+       "0 BFC CERTIFY CCW\n"
+       "3 16 0 0 0 0 1 0 1 0 0\n"}});
+    istringstream input(
+      "0 BFC INVERTNEXT\n"
+      "0 // comments do not consume INVERTNEXT\n"
+      "1 4 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+      "1 4 2 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
+
+    auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
+    auto mesh = geometry->tessellate();
+
+    ASSERT_EQ(2u, mesh->faces().size());
+    EXPECT_EQ(Vector3d(0, 0, -1), faceNormal(*mesh, mesh->faces()[0]));
+    EXPECT_EQ(Vector3d(0, 0, -1), mesh->vertices()[0].normal);
+    EXPECT_EQ(Vector3d(0, 0, 1), faceNormal(*mesh, mesh->faces()[1]));
+    EXPECT_EQ(Vector3d(0, 0, 1), mesh->vertices()[3].normal);
   }
 
   TEST(LDrawGeometryCompiler, ReferencedFilesAreParsedThroughResolverOnlyOnce) {
