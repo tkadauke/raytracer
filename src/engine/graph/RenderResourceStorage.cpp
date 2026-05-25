@@ -110,4 +110,25 @@ namespace engine::graph {
   const Buffer<std::uint32_t>& RenderResourceStorage::objectId(const RenderResourceId& id) const {
     return resource(id).objectId();
   }
+
+  void RenderResourceStorage::bindObjectId(const RenderResourceId& id,
+                                           const Buffer<std::uint32_t>& source) {
+    RenderResource& destinationResource = resource(id);
+    if (!destinationResource.objectIdBacked()) {
+      throw std::out_of_range("render resource '" + id + "' is not object-id-backed");
+    }
+
+    Buffer<std::uint32_t>& destination = destinationResource.objectId();
+    if (source.width() != destination.width() || source.height() != destination.height()) {
+      throw std::runtime_error("external object-id resource '" + id +
+                               "' has mismatched dimensions");
+    }
+
+    for (int y = 0; y != source.height(); ++y) {
+      for (int x = 0; x != source.width(); ++x) {
+        destination[y][x] = source[y][x];
+      }
+    }
+    destinationResource.markProduced();
+  }
 }

@@ -86,6 +86,15 @@ namespace engine::graph {
     Buffer<std::uint32_t>& objectId(const RenderResourceId& id);
     const Buffer<std::uint32_t>& objectId(const RenderResourceId& id) const;
 
+    /**
+      * Copies an externally supplied integer-id buffer into @p id.
+      *
+      * The destination resource must exist, be object-id-backed, and have the
+      * same image dimensions as @p source. Material-id resources use the same
+      * backing type.
+      */
+    void bindObjectId(const RenderResourceId& id, const Buffer<std::uint32_t>& source);
+
   private:
     std::map<RenderResourceId, std::unique_ptr<RenderResource>> m_resources;
   };
