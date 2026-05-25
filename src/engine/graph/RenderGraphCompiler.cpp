@@ -114,9 +114,9 @@ namespace engine::graph {
         plan.addResourceProducer(std::move(producer),
                                  aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
       }
-      plan.addResource(target.colorResource(previewId, aov->title() + " AOV preview",
-                                            RenderResourceLifetime::Exported));
-      plan.addPass(aovVisualizationPass(*aov, aovId, previewId, false));
+      plan.addResourceProducer(aovVisualizationPass(*aov, aovId, previewId, false),
+                               target.colorResource(previewId, aov->title() + " AOV preview",
+                                                    RenderResourceLifetime::Exported));
     }
 
     void addAuxiliaryAOVExports(RenderPlan& plan, const RenderTargetSpec& target,
@@ -226,9 +226,9 @@ namespace engine::graph {
     composite.sceneView.selector = SceneSelector::all();
     composite.disabledBehavior = DisabledBehavior::SubstituteDefault;
     composite.canRunConcurrently = false;
-    plan.addResource(target.colorResource("composited_color", "Composited color",
-                                          RenderResourceLifetime::Transient));
-    plan.addPass(composite);
+    plan.addResourceProducer(std::move(composite),
+                             target.colorResource("composited_color", "Composited color",
+                                                  RenderResourceLifetime::Transient));
 
     plan.routeResourceThroughPass(
       "composited_color",
