@@ -144,9 +144,9 @@ Validation treats imported, history, and persistent-cache resources as
 externally available. A transient or exported resource that is read must have a
 producer in the plan, and every exported resource must have a declared producer
 even when no other pass reads it. Imported and history resources are still
-execution inputs: the current `GraphRenderEngine` rejects a plan that reads one
-without a producer until the engine has an explicit external resource binding
-API.
+execution inputs: `GraphRenderEngine::setExternalColorResource(...)` can bind
+CPU color inputs for the current execution slice, and the engine rejects plans
+that read unbound or unsupported external inputs.
 
 Persistent cache resources have a separate execution-time home:
 [`RenderGraphArtifactCache`](../../../include/engine/graph/RenderGraphArtifactCache.h).
@@ -708,9 +708,8 @@ A reads B's output while B reads A's output, validation reports `Cycle`.
 1. In a plan with `shadow`, `main`, and `tonemap` passes, which resources make
    `main` depend on `shadow`, and which resource makes `tonemap` depend on
    `main`?
-2. Why does an imported resource not need a producer in the plan, and what must
-   happen before the current `GraphRenderEngine` can execute a plan that reads
-   it?
+2. Why does an imported resource not need a producer in the plan, and when must
+   the caller bind it before execution?
 3. What validation error should a pass get if it reads a resource written by a
    disabled pass whose `DisabledBehavior` is `CullDependents`?
 4. Build a three-pass plan by hand: one pass writes `object_id`, one pass
