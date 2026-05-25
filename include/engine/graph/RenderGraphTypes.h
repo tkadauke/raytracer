@@ -282,6 +282,17 @@ namespace engine::graph {
     bool exportsAOV(RenderViewMode viewMode) const;
 
     /**
+      * Sets the default executor preference used for whole-frame graph
+      * synthesis.
+      */
+    void setDefaultExecutor(RenderExecutorPreference executor);
+
+    /**
+      * Sets the default view mode used for whole-frame graph synthesis.
+      */
+    void setDefaultViewMode(RenderViewMode viewMode);
+
+    /**
       * Sets the default camera reference used by synthesized scene passes.
       */
     void setDefaultCamera(RenderCameraRef camera);
@@ -295,6 +306,11 @@ namespace engine::graph {
       * Sets a scalar parameter on the default named shading profile.
       */
     void setDefaultShadingProfileParameter(std::string key, ShadingProfileParameterValue value);
+
+    /**
+      * Sets the requested image-space postprocess anti-aliasing mode.
+      */
+    void setPostProcessAA(RenderPostProcessAA aa);
 
     /**
       * Reads user-facing render intent from a scene JSON `renderIntent` object.

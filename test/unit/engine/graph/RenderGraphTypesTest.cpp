@@ -160,6 +160,11 @@ namespace RenderGraphTypesTest {
   TEST(RenderIntent, OwnsAOVAndShadingProfileIntentMutation) {
     RenderIntent intent;
 
+    intent.setDefaultExecutor(RenderExecutorPreference::Rasterizer);
+    EXPECT_EQ(RenderExecutorPreference::Rasterizer, intent.defaultExecutor);
+    intent.setDefaultViewMode(RenderViewMode::Depth);
+    EXPECT_EQ(RenderViewMode::Depth, intent.defaultViewMode);
+
     intent.setDefaultCamera(RenderCameraRef{"shot-camera", std::nullopt});
     ASSERT_TRUE(intent.defaultCamera.has_value());
     ASSERT_TRUE(intent.defaultCamera->sceneCameraId.has_value());
@@ -179,6 +184,9 @@ namespace RenderGraphTypesTest {
     intent.setDefaultShadingProfileParameter("levels", ShadingProfileParameterValue(5.0));
     ASSERT_NE(nullptr, intent.defaultShadingProfile.parameter("levels"));
     EXPECT_EQ(ShadingProfileParameterValue(5.0), *intent.defaultShadingProfile.parameter("levels"));
+
+    intent.setPostProcessAA(RenderPostProcessAA::FXAA);
+    EXPECT_EQ(RenderPostProcessAA::FXAA, intent.postProcessAA);
   }
 
   TEST(RenderIntent, RejectsNonAOVExportRequests) {
