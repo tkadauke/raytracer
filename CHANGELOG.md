@@ -200,6 +200,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph DOT exports.** Resource labels in DOT exports now include the
+  resource format and lifetime. — GPT-5
 - **Modeler graph trace empty states.** Resource trace previews now distinguish
   undeclared resources from declared resources that were not read or written in
   the last execution. — GPT-5

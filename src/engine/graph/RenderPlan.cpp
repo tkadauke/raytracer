@@ -770,7 +770,8 @@ namespace engine::graph {
     for (const auto& resource : m_resources) {
       out << "  \"resource:" << dotEscape(resource.id) << "\""
           << " [shape=box,label=\"" << dotEscape(resource.id) << "\\n"
-          << toString(resource.type) << "\"];\n";
+          << toString(resource.type) << "/" << toString(resource.format) << "\\n"
+          << toString(resource.lifetime) << "\"];\n";
     }
 
     for (const auto& pass : m_passes) {

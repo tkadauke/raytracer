@@ -615,6 +615,8 @@ namespace RenderPlanTest {
     const std::string dot = plan.toDot();
     EXPECT_NE(std::string::npos, dot.find("digraph RenderPlan"));
     EXPECT_NE(std::string::npos, dot.find("resource:main_color"));
+    EXPECT_NE(std::string::npos, dot.find("color/rgb_double"));
+    EXPECT_NE(std::string::npos, dot.find("transient"));
     EXPECT_NE(std::string::npos, dot.find("execution_stage_1"));
     EXPECT_NE(std::string::npos, dot.find("stage 1, order 1"));
 

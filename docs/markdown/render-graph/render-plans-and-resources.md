@@ -261,8 +261,9 @@ passes whose producer dependencies are already satisfied by earlier stages.
 The current `GraphRenderEngine` still executes serially, but text, DOT, and
 JSON exports plus the Modeler graph layout use these stages to make independent
 AOV or cache branches appear as parallel candidates rather than a misleading
-list. DOT exports also group pass nodes by execution stage with rank hints and
-include stage/order labels on each pass.
+list. DOT exports also group pass nodes by execution stage with rank hints,
+include stage/order labels on each pass, and show resource format/lifetime
+labels on resource nodes.
 Code that needs to annotate individual pass rows can ask the plan for a pass's
 stage number directly instead of duplicating the stage walk.
 
