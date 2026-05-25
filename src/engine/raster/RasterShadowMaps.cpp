@@ -1,5 +1,7 @@
 #include "engine/raster/detail/RasterShadowMaps.h"
 
+#include "core/util/BufferUtils.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -127,12 +129,12 @@ namespace engine::raster::detail {
   }
 
   DirectionalShadowMap::DirectionalShadowMap(const render::Light* light,
-                                             const render::Camera* viewCamera,
+                                             std::shared_ptr<const render::Camera> viewCamera,
                                              std::vector<DirectionalShadowCascade> cascades,
                                              double bias, double slopeBias, int filterRadius,
                                              Rasterizer::ShadowFilterMode filterMode)
       : m_light(light),
-        m_viewCamera(viewCamera),
+        m_viewCamera(std::move(viewCamera)),
         m_cascades(std::move(cascades)),
         m_bias(bias),
         m_slopeBias(slopeBias),
@@ -142,6 +144,10 @@ namespace engine::raster::detail {
 
   const render::Light* DirectionalShadowMap::light() const {
     return m_light;
+  }
+
+  const std::vector<DirectionalShadowCascade>& DirectionalShadowMap::cascades() const {
+    return m_cascades;
   }
 
   double DirectionalShadowMap::visibility(const Vector3d& worldPos, const Vector3d& receiverNormal,
@@ -281,6 +287,21 @@ namespace engine::raster::detail {
 
   bool ShadowMaps::empty() const {
     return m_directional.empty();
+  }
+
+  bool ShadowMaps::copyFirstDirectionalDepthTo(Buffer<double>& destination) const {
+    destination.clear(std::numeric_limits<double>::infinity());
+    if (m_directional.empty() || m_directional.front().cascades().empty()) {
+      return false;
+    }
+
+    const auto& depth = m_directional.front().cascades().front().depthBuffer;
+    if (!depth || !core::util::bufferDimensionsEqual(destination, *depth)) {
+      return false;
+    }
+
+    core::util::copyBuffer(destination, *depth);
+    return true;
   }
 
   const DirectionalShadowMap* ShadowMaps::forLight(const render::Light* light) const {

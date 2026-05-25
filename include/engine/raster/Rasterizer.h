@@ -19,6 +19,9 @@ namespace render {
 }
 
 namespace engine::raster {
+  namespace detail {
+    class ShadowMaps;
+  }
 
   /**
   * @brief `RenderEngine` that projects every mesh face's triangles
@@ -800,11 +803,31 @@ namespace engine::raster {
     void setShadowMapSize(int size);
 
     /**
+    * Builds the full directional shadow-map collection for the current scene.
+    *
+    * Graph shadow passes use this to materialize an immutable artifact that a
+    * later raster beauty pass can consume without rebuilding shadow maps.
+    */
+    std::shared_ptr<const detail::ShadowMaps> buildShadowMaps() const;
+
+    /**
+    * Supplies a prebuilt graph-owned shadow-map collection for the next render.
+    *
+    * When this is set and shadow maps are enabled, the beauty path consumes the
+    * supplied collection instead of building its own.
+    */
+    void setExternalShadowMaps(std::shared_ptr<const detail::ShadowMaps> shadowMaps);
+
+    /// Clears any prebuilt shadow-map collection supplied to the rasterizer.
+    inline void clearExternalShadowMaps() {
+      setExternalShadowMaps(nullptr);
+    }
+
+    /**
     * Renders the first directional-light shadow-map cascade into @p depthBuffer.
     *
-    * This exposes the rasterizer's depth-map build as a graph-visible artifact
-    * path. The normal beauty render still builds its full internal shadow-map
-    * collection until graph-owned shadow artifacts can be consumed directly.
+    * This exposes the rasterizer's depth-map build as a graph-visible preview
+    * path. Graph-owned full shadow artifacts should use `buildShadowMaps()`.
     *
     * @returns true when a directional-light shadow pass was materialized.
     */
@@ -1333,6 +1356,7 @@ namespace engine::raster {
     PostProcessAA m_postProcessAA{PostProcessAA::None};
     double m_temporalCurrentFrameWeight{0.1};
     bool m_shadowMapsEnabled{false};
+    std::shared_ptr<const detail::ShadowMaps> m_externalShadowMaps;
     int m_shadowMapSize{256};
     int m_shadowCascadeCount{1};
     double m_shadowCascadeSplitLambda{0.5};

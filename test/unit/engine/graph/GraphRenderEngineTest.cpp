@@ -7,6 +7,7 @@
 #include "engine/graph/RenderGraphExecutionTrace.h"
 #include "engine/graph/RenderGraphCompiler.h"
 #include "engine/graph/RenderResourceStorage.h"
+#include "engine/raster/detail/RasterShadowMapBuilder.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/lights/DirectionalLight.h"
 #include "render/lights/PointLight.h"
@@ -1340,8 +1341,8 @@ namespace GraphRenderEngineTest {
     auto scene = std::make_shared<render::Scene>();
     scene->setBackground(Colord(0.1, 0.2, 0.3));
     scene->add(std::make_shared<render::Curve>(
-      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
-                      Vector3d(1.0, -0.5, 0.0)}),
+      core::Polyline(
+        {Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0), Vector3d(1.0, -0.5, 0.0)}),
       0.0, render::Curve::TessellationMode::Ribbon));
 
     RenderIntent intent;
@@ -1393,6 +1394,7 @@ namespace GraphRenderEngineTest {
     engine.setPlan(compiler.compile({48, 48, 1}, intent));
 
     Buffer<unsigned int> buffer(48, 48);
+    engine::raster::detail::RasterShadowMapBuilder::resetDepthPassCountForTests();
     engine.render(buffer);
 
     auto trace = engine.lastExecutionTrace();
@@ -1403,6 +1405,7 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(256, outputs.front()->depthPreview().width());
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
     EXPECT_EQ(RenderGraphCacheStatus::Stored, outputs.front()->cacheMetadata().status());
+    EXPECT_EQ(4u, engine::raster::detail::RasterShadowMapBuilder::depthPassCountForTests());
   }
 
   TEST(GraphRenderEngine, RasterPreviewShadowPassReusesDepthArtifactCache) {
@@ -1422,6 +1425,7 @@ namespace GraphRenderEngineTest {
     engine.render(buffer);
     EXPECT_EQ(1u, engine.artifactCache()->size());
 
+    engine::raster::detail::RasterShadowMapBuilder::resetDepthPassCountForTests();
     engine.setTonemap(std::make_shared<render::ReinhardTonemap>());
     engine.render(buffer);
 
@@ -1432,7 +1436,9 @@ namespace GraphRenderEngineTest {
     EXPECT_EQ(RenderGraphCacheStatus::Hit, outputs.front()->cacheMetadata().status());
     EXPECT_GT(countFiniteDepths(outputs.front()->depthPreview()), 0);
     EXPECT_EQ(1u, engine.artifactCache()->size());
+    EXPECT_EQ(0u, engine::raster::detail::RasterShadowMapBuilder::depthPassCountForTests());
 
+    engine::raster::detail::RasterShadowMapBuilder::resetDepthPassCountForTests();
     cam->setPosition(Vector3d(0.25, 0.0, -5.0));
     engine.render(buffer);
 
@@ -1442,6 +1448,7 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1u, movedOutputs.size());
     EXPECT_EQ(RenderGraphCacheStatus::Stored, movedOutputs.front()->cacheMetadata().status());
     EXPECT_EQ(2u, engine.artifactCache()->size());
+    EXPECT_EQ(4u, engine::raster::detail::RasterShadowMapBuilder::depthPassCountForTests());
   }
 
   TEST(GraphRenderEngine, LdrRasterPreviewShadowPassDarkensOccludedReceiver) {

@@ -98,12 +98,15 @@ namespace engine::raster::detail {
   // applies the configured hard/PCF/PCSS depth comparison.
   class DirectionalShadowMap {
   public:
-    DirectionalShadowMap(const render::Light* light, const render::Camera* viewCamera,
+    DirectionalShadowMap(const render::Light* light,
+                         std::shared_ptr<const render::Camera> viewCamera,
                          std::vector<DirectionalShadowCascade> cascades, double bias,
                          double slopeBias, int filterRadius,
                          Rasterizer::ShadowFilterMode filterMode);
 
     const render::Light* light() const;
+
+    const std::vector<DirectionalShadowCascade>& cascades() const;
 
     double visibility(const Vector3d& worldPos, const Vector3d& receiverNormal,
                       const Vector3d& lightDirection) const;
@@ -128,7 +131,7 @@ namespace engine::raster::detail {
                             double receiverDepth, double bias) const;
 
     const render::Light* m_light;
-    const render::Camera* m_viewCamera;
+    std::shared_ptr<const render::Camera> m_viewCamera;
     std::vector<DirectionalShadowCascade> m_cascades;
     double m_bias;
     double m_slopeBias;
@@ -145,6 +148,8 @@ namespace engine::raster::detail {
     void add(DirectionalShadowMap shadowMap);
 
     bool empty() const;
+
+    bool copyFirstDirectionalDepthTo(Buffer<double>& destination) const;
 
     const DirectionalShadowMap* forLight(const render::Light* light) const;
 

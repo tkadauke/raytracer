@@ -513,6 +513,7 @@ std::shared_ptr<render::RenderEngine> Rasterizer::cloneForRender() const {
   result->setPostProcessAA(m_postProcessAA);
   result->setTemporalCurrentFrameWeight(m_temporalCurrentFrameWeight);
   result->setShadowMapsEnabled(m_shadowMapsEnabled);
+  result->setExternalShadowMaps(m_externalShadowMaps);
   result->setShadowMapSize(m_shadowMapSize);
   result->setShadowCascadeCount(m_shadowCascadeCount);
   result->setShadowCascadeSplitLambda(m_shadowCascadeSplitLambda);
@@ -653,6 +654,17 @@ void Rasterizer::setFarClipDepth(double depth) {
 
 void Rasterizer::setShadowMapSize(int size) {
   m_shadowMapSize = std::max(1, size);
+}
+
+std::shared_ptr<const ShadowMaps> Rasterizer::buildShadowMaps() const {
+  if (!m_scene || !m_camera)
+    return std::make_shared<ShadowMaps>();
+  return std::make_shared<ShadowMaps>(
+    RasterShadowMapBuilder(*this, m_scene, m_camera, *p->threadPool, m_cancelled).build());
+}
+
+void Rasterizer::setExternalShadowMaps(std::shared_ptr<const ShadowMaps> shadowMaps) {
+  m_externalShadowMaps = std::move(shadowMaps);
 }
 
 bool Rasterizer::renderFirstDirectionalShadowMap(Buffer<double>& depthBuffer) {
@@ -1205,8 +1217,12 @@ void Rasterizer::Private::renderFrame(const Rasterizer& rasterizer,
   const RasterTriangleEmitter triangleEmitter(scene.get(), camera, rasterizer.lod(), rasterizer,
                                               cancelled, rasterizer.cullMode(),
                                               rasterizer.hasCullModeOverride(), true);
-  const ShadowMaps shadowMaps =
-    RasterShadowMapBuilder(rasterizer, scene, camera, *threadPool, cancelled).build();
+  const ShadowMaps builtShadowMaps =
+    rasterizer.m_externalShadowMaps
+      ? ShadowMaps()
+      : RasterShadowMapBuilder(rasterizer, scene, camera, *threadPool, cancelled).build();
+  const ShadowMaps& shadowMaps =
+    rasterizer.m_externalShadowMaps ? *rasterizer.m_externalShadowMaps : builtShadowMaps;
   if (automaticQueueSize && pattern.count > 1) {
     renderAutomaticMSAAFrame(rasterizer, scene, tilePlan, pattern, triangleEmitter, shadowMaps,
                              renderClip, cancelled, buffer);
