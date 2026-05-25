@@ -277,10 +277,26 @@ namespace engine::graph {
     return it == m_resources.end() ? nullptr : &*it;
   }
 
+  bool RenderPlan::hasPass(const RenderPassId& id) const {
+    return findPass(id) != nullptr;
+  }
+
+  bool RenderPlan::hasResource(const RenderResourceId& id) const {
+    return findResource(id) != nullptr;
+  }
+
   std::set<RenderPassId> RenderPlan::passIds() const {
     std::set<RenderPassId> result;
     for (const auto& pass : m_passes) {
       result.insert(pass.id);
+    }
+    return result;
+  }
+
+  std::set<RenderResourceId> RenderPlan::resourceIds() const {
+    std::set<RenderResourceId> result;
+    for (const auto& resource : m_resources) {
+      result.insert(resource.id);
     }
     return result;
   }
