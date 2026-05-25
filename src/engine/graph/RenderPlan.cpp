@@ -377,6 +377,17 @@ namespace engine::graph {
     return std::nullopt;
   }
 
+  std::optional<int> RenderPlan::executionOrderNumber(const RenderPassId& id) const {
+    int orderNumber = 1;
+    for (const RenderPassNode* pass : executionOrder()) {
+      if (pass->id == id) {
+        return orderNumber;
+      }
+      ++orderNumber;
+    }
+    return std::nullopt;
+  }
+
   bool RenderPlan::executionEquivalentTo(const RenderPlan& other) const {
     return m_resources.size() == other.m_resources.size() &&
            std::equal(m_resources.begin(), m_resources.end(), other.m_resources.begin(),

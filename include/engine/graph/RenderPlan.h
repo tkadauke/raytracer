@@ -79,6 +79,7 @@ namespace engine::graph {
     std::vector<std::vector<const RenderPassNode*>> executionStages() const;
     std::optional<int> executionStageNumber(const RenderPassId& id) const;
     std::vector<const RenderPassNode*> executionOrder() const;
+    std::optional<int> executionOrderNumber(const RenderPassId& id) const;
 
     /**
       * @returns true when @p other describes the same executable graph shape

@@ -182,15 +182,6 @@ namespace {
     return values;
   }
 
-  std::map<RenderPassId, int> executionOrderByPassId(const RenderPlan& plan) {
-    std::map<RenderPassId, int> result;
-    int order = 1;
-    for (const RenderPassNode* pass : plan.executionOrder()) {
-      result.emplace(pass->id, order++);
-    }
-    return result;
-  }
-
   std::map<RenderPassId, QPointF> passPositions(const RenderPlan& plan) {
     std::map<RenderPassId, QPointF> result;
 
@@ -845,15 +836,13 @@ void RenderGraphInspectorWidget::rebuildPasses() {
   p->passes->clear();
 
   const RenderPlan plan = effectivePlan();
-  const auto executionOrder = executionOrderByPassId(plan);
   for (const auto& pass : plan.passes()) {
     auto item = new QTreeWidgetItem(p->passes);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
     item->setCheckState(0, pass.enabled ? Qt::Checked : Qt::Unchecked);
     item->setData(0, Qt::UserRole, qstr(pass.id));
-    const auto orderIt = executionOrder.find(pass.id);
-    item->setText(1, orderIt == executionOrder.end() ? QStringLiteral("-")
-                                                     : QString::number(orderIt->second));
+    const auto order = plan.executionOrderNumber(pass.id);
+    item->setText(1, order ? QString::number(*order) : QStringLiteral("-"));
     const auto stage = plan.executionStageNumber(pass.id);
     item->setText(2, stage ? QString::number(*stage) : QStringLiteral("-"));
     item->setText(3, qstr(pass.id));

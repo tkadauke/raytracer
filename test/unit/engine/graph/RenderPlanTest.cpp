@@ -211,6 +211,9 @@ namespace RenderPlanTest {
     ASSERT_EQ(2u, order.size());
     EXPECT_EQ("beauty", order[0]->id);
     EXPECT_EQ("tonemap", order[1]->id);
+    EXPECT_EQ(1, plan.executionOrderNumber("beauty"));
+    EXPECT_EQ(2, plan.executionOrderNumber("tonemap"));
+    EXPECT_FALSE(plan.executionOrderNumber("missing"));
 
     const std::string text = plan.toText();
     EXPECT_NE(std::string::npos, text.find("Execution order:\n- beauty\n- tonemap\n"));
