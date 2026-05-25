@@ -291,6 +291,35 @@ visualization: rendering the same scene at LOD 0, 1, 2, 3
 shows the silhouette progression at the wire level, where
 faceting is most visible because there's no shading to hide it.
 
+## <a id="curves-ribbons-tubes-overlays"></a>Curves: ribbons, tubes, overlays
+[`core::Polyline`](../../../include/core/geometry/Polyline.h)
+stores path-like data as ordered 3D points, where segment `i`
+connects point `i` to point `i + 1`. Whole-curve metadata lives
+on the shared [`core::Curve`](../../../include/core/geometry/Curve.h)
+base, and per-segment metadata lives beside the derived segment.
+That split lets importers preserve both file-level data and
+segment-varying attributes such as G-code feed rate, route type,
+molecule chain, trajectory time, or simulation phase.
+
+[`render::Curve`](../../../include/render/primitives/Curve.h)
+turns that path into visible output. In ribbon mode, every
+non-zero segment becomes one quad with the requested width. In
+tube mode, every non-zero segment becomes a ring-pair mesh; the
+`lod` value increases the number of tube sides. Both modes feed
+ordinary mesh-consuming engines, so the rasterizer, wireframe
+renderer, and exporters can handle curves through the same
+`Primitive::tessellate` contract as spheres and boxes.
+
+Curves also have a semantic overlay path. Instead of building
+physical faces, `forEachCurveOverlaySegment` exposes the original
+center line so render graph overlays can draw thin path strokes
+even when the curve width is zero. If a
+[`core::AttributeColorMap`](../../../include/core/geometry/AttributeColorMap.h)
+is attached, scalar or categorical segment attributes become
+deterministic colors for ribbon faces, tube faces, or overlay
+segments. Missing attributes fall back to the curve's material or
+default overlay color.
+
 ## <a id="exercises"></a>Exercises
 1. Predict the triangle count for `Sphere::tessellate(0)`,
    `Sphere::tessellate(1)`, and `Sphere::tessellate(3)`.
@@ -326,7 +355,11 @@ faceting is most visible because there's no shading to hide it.
 
 <!-- source-anchors -->
 - `include/core/geometry/Mesh.h`
+- `include/core/geometry/Curve.h`
+- `include/core/geometry/Polyline.h`
+- `include/core/geometry/AttributeColorMap.h`
 - `include/render/primitives/Primitive.h`
+- `include/render/primitives/Curve.h`
 - `include/render/primitives/Sphere.h`
 - `include/render/primitives/Disk.h`
 - `include/render/primitives/OpenCylinder.h`
