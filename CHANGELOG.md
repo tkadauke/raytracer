@@ -350,6 +350,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **rendercli unknown samplers.** `rendercli --sampler` now rejects unknown
   sampler names with a command-line error instead of dereferencing a missing
   factory result during rendering. — GPT-5
+- **Render graph exported-AOV validation.** `RenderIntent` now rejects
+  non-AOV view modes in `exportedAOVs` at the intent boundary instead of
+  allowing invalid scene JSON to fail later during graph compilation. — GPT-5
 - **rendercli whole-frame graph overrides.** `rendercli` now applies
   scene-authored `selector: all` render-intent overrides before choosing graph
   sampling and executor-specific pass state, so raster MSAA/shadow/postprocess
