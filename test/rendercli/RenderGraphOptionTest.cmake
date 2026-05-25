@@ -23,7 +23,10 @@ set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
 set(external_input_graph "${TEST_OUTPUT_DIR}/external-input-graph.json")
+set(depth_input_graph "${TEST_OUTPUT_DIR}/depth-input-graph.json")
 set(stencil_input_graph "${TEST_OUTPUT_DIR}/stencil-input-graph.json")
+set(object_id_input_graph "${TEST_OUTPUT_DIR}/object-id-input-graph.json")
+set(material_id_input_graph "${TEST_OUTPUT_DIR}/material-id-input-graph.json")
 set(depth_composite_graph "${TEST_OUTPUT_DIR}/depth-composite-graph.json")
 set(out_of_order_graph "${TEST_OUTPUT_DIR}/out-of-order-graph.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
@@ -79,7 +82,10 @@ set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 set(external_color_input "${TEST_OUTPUT_DIR}/graph-external-color-input.png")
 set(external_input_render "${TEST_OUTPUT_DIR}/graph-external-input-render.png")
 set(external_input_bound_render "${TEST_OUTPUT_DIR}/graph-external-input-bound-render.png")
+set(depth_input_bound_render "${TEST_OUTPUT_DIR}/graph-depth-input-bound-render.png")
 set(stencil_input_bound_render "${TEST_OUTPUT_DIR}/graph-stencil-input-bound-render.png")
+set(object_id_input_bound_render "${TEST_OUTPUT_DIR}/graph-object-id-input-bound-render.png")
+set(material_id_input_bound_render "${TEST_OUTPUT_DIR}/graph-material-id-input-bound-render.png")
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 set(graph_demo_render "${TEST_OUTPUT_DIR}/graph-demo-render.png")
 set(stencil_composite_scene_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-scene-render.png")
@@ -301,6 +307,50 @@ file(WRITE "${external_input_graph}" [=[
 }
 ]=])
 
+file(WRITE "${depth_input_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "history_depth",
+      "name": "History depth",
+      "type": "depth",
+      "format": "depth_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "history"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "visualize_depth",
+      "name": "Visualize depth",
+      "kind": "aov",
+      "executor": "postprocess",
+      "features": ["depth", "visualization"],
+      "reads": ["history_depth"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
 file(WRITE "${stencil_input_graph}" [=[
 {
   "resources": [
@@ -383,6 +433,94 @@ file(WRITE "${stencil_input_graph}" [=[
       "executor": "composite",
       "features": ["stencil_composite"],
       "reads": ["base_color", "foreground_color", "stencil_mask"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${object_id_input_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "history_object_id",
+      "name": "History object ID",
+      "type": "object_id",
+      "format": "uint32",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "history"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "visualize_object_id",
+      "name": "Visualize object ID",
+      "kind": "aov",
+      "executor": "postprocess",
+      "features": ["object_id", "visualization"],
+      "reads": ["history_object_id"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${material_id_input_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "history_material_id",
+      "name": "History material ID",
+      "type": "material_id",
+      "format": "uint32",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "history"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "visualize_material_id",
+      "name": "Visualize material ID",
+      "kind": "aov",
+      "executor": "postprocess",
+      "features": ["material_id", "visualization"],
+      "reads": ["history_material_id"],
       "writes": ["main_color"],
       "disabledBehavior": "error",
       "enabled": true,
@@ -1132,10 +1270,34 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects malformed graph depth input"
+  STDERR_MATCHES "--render_graph_depth_in must use resource=file syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_depth_in history_depth
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects malformed graph stencil input"
   STDERR_MATCHES "--render_graph_stencil_in must use resource=file syntax"
   COMMAND
     "${RENDERCLI}" --render_graph_stencil_in stencil_mask
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects malformed graph object-id input"
+  STDERR_MATCHES "--render_graph_object_id_in must use resource=file syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_object_id_in history_object_id
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects malformed graph material-id input"
+  STDERR_MATCHES "--render_graph_material_id_in must use resource=file syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_material_id_in history_material_id
     "${static_scene}" "${invalid_plan}"
 )
 
@@ -1239,6 +1401,18 @@ rendercli_assert_image_nonempty("${external_input_bound_render}"
                                 NAME "bound external input render pixels")
 
 rendercli_run(
+  NAME "rendercli binds imported depth graph inputs"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${depth_input_graph}"
+    --render_graph_depth_in "history_depth=${external_color_input}"
+    "${static_scene}" "${depth_input_bound_render}"
+)
+rendercli_assert_image_dimensions("${depth_input_bound_render}" 32 16
+                                  NAME "bound depth input render dimensions")
+rendercli_assert_image_nonempty("${depth_input_bound_render}"
+                                NAME "bound depth input render pixels")
+
+rendercli_run(
   NAME "rendercli binds imported stencil graph inputs"
   COMMAND
     "${RENDERCLI}" --render_graph --render_graph_in "${stencil_input_graph}"
@@ -1249,6 +1423,30 @@ rendercli_assert_image_dimensions("${stencil_input_bound_render}" 32 16
                                   NAME "bound stencil input render dimensions")
 rendercli_assert_image_nonempty("${stencil_input_bound_render}"
                                 NAME "bound stencil input render pixels")
+
+rendercli_run(
+  NAME "rendercli binds imported object-id graph inputs"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${object_id_input_graph}"
+    --render_graph_object_id_in "history_object_id=${external_color_input}"
+    "${static_scene}" "${object_id_input_bound_render}"
+)
+rendercli_assert_image_dimensions("${object_id_input_bound_render}" 32 16
+                                  NAME "bound object-id input render dimensions")
+rendercli_assert_image_nonempty("${object_id_input_bound_render}"
+                                NAME "bound object-id input render pixels")
+
+rendercli_run(
+  NAME "rendercli binds imported material-id graph inputs"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${material_id_input_graph}"
+    --render_graph_material_id_in "history_material_id=${external_color_input}"
+    "${static_scene}" "${material_id_input_bound_render}"
+)
+rendercli_assert_image_dimensions("${material_id_input_bound_render}" 32 16
+                                  NAME "bound material-id input render dimensions")
+rendercli_assert_image_nonempty("${material_id_input_bound_render}"
+                                NAME "bound material-id input render pixels")
 
 rendercli_run(
   NAME "rendercli executes depth-aware composite graph"

@@ -332,10 +332,12 @@ the graph a real intermediate artifact: compile a plan, edit or inspect the
 JSON, then replay the plan as DOT/text or render through it. Disable filters are
 applied after the JSON is loaded, so a saved plan can still be tested with
 `--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
-`--disable_feature`. `--render_graph_color_in resource=file` and
-`--render_graph_stencil_in resource=file` bind imported or history resources
-from image files before execution, which lets explicit temporal or replay plans
-consume concrete external color buffers and stencil masks.
+`--disable_feature`. `--render_graph_color_in`, `--render_graph_depth_in`,
+`--render_graph_stencil_in`, `--render_graph_object_id_in`, and
+`--render_graph_material_id_in` bind imported or history resources from image
+files with `resource=file` syntax before execution, which lets explicit
+temporal or replay plans consume concrete external color, depth, stencil,
+object-id, and material-id buffers.
 When a loaded graph is rendered, `rendercli` uses the exported color resource
 dimensions unless `--width` or `--height` explicitly request matching values.
 The exported `executionStages` array is inspection metadata; imported plans
@@ -501,7 +503,10 @@ Imported and history resources can be bound from outside execution for color,
 depth, stencil, and integer-id buffers. `GraphRenderEngine` copies those
 external inputs into storage before the first pass runs, which gives replayed
 or temporal plans a typed input path without teaching pass payloads to parse
-raw JSON or tool-specific command-line state.
+raw JSON or tool-specific command-line state. In `rendercli`, depth and stencil
+inputs are read from image luminance, while object-id and material-id inputs use
+an 8-bit grayscale id when the pixel is gray and otherwise use the packed RGB
+value as a 24-bit id.
 
 ## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits beauty, overlay, and tonemap passes
 [`RenderGraphCompiler`](../../../include/engine/graph/RenderGraphCompiler.h)

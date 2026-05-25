@@ -381,34 +381,28 @@ namespace {
     int lastStep = 0;
   };
 
-  struct RenderGraphColorInput {
+  struct RenderGraphImageInput {
     std::string resourceId;
     QString input;
-  };
 
-  struct RenderGraphStencilInput {
-    std::string resourceId;
-    QString input;
-  };
+    bool parse(const QString& value, const char* optionName, QString* errorMessage) {
+      const int separator = value.indexOf('=');
+      if (separator <= 0 || separator == value.size() - 1) {
+        *errorMessage = QString("%1 must use resource=file syntax").arg(optionName);
+        return false;
+      }
 
-  bool parseRenderGraphResourcePath(const QString& value, const char* optionName,
-                                    std::string* resourceId, QString* path, QString* errorMessage) {
-    const int separator = value.indexOf('=');
-    if (separator <= 0 || separator == value.size() - 1) {
-      *errorMessage = QString("%1 must use resource=file syntax").arg(optionName);
-      return false;
+      const QString id = value.left(separator).trimmed();
+      if (id.isEmpty()) {
+        *errorMessage = QString("%1 resource id must not be empty").arg(optionName);
+        return false;
+      }
+
+      resourceId = id.toStdString();
+      input = value.mid(separator + 1);
+      return true;
     }
-
-    const QString id = value.left(separator).trimmed();
-    if (id.isEmpty()) {
-      *errorMessage = QString("%1 resource id must not be empty").arg(optionName);
-      return false;
-    }
-
-    *resourceId = id.toStdString();
-    *path = value.mid(separator + 1);
-    return true;
-  }
+  };
 
   bool parseRenderGraphAOVOutput(const QString& value, RenderGraphAOVOutput* output,
                                  QString* errorMessage) {
@@ -432,18 +426,6 @@ namespace {
     output->viewMode = aov->viewMode();
     output->output = value.mid(separator + 1);
     return true;
-  }
-
-  bool parseRenderGraphColorInput(const QString& value, RenderGraphColorInput* input,
-                                  QString* errorMessage) {
-    return parseRenderGraphResourcePath(value, "--render_graph_color_in", &input->resourceId,
-                                        &input->input, errorMessage);
-  }
-
-  bool parseRenderGraphStencilInput(const QString& value, RenderGraphStencilInput* input,
-                                    QString* errorMessage) {
-    return parseRenderGraphResourcePath(value, "--render_graph_stencil_in", &input->resourceId,
-                                        &input->input, errorMessage);
   }
 
   bool parseShadingProfileParameter(
@@ -749,8 +731,11 @@ private:
   QString m_renderGraphIn;
   QString m_renderGraphTraceOut;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
-  std::vector<RenderGraphColorInput> m_renderGraphColorInputs;
-  std::vector<RenderGraphStencilInput> m_renderGraphStencilInputs;
+  std::vector<RenderGraphImageInput> m_renderGraphColorInputs;
+  std::vector<RenderGraphImageInput> m_renderGraphDepthInputs;
+  std::vector<RenderGraphImageInput> m_renderGraphStencilInputs;
+  std::vector<RenderGraphImageInput> m_renderGraphObjectIdInputs;
+  std::vector<RenderGraphImageInput> m_renderGraphMaterialIdInputs;
   bool m_renderGraphExecutorSet;
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
@@ -834,9 +819,13 @@ private:
   void writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
                                   const engine::graph::RenderIntent& intent) const;
   std::shared_ptr<Buffer<Colord>>
-  loadRenderGraphColorInput(const RenderGraphColorInput& input) const;
+  loadRenderGraphColorInput(const RenderGraphImageInput& input) const;
+  std::shared_ptr<Buffer<double>>
+  loadRenderGraphDepthInput(const RenderGraphImageInput& input) const;
   std::shared_ptr<Buffer<std::uint8_t>>
-  loadRenderGraphStencilInput(const RenderGraphStencilInput& input) const;
+  loadRenderGraphStencilInput(const RenderGraphImageInput& input) const;
+  std::shared_ptr<Buffer<std::uint32_t>>
+  loadRenderGraphIntegerIdInput(const RenderGraphImageInput& input) const;
   void bindRenderGraphExternalInputs(engine::graph::GraphRenderEngine& graphEngine) const;
   QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
@@ -1363,7 +1352,7 @@ void Renderer::writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecut
 }
 
 std::shared_ptr<Buffer<Colord>>
-Renderer::loadRenderGraphColorInput(const RenderGraphColorInput& input) const {
+Renderer::loadRenderGraphColorInput(const RenderGraphImageInput& input) const {
   QImage image(input.input);
   if (image.isNull()) {
     throw std::runtime_error(
@@ -1385,8 +1374,28 @@ Renderer::loadRenderGraphColorInput(const RenderGraphColorInput& input) const {
   return buffer;
 }
 
+std::shared_ptr<Buffer<double>>
+Renderer::loadRenderGraphDepthInput(const RenderGraphImageInput& input) const {
+  QImage image(input.input);
+  if (image.isNull()) {
+    throw std::runtime_error(
+      QString("Unable to read render graph depth input '%1' for resource '%2'")
+        .arg(input.input, QString::fromStdString(input.resourceId))
+        .toStdString());
+  }
+
+  const QImage rgb = image.convertToFormat(QImage::Format_RGB32);
+  auto buffer = std::make_shared<Buffer<double>>(rgb.width(), rgb.height());
+  for (int y = 0; y != rgb.height(); ++y) {
+    for (int x = 0; x != rgb.width(); ++x) {
+      (*buffer)[y][x] = static_cast<double>(qGray(rgb.pixel(x, y))) / 255.0;
+    }
+  }
+  return buffer;
+}
+
 std::shared_ptr<Buffer<std::uint8_t>>
-Renderer::loadRenderGraphStencilInput(const RenderGraphStencilInput& input) const {
+Renderer::loadRenderGraphStencilInput(const RenderGraphImageInput& input) const {
   QImage image(input.input);
   if (image.isNull()) {
     throw std::runtime_error(
@@ -1405,12 +1414,45 @@ Renderer::loadRenderGraphStencilInput(const RenderGraphStencilInput& input) cons
   return buffer;
 }
 
+std::shared_ptr<Buffer<std::uint32_t>>
+Renderer::loadRenderGraphIntegerIdInput(const RenderGraphImageInput& input) const {
+  QImage image(input.input);
+  if (image.isNull()) {
+    throw std::runtime_error(
+      QString("Unable to read render graph integer-id input '%1' for resource '%2'")
+        .arg(input.input, QString::fromStdString(input.resourceId))
+        .toStdString());
+  }
+
+  const QImage rgb = image.convertToFormat(QImage::Format_RGB32);
+  auto buffer = std::make_shared<Buffer<std::uint32_t>>(rgb.width(), rgb.height());
+  for (int y = 0; y != rgb.height(); ++y) {
+    for (int x = 0; x != rgb.width(); ++x) {
+      const QRgb pixel = rgb.pixel(x, y);
+      const auto red = static_cast<std::uint32_t>(qRed(pixel));
+      const auto green = static_cast<std::uint32_t>(qGreen(pixel));
+      const auto blue = static_cast<std::uint32_t>(qBlue(pixel));
+      (*buffer)[y][x] = red == green && green == blue ? red : (red << 16u) | (green << 8u) | blue;
+    }
+  }
+  return buffer;
+}
+
 void Renderer::bindRenderGraphExternalInputs(engine::graph::GraphRenderEngine& graphEngine) const {
   for (const auto& input : m_renderGraphColorInputs) {
     graphEngine.setExternalColorResource(input.resourceId, loadRenderGraphColorInput(input));
   }
+  for (const auto& input : m_renderGraphDepthInputs) {
+    graphEngine.setExternalDepthResource(input.resourceId, loadRenderGraphDepthInput(input));
+  }
   for (const auto& input : m_renderGraphStencilInputs) {
     graphEngine.setExternalStencilResource(input.resourceId, loadRenderGraphStencilInput(input));
+  }
+  for (const auto& input : m_renderGraphObjectIdInputs) {
+    graphEngine.setExternalObjectIdResource(input.resourceId, loadRenderGraphIntegerIdInput(input));
+  }
+  for (const auto& input : m_renderGraphMaterialIdInputs) {
+    graphEngine.setExternalObjectIdResource(input.resourceId, loadRenderGraphIntegerIdInput(input));
   }
 }
 
@@ -1844,8 +1886,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_color_in",
       "Bind an imported/history graph color resource from an image file as resource=file",
       "resource=file"},
+     {"render_graph_depth_in",
+      "Bind an imported/history graph depth resource from a grayscale image file as resource=file",
+      "resource=file"},
      {"render_graph_stencil_in",
       "Bind an imported/history graph stencil resource from an image file as resource=file",
+      "resource=file"},
+     {"render_graph_object_id_in",
+      "Bind an imported/history graph object-id resource from an image file as resource=file",
+      "resource=file"},
+     {"render_graph_material_id_in",
+      "Bind an imported/history graph material-id resource from an image file as resource=file",
       "resource=file"},
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
@@ -2150,22 +2201,55 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_color_in")) {
     m_renderGraph = true;
     for (const QString& value : parser.values("render_graph_color_in")) {
-      RenderGraphColorInput input;
-      if (!parseRenderGraphColorInput(value, &input, errorMessage)) {
+      RenderGraphImageInput input;
+      if (!input.parse(value, "--render_graph_color_in", errorMessage)) {
         return CommandLineError;
       }
       m_renderGraphColorInputs.push_back(input);
     }
   }
 
+  if (parser.isSet("render_graph_depth_in")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_depth_in")) {
+      RenderGraphImageInput input;
+      if (!input.parse(value, "--render_graph_depth_in", errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphDepthInputs.push_back(input);
+    }
+  }
+
   if (parser.isSet("render_graph_stencil_in")) {
     m_renderGraph = true;
     for (const QString& value : parser.values("render_graph_stencil_in")) {
-      RenderGraphStencilInput input;
-      if (!parseRenderGraphStencilInput(value, &input, errorMessage)) {
+      RenderGraphImageInput input;
+      if (!input.parse(value, "--render_graph_stencil_in", errorMessage)) {
         return CommandLineError;
       }
       m_renderGraphStencilInputs.push_back(input);
+    }
+  }
+
+  if (parser.isSet("render_graph_object_id_in")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_object_id_in")) {
+      RenderGraphImageInput input;
+      if (!input.parse(value, "--render_graph_object_id_in", errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphObjectIdInputs.push_back(input);
+    }
+  }
+
+  if (parser.isSet("render_graph_material_id_in")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_material_id_in")) {
+      RenderGraphImageInput input;
+      if (!input.parse(value, "--render_graph_material_id_in", errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphMaterialIdInputs.push_back(input);
     }
   }
 
@@ -2647,8 +2731,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       (parser.isSet("render_graph") || m_renderGraphOnly || parser.isSet("render_graph_format") ||
        !m_renderGraphOut.isEmpty() || !m_renderGraphIn.isEmpty() ||
        !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
-       parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
-       parser.isSet("render_graph_camera") || parser.isSet("render_graph_shading_profile") ||
+       !m_renderGraphColorInputs.empty() || !m_renderGraphDepthInputs.empty() ||
+       !m_renderGraphStencilInputs.empty() || !m_renderGraphObjectIdInputs.empty() ||
+       !m_renderGraphMaterialIdInputs.empty() || parser.isSet("render_graph_executor") ||
+       parser.isSet("render_graph_view") || parser.isSet("render_graph_camera") ||
+       parser.isSet("render_graph_shading_profile") ||
        parser.isSet("render_graph_shading_parameter") || m_renderGraphWireframeOverlay ||
        m_renderGraphCurveOverlay || parser.isSet("disable_pass") ||
        parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||

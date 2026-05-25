@@ -101,6 +101,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **rendercli graph depth/id external inputs.** Explicit graph replay can now
+  bind imported or history depth, object-id, and material-id resources from
+  image files with `--render_graph_depth_in`, `--render_graph_object_id_in`,
+  and `--render_graph_material_id_in`, completing CLI coverage for the CPU
+  external-input types already supported by `GraphRenderEngine`. — GPT-5
 - **Render graph scene analysis.** `world::Scene` now feeds
   `RenderSceneAnalysis` into shared graph compilation, giving the compiler
   scene-derived facts such as visible geometry and lights before it synthesizes
