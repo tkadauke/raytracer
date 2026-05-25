@@ -200,6 +200,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph text exports.** Per-pass text export details now include the
+  computed execution stage and serial order. — GPT-5
 - **Modeler render graph dependency properties.** Selecting a pass node now
   shows its incoming and outgoing dependency edges in the property editor.
   — GPT-5

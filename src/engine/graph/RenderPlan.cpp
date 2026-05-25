@@ -728,6 +728,11 @@ namespace engine::graph {
     for (const auto& pass : m_passes) {
       out << "- " << pass.id << " [" << toString(pass.kind) << "/" << toString(pass.executor)
           << "] " << (pass.enabled ? "enabled" : "disabled") << "\n";
+      const auto stage = executionStageNumber(pass.id);
+      const auto order = executionOrderNumber(pass.id);
+      if (stage && order) {
+        out << "  schedule: stage=" << *stage << ", order=" << *order << "\n";
+      }
       if (!pass.features.empty()) {
         out << "  features:";
         for (const auto& feature : pass.features)

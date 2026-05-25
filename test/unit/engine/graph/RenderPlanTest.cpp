@@ -220,6 +220,10 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos,
               text.find("Dependencies:\n- beauty -> tonemap via beauty_color\n"));
     EXPECT_NE(std::string::npos, text.find("Passes:\n- tonemap"));
+    EXPECT_NE(std::string::npos,
+              text.find("- tonemap [tonemap/postprocess] enabled\n  schedule: stage=2, order=2"));
+    EXPECT_NE(std::string::npos,
+              text.find("- beauty [beauty/rasterizer] enabled\n  schedule: stage=1, order=1"));
   }
 
   TEST(RenderPlan, GroupsDependencyReadyPassesIntoExecutionStages) {

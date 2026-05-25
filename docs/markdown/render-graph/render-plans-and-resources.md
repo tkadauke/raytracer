@@ -272,9 +272,9 @@ stage number directly instead of duplicating the stage walk.
 - `toDot()` produces a Graphviz DOT graph.
 - `toJson()` produces a structured `QJsonObject`.
 
-Text dumps include pass feature tags as well as reads and writes, so the same
-terminal output that shows a pass id also shows the tags affected by
-feature-level disable controls.
+Text dumps include each pass's stage, serial order, feature tags, reads, and
+writes, so the same terminal output that shows a pass id also shows its
+dependency position and the tags affected by feature-level disable controls.
 
 `rendercli` renders through the graph by default and exposes the same formats
 through `--render_graph_only` and `--render_graph_format text|dot|json`. With
