@@ -265,6 +265,15 @@ endif()
 if(NOT text_graph MATCHES "tonemap")
   message(FATAL_ERROR "text graph export did not contain tonemap: ${text_graph}")
 endif()
+if(NOT text_graph MATCHES "Execution stages")
+  message(FATAL_ERROR "text graph export did not contain execution stages: ${text_graph}")
+endif()
+if(NOT text_graph MATCHES "schedule: stage=1, order=1")
+  message(FATAL_ERROR "text graph export did not contain the first pass schedule: ${text_graph}")
+endif()
+if(NOT text_graph MATCHES "schedule: stage=2, order=2")
+  message(FATAL_ERROR "text graph export did not contain the second pass schedule: ${text_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli exports DOT render graph"
