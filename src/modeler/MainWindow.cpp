@@ -115,22 +115,14 @@ namespace {
   }
 
   QString sceneSelectorText(const engine::graph::SceneSelector& selector) {
-    const QString kind = engine::graph::toString(selector.kind);
-    if (selector.value.empty())
-      return kind;
-    return kind + QStringLiteral(": ") + qstr(selector.value);
+    return qstr(selector.displayText());
   }
 
   QString cameraText(const std::optional<engine::graph::RenderCameraRef>& camera) {
     if (!camera)
       return QStringLiteral("-");
 
-    QStringList values;
-    if (camera->sceneCameraId)
-      values << qstr(*camera->sceneCameraId);
-    if (camera->snapshot)
-      values << QStringLiteral("snapshot");
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
+    return qstr(camera->displayText());
   }
 
   QString dependencyText(const std::vector<engine::graph::RenderPassDependency>& dependencies) {

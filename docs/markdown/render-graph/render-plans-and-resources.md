@@ -80,7 +80,9 @@ future scene-partitioning planners; users still describe what they want, and
 the compiler remains responsible for synthesizing pass nodes.
 When the effective frame intent names a default camera, synthesized
 scene-rendering passes carry that camera reference in their `SceneView` and in
-exported plan JSON.
+exported plan JSON. Text plan exports also show the selector and camera for
+each pass, so command-line inspections expose the same scene-view intent that
+the Modeler graph inspector shows in its pass details.
 
 Scene JSON can carry a top-level `renderIntent` object. `RenderIntent::toJson()`
 and `RenderIntent::fromJson(...)` own that serialization. `world::Scene` keeps

@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph text scene-view details.** Text render-plan exports now show
+  each pass's scene selector and camera reference, using the same graph-type
+  display formatting as the Modeler inspector. — GPT-5
 - **Modeler render graph scene views.** The Render Graph dock now shows each
   pass's scene selector and camera reference in the Passes table and selected
   pass property details. — GPT-5

@@ -135,22 +135,14 @@ namespace {
   }
 
   QString sceneSelectorText(const SceneSelector& selector) {
-    const QString kind = toString(selector.kind);
-    if (selector.value.empty())
-      return kind;
-    return kind + QStringLiteral(": ") + qstr(selector.value);
+    return qstr(selector.displayText());
   }
 
   QString cameraText(const std::optional<RenderCameraRef>& camera) {
     if (!camera)
       return QStringLiteral("-");
 
-    QStringList values;
-    if (camera->sceneCameraId)
-      values << qstr(*camera->sceneCameraId);
-    if (camera->snapshot)
-      values << QStringLiteral("snapshot");
-    return dashIfEmpty(values.join(QStringLiteral(", ")));
+    return qstr(camera->displayText());
   }
 
   QString dependencySummary(const std::vector<RenderPassDependency>& dependencies) {

@@ -733,6 +733,9 @@ namespace engine::graph {
       if (stage && order) {
         out << "  schedule: stage=" << *stage << ", order=" << *order << "\n";
       }
+      out << "  scene: selector=" << pass.sceneView.selector.displayText()
+          << ", camera=" << (pass.sceneView.camera ? pass.sceneView.camera->displayText() : "-")
+          << "\n";
       if (!pass.features.empty()) {
         out << "  features:";
         for (const auto& feature : pass.features)

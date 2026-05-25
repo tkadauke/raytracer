@@ -334,6 +334,14 @@ namespace engine::graph {
     return kind == Kind::All;
   }
 
+  std::string SceneSelector::displayText() const {
+    std::string result = toString(kind);
+    if (!value.empty()) {
+      result += ": " + value;
+    }
+    return result;
+  }
+
   QJsonObject SceneSelector::toJson() const {
     QJsonObject result;
     result["kind"] = toString(kind);
@@ -379,6 +387,20 @@ namespace engine::graph {
     }
 
     return profile;
+  }
+
+  std::string RenderCameraRef::displayText() const {
+    std::string result;
+    if (sceneCameraId) {
+      result += *sceneCameraId;
+    }
+    if (snapshot) {
+      if (!result.empty()) {
+        result += ", ";
+      }
+      result += "snapshot";
+    }
+    return result.empty() ? "-" : result;
   }
 
   QJsonObject RenderCameraRef::toJson() const {

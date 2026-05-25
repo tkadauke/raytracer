@@ -603,12 +603,16 @@ namespace RenderPlanTest {
     auto main = pass("main");
     main.features.push_back("beauty");
     main.writes.push_back({"main_color"});
+    main.sceneView.selector = SceneSelector::objectName("hero");
+    main.sceneView.camera = RenderCameraRef{"shot-camera", std::nullopt};
     plan.addPass(main);
 
     const std::string text = plan.toText();
     EXPECT_NE(std::string::npos, text.find("main_color"));
     EXPECT_NE(std::string::npos, text.find("main"));
     EXPECT_NE(std::string::npos, text.find("features: beauty"));
+    EXPECT_NE(std::string::npos,
+              text.find("scene: selector=object_name: hero, camera=shot-camera"));
     EXPECT_NE(std::string::npos, text.find("Execution order"));
     EXPECT_NE(std::string::npos, text.find("Dependencies"));
 

@@ -146,6 +146,7 @@ namespace engine::graph {
     static SceneSelector materialRole(std::string role);
 
     bool selectsWholeFrame() const;
+    std::string displayText() const;
     QJsonObject toJson() const;
     static SceneSelector fromJson(const QJsonObject& object, std::string path = "sceneSelector");
   };
@@ -177,6 +178,7 @@ namespace engine::graph {
     std::optional<std::string> sceneCameraId;
     std::optional<CameraSnapshot> snapshot;
 
+    std::string displayText() const;
     QJsonObject toJson() const;
     static RenderCameraRef fromJson(const QJsonValue& value, std::string path = "camera");
   };

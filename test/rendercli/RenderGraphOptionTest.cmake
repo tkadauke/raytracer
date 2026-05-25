@@ -29,7 +29,8 @@ set(normal_view_render "${TEST_OUTPUT_DIR}/graph-normal-view.png")
 set(object_id_view_render "${TEST_OUTPUT_DIR}/graph-object-id-view.png")
 set(material_id_view_render "${TEST_OUTPUT_DIR}/graph-material-id-view.png")
 set(world_position_view_render "${TEST_OUTPUT_DIR}/graph-world-position-view.png")
-set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
+set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.json")
+set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
@@ -360,6 +361,19 @@ if(NOT scene_intent_graph MATCHES "msaaSamples")
 endif()
 if(NOT scene_intent_graph MATCHES "per_fragment")
   message(FATAL_ERROR "whole-frame scene override did not write raster MSAA shading state: ${scene_intent_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli text graph shows scene view intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --width 32 --height 16
+    "${scene_intent_scene}" "${scene_intent_text_plan}"
+)
+rendercli_assert_nonempty("${scene_intent_text_plan}" NAME "scene render intent text output")
+file(READ "${scene_intent_text_plan}" scene_intent_text_graph)
+if(NOT scene_intent_text_graph MATCHES "scene: selector=all, camera=inspection-camera")
+  message(FATAL_ERROR "text graph did not include scene view intent: ${scene_intent_text_graph}")
 endif()
 
 rendercli_run(

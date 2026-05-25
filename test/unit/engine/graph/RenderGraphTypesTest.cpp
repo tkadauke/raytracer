@@ -12,6 +12,23 @@
 namespace RenderGraphTypesTest {
   using namespace engine::graph;
 
+  TEST(SceneSelector, FormatsDisplayText) {
+    EXPECT_EQ("all", SceneSelector::all().displayText());
+    EXPECT_EQ("object_name: Hero", SceneSelector::objectName("Hero").displayText());
+  }
+
+  TEST(RenderCameraRef, FormatsDisplayText) {
+    RenderCameraRef empty;
+    EXPECT_EQ("-", empty.displayText());
+
+    RenderCameraRef sceneCamera;
+    sceneCamera.sceneCameraId = "shot-camera";
+    EXPECT_EQ("shot-camera", sceneCamera.displayText());
+
+    sceneCamera.snapshot = CameraSnapshot{QJsonObject{}};
+    EXPECT_EQ("shot-camera, snapshot", sceneCamera.displayText());
+  }
+
   TEST(RenderIntent, SerializesToSceneJsonShape) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
