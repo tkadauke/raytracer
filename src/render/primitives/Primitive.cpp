@@ -52,6 +52,9 @@ void Primitive::forEachLeafInBounds(const BoundsFilter&,
   forEachLeaf(inheritedMaterial, visitor);
 }
 
+void Primitive::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor&) const {
+}
+
 Vector3d Primitive::farthestPoint(const Vector3d&) const {
   return Vector3d::undefined;
 }

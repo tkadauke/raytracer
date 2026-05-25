@@ -38,6 +38,7 @@ namespace RenderGraphTypesTest {
     intent.defaultCamera = RenderCameraRef{"camera-a", std::nullopt};
     intent.enableAutomaticFeatures = false;
     intent.enableWireframeOverlay = true;
+    intent.enableCurveOverlay = true;
     intent.enablePreviewShadows = true;
     intent.postProcessAA = RenderPostProcessAA::SMAA;
     intent.exportedAOVs = {RenderViewMode::Depth, RenderViewMode::Normal};
@@ -51,6 +52,7 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("depth", json["defaultViewMode"].toString().toStdString());
     EXPECT_FALSE(json["enableAutomaticFeatures"].toBool());
     EXPECT_TRUE(json["enableWireframeOverlay"].toBool());
+    EXPECT_TRUE(json["enableCurveOverlay"].toBool());
     EXPECT_TRUE(json["enablePreviewShadows"].toBool());
     EXPECT_EQ("smaa", json["postProcessAA"].toString().toStdString());
     const auto exportedAOVs = json["exportedAOVs"].toArray();
@@ -94,6 +96,7 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("toon", intent.defaultShadingProfile.name);
     EXPECT_TRUE(intent.enableAutomaticFeatures);
     EXPECT_FALSE(intent.enableWireframeOverlay);
+    EXPECT_FALSE(intent.enableCurveOverlay);
     EXPECT_EQ(RenderPostProcessAA::None, intent.postProcessAA);
     ASSERT_EQ(2u, intent.exportedAOVs.size());
     EXPECT_EQ(RenderViewMode::Depth, intent.exportedAOVs[0]);

@@ -33,6 +33,7 @@ set(scene_intent_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.json")
 set(scene_intent_text_plan "${TEST_OUTPUT_DIR}/graph-scene-intent.txt")
 set(active_camera_plan "${TEST_OUTPUT_DIR}/graph-active-camera.json")
 set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
+set(curve_overlay_plan "${TEST_OUTPUT_DIR}/graph-curve-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
 set(replayed_matching_render "${TEST_OUTPUT_DIR}/graph-replayed-matching-render.png")
@@ -410,6 +411,25 @@ if(NOT overlay_graph MATCHES "overlay_color")
 endif()
 if(NOT overlay_graph MATCHES "tonemap")
   message(FATAL_ERROR "graph overlay intent did not retain tonemap: ${overlay_graph}")
+endif()
+
+rendercli_run(
+  NAME "rendercli graph curve overlay intent adds overlay pass"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text
+    --render_graph_curve_overlay --width 32 --height 16
+    "${static_scene}" "${curve_overlay_plan}"
+)
+rendercli_assert_nonempty("${curve_overlay_plan}" NAME "graph curve overlay output")
+file(READ "${curve_overlay_plan}" curve_overlay_graph)
+if(NOT curve_overlay_graph MATCHES "curve_overlay")
+  message(FATAL_ERROR "graph curve overlay intent did not add curve_overlay: ${curve_overlay_graph}")
+endif()
+if(NOT curve_overlay_graph MATCHES "curve_overlay_color")
+  message(FATAL_ERROR "graph curve overlay intent did not add curve_overlay_color: ${curve_overlay_graph}")
+endif()
+if(NOT curve_overlay_graph MATCHES "tonemap")
+  message(FATAL_ERROR "graph curve overlay intent did not retain tonemap: ${curve_overlay_graph}")
 endif()
 
 rendercli_run(

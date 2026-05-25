@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Curve overlay rendering mode.** `render::Curve` can now emit semantic
+  center-line overlay segments independently of physical tessellation, and
+  `rendercli --render_graph_curve_overlay` draws them as thin graph-visible
+  debug strokes over raytraced, raster, or wireframe beauty output. — GPT-5
 - **Curve segment attribute color mapping.** `core::AttributeColorMap` maps
   scalar and categorical curve segment attributes to deterministic colors, and
   `render::Curve` writes those colors as mesh face overrides while missing

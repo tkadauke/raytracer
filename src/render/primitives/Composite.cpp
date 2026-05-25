@@ -76,6 +76,12 @@ void Composite::forEachLeafInBounds(const BoundsFilter& boundsFilter,
   }
 }
 
+void Composite::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {
+  for (const auto& primitive : m_primitives) {
+    primitive->forEachCurveOverlaySegment(visitor);
+  }
+}
+
 BoundingBoxd Composite::calculateBoundingBox() const {
   BoundingBoxd b;
   for (const auto& i : m_primitives)

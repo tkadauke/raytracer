@@ -464,6 +464,7 @@ private:
   bool m_renderGraphViewModeSet;
   engine::graph::RenderViewMode m_renderGraphViewMode;
   bool m_renderGraphWireframeOverlay;
+  bool m_renderGraphCurveOverlay;
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
   int m_wireframeLod;
   QString m_rasterCullMode;
@@ -562,6 +563,7 @@ Renderer::Renderer()
       m_renderGraphViewModeSet(false),
       m_renderGraphViewMode(engine::graph::RenderViewMode::Beauty),
       m_renderGraphWireframeOverlay(false),
+      m_renderGraphCurveOverlay(false),
       m_renderGraphOverrides(),
       m_wireframeLod(0),
       m_rasterCullMode("both"),
@@ -633,6 +635,9 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
   }
   if (m_renderGraphWireframeOverlay) {
     intent.enableWireframeOverlay = true;
+  }
+  if (m_renderGraphCurveOverlay) {
+    intent.enableCurveOverlay = true;
   }
   if (m_rasterShadowMaps) {
     intent.enablePreviewShadows = true;
@@ -1240,6 +1245,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "material_id, world_position)",
       "mode"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
+     {"render_graph_curve_overlay", "Add a curve center-line overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
      {"disable_pass_kind",
       "Disable render graph pass kind (beauty, shadow, overlay, composite, tonemap, postprocess, "
@@ -1459,6 +1465,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   if (parser.isSet("render_graph_wireframe_overlay")) {
     m_renderGraph = true;
     m_renderGraphWireframeOverlay = true;
+  }
+
+  if (parser.isSet("render_graph_curve_overlay")) {
+    m_renderGraph = true;
+    m_renderGraphCurveOverlay = true;
   }
 
   if (parser.isSet("disable_pass")) {
@@ -1821,9 +1832,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        !m_renderGraphOut.isEmpty() || !m_renderGraphIn.isEmpty() ||
        !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
        parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
-       m_renderGraphWireframeOverlay || parser.isSet("disable_pass") ||
-       parser.isSet("disable_pass_kind") || parser.isSet("disable_executor") ||
-       parser.isSet("disable_feature"))) {
+       m_renderGraphWireframeOverlay || m_renderGraphCurveOverlay ||
+       parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
+       parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
     return CommandLineError;
   }
