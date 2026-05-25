@@ -182,6 +182,9 @@ Currently a one-line entry at the bottom of §4.10. A whole field that deserves 
 
 - **Alembic (`.abc`).** Industry-standard offline animation cache.
 - **USDZ.** USD-for-AR; zip-bundled USD for delivery.
+- **LDraw.** LEGO part-library and model ingestion. Command-record parsing exists;
+  referenced-file resolution, part-library search paths, and scene or mesh
+  conversion remain open.
 - **glTF extensions.** KHR_materials_* (clearcoat, sheen, transmission, volume, ior, anisotropy, dispersion); KHR_lights_punctual; KHR_animation_pointer.
 - **Draco mesh compression.** Codec for compressed mesh delivery.
 - **KTX2 + Basis Universal.** Transmissible compressed-texture container.
