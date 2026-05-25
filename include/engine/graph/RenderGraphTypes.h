@@ -304,6 +304,17 @@ namespace engine::graph {
     RenderIntent withWholeFrameOverridesApplied() const;
 
     /**
+      * @returns the selector-specific overrides that remain after whole-frame
+      * overrides are applied to the default intent fields.
+      */
+    std::vector<RenderViewOverride> selectorSpecificOverrides() const;
+
+    /**
+      * @returns true when any override targets less than the whole frame.
+      */
+    bool hasSelectorSpecificOverrides() const;
+
+    /**
       * Builds the default scene view carried by synthesized scene-rendering
       * passes.
       */

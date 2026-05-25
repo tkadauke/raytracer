@@ -837,12 +837,10 @@ namespace engine::graph {
 
   RenderIntent RenderIntent::withWholeFrameOverridesApplied() const {
     RenderIntent result = *this;
-    result.viewOverrides.clear();
-    result.viewOverrides.reserve(viewOverrides.size());
+    result.viewOverrides = selectorSpecificOverrides();
 
     for (const auto& viewOverride : viewOverrides) {
       if (!viewOverride.appliesToWholeFrame()) {
-        result.viewOverrides.push_back(viewOverride);
         continue;
       }
 
@@ -861,6 +859,23 @@ namespace engine::graph {
     }
 
     return result;
+  }
+
+  std::vector<RenderViewOverride> RenderIntent::selectorSpecificOverrides() const {
+    std::vector<RenderViewOverride> result;
+    result.reserve(viewOverrides.size());
+    for (const auto& viewOverride : viewOverrides) {
+      if (!viewOverride.appliesToWholeFrame()) {
+        result.push_back(viewOverride);
+      }
+    }
+    return result;
+  }
+
+  bool RenderIntent::hasSelectorSpecificOverrides() const {
+    return std::any_of(
+      viewOverrides.begin(), viewOverrides.end(),
+      [](const RenderViewOverride& viewOverride) { return !viewOverride.appliesToWholeFrame(); });
   }
 
   SceneView RenderIntent::defaultSceneView() const {
