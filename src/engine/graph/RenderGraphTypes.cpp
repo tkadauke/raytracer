@@ -1,6 +1,7 @@
 #include "engine/graph/RenderGraphTypes.h"
 
 #include "engine/graph/PostProcessPassState.h"
+#include "engine/graph/RenderAOV.h"
 #include "engine/graph/RenderExecutor.h"
 #include "engine/graph/RenderPassState.h"
 
@@ -754,6 +755,10 @@ namespace engine::graph {
   }
 
   void RenderIntent::requestExportedAOV(RenderViewMode viewMode) {
+    if (!renderAOVDefinition(viewMode)) {
+      throw std::runtime_error("view mode '" + std::string(toString(viewMode)) +
+                               "' is not an exportable graph AOV");
+    }
     if (!exportsAOV(viewMode)) {
       exportedAOVs.push_back(viewMode);
     }
@@ -794,7 +799,13 @@ namespace engine::graph {
     intent.postProcessAA = postProcessAAFromJson(
       stringField(object, "postProcessAA", "renderIntent", toString(intent.postProcessAA)),
       "renderIntent.postProcessAA");
-    intent.exportedAOVs = viewModeArrayFromJson(object, "exportedAOVs", "renderIntent");
+    for (RenderViewMode viewMode : viewModeArrayFromJson(object, "exportedAOVs", "renderIntent")) {
+      try {
+        intent.requestExportedAOV(viewMode);
+      } catch (const std::runtime_error& error) {
+        jsonError("renderIntent.exportedAOVs", error.what());
+      }
+    }
 
     const auto overridesValue = object.value("viewOverrides");
     if (!overridesValue.isUndefined()) {
