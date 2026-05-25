@@ -1,5 +1,6 @@
 #include "world/objects/Surface.h"
 #include "world/objects/Material.h"
+#include "world/objects/Group.h"
 #include "world/objects/Light.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Composite.h"
@@ -42,6 +43,12 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) co
       if (Surface* surface = qobject_cast<Surface*>(child)) {
         if (surface->visible())
           composite->add(surface->toRaytracer(scene));
+      } else if (Group* group = qobject_cast<Group*>(child)) {
+        if (group->visible()) {
+          auto primitive = group->toRaytracer(scene);
+          if (primitive)
+            composite->add(primitive);
+        }
       } else if (Light* light = qobject_cast<Light*>(child)) {
         if (light->visible())
           scene->addLight(light->toRaytracer());
@@ -59,5 +66,6 @@ std::shared_ptr<render::Primitive> Surface::toRaytracer(render::Scene* scene) co
 }
 
 bool Surface::canHaveChild(Element* child) const {
-  return dynamic_cast<Surface*>(child) != nullptr || dynamic_cast<Light*>(child) != nullptr;
+  return dynamic_cast<Surface*>(child) != nullptr || dynamic_cast<Light*>(child) != nullptr ||
+         dynamic_cast<Group*>(child) != nullptr;
 }

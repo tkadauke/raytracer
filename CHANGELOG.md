@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **World scene groups.** `Group` scene objects can organize surfaces, lights,
+  and nested groups with transform and visibility controls, converting visible
+  geometry to runtime composites without abusing inactive CSG surfaces. — GPT-5
 - **RenderPlan pass dependency queries.** `RenderPlan` now exposes incoming and
   outgoing dependency-edge lookups for a selected pass. — GPT-5
 - **Core LDraw parser.** `core/formats/ldraw` now parses `.dat` and `.ldr`
