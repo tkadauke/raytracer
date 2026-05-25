@@ -803,6 +803,18 @@ namespace engine::graph {
     postProcessAA = aa;
   }
 
+  void RenderIntent::setAutomaticFeaturesEnabled(bool enabled) {
+    enableAutomaticFeatures = enabled;
+  }
+
+  void RenderIntent::setWireframeOverlayEnabled(bool enabled) {
+    enableWireframeOverlay = enabled;
+  }
+
+  void RenderIntent::setPreviewShadowsEnabled(bool enabled) {
+    enablePreviewShadows = enabled;
+  }
+
   RenderIntent RenderIntent::fromJson(const QJsonObject& object) {
     RenderIntent intent;
     intent.defaultExecutor = executorPreferenceFromJson(
