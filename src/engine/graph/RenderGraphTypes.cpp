@@ -778,6 +778,14 @@ namespace engine::graph {
     return std::find(exportedAOVs.begin(), exportedAOVs.end(), viewMode) != exportedAOVs.end();
   }
 
+  void RenderIntent::setDefaultCamera(RenderCameraRef camera) {
+    defaultCamera = std::move(camera);
+  }
+
+  void RenderIntent::setDefaultShadingProfile(ShadingProfileRef profile) {
+    defaultShadingProfile = std::move(profile);
+  }
+
   void RenderIntent::setDefaultShadingProfileParameter(std::string key,
                                                        ShadingProfileParameterValue value) {
     defaultShadingProfile.setParameter(std::move(key), std::move(value));
