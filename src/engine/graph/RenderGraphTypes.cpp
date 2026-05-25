@@ -943,6 +943,18 @@ namespace engine::graph {
     return resource;
   }
 
+  void RenderPassNode::addRead(RenderResourceId resource) {
+    if (!readsResource(resource)) {
+      reads.push_back({std::move(resource)});
+    }
+  }
+
+  void RenderPassNode::addWrite(RenderResourceId resource) {
+    if (!writesResource(resource)) {
+      writes.push_back({std::move(resource)});
+    }
+  }
+
   bool RenderPassNode::readsResource(const RenderResourceId& resource) const {
     return std::any_of(reads.begin(), reads.end(),
                        [&](const ResourceRead& read) { return read.resource == resource; });
