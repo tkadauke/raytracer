@@ -302,6 +302,10 @@ Keep current coverage, then add:
 - JSON root not an object; ✅ covered in `RenderGraphOptionTest.cmake`.
 - valid JSON plan with semantic validation failure reports graph validation; ✅
   covered with duplicate writers in `RenderGraphOptionTest.cmake`.
+- valid JSON plan with imported/history external inputs can still be inspected
+  with `--render_graph_only`; ✅ covered in `RenderGraphOptionTest.cmake`.
+- graph replay with unbound imported/history external inputs fails during
+  rendering; ✅ covered in `RenderGraphOptionTest.cmake`.
 - `--direct_engine` combined with graph controls is rejected; ✅ covered for
   graph-only export in `RenderGraphOptionTest.cmake`.
 - `--render_graph_only` combined with `--repeat` is rejected; ✅ covered in
