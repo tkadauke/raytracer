@@ -276,15 +276,12 @@ namespace engine::graph {
       }
     };
 
-    class DepthAOVPass : public RenderPassPayload {
+    class PrimaryIntersectionAOVPass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
         const auto& pass = context.pass();
         const auto& write = pass.singleWrite();
-        requireDepthResource(context.storage(), write.resource, pass);
-
-        Buffer<double>& depth = context.storage().depth(write.resource);
-        depth.clear(std::numeric_limits<double>::infinity());
+        clearOutput(context, write.resource);
 
         auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
         auto scene = context.graph().scene();
@@ -296,9 +293,11 @@ namespace engine::graph {
         if (!plane) {
           return;
         }
-        plane->setup(camera->matrix(), depth.rect());
+        const auto& descriptor = context.storage().descriptor(write.resource);
+        const Recti targetRect(descriptor.width, descriptor.height);
+        plane->setup(camera->matrix(), targetRect);
 
-        Recti renderRect = depth.rect();
+        Recti renderRect = targetRect;
         if (plane->aspectMode() == render::AspectMode::FitExact) {
           renderRect = plane->innerRect();
         }
@@ -320,11 +319,50 @@ namespace engine::graph {
             if (scene->intersect(ray, hits, state)) {
               const HitPoint hit = hits.minWithPositiveDistance();
               if (!hit.isUndefined()) {
-                depth[y][x] = hit.distance();
+                writeHit(context, write.resource, x, y, hit);
               }
             }
           }
         }
+      }
+
+    private:
+      virtual void clearOutput(RenderExecutionContext& context,
+                               const RenderResourceId& resource) const = 0;
+      virtual void writeHit(RenderExecutionContext& context, const RenderResourceId& resource,
+                            int x, int y, const HitPoint& hit) const = 0;
+    };
+
+    class DepthAOVPass : public PrimaryIntersectionAOVPass {
+    private:
+      void clearOutput(RenderExecutionContext& context,
+                       const RenderResourceId& resource) const override {
+        requireDepthResource(context.storage(), resource, context.pass());
+        context.storage().depth(resource).clear(std::numeric_limits<double>::infinity());
+      }
+
+      void writeHit(RenderExecutionContext& context, const RenderResourceId& resource, int x, int y,
+                    const HitPoint& hit) const override {
+        context.storage().depth(resource)[y][x] = hit.distance();
+      }
+    };
+
+    class NormalAOVPass : public PrimaryIntersectionAOVPass {
+    private:
+      void clearOutput(RenderExecutionContext& context,
+                       const RenderResourceId& resource) const override {
+        requireColorResource(context.storage(), resource, context.pass());
+        context.storage().color(resource).clear(Colord::black());
+      }
+
+      void writeHit(RenderExecutionContext& context, const RenderResourceId& resource, int x, int y,
+                    const HitPoint& hit) const override {
+        const Vector3d normal = hit.normal().normalized();
+        if (normal.isUndefined()) {
+          return;
+        }
+        context.storage().color(resource)[y][x] =
+          Colord(normal.x() * 0.5 + 0.5, normal.y() * 0.5 + 0.5, normal.z() * 0.5 + 0.5);
       }
     };
 
@@ -360,6 +398,20 @@ namespace engine::graph {
             color[y][x] = Colord(normalized, normalized, normalized);
           }
         }
+      }
+    };
+
+    class ColorCopyPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), read.resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        copyColorBuffer(context.storage().color(read.resource),
+                        context.storage().color(write.resource));
       }
     };
 
@@ -518,6 +570,15 @@ namespace engine::graph {
 
     if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "depth")) {
       return std::make_unique<DepthAOVPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "normal") &&
+        hasFeature(pass, "visualization")) {
+      return std::make_unique<ColorCopyPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "normal")) {
+      return std::make_unique<NormalAOVPass>();
     }
 
     if (pass.kind == RenderPassKind::PostProcess &&

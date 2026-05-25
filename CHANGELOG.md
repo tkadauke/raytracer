@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph normal AOV view.** `--render_graph_view normal` now compiles a
+  graph-visible `normal_aov` resource and visualization pass, so normals can be
+  rendered and inspected through the same graph path as depth AOVs. — GPT-5
 - **Graph depth AOV view.** `--render_graph_view depth` now compiles a
   graph-visible `depth_aov` resource and `visualize_depth_aov` pass, letting
   rendercli and graph inspection tools render and inspect primary depth through

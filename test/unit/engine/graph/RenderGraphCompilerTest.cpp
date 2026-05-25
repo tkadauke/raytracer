@@ -114,6 +114,42 @@ namespace RenderGraphCompilerTest {
     EXPECT_TRUE(plan.validate().valid());
   }
 
+  TEST(RenderGraphCompiler, NormalViewModeCompilesNormalAOVPlan) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+    intent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    intent.defaultViewMode = RenderViewMode::Normal;
+
+    const RenderPlan plan = compiler.compile({64, 32, 1}, intent);
+
+    ASSERT_EQ(2u, plan.resources().size());
+    ASSERT_NE(nullptr, plan.findResource("normal_aov"));
+    EXPECT_EQ(RenderResourceType::Normal, plan.findResource("normal_aov")->type);
+    EXPECT_EQ(RenderResourceFormat::RGBDouble, plan.findResource("normal_aov")->format);
+    EXPECT_EQ(RenderResourceLifetime::Transient, plan.findResource("normal_aov")->lifetime);
+    ASSERT_NE(nullptr, plan.findResource("main_color"));
+    EXPECT_EQ(RenderResourceType::Color, plan.findResource("main_color")->type);
+    EXPECT_EQ(RenderResourceLifetime::Exported, plan.findResource("main_color")->lifetime);
+
+    ASSERT_EQ(2u, plan.passes().size());
+    EXPECT_EQ("normal_aov", plan.passes()[0].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
+    EXPECT_EQ(RenderExecutorKind::Raytracer, plan.passes()[0].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[0], "normal"));
+    ASSERT_EQ(1u, plan.passes()[0].writes.size());
+    EXPECT_EQ("normal_aov", plan.passes()[0].writes[0].resource);
+
+    EXPECT_EQ("visualize_normal_aov", plan.passes()[1].id);
+    EXPECT_EQ(RenderPassKind::AOV, plan.passes()[1].kind);
+    EXPECT_EQ(RenderExecutorKind::PostProcess, plan.passes()[1].executor);
+    EXPECT_TRUE(hasFeature(plan.passes()[1], "visualization"));
+    ASSERT_EQ(1u, plan.passes()[1].reads.size());
+    ASSERT_EQ(1u, plan.passes()[1].writes.size());
+    EXPECT_EQ("normal_aov", plan.passes()[1].reads[0].resource);
+    EXPECT_EQ("main_color", plan.passes()[1].writes[0].resource);
+    EXPECT_TRUE(plan.validate().valid());
+  }
+
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {
     RenderGraphCompiler compiler;
     RenderIntent intent;

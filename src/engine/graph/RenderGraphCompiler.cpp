@@ -106,6 +106,22 @@ namespace engine::graph {
       return depth;
     }
 
+    RenderResourceDescriptor normalResource(const std::string& id, const std::string& name,
+                                            const RenderTargetSpec& target,
+                                            RenderResourceLifetime lifetime) {
+      RenderResourceDescriptor normal;
+      normal.id = id;
+      normal.name = name;
+      normal.type = RenderResourceType::Normal;
+      normal.format = RenderResourceFormat::RGBDouble;
+      normal.width = target.width;
+      normal.height = target.height;
+      normal.sampleCount = 1;
+      normal.domain = RenderResourceDomain::CPU;
+      normal.lifetime = lifetime;
+      return normal;
+    }
+
     std::string postProcessAAPassId(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
@@ -185,6 +201,39 @@ namespace engine::graph {
 
       return plan;
     }
+
+    RenderPlan normalAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
+      RenderPlan plan;
+
+      RenderPassNode normal;
+      normal.id = "normal_aov";
+      normal.name = "Normal AOV";
+      normal.kind = RenderPassKind::AOV;
+      normal.executor = executor;
+      normal.features = {"main", "aov", "normal", executorFeature(executor)};
+      normal.sceneView.selector = SceneSelector::all();
+      normal.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      normal.canRunConcurrently = false;
+      plan.addResourceProducer(normal, normalResource("normal_aov", "Normal AOV", target,
+                                                      RenderResourceLifetime::Transient));
+
+      RenderPassNode visualize;
+      visualize.id = "visualize_normal_aov";
+      visualize.name = "Visualize normal AOV";
+      visualize.kind = RenderPassKind::AOV;
+      visualize.executor = RenderExecutorKind::PostProcess;
+      visualize.features = {"main", "aov", "normal", "visualization", "postprocess"};
+      visualize.reads.push_back({"normal_aov"});
+      visualize.writes.push_back({"main_color"});
+      visualize.sceneView.selector = SceneSelector::all();
+      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      visualize.canRunConcurrently = false;
+      RenderResourceDescriptor mainColor =
+        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+      plan.routeResourceThroughPass("normal_aov", mainColor, visualize);
+
+      return plan;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
@@ -194,6 +243,9 @@ namespace engine::graph {
 
     if (intent.defaultViewMode == RenderViewMode::Depth) {
       return depthAOVPlan(target, executor);
+    }
+    if (intent.defaultViewMode == RenderViewMode::Normal) {
+      return normalAOVPlan(target, executor);
     }
 
     RenderPlan plan;
