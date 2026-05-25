@@ -17,6 +17,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Owned runtime mesh primitive.** `render::MeshPrimitive` now owns or shares
   imported `Mesh` geometry while building flat or smooth triangle leaves for
   intersection, tessellation, and accelerator traversal. — GPT-5
+- **Core polyline geometry model.** `core::Polyline` now stores ordered 3D
+  points, per-curve typed metadata, per-segment typed metadata, segment
+  iteration, and bounding-box computation for path-like geometry. — GPT-5
 - **RenderPlan pass dependency queries.** `RenderPlan` now exposes incoming and
   outgoing dependency-edge lookups for a selected pass. — GPT-5
 - **Core LDraw parser.** `core/formats/ldraw` now parses `.dat` and `.ldr`
