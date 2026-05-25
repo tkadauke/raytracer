@@ -154,6 +154,22 @@ namespace engine::graph {
       return materialId;
     }
 
+    RenderResourceDescriptor worldPositionResource(const std::string& id, const std::string& name,
+                                                   const RenderTargetSpec& target,
+                                                   RenderResourceLifetime lifetime) {
+      RenderResourceDescriptor worldPosition;
+      worldPosition.id = id;
+      worldPosition.name = name;
+      worldPosition.type = RenderResourceType::WorldPosition;
+      worldPosition.format = RenderResourceFormat::RGBDouble;
+      worldPosition.width = target.width;
+      worldPosition.height = target.height;
+      worldPosition.sampleCount = 1;
+      worldPosition.domain = RenderResourceDomain::CPU;
+      worldPosition.lifetime = lifetime;
+      return worldPosition;
+    }
+
     std::string postProcessAAPassId(RenderPostProcessAA aa) {
       switch (aa) {
       case RenderPostProcessAA::FXAA:
@@ -333,6 +349,40 @@ namespace engine::graph {
 
       return plan;
     }
+
+    RenderPlan worldPositionAOVPlan(const RenderTargetSpec& target, RenderExecutorKind executor) {
+      RenderPlan plan;
+
+      RenderPassNode worldPosition;
+      worldPosition.id = "world_position_aov";
+      worldPosition.name = "World position AOV";
+      worldPosition.kind = RenderPassKind::AOV;
+      worldPosition.executor = executor;
+      worldPosition.features = {"main", "aov", "world_position", executorFeature(executor)};
+      worldPosition.sceneView.selector = SceneSelector::all();
+      worldPosition.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      worldPosition.canRunConcurrently = false;
+      plan.addResourceProducer(worldPosition,
+                               worldPositionResource("world_position_aov", "World position AOV",
+                                                     target, RenderResourceLifetime::Transient));
+
+      RenderPassNode visualize;
+      visualize.id = "visualize_world_position_aov";
+      visualize.name = "Visualize world position AOV";
+      visualize.kind = RenderPassKind::AOV;
+      visualize.executor = RenderExecutorKind::PostProcess;
+      visualize.features = {"main", "aov", "world_position", "visualization", "postprocess"};
+      visualize.reads.push_back({"world_position_aov"});
+      visualize.writes.push_back({"main_color"});
+      visualize.sceneView.selector = SceneSelector::all();
+      visualize.disabledBehavior = DisabledBehavior::SubstituteDefault;
+      visualize.canRunConcurrently = false;
+      RenderResourceDescriptor mainColor =
+        colorResource("main_color", "Main color", target, RenderResourceLifetime::Exported);
+      plan.routeResourceThroughPass("world_position_aov", mainColor, visualize);
+
+      return plan;
+    }
   }
 
   RenderPlan RenderGraphCompiler::compile(const RenderTargetSpec& rawTarget,
@@ -351,6 +401,9 @@ namespace engine::graph {
     }
     if (intent.defaultViewMode == RenderViewMode::MaterialId) {
       return materialIdAOVPlan(target, executor);
+    }
+    if (intent.defaultViewMode == RenderViewMode::WorldPosition) {
+      return worldPositionAOVPlan(target, executor);
     }
 
     RenderPlan plan;

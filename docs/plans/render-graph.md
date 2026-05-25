@@ -1282,8 +1282,8 @@ Implement the smallest graph that proves the architecture:
    id/kind/executor/feature disable filters, serialize graph-backed raster
    beauty pass state for MSAA/post-AA/fixed-function/shadow controls,
    serialize graph-backed wireframe pass state for LOD, compile graph-visible
-   depth, normal, object-id, and material-id AOV views, and validate the
-   manipulated plan.
+   depth, normal, object-id, material-id, and world-position AOV views, and
+   validate the manipulated plan.
    Selector-specific command-line intent overrides remain TODO.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
@@ -1399,10 +1399,11 @@ composite passes.
 Add `depth`, `normal`, `world_position`, `object_id`, `material_id`, and
 `motion_vector` resources as graph-visible outputs. ✅ **Partial.** The default
 view mode can now compile graph-visible `depth_aov`, `normal_aov`,
-`object_id_aov`, and `material_id_aov` resources with visualization passes, and
-rendercli accepts `--render_graph_view depth`, `--render_graph_view normal`,
-`--render_graph_view object_id`, and `--render_graph_view material_id`.
-World-position, motion vector, and multi-AOV export files remain TODO.
+`object_id_aov`, `material_id_aov`, and `world_position_aov` resources with
+visualization passes, and rendercli accepts `--render_graph_view depth`,
+`--render_graph_view normal`, `--render_graph_view object_id`,
+`--render_graph_view material_id`, and `--render_graph_view world_position`.
+Motion vector and multi-AOV export files remain TODO.
 
 ### Parallel scheduler
 

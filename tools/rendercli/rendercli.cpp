@@ -339,6 +339,8 @@ namespace {
       *viewMode = RenderViewMode::ObjectId;
     } else if (normalized == "materialid") {
       *viewMode = RenderViewMode::MaterialId;
+    } else if (normalized == "worldposition") {
+      *viewMode = RenderViewMode::WorldPosition;
     } else {
       return false;
     }
@@ -1133,7 +1135,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "executor"},
      {"render_graph_view",
       "Override graph intent view mode (default, beauty, wireframe, depth, normal, object_id, "
-      "material_id)",
+      "material_id, world_position)",
       "mode"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
@@ -1331,7 +1333,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
                                         &m_renderGraphViewMode)) {
       *errorMessage =
         "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'normal', "
-        "'object_id', or 'material_id'";
+        "'object_id', 'material_id', or 'world_position'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;

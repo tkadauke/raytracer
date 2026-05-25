@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph world-position AOV view.** `--render_graph_view world_position` now
+  compiles a graph-visible `world_position_aov` resource containing raw world
+  coordinates plus a normalized visualization pass for display. — GPT-5
 - **Graph material-id AOV view.** `--render_graph_view material_id` now compiles
   a graph-visible `material_id_aov` resource and visualization pass, using the
   same trace-inspectable integer-id path as object-id AOVs. — GPT-5

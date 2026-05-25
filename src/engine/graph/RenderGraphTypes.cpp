@@ -84,7 +84,8 @@ namespace engine::graph {
                                         {"depth", RenderViewMode::Depth},
                                         {"normal", RenderViewMode::Normal},
                                         {"object_id", RenderViewMode::ObjectId},
-                                        {"material_id", RenderViewMode::MaterialId}},
+                                        {"material_id", RenderViewMode::MaterialId},
+                                        {"world_position", RenderViewMode::WorldPosition}},
                                        path);
     }
 
@@ -443,6 +444,8 @@ namespace engine::graph {
       return "object_id";
     case RenderViewMode::MaterialId:
       return "material_id";
+    case RenderViewMode::WorldPosition:
+      return "world_position";
     }
     return "unknown";
   }

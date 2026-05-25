@@ -409,6 +409,31 @@ namespace GraphRenderEngineTest {
     EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
   }
 
+  TEST(GraphRenderEngine, ExecutesWorldPositionAOVViewAndRecordsColorTrace) {
+    RenderIntent intent;
+    intent.defaultViewMode = RenderViewMode::WorldPosition;
+
+    RenderGraphCompiler compiler;
+    GraphRenderEngine engine(camera(), highContrastScene());
+    engine.setExecutionTraceEnabled(true);
+    engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+    Buffer<unsigned int> buffer(32, 32);
+    engine.render(buffer);
+
+    EXPECT_GT(countNonBlackPixels(buffer), 0);
+    ASSERT_EQ(2u, engine.lastPlan().passes().size());
+    EXPECT_EQ("world_position_aov", engine.lastPlan().passes()[0].id);
+    EXPECT_EQ("visualize_world_position_aov", engine.lastPlan().passes()[1].id);
+
+    auto trace = engine.lastExecutionTrace();
+    ASSERT_TRUE(trace);
+    const auto outputs = trace->outputSnapshotsForResource("world_position_aov");
+    ASSERT_EQ(1u, outputs.size());
+    ASSERT_TRUE(outputs.front()->hasColorPreview());
+    EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+  }
+
   TEST(GraphRenderEngine, NotifiesObserverAroundLdrPassExecution) {
     RenderIntent intent;
     intent.postProcessAA = RenderPostProcessAA::FXAA;

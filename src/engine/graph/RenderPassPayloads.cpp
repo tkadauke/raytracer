@@ -93,6 +93,44 @@ namespace engine::graph {
       return std::isfinite(*minDepth) && std::isfinite(*maxDepth);
     }
 
+    bool hasFiniteColorRange(const Buffer<Colord>& buffer, Colord* minColor, Colord* maxColor) {
+      double minimum[3] = {std::numeric_limits<double>::infinity(),
+                           std::numeric_limits<double>::infinity(),
+                           std::numeric_limits<double>::infinity()};
+      double maximum[3] = {-std::numeric_limits<double>::infinity(),
+                           -std::numeric_limits<double>::infinity(),
+                           -std::numeric_limits<double>::infinity()};
+
+      for (int y = 0; y != buffer.height(); ++y) {
+        for (int x = 0; x != buffer.width(); ++x) {
+          for (int component = 0; component != 3; ++component) {
+            const double value = buffer[y][x][component];
+            if (!std::isfinite(value)) {
+              continue;
+            }
+            minimum[component] = std::min(minimum[component], value);
+            maximum[component] = std::max(maximum[component], value);
+          }
+        }
+      }
+
+      *minColor = Colord(minimum[0], minimum[1], minimum[2]);
+      *maxColor = Colord(maximum[0], maximum[1], maximum[2]);
+      return std::isfinite(minimum[0]) && std::isfinite(minimum[1]) && std::isfinite(minimum[2]) &&
+             std::isfinite(maximum[0]) && std::isfinite(maximum[1]) && std::isfinite(maximum[2]);
+    }
+
+    double normalizedComponent(double value, double minimum, double maximum) {
+      if (!std::isfinite(value)) {
+        return 0.0;
+      }
+      const double range = maximum - minimum;
+      if (range <= 1e-9) {
+        return 0.5;
+      }
+      return std::clamp((value - minimum) / range, 0.0, 1.0);
+    }
+
     Colord colorForObjectId(std::uint32_t id) {
       if (id == 0) {
         return Colord::black();
@@ -445,6 +483,24 @@ namespace engine::graph {
       std::map<const render::Primitive*, std::uint32_t> m_materialIdsByPrimitive;
     };
 
+    class WorldPositionAOVPass : public PrimaryIntersectionAOVPass {
+    private:
+      void clearOutput(RenderExecutionContext& context, const RenderResourceId& resource) override {
+        requireColorResource(context.storage(), resource, context.pass());
+        const double missing = std::numeric_limits<double>::quiet_NaN();
+        context.storage().color(resource).clear(Colord(missing, missing, missing));
+      }
+
+      void writeHit(RenderExecutionContext& context, const RenderResourceId& resource, int x, int y,
+                    const HitPoint& hit) override {
+        const Vector4d& point = hit.point();
+        if (point.isUndefined()) {
+          return;
+        }
+        context.storage().color(resource)[y][x] = Colord(point.x(), point.y(), point.z());
+      }
+    };
+
     class DepthVisualizationPass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -498,6 +554,37 @@ namespace engine::graph {
         for (int y = 0; y != objectIds.height(); ++y) {
           for (int x = 0; x != objectIds.width(); ++x) {
             color[y][x] = colorForObjectId(objectIds[y][x]);
+          }
+        }
+      }
+    };
+
+    class WorldPositionVisualizationPass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& read = pass.singleRead();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), read.resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        const Buffer<Colord>& worldPositions = context.storage().color(read.resource);
+        Buffer<Colord>& color = context.storage().color(write.resource);
+        requireMatchingSize(worldPositions, color, "world-position visualization");
+
+        Colord minimum;
+        Colord maximum;
+        if (!hasFiniteColorRange(worldPositions, &minimum, &maximum)) {
+          color.clear(Colord::black());
+          return;
+        }
+
+        for (int y = 0; y != worldPositions.height(); ++y) {
+          for (int x = 0; x != worldPositions.width(); ++x) {
+            color[y][x] =
+              Colord(normalizedComponent(worldPositions[y][x].r(), minimum.r(), maximum.r()),
+                     normalizedComponent(worldPositions[y][x].g(), minimum.g(), maximum.g()),
+                     normalizedComponent(worldPositions[y][x].b(), minimum.b(), maximum.b()));
           }
         }
       }
@@ -699,6 +786,15 @@ namespace engine::graph {
 
     if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "material_id")) {
       return std::make_unique<MaterialIdAOVPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "world_position") &&
+        hasFeature(pass, "visualization")) {
+      return std::make_unique<WorldPositionVisualizationPass>();
+    }
+
+    if (pass.kind == RenderPassKind::AOV && hasFeature(pass, "world_position")) {
+      return std::make_unique<WorldPositionAOVPass>();
     }
 
     if (pass.kind == RenderPassKind::PostProcess &&
