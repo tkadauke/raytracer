@@ -76,6 +76,25 @@ namespace engine::graph {
     return resource(id).depth();
   }
 
+  void RenderResourceStorage::bindDepth(const RenderResourceId& id, const Buffer<double>& source) {
+    RenderResource& destinationResource = resource(id);
+    if (!destinationResource.depthBacked()) {
+      throw std::out_of_range("render resource '" + id + "' is not depth-backed");
+    }
+
+    Buffer<double>& destination = destinationResource.depth();
+    if (source.width() != destination.width() || source.height() != destination.height()) {
+      throw std::runtime_error("external depth resource '" + id + "' has mismatched dimensions");
+    }
+
+    for (int y = 0; y != source.height(); ++y) {
+      for (int x = 0; x != source.width(); ++x) {
+        destination[y][x] = source[y][x];
+      }
+    }
+    destinationResource.markProduced();
+  }
+
   Buffer<std::uint8_t>& RenderResourceStorage::stencil(const RenderResourceId& id) {
     return resource(id).stencil();
   }

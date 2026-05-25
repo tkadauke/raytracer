@@ -31,6 +31,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Render graph external color inputs.** `GraphRenderEngine` can now bind
   imported or history CPU color resources for explicit plans, giving replayed
   temporal/postprocess graphs a real external-input path. — GPT-5
+- **Render graph external depth inputs.** `GraphRenderEngine` can now bind
+  imported or history CPU depth resources for explicit plans, so depth
+  visualization and future depth-history graph paths can use supplied inputs.
+  — GPT-5
 - **World scene groups.** `Group` scene objects can organize surfaces, lights,
   and nested groups with transform and visibility controls, converting visible
   geometry to runtime composites without abusing inactive CSG surfaces. — GPT-5

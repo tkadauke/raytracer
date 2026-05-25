@@ -58,6 +58,18 @@ namespace GraphRenderEngineTest {
     return color;
   }
 
+  RenderResourceDescriptor depthResource(const std::string& id, RenderResourceLifetime lifetime,
+                                         int width = 2, int height = 2) {
+    RenderResourceDescriptor depth;
+    depth.id = id;
+    depth.type = RenderResourceType::Depth;
+    depth.format = RenderResourceFormat::DepthDouble;
+    depth.width = width;
+    depth.height = height;
+    depth.lifetime = lifetime;
+    return depth;
+  }
+
   class BlockingMaterial : public render::Material {
   public:
     Colord shade(const render::RayCaster*, const render::Scene&, const Rayd&, const HitPoint&,
@@ -1080,6 +1092,40 @@ namespace GraphRenderEngineTest {
 
     EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
     EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[1][1]);
+  }
+
+  TEST(GraphRenderEngine, RendersBoundExternalDepthInputResources) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(depthResource("history_depth", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode visualizeDepth;
+    visualizeDepth.id = "visualize_depth";
+    visualizeDepth.kind = RenderPassKind::AOV;
+    visualizeDepth.executor = RenderExecutorKind::PostProcess;
+    visualizeDepth.features = {"depth", "visualization"};
+    visualizeDepth.reads.push_back({"history_depth"});
+    visualizeDepth.writes.push_back({"display_color"});
+    plan.addPass(visualizeDepth);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto depth = std::make_shared<Buffer<double>>(2, 2);
+    (*depth)[0][0] = 1.0;
+    (*depth)[0][1] = 3.0;
+    (*depth)[1][0] = 2.0;
+    (*depth)[1][1] = 3.0;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalDepthResource("history_depth", depth);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(1.0, 1.0, 1.0), buffer[0][0]);
+    EXPECT_EQ(Colord::black(), buffer[0][1]);
   }
 
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {
