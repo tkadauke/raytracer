@@ -50,7 +50,7 @@ namespace LDrawLibraryResolverTest {
 
   int TempTree::s_nextId = 0;
 
-  const LDrawSubfileReference& firstSubfileReference(const LDrawDocument& document) {
+  const LDrawSubfileReference& firstSubfileReference(const LDrawResolvedDocument& document) {
     for (const LDrawCommand& command : document.commands) {
       if (holds_alternative<LDrawSubfileReference>(command))
         return get<LDrawSubfileReference>(command);

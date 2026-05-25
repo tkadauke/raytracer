@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-struct LDrawDocument {
+struct LDrawResolvedDocument {
   std::filesystem::path path;
   LDrawParser::Commands commands;
 };

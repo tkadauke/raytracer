@@ -461,8 +461,9 @@ namespace GroupTest {
     EXPECT_EQ(1, countLeaves(*rt));
     EXPECT_EQ(1u, rt->lights().size());
     ASSERT_EQ(1u, rt->primitives().size());
-    EXPECT_EQ(Vector3d(2.0, 0.375, -0.25), rt->primitives()[0]->boundingBox().min());
-    EXPECT_EQ(Vector3d(3.0, 0.625, 0.25), rt->primitives()[0]->boundingBox().max());
+    const auto primitive = rt->primitives().front();
+    EXPECT_EQ(Vector3d(2.0, 0.375, -0.25), primitive->boundingBox().min());
+    EXPECT_EQ(Vector3d(3.0, 0.625, 0.25), primitive->boundingBox().max());
   }
 
   TEST(Scene, HiddenNestedGroupRendersAsBackgroundInRaytracerRasterizerAndWireframe) {

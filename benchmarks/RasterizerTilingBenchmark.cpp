@@ -10,8 +10,8 @@
 #include "render/primitives/Triangle.h"
 #include "render/textures/ConstantColorTexture.h"
 
-#include "engine/raster/RasterPipelineTypes.h"
-#include "engine/raster/RasterTriangleEmitter.h"
+#include "engine/raster/detail/RasterPipelineTypes.h"
+#include "engine/raster/detail/RasterTriangleEmitter.h"
 
 #include <QThread>
 
