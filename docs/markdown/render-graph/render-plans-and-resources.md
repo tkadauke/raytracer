@@ -93,10 +93,11 @@ the block optional: scenes without one use the default raytraced beauty intent,
 while scenes with one preserve the requested executor, view mode, shading
 profile, feature toggles, raster postprocess AA request, requested exported
 AOVs, camera reference, and per-selector overrides. Tools then layer temporary
-choices over that saved intent. When no default camera is named, tools derive a
-scene-camera reference from the active editable-scene camera so the compiled
-graph still explains which camera feeds scene-rendering passes. For example,
-rendercli uses the scene intent as the graph compiler input, but
+choices over that saved intent through `RenderIntent` mutation methods instead
+of directly authoring low-level pass nodes. When no default camera is named,
+tools derive a scene-camera reference from the active editable-scene camera so
+the compiled graph still explains which camera feeds scene-rendering passes.
+For example, rendercli uses the scene intent as the graph compiler input, but
 `--render_graph_executor`, `--render_graph_view`, `--render_graph_aov_out`,
 `--render_graph_wireframe_overlay`, and `--post_aa` can still override the
 effective command-line render.
