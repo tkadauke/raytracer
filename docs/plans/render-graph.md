@@ -1296,8 +1296,9 @@ Implement the smallest graph that proves the architecture:
    can compile/export text, DOT, and JSON plans, render through the graph by
    default, bypass the graph with `--direct_engine`, load and replay JSON
    plans, use scene JSON render intent, override the compiled default
-   executor/view mode/camera, request the wireframe overlay intent, apply pass
-   id/kind/executor/feature disable filters, serialize graph-backed raster
+   executor/view mode/shading profile/camera, request the wireframe overlay
+   intent, apply pass id/kind/executor/feature disable filters, serialize
+   graph-backed raster
    beauty pass state for MSAA/post-AA/fixed-function/shadow controls,
    serialize graph-backed wireframe pass state for LOD, compile graph-visible
    depth, normal, object-id, material-id, and world-position AOV views, and
