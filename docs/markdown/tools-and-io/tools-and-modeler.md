@@ -185,9 +185,11 @@ renders begin. The Graph tab is the primary view: it shows pass nodes,
 resource nodes, and dependency edges, supports double-click pass toggles, and
 drives the property editor when a pass or resource is selected. Pass nodes show
 non-default scene selector, camera, and shading-profile intent directly in the
-graph. Its Passes tab shows each compiled pass id, execution order, execution
+graph and elide long labels inside the node bounds. Its Passes tab shows each
+compiled pass id, execution order, execution
 stage, kind, executor, scene selector, camera reference, shading profile, and
-resource edges. Its Resources tab shows each declared resource's type, format, domain, lifetime, and
+resource edges. Its Resources tab shows each declared resource's type, format,
+domain, lifetime, and
 dimensions. Selecting a pass also shows its execution stage, order, incoming
 dependencies, and outgoing dependencies in the property editor alongside pass
 state, scene view, shading profile, resource edges, and trace metadata.
