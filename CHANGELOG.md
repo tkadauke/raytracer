@@ -259,6 +259,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph display names.** The Render Graph dock now shows
+  human-readable pass and resource names in graph nodes and tables while
+  keeping stable ids in item metadata, tooltips, and exported plans. — GPT-5
 - **Modeler render graph scene-view node labels.** Pass nodes in the Render
   Graph dock now show non-default scene selector, camera, and shading-profile
   intent directly in the graph view, with long labels elided inside fixed node
