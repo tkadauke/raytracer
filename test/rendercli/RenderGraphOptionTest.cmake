@@ -281,6 +281,9 @@ endif()
 if(NOT dot_graph MATCHES "wireframe_beauty")
   message(FATAL_ERROR "DOT graph export did not contain wireframe_beauty: ${dot_graph}")
 endif()
+if(NOT dot_graph MATCHES "execution_stage_1")
+  message(FATAL_ERROR "DOT graph export did not contain execution stage rank hints: ${dot_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli graph executor override selects rasterizer"
@@ -367,6 +370,10 @@ rendercli_run(
     "${static_scene}" "${json_plan}"
 )
 rendercli_assert_nonempty("${json_plan}" NAME "JSON render graph output file")
+file(READ "${json_plan}" json_graph)
+if(NOT json_graph MATCHES "executionStages")
+  message(FATAL_ERROR "JSON graph export did not contain executionStages: ${json_graph}")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli rejects invalid render graph format"
