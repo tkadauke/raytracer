@@ -6,9 +6,45 @@
 #include "render/primitives/Instance.h"
 #include "render/primitives/Scene.h"
 
+#include <stdexcept>
+
 Group::Group(Element* parent)
     : Transformable(parent),
       m_visible(true) {
+}
+
+void Group::setMetadataValue(const QString& key, const QJsonValue& value) {
+  if (value.isUndefined()) {
+    m_metadata.remove(key);
+  } else {
+    m_metadata.insert(key, value);
+  }
+}
+
+void Group::read(const QJsonObject& json) {
+  auto groupJson = json;
+  groupJson.remove("metadata");
+
+  Transformable::read(groupJson);
+
+  const auto metadataValue = json["metadata"];
+  if (metadataValue.isUndefined()) {
+    m_metadata = QJsonObject();
+    return;
+  }
+
+  if (!metadataValue.isObject())
+    throw std::invalid_argument("group metadata must be an object");
+
+  m_metadata = metadataValue.toObject();
+}
+
+void Group::write(QJsonObject& json) {
+  Transformable::write(json);
+
+  if (!m_metadata.isEmpty()) {
+    json["metadata"] = m_metadata;
+  }
 }
 
 std::shared_ptr<render::Primitive>
