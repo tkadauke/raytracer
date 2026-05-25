@@ -27,7 +27,9 @@ public:
   explicit Group(Element* parent = nullptr);
 
   /**
-    * @returns true if the group and its descendants are visible.
+    * @returns this group's local visible flag. During scene conversion, a
+    * hidden group suppresses all descendant surfaces, lights, and nested
+    * groups. A visible group still preserves each child's own visible flag.
     */
   inline bool visible() const {
     return m_visible;
@@ -56,6 +58,7 @@ public:
 
   /**
     * Converts visible child geometry into a transformed runtime composite.
+    * Hidden groups return null and do not register descendant lights.
     */
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
   virtual bool canHaveChild(Element* child) const;
