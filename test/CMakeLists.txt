@@ -61,6 +61,26 @@ if(TARGET rendercli)
   target_link_libraries(rendercli_image_probe PRIVATE Qt6::Gui)
 
   add_test(
+    NAME rendercli_basic
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-basic
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/BasicOptionTest.cmake
+  )
+  add_test(
+    NAME rendercli_validation
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-validation
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/ValidationOptionTest.cmake
+  )
+  add_test(
     NAME rendercli_animation
     COMMAND
       ${CMAKE_COMMAND}
