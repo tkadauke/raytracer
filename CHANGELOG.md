@@ -350,6 +350,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **rendercli direct raytracer scene cameras.** The direct raytracer path now
+  installs its tiled render view plane after selecting the scene camera, avoiding
+  crashes when small CTest renders exercise the raytracer with many tiles.
+  — GPT-5
 - **rendercli unknown samplers.** `rendercli --sampler` now rejects unknown
   sampler names with a command-line error instead of dereferencing a missing
   factory result during rendering. — GPT-5
