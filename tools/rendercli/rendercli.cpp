@@ -41,7 +41,6 @@
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -397,22 +396,8 @@ namespace {
       return false;
     }
 
-    const QString normalized = rawValue.toLower();
-    if (normalized == "true" || normalized == "false") {
-      *parameter = {key.toStdString(),
-                    engine::graph::ShadingProfileParameterValue(normalized == "true")};
-      return true;
-    }
-
-    bool ok = false;
-    const double number = rawValue.toDouble(&ok);
-    if (ok) {
-      *parameter = {key.toStdString(), engine::graph::ShadingProfileParameterValue(number)};
-      return true;
-    }
-
     *parameter = {key.toStdString(),
-                  engine::graph::ShadingProfileParameterValue(rawValue.toStdString())};
+                  engine::graph::ShadingProfileParameterValue::fromText(rawValue.toStdString())};
     return true;
   }
 
