@@ -174,6 +174,41 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_EQ(Vector3d(4, 23, 42), mesh->vertices()[2].point);
   }
 
+  TEST(LDrawGeometryCompiler, NestedMpdSubmodelsRenderThroughRaytracer) {
+    auto resolver = make_shared<MemoryResolver>(map<string, string>{
+      {"child.dat", "0 // external child should lose to MPD-local child\n"},
+      {"leaf.dat", "0 // external leaf should lose to MPD-local leaf\n"}});
+    istringstream input(
+      "0 FILE main.ldr\n"
+      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+      "0 NOFILE\n"
+      "0 FILE child.dat\n"
+      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 leaf.dat\n"
+      "0 NOFILE\n"
+      "0 FILE leaf.dat\n"
+      "3 4 -1 -1 0 -1 1 0 1 -1 0\n"
+      "0 NOFILE\n");
+    auto scene = make_shared<Scene>(Colord::white());
+    scene->setBackground(Colord::black());
+    scene->add(LDrawGeometryCompiler(resolver).compile(input, colorTable()));
+
+    Buffer<Colord> buffer(40, 30);
+    auto camera = make_shared<PinholeCamera>(Vector3d(0, 0, -1), Vector3d::null);
+    auto raytracer = make_shared<engine::raytracer::Raytracer>(camera, scene);
+    raytracer->render(buffer);
+
+    int visiblePixels = 0;
+    for (int y = 0; y < buffer.height(); ++y) {
+      for (int x = 0; x < buffer.width(); ++x) {
+        if (buffer[y][x] != Colord::black())
+          ++visiblePixels;
+      }
+    }
+
+    EXPECT_GT(visiblePixels, 0);
+    EXPECT_EQ(0, resolver->openCalls);
+  }
+
   TEST(LDrawGeometryCompiler, TypeOneColorSixteenInheritsReferenceColorAndDirectColorsOverride) {
     auto resolver = make_shared<MemoryResolver>(map<string, string>{
       {"child.dat",

@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <istream>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -50,4 +52,33 @@ unique_ptr<istream> LDrawFilesystemResolver::open(const string& filename) const 
 
 string LDrawFilesystemResolver::cacheKey(const string& filename) const {
   return normalizedFilename(filename);
+}
+
+LDrawMpdFileResolver::LDrawMpdFileResolver(const LDrawDocument& document,
+                                           shared_ptr<const LDrawFileResolver> fallback)
+    : m_fallback(std::move(fallback)) {
+  for (const auto& file : document.files) {
+    if (!file.filename.empty())
+      m_files[normalizedFilename(file.filename)] = file.sourceText;
+  }
+}
+
+unique_ptr<istream> LDrawMpdFileResolver::open(const string& filename) const {
+  const auto local = m_files.find(normalizedFilename(filename));
+  if (local != m_files.end())
+    return make_unique<istringstream>(local->second);
+
+  if (m_fallback)
+    return m_fallback->open(filename);
+
+  return nullptr;
+}
+
+string LDrawMpdFileResolver::cacheKey(const string& filename) const {
+  const string localKey = normalizedFilename(filename);
+  if (m_files.find(localKey) != m_files.end())
+    return "mpd:" + localKey;
+  if (m_fallback)
+    return m_fallback->cacheKey(filename);
+  return localKey;
 }

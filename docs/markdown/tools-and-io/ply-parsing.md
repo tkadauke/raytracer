@@ -245,8 +245,10 @@ Additional file-format topics are queued under
   a command-record parser for `.dat` and `.ldr` files plus inline
   type 3/4 polygon conversion to renderable mesh primitives. Type-1
   referenced files resolve through a file resolver and are instanced
-  with LDraw affine transforms and color inheritance, while MPD scene
-  conversion remains future work.
+  with LDraw affine transforms and color inheritance. MPD files are
+  split into `0 FILE` / `0 NOFILE` blocks so type-1 references can
+  resolve embedded submodels before falling back to external library
+  roots.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
@@ -265,7 +267,8 @@ alongside the inline polygon/subfile compiler in
 [`LDrawGeometryCompiler.cpp`](../../../src/core/formats/ldraw/LDrawGeometryCompiler.cpp)
 and resolver abstraction in
 [`LDrawFileResolver.cpp`](../../../src/core/formats/ldraw/LDrawFileResolver.cpp).
-The next missing piece is MPD scene assembly.
+The remaining work is turning these import surfaces into a dedicated
+long-form chapter.
 
 ## <a id="exercises"></a>Exercises
 1. Predict what happens when a PLY file declares
