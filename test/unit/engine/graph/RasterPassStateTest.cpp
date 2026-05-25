@@ -48,6 +48,24 @@ namespace RasterPassStateTest {
     EXPECT_EQ(Rasterizer::ShadowFilterMode::PCSS, rasterizer.shadowFilterMode());
   }
 
+  TEST(RasterShadowPassState, BuildsShadowMapResourceDescriptor) {
+    RasterShadowPassState state = RasterShadowPassState::previewDefaults();
+    state.shadows().setShadowMapSize(128);
+
+    const RenderResourceDescriptor descriptor =
+      state.shadows().resourceDescriptor("preview_shadow_map", "Preview shadow map");
+
+    EXPECT_EQ("preview_shadow_map", descriptor.id);
+    EXPECT_EQ("Preview shadow map", descriptor.name);
+    EXPECT_EQ(RenderResourceType::ShadowMap, descriptor.type);
+    EXPECT_EQ(RenderResourceFormat::DepthDouble, descriptor.format);
+    EXPECT_EQ(128, descriptor.width);
+    EXPECT_EQ(128, descriptor.height);
+    EXPECT_EQ(1, descriptor.sampleCount);
+    EXPECT_EQ(RenderResourceDomain::CPU, descriptor.domain);
+    EXPECT_EQ(RenderResourceLifetime::PersistentCache, descriptor.lifetime);
+  }
+
   TEST(RasterShadowPassState, WritesOnlyToRasterShadowPasses) {
     RenderPlan plan;
     RenderPassNode shadow;

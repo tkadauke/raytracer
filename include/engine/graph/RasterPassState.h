@@ -150,6 +150,7 @@ namespace engine::graph {
 
     bool enabled() const;
     int mapSize() const;
+    RenderResourceDescriptor resourceDescriptor(RenderResourceId id, std::string name) const;
 
   private:
     bool m_enabled{false};
