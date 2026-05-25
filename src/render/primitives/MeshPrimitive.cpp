@@ -130,12 +130,17 @@ std::shared_ptr<Mesh> MeshPrimitive::tessellate(int lod) const {
     for (const auto& v : childMesh->vertices())
       result->addVertex(v.point, v.normal, v.uv);
 
-    for (const auto& face : childMesh->faces()) {
+    for (std::size_t faceIndex = 0; faceIndex != childMesh->faces().size(); ++faceIndex) {
+      const auto& face = childMesh->faces()[faceIndex];
       Mesh::Face remapped;
       remapped.reserve(face.size());
       for (int idx : face)
         remapped.push_back(idx + vertexOffset);
-      result->addFace(remapped);
+      const auto color = childMesh->faceColor(faceIndex);
+      if (color)
+        result->addFace(remapped, *color);
+      else
+        result->addFace(remapped);
     }
 
     vertexOffset += static_cast<int>(childMesh->vertices().size());
