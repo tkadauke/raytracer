@@ -564,15 +564,17 @@ or shadow-setting change. Later slices should refine this into domains such as
 has a coarse scene `changed` flag, so fine-grained invalidation will require
 stable scene/object revision counters or fingerprints.
 
-Shadow maps need one remaining architectural change before caching affects the
-beauty image. The current `raster_preview_shadows` graph node publishes
+Shadow maps need several remaining architectural changes before caching affects
+the beauty image. The current `raster_preview_shadows` graph node publishes
 shadow-map request state and now caches an inspectable first directional-light
-cascade depth artifact, but `Rasterizer` still builds the full concrete
-directional/cascade depth-map collection inside raster beauty execution. To
-finish shadow-map caching:
+cascade depth artifact. The concrete raster shadow-map construction has been
+extracted into a graph-usable `RasterShadowMapBuilder`, but `raster_beauty`
+still asks the rasterizer to build its own full directional/cascade collection
+during beauty execution. To finish shadow-map caching:
 
-1. extract the raster shadow-map builder from `Rasterizer` into a graph-usable
-   service or payload helper;
+1. ~~extract the raster shadow-map builder from `Rasterizer` into a graph-usable
+   service or payload helper~~ ✅ **Done.** `RasterShadowMapBuilder` now owns
+   full directional/cascade map construction and first-cascade depth previews;
 2. introduce a typed `ShadowMapArtifact` resource that owns directional light
    cascades, depth buffers, and sampling/filter metadata;
 3. make the graph shadow pass produce the full artifact collection;
@@ -1355,9 +1357,11 @@ preview renders now include a `raster_preview_shadows` node and
 `preview_shadow_map` resource that control whether raster beauty enables
 preview shadows. The shadow node now also materializes a graph-visible CPU
 depth preview for the first directional-light cascade so traces can inspect the
-shadow-map artifact directly. Raster beauty still builds and consumes its full
-internal shadow-map collection until graph-owned shadow artifacts are wired into
-the beauty payload; lights without a directional map use a rasterizer
+shadow-map artifact directly. Concrete shadow-map construction now lives in the
+raster module's `RasterShadowMapBuilder`, which is the handoff point for future
+graph-owned full shadow artifacts. Raster beauty still builds and consumes its
+full internal shadow-map collection until graph-owned shadow artifacts are wired
+into the beauty payload; lights without a directional map use a rasterizer
 visibility fallback so the graph shadow toggle still affects point-lit previews.
 
 ### Persistent artifact cache
