@@ -7,6 +7,8 @@
 #include "render/cameras/PinholeCamera.h"
 #include "render/primitives/Scene.h"
 
+#include <QJsonObject>
+
 #include <limits>
 
 namespace RenderGraphArtifactCacheTest {
@@ -128,6 +130,12 @@ namespace RenderGraphArtifactCacheTest {
     EXPECT_TRUE(stored.cacheable());
     EXPECT_FALSE(stored.usedCachedArtifact());
     EXPECT_TRUE(stored.storedCachedArtifact());
+
+    const QJsonObject json = stored.toJson();
+    EXPECT_EQ("stored", json["status"].toString().toStdString());
+    EXPECT_TRUE(json["cacheable"].toBool());
+    EXPECT_FALSE(json["usedCachedArtifact"].toBool());
+    EXPECT_TRUE(json["storedCachedArtifact"].toBool());
   }
 
   TEST(RenderGraphArtifactCache, GraphRenderEngineClonesShareCache) {

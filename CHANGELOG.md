@@ -37,6 +37,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Core polyline geometry model.** `core::Polyline` now stores ordered 3D
   points, per-curve typed metadata, per-segment typed metadata, segment
   iteration, and bounding-box computation for path-like geometry. — GPT-5
+- **Render graph trace cache flags.** Execution trace JSON cache metadata now
+  includes `cacheable`, `usedCachedArtifact`, and `storedCachedArtifact`
+  booleans alongside the status string. — GPT-5
 - **Render graph intent helpers.** `RenderIntent` and `ShadingProfileRef` now own
   common mutations for exported AOV requests and shading-profile parameters, so
   tools no longer manipulate those containers directly. — GPT-5
