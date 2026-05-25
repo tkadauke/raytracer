@@ -9,6 +9,7 @@
 #include <initializer_list>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace engine::graph {
   namespace {
@@ -766,6 +767,21 @@ namespace engine::graph {
     return m_mapSize;
   }
 
+  RenderResourceDescriptor RasterShadowState::resourceDescriptor(RenderResourceId id,
+                                                                 std::string name) const {
+    RenderResourceDescriptor descriptor;
+    descriptor.id = std::move(id);
+    descriptor.name = std::move(name);
+    descriptor.type = RenderResourceType::ShadowMap;
+    descriptor.format = RenderResourceFormat::DepthDouble;
+    descriptor.width = m_mapSize;
+    descriptor.height = m_mapSize;
+    descriptor.sampleCount = 1;
+    descriptor.domain = RenderResourceDomain::CPU;
+    descriptor.lifetime = RenderResourceLifetime::PersistentCache;
+    return descriptor;
+  }
+
   RasterShadowPassState RasterShadowPassState::fromJson(const QJsonObject& object,
                                                         const std::string& path) {
     rejectUnknownFields(object, path, {"shadows"});
@@ -842,14 +858,7 @@ namespace engine::graph {
         if (!resource || resource->type != RenderResourceType::ShadowMap)
           continue;
 
-        RenderResourceDescriptor descriptor = *resource;
-        descriptor.format = RenderResourceFormat::DepthDouble;
-        descriptor.width = m_shadows.mapSize();
-        descriptor.height = m_shadows.mapSize();
-        descriptor.sampleCount = 1;
-        descriptor.domain = RenderResourceDomain::CPU;
-        descriptor.lifetime = RenderResourceLifetime::PersistentCache;
-        plan.setResourceDescriptor(std::move(descriptor));
+        plan.setResourceDescriptor(m_shadows.resourceDescriptor(resource->id, resource->name));
       }
     }
 
