@@ -27,8 +27,12 @@ public:
   explicit Scene(Element* parent = nullptr);
 
   /**
-    * Converts the scene into a representation suitable for rendering with the
-    * Raytracer class.
+    * Converts the scene into a representation suitable for the render engines.
+    *
+    * Visibility composes down the editable hierarchy: hidden surfaces and
+    * lights are skipped, hidden groups suppress every descendant surface,
+    * light, and nested group, and visible groups preserve their children's own
+    * visible flags.
     */
   std::shared_ptr<render::Scene> toRaytracerScene() const;
 
