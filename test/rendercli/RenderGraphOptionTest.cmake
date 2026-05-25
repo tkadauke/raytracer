@@ -33,6 +33,8 @@ set(direct_engine_render "${TEST_OUTPUT_DIR}/direct-engine-render.png")
 set(graph_render "${TEST_OUTPUT_DIR}/graph-render.png")
 set(graph_trace "${TEST_OUTPUT_DIR}/graph-trace.json")
 set(graph_trace_render "${TEST_OUTPUT_DIR}/graph-trace-render.png")
+set(raster_shadow_trace "${TEST_OUTPUT_DIR}/raster-shadow-trace.json")
+set(raster_shadow_trace_render "${TEST_OUTPUT_DIR}/raster-shadow-trace-render.png")
 set(raster_state_plan "${TEST_OUTPUT_DIR}/raster-state-graph.json")
 set(raster_state_render "${TEST_OUTPUT_DIR}/raster-state-render.png")
 set(wireframe_state_plan "${TEST_OUTPUT_DIR}/wireframe-state-graph.json")
@@ -476,6 +478,29 @@ if(NOT graph_trace_json MATCHES "\"cache\"")
 endif()
 if(NOT graph_trace_json MATCHES "\"status\": \"not_cacheable\"")
   message(FATAL_ERROR "graph trace did not contain not-cacheable resource status: ${graph_trace_json}")
+endif()
+
+rendercli_run(
+  NAME "rendercli writes raster shadow depth trace"
+  COMMAND
+    "${RENDERCLI}" --engine raster --shadow_maps --width 32 --height 16
+    --render_graph_trace_out "${raster_shadow_trace}"
+    "${static_scene}" "${raster_shadow_trace_render}"
+)
+rendercli_assert_nonempty("${raster_shadow_trace_render}" NAME "rendercli raster shadow trace image")
+rendercli_assert_nonempty("${raster_shadow_trace}" NAME "rendercli raster shadow trace JSON")
+file(READ "${raster_shadow_trace}" raster_shadow_trace_json)
+if(NOT raster_shadow_trace_json MATCHES "\"id\": \"raster_preview_shadows\"")
+  message(FATAL_ERROR "raster shadow trace did not contain shadow pass: ${raster_shadow_trace_json}")
+endif()
+if(NOT raster_shadow_trace_json MATCHES "\"resource\": \"preview_shadow_map\"")
+  message(FATAL_ERROR "raster shadow trace did not contain preview shadow map: ${raster_shadow_trace_json}")
+endif()
+if(NOT raster_shadow_trace_json MATCHES "\"previewKind\": \"depth\"")
+  message(FATAL_ERROR "raster shadow trace did not contain depth preview kind: ${raster_shadow_trace_json}")
+endif()
+if(NOT raster_shadow_trace_json MATCHES "\"status\": \"stored\"")
+  message(FATAL_ERROR "raster shadow trace did not contain stored cache status: ${raster_shadow_trace_json}")
 endif()
 
 rendercli_run(
