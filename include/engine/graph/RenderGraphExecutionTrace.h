@@ -131,6 +131,7 @@ namespace engine::graph {
     inputSnapshotsForResource(const RenderResourceId& id) const;
     std::vector<const RenderGraphResourceSnapshot*>
     outputSnapshotsForResource(const RenderResourceId& id) const;
+    bool hasResourceSnapshots(const RenderResourceId& id) const;
     std::vector<const RenderGraphResourceDiff*> diffsForResource(const RenderResourceId& id) const;
     bool matchesPlan(const RenderPlan& plan) const;
     bool matchesPlanAndInputs(const RenderPlan& plan, const std::string& inputFingerprint) const;

@@ -464,6 +464,10 @@ namespace engine::graph {
     return result;
   }
 
+  bool RenderGraphExecutionTrace::hasResourceSnapshots(const RenderResourceId& id) const {
+    return !inputSnapshotsForResource(id).empty() || !outputSnapshotsForResource(id).empty();
+  }
+
   std::vector<const RenderGraphResourceDiff*>
   RenderGraphExecutionTrace::diffsForResource(const RenderResourceId& id) const {
     std::vector<const RenderGraphResourceDiff*> result;
