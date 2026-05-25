@@ -456,6 +456,12 @@ current contents came from `SubstituteDefault`; passes can therefore
 distinguish a real upstream product from a graph-supplied default without
 parsing the plan again.
 
+Imported and history resources can be bound from outside execution for color,
+depth, stencil, and integer-id buffers. `GraphRenderEngine` copies those
+external inputs into storage before the first pass runs, which gives replayed
+or temporal plans a typed input path without teaching pass payloads to parse
+raw JSON or tool-specific command-line state.
+
 ## <a id="the-first-compiler-emits-a-beauty-pass"></a>The first compiler emits beauty, overlay, and tonemap passes
 [`RenderGraphCompiler`](../../../include/engine/graph/RenderGraphCompiler.h)
 turns `RenderIntent` into a concrete `RenderPlan`. The first compiler slice
@@ -521,6 +527,14 @@ so the exported graph does not rely on the pass id to know which filter to run.
 `--post_aa taa` remains on the raster beauty state for now because temporal AA
 needs rasterizer history, depth, and jitter resources that are not yet
 graph-owned.
+
+Composite passes follow the same typed-resource rule. A built-in depth/stencil
+composite reads base color, foreground color, then a base/foreground depth pair
+and/or a stencil mask. The pass inspects runtime resource capabilities such as
+`colorBacked()`, `depthBacked()`, and `stencilBacked()` instead of branching on
+resource type enums. Foreground pixels pass the composite when the stencil is
+nonzero and, when depth inputs are present, the foreground depth is finite and
+no farther away than the base depth.
 
 ## <a id="inspecting-plans-in-modeler"></a>Inspecting and toggling plans in Modeler
 The `Modeler` Render Graph dock is the GUI counterpart to rendercli's

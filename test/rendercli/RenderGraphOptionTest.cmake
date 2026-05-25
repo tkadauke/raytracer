@@ -20,6 +20,7 @@ set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
 set(external_input_graph "${TEST_OUTPUT_DIR}/external-input-graph.json")
+set(depth_composite_graph "${TEST_OUTPUT_DIR}/depth-composite-graph.json")
 set(out_of_order_graph "${TEST_OUTPUT_DIR}/out-of-order-graph.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
@@ -65,6 +66,7 @@ set(out_of_order_text_plan "${TEST_OUTPUT_DIR}/graph-out-of-order.txt")
 set(out_of_order_render "${TEST_OUTPUT_DIR}/graph-out-of-order-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
 set(external_input_render "${TEST_OUTPUT_DIR}/graph-external-input-render.png")
+set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
 {
@@ -275,6 +277,135 @@ file(WRITE "${external_input_graph}" [=[
       "reads": ["history_color"],
       "writes": ["main_color"],
       "disabledBehavior": "passthrough",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${depth_composite_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "base_color",
+      "name": "Base color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "foreground_color",
+      "name": "Foreground color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "base_depth",
+      "name": "Base depth",
+      "type": "depth",
+      "format": "depth_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "foreground_depth",
+      "name": "Foreground depth",
+      "type": "depth",
+      "format": "depth_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "transient"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "raytrace_beauty",
+      "name": "Raytraced beauty",
+      "kind": "beauty",
+      "executor": "raytracer",
+      "features": ["main", "beauty", "raytracer"],
+      "reads": [],
+      "writes": ["base_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "wireframe_beauty",
+      "name": "Wireframe beauty",
+      "kind": "beauty",
+      "executor": "wireframe",
+      "features": ["foreground", "beauty", "wireframe"],
+      "reads": [],
+      "writes": ["foreground_color"],
+      "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "base_depth_aov",
+      "name": "Base depth AOV",
+      "kind": "aov",
+      "executor": "raytracer",
+      "features": ["depth"],
+      "reads": [],
+      "writes": ["base_depth"],
+      "disabledBehavior": "substitute_default",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "foreground_depth_aov",
+      "name": "Foreground depth AOV",
+      "kind": "aov",
+      "executor": "wireframe",
+      "features": ["depth"],
+      "reads": [],
+      "writes": ["foreground_depth"],
+      "disabledBehavior": "substitute_default",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    },
+    {
+      "id": "depth_composite",
+      "name": "Depth composite",
+      "kind": "composite",
+      "executor": "composite",
+      "features": ["depth_composite"],
+      "reads": ["base_color", "foreground_color", "base_depth", "foreground_depth"],
+      "writes": ["main_color"],
+      "disabledBehavior": "error",
       "enabled": true,
       "hasExternalSideEffects": false,
       "canRunConcurrently": false
@@ -881,6 +1012,17 @@ rendercli_expect_failure(
     "${static_scene}" "${external_input_render}"
 )
 rendercli_assert_not_exists("${external_input_render}" NAME "unbound external input render output")
+
+rendercli_run(
+  NAME "rendercli executes depth-aware composite graph"
+  COMMAND
+    "${RENDERCLI}" --render_graph_in "${depth_composite_graph}"
+    "${static_scene}" "${depth_composite_render}"
+)
+rendercli_assert_image_dimensions("${depth_composite_render}" 32 16
+                                  NAME "depth composite graph render dimensions")
+rendercli_assert_image_nonempty("${depth_composite_render}"
+                                NAME "depth composite graph render pixels")
 
 rendercli_run(
   NAME "rendercli renders through default graph"

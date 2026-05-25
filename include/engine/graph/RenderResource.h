@@ -80,6 +80,11 @@ namespace engine::graph {
     virtual bool depthBacked() const;
 
     /**
+      * @returns true when this resource can be accessed as `Buffer<std::uint8_t>`.
+      */
+    virtual bool stencilBacked() const;
+
+    /**
       * @returns true when this resource can be accessed as `Buffer<std::uint32_t>`.
       */
     virtual bool objectIdBacked() const;
@@ -164,6 +169,7 @@ namespace engine::graph {
 
     bool hasBuffer() const override;
     void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
+    bool stencilBacked() const override;
     Buffer<std::uint8_t>& stencil() override;
     const Buffer<std::uint8_t>& stencil() const override;
 

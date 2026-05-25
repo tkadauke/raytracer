@@ -25,6 +25,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -47,6 +48,13 @@ namespace engine::graph {
                               const RenderResourceId& resource, const RenderPassNode& pass) {
       if (!storage.resource(resource).depthBacked()) {
         throw passError(pass, "resource '" + resource + "' is not depth-backed");
+      }
+    }
+
+    void requireStencilResource(const RenderResourceStorage& storage,
+                                const RenderResourceId& resource, const RenderPassNode& pass) {
+      if (!storage.resource(resource).stencilBacked()) {
+        throw passError(pass, "resource '" + resource + "' is not stencil-backed");
       }
     }
 
@@ -773,6 +781,127 @@ namespace engine::graph {
       }
     };
 
+    class DepthStencilCompositePass : public RenderPassPayload {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        if (pass.reads.size() < 3 || pass.reads.size() > 5) {
+          throw passError(pass,
+                          "depth/stencil composite requires base color, foreground color, and "
+                          "at least one depth or stencil input");
+        }
+        requireColorResource(context.storage(), pass.reads[0].resource, pass);
+        requireColorResource(context.storage(), pass.reads[1].resource, pass);
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Inputs inputs = readInputs(context);
+        const Buffer<Colord>& baseColor = context.storage().color(inputs.baseColor);
+        const Buffer<Colord>& foregroundColor = context.storage().color(inputs.foregroundColor);
+        Buffer<Colord>& output = context.storage().color(write.resource);
+        requireMatchingSize(baseColor, foregroundColor, "depth/stencil composite");
+        requireMatchingSize(baseColor, output, "depth/stencil composite");
+
+        for (int y = 0; y != output.height(); ++y) {
+          for (int x = 0; x != output.width(); ++x) {
+            output[y][x] =
+              foregroundVisibleAt(context, inputs, x, y) ? foregroundColor[y][x] : baseColor[y][x];
+          }
+        }
+      }
+
+    private:
+      struct Inputs {
+        RenderResourceId baseColor;
+        RenderResourceId foregroundColor;
+        std::optional<RenderResourceId> baseDepth;
+        std::optional<RenderResourceId> foregroundDepth;
+        std::optional<RenderResourceId> stencil;
+      };
+
+      Inputs readInputs(RenderExecutionContext& context) const {
+        const auto& pass = context.pass();
+        Inputs inputs;
+        inputs.baseColor = pass.reads[0].resource;
+        inputs.foregroundColor = pass.reads[1].resource;
+
+        std::vector<RenderResourceId> depthResources;
+        for (std::size_t i = 2; i != pass.reads.size(); ++i) {
+          const RenderResourceId& resourceId = pass.reads[i].resource;
+          const RenderResource& resource = context.storage().resource(resourceId);
+          if (resource.depthBacked()) {
+            requireDepthResource(context.storage(), resourceId, pass);
+            depthResources.push_back(resourceId);
+            continue;
+          }
+          if (resource.stencilBacked()) {
+            requireStencilResource(context.storage(), resourceId, pass);
+            if (inputs.stencil) {
+              throw passError(pass, "depth/stencil composite accepts only one stencil input");
+            }
+            inputs.stencil = resourceId;
+            continue;
+          }
+
+          throw passError(pass, "composite input '" + resourceId +
+                                  "' is neither depth-backed nor stencil-backed");
+        }
+
+        if (!depthResources.empty() && depthResources.size() != 2) {
+          throw passError(pass, "depth composite requires both base and foreground depth inputs");
+        }
+        if (depthResources.size() == 2) {
+          inputs.baseDepth = depthResources[0];
+          inputs.foregroundDepth = depthResources[1];
+        }
+        if (!inputs.baseDepth && !inputs.stencil) {
+          throw passError(pass, "composite requires depth inputs or a stencil input");
+        }
+        validateInputShapes(context, inputs);
+        return inputs;
+      }
+
+      void validateInputShapes(RenderExecutionContext& context, const Inputs& inputs) const {
+        const Buffer<Colord>& baseColor = context.storage().color(inputs.baseColor);
+        const auto requireShape = [&](const auto& buffer, const std::string& role) {
+          if (!core::util::bufferDimensionsEqual(baseColor, buffer)) {
+            throw passError(context.pass(),
+                            "depth/stencil composite requires matching " + role + " dimensions");
+          }
+        };
+
+        requireShape(context.storage().color(inputs.foregroundColor), "foreground color");
+        if (inputs.baseDepth) {
+          requireShape(context.storage().depth(*inputs.baseDepth), "base depth");
+        }
+        if (inputs.foregroundDepth) {
+          requireShape(context.storage().depth(*inputs.foregroundDepth), "foreground depth");
+        }
+        if (inputs.stencil) {
+          requireShape(context.storage().stencil(*inputs.stencil), "stencil");
+        }
+      }
+
+      bool foregroundVisibleAt(RenderExecutionContext& context, const Inputs& inputs, int x,
+                               int y) const {
+        if (inputs.stencil && context.storage().stencil(*inputs.stencil)[y][x] == 0) {
+          return false;
+        }
+
+        if (!inputs.baseDepth || !inputs.foregroundDepth) {
+          return true;
+        }
+
+        const double foregroundDepth = context.storage().depth(*inputs.foregroundDepth)[y][x];
+        if (!std::isfinite(foregroundDepth)) {
+          return false;
+        }
+
+        const double baseDepth = context.storage().depth(*inputs.baseDepth)[y][x];
+        return !std::isfinite(baseDepth) || foregroundDepth <= baseDepth;
+      }
+    };
+
     /**
       * Whole-frame beauty payload backed by the wireframe renderer.
       */
@@ -1001,6 +1130,19 @@ namespace engine::graph {
       }
     };
 
+    class DepthStencilCompositePayloadFactory : public BuiltinPassPayloadFactory {
+    public:
+      bool matches(const RenderPassNode& pass) const override {
+        return pass.kind == RenderPassKind::Composite &&
+               pass.executor == RenderExecutorKind::Composite &&
+               (hasFeature(pass, "depth_composite") || hasFeature(pass, "stencil_composite"));
+      }
+
+      std::unique_ptr<RenderPassPayload> create(const RenderPassNode&) const override {
+        return std::make_unique<DepthStencilCompositePass>();
+      }
+    };
+
     const std::vector<const BuiltinPassPayloadFactory*>& builtinPayloadFactories() {
       static const ExactPassPayloadFactory<RaytraceBeautyPass> raytraceBeauty(
         RenderPassKind::Beauty, RenderExecutorKind::Raytracer);
@@ -1055,6 +1197,7 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"world_position"});
       static const PostProcessAAPayloadFactory postProcessAA;
       static const WireframeOverlayPayloadFactory wireframeOverlay;
+      static const DepthStencilCompositePayloadFactory depthStencilComposite;
       static const FeaturePassPayloadFactory<CurveOverlayPass> curveOverlay(
         RenderPassKind::Overlay, RenderExecutorKind::Wireframe, {"curve_overlay"});
       static const std::vector<const BuiltinPassPayloadFactory*> result = {
@@ -1085,6 +1228,7 @@ namespace engine::graph {
         &worldPositionAOVWireframe,
         &postProcessAA,
         &wireframeOverlay,
+        &depthStencilComposite,
         &curveOverlay,
       };
       return result;

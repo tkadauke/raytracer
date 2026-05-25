@@ -101,6 +101,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   references with matching resolved file, color context, and winding state,
   while instances preserve per-reference transforms, bounds, and materials for
   #210. — GPT-5
+- **Depth/stencil graph composite pass.** Built-in `Composite` executor passes
+  tagged with `depth_composite` or `stencil_composite` now combine base and
+  foreground color resources through graph-visible depth and stencil resources,
+  and `GraphRenderEngine` can bind external stencil inputs for imported/history
+  graph resources. — GPT-5
 - **Curve/path documentation and fixtures.** Public curve docs and the
   tessellation textbook now describe polyline data, ribbon/tube tessellation,
   curve overlays, and attribute-color rendering; reusable plain and attributed

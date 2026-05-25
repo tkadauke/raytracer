@@ -130,6 +130,10 @@ namespace engine::graph {
     return false;
   }
 
+  bool RenderResource::stencilBacked() const {
+    return false;
+  }
+
   bool RenderResource::objectIdBacked() const {
     return false;
   }
@@ -237,6 +241,10 @@ namespace engine::graph {
   }
 
   bool StencilRenderResource::hasBuffer() const {
+    return true;
+  }
+
+  bool StencilRenderResource::stencilBacked() const {
     return true;
   }
 

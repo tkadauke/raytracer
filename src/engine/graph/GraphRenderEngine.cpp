@@ -39,11 +39,13 @@ namespace engine::graph {
     struct ExternalResourceBindings {
       std::map<RenderResourceId, std::shared_ptr<const Buffer<Colord>>> colorResources;
       std::map<RenderResourceId, std::shared_ptr<const Buffer<double>>> depthResources;
+      std::map<RenderResourceId, std::shared_ptr<const Buffer<std::uint8_t>>> stencilResources;
       std::map<RenderResourceId, std::shared_ptr<const Buffer<std::uint32_t>>> objectIdResources;
 
       bool contains(const RenderResourceId& id) const {
         return colorResources.find(id) != colorResources.end() ||
                depthResources.find(id) != depthResources.end() ||
+               stencilResources.find(id) != stencilResources.end() ||
                objectIdResources.find(id) != objectIdResources.end();
       }
 
@@ -60,6 +62,12 @@ namespace engine::graph {
           return;
         }
 
+        const auto stencilIt = stencilResources.find(id);
+        if (stencilIt != stencilResources.end() && stencilIt->second) {
+          storage.bindStencil(id, *stencilIt->second);
+          return;
+        }
+
         const auto objectIdIt = objectIdResources.find(id);
         if (objectIdIt != objectIdResources.end() && objectIdIt->second) {
           storage.bindObjectId(id, *objectIdIt->second);
@@ -68,31 +76,43 @@ namespace engine::graph {
 
       void setColor(RenderResourceId id, std::shared_ptr<const Buffer<Colord>> buffer) {
         depthResources.erase(id);
+        stencilResources.erase(id);
         objectIdResources.erase(id);
         colorResources[std::move(id)] = std::move(buffer);
       }
 
       void setDepth(RenderResourceId id, std::shared_ptr<const Buffer<double>> buffer) {
         colorResources.erase(id);
+        stencilResources.erase(id);
         objectIdResources.erase(id);
         depthResources[std::move(id)] = std::move(buffer);
+      }
+
+      void setStencil(RenderResourceId id, std::shared_ptr<const Buffer<std::uint8_t>> buffer) {
+        colorResources.erase(id);
+        depthResources.erase(id);
+        objectIdResources.erase(id);
+        stencilResources[std::move(id)] = std::move(buffer);
       }
 
       void setObjectId(RenderResourceId id, std::shared_ptr<const Buffer<std::uint32_t>> buffer) {
         colorResources.erase(id);
         depthResources.erase(id);
+        stencilResources.erase(id);
         objectIdResources[std::move(id)] = std::move(buffer);
       }
 
       void clear(const RenderResourceId& id) {
         colorResources.erase(id);
         depthResources.erase(id);
+        stencilResources.erase(id);
         objectIdResources.erase(id);
       }
 
       void clear() {
         colorResources.clear();
         depthResources.clear();
+        stencilResources.clear();
         objectIdResources.clear();
       }
     };
@@ -647,6 +667,17 @@ namespace engine::graph {
       throw std::runtime_error("external depth resource '" + id + "' must not be null");
     }
     p->externalResources.setDepth(std::move(id), std::move(buffer));
+  }
+
+  void GraphRenderEngine::setExternalStencilResource(
+    RenderResourceId id, std::shared_ptr<const Buffer<std::uint8_t>> buffer) {
+    if (id.empty()) {
+      throw std::runtime_error("external stencil resource id must not be empty");
+    }
+    if (!buffer) {
+      throw std::runtime_error("external stencil resource '" + id + "' must not be null");
+    }
+    p->externalResources.setStencil(std::move(id), std::move(buffer));
   }
 
   void GraphRenderEngine::setExternalObjectIdResource(

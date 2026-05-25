@@ -123,6 +123,9 @@ filtering. The shadow node builds the full directional/cascade collection
 through the raster shadow-map builder, publishes a first-cascade depth preview
 for inspection, and passes the full artifact to raster beauty. Disabling that
 node leaves the raster beauty pass running without graph-controlled shadows.
+Replayed graph JSON can also contain `composite/composite` passes tagged
+`depth_composite` or `stencil_composite`; rendercli executes those with
+graph-visible color, depth, and stencil resources.
 Wireframe graph renders carry `--lod` in typed wireframe pass state, so
 graph-only JSON exports and replayed graph renders preserve the requested
 tessellation density.

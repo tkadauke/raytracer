@@ -83,6 +83,18 @@ namespace GraphRenderEngineTest {
     return objectId;
   }
 
+  RenderResourceDescriptor stencilResource(const std::string& id, RenderResourceLifetime lifetime,
+                                           int width = 2, int height = 2) {
+    RenderResourceDescriptor stencil;
+    stencil.id = id;
+    stencil.type = RenderResourceType::Stencil;
+    stencil.format = RenderResourceFormat::UInt8;
+    stencil.width = width;
+    stencil.height = height;
+    stencil.lifetime = lifetime;
+    return stencil;
+  }
+
   class BlockingMaterial : public render::Material {
   public:
     Colord shade(const render::RayCaster*, const render::Scene&, const Rayd&, const HitPoint&,
@@ -1188,6 +1200,102 @@ namespace GraphRenderEngineTest {
 
     EXPECT_EQ(Colord::black(), buffer[0][0]);
     EXPECT_FALSE(buffer[0][1] == Colord::black());
+  }
+
+  TEST(GraphRenderEngine, RendersBoundExternalStencilInputResources) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(colorResource("base_color", RenderResourceLifetime::History));
+    plan.addResource(colorResource("foreground_color", RenderResourceLifetime::History));
+    plan.addResource(stencilResource("stencil_mask", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode composite;
+    composite.id = "stencil_composite";
+    composite.kind = RenderPassKind::Composite;
+    composite.executor = RenderExecutorKind::Composite;
+    composite.features = {"stencil_composite"};
+    composite.reads.push_back({"base_color"});
+    composite.reads.push_back({"foreground_color"});
+    composite.reads.push_back({"stencil_mask"});
+    composite.writes.push_back({"display_color"});
+    plan.addPass(composite);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto baseColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto foregroundColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto stencil = std::make_shared<Buffer<std::uint8_t>>(2, 2);
+    baseColor->clear(Colord(0.0, 0.0, 1.0));
+    foregroundColor->clear(Colord(1.0, 0.0, 0.0));
+    stencil->clear(0);
+    (*stencil)[0][1] = 1;
+    (*stencil)[1][0] = 1;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalColorResource("base_color", baseColor);
+    engine.setExternalColorResource("foreground_color", foregroundColor);
+    engine.setExternalStencilResource("stencil_mask", stencil);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][0]);
+    EXPECT_EQ(Colord(1.0, 0.0, 0.0), buffer[0][1]);
+    EXPECT_EQ(Colord(1.0, 0.0, 0.0), buffer[1][0]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][1]);
+  }
+
+  TEST(GraphRenderEngine, DepthCompositeUsesNearestFiniteForegroundPixels) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(colorResource("base_color", RenderResourceLifetime::History));
+    plan.addResource(colorResource("foreground_color", RenderResourceLifetime::History));
+    plan.addResource(depthResource("base_depth", RenderResourceLifetime::History));
+    plan.addResource(depthResource("foreground_depth", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode composite;
+    composite.id = "depth_composite";
+    composite.kind = RenderPassKind::Composite;
+    composite.executor = RenderExecutorKind::Composite;
+    composite.features = {"depth_composite"};
+    composite.reads.push_back({"base_color"});
+    composite.reads.push_back({"foreground_color"});
+    composite.reads.push_back({"base_depth"});
+    composite.reads.push_back({"foreground_depth"});
+    composite.writes.push_back({"display_color"});
+    plan.addPass(composite);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto baseColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto foregroundColor = std::make_shared<Buffer<Colord>>(2, 2);
+    auto baseDepth = std::make_shared<Buffer<double>>(2, 2);
+    auto foregroundDepth = std::make_shared<Buffer<double>>(2, 2);
+    baseColor->clear(Colord(0.0, 0.0, 1.0));
+    foregroundColor->clear(Colord(1.0, 0.0, 0.0));
+    baseDepth->clear(1.0);
+    (*foregroundDepth)[0][0] = 0.5;
+    (*foregroundDepth)[0][1] = 2.0;
+    (*foregroundDepth)[1][0] = std::numeric_limits<double>::infinity();
+    (*foregroundDepth)[1][1] = 0.25;
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalColorResource("base_color", baseColor);
+    engine.setExternalColorResource("foreground_color", foregroundColor);
+    engine.setExternalDepthResource("base_depth", baseDepth);
+    engine.setExternalDepthResource("foreground_depth", foregroundDepth);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(1.0, 0.0, 0.0), buffer[0][0]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[0][1]);
+    EXPECT_EQ(Colord(0.0, 0.0, 1.0), buffer[1][0]);
+    EXPECT_EQ(Colord(1.0, 0.0, 0.0), buffer[1][1]);
   }
 
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {

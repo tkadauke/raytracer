@@ -97,6 +97,22 @@ namespace engine::graph {
     return resource(id).stencil();
   }
 
+  void RenderResourceStorage::bindStencil(const RenderResourceId& id,
+                                          const Buffer<std::uint8_t>& source) {
+    RenderResource& destinationResource = resource(id);
+    if (!destinationResource.stencilBacked()) {
+      throw std::out_of_range("render resource '" + id + "' is not stencil-backed");
+    }
+
+    Buffer<std::uint8_t>& destination = destinationResource.stencil();
+    if (!core::util::bufferDimensionsEqual(source, destination)) {
+      throw std::runtime_error("external stencil resource '" + id + "' has mismatched dimensions");
+    }
+
+    core::util::copyBuffer(destination, source);
+    destinationResource.markProduced();
+  }
+
   Buffer<std::uint32_t>& RenderResourceStorage::objectId(const RenderResourceId& id) {
     return resource(id).objectId();
   }

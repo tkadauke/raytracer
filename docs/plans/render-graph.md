@@ -612,7 +612,10 @@ These are executor-agnostic or appear at the end of almost every frame:
 - **AOV visualization pass** - convert depth, normals, object ids, material ids,
   UVs, or motion vectors into inspectable color.
 - **Compositor pass** - combine color, alpha, masks, depth, object ids, or
-  explicit layers into the final image.
+  explicit layers into the final image. ✅ **Partial.** Built-in `Composite`
+  executor passes tagged `depth_composite` or `stencil_composite` can now choose
+  foreground color over base color through graph-visible depth and stencil
+  resources.
 - **Postprocess anti-aliasing pass** - FXAA, SMAA, or other image-space AA.
 - **Temporal accumulation pass** - TAA, temporal denoising, progressive sample
   accumulation, or history blending.
@@ -1427,7 +1430,13 @@ graph after a replacement render starts.
 
 Add stencil and depth resources to the graph, then implement portal and planar
 mirror raster previews through generated stencil, alternate-camera, and
-composite passes.
+composite passes. ✅ **Partial.** CPU graph storage already owns depth and
+stencil resources, and `GraphRenderEngine` can now execute built-in
+depth/stencil composite passes. A composite pass reads base color, foreground
+color, an optional base/foreground depth pair, and an optional stencil mask,
+then writes a color output using nearest finite foreground depth and nonzero
+stencil coverage. Portal/mirror pass synthesis, alternate-camera rendering, and
+generated stencil masks remain TODO.
 
 ### AOV exports
 

@@ -83,6 +83,15 @@ namespace engine::graph {
                                   std::shared_ptr<const Buffer<double>> buffer);
 
     /**
+      * Binds a CPU stencil buffer for an imported or history graph resource.
+      *
+      * The buffer is copied into execution storage at render time. It must stay
+      * alive while this engine or render clones may execute plans that read it.
+      */
+    void setExternalStencilResource(RenderResourceId id,
+                                    std::shared_ptr<const Buffer<std::uint8_t>> buffer);
+
+    /**
       * Binds a CPU integer-id buffer for an imported or history graph resource.
       *
       * The buffer is copied into execution storage at render time. It must stay

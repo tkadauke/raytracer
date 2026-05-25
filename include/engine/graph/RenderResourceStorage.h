@@ -83,6 +83,14 @@ namespace engine::graph {
     Buffer<std::uint8_t>& stencil(const RenderResourceId& id);
     const Buffer<std::uint8_t>& stencil(const RenderResourceId& id) const;
 
+    /**
+      * Copies an externally supplied stencil buffer into @p id.
+      *
+      * The destination resource must exist, be stencil-backed, and have the
+      * same image dimensions as @p source.
+      */
+    void bindStencil(const RenderResourceId& id, const Buffer<std::uint8_t>& source);
+
     Buffer<std::uint32_t>& objectId(const RenderResourceId& id);
     const Buffer<std::uint32_t>& objectId(const RenderResourceId& id) const;
 

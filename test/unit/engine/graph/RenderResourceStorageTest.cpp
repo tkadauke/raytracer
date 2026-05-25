@@ -3,6 +3,8 @@
 #include "core/Buffer.h"
 #include "engine/graph/RenderResourceStorage.h"
 
+#include <cstdint>
+
 namespace RenderResourceStorageTest {
   using namespace engine::graph;
 
@@ -30,6 +32,7 @@ namespace RenderResourceStorageTest {
     EXPECT_TRUE(storage.hasBuffer("color"));
     EXPECT_TRUE(storage.resource("color").colorBacked());
     EXPECT_FALSE(storage.resource("depth").colorBacked());
+    EXPECT_TRUE(storage.resource("stencil").stencilBacked());
     EXPECT_EQ(4, storage.color("color").width());
     EXPECT_EQ(3, storage.color("color").height());
     EXPECT_EQ(4, storage.depth("depth").width());
@@ -127,6 +130,32 @@ namespace RenderResourceStorageTest {
     Buffer<double> external(2, 3);
 
     EXPECT_THROW(storage.bindDepth("history_depth", external), std::runtime_error);
+  }
+
+  TEST(RenderResourceStorage, BindsExternalStencilBuffer) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_stencil", RenderResourceType::Stencil),
+    });
+
+    Buffer<std::uint8_t> external(4, 3);
+    external.clear(7);
+
+    storage.bindStencil("history_stencil", external);
+
+    EXPECT_EQ(7, storage.stencil("history_stencil")[1][2]);
+    EXPECT_FALSE(storage.resource("history_stencil").substituteDefault());
+  }
+
+  TEST(RenderResourceStorage, RejectsMismatchedExternalStencilBufferShape) {
+    RenderResourceStorage storage;
+    storage.allocate({
+      resource("history_stencil", RenderResourceType::Stencil),
+    });
+
+    Buffer<std::uint8_t> external(2, 3);
+
+    EXPECT_THROW(storage.bindStencil("history_stencil", external), std::runtime_error);
   }
 
   TEST(RenderResourceStorage, BindsExternalObjectIdBuffer) {
