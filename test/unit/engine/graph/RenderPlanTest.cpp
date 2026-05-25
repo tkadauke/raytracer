@@ -394,6 +394,18 @@ namespace RenderPlanTest {
     EXPECT_EQ("raster_beauty", dependencies.front().producer->id);
     EXPECT_EQ("tonemap", dependencies.front().consumer->id);
     EXPECT_EQ("beauty_color", dependencies.front().resource);
+
+    const auto intoTonemap = plan.dependenciesInto("tonemap");
+    ASSERT_EQ(1u, intoTonemap.size());
+    EXPECT_EQ("raster_beauty", intoTonemap.front().producer->id);
+    EXPECT_EQ("beauty_color", intoTonemap.front().resource);
+    EXPECT_TRUE(plan.dependenciesInto("raster_beauty").empty());
+
+    const auto outOfBeauty = plan.dependenciesOutOf("raster_beauty");
+    ASSERT_EQ(1u, outOfBeauty.size());
+    EXPECT_EQ("tonemap", outOfBeauty.front().consumer->id);
+    EXPECT_EQ("beauty_color", outOfBeauty.front().resource);
+    EXPECT_TRUE(plan.dependenciesOutOf("tonemap").empty());
   }
 
   TEST(RenderPlan, ComparesExecutionEquivalentPlans) {

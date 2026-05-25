@@ -334,6 +334,26 @@ namespace engine::graph {
     return result;
   }
 
+  std::vector<RenderPassDependency> RenderPlan::dependenciesInto(const RenderPassId& pass) const {
+    std::vector<RenderPassDependency> result;
+    for (const auto& dependency : dependencies()) {
+      if (dependency.consumer->id == pass) {
+        result.push_back(dependency);
+      }
+    }
+    return result;
+  }
+
+  std::vector<RenderPassDependency> RenderPlan::dependenciesOutOf(const RenderPassId& pass) const {
+    std::vector<RenderPassDependency> result;
+    for (const auto& dependency : dependencies()) {
+      if (dependency.producer->id == pass) {
+        result.push_back(dependency);
+      }
+    }
+    return result;
+  }
+
   std::vector<const RenderPassNode*> RenderPlan::executionOrder() const {
     std::vector<const RenderPassNode*> result;
     result.reserve(m_passes.size());

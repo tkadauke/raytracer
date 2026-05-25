@@ -11,6 +11,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **RenderPlan pass dependency queries.** `RenderPlan` now exposes incoming and
+  outgoing dependency-edge lookups for a selected pass. — GPT-5
 - **Render graph execution stages.** `RenderPlan` now exposes dependency-ready
   execution stages, text/JSON/DOT exports surface those stages, and the Modeler
   graph view uses them for its left-to-right layout of independent branches.
