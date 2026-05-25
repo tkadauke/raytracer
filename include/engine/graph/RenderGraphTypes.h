@@ -362,6 +362,16 @@ namespace engine::graph {
     bool hasSelectorSpecificOverrides() const;
 
     /**
+      * Throws when this intent still contains selector-specific overrides.
+      *
+      * Whole-frame graph compilation can safely apply `selector: all`
+      * overrides before synthesizing passes. Targeted selectors require future
+      * scene partitioning and composition, so callers use this guard to fail
+      * clearly instead of silently ignoring part of the user's intent.
+      */
+    void requireWholeFrameOnly(const std::string& context) const;
+
+    /**
       * Builds the default scene view carried by synthesized scene-rendering
       * passes.
       */

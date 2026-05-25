@@ -913,6 +913,22 @@ namespace engine::graph {
       [](const RenderViewOverride& viewOverride) { return !viewOverride.appliesToWholeFrame(); });
   }
 
+  void RenderIntent::requireWholeFrameOnly(const std::string& context) const {
+    const auto overrides = selectorSpecificOverrides();
+    if (overrides.empty()) {
+      return;
+    }
+
+    std::ostringstream message;
+    message << context << " does not support selector-specific render intent yet";
+    message << " (" << overrides.front().selector.displayText();
+    if (overrides.size() > 1) {
+      message << ", +" << (overrides.size() - 1) << " more";
+    }
+    message << ")";
+    throw std::runtime_error(message.str());
+  }
+
   SceneView RenderIntent::defaultSceneView() const {
     SceneView view;
     view.selector = SceneSelector::all();

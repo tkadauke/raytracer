@@ -15,6 +15,7 @@ set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
+set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-scene.json")
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
@@ -163,6 +164,25 @@ file(WRITE "${invalid_exported_aov_scene}" [=[
   "type": "Scene",
   "renderIntent": {
     "exportedAOVs": ["beauty"]
+  },
+  "children": []
+}
+]=])
+
+file(WRITE "${selector_specific_intent_scene}" [=[
+{
+  "id": "{93000000-0000-0000-0000-000000000000}",
+  "name": "Selector Specific Intent Fixture",
+  "ambient": [0.4, 0.4, 0.4],
+  "background": [0.4, 0.8, 1.0],
+  "type": "Scene",
+  "renderIntent": {
+    "viewOverrides": [
+      {
+        "selector": {"kind": "object_name", "value": "Monitor"},
+        "executor": "wireframe"
+      }
+    ]
   },
   "children": []
 }
@@ -581,6 +601,14 @@ rendercli_expect_failure(
   COMMAND
     "${RENDERCLI}" --render_graph_only --render_graph_format json
     "${invalid_exported_aov_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unsupported selector-specific scene intent"
+  STDERR_MATCHES "selector-specific render intent"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format json
+    "${selector_specific_intent_scene}" "${invalid_plan}"
 )
 
 rendercli_run(

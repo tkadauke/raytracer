@@ -5,6 +5,7 @@
 #include "engine/graph/RenderGraphCompiler.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <string>
 
 namespace RenderGraphCompilerTest {
@@ -343,6 +344,25 @@ namespace RenderGraphCompilerTest {
               plan.passes()[0].sceneView.shadingProfile->parameters.at("levels"));
     EXPECT_EQ("visualize_depth_aov", plan.passes()[1].id);
     EXPECT_TRUE(plan.validate().valid());
+  }
+
+  TEST(RenderGraphCompiler, RejectsSelectorSpecificOverridesUntilScenePartitioningExists) {
+    RenderGraphCompiler compiler;
+    RenderIntent intent;
+
+    RenderViewOverride override;
+    override.selector = SceneSelector::objectName("Monitor");
+    override.executor = RenderExecutorPreference::Wireframe;
+    intent.viewOverrides.push_back(override);
+
+    try {
+      compiler.compile({64, 32, 1}, intent);
+      FAIL() << "Expected selector-specific graph compilation rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("selector-specific render intent"));
+      EXPECT_NE(std::string::npos, message.find("object_name: Monitor"));
+    }
   }
 
   TEST(RenderGraphCompiler, NormalizesNonPositiveSampleCount) {

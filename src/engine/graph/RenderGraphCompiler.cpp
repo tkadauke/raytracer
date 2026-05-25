@@ -153,6 +153,7 @@ namespace engine::graph {
                                           const RenderIntent& intent) const {
     const RenderTargetSpec target = rawTarget.normalized();
     const RenderIntent frameIntent = intent.withWholeFrameOverridesApplied();
+    frameIntent.requireWholeFrameOnly("RenderGraphCompiler");
     const RenderExecutorKind executor = frameIntent.defaultExecutorKind();
     const auto* executorDefinition = renderExecutorDefinition(executor);
     if (!executorDefinition) {
