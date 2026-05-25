@@ -241,6 +241,7 @@ namespace engine::graph {
               {RenderPlanValidationError::Code::DisabledRequiredPass, "disabled_required_pass"},
               {RenderPlanValidationError::Code::InvalidPassIO, "invalid_pass_io"},
               {RenderPlanValidationError::Code::InvalidResourceShape, "invalid_resource_shape"},
+              {RenderPlanValidationError::Code::ResourceDomainMismatch, "resource_domain_mismatch"},
               {RenderPlanValidationError::Code::Cycle, "cycle"}});
   }
 
@@ -616,11 +617,19 @@ namespace engine::graph {
       }
 
       for (const auto& write : pass.writes) {
-        if (resources.find(write.resource) == resources.end()) {
+        const auto resourceIt = resources.find(write.resource);
+        if (resourceIt == resources.end()) {
           result.add({RenderPlanValidationError::Code::UnknownResource,
                       "pass '" + pass.id + "' writes unknown resource '" + write.resource + "'",
                       pass.id, write.resource});
           continue;
+        }
+        if (!pass.supportsResourceDomain(resourceIt->second->domain)) {
+          result.add({RenderPlanValidationError::Code::ResourceDomainMismatch,
+                      "pass '" + pass.id + "' cannot write " +
+                        std::string(toString(resourceIt->second->domain)) + " resource '" +
+                        write.resource + "'",
+                      pass.id, write.resource});
         }
 
         const auto inserted = producers.emplace(write.resource, &pass);
@@ -689,6 +698,13 @@ namespace engine::graph {
                       "pass '" + pass.id + "' reads unknown resource '" + read.resource + "'",
                       pass.id, read.resource});
           continue;
+        }
+        if (!pass.supportsResourceDomain(resourceIt->second->domain)) {
+          result.add({RenderPlanValidationError::Code::ResourceDomainMismatch,
+                      "pass '" + pass.id + "' cannot read " +
+                        std::string(toString(resourceIt->second->domain)) + " resource '" +
+                        read.resource + "'",
+                      pass.id, read.resource});
         }
 
         const auto producerIt = producers.find(read.resource);

@@ -1016,6 +1016,10 @@ namespace engine::graph {
                        [&](const ResourceWrite& write) { return write.resource == resource; });
   }
 
+  bool RenderPassNode::supportsResourceDomain(RenderResourceDomain domain) const {
+    return domain == RenderResourceDomain::CPU;
+  }
+
   bool RenderPassNode::producesWhenDisabled() const {
     return disabledBehavior == DisabledBehavior::SubstituteDefault ||
            disabledBehavior == DisabledBehavior::Passthrough;
