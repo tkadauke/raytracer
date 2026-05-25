@@ -3,6 +3,7 @@
 #include "core/Buffer.h"
 #include "core/Color.h"
 #include "core/math/Vector.h"
+#include "core/util/BufferUtils.h"
 
 #include <string>
 #include <vector>
@@ -40,11 +41,6 @@ namespace engine::raster::detail {
     std::vector<std::string> errors;
   };
 
-  template<class T>
-  bool temporalBufferMatches(const Buffer<T>* buffer, int width, int height) {
-    return buffer && buffer->width() == width && buffer->height() == height;
-  }
-
   bool temporalJitterIsFinite(const TemporalJitter& jitter);
 
   template<class T>
@@ -52,7 +48,7 @@ namespace engine::raster::detail {
                               std::vector<std::string>& errors) {
     if (!buffer) {
       errors.push_back(std::string(name) + " buffer is required");
-    } else if (buffer->width() != width || buffer->height() != height) {
+    } else if (!core::util::bufferDimensionsMatch(buffer, width, height)) {
       errors.push_back(std::string(name) + " buffer dimensions must match the render target");
     }
   }

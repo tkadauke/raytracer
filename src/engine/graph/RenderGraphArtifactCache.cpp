@@ -1,5 +1,6 @@
 #include "engine/graph/RenderGraphArtifactCache.h"
 
+#include "core/util/BufferUtils.h"
 #include "engine/graph/RenderPassState.h"
 
 #include <QJsonDocument>
@@ -103,11 +104,7 @@ namespace engine::graph {
                                                      std::string description)
       : RenderGraphCachedArtifact(std::move(key), std::move(description)),
         m_depth(depth.width(), depth.height()) {
-    for (int y = 0; y != depth.height(); ++y) {
-      for (int x = 0; x != depth.width(); ++x) {
-        m_depth[y][x] = depth[y][x];
-      }
-    }
+    core::util::copyBuffer(m_depth, depth);
   }
 
   const Buffer<double>& RenderGraphDepthArtifact::depth() const {
@@ -115,15 +112,11 @@ namespace engine::graph {
   }
 
   bool RenderGraphDepthArtifact::copyDepthTo(Buffer<double>& destination) const {
-    if (destination.width() != m_depth.width() || destination.height() != m_depth.height()) {
+    if (!core::util::bufferDimensionsEqual(destination, m_depth)) {
       throw std::runtime_error("cached depth artifact copy requires matching buffer dimensions");
     }
 
-    for (int y = 0; y != m_depth.height(); ++y) {
-      for (int x = 0; x != m_depth.width(); ++x) {
-        destination[y][x] = m_depth[y][x];
-      }
-    }
+    core::util::copyBuffer(destination, m_depth);
     return true;
   }
 

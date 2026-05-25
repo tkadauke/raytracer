@@ -1,5 +1,7 @@
 #include "engine/graph/RenderResourceStorage.h"
 
+#include "core/util/BufferUtils.h"
+
 namespace engine::graph {
   void RenderResourceStorage::allocate(const std::vector<RenderResourceDescriptor>& descriptors) {
     clear();
@@ -56,15 +58,11 @@ namespace engine::graph {
     }
 
     Buffer<Colord>& destination = destinationResource.color();
-    if (source.width() != destination.width() || source.height() != destination.height()) {
+    if (!core::util::bufferDimensionsEqual(source, destination)) {
       throw std::runtime_error("external color resource '" + id + "' has mismatched dimensions");
     }
 
-    for (int y = 0; y != source.height(); ++y) {
-      for (int x = 0; x != source.width(); ++x) {
-        destination[y][x] = source[y][x];
-      }
-    }
+    core::util::copyBuffer(destination, source);
     destinationResource.markProduced();
   }
 
@@ -83,15 +81,11 @@ namespace engine::graph {
     }
 
     Buffer<double>& destination = destinationResource.depth();
-    if (source.width() != destination.width() || source.height() != destination.height()) {
+    if (!core::util::bufferDimensionsEqual(source, destination)) {
       throw std::runtime_error("external depth resource '" + id + "' has mismatched dimensions");
     }
 
-    for (int y = 0; y != source.height(); ++y) {
-      for (int x = 0; x != source.width(); ++x) {
-        destination[y][x] = source[y][x];
-      }
-    }
+    core::util::copyBuffer(destination, source);
     destinationResource.markProduced();
   }
 
@@ -119,16 +113,12 @@ namespace engine::graph {
     }
 
     Buffer<std::uint32_t>& destination = destinationResource.objectId();
-    if (source.width() != destination.width() || source.height() != destination.height()) {
+    if (!core::util::bufferDimensionsEqual(source, destination)) {
       throw std::runtime_error("external object-id resource '" + id +
                                "' has mismatched dimensions");
     }
 
-    for (int y = 0; y != source.height(); ++y) {
-      for (int x = 0; x != source.width(); ++x) {
-        destination[y][x] = source[y][x];
-      }
-    }
+    core::util::copyBuffer(destination, source);
     destinationResource.markProduced();
   }
 }

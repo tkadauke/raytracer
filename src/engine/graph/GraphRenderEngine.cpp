@@ -1,6 +1,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 
 #include "core/Buffer.h"
+#include "core/util/BufferUtils.h"
 #include "engine/graph/RenderGraphArtifactCache.h"
 #include "engine/graph/RenderPassPayload.h"
 #include "engine/graph/RenderExecutionContext.h"
@@ -139,24 +140,15 @@ namespace engine::graph {
 
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<Colord>& destination,
                              const std::string& action) {
-      if (source.width() != destination.width() || source.height() != destination.height()) {
+      if (!core::util::bufferDimensionsEqual(source, destination)) {
         throw std::runtime_error(action + " requires matching color buffer dimensions");
       }
     }
 
     void requireMatchingSize(const Buffer<Colord>& source, const Buffer<unsigned int>& destination,
                              const std::string& action) {
-      if (source.width() != destination.width() || source.height() != destination.height()) {
+      if (!core::util::bufferDimensionsEqual(source, destination)) {
         throw std::runtime_error(action + " requires matching color buffer dimensions");
-      }
-    }
-
-    void copyColorBuffer(const Buffer<Colord>& source, Buffer<Colord>& destination) {
-      requireMatchingSize(source, destination, "color copy");
-      for (int y = 0; y != source.height(); ++y) {
-        for (int x = 0; x != source.width(); ++x) {
-          destination[y][x] = source[y][x];
-        }
       }
     }
 
@@ -286,7 +278,8 @@ namespace engine::graph {
         requireColorResource(storage, write.resource, pass);
         Buffer<Colord>& destination = storage.color(write.resource);
         if (&source != &destination) {
-          copyColorBuffer(source, destination);
+          requireMatchingSize(source, destination, "color copy");
+          core::util::copyBuffer(destination, source);
         }
         storage.resource(write.resource).markProduced();
       }
@@ -796,7 +789,8 @@ namespace engine::graph {
       }
     }
 
-    copyColorBuffer(storage.color(plan.exportedColorResource().id), buffer);
+    requireMatchingSize(storage.color(plan.exportedColorResource().id), buffer, "color copy");
+    core::util::copyBuffer(buffer, storage.color(plan.exportedColorResource().id));
   }
 
   void GraphRenderEngine::render(Buffer<unsigned int>& buffer) {
