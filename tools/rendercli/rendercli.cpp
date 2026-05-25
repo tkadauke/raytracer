@@ -41,6 +41,7 @@
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -379,6 +380,42 @@ namespace {
     return true;
   }
 
+  bool parseShadingProfileParameter(
+    const QString& value,
+    std::pair<std::string, engine::graph::ShadingProfileParameterValue>* parameter,
+    QString* errorMessage) {
+    const int separator = value.indexOf('=');
+    if (separator <= 0 || separator == value.size() - 1) {
+      *errorMessage = "Render graph shading parameter must use key=value syntax";
+      return false;
+    }
+
+    const QString key = value.left(separator).trimmed();
+    const QString rawValue = value.mid(separator + 1).trimmed();
+    if (key.isEmpty() || rawValue.isEmpty()) {
+      *errorMessage = "Render graph shading parameter key and value must not be empty";
+      return false;
+    }
+
+    const QString normalized = rawValue.toLower();
+    if (normalized == "true" || normalized == "false") {
+      *parameter = {key.toStdString(),
+                    engine::graph::ShadingProfileParameterValue(normalized == "true")};
+      return true;
+    }
+
+    bool ok = false;
+    const double number = rawValue.toDouble(&ok);
+    if (ok) {
+      *parameter = {key.toStdString(), engine::graph::ShadingProfileParameterValue(number)};
+      return true;
+    }
+
+    *parameter = {key.toStdString(),
+                  engine::graph::ShadingProfileParameterValue(rawValue.toStdString())};
+    return true;
+  }
+
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
     std::set<std::string> materialTypes;
     scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
@@ -466,6 +503,7 @@ private:
   engine::graph::RenderViewMode m_renderGraphViewMode;
   QString m_renderGraphCamera;
   QString m_renderGraphShadingProfile;
+  engine::graph::ShadingProfileParameters m_renderGraphShadingProfileParameters;
   bool m_renderGraphWireframeOverlay;
   bool m_renderGraphCurveOverlay;
   engine::graph::RenderGraphOverrides m_renderGraphOverrides;
@@ -567,6 +605,7 @@ Renderer::Renderer()
       m_renderGraphViewMode(engine::graph::RenderViewMode::Beauty),
       m_renderGraphCamera(),
       m_renderGraphShadingProfile(),
+      m_renderGraphShadingProfileParameters(),
       m_renderGraphWireframeOverlay(false),
       m_renderGraphCurveOverlay(false),
       m_renderGraphOverrides(),
@@ -645,6 +684,9 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
   if (!m_renderGraphShadingProfile.isEmpty()) {
     intent.defaultShadingProfile =
       engine::graph::ShadingProfileRef{m_renderGraphShadingProfile.toStdString(), {}};
+  }
+  for (const auto& [key, value] : m_renderGraphShadingProfileParameters) {
+    intent.defaultShadingProfile.parameters.insert_or_assign(key, value);
   }
   if (m_renderGraphWireframeOverlay) {
     intent.enableWireframeOverlay = true;
@@ -1259,6 +1301,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "mode"},
      {"render_graph_camera", "Override graph intent camera with a scene camera id", "camera_id"},
      {"render_graph_shading_profile", "Override graph intent shading profile", "profile"},
+     {"render_graph_shading_parameter",
+      "Set a default graph shading profile parameter; may be repeated with key=value", "key=value"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"render_graph_curve_overlay", "Add a curve center-line overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
@@ -1492,6 +1536,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     if (m_renderGraphShadingProfile.isEmpty()) {
       *errorMessage = "Render graph shading profile must not be empty";
       return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("render_graph_shading_parameter")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_shading_parameter")) {
+      std::pair<std::string, engine::graph::ShadingProfileParameterValue> parameter;
+      if (!parseShadingProfileParameter(value, &parameter, errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphShadingProfileParameters.insert_or_assign(parameter.first, parameter.second);
     }
   }
 
@@ -1866,7 +1921,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
        !m_renderGraphTraceOut.isEmpty() || !m_renderGraphAOVOutputs.empty() ||
        parser.isSet("render_graph_executor") || parser.isSet("render_graph_view") ||
        parser.isSet("render_graph_camera") || parser.isSet("render_graph_shading_profile") ||
-       m_renderGraphWireframeOverlay || m_renderGraphCurveOverlay ||
+       parser.isSet("render_graph_shading_parameter") || m_renderGraphWireframeOverlay ||
+       m_renderGraphCurveOverlay ||
        parser.isSet("disable_pass") || parser.isSet("disable_pass_kind") ||
        parser.isSet("disable_executor") || parser.isSet("disable_feature"))) {
     *errorMessage = "Cannot combine --direct_engine with render graph options";
