@@ -513,6 +513,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
 - **EXR** — float HDR output from the framebuffer (R1) and environment map input. Read + write via OpenEXR or tinyexr.
 - **HDR (Radiance `.hdr`)** — environment maps. Read.
 - **OpenSCAD `.scad`** — see §4.6 scripted objects.
+- **LDraw `.dat` / `.ldr`** — LEGO part and model text format. ~~Core line
+  parser for command types 0 through 5.~~ ✅ **Done.** `core/formats/ldraw`
+  preserves meta commands, subfile filenames, and geometry records for #210;
+  referenced-file resolution and scene/mesh conversion remain TODO.
 - **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI
