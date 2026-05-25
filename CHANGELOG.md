@@ -11,6 +11,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Runtime curve primitive tessellation.** `render::Curve` now wraps
+  `core::Polyline` paths and tessellates finite-width curves into ribbon or
+  tube meshes for raster, wireframe, and other mesh-consuming render paths,
+  while safely skipping zero-length segments. — GPT-5
 - **World scene groups.** `Group` scene objects can organize surfaces, lights,
   and nested groups with transform and visibility controls, converting visible
   geometry to runtime composites without abusing inactive CSG surfaces. — GPT-5
