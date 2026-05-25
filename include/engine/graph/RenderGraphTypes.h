@@ -282,6 +282,16 @@ namespace engine::graph {
     bool exportsAOV(RenderViewMode viewMode) const;
 
     /**
+      * Sets the default camera reference used by synthesized scene passes.
+      */
+    void setDefaultCamera(RenderCameraRef camera);
+
+    /**
+      * Sets the default named shading profile used by synthesized scene passes.
+      */
+    void setDefaultShadingProfile(ShadingProfileRef profile);
+
+    /**
       * Sets a scalar parameter on the default named shading profile.
       */
     void setDefaultShadingProfileParameter(std::string key, ShadingProfileParameterValue value);

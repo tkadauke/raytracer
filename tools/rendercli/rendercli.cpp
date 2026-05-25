@@ -663,12 +663,12 @@ engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
     intent.defaultViewMode = engine::graph::RenderViewMode::Wireframe;
   }
   if (!m_renderGraphCamera.isEmpty()) {
-    intent.defaultCamera =
-      engine::graph::RenderCameraRef{m_renderGraphCamera.toStdString(), std::nullopt};
+    intent.setDefaultCamera(
+      engine::graph::RenderCameraRef{m_renderGraphCamera.toStdString(), std::nullopt});
   }
   if (!m_renderGraphShadingProfile.isEmpty()) {
-    intent.defaultShadingProfile =
-      engine::graph::ShadingProfileRef{m_renderGraphShadingProfile.toStdString(), {}};
+    intent.setDefaultShadingProfile(
+      engine::graph::ShadingProfileRef{m_renderGraphShadingProfile.toStdString(), {}});
   }
   for (const auto& [key, value] : m_renderGraphShadingProfileParameters) {
     intent.setDefaultShadingProfileParameter(key, value);
