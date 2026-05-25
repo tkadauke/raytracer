@@ -62,6 +62,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **rendercli graph camera override.** `rendercli --render_graph_camera <id>`
   now overrides the render intent's default scene-camera reference in compiled
   graph plans. — GPT-5
+- **LDraw color/material lookup.** `core/formats/ldraw` now parses
+  `LDConfig.ldr` `0 !COLOUR` records, resolves LDraw current/edge color
+  inheritance and direct RGB color codes, and maps standard finishes to
+  renderer material approximations for #210. — GPT-5
 - **RenderPlan pass dependency queries.** `RenderPlan` now exposes incoming and
   outgoing dependency-edge lookups for a selected pass. — GPT-5
 - **Core LDraw parser.** `core/formats/ldraw` now parses `.dat` and `.ldr`

@@ -49,7 +49,10 @@ namespace {
   int parseInt(const Token& token, int lineNumber, const string& fieldName) {
     char* end = nullptr;
     errno = 0;
-    const long value = strtol(token.text.c_str(), &end, 10);
+    int base = 10;
+    if (token.text.size() > 2 && token.text[0] == '0' && (token.text[1] == 'x' || token.text[1] == 'X'))
+      base = 16;
+    const long value = strtol(token.text.c_str(), &end, base);
     if (errno != 0 || end == token.text.c_str() || *end != '\0' ||
         value < numeric_limits<int>::min() || value > numeric_limits<int>::max())
       throwParseError(lineNumber, "invalid integer for " + fieldName + ": '" + token.text + "'");
