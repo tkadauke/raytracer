@@ -118,9 +118,6 @@ AOV files such as `stencil=mask.png`, `normal=normal.png`, or
 When replaying explicit graph JSON, `--render_graph_color_in resource=file` and
 `--render_graph_stencil_in resource=file` bind imported or history color and
 stencil resources from image files before execution.
-[`graphs/render_graph_stencil_composite_demo.json`](../../../graphs/render_graph_stencil_composite_demo.json)
-is a reusable explicit graph plan that materializes a raster stencil buffer and
-uses it to composite wireframe foreground pixels over raster beauty output.
 `--render_graph_wireframe_overlay` asks the compiler to insert a graph-visible
 wireframe overlay pass between the beauty pass and the tonemap pass.
 For graph renders, `--post_aa fxaa` and `--post_aa smaa` are also

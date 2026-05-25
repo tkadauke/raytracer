@@ -15,8 +15,6 @@ set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(graph_demo_scene "${PROJECT_SOURCE_DIR}/scenes/render_graph_aov_demo.json")
 set(stencil_composite_demo_scene
     "${PROJECT_SOURCE_DIR}/scenes/render_graph_stencil_composite_demo.json")
-set(stencil_composite_demo_graph
-    "${PROJECT_SOURCE_DIR}/graphs/render_graph_stencil_composite_demo.json")
 set(scene_intent_scene "${TEST_OUTPUT_DIR}/scene-intent.json")
 set(default_graph_scene "${TEST_OUTPUT_DIR}/default-graph-scene.json")
 set(invalid_exported_aov_scene "${TEST_OUTPUT_DIR}/invalid-exported-aov-scene.json")
@@ -84,7 +82,6 @@ set(external_input_bound_render "${TEST_OUTPUT_DIR}/graph-external-input-bound-r
 set(stencil_input_bound_render "${TEST_OUTPUT_DIR}/graph-stencil-input-bound-render.png")
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 set(graph_demo_render "${TEST_OUTPUT_DIR}/graph-demo-render.png")
-set(stencil_composite_demo_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-demo-render.png")
 set(stencil_composite_scene_render "${TEST_OUTPUT_DIR}/graph-stencil-composite-scene-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
@@ -1296,30 +1293,6 @@ rendercli_run(
 rendercli_assert_image_dimensions("${graph_demo_render}" 32 18
                                   NAME "render graph demo scene dimensions")
 rendercli_assert_image_nonempty("${graph_demo_render}" NAME "render graph demo scene pixels")
-
-rendercli_run(
-  NAME "rendercli compiles reusable stencil composite graph"
-  STDOUT_MATCHES
-    "stencil_aov \\[aov/rasterizer\\] enabled"
-    "stencil_composite \\[composite/composite\\] enabled"
-    "Dependencies:"
-    "stencil_aov -> stencil_composite via stencil_mask"
-  COMMAND
-    "${RENDERCLI}" --render_graph_in "${stencil_composite_demo_graph}"
-    --render_graph_only --render_graph_format text
-    "${graph_demo_scene}"
-)
-
-rendercli_run(
-  NAME "rendercli renders reusable stencil composite graph"
-  COMMAND
-    "${RENDERCLI}" --render_graph_in "${stencil_composite_demo_graph}"
-    "${graph_demo_scene}" "${stencil_composite_demo_render}"
-)
-rendercli_assert_image_dimensions("${stencil_composite_demo_render}" 480 270
-                                  NAME "stencil composite demo dimensions")
-rendercli_assert_image_nonempty("${stencil_composite_demo_render}"
-                                NAME "stencil composite demo pixels")
 
 rendercli_run(
   NAME "rendercli writes execution trace while rendering through graph"
