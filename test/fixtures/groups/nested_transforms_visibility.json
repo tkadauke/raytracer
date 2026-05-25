@@ -1,0 +1,163 @@
+{
+  "id": "{90000000-0000-0000-0000-000000000000}",
+  "name": "Nested Group Transform Visibility Fixture",
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{90000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [2.5, 0.5, -5.0],
+      "target": [2.5, 0.5, 0.0],
+      "distance": 5.0,
+      "zoom": 1.25,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{90000000-0000-0000-0000-000000000010}",
+      "name": "VisibleWhite",
+      "color": [0.85, 0.88, 0.92],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{90000000-0000-0000-0000-000000000011}",
+      "name": "HiddenRed",
+      "color": [0.90, 0.10, 0.08],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{90000000-0000-0000-0000-000000000020}",
+      "name": "VisibleMaterial",
+      "diffuseTexture": "{90000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 0.75,
+      "diffuseCoefficient": 0.80,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{90000000-0000-0000-0000-000000000021}",
+      "name": "HiddenMaterial",
+      "diffuseTexture": "{90000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{90000000-0000-0000-0000-000000000100}",
+      "name": "Imported Assembly",
+      "position": [1.5, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [2.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "sourceFormat": "fixture",
+        "sourceId": "assembly/root",
+        "category": "assembly",
+        "layerName": "authoring-hierarchy"
+      },
+      "type": "Collection",
+      "children": [
+        {
+          "id": "{90000000-0000-0000-0000-000000000110}",
+          "name": "Visible Subassembly",
+          "position": [0.0, 0.5, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 0.5, 1.0],
+          "visible": true,
+          "metadata": {
+            "sourceId": "assembly/root/visible",
+            "category": "subassembly",
+            "stepIndex": 1
+          },
+          "type": "Group",
+          "children": [
+            {
+              "id": "{90000000-0000-0000-0000-000000000111}",
+              "name": "Visible Nested Sphere",
+              "position": [0.5, 0.0, 0.0],
+              "rotation": [0.0, 0.0, 0.0],
+              "scale": [1.0, 1.0, 1.0],
+              "visible": true,
+              "material": "{90000000-0000-0000-0000-000000000020}",
+              "radius": 0.25,
+              "velocity": [0.0, 0.0, 0.0],
+              "type": "Sphere",
+              "children": []
+            },
+            {
+              "id": "{90000000-0000-0000-0000-000000000112}",
+              "name": "Hidden Child Sphere",
+              "position": [1.0, 0.0, 0.0],
+              "rotation": [0.0, 0.0, 0.0],
+              "scale": [1.0, 1.0, 1.0],
+              "visible": false,
+              "material": "{90000000-0000-0000-0000-000000000021}",
+              "radius": 0.25,
+              "velocity": [0.0, 0.0, 0.0],
+              "type": "Sphere",
+              "children": []
+            },
+            {
+              "id": "{90000000-0000-0000-0000-000000000113}",
+              "name": "Visible Nested Light",
+              "position": [0.5, -1.5, -2.0],
+              "rotation": [0.0, 0.0, 0.0],
+              "scale": [1.0, 1.0, 1.0],
+              "visible": true,
+              "color": [1.0, 1.0, 1.0],
+              "intensity": 0.6,
+              "type": "PointLight",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "{90000000-0000-0000-0000-000000000120}",
+          "name": "Hidden Subassembly",
+          "position": [-2.0, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": false,
+          "metadata": {
+            "sourceId": "assembly/root/hidden",
+            "category": "subassembly",
+            "layerName": "disabled-source-layer"
+          },
+          "type": "Group",
+          "children": [
+            {
+              "id": "{90000000-0000-0000-0000-000000000121}",
+              "name": "Suppressed Sphere",
+              "position": [0.0, 0.0, 0.0],
+              "rotation": [0.0, 0.0, 0.0],
+              "scale": [1.0, 1.0, 1.0],
+              "visible": true,
+              "material": "{90000000-0000-0000-0000-000000000021}",
+              "radius": 0.5,
+              "velocity": [0.0, 0.0, 0.0],
+              "type": "Sphere",
+              "children": []
+            },
+            {
+              "id": "{90000000-0000-0000-0000-000000000122}",
+              "name": "Suppressed Light",
+              "position": [0.0, -2.0, -2.0],
+              "rotation": [0.0, 0.0, 0.0],
+              "scale": [1.0, 1.0, 1.0],
+              "visible": true,
+              "color": [1.0, 0.7, 0.7],
+              "intensity": 0.9,
+              "type": "PointLight",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
