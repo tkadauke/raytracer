@@ -197,11 +197,15 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
   const string compiledKey =
     fileKey + "|" + colorContextKey(context) + "|" + (inheritedInverted ? "inverted" : "normal");
   auto compiled = m_compiledSubfiles.find(compiledKey);
-  if (compiled != m_compiledSubfiles.end())
+  if (compiled != m_compiledSubfiles.end()) {
+    ++m_cacheStats.compiledSubfileHits;
     return compiled->second;
+  }
+  ++m_cacheStats.compiledSubfileMisses;
 
   auto parsed = m_parsedSubfiles.find(fileKey);
   if (parsed == m_parsedSubfiles.end()) {
+    ++m_cacheStats.parsedSubfileMisses;
     auto input = m_resolver->open(reference.filename);
     if (!input) {
       throw Exception("LDraw resolver could not open subfile: " + reference.filename,
@@ -234,4 +238,12 @@ shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
 
 string LDrawGeometryCompiler::colorContextKey(const LDrawColorContext& context) {
   return colorReferenceKey(context.currentColor) + "|" + colorReferenceKey(context.edgeColor);
+}
+
+LDrawGeometryCompiler::CacheStats LDrawGeometryCompiler::cacheStats() const {
+  return m_cacheStats;
+}
+
+void LDrawGeometryCompiler::resetCacheStats() const {
+  m_cacheStats = CacheStats();
 }

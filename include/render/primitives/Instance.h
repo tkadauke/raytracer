@@ -124,6 +124,11 @@ namespace render {
       return m_velocity;
     }
 
+    /// @returns the primitive shared by this instance.
+    inline const std::shared_ptr<Primitive>& primitive() const {
+      return m_primitive;
+    }
+
     /// Support function — transforms `direction` into local space,
     /// queries the wrapped primitive, transforms the result back.
     virtual Vector3d farthestPoint(const Vector3d& direction) const override;

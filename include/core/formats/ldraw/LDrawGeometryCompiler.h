@@ -4,6 +4,7 @@
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawParser.h"
 
+#include <cstddef>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -22,6 +23,12 @@ namespace render {
   */
 class LDrawGeometryCompiler {
 public:
+  struct CacheStats {
+    std::size_t parsedSubfileMisses = 0;
+    std::size_t compiledSubfileMisses = 0;
+    std::size_t compiledSubfileHits = 0;
+  };
+
   explicit LDrawGeometryCompiler(std::shared_ptr<const LDrawFileResolver> resolver = nullptr,
                                  int recursionLimit = 64);
 
@@ -32,6 +39,9 @@ public:
   [[nodiscard]] std::shared_ptr<render::Composite>
   compile(std::istream& input, const LDrawColorTable& colors,
           const LDrawColorContext& context = LDrawColorContext()) const;
+
+  [[nodiscard]] CacheStats cacheStats() const;
+  void resetCacheStats() const;
 
 private:
   struct CompileState {
@@ -55,4 +65,5 @@ private:
   int m_recursionLimit;
   mutable std::unordered_map<std::string, LDrawParser::Commands> m_parsedSubfiles;
   mutable std::unordered_map<std::string, std::shared_ptr<render::Composite>> m_compiledSubfiles;
+  mutable CacheStats m_cacheStats;
 };
