@@ -89,6 +89,10 @@ namespace engine::graph {
     return false;
   }
 
+  bool RenderResource::objectIdBacked() const {
+    return false;
+  }
+
   void RenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
     m_substituteDefault = true;
     m_state.reset();
@@ -214,6 +218,10 @@ namespace engine::graph {
   }
 
   bool ObjectIdRenderResource::hasBuffer() const {
+    return true;
+  }
+
+  bool ObjectIdRenderResource::objectIdBacked() const {
     return true;
   }
 

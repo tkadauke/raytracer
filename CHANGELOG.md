@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Graph object-id AOV view.** `--render_graph_view object_id` now compiles a
+  graph-visible `object_id_aov` resource and visualization pass, and execution
+  traces colorize object-id resources for inspection. — GPT-5
 - **Graph normal AOV view.** `--render_graph_view normal` now compiles a
   graph-visible `normal_aov` resource and visualization pass, so normals can be
   rendered and inspected through the same graph path as depth AOVs. — GPT-5

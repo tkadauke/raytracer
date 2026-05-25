@@ -73,6 +73,11 @@ namespace engine::graph {
     virtual bool depthBacked() const;
 
     /**
+      * @returns true when this resource can be accessed as `Buffer<std::uint32_t>`.
+      */
+    virtual bool objectIdBacked() const;
+
+    /**
       * Clears this resource to the value used when a disabled pass substitutes
       * a default output. Non-buffer descriptors ignore the request.
       */
@@ -167,6 +172,7 @@ namespace engine::graph {
 
     bool hasBuffer() const override;
     void clearSubstituteDefault(RenderPassKind passKind, const Colord& beautyDefaultColor) override;
+    bool objectIdBacked() const override;
     Buffer<std::uint32_t>& objectId() override;
     const Buffer<std::uint32_t>& objectId() const override;
 

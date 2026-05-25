@@ -335,6 +335,8 @@ namespace {
       *viewMode = RenderViewMode::Depth;
     } else if (normalized == "normal") {
       *viewMode = RenderViewMode::Normal;
+    } else if (normalized == "objectid") {
+      *viewMode = RenderViewMode::ObjectId;
     } else {
       return false;
     }
@@ -1128,7 +1130,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view",
-      "Override graph intent view mode (default, beauty, wireframe, depth, normal)", "mode"},
+      "Override graph intent view mode (default, beauty, wireframe, depth, normal, object_id)",
+      "mode"},
      {"render_graph_wireframe_overlay", "Add a wireframe overlay pass to the compiled graph"},
      {"disable_pass", "Disable a render graph pass id; may be repeated or comma-separated", "id"},
      {"disable_pass_kind",
@@ -1324,7 +1327,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     if (!parseImplementedRenderViewMode(parser.value("render_graph_view"),
                                         &m_renderGraphViewMode)) {
       *errorMessage =
-        "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', or 'normal'";
+        "Render graph view mode must be 'default', 'beauty', 'wireframe', 'depth', 'normal', "
+        "or 'object_id'";
       return CommandLineError;
     }
     m_renderGraphViewModeSet = true;

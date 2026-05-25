@@ -36,6 +36,29 @@ namespace engine::graph {
       return result;
     }
 
+    Colord colorForObjectId(std::uint32_t id) {
+      if (id == 0) {
+        return Colord::black();
+      }
+
+      std::uint32_t hash = id * 2654435761u;
+      hash ^= hash >> 16;
+      return Colord(static_cast<double>((hash >> 16) & 0xffu) / 255.0,
+                    static_cast<double>((hash >> 8) & 0xffu) / 255.0,
+                    static_cast<double>(hash & 0xffu) / 255.0);
+    }
+
+    std::shared_ptr<const Buffer<Colord>> objectIdPreviewFor(const Buffer<std::uint32_t>& source) {
+      auto result = std::make_shared<Buffer<Colord>>(source.width(), source.height());
+
+      for (int y = 0; y != source.height(); ++y) {
+        for (int x = 0; x != source.width(); ++x) {
+          (*result)[y][x] = colorForObjectId(source[y][x]);
+        }
+      }
+      return result;
+    }
+
     Colord absoluteDifference(const Colord& first, const Colord& second) {
       return Colord(std::abs(first.r() - second.r()), std::abs(first.g() - second.g()),
                     std::abs(first.b() - second.b()));
@@ -572,6 +595,12 @@ namespace engine::graph {
     if (resource.depthBacked()) {
       return RenderGraphResourceSnapshot(resourceId, resource.descriptor(), nullptr,
                                          depthPreviewFor(resource.depth()), "",
+                                         cacheMetadataFor(resource));
+    }
+
+    if (resource.objectIdBacked()) {
+      return RenderGraphResourceSnapshot(resourceId, resource.descriptor(),
+                                         objectIdPreviewFor(resource.objectId()), nullptr, "",
                                          cacheMetadataFor(resource));
     }
 
