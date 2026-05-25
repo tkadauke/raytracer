@@ -29,24 +29,20 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
   auto grid = make_named<render::Grid>();
   for (const auto& child : childElements()) {
     if (auto surface = dynamic_cast<Surface*>(child)) {
-      if (surface->visible()) {
-        // Surface::toRaytracer takes a non-owning raw pointer — it only
-        // reaches into the scene to register lights/elements.
-        auto primitive = surface->toRaytracer(result.get());
-        if (primitive && !primitive->boundingBox().isInfinite()) {
-          grid->add(primitive);
-        }
+      // Surface::toRaytracer takes a non-owning raw pointer — it only
+      // reaches into the scene to register lights/elements.
+      auto primitive = surface->toRaytracer(result.get());
+      if (primitive && !primitive->boundingBox().isInfinite()) {
+        grid->add(primitive);
       }
     } else if (auto light = dynamic_cast<Light*>(child)) {
       if (light->visible()) {
         result->addLight(light->toRaytracer());
       }
     } else if (auto group = dynamic_cast<Group*>(child)) {
-      if (group->visible()) {
-        auto primitive = group->toRaytracer(result.get());
-        if (primitive && !primitive->boundingBox().isInfinite()) {
-          grid->add(primitive);
-        }
+      auto primitive = group->toRaytracer(result.get());
+      if (primitive && !primitive->boundingBox().isInfinite()) {
+        grid->add(primitive);
       }
     }
   }
