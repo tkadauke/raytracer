@@ -16,4 +16,4 @@ closed epic:
 - render-graph-owned AOV, depth, motion-vector, and temporal resources:
   `docs/plans/render-graph.md`;
 - future anti-aliasing, transparency, conservative rasterization, and material
-  graph work: `docs/roadmap.md` §4.1.b and §4.3.
+  graph work: `docs/roadmap.md` §4.1.c and §4.3.
