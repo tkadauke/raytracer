@@ -69,7 +69,9 @@ set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(out_of_order_text_plan "${TEST_OUTPUT_DIR}/graph-out-of-order.txt")
 set(out_of_order_render "${TEST_OUTPUT_DIR}/graph-out-of-order-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
+set(external_color_input "${TEST_OUTPUT_DIR}/graph-external-color-input.png")
 set(external_input_render "${TEST_OUTPUT_DIR}/graph-external-input-render.png")
+set(external_input_bound_render "${TEST_OUTPUT_DIR}/graph-external-input-bound-render.png")
 set(depth_composite_render "${TEST_OUTPUT_DIR}/graph-depth-composite-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
@@ -978,6 +980,14 @@ rendercli_expect_failure(
 )
 
 rendercli_expect_failure(
+  NAME "rendercli rejects malformed graph color input"
+  STDERR_MATCHES "--render_graph_color_in must use resource=file syntax"
+  COMMAND
+    "${RENDERCLI}" --render_graph_color_in history_color
+    "${static_scene}" "${invalid_plan}"
+)
+
+rendercli_expect_failure(
   NAME "rendercli rejects invalid disabled pass kind"
   STDERR_MATCHES "Render graph pass kind is not recognized"
   COMMAND
@@ -1054,6 +1064,27 @@ rendercli_expect_failure(
     "${static_scene}" "${external_input_render}"
 )
 rendercli_assert_not_exists("${external_input_render}" NAME "unbound external input render output")
+
+rendercli_run(
+  NAME "rendercli prepares external color input image"
+  COMMAND
+    "${RENDERCLI}" --width 32 --height 16
+    "${static_scene}" "${external_color_input}"
+)
+rendercli_assert_image_dimensions("${external_color_input}" 32 16
+                                  NAME "external color input dimensions")
+
+rendercli_run(
+  NAME "rendercli binds imported color graph inputs"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${external_input_graph}"
+    --render_graph_color_in "history_color=${external_color_input}"
+    "${static_scene}" "${external_input_bound_render}"
+)
+rendercli_assert_image_dimensions("${external_input_bound_render}" 32 16
+                                  NAME "bound external input render dimensions")
+rendercli_assert_image_nonempty("${external_input_bound_render}"
+                                NAME "bound external input render pixels")
 
 rendercli_run(
   NAME "rendercli executes depth-aware composite graph"

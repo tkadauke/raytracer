@@ -317,11 +317,14 @@ the graph a real intermediate artifact: compile a plan, edit or inspect the
 JSON, then replay the plan as DOT/text or render through it. Disable filters are
 applied after the JSON is loaded, so a saved plan can still be tested with
 `--disable_pass`, `--disable_pass_kind`, `--disable_executor`, and
-`--disable_feature`. When a loaded graph is rendered, `rendercli` uses the
-exported color resource dimensions unless `--width` or `--height` explicitly
-request matching values. The exported `executionStages` array is inspection
-metadata; imported plans recompute stages from pass/resource edges instead of
-trusting stale serialized stage data.
+`--disable_feature`. `--render_graph_color_in resource=file` binds an imported
+or history color resource from an image file before execution, which lets
+explicit temporal or replay plans consume a concrete external color buffer.
+When a loaded graph is rendered, `rendercli` uses the exported color resource
+dimensions unless `--width` or `--height` explicitly request matching values.
+The exported `executionStages` array is inspection metadata; imported plans
+recompute stages from pass/resource edges instead of trusting stale serialized
+stage data.
 
 Before compilation, `rendercli` can also override the default graph intent:
 `--render_graph_executor` selects the default executor and

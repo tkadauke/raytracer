@@ -378,6 +378,30 @@ namespace {
     int lastStep = 0;
   };
 
+  struct RenderGraphColorInput {
+    std::string resourceId;
+    QString input;
+  };
+
+  bool parseRenderGraphResourcePath(const QString& value, const char* optionName,
+                                    std::string* resourceId, QString* path, QString* errorMessage) {
+    const int separator = value.indexOf('=');
+    if (separator <= 0 || separator == value.size() - 1) {
+      *errorMessage = QString("%1 must use resource=file syntax").arg(optionName);
+      return false;
+    }
+
+    const QString id = value.left(separator).trimmed();
+    if (id.isEmpty()) {
+      *errorMessage = QString("%1 resource id must not be empty").arg(optionName);
+      return false;
+    }
+
+    *resourceId = id.toStdString();
+    *path = value.mid(separator + 1);
+    return true;
+  }
+
   bool parseRenderGraphAOVOutput(const QString& value, RenderGraphAOVOutput* output,
                                  QString* errorMessage) {
     const int separator = value.indexOf('=');
@@ -400,6 +424,12 @@ namespace {
     output->viewMode = aov->viewMode();
     output->output = value.mid(separator + 1);
     return true;
+  }
+
+  bool parseRenderGraphColorInput(const QString& value, RenderGraphColorInput* input,
+                                  QString* errorMessage) {
+    return parseRenderGraphResourcePath(value, "--render_graph_color_in", &input->resourceId,
+                                        &input->input, errorMessage);
   }
 
   bool parseShadingProfileParameter(
@@ -705,6 +735,7 @@ private:
   QString m_renderGraphIn;
   QString m_renderGraphTraceOut;
   std::vector<RenderGraphAOVOutput> m_renderGraphAOVOutputs;
+  std::vector<RenderGraphColorInput> m_renderGraphColorInputs;
   bool m_renderGraphExecutorSet;
   engine::graph::RenderExecutorPreference m_renderGraphExecutor;
   bool m_renderGraphViewModeSet;
@@ -785,6 +816,9 @@ private:
                              const QString& output) const;
   void writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecutionTrace& trace,
                                   const engine::graph::RenderIntent& intent) const;
+  std::shared_ptr<Buffer<Colord>>
+  loadRenderGraphColorInput(const RenderGraphColorInput& input) const;
+  void bindRenderGraphExternalInputs(engine::graph::GraphRenderEngine& graphEngine) const;
   QString renderGraphOutputPath() const;
   QString outputForFrame(int frame) const;
   static bool hasFramePlaceholder(const QString& pattern, QString* errorMessage);
@@ -1297,6 +1331,35 @@ void Renderer::writeRenderGraphAOVOutputs(const engine::graph::RenderGraphExecut
   }
 }
 
+std::shared_ptr<Buffer<Colord>>
+Renderer::loadRenderGraphColorInput(const RenderGraphColorInput& input) const {
+  QImage image(input.input);
+  if (image.isNull()) {
+    throw std::runtime_error(
+      QString("Unable to read render graph color input '%1' for resource '%2'")
+        .arg(input.input, QString::fromStdString(input.resourceId))
+        .toStdString());
+  }
+
+  const QImage rgb = image.convertToFormat(QImage::Format_RGB32);
+  auto buffer = std::make_shared<Buffer<Colord>>(rgb.width(), rgb.height());
+  for (int y = 0; y != rgb.height(); ++y) {
+    for (int x = 0; x != rgb.width(); ++x) {
+      const QRgb pixel = rgb.pixel(x, y);
+      (*buffer)[y][x] =
+        Colord(static_cast<double>(qRed(pixel)) / 255.0, static_cast<double>(qGreen(pixel)) / 255.0,
+               static_cast<double>(qBlue(pixel)) / 255.0);
+    }
+  }
+  return buffer;
+}
+
+void Renderer::bindRenderGraphExternalInputs(engine::graph::GraphRenderEngine& graphEngine) const {
+  for (const auto& input : m_renderGraphColorInputs) {
+    graphEngine.setExternalColorResource(input.resourceId, loadRenderGraphColorInput(input));
+  }
+}
+
 QString Renderer::renderGraphOutputPath() const {
   if (!m_renderGraphOut.isEmpty()) {
     return m_renderGraphOut;
@@ -1351,6 +1414,7 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
                     : std::make_shared<engine::graph::GraphRenderEngine>(raytracerScene);
     graphEngine->setIntent(renderIntent(scene));
     graphEngine->setPlan(graphPlan);
+    bindRenderGraphExternalInputs(*graphEngine);
     graphEngine->setExecutionTraceEnabled(!m_renderGraphTraceOut.isEmpty() ||
                                           !m_renderGraphAOVOutputs.empty());
     engine = graphEngine;
@@ -1722,6 +1786,9 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"render_graph_aov_out",
       "Write an executed graph AOV preview image; repeat with view=file for multiple AOVs",
       "view=file"},
+     {"render_graph_color_in",
+      "Bind an imported/history graph color resource from an image file as resource=file",
+      "resource=file"},
      {"render_graph_executor", "Override graph intent executor (raytracer, rasterizer, wireframe)",
       "executor"},
      {"render_graph_view",
@@ -2019,6 +2086,17 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
         return CommandLineError;
       }
       m_renderGraphAOVOutputs.push_back(output);
+    }
+  }
+
+  if (parser.isSet("render_graph_color_in")) {
+    m_renderGraph = true;
+    for (const QString& value : parser.values("render_graph_color_in")) {
+      RenderGraphColorInput input;
+      if (!parseRenderGraphColorInput(value, &input, errorMessage)) {
+        return CommandLineError;
+      }
+      m_renderGraphColorInputs.push_back(input);
     }
   }
 

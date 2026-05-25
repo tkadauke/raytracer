@@ -111,6 +111,8 @@ geometry and raster pass state rather than analytic primary-ray intersections.
 image while preserving the main render output; repeat the option for multiple
 AOV files such as `stencil=mask.png`, `normal=normal.png`, or
 `world_position=positions.png`.
+When replaying explicit graph JSON, `--render_graph_color_in resource=file`
+binds an imported or history color resource from an image file before execution.
 `--render_graph_wireframe_overlay` asks the compiler to insert a graph-visible
 wireframe overlay pass between the beauty pass and the tonemap pass.
 For graph renders, `--post_aa fxaa` and `--post_aa smaa` are also
