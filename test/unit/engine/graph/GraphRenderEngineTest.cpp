@@ -1048,8 +1048,38 @@ namespace GraphRenderEngineTest {
     } catch (const std::runtime_error& error) {
       const std::string message = error.what();
       EXPECT_NE(std::string::npos, message.find("external resource 'history_color'"));
-      EXPECT_NE(std::string::npos, message.find("no external resource binding API"));
+      EXPECT_NE(std::string::npos, message.find("was not bound"));
     }
+  }
+
+  TEST(GraphRenderEngine, RendersBoundExternalColorInputResources) {
+    auto scene = std::make_shared<render::Scene>();
+
+    RenderPlan plan;
+    plan.addResource(colorResource("history_color", RenderResourceLifetime::History));
+    plan.addResource(colorResource("display_color", RenderResourceLifetime::Exported));
+
+    RenderPassNode tonemap;
+    tonemap.id = "tonemap";
+    tonemap.kind = RenderPassKind::Tonemap;
+    tonemap.executor = RenderExecutorKind::PostProcess;
+    tonemap.reads.push_back({"history_color"});
+    tonemap.writes.push_back({"display_color"});
+    plan.addPass(tonemap);
+    ASSERT_TRUE(plan.validate().valid());
+
+    auto history = std::make_shared<Buffer<Colord>>(2, 2);
+    history->clear(Colord(0.25, 0.5, 0.75));
+
+    GraphRenderEngine engine(camera(), scene);
+    engine.setPlan(plan);
+    engine.setExternalColorResource("history_color", history);
+
+    Buffer<Colord> buffer(2, 2);
+    engine.render(buffer);
+
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[0][0]);
+    EXPECT_EQ(Colord(0.25, 0.5, 0.75), buffer[1][1]);
   }
 
   TEST(GraphRenderEngine, LdrRenderPacksGraphOutputWithoutApplyingTonemapAgain) {

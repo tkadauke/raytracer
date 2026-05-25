@@ -37,19 +37,41 @@ namespace engine::graph {
       return out.str();
     }
 
-    void requireExternalInputsBound(const RenderPlan& plan) {
+    using ExternalColorResources =
+      std::map<RenderResourceId, std::shared_ptr<const Buffer<Colord>>>;
+
+    void requireExternalInputsBound(const RenderPlan& plan,
+                                    const ExternalColorResources& colorResources) {
       const auto externalInputs = plan.externalInputResourceIds();
-      if (externalInputs.empty()) {
+      std::vector<RenderResourceId> missingInputs;
+      for (const auto& input : externalInputs) {
+        const auto colorIt = colorResources.find(input);
+        if (colorIt == colorResources.end() || !colorIt->second) {
+          missingInputs.push_back(input);
+        }
+      }
+
+      if (missingInputs.empty()) {
         return;
       }
 
       std::ostringstream out;
-      out << "render plan requires external resource '" << externalInputs.front() << "'";
-      if (externalInputs.size() > 1) {
-        out << " and " << (externalInputs.size() - 1) << " more";
+      out << "render plan requires external resource '" << missingInputs.front() << "'";
+      if (missingInputs.size() > 1) {
+        out << " and " << (missingInputs.size() - 1) << " more";
       }
-      out << ", but GraphRenderEngine has no external resource binding API yet";
+      out << ", but it was not bound";
       throw std::runtime_error(out.str());
+    }
+
+    void bindExternalInputs(RenderResourceStorage& storage, const RenderPlan& plan,
+                            const ExternalColorResources& colorResources) {
+      for (const auto& id : plan.externalInputResourceIds()) {
+        const auto colorIt = colorResources.find(id);
+        if (colorIt != colorResources.end() && colorIt->second) {
+          storage.bindColor(id, *colorIt->second);
+        }
+      }
     }
 
     std::runtime_error passError(const RenderPassNode& pass, const std::string& message) {
@@ -491,6 +513,7 @@ namespace engine::graph {
     RenderIntent intent;
     std::optional<RenderPlan> explicitPlan;
     RenderPlan lastPlan;
+    ExternalColorResources externalColorResources;
     std::shared_ptr<render::RenderEngine> activeEngine;
     std::shared_ptr<RenderGraphExecutionObserver> executionObserver;
     std::shared_ptr<RenderGraphExecutionTraceRecorder> executionTraceRecorder{
@@ -548,6 +571,7 @@ namespace engine::graph {
     if (p->explicitPlan) {
       result->setPlan(*p->explicitPlan);
     }
+    result->p->externalColorResources = p->externalColorResources;
     result->setExecutionObserver(executionObserver());
     result->setExecutionTraceEnabled(executionTraceEnabled());
     result->p->executionTraceRecorder = p->executionTraceRecorder;
@@ -578,6 +602,25 @@ namespace engine::graph {
 
   const RenderPlan* GraphRenderEngine::explicitPlan() const {
     return p->explicitPlan ? &*p->explicitPlan : nullptr;
+  }
+
+  void GraphRenderEngine::setExternalColorResource(RenderResourceId id,
+                                                   std::shared_ptr<const Buffer<Colord>> buffer) {
+    if (id.empty()) {
+      throw std::runtime_error("external color resource id must not be empty");
+    }
+    if (!buffer) {
+      throw std::runtime_error("external color resource '" + id + "' must not be null");
+    }
+    p->externalColorResources[std::move(id)] = std::move(buffer);
+  }
+
+  void GraphRenderEngine::clearExternalResource(const RenderResourceId& id) {
+    p->externalColorResources.erase(id);
+  }
+
+  void GraphRenderEngine::clearExternalResources() {
+    p->externalColorResources.clear();
   }
 
   RenderPlan GraphRenderEngine::compilePlan(const RenderTargetSpec& target) const {
@@ -653,13 +696,14 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
-    requireExternalInputsBound(plan);
+    requireExternalInputsBound(plan, p->externalColorResources);
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
     TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
     notifyRenderStarted(*this, renderGeneration);
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
+    bindExternalInputs(storage, plan, p->externalColorResources);
 
     const auto executionOrder = plan.executionOrder();
     for (const RenderPassNode* passNode : executionOrder) {
@@ -717,7 +761,7 @@ namespace engine::graph {
     if (!validation.valid()) {
       throw std::runtime_error(validationMessage(validation));
     }
-    requireExternalInputsBound(plan);
+    requireExternalInputsBound(plan, p->externalColorResources);
     requireMatchingOutputSize(plan, buffer.width(), buffer.height());
     const std::uint64_t renderGeneration = p->claimExecutionGeneration();
     TraceSession traceSession = p->beginTraceIfEnabled(plan, executionInputFingerprint());
@@ -725,6 +769,7 @@ namespace engine::graph {
 
     RenderResourceStorage storage;
     storage.allocate(plan.resources());
+    bindExternalInputs(storage, plan, p->externalColorResources);
     const auto displayTonemap = displayTonemapForPlan(plan, *this);
 
     auto setActiveEngine = [this](std::shared_ptr<render::RenderEngine> engine) {

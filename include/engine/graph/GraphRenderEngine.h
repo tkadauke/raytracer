@@ -64,6 +64,25 @@ namespace engine::graph {
     const RenderPlan* explicitPlan() const;
 
     /**
+      * Binds a CPU color buffer for an imported or history graph resource.
+      *
+      * The buffer is copied into execution storage at render time. It must stay
+      * alive while this engine or render clones may execute plans that read it.
+      */
+    void setExternalColorResource(RenderResourceId id,
+                                  std::shared_ptr<const Buffer<Colord>> buffer);
+
+    /**
+      * Removes one previously bound external resource.
+      */
+    void clearExternalResource(const RenderResourceId& id);
+
+    /**
+      * Removes all previously bound external resources.
+      */
+    void clearExternalResources();
+
+    /**
       * Compiles a plan for @p target from the current render intent.
       */
     RenderPlan compilePlan(const RenderTargetSpec& target) const;

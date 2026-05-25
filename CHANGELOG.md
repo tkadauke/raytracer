@@ -28,6 +28,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `core::Polyline` paths and tessellates finite-width curves into ribbon or
   tube meshes for raster, wireframe, and other mesh-consuming render paths,
   while safely skipping zero-length segments. — GPT-5
+- **Render graph external color inputs.** `GraphRenderEngine` can now bind
+  imported or history CPU color resources for explicit plans, giving replayed
+  temporal/postprocess graphs a real external-input path. — GPT-5
 - **World scene groups.** `Group` scene objects can organize surfaces, lights,
   and nested groups with transform and visibility controls, converting visible
   geometry to runtime composites without abusing inactive CSG surfaces. — GPT-5
@@ -351,8 +354,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Fixed
 
 - **Render graph external inputs.** Graph execution now rejects plans that read
-  imported or history resources without an external binding API instead of
-  allocating empty placeholders for those inputs. — GPT-5
+  unbound imported or history resources instead of allocating empty placeholders
+  for those inputs. — GPT-5
 - **Render graph resource-domain validation.** Plan validation now rejects
   current CPU-backed passes that read or write GPU-domain resources, making
   replayed future-domain graph JSON fail before execution. — GPT-5
