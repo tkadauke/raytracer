@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler graph trace empty states.** Resource trace previews now distinguish
+  undeclared resources from declared resources that were not read or written in
+  the last execution. — GPT-5
 - **Modeler render graph pass tooltips.** Pass nodes in the Render Graph dock
   now summarize reads, writes, and dependency edges on hover. — GPT-5
 - **Render graph DOT exports.** Pass labels in DOT exports now include computed

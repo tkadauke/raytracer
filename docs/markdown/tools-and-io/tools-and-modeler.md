@@ -188,6 +188,9 @@ Trace preview tab with input, output, and difference images from the last
 execution when that trace still matches the current plan and preview inputs.
 The graph nodes themselves summarize pass status/timing and resource
 preview/cache status from that same trace.
+When a selected resource has no captured image, the trace preview distinguishes
+resources missing from the executed plan from resources that were declared but
+not read or written by the last execution path.
 The Groups tab applies the same override system to every pass matching a
 present pass kind, executor, or feature tag.
 Resource selections also show trace cache status in the property editor.

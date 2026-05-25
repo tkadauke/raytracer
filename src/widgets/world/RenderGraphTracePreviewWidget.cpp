@@ -267,6 +267,13 @@ void RenderGraphTracePreviewWidget::showResourceTrace(
     return;
   }
 
+  if (!trace->plan().findResource(resourceId)) {
+    addText(*p->inputsLayout, tr("Resource is not declared by this execution trace"));
+    addText(*p->outputsLayout, tr("Resource is not declared by this execution trace"));
+    addText(*p->diffsLayout, tr("Resource is not declared by this execution trace"));
+    return;
+  }
+
   const auto inputs = trace->inputSnapshotsForResource(resourceId);
   const auto outputs = trace->outputSnapshotsForResource(resourceId);
   const auto diffs = trace->diffsForResource(resourceId);
@@ -279,9 +286,9 @@ void RenderGraphTracePreviewWidget::showResourceTrace(
     addDiff(*p->diffsLayout, *diff);
 
   if (inputs.empty())
-    addText(*p->inputsLayout, tr("No input snapshots for this resource"));
+    addText(*p->inputsLayout, tr("No pass read this resource during this execution"));
   if (outputs.empty())
-    addText(*p->outputsLayout, tr("No output snapshots for this resource"));
+    addText(*p->outputsLayout, tr("No pass wrote this resource during this execution"));
   if (diffs.empty())
     addText(*p->diffsLayout, tr("No difference preview for this resource"));
 

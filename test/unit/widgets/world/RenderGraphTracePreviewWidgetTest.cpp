@@ -177,6 +177,34 @@ namespace RenderGraphTracePreviewWidgetTest {
     EXPECT_TRUE(labelsContain(outputs, QStringLiteral("post_aa_color")));
   }
 
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldExplainDeclaredResourceWithoutReaders) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showResourceTrace(trace, "main_color");
+
+    auto* inputs = widget.findChild<QWidget*>("renderGraphTracePreviewInputs");
+    ASSERT_NE(nullptr, inputs);
+
+    EXPECT_TRUE(
+      labelsContain(inputs, QStringLiteral("No pass read this resource during this execution")));
+  }
+
+  TEST_F(RenderGraphTracePreviewWidgetTest, ShouldExplainMissingResourceTrace) {
+    auto trace = postProcessTrace();
+    ASSERT_TRUE(trace);
+
+    RenderGraphTracePreviewWidget widget;
+    widget.showResourceTrace(trace, "missing_resource");
+
+    auto* outputs = widget.findChild<QWidget*>("renderGraphTracePreviewOutputs");
+    ASSERT_NE(nullptr, outputs);
+
+    EXPECT_TRUE(
+      labelsContain(outputs, QStringLiteral("Resource is not declared by this execution trace")));
+  }
+
   TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowDepthResourceTrace) {
     auto trace = shadowMapTrace();
     ASSERT_TRUE(trace);
