@@ -72,7 +72,10 @@ namespace engine::graph {
 
     const RenderPassNode* findPass(const RenderPassId& id) const;
     const RenderResourceDescriptor* findResource(const RenderResourceId& id) const;
+    bool hasPass(const RenderPassId& id) const;
+    bool hasResource(const RenderResourceId& id) const;
     std::set<RenderPassId> passIds() const;
+    std::set<RenderResourceId> resourceIds() const;
     std::set<RenderPassKind> passKinds() const;
     std::set<RenderExecutorKind> passExecutors() const;
     std::set<RenderFeatureKind> passFeatures() const;
