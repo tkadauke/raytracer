@@ -936,6 +936,24 @@ rendercli_run(
 )
 
 rendercli_run(
+  NAME "rendercli disables graph passes by kind"
+  STDOUT_MATCHES "tonemap \\[tonemap/postprocess\\] disabled"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text --disable_pass_kind tonemap
+    --width 32 --height 16
+    "${static_scene}"
+)
+
+rendercli_run(
+  NAME "rendercli disables graph passes by executor"
+  STDOUT_MATCHES "tonemap \\[tonemap/postprocess\\] disabled"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_format text --disable_executor postprocess
+    --width 32 --height 16
+    "${static_scene}"
+)
+
+rendercli_run(
   NAME "rendercli accepts comma-separated and repeated graph disable filters"
   STDOUT_MATCHES
     "wireframe_overlay \\[overlay/wireframe\\] disabled"
