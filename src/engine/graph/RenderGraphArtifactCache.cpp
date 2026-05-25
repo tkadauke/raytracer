@@ -147,6 +147,34 @@ namespace engine::graph {
     m_artifacts.erase(key);
   }
 
+  std::size_t RenderGraphArtifactCache::eraseProducerOutputs(const RenderPassId& producerPassId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::size_t removed = 0;
+    for (auto it = m_artifacts.begin(); it != m_artifacts.end();) {
+      if (it->first.producerPassId() == producerPassId) {
+        it = m_artifacts.erase(it);
+        ++removed;
+      } else {
+        ++it;
+      }
+    }
+    return removed;
+  }
+
+  std::size_t RenderGraphArtifactCache::eraseResource(const RenderResourceId& resourceId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::size_t removed = 0;
+    for (auto it = m_artifacts.begin(); it != m_artifacts.end();) {
+      if (it->first.resourceId() == resourceId) {
+        it = m_artifacts.erase(it);
+        ++removed;
+      } else {
+        ++it;
+      }
+    }
+    return removed;
+  }
+
   void RenderGraphArtifactCache::clear() {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_artifacts.clear();
