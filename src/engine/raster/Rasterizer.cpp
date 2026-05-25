@@ -156,6 +156,7 @@ namespace {
   RasterDiagnosticBufferViews diagnosticViews(const Rasterizer& rasterizer, int width, int height) {
     const auto& outputs = rasterizer.diagnosticOutputBuffers();
     return {diagnosticView(outputs.depth, width, height),
+            diagnosticView(outputs.worldPosition, width, height),
             diagnosticView(outputs.normal, width, height),
             diagnosticView(outputs.primitive, width, height),
             diagnosticView(outputs.material, width, height),
@@ -173,6 +174,7 @@ namespace {
   void clearDiagnosticOutputsForRender(const Rasterizer& rasterizer, int width, int height) {
     const auto& outputs = rasterizer.diagnosticOutputBuffers();
     clearDiagnosticBuffer(outputs.depth, width, height, rasterizer.depthClearValue());
+    clearDiagnosticBuffer(outputs.worldPosition, width, height, Vector3d::undefined);
     clearDiagnosticBuffer(outputs.normal, width, height, Vector3d::undefined);
     clearDiagnosticBuffer(outputs.primitive, width, height,
                           static_cast<const render::Primitive*>(nullptr));

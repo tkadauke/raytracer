@@ -290,6 +290,12 @@ pass between the primary beauty pass and the tonemap pass.
 Selector-specific overrides will matter once compilation can produce
 multi-selection plans.
 
+Raytracer AOV payloads use primary intersections against the analytic scene.
+Rasterizer AOV payloads instead attach diagnostic output buffers to the
+rasterizer, so depth, normals, ids, and world positions come from the same
+tessellated fragments, clipping, sampling, and pass state as the raster beauty
+path.
+
 The AOV vocabulary is owned by
 [`RenderAOVDefinition`](../../../include/engine/graph/RenderAOV.h) objects.
 Those objects provide the feature name, resource id, display label, and resource
@@ -441,8 +447,11 @@ raster controls are compiled into the raster beauty pass's typed state and
 replayed by `RasterBeautyPass`. Exported graph JSON still shows that state
 under the pass's `parameters` object, making settings such as `--msaa`,
 `--msaa_shading`, `--viewport`, and color-output controls visible instead of
-living only in the direct raster engine setup path. The preview shadow request
-is also visible: when preview shadows are enabled, the compiler inserts
+living only in the direct raster engine setup path. Raster AOV producer passes
+use the same state object, so `--render_graph_view depth` and exported raster
+AOV side branches see the requested tessellation and sampling settings. The
+preview shadow request is also visible: when preview shadows are enabled, the
+compiler inserts
 `raster_preview_shadows` before `raster_beauty`, stores the shadow-map settings
 on that shadow node's typed `parameters.shadows` state, and routes a
 `preview_shadow_map` resource into the beauty pass. The current raster payload

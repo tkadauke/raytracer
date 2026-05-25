@@ -774,6 +774,7 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::AttachmentLoadOp::Clear, engine.stencilLoadOp());
     EXPECT_EQ(Rasterizer::AttachmentStoreOp::Store, engine.stencilStoreOp());
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().depth);
+    EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().worldPosition);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().normal);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().primitive);
     EXPECT_EQ(nullptr, engine.diagnosticOutputBuffers().material);
@@ -862,6 +863,7 @@ namespace RasterizerTest {
     EXPECT_EQ(Rasterizer::AlphaFunc::Greater, clone->alphaFunc());
     EXPECT_DOUBLE_EQ(0.25, clone->alphaReference());
     EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().depth);
+    EXPECT_EQ(nullptr, clone->diagnosticOutputBuffers().worldPosition);
     EXPECT_EQ(nullptr, clone->attachmentBuffers().depth);
     EXPECT_EQ(nullptr, clone->attachmentBuffers().stencil);
   }
@@ -943,6 +945,7 @@ namespace RasterizerTest {
 
     Buffer<Colord> color(64, 64);
     Buffer<double> depth(64, 64);
+    Buffer<Vector3d> worldPosition(64, 64);
     Buffer<Vector3d> normal(64, 64);
     Buffer<const Primitive*> primitive(64, 64);
     Buffer<const Material*> material(64, 64);
@@ -951,6 +954,7 @@ namespace RasterizerTest {
 
     Rasterizer::DiagnosticOutputBuffers outputs;
     outputs.depth = &depth;
+    outputs.worldPosition = &worldPosition;
     outputs.normal = &normal;
     outputs.primitive = &primitive;
     outputs.material = &material;
@@ -961,6 +965,7 @@ namespace RasterizerTest {
     engine.render(color);
 
     EXPECT_EQ(engine.depthClearValue(), depth[0][0]);
+    EXPECT_TRUE(worldPosition[0][0].isUndefined());
     EXPECT_TRUE(normal[0][0].isUndefined());
     EXPECT_EQ(nullptr, primitive[0][0]);
     EXPECT_EQ(nullptr, material[0][0]);
@@ -969,6 +974,8 @@ namespace RasterizerTest {
 
     EXPECT_TRUE(std::isfinite(depth[32][32]));
     EXPECT_GT(depth[32][32], 0.0);
+    EXPECT_TRUE(worldPosition[32][32].isDefined());
+    EXPECT_NEAR(0.0, worldPosition[32][32].z(), 1e-9);
     EXPECT_NEAR(1.0, normal[32][32].length(), 1e-9);
     EXPECT_EQ(tracked.triangle.get(), primitive[32][32]);
     EXPECT_EQ(tracked.material.get(), material[32][32]);

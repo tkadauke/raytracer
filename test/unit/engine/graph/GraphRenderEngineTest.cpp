@@ -198,6 +198,20 @@ namespace GraphRenderEngineTest {
     return count;
   }
 
+  int countDifferingFiniteDepths(const Buffer<double>& first, const Buffer<double>& second,
+                                 double epsilon) {
+    int count = 0;
+    for (int y = 0; y != first.height(); ++y) {
+      for (int x = 0; x != first.width(); ++x) {
+        if (std::isfinite(first[y][x]) && std::isfinite(second[y][x]) &&
+            std::abs(first[y][x] - second[y][x]) > epsilon) {
+          ++count;
+        }
+      }
+    }
+    return count;
+  }
+
   std::shared_ptr<render::Material> matte(const Colord& color) {
     return std::make_shared<render::MatteMaterial>(
       std::make_shared<render::ConstantColorTexture>(color));
@@ -432,6 +446,78 @@ namespace GraphRenderEngineTest {
     ASSERT_EQ(1u, outputs.size());
     ASSERT_TRUE(outputs.front()->hasColorPreview());
     EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+  }
+
+  TEST(GraphRenderEngine, RasterDepthAOVUsesRasterizerDiagnostics) {
+    RenderGraphCompiler compiler;
+    RenderIntent raytracedIntent;
+    raytracedIntent.defaultExecutor = RenderExecutorPreference::Raytracer;
+    raytracedIntent.defaultViewMode = RenderViewMode::Depth;
+    RenderIntent rasterIntent;
+    rasterIntent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+    rasterIntent.defaultViewMode = RenderViewMode::Depth;
+
+    Buffer<unsigned int> raytracedOutput(48, 48);
+    GraphRenderEngine raytraced(camera(), highContrastScene());
+    raytraced.setExecutionTraceEnabled(true);
+    raytraced.setPlan(compiler.compile({48, 48, 1}, raytracedIntent));
+    raytraced.render(raytracedOutput);
+
+    Buffer<unsigned int> rasterOutput(48, 48);
+    GraphRenderEngine raster(camera(), highContrastScene());
+    raster.setExecutionTraceEnabled(true);
+    raster.setPlan(compiler.compile({48, 48, 1}, rasterIntent));
+    raster.render(rasterOutput);
+
+    ASSERT_EQ(RenderExecutorKind::Raytracer, raytraced.lastPlan().passes()[0].executor);
+    ASSERT_EQ(RenderExecutorKind::Rasterizer, raster.lastPlan().passes()[0].executor);
+
+    auto raytracedTrace = raytraced.lastExecutionTrace();
+    auto rasterTrace = raster.lastExecutionTrace();
+    ASSERT_TRUE(raytracedTrace);
+    ASSERT_TRUE(rasterTrace);
+    const auto raytracedOutputs = raytracedTrace->outputSnapshotsForResource("depth_aov");
+    const auto rasterOutputs = rasterTrace->outputSnapshotsForResource("depth_aov");
+    ASSERT_EQ(1u, raytracedOutputs.size());
+    ASSERT_EQ(1u, rasterOutputs.size());
+    ASSERT_TRUE(raytracedOutputs.front()->hasDepthPreview());
+    ASSERT_TRUE(rasterOutputs.front()->hasDepthPreview());
+    EXPECT_GT(countFiniteDepths(raytracedOutputs.front()->depthPreview()), 0);
+    EXPECT_GT(countFiniteDepths(rasterOutputs.front()->depthPreview()), 0);
+    EXPECT_GT(countDifferingFiniteDepths(raytracedOutputs.front()->depthPreview(),
+                                         rasterOutputs.front()->depthPreview(), 1e-6),
+              0);
+  }
+
+  TEST(GraphRenderEngine, RasterColorAOVViewsExecuteThroughRasterizerDiagnostics) {
+    const std::vector<std::pair<RenderViewMode, std::string>> aovs = {
+      {RenderViewMode::Normal, "normal_aov"},
+      {RenderViewMode::ObjectId, "object_id_aov"},
+      {RenderViewMode::MaterialId, "material_id_aov"},
+      {RenderViewMode::WorldPosition, "world_position_aov"},
+    };
+
+    RenderGraphCompiler compiler;
+    for (const auto& aov : aovs) {
+      RenderIntent intent;
+      intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
+      intent.defaultViewMode = aov.first;
+
+      GraphRenderEngine engine(camera(), highContrastScene());
+      engine.setExecutionTraceEnabled(true);
+      engine.setPlan(compiler.compile({32, 32, 1}, intent));
+
+      Buffer<unsigned int> output(32, 32);
+      engine.render(output);
+
+      ASSERT_EQ(RenderExecutorKind::Rasterizer, engine.lastPlan().passes()[0].executor);
+      auto trace = engine.lastExecutionTrace();
+      ASSERT_TRUE(trace);
+      const auto outputs = trace->outputSnapshotsForResource(aov.second);
+      ASSERT_EQ(1u, outputs.size());
+      ASSERT_TRUE(outputs.front()->hasColorPreview());
+      EXPECT_GT(countNonBlackPixels(outputs.front()->colorPreview()), 0);
+    }
   }
 
   TEST(GraphRenderEngine, ExecutesRequestedAOVSideOutputsWhenTraceIsEnabled) {

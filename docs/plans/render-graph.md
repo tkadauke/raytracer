@@ -1410,8 +1410,11 @@ visualization passes, and rendercli accepts `--render_graph_view depth`,
 Render intents now carry an `exportedAOVs` list, the compiler adds requested
 AOV side branches through `RenderAOVDefinition` objects, and rendercli writes
 multiple opt-in AOV preview files with repeated `--render_graph_aov_out
-view=file` options. Motion vector resources remain TODO until graph history
-and previous-frame inputs exist.
+view=file` options. Rasterizer-backed depth, normal, object-id, material-id,
+and world-position AOV payloads now use rasterizer diagnostic buffers, so they
+reflect tessellated raster geometry and raster pass state instead of analytic
+primary-ray intersections. Motion vector resources remain TODO until graph
+history and previous-frame inputs exist.
 
 ### Parallel scheduler
 

@@ -79,7 +79,10 @@ overrides the graph intent's default executor, and
 `--render_graph_view default|beauty|wireframe|depth|normal|object_id|material_id|world_position`
 overrides the graph intent's structural view mode. The depth, normal,
 object-id, material-id, and world-position views compile graph-visible AOV
-passes and visualization passes that write the final color image.
+passes and visualization passes that write the final color image. When the
+selected graph executor is the rasterizer, those AOV passes use rasterizer
+diagnostic buffers, so they reflect tessellated raster geometry and raster pass
+state rather than analytic primary-ray intersections.
 `--render_graph_aov_out depth=depth.png` writes an additional graph AOV preview
 image while preserving the main render output; repeat the option for multiple
 AOV files such as `normal=normal.png` or `world_position=positions.png`.
@@ -160,7 +163,9 @@ executor; rasterizer preview shadows switch the live preview to Rasterizer
 before recompiling because the shadow pass is raster-specific. `Render ->
 Preview View` can also switch the live graph preview from beauty to depth,
 normal, object-id, material-id, or world-position AOVs; the graph recompiles to
-show the corresponding AOV producer and visualization nodes. `Render -> Preview
+show the corresponding AOV producer and visualization nodes. Raster preview AOVs
+are backed by rasterizer diagnostics, so their images match raster tessellation,
+sampling, and clipping. `Render -> Preview
 Tonemap` selects the operator used by the graph's tonemap node.
 
 The Render Graph dock compiles the current preview intent into a

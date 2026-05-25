@@ -270,6 +270,7 @@ namespace engine::raster::detail {
   // changing the color/depth/stencil buffer lifetime of the normal pass.
   struct RasterDiagnosticBufferViews {
     RasterFullBufferView<double> depth;
+    RasterFullBufferView<Vector3d> worldPosition;
     RasterFullBufferView<Vector3d> normal;
     RasterFullBufferView<const render::Primitive*> primitive;
     RasterFullBufferView<const render::Material*> material;
@@ -286,6 +287,9 @@ namespace engine::raster::detail {
                        const InterpolatedFragment& fragment, double committedDepth) const {
       if (depth.isValid()) {
         depth.at(x, y) = committedDepth;
+      }
+      if (worldPosition.isValid()) {
+        worldPosition.at(x, y) = fragment.worldPos;
       }
       if (normal.isValid()) {
         normal.at(x, y) = fragment.normal.normalized();

@@ -55,6 +55,16 @@ namespace engine::graph {
       return tonemap->singleRead().resource;
     }
 
+    void applyTargetSamplingToRasterPass(RenderPassNode& pass, const RenderTargetSpec& target) {
+      if (pass.executor != RenderExecutorKind::Rasterizer || target.sampleCount == 1) {
+        return;
+      }
+
+      RasterBeautyPassState state;
+      state.sampling().setMSAASamples(target.sampleCount);
+      state.writeTo(pass);
+    }
+
     RenderPassNode aovProducerPass(const RenderAOVDefinition& aov, RenderExecutorKind executor,
                                    bool mainPass) {
       const auto* executorDefinition = renderExecutorDefinition(executor);
@@ -101,7 +111,9 @@ namespace engine::graph {
       RenderPlan plan;
 
       const RenderResourceId aovId = aov.resourceId();
-      plan.addResourceProducer(aovProducerPass(aov, executor, true),
+      RenderPassNode producer = aovProducerPass(aov, executor, true);
+      applyTargetSamplingToRasterPass(producer, target);
+      plan.addResourceProducer(std::move(producer),
                                aov.resourceDescriptor(target, RenderResourceLifetime::Transient));
 
       RenderResourceDescriptor mainColor =
@@ -127,7 +139,9 @@ namespace engine::graph {
 
       const RenderResourceId aovId = aov->resourceId();
       const RenderResourceId previewId = aov->previewColorResourceId();
-      plan.addResourceProducer(aovProducerPass(*aov, executor, false),
+      RenderPassNode producer = aovProducerPass(*aov, executor, false);
+      applyTargetSamplingToRasterPass(producer, target);
+      plan.addResourceProducer(std::move(producer),
                                aov->resourceDescriptor(target, RenderResourceLifetime::Exported));
       plan.routeResourceThroughPass(aovId,
                                     colorResource(previewId, aov->title() + " AOV preview", target,
@@ -178,11 +192,7 @@ namespace engine::graph {
     beauty.sceneView.selector = SceneSelector::all();
     beauty.disabledBehavior = DisabledBehavior::Error;
     beauty.canRunConcurrently = false;
-    if (executor == RenderExecutorKind::Rasterizer && target.sampleCount != 1) {
-      RasterBeautyPassState state;
-      state.sampling().setMSAASamples(target.sampleCount);
-      state.writeTo(beauty);
-    }
+    applyTargetSamplingToRasterPass(beauty, target);
     plan.addResourceProducer(beauty, beautyColor);
 
     RenderPassNode tonemap;

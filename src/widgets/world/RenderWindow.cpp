@@ -120,9 +120,10 @@ struct RenderWindow::Private {
     engine::graph::RenderGraphCompiler compiler;
     auto plan = compiler.compile(
       {resolution.width(), resolution.height(), settingsWidget->msaaSamples()}, intent);
-    rasterBeautyPassState(intent.postProcessAA, !intent.usesGraphImagePostProcessAA(),
-                          !intent.enablePreviewShadows)
-      .writeToRasterBeautyPasses(plan);
+    const engine::graph::RasterBeautyPassState rasterState = rasterBeautyPassState(
+      intent.postProcessAA, !intent.usesGraphImagePostProcessAA(), !intent.enablePreviewShadows);
+    rasterState.writeToRasterBeautyPasses(plan);
+    rasterState.writeToRasterAOVPasses(plan);
     if (intent.enablePreviewShadows) {
       rasterShadowPassState().writeToRasterShadowPasses(plan);
     }

@@ -23,6 +23,8 @@ set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
 set(intent_plan "${TEST_OUTPUT_DIR}/graph-intent.txt")
 set(intent_view_plan "${TEST_OUTPUT_DIR}/graph-intent-view.txt")
 set(depth_view_render "${TEST_OUTPUT_DIR}/graph-depth-view.png")
+set(raster_depth_view_render "${TEST_OUTPUT_DIR}/graph-raster-depth-view.png")
+set(raster_depth_view_plan "${TEST_OUTPUT_DIR}/graph-raster-depth-view.json")
 set(normal_view_render "${TEST_OUTPUT_DIR}/graph-normal-view.png")
 set(object_id_view_render "${TEST_OUTPUT_DIR}/graph-object-id-view.png")
 set(material_id_view_render "${TEST_OUTPUT_DIR}/graph-material-id-view.png")
@@ -409,6 +411,24 @@ rendercli_run(
     "${static_scene}" "${depth_view_render}"
 )
 rendercli_assert_nonempty("${depth_view_render}" NAME "depth AOV graph render output")
+
+rendercli_run(
+  NAME "rendercli renders raster depth AOV view through graph"
+  COMMAND
+    "${RENDERCLI}" --engine raster --render_graph_view depth --render_graph_format json
+    --render_graph_out "${raster_depth_view_plan}"
+    --width 32 --height 24 --msaa 4 --msaa_shading per_fragment
+    "${static_scene}" "${raster_depth_view_render}"
+)
+rendercli_assert_nonempty("${raster_depth_view_render}" NAME "raster depth AOV graph render output")
+rendercli_assert_nonempty("${raster_depth_view_plan}" NAME "raster depth AOV graph plan")
+file(READ "${raster_depth_view_plan}" raster_depth_view_graph)
+if(NOT raster_depth_view_graph MATCHES "depth_aov")
+  message(FATAL_ERROR "raster depth AOV graph did not contain depth_aov: ${raster_depth_view_graph}")
+endif()
+if(NOT raster_depth_view_graph MATCHES "msaaSamples")
+  message(FATAL_ERROR "raster depth AOV graph did not contain raster sampling state: ${raster_depth_view_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli exports normal AOV render graph"

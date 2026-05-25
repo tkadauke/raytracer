@@ -943,6 +943,11 @@ namespace engine::graph {
                              empty() ? nullptr : std::make_shared<RasterBeautyPassState>(*this));
   }
 
+  std::size_t RasterBeautyPassState::writeToRasterAOVPasses(RenderPlan& plan) const {
+    return plan.setPassState(RenderPassKind::AOV, RenderExecutorKind::Rasterizer,
+                             empty() ? nullptr : std::make_shared<RasterBeautyPassState>(*this));
+  }
+
   RasterExecutionState& RasterBeautyPassState::execution() {
     return m_execution;
   }

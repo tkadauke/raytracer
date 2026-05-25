@@ -582,12 +582,13 @@ namespace engine::raster {
     * render target. Mismatched buffers are ignored for that render.
     *
     * The values describe the rasterizer's final passing fragments:
-    * depth is the post-depth-test Z value, normal is normalized,
-    * primitive/material/face identify the source triangle, and stencil
-    * mirrors the pass stencil value after stencil operations. Buffers are
-    * cleared at the start of every render using the rasterizer's clear
-    * values (`nullptr` for pointer IDs and the largest `std::uint64_t`
-    * value for face IDs).
+    * depth is the post-depth-test Z value, worldPosition and normal are the
+    * perspective-correct interpolated fragment attributes, primitive/material
+    * /face identify the source triangle, and stencil mirrors the pass stencil
+    * value after stencil operations. Buffers are cleared at the start of every
+    * render using the rasterizer's clear values (`Vector3d::undefined` for
+    * vector attributes, `nullptr` for pointer IDs and the largest
+    * `std::uint64_t` value for face IDs).
     *
     * With MSAA enabled, a pixel can have several passing subpixel
     * samples. These diagnostics store the last passing sample processed
@@ -601,6 +602,7 @@ namespace engine::raster {
     */
     struct DiagnosticOutputBuffers {
       Buffer<double>* depth = nullptr;
+      Buffer<Vector3d>* worldPosition = nullptr;
       Buffer<Vector3d>* normal = nullptr;
       Buffer<const render::Primitive*>* primitive = nullptr;
       Buffer<const render::Material*>* material = nullptr;

@@ -15,7 +15,8 @@ namespace engine::graph {
     if (object.isEmpty())
       return nullptr;
 
-    if (kind == RenderPassKind::Beauty && executor == RenderExecutorKind::Rasterizer) {
+    if ((kind == RenderPassKind::Beauty || kind == RenderPassKind::AOV) &&
+        executor == RenderExecutorKind::Rasterizer) {
       return std::make_shared<RasterBeautyPassState>(RasterBeautyPassState::fromJson(object, path));
     }
 

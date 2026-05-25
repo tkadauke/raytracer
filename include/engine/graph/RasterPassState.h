@@ -212,6 +212,7 @@ namespace engine::graph {
 
     void writeTo(RenderPassNode& pass) const;
     std::size_t writeToRasterBeautyPasses(RenderPlan& plan) const;
+    std::size_t writeToRasterAOVPasses(RenderPlan& plan) const;
 
     RasterExecutionState& execution();
     RasterGeometryState& geometry();

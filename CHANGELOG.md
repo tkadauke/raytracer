@@ -232,6 +232,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Raster graph AOV geometry.** Rasterizer-backed graph AOVs for depth,
+  normal, object-id, material-id, and world-position now use rasterizer
+  diagnostic buffers, so they match tessellated raster geometry and raster pass
+  state instead of analytic raytraced intersections. — GPT-5
 - **Metadata-only graph trace resources.** Execution traces now ask runtime graph
   resources whether a CPU depth buffer exists before capturing a depth preview,
   so GPU/metadata-only shadow resources stay inspectable instead of throwing

@@ -98,6 +98,8 @@ namespace RenderGraphCompilerTest {
     EXPECT_EQ("depth_aov", plan.passes()[0].id);
     EXPECT_EQ(RenderPassKind::AOV, plan.passes()[0].kind);
     EXPECT_EQ(RenderExecutorKind::Rasterizer, plan.passes()[0].executor);
+    ASSERT_NE(nullptr, plan.passes()[0].state);
+    EXPECT_EQ(4, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
     EXPECT_TRUE(hasFeature(plan.passes()[0], "depth"));
     ASSERT_EQ(1u, plan.passes()[0].writes.size());
     EXPECT_EQ("depth_aov", plan.passes()[0].writes[0].resource);

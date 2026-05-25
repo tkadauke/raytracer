@@ -205,6 +205,36 @@ namespace RasterPassStateTest {
     EXPECT_EQ(nullptr, plan.passes()[1].state);
   }
 
+  TEST(RasterBeautyPassState, WritesOnlyToRasterAOVPasses) {
+    RenderPlan plan;
+    RenderPassNode rasterAOV;
+    rasterAOV.id = "depth_aov";
+    rasterAOV.kind = RenderPassKind::AOV;
+    rasterAOV.executor = RenderExecutorKind::Rasterizer;
+    plan.addPass(rasterAOV);
+
+    RenderPassNode raytraceAOV;
+    raytraceAOV.id = "normal_aov";
+    raytraceAOV.kind = RenderPassKind::AOV;
+    raytraceAOV.executor = RenderExecutorKind::Raytracer;
+    plan.addPass(raytraceAOV);
+
+    RenderPassNode rasterBeauty;
+    rasterBeauty.id = "raster_beauty";
+    rasterBeauty.kind = RenderPassKind::Beauty;
+    rasterBeauty.executor = RenderExecutorKind::Rasterizer;
+    plan.addPass(rasterBeauty);
+
+    RasterBeautyPassState state;
+    state.sampling().setMSAASamples(4);
+
+    EXPECT_EQ(1u, state.writeToRasterAOVPasses(plan));
+    ASSERT_NE(nullptr, plan.passes()[0].state);
+    EXPECT_EQ(4, RasterBeautyPassState::fromPass(plan.passes()[0])->sampling().msaaSamples());
+    EXPECT_EQ(nullptr, plan.passes()[1].state);
+    EXPECT_EQ(nullptr, plan.passes()[2].state);
+  }
+
   TEST(RasterBeautyPassState, RejectsUnknownFieldsDuringImport) {
     QJsonObject sampling;
     sampling["msaaSamples"] = 4;

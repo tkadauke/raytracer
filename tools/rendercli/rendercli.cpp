@@ -754,9 +754,10 @@ engine::graph::RenderPlan Renderer::compileRenderGraphPlan(const Scene& scene) c
   auto plan = compiler.compile({m_width, m_height, renderGraphSampleCount(intent)}, intent);
   wireframePassState().writeToWireframePasses(plan);
   if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer) {
-    rasterBeautyPassState(intent.postProcessAA, !intent.usesGraphImagePostProcessAA(),
-                          !intent.enablePreviewShadows)
-      .writeToRasterBeautyPasses(plan);
+    const engine::graph::RasterBeautyPassState rasterState = rasterBeautyPassState(
+      intent.postProcessAA, !intent.usesGraphImagePostProcessAA(), !intent.enablePreviewShadows);
+    rasterState.writeToRasterBeautyPasses(plan);
+    rasterState.writeToRasterAOVPasses(plan);
     if (intent.enablePreviewShadows) {
       rasterShadowPassState().writeToRasterShadowPasses(plan);
     }

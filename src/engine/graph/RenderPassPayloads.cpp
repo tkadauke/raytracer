@@ -144,6 +144,41 @@ namespace engine::graph {
                     static_cast<double>(hash & 0xffu) / 255.0);
     }
 
+    class SceneRasterIdentityIds {
+    public:
+      explicit SceneRasterIdentityIds(const std::shared_ptr<render::Scene>& scene) {
+        if (!scene) {
+          return;
+        }
+
+        std::uint32_t nextPrimitiveId = 1;
+        std::uint32_t nextMaterialId = 1;
+        scene->forEachLeaf(
+          [&](const render::Primitive* primitive, std::shared_ptr<render::Material> material) {
+            if (primitive && m_primitiveIds.emplace(primitive, nextPrimitiveId).second) {
+              ++nextPrimitiveId;
+            }
+            if (material && m_materialIds.emplace(material.get(), nextMaterialId).second) {
+              ++nextMaterialId;
+            }
+          });
+      }
+
+      std::uint32_t primitiveId(const render::Primitive* primitive) const {
+        const auto it = m_primitiveIds.find(primitive);
+        return it == m_primitiveIds.end() ? 0 : it->second;
+      }
+
+      std::uint32_t materialId(const render::Material* material) const {
+        const auto it = m_materialIds.find(material);
+        return it == m_materialIds.end() ? 0 : it->second;
+      }
+
+    private:
+      std::map<const render::Primitive*, std::uint32_t> m_primitiveIds;
+      std::map<const render::Material*, std::uint32_t> m_materialIds;
+    };
+
     bool hasFeature(const RenderPassNode& pass, const RenderFeatureKind& feature) {
       return std::any_of(pass.features.begin(), pass.features.end(),
                          [&](const RenderFeatureKind& value) { return value == feature; });
@@ -502,6 +537,137 @@ namespace engine::graph {
       }
     };
 
+    class RasterDiagnosticAOVPass : public RenderPassPayload {
+    protected:
+      void renderRasterDiagnostics(
+        RenderExecutionContext& context,
+        const ::engine::raster::Rasterizer::DiagnosticOutputBuffers& outputs) const {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        const auto& descriptor = context.storage().descriptor(write.resource);
+
+        auto camera = context.graph().camera() ? context.graph().camera()->clone() : nullptr;
+        auto rasterizer = std::make_shared<::engine::raster::Rasterizer>(std::move(camera),
+                                                                         context.graph().scene());
+        const RasterBeautyPassState state = RasterBeautyPassState::valueFromPass(pass);
+        state.applyTo(*rasterizer);
+        rasterizer->setDiagnosticOutputBuffers(outputs);
+
+        Buffer<Colord> scratch(descriptor.width, descriptor.height);
+        prepareEngine(*rasterizer, context.graph(), context.cancelled(), context.graph().tonemap());
+        context.setActiveEngine(rasterizer);
+        rasterizer->render(scratch);
+      }
+    };
+
+    class RasterDepthAOVPass : public RasterDiagnosticAOVPass {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireDepthResource(context.storage(), write.resource, pass);
+
+        ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
+        outputs.depth = &context.storage().depth(write.resource);
+        renderRasterDiagnostics(context, outputs);
+      }
+    };
+
+    class RasterNormalAOVPass : public RasterDiagnosticAOVPass {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& color = context.storage().color(write.resource);
+        Buffer<Vector3d> normals(color.width(), color.height());
+        ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
+        outputs.normal = &normals;
+        renderRasterDiagnostics(context, outputs);
+
+        for (int y = 0; y != color.height(); ++y) {
+          for (int x = 0; x != color.width(); ++x) {
+            const Vector3d normal = normals[y][x].normalized();
+            if (normal.isUndefined()) {
+              color[y][x] = Colord::black();
+              continue;
+            }
+            color[y][x] =
+              Colord(normal.x() * 0.5 + 0.5, normal.y() * 0.5 + 0.5, normal.z() * 0.5 + 0.5);
+          }
+        }
+      }
+    };
+
+    class RasterObjectIdAOVPass : public RasterDiagnosticAOVPass {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireObjectIdResource(context.storage(), write.resource, pass);
+
+        Buffer<std::uint32_t>& output = context.storage().objectId(write.resource);
+        Buffer<const render::Primitive*> primitives(output.width(), output.height());
+        ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
+        outputs.primitive = &primitives;
+        renderRasterDiagnostics(context, outputs);
+
+        const SceneRasterIdentityIds ids(context.graph().scene());
+        for (int y = 0; y != output.height(); ++y) {
+          for (int x = 0; x != output.width(); ++x) {
+            output[y][x] = ids.primitiveId(primitives[y][x]);
+          }
+        }
+      }
+    };
+
+    class RasterMaterialIdAOVPass : public RasterDiagnosticAOVPass {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireObjectIdResource(context.storage(), write.resource, pass);
+
+        Buffer<std::uint32_t>& output = context.storage().objectId(write.resource);
+        Buffer<const render::Material*> materials(output.width(), output.height());
+        ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
+        outputs.material = &materials;
+        renderRasterDiagnostics(context, outputs);
+
+        const SceneRasterIdentityIds ids(context.graph().scene());
+        for (int y = 0; y != output.height(); ++y) {
+          for (int x = 0; x != output.width(); ++x) {
+            output[y][x] = ids.materialId(materials[y][x]);
+          }
+        }
+      }
+    };
+
+    class RasterWorldPositionAOVPass : public RasterDiagnosticAOVPass {
+    public:
+      void execute(RenderExecutionContext& context) override {
+        const auto& pass = context.pass();
+        const auto& write = pass.singleWrite();
+        requireColorResource(context.storage(), write.resource, pass);
+
+        Buffer<Colord>& color = context.storage().color(write.resource);
+        Buffer<Vector3d> positions(color.width(), color.height());
+        ::engine::raster::Rasterizer::DiagnosticOutputBuffers outputs;
+        outputs.worldPosition = &positions;
+        renderRasterDiagnostics(context, outputs);
+
+        const double missing = std::numeric_limits<double>::quiet_NaN();
+        for (int y = 0; y != color.height(); ++y) {
+          for (int x = 0; x != color.width(); ++x) {
+            const Vector3d& point = positions[y][x];
+            color[y][x] = point.isDefined() ? Colord(point.x(), point.y(), point.z())
+                                            : Colord(missing, missing, missing);
+          }
+        }
+      }
+    };
+
     class DepthVisualizationPass : public RenderPassPayload {
     public:
       void execute(RenderExecutionContext& context) override {
@@ -811,13 +977,13 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"depth", "visualization"});
       static const FeaturePassPayloadFactory<DepthAOVPass> depthAOV(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"depth"});
-      static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVRasterizer(
+      static const FeaturePassPayloadFactory<RasterDepthAOVPass> depthAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"depth"});
       static const FeaturePassPayloadFactory<DepthAOVPass> depthAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"depth"});
       static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"normal"});
-      static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVRasterizer(
+      static const FeaturePassPayloadFactory<RasterNormalAOVPass> normalAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"normal"});
       static const FeaturePassPayloadFactory<NormalAOVPass> normalAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"normal"});
@@ -827,7 +993,7 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"object_id", "visualization"});
       static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"object_id"});
-      static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVRasterizer(
+      static const FeaturePassPayloadFactory<RasterObjectIdAOVPass> objectIdAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"object_id"});
       static const FeaturePassPayloadFactory<ObjectIdAOVPass> objectIdAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"object_id"});
@@ -835,7 +1001,7 @@ namespace engine::graph {
         RenderPassKind::AOV, RenderExecutorKind::PostProcess, {"material_id", "visualization"});
       static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"material_id"});
-      static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVRasterizer(
+      static const FeaturePassPayloadFactory<RasterMaterialIdAOVPass> materialIdAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"material_id"});
       static const FeaturePassPayloadFactory<MaterialIdAOVPass> materialIdAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"material_id"});
@@ -844,7 +1010,7 @@ namespace engine::graph {
                                    {"world_position", "visualization"});
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVRaytracer(
         RenderPassKind::AOV, RenderExecutorKind::Raytracer, {"world_position"});
-      static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVRasterizer(
+      static const FeaturePassPayloadFactory<RasterWorldPositionAOVPass> worldPositionAOVRasterizer(
         RenderPassKind::AOV, RenderExecutorKind::Rasterizer, {"world_position"});
       static const FeaturePassPayloadFactory<WorldPositionAOVPass> worldPositionAOVWireframe(
         RenderPassKind::AOV, RenderExecutorKind::Wireframe, {"world_position"});
