@@ -39,8 +39,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   iteration, and bounding-box computation for path-like geometry. — GPT-5
 - **rendercli graph shading-profile override.**
   `rendercli --render_graph_shading_profile <name>` now overrides the default
-  graph intent shading profile before compilation, so exported scene-rendering
-  passes show the requested profile in their `SceneView`. — GPT-5
+  graph intent shading profile before compilation, and repeated
+  `--render_graph_shading_parameter key=value` options attach parsed scalar
+  parameters so exported scene-rendering passes show the requested profile in
+  their `SceneView`. — GPT-5
 - **rendercli graph camera override.** `rendercli --render_graph_camera <id>`
   now overrides the render intent's default scene-camera reference in compiled
   graph plans. — GPT-5
