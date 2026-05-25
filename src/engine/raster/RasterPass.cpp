@@ -1,5 +1,7 @@
 #include "engine/raster/detail/RasterPass.h"
 
+#include "core/util/BufferUtils.h"
+
 #include <algorithm>
 
 namespace engine::raster::detail {
@@ -12,25 +14,25 @@ namespace engine::raster::detail {
         m_stencilStoreOp(rasterizer.stencilStoreOp()) {
     const auto& attachments = rasterizer.attachmentBuffers();
     if (useExternalAttachments &&
-        rasterBufferMatches(attachments.depth, tilePlan.width(), tilePlan.height())) {
+        core::util::bufferDimensionsMatch(attachments.depth, tilePlan.width(), tilePlan.height())) {
       m_depthAttachment = attachments.depth;
     }
 
     if (m_depthAttachment && rasterizer.depthLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
-      copyRasterBuffer(m_depthBuffer, *m_depthAttachment);
+      core::util::copyBuffer(m_depthBuffer, *m_depthAttachment);
     } else {
       m_depthBuffer.clear(rasterizer.depthClearValue());
     }
 
-    if (useExternalAttachments &&
-        rasterBufferMatches(attachments.stencil, tilePlan.width(), tilePlan.height())) {
+    if (useExternalAttachments && core::util::bufferDimensionsMatch(
+                                    attachments.stencil, tilePlan.width(), tilePlan.height())) {
       m_stencilAttachment = attachments.stencil;
     }
 
     if (rasterizer.stencilTestEnabled() || m_stencilAttachment) {
       m_stencilBuffer = std::make_unique<Buffer<std::uint8_t>>(tilePlan.width(), tilePlan.height());
       if (m_stencilAttachment && rasterizer.stencilLoadOp() == Rasterizer::AttachmentLoadOp::Load) {
-        copyRasterBuffer(*m_stencilBuffer, *m_stencilAttachment);
+        core::util::copyBuffer(*m_stencilBuffer, *m_stencilAttachment);
       } else {
         m_stencilBuffer->clear(rasterizer.stencilClearValue());
       }
@@ -39,11 +41,11 @@ namespace engine::raster::detail {
 
   PassBuffers::~PassBuffers() {
     if (m_depthAttachment && m_depthStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-      copyRasterBuffer(*m_depthAttachment, m_depthBuffer);
+      core::util::copyBuffer(*m_depthAttachment, m_depthBuffer);
     }
     if (m_stencilAttachment && m_stencilBuffer &&
         m_stencilStoreOp == Rasterizer::AttachmentStoreOp::Store) {
-      copyRasterBuffer(*m_stencilAttachment, *m_stencilBuffer);
+      core::util::copyBuffer(*m_stencilAttachment, *m_stencilBuffer);
     }
   }
 
