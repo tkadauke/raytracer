@@ -1069,6 +1069,7 @@ void MainWindow::newFile() {
     p->propertyEditorWidget->setRoot(p->scene);
 
     p->elementModel->setElement(p->scene);
+    applySceneRenderIntentToPreviewControls();
     resetTimelineFrame();
     resetPlaybackIndex();
     redraw();
@@ -1872,10 +1873,11 @@ void MainWindow::setPreviewTonemap(const std::string& name) {
 }
 
 void MainWindow::applySceneRenderIntentToPreviewControls() {
-  if (!p->scene || !p->scene->hasRenderIntent() || !p->display)
+  if (!p->scene || !p->display)
     return;
 
-  const auto& intent = p->scene->renderIntent();
+  const auto intent =
+    p->scene->hasRenderIntent() ? p->scene->renderIntent() : engine::graph::RenderIntent();
   struct EngineChoice {
     engine::graph::RenderExecutorPreference preference;
     RenderDisplay::EngineKind kind;
