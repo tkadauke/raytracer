@@ -11,6 +11,7 @@
 #include <stdexcept>
 
 namespace engine::graph {
+  class RenderGraphCachedArtifact;
   class RenderPassState;
 
   /**
@@ -58,6 +59,12 @@ namespace engine::graph {
     const std::optional<RenderGraphCacheMetadata>& cacheMetadata() const;
 
     /**
+      * Attaches the immutable cache artifact that backs this runtime resource.
+      */
+    void setArtifact(std::shared_ptr<const RenderGraphCachedArtifact> artifact);
+    std::shared_ptr<const RenderGraphCachedArtifact> artifact() const;
+
+    /**
       * @returns true when this resource owns a concrete CPU buffer.
       */
     virtual bool hasBuffer() const;
@@ -102,6 +109,7 @@ namespace engine::graph {
     bool m_substituteDefault{false};
     std::shared_ptr<const RenderPassState> m_state;
     std::optional<RenderGraphCacheMetadata> m_cacheMetadata;
+    std::shared_ptr<const RenderGraphCachedArtifact> m_artifact;
   };
 
   /**

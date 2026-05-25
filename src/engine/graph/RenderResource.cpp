@@ -110,6 +110,14 @@ namespace engine::graph {
     return m_cacheMetadata;
   }
 
+  void RenderResource::setArtifact(std::shared_ptr<const RenderGraphCachedArtifact> artifact) {
+    m_artifact = std::move(artifact);
+  }
+
+  std::shared_ptr<const RenderGraphCachedArtifact> RenderResource::artifact() const {
+    return m_artifact;
+  }
+
   bool RenderResource::hasBuffer() const {
     return false;
   }
@@ -129,6 +137,7 @@ namespace engine::graph {
   void RenderResource::clearSubstituteDefault(RenderPassKind, const Colord&) {
     m_substituteDefault = true;
     m_state.reset();
+    m_artifact.reset();
   }
 
   Buffer<Colord>& RenderResource::color() {

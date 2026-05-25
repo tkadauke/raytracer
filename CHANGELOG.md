@@ -106,10 +106,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **Modeler render graph export.** The Render Graph dock can now export the
   effective graph as text, DOT, or JSON through the Modeler save-file flow.
   — GPT-5
-- **Raster shadow depth artifact cache.** Graph preview shadow passes now reuse
-  the cached first directional-light depth artifact when the pass state,
-  descriptor, camera, scene, and light inputs still match, and traces report
-  whether the resource was stored or restored from cache. — GPT-5
+- **Raster shadow-map artifact cache.** Graph preview shadow passes now cache
+  the full directional shadow-map collection, restore it when pass state,
+  descriptor, camera, scene, and light inputs still match, and feed the cached
+  artifact into raster beauty instead of rebuilding shadows internally. —
+  GPT-5
 - **Graph-visible raster shadow depth traces.** Raster preview shadow passes now
   materialize the first directional-light cascade as a CPU depth resource, and
   the Modeler Graph Trace preview renders depth snapshots as grayscale images

@@ -99,6 +99,14 @@ namespace engine::graph {
     return false;
   }
 
+  bool RenderGraphCachedArtifact::copyRasterShadowMapPreviewTo(Buffer<double>&) const {
+    return false;
+  }
+
+  bool RenderGraphCachedArtifact::applyRasterShadowMapsTo(engine::raster::Rasterizer&) const {
+    return false;
+  }
+
   RenderGraphDepthArtifact::RenderGraphDepthArtifact(RenderGraphCacheKey key,
                                                      const Buffer<double>& depth,
                                                      std::string description)

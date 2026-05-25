@@ -18,6 +18,20 @@
 #include <utility>
 
 namespace engine::raster::detail {
+  namespace {
+    std::atomic<std::size_t>& shadowMapDepthPassCounter() {
+      static std::atomic<std::size_t> counter{0};
+      return counter;
+    }
+  }
+
+  void RasterShadowMapBuilder::resetDepthPassCountForTests() {
+    shadowMapDepthPassCounter().store(0, std::memory_order_release);
+  }
+
+  std::size_t RasterShadowMapBuilder::depthPassCountForTests() {
+    return shadowMapDepthPassCounter().load(std::memory_order_acquire);
+  }
 
   RasterShadowMapBuilder::RasterShadowMapBuilder(const Rasterizer& rasterizer,
                                                  const std::shared_ptr<render::Scene>& scene,
@@ -69,7 +83,7 @@ namespace engine::raster::detail {
 
       if (!cascades.empty()) {
         shadowMaps.add(
-          DirectionalShadowMap(light.get(), m_camera.get(), std::move(cascades),
+          DirectionalShadowMap(light.get(), m_camera, std::move(cascades),
                                m_rasterizer.shadowBias(), m_rasterizer.shadowSlopeBias(),
                                m_rasterizer.shadowFilterRadius(), m_rasterizer.shadowFilterMode()));
       }
@@ -181,6 +195,7 @@ namespace engine::raster::detail {
   void
   RasterShadowMapBuilder::renderDepth(const std::shared_ptr<DirectionalShadowCamera>& shadowCamera,
                                       Buffer<double>& depthBuffer) const {
+    shadowMapDepthPassCounter().fetch_add(1, std::memory_order_acq_rel);
     std::shared_ptr<render::Camera> camera = shadowCamera;
     const render::TilePlan shadowTilePlan =
       render::TilePlan::forBuffer(depthBuffer.width(), depthBuffer.height(), 1);
