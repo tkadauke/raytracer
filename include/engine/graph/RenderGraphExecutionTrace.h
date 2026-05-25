@@ -42,6 +42,7 @@ namespace engine::graph {
 
     const RenderResourceId& resourceId() const;
     const RenderResourceDescriptor& descriptor() const;
+    bool hasPreview() const;
     bool hasColorPreview() const;
     const Buffer<Colord>& colorPreview() const;
     bool hasDepthPreview() const;

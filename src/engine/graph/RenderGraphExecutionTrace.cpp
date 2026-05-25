@@ -234,6 +234,10 @@ namespace engine::graph {
     return m_descriptor;
   }
 
+  bool RenderGraphResourceSnapshot::hasPreview() const {
+    return hasColorPreview() || hasDepthPreview();
+  }
+
   bool RenderGraphResourceSnapshot::hasColorPreview() const {
     return static_cast<bool>(m_colorPreview);
   }
@@ -271,7 +275,7 @@ namespace engine::graph {
     object["format"] = toString(m_descriptor.format);
     object["width"] = m_descriptor.width;
     object["height"] = m_descriptor.height;
-    object["previewAvailable"] = hasColorPreview() || hasDepthPreview();
+    object["previewAvailable"] = hasPreview();
     object["cache"] = m_cacheMetadata.toJson();
     if (m_colorPreview) {
       object["previewKind"] = "color";

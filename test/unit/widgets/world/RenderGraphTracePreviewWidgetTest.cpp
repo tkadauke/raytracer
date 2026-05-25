@@ -164,6 +164,9 @@ namespace RenderGraphTracePreviewWidgetTest {
   TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowResourceTracePreviews) {
     auto trace = postProcessTrace();
     ASSERT_TRUE(trace);
+    const auto outputSnapshots = trace->outputSnapshotsForResource("post_aa_color");
+    ASSERT_EQ(1u, outputSnapshots.size());
+    EXPECT_TRUE(outputSnapshots.front()->hasPreview());
 
     RenderGraphTracePreviewWidget widget;
     widget.showResourceTrace(trace, "post_aa_color");
@@ -223,6 +226,9 @@ namespace RenderGraphTracePreviewWidgetTest {
   TEST_F(RenderGraphTracePreviewWidgetTest, ShouldShowMetadataOnlyResourceTrace) {
     auto trace = metadataOnlyShadowTrace();
     ASSERT_TRUE(trace);
+    const auto outputSnapshots = trace->outputSnapshotsForResource("preview_shadow_map");
+    ASSERT_EQ(1u, outputSnapshots.size());
+    EXPECT_FALSE(outputSnapshots.front()->hasPreview());
 
     RenderGraphTracePreviewWidget widget;
     widget.showResourceTrace(trace, "preview_shadow_map");
