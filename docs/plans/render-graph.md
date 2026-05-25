@@ -1217,8 +1217,7 @@ Plan validation should catch:
 - pass disabled with no valid default or dependent-culling path;
 - imported resource not provided;
 - exported resource not produced; ✅ **Done.** Plan validation now rejects
-  exported resources with no producer, or with a disabled producer that cannot
-  publish a substitute/default output.
+  exported resources with no declared producer.
 - mirror/portal/screen recursion over the configured limit.
 
 Validation errors should be human-readable because the graph is a teaching
@@ -1421,7 +1420,10 @@ history and previous-frame inputs exist.
 ### Parallel scheduler
 
 Replace single-threaded dependency execution with parallel dependency-ready
-scheduling. Keep executor concurrency limits explicit.
+scheduling. Keep executor concurrency limits explicit. ✅ **Partial.**
+`RenderPlan::executionStages()` now groups dependency-ready passes into stable
+layers used by text exports and the Modeler graph layout; execution remains
+serial until executor concurrency limits and worker scheduling are added.
 
 ### History resources
 

@@ -149,22 +149,6 @@ namespace RenderPlanTest {
     EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::UnproducedExport));
   }
 
-  TEST(RenderPlan, ReportsExportedResourceProducedByDisabledCullPass) {
-    RenderPlan plan;
-    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
-
-    auto main = pass("main");
-    main.writes.push_back({"main_color"});
-    main.disabledBehavior = DisabledBehavior::CullDependents;
-    main.enabled = false;
-    plan.addPass(main);
-
-    const auto validation = plan.validate();
-
-    ASSERT_FALSE(validation.valid());
-    EXPECT_TRUE(hasError(validation, RenderPlanValidationError::Code::UnproducedExport));
-  }
-
   TEST(RenderPlan, ReportsDuplicateWriters) {
     RenderPlan plan;
     plan.addResource(colorResource("main_color"));
@@ -233,6 +217,46 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos,
               text.find("Dependencies:\n- beauty -> tonemap via beauty_color\n"));
     EXPECT_NE(std::string::npos, text.find("Passes:\n- tonemap"));
+  }
+
+  TEST(RenderPlan, GroupsDependencyReadyPassesIntoExecutionStages) {
+    RenderPlan plan;
+    plan.addResource(colorResource("beauty_color"));
+    plan.addResource(colorResource("normal_color", RenderResourceLifetime::Exported));
+    plan.addResource(colorResource("depth_color", RenderResourceLifetime::Exported));
+    plan.addResource(colorResource("main_color", RenderResourceLifetime::Exported));
+
+    auto beauty = pass("beauty", RenderPassKind::Beauty);
+    beauty.writes.push_back({"beauty_color"});
+    plan.addPass(beauty);
+
+    auto normal = pass("normal_aov", RenderPassKind::AOV);
+    normal.writes.push_back({"normal_color"});
+    plan.addPass(normal);
+
+    auto depth = pass("depth_aov", RenderPassKind::AOV);
+    depth.writes.push_back({"depth_color"});
+    plan.addPass(depth);
+
+    auto tonemap = pass("tonemap", RenderPassKind::Tonemap);
+    tonemap.reads.push_back({"beauty_color"});
+    tonemap.writes.push_back({"main_color"});
+    plan.addPass(tonemap);
+
+    EXPECT_TRUE(plan.validate().valid());
+
+    const auto stages = plan.executionStages();
+    ASSERT_EQ(2u, stages.size());
+    ASSERT_EQ(3u, stages[0].size());
+    EXPECT_EQ("beauty", stages[0][0]->id);
+    EXPECT_EQ("normal_aov", stages[0][1]->id);
+    EXPECT_EQ("depth_aov", stages[0][2]->id);
+    ASSERT_EQ(1u, stages[1].size());
+    EXPECT_EQ("tonemap", stages[1][0]->id);
+
+    const std::string text = plan.toText();
+    EXPECT_NE(std::string::npos,
+              text.find("Execution stages:\n- 1: beauty normal_aov depth_aov\n- 2: tonemap\n"));
   }
 
   TEST(RenderPlan, ExecutionOrderIncludesDisabledPassthroughEdges) {

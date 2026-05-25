@@ -191,32 +191,15 @@ namespace {
     return result;
   }
 
-  std::map<RenderPassId, int> dependencyRanks(const RenderPlan& plan) {
-    std::map<RenderPassId, int> result;
-    for (const RenderPassNode* pass : plan.executionOrder()) {
-      int rank = 0;
-      for (const auto& dependency : plan.dependencies()) {
-        if (dependency.consumer->id != pass->id)
-          continue;
-
-        const auto producerRank = result.find(dependency.producer->id);
-        if (producerRank != result.end())
-          rank = std::max(rank, producerRank->second + 1);
-      }
-      result[pass->id] = rank;
-    }
-    return result;
-  }
-
   std::map<RenderPassId, QPointF> passPositions(const RenderPlan& plan) {
-    const auto ranks = dependencyRanks(plan);
-    std::map<int, int> rowsByRank;
     std::map<RenderPassId, QPointF> result;
 
-    for (const RenderPassNode* pass : plan.executionOrder()) {
-      const int rank = ranks.at(pass->id);
-      const int row = rowsByRank[rank]++;
-      result[pass->id] = QPointF(OriginX + rank * ColumnGap, OriginY + row * RowGap);
+    const auto stages = plan.executionStages();
+    for (std::size_t stageIndex = 0; stageIndex != stages.size(); ++stageIndex) {
+      for (std::size_t row = 0; row != stages[stageIndex].size(); ++row) {
+        const RenderPassNode* pass = stages[stageIndex][row];
+        result[pass->id] = QPointF(OriginX + stageIndex * ColumnGap, OriginY + row * RowGap);
+      }
     }
 
     return result;

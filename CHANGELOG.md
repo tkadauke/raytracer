@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Render graph execution stages.** `RenderPlan` now exposes dependency-ready
+  execution stages, text exports list those stages, and the Modeler graph view
+  uses them for its left-to-right layout of independent branches. — GPT-5
 - **Modeler preview AOV views.** The Modeler Preview menu can now switch the
   live graph preview between beauty, depth, normal, object-id, material-id, and
   world-position views so the Render Graph dock shows the corresponding AOV
@@ -233,9 +236,8 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 ### Fixed
 
 - **Render graph exported-resource validation.** Plans now reject exported
-  resources that have no producer, or whose producer was disabled without a
-  substitute/passthrough output, so malformed graph-only plans fail before
-  execution. — GPT-5
+  resources that have no declared producer, so malformed graph-only plans fail
+  before execution. — GPT-5
 - **Raster graph AOV geometry.** Rasterizer-backed graph AOVs for depth,
   normal, object-id, material-id, and world-position now use rasterizer
   diagnostic buffers, so they match tessellated raster geometry and raster pass

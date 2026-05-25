@@ -75,6 +75,7 @@ namespace engine::graph {
     bool resourceCanReach(const RenderResourceId& source,
                           const RenderResourceId& destination) const;
     std::vector<RenderPassDependency> dependencies() const;
+    std::vector<std::vector<const RenderPassNode*>> executionStages() const;
     std::vector<const RenderPassNode*> executionOrder() const;
 
     /**

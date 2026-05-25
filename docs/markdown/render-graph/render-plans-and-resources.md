@@ -119,8 +119,8 @@ that storage object. Resource lifetimes are:
 
 Validation treats imported, history, and persistent-cache resources as
 externally available. A transient or exported resource that is read must have a
-producer in the plan, and every exported resource must be produced even when no
-other pass reads it.
+producer in the plan, and every exported resource must have a declared producer
+even when no other pass reads it.
 
 Persistent cache resources have a separate execution-time home:
 [`RenderGraphArtifactCache`](../../../include/engine/graph/RenderGraphArtifactCache.h).
@@ -242,7 +242,7 @@ Validation checks:
 - reads or writes of unknown resources,
 - multiple passes writing the same resource,
 - reads of transient/exported resources that have no producer,
-- exported resources that are not produced by a pass that can still write,
+- exported resources that have no declared producer,
 - disabled required passes,
 - reads from disabled producers that do not substitute a default output,
 - negative dimensions or non-positive sample counts,
@@ -252,6 +252,12 @@ The dependency graph comes from resource flow. If pass A writes a resource
 that pass B reads, B depends on A. A cycle exists when the dependency walk can
 return to a pass already on the active stack. A single pass reading and writing
 the same resource is also reported as a cycle.
+
+The same dependency walk exposes execution stages: each stage is the set of
+passes whose producer dependencies are already satisfied by earlier stages.
+The current `GraphRenderEngine` still executes serially, but text exports and
+the Modeler graph layout use these stages to make independent AOV or cache
+branches appear as parallel candidates rather than a misleading list.
 
 ## <a id="exports-make-the-plan-inspectable"></a>Exports make the plan inspectable
 `RenderPlan` has three export surfaces:

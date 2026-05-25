@@ -131,6 +131,75 @@ namespace engine::graph {
         jsonError(path + "." + key, "expected array");
       return value.toArray();
     }
+
+    std::vector<std::vector<std::size_t>>
+    executionStageIndexes(const std::vector<RenderPassNode>& passes,
+                          const std::vector<RenderPassDependency>& dependencies) {
+      std::map<const RenderPassNode*, std::size_t> passIndexes;
+      for (std::size_t passIndex = 0; passIndex != passes.size(); ++passIndex) {
+        passIndexes.emplace(&passes[passIndex], passIndex);
+      }
+
+      std::vector<std::set<std::size_t>> dependents(passes.size());
+      std::vector<std::size_t> dependencyCounts(passes.size(), 0);
+      for (const RenderPassDependency& dependency : dependencies) {
+        if (!passReadsWhenExecuted(*dependency.consumer) ||
+            !passProducesWhenExecuted(*dependency.producer)) {
+          continue;
+        }
+
+        const auto producerIt = passIndexes.find(dependency.producer);
+        const auto consumerIt = passIndexes.find(dependency.consumer);
+        if (producerIt == passIndexes.end() || consumerIt == passIndexes.end()) {
+          continue;
+        }
+
+        const std::size_t producerIndex = producerIt->second;
+        const std::size_t consumerIndex = consumerIt->second;
+        if (dependents[producerIndex].insert(consumerIndex).second) {
+          ++dependencyCounts[consumerIndex];
+        }
+      }
+
+      std::vector<std::size_t> ready;
+      ready.reserve(passes.size());
+      for (std::size_t passIndex = 0; passIndex != passes.size(); ++passIndex) {
+        if (dependencyCounts[passIndex] == 0) {
+          ready.push_back(passIndex);
+        }
+      }
+
+      std::vector<std::vector<std::size_t>> stages;
+      std::vector<bool> emitted(passes.size(), false);
+      while (!ready.empty()) {
+        std::sort(ready.begin(), ready.end());
+        const std::vector<std::size_t> stage = ready;
+        ready.clear();
+
+        stages.push_back(stage);
+        for (const std::size_t passIndex : stage) {
+          emitted[passIndex] = true;
+          for (const std::size_t dependent : dependents[passIndex]) {
+            --dependencyCounts[dependent];
+            if (dependencyCounts[dependent] == 0) {
+              ready.push_back(dependent);
+            }
+          }
+        }
+      }
+
+      std::vector<std::size_t> remaining;
+      for (std::size_t passIndex = 0; passIndex != passes.size(); ++passIndex) {
+        if (!emitted[passIndex]) {
+          remaining.push_back(passIndex);
+        }
+      }
+      if (!remaining.empty()) {
+        stages.push_back(std::move(remaining));
+      }
+
+      return stages;
+    }
   }
 
   const char* toString(RenderPlanValidationError::Code value) {
@@ -261,60 +330,27 @@ namespace engine::graph {
     std::vector<const RenderPassNode*> result;
     result.reserve(m_passes.size());
 
-    std::map<const RenderPassNode*, std::size_t> passIndexes;
-    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
-      passIndexes.emplace(&m_passes[passIndex], passIndex);
-    }
-
-    std::vector<std::set<std::size_t>> dependents(m_passes.size());
-    std::vector<std::size_t> dependencyCounts(m_passes.size(), 0);
-    for (const RenderPassDependency& dependency : dependencies()) {
-      if (!passReadsWhenExecuted(*dependency.consumer) ||
-          !passProducesWhenExecuted(*dependency.producer)) {
-        continue;
-      }
-
-      const auto producerIt = passIndexes.find(dependency.producer);
-      const auto consumerIt = passIndexes.find(dependency.consumer);
-      if (producerIt == passIndexes.end() || consumerIt == passIndexes.end()) {
-        continue;
-      }
-
-      const std::size_t producerIndex = producerIt->second;
-      const std::size_t consumerIndex = consumerIt->second;
-      if (dependents[producerIndex].insert(consumerIndex).second) {
-        ++dependencyCounts[consumerIndex];
-      }
-    }
-
-    std::vector<std::size_t> ready;
-    ready.reserve(m_passes.size());
-    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
-      if (dependencyCounts[passIndex] == 0) {
-        ready.push_back(passIndex);
-      }
-    }
-
-    std::vector<bool> emitted(m_passes.size(), false);
-    while (!ready.empty()) {
-      const auto next = std::min_element(ready.begin(), ready.end());
-      const std::size_t passIndex = *next;
-      ready.erase(next);
-
-      emitted[passIndex] = true;
-      result.push_back(&m_passes[passIndex]);
-      for (const std::size_t dependent : dependents[passIndex]) {
-        --dependencyCounts[dependent];
-        if (dependencyCounts[dependent] == 0) {
-          ready.push_back(dependent);
-        }
-      }
-    }
-
-    for (std::size_t passIndex = 0; passIndex != m_passes.size(); ++passIndex) {
-      if (!emitted[passIndex]) {
+    for (const auto& stage : executionStageIndexes(m_passes, dependencies())) {
+      for (const std::size_t passIndex : stage) {
         result.push_back(&m_passes[passIndex]);
       }
+    }
+
+    return result;
+  }
+
+  std::vector<std::vector<const RenderPassNode*>> RenderPlan::executionStages() const {
+    std::vector<std::vector<const RenderPassNode*>> result;
+    const auto stageIndexes = executionStageIndexes(m_passes, dependencies());
+    result.reserve(stageIndexes.size());
+
+    for (const auto& stage : stageIndexes) {
+      std::vector<const RenderPassNode*> passes;
+      passes.reserve(stage.size());
+      for (const std::size_t passIndex : stage) {
+        passes.push_back(&m_passes[passIndex]);
+      }
+      result.push_back(std::move(passes));
     }
 
     return result;
@@ -524,15 +560,6 @@ namespace engine::graph {
       if (producerIt == producers.end()) {
         result.add({RenderPlanValidationError::Code::UnproducedExport,
                     "exported resource '" + resource.id + "' has no producer", "", resource.id});
-        continue;
-      }
-
-      const RenderPassNode* producer = producerIt->second;
-      if (!producer->enabled && !producer->producesWhenDisabled()) {
-        result.add({RenderPlanValidationError::Code::UnproducedExport,
-                    "exported resource '" + resource.id + "' is produced by disabled pass '" +
-                      producer->id + "'",
-                    producer->id, resource.id});
       }
     }
 
@@ -627,6 +654,16 @@ namespace engine::graph {
     out << "Execution order:\n";
     for (const RenderPassNode* pass : executionOrder()) {
       out << "- " << pass->id << "\n";
+    }
+
+    out << "Execution stages:\n";
+    int stageNumber = 1;
+    for (const auto& stage : executionStages()) {
+      out << "- " << stageNumber++ << ":";
+      for (const RenderPassNode* pass : stage) {
+        out << " " << pass->id;
+      }
+      out << "\n";
     }
 
     out << "Dependencies:\n";
