@@ -1029,14 +1029,15 @@ std::vector<double> Renderer::renderScene(const Scene& scene, const QString& out
     engine = raster;
   } else {
     auto rt = std::make_shared<engine::raytracer::Raytracer>(raytracerScene);
-    // We don't need a fancy view plane, so we can optimize for fast rendering.
-    rt->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
     rt->setMaximumRecursionDepth(m_maximumRecursionDepth);
     if (rtCamera) {
       rt->setCamera(rtCamera);
     } else {
       rt->camera()->setPosition(Vector3d(0, 0, -5));
     }
+    // We don't need a fancy view plane, so optimize the active direct-render camera
+    // after scene camera selection.
+    rt->camera()->setViewPlane(std::make_shared<render::TiledViewPlane>());
     rt->camera()->viewPlane()->setSampler(sampler());
     rt->setMaximumThreads(m_threads);
     rt->setQueueSize(m_queueSize);
