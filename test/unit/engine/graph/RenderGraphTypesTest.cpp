@@ -8,6 +8,7 @@
 
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 namespace RenderGraphTypesTest {
   using namespace engine::graph;
@@ -269,6 +270,24 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ("clay", effective.defaultSceneView().shadingProfile->name);
     ASSERT_EQ(1u, effective.viewOverrides.size());
     EXPECT_EQ(SceneSelector::Kind::Tag, effective.viewOverrides.front().selector.kind);
+  }
+
+  TEST(RenderIntent, RejectsSelectorSpecificOverridesForWholeFrameOnlyCallers) {
+    RenderIntent intent;
+
+    RenderViewOverride objectOverride;
+    objectOverride.selector = SceneSelector::objectName("Monitor");
+    objectOverride.executor = RenderExecutorPreference::Wireframe;
+    intent.viewOverrides.push_back(objectOverride);
+
+    try {
+      intent.requireWholeFrameOnly("test compiler");
+      FAIL() << "Expected selector-specific intent rejection";
+    } catch (const std::runtime_error& error) {
+      const std::string message = error.what();
+      EXPECT_NE(std::string::npos, message.find("test compiler"));
+      EXPECT_NE(std::string::npos, message.find("object_name: Monitor"));
+    }
   }
 
   TEST(RenderExecutorDefinition, DescribesCompiledBeautyPasses) {

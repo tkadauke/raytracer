@@ -350,6 +350,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Render graph selector-specific intent.** Graph compilation now rejects
+  selector-specific render-intent overrides with a clear error instead of
+  silently ignoring targeted scene intent until scene partitioning is supported.
+  — GPT-5
 - **rendercli direct raytracer scene cameras.** The direct raytracer path now
   installs its tiled render view plane after selecting the scene camera, avoiding
   crashes when small CTest renders exercise the raytracer with many tiles.

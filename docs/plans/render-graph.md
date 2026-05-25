@@ -1303,7 +1303,9 @@ Implement the smallest graph that proves the architecture:
    serialize graph-backed wireframe pass state for LOD, compile graph-visible
    depth, normal, object-id, material-id, and world-position AOV views, and
    validate the manipulated plan.
-   Selector-specific command-line intent overrides remain TODO.
+   Selector-specific command-line intent overrides remain TODO, and
+   scene-authored selector-specific intent now fails compilation clearly instead
+   of being silently ignored until scene-partitioning planners exist.
 9. Add a Modeler graph inspector that compiles the plan before rendering and
    toggles nodes. ✅ Partial: Modeler now has a Render Graph dock that compiles
    the current live-preview plan before preview renders, lists the default
