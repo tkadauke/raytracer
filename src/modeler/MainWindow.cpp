@@ -1622,8 +1622,7 @@ void MainWindow::showRenderGraphResourceDetails(const QString& resourceId,
   addRow(rows, tr("Consumers"), consumerText(plan, resource->id));
 
   const auto trace = p->display ? p->display->lastRenderGraphExecutionTraceForPlan(plan) : nullptr;
-  const bool hasSnapshot = trace && (!trace->inputSnapshotsForResource(resource->id).empty() ||
-                                     !trace->outputSnapshotsForResource(resource->id).empty());
+  const bool hasSnapshot = trace && trace->hasResourceSnapshots(resource->id);
   addRow(rows, tr("Trace snapshot"), hasSnapshot ? tr("available") : tr("not available"));
   const auto* cacheSnapshot = cacheSnapshotForResource(trace.get(), resource->id);
   if (cacheSnapshot) {

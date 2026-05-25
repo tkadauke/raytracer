@@ -167,6 +167,8 @@ namespace RenderGraphTracePreviewWidgetTest {
     const auto outputSnapshots = trace->outputSnapshotsForResource("post_aa_color");
     ASSERT_EQ(1u, outputSnapshots.size());
     EXPECT_TRUE(outputSnapshots.front()->hasPreview());
+    EXPECT_TRUE(trace->hasResourceSnapshots("post_aa_color"));
+    EXPECT_FALSE(trace->hasResourceSnapshots("missing_resource"));
 
     RenderGraphTracePreviewWidget widget;
     widget.showResourceTrace(trace, "post_aa_color");
