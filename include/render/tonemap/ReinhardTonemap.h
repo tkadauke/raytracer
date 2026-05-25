@@ -34,5 +34,9 @@ namespace render {
       return Colord(hdr.r() / (1.0 + hdr.r()), hdr.g() / (1.0 + hdr.g()),
                     hdr.b() / (1.0 + hdr.b()));
     }
+
+    inline const char* fingerprintType() const override {
+      return "ReinhardTonemap";
+    }
   };
 }

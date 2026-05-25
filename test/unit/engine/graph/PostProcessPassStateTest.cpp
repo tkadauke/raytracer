@@ -30,7 +30,7 @@ namespace PostProcessPassStateTest {
     const auto state = RenderPassState::fromJson(
       RenderPassKind::PostProcess, RenderExecutorKind::PostProcess, json, "parameters");
 
-    const auto aa = std::dynamic_pointer_cast<const PostProcessAAState>(state);
+    const auto* aa = state->asPostProcessAAState();
     ASSERT_NE(nullptr, aa);
     EXPECT_EQ("smaa", std::string(aa->modeName()));
     EXPECT_EQ(json, aa->toJson());

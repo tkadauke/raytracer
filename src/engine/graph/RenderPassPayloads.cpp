@@ -194,8 +194,10 @@ namespace engine::graph {
           continue;
         }
 
-        if (auto state = std::dynamic_pointer_cast<const RasterShadowPassState>(resource.state())) {
-          state->applyTo(rasterizer);
+        const auto state = resource.state();
+        const auto* shadowState = state ? state->asRasterShadowPassState() : nullptr;
+        if (shadowState) {
+          shadowState->applyTo(rasterizer);
         } else if (!beautyState.shadows().empty()) {
           beautyState.shadows().applyTo(rasterizer);
           rasterizer.setShadowMapsEnabled(true);
@@ -351,8 +353,7 @@ namespace engine::graph {
           return false;
         }
 
-        auto depthArtifact = std::dynamic_pointer_cast<const RenderGraphDepthArtifact>(artifact);
-        if (!depthArtifact) {
+        if (!artifact->copyDepthTo(context.storage().depth(resourceId))) {
           context.storage()
             .resource(resourceId)
             .setCacheMetadata({RenderGraphCacheStatus::Invalidated,
@@ -360,7 +361,6 @@ namespace engine::graph {
           return false;
         }
 
-        depthArtifact->copyTo(context.storage().depth(resourceId));
         context.storage()
           .resource(resourceId)
           .setCacheMetadata(

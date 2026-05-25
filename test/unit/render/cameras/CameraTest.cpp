@@ -31,6 +31,10 @@ namespace CameraTest {
       copyBaseStateTo(*result);
       return result;
     }
+
+    const char* fingerprintType() const override {
+      return "ConcreteCamera";
+    }
   };
 
   TEST(Camera, ShouldConstructWithoutParameters) {

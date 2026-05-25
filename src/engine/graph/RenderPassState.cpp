@@ -90,4 +90,20 @@ namespace engine::graph {
                              ": parameters are not supported for pass kind '" + toString(kind) +
                              "' and executor '" + toString(executor) + "'");
   }
+
+  const RasterBeautyPassState* RenderPassState::asRasterBeautyPassState() const {
+    return nullptr;
+  }
+
+  const RasterShadowPassState* RenderPassState::asRasterShadowPassState() const {
+    return nullptr;
+  }
+
+  const WireframePassState* RenderPassState::asWireframePassState() const {
+    return nullptr;
+  }
+
+  const PostProcessAAState* RenderPassState::asPostProcessAAState() const {
+    return nullptr;
+  }
 }

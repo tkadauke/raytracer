@@ -125,8 +125,17 @@ namespace render {
       m_reflectiveBRDF.setReflectionCoefficient(coeff);
     }
 
-    virtual Colord shade(const render::RayCaster* raycaster, const render::Scene& scene,
-                         const Rayd& ray, const HitPoint& hitPoint, render::State& state) const;
+    Colord shade(const render::RayCaster* raycaster, const render::Scene& scene, const Rayd& ray,
+                 const HitPoint& hitPoint, render::State& state) const override;
+
+    RasterRecursiveFallback rasterRecursiveFallback() const override {
+      return RasterRecursiveFallback::ReflectiveLocalPhong;
+    }
+
+    const char* rasterRecursiveFallbackWarning() const override {
+      return "Rasterizer fallback: ReflectiveMaterial previews only its local Phong base; "
+             "mirror recursion remains raytracer-only.";
+    }
 
   protected:
     render::PerfectSpecular m_reflectiveBRDF;

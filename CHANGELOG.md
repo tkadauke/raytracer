@@ -259,6 +259,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render type-specific graph and raster hooks.** Runtime cameras, lights,
+  tonemaps, and recursive materials now expose stable graph-cache and
+  raster-preview capabilities through virtual methods instead of external RTTI
+  checks in graph execution, shadow-map setup, and rendercli diagnostics. —
+  GPT-5
 - **Modeler render graph display names.** The Render Graph dock now shows
   human-readable pass and resource names in graph nodes and tables while
   keeping stable ids in item metadata, tooltips, and exported plans. — GPT-5

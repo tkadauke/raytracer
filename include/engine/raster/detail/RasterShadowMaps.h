@@ -63,6 +63,7 @@ namespace engine::raster::detail {
     Rayd rayForPixel(double, double, render::SampleStream&) const override;
 
     std::shared_ptr<render::Camera> clone() const override;
+    const char* fingerprintType() const override;
 
     Vector3d projectPointWithDepth(const Vector3d& worldPoint) const override;
 

@@ -45,6 +45,10 @@ namespace render {
       return Colord(applyChannel(hdr.r()), applyChannel(hdr.g()), applyChannel(hdr.b()));
     }
 
+    inline const char* fingerprintType() const override {
+      return "AcesTonemap";
+    }
+
   private:
     static inline double applyChannel(double x) {
       if (!std::isfinite(x)) {

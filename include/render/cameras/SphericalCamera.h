@@ -55,6 +55,7 @@ namespace render {
 
     Rayd rayForPixel(double x, double y, render::SampleStream& stream) const override;
     std::shared_ptr<Camera> clone() const override;
+    const char* fingerprintType() const override;
 
     /**
       * @returns the horizontal field of view of the camera.

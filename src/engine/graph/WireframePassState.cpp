@@ -54,7 +54,7 @@ namespace engine::graph {
   const WireframePassState* WireframePassState::fromPass(const RenderPassNode& pass) {
     if (pass.executor != RenderExecutorKind::Wireframe)
       return nullptr;
-    return dynamic_cast<const WireframePassState*>(pass.state.get());
+    return pass.state ? pass.state->asWireframePassState() : nullptr;
   }
 
   WireframePassState WireframePassState::valueFromPass(const RenderPassNode& pass) {
@@ -67,6 +67,10 @@ namespace engine::graph {
     if (m_lod != 0)
       object["lod"] = m_lod;
     return object;
+  }
+
+  const WireframePassState* WireframePassState::asWireframePassState() const {
+    return this;
   }
 
   bool WireframePassState::empty() const {

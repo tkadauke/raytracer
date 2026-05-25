@@ -134,7 +134,7 @@ namespace engine::raster::detail {
   // expensive material/type checks stay out of the fragment loop.
   class RasterMaterialSource {
   public:
-    enum class RecursiveFallback { None, ReflectiveLocalPhong, TransparentAlphaPhong };
+    using RecursiveFallback = render::Material::RasterRecursiveFallback;
 
     static RasterMaterialSource from(const std::shared_ptr<render::Material>& material);
 
