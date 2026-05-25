@@ -160,6 +160,14 @@ namespace RenderGraphTypesTest {
   TEST(RenderIntent, OwnsAOVAndShadingProfileIntentMutation) {
     RenderIntent intent;
 
+    intent.setDefaultCamera(RenderCameraRef{"shot-camera", std::nullopt});
+    ASSERT_TRUE(intent.defaultCamera.has_value());
+    ASSERT_TRUE(intent.defaultCamera->sceneCameraId.has_value());
+    EXPECT_EQ("shot-camera", *intent.defaultCamera->sceneCameraId);
+
+    intent.setDefaultShadingProfile(ShadingProfileRef{"clay", {}});
+    EXPECT_EQ("clay", intent.defaultShadingProfile.name);
+
     EXPECT_FALSE(intent.exportsAOV(RenderViewMode::Depth));
     intent.requestExportedAOV(RenderViewMode::Depth);
     intent.requestExportedAOV(RenderViewMode::Depth);
