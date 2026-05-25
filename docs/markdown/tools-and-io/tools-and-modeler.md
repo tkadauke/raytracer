@@ -76,6 +76,9 @@ If the scene JSON contains a top-level `renderIntent` block, rendercli uses
 that as the graph compiler's base intent.
 If that intent does not name a default camera, rendercli annotates compiled
 scene-rendering passes with the active scene camera id.
+Selector-specific scene intent is preserved by scene JSON, but graph
+compilation currently rejects it until the compiler can synthesize real
+scene-partitioning and composition passes.
 When compiling a plan, `--render_graph_executor raytracer|rasterizer|wireframe`
 overrides the graph intent's default executor, and
 `--render_graph_view default|beauty|wireframe|depth|normal|object_id|material_id|world_position`

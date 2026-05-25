@@ -76,8 +76,10 @@ request: one default frame intent plus targeted overrides for specific parts
 of the scene.
 Whole-frame overrides whose selector is `all` are applied to the default frame
 intent before compilation. More specific selector overrides remain intent for
-future scene-partitioning planners; users still describe what they want, and
-the compiler remains responsible for synthesizing pass nodes.
+future scene-partitioning planners; current graph compilation rejects them with
+a clear error instead of silently rendering only the default frame intent. Users
+still describe what they want, and the compiler remains responsible for
+synthesizing pass nodes.
 When the effective frame intent names a default camera or non-default shading
 profile, synthesized scene-rendering passes carry those references in their
 `SceneView` and in exported plan JSON. Shading-profile parameters are parsed
