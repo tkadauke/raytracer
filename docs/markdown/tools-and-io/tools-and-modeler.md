@@ -173,7 +173,8 @@ The Render Graph dock compiles the current preview intent into a
 renders begin. The Graph tab is the primary view: it shows pass nodes,
 resource nodes, and dependency edges, supports double-click pass toggles, and
 drives the property editor when a pass or resource is selected. Its Passes tab
-shows each compiled pass id, kind, executor, and resource edges. Its Resources
+shows each compiled pass id, execution order, execution stage, kind, executor,
+and resource edges. Its Resources
 tab shows each declared resource's type, format, domain, lifetime, and
 dimensions. Unchecking a pass adds a graph override and the dock validates the
 manipulated plan immediately. When the manipulated plan is still valid, the

@@ -183,7 +183,7 @@ namespace RenderGraphInspectorWidgetTest {
     ASSERT_NE(nullptr, passes);
     for (int row = 0; row != passes->topLevelItemCount(); ++row) {
       QTreeWidgetItem* item = passes->topLevelItem(row);
-      if (item->text(2) == passId) {
+      if (item->text(3) == passId) {
         passes->setCurrentItem(item);
         return;
       }
@@ -237,10 +237,11 @@ namespace RenderGraphInspectorWidgetTest {
 
     ASSERT_EQ(1, passes->topLevelItemCount());
     EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(1));
-    EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->text(2));
-    EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(3));
-    EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(4));
-    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(6));
+    EXPECT_EQ(QString("1"), passes->topLevelItem(0)->text(2));
+    EXPECT_EQ(QString("raytrace_beauty"), passes->topLevelItem(0)->text(3));
+    EXPECT_EQ(QString("beauty"), passes->topLevelItem(0)->text(4));
+    EXPECT_EQ(QString("raytracer"), passes->topLevelItem(0)->text(5));
+    EXPECT_EQ(QString("main_color"), passes->topLevelItem(0)->text(7));
 
     ASSERT_NE(nullptr, graph->scene());
     EXPECT_NE(nullptr, graphItem(graph->scene(), "pass", "raytrace_beauty"));

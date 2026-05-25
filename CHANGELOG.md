@@ -198,6 +198,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Modeler render graph pass stages.** The Render Graph dock's Passes tab now
+  shows each pass's dependency-ready execution stage separately from its serial
+  execution order. — GPT-5
 - **Modeler render graph trace summaries.** After a traced preview render, graph
   nodes now show pass execution status/timing and resource preview/cache status
   directly in the graph view. — GPT-5
