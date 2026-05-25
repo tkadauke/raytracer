@@ -302,6 +302,9 @@ endif()
 if(NOT dot_graph MATCHES "execution_stage_1")
   message(FATAL_ERROR "DOT graph export did not contain execution stage rank hints: ${dot_graph}")
 endif()
+if(NOT dot_graph MATCHES "camera 2")
+  message(FATAL_ERROR "DOT graph export did not contain scene camera metadata: ${dot_graph}")
+endif()
 
 rendercli_run(
   NAME "rendercli graph executor override selects rasterizer"

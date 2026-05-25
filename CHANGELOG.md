@@ -200,6 +200,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Render graph DOT scene-view details.** DOT render-plan exports now include
+  pass selector and camera labels when a pass has non-default scene-view intent.
+  — GPT-5
 - **Render graph active camera intent.** `world::Scene` now exposes the active
   camera as a render-graph camera reference, and rendercli/Modeler use it when
   scene intent does not name a default camera so compiled passes identify the

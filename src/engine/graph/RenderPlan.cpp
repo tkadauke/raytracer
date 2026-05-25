@@ -121,6 +121,10 @@ namespace engine::graph {
              a.canRunConcurrently == b.canRunConcurrently;
     }
 
+    bool hasNonDefaultSceneView(const SceneView& sceneView) {
+      return !sceneView.selector.selectsWholeFrame() || sceneView.camera.has_value();
+    }
+
     [[noreturn]] void jsonError(const std::string& path, const std::string& message) {
       throw std::runtime_error("Invalid render plan JSON at " + path + ": " + message);
     }
@@ -786,6 +790,12 @@ namespace engine::graph {
           << toString(pass.kind) << "/" << toString(pass.executor);
       if (stage && order) {
         out << "\\nstage " << *stage << ", order " << *order;
+      }
+      if (hasNonDefaultSceneView(pass.sceneView)) {
+        out << "\\nselector " << dotEscape(pass.sceneView.selector.displayText());
+        if (pass.sceneView.camera) {
+          out << "\\ncamera " << dotEscape(pass.sceneView.camera->displayText());
+        }
       }
       out << "\"";
       if (!pass.enabled) {

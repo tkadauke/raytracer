@@ -623,6 +623,8 @@ namespace RenderPlanTest {
     EXPECT_NE(std::string::npos, dot.find("transient"));
     EXPECT_NE(std::string::npos, dot.find("execution_stage_1"));
     EXPECT_NE(std::string::npos, dot.find("stage 1, order 1"));
+    EXPECT_NE(std::string::npos, dot.find("selector object_name: hero"));
+    EXPECT_NE(std::string::npos, dot.find("camera shot-camera"));
 
     const QJsonObject json = plan.toJson();
     ASSERT_TRUE(json["resources"].isArray());
