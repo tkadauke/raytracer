@@ -13,20 +13,6 @@
 
 namespace engine::graph {
   namespace {
-    RenderResourceDescriptor previewShadowResource() {
-      RenderResourceDescriptor shadow;
-      shadow.id = "preview_shadow_map";
-      shadow.name = "Raster preview shadow map";
-      shadow.type = RenderResourceType::ShadowMap;
-      shadow.format = RenderResourceFormat::DepthDouble;
-      shadow.width = 256;
-      shadow.height = 256;
-      shadow.sampleCount = 1;
-      shadow.domain = RenderResourceDomain::CPU;
-      shadow.lifetime = RenderResourceLifetime::PersistentCache;
-      return shadow;
-    }
-
     RenderResourceId tonemapInputResource(const RenderPlan& plan) {
       const auto* tonemap = plan.findPass("tonemap");
       if (!tonemap) {
@@ -221,10 +207,14 @@ namespace engine::graph {
       shadows.executor = RenderExecutorKind::Rasterizer;
       shadows.features = {"main", "preview_shadows", "shadow_maps", "rasterizer"};
       shadows.sceneView = frameIntent.defaultSceneView();
-      RasterShadowPassState::previewDefaults().writeTo(shadows);
+      const RasterShadowPassState shadowState = RasterShadowPassState::previewDefaults();
+      shadowState.writeTo(shadows);
       shadows.disabledBehavior = DisabledBehavior::SubstituteDefault;
       shadows.canRunConcurrently = false;
-      plan.connectProducerToConsumer(shadows, previewShadowResource(), beauty.id);
+      plan.connectProducerToConsumer(
+        shadows,
+        shadowState.shadows().resourceDescriptor("preview_shadow_map", "Raster preview shadow map"),
+        beauty.id);
     }
 
     if (frameIntent.usesGraphImagePostProcessAA()) {
