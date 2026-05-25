@@ -172,6 +172,7 @@ namespace engine::graph {
     bool operator==(const ShadingProfileParameterValue& other) const;
     bool operator!=(const ShadingProfileParameterValue& other) const;
 
+    static ShadingProfileParameterValue fromText(std::string text);
     static ShadingProfileParameterValue fromJson(const QJsonValue& value,
                                                  std::string path = "profileParameter");
 

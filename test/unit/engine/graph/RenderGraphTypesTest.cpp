@@ -54,6 +54,14 @@ namespace RenderGraphTypesTest {
     EXPECT_EQ(profile.parameters, decoded.parameters);
   }
 
+  TEST(ShadingProfileParameterValue, ParsesTextScalars) {
+    EXPECT_EQ(ShadingProfileParameterValue(true), ShadingProfileParameterValue::fromText("true"));
+    EXPECT_EQ(ShadingProfileParameterValue(false), ShadingProfileParameterValue::fromText("FALSE"));
+    EXPECT_EQ(ShadingProfileParameterValue(4.25), ShadingProfileParameterValue::fromText("4.25"));
+    EXPECT_EQ(ShadingProfileParameterValue(std::string("warm")),
+              ShadingProfileParameterValue::fromText("warm"));
+  }
+
   TEST(RenderIntent, SerializesToSceneJsonShape) {
     RenderIntent intent;
     intent.defaultExecutor = RenderExecutorPreference::Rasterizer;
