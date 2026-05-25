@@ -19,6 +19,7 @@ set(selector_specific_intent_scene "${TEST_OUTPUT_DIR}/selector-specific-intent-
 set(malformed_graph_json "${TEST_OUTPUT_DIR}/malformed-graph.json")
 set(json_root_graph "${TEST_OUTPUT_DIR}/json-root-graph.json")
 set(semantic_invalid_graph "${TEST_OUTPUT_DIR}/semantic-invalid-graph.json")
+set(external_input_graph "${TEST_OUTPUT_DIR}/external-input-graph.json")
 set(out_of_order_graph "${TEST_OUTPUT_DIR}/out-of-order-graph.json")
 set(text_plan "${TEST_OUTPUT_DIR}/graph.txt")
 set(dot_plan "${TEST_OUTPUT_DIR}/graph.dot")
@@ -41,6 +42,7 @@ set(overlay_plan "${TEST_OUTPUT_DIR}/graph-overlay.txt")
 set(curve_overlay_plan "${TEST_OUTPUT_DIR}/graph-curve-overlay.txt")
 set(json_plan "${TEST_OUTPUT_DIR}/graph.json")
 set(replayed_dot_plan "${TEST_OUTPUT_DIR}/graph-replayed.dot")
+set(external_input_text_plan "${TEST_OUTPUT_DIR}/graph-external-input.txt")
 set(replayed_matching_render "${TEST_OUTPUT_DIR}/graph-replayed-matching-render.png")
 set(invalid_plan "${TEST_OUTPUT_DIR}/invalid.txt")
 set(default_graph_render "${TEST_OUTPUT_DIR}/default-graph-render.png")
@@ -62,6 +64,7 @@ set(replayed_render "${TEST_OUTPUT_DIR}/graph-replayed-render.png")
 set(out_of_order_text_plan "${TEST_OUTPUT_DIR}/graph-out-of-order.txt")
 set(out_of_order_render "${TEST_OUTPUT_DIR}/graph-out-of-order-render.png")
 set(mismatched_render "${TEST_OUTPUT_DIR}/graph-mismatched-render.png")
+set(external_input_render "${TEST_OUTPUT_DIR}/graph-external-input-render.png")
 
 file(WRITE "${scene_intent_scene}" [=[
 {
@@ -228,6 +231,50 @@ file(WRITE "${semantic_invalid_graph}" [=[
       "reads": [],
       "writes": ["main_color"],
       "disabledBehavior": "error",
+      "enabled": true,
+      "hasExternalSideEffects": false,
+      "canRunConcurrently": false
+    }
+  ]
+}
+]=])
+
+file(WRITE "${external_input_graph}" [=[
+{
+  "resources": [
+    {
+      "id": "history_color",
+      "name": "History color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "history"
+    },
+    {
+      "id": "main_color",
+      "name": "Main color",
+      "type": "color",
+      "format": "rgb_double",
+      "width": 32,
+      "height": 16,
+      "sampleCount": 1,
+      "domain": "cpu",
+      "lifetime": "exported"
+    }
+  ],
+  "passes": [
+    {
+      "id": "tonemap",
+      "name": "Tone map",
+      "kind": "tonemap",
+      "executor": "postprocess",
+      "features": ["main", "tonemap", "postprocess"],
+      "reads": ["history_color"],
+      "writes": ["main_color"],
+      "disabledBehavior": "passthrough",
       "enabled": true,
       "hasExternalSideEffects": false,
       "canRunConcurrently": false
@@ -808,6 +855,32 @@ rendercli_expect_failure(
     "${RENDERCLI}" --render_graph_only --render_graph_in "${semantic_invalid_graph}"
     "${static_scene}" "${invalid_plan}"
 )
+
+rendercli_run(
+  NAME "rendercli graph-only accepts imported external inputs"
+  COMMAND
+    "${RENDERCLI}" --render_graph_only --render_graph_in "${external_input_graph}"
+    --render_graph_format text
+    "${static_scene}" "${external_input_text_plan}"
+)
+rendercli_assert_nonempty("${external_input_text_plan}"
+                          NAME "external-input graph-only output")
+file(READ "${external_input_text_plan}" external_input_graph_text)
+if(NOT external_input_graph_text MATCHES "history_color")
+  message(FATAL_ERROR "external-input graph text did not contain history_color: ${external_input_graph_text}")
+endif()
+if(NOT external_input_graph_text MATCHES "history")
+  message(FATAL_ERROR "external-input graph text did not mark the history lifetime: ${external_input_graph_text}")
+endif()
+
+rendercli_expect_failure(
+  NAME "rendercli rejects unbound imported render graph inputs"
+  STDERR_MATCHES "external resource 'history_color'.*was not bound"
+  COMMAND
+    "${RENDERCLI}" --render_graph --render_graph_in "${external_input_graph}"
+    "${static_scene}" "${external_input_render}"
+)
+rendercli_assert_not_exists("${external_input_render}" NAME "unbound external input render output")
 
 rendercli_run(
   NAME "rendercli renders through default graph"
