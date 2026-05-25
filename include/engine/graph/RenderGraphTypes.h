@@ -328,6 +328,12 @@ namespace engine::graph {
     void setPreviewShadowsEnabled(bool enabled);
 
     /**
+      * Applies one whole-frame override to this intent. Selector-specific
+      * overrides are ignored because they remain intent for future planners.
+      */
+    void applyWholeFrameOverride(const RenderViewOverride& viewOverride);
+
+    /**
       * Reads user-facing render intent from a scene JSON `renderIntent` object.
       *
       * Missing fields keep their `RenderIntent` defaults. Malformed fields
