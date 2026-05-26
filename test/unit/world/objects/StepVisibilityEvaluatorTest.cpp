@@ -186,4 +186,39 @@ namespace StepVisibilityEvaluatorTest {
     EXPECT_EQ(matchingChild, visibleGroups[1]);
     EXPECT_EQ(matchingGrandchild, visibleGroups[2]);
   }
+
+  TEST(StepVisibilityEvaluator, ShouldClassifyActiveAndPreviousPlaybackRoles) {
+    Group previous;
+    previous.setStepIndex(2);
+    Group active;
+    active.setStepIndex(5);
+    Group future;
+    future.setStepIndex(8);
+    Group staticGroup;
+
+    StepPlaybackStyle style;
+    style.activeStep = 5;
+    style.highlightActive = true;
+    style.ghostPrevious = true;
+
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::cumulativeThrough(5));
+
+    EXPECT_EQ(StepVisualRole::Previous, evaluator.visualRole(previous, style));
+    EXPECT_EQ(StepVisualRole::Active, evaluator.visualRole(active, style));
+    EXPECT_EQ(StepVisualRole::Hidden, evaluator.visualRole(future, style));
+    EXPECT_EQ(StepVisualRole::Normal, evaluator.visualRole(staticGroup, style));
+  }
+
+  TEST(StepVisibilityEvaluator, ShouldLeaveRolesNormalWhenPlaybackStyleIsDisabled) {
+    Group group;
+    group.setStepIndex(5);
+
+    StepPlaybackStyle style;
+    style.highlightActive = true;
+    style.ghostPrevious = true;
+
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::all());
+
+    EXPECT_EQ(StepVisualRole::Normal, evaluator.visualRole(group, style));
+  }
 }

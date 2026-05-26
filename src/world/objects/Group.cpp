@@ -1,7 +1,10 @@
 #include "world/objects/ElementFactory.h"
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
+#include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Surface.h"
+#include "render/materials/MatteMaterial.h"
+#include "render/textures/ConstantColorTexture.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/Scene.h"
@@ -39,6 +42,22 @@ namespace {
       return std::nullopt;
 
     return value.toString();
+  }
+
+  std::shared_ptr<render::Material> stepPlaybackMaterial(const Colord& color) {
+    auto material =
+      std::make_shared<render::MatteMaterial>(std::make_shared<render::ConstantColorTexture>(color));
+    material->setAmbientCoefficient(1.0);
+    material->setDiffuseCoefficient(0.65);
+    return material;
+  }
+
+  StepVisibilitySelection stepPlaybackSelection(const StepPlaybackStyle& style) {
+    if (!style.enabled())
+      return StepVisibilitySelection::all();
+    if (style.ghostPrevious)
+      return StepVisibilitySelection::cumulativeThrough(*style.activeStep);
+    return StepVisibilitySelection::onlyStep(*style.activeStep);
   }
 }
 
@@ -114,6 +133,16 @@ Group::applyTransform(std::shared_ptr<render::Primitive> primitive) const {
 }
 
 std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene) const {
+  return toRaytracer(scene, StepPlaybackStyle());
+}
+
+std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene,
+                                                     const StepPlaybackStyle& style) const {
+  const StepVisibilityEvaluator evaluator(stepPlaybackSelection(style));
+  const StepVisualRole role = evaluator.visualRole(*this, style);
+  if (role == StepVisualRole::Hidden)
+    return nullptr;
+
   if (!visible())
     return nullptr;
 
@@ -121,11 +150,11 @@ std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene) cons
 
   for (const auto& child : childElements()) {
     if (auto surface = qobject_cast<Surface*>(child)) {
-      auto primitive = surface->toRaytracer(scene);
+      auto primitive = surface->toRaytracer(scene, style);
       if (primitive)
         composite->add(primitive);
     } else if (auto group = qobject_cast<Group*>(child)) {
-      auto primitive = group->toRaytracer(scene);
+      auto primitive = group->toRaytracer(scene, style);
       if (primitive)
         composite->add(primitive);
     } else if (auto light = qobject_cast<Light*>(child)) {
@@ -137,7 +166,12 @@ std::shared_ptr<render::Primitive> Group::toRaytracer(render::Scene* scene) cons
   if (composite->primitives().empty())
     return nullptr;
 
-  return applyTransform(composite);
+  auto result = applyTransform(composite);
+  if (role == StepVisualRole::Active)
+    result->setMaterial(stepPlaybackMaterial(style.activeColor));
+  else if (role == StepVisualRole::Previous)
+    result->setMaterial(stepPlaybackMaterial(style.ghostColor));
+  return result;
 }
 
 bool Group::canHaveChild(Element* child) const {

@@ -4,6 +4,8 @@
 #include <optional>
 #include <vector>
 
+#include "core/Color.h"
+
 class Element;
 class Group;
 
@@ -15,6 +17,29 @@ enum class StepVisibilityMode {
   Cumulative,
   All,
   Range,
+};
+
+/**
+  * Visual role for a group under step playback.
+  */
+enum class StepVisualRole {
+  Hidden,
+  Normal,
+  Active,
+  Previous,
+};
+
+/**
+  * Optional style controls for domain-neutral step playback renders.
+  */
+struct StepPlaybackStyle {
+  std::optional<int> activeStep;
+  bool highlightActive{false};
+  bool ghostPrevious{false};
+  Colord activeColor{1.0, 0.86, 0.08};
+  Colord ghostColor{0.42, 0.46, 0.52};
+
+  bool enabled() const;
 };
 
 /**
@@ -61,6 +86,12 @@ public:
     * selection. Ancestor groups are not considered.
     */
   bool visible(const Group& group) const;
+
+  /**
+    * @returns the direct visual role for @p group under @p style. Ancestor
+    * groups are not considered.
+    */
+  StepVisualRole visualRole(const Group& group, const StepPlaybackStyle& style) const;
 
   /**
     * @returns true when @p group and every ancestor Group are visible under

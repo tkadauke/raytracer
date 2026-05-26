@@ -10,6 +10,7 @@
 #include "core/formats/ldraw/LDrawDiagnostic.h"
 
 class Camera;
+struct StepPlaybackStyle;
 
 namespace render {
   class Scene;
@@ -36,6 +37,7 @@ public:
     * visible flags.
     */
   std::shared_ptr<render::Scene> toRaytracerScene() const;
+  std::shared_ptr<render::Scene> toRaytracerScene(const StepPlaybackStyle& style) const;
 
   /**
     * Reads this scene from its JSON representation, including the optional

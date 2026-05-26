@@ -12,6 +12,7 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(animated_scene "${PROJECT_SOURCE_DIR}/scenes/animation_frame_demo.json")
+set(step_scene "${PROJECT_SOURCE_DIR}/scenes/step_playback_demo.json")
 set(static_scene "${PROJECT_SOURCE_DIR}/scenes/dice.json")
 set(frame_1 "${TEST_OUTPUT_DIR}/frame_0001.png")
 set(frame_48 "${TEST_OUTPUT_DIR}/frame_0048.png")
@@ -28,6 +29,11 @@ set(incomplete_placeholder_pattern "${sequence_dir}/incomplete_%")
 set(invalid_range_pattern "${sequence_dir}/invalid_%04d.png")
 set(static_animation_pattern "${sequence_dir}/static_%04d.png")
 set(graph_output_plan "${sequence_dir}/animation-graph.json")
+set(step_default "${TEST_OUTPUT_DIR}/step_default.png")
+set(step_two "${TEST_OUTPUT_DIR}/step_two.png")
+set(step_two_highlight "${TEST_OUTPUT_DIR}/step_two_highlight.png")
+set(step_two_ghost "${TEST_OUTPUT_DIR}/step_two_ghost.png")
+set(invalid_step "${TEST_OUTPUT_DIR}/invalid_step.png")
 
 file(MAKE_DIRECTORY "${sequence_dir}")
 
@@ -62,6 +68,41 @@ rendercli_assert_image_dimensions("${frame_48}" 64 64
 rendercli_assert_image_hash_differs("${frame_1}" "${frame_48}"
                                     NAME "animated frame renders differ")
 
+rendercli_run(
+  NAME "rendercli default step playback scene renders normally"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 48
+    "${step_scene}" "${step_default}"
+)
+rendercli_run(
+  NAME "rendercli --step filters active step"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 48 --step 2
+    "${step_scene}" "${step_two}"
+)
+rendercli_run(
+  NAME "rendercli --step_highlight changes active step material"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 48 --step 2 --step_highlight
+    "${step_scene}" "${step_two_highlight}"
+)
+rendercli_run(
+  NAME "rendercli --step_ghost_previous keeps earlier groups visible"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 48 --step 2 --step_highlight
+    --step_ghost_previous "${step_scene}" "${step_two_ghost}"
+)
+rendercli_assert_image_nonempty("${step_default}"
+                                NAME "step playback normal output pixels")
+rendercli_assert_image_nonempty("${step_two_highlight}"
+                                NAME "step playback highlighted output pixels")
+rendercli_assert_image_hash_differs("${step_default}" "${step_two}"
+                                    NAME "step filter differs from normal output")
+rendercli_assert_image_hash_differs("${step_two}" "${step_two_highlight}"
+                                    NAME "step highlight differs from unstyled step output")
+rendercli_assert_image_hash_differs("${step_two_highlight}" "${step_two_ghost}"
+                                    NAME "step ghost differs from active-only highlight")
+
 set(animated_catalog
   animated_camera_pan.json
   animated_light_sweep.json
@@ -94,6 +135,23 @@ rendercli_expect_failure(
     "${static_scene}" "${invalid_frame}"
 )
 rendercli_assert_not_exists("${invalid_frame}" NAME "invalid --frame output")
+
+rendercli_expect_failure(
+  NAME "rendercli rejects non-integer --step"
+  STDERR_MATCHES "Step must be an integer"
+  COMMAND
+    "${RENDERCLI}" --step not-an-integer
+    "${step_scene}" "${invalid_step}"
+)
+rendercli_assert_not_exists("${invalid_step}" NAME "invalid --step output")
+
+rendercli_expect_failure(
+  NAME "rendercli rejects step visuals without --step"
+  STDERR_MATCHES "Step playback visual modes require --step"
+  COMMAND
+    "${RENDERCLI}" --step_highlight
+    "${step_scene}" "${invalid_step}"
+)
 
 rendercli_expect_failure(
   NAME "rendercli rejects non-integer --frame_start"

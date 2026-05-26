@@ -4,6 +4,7 @@
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
 #include "world/import/SceneImporterRegistry.h"
+#include "world/objects/StepVisibilityEvaluator.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Grid.h"
 
@@ -29,6 +30,10 @@ Scene::Scene(Element* parent)
 }
 
 std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
+  return toRaytracerScene(StepPlaybackStyle());
+}
+
+std::shared_ptr<render::Scene> Scene::toRaytracerScene(const StepPlaybackStyle& style) const {
   auto result = std::make_shared<render::Scene>();
 
   auto grid = make_named<render::Grid>();
@@ -36,7 +41,7 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
     if (auto surface = dynamic_cast<Surface*>(child)) {
       // Surface::toRaytracer takes a non-owning raw pointer — it only
       // reaches into the scene to register lights/elements.
-      auto primitive = surface->toRaytracer(result.get());
+      auto primitive = surface->toRaytracer(result.get(), style);
       if (primitive && !primitive->boundingBox().isInfinite()) {
         grid->add(primitive);
       }
@@ -45,7 +50,7 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
         result->addLight(light->toRaytracer());
       }
     } else if (auto group = dynamic_cast<Group*>(child)) {
-      auto primitive = group->toRaytracer(result.get());
+      auto primitive = group->toRaytracer(result.get(), style);
       if (primitive && !primitive->boundingBox().isInfinite()) {
         grid->add(primitive);
       }

@@ -9,6 +9,7 @@ namespace render {
 }
 
 class Material;
+struct StepPlaybackStyle;
 
 /**
   * Abstract base class for visible objects. All Surfaces have a transformation
@@ -120,6 +121,8 @@ public:
     * Converts this surface into a render::Primitive.
     */
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
+  std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
+                                                const StepPlaybackStyle& style) const;
   virtual bool canHaveChild(Element* child) const;
 
 protected:

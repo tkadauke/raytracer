@@ -5,6 +5,10 @@
 
 #include <algorithm>
 
+bool StepPlaybackStyle::enabled() const {
+  return activeStep.has_value();
+}
+
 StepVisibilitySelection::StepVisibilitySelection(StepVisibilityMode mode,
                                                  std::optional<int> firstStep,
                                                  std::optional<int> lastStep)
@@ -50,6 +54,24 @@ StepVisibilityEvaluator::StepVisibilityEvaluator(StepVisibilitySelection selecti
 
 bool StepVisibilityEvaluator::visible(const Group& group) const {
   return group.visible() && stepMatches(group);
+}
+
+StepVisualRole StepVisibilityEvaluator::visualRole(const Group& group,
+                                                   const StepPlaybackStyle& style) const {
+  if (!group.visible())
+    return StepVisualRole::Hidden;
+
+  const auto stepIndex = group.stepIndex();
+  if (!style.enabled() || !stepIndex)
+    return stepMatches(group) ? StepVisualRole::Normal : StepVisualRole::Hidden;
+
+  if (*stepIndex == *style.activeStep)
+    return style.highlightActive ? StepVisualRole::Active : StepVisualRole::Normal;
+
+  if (*stepIndex < *style.activeStep && style.ghostPrevious)
+    return StepVisualRole::Previous;
+
+  return StepVisualRole::Hidden;
 }
 
 bool StepVisibilityEvaluator::effectivelyVisible(const Group& group) const {
