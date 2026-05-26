@@ -7,6 +7,7 @@
 #include <limits>
 #include <sstream>
 #include <utility>
+#include <variant>
 
 using namespace std;
 
@@ -114,6 +115,26 @@ namespace {
   string fileNameFromMeta(const LDrawMetaCommand& command) {
     return trim(command.text.substr(command.keyword.size()));
   }
+
+  int commandLineNumber(const LDrawCommand& command) {
+    return visit([](const auto& typed) { return typed.lineNumber; }, command);
+  }
+
+  void appendLineAtOriginalLineNumber(string& sourceText,
+                                      int& existingLines,
+                                      const LDrawCommand& command,
+                                      const string& line) {
+    const int lineNumber = commandLineNumber(command);
+    while (existingLines < lineNumber - 1) {
+      sourceText += "\n";
+      ++existingLines;
+    }
+    sourceText += line;
+    for (char c : line) {
+      if (c == '\n')
+        ++existingLines;
+    }
+  }
 }
 
 LDrawParser::Commands LDrawParser::parse(istream& input) const {
@@ -160,23 +181,29 @@ LDrawDocument LDrawParser::parseDocument(istream& input) const {
   }
 
   LDrawDocumentFile* currentFile = nullptr;
+  int* currentFileSourceLines = nullptr;
+  vector<int> sourceLineCounts;
   for (const auto& parsedLine : parsedLines) {
     const auto& command = parsedLine.first;
     if (isMetaKeyword(command, "FILE")) {
       const auto& meta = get<LDrawMetaCommand>(command);
       document.files.push_back(LDrawDocumentFile{fileNameFromMeta(meta), {}, {}});
+      sourceLineCounts.push_back(0);
       currentFile = &document.files.back();
+      currentFileSourceLines = &sourceLineCounts.back();
       continue;
     }
 
     if (isMetaKeyword(command, "NOFILE")) {
       currentFile = nullptr;
+      currentFileSourceLines = nullptr;
       continue;
     }
 
     if (currentFile) {
       currentFile->commands.push_back(command);
-      currentFile->sourceText += parsedLine.second;
+      appendLineAtOriginalLineNumber(currentFile->sourceText, *currentFileSourceLines, command,
+                                     parsedLine.second);
     }
   }
 

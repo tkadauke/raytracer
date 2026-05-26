@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 
 namespace render {
@@ -25,6 +26,8 @@ namespace render {
     */
   class Object {
   public:
+    using Metadata = std::map<std::string, std::string>;
+
     inline Object() {
     }
     virtual ~Object() {
@@ -42,7 +45,30 @@ namespace render {
       return m_name;
     }
 
+    /// Attach an opaque string metadata value for diagnostics and inspection.
+    /// Runtime rendering does not read these values.
+    inline void setMetadataValue(const std::string& key, const std::string& value) {
+      m_metadata[key] = value;
+    }
+
+    /// @returns the metadata value for @p key, or an empty string when absent.
+    inline std::string metadataValue(const std::string& key) const {
+      const auto it = m_metadata.find(key);
+      return it == m_metadata.end() ? std::string() : it->second;
+    }
+
+    /// @returns all opaque diagnostic/inspection metadata attached to this object.
+    inline const Metadata& metadata() const {
+      return m_metadata;
+    }
+
+    /// Replace all opaque diagnostic/inspection metadata attached to this object.
+    inline void setMetadata(const Metadata& metadata) {
+      m_metadata = metadata;
+    }
+
   private:
     std::string m_name;
+    Metadata m_metadata;
   };
 }
