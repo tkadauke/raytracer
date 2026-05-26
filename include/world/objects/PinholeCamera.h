@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 
+#include "core/math/BoundingBox.h"
 #include "world/objects/Camera.h"
 
 /**
@@ -73,6 +74,19 @@ public:
       m_zoom = zoom;
     }
   }
+
+  /**
+    * Repositions the camera so @p bounds fit in the image from the current
+    * viewing direction. Degenerate directions fall back to a three-quarter
+    * view suitable for imported models.
+    */
+  [[nodiscard]] bool frame(const BoundingBoxd& bounds);
+
+  /**
+    * Repositions the camera so @p bounds fit in the image from
+    * @p targetToEyeDirection.
+    */
+  [[nodiscard]] bool frameFrom(const BoundingBoxd& bounds, const Vector3d& targetToEyeDirection);
 
   virtual std::shared_ptr<render::Camera> toRaytracer() const;
 

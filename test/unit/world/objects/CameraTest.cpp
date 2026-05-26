@@ -13,6 +13,7 @@
 #include "render/cameras/FishEyeCamera.h"
 
 #include "core/math/Angle.h"
+#include "core/math/Rect.h"
 
 namespace CameraTest {
   // ---------- Camera (abstract base) ----------------------------------------
@@ -66,6 +67,33 @@ namespace CameraTest {
   TEST(PinholeCamera, ShouldProduceRaytracerPinholeCamera) {
     PinholeCamera camera;
     EXPECT_NE(nullptr, std::dynamic_pointer_cast<render::PinholeCamera>(camera.toRaytracer()));
+  }
+
+  TEST(PinholeCamera, ShouldFrameBoundsFromRequestedDirection) {
+    PinholeCamera camera;
+    camera.setDistance(5.0);
+    camera.setZoom(1.0);
+    const BoundingBoxd bounds(Vector3d(-20.0, -10.0, -5.0), Vector3d(10.0, 30.0, 15.0));
+
+    ASSERT_TRUE(camera.frameFrom(bounds, Vector3d(0.75, 0.45, -1.0)));
+
+    EXPECT_EQ(bounds.center(), camera.target());
+    EXPECT_DOUBLE_EQ(5.0, camera.distance());
+    EXPECT_DOUBLE_EQ(1.0, camera.zoom());
+    EXPECT_GT(camera.position().y(), camera.target().y());
+    EXPECT_LT(camera.position().z(), camera.target().z());
+
+    auto renderCamera = std::dynamic_pointer_cast<render::PinholeCamera>(camera.toRaytracer());
+    ASSERT_NE(nullptr, renderCamera);
+    renderCamera->viewPlane()->setup(renderCamera->matrix(), Recti(0, 0, 640, 480));
+    for (const Vector3d& corner : bounds.vertices()) {
+      const Vector2d projected = renderCamera->projectPoint(corner);
+      ASSERT_FALSE(projected.isUndefined());
+      EXPECT_GE(projected.x(), 0.0);
+      EXPECT_LE(projected.x(), 640.0);
+      EXPECT_GE(projected.y(), 0.0);
+      EXPECT_LE(projected.y(), 480.0);
+    }
   }
 
   // ---------- OrthographicCamera --------------------------------------------

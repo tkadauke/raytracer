@@ -984,7 +984,6 @@ private:
 
   std::unique_ptr<Scene> loadScene() const;
   std::unique_ptr<Scene> loadLDrawScene() const;
-  void frameLDrawCamera(Scene& scene) const;
   void printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnostics) const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
@@ -1170,10 +1169,6 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   auto camera = std::make_unique<PinholeCamera>();
   camera->setId("camera");
   camera->setName("Camera");
-  camera->setPosition(Vector3d(0, 0, -80));
-  camera->setTarget(Vector3d::null);
-  camera->setDistance(80);
-  camera->setZoom(1.0);
   scene->addChild(std::move(camera));
 
   auto light = std::make_unique<DirectionalLight>();
@@ -1223,7 +1218,9 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   scene->setImportDiagnostics(std::move(diagnostics));
   printLDrawDiagnostics(scene->importDiagnostics());
 
-  frameLDrawCamera(*scene);
+  if (!scene->frameActivePinholeCameraToContents(m_stepPlaybackStyle, Vector3d(0.75, 0.45, -1.0))) {
+    std::cerr << "LDraw warning: imported model bounds did not produce a camera frame\n";
+  }
 
   return scene;
 }
@@ -1255,26 +1252,6 @@ void Renderer::printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnos
       std::cerr << " (" << (summary.count - 1) << " similar warnings suppressed)";
     std::cerr << '\n';
   }
-}
-
-void Renderer::frameLDrawCamera(Scene& scene) const {
-  auto* camera = qobject_cast<PinholeCamera*>(scene.activeCamera());
-  if (!camera)
-    return;
-
-  const auto runtimeScene = scene.toRaytracerScene(m_stepPlaybackStyle);
-  const BoundingBoxd bounds = runtimeScene->boundingBox();
-  if (!bounds.isValid() || bounds.isInfinite())
-    return;
-
-  const Vector3d size = bounds.size();
-  const double maxExtent = std::max({size.x(), size.y(), size.z(), 1.0});
-  const double distance = maxExtent * 2.5;
-  const Vector3d target = bounds.center();
-  camera->setTarget(target);
-  camera->setPosition(target + Vector3d(0.0, 0.0, -distance));
-  camera->setDistance(distance);
-  camera->setZoom(1.0);
 }
 
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {

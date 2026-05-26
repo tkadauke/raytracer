@@ -187,6 +187,30 @@ namespace SceneTest {
     EXPECT_EQ("shot-camera", *cameraRef->sceneCameraId);
   }
 
+  TEST(Scene, ShouldFrameActivePinholeCameraToContents) {
+    Scene scene;
+    auto* camera = new PinholeCamera;
+    scene.addChild(camera);
+    auto* sphere = new Sphere;
+    sphere->setPosition(Vector3d(40.0, 2.0, -6.0));
+    sphere->setRadius(3.0);
+    scene.addChild(sphere);
+
+    ASSERT_TRUE(scene.frameActivePinholeCameraToContents(Vector3d(0.0, 0.0, -1.0)));
+
+    EXPECT_NEAR(40.0, camera->target().x(), 1e-9);
+    EXPECT_NEAR(2.0, camera->target().y(), 1e-9);
+    EXPECT_NEAR(-6.0, camera->target().z(), 1e-9);
+    EXPECT_LT(camera->position().z(), camera->target().z());
+  }
+
+  TEST(Scene, ShouldReportWhenNoActivePinholeCameraCanBeFramed) {
+    Scene scene;
+    scene.addChild(new Sphere);
+
+    EXPECT_FALSE(scene.frameActivePinholeCameraToContents(Vector3d(0.0, 0.0, -1.0)));
+  }
+
   TEST(Scene, ShouldApplyActiveCameraToRenderIntentWhenMissingCamera) {
     Scene scene;
     auto* camera = new PinholeCamera;
@@ -412,15 +436,14 @@ namespace SceneTest {
     QTemporaryFile sceneFile("raytracer-scene-XXXXXX.json");
     ASSERT_TRUE(sceneFile.open());
     const QString scenePath = sceneFile.fileName();
-    const QByteArray sceneJson =
-      QByteArray(R"({
+    const QByteArray sceneJson = QByteArray(R"({
         "id": "scene",
         "name": "Scene With Import",
         "type": "Scene",
         "imports": [
           {
-            "source": ")") +
-      importedPath.toUtf8() + QByteArray(R"(",
+            "source": ")") + importedPath.toUtf8() +
+                                 QByteArray(R"(",
             "format": "json",
             "options": {"fixture": "minimal"}
           }
@@ -441,8 +464,8 @@ namespace SceneTest {
     Scene scene;
     QJsonObject json;
     scene.write(json);
-    json["imports"] = QJsonArray(
-      {QJsonObject({{"source", "fixture.unknown"}, {"format", "unknown"}, {"options", QJsonObject()}})});
+    json["imports"] = QJsonArray({QJsonObject(
+      {{"source", "fixture.unknown"}, {"format", "unknown"}, {"options", QJsonObject()}})});
 
     try {
       scene.read(json);

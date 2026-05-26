@@ -9,6 +9,7 @@
 #include "world/animation/Timeline.h"
 #include "core/Color.h"
 #include "core/formats/ldraw/LDrawDiagnostic.h"
+#include "core/math/Vector.h"
 
 class Camera;
 struct StepPlaybackStyle;
@@ -212,6 +213,12 @@ public:
     * @returns the scene's active camera.
     */
   Camera* activeCamera() const;
+  /**
+    * Frames the active pinhole camera around the scene contents.
+    */
+  [[nodiscard]] bool frameActivePinholeCameraToContents(const Vector3d& targetToEyeDirection);
+  [[nodiscard]] bool frameActivePinholeCameraToContents(const StepPlaybackStyle& style,
+                                                        const Vector3d& targetToEyeDirection);
   /**
     * @returns a render-graph camera reference for the active scene camera, or
     *   an empty optional when the scene has no identifiable active camera.

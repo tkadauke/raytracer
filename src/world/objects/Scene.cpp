@@ -3,6 +3,7 @@
 #include "world/objects/Camera.h"
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
+#include "world/objects/PinholeCamera.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/RenderIntentElement.h"
 #include "world/objects/StepVisibilityEvaluator.h"
@@ -282,6 +283,20 @@ Camera* Scene::activeCamera() const {
     }
   }
   return camera;
+}
+
+bool Scene::frameActivePinholeCameraToContents(const Vector3d& targetToEyeDirection) {
+  return frameActivePinholeCameraToContents(StepPlaybackStyle(), targetToEyeDirection);
+}
+
+bool Scene::frameActivePinholeCameraToContents(const StepPlaybackStyle& style,
+                                               const Vector3d& targetToEyeDirection) {
+  auto* camera = qobject_cast<PinholeCamera*>(activeCamera());
+  if (!camera)
+    return false;
+
+  const auto runtimeScene = toRaytracerScene(style);
+  return camera->frameFrom(runtimeScene->boundingBox(), targetToEyeDirection);
 }
 
 std::optional<engine::graph::RenderCameraRef> Scene::activeRenderCameraRef() const {

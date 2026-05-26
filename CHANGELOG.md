@@ -436,6 +436,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Changed
 
+- **Direct LDraw camera framing.** Direct `rendercli --ldraw_input` scenes now
+  frame the active pinhole camera from imported model bounds through shared
+  `Scene`/`PinholeCamera` logic, giving large or offset models a full-model
+  three-quarter view instead of a rendercli-only extent heuristic. — GPT-5
 - **Render type-specific graph and raster hooks.** Runtime cameras, lights,
   tonemaps, and recursive materials now expose stable graph-cache and
   raster-preview capabilities through virtual methods instead of external RTTI
