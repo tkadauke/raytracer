@@ -126,6 +126,70 @@ namespace core::gltf {
       return value.toString().toStdString();
     }
 
+    template<std::size_t Size>
+    bool numberArray(const QJsonObject& object, const char* name, const std::string& path,
+                     Diagnostics& diagnostics, std::array<double, Size>* result) {
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined())
+        return false;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected an array");
+        return false;
+      }
+
+      const QJsonArray array = value.toArray();
+      if (array.size() != static_cast<int>(Size)) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Unexpected array length");
+        return false;
+      }
+      for (int i = 0; i < array.size(); ++i) {
+        if (!array.at(i).isDouble()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType,
+                            path + "." + name + "[" + std::to_string(i) + "]", "Expected a number");
+          return false;
+        }
+        (*result)[static_cast<std::size_t>(i)] = array.at(i).toDouble();
+      }
+      return true;
+    }
+
+    std::vector<std::size_t> indexArray(const QJsonObject& object, const char* name,
+                                        const std::string& path, Diagnostics& diagnostics) {
+      std::vector<std::size_t> result;
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined())
+        return result;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected an array");
+        return result;
+      }
+
+      const QJsonArray array = value.toArray();
+      result.reserve(static_cast<std::size_t>(array.size()));
+      for (int i = 0; i < array.size(); ++i) {
+        if (!array.at(i).isDouble()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType,
+                            path + "." + name + "[" + std::to_string(i) + "]",
+                            "Expected an unsigned integer");
+          continue;
+        }
+        const double number = array.at(i).toDouble();
+        const auto integer = static_cast<unsigned long long>(number);
+        if (number < 0.0 || number != static_cast<double>(integer) ||
+            integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType,
+                            path + "." + name + "[" + std::to_string(i) + "]",
+                            "Expected an unsigned integer");
+          continue;
+        }
+        result.push_back(static_cast<std::size_t>(integer));
+      }
+      return result;
+    }
+
     std::optional<ComponentType> componentTypeFromInt(int value) {
       switch (value) {
       case 5120:
@@ -479,10 +543,115 @@ namespace core::gltf {
       }
     }
 
+    void parseNodes(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("nodes");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "nodes", "Expected an array");
+        return;
+      }
+
+      const QJsonArray nodes = value.toArray();
+      asset.nodes.reserve(static_cast<std::size_t>(nodes.size()));
+      for (int i = 0; i < nodes.size(); ++i) {
+        const std::string path = jsonPath("nodes", static_cast<std::size_t>(i));
+        if (!nodes.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = nodes.at(i).toObject();
+        Node node;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          node.name = *name;
+        node.children = indexArray(object, "children", path, diagnostics);
+
+        std::array<double, 16> matrix{};
+        if (numberArray(object, "matrix", path, diagnostics, &matrix))
+          node.matrix = matrix;
+        numberArray(object, "translation", path, diagnostics, &node.translation);
+        numberArray(object, "rotation", path, diagnostics, &node.rotation);
+        numberArray(object, "scale", path, diagnostics, &node.scale);
+
+        asset.nodes.push_back(std::move(node));
+      }
+    }
+
+    void parseScenes(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue defaultScene = root.value("scene");
+      if (!defaultScene.isUndefined()) {
+        if (defaultScene.isDouble()) {
+          const double number = defaultScene.toDouble();
+          const auto integer = static_cast<unsigned long long>(number);
+          if (number >= 0.0 && number == static_cast<double>(integer) &&
+              integer <= static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+            asset.defaultScene = static_cast<std::size_t>(integer);
+          } else {
+            diagnostics.error(DiagnosticCode::InvalidPropertyType, "scene",
+                              "Expected an unsigned integer");
+          }
+        } else {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, "scene",
+                            "Expected an unsigned integer");
+        }
+      }
+
+      const QJsonValue value = root.value("scenes");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "scenes", "Expected an array");
+        return;
+      }
+
+      const QJsonArray scenes = value.toArray();
+      asset.scenes.reserve(static_cast<std::size_t>(scenes.size()));
+      for (int i = 0; i < scenes.size(); ++i) {
+        const std::string path = jsonPath("scenes", static_cast<std::size_t>(i));
+        if (!scenes.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = scenes.at(i).toObject();
+        Scene scene;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          scene.name = *name;
+        scene.nodes = indexArray(object, "nodes", path, diagnostics);
+        asset.scenes.push_back(std::move(scene));
+      }
+    }
+
     void resolveBufferViewImages(Asset& asset) {
       for (Image& image : asset.images) {
         if (image.bufferView && *image.bufferView < asset.bufferViews.size())
           image.data = bytesFromBufferView(asset, *image.bufferView);
+      }
+    }
+
+    void validateNodesAndScenes(const Asset& asset, Diagnostics& diagnostics) {
+      for (std::size_t i = 0; i < asset.nodes.size(); ++i) {
+        for (const std::size_t child : asset.nodes[i].children) {
+          if (child >= asset.nodes.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("nodes", i, "children"),
+                              "node references a missing child node");
+          }
+        }
+      }
+
+      for (std::size_t i = 0; i < asset.scenes.size(); ++i) {
+        for (const std::size_t node : asset.scenes[i].nodes) {
+          if (node >= asset.nodes.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, jsonPath("scenes", i, "nodes"),
+                              "scene references a missing node");
+          }
+        }
+      }
+
+      if (asset.defaultScene && *asset.defaultScene >= asset.scenes.size()) {
+        diagnostics.error(DiagnosticCode::InvalidReference, "scene",
+                          "default scene references a missing scene");
       }
     }
 
@@ -525,9 +694,12 @@ namespace core::gltf {
       parseBufferViews(root, asset, result.diagnostics);
       parseAccessors(root, asset, result.diagnostics);
       parseImages(root, asset, currentFile, resolver, result.diagnostics);
+      parseNodes(root, asset, result.diagnostics);
+      parseScenes(root, asset, result.diagnostics);
       validateBufferViews(asset, result.diagnostics);
       validateAccessors(asset, result.diagnostics);
       validateImages(asset, result.diagnostics);
+      validateNodesAndScenes(asset, result.diagnostics);
       resolveBufferViewImages(asset);
 
       if (!result.diagnostics.hasErrors())

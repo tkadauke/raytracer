@@ -22,6 +22,8 @@
 | `include/core/formats/gcode/GCodeParser.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/core/formats/gcode/GCodePathCompiler.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/core/formats/gcode/GCodeProgram.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `include/core/formats/gltf/GltfAsset.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/core/formats/gltf/GltfReader.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/core/formats/ldraw/LDrawColorTable.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawCommand.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawFileResolver.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -161,6 +163,7 @@
 | `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/import/AdditiveManufacturingSceneImporter.h` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `include/world/import/GCodeSceneImporter.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `include/world/import/GltfSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/ImportDiagnostic.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportOptions.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportResult.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -182,6 +185,7 @@
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/gcode/GCodeParser.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/core/formats/gcode/GCodePathCompiler.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `src/core/formats/gltf/GltfReader.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/core/formats/ldraw/LDrawColorTable.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawCommand.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -216,6 +220,7 @@
 | `src/world/import/AdditiveManufacturingSceneImporter.cpp` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `src/world/import/GCodeSceneImporter.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `src/world/import/GltfSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/OpenScadCompiler.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
@@ -277,6 +282,7 @@
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/import/GCodeSceneImporterTest.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `test/unit/world/import/GltfSceneImporterTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/LDrawFileSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/import/OpenScadSceneImporterTest.cpp` | [OpenSCAD import](../tools-and-io/openscad-import.md) |

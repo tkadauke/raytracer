@@ -107,6 +107,13 @@ imports call `SceneImporter::configureImportedRoot(...)` instead, so importer
 root normalization such as OpenSCAD's Z-up orientation can still happen without
 editing the destination scene.
 
+Other importers preserve hierarchy before geometry support is complete.
+[`GltfSceneImporter`](../../../include/world/import/GltfSceneImporter.h) maps
+glTF scenes and nodes to `Group` roots, using node transforms for the local
+group transform and attaching source IDs plus `ImportProvenance`. Its
+`preserve_hierarchy` option keeps parent-child relationships by default; tests
+can disable it to check the flattened global-transform path.
+
 ## Diagnostics
 
 [`ImportDiagnostic`](../../../include/world/import/ImportDiagnostic.h) is for
@@ -217,13 +224,18 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/world/import/ImportResult.h`
 - `include/world/import/ImportDiagnostic.h`
 - `include/world/import/ImportedSceneDefaults.h`
+- `include/world/import/GltfSceneImporter.h`
 - `include/world/objects/Group.h`
 - `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/formats/AssetResolver.h`
+- `include/core/formats/gltf/GltfAsset.h`
+- `include/core/formats/gltf/GltfReader.h`
 - `include/core/formats/stl/StlFile.h`
+- `src/world/import/GltfSceneImporter.cpp`
 - `include/world/import/OpenScadCompiler.h`
 - `include/world/import/OpenScadSceneImporter.h`
 - `src/core/formats/AssetResolver.cpp`
+- `src/core/formats/gltf/GltfReader.cpp`
 - `src/core/formats/stl/StlFile.cpp`
 - `src/world/import/OpenScadCompiler.cpp`
 - `src/world/import/OpenScadSceneImporter.cpp`
@@ -233,4 +245,5 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `test/fixtures/groups/`
 - `test/fixtures/importers/`
 - `test/unit/world/import/ImporterFixtureHarnessTest.cpp`
+- `test/unit/world/import/GltfSceneImporterTest.cpp`
 <!-- /source-anchors -->

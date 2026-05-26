@@ -38,6 +38,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   cover primitive, transform, and boolean sources for external-compiler and
   native-subset workflows; rendercli smoke tests reuse those fixtures and skip
   the real external compiler smoke when `openscad` is not installed. — GPT-5
+- **glTF scene and node Group import.** Registered `.gltf` and `.glb` imports
+  now map glTF scenes and nodes to editable `Group` hierarchy with node names,
+  local transforms, optional hierarchy flattening, and source provenance
+  metadata for Epic #233. — GPT-5
 - **Cached LDraw filesystem resolution.** Repeated LDraw part/subfile lookups now
   reuse resolver results instead of rescanning the library roots for every
   cache-key/open call, making large MPD imports much faster. — GPT-5
