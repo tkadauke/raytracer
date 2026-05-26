@@ -542,7 +542,12 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   grouped imported meshes with rendercli smoke coverage for Epic #235;
   production extensions, textures, and write support remain TODO.
 - **PLY** — already read (with LibFuzzer harness). Add write.
-- **glTF 2.0** — meshes + materials + textures + skeletal animation. Modern, well-specified. Use `cgltf` or `tinygltf`. Read + write; the natural default for web interop (feeds the §4.1 WebGL viewer directly).
+- **glTF 2.0** — ~~low-level `.gltf` / `.glb` parsing for buffers,
+  bufferViews, accessors, and image references~~ ✅ **Done.**
+  `core::gltf::Reader` validates JSON/GLB containers and resolves external
+  and embedded payloads for Epic #233. Meshes + materials + textures +
+  skeletal animation and write support remain TODO; the natural default for
+  web interop (feeds the §4.1 WebGL viewer directly).
 - **USD / OpenUSD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references). Read-only first; write is aspirational.
 - **FBX** — Autodesk; via OpenFBX. Read + limited write.
 - **OpenVDB** — volumetric grids, once §4.3 volumetrics land. Read-only initially.

@@ -1,0 +1,630 @@
+#include "core/formats/gltf/GltfReader.h"
+
+#include <QByteArray>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QJsonValue>
+#include <QString>
+#include <QUrl>
+
+#include <algorithm>
+#include <array>
+#include <fstream>
+#include <limits>
+#include <sstream>
+
+namespace fs = std::filesystem;
+
+namespace core::gltf {
+  namespace {
+    constexpr std::uint32_t glbMagic = 0x46546c67;
+    constexpr std::uint32_t glbJsonChunk = 0x4e4f534a;
+    constexpr std::uint32_t glbBinaryChunk = 0x004e4942;
+
+    std::string jsonPath(const std::string& base, std::size_t index, const std::string& name = {}) {
+      std::ostringstream out;
+      out << base << '[' << index << ']';
+      if (!name.empty())
+        out << '.' << name;
+      return out.str();
+    }
+
+    std::vector<std::uint8_t> readAllBytes(const fs::path& path, Diagnostics& diagnostics) {
+      std::ifstream input(path, std::ios::binary);
+      if (!input) {
+        diagnostics.error(DiagnosticCode::IoError, path.generic_string(), "Unable to open file");
+        return {};
+      }
+
+      input.seekg(0, std::ios::end);
+      const std::streamoff size = input.tellg();
+      if (size < 0) {
+        diagnostics.error(DiagnosticCode::IoError, path.generic_string(), "Unable to measure file");
+        return {};
+      }
+      input.seekg(0, std::ios::beg);
+
+      std::vector<std::uint8_t> bytes(static_cast<std::size_t>(size));
+      if (!bytes.empty())
+        input.read(reinterpret_cast<char*>(bytes.data()),
+                   static_cast<std::streamsize>(bytes.size()));
+      if (!input && !bytes.empty()) {
+        diagnostics.error(DiagnosticCode::IoError, path.generic_string(), "Unable to read file");
+        return {};
+      }
+      return bytes;
+    }
+
+    std::string bytesToString(const std::vector<std::uint8_t>& bytes) {
+      return std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    }
+
+    std::uint32_t readUint32Le(const std::vector<std::uint8_t>& bytes, std::size_t offset) {
+      return static_cast<std::uint32_t>(bytes[offset]) |
+             (static_cast<std::uint32_t>(bytes[offset + 1]) << 8u) |
+             (static_cast<std::uint32_t>(bytes[offset + 2]) << 16u) |
+             (static_cast<std::uint32_t>(bytes[offset + 3]) << 24u);
+    }
+
+    std::optional<std::size_t> unsignedInteger(const QJsonObject& object, const char* name,
+                                               const std::string& path, Diagnostics& diagnostics,
+                                               bool required = true) {
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined()) {
+        if (required)
+          diagnostics.error(DiagnosticCode::MissingRequiredProperty, path + "." + name,
+                            "Missing required property");
+        return std::nullopt;
+      }
+      if (!value.isDouble()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected an unsigned integer");
+        return std::nullopt;
+      }
+
+      const double number = value.toDouble();
+      const auto integer = static_cast<unsigned long long>(number);
+      if (number < 0.0 || number != static_cast<double>(integer) ||
+          integer > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max())) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected an unsigned integer");
+        return std::nullopt;
+      }
+      return static_cast<std::size_t>(integer);
+    }
+
+    std::optional<int> integer(const QJsonObject& object, const char* name, const std::string& path,
+                               Diagnostics& diagnostics, bool required = true) {
+      const auto number = unsignedInteger(object, name, path, diagnostics, required);
+      if (!number)
+        return std::nullopt;
+      if (*number > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Integer is out of range");
+        return std::nullopt;
+      }
+      return static_cast<int>(*number);
+    }
+
+    std::optional<std::string> stringProperty(const QJsonObject& object, const char* name,
+                                              const std::string& path, Diagnostics& diagnostics,
+                                              bool required = false) {
+      const QJsonValue value = object.value(name);
+      if (value.isUndefined()) {
+        if (required)
+          diagnostics.error(DiagnosticCode::MissingRequiredProperty, path + "." + name,
+                            "Missing required property");
+        return std::nullopt;
+      }
+      if (!value.isString()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, path + "." + name,
+                          "Expected a string");
+        return std::nullopt;
+      }
+      return value.toString().toStdString();
+    }
+
+    std::optional<ComponentType> componentTypeFromInt(int value) {
+      switch (value) {
+      case 5120:
+        return ComponentType::Int8;
+      case 5121:
+        return ComponentType::Uint8;
+      case 5122:
+        return ComponentType::Int16;
+      case 5123:
+        return ComponentType::Uint16;
+      case 5125:
+        return ComponentType::Uint32;
+      case 5126:
+        return ComponentType::Float32;
+      default:
+        return std::nullopt;
+      }
+    }
+
+    std::optional<AccessorType> accessorTypeFromString(const std::string& value) {
+      if (value == "SCALAR")
+        return AccessorType::Scalar;
+      if (value == "VEC2")
+        return AccessorType::Vec2;
+      if (value == "VEC3")
+        return AccessorType::Vec3;
+      if (value == "VEC4")
+        return AccessorType::Vec4;
+      if (value == "MAT2")
+        return AccessorType::Mat2;
+      if (value == "MAT3")
+        return AccessorType::Mat3;
+      if (value == "MAT4")
+        return AccessorType::Mat4;
+      return std::nullopt;
+    }
+
+    bool startsWith(const std::string& value, const std::string& prefix) {
+      return value.size() >= prefix.size() &&
+             std::equal(prefix.begin(), prefix.end(), value.begin());
+    }
+
+    std::optional<std::vector<std::uint8_t>>
+    decodeDataUri(const std::string& uri, const std::string& path, Diagnostics& diagnostics) {
+      if (!startsWith(uri, "data:"))
+        return std::nullopt;
+
+      const std::size_t comma = uri.find(',');
+      if (comma == std::string::npos) {
+        diagnostics.error(DiagnosticCode::InvalidUri, path, "Malformed data URI", uri);
+        return std::vector<std::uint8_t>{};
+      }
+
+      const std::string metadata = uri.substr(5, comma - 5);
+      const std::string payload = uri.substr(comma + 1);
+      QByteArray decoded;
+      if (metadata.find(";base64") != std::string::npos) {
+        decoded =
+          QByteArray::fromBase64(QByteArray(payload.data(), static_cast<int>(payload.size())));
+      } else {
+        decoded =
+          QUrl::fromPercentEncoding(QByteArray(payload.data(), static_cast<int>(payload.size())))
+            .toUtf8();
+      }
+
+      return std::vector<std::uint8_t>(decoded.begin(), decoded.end());
+    }
+
+    std::string uriToPath(const std::string& uri) {
+      return QUrl::fromPercentEncoding(QByteArray(uri.data(), static_cast<int>(uri.size())))
+        .toStdString();
+    }
+
+    std::vector<std::uint8_t> resolveUriBytes(const std::string& uri, const fs::path& currentFile,
+                                              const AssetResolver& resolver,
+                                              const std::string& path, Diagnostics& diagnostics,
+                                              fs::path* resolvedPath, std::string* identity) {
+      if (auto embedded = decodeDataUri(uri, path, diagnostics))
+        return *embedded;
+
+      if (startsWith(uri, "http://") || startsWith(uri, "https://")) {
+        diagnostics.error(DiagnosticCode::UnsupportedValue, path,
+                          "Remote URIs are not supported by the local asset resolver", uri);
+        return {};
+      }
+
+      try {
+        const ResolvedAsset resolved = resolver.resolve(uriToPath(uri), currentFile);
+        if (resolvedPath)
+          *resolvedPath = resolved.path;
+        if (identity)
+          *identity = resolved.identity;
+        return readAllBytes(resolved.path, diagnostics);
+      } catch (const AssetResolutionError& error) {
+        Diagnostic diagnostic;
+        diagnostic.severity = DiagnosticSeverity::Error;
+        diagnostic.code = DiagnosticCode::AssetResolutionFailed;
+        diagnostic.path = path;
+        diagnostic.message = error.what();
+        diagnostic.reference = uri;
+        for (const fs::path& root : error.searchedRoots())
+          diagnostic.searchedRoots.push_back(root.generic_string());
+        diagnostics.add(std::move(diagnostic));
+        return {};
+      }
+    }
+
+    void validateBufferLength(const Buffer& buffer, std::size_t index, Diagnostics& diagnostics) {
+      if (!buffer.hasData())
+        return;
+      if (buffer.data.size() < buffer.byteLength) {
+        diagnostics.error(DiagnosticCode::BufferLengthMismatch, jsonPath("buffers", index, "uri"),
+                          "Resolved buffer is shorter than byteLength", buffer.uri);
+      }
+    }
+
+    void validateBufferViews(const Asset& asset, Diagnostics& diagnostics) {
+      for (std::size_t i = 0; i < asset.bufferViews.size(); ++i) {
+        const BufferView& view = asset.bufferViews[i];
+        const std::string path = jsonPath("bufferViews", i);
+        if (view.buffer >= asset.buffers.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, path + ".buffer",
+                            "bufferView references a missing buffer");
+          continue;
+        }
+        if (view.byteStride &&
+            (*view.byteStride < 4 || *view.byteStride > 252 || (*view.byteStride % 4) != 0)) {
+          diagnostics.error(DiagnosticCode::InvalidAccessor, path + ".byteStride",
+                            "byteStride must be a multiple of 4 between 4 and 252");
+        }
+        const Buffer& buffer = asset.buffers[view.buffer];
+        if (view.byteOffset > buffer.byteLength ||
+            view.byteLength > buffer.byteLength - view.byteOffset) {
+          diagnostics.error(DiagnosticCode::BufferViewOutOfBounds, path + ".byteLength",
+                            "bufferView range exceeds its buffer byteLength");
+        }
+      }
+    }
+
+    void validateAccessors(const Asset& asset, Diagnostics& diagnostics) {
+      for (std::size_t i = 0; i < asset.accessors.size(); ++i) {
+        const Accessor& accessor = asset.accessors[i];
+        const std::string path = jsonPath("accessors", i);
+        if (!accessor.bufferView)
+          continue;
+        if (*accessor.bufferView >= asset.bufferViews.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, path + ".bufferView",
+                            "accessor references a missing bufferView");
+          continue;
+        }
+
+        const BufferView& view = asset.bufferViews[*accessor.bufferView];
+        const std::size_t elementSize = accessorElementByteSize(accessor);
+        const std::size_t stride = view.byteStride.value_or(elementSize);
+        if (stride < elementSize) {
+          diagnostics.error(DiagnosticCode::InvalidAccessor, path + ".bufferView",
+                            "accessor stride is smaller than one element");
+          continue;
+        }
+        if (accessor.count == 0)
+          continue;
+
+        const std::size_t finalElementOffset = (accessor.count - 1) * stride;
+        if (accessor.byteOffset > view.byteLength ||
+            finalElementOffset > view.byteLength - accessor.byteOffset ||
+            elementSize > view.byteLength - accessor.byteOffset - finalElementOffset) {
+          diagnostics.error(DiagnosticCode::InvalidAccessor, path + ".count",
+                            "accessor range exceeds its bufferView byteLength");
+        }
+      }
+    }
+
+    void validateImages(const Asset& asset, Diagnostics& diagnostics) {
+      for (std::size_t i = 0; i < asset.images.size(); ++i) {
+        const Image& image = asset.images[i];
+        const std::string path = jsonPath("images", i);
+        if (!image.uri.empty() && image.bufferView) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path,
+                            "image must not define both uri and bufferView");
+        }
+        if (image.uri.empty() && !image.bufferView) {
+          diagnostics.error(DiagnosticCode::MissingRequiredProperty, path,
+                            "image requires either uri or bufferView");
+        }
+        if (image.bufferView && *image.bufferView >= asset.bufferViews.size()) {
+          diagnostics.error(DiagnosticCode::InvalidReference, path + ".bufferView",
+                            "image references a missing bufferView");
+        }
+      }
+    }
+
+    std::vector<std::uint8_t> bytesFromBufferView(const Asset& asset, std::size_t bufferView) {
+      const BufferView& view = asset.bufferViews[bufferView];
+      const Buffer& buffer = asset.buffers[view.buffer];
+      if (buffer.data.size() < view.byteOffset + view.byteLength)
+        return {};
+      return {buffer.data.begin() + static_cast<std::ptrdiff_t>(view.byteOffset),
+              buffer.data.begin() + static_cast<std::ptrdiff_t>(view.byteOffset + view.byteLength)};
+    }
+
+    void parseBuffers(const QJsonObject& root, Asset& asset, const fs::path& currentFile,
+                      const AssetResolver& resolver, Diagnostics& diagnostics,
+                      const std::vector<std::uint8_t>& glbBinaryChunk) {
+      const QJsonValue value = root.value("buffers");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "buffers", "Expected an array");
+        return;
+      }
+
+      const QJsonArray buffers = value.toArray();
+      asset.buffers.reserve(static_cast<std::size_t>(buffers.size()));
+      for (int i = 0; i < buffers.size(); ++i) {
+        const std::string path = jsonPath("buffers", static_cast<std::size_t>(i));
+        if (!buffers.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+        const QJsonObject object = buffers.at(i).toObject();
+        Buffer buffer;
+        if (auto byteLength = unsignedInteger(object, "byteLength", path, diagnostics))
+          buffer.byteLength = *byteLength;
+        if (auto uri = stringProperty(object, "uri", path, diagnostics))
+          buffer.uri = *uri;
+
+        if (!buffer.uri.empty()) {
+          buffer.data = resolveUriBytes(buffer.uri, currentFile, resolver, path + ".uri",
+                                        diagnostics, &buffer.resolvedPath, &buffer.identity);
+        } else if (i == 0 && !glbBinaryChunk.empty()) {
+          buffer.data = glbBinaryChunk;
+        }
+
+        asset.buffers.push_back(std::move(buffer));
+        validateBufferLength(asset.buffers.back(), static_cast<std::size_t>(i), diagnostics);
+      }
+    }
+
+    void parseBufferViews(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("bufferViews");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "bufferViews", "Expected an array");
+        return;
+      }
+
+      const QJsonArray views = value.toArray();
+      asset.bufferViews.reserve(static_cast<std::size_t>(views.size()));
+      for (int i = 0; i < views.size(); ++i) {
+        const std::string path = jsonPath("bufferViews", static_cast<std::size_t>(i));
+        if (!views.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+        const QJsonObject object = views.at(i).toObject();
+        BufferView view;
+        if (auto buffer = unsignedInteger(object, "buffer", path, diagnostics))
+          view.buffer = *buffer;
+        if (auto byteOffset = unsignedInteger(object, "byteOffset", path, diagnostics, false))
+          view.byteOffset = *byteOffset;
+        if (auto byteLength = unsignedInteger(object, "byteLength", path, diagnostics))
+          view.byteLength = *byteLength;
+        view.byteStride = unsignedInteger(object, "byteStride", path, diagnostics, false);
+        view.target = integer(object, "target", path, diagnostics, false);
+        asset.bufferViews.push_back(view);
+      }
+    }
+
+    void parseAccessors(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("accessors");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "accessors", "Expected an array");
+        return;
+      }
+
+      const QJsonArray accessors = value.toArray();
+      asset.accessors.reserve(static_cast<std::size_t>(accessors.size()));
+      for (int i = 0; i < accessors.size(); ++i) {
+        const std::string path = jsonPath("accessors", static_cast<std::size_t>(i));
+        if (!accessors.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+        const QJsonObject object = accessors.at(i).toObject();
+        Accessor accessor;
+        accessor.bufferView = unsignedInteger(object, "bufferView", path, diagnostics, false);
+        if (auto byteOffset = unsignedInteger(object, "byteOffset", path, diagnostics, false))
+          accessor.byteOffset = *byteOffset;
+        if (auto component = integer(object, "componentType", path, diagnostics)) {
+          if (auto type = componentTypeFromInt(*component)) {
+            accessor.componentType = *type;
+          } else {
+            diagnostics.error(DiagnosticCode::InvalidAccessor, path + ".componentType",
+                              "Unsupported accessor componentType");
+          }
+        }
+        const QJsonValue normalized = object.value("normalized");
+        if (normalized.isBool()) {
+          accessor.normalized = normalized.toBool();
+        } else if (!normalized.isUndefined()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".normalized",
+                            "Expected a boolean");
+        }
+        if (auto count = unsignedInteger(object, "count", path, diagnostics))
+          accessor.count = *count;
+        if (auto typeName = stringProperty(object, "type", path, diagnostics, true)) {
+          if (auto type = accessorTypeFromString(*typeName)) {
+            accessor.type = *type;
+          } else {
+            diagnostics.error(DiagnosticCode::InvalidAccessor, path + ".type",
+                              "Unsupported accessor type");
+          }
+        }
+        asset.accessors.push_back(accessor);
+      }
+    }
+
+    void parseImages(const QJsonObject& root, Asset& asset, const fs::path& currentFile,
+                     const AssetResolver& resolver, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("images");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "images", "Expected an array");
+        return;
+      }
+
+      const QJsonArray images = value.toArray();
+      asset.images.reserve(static_cast<std::size_t>(images.size()));
+      for (int i = 0; i < images.size(); ++i) {
+        const std::string path = jsonPath("images", static_cast<std::size_t>(i));
+        if (!images.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+        const QJsonObject object = images.at(i).toObject();
+        Image image;
+        if (auto uri = stringProperty(object, "uri", path, diagnostics))
+          image.uri = *uri;
+        if (auto mimeType = stringProperty(object, "mimeType", path, diagnostics))
+          image.mimeType = *mimeType;
+        image.bufferView = unsignedInteger(object, "bufferView", path, diagnostics, false);
+        if (!image.uri.empty()) {
+          image.data = resolveUriBytes(image.uri, currentFile, resolver, path + ".uri", diagnostics,
+                                       &image.resolvedPath, &image.identity);
+        }
+        asset.images.push_back(std::move(image));
+      }
+    }
+
+    void resolveBufferViewImages(Asset& asset) {
+      for (Image& image : asset.images) {
+        if (image.bufferView && *image.bufferView < asset.bufferViews.size())
+          image.data = bytesFromBufferView(asset, *image.bufferView);
+      }
+    }
+
+    ReadResult parseDocument(const QByteArray& jsonBytes, const fs::path& currentFile,
+                             const AssetResolver& resolver,
+                             const std::vector<std::uint8_t>& glbBinaryChunk = {}) {
+      ReadResult result;
+      QJsonParseError error;
+      const QJsonDocument document = QJsonDocument::fromJson(jsonBytes, &error);
+      if (error.error != QJsonParseError::NoError) {
+        result.diagnostics.error(DiagnosticCode::InvalidJson, "json",
+                                 error.errorString().toStdString());
+        return result;
+      }
+      if (!document.isObject()) {
+        result.diagnostics.error(DiagnosticCode::InvalidJson, "json", "Root must be a JSON object");
+        return result;
+      }
+
+      const QJsonObject root = document.object();
+      Asset asset;
+      const QJsonValue assetValue = root.value("asset");
+      if (!assetValue.isObject()) {
+        result.diagnostics.error(DiagnosticCode::MissingRequiredProperty, "asset",
+                                 "glTF asset metadata object is required");
+      } else {
+        const QJsonObject assetObject = assetValue.toObject();
+        if (auto version =
+              stringProperty(assetObject, "version", "asset", result.diagnostics, true))
+          asset.version = *version;
+        if (asset.version.rfind("2.", 0) != 0) {
+          result.diagnostics.error(DiagnosticCode::UnsupportedVersion, "asset.version",
+                                   "Only glTF 2.x assets are supported", asset.version);
+        }
+        if (auto generator = stringProperty(assetObject, "generator", "asset", result.diagnostics))
+          asset.generator = *generator;
+      }
+
+      parseBuffers(root, asset, currentFile, resolver, result.diagnostics, glbBinaryChunk);
+      parseBufferViews(root, asset, result.diagnostics);
+      parseAccessors(root, asset, result.diagnostics);
+      parseImages(root, asset, currentFile, resolver, result.diagnostics);
+      validateBufferViews(asset, result.diagnostics);
+      validateAccessors(asset, result.diagnostics);
+      validateImages(asset, result.diagnostics);
+      resolveBufferViewImages(asset);
+
+      if (!result.diagnostics.hasErrors())
+        result.asset = std::move(asset);
+      return result;
+    }
+  }
+
+  ReadResult Reader::readFile(const fs::path& path, AssetResolver resolver) {
+    ReadResult ioResult;
+    const std::vector<std::uint8_t> bytes = readAllBytes(path, ioResult.diagnostics);
+    if (ioResult.diagnostics.hasErrors())
+      return ioResult;
+
+    const std::string extension = path.extension().string();
+    if (extension == ".glb" || extension == ".GLB")
+      return readGlb(bytes, path, std::move(resolver));
+    return readJson(bytesToString(bytes), path, std::move(resolver));
+  }
+
+  ReadResult Reader::readJson(const std::string& json, const fs::path& currentFile,
+                              AssetResolver resolver) {
+    return parseDocument(QByteArray(json.data(), static_cast<int>(json.size())), currentFile,
+                         resolver);
+  }
+
+  ReadResult Reader::readGlb(const std::vector<std::uint8_t>& bytes, const fs::path& currentFile,
+                             AssetResolver resolver) {
+    ReadResult result;
+    if (bytes.size() < 12) {
+      result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb", "GLB header is truncated");
+      return result;
+    }
+
+    const std::uint32_t magic = readUint32Le(bytes, 0);
+    const std::uint32_t version = readUint32Le(bytes, 4);
+    const std::uint32_t length = readUint32Le(bytes, 8);
+    if (magic != glbMagic) {
+      result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.magic", "Invalid GLB magic");
+      return result;
+    }
+    if (version != 2) {
+      result.diagnostics.error(DiagnosticCode::UnsupportedVersion, "glb.version",
+                               "Only GLB version 2 is supported");
+      return result;
+    }
+    if (length != bytes.size()) {
+      result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.length",
+                               "GLB length field does not match file size");
+      return result;
+    }
+
+    std::optional<QByteArray> jsonChunk;
+    std::vector<std::uint8_t> binaryChunk;
+    std::size_t offset = 12;
+    while (offset < bytes.size()) {
+      if (bytes.size() - offset < 8) {
+        result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.chunks",
+                                 "Chunk header is truncated");
+        return result;
+      }
+      const std::uint32_t chunkLength = readUint32Le(bytes, offset);
+      const std::uint32_t chunkType = readUint32Le(bytes, offset + 4);
+      offset += 8;
+      if (chunkLength > bytes.size() - offset) {
+        result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.chunks",
+                                 "Chunk length exceeds GLB size");
+        return result;
+      }
+
+      if (chunkType == glbJsonChunk) {
+        if (jsonChunk) {
+          result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.chunks",
+                                   "GLB contains more than one JSON chunk");
+          return result;
+        }
+        jsonChunk = QByteArray(reinterpret_cast<const char*>(bytes.data() + offset),
+                               static_cast<int>(chunkLength));
+      } else if (chunkType == glbBinaryChunk) {
+        if (!binaryChunk.empty()) {
+          result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.chunks",
+                                   "GLB contains more than one BIN chunk");
+          return result;
+        }
+        binaryChunk.assign(bytes.begin() + static_cast<std::ptrdiff_t>(offset),
+                           bytes.begin() + static_cast<std::ptrdiff_t>(offset + chunkLength));
+      }
+      offset += chunkLength;
+    }
+
+    if (!jsonChunk) {
+      result.diagnostics.error(DiagnosticCode::InvalidGlb, "glb.chunks",
+                               "GLB JSON chunk is missing");
+      return result;
+    }
+
+    return parseDocument(*jsonChunk, currentFile, resolver, binaryChunk);
+  }
+
+}
