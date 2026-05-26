@@ -569,6 +569,11 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   skipped geometry, color fallbacks, BFC treatment, and fatal parse failures.~~
   ✅ **Done.** `LDrawDiagnostics` gives parser/resolver/compiler paths
   machine-checkable warnings and errors for #210.
+  ~~Type-2 edge/detail line overlay import.~~ ✅ **Done.**
+  `LDrawGeometryCompiler` carries edge lines as zero-width curve-overlay
+  segments, including color 24 resolution from the active part edge color;
+  type-5 conditional-line visibility remains a deferred importer follow-up for
+  #210.
   ~~World scene and rendercli integration.~~ ✅ **Done.** `Collection`
   authoring metadata references LDraw source files; rendercli resolves those
   references through the import pipeline into ordinary primitive geometry and

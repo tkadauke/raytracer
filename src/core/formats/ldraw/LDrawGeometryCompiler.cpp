@@ -2,10 +2,13 @@
 
 #include "core/Exception.h"
 #include "core/formats/ldraw/LDrawParseError.h"
+#include "core/geometry/AttributeColorMap.h"
 #include "core/geometry/Mesh.h"
+#include "core/geometry/Polyline.h"
 #include "core/math/Matrix.h"
 #include "render/materials/Material.h"
 #include "render/primitives/Composite.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 
@@ -109,6 +112,24 @@ namespace {
                            "BFC winding was reversed before compiling this quad");
     }
     return primitive;
+  }
+
+  shared_ptr<render::Curve> curveForEdgeLine(const LDrawEdgeLine& edge,
+                                             const LDrawColorTable& colors,
+                                             const LDrawColorContext& context,
+                                             LDrawDiagnostics* diagnostics,
+                                             const string& file) {
+    core::Polyline polyline({edge.points[0], edge.points[1]});
+    polyline.setSegmentAttribute(0, "ldraw_edge", true);
+
+    auto colorMap = core::AttributeColorMap::categorical("ldraw_edge");
+    colorMap.setCategoryColor(
+      true, colors.edgeColorForCode(edge.color, context, diagnostics, file, edge.lineNumber));
+
+    auto curve =
+      make_shared<render::Curve>(polyline, 0.0, render::Curve::TessellationMode::Ribbon);
+    curve->setSegmentColorMap(colorMap);
+    return curve;
   }
 
   Matrix4d transformForSubfileReference(const LDrawSubfileReference& reference) {
@@ -226,11 +247,7 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
       }
     } else if (holds_alternative<LDrawEdgeLine>(command)) {
       const auto& edge = get<LDrawEdgeLine>(command);
-      if (state.diagnostics) {
-        state.diagnostics->warning(LDrawDiagnosticCode::SkippedGeometry, state.currentFile,
-                                   edge.lineNumber,
-                                   "type 2 edge line was skipped by the geometry compiler");
-      }
+      result->add(curveForEdgeLine(edge, colors, context, state.diagnostics, state.currentFile));
     } else if (holds_alternative<LDrawOptionalLine>(command)) {
       const auto& optional = get<LDrawOptionalLine>(command);
       if (state.diagnostics) {

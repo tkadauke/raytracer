@@ -93,6 +93,24 @@ namespace LDrawColorTableTest {
     ASSERT_COLOR_NEAR(Colord::fromRGB(17, 17, 17), table.colorForCode(24, context), 0.001);
   }
 
+  TEST(LDrawColorTable, ShouldResolveLineColor24FromActivePartColorEdge) {
+    LDrawColorTable table;
+    table.add(table.parseColourRecord("0 !COLOUR Red CODE 4 VALUE #C91A09 EDGE #222222", 1));
+
+    LDrawColorContext context;
+    context.currentColor = LDrawColorReference::fromCode(4);
+    context.edgeColor = LDrawColorReference::fromDirectRgb(Colord::fromRGB(17, 17, 17));
+
+    ASSERT_COLOR_NEAR(Colord::fromRGB(34, 34, 34), table.edgeColorForCode(24, context), 0.001);
+  }
+
+  TEST(LDrawColorTable, ShouldResolveDirectEdgeColors) {
+    LDrawColorTable table;
+
+    ASSERT_COLOR_NEAR(Colord::fromRGB(0xa1, 0xb2, 0xc3),
+                      table.edgeColorForCode(0x02a1b2c3), 0.001);
+  }
+
   TEST(LDrawColorTable, ShouldBuildSubfileContextFromReferenceColor) {
     LDrawColorTable table;
     table.add(table.parseColourRecord("0 !COLOUR Red CODE 4 VALUE #C91A09 EDGE #222222", 1));

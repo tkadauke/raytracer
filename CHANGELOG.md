@@ -18,6 +18,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now drive optional render-time active-step highlighting and previous-step
   ghosting through `rendercli --step`, `--step_highlight`, and
   `--step_ghost_previous`, while default rendering remains unchanged. — GPT-5
+- **LDraw edge-line overlays.** `LDrawGeometryCompiler` now carries type-2
+  edge/detail lines as zero-width curve-overlay segments with color 24
+  resolved from the active part edge color, while type-5 optional lines remain
+  explicitly ignored with diagnostics for #210. — GPT-5
 - **Structured LDraw import diagnostics.** LDraw resolving and geometry
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
