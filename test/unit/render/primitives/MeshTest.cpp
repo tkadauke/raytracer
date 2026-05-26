@@ -54,6 +54,10 @@ namespace MeshTest {
     EXPECT_EQ(makeStdVector(0, 1, 2, 3), this->mesh.faces().back());
   }
 
+  TEST_F(MeshTest, ShouldReverseFaceWinding) {
+    EXPECT_EQ(makeStdVector(0, 3, 2, 1), Mesh::reversedWinding(makeStdVector(0, 1, 2, 3)));
+  }
+
   TEST_F(MeshTest, ShouldAddFaceWithReversedWinding) {
     this->mesh.addFace(makeStdVector(0, 1, 2, 3), true);
 
