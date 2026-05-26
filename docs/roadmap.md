@@ -578,6 +578,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   authoring metadata references LDraw source files; rendercli resolves those
   references through the import pipeline into ordinary primitive geometry and
   accepts scene-level library roots plus direct LDraw input for #210.
+  ~~Preserve `0 STEP` and MPD authoring structure as scene groups.~~ ✅
+  **Done.** `LDrawSceneImporter` maps build steps and submodel references onto
+  generic `Group` metadata nodes while keeping flattened import available for
+  #210.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.

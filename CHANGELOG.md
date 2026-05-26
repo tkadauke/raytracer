@@ -26,6 +26,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
   sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
+- **LDraw hierarchy-preserving imports.** LDraw imports can now preserve
+  `0 STEP` sections and MPD submodel references as generic scene `Group`
+  nodes with source/build metadata, while the flattened `LDrawModel` path
+  remains available for #210. — GPT-5
 - **World and rendercli LDraw imports.** Scene JSON can now contain
   `Collection` authoring metadata for LDraw source files; rendercli resolves
   that metadata through the import pipeline into ordinary compiled primitive
