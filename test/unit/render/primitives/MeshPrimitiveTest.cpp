@@ -12,6 +12,8 @@
 #include "render/primitives/BVH.h"
 #include "render/primitives/FlatMeshTriangle.h"
 #include "render/primitives/Grid.h"
+#include "render/primitives/Composite.h"
+#include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/SmoothMeshTriangle.h"
@@ -63,11 +65,15 @@ namespace MeshPrimitiveTest {
     return buffer.width() * buffer.height() - countPixels(buffer, background);
   }
 
-  std::shared_ptr<Scene> sceneWithMeshPrimitive(std::shared_ptr<MeshPrimitive> primitive) {
+  std::shared_ptr<Scene> sceneWithPrimitive(std::shared_ptr<Primitive> primitive) {
     auto scene = std::make_shared<Scene>(Colord::white());
     scene->setBackground(Colord::black());
     scene->add(std::move(primitive));
     return scene;
+  }
+
+  std::shared_ptr<Scene> sceneWithMeshPrimitive(std::shared_ptr<MeshPrimitive> primitive) {
+    return sceneWithPrimitive(std::move(primitive));
   }
 
   TEST(MeshPrimitive, OwnsMeshStorageForBuiltLeaves) {
@@ -183,14 +189,14 @@ namespace MeshPrimitiveTest {
     State state;
 
     HitPointInterval leftHits;
-    const Primitive* left = primitive.intersect(
-      Rayd(Vector3d(-0.5, 0.0, -1.0), Vector3d(0, 0, 1)), leftHits, state);
+    const Primitive* left =
+      primitive.intersect(Rayd(Vector3d(-0.5, 0.0, -1.0), Vector3d(0, 0, 1)), leftHits, state);
     ASSERT_NE(nullptr, left);
     EXPECT_EQ(red, left->material());
 
     HitPointInterval rightHits;
-    const Primitive* right = primitive.intersect(
-      Rayd(Vector3d(0.5, 0.0, -1.0), Vector3d(0, 0, 1)), rightHits, state);
+    const Primitive* right =
+      primitive.intersect(Rayd(Vector3d(0.5, 0.0, -1.0), Vector3d(0, 0, 1)), rightHits, state);
     ASSERT_NE(nullptr, right);
     EXPECT_EQ(blue, right->material());
 
@@ -214,8 +220,8 @@ namespace MeshPrimitiveTest {
     State state;
 
     HitPointInterval rightHits;
-    const Primitive* right = primitive.intersect(
-      Rayd(Vector3d(0.5, 0.0, -1.0), Vector3d(0, 0, 1)), rightHits, state);
+    const Primitive* right =
+      primitive.intersect(Rayd(Vector3d(0.5, 0.0, -1.0), Vector3d(0, 0, 1)), rightHits, state);
 
     ASSERT_EQ(&primitive, right);
     EXPECT_EQ(fallback, right->material());
@@ -246,8 +252,8 @@ namespace MeshPrimitiveTest {
     State state;
     HitPointInterval hits;
 
-    const Primitive* hit = grid.intersect(
-      Rayd(Vector3d(0.5, 0.0, -1.0), Vector3d(0, 0, 1)), hits, state);
+    const Primitive* hit =
+      grid.intersect(Rayd(Vector3d(0.5, 0.0, -1.0), Vector3d(0, 0, 1)), hits, state);
 
     ASSERT_NE(nullptr, hit);
     EXPECT_EQ(blue, hit->material());
@@ -296,6 +302,23 @@ namespace MeshPrimitiveTest {
     rasterizer.render(buffer);
 
     EXPECT_GT(countNonBackground(buffer, Colord::black()), 0);
+  }
+
+  TEST(MeshPrimitive, RasterizerPreservesNestedMaterialThroughInstance) {
+    auto primitive = std::make_shared<MeshPrimitive>(makeQuadMesh());
+    primitive->setMaterial(matte(Colord::red()));
+    auto composite = std::make_shared<Composite>();
+    composite->add(primitive);
+    auto instance = std::make_shared<Instance>(composite);
+
+    engine::raster::Rasterizer rasterizer(
+      std::make_shared<PinholeCamera>(Vector3d(0, 0, -3), Vector3d::null),
+      sceneWithPrimitive(instance));
+    Buffer<Colord> buffer(64, 64);
+
+    rasterizer.render(buffer);
+
+    EXPECT_GT(countPixels(buffer, Colord::red()), 0);
   }
 
   TEST(MeshPrimitive, RendersThroughWireframe) {

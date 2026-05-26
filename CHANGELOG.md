@@ -562,6 +562,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Rasterized LDraw instance materials.** The rasterizer now preserves nested
+  materials while traversing instanced imported geometry, so LDraw subfile
+  instances render with LEGO colors instead of diagnostic fallback face colors;
+  repeated instanced leaf tessellation is also cached per frame. — GPT-5
 - **Direct LDraw model rendering.** Direct `rendercli --ldraw_input` now
   resolves standard backslash subpart references, loads `LDConfig.ldr` colors
   from the library root, skips empty missing-part placeholders without poisoning

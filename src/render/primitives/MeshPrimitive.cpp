@@ -156,6 +156,36 @@ void MeshPrimitive::forEachLeafInBounds(const BoundsFilter& boundsFilter,
   }
 }
 
+void MeshPrimitive::forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                           const Matrix4d& pointMatrix,
+                                           const Matrix3d& normalMatrix,
+                                           const TransformedLeafVisitor& visitor) const {
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& leaf : m_leaves) {
+    leaf->forEachTransformedLeaf(effective, pointMatrix, normalMatrix, visitor);
+  }
+}
+
+void MeshPrimitive::forEachTransformedLeafInBounds(
+  const BoundsFilter& boundsFilter, std::shared_ptr<render::Material> inheritedMaterial,
+  const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+  const TransformedLeafVisitor& visitor) const {
+  TransformedLeaf group{this, inheritedMaterial, pointMatrix, normalMatrix};
+  if (!boundsFilter(group.boundingBox())) {
+    return;
+  }
+
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& leaf : m_leaves) {
+    leaf->forEachTransformedLeafInBounds(boundsFilter, effective, pointMatrix, normalMatrix,
+                                         visitor);
+  }
+}
+
 std::shared_ptr<Mesh> MeshPrimitive::tessellate(int lod) const {
   auto result = std::make_shared<Mesh>();
   int vertexOffset = 0;

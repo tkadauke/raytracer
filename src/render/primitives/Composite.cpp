@@ -76,6 +76,36 @@ void Composite::forEachLeafInBounds(const BoundsFilter& boundsFilter,
   }
 }
 
+void Composite::forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                       const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                       const TransformedLeafVisitor& visitor) const {
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& primitive : m_primitives) {
+    primitive->forEachTransformedLeaf(effective, pointMatrix, normalMatrix, visitor);
+  }
+}
+
+void Composite::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                               std::shared_ptr<render::Material> inheritedMaterial,
+                                               const Matrix4d& pointMatrix,
+                                               const Matrix3d& normalMatrix,
+                                               const TransformedLeafVisitor& visitor) const {
+  TransformedLeaf group{this, inheritedMaterial, pointMatrix, normalMatrix};
+  if (!boundsFilter(group.boundingBox())) {
+    return;
+  }
+
+  auto own = material();
+  auto effective = own ? own : inheritedMaterial;
+
+  for (const auto& primitive : m_primitives) {
+    primitive->forEachTransformedLeafInBounds(boundsFilter, effective, pointMatrix, normalMatrix,
+                                              visitor);
+  }
+}
+
 void Composite::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const {
   for (const auto& primitive : m_primitives) {
     primitive->forEachCurveOverlaySegment(visitor);

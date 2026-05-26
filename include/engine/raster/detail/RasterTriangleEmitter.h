@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -58,20 +59,25 @@ namespace engine::raster::detail {
     template<class EmitFn>
     void forEachTriangle(EmitFn&& callback) const {
       std::uint64_t globalFaceIdx = 0;
-      auto emitLeaf = [&](const render::Primitive* primitive,
-                          std::shared_ptr<render::Material> material) {
+      auto emitLeaf = [&](const render::Primitive::TransformedLeaf& leaf) {
         if (m_cancelled.load())
           return;
 
-        if (canCullPrimitiveBounds() && primitiveBoundsOutsideClipVolume(primitive)) {
-          return;
-        }
-
-        auto mesh = primitive->tessellate(m_lod);
+        const render::Primitive* primitive = leaf.primitive;
+        std::shared_ptr<render::Material> material = leaf.material;
+        auto mesh = tessellatedMeshFor(primitive);
         if (!mesh)
           return;
 
-        const auto& vertices = mesh->vertices();
+        const auto& sourceVertices = mesh->vertices();
+        std::vector<Mesh::Vertex> vertices;
+        vertices.reserve(sourceVertices.size());
+        for (const auto& vertex : sourceVertices) {
+          vertices.emplace_back(leaf.transformPoint(vertex.point),
+                                leaf.transformNormal(vertex.normal).normalizedOrZero(1e-12),
+                                vertex.uv);
+        }
+
         const auto& faces = mesh->faces();
         const auto& viewPlane = *m_camera->viewPlane();
         const RasterMaterialSource materialSource = RasterMaterialSource::from(material);
@@ -160,19 +166,20 @@ namespace engine::raster::detail {
       };
 
       if (canCullPrimitiveBounds()) {
-        m_scene->forEachLeafInBounds(
-          [&](const BoundingBoxd& bounds) { return !boundsOutsideClipVolume(bounds); }, emitLeaf);
+        m_scene->forEachTransformedLeafInBounds(
+          [&](const BoundingBoxd& bounds) { return !boundsOutsideClipVolume(bounds); }, nullptr,
+          Matrix4d(), Matrix3d(), emitLeaf);
       } else {
-        m_scene->forEachLeaf(emitLeaf);
+        m_scene->forEachTransformedLeaf(nullptr, Matrix4d(), Matrix3d(), emitLeaf);
       }
     }
 
   private:
     bool canCullPrimitiveBounds() const;
 
-    bool primitiveBoundsOutsideClipVolume(const render::Primitive* primitive) const;
-
     bool boundsOutsideClipVolume(const BoundingBoxd& bounds) const;
+
+    std::shared_ptr<Mesh> tessellatedMeshFor(const render::Primitive* primitive) const;
 
     template<class EmitFn>
     void emitPreparedTriangle(const render::Primitive* primitive,
@@ -214,6 +221,7 @@ namespace engine::raster::detail {
     TriangleCullPolicy m_cullPolicy;
     bool m_applyVertexShader;
     const std::atomic<bool>& m_cancelled;
+    mutable std::unordered_map<const render::Primitive*, std::shared_ptr<Mesh>> m_tessellationCache;
   };
 
 }

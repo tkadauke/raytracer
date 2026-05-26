@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "core/Color.h"
+#include "core/math/Matrix.h"
 #include "core/math/BoundingBox.h"
 #include "core/math/Ray.h"
 #include "core/math/RayPacket.h"
@@ -60,6 +61,17 @@ namespace render {
     using BoundsFilter = std::function<bool(const BoundingBoxd&)>;
     using CurveOverlaySegmentVisitor =
       std::function<void(const Vector3d&, const Vector3d&, const std::optional<Colord>&)>;
+    struct TransformedLeaf {
+      const Primitive* primitive;
+      std::shared_ptr<render::Material> material;
+      Matrix4d pointMatrix;
+      Matrix3d normalMatrix;
+
+      Vector3d transformPoint(const Vector3d& point) const;
+      Vector3d transformNormal(const Vector3d& normal) const;
+      BoundingBoxd boundingBox() const;
+    };
+    using TransformedLeafVisitor = std::function<void(const TransformedLeaf&)>;
 
     inline Primitive()
         : m_material(nullptr) {
@@ -168,6 +180,19 @@ namespace render {
     virtual void forEachLeafInBounds(const BoundsFilter& boundsFilter,
                                      std::shared_ptr<render::Material> inheritedMaterial,
                                      const LeafVisitor& visitor) const;
+
+    void forEachTransformedLeaf(const TransformedLeafVisitor& visitor) const;
+    virtual void forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                        const TransformedLeafVisitor& visitor) const;
+
+    void forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                        const TransformedLeafVisitor& visitor) const;
+    virtual void forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                                std::shared_ptr<render::Material> inheritedMaterial,
+                                                const Matrix4d& pointMatrix,
+                                                const Matrix3d& normalMatrix,
+                                                const TransformedLeafVisitor& visitor) const;
 
     /**
       * Visit semantic curve segments for image-space/debug overlay rendering.

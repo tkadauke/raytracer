@@ -84,6 +84,13 @@ namespace render {
     void forEachLeafInBounds(const BoundsFilter& boundsFilter,
                              std::shared_ptr<render::Material> inheritedMaterial,
                              const LeafVisitor& visitor) const override;
+    void forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                const TransformedLeafVisitor& visitor) const override;
+    void forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                        std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                        const TransformedLeafVisitor& visitor) const override;
     void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
 
     /**

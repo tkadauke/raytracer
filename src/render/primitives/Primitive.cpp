@@ -26,6 +26,27 @@ namespace {
   }
 }
 
+Vector3d Primitive::TransformedLeaf::transformPoint(const Vector3d& point) const {
+  return pointMatrix.transformPoint(point);
+}
+
+Vector3d Primitive::TransformedLeaf::transformNormal(const Vector3d& normal) const {
+  return normalMatrix * normal;
+}
+
+BoundingBoxd Primitive::TransformedLeaf::boundingBox() const {
+  const BoundingBoxd& bounds = primitive->boundingBox();
+  if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
+    return bounds;
+  }
+
+  BoundingBoxd result;
+  for (const Vector3d& vertex : bounds.vertices()) {
+    result.include(transformPoint(vertex));
+  }
+  return result;
+}
+
 bool Primitive::intersects(const Rayd& ray, render::State& state) const {
   HitPointInterval hitPoints;
   intersect(ray, hitPoints, state);
@@ -50,6 +71,34 @@ void Primitive::forEachLeafInBounds(const BoundsFilter&,
                                     std::shared_ptr<render::Material> inheritedMaterial,
                                     const LeafVisitor& visitor) const {
   forEachLeaf(inheritedMaterial, visitor);
+}
+
+void Primitive::forEachTransformedLeaf(const TransformedLeafVisitor& visitor) const {
+  forEachTransformedLeaf(nullptr, Matrix4d(), Matrix3d(), visitor);
+}
+
+void Primitive::forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                       const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                       const TransformedLeafVisitor& visitor) const {
+  auto own = material();
+  visitor({this, own ? own : inheritedMaterial, pointMatrix, normalMatrix});
+}
+
+void Primitive::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                               const TransformedLeafVisitor& visitor) const {
+  forEachTransformedLeafInBounds(boundsFilter, nullptr, Matrix4d(), Matrix3d(), visitor);
+}
+
+void Primitive::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                               std::shared_ptr<render::Material> inheritedMaterial,
+                                               const Matrix4d& pointMatrix,
+                                               const Matrix3d& normalMatrix,
+                                               const TransformedLeafVisitor& visitor) const {
+  auto own = material();
+  TransformedLeaf leaf{this, own ? own : inheritedMaterial, pointMatrix, normalMatrix};
+  if (boundsFilter(leaf.boundingBox())) {
+    visitor(leaf);
+  }
 }
 
 void Primitive::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor&) const {

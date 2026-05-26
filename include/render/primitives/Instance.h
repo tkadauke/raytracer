@@ -139,8 +139,16 @@ namespace render {
       */
     void forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visitor) const override;
 
+    void forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                const TransformedLeafVisitor& visitor) const override;
+    void forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                        std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                        const TransformedLeafVisitor& visitor) const override;
+
     /**
-      * Tessellates the wrapped primitive and applies the instance
+     * Tessellates the wrapped primitive and applies the instance
       * transform to every vertex: points by the point matrix, normals
       * by the inverse-transpose normal matrix (then re-normalised so
       * non-uniform scale doesn't break unit-length). UVs pass through

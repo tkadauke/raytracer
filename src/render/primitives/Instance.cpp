@@ -121,6 +121,57 @@ void Instance::forEachCurveOverlaySegment(const CurveOverlaySegmentVisitor& visi
     });
 }
 
+void Instance::forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                      const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                      const TransformedLeafVisitor& visitor) const {
+  if (!m_primitive) {
+    return;
+  }
+
+  auto own = Primitive::material();
+  const auto composedPointMatrix = pointMatrix * m_pointMatrix;
+  const auto composedNormalMatrix = normalMatrix * m_normalMatrix;
+  if (!own) {
+    m_primitive->forEachTransformedLeaf(inheritedMaterial, composedPointMatrix,
+                                        composedNormalMatrix, visitor);
+    return;
+  }
+
+  m_primitive->forEachTransformedLeaf(
+    own, composedPointMatrix, composedNormalMatrix, [&](const TransformedLeaf& leaf) {
+      visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix});
+    });
+}
+
+void Instance::forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                              std::shared_ptr<render::Material> inheritedMaterial,
+                                              const Matrix4d& pointMatrix,
+                                              const Matrix3d& normalMatrix,
+                                              const TransformedLeafVisitor& visitor) const {
+  if (!m_primitive) {
+    return;
+  }
+
+  auto own = Primitive::material();
+  TransformedLeaf instanceLeaf{this, own ? own : inheritedMaterial, pointMatrix, normalMatrix};
+  if (!boundsFilter(instanceLeaf.boundingBox())) {
+    return;
+  }
+
+  const auto composedPointMatrix = pointMatrix * m_pointMatrix;
+  const auto composedNormalMatrix = normalMatrix * m_normalMatrix;
+  if (!own) {
+    m_primitive->forEachTransformedLeafInBounds(boundsFilter, inheritedMaterial,
+                                                composedPointMatrix, composedNormalMatrix, visitor);
+    return;
+  }
+
+  m_primitive->forEachTransformedLeafInBounds(
+    boundsFilter, own, composedPointMatrix, composedNormalMatrix, [&](const TransformedLeaf& leaf) {
+      visitor({leaf.primitive, own, leaf.pointMatrix, leaf.normalMatrix});
+    });
+}
+
 std::shared_ptr<Mesh> Instance::tessellate(int lod) const {
   // Only the t=0 configuration is captured; a time-aware engine would need
   // per-frame meshes to handle motion blur correctly.

@@ -109,6 +109,13 @@ namespace RasterizerTest {
       Composite::forEachLeaf(inheritedMaterial, visitor);
     }
 
+    void forEachTransformedLeaf(std::shared_ptr<render::Material> inheritedMaterial,
+                                const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                const TransformedLeafVisitor& visitor) const override {
+      ++(*m_flattenCalls);
+      Composite::forEachTransformedLeaf(inheritedMaterial, pointMatrix, normalMatrix, visitor);
+    }
+
   private:
     int* m_flattenCalls;
   };
@@ -119,6 +126,18 @@ namespace RasterizerTest {
                              std::shared_ptr<render::Material> inheritedMaterial,
                              const LeafVisitor& visitor) const override {
       Composite::forEachLeaf(inheritedMaterial, visitor);
+    }
+
+    void forEachTransformedLeafInBounds(const BoundsFilter& boundsFilter,
+                                        std::shared_ptr<render::Material> inheritedMaterial,
+                                        const Matrix4d& pointMatrix, const Matrix3d& normalMatrix,
+                                        const TransformedLeafVisitor& visitor) const override {
+      Composite::forEachTransformedLeaf(inheritedMaterial, pointMatrix, normalMatrix,
+                                        [&](const TransformedLeaf& leaf) {
+                                          if (boundsFilter(leaf.boundingBox())) {
+                                            visitor(leaf);
+                                          }
+                                        });
     }
   };
 
@@ -179,10 +198,10 @@ namespace RasterizerTest {
 
   static std::shared_ptr<Scene> sceneWithCurveTube() {
     auto scene = std::make_shared<Scene>(Colord::white());
-    scene->add(std::make_shared<Curve>(
-      core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
-                      Vector3d(1.0, -0.5, 0.0)}),
-      0.35, Curve::TessellationMode::Tube));
+    scene->add(
+      std::make_shared<Curve>(core::Polyline({Vector3d(-1.0, -0.5, 0.0), Vector3d(0.0, 0.5, 0.0),
+                                              Vector3d(1.0, -0.5, 0.0)}),
+                              0.35, Curve::TessellationMode::Tube));
     return scene;
   }
 

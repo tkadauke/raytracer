@@ -69,12 +69,6 @@ namespace engine::raster::detail {
     return !m_applyVertexShader || !m_rasterizer.vertexShader();
   }
 
-  bool RasterTriangleEmitter::primitiveBoundsOutsideClipVolume(
-    const render::Primitive* primitive) const {
-    const BoundingBoxd& bounds = primitive->boundingBox();
-    return boundsOutsideClipVolume(bounds);
-  }
-
   bool RasterTriangleEmitter::boundsOutsideClipVolume(const BoundingBoxd& bounds) const {
     if (!bounds.isValid() || bounds.isUndefined() || bounds.isInfinite()) {
       return false;
@@ -93,6 +87,18 @@ namespace engine::raster::detail {
     }
 
     return sharedOutCode != 0;
+  }
+
+  std::shared_ptr<Mesh>
+  RasterTriangleEmitter::tessellatedMeshFor(const render::Primitive* primitive) const {
+    auto cached = m_tessellationCache.find(primitive);
+    if (cached != m_tessellationCache.end()) {
+      return cached->second;
+    }
+
+    auto mesh = primitive->tessellate(m_lod);
+    m_tessellationCache.emplace(primitive, mesh);
+    return mesh;
   }
 
   bool RasterTriangleEmitter::makeVertex(const ClipVert& vertex, const render::Primitive* primitive,
