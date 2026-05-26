@@ -1016,6 +1016,10 @@ private:
   bool m_stepSelectionSet;
   CommandLineStepSelection m_stepSelection;
   StepPlaybackStyle m_stepPlaybackStyle;
+  bool m_gcodeOptionsSet;
+  bool m_gcodeLayerSet;
+  int m_gcodeLayer;
+  bool m_gcodeCumulativeLayers;
 
   std::unique_ptr<Scene> loadScene() const;
   std::unique_ptr<Scene> loadLDrawScene() const;
@@ -1152,7 +1156,11 @@ Renderer::Renderer()
       m_fpsSet(false),
       m_stepSelectionSet(false),
       m_stepSelection(),
-      m_stepPlaybackStyle() {
+      m_stepPlaybackStyle(),
+      m_gcodeOptionsSet(false),
+      m_gcodeLayerSet(false),
+      m_gcodeLayer(0),
+      m_gcodeCumulativeLayers(false) {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -2236,6 +2244,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
      {"import_format", "Import input with the named scene importer format", "format"},
      {"import_option", "Set an importer option; may be repeated with key=value", "key=value"},
+     {"gcode_visualization",
+      "G-code color mode (move_type, layer, tool, speed, temperature, extrusion_travel)", "mode"},
+     {"gcode_layer", "Render one G-code print layer index", "layer"},
+     {"gcode_cumulative_layers", "Render G-code print layers cumulatively through --gcode_layer"},
+     {"gcode_hide_travel", "Hide G-code travel moves during import"},
      {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
@@ -2518,6 +2531,43 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       }
       m_importOptions.setValue(option.first, option.second);
     }
+  }
+
+  if (parser.isSet("gcode_visualization")) {
+    const QString mode = parser.value("gcode_visualization").trimmed().toLower();
+    const QString normalized = normalizedRasterOption(mode);
+    if (normalized != "movetype" && normalized != "extrusiontravel" && normalized != "layer" &&
+        normalized != "tool" && normalized != "speed" && normalized != "temperature") {
+      *errorMessage =
+        "G-code visualization must be 'move_type', 'layer', 'tool', 'speed', 'temperature', or "
+        "'extrusion_travel'";
+      return CommandLineError;
+    }
+    m_importOptions.setValue("visualization", mode);
+    m_gcodeOptionsSet = true;
+  }
+
+  if (parser.isSet("gcode_hide_travel")) {
+    m_importOptions.setValue("hide_travel", true);
+    m_gcodeOptionsSet = true;
+  }
+
+  if (parser.isSet("gcode_layer")) {
+    bool ok = false;
+    m_gcodeLayer = parser.value("gcode_layer").toInt(&ok);
+    if (!ok || m_gcodeLayer < 0) {
+      *errorMessage = "G-code layer must be a non-negative integer";
+      return CommandLineError;
+    }
+    m_gcodeLayerSet = true;
+    m_importOptions.setValue("layer", m_gcodeLayer);
+    m_gcodeOptionsSet = true;
+  }
+
+  if (parser.isSet("gcode_cumulative_layers")) {
+    m_gcodeCumulativeLayers = true;
+    m_importOptions.setValue("cumulative_layers", true);
+    m_gcodeOptionsSet = true;
   }
 
   if (parser.isSet("engine")) {
@@ -2973,6 +3023,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_stepSelectionSet = true;
   }
 
+  if (m_gcodeCumulativeLayers && !m_gcodeLayerSet) {
+    *errorMessage = "--gcode_cumulative_layers requires --gcode_layer";
+    return CommandLineError;
+  }
+
   if (parser.isSet("repeat")) {
     bool ok = false;
     m_repeat = parser.value("repeat").toInt(&ok);
@@ -3148,6 +3203,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   } else if (!m_renderGraphOnly) {
     *errorMessage = "Need input and output filename";
     return CommandLineError;
+  }
+
+  if (m_gcodeOptionsSet) {
+    if (!m_importFormat.isEmpty() && m_importFormat.toLower() != "gcode") {
+      *errorMessage = "G-code render options require the gcode importer";
+      return CommandLineError;
+    }
+    m_importFormat = "gcode";
   }
 
   return CommandLineOk;
