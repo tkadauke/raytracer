@@ -3,6 +3,7 @@
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RasterPassState.h"
 #include "widgets/RenderWidget.h"
+#include "widgets/world/RenderGraphInspectorWidget.h"
 #include "widgets/world/RenderWindow.h"
 #include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
@@ -74,6 +75,22 @@ namespace RenderWindowTest {
     EXPECT_NE(nullptr, graph->explicitPlan()->findPass("post_fxaa"));
 
     window.stop();
+  }
+
+  TEST_F(RenderWindowTest, ShouldShowFinalGraphBeforeRendering) {
+    RenderWindow window;
+    Scene scene;
+    window.setScene(&scene);
+
+    auto* graphInspector = window.findChild<RenderGraphInspectorWidget*>();
+    ASSERT_NE(nullptr, graphInspector);
+    EXPECT_NE(nullptr, graphInspector->effectivePlan().findPass("raytrace_beauty"));
+
+    auto* engineType = window.findChild<QComboBox*>("engineType");
+    ASSERT_NE(nullptr, engineType);
+    engineType->setCurrentText("Wireframe");
+
+    EXPECT_NE(nullptr, graphInspector->effectivePlan().findPass("wireframe_beauty"));
   }
 
   TEST_F(RenderWindowTest, ShouldCompileRasterShadowsIntoRenderGraph) {

@@ -1103,6 +1103,13 @@ The Modeler render view should grow a graph inspector:
   snapshots, and difference images from the last execution trace;
 - while a render is running, highlight currently executing nodes in the graph
   view;
+- expose the scene's saved render intent as a generated scene item in the
+  Elements dock so the property editor can update durable intent without
+  treating intent as a renderable graph pass;
+- keep preview controls and final-render controls as temporary request
+  overrides layered over the saved intent;
+- show the final render graph in the Render window before execution starts and
+  execute that displayed graph.
 - validate the manipulated graph before rendering;
 - export graph as DOT/JSON/text.
 

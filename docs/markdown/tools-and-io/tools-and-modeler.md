@@ -213,14 +213,18 @@ The editor can swap the live preview intent between Raytracer, Rasterizer, and
 [Wireframe](../appendix/a-glossary.md#w). The preview itself is graph-backed:
 the selected kind becomes the default executor in the compiled render graph,
 while the scene and camera stay shared so the preview keeps looking at the same
-thing across the swap. Rasterizer preview shadows and preview FXAA/SMAA are
-graph-visible preview options, so enabling them adds pass nodes to the same
-Render Graph dock used by the preview, and clearing them removes those request
-overrides without rewriting the scene file. FXAA/SMAA apply to the selected
-preview executor; rasterizer preview shadows switch the live preview to
-Rasterizer before recompiling because the shadow pass is raster-specific. When
-the scene intent does not name a default camera, Modeler annotates
-scene-rendering passes with the active scene camera id from the editable scene.
+thing across the swap. The Elements dock exposes a generated `Render Intent`
+item under the scene; selecting it opens the saved scene intent in the property
+editor. Those properties write the scene's top-level `renderIntent` block, not
+normal child geometry. `Render -> Preview Engine -> Use Scene Render Intent`
+compiles the live preview from that saved intent. Choosing a preview engine,
+preview view, overlay, shadows, or preview FXAA/SMAA switches the preview into
+an explicit override mode, layering temporary request overrides without
+rewriting the scene file. FXAA/SMAA apply to the selected preview executor;
+rasterizer preview shadows switch the live preview to Rasterizer before
+recompiling because the shadow pass is raster-specific. When the scene intent
+does not name a default camera, Modeler annotates scene-rendering passes with
+the active scene camera id from the editable scene.
 `Render -> Preview
 View` can also switch the live graph preview from beauty to depth, stencil,
 normal, object-id, material-id, or world-position AOVs; the graph recompiles to
@@ -228,6 +232,13 @@ show the corresponding AOV producer and visualization nodes. Raster preview
 AOVs are backed by rasterizer diagnostics or a raster stencil-marking pass, so
 their images match raster tessellation, sampling, and clipping. `Render -> Preview
 Tonemap` selects the operator used by the graph's tonemap node.
+
+`Render -> Render` opens the final render window. Its Graph tab compiles the
+final render plan before the Render button starts execution. The plan starts
+from the scene render intent, then applies the render-window controls as
+temporary final-render overrides such as engine, resolution, samples, raster
+MSAA, and shadow-map quality. The image render executes the graph shown in that
+tab, including pass toggles made in the graph inspector.
 
 The Render Graph dock compiles the current preview intent into a
 [`RenderPlan`](../render-graph/render-plans-and-resources.md) before preview

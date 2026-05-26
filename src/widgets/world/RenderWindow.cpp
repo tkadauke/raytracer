@@ -1,47 +1,41 @@
 #include "widgets/world/RenderWindow.h"
+#include "widgets/world/RenderGraphInspectorWidget.h"
 #include "widgets/world/RenderSettingsWidget.h"
 
 #include "widgets/RenderWidget.h"
 
 #include "engine/graph/GraphRenderEngine.h"
 #include "engine/graph/RenderGraphRequest.h"
-#include "engine/raytracer/Raytracer.h"
-#include "engine/wireframe/Wireframe.h"
-#include "render/lights/PointLight.h"
 #include "render/primitives/Scene.h"
 #include "render/cameras/Camera.h"
-
-#include "render/samplers/SamplerFactory.h"
-#include "render/viewplanes/ViewPlaneFactory.h"
 
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
 
+#include <QElapsedTimer>
 #include <QGridLayout>
 #include <QScrollArea>
-#include <QElapsedTimer>
+#include <QTabWidget>
 
-using namespace engine::raytracer;
+#include <exception>
 
 struct RenderWindow::Private {
   inline Private()
       : renderWidget(nullptr),
         settingsWidget(nullptr),
+        graphInspector(nullptr),
         busy(false),
         timer(0) {
   }
 
   RenderWidget* renderWidget;
   RenderSettingsWidget* settingsWidget;
+  RenderGraphInspectorWidget* graphInspector;
 
-  // Per-engine instances kept around so swapping is cheap. Only one
-  // is wired into renderWidget at a time; the other holds onto its
-  // scene + camera ready to take over on the next "Render" click.
-  std::shared_ptr<engine::raytracer::Raytracer> raytracer;
-  std::shared_ptr<engine::wireframe::Wireframe> wireframe;
-  std::shared_ptr<engine::graph::GraphRenderEngine> rasterGraph;
+  std::shared_ptr<engine::graph::GraphRenderEngine> graph;
   engine::graph::RenderSceneAnalysis sceneAnalysis{
     engine::graph::RenderSceneAnalysis::unknownScene()};
+  engine::graph::RenderIntent baseIntent;
 
   engine::graph::RenderPostProcessAA postProcessAA() const {
     const QString postAA = settingsWidget->postProcessAA();
@@ -57,40 +51,73 @@ struct RenderWindow::Private {
     return engine::graph::RenderPostProcessAA::None;
   }
 
-  engine::graph::RenderIntent rasterIntent() const {
-    engine::graph::RenderIntent intent;
-    intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
-    intent.defaultViewMode = engine::graph::RenderViewMode::Beauty;
-    intent.enablePreviewShadows = settingsWidget->shadowMapsEnabled();
-    intent.postProcessAA = postProcessAA();
-    auto& options = intent.engineOptions.rasterizer();
-    options.setLod(settingsWidget->lod());
-    options.setMSAASamples(settingsWidget->msaaSamples());
-    if (settingsWidget->msaaShadingMode() == "Per fragment") {
-      options.setMSAAShadingMode("per_fragment");
-    }
-    options.setMaximumThreads(settingsWidget->renderThreads());
-    if (settingsWidget->shadowMapsEnabled()) {
-      options.setShadowMapSize(settingsWidget->shadowMapSize());
-      options.setShadowCascadeCount(settingsWidget->shadowCascadeCount());
-      options.setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
-      options.setShadowBias(settingsWidget->shadowBias());
-      options.setShadowSlopeBias(settingsWidget->shadowSlopeBias());
-      options.setShadowFilterRadius(settingsWidget->shadowFilterRadius());
-      if (settingsWidget->shadowFilterMode() == "PCSS") {
-        options.setShadowFilterMode("pcss");
+  engine::graph::RenderIntent renderIntent() const {
+    engine::graph::RenderIntent intent = baseIntent;
+
+    if (settingsWidget->engine() == "Rasterizer") {
+      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Rasterizer;
+      intent.enablePreviewShadows = settingsWidget->shadowMapsEnabled();
+      intent.postProcessAA = postProcessAA();
+      auto& options = intent.engineOptions.rasterizer();
+      options.setLod(settingsWidget->lod());
+      options.setMSAASamples(settingsWidget->msaaSamples());
+      if (settingsWidget->msaaShadingMode() == "Per fragment") {
+        options.setMSAAShadingMode("per_fragment");
       }
+      options.setMaximumThreads(settingsWidget->renderThreads());
+      if (settingsWidget->shadowMapsEnabled()) {
+        options.setShadowMapSize(settingsWidget->shadowMapSize());
+        options.setShadowCascadeCount(settingsWidget->shadowCascadeCount());
+        options.setShadowCascadeSplitLambda(settingsWidget->shadowCascadeSplitLambda());
+        options.setShadowBias(settingsWidget->shadowBias());
+        options.setShadowSlopeBias(settingsWidget->shadowSlopeBias());
+        options.setShadowFilterRadius(settingsWidget->shadowFilterRadius());
+        if (settingsWidget->shadowFilterMode() == "PCSS") {
+          options.setShadowFilterMode("pcss");
+        }
+      }
+    } else if (settingsWidget->engine() == "Wireframe") {
+      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Wireframe;
+      intent.engineOptions.wireframe().setLod(settingsWidget->lod());
+    } else {
+      intent.defaultExecutor = engine::graph::RenderExecutorPreference::Raytracer;
+      auto& options = intent.engineOptions.raytracer();
+      options.setSampler(settingsWidget->sampler().toStdString());
+      options.setSamplesPerPixel(settingsWidget->samplesPerPixel());
+      options.setViewPlane(settingsWidget->viewPlane().toStdString());
+      options.setMaximumRecursionDepth(settingsWidget->maxRecursionDepth());
+      options.setMaximumThreads(settingsWidget->renderThreads());
+      options.setQueueSize(settingsWidget->queueSize());
     }
     return intent;
   }
 
-  engine::graph::RenderPlan rasterPlan() const {
+  int fallbackSampleCount(const engine::graph::RenderIntent& intent) const {
+    if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Rasterizer)
+      return settingsWidget->msaaSamples();
+    if (intent.defaultExecutorKind() == engine::graph::RenderExecutorKind::Raytracer)
+      return settingsWidget->samplesPerPixel();
+    return 1;
+  }
+
+  engine::graph::RenderPlan compilePlan() const {
     const QSize resolution = settingsWidget->resolution();
-    const auto intent = rasterIntent();
+    const auto intent = renderIntent();
     engine::graph::RenderGraphRequest request(intent);
     request.setSceneAnalysis(sceneAnalysis);
-    return request.compile(
-      {resolution.width(), resolution.height(), settingsWidget->msaaSamples()});
+    return request.compile({resolution.width(), resolution.height(),
+                            intent.targetSampleCountHint(fallbackSampleCount(intent))});
+  }
+
+  void updateGraphPreview() {
+    if (!graphInspector)
+      return;
+
+    try {
+      graphInspector->setPlan(compilePlan());
+    } catch (const std::exception& error) {
+      graphInspector->setError(QString::fromUtf8(error.what()));
+    }
   }
 
   bool busy;
@@ -101,23 +128,29 @@ struct RenderWindow::Private {
 RenderWindow::RenderWindow(QWidget* parent)
     : QWidget(parent),
       p(std::make_unique<Private>()) {
-  p->raytracer = std::make_shared<Raytracer>(nullptr);
-  p->wireframe = std::make_shared<engine::wireframe::Wireframe>(nullptr);
-  p->rasterGraph = std::make_shared<engine::graph::GraphRenderEngine>(nullptr);
+  p->graph = std::make_shared<engine::graph::GraphRenderEngine>(nullptr);
 
   auto grid = new QGridLayout(this);
   p->settingsWidget = new RenderSettingsWidget(this);
+
+  auto tabs = new QTabWidget(this);
   auto scrollArea = new QScrollArea(this);
-  p->renderWidget = new RenderWidget(scrollArea, p->raytracer);
+  p->renderWidget = new RenderWidget(scrollArea, p->graph);
   scrollArea->setWidget(p->renderWidget);
+  tabs->addTab(scrollArea, tr("Image"));
+
+  p->graphInspector = new RenderGraphInspectorWidget(this);
+  tabs->addTab(p->graphInspector, tr("Graph"));
 
   grid->addWidget(p->settingsWidget, 0, 0);
-  grid->addWidget(scrollArea, 0, 1);
+  grid->addWidget(tabs, 0, 1);
 
   setLayout(grid);
 
   connect(p->settingsWidget, SIGNAL(renderClicked()), this, SLOT(render()));
   connect(p->settingsWidget, SIGNAL(stopClicked()), this, SLOT(stop()));
+  connect(p->settingsWidget, &RenderSettingsWidget::settingsChanged, this,
+          [this] { p->updateGraphPreview(); });
 
   connect(p->renderWidget, SIGNAL(finished()), this, SLOT(finished()));
   connect(p->renderWidget, &RenderWidget::renderFailed, this,
@@ -151,43 +184,14 @@ void RenderWindow::render() {
   p->renderWidget->resize(p->settingsWidget->resolution());
   p->renderWidget->setBufferSize(p->settingsWidget->resolution());
 
-  // Pick the engine and wire it into the widget. Some settings are
-  // engine-specific: wireframe ignores sampler / recursion depth /
-  // threading knobs; rasterizer uses LOD and keeps its default
-  // single-tile path unless a caller explicitly changes its queue.
-  std::shared_ptr<render::RenderEngine> engine;
-  if (p->settingsWidget->engine() == "Wireframe") {
-    p->wireframe->setCamera(p->raytracer->camera());
-    p->wireframe->setScene(p->raytracer->scene());
-    p->wireframe->setLod(p->settingsWidget->lod());
-    engine = p->wireframe;
-  } else if (p->settingsWidget->engine() == "Rasterizer") {
-    const auto intent = p->rasterIntent();
-    p->rasterGraph->setCamera(p->raytracer->camera());
-    p->rasterGraph->setScene(p->raytracer->scene());
-    p->rasterGraph->setIntent(intent);
-    p->rasterGraph->setPlan(p->rasterPlan());
-    engine = p->rasterGraph;
+  const auto intent = p->renderIntent();
+  p->graph->setIntent(intent);
+  if (p->graphInspector->effectivePlanValid()) {
+    p->graph->setPlan(p->graphInspector->effectivePlan());
   } else {
-    auto samplerClass = p->settingsWidget->sampler().toStdString() + "Sampler";
-    auto sampler = render::SamplerFactory::self().createShared(samplerClass);
-    // 83 is an arbitrary number, but it's a relatively large prime number, so
-    // it's unlikely to introduce aliasing patterns
-    sampler->setup(p->settingsWidget->samplesPerPixel(), 83);
-
-    auto viewPlaneClass = p->settingsWidget->viewPlane().toStdString();
-    auto viewPlane = render::ViewPlaneFactory::self().createShared(viewPlaneClass);
-    viewPlane->setSampler(sampler);
-
-    p->raytracer->camera()->setViewPlane(viewPlane);
-    p->raytracer->setMaximumRecursionDepth(p->settingsWidget->maxRecursionDepth());
-    p->raytracer->setMaximumThreads(p->settingsWidget->renderThreads());
-    p->raytracer->setQueueSize(p->settingsWidget->queueSize());
-
-    p->raytracer->setShowProgressIndicators(p->settingsWidget->showProgressIndicators());
-    engine = p->raytracer;
+    p->graph->setPlan(p->compilePlan());
   }
-  p->renderWidget->setEngine(engine);
+  p->renderWidget->setEngine(p->graph);
   p->renderWidget->setDisplayMode(p->settingsWidget->displayMode());
   p->renderWidget->setShowProgressIndicators(p->settingsWidget->showProgressIndicators());
 
@@ -209,22 +213,20 @@ void RenderWindow::finished() {
 void RenderWindow::setScene(::Scene* scene) {
   auto raytracerScene = scene->toRaytracerScene();
   p->sceneAnalysis = scene->renderGraphAnalysis();
+  p->baseIntent = scene->renderIntentWithActiveCameraDefault();
 
-  p->raytracer->setScene(raytracerScene);
-  p->wireframe->setScene(raytracerScene);
-  p->rasterGraph->setScene(raytracerScene);
-  p->rasterGraph->setSceneAnalysis(p->sceneAnalysis);
+  p->graph->setScene(raytracerScene);
+  p->graph->setSceneAnalysis(p->sceneAnalysis);
 
   auto camera = scene->activeCamera();
   std::shared_ptr<render::Camera> rtCamera;
   if (camera) {
     rtCamera = camera->toRaytracer();
   } else {
-    rtCamera = p->raytracer->camera();
+    rtCamera = p->graph->camera();
     rtCamera->setPosition(Matrix3d::rotateY(-25_degrees) * Matrix3d::rotateX(-25_degrees) *
                           Vector3d(0, 0, -5));
   }
-  p->raytracer->setCamera(rtCamera);
-  p->wireframe->setCamera(rtCamera);
-  p->rasterGraph->setCamera(rtCamera);
+  p->graph->setCamera(rtCamera);
+  p->updateGraphPreview();
 }

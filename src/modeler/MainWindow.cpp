@@ -426,6 +426,7 @@ struct MainWindow::Private {
   QAction* moveBackwardsAlongZAct;
 
   QAction* renderAct;
+  QAction* previewUseSceneIntentAct;
   QAction* previewRaytracerAct;
   QAction* previewWireframeAct;
   QAction* previewRasterizerAct;
@@ -716,6 +717,14 @@ void MainWindow::createActions() {
   p->renderAct->setStatusTip(tr("Render current scene"));
   connect(p->renderAct, SIGNAL(triggered()), this, SLOT(render()));
 
+  p->previewUseSceneIntentAct = new QAction(tr("Use Scene Render &Intent"), this);
+  p->previewUseSceneIntentAct->setStatusTip(
+    tr("Compile the live preview directly from the scene's saved render intent"));
+  p->previewUseSceneIntentAct->setCheckable(true);
+  p->previewUseSceneIntentAct->setChecked(true);
+  connect(p->previewUseSceneIntentAct, SIGNAL(triggered(bool)), this,
+          SLOT(useSceneRenderIntentPreview(bool)));
+
   // Preview-engine selection — radio-style via a QActionGroup so
   // exactly one is active at a time. Defaults to Raytracer to match
   // the historical behaviour.
@@ -977,6 +986,8 @@ void MainWindow::createMenus() {
   p->renderMenu->addAction(p->renderAct);
   p->renderMenu->addSeparator();
   auto previewMenu = p->renderMenu->addMenu(tr("&Preview Engine"));
+  previewMenu->addAction(p->previewUseSceneIntentAct);
+  previewMenu->addSeparator();
   previewMenu->addAction(p->previewRaytracerAct);
   previewMenu->addAction(p->previewWireframeAct);
   previewMenu->addAction(p->previewRasterizerAct);
@@ -1069,6 +1080,7 @@ void MainWindow::newFile() {
     p->propertyEditorWidget->setRoot(p->scene);
 
     p->elementModel->setElement(p->scene);
+    p->previewUseSceneIntentAct->setChecked(true);
     applySceneRenderIntentToPreviewControls();
     resetTimelineFrame();
     resetPlaybackIndex();
@@ -1104,6 +1116,7 @@ void MainWindow::openFile() {
     p->fileName = fileName;
     p->propertyEditorWidget->setRoot(p->scene);
     p->elementModel->setElement(p->scene);
+    p->previewUseSceneIntentAct->setChecked(true);
     applySceneRenderIntentToPreviewControls();
 
     resetTimelineFrame();
@@ -1308,19 +1321,30 @@ void MainWindow::render() {
   p->renderWindow->show();
 }
 
+void MainWindow::useSceneRenderIntentPreview(bool enabled) {
+  if (enabled) {
+    applySceneRenderIntentToPreviewControls();
+  }
+  redraw();
+}
+
 void MainWindow::usePreviewRaytracer() {
+  setPreviewOverrideMode();
   p->display->setEngineKind(RenderDisplay::EngineKind::Raytracer);
 }
 
 void MainWindow::usePreviewRasterizer() {
+  setPreviewOverrideMode();
   p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
 }
 
 void MainWindow::usePreviewWireframe() {
+  setPreviewOverrideMode();
   p->display->setEngineKind(RenderDisplay::EngineKind::Wireframe);
 }
 
 void MainWindow::setPreviewRasterizerShadows(bool enabled) {
+  setPreviewOverrideMode();
   if (enabled) {
     p->previewRasterizerAct->setChecked(true);
     p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
@@ -1329,52 +1353,64 @@ void MainWindow::setPreviewRasterizerShadows(bool enabled) {
 }
 
 void MainWindow::setPreviewPostAANone() {
+  setPreviewOverrideMode();
   p->display->setPreviewPostProcessAA(engine::graph::RenderPostProcessAA::None);
 }
 
 void MainWindow::setPreviewPostAAFxaa() {
+  setPreviewOverrideMode();
   p->display->setPreviewPostProcessAA(engine::graph::RenderPostProcessAA::FXAA);
 }
 
 void MainWindow::setPreviewPostAASmaa() {
+  setPreviewOverrideMode();
   p->display->setPreviewPostProcessAA(engine::graph::RenderPostProcessAA::SMAA);
 }
 
 void MainWindow::setPreviewViewBeauty() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::Beauty);
 }
 
 void MainWindow::setPreviewViewDepth() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::Depth);
 }
 
 void MainWindow::setPreviewViewStencil() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::Stencil);
 }
 
 void MainWindow::setPreviewViewStencilComposite() {
+  setPreviewOverrideMode();
   p->previewRasterizerAct->setChecked(true);
   p->display->setEngineKind(RenderDisplay::EngineKind::Rasterizer);
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::StencilComposite);
 }
 
 void MainWindow::setPreviewViewNormal() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::Normal);
 }
 
 void MainWindow::setPreviewViewObjectId() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::ObjectId);
 }
 
 void MainWindow::setPreviewViewMaterialId() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::MaterialId);
 }
 
 void MainWindow::setPreviewViewWorldPosition() {
+  setPreviewOverrideMode();
   p->display->setPreviewViewMode(engine::graph::RenderViewMode::WorldPosition);
 }
 
 void MainWindow::setPreviewWireframeOverlay(bool enabled) {
+  setPreviewOverrideMode();
   p->display->setWireframeOverlayEnabled(enabled);
 }
 
@@ -1563,6 +1599,8 @@ void MainWindow::elementChanged(Element*) {
   p->propertyEditorWidget->update();
   syncPlaybackControls();
   updateWindowModified();
+  if (p->previewUseSceneIntentAct && p->previewUseSceneIntentAct->isChecked())
+    applySceneRenderIntentToPreviewControls();
   redraw();
   emit currentElementChanged();
 }
@@ -1880,6 +1918,11 @@ void MainWindow::setPreviewTonemap(const std::string& name) {
   p->display->setPreviewTonemap(std::move(tonemap));
 }
 
+void MainWindow::setPreviewOverrideMode() {
+  if (p->previewUseSceneIntentAct)
+    p->previewUseSceneIntentAct->setChecked(false);
+}
+
 void MainWindow::applySceneRenderIntentToPreviewControls() {
   if (!p->scene || !p->display)
     return;
@@ -2048,6 +2091,9 @@ engine::graph::RenderIntent MainWindow::previewRenderIntent() const {
     p->scene ? p->scene->renderIntentWithActiveCameraDefault() : engine::graph::RenderIntent());
 
   if (!p->display)
+    return request.resolvedIntent();
+
+  if (p->previewUseSceneIntentAct && p->previewUseSceneIntentAct->isChecked())
     return request.resolvedIntent();
 
   request.setPreviewShadowsOverride(p->display->rasterizerPreviewShadowsEnabled())

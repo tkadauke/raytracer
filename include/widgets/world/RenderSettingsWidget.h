@@ -42,6 +42,7 @@ public:
 signals:
   void renderClicked();
   void stopClicked();
+  void settingsChanged();
 
 private slots:
   void render();

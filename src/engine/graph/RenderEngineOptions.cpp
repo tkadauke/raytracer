@@ -849,6 +849,22 @@ namespace engine::graph {
     return m_shadowMapSize;
   }
 
+  std::optional<int> RenderRasterizerOptions::shadowCascadeCount() const {
+    return m_shadowCascadeCount;
+  }
+
+  std::optional<double> RenderRasterizerOptions::shadowBias() const {
+    return m_shadowBias;
+  }
+
+  std::optional<int> RenderRasterizerOptions::shadowFilterRadius() const {
+    return m_shadowFilterRadius;
+  }
+
+  std::optional<std::string> RenderRasterizerOptions::shadowFilterMode() const {
+    return m_shadowFilterMode;
+  }
+
   bool RenderWireframeOptions::empty() const {
     return !m_lod;
   }

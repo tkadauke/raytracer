@@ -612,6 +612,13 @@ graph-only dump. The dock compiles the current live-preview intent and target
 size into a `RenderPlan`, then shows the result as a left-to-right graph plus
 supporting tables:
 
+The scene's durable render intent is editable from the Elements tree as a
+generated `Render Intent` item. Preview controls and the final Render window do
+not mutate that object by default; they build temporary request overrides and
+then ask the compiler for an effective plan. The final Render window also owns
+its own Graph tab, so users can inspect the exact graph that will be executed
+before starting the render.
+
 Pass and resource nodes use human-readable display names in the graph while
 keeping stable ids in tooltips and exported plans. Pass nodes also summarize
 non-default scene selector, camera, and shading-profile intent directly in the

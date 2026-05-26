@@ -97,6 +97,7 @@ private slots:
   void moveBackwardsAlongZ();
 
   void render();
+  void useSceneRenderIntentPreview(bool enabled);
   void usePreviewRaytracer();
   void usePreviewWireframe();
   void usePreviewRasterizer();
@@ -149,6 +150,7 @@ private:
   void showRenderGraphPassDetails(const QString& passId, bool activateTracePreview);
   void showRenderGraphResourceDetails(const QString& resourceId, bool activateTracePreview);
   void setPreviewTonemap(const std::string& name);
+  void setPreviewOverrideMode();
   void applySceneRenderIntentToPreviewControls();
   void resetTimelineFrame();
   void syncTimelineControls();

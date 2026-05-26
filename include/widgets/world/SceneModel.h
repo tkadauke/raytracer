@@ -34,6 +34,11 @@ public:
   void addElement(const QModelIndex& index, Element* element);
 
 private:
+  int visibleChildCount(Element* parent) const;
+  Element* visibleChildAt(Element* parent, int row) const;
+  int visibleRowOf(Element* parent, Element* child) const;
+  int insertionRowForVisibleRow(Element* parent, int row) const;
+
   Element* m_rootItem;
   Element* m_scene;
 };

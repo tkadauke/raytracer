@@ -42,6 +42,8 @@ public:
     m_generated = generated;
   }
 
+  virtual bool displayInSceneModel() const;
+
   inline QString displayName() const {
     if (m_name.isEmpty()) {
       return QString("<%1>").arg(metaObject()->className());

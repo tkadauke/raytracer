@@ -3,6 +3,10 @@
 #include "widgets/world/RenderSettingsWidget.h"
 #include "ui_RenderSettingsWidget.h"
 
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QThread>
 
 struct RenderSettingsWidget::Private {
@@ -36,6 +40,21 @@ RenderSettingsWidget::RenderSettingsWidget(QWidget* parent)
   connect(p->ui.engineType, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(engineChanged()));
   connect(p->ui.rasterShadowMaps, SIGNAL(toggled(bool)), this, SLOT(updateEngineControls()));
+  for (auto* comboBox : findChildren<QComboBox*>()) {
+    connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+            &RenderSettingsWidget::settingsChanged);
+  }
+  for (auto* spinBox : findChildren<QSpinBox*>()) {
+    connect(spinBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
+            &RenderSettingsWidget::settingsChanged);
+  }
+  for (auto* spinBox : findChildren<QDoubleSpinBox*>()) {
+    connect(spinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+            &RenderSettingsWidget::settingsChanged);
+  }
+  for (auto* checkBox : findChildren<QCheckBox*>()) {
+    connect(checkBox, &QCheckBox::toggled, this, &RenderSettingsWidget::settingsChanged);
+  }
 
   // Initial visibility: defaults to Raytracer, so hide the wireframe-
   // only frame.

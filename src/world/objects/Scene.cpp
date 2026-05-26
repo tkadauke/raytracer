@@ -4,6 +4,7 @@
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
 #include "world/import/SceneImporterRegistry.h"
+#include "world/objects/RenderIntentElement.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Grid.h"
@@ -34,6 +35,7 @@ Scene::Scene(Element* parent)
       m_ambient(Colord(0.4, 0.4, 0.4)),
       m_background(Colord(0.4, 0.8, 1)) {
   setName("New Scene");
+  addChild(std::make_unique<RenderIntentElement>());
 }
 
 std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {

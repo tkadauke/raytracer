@@ -4,8 +4,9 @@
 #include "world/objects/Scene.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/Group.h"
-#include "world/objects/Sphere.h"
 #include "world/objects/MatteMaterial.h"
+#include "world/objects/RenderIntentElement.h"
+#include "world/objects/Sphere.h"
 #include "core/math/Vector.h"
 
 #include "test/helpers/GuiTestHelper.h"
@@ -57,7 +58,20 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    EXPECT_EQ(1, model.rowCount(root));
+    EXPECT_EQ(2, model.rowCount(root));
+  }
+
+  TEST_F(SceneModelTest, ShouldExposeGeneratedRenderIntentUnderScene) {
+    auto* scene = new Scene;
+
+    SceneModel model(scene);
+    auto root = model.index(0, 0, QModelIndex());
+    auto intent = model.index(0, 0, root);
+
+    ASSERT_TRUE(intent.isValid());
+    EXPECT_NE(nullptr,
+              qobject_cast<RenderIntentElement*>(static_cast<Element*>(intent.internalPointer())));
+    EXPECT_EQ(QString("Render Intent"), model.data(intent, Qt::DisplayRole).toString());
   }
 
   TEST_F(SceneModelTest, ShouldReturnInvalidParentForTopLevelIndex) {
@@ -77,7 +91,7 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    auto child = model.index(0, 0, root);
+    auto child = model.index(1, 0, root);
     auto childParent = model.parent(child);
     ASSERT_TRUE(childParent.isValid());
     EXPECT_EQ(scene, static_cast<Element*>(childParent.internalPointer()));
@@ -127,9 +141,9 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    auto groupIndex = model.index(0, 0, root);
+    auto groupIndex = model.index(1, 0, root);
 
-    EXPECT_TRUE(model.moveRow(root, 1, groupIndex, 0));
+    EXPECT_TRUE(model.moveRow(root, 2, groupIndex, 0));
     EXPECT_EQ(group, sphere->parent());
     EXPECT_EQ(sphere, group->childElements().first());
   }
@@ -143,9 +157,9 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    auto groupIndex = model.index(0, 0, root);
+    auto groupIndex = model.index(1, 0, root);
 
-    EXPECT_FALSE(model.moveRow(root, 1, groupIndex, 0));
+    EXPECT_FALSE(model.moveRow(root, 2, groupIndex, 0));
     EXPECT_EQ(scene, material->parent());
     EXPECT_TRUE(group->childElements().isEmpty());
   }
@@ -159,9 +173,9 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    auto groupIndex = model.index(0, 0, root);
+    auto groupIndex = model.index(1, 0, root);
 
-    EXPECT_TRUE(model.moveRow(groupIndex, 0, root, 1));
+    EXPECT_TRUE(model.moveRow(groupIndex, 0, root, 2));
     EXPECT_EQ(scene, sphere->parent());
     EXPECT_EQ(sphere, scene->childElements().last());
   }
@@ -175,10 +189,10 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    auto parentGroupIndex = model.index(0, 0, root);
+    auto parentGroupIndex = model.index(1, 0, root);
     auto childGroupIndex = model.index(0, 0, parentGroupIndex);
 
-    EXPECT_FALSE(model.moveRow(root, 0, childGroupIndex, 0));
+    EXPECT_FALSE(model.moveRow(root, 1, childGroupIndex, 0));
     EXPECT_EQ(scene, parentGroup->parent());
     EXPECT_EQ(parentGroup, childGroup->parent());
   }
@@ -196,9 +210,9 @@ namespace SceneModelTest {
 
     SceneModel model(scene);
     auto root = model.index(0, 0, QModelIndex());
-    auto groupIndex = model.index(0, 0, root);
+    auto groupIndex = model.index(1, 0, root);
 
-    ASSERT_TRUE(model.moveRow(root, 1, groupIndex, 0));
+    ASSERT_TRUE(model.moveRow(root, 2, groupIndex, 0));
     EXPECT_EQ(before, sphere->globalTransform());
     EXPECT_EQ(Vector3d(-8, 0, 0), sphere->position());
   }

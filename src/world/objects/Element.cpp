@@ -31,6 +31,10 @@ Element::Element(Element* parent)
 Element::~Element() {
 }
 
+bool Element::displayInSceneModel() const {
+  return !isGenerated();
+}
+
 int Element::row() const {
   if (parent())
     return parent()->childElements().indexOf(const_cast<Element*>(this));
@@ -137,16 +141,16 @@ void Element::write(QJsonObject& json) {
     json["metadata"] = m_metadata;
   }
 
-  if (childElements().size() > 0) {
-    QJsonArray childArray;
-    for (const auto& child : childElements()) {
-      Element* element = qobject_cast<Element*>(child);
-      if (element && !element->isGenerated()) {
-        QJsonObject elementObject;
-        element->write(elementObject);
-        childArray.append(elementObject);
-      }
+  QJsonArray childArray;
+  for (const auto& child : childElements()) {
+    Element* element = qobject_cast<Element*>(child);
+    if (element && !element->isGenerated()) {
+      QJsonObject elementObject;
+      element->write(elementObject);
+      childArray.append(elementObject);
     }
+  }
+  if (!childArray.isEmpty()) {
     json["children"] = childArray;
   }
 }

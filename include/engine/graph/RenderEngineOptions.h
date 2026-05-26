@@ -102,6 +102,10 @@ namespace engine::graph {
     std::optional<int> msaaSamples() const;
     std::optional<std::string> msaaShadingMode() const;
     std::optional<int> shadowMapSize() const;
+    std::optional<int> shadowCascadeCount() const;
+    std::optional<double> shadowBias() const;
+    std::optional<int> shadowFilterRadius() const;
+    std::optional<std::string> shadowFilterMode() const;
 
   private:
     std::optional<int> m_maximumThreads;

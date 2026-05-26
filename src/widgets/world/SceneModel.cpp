@@ -45,11 +45,11 @@ QModelIndex SceneModel::index(int row, int column, const QModelIndex& parent) co
   else
     parentItem = static_cast<Element*>(parent.internalPointer());
 
-  auto childItem = parentItem->childElements()[row];
-  if (childItem && !childItem->isGenerated())
+  auto childItem = visibleChildAt(parentItem, row);
+  if (childItem)
     return createIndex(row, column, childItem);
-  else
-    return QModelIndex();
+
+  return QModelIndex();
 }
 
 QModelIndex SceneModel::parent(const QModelIndex& index) const {
@@ -62,7 +62,11 @@ QModelIndex SceneModel::parent(const QModelIndex& index) const {
   if (parentItem == m_rootItem)
     return QModelIndex();
 
-  return createIndex(parentItem->row(), 0, parentItem);
+  Element* grandParent = parentItem->parent();
+  if (!grandParent)
+    return QModelIndex();
+
+  return createIndex(visibleRowOf(grandParent, parentItem), 0, parentItem);
 }
 
 int SceneModel::rowCount(const QModelIndex& parent) const {
@@ -75,12 +79,7 @@ int SceneModel::rowCount(const QModelIndex& parent) const {
   else
     parentItem = static_cast<Element*>(parent.internalPointer());
 
-  int result = 0;
-  for (const auto element : parentItem->childElements()) {
-    if (!element->isGenerated())
-      result++;
-  }
-  return result;
+  return visibleChildCount(parentItem);
 }
 
 int SceneModel::columnCount(const QModelIndex&) const {
@@ -108,6 +107,10 @@ Qt::ItemFlags SceneModel::flags(const QModelIndex& index) const {
 
   if (!index.isValid())
     return Qt::ItemFlags();
+
+  auto item = static_cast<Element*>(index.internalPointer());
+  if (item && item->isGenerated())
+    return Qt::ItemIsEnabled | Qt::ItemIsSelectable | defaultFlags;
 
   return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled |
          defaultFlags;
@@ -171,14 +174,16 @@ bool SceneModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int 
   }
 
   if (row == -1)
-    row = parentElement->childElements().size();
+    row = visibleChildCount(parentElement);
 
   Element* sourceParentElement = element->parent();
   if (!sourceParentElement || !parentElement->canHaveChild(element))
     return false;
 
-  QModelIndex sourceParent = createIndex(sourceParentElement->row(), 0, sourceParentElement);
-  return moveRow(sourceParent, element->row(), destinationParentIndex, row);
+  QModelIndex sourceParent = createIndex(
+    visibleRowOf(sourceParentElement->parent(), sourceParentElement), 0, sourceParentElement);
+  return moveRow(sourceParent, visibleRowOf(sourceParentElement, element), destinationParentIndex,
+                 row);
 }
 
 bool SceneModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int count,
@@ -191,13 +196,18 @@ bool SceneModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int co
   if (!sourceParentElement || !destinationParentElement)
     return false;
 
-  if (sourceRow < 0 || sourceRow >= sourceParentElement->childElements().size())
+  if (sourceRow < 0 || sourceRow >= visibleChildCount(sourceParentElement))
     return false;
 
-  if (destinationChild < 0 || destinationChild > destinationParentElement->childElements().size())
+  if (destinationChild < 0 || destinationChild > visibleChildCount(destinationParentElement))
     return false;
 
-  Element* childElement = sourceParentElement->childElements()[sourceRow];
+  Element* childElement = visibleChildAt(sourceParentElement, sourceRow);
+  if (!childElement)
+    return false;
+  const int sourceChild = sourceParentElement->childElements().indexOf(childElement);
+  const int destinationPhysicalChild =
+    insertionRowForVisibleRow(destinationParentElement, destinationChild);
 
   if (childElement == sourceParentElement || childElement == destinationParentElement)
     return false;
@@ -214,14 +224,14 @@ bool SceneModel::moveRows(const QModelIndex& sourceParent, int sourceRow, int co
     } else {
       beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent,
                     destinationChild);
-      sourceParentElement->moveChild(sourceRow, destinationChild);
+      sourceParentElement->moveChild(sourceChild, destinationPhysicalChild);
       endMoveRows();
       return true;
     }
   } else {
     beginMoveRows(sourceParent, sourceRow, sourceRow + count - 1, destinationParent,
                   destinationChild);
-    destinationParentElement->insertChild(destinationChild, childElement);
+    destinationParentElement->insertChild(destinationPhysicalChild, childElement);
     endMoveRows();
     return true;
   }
@@ -250,8 +260,60 @@ void SceneModel::addElement(const QModelIndex& index, Element* element) {
     }
   }
 
-  int row = parent->childElements().size();
+  int row = visibleChildCount(parent);
   beginInsertRows(dest, row, row);
   parent->addChild(element);
   endInsertRows();
+}
+
+int SceneModel::visibleChildCount(Element* parent) const {
+  int result = 0;
+  for (Element* child : parent->childElements()) {
+    if (child->displayInSceneModel())
+      ++result;
+  }
+  return result;
+}
+
+Element* SceneModel::visibleChildAt(Element* parent, int row) const {
+  int visibleRow = 0;
+  for (Element* child : parent->childElements()) {
+    if (!child->displayInSceneModel())
+      continue;
+    if (visibleRow == row)
+      return child;
+    ++visibleRow;
+  }
+  return nullptr;
+}
+
+int SceneModel::visibleRowOf(Element* parent, Element* child) const {
+  if (!parent)
+    return 0;
+
+  int visibleRow = 0;
+  for (Element* candidate : parent->childElements()) {
+    if (!candidate->displayInSceneModel())
+      continue;
+    if (candidate == child)
+      return visibleRow;
+    ++visibleRow;
+  }
+  return 0;
+}
+
+int SceneModel::insertionRowForVisibleRow(Element* parent, int row) const {
+  if (row < 0)
+    return parent->childElements().size();
+
+  int visibleRow = 0;
+  const auto children = parent->childElements();
+  for (int i = 0; i != children.size(); ++i) {
+    if (!children[i]->displayInSceneModel())
+      continue;
+    if (visibleRow == row)
+      return i;
+    ++visibleRow;
+  }
+  return children.size();
 }
