@@ -1,0 +1,4 @@
+0 External library part that delegates geometry to a nested subfile
+0 BFC CERTIFY CCW
+1 16 0 0 0 1 0 0 0 1 0 0 0 1 nested-panel.dat
+2 24 -12 -12 0 12 -12 0

@@ -422,6 +422,27 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_EQ("1", metadataValue(*leaf, "ldraw.buildStep"));
   }
 
+  TEST(LDrawGeometryCompiler, DiagnosticsPathResolvesMpdLocalSubmodelsBeforeLibrary) {
+    auto resolver = make_shared<MemoryResolver>(map<string, string>{
+      {"child.dat", "0 // external child should lose to MPD-local child\n"}});
+    istringstream input(
+      "0 FILE main.ldr\n"
+      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+      "0 NOFILE\n"
+      "0 FILE child.dat\n"
+      "0 BFC CERTIFY CCW\n"
+      "3 4 -1 -1 0 -1 1 0 1 -1 0\n"
+      "0 NOFILE\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics);
+
+    EXPECT_TRUE(diagnostics.entries().empty());
+    EXPECT_EQ(0, resolver->openCalls);
+    ASSERT_EQ(1u, geometry->primitives().size());
+    EXPECT_FALSE(geometry->boundingBox().isInfinite());
+  }
+
   TEST(LDrawGeometryCompiler, TypeOneColorSixteenInheritsReferenceColorAndDirectColorsOverride) {
     auto resolver = make_shared<MemoryResolver>(map<string, string>{
       {"child.dat",
