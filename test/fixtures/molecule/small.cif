@@ -1,0 +1,24 @@
+data_9XYZ
+_struct.title 'Small protein ligand mmCIF fixture'
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_seq_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.occupancy
+_atom_site.B_iso_or_equiv
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+_atom_site.auth_atom_id
+_atom_site.pdbx_PDB_model_num
+ATOM   1 N N  . GLY A 1 11.104 13.207 9.321 1.00 16.44 1   GLY A N  7
+ATOM   2 C CA . GLY A 1 12.560 13.420 9.118 1.00 15.10 1   GLY A CA 7
+HETATM 3 C C1 . LIG B . -1.250 0.500 3.750 0.50 22.00 201 LIG B C1 7

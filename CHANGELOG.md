@@ -124,6 +124,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   JSON and `.glb` containers into typed buffers, bufferViews, accessors, and
   image references, resolves external and embedded payloads, and reports
   structured diagnostics for malformed assets for Epic #233. — GPT-5
+- **Molecular coordinate parsing.** Core molecule parsing now reads PDB
+  `ATOM` / `HETATM` and supported PDBx/mmCIF `_atom_site` coordinate records
+  into atoms, residues, chains, models, metadata, and parse diagnostics for
+  Epic #236. — GPT-5
 - **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
   cover inline geometry, library part resolution, nested subfiles, inherited
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs
