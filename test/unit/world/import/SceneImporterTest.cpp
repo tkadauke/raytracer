@@ -3,8 +3,10 @@
 #include "world/import/SceneImporter.h"
 #include "world/objects/Group.h"
 #include "world/objects/Scene.h"
+#include "world/objects/Sphere.h"
 
 #include <memory>
+#include <QJsonObject>
 
 namespace SceneImporterTest {
   namespace {
@@ -120,6 +122,96 @@ namespace SceneImporterTest {
     EXPECT_FALSE(result.hasRoot());
     ASSERT_NE(nullptr, ownedRoot);
     EXPECT_EQ(QString("Imported assembly"), ownedRoot->name());
+  }
+
+  TEST(ImportResult, AttachesRootProvenanceFromSourceMetadata) {
+    world::ImportSourceMetadata source;
+    source.sourcePath = "model.ldr";
+
+    auto group = std::make_unique<Group>();
+    world::ImportResult result(std::move(group), source);
+
+    auto provenance = world::ImportProvenance::fromSource(result.source());
+    provenance.sourceId = "submodel.dat";
+    provenance.recordId = "0 FILE submodel.dat";
+    provenance.originalUnits = "ldu";
+    provenance.category = QJsonObject{{"ldrawRecordType", 1}};
+    result.setRootProvenance(provenance);
+
+    const auto rootProvenance = result.rootProvenance();
+    ASSERT_TRUE(rootProvenance.has_value());
+    EXPECT_EQ(QString("model.ldr"), rootProvenance->sourceFile);
+    EXPECT_EQ(QString("submodel.dat"), rootProvenance->sourceId);
+    EXPECT_EQ(QString("0 FILE submodel.dat"), rootProvenance->recordId);
+    EXPECT_EQ(QString("ldu"), rootProvenance->originalUnits);
+    EXPECT_EQ(1, rootProvenance->category["ldrawRecordType"].toInt());
+  }
+
+  TEST(ImportResult, PreservesNestedGroupAndObjectProvenanceThroughSceneJson) {
+    auto rootGroup = std::make_unique<Group>();
+    rootGroup->setId("{90000000-0000-0000-0000-00000000a001}");
+
+    world::ImportProvenance rootProvenance;
+    rootProvenance.sourceFile = "nested.fake";
+    rootProvenance.sourceId = "assembly/root";
+    rootProvenance.category = QJsonObject{{"kind", "assembly"}};
+    world::setImportProvenance(*rootGroup, rootProvenance);
+
+    auto* childGroup = new Group;
+    childGroup->setId("{90000000-0000-0000-0000-00000000a002}");
+    world::ImportProvenance childProvenance;
+    childProvenance.sourceFile = "nested.fake";
+    childProvenance.sourceId = "assembly/child";
+    childProvenance.lineStart = 20;
+    childProvenance.lineEnd = 24;
+    world::setImportProvenance(*childGroup, childProvenance);
+    rootGroup->addChild(childGroup);
+
+    auto* sphere = new Sphere;
+    sphere->setId("{90000000-0000-0000-0000-00000000a003}");
+    world::ImportProvenance sphereProvenance;
+    sphereProvenance.sourceFile = "nested.fake";
+    sphereProvenance.sourceId = "assembly/child/sphere";
+    sphereProvenance.recordId = "sphere-7";
+    sphereProvenance.originalUnits = "cm";
+    sphereProvenance.category = QJsonObject{{"kind", "analytic-surface"}};
+    world::setImportProvenance(*sphere, sphereProvenance);
+    childGroup->addChild(sphere);
+
+    world::ImportResult result(std::move(rootGroup));
+    Scene scene;
+    scene.addChild(result.takeRoot());
+
+    QJsonObject json;
+    scene.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+
+    auto* decodedRoot =
+      dynamic_cast<Group*>(decoded.findById("{90000000-0000-0000-0000-00000000a001}"));
+    auto* decodedChild =
+      dynamic_cast<Group*>(decoded.findById("{90000000-0000-0000-0000-00000000a002}"));
+    auto* decodedSphere =
+      dynamic_cast<Sphere*>(decoded.findById("{90000000-0000-0000-0000-00000000a003}"));
+    ASSERT_NE(nullptr, decodedRoot);
+    ASSERT_NE(nullptr, decodedChild);
+    ASSERT_NE(nullptr, decodedSphere);
+
+    const auto decodedRootProvenance = world::importProvenance(*decodedRoot);
+    const auto decodedChildProvenance = world::importProvenance(*decodedChild);
+    const auto decodedSphereProvenance = world::importProvenance(*decodedSphere);
+    ASSERT_TRUE(decodedRootProvenance.has_value());
+    ASSERT_TRUE(decodedChildProvenance.has_value());
+    ASSERT_TRUE(decodedSphereProvenance.has_value());
+    EXPECT_EQ(QString("assembly/root"), decodedRootProvenance->sourceId);
+    EXPECT_EQ(QString("assembly/child"), decodedChildProvenance->sourceId);
+    EXPECT_EQ(20, decodedChildProvenance->lineStart);
+    EXPECT_EQ(24, decodedChildProvenance->lineEnd);
+    EXPECT_EQ(QString("sphere-7"), decodedSphereProvenance->recordId);
+    EXPECT_EQ(QString("cm"), decodedSphereProvenance->originalUnits);
+    EXPECT_EQ(QString("analytic-surface"),
+              decodedSphereProvenance->category["kind"].toString());
   }
 
   TEST(ImportResult, CarriesFailedDiagnosticsWithoutRoot) {

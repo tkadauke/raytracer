@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QUuid>
 #include <iostream>
+#include <stdexcept>
 
 Q_DECLARE_METATYPE(Vector3d);
 Q_DECLARE_METATYPE(Angled);
@@ -53,7 +54,7 @@ void Element::unlink(Element* root) {
 
 void Element::read(const QJsonObject& json) {
   for (auto i = json.begin(); i != json.end(); ++i) {
-    if (i.key() == "type")
+    if (i.key() == "type" || i.key() == "metadata")
       continue;
 
     auto propertyName = i.key();
@@ -96,6 +97,16 @@ void Element::read(const QJsonObject& json) {
     }
   }
 
+  const auto metadataValue = json["metadata"];
+  if (metadataValue.isUndefined()) {
+    m_metadata = QJsonObject();
+  } else {
+    if (!metadataValue.isObject())
+      throw std::invalid_argument("element metadata must be an object");
+
+    m_metadata = metadataValue.toObject();
+  }
+
   auto childElements = json["children"];
   if (childElements.isArray()) {
     for (const auto& child : childElements.toArray()) {
@@ -121,6 +132,10 @@ void Element::write(QJsonObject& json) {
     writeProperty(name, json);
   }
 
+  if (!m_metadata.isEmpty()) {
+    json["metadata"] = m_metadata;
+  }
+
   if (childElements().size() > 0) {
     QJsonArray childArray;
     for (const auto& child : childElements()) {
@@ -132,6 +147,14 @@ void Element::write(QJsonObject& json) {
       }
     }
     json["children"] = childArray;
+  }
+}
+
+void Element::setMetadataValue(const QString& key, const QJsonValue& value) {
+  if (value.isUndefined()) {
+    m_metadata.remove(key);
+  } else {
+    m_metadata.insert(key, value);
   }
 }
 

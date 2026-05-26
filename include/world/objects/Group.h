@@ -2,8 +2,6 @@
 #include <memory>
 #include <optional>
 
-#include <QJsonObject>
-#include <QJsonValue>
 #include <QString>
 
 #include "world/objects/Transformable.h"
@@ -107,37 +105,6 @@ public:
   }
 
   /**
-    * @returns importer/inspection metadata attached to this group.
-    */
-  inline const QJsonObject& metadata() const {
-    return m_metadata;
-  }
-
-  /**
-    * Replaces importer/inspection metadata attached to this group.
-    *
-    * Metadata is intentionally opaque to the renderer. Importers can store
-    * source object IDs, step indices, layer/frame indices, time intervals,
-    * labels, category tags, or other structured JSON here without changing
-    * runtime primitive generation.
-    */
-  inline void setMetadata(const QJsonObject& metadata) {
-    m_metadata = metadata;
-  }
-
-  /**
-    * @returns the metadata value for @p key, or undefined when absent.
-    */
-  inline QJsonValue metadataValue(const QString& key) const {
-    return m_metadata.value(key);
-  }
-
-  /**
-    * Sets a single metadata value. Passing an undefined value removes @p key.
-    */
-  void setMetadataValue(const QString& key, const QJsonValue& value);
-
-  /**
     * @returns a generic ordered step index, or empty when the metadata is
     * absent or is not an integer-valued JSON number.
     */
@@ -189,27 +156,6 @@ public:
     */
   void setLabel(const std::optional<QString>& label);
 
-  /**
-    * Removes all metadata from this group.
-    */
-  inline void clearMetadata() {
-    m_metadata = QJsonObject();
-  }
-
-  /**
-    * Reads this group from scene JSON, including optional metadata.
-    *
-    * The `metadata` member must be a JSON object when present. Unknown metadata
-    * keys and value types are preserved as-is.
-    */
-  void read(const QJsonObject& json) override;
-
-  /**
-    * Writes this group to scene JSON, omitting metadata when it is empty.
-    */
-  void write(QJsonObject& json) override;
-
-  /**
     * Converts visible child geometry into a transformed runtime composite.
     * Hidden groups return null and do not register descendant lights.
     */
@@ -227,5 +173,4 @@ private:
   applyTransform(std::shared_ptr<render::Primitive> primitive) const;
 
   bool m_visible;
-  QJsonObject m_metadata;
 };
