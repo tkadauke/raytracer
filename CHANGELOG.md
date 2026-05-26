@@ -35,6 +35,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   that metadata through the import pipeline into ordinary compiled primitive
   geometry, and direct LDraw input remains available with
   `--ldraw_library_root` for #210. — GPT-5
+- **LDrawModel scene surfaces.** Scene JSON can now contain `LDrawModel`
+  surfaces with file path, library root, transform scale, smoothing, and
+  visibility properties, and `rendercli` applies `--ldraw_library_root` to
+  those scene objects for #210. — GPT-5
 - **Shared import provenance metadata.** World scene elements now carry
   optional structured metadata, and import helpers can attach source file,
   source entity, line range/record, original-unit, and category provenance that
