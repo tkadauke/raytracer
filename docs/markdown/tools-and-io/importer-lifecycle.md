@@ -43,9 +43,12 @@ result is useful data but not yet a renderable scene. The molecule parser is
 one example: [`MoleculeParser`](../../../include/core/formats/molecule/MoleculeParser.h)
 reads PDB `ATOM` / `HETATM` records and a supported PDBx/mmCIF `_atom_site`
 subset into [`Molecule`](../../../include/core/formats/molecule/Molecule.h)
-atoms, residues, chains, models, metadata, and lightweight diagnostics. A
-future scene importer can build on that structured data without making the core
-coordinate parser depend on Qt or world-scene classes.
+atoms, residues, chains, models, metadata, and lightweight diagnostics.
+[`MoleculeSceneCompiler`](../../../include/world/import/MoleculeSceneImporter.h)
+then maps that structured data into generic model, chain, and residue `Group`
+nodes, with simple atom-sphere leaves. Keeping parser and compiler separate
+lets the core coordinate reader stay independent of Qt while the scene importer
+uses the same metadata and provenance surface as other formats.
 
 ## Options
 
@@ -250,6 +253,7 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/formats/molecule/Molecule.h`
 - `include/core/formats/molecule/MoleculeParser.h`
+- `include/world/import/MoleculeSceneImporter.h`
 - `include/core/formats/AssetResolver.h`
 - `include/core/formats/gltf/GltfAsset.h`
 - `include/core/formats/gltf/GltfReader.h`

@@ -129,6 +129,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   JSON and `.glb` containers into typed buffers, bufferViews, accessors, and
   image references, resolves external and embedded payloads, and reports
   structured diagnostics for malformed assets for Epic #233. — GPT-5
+- **Grouped molecule scene import.** PDB and PDBx/mmCIF imports now compile
+  models, chains, and residues into nested generic `Group`s with molecule
+  metadata and import provenance, while atom spheres remain hideable through
+  chain or residue group visibility for Epic #236. — GPT-5
 - **Molecular coordinate parsing.** Core molecule parsing now reads PDB
   `ATOM` / `HETATM` and supported PDBx/mmCIF `_atom_site` coordinate records
   into atoms, residues, chains, models, metadata, and parse diagnostics for
