@@ -43,6 +43,13 @@ namespace molecule {
     int sourceLine{-1};
   };
 
+  struct Bond {
+    std::size_t firstAtomIndex{0};
+    std::size_t secondAtomIndex{0};
+    int order{1};
+    bool inferred{false};
+  };
+
   struct Residue {
     std::string name;
     int sequenceNumber{0};
@@ -71,6 +78,8 @@ namespace molecule {
   class Molecule {
   public:
     void addAtom(const Atom& atom);
+    bool addBond(std::size_t firstAtomIndex, std::size_t secondAtomIndex, int order = 1,
+                 bool inferred = false);
 
     [[nodiscard]] const std::vector<Atom>& atoms() const {
       return m_atoms;
@@ -86,6 +95,10 @@ namespace molecule {
 
     [[nodiscard]] const std::vector<Model>& models() const {
       return m_models;
+    }
+
+    [[nodiscard]] const std::vector<Bond>& bonds() const {
+      return m_bonds;
     }
 
     [[nodiscard]] const Metadata& metadata() const {
@@ -105,6 +118,7 @@ namespace molecule {
     std::vector<Residue> m_residues;
     std::vector<Chain> m_chains;
     std::vector<Model> m_models;
+    std::vector<Bond> m_bonds;
     Metadata m_metadata;
   };
 

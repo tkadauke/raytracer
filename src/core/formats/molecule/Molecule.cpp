@@ -19,6 +19,26 @@ namespace molecule {
     m_atoms.push_back(atom);
   }
 
+  bool Molecule::addBond(std::size_t firstAtomIndex, std::size_t secondAtomIndex, int order,
+                         bool inferred) {
+    if (firstAtomIndex == secondAtomIndex || firstAtomIndex >= m_atoms.size() ||
+        secondAtomIndex >= m_atoms.size()) {
+      return false;
+    }
+
+    if (secondAtomIndex < firstAtomIndex)
+      std::swap(firstAtomIndex, secondAtomIndex);
+
+    const auto found = std::find_if(m_bonds.begin(), m_bonds.end(), [&](const Bond& bond) {
+      return bond.firstAtomIndex == firstAtomIndex && bond.secondAtomIndex == secondAtomIndex;
+    });
+    if (found != m_bonds.end())
+      return false;
+
+    m_bonds.push_back(Bond{firstAtomIndex, secondAtomIndex, std::max(1, order), inferred});
+    return true;
+  }
+
   std::size_t Molecule::modelIndexFor(int modelId) {
     const auto found = std::find_if(m_models.begin(), m_models.end(),
                                     [modelId](const Model& model) { return model.id == modelId; });

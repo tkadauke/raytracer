@@ -138,6 +138,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   models, chains, and residues into nested generic `Group`s with molecule
   metadata and import provenance, while atom spheres remain hideable through
   chain or residue group visibility for Epic #236. — GPT-5
+- **Ball-and-stick molecule scene builder.** Parsed molecules can now produce
+  renderable model/chain/residue `Group` hierarchies with element-colored atom
+  spheres and gray bond cylinders, using PDB `CONECT` records when present and
+  covalent-radius distance inference otherwise for Epic #236. — GPT-5
 - **Molecular coordinate parsing.** Core molecule parsing now reads PDB
   `ATOM` / `HETATM` and supported PDBx/mmCIF `_atom_site` coordinate records
   into atoms, residues, chains, models, metadata, and parse diagnostics for

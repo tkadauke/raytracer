@@ -21,6 +21,7 @@ namespace MoleculeParserTest {
     ASSERT_EQ(2u, molecule.residues().size());
     ASSERT_EQ(2u, molecule.chains().size());
     ASSERT_EQ(1u, molecule.models().size());
+    ASSERT_EQ(1u, molecule.bonds().size());
     EXPECT_EQ("9XYZ", molecule.metadata().id);
     EXPECT_EQ("SMALL PROTEIN AND LIGAND STYLE MOLECULE", molecule.metadata().title);
 
@@ -53,6 +54,9 @@ namespace MoleculeParserTest {
     EXPECT_EQ(2u, molecule.residues()[0].atomIndices.size());
     EXPECT_EQ(1u, molecule.residues()[1].atomIndices.size());
     EXPECT_EQ(2u, molecule.models()[0].chainIndices.size());
+    EXPECT_EQ(0u, molecule.bonds()[0].firstAtomIndex);
+    EXPECT_EQ(1u, molecule.bonds()[0].secondAtomIndex);
+    EXPECT_FALSE(molecule.bonds()[0].inferred);
   }
 
   TEST(MoleculeParser, ShouldParseMmcifAtomSiteLoopFromFixture) {
@@ -67,6 +71,7 @@ namespace MoleculeParserTest {
     ASSERT_EQ(2u, parsed.residues().size());
     ASSERT_EQ(2u, parsed.chains().size());
     ASSERT_EQ(1u, parsed.models().size());
+    EXPECT_TRUE(parsed.bonds().empty());
     EXPECT_EQ("9XYZ", parsed.metadata().id);
     EXPECT_EQ("Small protein ligand mmCIF fixture", parsed.metadata().title);
 

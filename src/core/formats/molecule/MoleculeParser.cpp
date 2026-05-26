@@ -161,6 +161,16 @@ namespace molecule {
       }
       return "";
     }
+
+    vector<int> parsePdbConectSerials(const string& line) {
+      vector<int> serials;
+      for (size_t offset = 6; offset + 5 <= line.size(); offset += 5) {
+        const auto serial = field(line, offset, 5);
+        if (!serial.empty())
+          serials.push_back(parseOptionalInt(serial).value_or(0));
+      }
+      return serials;
+    }
   }
 
   bool MoleculeParseResult::hasErrors() const {
@@ -195,6 +205,8 @@ namespace molecule {
     int lineNumber = 0;
     int currentModel = 1;
     bool sawExplicitModel = false;
+    map<int, size_t> atomIndexBySerial;
+    vector<pair<int, int>> conectRecords;
 
     while (getline(input, line)) {
       ++lineNumber;
@@ -249,17 +261,38 @@ namespace molecule {
           atom.sourceRecord = record + " " + to_string(atom.serialNumber);
           atom.sourceLine = lineNumber;
           result.molecule().addAtom(atom);
+          if (atom.serialNumber != 0)
+            atomIndexBySerial[atom.serialNumber] = result.molecule().atoms().size() - 1;
         } catch (const invalid_argument&) {
           addWarning(result, "ATOM/HETATM record has invalid numeric coordinate data", lineNumber);
         } catch (const out_of_range&) {
           addWarning(result, "ATOM/HETATM record has out-of-range numeric data", lineNumber);
         }
-      } else if (record == "ANISOU" || record == "CONECT" || record == "TER" || record == "END" ||
-                 record == "REMARK" || record == "SEQRES" || record.empty()) {
+      } else if (record == "CONECT") {
+        try {
+          const auto serials = parsePdbConectSerials(line);
+          if (serials.size() < 2)
+            continue;
+          for (size_t i = 1; i < serials.size(); ++i)
+            conectRecords.emplace_back(serials[0], serials[i]);
+        } catch (const invalid_argument&) {
+          addWarning(result, "CONECT record has invalid atom serial data", lineNumber);
+        } catch (const out_of_range&) {
+          addWarning(result, "CONECT record has out-of-range atom serial data", lineNumber);
+        }
+      } else if (record == "ANISOU" || record == "TER" || record == "END" || record == "REMARK" ||
+                 record == "SEQRES" || record.empty()) {
         continue;
       } else if (!record.empty()) {
         addWarning(result, "unsupported PDB record: " + record, lineNumber);
       }
+    }
+
+    for (const auto& [firstSerial, secondSerial] : conectRecords) {
+      const auto first = atomIndexBySerial.find(firstSerial);
+      const auto second = atomIndexBySerial.find(secondSerial);
+      if (first != atomIndexBySerial.end() && second != atomIndexBySerial.end())
+        result.molecule().addBond(first->second, second->second);
     }
 
     return result;
