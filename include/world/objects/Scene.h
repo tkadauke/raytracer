@@ -71,6 +71,11 @@ public:
   void clearImportDiagnostics();
 
   /**
+    * Resolves pending element references across the whole scene hierarchy.
+    */
+  void resolveElementReferences();
+
+  /**
     * @returns the scene's animation timeline, or `nullptr` when the scene is
     *   static.
     */
@@ -207,6 +212,7 @@ public:
 
 private:
   void findReferences(Element* root, QMap<QString, Element*>& references);
+  void readImports(const QJsonObject& json);
 
   bool m_changed;
   Colord m_ambient;

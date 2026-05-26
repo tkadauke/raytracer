@@ -311,6 +311,72 @@ namespace SceneTest {
     QFile::remove(path);
   }
 
+  TEST(Scene, ShouldLoadImportedSceneSources) {
+    QTemporaryFile imported("raytracer-imported-XXXXXX.rtjson");
+    ASSERT_TRUE(imported.open());
+    const QString importedPath = imported.fileName();
+    imported.write(R"({
+      "id": "imported-scene",
+      "name": "Imported",
+      "type": "Scene",
+      "children": [
+        {
+          "id": "camera",
+          "name": "Imported Camera",
+          "position": [0.0, 0.0, -3.0],
+          "target": [0.0, 0.0, 0.0],
+          "distance": 5.0,
+          "zoom": 1.0,
+          "type": "PinholeCamera",
+          "children": []
+        }
+      ]
+    })");
+    imported.close();
+
+    QTemporaryFile sceneFile("raytracer-scene-XXXXXX.json");
+    ASSERT_TRUE(sceneFile.open());
+    const QString scenePath = sceneFile.fileName();
+    const QByteArray sceneJson =
+      QByteArray(R"({
+        "id": "scene",
+        "name": "Scene With Import",
+        "type": "Scene",
+        "imports": [
+          {
+            "source": ")") +
+      importedPath.toUtf8() + QByteArray(R"(",
+            "format": "json",
+            "options": {"fixture": "minimal"}
+          }
+        ],
+        "children": []
+      })");
+    sceneFile.write(sceneJson);
+    sceneFile.close();
+
+    Scene scene;
+    ASSERT_TRUE(scene.load(scenePath));
+
+    ASSERT_NE(nullptr, scene.activeCamera());
+    EXPECT_EQ(QString("Imported Camera"), scene.activeCamera()->name());
+  }
+
+  TEST(Scene, ShouldRejectUnknownImportedSceneFormat) {
+    Scene scene;
+    QJsonObject json;
+    scene.write(json);
+    json["imports"] = QJsonArray(
+      {QJsonObject({{"source", "fixture.unknown"}, {"format", "unknown"}, {"options", QJsonObject()}})});
+
+    try {
+      scene.read(json);
+      FAIL() << "expected unknown import format to throw";
+    } catch (const std::invalid_argument& error) {
+      EXPECT_THAT(error.what(), HasSubstr("No scene importer registered"));
+    }
+  }
+
   TEST(Scene, ShouldRoundtripAnimationViaSaveLoad) {
     QTemporaryFile temp;
     ASSERT_TRUE(temp.open());

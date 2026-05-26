@@ -19,6 +19,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   optional structured metadata, and import helpers can attach source file,
   source entity, line range/record, original-unit, and category provenance that
   round-trips through scene JSON for Epic #230. — GPT-5
+- **Importer-powered scene loading.** `rendercli` can now load registered
+  importers by `--import_format` or filename extension, and world scene JSON
+  can expand top-level `imports` entries with source paths and importer
+  options for Epic #230. — GPT-5
 - **Shared import asset resolver.** `core::AssetResolver` now resolves
   importer sidecar files from the current file directory and configured search
   roots, returns cache-stable asset identities, and reports requested paths plus

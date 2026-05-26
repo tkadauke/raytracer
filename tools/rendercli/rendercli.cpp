@@ -1,10 +1,12 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QFile>
+#include <QFileInfo>
 #include <QImage>
 #include <QJsonDocument>
 #include <QJsonParseError>
 
+#include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
 #include "world/objects/Material.h"
@@ -400,6 +402,42 @@ namespace {
     return true;
   }
 
+  bool parseImportOption(const QString& value, std::pair<QString, QVariant>* option,
+                         QString* errorMessage) {
+    const int separator = value.indexOf('=');
+    if (separator <= 0 || separator == value.size() - 1) {
+      *errorMessage = "Import option must use key=value syntax";
+      return false;
+    }
+
+    const QString key = value.left(separator).trimmed();
+    const QString rawValue = value.mid(separator + 1).trimmed();
+    if (key.isEmpty()) {
+      *errorMessage = "Import option key must not be empty";
+      return false;
+    }
+
+    option->first = key;
+    option->second = rawValue;
+    return true;
+  }
+
+  void printImportDiagnostics(const world::ImportResult& result) {
+    for (const auto& diagnostic : result.diagnostics()) {
+      std::cerr << "import " << (diagnostic.isError() ? "error" : "warning");
+      if (!diagnostic.source.isEmpty()) {
+        std::cerr << " " << diagnostic.source.toStdString();
+        if (diagnostic.line > 0) {
+          std::cerr << ":" << diagnostic.line;
+          if (diagnostic.column > 0) {
+            std::cerr << ":" << diagnostic.column;
+          }
+        }
+      }
+      std::cerr << ": " << diagnostic.message.toStdString() << '\n';
+    }
+  }
+
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
     std::set<std::string> warnings;
     scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
@@ -455,6 +493,8 @@ private:
   bool m_threadsSet;
   bool m_queueSizeSet;
   QString m_tonemap;
+  QString m_importFormat;
+  world::ImportOptions m_importOptions;
   QString m_engine;
   bool m_engineSet;
   bool m_renderGraph;
@@ -557,6 +597,8 @@ Renderer::Renderer()
       m_threadsSet(false),
       m_queueSizeSet(false),
       m_tonemap("Linear"),
+      m_importFormat(),
+      m_importOptions(),
       m_engine("raytracer"),
       m_engineSet(false),
       m_renderGraph(true),
@@ -622,6 +664,33 @@ Renderer::Renderer()
 }
 
 std::unique_ptr<Scene> Renderer::loadScene() const {
+  std::unique_ptr<world::SceneImporter> importer;
+  if (!m_importFormat.isEmpty()) {
+    importer = world::SceneImporterRegistry::self().createByFormat(m_importFormat);
+    if (!importer) {
+      throw std::runtime_error(
+        QString("No scene importer registered for format: %1").arg(m_importFormat).toStdString());
+    }
+  } else if (world::SceneImporterRegistry::self().hasExtension(QFileInfo(m_filename).suffix())) {
+    importer = world::SceneImporterRegistry::self().createForFile(m_filename);
+  }
+
+  if (importer) {
+    world::ImportResult result = importer->importFile(m_filename, m_importOptions);
+    printImportDiagnostics(result);
+    if (result.failed()) {
+      throw std::runtime_error(
+        QString("Unable to import input scene: %1").arg(m_filename).toStdString());
+    }
+    auto root = result.takeRoot();
+    if (auto* sceneRoot = qobject_cast<Scene*>(root.get())) {
+      root.release();
+      return std::unique_ptr<Scene>(sceneRoot);
+    }
+    throw std::runtime_error(
+      QString("Importer did not return a scene root: %1").arg(m_filename).toStdString());
+  }
+
   auto scene = std::make_unique<Scene>(nullptr);
   if (!scene->load(m_filename))
     throw std::runtime_error(
@@ -1249,6 +1318,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"queue_size", "Explicit queue size for thread pool; raster defaults to automatic",
       "queue_size"},
      {"tonemap", "Tonemap operator (Linear, Reinhard, ACES)", "tonemap"},
+     {"import_format", "Import input with the named scene importer format", "format"},
+     {"import_option", "Set an importer option; may be repeated with key=value", "key=value"},
      {"engine", "Render engine (raytracer, wireframe, raster)", "engine"},
      {"render_graph", "Render through the compiled render graph; this is the default"},
      {{"direct_engine", "no_render_graph"},
@@ -1406,6 +1477,24 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (parser.isSet("tonemap")) {
     m_tonemap = parser.value("tonemap");
+  }
+
+  if (parser.isSet("import_format")) {
+    m_importFormat = parser.value("import_format").trimmed();
+    if (m_importFormat.isEmpty()) {
+      *errorMessage = "Import format must not be empty";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("import_option")) {
+    for (const QString& value : parser.values("import_option")) {
+      std::pair<QString, QVariant> option;
+      if (!parseImportOption(value, &option, errorMessage)) {
+        return CommandLineError;
+      }
+      m_importOptions.setValue(option.first, option.second);
+    }
   }
 
   if (parser.isSet("engine")) {
