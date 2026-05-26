@@ -474,6 +474,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **rendercli step ghost playback.** `rendercli --step_ghost_previous` now
+  applies cumulative step visibility before styling, so previous-step groups
+  remain visible as ghosts instead of being filtered out by the active-step
+  selection. — GPT-5
 - **Render graph external inputs.** Graph execution now rejects plans that read
   unbound imported or history resources instead of allocating empty placeholders
   for those inputs. — GPT-5

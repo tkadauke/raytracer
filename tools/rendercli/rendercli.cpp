@@ -531,8 +531,8 @@ namespace {
       bool ok = false;
       trimmed.toInt(&ok);
       if (!ok) {
-        *errorMessage =
-          "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
+        *errorMessage = "Step must be an integer. Step selection must be N, single:N, "
+                        "cumulative:N, or sequence[:FIRST-LAST]";
         return false;
       }
       return parseNonNegativeStepIndex(trimmed, &selection->step, errorMessage);
@@ -1422,7 +1422,9 @@ void Renderer::render() const {
     scene->evaluateAnimationAtFrame(m_frame);
 
   if (m_stepSelectionSet) {
-    const auto selection = commandLineStepVisibilitySelection(m_stepSelection);
+    auto selection = commandLineStepVisibilitySelection(m_stepSelection);
+    if (m_stepPlaybackStyle.ghostPrevious && m_stepPlaybackStyle.activeStep)
+      selection = StepVisibilitySelection::cumulativeThrough(*m_stepPlaybackStyle.activeStep);
     validateStepSelection(*scene, selection);
     applyStepVisibilitySelection(*scene, selection);
   }
