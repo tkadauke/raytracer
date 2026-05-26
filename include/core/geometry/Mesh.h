@@ -67,6 +67,17 @@ public:
   typedef std::vector<int> Face;
 
   /**
+    * Returns @p face with the opposite winding, preserving the first vertex as
+    * the triangle-fan anchor used by the mesh iterator.
+    */
+  inline static Face reversedWinding(const Face& face) {
+    Face reversed = face;
+    if (reversed.size() >= 3)
+      std::reverse(reversed.begin() + 1, reversed.end());
+    return reversed;
+  }
+
+  /**
     * This iterator type allows to iterate over triangles derived from the
     * polygons that make up a mesh. A triangle iterator is a forward iterator,
     * meaning that it can be iterated only in one direction, and random access
@@ -202,9 +213,7 @@ public:
       return;
     }
 
-    Face reversed = face;
-    std::reverse(reversed.begin() + 1, reversed.end());
-    addFace(reversed);
+    addFace(reversedWinding(face));
   }
 
   /**
