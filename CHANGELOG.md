@@ -24,6 +24,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   geometry in the background, frames the active pinhole camera, and is available
   from the Modeler Open dialog and rendercli extension-based import path. —
   GPT-5
+- **Native OpenSCAD CSG subset import.** `.scad` source assets now import
+  `translate`, `rotate`, `scale`, `union`, `difference`, `intersection`,
+  `cube`, `sphere`, and `cylinder` directly into editable primitives and CSG
+  objects with source-located diagnostics for unsupported syntax for Epic #234.
+  — GPT-5
 - **Source-backed asset scene objects.** Scene JSON can now persist
   `SourceAsset` objects with source path, importer format, import options,
   generated-output cache key, and non-fatal import diagnostics for Epic #234.
