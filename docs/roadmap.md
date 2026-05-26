@@ -577,6 +577,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   `render::MeshPrimitive` provide shared mesh lifetime, per-face material
   assignment, Grid/BVH traversal, and raster/wireframe compatibility for Epic
   #230.
+  ~~Shared import provenance metadata.~~ ✅ **Done.** `Element` metadata and
+  `ImportProvenance` helpers let importers attach source file/entity,
+  line-range or record, original-units, and category provenance without custom
+  subclasses for Epic #230.
 - **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI

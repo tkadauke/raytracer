@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "world/import/ImportResult.h"
 #include "world/objects/Element.h"
 #include "world/objects/ElementFactory.h"
 #include "world/objects/ConstantColorTexture.h"
@@ -295,6 +296,54 @@ namespace GroupTest {
     EXPECT_DOUBLE_EQ(13.0, *decodedLayer->endTime());
     ASSERT_TRUE(decodedLayer->label().has_value());
     EXPECT_EQ(QString("layer 14"), *decodedLayer->label());
+  }
+
+  TEST(Element, ShouldRoundtripObjectProvenanceMetadataThroughSceneJson) {
+    Scene original;
+    auto* sphere = new Sphere;
+    sphere->setId("{90000000-0000-0000-0000-00000000f001}");
+
+    world::ImportProvenance provenance;
+    provenance.sourceFile = "assembly.step";
+    provenance.sourceId = "assembly/body/42";
+    provenance.lineStart = 120;
+    provenance.lineEnd = 148;
+    provenance.recordId = "#42";
+    provenance.originalUnits = "mm";
+    provenance.category = QJsonObject{{"kind", "solid"}, {"layer", "fasteners"}};
+    world::setImportProvenance(*sphere, provenance);
+
+    original.addChild(sphere);
+
+    QJsonObject json;
+    original.write(json);
+
+    Scene decoded;
+    decoded.read(json);
+
+    auto* decodedSphere =
+      dynamic_cast<Sphere*>(decoded.findById("{90000000-0000-0000-0000-00000000f001}"));
+    ASSERT_NE(nullptr, decodedSphere);
+
+    const auto decodedProvenance = world::importProvenance(*decodedSphere);
+    ASSERT_TRUE(decodedProvenance.has_value());
+    EXPECT_EQ(QString("assembly.step"), decodedProvenance->sourceFile);
+    EXPECT_EQ(QString("assembly/body/42"), decodedProvenance->sourceId);
+    EXPECT_EQ(120, decodedProvenance->lineStart);
+    EXPECT_EQ(148, decodedProvenance->lineEnd);
+    EXPECT_EQ(QString("#42"), decodedProvenance->recordId);
+    EXPECT_EQ(QString("mm"), decodedProvenance->originalUnits);
+    EXPECT_EQ(QString("solid"), decodedProvenance->category["kind"].toString());
+    EXPECT_EQ(QString("fasteners"), decodedProvenance->category["layer"].toString());
+  }
+
+  TEST(Element, ShouldOmitEmptyImportProvenanceMetadata) {
+    Sphere sphere;
+
+    world::setImportProvenance(sphere, world::ImportProvenance());
+
+    EXPECT_FALSE(world::importProvenance(sphere).has_value());
+    EXPECT_TRUE(sphere.metadata().isEmpty());
   }
 
   TEST(Group, ShouldPreserveUnknownMetadataTypesThroughSceneJson) {

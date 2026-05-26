@@ -15,6 +15,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
   sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
+- **Shared import provenance metadata.** World scene elements now carry
+  optional structured metadata, and import helpers can attach source file,
+  source entity, line range/record, original-unit, and category provenance that
+  round-trips through scene JSON for Epic #230. — GPT-5
 - **Shared scene importer interface.** `world::SceneImporter`,
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` now define a
   format-neutral import contract with option schemas, source metadata,

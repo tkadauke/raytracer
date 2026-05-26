@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 
+#include <QJsonObject>
+#include <QJsonValue>
 #include <QObject>
 
 class Element : public QObject {
@@ -48,6 +50,43 @@ public:
 
   virtual void read(const QJsonObject& json);
   virtual void write(QJsonObject& json);
+
+  /**
+    * @returns importer/inspection metadata attached to this element.
+    */
+  inline const QJsonObject& metadata() const {
+    return m_metadata;
+  }
+
+  /**
+    * Replaces importer/inspection metadata attached to this element.
+    *
+    * Metadata is intentionally opaque to the renderer. Importers can store
+    * source provenance, source object IDs, layer names, category tags, or other
+    * structured JSON here without introducing format-specific subclasses.
+    */
+  inline void setMetadata(const QJsonObject& metadata) {
+    m_metadata = metadata;
+  }
+
+  /**
+    * @returns the metadata value for @p key, or undefined when absent.
+    */
+  inline QJsonValue metadataValue(const QString& key) const {
+    return m_metadata.value(key);
+  }
+
+  /**
+    * Sets a single metadata value. Passing an undefined value removes @p key.
+    */
+  void setMetadataValue(const QString& key, const QJsonValue& value);
+
+  /**
+    * Removes all metadata from this element.
+    */
+  inline void clearMetadata() {
+    m_metadata = QJsonObject();
+  }
 
   Element* findById(const QString& id);
 
@@ -118,6 +157,7 @@ private:
 
   QString m_id;
   QString m_name;
+  QJsonObject m_metadata;
   bool m_generated;
 
   QList<QPair<QString, QString>> m_pendingReferences;

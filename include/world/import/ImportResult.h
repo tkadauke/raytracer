@@ -6,6 +6,7 @@
 #include <QString>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 class Element;
@@ -24,6 +25,33 @@ namespace world {
     QString sourcePath;
     QJsonObject properties;
   };
+
+  /**
+    * Format-neutral provenance for one imported scene element.
+    *
+    * All fields are optional. Empty fields are omitted from JSON so importers
+    * that flatten hierarchy or cannot identify source entities can leave
+    * provenance off entirely.
+    */
+  struct ImportProvenance {
+    QString sourceFile;
+    QString sourceId;
+    std::optional<int> lineStart;
+    std::optional<int> lineEnd;
+    QString recordId;
+    QString originalUnits;
+    QJsonObject category;
+
+    [[nodiscard]] bool empty() const;
+    [[nodiscard]] QJsonObject toJson() const;
+
+    [[nodiscard]] static ImportProvenance fromJson(const QJsonObject& json);
+    [[nodiscard]] static ImportProvenance fromSource(const ImportSourceMetadata& source);
+  };
+
+  [[nodiscard]] QString importProvenanceMetadataKey();
+  [[nodiscard]] std::optional<ImportProvenance> importProvenance(const Element& element);
+  void setImportProvenance(Element& element, const ImportProvenance& provenance);
 
   /**
     * Move-only result for a scene import operation.
@@ -64,6 +92,9 @@ namespace world {
 
     [[nodiscard]] const ImportSourceMetadata& source() const;
     void setSource(ImportSourceMetadata source);
+
+    [[nodiscard]] std::optional<ImportProvenance> rootProvenance() const;
+    void setRootProvenance(const ImportProvenance& provenance);
 
   private:
     std::unique_ptr<Element> m_root;

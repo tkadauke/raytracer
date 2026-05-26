@@ -4,10 +4,105 @@
 #include "world/objects/Group.h"
 #include "world/objects/Scene.h"
 
+#include <QJsonValue>
+
 #include <algorithm>
+#include <stdexcept>
 #include <utility>
 
 namespace world {
+  namespace {
+    constexpr const char* ProvenanceMetadataKey = "provenance";
+    constexpr const char* LineRangeKey = "lineRange";
+  }
+
+  bool ImportProvenance::empty() const {
+    return sourceFile.isEmpty() && sourceId.isEmpty() && !lineStart && !lineEnd &&
+           recordId.isEmpty() && originalUnits.isEmpty() && category.isEmpty();
+  }
+
+  QJsonObject ImportProvenance::toJson() const {
+    QJsonObject json;
+    if (!sourceFile.isEmpty())
+      json["sourceFile"] = sourceFile;
+    if (!sourceId.isEmpty())
+      json["sourceId"] = sourceId;
+    if (lineStart || lineEnd) {
+      QJsonObject lineRange;
+      if (lineStart)
+        lineRange["start"] = *lineStart;
+      if (lineEnd)
+        lineRange["end"] = *lineEnd;
+      json[LineRangeKey] = lineRange;
+    }
+    if (!recordId.isEmpty())
+      json["recordId"] = recordId;
+    if (!originalUnits.isEmpty())
+      json["originalUnits"] = originalUnits;
+    if (!category.isEmpty())
+      json["category"] = category;
+    return json;
+  }
+
+  ImportProvenance ImportProvenance::fromJson(const QJsonObject& json) {
+    ImportProvenance provenance;
+    provenance.sourceFile = json["sourceFile"].toString();
+    provenance.sourceId = json["sourceId"].toString();
+
+    const auto lineRangeValue = json[LineRangeKey];
+    if (!lineRangeValue.isUndefined()) {
+      if (!lineRangeValue.isObject())
+        throw std::invalid_argument("import provenance lineRange must be an object");
+
+      const auto lineRange = lineRangeValue.toObject();
+      if (lineRange.contains("start"))
+        provenance.lineStart = lineRange["start"].toInt();
+      if (lineRange.contains("end"))
+        provenance.lineEnd = lineRange["end"].toInt();
+    }
+
+    provenance.recordId = json["recordId"].toString();
+    provenance.originalUnits = json["originalUnits"].toString();
+
+    const auto categoryValue = json["category"];
+    if (!categoryValue.isUndefined()) {
+      if (!categoryValue.isObject())
+        throw std::invalid_argument("import provenance category must be an object");
+
+      provenance.category = categoryValue.toObject();
+    }
+
+    return provenance;
+  }
+
+  ImportProvenance ImportProvenance::fromSource(const ImportSourceMetadata& source) {
+    ImportProvenance provenance;
+    provenance.sourceFile = source.sourcePath;
+    return provenance;
+  }
+
+  QString importProvenanceMetadataKey() {
+    return QString::fromLatin1(ProvenanceMetadataKey);
+  }
+
+  std::optional<ImportProvenance> importProvenance(const Element& element) {
+    const auto value = element.metadataValue(importProvenanceMetadataKey());
+    if (value.isUndefined())
+      return std::nullopt;
+
+    if (!value.isObject())
+      throw std::invalid_argument("import provenance metadata must be an object");
+
+    return ImportProvenance::fromJson(value.toObject());
+  }
+
+  void setImportProvenance(Element& element, const ImportProvenance& provenance) {
+    if (provenance.empty()) {
+      element.setMetadataValue(importProvenanceMetadataKey(), QJsonValue::Undefined);
+    } else {
+      element.setMetadataValue(importProvenanceMetadataKey(), provenance.toJson());
+    }
+  }
 
   ImportResult::ImportResult() = default;
 
@@ -86,6 +181,18 @@ namespace world {
 
   void ImportResult::setSource(ImportSourceMetadata source) {
     m_source = std::move(source);
+  }
+
+  std::optional<ImportProvenance> ImportResult::rootProvenance() const {
+    if (!m_root)
+      return std::nullopt;
+
+    return importProvenance(*m_root);
+  }
+
+  void ImportResult::setRootProvenance(const ImportProvenance& provenance) {
+    if (m_root)
+      setImportProvenance(*m_root, provenance);
   }
 
 }

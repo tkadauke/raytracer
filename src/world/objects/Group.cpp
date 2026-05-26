@@ -8,7 +8,6 @@
 
 #include <cmath>
 #include <limits>
-#include <stdexcept>
 
 namespace {
   std::optional<int> metadataInt(const QJsonObject& metadata, const QString& key) {
@@ -48,16 +47,8 @@ Group::Group(Element* parent)
       m_visible(true) {
 }
 
-void Group::setMetadataValue(const QString& key, const QJsonValue& value) {
-  if (value.isUndefined()) {
-    m_metadata.remove(key);
-  } else {
-    m_metadata.insert(key, value);
-  }
-}
-
 std::optional<int> Group::stepIndex() const {
-  return metadataInt(m_metadata, GroupMetadata::stepIndexKey());
+  return metadataInt(metadata(), GroupMetadata::stepIndexKey());
 }
 
 void Group::setStepIndex(std::optional<int> index) {
@@ -69,7 +60,7 @@ void Group::setStepIndex(std::optional<int> index) {
 }
 
 std::optional<int> Group::layerIndex() const {
-  return metadataInt(m_metadata, GroupMetadata::layerIndexKey());
+  return metadataInt(metadata(), GroupMetadata::layerIndexKey());
 }
 
 void Group::setLayerIndex(std::optional<int> index) {
@@ -81,11 +72,11 @@ void Group::setLayerIndex(std::optional<int> index) {
 }
 
 std::optional<double> Group::startTime() const {
-  return metadataDouble(m_metadata, GroupMetadata::startTimeKey());
+  return metadataDouble(metadata(), GroupMetadata::startTimeKey());
 }
 
 std::optional<double> Group::endTime() const {
-  return metadataDouble(m_metadata, GroupMetadata::endTimeKey());
+  return metadataDouble(metadata(), GroupMetadata::endTimeKey());
 }
 
 void Group::setTimeRange(std::optional<double> startTime,
@@ -104,7 +95,7 @@ void Group::setTimeRange(std::optional<double> startTime,
 }
 
 std::optional<QString> Group::label() const {
-  return metadataString(m_metadata, GroupMetadata::labelKey());
+  return metadataString(metadata(), GroupMetadata::labelKey());
 }
 
 void Group::setLabel(const std::optional<QString>& label) {
@@ -112,32 +103,6 @@ void Group::setLabel(const std::optional<QString>& label) {
     setMetadataValue(GroupMetadata::labelKey(), *label);
   } else {
     setMetadataValue(GroupMetadata::labelKey(), QJsonValue::Undefined);
-  }
-}
-
-void Group::read(const QJsonObject& json) {
-  auto groupJson = json;
-  groupJson.remove("metadata");
-
-  Transformable::read(groupJson);
-
-  const auto metadataValue = json["metadata"];
-  if (metadataValue.isUndefined()) {
-    m_metadata = QJsonObject();
-    return;
-  }
-
-  if (!metadataValue.isObject())
-    throw std::invalid_argument("group metadata must be an object");
-
-  m_metadata = metadataValue.toObject();
-}
-
-void Group::write(QJsonObject& json) {
-  Transformable::write(json);
-
-  if (!m_metadata.isEmpty()) {
-    json["metadata"] = m_metadata;
   }
 }
 
