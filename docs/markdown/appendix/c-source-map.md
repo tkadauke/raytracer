@@ -29,6 +29,8 @@
 | `include/core/formats/ldraw/LDrawFileResolver.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawGeometryCompiler.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawParser.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `include/core/formats/molecule/Molecule.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/core/formats/molecule/MoleculeParser.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/core/formats/stl/StlFile.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[STL import](../tools-and-io/stl-import.md) |
 | `include/core/formats/stl/StlParseError.h` | [STL import](../tools-and-io/stl-import.md) |
 | `include/core/geometry/AttributeColorMap.h` | [Tessellation](../rasterization/tessellation.md) |

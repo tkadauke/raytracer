@@ -1,0 +1,8 @@
+HEADER    TEST                                    01-JAN-26   9XYZ
+TITLE     SMALL PROTEIN AND LIGAND STYLE MOLECULE
+MODEL        7
+ATOM      1  N   GLY A   1      11.104  13.207   9.321  1.00 16.44           N
+ATOM      2  CA  GLY A   1      12.560  13.420   9.118  1.00 15.10           C
+HETATM    3  C1  LIG B 201      -1.250   0.500   3.750  0.50 22.00           C
+ENDMDL
+END

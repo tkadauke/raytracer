@@ -38,6 +38,15 @@ in [`ImportedSceneDefaults`](../../../include/world/import/ImportedSceneDefaults
 LDraw and OpenSCAD both use those defaults for white backgrounds, ambient fill,
 directional light, and pinhole camera framing.
 
+Parser-only format support can live below the scene-importer layer when the
+result is useful data but not yet a renderable scene. The molecule parser is
+one example: [`MoleculeParser`](../../../include/core/formats/molecule/MoleculeParser.h)
+reads PDB `ATOM` / `HETATM` records and a supported PDBx/mmCIF `_atom_site`
+subset into [`Molecule`](../../../include/core/formats/molecule/Molecule.h)
+atoms, residues, chains, models, metadata, and lightweight diagnostics. A
+future scene importer can build on that structured data without making the core
+coordinate parser depend on Qt or world-scene classes.
+
 ## Options
 
 [`ImportOptions`](../../../include/world/import/ImportOptions.h) stores
@@ -239,6 +248,8 @@ visible with the ghost material. The flags do not edit the saved scene.
 - `include/world/animation/Timeline.h`
 - `include/world/objects/Group.h`
 - `include/world/objects/StepVisibilityEvaluator.h`
+- `include/core/formats/molecule/Molecule.h`
+- `include/core/formats/molecule/MoleculeParser.h`
 - `include/core/formats/AssetResolver.h`
 - `include/core/formats/gltf/GltfAsset.h`
 - `include/core/formats/gltf/GltfReader.h`
