@@ -76,6 +76,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   packages, parse model XML meshes, build-item transforms, units, and base
   material colors, and instantiate them as grouped imported mesh geometry for
   Epic #235. — GPT-5
+- **G-code parser for printer path visualization.** `core/formats/gcode`
+  now parses common 3D-printer movement, extrusion, feed-rate, layer comment,
+  temperature, and tool-change commands while preserving diagnostics for
+  unsupported dialect commands for Epic #235. — GPT-5
 - **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
   cover inline geometry, library part resolution, nested subfiles, inherited
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs

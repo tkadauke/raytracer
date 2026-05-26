@@ -18,6 +18,9 @@ codebase, not just understand it.
     expectations.
 - [STL import](stl-import.md) — ASCII and binary triangle-mesh import,
     binary count validation, and explicit unit/material assumptions.
+- [G-code parsing](gcode-parsing.md) — visualization-oriented 3D-printer
+    movement, extrusion, layer comments, temperatures, and tool-change
+    metadata.
 - [Importer lifecycle](importer-lifecycle.md) — shared scene-importer
     contract, options, sidecar asset resolution, diagnostics, provenance,
     fixtures, and render smoke patterns for new formats.
