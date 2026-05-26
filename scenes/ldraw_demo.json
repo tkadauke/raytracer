@@ -30,17 +30,18 @@
     },
     {
       "id": "ldraw-model",
-      "name": "LDraw Model",
+      "name": "LDraw Import",
       "position": [0.0, 0.0, 0.0],
       "rotation": [0.0, 0.0, 0.0],
       "scale": [1.0, 1.0, 1.0],
       "visible": true,
-      "material": null,
-      "velocity": [0.0, 0.0, 0.0],
-      "filePath": "scenes/ldraw_demo.ldr",
-      "libraryPath": "scenes/ldraw_parts",
-      "smoothNormals": false,
-      "type": "LDrawModel",
+      "metadata": {
+        "sourceFormat": "LDraw",
+        "sourcePath": "ldraw_demo.ldr",
+        "libraryPath": "ldraw_parts",
+        "normalMode": "flat"
+      },
+      "type": "Collection",
       "children": []
     }
   ]
