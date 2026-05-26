@@ -7,6 +7,7 @@
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Grid.h"
+#include "world/import/LDrawSceneImporter.h"
 
 #include <QDir>
 #include <QMap>
@@ -135,6 +136,10 @@ bool Scene::save(const QString& filename) {
 }
 
 bool Scene::load(const QString& filename) {
+  return load(filename, QString());
+}
+
+bool Scene::load(const QString& filename, const QString& ldrawLibraryRootOverride) {
   clearImportDiagnostics();
   QFile file(filename);
 
@@ -157,6 +162,8 @@ bool Scene::load(const QString& filename) {
   }
 
   resolveElementReferences();
+  world::imports::resolveLDrawAuthoringImports(
+    this, ldrawLibraryRootOverride, QFileInfo(filename).absolutePath(), &m_importDiagnostics);
 
   return true;
 }
