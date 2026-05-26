@@ -25,8 +25,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **World and rendercli LDraw imports.** Scene JSON can now contain
   `Collection` authoring metadata for LDraw source files; rendercli resolves
   that metadata through the import pipeline into ordinary compiled primitive
-  geometry, and direct LDraw input remains available with
-  `--ldraw_library_root` for #210. — GPT-5
+  geometry. Scene JSON can also contain `LDrawModel` surfaces with file path,
+  library root, transform scale, smoothing, and visibility properties, and
+  direct LDraw input remains available with `--ldraw_library_root` for #210. —
+  GPT-5
 - **Shared import provenance metadata.** World scene elements now carry
   optional structured metadata, and import helpers can attach source file,
   source entity, line range/record, original-unit, and category provenance that
