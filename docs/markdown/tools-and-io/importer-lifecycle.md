@@ -99,6 +99,22 @@ format-specific world objects. Keep it descriptive: use names such as
 `sourceId`, `sourceLibrary`, `layerName`, and `assetIdentity` rather than
 roadmap shorthand.
 
+For ordered or time-sliced source data, prefer the shared group playback keys
+over importer-specific names:
+
+- `stepIndex` for build, assembly, or instruction order.
+- `layerIndex` for source layers or frames when there is no separate step
+  number.
+- `startTime` and `endTime` for interval data. Either side may be omitted for
+  an open-ended range.
+- `label` for the user-facing display name of the step, layer, or interval.
+
+[`StepVisibilityEvaluator`](../../../include/world/objects/StepVisibilityEvaluator.h)
+uses those fields in that order: `stepIndex`, then `layerIndex`, then
+`startTime` / `endTime`. Groups without playback metadata are static context.
+The explicit `visible` flag and ancestor visibility still apply, so importers
+should not duplicate visibility in metadata.
+
 ## Fixture Harness
 
 Importer tests should put source files under
@@ -118,6 +134,15 @@ resolves a sidecar asset from the source directory, records provenance on the
 root group, emits a warning diagnostic, and checks that an option changes the
 imported group shape.
 
+Generic group fixtures live under
+[`test/fixtures/groups/`](../../../test/fixtures/groups/). Use
+`nested_transforms_visibility.json` for hierarchy, transform, visibility, and
+metadata round-trips. Use the `step_visibility_*.json` fixtures for playback
+expectations: single-step filtering, cumulative filtering, active-step
+highlighting, and previous-step ghosting. They intentionally avoid
+source-format vocabulary so multiple importers can share them as expected
+output.
+
 ## Render Smoke
 
 For visible formats, add one render smoke after parser-level tests pass. Keep
@@ -128,6 +153,22 @@ passing, scene insertion, and the selected render engine. Use exact structure
 assertions for importer contracts; use render smoke only to catch integration
 mistakes that would make the imported scene blank or visibly wrong.
 
+When the imported scene carries `stepIndex` / `layerIndex` / time-range group
+metadata, add at least one playback smoke:
+
+```bash
+rendercli --engine raster --width 320 --height 240 --step 2 \
+  imported_scene.json step_2.png
+
+rendercli --engine raster --width 320 --height 240 --step 2 \
+  --step_highlight --step_ghost_previous \
+  imported_scene.json step_2_ghosted.png
+```
+
+`--step` renders a single active step. `--step_highlight` changes the active
+step's material during conversion. `--step_ghost_previous` keeps earlier steps
+visible with the ghost material. The flags do not edit the saved scene.
+
 ## Source anchors
 
 <!-- source-anchors -->
@@ -135,10 +176,13 @@ mistakes that would make the imported scene blank or visibly wrong.
 - `include/world/import/ImportOptions.h`
 - `include/world/import/ImportResult.h`
 - `include/world/import/ImportDiagnostic.h`
+- `include/world/objects/Group.h`
+- `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/formats/AssetResolver.h`
 - `src/core/formats/AssetResolver.cpp`
 - `test/helpers/ImporterTestHelper.h`
 - `test/helpers/ImporterTestHelper.cpp`
+- `test/fixtures/groups/`
 - `test/fixtures/importers/`
 - `test/unit/world/import/ImporterFixtureHarnessTest.cpp`
 <!-- /source-anchors -->

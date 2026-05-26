@@ -61,6 +61,12 @@ namespace GroupMetadata {
   * Groups are authoring hierarchy, not render layers or AOVs. Their `visible`
   * flag decides whether descendant scene objects are converted for rendering;
   * it does not create a separate output pass, mask, or render-graph resource.
+  *
+  * Importers may attach domain-neutral playback metadata to groups:
+  * `stepIndex` for ordered assembly/build steps, `layerIndex` for layered
+  * formats that do not expose step numbers, `startTime` / `endTime` for
+  * intervals, and `label` for display text. Step playback and rendercli use
+  * those generic fields without knowing the source format.
   */
 class Group : public Transformable {
   Q_OBJECT
@@ -108,7 +114,8 @@ public:
 
   /**
     * @returns a generic ordered step index, or empty when the metadata is
-    * absent or is not an integer-valued JSON number.
+    * absent or is not an integer-valued JSON number. Step playback evaluates
+    * this before `layerIndex` and time metadata.
     */
   std::optional<int> stepIndex() const;
 
@@ -119,7 +126,8 @@ public:
 
   /**
     * @returns a generic layer/frame index, or empty when the metadata is absent
-    * or is not an integer-valued JSON number.
+    * or is not an integer-valued JSON number. Step playback uses this only
+    * when `stepIndex` is absent.
     */
   std::optional<int> layerIndex() const;
 
@@ -130,13 +138,16 @@ public:
 
   /**
     * @returns the start time for an imported interval/frame, or empty when
-    * absent or not numeric. Units are defined by the importer.
+    * absent or not numeric. Units are defined by the importer. Step playback
+    * uses time ranges only when no step or layer index is present.
     */
   std::optional<double> startTime() const;
 
   /**
     * @returns the end time for an imported interval/frame, or empty when absent
-    * or not numeric. Units are defined by the importer.
+    * or not numeric. Units are defined by the importer. Open-ended ranges are
+    * valid: a missing start means active until `endTime`, and a missing end
+    * means active from `startTime` onward.
     */
   std::optional<double> endTime() const;
 

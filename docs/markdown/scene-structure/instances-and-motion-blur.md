@@ -72,6 +72,52 @@ ordered-step and interval fields so build steps, print layers, imported
 animation slices, and scientific frames can share the same conventions
 instead of minting importer-specific metadata names.
 
+## <a id="step-timeline-visibility"></a>Step and timeline visibility
+The generic playback fields are interpreted by
+[`StepVisibilityEvaluator`](../../../include/world/objects/StepVisibilityEvaluator.h).
+The evaluator is deliberately source-format neutral:
+
+- `stepIndex` is the primary ordered-step field.
+- `layerIndex` is used only when `stepIndex` is absent.
+- `startTime` and `endTime` are used only when neither index is present.
+- groups with none of those fields are static context and remain eligible in
+  every playback selection.
+
+The selection modes are small but cover the common importer cases:
+
+- **single step**: show only the requested `stepIndex` / `layerIndex`, plus
+  static context; time ranges must contain the requested value.
+- **cumulative**: show all indexed groups with an index less than or equal to
+  the requested step, plus static context; time ranges are visible once they
+  have started.
+- **range**: show indexed groups in the inclusive range and time ranges that
+  overlap it.
+- **all**: show every group that is not explicitly hidden.
+
+All modes still compose explicit visibility down the hierarchy. A matching
+child under a hidden or filtered ancestor is not effectively visible, even if
+the child itself matches the requested step.
+
+`rendercli` exposes the playback path for visible smoke tests:
+
+```bash
+rendercli --engine raster --width 320 --height 240 --step 2 \
+  scenes/step_playback_demo.json step_2.png
+
+rendercli --engine raster --width 320 --height 240 --step 2 \
+  --step_highlight scenes/step_playback_demo.json step_2_highlight.png
+
+rendercli --engine raster --width 320 --height 240 --step 2 \
+  --step_highlight --step_ghost_previous \
+  scenes/step_playback_demo.json step_2_ghosted.png
+```
+
+`--step` selects single-step playback. `--step_highlight` overrides active
+groups with the configured highlight material. `--step_ghost_previous` switches
+the selection to cumulative playback and renders earlier groups with the
+previous-step material. These styling flags affect runtime conversion only; the
+scene JSON and explicit group `visible` flags are not modified.
+
 Scene files may call the same object either `Group` or `Collection`.
 Both names instantiate [`Group`](../../../include/world/objects/Group.h).
 The alias exists because import formats and DCC tools often use
@@ -99,6 +145,12 @@ nodes, and transforms that compose into one visible runtime sphere.
 Future format importers can compare against it when verifying that
 source assemblies and collections survive scene JSON loading without
 being confused with render-output layers.
+
+The `step_visibility_*.json` fixtures in the same directory cover the
+single-step, cumulative, highlighted, and ghosted playback cases without using
+domain-specific object names. Importer tests can reuse them directly when a
+format maps source collections, layers, frames, or ordered instructions onto
+group playback metadata.
 
 ## <a id="the-transform-contract"></a>The transform contract
 The contract `Instance` enforces: the wrapped primitive's
@@ -294,5 +346,7 @@ thin-lens, the lens-disc sample) from non-correlated streams.
 <!-- source-anchors -->
 - `include/render/primitives/Instance.h`
 - `include/world/objects/Group.h`
+- `include/world/objects/StepVisibilityEvaluator.h`
 - `include/core/math/Matrix.h`
+- `test/fixtures/groups/`
 <!-- /source-anchors -->

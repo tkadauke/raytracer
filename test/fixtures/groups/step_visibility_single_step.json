@@ -1,0 +1,65 @@
+{
+  "id": "{92000000-0000-0000-0000-000000000000}",
+  "name": "Step Visibility Single Step Fixture",
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.02, 0.03, 0.04],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{92000000-0000-0000-0000-000000000100}",
+      "name": "Static Context",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "sourceFormat": "fixture",
+        "sourceId": "context"
+      },
+      "type": "Collection",
+      "children": []
+    },
+    {
+      "id": "{92000000-0000-0000-0000-000000000101}",
+      "name": "Step 1",
+      "position": [-1.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "stepIndex": 1,
+        "label": "first"
+      },
+      "type": "Group",
+      "children": []
+    },
+    {
+      "id": "{92000000-0000-0000-0000-000000000102}",
+      "name": "Step 2",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "stepIndex": 2,
+        "label": "second"
+      },
+      "type": "Group",
+      "children": []
+    },
+    {
+      "id": "{92000000-0000-0000-0000-000000000103}",
+      "name": "Step 3",
+      "position": [1.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": {
+        "stepIndex": 3,
+        "label": "third"
+      },
+      "type": "Group",
+      "children": []
+    }
+  ]
+}
