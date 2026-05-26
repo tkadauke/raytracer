@@ -4,11 +4,22 @@
 #include "world/objects/Scene.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 
+#include <QDir>
 #include <QJsonObject>
+#include <QStringList>
+#include <memory>
 #include <vector>
 
 namespace StepVisibilityEvaluatorTest {
   namespace {
+    std::unique_ptr<Scene> loadGroupFixture(const QString& filename) {
+      auto scene = std::make_unique<Scene>();
+      const QString path =
+        QDir::current().absoluteFilePath(QString("test/fixtures/groups/%1").arg(filename));
+      EXPECT_TRUE(scene->load(path)) << qPrintable(path);
+      return scene;
+    }
+
     std::vector<int> effectivelyVisibleSteps(const Scene& scene,
                                              const StepVisibilityEvaluator& evaluator) {
       std::vector<int> steps;
@@ -17,6 +28,26 @@ namespace StepVisibilityEvaluatorTest {
           steps.push_back(*group.stepIndex());
       });
       return steps;
+    }
+
+    QStringList effectivelyVisibleNames(const Scene& scene,
+                                        const StepVisibilityEvaluator& evaluator) {
+      QStringList names;
+      evaluator.forEachGroup(scene, [&](const Group& group, bool, bool effectivelyVisible) {
+        if (effectivelyVisible)
+          names.push_back(group.name());
+      });
+      return names;
+    }
+
+    const Group* findGroupByName(const Scene& scene, const QString& name) {
+      const Group* result = nullptr;
+      const StepVisibilityEvaluator evaluator(StepVisibilitySelection::all());
+      evaluator.forEachGroup(scene, [&](const Group& group, bool, bool) {
+        if (group.name() == name)
+          result = &group;
+      });
+      return result;
     }
   }
 
@@ -295,5 +326,67 @@ namespace StepVisibilityEvaluatorTest {
     const StepVisibilityEvaluator evaluator(StepVisibilitySelection::all());
 
     EXPECT_EQ(StepVisualRole::Normal, evaluator.visualRole(group, style));
+  }
+
+  TEST(StepVisibilityEvaluator, FixtureShouldEvaluateSingleStepPlayback) {
+    const auto scene = loadGroupFixture("step_visibility_single_step.json");
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::onlyStep(2));
+
+    EXPECT_EQ((QStringList{"Static Context", "Step 2"}),
+              effectivelyVisibleNames(*scene, evaluator));
+  }
+
+  TEST(StepVisibilityEvaluator, FixtureShouldEvaluateCumulativePlayback) {
+    const auto scene = loadGroupFixture("step_visibility_cumulative.json");
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::cumulativeThrough(2));
+
+    EXPECT_EQ((QStringList{"Static Context", "Step 1", "Step 2"}),
+              effectivelyVisibleNames(*scene, evaluator));
+  }
+
+  TEST(StepVisibilityEvaluator, FixtureShouldEvaluateHighlightedPlaybackRoles) {
+    const auto scene = loadGroupFixture("step_visibility_highlighted.json");
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::onlyStep(2));
+
+    StepPlaybackStyle style;
+    style.activeStep = 2;
+    style.highlightActive = true;
+
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Static Context"));
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Step 1"));
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Step 2"));
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Step 3"));
+
+    const Group* context = findGroupByName(*scene, "Static Context");
+    const Group* stepOne = findGroupByName(*scene, "Step 1");
+    const Group* stepTwo = findGroupByName(*scene, "Step 2");
+    const Group* stepThree = findGroupByName(*scene, "Step 3");
+
+    EXPECT_EQ(StepVisualRole::Normal, evaluator.visualRole(*context, style));
+    EXPECT_EQ(StepVisualRole::Hidden, evaluator.visualRole(*stepOne, style));
+    EXPECT_EQ(StepVisualRole::Active, evaluator.visualRole(*stepTwo, style));
+    EXPECT_EQ(StepVisualRole::Hidden, evaluator.visualRole(*stepThree, style));
+  }
+
+  TEST(StepVisibilityEvaluator, FixtureShouldEvaluateGhostedPlaybackRoles) {
+    const auto scene = loadGroupFixture("step_visibility_ghosted.json");
+    const StepVisibilityEvaluator evaluator(StepVisibilitySelection::cumulativeThrough(2));
+
+    StepPlaybackStyle style;
+    style.activeStep = 2;
+    style.highlightActive = true;
+    style.ghostPrevious = true;
+
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Step 1"));
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Step 2"));
+    ASSERT_NE(nullptr, findGroupByName(*scene, "Step 3"));
+
+    const Group* stepOne = findGroupByName(*scene, "Step 1");
+    const Group* stepTwo = findGroupByName(*scene, "Step 2");
+    const Group* stepThree = findGroupByName(*scene, "Step 3");
+
+    EXPECT_EQ(StepVisualRole::Previous, evaluator.visualRole(*stepOne, style));
+    EXPECT_EQ(StepVisualRole::Active, evaluator.visualRole(*stepTwo, style));
+    EXPECT_EQ(StepVisualRole::Hidden, evaluator.visualRole(*stepThree, style));
   }
 }

@@ -11,11 +11,31 @@ class Group;
 
 /**
   * Step-selection modes for importer-authored Group metadata.
+  *
+  * The evaluator reads generic metadata from Group, not importer-specific
+  * fields. `stepIndex` has highest precedence, `layerIndex` is used when no
+  * step index exists, and `startTime` / `endTime` are used when neither index
+  * exists. Groups with none of those fields are static context.
   */
 enum class StepVisibilityMode {
+  /**
+    * Show only groups whose `stepIndex` or `layerIndex` equals the requested
+    * step. Time ranges must contain the requested value.
+    */
   OnlyStep,
+  /**
+    * Show indexed groups whose index is less than or equal to the requested
+    * step. Time ranges match when they have started by the requested value.
+    */
   Cumulative,
+  /**
+    * Show all step, layer, time-range, and static groups, subject to explicit
+    * group visibility and ancestor visibility.
+    */
   All,
+  /**
+    * Show indexed groups and time ranges overlapping the inclusive step range.
+    */
   Range,
 };
 
@@ -31,6 +51,11 @@ enum class StepVisualRole {
 
 /**
   * Optional style controls for domain-neutral step playback renders.
+  *
+  * Styling changes material choice during runtime scene conversion only. It
+  * does not mutate the editable scene or saved group visibility. `activeStep`
+  * is the rendercli `--step` value; `highlightActive` maps to
+  * `--step_highlight`, and `ghostPrevious` maps to `--step_ghost_previous`.
   */
 struct StepPlaybackStyle {
   std::optional<int> activeStep;
@@ -48,7 +73,9 @@ struct StepPlaybackStyle {
   *
   * Groups with no valid step, layer, or time metadata are treated as static
   * hierarchy and remain eligible in step-filtered modes. A group's explicit
-  * visible flag is still composed with the evaluated step visibility.
+  * visible flag is still composed with the evaluated step visibility, and
+  * effective visibility additionally requires every ancestor group to be
+  * visible under the same selection.
   */
 class StepVisibilitySelection {
 public:
@@ -77,6 +104,10 @@ private:
 
 /**
   * Evaluates which world Groups are visible for a requested step selection.
+  *
+  * This class is intentionally domain-neutral: assembly steps, print layers,
+  * simulation frames, and time-sliced imports all use the same Group metadata
+  * helpers and the same visibility rules.
   */
 class StepVisibilityEvaluator {
 public:
