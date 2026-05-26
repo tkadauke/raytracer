@@ -9,6 +9,7 @@
 #include "world/objects/PointLight.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
+#include "world/objects/StepVisibilityEvaluator.h"
 #include "core/Buffer.h"
 #include "engine/raster/Rasterizer.h"
 #include "engine/raytracer/Raytracer.h"
@@ -43,6 +44,15 @@ namespace GroupTest {
       int count = 0;
       scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material>) {
         ++count;
+      });
+      return count;
+    }
+
+    int countLeavesWithMaterial(const render::Scene& scene) {
+      int count = 0;
+      scene.forEachLeaf([&](const render::Primitive*, std::shared_ptr<render::Material> material) {
+        if (material)
+          ++count;
       });
       return count;
     }
@@ -611,6 +621,53 @@ namespace GroupTest {
     auto visible = sceneWithNestedGroup(true, true, true)->toRaytracerScene();
     EXPECT_EQ(1, countLeaves(*visible));
     EXPECT_EQ(1u, visible->lights().size());
+  }
+
+  TEST(Scene, StepPlaybackHighlightOverridesActiveGroupMaterial) {
+    Scene scene;
+
+    auto* group = new Group;
+    group->setStepIndex(2);
+    group->addChild(new Sphere);
+    scene.addChild(group);
+
+    StepPlaybackStyle style;
+    style.activeStep = 2;
+    style.highlightActive = true;
+
+    auto rt = scene.toRaytracerScene(style);
+
+    EXPECT_EQ(1, countLeaves(*rt));
+    EXPECT_EQ(1, countLeavesWithMaterial(*rt));
+  }
+
+  TEST(Scene, StepPlaybackGhostsPreviousGroupsAndHidesFutureGroups) {
+    Scene scene;
+
+    auto* previous = new Group;
+    previous->setStepIndex(1);
+    previous->addChild(new Sphere);
+    scene.addChild(previous);
+
+    auto* active = new Group;
+    active->setStepIndex(2);
+    active->addChild(new Sphere);
+    scene.addChild(active);
+
+    auto* future = new Group;
+    future->setStepIndex(3);
+    future->addChild(new Sphere);
+    scene.addChild(future);
+
+    StepPlaybackStyle style;
+    style.activeStep = 2;
+    style.highlightActive = true;
+    style.ghostPrevious = true;
+
+    auto rt = scene.toRaytracerScene(style);
+
+    EXPECT_EQ(2, countLeaves(*rt));
+    EXPECT_EQ(2, countLeavesWithMaterial(*rt));
   }
 
   TEST(Scene, ShouldLoadNestedGroupTransformVisibilityFixture) {

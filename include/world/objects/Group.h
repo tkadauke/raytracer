@@ -6,6 +6,8 @@
 
 #include "world/objects/Transformable.h"
 
+struct StepPlaybackStyle;
+
 namespace render {
   class Primitive;
   class Scene;
@@ -160,6 +162,8 @@ public:
     * Hidden groups return null and do not register descendant lights.
     */
   std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene) const;
+  std::shared_ptr<render::Primitive> toRaytracer(render::Scene* scene,
+                                                const StepPlaybackStyle& style) const;
 
   /**
     * @returns true for surfaces, lights, and other groups. Groups reject

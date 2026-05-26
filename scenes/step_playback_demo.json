@@ -1,0 +1,123 @@
+{
+  "id": "{10000000-0000-0000-0000-000000050000}",
+  "name": "Step Playback Demo",
+  "ambient": [0.35, 0.35, 0.35],
+  "background": [0.05, 0.06, 0.08],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{10000000-0000-0000-0000-000000050001}",
+      "name": "Camera",
+      "position": [0.0, -1.8, -7.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.35,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000050002}",
+      "name": "KeyLight",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "direction": [-0.45, -1.0, -0.4],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000050010}",
+      "name": "StepTexture",
+      "color": [0.2, 0.65, 0.95],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000050011}",
+      "name": "StepMaterial",
+      "diffuseTexture": "{10000000-0000-0000-0000-000000050010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 1.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000050020}",
+      "name": "Step 1",
+      "position": [-1.4, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": { "stepIndex": 1, "label": "start" },
+      "type": "Group",
+      "children": [
+        {
+          "id": "{10000000-0000-0000-0000-000000050021}",
+          "name": "Step 1 Sphere",
+          "position": [0.0, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": "{10000000-0000-0000-0000-000000050011}",
+          "radius": 0.55,
+          "velocity": [0.0, 0.0, 0.0],
+          "type": "Sphere",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000050030}",
+      "name": "Step 2",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": { "stepIndex": 2, "label": "middle" },
+      "type": "Group",
+      "children": [
+        {
+          "id": "{10000000-0000-0000-0000-000000050031}",
+          "name": "Step 2 Sphere",
+          "position": [0.0, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": "{10000000-0000-0000-0000-000000050011}",
+          "radius": 0.55,
+          "velocity": [0.0, 0.0, 0.0],
+          "type": "Sphere",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "{10000000-0000-0000-0000-000000050040}",
+      "name": "Step 3",
+      "position": [1.4, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "metadata": { "stepIndex": 3, "label": "finish" },
+      "type": "Group",
+      "children": [
+        {
+          "id": "{10000000-0000-0000-0000-000000050041}",
+          "name": "Step 3 Sphere",
+          "position": [0.0, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": "{10000000-0000-0000-0000-000000050011}",
+          "radius": 0.55,
+          "velocity": [0.0, 0.0, 0.0],
+          "type": "Sphere",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

@@ -740,6 +740,7 @@ private:
   bool m_fpsSet;
   bool m_stepSelectionSet;
   CommandLineStepSelection m_stepSelection;
+  StepPlaybackStyle m_stepPlaybackStyle;
 
   std::unique_ptr<Scene> loadScene() const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
@@ -848,7 +849,8 @@ Renderer::Renderer()
       m_frameEndSet(false),
       m_fpsSet(false),
       m_stepSelectionSet(false),
-      m_stepSelection() {
+      m_stepSelection(),
+      m_stepPlaybackStyle() {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -1210,7 +1212,7 @@ QString Renderer::renderGraphOutputPath() const {
 }
 
 std::vector<double> Renderer::renderScene(const Scene& scene, const QString& output) const {
-  auto raytracerScene = scene.toRaytracerScene();
+  auto raytracerScene = scene.toRaytracerScene(m_stepPlaybackStyle);
   int outputWidth = m_width;
   int outputHeight = m_height;
 
@@ -1664,6 +1666,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Evaluate grouped step visibility before rendering: N, single:N, cumulative:N, or "
       "sequence[:FIRST-LAST]",
       "selection"},
+     {"step_highlight", "Override active step groups with a highlight material"},
+     {"step_ghost_previous", "Keep previous step groups visible with a dim material"},
      {"animation", "Render the scene animation as an image sequence"},
      {"frame_start", "Override the first animation frame", "frame"},
      {"frame_end", "Override the last animation frame", "frame"},
@@ -2181,6 +2185,22 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       return CommandLineError;
     }
     m_frameSet = true;
+  }
+
+  if (parser.isSet("step_highlight")) {
+    m_stepPlaybackStyle.highlightActive = true;
+  }
+
+  if (parser.isSet("step_ghost_previous")) {
+    m_stepPlaybackStyle.ghostPrevious = true;
+  }
+
+  if (m_stepPlaybackStyle.highlightActive || m_stepPlaybackStyle.ghostPrevious) {
+    if (!m_stepSelectionSet || m_stepSelection.mode == CommandLineStepMode::Sequence) {
+      *errorMessage = "Step playback visual modes require --step";
+      return CommandLineError;
+    }
+    m_stepPlaybackStyle.activeStep = m_stepSelection.step;
   }
 
   if (parser.isSet("frame_start")) {

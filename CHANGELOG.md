@@ -14,6 +14,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 - **rendercli grouped step rendering.** `rendercli --step` now renders grouped
   scene step selections in single, cumulative, and sequence modes for Epic
   #232. — GPT-5
+- **Step playback highlight and ghost modes.** Group `stepIndex` metadata can
+  now drive optional render-time active-step highlighting and previous-step
+  ghosting through `rendercli --step`, `--step_highlight`, and
+  `--step_ghost_previous`, while default rendering remains unchanged. — GPT-5
 - **Structured LDraw import diagnostics.** LDraw resolving and geometry
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
