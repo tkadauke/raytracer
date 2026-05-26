@@ -1,9 +1,14 @@
 #include "world/import/OpenScadSceneImporter.h"
 
+#include "core/Color.h"
+#include "core/formats/ply/PlyFile.h"
 #include "core/formats/stl/StlFile.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/Angle.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/MeshPrimitive.h"
+#include "render/textures/ConstantColorTexture.h"
+#include "world/import/ImportResult.h"
 #include "world/import/OpenScadCompiler.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Box.h"
@@ -24,6 +29,7 @@
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -645,11 +651,59 @@ namespace {
 
   bool hasCompileOptions(const world::ImportOptions& options) {
     return options.contains("executable") || options.contains("cacheDirectory") ||
-           options.contains("define");
+           options.contains("define") || options.contains("outputFormat");
   }
 }
 
 namespace world {
+  namespace {
+    QString meshFormatFor(const QString& outputPath, const ImportOptions& options) {
+      const QString explicitFormat = options.value("outputFormat").toString().trimmed().toLower();
+      if (!explicitFormat.isEmpty())
+        return explicitFormat;
+      return QFileInfo(outputPath).suffix().toLower();
+    }
+
+    Mesh readMeshFile(const QString& outputPath, const QString& format) {
+      Mesh mesh;
+      std::ifstream input(outputPath.toStdString(), std::ios::binary);
+      if (!input) {
+        throw std::runtime_error("unable to open mesh file");
+      }
+
+      if (format == QStringLiteral("stl")) {
+        StlFile file(input, mesh);
+        return mesh;
+      }
+      if (format == QStringLiteral("ply")) {
+        PlyFile file(input, mesh);
+        return mesh;
+      }
+
+      throw std::invalid_argument(
+        QString("unsupported generated mesh format '%1'").arg(format).toStdString());
+    }
+
+    std::shared_ptr<render::Material> defaultOpenScadMaterial() {
+      auto material = std::make_shared<render::MatteMaterial>(
+        std::make_shared<render::ConstantColorTexture>(Colord(0.72, 0.72, 0.68)));
+      material->setAmbientCoefficient(0.85);
+      material->setDiffuseCoefficient(0.65);
+      return material;
+    }
+
+    ImportProvenance openScadProvenance(const ImportSourceMetadata& source, const QString& sourceId,
+                                        const QString& generatedOutputFormat) {
+      ImportProvenance provenance = ImportProvenance::fromSource(source);
+      provenance.sourceId = sourceId;
+      provenance.category = {
+        {"kind", "generated-mesh"},
+        {"sourceFormat", source.formatName},
+        {"generatedOutputFormat", generatedOutputFormat},
+      };
+      return provenance;
+    }
+  }
 
   QString OpenScadSceneImporter::name() const {
     return "openscad";
@@ -682,6 +736,13 @@ namespace world {
        "",
        false,
        {}},
+      {"outputFormat",
+       ImportOptionType::String,
+       "Generated mesh format",
+       "OpenSCAD mesh output format to compile and import. Supported values are stl and ply.",
+       "stl",
+       false,
+       {"stl", "ply"}},
     };
   }
 
@@ -715,6 +776,7 @@ namespace world {
     request.sourcePath = filename;
     request.executablePath = options.value("executable").toString();
     request.cacheDirectory = options.value("cacheDirectory").toString();
+    request.outputFormat = options.value("outputFormat", QStringLiteral("stl")).toString();
     request.options = options.values();
 
     const OpenScadCompiler compiler;
@@ -741,16 +803,10 @@ namespace world {
       return ImportResult::failed(std::move(compiled.diagnostics), source);
     }
 
+    const QString meshFormat = meshFormatFor(compiled.outputPath, options);
     Mesh mesh;
-    std::ifstream input(compiled.outputPath.toStdString(), std::ios::binary);
-    if (!input) {
-      return ImportResult::failed(
-        {ImportDiagnostic::error("Unable to read generated OpenSCAD mesh", compiled.outputPath)},
-        source);
-    }
-
     try {
-      StlFile stl(input, mesh);
+      mesh = readMeshFile(compiled.outputPath, meshFormat);
     } catch (const std::exception& error) {
       return ImportResult::failed(
         {ImportDiagnostic::error(
@@ -761,11 +817,15 @@ namespace world {
 
     auto group = std::make_unique<Group>();
     group->setName(QFileInfo(filename).baseName());
+    setImportProvenance(*group, openScadProvenance(source, QStringLiteral("root"), meshFormat));
 
     auto primitive = std::make_shared<render::MeshPrimitive>(
       std::move(mesh), render::MeshPrimitive::NormalMode::Flat);
+    primitive->setMaterial(defaultOpenScadMaterial());
     auto compiledPrimitive = std::make_unique<CompiledPrimitive>(primitive);
     compiledPrimitive->setName("OpenSCAD Mesh");
+    setImportProvenance(*compiledPrimitive,
+                        openScadProvenance(source, QStringLiteral("generated-output"), meshFormat));
     group->addChild(std::move(compiledPrimitive));
 
     ImportResult result(std::move(group), source);

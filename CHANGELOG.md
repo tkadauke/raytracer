@@ -29,6 +29,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `cube`, `sphere`, and `cylinder` directly into editable primitives and CSG
   objects with source-located diagnostics for unsupported syntax for Epic #234.
   — GPT-5
+- **OpenSCAD compiled mesh import.** OpenSCAD source asset imports now select
+  the generated mesh reader by output format, support STL and PLY compiled
+  output, attach source provenance to generated mesh nodes, and render through
+  rendercli with deterministic default material for Epic #234. — GPT-5
 - **OpenSCAD source asset import.** Registered `.scad` imports now use an
   optional external OpenSCAD executable to compile cached STL mesh output,
   report missing-tool diagnostics without throwing, and attach generated mesh

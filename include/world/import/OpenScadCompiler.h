@@ -15,6 +15,7 @@ namespace world {
     QString sourcePath;
     QString executablePath;
     QString cacheDirectory;
+    QString outputFormat;
     QJsonObject options;
   };
 

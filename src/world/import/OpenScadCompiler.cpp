@@ -15,6 +15,11 @@ namespace {
     return options;
   }
 
+  QString normalizedOutputFormat(const QString& outputFormat) {
+    const QString format = outputFormat.trimmed().toLower();
+    return format.isEmpty() ? QStringLiteral("stl") : format;
+  }
+
   QStringList argumentsFor(const QString& outputPath, const QString& sourcePath,
                            const QJsonObject& options) {
     QStringList arguments;
@@ -67,7 +72,9 @@ namespace world {
     const QString cacheDirectory =
       request.cacheDirectory.trimmed().isEmpty() ? defaultCacheDirectory() : request.cacheDirectory;
     QDir().mkpath(cacheDirectory);
-    result.outputPath = QDir(cacheDirectory).filePath(result.cacheKey + ".stl");
+    result.outputPath =
+      QDir(cacheDirectory)
+        .filePath(result.cacheKey + "." + normalizedOutputFormat(request.outputFormat));
 
     if (QFileInfo::exists(result.outputPath)) {
       result.succeeded = true;
