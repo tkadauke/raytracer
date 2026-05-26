@@ -77,6 +77,28 @@ namespace core::gltf {
     std::vector<std::size_t> nodes;
   };
 
+  struct AnimationSampler {
+    std::size_t input = 0;
+    std::size_t output = 0;
+    std::string interpolation = "LINEAR";
+  };
+
+  struct AnimationChannelTarget {
+    std::optional<std::size_t> node;
+    std::string path;
+  };
+
+  struct AnimationChannel {
+    std::size_t sampler = 0;
+    AnimationChannelTarget target;
+  };
+
+  struct Animation {
+    std::string name;
+    std::vector<AnimationSampler> samplers;
+    std::vector<AnimationChannel> channels;
+  };
+
   struct Asset {
     std::string version;
     std::string generator;
@@ -86,6 +108,7 @@ namespace core::gltf {
     std::vector<Image> images;
     std::vector<Node> nodes;
     std::vector<Scene> scenes;
+    std::vector<Animation> animations;
     std::optional<std::size_t> defaultScene;
   };
 

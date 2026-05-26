@@ -3,8 +3,10 @@
 #include "world/import/GltfSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Group.h"
+#include "world/objects/Scene.h"
 
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QTemporaryFile>
 
@@ -142,6 +144,42 @@ namespace GltfSceneImporterTest {
     ASSERT_NE(nullptr, child);
     EXPECT_EQ(QString("Child"), child->name());
     expectVectorNear(child->position(), Vector3d(1.0, 2.0, 0.0));
+  }
+
+  TEST(GltfSceneImporter, ImportsAnimatedNodeMetadataAndTimelineTracks) {
+    world::GltfSceneImporter importer;
+    const auto result = importer.importFile("test/fixtures/gltf/animated_node.gltf");
+
+    ASSERT_TRUE(result.succeeded());
+    ASSERT_TRUE(result.hasWarnings());
+    ASSERT_NE(nullptr, result.sceneRoot());
+    auto* scene = result.sceneRoot();
+    ASSERT_TRUE(scene->hasAnimation());
+    ASSERT_NE(nullptr, scene->animation());
+    EXPECT_EQ(0, scene->animation()->startFrame());
+    EXPECT_EQ(24, scene->animation()->endFrame());
+    ASSERT_EQ(1u, scene->animation()->tracks().size());
+    EXPECT_EQ(QString("position"), scene->animation()->tracks().front().propertyName());
+
+    ASSERT_EQ(2, scene->childElements().size());
+    auto* importRoot = qobject_cast<Group*>(scene->childElements()[1]);
+    ASSERT_NE(nullptr, importRoot);
+    auto* sceneGroup = qobject_cast<Group*>(importRoot->childElements()[0]);
+    ASSERT_NE(nullptr, sceneGroup);
+    auto* animatedNode = qobject_cast<Group*>(sceneGroup->childElements()[0]);
+    ASSERT_NE(nullptr, animatedNode);
+    EXPECT_EQ(QString("Animated Node"), animatedNode->name());
+    EXPECT_EQ(2, animatedNode->metadataValue("gltfAnimationChannelCount").toInt());
+
+    const auto channels = animatedNode->metadataValue("gltfAnimationChannels").toArray();
+    ASSERT_EQ(2, channels.size());
+    EXPECT_TRUE(channels[0].toObject()["represented"].toBool());
+    EXPECT_EQ(QString("position"), channels[0].toObject()["worldProperty"].toString());
+    EXPECT_FALSE(channels[1].toObject()["represented"].toBool());
+    EXPECT_EQ(QString("unsupported target path"), channels[1].toObject()["reason"].toString());
+
+    scene->evaluateAnimationAtFrame(24);
+    expectVectorNear(animatedNode->position(), Vector3d(1.0, 2.0, 3.0));
   }
 
 }

@@ -623,6 +623,99 @@ namespace core::gltf {
       }
     }
 
+    void parseAnimations(const QJsonObject& root, Asset& asset, Diagnostics& diagnostics) {
+      const QJsonValue value = root.value("animations");
+      if (value.isUndefined())
+        return;
+      if (!value.isArray()) {
+        diagnostics.error(DiagnosticCode::InvalidPropertyType, "animations", "Expected an array");
+        return;
+      }
+
+      const QJsonArray animations = value.toArray();
+      asset.animations.reserve(static_cast<std::size_t>(animations.size()));
+      for (int i = 0; i < animations.size(); ++i) {
+        const std::string path = jsonPath("animations", static_cast<std::size_t>(i));
+        if (!animations.at(i).isObject()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path, "Expected an object");
+          continue;
+        }
+
+        const QJsonObject object = animations.at(i).toObject();
+        Animation animation;
+        if (auto name = stringProperty(object, "name", path, diagnostics))
+          animation.name = *name;
+
+        const QJsonValue samplersValue = object.value("samplers");
+        if (!samplersValue.isArray()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".samplers",
+                            "Expected an array");
+        } else {
+          const QJsonArray samplers = samplersValue.toArray();
+          animation.samplers.reserve(static_cast<std::size_t>(samplers.size()));
+          for (int j = 0; j < samplers.size(); ++j) {
+            const std::string samplerPath =
+              path + "." + jsonPath("samplers", static_cast<std::size_t>(j));
+            if (!samplers.at(j).isObject()) {
+              diagnostics.error(DiagnosticCode::InvalidPropertyType, samplerPath,
+                                "Expected an object");
+              continue;
+            }
+
+            const QJsonObject samplerObject = samplers.at(j).toObject();
+            AnimationSampler sampler;
+            if (auto input = unsignedInteger(samplerObject, "input", samplerPath, diagnostics))
+              sampler.input = *input;
+            if (auto output = unsignedInteger(samplerObject, "output", samplerPath, diagnostics))
+              sampler.output = *output;
+            if (auto interpolation =
+                  stringProperty(samplerObject, "interpolation", samplerPath, diagnostics))
+              sampler.interpolation = *interpolation;
+            animation.samplers.push_back(std::move(sampler));
+          }
+        }
+
+        const QJsonValue channelsValue = object.value("channels");
+        if (!channelsValue.isArray()) {
+          diagnostics.error(DiagnosticCode::InvalidPropertyType, path + ".channels",
+                            "Expected an array");
+        } else {
+          const QJsonArray channels = channelsValue.toArray();
+          animation.channels.reserve(static_cast<std::size_t>(channels.size()));
+          for (int j = 0; j < channels.size(); ++j) {
+            const std::string channelPath =
+              path + "." + jsonPath("channels", static_cast<std::size_t>(j));
+            if (!channels.at(j).isObject()) {
+              diagnostics.error(DiagnosticCode::InvalidPropertyType, channelPath,
+                                "Expected an object");
+              continue;
+            }
+
+            const QJsonObject channelObject = channels.at(j).toObject();
+            AnimationChannel channel;
+            if (auto sampler = unsignedInteger(channelObject, "sampler", channelPath, diagnostics))
+              channel.sampler = *sampler;
+
+            const QJsonValue targetValue = channelObject.value("target");
+            if (!targetValue.isObject()) {
+              diagnostics.error(DiagnosticCode::InvalidPropertyType, channelPath + ".target",
+                                "Expected an object");
+            } else {
+              const QJsonObject targetObject = targetValue.toObject();
+              channel.target.node =
+                unsignedInteger(targetObject, "node", channelPath + ".target", diagnostics, false);
+              if (auto targetPath = stringProperty(targetObject, "path", channelPath + ".target",
+                                                   diagnostics, true))
+                channel.target.path = *targetPath;
+            }
+            animation.channels.push_back(std::move(channel));
+          }
+        }
+
+        asset.animations.push_back(std::move(animation));
+      }
+    }
+
     void resolveBufferViewImages(Asset& asset) {
       for (Image& image : asset.images) {
         if (image.bufferView && *image.bufferView < asset.bufferViews.size())
@@ -652,6 +745,34 @@ namespace core::gltf {
       if (asset.defaultScene && *asset.defaultScene >= asset.scenes.size()) {
         diagnostics.error(DiagnosticCode::InvalidReference, "scene",
                           "default scene references a missing scene");
+      }
+
+      for (std::size_t i = 0; i < asset.animations.size(); ++i) {
+        const Animation& animation = asset.animations[i];
+        for (std::size_t j = 0; j < animation.samplers.size(); ++j) {
+          const AnimationSampler& sampler = animation.samplers[j];
+          const std::string path = jsonPath("animations", i) + "." + jsonPath("samplers", j);
+          if (sampler.input >= asset.accessors.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, path + ".input",
+                              "animation sampler references a missing input accessor");
+          }
+          if (sampler.output >= asset.accessors.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, path + ".output",
+                              "animation sampler references a missing output accessor");
+          }
+        }
+        for (std::size_t j = 0; j < animation.channels.size(); ++j) {
+          const AnimationChannel& channel = animation.channels[j];
+          const std::string path = jsonPath("animations", i) + "." + jsonPath("channels", j);
+          if (channel.sampler >= animation.samplers.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, path + ".sampler",
+                              "animation channel references a missing sampler");
+          }
+          if (channel.target.node && *channel.target.node >= asset.nodes.size()) {
+            diagnostics.error(DiagnosticCode::InvalidReference, path + ".target.node",
+                              "animation channel references a missing node");
+          }
+        }
       }
     }
 
@@ -696,6 +817,7 @@ namespace core::gltf {
       parseImages(root, asset, currentFile, resolver, result.diagnostics);
       parseNodes(root, asset, result.diagnostics);
       parseScenes(root, asset, result.diagnostics);
+      parseAnimations(root, asset, result.diagnostics);
       validateBufferViews(asset, result.diagnostics);
       validateAccessors(asset, result.diagnostics);
       validateImages(asset, result.diagnostics);

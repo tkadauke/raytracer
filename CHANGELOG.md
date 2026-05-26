@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **glTF animation import smoke path.** glTF imports now preserve animation
+  sampler/channel metadata on node groups, convert simple translation,
+  rotation, and scale channels into world timeline tracks where possible, and
+  report diagnostics for unsupported interpolation or target paths for Epic
+  #233. — GPT-5
 - **Modeler Import action.** Modeler now has `File -> Import` for adding a
   supported external model, including `.scad`, to the current scene without
   replacing the scene or applying standalone-open camera, lighting, background,

@@ -138,6 +138,30 @@ namespace GltfReaderTest {
     EXPECT_EQ(5.0, (*result.asset->nodes[2].matrix)[12]);
   }
 
+  TEST(GltfReader, ParsesAnimationSamplersAndChannelsFromFixture) {
+    const fs::path fixture = "test/fixtures/gltf/animated_node.gltf";
+
+    const core::gltf::ReadResult result = Reader::readFile(fixture);
+
+    ASSERT_TRUE(result.ok()) << (result.diagnostics.empty()
+                                   ? ""
+                                   : result.diagnostics.entries().front().toString());
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(1u, result.asset->animations.size());
+    const auto& animation = result.asset->animations.front();
+    EXPECT_EQ("Move", animation.name);
+    ASSERT_EQ(2u, animation.samplers.size());
+    EXPECT_EQ(0u, animation.samplers[0].input);
+    EXPECT_EQ(1u, animation.samplers[0].output);
+    EXPECT_EQ("LINEAR", animation.samplers[0].interpolation);
+    ASSERT_EQ(2u, animation.channels.size());
+    EXPECT_EQ(0u, animation.channels[0].sampler);
+    ASSERT_TRUE(animation.channels[0].target.node.has_value());
+    EXPECT_EQ(0u, *animation.channels[0].target.node);
+    EXPECT_EQ("translation", animation.channels[0].target.path);
+    EXPECT_EQ("weights", animation.channels[1].target.path);
+  }
+
   TEST(GltfReader, ParsesGlbJsonAndBinaryChunks) {
     const string json = R"JSON({
       "asset": {"version": "2.0"},

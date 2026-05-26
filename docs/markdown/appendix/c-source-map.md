@@ -159,8 +159,8 @@
 | `include/render/viewplanes/ViewPlaneFactory.h` | [View planes](../scene-structure/view-planes.md) |
 | `include/widgets/world/RenderGraphInspectorWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/widgets/world/RenderGraphTracePreviewWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
-| `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
-| `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/AdditiveManufacturingSceneImporter.h` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `include/world/import/GCodeSceneImporter.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/world/import/GltfSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
@@ -217,6 +217,8 @@
 | `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/world/animation/AnimationTrack.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `src/world/animation/Timeline.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/AdditiveManufacturingSceneImporter.cpp` | [Additive manufacturing import](../tools-and-io/additive-manufacturing-import.md) |
 | `src/world/import/GCodeSceneImporter.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
