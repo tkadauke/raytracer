@@ -248,11 +248,15 @@ Additional file-format topics are queued under
   with LDraw affine transforms and color inheritance. MPD files are
   split into `0 FILE` / `0 NOFILE` blocks so type-1 references can
   resolve embedded submodels before falling back to external library
-  roots. The shared `world::SceneImporter` surface is the next layer
-  above these format-specific pieces: importers report supported
-  extensions and option schemas, return an owned scene or group root,
-  attach source metadata, and distinguish warning diagnostics from
-  import-blocking errors.
+  roots. Shared asset lookup lives in `core::AssetResolver`: importers
+  can resolve sidecar files relative to the current file and configured
+  library roots, choose exact or case-insensitive matching explicitly,
+  and keep stable resolved identities for caches. The shared
+  `world::SceneImporter` surface is the next layer above these
+  format-specific pieces: importers report supported extensions and
+  option schemas, return an owned scene or group root, attach source
+  metadata, and distinguish warning diagnostics from import-blocking
+  errors.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
@@ -269,7 +273,8 @@ and the `LDConfig.ldr` color/material lookup in
 [`LDrawColorTable.cpp`](../../../src/core/formats/ldraw/LDrawColorTable.cpp)
 alongside the inline polygon/subfile compiler in
 [`LDrawGeometryCompiler.cpp`](../../../src/core/formats/ldraw/LDrawGeometryCompiler.cpp)
-and resolver abstraction in
+and resolver abstractions in
+[`AssetResolver.cpp`](../../../src/core/formats/AssetResolver.cpp) and
 [`LDrawFileResolver.cpp`](../../../src/core/formats/ldraw/LDrawFileResolver.cpp).
 The remaining work is turning these import surfaces into a dedicated
 long-form chapter.
@@ -312,6 +317,8 @@ long-form chapter.
 - `src/core/formats/ply/PlyProperty.cpp`
 - `src/core/formats/ldraw/LDrawParser.cpp`
 - `src/core/formats/ldraw/LDrawColorTable.cpp`
+- `src/core/formats/AssetResolver.cpp`
+- `include/core/formats/AssetResolver.h`
 - `src/core/formats/ldraw/LDrawFileResolver.cpp`
 - `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`
 - `include/world/import/SceneImporter.h`
