@@ -143,6 +143,10 @@
 | `include/widgets/world/RenderGraphTracePreviewWidget.h` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `include/world/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/world/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `include/world/import/ImportDiagnostic.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/ImportOptions.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/ImportResult.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/SceneImporter.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md) |
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |

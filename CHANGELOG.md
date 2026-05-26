@@ -15,6 +15,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
   sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
+- **Shared scene importer interface.** `world::SceneImporter`,
+  `ImportOptions`, `ImportResult`, and `ImportDiagnostic` now define a
+  format-neutral import contract with option schemas, source metadata,
+  diagnostics, and owned scene/group roots for Epic #230. — GPT-5
 - **Group/Collection documentation and fixtures.** Group source docs and the
   scene-structure textbook now describe hierarchy-only collections, visibility,
   metadata, and the distinction from render layers/AOVs; a reusable nested
