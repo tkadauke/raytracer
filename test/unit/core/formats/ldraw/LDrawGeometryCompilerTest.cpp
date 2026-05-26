@@ -8,11 +8,13 @@
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "engine/raytracer/Raytracer.h"
+#include "engine/wireframe/Wireframe.h"
 #include "render/State.h"
 #include "render/cameras/PinholeCamera.h"
 #include "render/materials/Material.h"
 #include "render/materials/MatteMaterial.h"
 #include "render/primitives/Composite.h"
+#include "render/primitives/Curve.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
@@ -23,8 +25,10 @@
 #include <iterator>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -33,9 +37,9 @@ namespace LDrawGeometryCompilerTest {
 
   LDrawColorTable colorTable() {
     LDrawColorTable table;
-    table.add(table.parseColourRecord("0 !COLOUR Bright_Red CODE 4 VALUE #C91A09 EDGE #333333", 1));
+    table.add(table.parseColourRecord("0 !COLOUR Bright_Red CODE 4 VALUE #C91A09 EDGE #111111", 1));
     table.add(
-      table.parseColourRecord("0 !COLOUR Bright_Blue CODE 1 VALUE #0055BF EDGE #333333", 2));
+      table.parseColourRecord("0 !COLOUR Bright_Blue CODE 1 VALUE #0055BF EDGE #222222", 2));
     table.add(
       table.parseColourRecord("0 !COLOUR Bright_Green CODE 2 VALUE #237841 EDGE #333333", 3));
     return table;
@@ -83,6 +87,15 @@ namespace LDrawGeometryCompilerTest {
     auto primitive = dynamic_pointer_cast<MeshPrimitive>(composite->primitives().front());
     EXPECT_NE(nullptr, primitive);
     return primitive;
+  }
+
+  int countPixels(const Buffer<Colord>& buffer, const Colord& color) {
+    int count = 0;
+    for (int y = 0; y < buffer.height(); ++y)
+      for (int x = 0; x < buffer.width(); ++x)
+        if (buffer[y][x] == color)
+          ++count;
+    return count;
   }
 
   Vector3d faceNormal(const Mesh& mesh, const Mesh::Face& face) {
@@ -146,6 +159,60 @@ namespace LDrawGeometryCompilerTest {
     auto primitive = onlyMeshPrimitive(geometry);
 
     ASSERT_COLOR_NEAR(Colord::fromRGB(0, 85, 191), diffuseColor(primitive->material()), 0.001);
+  }
+
+  TEST(LDrawGeometryCompiler, TypeTwoEdgeLineProducesOverlayOnlyCurve) {
+    LDrawColorContext context;
+    context.currentColor = LDrawColorReference::fromCode(4);
+    istringstream input("2 24 -1 0 0 1 0 0\n");
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), context);
+
+    ASSERT_EQ(1u, geometry->primitives().size());
+    auto curve = dynamic_pointer_cast<Curve>(geometry->primitives().front());
+    ASSERT_NE(nullptr, curve);
+    auto mesh = curve->tessellate();
+    ASSERT_NE(nullptr, mesh);
+    EXPECT_TRUE(mesh->vertices().empty());
+    EXPECT_TRUE(mesh->faces().empty());
+
+    vector<Vector3d> starts;
+    vector<Vector3d> ends;
+    vector<optional<Colord>> colors;
+    geometry->forEachCurveOverlaySegment(
+      [&](const Vector3d& start, const Vector3d& end, const optional<Colord>& color) {
+        starts.push_back(start);
+        ends.push_back(end);
+        colors.push_back(color);
+      });
+
+    ASSERT_EQ(1u, starts.size());
+    EXPECT_EQ(Vector3d(-1, 0, 0), starts[0]);
+    EXPECT_EQ(Vector3d(1, 0, 0), ends[0]);
+    ASSERT_TRUE(colors[0].has_value());
+    ASSERT_COLOR_NEAR(Colord::fromRGB(17, 17, 17), *colors[0], 0.001);
+  }
+
+  TEST(LDrawGeometryCompiler, TypeTwoEdgeOverlayCanBeEnabledAndDisabled) {
+    LDrawColorContext context;
+    context.currentColor = LDrawColorReference::fromCode(4);
+    istringstream input("2 24 -0.5 0 0 0.5 0 0\n");
+    auto scene = make_shared<Scene>(Colord::white());
+    scene->setBackground(Colord::black());
+    scene->add(LDrawGeometryCompiler().compile(input, colorTable(), context));
+    auto camera = make_shared<PinholeCamera>(Vector3d(0, 0, -2), Vector3d::null);
+
+    Buffer<Colord> disabled(40, 30);
+    engine::wireframe::Wireframe solidOnly(camera, scene);
+    solidOnly.setGeometryMode(engine::wireframe::Wireframe::GeometryMode::TessellatedEdges);
+    solidOnly.render(disabled);
+    EXPECT_EQ(0, countPixels(disabled, Colord::fromRGB(17, 17, 17)));
+
+    Buffer<Colord> enabled(40, 30);
+    engine::wireframe::Wireframe overlay(camera, scene);
+    overlay.setGeometryMode(engine::wireframe::Wireframe::GeometryMode::CurveOverlay);
+    overlay.render(enabled);
+    EXPECT_GT(countPixels(enabled, Colord::fromRGB(17, 17, 17)), 0);
   }
 
   TEST(LDrawGeometryCompiler, ComputesUsableNormalsForLighting) {
@@ -436,20 +503,21 @@ namespace LDrawGeometryCompilerTest {
       "5 24 0 0 0 1 0 0 0 1 0 1 1 0\n"
       "9 unsupported command\n");
     LDrawDiagnostics diagnostics;
+    LDrawColorContext context;
+    context.currentColor = LDrawColorReference::fromCode(4);
 
-    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics, context);
 
-    EXPECT_TRUE(geometry->primitives().empty());
-    ASSERT_EQ(4u, diagnostics.entries().size());
+    ASSERT_EQ(1u, geometry->primitives().size());
+    EXPECT_NE(nullptr, dynamic_pointer_cast<Curve>(geometry->primitives().front()));
+    ASSERT_EQ(3u, diagnostics.entries().size());
     EXPECT_EQ(LDrawDiagnosticCode::UnsupportedMetaCommand, diagnostics.entries()[0].code);
     EXPECT_EQ("<input>", diagnostics.entries()[0].file);
     EXPECT_EQ(1, diagnostics.entries()[0].lineNumber);
     EXPECT_EQ(LDrawDiagnosticCode::SkippedGeometry, diagnostics.entries()[1].code);
-    EXPECT_EQ(2, diagnostics.entries()[1].lineNumber);
-    EXPECT_EQ(LDrawDiagnosticCode::SkippedGeometry, diagnostics.entries()[2].code);
-    EXPECT_EQ(3, diagnostics.entries()[2].lineNumber);
-    EXPECT_EQ(LDrawDiagnosticCode::UnsupportedLineType, diagnostics.entries()[3].code);
-    EXPECT_EQ(4, diagnostics.entries()[3].lineNumber);
+    EXPECT_EQ(3, diagnostics.entries()[1].lineNumber);
+    EXPECT_EQ(LDrawDiagnosticCode::UnsupportedLineType, diagnostics.entries()[2].code);
+    EXPECT_EQ(4, diagnostics.entries()[2].lineNumber);
   }
 
   TEST(LDrawGeometryCompiler, ReportsColorFallbacksAndBfcTwoSidedTreatment) {

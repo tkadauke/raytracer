@@ -192,6 +192,13 @@ LDrawColorReference LDrawColorTable::resolveReference(int code, const LDrawColor
   return LDrawColorReference::fromCode(code);
 }
 
+LDrawColorReference LDrawColorTable::resolveEdgeReference(int code,
+                                                          const LDrawColorContext& context) const {
+  if (code == 24)
+    return edgeReferenceFor(context.currentColor, context);
+  return resolveReference(code, context);
+}
+
 Colord LDrawColorTable::colorForCode(int code, const LDrawColorContext& context) const {
   return colorForCode(code, context, nullptr, {}, 0);
 }
@@ -209,6 +216,28 @@ Colord LDrawColorTable::colorForCode(int code, const LDrawColorContext& context,
   if (diagnostics) {
     ostringstream message;
     message << "color code " << reference.code << " is not defined; using neutral gray";
+    diagnostics->warning(LDrawDiagnosticCode::ColorFallback, file, lineNumber, message.str());
+  }
+  return Colord::fromRGB(128, 128, 128);
+}
+
+Colord LDrawColorTable::edgeColorForCode(int code, const LDrawColorContext& context) const {
+  return edgeColorForCode(code, context, nullptr, {}, 0);
+}
+
+Colord LDrawColorTable::edgeColorForCode(int code, const LDrawColorContext& context,
+                                         LDrawDiagnostics* diagnostics, const string& file,
+                                         int lineNumber) const {
+  const auto reference = resolveEdgeReference(code, context);
+  if (reference.kind == LDrawColorReferenceKind::DirectRgb)
+    return reference.color;
+
+  if (const auto* definition = find(reference.code))
+    return definition->value;
+
+  if (diagnostics) {
+    ostringstream message;
+    message << "edge color code " << reference.code << " is not defined; using neutral gray";
     diagnostics->warning(LDrawDiagnosticCode::ColorFallback, file, lineNumber, message.str());
   }
   return Colord::fromRGB(128, 128, 128);

@@ -69,11 +69,20 @@ public:
   void add(const LDrawColorDefinition& definition);
   const LDrawColorDefinition* find(int code) const;
 
-  [[nodiscard]] LDrawColorReference resolveReference(int code, const LDrawColorContext& context) const;
-  [[nodiscard]] Colord colorForCode(int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] LDrawColorReference resolveReference(int code,
+                                                     const LDrawColorContext& context) const;
+  [[nodiscard]] LDrawColorReference resolveEdgeReference(
+    int code, const LDrawColorContext& context) const;
+  [[nodiscard]] Colord colorForCode(
+    int code, const LDrawColorContext& context = LDrawColorContext()) const;
   [[nodiscard]] Colord colorForCode(int code, const LDrawColorContext& context,
                                     LDrawDiagnostics* diagnostics, const std::string& file,
                                     int lineNumber) const;
+  [[nodiscard]] Colord edgeColorForCode(
+    int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] Colord edgeColorForCode(int code, const LDrawColorContext& context,
+                                        LDrawDiagnostics* diagnostics, const std::string& file,
+                                        int lineNumber) const;
   [[nodiscard]] std::shared_ptr<render::Material> materialForCode(
     int code, const LDrawColorContext& context = LDrawColorContext()) const;
   [[nodiscard]] std::shared_ptr<render::Material> materialForCode(

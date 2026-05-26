@@ -256,7 +256,9 @@ Additional file-format topics are queued under
   format-specific pieces: importers report supported extensions and
   option schemas, return an owned scene or group root, attach source
   metadata, and distinguish warning diagnostics from import-blocking
-  errors.
+  errors. Type-2 edge/detail lines are kept as optional curve-overlay
+  strokes, so LEGO-style outlines can be drawn over shaded geometry
+  without adding ray-intersectable cylinders or mesh strips.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
