@@ -1,5 +1,6 @@
 #include "render/primitives/MeshPrimitive.h"
 
+#include "core/geometry/MeshAsset.h"
 #include "core/geometry/Mesh.h"
 #include "core/math/HitPointInterval.h"
 #include "core/math/Ray.h"
@@ -14,13 +15,38 @@
 using namespace render;
 
 MeshPrimitive::MeshPrimitive(Mesh mesh, NormalMode normalMode)
-    : m_mesh(std::make_shared<Mesh>(std::move(mesh))),
+    : MeshPrimitive(std::move(mesh), FaceMaterials(), normalMode) {
+}
+
+MeshPrimitive::MeshPrimitive(Mesh mesh, FaceMaterials faceMaterials, NormalMode normalMode)
+    : m_asset(std::make_shared<core::MeshAsset>(std::move(mesh))),
+      m_mesh(m_asset->mesh()),
+      m_faceMaterials(std::move(faceMaterials)),
       m_normalMode(normalMode) {
   buildLeaves();
 }
 
 MeshPrimitive::MeshPrimitive(std::shared_ptr<const Mesh> mesh, NormalMode normalMode)
+    : MeshPrimitive(std::move(mesh), FaceMaterials(), normalMode) {
+}
+
+MeshPrimitive::MeshPrimitive(std::shared_ptr<const Mesh> mesh, FaceMaterials faceMaterials,
+                             NormalMode normalMode)
     : m_mesh(std::move(mesh)),
+      m_faceMaterials(std::move(faceMaterials)),
+      m_normalMode(normalMode) {
+  buildLeaves();
+}
+
+MeshPrimitive::MeshPrimitive(std::shared_ptr<const core::MeshAsset> asset, NormalMode normalMode)
+    : MeshPrimitive(std::move(asset), FaceMaterials(), normalMode) {
+}
+
+MeshPrimitive::MeshPrimitive(std::shared_ptr<const core::MeshAsset> asset,
+                             FaceMaterials faceMaterials, NormalMode normalMode)
+    : m_asset(std::move(asset)),
+      m_mesh(m_asset ? m_asset->mesh() : nullptr),
+      m_faceMaterials(std::move(faceMaterials)),
       m_normalMode(normalMode) {
   buildLeaves();
 }
@@ -29,17 +55,29 @@ void MeshPrimitive::buildLeaves() {
   if (!m_mesh)
     return;
 
-  for (const auto& triangle : *m_mesh) {
-    std::shared_ptr<Primitive> primitive;
-    if (m_normalMode == NormalMode::Flat) {
-      primitive =
-        std::make_shared<FlatMeshTriangle>(m_mesh.get(), triangle[0], triangle[1], triangle[2]);
-    } else {
-      primitive =
-        std::make_shared<SmoothMeshTriangle>(m_mesh.get(), triangle[0], triangle[1], triangle[2]);
+  for (std::size_t faceIndex = 0; faceIndex != m_mesh->faces().size(); ++faceIndex) {
+    const auto& face = m_mesh->faces()[faceIndex];
+    for (std::size_t vertexIndex = 2; vertexIndex < face.size(); ++vertexIndex) {
+      auto primitive = buildLeaf(face[0], face[vertexIndex - 1], face[vertexIndex]);
+      if (auto material = materialForFace(faceIndex))
+        primitive->setMaterial(std::move(material));
+      m_leaves.push_back(std::move(primitive));
     }
-    m_leaves.push_back(std::move(primitive));
   }
+}
+
+std::shared_ptr<Primitive> MeshPrimitive::buildLeaf(int index0, int index1, int index2) const {
+  if (m_normalMode == NormalMode::Flat)
+    return std::make_shared<FlatMeshTriangle>(m_mesh.get(), index0, index1, index2);
+
+  return std::make_shared<SmoothMeshTriangle>(m_mesh.get(), index0, index1, index2);
+}
+
+std::shared_ptr<render::Material> MeshPrimitive::materialForFace(std::size_t faceIndex) const {
+  if (faceIndex >= m_faceMaterials.size())
+    return nullptr;
+
+  return m_faceMaterials[faceIndex];
 }
 
 const Primitive* MeshPrimitive::intersect(const Rayd& ray, HitPointInterval& hitPoints,
@@ -64,7 +102,7 @@ const Primitive* MeshPrimitive::intersect(const Rayd& ray, HitPointInterval& hit
     }
   }
 
-  return hit && Primitive::material() ? this : hit;
+  return hit && Primitive::material() && !hit->material() ? this : hit;
 }
 
 bool MeshPrimitive::intersects(const Rayd& ray, render::State& state) const {

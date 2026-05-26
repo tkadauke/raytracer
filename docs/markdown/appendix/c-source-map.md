@@ -21,6 +21,7 @@
 | `include/core/geometry/Bresenham.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/core/geometry/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Mesh.h` | [Tessellation](../rasterization/tessellation.md) |
+| `include/core/geometry/MeshAsset.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/core/geometry/Polyline.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Rasterize.h` | [Clipping, depth, stencil](../rasterization/clipping-depth-stencil.md)<br>[MSAA and attribute interpolation](../rasterization/msaa-and-attribute-interpolation.md)<br>[The rasterization pipeline](../rasterization/the-rasterization-pipeline.md) |
 | `include/core/math/BoundingBox.h` | [Rays and geometry](../foundations/rays-and-geometry.md)<br>[Spatial acceleration](../scene-structure/spatial-acceleration.md) |
@@ -104,6 +105,7 @@
 | `include/render/primitives/Grid.h` | [Spatial acceleration](../scene-structure/spatial-acceleration.md) |
 | `include/render/primitives/Instance.h` | [Matrices and transforms](../foundations/matrices-and-transforms.md)<br>[Tessellation](../rasterization/tessellation.md)<br>[Instances and motion blur](../scene-structure/instances-and-motion-blur.md) |
 | `include/render/primitives/Intersection.h` | [Constructive solid geometry](../scene-structure/csg.md) |
+| `include/render/primitives/MeshPrimitive.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/MeshTriangle.h` | [Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |
 | `include/render/primitives/MinkowskiSum.h` | [Constructive solid geometry](../scene-structure/csg.md) |
 | `include/render/primitives/OpenCylinder.h` | [Tessellation](../rasterization/tessellation.md)<br>[Primitives and intersection](../ray-rendering/primitives-and-intersection.md) |

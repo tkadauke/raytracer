@@ -572,7 +572,11 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   ~~Shared scene-importer interface.~~ ✅ **Done.** `world::SceneImporter`,
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` define the
   format-neutral importer contract for Epic #230; wiring concrete LDraw import
-  into that contract remains TODO.
+  into that contract remains TODO. ~~Shared imported mesh ownership and
+  runtime primitive support.~~ ✅ **Done.** `core::MeshAsset` and
+  `render::MeshPrimitive` provide shared mesh lifetime, per-face material
+  assignment, Grid/BVH traversal, and raster/wireframe compatibility for Epic
+  #230.
 - **Native scene format: JSON** (see R3) — round-trip with full fidelity. JSON chosen over YAML because it's more tooling-friendly, parses without ambiguity, and works natively in the §4.1 WebGL viewer without a YAML→JSON conversion step. The R3 format is the authoritative scene description; all other loaders convert into it on read and out of it on write.
 
 ### 4.6 Modeling UI
