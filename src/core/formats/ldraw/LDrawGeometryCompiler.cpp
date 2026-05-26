@@ -7,13 +7,20 @@
 #include "core/geometry/Polyline.h"
 #include "core/math/Matrix.h"
 #include "render/materials/Material.h"
+#include "render/materials/MatteMaterial.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Curve.h"
 #include "render/primitives/Instance.h"
 #include "render/primitives/MeshPrimitive.h"
+#include "render/textures/ImageTexture.h"
+#include "render/textures/mappings/UVMapping2D.h"
 
+#include <algorithm>
+#include <cmath>
+#include <exception>
 #include <iomanip>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -28,18 +35,123 @@ namespace {
     bool invertNext = false;
   };
 
+  struct TexmapState {
+    std::optional<LDrawTexmap> active;
+    std::optional<LDrawTexmap> next;
+    bool fallback = false;
+  };
+
   bool shouldReverseFace(bool counterClockwise, bool inheritedInverted) {
     return !counterClockwise != inheritedInverted;
+  }
+
+  bool isSupportedTexmap(const LDrawTexmap& texmap) {
+    return texmap.projection == LDrawTexmapProjection::Planar && !texmap.textureFile.empty();
+  }
+
+  const LDrawTexmap* texmapForGeometry(const TexmapState& texmap) {
+    if (texmap.next)
+      return &*texmap.next;
+    if (texmap.active)
+      return &*texmap.active;
+    return nullptr;
+  }
+
+  bool shouldCompileGeometry(const TexmapState& texmap) {
+    const LDrawTexmap* current = texmapForGeometry(texmap);
+    if (!current)
+      return !texmap.fallback;
+    const bool supported = isSupportedTexmap(*current);
+    return texmap.fallback ? !supported : supported;
+  }
+
+  Vector2d planarUV(const LDrawTexmap& texmap, const Vector3d& point) {
+    const Vector3d origin = texmap.points[0];
+    const Vector3d uAxis = texmap.points[1] - origin;
+    const Vector3d vAxis = texmap.points[2] - origin;
+    const Vector3d delta = point - origin;
+    const double uu = uAxis * uAxis;
+    const double uv = uAxis * vAxis;
+    const double vv = vAxis * vAxis;
+    const double du = delta * uAxis;
+    const double dv = delta * vAxis;
+    const double determinant = uu * vv - uv * uv;
+    if (std::abs(determinant) < 1e-12)
+      return Vector2d::null;
+    return Vector2d((du * vv - dv * uv) / determinant,
+                    (dv * uu - du * uv) / determinant);
+  }
+
+  std::shared_ptr<render::Texturec> textureForTexmap(
+    const LDrawTexmap& texmap,
+    const LDrawFileResolver* resolver,
+    std::unordered_map<std::string, std::shared_ptr<render::Texturec>>& textures,
+    LDrawDiagnostics* diagnostics,
+    const string& file) {
+    const std::string path =
+      resolver ? resolver->resolvePath(texmap.textureFile) : texmap.textureFile;
+    if (path.empty()) {
+      if (diagnostics) {
+        LDrawDiagnostic diagnostic;
+        diagnostic.severity = LDrawDiagnosticSeverity::Error;
+        diagnostic.code = LDrawDiagnosticCode::MissingTexture;
+        diagnostic.file = file;
+        diagnostic.lineNumber = texmap.lineNumber;
+        diagnostic.message = "unable to resolve LDraw TEXMAP texture";
+        diagnostic.reference = texmap.textureFile;
+        if (resolver)
+          diagnostic.searchedRoots = resolver->searchRoots(texmap.textureFile);
+        diagnostics->add(std::move(diagnostic));
+      }
+      return nullptr;
+    }
+
+    auto cached = textures.find(path);
+    if (cached != textures.end())
+      return cached->second;
+
+    try {
+      auto texture = render::ImageTexture::fromFile(
+        new render::UVMapping2D, path, render::ImageTextureFilter::Nearest,
+        render::ImageTextureWrap::Clamp);
+      textures.emplace(path, texture);
+      return texture;
+    } catch (const std::exception& error) {
+      if (diagnostics) {
+        LDrawDiagnostic diagnostic;
+        diagnostic.severity = LDrawDiagnosticSeverity::Error;
+        diagnostic.code = LDrawDiagnosticCode::MissingTexture;
+        diagnostic.file = file;
+        diagnostic.lineNumber = texmap.lineNumber;
+        diagnostic.message = std::string("unable to load LDraw TEXMAP texture: ") + error.what();
+        diagnostic.reference = texmap.textureFile;
+        diagnostics->add(std::move(diagnostic));
+      }
+      return nullptr;
+    }
   }
 
   std::shared_ptr<render::Material> materialForPolygon(const LDrawColorTable& colors,
                                                        int color,
                                                        const LDrawColorContext& context,
                                                        const BfcState& bfc,
+                                                       const LDrawTexmap* texmap,
+                                                       const LDrawFileResolver* resolver,
+                                                       std::unordered_map<
+                                                         std::string,
+                                                         std::shared_ptr<render::Texturec>>& textures,
                                                        LDrawDiagnostics* diagnostics,
                                                        const string& file,
                                                        int lineNumber) {
     auto material = colors.materialForCode(color, context, diagnostics, file, lineNumber);
+    if (texmap && isSupportedTexmap(*texmap)) {
+      if (auto texture = textureForTexmap(*texmap, resolver, textures, diagnostics, file)) {
+        auto texturedMaterial = std::make_shared<render::MatteMaterial>(texture);
+        texturedMaterial->setAmbientCoefficient(1.0);
+        texturedMaterial->setDiffuseCoefficient(1.0);
+        material = texturedMaterial;
+      }
+    }
     if (bfc.certified && bfc.clip) {
       material->setSidedness(render::Material::Sidedness::Front);
     } else {
@@ -96,15 +208,23 @@ namespace {
                                                             const LDrawColorTable& colors,
                                                             const LDrawColorContext& context,
                                                             const BfcState& bfc,
+                                                            const LDrawTexmap* texmap,
                                                             bool inheritedInverted,
+                                                            const LDrawFileResolver* resolver,
+                                                            std::unordered_map<
+                                                              std::string,
+                                                              std::shared_ptr<render::Texturec>>& textures,
                                                             LDrawDiagnostics* diagnostics,
                                                             const string& file,
                                                             const string& mpdBlock,
                                                             int buildStep,
                                                             LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
-    for (const auto& point : triangle.points)
-      mesh.addVertex(point, Vector3d::null);
+    for (const auto& point : triangle.points) {
+      mesh.addVertex(point, Vector3d::null,
+                     texmap && isSupportedTexmap(*texmap) ? planarUV(*texmap, point)
+                                                          : Vector2d::null);
+    }
     const bool reverse = shouldReverseFace(bfc.counterClockwise, inheritedInverted);
     mesh.addFace({0, 1, 2}, reverse);
     mesh.computeNormals();
@@ -115,7 +235,8 @@ namespace {
         ? render::MeshPrimitive::NormalMode::Smooth
         : render::MeshPrimitive::NormalMode::Flat);
     primitive->setMaterial(
-      materialForPolygon(colors, triangle.color, context, bfc, diagnostics, file,
+      materialForPolygon(colors, triangle.color, context, bfc, texmap, resolver, textures,
+                         diagnostics, file,
                          triangle.lineNumber));
     attachPolygonProvenance(*primitive, file, mpdBlock, triangle.lineNumber, triangle.color,
                             buildStep, "3");
@@ -130,15 +251,23 @@ namespace {
                                                         const LDrawColorTable& colors,
                                                         const LDrawColorContext& context,
                                                         const BfcState& bfc,
+                                                        const LDrawTexmap* texmap,
                                                         bool inheritedInverted,
+                                                        const LDrawFileResolver* resolver,
+                                                        std::unordered_map<
+                                                          std::string,
+                                                          std::shared_ptr<render::Texturec>>& textures,
                                                         LDrawDiagnostics* diagnostics,
                                                         const string& file,
                                                         const string& mpdBlock,
                                                         int buildStep,
                                                         LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
-    for (const auto& point : quad.points)
-      mesh.addVertex(point, Vector3d::null);
+    for (const auto& point : quad.points) {
+      mesh.addVertex(point, Vector3d::null,
+                     texmap && isSupportedTexmap(*texmap) ? planarUV(*texmap, point)
+                                                          : Vector2d::null);
+    }
     const bool reverse = shouldReverseFace(bfc.counterClockwise, inheritedInverted);
     mesh.addFace({0, 1, 2, 3}, reverse);
     mesh.computeNormals();
@@ -149,7 +278,8 @@ namespace {
         ? render::MeshPrimitive::NormalMode::Smooth
         : render::MeshPrimitive::NormalMode::Flat);
     primitive->setMaterial(
-      materialForPolygon(colors, quad.color, context, bfc, diagnostics, file, quad.lineNumber));
+      materialForPolygon(colors, quad.color, context, bfc, texmap, resolver, textures,
+                         diagnostics, file, quad.lineNumber));
     attachPolygonProvenance(*primitive, file, mpdBlock, quad.lineNumber, quad.color, buildStep,
                             "4");
     if (reverse && diagnostics) {
@@ -215,6 +345,37 @@ namespace {
     }
   }
 
+  void applyTexmapMeta(const LDrawTexmap& command, TexmapState& texmap,
+                       LDrawDiagnostics* diagnostics, const string& file) {
+    switch (command.command) {
+    case LDrawTexmapCommand::Start:
+      texmap.active = command;
+      texmap.next.reset();
+      texmap.fallback = false;
+      break;
+    case LDrawTexmapCommand::Next:
+      texmap.next = command;
+      texmap.fallback = false;
+      break;
+    case LDrawTexmapCommand::Fallback:
+      texmap.fallback = true;
+      texmap.next.reset();
+      break;
+    case LDrawTexmapCommand::End:
+      texmap.active.reset();
+      texmap.next.reset();
+      texmap.fallback = false;
+      break;
+    }
+
+    if ((command.command == LDrawTexmapCommand::Start ||
+         command.command == LDrawTexmapCommand::Next) &&
+        !isSupportedTexmap(command) && diagnostics) {
+      diagnostics->warning(LDrawDiagnosticCode::UnsupportedTexmap, file, command.lineNumber,
+                           "unsupported TEXMAP projection will use fallback geometry when present");
+    }
+  }
+
   string colorReferenceKey(const LDrawColorReference& reference) {
     ostringstream out;
     out << static_cast<int>(reference.kind) << ':';
@@ -263,19 +424,32 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
   auto result = make_shared<render::Composite>();
   BfcState bfc;
   int buildStep = 1;
+  TexmapState texmap;
 
   for (const auto& command : commands) {
     if (holds_alternative<LDrawTriangle>(command)) {
-      result->add(meshPrimitiveForTriangle(get<LDrawTriangle>(command), colors, context, bfc,
-                                           inheritedInverted, state.diagnostics,
-                                           state.currentFile, state.currentMpdBlock, buildStep,
-                                           m_normalMode));
+      const LDrawTexmap* currentTexmap = texmapForGeometry(texmap);
+      if (shouldCompileGeometry(texmap)) {
+        result->add(meshPrimitiveForTriangle(
+          get<LDrawTriangle>(command), colors, context, bfc, currentTexmap, inheritedInverted,
+          m_resolver.get(), state.textures, state.diagnostics, state.currentFile,
+          state.currentMpdBlock, buildStep, m_normalMode));
+      }
+      texmap.next.reset();
     } else if (holds_alternative<LDrawQuad>(command)) {
-      result->add(
-        meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc, inheritedInverted,
-                             state.diagnostics, state.currentFile, state.currentMpdBlock,
-                             buildStep, m_normalMode));
+      const LDrawTexmap* currentTexmap = texmapForGeometry(texmap);
+      if (shouldCompileGeometry(texmap)) {
+        result->add(meshPrimitiveForQuad(
+          get<LDrawQuad>(command), colors, context, bfc, currentTexmap, inheritedInverted,
+          m_resolver.get(), state.textures, state.diagnostics, state.currentFile,
+          state.currentMpdBlock, buildStep, m_normalMode));
+      }
+      texmap.next.reset();
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
+      if (!shouldCompileGeometry(texmap)) {
+        texmap.next.reset();
+        continue;
+      }
       const auto& reference = get<LDrawSubfileReference>(command);
       const bool subfileInverted =
         (inheritedInverted != bfc.invertNext) != (determinantForSubfileReference(reference) < 0.0);
@@ -287,6 +461,7 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
                                 buildStep);
       result->add(instance);
       bfc.invertNext = false;
+      texmap.next.reset();
     } else if (holds_alternative<LDrawMetaCommand>(command)) {
       const auto& meta = get<LDrawMetaCommand>(command);
       const bool wasBfc = meta.keyword == "BFC";
@@ -299,6 +474,8 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
           LDrawDiagnosticCode::UnsupportedMetaCommand, state.currentFile, meta.lineNumber,
           "unsupported meta command '" + meta.keyword + "' was ignored");
       }
+    } else if (holds_alternative<LDrawTexmap>(command)) {
+      applyTexmapMeta(get<LDrawTexmap>(command), texmap, state.diagnostics, state.currentFile);
     } else if (holds_alternative<LDrawEdgeLine>(command)) {
       const auto& edge = get<LDrawEdgeLine>(command);
       result->add(curveForEdgeLine(edge, colors, context, state.diagnostics, state.currentFile));

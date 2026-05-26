@@ -22,6 +22,29 @@ struct LDrawMetaCommand {
   }
 };
 
+enum class LDrawTexmapCommand {
+  Start,
+  Next,
+  Fallback,
+  End
+};
+
+enum class LDrawTexmapProjection {
+  Planar,
+  Cylindrical,
+  Spherical,
+  Unknown
+};
+
+struct LDrawTexmap {
+  int lineNumber = 0;
+  LDrawTexmapCommand command = LDrawTexmapCommand::Start;
+  LDrawTexmapProjection projection = LDrawTexmapProjection::Unknown;
+  Vector3d points[3];
+  std::string textureFile;
+  std::string text;
+};
+
 struct LDrawSubfileReference {
   int lineNumber = 0;
   int color = 0;
@@ -62,6 +85,7 @@ struct LDrawUnknownCommand {
 
 using LDrawCommand = std::variant<LDrawEmptyLine,
                                   LDrawMetaCommand,
+                                  LDrawTexmap,
                                   LDrawSubfileReference,
                                   LDrawEdgeLine,
                                   LDrawTriangle,

@@ -3,6 +3,7 @@
 #include "core/formats/ldraw/LDrawColorTable.h"
 #include "core/formats/ldraw/LDrawFileResolver.h"
 #include "core/formats/ldraw/LDrawParser.h"
+#include "render/textures/Texture.h"
 
 #include <cstddef>
 #include <iosfwd>
@@ -60,6 +61,7 @@ private:
     std::string currentFile;
     std::string currentMpdBlock;
     LDrawDiagnostics* diagnostics = nullptr;
+    std::unordered_map<std::string, std::shared_ptr<render::Texturec>> textures;
   };
 
   [[nodiscard]] std::shared_ptr<render::Composite>

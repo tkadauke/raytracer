@@ -36,13 +36,18 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   file or MPD block, line range, command type, color code, build step,
   referenced part, and parent reference details without changing render output
   for #210. — GPT-5
+- **LDraw TEXMAP texture import.** The LDraw parser now preserves `!TEXMAP`
+  START/NEXT/FALLBACK/END metadata, and the geometry compiler can render
+  simple planar texture maps with image-backed UV materials while reporting
+  missing textures and using fallback geometry for unsupported projections for
+  #210. — GPT-5
 - **Structured LDraw import diagnostics.** LDraw resolving and geometry
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
   sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
 - **LDraw hierarchy-preserving imports.** LDraw imports can now preserve
   `0 STEP` sections and MPD submodel references as generic scene `Group`
-  nodes with source/build metadata, while the flattened `LDrawModel` path
+  nodes with source/build metadata, while the flattened metadata import path
   remains available for #210. — GPT-5
 - **World and rendercli LDraw imports.** Scene JSON can now contain
   `Collection` authoring metadata for LDraw source files; rendercli resolves

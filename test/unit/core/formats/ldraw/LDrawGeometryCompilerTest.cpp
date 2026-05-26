@@ -19,6 +19,7 @@
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Scene.h"
 #include "render/textures/ConstantColorTexture.h"
+#include "render/textures/ImageTexture.h"
 #include "test/helpers/ColorTestHelper.h"
 
 #include <fstream>
@@ -591,7 +592,7 @@ namespace LDrawGeometryCompilerTest {
 
   TEST(LDrawGeometryCompiler, ReportsSkippedGeometryAndUnsupportedCommands) {
     istringstream input(
-      "0 !TEXMAP START PLANAR 0 0 0 1 0 0 0 1 0 texture.png\n"
+      "0 !UNSUPPORTED_META value\n"
       "2 24 0 0 0 1 0 0\n"
       "5 24 0 0 0 1 0 0 0 1 0 1 1 0\n"
       "9 unsupported command\n");
@@ -611,6 +612,86 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_EQ(3, diagnostics.entries()[1].lineNumber);
     EXPECT_EQ(LDrawDiagnosticCode::UnsupportedLineType, diagnostics.entries()[2].code);
     EXPECT_EQ(4, diagnostics.entries()[2].lineNumber);
+  }
+
+  TEST(LDrawGeometryCompiler, TexmapPlanarAssignsMeshUvsAndImageTextureMaterial) {
+    auto resolver = make_shared<LDrawFilesystemResolver>(
+      vector<string>{"test/fixtures/ldraw/texmap"});
+    istringstream input(
+      "0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 checker.ppm\n"
+      "4 4 -1 -1 0 1 -1 0 1 1 0 -1 1 0\n"
+      "0 !TEXMAP END\n");
+
+    auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
+    auto primitive = onlyMeshPrimitive(geometry);
+
+    ASSERT_EQ(4u, primitive->mesh()->vertices().size());
+    EXPECT_EQ(Vector2d(0, 0), primitive->mesh()->vertices()[0].uv);
+    EXPECT_EQ(Vector2d(1, 0), primitive->mesh()->vertices()[1].uv);
+    EXPECT_EQ(Vector2d(1, 1), primitive->mesh()->vertices()[2].uv);
+    EXPECT_EQ(Vector2d(0, 1), primitive->mesh()->vertices()[3].uv);
+
+    auto matte = dynamic_pointer_cast<MatteMaterial>(primitive->material());
+    ASSERT_NE(nullptr, matte);
+    EXPECT_NE(nullptr, dynamic_pointer_cast<render::ImageTexture>(matte->diffuseTexture()));
+  }
+
+  TEST(LDrawGeometryCompiler, TexmapPlanarRendersImageTextureThroughRaytracer) {
+    auto resolver = make_shared<LDrawFilesystemResolver>(
+      vector<string>{"test/fixtures/ldraw/texmap"});
+    istringstream input(
+      "0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 checker.ppm\n"
+      "4 4 -1 -1 0 1 -1 0 1 1 0 -1 1 0\n"
+      "0 !TEXMAP END\n");
+    auto scene = make_shared<Scene>(Colord::white());
+    scene->setBackground(Colord::black());
+    scene->add(LDrawGeometryCompiler(resolver).compile(input, colorTable()));
+
+    Buffer<Colord> buffer(41, 41);
+    auto camera = make_shared<PinholeCamera>(Vector3d(0, 0, -2), Vector3d::null);
+    auto raytracer = make_shared<engine::raytracer::Raytracer>(camera, scene);
+    raytracer->render(buffer);
+
+    ASSERT_COLOR_NEAR(Colord::white(), buffer[20][20], 0.001);
+  }
+
+  TEST(LDrawGeometryCompiler, MissingTexmapTextureProducesDiagnostic) {
+    auto resolver = make_shared<LDrawFilesystemResolver>(
+      vector<string>{"test/fixtures/ldraw/texmap"});
+    istringstream input(
+      "0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 missing.ppm\n"
+      "3 4 -1 -1 0 1 -1 0 -1 1 0\n"
+      "0 !TEXMAP END\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics);
+
+    EXPECT_EQ(1u, geometry->primitives().size());
+    ASSERT_EQ(2u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticSeverity::Error, diagnostics.entries()[0].severity);
+    EXPECT_EQ(LDrawDiagnosticCode::MissingTexture, diagnostics.entries()[0].code);
+    EXPECT_EQ("missing.ppm", diagnostics.entries()[0].reference);
+    EXPECT_EQ(LDrawDiagnosticCode::BfcAmbiguity, diagnostics.entries()[1].code);
+  }
+
+  TEST(LDrawGeometryCompiler, UnsupportedTexmapUsesFallbackGeometry) {
+    istringstream input(
+      "0 !TEXMAP START CYLINDRICAL 0 0 0 1 0 0 0 1 0 360 unsupported.png\n"
+      "3 4 0 0 0 1 0 0 0 1 0\n"
+      "0 !TEXMAP FALLBACK\n"
+      "3 1 2 0 0 3 0 0 2 1 0\n"
+      "0 !TEXMAP END\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
+
+    ASSERT_EQ(1u, geometry->primitives().size());
+    auto primitive = onlyMeshPrimitive(geometry);
+    EXPECT_EQ(Vector3d(2, 0, 0), primitive->mesh()->vertices()[0].point);
+    ASSERT_EQ(2u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticCode::UnsupportedTexmap, diagnostics.entries()[0].code);
+    EXPECT_EQ(1, diagnostics.entries()[0].lineNumber);
+    EXPECT_EQ(LDrawDiagnosticCode::BfcAmbiguity, diagnostics.entries()[1].code);
   }
 
   TEST(LDrawGeometryCompiler, ReportsColorFallbacksAndBfcTwoSidedTreatment) {
