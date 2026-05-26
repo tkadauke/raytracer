@@ -17,6 +17,12 @@
 #include <QJsonObject>
 #include <QTemporaryFile>
 
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTemporaryFile>
+
 namespace SceneImporterTest {
   namespace {
     class FakeImporter : public world::SceneImporter {
