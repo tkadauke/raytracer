@@ -101,6 +101,7 @@ The supporting cast around the rendering core.
 - [LDraw import](tools-and-io/ldraw-import.md)
 - [OpenSCAD import](tools-and-io/openscad-import.md)
 - [STL import](tools-and-io/stl-import.md)
+- [G-code parsing](tools-and-io/gcode-parsing.md)
 - [Importer lifecycle](tools-and-io/importer-lifecycle.md)
 - [Tools and the Modeler](tools-and-io/tools-and-modeler.md)
 

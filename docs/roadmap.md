@@ -555,6 +555,12 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   records source provenance, and now has checked-in primitive/transform/boolean
   fixtures plus rendercli smoke coverage for Epic #234; native scripted-object
   authoring remains in §4.6.
+- **G-code `.gcode`** — 3D-printer toolpaths. ~~Core visualization parser for
+  common movement, extrusion, feed-rate, layer comments, temperatures, tool
+  changes, absolute/relative axes, absolute/relative extrusion, and ignored
+  dialect commands with diagnostics.~~ ✅ **Done.** `core/formats/gcode`
+  preserves printer path segments and metadata for Epic #235; scene importer
+  conversion to curves/layers remains TODO.
 - **LDraw `.dat` / `.ldr`** — LEGO part and model text format. ~~Core line
   parser for command types 0 through 5.~~ ✅ **Done.** `core/formats/ldraw`
   preserves meta commands, subfile filenames, and geometry records for #210;

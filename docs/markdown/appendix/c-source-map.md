@@ -18,6 +18,9 @@
 | `include/core/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/core/color/sse3/` | [Color and buffers](../foundations/color-and-buffers.md) |
 | `include/core/formats/AssetResolver.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/core/formats/gcode/GCodeDiagnostic.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `include/core/formats/gcode/GCodeParser.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
+| `include/core/formats/gcode/GCodeProgram.h` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `include/core/formats/ldraw/LDrawColorTable.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawCommand.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawFileResolver.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -174,6 +177,7 @@
 | `scenes/render_graph_aov_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/core/formats/gcode/GCodeParser.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `src/core/formats/ldraw/LDrawColorTable.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawCommand.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -213,6 +217,7 @@
 | `src/world/objects/PinholeCamera.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/Scene.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
+| `test/fixtures/gcode/` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `test/fixtures/groups/` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/importers/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/ldraw/` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -240,6 +245,7 @@
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `test/unit/core/formats/gcode/GCodeParserTest.cpp` | [G-code parsing](../tools-and-io/gcode-parsing.md) |
 | `test/unit/core/formats/ldraw/LDrawColorTableTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
