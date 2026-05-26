@@ -156,6 +156,7 @@
 | `include/world/import/ImportDiagnostic.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportOptions.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/ImportResult.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/LDrawFileSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/LDrawSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/SceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
@@ -194,9 +195,10 @@
 | `src/engine/raytracer/Raytracer.cpp` | [The Whitted pipeline](../ray-rendering/the-whitted-pipeline.md) |
 | `src/engine/wireframe/Wireframe.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `src/modeler/` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
-| `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `src/modeler/MainWindow.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphInspectorWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `src/widgets/world/RenderGraphTracePreviewWidget.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/PinholeCamera.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/Scene.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
@@ -246,6 +248,7 @@
 | `test/unit/world/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `test/unit/world/import/LDrawFileSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/objects/LDrawSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `tools/rendercli/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |

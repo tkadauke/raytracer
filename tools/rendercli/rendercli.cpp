@@ -1138,7 +1138,11 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   }
 
   if (importer) {
-    world::ImportResult result = importer->importFile(m_filename, m_importOptions);
+    world::ImportOptions importOptions = m_importOptions;
+    if (!m_ldrawLibraryRoot.isEmpty() && !importOptions.contains("library_root")) {
+      importOptions.setValue("library_root", m_ldrawLibraryRoot);
+    }
+    world::ImportResult result = importer->importFile(m_filename, importOptions);
     printImportDiagnostics(result);
     if (result.failed()) {
       throw std::runtime_error(

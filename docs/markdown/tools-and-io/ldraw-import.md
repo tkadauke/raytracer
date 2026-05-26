@@ -2,9 +2,9 @@
 
 LDraw support is meant to make small part libraries and model assemblies
 renderable without requiring the full official library during development. The
-core parser accepts `.dat`, `.ldr`, and `.mpd` text files, and `rendercli` can
-either load LDraw directly or expand LDraw authoring metadata embedded in a
-world scene JSON file.
+core parser accepts `.dat`, `.ldr`, and `.mpd` text files. `rendercli` and the
+Modeler can open those files through the shared scene importer, and scene JSON
+can also expand LDraw authoring metadata embedded in a world scene file.
 
 The supported visible subset is deliberately mesh-focused:
 
@@ -44,10 +44,26 @@ compiled model bounds from a three-quarter view. The fit calculation is shared
 by `Scene` and `PinholeCamera`, so UI import paths can reuse the same camera
 placement instead of carrying a rendercli-only heuristic.
 
+`rendercli` can also import LDraw by filename extension through the generic
+scene importer path:
+
+```sh
+tools/rendercli/rendercli --ldraw_library_root /path/to/ldraw \
+  model.mpd out.png
+```
+
+The Modeler Open dialog accepts `.ldr`, `.dat`, and `.mpd` files. Opening one
+imports the model into a new editable scene shell in the background, adds a
+default directional light, and frames the scene camera around the compiled model
+bounds. Imported scenes are not treated as save targets for the source
+`.mpd`/`.ldr`; saving prompts for a normal scene JSON file.
+
 The library root should be the directory that contains standard LDraw
 subdirectories such as `parts/`, `parts/s/`, `p/`, `p/48/`, and `models/`.
-The importer searches the model's own directory first, then those library
-subdirectories. That makes a project-local mini-library enough for validation:
+The importer searches the model's own directory first, then the configured
+library root. Modeler uses the importer's defaults, which auto-detect
+`LDRAWDIR` and then `~/Documents/ldraw` before falling back to just the model's
+own directory. That makes a project-local mini-library enough for validation:
 [`test/fixtures/ldraw/smoke/`](../../../test/fixtures/ldraw/smoke/) renders
 through CTest without the official parts library installed.
 
@@ -95,6 +111,7 @@ without external assets.
 - `include/core/formats/ldraw/LDrawColorTable.h`
 - `include/core/formats/ldraw/LDrawFileResolver.h`
 - `include/core/formats/ldraw/LDrawGeometryCompiler.h`
+- `include/world/import/LDrawFileSceneImporter.h`
 - `include/world/import/LDrawSceneImporter.h`
 - `include/world/objects/PinholeCamera.h`
 - `include/world/objects/Scene.h`
@@ -103,6 +120,8 @@ without external assets.
 - `src/core/formats/ldraw/LDrawColorTable.cpp`
 - `src/core/formats/ldraw/LDrawFileResolver.cpp`
 - `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`
+- `src/modeler/MainWindow.cpp`
+- `src/world/import/LDrawFileSceneImporter.cpp`
 - `src/world/import/LDrawSceneImporter.cpp`
 - `src/world/objects/PinholeCamera.cpp`
 - `src/world/objects/Scene.cpp`
@@ -111,6 +130,7 @@ without external assets.
 - `test/unit/core/formats/ldraw/LDrawColorTableTest.cpp`
 - `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp`
 - `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp`
+- `test/unit/world/import/LDrawFileSceneImporterTest.cpp`
 - `test/unit/world/objects/LDrawSceneImporterTest.cpp`
 <!-- /source-anchors -->
 

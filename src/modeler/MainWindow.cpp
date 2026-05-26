@@ -21,12 +21,15 @@
 #include <QDesktopServices>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
+#include <QProgressDialog>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QSpinBox>
 #include <QStringList>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QThread>
 
 #include <algorithm>
 #include <cmath>
@@ -95,6 +98,10 @@
 #include "world/objects/ThinLensCamera.h"
 #include "world/objects/TiltShiftCamera.h"
 #include "world/objects/EquirectangularCamera.h"
+#include "world/import/ImportOptions.h"
+#include "world/import/ImportResult.h"
+#include "world/import/SceneImporter.h"
+#include "world/import/SceneImporterRegistry.h"
 
 namespace {
   using PropertyRows = QVector<QPair<QString, QString>>;
@@ -113,6 +120,102 @@ namespace {
   QString dashIfEmpty(const QString& value) {
     return value.isEmpty() ? QStringLiteral("-") : value;
   }
+
+  struct OpenedScene {
+    std::unique_ptr<::Scene> scene;
+    world::ImportResult importResult;
+    bool nativeSceneFile{false};
+    QString errorMessage;
+  };
+
+  class SceneOpenThread : public QThread {
+  public:
+    explicit SceneOpenThread(QString fileName, QObject* parent = nullptr)
+        : QThread(parent),
+          m_fileName(std::move(fileName)) {
+    }
+
+    OpenedScene takeOpenedScene() {
+      return std::move(m_openedScene);
+    }
+
+  protected:
+    void run() override {
+      m_openedScene = loadScene();
+    }
+
+  private:
+    world::ImportOptions defaultImportOptionsFor(world::SceneImporter& importer) const {
+      world::ImportOptions options;
+      for (const auto& option : importer.optionSchema()) {
+        if (option.defaultValue.isValid())
+          options.setValue(option.name, option.defaultValue);
+      }
+      return options;
+    }
+
+    void moveSceneTreeToGuiThread(::Scene* scene) const {
+      if (scene && qApp)
+        scene->moveToThread(qApp->thread());
+    }
+
+    OpenedScene loadScene() const {
+      OpenedScene opened;
+      const QString suffix = QFileInfo(m_fileName).suffix();
+      std::unique_ptr<world::SceneImporter> importer;
+      if (suffix.compare("json", Qt::CaseInsensitive) != 0) {
+        importer = world::SceneImporterRegistry::self().createForFile(m_fileName);
+      }
+
+      if (!importer) {
+        opened.nativeSceneFile = true;
+        auto scene = std::make_unique<::Scene>(nullptr);
+        try {
+          if (!scene->load(m_fileName)) {
+            opened.errorMessage = QString("Could not load %1").arg(m_fileName);
+            return opened;
+          }
+        } catch (const std::exception& error) {
+          opened.errorMessage = QString("Could not load %1: %2").arg(m_fileName, error.what());
+          return opened;
+        }
+        moveSceneTreeToGuiThread(scene.get());
+        opened.scene = std::move(scene);
+        return opened;
+      }
+
+      opened.nativeSceneFile = false;
+      opened.importResult = importer->importFile(m_fileName, defaultImportOptionsFor(*importer));
+      if (opened.importResult.failed()) {
+        opened.errorMessage = QString("Could not import %1").arg(m_fileName);
+        for (const auto& diagnostic : opened.importResult.diagnostics()) {
+          if (diagnostic.isError()) {
+            opened.errorMessage += QString(": %1").arg(diagnostic.message);
+            break;
+          }
+        }
+        return opened;
+      }
+
+      auto root = opened.importResult.takeRoot();
+      if (auto* sceneRoot = qobject_cast<::Scene*>(root.get())) {
+        root.release();
+        moveSceneTreeToGuiThread(sceneRoot);
+        opened.scene = std::unique_ptr<::Scene>(sceneRoot);
+        return opened;
+      }
+
+      auto scene = std::make_unique<::Scene>(nullptr);
+      scene->addChild(std::move(root));
+      scene->resolveElementReferences();
+      moveSceneTreeToGuiThread(scene.get());
+      opened.scene = std::move(scene);
+      return opened;
+    }
+
+    QString m_fileName;
+    OpenedScene m_openedScene;
+  };
 
   QString resourceReadsText(const std::vector<engine::graph::ResourceRead>& reads) {
     QStringList values;
@@ -300,8 +403,7 @@ namespace {
         if (std::isfinite(start) && std::isfinite(end)) {
           const double first = std::floor(std::min(start, end));
           const double last = std::ceil(std::max(start, end));
-          if (first >= std::numeric_limits<int>::min() &&
-              last <= std::numeric_limits<int>::max()) {
+          if (first >= std::numeric_limits<int>::min() && last <= std::numeric_limits<int>::max()) {
             indices.insert(static_cast<int>(first));
             indices.insert(static_cast<int>(last));
           }
@@ -1088,20 +1190,54 @@ void MainWindow::newFile() {
   }
 }
 
-void MainWindow::openFile() {
-  QString fileName =
-    QFileDialog::getOpenFileName(this, tr("Open File"), QString(), tr("Scenes (*.json)"));
+void MainWindow::reportImportDiagnostics(const world::ImportResult& result) {
+  int errors = 0;
+  int warnings = 0;
+  for (const auto& diagnostic : result.diagnostics()) {
+    if (diagnostic.isError()) {
+      ++errors;
+    } else {
+      ++warnings;
+    }
+  }
 
-  if (!fileName.isNull() && maybeSave()) {
-    auto loadedScene = std::make_unique<::Scene>(nullptr);
-    try {
-      if (!loadedScene->load(fileName)) {
-        QMessageBox::warning(this, tr("Open File"), tr("Could not load %1").arg(fileName));
-        return;
-      }
-    } catch (const std::exception& error) {
-      QMessageBox::warning(this, tr("Open File"),
-                           tr("Could not load %1: %2").arg(fileName, error.what()));
+  if (errors > 0) {
+    statusBar()->showMessage(
+      tr("Import reported %1 errors and %2 warnings").arg(errors).arg(warnings), 8000);
+  } else if (warnings > 0) {
+    statusBar()->showMessage(tr("Import reported %1 warnings").arg(warnings), 8000);
+  }
+}
+
+void MainWindow::openFile() {
+  QString fileName = QFileDialog::getOpenFileName(
+    this, tr("Open File"), QString(),
+    tr("Scenes and imports (*.json *.ldr *.dat *.mpd);;Scenes (*.json);;LDraw models (*.ldr "
+       "*.dat *.mpd);;All files (*)"));
+
+  if (fileName.isNull() || !maybeSave())
+    return;
+
+  auto* progress = new QProgressDialog(tr("Opening %1...").arg(QFileInfo(fileName).fileName()),
+                                       QString(), 0, 0, this);
+  progress->setCancelButton(nullptr);
+  progress->setMinimumDuration(0);
+  progress->setWindowModality(Qt::WindowModal);
+  progress->show();
+
+  auto* thread = new SceneOpenThread(fileName, this);
+  connect(thread, &QThread::finished, this, [this, fileName, progress, thread]() {
+    OpenedScene opened = thread->takeOpenedScene();
+    thread->deleteLater();
+    progress->deleteLater();
+
+    if (!opened.errorMessage.isEmpty()) {
+      QMessageBox::warning(this, tr("Open File"), opened.errorMessage);
+      return;
+    }
+
+    if (!opened.scene) {
+      QMessageBox::warning(this, tr("Open File"), tr("Could not load %1").arg(fileName));
       return;
     }
 
@@ -1112,8 +1248,8 @@ void MainWindow::openFile() {
     p->currentElement = nullptr;
     emit selectionChanged(nullptr);
 
-    p->scene = loadedScene.release();
-    p->fileName = fileName;
+    p->scene = opened.scene.release();
+    p->fileName = opened.nativeSceneFile ? fileName : QString();
     p->propertyEditorWidget->setRoot(p->scene);
     p->elementModel->setElement(p->scene);
     p->previewUseSceneIntentAct->setChecked(true);
@@ -1122,7 +1258,9 @@ void MainWindow::openFile() {
     resetTimelineFrame();
     resetPlaybackIndex();
     redraw();
-  }
+    reportImportDiagnostics(opened.importResult);
+  });
+  thread->start();
 }
 
 void MainWindow::saveFile() {
@@ -2061,8 +2199,7 @@ void MainWindow::syncPlaybackControls() {
     p->playbackIndexSpinBox->setEnabled(range.enabled);
 
     if (range.enabled) {
-      p->currentPlaybackIndex =
-        std::clamp(p->currentPlaybackIndex, range.first, range.last);
+      p->currentPlaybackIndex = std::clamp(p->currentPlaybackIndex, range.first, range.last);
       p->playbackIndexSlider->setRange(range.first, range.last);
       p->playbackIndexSpinBox->setRange(range.first, range.last);
       p->playbackIndexSlider->setValue(p->currentPlaybackIndex);
@@ -2077,10 +2214,8 @@ void MainWindow::syncPlaybackControls() {
   }
 
   if (range.enabled) {
-    p->playbackSummaryLabel->setText(tr("%1-%2, %3 indexed group(s)")
-                                       .arg(range.first)
-                                       .arg(range.last)
-                                       .arg(range.count));
+    p->playbackSummaryLabel->setText(
+      tr("%1-%2, %3 indexed group(s)").arg(range.first).arg(range.last).arg(range.count));
   } else {
     p->playbackSummaryLabel->setText(tr("No indexed groups"));
   }

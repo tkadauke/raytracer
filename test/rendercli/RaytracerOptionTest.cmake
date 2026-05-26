@@ -187,6 +187,20 @@ rendercli_assert_image_dimensions("${ldraw_scene_output}" 24 24
 rendercli_assert_image_nonempty("${ldraw_scene_output}"
                                 NAME "LDraw authoring import pixels")
 
+set(ldraw_extension_output "${TEST_OUTPUT_DIR}/ldraw-extension-import.png")
+rendercli_run(
+  NAME "rendercli imports LDraw input by extension"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/library"
+    "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/model.ldr"
+    "${ldraw_extension_output}"
+)
+rendercli_assert_image_dimensions("${ldraw_extension_output}" 24 24
+                                  NAME "LDraw extension import dimensions")
+rendercli_assert_image_nonempty("${ldraw_extension_output}"
+                                NAME "LDraw extension import pixels")
+
 set(ldraw_direct_output "${TEST_OUTPUT_DIR}/ldraw-direct-hierarchy.png")
 rendercli_run(
   NAME "rendercli raytracer renders direct LDraw input with preserved hierarchy"

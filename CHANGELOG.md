@@ -11,6 +11,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **Modeler LDraw file import.** `.ldr`, `.dat`, and `.mpd` files now have a
+  registered scene importer that creates a world scene shell, resolves LDraw
+  geometry in the background, frames the active pinhole camera, and is available
+  from the Modeler Open dialog and rendercli extension-based import path. —
+  GPT-5
 - **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
   cover inline geometry, library part resolution, nested subfiles, inherited
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs

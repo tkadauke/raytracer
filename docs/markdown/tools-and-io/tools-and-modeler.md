@@ -316,9 +316,13 @@ When a scene's render intent is ahead of the current compiler, Modeler reports
 the graph compile error in the Render Graph dock and pauses the live preview
 instead of drawing from a stale plan.
 
-The Modeler does not bake scene catalogs into C++; it opens JSON scene files
-directly. New reusable demos should be added as scene files unless they need a
-new runtime feature or a new world wrapper type.
+The Modeler does not bake scene catalogs into C++; it opens scene JSON files
+directly and routes external model formats through registered
+`world::SceneImporter` implementations. LDraw `.ldr`, `.dat`, and `.mpd`
+imports build a new scene shell on a worker thread, use the importer's default
+library-root lookup, and frame the generated camera around the compiled model.
+New reusable demos should be added as scene files unless they need a new runtime
+feature, a new world wrapper type, or a dedicated importer.
 
 ## <a id="the-wireup"></a>The wireup
 ```text
@@ -371,6 +375,7 @@ scene-structure, and rasterization chapters cover.
 - `tools/rendercli/`
 - `test/rendercli/StepOptionTest.cmake`
 - `test/rendercli/RenderGraphOptionTest.cmake`
+- `src/modeler/MainWindow.cpp`
 - `include/engine/graph/RenderGraphRequest.h`
 - `src/modeler/`
 - `include/widgets/world/RenderGraphInspectorWidget.h`

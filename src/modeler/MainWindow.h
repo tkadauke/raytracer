@@ -20,6 +20,10 @@ class Scene;
 
 class RenderWindow;
 
+namespace world {
+  class ImportResult;
+}
+
 class MainWindow : public QMainWindow {
   Q_OBJECT
 
@@ -134,6 +138,8 @@ private slots:
   void reorder();
 
 private:
+  void reportImportDiagnostics(const world::ImportResult& result);
+
   QDockWidget* createPropertyEditor();
   QDockWidget* createElementSelector();
   QDockWidget* createPreviewDisplay();
