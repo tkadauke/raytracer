@@ -1,5 +1,6 @@
 #include "core/formats/ldraw/LDrawLibraryResolver.h"
 
+#include "core/formats/AssetResolver.h"
 #include "core/formats/ldraw/LDrawParseError.h"
 
 #include <algorithm>
@@ -20,62 +21,12 @@ namespace {
     return value;
   }
 
-  fs::path normalizedReferencePath(string filename) {
-    replace(filename.begin(), filename.end(), '\\', '/');
-    return fs::path(filename);
-  }
-
   fs::path normalizeExistingPath(const fs::path& path) {
     std::error_code error;
     const fs::path canonical = fs::weakly_canonical(path, error);
     if (!error)
       return canonical;
     return path.lexically_normal();
-  }
-
-  bool pathExists(const fs::path& path) {
-    std::error_code error;
-    return fs::is_regular_file(path, error);
-  }
-
-  bool equalsIgnoreCase(const string& left, const string& right) {
-    return left.size() == right.size() &&
-           equal(left.begin(), left.end(), right.begin(), [](unsigned char a, unsigned char b) {
-             return tolower(a) == tolower(b);
-           });
-  }
-
-  fs::path findCaseInsensitive(const fs::path& path) {
-    fs::path resolved;
-    for (const auto& part : path) {
-      if (resolved.empty()) {
-        resolved = part;
-        continue;
-      }
-
-      const fs::path exact = resolved / part;
-      if (fs::exists(exact)) {
-        resolved = exact;
-        continue;
-      }
-
-      std::error_code error;
-      bool found = false;
-      for (const fs::directory_entry& entry : fs::directory_iterator(resolved, error)) {
-        if (error)
-          break;
-        if (equalsIgnoreCase(entry.path().filename().string(), part.string())) {
-          resolved = entry.path();
-          found = true;
-          break;
-        }
-      }
-
-      if (!found)
-        return {};
-    }
-
-    return pathExists(resolved) ? normalizeExistingPath(resolved) : fs::path();
   }
 
   [[noreturn]] void throwResolverError(const string& detail) {
@@ -226,27 +177,15 @@ LDrawLibraryResolver::MutableDocumentPtr LDrawLibraryResolver::loadWithSubfiles(
 }
 
 fs::path LDrawLibraryResolver::resolvePath(const fs::path& currentFile, const string& filename) const {
-  const fs::path reference = normalizedReferencePath(filename);
-  vector<fs::path> candidates;
-
-  if (reference.is_absolute()) {
-    candidates.push_back(reference);
-  } else {
-    for (const fs::path& root : searchRoots(currentFile))
-      candidates.push_back(root / reference);
+  const core::AssetResolver resolver(searchRoots(currentFile),
+                                     core::AssetCaseSensitivity::CaseInsensitive);
+  try {
+    return resolver.resolve(filename).path;
+  } catch (const core::AssetResolutionError& error) {
+    ostringstream message;
+    message << "Unable to resolve LDraw subfile '" << filename << "' from '"
+            << currentFile.string() << "'. Searched roots: "
+            << formatPathList(error.searchedRoots());
+    throwResolverError(message.str());
   }
-
-  for (const fs::path& candidate : candidates) {
-    if (pathExists(candidate))
-      return normalizeExistingPath(candidate);
-    const fs::path insensitive = findCaseInsensitive(candidate);
-    if (!insensitive.empty())
-      return insensitive;
-  }
-
-  ostringstream message;
-  message << "Unable to resolve LDraw subfile '" << filename << "' from '"
-          << currentFile.string() << "'. Searched roots: "
-          << formatPathList(searchRoots(currentFile));
-  throwResolverError(message.str());
 }

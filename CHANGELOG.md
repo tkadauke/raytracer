@@ -19,6 +19,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   optional structured metadata, and import helpers can attach source file,
   source entity, line range/record, original-unit, and category provenance that
   round-trips through scene JSON for Epic #230. — GPT-5
+- **Shared import asset resolver.** `core::AssetResolver` now resolves
+  importer sidecar files from the current file directory and configured search
+  roots, returns cache-stable asset identities, and reports requested paths plus
+  searched roots in missing-file diagnostics for Epic #230. — GPT-5
 - **Shared scene importer interface.** `world::SceneImporter`,
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` now define a
   format-neutral import contract with option schemas, source metadata,

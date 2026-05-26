@@ -17,6 +17,7 @@
 | `include/core/animation/AnimationTrack.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/core/animation/Timeline.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `include/core/color/sse3/` | [Color and buffers](../foundations/color-and-buffers.md) |
+| `include/core/formats/AssetResolver.h` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/core/geometry/AttributeColorMap.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Bresenham.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/core/geometry/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
@@ -153,6 +154,7 @@
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `scenes/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `scenes/animation_frame_demo.json` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `src/core/formats/AssetResolver.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawColorTable.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawGeometryCompiler.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |

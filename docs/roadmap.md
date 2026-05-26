@@ -569,6 +569,9 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   skipped geometry, color fallbacks, BFC treatment, and fatal parse failures.~~
   ✅ **Done.** `LDrawDiagnostics` gives parser/resolver/compiler paths
   machine-checkable warnings and errors for #210.
+  ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
+  **Done.** `core::AssetResolver` resolves current-file-relative and configured
+  search-root assets with explicit case-sensitivity behavior for Epic #230.
   ~~Shared scene-importer interface.~~ ✅ **Done.** `world::SceneImporter`,
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` define the
   format-neutral importer contract for Epic #230; wiring concrete LDraw import
