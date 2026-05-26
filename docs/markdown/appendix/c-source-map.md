@@ -167,6 +167,7 @@
 | `scenes/render_graph_stencil_composite_demo.json` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/core/formats/AssetResolver.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawColorTable.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `src/core/formats/ldraw/LDrawCommand.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/core/formats/ldraw/LDrawFileResolver.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawGeometryCompiler.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ldraw/LDrawParser.cpp` | [LDraw import](../tools-and-io/ldraw-import.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
@@ -220,6 +221,8 @@
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `test/unit/core/formats/ldraw/LDrawColorTableTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |

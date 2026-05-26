@@ -179,6 +179,7 @@ namespace {
     }
 
     LDrawColorTable colors;
+    colors.loadLibraryConfig(options.libraryPath.toStdString());
     auto resolver = std::make_shared<LDrawFilesystemResolver>(
       searchDirectoriesFor(options.filePath, options.libraryPath));
     const auto normalMode = options.smoothNormals ? LDrawGeometryCompiler::NormalMode::Smooth

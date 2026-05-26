@@ -27,10 +27,7 @@ enum class LDrawColorFinish {
   CustomMaterial
 };
 
-enum class LDrawColorReferenceKind {
-  Code,
-  DirectRgb
-};
+enum class LDrawColorReferenceKind { Code, DirectRgb };
 
 struct LDrawColorReference {
   LDrawColorReferenceKind kind = LDrawColorReferenceKind::Code;
@@ -63,6 +60,7 @@ struct LDrawColorContext {
 class LDrawColorTable {
 public:
   void parse(std::istream& input);
+  bool loadLibraryConfig(const std::string& libraryRoot);
   bool parseMetaCommand(const LDrawMetaCommand& command);
   LDrawColorDefinition parseColourRecord(const std::string& text, int lineNumber) const;
 
@@ -71,23 +69,23 @@ public:
 
   [[nodiscard]] LDrawColorReference resolveReference(int code,
                                                      const LDrawColorContext& context) const;
-  [[nodiscard]] LDrawColorReference resolveEdgeReference(
-    int code, const LDrawColorContext& context) const;
-  [[nodiscard]] Colord colorForCode(
-    int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] LDrawColorReference resolveEdgeReference(int code,
+                                                         const LDrawColorContext& context) const;
+  [[nodiscard]] Colord colorForCode(int code,
+                                    const LDrawColorContext& context = LDrawColorContext()) const;
   [[nodiscard]] Colord colorForCode(int code, const LDrawColorContext& context,
                                     LDrawDiagnostics* diagnostics, const std::string& file,
                                     int lineNumber) const;
-  [[nodiscard]] Colord edgeColorForCode(
-    int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] Colord
+  edgeColorForCode(int code, const LDrawColorContext& context = LDrawColorContext()) const;
   [[nodiscard]] Colord edgeColorForCode(int code, const LDrawColorContext& context,
                                         LDrawDiagnostics* diagnostics, const std::string& file,
                                         int lineNumber) const;
-  [[nodiscard]] std::shared_ptr<render::Material> materialForCode(
-    int code, const LDrawColorContext& context = LDrawColorContext()) const;
-  [[nodiscard]] std::shared_ptr<render::Material> materialForCode(
-    int code, const LDrawColorContext& context, LDrawDiagnostics* diagnostics,
-    const std::string& file, int lineNumber) const;
+  [[nodiscard]] std::shared_ptr<render::Material>
+  materialForCode(int code, const LDrawColorContext& context = LDrawColorContext()) const;
+  [[nodiscard]] std::shared_ptr<render::Material>
+  materialForCode(int code, const LDrawColorContext& context, LDrawDiagnostics* diagnostics,
+                  const std::string& file, int lineNumber) const;
   [[nodiscard]] LDrawColorContext contextForSubfile(int colorCode,
                                                     const LDrawColorContext& parent) const;
 
@@ -95,7 +93,8 @@ public:
   static Colord directRgbColor(int code);
 
 private:
-  std::shared_ptr<render::Material> materialForDefinition(const LDrawColorDefinition& definition) const;
+  std::shared_ptr<render::Material>
+  materialForDefinition(const LDrawColorDefinition& definition) const;
   std::shared_ptr<render::Material> materialForColor(const Colord& color) const;
   LDrawColorReference edgeReferenceFor(const LDrawColorReference& current,
                                        const LDrawColorContext& context) const;

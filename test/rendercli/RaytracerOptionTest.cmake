@@ -217,6 +217,7 @@ rendercli_run(
     "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
     --ldraw_input
     --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/smoke/library"
+    --ldraw_coordinate_conversion none
     "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/smoke/model.mpd"
     "${ldraw_direct_mpd_output}"
 )
@@ -224,6 +225,28 @@ rendercli_assert_image_dimensions("${ldraw_direct_mpd_output}" 24 24
                                   NAME "direct LDraw MPD dimensions")
 rendercli_assert_image_nonempty("${ldraw_direct_mpd_output}"
                                 NAME "direct LDraw MPD pixels")
+rendercli_assert_image_varied("${ldraw_direct_mpd_output}"
+                              NAME "direct LDraw MPD varied pixels")
+
+set(ldraw_offset_model "${TEST_OUTPUT_DIR}/ldraw-offset.ldr")
+set(ldraw_offset_output "${TEST_OUTPUT_DIR}/ldraw-offset.png")
+file(WRITE "${ldraw_offset_model}" [=[
+3 0x02C91A09 -320 -320 100 -240 -320 100 -320 -240 100
+3 0x020055BF -320 -320 140 -320 -240 100 -240 -320 100
+3 0x02237841 -320 -240 100 -320 -320 140 -240 -320 100
+]=])
+rendercli_run(
+  NAME "rendercli raytracer frames direct LDraw input away from the origin"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_input
+    "${ldraw_offset_model}"
+    "${ldraw_offset_output}"
+)
+rendercli_assert_image_dimensions("${ldraw_offset_output}" 24 24
+                                  NAME "offset LDraw dimensions")
+rendercli_assert_image_varied("${ldraw_offset_output}"
+                              NAME "offset LDraw varied pixels")
 
 rendercli_expect_failure(
   NAME "rendercli validates direct LDraw import options"

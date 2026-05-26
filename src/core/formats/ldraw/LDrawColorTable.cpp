@@ -10,6 +10,8 @@
 
 #include <cerrno>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <limits>
 #include <sstream>
 #include <variant>
@@ -28,8 +30,8 @@ namespace {
     if (text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X'))
       base = 16;
     const long value = strtol(text.c_str(), &end, base);
-    if (errno != 0 || end == text.c_str() || *end != '\0' ||
-        value < numeric_limits<int>::min() || value > numeric_limits<int>::max())
+    if (errno != 0 || end == text.c_str() || *end != '\0' || value < numeric_limits<int>::min() ||
+        value > numeric_limits<int>::max())
       throwParseError(lineNumber, "invalid integer for " + fieldName + ": '" + text + "'");
     return static_cast<int>(value);
   }
@@ -88,6 +90,19 @@ void LDrawColorTable::parse(istream& input) {
   }
 }
 
+bool LDrawColorTable::loadLibraryConfig(const string& libraryRoot) {
+  if (libraryRoot.empty())
+    return false;
+
+  const std::filesystem::path configPath = std::filesystem::path(libraryRoot) / "LDConfig.ldr";
+  ifstream input(configPath);
+  if (!input)
+    return false;
+
+  parse(input);
+  return true;
+}
+
 bool LDrawColorTable::parseMetaCommand(const LDrawMetaCommand& command) {
   if (command.keyword != "!COLOUR")
     return false;
@@ -138,9 +153,11 @@ LDrawColorDefinition LDrawColorTable::parseColourRecord(const string& text, int 
       if (i + 1 >= tokens.size())
         throwParseError(lineNumber, "EDGE missing value");
       if (!tokens[i + 1].empty() && tokens[i + 1][0] == '#')
-        definition.edge = LDrawColorReference::fromDirectRgb(parseHexColor(tokens[i + 1], lineNumber, "EDGE"));
+        definition.edge =
+          LDrawColorReference::fromDirectRgb(parseHexColor(tokens[i + 1], lineNumber, "EDGE"));
       else
-        definition.edge = LDrawColorReference::fromCode(parseInt(tokens[i + 1], lineNumber, "EDGE"));
+        definition.edge =
+          LDrawColorReference::fromCode(parseInt(tokens[i + 1], lineNumber, "EDGE"));
       hasEdge = true;
       i += 2;
     } else {
@@ -182,7 +199,8 @@ const LDrawColorDefinition* LDrawColorTable::find(int code) const {
   return &it->second;
 }
 
-LDrawColorReference LDrawColorTable::resolveReference(int code, const LDrawColorContext& context) const {
+LDrawColorReference LDrawColorTable::resolveReference(int code,
+                                                      const LDrawColorContext& context) const {
   if (code == 16)
     return context.currentColor;
   if (code == 24)
@@ -243,8 +261,8 @@ Colord LDrawColorTable::edgeColorForCode(int code, const LDrawColorContext& cont
   return Colord::fromRGB(128, 128, 128);
 }
 
-shared_ptr<render::Material> LDrawColorTable::materialForCode(int code,
-                                                              const LDrawColorContext& context) const {
+shared_ptr<render::Material>
+LDrawColorTable::materialForCode(int code, const LDrawColorContext& context) const {
   return materialForCode(code, context, nullptr, {}, 0);
 }
 
@@ -272,9 +290,9 @@ LDrawColorContext LDrawColorTable::contextForSubfile(int colorCode,
                                                      const LDrawColorContext& parent) const {
   LDrawColorContext child;
   child.currentColor = resolveReference(colorCode, parent);
-  child.edgeColor = colorCode == 16 || colorCode == 24 ?
-                      parent.edgeColor :
-                      edgeReferenceFor(child.currentColor, parent);
+  child.edgeColor = colorCode == 16 || colorCode == 24
+                      ? parent.edgeColor
+                      : edgeReferenceFor(child.currentColor, parent);
   return child;
 }
 
@@ -288,8 +306,8 @@ Colord LDrawColorTable::directRgbColor(int code) {
                          static_cast<unsigned int>(code) & 0xff);
 }
 
-shared_ptr<render::Material> LDrawColorTable::materialForDefinition(
-  const LDrawColorDefinition& definition) const {
+shared_ptr<render::Material>
+LDrawColorTable::materialForDefinition(const LDrawColorDefinition& definition) const {
   if (definition.transparent()) {
     auto material = make_shared<render::TransparentMaterial>(texture(definition.value));
     material->setTransmissionCoefficient(1.0 - static_cast<double>(definition.alpha) / 255.0);
@@ -306,7 +324,8 @@ shared_ptr<render::Material> LDrawColorTable::materialForDefinition(
     return material;
   }
   case LDrawColorFinish::Chrome: {
-    auto material = make_shared<render::ReflectiveMaterial>(texture(definition.value), Colord::white());
+    auto material =
+      make_shared<render::ReflectiveMaterial>(texture(definition.value), Colord::white());
     material->setReflectionCoefficient(0.8);
     material->setSpecularCoefficient(1.0);
     material->setExponent(96);
@@ -318,8 +337,10 @@ shared_ptr<render::Material> LDrawColorTable::materialForDefinition(
   case LDrawColorFinish::Glitter:
   case LDrawColorFinish::Speckle:
   case LDrawColorFinish::CustomMaterial: {
-    auto material = make_shared<render::ReflectiveMaterial>(texture(definition.value), Colord::white());
-    material->setReflectionCoefficient(definition.finish == LDrawColorFinish::MatteMetallic ? 0.25 : 0.45);
+    auto material =
+      make_shared<render::ReflectiveMaterial>(texture(definition.value), Colord::white());
+    material->setReflectionCoefficient(definition.finish == LDrawColorFinish::MatteMetallic ? 0.25
+                                                                                            : 0.45);
     material->setSpecularCoefficient(0.6);
     material->setExponent(definition.finish == LDrawColorFinish::MatteMetallic ? 24 : 48);
     return material;

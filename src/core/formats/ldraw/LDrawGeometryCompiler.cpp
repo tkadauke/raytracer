@@ -78,16 +78,13 @@ namespace {
     const double determinant = uu * vv - uv * uv;
     if (std::abs(determinant) < 1e-12)
       return Vector2d::null;
-    return Vector2d((du * vv - dv * uv) / determinant,
-                    (dv * uu - du * uv) / determinant);
+    return Vector2d((du * vv - dv * uv) / determinant, (dv * uu - du * uv) / determinant);
   }
 
-  std::shared_ptr<render::Texturec> textureForTexmap(
-    const LDrawTexmap& texmap,
-    const LDrawFileResolver* resolver,
-    std::unordered_map<std::string, std::shared_ptr<render::Texturec>>& textures,
-    LDrawDiagnostics* diagnostics,
-    const string& file) {
+  std::shared_ptr<render::Texturec>
+  textureForTexmap(const LDrawTexmap& texmap, const LDrawFileResolver* resolver,
+                   std::unordered_map<std::string, std::shared_ptr<render::Texturec>>& textures,
+                   LDrawDiagnostics* diagnostics, const string& file) {
     const std::string path =
       resolver ? resolver->resolvePath(texmap.textureFile) : texmap.textureFile;
     if (path.empty()) {
@@ -111,9 +108,9 @@ namespace {
       return cached->second;
 
     try {
-      auto texture = render::ImageTexture::fromFile(
-        new render::UVMapping2D, path, render::ImageTextureFilter::Nearest,
-        render::ImageTextureWrap::Clamp);
+      auto texture = render::ImageTexture::fromFile(new render::UVMapping2D, path,
+                                                    render::ImageTextureFilter::Nearest,
+                                                    render::ImageTextureWrap::Clamp);
       textures.emplace(path, texture);
       return texture;
     } catch (const std::exception& error) {
@@ -131,18 +128,12 @@ namespace {
     }
   }
 
-  std::shared_ptr<render::Material> materialForPolygon(const LDrawColorTable& colors,
-                                                       int color,
-                                                       const LDrawColorContext& context,
-                                                       const BfcState& bfc,
-                                                       const LDrawTexmap* texmap,
-                                                       const LDrawFileResolver* resolver,
-                                                       std::unordered_map<
-                                                         std::string,
-                                                         std::shared_ptr<render::Texturec>>& textures,
-                                                       LDrawDiagnostics* diagnostics,
-                                                       const string& file,
-                                                       int lineNumber) {
+  std::shared_ptr<render::Material>
+  materialForPolygon(const LDrawColorTable& colors, int color, const LDrawColorContext& context,
+                     const BfcState& bfc, const LDrawTexmap* texmap,
+                     const LDrawFileResolver* resolver,
+                     std::unordered_map<std::string, std::shared_ptr<render::Texturec>>& textures,
+                     LDrawDiagnostics* diagnostics, const string& file, int lineNumber) {
     auto material = colors.materialForCode(color, context, diagnostics, file, lineNumber);
     if (texmap && isSupportedTexmap(*texmap)) {
       if (auto texture = textureForTexmap(*texmap, resolver, textures, diagnostics, file)) {
@@ -157,22 +148,17 @@ namespace {
     } else {
       material->setSidedness(render::Material::Sidedness::TwoSided);
       if (diagnostics) {
-        diagnostics->warning(
-          LDrawDiagnosticCode::BfcAmbiguity, file, lineNumber,
-          bfc.certified
-            ? "BFC NOCLIP polygon is treated as two-sided geometry"
-            : "BFC uncertified polygon is treated as two-sided geometry");
+        diagnostics->warning(LDrawDiagnosticCode::BfcAmbiguity, file, lineNumber,
+                             bfc.certified
+                               ? "BFC NOCLIP polygon is treated as two-sided geometry"
+                               : "BFC uncertified polygon is treated as two-sided geometry");
       }
     }
     return material;
   }
 
-  void attachPolygonProvenance(render::Primitive& primitive,
-                               const string& file,
-                               const string& mpdBlock,
-                               int lineNumber,
-                               int color,
-                               int buildStep,
+  void attachPolygonProvenance(render::Primitive& primitive, const string& file,
+                               const string& mpdBlock, int lineNumber, int color, int buildStep,
                                const string& commandType) {
     primitive.setMetadataValue("source.format", "ldraw");
     primitive.setMetadataValue("ldraw.source", file);
@@ -186,10 +172,8 @@ namespace {
   }
 
   void attachReferenceProvenance(render::Primitive& primitive,
-                                 const LDrawSubfileReference& reference,
-                                 const string& parentFile,
-                                 const string& parentMpdBlock,
-                                 int buildStep) {
+                                 const LDrawSubfileReference& reference, const string& parentFile,
+                                 const string& parentMpdBlock, int buildStep) {
     primitive.setMetadataValue("source.format", "ldraw");
     primitive.setMetadataValue("ldraw.source", parentFile);
     if (!parentMpdBlock.empty())
@@ -204,21 +188,13 @@ namespace {
     primitive.setMetadataValue("ldraw.parentReferenceLine", to_string(reference.lineNumber));
   }
 
-  shared_ptr<render::MeshPrimitive> meshPrimitiveForTriangle(const LDrawTriangle& triangle,
-                                                            const LDrawColorTable& colors,
-                                                            const LDrawColorContext& context,
-                                                            const BfcState& bfc,
-                                                            const LDrawTexmap* texmap,
-                                                            bool inheritedInverted,
-                                                            const LDrawFileResolver* resolver,
-                                                            std::unordered_map<
-                                                              std::string,
-                                                              std::shared_ptr<render::Texturec>>& textures,
-                                                            LDrawDiagnostics* diagnostics,
-                                                            const string& file,
-                                                            const string& mpdBlock,
-                                                            int buildStep,
-                                                            LDrawGeometryCompiler::NormalMode normalMode) {
+  shared_ptr<render::MeshPrimitive> meshPrimitiveForTriangle(
+    const LDrawTriangle& triangle, const LDrawColorTable& colors, const LDrawColorContext& context,
+    const BfcState& bfc, const LDrawTexmap* texmap, bool inheritedInverted,
+    const LDrawFileResolver* resolver,
+    std::unordered_map<std::string, std::shared_ptr<render::Texturec>>& textures,
+    LDrawDiagnostics* diagnostics, const string& file, const string& mpdBlock, int buildStep,
+    LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
     for (const auto& point : triangle.points) {
       mesh.addVertex(point, Vector3d::null,
@@ -230,14 +206,12 @@ namespace {
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(
-      std::move(mesh),
-      normalMode == LDrawGeometryCompiler::NormalMode::Smooth
-        ? render::MeshPrimitive::NormalMode::Smooth
-        : render::MeshPrimitive::NormalMode::Flat);
-    primitive->setMaterial(
-      materialForPolygon(colors, triangle.color, context, bfc, texmap, resolver, textures,
-                         diagnostics, file,
-                         triangle.lineNumber));
+      std::move(mesh), normalMode == LDrawGeometryCompiler::NormalMode::Smooth
+                         ? render::MeshPrimitive::NormalMode::Smooth
+                         : render::MeshPrimitive::NormalMode::Flat);
+    primitive->setMaterial(materialForPolygon(colors, triangle.color, context, bfc, texmap,
+                                              resolver, textures, diagnostics, file,
+                                              triangle.lineNumber));
     attachPolygonProvenance(*primitive, file, mpdBlock, triangle.lineNumber, triangle.color,
                             buildStep, "3");
     if (reverse && diagnostics) {
@@ -247,21 +221,14 @@ namespace {
     return primitive;
   }
 
-  shared_ptr<render::MeshPrimitive> meshPrimitiveForQuad(const LDrawQuad& quad,
-                                                        const LDrawColorTable& colors,
-                                                        const LDrawColorContext& context,
-                                                        const BfcState& bfc,
-                                                        const LDrawTexmap* texmap,
-                                                        bool inheritedInverted,
-                                                        const LDrawFileResolver* resolver,
-                                                        std::unordered_map<
-                                                          std::string,
-                                                          std::shared_ptr<render::Texturec>>& textures,
-                                                        LDrawDiagnostics* diagnostics,
-                                                        const string& file,
-                                                        const string& mpdBlock,
-                                                        int buildStep,
-                                                        LDrawGeometryCompiler::NormalMode normalMode) {
+  shared_ptr<render::MeshPrimitive>
+  meshPrimitiveForQuad(const LDrawQuad& quad, const LDrawColorTable& colors,
+                       const LDrawColorContext& context, const BfcState& bfc,
+                       const LDrawTexmap* texmap, bool inheritedInverted,
+                       const LDrawFileResolver* resolver,
+                       std::unordered_map<std::string, std::shared_ptr<render::Texturec>>& textures,
+                       LDrawDiagnostics* diagnostics, const string& file, const string& mpdBlock,
+                       int buildStep, LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
     for (const auto& point : quad.points) {
       mesh.addVertex(point, Vector3d::null,
@@ -273,13 +240,11 @@ namespace {
     mesh.computeNormals();
 
     auto primitive = make_shared<render::MeshPrimitive>(
-      std::move(mesh),
-      normalMode == LDrawGeometryCompiler::NormalMode::Smooth
-        ? render::MeshPrimitive::NormalMode::Smooth
-        : render::MeshPrimitive::NormalMode::Flat);
-    primitive->setMaterial(
-      materialForPolygon(colors, quad.color, context, bfc, texmap, resolver, textures,
-                         diagnostics, file, quad.lineNumber));
+      std::move(mesh), normalMode == LDrawGeometryCompiler::NormalMode::Smooth
+                         ? render::MeshPrimitive::NormalMode::Smooth
+                         : render::MeshPrimitive::NormalMode::Flat);
+    primitive->setMaterial(materialForPolygon(colors, quad.color, context, bfc, texmap, resolver,
+                                              textures, diagnostics, file, quad.lineNumber));
     attachPolygonProvenance(*primitive, file, mpdBlock, quad.lineNumber, quad.color, buildStep,
                             "4");
     if (reverse && diagnostics) {
@@ -292,8 +257,7 @@ namespace {
   shared_ptr<render::Curve> curveForEdgeLine(const LDrawEdgeLine& edge,
                                              const LDrawColorTable& colors,
                                              const LDrawColorContext& context,
-                                             LDrawDiagnostics* diagnostics,
-                                             const string& file) {
+                                             LDrawDiagnostics* diagnostics, const string& file) {
     core::Polyline polyline({edge.points[0], edge.points[1]});
     polyline.setSegmentAttribute(0, "ldraw_edge", true);
 
@@ -301,24 +265,21 @@ namespace {
     colorMap.setCategoryColor(
       true, colors.edgeColorForCode(edge.color, context, diagnostics, file, edge.lineNumber));
 
-    auto curve =
-      make_shared<render::Curve>(polyline, 0.0, render::Curve::TessellationMode::Ribbon);
+    auto curve = make_shared<render::Curve>(polyline, 0.0, render::Curve::TessellationMode::Ribbon);
     curve->setSegmentColorMap(colorMap);
     return curve;
   }
 
   Matrix4d transformForSubfileReference(const LDrawSubfileReference& reference) {
     const auto& m = reference.matrix;
-    return Matrix4d(m[0], m[1], m[2], reference.translation.x(),
-                    m[3], m[4], m[5], reference.translation.y(),
-                    m[6], m[7], m[8], reference.translation.z(),
-                    0.0, 0.0, 0.0, 1.0);
+    return Matrix4d(m[0], m[1], m[2], reference.translation.x(), m[3], m[4], m[5],
+                    reference.translation.y(), m[6], m[7], m[8], reference.translation.z(), 0.0,
+                    0.0, 0.0, 1.0);
   }
 
   double determinantForSubfileReference(const LDrawSubfileReference& reference) {
     const auto& m = reference.matrix;
-    return m[0] * (m[4] * m[8] - m[5] * m[7]) -
-           m[1] * (m[3] * m[8] - m[5] * m[6]) +
+    return m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) +
            m[2] * (m[3] * m[7] - m[4] * m[6]);
   }
 
@@ -390,8 +351,7 @@ namespace {
 }
 
 LDrawGeometryCompiler::LDrawGeometryCompiler(shared_ptr<const LDrawFileResolver> resolver,
-                                             int recursionLimit,
-                                             NormalMode normalMode)
+                                             int recursionLimit, NormalMode normalMode)
     : m_resolver(std::move(resolver)),
       m_options{recursionLimit, normalMode, true, true, MissingPartPolicy::Error} {
 }
@@ -420,12 +380,9 @@ LDrawGeometryCompiler::compile(const LDrawParser::Commands& commands, const LDra
   return compileCommands(commands, colors, context, state, false);
 }
 
-shared_ptr<render::Composite>
-LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
-                                       const LDrawColorTable& colors,
-                                       const LDrawColorContext& context,
-                                       CompileState& state,
-                                       bool inheritedInverted) const {
+shared_ptr<render::Composite> LDrawGeometryCompiler::compileCommands(
+  const LDrawParser::Commands& commands, const LDrawColorTable& colors,
+  const LDrawColorContext& context, CompileState& state, bool inheritedInverted) const {
   auto result = make_shared<render::Composite>();
   BfcState bfc;
   int buildStep = 1;
@@ -444,10 +401,10 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
     } else if (holds_alternative<LDrawQuad>(command)) {
       const LDrawTexmap* currentTexmap = texmapForGeometry(texmap);
       if (shouldCompileGeometry(texmap)) {
-        result->add(meshPrimitiveForQuad(
-          get<LDrawQuad>(command), colors, context, bfc, currentTexmap, inheritedInverted,
-          m_resolver.get(), state.textures, state.diagnostics, state.currentFile,
-          state.currentMpdBlock, buildStep, m_options.normalMode));
+        result->add(meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc,
+                                         currentTexmap, inheritedInverted, m_resolver.get(),
+                                         state.textures, state.diagnostics, state.currentFile,
+                                         state.currentMpdBlock, buildStep, m_options.normalMode));
       }
       texmap.next.reset();
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
@@ -458,8 +415,14 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
       const auto& reference = get<LDrawSubfileReference>(command);
       const bool subfileInverted =
         (inheritedInverted != bfc.invertNext) != (determinantForSubfileReference(reference) < 0.0);
-      auto subfile = compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context),
-                                    state, subfileInverted);
+      auto subfile =
+        compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context), state,
+                       subfileInverted);
+      if (subfile->primitives().empty()) {
+        bfc.invertNext = false;
+        texmap.next.reset();
+        continue;
+      }
       const Matrix4d transform = transformForSubfileReference(reference);
       if (!m_options.preserveHierarchy && transform == Matrix4d()) {
         for (const auto& primitive : subfile->primitives()) {
@@ -476,15 +439,13 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
       texmap.next.reset();
     } else if (holds_alternative<LDrawMetaCommand>(command)) {
       const auto& meta = get<LDrawMetaCommand>(command);
-      const bool wasBfc = meta.keyword == "BFC";
       applyBfcMeta(meta, bfc);
       if (meta.keyword == "STEP")
         ++buildStep;
-      if (!meta.isComment() && !wasBfc && meta.keyword != "!COLOUR" && meta.keyword != "STEP" &&
-          state.diagnostics) {
-        state.diagnostics->warning(
-          LDrawDiagnosticCode::UnsupportedMetaCommand, state.currentFile, meta.lineNumber,
-          "unsupported meta command '" + meta.keyword + "' was ignored");
+      if (!meta.isGeometryDirective() && !meta.isInformational() && state.diagnostics) {
+        state.diagnostics->warning(LDrawDiagnosticCode::UnsupportedMetaCommand, state.currentFile,
+                                   meta.lineNumber,
+                                   "unsupported meta command '" + meta.keyword + "' was ignored");
       }
     } else if (holds_alternative<LDrawTexmap>(command)) {
       applyTexmapMeta(get<LDrawTexmap>(command), texmap, state.diagnostics, state.currentFile);
@@ -503,9 +464,9 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
     } else if (holds_alternative<LDrawUnknownCommand>(command)) {
       const auto& unknown = get<LDrawUnknownCommand>(command);
       if (state.diagnostics) {
-        state.diagnostics->warning(
-          LDrawDiagnosticCode::UnsupportedLineType, state.currentFile, unknown.lineNumber,
-          "unsupported line type '" + unknown.lineType + "' was ignored");
+        state.diagnostics->warning(LDrawDiagnosticCode::UnsupportedLineType, state.currentFile,
+                                   unknown.lineNumber,
+                                   "unsupported line type '" + unknown.lineType + "' was ignored");
       }
     }
   }
@@ -513,12 +474,9 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
   return result;
 }
 
-shared_ptr<render::Composite>
-LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
-                                      const LDrawColorTable& colors,
-                                      const LDrawColorContext& context,
-                                      CompileState& state,
-                                      bool inheritedInverted) const {
+shared_ptr<render::Composite> LDrawGeometryCompiler::compileSubfile(
+  const LDrawSubfileReference& reference, const LDrawColorTable& colors,
+  const LDrawColorContext& context, CompileState& state, bool inheritedInverted) const {
   if (!m_resolver) {
     if (state.diagnostics) {
       LDrawDiagnostic diagnostic;
@@ -539,10 +497,9 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
 
   if (state.depth >= m_options.recursionLimit) {
     if (state.diagnostics) {
-      state.diagnostics->error(LDrawDiagnosticCode::MissingSubfile, state.currentFile,
-                               reference.lineNumber,
-                               "subfile recursion limit exceeded while resolving '" +
-                                 reference.filename + "'");
+      state.diagnostics->error(
+        LDrawDiagnosticCode::MissingSubfile, state.currentFile, reference.lineNumber,
+        "subfile recursion limit exceeded while resolving '" + reference.filename + "'");
     }
     throw Exception("LDraw subfile recursion limit exceeded while resolving: " + reference.filename,
                     __FILE__, __LINE__);
@@ -551,13 +508,12 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
   const string fileKey = m_resolver->cacheKey(reference.filename);
   if (state.activeFiles.find(fileKey) != state.activeFiles.end()) {
     if (state.diagnostics) {
-      state.diagnostics->error(LDrawDiagnosticCode::MissingSubfile, state.currentFile,
-                               reference.lineNumber,
-                               "subfile cycle detected while resolving '" + reference.filename +
-                                 "'");
+      state.diagnostics->error(
+        LDrawDiagnosticCode::MissingSubfile, state.currentFile, reference.lineNumber,
+        "subfile cycle detected while resolving '" + reference.filename + "'");
     }
-    throw Exception("LDraw subfile cycle detected while resolving: " + reference.filename,
-                    __FILE__, __LINE__);
+    throw Exception("LDraw subfile cycle detected while resolving: " + reference.filename, __FILE__,
+                    __LINE__);
   }
 
   const string compiledKey =
@@ -588,8 +544,8 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
       if (m_options.missingPartPolicy == MissingPartPolicy::Skip) {
         return make_shared<render::Composite>();
       }
-      throw Exception("LDraw resolver could not open subfile: " + reference.filename,
-                      __FILE__, __LINE__);
+      throw Exception("LDraw resolver could not open subfile: " + reference.filename, __FILE__,
+                      __LINE__);
     }
     parsed = m_parsedSubfiles.emplace(fileKey, LDrawParser().parse(*input)).first;
   }
@@ -610,9 +566,9 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
   return result;
 }
 
-shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
-                                                             const LDrawColorTable& colors,
-                                                             const LDrawColorContext& context) const {
+shared_ptr<render::Composite>
+LDrawGeometryCompiler::compile(istream& input, const LDrawColorTable& colors,
+                               const LDrawColorContext& context) const {
   const auto document = LDrawParser().parseDocument(input);
   if (!document.isMultipart())
     return compile(document.mainFile().commands, colors, context);

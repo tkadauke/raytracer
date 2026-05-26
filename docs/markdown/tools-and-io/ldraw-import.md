@@ -34,6 +34,11 @@ tools/rendercli/rendercli --ldraw_input \
   model.mpd out.png
 ```
 
+Direct LDraw input applies `ldraw_to_raytracer` coordinate conversion by
+default so standard LDraw Y-down models arrive in the renderer's Y-up scene
+space. Use `--ldraw_coordinate_conversion none` for hand-authored fixtures that
+already use renderer coordinates.
+
 The library root should be the directory that contains standard LDraw
 subdirectories such as `parts/`, `parts/s/`, `p/`, `p/48/`, and `models/`.
 The importer searches the model's own directory first, then those library
@@ -87,12 +92,15 @@ without external assets.
 - `include/core/formats/ldraw/LDrawGeometryCompiler.h`
 - `include/world/import/LDrawSceneImporter.h`
 - `src/core/formats/ldraw/LDrawParser.cpp`
+- `src/core/formats/ldraw/LDrawCommand.cpp`
 - `src/core/formats/ldraw/LDrawColorTable.cpp`
 - `src/core/formats/ldraw/LDrawFileResolver.cpp`
 - `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`
 - `src/world/import/LDrawSceneImporter.cpp`
 - `test/fixtures/ldraw/`
 - `test/rendercli/RaytracerOptionTest.cmake`
+- `test/unit/core/formats/ldraw/LDrawColorTableTest.cpp`
+- `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp`
 - `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp`
 - `test/unit/world/objects/LDrawSceneImporterTest.cpp`
 <!-- /source-anchors -->

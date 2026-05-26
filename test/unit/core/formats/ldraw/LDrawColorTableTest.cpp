@@ -11,12 +11,52 @@
 
 #include "test/helpers/ColorTestHelper.h"
 
+#include <filesystem>
+#include <fstream>
 #include <sstream>
 
 using namespace std;
+namespace fs = std::filesystem;
 
 namespace LDrawColorTableTest {
   using namespace render;
+
+  class TempTree {
+  public:
+    TempTree()
+        : m_root(fs::temp_directory_path() /
+                 fs::path(string("raytracer-ldraw-colors-") +
+                          to_string(::testing::UnitTest::GetInstance()->random_seed()) + "-" +
+                          to_string(++s_nextId))) {
+      fs::create_directories(m_root);
+      std::error_code error;
+      const fs::path canonical = fs::weakly_canonical(m_root, error);
+      if (!error)
+        m_root = canonical;
+    }
+
+    ~TempTree() {
+      std::error_code error;
+      fs::remove_all(m_root, error);
+    }
+
+    [[nodiscard]] fs::path root() const {
+      return m_root;
+    }
+
+    void write(const fs::path& relativePath, const string& contents) const {
+      const fs::path path = m_root / relativePath;
+      fs::create_directories(path.parent_path());
+      ofstream output(path);
+      output << contents;
+    }
+
+  private:
+    fs::path m_root;
+    static int s_nextId;
+  };
+
+  int TempTree::s_nextId = 0;
 
   Colord diffuseColor(const shared_ptr<Material>& material) {
     auto matte = dynamic_pointer_cast<MatteMaterial>(material);
@@ -25,9 +65,8 @@ namespace LDrawColorTableTest {
   }
 
   TEST(LDrawColorTable, ShouldParseColourRecordsFromLDConfigStream) {
-    istringstream stream(
-      "0 !COLOUR Black CODE 0 VALUE #05131D EDGE #595959\n"
-      "0 !COLOUR Bright_Red CODE 4 VALUE #C91A09 EDGE #333333\n");
+    istringstream stream("0 !COLOUR Black CODE 0 VALUE #05131D EDGE #595959\n"
+                         "0 !COLOUR Bright_Red CODE 4 VALUE #C91A09 EDGE #333333\n");
     LDrawColorTable table;
     table.parse(stream);
 
@@ -41,10 +80,23 @@ namespace LDrawColorTableTest {
     ASSERT_COLOR_NEAR(Colord::fromRGB(51, 51, 51), red->edge.color, 0.001);
   }
 
+  TEST(LDrawColorTable, ShouldLoadLDConfigFromLibraryRoot) {
+    TempTree tree;
+    tree.write("LDConfig.ldr",
+               "0 !COLOUR Chrome_Silver CODE 383 VALUE #E0E0E0 EDGE #333333 CHROME\n");
+    LDrawColorTable table;
+
+    ASSERT_TRUE(table.loadLibraryConfig(tree.root().string()));
+
+    const auto* chrome = table.find(383);
+    ASSERT_NE(nullptr, chrome);
+    EXPECT_EQ("Chrome_Silver", chrome->name);
+    EXPECT_EQ(LDrawColorFinish::Chrome, chrome->finish);
+  }
+
   TEST(LDrawColorTable, ShouldParseAlphaLuminanceAndFinishTags) {
     const auto color = LDrawColorTable().parseColourRecord(
-      "0 !COLOUR Trans_Red CODE 36 VALUE #C91A09 EDGE #333333 ALPHA 128 LUMINANCE 15 CHROME",
-      3);
+      "0 !COLOUR Trans_Red CODE 36 VALUE #C91A09 EDGE #333333 ALPHA 128 LUMINANCE 15 CHROME", 3);
 
     EXPECT_TRUE(color.transparent());
     EXPECT_EQ(128, color.alpha);
@@ -56,9 +108,10 @@ namespace LDrawColorTableTest {
   }
 
   TEST(LDrawColorTable, ShouldPreserveMaterialFinishTokens) {
-    const auto color = LDrawColorTable().parseColourRecord(
-      "0 !COLOUR Glitter CODE 100 VALUE #123456 EDGE #333333 MATERIAL GLITTER VALUE #FFFFFF FRACTION 0.17",
-      1);
+    const auto color =
+      LDrawColorTable().parseColourRecord("0 !COLOUR Glitter CODE 100 VALUE #123456 EDGE #333333 "
+                                          "MATERIAL GLITTER VALUE #FFFFFF FRACTION 0.17",
+                                          1);
 
     EXPECT_EQ(LDrawColorFinish::Glitter, color.finish);
     ASSERT_EQ(6u, color.finishTokens.size());
@@ -107,8 +160,7 @@ namespace LDrawColorTableTest {
   TEST(LDrawColorTable, ShouldResolveDirectEdgeColors) {
     LDrawColorTable table;
 
-    ASSERT_COLOR_NEAR(Colord::fromRGB(0xa1, 0xb2, 0xc3),
-                      table.edgeColorForCode(0x02a1b2c3), 0.001);
+    ASSERT_COLOR_NEAR(Colord::fromRGB(0xa1, 0xb2, 0xc3), table.edgeColorForCode(0x02a1b2c3), 0.001);
   }
 
   TEST(LDrawColorTable, ShouldBuildSubfileContextFromReferenceColor) {
@@ -166,7 +218,8 @@ namespace LDrawColorTableTest {
 
   TEST(LDrawColorTable, ShouldMapTransparentColorsToTransparentMaterial) {
     LDrawColorTable table;
-    table.add(table.parseColourRecord("0 !COLOUR Trans_Red CODE 36 VALUE #C91A09 EDGE #333333 ALPHA 128", 1));
+    table.add(table.parseColourRecord(
+      "0 !COLOUR Trans_Red CODE 36 VALUE #C91A09 EDGE #333333 ALPHA 128", 1));
 
     auto material = dynamic_pointer_cast<TransparentMaterial>(table.materialForCode(36));
 
@@ -176,7 +229,8 @@ namespace LDrawColorTableTest {
 
   TEST(LDrawColorTable, ShouldMapRubberToMatteMaterial) {
     LDrawColorTable table;
-    table.add(table.parseColourRecord("0 !COLOUR Black_Rubber CODE 256 VALUE #05131D EDGE #595959 RUBBER", 1));
+    table.add(table.parseColourRecord(
+      "0 !COLOUR Black_Rubber CODE 256 VALUE #05131D EDGE #595959 RUBBER", 1));
 
     auto material = dynamic_pointer_cast<MatteMaterial>(table.materialForCode(256));
 
@@ -186,8 +240,10 @@ namespace LDrawColorTableTest {
 
   TEST(LDrawColorTable, ShouldMapMetalFinishesToReflectiveMaterials) {
     LDrawColorTable table;
-    table.add(table.parseColourRecord("0 !COLOUR Chrome_Silver CODE 383 VALUE #E0E0E0 EDGE #333333 CHROME", 1));
-    table.add(table.parseColourRecord("0 !COLOUR Flat_Silver CODE 179 VALUE #898788 EDGE #333333 MATTE_METALLIC", 2));
+    table.add(table.parseColourRecord(
+      "0 !COLOUR Chrome_Silver CODE 383 VALUE #E0E0E0 EDGE #333333 CHROME", 1));
+    table.add(table.parseColourRecord(
+      "0 !COLOUR Flat_Silver CODE 179 VALUE #898788 EDGE #333333 MATTE_METALLIC", 2));
 
     auto chrome = dynamic_pointer_cast<ReflectiveMaterial>(table.materialForCode(383));
     auto matteMetal = dynamic_pointer_cast<ReflectiveMaterial>(table.materialForCode(179));
@@ -199,9 +255,11 @@ namespace LDrawColorTableTest {
   }
 
   TEST(LDrawColorTable, ShouldThrowForMalformedColourRecords) {
-    ASSERT_THROW(LDrawColorTable().parseColourRecord("0 !COLOUR Red CODE bad VALUE #C91A09 EDGE #333333", 1),
-                 LDrawParseError);
-    ASSERT_THROW(LDrawColorTable().parseColourRecord("0 !COLOUR Red CODE 4 VALUE red EDGE #333333", 1),
-                 LDrawParseError);
+    ASSERT_THROW(
+      LDrawColorTable().parseColourRecord("0 !COLOUR Red CODE bad VALUE #C91A09 EDGE #333333", 1),
+      LDrawParseError);
+    ASSERT_THROW(
+      LDrawColorTable().parseColourRecord("0 !COLOUR Red CODE 4 VALUE red EDGE #333333", 1),
+      LDrawParseError);
   }
 }

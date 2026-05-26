@@ -51,6 +51,7 @@
 #include <iomanip>
 #include <initializer_list>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -720,8 +721,7 @@ namespace {
                           QString* errorMessage) {
     const QString trimmed = value.trimmed();
     if (trimmed.isEmpty()) {
-      *errorMessage =
-        "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
+      *errorMessage = "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
       return false;
     }
 
@@ -766,8 +766,7 @@ namespace {
       return parseNonNegativeStepIndex(argumentText, &selection->step, errorMessage);
     }
 
-    if (normalizedMode == "cumulative" || normalizedMode == "through" ||
-        normalizedMode == "upto") {
+    if (normalizedMode == "cumulative" || normalizedMode == "through" || normalizedMode == "upto") {
       if (argumentText.isEmpty()) {
         *errorMessage = "Cumulative step selection requires a step index";
         return false;
@@ -787,8 +786,7 @@ namespace {
       return true;
     }
 
-    *errorMessage =
-      "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
+    *errorMessage = "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
     return false;
   }
 
@@ -815,16 +813,16 @@ namespace {
       case StepVisibilityMode::All:
         return true;
       case StepVisibilityMode::Range:
-        return selection.firstStep() && selection.lastStep() &&
-               step >= *selection.firstStep() && step <= *selection.lastStep();
+        return selection.firstStep() && selection.lastStep() && step >= *selection.firstStep() &&
+               step <= *selection.lastStep();
       }
       return false;
     });
   }
 
-  StepVisibilitySelection commandLineStepVisibilitySelection(
-    const CommandLineStepSelection& selection,
-    int sequenceStep = 0) {
+  StepVisibilitySelection
+  commandLineStepVisibilitySelection(const CommandLineStepSelection& selection,
+                                     int sequenceStep = 0) {
     switch (selection.mode) {
     case CommandLineStepMode::Single:
       return StepVisibilitySelection::onlyStep(selection.step);
@@ -986,6 +984,8 @@ private:
 
   std::unique_ptr<Scene> loadScene() const;
   std::unique_ptr<Scene> loadLDrawScene() const;
+  void frameLDrawCamera(Scene& scene) const;
+  void printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnostics) const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
   void renderStepSequence(const Scene& scene) const;
@@ -1032,7 +1032,7 @@ Renderer::Renderer()
     : m_ldrawInput(false),
       m_ldrawPreserveAuthoringHierarchy(false),
       m_ldrawScale(1.0),
-      m_ldrawCoordinateConversion("none"),
+      m_ldrawCoordinateConversion("ldraw_to_raytracer"),
       m_ldrawPreserveHierarchy(true),
       m_ldrawNormalMode("flat"),
       m_ldrawIncludeEdgeOverlays(true),
@@ -1158,8 +1158,7 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   if (!scene->load(m_filename, m_ldrawLibraryRoot))
     throw std::runtime_error(
       QString("Unable to load input scene: %1").arg(m_filename).toStdString());
-  for (const auto& diagnostic : scene->importDiagnostics())
-    std::cerr << diagnostic.toString() << '\n';
+  printLDrawDiagnostics(scene->importDiagnostics());
   return scene;
 }
 
@@ -1222,10 +1221,60 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   world::imports::resolveLDrawAuthoringImports(scene.get(), m_ldrawLibraryRoot, QString(),
                                                &diagnostics);
   scene->setImportDiagnostics(std::move(diagnostics));
-  for (const auto& diagnostic : scene->importDiagnostics())
-    std::cerr << diagnostic.toString() << '\n';
+  printLDrawDiagnostics(scene->importDiagnostics());
+
+  frameLDrawCamera(*scene);
 
   return scene;
+}
+
+void Renderer::printLDrawDiagnostics(const std::vector<LDrawDiagnostic>& diagnostics) const {
+  struct WarningSummary {
+    LDrawDiagnostic first;
+    int count = 0;
+  };
+
+  std::map<std::pair<LDrawDiagnosticCode, std::string>, WarningSummary> warnings;
+  for (const auto& diagnostic : diagnostics) {
+    if (diagnostic.severity == LDrawDiagnosticSeverity::Error) {
+      std::cerr << diagnostic.toString() << '\n';
+      continue;
+    }
+
+    const auto key = std::make_pair(diagnostic.code, diagnostic.message);
+    auto& summary = warnings[key];
+    if (summary.count == 0)
+      summary.first = diagnostic;
+    ++summary.count;
+  }
+
+  for (const auto& entry : warnings) {
+    const auto& summary = entry.second;
+    std::cerr << summary.first.toString();
+    if (summary.count > 1)
+      std::cerr << " (" << (summary.count - 1) << " similar warnings suppressed)";
+    std::cerr << '\n';
+  }
+}
+
+void Renderer::frameLDrawCamera(Scene& scene) const {
+  auto* camera = qobject_cast<PinholeCamera*>(scene.activeCamera());
+  if (!camera)
+    return;
+
+  const auto runtimeScene = scene.toRaytracerScene(m_stepPlaybackStyle);
+  const BoundingBoxd bounds = runtimeScene->boundingBox();
+  if (!bounds.isValid() || bounds.isInfinite())
+    return;
+
+  const Vector3d size = bounds.size();
+  const double maxExtent = std::max({size.x(), size.y(), size.z(), 1.0});
+  const double distance = maxExtent * 2.5;
+  const Vector3d target = bounds.center();
+  camera->setTarget(target);
+  camera->setPosition(target + Vector3d(0.0, 0.0, -distance));
+  camera->setDistance(distance);
+  camera->setZoom(1.0);
 }
 
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
@@ -1948,8 +1997,8 @@ void Renderer::renderStepSequence(const Scene& scene) const {
     stepTimings.push_back(timings.front());
 
     std::cout << "step " << (i + 1) << "/" << steps.size() << " number=" << step
-              << " output=" << output.toStdString()
-              << " render_ms=" << std::fixed << std::setprecision(3) << timings.front() << '\n';
+              << " output=" << output.toStdString() << " render_ms=" << std::fixed
+              << std::setprecision(3) << timings.front() << '\n';
   }
 
   if (m_timing) {
@@ -2111,13 +2160,14 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "Preserve LDraw STEP and MPD submodel structure as generic scene groups"},
      {"ldraw_scale", "Scale applied to direct LDraw input geometry", "scale"},
      {"ldraw_coordinate_conversion",
-      "Coordinate conversion for direct LDraw input (none, ldraw_to_raytracer)", "mode"},
+      "Coordinate conversion for direct LDraw input (none, ldraw_to_raytracer; default "
+      "ldraw_to_raytracer)",
+      "mode"},
      {"ldraw_flatten_hierarchy", "Flatten direct LDraw subfile hierarchy where supported"},
      {"ldraw_normals", "Normal mode for direct LDraw input (flat, smooth)", "mode"},
      {"ldraw_no_edge_overlays", "Do not import LDraw type-2 edge overlay lines"},
      {"ldraw_max_recursion", "Maximum LDraw subfile recursion depth", "depth"},
-     {"ldraw_missing_part_policy", "Policy for unresolved LDraw subfiles (error, skip)",
-      "policy"},
+     {"ldraw_missing_part_policy", "Policy for unresolved LDraw subfiles (error, skip)", "policy"},
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
@@ -2301,8 +2351,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     const QString normalized = normalizedRasterOption(m_ldrawCoordinateConversion);
     if (normalized != "none" && normalized != "ldrawtoraytracer" && normalized != "raytracer" &&
         normalized != "yup") {
-      *errorMessage =
-        "LDraw coordinate conversion must be 'none' or 'ldraw_to_raytracer'";
+      *errorMessage = "LDraw coordinate conversion must be 'none' or 'ldraw_to_raytracer'";
       return CommandLineError;
     }
   }
@@ -2976,8 +3025,7 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
-  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
-      m_repeat > 1) {
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence && m_repeat > 1) {
     *errorMessage = "Cannot combine --step sequence with --repeat";
     return CommandLineError;
   }

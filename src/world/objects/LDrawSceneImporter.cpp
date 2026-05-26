@@ -65,10 +65,9 @@ namespace {
 
   Matrix4d transformForSubfileReference(const LDrawSubfileReference& reference) {
     const auto& m = reference.matrix;
-    return Matrix4d(m[0], m[1], m[2], reference.translation.x(),
-                    m[3], m[4], m[5], reference.translation.y(),
-                    m[6], m[7], m[8], reference.translation.z(),
-                    0.0, 0.0, 0.0, 1.0);
+    return Matrix4d(m[0], m[1], m[2], reference.translation.x(), m[3], m[4], m[5],
+                    reference.translation.y(), m[6], m[7], m[8], reference.translation.z(), 0.0,
+                    0.0, 0.0, 1.0);
   }
 
   bool isStepMeta(const LDrawCommand& command) {
@@ -104,10 +103,8 @@ namespace {
   class PreservingImporter {
   public:
     PreservingImporter(std::shared_ptr<const LDrawFileResolver> resolver,
-                       const LDrawColorTable& colors,
-                       LDrawGeometryCompiler::NormalMode normalMode,
-                       int recursionLimit,
-                       LDrawDiagnostics& diagnostics)
+                       const LDrawColorTable& colors, LDrawGeometryCompiler::NormalMode normalMode,
+                       int recursionLimit, LDrawDiagnostics& diagnostics)
         : m_resolver(std::move(resolver)),
           m_colors(colors),
           m_normalMode(normalMode),
@@ -125,11 +122,8 @@ namespace {
     }
 
   private:
-    void importCommands(const LDrawParser::Commands& commands,
-                        const std::string& sourceBlock,
-                        const std::string& sourceFile,
-                        Group& parent,
-                        int depth) {
+    void importCommands(const LDrawParser::Commands& commands, const std::string& sourceBlock,
+                        const std::string& sourceFile, Group& parent, int depth) {
       if (depth >= m_recursionLimit) {
         throw Exception("LDraw subfile recursion limit exceeded while preserving hierarchy",
                         __FILE__, __LINE__);
@@ -162,8 +156,8 @@ namespace {
 
         if (std::holds_alternative<LDrawSubfileReference>(command)) {
           flushGeometry();
-          auto submodel = importSubmodel(std::get<LDrawSubfileReference>(command), sourceFile,
-                                         depth + 1);
+          auto submodel =
+            importSubmodel(std::get<LDrawSubfileReference>(command), sourceFile, depth + 1);
           step->addChild(submodel.release());
           continue;
         }
@@ -176,8 +170,7 @@ namespace {
     }
 
     std::unique_ptr<Group> importSubmodel(const LDrawSubfileReference& reference,
-                                          const std::string& sourceFile,
-                                          int depth) {
+                                          const std::string& sourceFile, int depth) {
       const std::string fileKey = m_resolver->cacheKey(reference.filename);
       if (m_activeFiles.find(fileKey) != m_activeFiles.end()) {
         throw Exception("LDraw subfile cycle detected while preserving hierarchy: " +
@@ -196,8 +189,8 @@ namespace {
         diagnostic.reference = reference.filename;
         diagnostic.searchedRoots = m_resolver->searchRoots(reference.filename);
         m_diagnostics.add(std::move(diagnostic));
-        throw Exception("LDraw resolver could not open subfile: " + reference.filename,
-                        __FILE__, __LINE__);
+        throw Exception("LDraw resolver could not open subfile: " + reference.filename, __FILE__,
+                        __LINE__);
       }
 
       const auto commands = LDrawParser().parse(*input);
@@ -220,8 +213,7 @@ namespace {
     }
 
     static std::unique_ptr<Group> makeStepGroup(const std::string& sourceFile,
-                                                const std::string& sourceBlock,
-                                                int stepIndex) {
+                                                const std::string& sourceBlock, int stepIndex) {
       auto group = std::make_unique<Group>();
       group->setName(QString("LDraw Step %1").arg(stepIndex));
       auto metadata = baseMetadata(sourceFile, sourceBlock);
@@ -280,6 +272,7 @@ LDrawSceneImporter::Result LDrawSceneImporter::importFile(const Options& options
   }
 
   LDrawColorTable colors;
+  colors.loadLibraryConfig(options.libraryPath.toStdString());
   const auto normalMode = options.smoothNormals ? LDrawGeometryCompiler::NormalMode::Smooth
                                                 : LDrawGeometryCompiler::NormalMode::Flat;
   PreservingImporter importer(resolver, colors, normalMode, options.recursionLimit, diagnostics);

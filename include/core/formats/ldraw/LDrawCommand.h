@@ -17,24 +17,14 @@ struct LDrawMetaCommand {
   std::string keyword;
   std::vector<std::string> arguments;
 
-  [[nodiscard]] inline bool isComment() const {
-    return keyword.empty();
-  }
+  [[nodiscard]] bool isComment() const;
+  [[nodiscard]] bool isGeometryDirective() const;
+  [[nodiscard]] bool isInformational() const;
 };
 
-enum class LDrawTexmapCommand {
-  Start,
-  Next,
-  Fallback,
-  End
-};
+enum class LDrawTexmapCommand { Start, Next, Fallback, End };
 
-enum class LDrawTexmapProjection {
-  Planar,
-  Cylindrical,
-  Spherical,
-  Unknown
-};
+enum class LDrawTexmapProjection { Planar, Cylindrical, Spherical, Unknown };
 
 struct LDrawTexmap {
   int lineNumber = 0;
@@ -83,12 +73,6 @@ struct LDrawUnknownCommand {
   std::string text;
 };
 
-using LDrawCommand = std::variant<LDrawEmptyLine,
-                                  LDrawMetaCommand,
-                                  LDrawTexmap,
-                                  LDrawSubfileReference,
-                                  LDrawEdgeLine,
-                                  LDrawTriangle,
-                                  LDrawQuad,
-                                  LDrawOptionalLine,
-                                  LDrawUnknownCommand>;
+using LDrawCommand =
+  std::variant<LDrawEmptyLine, LDrawMetaCommand, LDrawTexmap, LDrawSubfileReference, LDrawEdgeLine,
+               LDrawTriangle, LDrawQuad, LDrawOptionalLine, LDrawUnknownCommand>;

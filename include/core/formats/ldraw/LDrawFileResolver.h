@@ -8,6 +8,10 @@
 #include <string>
 #include <vector>
 
+namespace core {
+  class AssetResolver;
+}
+
 class LDrawFileResolver {
 public:
   virtual ~LDrawFileResolver() = default;
@@ -34,6 +38,8 @@ public:
   [[nodiscard]] std::vector<std::string> searchRoots(const std::string& filename) const override;
 
 private:
+  [[nodiscard]] core::AssetResolver assetResolver() const;
+
   std::vector<std::string> m_searchDirectories;
 };
 
@@ -45,6 +51,7 @@ public:
   [[nodiscard]] std::unique_ptr<std::istream> open(const std::string& filename) const override;
   [[nodiscard]] std::string cacheKey(const std::string& filename) const override;
   [[nodiscard]] std::string resolvePath(const std::string& filename) const override;
+  [[nodiscard]] std::vector<std::string> searchRoots(const std::string& filename) const override;
 
 private:
   std::map<std::string, std::string> m_files;

@@ -545,6 +545,12 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Fixed
 
+- **Direct LDraw model rendering.** Direct `rendercli --ldraw_input` now
+  resolves standard backslash subpart references, loads `LDConfig.ldr` colors
+  from the library root, skips empty missing-part placeholders without poisoning
+  scene bounds, frames the generated camera around imported geometry, and
+  defaults to LDraw-to-renderer coordinate conversion so standard MPD models do
+  not render as a uniform background. — GPT-5
 - **rendercli step ghost playback.** `rendercli --step_ghost_previous` now
   applies cumulative step visibility before styling, so previous-step groups
   remain visible as ghosts instead of being filtered out by the active-step

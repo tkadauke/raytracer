@@ -626,6 +626,23 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_EQ(4, diagnostics.entries()[2].lineNumber);
   }
 
+  TEST(LDrawGeometryCompiler, IgnoresCommonHeaderMetadata) {
+    istringstream input("0 Brick 2 x 4\n"
+                        "0 Name: 3001.dat\n"
+                        "0 Author: LDraw\n"
+                        "0 !LDRAW_ORG Part UPDATE\n"
+                        "0 !LICENSE Redistributable under CCAL version 2.0\n"
+                        "0 !HISTORY 2026-01-01 Updated header\n"
+                        "0 BFC CERTIFY CCW\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n");
+    LDrawDiagnostics diagnostics;
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
+
+    ASSERT_EQ(1u, geometry->primitives().size());
+    EXPECT_TRUE(diagnostics.entries().empty());
+  }
+
   TEST(LDrawGeometryCompiler, TexmapPlanarAssignsMeshUvsAndImageTextureMaterial) {
     auto resolver =
       make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/texmap"});
@@ -762,12 +779,9 @@ namespace LDrawGeometryCompilerTest {
     auto geometry =
       LDrawGeometryCompiler(resolver, options).compile(input, colorTable(), diagnostics);
 
-    ASSERT_EQ(2u, geometry->primitives().size());
-    auto missingInstance = dynamic_pointer_cast<Instance>(geometry->primitives().front());
-    ASSERT_NE(nullptr, missingInstance);
-    EXPECT_TRUE(
-      dynamic_pointer_cast<Composite>(missingInstance->primitive())->primitives().empty());
-    EXPECT_NE(nullptr, dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().back()));
+    ASSERT_EQ(1u, geometry->primitives().size());
+    EXPECT_NE(nullptr, dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().front()));
+    EXPECT_FALSE(geometry->boundingBox().isInfinite());
     ASSERT_EQ(2u, diagnostics.entries().size());
     EXPECT_EQ(LDrawDiagnosticCode::MissingSubfile, diagnostics.entries()[0].code);
   }

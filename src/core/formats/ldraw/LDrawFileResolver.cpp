@@ -1,5 +1,7 @@
 #include "core/formats/ldraw/LDrawFileResolver.h"
 
+#include "core/formats/AssetResolver.h"
+
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -26,9 +28,8 @@ string LDrawFileResolver::resolvePath(const string&) const {
 
 string LDrawFileResolver::normalizedFilename(string filename) {
   replace(filename.begin(), filename.end(), '\\', '/');
-  transform(filename.begin(), filename.end(), filename.begin(), [](unsigned char c) {
-    return static_cast<char>(tolower(c));
-  });
+  transform(filename.begin(), filename.end(), filename.begin(),
+            [](unsigned char c) { return static_cast<char>(tolower(c)); });
   return filename;
 }
 
@@ -41,76 +42,47 @@ void LDrawFilesystemResolver::addSearchDirectory(const string& directory) {
 }
 
 unique_ptr<istream> LDrawFilesystemResolver::open(const string& filename) const {
-  auto direct = make_unique<ifstream>(filename);
-  if (*direct)
-    return direct;
-
-  for (const auto& directory : m_searchDirectories) {
-    string path = directory;
-    if (!path.empty() && path.back() != '/')
-      path += '/';
-    path += filename;
-
-    auto input = make_unique<ifstream>(path);
+  try {
+    auto input = make_unique<ifstream>(assetResolver().resolve(filename).path);
     if (*input)
       return input;
+  } catch (const core::AssetResolutionError&) {
   }
-
   return nullptr;
 }
 
 string LDrawFilesystemResolver::resolvePath(const string& filename) const {
-  namespace fs = std::filesystem;
-
-  auto existingPath = [](const fs::path& path) -> string {
-    std::error_code error;
-    if (!fs::exists(path, error))
-      return "";
-    const auto canonical = fs::weakly_canonical(path, error);
-    return error ? path.lexically_normal().string() : canonical.string();
-  };
-
-  if (auto path = existingPath(filename); !path.empty())
-    return path;
-
-  for (const auto& directory : m_searchDirectories) {
-    if (auto path = existingPath(fs::path(directory) / filename); !path.empty())
-      return path;
+  try {
+    return assetResolver().resolve(filename).path.string();
+  } catch (const core::AssetResolutionError&) {
+    return "";
   }
-
-  return "";
 }
 
 string LDrawFilesystemResolver::cacheKey(const string& filename) const {
-  namespace fs = std::filesystem;
-
-  auto keyForExistingPath = [](const fs::path& path) -> string {
-    std::error_code error;
-    const auto canonical = fs::weakly_canonical(path, error);
-    return normalizedFilename(error ? path.lexically_normal().string() : canonical.string());
-  };
-
-  fs::path direct(filename);
-  std::error_code error;
-  if (fs::exists(direct, error))
-    return keyForExistingPath(direct);
-
-  for (const auto& directory : m_searchDirectories) {
-    fs::path candidate = fs::path(directory) / filename;
-    error.clear();
-    if (fs::exists(candidate, error))
-      return keyForExistingPath(candidate);
+  try {
+    return assetResolver().resolve(filename).identity;
+  } catch (const core::AssetResolutionError&) {
+    return normalizedFilename(filename);
   }
-
-  return normalizedFilename(filename);
 }
 
 vector<string> LDrawFilesystemResolver::searchRoots(const string&) const {
   vector<string> roots;
-  roots.push_back(".");
-  for (const auto& directory : m_searchDirectories)
-    roots.push_back(directory);
+  const auto resolver = assetResolver();
+  for (const auto& root : resolver.searchRoots())
+    roots.push_back(root.string());
   return roots;
+}
+
+core::AssetResolver LDrawFilesystemResolver::assetResolver() const {
+  namespace fs = std::filesystem;
+
+  vector<fs::path> roots;
+  roots.emplace_back(".");
+  for (const auto& directory : m_searchDirectories)
+    roots.emplace_back(directory);
+  return core::AssetResolver(std::move(roots), core::AssetCaseSensitivity::CaseInsensitive);
 }
 
 LDrawMpdFileResolver::LDrawMpdFileResolver(const LDrawDocument& document,
@@ -146,4 +118,10 @@ string LDrawMpdFileResolver::resolvePath(const string& filename) const {
   if (m_fallback)
     return m_fallback->resolvePath(filename);
   return "";
+}
+
+vector<string> LDrawMpdFileResolver::searchRoots(const string& filename) const {
+  if (m_fallback)
+    return m_fallback->searchRoots(filename);
+  return {};
 }
