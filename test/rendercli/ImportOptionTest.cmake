@@ -27,6 +27,10 @@ set(openscad_cache "${TEST_OUTPUT_DIR}/openscad-cache")
 set(openscad_real_cache "${TEST_OUTPUT_DIR}/openscad-real-cache")
 set(openscad_fixture_dir "${PROJECT_SOURCE_DIR}/test/fixtures/openscad")
 set(openscad_external_fixture "${openscad_fixture_dir}/external-compiler/compiler_smoke.scad")
+set(gcode_fixture "${PROJECT_SOURCE_DIR}/test/fixtures/gcode/absolute_layers.gcode")
+set(gcode_speed_render "${TEST_OUTPUT_DIR}/gcode-speed.png")
+set(gcode_tool_layer_render "${TEST_OUTPUT_DIR}/gcode-tool-layer.png")
+set(gcode_cumulative_render "${TEST_OUTPUT_DIR}/gcode-cumulative.png")
 
 set(scene_json [=[
 {
@@ -213,3 +217,43 @@ rendercli_expect_failure(
     "${RENDERCLI}" --width 8 --height 8 --import_format json
     "${TEST_OUTPUT_DIR}/missing.rtjson" "${missing_render}"
 )
+
+rendercli_run(
+  NAME "rendercli colors G-code by speed"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    --gcode_visualization speed
+    "${gcode_fixture}" "${gcode_speed_render}"
+)
+rendercli_assert_image_dimensions("${gcode_speed_render}" 64 64
+                                  NAME "rendercli G-code speed dimensions")
+rendercli_assert_image_nonempty("${gcode_speed_render}"
+                                NAME "rendercli G-code speed pixels")
+
+rendercli_run(
+  NAME "rendercli filters one G-code layer and hides travel"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    --gcode_visualization tool --gcode_layer 0 --gcode_hide_travel
+    "${gcode_fixture}" "${gcode_tool_layer_render}"
+)
+rendercli_assert_image_dimensions("${gcode_tool_layer_render}" 64 64
+                                  NAME "rendercli G-code layer dimensions")
+rendercli_assert_image_nonempty("${gcode_tool_layer_render}"
+                                NAME "rendercli G-code layer pixels")
+rendercli_assert_image_hash_differs(
+  "${gcode_speed_render}" "${gcode_tool_layer_render}"
+  NAME "rendercli G-code visualization modes differ")
+
+rendercli_run(
+  NAME "rendercli filters cumulative G-code layers"
+  COMMAND
+    "${RENDERCLI}" --engine raster --width 64 --height 64
+    --gcode_visualization tool --gcode_layer 1 --gcode_cumulative_layers --gcode_hide_travel
+    "${gcode_fixture}" "${gcode_cumulative_render}"
+)
+rendercli_assert_image_nonempty("${gcode_cumulative_render}"
+                                NAME "rendercli G-code cumulative pixels")
+rendercli_assert_image_hash_differs(
+  "${gcode_tool_layer_render}" "${gcode_cumulative_render}"
+  NAME "rendercli G-code current and cumulative layers differ")

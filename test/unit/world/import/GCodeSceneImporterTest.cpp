@@ -1,11 +1,17 @@
 #include <gtest/gtest.h>
 
 #include "render/primitives/Curve.h"
+#include "render/primitives/Scene.h"
+#include "render/cameras/Camera.h"
+#include "core/geometry/Mesh.h"
+#include "world/objects/Camera.h"
 #include "world/import/GCodeSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Group.h"
 #include "world/objects/Scene.h"
+
+#include <vector>
 
 namespace GCodeSceneImporterTest {
   Group* childGroup(Element* parent, int index) {
@@ -21,6 +27,17 @@ namespace GCodeSceneImporterTest {
         return group;
     }
     return nullptr;
+  }
+
+  std::vector<CompiledPrimitive*> compiledPrimitives(Element* root) {
+    std::vector<CompiledPrimitive*> result;
+    if (auto* primitive = dynamic_cast<CompiledPrimitive*>(root))
+      result.push_back(primitive);
+    for (Element* child : root->childElements()) {
+      const auto childPrimitives = compiledPrimitives(child);
+      result.insert(result.end(), childPrimitives.begin(), childPrimitives.end());
+    }
+    return result;
   }
 
   TEST(GCodeSceneImporter, IsRegisteredForGCodeExtensions) {
@@ -71,5 +88,61 @@ namespace GCodeSceneImporterTest {
     EXPECT_EQ(1, layerOne->layerIndex());
     auto* wall = childGroup(childGroup(layerOne, 0), 0);
     EXPECT_EQ(QStringLiteral("WALL-INNER"), wall->metadataValue("featureType").toString());
+  }
+
+  TEST(GCodeSceneImporter, SelectsVisualizationAttributeColorMap) {
+    world::GCodeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("visualization", "speed");
+
+    const auto result = importer.importFile("test/fixtures/gcode/absolute_layers.gcode", options);
+
+    ASSERT_TRUE(result.succeeded());
+    const auto primitives = compiledPrimitives(result.sceneRoot());
+    ASSERT_FALSE(primitives.empty());
+    auto curve =
+      std::dynamic_pointer_cast<render::Curve>(primitives.front()->toRaytracerPrimitive());
+    ASSERT_NE(nullptr, curve);
+    ASSERT_TRUE(curve->segmentColorMap());
+    EXPECT_EQ("speed", curve->segmentColorMap()->attributeName());
+    EXPECT_EQ(core::AttributeColorMap::Mode::Scalar, curve->segmentColorMap()->mode());
+  }
+
+  TEST(GCodeSceneImporter, CanHideTravelMoves) {
+    world::GCodeSceneImporter importer;
+    world::ImportOptions options;
+    options.setValue("hide_travel", true);
+
+    const auto result = importer.importFile("test/fixtures/gcode/absolute_layers.gcode", options);
+
+    ASSERT_TRUE(result.succeeded());
+    const auto primitives = compiledPrimitives(result.sceneRoot());
+    ASSERT_EQ(2u, primitives.size());
+    for (auto* primitive : primitives) {
+      EXPECT_EQ(QStringLiteral("extrusion"), primitive->metadataValue("moveType").toString());
+    }
+  }
+
+  TEST(GCodeSceneImporter, ImportsRenderableCurveGeometry) {
+    world::GCodeSceneImporter importer;
+    const auto result = importer.importFile("test/fixtures/gcode/absolute_layers.gcode");
+
+    ASSERT_TRUE(result.succeeded());
+    auto runtimeScene = result.sceneRoot()->toRaytracerScene();
+    ASSERT_NE(nullptr, runtimeScene);
+    auto mesh = runtimeScene->tessellate(0);
+    ASSERT_NE(nullptr, mesh);
+    EXPECT_GT(mesh->faces().size(), 0u);
+
+    auto* camera = result.sceneRoot()->activeCamera();
+    ASSERT_NE(nullptr, camera);
+    auto runtimeCamera = camera->toRaytracer();
+    runtimeCamera->viewPlane()->setup(runtimeCamera->matrix(), Recti(0, 0, 64, 64));
+    const Vector2d projected = runtimeCamera->projectPoint(Vector3d(10.0, 0.0, 0.2));
+    EXPECT_FALSE(projected.isUndefined());
+    EXPECT_GE(projected.x(), 0.0);
+    EXPECT_LT(projected.x(), 64.0);
+    EXPECT_GE(projected.y(), 0.0);
+    EXPECT_LT(projected.y(), 64.0);
   }
 }

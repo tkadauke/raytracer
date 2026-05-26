@@ -76,6 +76,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   packages, parse model XML meshes, build-item transforms, units, and base
   material colors, and instantiate them as grouped imported mesh geometry for
   Epic #235. — GPT-5
+- **G-code additive manufacturing visualization modes.** Imported G-code
+  toolpaths can now color by layer, tool, speed, temperature, or
+  extrusion/travel mode, and `rendercli` exposes G-code layer filtering and
+  travel hiding controls for Epic #235. — GPT-5
 - **G-code toolpath curve importer.** Parsed G-code now compiles into visible
   travel and extrusion curves grouped by layer, tool, and slicer feature
   metadata, with segment speed and extrusion attributes available for curve

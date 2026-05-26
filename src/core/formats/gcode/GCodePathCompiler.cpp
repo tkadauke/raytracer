@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <optional>
+#include <vector>
 
 namespace {
   constexpr double PointTolerance = 1e-12;
@@ -42,8 +43,28 @@ namespace {
     }
   };
 
+  struct TemperatureState {
+    std::map<int, double> toolTemperatures;
+    std::optional<double> bedTemperature;
+  };
+
+  void applyTemperatureCommand(const GCodeTemperatureCommand& command, TemperatureState& state) {
+    if (command.target == GCodeTemperatureTarget::Tool)
+      state.toolTemperatures[command.tool] = command.temperature;
+    else
+      state.bedTemperature = command.temperature;
+  }
+
+  std::optional<double> activeToolTemperature(const TemperatureState& state, int tool) {
+    const auto found = state.toolTemperatures.find(tool);
+    if (found == state.toolTemperatures.end())
+      return std::nullopt;
+    return found->second;
+  }
+
   void setSegmentAttributes(core::Polyline& polyline, std::size_t segmentIndex,
-                            const GCodeMotion& motion, GCodePathMoveType moveType) {
+                            const GCodeMotion& motion, GCodePathMoveType moveType,
+                            const TemperatureState& temperatures) {
     polyline.setSegmentAttribute(segmentIndex, "move_type", moveTypeName(moveType));
     polyline.setSegmentAttribute(segmentIndex, "speed", motion.feedRate);
     polyline.setSegmentAttribute(segmentIndex, "feed_rate", motion.feedRate);
@@ -53,6 +74,10 @@ namespace {
     polyline.setSegmentAttribute(segmentIndex, "layer_index", normalizedLayerIndex(motion));
     if (!motion.featureType.empty())
       polyline.setSegmentAttribute(segmentIndex, "feature_type", motion.featureType);
+    if (const auto temperature = activeToolTemperature(temperatures, motion.tool))
+      polyline.setSegmentAttribute(segmentIndex, "temperature", *temperature);
+    if (temperatures.bedTemperature)
+      polyline.setSegmentAttribute(segmentIndex, "bed_temperature", *temperatures.bedTemperature);
   }
 
   std::optional<double> zForLayer(const GCodeProgram& program, int layerIndex) {
@@ -77,8 +102,16 @@ GCodePathProgram GCodePathCompiler::compile(const GCodeProgram& program) const {
   std::map<int, std::size_t> layerOffsets;
   std::optional<PathKey> activeKey;
   GCodePath* activePath = nullptr;
+  std::size_t nextTemperature = 0;
+  TemperatureState temperatures;
 
   for (const auto& motion : program.motions) {
+    while (nextTemperature < program.temperatures.size() &&
+           program.temperatures[nextTemperature].lineNumber < motion.lineNumber) {
+      applyTemperatureCommand(program.temperatures[nextTemperature], temperatures);
+      ++nextTemperature;
+    }
+
     if (zeroLength(motion))
       continue;
 
@@ -129,7 +162,7 @@ GCodePathProgram GCodePathCompiler::compile(const GCodeProgram& program) const {
 
     activePath->polyline.addPoint(motion.end);
     const std::size_t segmentIndex = activePath->polyline.segmentCount() - 1;
-    setSegmentAttributes(activePath->polyline, segmentIndex, motion, moveType);
+    setSegmentAttributes(activePath->polyline, segmentIndex, motion, moveType, temperatures);
     activePath->lineEnd = motion.lineNumber;
   }
 

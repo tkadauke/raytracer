@@ -559,8 +559,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   common movement, extrusion, feed-rate, layer comments, temperatures, tool
   changes, absolute/relative axes, absolute/relative extrusion, and ignored
   dialect commands with diagnostics.~~ ✅ **Done.** `core/formats/gcode`
-  preserves printer path segments and metadata for Epic #235; scene importer
-  conversion to curves/layers remains TODO.
+  preserves printer path segments and metadata for Epic #235; ~~scene importer
+  conversion to curves/layers with print visualization modes~~ ✅ **Done.**
+  World import and rendercli now expose layer/tool/speed/temperature/move-type
+  coloring, layer filtering, cumulative layers, and travel hiding for Epic #235.
 - **LDraw `.dat` / `.ldr`** — LEGO part and model text format. ~~Core line
   parser for command types 0 through 5.~~ ✅ **Done.** `core/formats/ldraw`
   preserves meta commands, subfile filenames, and geometry records for #210;

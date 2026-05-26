@@ -52,6 +52,30 @@ namespace GCodePathCompilerTest {
     EXPECT_DOUBLE_EQ(0.4, layerOne.z);
   }
 
+  TEST(GCodePathCompiler, CarriesActiveTemperatureOntoSegments) {
+    std::istringstream stream("T0\n"
+                              "M104 S205\n"
+                              "M140 S60\n"
+                              "G90\n"
+                              "M82\n"
+                              ";LAYER:0\n"
+                              "G1 X0 Y0 Z0.2 F1200\n"
+                              "G1 X10 Y0 E0.5 F900\n"
+                              "M104 S215\n"
+                              "G1 X20 Y0 E1.0 F900\n");
+
+    const auto program = GCodeParser().parse(stream);
+    const auto paths = GCodePathCompiler().compile(program);
+
+    ASSERT_EQ(1u, paths.layers.size());
+    ASSERT_EQ(2u, paths.layers[0].paths.size());
+    const auto& extrusion = paths.layers[0].paths[1];
+    ASSERT_EQ(2u, extrusion.polyline.segmentCount());
+    EXPECT_DOUBLE_EQ(205.0, *extrusion.polyline.segmentAttributeAs<double>(0, "temperature"));
+    EXPECT_DOUBLE_EQ(215.0, *extrusion.polyline.segmentAttributeAs<double>(1, "temperature"));
+    EXPECT_DOUBLE_EQ(60.0, *extrusion.polyline.segmentAttributeAs<double>(0, "bed_temperature"));
+  }
+
   TEST(GCodePathCompiler, CompilesFixtureIntoDistinctTravelAndExtrusionCurves) {
     std::ifstream stream("test/fixtures/gcode/absolute_layers.gcode");
     ASSERT_TRUE(stream.good());
