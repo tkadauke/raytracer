@@ -347,6 +347,16 @@ filled. The UV coordinates work the same way: per-vertex UVs
 stored on the mesh, interpolated at the hit point with the
 barycentric weights.
 
+Imported meshes use
+[`MeshAsset`](../../../include/core/geometry/MeshAsset.h) and
+[`MeshPrimitive`](../../../include/render/primitives/MeshPrimitive.h)
+as the ownership boundary. The asset keeps the `core::Mesh` alive
+behind a shared pointer, while the runtime primitive builds flat
+or smooth triangle leaves from that shared mesh. A mesh primitive
+can also attach materials per source face, so importers such as
+LDraw or a future glTF loader can keep one shared geometry payload
+while preserving the material assigned to each imported polygon.
+
 ## <a id="the-unifying-picture"></a>The unifying picture
 Every shape in this chapter implements the same `Primitive`
 interface, but the math behind each `intersect` varies wildly in
@@ -419,6 +429,8 @@ The renderer treats them all the same: it asks each primitive's
 - `include/render/primitives/MeshTriangle.h`
 - `include/render/primitives/FlatMeshTriangle.h`
 - `include/render/primitives/SmoothMeshTriangle.h`
+- `include/render/primitives/MeshPrimitive.h`
+- `include/core/geometry/MeshAsset.h`
 - `include/core/math/Quartic.h`
 - `include/core/math/Quadric.h`
 - `include/core/math/Cubic.h`

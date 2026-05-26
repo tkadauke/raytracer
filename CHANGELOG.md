@@ -23,6 +23,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `stepIndex`, `layerIndex`, `startTime`, `endTime`, and `label` metadata
   helpers for importer-agnostic ordered steps, layers, frames, and time
   intervals. — GPT-5
+- **Shared imported mesh assets.** `core::MeshAsset` and
+  `render::MeshPrimitive` now give importers a shared mesh ownership boundary
+  with per-face runtime material assignment that works through raytracing,
+  Grid/BVH traversal, rasterization, and wireframe previews for Epic #230. —
+  GPT-5
 - **Group/Collection documentation and fixtures.** Group source docs and the
   scene-structure textbook now describe hierarchy-only collections, visibility,
   metadata, and the distinction from render layers/AOVs; a reusable nested

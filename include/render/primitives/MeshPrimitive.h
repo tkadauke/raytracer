@@ -7,6 +7,10 @@
 
 class Mesh;
 
+namespace core {
+  class MeshAsset;
+}
+
 namespace render {
   class Material;
 
@@ -23,11 +27,26 @@ namespace render {
     using Primitive::forEachLeaf;
     using Primitive::forEachLeafInBounds;
 
+    /**
+      * Optional material slots indexed by source mesh face. A quad or n-gon
+      * face fans out to multiple triangle leaves that all receive the same
+      * material slot.
+      */
+    using FaceMaterials = std::vector<std::shared_ptr<render::Material>>;
+
     enum class NormalMode { Flat, Smooth };
 
     explicit MeshPrimitive(Mesh mesh, NormalMode normalMode = NormalMode::Smooth);
+    MeshPrimitive(Mesh mesh, FaceMaterials faceMaterials,
+                  NormalMode normalMode = NormalMode::Smooth);
     explicit MeshPrimitive(std::shared_ptr<const Mesh> mesh,
                            NormalMode normalMode = NormalMode::Smooth);
+    MeshPrimitive(std::shared_ptr<const Mesh> mesh, FaceMaterials faceMaterials,
+                  NormalMode normalMode = NormalMode::Smooth);
+    explicit MeshPrimitive(std::shared_ptr<const core::MeshAsset> asset,
+                           NormalMode normalMode = NormalMode::Smooth);
+    MeshPrimitive(std::shared_ptr<const core::MeshAsset> asset, FaceMaterials faceMaterials,
+                  NormalMode normalMode = NormalMode::Smooth);
 
     const Primitive* intersect(const Rayd& ray, HitPointInterval& hitPoints,
                                render::State& state) const override;
@@ -46,6 +65,10 @@ namespace render {
       return m_mesh;
     }
 
+    inline std::shared_ptr<const core::MeshAsset> asset() const {
+      return m_asset;
+    }
+
     inline NormalMode normalMode() const {
       return m_normalMode;
     }
@@ -59,8 +82,12 @@ namespace render {
 
   private:
     void buildLeaves();
+    std::shared_ptr<Primitive> buildLeaf(int index0, int index1, int index2) const;
+    std::shared_ptr<render::Material> materialForFace(std::size_t faceIndex) const;
 
+    std::shared_ptr<const core::MeshAsset> m_asset;
     std::shared_ptr<const Mesh> m_mesh;
+    FaceMaterials m_faceMaterials;
     NormalMode m_normalMode;
     std::vector<std::shared_ptr<Primitive>> m_leaves;
   };
