@@ -248,7 +248,11 @@ Additional file-format topics are queued under
   with LDraw affine transforms and color inheritance. MPD files are
   split into `0 FILE` / `0 NOFILE` blocks so type-1 references can
   resolve embedded submodels before falling back to external library
-  roots.
+  roots. The shared `world::SceneImporter` surface is the next layer
+  above these format-specific pieces: importers report supported
+  extensions and option schemas, return an owned scene or group root,
+  attach source metadata, and distinguish warning diagnostics from
+  import-blocking errors.
 - **glTF.** The modern web-graphics interchange format. JSON
   + binary blob, supports materials, animations, multiple
   meshes per file. The richest format, the most work to
@@ -310,6 +314,10 @@ long-form chapter.
 - `src/core/formats/ldraw/LDrawColorTable.cpp`
 - `src/core/formats/ldraw/LDrawFileResolver.cpp`
 - `src/core/formats/ldraw/LDrawGeometryCompiler.cpp`
+- `include/world/import/SceneImporter.h`
+- `include/world/import/ImportOptions.h`
+- `include/world/import/ImportResult.h`
+- `include/world/import/ImportDiagnostic.h`
 - `test/unit/core/formats/ply/PlyFileTest.cpp`
 - `fuzz/`
 <!-- /source-anchors -->
