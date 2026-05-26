@@ -1,0 +1,142 @@
+{
+  "id": "{91000000-0000-0000-0000-000000000000}",
+  "name": "Rendercli Grouped Steps Fixture",
+  "ambient": [0.5, 0.5, 0.5],
+  "background": [0.02, 0.02, 0.02],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "{91000000-0000-0000-0000-000000000001}",
+      "name": "Camera",
+      "position": [0.0, 0.0, -5.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 5.0,
+      "zoom": 1.2,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000010}",
+      "name": "Red",
+      "color": [0.9, 0.05, 0.05],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000011}",
+      "name": "Green",
+      "color": [0.05, 0.8, 0.1],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000012}",
+      "name": "Blue",
+      "color": [0.08, 0.18, 0.9],
+      "type": "ConstantColorTexture",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000020}",
+      "name": "Red Material",
+      "diffuseTexture": "{91000000-0000-0000-0000-000000000010}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000021}",
+      "name": "Green Material",
+      "diffuseTexture": "{91000000-0000-0000-0000-000000000011}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000022}",
+      "name": "Blue Material",
+      "diffuseTexture": "{91000000-0000-0000-0000-000000000012}",
+      "ambientCoefficient": 1.0,
+      "diffuseCoefficient": 0.0,
+      "type": "MatteMaterial",
+      "children": []
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000100}",
+      "name": "Step 0",
+      "visible": true,
+      "metadata": {
+        "stepIndex": 0,
+        "label": "red"
+      },
+      "type": "Group",
+      "children": [
+        {
+          "id": "{91000000-0000-0000-0000-000000000101}",
+          "name": "Red Sphere",
+          "position": [-1.1, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": "{91000000-0000-0000-0000-000000000020}",
+          "radius": 0.55,
+          "velocity": [0.0, 0.0, 0.0],
+          "type": "Sphere",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000200}",
+      "name": "Step 1",
+      "visible": true,
+      "metadata": {
+        "stepIndex": 1,
+        "label": "green"
+      },
+      "type": "Group",
+      "children": [
+        {
+          "id": "{91000000-0000-0000-0000-000000000201}",
+          "name": "Green Sphere",
+          "position": [0.0, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": "{91000000-0000-0000-0000-000000000021}",
+          "radius": 0.55,
+          "velocity": [0.0, 0.0, 0.0],
+          "type": "Sphere",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "{91000000-0000-0000-0000-000000000300}",
+      "name": "Step 2",
+      "visible": true,
+      "metadata": {
+        "stepIndex": 2,
+        "label": "blue"
+      },
+      "type": "Group",
+      "children": [
+        {
+          "id": "{91000000-0000-0000-0000-000000000301}",
+          "name": "Blue Sphere",
+          "position": [1.1, 0.0, 0.0],
+          "rotation": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "visible": true,
+          "material": "{91000000-0000-0000-0000-000000000022}",
+          "radius": 0.55,
+          "velocity": [0.0, 0.0, 0.0],
+          "type": "Sphere",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

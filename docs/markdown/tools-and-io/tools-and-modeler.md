@@ -58,6 +58,18 @@ $ rendercli --engine raster --animation --frame_start 1 --frame_end 48 \
             frames/frame_%04d.png
 ```
 
+Grouped importer scenes can carry ordered step metadata on `Group` nodes.
+`--step N` or `--step single:N` renders only that step's groups plus static
+groups, `--step cumulative:N` renders every step through `N`, and
+`--step sequence[:FIRST-LAST]` writes one cumulative build-view image per
+available step. Sequence output paths use the same printf-style integer
+placeholder rule as animation output:
+
+```sh
+$ rendercli --step sequence test/fixtures/rendercli/grouped_steps.json \
+            steps/step_%02d.png
+```
+
 `rendercli` is the right front end for headless rendering, batch rendering,
 documentation image generation, and timing runs.
 
@@ -291,6 +303,7 @@ scene-structure, and rasterization chapters cover.
 
 <!-- source-anchors -->
 - `tools/rendercli/`
+- `test/rendercli/StepOptionTest.cmake`
 - `test/rendercli/RenderGraphOptionTest.cmake`
 - `src/modeler/`
 - `include/widgets/world/RenderGraphInspectorWidget.h`

@@ -201,6 +201,7 @@
 | `test/helpers/Silhouette.h` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md)<br>[Shape classification](../image-and-vision/shape-classification.md) |
 | `test/rendercli/FrameOptionTest.cmake` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
+| `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/unit/core/animation/AnimationTrackTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |

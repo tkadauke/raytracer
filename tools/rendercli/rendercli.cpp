@@ -9,7 +9,9 @@
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
+#include "world/objects/Group.h"
 #include "world/objects/Material.h"
+#include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Texture.h"
 
 #include "engine/graph/GraphRenderEngine.h"
@@ -356,6 +358,20 @@ namespace {
     QString output;
   };
 
+  enum class CommandLineStepMode {
+    Single,
+    Cumulative,
+    Sequence,
+  };
+
+  struct CommandLineStepSelection {
+    CommandLineStepMode mode = CommandLineStepMode::Single;
+    int step = 0;
+    bool rangeSet = false;
+    int firstStep = 0;
+    int lastStep = 0;
+  };
+
   bool parseRenderGraphAOVOutput(const QString& value, RenderGraphAOVOutput* output,
                                  QString* errorMessage) {
     const int separator = value.indexOf('=');
@@ -436,6 +452,173 @@ namespace {
       }
       std::cerr << ": " << diagnostic.message.toStdString() << '\n';
     }
+  }
+
+  bool parseNonNegativeStepIndex(const QString& value, int* step, QString* errorMessage) {
+    bool ok = false;
+    const int parsed = value.trimmed().toInt(&ok);
+    if (!ok || parsed < 0) {
+      *errorMessage = "Step selection values must be non-negative integers";
+      return false;
+    }
+
+    *step = parsed;
+    return true;
+  }
+
+  bool parseStepRange(const QString& value, int* firstStep, int* lastStep, QString* errorMessage) {
+    const QString range = value.trimmed();
+    int separator = range.indexOf("..");
+    int separatorLength = 2;
+    if (separator < 0) {
+      separator = range.indexOf('-');
+      separatorLength = 1;
+    }
+    if (separator <= 0 || separator + separatorLength >= range.size()) {
+      *errorMessage = "Step sequence range must use FIRST-LAST or FIRST..LAST";
+      return false;
+    }
+
+    int first = 0;
+    int last = 0;
+    if (!parseNonNegativeStepIndex(range.left(separator), &first, errorMessage) ||
+        !parseNonNegativeStepIndex(range.mid(separator + separatorLength), &last, errorMessage)) {
+      return false;
+    }
+
+    if (last < first)
+      std::swap(first, last);
+
+    *firstStep = first;
+    *lastStep = last;
+    return true;
+  }
+
+  bool parseStepSelection(const QString& value, CommandLineStepSelection* selection,
+                          QString* errorMessage) {
+    const QString trimmed = value.trimmed();
+    if (trimmed.isEmpty()) {
+      *errorMessage =
+        "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
+      return false;
+    }
+
+    const int colon = trimmed.indexOf(':');
+    const int equals = trimmed.indexOf('=');
+    int separator = -1;
+    if (colon >= 0 && equals >= 0) {
+      separator = std::min(colon, equals);
+    } else {
+      separator = std::max(colon, equals);
+    }
+
+    QString modeText;
+    QString argumentText;
+    if (separator < 0) {
+      modeText = trimmed;
+    } else {
+      modeText = trimmed.left(separator).trimmed();
+      argumentText = trimmed.mid(separator + 1).trimmed();
+    }
+
+    const QString normalizedMode = normalizedRasterOption(modeText);
+    if (separator < 0 && normalizedMode != "sequence") {
+      selection->mode = CommandLineStepMode::Single;
+      bool ok = false;
+      trimmed.toInt(&ok);
+      if (!ok) {
+        *errorMessage =
+          "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
+        return false;
+      }
+      return parseNonNegativeStepIndex(trimmed, &selection->step, errorMessage);
+    }
+
+    if (normalizedMode == "single" || normalizedMode == "only" || normalizedMode == "step") {
+      if (argumentText.isEmpty()) {
+        *errorMessage = "Single step selection requires a step index";
+        return false;
+      }
+      selection->mode = CommandLineStepMode::Single;
+      return parseNonNegativeStepIndex(argumentText, &selection->step, errorMessage);
+    }
+
+    if (normalizedMode == "cumulative" || normalizedMode == "through" ||
+        normalizedMode == "upto") {
+      if (argumentText.isEmpty()) {
+        *errorMessage = "Cumulative step selection requires a step index";
+        return false;
+      }
+      selection->mode = CommandLineStepMode::Cumulative;
+      return parseNonNegativeStepIndex(argumentText, &selection->step, errorMessage);
+    }
+
+    if (normalizedMode == "sequence") {
+      selection->mode = CommandLineStepMode::Sequence;
+      selection->rangeSet = false;
+      if (!argumentText.isEmpty()) {
+        selection->rangeSet = true;
+        return parseStepRange(argumentText, &selection->firstStep, &selection->lastStep,
+                              errorMessage);
+      }
+      return true;
+    }
+
+    *errorMessage =
+      "Step selection must be N, single:N, cumulative:N, or sequence[:FIRST-LAST]";
+    return false;
+  }
+
+  void collectStepIndices(const Element& root, std::set<int>* steps) {
+    if (const auto* group = qobject_cast<const Group*>(&root)) {
+      if (const auto stepIndex = group->stepIndex()) {
+        steps->insert(*stepIndex);
+      }
+    }
+
+    for (const auto& child : root.childElements()) {
+      collectStepIndices(*child, steps);
+    }
+  }
+
+  bool selectionMatchesAnyStep(const std::set<int>& steps,
+                               const StepVisibilitySelection& selection) {
+    return std::any_of(steps.begin(), steps.end(), [&](int step) {
+      switch (selection.mode()) {
+      case StepVisibilityMode::OnlyStep:
+        return selection.firstStep() && step == *selection.firstStep();
+      case StepVisibilityMode::Cumulative:
+        return selection.lastStep() && step <= *selection.lastStep();
+      case StepVisibilityMode::All:
+        return true;
+      case StepVisibilityMode::Range:
+        return selection.firstStep() && selection.lastStep() &&
+               step >= *selection.firstStep() && step <= *selection.lastStep();
+      }
+      return false;
+    });
+  }
+
+  StepVisibilitySelection commandLineStepVisibilitySelection(
+    const CommandLineStepSelection& selection,
+    int sequenceStep = 0) {
+    switch (selection.mode) {
+    case CommandLineStepMode::Single:
+      return StepVisibilitySelection::onlyStep(selection.step);
+    case CommandLineStepMode::Cumulative:
+      return StepVisibilitySelection::cumulativeThrough(selection.step);
+    case CommandLineStepMode::Sequence:
+      return StepVisibilitySelection::cumulativeThrough(sequenceStep);
+    }
+
+    return StepVisibilitySelection::all();
+  }
+
+  void applyStepVisibilitySelection(Scene& scene, const StepVisibilitySelection& selection) {
+    const StepVisibilityEvaluator evaluator(selection);
+    evaluator.forEachGroup(scene, [](const Group& group, bool directlyVisible, bool) {
+      const_cast<Group&>(group).setVisible(directlyVisible);
+    });
   }
 
   std::vector<std::string> rasterRecursiveMaterialFallbackWarnings(const render::Scene& scene) {
@@ -555,10 +738,15 @@ private:
   bool m_frameStartSet;
   bool m_frameEndSet;
   bool m_fpsSet;
+  bool m_stepSelectionSet;
+  CommandLineStepSelection m_stepSelection;
 
   std::unique_ptr<Scene> loadScene() const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
+  void renderStepSequence(const Scene& scene) const;
+  void validateStepSelection(const Scene& scene, const StepVisibilitySelection& selection) const;
+  std::vector<int> sequenceSteps(const Scene& scene) const;
   engine::graph::RenderIntent renderIntent(const Scene& scene) const;
   int renderGraphSampleCount(const engine::graph::RenderIntent& intent) const;
   engine::graph::RenderPostProcessAA commandLinePostProcessAA() const;
@@ -658,7 +846,9 @@ Renderer::Renderer()
       m_fps(0.0),
       m_frameStartSet(false),
       m_frameEndSet(false),
-      m_fpsSet(false) {
+      m_fpsSet(false),
+      m_stepSelectionSet(false),
+      m_stepSelection() {
   parser.setApplicationDescription(
     QCoreApplication::translate("rendercli", "Command line renderer."));
 }
@@ -1150,8 +1340,19 @@ void Renderer::render() const {
     return;
   }
 
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence) {
+    renderStepSequence(*scene);
+    return;
+  }
+
   if (m_frameSet)
     scene->evaluateAnimationAtFrame(m_frame);
+
+  if (m_stepSelectionSet) {
+    const auto selection = commandLineStepVisibilitySelection(m_stepSelection);
+    validateStepSelection(*scene, selection);
+    applyStepVisibilitySelection(*scene, selection);
+  }
 
   if (m_renderGraphOnly) {
     const auto plan = renderGraphPlan(*scene);
@@ -1163,6 +1364,80 @@ void Renderer::render() const {
   const auto timings = renderScene(*scene, m_output);
   if (m_timing || m_repeat > 1) {
     printTimings(timings);
+  }
+}
+
+void Renderer::validateStepSelection(const Scene& scene,
+                                     const StepVisibilitySelection& selection) const {
+  std::set<int> steps;
+  collectStepIndices(scene, &steps);
+  if (steps.empty()) {
+    throw std::runtime_error(
+      "Step selection requires at least one group with integer stepIndex metadata");
+  }
+
+  if (!selectionMatchesAnyStep(steps, selection)) {
+    throw std::runtime_error("Step selection matches no group with stepIndex metadata");
+  }
+}
+
+std::vector<int> Renderer::sequenceSteps(const Scene& scene) const {
+  std::set<int> stepSet;
+  collectStepIndices(scene, &stepSet);
+  if (stepSet.empty()) {
+    throw std::runtime_error(
+      "Step sequence requires at least one group with integer stepIndex metadata");
+  }
+
+  std::vector<int> steps;
+  for (int step : stepSet) {
+    if (!m_stepSelection.rangeSet ||
+        (step >= m_stepSelection.firstStep && step <= m_stepSelection.lastStep)) {
+      steps.push_back(step);
+    }
+  }
+
+  if (steps.empty()) {
+    throw std::runtime_error("Step sequence range matches no group with stepIndex metadata");
+  }
+
+  return steps;
+}
+
+void Renderer::renderStepSequence(const Scene& scene) const {
+  QString placeholderError;
+  if (!hasFramePlaceholder(m_output, &placeholderError)) {
+    placeholderError.replace("Animation output", "Step sequence output");
+    throw std::runtime_error(placeholderError.toStdString());
+  }
+
+  const auto steps = sequenceSteps(scene);
+  std::vector<double> stepTimings;
+  stepTimings.reserve(steps.size());
+
+  for (std::size_t i = 0; i < steps.size(); ++i) {
+    const int step = steps[i];
+    auto evaluatedScene = std::make_unique<Scene>(nullptr);
+    if (!evaluatedScene->load(m_filename)) {
+      throw std::runtime_error(
+        QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+    }
+    if (m_frameSet) {
+      evaluatedScene->evaluateAnimationAtFrame(m_frame);
+    }
+    applyStepVisibilitySelection(*evaluatedScene, StepVisibilitySelection::cumulativeThrough(step));
+
+    const auto output = outputForFrame(step);
+    const auto timings = renderScene(*evaluatedScene, output);
+    stepTimings.push_back(timings.front());
+
+    std::cout << "step " << (i + 1) << "/" << steps.size() << " number=" << step
+              << " output=" << output.toStdString()
+              << " render_ms=" << std::fixed << std::setprecision(3) << timings.front() << '\n';
+  }
+
+  if (m_timing) {
+    printTimings(stepTimings);
   }
 }
 
@@ -1385,6 +1660,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"shadow_filter", "Rasterizer shadow filter (pcf, pcss)", "mode"},
      {"timing", "Print render-only timing information to stdout"},
      {"frame", "Evaluate the scene animation at the given frame before rendering", "frame"},
+     {"step",
+      "Evaluate grouped step visibility before rendering: N, single:N, cumulative:N, or "
+      "sequence[:FIRST-LAST]",
+      "selection"},
      {"animation", "Render the scene animation as an image sequence"},
      {"frame_start", "Override the first animation frame", "frame"},
      {"frame_end", "Override the last animation frame", "frame"},
@@ -1877,6 +2156,13 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     m_animation = true;
   }
 
+  if (parser.isSet("step")) {
+    if (!parseStepSelection(parser.value("step"), &m_stepSelection, errorMessage)) {
+      return CommandLineError;
+    }
+    m_stepSelectionSet = true;
+  }
+
   if (parser.isSet("repeat")) {
     bool ok = false;
     m_repeat = parser.value("repeat").toInt(&ok);
@@ -1932,6 +2218,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     return CommandLineError;
   }
 
+  if (m_animation && m_stepSelectionSet) {
+    *errorMessage = "Cannot combine --animation with --step";
+    return CommandLineError;
+  }
+
   if (m_animation && m_repeat > 1) {
     *errorMessage = "Cannot combine --animation with --repeat";
     return CommandLineError;
@@ -1969,6 +2260,36 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
 
   if (m_renderGraphOnly && !m_renderGraphAOVOutputs.empty()) {
     *errorMessage = "Cannot combine --render_graph_only with --render_graph_aov_out";
+    return CommandLineError;
+  }
+
+  if (m_renderGraphOnly && m_stepSelectionSet &&
+      m_stepSelection.mode == CommandLineStepMode::Sequence) {
+    *errorMessage = "Cannot combine --render_graph_only with --step sequence";
+    return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      m_repeat > 1) {
+    *errorMessage = "Cannot combine --step sequence with --repeat";
+    return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      !m_renderGraphOut.isEmpty()) {
+    *errorMessage = "Cannot combine --step sequence with --render_graph_out";
+    return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      !m_renderGraphTraceOut.isEmpty()) {
+    *errorMessage = "Cannot combine --step sequence with --render_graph_trace_out";
+    return CommandLineError;
+  }
+
+  if (m_stepSelectionSet && m_stepSelection.mode == CommandLineStepMode::Sequence &&
+      !m_renderGraphAOVOutputs.empty()) {
+    *errorMessage = "Cannot combine --step sequence with --render_graph_aov_out";
     return CommandLineError;
   }
 
