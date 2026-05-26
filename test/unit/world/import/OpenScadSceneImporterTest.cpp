@@ -124,7 +124,7 @@ exit 0
     }
 
     QString sourceFixture() {
-      return QStringLiteral("test/fixtures/importers/openscad/simple.scad");
+      return QStringLiteral("test/fixtures/openscad/external-compiler/compiler_smoke.scad");
     }
 
     class CrashingOpenScadProcess : public world::OpenScadProcess {
@@ -152,6 +152,19 @@ exit 0
       if (!file.open(QIODevice::ReadOnly))
         return 0;
       return QString::fromUtf8(file.readAll()).split('\n', Qt::SkipEmptyParts).size();
+    }
+  }
+
+  TEST(OpenScadSceneImporter, DocumentsFixtureSetForSupportedWorkflows) {
+    const QStringList fixtures = {
+      "test/fixtures/openscad/external-compiler/compiler_smoke.scad",
+      "test/fixtures/openscad/native-subset/simple_primitives.scad",
+      "test/fixtures/openscad/native-subset/transforms.scad",
+      "test/fixtures/openscad/native-subset/booleans.scad",
+    };
+
+    for (const auto& fixture : fixtures) {
+      EXPECT_TRUE(QFileInfo::exists(fixture)) << fixture.toStdString();
     }
   }
 

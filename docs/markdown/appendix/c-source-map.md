@@ -161,8 +161,8 @@
 | `include/world/import/ImportedSceneDefaults.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/LDrawFileSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/import/LDrawSceneImporter.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `include/world/import/OpenScadCompiler.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
-| `include/world/import/OpenScadSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/world/import/OpenScadCompiler.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
+| `include/world/import/OpenScadSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `include/world/import/SceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
 | `include/world/import/StlSceneImporter.h` | [STL import](../tools-and-io/stl-import.md) |
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
@@ -208,14 +208,15 @@
 | `src/world/import/ImportedSceneDefaults.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/import/LDrawFileSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/LDrawSceneImporter.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `src/world/import/OpenScadCompiler.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
-| `src/world/import/OpenScadSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `src/world/import/OpenScadCompiler.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
+| `src/world/import/OpenScadSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `src/world/objects/PinholeCamera.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/Scene.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/fixtures/groups/` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/importers/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/ldraw/` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/fixtures/openscad/` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/fixtures/stl/` | [STL import](../tools-and-io/stl-import.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [Cameras](../ray-rendering/cameras.md) |
@@ -234,6 +235,7 @@
 | `test/helpers/Silhouette.cpp` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md) |
 | `test/helpers/Silhouette.h` | [Blob analysis and silhouettes](../image-and-vision/blob-analysis-and-silhouettes.md)<br>[Image buffers and pixel formats](../image-and-vision/image-buffers-and-pixel-formats.md)<br>[Shape classification](../image-and-vision/shape-classification.md) |
 | `test/rendercli/FrameOptionTest.cmake` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
+| `test/rendercli/ImportOptionTest.cmake` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/rendercli/RaytracerOptionTest.cmake` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/rendercli/RenderGraphOptionTest.cmake` | [Render plans and resources](../render-graph/render-plans-and-resources.md)<br>[Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
 | `test/rendercli/StepOptionTest.cmake` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |
@@ -262,6 +264,7 @@
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/LDrawFileSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/unit/world/import/OpenScadSceneImporterTest.cpp` | [OpenSCAD import](../tools-and-io/openscad-import.md) |
 | `test/unit/world/import/StlSceneImporterTest.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/unit/world/objects/LDrawSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |

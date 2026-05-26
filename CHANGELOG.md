@@ -34,6 +34,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   shared importer scene defaults for white background, ambient fill, directional
   light, product-view upright orientation, and pinhole camera framing in Modeler
   and rendercli. — GPT-5
+- **OpenSCAD workflow fixtures and docs.** Checked-in OpenSCAD fixtures now
+  cover primitive, transform, and boolean sources for external-compiler and
+  native-subset workflows; rendercli smoke tests reuse those fixtures and skip
+  the real external compiler smoke when `openscad` is not installed. — GPT-5
 - **Cached LDraw filesystem resolution.** Repeated LDraw part/subfile lookups now
   reuse resolver results instead of rescanning the library roots for every
   cache-key/open call, making large MPD imports much faster. — GPT-5

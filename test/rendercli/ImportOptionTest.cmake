@@ -17,11 +17,16 @@ set(extension_render "${TEST_OUTPUT_DIR}/extension.png")
 set(explicit_render "${TEST_OUTPUT_DIR}/explicit.png")
 set(openscad_render "${TEST_OUTPUT_DIR}/openscad-source-asset.png")
 set(openscad_direct_render "${TEST_OUTPUT_DIR}/openscad-direct.png")
+set(openscad_real_render "${TEST_OUTPUT_DIR}/openscad-real-source-asset.png")
 set(missing_render "${TEST_OUTPUT_DIR}/missing.png")
 set(fake_openscad "${TEST_OUTPUT_DIR}/openscad-fake.sh")
 set(openscad_scene "${TEST_OUTPUT_DIR}/openscad-source-asset.rtjson")
-set(openscad_source "${TEST_OUTPUT_DIR}/simple.scad")
+set(openscad_real_scene "${TEST_OUTPUT_DIR}/openscad-real-source-asset.rtjson")
+set(openscad_source "${TEST_OUTPUT_DIR}/compiler_smoke.scad")
 set(openscad_cache "${TEST_OUTPUT_DIR}/openscad-cache")
+set(openscad_real_cache "${TEST_OUTPUT_DIR}/openscad-real-cache")
+set(openscad_fixture_dir "${PROJECT_SOURCE_DIR}/test/fixtures/openscad")
+set(openscad_external_fixture "${openscad_fixture_dir}/external-compiler/compiler_smoke.scad")
 
 set(scene_json [=[
 {
@@ -47,7 +52,7 @@ set(scene_json [=[
 
 file(WRITE "${import_scene}" "${scene_json}")
 file(WRITE "${explicit_import_scene}" "${scene_json}")
-file(WRITE "${openscad_source}" "cube([1, 1, 1], center = true);\n")
+configure_file("${openscad_external_fixture}" "${openscad_source}" COPYONLY)
 file(WRITE "${fake_openscad}" [=[
 #!/bin/sh
 out=""
@@ -104,7 +109,7 @@ set(openscad_scene_json [=[
     {
       "id": "openscad-source",
       "name": "OpenSCAD Source",
-      "sourcePath": "simple.scad",
+      "sourcePath": "compiler_smoke.scad",
       "format": "openscad",
       "importOptions": {
         "executable": "__OPENSCAD_EXECUTABLE__",
@@ -120,6 +125,16 @@ set(openscad_scene_json [=[
 string(REPLACE "__OPENSCAD_EXECUTABLE__" "${fake_openscad}" openscad_scene_json "${openscad_scene_json}")
 string(REPLACE "__OPENSCAD_CACHE__" "${openscad_cache}" openscad_scene_json "${openscad_scene_json}")
 file(WRITE "${openscad_scene}" "${openscad_scene_json}")
+
+find_program(REAL_OPENSCAD_EXECUTABLE openscad)
+if(REAL_OPENSCAD_EXECUTABLE)
+  set(openscad_real_scene_json "${openscad_scene_json}")
+  string(REPLACE "${fake_openscad}" "${REAL_OPENSCAD_EXECUTABLE}" openscad_real_scene_json
+         "${openscad_real_scene_json}")
+  string(REPLACE "${openscad_cache}" "${openscad_real_cache}" openscad_real_scene_json
+         "${openscad_real_scene_json}")
+  file(WRITE "${openscad_real_scene}" "${openscad_real_scene_json}")
+endif()
 
 rendercli_run(
   NAME "rendercli imports by registered extension"
@@ -167,6 +182,21 @@ rendercli_assert_image_dimensions("${openscad_direct_render}" 8 8
                                   NAME "rendercli direct OpenSCAD dimensions")
 rendercli_assert_image_nonempty("${openscad_direct_render}"
                                 NAME "rendercli direct OpenSCAD pixels")
+
+if(REAL_OPENSCAD_EXECUTABLE)
+  rendercli_run(
+    NAME "rendercli renders OpenSCAD fixture with external compiler"
+    COMMAND
+      "${RENDERCLI}" --width 8 --height 8 --import_format json
+      "${openscad_real_scene}" "${openscad_real_render}"
+  )
+  rendercli_assert_image_dimensions("${openscad_real_render}" 8 8
+                                    NAME "rendercli real OpenSCAD fixture dimensions")
+  rendercli_assert_image_nonempty("${openscad_real_render}"
+                                  NAME "rendercli real OpenSCAD fixture pixels")
+else()
+  message(STATUS "Skipping real OpenSCAD render smoke: openscad executable was not found")
+endif()
 
 rendercli_expect_failure(
   NAME "rendercli reports unknown importer"
