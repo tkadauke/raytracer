@@ -1,14 +1,49 @@
 #pragma once
 #include <memory>
+#include <optional>
 
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QString>
 
 #include "world/objects/Transformable.h"
 
 namespace render {
   class Primitive;
   class Scene;
+}
+
+/**
+  * Generic JSON metadata keys used by Group helper APIs and import provenance.
+  */
+namespace GroupMetadata {
+  inline QString sourceFormatKey() {
+    return QStringLiteral("sourceFormat");
+  }
+
+  inline QString sourceIdKey() {
+    return QStringLiteral("sourceId");
+  }
+
+  inline QString stepIndexKey() {
+    return QStringLiteral("stepIndex");
+  }
+
+  inline QString layerIndexKey() {
+    return QStringLiteral("layerIndex");
+  }
+
+  inline QString startTimeKey() {
+    return QStringLiteral("startTime");
+  }
+
+  inline QString endTimeKey() {
+    return QStringLiteral("endTime");
+  }
+
+  inline QString labelKey() {
+    return QStringLiteral("label");
+  }
 }
 
 /**
@@ -82,8 +117,9 @@ public:
     * Replaces importer/inspection metadata attached to this group.
     *
     * Metadata is intentionally opaque to the renderer. Importers can store
-    * source object IDs, layer names, collection names, category tags, or other
-    * structured JSON here without changing runtime primitive generation.
+    * source object IDs, step indices, layer/frame indices, time intervals,
+    * labels, category tags, or other structured JSON here without changing
+    * runtime primitive generation.
     */
   inline void setMetadata(const QJsonObject& metadata) {
     m_metadata = metadata;
@@ -100,6 +136,58 @@ public:
     * Sets a single metadata value. Passing an undefined value removes @p key.
     */
   void setMetadataValue(const QString& key, const QJsonValue& value);
+
+  /**
+    * @returns a generic ordered step index, or empty when the metadata is
+    * absent or is not an integer-valued JSON number.
+    */
+  std::optional<int> stepIndex() const;
+
+  /**
+    * Sets or removes the generic ordered step index metadata.
+    */
+  void setStepIndex(std::optional<int> index);
+
+  /**
+    * @returns a generic layer/frame index, or empty when the metadata is absent
+    * or is not an integer-valued JSON number.
+    */
+  std::optional<int> layerIndex() const;
+
+  /**
+    * Sets or removes the generic layer/frame index metadata.
+    */
+  void setLayerIndex(std::optional<int> index);
+
+  /**
+    * @returns the start time for an imported interval/frame, or empty when
+    * absent or not numeric. Units are defined by the importer.
+    */
+  std::optional<double> startTime() const;
+
+  /**
+    * @returns the end time for an imported interval/frame, or empty when absent
+    * or not numeric. Units are defined by the importer.
+    */
+  std::optional<double> endTime() const;
+
+  /**
+    * Sets or removes the generic time interval metadata. Units are defined by
+    * the importer, but start and end use the same unit.
+    */
+  void setTimeRange(std::optional<double> startTime,
+                    std::optional<double> endTime);
+
+  /**
+    * @returns a display label for the step/layer/frame, or empty when absent or
+    * not a string.
+    */
+  std::optional<QString> label() const;
+
+  /**
+    * Sets or removes the display label metadata.
+    */
+  void setLabel(const std::optional<QString>& label);
 
   /**
     * Removes all metadata from this group.
