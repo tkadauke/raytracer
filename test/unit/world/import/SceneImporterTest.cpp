@@ -1,12 +1,21 @@
 #include <gtest/gtest.h>
 
+#include "world/import/JsonSceneImporter.h"
+#include "world/import/SceneImporterRegistry.h"
 #include "world/import/SceneImporter.h"
 #include "world/objects/Group.h"
+#include "world/objects/PinholeCamera.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Sphere.h"
 
 #include <memory>
 #include <QJsonObject>
+
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTemporaryFile>
 
 namespace SceneImporterTest {
   namespace {
@@ -50,6 +59,28 @@ namespace SceneImporterTest {
         result.addDiagnostic(world::ImportDiagnostic::warning("Ignored unsupported annotation",
                                                              filename, 3, 1));
         return result;
+      }
+    };
+
+    class OptionEchoImporter : public world::SceneImporter {
+    public:
+      QString name() const override {
+        return "option-echo";
+      }
+
+      QStringList supportedExtensions() const override {
+        return {};
+      }
+
+      world::ImportOptionSchemas optionSchema() const override {
+        return {};
+      }
+
+      world::ImportResult importFile(const QString& filename,
+                                     const world::ImportOptions& options) const override {
+        auto group = std::make_unique<Group>();
+        group->setName(options.value("groupName", filename).toString());
+        return world::ImportResult(std::move(group));
       }
     };
   }
@@ -235,6 +266,80 @@ namespace SceneImporterTest {
     EXPECT_EQ(4, result.diagnostics()[0].column);
     EXPECT_EQ(QString("Fake"), result.source().importerName);
     EXPECT_EQ(QString("broken.fake"), result.source().sourcePath);
+  }
+
+  TEST(SceneImporterRegistry, CreatesImportersByFormatAndExtension) {
+    auto byFormat = world::SceneImporterRegistry::self().createByFormat("json");
+    auto byExtension = world::SceneImporterRegistry::self().createForFile("fixture.rtjson");
+
+    ASSERT_NE(nullptr, byFormat);
+    ASSERT_NE(nullptr, byExtension);
+    EXPECT_EQ(QString("json"), byFormat->name());
+    EXPECT_EQ(QString("json"), byExtension->name());
+    EXPECT_EQ(nullptr, world::SceneImporterRegistry::self().createByFormat("missing"));
+  }
+
+  TEST(JsonSceneImporter, ImportsNativeSceneJson) {
+    QTemporaryFile temp("raytracer-import-XXXXXX.rtjson");
+    ASSERT_TRUE(temp.open());
+    const QString path = temp.fileName();
+    temp.write(R"({
+      "id": "scene",
+      "name": "Imported JSON",
+      "type": "Scene",
+      "children": [
+        {
+          "id": "camera",
+          "name": "Camera",
+          "position": [0.0, 0.0, -3.0],
+          "target": [0.0, 0.0, 0.0],
+          "distance": 5.0,
+          "zoom": 1.0,
+          "type": "PinholeCamera",
+          "children": []
+        }
+      ]
+    })");
+    temp.close();
+
+    world::JsonSceneImporter importer;
+    const auto result = importer.importFile(path);
+
+    ASSERT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.sceneRoot());
+    EXPECT_EQ(QString("Imported JSON"), result.sceneRoot()->name());
+    EXPECT_NE(nullptr, qobject_cast<PinholeCamera*>(result.sceneRoot()->activeCamera()));
+    EXPECT_EQ(QString("json"), result.source().importerName);
+  }
+
+  TEST(JsonSceneImporter, ReportsFatalDiagnosticsForMissingInput) {
+    world::JsonSceneImporter importer;
+
+    const auto result = importer.importFile("missing.rtjson");
+
+    EXPECT_TRUE(result.failed());
+    ASSERT_EQ(1u, result.diagnostics().size());
+    EXPECT_TRUE(result.diagnostics()[0].isError());
+    EXPECT_EQ(QString("Unable to read import source"), result.diagnostics()[0].message);
+  }
+
+  TEST(SceneImports, PassOptionsToRegisteredImporter) {
+    world::SceneImporterRegistry::self().registerClass<OptionEchoImporter>("option-echo");
+
+    Scene scene;
+    scene.read(QJsonObject(
+      {{"id", "scene"},
+       {"type", "Scene"},
+       {"imports",
+        QJsonArray({QJsonObject({{"source", "fixture.echo"},
+                                 {"format", "option-echo"},
+                                 {"options", QJsonObject({{"groupName", "Imported Group"}})}})})},
+       {"children", QJsonArray()}}));
+
+    ASSERT_EQ(1, scene.childElements().size());
+    auto* group = qobject_cast<Group*>(scene.childElements().front());
+    ASSERT_NE(nullptr, group);
+    EXPECT_EQ(QString("Imported Group"), group->name());
   }
 
 }

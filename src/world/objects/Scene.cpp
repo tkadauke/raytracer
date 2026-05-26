@@ -3,14 +3,19 @@
 #include "world/objects/Camera.h"
 #include "world/objects/Group.h"
 #include "world/objects/Light.h"
+#include "world/import/SceneImporterRegistry.h"
 #include "render/primitives/Scene.h"
 #include "render/primitives/Grid.h"
 
+#include <QDir>
 #include <QMap>
 #include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QVariant>
 
 #include <stdexcept>
 #include <utility>
@@ -61,9 +66,11 @@ std::shared_ptr<render::Scene> Scene::toRaytracerScene() const {
 void Scene::read(const QJsonObject& json) {
   auto sceneJson = json;
   sceneJson.remove("animation");
+  sceneJson.remove("imports");
   sceneJson.remove("renderIntent");
 
   Element::read(sceneJson);
+  readImports(json);
 
   const auto renderIntentValue = json["renderIntent"];
   if (renderIntentValue.isUndefined()) {
@@ -135,13 +142,24 @@ bool Scene::load(const QString& filename) {
 
   QJsonDocument loadDoc(QJsonDocument::fromJson(data));
 
-  read(loadDoc.object());
+  try {
+    setProperty("_sourceFile", filename);
+    read(loadDoc.object());
+    setProperty("_sourceFile", QVariant());
+  } catch (...) {
+    setProperty("_sourceFile", QVariant());
+    throw;
+  }
 
+  resolveElementReferences();
+
+  return true;
+}
+
+void Scene::resolveElementReferences() {
   QMap<QString, Element*> references;
   findReferences(this, references);
   resolveReferences(references);
-
-  return true;
 }
 
 const std::vector<LDrawDiagnostic>& Scene::importDiagnostics() const {
@@ -238,6 +256,67 @@ void Scene::findReferences(Element* root, QMap<QString, Element*>& references) {
 
   for (const auto& child : root->childElements()) {
     findReferences(child, references);
+  }
+}
+
+void Scene::readImports(const QJsonObject& json) {
+  const auto importsValue = json["imports"];
+  if (importsValue.isUndefined()) {
+    return;
+  }
+  if (!importsValue.isArray())
+    throw std::invalid_argument("scene imports must be an array");
+
+  const QString basePath = QFileInfo(property("_sourceFile").toString()).absolutePath();
+  const QDir baseDir(basePath.isEmpty() ? QDir::currentPath() : basePath);
+  for (const auto& importValue : importsValue.toArray()) {
+    if (!importValue.isObject())
+      throw std::invalid_argument("scene import entry must be an object");
+
+    const QJsonObject importObject = importValue.toObject();
+    const QString source = importObject["source"].toString().trimmed();
+    if (source.isEmpty())
+      throw std::invalid_argument("scene import source must not be empty");
+
+    const QString resolvedSource =
+      QFileInfo(source).isRelative() ? baseDir.filePath(source) : source;
+    std::unique_ptr<world::SceneImporter> importer;
+    const QString format = importObject["format"].toString().trimmed();
+    if (format.isEmpty()) {
+      importer = world::SceneImporterRegistry::self().createForFile(resolvedSource);
+    } else {
+      importer = world::SceneImporterRegistry::self().createByFormat(format);
+    }
+    if (!importer) {
+      throw std::invalid_argument(
+        QString("No scene importer registered for %1")
+          .arg(format.isEmpty() ? QFileInfo(resolvedSource).suffix() : format)
+          .toStdString());
+    }
+
+    const auto optionsValue = importObject["options"];
+    if (!optionsValue.isUndefined() && !optionsValue.isObject())
+      throw std::invalid_argument("scene import options must be an object");
+
+    world::ImportOptions options(optionsValue.toObject());
+    world::ImportResult result = importer->importFile(resolvedSource, options);
+    for (const auto& diagnostic : result.diagnostics()) {
+      const char* severity = diagnostic.isError() ? "error" : "warning";
+      qWarning("Import %s: %s", severity, qPrintable(diagnostic.message));
+    }
+    if (result.failed()) {
+      throw std::invalid_argument(
+        QString("Unable to import scene source: %1").arg(resolvedSource).toStdString());
+    }
+
+    std::unique_ptr<Element> root = result.takeRoot();
+    if (auto* importedScene = qobject_cast<Scene*>(root.get())) {
+      while (!importedScene->childElements().empty()) {
+        addChild(importedScene->childElements().front());
+      }
+    } else {
+      addChild(std::move(root));
+    }
   }
 }
 
