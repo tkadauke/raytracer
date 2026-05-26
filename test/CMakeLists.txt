@@ -101,6 +101,16 @@ if(TARGET rendercli)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake
   )
   add_test(
+    NAME rendercli_step
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DRENDERCLI=$<TARGET_FILE:rendercli>
+      -DRENDERCLI_IMAGE_PROBE=$<TARGET_FILE:rendercli_image_probe>
+      -DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DTEST_OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/rendercli-step
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/StepOptionTest.cmake
+  )
+  add_test(
     NAME rendercli_render_graph
     COMMAND
       ${CMAKE_COMMAND}
@@ -175,7 +185,7 @@ if(TARGET rendercli)
     COMMAND
       ${CMAKE_COMMAND}
       -DRENDERCLI_SOURCE=${PROJECT_SOURCE_DIR}/tools/rendercli/rendercli.cpp
-      "-DRENDERCLI_TEST_FILES=${CMAKE_CURRENT_SOURCE_DIR}/rendercli/BasicOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/ValidationOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RenderGraphOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RaytracerOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/WireframeOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterShadowOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOutputStateOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/CrossOptionValidationTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/ImportOptionTest.cmake"
+      "-DRENDERCLI_TEST_FILES=${CMAKE_CURRENT_SOURCE_DIR}/rendercli/BasicOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/ValidationOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/FrameOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/StepOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RenderGraphOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RaytracerOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/WireframeOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterShadowOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/RasterOutputStateOptionTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/CrossOptionValidationTest.cmake;${CMAKE_CURRENT_SOURCE_DIR}/rendercli/ImportOptionTest.cmake"
       -P ${CMAKE_CURRENT_SOURCE_DIR}/rendercli/OptionCoverageAudit.cmake
   )
 endif()

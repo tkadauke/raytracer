@@ -11,6 +11,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
 
 ### Added
 
+- **rendercli grouped step rendering.** `rendercli --step` now renders grouped
+  scene step selections in single, cumulative, and sequence modes for Epic
+  #232. — GPT-5
 - **Structured LDraw import diagnostics.** LDraw resolving and geometry
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
