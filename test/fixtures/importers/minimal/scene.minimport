@@ -1,0 +1,5 @@
+root=Fixture Assembly
+asset=assets/provenance.json
+group=Visible Part|true|fixture/visible-part
+group=Hidden Part|false|fixture/hidden-part
+warning=Ignored fixture annotation|5|2

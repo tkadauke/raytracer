@@ -40,6 +40,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   with per-face runtime material assignment that works through raytracing,
   Grid/BVH traversal, rasterization, and wireframe previews for Epic #230. —
   GPT-5
+- **Importer fixture harness and lifecycle docs.** Shared importer test helpers
+  now assert diagnostics and imported group trees, fixture layout supports
+  sidecar assets beside importer sources, and the textbook documents importer
+  options, asset resolution, diagnostics, provenance, and render smoke patterns
+  for Epic #230. — GPT-5
 - **Group/Collection documentation and fixtures.** Group source docs and the
   scene-structure textbook now describe hierarchy-only collections, visibility,
   metadata, and the distinction from render layers/AOVs; a reusable nested

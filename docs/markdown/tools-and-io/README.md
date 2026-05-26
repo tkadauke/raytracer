@@ -10,14 +10,18 @@ codebase, not just understand it.
     element / property declarations, why this is the project's only
     untrusted-input surface, and how the LibFuzzer harness keeps it
     honest.
+- [Importer lifecycle](importer-lifecycle.md) — shared scene-importer
+    contract, options, sidecar asset resolution, diagnostics, provenance,
+    fixtures, and render smoke patterns for new formats.
 - [Tools and the Modeler](tools-and-modeler.md) — tour of `rendercli`
     (headless), `src/modeler` (interactive editor), checked-in scene
     JSON, and the engine-selector wiring.
 
 ## Light coverage
 
-Both chapters are deliberately short. PLY parsing is one file plus
-the fuzzer; the Modeler is mostly Qt wiring on top of abstractions
+These chapters are deliberately short. PLY parsing is one file plus
+the fuzzer; importer lifecycle is the reusable contract around future
+formats; the Modeler is mostly Qt wiring on top of abstractions
 covered in earlier volumes. The book doesn't try to walk you through
 every menu of `Modeler` — Qt has
 documentation for that, and the source is small enough to read.
