@@ -7,6 +7,7 @@
 #include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
+#include "world/import/ImportResult.h"
 #include "world/import/OpenScadSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Box.h"
@@ -68,6 +69,28 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 echo run >> "$OPENSCAD_FAKE_LOG"
+case "$out" in
+*.ply)
+cat > "$out" <<'PLY'
+ply
+format ascii 1.0
+element vertex 3
+property float x
+property float y
+property float z
+property float nx
+property float ny
+property float nz
+element face 1
+property list uchar int vertex_indices
+end_header
+0 0 0 0 0 1
+1 0 0 0 0 1
+0 1 0 0 0 1
+3 0 1 2
+PLY
+;;
+*)
 cat > "$out" <<'STL'
 solid openscad
   facet normal 0 0 1
@@ -79,6 +102,8 @@ solid openscad
   endfacet
 endsolid openscad
 STL
+;;
+esac
 exit 0
 )SH";
     }
@@ -270,8 +295,50 @@ exit 0
     ASSERT_NE(nullptr, primitive->mesh());
     EXPECT_EQ(3u, primitive->mesh()->vertices().size());
     EXPECT_EQ(1u, primitive->mesh()->faces().size());
+    EXPECT_NE(nullptr, primitive->material());
     EXPECT_TRUE(QFileInfo::exists(result.source().properties["generatedOutputPath"].toString()));
     EXPECT_FALSE(result.source().properties["generatedOutputCacheKey"].toString().isEmpty());
+
+    const auto rootProvenance = world::importProvenance(*result.groupRoot());
+    ASSERT_TRUE(rootProvenance.has_value());
+    EXPECT_EQ(sourceFixture(), rootProvenance->sourceFile);
+    EXPECT_EQ(QString("root"), rootProvenance->sourceId);
+    EXPECT_EQ(QString("generated-mesh"), rootProvenance->category["kind"].toString());
+
+    const auto meshProvenance = world::importProvenance(*compiled);
+    ASSERT_TRUE(meshProvenance.has_value());
+    EXPECT_EQ(sourceFixture(), meshProvenance->sourceFile);
+    EXPECT_EQ(QString("generated-output"), meshProvenance->sourceId);
+    EXPECT_EQ(QString("stl"), meshProvenance->category["generatedOutputFormat"].toString());
+  }
+
+  TEST(OpenScadSceneImporter, SelectsPlyReaderForGeneratedMeshOutput) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+    const QString cacheDirectory = dir.filePath("cache");
+    qputenv("OPENSCAD_FAKE_LOG", dir.filePath("openscad.log").toLocal8Bit());
+
+    QJsonObject options = optionsFor(executable, cacheDirectory);
+    options["outputFormat"] = "ply";
+
+    world::OpenScadSceneImporter importer;
+    const auto result = importer.importFile(sourceFixture(), world::ImportOptions(options));
+
+    EXPECT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.groupRoot());
+    ASSERT_EQ(1, result.groupRoot()->childElements().size());
+    auto* compiled = qobject_cast<CompiledPrimitive*>(result.groupRoot()->childElements().front());
+    ASSERT_NE(nullptr, compiled);
+    auto primitive =
+      std::dynamic_pointer_cast<render::MeshPrimitive>(compiled->toRaytracerPrimitive());
+    ASSERT_NE(nullptr, primitive);
+    ASSERT_NE(nullptr, primitive->mesh());
+    EXPECT_EQ(3u, primitive->mesh()->vertices().size());
+    EXPECT_EQ(1u, primitive->mesh()->faces().size());
+    EXPECT_TRUE(result.source().properties["generatedOutputPath"].toString().endsWith(".ply"));
+    const auto meshProvenance = world::importProvenance(*compiled);
+    ASSERT_TRUE(meshProvenance.has_value());
+    EXPECT_EQ(QString("ply"), meshProvenance->category["generatedOutputFormat"].toString());
   }
 
   TEST(OpenScadSceneImporter, CachesGeneratedOutputBySourceAndOptionsIdentity) {
