@@ -118,6 +118,11 @@ void SourceAsset::rebuildGeneratedChildren() {
   }
 
   world::ImportResult result = importer->importFile(source, world::ImportOptions(m_importOptions));
+  const QString generatedOutputCacheKey =
+    result.source().properties.value("generatedOutputCacheKey").toString();
+  if (!generatedOutputCacheKey.isEmpty())
+    setGeneratedOutputCacheKey(generatedOutputCacheKey);
+
   for (const auto& diagnostic : result.diagnostics()) {
     addDiagnostic(diagnostic);
   }

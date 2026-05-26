@@ -1,21 +1,31 @@
 #include <gtest/gtest.h>
 
+#include "core/geometry/Mesh.h"
 #include "render/primitives/Composite.h"
 #include "render/primitives/Difference.h"
 #include "render/primitives/Instance.h"
+#include "render/primitives/MeshPrimitive.h"
 #include "render/primitives/Primitive.h"
 #include "render/primitives/Scene.h"
 #include "world/import/OpenScadSceneImporter.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Box.h"
+#include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Cylinder.h"
 #include "world/objects/Difference.h"
 #include "world/objects/Group.h"
 #include "world/objects/Intersection.h"
+#include "world/objects/SourceAsset.h"
 #include "world/objects/Sphere.h"
 #include "world/objects/Union.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonObject>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
+#include <QTextStream>
 
 #include <cmath>
 #include <memory>
@@ -46,10 +56,62 @@ namespace OpenScadSceneImporterTest {
       }
       return false;
     }
+
+    const char* fakeOpenScadScript() {
+      return R"SH(#!/bin/sh
+out=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "-o" ]; then
+    shift
+    out="$1"
+  fi
+  shift
+done
+echo run >> "$OPENSCAD_FAKE_LOG"
+cat > "$out" <<'STL'
+solid openscad
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 0 1 0
+    endloop
+  endfacet
+endsolid openscad
+STL
+exit 0
+)SH";
+    }
+
+    QString writeExecutable(QTemporaryDir& dir) {
+      const QString path = dir.filePath("openscad-fake");
+      QFile file(path);
+      EXPECT_TRUE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+      file.write(fakeOpenScadScript());
+      file.close();
+      EXPECT_TRUE(QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner |
+                                                QFileDevice::ExeOwner));
+      return path;
+    }
+
+    QString sourceFixture() {
+      return QStringLiteral("test/fixtures/importers/openscad/simple.scad");
+    }
+
+    QJsonObject optionsFor(const QString& executable, const QString& cacheDirectory) {
+      return QJsonObject{{"executable", executable}, {"cacheDirectory", cacheDirectory}};
+    }
+
+    int logRunCount(const QString& path) {
+      QFile file(path);
+      if (!file.open(QIODevice::ReadOnly))
+        return 0;
+      return QString::fromUtf8(file.readAll()).split('\n', Qt::SkipEmptyParts).size();
+    }
   }
 
-  TEST(OpenScadSceneImporter, IsRegisteredForScadFiles) {
-    auto importer = world::SceneImporterRegistry::self().createForFile("fixture.scad");
+  TEST(OpenScadSceneImporter, RegistersForScadFiles) {
+    auto importer = world::SceneImporterRegistry::self().createForFile("part.scad");
 
     ASSERT_NE(nullptr, importer);
     EXPECT_EQ(QString("openscad"), importer->name());
@@ -170,5 +232,94 @@ namespace OpenScadSceneImporterTest {
     EXPECT_EQ(path, diagnostic.source);
     EXPECT_EQ(2, diagnostic.line);
     EXPECT_EQ(3, diagnostic.column);
+  }
+
+  TEST(OpenScadSceneImporter, ReportsMissingExecutableAsNonFatalDiagnostic) {
+    world::OpenScadSceneImporter importer;
+
+    const auto result = importer.importFile(
+      sourceFixture(),
+      world::ImportOptions(QJsonObject{{"executable", "/definitely/missing/openscad"}}));
+
+    EXPECT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.groupRoot());
+    EXPECT_TRUE(result.groupRoot()->childElements().empty());
+    ASSERT_EQ(1u, result.diagnostics().size());
+    EXPECT_TRUE(result.diagnostics()[0].isWarning());
+    EXPECT_TRUE(result.diagnostics()[0].message.contains("OpenSCAD executable was not found"));
+  }
+
+  TEST(OpenScadSceneImporter, CompilesScadFixtureIntoMeshPrimitive) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+    const QString cacheDirectory = dir.filePath("cache");
+    qputenv("OPENSCAD_FAKE_LOG", dir.filePath("openscad.log").toLocal8Bit());
+
+    world::OpenScadSceneImporter importer;
+    const auto result = importer.importFile(
+      sourceFixture(), world::ImportOptions(optionsFor(executable, cacheDirectory)));
+
+    EXPECT_TRUE(result.succeeded());
+    ASSERT_NE(nullptr, result.groupRoot());
+    ASSERT_EQ(1, result.groupRoot()->childElements().size());
+    auto* compiled = qobject_cast<CompiledPrimitive*>(result.groupRoot()->childElements().front());
+    ASSERT_NE(nullptr, compiled);
+    auto primitive =
+      std::dynamic_pointer_cast<render::MeshPrimitive>(compiled->toRaytracerPrimitive());
+    ASSERT_NE(nullptr, primitive);
+    ASSERT_NE(nullptr, primitive->mesh());
+    EXPECT_EQ(3u, primitive->mesh()->vertices().size());
+    EXPECT_EQ(1u, primitive->mesh()->faces().size());
+    EXPECT_TRUE(QFileInfo::exists(result.source().properties["generatedOutputPath"].toString()));
+    EXPECT_FALSE(result.source().properties["generatedOutputCacheKey"].toString().isEmpty());
+  }
+
+  TEST(OpenScadSceneImporter, CachesGeneratedOutputBySourceAndOptionsIdentity) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+    const QString cacheDirectory = dir.filePath("cache");
+    const QString logPath = dir.filePath("openscad.log");
+    qputenv("OPENSCAD_FAKE_LOG", logPath.toLocal8Bit());
+
+    world::OpenScadSceneImporter importer;
+    const auto first = importer.importFile(
+      sourceFixture(), world::ImportOptions(optionsFor(executable, cacheDirectory)));
+    const auto second = importer.importFile(
+      sourceFixture(), world::ImportOptions(optionsFor(executable, cacheDirectory)));
+
+    EXPECT_TRUE(first.succeeded());
+    EXPECT_TRUE(second.succeeded());
+    EXPECT_EQ(1, logRunCount(logPath));
+    EXPECT_EQ(first.source().properties["generatedOutputCacheKey"].toString(),
+              second.source().properties["generatedOutputCacheKey"].toString());
+    ASSERT_EQ(1u, second.diagnostics().size());
+    EXPECT_TRUE(second.diagnostics()[0].message.contains("Reused cached OpenSCAD mesh output"));
+
+    QJsonObject changedOptions = optionsFor(executable, cacheDirectory);
+    changedOptions["define"] = QJsonObject{{"teeth", 12}};
+    const auto changed = importer.importFile(sourceFixture(), world::ImportOptions(changedOptions));
+
+    EXPECT_TRUE(changed.succeeded());
+    EXPECT_EQ(2, logRunCount(logPath));
+    EXPECT_NE(first.source().properties["generatedOutputCacheKey"].toString(),
+              changed.source().properties["generatedOutputCacheKey"].toString());
+  }
+
+  TEST(SourceAsset, StoresOpenScadGeneratedOutputCacheKeyAfterRebuild) {
+    QTemporaryDir dir;
+    const QString executable = writeExecutable(dir);
+    const QString cacheDirectory = dir.filePath("cache");
+    qputenv("OPENSCAD_FAKE_LOG", dir.filePath("openscad.log").toLocal8Bit());
+
+    SourceAsset asset;
+    asset.setSourcePath(sourceFixture());
+    asset.setFormat("openscad");
+    asset.setImportOptions(optionsFor(executable, cacheDirectory));
+
+    asset.rebuildGeneratedChildren();
+
+    EXPECT_TRUE(asset.diagnostics().empty());
+    EXPECT_FALSE(asset.generatedOutputCacheKey().isEmpty());
+    ASSERT_EQ(1, asset.childElements().size());
   }
 }

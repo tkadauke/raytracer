@@ -1,8 +1,13 @@
 #include "world/import/OpenScadSceneImporter.h"
 
+#include "core/formats/stl/StlFile.h"
+#include "core/geometry/Mesh.h"
 #include "core/math/Angle.h"
+#include "render/primitives/MeshPrimitive.h"
+#include "world/import/OpenScadCompiler.h"
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Box.h"
+#include "world/objects/CompiledPrimitive.h"
 #include "world/objects/Cylinder.h"
 #include "world/objects/Difference.h"
 #include "world/objects/Group.h"
@@ -16,6 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -636,6 +642,11 @@ namespace {
     std::size_t m_index{0};
     std::vector<world::ImportDiagnostic> m_diagnostics;
   };
+
+  bool hasCompileOptions(const world::ImportOptions& options) {
+    return options.contains("executable") || options.contains("cacheDirectory") ||
+           options.contains("define");
+  }
 }
 
 namespace world {
@@ -649,27 +660,120 @@ namespace world {
   }
 
   ImportOptionSchemas OpenScadSceneImporter::optionSchema() const {
-    return {};
+    return {
+      {"executable",
+       ImportOptionType::FilePath,
+       "OpenSCAD executable",
+       "Path to the openscad executable. When empty, PATH is searched.",
+       "",
+       false,
+       {}},
+      {"cacheDirectory",
+       ImportOptionType::DirectoryPath,
+       "Generated mesh cache",
+       "Directory for generated STL meshes keyed by source content and import options.",
+       "",
+       false,
+       {}},
+      {"define",
+       ImportOptionType::String,
+       "OpenSCAD definitions",
+       "JSON object of -D name=value definitions passed to OpenSCAD.",
+       "",
+       false,
+       {}},
+    };
   }
 
   ImportResult OpenScadSceneImporter::importFile(const QString& filename,
-                                                 const ImportOptions&) const {
-    ImportSourceMetadata source;
-    source.importerName = name();
-    source.formatName = "OpenSCAD subset";
-    source.sourcePath = filename;
-    source.properties = {{"nativeSubset", true}};
+                                                 const ImportOptions& options) const {
+    if (!hasCompileOptions(options)) {
+      ImportSourceMetadata source;
+      source.importerName = name();
+      source.formatName = "OpenSCAD subset";
+      source.sourcePath = filename;
+      source.properties = {{"nativeSubset", true}};
 
-    QFile file(filename);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-      return ImportResult::failed(
-        {ImportDiagnostic::error("Unable to read import source", filename)}, source);
+      QFile file(filename);
+      if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return ImportResult::failed(
+          {ImportDiagnostic::error("Unable to read import source", filename)}, source);
+      }
+
+      std::vector<ImportDiagnostic> diagnostics;
+      Lexer lexer(QString::fromUtf8(file.readAll()));
+      auto tokens = lexer.lex(diagnostics, filename);
+      return Parser(std::move(tokens), filename).parse(std::move(diagnostics));
     }
 
-    std::vector<ImportDiagnostic> diagnostics;
-    Lexer lexer(QString::fromUtf8(file.readAll()));
-    auto tokens = lexer.lex(diagnostics, filename);
-    return Parser(std::move(tokens), filename).parse(std::move(diagnostics));
+    ImportSourceMetadata source;
+    source.importerName = name();
+    source.formatName = "OpenSCAD";
+    source.sourcePath = filename;
+
+    OpenScadCompileRequest request;
+    request.sourcePath = filename;
+    request.executablePath = options.value("executable").toString();
+    request.cacheDirectory = options.value("cacheDirectory").toString();
+    request.options = options.values();
+
+    const OpenScadCompiler compiler;
+    OpenScadCompileResult compiled = compiler.compile(request);
+    source.properties = {
+      {"generatedOutputCacheKey", compiled.cacheKey},
+      {"generatedOutputPath", compiled.outputPath},
+      {"generatedOutputCacheHit", compiled.cacheHit},
+    };
+
+    if (!compiled.succeeded) {
+      const bool hasOnlyWarnings =
+        !compiled.diagnostics.empty() &&
+        std::all_of(compiled.diagnostics.begin(), compiled.diagnostics.end(),
+                    [](const ImportDiagnostic& diagnostic) { return diagnostic.isWarning(); });
+      if (hasOnlyWarnings) {
+        auto group = std::make_unique<Group>();
+        group->setName(QFileInfo(filename).baseName());
+        ImportResult result(std::move(group), source);
+        for (const auto& diagnostic : compiled.diagnostics)
+          result.addDiagnostic(diagnostic);
+        return result;
+      }
+      return ImportResult::failed(std::move(compiled.diagnostics), source);
+    }
+
+    Mesh mesh;
+    std::ifstream input(compiled.outputPath.toStdString(), std::ios::binary);
+    if (!input) {
+      return ImportResult::failed(
+        {ImportDiagnostic::error("Unable to read generated OpenSCAD mesh", compiled.outputPath)},
+        source);
+    }
+
+    try {
+      StlFile stl(input, mesh);
+    } catch (const std::exception& error) {
+      return ImportResult::failed(
+        {ImportDiagnostic::error(
+          QString("Unable to parse generated OpenSCAD mesh: %1").arg(error.what()),
+          compiled.outputPath)},
+        source);
+    }
+
+    auto group = std::make_unique<Group>();
+    group->setName(QFileInfo(filename).baseName());
+
+    auto primitive = std::make_shared<render::MeshPrimitive>(
+      std::move(mesh), render::MeshPrimitive::NormalMode::Flat);
+    auto compiledPrimitive = std::make_unique<CompiledPrimitive>(primitive);
+    compiledPrimitive->setName("OpenSCAD Mesh");
+    group->addChild(std::move(compiledPrimitive));
+
+    ImportResult result(std::move(group), source);
+    if (compiled.cacheHit) {
+      result.addDiagnostic(
+        ImportDiagnostic::warning("Reused cached OpenSCAD mesh output", compiled.outputPath));
+    }
+    return result;
   }
 
 }
