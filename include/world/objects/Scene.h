@@ -62,6 +62,7 @@ public:
     * create children for the child objects in the file.
     */
   bool load(const QString& filename);
+  bool load(const QString& filename, const QString& ldrawLibraryRootOverride);
 
   /**
     * Diagnostics captured while importing external scene data. JSON scene
