@@ -217,7 +217,7 @@ public:
     *   an empty optional when the scene has no identifiable active camera.
     */
   std::optional<engine::graph::RenderCameraRef> activeRenderCameraRef() const;
-  virtual bool canHaveChild(Element* child) const;
+  bool canHaveChild(Element* child) const override;
 
 private:
   void findReferences(Element* root, QMap<QString, Element*>& references);

@@ -40,11 +40,35 @@ namespace core {
     }
 
     bool equalsIgnoreCase(const std::string& left, const std::string& right) {
-      return left.size() == right.size() &&
-             std::equal(left.begin(), left.end(), right.begin(),
-                        [](unsigned char a, unsigned char b) {
-                          return std::tolower(a) == std::tolower(b);
-                        });
+      return left.size() == right.size() && std::equal(left.begin(), left.end(), right.begin(),
+                                                       [](unsigned char a, unsigned char b) {
+                                                         return std::tolower(a) == std::tolower(b);
+                                                       });
+    }
+
+    fs::path findExactCase(const fs::path& path) {
+      fs::path resolved = path.root_path();
+      if (resolved.empty())
+        resolved = ".";
+
+      for (const fs::path& part : path.relative_path()) {
+        std::error_code error;
+        bool found = false;
+        for (const fs::directory_entry& entry : fs::directory_iterator(resolved, error)) {
+          if (error)
+            break;
+          if (entry.path().filename() == part) {
+            resolved = entry.path();
+            found = true;
+            break;
+          }
+        }
+
+        if (!found)
+          return {};
+      }
+
+      return isRegularFile(resolved) ? normalizedExistingPath(resolved) : fs::path();
     }
 
     fs::path findCaseInsensitive(const fs::path& path) {
@@ -81,9 +105,8 @@ namespace core {
     std::string identityFor(const fs::path& path, AssetCaseSensitivity caseSensitivity) {
       std::string identity = normalizedExistingPath(path).generic_string();
       if (caseSensitivity == AssetCaseSensitivity::CaseInsensitive) {
-        std::transform(identity.begin(), identity.end(), identity.begin(), [](unsigned char c) {
-          return static_cast<char>(std::tolower(c));
-        });
+        std::transform(identity.begin(), identity.end(), identity.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
       }
       return identity;
     }
@@ -165,9 +188,11 @@ namespace core {
     }
 
     for (const fs::path& candidate : candidates) {
-      if (isRegularFile(candidate))
-        return resolvedAssetForPath(candidate);
-      if (m_caseSensitivity == AssetCaseSensitivity::CaseInsensitive) {
+      if (m_caseSensitivity == AssetCaseSensitivity::Exact) {
+        const fs::path exact = findExactCase(candidate);
+        if (!exact.empty())
+          return resolvedAssetForPath(exact);
+      } else {
         const fs::path insensitive = findCaseInsensitive(candidate);
         if (!insensitive.empty())
           return resolvedAssetForPath(insensitive);

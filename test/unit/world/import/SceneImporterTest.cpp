@@ -37,10 +37,20 @@ namespace SceneImporterTest {
 
       world::ImportOptionSchemas optionSchema() const override {
         return {
-          {"mergeGroups", world::ImportOptionType::Boolean, "Merge groups",
-           "Flatten hierarchy-only groups during import.", false, false, {}},
-          {"quality", world::ImportOptionType::Choice, "Quality", "Geometry conversion quality.",
-           "balanced", true, {"fast", "balanced", "exact"}},
+          {"mergeGroups",
+           world::ImportOptionType::Boolean,
+           "Merge groups",
+           "Flatten hierarchy-only groups during import.",
+           false,
+           false,
+           {}},
+          {"quality",
+           world::ImportOptionType::Choice,
+           "Quality",
+           "Geometry conversion quality.",
+           "balanced",
+           true,
+           {"fast", "balanced", "exact"}},
         };
       }
 
@@ -62,8 +72,8 @@ namespace SceneImporterTest {
         scene->setName("Imported fake scene");
 
         world::ImportResult result(std::move(scene), source);
-        result.addDiagnostic(world::ImportDiagnostic::warning("Ignored unsupported annotation",
-                                                             filename, 3, 1));
+        result.addDiagnostic(
+          world::ImportDiagnostic::warning("Ignored unsupported annotation", filename, 3, 1));
         return result;
       }
     };
@@ -247,8 +257,7 @@ namespace SceneImporterTest {
     EXPECT_EQ(24, decodedChildProvenance->lineEnd);
     EXPECT_EQ(QString("sphere-7"), decodedSphereProvenance->recordId);
     EXPECT_EQ(QString("cm"), decodedSphereProvenance->originalUnits);
-    EXPECT_EQ(QString("analytic-surface"),
-              decodedSphereProvenance->category["kind"].toString());
+    EXPECT_EQ(QString("analytic-surface"), decodedSphereProvenance->category["kind"].toString());
   }
 
   TEST(ImportResult, CarriesFailedDiagnosticsWithoutRoot) {
@@ -342,8 +351,16 @@ namespace SceneImporterTest {
                                  {"options", QJsonObject({{"groupName", "Imported Group"}})}})})},
        {"children", QJsonArray()}}));
 
-    ASSERT_EQ(1, scene.childElements().size());
-    auto* group = qobject_cast<Group*>(scene.childElements().front());
+    int authoredChildCount = 0;
+    Group* group = nullptr;
+    for (Element* child : scene.childElements()) {
+      if (child->isGenerated())
+        continue;
+      ++authoredChildCount;
+      group = qobject_cast<Group*>(child);
+    }
+
+    ASSERT_EQ(1, authoredChildCount);
     ASSERT_NE(nullptr, group);
     EXPECT_EQ(QString("Imported Group"), group->name());
   }

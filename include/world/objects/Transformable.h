@@ -118,7 +118,7 @@ public:
     */
   Matrix4d globalTransform() const;
 
-  virtual bool canHaveChild(Element* child) const;
+  bool canHaveChild(Element* child) const override;
 
   /**
     * Moves the object by vector. If global is true, the object is moved
@@ -128,8 +128,8 @@ public:
   void moveBy(const Vector3d& vector, bool global = false);
 
 protected:
-  virtual void leaveParent();
-  virtual void joinParent();
+  void leaveParent() override;
+  void joinParent() override;
 
 private:
   Vector3d m_position;

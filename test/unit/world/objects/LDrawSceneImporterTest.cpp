@@ -64,10 +64,9 @@ namespace LDrawSceneImporterTest {
 
   TEST(LDrawSceneImporter, PreservesStepBoundariesAsOrderedGroups) {
     TempTree tree;
-    const auto model = tree.write("steps.ldr",
-                                  "3 16 0 0 0 1 0 0 0 1 0\n"
-                                  "0 STEP\n"
-                                  "3 16 0 0 1 1 0 1 0 1 1\n");
+    const auto model = tree.write("steps.ldr", "3 16 0 0 0 1 0 0 0 1 0\n"
+                                               "0 STEP\n"
+                                               "3 16 0 0 1 1 0 1 0 1 1\n");
 
     LDrawSceneImporter::Options options;
     options.filePath = QString::fromStdString(model.string());
@@ -90,13 +89,12 @@ namespace LDrawSceneImporterTest {
 
   TEST(LDrawSceneImporter, PreservesMpdSubmodelsAsNestedGroups) {
     TempTree tree;
-    const auto model = tree.write("model.mpd",
-                                  "0 FILE main.ldr\n"
-                                  "1 16 10 0 0 1 0 0 0 1 0 0 0 1 child.ldr\n"
-                                  "0 NOFILE\n"
-                                  "0 FILE child.ldr\n"
-                                  "3 16 0 0 0 1 0 0 0 1 0\n"
-                                  "0 NOFILE\n");
+    const auto model = tree.write("model.mpd", "0 FILE main.ldr\n"
+                                               "1 16 10 0 0 1 0 0 0 1 0 0 0 1 child.ldr\n"
+                                               "0 NOFILE\n"
+                                               "0 FILE child.ldr\n"
+                                               "3 16 0 0 0 1 0 0 0 1 0\n"
+                                               "0 NOFILE\n");
 
     LDrawSceneImporter::Options options;
     options.filePath = QString::fromStdString(model.string());
@@ -122,10 +120,9 @@ namespace LDrawSceneImporterTest {
 
   TEST(LDrawSceneImporter, CanReturnFlattenedMetadataGroupWhenHierarchyPreservationIsDisabled) {
     TempTree tree;
-    const auto model = tree.write("flat.ldr",
-                                  "3 16 0 0 0 1 0 0 0 1 0\n"
-                                  "0 STEP\n"
-                                  "3 16 0 0 1 1 0 1 0 1 1\n");
+    const auto model = tree.write("flat.ldr", "3 16 0 0 0 1 0 0 0 1 0\n"
+                                              "0 STEP\n"
+                                              "3 16 0 0 1 1 0 1 0 1 1\n");
 
     LDrawSceneImporter::Options options;
     options.filePath = QString::fromStdString(model.string());
@@ -143,10 +140,9 @@ namespace LDrawSceneImporterTest {
 
   TEST(LDrawSceneImporter, PreservedHierarchyStillConvertsToRuntimeScene) {
     TempTree tree;
-    const auto model = tree.write("steps.ldr",
-                                  "3 16 0 0 0 1 0 0 0 1 0\n"
-                                  "0 STEP\n"
-                                  "3 16 0 0 1 1 0 1 0 1 1\n");
+    const auto model = tree.write("steps.ldr", "3 16 0 0 0 1 0 0 0 1 0\n"
+                                               "0 STEP\n"
+                                               "3 16 0 0 1 1 0 1 0 1 1\n");
 
     LDrawSceneImporter::Options options;
     options.filePath = QString::fromStdString(model.string());
@@ -246,6 +242,22 @@ namespace LDrawSceneImporterTest {
     EXPECT_NEAR(2.0, box.max().x(), 1e-9);
     EXPECT_NEAR(0.0, box.max().y(), 1e-9);
     EXPECT_NEAR(2.0, box.max().z(), 1e-9);
+  }
+
+  TEST(LDrawSceneImporter, PreservedHierarchyMetadataDoesNotTriggerAuthoringImport) {
+    Group model;
+    model.setId("ldraw-step");
+    model.setName("LDraw Step");
+
+    QJsonObject metadata;
+    metadata["sourceFormat"] = "ldraw";
+    metadata["sourceFile"] = "model.ldr";
+    metadata["sourceBlock"] = "model.ldr";
+    metadata["buildStepIndex"] = 1;
+    model.setMetadata(metadata);
+
+    EXPECT_NO_THROW(world::imports::resolveLDrawAuthoringImports(&model));
+    EXPECT_TRUE(model.childElements().empty());
   }
 
   TEST(LDrawSceneImporter, SceneConversionRendersImportedCollection) {

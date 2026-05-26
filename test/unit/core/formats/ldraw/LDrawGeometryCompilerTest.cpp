@@ -132,9 +132,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, InlineGeometryCarriesSourceLineColorAndBuildStepProvenance) {
-    istringstream input(
-      "0 STEP\n"
-      "3 4 0 0 0 0 1 0 1 0 0\n");
+    istringstream input("0 STEP\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n");
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
     auto primitive = onlyMeshPrimitive(geometry);
@@ -261,18 +260,16 @@ namespace LDrawGeometryCompilerTest {
 
   TEST(LDrawGeometryCompiler, CanBuildSmoothMeshPrimitives) {
     istringstream input("4 4 0 0 0 0 1 0 1 1 0 1 0 0\n");
-    auto geometry =
-      LDrawGeometryCompiler(nullptr, 64, LDrawGeometryCompiler::NormalMode::Smooth)
-        .compile(input, colorTable());
+    auto geometry = LDrawGeometryCompiler(nullptr, 64, LDrawGeometryCompiler::NormalMode::Smooth)
+                      .compile(input, colorTable());
     auto primitive = onlyMeshPrimitive(geometry);
 
     EXPECT_EQ(MeshPrimitive::NormalMode::Smooth, primitive->normalMode());
   }
 
   TEST(LDrawGeometryCompiler, BfcCertifyCcwKeepsLDrawFaceOrderAndFrontSidedMaterial) {
-    istringstream input(
-      "0 BFC CERTIFY CCW\n"
-      "3 4 0 0 0 0 1 0 1 0 0\n");
+    istringstream input("0 BFC CERTIFY CCW\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n");
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
     auto primitive = onlyMeshPrimitive(geometry);
@@ -283,9 +280,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, BfcCertifyCwReversesFaceOrderAndNormals) {
-    istringstream input(
-      "0 BFC CERTIFY CW\n"
-      "3 4 0 0 0 0 1 0 1 0 0\n");
+    istringstream input("0 BFC CERTIFY CW\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n");
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
     auto primitive = onlyMeshPrimitive(geometry);
@@ -296,11 +292,10 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, BfcNoClipAndNoCertifyKeepTwoSidedMaterials) {
-    istringstream input(
-      "0 BFC CERTIFY CCW NOCLIP\n"
-      "3 4 0 0 0 0 1 0 1 0 0\n"
-      "0 BFC NOCERTIFY CLIP\n"
-      "3 1 2 0 0 2 1 0 3 0 0\n");
+    istringstream input("0 BFC CERTIFY CCW NOCLIP\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n"
+                        "0 BFC NOCERTIFY CLIP\n"
+                        "3 1 2 0 0 2 1 0 3 0 0\n");
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
 
@@ -336,8 +331,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, TypeOneAppliesTranslationAndMatrixToReferencedGeometry) {
-    auto resolver = make_shared<LDrawFilesystemResolver>(
-      vector<string>{"test/fixtures/ldraw/nested"});
+    auto resolver =
+      make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/nested"});
     ifstream input("test/fixtures/ldraw/nested/root.ldr");
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
@@ -350,19 +345,18 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, NestedMpdSubmodelsRenderThroughRaytracer) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat", "0 // external child should lose to MPD-local child\n"},
-      {"leaf.dat", "0 // external leaf should lose to MPD-local leaf\n"}});
-    istringstream input(
-      "0 FILE main.ldr\n"
-      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "0 NOFILE\n"
-      "0 FILE child.dat\n"
-      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 leaf.dat\n"
-      "0 NOFILE\n"
-      "0 FILE leaf.dat\n"
-      "3 4 -1 -1 0 -1 1 0 1 -1 0\n"
-      "0 NOFILE\n");
+    auto resolver = make_shared<MemoryResolver>(
+      map<string, string>{{"child.dat", "0 // external child should lose to MPD-local child\n"},
+                          {"leaf.dat", "0 // external leaf should lose to MPD-local leaf\n"}});
+    istringstream input("0 FILE main.ldr\n"
+                        "1 16 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "0 NOFILE\n"
+                        "0 FILE child.dat\n"
+                        "1 16 0 0 0 1 0 0 0 1 0 0 0 1 leaf.dat\n"
+                        "0 NOFILE\n"
+                        "0 FILE leaf.dat\n"
+                        "3 4 -1 -1 0 -1 1 0 1 -1 0\n"
+                        "0 NOFILE\n");
     auto scene = make_shared<Scene>(Colord::white());
     scene->setBackground(Colord::black());
     scene->add(LDrawGeometryCompiler(resolver).compile(input, colorTable()));
@@ -385,16 +379,15 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, MpdBlocksAndRecursiveReferencesCarryProvenance) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"external.dat", "3 4 0 0 0 0 1 0 1 0 0\n"}});
-    istringstream input(
-      "0 FILE main.ldr\n"
-      "1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "0 NOFILE\n"
-      "0 FILE child.dat\n"
-      "0 STEP\n"
-      "1 2 0 0 0 1 0 0 0 1 0 0 0 1 external.dat\n"
-      "0 NOFILE\n");
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"external.dat", "3 4 0 0 0 0 1 0 1 0 0\n"}});
+    istringstream input("0 FILE main.ldr\n"
+                        "1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "0 NOFILE\n"
+                        "0 FILE child.dat\n"
+                        "0 STEP\n"
+                        "1 2 0 0 0 1 0 0 0 1 0 0 0 1 external.dat\n"
+                        "0 NOFILE\n");
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
     ASSERT_EQ(1u, geometry->primitives().size());
@@ -436,16 +429,15 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, DiagnosticsPathResolvesMpdLocalSubmodelsBeforeLibrary) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat", "0 // external child should lose to MPD-local child\n"}});
-    istringstream input(
-      "0 FILE main.ldr\n"
-      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "0 NOFILE\n"
-      "0 FILE child.dat\n"
-      "0 BFC CERTIFY CCW\n"
-      "3 4 -1 -1 0 -1 1 0 1 -1 0\n"
-      "0 NOFILE\n");
+    auto resolver = make_shared<MemoryResolver>(
+      map<string, string>{{"child.dat", "0 // external child should lose to MPD-local child\n"}});
+    istringstream input("0 FILE main.ldr\n"
+                        "1 16 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "0 NOFILE\n"
+                        "0 FILE child.dat\n"
+                        "0 BFC CERTIFY CCW\n"
+                        "3 4 -1 -1 0 -1 1 0 1 -1 0\n"
+                        "0 NOFILE\n");
     LDrawDiagnostics diagnostics;
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics);
@@ -457,37 +449,34 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, TypeOneColorSixteenInheritsReferenceColorAndDirectColorsOverride) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat",
-       "3 16 0 0 0 1 0 0 0 1 0\n"
-       "3 4 2 0 0 3 0 0 2 1 0\n"}});
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"
+                                                                    "3 4 2 0 0 3 0 0 2 1 0\n"}});
     istringstream input("1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
     State state;
 
     HitPointInterval hitPoints;
-    const Primitive* inheritedHit = geometry->intersect(
-      Rayd(Vector4d(0.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
+    const Primitive* inheritedHit =
+      geometry->intersect(Rayd(Vector4d(0.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
     ASSERT_NE(nullptr, inheritedHit);
     ASSERT_COLOR_NEAR(Colord::fromRGB(0, 85, 191), diffuseColor(inheritedHit->material()), 0.001);
 
     hitPoints = HitPointInterval();
-    const Primitive* directHit = geometry->intersect(
-      Rayd(Vector4d(2.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
+    const Primitive* directHit =
+      geometry->intersect(Rayd(Vector4d(2.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
     ASSERT_NE(nullptr, directHit);
     ASSERT_COLOR_NEAR(Colord::fromRGB(201, 26, 9), diffuseColor(directHit->material()), 0.001);
   }
 
   TEST(LDrawGeometryCompiler, BfcInvertNextInvertsOnlyTheNextTypeOneSubfile) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat",
-       "0 BFC CERTIFY CCW\n"
-       "3 16 0 0 0 0 1 0 1 0 0\n"}});
-    istringstream input(
-      "0 BFC INVERTNEXT\n"
-      "0 // comments do not consume INVERTNEXT\n"
-      "1 4 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "1 4 2 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"child.dat", "0 BFC CERTIFY CCW\n"
+                                                                    "3 16 0 0 0 0 1 0 1 0 0\n"}});
+    istringstream input("0 BFC INVERTNEXT\n"
+                        "0 // comments do not consume INVERTNEXT\n"
+                        "1 4 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "1 4 2 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
     auto mesh = geometry->tessellate();
@@ -500,11 +489,10 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, ReferencedFilesAreParsedThroughResolverOnlyOnce) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
-    istringstream input(
-      "1 2 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "1 2 5 0 0 1 0 0 0 1 0 0 0 1 CHILD.DAT\n");
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
+    istringstream input("1 2 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "1 2 5 0 0 1 0 0 0 1 0 0 0 1 CHILD.DAT\n");
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
 
@@ -513,8 +501,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, CanFlattenIdentitySubfileHierarchy) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
     istringstream input("1 2 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
     LDrawGeometryCompiler::Options options;
     options.preserveHierarchy = false;
@@ -526,8 +514,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, RepeatedFixtureReferencesReuseCompiledPartInstances) {
-    auto resolver = make_shared<LDrawFilesystemResolver>(
-      vector<string>{"test/fixtures/ldraw/repeated"});
+    auto resolver =
+      make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/repeated"});
     ifstream input("test/fixtures/ldraw/repeated/root.ldr");
     LDrawGeometryCompiler compiler(resolver);
 
@@ -558,12 +546,11 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, CacheKeySeparatesInheritedColorContexts) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
-    istringstream input(
-      "1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "1 2 2 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
-      "1 1 4 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
+    auto resolver =
+      make_shared<MemoryResolver>(map<string, string>{{"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
+    istringstream input("1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "1 2 2 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+                        "1 1 4 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
     LDrawGeometryCompiler compiler(resolver);
 
     auto geometry = compiler.compile(input, colorTable());
@@ -585,42 +572,42 @@ namespace LDrawGeometryCompilerTest {
 
     State state;
     HitPointInterval hitPoints;
-    const Primitive* blueHit = geometry->intersect(
-      Rayd(Vector4d(0.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
+    const Primitive* blueHit =
+      geometry->intersect(Rayd(Vector4d(0.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
     ASSERT_NE(nullptr, blueHit);
     ASSERT_COLOR_NEAR(Colord::fromRGB(0, 85, 191), diffuseColor(blueHit->material()), 0.001);
 
     hitPoints = HitPointInterval();
-    const Primitive* greenHit = geometry->intersect(
-      Rayd(Vector4d(2.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
+    const Primitive* greenHit =
+      geometry->intersect(Rayd(Vector4d(2.2, 0.2, -1.0), Vector3d(0, 0, 1)), hitPoints, state);
     ASSERT_NE(nullptr, greenHit);
     ASSERT_COLOR_NEAR(Colord::fromRGB(35, 120, 65), diffuseColor(greenHit->material()), 0.001);
   }
 
   TEST(LDrawGeometryCompiler, DetectsRecursiveSubfileCycles) {
-    auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"a.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 b.dat\n"},
-      {"b.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n"}});
+    auto resolver = make_shared<MemoryResolver>(
+      map<string, string>{{"a.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 b.dat\n"},
+                          {"b.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n"}});
     istringstream input("1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
 
-    EXPECT_THROW(LDrawGeometryCompiler(resolver).compile(input, colorTable()), Exception);
+    EXPECT_THROW(static_cast<void>(LDrawGeometryCompiler(resolver).compile(input, colorTable())),
+                 Exception);
   }
 
   TEST(LDrawGeometryCompiler, EnforcesRecursionLimit) {
     auto resolver = make_shared<MemoryResolver>(map<string, string>{
-      {"a.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 b.dat\n"},
-      {"b.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
+      {"a.dat", "1 16 0 0 0 1 0 0 0 1 0 0 0 1 b.dat\n"}, {"b.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
     istringstream input("1 16 0 0 0 1 0 0 0 1 0 0 0 1 a.dat\n");
 
-    EXPECT_THROW(LDrawGeometryCompiler(resolver, 1).compile(input, colorTable()), Exception);
+    EXPECT_THROW(static_cast<void>(LDrawGeometryCompiler(resolver, 1).compile(input, colorTable())),
+                 Exception);
   }
 
   TEST(LDrawGeometryCompiler, ReportsSkippedGeometryAndUnsupportedCommands) {
-    istringstream input(
-      "0 !UNSUPPORTED_META value\n"
-      "2 24 0 0 0 1 0 0\n"
-      "5 24 0 0 0 1 0 0 0 1 0 1 1 0\n"
-      "9 unsupported command\n");
+    istringstream input("0 !UNSUPPORTED_META value\n"
+                        "2 24 0 0 0 1 0 0\n"
+                        "5 24 0 0 0 1 0 0 0 1 0 1 1 0\n"
+                        "9 unsupported command\n");
     LDrawDiagnostics diagnostics;
     LDrawColorContext context;
     context.currentColor = LDrawColorReference::fromCode(4);
@@ -640,12 +627,11 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, TexmapPlanarAssignsMeshUvsAndImageTextureMaterial) {
-    auto resolver = make_shared<LDrawFilesystemResolver>(
-      vector<string>{"test/fixtures/ldraw/texmap"});
-    istringstream input(
-      "0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 checker.ppm\n"
-      "4 4 -1 -1 0 1 -1 0 1 1 0 -1 1 0\n"
-      "0 !TEXMAP END\n");
+    auto resolver =
+      make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/texmap"});
+    istringstream input("0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 checker.ppm\n"
+                        "4 4 -1 -1 0 1 -1 0 1 1 0 -1 1 0\n"
+                        "0 !TEXMAP END\n");
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
     auto primitive = onlyMeshPrimitive(geometry);
@@ -662,12 +648,11 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, TexmapPlanarRendersImageTextureThroughRaytracer) {
-    auto resolver = make_shared<LDrawFilesystemResolver>(
-      vector<string>{"test/fixtures/ldraw/texmap"});
-    istringstream input(
-      "0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 checker.ppm\n"
-      "4 4 -1 -1 0 1 -1 0 1 1 0 -1 1 0\n"
-      "0 !TEXMAP END\n");
+    auto resolver =
+      make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/texmap"});
+    istringstream input("0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 checker.ppm\n"
+                        "4 4 -1 -1 0 1 -1 0 1 1 0 -1 1 0\n"
+                        "0 !TEXMAP END\n");
     auto scene = make_shared<Scene>(Colord::white());
     scene->setBackground(Colord::black());
     scene->add(LDrawGeometryCompiler(resolver).compile(input, colorTable()));
@@ -681,12 +666,11 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, MissingTexmapTextureProducesDiagnostic) {
-    auto resolver = make_shared<LDrawFilesystemResolver>(
-      vector<string>{"test/fixtures/ldraw/texmap"});
-    istringstream input(
-      "0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 missing.ppm\n"
-      "3 4 -1 -1 0 1 -1 0 -1 1 0\n"
-      "0 !TEXMAP END\n");
+    auto resolver =
+      make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/texmap"});
+    istringstream input("0 !TEXMAP START PLANAR -1 -1 0 1 -1 0 -1 1 0 missing.ppm\n"
+                        "3 4 -1 -1 0 1 -1 0 -1 1 0\n"
+                        "0 !TEXMAP END\n");
     LDrawDiagnostics diagnostics;
 
     auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics);
@@ -700,12 +684,11 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, UnsupportedTexmapUsesFallbackGeometry) {
-    istringstream input(
-      "0 !TEXMAP START CYLINDRICAL 0 0 0 1 0 0 0 1 0 360 unsupported.png\n"
-      "3 4 0 0 0 1 0 0 0 1 0\n"
-      "0 !TEXMAP FALLBACK\n"
-      "3 1 2 0 0 3 0 0 2 1 0\n"
-      "0 !TEXMAP END\n");
+    istringstream input("0 !TEXMAP START CYLINDRICAL 0 0 0 1 0 0 0 1 0 360 unsupported.png\n"
+                        "3 4 0 0 0 1 0 0 0 1 0\n"
+                        "0 !TEXMAP FALLBACK\n"
+                        "3 1 2 0 0 3 0 0 2 1 0\n"
+                        "0 !TEXMAP END\n");
     LDrawDiagnostics diagnostics;
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
@@ -720,9 +703,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, ReportsColorFallbacksAndBfcTwoSidedTreatment) {
-    istringstream input(
-      "0 BFC NOCERTIFY\n"
-      "3 999 0 0 0 0 1 0 1 0 0\n");
+    istringstream input("0 BFC NOCERTIFY\n"
+                        "3 999 0 0 0 0 1 0 1 0 0\n");
     LDrawDiagnostics diagnostics;
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
@@ -737,9 +719,8 @@ namespace LDrawGeometryCompilerTest {
   }
 
   TEST(LDrawGeometryCompiler, ReportsBfcFallbackWinding) {
-    istringstream input(
-      "0 BFC CERTIFY CW\n"
-      "3 4 0 0 0 0 1 0 1 0 0\n");
+    istringstream input("0 BFC CERTIFY CW\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n");
     LDrawDiagnostics diagnostics;
 
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable(), diagnostics);
@@ -757,35 +738,35 @@ namespace LDrawGeometryCompilerTest {
     istringstream input("1 16 0 0 0 1 0 0 0 1 0 0 0 1 missing.dat\n");
     LDrawDiagnostics diagnostics;
 
-    EXPECT_THROW(LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics),
-                 Exception);
+    EXPECT_THROW(
+      static_cast<void>(LDrawGeometryCompiler(resolver).compile(input, colorTable(), diagnostics)),
+      Exception);
 
     ASSERT_EQ(1u, diagnostics.entries().size());
     EXPECT_EQ(LDrawDiagnosticSeverity::Error, diagnostics.entries()[0].severity);
     EXPECT_EQ(LDrawDiagnosticCode::MissingSubfile, diagnostics.entries()[0].code);
     EXPECT_EQ("missing.dat", diagnostics.entries()[0].reference);
-    EXPECT_EQ((vector<string>{".", "test/fixtures/ldraw/nested",
-                              "test/fixtures/ldraw/missing"}),
+    EXPECT_EQ((vector<string>{".", "test/fixtures/ldraw/nested", "test/fixtures/ldraw/missing"}),
               diagnostics.entries()[0].searchedRoots);
   }
 
   TEST(LDrawGeometryCompiler, CanSkipMissingSubfilesWithDiagnostics) {
-    auto resolver = make_shared<LDrawFilesystemResolver>(
-      vector<string>{"test/fixtures/ldraw/nested"});
-    istringstream input(
-      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 missing.dat\n"
-      "3 4 0 0 0 0 1 0 1 0 0\n");
+    auto resolver =
+      make_shared<LDrawFilesystemResolver>(vector<string>{"test/fixtures/ldraw/nested"});
+    istringstream input("1 16 0 0 0 1 0 0 0 1 0 0 0 1 missing.dat\n"
+                        "3 4 0 0 0 0 1 0 1 0 0\n");
     LDrawDiagnostics diagnostics;
     LDrawGeometryCompiler::Options options;
     options.missingPartPolicy = LDrawGeometryCompiler::MissingPartPolicy::Skip;
 
-    auto geometry = LDrawGeometryCompiler(resolver, options).compile(input, colorTable(),
-                                                                     diagnostics);
+    auto geometry =
+      LDrawGeometryCompiler(resolver, options).compile(input, colorTable(), diagnostics);
 
     ASSERT_EQ(2u, geometry->primitives().size());
     auto missingInstance = dynamic_pointer_cast<Instance>(geometry->primitives().front());
     ASSERT_NE(nullptr, missingInstance);
-    EXPECT_TRUE(dynamic_pointer_cast<Composite>(missingInstance->primitive())->primitives().empty());
+    EXPECT_TRUE(
+      dynamic_pointer_cast<Composite>(missingInstance->primitive())->primitives().empty());
     EXPECT_NE(nullptr, dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().back()));
     ASSERT_EQ(2u, diagnostics.entries().size());
     EXPECT_EQ(LDrawDiagnosticCode::MissingSubfile, diagnostics.entries()[0].code);
@@ -795,8 +776,9 @@ namespace LDrawGeometryCompilerTest {
     istringstream input("3 0x02notrgb 0 0 0 0 1 0 1 0 0\n");
     LDrawDiagnostics diagnostics;
 
-    EXPECT_THROW(LDrawGeometryCompiler().compile(input, colorTable(), diagnostics),
-                 LDrawParseError);
+    EXPECT_THROW(
+      static_cast<void>(LDrawGeometryCompiler().compile(input, colorTable(), diagnostics)),
+      LDrawParseError);
 
     ASSERT_EQ(1u, diagnostics.entries().size());
     EXPECT_EQ(LDrawDiagnosticSeverity::Error, diagnostics.entries()[0].severity);

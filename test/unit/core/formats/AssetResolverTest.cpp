@@ -111,7 +111,7 @@ namespace AssetResolverTest {
 
     const core::AssetResolver resolver({tree.root() / "assets"});
 
-    EXPECT_THROW(resolver.resolve("mixedcase.png"), core::AssetResolutionError);
+    EXPECT_THROW(static_cast<void>(resolver.resolve("mixedcase.png")), core::AssetResolutionError);
   }
 
   TEST(AssetResolver, ShouldResolveCaseInsensitivelyWhenConfigured) {

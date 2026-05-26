@@ -57,8 +57,16 @@ namespace {
     return directories;
   }
 
-  bool isLDrawMetadata(const QJsonObject& metadata) {
-    return metadata.value("sourceFormat").toString().compare("LDraw", Qt::CaseInsensitive) == 0;
+  bool isLDrawImportDirective(const QJsonObject& metadata) {
+    if (metadata.value("sourceFormat").toString().compare("LDraw", Qt::CaseInsensitive) != 0)
+      return false;
+
+    const QJsonValue sourcePath = metadata.value("sourcePath");
+    if (sourcePath.isString() && !sourcePath.toString().trimmed().isEmpty())
+      return true;
+
+    const QJsonValue filePath = metadata.value("filePath");
+    return filePath.isString() && !filePath.toString().trimmed().isEmpty();
   }
 
   bool boolValue(const QJsonObject& metadata, const QString& key, bool fallback) {
@@ -104,8 +112,7 @@ namespace {
     return world::imports::LDrawImportOptions::CoordinateConversion::None;
   }
 
-  world::imports::LDrawImportOptions::MissingPartPolicy
-  missingPartPolicyFromString(QString value) {
+  world::imports::LDrawImportOptions::MissingPartPolicy missingPartPolicyFromString(QString value) {
     value = value.trimmed().toLower();
     if (value == "skip" || value == "ignore")
       return world::imports::LDrawImportOptions::MissingPartPolicy::Skip;
@@ -128,8 +135,8 @@ namespace {
   }
 
   world::imports::LDrawImportOptions optionsFromMetadata(const QJsonObject& metadata,
-                                                        const QString& libraryRootOverride,
-                                                        const QString& sourceDirectory) {
+                                                         const QString& libraryRootOverride,
+                                                         const QString& sourceDirectory) {
     world::imports::LDrawImportOptions options;
     options.filePath =
       resolvedPath(stringValue(metadata, "sourcePath", "filePath"), sourceDirectory);
@@ -158,9 +165,8 @@ namespace {
     return options;
   }
 
-  std::shared_ptr<render::Primitive>
-  compileLDraw(const world::imports::LDrawImportOptions& options,
-               std::vector<LDrawDiagnostic>* diagnostics) {
+  std::shared_ptr<render::Primitive> compileLDraw(const world::imports::LDrawImportOptions& options,
+                                                  std::vector<LDrawDiagnostic>* diagnostics) {
     if (options.filePath.isEmpty()) {
       throw Exception("LDraw import sourcePath must not be empty", __FILE__, __LINE__);
     }
@@ -198,9 +204,8 @@ namespace {
       primitive = compiler.compile(input, colors);
     }
 
-    if (options.scale == 1.0 &&
-        options.coordinateConversion ==
-          world::imports::LDrawImportOptions::CoordinateConversion::None) {
+    if (options.scale == 1.0 && options.coordinateConversion ==
+                                  world::imports::LDrawImportOptions::CoordinateConversion::None) {
       return primitive;
     }
 
@@ -237,10 +242,9 @@ namespace world::imports {
                                     std::vector<LDrawDiagnostic>* diagnostics) {
     if (auto* group = qobject_cast<Group*>(root)) {
       const QJsonObject metadata = group->metadata();
-      if (isLDrawMetadata(metadata)) {
-        attachLDrawImport(group,
-                          optionsFromMetadata(metadata, libraryRootOverride, sourceDirectory),
-                          diagnostics);
+      if (isLDrawImportDirective(metadata)) {
+        attachLDrawImport(
+          group, optionsFromMetadata(metadata, libraryRootOverride, sourceDirectory), diagnostics);
       }
     }
 
