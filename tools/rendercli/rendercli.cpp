@@ -12,6 +12,7 @@
 #include "world/objects/DirectionalLight.h"
 #include "world/import/LDrawSceneImporter.h"
 #include "world/objects/Group.h"
+#include "world/objects/LDrawSceneImporter.h"
 #include "world/objects/Material.h"
 #include "world/objects/PinholeCamera.h"
 #include "world/objects/StepVisibilityEvaluator.h"
@@ -668,6 +669,7 @@ private:
   QString m_output;
   QString m_ldrawLibraryRoot;
   bool m_ldrawInput;
+  bool m_ldrawPreserveHierarchy;
 
   int m_maximumRecursionDepth;
   int m_width;
@@ -781,6 +783,7 @@ private:
 
 Renderer::Renderer()
     : m_ldrawInput(false),
+      m_ldrawPreserveHierarchy(false),
       m_maximumRecursionDepth(10),
       m_width(640),
       m_height(480),
@@ -923,24 +926,37 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   light->setDirection(Vector3d(-0.5, -1.0, -0.5));
   scene->addChild(std::move(light));
 
-  auto model = std::make_unique<Group>();
-  model->setId("ldraw-model");
-  model->setName("LDraw Import");
-  model->setScale(Vector3d(1, 1, 1));
-  QJsonObject metadata;
-  metadata["sourceFormat"] = "LDraw";
-  metadata["sourcePath"] = m_filename;
-  metadata["normalMode"] = "flat";
-  if (!m_ldrawLibraryRoot.isEmpty()) {
-    metadata["libraryPath"] = m_ldrawLibraryRoot;
-  }
-  model->setMetadata(metadata);
-  scene->addChild(std::move(model));
+  if (m_ldrawPreserveHierarchy) {
+    LDrawSceneImporter importer;
+    LDrawSceneImporter::Options options;
+    options.filePath = m_filename;
+    options.libraryPath = m_ldrawLibraryRoot;
+    options.preserveHierarchy = true;
+    auto result = importer.importFile(options);
+    result.root->setId("ldraw-model");
+    result.root->setName("LDraw Model");
+    scene->setImportDiagnostics(std::move(result.diagnostics));
+    scene->addChild(std::move(result.root));
+  } else {
+    auto model = std::make_unique<Group>();
+    model->setId("ldraw-model");
+    model->setName("LDraw Import");
+    model->setScale(Vector3d(1, 1, 1));
+    QJsonObject metadata;
+    metadata["sourceFormat"] = "LDraw";
+    metadata["sourcePath"] = m_filename;
+    metadata["normalMode"] = "flat";
+    if (!m_ldrawLibraryRoot.isEmpty()) {
+      metadata["libraryPath"] = m_ldrawLibraryRoot;
+    }
+    model->setMetadata(metadata);
+    scene->addChild(std::move(model));
 
-  std::vector<LDrawDiagnostic> diagnostics;
-  world::imports::resolveLDrawAuthoringImports(scene.get(), m_ldrawLibraryRoot, QString(),
-                                               &diagnostics);
-  scene->setImportDiagnostics(std::move(diagnostics));
+    std::vector<LDrawDiagnostic> diagnostics;
+    world::imports::resolveLDrawAuthoringImports(scene.get(), m_ldrawLibraryRoot, QString(),
+                                                 &diagnostics);
+    scene->setImportDiagnostics(std::move(diagnostics));
+  }
   for (const auto& diagnostic : scene->importDiagnostics())
     std::cerr << diagnostic.toString() << '\n';
 
@@ -1648,6 +1664,8 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       "LDraw parts library root used for LDraw authoring imports and direct LDraw input",
       "directory"},
      {"ldraw_input", "Treat the input file as an LDraw .ldr/.dat/.mpd model and build a scene"},
+     {"ldraw_preserve_hierarchy",
+      "Preserve LDraw STEP and MPD submodel structure as generic scene groups"},
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
@@ -1789,6 +1807,11 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   }
 
   if (parser.isSet("ldraw_input")) {
+    m_ldrawInput = true;
+  }
+
+  if (parser.isSet("ldraw_preserve_hierarchy")) {
+    m_ldrawPreserveHierarchy = true;
     m_ldrawInput = true;
   }
 
