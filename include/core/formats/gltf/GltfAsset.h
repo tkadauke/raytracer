@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -62,6 +63,20 @@ namespace core::gltf {
     }
   };
 
+  struct Node {
+    std::string name;
+    std::vector<std::size_t> children;
+    std::optional<std::array<double, 16>> matrix;
+    std::array<double, 3> translation{0.0, 0.0, 0.0};
+    std::array<double, 4> rotation{0.0, 0.0, 0.0, 1.0};
+    std::array<double, 3> scale{1.0, 1.0, 1.0};
+  };
+
+  struct Scene {
+    std::string name;
+    std::vector<std::size_t> nodes;
+  };
+
   struct Asset {
     std::string version;
     std::string generator;
@@ -69,6 +84,9 @@ namespace core::gltf {
     std::vector<BufferView> bufferViews;
     std::vector<Accessor> accessors;
     std::vector<Image> images;
+    std::vector<Node> nodes;
+    std::vector<Scene> scenes;
+    std::optional<std::size_t> defaultScene;
   };
 
   [[nodiscard]] std::size_t componentTypeByteSize(ComponentType componentType);

@@ -96,6 +96,48 @@ namespace GltfReaderTest {
     EXPECT_EQ((vector<uint8_t>{'p', 'n', 'g'}), result.asset->images[0].data);
   }
 
+  TEST(GltfReader, ParsesScenesNodesNamesAndTransforms) {
+    const string json = R"JSON({
+      "asset": {"version": "2.0"},
+      "scene": 1,
+      "scenes": [
+        {"name": "Left scene", "nodes": [0]},
+        {"name": "Right scene", "nodes": [2]}
+      ],
+      "nodes": [
+        {"name": "Root", "translation": [1, 2, 3], "children": [1]},
+        {"name": "Leaf", "scale": [2, 3, 4]},
+        {"name": "Matrix node", "matrix": [
+          1, 0, 0, 0,
+          0, 1, 0, 0,
+          0, 0, 1, 0,
+          5, 6, 7, 1
+        ]}
+      ]
+    })JSON";
+
+    const core::gltf::ReadResult result = Reader::readJson(json);
+
+    ASSERT_TRUE(result.ok()) << (result.diagnostics.empty()
+                                   ? ""
+                                   : result.diagnostics.entries().front().toString());
+    ASSERT_TRUE(result.asset);
+    ASSERT_EQ(2u, result.asset->scenes.size());
+    EXPECT_EQ(1u, result.asset->defaultScene.value());
+    EXPECT_EQ("Left scene", result.asset->scenes[0].name);
+    EXPECT_EQ((vector<size_t>{0}), result.asset->scenes[0].nodes);
+    EXPECT_EQ("Right scene", result.asset->scenes[1].name);
+    ASSERT_EQ(3u, result.asset->nodes.size());
+    EXPECT_EQ("Root", result.asset->nodes[0].name);
+    EXPECT_EQ((vector<size_t>{1}), result.asset->nodes[0].children);
+    EXPECT_EQ(1.0, result.asset->nodes[0].translation[0]);
+    EXPECT_EQ(3.0, result.asset->nodes[0].translation[2]);
+    EXPECT_EQ("Leaf", result.asset->nodes[1].name);
+    EXPECT_EQ(4.0, result.asset->nodes[1].scale[2]);
+    ASSERT_TRUE(result.asset->nodes[2].matrix.has_value());
+    EXPECT_EQ(5.0, (*result.asset->nodes[2].matrix)[12]);
+  }
+
   TEST(GltfReader, ParsesGlbJsonAndBinaryChunks) {
     const string json = R"JSON({
       "asset": {"version": "2.0"},
@@ -168,6 +210,20 @@ namespace GltfReaderTest {
     EXPECT_TRUE(hasDiagnostic(result, DiagnosticCode::AssetResolutionFailed));
     ASSERT_FALSE(result.diagnostics.entries().empty());
     EXPECT_EQ("missing.bin", result.diagnostics.entries().front().reference);
+  }
+
+  TEST(GltfReader, RejectsMissingSceneAndNodeReferences) {
+    const string json = R"JSON({
+      "asset": {"version": "2.0"},
+      "scene": 3,
+      "scenes": [{"nodes": [2]}],
+      "nodes": [{"children": [1]}]
+    })JSON";
+
+    const core::gltf::ReadResult result = Reader::readJson(json);
+
+    EXPECT_FALSE(result.ok());
+    EXPECT_TRUE(hasDiagnostic(result, DiagnosticCode::InvalidReference));
   }
 
 }

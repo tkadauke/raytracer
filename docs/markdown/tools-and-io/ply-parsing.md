@@ -261,9 +261,10 @@ Additional file-format topics are queued under
   strokes, so LEGO-style outlines can be drawn over shaded geometry
   without adding ray-intersectable cylinders or mesh strips.
 - **glTF.** The modern web-graphics interchange format. JSON
-  + binary blob, supports materials, animations, multiple
-  meshes per file. The richest format, the most work to
-  implement.
+  + binary blob, supports materials, animations, and multiple
+  meshes per file. The current importer reads asset-level buffers and maps
+  scenes/nodes into editable `Group` hierarchy with source provenance; mesh,
+  material, texture, and animation import remain the larger follow-up.
 
 These are reasonable additions, but PLY remains the established
 format for academic-graphics meshes (which is what most of the

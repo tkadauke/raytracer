@@ -545,9 +545,13 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
 - **glTF 2.0** — ~~low-level `.gltf` / `.glb` parsing for buffers,
   bufferViews, accessors, and image references~~ ✅ **Done.**
   `core::gltf::Reader` validates JSON/GLB containers and resolves external
-  and embedded payloads for Epic #233. Meshes + materials + textures +
-  skeletal animation and write support remain TODO; the natural default for
-  web interop (feeds the §4.1 WebGL viewer directly).
+  and embedded payloads for Epic #233. ~~Scene and node hierarchy import as
+  editable `Group` nodes with names, transforms, parent-child structure, and
+  source provenance.~~ ✅ **Done.** `GltfSceneImporter` registers `.gltf` /
+  `.glb` files and maps source scenes/nodes into `Group` metadata for Epic
+  #233. Meshes + materials + textures + skeletal animation and write support
+  remain TODO; the natural default for web interop (feeds the §4.1 WebGL viewer
+  directly).
 - **USD / OpenUSD** — Pixar's industry-standard scene description. Heavy dependency but the right long-term home for everything (geometry, materials, animation, layered overrides, references). Read-only first; write is aspirational.
 - **FBX** — Autodesk; via OpenFBX. Read + limited write.
 - **OpenVDB** — volumetric grids, once §4.3 volumetrics land. Read-only initially.
