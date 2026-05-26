@@ -23,7 +23,8 @@
 | `include/core/formats/ldraw/LDrawFileResolver.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawGeometryCompiler.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/core/formats/ldraw/LDrawParser.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
-| `include/core/formats/stl/StlFile.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `include/core/formats/stl/StlFile.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[STL import](../tools-and-io/stl-import.md) |
+| `include/core/formats/stl/StlParseError.h` | [STL import](../tools-and-io/stl-import.md) |
 | `include/core/geometry/AttributeColorMap.h` | [Tessellation](../rasterization/tessellation.md) |
 | `include/core/geometry/Bresenham.h` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `include/core/geometry/Curve.h` | [Tessellation](../rasterization/tessellation.md) |
@@ -162,6 +163,7 @@
 | `include/world/import/OpenScadCompiler.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/OpenScadSceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/import/SceneImporter.h` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[PLY parsing](../tools-and-io/ply-parsing.md) |
+| `include/world/import/StlSceneImporter.h` | [STL import](../tools-and-io/stl-import.md) |
 | `include/world/objects/Group.h` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `include/world/objects/PinholeCamera.h` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `include/world/objects/Scene.h` | [Timelines and interpolation](../animation/timelines-and-interpolation.md)<br>[LDraw import](../tools-and-io/ldraw-import.md) |
@@ -179,7 +181,7 @@
 | `src/core/formats/ply/PlyElement.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyFile.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
 | `src/core/formats/ply/PlyProperty.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
-| `src/core/formats/stl/StlFile.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
+| `src/core/formats/stl/StlFile.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md)<br>[STL import](../tools-and-io/stl-import.md) |
 | `src/engine/graph/GraphRenderEngine.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/PostProcessPassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `src/engine/graph/RasterPassState.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -208,9 +210,11 @@
 | `src/world/import/OpenScadSceneImporter.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `src/world/objects/PinholeCamera.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `src/world/objects/Scene.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `src/world/import/StlSceneImporter.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/fixtures/groups/` | [Instances and motion blur](../scene-structure/instances-and-motion-blur.md)<br>[Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/importers/` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/fixtures/ldraw/` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/fixtures/stl/` | [STL import](../tools-and-io/stl-import.md) |
 | `test/functional/engine/wireframe/WireframeTest.cpp` | [Wireframe rendering](../rasterization/wireframe-rendering.md) |
 | `test/functional/render/cameras/ThinLensCameraTest.cpp` | [Cameras](../ray-rendering/cameras.md) |
 | `test/functional/render/lights/PointLightTest.cpp` | [Lights and shading](../ray-rendering/lights-and-shading.md) |
@@ -236,6 +240,7 @@
 | `test/unit/core/formats/ldraw/LDrawFileResolverTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ldraw/LDrawGeometryCompilerTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/core/formats/ply/PlyFileTest.cpp` | [PLY parsing](../tools-and-io/ply-parsing.md) |
+| `test/unit/core/formats/stl/StlFileTest.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/unit/core/math/interpolation/InterpolationTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/engine/graph/GraphRenderEngineTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
 | `test/unit/engine/graph/PostProcessPassStateTest.cpp` | [Render plans and resources](../render-graph/render-plans-and-resources.md) |
@@ -255,6 +260,7 @@
 | `test/unit/world/animation/TimelineTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `test/unit/world/import/ImporterFixtureHarnessTest.cpp` | [Importer lifecycle](../tools-and-io/importer-lifecycle.md) |
 | `test/unit/world/import/LDrawFileSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
+| `test/unit/world/import/StlSceneImporterTest.cpp` | [STL import](../tools-and-io/stl-import.md) |
 | `test/unit/world/objects/LDrawSceneImporterTest.cpp` | [LDraw import](../tools-and-io/ldraw-import.md) |
 | `test/unit/world/objects/SceneTest.cpp` | [Timelines and interpolation](../animation/timelines-and-interpolation.md) |
 | `tools/rendercli/` | [Tools and the Modeler](../tools-and-io/tools-and-modeler.md) |

@@ -672,7 +672,7 @@ namespace world {
       }
 
       if (format == QStringLiteral("stl")) {
-        StlFile file(input, mesh);
+        core::formats::stl::StlFile file(input, mesh);
         return mesh;
       }
       if (format == QStringLiteral("ply")) {

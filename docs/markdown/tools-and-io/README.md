@@ -13,6 +13,8 @@ codebase, not just understand it.
 - [LDraw import](ldraw-import.md) — the supported `.dat` / `.ldr` /
     `.mpd` subset, tiny validation fixtures, and how to point
     `rendercli` at an LDraw parts library.
+- [STL import](stl-import.md) — ASCII and binary triangle-mesh import,
+    binary count validation, and explicit unit/material assumptions.
 - [Importer lifecycle](importer-lifecycle.md) — shared scene-importer
     contract, options, sidecar asset resolution, diagnostics, provenance,
     fixtures, and render smoke patterns for new formats.

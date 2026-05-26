@@ -1,130 +1,215 @@
 #include "core/formats/stl/StlFile.h"
 
+#include "core/formats/stl/StlParseError.h"
 #include "core/geometry/Mesh.h"
 
+#include <algorithm>
 #include <array>
+#include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
-#include <istream>
+#include <iterator>
 #include <limits>
 #include <sstream>
-#include <string>
-#include <vector>
 
 namespace {
-  float readFloat32(const char* bytes) {
+  using core::formats::stl::StlParseError;
+
+  constexpr double kNormalEpsilon = 1e-12;
+  constexpr std::size_t kBinaryHeaderBytes = 80;
+  constexpr std::size_t kBinaryCountBytes = 4;
+  constexpr std::size_t kBinaryTriangleBytes = 50;
+
+  [[noreturn]] void parseError(const std::string& message) {
+    throw StlParseError(message, __FILE__, __LINE__);
+  }
+
+  bool startsWithAsciiSolid(const std::string& bytes) {
+    auto first = std::find_if_not(bytes.begin(), bytes.end(), [](unsigned char ch) {
+      return std::isspace(ch) != 0;
+    });
+    const std::string prefix = "solid";
+    return static_cast<std::size_t>(std::distance(first, bytes.end())) >= prefix.size() &&
+           std::equal(prefix.begin(), prefix.end(), first);
+  }
+
+  std::uint32_t readUint32LE(const unsigned char* data) {
+    return static_cast<std::uint32_t>(data[0]) |
+           (static_cast<std::uint32_t>(data[1]) << 8) |
+           (static_cast<std::uint32_t>(data[2]) << 16) |
+           (static_cast<std::uint32_t>(data[3]) << 24);
+  }
+
+  float readFloat32LE(const unsigned char* data) {
+    const std::uint32_t bits = readUint32LE(data);
     float value;
-    std::memcpy(&value, bytes, sizeof(float));
+    std::memcpy(&value, &bits, sizeof(value));
     return value;
   }
 
-  std::uint32_t readUInt32LE(const char* bytes) {
-    return static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[0])) |
-           (static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[1])) << 8u) |
-           (static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[2])) << 16u) |
-           (static_cast<std::uint32_t>(static_cast<unsigned char>(bytes[3])) << 24u);
+  Vector3d normalFromWinding(const std::array<Vector3d, 3>& vertices) {
+    Vector3d normal = (vertices[2] - vertices[0]) ^ (vertices[1] - vertices[0]);
+    if (normal.length() <= kNormalEpsilon)
+      return Vector3d::null;
+    normal.normalize();
+    return normal;
   }
 
-  Vector3d vectorFrom(const char* bytes) {
-    return Vector3d(readFloat32(bytes), readFloat32(bytes + 4), readFloat32(bytes + 8));
+  bool finiteVector(const Vector3d& vector) {
+    return std::isfinite(vector.x()) && std::isfinite(vector.y()) && std::isfinite(vector.z());
+  }
+
+  Vector3d normalizedFacetNormal(const Vector3d& facetNormal,
+                                 const std::array<Vector3d, 3>& vertices) {
+    if (finiteVector(facetNormal) && facetNormal.length() > kNormalEpsilon)
+      return facetNormal.normalized();
+    return normalFromWinding(vertices);
   }
 
   void addTriangle(Mesh& mesh, const Vector3d& normal, const std::array<Vector3d, 3>& vertices) {
-    const int offset = static_cast<int>(mesh.vertices().size());
+    const int base = static_cast<int>(mesh.vertices().size());
     mesh.addVertex(vertices[0], normal);
     mesh.addVertex(vertices[1], normal);
     mesh.addVertex(vertices[2], normal);
-    mesh.addFace({offset, offset + 1, offset + 2});
-  }
-
-  bool tryReadBinary(const std::string& bytes, Mesh& mesh) {
-    if (bytes.size() < 84)
-      return false;
-
-    const std::uint32_t triangleCount = readUInt32LE(bytes.data() + 80);
-    const std::uint64_t expectedSize = 84ull + 50ull * triangleCount;
-    if (expectedSize != bytes.size())
-      return false;
-
-    for (std::uint32_t i = 0; i != triangleCount; ++i) {
-      const char* triangle = bytes.data() + 84 + 50 * i;
-      const Vector3d normal = vectorFrom(triangle);
-      std::array<Vector3d, 3> vertices = {
-        vectorFrom(triangle + 12),
-        vectorFrom(triangle + 24),
-        vectorFrom(triangle + 36),
-      };
-      addTriangle(mesh, normal, vertices);
-    }
-    return true;
-  }
-
-  bool readVector(std::istream& input, Vector3d* vector) {
-    double x;
-    double y;
-    double z;
-    if (!(input >> x >> y >> z))
-      return false;
-    *vector = Vector3d(x, y, z);
-    return true;
+    mesh.addFace({base, base + 1, base + 2});
   }
 
   void expectToken(std::istream& input, const std::string& expected) {
     std::string token;
-    if (!(input >> token) || token != expected) {
-      throw StlParseError("Invalid ASCII STL: expected '" + expected + "'", __FILE__, __LINE__);
-    }
+    if (!(input >> token))
+      parseError("Unexpected end of ASCII STL while reading '" + expected + "'");
+    if (token != expected)
+      parseError("Expected ASCII STL token '" + expected + "', got '" + token + "'");
   }
 
-  void readAscii(const std::string& bytes, Mesh& mesh) {
-    std::istringstream input(bytes);
-    expectToken(input, "solid");
-    input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  double readFiniteDouble(std::istream& input, const std::string& context) {
+    double value = 0.0;
+    if (!(input >> value) || !std::isfinite(value))
+      parseError("Expected finite numeric value for " + context);
+    return value;
+  }
 
+  Vector3d readVector(std::istream& input, const std::string& context) {
+    const double x = readFiniteDouble(input, context + ".x");
+    const double y = readFiniteDouble(input, context + ".y");
+    const double z = readFiniteDouble(input, context + ".z");
+    return Vector3d(x, y, z);
+  }
+}
+
+namespace core::formats::stl {
+
+  StlFile::StlFile(std::istream& input) {
+    read(input, static_cast<Mesh*>(nullptr));
+  }
+
+  StlFile::StlFile(std::istream& input, Mesh& mesh) {
+    read(input, mesh);
+  }
+
+  void StlFile::read(std::istream& input, Mesh& mesh) {
+    read(input, &mesh);
+  }
+
+  void StlFile::read(std::istream& input, Mesh* mesh) {
+    readBytes(input);
+    parse(mesh);
+  }
+
+  void StlFile::readBytes(std::istream& input) {
+    m_bytes.assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+    if (input.bad())
+      parseError("Unable to read STL input stream");
+  }
+
+  void StlFile::parse(Mesh* mesh) {
+    if (m_bytes.size() >= kBinaryHeaderBytes + kBinaryCountBytes) {
+      const auto* data = reinterpret_cast<const unsigned char*>(m_bytes.data());
+      const std::uint32_t count = readUint32LE(data + kBinaryHeaderBytes);
+      const std::uint64_t expectedSize =
+        static_cast<std::uint64_t>(kBinaryHeaderBytes + kBinaryCountBytes) +
+        static_cast<std::uint64_t>(count) * kBinaryTriangleBytes;
+      if (expectedSize == m_bytes.size()) {
+        m_encoding = StlEncoding::Binary;
+        parseBinary(mesh);
+        return;
+      }
+      if (!startsWithAsciiSolid(m_bytes))
+        parseError("Binary STL triangle count does not match file size");
+    }
+
+    if (!startsWithAsciiSolid(m_bytes))
+      parseError("STL input is neither a valid binary STL nor an ASCII STL solid");
+
+    m_encoding = StlEncoding::Ascii;
+    parseAscii(mesh);
+  }
+
+  void StlFile::parseAscii(Mesh* mesh) {
+    std::istringstream input(m_bytes);
+    expectToken(input, "solid");
+    std::string restOfSolidLine;
+    std::getline(input, restOfSolidLine);
+
+    m_triangleCount = 0;
     std::string token;
     while (input >> token) {
       if (token == "endsolid")
         return;
       if (token != "facet")
-        throw StlParseError("Invalid ASCII STL: expected facet", __FILE__, __LINE__);
+        parseError("Expected ASCII STL token 'facet', got '" + token + "'");
 
       expectToken(input, "normal");
-      Vector3d normal;
-      if (!readVector(input, &normal))
-        throw StlParseError("Invalid ASCII STL: malformed facet normal", __FILE__, __LINE__);
-
+      const Vector3d facetNormal = readVector(input, "facet normal");
       expectToken(input, "outer");
       expectToken(input, "loop");
 
       std::array<Vector3d, 3> vertices;
       for (auto& vertex : vertices) {
         expectToken(input, "vertex");
-        if (!readVector(input, &vertex))
-          throw StlParseError("Invalid ASCII STL: malformed vertex", __FILE__, __LINE__);
+        vertex = readVector(input, "vertex");
       }
 
       expectToken(input, "endloop");
       expectToken(input, "endfacet");
-      addTriangle(mesh, normal, vertices);
+
+      const Vector3d normal = normalizedFacetNormal(facetNormal, vertices);
+      if (mesh)
+        addTriangle(*mesh, normal, vertices);
+      ++m_triangleCount;
     }
 
-    throw StlParseError("Invalid ASCII STL: missing endsolid", __FILE__, __LINE__);
+    parseError("ASCII STL ended before 'endsolid'");
   }
-}
 
-StlFile::StlFile(std::istream& input, Mesh& mesh) {
-  read(input, mesh);
-}
+  void StlFile::parseBinary(Mesh* mesh) {
+    const auto* data = reinterpret_cast<const unsigned char*>(m_bytes.data());
+    const std::uint32_t count = readUint32LE(data + kBinaryHeaderBytes);
+    m_triangleCount = count;
 
-void StlFile::read(std::istream& input, Mesh& mesh) {
-  const std::string bytes((std::istreambuf_iterator<char>(input)),
-                          std::istreambuf_iterator<char>());
-  if (bytes.empty())
-    throw StlParseError("Invalid STL: empty file", __FILE__, __LINE__);
+    const unsigned char* cursor = data + kBinaryHeaderBytes + kBinaryCountBytes;
+    for (std::uint32_t triangle = 0; triangle != count; ++triangle) {
+      const Vector3d facetNormal(readFloat32LE(cursor + 0),
+                                 readFloat32LE(cursor + 4),
+                                 readFloat32LE(cursor + 8));
+      std::array<Vector3d, 3> vertices = {
+        Vector3d(readFloat32LE(cursor + 12), readFloat32LE(cursor + 16),
+                 readFloat32LE(cursor + 20)),
+        Vector3d(readFloat32LE(cursor + 24), readFloat32LE(cursor + 28),
+                 readFloat32LE(cursor + 32)),
+        Vector3d(readFloat32LE(cursor + 36), readFloat32LE(cursor + 40),
+                 readFloat32LE(cursor + 44)),
+      };
 
-  if (tryReadBinary(bytes, mesh))
-    return;
+      if (!finiteVector(vertices[0]) || !finiteVector(vertices[1]) || !finiteVector(vertices[2]))
+        parseError("Binary STL contains a non-finite vertex coordinate");
 
-  readAscii(bytes, mesh);
+      const Vector3d normal = normalizedFacetNormal(facetNormal, vertices);
+      if (mesh)
+        addTriangle(*mesh, normal, vertices);
+      cursor += kBinaryTriangleBytes;
+    }
+  }
+
 }
