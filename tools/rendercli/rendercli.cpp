@@ -531,8 +531,9 @@ namespace {
       bool ok = false;
       trimmed.toInt(&ok);
       if (!ok) {
-        *errorMessage = "Step must be an integer. Step selection must be N, single:N, "
-                        "cumulative:N, or sequence[:FIRST-LAST]";
+        *errorMessage =
+          "Step must be an integer. Step selection must be N, single:N, cumulative:N, or "
+          "sequence[:FIRST-LAST]";
         return false;
       }
       return parseNonNegativeStepIndex(trimmed, &selection->step, errorMessage);
@@ -669,7 +670,14 @@ private:
   QString m_output;
   QString m_ldrawLibraryRoot;
   bool m_ldrawInput;
+  bool m_ldrawPreserveAuthoringHierarchy;
+  double m_ldrawScale;
+  QString m_ldrawCoordinateConversion;
   bool m_ldrawPreserveHierarchy;
+  QString m_ldrawNormalMode;
+  bool m_ldrawIncludeEdgeOverlays;
+  int m_ldrawMaxRecursion;
+  QString m_ldrawMissingPartPolicy;
 
   int m_maximumRecursionDepth;
   int m_width;
@@ -783,7 +791,14 @@ private:
 
 Renderer::Renderer()
     : m_ldrawInput(false),
-      m_ldrawPreserveHierarchy(false),
+      m_ldrawPreserveAuthoringHierarchy(false),
+      m_ldrawScale(1.0),
+      m_ldrawCoordinateConversion("none"),
+      m_ldrawPreserveHierarchy(true),
+      m_ldrawNormalMode("flat"),
+      m_ldrawIncludeEdgeOverlays(true),
+      m_ldrawMaxRecursion(64),
+      m_ldrawMissingPartPolicy("error"),
       m_maximumRecursionDepth(10),
       m_width(640),
       m_height(480),
@@ -927,12 +942,14 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
   scene->addChild(std::move(light));
 
   std::vector<LDrawDiagnostic> diagnostics;
-  if (m_ldrawPreserveHierarchy) {
+  if (m_ldrawPreserveAuthoringHierarchy) {
     LDrawSceneImporter importer;
     LDrawSceneImporter::Options options;
     options.filePath = m_filename;
     options.libraryPath = m_ldrawLibraryRoot;
     options.preserveHierarchy = true;
+    options.smoothNormals = m_ldrawNormalMode == "smooth";
+    options.recursionLimit = m_ldrawMaxRecursion;
     auto result = importer.importFile(options);
     result.root->setId("ldraw-model");
     result.root->setName("LDraw Model");
@@ -946,9 +963,15 @@ std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
     QJsonObject metadata;
     metadata["sourceFormat"] = "LDraw";
     metadata["sourcePath"] = m_filename;
-    metadata["normalMode"] = "flat";
+    metadata["normalMode"] = m_ldrawNormalMode;
+    metadata["scale"] = m_ldrawScale;
+    metadata["coordinateConversion"] = m_ldrawCoordinateConversion;
+    metadata["preserveHierarchy"] = m_ldrawPreserveHierarchy;
+    metadata["includeEdgeOverlays"] = m_ldrawIncludeEdgeOverlays;
+    metadata["maxRecursion"] = m_ldrawMaxRecursion;
+    metadata["missingPartPolicy"] = m_ldrawMissingPartPolicy;
     if (!m_ldrawLibraryRoot.isEmpty()) {
-      metadata["libraryPath"] = m_ldrawLibraryRoot;
+      metadata["libraryRoot"] = m_ldrawLibraryRoot;
     }
     model->setMetadata(metadata);
     scene->addChild(std::move(model));
@@ -1668,6 +1691,15 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
      {"ldraw_input", "Treat the input file as an LDraw .ldr/.dat/.mpd model and build a scene"},
      {"ldraw_preserve_hierarchy",
       "Preserve LDraw STEP and MPD submodel structure as generic scene groups"},
+     {"ldraw_scale", "Scale applied to direct LDraw input geometry", "scale"},
+     {"ldraw_coordinate_conversion",
+      "Coordinate conversion for direct LDraw input (none, ldraw_to_raytracer)", "mode"},
+     {"ldraw_flatten_hierarchy", "Flatten direct LDraw subfile hierarchy where supported"},
+     {"ldraw_normals", "Normal mode for direct LDraw input (flat, smooth)", "mode"},
+     {"ldraw_no_edge_overlays", "Do not import LDraw type-2 edge overlay lines"},
+     {"ldraw_max_recursion", "Maximum LDraw subfile recursion depth", "depth"},
+     {"ldraw_missing_part_policy", "Policy for unresolved LDraw subfiles (error, skip)",
+      "policy"},
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
@@ -1813,8 +1845,61 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
   }
 
   if (parser.isSet("ldraw_preserve_hierarchy")) {
-    m_ldrawPreserveHierarchy = true;
+    m_ldrawPreserveAuthoringHierarchy = true;
     m_ldrawInput = true;
+  }
+
+  if (parser.isSet("ldraw_scale")) {
+    bool ok = false;
+    m_ldrawScale = parser.value("ldraw_scale").toDouble(&ok);
+    if (!ok || !std::isfinite(m_ldrawScale) || m_ldrawScale <= 0.0) {
+      *errorMessage = "LDraw scale must be a positive number";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("ldraw_coordinate_conversion")) {
+    m_ldrawCoordinateConversion = parser.value("ldraw_coordinate_conversion").trimmed().toLower();
+    const QString normalized = normalizedRasterOption(m_ldrawCoordinateConversion);
+    if (normalized != "none" && normalized != "ldrawtoraytracer" && normalized != "raytracer" &&
+        normalized != "yup") {
+      *errorMessage =
+        "LDraw coordinate conversion must be 'none' or 'ldraw_to_raytracer'";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("ldraw_flatten_hierarchy")) {
+    m_ldrawPreserveHierarchy = false;
+  }
+
+  if (parser.isSet("ldraw_normals")) {
+    m_ldrawNormalMode = parser.value("ldraw_normals").trimmed().toLower();
+    if (m_ldrawNormalMode != "flat" && m_ldrawNormalMode != "smooth") {
+      *errorMessage = "LDraw normals must be 'flat' or 'smooth'";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("ldraw_no_edge_overlays")) {
+    m_ldrawIncludeEdgeOverlays = false;
+  }
+
+  if (parser.isSet("ldraw_max_recursion")) {
+    bool ok = false;
+    m_ldrawMaxRecursion = parser.value("ldraw_max_recursion").toInt(&ok);
+    if (!ok || m_ldrawMaxRecursion <= 0) {
+      *errorMessage = "LDraw max recursion must be > 0";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("ldraw_missing_part_policy")) {
+    m_ldrawMissingPartPolicy = parser.value("ldraw_missing_part_policy").trimmed().toLower();
+    if (m_ldrawMissingPartPolicy != "error" && m_ldrawMissingPartPolicy != "skip") {
+      *errorMessage = "LDraw missing part policy must be 'error' or 'skip'";
+      return CommandLineError;
+    }
   }
 
   if (parser.isSet("sampler")) {

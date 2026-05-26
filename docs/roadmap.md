@@ -587,6 +587,10 @@ Read and write wherever it's reasonable. The guiding rule: if a format is used a
   resolution, nested subfiles, inherited colors, BFC, and MPD; rendercli CTest
   renders the fixture without the official parts library, and the textbook
   documents library-path configuration plus supported limitations for #210.
+  ~~Explicit render-affecting LDraw import options.~~ ✅ **Done.** World scene
+  metadata and direct `rendercli --ldraw_input` expose library roots, import
+  scale, coordinate conversion, hierarchy preservation, normal mode, edge
+  overlays, recursion limits, and missing-part policy for #210.
   ~~Shared sidecar asset resolver for importer search paths and cache keys.~~ ✅
   **Done.** `core::AssetResolver` resolves current-file-relative and configured
   search-root assets with explicit case-sensitivity behavior for Epic #230.

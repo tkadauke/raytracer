@@ -7,6 +7,8 @@
 #include "world/objects/LDrawSceneImporter.h"
 #include "world/objects/Scene.h"
 
+#include "render/primitives/Instance.h"
+
 #include <QJsonObject>
 
 #include <filesystem>
@@ -167,7 +169,13 @@ namespace LDrawSceneImporterTest {
     metadata["sourceFormat"] = "LDraw";
     metadata["sourcePath"] = "model.ldr";
     metadata["libraryPath"] = "ldraw";
+    metadata["scale"] = 0.5;
+    metadata["coordinateConversion"] = "ldraw_to_raytracer";
+    metadata["preserveHierarchy"] = false;
     metadata["normalMode"] = "smooth";
+    metadata["includeEdgeOverlays"] = false;
+    metadata["maxRecursion"] = 8;
+    metadata["missingPartPolicy"] = "skip";
     model.setMetadata(metadata);
 
     QJsonObject json;
@@ -182,7 +190,14 @@ namespace LDrawSceneImporterTest {
     EXPECT_EQ(QString("LDraw"), roundTripped->metadataValue("sourceFormat").toString());
     EXPECT_EQ(QString("model.ldr"), roundTripped->metadataValue("sourcePath").toString());
     EXPECT_EQ(QString("ldraw"), roundTripped->metadataValue("libraryPath").toString());
+    EXPECT_EQ(0.5, roundTripped->metadataValue("scale").toDouble());
+    EXPECT_EQ(QString("ldraw_to_raytracer"),
+              roundTripped->metadataValue("coordinateConversion").toString());
+    EXPECT_FALSE(roundTripped->metadataValue("preserveHierarchy").toBool());
     EXPECT_EQ(QString("smooth"), roundTripped->metadataValue("normalMode").toString());
+    EXPECT_FALSE(roundTripped->metadataValue("includeEdgeOverlays").toBool());
+    EXPECT_EQ(8, roundTripped->metadataValue("maxRecursion").toInt());
+    EXPECT_EQ(QString("skip"), roundTripped->metadataValue("missingPartPolicy").toString());
     EXPECT_EQ(Vector3d(0.5, 0.5, 0.5), roundTripped->scale());
   }
 
@@ -199,6 +214,38 @@ namespace LDrawSceneImporterTest {
 
     ASSERT_EQ(1, model.childElements().size());
     EXPECT_TRUE(model.childElements().front()->isGenerated());
+  }
+
+  TEST(LDrawSceneImporter, AppliesExplicitRenderOptionsFromWorldMetadata) {
+    Group model;
+    model.setId("ldraw");
+    model.setName("LDraw Import");
+
+    QJsonObject metadata;
+    metadata["sourceFormat"] = "LDraw";
+    metadata["sourcePath"] = "test/fixtures/ldraw/rendercli/model.ldr";
+    metadata["libraryRoot"] = "test/fixtures/ldraw/rendercli/library";
+    metadata["scale"] = 2.0;
+    metadata["coordinateConversion"] = "ldraw_to_raytracer";
+    metadata["includeEdgeOverlays"] = false;
+    metadata["normalMode"] = "smooth";
+    metadata["maxRecursion"] = 4;
+    metadata["missingPartPolicy"] = "error";
+    model.setMetadata(metadata);
+
+    world::imports::resolveLDrawAuthoringImports(&model);
+
+    ASSERT_EQ(1, model.childElements().size());
+    render::Scene renderScene;
+    auto primitive = model.toRaytracer(&renderScene);
+    ASSERT_NE(nullptr, std::dynamic_pointer_cast<render::Instance>(primitive));
+    const auto& box = primitive->boundingBox();
+    EXPECT_NEAR(-2.0, box.min().x(), 1e-9);
+    EXPECT_NEAR(0.0, box.min().y(), 1e-9);
+    EXPECT_NEAR(-2.0, box.min().z(), 1e-9);
+    EXPECT_NEAR(2.0, box.max().x(), 1e-9);
+    EXPECT_NEAR(0.0, box.max().y(), 1e-9);
+    EXPECT_NEAR(2.0, box.max().z(), 1e-9);
   }
 
   TEST(LDrawSceneImporter, SceneConversionRendersImportedCollection) {

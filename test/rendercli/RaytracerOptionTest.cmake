@@ -195,6 +195,13 @@ rendercli_run(
     --ldraw_input
     --ldraw_preserve_hierarchy
     --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/library"
+    --ldraw_scale 0.5
+    --ldraw_coordinate_conversion none
+    --ldraw_flatten_hierarchy
+    --ldraw_normals smooth
+    --ldraw_no_edge_overlays
+    --ldraw_max_recursion 8
+    --ldraw_missing_part_policy skip
     "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/model.ldr"
     "${ldraw_direct_output}"
 )
@@ -217,6 +224,16 @@ rendercli_assert_image_dimensions("${ldraw_direct_mpd_output}" 24 24
                                   NAME "direct LDraw MPD dimensions")
 rendercli_assert_image_nonempty("${ldraw_direct_mpd_output}"
                                 NAME "direct LDraw MPD pixels")
+
+rendercli_expect_failure(
+  NAME "rendercli validates direct LDraw import options"
+  STDERR_MATCHES "LDraw missing part policy must be 'error' or 'skip'"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_input --ldraw_missing_part_policy maybe
+    "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/model.ldr"
+    "${TEST_OUTPUT_DIR}/ldraw-invalid.png"
+)
 
 set(threaded_output "${TEST_OUTPUT_DIR}/threads-and-queue.png")
 rendercli_run(

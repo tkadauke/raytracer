@@ -237,6 +237,18 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_GT(countPixels(enabled, Colord::fromRGB(17, 17, 17)), 0);
   }
 
+  TEST(LDrawGeometryCompiler, CanSkipTypeTwoEdgeOverlayGeometry) {
+    istringstream input("2 24 -1 0 0 1 0 0\n");
+    LDrawColorContext context;
+    context.currentColor = LDrawColorReference::fromCode(4);
+    LDrawGeometryCompiler::Options options;
+    options.includeEdgeOverlays = false;
+
+    auto geometry = LDrawGeometryCompiler(nullptr, options).compile(input, colorTable(), context);
+
+    EXPECT_TRUE(geometry->primitives().empty());
+  }
+
   TEST(LDrawGeometryCompiler, ComputesUsableNormalsForLighting) {
     istringstream input("3 4 0 0 0 0 1 0 1 0 0\n");
     auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
@@ -500,6 +512,19 @@ namespace LDrawGeometryCompilerTest {
     ASSERT_EQ(2u, geometry->primitives().size());
   }
 
+  TEST(LDrawGeometryCompiler, CanFlattenIdentitySubfileHierarchy) {
+    auto resolver = make_shared<MemoryResolver>(map<string, string>{
+      {"child.dat", "3 16 0 0 0 1 0 0 0 1 0\n"}});
+    istringstream input("1 2 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n");
+    LDrawGeometryCompiler::Options options;
+    options.preserveHierarchy = false;
+
+    auto geometry = LDrawGeometryCompiler(resolver, options).compile(input, colorTable());
+
+    ASSERT_EQ(1u, geometry->primitives().size());
+    EXPECT_NE(nullptr, dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().front()));
+  }
+
   TEST(LDrawGeometryCompiler, RepeatedFixtureReferencesReuseCompiledPartInstances) {
     auto resolver = make_shared<LDrawFilesystemResolver>(
       vector<string>{"test/fixtures/ldraw/repeated"});
@@ -742,6 +767,28 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_EQ((vector<string>{".", "test/fixtures/ldraw/nested",
                               "test/fixtures/ldraw/missing"}),
               diagnostics.entries()[0].searchedRoots);
+  }
+
+  TEST(LDrawGeometryCompiler, CanSkipMissingSubfilesWithDiagnostics) {
+    auto resolver = make_shared<LDrawFilesystemResolver>(
+      vector<string>{"test/fixtures/ldraw/nested"});
+    istringstream input(
+      "1 16 0 0 0 1 0 0 0 1 0 0 0 1 missing.dat\n"
+      "3 4 0 0 0 0 1 0 1 0 0\n");
+    LDrawDiagnostics diagnostics;
+    LDrawGeometryCompiler::Options options;
+    options.missingPartPolicy = LDrawGeometryCompiler::MissingPartPolicy::Skip;
+
+    auto geometry = LDrawGeometryCompiler(resolver, options).compile(input, colorTable(),
+                                                                     diagnostics);
+
+    ASSERT_EQ(2u, geometry->primitives().size());
+    auto missingInstance = dynamic_pointer_cast<Instance>(geometry->primitives().front());
+    ASSERT_NE(nullptr, missingInstance);
+    EXPECT_TRUE(dynamic_pointer_cast<Composite>(missingInstance->primitive())->primitives().empty());
+    EXPECT_NE(nullptr, dynamic_pointer_cast<MeshPrimitive>(geometry->primitives().back()));
+    ASSERT_EQ(2u, diagnostics.entries().size());
+    EXPECT_EQ(LDrawDiagnosticCode::MissingSubfile, diagnostics.entries()[0].code);
   }
 
   TEST(LDrawGeometryCompiler, ReportsFatalParseDiagnostics) {
