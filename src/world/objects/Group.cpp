@@ -6,7 +6,42 @@
 #include "render/primitives/Instance.h"
 #include "render/primitives/Scene.h"
 
+#include <cmath>
+#include <limits>
 #include <stdexcept>
+
+namespace {
+  std::optional<int> metadataInt(const QJsonObject& metadata, const QString& key) {
+    const auto value = metadata.value(key);
+    if (!value.isDouble())
+      return std::nullopt;
+
+    const auto number = value.toDouble();
+    if (!std::isfinite(number) || std::floor(number) != number)
+      return std::nullopt;
+    if (number < std::numeric_limits<int>::min() ||
+        number > std::numeric_limits<int>::max())
+      return std::nullopt;
+
+    return static_cast<int>(number);
+  }
+
+  std::optional<double> metadataDouble(const QJsonObject& metadata, const QString& key) {
+    const auto value = metadata.value(key);
+    if (!value.isDouble())
+      return std::nullopt;
+
+    return value.toDouble();
+  }
+
+  std::optional<QString> metadataString(const QJsonObject& metadata, const QString& key) {
+    const auto value = metadata.value(key);
+    if (!value.isString())
+      return std::nullopt;
+
+    return value.toString();
+  }
+}
 
 Group::Group(Element* parent)
     : Transformable(parent),
@@ -18,6 +53,65 @@ void Group::setMetadataValue(const QString& key, const QJsonValue& value) {
     m_metadata.remove(key);
   } else {
     m_metadata.insert(key, value);
+  }
+}
+
+std::optional<int> Group::stepIndex() const {
+  return metadataInt(m_metadata, GroupMetadata::stepIndexKey());
+}
+
+void Group::setStepIndex(std::optional<int> index) {
+  if (index) {
+    setMetadataValue(GroupMetadata::stepIndexKey(), *index);
+  } else {
+    setMetadataValue(GroupMetadata::stepIndexKey(), QJsonValue::Undefined);
+  }
+}
+
+std::optional<int> Group::layerIndex() const {
+  return metadataInt(m_metadata, GroupMetadata::layerIndexKey());
+}
+
+void Group::setLayerIndex(std::optional<int> index) {
+  if (index) {
+    setMetadataValue(GroupMetadata::layerIndexKey(), *index);
+  } else {
+    setMetadataValue(GroupMetadata::layerIndexKey(), QJsonValue::Undefined);
+  }
+}
+
+std::optional<double> Group::startTime() const {
+  return metadataDouble(m_metadata, GroupMetadata::startTimeKey());
+}
+
+std::optional<double> Group::endTime() const {
+  return metadataDouble(m_metadata, GroupMetadata::endTimeKey());
+}
+
+void Group::setTimeRange(std::optional<double> startTime,
+                         std::optional<double> endTime) {
+  if (startTime) {
+    setMetadataValue(GroupMetadata::startTimeKey(), *startTime);
+  } else {
+    setMetadataValue(GroupMetadata::startTimeKey(), QJsonValue::Undefined);
+  }
+
+  if (endTime) {
+    setMetadataValue(GroupMetadata::endTimeKey(), *endTime);
+  } else {
+    setMetadataValue(GroupMetadata::endTimeKey(), QJsonValue::Undefined);
+  }
+}
+
+std::optional<QString> Group::label() const {
+  return metadataString(m_metadata, GroupMetadata::labelKey());
+}
+
+void Group::setLabel(const std::optional<QString>& label) {
+  if (label) {
+    setMetadataValue(GroupMetadata::labelKey(), *label);
+  } else {
+    setMetadataValue(GroupMetadata::labelKey(), QJsonValue::Undefined);
   }
 }
 

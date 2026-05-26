@@ -19,6 +19,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` now define a
   format-neutral import contract with option schemas, source metadata,
   diagnostics, and owned scene/group roots for Epic #230. — GPT-5
+- **Group step/time metadata helpers.** `Group` now exposes generic
+  `stepIndex`, `layerIndex`, `startTime`, `endTime`, and `label` metadata
+  helpers for importer-agnostic ordered steps, layers, frames, and time
+  intervals. — GPT-5
 - **Group/Collection documentation and fixtures.** Group source docs and the
   scene-structure textbook now describe hierarchy-only collections, visibility,
   metadata, and the distinction from render layers/AOVs; a reusable nested

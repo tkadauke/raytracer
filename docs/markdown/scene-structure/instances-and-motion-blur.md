@@ -64,9 +64,13 @@ light, or nested group still applies its own `visible` flag.
 
 Groups can also carry optional JSON metadata for importers and
 inspection tools. Fields such as `sourceFormat`, `sourceId`,
-`stepIndex`, `layerIndex`, `chainId`, and `category` stay on the
-editable group and round-trip through scene files, but they are not
-copied into runtime primitives and do not change rendering.
+`stepIndex`, `layerIndex`, `startTime`, `endTime`, `label`, `chainId`,
+and `category` stay on the editable group and round-trip through scene
+files, but they are not copied into runtime primitives and do not
+change rendering. `Group` exposes typed helper methods for the generic
+ordered-step and interval fields so build steps, print layers, imported
+animation slices, and scientific frames can share the same conventions
+instead of minting importer-specific metadata names.
 
 Scene files may call the same object either `Group` or `Collection`.
 Both names instantiate [`Group`](../../../include/world/objects/Group.h).

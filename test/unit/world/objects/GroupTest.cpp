@@ -168,6 +168,135 @@ namespace GroupTest {
     EXPECT_EQ(QString("visible"), decoded.metadataValue("tags").toArray()[1].toString());
   }
 
+  TEST(Group, ShouldSetGenericStepTimeAndLabelMetadata) {
+    Group group;
+    group.setMetadataValue(GroupMetadata::sourceFormatKey(), "imported-volume");
+    group.setMetadataValue(GroupMetadata::sourceIdKey(), "slice-stack/42");
+    group.setStepIndex(7);
+    group.setLayerIndex(3);
+    group.setTimeRange(1.25, 1.5);
+    group.setLabel(QString("cooldown"));
+
+    ASSERT_TRUE(group.stepIndex().has_value());
+    EXPECT_EQ(7, *group.stepIndex());
+    ASSERT_TRUE(group.layerIndex().has_value());
+    EXPECT_EQ(3, *group.layerIndex());
+    ASSERT_TRUE(group.startTime().has_value());
+    EXPECT_DOUBLE_EQ(1.25, *group.startTime());
+    ASSERT_TRUE(group.endTime().has_value());
+    EXPECT_DOUBLE_EQ(1.5, *group.endTime());
+    ASSERT_TRUE(group.label().has_value());
+    EXPECT_EQ(QString("cooldown"), *group.label());
+    EXPECT_EQ(QString("imported-volume"),
+              group.metadataValue(GroupMetadata::sourceFormatKey()).toString());
+    EXPECT_EQ(QString("slice-stack/42"),
+              group.metadataValue(GroupMetadata::sourceIdKey()).toString());
+
+    group.setStepIndex(std::nullopt);
+    group.setLayerIndex(std::nullopt);
+    group.setTimeRange(std::nullopt, std::nullopt);
+    group.setLabel(std::nullopt);
+
+    EXPECT_FALSE(group.stepIndex().has_value());
+    EXPECT_FALSE(group.layerIndex().has_value());
+    EXPECT_FALSE(group.startTime().has_value());
+    EXPECT_FALSE(group.endTime().has_value());
+    EXPECT_FALSE(group.label().has_value());
+    EXPECT_TRUE(group.metadataValue(GroupMetadata::stepIndexKey()).isUndefined());
+    EXPECT_TRUE(group.metadataValue(GroupMetadata::layerIndexKey()).isUndefined());
+    EXPECT_TRUE(group.metadataValue(GroupMetadata::startTimeKey()).isUndefined());
+    EXPECT_TRUE(group.metadataValue(GroupMetadata::endTimeKey()).isUndefined());
+    EXPECT_TRUE(group.metadataValue(GroupMetadata::labelKey()).isUndefined());
+  }
+
+  TEST(Group, ShouldTreatMissingOrWrongTypedGenericMetadataAsAbsent) {
+    Group missing;
+    EXPECT_FALSE(missing.stepIndex().has_value());
+    EXPECT_FALSE(missing.layerIndex().has_value());
+    EXPECT_FALSE(missing.startTime().has_value());
+    EXPECT_FALSE(missing.endTime().has_value());
+    EXPECT_FALSE(missing.label().has_value());
+
+    Group malformed;
+    malformed.setMetadata(QJsonObject{
+      {GroupMetadata::stepIndexKey(), 1.5},
+      {GroupMetadata::layerIndexKey(), "four"},
+      {GroupMetadata::startTimeKey(), "0.0"},
+      {GroupMetadata::endTimeKey(), true},
+      {GroupMetadata::labelKey(), 12},
+    });
+
+    EXPECT_FALSE(malformed.stepIndex().has_value());
+    EXPECT_FALSE(malformed.layerIndex().has_value());
+    EXPECT_FALSE(malformed.startTime().has_value());
+    EXPECT_FALSE(malformed.endTime().has_value());
+    EXPECT_FALSE(malformed.label().has_value());
+  }
+
+  TEST(Group, ShouldRoundtripGenericStepTimeMetadataThroughNestedSceneJson) {
+    Scene original;
+
+    auto* buildStep = new Group;
+    buildStep->setId("{91000000-0000-0000-0000-000000000100}");
+    buildStep->setStepIndex(2);
+    buildStep->setTimeRange(10.0, 12.5);
+    buildStep->setLabel(QString("support setup"));
+    original.addChild(buildStep);
+
+    auto* layer = new Group;
+    layer->setId("{91000000-0000-0000-0000-000000000110}");
+    layer->setLayerIndex(14);
+    layer->setTimeRange(12.5, 13.0);
+    layer->setLabel(QString("layer 14"));
+    buildStep->addChild(layer);
+
+    QJsonObject json;
+    original.write(json);
+
+    const auto children = json["children"].toArray();
+    ASSERT_EQ(1, children.size());
+    const auto parentMetadata = children[0].toObject()["metadata"].toObject();
+    EXPECT_EQ(2, parentMetadata[GroupMetadata::stepIndexKey()].toInt());
+    EXPECT_DOUBLE_EQ(10.0, parentMetadata[GroupMetadata::startTimeKey()].toDouble());
+    EXPECT_DOUBLE_EQ(12.5, parentMetadata[GroupMetadata::endTimeKey()].toDouble());
+    EXPECT_EQ(QString("support setup"), parentMetadata[GroupMetadata::labelKey()].toString());
+
+    const auto nestedChildren = children[0].toObject()["children"].toArray();
+    ASSERT_EQ(1, nestedChildren.size());
+    const auto childMetadata = nestedChildren[0].toObject()["metadata"].toObject();
+    EXPECT_EQ(14, childMetadata[GroupMetadata::layerIndexKey()].toInt());
+    EXPECT_DOUBLE_EQ(12.5, childMetadata[GroupMetadata::startTimeKey()].toDouble());
+    EXPECT_DOUBLE_EQ(13.0, childMetadata[GroupMetadata::endTimeKey()].toDouble());
+    EXPECT_EQ(QString("layer 14"), childMetadata[GroupMetadata::labelKey()].toString());
+
+    Scene decoded;
+    decoded.read(json);
+
+    auto* decodedStep =
+      dynamic_cast<Group*>(decoded.findById("{91000000-0000-0000-0000-000000000100}"));
+    ASSERT_NE(nullptr, decodedStep);
+    ASSERT_TRUE(decodedStep->stepIndex().has_value());
+    EXPECT_EQ(2, *decodedStep->stepIndex());
+    ASSERT_TRUE(decodedStep->startTime().has_value());
+    EXPECT_DOUBLE_EQ(10.0, *decodedStep->startTime());
+    ASSERT_TRUE(decodedStep->endTime().has_value());
+    EXPECT_DOUBLE_EQ(12.5, *decodedStep->endTime());
+    ASSERT_TRUE(decodedStep->label().has_value());
+    EXPECT_EQ(QString("support setup"), *decodedStep->label());
+
+    auto* decodedLayer =
+      dynamic_cast<Group*>(decoded.findById("{91000000-0000-0000-0000-000000000110}"));
+    ASSERT_NE(nullptr, decodedLayer);
+    ASSERT_TRUE(decodedLayer->layerIndex().has_value());
+    EXPECT_EQ(14, *decodedLayer->layerIndex());
+    ASSERT_TRUE(decodedLayer->startTime().has_value());
+    EXPECT_DOUBLE_EQ(12.5, *decodedLayer->startTime());
+    ASSERT_TRUE(decodedLayer->endTime().has_value());
+    EXPECT_DOUBLE_EQ(13.0, *decodedLayer->endTime());
+    ASSERT_TRUE(decodedLayer->label().has_value());
+    EXPECT_EQ(QString("layer 14"), *decodedLayer->label());
+  }
+
   TEST(Group, ShouldPreserveUnknownMetadataTypesThroughSceneJson) {
     Scene original;
     auto* group = new Group;
