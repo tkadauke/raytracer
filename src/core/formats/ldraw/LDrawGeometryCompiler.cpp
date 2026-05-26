@@ -58,7 +58,8 @@ namespace {
                                                             const BfcState& bfc,
                                                             bool inheritedInverted,
                                                             LDrawDiagnostics* diagnostics,
-                                                            const string& file) {
+                                                            const string& file,
+                                                            LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
     for (const auto& point : triangle.points)
       mesh.addVertex(point, Vector3d::null);
@@ -66,8 +67,11 @@ namespace {
     mesh.addFace({0, 1, 2}, reverse);
     mesh.computeNormals();
 
-    auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
-                                                        render::MeshPrimitive::NormalMode::Flat);
+    auto primitive = make_shared<render::MeshPrimitive>(
+      std::move(mesh),
+      normalMode == LDrawGeometryCompiler::NormalMode::Smooth
+        ? render::MeshPrimitive::NormalMode::Smooth
+        : render::MeshPrimitive::NormalMode::Flat);
     primitive->setMaterial(
       materialForPolygon(colors, triangle.color, context, bfc, diagnostics, file,
                          triangle.lineNumber));
@@ -84,7 +88,8 @@ namespace {
                                                         const BfcState& bfc,
                                                         bool inheritedInverted,
                                                         LDrawDiagnostics* diagnostics,
-                                                        const string& file) {
+                                                        const string& file,
+                                                        LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
     for (const auto& point : quad.points)
       mesh.addVertex(point, Vector3d::null);
@@ -92,8 +97,11 @@ namespace {
     mesh.addFace({0, 1, 2, 3}, reverse);
     mesh.computeNormals();
 
-    auto primitive = make_shared<render::MeshPrimitive>(std::move(mesh),
-                                                        render::MeshPrimitive::NormalMode::Flat);
+    auto primitive = make_shared<render::MeshPrimitive>(
+      std::move(mesh),
+      normalMode == LDrawGeometryCompiler::NormalMode::Smooth
+        ? render::MeshPrimitive::NormalMode::Smooth
+        : render::MeshPrimitive::NormalMode::Flat);
     primitive->setMaterial(
       materialForPolygon(colors, quad.color, context, bfc, diagnostics, file, quad.lineNumber));
     if (reverse && diagnostics) {
@@ -155,9 +163,11 @@ namespace {
 }
 
 LDrawGeometryCompiler::LDrawGeometryCompiler(shared_ptr<const LDrawFileResolver> resolver,
-                                             int recursionLimit)
+                                             int recursionLimit,
+                                             NormalMode normalMode)
     : m_resolver(std::move(resolver)),
-      m_recursionLimit(recursionLimit) {
+      m_recursionLimit(recursionLimit),
+      m_normalMode(normalMode) {
 }
 
 shared_ptr<render::Composite>
@@ -190,11 +200,11 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
     if (holds_alternative<LDrawTriangle>(command)) {
       result->add(meshPrimitiveForTriangle(get<LDrawTriangle>(command), colors, context, bfc,
                                            inheritedInverted, state.diagnostics,
-                                           state.currentFile));
+                                           state.currentFile, m_normalMode));
     } else if (holds_alternative<LDrawQuad>(command)) {
       result->add(
         meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc, inheritedInverted,
-                             state.diagnostics, state.currentFile));
+                             state.diagnostics, state.currentFile, m_normalMode));
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
       const auto& reference = get<LDrawSubfileReference>(command);
       const bool subfileInverted =
@@ -337,7 +347,7 @@ shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
     return compile(document.mainFile().commands, colors, context);
 
   auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
-  LDrawGeometryCompiler compiler(resolver, m_recursionLimit);
+  LDrawGeometryCompiler compiler(resolver, m_recursionLimit, m_normalMode);
   return compiler.compile(document.mainFile().commands, colors, context);
 }
 

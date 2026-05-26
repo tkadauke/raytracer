@@ -1,0 +1,47 @@
+{
+  "id": "ldraw-demo-scene",
+  "name": "LDraw Demo",
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.02, 0.04, 0.08],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 4.0,
+      "zoom": 1.0,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "direction": [-0.5, -1.0, -0.5],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "ldraw-model",
+      "name": "LDraw Model",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "material": null,
+      "velocity": [0.0, 0.0, 0.0],
+      "filePath": "scenes/ldraw_demo.ldr",
+      "libraryPath": "scenes/ldraw_parts",
+      "smoothNormals": false,
+      "type": "LDrawModel",
+      "children": []
+    }
+  ]
+}

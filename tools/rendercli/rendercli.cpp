@@ -9,8 +9,11 @@
 #include "world/import/SceneImporterRegistry.h"
 #include "world/objects/Scene.h"
 #include "world/objects/Camera.h"
+#include "world/objects/DirectionalLight.h"
 #include "world/objects/Group.h"
+#include "world/objects/LDrawModel.h"
 #include "world/objects/Material.h"
+#include "world/objects/PinholeCamera.h"
 #include "world/objects/StepVisibilityEvaluator.h"
 #include "world/objects/Texture.h"
 
@@ -663,6 +666,8 @@ public:
 private:
   QString m_filename;
   QString m_output;
+  QString m_ldrawLibraryRoot;
+  bool m_ldrawInput;
 
   int m_maximumRecursionDepth;
   int m_width;
@@ -743,6 +748,8 @@ private:
   StepPlaybackStyle m_stepPlaybackStyle;
 
   std::unique_ptr<Scene> loadScene() const;
+  std::unique_ptr<Scene> loadLDrawScene() const;
+  void applyLDrawLibraryRoot(Element* root) const;
   std::vector<double> renderScene(const Scene& scene, const QString& output) const;
   void renderAnimation(const Scene& scene) const;
   void renderStepSequence(const Scene& scene) const;
@@ -774,7 +781,8 @@ private:
 };
 
 Renderer::Renderer()
-    : m_maximumRecursionDepth(10),
+    : m_ldrawInput(false),
+      m_maximumRecursionDepth(10),
       m_width(640),
       m_height(480),
       m_widthSet(false),
@@ -856,6 +864,10 @@ Renderer::Renderer()
 }
 
 std::unique_ptr<Scene> Renderer::loadScene() const {
+  if (m_ldrawInput) {
+    return loadLDrawScene();
+  }
+
   std::unique_ptr<world::SceneImporter> importer;
   if (!m_importFormat.isEmpty()) {
     importer = world::SceneImporterRegistry::self().createByFormat(m_importFormat);
@@ -887,9 +899,57 @@ std::unique_ptr<Scene> Renderer::loadScene() const {
   if (!scene->load(m_filename))
     throw std::runtime_error(
       QString("Unable to load input scene: %1").arg(m_filename).toStdString());
+  applyLDrawLibraryRoot(scene.get());
   for (const auto& diagnostic : scene->importDiagnostics())
     std::cerr << diagnostic.toString() << '\n';
   return scene;
+}
+
+std::unique_ptr<Scene> Renderer::loadLDrawScene() const {
+  auto scene = std::make_unique<Scene>(nullptr);
+  scene->setName("LDraw Import");
+  scene->setBackground(Colord(0.02, 0.04, 0.08));
+
+  auto camera = std::make_unique<PinholeCamera>();
+  camera->setId("camera");
+  camera->setName("Camera");
+  camera->setPosition(Vector3d(0, 0, -80));
+  camera->setTarget(Vector3d::null);
+  camera->setDistance(80);
+  camera->setZoom(1.0);
+  scene->addChild(std::move(camera));
+
+  auto light = std::make_unique<DirectionalLight>();
+  light->setId("light");
+  light->setName("Light");
+  light->setDirection(Vector3d(-0.5, -1.0, -0.5));
+  scene->addChild(std::move(light));
+
+  auto model = std::make_unique<LDrawModel>();
+  model->setId("ldraw-model");
+  model->setName("LDraw Model");
+  model->setFilePath(m_filename);
+  model->setLibraryPath(m_ldrawLibraryRoot);
+  model->setScale(Vector3d(1, 1, 1));
+  scene->addChild(std::move(model));
+
+  return scene;
+}
+
+void Renderer::applyLDrawLibraryRoot(Element* root) const {
+  if (m_ldrawLibraryRoot.isEmpty()) {
+    return;
+  }
+
+  if (auto* model = qobject_cast<LDrawModel*>(root)) {
+    if (model->libraryPath().isEmpty()) {
+      model->setLibraryPath(m_ldrawLibraryRoot);
+    }
+  }
+
+  for (Element* child : root->childElements()) {
+    applyLDrawLibraryRoot(child);
+  }
 }
 
 engine::graph::RenderIntent Renderer::renderIntent(const Scene& scene) const {
@@ -1589,6 +1649,10 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
     {{"width", "Output image width", "width"},
      {"height", "Output image height", "height"},
      {"depth", "Maximum recursion depth", "depth"},
+     {"ldraw_library_root",
+      "LDraw parts library root used for LDrawModel scene objects and direct LDraw input",
+      "directory"},
+     {"ldraw_input", "Treat the input file as an LDraw .ldr/.dat/.mpd model and build a scene"},
      {"sampler", "Sampler type", "sampler"},
      {"samples_per_pixel", "Samples per pixel", "samples"},
      {{"j", "threads"}, "Number of threads", "threads"},
@@ -1719,6 +1783,18 @@ Renderer::CommandLineParseResult Renderer::parseCommandLine(QString* errorMessag
       *errorMessage = "Depth must be > 0";
       return CommandLineError;
     }
+  }
+
+  if (parser.isSet("ldraw_library_root")) {
+    m_ldrawLibraryRoot = parser.value("ldraw_library_root").trimmed();
+    if (m_ldrawLibraryRoot.isEmpty()) {
+      *errorMessage = "LDraw library root must not be empty";
+      return CommandLineError;
+    }
+  }
+
+  if (parser.isSet("ldraw_input")) {
+    m_ldrawInput = true;
   }
 
   if (parser.isSet("sampler")) {

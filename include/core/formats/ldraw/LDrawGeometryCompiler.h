@@ -23,6 +23,8 @@ namespace render {
   */
 class LDrawGeometryCompiler {
 public:
+  enum class NormalMode { Flat, Smooth };
+
   struct CacheStats {
     std::size_t parsedSubfileMisses = 0;
     std::size_t compiledSubfileMisses = 0;
@@ -30,7 +32,8 @@ public:
   };
 
   explicit LDrawGeometryCompiler(std::shared_ptr<const LDrawFileResolver> resolver = nullptr,
-                                 int recursionLimit = 64);
+                                 int recursionLimit = 64,
+                                 NormalMode normalMode = NormalMode::Flat);
 
   [[nodiscard]] std::shared_ptr<render::Composite>
   compile(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
@@ -72,6 +75,7 @@ private:
 
   std::shared_ptr<const LDrawFileResolver> m_resolver;
   int m_recursionLimit;
+  NormalMode m_normalMode;
   mutable std::unordered_map<std::string, LDrawParser::Commands> m_parsedSubfiles;
   mutable std::unordered_map<std::string, std::shared_ptr<render::Composite>> m_compiledSubfiles;
   mutable CacheStats m_cacheStats;

@@ -158,6 +158,16 @@ namespace LDrawGeometryCompilerTest {
     }
   }
 
+  TEST(LDrawGeometryCompiler, CanBuildSmoothMeshPrimitives) {
+    istringstream input("4 4 0 0 0 0 1 0 1 1 0 1 0 0\n");
+    auto geometry =
+      LDrawGeometryCompiler(nullptr, 64, LDrawGeometryCompiler::NormalMode::Smooth)
+        .compile(input, colorTable());
+    auto primitive = onlyMeshPrimitive(geometry);
+
+    EXPECT_EQ(MeshPrimitive::NormalMode::Smooth, primitive->normalMode());
+  }
+
   TEST(LDrawGeometryCompiler, BfcCertifyCcwKeepsLDrawFaceOrderAndFrontSidedMaterial) {
     istringstream input(
       "0 BFC CERTIFY CCW\n"

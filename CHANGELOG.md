@@ -22,6 +22,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
   sidedness/winding treatment, and fatal parse failures for #210. — GPT-5
+- **World and rendercli LDraw imports.** Scene JSON can now contain
+  `LDrawModel` surfaces with file path, library root, transform scale,
+  smoothing, and visibility properties, and `rendercli` can render them from
+  scene files or direct LDraw input with `--ldraw_library_root` for #210. —
+  GPT-5
 - **Shared import provenance metadata.** World scene elements now carry
   optional structured metadata, and import helpers can attach source file,
   source entity, line range/record, original-unit, and category provenance that

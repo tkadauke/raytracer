@@ -12,6 +12,7 @@ file(REMOVE_RECURSE "${TEST_OUTPUT_DIR}")
 file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}")
 
 set(raytracer_scene "${TEST_OUTPUT_DIR}/raytracer-options-scene.json")
+set(ldraw_scene "${TEST_OUTPUT_DIR}/ldraw-scene.json")
 set(reflective_scene "${PROJECT_SOURCE_DIR}/scenes/reflections.json")
 set(invalid_sampler_output "${TEST_OUTPUT_DIR}/invalid-sampler.png")
 
@@ -78,6 +79,57 @@ file(WRITE "${raytracer_scene}" [=[
 }
 ]=])
 
+file(WRITE "${ldraw_scene}" [=[
+{
+  "id": "rendercli-ldraw-scene",
+  "name": "Rendercli LDraw Scene",
+  "ambient": [0.25, 0.25, 0.25],
+  "background": [0.02, 0.04, 0.08],
+  "type": "Scene",
+  "children": [
+    {
+      "id": "camera",
+      "name": "Camera",
+      "position": [0.0, 0.0, -4.0],
+      "target": [0.0, 0.0, 0.0],
+      "distance": 4.0,
+      "zoom": 1.0,
+      "type": "PinholeCamera",
+      "children": []
+    },
+    {
+      "id": "light",
+      "name": "Light",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 1.0,
+      "direction": [-0.5, -1.0, -0.5],
+      "type": "DirectionalLight",
+      "children": []
+    },
+    {
+      "id": "ldraw",
+      "name": "LDraw Model",
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "visible": true,
+      "filePath": "%%PROJECT_SOURCE_DIR%%/test/fixtures/ldraw/rendercli/model.ldr",
+      "libraryPath": "",
+      "smoothNormals": false,
+      "type": "LDrawModel",
+      "children": []
+    }
+  ]
+}
+]=])
+file(READ "${ldraw_scene}" ldraw_scene_json)
+string(REPLACE "%%PROJECT_SOURCE_DIR%%" "${PROJECT_SOURCE_DIR}" ldraw_scene_json "${ldraw_scene_json}")
+file(WRITE "${ldraw_scene}" "${ldraw_scene_json}")
+
 foreach(depth IN ITEMS 1 4)
   set(output "${TEST_OUTPUT_DIR}/depth-${depth}.png")
   rendercli_run(
@@ -119,6 +171,34 @@ rendercli_assert_image_dimensions("${samples_output}" 24 24
                                   NAME "raytracer --samples_per_pixel dimensions")
 rendercli_assert_image_nonempty("${samples_output}"
                                 NAME "raytracer --samples_per_pixel pixels")
+
+set(ldraw_scene_output "${TEST_OUTPUT_DIR}/ldraw-scene.png")
+rendercli_run(
+  NAME "rendercli raytracer renders LDrawModel scene with --ldraw_library_root"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/library"
+    "${ldraw_scene}" "${ldraw_scene_output}"
+)
+rendercli_assert_image_dimensions("${ldraw_scene_output}" 24 24
+                                  NAME "LDrawModel scene dimensions")
+rendercli_assert_image_nonempty("${ldraw_scene_output}"
+                                NAME "LDrawModel scene pixels")
+
+set(ldraw_direct_output "${TEST_OUTPUT_DIR}/ldraw-direct.png")
+rendercli_run(
+  NAME "rendercli raytracer renders direct LDraw input"
+  COMMAND
+    "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
+    --ldraw_input
+    --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/library"
+    "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/model.ldr"
+    "${ldraw_direct_output}"
+)
+rendercli_assert_image_dimensions("${ldraw_direct_output}" 24 24
+                                  NAME "direct LDraw dimensions")
+rendercli_assert_image_nonempty("${ldraw_direct_output}"
+                                NAME "direct LDraw pixels")
 
 set(threaded_output "${TEST_OUTPUT_DIR}/threads-and-queue.png")
 rendercli_run(
