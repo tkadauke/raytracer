@@ -15,6 +15,7 @@
 #include <QHBoxLayout>
 #include <QJsonDocument>
 #include <QLabel>
+#include <QMetaObject>
 #include <QPainter>
 #include <QPen>
 #include <QPointF>
@@ -669,7 +670,17 @@ void RenderGraphInspectorWidget::passItemChanged(QTreeWidgetItem* item, int colu
     return;
 
   const auto passId = item->data(0, Qt::UserRole).toString().toStdString();
-  setPassEnabledOverride(passId, item->checkState(0) == Qt::Checked);
+  const bool enabled = item->checkState(0) == Qt::Checked;
+  if (enabled) {
+    p->overrides.disabledPasses.erase(passId);
+  } else {
+    p->overrides.disabledPasses.insert(passId);
+  }
+  if (p->trace && !p->trace->matchesPlan(effectivePlan()))
+    p->trace.reset();
+
+  QMetaObject::invokeMethod(this, [this] { rebuildAllViews(); }, Qt::QueuedConnection);
+  emit overridesChanged();
 }
 
 void RenderGraphInspectorWidget::groupItemChanged(QTreeWidgetItem* item, int column) {
@@ -703,7 +714,7 @@ void RenderGraphInspectorWidget::groupItemChanged(QTreeWidgetItem* item, int col
 
   if (p->trace && !p->trace->matchesPlan(effectivePlan()))
     p->trace.reset();
-  rebuildAllViews();
+  QMetaObject::invokeMethod(this, [this] { rebuildAllViews(); }, Qt::QueuedConnection);
   emit overridesChanged();
 }
 
