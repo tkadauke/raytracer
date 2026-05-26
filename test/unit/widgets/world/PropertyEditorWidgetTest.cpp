@@ -17,6 +17,8 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGroupBox>
+#include <QScrollArea>
+#include <QSizePolicy>
 #include <QTreeWidget>
 
 Q_DECLARE_METATYPE(Vector3d);
@@ -69,6 +71,29 @@ namespace PropertyEditorWidgetTest {
     Scene root;
     PropertyEditorWidget editor(&root);
     EXPECT_EQ(QSize(180, 100), editor.sizeHint());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldUseScrollableContentArea) {
+    Scene root;
+    auto* camera = new PinholeCamera;
+    root.addChild(camera);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(camera);
+
+    auto* scrollArea = editor.findChild<QScrollArea*>("propertyEditorScrollArea");
+    ASSERT_NE(nullptr, scrollArea);
+    EXPECT_TRUE(scrollArea->widgetResizable());
+    EXPECT_EQ(Qt::ScrollBarAlwaysOff, scrollArea->horizontalScrollBarPolicy());
+    EXPECT_EQ(Qt::ScrollBarAsNeeded, scrollArea->verticalScrollBarPolicy());
+    ASSERT_NE(nullptr, scrollArea->widget());
+    EXPECT_EQ(QStringLiteral("propertyEditorContent"), scrollArea->widget()->objectName());
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldAvoidEagerVerticalExpansion) {
+    Scene root;
+    PropertyEditorWidget editor(&root);
+    EXPECT_EQ(QSizePolicy::Minimum, editor.sizePolicy().verticalPolicy());
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldAcceptNullSetElement) {

@@ -14,6 +14,7 @@
 #include "widgets/world/ReferenceParameterWidget.h"
 
 #include <QFont>
+#include <QFrame>
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QJsonArray>
@@ -21,6 +22,8 @@
 #include <QLabel>
 #include <QMap>
 #include <QMetaProperty>
+#include <QScrollArea>
+#include <QSizePolicy>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -29,10 +32,6 @@
 Q_DECLARE_METATYPE(Vector3d)
 
 namespace {
-
-  bool isType(const QString& actual, const char* qt5Name, const char* qt6Name) {
-    return actual == qt5Name || actual == qt6Name;
-  }
 
   QString metadataValueText(const QJsonValue& value) {
     if (value.isUndefined())
@@ -50,12 +49,18 @@ struct PropertyEditorWidget::Private {
   inline Private()
       : root(nullptr),
         element(nullptr),
+        outerLayout(nullptr),
+        scrollArea(nullptr),
+        contentWidget(nullptr),
         verticalLayout(nullptr),
         rebuildQueued(false) {
   }
 
   Element* root;
   Element* element;
+  QVBoxLayout* outerLayout;
+  QScrollArea* scrollArea;
+  QWidget* contentWidget;
   QVBoxLayout* verticalLayout;
   QList<AbstractParameterWidget*> parameterWidgets;
   QList<QGroupBox*> groupBoxes;
@@ -68,6 +73,7 @@ PropertyEditorWidget::PropertyEditorWidget(Element* root, QWidget* parent)
     : QWidget(parent),
       p(std::make_unique<Private>()) {
   p->root = root;
+  setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 }
 
 PropertyEditorWidget::~PropertyEditorWidget() {
@@ -76,12 +82,29 @@ PropertyEditorWidget::~PropertyEditorWidget() {
 }
 
 void PropertyEditorWidget::initLayout() {
-  if (p->verticalLayout) {
-    delete p->verticalLayout;
+  if (!p->outerLayout) {
+    p->outerLayout = new QVBoxLayout(this);
+    p->outerLayout->setContentsMargins(0, 0, 0, 0);
+    p->outerLayout->setSpacing(0);
+
+    p->scrollArea = new QScrollArea(this);
+    p->scrollArea->setObjectName(QStringLiteral("propertyEditorScrollArea"));
+    p->scrollArea->setFrameShape(QFrame::NoFrame);
+    p->scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    p->scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    p->scrollArea->setWidgetResizable(true);
+    p->scrollArea->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
+    p->outerLayout->addWidget(p->scrollArea);
   }
-  p->verticalLayout = new QVBoxLayout(this);
+
+  delete p->scrollArea->takeWidget();
+  p->contentWidget = new QWidget(p->scrollArea);
+  p->contentWidget->setObjectName(QStringLiteral("propertyEditorContent"));
+  p->contentWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
+  p->verticalLayout = new QVBoxLayout(p->contentWidget);
   p->verticalLayout->setContentsMargins(4, 4, 4, 4);
   p->verticalLayout->setSpacing(4);
+  p->scrollArea->setWidget(p->contentWidget);
 }
 
 QSize PropertyEditorWidget::sizeHint() const {
@@ -101,20 +124,21 @@ void PropertyEditorWidget::setReadOnlyProperties(const QString& title,
   clearReadOnlyWidgets();
   initLayout();
 
-  auto* titleLabel = new QLabel(title, this);
+  auto* titleLabel = new QLabel(title, p->contentWidget);
   titleLabel->setObjectName("propertyEditorReadOnlyTitle");
   titleLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
   QFont font = titleLabel->font();
   font.setBold(true);
   titleLabel->setFont(font);
 
-  auto* tree = new QTreeWidget(this);
+  auto* tree = new QTreeWidget(p->contentWidget);
   tree->setObjectName("propertyEditorReadOnlyProperties");
   tree->setRootIsDecorated(false);
   tree->setAlternatingRowColors(true);
   tree->setHeaderLabels({tr("Property"), tr("Value")});
   tree->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
   tree->header()->setStretchLastSection(true);
+  tree->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
   for (const auto& row : rows) {
     auto* item = new QTreeWidgetItem(tree);
@@ -124,7 +148,7 @@ void PropertyEditorWidget::setReadOnlyProperties(const QString& title,
 
   p->readOnlyWidgets << titleLabel << tree;
   p->verticalLayout->addWidget(titleLabel);
-  p->verticalLayout->addWidget(tree, 1);
+  p->verticalLayout->addWidget(tree);
 }
 
 void PropertyEditorWidget::setElement(Element* element) {
@@ -157,13 +181,14 @@ void PropertyEditorWidget::addParameterWidgets() {
   }
 
   if (auto* group = qobject_cast<Group*>(p->element)) {
-    auto* tree = new QTreeWidget(this);
+    auto* tree = new QTreeWidget(p->contentWidget);
     tree->setObjectName("propertyEditorGroupMetadata");
     tree->setRootIsDecorated(false);
     tree->setAlternatingRowColors(true);
     tree->setHeaderLabels({tr("Metadata"), tr("Value")});
     tree->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
     tree->header()->setStretchLastSection(true);
+    tree->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
     const auto metadata = group->metadata();
     if (metadata.isEmpty()) {
@@ -181,7 +206,7 @@ void PropertyEditorWidget::addParameterWidgets() {
     p->verticalLayout->addWidget(tree);
   }
 
-  p->verticalLayout->addStretch();
+  p->contentWidget->adjustSize();
 }
 
 void PropertyEditorWidget::addParametersForClass(const QMetaObject* klass) {

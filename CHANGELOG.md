@@ -108,7 +108,7 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   property editor now displays grouped, human-readable render settings with
   dropdowns for enumerated choices and backend-specific fields filtered by the
   selected engine, and uses compact vertical value editors so the dock can be
-  narrower. — GPT-5
+  narrower and scrolls long property sets instead of expanding eagerly. — GPT-5
 - **Render graph engine options.** `RenderIntent` now carries typed raytracer,
   rasterizer, and wireframe engine options, rendercli and the Modeler final
   render window compile those options into graph pass state, and subview
