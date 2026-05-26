@@ -1,0 +1,34 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "raytracer unit fixture"
+  },
+  "buffers": [
+    {
+      "uri": "external_triangle.bin",
+      "byteLength": 12
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 12,
+      "byteStride": 12
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 1,
+      "type": "VEC3"
+    }
+  ],
+  "images": [
+    {
+      "uri": "tiny-image.bin",
+      "mimeType": "image/png"
+    }
+  ]
+}

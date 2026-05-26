@@ -93,6 +93,10 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   now parses common 3D-printer movement, extrusion, feed-rate, layer comment,
   temperature, and tool-change commands while preserving diagnostics for
   unsupported dialect commands for Epic #235. — GPT-5
+- **Low-level glTF asset reader.** `core::gltf::Reader` now parses `.gltf`
+  JSON and `.glb` containers into typed buffers, bufferViews, accessors, and
+  image references, resolves external and embedded payloads, and reports
+  structured diagnostics for malformed assets for Epic #233. — GPT-5
 - **LDraw validation fixtures and docs.** Tiny checked-in LDraw fixtures now
   cover inline geometry, library part resolution, nested subfiles, inherited
   color, BFC, and MPD import, with rendercli smoke coverage and textbook docs
