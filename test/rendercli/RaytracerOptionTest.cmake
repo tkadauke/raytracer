@@ -112,15 +112,17 @@ file(WRITE "${ldraw_scene}" [=[
     },
     {
       "id": "ldraw",
-      "name": "LDraw Model",
+      "name": "LDraw Import",
       "position": [0.0, 0.0, 0.0],
       "rotation": [0.0, 0.0, 0.0],
       "scale": [1.0, 1.0, 1.0],
       "visible": true,
-      "filePath": "%%PROJECT_SOURCE_DIR%%/test/fixtures/ldraw/rendercli/model.ldr",
-      "libraryPath": "",
-      "smoothNormals": false,
-      "type": "LDrawModel",
+      "metadata": {
+        "sourceFormat": "LDraw",
+        "sourcePath": "%%PROJECT_SOURCE_DIR%%/test/fixtures/ldraw/rendercli/model.ldr",
+        "normalMode": "flat"
+      },
+      "type": "Collection",
       "children": []
     }
   ]
@@ -174,16 +176,16 @@ rendercli_assert_image_nonempty("${samples_output}"
 
 set(ldraw_scene_output "${TEST_OUTPUT_DIR}/ldraw-scene.png")
 rendercli_run(
-  NAME "rendercli raytracer renders LDrawModel scene with --ldraw_library_root"
+  NAME "rendercli raytracer renders LDraw authoring import with --ldraw_library_root"
   COMMAND
     "${RENDERCLI}" --direct_engine --engine raytracer --width 24 --height 24
     --ldraw_library_root "${PROJECT_SOURCE_DIR}/test/fixtures/ldraw/rendercli/library"
     "${ldraw_scene}" "${ldraw_scene_output}"
 )
 rendercli_assert_image_dimensions("${ldraw_scene_output}" 24 24
-                                  NAME "LDrawModel scene dimensions")
+                                  NAME "LDraw authoring import dimensions")
 rendercli_assert_image_nonempty("${ldraw_scene_output}"
-                                NAME "LDrawModel scene pixels")
+                                NAME "LDraw authoring import pixels")
 
 set(ldraw_direct_output "${TEST_OUTPUT_DIR}/ldraw-direct-hierarchy.png")
 rendercli_run(
