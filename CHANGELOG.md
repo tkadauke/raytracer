@@ -31,6 +31,9 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   `ImportOptions`, `ImportResult`, and `ImportDiagnostic` now define a
   format-neutral import contract with option schemas, source metadata,
   diagnostics, and owned scene/group roots for Epic #230. — GPT-5
+- **Group step visibility evaluator.** `StepVisibilityEvaluator` now evaluates
+  group visibility for only-step, cumulative, all-steps, and step-range modes
+  while composing explicit group visibility and nested ancestors. — GPT-5
 - **Group step/time metadata helpers.** `Group` now exposes generic
   `stepIndex`, `layerIndex`, `startTime`, `endTime`, and `label` metadata
   helpers for importer-agnostic ordered steps, layers, frames, and time
