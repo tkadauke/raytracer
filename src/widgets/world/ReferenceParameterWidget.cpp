@@ -8,6 +8,7 @@
 #include "world/objects/Texture.h"
 
 #include <QSignalBlocker>
+#include <QSizePolicy>
 
 Q_DECLARE_METATYPE(Material*);
 Q_DECLARE_METATYPE(Texture*);
@@ -27,6 +28,13 @@ ReferenceParameterWidget::ReferenceParameterWidget(const QString& baseClassName,
   p->root = root;
 
   p->ui.setupUi(this);
+  p->ui.label->setMinimumWidth(0);
+  p->ui.label->setWordWrap(true);
+  p->ui.label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  p->ui.comboBox->setMinimumWidth(0);
+  p->ui.comboBox->setMinimumContentsLength(6);
+  p->ui.comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+  p->ui.comboBox->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
   connect(p->ui.comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(parameterChanged()));
 
   p->ui.comboBox->addItem(tr("<No Selection>"), makeVariant(nullptr));

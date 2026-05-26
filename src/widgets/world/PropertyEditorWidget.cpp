@@ -80,12 +80,12 @@ void PropertyEditorWidget::initLayout() {
     delete p->verticalLayout;
   }
   p->verticalLayout = new QVBoxLayout(this);
-  p->verticalLayout->setContentsMargins(8, 8, 8, 8);
-  p->verticalLayout->setSpacing(8);
+  p->verticalLayout->setContentsMargins(4, 4, 4, 4);
+  p->verticalLayout->setSpacing(4);
 }
 
 QSize PropertyEditorWidget::sizeHint() const {
-  return QSize(256, 100);
+  return QSize(180, 100);
 }
 
 void PropertyEditorWidget::setRoot(Element* root) {
@@ -290,8 +290,8 @@ QVBoxLayout* PropertyEditorWidget::layoutForGroup(const QString& groupName) {
   auto* groupBox = new QGroupBox(title, this);
   groupBox->setObjectName(QStringLiteral("propertyGroup%1").arg(title.simplified().remove(' ')));
   auto* layout = new QVBoxLayout(groupBox);
-  layout->setContentsMargins(8, 6, 8, 8);
-  layout->setSpacing(4);
+  layout->setContentsMargins(4, 4, 4, 4);
+  layout->setSpacing(2);
 
   p->groupBoxes << groupBox;
   p->groupLayouts.insert(title, layout);

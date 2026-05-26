@@ -65,11 +65,10 @@ namespace PropertyEditorWidgetTest {
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldReturnCannedSizeHint) {
-    // The widget's sizeHint is hard-coded to 256×100; verifying it pins
-    // the layout decision in case a future change forgets to override.
+    // The editor should stay compact enough for a docked sidebar.
     Scene root;
     PropertyEditorWidget editor(&root);
-    EXPECT_EQ(QSize(256, 100), editor.sizeHint());
+    EXPECT_EQ(QSize(180, 100), editor.sizeHint());
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldAcceptNullSetElement) {
@@ -177,6 +176,17 @@ namespace PropertyEditorWidgetTest {
     EXPECT_EQ(nullptr, parameterWidget(editor, "raytracerSampler"));
     EXPECT_NE(nullptr, parameterWidget(editor, "rasterizerLod"));
     EXPECT_NE(nullptr, editor.findChild<QGroupBox*>("propertyGroupRasterizer"));
+  }
+
+  TEST_F(PropertyEditorWidgetTest, ShouldKeepRenderSettingsMinimumWidthCompact) {
+    Scene root;
+    auto* settings = renderSettingsElement(root);
+    ASSERT_NE(nullptr, settings);
+
+    PropertyEditorWidget editor(&root);
+    editor.setElement(settings);
+
+    EXPECT_LE(editor.minimumSizeHint().width(), 220);
   }
 
   TEST_F(PropertyEditorWidgetTest, ShouldShowReadOnlyProperties) {

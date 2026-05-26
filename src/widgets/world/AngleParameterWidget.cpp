@@ -3,6 +3,8 @@
 
 #include "core/math/Angle.h"
 
+#include <QSizePolicy>
+
 using namespace std;
 
 Q_DECLARE_METATYPE(Angled);
@@ -15,6 +17,15 @@ AngleParameterWidget::AngleParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
+  p->ui.label->setMinimumWidth(0);
+  p->ui.label->setWordWrap(true);
+  p->ui.label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  p->ui.angleEdit->setMinimumWidth(0);
+  p->ui.angleEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+  p->ui.angleType->setMinimumWidth(0);
+  p->ui.angleType->setMinimumContentsLength(6);
+  p->ui.angleType->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+  p->ui.angleType->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
   connect(p->ui.angleEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
   connect(p->ui.angleType, SIGNAL(currentTextChanged(const QString&)), this, SLOT(recalculate()));
 }

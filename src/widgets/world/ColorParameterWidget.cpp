@@ -2,10 +2,12 @@
 
 #include <QColorDialog>
 #include <QDoubleSpinBox>
-#include <QGridLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 Q_DECLARE_METATYPE(Colord);
 
@@ -18,40 +20,53 @@ struct ColorParameterWidget::Private {
 
   QDoubleSpinBox* makeChannelEdit(QWidget* parent) const {
     auto* edit = new QDoubleSpinBox(parent);
+    edit->setMinimumWidth(0);
+    edit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     edit->setRange(0.0, 1000000.0);
     edit->setDecimals(3);
     edit->setSingleStep(0.01);
     return edit;
+  }
+
+  void addChannelRow(QVBoxLayout* layout, const QString& name, QDoubleSpinBox* edit,
+                     QWidget* parent) const {
+    auto* row = new QHBoxLayout;
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(4);
+    auto* rowLabel = new QLabel(name, parent);
+    rowLabel->setFixedWidth(12);
+    row->addWidget(rowLabel);
+    row->addWidget(edit, 1);
+    layout->addLayout(row);
   }
 };
 
 ColorParameterWidget::ColorParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
-  auto* layout = new QGridLayout(this);
-  layout->setContentsMargins(6, 2, 6, 2);
-  layout->setHorizontalSpacing(6);
-  layout->setVerticalSpacing(2);
+  auto* layout = new QVBoxLayout(this);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(2);
 
   p->label = new QLabel(this);
+  p->label->setWordWrap(true);
+  p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
   p->rEdit = p->makeChannelEdit(this);
   p->gEdit = p->makeChannelEdit(this);
   p->bEdit = p->makeChannelEdit(this);
   p->selectorButton = new QToolButton(this);
   p->selectorButton->setToolTip(tr("Select color"));
-  p->selectorButton->setMinimumWidth(32);
+  p->selectorButton->setFixedSize(24, 20);
 
-  layout->addWidget(p->label, 0, 0);
-  layout->addWidget(new QLabel(QStringLiteral("R"), this), 1, 0);
-  layout->addWidget(p->rEdit, 1, 1);
-  layout->addWidget(new QLabel(QStringLiteral("G"), this), 1, 2);
-  layout->addWidget(p->gEdit, 1, 3);
-  layout->addWidget(new QLabel(QStringLiteral("B"), this), 1, 4);
-  layout->addWidget(p->bEdit, 1, 5);
-  layout->addWidget(p->selectorButton, 1, 6);
-  layout->setColumnStretch(1, 1);
-  layout->setColumnStretch(3, 1);
-  layout->setColumnStretch(5, 1);
+  auto* header = new QHBoxLayout;
+  header->setContentsMargins(0, 0, 0, 0);
+  header->setSpacing(4);
+  header->addWidget(p->label, 1);
+  header->addWidget(p->selectorButton);
+  layout->addLayout(header);
+  p->addChannelRow(layout, QStringLiteral("R"), p->rEdit, this);
+  p->addChannelRow(layout, QStringLiteral("G"), p->gEdit, this);
+  p->addChannelRow(layout, QStringLiteral("B"), p->bEdit, this);
 
   connect(p->rEdit, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
           &ColorParameterWidget::parameterChanged);

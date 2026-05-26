@@ -1,9 +1,10 @@
 #include "widgets/world/ChoiceParameterWidget.h"
 
 #include <QComboBox>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QSignalBlocker>
+#include <QSizePolicy>
+#include <QVBoxLayout>
 
 #include <utility>
 
@@ -18,17 +19,22 @@ ChoiceParameterWidget::ChoiceParameterWidget(QStringList choices, QWidget* paren
       p(std::make_unique<Private>()) {
   p->choices = std::move(choices);
 
-  auto* layout = new QHBoxLayout(this);
-  layout->setContentsMargins(6, 2, 6, 2);
-  layout->setSpacing(8);
+  auto* layout = new QVBoxLayout(this);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(2);
 
   p->label = new QLabel(this);
-  p->label->setMinimumWidth(135);
+  p->label->setWordWrap(true);
+  p->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
   p->comboBox = new QComboBox(this);
   p->comboBox->setObjectName(QStringLiteral("choiceComboBox"));
+  p->comboBox->setMinimumWidth(0);
+  p->comboBox->setMinimumContentsLength(6);
+  p->comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+  p->comboBox->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 
   layout->addWidget(p->label);
-  layout->addWidget(p->comboBox, 1);
+  layout->addWidget(p->comboBox);
 
   connect(p->comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
           &ChoiceParameterWidget::parameterChanged);

@@ -2,6 +2,7 @@
 #include "ui_IntParameterWidget.h"
 
 #include <QSignalBlocker>
+#include <QSizePolicy>
 
 struct IntParameterWidget::Private {
   Ui::IntParameterWidget ui;
@@ -11,6 +12,11 @@ IntParameterWidget::IntParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
+  p->ui.label->setMinimumWidth(0);
+  p->ui.label->setWordWrap(true);
+  p->ui.label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  p->ui.intEdit->setMinimumWidth(0);
+  p->ui.intEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
   connect(p->ui.intEdit, SIGNAL(valueChanged(int)), this, SLOT(parameterChanged()));
 }
 

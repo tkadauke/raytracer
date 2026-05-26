@@ -2,6 +2,7 @@
 #include "ui_StringParameterWidget.h"
 
 #include <QSignalBlocker>
+#include <QSizePolicy>
 
 struct StringParameterWidget::Private {
   Ui::StringParameterWidget ui;
@@ -11,6 +12,11 @@ StringParameterWidget::StringParameterWidget(QWidget* parent)
     : AbstractParameterWidget(parent),
       p(std::make_unique<Private>()) {
   p->ui.setupUi(this);
+  p->ui.label->setMinimumWidth(0);
+  p->ui.label->setWordWrap(true);
+  p->ui.label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+  p->ui.stringEdit->setMinimumWidth(0);
+  p->ui.stringEdit->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
   connect(p->ui.stringEdit, SIGNAL(textChanged(const QString&)), this, SLOT(parameterChanged()));
 }
 
