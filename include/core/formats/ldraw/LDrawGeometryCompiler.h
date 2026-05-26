@@ -58,6 +58,7 @@ private:
     int depth = 0;
     std::unordered_set<std::string> activeFiles;
     std::string currentFile;
+    std::string currentMpdBlock;
     LDrawDiagnostics* diagnostics = nullptr;
   };
 

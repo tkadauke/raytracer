@@ -98,6 +98,10 @@ namespace LDrawGeometryCompilerTest {
     return count;
   }
 
+  string metadataValue(const Primitive& primitive, const string& key) {
+    return primitive.metadataValue(key);
+  }
+
   Vector3d faceNormal(const Mesh& mesh, const Mesh::Face& face) {
     const Vector3d v0 =
       mesh.vertices()[face[face.size() - 1]].point - mesh.vertices()[face[0]].point;
@@ -124,6 +128,23 @@ namespace LDrawGeometryCompilerTest {
     EXPECT_EQ(Vector3d(1, 0, 0), primitive->mesh()->vertices()[2].point);
     EXPECT_EQ((Mesh::Face{0, 1, 2}), primitive->mesh()->faces()[0]);
     EXPECT_EQ(1u, primitive->leaves().size());
+  }
+
+  TEST(LDrawGeometryCompiler, InlineGeometryCarriesSourceLineColorAndBuildStepProvenance) {
+    istringstream input(
+      "0 STEP\n"
+      "3 4 0 0 0 0 1 0 1 0 0\n");
+
+    auto geometry = LDrawGeometryCompiler().compile(input, colorTable());
+    auto primitive = onlyMeshPrimitive(geometry);
+
+    EXPECT_EQ("ldraw", metadataValue(*primitive, "source.format"));
+    EXPECT_EQ("<input>", metadataValue(*primitive, "ldraw.source"));
+    EXPECT_EQ("2", metadataValue(*primitive, "ldraw.lineStart"));
+    EXPECT_EQ("2", metadataValue(*primitive, "ldraw.lineEnd"));
+    EXPECT_EQ("4", metadataValue(*primitive, "ldraw.colorCode"));
+    EXPECT_EQ("2", metadataValue(*primitive, "ldraw.buildStep"));
+    EXPECT_EQ("3", metadataValue(*primitive, "ldraw.command"));
   }
 
   TEST(LDrawGeometryCompiler, TypeFourQuadProducesTwoWoundMeshTriangles) {
@@ -348,6 +369,57 @@ namespace LDrawGeometryCompilerTest {
 
     EXPECT_GT(visiblePixels, 0);
     EXPECT_EQ(0, resolver->openCalls);
+  }
+
+  TEST(LDrawGeometryCompiler, MpdBlocksAndRecursiveReferencesCarryProvenance) {
+    auto resolver = make_shared<MemoryResolver>(map<string, string>{
+      {"external.dat", "3 4 0 0 0 0 1 0 1 0 0\n"}});
+    istringstream input(
+      "0 FILE main.ldr\n"
+      "1 1 0 0 0 1 0 0 0 1 0 0 0 1 child.dat\n"
+      "0 NOFILE\n"
+      "0 FILE child.dat\n"
+      "0 STEP\n"
+      "1 2 0 0 0 1 0 0 0 1 0 0 0 1 external.dat\n"
+      "0 NOFILE\n");
+
+    auto geometry = LDrawGeometryCompiler(resolver).compile(input, colorTable());
+    ASSERT_EQ(1u, geometry->primitives().size());
+    auto rootReference = dynamic_pointer_cast<Instance>(geometry->primitives().front());
+    ASSERT_NE(nullptr, rootReference);
+
+    EXPECT_EQ("<input>", metadataValue(*rootReference, "ldraw.source"));
+    EXPECT_EQ("main.ldr", metadataValue(*rootReference, "ldraw.mpdBlock"));
+    EXPECT_EQ("2", metadataValue(*rootReference, "ldraw.lineStart"));
+    EXPECT_EQ("1", metadataValue(*rootReference, "ldraw.colorCode"));
+    EXPECT_EQ("1", metadataValue(*rootReference, "ldraw.buildStep"));
+    EXPECT_EQ("child.dat", metadataValue(*rootReference, "ldraw.referencedPart"));
+    EXPECT_EQ("<input>", metadataValue(*rootReference, "ldraw.parentReferenceFile"));
+    EXPECT_EQ("2", metadataValue(*rootReference, "ldraw.parentReferenceLine"));
+
+    auto childComposite = dynamic_pointer_cast<Composite>(rootReference->primitive());
+    ASSERT_NE(nullptr, childComposite);
+    ASSERT_EQ(1u, childComposite->primitives().size());
+    auto childReference = dynamic_pointer_cast<Instance>(childComposite->primitives().front());
+    ASSERT_NE(nullptr, childReference);
+
+    EXPECT_EQ("child.dat", metadataValue(*childReference, "ldraw.source"));
+    EXPECT_EQ("child.dat", metadataValue(*childReference, "ldraw.mpdBlock"));
+    EXPECT_EQ("6", metadataValue(*childReference, "ldraw.lineStart"));
+    EXPECT_EQ("2", metadataValue(*childReference, "ldraw.colorCode"));
+    EXPECT_EQ("2", metadataValue(*childReference, "ldraw.buildStep"));
+    EXPECT_EQ("external.dat", metadataValue(*childReference, "ldraw.referencedPart"));
+    EXPECT_EQ("child.dat", metadataValue(*childReference, "ldraw.parentReferenceFile"));
+    EXPECT_EQ("6", metadataValue(*childReference, "ldraw.parentReferenceLine"));
+
+    auto externalComposite = dynamic_pointer_cast<Composite>(childReference->primitive());
+    ASSERT_NE(nullptr, externalComposite);
+    auto leaf = onlyMeshPrimitive(externalComposite);
+    EXPECT_EQ("external.dat", metadataValue(*leaf, "ldraw.source"));
+    EXPECT_EQ("", metadataValue(*leaf, "ldraw.mpdBlock"));
+    EXPECT_EQ("1", metadataValue(*leaf, "ldraw.lineStart"));
+    EXPECT_EQ("4", metadataValue(*leaf, "ldraw.colorCode"));
+    EXPECT_EQ("1", metadataValue(*leaf, "ldraw.buildStep"));
   }
 
   TEST(LDrawGeometryCompiler, TypeOneColorSixteenInheritsReferenceColorAndDirectColorsOverride) {

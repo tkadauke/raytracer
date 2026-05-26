@@ -55,6 +55,43 @@ namespace {
     return material;
   }
 
+  void attachPolygonProvenance(render::Primitive& primitive,
+                               const string& file,
+                               const string& mpdBlock,
+                               int lineNumber,
+                               int color,
+                               int buildStep,
+                               const string& commandType) {
+    primitive.setMetadataValue("source.format", "ldraw");
+    primitive.setMetadataValue("ldraw.source", file);
+    if (!mpdBlock.empty())
+      primitive.setMetadataValue("ldraw.mpdBlock", mpdBlock);
+    primitive.setMetadataValue("ldraw.lineStart", to_string(lineNumber));
+    primitive.setMetadataValue("ldraw.lineEnd", to_string(lineNumber));
+    primitive.setMetadataValue("ldraw.colorCode", to_string(color));
+    primitive.setMetadataValue("ldraw.buildStep", to_string(buildStep));
+    primitive.setMetadataValue("ldraw.command", commandType);
+  }
+
+  void attachReferenceProvenance(render::Primitive& primitive,
+                                 const LDrawSubfileReference& reference,
+                                 const string& parentFile,
+                                 const string& parentMpdBlock,
+                                 int buildStep) {
+    primitive.setMetadataValue("source.format", "ldraw");
+    primitive.setMetadataValue("ldraw.source", parentFile);
+    if (!parentMpdBlock.empty())
+      primitive.setMetadataValue("ldraw.mpdBlock", parentMpdBlock);
+    primitive.setMetadataValue("ldraw.lineStart", to_string(reference.lineNumber));
+    primitive.setMetadataValue("ldraw.lineEnd", to_string(reference.lineNumber));
+    primitive.setMetadataValue("ldraw.colorCode", to_string(reference.color));
+    primitive.setMetadataValue("ldraw.buildStep", to_string(buildStep));
+    primitive.setMetadataValue("ldraw.command", "1");
+    primitive.setMetadataValue("ldraw.referencedPart", reference.filename);
+    primitive.setMetadataValue("ldraw.parentReferenceFile", parentFile);
+    primitive.setMetadataValue("ldraw.parentReferenceLine", to_string(reference.lineNumber));
+  }
+
   shared_ptr<render::MeshPrimitive> meshPrimitiveForTriangle(const LDrawTriangle& triangle,
                                                             const LDrawColorTable& colors,
                                                             const LDrawColorContext& context,
@@ -62,6 +99,8 @@ namespace {
                                                             bool inheritedInverted,
                                                             LDrawDiagnostics* diagnostics,
                                                             const string& file,
+                                                            const string& mpdBlock,
+                                                            int buildStep,
                                                             LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
     for (const auto& point : triangle.points)
@@ -78,6 +117,8 @@ namespace {
     primitive->setMaterial(
       materialForPolygon(colors, triangle.color, context, bfc, diagnostics, file,
                          triangle.lineNumber));
+    attachPolygonProvenance(*primitive, file, mpdBlock, triangle.lineNumber, triangle.color,
+                            buildStep, "3");
     if (reverse && diagnostics) {
       diagnostics->warning(LDrawDiagnosticCode::BfcAmbiguity, file, triangle.lineNumber,
                            "BFC winding was reversed before compiling this triangle");
@@ -92,6 +133,8 @@ namespace {
                                                         bool inheritedInverted,
                                                         LDrawDiagnostics* diagnostics,
                                                         const string& file,
+                                                        const string& mpdBlock,
+                                                        int buildStep,
                                                         LDrawGeometryCompiler::NormalMode normalMode) {
     Mesh mesh;
     for (const auto& point : quad.points)
@@ -107,6 +150,8 @@ namespace {
         : render::MeshPrimitive::NormalMode::Flat);
     primitive->setMaterial(
       materialForPolygon(colors, quad.color, context, bfc, diagnostics, file, quad.lineNumber));
+    attachPolygonProvenance(*primitive, file, mpdBlock, quad.lineNumber, quad.color, buildStep,
+                            "4");
     if (reverse && diagnostics) {
       diagnostics->warning(LDrawDiagnosticCode::BfcAmbiguity, file, quad.lineNumber,
                            "BFC winding was reversed before compiling this quad");
@@ -195,6 +240,7 @@ shared_ptr<render::Composite>
 LDrawGeometryCompiler::compile(const LDrawParser::Commands& commands, const LDrawColorTable& colors,
                                const LDrawColorContext& context) const {
   CompileState state;
+  state.currentFile = "<input>";
   return compileCommands(commands, colors, context, state, false);
 }
 
@@ -216,16 +262,19 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
                                        bool inheritedInverted) const {
   auto result = make_shared<render::Composite>();
   BfcState bfc;
+  int buildStep = 1;
 
   for (const auto& command : commands) {
     if (holds_alternative<LDrawTriangle>(command)) {
       result->add(meshPrimitiveForTriangle(get<LDrawTriangle>(command), colors, context, bfc,
                                            inheritedInverted, state.diagnostics,
-                                           state.currentFile, m_normalMode));
+                                           state.currentFile, state.currentMpdBlock, buildStep,
+                                           m_normalMode));
     } else if (holds_alternative<LDrawQuad>(command)) {
       result->add(
         meshPrimitiveForQuad(get<LDrawQuad>(command), colors, context, bfc, inheritedInverted,
-                             state.diagnostics, state.currentFile, m_normalMode));
+                             state.diagnostics, state.currentFile, state.currentMpdBlock,
+                             buildStep, m_normalMode));
     } else if (holds_alternative<LDrawSubfileReference>(command)) {
       const auto& reference = get<LDrawSubfileReference>(command);
       const bool subfileInverted =
@@ -234,13 +283,18 @@ LDrawGeometryCompiler::compileCommands(const LDrawParser::Commands& commands,
         compileSubfile(reference, colors, colors.contextForSubfile(reference.color, context), state,
                        subfileInverted));
       instance->setMatrix(transformForSubfileReference(reference));
+      attachReferenceProvenance(*instance, reference, state.currentFile, state.currentMpdBlock,
+                                buildStep);
       result->add(instance);
       bfc.invertNext = false;
     } else if (holds_alternative<LDrawMetaCommand>(command)) {
       const auto& meta = get<LDrawMetaCommand>(command);
       const bool wasBfc = meta.keyword == "BFC";
       applyBfcMeta(meta, bfc);
-      if (!meta.isComment() && !wasBfc && meta.keyword != "!COLOUR" && state.diagnostics) {
+      if (meta.keyword == "STEP")
+        ++buildStep;
+      if (!meta.isComment() && !wasBfc && meta.keyword != "!COLOUR" && meta.keyword != "STEP" &&
+          state.diagnostics) {
         state.diagnostics->warning(
           LDrawDiagnosticCode::UnsupportedMetaCommand, state.currentFile, meta.lineNumber,
           "unsupported meta command '" + meta.keyword + "' was ignored");
@@ -346,9 +400,12 @@ LDrawGeometryCompiler::compileSubfile(const LDrawSubfileReference& reference,
   state.activeFiles.insert(fileKey);
   ++state.depth;
   const string previousFile = state.currentFile;
+  const string previousMpdBlock = state.currentMpdBlock;
   state.currentFile = reference.filename;
+  state.currentMpdBlock = fileKey.rfind("mpd:", 0) == 0 ? reference.filename : string();
   auto result = compileCommands(parsed->second, colors, context, state, inheritedInverted);
   state.currentFile = previousFile;
+  state.currentMpdBlock = previousMpdBlock;
   --state.depth;
   state.activeFiles.erase(fileKey);
 
@@ -365,7 +422,10 @@ shared_ptr<render::Composite> LDrawGeometryCompiler::compile(istream& input,
 
   auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
   LDrawGeometryCompiler compiler(resolver, m_recursionLimit, m_normalMode);
-  return compiler.compile(document.mainFile().commands, colors, context);
+  CompileState state;
+  state.currentFile = "<input>";
+  state.currentMpdBlock = document.mainFile().filename;
+  return compiler.compileCommands(document.mainFile().commands, colors, context, state, false);
 }
 
 shared_ptr<render::Composite>
@@ -373,7 +433,17 @@ LDrawGeometryCompiler::compile(istream& input, const LDrawColorTable& colors,
                                LDrawDiagnostics& diagnostics,
                                const LDrawColorContext& context) const {
   try {
-    return compile(LDrawParser().parse(input), colors, diagnostics, context);
+    const auto document = LDrawParser().parseDocument(input);
+    if (!document.isMultipart())
+      return compile(document.mainFile().commands, colors, diagnostics, context);
+
+    auto resolver = make_shared<LDrawMpdFileResolver>(document, m_resolver);
+    LDrawGeometryCompiler compiler(resolver, m_recursionLimit, m_normalMode);
+    CompileState state;
+    state.currentFile = "<input>";
+    state.currentMpdBlock = document.mainFile().filename;
+    state.diagnostics = &diagnostics;
+    return compiler.compileCommands(document.mainFile().commands, colors, context, state, false);
   } catch (const LDrawParseError& error) {
     const LDrawDiagnosticCode code =
       error.message().find("invalid integer for color") != string::npos

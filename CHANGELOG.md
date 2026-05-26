@@ -22,6 +22,11 @@ see `docs/modernize.md` §3.11 and `CLAUDE.md` for the rules.
   edge/detail lines as zero-width curve-overlay segments with color 24
   resolved from the active part edge color, while type-5 optional lines remain
   explicitly ignored with diagnostics for #210. — GPT-5
+- **LDraw source provenance metadata.** Runtime objects can now carry opaque
+  inspection metadata, and imported LDraw meshes/type-1 instances record source
+  file or MPD block, line range, command type, color code, build step,
+  referenced part, and parent reference details without changing render output
+  for #210. — GPT-5
 - **Structured LDraw import diagnostics.** LDraw resolving and geometry
   compilation can now collect machine-checkable warnings/errors for missing
   subfiles, unsupported commands, skipped line geometry, color fallbacks, BFC
